@@ -1,0 +1,29 @@
+<!doctype html>
+
+<script>
+  function Editor(preview) {
+    this.update = function () {
+        let rawFile = new XMLHttpRequest();
+        let allText = "# Fail!";
+        rawFile.open("GET", "markdown/das_overview.md", false);
+        rawFile.onreadystatechange = function ()
+        {
+            if(rawFile.readyState === 4)
+            {
+                if(rawFile.status === 200 || rawFile.status === 0)
+                {
+                    allText = rawFile.responseText;
+                }
+            }
+        };
+        rawFile.send(null);
+        let converter = new showdown.Converter({ tables: true });
+        let html = converter.makeHtml(allText);
+        preview.innerHTML = converter.makeHtml(html);
+    };
+    this.update();
+  }
+  let $ = function (id) { return document.getElementById(id); };
+  new Editor($("preview"));
+</script>
+
