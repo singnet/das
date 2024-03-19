@@ -33,7 +33,7 @@ function text_prompt() {
 }
 
 function get_latest_version() {
-    echo "v1.0.0"
+    echo "1.0.0"
 }
 
 function update_package_dependencies() {
@@ -53,13 +53,32 @@ function fmt_version() {
     local version="$1"
     local pattern="^[0-9]+\.[0-9]+\.[0-9]+$"
 
-    if [ "$version" == "$pattern" ]; then
+    if [[ "$version" =~ $pattern ]]; then
         echo 1
         return
     fi
 
     echo 0
     return
+}
+
+
+function make_tag() {
+    lastest_package_version=$(get_latest_version)
+    
+    while true; do
+        new_package_version=$(text_prompt "The $package_name current version is $lastest_package_version. What is the next version you want to release? (1.0.0) ")
+        
+        is_valid_version=$(fmt_version $new_package_version)
+
+        if [$is_valid_version -eq 0]; then
+            echo "The version '$new_package_version' you provided is invalid"
+            continue
+        fi
+
+        echo "new tag"
+        return
+    done
 }
 
 function make_release() {
@@ -76,9 +95,7 @@ function make_release() {
         echo "Skipping release for $package_name"
     fi
 
-    lastest_package_version=$(get_latest_version)
-    new_package_version=$(text_prompt "The $package_name current version is $lastest_package_version. What is the next version you want to release? (v1.0.0) ")
-
+    make_tag
     
 }
 
