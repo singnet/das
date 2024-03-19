@@ -3,18 +3,18 @@
     "name": "hyperon-das-atomdb",
     "version": "v0.5.1",
     "repository": "git@github.com:singnet/das-atom-db.git",
-    "ref": "master"
+    "hooks": {
+      "beforeRelease": "poetry-library-release.sh"
+    }
   },
   {
     "name": "hyperon-das",
     "version": "v0.8.0",
     "repository": "git@github.com:singnet/das-query-engine.git",
-    "ref": "master",
-    "dependencies": [
-      {
-        "repo": "hyperon-das-atomdb",
-        "instructions": []
-      }
-    ]
+    "hooks": {
+      "beforeRelease": "poetry-library-release.sh",
+      "afterDependencyCheck": "poetry-after-dependency-check.sh"
+    },
+    "dependencies": ["hyperon-das-atomdb"]
   }
 ]
