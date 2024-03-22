@@ -10,11 +10,9 @@ if [ ! -f pyproject.toml ]; then
 fi
 
 if grep -q "^${dependency} =" pyproject.toml; then
-    sed -i.bak "s/^${dependency} = \".*\"/${dependency} = \"${new_package_version}\"/" pyproject.toml
+    sed -i "s/^${dependency} = \".*\"/${dependency} = \"${new_package_version}\"/" pyproject.toml
     echo "Package ${dependency} version updated to ${new_package_version} in pyproject.toml."
 else
-    sed -i.bak "/^\[tool.poetry.dependencies\]/a ${dependency} = \"${new_package_version}\"" pyproject.toml
+    sed -i "/^\[tool.poetry.dependencies\]/a ${dependency} = \"${new_package_version}\"" pyproject.toml
     echo "Package ${dependency} added with version ${new_package_version} to pyproject.toml."
 fi
-
-cat pyproject.toml

@@ -1,7 +1,6 @@
 [
   {
     "name": "hyperon-das-atomdb",
-    "version": "v0.5.1",
     "repository": "git@github.com:singnet/das-atom-db.git",
     "hooks": {
       "beforeRelease": "poetry-before-release.sh"
@@ -10,7 +9,6 @@
   },
   {
     "name": "hyperon-das",
-    "version": "v0.8.0",
     "repository": "git@github.com:singnet/das-query-engine.git",
     "hooks": {
       "beforeRelease": "poetry-before-release.sh",
@@ -18,6 +16,16 @@
     },
     "dependencies": [
       "hyperon-das-atomdb"
+    ]
+  },
+  {
+    "name": "das-serverless-functions",
+    "repository": "git@github.com:singnet/das-serverless-functions.git",
+    "hooks": {
+      "afterDependencyCheck": "update-requirements-after-dependency-check.sh"
+    },
+    "dependencies": [
+      "hyperon-das"
     ]
   }
 ]

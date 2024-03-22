@@ -127,7 +127,7 @@ function run_hook() {
     local hook_name="$1"
     local hook_script="$2"
 
-    if [ -z "$2" ]; then
+    if [ -z "$2" ] || [ "$2" == "null" ]; then
         echo "Skipping hook $hook_name because it could not be loaded; an empty script path was provided."
         return
     fi
@@ -189,27 +189,27 @@ function make_release() {
 
     local create_release=$(boolean_prompt "Do you want to create a release for ${package_name}: [yes/no] ")
 
-    local package_repository_folder=$(clone_repository $package_repository)
-
-    cd $package_repository_folder
-
     if [ "$create_release" -eq 1 ]; then
+        local package_repository_folder=$(clone_repository $package_repository)
+
+        cd $package_repository_folder
+
         update_package_dependencies $package_dependencies
+
+        local versions=($(make_tag $package_repository_folder))
+        package_version="${versions[0]}"
+        new_package_version="${versions[1]}"
+
+        run_hook "BeforeRelease" "$package_hook_before_release"
+
+        cd - &>/dev/null
+
+        local new_package="{\"package_name\": \"${package_name}\", \"current_version\": \"${package_version}\", \"new_version\": \"${new_package_version}\", \"repository_path\": \"${package_repository_folder}\"}"
+
+        push_to_packages_pending_update "$new_package"
     else
         echo "Skipping release for $package_name"
     fi
-
-    local versions=($(make_tag $package_repository_folder))
-    package_version="${versions[0]}"
-    new_package_version="${versions[1]}"
-
-    run_hook "BeforeRelease" "$package_hook_before_release"
-
-    cd - &>/dev/null
-
-    local new_package="{\"package_name\": \"${package_name}\", \"current_version\": \"${new_package_version}\", \"new_version\": \"${package_version}\", \"repository_path\": \"${package_repository_folder}\"}"
-
-    push_to_packages_pending_update "$new_package"
 }
 
 function commit_changes() {
@@ -217,20 +217,20 @@ function commit_changes() {
 
     setup_git
 
+    git add .
     git commit -m "$commit_msg"
 }
 
 function setup_git() {
-    git_user=$(git config user.name)
-    git_email=$(git config user.email)
-
+    # git_user=$(git config user.name)
+    # git_email=$(git config user.email)
     while [ -z "$git_user" ] || [ -z "$git_email" ]; do
         git_user=$(text_prompt "Your Git username is not configured. Please provide your Git name: ")
         git_email=$(text_prompt "Your Git email is not configured. Please provide your Git email: ")
-
-        git config user.name "$git_user"
-        git config user.email "$git_email"
     done
+
+    git config user.name "$git_user"
+    git config user.email "$git_email"
 }
 
 function review() {
@@ -243,9 +243,24 @@ function review() {
     done
 }
 
-# function update_packages() {
+function update_packages() {
+    for package in $(echo "$packages_pending_update" | jq -c '.[]'); do
+        package_name=$(echo "$package" | jq -r '.package_name')
+        current_version=$(echo "$package" | jq -r '.current_version')
+        new_version=$(echo "$package" | jq -r '.new_version')
+        repository_path=$(echo "$package" | jq -r '.repository_path')
 
-# }
+        cd $repository_path
+
+        commit_changes "chores: create a new release version"
+        echo $repository_path
+        # start_workflow
+
+        cd - &>/dev/null
+
+        echo "Package $package_name updated successfuly"
+    done
+}
 
 function main() {
     local definitions=$(jq -c '.' "$definitions_path")
@@ -258,8 +273,7 @@ function main() {
     apply_changes=$(boolean_prompt "Do you want to continue and apply these changes? [yes/no] ")
 
     if [ "$apply_changes" -eq 1 ]; then
-        # update_packages
-        echo "update_packages"
+        update_packages
     else
         echo "You did not continue, so the changes were not applied."
         exit 0
