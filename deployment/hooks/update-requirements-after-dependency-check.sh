@@ -16,5 +16,3 @@ else
     echo "${dependency}==${new_package_version}" >>das-query-engine/requirements.txt
     echo "Dependency ${dependency} added with version ${new_package_version} to das-query-engine/requirements.txt."
 fi
-
-cat das-query-engine/requirements.txt

@@ -257,7 +257,9 @@ function review() {
         local package_current_version=$(jq -r '.current_version' <<<"$package")
         local package_new_version=$(jq -r '.new_version' <<<"$package")
 
+        echo "-----------------------------------------------------------------------------------"
         echo "$package_name from version $package_current_version to version $package_new_version"
+        echo "-----------------------------------------------------------------------------------"
     done
 }
 
@@ -312,6 +314,8 @@ function start_workflow() {
         sleep 10
     done
 
+    echo "Please wait a few seconds..."
+    sleep 10
 }
 
 function update_packages() {
