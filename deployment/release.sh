@@ -5,6 +5,7 @@ set -e
 workdir=$(pwd)
 hooks_path="$workdir/deployment/hooks"
 definitions_path="$workdir/deployment/definitions.json"
+secret_path="$workdir/deployment/secret"
 packages_pending_update="[]"
 
 function boolean_prompt() {
@@ -224,11 +225,17 @@ function make_release() {
 function commit_changes() {
     commit_msg="$1"
 
-    setup_git
+    git_status=$(git status --porcelain)
 
-    git add .
-    git commit -m "$commit_msg"
-    git push origin master
+    if [ -n "$git_status" ]; then
+        setup_git
+        git add .
+        git commit -m "$commit_msg"
+        git push origin main
+    else
+        echo "Skipping commit changes because no files were changed to be committed"
+    fi
+
 }
 
 function setup_git() {
@@ -255,19 +262,54 @@ function review() {
 
 function start_workflow() {
     new_version="$1"
+    repository_owner="$2"
+    repository_name="$3"
+    repository_workflow="$4"
 
-    repo_owner=""
-
-    GITHUB_TOKEN="seu_token_de_acesso"
-    WORKFLOW_FILE="caminho_para_o_arquivo_do_workflow"
-
-    api_url="https://api.github.com/repos/$REPO_OWNER/$REPO_NAME/actions/workflows/$WORKFLOW_FILE/dispatches"
+    api_url="https://api.github.com/repos/$repository_owner/$repository_name/actions/workflows/$repository_workflow/dispatches"
 
     curl -X POST \
-        -H "Authorization: token $GITHUB_TOKEN" \
+        -H "Authorization: token $github_token" \
         -H "Accept: application/vnd.github.v3+json" \
         "$api_url" \
-        -d "{\"ref\": "master", \"inputs\": {\"version\": \"$new_version\"}}"
+        -d '{"ref": "main", "inputs": {"version": "'"$new_version"'"}}'
+
+    if [ $? -ne 0 ]; then
+        echo "Failed to trigger workflow"
+        exit 1
+    fi
+
+    sleep 10
+
+    while true; do
+        status_response=$(curl -s -X GET \
+            -H "Authorization: token $github_token" \
+            -H "Accept: application/vnd.github.v3+json" \
+            "https://api.github.com/repos/$repository_owner/$repository_name/actions/workflows/$repository_workflow/runs?event=workflow_dispatch")
+
+        repository_workflow_path=".github/workflows/$repository_workflow"
+
+        status=$(echo "$status_response" | jq -r '.workflow_runs[] | select(.path == "'"$repository_workflow_path"'") | .status' | head -n 1)
+
+        if [ -n "$status" ]; then
+            if [ "$status" == "completed" ]; then
+                echo "Workflow completed successfully."
+                break
+            elif [ "$status" == "failed" ]; then
+                echo "Workflow failed."
+                exit 1
+            else
+                echo "Workflow is currently in the '$status' status. Please wait while it completes..."
+                sleep 30
+            fi
+        else
+            echo "No matching or active workflow runs found. Exiting monitoring loop."
+            break
+        fi
+
+        sleep 10
+    done
+
 }
 
 function update_packages() {
@@ -291,7 +333,24 @@ function update_packages() {
     done
 }
 
+function load_secret() {
+    if [ -f "$secret_path" ]; then
+        secret=$(cat $secret_path)
+
+        if [ ! -z "$secret" ]; then
+            echo "$secret"
+            return
+        fi
+    fi
+
+    secret=$(text_prompt "Enter your github access token: ")
+    echo "$secret" >$secret_path
+    echo $secret
+}
+
 function main() {
+    github_token=$(load_secret)
+
     local definitions=$(jq -c '.' "$definitions_path")
 
     for package_definition in $(jq -c '.[]' <<<"$definitions"); do
