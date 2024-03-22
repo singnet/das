@@ -5,7 +5,8 @@
     "repository": "git@github.com:singnet/das-atom-db.git",
     "hooks": {
       "beforeRelease": "poetry-before-release.sh"
-    }
+    },
+    "dependencies": []
   },
   {
     "name": "hyperon-das",

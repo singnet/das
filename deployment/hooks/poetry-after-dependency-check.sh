@@ -2,9 +2,19 @@
 
 set -e
 
-poetry_version="$das_release_version"
-poetry_library_name=""
-poetry_dependency_name=""
+echo "Updating $dependency to version $new_package_version in the $package_name package."
 
-echo "Updating $poetry_library_name to version $poetry_version in the $poetry_dependency_name library."
-poetry add $poetry_library_name@$poetry_version
+if [ ! -f pyproject.toml ]; then
+    echo "The pyproject.toml file not found."
+    exit 1
+fi
+
+if grep -q "^${dependency} =" pyproject.toml; then
+    sed -i.bak "s/^${dependency} = \".*\"/${dependency} = \"${new_package_version}\"/" pyproject.toml
+    echo "Package ${dependency} version updated to ${new_package_version} in pyproject.toml."
+else
+    sed -i.bak "/^\[tool.poetry.dependencies\]/a ${dependency} = \"${new_package_version}\"" pyproject.toml
+    echo "Package ${dependency} added with version ${new_package_version} to pyproject.toml."
+fi
+
+cat pyproject.toml
