@@ -231,7 +231,8 @@ function commit_changes() {
         setup_git
         git add .
         git commit -m "$commit_msg"
-        git push origin main
+        # TODO: get the branch in the definition file
+        git push origin master
     else
         echo "Skipping commit changes because no files were changed to be committed"
     fi
@@ -268,11 +269,12 @@ function start_workflow() {
 
     api_url="https://api.github.com/repos/$repository_owner/$repository_name/actions/workflows/$repository_workflow/dispatches"
 
+    # TODO: get the branch in the definition file
     curl -X POST \
         -H "Authorization: token $github_token" \
         -H "Accept: application/vnd.github.v3+json" \
         "$api_url" \
-        -d '{"ref": "main", "inputs": {"version": "'"$new_version"'"}}'
+        -d '{"ref": "master", "inputs": {"version": "'"$new_version"'"}}'
 
     if [ $? -ne 0 ]; then
         echo "Failed to trigger workflow"
