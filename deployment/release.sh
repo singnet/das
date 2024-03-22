@@ -183,6 +183,15 @@ function make_release() {
     local package_name=$(jq -r '.name' <<<"$package_definition")
     local package_repository=$(jq -r '.repository' <<<"$package_definition")
     local package_dependencies=$(jq -r '.dependencies[]' <<<"$package_definition")
+    local package_workflow=$(jq -r '.workflow' <<<"$package_definition")
+
+    if [[ $package_repository =~ git@github.com:([^/]+)/([^/.]+)\.git ]]; then
+        package_repo_owner="${BASH_REMATCH[1]}"
+        package_repo_name="${BASH_REMATCH[2]}"
+    else
+        echo "Invalid format for $package_name repository SSH URL in definitions.json"
+        exit 1
+    fi
 
     package_hook_before_release=$(jq -r '.hooks.beforeRelease' <<<"$package_definition")
     package_hook_after_dependency_check=$(jq -r '.hooks.afterDependencyCheck' <<<"$package_definition")
@@ -204,7 +213,7 @@ function make_release() {
 
         cd - &>/dev/null
 
-        local new_package="{\"package_name\": \"${package_name}\", \"current_version\": \"${package_version}\", \"new_version\": \"${new_package_version}\", \"repository_path\": \"${package_repository_folder}\"}"
+        local new_package="{\"package_name\": \"${package_name}\", \"current_version\": \"${package_version}\", \"new_version\": \"${new_package_version}\", \"repository_path\": \"${package_repository_folder}\", \"repository_owner\": \"${package_repo_owner}\", \"repository_name\": \"${package_repo_name}\", \"repository_workflow\": \"${package_workflow}\"}"
 
         push_to_packages_pending_update "$new_package"
     else
@@ -219,6 +228,7 @@ function commit_changes() {
 
     git add .
     git commit -m "$commit_msg"
+    git push origin master
 }
 
 function setup_git() {
@@ -243,18 +253,37 @@ function review() {
     done
 }
 
+function start_workflow() {
+    new_version="$1"
+
+    repo_owner=""
+
+    GITHUB_TOKEN="seu_token_de_acesso"
+    WORKFLOW_FILE="caminho_para_o_arquivo_do_workflow"
+
+    api_url="https://api.github.com/repos/$REPO_OWNER/$REPO_NAME/actions/workflows/$WORKFLOW_FILE/dispatches"
+
+    curl -X POST \
+        -H "Authorization: token $GITHUB_TOKEN" \
+        -H "Accept: application/vnd.github.v3+json" \
+        "$api_url" \
+        -d "{\"ref\": "master", \"inputs\": {\"version\": \"$new_version\"}}"
+}
+
 function update_packages() {
     for package in $(echo "$packages_pending_update" | jq -c '.[]'); do
-        package_name=$(echo "$package" | jq -r '.package_name')
-        current_version=$(echo "$package" | jq -r '.current_version')
-        new_version=$(echo "$package" | jq -r '.new_version')
-        repository_path=$(echo "$package" | jq -r '.repository_path')
+        local package_name=$(echo "$package" | jq -r '.package_name')
+        local current_version=$(echo "$package" | jq -r '.current_version')
+        local new_version=$(echo "$package" | jq -r '.new_version')
+        local repository_path=$(echo "$package" | jq -r '.repository_path')
+        local repository_name=$(echo "$package" | jq -r '.repository_name')
+        local repository_owner=$(echo "$package" | jq -r '.repository_owner')
+        local repository_workflow=$(echo "$package" | jq -r '.repository_workflow')
 
         cd $repository_path
 
         commit_changes "chores: create a new release version"
-        echo $repository_path
-        # start_workflow
+        start_workflow $new_version $repository_owner $repository_name $repository_workflow
 
         cd - &>/dev/null
 
