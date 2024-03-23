@@ -2,376 +2,303 @@
 
 set -e
 
+# PATHS
 workdir=$(pwd)
 hooks_path="$workdir/deployment/hooks"
 definitions_path="$workdir/deployment/definitions.json"
-secret_path="$workdir/deployment/secret"
-packages_pending_update="[]"
+github_token_path="$workdir/deployment/gh_token"
 
-function boolean_prompt() {
-    local prompt="$1"
+source "$workdir/deployment/utils.sh"
 
-    while true; do
-        read -p "$prompt" answer
-        answer=$(echo "$answer" | tr '[:upper:]' '[:lower:]')
+# GLOBAL VARIABLES
+required_commands=(git jq curl)
+packages_pending_update=""
+github_token=$(load_or_request_github_token "$github_token_path")
+definitions=$(jq -c '.' "$definitions_path")
 
-        case "${answer}" in
-        "y" | "yes")
-            echo 1
-            return
-            ;;
-        "n" | "no")
-            echo 0
-            return
-            ;;
-        *)
-            continue
-            ;;
-        esac
-    done
-}
+function verify_dependencies_updated() {
+    local required_dependencies="$1"
 
-function text_prompt() {
-    local prompt="$1"
+    for dependency in $required_dependencies; do
+        local is_dependency_updated=$(contains_property_value "$packages_pending_update" "package_name" "$dependency")
 
-    read -p "$prompt" answer
-
-    echo $answer
-}
-
-function get_repository_latest_version() {
-    local latest_version=$(git for-each-ref --sort=-taggerdate --format '%(refname:short)' refs/tags |
-        grep -E '^(v?[0-9]+\.[0-9]+\.[0-9]+)$' |
-        head -n 1)
-
-    if [ -z $latest_version ]; then
-        echo "unknown"
-    fi
-
-    echo $latest_version
-}
-
-function retrieve_json_object_with_property_value() {
-    local json_list="$1"
-    local target_property="$2"
-    local target_value="$3"
-
-    for item in $(echo "$json_list" | jq -c '.[]'); do
-        local property_value=$(echo "$item" | jq -r ".$target_property")
-
-        if [ "$property_value" == "$target_value" ]; then
-            echo "$item"
-            return
-        fi
-    done
-}
-
-function contains_property_value() {
-    local json_list="$1"
-    local target_property="$2"
-    local target_value="$3"
-
-    local item=$(retrieve_json_object_with_property_value "$json_list" "$target_property" "$target_value")
-
-    if [ ! -z "$item" ]; then
-        echo 1
-    else
-        echo 0
-    fi
-}
-
-function dependency_check() {
-    local package_dependencies="$1"
-
-    for dependency in $package_dependencies; do
-        dependency_updated=$(contains_property_value "$packages_pending_update" "package_name" "$dependency")
-
-        if [ "$dependency_updated" -eq 0 ]; then
-            local continue_without_dependency_update=$(boolean_prompt "Dependency $dependency has not been updated prior to the current package. Would you like to proceed regardless? [yes/no] ")
-
-            if [ "$continue_without_dependency_update" -eq 0 ]; then
-                echo "Exiting due to user interruption..."
-                exit 0
+        if [ "$is_dependency_updated" -eq 0 ]; then
+            if ! boolean_prompt "Dependency $dependency has not been updated prior to the current package. Would you like to proceed regardless? [yes/no] "; then
+                print ":yellow:Exiting due to user choice to not proceed without updating dependency...:/yellow:"
+                return 1
             fi
         else
-            run_hook "AfterDependencyCheck" "$package_hook_after_dependency_check"
+            execute_hook_if_exists "AfterDependencyCheck" "$package_hook_after_dependency_check"
         fi
     done
 }
 
-function update_package_dependencies() {
-    local package_dependencies=$1
-    local package_name=$(jq -r '.name' <<<"$package_definition")
+function process_package_dependencies() {
+    local package_name="$1"
+    local required_dependencies="$2"
 
-    if [ "$package_dependencies" = "null" ] || [ -z "$package_dependencies" ] || [ "${#package_dependencies[@]}" -eq 0 ]; then
-        echo "Skipping dependency update for package $package_name as it has no dependent packages."
+    if [ "$required_dependencies" = "null" ] || [ -z "$required_dependencies" ] || [ "${#required_dependencies[@]}" -eq 0 ]; then
+        print ":yellow:Skipping dependency update for package $package_name as it has no dependent packages.:/yellow:"
         return
     fi
 
-    dependency_check $package_dependencies
-}
-
-function fmt_version() {
-    local version="$1"
-    local pattern="^[0-9]+\.[0-9]+\.[0-9]+$"
-
-    if [[ "$version" =~ $pattern ]]; then
-        echo 1
-        return
+    if ! verify_dependencies_updated "$required_dependencies"; then
+        return 1
     fi
-
-    echo 0
-    return
 }
 
-function run_hook() {
+function execute_hook_if_exists() {
     local hook_name="$1"
     local hook_script="$2"
 
     if [ -z "$2" ] || [ "$2" == "null" ]; then
-        echo "Skipping hook $hook_name because it could not be loaded; an empty script path was provided."
+        print ":yellow:Skipping hook $hook_name because it could not be loaded; an empty script path was provided.:/yellow:"
         return
     fi
 
     local script_path="$hooks_path/$hook_script"
 
-    echo "Executing script located at: $script_path"
+    verify_file_exists $script_path
+
+    print "Executing script located at: $script_path"
 
     source "$script_path"
 }
 
-function make_tag() {
-    local new_package_version=""
-
-    local latest_package_version=$(get_repository_latest_version)
+function prompt_for_new_version() {
+    local prompt="$1"
+    local new_version=""
 
     while true; do
-        new_package_version=$(text_prompt "The $package_name current version is $latest_package_version. What is the next version you want to release? (0.0.0) ")
+        new_version=$(text_prompt "$prompt")
 
-        is_valid_version=$(fmt_version $new_package_version)
-
-        if [ "$is_valid_version" -eq 0 ]; then
-            echo "The version '$new_package_version' you provided is invalid"
-            continue
+        if [[ $(fmt_version "$new_version") -eq 1 ]]; then
+            break
+        else
+            print ":red:The version '$new_version' you provided is invalid. Please use a valid semantic version (e.g., 1.0.0).:/red:"
         fi
-
-        local versions=("$latest_package_version" "$new_package_version")
-
-        echo "${versions[@]}"
-
-        return
     done
+
+    echo "${new_version}"
 }
 
-function clone_repository() {
-    local package_repository=$1
-    local tmp_folder=$(mktemp -d)
-
-    git clone $package_repository $tmp_folder &>/dev/null
-
-    echo $tmp_folder
-}
-
-function push_to_packages_pending_update() {
+function add_package_to_pending_updates() {
     local new_package="$1"
 
-    packages_pending_update=$(echo "$packages_pending_update" | jq ". + [$new_package]")
-}
-
-function make_release() {
-    local package_definition="$1"
-
-    local package_name=$(jq -r '.name' <<<"$package_definition")
-    local package_repository=$(jq -r '.repository' <<<"$package_definition")
-    local package_dependencies=$(jq -r '.dependencies[]' <<<"$package_definition")
-    local package_workflow=$(jq -r '.workflow' <<<"$package_definition")
-
-    if [[ $package_repository =~ git@github.com:([^/]+)/([^/.]+)\.git ]]; then
-        package_repo_owner="${BASH_REMATCH[1]}"
-        package_repo_name="${BASH_REMATCH[2]}"
-    else
-        echo "Invalid format for $package_name repository SSH URL in definitions.json"
-        exit 1
+    if [[ -z "$packages_pending_update" || "$packages_pending_update" == "null" ]]; then
+        packages_pending_update="[]"
     fi
 
-    package_hook_before_release=$(jq -r '.hooks.beforeRelease' <<<"$package_definition")
-    package_hook_after_dependency_check=$(jq -r '.hooks.afterDependencyCheck' <<<"$package_definition")
+    packages_pending_update=$(jq --argjson newPackage "$new_package" '. + [$newPackage]' <<<"$packages_pending_update")
+}
 
-    local create_release=$(boolean_prompt "Do you want to create a release for ${package_name}: [yes/no] ")
+function extract_package_details() {
+    local package="$1"
+    jq -r '[.name, .repository, (.dependencies | join(" ")), .workflow, .hooks.beforeRelease, .hooks.afterDependencyCheck, .ref] | @tsv' <<<"$package" | tr '\t' '|'
+}
 
-    if [ "$create_release" -eq 1 ]; then
-        local package_repository_folder=$(clone_repository $package_repository)
+function extract_packages_pending_update_details() {
+    local package="$1"
+    jq -r '[.package_name, .current_version, .new_version, .repository_path, .repository_name, .repository_owner, .repository_workflow, .repository_ref] | @tsv' <<<"$package" | tr '\t' '|'
+}
 
-        cd $package_repository_folder
+function validate_repository_url() {
+    local package_repository="$1"
+    if ! [[ $package_repository =~ git@github.com:([^/]+)/([^/.]+)\.git ]]; then
+        print ":red:Invalid repository SSH URL format.:/red:"
+        exit 1
+    fi
+}
 
-        update_package_dependencies $package_dependencies
+function create_release() {
+    local package_name="$1"
+    local package_repository="$2"
+    local package_dependencies="$3"
+    local package_workflow="$4"
+    local package_hook_before_release="$5"
+    local package_repo_owner="$6"
+    local package_repo_name="$7"
+    local package_repo_ref="$8"
 
-        local versions=($(make_tag $package_repository_folder))
-        package_version="${versions[0]}"
-        new_package_version="${versions[1]}"
+    local package_repository_folder=$(clone_repo_to_temp_dir "$package_repository")
 
-        run_hook "BeforeRelease" "$package_hook_before_release"
+    cd "$package_repository_folder"
+
+    local package_version=$(get_repository_latest_version)
+
+    local new_package_version=$(prompt_for_new_version "The current version is :green:$package_version:/green:. What is the next version you want to release? (0.0.0): ")
+
+    if process_package_dependencies "$package_name" "$package_dependencies"; then
+        execute_hook_if_exists "BeforeRelease" "$package_hook_before_release"
 
         cd - &>/dev/null
 
-        local new_package="{\"package_name\": \"${package_name}\", \"current_version\": \"${package_version}\", \"new_version\": \"${new_package_version}\", \"repository_path\": \"${package_repository_folder}\", \"repository_owner\": \"${package_repo_owner}\", \"repository_name\": \"${package_repo_name}\", \"repository_workflow\": \"${package_workflow}\"}"
+        local new_package="{\"package_name\": \"${package_name}\", \"current_version\": \"${package_version}\", \"new_version\": \"${new_package_version}\", \"repository_path\": \"${package_repository_folder}\", \"repository_owner\": \"${package_repo_owner}\", \"repository_name\": \"${package_repo_name}\", \"repository_workflow\": \"${package_workflow}\", \"repository_ref\": \"$package_repo_ref\"}"
 
-        push_to_packages_pending_update "$new_package"
-    else
-        echo "Skipping release for $package_name"
-    fi
-}
-
-function commit_changes() {
-    commit_msg="$1"
-
-    git_status=$(git status --porcelain)
-
-    if [ -n "$git_status" ]; then
-        setup_git
-        git add .
-        git commit -m "$commit_msg"
-        # TODO: get the branch in the definition file
-        git push origin master
-    else
-        echo "Skipping commit changes because no files were changed to be committed"
+        add_package_to_pending_updates "$new_package"
     fi
 
 }
 
-function setup_git() {
-    # git_user=$(git config user.name)
-    # git_email=$(git config user.email)
-    while [ -z "$git_user" ] || [ -z "$git_email" ]; do
-        git_user=$(text_prompt "Your Git username is not configured. Please provide your Git name: ")
-        git_email=$(text_prompt "Your Git email is not configured. Please provide your Git email: ")
-    done
+function prepare_and_release_package() {
+    local package_definition="$1"
 
-    git config user.name "$git_user"
-    git config user.email "$git_email"
+    IFS='|' read -r package_name package_repository package_dependencies package_workflow package_hook_before_release package_hook_after_dependency_check package_repo_ref <<<"$(extract_package_details "$package_definition")"
+
+    validate_repository_url "$package_repository"
+
+    local package_repo_owner="${BASH_REMATCH[1]}"
+    local package_repo_name="${BASH_REMATCH[2]}"
+
+    if boolean_prompt "Do you want to create a release for ${package_name}? [y/n] "; then
+        create_release "$package_name" "$package_repository" "$package_dependencies" "$package_workflow" "$package_hook_before_release" "$package_repo_owner" "$package_repo_name" "$package_repo_ref"
+    else
+        print ":yellow:Skipping release for $package_name:/yellow:"
+    fi
 }
 
-function review() {
-    for package in $(jq -c '.[]' <<<"$packages_pending_update"); do
-        local package_name=$(jq -r '.package_name' <<<"$package")
-        local package_current_version=$(jq -r '.current_version' <<<"$package")
-        local package_new_version=$(jq -r '.new_version' <<<"$package")
+function review_package_updates() {
+    echo "-----------------------------------------------------------------------------------"
+    jq -r '.[] | "\(.package_name) \(.current_version) \(.new_version)"' <<<"$packages_pending_update" |
+        while IFS= read -r line; do
+            package_name=$(echo $line | awk '{print $1}')
+            current_version=$(echo $line | awk '{print $2}')
+            new_version=$(echo $line | awk '{print $3}')
 
-        echo "-----------------------------------------------------------------------------------"
-        echo "$package_name from version $package_current_version to version $package_new_version"
-        echo "-----------------------------------------------------------------------------------"
-    done
+            print ":green:${package_name}:/green: from version :red:${current_version}:/red: to version :green:${new_version}:/green:"
+            echo "-----------------------------------------------------------------------------------"
+        done
 }
 
-function start_workflow() {
-    new_version="$1"
-    repository_owner="$2"
-    repository_name="$3"
-    repository_workflow="$4"
+function trigger_workflow() {
+    local new_version="$1"
+    local repository_owner="$2"
+    local repository_name="$3"
+    local repository_workflow="$4"
+    local repository_ref="$5"
 
-    api_url="https://api.github.com/repos/$repository_owner/$repository_name/actions/workflows/$repository_workflow/dispatches"
+    local api_url="https://api.github.com/repos/${repository_owner}/${repository_name}/actions/workflows/${repository_workflow}/dispatches"
 
-    # TODO: get the branch in the definition file
-    curl -X POST \
+    local response_code=$(curl -s -X POST \
         -H "Authorization: token $github_token" \
         -H "Accept: application/vnd.github.v3+json" \
         "$api_url" \
-        -d '{"ref": "master", "inputs": {"version": "'"$new_version"'"}}'
+        -d '{"ref": "'"$repository_ref"'", "inputs": {"version": "'"$new_version"'"}}' \
+        -o /dev/null -w "%{http_code}")
 
-    if [ $? -ne 0 ]; then
-        echo "Failed to trigger workflow"
-        exit 1
+    if [[ "$response_code" -ne 200 && "$response_code" -ne 204 ]]; then
+        print "Failed to trigger workflow: HTTP status $response_code"
+        return 1
+    else
+        print "Workflow dispatch initiated successfully."
     fi
+}
 
-    sleep 10
+function monitor_workflow_status() {
+    local repository_owner="$1"
+    local repository_name="$2"
+    local repository_workflow="$3"
 
-    while true; do
-        status_response=$(curl -s -X GET \
+    local max_retries=30
+    local retry_count=0
+
+    print "Monitoring workflow execution status..."
+
+    while [[ $retry_count -lt $max_retries ]]; do
+        sleep 10
+
+        local status_response=$(curl -s -X GET \
             -H "Authorization: token $github_token" \
             -H "Accept: application/vnd.github.v3+json" \
-            "https://api.github.com/repos/$repository_owner/$repository_name/actions/workflows/$repository_workflow/runs?event=workflow_dispatch")
+            "https://api.github.com/repos/${repository_owner}/${repository_name}/actions/workflows/${repository_workflow}/runs?event=workflow_dispatch")
 
-        repository_workflow_path=".github/workflows/$repository_workflow"
+        local repository_workflow_path=".github/workflows/$repository_workflow"
 
-        status=$(echo "$status_response" | jq -r '.workflow_runs[] | select(.path == "'"$repository_workflow_path"'") | .status' | head -n 1)
+        local status=$(echo "${status_response}" | jq -r '.workflow_runs[] | select(.path == "'"${repository_workflow_path}"'") | .conclusion' | head -n 1)
 
-        if [ -n "$status" ]; then
-            if [ "$status" == "completed" ]; then
-                echo "Workflow completed successfully."
-                break
-            elif [ "$status" == "failed" ]; then
-                echo "Workflow failed."
-                exit 1
-            else
-                echo "Workflow is currently in the '$status' status. Please wait while it completes..."
-                sleep 30
-            fi
+        if [[ -n "${status}" ]]; then
+            case "${status}" in
+            "success")
+                print ":green:Workflow completed successfully.:/green:"
+                return 0
+                ;;
+            "failure")
+                print ":red:Workflow failed.:red:"
+                return 1
+                ;;
+            "cancelled")
+                print ":red:Workflow cancelled.:red:"
+                return 1
+                ;;
+            *)
+                print "Workflow is currently running for :green:${repository_name}:/green:. Please wait..."
+                ;;
+            esac
         else
-            echo "No matching or active workflow runs found. Exiting monitoring loop."
-            break
+            print "Waiting for the workflow to start..."
         fi
 
-        sleep 10
+        ((retry_count++))
     done
 
-    echo "Please wait a few seconds..."
-    sleep 10
-}
-
-function update_packages() {
-    for package in $(echo "$packages_pending_update" | jq -c '.[]'); do
-        local package_name=$(echo "$package" | jq -r '.package_name')
-        local current_version=$(echo "$package" | jq -r '.current_version')
-        local new_version=$(echo "$package" | jq -r '.new_version')
-        local repository_path=$(echo "$package" | jq -r '.repository_path')
-        local repository_name=$(echo "$package" | jq -r '.repository_name')
-        local repository_owner=$(echo "$package" | jq -r '.repository_owner')
-        local repository_workflow=$(echo "$package" | jq -r '.repository_workflow')
-
-        cd $repository_path
-
-        commit_changes "chores: create a new release version"
-        start_workflow $new_version $repository_owner $repository_name $repository_workflow
-
-        cd - &>/dev/null
-
-        echo "Package $package_name updated successfuly"
-    done
-}
-
-function load_secret() {
-    if [ -f "$secret_path" ]; then
-        secret=$(cat $secret_path)
-
-        if [ ! -z "$secret" ]; then
-            echo "$secret"
-            return
-        fi
+    if [[ $retry_count -eq $max_retries ]]; then
+        print ":red:Workflow did not complete in the expected time.:/red:"
+        return 1
     fi
+}
 
-    secret=$(text_prompt "Enter your github access token: ")
-    echo "$secret" >$secret_path
-    echo $secret
+function apply_package_updates() {
+    for package in $(echo "$packages_pending_update" | jq -c '.[]'); do
+        IFS='|' read -r package_name current_version new_version repository_path repository_name repository_owner repository_workflow repository_ref <<<"$(extract_packages_pending_update_details "$package")"
+
+        if [[ -d "$repository_path" ]]; then
+            cd "$repository_path"
+            show_git_diff_and_confirm
+            commit_and_push_changes "Chores: create a new release version $new_version" $repository_ref
+            if trigger_workflow "$new_version" "$repository_owner" "$repository_name" "$repository_workflow" "$repository_ref"; then
+                if ! monitor_workflow_status "$repository_owner" "$repository_name" "$repository_workflow"; then
+                    if boolean_prompt "Something went wrong and the workflow failed... You need to monitor it manually at GitHub page. Once it finishes, you can type 'yes' to continue or 'no' to not continue and exit now. Continue? [yes/no]: "; then
+                        print ":yellow:Continuing after manual verification...:yellow:"
+                    else
+                        print ":yellow:Exiting as requested.:/yellow:"
+                        exit 0
+                    fi
+                fi
+            else
+                if boolean_prompt "The workflow could not be triggered. Do you want to continue? You can trigger it manually and then continue by typing 'yes', or exit by typing 'no'. Continue? [yes/no]: "; then
+                    print "Continuing after manual intervention..."
+                else
+                    print ":yellow:Exiting as requested.:/yellow:"
+                    exit 0
+                fi
+            fi
+            cd - &>/dev/null
+            print ":green:Package $package_name updated successfuly:/green:"
+        else
+            print ":red:Repository path $repository_path does not exist. Skipping $package_name.:/red:"
+        fi
+    done
 }
 
 function main() {
-    github_token=$(load_secret)
-
-    local definitions=$(jq -c '.' "$definitions_path")
-
     for package_definition in $(jq -c '.[]' <<<"$definitions"); do
-        make_release $package_definition
+        prepare_and_release_package $package_definition
     done
 
-    review
-    apply_changes=$(boolean_prompt "Do you want to continue and apply these changes? [yes/no] ")
+    if [ ! -z "$packages_pending_update" ]; then
+        review_package_updates
 
-    if [ "$apply_changes" -eq 1 ]; then
-        update_packages
+        if boolean_prompt "Do you want to continue and apply these changes? [yes/no] "; then
+            apply_package_updates
+        else
+            print ":yellow:You did not continue, so the changes were not applied.:/yellow:"
+            exit 0
+        fi
     else
-        echo "You did not continue, so the changes were not applied."
-        exit 0
+        print ":yellow:No pending releases available.:/yellow:"
     fi
+
 }
 
+requirements "${required_commands[@]}"
 main
