@@ -10,7 +10,7 @@
 
 ### Changelog
 
-#### hyperon-query-engine: 0.7.0
+#### hyperon-query-engine 0.7.0
 
 ```
 [#180] Fix in the test_metta_api.py integration test
@@ -23,7 +23,7 @@
 [BUGFIX] Fix tests to compare dicts using only commom keys
 ```
 
-#### hyperon-das-atomdb: 0.6.0
+#### hyperon-das-atomdb 0.6.0
 
 ```
 [#112] Fix return of the functions get_matched_links(), get_incoming_links(), get_matched_type_template(), get_matched_type() from set to list
@@ -32,7 +32,7 @@
 [#118] Create a new set in Redis to save custom index filters
 ```
 
-#### FaaS functions: 1.12.0
+#### FaaS functions 1.12.0
 
 ```
 [#57] Enable Running Integration Tests Locally with AtomDB Source Code and Local Query Engine
@@ -42,7 +42,7 @@
 [#97] Add custom_query() and update create_field_index()
 ```
 
-#### MeTTa Parser: 0.3.0
+#### MeTTa Parser 0.3.0
 
 ```
 [#36] Add support for comments and escaped characters in literals and symbol names
@@ -52,7 +52,7 @@
 [#43] Bugfix - BSON data being corrupted after implementation of complext typedef expressions
 ```
 
-#### Toolbox: 0.2.0
+#### Toolbox 0.2.0
 
 ```
 [#44] das-cli faas start should have optional parameters
