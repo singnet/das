@@ -30,5 +30,5 @@ In addition to this one, we use many other repositories in the project.
 ## Project management
 
 * [Public board](https://github.com/orgs/singnet/projects/7) - GitHub project board used to track bug reports, feature requests and major new features planning. Use this board to report bugs or request new features.
-* [Development board] (https://github.com/orgs/singnet/projects/6/views/1) - Used internally by the DAS Team to track issues and tasks.
+* [Development board](https://github.com/orgs/singnet/projects/6/views/1) - Used internally by the DAS Team to track issues and tasks.
 * _Contribution guidelines_
