@@ -5,3 +5,7 @@ set -e
 local poetry_version="$new_package_version"
 
 poetry version $poetry_version
+
+local package_folder_path="${package_name//-/_}"
+
+sed -i "s/__version__ = .*/__version__ = '$poetry_version'/g" "$package_folder_path/__init__.py"
