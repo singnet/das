@@ -6,7 +6,7 @@
 * hyperon-das-atomdb: 0.6.0
 * FaaS functions: 1.12.0
 * MeTTa Parser: 0.3.0
-* das-cli: 0.2.0
+* Toolbox das-cli: 0.2.0
 
 ### Changelog
 
@@ -52,7 +52,7 @@
 [#43] Bugfix - BSON data being corrupted after implementation of complext typedef expressions
 ```
 
-#### Toolbox 0.2.0
+#### Toolbox das-cli 0.2.0
 
 ```
 [#44] das-cli faas start should have optional parameters
