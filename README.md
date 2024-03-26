@@ -11,6 +11,7 @@ CI/CD scripts, etc.
 * _DAS User's Guide_
 * [DAS Overview](docs/DAS-Overview.md) - Description of main DAS components and deployment architecture.
 * [DAS Toolbox User's Guide](https://github.com/singnet/das-toolbox) - A guide with detailed instructions to use the DAS Server Toolbox.
+* [Release Notes](docs/release-notes.md) - Release notes of all DAS components.
 
 ## Repositories
 
