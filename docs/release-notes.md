@@ -6,7 +6,7 @@
 * hyperon-das-atomdb: 0.6.0
 * FaaS functions: 1.12.0
 * MeTTa Parser: 0.3.0
-* Toolbox: 0.2.0
+* das-cli: 0.2.0
 
 ### Changelog
 
