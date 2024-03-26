@@ -2,7 +2,7 @@
 
 ## DAS Version 0.1.0
 
-* hyperon-query-engine: 0.7.0
+* hyperon-das: 0.7.0
 * hyperon-das-atomdb: 0.6.0
 * FaaS functions: 1.12.0
 * MeTTa Parser: 0.3.0
@@ -10,7 +10,7 @@
 
 ### Changelog
 
-#### hyperon-query-engine 0.7.0
+#### hyperon-das 0.7.0
 
 ```
 [#180] Fix in the test_metta_api.py integration test
