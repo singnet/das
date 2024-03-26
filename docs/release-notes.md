@@ -1,6 +1,6 @@
 # Release Notes
 
-## Version 0.1.0
+## DAS Version 0.1.0
 
 * hyperon-query-engine: 0.7.0
 * hyperon-das-atomdb: 0.6.0
