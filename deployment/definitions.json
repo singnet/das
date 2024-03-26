@@ -3,6 +3,7 @@
     "name": "hyperon-das-atomdb",
     "repository": "git@github.com:singnet/das-atom-db.git",
     "workflow": "publish-pypi.yml",
+    "ref": "master",
     "hooks": {
       "beforeRelease": "poetry-before-release.sh"
     },
@@ -12,6 +13,7 @@
     "name": "hyperon-das",
     "repository": "git@github.com:singnet/das-query-engine.git",
     "workflow": "publish-pypi.yml",
+    "ref": "master",
     "hooks": {
       "beforeRelease": "poetry-before-release.sh",
       "afterDependencyCheck": "poetry-after-dependency-check.sh"
@@ -24,6 +26,7 @@
     "name": "das-serverless-functions",
     "repository": "git@github.com:singnet/das-serverless-functions.git",
     "workflow": "vultr-build.yml",
+    "ref": "master",
     "hooks": {
       "afterDependencyCheck": "update-requirements-after-dependency-check.sh"
     },
