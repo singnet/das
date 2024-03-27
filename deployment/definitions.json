@@ -5,7 +5,7 @@
     "workflow": "publish-pypi.yml",
     "ref": "master",
     "hooks": {
-      "beforeRelease": "poetry-before-release.sh"
+      "beforeRelease": "poetry/before-release.sh"
     },
     "dependencies": []
   },
@@ -15,8 +15,8 @@
     "workflow": "publish-pypi.yml",
     "ref": "master",
     "hooks": {
-      "beforeRelease": "poetry-before-release.sh",
-      "afterDependencyCheck": "poetry-after-dependency-check.sh"
+      "beforeRelease": "poetry/before-release.sh",
+      "afterDependencyCheck": "poetry/after-dependency-check.sh"
     },
     "dependencies": [
       "hyperon-das-atomdb"
@@ -28,7 +28,7 @@
     "workflow": "vultr-build.yml",
     "ref": "master",
     "hooks": {
-      "afterDependencyCheck": "update-requirements-after-dependency-check.sh"
+      "afterDependencyCheck": "pip/after-dependency-check.sh"
     },
     "dependencies": [
       "hyperon-das"
