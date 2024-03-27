@@ -1,5 +1,25 @@
 [
   {
+    "name": "das-metta-parser",
+    "repository": "git@github.com:singnet/das-metta-parser.git",
+    "workflow": "build.yml",
+    "ref": "master",
+    "hooks": {},
+    "dependencies": []
+  },
+  {
+    "name": "das-toolbox",
+    "repository": "git@github.com:singnet/das-toolbox.git",
+    "workflow": "build.yml",
+    "ref": "master",
+    "hooks": {
+      "afterDependencyCheck": "custom/das-toolbox-after-dependency-check.sh"
+    },
+    "dependencies": [
+      "das-metta-parser"
+    ]
+  },
+  {
     "name": "hyperon-das-atomdb",
     "repository": "git@github.com:singnet/das-atom-db.git",
     "workflow": "publish-pypi.yml",
