@@ -120,7 +120,7 @@ function create_release() {
     local package_repo_name="$7"
     local package_repo_ref="$8"
 
-    local package_repository_folder=$(clone_repo_to_temp_dir "$package_repository")
+    local package_repository_folder=$(clone_repo_to_temp_dir "$package_repository" "$package_repo_ref")
 
     cd "$package_repository_folder"
 
