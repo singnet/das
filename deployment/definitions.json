@@ -53,5 +53,21 @@
     "dependencies": [
       "hyperon-das"
     ]
+  },
+  {
+    "name": "das",
+    "repository": "git@github.com:singnet/das.git",
+    "workflow": "publish.yml",
+    "ref": "master",
+    "hooks": {
+      "beforeRelease": "custom/das-before-release.sh"
+    },
+    "dependencies": [
+      "das-metta-parser",
+      "das-toolbox",
+      "hyperon-das-atomdb",
+      "hyperon-das",
+      "das-serverless-functions"
+    ]
   }
 ]

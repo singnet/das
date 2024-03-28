@@ -131,12 +131,15 @@ function commit_and_push_changes() {
 }
 
 function clone_repo_to_temp_dir() {
-  local package_repository=$1
+  local package_repository="$1"
+  local target_branch="${2:-master}"
   local tmp_folder=$(mktemp -d)
 
-  git clone $package_repository $tmp_folder &>/dev/null
+  git clone "$package_repository" "$tmp_folder" &>/dev/null
 
-  echo $tmp_folder
+  git -C "$tmp_folder" checkout "$target_branch" &>/dev/null
+
+  echo "$tmp_folder"
 }
 
 function print() {
@@ -174,4 +177,23 @@ function load_or_request_github_token() {
   echo "$secret" >"$secret_path"
   chmod 600 "$secret_path"
   echo "$secret"
+}
+
+function append_content_in_file() {
+  local file_path="$1"
+  local new_block="$2"
+  local line=$3
+
+  if [ -z "$line" ]; then
+    echo "$new_block" >>"$file_path"
+  else
+    printf '%s\n' "$new_block" | sed -i "$((line + 1))r /dev/stdin" "$file_path"
+  fi
+}
+
+function find_line_number_by_text_in_file() {
+  local file_path="$1"
+  local text="$2"
+
+  echo -e $(grep -n "$text" "$file_path" | cut -d: -f1)
 }
