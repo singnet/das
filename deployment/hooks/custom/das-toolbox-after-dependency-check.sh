@@ -9,8 +9,8 @@ IFS='|' read -r dependency_package_name dependency_current_version dependency_ne
 
 print "Updating $dependency_package_name to version $dependency_new_version in the $package_name package."
 
-if [ ! -f "$config_file_path" ]; then
-    print ":red:The $config_file_path file not found.:/red:"
+if ! verify_file_exists $config_file_path; then
+    print ":red:$config_file_path file not found.:/red:"
     exit 1
 fi
 

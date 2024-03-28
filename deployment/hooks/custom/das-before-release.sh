@@ -25,7 +25,7 @@ function generate_release_notes_block() {
     for package in $(echo "$packages_pending_update" | jq -c '.[]'); do
         IFS='|' read -r package_name current_version new_version repository_path <<<"$(extract_packages_pending_update_details "$package")"
 
-        new_block+="* $package_name: $new_version\n"
+        new_block+="* $package_name $new_version\n"
     done
 
     echo -e "## DAS Version $new_package_version\n\n$new_block"
