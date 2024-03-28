@@ -1,0 +1,24 @@
+---
+name: Publish DAS
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version"
+        required: true
+
+jobs:
+  tag:
+    needs: build
+    if: github.ref == 'refs/heads/master'
+    uses: singnet/das-scripts-pipeline/.github/workflows/action.yml@master
+    with:
+      version: ${{ github.event.inputs.version }}
+      version-strategy: bump-version-from-variable-value
+      job-image-namespace: trueagi
+      job-image-version-semver: semantic-versioning
+      main-branch: master
+      version-tag-regex-pattern: /^\d+\.\d+\.\d+$/
+      version-require-confirmation: "true"
+    secrets: inherit
