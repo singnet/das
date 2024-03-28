@@ -10,7 +10,6 @@ on:
 
 jobs:
   tag:
-    needs: build
     if: github.ref == 'refs/heads/master'
     uses: singnet/das-scripts-pipeline/.github/workflows/action.yml@master
     with:
