@@ -170,20 +170,69 @@ function review_package_updates() {
         done
 }
 
+function apply_package_updates() {
+    for package in $(echo "$packages_pending_update" | jq -c '.[]'); do
+        update_package "$package"
+    done
+}
+
+function update_package() {
+    local package="$1"
+
+    IFS='|' read -r package_name current_version new_version repository_path repository_name repository_owner repository_workflow repository_ref <<<"$(extract_packages_pending_update_details "$package")"
+
+    if [[ -d "$repository_path" ]]; then
+        local workflow_inputs='{"version": "'"$new_version"'"}'
+
+        cd "$repository_path"
+        show_git_diff_and_confirm
+        commit_and_push_changes "Chores: create a new release version $new_version" $repository_ref
+        trigger_package_workflow "$package_name" "$workflow_inputs" "$repository_owner" "$repository_name" "$repository_workflow" "$repository_ref"
+        cd - &>/dev/null
+        print ":green:Package $package_name updated successfully:/green:"
+        run_integration_tests
+    else
+        print ":red:Repository path $repository_path does not exist. Skipping $package_name.:/red:"
+    fi
+}
+
+function run_integration_tests() {
+    local package_name="das-query-engine"
+    local workflow_inputs="{}"
+    local repository_owner="singnet"
+    local repository_name="das-query-engine"
+    local repository_workflow="testing.yml"
+    local repository_ref="master"
+
+    if boolean_prompt "Do you want to run the integration tests? [y/n] "; then
+        trigger_package_workflow "$package_name" "$workflow_inputs" "$repository_owner" "$repository_name" "$repository_workflow" "$repository_ref"
+        print ":green:Integration tests completed successfully:/green:"
+    else
+        print ":yellow:No action taken as per user's choice:/yellow:"
+    fi
+}
+
 function trigger_workflow() {
-    local new_version="$1"
+    local inputs="$1"
     local repository_owner="$2"
     local repository_name="$3"
     local repository_workflow="$4"
     local repository_ref="$5"
+    local payload=""
 
     local api_url="https://api.github.com/repos/${repository_owner}/${repository_name}/actions/workflows/${repository_workflow}/dispatches"
+
+    if [ "$inputs" = "{}" ] || [ -z "$inputs" ]; then
+        payload="{\"ref\": \"$repository_ref\"}"
+    else
+        payload="{\"ref\": \"$repository_ref\", \"inputs\": $inputs}"
+    fi
 
     local response_code=$(curl -s -X POST \
         -H "Authorization: token $github_token" \
         -H "Accept: application/vnd.github.v3+json" \
         "$api_url" \
-        -d '{"ref": "'"$repository_ref"'", "inputs": {"version": "'"$new_version"'"}}' \
+        -d "$payload" \
         -o /dev/null -w "%{http_code}")
 
     if [[ "$response_code" -ne 200 && "$response_code" -ne 204 ]]; then
@@ -247,42 +296,57 @@ function monitor_workflow_status() {
     fi
 }
 
-function apply_package_updates() {
-    for package in $(echo "$packages_pending_update" | jq -c '.[]'); do
-        IFS='|' read -r package_name current_version new_version repository_path repository_name repository_owner repository_workflow repository_ref <<<"$(extract_packages_pending_update_details "$package")"
+function trigger_package_workflow() {
+    local package_name="$1"
+    local workflow_inputs="$2"
+    local repository_owner="$3"
+    local repository_name="$4"
+    local repository_workflow="$5"
+    local repository_ref="$6"
 
-        if [[ -d "$repository_path" ]]; then
-            cd "$repository_path"
-            show_git_diff_and_confirm
-            commit_and_push_changes "Chores: create a new release version $new_version" $repository_ref
-            if trigger_workflow "$new_version" "$repository_owner" "$repository_name" "$repository_workflow" "$repository_ref"; then
-                if ! monitor_workflow_status "$repository_owner" "$repository_name" "$repository_workflow"; then
-                    if boolean_prompt "Something went wrong and the workflow failed... You need to monitor it manually at GitHub page. Once it finishes, you can type 'yes' to continue or 'no' to not continue and exit now. Continue? [yes/no]: "; then
-                        print ":yellow:Continuing after manual verification...:yellow:"
-                    else
-                        print ":yellow:Exiting as requested.:/yellow:"
-                        exit 0
-                    fi
-                fi
-            else
-                if boolean_prompt "The workflow could not be triggered. Do you want to continue? You can trigger it manually and then continue by typing 'yes', or exit by typing 'no'. Continue? [yes/no]: "; then
-                    print "Continuing after manual intervention..."
-                else
-                    print ":yellow:Exiting as requested.:/yellow:"
-                    exit 0
-                fi
-            fi
-            cd - &>/dev/null
-            print ":green:Package $package_name updated successfuly:/green:"
-        else
-            print ":red:Repository path $repository_path does not exist. Skipping $package_name.:/red:"
-        fi
-    done
+    if trigger_workflow "$workflow_inputs" "$repository_owner" "$repository_name" "$repository_workflow" "$repository_ref"; then
+        monitor_workflow "$package_name" "$repository_owner" "$repository_name" "$repository_workflow"
+    else
+        handle_workflow_trigger_failure "$package_name"
+    fi
+}
+
+function monitor_workflow() {
+    local package_name="$1"
+    local repository_owner="$2"
+    local repository_name="$3"
+    local repository_workflow="$4"
+
+    if ! monitor_workflow_status "$repository_owner" "$repository_name" "$repository_workflow"; then
+        handle_workflow_failure "$package_name"
+    fi
+}
+
+function handle_workflow_trigger_failure() {
+    local package_name="$1"
+
+    if boolean_prompt "The workflow could not be triggered. Do you want to continue? You can trigger it manually and then continue by typing 'yes', or exit by typing 'no'. Continue? [yes/no]: "; then
+        print "Continuing after manual intervention..."
+    else
+        print ":yellow:Exiting as requested.:/yellow:"
+        exit 0
+    fi
+}
+
+function handle_workflow_failure() {
+    local package_name="$1"
+
+    if boolean_prompt "Something went wrong and the workflow failed... You need to monitor it manually at GitHub page. Once it finishes, you can type 'yes' to continue or 'no' to not continue and exit now. Continue? [yes/no]: "; then
+        print ":yellow:Continuing after manual verification...:/yellow:"
+    else
+        print ":yellow:Exiting as requested.:/yellow:"
+        exit 0
+    fi
 }
 
 function main() {
     for package_definition in $(jq -c '.[]' <<<"$definitions"); do
-        prepare_and_release_package $package_definition
+        prepare_and_release_package "$package_definition"
     done
 
     if [ ! -z "$packages_pending_update" ]; then
