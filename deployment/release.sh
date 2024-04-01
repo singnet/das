@@ -6,6 +6,7 @@ set -e
 workdir=$(pwd)
 hooks_path="$workdir/deployment/hooks"
 definitions_path="$workdir/deployment/definitions.json"
+test_definitions_path="$workdir/deployment/test_definitions.json"
 github_token_path="$workdir/deployment/gh_token"
 
 source "$workdir/deployment/utils.sh"
@@ -15,6 +16,7 @@ required_commands=(git jq curl)
 packages_pending_update=""
 github_token=$(load_or_request_github_token "$github_token_path")
 definitions=$(jq -c '.' "$definitions_path")
+test_definitions=$(jq -c '.' "$test_definitions_path")
 
 function verify_dependencies_updated() {
     local required_dependencies="$1"
@@ -100,6 +102,11 @@ function extract_package_details() {
 function extract_packages_pending_update_details() {
     local package="$1"
     jq -r '[.package_name, .current_version, .new_version, .repository_path, .repository_name, .repository_owner, .repository_workflow, .repository_ref] | @tsv' <<<"$package" | tr '\t' '|'
+}
+
+function extract_test_package_details() {
+    local package="$1"
+    jq -r '[.repository, .workflow, .ref] | @tsv' <<<"$package" | tr '\t' '|'
 }
 
 function validate_repository_url() {
@@ -197,19 +204,25 @@ function update_package() {
 }
 
 function run_integration_tests() {
-    local package_name="das-query-engine"
-    local workflow_inputs="{}"
-    local repository_owner="singnet"
-    local repository_name="das-query-engine"
-    local repository_workflow="testing.yml"
-    local repository_ref="master"
+    for test_definition in $(jq -c '.[]' <<<"$test_definitions"); do
+        IFS='|' read -r repository workflow ref <<<"$(extract_test_package_details "$test_definition")"
 
-    if boolean_prompt "Do you want to run the integration tests? [y/n] "; then
-        trigger_package_workflow "$package_name" "$workflow_inputs" "$repository_owner" "$repository_name" "$repository_workflow" "$repository_ref"
-        print ":green:Integration tests completed successfully:/green:"
-    else
-        print ":yellow:No action taken as per user's choice:/yellow:"
-    fi
+        validate_repository_url "$repository"
+
+        local repository_owner="${BASH_REMATCH[1]}"
+        local repository_name="${BASH_REMATCH[2]}"
+        local package_name="$repository_name"
+        local workflow_inputs="{}"
+        local repository_workflow="$workflow"
+        local repository_ref="$ref"
+
+        if boolean_prompt "Do you want to run the integration tests? [y/n] "; then
+            trigger_package_workflow "$package_name" "$workflow_inputs" "$repository_owner" "$repository_name" "$repository_workflow" "$repository_ref"
+            print ":green:Integration tests completed successfully:/green:"
+        else
+            print ":yellow:No action taken as per user's choice:/yellow:"
+        fi
+    done
 }
 
 function trigger_workflow() {
@@ -364,5 +377,7 @@ function main() {
 
 }
 
-requirements "${required_commands[@]}"
-main
+# requirements "${required_commands[@]}"
+# main
+
+run_integration_tests
