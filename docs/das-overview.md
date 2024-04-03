@@ -81,7 +81,7 @@ remote DAS is being used, in such a way that following links can be done
 quickly.
 
 The __Query Engine__ is where global queries are processed. These are queries
-for specific atoms or sets of atoms that satisfies some criteria, including
+for specific atoms or sets of atoms that satisfy some criteria, including
 pattern matching. When making a query, the user can specify whether only local
 atoms should be considered or whether atoms in remote DASs should be searched
 as well. If that's the case, the Query Engine connects to the remote OpenFaaS
