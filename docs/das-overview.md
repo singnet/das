@@ -144,7 +144,7 @@ the knowledge base is loaded, we can create an inverted index of patterns
 present in each toplevel link and use such index later to perform pattern
 matching.
 
-For instance, given as toplevel link like this one:
+For instance, given a toplevel link like this one:
 
 ```
 Inherits
