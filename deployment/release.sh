@@ -377,7 +377,5 @@ function main() {
 
 }
 
-# requirements "${required_commands[@]}"
-# main
-
-run_integration_tests
+requirements "${required_commands[@]}"
+main
