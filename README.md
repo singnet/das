@@ -8,7 +8,7 @@ CI/CD scripts, etc.
 ## Documentation
 
 * [DAS API](https://singnet.github.io/das-query-engine/api/das/) - Documentation of DAS API
-* _DAS User's Guide_
+* DAS User's Guide ([Jupyter Notebook](notebooks/das-users-guide.ipynb) ([Markdown](docs/das-users-guide.md)) - Document with code snippets showing how to use DAS.
 * [DAS Overview](docs/das-overview.md) - Description of main DAS components and deployment architecture.
 * [DAS Toolbox User's Guide](https://github.com/singnet/das-toolbox) - A guide with detailed instructions to use the DAS Server Toolbox.
 * [Release Notes](docs/release-notes.md) - Release notes of all DAS components.
