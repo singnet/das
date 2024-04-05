@@ -65,6 +65,8 @@ We have only one type of node (e.g. Concept) to represent animals and two types 
 
 We can add nodes explicitly by calling `add_node()` passing a Python dict representing the node. This dict may contain any number of keys associated to values of any type (including lists, sets, nested dicts, etc) , which are all recorded with the node, but must contain at least the keys `type` and `name` mapping to strings which define the node uniquely, i.e. two nodes with the same `type` and `name` are considered to be the same entity.
 
+`add_link()` works mostly in the same way. For links, the mandatory fields are `type` and `targets`, which is a list of Python dicts representing either nodes or nested links.
+
 
 ```python
     das.add_node({"type": "Concept", "name": "human"})
