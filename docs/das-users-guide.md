@@ -972,7 +972,7 @@ It's because you already have a config file in `~/.das`. If that's the case you 
 If the previous `das-cli config list` command output is empty, you just need to create a new config file. You can do so by running
 
 ```
-$ das-cli config set
+das-cli config set
 ```
 
 In a terminal. When you have done it, run the next cell to make sure you have a config file in place.
@@ -986,7 +986,7 @@ Containers for the DBMS servers and OpenFaas will be created listening on the gi
 
 
 ```python
-!das-cli server stop
+!das-cli db stop
 !das-cli faas stop
 ```
 
@@ -994,7 +994,7 @@ Now we need to start the DBMS servers.
 
 
 ```python
-!das-cli server start
+!das-cli db start
 ```
 
 You can double check that the DB containers are in place listing the active docker containers.
@@ -1017,7 +1017,7 @@ You may want to change the path in the cell below to point to another file.
 
 
 ```python
-!das-cli metta load --path /tmp/animals.metta
+!das-cli metta load /tmp/animals.metta
 ```
 
 You may call `das-cli metta load` multiple times loading different files. To clear the databases you can use `das-cli db restart`.
