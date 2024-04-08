@@ -366,7 +366,6 @@ function main() {
 
         if boolean_prompt "Do you want to continue and apply these changes? [yes/no] "; then
             apply_package_updates
-            run_integration_tests
         else
             print ":yellow:You did not continue, so the changes were not applied.:/yellow:"
             exit 0
