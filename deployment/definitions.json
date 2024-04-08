@@ -13,6 +13,7 @@
     "workflow": "build.yml",
     "ref": "master",
     "hooks": {
+      "beforeRelease": "custom/das-toolbox-before-release.sh",
       "afterDependencyCheck": "custom/das-toolbox-after-dependency-check.sh"
     },
     "dependencies": [
