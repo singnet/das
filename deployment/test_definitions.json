@@ -1,12 +1,12 @@
 [
   {
     "repository": "git@github.com:singnet/das-atom-db.git",
-    "workflow": "testing.yml",
+    "workflow": "run-tests.yml",
     "ref": "master"
   },
   {
     "repository": "git@github.com:singnet/das-query-engine.git",
-    "workflow": "testing.yml",
+    "workflow": "run-tests.yml",
     "ref": "master"
   }
 ]

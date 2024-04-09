@@ -197,7 +197,6 @@ function update_package() {
         trigger_package_workflow "$package_name" "$workflow_inputs" "$repository_owner" "$repository_name" "$repository_workflow" "$repository_ref"
         cd - &>/dev/null
         print ":green:Package $package_name updated successfully:/green:"
-        run_integration_tests
     else
         print ":red:Repository path $repository_path does not exist. Skipping $package_name.:/red:"
     fi
@@ -379,3 +378,4 @@ function main() {
 
 requirements "${required_commands[@]}"
 main
+run_integration_tests
