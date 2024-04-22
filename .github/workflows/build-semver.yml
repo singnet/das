@@ -22,5 +22,5 @@ jobs:
 
       - name: Build & Push to Docker Hub
         run: |-
-          docker image build -t trueagi/das:semantic-versioning .
-          docker image push trueagi/das:semantic-versioning
+          make build-semver
+          make publish-semver
