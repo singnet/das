@@ -114,7 +114,7 @@ _init() {
     git clone "https://${GITHUB_ACTOR}:${GITHUB_TOKEN}@${GITHUB_SERVER}/${GITHUB_REPOSITORY}.git" /clone
     cd /clone
 
-    git checkout $MAIN_BRANCH
+    git checkout "${MAIN_BRANCH}"
 
     git fetch --tags
 
@@ -182,34 +182,31 @@ _delete_tag() {
 _bump_release() {
     _section "Bumping release"
 
+    local ScapedReleaseNote="$(printf '%s' "${ReleaseNote}" | jq -sRr '@json' | sed 's/\\\\n/\\n/g')"
+
+    local JsonPayload='{"tag_name": "'"$NextPatchTag"'", "target_commitish": "'"$MAIN_BRANCH"'", "name": "'"$ReleaseName"'", "draft": false, "prerelease": false, "body": '$ScapedReleaseNote', "generate_release_notes": false}'
+
     Msg="Bump release: ${ReleaseName}"
-    _info "$Msg"
-    _info "$ReleaseNote"
+    _info "${Msg}"
 
-    _info "https://api.github.com/repos/$GITHUB_REPOSITORY/releases"
+    # _info "${JsonPayload}"
+    echo "${JsonPayload}"
 
-    ReleaseNoteBody=$(echo -e "$releaseNote" | sed 's/\\/\\\\/g; s/"/\\"/g; s/'\''/\\'\''/g')
+    _info "https://api.github.com/repos/${GITHUB_REPOSITORY}/releases"
 
-    curl -X POST "https://api.github.com/repos/$GITHUB_REPOSITORY/releases" \
-        -H "Authorization: token $GITHUB_TOKEN" \
+    curl -X POST "https://api.github.com/repos/${GITHUB_REPOSITORY}/releases" \
+        -H "Authorization: token ${GITHUB_TOKEN}" \
         -H "Accept: application/vnd.github+json" \
         -H "X-GitHub-Api-Version: 2022-11-28" \
-        -d '{
-    "tag_name": "'"$NextPatchTag"'",
-    "target_commitish": "'"$MAIN_BRANCH"'",
-    "name": "'"$ReleaseName"'",
-    "draft": false,
-    "prerelease": false,
-    "body": "'"$ReleaseNoteBody"'",
-    "generate_release_notes": false
-  }'
+        -d "${JsonPayload}"
 }
 
 _determine_release_note() {
     if [ -e "${CHANGELOG_PATH}" ]; then
-        ReleaseNote=$(awk -v ORS='\\n' '1' "${CHANGELOG_PATH}" | sed 's/\\/\\\\/g; s/"/\\"/g; s/'\''/\\'\''/g')
+        ReleaseNote=$(awk -v ORS='\n' '1' "${CHANGELOG_PATH}")
+        ReleaseNote=$(printf '%s' "${ReleaseNote}" | jq -sRr '@json' | sed 's/\\\\n/\\n/g')
     else
-        releaseNote=""
+        ReleaseNote=""
     fi
 
     _var ReleaseNote

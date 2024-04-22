@@ -105,7 +105,7 @@ jobs:
           version="${{ needs.tag.outputs.version }}"
           repository="${{ needs.tag.outputs.repository }}"
           library="${{ inputs.library }}"
-          releaseNote="${{ needs.tag.outputs.release-note }}"
+          releaseNote=${{ needs.tag.outputs.release-note }}
 
           message=""
 
@@ -119,7 +119,7 @@ jobs:
             message="$message\nChanges:\n$releaseNote"
           fi
 
-          escaped_message=$(printf '%s' "$message" | jq -sRr '@json')
+          escaped_message=$(printf '%s' "$message" | jq -sRr @json | sed 's/\\\\n/\\n/g')
 
           echo "{\"text\": $escaped_message}" > mattermost.json
 
