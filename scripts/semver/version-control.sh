@@ -116,6 +116,8 @@ _init() {
 
     git checkout $MAIN_BRANCH
 
+    git fetch --tags
+
     # _info "Connecting to github cli"
 
     # echo $GITHUB_TOKEN | gh auth login --with-token
@@ -186,6 +188,8 @@ _bump_release() {
 
     _info "https://api.github.com/repos/$GITHUB_REPOSITORY/releases"
 
+    ReleaseNoteBody=$(echo -e "$releaseNote" | sed 's/\\/\\\\/g; s/"/\\"/g; s/'\''/\\'\''/g')
+
     curl -X POST "https://api.github.com/repos/$GITHUB_REPOSITORY/releases" \
         -H "Authorization: token $GITHUB_TOKEN" \
         -H "Accept: application/vnd.github+json" \
@@ -196,13 +200,17 @@ _bump_release() {
     "name": "'"$ReleaseName"'",
     "draft": false,
     "prerelease": false,
-    "body": "'"$ReleaseNote"'",
+    "body": "'"$ReleaseNoteBody"'",
     "generate_release_notes": false
   }'
 }
 
 _determine_release_note() {
-    ReleaseNote=$([ -e "${CHANGELOG_PATH}" ] && awk -v ORS='\\n' '1' "${CHANGELOG_PATH}" || echo "")
+    if [ -e "${CHANGELOG_PATH}" ]; then
+        ReleaseNote=$(awk -v ORS='\\n' '1' "${CHANGELOG_PATH}" | sed 's/\\/\\\\/g; s/"/\\"/g; s/'\''/\\'\''/g')
+    else
+        releaseNote=""
+    fi
 
     _var ReleaseNote
 }
@@ -298,7 +306,7 @@ _resolve_version_tag_prefix() {
 _resolve_previous_version_vars() {
     _section "Resolving previous version"
 
-    VersionTags=$(git tag -l ${VersionTagPrefix}*\.*\.* --sort=-version:refname)
+    VersionTags=$(git for-each-ref --sort=-taggerdate --format '%(refname:short)' refs/tags | grep -E '^.*?[0-9]+\.[0-9]+\.[0-9]+$' | head -n 1)
     if [ "x${VersionTags}" = "x" ]; then
         PreviousVersionTag="${VersionTagPrefix}0.0.0"
     else

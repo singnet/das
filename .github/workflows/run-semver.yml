@@ -119,7 +119,9 @@ jobs:
             message="$message\nChanges:\n$releaseNote"
           fi
 
-          echo "{\"text\": \"$message\"}" > mattermost.json
+          escaped_message=$(printf '%s' "$message" | jq -sRr '@json')
+
+          echo "{\"text\": $escaped_message}" > mattermost.json
 
       - name: Notify Mattermost
         uses: singnet/integration-github-mattermost@master
