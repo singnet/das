@@ -4,12 +4,12 @@ set -e
 
 # PATHS
 workdir=$(pwd)
-hooks_path="$workdir/deployment/hooks"
-definitions_path="$workdir/deployment/definitions.json"
-test_definitions_path="$workdir/deployment/test_definitions.json"
-github_token_path="$workdir/deployment/gh_token"
+hooks_path="$workdir/scripts/deployment/hooks"
+definitions_path="$workdir/scripts/deployment/definitions.json"
+test_definitions_path="$workdir/scripts/deployment/test_definitions.json"
+github_token_path="$workdir/scripts/deployment/gh_token"
 
-source "$workdir/deployment/utils.sh"
+source "$workdir/scripts/deployment/utils.sh"
 
 # GLOBAL VARIABLES
 required_commands=(git jq curl)

@@ -91,7 +91,7 @@ jobs:
     steps:
       - id: semantic-versioning
         name: Semantic Versioning
-        run: semantic-versioning.sh bump-version-from-variable-value
+        run: version-control.sh bump-version-from-variable-value
 
   notify-mattermost:
     runs-on: ubuntu-latest
