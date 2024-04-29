@@ -197,3 +197,35 @@ function find_line_number_by_text_in_file() {
 
   echo -e $(grep -n "$text" "$file_path" | cut -d: -f1)
 }
+
+function choose_menu() {
+  local prompt="$1" outvar="$2"
+  shift
+  shift
+  local options=("$@") cur=0 count=${#options[@]} index=0
+  local esc=$(echo -en "\e")
+  printf "$prompt\n"
+  while true; do
+    index=0
+    for o in "${options[@]}"; do
+      if [ "$index" == "$cur" ]; then
+        echo -e " >\e[7m$o\e[0m"
+      else
+        echo "  $o"
+      fi
+      index=$(($index + 1))
+    done
+    read -s -n3 key
+    if [[ $key == $esc[A ]]; then
+      cur=$(($cur - 1))
+      [ "$cur" -lt 0 ] && cur=0
+    elif [[ $key == $esc[B ]]; then
+      cur=$(($cur + 1))
+      [ "$cur" -ge $count ] && cur=$(($count - 1))
+    elif [[ $key == "" ]]; then
+      break
+    fi
+    echo -en "\e[${count}A"
+  done
+  printf -v $outvar "${options[$cur]}"
+}
