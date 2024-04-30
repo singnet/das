@@ -198,6 +198,25 @@ function find_line_number_by_text_in_file() {
   echo -e $(grep -n "$text" "$file_path" | cut -d: -f1)
 }
 
+function is_pem_file() {
+  local file="$1"
+
+  if verify_file_exists "$file" && grep -q "-----BEGIN PRIVATE KEY-----" "$file" && grep -q "-----END PRIVATE KEY-----" "$file"; then
+    return 0
+  else
+    return 1
+  fi
+}
+
+function encrypt_password() {
+  local password="$1"
+  local key="$2"
+
+  local encrypted_password=$(echo -n "$password" | openssl dgst -sha256 -hmac "$key" | awk '{print $2}')
+
+  echo "$encrypted_password"
+}
+
 function choose_menu() {
   local prompt="$1" outvar="$2"
   shift
