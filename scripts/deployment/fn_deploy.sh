@@ -4,7 +4,7 @@ set -e
 
 # PATHS
 workdir=$(pwd)
-das_dir="$HOME/.das"
+servers_file="$HOME/.das/servers.json"
 
 source "$workdir/scripts/deployment/utils.sh"
 
@@ -56,23 +56,33 @@ function remove_server() {
 }
 
 function register_server() {
-    print "\nRegister Server\n"
+    clear
+    print "-----------------------------------------------------------------------------------"
+    print "                               REGISTER SERVER                                     "
+    print "-----------------------------------------------------------------------------------\n"
 
     local alias=$(text_prompt "Alias: ")
     local ip=$(text_prompt "IP: ")
     local username=$(text_prompt "Username: ")
-    local pem_or_password=$(text_prompt "Pem key or Password: ")
-    local is_pem=""
-    local json_filename="$das_dir/data.json"
+    local pem_or_password=""
+    local is_pem=false
 
-    if is_pem_file "$pem_or_password" &>/dev/null; then
-        is_pem=true
+    if boolean_prompt "Are you going to use a pem key to connect to the server? [yes/no]: "; then
+        while
+            is_pem=true
+            pem_or_password=$(text_prompt "Enter the path for the pem key file: ")
+
+            if verify_file_exists "$pem_key"; then
+                break
+            fi
+        do true; done
     else
-        is_pem=false
-        pem_or_password=$(encrypt_password "$pem_or_password" "mykey")
+        password=$(password_prompt "Enter your password: ")
     fi
 
-    append_server_data_to_json "$alias" "$ip" "$username" "$is_pem" "$pem_or_password" "$json_filename"
+    append_server_data_to_json "$alias" "$ip" "$username" "$is_pem" "$pem_or_password" "$servers_file"
+
+    print ":gree:Server '$alias' succefully added.:/green:"
 }
 
 function append_server_data_to_json() {
@@ -81,12 +91,12 @@ function append_server_data_to_json() {
     local username="$3"
     local is_pem="$4"
     local pem_or_password="$5"
-    local json_filename="$6"
+    local servers_file="$6"
 
     local data='{"alias": "'"$alias"'", "ip": "'"$ip"'", "username": "'"$username"'", "is_pem": '"$is_pem"', "password": "'"$pem_or_password"'"}'
 
-    if [[ -f "$json_filename" ]]; then
-        local existing_data=$(cat "$json_filename")
+    if [[ -f "$servers_file" ]]; then
+        local existing_data=$(cat "$servers_file")
 
         if [[ $(echo "$existing_data" | jq '.servers') != "null" ]]; then
             existing_data=$(echo "$existing_data" | jq '.servers += ['"$data"']')
@@ -94,14 +104,12 @@ function append_server_data_to_json() {
             existing_data=$(echo "$existing_data" | jq '. + {"servers": ['"$data"']}')
         fi
 
-        echo "$existing_data" >"$json_filename"
+        echo "$existing_data" >"$servers_file"
     else
         local new_data='{"servers": ['"$data"']}'
-        mkdir -p "$das_dir"
-        echo "$new_data" >"$json_filename"
+        mkdir -p $(dirname "$servers_file")
+        echo "$new_data" >"$servers_file"
     fi
-
-    echo "Dados salvos com sucesso em: $json_filename"
 }
 
 function start_deployment() {

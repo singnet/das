@@ -41,6 +41,13 @@ function text_prompt() {
   echo $answer
 }
 
+function password_prompt() {
+  local prompt=$(print "$1")
+
+  read -s -p "$prompt" answer
+  echo $answer
+}
+
 function retrieve_json_object_with_property_value() {
   jq -c --arg prop "$2" --arg val "$3" '.[] | select(.[$prop] == $val)' <<<"$1"
 }
@@ -196,16 +203,6 @@ function find_line_number_by_text_in_file() {
   local text="$2"
 
   echo -e $(grep -n "$text" "$file_path" | cut -d: -f1)
-}
-
-function is_pem_file() {
-  local file="$1"
-
-  if verify_file_exists "$file" && grep -q "-----BEGIN PRIVATE KEY-----" "$file" && grep -q "-----END PRIVATE KEY-----" "$file"; then
-    return 0
-  else
-    return 1
-  fi
 }
 
 function encrypt_password() {
