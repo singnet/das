@@ -23,43 +23,35 @@ source "$workdir/scripts/deployment/utils.sh"
 # ROOT
 # PEM OR PASSWORD
 
-function display_server_aliases() {
-    local json_filename="$1"
-    local aliases=$(jq -r '.servers[].alias' "$json_filename")
-    echo "Servidores registrados:"
-    echo "$aliases"
-}
-
 function remove_server() {
-    echo -e "\nRemove Server\n"
+    if [[ -f "$servers_file" ]]; then
+        local aliases=($(jq -r '.servers[].alias' "$servers_file"))
 
-    local das_dir="$HOME/.das"
-    local json_filename="$das_dir/data.json"
+        if [[ -z "$aliases" ]]; then
+            print ":red:No server registed to be removed:/red:"
+            exit 1
+        fi
 
-    if [[ -f "$json_filename" ]]; then
-        display_server_aliases "$json_filename"
+        print_header "REMOVE SERVER"
+        choose_menu "Select the server you want to remove:" selected_option "${aliases[@]}"
 
-        local alias_to_remove=$(text_prompt "Alias do servidor a ser removido: ")
-        local existing_data=$(cat "$json_filename")
+        local existing_data=$(cat "$servers_file")
 
         if [[ $(echo "$existing_data" | jq '.servers') != "null" ]]; then
-            existing_data=$(echo "$existing_data" | jq 'del(.servers[] | select(.alias == "'"$alias_to_remove"'"))')
+            existing_data=$(echo "$existing_data" | jq 'del(.servers[] | select(.alias == "'"$selected_option"'"))')
 
-            echo "$existing_data" >"$json_filename"
-            echo "Servidor removido com sucesso."
+            echo "$existing_data" >"$servers_file"
+            print ":green:Server removed successfully.:green:"
         else
-            echo "Não há servidores registrados para remover."
+            print ":red:There are no registered servers to remove.:/red:"
         fi
     else
-        echo "O arquivo JSON não existe. Nenhum servidor foi removido."
+        print ":red:The JSON file does not exist. No server was removed.:/red:"
     fi
 }
 
 function register_server() {
-    clear
-    print "-----------------------------------------------------------------------------------"
-    print "                               REGISTER SERVER                                     "
-    print "-----------------------------------------------------------------------------------\n"
+    print_header "REGISTER SERVER"
 
     local alias=$(text_prompt "Alias: ")
     local ip=$(text_prompt "IP: ")
@@ -80,9 +72,10 @@ function register_server() {
         password=$(password_prompt "Enter your password: ")
     fi
 
+    ping_ssh_server "$ip" "$username" "$is_pem" "$pem_or_password"
     append_server_data_to_json "$alias" "$ip" "$username" "$is_pem" "$pem_or_password" "$servers_file"
 
-    print ":gree:Server '$alias' succefully added.:/green:"
+    print "\n\n:green:Server '$alias' succefully added.:/green:"
 }
 
 function append_server_data_to_json() {
@@ -137,7 +130,7 @@ function main() {
         start_deployment
         ;;
     "Exit")
-        echo "Saindo..."
+        echo "Exiting..."
         exit 0
         ;;
     esac

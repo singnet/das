@@ -214,6 +214,59 @@ function encrypt_password() {
   echo "$encrypted_password"
 }
 
+function print_header() {
+  local header_text="$1"
+  local header_length=${#header_text}
+
+  local dash_line=""
+  for ((i = 0; i < header_length + 20; i++)); do
+    dash_line="${dash_line}-"
+  done
+
+  echo "$dash_line"
+  printf "%*s\n" $(((${#dash_line} + ${#header_text}) / 2)) "$header_text"
+  echo "$dash_line"
+}
+
+function execute_ssh_commands() {
+  local server_ip=$1
+  local server_username=$2
+  local private_key_connection="$3"
+  local pem_key_path="$4"
+  shift 4
+  local commands=("$@")
+
+  local commands_str=""
+  for cmd in "${commands[@]}"; do
+    commands_str+="$cmd && "
+  done
+  commands_str=${commands_str%&& }
+
+  if [ "$private_key_connection" ]; then
+    ssh -T -i "$pem_key_path" $server_username@$server_ip "$commands_str"
+  else
+    sshpass -p "$password" ssh -T $server_username@$server_ip "$commands_str"
+  fi
+
+}
+
+function ping_ssh_server() {
+  local ip="$1"
+  local username="$2"
+  local private_key_connection="$3"
+  local private_key_path="$3"
+  local ping_command="echo hello"
+
+  execute_ssh_commands "$ip" "$username" "$private_key_connection" "$private_key_path" "$ping_command"
+
+  if [ $? -eq 0 ]; then
+    print ":green:As credenciais SSH estão corretas e a conexão foi bem-sucedida.:/green:"
+  else
+    print ":red:As credenciais SSH estão incorretas ou a conexão falhou.:/red:"
+    exit 1
+  fi
+}
+
 function choose_menu() {
   local prompt="$1" outvar="$2"
   shift
@@ -244,4 +297,5 @@ function choose_menu() {
     echo -en "\e[${count}A"
   done
   printf -v $outvar "${options[$cur]}"
+  clear
 }
