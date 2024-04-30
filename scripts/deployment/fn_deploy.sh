@@ -106,7 +106,18 @@ function append_server_data_to_json() {
 }
 
 function start_deployment() {
-    echo ""
+    local aliases=($(jq -r '.servers[].alias' "$servers_file"))
+
+    if [[ -z "$aliases" ]]; then
+        print ":red:No server registed to be removed:/red:"
+        exit 1
+    fi
+
+    print_header "START DEPLOYMENT"
+
+    choose_menu "Please choose a server for you to deploy:" selected_option "${aliases[@]}"
+
+    echo "$selected_option"
 }
 
 function main() {
