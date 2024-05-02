@@ -19,7 +19,7 @@ function remove_server() {
 
         if [[ -z "$aliases" ]]; then
             print "\n:red:No server registed to be removed:/red:"
-            exit 1
+            return 1
         fi
 
         local header=$(print_header "Remove Server")
@@ -67,7 +67,7 @@ function register_server() {
     print "\nTrying to establish a connection with server :green:${server_alias}:/green: (:green:${ip}:/green:)\n"
     if ! ping_ssh_server "$ip" "$username" "$is_pem" "$pem_or_password" &>/dev/null; then
         print ":red:A connection could not be successfully established!:/red:"
-        exit 1
+        return 1
     fi
 
     append_server_data_to_json "$alias" "$ip" "$username" "$is_pem" "$pem_or_password" "$servers_file"
@@ -180,7 +180,7 @@ function start_deployment() {
 
     if [[ -z "$aliases" ]]; then
         print "\n:red:No server registed to be started, please register a new server:/red:"
-        exit 1
+        return 1
     fi
 
     choose_menu "${header}Which server would you like to deploy to?" server_alias "${aliases[@]}"
@@ -190,7 +190,7 @@ function start_deployment() {
     print "\nTrying to establish a connection with server :green:${server_alias}:/green: (:green:${ip}:/green:)\n"
     if ! ping_ssh_server "$ip" "$username" "$is_pem" "$password" &>/dev/null; then
         print ":red:A connection could not be successfully established!:/red:"
-        exit 1
+        return 1
     fi
 
     local server_das_cli_version=$(get_server_das_cli_version "$ip" "$username" "$is_pem" "$password")
@@ -199,7 +199,7 @@ function start_deployment() {
 
     if [[ -z "${function_versions[@]}" || ${#function_versions[@]} -le 0 ]]; then
         print ":red:There are no available functions to be deployed:/red:"
-        exit 1
+        return 1
     fi
 
     choose_menu "${header}DAS CLI: :green:${server_das_cli_version}:/green:\nFUNCTION: :green:${server_function_version}:/green:\n\nSelect a version you want to deploy to the server :green:${server_alias}:/green: (:green:${ip}:/green:)" function_version "${function_versions[@]}"
