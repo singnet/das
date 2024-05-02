@@ -226,6 +226,7 @@ function print_header() {
   echo "$dash_line"
   printf "%*s\n" $(((${#dash_line} + ${#header_text}) / 2)) "$header_text"
   echo "$dash_line"
+  echo "\n"
 }
 
 function execute_ssh_commands() {
@@ -242,7 +243,7 @@ function execute_ssh_commands() {
   done
   commands_str=${commands_str%&& }
 
-  if [ "$private_key_connection" ]; then
+  if [ "$private_key_connection" == true ]; then
     ssh -T -i "$pem_key_path" $server_username@$server_ip "$commands_str"
   else
     sshpass -p "$password" ssh -T $server_username@$server_ip "$commands_str"
@@ -259,30 +260,37 @@ function ping_ssh_server() {
 
   execute_ssh_commands "$ip" "$username" "$private_key_connection" "$private_key_path" "$ping_command"
 
-  if [ $? -eq 0 ]; then
-    print ":green:As credenciais SSH estão corretas e a conexão foi bem-sucedida.:/green:"
-  else
-    print ":red:As credenciais SSH estão incorretas ou a conexão falhou.:/red:"
-    exit 1
-  fi
+  return $?
 }
 
 function choose_menu() {
   local prompt="$1" outvar="$2"
-  shift
-  shift
-  local options=("$@") cur=0 count=${#options[@]} index=0
+  shift 2
+  local options=("$@") cur=0 count=${#options[@]} index=0 start_index=0
   local esc=$(echo -en "\e")
-  printf "$prompt\n"
+  local max_display=10
   while true; do
-    index=0
-    for o in "${options[@]}"; do
-      if [ "$index" == "$cur" ]; then
-        echo -e " >\e[7m$o\e[0m"
-      else
-        echo "  $o"
+    clear
+    print "$prompt\n"
+    while [ $cur -lt $start_index ]; do
+      start_index=$(($start_index - 1))
+      clear
+      print "$prompt\n"
+    done
+    while [ $cur -ge $(($start_index + $max_display)) ]; do
+      start_index=$(($start_index + 1))
+      clear
+      print "$prompt\n"
+    done
+    for ((i = start_index; i < start_index + max_display; i++)); do
+      if [ $i -lt $count ]; then
+        printf "\033[K"
+        if [ "$i" == "$cur" ]; then
+          echo -e " > \e[7m${options[$i]}\e[0m"
+        else
+          echo "  ${options[$i]}"
+        fi
       fi
-      index=$(($index + 1))
     done
     read -s -n3 key
     if [[ $key == $esc[A ]]; then
@@ -294,8 +302,6 @@ function choose_menu() {
     elif [[ $key == "" ]]; then
       break
     fi
-    echo -en "\e[${count}A"
   done
   printf -v $outvar "${options[$cur]}"
-  clear
 }

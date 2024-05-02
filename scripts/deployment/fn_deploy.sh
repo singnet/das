@@ -5,23 +5,13 @@ set -e
 # PATHS
 workdir=$(pwd)
 servers_file="$HOME/.das/servers.json"
+github_token_path="$workdir/scripts/deployment/gh_token"
 
 source "$workdir/scripts/deployment/utils.sh"
 
-# START DEPLOYMENT
-# lista de servers (alias)
-# tentar se conectar ao server
-# identificar qual a versão de function que o server está executando
-# identificar a versão do das-cli disponivel
-# buscar lista de versões disponiveis
-# exibir lista de versões disponiveis para o usuário selecionar, exibindo a versão atual que está executando no servidor
-# executar o das-cli no server com o comando das-cli faas start --version
-
-# REGISTER SERVER
-# alias
-# 127.0.0.1
-# ROOT
-# PEM OR PASSWORD
+# GLOBAL VARIABLES
+servers_definition=$(jq -c '.' "$servers_file")
+github_token=$(load_or_request_github_token "$github_token_path")
 
 function remove_server() {
     if [[ -f "$servers_file" ]]; then
@@ -105,19 +95,104 @@ function append_server_data_to_json() {
     fi
 }
 
+function extract_server_details() {
+    local servers="$1"
+    local alias="$2"
+
+    jq -r --arg alias "$alias" '.servers[] | select(.alias == $alias) | [.ip, .username, .is_pem, .password] | @tsv' <<<"$servers" | tr '\t' '|'
+}
+
+function get_server_das_cli_version() {
+    local ip="$1"
+    local username="$2"
+    local private_key_connection="$3"
+    local private_key_path="$3"
+    local command="das-cli --version"
+
+    execute_ssh_commands "$ip" "$username" "$private_key_connection" "$private_key_path" "$command"
+
+    return $?
+}
+
+function get_server_function_version() {
+    local ip="$1"
+    local username="$2"
+    local private_key_connection="$3"
+    local private_key_path="$3"
+    local command="das-cli faas version"
+
+    execute_ssh_commands "$ip" "$username" "$private_key_connection" "$private_key_path" "$command"
+
+    return $?
+}
+
+function get_function_versions() {
+    local page=1
+    local versions=()
+
+    while true; do
+        local api_url="https://api.github.com/repos/singnet/das-serverless-functions/tags?page=${page}"
+
+        local response=$(curl -s -X GET \
+            -H "Authorization: token ${github_token}" \
+            -H "Accept: application/vnd.github.v3+json" \
+            "${api_url}")
+
+        local tags=$(jq -r '.[].name | select(test("^[0-9]+\\.[0-9]+\\.[0-9]+$"))' <<<"${response}")
+        if [[ -z $tags ]]; then
+            break
+        fi
+        versions+=("$tags")
+        ((page++))
+    done
+
+    echo "${versions[@]}"
+}
+
+function set_server_function_version() {
+    local ip="$1"
+    local username="$2"
+    local private_key_connection="$3"
+    local private_key_path="$3"
+    local function_version="$4"
+    local command="das-cli faas update-version --version ${function_version}"
+
+    execute_ssh_commands "$ip" "$username" "$private_key_connection" "$private_key_path" "$command"
+
+    return $?
+}
+
 function start_deployment() {
+    local header=$(print_header "START DEPLOYMENT")
     local aliases=($(jq -r '.servers[].alias' "$servers_file"))
 
     if [[ -z "$aliases" ]]; then
-        print ":red:No server registed to be removed:/red:"
+        print ":red:No server registed to be started, please register a new server:/red:"
         exit 1
     fi
 
-    print_header "START DEPLOYMENT"
+    choose_menu "${header}Which server would you like to deploy to?" server_alias "${aliases[@]}"
 
-    choose_menu "Please choose a server for you to deploy:" selected_option "${aliases[@]}"
+    IFS='|' read -r ip username is_pem password <<<"$(extract_server_details "$servers_definition" "$server_alias")"
 
-    echo "$selected_option"
+    print "\nTrying to establish a connection with the server :green:${server_alias}:/green: (:green:${ip}:/green:)\n"
+    if ! ping_ssh_server "$ip" "$username" "$is_pem" "$password" &>/dev/null; then
+        print ":red:A connection could not be successfully established!:/red:"
+        exit 1
+    fi
+
+    local server_das_cli_version=$(get_server_das_cli_version "$ip" "$username" "$is_pem" "$password")
+    local server_function_version=$(get_server_function_version "$ip" "$username" "$is_pem" "$password")
+    local function_versions=($(get_function_versions))
+
+    if [[ -z "${function_versions[@]}" || ${#function_versions[@]} -le 0 ]]; then
+        print ":red:There are no available functions to be deployed:/red:"
+        exit 1
+    fi
+
+    choose_menu "${header}DAS CLI: :green:${server_das_cli_version}:/green:\nFUNCTION: :green:${server_function_version}:/green:\n\nSelect a version you want to deploy to the server :green:${server_alias}:/green: (:green:${ip}:/green:)" function_version "${function_versions[@]}"
+
+    set_server_function_version "$ip" "$username" "$is_pem" "$password" "$function_version"
 }
 
 function main() {
@@ -125,10 +200,12 @@ function main() {
         "Register Server"
         "Remove Server"
         "Start Deployment"
-        "Exit"
+        "Quit"
     )
 
-    choose_menu "Please choose an option:" selected_option "${options[@]}"
+    local header=$(print_header "OpeenFaaS Deployment Tool")
+
+    choose_menu "${header}Please choose an option:" selected_option "${options[@]}"
 
     case $selected_option in
     "Register Server")
@@ -140,8 +217,8 @@ function main() {
     "Start Deployment")
         start_deployment
         ;;
-    "Exit")
-        echo "Exiting..."
+    "Quit")
+        echo "Quitting..."
         exit 0
         ;;
     esac
