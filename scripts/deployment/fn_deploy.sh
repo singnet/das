@@ -138,12 +138,17 @@ function get_function_versions() {
             -H "Accept: application/vnd.github.v3+json" \
             "${api_url}")
 
-        local tags=$(jq -r '.[].name | select(test("^[0-9]+\\.[0-9]+\\.[0-9]+$"))' <<<"${response}")
-        if [[ -z $tags ]]; then
+        if [[ $(jq '. | length' <<<"$response") -eq 0 ]]; then
             break
         fi
-        versions+=("$tags")
+
+        local tags=$(jq -r '.[].name | select(test("^[0-9]+\\.[0-9]+\\.[0-9]+$"))' <<<"${response}")
+
         ((page++))
+
+        if [[ -n "$tags" ]]; then
+            versions+=("$tags")
+        fi
     done
 
     echo "${versions[@]}"
@@ -153,9 +158,9 @@ function set_server_function_version() {
     local ip="$1"
     local username="$2"
     local private_key_connection="$3"
-    local private_key_path="$3"
-    local function_version="$4"
-    local command="das-cli faas update-version --version ${function_version}"
+    local private_key_path="$4"
+    local function_version="$5"
+    local command="das-cli faas update-version --version ${function_version}; das-cli db start; das-cli faas restart"
 
     execute_ssh_commands "$ip" "$username" "$private_key_connection" "$private_key_path" "$command"
 
@@ -192,7 +197,13 @@ function start_deployment() {
 
     choose_menu "${header}DAS CLI: :green:${server_das_cli_version}:/green:\nFUNCTION: :green:${server_function_version}:/green:\n\nSelect a version you want to deploy to the server :green:${server_alias}:/green: (:green:${ip}:/green:)" function_version "${function_versions[@]}"
 
-    set_server_function_version "$ip" "$username" "$is_pem" "$password" "$function_version"
+    print "\nDeploying the version ${function_version} to server ${server_alias} (${ip})..."
+
+    if set_server_function_version "$ip" "$username" "$is_pem" "$password" "$function_version"; then
+        print "\n:green:Deployment successful: Version $function_version deployed to server $ip ($username).:green:\n"
+    else
+        print "\n:red:Deployment failed: Version $function_version could not be deployed to server $ip ($username).:red:\n"
+    fi
 }
 
 function main() {
