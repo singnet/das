@@ -232,8 +232,8 @@ function print_header() {
 function execute_ssh_commands() {
   local server_ip=$1
   local server_username=$2
-  local private_key_connection="$3"
-  local pem_key_path="$4"
+  local using_private_key="$3"
+  local pkey_or_password="$4"
   shift 4
   local commands=("$@")
 
@@ -243,10 +243,10 @@ function execute_ssh_commands() {
   done
   commands_str=${commands_str%&& }
 
-  if [ "$private_key_connection" == true ]; then
+  if [ "$using_private_key" == true ]; then
     ssh -T -i "$pem_key_path" $server_username@$server_ip "$commands_str"
   else
-    sshpass -p "$password" ssh -T $server_username@$server_ip "$commands_str"
+    sshpass -p "$pkey_or_password" ssh -o StrictHostKeyChecking=no -T $server_username@$server_ip "$commands_str"
   fi
 
 }
@@ -254,11 +254,11 @@ function execute_ssh_commands() {
 function ping_ssh_server() {
   local ip="$1"
   local username="$2"
-  local private_key_connection="$3"
-  local private_key_path="$3"
+  local using_private_key="$3"
+  local pkey_or_password="$4"
   local ping_command="echo hello"
 
-  execute_ssh_commands "$ip" "$username" "$private_key_connection" "$private_key_path" "$ping_command"
+  execute_ssh_commands "$ip" "$username" "$using_private_key" "$pkey_or_password" "$ping_command"
 
   return $?
 }

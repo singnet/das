@@ -18,12 +18,13 @@ function remove_server() {
         local aliases=($(jq -r '.servers[].alias' "$servers_file"))
 
         if [[ -z "$aliases" ]]; then
-            print ":red:No server registed to be removed:/red:"
+            print "\n:red:No server registed to be removed:/red:"
             exit 1
         fi
 
-        print_header "REMOVE SERVER"
-        choose_menu "Select the server you want to remove:" selected_option "${aliases[@]}"
+        local header=$(print_header "Remove Server")
+
+        choose_menu "${header}Select the server you want to remove:" selected_option "${aliases[@]}"
 
         local existing_data=$(cat "$servers_file")
 
@@ -31,17 +32,18 @@ function remove_server() {
             existing_data=$(echo "$existing_data" | jq 'del(.servers[] | select(.alias == "'"$selected_option"'"))')
 
             echo "$existing_data" >"$servers_file"
-            print ":green:Server removed successfully.:green:"
+            print "\n:green:Server removed successfully.:green:"
         else
-            print ":red:There are no registered servers to remove.:/red:"
+            print "\n:red:There are no registered servers to remove.:/red:"
         fi
     else
-        print ":red:The JSON file does not exist. No server was removed.:/red:"
+        print "\n:red:The JSON file does not exist. No server was removed.:/red:"
     fi
 }
 
 function register_server() {
-    print_header "REGISTER SERVER"
+    clear
+    print "$(print_header "Register Server")"
 
     local alias=$(text_prompt "Alias: ")
     local ip=$(text_prompt "IP: ")
@@ -49,7 +51,7 @@ function register_server() {
     local pem_or_password=""
     local is_pem=false
 
-    if boolean_prompt "Are you going to use a pem key to connect to the server? [yes/no]: "; then
+    if boolean_prompt "Are you going to use a pem key to connect to server? [yes/no]: "; then
         while
             is_pem=true
             pem_or_password=$(text_prompt "Enter the path for the pem key file: ")
@@ -59,10 +61,15 @@ function register_server() {
             fi
         do true; done
     else
-        password=$(password_prompt "Enter your password: ")
+        pem_or_password=$(password_prompt "Enter your password: ")
     fi
 
-    ping_ssh_server "$ip" "$username" "$is_pem" "$pem_or_password"
+    print "\nTrying to establish a connection with server :green:${server_alias}:/green: (:green:${ip}:/green:)\n"
+    if ! ping_ssh_server "$ip" "$username" "$is_pem" "$pem_or_password" &>/dev/null; then
+        print ":red:A connection could not be successfully established!:/red:"
+        exit 1
+    fi
+
     append_server_data_to_json "$alias" "$ip" "$username" "$is_pem" "$pem_or_password" "$servers_file"
 
     print "\n\n:green:Server '$alias' succefully added.:/green:"
@@ -105,11 +112,11 @@ function extract_server_details() {
 function get_server_das_cli_version() {
     local ip="$1"
     local username="$2"
-    local private_key_connection="$3"
-    local private_key_path="$3"
+    local using_private_key="$3"
+    local pkey_or_password="$4"
     local command="das-cli --version"
 
-    execute_ssh_commands "$ip" "$username" "$private_key_connection" "$private_key_path" "$command"
+    execute_ssh_commands "$ip" "$username" "$using_private_key" "$pkey_or_password" "$command"
 
     return $?
 }
@@ -117,11 +124,11 @@ function get_server_das_cli_version() {
 function get_server_function_version() {
     local ip="$1"
     local username="$2"
-    local private_key_connection="$3"
-    local private_key_path="$3"
+    local using_private_key="$3"
+    local pkey_or_password="$4"
     local command="das-cli faas version"
 
-    execute_ssh_commands "$ip" "$username" "$private_key_connection" "$private_key_path" "$command"
+    execute_ssh_commands "$ip" "$username" "$using_private_key" "$pkey_or_password" "$command"
 
     return $?
 }
@@ -172,7 +179,7 @@ function start_deployment() {
     local aliases=($(jq -r '.servers[].alias' "$servers_file"))
 
     if [[ -z "$aliases" ]]; then
-        print ":red:No server registed to be started, please register a new server:/red:"
+        print "\n:red:No server registed to be started, please register a new server:/red:"
         exit 1
     fi
 
@@ -180,7 +187,7 @@ function start_deployment() {
 
     IFS='|' read -r ip username is_pem password <<<"$(extract_server_details "$servers_definition" "$server_alias")"
 
-    print "\nTrying to establish a connection with the server :green:${server_alias}:/green: (:green:${ip}:/green:)\n"
+    print "\nTrying to establish a connection with server :green:${server_alias}:/green: (:green:${ip}:/green:)\n"
     if ! ping_ssh_server "$ip" "$username" "$is_pem" "$password" &>/dev/null; then
         print ":red:A connection could not be successfully established!:/red:"
         exit 1
@@ -229,10 +236,11 @@ function main() {
         start_deployment
         ;;
     "Quit")
-        echo "Quitting..."
+        print ":yellow:\nQuitting...:yellow:"
         exit 0
         ;;
     esac
+
 }
 
 main
