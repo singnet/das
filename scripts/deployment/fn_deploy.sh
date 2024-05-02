@@ -1,7 +1,5 @@
 #!/bin/bash
 
-set -e
-
 # PATHS
 workdir=$(pwd)
 servers_file="$HOME/.das/servers.json"
@@ -32,7 +30,7 @@ function remove_server() {
             existing_data=$(echo "$existing_data" | jq 'del(.servers[] | select(.alias == "'"$selected_option"'"))')
 
             echo "$existing_data" >"$servers_file"
-            print "\n:green:Server removed successfully.:green:"
+            print "\n:green:Server removed successfully.:/green:"
         else
             print "\n:red:There are no registered servers to remove.:/red:"
         fi
@@ -223,24 +221,29 @@ function main() {
 
     local header=$(print_header "OpeenFaaS Deployment Tool")
 
-    choose_menu "${header}Please choose an option:" selected_option "${options[@]}"
+    while true; do
 
-    case $selected_option in
-    "Register Server")
-        register_server
-        ;;
-    "Remove Server")
-        remove_server
-        ;;
-    "Start Deployment")
-        start_deployment
-        ;;
-    "Quit")
-        print ":yellow:\nQuitting...:yellow:"
-        exit 0
-        ;;
-    esac
+        choose_menu "${header}Please choose an option:" selected_option "${options[@]}"
 
+        case $selected_option in
+        "Register Server")
+            register_server
+            ;;
+        "Remove Server")
+            remove_server
+            ;;
+        "Start Deployment")
+            start_deployment
+            ;;
+        "Quit")
+            print ":yellow:\nQuitting...:/yellow:"
+            exit 0
+            ;;
+        esac
+
+        print "\n"
+        press_any_key_to_continue
+    done
 }
 
 main

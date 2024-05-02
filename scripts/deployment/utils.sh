@@ -230,8 +230,8 @@ function print_header() {
 }
 
 function execute_ssh_commands() {
-  local server_ip=$1
-  local server_username=$2
+  local server_ip="$1"
+  local server_username="$2"
   local using_private_key="$3"
   local pkey_or_password="$4"
   shift 4
@@ -261,6 +261,11 @@ function ping_ssh_server() {
   execute_ssh_commands "$ip" "$username" "$using_private_key" "$pkey_or_password" "$ping_command"
 
   return $?
+}
+
+function press_any_key_to_continue() {
+  print "Press ANY key to continue..."
+  read -n 1 -s -r -p ""
 }
 
 function choose_menu() {
