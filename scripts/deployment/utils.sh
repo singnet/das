@@ -244,7 +244,7 @@ function execute_ssh_commands() {
   commands_str=${commands_str%&& }
 
   if [ "$using_private_key" == true ]; then
-    ssh -T -i "$pem_key_path" $server_username@$server_ip "$commands_str"
+    ssh -T -i "$pkey_or_password" $server_username@$server_ip "$commands_str"
   else
     sshpass -p "$pkey_or_password" ssh -o StrictHostKeyChecking=no -T $server_username@$server_ip "$commands_str"
   fi

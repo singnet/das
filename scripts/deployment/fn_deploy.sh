@@ -54,7 +54,7 @@ function register_server() {
             is_pem=true
             pem_or_password=$(text_prompt "Enter the path for the pem key file: ")
 
-            if verify_file_exists "$pem_key"; then
+            if verify_file_exists "$pem_or_password"; then
                 break
             fi
         do true; done
