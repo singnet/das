@@ -41,6 +41,13 @@ function text_prompt() {
   echo $answer
 }
 
+function password_prompt() {
+  local prompt=$(print "$1")
+
+  read -s -p "$prompt" answer
+  echo $answer
+}
+
 function retrieve_json_object_with_property_value() {
   jq -c --arg prop "$2" --arg val "$3" '.[] | select(.[$prop] == $val)' <<<"$1"
 }
@@ -196,4 +203,110 @@ function find_line_number_by_text_in_file() {
   local text="$2"
 
   echo -e $(grep -n "$text" "$file_path" | cut -d: -f1)
+}
+
+function encrypt_password() {
+  local password="$1"
+  local key="$2"
+
+  local encrypted_password=$(echo -n "$password" | openssl dgst -sha256 -hmac "$key" | awk '{print $2}')
+
+  echo "$encrypted_password"
+}
+
+function print_header() {
+  local header_text="$1"
+  local header_length=${#header_text}
+
+  local dash_line=""
+  for ((i = 0; i < header_length + 20; i++)); do
+    dash_line="${dash_line}-"
+  done
+
+  echo "$dash_line"
+  printf "%*s\n" $(((${#dash_line} + ${#header_text}) / 2)) "$header_text"
+  echo "$dash_line"
+  echo "\n"
+}
+
+function execute_ssh_commands() {
+  local server_ip="$1"
+  local server_username="$2"
+  local using_private_key="$3"
+  local pkey_or_password="$4"
+  shift 4
+  local commands=("$@")
+
+  local commands_str=""
+  for cmd in "${commands[@]}"; do
+    commands_str+="$cmd && "
+  done
+  commands_str=${commands_str%&& }
+
+  if [ "$using_private_key" == true ]; then
+    ssh -T -i "$pem_key_path" $server_username@$server_ip "$commands_str"
+  else
+    sshpass -p "$pkey_or_password" ssh -o StrictHostKeyChecking=no -T $server_username@$server_ip "$commands_str"
+  fi
+
+}
+
+function ping_ssh_server() {
+  local ip="$1"
+  local username="$2"
+  local using_private_key="$3"
+  local pkey_or_password="$4"
+  local ping_command="echo hello"
+
+  execute_ssh_commands "$ip" "$username" "$using_private_key" "$pkey_or_password" "$ping_command"
+
+  return $?
+}
+
+function press_any_key_to_continue() {
+  print "Press ANY key to continue..."
+  read -n 1 -s -r -p ""
+}
+
+function choose_menu() {
+  local prompt="$1" outvar="$2"
+  shift 2
+  local options=("$@") cur=0 count=${#options[@]} index=0 start_index=0
+  local esc=$(echo -en "\e")
+  local max_display=10
+  while true; do
+    clear
+    print "$prompt\n"
+    while [ $cur -lt $start_index ]; do
+      start_index=$(($start_index - 1))
+      clear
+      print "$prompt\n"
+    done
+    while [ $cur -ge $(($start_index + $max_display)) ]; do
+      start_index=$(($start_index + 1))
+      clear
+      print "$prompt\n"
+    done
+    for ((i = start_index; i < start_index + max_display; i++)); do
+      if [ $i -lt $count ]; then
+        printf "\033[K"
+        if [ "$i" == "$cur" ]; then
+          echo -e " > \e[7m${options[$i]}\e[0m"
+        else
+          echo "  ${options[$i]}"
+        fi
+      fi
+    done
+    read -s -n3 key
+    if [[ $key == $esc[A ]]; then
+      cur=$(($cur - 1))
+      [ "$cur" -lt 0 ] && cur=0
+    elif [[ $key == $esc[B ]]; then
+      cur=$(($cur + 1))
+      [ "$cur" -ge $count ] && cur=$(($count - 1))
+    elif [[ $key == "" ]]; then
+      break
+    fi
+  done
+  printf -v $outvar "${options[$cur]}"
 }

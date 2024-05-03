@@ -1,6 +1,9 @@
 release:
 	./scripts/deployment/release.sh
 
+deploy:
+	./scripts/deployment/fn_deploy.sh
+
 build-semver:
 	@docker image build -t trueagi/das:semantic-versioning ./scripts/semver
 
