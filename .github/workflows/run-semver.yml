@@ -33,9 +33,13 @@ on:
         description: "Version variable name"
         required: false
         type: string
-      library:
-        description: "Library's name"
-        required: false
+      title:
+        description: "Title to appear in the message"
+        required: true
+        type: string
+      deliverable:
+        description: "Sort description of what is being delivered in this version"
+        required: true
         type: string
       changelog:
         description: "Changelog"
@@ -102,18 +106,13 @@ jobs:
 
       - name: Create mattermost message
         run: |
+          title="New version of ${{ inputs.library }}"
+          deliverable="${{ inputs.deliverable }}"
           version="${{ needs.tag.outputs.version }}"
           repository="${{ needs.tag.outputs.repository }}"
-          library="${{ inputs.library }}"
           releaseNote=${{ needs.tag.outputs.release-note }}
 
-          message=""
-
-          if [ -n "$library" ]; then
-            message="Library: $library\n\n"
-          fi
-
-          message="${message}New version available: $version\nRepository: https://github.com/$repository/releases/tag/$version"
+          message="${title}\n\nDeliverable:${deliverable}New version available: $version\nRepository: https://github.com/$repository/releases/tag/$version"
 
           if [ -n "$releaseNote" ]; then
             message="$message\nChanges:\n$releaseNote"
