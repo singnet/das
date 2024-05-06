@@ -192,7 +192,7 @@ function update_package() {
         local workflow_inputs='{"version": "'"$new_version"'"}'
 
         cd "$repository_path"
-        show_git_diff_and_confirm
+        show_git_diff
         commit_and_push_changes "Chores: create a new release version $new_version" $repository_ref
         trigger_package_workflow "$package_name" "$workflow_inputs" "$repository_owner" "$repository_name" "$repository_workflow" "$repository_ref"
         cd - &>/dev/null
@@ -203,6 +203,8 @@ function update_package() {
 }
 
 function run_integration_tests() {
+    print "Initiating integration testing..."
+
     for test_definition in $(jq -c '.[]' <<<"$test_definitions"); do
         IFS='|' read -r repository workflow ref <<<"$(extract_test_package_details "$test_definition")"
 
@@ -215,12 +217,8 @@ function run_integration_tests() {
         local repository_workflow="$workflow"
         local repository_ref="$ref"
 
-        if boolean_prompt "Do you want to run the integration tests? [y/n] "; then
-            trigger_package_workflow "$package_name" "$workflow_inputs" "$repository_owner" "$repository_name" "$repository_workflow" "$repository_ref"
-            print ":green:Integration tests completed successfully:/green:"
-        else
-            print ":yellow:No action taken as per user's choice:/yellow:"
-        fi
+        trigger_package_workflow "$package_name" "$workflow_inputs" "$repository_owner" "$repository_name" "$repository_workflow" "$repository_ref"
+        print ":green:Integration tests completed successfully:/green:"
     done
 }
 
@@ -356,15 +354,25 @@ function handle_workflow_failure() {
     fi
 }
 
-function main() {
+function process_package_definitions() {
+    local definitions="$1"
+
     for package_definition in $(jq -c '.[]' <<<"$definitions"); do
         prepare_and_release_package "$package_definition"
     done
+}
 
+function review_and_apply_updates() {
     if [ ! -z "$packages_pending_update" ]; then
         review_package_updates
 
         if boolean_prompt "Do you want to continue and apply these changes? [yes/no] "; then
+            if boolean_prompt "Do you want to run the integration tests? [y/n] "; then
+                exec_integration_tests=true
+            else
+                exec_integration_tests=false
+            fi
+
             apply_package_updates
         else
             print ":yellow:You did not continue, so the changes were not applied.:/yellow:"
@@ -373,9 +381,18 @@ function main() {
     else
         print ":yellow:No pending releases available.:/yellow:"
     fi
-
 }
 
-requirements "${required_commands[@]}"
+function main() {
+    local exec_integration_tests=false
+
+    requirements "${required_commands[@]}"
+    process_package_definitions "$definitions"
+    review_and_apply_updates
+
+    if [[ "$exec_integration_tests" == true ]]; then
+        run_integration_tests
+    fi
+}
+
 main
-run_integration_tests

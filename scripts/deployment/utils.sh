@@ -104,7 +104,7 @@ function check_for_uncommitted_changes() {
   return 0
 }
 
-function show_git_diff_and_confirm() {
+function show_git_diff() {
   local files_to_add="${3:-.}"
 
   if ! check_for_uncommitted_changes; then
@@ -113,10 +113,6 @@ function show_git_diff_and_confirm() {
 
   git diff --color $files_to_add
 
-  if ! boolean_prompt "Do you want to continue with the commit? [y/n] "; then
-    print ":red:Commit canceled by the user.:/red:"
-    exit 1
-  fi
 }
 
 function commit_and_push_changes() {
