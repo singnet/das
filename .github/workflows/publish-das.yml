@@ -36,6 +36,7 @@ jobs:
         with:
           repository: singnet/das-query-engine
           token: ${{ secrets.GH_TOKEN }}
+          ref: fix/mkdocs-images-tags
 
       - name: Set up Python
         uses: actions/setup-python@v2
