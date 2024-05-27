@@ -38,15 +38,7 @@ jobs:
           python-version: ^3.8.5
 
       - name: Install Poetry
-        run: |
-          pip install poetry
-          poetry config pypi-token.pypi ${{ secrets.PYPI_API_TOKEN }}
-
-      - name: Build and publish package
-        run: |
-          poetry version ${{ github.event.inputs.version }}
-          poetry build
-          poetry publish --username __token__ --password ${{ secrets.PYPI_API_TOKEN }}
+        run: pip install poetry
 
       - name: Update Documentation
         run: |
