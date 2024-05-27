@@ -2,10 +2,6 @@
 name: Publish DAS
 
 on:
-  push:
-    branches:
-      - feat/add-query-engine-doc
-
   workflow_dispatch:
     inputs:
       version:
@@ -30,6 +26,7 @@ jobs:
 
   publish-query-engine-doc:
     runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/master'
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
