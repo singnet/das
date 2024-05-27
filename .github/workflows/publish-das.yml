@@ -45,6 +45,8 @@ jobs:
         run: pip install poetry
 
       - name: Update Documentation
+        env:
+          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
         run: |
           poetry lock --no-update 
           poetry export --with doc -f requirements.txt | pip install -r /dev/stdin
