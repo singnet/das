@@ -2,6 +2,10 @@
 name: Publish DAS
 
 on:
+  push:
+    branches:
+      - feat/add-query-engine-doc
+
   workflow_dispatch:
     inputs:
       version:
