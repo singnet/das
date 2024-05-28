@@ -23,3 +23,28 @@ jobs:
       title: New version of DAS
       deliverable: Tagged branch (${{ github.ref_name }}) in the repository
     secrets: inherit
+
+  publish-query-engine-doc:
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/master'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+        with:
+          repository: singnet/das-query-engine
+          token: ${{ secrets.GH_TOKEN }}
+          ref: fix/mkdocs-images-tags
+
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: ^3.8.5
+
+      - name: Install Poetry
+        run: pip install poetry
+
+      - name: Update Documentation
+        run: |
+          poetry lock --no-update 
+          poetry export --with doc -f requirements.txt | pip install -r /dev/stdin
+          mkdocs gh-deploy --force
