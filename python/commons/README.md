@@ -1,17 +1,21 @@
 # DasLogger
 
-DasLogger is a custom Python logger that supports both file and stream logging. It provides an easy-to-use interface for logging messages to a file and standard error. 
+DasLogger is a custom Python logger that supports both file and stream logging.
+It provides an easy-to-use interface for logging messages to a file and
+standard error.
 
 ## Features
 
 - Logs messages to both a file and `stderr`
 - Customizable log levels
+- Custom exception logging
 - Automatic handling of uncaught exceptions
 - Child logger support
 
 ## Installation
 
-To install the module, simply copy the `das_logging.py` file into your project directory.
+TODO: Add installation instructions to README.md once we have this
+built/deployed to a package
 
 ## Usage
 
@@ -55,13 +59,17 @@ Here's a complete example demonstrating the usage of DasLogger:
 from das_logging import log
 
 # Log messages of various levels
-log.debug("This is a debug message")
+log.debug("This is a debug message")  # Not logged by default
 log.info("This is an info message")
 log.warning("This is a warning message")
 log.error("This is an error message")
 log.critical("This is a critical message")
+log.fatal("This is a fatal message")
 
-# Log an exception
+# logs an exception with traceback
+log.exception(Exception("This is an exception message"))
+
+# Log an exception with custom DAS formatting
 try:
     raise ValueError("An example exception")
 except Exception as e:
@@ -69,13 +77,15 @@ except Exception as e:
 
 # Create and use a child logger
 child = log.getChild("child")
-child.info("This is an info message from the child logger")
+child.setLevel(logging.DEBUG)
+child.debug("This is an info message from the child logger")
 ```
 
 ## Exception Handling
 
-DasLogger automatically handles uncaught exceptions by logging them and then exiting the program with a status code of 1. This is achieved by setting `sys.excepthook` to the logger's custom exception handler.
+DasLogger automatically handles uncaught exceptions by logging them and then
+exiting the program with a status code of 1. This is achieved by setting
+`sys.excepthook` to the logger's custom exception handler.
 
->Note: The automatic handling of uncaught exceptions will not work in iPython shells (including Jupyter notebooks).
-
-
+>Note: The automatic handling of uncaught exceptions will not work in iPython
+shells (including Jupyter notebooks).
