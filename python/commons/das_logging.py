@@ -3,7 +3,8 @@ import sys
 
 DEFAULT_LOG_FILE = "/tmp/das.log"
 DEFAULT_LOGGER_NAME = "das_logger"
-DEFAULT_LOG_LEVEL = logging.INFO
+DEFAULT_LOG_LEVEL = logging.WARNING
+
 
 class DasLogger(logging.Logger):
     """
@@ -14,7 +15,6 @@ class DasLogger(logging.Logger):
 
     from das_logging import log
     log.info("test") -- outputs an info level log message to file /tmp/das.log and also to stderr
-    log.das_exception(Exception("test")) -- outputs an error level log message to file /tmp/das.log and also to stderr
 
     # if you want to have a child logger you can do so like this:
 
@@ -31,7 +31,7 @@ class DasLogger(logging.Logger):
     CRITICAL = logging.CRITICAL
     FATAL = logging.FATAL
 
-    def __init__(self, name, level=DEFAULT_LOG_LEVEL):
+    def __init__(self, name: str, level: int=DEFAULT_LOG_LEVEL) -> None:
         """
         Args:
             name: name of the logger
@@ -40,33 +40,51 @@ class DasLogger(logging.Logger):
         super().__init__(name, level)
 
         self.formatter = logging.Formatter(
-                fmt="%(asctime)s - %(levelname)-8s - %(message)s",
-                datefmt="%Y-%m-%d %H:%M:%S",
+            fmt="%(asctime)s %(levelname)s %(module)s:%(threadName)s %(message)s",
+            datefmt="%Y-%m-%d %H:%M:%S",
         )
         self._setup_stream_handler()
         self._setup_file_handler()
 
         sys.excepthook = self._uncaught_exc_handler
 
-
-    def _setup_stream_handler(self):
+    def _setup_stream_handler(self) -> None:
+        """
+        Initializes and sets up the stream handler.
+        """
         stream_handler = logging.StreamHandler(sys.stderr)
         stream_handler.setFormatter(self.formatter)
         self.addHandler(stream_handler)
 
-
     def _setup_file_handler(self):
+        """
+        Initializes and sets up the file handler.
+        """
         file_handler = logging.FileHandler(DEFAULT_LOG_FILE)
         file_handler.setFormatter(self.formatter)
         self.addHandler(file_handler)
 
-    def das_exception(self, exception):
-        self.exception(exception)
+    def das_exception(self, msg, *args, exc_info=True, **kwargs):
+        """
+        Convenience method for logging an WARNING with exception information.
 
-    def _uncaught_exc_handler(self, exception):
-        self.das_exception(exception)
-        sys.exit(1)
+        Args:
+            msg: message to log
+            *args: positional arguments
+            exc_info: include exception information, defaulted to True
+            **kwargs: keyword arguments
+        """
+        self.warning(msg, *args, exc_info=exc_info, **kwargs)
+
+    def _uncaught_exc_handler(self, exc_type, exc_value, exc_traceback):
+        if issubclass(exc_type, KeyboardInterrupt):
+            return sys.__excepthook__(exc_type, exc_value, exc_traceback)
+
+        self.error(exc_type, exc_value, exc_traceback)
 
 
 logging.setLoggerClass(DasLogger)
-log = logging.getLogger(DEFAULT_LOGGER_NAME)
+log: DasLogger = logging.getLogger(DEFAULT_LOGGER_NAME)  # type: ignore
+
+if __name__ == "__main__":
+    log.info("test")
