@@ -24,7 +24,7 @@ class DasLogger(logging.Logger):
     child.info("test")
     """
 
-    # Export constats from logging
+    # Export constants from logging
     DEBUG = logging.DEBUG
     INFO = logging.INFO
     WARNING = logging.WARNING
