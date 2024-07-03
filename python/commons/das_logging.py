@@ -1,5 +1,6 @@
 import logging
 import sys
+from types import TracebackType
 
 DEFAULT_LOG_FILE = "/tmp/das.log"
 DEFAULT_LOGGER_NAME = "das_logger"
@@ -31,7 +32,7 @@ class DasLogger(logging.Logger):
     CRITICAL = logging.CRITICAL
     FATAL = logging.FATAL
 
-    def __init__(self, name: str, level: int=DEFAULT_LOG_LEVEL) -> None:
+    def __init__(self, name: str, level: int = DEFAULT_LOG_LEVEL) -> None:
         """
         Args:
             name: name of the logger
@@ -64,7 +65,7 @@ class DasLogger(logging.Logger):
         file_handler.setFormatter(self.formatter)
         self.addHandler(file_handler)
 
-    def das_exception(self, msg, *args, exc_info=True, **kwargs):
+    def das_exception(self, msg: str, *args, exc_info: bool = True, **kwargs):
         """
         Convenience method for logging an WARNING with exception information.
 
@@ -76,7 +77,12 @@ class DasLogger(logging.Logger):
         """
         self.warning(msg, *args, exc_info=exc_info, **kwargs)
 
-    def _uncaught_exc_handler(self, exc_type, exc_value, exc_traceback):
+    def _uncaught_exc_handler(
+        self,
+        exc_type: type[BaseException],
+        exc_value: BaseException,
+        exc_traceback: TracebackType | None,
+    ):
         if issubclass(exc_type, KeyboardInterrupt):
             return sys.__excepthook__(exc_type, exc_value, exc_traceback)
 
@@ -87,4 +93,4 @@ logging.setLoggerClass(DasLogger)
 log: DasLogger = logging.getLogger(DEFAULT_LOGGER_NAME)  # type: ignore
 
 if __name__ == "__main__":
-    log.info("test")
+    log.warning("test")
