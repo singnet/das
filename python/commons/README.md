@@ -27,7 +27,7 @@ from das_logging import log
 # Log an info level message
 log.info("This is an info message")
 
-# Log an exception with a custom message
+# Log an exception with warning level
 log.das_exception(Exception("This is an error message"))
 ```
 
@@ -49,7 +49,7 @@ The logger can be configured by modifying the default values in the module:
 
 - `DEFAULT_LOG_FILE`: The file where logs will be written (default: `/tmp/das.log`)
 - `DEFAULT_LOGGER_NAME`: The name of the logger (default: `das_logger`)
-- `DEFAULT_LOG_LEVEL`: The default log level (default: `logging.INFO`)
+- `DEFAULT_LOG_LEVEL`: The default log level (default: `logging.WARNING`)
 
 ## Example
 
