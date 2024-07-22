@@ -1,10 +1,5 @@
-declare -A colors=(
-  [reset]="\033[0m"
-  [red]="\033[0;31m"
-  [green]="\033[0;32m"
-  [blue]="\033[0;34m"
-  [yellow]="\033[0;33m"
-)
+colors=("reset" "red" "green" "blue" "yellow")
+color_codes=("\033[0m" "\033[0;31m" "\033[0;32m" "\033[0;34m" "\033[0;33m")
 
 function requirements() {
   local required_commands=("$@")
@@ -22,7 +17,8 @@ function boolean_prompt() {
 
   while true; do
     read -p "$prompt" answer
-    case "${answer,,}" in
+    answer=$(echo "$answer" | tr '[:upper:]' '[:lower:]')
+    case "${answer}" in
     "y" | "yes")
       return 0
       ;;
@@ -148,11 +144,11 @@ function clone_repo_to_temp_dir() {
 function print() {
   local text="$1"
 
-  for color in "${!colors[@]}"; do
-    if [[ "$color" != "reset" ]]; then
-      text="${text//:$color:/${colors[$color]}}"
-      text="${text//:\/$color:/${colors[reset]}}"
-    fi
+  for i in "${!colors[@]}"; do
+    local color="${colors[$i]}"
+    local code="${color_codes[$i]}"
+    text="${text//:$color:/$code}"
+    text="${text//:\/$color:/${color_codes[0]}}"
   done
 
   echo -e "$text"
@@ -182,6 +178,17 @@ function load_or_request_github_token() {
   echo "$secret"
 }
 
+function sed_inplace() {
+  local expression=$1
+  local file=$2
+
+  if [[ "$OSTYPE" == "darwin"* ]]; then
+    sed -i '' "$expression" "$file"  
+  else
+    sed -i "$expression" "$file"
+  fi
+}
+
 function append_content_in_file() {
   local file_path="$1"
   local new_block="$2"
@@ -190,7 +197,7 @@ function append_content_in_file() {
   if [ -z "$line" ]; then
     echo "$new_block" >>"$file_path"
   else
-    printf '%s\n' "$new_block" | sed -i "$((line + 1))r /dev/stdin" "$file_path"
+    printf '%s\n' "$new_block" | sed_inplace "$((line + 1))r /dev/stdin" "$file_path"
   fi
 }
 
