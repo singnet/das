@@ -103,8 +103,18 @@ function append_server_data_to_json() {
 function extract_server_details() {
     local servers="$1"
     local alias="$2"
+    local details
 
-    jq -r --arg alias "$alias" '.servers[] | select(.alias == $alias) | [.ip, .username, .is_pem, .password] | @tsv' <<<"$servers" | tr '\t' '|'
+    details=$(printf "%s" "$servers" | jq -r --arg alias "$alias" '
+        .servers[] |
+        select(.alias == $alias) |
+        [.ip, .username, .is_pem, .password] |
+        @tsv
+    ')
+
+    details=$(printf "%s" "$details" | tr '\t' '|')
+
+    echo "$details"
 }
 
 function get_server_das_cli_version() {

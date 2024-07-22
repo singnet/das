@@ -274,19 +274,21 @@ function press_any_key_to_continue() {
 function choose_menu() {
   local prompt="$1" outvar="$2"
   shift 2
-  local options=("$@") cur=0 count=${#options[@]} index=0 start_index=0
-  local esc=$(echo -en "\e")
+  local options=("$@")
+  local cur=0 count=${#options[@]} start_index=0
+  local esc=$(printf "\033")
   local max_display=10
+
   while true; do
     clear
     print "$prompt\n"
     while [ $cur -lt $start_index ]; do
-      start_index=$(($start_index - 1))
+      start_index=$((start_index - 1))
       clear
       print "$prompt\n"
     done
-    while [ $cur -ge $(($start_index + $max_display)) ]; do
-      start_index=$(($start_index + 1))
+    while [ $cur -ge $((start_index + max_display)) ]; do
+      start_index=$((start_index + 1))
       clear
       print "$prompt\n"
     done
@@ -294,22 +296,23 @@ function choose_menu() {
       if [ $i -lt $count ]; then
         printf "\033[K"
         if [ "$i" == "$cur" ]; then
-          echo -e " > \e[7m${options[$i]}\e[0m"
+          printf " > \033[7m%s\033[0m\n" "${options[$i]}"
         else
-          echo "  ${options[$i]}"
+          printf "   %s\n" "${options[$i]}"
         fi
       fi
     done
+
     read -s -n3 key
     if [[ $key == $esc[A ]]; then
-      cur=$(($cur - 1))
+      cur=$((cur - 1))
       [ "$cur" -lt 0 ] && cur=0
     elif [[ $key == $esc[B ]]; then
-      cur=$(($cur + 1))
-      [ "$cur" -ge $count ] && cur=$(($count - 1))
+      cur=$((cur + 1))
+      [ "$cur" -ge $count ] && cur=$((count - 1))
     elif [[ $key == "" ]]; then
       break
     fi
   done
-  printf -v $outvar "${options[$cur]}"
+  eval "$outvar='${options[$cur]}'"
 }
