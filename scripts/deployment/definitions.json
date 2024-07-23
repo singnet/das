@@ -14,11 +14,9 @@
     "ref": "master",
     "hooks": {
       "beforeRelease": "custom/das-toolbox-before-release.sh",
-      "afterDependencyCheck": "custom/das-toolbox-after-dependency-check.sh"
+      "dependencyCheck": "custom/das-toolbox-dependency-check.sh"
     },
-    "dependencies": [
-      "das-metta-parser"
-    ]
+    "dependencies": ["das-metta-parser"]
   },
   {
     "name": "hyperon-das-atomdb",
@@ -37,11 +35,9 @@
     "ref": "master",
     "hooks": {
       "beforeRelease": "poetry/before-release.sh",
-      "afterDependencyCheck": "poetry/after-dependency-check.sh"
+      "dependencyCheck": "poetry/dependency-check.sh"
     },
-    "dependencies": [
-      "hyperon-das-atomdb"
-    ]
+    "dependencies": ["hyperon-das-atomdb"]
   },
   {
     "name": "das-serverless-functions",
@@ -49,11 +45,9 @@
     "workflow": "vultr-build.yml",
     "ref": "master",
     "hooks": {
-      "afterDependencyCheck": "pip/after-dependency-check.sh"
+      "dependencyCheck": "pip/dependency-check.sh"
     },
-    "dependencies": [
-      "hyperon-das"
-    ]
+    "dependencies": ["hyperon-das"]
   },
   {
     "name": "das",

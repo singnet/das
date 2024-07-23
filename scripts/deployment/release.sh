@@ -22,14 +22,7 @@ function verify_dependencies_updated() {
     for dependency in $required_dependencies; do
         local is_dependency_updated=$(contains_property_value "$packages_pending_update" "package_name" "$dependency")
 
-        if [ "$is_dependency_updated" -eq 0 ]; then
-            if ! boolean_prompt "Dependency $dependency has not been updated prior to the current package. Would you like to proceed regardless? [yes/no] "; then
-                print ":yellow:Exiting due to user choice to not proceed without updating dependency...:/yellow:"
-                return 1
-            fi
-        else
-            execute_hook_if_exists "AfterDependencyCheck" "$package_hook_after_dependency_check"
-        fi
+        execute_hook_if_exists "DependencyCheck" "$package_hook_dependency_check"
     done
 }
 
@@ -94,7 +87,7 @@ function add_package_to_pending_updates() {
 
 function extract_package_details() {
     local package="$1"
-    jq -r '[.name, .repository, (.dependencies | join(" ")), .workflow, .hooks.beforeRelease, .hooks.afterDependencyCheck, .ref] | @tsv' <<<"$package" | tr '\t' '|'
+    jq -r '[.name, .repository, (.dependencies | join(" ")), .workflow, .hooks.beforeRelease, .hooks.dependencyCheck, .ref] | @tsv' <<<"$package" | tr '\t' '|'
 }
 
 function extract_packages_pending_update_details() {
@@ -135,7 +128,7 @@ function create_release() {
 function prepare_and_release_package() {
     local package_definition="$1"
 
-    IFS='|' read -r package_name package_repository package_dependencies package_workflow package_hook_before_release package_hook_after_dependency_check package_repo_ref <<<"$(extract_package_details "$package_definition")"
+    IFS='|' read -r package_name package_repository package_dependencies package_workflow package_hook_before_release package_hook_dependency_check package_repo_ref <<<"$(extract_package_details "$package_definition")"
 
     validate_repository_url "$package_repository"
 

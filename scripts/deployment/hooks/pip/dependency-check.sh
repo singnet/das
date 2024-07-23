@@ -2,11 +2,9 @@
 
 set -e
 
-pending_update_definition=$(retrieve_json_object_with_property_value "$packages_pending_update" "package_name" "$dependency")
-
-IFS='|' read -r dependency_package_name dependency_current_version dependency_new_version repository_path <<<"$(extract_packages_pending_update_details "$pending_update_definition")"
-
-print "Updating $dependency_package_name to version $dependency_new_version in the $package_name package."
+if ! source "$hooks_path/common/dependency-check.sh"; then
+    return 0
+fi
 
 requirements=($(find . -name requirements.txt))
 
