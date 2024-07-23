@@ -10,13 +10,13 @@
 
 ### Changelog
 
-#### das-metta-parser 0.4.0
+#### MeTTa Parser 0.4.0
 
 ```
 [#qe231] Fixed bug in large-arity expressions
 ```
 
-#### das-toolbox 0.3.0
+#### Toolbox das-cli 0.3.0
 
 ```
 [#47] Add support to ":" in symbol names
@@ -94,7 +94,7 @@
 [#276] API support to AtomDB new queries
 ```
 
-#### das-serverless-functions 1.13.0
+#### FaaS functions 1.13.0
 
 ```
 [#100] Add fetch. New Action
