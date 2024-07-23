@@ -1,3 +1,5 @@
+#!/bin/bash
+
 colors=("reset" "red" "green" "blue" "yellow")
 color_codes=("\033[0m" "\033[0;31m" "\033[0;32m" "\033[0;34m" "\033[0;33m")
 
@@ -252,6 +254,14 @@ function execute_ssh_commands() {
     sshpass -p "$pkey_or_password" ssh -o StrictHostKeyChecking=no -T $server_username@$server_ip "$commands_str"
   fi
 
+}
+
+function validate_repository_url() {
+    local package_repository="$1"
+    if ! [[ $package_repository =~ git@github.com:([^/]+)/([^/.]+)\.git ]]; then
+        print ":red:Invalid repository SSH URL format.:/red:"
+        exit 1
+    fi
 }
 
 function ping_ssh_server() {

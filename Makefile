@@ -10,6 +10,9 @@ release:
 deploy:
 	@bash $(CURDIR)/scripts/deployment/fn_deploy.sh
 
+integration-tests:
+	@bash $(CURDIR)/scripts/deployment/tests.sh
+
 build-deployment:
 	@docker build -f .docker/deployment/Dockerfile -t das-deployment:latest .
 
