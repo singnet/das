@@ -105,12 +105,31 @@ function create_release() {
     local package_repo_owner="$6"
     local package_repo_name="$7"
     local package_repo_ref="$8"
+    local package_repository_folder=""
+    local package_version=""
 
-    local package_repository_folder=$(clone_repo_to_temp_dir "$package_repository" "$package_repo_ref")
+    while true; do
+        package_repository_folder=$(clone_repo_to_temp_dir "$package_repository" "$package_repo_ref")
 
-    cd "$package_repository_folder"
+        cd "$package_repository_folder"
 
-    local package_version=$(get_repository_latest_version)
+        package_version=$(get_repository_latest_version)
+
+        if [ "$package_version" != "unknown" ]; then
+            break
+        fi
+
+        print ":red:Error: Unable to determine the version.
+            Possible reasons:
+            - The SSH key file may not have the correct permissions.
+            - There might be issues with your internet connection.
+            - The repository might not have a version defined.
+            Please verify these and try again:/red:"
+        press_any_key_to_continue
+
+        cd - &>/dev/null
+        rm -rf "$package_repository_folder"
+    done
 
     local new_package_version=$(prompt_for_new_version "The current version is :green:$package_version:/green:. What is the next version you want to release? (0.0.0): ")
 
