@@ -218,6 +218,9 @@ function main() {
     review_and_apply_updates
 
     if [[ "$exec_integration_tests" == true ]]; then
+        print "Before starting the integration tests, it might be necessary to deploy the resources. To do this, use the command 'make deploy'"
+        press_any_key_to_continue
+
         source "$workdir/scripts/deployment/tests.sh"
     fi
 
