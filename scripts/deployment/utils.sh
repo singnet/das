@@ -1,7 +1,13 @@
 #!/bin/bash
 
+# PATHS
+workdir=$(pwd)
+
+# GLOBAL VARIABLES
 colors=("reset" "red" "green" "blue" "yellow")
 color_codes=("\033[0m" "\033[0;31m" "\033[0;32m" "\033[0;34m" "\033[0;33m")
+backup_answers="$workdir/.output~"
+backup_enabled=true
 
 function requirements() {
   local required_commands=("$@")
@@ -14,11 +20,52 @@ function requirements() {
   done
 }
 
+function has_backup_answers() {
+  [ -f "$backup_answers" ]
+}
+
+function backup_answer() {
+  if [ "$backup_enabled" == true ]; then
+    local answer="$1"
+    echo $answer >> "$backup_answers"
+  fi
+}
+
+function empty_backup_answers() {
+  rm -rf "$backup_answers" &>/dev/null
+}
+
+function read_input() {
+  local prompt=$(print "$1")
+
+  read -p "$prompt" answer
+
+  backup_answer "$answer"
+  echo "$answer"
+}
+
+function prompt() {
+  if [ -t 0 ]; then
+    read_input "$1"
+  else
+    if read -r input; then
+      echo $input
+    else
+      exec < /dev/tty
+      read_input "$1"
+    fi
+  fi
+}
+
+function text_prompt() {
+  prompt "$@"
+}
+
 function boolean_prompt() {
   local prompt="$1"
 
   while true; do
-    read -p "$prompt" answer
+    local answer=$(text_prompt "$prompt")
     answer=$(echo "$answer" | tr '[:upper:]' '[:lower:]')
     case "${answer}" in
     "y" | "yes")
@@ -32,18 +79,8 @@ function boolean_prompt() {
   done
 }
 
-function text_prompt() {
-  local prompt=$(print "$1")
-
-  read -p "$prompt" answer
-  echo $answer
-}
-
 function password_prompt() {
-  local prompt=$(print "$1")
-
-  read -s -p "$prompt" answer
-  echo $answer
+  text_prompt -s "$1"
 }
 
 function retrieve_json_object_with_property_value() {

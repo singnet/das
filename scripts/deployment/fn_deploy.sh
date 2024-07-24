@@ -10,6 +10,7 @@ source "$workdir/scripts/deployment/utils.sh"
 # GLOBAL VARIABLES
 servers_definition=$(jq -c '.' "$servers_file")
 github_token=$(load_or_request_github_token "$github_token_path")
+backup_enabled=false
 
 function remove_server() {
     if [[ -f "$servers_file" ]]; then

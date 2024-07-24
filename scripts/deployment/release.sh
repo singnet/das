@@ -9,6 +9,7 @@ definitions_path="$workdir/scripts/deployment/definitions.json"
 github_token_path="$workdir/scripts/deployment/gh_token"
 
 source "$workdir/scripts/deployment/utils.sh"
+source "$workdir/scripts/deployment/workflow.sh"
 
 # GLOBAL VARIABLES
 required_commands=(git jq curl)
@@ -219,6 +220,12 @@ function main() {
     if [[ "$exec_integration_tests" == true ]]; then
         source "$workdir/scripts/deployment/tests.sh"
     fi
+
+    empty_backup_answers
 }
 
-main
+if has_backup_answers; then
+    main "$@" < "$backup_answers"
+fi
+
+main "$@"
