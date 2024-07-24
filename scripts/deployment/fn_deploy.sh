@@ -10,6 +10,7 @@ source "$workdir/scripts/deployment/utils.sh"
 # GLOBAL VARIABLES
 servers_definition=$(jq -c '.' "$servers_file")
 github_token=$(load_or_request_github_token "$github_token_path")
+backup_enabled=false
 
 function remove_server() {
     if [[ -f "$servers_file" ]]; then
@@ -103,8 +104,18 @@ function append_server_data_to_json() {
 function extract_server_details() {
     local servers="$1"
     local alias="$2"
+    local details
 
-    jq -r --arg alias "$alias" '.servers[] | select(.alias == $alias) | [.ip, .username, .is_pem, .password] | @tsv' <<<"$servers" | tr '\t' '|'
+    details=$(printf "%s" "$servers" | jq -r --arg alias "$alias" '
+        .servers[] |
+        select(.alias == $alias) |
+        [.ip, .username, .is_pem, .password] |
+        @tsv
+    ')
+
+    details=$(printf "%s" "$details" | tr '\t' '|')
+
+    echo "$details"
 }
 
 function get_server_das_cli_version() {
@@ -242,7 +253,7 @@ function main() {
         esac
 
         print "\n"
-        press_any_key_to_continue
+        press_enter_to_continue
     done
 }
 

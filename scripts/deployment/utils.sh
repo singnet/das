@@ -1,10 +1,13 @@
-declare -A colors=(
-  [reset]="\033[0m"
-  [red]="\033[0;31m"
-  [green]="\033[0;32m"
-  [blue]="\033[0;34m"
-  [yellow]="\033[0;33m"
-)
+#!/bin/bash
+
+# PATHS
+workdir=$(pwd)
+
+# GLOBAL VARIABLES
+colors=("reset" "red" "green" "blue" "yellow")
+color_codes=("\033[0m" "\033[0;31m" "\033[0;32m" "\033[0;34m" "\033[0;33m")
+backup_answers="$workdir/.output~"
+backup_enabled=true
 
 function requirements() {
   local required_commands=("$@")
@@ -17,12 +20,54 @@ function requirements() {
   done
 }
 
+function has_backup_answers() {
+  [ -f "$backup_answers" ]
+}
+
+function backup_answer() {
+  if [ "$backup_enabled" == true ]; then
+    local answer="$1"
+    echo $answer >> "$backup_answers"
+  fi
+}
+
+function empty_backup_answers() {
+  rm -rf "$backup_answers" &>/dev/null
+}
+
+function read_input() {
+  local prompt=$(print "$1")
+
+  read -p "$prompt" answer
+
+  backup_answer "$answer"
+  echo "$answer"
+}
+
+function prompt() {
+  if [ -t 0 ]; then
+    read_input "$1"
+  else
+    if read -r input; then
+      echo $input
+    else
+      exec < /dev/tty
+      read_input "$1"
+    fi
+  fi
+}
+
+function text_prompt() {
+  prompt "$@"
+}
+
 function boolean_prompt() {
   local prompt="$1"
 
   while true; do
-    read -p "$prompt" answer
-    case "${answer,,}" in
+    local answer=$(text_prompt "$prompt")
+    answer=$(echo "$answer" | tr '[:upper:]' '[:lower:]')
+    case "${answer}" in
     "y" | "yes")
       return 0
       ;;
@@ -34,18 +79,8 @@ function boolean_prompt() {
   done
 }
 
-function text_prompt() {
-  local prompt=$(print "$1")
-
-  read -p "$prompt" answer
-  echo $answer
-}
-
 function password_prompt() {
-  local prompt=$(print "$1")
-
-  read -s -p "$prompt" answer
-  echo $answer
+  text_prompt -s "$1"
 }
 
 function retrieve_json_object_with_property_value() {
@@ -148,11 +183,11 @@ function clone_repo_to_temp_dir() {
 function print() {
   local text="$1"
 
-  for color in "${!colors[@]}"; do
-    if [[ "$color" != "reset" ]]; then
-      text="${text//:$color:/${colors[$color]}}"
-      text="${text//:\/$color:/${colors[reset]}}"
-    fi
+  for i in "${!colors[@]}"; do
+    local color="${colors[$i]}"
+    local code="${color_codes[$i]}"
+    text="${text//:$color:/$code}"
+    text="${text//:\/$color:/${color_codes[0]}}"
   done
 
   echo -e "$text"
@@ -182,6 +217,17 @@ function load_or_request_github_token() {
   echo "$secret"
 }
 
+function sed_inplace() {
+  local expression=$1
+  local file=$2
+
+  if [[ "$OSTYPE" == "darwin"* ]]; then
+    sed -i '' "$expression" "$file"  
+  else
+    sed -i "$expression" "$file"
+  fi
+}
+
 function append_content_in_file() {
   local file_path="$1"
   local new_block="$2"
@@ -190,7 +236,7 @@ function append_content_in_file() {
   if [ -z "$line" ]; then
     echo "$new_block" >>"$file_path"
   else
-    printf '%s\n' "$new_block" | sed -i "$((line + 1))r /dev/stdin" "$file_path"
+    printf '%s\n' "$new_block" | sed_inplace "$((line + 1))r /dev/stdin" "$file_path"
   fi
 }
 
@@ -247,6 +293,14 @@ function execute_ssh_commands() {
 
 }
 
+function validate_repository_url() {
+    local package_repository="$1"
+    if ! [[ $package_repository =~ git@github.com:([^/]+)/([^/.]+)\.git ]]; then
+        print ":red:Invalid repository SSH URL format.:/red:"
+        exit 1
+    fi
+}
+
 function ping_ssh_server() {
   local ip="$1"
   local username="$2"
@@ -259,27 +313,28 @@ function ping_ssh_server() {
   return $?
 }
 
-function press_any_key_to_continue() {
-  print "Press ANY key to continue..."
-  read -n 1 -s -r -p ""
+function press_enter_to_continue() {
+  text_prompt "Press ENTER to continue..."
 }
 
 function choose_menu() {
   local prompt="$1" outvar="$2"
   shift 2
-  local options=("$@") cur=0 count=${#options[@]} index=0 start_index=0
-  local esc=$(echo -en "\e")
+  local options=("$@")
+  local cur=0 count=${#options[@]} start_index=0
+  local esc=$(printf "\033")
   local max_display=10
+
   while true; do
     clear
     print "$prompt\n"
     while [ $cur -lt $start_index ]; do
-      start_index=$(($start_index - 1))
+      start_index=$((start_index - 1))
       clear
       print "$prompt\n"
     done
-    while [ $cur -ge $(($start_index + $max_display)) ]; do
-      start_index=$(($start_index + 1))
+    while [ $cur -ge $((start_index + max_display)) ]; do
+      start_index=$((start_index + 1))
       clear
       print "$prompt\n"
     done
@@ -287,22 +342,23 @@ function choose_menu() {
       if [ $i -lt $count ]; then
         printf "\033[K"
         if [ "$i" == "$cur" ]; then
-          echo -e " > \e[7m${options[$i]}\e[0m"
+          printf " > \033[7m%s\033[0m\n" "${options[$i]}"
         else
-          echo "  ${options[$i]}"
+          printf "   %s\n" "${options[$i]}"
         fi
       fi
     done
+
     read -s -n3 key
     if [[ $key == $esc[A ]]; then
-      cur=$(($cur - 1))
+      cur=$((cur - 1))
       [ "$cur" -lt 0 ] && cur=0
     elif [[ $key == $esc[B ]]; then
-      cur=$(($cur + 1))
-      [ "$cur" -ge $count ] && cur=$(($count - 1))
+      cur=$((cur + 1))
+      [ "$cur" -ge $count ] && cur=$((count - 1))
     elif [[ $key == "" ]]; then
       break
     fi
   done
-  printf -v $outvar "${options[$cur]}"
+  eval "$outvar='${options[$cur]}'"
 }
