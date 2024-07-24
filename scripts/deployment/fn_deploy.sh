@@ -253,7 +253,7 @@ function main() {
         esac
 
         print "\n"
-        press_any_key_to_continue
+        press_enter_to_continue
     done
 }
 

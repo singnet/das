@@ -125,7 +125,7 @@ function create_release() {
             - There might be issues with your internet connection.
             - The repository might not have a version defined.
             Please verify these and try again:/red:"
-        press_any_key_to_continue
+        press_enter_to_continue
 
         cd - &>/dev/null
         rm -rf "$package_repository_folder"
@@ -238,7 +238,7 @@ function main() {
 
     if [[ "$exec_integration_tests" == true ]]; then
         print "Before starting the integration tests, it might be necessary to deploy the resources. To do this, use the command 'make deploy'"
-        press_any_key_to_continue
+        press_enter_to_continue
 
         source "$workdir/scripts/deployment/tests.sh"
     fi

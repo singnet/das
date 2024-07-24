@@ -313,9 +313,8 @@ function ping_ssh_server() {
   return $?
 }
 
-function press_any_key_to_continue() {
-  print "Press ANY key to continue..."
-  read -n 1 -s -r -p ""
+function press_enter_to_continue() {
+  text_prompt "Press ENTER to continue..."
 }
 
 function choose_menu() {
