@@ -1,0 +1,43 @@
+---
+name: Daily Repository Check
+
+on:
+  schedule:
+    - cron: "0 8 * * *"
+
+jobs:
+  checking-repos:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        repo: ${{ fromJson(vars.SCHEDULED_REPOS) }}
+    steps:
+      - name: Running workflow
+        id: running-workflow
+        uses: singnet/das-cicd@master
+        with:
+          workflow: ${{ matrix.repo.workflow_id }}
+          repo: ${{ matrix.repo.name }}
+          org: singnet
+          ref: master
+          github-token: ${{ secrets.GH_TOKEN }}
+
+      - name: Send success notification
+        if: steps.running-workflow.outputs.conclusion == 'success'
+        uses: singnet/integration-github-mattermost@master
+        with:
+          webhook-url: ${{ secrets.SCHEDULED_REPOS_MATTERMOST_WEBHOOK_URL }}
+        env:
+          MATTERMOST_MESSAGE: "SUCCESS - CI workflow succeeded in repository ${{ matrix.repo.name }}"
+
+      - name: Send failure notification
+        if: steps.running-workflow.outputs.conclusion != 'success'
+        uses: singnet/integration-github-mattermost@master
+        with:
+          webhook-url: ${{ secrets.SCHEDULED_REPOS_MATTERMOST_WEBHOOK_URL }}
+        env:
+          MATTERMOST_MESSAGE: |-
+            FAILURE - CI workflow failed in repository ${{ matrix.repo.name }}
+
+            Details: ${{ fromJson(steps.running-workflow.outputs.failed_job).url }}
+            Failed job: ${{ fromJson(steps.running-workflow.outputs.failed_job).failed_at }}
