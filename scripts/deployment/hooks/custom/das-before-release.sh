@@ -61,7 +61,7 @@ function generate_release_notes_block() {
 
         local package_name_alias=$(map_package_name "$package_name")
 
-        new_block+="* $package_name_alias $new_version\n"
+        new_block+="* ${package_name_alias}: ${new_version}\n"
     done
 
     echo -e "## DAS Version $new_package_version\n\n$new_block"

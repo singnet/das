@@ -2,11 +2,11 @@
 
 ## DAS Version 0.2.0
 
-* das-metta-parser 0.4.0
-* das-toolbox 0.3.0
-* hyperon-das-atomdb 0.7.0
-* hyperon-das 0.8.0
-* das-serverless-functions 1.13.0
+- Toolbox das-cli: 0.3.0
+- hyperon-das: 0.8.0
+- hyperon-das-atomdb: 0.7.0
+- FaaS functions: 1.13.0
+- MeTTa Parser: 0.4.0
 
 ### Changelog
 
