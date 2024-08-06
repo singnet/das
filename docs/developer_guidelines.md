@@ -62,7 +62,7 @@ guidelines:
    * ...
    ```
 
-3. Here is an example of an epic issue: 
+3. Here is an example of an epic issue: https://github.com/orgs/singnet/projects/6/views/1?filterQuery=epic+label%3AEPIC&pane=issue&itemId=66967931
 
 ## Conclusion
 
