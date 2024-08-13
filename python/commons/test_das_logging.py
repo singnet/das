@@ -60,4 +60,6 @@ class TestDasLogger(unittest.TestCase):
         with self.assertLogs(log, level=log.WARNING) as cm:
             exc = Exception("test")
             log._uncaught_exc_handler(type(exc), exc, None)
-            self.assertTrue(cm.output[0].startswith("ERROR:das_logger:An uncaught exception occurred"))
+            self.assertTrue(
+                cm.output[0].startswith("ERROR:das_logger:An uncaught exception occurred")
+            )

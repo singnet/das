@@ -87,8 +87,7 @@ class DasLogger(logging.Logger):
             return sys.__excepthook__(exc_type, exc_value, exc_traceback)
 
         self.error(
-            "An uncaught exception occurred: ",
-            exc_info=(exc_type, exc_value, exc_traceback)
+            "An uncaught exception occurred: ", exc_info=(exc_type, exc_value, exc_traceback)
         )
 
 
