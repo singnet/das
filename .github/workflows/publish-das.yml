@@ -33,7 +33,12 @@ jobs:
         with:
           repository: singnet/das-query-engine
           token: ${{ secrets.GH_TOKEN }}
-          ref: master
+          ref: fix/404-docs2
+
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          path: .
 
       - name: Checkout
         uses: actions/checkout@v4
