@@ -19,6 +19,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         with:
+          clean: false
           path: .
 
       - name: Set up Python
