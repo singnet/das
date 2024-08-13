@@ -16,10 +16,7 @@ connectivity, subgraph topology, etc.
 DAS can be understood as a persistence layer for knowledge bases used in
 OpenCog Hyperon.
 
-<p align="center">
-<img src="assets/persistence_layer.png" width="400"/>
-</p>
-
+![Percistence Layer](assets/persistence_layer.png){ width=400 style="display: block; margin: 0 auto;" }
 
 The data manipulation API provides a defined set of operations without exposing
 database details such as data modeling and the DBMS (Database Management
@@ -63,9 +60,7 @@ knowledge base and can, optionally, connect to one or more remote DAS servers,
 exposing their contents to the local program. In this case, the local knowledge
 base can store its contents in RAM or can use a DB backend to persist it.
 
-<p align="center">
-<img src="assets/components.png" width="900"/>
-</p>
+![Components](assets/components.png){ width=900 style="display: block; margin: 0 auto;" }
 
 Components in the DAS architecture are designed to provide the same 
 [data manipulation API](https://singnet.github.io/das-query-engine/api/das/)
@@ -81,7 +76,7 @@ remote DAS is being used, in such a way that following links can be done
 quickly.
 
 The __Query Engine__ is where global queries are processed. These are queries
-for specific atoms or sets of atoms that satisfy some criteria, including
+for specific atoms or sets of atoms that satisfies some criteria, including
 pattern matching. When making a query, the user can specify whether only local
 atoms should be considered or whether atoms in remote DASs should be searched
 as well. If that's the case, the Query Engine connects to the remote OpenFaaS
@@ -144,7 +139,7 @@ the knowledge base is loaded, we can create an inverted index of patterns
 present in each toplevel link and use such index later to perform pattern
 matching.
 
-For instance, given a toplevel link like this one:
+For instance, given as toplevel link like this one:
 
 ```
 Inherits
@@ -170,9 +165,7 @@ base that satisfies the passed expression.
 
 For instance, suppose we have the following knowledge base in DAS.
 
-<p align="center">
-<img src="assets/pmquery_1.png" width="500"/>
-</p>
+![Query 1](assets/pmquery_1.png){ width=500 style="display: block; margin: 0 auto;" }
 
 We could search for a pattern like:
 
@@ -196,23 +189,17 @@ In this example, `Chimp` and `Human` are not a suitable answer to replace `V1`
 and `V2` because there's a possible value for `V3` that satisfies the `AND`
 clause in the pattern, as shown below.
 
-<p align="center">
-<img src="assets/pmquery_2.png" width="500"/>
-</p>
+![Query 2](assets/pmquery_2.png){ width=500 style="display: block; margin: 0 auto;" }
 
 On the other hand, there are other pair of nodes which could be used to match
 `V1` and `V2` whitout matching the `AND` clause, as shown below.
 
-<p align="center">
-<img src="assets/pmquery_3.png" width="500"/>
-</p>
+![Query 3](assets/pmquery_3.png){ width=500 style="display: block; margin: 0 auto;" }
 
 The answer for the query is all the subgraphs that satisfy the pattern. In our
 example, the answer would be as follows.
 
-<p align="center">
-<img src="assets/pmquery_4.png" width="500"/>
-</p>
+![Query 4](assets/pmquery_4.png){ width=500 style="display: block; margin: 0 auto;" }
 
 ## Mapping knowledge bases to nodes and links
 
@@ -247,9 +234,7 @@ supported by [our automated deployment tool](https://github.com/singnet/das-tool
 This architecture is presented in the diagram below.
 
 
-<p align="center">
-<img src="assets/architecture.jpg" width="800"/>
-</p>
+![Architecture](assets/architecture.jpg){ width=800 style="display: block; margin: 0 auto;" }
 
 When deploying in AWS Lambda, [Redis](https://redis.io/) and
 [MongoDB](https://www.mongodb.com/) can be replaced by AWS'
