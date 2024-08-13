@@ -1,0 +1,36 @@
+---
+name: Update Documentation
+
+on:
+  push:
+    branches: docs/query-engine-mkdocs
+
+jobs:
+  publish-query-engine-doc:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Query Engine Repo
+        uses: actions/checkout@v4
+        with:
+          repository: singnet/das-query-engine
+          token: ${{ secrets.GH_TOKEN }}
+          ref: fix/404-docs2
+
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          path: .
+
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: ^3.10
+
+      - name: Install Poetry
+        run: pip install poetry
+
+      - name: Update Documentation
+        run: |
+          poetry lock --no-update 
+          poetry export --with doc -f requirements.txt | pip install -r /dev/stdin
+          mkdocs gh-deploy --force
