@@ -34,8 +34,8 @@ class TestDasLogger(unittest.TestCase):
         """Test that log.exception logs and it's level is set correctly"""
         with self.assertLogs(log, level=log.WARNING) as cm:
             try:
-                raise Exception("test")
-            except Exception as e:
+                raise ValueError("test")
+            except ValueError as e:
                 log.exception(e)
 
             self.assertTrue(cm.output[0].startswith("ERROR:das_logger"))
@@ -44,8 +44,8 @@ class TestDasLogger(unittest.TestCase):
         """Test that das_exception logs and it's level is set correctly"""
         with self.assertLogs(log, level=log.WARNING) as cm:
             try:
-                raise Exception("test")
-            except Exception as e:
+                raise ValueError("test")
+            except ValueError as e:
                 log.das_exception(e)  # type: ignore
 
             self.assertTrue(cm.output[0].startswith("WARNING:das_logger"))
@@ -53,13 +53,15 @@ class TestDasLogger(unittest.TestCase):
     def test_sys_excepthook(self):
         """Test that sys.excepthook is set correctly"""
 
-        self.assertEqual(sys.excepthook, log._uncaught_exc_handler)
+        self.assertEqual(
+            sys.excepthook, log._uncaught_exc_handler  # pylint: disable=protected-access
+        )
 
     def test_uncaught_exc_handler(self):
         """Test that uncaught exception handler logs and it's level is set correctly"""
         with self.assertLogs(log, level=log.WARNING) as cm:
-            exc = Exception("test")
-            log._uncaught_exc_handler(type(exc), exc, None)
+            exc = ValueError("test")
+            log._uncaught_exc_handler(type(exc), exc, None)  # pylint: disable=protected-access
             self.assertTrue(
                 cm.output[0].startswith("ERROR:das_logger:An uncaught exception occurred")
             )
