@@ -19,8 +19,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          clean: false
-          path: .
+          path: das
+
+      - name: Merge 'docs' from DAS to Query Engine Repo
+        run: |
+          rsync -a das/docs/ ./docs/
 
       - name: Set up Python
         uses: actions/setup-python@v2
