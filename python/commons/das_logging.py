@@ -86,7 +86,7 @@ class DasLogger(logging.Logger):
         if issubclass(exc_type, KeyboardInterrupt):
             return sys.__excepthook__(exc_type, exc_value, exc_traceback)
 
-        self.error(
+        return self.error(
             "An uncaught exception occurred: ", exc_info=(exc_type, exc_value, exc_traceback)
         )
 
