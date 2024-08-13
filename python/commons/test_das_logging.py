@@ -1,13 +1,8 @@
 import logging
-import unittest
 import sys
+import unittest
 
-from python.commons.das_logging import (
-    DEFAULT_LOG_LEVEL,
-    DEFAULT_LOGGER_NAME,
-    DasLogger,
-    log,
-)
+from python.commons.das_logging import DEFAULT_LOG_LEVEL, DEFAULT_LOGGER_NAME, DasLogger, log
 
 assert isinstance(log, DasLogger)  # pyright
 
