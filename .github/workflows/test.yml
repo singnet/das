@@ -24,6 +24,7 @@ jobs:
       - name: Merge 'docs' from DAS to Query Engine Repo
         run: |
           rsync -a das/docs/ ./docs/
+          rsync -a das/mkdocs.yml ./
 
       - name: Set up Python
         uses: actions/setup-python@v2
