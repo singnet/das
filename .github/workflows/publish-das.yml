@@ -28,12 +28,17 @@ jobs:
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/master'
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v2
+      - name: Checkout Query Engine Repo
+        uses: actions/checkout@v4
         with:
           repository: singnet/das-query-engine
           token: ${{ secrets.GH_TOKEN }}
-          ref: master
+          ref: fix/404-docs2
+
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          path: .
 
       - name: Set up Python
         uses: actions/setup-python@v2
