@@ -28,17 +28,27 @@ jobs:
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/master'
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v2
+      - name: Checkout Query Engine Repo
+        uses: actions/checkout@v4
         with:
           repository: singnet/das-query-engine
           token: ${{ secrets.GH_TOKEN }}
-          ref: fix/mkdocs-images-tags
+          ref: master
+
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          path: das
+
+      - name: Merge 'docs' from DAS to Query Engine Repo
+        run: |
+          rsync -a das/docs/ ./docs/
+          rsync -a das/mkdocs.yml ./
 
       - name: Set up Python
         uses: actions/setup-python@v2
         with:
-          python-version: ^3.8.5
+          python-version: ^3.10
 
       - name: Install Poetry
         run: pip install poetry

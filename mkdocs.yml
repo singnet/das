@@ -1,0 +1,31 @@
+site_name: Distributed Atomspace
+repo_url: https://github.com/singnet/das-query-engine
+repo_name: singnet/das-query-engine
+edit_uri: tree/master/docs
+custom_dir: overrides
+site_url: https://singnet.github.io/das-query-engine/
+
+theme:
+  name: material
+  font:
+    text: Roboto
+    code: Roboto Mono
+
+static_templates:
+  - 404.html
+
+watch:
+  - hyperon_das
+
+markdown_extensions:
+  - attr_list
+  - md_in_html
+
+plugins:
+  - mkdocstrings:
+      handlers:
+        python:
+          paths: [hyperon_das]
+          options:
+            show_source: false
+  - search
