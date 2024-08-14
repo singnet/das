@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "das-commons"
+name = "hyperon-das-commons"
 version = "0.0.1"
 description = ""
 authors = ["Pedro Costa <pedrobc89@gmail.com>"]
