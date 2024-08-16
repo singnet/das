@@ -1,5 +1,44 @@
 # Release Notes
 
+## DAS Version 0.3.0
+
+* Toolbox das-cli: 0.4.0
+* hyperon-das: 0.9.0
+* hyperon-das-atomdb: 0.8.0
+* FaaS functions: 1.14.0
+* MeTTa Parser: 0.5.0
+
+### Changelog
+
+#### Toolbox das-cli 0.4.0
+
+```
+No changelog available
+```
+
+#### hyperon-das 0.9.0
+
+```
+No changelog available
+```
+
+#### hyperon-das-atomdb 0.8.0
+
+```
+No changelog available
+```
+
+#### FaaS functions 1.14.0
+
+```
+No changelog available
+```
+
+#### MeTTa Parser 0.5.0
+
+```
+No changelog available
+```
 ## DAS Version 0.2.0
 
 * Toolbox das-cli: 0.3.0
