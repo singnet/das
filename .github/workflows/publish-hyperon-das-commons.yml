@@ -9,20 +9,35 @@ on:
         required: true
 
 jobs:
-  tag:
+  notify-mattermost:
     if: github.ref == 'refs/heads/master'
-    uses: singnet/das/.github/workflows/run-semver.yml@master
-    with:
-      version: ${{ github.event.inputs.version }}
-      version-strategy: bump-version-from-variable-value
-      job-image-namespace: trueagi
-      job-image-version-semver: semantic-versioning
-      main-branch: master
-      version-tag-regex-pattern: /^\d+\.\d+\.\d+$/
-      version-require-confirmation: "true"
-      title: New version of hyperon-das-commons
-      deliverable: Library in PyPI named hyperon-das-commons
-    secrets: inherit
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Create mattermost message
+        run: |
+          title="New version of hyperon-das-commons"
+          deliverable="Library in PyPI named hyperon-das-commons"
+          version="${{ github.event.inputs.version }}"
+          repository="${{ github.GITHUB_REPOSITORY }}"
+          releaseNote=""
+
+          message="${title}\n\nDeliverable:${deliverable}\nNew version available: $version\nRepository: https://github.com/$repository/releases/tag/$version"
+
+          if [ -n "$releaseNote" ]; then
+            message="$message\nChanges:\n$releaseNote"
+          fi
+
+          escaped_message=$(printf '%s' "$message" | jq -sRr @json | sed 's/\\\\n/\\n/g')
+
+          echo "{\"text\": $escaped_message}" > mattermost.json
+
+      - name: Notify Mattermost
+        uses: singnet/integration-github-mattermost@master
+        with:
+          webhook-url: ${{ secrets.MATTERMOST_WEBHOOK_URL }}
 
   publish:
     runs-on: ubuntu-latest
