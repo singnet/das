@@ -13,19 +13,37 @@
 #### Toolbox das-cli 0.4.0
 
 ```
-No changelog available
+[#99] Correct default value display in prompt for Redis and MongoDB cluster setting (PR: #102)
+[das#66] Port validation for faas start: Before starting, the CLI now checks if the required ports (8080, 8081, and 5000) are available. If any port is in use, faas start will terminate with an error message specifying which port is occupied. (PR: #106)
 ```
 
 #### hyperon-das 0.9.1
 
 ```
-No changelog available
+[#305] Integration of AttentionBroker server to allow enabling of Cache Controller
+[#308] Change get_node() and get_link() to reuse get_atom()
+[#307] Change get_atom() to check is atom is present in the cache before forwarding the query to remote DAS
+[#304] syncing QE with the new Atom DB (PR #313)
 ```
 
 #### hyperon-das-atomdb 0.8.0
 
 ```
-No changelog available
+[das-query-engine#225] Replace NodeDoesNotExist and LinkDoesNotExist by AtomDoesNotExit (PR #168)
+[#169] adding pylint (PR #170)
+[#171] bumping up python to 3.10 (PR #172)
+[#161] refactoring database.py (PR #173)
+[#161] refactoring multiple small files (PR #174)
+[#161] refactoring ram_only.py (PR #175)
+[#161] refactoring expression_hasher.py (PR #176)
+[#161] refactoring redis_mongo_db.py and fixing small logic stuff (PR #177)
+[#161] fixing small logic stuff (PR #178)
+[#161] adding mypy to the repo (PR #180)
+[#161] fixing some returns and type hints (PR #181)
+[#182] refactoring AtomDB.get_atom (PR #183)
+[#185] refactoring AtomDB.get_matched_links and related code (PR #186)
+[das-query-engine#304] returning the cursor that comes in kwargs (PR #190)
+[#191] adding skipped test for future evaluation (PR #192)
 ```
 
 #### FaaS functions 1.14.1
@@ -37,47 +55,9 @@ No changelog available
 #### MeTTa Parser 0.5.0
 
 ```
-No changelog available
-```
-## DAS Version 0.3.0
-
-* Toolbox das-cli: 0.4.0
-* hyperon-das: 0.9.0
-* hyperon-das-atomdb: 0.8.0
-* FaaS functions: 1.14.0
-* MeTTa Parser: 0.5.0
-
-### Changelog
-
-#### Toolbox das-cli 0.4.0
-
-```
-No changelog available
+[#55] BUGFIX Flush symbol and expression buffers separately
 ```
 
-#### hyperon-das 0.9.0
-
-```
-No changelog available
-```
-
-#### hyperon-das-atomdb 0.8.0
-
-```
-No changelog available
-```
-
-#### FaaS functions 1.14.0
-
-```
-No changelog available
-```
-
-#### MeTTa Parser 0.5.0
-
-```
-No changelog available
-```
 ## DAS Version 0.2.0
 
 * Toolbox das-cli: 0.3.0
