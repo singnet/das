@@ -1,0 +1,26 @@
+cmake_minimum_required(VERSION 3.12)
+project(handletrie_nanobind)
+
+find_package(OpenSSL REQUIRED)
+
+file(GLOB_RECURSE sources ${CMAKE_CURRENT_SOURCE_DIR}/src/*.cc)
+file(GLOB_RECURSE includes ${CMAKE_CURRENT_SOURCE_DIR}/*.h)
+file(GLOB_RECURSE cpp ${CMAKE_CURRENT_SOURCE_DIR}/_nanobind.cpp)
+# find_package(Python3 REQUIRED)
+# include_directories(${Python3_INCLUDE_DIRS})
+find_package(Python COMPONENTS Interpreter Development REQUIRED)
+# set(nanobind_DIR ${CMAKE_CURRENT_SOURCE_DIR}/venv/lib/python3.10/site-packages/nanobind/cmake)
+
+execute_process(
+  COMMAND "${Python_EXECUTABLE}" -m nanobind --cmake_dir
+  OUTPUT_STRIP_TRAILING_WHITESPACE OUTPUT_VARIABLE nanobind_ROOT)
+find_package(nanobind CONFIG REQUIRED)
+# find_package(nanobind REQUIRED)
+
+
+# Add the pybind11 module
+nanobind_add_module(handletrie_nanobind MODULE ${cpp} ${sources} ${includes})
+
+target_include_directories(handletrie_nanobind PRIVATE ${OpenSSL_INCLUDE_DIR})
+
+target_link_libraries(handletrie_nanobind PRIVATE OpenSSL::Crypto )

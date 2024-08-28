@@ -1,0 +1,24 @@
+Testing 10000000 nodes
+=======================================================
+benchmark_python_dict_test_dict = Average: 30.56294, STDEV: 0.20379, Memory: 2.511 GB
+benchmark_python_dict_none = Average: 17.89539, STDEV: 0.12758, Memory: 0.06 GB
+Difference = Average: 12.66755, STDEV: 0.07621, Memory: 2.451 GB
+=======================================================
+Testing 10000000 nodes
+=======================================================
+benchmark_handle_trie_cpython_test_handle_trie = Average: 87.66382, STDEV: 14.52252, Memory: 5.563 GB
+benchmark_handle_trie_cpython_none = Average: 17.75314, STDEV: 0.05438, Memory: 5.449 GB
+Difference = Average: 69.91068, STDEV: 14.46813, Memory: 0.114 GB
+=======================================================
+Testing 10000000 nodes
+=======================================================
+benchmark_handle_trie_nanobind_test_handle_trie = Average: 98.8095, STDEV: 7.68684, Memory: 5.698 GB
+benchmark_handle_trie_nanobind_none = Average: 17.72541, STDEV: 0.05577, Memory: 5.546 GB
+Difference = Average: 81.08409, STDEV: 7.63107, Memory: 0.152 GB
+=======================================================
+Testing 10000000 nodes
+=======================================================
+benchmark_handle_trie_pybind_test_handle_trie = Average: 188.70685, STDEV: 8.5892, Memory: 5.846 GB
+benchmark_handle_trie_pybind_none = Average: 17.73629, STDEV: 0.03969, Memory: 5.718 GB
+Difference = Average: 170.97056, STDEV: 8.54951, Memory: 0.128 GB
+=======================================================
