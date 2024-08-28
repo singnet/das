@@ -1,14 +1,14 @@
-import time
-import json
-import statistics
-import os
-import threading
-import subprocess
 import gc
-
-from functools import reduce
-from cxx import handletrie_cpython, handletrie_nanobind, handletrie_pybind
+import json
+import os
+import statistics
+import subprocess
+import threading
+import time
 from ctypes import CDLL
+from functools import reduce
+
+from cxx import handletrie_cpython, handletrie_nanobind, handletrie_pybind
 
 libs = CDLL("libc.so.6")
 MEMORY = 0
@@ -54,7 +54,7 @@ def lcg_to_interval(generator, interval_min: int, interval_max: int):
 
 def measure(func):
     def wrapper(*args, **kwargs):
-        global TIME, RUN
+        global TIME
         start_cxx = time.perf_counter_ns()
         start = time.process_time_ns()
         func(*args, **kwargs)
@@ -85,7 +85,7 @@ def stdev_round(values):
 
 def repeat(f, params, n=2):
     check = {}
-    for i in range(n):
+    for _ in range(n):
         for p in params:
             f(**p)
             m = MEMORY
@@ -140,7 +140,7 @@ def generate_random(interactions=1000000):
             R[key_count] = []
             for i in range(interactions):
                 R[key_count].append([])
-                for j in range(key_size):
+                for _ in range(key_size):
                     R[key_count][i].append(libs.rand() % 16)
         save_json(R, append=str(interactions))
 
@@ -162,7 +162,7 @@ def benchmark_python_dict(f, n_insertions: int = 1000000, **kwargs):
         # str_key = str(key_count)
         key_size: int = (HANDLE_HASH_SIZE - 1) * key_count
         baseline = {}
-        for i in range(n_insertions):
+        for _ in range(n_insertions):
             # s = "".join([R_TLB[libs.rand() % 16] for j in range(key_size)])
             # s = "".join([R_TLB[R[str_key][i][j]] for j in range(key_size)])
             # s = s[:key_size] + '0' + s[key_size + 1:]
@@ -189,7 +189,7 @@ def benchmark_python_handle_trie(f, n_insertions: int = 1000000, **kwargs):
             baseline = kwargs["module"].HandleTrie(key_size)
         else:
             baseline = None
-        for i in range(n_insertions):
+        for _ in range(n_insertions):
             # s = "".join([R_TLB[libs.rand() % 16] for j in range(key_size)])
             # s = "".join([R_TLB[R[str_key][i][j]] for j in range(key_size)])
             # s = s[:key_size] + '0' + s[key_size + 1:]
@@ -220,7 +220,6 @@ def benchmark_cxx(f, n_insertions: int = 1000000, **kwargs):
 
 
 def get_pid():
-    global RUN
     if RUN == "c++":
         ps = subprocess.run("ps -a".split(" "), stdout=subprocess.PIPE)
         s = str(ps.stdout)
@@ -234,9 +233,7 @@ def memory_count(run_event, delay=1):
     while run_event.is_set():
         pid = get_pid()
         if pid:
-            out = subprocess.run(
-                f"ps -p {pid} -o rss=".split(" "), stdout=subprocess.PIPE
-            )
+            out = subprocess.run(f"ps -p {pid} -o rss=".split(" "), stdout=subprocess.PIPE)
             try:
                 MEMORY = round(int(out.stdout) / 1000000.0, 5)
             except:
@@ -281,7 +278,6 @@ def main():
                 10,
             )
 
-
             print(f"Testing {add_comma(i)} nodes")
             repeat(
                 benchmark_cxx,
@@ -291,7 +287,6 @@ def main():
                 ],
                 10,
             )
-
 
         for i in [1000, 100000, 1000000, 10000000, 60000000]:
             RUN = "python"

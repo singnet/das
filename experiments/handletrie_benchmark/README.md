@@ -34,6 +34,14 @@
 |PyBind Handle Trie   |0.00967|0.07858|0.59319|5.56300|35.54603|
 
 
+### Setup Python
+
+```
+python3 -m venv venv
+source venv/bin/activate
+pip install pybind11
+pip install nanobind
+```
 
 ### Build C++
 
@@ -58,4 +66,11 @@ make build-pybind
 
 ```
 make build-nanobind
+```
+
+
+### Run
+
+```
+python main.py
 ```
