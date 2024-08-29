@@ -1,0 +1,22 @@
+cmake_minimum_required(VERSION 3.12)
+project(handletrie_pybind)
+
+find_package(OpenSSL REQUIRED)
+
+file(GLOB_RECURSE sources ${CMAKE_CURRENT_SOURCE_DIR}/src/*.cc)
+file(GLOB_RECURSE includes ${CMAKE_CURRENT_SOURCE_DIR}/*.h)
+file(GLOB_RECURSE cpp ${CMAKE_CURRENT_SOURCE_DIR}/_pybind.cpp)
+# Find Python and pybind11
+find_package(Python3 COMPONENTS Interpreter Development REQUIRED)
+set(pybind11_DIR ${CMAKE_CURRENT_SOURCE_DIR}/venv/lib/python3.10/site-packages/pybind11/share/cmake/pybind11)
+find_package(pybind11 REQUIRED)
+
+
+# Add the pybind11 module
+pybind11_add_module(handletrie_pybind ${cpp} ${sources} ${includes})
+
+target_include_directories(handletrie_pybind PRIVATE ${OpenSSL_INCLUDE_DIR})
+
+target_link_libraries(handletrie_pybind PRIVATE
+                OpenSSL::Crypto
+                )

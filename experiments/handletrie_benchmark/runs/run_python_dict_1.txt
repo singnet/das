@@ -1,0 +1,24 @@
+Testing 1000 nodes
+=======================================================
+benchmark_python_dict_test_dict = Average: 0.00257, STDEV: 0.00031, Memory: 0.004 GB
+benchmark_python_dict_none = Average: 0.00192, STDEV: 6e-05, Memory: 0.006 GB
+Difference = Average: 0.00065, STDEV: 0.00025, Memory: 0.002 GB
+=======================================================
+Testing 100000 nodes
+=======================================================
+benchmark_python_dict_test_dict = Average: 0.28419, STDEV: 0.0085, Memory: 0.052 GB
+benchmark_python_dict_none = Average: 0.1885, STDEV: 0.00137, Memory: 0.05 GB
+Difference = Average: 0.09569, STDEV: 0.00713, Memory: 0.002 GB
+=======================================================
+Testing 1000000 nodes
+=======================================================
+benchmark_python_dict_test_dict = Average: 3.35328, STDEV: 0.12134, Memory: 0.573 GB
+benchmark_python_dict_none = Average: 1.90428, STDEV: 0.01875, Memory: 0.058 GB
+Difference = Average: 1.449, STDEV: 0.10259, Memory: 0.515 GB
+=======================================================
+Testing 10000000 nodes
+=======================================================
+benchmark_python_dict_test_dict = Average: 33.41124, STDEV: 0.30082, Memory: 5.703 GB
+benchmark_python_dict_none = Average: 19.15952, STDEV: 0.15641, Memory: 0.06 GB
+Difference = Average: 14.25171, STDEV: 0.14441, Memory: 5.643 GB
+=======================================================

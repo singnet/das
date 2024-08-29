@@ -1,0 +1,47 @@
+Testing 1000 nodes
+=======================================================
+cxx_handletrie_cxx_handletrie = Average: 0.00443, STDEV: 0.0003, Memory: 0.018 GB
+cxx_none_cxx_none = Average: 0.00331, STDEV: 0.00016, Memory: 0.018 GB
+Difference = Average: 0.00112, STDEV: 0.00014, Memory: 0.0 GB
+=======================================================
+Testing 1000 nodes
+=======================================================
+cxx_none_cxx_map = Average: 0.00469, STDEV: 0.00023, Memory: 0.02 GB
+cxx_none_cxx_none = Average: 0.00327, STDEV: 0.00027, Memory: 0.02 GB
+Difference = Average: 0.00142, STDEV: 4e-05, Memory: 0.0 GB
+=======================================================
+Testing 100000 nodes
+=======================================================
+cxx_handletrie_cxx_handletrie = Average: 0.29476, STDEV: 0.00126, Memory: 0.055 GB
+cxx_none_cxx_none = Average: 0.14706, STDEV: 0.00065, Memory: 0.04 GB
+Difference = Average: 0.1477, STDEV: 0.00061, Memory: 0.015 GB
+=======================================================
+Testing 100000 nodes
+=======================================================
+cxx_none_cxx_map = Average: 0.47372, STDEV: 0.0043, Memory: 0.023 GB
+cxx_none_cxx_none = Average: 0.14634, STDEV: 0.00035, Memory: 0.023 GB
+Difference = Average: 0.32738, STDEV: 0.00395, Memory: 0.0 GB
+=======================================================
+Testing 1000000 nodes
+=======================================================
+cxx_handletrie_cxx_handletrie = Average: 3.28984, STDEV: 0.01161, Memory: 1.112 GB
+cxx_none_cxx_none = Average: 1.44306, STDEV: 0.00251, Memory: 0.0 GB
+Difference = Average: 1.84677, STDEV: 0.0091, Memory: 1.112 GB
+=======================================================
+Testing 1000000 nodes
+=======================================================
+cxx_none_cxx_map = Average: 6.69993, STDEV: 0.03124, Memory: 0.474 GB
+cxx_none_cxx_none = Average: 1.44725, STDEV: 0.01193, Memory: 0.0 GB
+Difference = Average: 5.25269, STDEV: 0.01932, Memory: 0.474 GB
+=======================================================
+Testing 10000000 nodes
+=======================================================
+cxx_handletrie_cxx_handletrie = Average: 39.7814, STDEV: 1.00785, Memory: 4.17 GB
+cxx_none_cxx_none = Average: 14.5564, STDEV: 0.16352, Memory: 0.0 GB
+Difference = Average: 25.225, STDEV: 0.84433, Memory: 4.17 GB
+=======================================================
+Testing 10000000 nodes
+=======================================================
+cxx_none_cxx_map = Average: 90.73337, STDEV: 2.37401, Memory: 2.66 GB
+cxx_none_cxx_none = Average: 14.61677, STDEV: 0.27773, Memory: 0.0 GB
+Difference = Average: 76.1166, STDEV: 2.09628, Memory: 2.66 GB

@@ -1,0 +1,23 @@
+cmake_minimum_required(VERSION 3.5.1)
+project(HandleTrie)
+
+SET(CMAKE_CXX_FLAGS  "-O2")
+
+find_package(OpenSSL REQUIRED)
+
+set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
+file(GLOB_RECURSE sources ${CMAKE_CURRENT_SOURCE_DIR}/src/*.cc)
+file(GLOB_RECURSE includes ${CMAKE_CURRENT_SOURCE_DIR}/*.h)
+# set(exclude_files
+#         ${CMAKE_CURRENT_SOURCE_DIR}/cpython.cc
+# )
+# list(REMOVE_ITEM sources ${exclude_files})
+
+message(${sources})
+
+
+add_executable(HandleTrie ${sources} ${includes})
+
+target_link_libraries(HandleTrie 
+        PUBLIC OpenSSL::Crypto
+                )
