@@ -38,5 +38,8 @@ jobs:
           message: |-
             FAILURE - CI workflow failed in repository ${{ matrix.repo.name }}
 
-            Details: ${{ fromJson(steps.running-workflow.outputs.failed_job).url }}
-            Failed job: ${{ fromJson(steps.running-workflow.outputs.failed_job).failed_at }}
+            Details: ${{ steps.running-workflow.outputs.run_url  }}
+            Failed job:
+            ${{ steps.running-workflow.outputs.failed_jobs_display }}
+
+            @channel
