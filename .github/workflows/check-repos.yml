@@ -27,8 +27,10 @@ jobs:
         uses: singnet/integration-github-mattermost@master
         with:
           webhook-url: ${{ secrets.SCHEDULED_REPOS_MATTERMOST_WEBHOOK_URL }}
-        env:
-          MATTERMOST_MESSAGE: "SUCCESS - CI workflow succeeded in repository ${{ matrix.repo.name }}"
+          message: |-
+            SUCCESS - CI workflow succeeded in repository ${{ matrix.repo.name }}
+
+            ${{ fromJson(steps.running-workflow.outputs.logs).benchmark.performbenchmark && fromJson(steps.running-workflow.outputs.logs).benchmark.performbenchmark != '' && format('Benchmark: {0}', fromJson(steps.running-workflow.outputs.logs).benchmark.performbenchmark) || '' }}
 
       - name: Send failure notification
         if: steps.running-workflow.outputs.conclusion != 'success'
@@ -38,6 +40,7 @@ jobs:
           message: |-
             FAILURE - CI workflow failed in repository ${{ matrix.repo.name }}
 
+            ${{ steps.running-workflow.outputs.logs && fromJson(steps.running-workflow.outputs.logs).benchmark.performbenchmark != '' && format('Benchmark: {0}', fromJson(steps.running-workflow.outputs.logs).benchmark.performbenchmark) || '' }}
             Details: ${{ steps.running-workflow.outputs.run_url  }}
             Failed job:
             ${{ steps.running-workflow.outputs.failed_jobs_display }}
