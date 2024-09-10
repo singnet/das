@@ -17,7 +17,7 @@ CI/CD scripts, etc.
 
 In addition to this one, we use many other repositories in the project.
 
-* [Query Engine](https://github.com/singnet/das-query-engine) - Source code for [hyperon-das](https://pypi.org/project/hyperon-das/), the Python library with the main [DAS API](https://singnet.github.io/das-query-engine/api/das/).
+* [Query Engine](https://github.com/singnet/das-query-engine) - Source code for [hyperon-das](https://pypi.org/project/hyperon-das/), the Python library with the main [DAS API](https://singnet.github.io/das-query-engine/api/DAS/).
 * [Atom DB](https://github.com/singnet/das-atom-db) - Source code for [hyperon-das-atomdb](https://pypi.org/project/hyperon-das-atomdb/), a Python library required by hyperon-das to interface with DBMSs and other data storage structures.
 * [Serverless Functions](https://github.com/singnet/das-serverless-functions) and [OpenFaaS Templates](https://github.com/singnet/das-toolbox) - Source code of client/server communication components in DAS Server FaaS architecture.
 * [Attention Broker](https://github.com/singnet/das-attention-broker) - DAS component which keeps track of atom's importance values attached to different contexts and update those values according to the queries made by users using context specific hebbian networks.
