@@ -3,7 +3,7 @@
 set -e
 
 if [ "$is_dependency_updated" -eq 0 ]; then
-    if boolean_prompt "Dependency $dependency has not been updated prior to the current package. Would you like to get the current version from the repo? [yes/no] "; then
+    if boolean_prompt "$dependency hasn't been updated during this release process. Do you want to fetch the latest version from the repository? [yes/no]"; then
         dependency_definition=$(retrieve_json_object_with_property_value "$definitions" "name" "$dependency")
 
         IFS='|' read -r dependency_package_name package_repository package_workflow package_repo_ref package_hooks <<<"$(extract_package_details "$dependency_definition")"
