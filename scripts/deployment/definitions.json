@@ -1,7 +1,7 @@
 [
   {
     "name": "das-metta-parser",
-    "repository": "git@github.com:singnet/das-metta-parser.git",
+    "repository": "https://github.com/singnet/das-metta-parser.git",
     "workflow": "build.yml",
     "ref": "master",
     "hooks": {},
@@ -9,7 +9,7 @@
   },
   {
     "name": "das-toolbox",
-    "repository": "git@github.com:singnet/das-toolbox.git",
+    "repository": "https://github.com/singnet/das-toolbox.git",
     "workflow": "build.yml",
     "ref": "master",
     "hooks": {
@@ -20,7 +20,7 @@
   },
   {
     "name": "hyperon-das-atomdb",
-    "repository": "git@github.com:singnet/das-atom-db.git",
+    "repository": "https://github.com/singnet/das-atom-db.git",
     "workflow": "publish-pypi.yml",
     "ref": "master",
     "hooks": {
@@ -30,7 +30,7 @@
   },
   {
     "name": "hyperon-das",
-    "repository": "git@github.com:singnet/das-query-engine.git",
+    "repository": "https://github.com/singnet/das-query-engine.git",
     "workflow": "publish-pypi.yml",
     "ref": "master",
     "hooks": {
@@ -41,7 +41,7 @@
   },
   {
     "name": "das-serverless-functions",
-    "repository": "git@github.com:singnet/das-serverless-functions.git",
+    "repository": "https://github.com/singnet/das-serverless-functions.git",
     "workflow": "vultr-build.yml",
     "ref": "master",
     "hooks": {
@@ -51,7 +51,7 @@
   },
   {
     "name": "das",
-    "repository": "git@github.com:singnet/das.git",
+    "repository": "https://github.com/singnet/das.git",
     "workflow": "publish.yml",
     "ref": "master",
     "hooks": {

@@ -2,12 +2,28 @@
 
 # PATHS
 workdir=$(pwd)
+github_token_path="$workdir/scripts/deployment/gh_token"
 
 # GLOBAL VARIABLES
 colors=("reset" "red" "green" "blue" "yellow")
 color_codes=("\033[0m" "\033[0;31m" "\033[0;32m" "\033[0;34m" "\033[0;33m")
 backup_answers="$workdir/.output~"
 backup_enabled=true
+
+
+function print() {
+  local text="$1"
+
+  for i in "${!colors[@]}"; do
+    local color="${colors[$i]}"
+    local code="${color_codes[$i]}"
+    text="${text//:$color:/$code}"
+    text="${text//:\/$color:/${color_codes[0]}}"
+  done
+
+  echo -e "$text"
+}
+
 
 function requirements() {
   local required_commands=("$@")
@@ -49,7 +65,7 @@ function prompt() {
     read_input "$1"
   else
     if read -r input; then
-      echo $input
+      echo "$input"
     else
       exec < /dev/tty
       read_input "$1"
@@ -111,26 +127,6 @@ function verify_file_exists() {
   fi
 }
 
-function configure_git_identity() {
-  local git_user="${GIT_USER_NAME:-$(git config user.name)}"
-  local git_email="${GIT_USER_EMAIL:-$(git config user.email)}"
-
-  if [[ -z "$git_user" ]]; then
-    git_user=$(text_prompt "Your Git username is not configured. Please provide your Git name: ")
-    export GIT_USER_NAME="$git_user"
-  fi
-
-  if [[ -z "$git_email" ]]; then
-    git_email=$(text_prompt "Your Git email is not configured. Please provide your Git email: ")
-    export GIT_USER_EMAIL="$git_email"
-  fi
-
-  git config user.name "$git_user"
-  git config user.email "$git_email"
-
-  print "Git configured with username: :green:$git_user:/green: and email: :green:$git_email:/green:"
-}
-
 function check_for_uncommitted_changes() {
   if git diff --quiet && git diff --staged --quiet; then
     print ":yellow:Skipping commit changes because no files were changed to be committed:/yellow:"
@@ -150,6 +146,15 @@ function show_git_diff() {
 
 }
 
+function set_git_identity() {
+  local gh_user=$(gh api user | jq -r '.login')
+  local gh_email=$(gh api user/emails | jq -r '.[0].email')
+
+  print ":green:Setting git identity to $gh_user:$gh_email:/green:"
+  git config user.name "$gh_user"
+  git config user.email "$gh_email"
+}
+
 function commit_and_push_changes() {
   local commit_msg="$1"
   local target_branch="${2:-master}"
@@ -159,13 +164,24 @@ function commit_and_push_changes() {
     return
   fi
 
-  configure_git_identity
+  set_git_identity
 
   git add $files_to_add
+
   git commit -m "$commit_msg"
+
+  print ":green:Sending changes to branch '$target_branch'.:/green:"
   git push origin "$target_branch"
 
-  print ":green:Changes committed and pushed to the branch '$target_branch'.:/green:"
+  print ":green:Changes sent to branch '$target_branch'.:/green:"
+}
+
+function setup_gh_auth() {
+  local github_token=$(load_or_request_github_token "$github_token_path")
+
+  gh auth login --web 
+
+  gh auth setup-git
 }
 
 function clone_repo_to_temp_dir() {
@@ -173,24 +189,11 @@ function clone_repo_to_temp_dir() {
   local target_branch="${2:-master}"
   local tmp_folder=$(mktemp -d)
 
-  git clone "$package_repository" "$tmp_folder" &>/dev/null
+  gh repo clone "$package_repository" "$tmp_folder"
 
-  git -C "$tmp_folder" checkout "$target_branch" &>/dev/null
+  git -C "$tmp_folder" checkout "$target_branch" --quiet
 
   echo "$tmp_folder"
-}
-
-function print() {
-  local text="$1"
-
-  for i in "${!colors[@]}"; do
-    local color="${colors[$i]}"
-    local code="${color_codes[$i]}"
-    text="${text//:$color:/$code}"
-    text="${text//:\/$color:/${color_codes[0]}}"
-  done
-
-  echo -e "$text"
 }
 
 function load_or_request_github_token() {
@@ -295,8 +298,8 @@ function execute_ssh_commands() {
 
 function validate_repository_url() {
     local package_repository="$1"
-    if ! [[ $package_repository =~ git@github.com:([^/]+)/([^/.]+)\.git ]]; then
-        print ":red:Invalid repository SSH URL format.:/red:"
+    if ! [[ $package_repository =~ ^https://github\.com/([^/]+)/([^/.]+)\.git$ ]]; then
+        print ":red:Invalid repository URL format.:/red:"
         exit 1
     fi
 }

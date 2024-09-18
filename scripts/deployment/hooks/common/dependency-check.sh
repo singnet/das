@@ -6,9 +6,9 @@ if [ "$is_dependency_updated" -eq 0 ]; then
     if boolean_prompt "$dependency hasn't been updated during this release process. Do you want to fetch the latest version from the repository? [yes/no]"; then
         dependency_definition=$(retrieve_json_object_with_property_value "$definitions" "name" "$dependency")
 
-        IFS='|' read -r dependency_package_name package_repository package_workflow package_repo_ref package_hooks <<<"$(extract_package_details "$dependency_definition")"
+        IFS='|' read -r dependency_package_name dependency_repository dependency_workflow dependency_repo_ref dependency_hooks <<<"$(extract_package_details "$dependency_definition")"
 
-        local package_repository_folder=$(clone_repo_to_temp_dir "$package_repository" "$package_repo_ref")
+        local package_repository_folder=$(clone_repo_to_temp_dir "$dependency_repository" "$dependency_repo_ref")
 
         cd "$package_repository_folder"
 
