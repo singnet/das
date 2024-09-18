@@ -6,15 +6,13 @@ set -e
 workdir=$(pwd)
 hooks_path="$workdir/scripts/deployment/hooks"
 definitions_path="$workdir/scripts/deployment/definitions.json"
-github_token_path="$workdir/scripts/deployment/gh_token"
 
 source "$workdir/scripts/deployment/utils.sh"
 source "$workdir/scripts/deployment/workflow.sh"
 
 # GLOBAL VARIABLES
-required_commands=(git jq curl)
+required_commands=(git jq curl gh)
 packages_pending_update=""
-github_token=$(load_or_request_github_token "$github_token_path")
 definitions=$(jq -c '.' "$definitions_path")
 
 function verify_dependencies_updated() {
@@ -191,7 +189,7 @@ function update_package() {
 
         cd "$repository_path"
         show_git_diff
-        commit_and_push_changes "Chores: create a new release version $new_version" $repository_ref
+        commit_and_push_changes "Chores: create a new release version $new_version" "$repository_ref"
         trigger_package_workflow "$package_name" "$workflow_inputs" "$repository_owner" "$repository_name" "$repository_workflow" "$repository_ref"
         cd - &>/dev/null
         print ":green:Package $package_name updated successfully:/green:"
@@ -245,6 +243,9 @@ function main() {
 
     empty_backup_answers
 }
+
+
+setup_gh_auth
 
 if has_backup_answers; then
     main "$@" < "$backup_answers"
