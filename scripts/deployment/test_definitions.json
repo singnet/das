@@ -1,11 +1,11 @@
 [
   {
-    "repository": "git@github.com:singnet/das-atom-db.git",
+    "repository": "https://github.com/singnet/das-atom-db.git",
     "workflow": "run-tests.yml",
     "ref": "master"
   },
   {
-    "repository": "git@github.com:singnet/das-query-engine.git",
+    "repository": "https://github.com/singnet/das-query-engine.git",
     "workflow": "run-tests.yml",
     "ref": "master"
   }
