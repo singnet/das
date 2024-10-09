@@ -1,5 +1,7 @@
 ## AtomDB
 
+![atomdb](./assets/das-atom-db.jpg)
+
 The process involves the following key phases:
 
 1. **Branches**
@@ -50,6 +52,8 @@ The process involves the following key phases:
      - Publishing the package to PyPI.
 
 ## Query Engine
+
+![query-engine](./assets/das-query-engine.jpg)
 
 The process includes the following phases:
 
@@ -106,6 +110,8 @@ The process includes the following phases:
 
 ## DAS Metta Parser
 
+![das-metta-parser](./assets/das-metta-parser.jpg)
+
 The process involves the following key phases:
 
 1. **Branches**
@@ -156,6 +162,8 @@ The process involves the following key phases:
      - Tagging the new version to keep track of updates and changes.
 
 ## DAS-Serverless-Functions
+
+![das-serverless-functions](./assets/das-serverless-functions.jpg)
 
 The process involves the following key phases:
 
@@ -214,6 +222,8 @@ The process involves the following key phases:
      - Tagging the new version for easy tracking.
 
 ## DAS-Toolbox
+
+![das-toolbox](./assets/das-toolbox.jpg)
 
 The process involves the following key phases:
 
