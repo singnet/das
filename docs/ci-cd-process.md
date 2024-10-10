@@ -21,7 +21,7 @@ The process involves the following key phases:
      - **Integration Tests:** Runs integration tests to check the interaction between different system components.
 
 4. **Merge into `master`**
-   - After PR approval, the code is merged into the `master` branch, triggering the deployment process.
+   - After PR approval, the code is merged into the `master` branch, but the deployment process is not triggered automatically; it needs to be triggered manually.
 
 ### Deployment and PyPI Publishing Process
 
@@ -76,7 +76,7 @@ The process includes the following phases:
      - **Integration Tests:** Verifies the interaction between different components of the system.
 
 4. **Merge into `master`**
-   - After PR approval, the code is merged into the `master` branch, starting the deployment process.
+   - After PR approval, the code is merged into the `master` branch, but the deployment process is not triggered automatically; it needs to be triggered manually.
 
 ### Deployment and Publishing to PyPI
 
@@ -184,7 +184,7 @@ The process involves the following key phases:
    - Integration tests can also be triggered manually outside of the PR process.
 
 4. **Merge into `master`**
-   - After PR approval, the code is merged into the `master` branch, triggering the build and deployment processes.
+   - After PR approval, the code is merged into the `master` branch, but the deployment process is not triggered automatically; it needs to be triggered manually.
 
 ### Build and Docker Image Publishing Process
 
@@ -242,7 +242,7 @@ The process involves the following key phases:
    - After successful testing, the changes are ready for merging into the `master` branch.
 
 4. **Merge into `master`**
-   - After PR approval, the code is merged into the `master` branch, triggering the build and deployment processes.
+   - After PR approval, the code is merged into the `master` branch, but the deployment process is not triggered automatically; it needs to be triggered manually.
 
 ### Build and Docker Image Publishing Process
 
