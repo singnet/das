@@ -1,150 +1,98 @@
-### How to Configure a GitHub Actions Runner on Your Server
+# GitHub Self-Hosted Runner Setup Guide
 
-This guide explains how to manually configure a self-hosted GitHub Actions runner on your server. A runner allows you to execute CI/CD jobs from GitHub Actions on your infrastructure instead of using GitHub-hosted runners.
+This guide walks through the steps required to configure a self-hosted GitHub Actions runner for projects in the `singnet` organization using the `github-runner` script.
 
-#### Prerequisites
+## Script Overview
 
-- Access to a server (SSH login).
-- GitHub CLI (`gh`) installed.
-- User with `admin` access to the repository where you want to configure the runner.
-- Sudo or root access on the server.
-- Basic familiarity with Linux commands and system administration.
+The script automates the process of:
+1. Connecting to a remote server (using either password or SSH key authentication).
+2. Fetching the list of GitHub repositories.
+3. Selecting a repository to configure the runner for.
+4. Installing the GitHub Actions runner on the server.
+5. Configuring the runner and creating a `systemd` service to manage it.
 
----
+## Pre-requisites
 
-### Steps to Configure a GitHub Actions Runner
+Before running the script, ensure the following:
+1. The `gh` CLI is installed and authenticated with GitHub.
+   - You can install the `gh` CLI by following [this link](https://cli.github.com/).
+2. You have SSH access to the server where the runner will be installed.
+3. `jq` is installed on the local machine to parse JSON responses.
 
-#### 1. **Login to the GitHub CLI**
-
-First, ensure that you have `gh` installed on your local machine.
-
-```bash
-gh auth login
-```
-
-This command will authenticate your GitHub account. Follow the prompts to complete the authentication process.
-
-#### 2. **Generate a GitHub Actions Runner Token**
-
-Next, you will need a registration token to link the runner to a repository.
+### Installing `gh` and `jq`
 
 ```bash
-gh api -X POST "repos/<user_or_org>/<repo>/actions/runners/registration-token" | jq -r .token
+# Install GitHub CLI
+sudo apt install gh
+
+# Install jq
+sudo apt install jq
 ```
 
-Replace `<user_or_org>` and `<repo>` with the name of the user or organization and the repository where the runner will be linked. Save the token somewhere safe for later use.
+## Usage Instructions
 
-#### 3. **Connect to Your Server**
+### 1. Running the Script
 
-SSH into the server where you want to install the GitHub Actions runner.
+Start the script with the following command:
 
 ```bash
-ssh <username>@<server_ip>
+make github-runner
 ```
 
-Replace `<username>` and `<server_ip>` with your server's credentials.
+### 2. Enter Server Details
 
-#### 4. **Download and Install the GitHub Actions Runner**
+The script will prompt you for the following details:
+- **Server IP:** The IP address of the server where the GitHub runner will be installed.
+- **Username:** The username for SSH access to the server.
 
-On the server, create a directory where the runner will be installed. Typically, this will be placed under `/opt`.
+### 3. Authentication Method
 
-```bash
-sudo mkdir -p /opt/actions-runner && cd /opt/actions-runner
-```
+Select the method to authenticate on the server:
+- **1) Password:** Use a password for SSH.
+- **2) Private Key:** Use a private key for SSH.
 
-Download the runner package from GitHub’s release page:
+Depending on your choice, you will either be prompted for your password or the path to your SSH private key.
 
-```bash
-curl -o actions-runner-linux-x64-2.320.0.tar.gz -L https://github.com/actions/runner/releases/download/v2.320.0/actions-runner-linux-x64-2.320.0.tar.gz
-```
+### 4. Fetching Repositories
 
-Verify the download by checking its SHA-256 checksum:
+The script will use the `gh` CLI to list all repositories in the `singnet` organization. It will display the list, and you can select the repository for which the runner will be configured.
 
-```bash
-echo '93ac1b7ce743ee85b5d386f5c1787385ef07b3d7c728ff66ce0d3813d5f46900  actions-runner-linux-x64-2.320.0.tar.gz' | shasum -a 256 -c
-```
+### 5. Installing Runner on the Server
 
-Extract the package:
+After selecting the project, the script will:
+- Create a folder on the server to hold the GitHub Actions runner files.
+- Download and extract the GitHub Actions runner software.
+- Set the correct permissions for the runner files.
 
-```bash
-tar xzf ./actions-runner-linux-x64-2.320.0.tar.gz --strip-components=1
-```
+### 6. Retrieving Runner Token
 
-#### 5. **Configure the Runner**
+The script will generate a registration token required to link the runner to the selected GitHub repository. This step is handled via the GitHub CLI.
 
-Run the configuration script to link the runner to your GitHub repository using the token you retrieved earlier:
+### 7. Configuring the Runner on the Server
 
-```bash
-./config.sh --url https://github.com/<user_or_org>/<repo> --token <runner_token>
-```
+The runner is configured on the remote server by executing the necessary setup commands, such as linking it to the chosen repository and setting up the `systemd` service for automatic management.
 
-Replace `<user_or_org>`, `<repo>`, and `<runner_token>` with the appropriate values.
+### 8. Creating a Systemd Service
 
-#### 6. **Set Up the Runner as a Systemd Service**
+The script creates a `systemd` service file on the server to manage the GitHub Actions runner as a service. This allows the runner to automatically start on boot and restart if it crashes.
 
-To ensure the runner starts automatically and runs in the background, create a systemd service for it. Here’s how to do it:
+### 9. Commands for Managing the Runner
 
-```bash
-sudo tee /etc/systemd/system/github-runner.service > /dev/null <<EOF
-[Unit]
-Description=GitHub Runner Service
-After=network.target
+Once the runner is set up, you can use the following commands on the server to manage it:
 
-[Service]
-User=ubuntu
-WorkingDirectory=/opt/actions-runner
-ExecStart=/opt/actions-runner/run.sh
-Restart=always
+- **Start the runner:**
+  ```bash
+  sudo systemctl start <runner-service-name>
+  ```
 
-[Install]
-WantedBy=multi-user.target
-EOF
-```
+- **Check the runner status:**
+  ```bash
+  sudo systemctl status <runner-service-name>
+  ```
 
-**Note:** If you installed the runner in a custom directory, update the `WorkingDirectory` and `ExecStart` paths accordingly.
+- **Stop the runner:**
+  ```bash
+  sudo systemctl stop <runner-service-name>
+  ```
 
-#### 7. **Start and Enable the Service**
-
-Reload the systemd manager to acknowledge the new service and start the runner:
-
-```bash
-sudo systemctl daemon-reload
-sudo systemctl enable github-runner
-sudo systemctl start github-runner
-```
-
-You can check the runner's status with:
-
-```bash
-sudo systemctl status github-runner
-```
-
-#### 8. **Verify the Runner on GitHub**
-
-Go to your GitHub repository and navigate to **Settings > Actions > Runners**. You should see the new runner listed as "online."
-
----
-
-### Optional: Run the Runner Without a Service
-
-If you don’t want to create a systemd service, you can simply run the runner in the foreground by executing:
-
-```bash
-./run.sh
-```
-
-This approach requires the terminal to remain open for the runner to keep working.
-
----
-
-### Troubleshooting
-
-- **Runner not appearing in GitHub**: Ensure that the server has access to the internet and that there are no firewall restrictions blocking GitHub Actions from communicating with your runner.
-- **Runner service failed to start**: Check the logs using `journalctl -u github-runner` for more information.
-- **Token expired**: Registration tokens are short-lived. If you get an error about the token being expired, generate a new one by repeating Step 2.
-
----
-
-### Conclusion
-
-You’ve successfully set up a self-hosted GitHub Actions runner on your server. It will now be available to execute jobs in the specified repository. If you want to scale up, you can repeat the process to add more runners, or manage multiple repositories with different configurations!
+Replace `<runner-service-name>` with the actual name of the service, which is derived from the project name (e.g., `myproject-runner`).
