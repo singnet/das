@@ -21,6 +21,3 @@ build-semver:
 
 publish-semver:
 	@docker image push trueagi/das:semantic-versioning
-
-github-runner:
-	@bash $(CURDIR)/scripts/github-runner/main.sh
