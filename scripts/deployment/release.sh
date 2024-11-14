@@ -134,7 +134,7 @@ function create_release() {
     if process_package_dependencies "$package_name" "$package_dependencies"; then
         execute_hook_if_exists "BeforeRelease" "$package_hook_before_release"
 
-        cd - &>/dev/null
+        cd "$workdir" &>/dev/null
 
         local new_package="{\"package_name\": \"${package_name}\", \"current_version\": \"${package_version}\", \"new_version\": \"${new_package_version}\", \"repository_path\": \"${package_repository_folder}\", \"repository_owner\": \"${package_repo_owner}\", \"repository_name\": \"${package_repo_name}\", \"repository_workflow\": \"${package_workflow}\", \"repository_ref\": \"$package_repo_ref\"}"
 
@@ -203,6 +203,8 @@ function process_package_definitions() {
 
     for package_definition in $(jq -c '.[]' <<<"$definitions"); do
         prepare_and_release_package "$package_definition"
+
+        echo "DIRETORIO ATUAL $(pwd)"
     done
 }
 
@@ -233,15 +235,14 @@ function main() {
     requirements "${required_commands[@]}"
     process_package_definitions "$definitions"
     review_and_apply_updates
+    empty_backup_answers
 
     if [[ "$exec_integration_tests" == true ]]; then
         print "Before starting the integration tests, it might be necessary to deploy the resources. To do this, use the command 'make deploy'"
         press_enter_to_continue
 
-        source "$workdir/scripts/deployment/tests.sh"
+        make integration-tests
     fi
-
-    empty_backup_answers
 }
 
 
