@@ -203,8 +203,6 @@ function process_package_definitions() {
 
     for package_definition in $(jq -c '.[]' <<<"$definitions"); do
         prepare_and_release_package "$package_definition"
-
-        echo "DIRETORIO ATUAL $(pwd)"
     done
 }
 
