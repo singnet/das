@@ -2,7 +2,6 @@
 
 # PATHS
 workdir=$(pwd)
-github_token_path="$workdir/scripts/deployment/gh_token"
 
 # GLOBAL VARIABLES
 colors=("reset" "red" "green" "blue" "yellow")
@@ -147,8 +146,11 @@ function show_git_diff() {
 }
 
 function set_git_identity() {
-  local gh_user=$(gh api user | jq -r '.login')
-  local gh_email=$(gh api user/emails | jq -r '.[0].email')
+  local gh_user=""
+  local gh_email=""
+
+  gh_user=$(gh api user | jq -r '.login')
+  gh_email=$(gh api user/emails | jq -r '.[0].email')
 
   print ":green:Setting git identity to $gh_user:$gh_email:/green:"
   git config user.name "$gh_user"
@@ -166,7 +168,7 @@ function commit_and_push_changes() {
 
   set_git_identity
 
-  git add $files_to_add
+  git add "$files_to_add"
 
   git commit -m "$commit_msg"
 
@@ -177,17 +179,23 @@ function commit_and_push_changes() {
 }
 
 function setup_gh_auth() {
-  local github_token=$(load_or_request_github_token "$github_token_path")
+ if ! gh auth status >/dev/null 2>&1; then 
+    gh auth refresh -h github.com -s user
 
-  gh auth login --web 
-
-  gh auth setup-git
+    gh auth setup-git
+  else
+    local gh_user
+    gh_user=$(gh api user | jq -r '.login')
+    print ":yellow:User ${gh_user} is logged in:/yellow:"
+  fi
 }
 
 function clone_repo_to_temp_dir() {
   local package_repository="$1"
   local target_branch="${2:-master}"
-  local tmp_folder=$(mktemp -d)
+  local tmp_folder=""
+
+  tmp_folder=$(mktemp -d)
 
   gh repo clone "$package_repository" "$tmp_folder"
 
