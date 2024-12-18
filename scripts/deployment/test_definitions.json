@@ -8,5 +8,20 @@
     "repository": "https://github.com/singnet/das-query-engine.git",
     "workflow": "run-tests.yml",
     "ref": "master"
+  },
+  {
+    "repository": "https://github.com/singnet/das-toolbox.git",
+    "workflow": "run-tests.yml",
+    "ref": "master"
+  },
+  {
+    "repository": "https://github.com/singnet/das-node.git",
+    "workflow": "run-tests.yml",
+    "ref": "master"
+  },
+  {
+    "repository": "https://github.com/singnet/das-database-adapter.git",
+    "workflow": "run-tests.yml",
+    "ref": "master"
   }
 ]
