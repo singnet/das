@@ -193,3 +193,6 @@ tags
 # Persistent undo
 [._]*.un~
 
+
+src/bin
+src/bazel**
