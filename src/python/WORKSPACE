@@ -21,7 +21,7 @@ python_register_toolchains(
 load("@rules_python//python:pip.bzl", "pip_parse")
 
 # Create a central repo that knows about the dependencies needed from
-# requirements.lock.txt.
+# requirements_lock.txt.
 pip_parse(
     name = "pypi",
     requirements_lock = "//:requirements_lock.txt",
