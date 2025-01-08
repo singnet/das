@@ -30,18 +30,9 @@ py_library(
 
 py_wheel(
     name = "hyperon_das_atomdb_wheel",
-    distribution = "hyperon_das_atomdb",
     abi = "none",
-    python_tag = "py3",
-    platform = "any",
-    requires_file = "//:requirements_lock.txt",
-    stamp = 1,
-    version = "0.8.10",
     author = "marcocapozzoli",
     author_email = "marcocapozzoli90@gmail.com",
-    summary = "Persistence layer for Distributed AtomSpace",
-    description_content_type = "text/markdown",
-    description_file = "README.md",
     classifiers = [
         "Programming Language :: Python :: 3",
         "Programming Language :: Python :: 3.10",
@@ -49,9 +40,17 @@ py_wheel(
         "Programming Language :: Python :: 3.12",
         "Programming Language :: Python :: 3.13",
     ],
-    deps = [
-        ":hyperon_das_atomdb",
-    ],
+    description_content_type = "text/markdown",
+    description_file = "README.md",
+    distribution = "hyperon_das_atomdb",
+    platform = "any",
+    python_requires = ">=3.10",
+    python_tag = "py3",
+    requires_file = "//deps:requirements_lock.txt",
+    stamp = 1,
+    summary = "Persistence layer for Distributed AtomSpace",
+    version = "0.8.10",
+    deps = [":hyperon_das_atomdb"],
 )
 
 py_library(
