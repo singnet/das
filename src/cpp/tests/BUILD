@@ -11,7 +11,7 @@ cc_test(
         "@com_github_singnet_das_proto//:attention_broker_cc_grpc",
         "@com_github_grpc_grpc//:grpc++",
         "@com_github_grpc_grpc//:grpc++_reflection",
-        "//cpp/attention_broker:attention_broker_server_lib",
+        "//attention_broker:attention_broker_server_lib",
         "@mbedcrypto//:lib",
     ],
     linkstatic = 1
@@ -30,7 +30,7 @@ cc_test(
         "@com_github_singnet_das_proto//:attention_broker_cc_grpc",
         "@com_github_grpc_grpc//:grpc++",
         "@com_github_grpc_grpc//:grpc++_reflection",
-        "//cpp/attention_broker:attention_broker_server_lib",
+        "//attention_broker:attention_broker_server_lib",
         "@mbedcrypto//:lib",
     ],
     linkstatic = 1
@@ -49,8 +49,8 @@ cc_test(
         "@com_github_singnet_das_proto//:attention_broker_cc_grpc",
         "@com_github_grpc_grpc//:grpc++",
         "@com_github_grpc_grpc//:grpc++_reflection",
-        "//cpp/attention_broker:attention_broker_server_lib",
-        "//cpp/utils:utils_lib",
+        "//attention_broker:attention_broker_server_lib",
+        "//utils:utils_lib",
         "@mbedcrypto//:lib",
     ],
     linkstatic = 1
@@ -69,7 +69,7 @@ cc_test(
         "@com_github_singnet_das_proto//:attention_broker_cc_grpc",
         "@com_github_grpc_grpc//:grpc++",
         "@com_github_grpc_grpc//:grpc++_reflection",
-        "//cpp/attention_broker:attention_broker_server_lib",
+        "//attention_broker:attention_broker_server_lib",
         "@mbedcrypto//:lib",
     ],
     linkstatic = 1
@@ -88,7 +88,7 @@ cc_test(
         "@com_github_singnet_das_proto//:attention_broker_cc_grpc",
         "@com_github_grpc_grpc//:grpc++",
         "@com_github_grpc_grpc//:grpc++_reflection",
-        "//cpp/attention_broker:attention_broker_server_lib",
+        "//attention_broker:attention_broker_server_lib",
         "@mbedcrypto//:lib",
     ],
     linkstatic = 1
@@ -107,8 +107,8 @@ cc_test(
         "@com_github_singnet_das_proto//:attention_broker_cc_grpc",
         "@com_github_grpc_grpc//:grpc++",
         "@com_github_grpc_grpc//:grpc++_reflection",
-        "//cpp/attention_broker:attention_broker_server_lib",
-        "//cpp/utils:utils_lib",
+        "//attention_broker:attention_broker_server_lib",
+        "//utils:utils_lib",
         "@mbedcrypto//:lib",
     ],
     linkstatic = 1
@@ -127,7 +127,7 @@ cc_test(
         "@com_github_singnet_das_proto//:attention_broker_cc_grpc",
         "@com_github_grpc_grpc//:grpc++",
         "@com_github_grpc_grpc//:grpc++_reflection",
-        "//cpp/attention_broker:attention_broker_server_lib",
+        "//attention_broker:attention_broker_server_lib",
         "@mbedcrypto//:lib",
     ],
     linkstatic = 1
@@ -146,7 +146,7 @@ cc_test(
         "@com_github_singnet_das_proto//:attention_broker_cc_grpc",
         "@com_github_grpc_grpc//:grpc++",
         "@com_github_grpc_grpc//:grpc++_reflection",
-        "//cpp/attention_broker:attention_broker_server_lib",
+        "//attention_broker:attention_broker_server_lib",
         "@mbedcrypto//:lib",
     ],
     linkstatic = 1
@@ -162,7 +162,7 @@ cc_test(
     ],
     deps = [
         "@com_github_google_googletest//:gtest_main",
-        "//cpp/query_engine:query_engine_lib",
+        "//query_engine:query_engine_lib",
     ],
     linkopts = [
         #"-L/opt/3rd-party/mbedcrypto",
@@ -186,7 +186,7 @@ cc_test(
     ],
     deps = [
         "@com_github_google_googletest//:gtest_main",
-        "//cpp/query_engine:query_engine_lib",
+        "//query_engine:query_engine_lib",
     ],
     linkopts = [
         "-lmbedcrypto",
@@ -209,7 +209,7 @@ cc_test(
     ],
     deps = [
         "@com_github_google_googletest//:gtest_main",
-        "//cpp/query_engine:query_engine_lib",
+        "//query_engine:query_engine_lib",
     ],
     linkopts = [
     ],
@@ -226,7 +226,7 @@ cc_test(
     ],
     deps = [
         "@com_github_google_googletest//:gtest_main",
-        "//cpp/query_engine:query_engine_lib",
+        "//query_engine:query_engine_lib",
     ],
     linkopts = [
         #"-L/opt/3rd-party/mbedcrypto",
@@ -250,7 +250,7 @@ cc_test(
     ],
     deps = [
         "@com_github_google_googletest//:gtest_main",
-        "//cpp/query_engine:query_engine_lib",
+        "//query_engine:query_engine_lib",
     ],
     linkopts = [
         #"-L/opt/3rd-party/mbedcrypto",
@@ -274,7 +274,7 @@ cc_test(
     ],
     deps = [
         "@com_github_google_googletest//:gtest_main",
-        "//cpp/query_engine:query_engine_lib",
+        "//query_engine:query_engine_lib",
     ],
     linkopts = [
         "-lmbedcrypto",
@@ -297,7 +297,7 @@ cc_test(
     ],
     deps = [
         "@com_github_google_googletest//:gtest_main",
-        "//cpp/query_engine:query_engine_lib",
+        "//query_engine:query_engine_lib",
     ],
     linkopts = [
         "-lmbedcrypto",
@@ -320,7 +320,7 @@ cc_test(
     ],
     deps = [
         "@com_github_google_googletest//:gtest_main",
-        "//cpp/query_engine:query_engine_lib",
+        "//query_engine:query_engine_lib",
     ],
     linkstatic = 1
 )

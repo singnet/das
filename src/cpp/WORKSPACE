@@ -1,3 +1,5 @@
+workspace(name = "rules_cpp_das")
+
 load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 
 http_archive(
@@ -41,14 +43,3 @@ cc_library(\
 '
 )
 
-load("@rules_python//python:pip.bzl", "pip_parse")
-# Create a central repo that knows about the dependencies needed from
-# requirements.lock.txt.
-pip_parse(
-   name = "python_deps",
-   requirements_lock = "//python/deps:requirements.lock.txt",
-)
-# Load the starlark macro, which will define your dependencies.
-load("@python_deps//:requirements.bzl", "install_deps")
-# Call it to define repos for your requirements.
-install_deps()

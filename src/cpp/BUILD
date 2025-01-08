@@ -3,8 +3,8 @@ cc_binary(
     srcs = [],
     defines = ["BAZEL_BUILD"],
     deps = [
-        "//cpp/main:attention_broker_main_lib",
-        "//cpp/utils:utils_lib",
+        "//main:attention_broker_main_lib",
+        "//utils:utils_lib",
         "@com_github_singnet_das_proto//:attention_broker_cc_grpc",
         "@com_github_grpc_grpc//:grpc++",
         "@com_github_grpc_grpc//:grpc++_reflection",
@@ -18,8 +18,8 @@ cc_binary(
     srcs = [],
     defines = ["BAZEL_BUILD"],
     deps = [
-        "//cpp/main:query_engine_main_lib",
-        "//cpp/utils:utils_lib",
+        "//main:query_engine_main_lib",
+        "//utils:utils_lib",
         "@mbedcrypto//:lib",
     ],
     linkstatic = 1
@@ -30,8 +30,8 @@ cc_binary(
     srcs = [],
     defines = ["BAZEL_BUILD"],
     deps = [
-        "//cpp/main:query_client_main_lib",
-        "//cpp/utils:utils_lib",
+        "//main:query_client_main_lib",
+        "//utils:utils_lib",
         "@mbedcrypto//:lib",
     ],
     linkstatic = 1
@@ -42,8 +42,8 @@ cc_binary(
     srcs = [],
     defines = ["BAZEL_BUILD"],
     deps = [
-        "//cpp/main:link_creation_engine_main_lib",
-        "//cpp/utils:utils_lib",
+        "//main:link_creation_engine_main_lib",
+        "//utils:utils_lib",
         "@mbedcrypto//:lib",
     ],
     linkstatic = 1
@@ -54,8 +54,8 @@ cc_binary(
     srcs = [],
     defines = ["BAZEL_BUILD"],
     deps = [
-        "//cpp/main:word_query_main_lib",
-        "//cpp/utils:utils_lib",
+        "//main:word_query_main_lib",
+        "//utils:utils_lib",
         "@mbedcrypto//:lib",
     ],
     linkstatic = 1
