@@ -3,9 +3,14 @@ load("@rules_python//python:defs.bzl", "py_library")
 
 package(default_visibility = ["//visibility:public"])
 
+filegroup(
+    name = "py_files",
+    srcs = glob(["*.py"]),
+)
+
 py_library(
     name = "all_adapters",
-    srcs = glob(["*.py"]),
+    srcs = [":py_files"],
     deps = [
         ":ram_only",
         ":redis_mongo_db",
