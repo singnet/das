@@ -2,17 +2,22 @@
 
 (( JOBS=$(nproc)/2 ))
 BAZELISK_CMD=/opt/bazel/bazelisk
-BIN_FOLDER=/opt/das-attention-broker/bin
-mkdir -p $BIN_FOLDER
+REPO_ROOT=/opt/das-attention-broker
+WORKSPACE_DIR=${REPO_ROOT}/cpp
+BIN_DIR=${REPO_ROOT}/bin
+mkdir -p $BIN_DIR
 
-$BAZELISK_CMD build --jobs $JOBS --noenable_bzlmod //cpp:link_creation_engine \
-&& mv bazel-bin/cpp/link_creation_engine $BIN_FOLDER \
-&& $BAZELISK_CMD build --jobs $JOBS --noenable_bzlmod //cpp:word_query \
-&& mv bazel-bin/cpp/word_query $BIN_FOLDER \
-&& $BAZELISK_CMD build --jobs $JOBS --noenable_bzlmod //cpp:attention_broker_service \
-&& mv bazel-bin/cpp/attention_broker_service $BIN_FOLDER \
-&& $BAZELISK_CMD build --jobs $JOBS --noenable_bzlmod //cpp:query_broker \
-&& mv bazel-bin/cpp/query_broker $BIN_FOLDER \
-&& $BAZELISK_CMD build --jobs $JOBS --noenable_bzlmod //cpp:query \
-&& mv bazel-bin/cpp/query $BIN_FOLDER
+cd $WORKSPACE_DIR \
+&& $BAZELISK_CMD build --jobs $JOBS --noenable_bzlmod //:link_creation_engine \
+&& mv bazel-bin/link_creation_engine $BIN_DIR \
+&& $BAZELISK_CMD build --jobs $JOBS --noenable_bzlmod //:word_query \
+&& mv bazel-bin/word_query $BIN_DIR \
+&& $BAZELISK_CMD build --jobs $JOBS --noenable_bzlmod //:attention_broker_service \
+&& mv bazel-bin/attention_broker_service $BIN_DIR \
+&& $BAZELISK_CMD build --jobs $JOBS --noenable_bzlmod //:query_broker \
+&& mv bazel-bin/query_broker $BIN_DIR \
+&& $BAZELISK_CMD build --jobs $JOBS --noenable_bzlmod //:query \
+&& mv bazel-bin/query $BIN_DIR \
+&& chown -R ${_USER}:${_GROUP} ${BIN_DIR}
+
 

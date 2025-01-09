@@ -6,8 +6,8 @@ cc_library(
     hdrs = glob(["*.h"]),
     includes = ["."],
     deps = [
-        "//cpp/utils:utils_lib",
-        "//cpp/hasher:hasher_lib",
+        "//utils:utils_lib",
+        "//hasher:hasher_lib",
         "@com_github_singnet_das_proto//:attention_broker_cc_grpc",
         "@com_github_grpc_grpc//:grpc++",
         "@com_github_grpc_grpc//:grpc++_reflection",

@@ -6,9 +6,9 @@ cc_library(
     hdrs = glob(["*.h", "query_element/*.h"]),
     includes = [".", "query_element"],
     deps = [
-        "//cpp/utils:utils_lib",
-        "//cpp/hasher:hasher_lib",
-        "//cpp/attention_broker:attention_broker_server_lib",
+        "//utils:utils_lib",
+        "//hasher:hasher_lib",
+        "//attention_broker:attention_broker_server_lib",
         "@com_github_singnet_das_node//:atomspacenode",
     ],
     linkopts = [

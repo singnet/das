@@ -5,7 +5,7 @@ cc_library(
     srcs = ["attention_broker_main.cc"],
     hdrs = glob(["*.h"]),
     deps = [
-        "//cpp/attention_broker:attention_broker_server_lib",
+        "//attention_broker:attention_broker_server_lib",
         "@com_github_singnet_das_proto//:attention_broker_cc_grpc",
         "@com_github_grpc_grpc//:grpc++",
         "@com_github_grpc_grpc//:grpc++_reflection",
@@ -17,7 +17,7 @@ cc_library(
     srcs = ["query_engine_main.cc"],
     hdrs = glob(["*.h"]),
     deps = [
-        "//cpp/query_engine:query_engine_lib",
+        "//query_engine:query_engine_lib",
     ],
 )
 
@@ -26,7 +26,7 @@ cc_library(
     srcs = ["query_client_main.cc"],
     hdrs = glob(["*.h"]),
     deps = [
-        "//cpp/query_engine:query_engine_lib",
+        "//query_engine:query_engine_lib",
     ],
 )
 
@@ -35,7 +35,7 @@ cc_library(
     srcs = ["link_creation_engine_main.cc"],
     hdrs = glob(["*.h"]),
     deps = [
-        "//cpp/query_engine:query_engine_lib",
+        "//query_engine:query_engine_lib",
     ],
 )
 
@@ -44,6 +44,6 @@ cc_library(
     srcs = ["word_query_main.cc"],
     hdrs = glob(["*.h"]),
     deps = [
-        "//cpp/query_engine:query_engine_lib",
+        "//query_engine:query_engine_lib",
     ],
 )
