@@ -31,8 +31,8 @@ py_library(
 py_wheel(
     name = "hyperon_das_atomdb_wheel",
     abi = "none",
-    author = "marcocapozzoli",
-    author_email = "marcocapozzoli90@gmail.com",
+    author = "Andre Senna",
+    author_email = "andre@singularitynet.io",
     classifiers = [
         "Programming Language :: Python :: 3",
         "Programming Language :: Python :: 3.10",
@@ -49,7 +49,7 @@ py_wheel(
     requires_file = "//deps:requirements_lock.txt",
     stamp = 1,
     summary = "Persistence layer for Distributed AtomSpace",
-    version = "0.8.10",
+    version = "$(ATOMDB_VERSION)",  # must be defined when calling `bazel build` with `--define=ATOMDB_VERSION=<version>`
     deps = [":hyperon_das_atomdb"],
 )
 
