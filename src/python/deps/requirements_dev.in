@@ -1,0 +1,4 @@
+mongomock>=4.1.2,<5.0.0
+pytest>=8.3.4,<9.0.0
+exceptiongroup>=1.2.2,<2.0.0
+
