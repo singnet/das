@@ -2,11 +2,14 @@
 
 IMAGE_NAME="das-attention-broker-builder"
 CONTAINER_NAME=${IMAGE_NAME}-container
+LOCAL_CACHE=/tmp/bazel_cache
+mkdir -p $LOCAL_CACHE
 
 docker run --rm \
     -e _USER=$(id -u) \
     -e _GROUP=$(id -g) \
     --name=$CONTAINER_NAME \
+    --volume $LOCAL_CACHE:/root/.cache/bazel \
     --volume .:/opt/das-attention-broker \
     --workdir /opt/das-attention-broker \
     ${IMAGE_NAME} \
