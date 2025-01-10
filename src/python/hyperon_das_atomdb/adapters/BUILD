@@ -18,6 +18,14 @@ py_library(
 )
 
 py_library(
+    name = "__init__",
+    srcs = ["__init__.py"],
+    deps = [
+        ":all_adapters",
+    ],
+)
+
+py_library(
     name = "ram_only",
     srcs = ["ram_only.py"],
     deps = [

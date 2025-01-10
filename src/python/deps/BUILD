@@ -9,3 +9,11 @@ compile_pip_requirements(
     requirements_txt = "requirements_lock.txt",
     visibility = ["//visibility:public"],
 )
+
+compile_pip_requirements(
+    name = "requirements_dev",
+    src = "requirements_dev.in",
+    generate_hashes = False,
+    requirements_txt = "requirements_dev_lock.txt",
+    visibility = ["//visibility:public"],
+)

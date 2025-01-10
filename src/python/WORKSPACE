@@ -20,15 +20,31 @@ python_register_toolchains(
 
 load("@rules_python//python:pip.bzl", "pip_parse")
 
-# Create a central repo that knows about the dependencies needed from
+# Create a central repo that knows about the dependencies needed for runtime from
 # requirements_lock.txt.
 pip_parse(
     name = "pypi",
+    python_interpreter_target = "@python_3_10_host//:python",
     requirements_lock = "//deps:requirements_lock.txt",
 )
 
-# Load the starlark macro, which will define your dependencies.
+# Load the starlark macro, which will define runtime dependencies.
 load("@pypi//:requirements.bzl", "install_deps")
 
-# Call it to define repos for your requirements.
+# Call it to define repos for runtime requirements.
 install_deps()
+
+# Create a central repo that knows about the dependencies needed for dev from
+# requirements_dev_lock.txt.
+pip_parse(
+    name = "pypi_dev",
+    python_interpreter_target = "@python_3_10_host//:python",
+    requirements_lock = "//deps:requirements_dev_lock.txt",
+)
+
+# Load the starlark macro, which will define dev dependencies.
+load("@pypi_dev//:requirements.bzl", install_dev_deps = "install_deps")
+
+# Call it to define repos for dev requirements.
+install_dev_deps()
+

@@ -1,0 +1,58 @@
+[
+  {
+    "type": "Concept",
+    "name": "human"
+  },
+  {
+    "type": "Concept",
+    "name": "monkey"
+  },
+  {
+    "type": "Concept",
+    "name": "chimp"
+  },
+  {
+    "type": "Concept",
+    "name": "snake"
+  },
+  {
+    "type": "Concept",
+    "name": "earthworm"
+  },
+  {
+    "type": "Concept",
+    "name": "rhino"
+  },
+  {
+    "type": "Concept",
+    "name": "triceratops"
+  },
+  {
+    "type": "Concept",
+    "name": "vine"
+  },
+  {
+    "type": "Concept",
+    "name": "ent"
+  },
+  {
+    "type": "Concept",
+    "name": "mammal"
+  },
+  {
+    "type": "Concept",
+    "name": "animal"
+  },
+  {
+    "type": "Concept",
+    "name": "reptile"
+  },
+  {
+    "type": "Concept",
+    "name": "dinosaur"
+  },
+  {
+    "type": "Concept",
+    "name": "plant"
+  }
+]
