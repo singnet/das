@@ -3,12 +3,12 @@
 
 #include <string>
 #include <thread>
-#include "AtomSpaceNode.h"
+#include "DistributedAlgorithmNode.h"
 #include "SharedQueue.h"
 #include "QueryAnswer.h"
 
 using namespace std;
-using namespace atom_space_node;
+using namespace distributed_algorithm_node;
 using namespace query_engine;
 
 namespace query_node {
@@ -16,7 +16,7 @@ namespace query_node {
 /**
  *
  */
-class QueryNode : public AtomSpaceNode {
+class QueryNode : public DistributedAlgorithmNode {
 
 public:
 

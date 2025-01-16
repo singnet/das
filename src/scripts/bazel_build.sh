@@ -8,15 +8,15 @@ BIN_DIR=${REPO_ROOT}/bin
 mkdir -p $BIN_DIR
 
 cd $WORKSPACE_DIR \
-&& $BAZELISK_CMD build --jobs $JOBS --noenable_bzlmod //:link_creation_engine \
+&& $BAZELISK_CMD build --jobs $JOBS --enable_bzlmod //:link_creation_engine \
 && mv bazel-bin/link_creation_engine $BIN_DIR \
-&& $BAZELISK_CMD build --jobs $JOBS --noenable_bzlmod //:word_query \
+&& $BAZELISK_CMD build --jobs $JOBS --enable_bzlmod //:word_query \
 && mv bazel-bin/word_query $BIN_DIR \
-&& $BAZELISK_CMD build --jobs $JOBS --noenable_bzlmod //:attention_broker_service \
+&& $BAZELISK_CMD build --jobs $JOBS --enable_bzlmod //:attention_broker_service \
 && mv bazel-bin/attention_broker_service $BIN_DIR \
-&& $BAZELISK_CMD build --jobs $JOBS --noenable_bzlmod //:query_broker \
+&& $BAZELISK_CMD build --jobs $JOBS --enable_bzlmod //:query_broker \
 && mv bazel-bin/query_broker $BIN_DIR \
-&& $BAZELISK_CMD build --jobs $JOBS --noenable_bzlmod //:query \
+&& $BAZELISK_CMD build --jobs $JOBS --enable_bzlmod //:query \
 && mv bazel-bin/query $BIN_DIR \
 && chown -R ${_USER}:${_GROUP} ${BIN_DIR}
 
