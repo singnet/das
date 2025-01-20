@@ -1,12 +1,12 @@
 /**
- * @file core.h
- * @brief Core class to handle link creation requests
+ * @file agent.h
+ * @brief Agent class to handle link creation requests
  *
  * This file contains the definition of the LinkCreationAgent class and the
  * LinkCreationAgentRequest struct. The LinkCreationAgent class is responsible
  * for managing link creation requests, including retrieving requests from a
- * DAS Node server, sending query requests, processing iterators, and creating
- * links. It also handles loading and saving configurations and request buffers.
+ * DAS Node server, sending query requests, and creating links. 
+ * It also handles loading and saving configurations and request buffers.
  */
 #pragma once
 #include <string>
@@ -28,8 +28,8 @@ namespace link_creation_agent
         string link_template;
         int max_results;
         int repeat;
-        long last_execution; // last time executed
-        int interval;        // current interval
+        long last_execution; 
+        int current_interval;        
         bool infinite = false;
     };
 
@@ -38,12 +38,7 @@ namespace link_creation_agent
 
     public:
         LinkCreationAgent(
-            string config_path,
-            query_node::QueryNode *query_node_client,
-            query_node::QueryNode *query_node_server,
-            lca::LinkCreationNode *link_creation_server,
-            das::ServerNode *das_client); // DASNode client, DASNode server
-
+            string config_path);
         ~LinkCreationAgent() {};
 
         /**
@@ -71,6 +66,9 @@ namespace link_creation_agent
          * @brief Save all requests that have the infinite value set as true to the disk or DB.
          */
         void save_buffer();
+        /**
+         * @brief Load all requests that have the infinite value set as true from the disk or DB.
+         */
         void load_buffer();
         /**
          * @brief Handle the create link request.
@@ -78,12 +76,19 @@ namespace link_creation_agent
          */
         void handleRequest(string request);
 
-        vector<LinkCreationAgentRequest> request_buffer;
-        string config_path;
-        int default_interval; // Interval to run infinity tasks
-        int thread_count;
-        // service
+        // Attributes loaded from config file
+        string config_path; // Path to the configuration file
+        int default_interval; // Default interval to send requests
+        int thread_count; // Number of threads to process requests
+        string query_node_client_id; // ID of the query node client
+        string query_node_server_id; // ID of the query node server
+        string link_creation_server_id; // ID of the link creation server
+        string das_client_id; // ID of the DAS client
+
+
+        // Other attributes
         LinkCreationService service;
+        vector<LinkCreationAgentRequest> request_buffer;
         static query_node::QueryNode query_node_client;
         static query_node::QueryNode query_node_server;
         static lca::LinkCreationNode link_creation_server;

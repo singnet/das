@@ -4,7 +4,7 @@
 #pragma once
 // #include "DistributedAlgorithmNode.h"
 #include "star_node.h"
-
+#include "queue.h"
 using namespace atom_space_node;
 
 namespace lca

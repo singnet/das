@@ -1,30 +1,39 @@
 #include <iostream>
 #include <string>
 #include <signal.h>
+#include <cstring>
 
-#include "core.h"
-#include "das_server_node.h"
-#include "das_link_creation_node.h"
-#include "das_query_node.h"
+#include "agent.h"
+using namespace link_creation_agent;
+using namespace std;
 
-int main(int argc, char* argv[]){
-    if (argc < 3) {
-        std::cerr << "Usage: " << argv[0] << "\nSuported args:\n--config_file\t path to config file\n--type\t 'client' or 'server'" << std::endl;
+
+/**
+ * @brief Main function
+ * Reads the config file and starts the DAS NODE client/server
+ * @param argc Number of arguments
+ * @param argv Arguments
+ * @returns Returns 0 if the program runs successfully
+ */
+int main(int argc, char *argv[])
+{
+    if ((argc < 3) || (strcmp(argv[2], "client") != 0 && strcmp(argv[2], "server") != 0))
+    {
+        cerr << "Usage: " << argv[0] << "\nSuported args:\n--config_file\t path to config file\n--type\t 'client' or 'server'" << endl;
         exit(1);
     }
-    auto das_server_node = new das::ServerNode("", "");
-    auto das_link_creation_node = new lca::LinkCreationNode("");
-    auto das_query_agent_client = new query_node::QueryNode("", false);
-    auto das_query_agent_server = new query_node::QueryNode("", true);
 
-    auto server = new link_creation_agent::LinkCreationAgent(argv[1], 
-    das_query_agent_client, 
-    das_query_agent_server, 
-    das_link_creation_node,
-    das_server_node );
-    server->run();
-    // Read config file
-    // Start DAS NODE client/server
-    // loop forever
+    string config_path = argv[1];
+    string type = argv[2];
+    if (type == "client")
+    {
+        cerr << "Client not implemented yet" << endl;
+    }
+    else
+    {
+        auto server = new LinkCreationAgent(config_path);
+        server->run();
+    }
+
     return 0;
 }
