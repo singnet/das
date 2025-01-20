@@ -26,8 +26,8 @@ namespace link_creation_agent
     {
         string query;
         string link_template;
-        int max_results;
-        int repeat;
+        int max_results = 1000;
+        int repeat = 1;
         long last_execution; 
         int current_interval;        
         bool infinite = false;

@@ -17,14 +17,29 @@ using namespace std;
  */
 int main(int argc, char *argv[])
 {
-    if ((argc < 3) || (strcmp(argv[2], "client") != 0 && strcmp(argv[2], "server") != 0))
+    string help = R""""(
+    Usage: link_creation_agent --config_file <path> --type <client/server>
+    Suported args:
+    --type          client or server values are accepted
+    --config_file   path to config file (server only)
+    --help          print this message
+    --client_id     client id (client only)
+    --request       request to be sent to the server (client only)
+
+    Requests must be in the following format:
+    QUERY, LINK_TEMPLATE, MAX_RESULTS, REPEAT
+    MAX_RESULTS and REPEAT are optional, the default value for MAX_RESULTS is 1000 and for REPEAT is 1
+    )"""";
+    
+    if ((argc < 5) || (strcmp(argv[1], "client") != 0 && strcmp(argv[1], "server") != 0))
     {
-        cerr << "Usage: " << argv[0] << "\nSuported args:\n--config_file\t path to config file\n--type\t 'client' or 'server'" << endl;
+        cerr << help << endl;
         exit(1);
     }
 
-    string config_path = argv[1];
-    string type = argv[2];
+    string type = argv[1];
+    string config_path = argv[2];
+    
     if (type == "client")
     {
         cerr << "Client not implemented yet" << endl;
