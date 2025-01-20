@@ -5,7 +5,7 @@
 
 DAS Link Creation Agent (DAS LCA), process a query and create links using the result of the query and a custom template. The service can execute n times a request to update the database with relevant links over the time.
 
-![alt](doc/assets/das_link_creation_hla.png.png)
+![alt](doc/assets/das_link_creation_hla.png)
 
 Query Example
 

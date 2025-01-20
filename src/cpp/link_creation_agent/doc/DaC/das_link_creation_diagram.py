@@ -47,24 +47,24 @@ node_attributes = {
     }
 
 
-with Diagram("DAS Link Creation", filename="doc/assets/das_link_creation_diagram.png", show=False):
-    client = Client("DAS Server")
-    das_link_creation_node = Server("DAS Link Creation Node")
-    das_query_broker = Server("DAS Query Broker")
-    edges = [
-        Edge(label="Create Links (query_str, max_resp, link_creation_type, link_creation_template)"),
-        Edge(label="Query"),
-        Edge(label="Query Response"),
-        Edge(label="Create Link"),
-    ]
+# with Diagram("DAS Link Creation", filename="doc/assets/das_link_creation_diagram.png", show=False):
+#     client = Client("DAS Server")
+#     das_link_creation_node = Server("DAS Link Creation Node")
+#     das_query_broker = Server("DAS Query Broker")
+#     edges = [
+#         Edge(label="Create Links (query_str, max_resp, link_creation_type, link_creation_template)"),
+#         Edge(label="Query"),
+#         Edge(label="Query Response"),
+#         Edge(label="Create Link"),
+#     ]
 
 
-    client >> edges[3] >> das_link_creation_node
-    das_link_creation_node >> edges[2] >> das_query_broker
-    das_query_broker >> edges[1] >> das_link_creation_node
-    das_link_creation_node >> edges[0] >> client
+#     client >> edges[3] >> das_link_creation_node
+#     das_link_creation_node >> edges[2] >> das_query_broker
+#     das_query_broker >> edges[1] >> das_link_creation_node
+#     das_link_creation_node >> edges[0] >> client
 
-with Diagram("DAS Link Creation", filename="doc/assets/das_link_creation_hla.png", show=False):
+with Diagram("DAS Link Creation", filename="doc/assets/das_link_creation_hla", show=False):
     client = Person(
         name="DAS Server", description="Sends a Link creation request"
     )
@@ -89,17 +89,5 @@ with Diagram("DAS Link Creation", filename="doc/assets/das_link_creation_hla.png
     das_query_agent >> Relationship("Returns a Query Iterator") >> das_node_client2
     link_creation_agent >> Relationship("Spawn a LCA service") >> link_creation_agent_service
     link_creation_agent_service >> Relationship("Send create atom requests") >> das_node_client
-
-
-    # query_eg = copy.copy(node_attributes)
-    # query_eg.update({"label": query})
-
-    # lct_eg = copy.copy(node_attributes)
-    # lct_eg.update({"label": link_creation})
-    # Node(**lct_eg)
-    # Node(**query_eg)
-
-
-  
 
 
