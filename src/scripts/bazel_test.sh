@@ -8,7 +8,7 @@ WORKSPACE_DIR=${REPO_ROOT}/cpp
 cd $WORKSPACE_DIR
 $BAZELISK_CMD test \
     --jobs $JOBS \
-    --noenable_bzlmod \
+    --test_output=errors \
     --cache_test_results=no \
     //...
 

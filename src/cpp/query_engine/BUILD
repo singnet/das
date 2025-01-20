@@ -9,7 +9,7 @@ cc_library(
         "//utils:utils_lib",
         "//hasher:hasher_lib",
         "//attention_broker:attention_broker_server_lib",
-        "@com_github_singnet_das_node//distributed_algorithm_node:distributed_algorithm_node_lib",
+        "//distributed_algorithm_node:distributed_algorithm_node_lib",
     ],
     linkopts = [
         "-lmbedcrypto",

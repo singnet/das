@@ -26,16 +26,10 @@ bazel_dep(name = "googletest", version = "1.15.2", repo_name = "com_github_googl
 
 http_archive = use_repo_rule("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 http_archive(
-    name = "com_github_singnet_das_node",
-    strip_prefix = "das-node-0.1.5-rc/src",
-    # sha256 = "30666851579e064393dec374be39a37f1c7753226d60722e0cabeaef93e05635",
-    urls = ["https://github.com/singnet/das-node/archive/refs/tags/0.1.5-rc.tar.gz"],
-)
-http_archive(
     name = "com_github_singnet_das_proto",
-    strip_prefix = "das-proto-0.1.14-rc",
-    sha256 = "f2a878937372fb054803c4b5a3c45c3df46f8ca80c851cba9d9c335b5638f4d9",
-    urls = ["https://github.com/singnet/das-proto/archive/refs/tags/0.1.14-rc.tar.gz"],
+    strip_prefix = "das-proto-0.1.14",
+    sha256 = "c1e32db184cddb58468139d2fdc592be876c58cf67aa2600a2ec9670ca03cdc9",
+    urls = ["https://github.com/singnet/das-proto/archive/refs/tags/0.1.14.tar.gz"],
 )
 
 new_local_repository = use_repo_rule("@bazel_tools//tools/build_defs/repo:local.bzl", "new_local_repository")
