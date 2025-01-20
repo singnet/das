@@ -97,6 +97,9 @@ RUN cd /tmp &&\
 #    mv install/lib/* /usr/local/lib &&\
     ldconfig
 
+# add regular user
+RUN useradd -ms /bin/bash builder
+
 ################################################################################
 
 

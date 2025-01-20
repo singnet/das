@@ -2,13 +2,8 @@
 
 (( JOBS=$(nproc)/2 ))
 BAZELISK_CMD=/opt/bazel/bazelisk
-REPO_ROOT=/opt/das-attention-broker
-WORKSPACE_DIR=${REPO_ROOT}/cpp
+BAZELISK_TEST_CMD="${BAZELISK_CMD} test --jobs ${JOBS} --enable_bzlmod --test_output=errors"
 
-cd $WORKSPACE_DIR
-$BAZELISK_CMD test \
-    --jobs $JOBS \
-    --test_output=errors \
-    --cache_test_results=no \
-    //...
+cd $WORKSPACE_DIR \
+&& $BAZELISK_TEST_CMD //...
 

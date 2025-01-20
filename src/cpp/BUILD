@@ -1,3 +1,18 @@
+load("@nanobind_bazel//:build_defs.bzl", "nanobind_extension")
+
+py_library(
+    name = "hyperon_das_node",
+    srcs = ["hyperon_das_node/__init__.py"],
+    data = [":hyperon_das_node_ext"],
+    visibility = ["//visibility:public"],
+)
+
+nanobind_extension(
+    name = "hyperon_das_node_ext",
+    srcs = ["hyperon_das_node_ext.cc"],
+    deps = ["//distributed_algorithm_node:distributed_algorithm_node_lib"],
+)
+
 cc_binary(
     name = "attention_broker_service",
     srcs = [],
