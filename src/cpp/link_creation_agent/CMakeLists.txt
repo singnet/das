@@ -17,9 +17,4 @@ FetchContent_MakeAvailable(DASNode)
 
 add_executable("das_link_creation_agent" ${sources} ${includes})
 
-# target_link_libraries("das_link_creation_agent" PRIVATE external_project_target)
 target_link_libraries("das_link_creation_agent" PRIVATE DASNodeTarget)
-
-# target_link_libraries(HandleTrie 
-#         PUBLIC OpenSSL::Crypto
-#                 )
