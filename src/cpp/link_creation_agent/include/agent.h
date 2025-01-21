@@ -89,9 +89,8 @@ namespace link_creation_agent
         // Other attributes
         LinkCreationService service;
         vector<LinkCreationAgentRequest> request_buffer;
-        static query_node::QueryNode query_node_client;
-        static query_node::QueryNode query_node_server;
-        static lca::LinkCreationNode link_creation_server;
-        static das::ServerNode das_client;
+        query_node::QueryNode query_node_client;
+        lca::LinkCreationNode link_creation_server;
+        das::ServerNode das_client;
     };
 } // namespace link_creation_agent

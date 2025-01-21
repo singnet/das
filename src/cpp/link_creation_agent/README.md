@@ -20,12 +20,16 @@ LINK_TEMPLATE Expression 3
             VARIABLE V2
 ```
 
-Link Template Example:
+Example of template for link creation:
 
 ```
-LINK_CREATE Similarity 2
+LINK_CREATE Similarity 3
     VARIABLE V1 
     VARIABLE V2
+    CUSTOM 2
+        strength 0.1
+        color red
+
 ```
 
 
