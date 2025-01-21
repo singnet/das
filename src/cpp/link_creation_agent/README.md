@@ -23,15 +23,17 @@ LINK_TEMPLATE Expression 3
 Example of template for link creation:
 
 ```
-LINK_CREATE Similarity 3
+LINK_CREATE Similarity 2 1
     VARIABLE V1 
     VARIABLE V2
-    CUSTOM 2
-        strength 0.1
-        color red
-
+    CUSTOM_FIELD truth_value 2
+        CUSTOM_FIELD mean 2
+            count 10
+            avg 0.9
+        confidence 0.9
 ```
-
+#### CUSTOM FIELDS
+TBD
 
 ## How to build
 
