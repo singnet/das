@@ -2,7 +2,7 @@
 #include "LeadershipBroker.h"
 #include "MessageBroker.h"
 
-using namespace atom_space_node;
+using namespace distributed_algorithm_node;
 using namespace std;
 
 // -------------------------------------------------------------------------------------------------
@@ -11,7 +11,7 @@ using namespace std;
 StarNode::StarNode(
     const string &node_id, 
     MessageBrokerType messaging_backend) :
-    AtomSpaceNode(node_id, LeadershipBrokerType::SINGLE_MASTER_SERVER, messaging_backend) {
+    DistributedAlgorithmNode(node_id, LeadershipBrokerType::SINGLE_MASTER_SERVER, messaging_backend) {
 
     this->is_server = true;
     this->join_network();
@@ -21,7 +21,7 @@ StarNode::StarNode(
     const string &node_id, 
     const string &server_id, 
     MessageBrokerType messaging_backend) : 
-    AtomSpaceNode(node_id, LeadershipBrokerType::SINGLE_MASTER_SERVER, messaging_backend) {
+    DistributedAlgorithmNode(node_id, LeadershipBrokerType::SINGLE_MASTER_SERVER, messaging_backend) {
 
     this->server_id = server_id;
     this->is_server = false;

@@ -18,26 +18,31 @@ RUN mkdir -p ${PROTO_DIR}
 RUN mkdir -p ${THIRDPARTY}
 #VOLUME ${ATTENTION_BROKER_DIR}
 
-RUN apt-get update -y
-RUN apt-get install -y git
+# RUN apt-get update -y
+# RUN apt-get install -y git
 
-RUN cd ${GRPC_DIR} &&\
-    git clone https://github.com/grpc/grpc &&\
-    cd grpc &&\
-    git submodule update --init
+RUN apt-get update -y \
+    && apt-get install -y git build-essential curl protobuf-compiler python3 python3-pip cmake \
+                          libevent-dev libssl-dev pkg-config libmbedtls14 libmbedtls-dev \
+    && rm -rf /var/lib/apt/lists/*
 
-RUN apt-get install -y build-essential
-RUN apt-get install -y autoconf
-RUN apt-get install -y libtool
-RUN apt-get install -y pkg-config
-RUN apt-get install -y curl
-RUN apt-get install -y gcc
-RUN apt-get install -y protobuf-compiler
-#RUN apt-get install -y libmbedcrypto7
-RUN apt-get install -y libmbedtls14
-RUN apt-get install -y libmbedtls-dev
-RUN apt-get install -y libevent-dev
-RUN apt-get install -y libssl-dev
+# RUN cd ${GRPC_DIR} &&\
+#     git clone https://github.com/grpc/grpc &&\
+#     cd grpc &&\
+#     git submodule update --init
+
+# RUN apt-get install -y build-essential
+# RUN apt-get install -y autoconf
+# RUN apt-get install -y libtool
+# RUN apt-get install -y pkg-config
+# RUN apt-get install -y curl
+# RUN apt-get install -y gcc
+# RUN apt-get install -y protobuf-compiler
+# #RUN apt-get install -y libmbedcrypto7
+# RUN apt-get install -y libmbedtls14
+# RUN apt-get install -y libmbedtls-dev
+# RUN apt-get install -y libevent-dev
+# RUN apt-get install -y libssl-dev
 
 COPY assets/3rd-party.tgz ${THIRDPARTY}
 RUN cd ${THIRDPARTY} &&\
@@ -49,10 +54,10 @@ RUN cd ${THIRDPARTY} &&\
     
 ENV CPLUS_INCLUDE_PATH="/opt/3rd-party/mbedcrypto/include/"
 
-ENV CC=/usr/bin/gcc
-RUN ln -s ${BAZEL_DIR}/bazelisk /usr/bin/bazel
-RUN cd ${GRPC_DIR}/grpc &&\
-    ${BAZEL_DIR}/bazelisk build :all
+# ENV CC=/usr/bin/gcc
+# RUN ln -s ${BAZEL_DIR}/bazelisk /usr/bin/bazel
+# RUN cd ${GRPC_DIR}/grpc &&\
+#     ${BAZEL_DIR}/bazelisk build :all
 
 ADD https://raw.githubusercontent.com/singnet/das-query-engine/master/proto/attention_broker.proto ${PROTO_DIR}
 ADD https://raw.githubusercontent.com/singnet/das-query-engine/master/proto/common.proto ${PROTO_DIR}
@@ -61,11 +66,11 @@ ADD https://raw.githubusercontent.com/singnet/das-query-engine/master/proto/echo
 ################################################################################
 # To be removed when AtomDB is properly integrated
 # Redis client
-RUN apt-get install -y cmake
-RUN apt-get install -y libevent-dev
-RUN apt-get install -y libssl-dev
-RUN apt-get install -y pkg-config
-RUN apt-get install -y cmake-data
+# RUN apt-get install -y cmake
+# RUN apt-get install -y libevent-dev
+# RUN apt-get install -y libssl-dev
+# RUN apt-get install -y pkg-config
+# RUN apt-get install -y cmake-data
 COPY assets/hiredis-cluster.tgz /tmp
 COPY assets/mongo-cxx-driver-r3.11.0.tar.gz /tmp
 RUN cd /tmp &&\
@@ -91,6 +96,9 @@ RUN cd /tmp &&\
     ln -s /usr/local/include/mongocxx/v_noabi/mongocxx/* /usr/local/include/mongocxx/ &&\
 #    mv install/lib/* /usr/local/lib &&\
     ldconfig
+
+# add regular user
+RUN useradd -ms /bin/bash builder
 
 ################################################################################
 

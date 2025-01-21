@@ -8,7 +8,7 @@
 #include "RemoteIterator.h"
 
 using namespace std;
-using namespace atom_space_node;
+using namespace distributed_algorithm_node;
 using namespace query_element;
 
 namespace query_engine {

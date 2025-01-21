@@ -1,6 +1,53 @@
-###############################################################################
-# Bazel now uses Bzlmod by default to manage external dependencies.
-# Please consider migrating your external dependencies from WORKSPACE to MODULE.bazel.
-#
-# For more details, please check https://github.com/bazelbuild/bazel/issues/18958
-###############################################################################
+"""
+This Bazel module configuration file sets up dependencies for the DAS project.
+
+It includes project's direct dependencies such as `rules_cc`, `grpc`, and `googletest`, but also lists some
+dependencies of the dependencies, like `rules_go`, `googleapis`, and `protoc-gen-validate`, among others.
+This is required basically to set alternative names (`repo_name`) used internally by some packages,
+such as `grpc`, which is in a transitory state (from WORKSPACE to MODULE.bazel support) and needs this
+temporary workaround. Hopefully, this will be fixed by the end of 2025 and it'll be possible to list
+only the direct dependencies. TODO: https://github.com/singnet/das/issues/180
+
+Additionally, this file configures:
+- a local repository for the `mbedcrypto` library. <- not working as expected / TODO: https://github.com/singnet/das/issues/179
+- an `http_archive` to get `das-proto` repo content.
+"""
+
+module(name = "das")
+bazel_dep(name = "abseil-cpp", version = "20240722.0", repo_name = "com_google_absl")
+bazel_dep(name = "rules_apple", version = "3.16.1", repo_name = "build_bazel_rules_apple")
+bazel_dep(name = "protoc-gen-validate", version = "1.0.4.bcr.2", repo_name = "com_envoyproxy_protoc_gen_validate")
+bazel_dep(name = "apple_support", version = "1.17.1", repo_name = "build_bazel_apple_support")
+bazel_dep(name = "rules_go", version = "0.52.0", repo_name = "io_bazel_rules_go")
+bazel_dep(name = "googleapis", version = "0.0.0-20240819-fe8ba054a", repo_name = "com_google_googleapis")
+bazel_dep(name = "gazelle", version = "0.41.0", repo_name = "bazel_gazelle")
+bazel_dep(name = "protobuf", version = "29.3", repo_name = "com_google_protobuf")
+bazel_dep(name = "rules_cc", version = "0.0.16")
+bazel_dep(name = "grpc", version = "1.69.0", repo_name = "com_github_grpc_grpc")
+bazel_dep(name = "googletest", version = "1.15.2", repo_name = "com_github_google_googletest")
+
+# nanobind
+bazel_dep(name = "nanobind_bazel", version = "2.4.0")
+bazel_dep(name = "rules_python", version = "1.0.0")
+
+python = use_extension("@rules_python//python/extensions:python.bzl", "python")
+python.toolchain(is_default = True, python_version = "3.10")
+python.toolchain(python_version = "3.11")
+python.toolchain(python_version = "3.12")
+
+
+
+http_archive = use_repo_rule("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
+http_archive(
+    name = "com_github_singnet_das_proto",
+    strip_prefix = "das-proto-0.1.14",
+    sha256 = "c1e32db184cddb58468139d2fdc592be876c58cf67aa2600a2ec9670ca03cdc9",
+    urls = ["https://github.com/singnet/das-proto/archive/refs/tags/0.1.14.tar.gz"],
+)
+
+new_local_repository = use_repo_rule("@bazel_tools//tools/build_defs/repo:local.bzl", "new_local_repository")
+new_local_repository(
+    name = "mbedcrypto",
+    path = "/opt/3rd-party/mbedcrypto",
+    build_file_content = 'cc_library(name = "lib", srcs = ["libmbedcrypto.a"], visibility = ["//visibility:public"])',
+)

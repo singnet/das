@@ -2,11 +2,11 @@
 #define _QUERY_NODE_STARNODE_H
 
 #include <string>
-#include "AtomSpaceNode.h"
+#include "DistributedAlgorithmNode.h"
 
 using namespace std;
 
-namespace atom_space_node {
+namespace distributed_algorithm_node {
 
 /**
  * Node in a "star" topology with one single server (which knows every other nodes in the network)
@@ -14,7 +14,7 @@ namespace atom_space_node {
  *
  * Use the different constructors to choose from client or server.
  */
-class StarNode : public AtomSpaceNode {
+class StarNode : public DistributedAlgorithmNode {
 
 public:
 
@@ -51,7 +51,7 @@ public:
     virtual ~StarNode();
 
     // --------------------------------------------------------------------------------------------
-    // AtomSpaceNode virtual API
+    // DistributedAlgorithmNode virtual API
 
     /**
      * Method called when a new node is inserted in the network after this one has already joined.
@@ -74,6 +74,6 @@ protected:
     string server_id;
 };
 
-} // namespace atom_space_node
+} // namespace distributed_algorithm_node
 
 #endif // _QUERY_NODE_STARNODE_H

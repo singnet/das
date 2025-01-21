@@ -27,8 +27,8 @@ class TestSource : public Source {
 };
 
 TEST(RemoteSinkIterator, basics) {
-    string consumer_id = "localhost:30700";
-    string producer_id = "localhost:30701";
+    string consumer_id = "localhost:30800";
+    string producer_id = "localhost:30801";
 
     string input_element_id = "test_source";
     TestSource input(input_element_id);

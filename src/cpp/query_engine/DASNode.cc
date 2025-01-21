@@ -91,7 +91,7 @@ string DASNode::next_query_id() {
 // Messages
 
 shared_ptr<Message> DASNode::message_factory(string &command, vector<string> &args) {
-    std::shared_ptr<Message> message = AtomSpaceNode::message_factory(command, args);
+    std::shared_ptr<Message> message = DistributedAlgorithmNode::message_factory(command, args);
     if (message) {
         return message;
     }

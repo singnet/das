@@ -17,7 +17,7 @@ QueryNode::QueryNode(
     const string &node_id, 
     bool is_server,
     MessageBrokerType messaging_backend) :
-    AtomSpaceNode(node_id, LeadershipBrokerType::SINGLE_MASTER_SERVER, messaging_backend) {
+    DistributedAlgorithmNode(node_id, LeadershipBrokerType::SINGLE_MASTER_SERVER, messaging_backend) {
 
     this->is_server = is_server;
     this->query_answer_processor = NULL;
@@ -37,7 +37,7 @@ void QueryNode::graceful_shutdown() {
     if (is_shutting_down()) {
         return;
     }
-    AtomSpaceNode::graceful_shutdown();
+    DistributedAlgorithmNode::graceful_shutdown();
     this->shutdown_flag_mutex.lock();
     this->shutdown_flag = true;
     this->shutdown_flag_mutex.unlock();
@@ -70,7 +70,7 @@ bool QueryNode::is_query_answers_finished() {
 }
 
 shared_ptr<Message> QueryNode::message_factory(string &command, vector<string> &args) {
-    std::shared_ptr<Message> message = AtomSpaceNode::message_factory(command, args);
+    std::shared_ptr<Message> message = DistributedAlgorithmNode::message_factory(command, args);
     if (message) {
         return message;
     }

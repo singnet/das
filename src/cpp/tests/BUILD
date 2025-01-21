@@ -1,168 +1,192 @@
 cc_test(
     name = "shared_queue_test",
-    srcs = ["shared_queue_test.cc"],
     size = "small",
+    srcs = ["shared_queue_test.cc"],
     copts = [
-      "-Iexternal/gtest/googletest/include",
-      "-Iexternal/gtest/googletest",
+        "-Iexternal/gtest/googletest/include",
+        "-Iexternal/gtest/googletest",
     ],
+    linkstatic = 1,
     deps = [
+        "//attention_broker:attention_broker_server_lib",
         "@com_github_google_googletest//:gtest_main",
-        "@com_github_singnet_das_proto//:attention_broker_cc_grpc",
         "@com_github_grpc_grpc//:grpc++",
         "@com_github_grpc_grpc//:grpc++_reflection",
-        "//attention_broker:attention_broker_server_lib",
+        "@com_github_singnet_das_proto//:attention_broker_cc_grpc",
         "@mbedcrypto//:lib",
     ],
-    linkstatic = 1
 )
 
 cc_test(
     name = "request_selector_test",
-    srcs = ["request_selector_test.cc"],
     size = "small",
+    srcs = ["request_selector_test.cc"],
     copts = [
-      "-Iexternal/gtest/googletest/include",
-      "-Iexternal/gtest/googletest",
+        "-Iexternal/gtest/googletest/include",
+        "-Iexternal/gtest/googletest",
     ],
+    linkstatic = 1,
     deps = [
+        "//attention_broker:attention_broker_server_lib",
         "@com_github_google_googletest//:gtest_main",
-        "@com_github_singnet_das_proto//:attention_broker_cc_grpc",
         "@com_github_grpc_grpc//:grpc++",
         "@com_github_grpc_grpc//:grpc++_reflection",
-        "//attention_broker:attention_broker_server_lib",
+        "@com_github_singnet_das_proto//:attention_broker_cc_grpc",
         "@mbedcrypto//:lib",
     ],
-    linkstatic = 1
 )
 
 cc_test(
     name = "attention_broker_server_test",
-    srcs = ["attention_broker_server_test.cc", "test_utils.cc", "test_utils.h"],
     size = "small",
-    copts = [
-      "-Iexternal/gtest/googletest/include",
-      "-Iexternal/gtest/googletest",
+    srcs = [
+        "attention_broker_server_test.cc",
+        "test_utils.cc",
+        "test_utils.h",
     ],
+    copts = [
+        "-Iexternal/gtest/googletest/include",
+        "-Iexternal/gtest/googletest",
+    ],
+    linkstatic = 1,
     deps = [
-        "@com_github_google_googletest//:gtest_main",
-        "@com_github_singnet_das_proto//:attention_broker_cc_grpc",
-        "@com_github_grpc_grpc//:grpc++",
-        "@com_github_grpc_grpc//:grpc++_reflection",
         "//attention_broker:attention_broker_server_lib",
         "//utils:utils_lib",
+        "@com_github_google_googletest//:gtest_main",
+        "@com_github_grpc_grpc//:grpc++",
+        "@com_github_grpc_grpc//:grpc++_reflection",
+        "@com_github_singnet_das_proto//:attention_broker_cc_grpc",
         "@mbedcrypto//:lib",
     ],
-    linkstatic = 1
 )
 
 cc_test(
     name = "worker_threads_test",
-    srcs = ["worker_threads_test.cc", "test_utils.cc", "test_utils.h"],
     size = "small",
-    copts = [
-      "-Iexternal/gtest/googletest/include",
-      "-Iexternal/gtest/googletest",
+    srcs = [
+        "test_utils.cc",
+        "test_utils.h",
+        "worker_threads_test.cc",
     ],
+    copts = [
+        "-Iexternal/gtest/googletest/include",
+        "-Iexternal/gtest/googletest",
+    ],
+    linkstatic = 1,
     deps = [
+        "//attention_broker:attention_broker_server_lib",
         "@com_github_google_googletest//:gtest_main",
-        "@com_github_singnet_das_proto//:attention_broker_cc_grpc",
         "@com_github_grpc_grpc//:grpc++",
         "@com_github_grpc_grpc//:grpc++_reflection",
-        "//attention_broker:attention_broker_server_lib",
+        "@com_github_singnet_das_proto//:attention_broker_cc_grpc",
         "@mbedcrypto//:lib",
     ],
-    linkstatic = 1
 )
 
 cc_test(
     name = "handle_trie_test",
-    srcs = ["handle_trie_test.cc", "test_utils.cc", "test_utils.h"],
     size = "medium",
-    copts = [
-      "-Iexternal/gtest/googletest/include",
-      "-Iexternal/gtest/googletest",
+    srcs = [
+        "handle_trie_test.cc",
+        "test_utils.cc",
+        "test_utils.h",
     ],
+    copts = [
+        "-Iexternal/gtest/googletest/include",
+        "-Iexternal/gtest/googletest",
+    ],
+    linkstatic = 1,
     deps = [
+        "//attention_broker:attention_broker_server_lib",
         "@com_github_google_googletest//:gtest_main",
-        "@com_github_singnet_das_proto//:attention_broker_cc_grpc",
         "@com_github_grpc_grpc//:grpc++",
         "@com_github_grpc_grpc//:grpc++_reflection",
-        "//attention_broker:attention_broker_server_lib",
+        "@com_github_singnet_das_proto//:attention_broker_cc_grpc",
         "@mbedcrypto//:lib",
     ],
-    linkstatic = 1
 )
 
 cc_test(
     name = "hebbian_network_test",
-    srcs = ["hebbian_network_test.cc", "test_utils.cc", "test_utils.h"],
     size = "medium",
-    copts = [
-      "-Iexternal/gtest/googletest/include",
-      "-Iexternal/gtest/googletest",
+    srcs = [
+        "hebbian_network_test.cc",
+        "test_utils.cc",
+        "test_utils.h",
     ],
+    copts = [
+        "-Iexternal/gtest/googletest/include",
+        "-Iexternal/gtest/googletest",
+    ],
+    linkstatic = 1,
     deps = [
-        "@com_github_google_googletest//:gtest_main",
-        "@com_github_singnet_das_proto//:attention_broker_cc_grpc",
-        "@com_github_grpc_grpc//:grpc++",
-        "@com_github_grpc_grpc//:grpc++_reflection",
         "//attention_broker:attention_broker_server_lib",
         "//utils:utils_lib",
+        "@com_github_google_googletest//:gtest_main",
+        "@com_github_grpc_grpc//:grpc++",
+        "@com_github_grpc_grpc//:grpc++_reflection",
+        "@com_github_singnet_das_proto//:attention_broker_cc_grpc",
         "@mbedcrypto//:lib",
     ],
-    linkstatic = 1
 )
 
 cc_test(
     name = "hebbian_network_updater_test",
-    srcs = ["hebbian_network_updater_test.cc", "test_utils.cc", "test_utils.h"],
     size = "small",
-    copts = [
-      "-Iexternal/gtest/googletest/include",
-      "-Iexternal/gtest/googletest",
+    srcs = [
+        "hebbian_network_updater_test.cc",
+        "test_utils.cc",
+        "test_utils.h",
     ],
+    copts = [
+        "-Iexternal/gtest/googletest/include",
+        "-Iexternal/gtest/googletest",
+    ],
+    linkstatic = 1,
     deps = [
+        "//attention_broker:attention_broker_server_lib",
         "@com_github_google_googletest//:gtest_main",
-        "@com_github_singnet_das_proto//:attention_broker_cc_grpc",
         "@com_github_grpc_grpc//:grpc++",
         "@com_github_grpc_grpc//:grpc++_reflection",
-        "//attention_broker:attention_broker_server_lib",
+        "@com_github_singnet_das_proto//:attention_broker_cc_grpc",
         "@mbedcrypto//:lib",
     ],
-    linkstatic = 1
 )
 
 cc_test(
     name = "stimulus_spreader_test",
-    srcs = ["stimulus_spreader_test.cc", "test_utils.cc", "test_utils.h"],
     size = "small",
-    copts = [
-      "-Iexternal/gtest/googletest/include",
-      "-Iexternal/gtest/googletest",
+    srcs = [
+        "stimulus_spreader_test.cc",
+        "test_utils.cc",
+        "test_utils.h",
     ],
+    copts = [
+        "-Iexternal/gtest/googletest/include",
+        "-Iexternal/gtest/googletest",
+    ],
+    linkstatic = 1,
     deps = [
+        "//attention_broker:attention_broker_server_lib",
         "@com_github_google_googletest//:gtest_main",
-        "@com_github_singnet_das_proto//:attention_broker_cc_grpc",
         "@com_github_grpc_grpc//:grpc++",
         "@com_github_grpc_grpc//:grpc++_reflection",
-        "//attention_broker:attention_broker_server_lib",
+        "@com_github_singnet_das_proto//:attention_broker_cc_grpc",
         "@mbedcrypto//:lib",
     ],
-    linkstatic = 1
 )
 
 cc_test(
     name = "link_template_test",
-    srcs = ["link_template_test.cc", "test_utils.cc", "test_utils.h"],
     size = "small",
-    copts = [
-      "-Iexternal/gtest/googletest/include",
-      "-Iexternal/gtest/googletest",
+    srcs = [
+        "link_template_test.cc",
+        "test_utils.cc",
+        "test_utils.h",
     ],
-    deps = [
-        "@com_github_google_googletest//:gtest_main",
-        "//query_engine:query_engine_lib",
+    copts = [
+        "-Iexternal/gtest/googletest/include",
+        "-Iexternal/gtest/googletest",
     ],
     linkopts = [
         #"-L/opt/3rd-party/mbedcrypto",
@@ -173,20 +197,24 @@ cc_test(
         "-lmongocxx",
         "-lbsoncxx",
     ],
-    linkstatic = 1
+    linkstatic = 1,
+    deps = [
+        "//query_engine:query_engine_lib",
+        "@com_github_google_googletest//:gtest_main",
+    ],
 )
 
 cc_test(
     name = "nested_link_template_test",
-    srcs = ["nested_link_template_test.cc", "test_utils.cc", "test_utils.h"],
     size = "small",
-    copts = [
-      "-Iexternal/gtest/googletest/include",
-      "-Iexternal/gtest/googletest",
+    srcs = [
+        "nested_link_template_test.cc",
+        "test_utils.cc",
+        "test_utils.h",
     ],
-    deps = [
-        "@com_github_google_googletest//:gtest_main",
-        "//query_engine:query_engine_lib",
+    copts = [
+        "-Iexternal/gtest/googletest/include",
+        "-Iexternal/gtest/googletest",
     ],
     linkopts = [
         "-lmbedcrypto",
@@ -196,37 +224,45 @@ cc_test(
         "-lmongocxx",
         "-lbsoncxx",
     ],
-    linkstatic = 1
+    linkstatic = 1,
+    deps = [
+        "//query_engine:query_engine_lib",
+        "@com_github_google_googletest//:gtest_main",
+    ],
 )
 
 cc_test(
     name = "query_answer_test",
-    srcs = ["query_answer_test.cc", "test_utils.cc", "test_utils.h"],
     size = "small",
-    copts = [
-      "-Iexternal/gtest/googletest/include",
-      "-Iexternal/gtest/googletest",
+    srcs = [
+        "query_answer_test.cc",
+        "test_utils.cc",
+        "test_utils.h",
     ],
-    deps = [
-        "@com_github_google_googletest//:gtest_main",
-        "//query_engine:query_engine_lib",
+    copts = [
+        "-Iexternal/gtest/googletest/include",
+        "-Iexternal/gtest/googletest",
     ],
     linkopts = [
     ],
-    linkstatic = 1
+    linkstatic = 1,
+    deps = [
+        "//query_engine:query_engine_lib",
+        "@com_github_google_googletest//:gtest_main",
+    ],
 )
 
 cc_test(
     name = "and_operator_test",
-    srcs = ["and_operator_test.cc", "test_utils.cc", "test_utils.h"],
     size = "medium",
-    copts = [
-      "-Iexternal/gtest/googletest/include",
-      "-Iexternal/gtest/googletest",
+    srcs = [
+        "and_operator_test.cc",
+        "test_utils.cc",
+        "test_utils.h",
     ],
-    deps = [
-        "@com_github_google_googletest//:gtest_main",
-        "//query_engine:query_engine_lib",
+    copts = [
+        "-Iexternal/gtest/googletest/include",
+        "-Iexternal/gtest/googletest",
     ],
     linkopts = [
         #"-L/opt/3rd-party/mbedcrypto",
@@ -237,20 +273,24 @@ cc_test(
         "-lmongocxx",
         "-lbsoncxx",
     ],
-    linkstatic = 1
+    linkstatic = 1,
+    deps = [
+        "//query_engine:query_engine_lib",
+        "@com_github_google_googletest//:gtest_main",
+    ],
 )
 
 cc_test(
     name = "iterator_test",
-    srcs = ["iterator_test.cc", "test_utils.cc", "test_utils.h"],
     size = "small",
-    copts = [
-      "-Iexternal/gtest/googletest/include",
-      "-Iexternal/gtest/googletest",
+    srcs = [
+        "iterator_test.cc",
+        "test_utils.cc",
+        "test_utils.h",
     ],
-    deps = [
-        "@com_github_google_googletest//:gtest_main",
-        "//query_engine:query_engine_lib",
+    copts = [
+        "-Iexternal/gtest/googletest/include",
+        "-Iexternal/gtest/googletest",
     ],
     linkopts = [
         #"-L/opt/3rd-party/mbedcrypto",
@@ -261,20 +301,24 @@ cc_test(
         "-lmongocxx",
         "-lbsoncxx",
     ],
-    linkstatic = 1
+    linkstatic = 1,
+    deps = [
+        "//query_engine:query_engine_lib",
+        "@com_github_google_googletest//:gtest_main",
+    ],
 )
 
 cc_test(
     name = "remote_sink_iterator_test",
-    srcs = ["remote_sink_iterator_test.cc", "test_utils.cc", "test_utils.h"],
     size = "small",
-    copts = [
-      "-Iexternal/gtest/googletest/include",
-      "-Iexternal/gtest/googletest",
+    srcs = [
+        "remote_sink_iterator_test.cc",
+        "test_utils.cc",
+        "test_utils.h",
     ],
-    deps = [
-        "@com_github_google_googletest//:gtest_main",
-        "//query_engine:query_engine_lib",
+    copts = [
+        "-Iexternal/gtest/googletest/include",
+        "-Iexternal/gtest/googletest",
     ],
     linkopts = [
         "-lmbedcrypto",
@@ -284,20 +328,24 @@ cc_test(
         "-lmongocxx",
         "-lbsoncxx",
     ],
-    linkstatic = 1
+    linkstatic = 1,
+    deps = [
+        "//query_engine:query_engine_lib",
+        "@com_github_google_googletest//:gtest_main",
+    ],
 )
 
 cc_test(
     name = "das_node_test",
-    srcs = ["das_node_test.cc", "test_utils.cc", "test_utils.h"],
     size = "small",
-    copts = [
-      "-Iexternal/gtest/googletest/include",
-      "-Iexternal/gtest/googletest",
+    srcs = [
+        "das_node_test.cc",
+        "test_utils.cc",
+        "test_utils.h",
     ],
-    deps = [
-        "@com_github_google_googletest//:gtest_main",
-        "//query_engine:query_engine_lib",
+    copts = [
+        "-Iexternal/gtest/googletest/include",
+        "-Iexternal/gtest/googletest",
     ],
     linkopts = [
         "-lmbedcrypto",
@@ -307,20 +355,84 @@ cc_test(
         "-lmongocxx",
         "-lbsoncxx",
     ],
-    linkstatic = 1
+    linkstatic = 1,
+    deps = [
+        "//query_engine:query_engine_lib",
+        "@com_github_google_googletest//:gtest_main",
+    ],
 )
 
 cc_test(
     name = "query_node_test",
-    srcs = ["query_node_test.cc"],
     size = "small",
+    srcs = ["query_node_test.cc"],
     copts = [
-      "-Iexternal/gtest/googletest/include",
-      "-Iexternal/gtest/googletest",
+        "-Iexternal/gtest/googletest/include",
+        "-Iexternal/gtest/googletest",
     ],
+    linkstatic = 1,
     deps = [
-        "@com_github_google_googletest//:gtest_main",
         "//query_engine:query_engine_lib",
+        "@com_github_google_googletest//:gtest_main",
     ],
-    linkstatic = 1
+)
+
+cc_test(
+    name = "request_queue_test",
+    size = "small",
+    srcs = ["request_queue_test.cc"],
+    copts = [
+        "-Iexternal/gtest/googletest/include",
+        "-Iexternal/gtest/googletest",
+    ],
+    linkstatic = 1,
+    deps = [
+        "//commons:commons_lib",
+        "@com_github_google_googletest//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "leadership_broker_test",
+    size = "small",
+    srcs = ["leadership_broker_test.cc"],
+    copts = [
+        "-Iexternal/gtest/googletest/include",
+        "-Iexternal/gtest/googletest",
+    ],
+    linkstatic = 1,
+    deps = [
+        "//distributed_algorithm_node:distributed_algorithm_node_lib",
+        "@com_github_google_googletest//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "message_broker_test",
+    size = "small",
+    srcs = ["message_broker_test.cc"],
+    copts = [
+        "-Iexternal/gtest/googletest/include",
+        "-Iexternal/gtest/googletest",
+    ],
+    linkstatic = 1,
+    deps = [
+        "//distributed_algorithm_node:distributed_algorithm_node_lib",
+        "@com_github_google_googletest//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "distributed_algorithm_node_test",
+    size = "medium",
+    srcs = ["distributed_algorithm_node_test.cc"],
+    copts = [
+        "-Iexternal/gtest/googletest/include",
+        "-Iexternal/gtest/googletest",
+    ],
+    linkstatic = 1,
+    deps = [
+        "//distributed_algorithm_node:distributed_algorithm_node_lib",
+        "@com_github_google_googletest//:gtest_main",
+    ],
 )
