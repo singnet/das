@@ -11,10 +11,10 @@
 #pragma once
 #include <string>
 #include <vector>
-#include "remote_iterator.h"
-#include "das_server_node.h"
-#include "das_link_creation_node.h"
-#include "das_query_node.h"
+#include "das_node/query/remote_iterator.h"
+#include "das_node/das_server/das_server_node.h"
+#include "das_node/link_creation/das_link_creation_node.h"
+#include "das_node/query/das_query_node.h"
 #include "service.h"
 
 using namespace query_element;

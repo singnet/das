@@ -46,8 +46,9 @@ int main(int argc, char *argv[])
     }
     else
     {
-        auto server = new LinkCreationAgent(config_path);
-        server->run();
+        cout << "Starting server" << endl;
+        // auto server = new LinkCreationAgent(config_path);
+        // server->run();
     }
 
     return 0;

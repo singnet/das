@@ -3,8 +3,8 @@
 #include <string>
 #include <thread>
 #include "DistributedAlgorithmNode.h"
-#include "queue.h"
-#include "star_node.h"
+#include "utils/queue.h"
+#include "das_node/star_node.h"
 
 using namespace std;
 using namespace distributed_algorithm_node;

@@ -5,9 +5,9 @@
 #pragma once
 #include <functional>
 #include <atomic>
-#include "thread_pool.h"
-#include "remote_iterator.h"
-#include "das_server_node.h"
+#include "utils/thread_pool.h"
+#include "das_node/query/remote_iterator.h"
+#include "das_node/das_server/das_server_node.h"
 #include "link.h"
 #include <map>
 #include <set>

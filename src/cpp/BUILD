@@ -60,3 +60,16 @@ cc_binary(
         "@mbedcrypto//:lib",
     ],
 )
+
+
+
+cc_binary(
+    name = "link_creation_server",
+    srcs = [],
+    defines = ["BAZEL_BUILD"],
+    linkstatic = 1,
+    deps = [
+        "//main:link_creation_agent_main_lib",
+    ],
+)
+

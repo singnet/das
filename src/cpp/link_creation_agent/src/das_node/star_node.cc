@@ -2,11 +2,12 @@
 #define _QUERY_NODE_STARNODE_H
 
 #include <string>
-#include "AtomSpaceNode.h"
+#include "DistributedAlgorithmNode.h"
+#include "MessageBroker.h"
 
 using namespace std;
 
-namespace atom_space_node {
+namespace distributed_algorithm_node {
 
 /**
  * Node in a "star" topology with one single server (which knows every other nodes in the network)
@@ -14,7 +15,7 @@ namespace atom_space_node {
  *
  * Use the different constructors to choose from client or server.
  */
-class StarNode : public AtomSpaceNode {
+class StarNode : public DistributedAlgorithmNode {
 
 public:
 
