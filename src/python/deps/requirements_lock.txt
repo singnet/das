@@ -6,13 +6,55 @@
 #
 async-timeout==5.0.1
     # via redis
+beautifulsoup4==4.12.3
+    # via google
+certifi==2024.12.14
+    # via requests
+charset-normalizer==3.4.1
+    # via requests
 dnspython==2.7.0
     # via pymongo
+google==3.0.0
+    # via -r deps/requirements.in
+grpcio==1.69.0
+    # via -r deps/requirements.in
+hyperon-das-atomdb==0.8.10
+    # via -r deps/requirements.in
 hyperon-das-atomdb-cpp==0.0.2
+    # via
+    #   -r deps/requirements.in
+    #   hyperon-das-atomdb
+idna==3.10
+    # via requests
+mongomock==4.3.0
+    # via hyperon-das-atomdb
+packaging==24.2
+    # via mongomock
+protobuf==4.25.5
     # via -r deps/requirements.in
 pymongo==4.5.0
-    # via -r deps/requirements.in
+    # via
+    #   -r deps/requirements.in
+    #   hyperon-das-atomdb
 python-dotenv==1.0.1
-    # via -r deps/requirements.in
+    # via
+    #   -r deps/requirements.in
+    #   hyperon-das-atomdb
+pytz==2024.2
+    # via mongomock
 redis==5.2.1
+    # via
+    #   -r deps/requirements.in
+    #   hyperon-das-atomdb
+requests==2.32.3
     # via -r deps/requirements.in
+sentinels==1.0.0
+    # via mongomock
+soupsieve==2.6
+    # via beautifulsoup4
+urllib3==2.3.0
+    # via requests
+
+# The following packages are considered to be unsafe in a requirements file:
+setuptools==70.3.0
+    # via hyperon-das-atomdb
