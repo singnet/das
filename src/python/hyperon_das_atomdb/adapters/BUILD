@@ -9,19 +9,11 @@ filegroup(
 )
 
 py_library(
-    name = "all_adapters",
+    name = "adapters",
     srcs = [":py_files"],
     deps = [
         ":ram_only",
         ":redis_mongo_db",
-    ],
-)
-
-py_library(
-    name = "__init__",
-    srcs = ["__init__.py"],
-    deps = [
-        ":all_adapters",
     ],
 )
 

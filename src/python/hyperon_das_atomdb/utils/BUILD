@@ -9,6 +9,15 @@ filegroup(
 )
 
 py_library(
+    name = "utils",
+    srcs = [":py_files"],
+    deps = [
+        ":expression_hasher",
+        ":settings",
+    ],
+)
+
+py_library(
     name = "expression_hasher",
     srcs = ["expression_hasher.py"],
     deps = [],
