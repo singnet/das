@@ -24,3 +24,9 @@ publish-semver:
 
 github-runner:
 	@bash $(CURDIR)/scripts/github-runner/main.sh
+
+build-image:
+	cd src && bash -x scripts/docker_image_build.sh
+
+build: build-image
+	cd src && bash -x scripts/build.sh
