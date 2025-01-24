@@ -3,8 +3,8 @@ import subprocess
 from enum import Enum
 from typing import List
 
-redis_port = "15926"
-mongo_port = "15927"
+redis_port = "29000"
+mongo_port = "28000"
 scripts_path = "./tests/integration/scripts"
 devnull = open(os.devnull, "w")
 

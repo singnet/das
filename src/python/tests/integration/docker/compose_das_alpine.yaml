@@ -1,0 +1,12 @@
+services:
+  das-alpine:
+    privileged: true
+    build: ./das_alpine
+    ports:
+      - ${FAAS_PORT}:8080
+    healthcheck:
+      test: ["CMD", "bash", "-c", "curl -s -o /dev/null -w \"%{http_code}\" http://localhost:8080 | grep -q '^4' || exit 1"]
+      interval: 6s
+      timeout: 10s
+      retries: 20
+      start_period: 10s
