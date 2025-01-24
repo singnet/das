@@ -6,4 +6,4 @@ build:
 
 
 run:
-		cd ../ && ./bazel-bin/link_creation_server.runfiles/_main/link_creation_server && cd -
+		cd ../ && ./bazel-bin/link_creation_server.runfiles/_main/link_creation_server ${OPTIONS} && cd -

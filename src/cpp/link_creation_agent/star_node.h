@@ -1,13 +1,14 @@
-#ifndef _QUERY_NODE_STARNODE_H
-#define _QUERY_NODE_STARNODE_H
-
+#pragma once
 #include <string>
+#include <vector>
 #include "DistributedAlgorithmNode.h"
-#include "MessageBroker.h"
+#include <memory>
+#include <iostream>
 
 using namespace std;
+using namespace distributed_algorithm_node;
 
-namespace distributed_algorithm_node {
+namespace atom_space_node {
 
 /**
  * Node in a "star" topology with one single server (which knows every other nodes in the network)
@@ -30,8 +31,9 @@ public:
      * in the network to exchange messages. Defaulted to GRPC.
      */
     StarNode(
-        const string &node_id, 
-        MessageBrokerType messaging_backend = MessageBrokerType::GRPC);
+        const string &node_id,
+        MessageBrokerType messaging_backend = MessageBrokerType::GRPC
+        );
 
     /**
      * Client constructor.
@@ -43,8 +45,9 @@ public:
      */
     StarNode(
         const string &node_id, 
-        const string &server_id, 
-        MessageBrokerType messaging_backend = MessageBrokerType::GRPC);
+        const string &server_id,
+        MessageBrokerType messaging_backend = MessageBrokerType::GRPC
+        );
 
     /**
      * Destructor
@@ -69,12 +72,39 @@ public:
      */
     string cast_leadership_vote();
 
+
+    // /**
+    // //  * Method to handle the message flow.
+    // //  */
+    // virtual shared_ptr<Message> message_factory(string &command, vector<string> &args) {
+    //     return shared_ptr<Message>{};
+    // };
+
+
 protected:
 
     bool is_server;
     string server_id;
 };
 
-} // namespace atom_space_node
+class DummyMessage : public Message {
+public:
+    string command;
+    vector<string> args;
+    DummyMessage(string command, vector<string> &args) {
+        this->command = command;
+        this->args = args;
+    }
 
-#endif // _QUERY_NODE_STARNODE_H
+    void act(shared_ptr<MessageFactory> node) {
+        cout << "DummyMessage::act" << endl;
+        cout << command << endl;
+        for (auto arg : args) {
+            cout << arg << endl;
+        }
+    }
+};
+
+
+
+} // namespace atom_space_node

@@ -5,15 +5,15 @@
 #pragma once
 #include <functional>
 #include <atomic>
-#include "utils/thread_pool.h"
-#include "das_node/query/remote_iterator.h"
-#include "das_node/das_server/das_server_node.h"
+#include "thread_pool.h"
+#include "remote_iterator.h"
+#include "das_server_node.h"
 #include "link.h"
 #include <map>
 #include <set>
 
-using namespace query_element;
 using namespace das;
+using namespace query_node;
 
 namespace link_creation_agent
 {
