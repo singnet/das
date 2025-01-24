@@ -6,18 +6,46 @@ This repository contains items relevant to the DAS project that do not belong in
 
 DAS consists of several components. Below is a list of these components:
 
-| **Component**             | **Description**                                                                 | **Documentation Link**                                             |
-|---------------------------|---------------------------------------------------------------------------------|-------------------------------------------------------------------|
-| **Query Agent**            | A data manipulation API for Distributed Atomspace (DAS). It allows queries with pattern matching capabilities and traversal of the Atomspace hypergraph. | - [Query Agent README](query_agent/python/README.md) |
-| **Attention Broker**       | DAS component that keeps track of atom's importance values attached to different contexts and updates those values according to the queries made by users using context-specific Hebbian networks. | [Attention Broker README](attention_broker/README.md)       |
-| **Link Creation Agent**    | | [Link Creation README](shared/README.md)                           |
-| **Database Wrapper**       |                                                    | [Scripts README](scripts/README.md)                                |
-| **Inference Control**      |  | [Scripts README](scripts/README.md)                                |
-| **Atom DB**                | Source code for hyperon-das-atomdb, a Python library required by hyperon-das to interface with DBMSs and other data storage structures. | [Atom DB README](atom_db/README.md)                                |
-| **DAS Server** | Source code of client/server communication components in the DAS Server FaaS architecture. | [Serverless Functions README](serverless_functions/README.md) <br> [OpenFaaS Templates README](openfaas_templates/README.md) |
-| **DAS MeTTa Parser**       | A simplified MeTTa parser used to feed knowledge bases into DAS.                  | [DAS MeTTa Parser README](das_metta_parser/README.md)              |
-| **DAS Server Toolbox**     | A set of tools to deploy and set up a DAS server.                               | [DAS Server Toolbox README](https://github.com/singnet/das-toolbox)          |
-| **Infrastructure Setup**   | Tools and assets required to provision and set up servers in cloud providers.    | - [Server provisioning in Vultr](infrastructure/vultr/provisioning/README.md) <br> - [Server setup Vultr](infrastructure/vultr/setup/README.md) <br> - [Server provisioning in AWS](infrastructure/aws/provisioning/README.md) <br> - [Server setup AWS](infrastructure/aws/setup/README.md) |                            |
+- **Query Agent**
+  A data manipulation API for Distributed Atomspace (DAS). It allows queries with pattern matching capabilities and traversal of the Atomspace hypergraph.  
+  Documentation: [Query Agent](query_agent/python/README.md)
+
+- **Attention Broker**
+  DAS component that keeps track of atom's importance values attached to different contexts and updates those values according to the queries made by users using context-specific Hebbian networks.  
+  Documentation: [Attention Broker README](attention_broker/README.md)
+
+- **Link Creation Agent**
+  Documentation: [Link Creation README](shared/README.md)
+
+- **Database Wrapper**
+  Documentation: [Scripts README](scripts/README.md)
+
+- **Inference Control**
+  Documentation: [Scripts README](scripts/README.md)
+
+- **Atom DB**
+  Source code for hyperon-das-atomdb, a Python library required by hyperon-das to interface with DBMSs and other data storage structures.  
+  Documentation: [Atom DB README](atom_db/README.md)
+
+- **DAS Server**
+  Source code of client/server communication components in the DAS Server FaaS architecture.  
+  Documentation: [Serverless Functions README](serverless_functions/README.md), [OpenFaaS Templates README](openfaas_templates/README.md)
+
+- **DAS MeTTa Parser**
+  A simplified MeTTa parser used to feed knowledge bases into DAS.  
+  Documentation: [DAS MeTTa Parser README](das_metta_parser/README.md)
+
+- **DAS Server Toolbox**
+  A set of tools to deploy and set up a DAS server.  
+  Documentation: [DAS Server Toolbox README](https://github.com/singnet/das-toolbox)
+
+- **Infrastructure Setup**
+  Tools and assets required to provision and set up servers in cloud providers.  
+  Documentation:  
+  - [Server provisioning in Vultr](infrastructure/vultr/provisioning/README.md)  
+  - [Server setup Vultr](infrastructure/vultr/setup/README.md)  
+  - [Server provisioning in AWS](infrastructure/aws/provisioning/README.md)  
+  - [Server setup AWS](infrastructure/aws/setup/README.md)
 
 
 ## **Getting Started**
@@ -25,7 +53,7 @@ DAS consists of several components. Below is a list of these components:
 ### **1. Cloning the Repository**
 ```bash
 git clone <repo-url>
-cd monorepo
+cd das
 ```
 
 ### **2. Build**
