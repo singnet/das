@@ -1,46 +1,81 @@
 # OpenCog Hyperon - Distributed Atomspace (DAS)
 
-This repository contains items relevant to the DAS project that do not belong in any other project's specific repositories, such as automated deployment scripts, API and high-level documentation, and assets used by other repositories' CI/CD scripts.
+**_ATTENTION:_** _we're currently re-structuring the project repo, documentation etc. So directory structure, documentation files, etc may be outdated or somehow messy._
 
 ## **Components**
 
 DAS consists of several components. Below is a list of these components:
 
 - **Query Agent**
+
   A data manipulation API for Distributed Atomspace (DAS). It allows queries with pattern matching capabilities and traversal of the Atomspace hypergraph.  
-  Documentation: [Query Agent](query_agent/python/README.md)
+
+  Documentation: [Leia mais sobre Query Agent](docs/components/query-agent.md)
 
 - **Attention Broker**
+
   DAS component that keeps track of atom's importance values attached to different contexts and updates those values according to the queries made by users using context-specific Hebbian networks.  
-  Documentation: [Attention Broker README](attention_broker/README.md)
+
+  Documentation: [Leia mais sobre Attention Broker](docs/components/attention-broker.md)
 
 - **Link Creation Agent**
-  Documentation: [Link Creation README](shared/README.md)
+
+  C++ server which perform Pattern Matching queries.
+
+  Link creation engine searches the atom space for patterns and creates new links based on the results. Both the pattern and the layout of the new links to be created are specified by the caller.
+
+  Pattern matching results are not exhaustively used to create new links. DAS query engine return results considering importance values of atoms in each result so link creation engine iterates only through the first N results, which have a greater probability of having the most interesting atoms.
+
+  There are two DAS Nodes. A server, to provide link creation service and a client, used to add atoms to AtomDB.
+
+  Documentation: [Link Creation README](docs/components/link-creation.md)
 
 - **Database Wrapper**
-  Documentation: [Scripts README](scripts/README.md)
+
+  SQL Tables are mapped by an unsupervised algorithm which uses the database scheme obtained from the DBMS to extract table/field names, primary/foreign key definitions etc to create a structure of nodes and links which represents the same information. No assumptions are made on database structure and no preprocessing is performed.
+
+  Basically, all table contents are mapped to basic nodes/links used in logic inference such as InheritanceLink, SchemeNode, ConceptNode, ExecutionLink, etc.
+
+  Documentation: [Leia mais sobre Database Wrapper](docs/components/database-wrapper.md)
 
 - **Inference Control**
-  Documentation: [Scripts README](scripts/README.md)
+
+  C++ server which perform Inference Queries.
+
+  Link creation engine searches the atom space for patterns and creates new links based on the results. Both the pattern and the layout of the new links to be created are specified by the caller.
+
+  Pattern matching results are not exhaustively used to create new links. DAS query engine return results considering importance values of atoms in each result so link creation engine iterates only through the first N results, which have a greater probability of having the most interesting atoms.
+
+  Documentation: [Leia mais sobre Inference Control](docs/components/inference-control.md)
 
 - **Atom DB**
+
   Source code for hyperon-das-atomdb, a Python library required by hyperon-das to interface with DBMSs and other data storage structures.  
-  Documentation: [Atom DB README](atom_db/README.md)
+
+  Documentation: [Leia mais sobre AtomDB](docs/components/atomdb.md)
 
 - **DAS Server**
-  Source code of client/server communication components in the DAS Server FaaS architecture.  
-  Documentation: [Serverless Functions README](serverless_functions/README.md), [OpenFaaS Templates README](openfaas_templates/README.md)
+
+  A server listening on a port. Essentially, this is what we currently call DAS Server which is OpenFaas running das-query-engine function (basically our DistributedAtomSpace class python class).
+
+  Documentation: [Leia mais sobre Serverless Functions](https://github.com/singnet/das-serverless-functions)
 
 - **DAS MeTTa Parser**
+
   A simplified MeTTa parser used to feed knowledge bases into DAS.  
-  Documentation: [DAS MeTTa Parser README](das_metta_parser/README.md)
+
+  Documentation: [Leia mais sobre DAS MeTTa Parser](https://github.com/singnet/das-metta-parser)
 
 - **DAS Server Toolbox**
-  A set of tools to deploy and set up a DAS server.  
-  Documentation: [DAS Server Toolbox README](https://github.com/singnet/das-toolbox)
+
+  This CLI provides a set of commands to manage containerized services, OpenFaaS functions, and Metta operations. It includes functionalities to start and stop db services, manage OpenFaaS functions, load Metta files, and validate Metta file syntax.
+
+  Documentation: [Leia mais sobre DAS Server Toolbox](https://github.com/singnet/das-toolbox)
 
 - **Infrastructure Setup**
+
   Tools and assets required to provision and set up servers in cloud providers.  
+
   Documentation:  
   - [Server provisioning in Vultr](infrastructure/vultr/provisioning/README.md)  
   - [Server setup Vultr](infrastructure/vultr/setup/README.md)  
