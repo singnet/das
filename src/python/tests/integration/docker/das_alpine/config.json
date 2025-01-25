@@ -1,0 +1,41 @@
+{
+  "redis": {
+    "port": 6379,
+    "container_name": "test-das-redis",
+    "cluster": false,
+    "nodes": [
+      {
+        "context": "default",
+        "ip": "localhost",
+        "username": "root"
+      }
+    ]
+  },
+  "mongodb": {
+    "port": 27017,
+    "container_name": "test-das-mongodb",
+    "username": "root",
+    "password": "root",
+    "cluster": false,
+    "nodes": [
+      {
+        "context": "default",
+        "ip": "localhost",
+        "username": "root"
+      }
+    ],
+    "cluster_secret_key": "4tTDEvVmZdjKLqz"
+  },
+  "loader": {
+    "container_name": "das-cli-loader"
+  },
+  "openfaas": {
+    "container_name": "das-cli-openfaas-8080",
+    "version": "latest",
+    "function": "query-engine"
+  },
+  "jupyter_notebook": {
+    "port": 8888,
+    "container_name": "das-cli-jupyter-notebook-8888"
+  }
+}

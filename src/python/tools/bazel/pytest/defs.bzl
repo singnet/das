@@ -8,6 +8,7 @@ def py_test(name, srcs, deps=[], args=[], **kwargs):
         srcs = srcs + ["//tools/bazel/pytest:main.py"],
         deps = deps + [requirement("pytest")],
         args = args + ["--import-mode=importlib"] + ["$(location :%s)" % s for s in srcs],
+        legacy_create_init = False,
         **kwargs,
     )
 

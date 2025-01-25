@@ -5,25 +5,25 @@ load("@rules_python//python:packaging.bzl", "py_wheel")
 package(default_visibility = ["//visibility:public"])
 
 filegroup(
-    name = "py_files",
+    name = "py_files",  # python files in this directory
     srcs = glob(["*.py"]),
+)
+
+filegroup(
+    name = "py_all_files",  # all python files in the project, including subdirectories
+    srcs = glob(["**/*.py"]),
 )
 
 py_library(
     name = "hyperon_das_atomdb",
-    srcs = [
-        ":py_files",
-        "//hyperon_das_atomdb/adapters:py_files",
-        "//hyperon_das_atomdb/utils:py_files",
-    ],
+    srcs = [":py_all_files"],
     deps = [
         ":database",
         ":exceptions",
         ":index",
         ":logger",
-        "//hyperon_das_atomdb/adapters:all_adapters",
-        "//hyperon_das_atomdb/utils:expression_hasher",
-        "//hyperon_das_atomdb/utils:settings",
+        "//hyperon_das_atomdb/adapters",
+        "//hyperon_das_atomdb/utils",
         requirement("hyperon_das_atomdb_cpp"),
     ],
 )

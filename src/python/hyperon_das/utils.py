@@ -179,9 +179,6 @@ def check_server_connection(url: str) -> Tuple[int, str]:
     logger().debug(f"Connecting to remote DAS {url}")
 
     try:
-        das_version = get_package_version('hyperon_das')
-        atom_db_version = get_package_version('hyperon_das_atomdb')
-
         with sessions.Session() as session:
             payload = {
                 "action": "handshake",
@@ -196,32 +193,7 @@ def check_server_connection(url: str) -> Tuple[int, str]:
 
         response.raise_for_status()
 
-        remote_data = deserialize(response.content)
-        remote_das_version = remote_data.get("das", {}).get("version")
-        remote_atomdb_version = remote_data.get("atom_db", {}).get("version")
-
-        if not remote_das_version or not remote_atomdb_version:
-            raise ValueError("Invalid response from server, missing version info.")
-
-        is_atomdb_compatible = compare_minor_versions(
-            remote_atomdb_version,
-            atom_db_version,
-        )
-        is_das_compatible = compare_minor_versions(
-            remote_das_version,
-            das_version,
-        )
-
-        if not is_atomdb_compatible or not is_das_compatible:
-            local_versions = f"hyperon-das: {das_version}, hypern-das-atomdb: {atom_db_version}"
-            remote_versions = (
-                f"hyperon-das: {remote_das_version}, hyperon-das-atomdb: {remote_atomdb_version}"
-            )
-            error_message = (
-                f"Version mismatch. Local: {local_versions}. " f"Remote: {remote_versions}."
-            )
-            logger().error(error_message)
-            raise Exception(error_message)
+        check_versions(response.content)
 
         return response.status_code, "Successful connection"
 
@@ -232,8 +204,59 @@ def check_server_connection(url: str) -> Tuple[int, str]:
         logger().error(f"Connection error: {str(e)}")
         return 400, f"Connection failed: {str(e)}"
     except Exception as e:
-        logger().error(f"Unexpected error: {str(e)}")
-        return 500, str(e)
+        msg = f"Unexpected error: {str(e)}"
+        logger().error(msg)
+        return 500, str(msg)
+
+
+def check_versions(response_body: bytes) -> None:
+    """
+    Checks the versions of local packages and the ones used by the remote server, and compare them
+    to ensure they are using compatible versions.
+
+    Parameters:
+        response_body (bytes): response body from remote server containing the packages versions.
+
+    Returns:
+        None
+
+    Raises:
+        ValueError: If the content is not in the expected format or
+                    if any dependency version does not meet the criteria.
+    """
+    remote_data = deserialize(response_body)
+    remote_das_version = remote_data.get("das", {}).get("version")
+    remote_atomdb_version = remote_data.get("atom_db", {}).get("version")
+
+    if not remote_das_version or not remote_atomdb_version:
+        raise ValueError("Invalid response from server, missing version info.")
+        
+    # local packages versions
+    das_version = get_package_version('hyperon_das')
+    atom_db_version = get_package_version('hyperon_das_atomdb')
+
+    if not das_version or not atom_db_version:
+        raise ValueError("Missing version info in the local packages.")
+
+    is_atomdb_compatible = compare_minor_versions(
+            remote_atomdb_version,
+            atom_db_version,
+        )
+    is_das_compatible = compare_minor_versions(
+            remote_das_version,
+            das_version,
+        )
+
+    if not is_atomdb_compatible or not is_das_compatible:
+        local_versions = f"hyperon-das: {das_version}, hyperon-das-atomdb: {atom_db_version}"
+        remote_versions = (
+                f"hyperon-das: {remote_das_version}, hyperon-das-atomdb: {remote_atomdb_version}"
+            )
+        error_message = (
+                f"Version mismatch. Local: {local_versions}. " f"Remote: {remote_versions}."
+            )
+        logger().error(error_message)
+        raise Exception(error_message)
 
 
 def get_version_components(version_string: str) -> Union[Tuple[int, int, int], None]:

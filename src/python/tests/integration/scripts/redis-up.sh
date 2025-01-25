@@ -10,7 +10,6 @@ else
 fi
 
 CONFIG_FILE="/tmp/redis_$PORT.conf"
-cp ./redis.conf $CONFIG_FILE
 
 cat <<EOM >$CONFIG_FILE
 cluster-config-file redis-cluster-state.conf

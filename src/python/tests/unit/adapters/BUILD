@@ -10,7 +10,7 @@ py_test(
         "//hyperon_das_atomdb",
         "//hyperon_das_atomdb:database",
         "//hyperon_das_atomdb:exceptions",
-        "//hyperon_das_atomdb/adapters:__init__",
+        "//hyperon_das_atomdb/adapters",
         "//hyperon_das_atomdb/utils:expression_hasher",
         "//tests:helpers",
         "//tests/unit:fixtures",
