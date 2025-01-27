@@ -11,14 +11,17 @@
 #pragma once
 #include <string>
 #include <vector>
-#include "remote_iterator.h"
+// #include "remote_iterator.h"
 #include "das_server_node.h"
 #include "das_link_creation_node.h"
-#include "das_query_node.h"
+#include "RemoteIterator.h"
+#include "DASNode.h"
 #include "service.h"
+#include <thread>
 
-using namespace query_element;
+using namespace query_node;
 using namespace std;
+using namespace query_element;
 
 namespace link_creation_agent
 {
@@ -37,9 +40,8 @@ namespace link_creation_agent
     {
 
     public:
-        LinkCreationAgent(
-            string config_path);
-        ~LinkCreationAgent() {};
+        LinkCreationAgent(string config_path);
+        ~LinkCreationAgent();
 
         /**
          * @brief Retrieve a request from DAS Node server or get a request from the requests buffer,
@@ -76,6 +78,8 @@ namespace link_creation_agent
          */
         void handleRequest(string request);
 
+        void stop();
+
         // Attributes loaded from config file
         string config_path; // Path to the configuration file
         int default_interval; // Default interval to send requests
@@ -87,10 +91,12 @@ namespace link_creation_agent
 
 
         // Other attributes
-        LinkCreationService service;
-        vector<LinkCreationAgentRequest> request_buffer;
-        query_node::QueryNode query_node_client;
-        lca::LinkCreationNode link_creation_server;
-        das::ServerNode das_client;
+        LinkCreationService *service;
+        vector<LinkCreationAgentRequest> *request_buffer;
+        query_engine::DASNode *query_node_client;
+        LinkCreationNode *link_creation_node_server;
+        das::ServerNode *das_client;
+        thread *agent_thread;
+        int loop_interval = 1;
     };
 } // namespace link_creation_agent

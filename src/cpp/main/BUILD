@@ -47,3 +47,13 @@ cc_library(
         "//query_engine:query_engine_lib",
     ],
 )
+
+
+cc_library(
+    name = "link_creation_agent_main_lib",
+    srcs = ["link_creation_agent_main.cc"],
+    deps = [
+        "//link_creation_agent:link_creation_agent_lib",
+    ],
+)
+

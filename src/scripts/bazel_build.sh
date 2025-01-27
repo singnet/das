@@ -5,6 +5,8 @@ BAZELISK_CMD=/opt/bazel/bazelisk
 BAZELISK_BUILD_CMD="${BAZELISK_CMD} build --jobs ${JOBS} --enable_bzlmod"
 
 cd $WORKSPACE_DIR \
+&& $BAZELISK_BUILD_CMD //:link_creation_server \
+&& mv bazel-bin/link_creation_server $BIN_DIR \
 && $BAZELISK_BUILD_CMD //:link_creation_engine \
 && mv bazel-bin/link_creation_engine $BIN_DIR \
 && $BAZELISK_BUILD_CMD //:word_query \
@@ -14,4 +16,4 @@ cd $WORKSPACE_DIR \
 && $BAZELISK_BUILD_CMD //:query_broker \
 && mv bazel-bin/query_broker $BIN_DIR \
 && $BAZELISK_BUILD_CMD //:query \
-&& mv bazel-bin/query $BIN_DIR
+&& mv bazel-bin/query $BIN_DIR 

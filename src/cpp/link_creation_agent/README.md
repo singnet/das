@@ -37,5 +37,8 @@ TBD
 
 ## How to build
 
+```
+make build
+```
 
 ## Development

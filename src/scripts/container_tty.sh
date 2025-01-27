@@ -2,12 +2,18 @@
 
 CONTAINER_NAME="das-attention-broker-bash"
 
-docker run \
+PARAMS="bash"
+
+if [ $# -gt 0 ]; then
+    PARAMS=$@
+fi
+
+docker run --rm \
     --net="host" \
     --name=$CONTAINER_NAME \
     --volume /tmp:/tmp \
     --volume .:/opt/das-attention-broker \
     -it das-attention-broker-builder \
-    bash
+    $PARAMS
 
 sleep 1

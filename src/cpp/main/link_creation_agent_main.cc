@@ -7,6 +7,13 @@
 using namespace link_creation_agent;
 using namespace std;
 
+void ctrl_c_handler(int) {
+    std::cout << "Stopping server..." << std::endl;
+    std::cout << "Done." << std::endl;
+    exit(0);
+}
+
+
 
 /**
  * @brief Main function
@@ -31,14 +38,18 @@ int main(int argc, char *argv[])
     MAX_RESULTS and REPEAT are optional, the default value for MAX_RESULTS is 1000 and for REPEAT is 1
     )"""";
     
-    if ((argc < 5) || (strcmp(argv[1], "client") != 0 && strcmp(argv[1], "server") != 0))
+    if ((argc < 4) )
     {
         cerr << help << endl;
+        for (auto arg = 0; arg < argc; arg++)
+        {
+            cerr << "arg[" << arg << "] = " << argv[arg] << endl;
+        }
         exit(1);
     }
-
-    string type = argv[1];
-    string config_path = argv[2];
+    signal(SIGINT, &ctrl_c_handler);
+    string type = argv[2];
+    string config_path = argv[4];
     
     if (type == "client")
     {
@@ -46,6 +57,7 @@ int main(int argc, char *argv[])
     }
     else
     {
+        cout << "Starting server" << endl;
         auto server = new LinkCreationAgent(config_path);
         server->run();
     }
