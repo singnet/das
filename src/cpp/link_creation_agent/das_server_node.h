@@ -3,10 +3,10 @@
  */
 #pragma once
 #include "DistributedAlgorithmNode.h"
-#include "star_node.h"
+#include "StarNode.h"
 #include "queue.h"
 
-using namespace atom_space_node;
+using namespace distributed_algorithm_node;
 
 namespace das {
     class ServerNode : public StarNode{

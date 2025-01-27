@@ -1,4 +1,5 @@
 #include "agent.h"
+#include "RemoteIterator.h"
 
 #include <fstream>
 #include <sstream>
@@ -6,11 +7,14 @@
 using namespace std;
 using namespace link_creation_agent;
 using namespace query_node;
+using namespace query_element;
 
 LinkCreationAgent::LinkCreationAgent(string config_path) {
     this->config_path = config_path;
     load_config();
     link_creation_node_server = new LinkCreationNode(link_creation_server_id);
+    query_node_client = new DASNode(query_node_client_id, query_node_server_id);
+
     this->agent_thread = new thread(&LinkCreationAgent::run, this);
 }
 
@@ -34,6 +38,7 @@ void LinkCreationAgent::run() {
             auto request = link_creation_node_server->pop_request();
             cout << "Request: " << request << endl;
         }
+        
         cout << "Running" << endl;
     }
 }

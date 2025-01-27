@@ -12,9 +12,6 @@ private:
     std::condition_variable m_cond;
 
 public:
-    // void enqueue(T item);
-    // T dequeue();
-    // bool empty();
     void enqueue(T item)
     {
 

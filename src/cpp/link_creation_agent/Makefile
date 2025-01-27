@@ -2,8 +2,7 @@ build_docs:
 		python doc/DaC/das_link_creation_diagram.py
 
 build:
-		cd ../ && bazel build //:link_creation_server --incompatible_disallow_empty_glob=false && cd -
-
+		cd ../../ && bash scripts/build.sh && cd -
 
 run:
-		cd ../ && ./bazel-bin/link_creation_server.runfiles/_main/link_creation_server ${OPTIONS} && cd -
+		cd ../../ && bash scripts/container_tty.sh ./bin/link_creation_server ${OPTIONS}  && cd -

@@ -11,15 +11,17 @@
 #pragma once
 #include <string>
 #include <vector>
-#include "remote_iterator.h"
+// #include "remote_iterator.h"
 #include "das_server_node.h"
 #include "das_link_creation_node.h"
-#include "das_query_node_client.h"
+#include "RemoteIterator.h"
+#include "DASNode.h"
 #include "service.h"
 #include <thread>
 
 using namespace query_node;
 using namespace std;
+using namespace query_element;
 
 namespace link_creation_agent
 {
@@ -91,7 +93,7 @@ namespace link_creation_agent
         // Other attributes
         LinkCreationService *service;
         vector<LinkCreationAgentRequest> *request_buffer;
-        query_node::QueryNode *query_node_client;
+        query_engine::DASNode *query_node_client;
         LinkCreationNode *link_creation_node_server;
         das::ServerNode *das_client;
         thread *agent_thread;

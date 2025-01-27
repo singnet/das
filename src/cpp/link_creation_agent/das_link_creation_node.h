@@ -3,8 +3,8 @@
  */
 #pragma once
 #include "queue.h"
-#include "star_node.h"
-using namespace atom_space_node;
+#include "StarNode.h"
+using namespace distributed_algorithm_node;
 
 namespace link_creation_agent {
 class LinkCreationNode : public StarNode {
@@ -49,5 +49,24 @@ class LinkCreationRequest : public Message {
     vector<string> args;
     LinkCreationRequest(string command, vector<string>& args);
     void act(shared_ptr<MessageFactory> node);
+};
+
+
+class DummyMessage : public Message {
+public:
+    string command;
+    vector<string> args;
+    DummyMessage(string command, vector<string> &args) {
+        this->command = command;
+        this->args = args;
+    }
+
+    void act(shared_ptr<MessageFactory> node) {
+        cout << "DummyMessage::act" << endl;
+        cout << command << endl;
+        for (auto arg : args) {
+            cout << arg << endl;
+        }
+    }
 };
 }  // namespace link_creation_agent

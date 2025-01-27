@@ -7,5 +7,6 @@ cc_library(
     includes = ["."],
     deps = [
         "//distributed_algorithm_node:distributed_algorithm_node_lib",
+        "//query_engine:query_engine_lib",
     ],
 )

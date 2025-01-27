@@ -3,7 +3,6 @@
 using namespace link_creation_agent;
 using namespace std;
 using namespace distributed_algorithm_node;
-using namespace atom_space_node;
 
 LinkCreationNode::LinkCreationNode(const string &node_id) : StarNode(node_id)
 {
