@@ -10,13 +10,13 @@ DAS consists of several components. Below is a list of these components:
 
   A data manipulation API for Distributed Atomspace (DAS). It allows queries with pattern matching capabilities and traversal of the Atomspace hypergraph.  
 
-  Documentation: [Leia mais sobre Query Agent](docs/components/query-agent.md)
+  Documentation: [Read more about Query Agent](docs/components/query-agent.md)
 
 - **Attention Broker**
 
   DAS component that keeps track of atom's importance values attached to different contexts and updates those values according to the queries made by users using context-specific Hebbian networks.  
 
-  Documentation: [Leia mais sobre Attention Broker](docs/components/attention-broker.md)
+  Documentation: [Read more about Attention Broker](docs/components/attention-broker.md)
 
 - **Link Creation Agent**
 
@@ -36,7 +36,7 @@ DAS consists of several components. Below is a list of these components:
 
   Basically, all table contents are mapped to basic nodes/links used in logic inference such as InheritanceLink, SchemeNode, ConceptNode, ExecutionLink, etc.
 
-  Documentation: [Leia mais sobre Database Wrapper](docs/components/database-wrapper.md)
+  Documentation: [Read more about Database Wrapper](docs/components/database-wrapper.md)
 
 - **Inference Control**
 
@@ -46,31 +46,31 @@ DAS consists of several components. Below is a list of these components:
 
   Pattern matching results are not exhaustively used to create new links. DAS query engine return results considering importance values of atoms in each result so link creation engine iterates only through the first N results, which have a greater probability of having the most interesting atoms.
 
-  Documentation: [Leia mais sobre Inference Control](docs/components/inference-control.md)
+  Documentation: [Read more about Inference Control](docs/components/inference-control.md)
 
 - **Atom DB**
 
   Source code for hyperon-das-atomdb, a Python library required by hyperon-das to interface with DBMSs and other data storage structures.  
 
-  Documentation: [Leia mais sobre AtomDB](docs/components/atomdb.md)
+  Documentation: [Read more about AtomDB](docs/components/atomdb.md)
 
 - **DAS Server**
 
   A server listening on a port. Essentially, this is what we currently call DAS Server which is OpenFaas running das-query-engine function (basically our DistributedAtomSpace class python class).
 
-  Documentation: [Leia mais sobre Serverless Functions](https://github.com/singnet/das-serverless-functions)
+  Documentation: [Read more about Serverless Functions](https://github.com/singnet/das-serverless-functions)
 
 - **DAS MeTTa Parser**
 
   A simplified MeTTa parser used to feed knowledge bases into DAS.  
 
-  Documentation: [Leia mais sobre DAS MeTTa Parser](https://github.com/singnet/das-metta-parser)
+  Documentation: [Read more about DAS MeTTa Parser](https://github.com/singnet/das-metta-parser)
 
 - **DAS Server Toolbox**
 
   This CLI provides a set of commands to manage containerized services, OpenFaaS functions, and Metta operations. It includes functionalities to start and stop db services, manage OpenFaaS functions, load Metta files, and validate Metta file syntax.
 
-  Documentation: [Leia mais sobre DAS Server Toolbox](https://github.com/singnet/das-toolbox)
+  Documentation: [Read more about DAS Server Toolbox](https://github.com/singnet/das-toolbox)
 
 - **Infrastructure Setup**
 
