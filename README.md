@@ -33,7 +33,7 @@ DAS consists of several components. Below is a list of these components:
 
   Basically, all table contents are mapped to basic nodes/links used in logic inference such as InheritanceLink, SchemeNode, ConceptNode, ExecutionLink, etc.
 
-  Documentation: [Read more](docs/components/database-wrapper.md)
+  Documentation: [Read more](https://github.com/singnet/das-database-adapter)
 
 - **Inference Control**
 
