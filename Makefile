@@ -30,3 +30,6 @@ build-image:
 
 build: build-image
 	cd src && bash -x scripts/build.sh
+
+tests: build-image
+	cd src && bash -x scripts/unit_tests.sh

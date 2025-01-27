@@ -26,9 +26,6 @@ DAS consists of several components. Below is a list of these components:
 
   Pattern matching results are not exhaustively used to create new links. DAS query engine return results considering importance values of atoms in each result so link creation engine iterates only through the first N results, which have a greater probability of having the most interesting atoms.
 
-  There are two DAS Nodes. A server, to provide link creation service and a client, used to add atoms to AtomDB.
-
-  Documentation: [Read more](docs/components/link-creation.md)
 
 - **Database Wrapper**
 
@@ -46,7 +43,6 @@ DAS consists of several components. Below is a list of these components:
 
   Pattern matching results are not exhaustively used to create new links. DAS query engine return results considering importance values of atoms in each result so link creation engine iterates only through the first N results, which have a greater probability of having the most interesting atoms.
 
-  Documentation: [Read more](docs/components/inference-control.md)
 
 - **Atom DB**
 
@@ -99,7 +95,17 @@ To build the agents, run the command:
 make build
 ```
 
-This will generate the binaries for all components in `das/src/bin`.
+This process will generate the binaries for all components in the `das/src/bin` directory. For detailed information about each component, please refer to the documentation provided for each component in the [**Components**](#components) section above. 
+
+## **Running the Tests**  
+
+To execute the tests, simply run the following command from the project root:  
+
+```bash
+make tests
+```  
+
+This will run all the tests for the project.  
 
 ## **Documentation**
 
@@ -109,7 +115,7 @@ This will generate the binaries for all components in `das/src/bin`.
 * [DAS Toolbox User's Guide](https://github.com/singnet/das-toolbox) - A guide with detailed instructions to use the DAS Server Toolbox.
 * [Release Notes](docs/release-notes.md) - Release notes for all DAS components.
 
-## Project Management
+## **Project Management**
 
 * [Public board](https://github.com/orgs/singnet/projects/7) - GitHub project board used to track bug reports, feature requests, and major new features planning. Use this board to report bugs or request new features.
 * [Development board](https://github.com/orgs/singnet/projects/6/views/1) - Used internally by the DAS Team to track issues and tasks.
