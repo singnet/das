@@ -4,10 +4,9 @@ Persistence layer for Distributed AtomSpace
 
 ## Installation
 
-This package requires:
-[python](https://www.python.org/) >= 3.10 to run.
+> Before you start, make sure you have [Python](https://www.python.org/) >= 3.10 and [Pip](https://pypi.org/project/pip/) installed on your system.
 
-#### This package is deployed on [Pypi](https://pypi.org/project/hyperon-das/). If you want, you can install using the pip command
+#### This package is deployed on [Pypi](https://pypi.org/project/hyperon-das-atomdb/). If you want, you can install using the pip command
 
 ```
 pip install hyperon-das-atomdb
@@ -21,7 +20,7 @@ You can also build the package locally by running the following command from the
 make build
 ```
 
-This will generate the binaries for all components in the `das/src/bin` directory, including the wheel for the atomdb.
+This will generate the binaries for all components in the `das/src/bin` directory, including the wheel for the hyperon-das-atomdb.
 
 Optionally, you can activate a virtual environment using `venv` or any other tool to create a Python virtual environment:
 
