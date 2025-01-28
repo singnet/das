@@ -55,6 +55,11 @@ class LinkCreationAgent {
      * send to LCAService to process the iterator and create links.
      */
     void run();
+    /**
+     * @brief Create the create link request.
+     * @param request Request to be handled
+     */
+    static LinkCreationAgentRequest* create_request(vector<string> request);
 
    private:
     /**
@@ -76,11 +81,7 @@ class LinkCreationAgent {
      * @brief Load all requests that have the infinite value set as true from the disk or DB.
      */
     void load_buffer();
-    /**
-     * @brief Handle the create link request.
-     * @param request Request to be handled
-     */
-    LinkCreationAgentRequest* handle_request(vector<string> request);
+
 
     /**
      * @brief Stop the agent

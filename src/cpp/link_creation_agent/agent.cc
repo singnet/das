@@ -46,7 +46,8 @@ void LinkCreationAgent::run() {
         bool is_from_buffer = false;
         if (!link_creation_node_server->is_query_empty()) {
             vector<string> request = link_creation_node_server->pop_request();
-            lca_request = handle_request(request);
+            lca_request = create_request(request);
+            lca_request->current_interval = default_interval;
             if (lca_request != NULL && (lca_request->infinite || lca_request->repeat > 0)) {
                 request_buffer.push_back(*lca_request);
             }
@@ -148,7 +149,7 @@ void LinkCreationAgent::load_buffer() {
     file.close();
 }
 
-LinkCreationAgentRequest* LinkCreationAgent::handle_request(vector<string> request) {
+LinkCreationAgentRequest* LinkCreationAgent::create_request(vector<string> request) {
     try {
         LinkCreationAgentRequest* lca_request = new LinkCreationAgentRequest();
         int cursor = 0;
@@ -176,7 +177,6 @@ LinkCreationAgentRequest* LinkCreationAgent::handle_request(vector<string> reque
             }
         }
         lca_request->infinite = (lca_request->repeat == -1);
-        lca_request->current_interval = default_interval;
 
         return lca_request;
     } catch (exception& e) {

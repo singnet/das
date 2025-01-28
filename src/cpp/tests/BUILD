@@ -436,3 +436,18 @@ cc_test(
         "@com_github_google_googletest//:gtest_main",
     ],
 )
+
+cc_test(
+    name = "link_creation_agent_test",
+    size = "medium",
+    srcs = ["link_creation_agent_test.cc"],
+    copts = [
+        "-Iexternal/gtest/googletest/include",
+        "-Iexternal/gtest/googletest",
+    ],
+    linkstatic = 1,
+    deps = [
+        "//link_creation_agent:link_creation_agent_lib",
+        "@com_github_google_googletest//:gtest_main",
+    ],
+)
