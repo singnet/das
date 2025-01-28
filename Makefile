@@ -24,3 +24,21 @@ publish-semver:
 
 github-runner:
 	@bash $(CURDIR)/scripts/github-runner/main.sh
+
+build-image:
+	cd src && bash -x scripts/docker_image_build.sh
+
+build: build-image
+	cd src && bash -x scripts/build.sh
+
+tests: build-image
+	cd src && bash -x scripts/unit_tests.sh
+
+run-query-agent:
+	cd src && bash -x scripts/run.sh query_broker
+
+run-attention-broker:
+	cd src && bash -x scripts/run.sh attention_broker_service 37007
+
+run-link-creation-agent:
+	cd src && bash -x scripts/run.sh link_creation_server
