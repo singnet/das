@@ -1,8 +1,9 @@
 #include "agent.h"
-#include "RemoteIterator.h"
 
 #include <fstream>
 #include <sstream>
+
+#include "RemoteIterator.h"
 
 using namespace std;
 using namespace link_creation_agent;
@@ -14,6 +15,8 @@ LinkCreationAgent::LinkCreationAgent(string config_path) {
     load_config();
     link_creation_node_server = new LinkCreationNode(link_creation_server_id);
     query_node_client = new DASNode(query_node_client_id, query_node_server_id);
+    service = new LinkCreationService(thread_count);
+    das_client = new ServerNode(das_client_id, query_node_server_id);
 
     this->agent_thread = new thread(&LinkCreationAgent::run, this);
 }
@@ -21,10 +24,16 @@ LinkCreationAgent::LinkCreationAgent(string config_path) {
 LinkCreationAgent::~LinkCreationAgent() {
     stop();
     delete link_creation_node_server;
+    delete query_node_client;
+    delete service;
+    delete das_client;
 }
 
 void LinkCreationAgent::stop() {
+    save_buffer();
     link_creation_node_server->graceful_shutdown();
+    query_node_client->graceful_shutdown();
+    das_client->graceful_shutdown();
     if (agent_thread != NULL && agent_thread->joinable()) {
         agent_thread->join();
         agent_thread = NULL;
@@ -32,20 +41,65 @@ void LinkCreationAgent::stop() {
 }
 
 void LinkCreationAgent::run() {
+    int current_buffer_position = 0;
     while (true) {
-        this_thread::sleep_for(chrono::seconds(loop_interval));
+        LinkCreationAgentRequest* lca_request = NULL;
         if (!link_creation_node_server->is_query_empty()) {
-            auto request = link_creation_node_server->pop_request();
-            cout << "Request: " << request << endl;
+            vector<string> request = link_creation_node_server->pop_request();
+            lca_request = handle_request(request);
+            if (lca_request != NULL && (lca_request->infinite || lca_request->repeat > 0)) {
+                request_buffer.push_back(*lca_request);
+            }
+        } else {
+            if (!request_buffer.empty()) {
+                current_buffer_position = current_buffer_position % request_buffer.size();
+                lca_request = &request_buffer[current_buffer_position];
+                current_buffer_position++;
+            }
         }
-        
-        cout << "Running" << endl;
+
+        if (lca_request == NULL) {
+            this_thread::sleep_for(chrono::seconds(loop_interval));
+            continue;
+        }
+
+        if (lca_request->last_execution == 0 ||
+            lca_request->last_execution + lca_request->current_interval < time(0)) {
+            shared_ptr<RemoteIterator> iterator =
+                query(lca_request->query, lca_request->context, lca_request->update_attention_broker);
+            // cout << "Request query: " << lca_request->query[0] << endl;
+            // cout << "Request link_template: " << lca_request->link_template[0] << endl;
+            // cout << "Request max_results: " << lca_request->max_results << endl;
+            // cout << "Request repeat: " << lca_request->repeat << endl;
+            // cout << "Request current_interval: " << lca_request->current_interval << endl;
+            // cout << "Request last_execution: " << lca_request->last_execution << endl;
+
+            service->process_request(iterator, das_client, lca_request->link_template);
+
+            if (lca_request->infinite || lca_request->repeat > 0) {
+                lca_request->last_execution = time(0);
+                lca_request->current_interval = (lca_request->current_interval * 2) % 86400; // Add exponential backoff, resets after 24 hours
+                if (lca_request->repeat > 1) {
+                    lca_request->repeat--;
+                } else {
+                    // TODO check for memory leaks here
+                    request_buffer.erase(request_buffer.begin() + current_buffer_position - 1);
+                }
+            } else {
+                delete lca_request;
+            }
+        }
     }
 }
 
 void LinkCreationAgent::clean_requests() {}
 
-shared_ptr<RemoteIterator> LinkCreationAgent::query() { return NULL; }
+shared_ptr<RemoteIterator> LinkCreationAgent::query(vector<string>& query_tokens,
+                                                    string context,
+                                                    bool update_attention_broker) {
+    return shared_ptr<RemoteIterator>(
+        query_node_client->pattern_matcher_query(query_tokens, context, update_attention_broker));
+}
 
 void LinkCreationAgent::load_config() {
     ifstream file(config_path);
@@ -70,14 +124,67 @@ void LinkCreationAgent::load_config() {
                     this->link_creation_server_id = value;
                 else if (key == "das_client_id")
                     this->das_client_id = value;
+                else if (key == "requests_buffer_file")
+                    this->requests_buffer_file = value;
+                else if (key == "context")
+                    this->context = value;
             }
         }
     }
     file.close();
 }
 
-void LinkCreationAgent::save_buffer() {}
+void LinkCreationAgent::save_buffer() {
+    ofstream file(requests_buffer_file, ios::binary);
+    for (LinkCreationAgentRequest request : request_buffer) {
+        file.write((char*) &request, sizeof(request));
+    }
+    file.close();
+}
 
-void LinkCreationAgent::load_buffer() {}
+void LinkCreationAgent::load_buffer() {
+    ifstream file(requests_buffer_file, ios::binary);
+    while (file) {
+        LinkCreationAgentRequest request;
+        file.read((char*) &request, sizeof(request));
+        request_buffer.push_back(request);
+    }
+    file.close();
+}
 
-void LinkCreationAgent::handleRequest(string request) {}
+LinkCreationAgentRequest* LinkCreationAgent::handle_request(vector<string> request) {
+    try {
+        LinkCreationAgentRequest* lca_request = new LinkCreationAgentRequest();
+        int cursor = 0;
+        bool is_link_create = false;
+        for (string arg : request) {
+            cursor++;
+            is_link_create = (arg == "LINK_CREATE") ^ is_link_create;
+            if (!is_link_create) {
+                lca_request->query.push_back(arg);
+            }
+            if (is_link_create && cursor < request.size() - 3) {
+                lca_request->link_template.push_back(arg);
+            }
+            if (cursor == request.size() - 3) {
+                lca_request->max_results = stoi(arg);
+            }
+            if (cursor == request.size() - 2) {
+                lca_request->repeat = stoi(arg);
+            }
+            if (cursor == request.size() - 1) {
+                lca_request->context = arg;
+            }
+            if (cursor == request.size()) {
+                lca_request->update_attention_broker = (arg == "true");
+            }
+        }
+        lca_request->infinite = (lca_request->repeat == -1);
+        lca_request->current_interval = default_interval;
+
+        return lca_request;
+    } catch (exception& e) {
+        cout << "Error parsing request: " << e.what() << endl;
+        return NULL;
+    }
+}

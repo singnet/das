@@ -21,7 +21,7 @@ class LinkCreationNode : public StarNode {
     /**
      * @brief Retrieves the next request
      */
-    string pop_request();
+    vector<string> pop_request();
     /**
      * @brief Return true if the request's queue is empty
      */
@@ -31,14 +31,14 @@ class LinkCreationNode : public StarNode {
      */
     bool is_shutting_down();
 
-    void add_request(string& request);
+    void add_request(vector<string> request);
 
     string to_string() { return "LinkCreationNode"; }
 
     virtual shared_ptr<Message> message_factory(string& command, vector<string>& args);
 
    private:
-    Queue<string> request_queue;
+    Queue<vector<string>> request_queue;
     const string CREATE_LINK = "create_link";
     bool shutting_down = false;
 };

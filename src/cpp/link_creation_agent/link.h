@@ -4,8 +4,11 @@
 #pragma once
 #include <string>
 #include <vector>
+#include "QueryAnswer.h"
 
 using namespace std;
+using namespace query_engine;
+
 namespace link_creation_agent
 {
 
@@ -13,6 +16,7 @@ namespace link_creation_agent
     {
     public:
         Link(string type, vector<string> targets);
+        Link(QueryAnswer query_answer, vector<string> link_template);
         Link();
         ~Link();
         /**
@@ -42,7 +46,7 @@ namespace link_creation_agent
          * @brief Tokenize the link
          * @returns Returns the tokenized link
          */
-        string tokenize();
+        vector<string> tokenize();
         Link untokenize(string link);
 
     private:
