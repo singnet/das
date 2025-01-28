@@ -1,12 +1,8 @@
 # **DAS - Attention Broker**
 
-The Attention Broker is the DAS component which keeps track of atom's
-importance values attached to different contexts and update those values
-according to the queries made by users using context specific hebbian
-networks.
+The Attention Broker is the DAS component which keeps track of atom's importance values attached to different contexts and update those values according to the queries made by users using context specific hebbian networks.
 
-DAS query engine can use those importance values to control caching policies
-and to better process pattern matcher queries.
+DAS query engine can use those importance values to control caching policies and to better process pattern matcher queries.
 
 ## **Build**
 
@@ -20,15 +16,13 @@ This will generate the binaries for all components in the `das/src/bin` director
 
 ## **Usage**
 
-- Navigate to the `das/src/bin` directory.
-Ensure there is a binary named `attention_broker_service` in this folder.
+- To run the Attention Broker Service, simply execute the following command:
 
-- Run the service by passing the desired port as an argument:
 ```bash
-./attention_broker_service <PORT>
+make attention-broker
 ```
-
+- The default port for the Attention Broker is `37007`.
 - If successful, you should see a message like this:
 ```bash
-AttentionBroker server listening on localhost:<PORT>
+AttentionBroker server listening on localhost:37007
 ```

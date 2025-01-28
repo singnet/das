@@ -23,7 +23,7 @@ The following components are included in this repository:
 - **Link Creation Agent**
   A C++ server that performs pattern-matching queries and creates new links in the Atomspace based on the results.  
 
-  Documentation: *Coming Soon*  
+  Documentation: [Read more](docs/components/link-creation-agent.md)
 
 - **Inference Control**
   C++ server which perform Inference Queries.

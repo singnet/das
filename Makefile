@@ -35,7 +35,10 @@ tests: build-image
 	cd src && bash -x scripts/unit_tests.sh
 
 run-query-agent:
-	cd src && bash -x scripts/run.sh query_broker $(PORT)
+	cd src && bash -x scripts/run.sh query_broker
 
 run-attention-broker:
 	cd src && bash -x scripts/run.sh attention_broker_service 37007
+
+run-link-creation-agent:
+	cd src && bash -x scripts/run.sh link_creation_engine
