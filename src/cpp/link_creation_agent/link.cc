@@ -68,26 +68,5 @@ vector<string> Link::tokenize()
 
 Link Link::untokenize(string link)
 {
-    vector<string> tokens;
-    string token;
-    for (char c : link)
-    {
-        if (c == ' ')
-        {
-            tokens.push_back(token);
-            token = "";
-        }
-        else
-        {
-            token += c;
-        }
-    }
-    tokens.push_back(token);
-    Link answer;
-    answer.set_type(tokens[0]);
-    for (unsigned int i = 1; i < tokens.size(); i++)
-    {
-        answer.add_target(tokens[i]);
-    }
-    return answer;
+    return Link();
 }
