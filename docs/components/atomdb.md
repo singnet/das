@@ -35,8 +35,8 @@ DAS_REDIS_HOSTNAME=127.0.0.1
 DAS_REDIS_PORT=6379
 DAS_REDIS_USERNAME=admin                        [optional]
 DAS_REDIS_PASSWORD=admin                        [optional]
-DAS_USE_REDIS_CLUSTER=false                     [default: true]
-DAS_USE_REDIS_SSL=false                         [default: true]
+DAS_USE_REDIS_CLUSTER=false                     [optional - default: true]
+DAS_USE_REDIS_SSL=false                         [optional - default: true]
 ```
 
 ## Usage

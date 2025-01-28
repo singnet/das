@@ -80,7 +80,7 @@ The following components are part of external repositories and are not included 
 
 ### **1. Cloning the Repository**
 ```bash
-git clone <repo-url>
+git clone git@github.com:singnet/das.git
 cd das
 ```
 
@@ -94,9 +94,9 @@ make build
 
 This process will generate the binaries for all components in the `das/src/bin` directory. For detailed information about each component, please refer to the documentation provided for each component in the [**Components**](#components) section above. 
 
-## **Running the Tests**  
+## **Running the Unit Tests**  
 
-To execute the tests, simply run the following command from the project root:  
+To execute the unit tests, simply run the following command from the project root:  
 
 ```bash
 make tests
@@ -104,7 +104,7 @@ make tests
 
 This will run all the tests for the project.  
 
-## **Documentation**
+## **Conceptual and User's Documentation**
 
 * [DAS API](https://singnet.github.io/das-query-engine/api/DAS/) - Documentation for the DAS API.
 * DAS User's Guide ([Jupyter Notebook](notebooks/das-users-guide.ipynb)) ([Markdown](docs/das-users-guide.md)) - Document with code snippets showing how to use DAS.
