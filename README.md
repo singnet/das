@@ -4,51 +4,50 @@
 
 ## **Components**
 
-DAS consists of several components. Below is a list of these components:
+DAS consists of several components. Below is a list of these components, categorized by whether they are part of this repository or exist in external repositories.
+
+### **Internal Components**
+The following components are included in this repository:  
 
 - **Query Agent**
 
-  A data manipulation API for Distributed Atomspace (DAS). It allows queries with pattern matching capabilities and traversal of the Atomspace hypergraph.  
+  C++ server which perform Pattern Matching queries.
 
   Documentation: [Read more](docs/components/query-agent.md)
 
 - **Attention Broker**
-
-  DAS component that keeps track of atom's importance values attached to different contexts and updates those values according to the queries made by users using context-specific Hebbian networks.  
+  A DAS component that tracks atom importance values in different contexts and updates those values based on user queries using context-specific Hebbian networks.  
 
   Documentation: [Read more](docs/components/attention-broker.md)
 
 - **Link Creation Agent**
+  A C++ server that performs pattern-matching queries and creates new links in the Atomspace based on the results.  
 
-  C++ server which perform Pattern Matching queries.
-
-  Link creation engine searches the atom space for patterns and creates new links based on the results. Both the pattern and the layout of the new links to be created are specified by the caller.
-
-  Pattern matching results are not exhaustively used to create new links. DAS query engine return results considering importance values of atoms in each result so link creation engine iterates only through the first N results, which have a greater probability of having the most interesting atoms.
-
-
-- **Database Wrapper**
-
-  SQL Tables are mapped by an unsupervised algorithm which uses the database scheme obtained from the DBMS to extract table/field names, primary/foreign key definitions etc to create a structure of nodes and links which represents the same information. No assumptions are made on database structure and no preprocessing is performed.
-
-  Basically, all table contents are mapped to basic nodes/links used in logic inference such as InheritanceLink, SchemeNode, ConceptNode, ExecutionLink, etc.
-
-  Documentation: [Read more](https://github.com/singnet/das-database-adapter)
+  Documentation: *Coming Soon*  
 
 - **Inference Control**
-
   C++ server which perform Inference Queries.
 
   Link creation engine searches the atom space for patterns and creates new links based on the results. Both the pattern and the layout of the new links to be created are specified by the caller.
 
-  Pattern matching results are not exhaustively used to create new links. DAS query engine return results considering importance values of atoms in each result so link creation engine iterates only through the first N results, which have a greater probability of having the most interesting atoms.
+  Pattern matching results are not exhaustively used to create new links. DAS query engine return results considering importance values of atoms in each result so link creation engine iterates only through the first N results, which have a greater probability of having the most interesting atoms. 
 
+  Documentation: *Coming Soon*  
+
+- **Query Engine**
+  A data manipulation API for Distributed Atomspace (DAS). It allows queries with pattern matching capabilities and traversal of the Atomspace hypergraph.  
+
+  Documentation: [Read more](docs/components/query-agent.md)
 
 - **Atom DB**
+  A Python library required by Hyperon DAS to interface with DBMSs and other data storage structures.  
 
-  Source code for hyperon-das-atomdb, a Python library required by hyperon-das to interface with DBMSs and other data storage structures.  
+  Documentation: [Read more](docs/components/atomdb.md)  
 
-  Documentation: [Read more](docs/components/atomdb.md)
+---
+
+### **External Components**
+The following components are part of external repositories and are not included in this repository. You can find them in their respective locations:  
 
 - **DAS Server**
 
@@ -57,7 +56,6 @@ DAS consists of several components. Below is a list of these components:
   Documentation: [Read more](https://github.com/singnet/das-serverless-functions)
 
 - **DAS MeTTa Parser**
-
   A simplified MeTTa parser used to feed knowledge bases into DAS.  
 
   Documentation: [Read more](https://github.com/singnet/das-metta-parser)
@@ -70,14 +68,13 @@ DAS consists of several components. Below is a list of these components:
 
 - **Infrastructure Setup**
 
-  Tools and assets required to provision and set up servers in cloud providers.  
+  Tools for provisioning and setting up servers on cloud providers.  
 
   Documentation:  
   - [Server provisioning in Vultr](infrastructure/vultr/provisioning/README.md)  
   - [Server setup Vultr](infrastructure/vultr/setup/README.md)  
   - [Server provisioning in AWS](infrastructure/aws/provisioning/README.md)  
   - [Server setup AWS](infrastructure/aws/setup/README.md)
-
 
 ## **Getting Started**
 

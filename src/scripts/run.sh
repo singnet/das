@@ -1,14 +1,17 @@
 #!/bin/bash
 
-CONTAINER_NAME="das-attention-broker-build"
+CONTAINER_NAME="$1"
+
+ENV_VARS=$(printenv | awk -F= '{print "--env "$1}')
 
 mkdir -p bin
 docker run \
-    --name=$CONTAINER_NAME \
+    --name="$CONTAINER_NAME" \
     --volume .:/opt/das-attention-broker \
     --workdir /opt/das-attention-broker \
+    $ENV_VARS \
     das-attention-broker-builder \
-    ./bin/attention_broker $1
+    ./bin/"$1" "$2"
 
 sleep 1
-docker rm $CONTAINER_NAME
+docker rm "$CONTAINER_NAME"

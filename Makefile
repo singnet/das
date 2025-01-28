@@ -33,3 +33,9 @@ build: build-image
 
 tests: build-image
 	cd src && bash -x scripts/unit_tests.sh
+
+run-query-agent:
+	cd src && bash -x scripts/run.sh query_broker $(PORT)
+
+run-attention-broker:
+	cd src && bash -x scripts/run.sh attention_broker_service 37007
