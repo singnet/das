@@ -13,13 +13,33 @@ This package requires:
 pip install hyperon-das-atomdb
 ```
 
-#### If you want to run it without installing it by pip, you can follow the following approach
+## Build and Install
 
-We use the [Poetry](https://python-poetry.org/) package to manage project dependencies and other things. So, if you have Poetry on your machine, you can run the commands below to prepare your environment
+You can also build the package locally by running the following command from the project root:
 
-**1. poetry install**
+```bash
+make build
+```
 
-**2. poetry shell** (activate virtual environment)
+This will generate the binaries for all components in the `das/src/bin` directory, including the wheel for the atomdb.
+
+Optionally, you can activate a virtual environment using `venv` or any other tool to create a Python virtual environment:
+
+```bash
+python3 -m venv env
+```
+
+To activate the virtual environment:
+
+```bash
+source env/bin/activate
+```
+
+After activating the virtual environment, you can install the package using the following command:
+
+```bash
+pip install src/bin/hyperon_das-0.9.17-py3-none-any.whl
+```
 
 ## Environment Variables
 
@@ -71,27 +91,3 @@ from hyperon_das_atomdb.adapters import InMemoryDB
 
 in_memory_db = InMemoryDB()
 ```
-
-## Pre-Commit Setup
-
-Before pushing your changes, it's recommended to set up pre-commit to run automated tests locally. Run the following command (needs to be done once):
-
-```bash
-pre-commit install
-```
-
-## Tests
-
-You can ran the command below to execute the unit tests
-
-```bash
-make unit-tests
-```
-
-## Documentation References
-
-[Repositories documentation](https://docs.google.com/document/d/1njmP_oXw_0FLwoXY5ttGBMFGV2n60-ugAltWIuoQO10/)
-
-## Release Notes
-
-[DAS AtomDB Releases](https://github.com/singnet/das-atom-db/releases)
