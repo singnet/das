@@ -1,55 +1,68 @@
 /**
  * @file service.h
- * @brief
+ * @brief Link Creation Service class
  */
 #pragma once
-#include <functional>
 #include <atomic>
-#include "thread_pool.h"
-// #include "remote_iterator.h"
+#include <condition_variable>
+#include <functional>
+#include <map>
+#include <mutex>
+#include <set>
+
 #include "RemoteIterator.h"
 #include "das_server_node.h"
 #include "link.h"
-#include <map>
-#include <set>
-#include <mutex>
-#include <condition_variable>
+#include "thread_pool.h"
 
 using namespace das;
 using namespace query_node;
 using namespace query_element;
-namespace link_creation_agent
+namespace link_creation_agent {
+/**
+ * @class LinkCreationService
+ * @brief Service class for creating links using a thread pool.
+ *
+ * This class provides functionality to process requests for link creation
+ * using a thread pool. It manages the processing of remote iterators and
+ * ensures that links are created by blocking the client until the link
+ * creation is complete.
+ *
+ * @note The processed_link_handles data structure can be changed to a better
+ * data structure in the future.
+ */
+class LinkCreationService
+
 {
-    class LinkCreationService
-    {
+   public:
+    LinkCreationService(int thread_count);
+    /**
+     * @brief Add an iterator to process in thread pool
+     * @param iterator RemoteIterator object
+     * @param das_client DAS Node client
+     */
+    void process_request(shared_ptr<RemoteIterator> iterator,
+                         ServerNode* das_client,
+                         vector<string>& link_template,
+                         int max_query_answers);
+    /**
+     * @brief Destructor
+     */
+    ~LinkCreationService();
 
-    public:
-        LinkCreationService(int thread_count);
-        /**
-         * @brief Add an iterator to process in thread pool
-         * @param iterator RemoteIterator object
-         * @param das_client DAS Node client
-         */
-        void process_request(shared_ptr<RemoteIterator> iterator, ServerNode *das_client, vector<string>& link_template);
-        /**
-         * @brief Destructor
-         */
-        ~LinkCreationService();
+   private:
+    ThreadPool thread_pool;
+    // this can be changed to a better data structure
+    set<string> processed_link_handles;
+    std::mutex m_mutex;
+    std::condition_variable m_cond;
 
+    /**
+     * @brief Create a link, blocking the client until the link is created
+     * @param link Link object
+     * @param das_client DAS Node client
+     */
+    void create_link(Link& link, ServerNode& das_client);
+};
 
-    private:
-        ThreadPool thread_pool;
-        // this can be changed to a better data structure
-        set<string> processed_link_handles;
-        std::mutex m_mutex;
-        std::condition_variable m_cond;
-
-        /**
-         * @brief Create a link, blocking the client until the link is created
-         * @param link Link object
-         * @param das_client DAS Node client
-         */
-        void create_link(Link &link, ServerNode &das_client);
-    };
-
-}
+}  // namespace link_creation_agent

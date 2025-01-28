@@ -30,7 +30,6 @@ LinkCreationAgent::~LinkCreationAgent() {
 }
 
 void LinkCreationAgent::stop() {
-    save_buffer();
     link_creation_node_server->graceful_shutdown();
     query_node_client->graceful_shutdown();
     das_client->graceful_shutdown();
@@ -44,6 +43,7 @@ void LinkCreationAgent::run() {
     int current_buffer_position = 0;
     while (true) {
         LinkCreationAgentRequest* lca_request = NULL;
+        bool is_from_buffer = false;
         if (!link_creation_node_server->is_query_empty()) {
             vector<string> request = link_creation_node_server->pop_request();
             lca_request = handle_request(request);
@@ -52,47 +52,43 @@ void LinkCreationAgent::run() {
             }
         } else {
             if (!request_buffer.empty()) {
+                is_from_buffer = true;
                 current_buffer_position = current_buffer_position % request_buffer.size();
                 lca_request = &request_buffer[current_buffer_position];
                 current_buffer_position++;
             }
         }
 
-        if (lca_request == NULL) {
+        if (lca_request == NULL ||
+            lca_request->last_execution + lca_request->current_interval > time(0)) {
             this_thread::sleep_for(chrono::seconds(loop_interval));
             continue;
         }
 
-        if (lca_request->last_execution == 0 ||
-            lca_request->last_execution + lca_request->current_interval < time(0)) {
-            shared_ptr<RemoteIterator> iterator =
-                query(lca_request->query, lca_request->context, lca_request->update_attention_broker);
-            // cout << "Request query: " << lca_request->query[0] << endl;
-            // cout << "Request link_template: " << lca_request->link_template[0] << endl;
-            // cout << "Request max_results: " << lca_request->max_results << endl;
-            // cout << "Request repeat: " << lca_request->repeat << endl;
-            // cout << "Request current_interval: " << lca_request->current_interval << endl;
-            // cout << "Request last_execution: " << lca_request->last_execution << endl;
+        shared_ptr<RemoteIterator> iterator =
+            query(lca_request->query, lca_request->context, lca_request->update_attention_broker);
 
-            service->process_request(iterator, das_client, lca_request->link_template);
+        service->process_request(
+            iterator, das_client, lca_request->link_template, lca_request->max_results);
 
-            if (lca_request->infinite || lca_request->repeat > 0) {
-                lca_request->last_execution = time(0);
-                lca_request->current_interval = (lca_request->current_interval * 2) % 86400; // Add exponential backoff, resets after 24 hours
-                if (lca_request->repeat > 1) {
-                    lca_request->repeat--;
-                } else {
-                    // TODO check for memory leaks here
-                    request_buffer.erase(request_buffer.begin() + current_buffer_position - 1);
-                }
+        if (lca_request->infinite || lca_request->repeat > 0) {
+            lca_request->last_execution = time(0);
+            lca_request->current_interval =
+                (lca_request->current_interval * 2) %
+                86400;  // TODO Add exponential backoff, resets after 24 hours
+
+            if (lca_request->infinite) continue;
+            if (lca_request->repeat >= 1) lca_request->repeat--;
+
+        } else {
+            if (is_from_buffer) {
+                request_buffer.erase(request_buffer.begin() + current_buffer_position - 1);
             } else {
                 delete lca_request;
             }
         }
     }
 }
-
-void LinkCreationAgent::clean_requests() {}
 
 shared_ptr<RemoteIterator> LinkCreationAgent::query(vector<string>& query_tokens,
                                                     string context,

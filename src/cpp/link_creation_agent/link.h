@@ -1,5 +1,6 @@
 /**
  * @file link.h
+ * @brief Link definition
  */
 #pragma once
 #include <string>
@@ -16,7 +17,7 @@ namespace link_creation_agent
     {
     public:
         Link(string type, vector<string> targets);
-        Link(QueryAnswer query_answer, vector<string> link_template);
+        Link(QueryAnswer *query_answer, vector<string> link_template);
         Link();
         ~Link();
         /**

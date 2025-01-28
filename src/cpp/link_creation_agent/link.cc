@@ -1,4 +1,5 @@
 #include "link.h"
+#include <iostream>
 
 
 using namespace link_creation_agent;
@@ -12,9 +13,9 @@ Link::Link(string type, vector<string> targets)
     this->targets = targets;
 }
 
-Link::Link(QueryAnswer query_answer, vector<string> link_template)
+Link::Link(QueryAnswer *query_answer, vector<string> link_template)
 {
-    string query_tokens = query_answer.tokenize();
+    string query_tokens = query_answer->tokenize();
     string token = "";
     for(char token_char : query_tokens){
         if(token_char == ' '){
