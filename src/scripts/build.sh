@@ -23,6 +23,7 @@ docker run --rm \
     --user=$(id -u):$(id -g) \
     --name=$CONTAINER_NAME \
     -e BIN_DIR=$CONTAINER_BIN_DIR \
+    -e WORKSPACE_DIR=$CONTAINER_WORKDIR \
     -e CPP_WORKSPACE_DIR=$CONTAINER_WORKSPACE_DIR_CPP \
     -e PYTHON_WORKSPACE_DIR=$CONTAINER_WORKSPACE_DIR_PYTHON \
     --volume /etc/passwd:/etc/passwd:ro \
