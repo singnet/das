@@ -17,7 +17,7 @@ LinkCreationNode::~LinkCreationNode()
     
 }
 
-string LinkCreationNode::pop_request()
+vector<string> LinkCreationNode::pop_request()
 {
     return request_queue.dequeue();
 }
@@ -33,7 +33,7 @@ bool LinkCreationNode::is_shutting_down()
     return shutting_down;
 }
 
-void LinkCreationNode::add_request(string &request)
+void LinkCreationNode::add_request(vector<string> request)
 {
     request_queue.enqueue(request);
 }
@@ -65,9 +65,5 @@ void LinkCreationRequest::act(shared_ptr<MessageFactory> node)
 {
     auto link_node = dynamic_pointer_cast<LinkCreationNode>(node);
     string request;
-    for (auto arg : this->args)
-    {
-        request += arg + " ";
-    }
-    link_node->add_request(request);
+    link_node->add_request(this->args);
 }

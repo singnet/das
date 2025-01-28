@@ -27,13 +27,15 @@ namespace link_creation_agent
 {
     struct LinkCreationAgentRequest
     {
-        string query;
-        string link_template;
+        vector<string> query;
+        vector<string> link_template;
         int max_results = 1000;
         int repeat = 1;
-        long last_execution; 
+        long last_execution = 0; 
         int current_interval;        
         bool infinite = false;
+        string context = "";
+        bool update_attention_broker = false;
     };
 
     class LinkCreationAgent
@@ -59,7 +61,7 @@ namespace link_creation_agent
          * @brief Sends a query to DAS Query Agent
          * @returns Returns a shared_ptr<RemoteIterator>, to iterate through the requests
          */
-        shared_ptr<RemoteIterator> query();
+        shared_ptr<RemoteIterator> query(vector<string> &query_tokens, string context, bool update_attention_broker);
         /**
          * @brief Load config file
          */
@@ -76,7 +78,7 @@ namespace link_creation_agent
          * @brief Handle the create link request.
          * @param request String received from a DAS Node server
          */
-        void handleRequest(string request);
+        LinkCreationAgentRequest* handle_request(vector<string> request);
 
         void stop();
 
@@ -88,11 +90,13 @@ namespace link_creation_agent
         string query_node_server_id; // ID of the query node server
         string link_creation_server_id; // ID of the link creation server
         string das_client_id; // ID of the DAS client
+        string requests_buffer_file;
+        string context;
 
 
         // Other attributes
         LinkCreationService *service;
-        vector<LinkCreationAgentRequest> *request_buffer;
+        vector<LinkCreationAgentRequest> request_buffer;
         query_engine::DASNode *query_node_client;
         LinkCreationNode *link_creation_node_server;
         das::ServerNode *das_client;

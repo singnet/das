@@ -21,10 +21,9 @@ namespace das {
              * Destructor
              */
             ~ServerNode();
-            void create_link(string &request);
+            void create_link(vector<string> &request);
         private:
             const string CREATE_ATOM = "create_atom";
-            Queue<string> requests_queue;
 
 
     };

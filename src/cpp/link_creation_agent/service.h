@@ -12,6 +12,8 @@
 #include "link.h"
 #include <map>
 #include <set>
+#include <mutex>
+#include <condition_variable>
 
 using namespace das;
 using namespace query_node;
@@ -28,7 +30,7 @@ namespace link_creation_agent
          * @param iterator RemoteIterator object
          * @param das_client DAS Node client
          */
-        void process_request(shared_ptr<RemoteIterator> iterator, ServerNode &das_client, string& link_template);
+        void process_request(shared_ptr<RemoteIterator> iterator, ServerNode *das_client, vector<string>& link_template);
         /**
          * @brief Destructor
          */
@@ -39,13 +41,15 @@ namespace link_creation_agent
         ThreadPool thread_pool;
         // this can be changed to a better data structure
         set<string> processed_link_handles;
+        std::mutex m_mutex;
+        std::condition_variable m_cond;
 
         /**
          * @brief Create a link, blocking the client until the link is created
-         * @param link_representation Link object
+         * @param link Link object
          * @param das_client DAS Node client
          */
-        void create_link(Link link_representation, ServerNode &das_client);
+        void create_link(Link &link, ServerNode &das_client);
     };
 
 }
