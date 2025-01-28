@@ -7,6 +7,7 @@ ENV_VARS=$(printenv | awk -F= '{print "--env "$1}')
 mkdir -p bin
 docker run \
     --name="$CONTAINER_NAME" \
+    --network host \
     --volume .:/opt/das-attention-broker \
     --workdir /opt/das-attention-broker \
     $ENV_VARS \
