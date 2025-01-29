@@ -57,3 +57,11 @@ cc_library(
     ],
 )
 
+cc_library(
+    name = "link_creation_agent_client_main_lib",
+    srcs = ["link_creation_agent_client_main.cc"],
+    deps = [
+         "//link_creation_agent:link_creation_agent_lib",
+
+    ],
+)

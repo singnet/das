@@ -8,6 +8,8 @@ BAZELISK_BUILD_CMD="${BAZELISK_CMD} build --jobs ${JOBS} --enable_bzlmod"
 cd $CPP_WORKSPACE_DIR \
 && $BAZELISK_BUILD_CMD //:link_creation_server \
 && mv bazel-bin/link_creation_server $BIN_DIR \
+&& $BAZELISK_BUILD_CMD //:link_creation_agent_client \
+&& mv bazel-bin/link_creation_agent_client $BIN_DIR \
 && $BAZELISK_BUILD_CMD //:word_query \
 && mv bazel-bin/word_query $BIN_DIR \
 && $BAZELISK_BUILD_CMD //:attention_broker_service \
