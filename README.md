@@ -37,7 +37,7 @@ The following components are included in this repository:
 - **Query Engine**
   A data manipulation API for Distributed Atomspace (DAS). It allows queries with pattern matching capabilities and traversal of the Atomspace hypergraph.  
 
-  Documentation: [Read more](docs/components/query-agent.md)
+  Documentation: [Read more](docs/components/query-engine.md)
 
 - **Atom DB**
   A Python library required by Hyperon DAS to interface with DBMSs and other data storage structures.  
