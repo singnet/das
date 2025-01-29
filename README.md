@@ -1,6 +1,6 @@
 # OpenCog Hyperon - Distributed Atomspace (DAS)
 
-**_ATTENTION:_** _we're currently re-structuring the project repo, documentation etc. So directory structure, documentation files, etc may be outdated or somehow messy._
+**_IMPORTANT NOTE:_** _we're currently re-structuring the project repo, documentation etc. So directory structure, documentation files, etc may be outdated or somehow messy._
 
 ## **Components**
 
