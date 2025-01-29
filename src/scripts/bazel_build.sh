@@ -15,7 +15,11 @@ cd $CPP_WORKSPACE_DIR \
 && $BAZELISK_BUILD_CMD //:query_broker \
 && mv bazel-bin/query_broker $BIN_DIR \
 && $BAZELISK_BUILD_CMD //:query \
-&& mv bazel-bin/query $BIN_DIR
+&& mv bazel-bin/query $BIN_DIR \
+&& $BAZELISK_BUILD_CMD \
+      //hyperon_das_atomdb_cpp:hyperon_das_atomdb_cpp_wheel \
+      --define=ATOMDB_VERSION=0.8.11 \
+&& mv bazel-bin/hyperon_das_atomdb_cpp/*.whl "$BIN_DIR"
 
 # Python build
 cd "$PYTHON_WORKSPACE_DIR"
