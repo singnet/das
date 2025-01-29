@@ -73,19 +73,21 @@ make run OPTIONS="--type server --config_file <path_to_config_file>"
 
 #### Config file example
 ```
-default_interval = 10
-thread_count = 5
-query_node_server_id = localhost:35700
-query_node_client_id = localhost:9001
-link_creation_server_id = localhost:9080
-das_client_id = localhost:9090
+requests_interval_seconds = 10
+link_creation_agent_thread_count = 5
+query_agent_server_id = localhost:35700
+query_agent_client_id = localhost:9001
+link_creation_agent_server_id = localhost:9080
+das_agent_client_id = localhost:9090
+das_agent_server_id = localhost:9091
 requests_buffer_file = ./buffer
 ```
-* default_interval: The default interval to run requests that repeat one or more times
-* thread_count: The number of threads to process Query Agent requests
-* query_node_server_id: IP + port of the Query Agent server.
-* query_node_client_id: IP + port of the Query Agent client (local machine)
-* link_creation_server_id: IP + port of the Link Creation Agent
-* das_client_id: IP + port of DAS to add links
+* requests_interval_seconds: The default interval to run requests that repeat one or more times
+* link_creation_agent_thread_count: The number of threads to process Query Agent requests
+* query_agent_server_id: IP + port of the Query Agent server.
+* query_agent_client_id: IP + port of the Query Agent client (local machine)
+* link_creation_agent_server_id: IP + port of the Link Creation Agent
+* das_agent_client_id: IP + port of DAS client (local id)
+* das_agent_server_id: IP + port of DAS to add links
 * requests_buffer_file: path to request buffer, where are stored all requests that repeat
 
