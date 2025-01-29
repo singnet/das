@@ -13,10 +13,10 @@ using namespace query_element;
 LinkCreationAgent::LinkCreationAgent(string config_path) {
     this->config_path = config_path;
     load_config();
-    link_creation_node_server = new LinkCreationNode(link_creation_server_id);
-    query_node_client = new DASNode(query_node_client_id, query_node_server_id);
-    service = new LinkCreationService(thread_count);
-    das_client = new ServerNode(das_client_id, query_node_server_id);
+    link_creation_node_server = new LinkCreationNode(link_creation_agent_server_id);
+    query_node_client = new DASNode(query_agent_client_id, query_agent_server_id);
+    service = new LinkCreationService(link_creation_agent_thread_count);
+    das_client = new DasAgentNode(das_agent_client_id, das_agent_server_id);
 
     this->agent_thread = new thread(&LinkCreationAgent::run, this);
 }
@@ -30,7 +30,12 @@ LinkCreationAgent::~LinkCreationAgent() {
 }
 
 void LinkCreationAgent::stop() {
-    save_buffer();
+    agent_mutex.lock();
+    if(!is_stoping){
+        is_stoping = true;
+        save_buffer();
+    }
+    agent_mutex.unlock();
     link_creation_node_server->graceful_shutdown();
     query_node_client->graceful_shutdown();
     das_client->graceful_shutdown();
@@ -43,56 +48,55 @@ void LinkCreationAgent::stop() {
 void LinkCreationAgent::run() {
     int current_buffer_position = 0;
     while (true) {
+        if(is_stoping) break;
         LinkCreationAgentRequest* lca_request = NULL;
+        bool is_from_buffer = false;
         if (!link_creation_node_server->is_query_empty()) {
             vector<string> request = link_creation_node_server->pop_request();
-            lca_request = handle_request(request);
+            lca_request = create_request(request);
+            lca_request->current_interval = requests_interval_seconds;
             if (lca_request != NULL && (lca_request->infinite || lca_request->repeat > 0)) {
                 request_buffer.push_back(*lca_request);
             }
         } else {
             if (!request_buffer.empty()) {
+                is_from_buffer = true;
                 current_buffer_position = current_buffer_position % request_buffer.size();
                 lca_request = &request_buffer[current_buffer_position];
                 current_buffer_position++;
             }
         }
 
-        if (lca_request == NULL) {
-            this_thread::sleep_for(chrono::seconds(loop_interval));
+        if (lca_request == NULL ||
+            lca_request->last_execution + lca_request->current_interval > time(0)) {
+            this_thread::sleep_for(chrono::milliseconds(loop_interval));
             continue;
         }
 
-        if (lca_request->last_execution == 0 ||
-            lca_request->last_execution + lca_request->current_interval < time(0)) {
-            shared_ptr<RemoteIterator> iterator =
-                query(lca_request->query, lca_request->context, lca_request->update_attention_broker);
-            // cout << "Request query: " << lca_request->query[0] << endl;
-            // cout << "Request link_template: " << lca_request->link_template[0] << endl;
-            // cout << "Request max_results: " << lca_request->max_results << endl;
-            // cout << "Request repeat: " << lca_request->repeat << endl;
-            // cout << "Request current_interval: " << lca_request->current_interval << endl;
-            // cout << "Request last_execution: " << lca_request->last_execution << endl;
+        shared_ptr<RemoteIterator> iterator =
+            query(lca_request->query, lca_request->context, lca_request->update_attention_broker);
 
-            service->process_request(iterator, das_client, lca_request->link_template);
+        service->process_request(
+            iterator, das_client, lca_request->link_template, lca_request->max_results);
 
-            if (lca_request->infinite || lca_request->repeat > 0) {
-                lca_request->last_execution = time(0);
-                lca_request->current_interval = (lca_request->current_interval * 2) % 86400; // Add exponential backoff, resets after 24 hours
-                if (lca_request->repeat > 1) {
-                    lca_request->repeat--;
-                } else {
-                    // TODO check for memory leaks here
-                    request_buffer.erase(request_buffer.begin() + current_buffer_position - 1);
-                }
+        if (lca_request->infinite || lca_request->repeat > 0) {
+            lca_request->last_execution = time(0);
+            lca_request->current_interval =
+                (lca_request->current_interval * 2) %
+                86400;  // TODO Add exponential backoff, resets after 24 hours
+
+            if (lca_request->infinite) continue;
+            if (lca_request->repeat >= 1) lca_request->repeat--;
+
+        } else {
+            if (is_from_buffer) {
+                request_buffer.erase(request_buffer.begin() + current_buffer_position - 1);
             } else {
                 delete lca_request;
             }
         }
     }
 }
-
-void LinkCreationAgent::clean_requests() {}
 
 shared_ptr<RemoteIterator> LinkCreationAgent::query(vector<string>& query_tokens,
                                                     string context,
@@ -112,20 +116,22 @@ void LinkCreationAgent::load_config() {
             if (getline(is_line, value)) {
                 value.erase(remove(value.begin(), value.end(), ' '), value.end());
                 key.erase(remove(key.begin(), key.end(), ' '), key.end());
-                if (key == "default_interval")
-                    this->default_interval = stoi(value);
-                else if (key == "thread_count")
-                    this->thread_count = stoi(value);
-                else if (key == "query_node_client_id")
-                    this->query_node_client_id = value;
-                else if (key == "query_node_server_id")
-                    this->query_node_server_id = value;
-                else if (key == "link_creation_server_id")
-                    this->link_creation_server_id = value;
-                else if (key == "das_client_id")
-                    this->das_client_id = value;
+                if (key == "requests_interval_seconds")
+                    this->requests_interval_seconds = stoi(value);
+                else if (key == "link_creation_agent_thread_count")
+                    this->link_creation_agent_thread_count = stoi(value);
+                else if (key == "query_agent_client_id")
+                    this->query_agent_client_id = value;
+                else if (key == "query_agent_server_id")
+                    this->query_agent_server_id = value;
+                else if (key == "link_creation_agent_server_id")
+                    this->link_creation_agent_server_id = value;
+                else if (key == "das_agent_client_id")
+                    this->das_agent_client_id = value;
                 else if (key == "requests_buffer_file")
                     this->requests_buffer_file = value;
+                else if (key == "das_agent_server_id")
+                    this->das_agent_server_id = value;
                 else if (key == "context")
                     this->context = value;
             }
@@ -152,7 +158,7 @@ void LinkCreationAgent::load_buffer() {
     file.close();
 }
 
-LinkCreationAgentRequest* LinkCreationAgent::handle_request(vector<string> request) {
+LinkCreationAgentRequest* LinkCreationAgent::create_request(vector<string> request) {
     try {
         LinkCreationAgentRequest* lca_request = new LinkCreationAgentRequest();
         int cursor = 0;
@@ -180,7 +186,6 @@ LinkCreationAgentRequest* LinkCreationAgent::handle_request(vector<string> reque
             }
         }
         lca_request->infinite = (lca_request->repeat == -1);
-        lca_request->current_interval = default_interval;
 
         return lca_request;
     } catch (exception& e) {

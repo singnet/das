@@ -1,9 +1,10 @@
 /**
+ * @file das_link_creation_node.h
  * @brief DAS Node server to receive link creation requests
  */
 #pragma once
-#include "queue.h"
 #include "StarNode.h"
+#include "queue.h"
 using namespace distributed_algorithm_node;
 
 namespace link_creation_agent {
@@ -31,18 +32,28 @@ class LinkCreationNode : public StarNode {
      */
     bool is_shutting_down();
 
+    /**
+     * @brief Add a request to the request queue
+     * @param request Request to be added
+     */
     void add_request(vector<string> request);
 
-    string to_string() { return "LinkCreationNode"; }
-
+    /**
+     * @brief Factory method to create a message
+     * @param command Command to be executed
+     * @param args Arguments to be passed to the command
+     */
     virtual shared_ptr<Message> message_factory(string& command, vector<string>& args);
 
    private:
     Queue<vector<string>> request_queue;
-    const string CREATE_LINK = "create_link";
+    const string CREATE_LINK = "create_link";  // DAS Node command
     bool shutting_down = false;
 };
 
+/**
+ * @brief Link creation request message
+ */
 class LinkCreationRequest : public Message {
    public:
     string command;
@@ -51,12 +62,14 @@ class LinkCreationRequest : public Message {
     void act(shared_ptr<MessageFactory> node);
 };
 
-
+/**
+ * @brief Dummy message for unknown commands
+ */
 class DummyMessage : public Message {
-public:
+   public:
     string command;
     vector<string> args;
-    DummyMessage(string command, vector<string> &args) {
+    DummyMessage(string command, vector<string>& args) {
         this->command = command;
         this->args = args;
     }

@@ -4,65 +4,41 @@ using namespace link_creation_agent;
 using namespace std;
 using namespace distributed_algorithm_node;
 
-LinkCreationNode::LinkCreationNode(const string &node_id) : StarNode(node_id)
-{
+LinkCreationNode::LinkCreationNode(const string& node_id) : StarNode(node_id) {}
 
-}
-
-
-LinkCreationNode::~LinkCreationNode()
-{
+LinkCreationNode::~LinkCreationNode() {
     shutting_down = true;
     DistributedAlgorithmNode::graceful_shutdown();
-    
 }
 
-vector<string> LinkCreationNode::pop_request()
-{
-    return request_queue.dequeue();
-}
+vector<string> LinkCreationNode::pop_request() { return request_queue.dequeue(); }
 
+bool LinkCreationNode::is_query_empty() { return request_queue.empty(); }
 
-bool LinkCreationNode::is_query_empty()
-{
-    return request_queue.empty();
-}
+bool LinkCreationNode::is_shutting_down() { return shutting_down; }
 
-bool LinkCreationNode::is_shutting_down()
-{
-    return shutting_down;
-}
+void LinkCreationNode::add_request(vector<string> request) { request_queue.enqueue(request); }
 
-void LinkCreationNode::add_request(vector<string> request)
-{
-    request_queue.enqueue(request);
-}
-
-shared_ptr<Message> LinkCreationNode::message_factory(string &command, vector<string> &args)
-{
+shared_ptr<Message> LinkCreationNode::message_factory(string& command, vector<string>& args) {
     cout << "LinkCreationNode::message_factory" << endl;
     cout << command << endl;
     shared_ptr<Message> message = StarNode::message_factory(command, args);
     if (message) {
         return message;
     }
-    if (command == CREATE_LINK)
-    {
+    if (command == CREATE_LINK) {
         return make_shared<LinkCreationRequest>(command, args);
     }
     cout << "Command not recognized" << endl;
     return make_shared<DummyMessage>(command, args);
 }
 
-
-LinkCreationRequest::LinkCreationRequest(string command, vector<string> & args)
-{
-        this->command = command;
-        this->args = args;
+LinkCreationRequest::LinkCreationRequest(string command, vector<string>& args) {
+    this->command = command;
+    this->args = args;
 }
 
-void LinkCreationRequest::act(shared_ptr<MessageFactory> node)
-{
+void LinkCreationRequest::act(shared_ptr<MessageFactory> node) {
     auto link_node = dynamic_pointer_cast<LinkCreationNode>(node);
     string request;
     link_node->add_request(this->args);
