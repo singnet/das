@@ -36,6 +36,7 @@ void LinkCreationService::process_request(shared_ptr<RemoteIterator> iterator,
 }
 
 void LinkCreationService::create_link(Link& link, DasAgentNode& das_client) {
+    // TODO check an alternative to locking this method
     std::unique_lock<std::mutex> lock(m_mutex);
     cout << "LinkCreationService::create_link: Creating link" << endl;
     vector<string> link_tokens = link.tokenize();
