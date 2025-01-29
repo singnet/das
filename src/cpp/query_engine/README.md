@@ -39,7 +39,7 @@ export DAS_REDIS_PORT="6379"
 export DAS_USE_REDIS_CLUSTER=false
 ```
 
-Before running the Query Agent, you need to start the Attention Broker. For more information on how to set up and run the Attention Broker, refer to [attention-broker.md](./attention-broker.md).
+Before running the Query Agent, you need to start the Attention Broker. For more information on how to set up and run the Attention Broker, refer to [attention-broker.md](../attention_broker/README.md).
 
 
 ## **Usage**  
@@ -50,12 +50,12 @@ You might not be able to execute the binary directly from your machine. To simpl
   ```bash
   make run-query-agent
   ```  
-
+- The default port for the Attention Broker is `35700`.
 - If successful, you should see a message like this:  
   ```bash
   Connected to (NON-CLUSTER) Redis at localhost:6379
   Connected to MongoDB at localhost:27017
   Connected to AttentionBroker at localhost:37007
-  SynchronousGRPC listening on localhost:
+  SynchronousGRPC listening on localhost:35700
   #############################     REQUEST QUEUE EMPTY     ##################################
   ```  

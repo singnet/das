@@ -41,4 +41,4 @@ run-attention-broker:
 	cd src && bash -x scripts/run.sh attention_broker_service 37007
 
 run-link-creation-agent:
-	cd src && bash -x scripts/run.sh link_creation_server
+	@bash -x src/scripts/run.sh link_creation_server $(OPTIONS)
