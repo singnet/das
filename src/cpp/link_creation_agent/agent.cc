@@ -13,10 +13,10 @@ using namespace query_element;
 LinkCreationAgent::LinkCreationAgent(string config_path) {
     this->config_path = config_path;
     load_config();
-    link_creation_node_server = new LinkCreationNode(link_creation_server_id);
-    query_node_client = new DASNode(query_node_client_id, query_node_server_id);
-    service = new LinkCreationService(thread_count);
-    das_client = new DasAgentNode(das_client_id, query_node_server_id);
+    link_creation_node_server = new LinkCreationNode(link_creation_agent_server_id);
+    query_node_client = new DASNode(query_agent_client_id, query_agent_server_id);
+    service = new LinkCreationService(link_creation_agent_thread_count);
+    das_client = new DasAgentNode(das_agent_client_id, das_agent_server_id);
 
     this->agent_thread = new thread(&LinkCreationAgent::run, this);
 }
@@ -30,6 +30,12 @@ LinkCreationAgent::~LinkCreationAgent() {
 }
 
 void LinkCreationAgent::stop() {
+    agent_mutex.lock();
+    if(!is_stoping){
+        is_stoping = true;
+        save_buffer();
+    }
+    agent_mutex.unlock();
     link_creation_node_server->graceful_shutdown();
     query_node_client->graceful_shutdown();
     das_client->graceful_shutdown();
@@ -42,12 +48,13 @@ void LinkCreationAgent::stop() {
 void LinkCreationAgent::run() {
     int current_buffer_position = 0;
     while (true) {
+        if(is_stoping) break;
         LinkCreationAgentRequest* lca_request = NULL;
         bool is_from_buffer = false;
         if (!link_creation_node_server->is_query_empty()) {
             vector<string> request = link_creation_node_server->pop_request();
             lca_request = create_request(request);
-            lca_request->current_interval = default_interval;
+            lca_request->current_interval = requests_interval_seconds;
             if (lca_request != NULL && (lca_request->infinite || lca_request->repeat > 0)) {
                 request_buffer.push_back(*lca_request);
             }
@@ -62,7 +69,7 @@ void LinkCreationAgent::run() {
 
         if (lca_request == NULL ||
             lca_request->last_execution + lca_request->current_interval > time(0)) {
-            this_thread::sleep_for(chrono::seconds(loop_interval));
+            this_thread::sleep_for(chrono::milliseconds(loop_interval));
             continue;
         }
 
@@ -109,20 +116,22 @@ void LinkCreationAgent::load_config() {
             if (getline(is_line, value)) {
                 value.erase(remove(value.begin(), value.end(), ' '), value.end());
                 key.erase(remove(key.begin(), key.end(), ' '), key.end());
-                if (key == "default_interval")
-                    this->default_interval = stoi(value);
-                else if (key == "thread_count")
-                    this->thread_count = stoi(value);
-                else if (key == "query_node_client_id")
-                    this->query_node_client_id = value;
-                else if (key == "query_node_server_id")
-                    this->query_node_server_id = value;
-                else if (key == "link_creation_server_id")
-                    this->link_creation_server_id = value;
-                else if (key == "das_client_id")
-                    this->das_client_id = value;
+                if (key == "requests_interval_seconds")
+                    this->requests_interval_seconds = stoi(value);
+                else if (key == "link_creation_agent_thread_count")
+                    this->link_creation_agent_thread_count = stoi(value);
+                else if (key == "query_agent_client_id")
+                    this->query_agent_client_id = value;
+                else if (key == "query_agent_server_id")
+                    this->query_agent_server_id = value;
+                else if (key == "link_creation_agent_server_id")
+                    this->link_creation_agent_server_id = value;
+                else if (key == "das_agent_client_id")
+                    this->das_agent_client_id = value;
                 else if (key == "requests_buffer_file")
                     this->requests_buffer_file = value;
+                else if (key == "das_agent_server_id")
+                    this->das_agent_server_id = value;
                 else if (key == "context")
                     this->context = value;
             }

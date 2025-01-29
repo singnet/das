@@ -7,14 +7,12 @@ services:
     ports:
       - 6379:6379
     healthcheck:
-      test: [ "CMD", "redis-cli", "--raw", "incr", "ping" ]
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
       interval: 10s
       timeout: 10s
       retries: 5
       start_period: 40s
     network_mode: host
-    # networks:
-    #   - app_network
 
   mongodb:
     image: mongo:latest
@@ -41,10 +39,6 @@ services:
       retries: 5
       start_period: 40s
     network_mode: host
-    
-    # networks:
-    #   - app_network
-
 
   metta-parser:
     image: trueagi/das:0.5.4-metta-parser
@@ -71,21 +65,11 @@ services:
     restart: on-failure
     network_mode: host
 
-    # networks:
-    #   - app_network
-
-
   das-attention-broker:
-    # How to build:
-    # Clone the das-node repository
-    # Run:
-    # ./scripts/docker_image_build.sh
-    # build: ./docker_das_node
     working_dir: /opt
     image: das-attention-broker-builder
     container_name: test-das-attention-broker
     command: ./bin/attention_broker_service 37007
-    # command: sleep infinity
     ports:
       - 37007:37007
     volumes:
@@ -104,85 +88,47 @@ services:
       DAS_MONGODB_USERNAME: root
       DAS_MONGODB_PASSWORD: root
     network_mode: host
-    
-    # networks:
-    #   - app_network
 
+  das-query-agent:
+    working_dir: /opt
+    image: das-attention-broker-builder
+    container_name: test-das-query-agent-node
+    command: ./bin/query_broker 35700
+    ports:
+      - 35700:35700
+    volumes:
+      - ../../../src:/opt
+    restart: on-failure
+    depends_on:
+      - mongodb
+      - redis
+      - metta-parser
+      - das-attention-broker
+    environment:
+      DAS_MONGODB_NAME: das
+      DAS_MONGODB_HOSTNAME: localhost
+      DAS_MONGODB_PORT: 27017
+      DAS_REDIS_HOSTNAME: 0.0.0.0
+      DAS_REDIS_PORT: 6379
+      DAS_MONGODB_USERNAME: root
+      DAS_MONGODB_PASSWORD: root
+    network_mode: host
 
-  # das-query-agent:
-  #   # How to build:
-  #   # Clone the das-node repository
-  #   # Run:
-  #   # ./scripts/docker_image_build.sh
-  #   # build: ./docker_das_node
-  #   working_dir: /opt
-  #   image: das-attention-broker-builder
-  #   container_name: test-das-query-agent-node
-  #   command: ./bin/query_broker 35700
-  #   # command: sleep infinity
-  #   ports:
-  #     - 35700:35700
-  #     # - 6379:6379
-  #   volumes:
-  #     - ../../../src:/opt
-  #   restart: on-failure
-  #   depends_on:
-  #     - mongodb
-  #     - redis
-  #     - metta-parser
-  #     - das-attention-broker
-  #   environment:
-  #     DAS_MONGODB_NAME: das
-  #     DAS_MONGODB_HOSTNAME: localhost
-  #     DAS_MONGODB_PORT: 27017
-  #     DAS_REDIS_HOSTNAME: 0.0.0.0
-  #     DAS_REDIS_PORT: 6379
-  #     DAS_MONGODB_USERNAME: root
-  #     DAS_MONGODB_PASSWORD: root
-  #   network_mode: host
-    
-    # networks:
-    #   - app_network
-
-
-  # das-link-create-agent:
-  #   # How to build:
-  #   # Clone the das-node repository
-  #   # Run:
-  #   # ./scripts/docker_image_build.sh
-  #   # build: ./docker_das_node
-  #   image: das-attention-broker-builder
-  #   container_name: test-das-link-create-agent-node
-  #   working_dir: /opt
-  #   command: ./bin/link_creation_server --type server --config_file /tmp/config
-  #   # command: sleep infinity
-  #   volumes:
-  #     - ./data:/tmp
-  #     - ../../../src:/opt
-  #   ports:
-  #     # - 35700:35700
-  #     - 9090:9090
-  #   restart: on-failure
-  #   depends_on:
-  #     - mongodb
-  #     - redis
-  #     - metta-parser
-  #     - das-attention-broker
-  #     - das-query-agent
-  #   # environment:
-  #   #   DAS_MONGODB_NAME: das
-  #   #   DAS_MONGODB_HOSTNAME: localhost
-  #   #   DAS_MONGODB_PORT: 27017
-  #   #   DAS_REDIS_HOSTNAME: 0.0.0.0
-  #   #   DAS_REDIS_PORT: 6378
-  #   #   DAS_MONGODB_USERNAME: root
-  #   #   DAS_MONGODB_PASSWORD: root
-  #   # networks:
-  #   #   - app_network
-  #   network_mode: host
-
-
-
-# networks:
-#   app_network:
-#     driver: bridge
+  das-link-create-agent:
+    image: das-attention-broker-builder
+    container_name: test-das-link-create-agent-node
+    working_dir: /opt
+    command: ./bin/link_creation_server --type server --config_file /tmp/config
+    volumes:
+      - ./data:/tmp
+      - ../../../src:/opt
+    ports:
+      - 9090:9090
+    restart: on-failure
+    depends_on:
+      - mongodb
+      - redis
+      - metta-parser
+      - das-attention-broker
+      - das-query-agent
+    network_mode: host

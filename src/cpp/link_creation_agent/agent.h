@@ -12,6 +12,7 @@
 #include <string>
 #include <thread>
 #include <vector>
+#include <mutex>
 
 #include "DASNode.h"
 #include "RemoteIterator.h"
@@ -81,8 +82,6 @@ class LinkCreationAgent {
      * @brief Load all requests that have the infinite value set as true from the disk or DB.
      */
     void load_buffer();
-
-
     /**
      * @brief Stop the agent
      */
@@ -90,12 +89,13 @@ class LinkCreationAgent {
 
     // Attributes loaded from config file
     string config_path;              // Path to the configuration file
-    int default_interval;            // Default interval to send requests
-    int thread_count;                // Number of threads to process requests
-    string query_node_client_id;     // ID of the query node client
-    string query_node_server_id;     // ID of the query node server
-    string link_creation_server_id;  // ID of the link creation server
-    string das_client_id;            // ID of the DAS client
+    int requests_interval_seconds;            // Default interval to send requests
+    int link_creation_agent_thread_count;                // Number of threads to process requests
+    string query_agent_client_id;     // ID of the query node client
+    string query_agent_server_id;     // ID of the query node server
+    string link_creation_agent_server_id;  // ID of the link creation server
+    string das_agent_client_id;            // ID of the DAS client
+    string das_agent_server_id;
     string requests_buffer_file;     // Path to the requests buffer file
     string context;                  // Context to send to attention broker
 
@@ -106,6 +106,8 @@ class LinkCreationAgent {
     LinkCreationNode* link_creation_node_server;
     das::DasAgentNode* das_client;
     thread* agent_thread;
-    int loop_interval = 1;
+    mutex agent_mutex;
+    bool is_stoping = false;
+    int loop_interval = 100; // miliseconds
 };
 }  // namespace link_creation_agent
