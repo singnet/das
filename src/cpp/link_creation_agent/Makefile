@@ -6,3 +6,7 @@ build:
 
 run:
 		cd ../../ && bash scripts/container_tty.sh ./bin/link_creation_server ${OPTIONS}  && cd -
+
+
+tests:
+		cd ../../ && bash scripts/unit_tests.sh && cd -

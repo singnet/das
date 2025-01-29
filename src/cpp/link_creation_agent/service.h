@@ -42,7 +42,7 @@ class LinkCreationService
      * @param das_client DAS Node client
      */
     void process_request(shared_ptr<RemoteIterator> iterator,
-                         ServerNode* das_client,
+                         DasAgentNode* das_client,
                          vector<string>& link_template,
                          int max_query_answers);
     /**
@@ -62,7 +62,7 @@ class LinkCreationService
      * @param link Link object
      * @param das_client DAS Node client
      */
-    void create_link(Link& link, ServerNode& das_client);
+    void create_link(Link& link, DasAgentNode& das_client);
 };
 
 }  // namespace link_creation_agent

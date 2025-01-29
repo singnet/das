@@ -9,7 +9,7 @@ LinkCreationService::LinkCreationService(int thread_count) : thread_pool(thread_
 LinkCreationService::~LinkCreationService() {}
 
 void LinkCreationService::process_request(shared_ptr<RemoteIterator> iterator,
-                                          ServerNode* das_client,
+                                          DasAgentNode* das_client,
                                           vector<string>& link_template,
                                           int max_query_answers) {
     auto job = [this, iterator, das_client, link_template, max_query_answers]() {
@@ -35,7 +35,7 @@ void LinkCreationService::process_request(shared_ptr<RemoteIterator> iterator,
     thread_pool.enqueue(job);
 }
 
-void LinkCreationService::create_link(Link& link, ServerNode& das_client) {
+void LinkCreationService::create_link(Link& link, DasAgentNode& das_client) {
     std::unique_lock<std::mutex> lock(m_mutex);
     cout << "LinkCreationService::create_link: Creating link" << endl;
     vector<string> link_tokens = link.tokenize();

@@ -10,18 +10,18 @@
 using namespace distributed_algorithm_node;
 
 namespace das {
-class ServerNode : public StarNode {
+class DasAgentNode : public StarNode {
    public:
     /**
      * @brief Client constructor
      * @param node_id ID of this node in the network.
      * @param server_id ID of a server.
      */
-    ServerNode(const string& node_id, const string& server_id);
+    DasAgentNode(const string& node_id, const string& server_id);
     /**
      * Destructor
      */
-    ~ServerNode();
+    ~DasAgentNode();
     /**
      * @brief Create a link
      * @param request Request to create a link

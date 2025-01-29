@@ -104,7 +104,7 @@ class LinkCreationAgent {
     vector<LinkCreationAgentRequest> request_buffer;
     query_engine::DASNode* query_node_client;
     LinkCreationNode* link_creation_node_server;
-    das::ServerNode* das_client;
+    das::DasAgentNode* das_client;
     thread* agent_thread;
     int loop_interval = 1;
 };
