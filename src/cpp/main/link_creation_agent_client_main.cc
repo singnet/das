@@ -14,13 +14,7 @@ void ctrl_c_handler(int) {
     exit(0);
 }
 
-/**
- * @brief Main function
- * Reads the config file and starts the DAS NODE client/server
- * @param argc Number of arguments
- * @param argv Arguments
- * @returns Returns 0 if the program runs successfully
- */
+
 int main(int argc, char* argv[]) {
     string help = R""""(
     Usage: link_creation_agent CLIENT_HOST:CLIENT_PORT SERVER_HOST:SERVER_PORT REQUEST+
