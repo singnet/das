@@ -35,10 +35,14 @@ tests: build-image
 	cd src && bash -x scripts/unit_tests.sh
 
 run-query-agent:
-	cd src && bash -x scripts/run.sh query_broker
+	@bash -x src/scripts/run.sh query_broker 31700
 
 run-attention-broker:
-	cd src && bash -x scripts/run.sh attention_broker_service 37007
+	@bash -x src/scripts/run.sh attention_broker_service 37007
 
 run-link-creation-agent:
 	@bash -x src/scripts/run.sh link_creation_server $(OPTIONS)
+
+run-link-creation-client:
+	@bash -x src/scripts/run.sh link_creation_agent_client $(OPTIONS)
+
