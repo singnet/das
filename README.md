@@ -13,17 +13,17 @@ The following components are included in this repository:
 
   C++ server which perform Pattern Matching queries.
 
-  Documentation: [Read more](docs/components/query-agent.md)
+  Documentation: [Read more](src/cpp/query_engine/README.md)
 
 - **Attention Broker**
   A DAS component that tracks atom importance values in different contexts and updates those values based on user queries using context-specific Hebbian networks.  
 
-  Documentation: [Read more](docs/components/attention-broker.md)
+  Documentation: [Read more](src/cpp/attention_broker/README.md)
 
 - **Link Creation Agent**
   A C++ server that performs pattern-matching queries and creates new links in the Atomspace based on the results.  
 
-  Documentation: [Read more](docs/components/link-creation-agent.md)
+  Documentation: [Read more](src/cpp/link_creation_agent/README.md)
 
 - **Inference Control**
   C++ server which perform Inference Queries.
@@ -37,12 +37,12 @@ The following components are included in this repository:
 - **Query Engine**
   A data manipulation API for Distributed Atomspace (DAS). It allows queries with pattern matching capabilities and traversal of the Atomspace hypergraph.  
 
-  Documentation: [Read more](docs/components/query-engine.md)
+  Documentation: [Read more](src/python/hyperon_das/README.md)
 
 - **Atom DB**
   A Python library required by Hyperon DAS to interface with DBMSs and other data storage structures.  
 
-  Documentation: [Read more](docs/components/atomdb.md)  
+  Documentation: [Read more](src/python/hyperon_das_atomdb/README.md)  
 
 ---
 

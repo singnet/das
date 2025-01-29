@@ -61,17 +61,24 @@ A custom field must have 3 elements:
 
 ## How to build
 
-```
+To build the Link Creation Agent, run the following command from the project root:
+
+```bash
 make build
 ```
 
+This will generate the binaries for all components in the `das/src/bin` directory.
+
 ## How to run
+
 Running the server
+
 ```
 make run OPTIONS="--type server --config_file <path_to_config_file>"
 ```
 
 #### Config file example
+
 ```
 default_interval = 10
 thread_count = 5
@@ -81,6 +88,7 @@ link_creation_server_id = localhost:9080
 das_client_id = localhost:9090
 requests_buffer_file = ./buffer
 ```
+
 * default_interval: The default interval to run requests that repeat one or more times
 * thread_count: The number of threads to process Query Agent requests
 * query_node_server_id: IP + port of the Query Agent server.
