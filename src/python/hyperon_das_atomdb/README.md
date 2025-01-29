@@ -4,22 +4,41 @@ Persistence layer for Distributed AtomSpace
 
 ## Installation
 
-This package requires:
-[python](https://www.python.org/) >= 3.10 to run.
+> Before you start, make sure you have [Python](https://www.python.org/) >= 3.10 and [Pip](https://pypi.org/project/pip/) installed on your system.
 
-#### This package is deployed on [Pypi](https://pypi.org/project/hyperon-das/). If you want, you can install using the pip command
+#### This package is deployed on [Pypi](https://pypi.org/project/hyperon-das-atomdb/). If you want, you can install using the pip command
 
 ```
 pip install hyperon-das-atomdb
 ```
 
-#### If you want to run it without installing it by pip, you can follow the following approach
+## Build and Install
 
-We use the [Poetry](https://python-poetry.org/) package to manage project dependencies and other things. So, if you have Poetry on your machine, you can run the commands below to prepare your environment
+You can also build the package locally by running the following command from the project root:
 
-**1. poetry install**
+```bash
+make build
+```
 
-**2. poetry shell** (activate virtual environment)
+This will generate the binaries for all components in the `das/src/bin` directory, including the wheel for the hyperon-das-atomdb.
+
+Optionally, you can activate a virtual environment using `venv` or any other tool to create a Python virtual environment:
+
+```bash
+python3 -m venv env
+```
+
+To activate the virtual environment:
+
+```bash
+source env/bin/activate
+```
+
+After activating the virtual environment, you can install the package using the following command:
+
+```bash
+pip install src/bin/hyperon_das_atomdb-0.8.11-py3-none-any.whl
+```
 
 ## Environment Variables
 
@@ -35,8 +54,8 @@ DAS_REDIS_HOSTNAME=127.0.0.1
 DAS_REDIS_PORT=6379
 DAS_REDIS_USERNAME=admin                        [optional]
 DAS_REDIS_PASSWORD=admin                        [optional]
-DAS_USE_REDIS_CLUSTER=false                     [default: true]
-DAS_USE_REDIS_SSL=false                         [default: true]
+DAS_USE_REDIS_CLUSTER=false                     [optional - default: true]
+DAS_USE_REDIS_SSL=false                         [optional - default: true]
 ```
 
 ## Usage
@@ -71,27 +90,3 @@ from hyperon_das_atomdb.adapters import InMemoryDB
 
 in_memory_db = InMemoryDB()
 ```
-
-## Pre-Commit Setup
-
-Before pushing your changes, it's recommended to set up pre-commit to run automated tests locally. Run the following command (needs to be done once):
-
-```bash
-pre-commit install
-```
-
-## Tests
-
-You can ran the command below to execute the unit tests
-
-```bash
-make unit-tests
-```
-
-## Documentation References
-
-[Repositories documentation](https://docs.google.com/document/d/1njmP_oXw_0FLwoXY5ttGBMFGV2n60-ugAltWIuoQO10/)
-
-## Release Notes
-
-[DAS AtomDB Releases](https://github.com/singnet/das-atom-db/releases)
