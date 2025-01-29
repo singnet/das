@@ -4,8 +4,11 @@ build_docs:
 build:
 		cd ../../ && bash scripts/build.sh && cd -
 
-run:
+run_server:
 		cd ../../ && bash scripts/container_tty.sh ./bin/link_creation_server ${OPTIONS}  && cd -
+
+run_client:
+		cd ../../ && bash scripts/container_tty.sh ./bin/link_creation_agent_client ${OPTIONS}  && cd -
 
 
 tests:

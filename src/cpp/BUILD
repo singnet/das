@@ -73,3 +73,13 @@ cc_binary(
     ],
 )
 
+
+cc_binary(
+    name = "link_creation_agent_client",
+    srcs = [],
+    defines = ["BAZEL_BUILD"],
+    linkstatic = 1,
+    deps = [
+        "//main:link_creation_agent_client_main_lib",
+    ],
+)

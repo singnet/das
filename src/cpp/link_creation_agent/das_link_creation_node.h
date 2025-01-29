@@ -16,6 +16,13 @@ class LinkCreationNode : public StarNode {
      */
     LinkCreationNode(const string& node_id);
     /**
+     * @brief Client constructor
+     * @param node_id ID of this node in the network.
+     * @param server_id ID of a server.
+     */
+    LinkCreationNode(const string& node_id, const string& server_id);;
+
+    /**
      * Destructor
      */
     ~LinkCreationNode();
@@ -45,10 +52,13 @@ class LinkCreationNode : public StarNode {
      */
     virtual shared_ptr<Message> message_factory(string& command, vector<string>& args);
 
+    void send_message(vector<string> args);
+
    private:
     Queue<vector<string>> request_queue;
     const string CREATE_LINK = "create_link";  // DAS Node command
     bool shutting_down = false;
+    bool is_server = true;
 };
 
 /**
@@ -60,6 +70,8 @@ class LinkCreationRequest : public Message {
     vector<string> args;
     LinkCreationRequest(string command, vector<string>& args);
     void act(shared_ptr<MessageFactory> node);
+    string server_id;
+    string client_id;
 };
 
 /**
