@@ -71,21 +71,27 @@ This will generate the binaries for all components in the `das/src/bin` director
 
 ## How to run
 
-Running the server
+> Before running the Link Creation Agent, you need to start the Query Agent. For more information on how to set up and run the Query Agent, refer to [query-agent.md](../query_engine/README.md).
+
+You might not be able to execute the binary directly from your machine. To simplify this process, we provide a command to run the service inside a container:
 
 ```
-make run OPTIONS="--type server --config_file <path_to_config_file>"
+make run-link-creation-agent OPTIONS="--type server --config_file <path_to_config_file>"
 ```
+
+The configuration file (`<path_to_config_file>`) must be located in the current directory where the command is executed. This is because we use a volume to mount the file inside the container. If the file is not in the correct location, the command will fail, as the configuration file will not be available inside the container where the binary runs.
+
 
 #### Config file example
 
 ```
-default_interval = 10
-thread_count = 5
-query_node_server_id = localhost:35700
-query_node_client_id = localhost:9001
-link_creation_server_id = localhost:9080
-das_client_id = localhost:9090
+requests_interval_seconds = 10
+link_creation_agent_thread_count = 5
+query_agent_server_id = localhost:35700
+query_agent_client_id = localhost:9001
+link_creation_agent_server_id = localhost:9080
+das_agent_client_id = localhost:9090
+das_agent_server_id = localhost:9091
 requests_buffer_file = ./buffer
 ```
 
@@ -97,3 +103,11 @@ requests_buffer_file = ./buffer
 * das_client_id: IP + port of DAS to add links
 * requests_buffer_file: path to request buffer, where are stored all requests that repeat
 
+If successful, you should see a message like this:
+
+```
+Starting server
+SynchronousGRPC listening on localhost:9080
+SynchronousGRPC listening on localhost:9001
+SynchronousGRPC listening on localhost:9090
+```
