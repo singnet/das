@@ -11,15 +11,15 @@ if [ -d "$HOME/.nunet" ]; then
   fi
 fi
 
-if command -v nunet-cli &> /dev/null; then
-  echo "'nunet-cli' binary is installed. Do you want to uninstall it? (y/n)"
+if command -v nunet &> /dev/null; then
+  echo "'nunet' binary is installed. Do you want to uninstall it? (y/n)"
   read -r response
   if [[ "$response" == "y" || "$response" == "Y" ]]; then
-    sudo apt-get remove --purge nunet-cli -y
-    echo "'nunet-cli' uninstalled."
+    sudo apt-get remove --purge nunet-dms -y
+    echo "'nunet-dms' uninstalled."
   else
-    echo "'nunet-cli' not uninstalled."
+    echo "'nunet' not uninstalled."
   fi
 else
-  echo "'nunet-cli' binary is not installed."
+  echo "'nunet' binary is not installed."
 fi
