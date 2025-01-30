@@ -19,7 +19,7 @@ This will generate the binaries for all components in the `das/src/bin` director
 - To run the Attention Broker Service, simply execute the following command:
 
 ```bash
-make attention-broker
+make run-attention-broker
 ```
 - The default port for the Attention Broker is `37007`.
 - If successful, you should see a message like this:

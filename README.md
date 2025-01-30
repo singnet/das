@@ -9,16 +9,16 @@ DAS consists of several components. Below is a list of these components, categor
 ### **Internal Components**
 The following components are included in this repository:  
 
+- **Attention Broker**
+  A DAS component that tracks atom importance values in different contexts and updates those values based on user queries using context-specific Hebbian networks.  
+
+  Documentation: [Read more](src/cpp/attention_broker/README.md)
+
 - **Query Agent**
 
   C++ server which perform Pattern Matching queries.
 
   Documentation: [Read more](src/cpp/query_engine/README.md)
-
-- **Attention Broker**
-  A DAS component that tracks atom importance values in different contexts and updates those values based on user queries using context-specific Hebbian networks.  
-
-  Documentation: [Read more](src/cpp/attention_broker/README.md)
 
 - **Link Creation Agent**
   A C++ server that performs pattern-matching queries and creates new links in the Atomspace based on the results.  
@@ -92,7 +92,13 @@ To build the agents, run the command:
 make build
 ```
 
-This process will generate the binaries for all components in the `das/src/bin` directory. For detailed information about each component, please refer to the documentation provided for each component in the [**Components**](#components) section above. 
+This process will generate the binaries for all components in the `das/src/bin` directory.
+
+### **3. Initializing the Knowledge Base**
+
+Some of the components require an existing knowledge base and a properly configured environment with Redis and MongoDB. You can set up this environment using the `das-cli`. For detailed instructions, refer to the [das-toolbox documentation](https://github.com/singnet/das-toolbox).
+
+> For detailed information about each component, please refer to the documentation provided for each component in the [**Components**](#components) section above. 
 
 ## **Running the Unit Tests**  
 
