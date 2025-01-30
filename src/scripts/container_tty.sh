@@ -12,7 +12,7 @@ docker run --rm \
     --net="host" \
     --name=$CONTAINER_NAME \
     --volume /tmp:/tmp \
-    --volume .:/opt/das-attention-broker \
+    --volume .:/opt/das \
     -it das-attention-broker-builder \
     $PARAMS
 
