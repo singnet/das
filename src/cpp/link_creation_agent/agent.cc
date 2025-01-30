@@ -4,6 +4,7 @@
 #include <sstream>
 
 #include "RemoteIterator.h"
+// #include "link_create_template.h"
 
 using namespace std;
 using namespace link_creation_agent;
@@ -49,6 +50,7 @@ void LinkCreationAgent::run() {
     int current_buffer_position = 0;
     while (true) {
         if(is_stoping) break;
+        // cout << "LinkCreationAgent running" << endl;
         LinkCreationAgentRequest* lca_request = NULL;
         bool is_from_buffer = false;
         if (!link_creation_node_server->is_query_empty()) {
@@ -186,6 +188,18 @@ LinkCreationAgentRequest* LinkCreationAgent::create_request(vector<string> reque
             }
         }
         lca_request->infinite = (lca_request->repeat == -1);
+
+        // auto link_template = new LinkCreateTemplate(lca_request->link_template);
+
+        // for(auto target : link_template->get_targets()){
+        //     if (holds_alternative<Node>(target)) {
+        //         Node node = get<Node>(target);
+        //         cout << "Node: " << node.type << " " << node.value << endl;
+        //     } else {
+        //         shared_ptr<LinkCreateTemplate> sub_link = get<shared_ptr<LinkCreateTemplate>>(target);
+        //         cout << "Sub Link: " << sub_link->get_link_type() << endl;
+        //     }
+        // }
 
         return lca_request;
     } catch (exception& e) {
