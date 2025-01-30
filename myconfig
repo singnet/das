@@ -1,0 +1,8 @@
+requests_interval_seconds = 10
+link_creation_agent_thread_count = 5
+query_agent_server_id = localhost:35700
+query_agent_client_id = localhost:9001
+link_creation_agent_server_id = localhost:9080
+das_agent_client_id = localhost:9090
+das_agent_server_id = localhost:9091
+requests_buffer_file = ./buffer
