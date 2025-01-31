@@ -1,6 +1,6 @@
 #!/bin/bash
 
-CONTAINER_NAME="das-attention-broker-bash"
+CONTAINER_NAME="das-builder-bash"
 
 PARAMS="bash"
 
@@ -13,7 +13,7 @@ docker run --rm \
     --name=$CONTAINER_NAME \
     --volume /tmp:/tmp \
     --volume .:/opt/das \
-    -it das-attention-broker-builder \
+    -it das-builder \
     $PARAMS
 
 sleep 1

@@ -1,6 +1,6 @@
 #!/bin/bash
 
-IMAGE_NAME="das-attention-broker-builder"
+IMAGE_NAME="das-builder"
 CONTAINER_NAME=${IMAGE_NAME}-container
 
 # local paths

@@ -12,7 +12,7 @@ docker run \
     --volume .:/opt/das \
     --workdir /opt/das \
     $ENV_VARS \
-    das-attention-broker-builder \
+    das-builder \
     "src/bin/$CONTAINER_NAME" "$@"
 
 sleep 1
