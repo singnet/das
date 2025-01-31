@@ -3,7 +3,7 @@ FROM ubuntu:22.04
 ARG BASE_DIR="/opt"
 ARG TMP_DIR="/tmp"
 
-ARG ATTENTION_BROKER_DIR="${BASE_DIR}/das-attention-broker"
+ARG DAS_DIR="${BASE_DIR}/das"
 ARG DATA_DIR="${BASE_DIR}/data"
 ARG GRPC_DIR="${BASE_DIR}/grpc"
 ARG PROTO_DIR="${BASE_DIR}/proto"
@@ -11,7 +11,7 @@ ARG BAZEL_DIR="${BASE_DIR}/bazel"
 ARG THIRD_PARTY="${BASE_DIR}/3rd-party"
 
 RUN mkdir -p \
-    ${ATTENTION_BROKER_DIR} \
+    ${DAS_DIR} \
     ${DATA_DIR} \
     ${GRPC_DIR} \
     ${BAZEL_DIR} \
@@ -28,8 +28,8 @@ COPY assets/3rd-party.tgz ${THIRD_PARTY}
 RUN cd ${THIRD_PARTY} \
     && tar xzvf 3rd-party.tgz \
     && rm -f 3rd-party.tgz \
-    && mkdir -p ${ATTENTION_BROKER_DIR}/src/3rd-party \
-    && ln -s ${THIRD_PARTY} ${ATTENTION_BROKER_DIR}/src/3rd-party \
+    && mkdir -p ${DAS_DIR}/src/3rd-party \
+    && ln -s ${THIRD_PARTY} ${DAS_DIR}/src/3rd-party \
     && mv bazelisk ${BAZEL_DIR}
 
 ENV CPLUS_INCLUDE_PATH="/opt/3rd-party/mbedcrypto/include/"
@@ -72,4 +72,4 @@ RUN useradd -ms /bin/bash builder
 ################################################################################
 
 
-WORKDIR /opt/das-attention-broker
+WORKDIR ${DAS_DIR}

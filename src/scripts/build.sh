@@ -1,6 +1,6 @@
 #!/bin/bash
 
-IMAGE_NAME="das-attention-broker-builder"
+IMAGE_NAME="das-builder"
 CONTAINER_NAME=${IMAGE_NAME}-container
 
 # local paths
@@ -12,7 +12,7 @@ LOCAL_PIPTOOLS_CACHE=$LOCAL_WORKDIR/docker/volumes/cache/pip-tools
 mkdir -p $LOCAL_BAZEL_CACHE $LOCAL_BAZELISK_CACHE $LOCAL_BIN_DIR $LOCAL_PIPTOOLS_CACHE
 
 # container paths
-CONTAINER_WORKDIR=/opt/das-attention-broker
+CONTAINER_WORKDIR=/opt/das
 CONTAINER_BIN_DIR=$CONTAINER_WORKDIR/bin
 CONTAINER_BAZEL_CACHE=/home/${USER}/.cache/bazel
 CONTAINER_PIPTOOLS_CACHE=/home/${USER}/.cache/pip-tools

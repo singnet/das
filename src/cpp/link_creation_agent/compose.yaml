@@ -67,7 +67,7 @@ services:
 
   das-attention-broker:
     working_dir: /opt
-    image: das-attention-broker-builder
+    image: das-builder
     container_name: test-das-attention-broker
     command: ./bin/attention_broker_service 37007
     ports:
@@ -91,7 +91,7 @@ services:
 
   das-query-agent:
     working_dir: /opt
-    image: das-attention-broker-builder
+    image: das-builder
     container_name: test-das-query-agent-node
     command: ./bin/query_broker 35700
     ports:
@@ -115,7 +115,7 @@ services:
     network_mode: host
 
   das-link-create-agent:
-    image: das-attention-broker-builder
+    image: das-builder
     container_name: test-das-link-create-agent-node
     working_dir: /opt
     command: ./bin/link_creation_server --type server --config_file /tmp/config

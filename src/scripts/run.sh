@@ -9,10 +9,10 @@ mkdir -p bin
 docker run \
     --name="$CONTAINER_NAME" \
     --network host \
-    --volume .:/opt/das-attention-broker \
-    --workdir /opt/das-attention-broker \
+    --volume .:/opt/das \
+    --workdir /opt/das \
     $ENV_VARS \
-    das-attention-broker-builder \
+    das-builder \
     "src/bin/$CONTAINER_NAME" "$@"
 
 sleep 1
