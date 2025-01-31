@@ -46,3 +46,9 @@ run-link-creation-agent:
 run-link-creation-client:
 	@bash -x src/scripts/run.sh link_creation_agent_client $(OPTIONS)
 
+setup-nunet-dms:
+	@bash -x src/scripts/setup-nunet-dms.sh
+
+reset-nunet-dms:
+	@bash -x src/scripts/reset-nunet-dms.sh
+
