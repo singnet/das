@@ -1,0 +1,36 @@
+name: Build and Publish POC Components
+
+on:
+  push:
+    paths:
+      - ".docker/poc/**"
+  workflow_dispatch:
+
+jobs:
+  build_and_publish:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        target: [attention-broker, query-agent, link-creation-agent, link-creation-client]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v4
+        with:
+          context: .docker/poc
+          file: .docker/poc/Dockerfile
+          push: true
+          target: ${{ matrix.target }}
+          tags: trueagi/das:${{ matrix.target }}-poc
