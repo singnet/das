@@ -39,7 +39,7 @@ if [ "$BUILD_BINARIES" = true ]; then
     && mv bazel-bin/query "$BIN_DIR"
 fi
 
-if [ "$BUILD_WHEELS" = true ]; then
+if [ "${?}" = "0" -a "$BUILD_WHEELS" = true ]; then
     cd "$PYTHON_WORKSPACE_DIR"
 
     $BAZELISK_CMD run --jobs ${JOBS} \
@@ -70,3 +70,5 @@ if [ "$BUILD_WHEELS" = true ]; then
         --define=ATOMDB_VERSION=0.8.11 \
     && mv bazel-bin/hyperon_das_atomdb_cpp/*.whl "$BIN_DIR"
 fi
+
+exit $?
