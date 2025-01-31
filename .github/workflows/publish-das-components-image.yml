@@ -2,9 +2,8 @@ name: Build and Publish POC Components
 
 on:
   push:
-    paths:
-      - ".docker/poc/**"
-  workflow_dispatch:
+    branches:
+      - master
 
 jobs:
   build_and_publish:
@@ -29,7 +28,7 @@ jobs:
       - name: Build and push Docker image
         uses: docker/build-push-action@v4
         with:
-          context: .docker/poc
+          context: .
           file: .docker/poc/Dockerfile
           push: true
           target: ${{ matrix.target }}
