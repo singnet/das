@@ -10,7 +10,7 @@
 #include "Terminal.h"
 #include "AtomDBSingleton.h"
 #include "AtomDBAPITypes.h"
-#include "QueryAnswer.h"
+#include "HandlesAnswer.h"
 #include "expression_hasher.h"
 #include "SharedQueue.h"
 
@@ -221,7 +221,7 @@ public:
 private:
 
     struct less_than_query_answer {
-        inline bool operator() (const QueryAnswer *qa1, const QueryAnswer *qa2) {
+        inline bool operator() (const HandlesAnswer *qa1, const HandlesAnswer *qa2) {
             // Reversed check as we want descending sort
             return (qa1->importance > qa2->importance);
         }
@@ -300,8 +300,8 @@ private:
 #ifdef DEBUG
         cout << "fetch_links() ac: " << answer_count << endl;
 #endif
-        QueryAnswer *query_answer;
-        vector<QueryAnswer *> fetched_answers;
+        HandlesAnswer *query_answer;
+        vector<HandlesAnswer *> fetched_answers;
         if (answer_count > 0) {
             dasproto::HandleList handle_list;
             handle_list.set_context(this->context);
@@ -316,11 +316,11 @@ private:
                     " Expected size: " + std::to_string(answer_count));
             }
             this->atom_document = new shared_ptr<atomdb_api_types::AtomDocument>[answer_count];
-            this->local_answers = new QueryAnswer *[answer_count];
+            this->local_answers = new HandlesAnswer *[answer_count];
             this->next_inner_answer = new unsigned int[answer_count];
             for (unsigned int i = 0; i < answer_count; i++) {
                 this->atom_document[i] = db->get_atom_document(this->fetch_result->get_handle(i));
-                query_answer = new QueryAnswer(this->fetch_result->get_handle(i), importance_list.list(i));
+                query_answer = new HandlesAnswer(this->fetch_result->get_handle(i), importance_list.list(i));
                 const char *s = this->atom_document[i]->get("targets", 0);
                 for (unsigned int j = 0; j < this->arity; j++) {
                     if (this->target_template[j]->is_terminal) {
@@ -400,8 +400,8 @@ private:
 
     bool ingest_newly_arrived_answers() {
         bool flag = false;
-        QueryAnswer *query_answer;
-        while ((query_answer = this->inner_template_iterator->pop()) != NULL) {
+        HandlesAnswer *query_answer;
+        while ((query_answer = dynamic_cast<HandlesAnswer*>(this->inner_template_iterator->pop())) != NULL) {
             this->inner_answers.push_back(query_answer);
             flag = true;
         }
@@ -411,8 +411,8 @@ private:
     void local_buffer_processor_method() {
         if (this->inner_template.size() == 0) {
             while (! (this->is_flow_finished() && this->local_buffer.empty())) {
-                QueryAnswer *query_answer;
-                while ((query_answer = (QueryAnswer *) this->local_buffer.dequeue()) != NULL) {
+                HandlesAnswer *query_answer;
+                while ((query_answer = (HandlesAnswer *) this->local_buffer.dequeue()) != NULL) {
                     this->output_buffer->add_query_answer(query_answer);
                 }
                 Utils::sleep();
@@ -484,9 +484,9 @@ private:
     shared_ptr<QueryNodeServer> target_buffer[ARITY];
     shared_ptr<Iterator> inner_template_iterator;
     shared_ptr<atomdb_api_types::AtomDocument> *atom_document;
-    QueryAnswer **local_answers;
+    HandlesAnswer **local_answers;
     unsigned int *next_inner_answer;
-    vector<QueryAnswer *> inner_answers;
+    vector<HandlesAnswer *> inner_answers;
     unsigned int local_answers_size;
     mutex local_answers_mutex;
     string context;

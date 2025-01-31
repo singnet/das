@@ -34,6 +34,6 @@ bool RemoteIterator::finished() {
         this->remote_input_buffer->is_query_answers_empty());
 }
 
-QueryAnswer *RemoteIterator::pop() {
-    return (QueryAnswer *) this->remote_input_buffer->pop_query_answer();
+HandlesAnswer *RemoteIterator::pop() {
+    return (HandlesAnswer *) this->remote_input_buffer->pop_query_answer();
 }

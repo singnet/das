@@ -4,6 +4,7 @@
 #include <queue>
 #include <cstring>
 #include "Operator.h"
+#include "HandlesAnswer.h"
 
 using namespace std;
 
@@ -71,7 +72,7 @@ private:
 
     class CandidateRecord {
         public:
-        QueryAnswer *answer[N];
+        HandlesAnswer *answer[N];
         unsigned int index[N];
         double fitness;
         CandidateRecord() {
@@ -82,7 +83,7 @@ private:
             memcpy(
                 (void *) this->answer,
                 (const void *) other.answer,
-                N * sizeof(QueryAnswer *));
+                N * sizeof(HandlesAnswer *));
         }
         CandidateRecord& operator=(const CandidateRecord &other) {
             this->fitness = other.fitness;
@@ -90,7 +91,7 @@ private:
             memcpy(
                 (void *) this->answer,
                 (const void *) other.answer,
-                N * sizeof(QueryAnswer *));
+                N * sizeof(HandlesAnswer *));
             return *this;
         }
         bool operator<(const CandidateRecord &other) const {
@@ -121,7 +122,7 @@ private:
         }
      };
 
-    vector<QueryAnswer *> query_answer[N];
+    vector<HandlesAnswer *> query_answer[N];
     unsigned int next_input_to_process[N];
     priority_queue<CandidateRecord> border;
     unordered_set<CandidateRecord, hash_function> visited;
@@ -160,11 +161,11 @@ private:
         if (this->no_more_answers_to_arrive) {
             return;
         }
-        QueryAnswer *answer;
+        HandlesAnswer *answer;
         unsigned int all_arrived_count = 0;
         bool no_new_answer = true;
         for (unsigned int i = 0; i < N; i++) {
-            while ((answer = this->input_buffer[i]->pop_query_answer()) != NULL) {
+            while ((answer = dynamic_cast<HandlesAnswer*>(this->input_buffer[i]->pop_query_answer())) != NULL) {
                 no_new_answer = false;
                 this->query_answer[i].push_back(answer);
             }
@@ -185,7 +186,7 @@ private:
     }
 
     void operate_candidate(const CandidateRecord &candidate) {
-        QueryAnswer *new_query_answer = QueryAnswer::copy(candidate.answer[0]);
+        HandlesAnswer *new_query_answer = HandlesAnswer::copy(candidate.answer[0]);
         for (unsigned int i = 1; i < N; i++) {
             if (! new_query_answer->merge(candidate.answer[i])) {
                 delete new_query_answer;

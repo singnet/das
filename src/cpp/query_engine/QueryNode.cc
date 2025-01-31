@@ -1,3 +1,4 @@
+#include "HandlesAnswer.h"
 #include "QueryNode.h"
 #include "LeadershipBroker.h"
 #include "MessageBroker.h"
@@ -6,7 +7,7 @@
 using namespace query_node;
 using namespace std;
 
-string QueryNode::QUERY_ANSWER_TOKENS_FLOW_COMMAND = "query_answer_tokens_flow";
+string QueryNode::HANDLES_ANSWER_TOKENS_FLOW_COMMAND = "handles_answer_tokens_flow";
 string QueryNode::QUERY_ANSWER_FLOW_COMMAND = "query_answer_flow";
 string QueryNode::QUERY_ANSWERS_FINISHED_COMMAND = "query_answers_finished";
 
@@ -76,8 +77,8 @@ shared_ptr<Message> QueryNode::message_factory(string &command, vector<string> &
     }
     if (command == QueryNode::QUERY_ANSWER_FLOW_COMMAND) {
         return std::shared_ptr<Message>(new QueryAnswerFlow(command, args));
-    } else if (command == QueryNode::QUERY_ANSWER_TOKENS_FLOW_COMMAND) {
-        return std::shared_ptr<Message>(new QueryAnswerTokensFlow(command, args));
+    } else if (command == QueryNode::HANDLES_ANSWER_TOKENS_FLOW_COMMAND) {
+        return std::shared_ptr<Message>(new HandlesAnswerTokensFlow(command, args));
     } else if (command == QueryNode::QUERY_ANSWERS_FINISHED_COMMAND) {
         return std::shared_ptr<Message>(new QueryAnswersFinished(command, args));
     }
@@ -154,7 +155,7 @@ void QueryNodeClient::query_answer_processor_method() {
             }
         } else {
             if (this->requires_serialization) {
-                this->send(QueryNode::QUERY_ANSWER_TOKENS_FLOW_COMMAND, args, this->server_id);
+                this->send(QueryNode::HANDLES_ANSWER_TOKENS_FLOW_COMMAND, args, this->server_id);
             } else {
                 this->send(QueryNode::QUERY_ANSWER_FLOW_COMMAND, args, this->server_id);
             }
@@ -208,18 +209,18 @@ void QueryAnswerFlow::act(shared_ptr<MessageFactory> node) {
     }
 }
 
-QueryAnswerTokensFlow::QueryAnswerTokensFlow(string command, vector<string> &args) {
+HandlesAnswerTokensFlow::HandlesAnswerTokensFlow(string command, vector<string> &args) {
     for (auto tokens: args) {
         this->query_answers_tokens.push_back(tokens);
     }
 }
 
-void QueryAnswerTokensFlow::act(shared_ptr<MessageFactory> node) {
+void HandlesAnswerTokensFlow::act(shared_ptr<MessageFactory> node) {
     auto query_node = dynamic_pointer_cast<QueryNodeServer>(node);
     for (auto tokens: this->query_answers_tokens) {
-        QueryAnswer *query_answer = new QueryAnswer();
-        query_answer->untokenize(tokens);
-        query_node->add_query_answer(query_answer);
+        HandlesAnswer *handles_answer = new HandlesAnswer();
+        handles_answer->untokenize(tokens);
+        query_node->add_query_answer(handles_answer);
     }
 }
 

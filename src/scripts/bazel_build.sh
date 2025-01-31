@@ -23,6 +23,8 @@ cd $CPP_WORKSPACE_DIR \
       --define=ATOMDB_VERSION=0.8.11 \
 && mv bazel-bin/hyperon_das_atomdb_cpp/*.whl "$BIN_DIR"
 
+exit $?
+
 # Python build
 cd "$PYTHON_WORKSPACE_DIR"
 

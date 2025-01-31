@@ -4,6 +4,7 @@
 #include "RemoteSink.h"
 #include "AtomDBSingleton.h"
 #include "AtomDBAPITypes.h"
+#include "HandlesAnswer.h"
 
 #include "AttentionBrokerServer.h"
 #include "attention_broker.grpc.pb.h"
@@ -107,12 +108,12 @@ void RemoteSink::queue_processor_method() {
             break;
         }
         bool idle_flag = true;
-        QueryAnswer *query_answer;
-        while ((query_answer = this->input_buffer->pop_query_answer()) != NULL) {
-            this->remote_output_buffer->add_query_answer(query_answer);
+        HandlesAnswer *handles_answer;
+        while ((handles_answer = dynamic_cast<HandlesAnswer*>(this->input_buffer->pop_query_answer())) != NULL) {
+            this->remote_output_buffer->add_query_answer(handles_answer);
             if (this->update_attention_broker_flag) {
-                this->attention_broker_queue.enqueue((void *) query_answer);
-                //update_attention_broker((QueryAnswer *) query_answer);
+                this->attention_broker_queue.enqueue((void *) handles_answer);
+                //update_attention_broker((QueryAnswer *) handles_answer);
             }
             idle_flag = false;
         }
@@ -175,10 +176,10 @@ void RemoteSink::attention_broker_postprocess_method() {
             break;
         }
         bool idle_flag = true;
-        QueryAnswer *query_answer;
+        HandlesAnswer *handles_answer;
         string handle;
         unsigned int count;
-        while ((query_answer = (QueryAnswer *) this->attention_broker_queue.dequeue()) != NULL) {
+        while ((handles_answer = (HandlesAnswer *) this->attention_broker_queue.dequeue()) != NULL) {
             if (stimulated_count == MAX_STIMULATE_COUNT) {
                 continue;
             }
@@ -188,8 +189,8 @@ void RemoteSink::attention_broker_postprocess_method() {
                 cout << "RemoteSink::attention_broker_postprocess_method() count_total_processed: " << count_total_processed << endl;
             }
 #endif
-            for (unsigned int i = 0; i < query_answer->handles_size; i++) {
-                execution_stack.push(string(query_answer->handles[i]));
+            for (unsigned int i = 0; i < handles_answer->handles_size; i++) {
+                execution_stack.push(string(handles_answer->handles[i]));
             }
             while (! execution_stack.empty()) {
                 handle = execution_stack.top();

@@ -36,7 +36,7 @@ public:
     virtual void query_answer_processor_method() = 0;
 
     static string QUERY_ANSWER_FLOW_COMMAND;
-    static string QUERY_ANSWER_TOKENS_FLOW_COMMAND;
+    static string HANDLES_ANSWER_TOKENS_FLOW_COMMAND;
     static string QUERY_ANSWERS_FINISHED_COMMAND;
 
 protected:
@@ -99,11 +99,11 @@ private:
     vector<QueryAnswer *> query_answers;
 };
 
-class QueryAnswerTokensFlow : public Message {
+class HandlesAnswerTokensFlow : public Message {
 
 public:
 
-    QueryAnswerTokensFlow(string command, vector<string> &args);
+    HandlesAnswerTokensFlow(string command, vector<string> &args);
     void act(shared_ptr<MessageFactory> node);
 
 private:
