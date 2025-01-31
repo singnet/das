@@ -37,6 +37,6 @@ ENTRYPOINT [ "link_creation_server" ]
 # Build Link Creation Agent
 FROM trueagi/das:22.04-builder AS link-creation-client
 
-COPY --from=builder /opt/das/bin/link_creation_client /usr/local/bin
+COPY --from=builder /opt/das/bin/link_creation_agent_client /usr/local/bin
 
-ENTRYPOINT [ "link_creation_client" ]
+ENTRYPOINT [ "link_creation_agent_client" ]
