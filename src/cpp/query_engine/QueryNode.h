@@ -37,6 +37,7 @@ public:
 
     static string QUERY_ANSWER_FLOW_COMMAND;
     static string HANDLES_ANSWER_TOKENS_FLOW_COMMAND;
+    static string COUNT_ANSWER_TOKENS_FLOW_COMMAND;
     static string QUERY_ANSWERS_FINISHED_COMMAND;
 
 protected:
@@ -104,6 +105,18 @@ class HandlesAnswerTokensFlow : public Message {
 public:
 
     HandlesAnswerTokensFlow(string command, vector<string> &args);
+    void act(shared_ptr<MessageFactory> node);
+
+private:
+
+    vector<string> query_answers_tokens;
+};
+
+class CountAnswerTokensFlow : public Message {
+
+public:
+
+    CountAnswerTokensFlow(string command, vector<string> &args);
     void act(shared_ptr<MessageFactory> node);
 
 private:

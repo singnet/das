@@ -2,7 +2,7 @@
 #define _QUERY_ELEMENT_REMOTEITERATOR_H
 
 #include "QueryElement.h"
-#include "HandlesAnswer.h"
+#include "QueryAnswer.h"
 
 using namespace std;
 
@@ -65,7 +65,7 @@ public:
      *
      * @return the next query answer or NULL if none are currently available.
      */
-    HandlesAnswer *pop();
+    QueryAnswer *pop();
 
 private:
 

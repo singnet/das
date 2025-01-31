@@ -5,6 +5,7 @@
 #include "AtomDBSingleton.h"
 #include "AtomDBAPITypes.h"
 #include "HandlesAnswer.h"
+#include "CountAnswer.h"
 
 #include "AttentionBrokerServer.h"
 #include "attention_broker.grpc.pb.h"
@@ -27,7 +28,8 @@ RemoteSink::RemoteSink(
     const string &remote_id,
     bool update_attention_broker_flag,
     const string &context,
-    bool delete_precedent_on_destructor) : 
+    bool delete_precedent_on_destructor,
+    bool count_only) : 
     Sink(precedent, "RemoteSink(" + precedent->id + ")", delete_precedent_on_destructor, false) {
 #ifdef DEBUG
     cout << "RemoteSink::RemoteSink() BEGIN" << endl;
@@ -39,6 +41,7 @@ RemoteSink::RemoteSink(
     this->query_context = context;
     this->local_id = local_id;
     this->remote_id = remote_id;
+    this->count_only = count_only;
     this->queue_processor = NULL;
     this->attention_broker_postprocess = NULL;
     this->update_attention_broker_flag = update_attention_broker_flag;
@@ -100,6 +103,7 @@ void RemoteSink::queue_processor_method() {
 #ifdef DEBUG
     cout << "RemoteSink::queue_processor_method() BEGIN" << endl;
 #endif
+    int count = 0;
     do {
         if (is_flow_finished() || 
            (this->input_buffer->is_query_answers_finished() && 
@@ -110,7 +114,11 @@ void RemoteSink::queue_processor_method() {
         bool idle_flag = true;
         HandlesAnswer *handles_answer;
         while ((handles_answer = dynamic_cast<HandlesAnswer*>(this->input_buffer->pop_query_answer())) != NULL) {
-            this->remote_output_buffer->add_query_answer(handles_answer);
+            if (this->count_only) {
+                count++;
+            } else {
+                this->remote_output_buffer->add_query_answer(handles_answer);
+            }
             if (this->update_attention_broker_flag) {
                 this->attention_broker_queue.enqueue((void *) handles_answer);
                 //update_attention_broker((QueryAnswer *) handles_answer);
@@ -121,6 +129,9 @@ void RemoteSink::queue_processor_method() {
             Utils::sleep();
         }
     } while (true);
+    if (this->count_only) {
+        this->remote_output_buffer->add_query_answer(new CountAnswer(count));
+    }
 #ifdef DEBUG
     cout << "RemoteSink::queue_processor_method() ready to return" << endl;
 #endif

@@ -24,8 +24,12 @@ public:
      * @param local_id ID of this element in the network connecting to the remote
      *        peer (typically "host:port").
      * @param remote_id network ID of the remote peer (typically "host:port").
+     * @param update_attention_broker_flag If true, the query results will be sent to the
+     *       AttentionBroker for sorting by importance.
+     * @param context Context of the query.
      * @param delete_precedent_on_destructor If true, the destructor of this QueryElement will
      *        also destruct the passed precedent QueryElement (defaulted to false).
+     * @param count_only If true, the query results will be counted only and not forwarded.
      */
     RemoteSink(
         QueryElement *precedent, 
@@ -33,7 +37,8 @@ public:
         const string &remote_id,
         bool update_attention_broker_flag = false,
         const string &context = "",
-        bool delete_precedent_on_destructor = false);
+        bool delete_precedent_on_destructor = false,
+        bool count_only = false);
 
     /**
      * Destructor.
@@ -67,6 +72,7 @@ private:
     shared_ptr<QueryNode> remote_output_buffer;
     string local_id;
     string remote_id;
+    bool count_only;
     thread *queue_processor;
     thread *attention_broker_postprocess;
     SharedQueue attention_broker_queue;

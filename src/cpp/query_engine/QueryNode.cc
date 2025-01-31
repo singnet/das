@@ -1,4 +1,5 @@
 #include "HandlesAnswer.h"
+#include "CountAnswer.h"
 #include "QueryNode.h"
 #include "LeadershipBroker.h"
 #include "MessageBroker.h"
@@ -8,6 +9,7 @@ using namespace query_node;
 using namespace std;
 
 string QueryNode::HANDLES_ANSWER_TOKENS_FLOW_COMMAND = "handles_answer_tokens_flow";
+string QueryNode::COUNT_ANSWER_TOKENS_FLOW_COMMAND = "count_answer_tokens_flow";
 string QueryNode::QUERY_ANSWER_FLOW_COMMAND = "query_answer_flow";
 string QueryNode::QUERY_ANSWERS_FINISHED_COMMAND = "query_answers_finished";
 
@@ -79,6 +81,8 @@ shared_ptr<Message> QueryNode::message_factory(string &command, vector<string> &
         return std::shared_ptr<Message>(new QueryAnswerFlow(command, args));
     } else if (command == QueryNode::HANDLES_ANSWER_TOKENS_FLOW_COMMAND) {
         return std::shared_ptr<Message>(new HandlesAnswerTokensFlow(command, args));
+    } else if (command == QueryNode::COUNT_ANSWER_TOKENS_FLOW_COMMAND) {
+        return std::shared_ptr<Message>(new CountAnswerTokensFlow(command, args));
     } else if (command == QueryNode::QUERY_ANSWERS_FINISHED_COMMAND) {
         return std::shared_ptr<Message>(new QueryAnswersFinished(command, args));
     }
@@ -136,11 +140,17 @@ void QueryNodeServer::query_answer_processor_method() {
 
 void QueryNodeClient::query_answer_processor_method() {
     QueryAnswer *query_answer;
+    string tokens_command;
     vector<string> args;
     bool answers_finished_flag = false;
     while (! is_shutting_down()) {
         while ((query_answer = (QueryAnswer *) this->query_answer_queue.dequeue()) != NULL) {
             if (this->requires_serialization) {
+                if (dynamic_cast<HandlesAnswer*>(query_answer)) {
+                    tokens_command = QueryNode::HANDLES_ANSWER_TOKENS_FLOW_COMMAND;
+                } else if (dynamic_cast<CountAnswer*>(query_answer)) {
+                    tokens_command = QueryNode::COUNT_ANSWER_TOKENS_FLOW_COMMAND;
+                }
                 string tokens = query_answer->tokenize();
                 args.push_back(tokens);
             } else {
@@ -155,7 +165,7 @@ void QueryNodeClient::query_answer_processor_method() {
             }
         } else {
             if (this->requires_serialization) {
-                this->send(QueryNode::HANDLES_ANSWER_TOKENS_FLOW_COMMAND, args, this->server_id);
+                this->send(tokens_command, args, this->server_id);
             } else {
                 this->send(QueryNode::QUERY_ANSWER_FLOW_COMMAND, args, this->server_id);
             }
@@ -221,6 +231,21 @@ void HandlesAnswerTokensFlow::act(shared_ptr<MessageFactory> node) {
         HandlesAnswer *handles_answer = new HandlesAnswer();
         handles_answer->untokenize(tokens);
         query_node->add_query_answer(handles_answer);
+    }
+}
+
+CountAnswerTokensFlow::CountAnswerTokensFlow(string command, vector<string> &args) {
+    for (auto tokens: args) {
+        this->query_answers_tokens.push_back(tokens);
+    }
+}
+
+void CountAnswerTokensFlow::act(shared_ptr<MessageFactory> node) {
+    auto query_node = dynamic_pointer_cast<QueryNodeServer>(node);
+    for (auto tokens: this->query_answers_tokens) {
+        CountAnswer *count_answer = new CountAnswer();
+        count_answer->untokenize(tokens);
+        query_node->add_query_answer(count_answer);
     }
 }
 

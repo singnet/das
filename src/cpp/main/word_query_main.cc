@@ -5,7 +5,9 @@
 
 #include "DASNode.h"
 #include "RemoteIterator.h"
+#include "RemoteCountIterator.h"
 #include "HandlesAnswer.h"
+#include "CountAnswer.h"
 #include "AtomDBSingleton.h"
 #include "AtomDB.h"
 #include "Utils.h"
@@ -119,6 +121,13 @@ void run(
     };
 
     DASNode client(client_id, server_id);
+    
+    int query_count = client.count_query(query_word, context, true);
+    Utils::sleep();
+    cout << "Count: " << query_count << endl;
+    Utils::sleep();
+    return;
+
     HandlesAnswer *query_answer;
     unsigned int count = 0;
     RemoteIterator *response = client.pattern_matcher_query(query_word, context, true);
@@ -126,7 +135,7 @@ void run(
     shared_ptr<atomdb_api_types::AtomDocument> sentence_name_document;
     vector<string> sentences;
     while (! response->finished()) {
-        if ((query_answer = response->pop()) == NULL) {
+        if ((query_answer = dynamic_cast<HandlesAnswer*>(response->pop())) == NULL) {
             Utils::sleep();
         } else {
             //cout << "------------------------------------------" << endl;

@@ -1,39 +1,39 @@
-#include "RemoteIterator.h"
+#include "RemoteCountIterator.h"
 
 using namespace query_element;
 
 // ------------------------------------------------------------------------------------------------
 // Constructors and destructors
 
-RemoteIterator::RemoteIterator(const string &local_id) {
+RemoteCountIterator::RemoteCountIterator(const string &local_id) {
     this->local_id = local_id;
     setup_buffers();
 }
 
-RemoteIterator::~RemoteIterator() {
+RemoteCountIterator::~RemoteCountIterator() {
     graceful_shutdown();
 }
 
 // -------------------------------------------------------------------------------------------------
 // Public methods
 
-void RemoteIterator::setup_buffers() {
+void RemoteCountIterator::setup_buffers() {
     this->remote_input_buffer = shared_ptr<QueryNode>(new QueryNodeServer(
         this->local_id,
         MessageBrokerType::GRPC));
 }
 
-void RemoteIterator::graceful_shutdown() {
+void RemoteCountIterator::graceful_shutdown() {
     this->remote_input_buffer->graceful_shutdown();
 }
 
-bool RemoteIterator::finished() {
+bool RemoteCountIterator::finished() {
     // The order of the AND clauses below matters
     return (
         this->remote_input_buffer->is_query_answers_finished() &&
         this->remote_input_buffer->is_query_answers_empty());
 }
 
-QueryAnswer *RemoteIterator::pop() {
-    return (QueryAnswer *) this->remote_input_buffer->pop_query_answer();
+CountAnswer *RemoteCountIterator::pop() {
+    return (CountAnswer *) this->remote_input_buffer->pop_query_answer();
 }

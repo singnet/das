@@ -1,29 +1,32 @@
-#include <array>
 #include "DASNode.h"
+
+#include <array>
+
 #include "LinkTemplate.h"
-#include "Terminal.h"
 #include "Or.h"
+#include "RemoteCountSink.h"
 #include "RemoteSink.h"
+#include "Terminal.h"
 
 using namespace query_engine;
 
 string DASNode::PATTERN_MATCHING_QUERY = "pattern_matching_query";
+string DASNode::COUNTING_QUERY = "counting_query";
 
 // -------------------------------------------------------------------------------------------------
 // Constructors and destructors
 
-DASNode::DASNode(const string &node_id) : StarNode(node_id) {
+DASNode::DASNode(const string& node_id) : StarNode(node_id) {
     initialize();
     // SERVER
 }
 
-DASNode::DASNode(const string &node_id, const string &server_id) : StarNode(node_id, server_id) {
+DASNode::DASNode(const string& node_id, const string& server_id) : StarNode(node_id, server_id) {
     initialize();
     // CLIENT
 }
 
-DASNode::~DASNode() {
-}
+DASNode::~DASNode() {}
 
 void DASNode::initialize() {
     this->first_query_port = 60000;
@@ -31,24 +34,24 @@ void DASNode::initialize() {
     string id = this->node_id();
     this->local_host = id.substr(0, id.find(":"));
     if (this->is_server) {
-        this->next_query_port = this->first_query_port; 
+        this->next_query_port = this->first_query_port;
     } else {
-        this->next_query_port = (this->first_query_port + this->last_query_port) / 2; 
+        this->next_query_port = (this->first_query_port + this->last_query_port) / 2;
     }
 }
 
 // -------------------------------------------------------------------------------------------------
 // Public client API
 
-RemoteIterator *DASNode::pattern_matcher_query(
-    const vector<string> &tokens, 
-    const string &context,
-    bool update_attention_broker) {
+RemoteIterator* DASNode::pattern_matcher_query(const vector<string>& tokens,
+                                               const string& context,
+                                               bool update_attention_broker) {
 #ifdef DEBUG
     cout << "DASNode::pattern_matcher_query() BEGIN" << endl;
     cout << "DASNode::pattern_matcher_query() tokens.size(): " << tokens.size() << endl;
     cout << "DASNode::pattern_matcher_query() context: " << context << endl;
-    cout << "DASNode::pattern_matcher_query() update_attention_broker: " << update_attention_broker << endl;
+    cout << "DASNode::pattern_matcher_query() update_attention_broker: " << update_attention_broker
+         << endl;
 #endif
     if (this->is_server) {
         Utils::error("pattern_matcher_query() is not available in DASNode server.");
@@ -64,6 +67,37 @@ RemoteIterator *DASNode::pattern_matcher_query(
     return new RemoteIterator(query_id);
 }
 
+int DASNode::count_query(const vector<string>& tokens,
+                         const string& context,
+                         bool update_attention_broker) {
+#ifdef DEBUG
+    cout << "DASNode::count_query() BEGIN" << endl;
+    cout << "DASNode::count_query() tokens.size(): " << tokens.size() << endl;
+    cout << "DASNode::count_query() context: " << context << endl;
+    cout << "DASNode::count_query() update_attention_broker: " << update_attention_broker << endl;
+#endif
+    if (this->is_server) {
+        Utils::error("count_query() is not available in DASNode server.");
+    }
+    string query_id = next_query_id();
+    vector<string> args = {query_id, context, std::to_string(update_attention_broker)};
+    args.insert(args.end(), tokens.begin(), tokens.end());
+    send(COUNTING_QUERY, args, this->server_id);
+
+    CountAnswer* count_answer;
+    auto count_iterator = make_unique<RemoteIterator>(query_id);
+    while (not count_iterator->finished()) {
+        if ((count_answer = dynamic_cast<CountAnswer*>(count_iterator->pop())) != nullptr) {
+            return count_answer->get_count();
+        }
+        Utils::sleep();
+    }
+
+#ifdef DEBUG
+    cout << "DASNode::count_query() END" << endl;
+#endif
+}
+
 // -------------------------------------------------------------------------------------------------
 // Public generic methods
 
@@ -71,14 +105,14 @@ string DASNode::next_query_id() {
     unsigned int port = this->next_query_port++;
     unsigned int limit;
     if (this->is_server) {
-        limit = ((this->first_query_port + this->last_query_port) / 2) - 1; 
+        limit = ((this->first_query_port + this->last_query_port) / 2) - 1;
         if (this->next_query_port > limit) {
             this->next_query_port = this->first_query_port;
         }
     } else {
-        limit = this->last_query_port; 
+        limit = this->last_query_port;
         if (this->next_query_port > limit) {
-            this->next_query_port = (this->first_query_port + this->last_query_port) / 2; 
+            this->next_query_port = (this->first_query_port + this->last_query_port) / 2;
         }
     }
 #ifdef DEBUG
@@ -90,30 +124,31 @@ string DASNode::next_query_id() {
 // -------------------------------------------------------------------------------------------------
 // Messages
 
-shared_ptr<Message> DASNode::message_factory(string &command, vector<string> &args) {
+shared_ptr<Message> DASNode::message_factory(string& command, vector<string>& args) {
     std::shared_ptr<Message> message = DistributedAlgorithmNode::message_factory(command, args);
     if (message) {
         return message;
     }
     if (command == DASNode::PATTERN_MATCHING_QUERY) {
         return std::shared_ptr<Message>(new PatternMatchingQuery(command, args));
+    } else if (command == DASNode::COUNTING_QUERY) {
+        return std::shared_ptr<Message>(new CountingQuery(command, args));
     }
     return std::shared_ptr<Message>{};
 }
 
-QueryElement *PatternMatchingQuery::build_link_template(
-    vector<string> &tokens, 
-    unsigned int cursor,
-    stack<QueryElement *> &element_stack) {
-
+QueryElement* PatternMatchingQuery::build_link_template(vector<string>& tokens,
+                                                        unsigned int cursor,
+                                                        stack<QueryElement*>& element_stack) {
     unsigned int arity = std::stoi(tokens[cursor + 2]);
     if (element_stack.size() < arity) {
-        Utils::error("PatternMatchingQuery message: parse error in tokens - too few arguments for LINK_TEMPLATE");
+        Utils::error(
+            "PatternMatchingQuery message: parse error in tokens - too few arguments for LINK_TEMPLATE");
     }
     switch (arity) {
         // TODO: consider replacing each "case" below by a pre-processor macro call
         case 1: {
-            array<QueryElement *, 1> targets;
+            array<QueryElement*, 1> targets;
             for (unsigned int i = 0; i < 1; i++) {
                 targets[i] = element_stack.top();
                 element_stack.pop();
@@ -121,7 +156,7 @@ QueryElement *PatternMatchingQuery::build_link_template(
             return new LinkTemplate<1>(tokens[cursor + 1], targets, this->context);
         }
         case 2: {
-            array<QueryElement *, 2> targets;
+            array<QueryElement*, 2> targets;
             for (unsigned int i = 0; i < 2; i++) {
                 targets[i] = element_stack.top();
                 element_stack.pop();
@@ -129,7 +164,7 @@ QueryElement *PatternMatchingQuery::build_link_template(
             return new LinkTemplate<2>(tokens[cursor + 1], targets, this->context);
         }
         case 3: {
-            array<QueryElement *, 3> targets;
+            array<QueryElement*, 3> targets;
             for (unsigned int i = 0; i < 3; i++) {
                 targets[i] = element_stack.top();
                 element_stack.pop();
@@ -137,7 +172,7 @@ QueryElement *PatternMatchingQuery::build_link_template(
             return new LinkTemplate<3>(tokens[cursor + 1], targets, this->context);
         }
         case 4: {
-            array<QueryElement *, 4> targets;
+            array<QueryElement*, 4> targets;
             for (unsigned int i = 0; i < 4; i++) {
                 targets[i] = element_stack.top();
                 element_stack.pop();
@@ -145,7 +180,7 @@ QueryElement *PatternMatchingQuery::build_link_template(
             return new LinkTemplate<4>(tokens[cursor + 1], targets, this->context);
         }
         case 5: {
-            array<QueryElement *, 5> targets;
+            array<QueryElement*, 5> targets;
             for (unsigned int i = 0; i < 5; i++) {
                 targets[i] = element_stack.top();
                 element_stack.pop();
@@ -153,7 +188,7 @@ QueryElement *PatternMatchingQuery::build_link_template(
             return new LinkTemplate<5>(tokens[cursor + 1], targets, this->context);
         }
         case 6: {
-            array<QueryElement *, 6> targets;
+            array<QueryElement*, 6> targets;
             for (unsigned int i = 0; i < 6; i++) {
                 targets[i] = element_stack.top();
                 element_stack.pop();
@@ -161,7 +196,7 @@ QueryElement *PatternMatchingQuery::build_link_template(
             return new LinkTemplate<6>(tokens[cursor + 1], targets, this->context);
         }
         case 7: {
-            array<QueryElement *, 7> targets;
+            array<QueryElement*, 7> targets;
             for (unsigned int i = 0; i < 7; i++) {
                 targets[i] = element_stack.top();
                 element_stack.pop();
@@ -169,7 +204,7 @@ QueryElement *PatternMatchingQuery::build_link_template(
             return new LinkTemplate<7>(tokens[cursor + 1], targets, this->context);
         }
         case 8: {
-            array<QueryElement *, 8> targets;
+            array<QueryElement*, 8> targets;
             for (unsigned int i = 0; i < 8; i++) {
                 targets[i] = element_stack.top();
                 element_stack.pop();
@@ -177,7 +212,7 @@ QueryElement *PatternMatchingQuery::build_link_template(
             return new LinkTemplate<8>(tokens[cursor + 1], targets, this->context);
         }
         case 9: {
-            array<QueryElement *, 9> targets;
+            array<QueryElement*, 9> targets;
             for (unsigned int i = 0; i < 9; i++) {
                 targets[i] = element_stack.top();
                 element_stack.pop();
@@ -185,7 +220,7 @@ QueryElement *PatternMatchingQuery::build_link_template(
             return new LinkTemplate<9>(tokens[cursor + 1], targets, this->context);
         }
         case 10: {
-            array<QueryElement *, 10> targets;
+            array<QueryElement*, 10> targets;
             for (unsigned int i = 0; i < 10; i++) {
                 targets[i] = element_stack.top();
                 element_stack.pop();
@@ -196,15 +231,12 @@ QueryElement *PatternMatchingQuery::build_link_template(
             Utils::error("PatternMatchingQuery message: max supported arity for LINK_TEMPLATE: 10");
         }
     }
-    return NULL; // Just to avoid warnings. This is not actually reachable.
+    return NULL;  // Just to avoid warnings. This is not actually reachable.
 }
 
-
-QueryElement *PatternMatchingQuery::build_and(
-    vector<string> &tokens, 
-    unsigned int cursor,
-    stack<QueryElement *> &element_stack) {
-
+QueryElement* PatternMatchingQuery::build_and(vector<string>& tokens,
+                                              unsigned int cursor,
+                                              stack<QueryElement*>& element_stack) {
     unsigned int num_clauses = std::stoi(tokens[cursor + 1]);
     if (element_stack.size() < num_clauses) {
         Utils::error("PatternMatchingQuery message: parse error in tokens - too few arguments for AND");
@@ -212,7 +244,7 @@ QueryElement *PatternMatchingQuery::build_and(
     switch (num_clauses) {
         // TODO: consider replacing each "case" below by a pre-processor macro call
         case 1: {
-            array<QueryElement *, 1> clauses;
+            array<QueryElement*, 1> clauses;
             for (unsigned int i = 0; i < 1; i++) {
                 clauses[i] = element_stack.top();
                 element_stack.pop();
@@ -220,7 +252,7 @@ QueryElement *PatternMatchingQuery::build_and(
             return new And<1>(clauses);
         }
         case 2: {
-            array<QueryElement *, 2> clauses;
+            array<QueryElement*, 2> clauses;
             for (unsigned int i = 0; i < 2; i++) {
                 clauses[i] = element_stack.top();
                 element_stack.pop();
@@ -228,7 +260,7 @@ QueryElement *PatternMatchingQuery::build_and(
             return new And<2>(clauses);
         }
         case 3: {
-            array<QueryElement *, 3> clauses;
+            array<QueryElement*, 3> clauses;
             for (unsigned int i = 0; i < 3; i++) {
                 clauses[i] = element_stack.top();
                 element_stack.pop();
@@ -236,7 +268,7 @@ QueryElement *PatternMatchingQuery::build_and(
             return new And<3>(clauses);
         }
         case 4: {
-            array<QueryElement *, 4> clauses;
+            array<QueryElement*, 4> clauses;
             for (unsigned int i = 0; i < 4; i++) {
                 clauses[i] = element_stack.top();
                 element_stack.pop();
@@ -244,7 +276,7 @@ QueryElement *PatternMatchingQuery::build_and(
             return new And<4>(clauses);
         }
         case 5: {
-            array<QueryElement *, 5> clauses;
+            array<QueryElement*, 5> clauses;
             for (unsigned int i = 0; i < 5; i++) {
                 clauses[i] = element_stack.top();
                 element_stack.pop();
@@ -252,7 +284,7 @@ QueryElement *PatternMatchingQuery::build_and(
             return new And<5>(clauses);
         }
         case 6: {
-            array<QueryElement *, 6> clauses;
+            array<QueryElement*, 6> clauses;
             for (unsigned int i = 0; i < 6; i++) {
                 clauses[i] = element_stack.top();
                 element_stack.pop();
@@ -260,7 +292,7 @@ QueryElement *PatternMatchingQuery::build_and(
             return new And<6>(clauses);
         }
         case 7: {
-            array<QueryElement *, 7> clauses;
+            array<QueryElement*, 7> clauses;
             for (unsigned int i = 0; i < 7; i++) {
                 clauses[i] = element_stack.top();
                 element_stack.pop();
@@ -268,7 +300,7 @@ QueryElement *PatternMatchingQuery::build_and(
             return new And<7>(clauses);
         }
         case 8: {
-            array<QueryElement *, 8> clauses;
+            array<QueryElement*, 8> clauses;
             for (unsigned int i = 0; i < 8; i++) {
                 clauses[i] = element_stack.top();
                 element_stack.pop();
@@ -276,7 +308,7 @@ QueryElement *PatternMatchingQuery::build_and(
             return new And<8>(clauses);
         }
         case 9: {
-            array<QueryElement *, 9> clauses;
+            array<QueryElement*, 9> clauses;
             for (unsigned int i = 0; i < 9; i++) {
                 clauses[i] = element_stack.top();
                 element_stack.pop();
@@ -284,7 +316,7 @@ QueryElement *PatternMatchingQuery::build_and(
             return new And<9>(clauses);
         }
         case 10: {
-            array<QueryElement *, 10> clauses;
+            array<QueryElement*, 10> clauses;
             for (unsigned int i = 0; i < 10; i++) {
                 clauses[i] = element_stack.top();
                 element_stack.pop();
@@ -295,14 +327,12 @@ QueryElement *PatternMatchingQuery::build_and(
             Utils::error("PatternMatchingQuery message: max supported num_clauses for AND: 10");
         }
     }
-    return NULL; // Just to avoid warnings. This is not actually reachable.
+    return NULL;  // Just to avoid warnings. This is not actually reachable.
 }
 
-QueryElement *PatternMatchingQuery::build_or(
-    vector<string> &tokens, 
-    unsigned int cursor,
-    stack<QueryElement *> &element_stack) {
-
+QueryElement* PatternMatchingQuery::build_or(vector<string>& tokens,
+                                             unsigned int cursor,
+                                             stack<QueryElement*>& element_stack) {
     unsigned int num_clauses = std::stoi(tokens[cursor + 1]);
     if (element_stack.size() < num_clauses) {
         Utils::error("PatternMatchingQuery message: parse error in tokens - too few arguments for OR");
@@ -310,7 +340,7 @@ QueryElement *PatternMatchingQuery::build_or(
     switch (num_clauses) {
         // TODO: consider replacing each "case" below by a pre-processor macro call
         case 1: {
-            array<QueryElement *, 1> clauses;
+            array<QueryElement*, 1> clauses;
             for (unsigned int i = 0; i < 1; i++) {
                 clauses[i] = element_stack.top();
                 element_stack.pop();
@@ -318,7 +348,7 @@ QueryElement *PatternMatchingQuery::build_or(
             return new Or<1>(clauses);
         }
         case 2: {
-            array<QueryElement *, 2> clauses;
+            array<QueryElement*, 2> clauses;
             for (unsigned int i = 0; i < 2; i++) {
                 clauses[i] = element_stack.top();
                 element_stack.pop();
@@ -326,7 +356,7 @@ QueryElement *PatternMatchingQuery::build_or(
             return new Or<2>(clauses);
         }
         case 3: {
-            array<QueryElement *, 3> clauses;
+            array<QueryElement*, 3> clauses;
             for (unsigned int i = 0; i < 3; i++) {
                 clauses[i] = element_stack.top();
                 element_stack.pop();
@@ -334,7 +364,7 @@ QueryElement *PatternMatchingQuery::build_or(
             return new Or<3>(clauses);
         }
         case 4: {
-            array<QueryElement *, 4> clauses;
+            array<QueryElement*, 4> clauses;
             for (unsigned int i = 0; i < 4; i++) {
                 clauses[i] = element_stack.top();
                 element_stack.pop();
@@ -342,7 +372,7 @@ QueryElement *PatternMatchingQuery::build_or(
             return new Or<4>(clauses);
         }
         case 5: {
-            array<QueryElement *, 5> clauses;
+            array<QueryElement*, 5> clauses;
             for (unsigned int i = 0; i < 5; i++) {
                 clauses[i] = element_stack.top();
                 element_stack.pop();
@@ -350,7 +380,7 @@ QueryElement *PatternMatchingQuery::build_or(
             return new Or<5>(clauses);
         }
         case 6: {
-            array<QueryElement *, 6> clauses;
+            array<QueryElement*, 6> clauses;
             for (unsigned int i = 0; i < 6; i++) {
                 clauses[i] = element_stack.top();
                 element_stack.pop();
@@ -358,7 +388,7 @@ QueryElement *PatternMatchingQuery::build_or(
             return new Or<6>(clauses);
         }
         case 7: {
-            array<QueryElement *, 7> clauses;
+            array<QueryElement*, 7> clauses;
             for (unsigned int i = 0; i < 7; i++) {
                 clauses[i] = element_stack.top();
                 element_stack.pop();
@@ -366,7 +396,7 @@ QueryElement *PatternMatchingQuery::build_or(
             return new Or<7>(clauses);
         }
         case 8: {
-            array<QueryElement *, 8> clauses;
+            array<QueryElement*, 8> clauses;
             for (unsigned int i = 0; i < 8; i++) {
                 clauses[i] = element_stack.top();
                 element_stack.pop();
@@ -374,7 +404,7 @@ QueryElement *PatternMatchingQuery::build_or(
             return new Or<8>(clauses);
         }
         case 9: {
-            array<QueryElement *, 9> clauses;
+            array<QueryElement*, 9> clauses;
             for (unsigned int i = 0; i < 9; i++) {
                 clauses[i] = element_stack.top();
                 element_stack.pop();
@@ -382,7 +412,7 @@ QueryElement *PatternMatchingQuery::build_or(
             return new Or<9>(clauses);
         }
         case 10: {
-            array<QueryElement *, 10> clauses;
+            array<QueryElement*, 10> clauses;
             for (unsigned int i = 0; i < 10; i++) {
                 clauses[i] = element_stack.top();
                 element_stack.pop();
@@ -393,14 +423,12 @@ QueryElement *PatternMatchingQuery::build_or(
             Utils::error("PatternMatchingQuery message: max supported num_clauses for OR: 10");
         }
     }
-    return NULL; // Just to avoid warnings. This is not actually reachable.
+    return NULL;  // Just to avoid warnings. This is not actually reachable.
 }
 
-QueryElement *PatternMatchingQuery::build_link(
-    vector<string> &tokens, 
-    unsigned int cursor,
-    stack<QueryElement *> &element_stack) {
-
+QueryElement* PatternMatchingQuery::build_link(vector<string>& tokens,
+                                               unsigned int cursor,
+                                               stack<QueryElement*>& element_stack) {
     unsigned int arity = std::stoi(tokens[cursor + 2]);
     if (element_stack.size() < arity) {
         Utils::error("PatternMatchingQuery message: parse error in tokens - too few arguments for LINK");
@@ -408,7 +436,7 @@ QueryElement *PatternMatchingQuery::build_link(
     switch (arity) {
         // TODO: consider replacing each "case" below by a pre-processor macro call
         case 1: {
-            array<QueryElement *, 1> targets;
+            array<QueryElement*, 1> targets;
             for (unsigned int i = 0; i < 1; i++) {
                 targets[i] = element_stack.top();
                 element_stack.pop();
@@ -416,7 +444,7 @@ QueryElement *PatternMatchingQuery::build_link(
             return new Link<1>(tokens[cursor + 1], targets);
         }
         case 2: {
-            array<QueryElement *, 2> targets;
+            array<QueryElement*, 2> targets;
             for (unsigned int i = 0; i < 2; i++) {
                 targets[i] = element_stack.top();
                 element_stack.pop();
@@ -424,7 +452,7 @@ QueryElement *PatternMatchingQuery::build_link(
             return new Link<2>(tokens[cursor + 1], targets);
         }
         case 3: {
-            array<QueryElement *, 3> targets;
+            array<QueryElement*, 3> targets;
             for (unsigned int i = 0; i < 3; i++) {
                 targets[i] = element_stack.top();
                 element_stack.pop();
@@ -432,7 +460,7 @@ QueryElement *PatternMatchingQuery::build_link(
             return new Link<3>(tokens[cursor + 1], targets);
         }
         case 4: {
-            array<QueryElement *, 4> targets;
+            array<QueryElement*, 4> targets;
             for (unsigned int i = 0; i < 4; i++) {
                 targets[i] = element_stack.top();
                 element_stack.pop();
@@ -440,7 +468,7 @@ QueryElement *PatternMatchingQuery::build_link(
             return new Link<4>(tokens[cursor + 1], targets);
         }
         case 5: {
-            array<QueryElement *, 5> targets;
+            array<QueryElement*, 5> targets;
             for (unsigned int i = 0; i < 5; i++) {
                 targets[i] = element_stack.top();
                 element_stack.pop();
@@ -448,7 +476,7 @@ QueryElement *PatternMatchingQuery::build_link(
             return new Link<5>(tokens[cursor + 1], targets);
         }
         case 6: {
-            array<QueryElement *, 6> targets;
+            array<QueryElement*, 6> targets;
             for (unsigned int i = 0; i < 6; i++) {
                 targets[i] = element_stack.top();
                 element_stack.pop();
@@ -456,7 +484,7 @@ QueryElement *PatternMatchingQuery::build_link(
             return new Link<6>(tokens[cursor + 1], targets);
         }
         case 7: {
-            array<QueryElement *, 7> targets;
+            array<QueryElement*, 7> targets;
             for (unsigned int i = 0; i < 7; i++) {
                 targets[i] = element_stack.top();
                 element_stack.pop();
@@ -464,7 +492,7 @@ QueryElement *PatternMatchingQuery::build_link(
             return new Link<7>(tokens[cursor + 1], targets);
         }
         case 8: {
-            array<QueryElement *, 8> targets;
+            array<QueryElement*, 8> targets;
             for (unsigned int i = 0; i < 8; i++) {
                 targets[i] = element_stack.top();
                 element_stack.pop();
@@ -472,7 +500,7 @@ QueryElement *PatternMatchingQuery::build_link(
             return new Link<8>(tokens[cursor + 1], targets);
         }
         case 9: {
-            array<QueryElement *, 9> targets;
+            array<QueryElement*, 9> targets;
             for (unsigned int i = 0; i < 9; i++) {
                 targets[i] = element_stack.top();
                 element_stack.pop();
@@ -480,7 +508,7 @@ QueryElement *PatternMatchingQuery::build_link(
             return new Link<9>(tokens[cursor + 1], targets);
         }
         case 10: {
-            array<QueryElement *, 10> targets;
+            array<QueryElement*, 10> targets;
             for (unsigned int i = 0; i < 10; i++) {
                 targets[i] = element_stack.top();
                 element_stack.pop();
@@ -491,21 +519,21 @@ QueryElement *PatternMatchingQuery::build_link(
             Utils::error("PatternMatchingQuery message: max supported arity for LINK: 10");
         }
     }
-    return NULL; // Just to avoid warnings. This is not actually reachable.
+    return NULL;  // Just to avoid warnings. This is not actually reachable.
 }
 
-PatternMatchingQuery::PatternMatchingQuery(string command, vector<string> &tokens) {
-
+PatternMatchingQuery::PatternMatchingQuery(string command, vector<string>& tokens) {
 #ifdef DEBUG
     cout << "PatternMatchingQuery::PatternMatchingQuery() BEGIN" << endl;
 #endif
 
     stack<unsigned int> execution_stack;
-    stack<QueryElement *> element_stack;
+    stack<QueryElement*> element_stack;
     this->requestor_id = tokens[0];
     this->context = tokens[1];
+    this->command = command;
     this->update_attention_broker = (tokens[2] == "1");
-    unsigned int cursor = 3; // TODO XXX: change this when requestor is set in basic Message
+    unsigned int cursor = 3;  // TODO XXX: change this when requestor is set in basic Message
     unsigned int tokens_count = tokens.size();
 
 #ifdef DEBUG
@@ -523,7 +551,7 @@ PatternMatchingQuery::PatternMatchingQuery(string command, vector<string> &token
         Utils::error("PatternMatchingQuery message: parse error in tokens");
     }
 
-    while (! execution_stack.empty()) {
+    while (!execution_stack.empty()) {
         cursor = execution_stack.top();
         if (tokens[cursor] == "NODE") {
             element_stack.push(new Node(tokens[cursor + 1], tokens[cursor + 2]));
@@ -560,15 +588,53 @@ void PatternMatchingQuery::act(shared_ptr<MessageFactory> node) {
 #endif
     auto das_node = dynamic_pointer_cast<DASNode>(node);
 
-    // TODO XXX Remove memory leak
-    RemoteSink *remote_sink = new RemoteSink(
-        this->root_query_element,
-        das_node->next_query_id(),
-        this->requestor_id,
-        this->update_attention_broker,
-        this->context);
+    if (this->command == DASNode::PATTERN_MATCHING_QUERY) {
+        // TODO XXX Remove memory leak
+        RemoteSink* remote_sink = new RemoteSink(this->root_query_element,
+                                                 das_node->next_query_id(),
+                                                 this->requestor_id,
+                                                 this->update_attention_broker,
+                                                 this->context);
+    } else if (this->command == DASNode::COUNTING_QUERY) {
+        // TODO XXX Remove memory leak
+        // RemoteCountSink* remote_count_sink = new RemoteCountSink(
+        //     this->root_query_element, das_node->next_query_id(), this->requestor_id, this->context);
+        RemoteSink* remote_sink = new RemoteSink(this->root_query_element,
+                                                 das_node->next_query_id(),
+                                                 this->requestor_id,
+                                                 this->update_attention_broker,
+                                                 this->context,
+                                                 false,
+                                                 true);
+    } else {
+        Utils::error("Invalid command " + this->command + " in PatternMatchingQuery message");
+    }
 
 #ifdef DEBUG
     cout << "PatternMatchingQuery::act() END" << endl;
+#endif
+}
+
+CountingQuery::CountingQuery(string command, vector<string>& tokens) {
+#ifdef DEBUG
+    cout << "CountingQuery::CountingQuery() BEGIN" << endl;
+#endif
+
+    this->pattern_matching_query = make_unique<PatternMatchingQuery>(command, tokens);
+
+#ifdef DEBUG
+    cout << "CountingQuery::CountingQuery() END" << endl;
+#endif
+}
+
+void CountingQuery::act(shared_ptr<MessageFactory> node) {
+#ifdef DEBUG
+    cout << "CountingQuery::act() BEGIN" << endl;
+#endif
+
+    this->pattern_matching_query->act(node);
+
+#ifdef DEBUG
+    cout << "CountingQuery::act() END" << endl;
 #endif
 }
