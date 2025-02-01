@@ -4,12 +4,11 @@
  */
 
 #pragma once
+#include <memory>
 #include <string>
 #include <tuple>
-#include <vector>
 #include <variant>
-#include <memory>
-
+#include <vector>
 
 namespace link_creation_agent {
 
@@ -20,16 +19,22 @@ struct Node {
     std::string value;
 };
 
-using CustomFieldTypes = std::variant<int, float, std::string, std::shared_ptr<CustomField>>;
-using LinkCreateTemplateTypes = std::variant<Node, std::shared_ptr<LinkCreateTemplate>>;
+struct Variable {
+    std::string name;
+};
 
+using CustomFieldTypes = std::variant<std::string, std::shared_ptr<CustomField>>;
+using LinkCreateTemplateTypes = std::variant<Variable, Node, std::shared_ptr<LinkCreateTemplate>>;
 
 class CustomField {
    public:
     CustomField(std::string name, CustomFieldTypes value);
+    CustomField(std::vector<std::string> args);
     ~CustomField();
     std::string get_name();
     CustomFieldTypes get_value();
+    std::string to_string();
+
 
    private:
     std::string name;
@@ -37,8 +42,6 @@ class CustomField {
 };
 
 enum class TargetType { NODE, TEMPLATE };
-
-
 
 /**
  * @class LinkCreateTemplate
@@ -50,6 +53,8 @@ class LinkCreateTemplate {
     std::string get_link_type();
     std::vector<LinkCreateTemplateTypes> get_targets();
     std::vector<CustomField> get_custom_fields();
+    std::string to_string();
+
 
    private:
     std::string link_type;

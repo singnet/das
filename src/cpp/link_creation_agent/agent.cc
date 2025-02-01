@@ -4,7 +4,7 @@
 #include <sstream>
 
 #include "RemoteIterator.h"
-// #include "link_create_template.h"
+#include "link_create_template.h"
 
 using namespace std;
 using namespace link_creation_agent;
@@ -167,7 +167,7 @@ LinkCreationAgentRequest* LinkCreationAgent::create_request(vector<string> reque
         bool is_link_create = false;
         for (string arg : request) {
             cursor++;
-            is_link_create = (arg == "LINK_CREATE") ^ is_link_create;
+            is_link_create = (arg == "LINK_CREATE") || is_link_create;
             if (!is_link_create) {
                 lca_request->query.push_back(arg);
             }
@@ -188,17 +188,30 @@ LinkCreationAgentRequest* LinkCreationAgent::create_request(vector<string> reque
             }
         }
         lca_request->infinite = (lca_request->repeat == -1);
-
-        // auto link_template = new LinkCreateTemplate(lca_request->link_template);
+        cout << "template starting" << endl;
+        // for(auto arg : lca_request->link_template){
+        //     cout << arg << endl;
+        // }
+        auto link_template = new LinkCreateTemplate(lca_request->link_template);
+        cout << "template ok" << endl;
+        cout << "Link Type: " << link_template->get_link_type() << endl;
+        cout <<  "CREATE_LINK" << endl;
+        cout << link_template->to_string() << endl;
 
         // for(auto target : link_template->get_targets()){
         //     if (holds_alternative<Node>(target)) {
         //         Node node = get<Node>(target);
         //         cout << "Node: " << node.type << " " << node.value << endl;
-        //     } else {
-        //         shared_ptr<LinkCreateTemplate> sub_link = get<shared_ptr<LinkCreateTemplate>>(target);
-        //         cout << "Sub Link: " << sub_link->get_link_type() << endl;
         //     }
+        //     if (holds_alternative<Variable>(target)) {
+        //         Variable var = get<Variable>(target);
+        //         cout << "Variable: " << var.name << endl;
+        //     }
+            
+        //     // else {
+        //     //     shared_ptr<LinkCreateTemplate> sub_link = get<shared_ptr<LinkCreateTemplate>>(target);
+        //     //     cout << "Sub Link: " << sub_link->get_link_type() << endl;
+        //     // }
         // }
 
         return lca_request;
