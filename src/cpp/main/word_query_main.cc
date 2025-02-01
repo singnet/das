@@ -122,15 +122,9 @@ void run(
 
     DASNode client(client_id, server_id);
     
-    int query_count = client.count_query(query_word, context, true);
-    Utils::sleep();
-    cout << "Count: " << query_count << endl;
-    Utils::sleep();
-    return;
-
     HandlesAnswer *query_answer;
     unsigned int count = 0;
-    RemoteIterator *response = client.pattern_matcher_query(query_word, context, true);
+    auto response = unique_ptr<RemoteIterator>(client.pattern_matcher_query(query_word, context, true));
     shared_ptr<atomdb_api_types::AtomDocument> sentence_document;
     shared_ptr<atomdb_api_types::AtomDocument> sentence_name_document;
     vector<string> sentences;
@@ -171,7 +165,10 @@ void run(
         exit(0);
     }
 
-    delete response;
+    int query_count = client.count_query(query_word, context, true);
+    Utils::sleep();
+    cout << "Count: " << query_count << endl;
+    Utils::sleep();
 }
 
 int main(int argc, char* argv[]) {

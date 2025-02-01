@@ -92,6 +92,7 @@ int DASNode::count_query(const vector<string>& tokens,
         }
         Utils::sleep();
     }
+    return UNDEFINED_COUNT;
 
 #ifdef DEBUG
     cout << "DASNode::count_query() END" << endl;
@@ -604,8 +605,8 @@ void PatternMatchingQuery::act(shared_ptr<MessageFactory> node) {
                                                  this->requestor_id,
                                                  this->update_attention_broker,
                                                  this->context,
-                                                 false,
-                                                 true);
+                                                 false,  // delete_precedent_on_destructor
+                                                 true);  // count_only
     } else {
         Utils::error("Invalid command " + this->command + " in PatternMatchingQuery message");
     }
