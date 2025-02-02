@@ -196,3 +196,5 @@ tags
 
 src/bin
 src/bazel**
+
+.nogit/

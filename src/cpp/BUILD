@@ -83,3 +83,23 @@ cc_binary(
         "//main:link_creation_agent_client_main_lib",
     ],
 )
+
+cc_binary(
+    name = "sentinel_server",
+    srcs = [],
+    defines = ["BAZEL_BUILD"],
+    linkstatic = 1,
+    deps = [
+        "//main:sentinel_server_main_lib",
+    ],
+)
+
+cc_binary(
+    name = "worker_client",
+    srcs = [],
+    defines = ["BAZEL_BUILD"],
+    linkstatic = 1,
+    deps = [
+        "//main:worker_client_main_lib",
+    ],
+)

@@ -18,6 +18,12 @@ cd $CPP_WORKSPACE_DIR \
 && mv bazel-bin/query_broker $BIN_DIR \
 && $BAZELISK_BUILD_CMD //:query \
 && mv bazel-bin/query $BIN_DIR \
+&& $BAZELISK_BUILD_CMD //:sentinel_server \
+&& mv bazel-bin/sentinel_server $BIN_DIR \
+&& $BAZELISK_BUILD_CMD //:worker_client \
+&& mv bazel-bin/worker_client $BIN_DIR \
+&& $BAZELISK_BUILD_CMD //:spawner \
+&& mv bazel-bin/spawner $BIN_DIR \
 && $BAZELISK_BUILD_CMD \
       //hyperon_das_atomdb_cpp:hyperon_das_atomdb_cpp_wheel \
       --define=ATOMDB_VERSION=0.8.11 \

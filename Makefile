@@ -28,6 +28,9 @@ github-runner:
 build-image:
 	cd src && bash -x scripts/docker_image_build.sh
 
+build-spawner-image:
+	cd src && bash +x scripts/docker_image_spawner_build.sh
+
 build: build-image
 	cd src && bash -x scripts/build.sh
 
@@ -45,4 +48,13 @@ run-link-creation-agent:
 
 run-link-creation-client:
 	@bash -x src/scripts/run.sh link_creation_agent_client $(OPTIONS)
+
+run-sentinel-server:
+	@bash -x src/scripts/run.sh sentinel_server 55000
+
+run-worker-client:
+	@bash -x src/scripts/run.sh worker_client $(OPTIONS)
+
+run-client-spawner:
+	@bash -x src/scripts/run.sh client_spawner $(OPTIONS)
 

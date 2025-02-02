@@ -62,6 +62,21 @@ cc_library(
     srcs = ["link_creation_agent_client_main.cc"],
     deps = [
          "//link_creation_agent:link_creation_agent_lib",
+    ],
+)
 
+cc_library(
+    name = "sentinel_server_main_lib",
+    srcs = ["sentinel_server_main.cc"],
+    deps = [
+         "//client_spawner:client_spawner_lib",
+    ],
+)
+
+cc_library(
+    name = "worker_client_main_lib",
+    srcs = ["worker_client_main.cc"],
+    deps = [
+         "//client_spawner:client_spawner_lib",
     ],
 )
