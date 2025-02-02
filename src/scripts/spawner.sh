@@ -87,10 +87,9 @@ main() {
         --name=sentinel-server \
         --volume /tmp:/tmp \
         $IMAGE_NAME \
-        sh -c './bin/sentinel_server 55000' \
+        sh -c './bin/sentinel_server 55000 > /tmp/sentinel.log 2>&1 && tail -f /tmp/sentinel.log' \
         >/dev/null 2>&1 && echo \"The server has started.\"
     "
-
 
     for (( i=0; i<${#ssh_hosts[@]}; i++ )); do
         IFS=',' read -r ip_port username private_key <<< "${ssh_hosts[$i]}"
