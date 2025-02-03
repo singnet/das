@@ -8,22 +8,11 @@ using namespace query_element;
 // Constructors and destructors
 
 RemoteSink::RemoteSink(QueryElement* precedent,
-                       const vector<QueryAnswerProcessor*> query_answer_processors,
+                       vector<unique_ptr<QueryAnswerProcessor>>&& query_answer_processors,
                        bool delete_precedent_on_destructor)
-    : Sink(precedent, "RemoteSink(" + precedent->id + ")", delete_precedent_on_destructor, true) {
-#ifdef DEBUG
-    cout << "RemoteSink::RemoteSink() BEGIN" << endl;
-#endif
-
-    this->queue_processor = NULL;
-    for (auto processor : query_answer_processors) {
-        this->query_answer_processors.emplace_back(unique_ptr<QueryAnswerProcessor>(processor));
-    }
-    this->queue_processor = new thread(&RemoteSink::queue_processor_method, this);
-#ifdef DEBUG
-    cout << "RemoteSink::RemoteSink() END" << endl;
-#endif
-}
+    : Sink(precedent, "RemoteSink(" + precedent->id + ")", delete_precedent_on_destructor, true),
+      queue_processor(new thread(&RemoteSink::queue_processor_method, this)),
+      query_answer_processors(move(query_answer_processors)) {}
 
 RemoteSink::~RemoteSink() { graceful_shutdown(); }
 

@@ -83,24 +83,26 @@ int DASNode::count_query(const vector<string>& tokens,
     if (this->is_server) {
         Utils::error("count_query() is not available in DASNode server.");
     }
+
     string query_id = next_query_id();
     vector<string> args = {query_id, context, std::to_string(update_attention_broker)};
     args.insert(args.end(), tokens.begin(), tokens.end());
     send(COUNTING_QUERY, args, this->server_id);
 
+    int count = UNDEFINED_COUNT;
     CountAnswer* count_answer;
     auto count_iterator = make_unique<RemoteIterator>(query_id);
     while (not count_iterator->finished()) {
         if ((count_answer = dynamic_cast<CountAnswer*>(count_iterator->pop())) != nullptr) {
-            return count_answer->get_count();
+            count = count_answer->get_count();
+            break;
         }
         Utils::sleep();
     }
-    return UNDEFINED_COUNT;
-
 #ifdef DEBUG
     cout << "DASNode::count_query() END" << endl;
 #endif
+    return count;
 }
 
 // -------------------------------------------------------------------------------------------------
@@ -597,12 +599,12 @@ void PatternMatchingQuery::act(shared_ptr<MessageFactory> node) {
         auto local_id = das_node->next_query_id();
         auto remote_id = this->requestor_id;
 
-        vector<QueryAnswerProcessor*> query_answer_processors;
+        vector<unique_ptr<QueryAnswerProcessor>> query_answer_processors;
         if (this->command == DASNode::PATTERN_MATCHING_QUERY) {
-            query_answer_processors.push_back(new HandlesAnswerProcessor(local_id, remote_id));
-            query_answer_processors.push_back(new AttentionBrokerUpdater(this->context));
+            query_answer_processors.push_back(make_unique<HandlesAnswerProcessor>(local_id, remote_id));
+            query_answer_processors.push_back(make_unique<AttentionBrokerUpdater>(this->context));
         } else if (this->command == DASNode::COUNTING_QUERY) {
-            query_answer_processors.push_back(new CountAnswerProcessor(local_id, remote_id));
+            query_answer_processors.push_back(make_unique<CountAnswerProcessor>(local_id, remote_id));
         }
 
         RemoteSink* remote_sink =

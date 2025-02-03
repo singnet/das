@@ -25,7 +25,7 @@ class RemoteSink : public Sink {
      *        also destruct the passed precedent QueryElement (defaulted to false).
      */
     RemoteSink(QueryElement* precedent,
-               const vector<QueryAnswerProcessor*> query_answer_processors,
+               vector<unique_ptr<QueryAnswerProcessor>>&& query_answer_processors,
                bool delete_precedent_on_destructor = false);
 
     /**
