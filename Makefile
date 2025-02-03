@@ -55,6 +55,4 @@ run-sentinel-server:
 run-worker-client:
 	@bash -x src/scripts/run.sh worker_client $(OPTIONS)
 
-run-client-spawner:
-	@bash -x src/scripts/run.sh client_spawner $(OPTIONS)
 
