@@ -28,7 +28,7 @@ using LinkCreateTemplateTypes = std::variant<Variable, Node, std::shared_ptr<Lin
 
 class CustomField {
    public:
-    CustomField(std::vector<std::string> args);
+    CustomField(std::vector<std::string> &custom_fields);
     ~CustomField();
     std::string get_name();
     std::vector<std::tuple<std::string, CustomFieldTypes>> get_values();
@@ -48,7 +48,7 @@ enum class TargetType { NODE, TEMPLATE };
  */
 class LinkCreateTemplate {
    public:
-    LinkCreateTemplate(std::vector<std::string> link_template);
+    LinkCreateTemplate(std::vector<std::string> &link_template);
     ~LinkCreateTemplate();
     std::string get_link_type();
     std::vector<LinkCreateTemplateTypes> get_targets();

@@ -188,31 +188,11 @@ LinkCreationAgentRequest* LinkCreationAgent::create_request(vector<string> reque
             }
         }
         lca_request->infinite = (lca_request->repeat == -1);
-        cout << "template starting" << endl;
-        // for(auto arg : lca_request->link_template){
-        //     cout << arg << endl;
-        // }
         auto link_template = new LinkCreateTemplate(lca_request->link_template);
         cout << "template ok" << endl;
         cout << "Link Type: " << link_template->get_link_type() << endl;
         cout <<  "CREATE_LINK" << endl;
         cout << link_template->to_string() << endl;
-
-        // for(auto target : link_template->get_targets()){
-        //     if (holds_alternative<Node>(target)) {
-        //         Node node = get<Node>(target);
-        //         cout << "Node: " << node.type << " " << node.value << endl;
-        //     }
-        //     if (holds_alternative<Variable>(target)) {
-        //         Variable var = get<Variable>(target);
-        //         cout << "Variable: " << var.name << endl;
-        //     }
-            
-        //     // else {
-        //     //     shared_ptr<LinkCreateTemplate> sub_link = get<shared_ptr<LinkCreateTemplate>>(target);
-        //     //     cout << "Sub Link: " << sub_link->get_link_type() << endl;
-        //     // }
-        // }
 
         return lca_request;
     } catch (exception& e) {
