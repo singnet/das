@@ -3,9 +3,10 @@
 
 #include <string>
 #include <thread>
+
 #include "DistributedAlgorithmNode.h"
-#include "SharedQueue.h"
 #include "QueryAnswer.h"
+#include "SharedQueue.h"
 
 using namespace std;
 using namespace distributed_algorithm_node;
@@ -17,21 +18,18 @@ namespace query_node {
  *
  */
 class QueryNode : public DistributedAlgorithmNode {
-
-public:
-
-    QueryNode(
-        const string &node_id, 
-        bool is_server, 
-        MessageBrokerType messaging_backend = MessageBrokerType::RAM);
+   public:
+    QueryNode(const string& node_id,
+              bool is_server,
+              MessageBrokerType messaging_backend = MessageBrokerType::RAM);
     virtual ~QueryNode();
-    virtual shared_ptr<Message> message_factory(string &command, vector<string> &args);
+    virtual shared_ptr<Message> message_factory(string& command, vector<string>& args);
     virtual void graceful_shutdown();
     bool is_shutting_down();
     void query_answers_finished();
     bool is_query_answers_finished();
-    void add_query_answer(QueryAnswer *query_answer);
-    QueryAnswer *pop_query_answer();
+    void add_query_answer(QueryAnswer* query_answer);
+    QueryAnswer* pop_query_answer();
     bool is_query_answers_empty();
     virtual void query_answer_processor_method() = 0;
 
@@ -40,14 +38,12 @@ public:
     static string COUNT_ANSWER_TOKENS_FLOW_COMMAND;
     static string QUERY_ANSWERS_FINISHED_COMMAND;
 
-protected:
-
+   protected:
     SharedQueue query_answer_queue;
-    thread *query_answer_processor;
+    thread* query_answer_processor;
     bool requires_serialization;
 
-private:
-
+   private:
     bool is_server;
     bool shutdown_flag;
     mutex shutdown_flag_mutex;
@@ -56,82 +52,86 @@ private:
 };
 
 class QueryNodeServer : public QueryNode {
-
-public:
-
-    QueryNodeServer(
-        const string &node_id,
-        MessageBrokerType messaging_backend = MessageBrokerType::RAM);
+   public:
+    QueryNodeServer(const string& node_id, MessageBrokerType messaging_backend = MessageBrokerType::RAM);
     virtual ~QueryNodeServer();
 
-    void node_joined_network(const string &node_id);
+    void node_joined_network(const string& node_id);
     string cast_leadership_vote();
     void query_answer_processor_method();
 };
 
 class QueryNodeClient : public QueryNode {
-
-public:
-
-    QueryNodeClient(
-        const string &node_id, 
-        const string &server_id,
-        MessageBrokerType messaging_backend = MessageBrokerType::RAM);
+   public:
+    QueryNodeClient(const string& node_id,
+                    const string& server_id,
+                    MessageBrokerType messaging_backend = MessageBrokerType::RAM);
     virtual ~QueryNodeClient();
 
-    void node_joined_network(const string &node_id);
+    void node_joined_network(const string& node_id);
     string cast_leadership_vote();
     void query_answer_processor_method();
 
-private:
-
+   private:
     string server_id;
 };
 
 class QueryAnswerFlow : public Message {
-
-public:
-
-    QueryAnswerFlow(string command, vector<string> &args);
+   public:
+    QueryAnswerFlow(string command, vector<string>& args);
     void act(shared_ptr<MessageFactory> node);
 
-private:
-
-    vector<QueryAnswer *> query_answers;
+   private:
+    vector<QueryAnswer*> query_answers;
 };
 
-class HandlesAnswerTokensFlow : public Message {
+template <typename AnswerType,
+          std::enable_if_t<std::is_base_of<QueryAnswer, AnswerType>::value, bool> = true>
+class QueryAnswerTokensFlow : public Message {
+   public:
+    QueryAnswerTokensFlow(string command, vector<string>& args) {
+        for (auto tokens : args) {
+            this->query_answers_tokens.push_back(tokens);
+        }
+    }
 
-public:
+    void act(shared_ptr<MessageFactory> node) {
+        auto query_node = dynamic_pointer_cast<QueryNodeServer>(node);
+        for (auto tokens : this->query_answers_tokens) {
+            AnswerType* query_answer = new AnswerType();
+            query_answer->untokenize(tokens);
+            query_node->add_query_answer(query_answer);
+        }
+    }
 
-    HandlesAnswerTokensFlow(string command, vector<string> &args);
-    void act(shared_ptr<MessageFactory> node);
-
-private:
-
+   private:
     vector<string> query_answers_tokens;
 };
 
-class CountAnswerTokensFlow : public Message {
+// class HandlesAnswerTokensFlow : public Message {
+//    public:
+//     HandlesAnswerTokensFlow(string command, vector<string>& args);
+//     void act(shared_ptr<MessageFactory> node);
 
-public:
+//    private:
+//     vector<string> query_answers_tokens;
+// };
 
-    CountAnswerTokensFlow(string command, vector<string> &args);
-    void act(shared_ptr<MessageFactory> node);
+// class CountAnswerTokensFlow : public Message {
+//    public:
+//     CountAnswerTokensFlow(string command, vector<string>& args);
+//     void act(shared_ptr<MessageFactory> node);
 
-private:
-
-    vector<string> query_answers_tokens;
-};
+//    private:
+//     vector<string> query_answers_tokens;
+// };
 
 class QueryAnswersFinished : public Message {
-
-public:
-
-    QueryAnswersFinished(string command, vector<string> &args);
+   public:
+    QueryAnswersFinished(string command, vector<string>& args);
     void act(shared_ptr<MessageFactory> node);
 };
 
-} // namespace query_node
+}  // namespace query_node
 
-#endif // _QUERY_NODE_QUERYNODE_H
+#endif  // _QUERY_NODE_QUERYNODE_H
