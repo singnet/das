@@ -50,7 +50,6 @@ void LinkCreationAgent::run() {
     int current_buffer_position = 0;
     while (true) {
         if(is_stoping) break;
-        // cout << "LinkCreationAgent running" << endl;
         LinkCreationAgentRequest* lca_request = NULL;
         bool is_from_buffer = false;
         if (!link_creation_node_server->is_query_empty()) {
