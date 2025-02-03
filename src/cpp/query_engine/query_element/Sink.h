@@ -29,6 +29,7 @@ public:
      * @param id Unique id for this QueryElement.
      * @param delete_precedent_on_destructor If true, the destructor of this QueryElement will
      * also destruct the passed precedent QueryElement (defaulted to false).
+     * @param setup_buffers_flag If true, the setup_buffers() method is called in the constructor.
      */
     Sink(
         QueryElement *precedent, 

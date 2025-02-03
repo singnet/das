@@ -86,12 +86,13 @@ class QueryAnswerFlow : public Message {
 };
 
 template <typename AnswerType,
-          std::enable_if_t<std::is_base_of<QueryAnswer, AnswerType>::value, bool> = true>
+          enable_if_t<is_base_of<QueryAnswer, AnswerType>::value, nullptr_t> = nullptr>
 class QueryAnswerTokensFlow : public Message {
    public:
     QueryAnswerTokensFlow(string command, vector<string>& args) {
-        for (auto tokens : args) {
-            this->query_answers_tokens.push_back(tokens);
+        this->query_answers_tokens.reserve(args.size());
+        for (auto token : args) {
+            this->query_answers_tokens.push_back(token);
         }
     }
 
@@ -107,24 +108,6 @@ class QueryAnswerTokensFlow : public Message {
    private:
     vector<string> query_answers_tokens;
 };
-
-// class HandlesAnswerTokensFlow : public Message {
-//    public:
-//     HandlesAnswerTokensFlow(string command, vector<string>& args);
-//     void act(shared_ptr<MessageFactory> node);
-
-//    private:
-//     vector<string> query_answers_tokens;
-// };
-
-// class CountAnswerTokensFlow : public Message {
-//    public:
-//     CountAnswerTokensFlow(string command, vector<string>& args);
-//     void act(shared_ptr<MessageFactory> node);
-
-//    private:
-//     vector<string> query_answers_tokens;
-// };
 
 class QueryAnswersFinished : public Message {
    public:

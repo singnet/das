@@ -2,8 +2,12 @@
 
 #include <array>
 
+#include "AttentionBrokerUpdater.h"
+#include "CountAnswerProcessor.h"
+#include "HandlesAnswerProcessor.h"
 #include "LinkTemplate.h"
 #include "Or.h"
+#include "QueryAnswerProcessor.h"
 #include "RemoteCountSink.h"
 #include "RemoteSink.h"
 #include "Terminal.h"
@@ -589,24 +593,20 @@ void PatternMatchingQuery::act(shared_ptr<MessageFactory> node) {
 #endif
     auto das_node = dynamic_pointer_cast<DASNode>(node);
 
-    if (this->command == DASNode::PATTERN_MATCHING_QUERY) {
+    if (this->command == DASNode::PATTERN_MATCHING_QUERY || this->command == DASNode::COUNTING_QUERY) {
+        auto local_id = das_node->next_query_id();
+        auto remote_id = this->requestor_id;
+
         // TODO XXX Remove memory leak
-        RemoteSink* remote_sink = new RemoteSink(this->root_query_element,
-                                                 das_node->next_query_id(),
-                                                 this->requestor_id,
-                                                 this->update_attention_broker,
-                                                 this->context);
-    } else if (this->command == DASNode::COUNTING_QUERY) {
-        // TODO XXX Remove memory leak
-        // RemoteCountSink* remote_count_sink = new RemoteCountSink(
-        //     this->root_query_element, das_node->next_query_id(), this->requestor_id, this->context);
-        RemoteSink* remote_sink = new RemoteSink(this->root_query_element,
-                                                 das_node->next_query_id(),
-                                                 this->requestor_id,
-                                                 this->update_attention_broker,
-                                                 this->context,
-                                                 false,  // delete_precedent_on_destructor
-                                                 true);  // count_only
+        vector<QueryAnswerProcessor*> query_answer_processors;
+        if (this->command == DASNode::PATTERN_MATCHING_QUERY) {
+            query_answer_processors.push_back(new HandlesAnswerProcessor(local_id, remote_id));
+            query_answer_processors.push_back(new AttentionBrokerUpdater(this->context));
+        } else if (this->command == DASNode::COUNTING_QUERY) {
+            query_answer_processors.push_back(new CountAnswerProcessor(local_id, remote_id));
+        }
+
+        RemoteSink* remote_sink = new RemoteSink(this->root_query_element, query_answer_processors);
     } else {
         Utils::error("Invalid command " + this->command + " in PatternMatchingQuery message");
     }

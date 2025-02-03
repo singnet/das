@@ -199,36 +199,6 @@ void QueryAnswerFlow::act(shared_ptr<MessageFactory> node) {
     }
 }
 
-// HandlesAnswerTokensFlow::HandlesAnswerTokensFlow(string command, vector<string>& args) {
-//     for (auto tokens : args) {
-//         this->query_answers_tokens.push_back(tokens);
-//     }
-// }
-
-// void HandlesAnswerTokensFlow::act(shared_ptr<MessageFactory> node) {
-//     auto query_node = dynamic_pointer_cast<QueryNodeServer>(node);
-//     for (auto tokens : this->query_answers_tokens) {
-//         HandlesAnswer* handles_answer = new HandlesAnswer();
-//         handles_answer->untokenize(tokens);
-//         query_node->add_query_answer(handles_answer);
-//     }
-// }
-
-// CountAnswerTokensFlow::CountAnswerTokensFlow(string command, vector<string>& args) {
-//     for (auto tokens : args) {
-//         this->query_answers_tokens.push_back(tokens);
-//     }
-// }
-
-// void CountAnswerTokensFlow::act(shared_ptr<MessageFactory> node) {
-//     auto query_node = dynamic_pointer_cast<QueryNodeServer>(node);
-//     for (auto tokens : this->query_answers_tokens) {
-//         CountAnswer* count_answer = new CountAnswer();
-//         count_answer->untokenize(tokens);
-//         query_node->add_query_answer(count_answer);
-//     }
-// }
-
 QueryAnswersFinished::QueryAnswersFinished(string command, vector<string>& args) {}
 
 void QueryAnswersFinished::act(shared_ptr<MessageFactory> node) {

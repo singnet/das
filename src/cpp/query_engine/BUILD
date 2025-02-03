@@ -2,9 +2,9 @@ package(default_visibility = ["//visibility:public"])
 
 cc_library(
     name = "query_engine_lib",
-    srcs = glob(["*.cc", "query_element/*.cc"]),
-    hdrs = glob(["*.h", "query_element/*.h"]),
-    includes = [".", "query_element"],
+    srcs = glob(["**/*.cc"]),
+    hdrs = glob(["**/*.h"]),
+    includes = [".", "query_element", "answer_processor"],
     deps = [
         "//utils:utils_lib",
         "//hasher:hasher_lib",
