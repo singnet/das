@@ -34,28 +34,28 @@ CustomField::CustomField(std::vector<std::string>& custom_fields) {
     this->name = custom_field_name;
     cursor += 3;
     while (cursor < custom_fields.size()) {
-        if (custom_fields[cursor] == "CUSTOM_FIELD") {
+        if (get_token(custom_fields, cursor) == "CUSTOM_FIELD") {
             std::vector<std::string> custom_field_args;
-            int sub_custom_field_size = string_to_int(custom_fields[cursor + 2]);
-            std::string sub_custom_field_name = custom_fields[cursor + 1];
-            custom_field_args.push_back(custom_fields[cursor]);      // CUSTOM_FIELD
-            custom_field_args.push_back(custom_fields[cursor + 1]);  // field name
-            custom_field_args.push_back(custom_fields[cursor + 2]);  // field size
+            int sub_custom_field_size = string_to_int(get_token(custom_fields, cursor + 2));
+            std::string sub_custom_field_name = get_token(custom_fields, cursor + 1);
+            custom_field_args.push_back(get_token(custom_fields, cursor));      // CUSTOM_FIELD
+            custom_field_args.push_back(get_token(custom_fields, cursor + 1));  // field name
+            custom_field_args.push_back(get_token(custom_fields, cursor + 2));  // field size
             cursor += 3;
             while (cursor < custom_fields.size()) {
                 if (sub_custom_field_size == 0) {
                     break;
                 }
 
-                custom_field_args.push_back(custom_fields[cursor]);
-                if (custom_fields[cursor] == "CUSTOM_FIELD") {
-                    sub_custom_field_size += string_to_int(custom_fields[cursor + 2]);
-                    custom_field_args.push_back(custom_fields[cursor + 1]);  // field name
-                    custom_field_args.push_back(custom_fields[cursor + 2]);  // field size
+                custom_field_args.push_back(get_token(custom_fields, cursor));
+                if (get_token(custom_fields, cursor) == "CUSTOM_FIELD") {
+                    sub_custom_field_size += string_to_int(get_token(custom_fields, cursor + 2));
+                    custom_field_args.push_back(get_token(custom_fields, cursor + 1));  // field name
+                    custom_field_args.push_back(get_token(custom_fields, cursor + 2));  // field size
                     cursor += 3;
                     sub_custom_field_size--;
                 } else {
-                    custom_field_args.push_back(custom_fields[cursor + 1]);
+                    custom_field_args.push_back(get_token(custom_fields, cursor + 1));
                     cursor += 2;
                     sub_custom_field_size--;
                 }
@@ -64,7 +64,7 @@ CustomField::CustomField(std::vector<std::string>& custom_fields) {
             this->values.push_back(
                 std::make_tuple(sub_custom_field_name, std::make_shared<CustomField>(custom_field)));
         } else {
-            this->values.push_back(std::make_tuple(custom_fields[cursor], custom_fields[cursor + 1]));
+            this->values.push_back(std::make_tuple(get_token(custom_fields, cursor), get_token(custom_fields, cursor + 1)));
             cursor += 2;
         }
     }
@@ -78,27 +78,27 @@ std::vector<std::tuple<std::string, CustomFieldTypes>> CustomField::get_values()
 
 std::vector<std::string> parse_sub_custom_field(std::vector<std::string>& link_template,
                                                 size_t& cursor) {
-    if (link_template[cursor] != "CUSTOM_FIELD" || link_template.size() < cursor + 3)
+    if (get_token(link_template, cursor) != "CUSTOM_FIELD" || link_template.size() < cursor + 3)
         throw std::invalid_argument("Can not create Custom Field: Invalid arguments");
     std::vector<std::string> custom_field_args;
-    int custom_field_size = string_to_int(link_template[cursor + 2]);
-    custom_field_args.push_back(link_template[cursor]);      // CUSTOM_FIELD
-    custom_field_args.push_back(link_template[cursor + 1]);  // field name
-    custom_field_args.push_back(link_template[cursor + 2]);  // field size
+    int custom_field_size = string_to_int(get_token(link_template, cursor + 2));
+    custom_field_args.push_back(get_token(link_template, cursor));      // CUSTOM_FIELD
+    custom_field_args.push_back(get_token(link_template, cursor + 1));  // field name
+    custom_field_args.push_back(get_token(link_template, cursor + 2));  // field size
     cursor += 3;
     while (cursor < link_template.size()) {
         if (custom_field_size == 0) {
             break;
         }
-        custom_field_args.push_back(link_template[cursor]);
-        if (link_template[cursor] == "CUSTOM_FIELD") {
-            custom_field_args.push_back(link_template[cursor + 1]);
-            custom_field_args.push_back(link_template[cursor + 2]);
-            custom_field_size += string_to_int(link_template[cursor + 2]);
+        custom_field_args.push_back(get_token(link_template, cursor));
+        if (get_token(link_template, cursor) == "CUSTOM_FIELD") {
+            custom_field_args.push_back(get_token(link_template, cursor + 1));
+            custom_field_args.push_back(get_token(link_template, cursor + 2));
+            custom_field_size += string_to_int(get_token(link_template, cursor + 2));
             custom_field_size--;
             cursor += 3;
         } else {
-            custom_field_args.push_back(link_template[cursor + 1]);
+            custom_field_args.push_back(get_token(link_template, cursor + 1));
             custom_field_size--;
             cursor += 2;
         }
@@ -108,41 +108,41 @@ std::vector<std::string> parse_sub_custom_field(std::vector<std::string>& link_t
 
 std::vector<std::string> parse_sub_link_template(std::vector<std::string>& link_template,
                                                  size_t& cursor) {
-    if (link_template[cursor] != "LINK_CREATE" || link_template.size() < cursor + 4)
+    if (get_token(link_template, cursor) != "LINK_CREATE" || link_template.size() < cursor + 4)
         throw std::invalid_argument("Can not create Link Template: Invalid arguments");
-    int sub_link_template_size = string_to_int(link_template[cursor + 2]);
-    int sub_link_custom_field_size = string_to_int(link_template[cursor + 3]);
+    int sub_link_template_size = string_to_int(get_token(link_template, cursor + 2));
+    int sub_link_custom_field_size = string_to_int(get_token(link_template, cursor + 3));
     int custom_field_value_size = 0;
     std::vector<std::string> sub_link_template;
     int current_ptr = 0;                                     // link create default size
-    sub_link_template.push_back(link_template[cursor]);      // LINK_CREATE
-    sub_link_template.push_back(link_template[cursor + 1]);  // link type
-    sub_link_template.push_back(link_template[cursor + 2]);  // link size
-    sub_link_template.push_back(link_template[cursor + 3]);  // custom field size
+    sub_link_template.push_back(get_token(link_template, cursor));      // LINK_CREATE
+    sub_link_template.push_back(get_token(link_template, cursor + 1));  // link type
+    sub_link_template.push_back(get_token(link_template, cursor + 2));  // link size
+    sub_link_template.push_back(get_token(link_template, cursor + 3));  // custom field size
     cursor += 4;
     while (cursor < link_template.size()) {
         if (sub_link_template_size == 0 && current_ptr == 0 && sub_link_custom_field_size == 0 &&
             custom_field_value_size == 0) {
             break;
         }
-        sub_link_template.push_back(link_template[cursor]);
+        sub_link_template.push_back(get_token(link_template, cursor));
 
-        if (link_template[cursor] == "NODE") {
+        if (get_token(link_template, cursor) == "NODE") {
             current_ptr = 3;
             sub_link_template_size--;
         }
-        if (link_template[cursor] == "VARIABLE") {
+        if (get_token(link_template, cursor) == "VARIABLE") {
             current_ptr = 2;
             sub_link_template_size--;
         }
-        if (link_template[cursor] == "LINK_CREATE") {
+        if (get_token(link_template, cursor) == "LINK_CREATE") {
             current_ptr = 4;
-            sub_link_template_size += string_to_int(link_template[cursor + 2]);
-            sub_link_custom_field_size = string_to_int(link_template[cursor + 3]);
+            sub_link_template_size += string_to_int(get_token(link_template, cursor + 2));
+            sub_link_custom_field_size = string_to_int(get_token(link_template, cursor + 3));
             sub_link_template_size--;
         }
-        if (sub_link_custom_field_size > 0 && link_template[cursor] == "CUSTOM_FIELD") {
-            current_ptr = 3 + (string_to_int(link_template[cursor + 2]) * 2);
+        if (sub_link_custom_field_size > 0 && get_token(link_template, cursor) == "CUSTOM_FIELD") {
+            current_ptr = 3 + (string_to_int(get_token(link_template, cursor + 2)) * 2);
             sub_link_custom_field_size--;
         }
 
@@ -153,32 +153,32 @@ std::vector<std::string> parse_sub_link_template(std::vector<std::string>& link_
 }
 
 LinkCreateTemplate::LinkCreateTemplate(std::vector<std::string>& link_template) {
-    int stating_pos = 0;
-    if (link_template[0] == "LINK_CREATE") {
-        stating_pos = 1;
+    int starting_pos = 0;
+    if (get_token(link_template, 0) == "LINK_CREATE") {
+        starting_pos = 1;
     }
 
-    this->link_type = link_template[stating_pos];
-    std::size_t cursor = stating_pos;
-    std::size_t link_template_size = string_to_int(link_template[stating_pos + 1]);
-    std::size_t custom_field_size = string_to_int(link_template[stating_pos + 2]);
+    this->link_type = get_token(link_template, starting_pos);
+    std::size_t cursor = starting_pos;
+    std::size_t link_template_size = string_to_int(get_token(link_template, starting_pos + 1));
+    std::size_t custom_field_size = string_to_int(get_token(link_template, starting_pos + 2));
     while (cursor < link_template.size()) {
-        if (link_template[cursor] == "NODE") {
+        if (get_token(link_template, cursor) == "NODE") {
             Node node;
-            node.type = link_template[cursor + 1];
-            node.value = link_template[cursor + 2];
+            node.type = get_token(link_template, cursor + 1);
+            node.value = get_token(link_template, cursor + 2);
             this->targets.push_back(node);
             cursor += 2;
-        } else if (link_template[cursor] == "VARIABLE") {
+        } else if (get_token(link_template, cursor) == "VARIABLE") {
             Variable var;
-            var.name = link_template[cursor + 1];
+            var.name = get_token(link_template, cursor + 1);
             this->targets.push_back(var);
             cursor += 1;
-        } else if (link_template[cursor] == "LINK_CREATE") {
+        } else if (get_token(link_template, cursor) == "LINK_CREATE") {
             std::vector<std::string> sub_link_template = parse_sub_link_template(link_template, cursor);
             LinkCreateTemplateTypes sub_link = std::make_shared<LinkCreateTemplate>(sub_link_template);
             this->targets.push_back(sub_link);
-        } else if (link_template[cursor] == "CUSTOM_FIELD") {
+        } else if (get_token(link_template, cursor) == "CUSTOM_FIELD") {
             std::vector<std::string> sub_custom_field = parse_sub_custom_field(link_template, cursor);
             CustomField custom_field = CustomField(sub_custom_field);
             this->custom_fields.push_back(custom_field);
