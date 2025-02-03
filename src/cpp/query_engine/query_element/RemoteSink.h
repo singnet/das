@@ -44,7 +44,7 @@ class RemoteSink : public Sink {
 
    private:
     thread* queue_processor;
-    vector<QueryAnswerProcessor*> query_answer_processors;
+    vector<unique_ptr<QueryAnswerProcessor>> query_answer_processors;
 
     void queue_processor_method();
 };

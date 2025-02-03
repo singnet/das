@@ -597,7 +597,6 @@ void PatternMatchingQuery::act(shared_ptr<MessageFactory> node) {
         auto local_id = das_node->next_query_id();
         auto remote_id = this->requestor_id;
 
-        // TODO XXX Remove memory leak
         vector<QueryAnswerProcessor*> query_answer_processors;
         if (this->command == DASNode::PATTERN_MATCHING_QUERY) {
             query_answer_processors.push_back(new HandlesAnswerProcessor(local_id, remote_id));
@@ -606,7 +605,8 @@ void PatternMatchingQuery::act(shared_ptr<MessageFactory> node) {
             query_answer_processors.push_back(new CountAnswerProcessor(local_id, remote_id));
         }
 
-        RemoteSink* remote_sink = new RemoteSink(this->root_query_element, query_answer_processors);
+        RemoteSink* remote_sink =
+            new RemoteSink(this->root_query_element, move(query_answer_processors));
     } else {
         Utils::error("Invalid command " + this->command + " in PatternMatchingQuery message");
     }

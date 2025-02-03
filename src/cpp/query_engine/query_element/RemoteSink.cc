@@ -17,7 +17,7 @@ RemoteSink::RemoteSink(QueryElement* precedent,
 
     this->queue_processor = NULL;
     for (auto processor : query_answer_processors) {
-        this->query_answer_processors.push_back(processor);
+        this->query_answer_processors.emplace_back(unique_ptr<QueryAnswerProcessor>(processor));
     }
     this->queue_processor = new thread(&RemoteSink::queue_processor_method, this);
 #ifdef DEBUG
@@ -39,7 +39,7 @@ void RemoteSink::graceful_shutdown() {
     if (this->queue_processor != NULL) {
         this->queue_processor->join();
     }
-    for (auto processor : this->query_answer_processors) {
+    for (const auto& processor : this->query_answer_processors) {
         processor->graceful_shutdown();
     }
 #ifdef DEBUG
@@ -62,7 +62,7 @@ void RemoteSink::queue_processor_method() {
         bool idle_flag = true;
         QueryAnswer* qa;
         while ((qa = dynamic_cast<QueryAnswer*>(this->input_buffer->pop_query_answer())) != NULL) {
-            for (auto processor : this->query_answer_processors) {
+            for (const auto& processor : this->query_answer_processors) {
                 processor->process_answer(qa);
             }
             idle_flag = false;
@@ -76,7 +76,7 @@ void RemoteSink::queue_processor_method() {
     cout << "RemoteSink::queue_processor_method() ready to return" << endl;
 #endif
     set_flow_finished();
-    for (auto processor : this->query_answer_processors) {
+    for (const auto& processor : this->query_answer_processors) {
         processor->query_answers_finished();
     }
 #ifdef DEBUG
