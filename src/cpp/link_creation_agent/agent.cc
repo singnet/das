@@ -187,12 +187,6 @@ LinkCreationAgentRequest* LinkCreationAgent::create_request(vector<string> reque
             }
         }
         lca_request->infinite = (lca_request->repeat == -1);
-        auto link_template = new LinkCreateTemplate(lca_request->link_template);
-        cout << "template ok" << endl;
-        cout << "Link Type: " << link_template->get_link_type() << endl;
-        cout <<  "CREATE_LINK" << endl;
-        cout << link_template->to_string() << endl;
-
         return lca_request;
     } catch (exception& e) {
         cout << "Error parsing request: " << e.what() << endl;
