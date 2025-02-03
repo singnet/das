@@ -12,18 +12,13 @@ using namespace query_element;
 
 WorkerClientNode::WorkerClientNode(
     const string &node_id,
-    const string &server_id,
-    const string &das_node_server_id
-) : StarNode(node_id, server_id) {
-        this->node_id = node_id;
-        this->server_id = server_id;
-        this->das_node_server_id = das_node_server_id;
-}
+    const string &server_id
+) : StarNode(node_id, server_id) {}
 
 WorkerClientNode::~WorkerClientNode() {}
 
-void WorkerClientNode::execute(vector<string> &request) {
-    DASNode das_node_client(this->node_id, this->das_node_server_id);
+void WorkerClientNode::execute(const vector<string> &request, const string &das_node_server_id) {
+    DASNode das_node_client(this->node_id(), das_node_server_id);
     
     QueryAnswer *query_answer;
     
@@ -33,7 +28,7 @@ void WorkerClientNode::execute(vector<string> &request) {
 
     vector<string> message;
     
-    message.push_back(this->node_id);
+    message.push_back(this->node_id());
     
     string query_answer_str;
 
@@ -51,10 +46,14 @@ void WorkerClientNode::execute(vector<string> &request) {
     
     if (count == 0) {
         string no_match = "No match for query";
+#ifdef DEBUG
         cout << no_match << endl;
+#endif
         message.push_back(no_match);
     } else {
+#ifdef DEBUG
         cout << query_answer_str << endl;
+#endif
         message.push_back(query_answer_str);
     }
 

@@ -28,7 +28,7 @@ github-runner:
 build-image:
 	cd src && bash -x scripts/docker_image_build.sh
 
-build-spawner-image:
+build-spawner-image: build
 	cd src && bash +x scripts/docker_image_spawner_build.sh
 
 build: build-image

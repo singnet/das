@@ -40,9 +40,9 @@ int main(int argc, char* argv[]) {
 
     signal(SIGINT, &ctrl_c_handler);
     
-    WorkerClientNode client(node_id, server_id, das_node_server_id);
+    WorkerClientNode client(node_id, server_id);
     
-    client.execute(query);
+    client.execute(query, das_node_server_id);
     
     cout << "Worker client '" << node_id << "' done!\n" << endl;
     
