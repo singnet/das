@@ -1,8 +1,8 @@
 #include "link_create_template.h"
 
+#include <algorithm>
 #include <iostream>
 #include <stdexcept>
-#include <algorithm>
 
 using namespace link_creation_agent;
 
@@ -64,7 +64,8 @@ CustomField::CustomField(std::vector<std::string>& custom_fields) {
             this->values.push_back(
                 std::make_tuple(sub_custom_field_name, std::make_shared<CustomField>(custom_field)));
         } else {
-            this->values.push_back(std::make_tuple(get_token(custom_fields, cursor), get_token(custom_fields, cursor + 1)));
+            this->values.push_back(
+                std::make_tuple(get_token(custom_fields, cursor), get_token(custom_fields, cursor + 1)));
             cursor += 2;
         }
     }
@@ -114,7 +115,7 @@ std::vector<std::string> parse_sub_link_template(std::vector<std::string>& link_
     int sub_link_custom_field_size = string_to_int(get_token(link_template, cursor + 3));
     int custom_field_value_size = 0;
     std::vector<std::string> sub_link_template;
-    int current_ptr = 0;                                     // link create default size
+    int current_ptr = 0;                                                // link create default size
     sub_link_template.push_back(get_token(link_template, cursor));      // LINK_CREATE
     sub_link_template.push_back(get_token(link_template, cursor + 1));  // link type
     sub_link_template.push_back(get_token(link_template, cursor + 2));  // link size

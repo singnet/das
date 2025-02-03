@@ -36,23 +36,24 @@ class LinkCreationAgentTest : public ::testing::Test {
 
 TEST_F(LinkCreationAgentTest, TestRequest) {
     // Simulate a request
-    vector<string> request = {"query1", "LINK_CREATE", "test", "1", "0", "VARIABLE", "V1", "10", "5", "test_context", "true"};
+    vector<string> request = {
+        "query1", "LINK_CREATE", "test", "1", "0", "VARIABLE", "V1", "10", "5", "test_context", "true"};
     LinkCreationAgentRequest* lca_request = LinkCreationAgent::create_request(request);
     EXPECT_EQ(lca_request->query, vector<string>({"query1"}));
-    EXPECT_EQ(lca_request->link_template, vector<string>({"LINK_CREATE", "test", "1", "0", "VARIABLE", "V1"}));
+    EXPECT_EQ(lca_request->link_template,
+              vector<string>({"LINK_CREATE", "test", "1", "0", "VARIABLE", "V1"}));
     EXPECT_EQ(lca_request->max_results, 10);
     EXPECT_EQ(lca_request->repeat, 5);
     EXPECT_EQ(lca_request->context, "test_context");
     EXPECT_EQ(lca_request->update_attention_broker, true);
 }
 
-TEST_F(LinkCreationAgentTest, TestConfig){
-        agent = new LinkCreationAgent("test_config.cfg");
-        delete agent;
+TEST_F(LinkCreationAgentTest, TestConfig) {
+    agent = new LinkCreationAgent("test_config.cfg");
+    delete agent;
 }
 
-
-TEST(LinkCreateTemplate, TestCustomField){
+TEST(LinkCreateTemplate, TestCustomField) {
     vector<string> args = {"CUSTOM_FIELD", "field1", "2", "N1", "value1", "N2", "value2"};
     CustomField custom_field(args);
     EXPECT_EQ(custom_field.get_name(), "field1");
@@ -68,7 +69,8 @@ TEST(LinkCreateTemplate, TestCustomField){
     EXPECT_EQ(custom_field_empty.get_values().size(), 0);
 
     // Test custom field with multiple values
-    vector<string> args_multiple = {"CUSTOM_FIELD", "multi_field", "3", "N1", "value1", "N2", "value2", "N3", "value3"};
+    vector<string> args_multiple = {
+        "CUSTOM_FIELD", "multi_field", "3", "N1", "value1", "N2", "value2", "N3", "value3"};
     CustomField custom_field_multiple(args_multiple);
     EXPECT_EQ(custom_field_multiple.get_name(), "multi_field");
     vector<tuple<string, CustomFieldTypes>> values_multiple = custom_field_multiple.get_values();
@@ -78,7 +80,16 @@ TEST(LinkCreateTemplate, TestCustomField){
     EXPECT_EQ(get<string>(get<1>(values_multiple[2])), "value3");
 
     // Test nested custom fields
-    vector<string> args_nested = {"CUSTOM_FIELD", "nested_field", "2", "N1", "value1", "CUSTOM_FIELD", "inner_field", "1", "N2", "value2"};
+    vector<string> args_nested = {"CUSTOM_FIELD",
+                                  "nested_field",
+                                  "2",
+                                  "N1",
+                                  "value1",
+                                  "CUSTOM_FIELD",
+                                  "inner_field",
+                                  "1",
+                                  "N2",
+                                  "value2"};
     CustomField custom_field_nested(args_nested);
     EXPECT_EQ(custom_field_nested.get_name(), "nested_field");
     vector<tuple<string, CustomFieldTypes>> values_nested = custom_field_nested.get_values();
