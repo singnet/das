@@ -116,6 +116,7 @@ This will run all the tests for the project.
 * DAS User's Guide ([Jupyter Notebook](notebooks/das-users-guide.ipynb)) ([Markdown](docs/das-users-guide.md)) - Document with code snippets showing how to use DAS.
 * [DAS Overview](docs/das-overview.md) - Description of the main DAS components and deployment architecture.
 * [DAS Toolbox User's Guide](https://github.com/singnet/das-toolbox) - A guide with detailed instructions to use the DAS Server Toolbox.
+* [Nunet Deployment Guide](docs/nunet-deployment-guide.md) - A comprehensive guide for deploying DAS components to the NuNet network.
 * [Release Notes](docs/release-notes.md) - Release notes for all DAS components.
 
 ## **Project Management**

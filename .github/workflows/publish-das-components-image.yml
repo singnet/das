@@ -1,18 +1,17 @@
-name: Publish Docker Base Image (POC)
+name: Build and Publish POC Components
 
 on:
-  workflow_dispatch:
-    inputs:
-      version:
-        description: "Select Ubuntu version"
-        required: true
-        type: choice
-        options:
-          - 22.04
+  push:
+    branches:
+      - master
 
 jobs:
   build_and_publish:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        target: [attention-broker, query-agent, link-creation-agent, link-creation-client]
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
@@ -29,9 +28,8 @@ jobs:
       - name: Build and push Docker image
         uses: docker/build-push-action@v4
         with:
-          context: ./src/
-          file: ./src/docker/Dockerfile
+          context: .
+          file: .docker/poc/Dockerfile
           push: true
-          tags: trueagi/das:${{ github.event.inputs.version }}-builder
-          build-args: |
-            UBUNTU_VERSION=${{ github.event.inputs.version }}
+          target: ${{ matrix.target }}
+          tags: trueagi/das:${{ matrix.target }}-poc
