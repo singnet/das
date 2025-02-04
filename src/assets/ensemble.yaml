@@ -1,0 +1,75 @@
+version: "ensembleV1"
+
+allocations:
+  attentionbroker:
+    executor: docker
+    resources:
+      cpu:
+        cores: 1
+      gpus: []
+      ram:
+        size: 1
+      disk:
+        size: 1
+    execution:
+      type: docker
+      image: trueagi/das:attention-broker-poc
+    dnsname: attentionbroker
+
+  queryagent:
+    executor: docker
+    resources:
+      cpu:
+        cores: 1
+      gpus: []
+      ram:
+        size: 1
+      disk:
+        size: 1
+    execution:
+      type: docker
+      image: trueagi/das:query-agent-poc
+    dnsname: queryagent
+
+  linkcreationagent:
+    executor: docker
+    resources:
+      cpu:
+        cores: 1
+      gpus: []
+      ram:
+        size: 1
+      disk:
+        size: 1
+    execution:
+      type: docker
+      image: trueagi/das:link-creation-agent-poc
+    dnsname: linkcreationagent
+
+
+  linkcreationclient:
+    executor: docker
+    resources:
+      cpu:
+        cores: 1
+      gpus: []
+      ram:
+        size: 1
+      disk:
+        size: 1
+    execution:
+      type: docker
+      image: trueagi/das:link-creation-client-poc
+    dnsname: linkcreationclient
+
+nodes:
+  node1:
+    allocations:
+      - attentionbroker
+      - queryagent
+      - linkcreationagent
+      - linkcreationclient
+    peer: ${PEER_ID}
+    location:
+      accept: []
+      reject: []
