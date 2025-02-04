@@ -606,6 +606,7 @@ void PatternMatchingQuery::act(shared_ptr<MessageFactory> node) {
             query_answer_processors.push_back(make_unique<CountAnswerProcessor>(local_id, remote_id));
         }
 
+        // TODO: eliminate this memory leak
         RemoteSink<HandlesAnswer>* remote_sink =
             new RemoteSink<HandlesAnswer>(this->root_query_element, move(query_answer_processors));
     } else {
