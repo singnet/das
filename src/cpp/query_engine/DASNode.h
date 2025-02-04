@@ -5,7 +5,7 @@
 
 #include <stack>
 
-#include "RemoteCountIterator.h"
+#include "HandlesAnswer.h"
 #include "RemoteIterator.h"
 #include "Sink.h"
 #include "StarNode.h"
@@ -28,9 +28,9 @@ class DASNode : public StarNode {
     DASNode(const string& node_id, const string& server_id);
     ~DASNode();
 
-    RemoteIterator* pattern_matcher_query(const vector<string>& tokens,
-                                          const string& context = "",
-                                          bool update_attention_broker = false);
+    RemoteIterator<HandlesAnswer>* pattern_matcher_query(const vector<string>& tokens,
+                                                         const string& context = "",
+                                                         bool update_attention_broker = false);
 
     int count_query(const vector<string>& tokens,
                     const string& context = "",

@@ -13,7 +13,8 @@ class CountAnswerProcessor : public QueryAnswerProcessor {
    public:
     CountAnswerProcessor(const string& local_id, const string& remote_id)
         : count(0),
-          output_buffer(make_unique<QueryNodeClient>(local_id, remote_id, MessageBrokerType::GRPC)) {}
+          output_buffer(
+              make_unique<QueryNodeClient<CountAnswer>>(local_id, remote_id, MessageBrokerType::GRPC)) {}
     virtual ~CountAnswerProcessor() { this->graceful_shutdown(); };
     virtual void process_answer(QueryAnswer* query_answer) override {
         if (query_answer) count++;
@@ -26,7 +27,7 @@ class CountAnswerProcessor : public QueryAnswerProcessor {
 
    protected:
     int count;
-    unique_ptr<QueryNodeClient> output_buffer;
+    unique_ptr<QueryNodeClient<CountAnswer>> output_buffer;
 };
 
 }  // namespace query_engine

@@ -9,12 +9,13 @@
  * It also handles loading and saving configurations and request buffers.
  */
 #pragma once
+#include <mutex>
 #include <string>
 #include <thread>
 #include <vector>
-#include <mutex>
 
 #include "DASNode.h"
+#include "HandlesAnswer.h"
 #include "RemoteIterator.h"
 #include "das_link_creation_node.h"
 #include "das_server_node.h"
@@ -67,9 +68,9 @@ class LinkCreationAgent {
      * @brief Sends a query to DAS Query Agent
      * @returns Returns a shared_ptr<RemoteIterator>, to iterate through the requests
      */
-    shared_ptr<RemoteIterator> query(vector<string>& query_tokens,
-                                     string context,
-                                     bool update_attention_broker);
+    shared_ptr<RemoteIterator<HandlesAnswer>> query(vector<string>& query_tokens,
+                                                    string context,
+                                                    bool update_attention_broker);
     /**
      * @brief Load config file
      */
@@ -88,16 +89,16 @@ class LinkCreationAgent {
     void stop();
 
     // Attributes loaded from config file
-    string config_path;              // Path to the configuration file
-    int requests_interval_seconds;            // Default interval to send requests
-    int link_creation_agent_thread_count;                // Number of threads to process requests
-    string query_agent_client_id;     // ID of the query node client
-    string query_agent_server_id;     // ID of the query node server
+    string config_path;                    // Path to the configuration file
+    int requests_interval_seconds;         // Default interval to send requests
+    int link_creation_agent_thread_count;  // Number of threads to process requests
+    string query_agent_client_id;          // ID of the query node client
+    string query_agent_server_id;          // ID of the query node server
     string link_creation_agent_server_id;  // ID of the link creation server
     string das_agent_client_id;            // ID of the DAS client
     string das_agent_server_id;
-    string requests_buffer_file;     // Path to the requests buffer file
-    string context;                  // Context to send to attention broker
+    string requests_buffer_file;  // Path to the requests buffer file
+    string context;               // Context to send to attention broker
 
     // Other attributes
     LinkCreationService* service;
@@ -108,6 +109,6 @@ class LinkCreationAgent {
     thread* agent_thread;
     mutex agent_mutex;
     bool is_stoping = false;
-    int loop_interval = 100; // miliseconds
+    int loop_interval = 100;  // miliseconds
 };
 }  // namespace link_creation_agent

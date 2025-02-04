@@ -1,3 +1,5 @@
+#pragma once
+
 #include "RemoteSink.h"
 
 #include "QueryAnswer.h"
@@ -7,24 +9,30 @@ using namespace query_element;
 // -------------------------------------------------------------------------------------------------
 // Constructors and destructors
 
-RemoteSink::RemoteSink(QueryElement* precedent,
-                       vector<unique_ptr<QueryAnswerProcessor>>&& query_answer_processors,
-                       bool delete_precedent_on_destructor)
-    : Sink(precedent, "RemoteSink(" + precedent->id + ")", delete_precedent_on_destructor, true),
+template <class AnswerType>
+RemoteSink<AnswerType>::RemoteSink(QueryElement* precedent,
+                                   vector<unique_ptr<QueryAnswerProcessor>>&& query_answer_processors,
+                                   bool delete_precedent_on_destructor)
+    : Sink<AnswerType>(
+          precedent, "RemoteSink(" + precedent->id + ")", delete_precedent_on_destructor, true),
       queue_processor(new thread(&RemoteSink::queue_processor_method, this)),
       query_answer_processors(move(query_answer_processors)) {}
 
-RemoteSink::~RemoteSink() { graceful_shutdown(); }
+template <class AnswerType>
+RemoteSink<AnswerType>::~RemoteSink() {
+    graceful_shutdown();
+}
 
 // -------------------------------------------------------------------------------------------------
 // Public methods
 
-void RemoteSink::graceful_shutdown() {
+template <class AnswerType>
+void RemoteSink<AnswerType>::graceful_shutdown() {
 #ifdef DEBUG
     cout << "RemoteSink::graceful_shutdown() BEGIN" << endl;
 #endif
-    Sink::graceful_shutdown();
-    set_flow_finished();
+    Sink<AnswerType>::graceful_shutdown();
+    this->set_flow_finished();
     if (this->queue_processor != NULL) {
         this->queue_processor->join();
     }
@@ -39,13 +47,14 @@ void RemoteSink::graceful_shutdown() {
 // -------------------------------------------------------------------------------------------------
 // Private methods
 
-void RemoteSink::queue_processor_method() {
+template <class AnswerType>
+void RemoteSink<AnswerType>::queue_processor_method() {
 #ifdef DEBUG
     cout << "RemoteSink::queue_processor_method() BEGIN" << endl;
 #endif
     do {
-        if (is_flow_finished() || (this->input_buffer->is_query_answers_finished() &&
-                                   this->input_buffer->is_query_answers_empty())) {
+        if (this->is_flow_finished() || (this->input_buffer->is_query_answers_finished() &&
+                                         this->input_buffer->is_query_answers_empty())) {
             break;
         }
         bool idle_flag = true;
@@ -64,7 +73,7 @@ void RemoteSink::queue_processor_method() {
 #ifdef DEBUG
     cout << "RemoteSink::queue_processor_method() ready to return" << endl;
 #endif
-    set_flow_finished();
+    this->set_flow_finished();
     for (const auto& processor : this->query_answer_processors) {
         processor->query_answers_finished();
     }

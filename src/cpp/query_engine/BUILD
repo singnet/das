@@ -4,12 +4,10 @@ cc_library(
     name = "query_engine_lib",
     srcs = glob(["**/*.cc"]),
     hdrs = glob(["**/*.h"]),
-    includes = [".", "query_element", "answer_processor"],
-    deps = [
-        "//utils:utils_lib",
-        "//hasher:hasher_lib",
-        "//attention_broker:attention_broker_server_lib",
-        "//distributed_algorithm_node:distributed_algorithm_node_lib",
+    includes = [
+        ".",
+        "answer_processor",
+        "query_element",
     ],
     linkopts = [
         "-lmbedcrypto",
@@ -18,6 +16,18 @@ cc_library(
         "-lhiredis",
         "-lmongocxx",
         "-lbsoncxx",
-    ],  
-
+    ],
+    textual_hdrs = [
+        "QueryNode.cc",
+        "query_element/Iterator.cc",
+        "query_element/Sink.cc",
+        "query_element/RemoteIterator.cc",
+        "query_element/RemoteSink.cc",
+    ],
+    deps = [
+        "//attention_broker:attention_broker_server_lib",
+        "//distributed_algorithm_node:distributed_algorithm_node_lib",
+        "//hasher:hasher_lib",
+        "//utils:utils_lib",
+    ],
 )

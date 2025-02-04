@@ -14,9 +14,15 @@ using namespace query_engine;
 
 namespace query_node {
 
+constexpr char* HANDLES_ANSWER_TOKENS_FLOW_COMMAND = "handles_answer_tokens_flow";
+constexpr char* COUNT_ANSWER_TOKENS_FLOW_COMMAND = "count_answer_tokens_flow";
+constexpr char* QUERY_ANSWER_FLOW_COMMAND = "query_answer_flow";
+constexpr char* QUERY_ANSWERS_FINISHED_COMMAND = "query_answers_finished";
+
 /**
  *
  */
+template <class AnswerType>
 class QueryNode : public DistributedAlgorithmNode {
    public:
     QueryNode(const string& node_id,
@@ -33,11 +39,6 @@ class QueryNode : public DistributedAlgorithmNode {
     bool is_query_answers_empty();
     virtual void query_answer_processor_method() = 0;
 
-    static string QUERY_ANSWER_FLOW_COMMAND;
-    static string HANDLES_ANSWER_TOKENS_FLOW_COMMAND;
-    static string COUNT_ANSWER_TOKENS_FLOW_COMMAND;
-    static string QUERY_ANSWERS_FINISHED_COMMAND;
-
    protected:
     SharedQueue query_answer_queue;
     thread* query_answer_processor;
@@ -51,7 +52,8 @@ class QueryNode : public DistributedAlgorithmNode {
     mutex query_answers_finished_flag_mutex;
 };
 
-class QueryNodeServer : public QueryNode {
+template <class AnswerType>
+class QueryNodeServer : public QueryNode<AnswerType> {
    public:
     QueryNodeServer(const string& node_id, MessageBrokerType messaging_backend = MessageBrokerType::RAM);
     virtual ~QueryNodeServer();
@@ -61,7 +63,8 @@ class QueryNodeServer : public QueryNode {
     void query_answer_processor_method();
 };
 
-class QueryNodeClient : public QueryNode {
+template <class AnswerType>
+class QueryNodeClient : public QueryNode<AnswerType> {
    public:
     QueryNodeClient(const string& node_id,
                     const string& server_id,
@@ -76,6 +79,7 @@ class QueryNodeClient : public QueryNode {
     string server_id;
 };
 
+template <class AnswerType>
 class QueryAnswerFlow : public Message {
    public:
     QueryAnswerFlow(string command, vector<string>& args);
@@ -85,30 +89,17 @@ class QueryAnswerFlow : public Message {
     vector<QueryAnswer*> query_answers;
 };
 
-template <typename AnswerType,
-          enable_if_t<is_base_of<QueryAnswer, AnswerType>::value, nullptr_t> = nullptr>
+template <class AnswerType>
 class QueryAnswerTokensFlow : public Message {
    public:
-    QueryAnswerTokensFlow(string command, vector<string>& args) {
-        this->query_answers_tokens.reserve(args.size());
-        for (auto token : args) {
-            this->query_answers_tokens.push_back(token);
-        }
-    }
-
-    void act(shared_ptr<MessageFactory> node) {
-        auto query_node = dynamic_pointer_cast<QueryNodeServer>(node);
-        for (auto tokens : this->query_answers_tokens) {
-            AnswerType* query_answer = new AnswerType();
-            query_answer->untokenize(tokens);
-            query_node->add_query_answer(query_answer);
-        }
-    }
+    QueryAnswerTokensFlow(string command, vector<string>& args);
+    void act(shared_ptr<MessageFactory> node);
 
    private:
     vector<string> query_answers_tokens;
 };
 
+template <class AnswerType>
 class QueryAnswersFinished : public Message {
    public:
     QueryAnswersFinished(string command, vector<string>& args);
@@ -116,5 +107,7 @@ class QueryAnswersFinished : public Message {
 };
 
 }  // namespace query_node
+
+#include "QueryNode.cc"
 
 #endif  // _QUERY_NODE_QUERYNODE_H

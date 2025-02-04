@@ -14,7 +14,8 @@ namespace query_element {
 /**
  * A special sink which forwards the query results to a remote QueryElement (e.g. a RemoteIterator).
  */
-class RemoteSink : public Sink {
+template <class AnswerType>
+class RemoteSink : public Sink<AnswerType> {
    public:
     /**
      * Constructor.
@@ -50,5 +51,7 @@ class RemoteSink : public Sink {
 };
 
 }  // namespace query_element
+
+#include "RemoteSink.cc"
 
 #endif  // _QUERY_ELEMENT_REMOTESINK_H

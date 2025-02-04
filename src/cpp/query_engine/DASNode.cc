@@ -8,7 +8,6 @@
 #include "LinkTemplate.h"
 #include "Or.h"
 #include "QueryAnswerProcessor.h"
-#include "RemoteCountSink.h"
 #include "RemoteSink.h"
 #include "Terminal.h"
 
@@ -47,9 +46,9 @@ void DASNode::initialize() {
 // -------------------------------------------------------------------------------------------------
 // Public client API
 
-RemoteIterator* DASNode::pattern_matcher_query(const vector<string>& tokens,
-                                               const string& context,
-                                               bool update_attention_broker) {
+RemoteIterator<HandlesAnswer>* DASNode::pattern_matcher_query(const vector<string>& tokens,
+                                                              const string& context,
+                                                              bool update_attention_broker) {
 #ifdef DEBUG
     cout << "DASNode::pattern_matcher_query() BEGIN" << endl;
     cout << "DASNode::pattern_matcher_query() tokens.size(): " << tokens.size() << endl;
@@ -68,7 +67,7 @@ RemoteIterator* DASNode::pattern_matcher_query(const vector<string>& tokens,
 #ifdef DEBUG
     cout << "DASNode::pattern_matcher_query() END" << endl;
 #endif
-    return new RemoteIterator(query_id);
+    return new RemoteIterator<HandlesAnswer>(query_id);
 }
 
 int DASNode::count_query(const vector<string>& tokens,
@@ -91,7 +90,7 @@ int DASNode::count_query(const vector<string>& tokens,
 
     int count = UNDEFINED_COUNT;
     CountAnswer* count_answer;
-    auto count_iterator = make_unique<RemoteIterator>(query_id);
+    auto count_iterator = make_unique<RemoteIterator<CountAnswer>>(query_id);
     while (not count_iterator->finished()) {
         if ((count_answer = dynamic_cast<CountAnswer*>(count_iterator->pop())) != nullptr) {
             count = count_answer->get_count();
@@ -607,8 +606,8 @@ void PatternMatchingQuery::act(shared_ptr<MessageFactory> node) {
             query_answer_processors.push_back(make_unique<CountAnswerProcessor>(local_id, remote_id));
         }
 
-        RemoteSink* remote_sink =
-            new RemoteSink(this->root_query_element, move(query_answer_processors));
+        RemoteSink<HandlesAnswer>* remote_sink =
+            new RemoteSink<HandlesAnswer>(this->root_query_element, move(query_answer_processors));
     } else {
         Utils::error("Invalid command " + this->command + " in PatternMatchingQuery message");
     }

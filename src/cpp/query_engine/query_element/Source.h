@@ -1,6 +1,7 @@
 #ifndef _QUERY_ELEMENT_SOURCE_H
 #define _QUERY_ELEMENT_SOURCE_H
 
+#include "HandlesAnswer.h"
 #include "QueryElement.h"
 
 using namespace std;
@@ -11,14 +12,12 @@ namespace query_element {
  * Superclass for elements that represent leaves in the query tree of QueryElement.
  *
  * Source adds the required DistributedAlgorithmNode (actually a specialized version of it
- * named QueryNode) and exposes a public API to interact with it transparently. Basically, 
+ * named QueryNode) and exposes a public API to interact with it transparently. Basically,
  * a client version of QueryNode (i.e. a ClientQueryNode) is setup to communicate with
  * a remote ServerQueryNode which is located in the QueryElement just above in the query tree.
  */
 class Source : public QueryElement {
-
-public:
-
+   public:
     /**
      * Sources tipically need to communicate with the AttentionBroker in order to sort links
      * by importance. AttentionBroker is supposed to be running in the same machine as all
@@ -30,7 +29,7 @@ public:
     /**
      * Constructor which also sets a value for AttentionBroker address
      */
-    Source(const string &attention_broker_address);
+    Source(const string& attention_broker_address);
 
     /**
      * Basic empty constructor.
@@ -51,17 +50,16 @@ public:
     virtual void graceful_shutdown();
 
     /**
-     * Setup a ClientQueryNode to commnunicate with the upper QueryElement.
+     * Setup a ClientQueryNode to communicate with the upper QueryElement.
      */
     virtual void setup_buffers();
 
-protected:
-
+   protected:
     string attention_broker_address;
-    shared_ptr<QueryNode> output_buffer;
-    QueryElement *subsequent;
+    shared_ptr<QueryNode<HandlesAnswer>> output_buffer;
+    QueryElement* subsequent;
 };
 
-} // namespace query_element
+}  // namespace query_element
 
-#endif // _QUERY_ELEMENT_SOURCE_H
+#endif  // _QUERY_ELEMENT_SOURCE_H

@@ -6,6 +6,7 @@
 #include "DASNode.h"
 #include "RemoteIterator.h"
 #include "QueryAnswer.h"
+#include "HandlesAnswer.h"
 #include "AtomDBSingleton.h"
 #include "Utils.h"
 
@@ -38,7 +39,7 @@ int main(int argc, char* argv[]) {
     DASNode client(client_id, server_id);
     QueryAnswer *query_answer;
     unsigned int count = 0;
-    RemoteIterator *response = client.pattern_matcher_query(query);
+    RemoteIterator<HandlesAnswer> *response = client.pattern_matcher_query(query);
     while (! response->finished()) {
         if ((query_answer = response->pop()) == NULL) {
             Utils::sleep();

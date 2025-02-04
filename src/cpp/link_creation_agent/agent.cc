@@ -31,7 +31,7 @@ LinkCreationAgent::~LinkCreationAgent() {
 
 void LinkCreationAgent::stop() {
     agent_mutex.lock();
-    if(!is_stoping){
+    if (!is_stoping) {
         is_stoping = true;
         save_buffer();
     }
@@ -48,7 +48,7 @@ void LinkCreationAgent::stop() {
 void LinkCreationAgent::run() {
     int current_buffer_position = 0;
     while (true) {
-        if(is_stoping) break;
+        if (is_stoping) break;
         LinkCreationAgentRequest* lca_request = NULL;
         bool is_from_buffer = false;
         if (!link_creation_node_server->is_query_empty()) {
@@ -73,7 +73,7 @@ void LinkCreationAgent::run() {
             continue;
         }
 
-        shared_ptr<RemoteIterator> iterator =
+        shared_ptr<RemoteIterator<HandlesAnswer>> iterator =
             query(lca_request->query, lca_request->context, lca_request->update_attention_broker);
 
         service->process_request(
@@ -98,10 +98,10 @@ void LinkCreationAgent::run() {
     }
 }
 
-shared_ptr<RemoteIterator> LinkCreationAgent::query(vector<string>& query_tokens,
-                                                    string context,
-                                                    bool update_attention_broker) {
-    return shared_ptr<RemoteIterator>(
+shared_ptr<RemoteIterator<HandlesAnswer>> LinkCreationAgent::query(vector<string>& query_tokens,
+                                                                   string context,
+                                                                   bool update_attention_broker) {
+    return shared_ptr<RemoteIterator<HandlesAnswer>>(
         query_node_client->pattern_matcher_query(query_tokens, context, update_attention_broker));
 }
 

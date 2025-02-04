@@ -5,7 +5,6 @@
 
 #include "DASNode.h"
 #include "RemoteIterator.h"
-#include "RemoteCountIterator.h"
 #include "HandlesAnswer.h"
 #include "CountAnswer.h"
 #include "AtomDBSingleton.h"
@@ -124,7 +123,8 @@ void run(
     
     HandlesAnswer *query_answer;
     unsigned int count = 0;
-    auto response = unique_ptr<RemoteIterator>(client.pattern_matcher_query(query_word, context, true));
+    auto response = unique_ptr<RemoteIterator<HandlesAnswer>>(
+        client.pattern_matcher_query(query_word, context, true));
     shared_ptr<atomdb_api_types::AtomDocument> sentence_document;
     shared_ptr<atomdb_api_types::AtomDocument> sentence_name_document;
     vector<string> sentences;

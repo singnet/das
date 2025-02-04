@@ -2,8 +2,10 @@
 #define _QUERY_ELEMENT_OPERATOR_H
 
 #include <mutex>
-#include "QueryElement.h"
+
+#include "HandlesAnswer.h"
 #include "QueryAnswer.h"
+#include "QueryElement.h"
 
 using namespace std;
 
@@ -21,9 +23,7 @@ namespace query_element {
  */
 template <unsigned int N>
 class Operator : public QueryElement {
-
-public:
-
+   public:
     // --------------------------------------------------------------------------------------------
     // Constructors and destructors
 
@@ -32,25 +32,19 @@ public:
      *
      * @param clauses Array of QueryElement, each of them a clause in the operation.
      */
-    Operator(const array<QueryElement *, N> &clauses) {
-        initialize((QueryElement **) clauses.data());
-    }
+    Operator(const array<QueryElement*, N>& clauses) { initialize((QueryElement**) clauses.data()); }
 
     /**
      * Constructor.
      *
      * @param clauses Array of QueryElement, each of them a clause in the operation.
      */
-    Operator(QueryElement **clauses) {
-        initialize(clauses);
-    }
+    Operator(QueryElement** clauses) { initialize(clauses); }
 
     /**
      * Destructor.
      */
-    ~Operator() {
-        this->graceful_shutdown();
-    }
+    ~Operator() { this->graceful_shutdown(); }
 
     // --------------------------------------------------------------------------------------------
     // QueryElement API
@@ -69,15 +63,14 @@ public:
             Utils::error("Invalid empty id");
         }
 
-        this->output_buffer = shared_ptr<QueryNodeClient>(new QueryNodeClient(this->id, this->subsequent_id));
+        this->output_buffer = make_shared<QueryNodeClient<HandlesAnswer>>(this->id, this->subsequent_id);
         string server_node_id;
         for (unsigned int i = 0; i < N; i++) {
             server_node_id = this->id + "_" + to_string(i);
-            this->input_buffer[i] = shared_ptr<QueryNodeServer>(new QueryNodeServer(server_node_id));
+            this->input_buffer[i] = make_shared<QueryNodeServer<HandlesAnswer>>(server_node_id);
             this->precedent[i]->subsequent_id = server_node_id;
             this->precedent[i]->setup_buffers();
         }
-
     }
 
     /**
@@ -98,15 +91,13 @@ public:
         }
     }
 
-protected:
+   protected:
+    QueryElement* precedent[N];
+    shared_ptr<QueryNodeServer<HandlesAnswer>> input_buffer[N];
+    shared_ptr<QueryNodeClient<HandlesAnswer>> output_buffer;
 
-    QueryElement *precedent[N];
-    shared_ptr<QueryNodeServer> input_buffer[N];
-    shared_ptr<QueryNodeClient> output_buffer;
-
-private:
-
-    void initialize(QueryElement **clauses) {
+   private:
+    void initialize(QueryElement** clauses) {
         if (N > MAX_NUMBER_OF_OPERATION_CLAUSES) {
             Utils::error("Operation exceeds max number of clauses: " + to_string(N));
         }
@@ -116,6 +107,6 @@ private:
     }
 };
 
-} // namespace query_element
+}  // namespace query_element
 
-#endif // _QUERY_ELEMENT_OPERATOR_H
+#endif  // _QUERY_ELEMENT_OPERATOR_H
