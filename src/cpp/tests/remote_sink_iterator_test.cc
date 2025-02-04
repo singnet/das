@@ -1,25 +1,21 @@
 #include <cstdlib>
-#include "gtest/gtest.h"
 
-#include "RemoteSink.h"
-#include "Source.h"
-#include "RemoteIterator.h"
-#include "AtomDBSingleton.h"
-#include "test_utils.h"
 #include "HandlesAnswer.h"
 #include "HandlesAnswerProcessor.h"
-#include "AttentionBrokerUpdater.h"
+#include "RemoteIterator.h"
+#include "RemoteSink.h"
+#include "Source.h"
+#include "gtest/gtest.h"
+#include "test_utils.h"
 
 using namespace query_engine;
 using namespace query_element;
 using namespace query_node;
 
 class TestSource : public Source {
-    public:
-    TestSource(const string &id) {
-        this->id = id;
-    }
-    void add(QueryAnswer *qa) {
+   public:
+    TestSource(const string& id) { this->id = id; }
+    void add(QueryAnswer* qa) {
         this->output_buffer->add_query_answer(qa);
         Utils::sleep(1000);
     }
@@ -36,18 +32,15 @@ TEST(RemoteSinkIterator, basics) {
     string input_element_id = "test_source";
     TestSource input(input_element_id);
     RemoteIterator<HandlesAnswer> consumer(consumer_id);
-
-    AtomDBSingleton::init();
     vector<unique_ptr<QueryAnswerProcessor>> query_answer_processors;
     query_answer_processors.push_back(make_unique<HandlesAnswerProcessor>(producer_id, consumer_id));
-    query_answer_processors.push_back(make_unique<AttentionBrokerUpdater>());
     RemoteSink<HandlesAnswer> producer(&input, move(query_answer_processors));
 
     Utils::sleep(1000);
 
     EXPECT_FALSE(consumer.finished());
 
-    HandlesAnswer *qa;
+    HandlesAnswer* qa;
     HandlesAnswer qa0("h0", 0.0);
     HandlesAnswer qa1("h1", 0.1);
     HandlesAnswer qa2("h2", 0.2);
@@ -76,6 +69,6 @@ TEST(RemoteSinkIterator, basics) {
     EXPECT_FALSE((qa = dynamic_cast<HandlesAnswer*>(consumer.pop())) == NULL);
     EXPECT_TRUE(strcmp(qa->handles[0], "h2") == 0);
     EXPECT_TRUE(double_equals(qa->importance, 0.2));
-    Utils::sleep(5000); // XXXXXXXXXXXXXXXXXXXXXXXXXXX
+    Utils::sleep(5000);  // XXXXXXXXXXXXXXXXXXXXXXXXXXX
     EXPECT_TRUE(consumer.finished());
 }
