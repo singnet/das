@@ -6,6 +6,7 @@
 #include "AtomDBSingleton.h"
 #include "test_utils.h"
 #include "Iterator.h"
+#include "HandlesAnswer.h"
 
 using namespace query_engine;
 using namespace query_element;
@@ -23,33 +24,33 @@ class TestQueryElement : public QueryElement {
 TEST(Iterator, basics) {
     string client_id = "no_query_element";
     TestQueryElement dummy(client_id);
-    Iterator query_answer_iterator(&dummy);
+    Iterator<HandlesAnswer> query_answer_iterator(&dummy);
     string server_id = query_answer_iterator.id;
     EXPECT_FALSE(server_id == "");
-    QueryNodeClient client_node(client_id, query_answer_iterator.id);
+    QueryNodeClient<HandlesAnswer> client_node(client_id, query_answer_iterator.id);
 
     EXPECT_FALSE(query_answer_iterator.finished());
 
-    QueryAnswer *qa;
-    QueryAnswer qa0("h0", 0.0);
-    QueryAnswer qa1("h1", 0.1);
-    QueryAnswer qa2("h2", 0.2);
+    HandlesAnswer *qa;
+    HandlesAnswer qa0("h0", 0.0);
+    HandlesAnswer qa1("h1", 0.1);
+    HandlesAnswer qa2("h2", 0.2);
 
     client_node.add_query_answer(&qa0);
     client_node.add_query_answer(&qa1);
     Utils::sleep(1000);
 
     EXPECT_FALSE(query_answer_iterator.finished());
-    qa = query_answer_iterator.pop();
+    qa = dynamic_cast<HandlesAnswer*>(query_answer_iterator.pop());
     EXPECT_TRUE(strcmp(qa->handles[0], "h0") == 0);
     EXPECT_TRUE(double_equals(qa->importance, 0.0));
 
     EXPECT_FALSE(query_answer_iterator.finished());
-    qa = query_answer_iterator.pop();
+    qa = dynamic_cast<HandlesAnswer*>(query_answer_iterator.pop());
     EXPECT_TRUE(strcmp(qa->handles[0], "h1") == 0);
     EXPECT_TRUE(double_equals(qa->importance, 0.1));
 
-    qa = query_answer_iterator.pop();
+    qa = dynamic_cast<HandlesAnswer*>(query_answer_iterator.pop());
     EXPECT_TRUE(qa == NULL);
     EXPECT_FALSE(query_answer_iterator.finished());
 
@@ -62,7 +63,7 @@ TEST(Iterator, basics) {
     Utils::sleep(1000);
 
     EXPECT_FALSE(query_answer_iterator.finished());
-    qa = query_answer_iterator.pop();
+    qa = dynamic_cast<HandlesAnswer*>(query_answer_iterator.pop());
     EXPECT_TRUE(strcmp(qa->handles[0], "h2") == 0);
     EXPECT_TRUE(double_equals(qa->importance, 0.2));
     EXPECT_TRUE(query_answer_iterator.finished());
@@ -89,7 +90,7 @@ TEST(Iterator, link_template_integration) {
     Node human(symbol, "\"human\"");
 
     LinkTemplate<3> link_template("Expression", {&similarity, &human, &v1});
-    Iterator query_answer_iterator(&link_template);
+    Iterator<HandlesAnswer> query_answer_iterator(&link_template);
 
     string monkey_handle = string(terminal_hash((char *) symbol.c_str(), (char *) "\"monkey\""));
     string chimp_handle = string(terminal_hash((char *) symbol.c_str(), (char *) "\"chimp\""));
@@ -97,9 +98,9 @@ TEST(Iterator, link_template_integration) {
     bool monkey_flag = false;
     bool chimp_flag = false;
     bool ent_flag = false;
-    QueryAnswer *query_answer;
+    HandlesAnswer *query_answer;
     while (! query_answer_iterator.finished()) {
-        query_answer = query_answer_iterator.pop();
+        query_answer = dynamic_cast<HandlesAnswer*>(query_answer_iterator.pop());
         if (query_answer != NULL) {
             string var = string(query_answer->assignment.get("v1"));
             //EXPECT_TRUE(double_equals(query_answer->importance, 0.0));

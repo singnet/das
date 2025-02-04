@@ -80,15 +80,11 @@ shared_ptr<Message> QueryNode<AnswerType>::message_factory(string& command, vect
         return message;
     }
     if (command == QUERY_ANSWER_FLOW_COMMAND) {
-        return std::shared_ptr<Message>(new QueryAnswerFlow<AnswerType>(command, args));
-    } else if (command == HANDLES_ANSWER_TOKENS_FLOW_COMMAND) {
-        // return std::shared_ptr<Message>(new HandlesAnswerTokensFlow(command, args));
-        return std::shared_ptr<Message>(new QueryAnswerTokensFlow<AnswerType>(command, args));
-    } else if (command == COUNT_ANSWER_TOKENS_FLOW_COMMAND) {
-        // return std::shared_ptr<Message>(new CountAnswerTokensFlow(command, args));
-        return std::shared_ptr<Message>(new QueryAnswerTokensFlow<AnswerType>(command, args));
+        return make_shared<QueryAnswerFlow<AnswerType>>(command, args);
+    } else if (command == QUERY_ANSWER_TOKENS_FLOW_COMMAND) {
+        return make_shared<QueryAnswerTokensFlow<AnswerType>>(command, args);
     } else if (command == QUERY_ANSWERS_FINISHED_COMMAND) {
-        return std::shared_ptr<Message>(new QueryAnswersFinished<AnswerType>(command, args));
+        return make_shared<QueryAnswersFinished<AnswerType>>(command, args);
     }
     return std::shared_ptr<Message>{};
 }
@@ -149,17 +145,11 @@ void QueryNodeServer<AnswerType>::query_answer_processor_method() {
 template <class AnswerType>
 void QueryNodeClient<AnswerType>::query_answer_processor_method() {
     QueryAnswer* query_answer;
-    string tokens_command;
     vector<string> args;
     bool answers_finished_flag = false;
     while (!this->is_shutting_down()) {
         while ((query_answer = (QueryAnswer*) this->query_answer_queue.dequeue()) != NULL) {
             if (this->requires_serialization) {
-                if (dynamic_cast<HandlesAnswer*>(query_answer)) {
-                    tokens_command = HANDLES_ANSWER_TOKENS_FLOW_COMMAND;
-                } else if (dynamic_cast<CountAnswer*>(query_answer)) {
-                    tokens_command = COUNT_ANSWER_TOKENS_FLOW_COMMAND;
-                }
                 string tokens = query_answer->tokenize();
                 args.push_back(tokens);
             } else {
@@ -175,7 +165,7 @@ void QueryNodeClient<AnswerType>::query_answer_processor_method() {
             }
         } else {
             if (this->requires_serialization) {
-                this->send(tokens_command, args, this->server_id);
+                this->send(QUERY_ANSWER_TOKENS_FLOW_COMMAND, args, this->server_id);
             } else {
                 this->send(QUERY_ANSWER_FLOW_COMMAND, args, this->server_id);
             }

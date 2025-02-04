@@ -14,8 +14,7 @@ using namespace query_engine;
 
 namespace query_node {
 
-constexpr char* HANDLES_ANSWER_TOKENS_FLOW_COMMAND = "handles_answer_tokens_flow";
-constexpr char* COUNT_ANSWER_TOKENS_FLOW_COMMAND = "count_answer_tokens_flow";
+constexpr char* QUERY_ANSWER_TOKENS_FLOW_COMMAND = "query_answer_tokens_flow";
 constexpr char* QUERY_ANSWER_FLOW_COMMAND = "query_answer_flow";
 constexpr char* QUERY_ANSWERS_FINISHED_COMMAND = "query_answers_finished";
 

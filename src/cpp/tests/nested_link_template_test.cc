@@ -6,6 +6,7 @@
 #include "LinkTemplate.h"
 #include "AtomDBSingleton.h"
 #include "test_utils.h"
+#include "HandlesAnswer.h"
 
 using namespace query_engine;
 using namespace query_element;
@@ -33,12 +34,12 @@ TEST(LinkTemplate, basics) {
     LinkTemplate<3> inner_template(expression, {&similarity, &v1, &v2});
     LinkTemplate<2> outter_template(expression, {&odd_link, &inner_template});
 
-    Iterator iterator(&outter_template);
+    Iterator<HandlesAnswer> iterator(&outter_template);
 
-    QueryAnswer *query_answer;
+    HandlesAnswer *query_answer;
     unsigned int count = 0;
     while (! iterator.finished()) {
-        if ((query_answer = iterator.pop()) == NULL) {
+        if ((query_answer = dynamic_cast<HandlesAnswer*>(iterator.pop())) == NULL) {
             Utils::sleep();
         } else {
             EXPECT_TRUE(double_equals(query_answer->importance, 0.0));
@@ -65,12 +66,12 @@ TEST(LinkTemplate, nested_variables) {
     LinkTemplate<3> human_template(expression, {&similarity, &v1, &human});
     And<2> and_operator({&human_template, &outter_template});
 
-    Iterator iterator(&and_operator);
+    Iterator<HandlesAnswer> iterator(&and_operator);
 
-    QueryAnswer *query_answer;
+    HandlesAnswer *query_answer;
     unsigned int count = 0;
     while (! iterator.finished()) {
-        if ((query_answer = iterator.pop()) == NULL) {
+        if ((query_answer = dynamic_cast<HandlesAnswer*>(iterator.pop())) == NULL) {
             Utils::sleep();
         } else {
             //EXPECT_TRUE(double_equals(query_answer->importance, 0.0));

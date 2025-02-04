@@ -5,6 +5,7 @@
 #include "AtomDBSingleton.h"
 #include "AtomDB.h"
 #include "Utils.h"
+#include "HandlesAnswer.h"
 
 #include "test_utils.h"
 
@@ -50,7 +51,7 @@ void check_query(
 
     cout << "XXXXXXXXXXXXXXXX DASNode.queries CHECK BEGIN" << endl;
     QueryAnswer *query_answer;
-    RemoteIterator *response = requestor->pattern_matcher_query(query, context);
+    RemoteIterator<HandlesAnswer> *response = requestor->pattern_matcher_query(query, context);
     unsigned int count = 0;
     while (! response->finished()) {
         while ((query_answer = response->pop()) == NULL) {

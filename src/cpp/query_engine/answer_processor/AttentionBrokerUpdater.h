@@ -27,7 +27,7 @@ constexpr char* ATTENTION_BROKER_ADDRESS = "localhost:37007";
 
 class AttentionBrokerUpdater : public QueryAnswerProcessor {
    public:
-    AttentionBrokerUpdater(const string& query_context)
+    AttentionBrokerUpdater(const string& query_context = "")
         : attention_broker_address(ATTENTION_BROKER_ADDRESS),
           queue_processor_finished(false),
           query_context(query_context),

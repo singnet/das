@@ -232,10 +232,10 @@ cc_test(
 )
 
 cc_test(
-    name = "query_answer_test",
+    name = "handles_answer_test",
     size = "small",
     srcs = [
-        "query_answer_test.cc",
+        "handles_answer_test.cc",
         "test_utils.cc",
         "test_utils.h",
     ],
