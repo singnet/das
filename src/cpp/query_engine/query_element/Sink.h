@@ -18,6 +18,7 @@ namespace query_element {
  * a server version of QueryNode (i.e. a ServerQueryNode) is setup to communicate with
  * a remote ClientQueryNode which is located in the QueryElement just below in the query tree.
  */
+template <class AnswerType>
 class Sink : public QueryElement {
 
 public:
@@ -29,6 +30,7 @@ public:
      * @param id Unique id for this QueryElement.
      * @param delete_precedent_on_destructor If true, the destructor of this QueryElement will
      * also destruct the passed precedent QueryElement (defaulted to false).
+     * @param setup_buffers_flag If true, the setup_buffers() method is called in the constructor.
      */
     Sink(
         QueryElement *precedent, 
@@ -57,7 +59,7 @@ public:
 
 protected:
 
-    shared_ptr<QueryNode> input_buffer;
+    shared_ptr<QueryNode<AnswerType>> input_buffer;
     QueryElement *precedent;
 
 private:
@@ -66,5 +68,7 @@ private:
 };
 
 } // namespace query_element
+
+#include "Sink.cc"
 
 #endif // _QUERY_ELEMENT_SINK_H

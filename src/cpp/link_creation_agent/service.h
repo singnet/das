@@ -10,6 +10,7 @@
 #include <mutex>
 #include <set>
 
+#include "HandlesAnswer.h"
 #include "RemoteIterator.h"
 #include "das_server_node.h"
 #include "link.h"
@@ -41,7 +42,7 @@ class LinkCreationService
      * @param iterator RemoteIterator object
      * @param das_client DAS Node client
      */
-    void process_request(shared_ptr<RemoteIterator> iterator,
+    void process_request(shared_ptr<RemoteIterator<HandlesAnswer>> iterator,
                          DasAgentNode* das_client,
                          vector<string>& link_template,
                          int max_query_answers);

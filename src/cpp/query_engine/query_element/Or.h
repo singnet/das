@@ -4,6 +4,7 @@
 #include <queue>
 #include <cstring>
 #include "Operator.h"
+#include "HandlesAnswer.h"
 
 using namespace std;
 
@@ -69,7 +70,7 @@ public:
 
 private:
 
-    vector<QueryAnswer *> query_answer[N];
+    vector<HandlesAnswer *> query_answer[N];
     unsigned int next_input_to_process[N];
     bool all_answers_arrived[N];
     bool no_more_answers_to_arrive;
@@ -106,11 +107,11 @@ private:
         if (this->no_more_answers_to_arrive) {
             return;
         }
-        QueryAnswer *answer;
+        HandlesAnswer *answer;
         unsigned int all_arrived_count = 0;
         bool no_new_answer = true;
         for (unsigned int i = 0; i < N; i++) {
-            while ((answer = this->input_buffer[i]->pop_query_answer()) != NULL) {
+            while ((answer = dynamic_cast<HandlesAnswer*>(this->input_buffer[i]->pop_query_answer())) != NULL) {
                 no_new_answer = false;
                 this->query_answer[i].push_back(answer);
             }
@@ -197,7 +198,7 @@ private:
             
             unsigned int selected_clause = select_answer();
             cout << "XXXXXXX 6" << endl;
-            QueryAnswer *selected_query_answer = this->query_answer[selected_clause][this->next_input_to_process[selected_clause]++];
+            HandlesAnswer *selected_query_answer = this->query_answer[selected_clause][this->next_input_to_process[selected_clause]++];
             cout << std::to_string(selected_clause) << ": " << selected_query_answer->to_string() << endl;
             this->output_buffer->add_query_answer(selected_query_answer);
             cout << "XXXXXXX 7" << endl;

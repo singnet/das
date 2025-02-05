@@ -19,7 +19,8 @@ namespace query_element {
  * query answers and another to check if more answers can still be expected.
  *
  */
-class Iterator : public Sink {
+template <class AnswerType>
+class Iterator : public Sink<AnswerType> {
 
 public:
 
@@ -54,5 +55,7 @@ public:
 };
 
 } // namespace query_element
+
+#include "Iterator.cc"
 
 #endif // _QUERY_ELEMENT_ITERATOR_H

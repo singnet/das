@@ -2,6 +2,7 @@
 #define _QUERY_ELEMENT_REMOTEITERATOR_H
 
 #include "QueryElement.h"
+#include "QueryAnswer.h"
 
 using namespace std;
 
@@ -20,6 +21,7 @@ namespace query_element {
  * Instead, this class provides only two methods: one to pop and return the next
  * query answers and another to check if more answers can still be expected.
  */
+template <class AnswerType>
 class RemoteIterator : public QueryElement {
 
 public:
@@ -68,10 +70,12 @@ public:
 
 private:
 
-    shared_ptr<QueryNode> remote_input_buffer;
+    shared_ptr<QueryNode<AnswerType>> remote_input_buffer;
     string local_id;
 };
 
 } // namespace query_element
+
+#include "RemoteIterator.cc"
 
 #endif // _QUERY_ELEMENT_REMOTEITERATOR_H

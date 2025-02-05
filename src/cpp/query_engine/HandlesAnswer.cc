@@ -1,4 +1,4 @@
-#include "QueryAnswer.h"
+#include "HandlesAnswer.h"
 #include "Utils.h"
 #include <cmath>
 #include <cstring>
@@ -99,32 +99,32 @@ string Assignment::to_string() {
 }
 
 // -------------------------------------------------------------------------------------------------
-// QueryAnswer
+// HandlesAnswer
 
 
-QueryAnswer::QueryAnswer() : QueryAnswer(0.0) {
+HandlesAnswer::HandlesAnswer() : HandlesAnswer(0.0) {
 }
 
-QueryAnswer::QueryAnswer(double importance) {
+HandlesAnswer::HandlesAnswer(double importance) {
     this->importance = importance;
     this->handles_size = 0;
 }
 
-QueryAnswer::QueryAnswer(const char *handle, double importance) {
+HandlesAnswer::HandlesAnswer(const char *handle, double importance) {
     this->importance = importance;
     this->handles[0] = handle;
     this->handles_size = 1;
 }
 
-QueryAnswer::~QueryAnswer() {
+HandlesAnswer::~HandlesAnswer() {
 }
 
-void QueryAnswer::add_handle(const char *handle) {
+void HandlesAnswer::add_handle(const char *handle) {
     this->handles[this->handles_size++] = handle;
 }
 
-QueryAnswer *QueryAnswer::copy(QueryAnswer *base) { // Static method
-    QueryAnswer *copy = new QueryAnswer(base->importance);
+HandlesAnswer *HandlesAnswer::copy(HandlesAnswer *base) { // Static method
+    HandlesAnswer *copy = new HandlesAnswer(base->importance);
     copy->assignment.copy_from(base->assignment);
     copy->handles_size = base->handles_size;
     memcpy(
@@ -134,7 +134,7 @@ QueryAnswer *QueryAnswer::copy(QueryAnswer *base) { // Static method
     return copy;
 }
 
-bool QueryAnswer::merge(QueryAnswer *other, bool merge_handles) {
+bool HandlesAnswer::merge(HandlesAnswer *other, bool merge_handles) {
     if (this->assignment.is_compatible(other->assignment)) {
         this->assignment.add_assignments(other->assignment);
         bool already_exist;
@@ -159,8 +159,8 @@ bool QueryAnswer::merge(QueryAnswer *other, bool merge_handles) {
     }
 }
 
-string QueryAnswer::to_string() {
-    string answer = "QueryAnswer<" + std::to_string(this->handles_size) + ",";
+string HandlesAnswer::to_string() {
+    string answer = "HandlesAnswer<" + std::to_string(this->handles_size) + ",";
     answer += std::to_string(this->assignment.variable_count()) + "> [";
     for (unsigned int i = 0; i < this->handles_size; i++) {
         answer += string(this->handles[i]);
@@ -173,7 +173,7 @@ string QueryAnswer::to_string() {
     return answer;
 }
 
-const string &QueryAnswer::tokenize() {
+const string &HandlesAnswer::tokenize() {
     // char_count is computed to be slightly larger than actually required by assuming
     // e.g. 3 digits to represent sizes
     char importance_buffer[13];
@@ -225,7 +225,7 @@ static inline void read_token(
     cursor++;
 }
 
-void QueryAnswer::untokenize(const string &tokens) {
+void HandlesAnswer::untokenize(const string &tokens) {
 
     const char *token_string = tokens.c_str();
     char number[4];
@@ -241,7 +241,7 @@ void QueryAnswer::untokenize(const string &tokens) {
     read_token(token_string, cursor, number, 4);
     this->handles_size = (unsigned int) std::stoi(number);
     if (this->handles_size > MAX_NUMBER_OF_OPERATION_CLAUSES) {
-        Utils::error("Invalid handles_size: " + std::to_string(this->handles_size) + " untokenizing QueryAnswer");
+        Utils::error("Invalid handles_size: " + std::to_string(this->handles_size) + " untokenizing HandlesAnswer");
     }
 
     for (unsigned int i = 0; i < this->handles_size; i++) {
@@ -253,7 +253,7 @@ void QueryAnswer::untokenize(const string &tokens) {
     this->assignment.size = (unsigned int) std::stoi(number);
 
     if (this->assignment.size > MAX_NUMBER_OF_VARIABLES_IN_QUERY) {
-        Utils::error("Invalid number of assignments: " + std::to_string(this->assignment.size) + " untokenizing QueryAnswer");
+        Utils::error("Invalid number of assignments: " + std::to_string(this->assignment.size) + " untokenizing HandlesAnswer");
     }
 
     for (unsigned int i = 0; i < this->assignment.size; i++) {
@@ -264,6 +264,6 @@ void QueryAnswer::untokenize(const string &tokens) {
     }
 
     if (token_string[cursor] != '\0') {
-        Utils::error("Invalid token string - invalid text after QueryAnswer definition");
+        Utils::error("Invalid token string - invalid text after HandlesAnswer definition");
     }
 }

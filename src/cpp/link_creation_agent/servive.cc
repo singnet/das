@@ -8,7 +8,7 @@ LinkCreationService::LinkCreationService(int thread_count) : thread_pool(thread_
 
 LinkCreationService::~LinkCreationService() {}
 
-void LinkCreationService::process_request(shared_ptr<RemoteIterator> iterator,
+void LinkCreationService::process_request(shared_ptr<RemoteIterator<HandlesAnswer>> iterator,
                                           DasAgentNode* das_client,
                                           vector<string>& link_template,
                                           int max_query_answers) {
