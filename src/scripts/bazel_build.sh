@@ -1,6 +1,8 @@
 #!/bin/bash -x
 
-(( JOBS=$(nproc)/2 ))
+JOBS=$(( $(nproc) / 2 ))
+JOBS=$(( JOBS < 1 ? 1 : JOBS ))
+
 BAZELISK_CMD=/opt/bazel/bazelisk
 BAZELISK_BUILD_CMD="${BAZELISK_CMD} build --jobs ${JOBS} --enable_bzlmod"
 

@@ -9,7 +9,7 @@ WORKDIR ${HOME}
 
 COPY ./src .
 
-RUN chmod +x ./scripts/*.sh 
+RUN chmod +x ./scripts/*.sh && mkdir -p ${BIN_DIR}
 
 RUN ./scripts/bazel_build.sh --binaries
 
