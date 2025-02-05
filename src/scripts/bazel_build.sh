@@ -66,6 +66,10 @@ if [ "${?}" = "0" -a "$BUILD_WHEELS" = true ]; then
 
     cd "$CPP_WORKSPACE_DIR" \
     && $BAZELISK_BUILD_CMD \
+        //hyperon_das_node:hyperon_das_node_wheel \
+        --define=DAS_NODE_VERSION=0.0.1 \
+    && mv bazel-bin/hyperon_das_node/*.whl "$BIN_DIR" \
+    && $BAZELISK_BUILD_CMD \
         //hyperon_das_atomdb_cpp:hyperon_das_atomdb_cpp_wheel \
         --define=ATOMDB_VERSION=0.8.11 \
     && mv bazel-bin/hyperon_das_atomdb_cpp/*.whl "$BIN_DIR"
