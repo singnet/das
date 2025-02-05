@@ -43,8 +43,11 @@ jobs:
       - name: Starting Redis and MongoDB
         run: das-cli db start
 
+      - name: Build source code
+        run: make build
+
       - name: Starting Attention Broker
-        run: make run-attention-broker
+        run: make run-attention-broker &
 
       - name: Execute Unit Test Suite
-        run: make unit-tests
+        run: make testes
