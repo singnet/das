@@ -28,6 +28,9 @@ jobs:
           sudo apt install das-cli
           das-cli --version
 
+      - name: Download Knowledge Base
+        run: curl https://raw.githubusercontent.com/singnet/das-toolbox/refs/heads/master/src/examples/data/animals.metta -o /tmp/animals.metta
+
       - name: Setting das-cli configuration
         run: |-
           das-cli config set <<EOF
@@ -43,6 +46,9 @@ jobs:
       - name: Starting Redis and MongoDB
         run: das-cli db start
 
+      - name: Load Knowledge Base
+        run: das-cli metta load /tmp/animals.metta
+
       - name: Build source code
         run: make build
 
@@ -50,4 +56,4 @@ jobs:
         run: make run-attention-broker &
 
       - name: Execute Unit Test Suite
-        run: make testes
+        run: make tests
