@@ -68,6 +68,10 @@ void check_query(
         }
     }
     EXPECT_EQ(count, expected_count);
+
+    // Count query
+    EXPECT_EQ(requestor->count_query(query, context), expected_count);
+
     delete response;
     cout << "XXXXXXXXXXXXXXXX DASNode.queries CHECK END" << endl;
 }
@@ -98,6 +102,7 @@ TEST(DASNode, queries) {
             "VARIABLE", "v1",
             "VARIABLE", "v2"
     };
+    int q1_expected_count = 14;
 
     vector<string> q2 = {
         "LINK_TEMPLATE", "Expression", "3",
@@ -105,6 +110,7 @@ TEST(DASNode, queries) {
             "NODE", "Symbol", "\"human\"",
             "VARIABLE", "v1"
     };
+    int q2_expected_count = 3;
 
     vector<string> q3 = {
         "AND", "2",
@@ -117,6 +123,7 @@ TEST(DASNode, queries) {
                 "VARIABLE", "v1",
                 "NODE", "Symbol", "\"plant\""
     };
+    int q3_expected_count = 1;
 
     vector<string> q4 = {
         "AND", "2",
@@ -129,6 +136,7 @@ TEST(DASNode, queries) {
                 "VARIABLE", "v2",
                 "VARIABLE", "v3"
     };
+    int q4_expected_count = 26;  // TODO: FIX THIS count should be == 1
 
     vector<string> q5 = {
         "OR", "2",
@@ -141,12 +149,13 @@ TEST(DASNode, queries) {
                 "VARIABLE", "v1",
                 "NODE", "Symbol", "\"snake\""
     };
+    int q5_expected_count = 5;
 
-    check_query(q1, 14, das, requestor, "DASNode.queries");
-    check_query(q2, 3, das, requestor, "DASNode.queries");
-    check_query(q3, 1, das, requestor, "DASNode.queries");
-    check_query(q4, 26, das, requestor, "DASNode.queries"); // TODO: FIX THIS count should be == 1
-    check_query(q5, 5, das, requestor, "DASNode.queries");
+    check_query(q1, q1_expected_count, das, requestor, "DASNode.queries");
+    check_query(q2, q2_expected_count, das, requestor, "DASNode.queries");
+    check_query(q3, q3_expected_count, das, requestor, "DASNode.queries");
+    check_query(q4, q4_expected_count, das, requestor, "DASNode.queries"); 
+    check_query(q5, q5_expected_count, das, requestor, "DASNode.queries");
 
     //delete(requestor); // TODO: Uncomment this
     //delete(das); // TODO: Uncomment this

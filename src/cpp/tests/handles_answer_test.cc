@@ -77,7 +77,7 @@ TEST(HandlesAnswer, assignments_basics) {
     EXPECT_TRUE(mapping4.to_string() != "");
 }
 
-TEST(HandlesAnswer, query_answer_basics) {
+TEST(HandlesAnswer, handles_answer_basics) {
 
     // Tests add_handle()
     HandlesAnswer query_answer1("h1", 0);

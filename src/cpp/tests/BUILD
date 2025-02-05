@@ -253,6 +253,27 @@ cc_test(
 )
 
 cc_test(
+    name = "count_answer_test",
+    size = "small",
+    srcs = [
+        "count_answer_test.cc",
+        "test_utils.cc",
+        "test_utils.h",
+    ],
+    copts = [
+        "-Iexternal/gtest/googletest/include",
+        "-Iexternal/gtest/googletest",
+    ],
+    linkopts = [
+    ],
+    linkstatic = 1,
+    deps = [
+        "//query_engine:query_engine_lib",
+        "@com_github_google_googletest//:gtest_main",
+    ],
+)
+
+cc_test(
     name = "and_operator_test",
     size = "medium",
     srcs = [
