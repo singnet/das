@@ -1,6 +1,23 @@
-###############################################################################
-# Bazel now uses Bzlmod by default to manage external dependencies.
-# Please consider migrating your external dependencies from WORKSPACE to MODULE.bazel.
-#
-# For more details, please check https://github.com/bazelbuild/bazel/issues/18958
-###############################################################################
+"""
+This Bazel module configuration sets up the Python environment and dependencies for the project.
+"""
+module(name = "rules_python_das")
+bazel_dep(name = "rules_python", version = "1.1.0")
+python = use_extension("@rules_python//python/extensions:python.bzl", "python")
+python.toolchain(python_version = "3.10")
+
+pip = use_extension("@rules_python//python/extensions:pip.bzl", "pip")
+pip.parse(
+    hub_name = "pypi",
+    python_version = "3.10",
+    requirements_lock = "//deps:requirements_lock.txt",
+)
+use_repo(pip, "pypi")
+
+pip.parse(
+    hub_name = "pypi_dev",
+    python_version = "3.10",
+    requirements_lock = "//deps:requirements_dev_lock.txt",
+)
+use_repo(pip, "pypi_dev")
+
