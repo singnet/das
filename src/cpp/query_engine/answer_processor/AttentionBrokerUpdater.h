@@ -23,7 +23,7 @@ using namespace std;
 
 namespace query_engine {
 
-constexpr char* ATTENTION_BROKER_ADDRESS = "localhost:37007";
+string ATTENTION_BROKER_ADDRESS = Utils::get_environment("ATTENTION_BROKER_HOSTNAME") + ":" + Utils::get_environment("ATTENTION_BROKER_PORT");
 
 class AttentionBrokerUpdater : public QueryAnswerProcessor {
    public:

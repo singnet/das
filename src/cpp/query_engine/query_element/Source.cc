@@ -11,7 +11,7 @@ Source::Source(const string& attention_broker_address) {
     this->attention_broker_address = attention_broker_address;
 }
 
-Source::Source() : Source("localhost:" + Source::DEFAULT_ATTENTION_BROKER_PORT) {}
+Source::Source() : Source(Utils::get_environment("ATTENTION_BROKER_HOSTNAME") + ":" + Utils::get_environment("ATTENTION_BROKER_PORT")) {}
 
 Source::~Source() { this->output_buffer->graceful_shutdown(); }
 

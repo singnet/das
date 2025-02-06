@@ -18,21 +18,30 @@ RUN mkdir -p \
     ${PROTO_DIR} \
     ${THIRD_PARTY}
 
-RUN yes | apt update -y \
-    && yes | apt install -y git build-essential curl protobuf-compiler python3 python3-pip cmake \
+RUN apt update -y \
+    && apt install -y git build-essential curl protobuf-compiler python3 python3-pip python2 cmake \
     libevent-dev libssl-dev pkg-config libmbedtls14 libmbedtls-dev \
-    && yes | apt clean -y \
+    && apt clean -y \
     && rm -rf /var/lib/apt/lists/*
 
-COPY assets/3rd-party.tgz ${THIRD_PARTY}
+RUN curl -L -o ${THIRD_PARTY}/mbedcrypto.tgz https://github.com/ARMmbed/mbed-crypto/archive/refs/tags/mbedcrypto-3.1.0.tar.gz
 RUN cd ${THIRD_PARTY} \
-    && tar xzvf 3rd-party.tgz \
-    && rm -f 3rd-party.tgz \
+    && tar xzvf mbedcrypto.tgz \
+    && rm -f mbedcrypto.tgz \
+    && cd mbed-crypto-mbedcrypto-3.1.0 && make \
+    && cd ${THIRD_PARTY} \
+    && mkdir mbedcrypto \
+    && cp -r mbed-crypto-mbedcrypto-3.1.0/include mbedcrypto/ \
+    && cp mbed-crypto-mbedcrypto-3.1.0/library/libmbedcrypto.a mbedcrypto/ \
+    && rm -rf mbed-crypto-mbedcrypto-3.1.0/ \
     && mkdir -p ${DAS_DIR}/src/3rd-party \
-    && ln -s ${THIRD_PARTY} ${DAS_DIR}/src/3rd-party \
-    && mv bazelisk ${BAZEL_DIR}
+    && ln -s ${THIRD_PARTY} ${DAS_DIR}/src/3rd-party
 
 ENV CPLUS_INCLUDE_PATH="/opt/3rd-party/mbedcrypto/include/"
+
+RUN ARCH=$(if [ "$(uname -m)" = "aarch64" ]; then echo "arm64"; else echo "amd64"; fi) \
+    && curl -L -o ${BAZEL_DIR}/bazelisk https://github.com/bazelbuild/bazelisk/releases/download/v1.25.0/bazelisk-linux-${ARCH} \
+    && chmod a+x ${BAZEL_DIR}/bazelisk
 
 # TODO: integrate this to bazel build (https://github.com/singnet/das/issues/197)
 ADD https://raw.githubusercontent.com/singnet/das-query-engine/master/proto/attention_broker.proto ${PROTO_DIR}
