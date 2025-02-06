@@ -102,6 +102,27 @@ Some of the components require an existing knowledge base and a properly configu
 
 ## **Running the Unit Tests**  
 
+### **Prerequisites**  
+
+Before running the tests, ensure that **Redis** and **MongoDB** are running. You can use the [DAS CLI](https://github.com/singnet/das-toolbox) to easily start these services.  
+
+Once Redis and MongoDB are running, export the necessary environment variables with the values configured in [DAS CLI](https://github.com/singnet/das-toolbox):  
+
+```bash
+export DAS_REDIS_HOSTNAME=localhost
+export DAS_REDIS_PORT=29000
+export DAS_MONGODB_HOSTNAME=localhost
+export DAS_MONGODB_PORT=28000
+export DAS_MONGODB_USERNAME=dbadmin
+export DAS_MONGODB_PASSWORD=dassecret
+```  
+
+Additionally, load the **animals** knowledge base using the [DAS CLI](https://github.com/singnet/das-toolbox).
+
+After setting up Redis and MongoDB, you need to run the [Attention Broker](src/cpp/attention_broker/README.md).
+
+### **Running the Tests**  
+
 To execute the unit tests, simply run the following command from the project root:  
 
 ```bash

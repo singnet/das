@@ -1,0 +1,59 @@
+name: Run Unit & Integration tests
+
+on:
+  workflow_call:
+  pull_request:
+    branches:
+      - develop
+      - master
+  workflow_dispatch:
+
+jobs:
+  unit-tests:
+    runs-on: ubuntu-22.04
+    env:
+      DAS_REDIS_HOSTNAME: localhost
+      DAS_REDIS_PORT: 29000
+      DAS_MONGODB_HOSTNAME: localhost
+      DAS_MONGODB_PORT: 28000
+      DAS_MONGODB_USERNAME: das
+      DAS_MONGODB_PASSWORD: das
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |-
+          sudo bash -c "wget -O - http://45.77.4.33/apt-repo/setup.sh | bash"
+          sudo apt install das-cli
+          das-cli --version
+
+      - name: Download Knowledge Base
+        run: curl https://raw.githubusercontent.com/singnet/das-toolbox/refs/heads/master/src/examples/data/animals.metta -o /tmp/animals.metta
+
+      - name: Setting das-cli configuration
+        run: |-
+          das-cli config set <<EOF
+          $DAS_REDIS_PORT
+          n
+          $DAS_MONGODB_PORT
+          $DAS_MONGODB_USERNAME
+          $DAS_MONGODB_PASSWORD
+          n
+          8888
+          EOF
+
+      - name: Starting Redis and MongoDB
+        run: das-cli db start
+
+      - name: Load Knowledge Base
+        run: das-cli metta load /tmp/animals.metta
+
+      - name: Build source code
+        run: make build
+
+      - name: Starting Attention Broker
+        run: make run-attention-broker &
+
+      - name: Execute Unit Test Suite
+        run: make tests
