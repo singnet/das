@@ -601,7 +601,8 @@ void PatternMatchingQuery::act(shared_ptr<MessageFactory> node) {
         vector<unique_ptr<QueryAnswerProcessor>> query_answer_processors;
         if (this->command == DASNode::PATTERN_MATCHING_QUERY) {
             query_answer_processors.push_back(make_unique<HandlesAnswerProcessor>(local_id, remote_id));
-            query_answer_processors.push_back(make_unique<AttentionBrokerUpdater>(this->context));
+            if (this->update_attention_broker)
+                query_answer_processors.push_back(make_unique<AttentionBrokerUpdater>(this->context));
         } else if (this->command == DASNode::COUNTING_QUERY) {
             query_answer_processors.push_back(make_unique<CountAnswerProcessor>(local_id, remote_id));
         }
