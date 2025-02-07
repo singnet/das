@@ -19,7 +19,6 @@ module(name = "das")
 # FIXME: Remove once fixed upstream in googletest and abseil-cpp.
 bazel_dep(name = "re2", version = "2024-07-02.bcr.1")
 
-# bazel_dep(name = "abseil-cpp", version = "20240722.0", repo_name = "com_google_absl")
 bazel_dep(name = "abseil-cpp", version = "20250127.0")
 bazel_dep(name = "rules_apple", version = "3.17.1", repo_name = "build_bazel_rules_apple")
 bazel_dep(name = "protoc-gen-validate", version = "1.0.4.bcr.2", repo_name = "com_envoyproxy_protoc_gen_validate")
