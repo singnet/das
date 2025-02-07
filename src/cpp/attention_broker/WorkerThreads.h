@@ -7,7 +7,7 @@
 #include <vector>
 #include <mutex>
 
-#include "SharedQueue.h"
+#include "RequestQueue.h"
 
 using namespace std;
 using namespace commons;
@@ -33,7 +33,7 @@ public:
      * Working threads can process any type of requests. The policy of which request
      * queue a worker thread will read from next is determined by RequestSelector.
      */
-    WorkerThreads(SharedQueue *stimulus, SharedQueue *correlation);
+    WorkerThreads(RequestQueue *stimulus, RequestQueue *correlation);
     ~WorkerThreads(); /// Destructor.
 
     /**
@@ -51,14 +51,14 @@ private:
     unsigned int threads_count;
     vector<thread *> threads;
     bool stop_flag = false;
-    SharedQueue *stimulus_requests;
-    SharedQueue *correlation_requests;
+    RequestQueue *stimulus_requests;
+    RequestQueue *correlation_requests;
     mutex stop_flag_mutex;
 
     void worker_thread(
         unsigned int thread_id, 
-        SharedQueue *stimulus_requests, 
-        SharedQueue *correlation_requests);
+        RequestQueue *stimulus_requests, 
+        RequestQueue *correlation_requests);
 };
 
 } // namespace attention_broker_server

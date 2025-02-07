@@ -6,7 +6,7 @@
 #include <string>
 #include <unordered_map>
 #include "attention_broker.grpc.pb.h"
-#include "SharedQueue.h"
+#include "RequestQueue.h"
 #include "WorkerThreads.h"
 #include "HebbianNetwork.h"
 #include "HebbianNetworkUpdater.h"
@@ -134,8 +134,8 @@ class AttentionBrokerServer final: public AttentionBroker::Service {
     private:
 
         bool rpc_api_enabled = true;
-        SharedQueue *stimulus_requests;
-        SharedQueue *correlation_requests;
+        RequestQueue *stimulus_requests;
+        RequestQueue *correlation_requests;
         WorkerThreads *worker_threads;
         unordered_map<string, HebbianNetwork *> hebbian_network;
         HebbianNetworkUpdater *updater;

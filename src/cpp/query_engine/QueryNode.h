@@ -6,7 +6,7 @@
 
 #include "DistributedAlgorithmNode.h"
 #include "QueryAnswer.h"
-#include "SharedQueue.h"
+#include "RequestQueue.h"
 
 using namespace std;
 using namespace distributed_algorithm_node;
@@ -39,7 +39,7 @@ class QueryNode : public DistributedAlgorithmNode {
     virtual void query_answer_processor_method() = 0;
 
    protected:
-    SharedQueue query_answer_queue;
+    RequestQueue query_answer_queue;
     thread* query_answer_processor;
     bool requires_serialization;
 

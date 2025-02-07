@@ -5,7 +5,7 @@ cc_binary(
     linkstatic = 1,
     deps = [
         "//main:attention_broker_main_lib",
-        "//utils:utils_lib",
+        "//commons:commons_lib",
         "@com_github_grpc_grpc//:grpc++",
         "@com_github_grpc_grpc//:grpc++_reflection",
         "@com_github_singnet_das_proto//:attention_broker_cc_grpc",
@@ -20,7 +20,7 @@ cc_binary(
     linkstatic = 1,
     deps = [
         "//main:query_engine_main_lib",
-        "//utils:utils_lib",
+        "//commons:commons_lib",
         "@mbedtls//:mbedtls",
     ],
 )
@@ -32,7 +32,7 @@ cc_binary(
     linkstatic = 1,
     deps = [
         "//main:query_client_main_lib",
-        "//utils:utils_lib",
+        "//commons:commons_lib",
         "@mbedtls//:mbedtls",
     ],
 )
@@ -44,7 +44,7 @@ cc_binary(
     linkstatic = 1,
     deps = [
         "//main:link_creation_engine_main_lib",
-        "//utils:utils_lib",
+        "//commons:commons_lib",
         "@mbedtls//:mbedtls",
     ],
 )
@@ -56,7 +56,7 @@ cc_binary(
     linkstatic = 1,
     deps = [
         "//main:word_query_main_lib",
-        "//utils:utils_lib",
+        "//commons:commons_lib",
         "@mbedtls//:mbedtls",
     ],
 )
