@@ -10,7 +10,6 @@ cc_library(
         "query_element",
     ],
     linkopts = [
-        "-lmbedcrypto",
         "-L/usr/local/lib",
         "-lhiredis_cluster",
         "-lhiredis",
@@ -29,5 +28,6 @@ cc_library(
         "//distributed_algorithm_node:distributed_algorithm_node_lib",
         "//hasher:hasher_lib",
         "//utils:utils_lib",
+        "@mbedtls//:mbedtls",
     ],
 )

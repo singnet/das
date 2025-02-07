@@ -1,5 +1,7 @@
 #!/bin/bash -x
 
+set -eoux pipefail
+
 JOBS=$(( $(nproc) / 2 ))
 JOBS=$(( JOBS < 1 ? 1 : JOBS ))
 

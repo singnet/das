@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -eoux pipefail
+
 IMAGE_NAME="das-builder"
 CONTAINER_NAME=${IMAGE_NAME}-container
 
