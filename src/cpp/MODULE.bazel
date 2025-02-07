@@ -1,15 +1,16 @@
 """
 This Bazel module configuration file sets up dependencies for the DAS project.
 
-It includes project's direct dependencies such as `rules_cc`, `grpc`, and `googletest`, but also lists some
-dependencies of the dependencies, like `rules_go`, `googleapis`, and `protoc-gen-validate`, among others.
-This is required basically to set alternative names (`repo_name`) used internally by some packages,
-such as `grpc`, which is in a transitory state (from WORKSPACE to MODULE.bazel support) and needs this
-temporary workaround. Hopefully, this will be fixed by the end of 2025 and it'll be possible to list
-only the direct dependencies. TODO: https://github.com/singnet/das/issues/180
+It includes project's direct dependencies such as `mbedtls`, `rules_cc`,
+`grpc`, and `googletest`, but also lists some dependencies of the dependencies,
+like `rules_go`, `googleapis`, and `protoc-gen-validate`, among others. This is
+required basically to set alternative names (`repo_name`) used internally by
+some packages, such as `grpc`, which is in a transitory state (from WORKSPACE
+to MODULE.bazel support) and needs this temporary workaround. Hopefully, this
+will be fixed by the end of 2025 and it'll be possible to list only the direct
+dependencies. TODO: https://github.com/singnet/das/issues/180
 
 Additionally, this file configures:
-- a local repository for the `mbedcrypto` library. <- not working as expected / TODO: https://github.com/singnet/das/issues/179
 - an `http_archive` to get `das-proto` repo content.
 """
 
