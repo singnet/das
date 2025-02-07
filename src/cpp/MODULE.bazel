@@ -33,21 +33,6 @@ bazel_dep(name = "grpc", version = "1.69.0", repo_name = "com_github_grpc_grpc")
 bazel_dep(name = "googletest", version = "1.15.2", repo_name = "com_github_google_googletest")
 bazel_dep(name = "mbedtls", version = "3.6.0")
 
-# bazel_dep(name = "abseil-cpp", version = "20250127.0")
-# bazel_dep(name = "rules_apple", version = "3.17.1")
-# bazel_dep(name = "protoc-gen-validate", version = "1.0.4.bcr.2")
-# bazel_dep(name = "apple_support", version = "1.17.1")
-# bazel_dep(name = "rules_go", version = "0.52.0")
-# bazel_dep(name = "googleapis", version = "0.0.0-20240819-fe8ba054a")
-# bazel_dep(name = "gazelle", version = "0.42.0")
-# bazel_dep(name = "protobuf", version = "30.0-rc1")
-# bazel_dep(name = "rules_cc", version = "0.1.0")
-# bazel_dep(name = "grpc", version = "1.69.0")
-
-# bazel_dep(name = "googletest", version = "1.15.2")
-
-# bazel_dep(name = "mbedtls", version = "3.6.0")
-
 # nanobind
 bazel_dep(name = "nanobind_bazel", version = "2.4.0")
 bazel_dep(name = "rules_python", version = "1.1.0")
@@ -63,10 +48,3 @@ http_archive(
     sha256 = "c1e32db184cddb58468139d2fdc592be876c58cf67aa2600a2ec9670ca03cdc9",
     urls = ["https://github.com/singnet/das-proto/archive/refs/tags/0.1.14.tar.gz"],
 )
-
-# new_local_repository = use_repo_rule("@bazel_tools//tools/build_defs/repo:local.bzl", "new_local_repository")
-# new_local_repository(
-#     name = "mbedcrypto",
-#     path = "/opt/3rd-party/mbedcrypto",
-#     build_file_content = 'cc_library(name = "lib", srcs = ["libmbedcrypto.a"], visibility = ["//visibility:public"])',
-# )
