@@ -16,8 +16,8 @@ jobs:
       DAS_REDIS_PORT: 29000
       DAS_MONGODB_HOSTNAME: localhost
       DAS_MONGODB_PORT: 28000
-      DAS_MONGODB_USERNAME: das
-      DAS_MONGODB_PASSWORD: das
+      DAS_MONGODB_USERNAME: dbadmin
+      DAS_MONGODB_PASSWORD: dassecret
     steps:
       - name: Checkout
         uses: actions/checkout@v4
