@@ -6,19 +6,20 @@
 
 using namespace link_creation_agent;
 
-bool is_number(const std::string& s) {
+// TODO move this to a utils file
+static bool is_number(const std::string& s) {
     return !s.empty() &&
            std::find_if(s.begin(), s.end(), [](unsigned char c) { return !std::isdigit(c); }) == s.end();
 }
-
-int string_to_int(const std::string& s) {
+// TODO move this to a utils file
+static int string_to_int(const std::string& s) {
     if (!is_number(s)) {
         throw std::invalid_argument("Can not convert string to int: Invalid arguments");
     }
     return std::stoi(s);
 }
-
-std::string get_token(std::vector<std::string>& link_template, int cursor) {
+// TODO move this to a utils file
+static std::string get_token(std::vector<std::string>& link_template, int cursor) {
     if (cursor >= link_template.size()) {
         throw std::invalid_argument("Can not get token: Invalid arguments");
     }

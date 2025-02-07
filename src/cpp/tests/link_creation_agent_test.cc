@@ -19,11 +19,11 @@ class LinkCreationAgentTest : public ::testing::Test {
         ofstream config_file("test_config.cfg");
         config_file << "requests_interval_seconds=1\n";
         config_file << "link_creation_agent_thread_count=1\n";
-        config_file << "query_agent_client_id=localhost:8080\n";
-        config_file << "query_agent_server_id=localhost:8081\n";
-        config_file << "link_creation_agent_server_id=localhost:8082\n";
-        config_file << "das_agent_client_id=localhost:8083\n";
-        config_file << "das_agent_server_id=localhost:8083\n";
+        config_file << "query_agent_client_id=localhost:7001\n";
+        config_file << "query_agent_server_id=localhost:7002\n";
+        config_file << "link_creation_agent_server_id=localhost:7003\n";
+        config_file << "das_agent_client_id=localhost:7004\n";
+        config_file << "das_agent_server_id=localhost:7005\n";
         config_file << "requests_buffer_file=test_buffer.bin\n";
         config_file.close();
     }
@@ -113,8 +113,8 @@ vector<string> split(const string& s, char delimiter) {
 }
 
 TEST(LinkCreateTemplate, TestLinkCreateTemplate) {
-    /**  #NOTE Different from the original test, the to_string() method is not returning the same order
-        as the input string. to_string is placing the custom fields after the targets
+    /**  #NOTE Different from the original string test, the to_string() method is not returning the same
+       order as the input string. to_string is placing the custom fields after the targets
     */
     string link_template_str =
         "LINK_CREATE Similarity 3 1 VARIABLE V1 LINK_CREATE Test 3 0 NODE Symbol A VARIABLE V2 "
