@@ -51,7 +51,7 @@ cc_test(
     linkstatic = 1,
     deps = [
         "//attention_broker:attention_broker_server_lib",
-        "//utils:utils_lib",
+        "//commons:commons_lib",
         "@com_github_google_googletest//:gtest_main",
         "@com_github_grpc_grpc//:grpc++",
         "@com_github_grpc_grpc//:grpc++_reflection",
@@ -121,7 +121,7 @@ cc_test(
     linkstatic = 1,
     deps = [
         "//attention_broker:attention_broker_server_lib",
-        "//utils:utils_lib",
+        "//commons:commons_lib",
         "@com_github_google_googletest//:gtest_main",
         "@com_github_grpc_grpc//:grpc++",
         "@com_github_grpc_grpc//:grpc++_reflection",

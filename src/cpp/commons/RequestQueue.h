@@ -35,6 +35,11 @@ public:
      */
     void *dequeue();
 
+    /**
+     * Returns true iff the queue is empty.
+     */
+    bool empty();
+
 protected:
 
     unsigned int current_size();

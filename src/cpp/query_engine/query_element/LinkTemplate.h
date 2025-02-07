@@ -12,7 +12,7 @@
 #include "HandlesAnswer.h"
 #include "Iterator.h"
 #include "QueryNode.h"
-#include "SharedQueue.h"
+#include "RequestQueue.h"
 #include "Source.h"
 #include "Terminal.h"
 #include "attention_broker.grpc.pb.h"
@@ -446,7 +446,7 @@ class LinkTemplate : public Source {
     shared_ptr<atomdb_api_types::HandleList> fetch_result;
     vector<shared_ptr<atomdb_api_types::AtomDocument>> atom_documents;
     vector<QueryElement*> inner_template;
-    SharedQueue local_buffer;
+    RequestQueue local_buffer;
     thread* local_buffer_processor;
     bool fetch_finished;
     mutex fetch_finished_mutex;

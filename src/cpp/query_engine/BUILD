@@ -27,7 +27,7 @@ cc_library(
         "//attention_broker:attention_broker_server_lib",
         "//distributed_algorithm_node:distributed_algorithm_node_lib",
         "//hasher:hasher_lib",
-        "//utils:utils_lib",
+        "//commons:commons_lib",
         "@mbedtls//:mbedtls",
     ],
 )

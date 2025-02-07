@@ -17,6 +17,14 @@ RequestQueue::~RequestQueue() {
     delete [] requests;
 }
 
+bool RequestQueue::empty() {
+    bool answer;
+    request_queue_mutex.lock();
+    answer = (count == 0);
+    request_queue_mutex.unlock();
+    return answer;
+}
+
 void RequestQueue::enqueue(void *request) {
     request_queue_mutex.lock();
     if (count == size) {

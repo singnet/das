@@ -4,7 +4,7 @@
 #include <vector>
 
 #include "QueryAnswerProcessor.h"
-#include "SharedQueue.h"
+#include "RequestQueue.h"
 #include "Sink.h"
 
 using namespace std;

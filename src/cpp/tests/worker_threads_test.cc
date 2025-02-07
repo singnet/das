@@ -8,15 +8,15 @@
 
 #include "Utils.h"
 #include "test_utils.h"
-#include "SharedQueue.h"
+#include "RequestQueue.h"
 #include "WorkerThreads.h"
 #include "HebbianNetwork.h"
 
 using namespace attention_broker_server;
 
-class TestSharedQueue: public SharedQueue {
+class TestRequestQueue: public RequestQueue {
     public:
-        TestSharedQueue() : SharedQueue() {
+        TestRequestQueue() : RequestQueue() {
         }
         unsigned int test_current_count() {
             return current_count();
@@ -33,8 +33,8 @@ TEST(WorkerThreads, basics) {
     unsigned int wait_for_threads_ms = 500;
 
     for (double stimulus_prob: {0.0, 0.25, 0.5, 0.75, 1.0}) {
-        TestSharedQueue *stimulus = new TestSharedQueue();
-        TestSharedQueue *correlation = new TestSharedQueue();
+        TestRequestQueue *stimulus = new TestRequestQueue();
+        TestRequestQueue *correlation = new TestRequestQueue();
         WorkerThreads *pool = new WorkerThreads(stimulus, correlation);
         for (unsigned int i = 0; i < num_requests; i++) {
             if (Utils::flip_coin(stimulus_prob)) {
@@ -63,8 +63,8 @@ TEST(WorkerThreads, hebbian_network_updater_basics) {
     map<string, unsigned int> edge_count;
     HebbianNetwork network;
 
-    TestSharedQueue *stimulus = new TestSharedQueue();
-    TestSharedQueue *correlation = new TestSharedQueue();
+    TestRequestQueue *stimulus = new TestRequestQueue();
+    TestRequestQueue *correlation = new TestRequestQueue();
     WorkerThreads *pool = new WorkerThreads(stimulus, correlation);
 
     handle_list = new dasproto::HandleList();
@@ -162,8 +162,8 @@ TEST(WorkerThreads, hebbian_network_updater_stress) {
         handles[i] = random_handle();
     }
 
-    TestSharedQueue *stimulus = new TestSharedQueue();
-    TestSharedQueue *correlation = new TestSharedQueue();
+    TestRequestQueue *stimulus = new TestRequestQueue();
+    TestRequestQueue *correlation = new TestRequestQueue();
     WorkerThreads *pool = new WorkerThreads(stimulus, correlation);
     for (unsigned int i = 0; i < num_requests; i++) {
         handle_list = new dasproto::HandleList();
