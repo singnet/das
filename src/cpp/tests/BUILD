@@ -13,7 +13,7 @@ cc_test(
         "@com_github_grpc_grpc//:grpc++",
         "@com_github_grpc_grpc//:grpc++_reflection",
         "@com_github_singnet_das_proto//:attention_broker_cc_grpc",
-        "@mbedcrypto//:lib",
+        "@mbedtls//:mbedtls",
     ],
 )
 
@@ -32,7 +32,7 @@ cc_test(
         "@com_github_grpc_grpc//:grpc++",
         "@com_github_grpc_grpc//:grpc++_reflection",
         "@com_github_singnet_das_proto//:attention_broker_cc_grpc",
-        "@mbedcrypto//:lib",
+        "@mbedtls//:mbedtls",
     ],
 )
 
@@ -56,7 +56,7 @@ cc_test(
         "@com_github_grpc_grpc//:grpc++",
         "@com_github_grpc_grpc//:grpc++_reflection",
         "@com_github_singnet_das_proto//:attention_broker_cc_grpc",
-        "@mbedcrypto//:lib",
+        "@mbedtls//:mbedtls",
     ],
 )
 
@@ -79,7 +79,7 @@ cc_test(
         "@com_github_grpc_grpc//:grpc++",
         "@com_github_grpc_grpc//:grpc++_reflection",
         "@com_github_singnet_das_proto//:attention_broker_cc_grpc",
-        "@mbedcrypto//:lib",
+        "@mbedtls//:mbedtls",
     ],
 )
 
@@ -102,7 +102,7 @@ cc_test(
         "@com_github_grpc_grpc//:grpc++",
         "@com_github_grpc_grpc//:grpc++_reflection",
         "@com_github_singnet_das_proto//:attention_broker_cc_grpc",
-        "@mbedcrypto//:lib",
+        "@mbedtls//:mbedtls",
     ],
 )
 
@@ -126,7 +126,7 @@ cc_test(
         "@com_github_grpc_grpc//:grpc++",
         "@com_github_grpc_grpc//:grpc++_reflection",
         "@com_github_singnet_das_proto//:attention_broker_cc_grpc",
-        "@mbedcrypto//:lib",
+        "@mbedtls//:mbedtls",
     ],
 )
 
@@ -149,7 +149,7 @@ cc_test(
         "@com_github_grpc_grpc//:grpc++",
         "@com_github_grpc_grpc//:grpc++_reflection",
         "@com_github_singnet_das_proto//:attention_broker_cc_grpc",
-        "@mbedcrypto//:lib",
+        "@mbedtls//:mbedtls",
     ],
 )
 
@@ -172,7 +172,7 @@ cc_test(
         "@com_github_grpc_grpc//:grpc++",
         "@com_github_grpc_grpc//:grpc++_reflection",
         "@com_github_singnet_das_proto//:attention_broker_cc_grpc",
-        "@mbedcrypto//:lib",
+        "@mbedtls//:mbedtls",
     ],
 )
 
@@ -189,8 +189,6 @@ cc_test(
         "-Iexternal/gtest/googletest",
     ],
     linkopts = [
-        #"-L/opt/3rd-party/mbedcrypto",
-        "-lmbedcrypto",
         "-L/usr/local/lib",
         "-lhiredis_cluster",
         "-lhiredis",
@@ -201,6 +199,7 @@ cc_test(
     deps = [
         "//query_engine:query_engine_lib",
         "@com_github_google_googletest//:gtest_main",
+        "@mbedtls//:mbedtls",
     ],
 )
 
@@ -217,7 +216,6 @@ cc_test(
         "-Iexternal/gtest/googletest",
     ],
     linkopts = [
-        "-lmbedcrypto",
         "-L/usr/local/lib",
         "-lhiredis_cluster",
         "-lhiredis",
@@ -228,6 +226,7 @@ cc_test(
     deps = [
         "//query_engine:query_engine_lib",
         "@com_github_google_googletest//:gtest_main",
+        "@mbedtls//:mbedtls",
     ],
 )
 
@@ -286,8 +285,6 @@ cc_test(
         "-Iexternal/gtest/googletest",
     ],
     linkopts = [
-        #"-L/opt/3rd-party/mbedcrypto",
-        "-lmbedcrypto",
         "-L/usr/local/lib",
         "-lhiredis_cluster",
         "-lhiredis",
@@ -298,6 +295,7 @@ cc_test(
     deps = [
         "//query_engine:query_engine_lib",
         "@com_github_google_googletest//:gtest_main",
+        "@mbedtls//:mbedtls",
     ],
 )
 
@@ -314,8 +312,6 @@ cc_test(
         "-Iexternal/gtest/googletest",
     ],
     linkopts = [
-        #"-L/opt/3rd-party/mbedcrypto",
-        "-lmbedcrypto",
         "-L/usr/local/lib",
         "-lhiredis_cluster",
         "-lhiredis",
@@ -326,6 +322,7 @@ cc_test(
     deps = [
         "//query_engine:query_engine_lib",
         "@com_github_google_googletest//:gtest_main",
+        "@mbedtls//:mbedtls",
     ],
 )
 
@@ -342,7 +339,6 @@ cc_test(
         "-Iexternal/gtest/googletest",
     ],
     linkopts = [
-        "-lmbedcrypto",
         "-L/usr/local/lib",
         "-lhiredis_cluster",
         "-lhiredis",
@@ -353,6 +349,7 @@ cc_test(
     deps = [
         "//query_engine:query_engine_lib",
         "@com_github_google_googletest//:gtest_main",
+        "@mbedtls//:mbedtls",
     ],
 )
 
@@ -369,7 +366,6 @@ cc_test(
         "-Iexternal/gtest/googletest",
     ],
     linkopts = [
-        "-lmbedcrypto",
         "-L/usr/local/lib",
         "-lhiredis_cluster",
         "-lhiredis",
@@ -380,6 +376,7 @@ cc_test(
     deps = [
         "//query_engine:query_engine_lib",
         "@com_github_google_googletest//:gtest_main",
+        "@mbedtls//:mbedtls",
     ],
 )
 

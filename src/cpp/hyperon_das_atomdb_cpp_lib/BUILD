@@ -10,9 +10,8 @@ cc_library(
         "-Ofast",
     ],
     includes = ["."],
-    linkopts = [
-        "-lmbedcrypto",
-    ],
     linkstatic = True,
-    deps = [],
+    deps = [
+      "@mbedtls//:mbedtls",
+    ],
 )

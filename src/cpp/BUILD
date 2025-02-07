@@ -9,7 +9,7 @@ cc_binary(
         "@com_github_grpc_grpc//:grpc++",
         "@com_github_grpc_grpc//:grpc++_reflection",
         "@com_github_singnet_das_proto//:attention_broker_cc_grpc",
-        "@mbedcrypto//:lib",
+        "@mbedtls//:mbedtls",
     ],
 )
 
@@ -21,7 +21,7 @@ cc_binary(
     deps = [
         "//main:query_engine_main_lib",
         "//utils:utils_lib",
-        "@mbedcrypto//:lib",
+        "@mbedtls//:mbedtls",
     ],
 )
 
@@ -33,7 +33,7 @@ cc_binary(
     deps = [
         "//main:query_client_main_lib",
         "//utils:utils_lib",
-        "@mbedcrypto//:lib",
+        "@mbedtls//:mbedtls",
     ],
 )
 
@@ -45,7 +45,7 @@ cc_binary(
     deps = [
         "//main:link_creation_engine_main_lib",
         "//utils:utils_lib",
-        "@mbedcrypto//:lib",
+        "@mbedtls//:mbedtls",
     ],
 )
 
@@ -57,7 +57,7 @@ cc_binary(
     deps = [
         "//main:word_query_main_lib",
         "//utils:utils_lib",
-        "@mbedcrypto//:lib",
+        "@mbedtls//:mbedtls",
     ],
 )
 

@@ -11,9 +11,9 @@ static char HASHABLE_STRING[MAX_HASHABLE_STRING_SIZE];
 char *compute_hash(char *input) {
     mbedtls_md5_context context;
     mbedtls_md5_init(&context);
-    mbedtls_md5_starts_ret(&context);
-    mbedtls_md5_update_ret(&context, (const unsigned char*) input, strlen(input));
-    mbedtls_md5_finish_ret(&context, MD5_BUFFER);
+    mbedtls_md5_starts(&context);
+    mbedtls_md5_update(&context, (const unsigned char*) input, strlen(input));
+    mbedtls_md5_finish(&context, MD5_BUFFER);
     mbedtls_md5_free(&context);
     for (unsigned int i = 0; i < 16; i++) {
         sprintf((char *) ((unsigned long) HASH + 2 * i), "%02x", MD5_BUFFER[i]);
