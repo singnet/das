@@ -5,8 +5,8 @@ CONTAINER_NAME=${IMAGE_NAME}-container
 
 # local paths
 LOCAL_WORKDIR=$(pwd)
-LOCAL_BAZEL_CACHE=$LOCAL_WORKDIR/docker/volumes/cache/bazel
-LOCAL_BAZELISK_CACHE=$LOCAL_WORKDIR/docker/volumes/cache/bazelisk
+LOCAL_BAZEL_CACHE="$HOME/.cache/das/bazel"
+LOCAL_BAZELISK_CACHE="$HOME/.cache/das/bazelisk"
 mkdir -p $LOCAL_BAZEL_CACHE $LOCAL_BAZELISK_CACHE
 
 # container paths
