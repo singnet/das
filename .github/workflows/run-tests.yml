@@ -10,7 +10,7 @@ on:
 
 jobs:
   unit-tests:
-    runs-on: ubuntu-22.04
+    runs-on: self-hosted
     env:
       DAS_REDIS_HOSTNAME: localhost
       DAS_REDIS_PORT: 29000
@@ -24,6 +24,8 @@ jobs:
 
       - name: Install dependencies
         run: |-
+          sudo apt -y update
+          sudo apt -y install build-essential wget
           sudo bash -c "wget -O - http://45.77.4.33/apt-repo/setup.sh | bash"
           sudo apt install das-cli
           das-cli --version
