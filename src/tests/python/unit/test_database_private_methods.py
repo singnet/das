@@ -2,7 +2,7 @@ import pytest
 
 from hyperon_das_atomdb.database import AtomDB, LinkT, NodeT
 from hyperon_das_atomdb.exceptions import AddLinkException, AddNodeException, AtomDoesNotExist
-from tests.helpers import add_link, add_node, check_handle
+from tests.python.helpers import add_link, add_node, check_handle
 
 from .fixtures import in_memory_db, redis_mongo_db  # noqa: F401
 

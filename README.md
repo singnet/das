@@ -12,18 +12,18 @@ The following components are included in this repository:
 - **Attention Broker**
   A DAS component that tracks atom importance values in different contexts and updates those values based on user queries using context-specific Hebbian networks.  
 
-  Documentation: [Read more](src/cpp/attention_broker/README.md)
+  Documentation: [Read more](src/attention_broker/README.md)
 
 - **Query Agent**
 
   C++ server which perform Pattern Matching queries.
 
-  Documentation: [Read more](src/cpp/query_engine/README.md)
+  Documentation: [Read more](src/query_engine/README.md)
 
 - **Link Creation Agent**
   A C++ server that performs pattern-matching queries and creates new links in the Atomspace based on the results.  
 
-  Documentation: [Read more](src/cpp/link_creation_agent/README.md)
+  Documentation: [Read more](src/link_creation_agent/README.md)
 
 - **Inference Control**
   C++ server which perform Inference Queries.
@@ -37,12 +37,12 @@ The following components are included in this repository:
 - **Query Engine**
   A data manipulation API for Distributed Atomspace (DAS). It allows queries with pattern matching capabilities and traversal of the Atomspace hypergraph.  
 
-  Documentation: [Read more](src/python/hyperon_das/README.md)
+  Documentation: [Read more](src/hyperon_das/README.md)
 
 - **Atom DB**
   A Python library required by Hyperon DAS to interface with DBMSs and other data storage structures.  
 
-  Documentation: [Read more](src/python/hyperon_das_atomdb/README.md)  
+  Documentation: [Read more](src/hyperon_das_atomdb/README.md)  
 
 ---
 
@@ -119,7 +119,7 @@ export DAS_MONGODB_PASSWORD=dassecret
 
 Additionally, load the **animals** knowledge base using the [DAS CLI](https://github.com/singnet/das-toolbox).
 
-After setting up Redis and MongoDB, you need to run the [Attention Broker](src/cpp/attention_broker/README.md).
+After setting up Redis and MongoDB, you need to run the [Attention Broker](src/attention_broker/README.md).
 
 ### **Running the Tests**  
 

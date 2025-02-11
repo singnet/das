@@ -1,3 +1,5 @@
+package(default_visibility = ["//visibility:public"])
+
 cc_binary(
     name = "attention_broker_service",
     srcs = [],
@@ -83,3 +85,4 @@ cc_binary(
         "//main:link_creation_agent_client_main_lib",
     ],
 )
+

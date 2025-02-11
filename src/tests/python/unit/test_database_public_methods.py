@@ -4,8 +4,8 @@ from unittest import mock
 import pytest
 
 from hyperon_das_atomdb.database import AtomDB, AtomT, LinkT, NodeT
-from tests.helpers import add_link, add_node, check_handle, dict_to_link_params, dict_to_node_params
-from tests.unit.fixtures import in_memory_db, redis_mongo_db  # noqa: F401
+from tests.python.helpers import add_link, add_node, check_handle, dict_to_link_params, dict_to_node_params
+from tests.python.unit.fixtures import in_memory_db, redis_mongo_db  # noqa: F401
 
 
 def pytest_generate_tests(metafunc):

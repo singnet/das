@@ -6,7 +6,7 @@ package(default_visibility = ["//visibility:public"])
 py_library(
     name = "helpers",
     srcs = ["helpers.py"],
-    data = ["//tests/integration/scripts:sh_files"],
+    data = ["//tests/python/integration/scripts:sh_files"],
 )
 
 py_library(
@@ -25,6 +25,6 @@ py_test(
         "//hyperon_das_atomdb:database",
         "//hyperon_das_atomdb:exceptions",
         "//hyperon_das_atomdb/utils:expression_hasher",
-        "//tests:helpers",
+        "//tests/python:helpers",
     ],
 )

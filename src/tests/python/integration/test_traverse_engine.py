@@ -1,7 +1,7 @@
 import pytest
 
 from hyperon_das.das import DistributedAtomSpace
-from tests.integration.helpers import (
+from tests.python.integration.helpers import (
     _db_down,
     _db_up,
     cleanup,

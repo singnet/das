@@ -10,8 +10,8 @@ from hyperon_das_atomdb.adapters.redis_mongo_db import KeyPrefix
 from hyperon_das_atomdb.database import FieldIndexType, FieldNames, LinkT
 from hyperon_das_atomdb.exceptions import AtomDoesNotExist
 from hyperon_das_atomdb.utils.expression_hasher import ExpressionHasher
-from tests.helpers import add_node, dict_to_link_params, dict_to_node_params
-from tests.unit.fixtures import mongo_mock, redis_mock, redis_mongo_db  # noqa: F401
+from tests.python.helpers import add_node, dict_to_link_params, dict_to_node_params
+from tests.python.unit.fixtures import mongo_mock, redis_mock, redis_mongo_db  # noqa: F401
 
 FILE_CACHE = {}
 
