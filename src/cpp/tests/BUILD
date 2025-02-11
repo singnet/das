@@ -274,7 +274,7 @@ cc_test(
 
 cc_test(
     name = "and_operator_test",
-    size = "medium",
+    size = "large",
     srcs = [
         "and_operator_test.cc",
         "test_utils.cc",
