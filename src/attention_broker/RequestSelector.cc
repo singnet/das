@@ -9,8 +9,8 @@ using namespace attention_broker_server;
 
 RequestSelector::RequestSelector(
     unsigned int thread_id, 
-    RequestQueue *stimulus, 
-    RequestQueue *correlation) {
+    SharedQueue *stimulus, 
+    SharedQueue *correlation) {
 
     this->thread_id = thread_id;
     this->stimulus = stimulus;
@@ -22,8 +22,8 @@ RequestSelector::~RequestSelector() {
 
 EvenThreadCount::EvenThreadCount(
     unsigned int thread_id,
-    RequestQueue *stimulus, 
-    RequestQueue *correlation) : RequestSelector(thread_id, stimulus, correlation) {
+    SharedQueue *stimulus, 
+    SharedQueue *correlation) : RequestSelector(thread_id, stimulus, correlation) {
 
     even_thread_id = ((thread_id % 2) == 0);
 }
@@ -34,8 +34,8 @@ EvenThreadCount::~EvenThreadCount() {
 RequestSelector *RequestSelector::factory(
     SelectorType instance_type, 
     unsigned int thread_id, 
-    RequestQueue *stimulus, 
-    RequestQueue *correlation) {
+    SharedQueue *stimulus, 
+    SharedQueue *correlation) {
 
     switch (instance_type) {
         case SelectorType::EVEN_THREAD_COUNT: {

@@ -396,21 +396,6 @@ cc_test(
 )
 
 cc_test(
-    name = "request_queue_test",
-    size = "small",
-    srcs = ["request_queue_test.cc"],
-    copts = [
-        "-Iexternal/gtest/googletest/include",
-        "-Iexternal/gtest/googletest",
-    ],
-    linkstatic = 1,
-    deps = [
-        "//commons:commons_lib",
-        "@com_github_google_googletest//:gtest_main",
-    ],
-)
-
-cc_test(
     name = "leadership_broker_test",
     size = "small",
     srcs = ["leadership_broker_test.cc"],

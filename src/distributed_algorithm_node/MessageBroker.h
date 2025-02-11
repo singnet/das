@@ -13,7 +13,7 @@
 // #include "distributed_algorithm_node.grpc.pb.h"
 
 #include "Message.h"
-#include "RequestQueue.h"
+#include "SharedQueue.h"
 
 using namespace std;
 using namespace commons;
@@ -206,11 +206,11 @@ public:
 private:
 
     static unsigned int MESSAGE_THREAD_COUNT;
-    static unordered_map<string, RequestQueue *> NODE_QUEUE;
+    static unordered_map<string, SharedQueue *> NODE_QUEUE;
     static mutex NODE_QUEUE_MUTEX;
 
     vector<thread *> inbox_threads;
-    RequestQueue incoming_messages; // Thread safe container
+    SharedQueue incoming_messages; // Thread safe container
 
     // Methods used to start threads
     void inbox_thread_method();
@@ -345,8 +345,8 @@ private:
     unique_ptr<grpc::Server> grpc_server;
     thread *grpc_thread;
     vector<thread *> inbox_threads;
-    RequestQueue incoming_messages; // Thread safe container
-    RequestQueue outgoing_messages; // Thread safe container
+    SharedQueue incoming_messages; // Thread safe container
+    SharedQueue outgoing_messages; // Thread safe container
 
     bool grpc_server_started_flag;
     mutex grpc_server_started_flag_mutex;

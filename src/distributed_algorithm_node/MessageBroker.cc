@@ -23,7 +23,7 @@ using namespace distributed_algorithm_node;
 
 unsigned int SynchronousGRPC::MESSAGE_THREAD_COUNT = 10;
 unsigned int SynchronousSharedRAM::MESSAGE_THREAD_COUNT = 1;
-unordered_map<string, RequestQueue *> SynchronousSharedRAM::NODE_QUEUE;
+unordered_map<string, SharedQueue *> SynchronousSharedRAM::NODE_QUEUE;
 mutex SynchronousSharedRAM::NODE_QUEUE_MUTEX;
 
 // -------------------------------------------------------------------------------------------------

@@ -17,13 +17,13 @@ LinkCreationNode::~LinkCreationNode() {
     DistributedAlgorithmNode::graceful_shutdown();
 }
 
-vector<string> LinkCreationNode::pop_request() { return request_queue.dequeue(); }
+vector<string> LinkCreationNode::pop_request() { return shared_queue.dequeue(); }
 
-bool LinkCreationNode::is_query_empty() { return request_queue.empty(); }
+bool LinkCreationNode::is_query_empty() { return shared_queue.empty(); }
 
 bool LinkCreationNode::is_shutting_down() { return shutting_down; }
 
-void LinkCreationNode::add_request(vector<string> request) { request_queue.enqueue(request); }
+void LinkCreationNode::add_request(vector<string> request) { shared_queue.enqueue(request); }
 
 shared_ptr<Message> LinkCreationNode::message_factory(string& command, vector<string>& args) {
     cout << "LinkCreationNode::message_factory" << endl;
