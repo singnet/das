@@ -4,6 +4,7 @@
 #include <sstream>
 
 #include "RemoteIterator.h"
+#include "link_create_template.h"
 
 using namespace std;
 using namespace link_creation_agent;
@@ -165,7 +166,7 @@ LinkCreationAgentRequest* LinkCreationAgent::create_request(vector<string> reque
         bool is_link_create = false;
         for (string arg : request) {
             cursor++;
-            is_link_create = (arg == "LINK_CREATE") ^ is_link_create;
+            is_link_create = (arg == "LINK_CREATE") || is_link_create;
             if (!is_link_create) {
                 lca_request->query.push_back(arg);
             }
@@ -186,7 +187,6 @@ LinkCreationAgentRequest* LinkCreationAgent::create_request(vector<string> reque
             }
         }
         lca_request->infinite = (lca_request->repeat == -1);
-
         return lca_request;
     } catch (exception& e) {
         cout << "Error parsing request: " << e.what() << endl;
