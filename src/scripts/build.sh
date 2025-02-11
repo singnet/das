@@ -7,7 +7,7 @@ CONTAINER_NAME=${IMAGE_NAME}-container
 
 # local paths
 LOCAL_WORKDIR=$(pwd)
-LOCAL_BIN_DIR=$LOCAL_WORKDIR/bin
+LOCAL_BIN_DIR=$LOCAL_WORKDIR/src/bin
 LOCAL_BAZEL_CACHE="$HOME/.cache/das/bazel"
 LOCAL_BAZELISK_CACHE="$HOME/.cache/das/bazelisk"
 LOCAL_PIPTOOLS_CACHE="$HOME/.cache/das/pip-tools"
@@ -22,7 +22,7 @@ mkdir -p \
 # container paths
 CONTAINER_WORKDIR=/opt/das
 CONTAINER_WORKSPACE_DIR=/opt/das/src
-CONTAINER_BIN_DIR=$CONTAINER_WORKDIR/bin
+CONTAINER_BIN_DIR=$CONTAINER_WORKSPACE_DIR/bin
 CONTAINER_BAZEL_CACHE=/home/${USER}/.cache/bazel
 CONTAINER_PIP_CACHE=/home/${USER}/.cache/pip
 CONTAINER_PIPTOOLS_CACHE=/home/${USER}/.cache/pip-tools
