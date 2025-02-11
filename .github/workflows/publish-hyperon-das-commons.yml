@@ -11,7 +11,7 @@ on:
 jobs:
   notify-mattermost:
     if: github.ref == 'refs/heads/master'
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     steps:
       - name: Checkout
         uses: actions/checkout@v3
@@ -40,7 +40,7 @@ jobs:
           webhook-url: ${{ secrets.MATTERMOST_WEBHOOK_URL }}
 
   publish:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     if: github.ref == 'refs/heads/master'
     defaults:
       run:

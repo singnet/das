@@ -25,7 +25,7 @@ jobs:
     secrets: inherit
 
   publish-query-engine-doc:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     if: github.ref == 'refs/heads/master'
     steps:
       - name: Checkout Query Engine Repo
