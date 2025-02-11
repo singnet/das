@@ -3,8 +3,8 @@ from unittest import mock
 import pytest
 
 from hyperon_das_atomdb.adapters.redis_mongo_db import MongoDBIndex, RedisMongoDB, _HashableDocument
-from tests.helpers import dict_to_node_params
-from tests.unit.fixtures import redis_mongo_db  # noqa: F401
+from tests.python.helpers import dict_to_node_params
+from tests.python.unit.fixtures import redis_mongo_db  # noqa: F401
 
 
 class TestRedisMongoExtra:

@@ -8,8 +8,8 @@ import hyperon_das.link_filters as link_filters
 from hyperon_das import DistributedAtomSpace
 from hyperon_das.exceptions import GetTraversalCursorException
 from hyperon_das.traverse_engines import TraverseEngine
-from tests.integration.helpers import remote_das_host  # noqa F401
-from tests.integration.helpers import (
+from tests.python.integration.helpers import remote_das_host  # noqa F401
+from tests.python.integration.helpers import (
     das_remote_fixture_module,
     get_remote_das_port,
     metta_animal_base_handles,

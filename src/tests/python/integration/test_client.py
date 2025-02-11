@@ -4,7 +4,7 @@ from hyperon_das_atomdb.database import LinkT
 
 import hyperon_das.link_filters as link_filter
 from hyperon_das.client import FunctionsClient
-from tests.integration.helpers import faas_fixture, metta_animal_base_handles
+from tests.python.integration.helpers import faas_fixture, metta_animal_base_handles
 
 
 class TestVultrClientIntegration:
@@ -41,6 +41,7 @@ class TestVultrClientIntegration:
 
     def test_count_atoms(self, faas_fixture: FunctionsClient):
         ret = faas_fixture.count_atoms()
+        print(ret)
         assert ret == {'atom_count': 66}
 
     def test_query(self, faas_fixture: FunctionsClient):

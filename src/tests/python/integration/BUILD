@@ -9,8 +9,8 @@ py_library(
     name = "helpers",
     srcs = ["helpers.py"],
     data = [
-        "//tests/integration/docker:compose_das_alpine",
-        "//tests/integration/scripts:sh_files",
+        "//tests/python/integration/docker:compose_das_alpine",
+        "//tests/python/integration/scripts:sh_files",
     ],
     deps = [
         "//hyperon_das",
@@ -85,7 +85,7 @@ py_test(
         ":conftest",
         ":helpers",
         "//hyperon_das",
-        "//tests:helpers",
+        "//tests/python:helpers",
         requirement("hyperon_das_atomdb"),
     ],
 )

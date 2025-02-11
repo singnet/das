@@ -1,6 +1,6 @@
 import pytest
 
-from tests.integration.helpers import remote_down, remote_up
+from tests.python.integration.helpers import remote_down, remote_up
 
 
 def pytest_addoption(parser):

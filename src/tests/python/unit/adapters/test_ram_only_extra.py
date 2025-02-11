@@ -1,8 +1,8 @@
 import pytest
 
 from hyperon_das_atomdb.adapters.ram_only import InMemoryDB
-from tests.unit.fixtures import in_memory_db  # noqa: F401
-from tests.unit.test_database_public_methods import check_handle
+from tests.python.unit.fixtures import in_memory_db  # noqa: F401
+from tests.python.unit.test_database_public_methods import check_handle
 
 
 @pytest.mark.skip("testing protected members - must be moved to the C++ implementation.")
