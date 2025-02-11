@@ -4,9 +4,9 @@
 
 using namespace attention_broker_server;
 
-class TestRequestQueue: public RequestQueue {
+class TestSharedQueue: public SharedQueue {
     public:
-        TestRequestQueue(unsigned int n) : RequestQueue(n) {
+        TestSharedQueue(unsigned int n) : SharedQueue(n) {
         }
         unsigned int test_current_size() {
             return current_size();
@@ -27,12 +27,12 @@ class TestMessage {
         }
 };
 
-TEST(RequestQueueTest, basics) {
+TEST(SharedQueueTest, basics) {
     
     dasproto::Empty empty;
     dasproto::Ack ack;
 
-    TestRequestQueue q1((unsigned int) 5);
+    TestSharedQueue q1((unsigned int) 5);
     EXPECT_TRUE(q1.test_current_size() == 5);
     q1.enqueue((void *) "1");
     EXPECT_EQ((char *) q1.dequeue(), "1");

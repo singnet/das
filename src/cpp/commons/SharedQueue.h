@@ -1,5 +1,5 @@
-#ifndef _COMMONS_REQUESTQUEUE_H
-#define _COMMONS_REQUESTQUEUE_H
+#ifndef _COMMONS_SHAREDQUEUE_H
+#define _COMMONS_SHAREDQUEUE_H
 
 #include <mutex>
 
@@ -13,13 +13,13 @@ namespace commons {
  * size limit during an insertion. When that happens, the array is doubled in size. Initial size
  * is passed as a constructor's parameter.
  */
-class RequestQueue {
+class SharedQueue {
 
 public:
 
-    RequestQueue(unsigned int initial_size = 1000); // Basic constructor
+    SharedQueue(unsigned int initial_size = 1000); // Basic constructor
 
-    ~RequestQueue(); /// Destructor.
+    ~SharedQueue(); /// Destructor.
 
     /**
      * Enqueues a request.
@@ -49,7 +49,7 @@ protected:
 
 private:
 
-    std::mutex request_queue_mutex;
+    std::mutex shared_queue_mutex;
 
     void **requests; // GRPC documentation states that request types should not be inherited
     unsigned int size;
@@ -57,9 +57,9 @@ private:
     unsigned int start;
     unsigned int end;
 
-    void enlarge_request_queue();
+    void enlarge_shared_queue();
 };
 
 } // namespace commons
 
-#endif // _COMMONS_REQUESTQUEUE_H
+#endif // _COMMONS_SHAREDQUEUE_H

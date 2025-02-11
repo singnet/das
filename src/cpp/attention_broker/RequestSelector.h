@@ -2,7 +2,7 @@
 #define _ATTENTION_BROKER_SERVER_REQUESTSELECTOR_H
 
 #include "HebbianNetwork.h"
-#include "RequestQueue.h"
+#include "SharedQueue.h"
 
 namespace attention_broker_server {
 using namespace std;
@@ -44,8 +44,8 @@ public:
     static RequestSelector *factory(
         SelectorType instance_type, 
         unsigned int thread_id, 
-        RequestQueue *stimulus, 
-        RequestQueue *correlation);
+        SharedQueue *stimulus, 
+        SharedQueue *correlation);
 
     /**
      * Return the next request to be processed by the caller worker thread.
@@ -56,11 +56,11 @@ public:
 
 protected:
 
-    RequestSelector(unsigned int thread_id, RequestQueue *stimulus, RequestQueue *correlation); /// Basic constructor.
+    RequestSelector(unsigned int thread_id, SharedQueue *stimulus, SharedQueue *correlation); /// Basic constructor.
 
     unsigned int thread_id;
-    RequestQueue *stimulus;
-    RequestQueue *correlation;
+    SharedQueue *stimulus;
+    SharedQueue *correlation;
 };
 
 /**
@@ -74,7 +74,7 @@ class EvenThreadCount : public RequestSelector {
 public:
 
     ~EvenThreadCount(); /// Destructor.
-    EvenThreadCount(unsigned int thread_id, RequestQueue *stimulus, RequestQueue *correlation); /// Basic constructor.
+    EvenThreadCount(unsigned int thread_id, SharedQueue *stimulus, SharedQueue *correlation); /// Basic constructor.
 
     /**
      * Return the next request to be processed by the caller worker thread.

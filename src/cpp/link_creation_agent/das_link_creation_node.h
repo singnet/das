@@ -55,7 +55,7 @@ class LinkCreationNode : public StarNode {
     void send_message(vector<string> args);
 
    private:
-    Queue<vector<string>> request_queue;
+    Queue<vector<string>> shared_queue;
     const string CREATE_LINK = "create_link";  // DAS Node command
     bool shutting_down = false;
     bool is_server = true;

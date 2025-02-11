@@ -14,7 +14,7 @@ using namespace std;
 // --------------------------------------------------------------------------------
 // Public methods
 
-WorkerThreads::WorkerThreads(RequestQueue *stimulus, RequestQueue *correlation) {
+WorkerThreads::WorkerThreads(SharedQueue *stimulus, SharedQueue *correlation) {
     stimulus_requests = stimulus;
     correlation_requests = correlation;
     threads_count = AttentionBrokerServer::WORKER_THREADS_COUNT;
@@ -45,8 +45,8 @@ void WorkerThreads::graceful_stop() {
 
 void WorkerThreads::worker_thread(
     unsigned int thread_id, 
-    RequestQueue *stimulus_requests, 
-    RequestQueue *correlation_requests) {
+    SharedQueue *stimulus_requests, 
+    SharedQueue *correlation_requests) {
 
     RequestSelector *selector = RequestSelector::factory(
             SelectorType::EVEN_THREAD_COUNT,

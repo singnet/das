@@ -1,7 +1,7 @@
 #include "gtest/gtest.h"
 
 #include "Utils.h"
-#include "RequestQueue.h"
+#include "SharedQueue.h"
 #include "RequestSelector.h"
 
 using namespace attention_broker_server;
@@ -16,8 +16,8 @@ class TestMessage {
 
 TEST(RequestSelectorTest, even_thread_count) {
     
-    RequestQueue *stimulus = new RequestQueue(1);
-    RequestQueue *correlation = new RequestQueue(1);
+    SharedQueue *stimulus = new SharedQueue(1);
+    SharedQueue *correlation = new SharedQueue(1);
 
     RequestSelector *selector0 = RequestSelector::factory(
         SelectorType::EVEN_THREAD_COUNT,

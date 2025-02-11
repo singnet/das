@@ -12,7 +12,7 @@
 #include "HandlesAnswer.h"
 #include "QueryAnswer.h"
 #include "QueryAnswerProcessor.h"
-#include "RequestQueue.h"
+#include "SharedQueue.h"
 #include "attention_broker.grpc.pb.h"
 #include "attention_broker.pb.h"
 
@@ -204,7 +204,7 @@ class AttentionBrokerUpdater : public QueryAnswerProcessor {
         return answer;
     }
 
-    RequestQueue answers_queue;
+    SharedQueue answers_queue;
     string attention_broker_address;
     thread* queue_processor_method;
     mutex queue_processor_finished_mutex;
