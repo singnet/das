@@ -1,11 +1,11 @@
-#include "RequestQueue.h"
+#include "SharedQueue.h"
 
 using namespace commons;
 
 // --------------------------------------------------------------------------------
 // Public methods
 
-RequestQueue::RequestQueue(unsigned int initial_size) {
+SharedQueue::SharedQueue(unsigned int initial_size) {
     size = initial_size;
     requests = new void*[size];
     count = 0;
@@ -13,56 +13,64 @@ RequestQueue::RequestQueue(unsigned int initial_size) {
     end = 0;
 }
 
-RequestQueue::~RequestQueue() {
+SharedQueue::~SharedQueue() {
     delete [] requests;
 }
 
-void RequestQueue::enqueue(void *request) {
-    request_queue_mutex.lock();
+bool SharedQueue::empty() {
+    bool answer;
+    shared_queue_mutex.lock();
+    answer = (count == 0);
+    shared_queue_mutex.unlock();
+    return answer;
+}
+
+void SharedQueue::enqueue(void *request) {
+    shared_queue_mutex.lock();
     if (count == size) {
-        enlarge_request_queue();
+        enlarge_shared_queue();
     }
     requests[end] = request;
     end = (end + 1) % size;
     count++;
-    request_queue_mutex.unlock();
+    shared_queue_mutex.unlock();
 }
 
-void *RequestQueue::dequeue() {
+void *SharedQueue::dequeue() {
     void *answer = NULL;
-    request_queue_mutex.lock();
+    shared_queue_mutex.lock();
     if (count > 0) {
         answer = requests[start];
         start = (start + 1) % size;
         count--;
     }
-    request_queue_mutex.unlock();
+    shared_queue_mutex.unlock();
     return answer;
 }
 
 // --------------------------------------------------------------------------------
 // Protected methods
 
-unsigned int RequestQueue::current_size() {
+unsigned int SharedQueue::current_size() {
     return size;
 }
 
-unsigned int RequestQueue::current_start() {
+unsigned int SharedQueue::current_start() {
     return start;
 }
 
-unsigned int RequestQueue::current_end() {
+unsigned int SharedQueue::current_end() {
     return end;
 }
 
-unsigned int RequestQueue::current_count() {
+unsigned int SharedQueue::current_count() {
     return count;
 }
 
 // --------------------------------------------------------------------------------
 // Private methods
 
-void RequestQueue::enlarge_request_queue() {
+void SharedQueue::enlarge_shared_queue() {
     unsigned int _new_size = size * 2;
     void **_new_queue = new void*[_new_size];
     unsigned int _cursor = start;
