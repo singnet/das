@@ -52,7 +52,7 @@ on:
 
 jobs:
   setup:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     outputs:
       release-note: ${{ steps.setup-release-note.outputs.releaseNote }}
     steps:
@@ -66,7 +66,7 @@ jobs:
           echo "::set-output name=releaseNote::${releaseNote}"
 
   tag:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     needs: setup
     container:
       image: "${{ inputs.job-image-namespace }}/das:${{ inputs.job-image-version-semver }}"
@@ -98,7 +98,7 @@ jobs:
         run: version-control.sh bump-version-from-variable-value
 
   notify-mattermost:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     needs: tag
     steps:
       - name: Checkout

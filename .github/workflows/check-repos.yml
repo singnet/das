@@ -9,7 +9,7 @@ on:
 
 jobs:
   checking-repos:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     strategy:
       matrix:
         repo: ${{ fromJson(vars.SCHEDULED_REPOS) }}
