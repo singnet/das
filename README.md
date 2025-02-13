@@ -89,7 +89,7 @@ cd das
 To build the agents, run the command:
 
 ```bash
-make build-all
+make build
 ```
 
 This process will generate the binaries for all components in the `das/src/bin` directory.

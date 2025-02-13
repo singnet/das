@@ -17,7 +17,7 @@ pip install hyperon-das
 You can also build the package locally by running the following command from the project root:
 
 ```bash
-make build-all
+make build
 ```
 
 This will generate the binaries for all components in the `das/src/bin` directory, including the wheel for the hyperon-das.
