@@ -28,9 +28,11 @@ github-runner:
 build-image:
 	@bash -x src/scripts/docker_image_build.sh
 
-build-all: build-image
-	@echo "building"
-	# @bash -x src/scripts/build.se
+build: build-image
+	@bash -x src/scripts/build.sh
+
+tests: build-image
+	@bash -x src/scripts/unit_tests.sh
 
 run-query-agent:
 	@bash -x src/scripts/run.sh query_broker 31700
@@ -49,14 +51,4 @@ setup-nunet-dms:
 
 reset-nunet-dms:
 	@bash -x src/scripts/reset-nunet-dms.sh
-
-bazel:
-	@bash ./src/scripts/bazel.sh $(filter-out $@, $(MAKECMDGOALS))
-
-test-all: build-image
-	$(MAKE) bazel ARGS="test //..."
-
-# Catch-all pattern to prevent make from complaining about unknown targets
-%:
-	@:
 
