@@ -15,6 +15,10 @@ Additionally, this file configures:
 """
 
 module(name = "das")
+
+
+# C++
+
 # Work around https://github.com/bazelbuild/bazel/issues/24426.  See
 # https://github.com/bazelbuild/bazel-central-registry/pull/3320#issuecomment-2546030208.
 # FIXME: Remove once fixed upstream in googletest and abseil-cpp.
@@ -33,13 +37,31 @@ bazel_dep(name = "grpc", version = "1.69.0", repo_name = "com_github_grpc_grpc")
 bazel_dep(name = "googletest", version = "1.15.2", repo_name = "com_github_google_googletest")
 bazel_dep(name = "mbedtls", version = "3.6.0")
 
-# nanobind
-bazel_dep(name = "nanobind_bazel", version = "2.4.0")
+# Python
 bazel_dep(name = "rules_python", version = "1.1.0")
 python = use_extension("@rules_python//python/extensions:python.bzl", "python")
 python.toolchain(python_version = "3.10", is_default = True)
 python.toolchain(python_version = "3.11")
 python.toolchain(python_version = "3.12")
+
+pip = use_extension("@rules_python//python/extensions:pip.bzl", "pip")
+pip.parse(
+    hub_name = "pypi",
+    python_version = "3.10",
+    requirements_lock = "//deps:requirements_lock.txt",
+)
+use_repo(pip, "pypi")
+
+pip.parse(
+    hub_name = "pypi_dev",
+    python_version = "3.10",
+    requirements_lock = "//deps:requirements_dev_lock.txt",
+)
+use_repo(pip, "pypi_dev")
+
+
+# nanobind
+bazel_dep(name = "nanobind_bazel", version = "2.4.0")
 
 http_archive = use_repo_rule("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 http_archive(

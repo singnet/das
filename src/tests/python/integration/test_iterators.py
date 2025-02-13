@@ -5,7 +5,7 @@ import pytest
 from hyperon_das import DistributedAtomSpace
 from hyperon_das.cache import QueryAnswerIterator
 from hyperon_das.cache.iterators import CustomQuery, TraverseNeighborsIterator
-from tests.integration.helpers import (
+from tests.python.integration.helpers import (
     _db_down,
     _db_up,
     cleanup,

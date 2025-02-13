@@ -17,11 +17,11 @@ py_library(
 py_test(
     name = "test_database_public_methods",
     srcs = ["test_database_public_methods.py"],
-    data = ["//tests/unit/adapters/data:json_data"],
+    data = ["//tests/python/unit/adapters/data:json_data"],
     deps = [
         ":fixtures",
         "//hyperon_das_atomdb:database",
-        "//tests:helpers",
+        "//tests/python:helpers",
     ],
 )
 
@@ -32,7 +32,7 @@ py_test(
         ":fixtures",
         "//hyperon_das_atomdb:database",
         "//hyperon_das_atomdb:exceptions",
-        "//tests:helpers",
+        "//tests/python:helpers",
     ],
 )
 
@@ -158,7 +158,7 @@ py_test(
     deps = [
         "//hyperon_das:constants",
         "//hyperon_das:das",
-        "//tests:helpers",
+        "//tests/python:helpers",
         requirement("hyperon_das_atomdb"),
     ],
 )

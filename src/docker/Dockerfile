@@ -24,7 +24,7 @@ RUN yes | apt update -y \
     && yes | apt clean -y \
     && rm -rf /var/lib/apt/lists/*
 
-COPY assets/3rd-party.tgz ${THIRD_PARTY}
+COPY src/assets/3rd-party.tgz ${THIRD_PARTY}
 RUN cd ${THIRD_PARTY} \
     && tar xzvf 3rd-party.tgz \
     && rm -f 3rd-party.tgz \
@@ -40,8 +40,8 @@ ADD https://raw.githubusercontent.com/singnet/das-query-engine/master/proto/echo
 ################################################################################
 # To be removed when AtomDB is properly integrated
 # Redis client
-COPY assets/hiredis-cluster.tgz /tmp
-COPY assets/mongo-cxx-driver-r3.11.0.tar.gz /tmp
+COPY src/assets/hiredis-cluster.tgz /tmp
+COPY src/assets/mongo-cxx-driver-r3.11.0.tar.gz /tmp
 RUN cd /tmp \
     && tar xzf hiredis-cluster.tgz \
     && cd hiredis-cluster \
