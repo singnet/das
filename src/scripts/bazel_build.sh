@@ -2,6 +2,8 @@
 
 set -eoux pipefail
 
+ln -sfn /opt/bazel/bazelisk /usr/bin/bazel;
+
 BUILD_BINARIES=false
 BUILD_WHEELS=false
 
