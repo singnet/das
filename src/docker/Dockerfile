@@ -30,7 +30,8 @@ RUN cd ${THIRD_PARTY} \
     && rm -f 3rd-party.tgz \
     && mkdir -p ${DAS_DIR}/src/3rd-party \
     && ln -s ${THIRD_PARTY} ${DAS_DIR}/src/3rd-party \
-    && mv bazelisk ${BAZEL_DIR}
+    && mv bazelisk ${BAZEL_DIR} \
+    && ln -s /opt/bazel/bazelisk /usr/bin/bazel
 
 # TODO: integrate this to bazel build (https://github.com/singnet/das/issues/197)
 ADD https://raw.githubusercontent.com/singnet/das-query-engine/master/proto/attention_broker.proto ${PROTO_DIR}

@@ -1,0 +1,45 @@
+# Source https://bazel.build/docs/user-manual
+
+# The options specified by command:name will only be expanded if --config=name
+# flag is present while invoking bazel ex: bazel build --config=debug //...
+
+#################################### COMMON ###################################
+# common --keep_going
+common --color=yes
+common --curses=yes
+# common --show_timestamps
+
+# Use half of all available CPU cores
+common --jobs=HOST_CPUS*0.6
+
+# Enable bazel bzlmod (for Bazel 8+)
+common --enable_bzlmod
+
+#################################### BUILD ####################################
+# Since we already are in a sandbox environment (Docker) we can run commands
+# localy
+build --spawn_strategy=local
+
+# Enable debugging symbols for development
+build:debug --compilation_mode=dbg
+build:debug --strip=never
+
+# Optimeze for speed in production
+build:release --compilation_mode=opt
+build:release --strip=always
+
+#################################### TEST #####################################
+# Use half of all available CPU cores
+# test --jobs=HOST_CPUS*0.5
+
+# Other options
+test --test_output=errors
+test --build_tests_only
+test --test_verbose_timeout_warnings
+test --flaky_test_attempts=1
+test --cache_test_results=auto
+test --test_env=BAZEL_TEST_ENV=1
+test --test_tag_filters=-skip
+
+#################################### RUN ######################################
+
