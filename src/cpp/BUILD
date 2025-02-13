@@ -83,3 +83,13 @@ cc_binary(
         "//main:link_creation_agent_client_main_lib",
     ],
 )
+
+cc_binary(
+    name = "inference_agent",
+    srcs = [],
+    defines = ["BAZEL_BUILD"],
+    linkstatic = 1,
+    deps = [
+        "//main:inference_agent_main_lib",
+    ],
+)

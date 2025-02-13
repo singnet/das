@@ -65,3 +65,12 @@ cc_library(
 
     ],
 )
+
+cc_library(
+    name = "inference_agent_main_lib",
+    srcs = ["inference_agent_main.cc"],
+    deps = [
+         "//inference_agent:inference_agent_lib",
+
+    ],
+)

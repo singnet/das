@@ -42,6 +42,8 @@ if [ "$BUILD_BINARIES" = true ]; then
     mv bazel-bin/query_broker "$BIN_DIR"
     $BAZELISK_BUILD_CMD //:query
     mv bazel-bin/query "$BIN_DIR"
+    $BAZELISK_BUILD_CMD //:inference_agent
+    mv bazel-bin/inference_agent "$BIN_DIR"
 fi
 
 if [ "$BUILD_WHEELS" = true ]; then
