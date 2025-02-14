@@ -38,6 +38,7 @@ allocations:
         - DAS_MONGODB_PORT=29100
         - DAS_MONGODB_USERNAME=admin
         - DAS_MONGODB_PASSWORD=admin
+        - DAS_ATTENTION_BROKER=attentionbroker:37007
 
     dnsname: queryagent
 
@@ -57,21 +58,6 @@ allocations:
       cmd: ["OPTIONS=\"--type server --config_file agent.cnf\""]
     dnsname: linkcreationagent
 
-  linkcreationclient:
-    executor: docker
-    resources:
-      cpu:
-        cores: 1
-      gpus: []
-      ram:
-        size: 1
-      disk:
-        size: 1
-    execution:
-      type: docker
-      image: trueagi/das:link-creation-client-poc
-      cmd: ["OPTIONS=\"localhost:1010 localhost:9080 LINK_TEMPLATE Expression 3 NODE Symbol Similarity VARIABLE V1 VARIABLE V2 LINK_CREATE Similarity 2 1 VARIABLE V1 VARIABLE V2 CUSTOM_FIELD truth_value 2 CUSTOM_FIELD mean 2 count 10 avg 0.9 confidence 0.9 10 0 test false\""]
-    dnsname: linkcreationclient
 
 nodes:
   node1:
@@ -79,5 +65,4 @@ nodes:
       - attentionbroker
       - queryagent
       - linkcreationagent
-      - linkcreationclient
     peer: ${PEER_ID}
