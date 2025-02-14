@@ -53,7 +53,7 @@ bazel:
 	@bash ./src/scripts/bazel.sh $(filter-out $@, $(MAKECMDGOALS))
 
 test-all: build-image
-	$(MAKE) bazel ARGS="test //..."
+	$(MAKE) bazel test //...
 
 # Catch-all pattern to prevent make from complaining about unknown targets
 %:
