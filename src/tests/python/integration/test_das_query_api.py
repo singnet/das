@@ -1,7 +1,7 @@
 import pytest
 
 from hyperon_das import DistributedAtomSpace
-from tests.integration.helpers import get_remote_das_port, remote_das_host
+from tests.python.integration.helpers import get_remote_das_port, remote_das_host
 
 from .helpers import (
     MettaAnimalBaseHandlesCollection,

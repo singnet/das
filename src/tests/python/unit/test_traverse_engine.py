@@ -2,7 +2,7 @@ import pytest
 from hyperon_das_atomdb import AtomDB, AtomDoesNotExist
 
 from hyperon_das.das import DistributedAtomSpace
-from tests.helpers import animal_base_handles, load_animals_base
+from tests.python.helpers import animal_base_handles, load_animals_base
 
 
 def simplify_links(links: list, das: DistributedAtomSpace) -> set:

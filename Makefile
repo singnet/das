@@ -26,13 +26,13 @@ github-runner:
 	@bash $(CURDIR)/scripts/github-runner/main.sh
 
 build-image:
-	cd src && bash -x scripts/docker_image_build.sh
+	@bash -x src/scripts/docker_image_build.sh
 
 build: build-image
-	cd src && bash -x scripts/build.sh
+	@bash -x src/scripts/build.sh
 
 tests: build-image
-	cd src && bash -x scripts/unit_tests.sh
+	@bash -x src/scripts/unit_tests.sh
 
 run-query-agent:
 	@bash -x src/scripts/run.sh query_broker 31700

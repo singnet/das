@@ -3,7 +3,7 @@
 from hyperon_das_atomdb.database import LinkT, NodeT
 
 from hyperon_das import DistributedAtomSpace
-from tests.integration.helpers import (
+from tests.python.integration.helpers import (
     das_local_custom_fixture,
     das_local_fixture,
     das_remote_fixture_module,
@@ -12,7 +12,7 @@ from tests.integration.helpers import (
     redis_port,
     remote_das_host,
 )
-from tests.helpers import load_animals_base
+from tests.python.helpers import load_animals_base
 
 
 class TestLocalDASRedisMongo:

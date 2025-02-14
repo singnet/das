@@ -4,7 +4,7 @@ from hyperon_das_atomdb.adapters import RedisMongoDB
 from hyperon_das_atomdb.adapters.redis_mongo_db import KeyPrefix
 from hyperon_das_atomdb.database import WILDCARD, AtomDB, FieldIndexType, LinkT, NodeT
 from hyperon_das_atomdb.utils.expression_hasher import ExpressionHasher
-from tests.helpers import dict_to_link_params, dict_to_node_params
+from tests.python.helpers import dict_to_link_params, dict_to_node_params
 
 from .animals_kb import (
     animal,

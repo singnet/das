@@ -29,7 +29,6 @@ if [ "$BUILD_BINARIES" = false ] && [ "$BUILD_WHEELS" = false ]; then
 fi
 
 if [ "$BUILD_BINARIES" = true ]; then
-    cd "$CPP_WORKSPACE_DIR"
     $BAZELISK_BUILD_CMD //:link_creation_server
     mv bazel-bin/link_creation_server "$BIN_DIR"
     $BAZELISK_BUILD_CMD //:link_creation_agent_client
@@ -47,14 +46,12 @@ if [ "$BUILD_BINARIES" = true ]; then
 fi
 
 if [ "$BUILD_WHEELS" = true ]; then
-    cd "$PYTHON_WORKSPACE_DIR"
     $BAZELISK_RUN_CMD //deps:requirements.update
     $BAZELISK_RUN_CMD //deps:requirements_dev.update
     $BAZELISK_BUILD_CMD //hyperon_das_atomdb:hyperon_das_atomdb_wheel --define=ATOMDB_VERSION=0.8.11
     $BAZELISK_BUILD_CMD //hyperon_das:hyperon_das_wheel --define=DAS_VERSION=0.9.17
     mv bazel-bin/hyperon_das_atomdb/*.whl "$BIN_DIR"
     mv bazel-bin/hyperon_das/*.whl "$BIN_DIR"
-    cd "$CPP_WORKSPACE_DIR"
     $BAZELISK_BUILD_CMD //hyperon_das_node:hyperon_das_node_wheel --define=DAS_NODE_VERSION=0.0.1
     mv bazel-bin/hyperon_das_node/*.whl "$BIN_DIR"
     $BAZELISK_BUILD_CMD //hyperon_das_atomdb_cpp:hyperon_das_atomdb_cpp_wheel \
