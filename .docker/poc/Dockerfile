@@ -11,7 +11,8 @@ COPY ./src .
 
 RUN chmod +x ./scripts/*.sh && mkdir -p ${BIN_DIR}
 
-RUN ./scripts/bazel_build.sh --binaries
+RUN --mount=from=cache,target=/root/.cache,readonly \
+    ./scripts/bazel_build.sh --binaries
 
 # Build Attention Broker
 FROM trueagi/das:22.04-builder AS attention-broker
