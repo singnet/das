@@ -11,6 +11,8 @@ COPY ./src .
 
 RUN chmod +x ./scripts/*.sh && mkdir -p ${BIN_DIR}
 
+USER ubuntu
+
 RUN --mount=from=cache,target=/root/.cache,readwrite \
     ./scripts/bazel_build.sh --binaries
 
