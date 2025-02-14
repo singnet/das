@@ -4,7 +4,7 @@ set -eou pipefail
 
 IMAGE_NAME="das-builder"
 CONTAINER_NAME=${IMAGE_NAME}-container
-# BAZEL_CMD="echo /opt/bazel/bazelisk $@"
+BAZEL_CMD="/opt/bazel/bazelisk"
 
 # local paths
 LOCAL_WORKDIR=$(pwd)
@@ -41,5 +41,6 @@ docker run --rm \
   --volume "$LOCAL_BAZELISK_CACHE":"$CONTAINER_BAZELISK_CACHE" \
   --volume "$LOCAL_WORKDIR":"$CONTAINER_WORKDIR" \
   --workdir "$CONTAINER_WORKSPACE_DIR" \
+  --entrypoint "$BAZEL_CMD" \
   "${IMAGE_NAME}" \
-  bazel "$@"
+  $@
