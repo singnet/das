@@ -43,7 +43,16 @@ void AtomDB::attention_broker_setup() {
     grpc::Status status;
     dasproto::Empty empty;
     dasproto::Ack ack;
-    string attention_broker_address = "localhost:37007";
+    string host = Utils::get_environment("DAS_ATTENTION_BROKER_HOSTNAME");
+    string port = Utils::get_environment("DAS_ATTENTION_BROKER_PORT");
+    
+    string attention_broker_address;
+    if (!host.empty() && !port.empty()) {
+        attention_broker_address = host + ":" + port;
+    } else {
+        attention_broker_address = "localhost:37007";
+    }
+    
 
     auto stub = dasproto::AttentionBroker::NewStub(grpc::CreateChannel(
         attention_broker_address,
