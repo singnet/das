@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - master
+      - das-237
 
 jobs:
   build_and_publish:
