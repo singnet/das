@@ -86,7 +86,6 @@ cc_binary(
     ],
 )
 
-<<<<<<< HEAD:src/cpp/BUILD
 cc_binary(
     name = "inference_agent",
     srcs = [],
@@ -96,5 +95,3 @@ cc_binary(
         "//main:inference_agent_main_lib",
     ],
 )
-=======
->>>>>>> master:src/BUILD
