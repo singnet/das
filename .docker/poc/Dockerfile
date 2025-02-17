@@ -8,20 +8,20 @@ ENTRYPOINT [ "attention_broker_service" ]
 # Build Query Agent
 FROM trueagi/das:22.04-builder AS query-agent
 
-COPY --from=builder ./src/bin/query_broker /usr/local/bin
+COPY ./src/bin/query_broker /usr/local/bin
 
 ENTRYPOINT [ "query_broker" ]
 
 # Build Link Creation Agent
 FROM trueagi/das:22.04-builder AS link-creation-agent
 
-COPY --from=builder ./src/bin/link_creation_server /usr/local/bin
+COPY ./src/bin/link_creation_server /usr/local/bin
 
 ENTRYPOINT [ "link_creation_server" ]
 
 # Build Link Creation Agent
 FROM trueagi/das:22.04-builder AS link-creation-client
 
-COPY --from=builder ./src/bin/link_creation_agent_client /usr/local/bin
+COPY  ./src/bin/link_creation_agent_client /usr/local/bin
 
 ENTRYPOINT [ "link_creation_agent_client" ]
