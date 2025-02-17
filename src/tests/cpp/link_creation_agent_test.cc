@@ -4,7 +4,7 @@
 #include <fstream>
 #include <thread>
 
-#include "agent.h"
+#include "link_creation_agent.h"
 #include "link_create_template.h"
 
 using namespace std;
