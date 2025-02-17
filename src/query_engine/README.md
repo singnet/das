@@ -27,6 +27,9 @@ Before running the Query Agent, ensure that the following environment variables 
   - `DAS_REDIS_PORT`
   - `DAS_USE_REDIS_CLUSTER` (set to `true` if using Redis Cluster)
 
+- **Attention Broker**
+  - `DAS_ATTENTION_BROKER` (optional, defaults to `localhost:37007` if not provided)
+
 You can export these variables by including them in your shell configuration file or by running:
 
 ```bash
@@ -37,6 +40,7 @@ export DAS_MONGODB_PASSWORD="your-password"
 export DAS_REDIS_HOSTNAME="localhost"
 export DAS_REDIS_PORT="6379"
 export DAS_USE_REDIS_CLUSTER=false
+export DAS_ATTENTION_BROKER="localhost:37007"
 ```
 
 Before running the Query Agent, you need to start the Attention Broker. For more information on how to set up and run the Attention Broker, refer to [attention-broker.md](../attention_broker/README.md).
