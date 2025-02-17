@@ -13,14 +13,11 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Install dependencies
+        run: sudo apt update && sudo apt install -y make
+
       - name: Build Binaries
-        run: |
-          docker run --rm \
-            -e CPP_WORKSPACE_DIR=/opt/das/cpp \
-            -e PYTHON_WORKSPACE_DIR=/opt/das/python \
-            -v $(pwd)/src/bin:/opt/das/bin \
-            trueagi/das:22.04-builder \
-            /usr/local/bin/bazel_build.sh --binaries
+        run: make build
 
       - name: Upload Binaries as Artifacts
         uses: actions/upload-artifact@v4
