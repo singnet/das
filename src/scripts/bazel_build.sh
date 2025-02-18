@@ -2,12 +2,9 @@
 
 set -eoux pipefail
 
-JOBS=$(( $(nproc) / 2 ))
-JOBS=$(( JOBS < 1 ? 1 : JOBS ))
-
 BAZELISK_CMD=/opt/bazel/bazelisk
-BAZELISK_BUILD_CMD="${BAZELISK_CMD} build --jobs ${JOBS} --enable_bzlmod"
-BAZELISK_RUN_CMD="${BAZELISK_CMD} run --jobs ${JOBS} --enable_bzlmod"
+BAZELISK_BUILD_CMD="${BAZELISK_CMD} build"
+BAZELISK_RUN_CMD="${BAZELISK_CMD} run"
 
 BUILD_BINARIES=false
 BUILD_WHEELS=false
