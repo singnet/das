@@ -1,73 +1,83 @@
 #include "link.h"
-#include <iostream>
 
+#include <iostream>
 
 using namespace link_creation_agent;
 using namespace std;
 using namespace query_engine;
 
 
-Link::Link(string type, vector<string> targets)
-{
-    this->type = type;
-    this->targets = targets;
-}
 
-Link::Link(QueryAnswer *query_answer, vector<string> link_template)
-{
-    string query_tokens = query_answer->tokenize();
-    string token = "";
-    for(char token_char : query_tokens){
-        if(token_char == ' '){
-            this->targets.push_back(token);
-            token = "";
-        }else{
-            token += token_char;
+Link::Link(QueryAnswer* query_answer, vector<string> link_template) {
+    LinkCreateTemplate link_create_template(link_template);
+    HandlesAnswer* handles_answer = dynamic_cast<HandlesAnswer*>(query_answer);
+
+    this->type = link_create_template.get_link_type();
+    vector<LinkCreateTemplateTypes> targets = link_create_template.get_targets();
+    for (LinkCreateTemplateTypes target : targets) {
+        if (holds_alternative<Variable>(target)) {
+            string token = get<Variable>(target).name;
+            this->targets.push_back(handles_answer->assignment.get(token.c_str()));
+        }
+        if (holds_alternative<std::shared_ptr<LinkCreateTemplate>>(target)) {
+            shared_ptr<LinkCreateTemplate> sub_link = get<std::shared_ptr<LinkCreateTemplate>>(target);
+            shared_ptr<Link> sub_link_obj = make_shared<Link>(query_answer, sub_link);
+            this->targets.push_back(sub_link_obj);
         }
     }
+    this->custom_fields = link_create_template.get_custom_fields();
 }
 
-
-Link::Link()
-{
+Link::Link(QueryAnswer* query_answer, shared_ptr<LinkCreateTemplate> link_create_template) {
+    HandlesAnswer* handles_answer = dynamic_cast<HandlesAnswer*>(query_answer);
+    this->type = link_create_template->get_link_type();
+    vector<LinkCreateTemplateTypes> targets = link_create_template->get_targets();
+    for (LinkCreateTemplateTypes target : targets) {
+        if (holds_alternative<Variable>(target)) {
+            string token = get<Variable>(target).name;
+            this->targets.push_back(handles_answer->assignment.get(token.c_str()));
+        }
+        if (holds_alternative<std::shared_ptr<LinkCreateTemplate>>(target)) {
+            shared_ptr<LinkCreateTemplate> sub_link = get<std::shared_ptr<LinkCreateTemplate>>(target);
+            shared_ptr<Link> sub_link_obj = make_shared<Link>(query_answer, sub_link);
+            this->targets.push_back(sub_link_obj);
+        }
+    }
+    this->custom_fields = link_create_template->get_custom_fields();
 }
 
-Link::~Link()
-{
-}
+Link::Link() {}
 
-string Link::get_type()
-{
-    return this->type;
-}
+Link::~Link() {}
 
-vector<string> Link::get_targets()
-{
-    return this->targets;
-}
+string Link::get_type() { return this->type; }
 
-void Link::set_type(string type)
-{
-    this->type = type;
-}
+vector<LinkTargetTypes> Link::get_targets() { return this->targets; }
 
-void Link::set_targets(vector<string> targets)
-{
-    this->targets = targets;
-}
-
-void Link::add_target(string target)
-{
-    this->targets.push_back(target);
-}
-
-vector<string> Link::tokenize()
-{
-    return targets;
-}
+void Link::set_type(string type) { this->type = type; }
 
 
-Link Link::untokenize(string link)
-{
-    return Link();
+void Link::add_target(LinkTargetTypes target) { this->targets.push_back(target); }
+
+vector<string> Link::tokenize() { 
+    vector<string> tokens;
+    tokens.push_back("LINK");
+    tokens.push_back(this->type);
+    for (LinkTargetTypes target : this->targets) {
+        if (holds_alternative<string>(target)) {
+            tokens.push_back("HANDLE");
+            tokens.push_back(get<string>(target));
+        }
+        if (holds_alternative<shared_ptr<Link>>(target)) {
+            for (string token : get<shared_ptr<Link>>(target)->tokenize()) {
+                tokens.push_back(token);
+            }
+        }
+    }
+    for (CustomField custom_field : this->custom_fields) {
+        for (string token : custom_field.tokenize()) {
+            tokens.push_back(token);
+        }
+    }
+    return tokens;
 }

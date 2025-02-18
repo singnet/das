@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <iostream>
+#include <sstream>
 #include <stdexcept>
 
 using namespace link_creation_agent;
@@ -25,61 +26,19 @@ static std::string get_token(std::vector<std::string>& link_template, int cursor
     }
     return link_template[cursor];
 }
-
-CustomField::CustomField(std::vector<std::string>& custom_fields) {
-    if (get_token(custom_fields, 0) != "CUSTOM_FIELD")
-        throw std::invalid_argument("Can not create Custom Field: Invalid arguments");
-
-    int cursor = 0;
-    std::string custom_field_name = get_token(custom_fields, 1);
-    this->name = custom_field_name;
-    cursor += 3;
-    while (cursor < custom_fields.size()) {
-        if (get_token(custom_fields, cursor) == "CUSTOM_FIELD") {
-            std::vector<std::string> custom_field_args;
-            int sub_custom_field_size = string_to_int(get_token(custom_fields, cursor + 2));
-            std::string sub_custom_field_name = get_token(custom_fields, cursor + 1);
-            custom_field_args.push_back(get_token(custom_fields, cursor));      // CUSTOM_FIELD
-            custom_field_args.push_back(get_token(custom_fields, cursor + 1));  // field name
-            custom_field_args.push_back(get_token(custom_fields, cursor + 2));  // field size
-            cursor += 3;
-            while (cursor < custom_fields.size()) {
-                if (sub_custom_field_size == 0) {
-                    break;
-                }
-
-                custom_field_args.push_back(get_token(custom_fields, cursor));
-                if (get_token(custom_fields, cursor) == "CUSTOM_FIELD") {
-                    sub_custom_field_size += string_to_int(get_token(custom_fields, cursor + 2));
-                    custom_field_args.push_back(get_token(custom_fields, cursor + 1));  // field name
-                    custom_field_args.push_back(get_token(custom_fields, cursor + 2));  // field size
-                    cursor += 3;
-                    sub_custom_field_size--;
-                } else {
-                    custom_field_args.push_back(get_token(custom_fields, cursor + 1));
-                    cursor += 2;
-                    sub_custom_field_size--;
-                }
-            }
-            CustomField custom_field = CustomField(custom_field_args);
-            this->values.push_back(
-                std::make_tuple(sub_custom_field_name, std::make_shared<CustomField>(custom_field)));
-        } else {
-            this->values.push_back(
-                std::make_tuple(get_token(custom_fields, cursor), get_token(custom_fields, cursor + 1)));
-            cursor += 2;
-        }
+// TODO move this to a utils file
+static std::vector<std::string> split(const std::string& s, char delimiter) {
+    std::vector<std::string> tokens;
+    std::string token;
+    std::istringstream tokenStream(s);
+    while (std::getline(tokenStream, token, delimiter)) {
+        tokens.push_back(token);
     }
+    return tokens;
 }
 
-CustomField::~CustomField() {}
-
-std::string CustomField::get_name() { return this->name; }
-
-std::vector<std::tuple<std::string, CustomFieldTypes>> CustomField::get_values() { return this->values; }
-
-std::vector<std::string> parse_sub_custom_field(std::vector<std::string>& link_template,
-                                                size_t& cursor) {
+static std::vector<std::string> parse_sub_custom_field(std::vector<std::string>& link_template,
+                                                       size_t& cursor) {
     if (get_token(link_template, cursor) != "CUSTOM_FIELD" || link_template.size() < cursor + 3)
         throw std::invalid_argument("Can not create Custom Field: Invalid arguments");
     std::vector<std::string> custom_field_args;
@@ -108,8 +67,8 @@ std::vector<std::string> parse_sub_custom_field(std::vector<std::string>& link_t
     return custom_field_args;
 }
 
-std::vector<std::string> parse_sub_link_template(std::vector<std::string>& link_template,
-                                                 size_t& cursor) {
+static std::vector<std::string> parse_sub_link_template(std::vector<std::string>& link_template,
+                                                        size_t& cursor) {
     if (get_token(link_template, cursor) != "LINK_CREATE" || link_template.size() < cursor + 4)
         throw std::invalid_argument("Can not create Link Template: Invalid arguments");
     int sub_link_template_size = string_to_int(get_token(link_template, cursor + 2));
@@ -226,6 +185,60 @@ std::string LinkCreateTemplate::to_string() {
     return link_template;
 }
 
+std::vector<std::string> LinkCreateTemplate::tokenize() { return split(this->to_string(), ' '); }
+
+CustomField::CustomField(std::vector<std::string>& custom_fields) {
+    if (get_token(custom_fields, 0) != "CUSTOM_FIELD")
+        throw std::invalid_argument("Can not create Custom Field: Invalid arguments");
+
+    int cursor = 0;
+    std::string custom_field_name = get_token(custom_fields, 1);
+    this->name = custom_field_name;
+    cursor += 3;
+    while (cursor < custom_fields.size()) {
+        if (get_token(custom_fields, cursor) == "CUSTOM_FIELD") {
+            std::vector<std::string> custom_field_args;
+            int sub_custom_field_size = string_to_int(get_token(custom_fields, cursor + 2));
+            std::string sub_custom_field_name = get_token(custom_fields, cursor + 1);
+            custom_field_args.push_back(get_token(custom_fields, cursor));      // CUSTOM_FIELD
+            custom_field_args.push_back(get_token(custom_fields, cursor + 1));  // field name
+            custom_field_args.push_back(get_token(custom_fields, cursor + 2));  // field size
+            cursor += 3;
+            while (cursor < custom_fields.size()) {
+                if (sub_custom_field_size == 0) {
+                    break;
+                }
+
+                custom_field_args.push_back(get_token(custom_fields, cursor));
+                if (get_token(custom_fields, cursor) == "CUSTOM_FIELD") {
+                    sub_custom_field_size += string_to_int(get_token(custom_fields, cursor + 2));
+                    custom_field_args.push_back(get_token(custom_fields, cursor + 1));  // field name
+                    custom_field_args.push_back(get_token(custom_fields, cursor + 2));  // field size
+                    cursor += 3;
+                    sub_custom_field_size--;
+                } else {
+                    custom_field_args.push_back(get_token(custom_fields, cursor + 1));
+                    cursor += 2;
+                    sub_custom_field_size--;
+                }
+            }
+            CustomField custom_field = CustomField(custom_field_args);
+            this->values.push_back(
+                std::make_tuple(sub_custom_field_name, std::make_shared<CustomField>(custom_field)));
+        } else {
+            this->values.push_back(
+                std::make_tuple(get_token(custom_fields, cursor), get_token(custom_fields, cursor + 1)));
+            cursor += 2;
+        }
+    }
+}
+
+CustomField::~CustomField() {}
+
+std::string CustomField::get_name() { return this->name; }
+
+std::vector<std::tuple<std::string, CustomFieldTypes>> CustomField::get_values() { return this->values; }
+
 std::string CustomField::to_string() {
     std::string custom_field =
         "CUSTOM_FIELD " + this->name + " " + std::to_string(this->values.size()) + " ";
@@ -242,3 +255,5 @@ std::string CustomField::to_string() {
     }
     return custom_field;
 }
+
+std::vector<std::string> CustomField::tokenize() { return split(this->to_string(), ' '); }
