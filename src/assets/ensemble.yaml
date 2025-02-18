@@ -38,7 +38,8 @@ allocations:
         - DAS_MONGODB_PORT=29100
         - DAS_MONGODB_USERNAME=admin
         - DAS_MONGODB_PASSWORD=admin
-        - DAS_ATTENTION_BROKER=attentionbroker:37007
+        - DAS_ATTENTION_BROKER_ADDRESS=attentionbroker
+        - DAS_ATTENTION_BROKER_PORT=37007
 
     dnsname: queryagent
 
