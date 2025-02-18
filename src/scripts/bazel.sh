@@ -34,6 +34,7 @@ docker run --rm \
   --user="$(id -u)":"$(id -g)" \
   --name=$CONTAINER_NAME \
   -e BIN_DIR=$CONTAINER_BIN_DIR \
+  --network=host \
   --volume /etc/passwd:/etc/passwd:ro \
   --volume "$LOCAL_PIP_CACHE":"$CONTAINER_PIP_CACHE" \
   --volume "$LOCAL_PIPTOOLS_CACHE":"$CONTAINER_PIPTOOLS_CACHE" \
@@ -43,4 +44,4 @@ docker run --rm \
   --workdir "$CONTAINER_WORKSPACE_DIR" \
   --entrypoint "$BAZEL_CMD" \
   "${IMAGE_NAME}" \
-  $@
+  "$@"
