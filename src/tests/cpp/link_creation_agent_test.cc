@@ -277,6 +277,6 @@ TEST(Link, TestLink) {
     Link link(query_answer, link_template);
     EXPECT_EQ(link.get_type(), "Similarity");
     EXPECT_EQ(link.get_targets().size(), 2);
-    EXPECT_EQ(link.get_targets()[0], "Value1");
-    EXPECT_EQ(link.get_targets()[1], "Value2");
+    EXPECT_EQ(get<string>(link.get_targets()[0]), "Value1");
+    EXPECT_EQ(get<string>(link.get_targets()[1]), "Value2");
 }
