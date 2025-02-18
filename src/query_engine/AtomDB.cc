@@ -51,7 +51,7 @@ void AtomDB::attention_broker_setup() {
     }
     if (attention_broker_port.empty()) {
         attention_broker_address += ":37007";
-    else {
+    } else {
         attention_broker_address += ":" + attention_broker_port;
     }
     
