@@ -41,7 +41,8 @@ export DAS_MONGODB_PASSWORD="your-password"
 export DAS_REDIS_HOSTNAME="localhost"
 export DAS_REDIS_PORT="6379"
 export DAS_USE_REDIS_CLUSTER=false
-export DAS_ATTENTION_BROKER="localhost:37007"
+export DAS_ATTENTION_BROKER_ADDRESS="localhost"
+export DAS_ATTENTION_BROKER_PORT="37007"
 ```
 
 Before running the Query Agent, you need to start the Attention Broker. For more information on how to set up and run the Attention Broker, refer to [attention-broker.md](../attention_broker/README.md).
