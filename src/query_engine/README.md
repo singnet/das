@@ -28,7 +28,8 @@ Before running the Query Agent, ensure that the following environment variables 
   - `DAS_USE_REDIS_CLUSTER` (set to `true` if using Redis Cluster)
 
 - **Attention Broker**
-  - `DAS_ATTENTION_BROKER` (optional, defaults to `localhost:37007` if not provided)
+  - `DAS_ATTENTION_BROKER_ADDRESS` (optional, defaults to `localhost` if not provided)
+  - `DAS_ATTENTION_BROKER_PORT` (optional, defaults to `37007` if not provided)
 
 You can export these variables by including them in your shell configuration file or by running:
 
