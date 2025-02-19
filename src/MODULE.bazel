@@ -16,6 +16,8 @@ Additionally, this file configures:
 
 module(name = "das")
 
+# Bazel to run linters and formatters
+bazel_dep(name = "aspect_rules_lint", version = "1.2.0")
 
 # C++
 
