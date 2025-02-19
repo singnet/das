@@ -1,5 +1,28 @@
 package(default_visibility = ["//visibility:public"])
 
+exports_files(
+    [
+        ".ruff.toml",
+    ],
+    visibility = ["//visibility:public"],
+)
+
+alias(
+  name = "format.check",
+  actual = "//tools/format:format.check"
+)
+
+alias(
+  name = "format",
+  actual = "//tools/format"
+)
+
+py_binary(
+  name = "cli",
+  srcs = ["cli.py"],
+)
+
+
 cc_binary(
     name = "attention_broker_service",
     srcs = [],
