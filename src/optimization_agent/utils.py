@@ -23,6 +23,8 @@ Parameters = namedtuple(
         'fitness_function',
         'node_id',
         'das_node_server_id',
+        'attention_broker_server',
+        'context',
         'mongo_hostname',
         'mongo_port',
         'mongo_username',
