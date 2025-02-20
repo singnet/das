@@ -33,7 +33,8 @@ from hyperon_das.utils import QueryAnswer, get_package_version
 class DistributedAtomSpace:
     backend: AtomDB
 
-    def __init__(self, system_parameters: Dict[str, Any], **kwargs) -> None:
+    # FIXME: B006 Do not use mutable data structures for argumnet defaults
+    def __init__(self, system_parameters: Dict[str, Any] = {}, **kwargs) -> None:  # noqa: B006
         """
         Creates a new DAS object. A DAS client can run locally or locally and remote,
         connecting to remote DAS instances to query remote atoms. If there are different
@@ -82,8 +83,6 @@ class DistributedAtomSpace:
                 mode. Defaults to True.
             redis_ssl (bool, optional): Set Redis to encrypt the connection. Defaults to True.
         """
-        if not system_parameters:
-            system_parameters = {}
         self.system_parameters = system_parameters
         self.atomdb = kwargs.get("atomdb", "ram")
         self.query_engine_type = kwargs.get("query_engine", "local")
@@ -140,13 +139,12 @@ class DistributedAtomSpace:
         )
         logger().info(f"Started {das_type} DAS")
 
+    # FIXME: B006 Do not use mutable data structures for argumnet defaults
     def _create_context(
         self,
         name: str,
-        queries: List[Query],
+        queries: List[Query] = [],  # noqa: B006
     ) -> Context:
-        if not queries:
-            queries = []
         context_node = self.add_node(NodeT(type=Context.CONTEXT_NODE_TYPE, name=name))
         query_answer = [self.query(query, {"no_iterator": True}) for query in queries]
         context = Context(context_node, query_answer)
@@ -407,7 +405,8 @@ class DistributedAtomSpace:
         """
         return self.query_engine.get_incoming_links(atom_handle, **kwargs)
 
-    def count_atoms(self, parameters: Dict[str, Any]) -> Dict[str, int]:
+    # FIXME: B006 Do not use mutable data structures for argumnet defaults
+    def count_atoms(self, parameters: Dict[str, Any] = {}) -> Dict[str, int]:  # noqa: B006
         """
         Count atoms, nodes and links in DAS.
 
@@ -428,14 +427,13 @@ class DistributedAtomSpace:
         Returns:
             Dict[str, int]: Dict containing the keys 'node_count', 'atom_count', 'link_count'.
         """
-        if not parameters:
-            parameters = {}
         return self.query_engine.count_atoms(parameters)
 
+    # FIXME: B006 Do not use mutable data structures for argumnet defaults
     def query(
         self,
         query: Query,
-        parameters: Dict[str, Any],
+        parameters: Dict[str, Any] = {},  # noqa: B006
     ) -> Union[Iterator[QueryAnswer], List[QueryAnswer]]:
         """
         Perform a query on the knowledge base using a dict as input and return an
@@ -530,8 +528,6 @@ class DistributedAtomSpace:
                 }
             ]
         """
-        if not parameters:
-            parameters = {}
         return self.query_engine.query(query, parameters)
 
     def custom_query(self, index_id: str, query: Query, **kwargs) -> Union[Iterator, List[AtomT]]:
@@ -956,13 +952,12 @@ class DistributedAtomSpace:
         self.backend.bulk_insert(documents)
         return documents
 
+    # FIXME: B006 Do not use mutable data structures for argumnet defaults
     def create_context(
         self,
         name: str,
-        queries: List[Query],
+        queries: List[Query] = [],  # noqa: B006
     ) -> Context:
-        if not queries:
-            queries = []
         if self.query_engine_type == "local":
             return self._create_context(name, queries)
         else:
