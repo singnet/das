@@ -26,15 +26,15 @@ class TestDASQueryAPI:
         _db_up()
         remote_up(build=False)
 
-        das_instance["local_ram"] = DistributedAtomSpace(query_engine='local', atomdb='ram')
+        das_instance["local_ram"] = DistributedAtomSpace(query_engine="local", atomdb="ram")
         load_metta_animals_base(das_instance["local_ram"])
 
         das_instance["local_redis_mongo"] = DistributedAtomSpace(
-            query_engine='local',
-            atomdb='redis_mongo',
+            query_engine="local",
+            atomdb="redis_mongo",
             mongo_port=mongo_port,
-            mongo_username='dbadmin',
-            mongo_password='dassecret',
+            mongo_username="dbadmin",
+            mongo_password="dassecret",
             redis_port=redis_port,
             redis_cluster=False,
             redis_ssl=False,
@@ -43,7 +43,7 @@ class TestDASQueryAPI:
         das_instance["local_redis_mongo"].commit_changes()
 
         das_instance["remote"] = DistributedAtomSpace(
-            query_engine='remote', host=remote_das_host, port=get_remote_das_port()
+            query_engine="remote", host=remote_das_host, port=get_remote_das_port()
         )
 
     @classmethod
@@ -56,7 +56,7 @@ class TestDASQueryAPI:
         return cleanup(request)
 
     def test_count_atoms(self):
-        for key, das in das_instance.items():
+        for _key, das in das_instance.items():
             count = das.count_atoms({})
             assert count["atom_count"] == 66
 

@@ -33,7 +33,7 @@ from hyperon_das.utils import QueryAnswer, get_package_version
 class DistributedAtomSpace:
     backend: AtomDB
 
-    def __init__(self, system_parameters: Dict[str, Any] = {}, **kwargs) -> None:
+    def __init__(self, system_parameters: Dict[str, Any], **kwargs) -> None:
         """
         Creates a new DAS object. A DAS client can run locally or locally and remote,
         connecting to remote DAS instances to query remote atoms. If there are different
@@ -82,9 +82,11 @@ class DistributedAtomSpace:
                 mode. Defaults to True.
             redis_ssl (bool, optional): Set Redis to encrypt the connection. Defaults to True.
         """
+        if not system_parameters:
+            system_parameters = {}
         self.system_parameters = system_parameters
-        self.atomdb = kwargs.get('atomdb', 'ram')
-        self.query_engine_type = kwargs.get('query_engine', 'local')
+        self.atomdb = kwargs.get("atomdb", "ram")
+        self.query_engine_type = kwargs.get("query_engine", "local")
         self._set_default_system_parameters()
         self._set_backend(**kwargs)
         self.cache_controller = CacheController(self.system_parameters)
@@ -92,15 +94,15 @@ class DistributedAtomSpace:
 
     def _set_default_system_parameters(self) -> None:
         # Internals
-        if not self.system_parameters.get('running_on_server'):
-            self.system_parameters['running_on_server'] = False
+        if not self.system_parameters.get("running_on_server"):
+            self.system_parameters["running_on_server"] = False
         # Attention Broker
-        if not self.system_parameters.get('cache_enabled'):
-            self.system_parameters['cache_enabled'] = False
-        if not self.system_parameters.get('attention_broker_hostname'):
-            self.system_parameters['attention_broker_hostname'] = 'localhost'
-        if not self.system_parameters.get('attention_broker_port'):
-            self.system_parameters['attention_broker_port'] = 27000
+        if not self.system_parameters.get("cache_enabled"):
+            self.system_parameters["cache_enabled"] = False
+        if not self.system_parameters.get("attention_broker_hostname"):
+            self.system_parameters["attention_broker_hostname"] = "localhost"
+        if not self.system_parameters.get("attention_broker_port"):
+            self.system_parameters["attention_broker_port"] = 27000
 
     def _set_backend(self, **kwargs) -> None:
         if self.atomdb == "ram":
@@ -115,7 +117,7 @@ class DistributedAtomSpace:
             raise InvalidAtomDB("Invalid AtomDB type. Choose either 'ram' or 'redis_mongo'")
 
     def _set_query_engine(self, **kwargs) -> None:
-        if self.query_engine_type == 'local':
+        if self.query_engine_type == "local":
             das_type = DasType.LOCAL_RAM_ONLY if self.atomdb == "ram" else DasType.LOCAL_REDIS_MONGO
             self._start_query_engine(LocalQueryEngine, das_type, **kwargs)
         elif self.query_engine_type == "remote":
@@ -141,10 +143,12 @@ class DistributedAtomSpace:
     def _create_context(
         self,
         name: str,
-        queries: List[Query] = [],
+        queries: List[Query],
     ) -> Context:
+        if not queries:
+            queries = []
         context_node = self.add_node(NodeT(type=Context.CONTEXT_NODE_TYPE, name=name))
-        query_answer = [self.query(query, {'no_iterator': True}) for query in queries]
+        query_answer = [self.query(query, {"no_iterator": True}) for query in queries]
         context = Context(context_node, query_answer)
         self.cache_controller.add_context(context)
         return context
@@ -152,15 +156,15 @@ class DistributedAtomSpace:
     @staticmethod
     def about() -> dict:
         return {
-            'das': {
-                'name': 'hyperon-das',
-                'version': get_package_version('hyperon_das'),
-                'summary': 'Query Engine API for Distributed AtomSpace',
+            "das": {
+                "name": "hyperon-das",
+                "version": get_package_version("hyperon_das"),
+                "summary": "Query Engine API for Distributed AtomSpace",
             },
-            'atom_db': {
-                'name': 'hyperon-das-atomdb',
-                'version': get_package_version('hyperon_das_atomdb'),
-                'summary': 'Persistence layer for Distributed AtomSpace',
+            "atom_db": {
+                "name": "hyperon-das-atomdb",
+                "version": get_package_version("hyperon_das_atomdb"),
+                "summary": "Persistence layer for Distributed AtomSpace",
             },
         }
 
@@ -184,7 +188,7 @@ class DistributedAtomSpace:
 
         Examples:
             >>> das = DistributedAtomSpace()
-            >>> result = das.compute_node_handle(node_type='Concept', node_name='human')
+            >>> result = das.compute_node_handle(node_type="Concept", node_name="human")
             >>> print(result)
             "af12f10f9ae2002a1607ba0b47ba8407"
         """
@@ -210,9 +214,11 @@ class DistributedAtomSpace:
 
         Examples:
             >>> das = DistributedAtomSpace()
-            >>> human_handle = das.compute_node_handle(node_type='Concept', node_name='human')
-            >>> monkey_handle = das.compute_node_handle(node_type='Concept', node_name='monkey')
-            >>> result = das.compute_link_handle(link_type='Similarity', targets=[human_handle, monkey_handle])
+            >>> human_handle = das.compute_node_handle(node_type="Concept", node_name="human")
+            >>> monkey_handle = das.compute_node_handle(node_type="Concept", node_name="monkey")
+            >>> result = das.compute_link_handle(
+            ...     link_type="Similarity", targets=[human_handle, monkey_handle]
+            ... )
             >>> print(result)
             "bad7472f41a0e7d601ca294eb4607c3a"
 
@@ -237,7 +243,7 @@ class DistributedAtomSpace:
 
         Examples:
             >>> das = DistributedAtomSpace()
-            >>> human_handle = das.compute_node_handle(node_type='Concept', node_name='human')
+            >>> human_handle = das.compute_node_handle(node_type="Concept", node_name="human")
             >>> node = das.get_atom(human_handle)
             >>> print(node)
             Node(_id: 'af12f10f9ae2002a1607ba0b47ba8407', handle: 'af12f10f9ae2002a1607ba0b47ba8407',
@@ -272,8 +278,8 @@ class DistributedAtomSpace:
 
         Examples:
             >>> das = DistributedAtomSpace()
-            >>> human_handle = das.compute_node_handle(node_type='Concept', node_name='human')
-            >>> animal_handle = das.compute_node_handle(node_type='Concept', node_name='monkey')
+            >>> human_handle = das.compute_node_handle(node_type="Concept", node_name="human")
+            >>> animal_handle = das.compute_node_handle(node_type="Concept", node_name="monkey")
             >>> result = das.get_atoms([human_handle, animal_handle])
             >>> print(result[0])
             Node(_id: 'af12f10f9ae2002a1607ba0b47ba8407', handle: 'af12f10f9ae2002a1607ba0b47ba8407',
@@ -302,7 +308,7 @@ class DistributedAtomSpace:
 
         Examples:
             >>> das = DistributedAtomSpace()
-            >>> node = das.get_node(node_type='Concept', node_name='human')
+            >>> node = das.get_node(node_type="Concept", node_name="human")
             >>> print(node)
             Node(_id: 'af12f10f9ae2002a1607ba0b47ba8407', handle: 'af12f10f9ae2002a1607ba0b47ba8407',
             composite_type_hash: 'd99a604c79ce3c2e76a2f43488d5d4c3', named_type: 'Concept',
@@ -332,8 +338,8 @@ class DistributedAtomSpace:
 
         Examples:
             >>> das = DistributedAtomSpace()
-            >>> human_handle = das.compute_node_handle('Concept', 'human')
-            >>> monkey_handle = das.compute_node_handle('Concept', 'monkey')
+            >>> human_handle = das.compute_node_handle("Concept", "human")
+            >>> monkey_handle = das.compute_node_handle("Concept", "monkey")
             >>> result = das.get_link(
                     link_type='Similarity',
                     link_targets=[human_handle, monkey_handle],
@@ -391,7 +397,7 @@ class DistributedAtomSpace:
 
         Examples:
             >>> das = DistributedAtomSpace()
-            >>> rhino = das.compute_node_handle('Concept', 'rhino')
+            >>> rhino = das.compute_node_handle("Concept", "rhino")
             >>> links = das.get_incoming_links(rhino)
             >>> for link in links:
             >>>     print(link.type, link.targets)
@@ -401,7 +407,7 @@ class DistributedAtomSpace:
         """
         return self.query_engine.get_incoming_links(atom_handle, **kwargs)
 
-    def count_atoms(self, parameters: Dict[str, Any] = {}) -> Dict[str, int]:
+    def count_atoms(self, parameters: Dict[str, Any]) -> Dict[str, int]:
         """
         Count atoms, nodes and links in DAS.
 
@@ -422,12 +428,14 @@ class DistributedAtomSpace:
         Returns:
             Dict[str, int]: Dict containing the keys 'node_count', 'atom_count', 'link_count'.
         """
+        if not parameters:
+            parameters = {}
         return self.query_engine.count_atoms(parameters)
 
     def query(
         self,
         query: Query,
-        parameters: Dict[str, Any] = {},
+        parameters: Dict[str, Any],
     ) -> Union[Iterator[QueryAnswer], List[QueryAnswer]]:
         """
         Perform a query on the knowledge base using a dict as input and return an
@@ -522,6 +530,8 @@ class DistributedAtomSpace:
                 }
             ]
         """
+        if not parameters:
+            parameters = {}
         return self.query_engine.query(query, parameters)
 
     def custom_query(self, index_id: str, query: Query, **kwargs) -> Union[Iterator, List[AtomT]]:
@@ -553,14 +563,14 @@ class DistributedAtomSpace:
             Iterator | List[AtomT]: An iterator or a list of Atom instances (Nodes or Links).
 
         Examples:
-            >>> das.custom_query(index_id='index_123', query={'tag': 'DAS'})
-            >>> das.custom_query(index_id='index_123', query={'tag': 'DAS'}, no_iterator=True)
+            >>> das.custom_query(index_id="index_123", query={"tag": "DAS"})
+            >>> das.custom_query(index_id="index_123", query={"tag": "DAS"}, no_iterator=True)
         """
         if isinstance(self.query_engine, LocalQueryEngine) and isinstance(self.backend, InMemoryDB):
             raise NotImplementedError("custom_query() is not implemented for Local DAS in RAM only")
 
         return self.query_engine.custom_query(
-            index_id, [{'field': k, 'value': v} for k, v in query.items()], **kwargs
+            index_id, [{"field": k, "value": v} for k, v in query.items()], **kwargs
         )
 
     def get_atoms_by_field(self, query: Query) -> HandleListT:
@@ -578,11 +588,14 @@ class DistributedAtomSpace:
         """
 
         return self.query_engine.get_atoms_by_field(
-            [{'field': k, 'value': v} for k, v in query.items()]
+            [{"field": k, "value": v} for k, v in query.items()]
         )
 
     def get_atoms_by_text_field(
-        self, text_value: str, field: Optional[str] = None, text_index_id: Optional[str] = None
+        self,
+        text_value: str,
+        field: Optional[str] = None,
+        text_index_id: Optional[str] = None,
     ) -> HandleListT:
         """
         Performs a text search, if a text index is previously created performance a token index search,
@@ -788,7 +801,7 @@ class DistributedAtomSpace:
         Delete all atoms and custom indexes.
         """
         self.backend.clear_database()
-        logger().debug('The database has been cleaned.')
+        logger().debug("The database has been cleaned.")
 
     def get_traversal_cursor(self, handle: str, **kwargs) -> TraverseEngine:
         """
@@ -814,8 +827,10 @@ class DistributedAtomSpace:
         """
         try:
             return TraverseEngine(handle, das=self, **kwargs)
-        except AtomDoesNotExist:
-            raise GetTraversalCursorException(message="Cannot start Traversal. Atom does not exist")
+        except AtomDoesNotExist as e:
+            raise GetTraversalCursorException(
+                message="Cannot start Traversal. Atom does not exist"
+            ) from e
 
     def create_field_index(
         self,
@@ -853,8 +868,17 @@ class DistributedAtomSpace:
                 newly created index.
 
         Examples:
-            >>> index_id = das.create_field_index('link', ['tag'], type='Expression')
-            >>> index_id = das.create_field_index('link', ['tag'], composite_type=['Expression', 'Symbol', 'Symbol', ['Expression', 'Symbol', 'Symbol', 'Symbol']])
+            >>> index_id = das.create_field_index("link", ["tag"], type="Expression")
+            >>> index_id = das.create_field_index(
+            ...     "link",
+            ...     ["tag"],
+            ...     composite_type=[
+            ...         "Expression",
+            ...         "Symbol",
+            ...         "Symbol",
+            ...         ["Expression", "Symbol", "Symbol", "Symbol"],
+            ...     ],
+            ... )
         """
         if named_type and composite_type:
             raise ValueError("'type' and 'composite_type' can't be specified simultaneously")
@@ -924,7 +948,7 @@ class DistributedAtomSpace:
                 das.fetch(query, host='123.4.5.6', port=8080)
         """
 
-        if not self.system_parameters.get('running_on_server'):
+        if not self.system_parameters.get("running_on_server"):
             if self._das_type != DasType.REMOTE and (not host or not port):
                 raise ValueError("'host' and 'port' are mandatory parameters to local DAS")
 
@@ -935,9 +959,11 @@ class DistributedAtomSpace:
     def create_context(
         self,
         name: str,
-        queries: List[Query] = [],
+        queries: List[Query],
     ) -> Context:
-        if self.query_engine_type == 'local':
+        if not queries:
+            queries = []
+        if self.query_engine_type == "local":
             return self._create_context(name, queries)
         else:
             return self.query_engine.create_context(name, queries)

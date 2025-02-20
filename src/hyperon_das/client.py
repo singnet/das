@@ -22,23 +22,23 @@ class FunctionsClient:
     def __init__(self, host: str, port: int, name: Optional[str] = None) -> None:
         if not host and not port:
             das_error(ValueError("'host' and 'port' are mandatory parameters"))
-        self.name = name if name else f'client_{host}:{port}'
+        self.name = name if name else f"client_{host}:{port}"
         self.status_code, self.url = connect_to_server(host, port)
 
     def _send_request(self, payload) -> Any:
         try:
-            if payload.get('input'):
-                normalized_input = {k: v for k, v in payload['input'].items() if v is not None}
-                payload['input'] = normalized_input
+            if payload.get("input"):
+                normalized_input = {k: v for k, v in payload["input"].items() if v is not None}
+                payload["input"] = normalized_input
 
             payload_serialized = serialize(payload)
 
             with sessions.Session() as session:
                 response = session.request(
-                    method='POST',
+                    method="POST",
                     url=self.url,
                     data=payload_serialized,
-                    headers={'Content-Type': 'application/octet-stream'},
+                    headers={"Content-Type": "application/octet-stream"},
                 )
 
             response.raise_for_status()
@@ -52,7 +52,7 @@ class FunctionsClient:
                 return response_data
             else:
                 return response_data.get(
-                    'error', f'Unknown error with status code {response.status_code}'
+                    "error", f"Unknown error with status code {response.status_code}"
                 )
         except exceptions.ConnectionError as e:
             das_error(
@@ -88,20 +88,20 @@ class FunctionsClient:
 
     def get_atom(self, handle: str, **kwargs) -> Union[str, Dict]:
         payload = {
-            'action': 'get_atom',
-            'input': {'handle': handle},
+            "action": "get_atom",
+            "input": {"handle": handle},
         }
         try:
             return self._send_request(payload)
         except HTTPError as e:
             if e.status_code == 404:
-                raise AtomDoesNotExist('Nonexistent atom')
+                raise AtomDoesNotExist("Nonexistent atom") from e
             else:
                 raise e
 
     def get_links(self, link_filter: LinkFilter) -> Union[List[str], List[Dict]]:
         payload = {
-            'action': 'get_links',
+            "action": "get_links",
             "input": {
                 "link_filter": {
                     "filter_type": link_filter.filter_type,
@@ -116,9 +116,9 @@ class FunctionsClient:
             return self._send_request(payload)
         except HTTPError as e:
             if e.status_code == 404:
-                raise AtomDoesNotExist('Nonexistent atom')
+                raise AtomDoesNotExist("Nonexistent atom") from e
             elif e.status_code == 400:
-                raise ValueError(str(e))
+                raise ValueError(str(e)) from e
             else:
                 raise e
 
@@ -129,8 +129,8 @@ class FunctionsClient:
     ) -> List[AtomT]:
         try:
             payload = {
-                'action': 'query',
-                'input': {'query': query, 'parameters': parameters},
+                "action": "query",
+                "input": {"query": query, "parameters": parameters},
             }
             return self._send_request(payload)
         except HTTPError as e:
@@ -139,40 +139,42 @@ class FunctionsClient:
                     "Your query couldn't be processed due to an invalid format. Review the way the query "
                     "is written and try again.",
                     str(e),
-                )
+                ) from e
             elif e.status_code == 404:
-                raise Exception("Your query couldn't be processed because Atom nonexistent", str(e))
+                raise Exception(
+                    "Your query couldn't be processed because Atom nonexistent", str(e)
+                ) from e
             raise e
 
     def count_atoms(self, parameters: Optional[Dict[str, Any]] = None) -> Dict[str, int]:
         payload = {
-            'action': 'count_atoms',
-            'input': {'parameters': parameters},
+            "action": "count_atoms",
+            "input": {"parameters": parameters},
         }
         return self._send_request(payload)
 
     def commit_changes(self, **kwargs) -> Tuple[int, int]:
         payload = {
-            'action': 'commit_changes',
-            'input': {'kwargs': kwargs},
+            "action": "commit_changes",
+            "input": {"kwargs": kwargs},
         }
         try:
             return self._send_request(payload)
         except HTTPError as e:
             if e.status_code == 403:
-                raise ValueError(str(e))
+                raise ValueError(str(e)) from e
             else:
                 raise e
 
     def get_incoming_links(self, atom_handle: str, **kwargs) -> IncomingLinksT | Iterator:
         payload = {
-            'action': 'get_incoming_links',
-            'input': {'atom_handle': atom_handle, 'kwargs': kwargs},
+            "action": "get_incoming_links",
+            "input": {"atom_handle": atom_handle, "kwargs": kwargs},
         }
         try:
             return self._send_request(payload)
         except HTTPError as e:
-            logger().debug(f'Error during `get_incoming_links` request on remote Das: {str(e)}')
+            logger().debug(f"Error during `get_incoming_links` request on remote Das: {str(e)}")
             return []
 
     def create_field_index(
@@ -184,30 +186,30 @@ class FunctionsClient:
         index_type: Optional[str] = None,
     ) -> str:
         payload = {
-            'action': 'create_field_index',
-            'input': {
-                'atom_type': atom_type,
-                'fields': fields,
-                'named_type': named_type,
-                'composite_type': composite_type,
-                'index_type': index_type,
+            "action": "create_field_index",
+            "input": {
+                "atom_type": atom_type,
+                "fields": fields,
+                "named_type": named_type,
+                "composite_type": composite_type,
+                "index_type": index_type,
             },
         }
         try:
             return self._send_request(payload)
         except HTTPError as e:
             if e.status_code == 400:
-                raise ValueError(str(e))
+                raise ValueError(str(e)) from e
             else:
                 raise e
 
     def custom_query(self, index_id: str, query: Query, **kwargs) -> List[AtomT]:
         payload = {
-            'action': 'custom_query',
-            'input': {
-                'index_id': index_id,
-                'query': {v['field']: v['value'] for v in query},
-                'kwargs': kwargs,
+            "action": "custom_query",
+            "input": {
+                "index_id": index_id,
+                "query": {v["field"]: v["value"] for v in query},
+                "kwargs": kwargs,
             },
         }
         try:
@@ -223,8 +225,8 @@ class FunctionsClient:
         **kwargs,
     ) -> Any:
         payload = {
-            'action': 'fetch',
-            'input': {'query': query, 'host': host, 'port': port, 'kwargs': kwargs},
+            "action": "fetch",
+            "input": {"query": query, "host": host, "port": port, "kwargs": kwargs},
         }
         try:
             return self._send_request(payload)
@@ -233,59 +235,66 @@ class FunctionsClient:
 
     def create_context(self, name: str, queries: Optional[List[Query]]) -> Any:
         payload = {
-            'action': 'create_context',
-            'input': {'name': name, 'queries': queries},
+            "action": "create_context",
+            "input": {"name": name, "queries": queries},
         }
         try:
             return self._send_request(payload)
         except HTTPError as e:
             if e.status_code == 404:
-                raise AtomDoesNotExist('nonexistent atom')
+                raise AtomDoesNotExist("nonexistent atom") from e
             elif e.status_code == 400:
-                raise ValueError(str(e))
+                raise ValueError(str(e)) from e
             else:
                 raise e
 
     def get_atoms_by_field(self, query: Query) -> List[str]:
         payload = {
-            'action': 'get_atoms_by_field',
-            'input': {'query': {v['field']: v['value'] for v in query}},
+            "action": "get_atoms_by_field",
+            "input": {"query": {v["field"]: v["value"] for v in query}},
         }
         try:
             return self._send_request(payload)
         except HTTPError as e:
             if e.status_code == 400:
-                raise ValueError(str(e))
+                raise ValueError(str(e)) from e
             else:
                 raise e
 
     def get_atoms_by_text_field(
-        self, text_value: str, field: Optional[str] = None, text_index_id: Optional[str] = None
+        self,
+        text_value: str,
+        field: Optional[str] = None,
+        text_index_id: Optional[str] = None,
     ) -> List[str]:
         payload = {
-            'action': 'get_atoms_by_text_field',
-            'input': {'text_value': text_value, 'field': field, 'text_index_id': text_index_id},
-        }
-        try:
-            return self._send_request(payload)
-        except HTTPError as e:
-            if e.status_code == 400:
-                raise ValueError(str(e))
-            else:
-                raise e
-
-    def get_node_by_name_starting_with(self, node_type: str, startswith: str) -> List[str]:
-        payload = {
-            'action': 'get_node_by_name_starting_with',
-            'input': {
-                'node_type': node_type,
-                'startswith': startswith,
+            "action": "get_atoms_by_text_field",
+            "input": {
+                "text_value": text_value,
+                "field": field,
+                "text_index_id": text_index_id,
             },
         }
         try:
             return self._send_request(payload)
         except HTTPError as e:
             if e.status_code == 400:
-                raise ValueError(str(e))
+                raise ValueError(str(e)) from e
+            else:
+                raise e
+
+    def get_node_by_name_starting_with(self, node_type: str, startswith: str) -> List[str]:
+        payload = {
+            "action": "get_node_by_name_starting_with",
+            "input": {
+                "node_type": node_type,
+                "startswith": startswith,
+            },
+        }
+        try:
+            return self._send_request(payload)
+        except HTTPError as e:
+            if e.status_code == 400:
+                raise ValueError(str(e)) from e
             else:
                 raise e

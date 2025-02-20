@@ -11,7 +11,7 @@ if TYPE_CHECKING:  # pragma no cover
 
 class TraverseEngine:
     def __init__(self, handle: str, **kwargs) -> None:
-        self.das: DistributedAtomSpace = kwargs['das']
+        self.das: DistributedAtomSpace = kwargs["das"]
 
         try:
             atom = self.das.get_atom(handle)
@@ -55,15 +55,15 @@ class TraverseEngine:
             >>> next(links)
         """
         cursor, incoming_links = self.das.get_incoming_links(
-            atom_handle=self._cursor['handle'],
+            atom_handle=self._cursor["handle"],
             no_iterator=False,
             targets_document=True,
             cursor=0,
-            chunk_size=kwargs.get('chunk_size', 500),
+            chunk_size=kwargs.get("chunk_size", 500),
         )
         assert cursor == 0
         assert isinstance(incoming_links, (LocalIncomingLinks, RemoteIncomingLinks))
-        return TraverseLinksIterator(source=incoming_links, cursor=self._cursor['handle'], **kwargs)
+        return TraverseLinksIterator(source=incoming_links, cursor=self._cursor["handle"], **kwargs)
 
     def get_neighbors(self, **kwargs) -> TraverseNeighborsIterator:
         """Get all of "neighbors" that pointing to current cursor.
@@ -97,7 +97,7 @@ class TraverseEngine:
                 )
             >>> next(neighbors)
         """
-        custom_filter = kwargs.pop('filters', None)
+        custom_filter = kwargs.pop("filters", None)
         filter_link = filter_target = None
 
         if custom_filter is not None and not isinstance(custom_filter, tuple):
@@ -107,7 +107,7 @@ class TraverseEngine:
             filter_link, filter_target = custom_filter
 
         if filter_link is not None:
-            kwargs['filter'] = filter_link
+            kwargs["filter"] = filter_link
 
         filtered_links = self.get_links(targets_only=True, **kwargs)
         return TraverseNeighborsIterator(source=filtered_links, filter=filter_target)
@@ -152,7 +152,7 @@ class TraverseEngine:
             Dict[str, Any]: The current cursor. A Python dict with all atom data.
 
         Examples:
-            >>> traverse_engine.goto('asd1234567890')
+            >>> traverse_engine.goto("asd1234567890")
             >>> {
                     'handle': 'asd1234567890',
                     'type': 'AI,

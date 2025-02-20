@@ -5,16 +5,16 @@ from hyperon_das.das import DistributedAtomSpace
 
 
 def _name(link, index, typed=False):
-    named_type = f"{link['targets'][index]['type']}:" if typed else ''
+    named_type = f"{link['targets'][index]['type']}:" if typed else ""
     return f"{named_type}{link['targets'][index]['name']}"
 
 
 def _print_query_answer(query_answer, typed=False):
     if query_answer:
         for link in query_answer:
-            if len(link['targets']) == 2:
+            if len(link["targets"]) == 2:
                 print(f"{link['type']}: {_name(link, 0)} -> {_name(link, 1)}")
-            elif len(link['targets']) == 3:
+            elif len(link["targets"]) == 3:
                 print(
                     f"{link['type']}: {_name(link, 0)}({_name(link, 1, typed)}) -> {_name(link, 2, typed)}"
                 )
@@ -391,32 +391,32 @@ class TestQueries:
             answer,
             [
                 [
-                    'c93e1e758c53912638438e2a7d7f7b7f',
-                    '1c3bf151ea200b2d9e088a1178d060cb',
+                    "c93e1e758c53912638438e2a7d7f7b7f",
+                    "1c3bf151ea200b2d9e088a1178d060cb",
                 ],
                 [
-                    'f31dfe97db782e8cec26de18dddf8965',
-                    '1c3bf151ea200b2d9e088a1178d060cb',
+                    "f31dfe97db782e8cec26de18dddf8965",
+                    "1c3bf151ea200b2d9e088a1178d060cb",
                 ],
                 [
-                    '75756335011dcedb71a0d9a7bd2da9e8',
-                    '1c3bf151ea200b2d9e088a1178d060cb',
+                    "75756335011dcedb71a0d9a7bd2da9e8",
+                    "1c3bf151ea200b2d9e088a1178d060cb",
                 ],
                 [
-                    '116df61c01859c710d178ba14a483509',
-                    'b0f428929706d1d991e4d712ad08f9ab',
+                    "116df61c01859c710d178ba14a483509",
+                    "b0f428929706d1d991e4d712ad08f9ab",
                 ],
                 [
-                    '959924e3aab197af80a84c1ab261fd65',
-                    'b0f428929706d1d991e4d712ad08f9ab',
+                    "959924e3aab197af80a84c1ab261fd65",
+                    "b0f428929706d1d991e4d712ad08f9ab",
                 ],
                 [
-                    '906fa505ae3bc6336d80a5f9aaa47b3b',
-                    '959924e3aab197af80a84c1ab261fd65',
+                    "906fa505ae3bc6336d80a5f9aaa47b3b",
+                    "959924e3aab197af80a84c1ab261fd65",
                 ],
                 [
-                    'fbf03d17d6a40feff828a3f2c6e86f05',
-                    '1c3bf151ea200b2d9e088a1178d060cb',
+                    "fbf03d17d6a40feff828a3f2c6e86f05",
+                    "1c3bf151ea200b2d9e088a1178d060cb",
                 ],
             ],
         )
