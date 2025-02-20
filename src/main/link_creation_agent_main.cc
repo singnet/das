@@ -3,7 +3,7 @@
 #include <signal.h>
 #include <cstring>
 
-#include "agent.h"
+#include "link_creation_agent.h"
 using namespace link_creation_agent;
 using namespace std;
 

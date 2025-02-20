@@ -82,6 +82,11 @@ class CustomField {
      * @return A string representation of the custom field.
      */
     std::string to_string();
+    /**
+     * @brief Tokenizes the custom field.
+     * @return A vector of strings representing the tokenized custom field.
+     */
+    std::vector<std::string> tokenize();
 
    private:
     std::string name;
@@ -122,6 +127,12 @@ class LinkCreateTemplate {
      * @return A string representation of the link creation template.
      */
     std::string to_string();
+
+    /**
+     * @brief Tokenizes the link creation template.
+     * @return A vector of strings representing the tokenized link creation template.
+     */
+    std::vector<std::string> tokenize();
 
    private:
     std::string link_type;

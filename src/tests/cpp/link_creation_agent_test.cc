@@ -4,7 +4,7 @@
 #include <fstream>
 #include <thread>
 
-#include "agent.h"
+#include "link_creation_agent.h"
 #include "link_create_template.h"
 
 using namespace std;
@@ -265,4 +265,18 @@ TEST(LinkCreateTemplate, TestInvalidNode) {
     string link_template_str = "LINK_CREATE Similarity 2 1 VARIABLE V1 NODE Symbol";
     auto link_template = split(link_template_str, ' ');
     EXPECT_THROW(LinkCreateTemplate lct(link_template), invalid_argument);
+}
+
+
+TEST(Link, TestLink) {
+    vector<string> link_template = split("LINK_CREATE Similarity 2 0 VARIABLE V1 VARIABLE V2", ' ');
+    HandlesAnswer* query_answer = new HandlesAnswer();
+    query_answer->assignment.assign("V1", "Value1");
+    query_answer->assignment.assign("V2", "Value2");
+
+    Link link(query_answer, link_template);
+    EXPECT_EQ(link.get_type(), "Similarity");
+    EXPECT_EQ(link.get_targets().size(), 2);
+    EXPECT_EQ(get<string>(link.get_targets()[0]), "Value1");
+    EXPECT_EQ(get<string>(link.get_targets()[1]), "Value2");
 }
