@@ -75,7 +75,7 @@ class LocalQueryEngine(QueryEngine):
                     das_error(
                         UnexpectedQueryFormat(
                             message="Query processing reached an unexpected state",
-                            details=f'link: {str(query)} link target: {str(query)}',
+                            details=f"link: {str(query)} link target: {str(query)}",
                         )
                     )
             return LazyQueryEvaluator(
@@ -85,7 +85,7 @@ class LocalQueryEngine(QueryEngine):
             das_error(
                 UnexpectedQueryFormat(
                     message="Query processing reached an unexpected state",
-                    details=f'query: {str(query)}',
+                    details=f"query: {str(query)}",
                 )
             )
 
@@ -122,7 +122,7 @@ class LocalQueryEngine(QueryEngine):
             return []
 
     def _process_link(self, query: dict) -> List[LinkT]:
-        target_handles = self._generate_target_handles(query['targets'])
+        target_handles = self._generate_target_handles(query["targets"])
         matched_links = self.local_backend.get_matched_links(
             link_type=query["type"], target_handles=target_handles
         )
@@ -205,7 +205,9 @@ class LocalQueryEngine(QueryEngine):
             )
         elif link_filter.filter_type == LinkFilterType.TARGETS:
             return self.local_backend.get_matched_links(
-                link_filter.link_type, link_filter.targets, toplevel_only=link_filter.toplevel_only
+                link_filter.link_type,
+                link_filter.targets,
+                toplevel_only=link_filter.toplevel_only,
             )
         elif link_filter.filter_type == LinkFilterType.NAMED_TYPE:
             return self.local_backend.get_all_links(
@@ -235,8 +237,8 @@ class LocalQueryEngine(QueryEngine):
         if no_iterator:
             logger().debug(
                 {
-                    'message': '[DistributedAtomSpace][query] - Start',
-                    'data': {'query': query, 'parameters': parameters},
+                    "message": "[DistributedAtomSpace][query] - Start",
+                    "data": {"query": query, "parameters": parameters},
                 }
             )
         query_results = self._recursive_query(query, parameters)
@@ -249,25 +251,25 @@ class LocalQueryEngine(QueryEngine):
     def custom_query(
         self, index_id: str, query: list[OrderedDict[str, str]], **kwargs
     ) -> Iterator | tuple[int, list[AtomT]]:
-        if kwargs.pop('no_iterator', True):
+        if kwargs.pop("no_iterator", True):
             return self.local_backend.get_atoms_by_index(index_id, query=query, **kwargs)
         else:
-            if kwargs.get('cursor') is None:
-                kwargs['cursor'] = 0
+            if kwargs.get("cursor") is None:
+                kwargs["cursor"] = 0
             cursor, answer = self.local_backend.get_atoms_by_index(index_id, query=query, **kwargs)
-            kwargs['backend'] = self.local_backend
-            kwargs['index_id'] = index_id
-            kwargs['cursor'] = cursor
+            kwargs["backend"] = self.local_backend
+            kwargs["index_id"] = index_id
+            kwargs["cursor"] = cursor
             return CustomQuery(ListIterator(answer), **kwargs)
 
     def count_atoms(self, parameters: Optional[Dict[str, Any]] = None) -> Dict[str, int]:
-        if parameters and parameters.get('context') == 'remote':
+        if parameters and parameters.get("context") == "remote":
             return {}
         return self.local_backend.count_atoms(parameters)
 
     def commit(self, **kwargs) -> None:
-        if kwargs.get('buffer'):
-            self.local_backend.commit(buffer=kwargs['buffer'])
+        if kwargs.get("buffer"):
+            self.local_backend.commit(buffer=kwargs["buffer"])
         self.local_backend.commit()
 
     def reindex(self, pattern_index_templates: Optional[Dict[str, Dict[str, Any]]] = None):
@@ -292,7 +294,7 @@ class LocalQueryEngine(QueryEngine):
         port: Optional[int] = None,
         **kwargs,
     ) -> Any:
-        if not self.system_parameters.get('running_on_server'):  # Local
+        if not self.system_parameters.get("running_on_server"):  # Local
             if host is not None and port is not None:
                 server = FunctionsClient(host, port)
             else:
@@ -305,14 +307,14 @@ class LocalQueryEngine(QueryEngine):
                 except Exception as e:
                     das_error(e)
             else:
-                if 'atom_type' not in query:
-                    das_error(ValueError('Invalid query: missing atom_type'))
+                if "atom_type" not in query:
+                    das_error(ValueError("Invalid query: missing atom_type"))
 
-                atom_type = query['atom_type']
+                atom_type = query["atom_type"]
 
-                if atom_type == 'node':
+                if atom_type == "node":
                     return self._process_node(query)
-                elif atom_type == 'link':
+                elif atom_type == "link":
                     return self._process_link(query)
                 else:
                     das_error(
@@ -330,7 +332,10 @@ class LocalQueryEngine(QueryEngine):
         return self.local_backend.get_atoms_by_field(query)
 
     def get_atoms_by_text_field(
-        self, text_value: str, field: Optional[str] = None, text_index_id: Optional[str] = None
+        self,
+        text_value: str,
+        field: Optional[str] = None,
+        text_index_id: Optional[str] = None,
     ) -> HandleListT:
         return self.local_backend.get_atoms_by_text_field(text_value, field, text_index_id)
 

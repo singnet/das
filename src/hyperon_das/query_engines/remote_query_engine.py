@@ -24,10 +24,10 @@ from hyperon_das.utils import QueryAnswer, das_error
 
 
 class QueryScopes(Enum):
-    REMOTE_ONLY = 'remote_only'
-    SYNCHRONOUS_UPDATE = 'synchronous_update'
-    LOCAL_ONLY = 'local_only'
-    LOCAL_AND_REMOTE = 'local_and_remote'
+    REMOTE_ONLY = "remote_only"
+    SYNCHRONOUS_UPDATE = "synchronous_update"
+    LOCAL_ONLY = "local_only"
+    LOCAL_AND_REMOTE = "local_and_remote"
 
 
 class RemoteQueryEngine(QueryEngine):
@@ -41,9 +41,9 @@ class RemoteQueryEngine(QueryEngine):
         self.system_parameters = system_parameters
         self.local_query_engine = LocalQueryEngine(backend, cache_controller, kwargs)
         self.cache_controller = cache_controller
-        self.__mode = kwargs.get('mode', 'read-only')
-        self.host = kwargs.get('host')
-        self.port = kwargs.get('port')
+        self.__mode = kwargs.get("mode", "read-only")
+        self.host = kwargs.get("host")
+        self.port = kwargs.get("port")
         if not self.host or not self.port:
             das_error(InvalidDASParameters(message="'host' and 'port' are mandatory parameters"))
         self.remote_das = FunctionsClient(self.host, self.port)
@@ -76,7 +76,7 @@ class RemoteQueryEngine(QueryEngine):
 
     def get_link_handles(self, link_filter: LinkFilter) -> HandleSetT:
         # TODO Implement get_link_handles() in faas client
-        return {link['handle'] for link in self.get_links(link_filter)}
+        return {link["handle"] for link in self.get_links(link_filter)}
 
     def get_incoming_links(self, atom_handle: HandleT, **kwargs) -> IncomingLinksT:
         links = self.local_query_engine.get_incoming_links(atom_handle, **kwargs)
@@ -85,13 +85,13 @@ class RemoteQueryEngine(QueryEngine):
         return links
 
     def custom_query(self, index_id: str, query: Query, **kwargs) -> Iterator:
-        kwargs.pop('no_iterator', None)
-        if kwargs.get('cursor') is None:
-            kwargs['cursor'] = 0
+        kwargs.pop("no_iterator", None)
+        if kwargs.get("cursor") is None:
+            kwargs["cursor"] = 0
         answer = self.remote_das.custom_query(index_id, query=query, **kwargs)
-        kwargs['backend'] = self.remote_das
-        kwargs['index_id'] = index_id
-        kwargs['is_remote'] = True
+        kwargs["backend"] = self.remote_das
+        kwargs["index_id"] = index_id
+        kwargs["is_remote"] = True
         return CustomQuery(ListIterator(answer), **kwargs)
 
     def query(
@@ -100,7 +100,7 @@ class RemoteQueryEngine(QueryEngine):
         parameters: Dict[str, Any] | None = None,
     ) -> Iterator[QueryAnswer] | list[dict[str, Any]]:
         parameters = parameters or {}
-        query_scope = parameters.get('query_scope', 'remote_only')
+        query_scope = parameters.get("query_scope", "remote_only")
         try:
             query_scope = QueryScopes(query_scope)
         except ValueError:
@@ -123,31 +123,31 @@ class RemoteQueryEngine(QueryEngine):
         if query_scope in {QueryScopes.REMOTE_ONLY, QueryScopes.SYNCHRONOUS_UPDATE}:
             if query_scope == QueryScopes.SYNCHRONOUS_UPDATE:
                 self.commit()
-            parameters['no_iterator'] = True
+            parameters["no_iterator"] = True
             return self.remote_das.query(query, parameters)
 
         return self.local_query_engine.query(query, parameters)
 
     def count_atoms(self, parameters: Optional[Dict[str, Any]] = None) -> Dict[str, int]:
-        if (context := parameters.get('context') if parameters else None) == 'local':
+        if (context := parameters.get("context") if parameters else None) == "local":
             return self.local_query_engine.count_atoms(parameters)
-        if context == 'remote':
+        if context == "remote":
             return self.remote_das.count_atoms(parameters)
 
         local_answer = self.local_query_engine.count_atoms(parameters)
         remote_answer = self.remote_das.count_atoms(parameters)
         return {
             k: (local_answer.get(k, 0) + remote_answer.get(k, 0))
-            for k in ['node_count', 'link_count', 'atom_count']
+            for k in ["node_count", "link_count", "atom_count"]
         }
 
     #
     def commit(self, **kwargs) -> None:
-        if self.__mode == 'read-write':
+        if self.__mode == "read-write":
             if self.local_query_engine.has_buffer():
                 self.remote_das.commit_changes(buffer=self.local_query_engine.buffer)
             self.remote_das.commit_changes()
-        elif self.__mode == 'read-only':
+        elif self.__mode == "read-only":
             das_error(PermissionError("Commit can't be executed in read mode"))
         else:
             das_error(ValueError("Invalid mode: '{self.__mode}'. Use 'read-only' or 'read-write'"))
@@ -191,7 +191,10 @@ class RemoteQueryEngine(QueryEngine):
         return self.remote_das.get_atoms_by_field(query)
 
     def get_atoms_by_text_field(
-        self, text_value: str, field: Optional[str] = None, text_index_id: Optional[str] = None
+        self,
+        text_value: str,
+        field: Optional[str] = None,
+        text_index_id: Optional[str] = None,
     ) -> HandleListT:
         return self.remote_das.get_atoms_by_text_field(text_value, field, text_index_id)
 

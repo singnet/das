@@ -4,9 +4,6 @@ from hyperon_das_atomdb.database import LinkT, NodeT
 
 from hyperon_das import DistributedAtomSpace
 from tests.python.integration.helpers import (
-    das_local_custom_fixture,
-    das_local_fixture,
-    das_remote_fixture_module,
     get_remote_das_port,
     mongo_port,
     redis_port,
@@ -100,11 +97,11 @@ class TestLocalDASRedisMongo:
 
     def test_fetch_atoms(self, das_local_custom_fixture):
         das = das_local_custom_fixture(
-            query_engine='local',
-            atomdb='redis_mongo',
+            query_engine="local",
+            atomdb="redis_mongo",
             mongo_port=mongo_port,
-            mongo_username='dbadmin',
-            mongo_password='dassecret',
+            mongo_username="dbadmin",
+            mongo_password="dassecret",
             redis_port=redis_port,
             redis_cluster=False,
             redis_ssl=False,

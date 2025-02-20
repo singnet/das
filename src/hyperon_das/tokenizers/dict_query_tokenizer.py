@@ -156,11 +156,16 @@ class DictQueryTokenizer:
                     raise ValueError(f"Unsupported query: {_query}")
 
         match query:
-            case {"or": list()} | {"and": list()} | {"not": dict()} | {
-                "atom_type": "link",
-                "type": str(),
-                "targets": list(),
-            }:
+            case (
+                {"or": list()}
+                | {"and": list()}
+                | {"not": dict()}
+                | {
+                    "atom_type": "link",
+                    "type": str(),
+                    "targets": list(),
+                }
+            ):
                 return TOKENS_DELIMITER.join(_tokenize(query).to_tokens())
             case _:
                 raise ValueError(
