@@ -53,7 +53,14 @@ bazel:
 	@bash ./src/scripts/bazel.sh $(filter-out $@, $(MAKECMDGOALS))
 
 test-all: build-image
-	$(MAKE) bazel test //...
+	@$(MAKE) bazel test //...
+
+lint-all:
+	@$(MAKE) bazel lint \
+		"//... --define=ATOMDB_VERSION=0.8.11 --define=DAS_VERSION=0.9.0 --define=DAS_NODE_VERSION=0.9.0 --fix"
+
+format-all:
+	@$(MAKE) bazel run format
 
 # Catch-all pattern to prevent make from complaining about unknown targets
 %:
