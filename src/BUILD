@@ -2,6 +2,7 @@ package(default_visibility = ["//visibility:public"])
 
 exports_files(
     [
+        ".clang-tidy",
         ".ruff.toml",
     ],
     visibility = ["//visibility:public"],
