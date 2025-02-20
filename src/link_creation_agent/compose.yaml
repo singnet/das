@@ -73,7 +73,7 @@ services:
     ports:
       - 37007:37007
     volumes:
-      - ../../../src:/opt
+      - ../../src:/opt
     depends_on:
       - mongodb
       - redis
@@ -97,7 +97,7 @@ services:
     ports:
       - 35700:35700
     volumes:
-      - ../../../src:/opt
+      - ../../src:/opt
     restart: on-failure
     depends_on:
       - mongodb
@@ -121,7 +121,7 @@ services:
     command: ./bin/link_creation_server --type server --config_file /tmp/config
     volumes:
       - ./data:/tmp
-      - ../../../src:/opt
+      - ../../src:/opt
     ports:
       - 9090:9090
     restart: on-failure
