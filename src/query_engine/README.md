@@ -7,7 +7,7 @@ C++ server that performs Pattern Matching queries.
 To build the Query Agent, run the following command from the project root:  
 
 ```bash
-make build
+make build-all
 ```  
 
 This will generate the binaries for all components in the `das/src/bin` directory.  

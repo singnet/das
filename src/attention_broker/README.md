@@ -9,7 +9,7 @@ DAS query engine can use those importance values to control caching policies and
 To build the Attention Broker Service, run the following command from the project root:
 
 ```bash
-make build
+make build-all
 ```
 
 This will generate the binaries for all components in the `das/src/bin` directory.
