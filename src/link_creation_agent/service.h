@@ -35,35 +35,34 @@ namespace link_creation_agent {
 class LinkCreationService
 
 {
-   public:
-    LinkCreationService(int thread_count);
-    /**
-     * @brief Add an iterator to process in thread pool
-     * @param iterator RemoteIterator object
-     * @param das_client DAS Node client
-     */
-    void process_request(shared_ptr<RemoteIterator<HandlesAnswer>> iterator,
-                         DasAgentNode* das_client,
-                         vector<string>& link_template,
-                         int max_query_answers);
-    /**
-     * @brief Destructor
-     */
-    ~LinkCreationService();
+public:
+  LinkCreationService(int thread_count);
+  /**
+   * @brief Add an iterator to process in thread pool
+   * @param iterator RemoteIterator object
+   * @param das_client DAS Node client
+   */
+  void process_request(shared_ptr<RemoteIterator<HandlesAnswer>> iterator,
+                       DasAgentNode *das_client, vector<string> &link_template,
+                       int max_query_answers);
+  /**
+   * @brief Destructor
+   */
+  ~LinkCreationService();
 
-   private:
-    ThreadPool thread_pool;
-    // this can be changed to a better data structure
-    set<string> processed_link_handles;
-    std::mutex m_mutex;
-    std::condition_variable m_cond;
+private:
+  ThreadPool thread_pool;
+  // this can be changed to a better data structure
+  set<string> processed_link_handles;
+  std::mutex m_mutex;
+  std::condition_variable m_cond;
 
-    /**
-     * @brief Create a link, blocking the client until the link is created
-     * @param link Link object
-     * @param das_client DAS Node client
-     */
-    void create_link(Link& link, DasAgentNode& das_client);
+  /**
+   * @brief Create a link, blocking the client until the link is created
+   * @param link Link object
+   * @param das_client DAS Node client
+   */
+  void create_link(Link &link, DasAgentNode &das_client);
 };
 
-}  // namespace link_creation_agent
+} // namespace link_creation_agent

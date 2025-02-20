@@ -9,14 +9,13 @@ using namespace link_creation_agent;
 using namespace std;
 
 void ctrl_c_handler(int) {
-    std::cout << "Stopping client..." << std::endl;
-    std::cout << "Done." << std::endl;
-    exit(0);
+  std::cout << "Stopping client..." << std::endl;
+  std::cout << "Done." << std::endl;
+  exit(0);
 }
 
-
-int main(int argc, char* argv[]) {
-    string help = R""""(
+int main(int argc, char *argv[]) {
+  string help = R""""(
     Usage: link_creation_agent CLIENT_HOST:CLIENT_PORT SERVER_HOST:SERVER_PORT REQUEST+
 
     Requests must be in the following format:
@@ -24,21 +23,21 @@ int main(int argc, char* argv[]) {
     MAX_RESULTS and REPEAT are optional, the default value for MAX_RESULTS is 1000 and for REPEAT is 1
     )"""";
 
-    if ((argc < 4)) {
-        cerr << help << endl;
-    }
-    signal(SIGINT, &ctrl_c_handler);
+  if ((argc < 4)) {
+    cerr << help << endl;
+  }
+  signal(SIGINT, &ctrl_c_handler);
 
-    string client_id = string(argv[1]);
-    string server_id = string(argv[2]);
+  string client_id = string(argv[1]);
+  string server_id = string(argv[2]);
 
-    vector<string> request;
-    for (int i = 3; i < argc; i++) {
-        request.push_back(argv[i]);
-    }
+  vector<string> request;
+  for (int i = 3; i < argc; i++) {
+    request.push_back(argv[i]);
+  }
 
-    auto client = new LinkCreationNode(client_id, server_id);
-    client->send_message(request);
+  auto client = new LinkCreationNode(client_id, server_id);
+  client->send_message(request);
 
-    return 0;
+  return 0;
 }

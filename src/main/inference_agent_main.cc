@@ -2,9 +2,8 @@
 
 using namespace inference_agent;
 
-
 int main() {
-    // InferenceAgent agent;
-    // agent.run();
-    return 0;
+  // InferenceAgent agent;
+  // agent.run();
+  return 0;
 }
