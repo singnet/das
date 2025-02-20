@@ -39,8 +39,8 @@ class MockRedis:
             return 1
         return 0
 
-    def cache_overwrite(self, cache=dict()):
-        self.cache = cache
+    def cache_overwrite(self, cache):
+        self.cache = cache or dict()
 
     def sadd(self, key, *members):
         if key not in self.cache:
@@ -107,12 +107,15 @@ def redis_mock():
 def redis_mongo_db():
     mongo_db = mongo_mock()
     redis_db = redis_mock()
-    with mock.patch(
-        "hyperon_das_atomdb.adapters.redis_mongo_db.RedisMongoDB._connection_mongo_db",
-        return_value=mongo_db,
-    ), mock.patch(
-        "hyperon_das_atomdb.adapters.redis_mongo_db.RedisMongoDB._connection_redis",
-        return_value=redis_db,
+    with (
+        mock.patch(
+            "hyperon_das_atomdb.adapters.redis_mongo_db.RedisMongoDB._connection_mongo_db",
+            return_value=mongo_db,
+        ),
+        mock.patch(
+            "hyperon_das_atomdb.adapters.redis_mongo_db.RedisMongoDB._connection_redis",
+            return_value=redis_db,
+        ),
     ):
         db = RedisMongoDB()
 

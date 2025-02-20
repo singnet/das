@@ -22,7 +22,11 @@ node_docs = {}
 node_docs[human] = {"type": "Concept", "name": "human"}
 node_docs[monkey] = {"type": "Concept", "name": "monkey"}
 node_docs[chimp] = {"type": "Concept", "name": "chimp"}
-node_docs[mammal] = {"type": "Concept", "name": "mammal", "custom_attributes": {"name": "mammal"}}
+node_docs[mammal] = {
+    "type": "Concept",
+    "name": "mammal",
+    "custom_attributes": {"name": "mammal"},
+}
 node_docs[reptile] = {"type": "Concept", "name": "reptile"}
 node_docs[snake] = {"type": "Concept", "name": "snake"}
 node_docs[dinosaur] = {"type": "Concept", "name": "dinosaur"}

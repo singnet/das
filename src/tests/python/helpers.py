@@ -60,7 +60,7 @@ def dict_to_link_params(link_dict: dict) -> LinkT:
     try:
         return LinkT(**params)
     except TypeError as ex:
-        raise AssertionError(f"{type(ex)}: {ex} - {params=}")
+        raise AssertionError(f"{type(ex)}: {ex} - {params=}") from ex
 
 
 class AnimalBaseHandlesCollection:

@@ -22,24 +22,24 @@ def retry(attempts: int, timeout_seconds: int):
                     end_time = time.time()
                     if status == HTTPStatus.OK:
                         logger().debug(
-                            f'{retry_count + 1} successful connection attempt at [host={args[1]}]'
+                            f"{retry_count + 1} successful connection attempt at [host={args[1]}]"
                         )
                         return status, response
                 except Exception as e:
                     raise RetryConnectionError(
                         message="An error occurs while connecting to the server",
                         details=str(e),
-                    )
+                    ) from e
                 else:
-                    logger().debug(f'{retry_count + 1} unsuccessful connection attempt')
+                    logger().debug(f"{retry_count + 1} unsuccessful connection attempt")
                     time.sleep(waiting_time_seconds)
                     retry_count += 1
                     timer_count += end_time - start_time
-            port = f':{args[1]}' if len(args) > 1 else ''
+            port = f":{args[1]}" if len(args) > 1 else ""
             message = (
-                f'Failed to connect to remote Das {args[0]}'
+                f"Failed to connect to remote Das {args[0]}"
                 + port
-                + f' - attempts:{retry_count} - time_attempted: {timer_count}'
+                + f" - attempts:{retry_count} - time_attempted: {timer_count}"
             )
             logger().info(message)
             raise RetryConnectionError(message)

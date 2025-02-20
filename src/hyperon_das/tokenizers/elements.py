@@ -196,7 +196,9 @@ class LinkTemplate(Link):
     Inherits from the Link class and is used to denote links that are templates.
     """
 
-    def __init__(self, type: str, targets: list[Any] = []) -> None:
+    def __init__(self, type: str, targets: list[Any]) -> None:
+        if not targets:
+            targets = []
         super().__init__(type, targets, is_template=True)
 
 
