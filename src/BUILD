@@ -17,12 +17,6 @@ alias(
   actual = "//tools/format"
 )
 
-py_binary(
-  name = "cli",
-  srcs = ["cli.py"],
-)
-
-
 cc_binary(
     name = "attention_broker_service",
     srcs = [],
