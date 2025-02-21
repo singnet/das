@@ -40,6 +40,7 @@ test --flaky_test_attempts=1
 test --cache_test_results=auto
 test --test_env=BAZEL_TEST_ENV=1
 test --test_tag_filters=-skip
+test --notest_keep_going
 
 #################################### RUN ######################################
 

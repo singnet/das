@@ -1,5 +1,5 @@
 /**
- * @file agent.h
+ * @file link_creation_agent.h
  * @brief Agent class to handle link creation requests
  *
  * This file contains the definition of the LinkCreationAgent class and the
