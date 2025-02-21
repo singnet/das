@@ -12,11 +12,11 @@
 
 #include "HandlesAnswer.h"
 #include "RemoteIterator.h"
-#include "das_server_node.h"
+#include "das_agent_node.h"
 #include "link.h"
 #include "thread_pool.h"
 
-using namespace das;
+using namespace das_agent;
 using namespace query_node;
 using namespace query_element;
 namespace link_creation_agent {

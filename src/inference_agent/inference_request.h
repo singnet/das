@@ -44,6 +44,20 @@ class InferenceRequest {
      */
     virtual std::vector<std::string> query() = 0;
 
+    /**
+     * @brief Get the id of the inference request
+     *
+     * @return std::string
+     */
+    virtual std::string get_id() = 0;
+
+    /**
+     * @brief Get the type of the inference request
+     *
+     * @return std::string
+     */
+    virtual std::string get_type() = 0;
+
    protected:
     std::string first_handle;
     std::string second_handle;
@@ -61,6 +75,8 @@ class ProofOfImplicationOrEquivalence : public InferenceRequest {
     std::vector<std::string> untokenize() override;
     std::vector<std::string> query() override;
     std::vector<std::string> patterns_link_template();
+    std::string get_id() override;
+    std::string get_type() override;
 };
 
 class ProofOfImplication : public InferenceRequest {
@@ -71,6 +87,8 @@ class ProofOfImplication : public InferenceRequest {
     std::vector<std::string> tokenize() override;
     std::vector<std::string> untokenize() override;
     std::vector<std::string> query() override;
+    std::string get_id() override;
+    std::string get_type() override;
 
 
    private:
@@ -85,6 +103,8 @@ class ProofOfEquivalence : public InferenceRequest {
     std::vector<std::string> tokenize() override;
     std::vector<std::string> untokenize() override;
     std::vector<std::string> query() override;
+    std::string get_id() override;
+    std::string get_type() override;
 
 
    private:
