@@ -149,7 +149,8 @@ QueryElement* PatternMatchingQuery::build_link_template(vector<string>& tokens,
     unsigned int arity = std::stoi(tokens[cursor + 2]);
     if (element_stack.size() < arity) {
         Utils::error(
-            "PatternMatchingQuery message: parse error in tokens - too few arguments for LINK_TEMPLATE");
+            "PatternMatchingQuery message: parse error in tokens - too "
+            "few arguments for LINK_TEMPLATE");
     }
     switch (arity) {
         // TODO: consider replacing each "case" below by a pre-processor macro call
@@ -234,7 +235,9 @@ QueryElement* PatternMatchingQuery::build_link_template(vector<string>& tokens,
             return new LinkTemplate<10>(tokens[cursor + 1], targets, this->context);
         }
         default: {
-            Utils::error("PatternMatchingQuery message: max supported arity for LINK_TEMPLATE: 10");
+            Utils::error(
+                "PatternMatchingQuery message: max supported arity for "
+                "LINK_TEMPLATE: 10");
         }
     }
     return NULL;  // Just to avoid warnings. This is not actually reachable.
@@ -245,7 +248,9 @@ QueryElement* PatternMatchingQuery::build_and(vector<string>& tokens,
                                               stack<QueryElement*>& element_stack) {
     unsigned int num_clauses = std::stoi(tokens[cursor + 1]);
     if (element_stack.size() < num_clauses) {
-        Utils::error("PatternMatchingQuery message: parse error in tokens - too few arguments for AND");
+        Utils::error(
+            "PatternMatchingQuery message: parse error in tokens - too "
+            "few arguments for AND");
     }
     switch (num_clauses) {
         // TODO: consider replacing each "case" below by a pre-processor macro call
@@ -341,7 +346,9 @@ QueryElement* PatternMatchingQuery::build_or(vector<string>& tokens,
                                              stack<QueryElement*>& element_stack) {
     unsigned int num_clauses = std::stoi(tokens[cursor + 1]);
     if (element_stack.size() < num_clauses) {
-        Utils::error("PatternMatchingQuery message: parse error in tokens - too few arguments for OR");
+        Utils::error(
+            "PatternMatchingQuery message: parse error in tokens - too "
+            "few arguments for OR");
     }
     switch (num_clauses) {
         // TODO: consider replacing each "case" below by a pre-processor macro call
@@ -437,7 +444,9 @@ QueryElement* PatternMatchingQuery::build_link(vector<string>& tokens,
                                                stack<QueryElement*>& element_stack) {
     unsigned int arity = std::stoi(tokens[cursor + 2]);
     if (element_stack.size() < arity) {
-        Utils::error("PatternMatchingQuery message: parse error in tokens - too few arguments for LINK");
+        Utils::error(
+            "PatternMatchingQuery message: parse error in tokens - too "
+            "few arguments for LINK");
     }
     switch (arity) {
         // TODO: consider replacing each "case" below by a pre-processor macro call
@@ -578,7 +587,9 @@ PatternMatchingQuery::PatternMatchingQuery(string command, vector<string>& token
     }
 
     if (element_stack.size() != 1) {
-        Utils::error("PatternMatchingQuery message: parse error in tokens (trailing elements)");
+        Utils::error(
+            "PatternMatchingQuery message: parse error in tokens "
+            "(trailing elements)");
     }
     this->root_query_element = element_stack.top();
     element_stack.pop();

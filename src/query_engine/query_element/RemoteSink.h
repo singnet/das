@@ -12,7 +12,8 @@ using namespace std;
 namespace query_element {
 
 /**
- * A special sink which forwards the query results to a remote QueryElement (e.g. a RemoteIterator).
+ * A special sink which forwards the query results to a remote QueryElement
+ * (e.g. a RemoteIterator).
  */
 template <class AnswerType>
 class RemoteSink : public Sink<AnswerType> {
@@ -21,9 +22,11 @@ class RemoteSink : public Sink<AnswerType> {
      * Constructor.
      *
      * @param precedent QueryElement just below in the query tree.
-     * @param query_answer_processors List of processors to be applied to the query answers.
-     * @param delete_precedent_on_destructor If true, the destructor of this QueryElement will
-     *        also destruct the passed precedent QueryElement (defaulted to false).
+     * @param query_answer_processors List of processors to be applied to the
+     * query answers.
+     * @param delete_precedent_on_destructor If true, the destructor of this
+     * QueryElement will also destruct the passed precedent QueryElement
+     * (defaulted to false).
      */
     RemoteSink(QueryElement* precedent,
                vector<unique_ptr<QueryAnswerProcessor>>&& query_answer_processors,
@@ -38,8 +41,8 @@ class RemoteSink : public Sink<AnswerType> {
     // QueryElement API
 
     /**
-     * Gracefully shuts down the queue processor thread and the remote communication QueryNodes
-     * present in this QueryElement.
+     * Gracefully shuts down the queue processor thread and the remote
+     * communication QueryNodes present in this QueryElement.
      */
     virtual void graceful_shutdown();
 

@@ -1,13 +1,14 @@
 #ifndef _DISTRIBUTED_ALGORITHM_NODE_MESSAGEBROKER_H
 #define _DISTRIBUTED_ALGORITHM_NODE_MESSAGEBROKER_H
 
-#include <vector>
-#include <unordered_set>
+#include <mutex>
 #include <string>
 #include <thread>
-#include <mutex>
+#include <unordered_set>
+#include <vector>
 
-// TODO: Once das-proto is updated, update atom_space_node to distributed_algorithm_node
+// TODO: Once das-proto is updated, update atom_space_node to
+// distributed_algorithm_node
 
 #include "atom_space_node.grpc.pb.h"
 // #include "distributed_algorithm_node.grpc.pb.h"
@@ -20,10 +21,7 @@ using namespace commons;
 
 namespace distributed_algorithm_node {
 
-enum class MessageBrokerType {
-    RAM,
-    GRPC
-};
+enum class MessageBrokerType { RAM, GRPC };
 
 class DistributedAlgorithmNode;
 
@@ -33,35 +31,36 @@ class DistributedAlgorithmNode;
 /**
  * Implements the communication layer used by nodes to exchange Messages.
  *
- * This is the abstract class defining the API used by DistributedAlgorithmNodes to exchange messages.
- * Users of the DistributedAlgorithmNode module aren't supposed to interact with MessageBroker directly.
+ * This is the abstract class defining the API used by DistributedAlgorithmNodes
+ * to exchange messages. Users of the DistributedAlgorithmNode module aren't
+ * supposed to interact with MessageBroker directly.
  */
 class MessageBroker {
-
-public:
-
+   public:
     /**
      * Factory method for concrete subclasses.
      *
-     * @param instance_type Defines which subclass should be used to instantiate the MessageBroker
-     * @param host_node The object responsible for building Message objects. Typically, it's The
-     * node this MessageBroker belongs to.
-     * @param node_id The ID of the DistributedAlgorithmNode this MessageBroker belongs to.
+     * @param instance_type Defines which subclass should be used to instantiate
+     * the MessageBroker
+     * @param host_node The object responsible for building Message objects.
+     * Typically, it's The node this MessageBroker belongs to.
+     * @param node_id The ID of the DistributedAlgorithmNode this MessageBroker
+     * belongs to.
      * @return An instance of the selected MessageBroker subclass.
      */
-    static shared_ptr<MessageBroker> factory(
-            MessageBrokerType instance_type, 
-            shared_ptr<MessageFactory> host_node, 
-            const string &node_id);
+    static shared_ptr<MessageBroker> factory(MessageBrokerType instance_type,
+                                             shared_ptr<MessageFactory> host_node,
+                                             const string& node_id);
 
     /**
      * Basic constructor
      *
-     * @param host_node The object responsible for building Message objects. Typically, it's The
-     * node this MessageBroker belongs to.
-     * @param node_id The ID of the DistributedAlgorithmNode this MessageBroker belongs to.
+     * @param host_node The object responsible for building Message objects.
+     * Typically, it's The node this MessageBroker belongs to.
+     * @param node_id The ID of the DistributedAlgorithmNode this MessageBroker
+     * belongs to.
      */
-    MessageBroker(shared_ptr<MessageFactory> host_node, const string &node_id);
+    MessageBroker(shared_ptr<MessageFactory> host_node, const string& node_id);
 
     /**
      * Destructor.
@@ -76,7 +75,7 @@ public:
      *
      * @param peer_id The ID of the newly known peer.
      */
-    virtual void add_peer(const string &peer_id);
+    virtual void add_peer(const string& peer_id);
 
     /**
      * Returns true iff the passed peer has been previously added
@@ -84,18 +83,20 @@ public:
      * @param peer_id Peer id being checked.
      * @return true iff the passed peer has been previously added
      */
-    bool is_peer(const string &peer_id);
+    bool is_peer(const string& peer_id);
 
     /**
-     * Gracefully shuts down threads or any other resources being used in communication.
+     * Gracefully shuts down threads or any other resources being used in
+     * communication.
      */
     void graceful_shutdown();
 
     /**
      * Returns true iff this MessageBroker is shuting down.
      *
-     * The idea is to allow concrete subclasses to know when a graceful shutdown has been requested
-     * so threads or any other resources being used in communication can be stoped/released/etc.
+     * The idea is to allow concrete subclasses to know when a graceful shutdown
+     * has been requested so threads or any other resources being used in
+     * communication can be stoped/released/etc.
      */
     bool is_shutting_down();
 
@@ -110,27 +111,25 @@ public:
     /**
      * Broadcasts a command to all nodes in the network.
      *
-     * All nodes in the network will be reached (not only the known peers) and the command
-     * will be executed.
+     * All nodes in the network will be reached (not only the known peers) and the
+     * command will be executed.
      *
      * @param command The command to be executed in the target nodes.
      * @param args Arguments for the command.
      */
-    virtual void broadcast(const string &command, const vector<string> &args) = 0;
+    virtual void broadcast(const string& command, const vector<string>& args) = 0;
 
     /**
      * Sends a command to the passed node.
      *
-     * The target node is supposed to be a known peer. If not, an exception is thrown.
+     * The target node is supposed to be a known peer. If not, an exception is
+     * thrown.
      *
      * @param command The command to be executed in the target nodes.
      * @param args Arguments for the command.
      * @recipient The target node for the command.
      */
-    virtual void send(
-        const string &command, 
-        const vector<string> &args, 
-        const string &recipient) = 0;
+    virtual void send(const string& command, const vector<string>& args, const string& recipient) = 0;
 
     shared_ptr<MessageFactory> host_node;
     unordered_set<string> peers;
@@ -145,22 +144,20 @@ public:
 // Concrete subclasses
 
 /**
- * Concrete implementation of MessageBroker using shared queues in RAM to exchange Message among
- * nodes.
+ * Concrete implementation of MessageBroker using shared queues in RAM to
+ * exchange Message among nodes.
  *
  * Nodes are supposed to be running in the same runtime process.
  */
 class SynchronousSharedRAM : public MessageBroker {
-
-public:
-
+   public:
     /**
      * Basic constructor
      *
-     * @param host_node The object responsible for building Message objects. Typically, it's The
-     * node this MessageBroker belongs to.
+     * @param host_node The object responsible for building Message objects.
+     * Typically, it's The node this MessageBroker belongs to.
      */
-    SynchronousSharedRAM(shared_ptr<MessageFactory> host_node, const string &node_id);
+    SynchronousSharedRAM(shared_ptr<MessageFactory> host_node, const string& node_id);
 
     /**
      * Destructor.
@@ -180,52 +177,54 @@ public:
     /**
      * Broadcasts a command to all nodes in the network.
      *
-     * All nodes in the network will be reached (not only the known peers) and the command
-     * will be executed. Basically the Message is sent to all known peers which, in their turns,
-     * re-send it to their known peers until there's no other peer to spread it. The GRPC object
-     * used to send the request contains a list of visited nodes so a request is never re-sent
-     * to nodes that have already received it.
+     * All nodes in the network will be reached (not only the known peers) and the
+     * command will be executed. Basically the Message is sent to all known peers
+     * which, in their turns, re-send it to their known peers until there's no
+     * other peer to spread it. The GRPC object used to send the request contains
+     * a list of visited nodes so a request is never re-sent to nodes that have
+     * already received it.
      *
      * @param command The command to be executed in the target nodes.
      * @param args Arguments for the command.
      */
-    virtual void broadcast(const string &command, const vector<string> &args);
+    virtual void broadcast(const string& command, const vector<string>& args);
 
     /**
      * Sends a command to the passed node.
      *
-     * The target node is supposed to be a known peer. If not, an exception is thrown.
-     * Uses the client GRPC channel to send the command to the target.
+     * The target node is supposed to be a known peer. If not, an exception is
+     * thrown. Uses the client GRPC channel to send the command to the target.
      *
      * @param command The command to be executed in the target nodes.
      * @param args Arguments for the command.
      * @recipient The target node for the command.
      */
-    virtual void send(const string &command, const vector<string> &args, const string &recipient);
+    virtual void send(const string& command, const vector<string>& args, const string& recipient);
 
-private:
-
+   private:
     static unsigned int MESSAGE_THREAD_COUNT;
-    static unordered_map<string, SharedQueue *> NODE_QUEUE;
+    static unordered_map<string, SharedQueue*> NODE_QUEUE;
     static mutex NODE_QUEUE_MUTEX;
 
-    vector<thread *> inbox_threads;
-    SharedQueue incoming_messages; // Thread safe container
+    vector<thread*> inbox_threads;
+    SharedQueue incoming_messages;  // Thread safe container
 
     // Methods used to start threads
     void inbox_thread_method();
 };
 
 /**
- * Concrete implementation of MessageBroker using GRPC to exchange Message among nodes.
+ * Concrete implementation of MessageBroker using GRPC to exchange Message among
+ * nodes.
  *
- * Synchronous GRPS calls are used to send commands between nodes in the network. When joining
- * the network, each node initializes a request queue and a thread to listen to a PORT for
- * GRPC calls (this thread is what GRPC's documentation calls a GRPC Server). This way this node
- * becomes capable of answering GRPC requests.
+ * Synchronous GRPS calls are used to send commands between nodes in the
+ * network. When joining the network, each node initializes a request queue and
+ * a thread to listen to a PORT for GRPC calls (this thread is what GRPC's
+ * documentation calls a GRPC Server). This way this node becomes capable of
+ * answering GRPC requests.
  *
- * In addition to this, another queue is initialized for outgoing Messages and another thread is
- * started to observe this queue.
+ * In addition to this, another queue is initialized for outgoing Messages and
+ * another thread is started to observe this queue.
  *
  * A Client GRPC channel is created for each the newly inserted peer.
  *
@@ -235,37 +234,38 @@ private:
  *   - A GRPC thread listening for the rpc command requests
  *   - N threads reading from this queue and processing the requested commands.
  *   - An outgoing queue with waiting-to-be-sent outgoing commands
- *   - N threads observing the outgoing queue and processing this queue to send requests to other
- *     nodes.
+ *   - N threads observing the outgoing queue and processing this queue to send
+ * requests to other nodes.
  *
- * When one of the methods to send messages is called (e.g. broadcast() or send()), the passed
- * command is enqueued in the outgoing queue and the methoid returns immetialely, meaning that that
- * is no guarantee that the Message have been received by the other node(s) when the method returns.
- * A thread will dequeue the request and use a previously created client GRPC channel to make the
- * GRPC rpc call, sending the command to the target node.
+ * When one of the methods to send messages is called (e.g. broadcast() or
+ * send()), the passed command is enqueued in the outgoing queue and the methoid
+ * returns immetialely, meaning that that is no guarantee that the Message have
+ * been received by the other node(s) when the method returns. A thread will
+ * dequeue the request and use a previously created client GRPC channel to make
+ * the GRPC rpc call, sending the command to the target node.
  *
- * In the target node, the GRPC server thread will get the requested command and enequeue it in the
- * incomming queue. Then a thread will dequeue this request and execute the requested command on
- * the target node.
+ * In the target node, the GRPC server thread will get the requested command and
+ * enequeue it in the incomming queue. Then a thread will dequeue this request
+ * and execute the requested command on the target node.
  *
- * No rpc answer is used in these GRPC calls. So if a command expects an answer to return, this
- * answer is supposed to be implemented as a separate Message going back from the target node to
- * the node that originated the request.
+ * No rpc answer is used in these GRPC calls. So if a command expects an answer
+ * to return, this answer is supposed to be implemented as a separate Message
+ * going back from the target node to the node that originated the request.
  */
-// TODO: Once das-proto is updated, update atom_space_node to distributed_algorithm_node
-// class SynchronousGRPC : public MessageBroker, public dasproto::DistributedAlgorithmNode::Service {
+// TODO: Once das-proto is updated, update atom_space_node to
+// distributed_algorithm_node class SynchronousGRPC : public MessageBroker,
+// public dasproto::DistributedAlgorithmNode::Service {
 class SynchronousGRPC : public MessageBroker, public dasproto::AtomSpaceNode::Service {
-
-public:
-
+   public:
     /**
      * Basic constructor
      *
-     * @param host_node The object responsible for building Message objects. Typically, it's The
-     * node this MessageBroker belongs to.
-     * @param node_id The ID of the DistributedAlgorithmNode this MessageBroker belongs to.
+     * @param host_node The object responsible for building Message objects.
+     * Typically, it's The node this MessageBroker belongs to.
+     * @param node_id The ID of the DistributedAlgorithmNode this MessageBroker
+     * belongs to.
      */
-    SynchronousGRPC(shared_ptr<MessageFactory> host_node, const string &node_id);
+    SynchronousGRPC(shared_ptr<MessageFactory> host_node, const string& node_id);
 
     /**
      * Destructor.
@@ -273,13 +273,13 @@ public:
     ~SynchronousGRPC();
 
     /**
-     * Adds additional processing to superclass' add_peer() basically only adds the new peer id
-     * into a container. Here, a GRPC channel is created and stored in the object for further use
-     * when sending Messages.
+     * Adds additional processing to superclass' add_peer() basically only adds
+     * the new peer id into a container. Here, a GRPC channel is created and
+     * stored in the object for further use when sending Messages.
      *
      * @param peer_id The ID of the newly known peer.
      */
-    virtual void add_peer(const string &peer_id);
+    virtual void add_peer(const string& peer_id);
 
     // ----------------------------------------------------------------
     // Public MessageBroker abstract API
@@ -287,36 +287,38 @@ public:
     /**
      * Inserts the host node into the network.
      *
-     * Initialize incoming and outgoing queues and starts threads to process each of them.
-     * Also initializes the GRPC Server thread to listen to the GRPC calls.
+     * Initialize incoming and outgoing queues and starts threads to process each
+     * of them. Also initializes the GRPC Server thread to listen to the GRPC
+     * calls.
      */
     virtual void join_network();
 
     /**
      * Broadcasts a command to all nodes in the network.
      *
-     * All nodes in the network will be reached (not only the known peers) and the command
-     * will be executed. Basically the Message is sent to all known peers which, in their turns,
-     * re-send it to their known peers until there's no other peer to spread it. The GRPC object
-     * used to send the request contains a list of visited nodes so a request is never re-sent
-     * to nodes that have already received it.
+     * All nodes in the network will be reached (not only the known peers) and the
+     * command will be executed. Basically the Message is sent to all known peers
+     * which, in their turns, re-send it to their known peers until there's no
+     * other peer to spread it. The GRPC object used to send the request contains
+     * a list of visited nodes so a request is never re-sent to nodes that have
+     * already received it.
      *
      * @param command The command to be executed in the target nodes.
      * @param args Arguments for the command.
      */
-    virtual void broadcast(const string &command, const vector<string> &args);
+    virtual void broadcast(const string& command, const vector<string>& args);
 
     /**
      * Sends a command to the passed node.
      *
-     * The target node is supposed to be a known peer. If not, an exception is thrown.
-     * Uses the client GRPC channel to send the command to the target.
+     * The target node is supposed to be a known peer. If not, an exception is
+     * thrown. Uses the client GRPC channel to send the command to the target.
      *
      * @param command The command to be executed in the target nodes.
      * @param args Arguments for the command.
      * @recipient The target node for the command.
      */
-    virtual void send(const string &command, const vector<string> &args, const string &recipient);
+    virtual void send(const string& command, const vector<string>& args, const string& recipient);
 
     // ----------------------------------------------------------------
     // Public GRPC API
@@ -326,27 +328,24 @@ public:
      *
      * This is a standard rpc in DAS proto which all servers implement.
      */
-    grpc::Status ping(
-        grpc::ServerContext* grpc_context, 
-        const dasproto::Empty* request, 
-        dasproto::Ack* reply) override;
+    grpc::Status ping(grpc::ServerContext* grpc_context,
+                      const dasproto::Empty* request,
+                      dasproto::Ack* reply) override;
 
     /**
      * Delivers a Message to be remotely executed.
      */
-    grpc::Status execute_message(
-        grpc::ServerContext* grpc_context, 
-        const dasproto::MessageData* request, 
-        dasproto::Empty* reply) override;
+    grpc::Status execute_message(grpc::ServerContext* grpc_context,
+                                 const dasproto::MessageData* request,
+                                 dasproto::Empty* reply) override;
 
-private:
-
+   private:
     static unsigned int MESSAGE_THREAD_COUNT;
     unique_ptr<grpc::Server> grpc_server;
-    thread *grpc_thread;
-    vector<thread *> inbox_threads;
-    SharedQueue incoming_messages; // Thread safe container
-    SharedQueue outgoing_messages; // Thread safe container
+    thread* grpc_thread;
+    vector<thread*> inbox_threads;
+    SharedQueue incoming_messages;  // Thread safe container
+    SharedQueue outgoing_messages;  // Thread safe container
 
     bool grpc_server_started_flag;
     mutex grpc_server_started_flag_mutex;
@@ -366,16 +365,15 @@ private:
 // Common utility classes
 
 class CommandLinePackage {
-    public:
-        CommandLinePackage(const string &command, const vector<string> &args);
-        ~CommandLinePackage();
-        string command;
-        vector<string> args;
-        bool is_broadcast;
-        unordered_set<string> visited;
+   public:
+    CommandLinePackage(const string& command, const vector<string>& args);
+    ~CommandLinePackage();
+    string command;
+    vector<string> args;
+    bool is_broadcast;
+    unordered_set<string> visited;
 };
 
-} // namespace distributed_algorithm_node
+}  // namespace distributed_algorithm_node
 
-#endif // _DISTRIBUTED_ALGORITHM_NODE_MESSAGEBROKER_H
-
+#endif  // _DISTRIBUTED_ALGORITHM_NODE_MESSAGEBROKER_H

@@ -40,11 +40,13 @@ struct LinkCreationAgentRequest {
 
 /**
  * @class LinkCreationAgent
- * @brief Manages the creation of links by processing requests from the DAS Node server or buffer.
+ * @brief Manages the creation of links by processing requests from the DAS Node
+ * server or buffer.
  *
- * This class is responsible for retrieving requests, sending query requests, processing iterators,
- * and creating links using the LCAService. It also handles loading and saving configurations and
- * request buffers, and managing the lifecycle of the agent.
+ * This class is responsible for retrieving requests, sending query requests,
+ * processing iterators, and creating links using the LCAService. It also
+ * handles loading and saving configurations and request buffers, and managing
+ * the lifecycle of the agent.
  */
 class LinkCreationAgent {
    public:
@@ -52,9 +54,10 @@ class LinkCreationAgent {
     ~LinkCreationAgent();
 
     /**
-     * @brief Retrieve a request from DAS Node server or get a request from the requests buffer,
-     * send a query request using DAS Node client, retrieve remote iterator and
-     * send to LCAService to process the iterator and create links.
+     * @brief Retrieve a request from DAS Node server or get a request from the
+     * requests buffer, send a query request using DAS Node client, retrieve
+     * remote iterator and send to LCAService to process the iterator and create
+     * links.
      */
     void run();
     /**
@@ -66,7 +69,8 @@ class LinkCreationAgent {
    private:
     /**
      * @brief Sends a query to DAS Query Agent
-     * @returns Returns a shared_ptr<RemoteIterator>, to iterate through the requests
+     * @returns Returns a shared_ptr<RemoteIterator>, to iterate through the
+     * requests
      */
     shared_ptr<RemoteIterator<HandlesAnswer>> query(vector<string>& query_tokens,
                                                     string context,
@@ -76,11 +80,13 @@ class LinkCreationAgent {
      */
     void load_config();
     /**
-     * @brief Save all requests that have the infinite value set as true to the disk or DB.
+     * @brief Save all requests that have the infinite value set as true to the
+     * disk or DB.
      */
     void save_buffer();
     /**
-     * @brief Load all requests that have the infinite value set as true from the disk or DB.
+     * @brief Load all requests that have the infinite value set as true from the
+     * disk or DB.
      */
     void load_buffer();
     /**
@@ -97,8 +103,8 @@ class LinkCreationAgent {
     string link_creation_agent_server_id;  // ID of the link creation server
     string das_agent_client_id;            // ID of the DAS client
     string das_agent_server_id;
-    string requests_buffer_file;  // Path to the requests buffer file
-    string context;               // Context to send to attention broker
+    string requests_buffer_file;           // Path to the requests buffer file
+    string context;                        // Context to send to attention broker
 
     // Other attributes
     LinkCreationService* service;

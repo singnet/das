@@ -1,12 +1,12 @@
-#include <cstdlib>
-#include <cmath>
-#include <stdexcept>
-#include <iostream>
-#include <iomanip>
-#include <sstream>
-#include <thread>
-
 #include "Utils.h"
+
+#include <cmath>
+#include <cstdlib>
+#include <iomanip>
+#include <iostream>
+#include <sstream>
+#include <stdexcept>
+#include <thread>
 
 using namespace commons;
 using namespace std;
@@ -14,18 +14,12 @@ using namespace std;
 // --------------------------------------------------------------------------------
 // Public methods
 
-Utils::Utils() {
-}
+Utils::Utils() {}
 
-Utils::~Utils() {
-}
+Utils::~Utils() {}
 
-void Utils::error(string msg) {
-    throw runtime_error(msg);
-}
-void Utils::warning(string msg) {
-    cerr << msg << endl;
-}
+void Utils::error(string msg) { throw runtime_error(msg); }
+void Utils::warning(string msg) { cerr << msg << endl; }
 
 bool Utils::flip_coin(double true_probability) {
     long f = 1000;
@@ -36,18 +30,15 @@ void Utils::sleep(unsigned int milliseconds) {
     this_thread::sleep_for(chrono::milliseconds(milliseconds));
 }
 
-string Utils::get_environment(string const &key) {
-    char *value = getenv(key.c_str());
+string Utils::get_environment(string const& key) {
+    char* value = getenv(key.c_str());
     string answer = (value == NULL ? "" : value);
     return answer;
 }
 
-StopWatch::StopWatch() {
-    reset();
-}
+StopWatch::StopWatch() { reset(); }
 
-StopWatch::~StopWatch() {
-}
+StopWatch::~StopWatch() {}
 
 void StopWatch::start() {
     if (running) {
@@ -76,7 +67,6 @@ unsigned long StopWatch::milliseconds() {
 }
 
 string StopWatch::str_time() {
-
     unsigned long millis = milliseconds();
 
     unsigned long seconds = millis / 1000;
@@ -93,10 +83,10 @@ string StopWatch::str_time() {
     } else if (minutes > 0) {
         return to_string(minutes) + " mins " + to_string(seconds) + " secs";
     } else if (seconds > 0) {
-        //double s = ((double) ((seconds * 1000) + millis)) / 1000.0;
-        //std::stringstream stream;
-        //stream << std::fixed << std::setprecision(3) << s;
-        //return stream.str() + " secs";
+        // double s = ((double) ((seconds * 1000) + millis)) / 1000.0;
+        // std::stringstream stream;
+        // stream << std::fixed << std::setprecision(3) << s;
+        // return stream.str() + " secs";
         return to_string(seconds) + " secs " + to_string(millis) + " millis";
     } else {
         return to_string(millis) + " millis";

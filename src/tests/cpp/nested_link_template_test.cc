@@ -1,18 +1,17 @@
 #include <cstdlib>
-#include "gtest/gtest.h"
 
-#include "QueryNode.h"
 #include "AtomDB.h"
-#include "LinkTemplate.h"
 #include "AtomDBSingleton.h"
-#include "test_utils.h"
 #include "HandlesAnswer.h"
+#include "LinkTemplate.h"
+#include "QueryNode.h"
+#include "gtest/gtest.h"
+#include "test_utils.h"
 
 using namespace query_engine;
 using namespace query_element;
 
 TEST(LinkTemplate, basics) {
-    
     setenv("DAS_REDIS_HOSTNAME", "localhost", 1);
     setenv("DAS_REDIS_PORT", "29000", 1);
     setenv("DAS_USE_REDIS_CLUSTER", "false", 1);
@@ -36,9 +35,9 @@ TEST(LinkTemplate, basics) {
 
     Iterator<HandlesAnswer> iterator(&outter_template);
 
-    HandlesAnswer *query_answer;
+    HandlesAnswer* query_answer;
     unsigned int count = 0;
-    while (! iterator.finished()) {
+    while (!iterator.finished()) {
         if ((query_answer = dynamic_cast<HandlesAnswer*>(iterator.pop())) == NULL) {
             Utils::sleep();
         } else {
@@ -50,7 +49,6 @@ TEST(LinkTemplate, basics) {
 }
 
 TEST(LinkTemplate, nested_variables) {
-    
     string expression = "Expression";
     string symbol = "Symbol";
 
@@ -68,13 +66,13 @@ TEST(LinkTemplate, nested_variables) {
 
     Iterator<HandlesAnswer> iterator(&and_operator);
 
-    HandlesAnswer *query_answer;
+    HandlesAnswer* query_answer;
     unsigned int count = 0;
-    while (! iterator.finished()) {
+    while (!iterator.finished()) {
         if ((query_answer = dynamic_cast<HandlesAnswer*>(iterator.pop())) == NULL) {
             Utils::sleep();
         } else {
-            //EXPECT_TRUE(double_equals(query_answer->importance, 0.0));
+            // EXPECT_TRUE(double_equals(query_answer->importance, 0.0));
             count++;
         }
     }

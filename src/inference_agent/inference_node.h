@@ -24,7 +24,6 @@ class InferenceNode : public StarNode {
     bool is_answers_empty();
     string pop_answer();
 
-
     void send_message(std::vector<std::string> args);
 
     virtual std::shared_ptr<Message> message_factory(std::string& command,
@@ -44,7 +43,6 @@ class InferenceNode : public StarNode {
     std::mutex agent_node_mutex;
 };
 
-
 class CreateInferenceMessage : public Message {
    public:
     CreateInferenceMessage(std::string command, std::vector<std::string> args);
@@ -52,14 +50,12 @@ class CreateInferenceMessage : public Message {
     void act(std::shared_ptr<MessageFactory> node) override;
 };
 
-
 class InferenceAnswerMessage : public Message {
    public:
     InferenceAnswerMessage(std::string command, std::vector<std::string> args);
     ~InferenceAnswerMessage();
     void act(std::shared_ptr<MessageFactory> node) override;
 };
-
 
 class DistributedInferenceFinishedMessage : public Message {
    public:

@@ -1,23 +1,26 @@
 /**
  * @file ram_only.h
- * @brief Defines in-memory database classes for managing atoms, nodes, and links.
+ * @brief Defines in-memory database classes for managing atoms, nodes, and
+ * links.
  *
- * This header file contains the definitions for the `Database` and `InMemoryDB` classes,
- * which provide in-memory storage and management of various data types, including atoms,
- * nodes, and links. These classes are designed to facilitate efficient in-memory operations
- * without the overhead of persistent storage, making them suitable for applications that
- * require fast data access and manipulation.
+ * This header file contains the definitions for the `Database` and `InMemoryDB`
+ * classes, which provide in-memory storage and management of various data
+ * types, including atoms, nodes, and links. These classes are designed to
+ * facilitate efficient in-memory operations without the overhead of persistent
+ * storage, making them suitable for applications that require fast data access
+ * and manipulation.
  *
- * The `Database` class serves as a container for different types of data, using unordered
- * maps to store atom types, nodes, links, and sets for managing relationships between them.
- * It provides basic functionalities such as initialization and cleanup of the stored data.
+ * The `Database` class serves as a container for different types of data, using
+ * unordered maps to store atom types, nodes, links, and sets for managing
+ * relationships between them. It provides basic functionalities such as
+ * initialization and cleanup of the stored data.
  *
- * The `InMemoryDB` class extends the `AtomDB` class and offers a comprehensive set of
- * methods for adding, retrieving, and managing atoms, nodes, links, and their relationships.
- * It includes functionalities for querying data, managing indexes, and handling complex
- * data structures in memory. This class is intended for use in scenarios where data does
- * not need to be persisted across sessions or can be reconstructed from other sources if
- * needed.
+ * The `InMemoryDB` class extends the `AtomDB` class and offers a comprehensive
+ * set of methods for adding, retrieving, and managing atoms, nodes, links, and
+ * their relationships. It includes functionalities for querying data, managing
+ * indexes, and handling complex data structures in memory. This class is
+ * intended for use in scenarios where data does not need to be persisted across
+ * sessions or can be reconstructed from other sources if needed.
  *
  * Key functionalities provided by the `InMemoryDB` class include:
  * - Adding and retrieving nodes and links.
@@ -28,9 +31,9 @@
  * - Bulk insertion and retrieval of atoms.
  * - Committing changes to the database.
  *
- * The classes in this module are designed to be flexible and efficient, providing a robust
- * solution for managing in-memory data structures in applications that require high
- * performance and low latency.
+ * The classes in this module are designed to be flexible and efficient,
+ * providing a robust solution for managing in-memory data structures in
+ * applications that require high performance and low latency.
  */
 #pragma once
 
@@ -43,7 +46,8 @@ using namespace std;
 namespace atomdb {
 
 /**
- * @brief Represents an in-memory database for storing and managing atoms, nodes, and links.
+ * @brief Represents an in-memory database for storing and managing atoms,
+ * nodes, and links.
  */
 class Database {
    public:
@@ -67,26 +71,29 @@ class Database {
 };
 
 /**
- * @brief Represents an in-memory database for storing and managing atoms, nodes, and links.
+ * @brief Represents an in-memory database for storing and managing atoms,
+ * nodes, and links.
  *
- * The InMemoryDB class inherits from the AtomDB class and provides an implementation for
- * managing various types of data within an in-memory data structure. It supports operations
- * such as adding, retrieving, and clearing atoms, nodes, links, and their relationships.
+ * The InMemoryDB class inherits from the AtomDB class and provides an
+ * implementation for managing various types of data within an in-memory data
+ * structure. It supports operations such as adding, retrieving, and clearing
+ * atoms, nodes, links, and their relationships.
  *
- * This class uses unordered maps to store different types of data, including atom types,
- * nodes, links, and sets for managing relationships between atoms. It is designed to be
- * efficient for in-memory operations, making it suitable for applications that require
- * fast access to data without the overhead of persistent storage.
+ * This class uses unordered maps to store different types of data, including
+ * atom types, nodes, links, and sets for managing relationships between atoms.
+ * It is designed to be efficient for in-memory operations, making it suitable
+ * for applications that require fast access to data without the overhead of
+ * persistent storage.
  *
- * The InMemoryDB class is intended to be used in scenarios where data does not need to be
- * persisted across sessions, or where the data can be reconstructed from other sources if
- * needed. It provides a flexible and efficient way to manage complex data structures in
- * memory.
+ * The InMemoryDB class is intended to be used in scenarios where data does not
+ * need to be persisted across sessions, or where the data can be reconstructed
+ * from other sources if needed. It provides a flexible and efficient way to
+ * manage complex data structures in memory.
  */
 class InMemoryDB : public AtomDB {
    public:
-    InMemoryDB(const string& database_name = "das") : database_name(database_name) {};
-    ~InMemoryDB() {};
+    InMemoryDB(const string& database_name = "das") : database_name(database_name){};
+    ~InMemoryDB(){};
 
     const string get_node_handle(const string& node_type, const string& node_name) const override;
 
@@ -191,8 +198,8 @@ class InMemoryDB : public AtomDB {
      * @brief Builds a hash for a named type template.
      *
      * This method takes a string representing a named type template and generates
-     * a hash for it. The hash can be used to uniquely identify the template within
-     * the database, ensuring efficient lookups and comparisons.
+     * a hash for it. The hash can be used to uniquely identify the template
+     * within the database, ensuring efficient lookups and comparisons.
      *
      * @param _template The string representation of the named type template.
      * @return A string containing the hash of the named type template.
@@ -208,7 +215,8 @@ class InMemoryDB : public AtomDB {
 
     /**
      * @brief Retrieves and deletes the outgoing set associated with a handle.
-     * @param handle The handle for which the outgoing set is to be retrieved and deleted.
+     * @param handle The handle for which the outgoing set is to be retrieved and
+     * deleted.
      * @return An optional StringList containing the outgoing set if it exists.
      */
     const optional<const StringList> _get_and_delete_outgoing_set(const string& handle);
@@ -223,7 +231,8 @@ class InMemoryDB : public AtomDB {
     /**
      * @brief Deletes a set of incoming atoms associated with a given link handle.
      * @param link_handle A string representing the handle of the link.
-     * @param atoms_handles A list of strings representing the handles of the atoms to be deleted.
+     * @param atoms_handles A list of strings representing the handles of the
+     * atoms to be deleted.
      */
     void _delete_incoming_set(const string& link_handle, const StringList& atoms_handles);
 
@@ -239,7 +248,8 @@ class InMemoryDB : public AtomDB {
 
     /**
      * @brief Deletes templates associated with the given document link.
-     * @param link_document The link to the document whose templates are to be deleted.
+     * @param link_document The link to the document whose templates are to be
+     * deleted.
      */
     void _delete_templates(const Link& link_document);
 
@@ -253,8 +263,10 @@ class InMemoryDB : public AtomDB {
 
     /**
      * @brief Deletes patterns from the specified document.
-     * @param link_document The link to the document from which patterns will be deleted.
-     * @param targets_hash A list of hashes representing the patterns to be deleted.
+     * @param link_document The link to the document from which patterns will be
+     * deleted.
+     * @param targets_hash A list of hashes representing the patterns to be
+     * deleted.
      */
     void _delete_patterns(const Link& link_document, const StringList& targets_hash);
 
@@ -267,7 +279,8 @@ class InMemoryDB : public AtomDB {
     /**
      * @brief Filters out non-top-level elements from the given set of matches.
      * @param matches The set of matches to be filtered.
-     * @return A set containing only the top-level elements from the input matches.
+     * @return A set containing only the top-level elements from the input
+     * matches.
      */
     const StringUnorderedSet _filter_non_toplevel(const StringUnorderedSet& matches) const;
 
@@ -286,7 +299,8 @@ class InMemoryDB : public AtomDB {
     /**
      * @brief Updates the index for the given atom.
      * @param atom The atom to update the index for.
-     * @param delete_atom Flag indicating whether to delete the atom from the index.
+     * @param delete_atom Flag indicating whether to delete the atom from the
+     * index.
      */
     void _update_index(const Atom& atom, bool delete_atom = false);
 };

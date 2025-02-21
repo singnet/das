@@ -28,8 +28,8 @@ using namespace attention_broker_server;
 namespace query_element {
 
 /**
- * Concrete Source that searches for a pattern in the AtomDB and feeds the QueryElement up in the
- * query tree with the resulting links.
+ * Concrete Source that searches for a pattern in the AtomDB and feeds the
+ * QueryElement up in the query tree with the resulting links.
  *
  * A pattern is something like:
  *
@@ -37,12 +37,14 @@ namespace query_element {
  *    Human
  *    $v1
  *
- * In the example, any links of type "Similarity" pointing to Human as the first target would be
- * returned. These returned links are then fed into the subsequent QueryElement in the tree.
+ * In the example, any links of type "Similarity" pointing to Human as the first
+ * target would be returned. These returned links are then fed into the
+ * subsequent QueryElement in the tree.
  *
- * LinkTemplate query the AtomDB for the links that match the pattern. In addition to this, it
- * attaches values for any variables in the pattern and sorts all the AtomDB answers by importance
- * (by querying the AttentionBroker) before following up the links (most important ones first).
+ * LinkTemplate query the AtomDB for the links that match the pattern. In
+ * addition to this, it attaches values for any variables in the pattern and
+ * sorts all the AtomDB answers by importance (by querying the AttentionBroker)
+ * before following up the links (most important ones first).
  *
  * An arbitrary number of nested levels are allowed. For instance:
  *
@@ -70,12 +72,15 @@ class LinkTemplate : public Source {
     // Constructors and destructors
 
     /**
-     * Constructor expects an array of QueryElements which can be Terminals or nested LinkTemplate.
+     * Constructor expects an array of QueryElements which can be Terminals or
+     * nested LinkTemplate.
      *
-     * @param type Link type or WILDCARD to indicate that the link type doesn't matter.
-     * @param targets An array with targets which can each be a Terminal or a nested LinkTemplate.
-     * @param context An optional string defining the context used by the AttentionBroker to
-     *        consider STI (short term importance).
+     * @param type Link type or WILDCARD to indicate that the link type doesn't
+     * matter.
+     * @param targets An array with targets which can each be a Terminal or a
+     * nested LinkTemplate.
+     * @param context An optional string defining the context used by the
+     * AttentionBroker to consider STI (short term importance).
      */
     LinkTemplate(const string& type,
                  const array<QueryElement*, ARITY>& targets,
@@ -93,8 +98,9 @@ class LinkTemplate : public Source {
         this->handle_keys[0] =
             (wildcard_flag ? (char*) AtomDB::WILDCARD.c_str() : named_type_hash((char*) type.c_str()));
         for (unsigned int i = 1; i <= ARITY; i++) {
-            // It's safe to get stored shared_ptr's raw pointer here because handle_keys[]
-            // is used solely in this scope so it's guaranteed that handle will not be freed.
+            // It's safe to get stored shared_ptr's raw pointer here because
+            // handle_keys[] is used solely in this scope so it's guaranteed that
+            // handle will not be freed.
             if (targets[i - 1]->is_terminal) {
                 this->handle_keys[i] = ((Terminal*) targets[i - 1])->handle.get();
             } else {
@@ -106,9 +112,9 @@ class LinkTemplate : public Source {
         if (!wildcard_flag) {
             free(this->handle_keys[0]);
         }
-        // This is correct. id is not necessarily a handle but an identifier. It just happens
-        // that we want the string for this identifier to be the same as the string representing
-        // the handle.
+        // This is correct. id is not necessarily a handle but an identifier. It
+        // just happens that we want the string for this identifier to be the same
+        // as the string representing the handle.
         this->id = this->handle.get() + std::to_string(LinkTemplate::next_instance_count());
     }
 

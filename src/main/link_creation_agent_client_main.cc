@@ -14,7 +14,6 @@ void ctrl_c_handler(int) {
     exit(0);
 }
 
-
 int main(int argc, char* argv[]) {
     string help = R""""(
     Usage: link_creation_agent CLIENT_HOST:CLIENT_PORT SERVER_HOST:SERVER_PORT REQUEST+
