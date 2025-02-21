@@ -6,8 +6,6 @@ using namespace link_creation_agent;
 using namespace std;
 using namespace query_engine;
 
-
-
 Link::Link(QueryAnswer* query_answer, vector<string> link_template) {
     LinkCreateTemplate link_create_template(link_template);
     HandlesAnswer* handles_answer = dynamic_cast<HandlesAnswer*>(query_answer);
@@ -56,10 +54,9 @@ vector<LinkTargetTypes> Link::get_targets() { return this->targets; }
 
 void Link::set_type(string type) { this->type = type; }
 
-
 void Link::add_target(LinkTargetTypes target) { this->targets.push_back(target); }
 
-vector<string> Link::tokenize() { 
+vector<string> Link::tokenize() {
     vector<string> tokens;
     tokens.push_back("LINK");
     tokens.push_back(this->type);

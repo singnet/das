@@ -1,41 +1,35 @@
 #include <cstdlib>
 #include <map>
 
-#include "gtest/gtest.h"
-#include "common.pb.h"
+#include "HebbianNetwork.h"
+#include "SharedQueue.h"
+#include "Utils.h"
+#include "WorkerThreads.h"
 #include "attention_broker.grpc.pb.h"
 #include "attention_broker.pb.h"
-
-#include "Utils.h"
+#include "common.pb.h"
+#include "gtest/gtest.h"
 #include "test_utils.h"
-#include "SharedQueue.h"
-#include "WorkerThreads.h"
-#include "HebbianNetwork.h"
 
 using namespace attention_broker_server;
 
-class TestSharedQueue: public SharedQueue {
-    public:
-        TestSharedQueue() : SharedQueue() {
-        }
-        unsigned int test_current_count() {
-            return current_count();
-        }
+class TestSharedQueue : public SharedQueue {
+   public:
+    TestSharedQueue() : SharedQueue() {}
+    unsigned int test_current_count() { return current_count(); }
 };
 
-
 TEST(WorkerThreads, basics) {
-    
-    dasproto::HandleCount *handle_count;
-    dasproto::HandleList *handle_list;
+    dasproto::HandleCount* handle_count;
+    dasproto::HandleList* handle_list;
 
     unsigned int num_requests = 1000000;
     unsigned int wait_for_threads_ms = 500;
 
-    for (double stimulus_prob: {0.0, 0.25, 0.5, 0.75, 1.0}) {
-        TestSharedQueue *stimulus = new TestSharedQueue();
-        TestSharedQueue *correlation = new TestSharedQueue();
-        WorkerThreads *pool = new WorkerThreads(stimulus, correlation);
+    for (double stimulus_prob : {0.0, 0.25, 0.5, 0.75, 1.0}) {
+        TestSharedQueue* stimulus = new TestSharedQueue();
+        TestSharedQueue* correlation = new TestSharedQueue();
+        WorkerThreads* pool = new WorkerThreads(stimulus, correlation);
         for (unsigned int i = 0; i < num_requests; i++) {
             if (Utils::flip_coin(stimulus_prob)) {
                 handle_count = new dasproto::HandleCount();
@@ -57,15 +51,14 @@ TEST(WorkerThreads, basics) {
 }
 
 TEST(WorkerThreads, hebbian_network_updater_basics) {
-
-    dasproto::HandleList *handle_list;
+    dasproto::HandleList* handle_list;
     map<string, unsigned int> node_count;
     map<string, unsigned int> edge_count;
     HebbianNetwork network;
 
-    TestSharedQueue *stimulus = new TestSharedQueue();
-    TestSharedQueue *correlation = new TestSharedQueue();
-    WorkerThreads *pool = new WorkerThreads(stimulus, correlation);
+    TestSharedQueue* stimulus = new TestSharedQueue();
+    TestSharedQueue* correlation = new TestSharedQueue();
+    WorkerThreads* pool = new WorkerThreads(stimulus, correlation);
 
     handle_list = new dasproto::HandleList();
     string h1 = random_handle();
@@ -146,25 +139,23 @@ TEST(WorkerThreads, hebbian_network_updater_basics) {
 }
 
 TEST(WorkerThreads, hebbian_network_updater_stress) {
-
-    #define HANDLE_SPACE_SIZE ((unsigned int) 100)
+#define HANDLE_SPACE_SIZE ((unsigned int) 100)
     unsigned int num_requests = 10;
     unsigned int max_handles_per_request = 10;
     unsigned int wait_for_worker_threads_ms = 3000;
 
-    
-    dasproto::HandleList *handle_list;
+    dasproto::HandleList* handle_list;
     string handles[HANDLE_SPACE_SIZE];
     map<string, unsigned int> node_count;
     map<string, unsigned int> edge_count;
-    HebbianNetwork *network = new HebbianNetwork();
+    HebbianNetwork* network = new HebbianNetwork();
     for (unsigned int i = 0; i < HANDLE_SPACE_SIZE; i++) {
         handles[i] = random_handle();
     }
 
-    TestSharedQueue *stimulus = new TestSharedQueue();
-    TestSharedQueue *correlation = new TestSharedQueue();
-    WorkerThreads *pool = new WorkerThreads(stimulus, correlation);
+    TestSharedQueue* stimulus = new TestSharedQueue();
+    TestSharedQueue* correlation = new TestSharedQueue();
+    WorkerThreads* pool = new WorkerThreads(stimulus, correlation);
     for (unsigned int i = 0; i < num_requests; i++) {
         handle_list = new dasproto::HandleList();
         unsigned int num_handles = (rand() % (max_handles_per_request - 1)) + 2;
@@ -176,8 +167,8 @@ TEST(WorkerThreads, hebbian_network_updater_stress) {
             }
             node_count[h] = node_count[h] + 1;
         }
-        for (const string &h1: handle_list->list()) {
-            for (const string &h2: handle_list->list()) {
+        for (const string& h1 : handle_list->list()) {
+            for (const string& h2 : handle_list->list()) {
                 string composite;
                 if (h1.compare(h2) < 0) {
                     composite = h1 + h2;

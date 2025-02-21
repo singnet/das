@@ -4,11 +4,10 @@ using namespace link_creation_agent;
 using namespace std;
 using namespace distributed_algorithm_node;
 
-LinkCreationNode::LinkCreationNode(const string& node_id) : StarNode(node_id) {
-    is_server = true;
-}
+LinkCreationNode::LinkCreationNode(const string& node_id) : StarNode(node_id) { is_server = true; }
 
-LinkCreationNode::LinkCreationNode(const string& node_id, const string& server_id) : StarNode(node_id, server_id) {
+LinkCreationNode::LinkCreationNode(const string& node_id, const string& server_id)
+    : StarNode(node_id, server_id) {
     is_server = false;
 }
 
@@ -39,7 +38,6 @@ shared_ptr<Message> LinkCreationNode::message_factory(string& command, vector<st
     return make_shared<DummyMessage>(command, args);
 }
 
-
 void LinkCreationNode::send_message(vector<string> args) {
     cout << "Sending message" << endl;
     send(CREATE_LINK, args, server_id);
@@ -55,5 +53,3 @@ void LinkCreationRequest::act(shared_ptr<MessageFactory> node) {
     string request;
     link_node->add_request(this->args);
 }
-
-

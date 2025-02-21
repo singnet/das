@@ -8,28 +8,16 @@ CONTAINER_NAME=${IMAGE_NAME}-container
 # local paths
 LOCAL_WORKDIR=$(pwd)
 LOCAL_BIN_DIR=$LOCAL_WORKDIR/src/bin
-LOCAL_ASPECT_CACHE="$HOME/.cache/das/aspect"
-LOCAL_BAZEL_CACHE="$HOME/.cache/das/bazel"
-LOCAL_BAZELISK_CACHE="$HOME/.cache/das/bazelisk"
-LOCAL_PIPTOOLS_CACHE="$HOME/.cache/das/pip-tools"
-LOCAL_PIP_CACHE="$HOME/.cache/das/pip"
+LOCAL_CACHE="${HOME}/.cache/das"
 mkdir -p \
-  $LOCAL_ASPECT_CACHE \
-  $LOCAL_BAZEL_CACHE \
-  $LOCAL_BAZELISK_CACHE \
   $LOCAL_BIN_DIR \
-  $LOCAL_PIPTOOLS_CACHE \
-  $LOCAL_PIP_CACHE
+  $LOCAL_CACHE
 
 # container paths
 CONTAINER_WORKDIR=/opt/das
 CONTAINER_WORKSPACE_DIR=/opt/das/src
 CONTAINER_BIN_DIR=$CONTAINER_WORKSPACE_DIR/bin
-CONTAINER_ASPECT_CACHE=/home/${USER}/.cache/aspect
-CONTAINER_BAZEL_CACHE=/home/${USER}/.cache/bazel
-CONTAINER_PIP_CACHE=/home/${USER}/.cache/pip
-CONTAINER_PIPTOOLS_CACHE=/home/${USER}/.cache/pip-tools
-CONTAINER_BAZELISK_CACHE=/home/${USER}/.cache/bazelisk
+CONTAINER_CACHE="/home/${USER}/.cache"
 
 if docker ps -a --format '{{.Names}}' | grep -q "^${CONTAINER_NAME}$"; then
   echo "Removing existing container: ${CONTAINER_NAME}"
@@ -41,11 +29,7 @@ docker run --rm \
   --name=$CONTAINER_NAME \
   -e BIN_DIR=$CONTAINER_BIN_DIR \
   --volume /etc/passwd:/etc/passwd:ro \
-  --volume $LOCAL_PIP_CACHE:$CONTAINER_PIP_CACHE \
-  --volume $LOCAL_PIPTOOLS_CACHE:$CONTAINER_PIPTOOLS_CACHE \
-  --volume $LOCAL_ASPECT_CACHE:$CONTAINER_ASPECT_CACHE \
-  --volume $LOCAL_BAZEL_CACHE:$CONTAINER_BAZEL_CACHE \
-  --volume $LOCAL_BAZELISK_CACHE:$CONTAINER_BAZELISK_CACHE \
+  --volume $LOCAL_CACHE:$CONTAINER_CACHE \
   --volume $LOCAL_WORKDIR:$CONTAINER_WORKDIR \
   --workdir $CONTAINER_WORKSPACE_DIR \
   ${IMAGE_NAME} \

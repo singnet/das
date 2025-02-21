@@ -9,7 +9,8 @@
 using namespace std;
 using namespace atomdb;
 
-// PUBLIC METHODS //////////////////////////////////////////////////////////////////////////////////
+// PUBLIC METHODS
+// //////////////////////////////////////////////////////////////////////////////////
 
 //------------------------------------------------------------------------------
 const string InMemoryDB::get_node_handle(const string& node_type, const string& node_name) const {
@@ -356,7 +357,8 @@ void InMemoryDB::commit(const optional<const vector<Atom>>& buffer) {
     throw runtime_error("Not implemented");
 }
 
-// PROTECTED OR PRIVATE METHODS ////////////////////////////////////////////////////////////////////
+// PROTECTED OR PRIVATE METHODS
+// ////////////////////////////////////////////////////////////////////
 
 //------------------------------------------------------------------------------
 const shared_ptr<const Atom> InMemoryDB::_get_atom(const string& handle) const {

@@ -3,7 +3,8 @@
 using namespace std;
 using namespace atomdb;
 
-// PUBLIC METHODS //////////////////////////////////////////////////////////////////////////////////
+// PUBLIC METHODS
+// //////////////////////////////////////////////////////////////////////////////////
 
 //------------------------------------------------------------------------------
 bool AtomDB::node_exists(const string& node_type, const string& node_name) const {
@@ -71,7 +72,8 @@ const shared_ptr<const Atom> AtomDB::_reformat_document(const shared_ptr<const A
     return document;
 }
 
-// PROTECTED OR PRIVATE METHODS ////////////////////////////////////////////////////////////////////
+// PROTECTED OR PRIVATE METHODS
+// ////////////////////////////////////////////////////////////////////
 
 //------------------------------------------------------------------------------
 shared_ptr<Node> AtomDB::_build_node(const Node& node_params) {

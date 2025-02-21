@@ -1,23 +1,27 @@
 /**
  * @file bind_helpers.h
- * @brief This header file contains helper functions and type definitions for binding C++
- *        classes and structures to Python using the `nanobind` library. The primary purpose
- *        of these helpers is to facilitate the conversion of C++ objects to Python objects
- *        and vice versa, enabling seamless interoperability between the two languages.
+ * @brief This header file contains helper functions and type definitions for
+ * binding C++ classes and structures to Python using the `nanobind` library.
+ * The primary purpose of these helpers is to facilitate the conversion of C++
+ * objects to Python objects and vice versa, enabling seamless interoperability
+ * between the two languages.
  *
  * The file includes:
  * - Type definitions for tuples representing various C++ structures.
- * - Functions for converting between C++ and Python representations of these structures.
- * - Functions for converting composite types between C++ lists and Python lists.
+ * - Functions for converting between C++ and Python representations of these
+ * structures.
+ * - Functions for converting composite types between C++ lists and Python
+ * lists.
  * - Functions for converting C++ objects to Python dictionaries.
- * - Functions for initializing and updating C++ objects from Python representations.
+ * - Functions for initializing and updating C++ objects from Python
+ * representations.
  */
 #pragma once
 
 #include <database.h>
 #include <document_types.h>
-#include <type_aliases.h>
 #include <nanobind/nanobind.h>
+#include <type_aliases.h>
 
 using namespace std;
 using namespace atomdb;
@@ -54,7 +58,8 @@ using LinkTuple =                      // Tuple for Link
 /**
  * @brief Converts a composite type list to a Python list.
  * @param ct_list The composite type list to be converted.
- * @return A Python list (`nb::list`) containing the elements of the composite type list.
+ * @return A Python list (`nb::list`) containing the elements of the composite
+ * type list.
  */
 static nb::list composite_type_to_pylist(const ListOfAny& ct_list) {
     nb::list py_list;
@@ -73,7 +78,8 @@ static nb::list composite_type_to_pylist(const ListOfAny& ct_list) {
 /**
  * @brief Converts a Python list to a composite type list.
  * @param py_list The Python list to be converted.
- * @return A composite type list (`ListOfAny`) containing the elements of the Python list.
+ * @return A composite type list (`ListOfAny`) containing the elements of the
+ * Python list.
  */
 static ListOfAny pylist_to_composite_type(const nb::list& py_list) {
     ListOfAny ct_list;
@@ -95,7 +101,8 @@ static ListOfAny pylist_to_composite_type(const nb::list& py_list) {
 /**
  * @brief Converts an Atom object to a Python dictionary.
  * @param self The Atom object to be converted.
- * @return A Python dictionary (`nb::dict`) containing the attributes of the Atom.
+ * @return A Python dictionary (`nb::dict`) containing the attributes of the
+ * Atom.
  */
 static nb::dict atom_to_dict(const Atom& self) {
     nb::dict dict;
@@ -110,7 +117,8 @@ static nb::dict atom_to_dict(const Atom& self) {
 /**
  * @brief Converts a Node object to a Python dictionary.
  * @param self The Node object to be converted.
- * @return A Python dictionary (`nb::dict`) containing the attributes of the Node.
+ * @return A Python dictionary (`nb::dict`) containing the attributes of the
+ * Node.
  */
 static nb::dict node_to_dict(const Node& self) {
     nb::dict dict = atom_to_dict(self);
@@ -121,7 +129,8 @@ static nb::dict node_to_dict(const Node& self) {
 /**
  * @brief Converts a Link object to a Python dictionary.
  * @param self The Link object to be converted.
- * @return A Python dictionary (`nb::dict`) containing the attributes of the Link.
+ * @return A Python dictionary (`nb::dict`) containing the attributes of the
+ * Link.
  */
 static nb::dict link_to_dict(const Link& self) {
     nb::dict dict = atom_to_dict(self);

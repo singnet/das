@@ -13,9 +13,7 @@ SharedQueue::SharedQueue(unsigned int initial_size) {
     end = 0;
 }
 
-SharedQueue::~SharedQueue() {
-    delete [] requests;
-}
+SharedQueue::~SharedQueue() { delete[] requests; }
 
 bool SharedQueue::empty() {
     bool answer;
@@ -25,7 +23,7 @@ bool SharedQueue::empty() {
     return answer;
 }
 
-void SharedQueue::enqueue(void *request) {
+void SharedQueue::enqueue(void* request) {
     shared_queue_mutex.lock();
     if (count == size) {
         enlarge_shared_queue();
@@ -36,8 +34,8 @@ void SharedQueue::enqueue(void *request) {
     shared_queue_mutex.unlock();
 }
 
-void *SharedQueue::dequeue() {
-    void *answer = NULL;
+void* SharedQueue::dequeue() {
+    void* answer = NULL;
     shared_queue_mutex.lock();
     if (count > 0) {
         answer = requests[start];
@@ -51,28 +49,20 @@ void *SharedQueue::dequeue() {
 // --------------------------------------------------------------------------------
 // Protected methods
 
-unsigned int SharedQueue::current_size() {
-    return size;
-}
+unsigned int SharedQueue::current_size() { return size; }
 
-unsigned int SharedQueue::current_start() {
-    return start;
-}
+unsigned int SharedQueue::current_start() { return start; }
 
-unsigned int SharedQueue::current_end() {
-    return end;
-}
+unsigned int SharedQueue::current_end() { return end; }
 
-unsigned int SharedQueue::current_count() {
-    return count;
-}
+unsigned int SharedQueue::current_count() { return count; }
 
 // --------------------------------------------------------------------------------
 // Private methods
 
 void SharedQueue::enlarge_shared_queue() {
     unsigned int _new_size = size * 2;
-    void **_new_queue = new void*[_new_size];
+    void** _new_queue = new void*[_new_size];
     unsigned int _cursor = start;
     unsigned int _new_cursor = 0;
     do {
@@ -82,7 +72,7 @@ void SharedQueue::enlarge_shared_queue() {
     size = _new_size;
     start = 0;
     end = _new_cursor;
-    delete [] requests;
+    delete[] requests;
     requests = _new_queue;
     // count remains unchanged
 }

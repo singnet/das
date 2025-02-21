@@ -3,16 +3,16 @@
  */
 
 #pragma once
+#include <map>
 #include <memory>
 #include <mutex>
 #include <string>
 #include <thread>
 #include <vector>
-#include <map>
 
 #include "das_link_creation_node.h"
-#include "inference_node.h"
 #include "inference_iterator.h"
+#include "inference_node.h"
 
 using namespace distributed_algorithm_node;
 using namespace link_creation_agent;
@@ -23,9 +23,10 @@ class InferenceAgent {
     InferenceAgent();
     ~InferenceAgent();
     /**
-     * @brief Start the agent, receive inference request from the client, send link_creation
-     * request to the link_creation_agent, listen when distributed inference control agent
-     * finish the inference, send request to stop link creation.
+     * @brief Start the agent, receive inference request from the client, send
+     * link_creation request to the link_creation_agent, listen when distributed
+     * inference control agent finish the inference, send request to stop link
+     * creation.
      */
     void run();
     void stop();
@@ -47,10 +48,10 @@ class InferenceAgent {
     std::mutex agent_mutex;
     InferenceNode* inference_node_server;
     LinkCreationNode* link_creation_node_client;
-    std::unordered_map<std::string, std::string> iterator_link_creation_request_map; // iterator_id, link_creation_request
+    std::unordered_map<std::string, std::string>
+        iterator_link_creation_request_map;  // iterator_id, link_creation_request
     std::vector<shared_ptr<InferenceIterator<InferenceNode>>> inference_iterators;
     // DasAgentNode* das_client;
     // DistributedInferenceControlNode* distributed_inference_control_node;
-
 };
 }  // namespace inference_agent

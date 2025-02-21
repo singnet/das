@@ -57,8 +57,8 @@ class AttentionBrokerUpdater : public QueryAnswerProcessor {
         // Protobuf data structures
         dasproto::HandleList* handle_list;   // will contain single_answer (can't be used directly
                                              // because it's a list, not a set.
-        dasproto::HandleCount handle_count;  // Counting of how many times each handle appeared
-                                             // in all single_entry
+        dasproto::HandleCount handle_count;  // Counting of how many times each
+                                             // handle appeared in all single_entry
         dasproto::Ack* ack;                  // Command return
 
         shared_ptr<AtomDB> db = AtomDBSingleton::get_instance();
@@ -88,7 +88,8 @@ class AttentionBrokerUpdater : public QueryAnswerProcessor {
 #ifdef DEBUG
                 count_total_processed++;
                 if ((count_total_processed % 1000) == 0) {
-                    cout << "RemoteSink::attention_broker_postprocess_method() count_total_processed: "
+                    cout << "RemoteSink::attention_broker_postprocess_method() "
+                            "count_total_processed: "
                          << count_total_processed << endl;
                 }
 #endif
@@ -130,8 +131,8 @@ class AttentionBrokerUpdater : public QueryAnswerProcessor {
                 single_answer.clear();
                 ack = new dasproto::Ack();
 #ifdef DEBUG
-                // cout << "RemoteSink::attention_broker_postprocess_method() requesting CORRELATE" <<
-                // endl;
+                // cout << "RemoteSink::attention_broker_postprocess_method() requesting
+                // CORRELATE" << endl;
 #endif
                 stub->correlate(new grpc::ClientContext(), *handle_list, ack);
                 if (ack->msg() != "CORRELATE") {
@@ -149,7 +150,8 @@ class AttentionBrokerUpdater : public QueryAnswerProcessor {
                     auto stub = dasproto::AttentionBroker::NewStub(grpc::CreateChannel(
                         this->attention_broker_address, grpc::InsecureChannelCredentials()));
 #ifdef DEBUG
-                    cout << "RemoteSink::attention_broker_postprocess_method() requesting STIMULATE"
+                    cout << "RemoteSink::attention_broker_postprocess_method() "
+                            "requesting STIMULATE"
                          << endl;
 #endif
                     handle_count.set_context(this->query_context);
@@ -177,7 +179,9 @@ class AttentionBrokerUpdater : public QueryAnswerProcessor {
             auto stub = dasproto::AttentionBroker::NewStub(
                 grpc::CreateChannel(this->attention_broker_address, grpc::InsecureChannelCredentials()));
 #ifdef DEBUG
-            cout << "RemoteSink::attention_broker_postprocess_method() requesting STIMULATE" << endl;
+            cout << "RemoteSink::attention_broker_postprocess_method() requesting "
+                    "STIMULATE"
+                 << endl;
 #endif
             handle_count.set_context(this->query_context);
             stub->stimulate(new grpc::ClientContext(), handle_count, ack);

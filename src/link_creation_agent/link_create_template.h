@@ -43,13 +43,14 @@ struct Variable {
 
 /**
  * @typedef CustomFieldTypes
- * @brief A variant type that can hold either a std::string or a std::shared_ptr to a CustomField.
+ * @brief A variant type that can hold either a std::string or a std::shared_ptr
+ * to a CustomField.
  */
 using CustomFieldTypes = std::variant<std::string, std::shared_ptr<CustomField>>;
 /**
  * @typedef LinkCreateTemplateTypes
- * @brief A variant type that can hold either a Variable, Node, or a std::shared_ptr to a
- * LinkCreateTemplate.
+ * @brief A variant type that can hold either a Variable, Node, or a
+ * std::shared_ptr to a LinkCreateTemplate.
  */
 using LinkCreateTemplateTypes = std::variant<Variable, Node, std::shared_ptr<LinkCreateTemplate>>;
 
@@ -60,7 +61,8 @@ using LinkCreateTemplateTypes = std::variant<Variable, Node, std::shared_ptr<Lin
 class CustomField {
    public:
     /**
-     * @brief Constructor that initializes the custom field with a list of custom fields.
+     * @brief Constructor that initializes the custom field with a list of custom
+     * fields.
      */
     CustomField(std::vector<std::string>& custom_fields);
     /**
@@ -74,7 +76,8 @@ class CustomField {
     std::string get_name();
     /**
      * @brief Gets the values of the custom field.
-     * @return A vector of tuples containing the name and value of the custom field.
+     * @return A vector of tuples containing the name and value of the custom
+     * field.
      */
     std::vector<std::tuple<std::string, CustomFieldTypes>> get_values();
     /**
@@ -95,12 +98,14 @@ class CustomField {
 
 /**
  * @class LinkCreateTemplate
- * @brief Represents a link creation template with a link type, targets, and custom fields.
+ * @brief Represents a link creation template with a link type, targets, and
+ * custom fields.
  */
 class LinkCreateTemplate {
    public:
     /**
-     * @brief Constructor that initializes the link creation template with a list of link templates.
+     * @brief Constructor that initializes the link creation template with a list
+     * of link templates.
      */
     LinkCreateTemplate(std::vector<std::string>& link_template);
     /**
@@ -130,7 +135,8 @@ class LinkCreateTemplate {
 
     /**
      * @brief Tokenizes the link creation template.
-     * @return A vector of strings representing the tokenized link creation template.
+     * @return A vector of strings representing the tokenized link creation
+     * template.
      */
     std::vector<std::string> tokenize();
 
