@@ -57,7 +57,8 @@ test-all: build-image
 
 lint-all:
 	@$(MAKE) bazel lint \
-		"//... --define=ATOMDB_VERSION=0.8.11 --define=DAS_VERSION=0.9.0 --define=DAS_NODE_VERSION=0.9.0 --fix"
+		"//... --fix --report --diff" \
+		| grep -vE "(Lint results|All checks passed|^[[:blank:]]*$$)"
 
 format-all:
 	@$(MAKE) bazel run format
