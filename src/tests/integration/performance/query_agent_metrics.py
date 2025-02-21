@@ -38,7 +38,7 @@ def main():
                 "VARIABLE sentence1 "
                 "LINK Expression 2 "
                     "NODE Symbol Word "
-                    'NODE Symbol "aaa"'
+                    """NODE Symbol '"aaa"'"""
         ),
         and_2_linktemplate_linktemplate = (
             "AND 2 "
@@ -47,13 +47,13 @@ def main():
                     "VARIABLE sentence1 "
                     "LINK Expression 2 "
                         "NODE Symbol Word "
-                        'NODE Symbol "bbb" '
+                        """NODE Symbol '"bbb"' """
                 "LINK_TEMPLATE Expression 3 "
                     "NODE Symbol Contains "
                     "VARIABLE sentence2 "
                     "LINK Expression 2 "
                         "NODE Symbol Word "
-                        'NODE Symbol "aaa"'
+                        """NODE Symbol '"aaa"'"""
         ),
         and_2_linktemplate_or_2_linktemplate_linktemplate = (
             "AND 2 "
@@ -62,25 +62,25 @@ def main():
                     "VARIABLE sentence1 "
                     "LINK Expression 2 "
                         "NODE Symbol Word "
-                        'NODE Symbol "bbb" '
+                        """NODE Symbol '"bbb"' """
                 "OR 2 "
                     "LINK_TEMPLATE Expression 3 "
                         "NODE Symbol Contains "
                         "VARIABLE sentence2 "
                         "LINK Expression 2 "
                             "NODE Symbol Word "
-                            'NODE Symbol "aaa" '
+                            """NODE Symbol '"aaa"' """
                     "LINK_TEMPLATE Expression 3 "
                         "NODE Symbol Contains "
                         "VARIABLE sentence3 "
                         "LINK Expression 2 "
                             "NODE Symbol Word "
-                            'NODE Symbol "ccc"'
+                            """NODE Symbol '"ccc"'"""
         ),
     )
 
-    cmd_prefix = "bash src/scripts/run.sh word_query BLUE tokens '"  # Prefix for all commands
-    cmd_suffix = "'"  # Suffix for all commands
+    cmd_prefix = "bash src/scripts/run.sh query 'localhost:31701' 'localhost:31700' "  # Prefix for all commands
+    cmd_suffix = ""  # Suffix for all commands
 
     for name, query in queries.items():
         print(f"\nRunning query '{name}'...")
