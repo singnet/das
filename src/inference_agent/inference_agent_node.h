@@ -11,6 +11,7 @@
 
 #include "StarNode.h"
 #include "queue.h"
+#include "Message.h"
 
 using namespace distributed_algorithm_node;
 using namespace std;
@@ -54,25 +55,22 @@ class InferenceAgentNode : public StarNode {
     std::mutex agent_node_mutex;
     Queue<vector<string>> answers_queue;
     bool answers_finished = false;
+    bool shutting_down = false;
 };
 
 class CreateInferenceMessage : public Message {
    public:
     CreateInferenceMessage(std::string command, std::vector<std::string> args);
-    ~CreateInferenceMessage();
     void act(std::shared_ptr<MessageFactory> node) override;
-
-   private:
     string command;
     vector<string> args;
+
 };
 
 class DistributedInferenceFinishedMessage : public Message {
    public:
     DistributedInferenceFinishedMessage(std::string command, std::vector<std::string> args);
-    ~DistributedInferenceFinishedMessage();
     void act(std::shared_ptr<MessageFactory> node) override;
-    private:
     string command;
     vector<string> args;
 };

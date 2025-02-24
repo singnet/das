@@ -4,7 +4,6 @@
  */
 
 #pragma once
-#include <uuid/uuid.h>
 
 #include <string>
 #include <vector>
@@ -24,13 +23,13 @@ class InferenceRequest {
      *
      * @return std::vector<std::string>
      */
-    virtual std::vector<std::string> tokenize() = 0;
+    virtual std::vector<std::string> tokenize();
     /**
      * @brief Untokenize the inference request
      *
      * @return std::vector<std::string>
      */
-    virtual std::vector<std::string> untokenize() = 0;
+    virtual std::vector<std::string> untokenize();
     /**
      * @brief Generate a unique id
      *
@@ -42,21 +41,21 @@ class InferenceRequest {
      *
      * @return std::vector<std::string>
      */
-    virtual std::vector<std::string> query() = 0;
+    virtual std::vector<std::string> query();
 
     /**
      * @brief Get the id of the inference request
      *
      * @return std::string
      */
-    virtual std::string get_id() = 0;
+    virtual std::string get_id();
 
     /**
      * @brief Get the type of the inference request
      *
      * @return std::string
      */
-    virtual std::string get_type() = 0;
+    virtual std::string get_type();
 
    protected:
     std::string first_handle;

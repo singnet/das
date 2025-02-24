@@ -18,6 +18,11 @@ InferenceAgentNode::InferenceAgentNode(const std::string& node_id, const std::st
     cout << "InferenceAgentNode::InferenceAgentNode Client" << endl;
 }
 
+InferenceAgentNode::~InferenceAgentNode() {
+    shutting_down = true;
+    DistributedAlgorithmNode::graceful_shutdown();
+}
+
 bool InferenceAgentNode::is_answers_finished() { return answers_finished; }
 
 bool InferenceAgentNode::is_answers_empty() { return answers_queue.empty(); }

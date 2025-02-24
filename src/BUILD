@@ -87,7 +87,7 @@ cc_binary(
 )
 
 cc_binary(
-    name = "inference_agent",
+    name = "inference_agent_server",
     srcs = [],
     defines = ["BAZEL_BUILD"],
     linkstatic = 1,

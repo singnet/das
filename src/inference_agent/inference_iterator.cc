@@ -1,5 +1,5 @@
 #include "inference_iterator.h"
-#include "Message.h"
+#include "MessageBroker.h"
 
 using namespace inference_agent;
 using namespace distributed_algorithm_node;

@@ -8,6 +8,7 @@
 using namespace std;
 using namespace inference_agent;
 
+
 const std::string InferenceAgent::PROOF_OF_IMPLICATION_OR_EQUIVALENCE =
     "PROOF_OF_IMPLICATION_OR_EQUIVALENCE";
 const std::string InferenceAgent::PROOF_OF_IMPLICATION = "PROOF_OF_IMPLICATION";
@@ -43,8 +44,8 @@ void InferenceAgent::run() {
                 if (answer.front() == PROOF_OF_IMPLICATION_OR_EQUIVALENCE) {
                     ProofOfImplicationOrEquivalence proof_of_implication_or_equivalence(
                         answer[1], answer[2], stoi(answer[3]));
-                    iterator_link_creation_request_map[""] =
-                        proof_of_implication_or_equivalence;  // iterator id
+                    // iterator_link_creation_request_map[""] =
+                    //     proof_of_implication_or_equivalence;  // iterator id
                     // auto query = proof_of_implication_or_equivalence.query();
                     // auto patterns_link_template =
                     // proof_of_implication_or_equivalence.patterns_link_template();
