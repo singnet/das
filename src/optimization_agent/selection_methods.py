@@ -94,5 +94,6 @@ def fitness_proportionate(population: list[tuple[Any, float]], max_individuals: 
             running_sum_of_probabilities += selection_probability
             if running_sum_of_probabilities >= selection_point:
                 selected_individuals.append(individual)
+                break
 
     return selected_individuals
