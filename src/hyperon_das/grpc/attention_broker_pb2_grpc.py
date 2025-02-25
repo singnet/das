@@ -15,17 +15,17 @@ class AttentionBrokerStub(object):
             channel: A grpc.Channel.
         """
         self.ping = channel.unary_unary(
-            '/das.AttentionBroker/ping',
+            '/dasproto.AttentionBroker/ping',
             request_serializer=common__pb2.Empty.SerializeToString,
             response_deserializer=common__pb2.Ack.FromString,
         )
         self.stimulate = channel.unary_unary(
-            '/das.AttentionBroker/stimulate',
+            '/dasproto.AttentionBroker/stimulate',
             request_serializer=common__pb2.HandleCount.SerializeToString,
             response_deserializer=common__pb2.Ack.FromString,
         )
         self.correlate = channel.unary_unary(
-            '/das.AttentionBroker/correlate',
+            '/dasproto.AttentionBroker/correlate',
             request_serializer=common__pb2.HandleList.SerializeToString,
             response_deserializer=common__pb2.Ack.FromString,
         )
