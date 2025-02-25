@@ -141,15 +141,14 @@ class QueryOptimizerIterator:
         """
         while self.generation <= self.params.max_generations:
             population = self._sample_population()
-            
+
             if not population:
                 raise RuntimeError("Population sampling failed: query response returned nothing.")
-            
+
             with ThreadPoolExecutor() as executor:
                 futures = [executor.submit(self._evaluate, ind) for ind in population]
                 evaluated_individuals = [f.result() for f in futures]
-            # evaluated_individuals = [self._evaluate(individual) for individual in population]
-            
+
             selected_individuals = self._select_best_individuals(evaluated_individuals)
             self._update_attention_broker(selected_individuals)
             self.generation += 1
@@ -209,8 +208,6 @@ class QueryOptimizerIterator:
             'attention_broker_port': port
         })
 
-        # single_answer = set()
-        # joint_answer = {}
         joint_answer_global = defaultdict(int)
         correlated_count = 0
 
@@ -232,42 +229,8 @@ class QueryOptimizerIterator:
                     self._attention_broker_stimulate(attention_broker, joint_answer_global)
                     joint_answer_global.clear()
                     correlated_count = 0
-                
-        
-        # for query_answer in individuals:
-        #     execution_stack = [handle for handle in query_answer.handles]
-
-        #     while execution_stack:
-        #         handle = execution_stack.pop()
-        #         single_answer.add(handle)
-        #         joint_answer[handle] = joint_answer.get(handle, 0) + 1
-        #         try:
-        #             with self.atom_db_mutex:
-        #                 targets = self.atom_db.get_link_targets(handle)
-        #             for target_handle in targets:
-        #                 execution_stack.append(target_handle)
-        #         except ValueError:
-        #             pass
-
-        #     # How to send the context?
-        #     # handle_list = []
-        #     # handle_list.context = self.params.context
-        #     # for h in single_answer:
-        #     #     handle_list.append(h)
-
-        #     attention_broker.correlate(single_answer)
-        #     time.sleep(0.01)
-        #     single_answer.clear()
-        #     correlated_count += 1
-
-        #     if correlated_count == MAX_CORRELATIONS_WITHOUT_STIMULATE:
-        #         correlated_count = 0
-        #         self._attention_broker_stimulate(attention_broker, joint_answer)
-        #         joint_answer.clear()
-        
 
         if correlated_count > 0:
-            # self._attention_broker_stimulate(attention_broker, joint_answer)
             self._attention_broker_stimulate(attention_broker, joint_answer_global)
 
     def _process_individual(self, query_answer: QueryAnswer):
