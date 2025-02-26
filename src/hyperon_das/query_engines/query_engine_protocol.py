@@ -314,7 +314,10 @@ class QueryEngine(ABC):
 
     @abstractmethod
     def get_atoms_by_text_field(
-        self, text_value: str, field: Optional[str] = None, text_index_id: Optional[str] = None
+        self,
+        text_value: str,
+        field: Optional[str] = None,
+        text_index_id: Optional[str] = None,
     ) -> HandleListT:
         """
         Retrieves a list of atom handles based on a text field value, with optional field and index ID.
