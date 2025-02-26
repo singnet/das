@@ -50,9 +50,10 @@ class QueryOptimizerAgent:
     def __init__(self, config_file: str) -> None:
         self.params = self._load_config(config_file)
 
-    def optimize(self, query_tokens: list[str]) -> Iterator:
-        iterator = QueryOptimizerIterator(query_tokens, self.params)
-        return iterator
+    def optimize(self, query_tokens: list[str] | str) -> Iterator:
+        if isinstance(query_tokens, str):
+            query_tokens = query_tokens.split(' ')
+        return QueryOptimizerIterator(query_tokens, self.params)
 
     def _load_config(self, config_file: str) -> Parameters:
         """
@@ -143,9 +144,10 @@ class QueryOptimizerIterator:
             population = self._sample_population()
 
             if not population:
+                self.producer_finished.set()
                 raise RuntimeError("Population sampling failed: query response returned nothing.")
 
-            with ThreadPoolExecutor() as executor:
+            with ThreadPoolExecutor(max_workers=10) as executor:
                 futures = [executor.submit(self._evaluate, ind) for ind in population]
                 evaluated_individuals = [f.result() for f in futures]
 
@@ -208,27 +210,46 @@ class QueryOptimizerIterator:
             'attention_broker_port': port
         })
 
-        joint_answer_global = defaultdict(int)
         correlated_count = 0
+        joint_answer_global = defaultdict(int)
+        
+        # with ThreadPool
+        # with ThreadPoolExecutor(max_workers=10) as executor:
+        #     futures = [executor.submit(self._process_individual, ind) for ind in individuals]
+        #     for future in futures:
+        #         single_answer, joint_answer = future.result()
+        #         attention_broker.correlate(single_answer)
+        #         time.sleep(0.01)
+        #         for handle, count in joint_answer.items():
+        #             joint_answer_global[handle] += count
+        #         correlated_count += 1
+        #         if correlated_count >= MAX_CORRELATIONS_WITHOUT_STIMULATE:
+        #             self._attention_broker_stimulate(attention_broker, joint_answer_global)
+        #             joint_answer_global.clear()
+        #             correlated_count = 0
+        # if correlated_count > 0:
+        #     self._attention_broker_stimulate(attention_broker, joint_answer_global)
 
-        with ThreadPoolExecutor() as executor:
-            futures = [executor.submit(self._process_individual, ind) for ind in individuals]
+        for individual in individuals:
+            single_answer, joint_answer = self._process_individual(individual)
+            
+            # How to send the context?
+            # handle_list = []
+            # handle_list.context = self.params.context
+            # for h in single_answer:
+            #     handle_list.append(h)
 
-            for future in futures:
-                single_answer, joint_answer = future.result()
+            attention_broker.correlate(single_answer)
 
-                attention_broker.correlate(single_answer)
-                time.sleep(0.01)
+            for handle, count in joint_answer.items():
+                joint_answer_global[handle] += count
 
-                for handle, count in joint_answer.items():
-                    joint_answer_global[handle] += count
+            correlated_count += 1
 
-                correlated_count += 1
-
-                if correlated_count >= MAX_CORRELATIONS_WITHOUT_STIMULATE:
-                    self._attention_broker_stimulate(attention_broker, joint_answer_global)
-                    joint_answer_global.clear()
-                    correlated_count = 0
+            if correlated_count >= MAX_CORRELATIONS_WITHOUT_STIMULATE:
+                self._attention_broker_stimulate(attention_broker, joint_answer_global)
+                joint_answer_global.clear()
+                correlated_count = 0
 
         if correlated_count > 0:
             self._attention_broker_stimulate(attention_broker, joint_answer_global)

@@ -52,7 +52,7 @@ class AttentionBrokerGateway:
             f'Requesting AttentionBroker at {self.server_url} to correlate {len(handle_set)} atoms'
         )
         message = grpc_types.HandleList(handle_list=handle_set)
-        # sleep(0.05)
+        sleep(0.05)
         with grpc.insecure_channel(self.server_url) as channel:
             stub = AttentionBrokerStub(channel)
             response = stub.correlate(message)
