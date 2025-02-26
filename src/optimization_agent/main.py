@@ -27,7 +27,7 @@ def parse_args():
 def main():
     try:
         sys.stdout.write("\nProcessing...")
-        sys.stdout.flush()        
+        sys.stdout.flush()
         args = parse_args()
         agent = QueryOptimizerAgent(args.config_file)
         iterator = agent.optimize(args.query_tokens)
