@@ -24,6 +24,7 @@ int main(int argc, char* argv[]) {
     }
     signal(SIGINT, &ctrl_c_handler);
     string config_path = argv[2];
+    cout << "Starting inference agent" << endl;
     auto server = new InferenceAgent(config_path);
     server->run();
     return 0;

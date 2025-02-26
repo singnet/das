@@ -39,7 +39,7 @@ class InferenceAgent {
     void stop();
 
    private:
-    void send_link_creation_request(InferenceRequest& inference_request);
+    void send_link_creation_request(shared_ptr<InferenceRequest> inference_request);
     void send_stop_link_creation_request(InferenceRequest& inference_request);
     void send_distributed_inference_control_request(const std::string& client_node_id);
     void parse_config(const string& config_path);
@@ -55,7 +55,7 @@ class InferenceAgent {
     thread* agent_thread;
     bool is_stoping = false;
     std::mutex agent_mutex;
-    std::unordered_map<std::string, InferenceRequest> iterator_link_creation_request_map; // iterator_id, link_creation_request
+    std::unordered_map<std::string, std::shared_ptr<InferenceRequest>> iterator_link_creation_request_map; // iterator_id, link_creation_request
     std::vector<shared_ptr<InferenceIterator<InferenceAgentNode>>> inference_iterators;
     DasAgentNode* das_client;
     InferenceAgentNode* inference_node_server;
