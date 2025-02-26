@@ -32,11 +32,6 @@ RUN cd ${THIRD_PARTY} \
     && ln -s ${THIRD_PARTY} ${DAS_DIR}/src/3rd-party \
     && mv bazelisk ${BAZEL_DIR}
 
-# TODO: integrate this to bazel build (https://github.com/singnet/das/issues/197)
-ADD https://raw.githubusercontent.com/singnet/das-query-engine/master/proto/attention_broker.proto ${PROTO_DIR}
-ADD https://raw.githubusercontent.com/singnet/das-query-engine/master/proto/common.proto ${PROTO_DIR}
-ADD https://raw.githubusercontent.com/singnet/das-query-engine/master/proto/echo.proto ${PROTO_DIR}
-
 ################################################################################
 # To be removed when AtomDB is properly integrated
 # Redis client
