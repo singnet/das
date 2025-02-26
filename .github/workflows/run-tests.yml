@@ -31,7 +31,7 @@ jobs:
           das-cli --version
 
       - name: Download Knowledge Base
-        run: curl https://raw.githubusercontent.com/singnet/das-toolbox/refs/heads/master/src/examples/data/animals.metta -o /tmp/animals.metta
+        run: curl https://raw.githubusercontent.com/singnet/das-toolbox/refs/heads/master/das-cli/src/examples/data/animals.metta -o /tmp/animals.metta
 
       - name: Setting das-cli configuration
         run: |-
@@ -52,10 +52,10 @@ jobs:
         run: das-cli metta load /tmp/animals.metta
 
       - name: Build source code
-        run: make build
+        run: make build-all
 
       - name: Starting Attention Broker
         run: make run-attention-broker &
 
       - name: Execute Unit Test Suite
-        run: make tests
+        run: make test-all
