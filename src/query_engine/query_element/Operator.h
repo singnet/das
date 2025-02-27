@@ -12,14 +12,15 @@ using namespace std;
 namespace query_element {
 
 /**
- * Superclass for elements which represent logic operators on LinkTemplate results (e.g. AND,
- * OR and NOT).
+ * Superclass for elements which represent logic operators on LinkTemplate
+ * results (e.g. AND, OR and NOT).
  *
  * Operator adds the required QueryNode elements to connect either with:
  *
- *     - one or more QueryElement downstream in the query tree (each of them can be either
- *       Operator or SOurce).
- *     - one QueryElement upstream in the query tree which can be another Operator or a Sink.
+ *     - one or more QueryElement downstream in the query tree (each of them can
+ * be either Operator or SOurce).
+ *     - one QueryElement upstream in the query tree which can be another
+ * Operator or a Sink.
  */
 template <unsigned int N>
 class Operator : public QueryElement {
@@ -30,14 +31,16 @@ class Operator : public QueryElement {
     /**
      * Constructor.
      *
-     * @param clauses Array of QueryElement, each of them a clause in the operation.
+     * @param clauses Array of QueryElement, each of them a clause in the
+     * operation.
      */
     Operator(const array<QueryElement*, N>& clauses) { initialize((QueryElement**) clauses.data()); }
 
     /**
      * Constructor.
      *
-     * @param clauses Array of QueryElement, each of them a clause in the operation.
+     * @param clauses Array of QueryElement, each of them a clause in the
+     * operation.
      */
     Operator(QueryElement** clauses) { initialize(clauses); }
 
@@ -50,10 +53,10 @@ class Operator : public QueryElement {
     // QueryElement API
 
     /**
-     * Sets up buffers for communication between this operator and its upstream and downstream
-     * QueryElements. Initializes a single QueryNodeClient for the upstream connection and
-     * N QueryNodeServer elements for the downstream connections, each corresponding to a clause
-     * in the operation.
+     * Sets up buffers for communication between this operator and its upstream
+     * and downstream QueryElements. Initializes a single QueryNodeClient for the
+     * upstream connection and N QueryNodeServer elements for the downstream
+     * connections, each corresponding to a clause in the operation.
      */
     virtual void setup_buffers() {
         if (this->subsequent_id == "") {
@@ -74,8 +77,8 @@ class Operator : public QueryElement {
     }
 
     /**
-     * Gracefully shuts down the QueryNodes attached to the upstream and downstream communication
-     * in the query tree.
+     * Gracefully shuts down the QueryNodes attached to the upstream and
+     * downstream communication in the query tree.
      */
     virtual void graceful_shutdown() {
         if (is_flow_finished()) {

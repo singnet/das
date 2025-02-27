@@ -1,15 +1,18 @@
 /**
  * @file patterns.h
- * @brief Utility functions for generating and manipulating binary matrices and pattern keys.
+ * @brief Utility functions for generating and manipulating binary matrices and
+ * pattern keys.
  *
- * This header file contains utility functions for generating binary matrices, multiplying
- * binary matrices by string matrices, and building pattern keys from a list of hash strings.
- * These functions are part of the atomdb namespace and are used for various operations
- * involving pattern generation and manipulation in the context of the das-atom-db project.
+ * This header file contains utility functions for generating binary matrices,
+ * multiplying binary matrices by string matrices, and building pattern keys
+ * from a list of hash strings. These functions are part of the atomdb namespace
+ * and are used for various operations involving pattern generation and
+ * manipulation in the context of the das-atom-db project.
  *
  * The main functionalities provided by this module include:
  * - Generating a binary matrix of a specified size.
- * - Multiplying a binary matrix by a string matrix to produce a resulting matrix.
+ * - Multiplying a binary matrix by a string matrix to produce a resulting
+ * matrix.
  * - Building pattern keys using a list of hash strings.
  */
 #pragma once
@@ -47,7 +50,8 @@ unordered_map<int, IntMatrix> BINARY_MATRIX_CACHE = {{0, {{}}}};
  *
  * @param numbers The size of the binary matrix to generate.
  *                If numbers equal to 0, returns a matrix with an empty vector.
- * @return A const reference to a binary matrix represented as a vector of vectors.
+ * @return A const reference to a binary matrix represented as a vector of
+ * vectors.
  */
 const IntMatrix& generate_binary_matrix(size_t numbers) {
     if (BINARY_MATRIX_CACHE.find(numbers) == BINARY_MATRIX_CACHE.end()) {
@@ -72,9 +76,11 @@ const IntMatrix& generate_binary_matrix(size_t numbers) {
  *
  * This function takes a binary matrix and a string matrix, and multiplies them
  * to produce a resulting matrix. Each element in the binary matrix determines
- * whether to include the corresponding string from the string matrix or a wildcard.
+ * whether to include the corresponding string from the string matrix or a
+ * wildcard.
  *
- * @param binary_matrix A binary matrix represented as a vector of vectors of integers.
+ * @param binary_matrix A binary matrix represented as a vector of vectors of
+ * integers.
  * @param string_matrix A vector of strings to multiply with the binary matrix.
  * @return A matrix represented as a vector of vectors of strings, where each
  *         subvector is a row in the resulting matrix.
@@ -103,7 +109,8 @@ StringMatrix multiply_binary_matrix_by_string_matrix(const IntMatrix& binary_mat
  * @brief Builds pattern keys using a list of hashes.
  *
  * This function takes a list of hash strings, generates a binary matrix,
- * multiplies it by the hash list, and then generates pattern keys from the result.
+ * multiplies it by the hash list, and then generates pattern keys from the
+ * result.
  *
  * @param hash_list A vector of hash strings to build pattern keys from.
  * @return A vector of pattern keys generated from the hash list.

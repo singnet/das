@@ -59,7 +59,7 @@ class LinkCreationAgentNode : public StarNode {
    private:
     Queue<vector<string>> shared_queue;
     const string CREATE_LINK = "create_link";  // DAS Node command
-    const string CREATE_LINK_PROCESSOR = "create_link_processor"; 
+    const string CREATE_LINK_PROCESSOR = "create_link_processor";
     bool shutting_down = false;
     bool is_server = true;
 };

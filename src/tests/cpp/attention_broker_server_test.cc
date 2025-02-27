@@ -1,18 +1,16 @@
-#include <iostream>
-#include <string>
-
 #include <grpcpp/ext/proto_server_reflection_plugin.h>
 #include <grpcpp/grpcpp.h>
 #include <grpcpp/health_check_service_interface.h>
 
-#include "gtest/gtest.h"
-
-#include "common.pb.h"
-#include "attention_broker.grpc.pb.h"
-#include "attention_broker.pb.h"
+#include <iostream>
+#include <string>
 
 #include "AttentionBrokerServer.h"
 #include "Utils.h"
+#include "attention_broker.grpc.pb.h"
+#include "attention_broker.pb.h"
+#include "common.pb.h"
+#include "gtest/gtest.h"
 #include "test_utils.h"
 
 using namespace attention_broker_server;
@@ -24,14 +22,13 @@ bool importance_equals(ImportanceType importance, double v2) {
 }
 
 TEST(AttentionBrokerTest, basics) {
-    
     AttentionBrokerServer service;
     dasproto::Empty empty;
     dasproto::HandleCount handle_count;
     dasproto::HandleList handle_list;
     dasproto::Ack ack;
     dasproto::ImportanceList importance_list;
-    ServerContext *context = NULL;
+    ServerContext* context = NULL;
 
     service.ping(context, &empty, &ack);
     EXPECT_EQ(ack.msg(), "PING");
@@ -44,8 +41,7 @@ TEST(AttentionBrokerTest, basics) {
 }
 
 TEST(AttentionBrokerTest, get_importance) {
-    
-    string *handles = build_handle_space(4);
+    string* handles = build_handle_space(4);
 
     AttentionBrokerServer service;
     dasproto::HandleList handle_list0;
@@ -55,7 +51,7 @@ TEST(AttentionBrokerTest, get_importance) {
     dasproto::Ack ack;
     dasproto::ImportanceList importance_list1;
     dasproto::ImportanceList importance_list2;
-    ServerContext *context = NULL;
+    ServerContext* context = NULL;
 
     (*handle_count.mutable_map())[handles[0]] = 1;
     (*handle_count.mutable_map())[handles[1]] = 1;

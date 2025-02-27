@@ -89,7 +89,6 @@ class ProofOfImplication : public InferenceRequest {
     std::string get_id() override;
     std::string get_type() override;
 
-
    private:
     const std::string IMPLICATION_DEDUCTION_PROCESSOR = "IMPLICATION_DEDUCTION";
 };
@@ -104,7 +103,6 @@ class ProofOfEquivalence : public InferenceRequest {
     std::vector<std::string> query() override;
     std::string get_id() override;
     std::string get_type() override;
-
 
    private:
     const std::string EQUIVALENCE_DEDUCTION_PROCESSOR = "EQUIVALENCE_DEDUCTION";

@@ -30,7 +30,8 @@ using namespace nb::literals;
 
 NB_MODULE(ext, m) {
     // ---------------------------------------------------------------------------------------------
-    // constants submodule -------------------------------------------------------------------------
+    // constants submodule
+    // -------------------------------------------------------------------------
     nb::module_ constants = m.def_submodule("constants");
     constants.attr("WILDCARD") = WILDCARD;
     constants.attr("WILDCARD_HASH") = WILDCARD_HASH;
@@ -55,7 +56,8 @@ NB_MODULE(ext, m) {
         .def_ro_static("TARGETS_DOCUMENTS", &FieldNames::TARGETS_DOCUMENTS)
         .def_ro_static("CUSTOM_ATTRIBUTES", &FieldNames::CUSTOM_ATTRIBUTES);
     // ---------------------------------------------------------------------------------------------
-    // database submodule --------------------------------------------------------------------------
+    // database submodule
+    // --------------------------------------------------------------------------
     nb::module_ database = m.def_submodule("database");
     nb::class_<AtomDB, AtomDBTrampoline>(database, "AtomDB")
         .def(nb::init<>())
@@ -264,14 +266,16 @@ NB_MODULE(ext, m) {
         .def("_build_link", &AtomDBPublicist::_build_link, "link_params"_a, "is_toplevel"_a = true)
         .def("_get_atom", &AtomDBPublicist::_get_atom, "handle"_a);
     // ---------------------------------------------------------------------------------------------
-    // adapters submodule --------------------------------------------------------------------------
+    // adapters submodule
+    // --------------------------------------------------------------------------
     nb::module_ adapters = m.def_submodule("adapters");
     nb::class_<InMemoryDB, AtomDB>(adapters, "InMemoryDB")
         .def(nb::init<const string&>(), "database_name"_a = "das")
         .def("__repr__", [](const InMemoryDB& self) -> string { return "<Atom database InMemory>"; })
         .def("__str__", [](const InMemoryDB& self) -> string { return "<Atom database InMemory>"; });
     // ---------------------------------------------------------------------------------------------
-    // exceptions submodule ------------------------------------------------------------------------
+    // exceptions submodule
+    // ------------------------------------------------------------------------
     nb::module_ exceptions = m.def_submodule("exceptions");
     nb::exception<AtomDbBaseException>(exceptions, "AtomDbBaseException");
     nb::exception<AddLinkException>(exceptions, "AddLinkException");
@@ -281,7 +285,8 @@ NB_MODULE(ext, m) {
     nb::exception<InvalidOperationException>(exceptions, "InvalidOperationException");
     nb::exception<RetryException>(exceptions, "RetryException");
     // ---------------------------------------------------------------------------------------------
-    // document_types submodule --------------------------------------------------------------------
+    // document_types submodule
+    // --------------------------------------------------------------------
     nb::module_ document_types = m.def_submodule("document_types");
     nb::class_<Atom>(document_types, "Atom")
         .def_rw("_id", &Atom::_id)
@@ -298,9 +303,9 @@ NB_MODULE(ext, m) {
     nb::class_<Node, Atom>(document_types, "Node")
         .def(
             /**
-             * @note This constructor is intended to be used only when passing in the basic building
-             *       parameters to other functions. For creating complete new Node objects, use the
-             *       constructor with all parameters.
+             * @note This constructor is intended to be used only when passing in
+             * the basic building parameters to other functions. For creating
+             * complete new Node objects, use the constructor with all parameters.
              */
             nb::init<const string&,  // type
                      const string&,  // name
@@ -327,9 +332,9 @@ NB_MODULE(ext, m) {
     nb::class_<Link, Atom>(document_types, "Link")
         .def(
             /**
-             * @note This constructor is intended to be used only when passing in the basic building
-             *       parameters to other functions. For creating complete new Link objects, use the
-             *       constructor with all parameters.
+             * @note This constructor is intended to be used only when passing in
+             * the basic building parameters to other functions. For creating
+             * complete new Link objects, use the constructor with all parameters.
              */
             nb::init<const string&,                  // type
                      const Link::TargetsDocuments&,  // targets
@@ -365,8 +370,9 @@ NB_MODULE(ext, m) {
         .def("__setstate__", &helpers::tuple_to_link)
         .def("to_dict", &helpers::link_to_dict);
     // ---------------------------------------------------------------------------------------------
-    // Disabling leak warnings as they can happen on Python interpreter shutdown, even if there are
-    // no actual leaks. This is a known issue related the Python C API, `typing` module and
-    // shared pointers. Re-enable them to run debugs if you suspect a leak in the code.
+    // Disabling leak warnings as they can happen on Python interpreter shutdown,
+    // even if there are no actual leaks. This is a known issue related the Python
+    // C API, `typing` module and shared pointers. Re-enable them to run debugs if
+    // you suspect a leak in the code.
     nb::set_leak_warnings(false);
 }

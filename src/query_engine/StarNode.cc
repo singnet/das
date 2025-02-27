@@ -1,4 +1,5 @@
 #include "StarNode.h"
+
 #include "LeadershipBroker.h"
 #include "MessageBroker.h"
 
@@ -8,34 +9,26 @@ using namespace std;
 // -------------------------------------------------------------------------------------------------
 // Constructors and destructors
 
-StarNode::StarNode(
-    const string &node_id, 
-    MessageBrokerType messaging_backend) :
-    DistributedAlgorithmNode(node_id, LeadershipBrokerType::SINGLE_MASTER_SERVER, messaging_backend) {
-
+StarNode::StarNode(const string& node_id, MessageBrokerType messaging_backend)
+    : DistributedAlgorithmNode(node_id, LeadershipBrokerType::SINGLE_MASTER_SERVER, messaging_backend) {
     this->is_server = true;
     this->join_network();
 }
 
-StarNode::StarNode(
-    const string &node_id, 
-    const string &server_id, 
-    MessageBrokerType messaging_backend) : 
-    DistributedAlgorithmNode(node_id, LeadershipBrokerType::SINGLE_MASTER_SERVER, messaging_backend) {
-
+StarNode::StarNode(const string& node_id, const string& server_id, MessageBrokerType messaging_backend)
+    : DistributedAlgorithmNode(node_id, LeadershipBrokerType::SINGLE_MASTER_SERVER, messaging_backend) {
     this->server_id = server_id;
     this->is_server = false;
     this->add_peer(server_id);
     this->join_network();
 }
 
-StarNode::~StarNode() {
-}
+StarNode::~StarNode() {}
 
 // -------------------------------------------------------------------------------------------------
 // DistributedAlgorithmNode virtual API
 
-void StarNode::node_joined_network(const string &node_id) {
+void StarNode::node_joined_network(const string& node_id) {
     if (this->is_server) {
         this->add_peer(node_id);
     }

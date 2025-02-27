@@ -3,6 +3,7 @@ package(default_visibility = ["//visibility:public"])
 exports_files(
     [
         ".ruff.toml",
+        ".clang-format"
     ],
     visibility = ["//visibility:public"],
 )

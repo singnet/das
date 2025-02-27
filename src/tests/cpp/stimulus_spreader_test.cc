@@ -1,16 +1,16 @@
-#include <cstdlib>
 #include <cmath>
+#include <cstdlib>
 
-#include "gtest/gtest.h"
-#include "common.pb.h"
-#include "attention_broker.grpc.pb.h"
-#include "attention_broker.pb.h"
-#include "test_utils.h"
-#include "expression_hasher.h"
 #include "AttentionBrokerServer.h"
 #include "HebbianNetwork.h"
 #include "HebbianNetworkUpdater.h"
 #include "StimulusSpreader.h"
+#include "attention_broker.grpc.pb.h"
+#include "attention_broker.pb.h"
+#include "common.pb.h"
+#include "expression_hasher.h"
+#include "gtest/gtest.h"
+#include "test_utils.h"
 
 using namespace attention_broker_server;
 
@@ -20,18 +20,17 @@ bool importance_equals(ImportanceType importance, double v2) {
 }
 
 TEST(TokenSpreader, distribute_wages) {
-
     unsigned int num_tests = 10000;
     unsigned int total_nodes = 100;
 
-    TokenSpreader *spreader;
+    TokenSpreader* spreader;
     ImportanceType tokens_to_spread;
-    dasproto::HandleCount *request;
+    dasproto::HandleCount* request;
     TokenSpreader::StimuliData data;
 
     for (unsigned int i = 0; i < num_tests; i++) {
-        string *handles = build_handle_space(total_nodes);
-        spreader = (TokenSpreader *) StimulusSpreader::factory(StimulusSpreaderType::TOKEN);
+        string* handles = build_handle_space(total_nodes);
+        spreader = (TokenSpreader*) StimulusSpreader::factory(StimulusSpreaderType::TOKEN);
 
         tokens_to_spread = 1.0;
         request = new dasproto::HandleCount();
@@ -44,11 +43,21 @@ TEST(TokenSpreader, distribute_wages) {
         data.importance_changes = new HandleTrie(HANDLE_HASH_SIZE - 1);
         spreader->distribute_wages(request, tokens_to_spread, &data);
 
-        EXPECT_TRUE(importance_equals(((TokenSpreader::ImportanceChanges *) data.importance_changes->lookup(handles[0]))->wages, 0.250));
-        EXPECT_TRUE(importance_equals(((TokenSpreader::ImportanceChanges *) data.importance_changes->lookup(handles[1]))->wages, 0.125));
-        EXPECT_TRUE(importance_equals(((TokenSpreader::ImportanceChanges *) data.importance_changes->lookup(handles[2]))->wages, 0.250));
-        EXPECT_TRUE(importance_equals(((TokenSpreader::ImportanceChanges *) data.importance_changes->lookup(handles[3]))->wages, 0.125));
-        EXPECT_TRUE(importance_equals(((TokenSpreader::ImportanceChanges *) data.importance_changes->lookup(handles[4]))->wages, 0.250));
+        EXPECT_TRUE(importance_equals(
+            ((TokenSpreader::ImportanceChanges*) data.importance_changes->lookup(handles[0]))->wages,
+            0.250));
+        EXPECT_TRUE(importance_equals(
+            ((TokenSpreader::ImportanceChanges*) data.importance_changes->lookup(handles[1]))->wages,
+            0.125));
+        EXPECT_TRUE(importance_equals(
+            ((TokenSpreader::ImportanceChanges*) data.importance_changes->lookup(handles[2]))->wages,
+            0.250));
+        EXPECT_TRUE(importance_equals(
+            ((TokenSpreader::ImportanceChanges*) data.importance_changes->lookup(handles[3]))->wages,
+            0.125));
+        EXPECT_TRUE(importance_equals(
+            ((TokenSpreader::ImportanceChanges*) data.importance_changes->lookup(handles[4]))->wages,
+            0.250));
         EXPECT_TRUE(data.importance_changes->lookup(handles[5]) == NULL);
         EXPECT_TRUE(data.importance_changes->lookup(handles[6]) == NULL);
         EXPECT_TRUE(data.importance_changes->lookup(handles[7]) == NULL);
@@ -59,12 +68,11 @@ TEST(TokenSpreader, distribute_wages) {
     }
 }
 
-static HebbianNetwork *build_test_network(string *handles) {
-
-    HebbianNetwork *network = new HebbianNetwork();
-    dasproto::HandleList *request;
-    ExactCountHebbianUpdater *updater = \
-        (ExactCountHebbianUpdater *) HebbianNetworkUpdater::factory(HebbianNetworkUpdaterType::EXACT_COUNT);
+static HebbianNetwork* build_test_network(string* handles) {
+    HebbianNetwork* network = new HebbianNetwork();
+    dasproto::HandleList* request;
+    ExactCountHebbianUpdater* updater = (ExactCountHebbianUpdater*) HebbianNetworkUpdater::factory(
+        HebbianNetworkUpdaterType::EXACT_COUNT);
 
     request = new dasproto::HandleList();
     request->set_hebbian_network((unsigned long) network);
@@ -86,7 +94,6 @@ static HebbianNetwork *build_test_network(string *handles) {
 }
 
 TEST(TokenSpreader, spread_stimuli) {
-
     // --------------------------------------------------------------------
     // NOTE TO REVIEWER: I left debug messages because this code extremely
     //                   error prone and difficult to debug. Probably we'll
@@ -95,12 +102,12 @@ TEST(TokenSpreader, spread_stimuli) {
     // --------------------------------------------------------------------
     // Build and check network
 
-    string *handles = build_handle_space(6, true);
+    string* handles = build_handle_space(6, true);
     for (unsigned int i = 0; i < 6; i++) {
         cout << i << ": " << handles[i] << endl;
     }
 
-    HebbianNetwork *network = build_test_network(handles);
+    HebbianNetwork* network = build_test_network(handles);
 
     unsigned int expected[6][6] = {
         {0, 1, 1, 1, 0, 0},
@@ -118,7 +125,8 @@ TEST(TokenSpreader, spread_stimuli) {
             EXPECT_TRUE(network->get_node_count(handles[i]) == 1);
         }
         for (unsigned int j = 0; j < 6; j++) {
-            cout << i << ", " << j << ": " << expected[i][j] << " " << network->get_asymmetric_edge_count(handles[i], handles[j]) << endl;
+            cout << i << ", " << j << ": " << expected[i][j] << " "
+                 << network->get_asymmetric_edge_count(handles[i], handles[j]) << endl;
             EXPECT_TRUE(network->get_asymmetric_edge_count(handles[i], handles[j]) == expected[i][j]);
         }
     }
@@ -126,9 +134,8 @@ TEST(TokenSpreader, spread_stimuli) {
     // ----------------------------------------------------------
     // Build and process simulus spreading request
 
-    dasproto::HandleCount *request;
-    TokenSpreader *spreader = \
-        (TokenSpreader *) StimulusSpreader::factory(StimulusSpreaderType::TOKEN);
+    dasproto::HandleCount* request;
+    TokenSpreader* spreader = (TokenSpreader*) StimulusSpreader::factory(StimulusSpreaderType::TOKEN);
 
     request = new dasproto::HandleCount();
     request->set_hebbian_network((unsigned long) network);

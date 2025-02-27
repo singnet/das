@@ -3,12 +3,12 @@
  */
 
 #pragma once
+#include <map>
 #include <memory>
 #include <mutex>
 #include <string>
 #include <thread>
 #include <vector>
-#include <map>
 
 #include "link_creation_agent_node.h"
 #include "inference_agent_node.h"
@@ -17,7 +17,6 @@
 #include "distributed_inference_control_agent_node.h"
 #include "inference_request_validator.h"
 #include "inference_request.h"
-
 
 using namespace distributed_algorithm_node;
 using namespace link_creation_agent;
@@ -31,9 +30,10 @@ class InferenceAgent {
     InferenceAgent(const string& config_path);
     ~InferenceAgent();
     /**
-     * @brief Start the agent, receive inference request from the client, send link_creation
-     * request to the link_creation_agent, listen when distributed inference control agent
-     * finish the inference, send request to stop link creation.
+     * @brief Start the agent, receive inference request from the client, send
+     * link_creation request to the link_creation_agent, listen when distributed
+     * inference control agent finish the inference, send request to stop link
+     * creation.
      */
     void run();
     void stop();

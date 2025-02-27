@@ -1,17 +1,20 @@
 /**
  * @file document_types.h
- * @brief Defines various classes representing atomic entities and their relationships in the atom
- * database.
+ * @brief Defines various classes representing atomic entities and their
+ * relationships in the atom database.
  *
- * This header file contains the definitions of several classes that represent different types of
- * atomic entities and their relationships within the atom database. The classes include:
- * - CustomAttributes: A type alias for `std::unordered_map<string, variant<string, long, double, bool>`.
- * - Atom: Represents a basic atomic entity with attributes such as ID, handle, composite type hash,
- *   named type, and optional custom attributes.
- * - Node: Represents a node in the atom database, extending the Atom class by adding a name
- *   attribute.
- * - Link: Represents a link in the atom database, encapsulating a composite type, named type hash,
- *   and a list of target hashes. It supports nested composite types and validates their structure.
+ * This header file contains the definitions of several classes that represent
+ * different types of atomic entities and their relationships within the atom
+ * database. The classes include:
+ * - CustomAttributes: A type alias for `std::unordered_map<string,
+ * variant<string, long, double, bool>`.
+ * - Atom: Represents a basic atomic entity with attributes such as ID, handle,
+ * composite type hash, named type, and optional custom attributes.
+ * - Node: Represents a node in the atom database, extending the Atom class by
+ * adding a name attribute.
+ * - Link: Represents a link in the atom database, encapsulating a composite
+ * type, named type hash, and a list of target hashes. It supports nested
+ * composite types and validates their structure.
  */
 #pragma once
 
@@ -78,10 +81,10 @@ static string custom_attributes_to_string(const CustomAttributes& custom_attribu
  * @class Atom
  * @brief Represents an atomic entity with various attributes.
  *
- * The Atom class encapsulates the properties of an atomic entity, including its ID, handle,
- * composite type hash, named type, and optional custom attributes. It provides constructors
- * for initialization, comparison operators, and a method to convert the object to a string
- * representation.
+ * The Atom class encapsulates the properties of an atomic entity, including its
+ * ID, handle, composite type hash, named type, and optional custom attributes.
+ * It provides constructors for initialization, comparison operators, and a
+ * method to convert the object to a string representation.
  */
 class Atom {
    public:
@@ -96,10 +99,11 @@ class Atom {
     /**
      * @brief Constructs an Atom with a named type and optional custom attributes.
      * @param named_type The named type of the Atom.
-     * @param custom_attributes Optional custom attributes for the Atom. Defaults to an empty map.
-     * @note This constructor is intended to be used only when passing in the basic building
-     *       parameters to other functions. For creating complete new Atom objects, use the
-     *       constructor with all parameters.
+     * @param custom_attributes Optional custom attributes for the Atom. Defaults
+     * to an empty map.
+     * @note This constructor is intended to be used only when passing in the
+     * basic building parameters to other functions. For creating complete new
+     * Atom objects, use the constructor with all parameters.
      */
     Atom(const string& named_type, const CustomAttributes& custom_attributes = CustomAttributes{})
         : named_type(named_type), custom_attributes(custom_attributes) {}
@@ -108,9 +112,11 @@ class Atom {
      * @brief Constructs an Atom object with the given parameters.
      * @param id The unique identifier for the atom.
      * @param handle The handle for the atom.
-     * @param composite_type_hash The hash representing the composite type of the atom.
+     * @param composite_type_hash The hash representing the composite type of the
+     * atom.
      * @param named_type The named type of the atom.
-     * @param custom_attributes Optional custom attributes for the atom. Defaults to an empty map.
+     * @param custom_attributes Optional custom attributes for the atom. Defaults
+     * to an empty map.
      */
     Atom(const string& id,
          const string& handle,
@@ -146,8 +152,8 @@ class Atom {
 
     /**
      * @brief Converts the object to a string representation.
-     * @return A string representing the object, including its ID, handle, composite type hash,
-     *         named type, and custom attributes.
+     * @return A string representing the object, including its ID, handle,
+     * composite type hash, named type, and custom attributes.
      */
     virtual const string to_string() const noexcept {
         string result = "_id: '" + this->_id + "'";
@@ -164,8 +170,9 @@ class Atom {
  * @class Node
  * @brief Represents a node in the atom database, inheriting from Atom.
  *
- * The Node class extends the Atom class by adding a name attribute. It includes constructors,
- * equality operators, and a string representation method. The name attribute must not be empty.
+ * The Node class extends the Atom class by adding a name attribute. It includes
+ * constructors, equality operators, and a string representation method. The
+ * name attribute must not be empty.
  */
 class Node : public Atom {
    public:
@@ -177,10 +184,11 @@ class Node : public Atom {
      * @brief Constructs a Node with a type, name, and optional custom attributes.
      * @param type The type of the Node.
      * @param name The name of the Node.
-     * @param custom_attributes Optional custom attributes for the Node. Defaults to an empty map.
-     * @note This constructor is intended to be used only when passing in the basic building
-     *       parameters to other functions. For creating complete new Node objects, use the
-     *       constructor with all parameters.
+     * @param custom_attributes Optional custom attributes for the Node. Defaults
+     * to an empty map.
+     * @note This constructor is intended to be used only when passing in the
+     * basic building parameters to other functions. For creating complete new
+     * Node objects, use the constructor with all parameters.
      *
      * Usage:
      * ```
@@ -190,12 +198,14 @@ class Node : public Atom {
      *     Node(
      *         "Concept",                                 // type
      *         "human",                                   // name
-     *         { {"weight": 0.8}, {"immutable": false} }  // custom_attributes (optional)
+     *         { {"weight": 0.8}, {"immutable": false} }  // custom_attributes
+     * (optional)
      *     )
      * );
      *
      * bool node2_is_immutable = (
-     *     get_custom_attribute<bool>(node2->custom_attributes, "immutable").value_or(false)
+     *     get_custom_attribute<bool>(node2->custom_attributes,
+     * "immutable").value_or(false)
      * );
      * cout << node2_is_immutable << endl;
      * // Output:
@@ -203,9 +213,10 @@ class Node : public Atom {
      *
      * cout << node2.to_string() << endl;
      * // Output:
-     * Node(_id: 'af12f10f9ae2002a1607ba0b47ba8407', handle: 'af12f10f9ae2002a1607ba0b47ba8407',
-     * composite_type_hash: 'd99a604c79ce3c2e76a2f43488d5d4c3', named_type: 'Concept', custom_attributes:
-     * {immutable: false, weight: 0.800000}, name: 'human')
+     * Node(_id: 'af12f10f9ae2002a1607ba0b47ba8407', handle:
+     * 'af12f10f9ae2002a1607ba0b47ba8407', composite_type_hash:
+     * 'd99a604c79ce3c2e76a2f43488d5d4c3', named_type: 'Concept',
+     * custom_attributes: {immutable: false, weight: 0.800000}, name: 'human')
      * ```
      */
     Node(const string& type,
@@ -220,7 +231,8 @@ class Node : public Atom {
      * @param composite_type_hash The hash representing the composite type.
      * @param named_type The named type of the Node.
      * @param name The name of the Node.
-     * @param custom_attributes Optional custom attributes for the Node. Defaults to an empty map.
+     * @param custom_attributes Optional custom attributes for the Node. Defaults
+     * to an empty map.
      */
     Node(const string& id,
          const string& handle,
@@ -256,18 +268,20 @@ class Node : public Atom {
  * @class Link
  * @brief Represents a link in the atom database, inheriting from Atom.
  *
- * The Link class encapsulates a composite type, a named type hash, and a list of target hashes.
- * It supports nested composite types and validates their structure. The class also provides
- * functionality to compare links, convert them to string representations, and manage target
- * documents.
+ * The Link class encapsulates a composite type, a named type hash, and a list
+ * of target hashes. It supports nested composite types and validates their
+ * structure. The class also provides functionality to compare links, convert
+ * them to string representations, and manage target documents.
  */
 class Link : public Atom {
    public:
     using TargetsDocuments = vector<variant<Node, Link>>;
 
     /**
-     * `composite_type` is designed to hold a list of elements, where each element can either be a
-     * `string` (single hash) or another list of `strings`, allowing multiple levels of nesting.
+     * `composite_type` is designed to hold a list of elements, where each element
+     can either be a
+     * `string` (single hash) or another list of `strings`, allowing multiple
+     levels of nesting.
      * Example:
      ```
        [
@@ -294,13 +308,15 @@ class Link : public Atom {
     Link() = default;
 
     /**
-     * @brief Constructs a Link with a type, targets documents, and optional custom attributes.
+     * @brief Constructs a Link with a type, targets documents, and optional
+     * custom attributes.
      * @param type The type of the Link.
      * @param targets The targets documents associated with the Link.
-     * @param custom_attributes Optional custom attributes for the Link. Defaults to an empty map.
-     * @note This constructor is intended to be used only when passing in the basic building
-     *       parameters to other functions. For creating complete new Link objects, use the
-     *       constructor with all parameters.
+     * @param custom_attributes Optional custom attributes for the Link. Defaults
+     * to an empty map.
+     * @note This constructor is intended to be used only when passing in the
+     * basic building parameters to other functions. For creating complete new
+     * Link objects, use the constructor with all parameters.
      *
      * Usage:
      * ```
@@ -308,24 +324,24 @@ class Link : public Atom {
      * auto link = db.add_link(
      *     Link(
      *         "Similarity",                                 // type
-     *         {                                             // targets of Similarity link
-     *             {Node("Concept", "monkey")},              // a node as a target of Similarity link
-     *             {Node("Concept", "human")},               // another node as a target
-     *             {                                         // a link as a target of Similarity link
-     *                 Link("Dummicity",                     // type
-     *                      {                                // targets of Dummicity link
-     *                          {Node("Concept", "dummy1")},
-     *                          {Node("Concept", "dummy2")}
+     *         {                                             // targets of
+     * Similarity link {Node("Concept", "monkey")},              // a node as a
+     * target of Similarity link {Node("Concept", "human")},               //
+     * another node as a target {                                         // a
+     * link as a target of Similarity link Link("Dummicity", // type { // targets
+     * of Dummicity link {Node("Concept", "dummy1")}, {Node("Concept", "dummy2")}
      *                      }
      *                 )
      *             }
      *         },
-     *         { {"weight": 0.8}, {"immutable": false} }     // custom_attributes (optional)
+     *         { {"weight": 0.8}, {"immutable": false} }     // custom_attributes
+     * (optional)
      *     )
      * );
      *
      * double link_weight = (
-     *     get_custom_attribute<double>(link->custom_attributes, "weight").value_or(0.0)
+     *     get_custom_attribute<double>(link->custom_attributes,
+     * "weight").value_or(0.0)
      * );
      * cout << link_weight << endl;
      * // Output:
@@ -333,15 +349,17 @@ class Link : public Atom {
      *
      * cout << link.to_string() << endl;
      * // Output:
-     * Link(_id: '8ef9c2093150a022204fa6c9f0bc94f8', handle: '8ef9c2093150a022204fa6c9f0bc94f8',
-     * composite_type_hash: '8dd4c9ab591dbbd1e6eb511e71ef5aa9', named_type: 'Similarity',
+     * Link(_id: '8ef9c2093150a022204fa6c9f0bc94f8', handle:
+     * '8ef9c2093150a022204fa6c9f0bc94f8', composite_type_hash:
+     * '8dd4c9ab591dbbd1e6eb511e71ef5aa9', named_type: 'Similarity',
      * custom_attributes: {immutable: false, weight: 0.800000}, composite_type:
      * ['a9dea78180588431ec64d6bc4872fdbc', 'd99a604c79ce3c2e76a2f43488d5d4c3',
      * 'd99a604c79ce3c2e76a2f43488d5d4c3', ['44d25cf84a95f144d6e603ca28caadba',
-     * 'd99a604c79ce3c2e76a2f43488d5d4c3', 'd99a604c79ce3c2e76a2f43488d5d4c3']], named_type_hash:
-     * 'a9dea78180588431ec64d6bc4872fdbc', targets: ['1cdffc6b0b89ff41d68bec237481d1e1',
-     * 'af12f10f9ae2002a1607ba0b47ba8407', '087091095a266df1bfcc1ee01e79811c'], is_toplevel: true,
-     * targets_documents: [])
+     * 'd99a604c79ce3c2e76a2f43488d5d4c3', 'd99a604c79ce3c2e76a2f43488d5d4c3']],
+     * named_type_hash: 'a9dea78180588431ec64d6bc4872fdbc', targets:
+     * ['1cdffc6b0b89ff41d68bec237481d1e1', 'af12f10f9ae2002a1607ba0b47ba8407',
+     * '087091095a266df1bfcc1ee01e79811c'], is_toplevel: true, targets_documents:
+     * [])
      * ```
      */
     Link(const string& type,
@@ -359,8 +377,10 @@ class Link : public Atom {
      * @param named_type_hash The hash of the named type.
      * @param targets The vector of target strings.
      * @param is_toplevel Boolean indicating if the link is top-level.
-     * @param custom_attributes Optional custom attributes. Defaults to an empty map.
-     * @param targets_documents Optional targets documents. Defaults to an empty vector.
+     * @param custom_attributes Optional custom attributes. Defaults to an empty
+     * map.
+     * @param targets_documents Optional targets documents. Defaults to an empty
+     * vector.
      */
     Link(const string& id,
          const string& handle,
@@ -390,7 +410,8 @@ class Link : public Atom {
         }
         if (not this->validate_composite_type(this->composite_type)) {
             throw invalid_argument(
-                "Invalid composite type. All elements must be strings or lists of strings.");
+                "Invalid composite type. All elements must be "
+                "strings or lists of strings.");
         }
         if (this->named_type_hash.empty()) {
             throw invalid_argument("Named type hash cannot be empty.");
@@ -402,8 +423,8 @@ class Link : public Atom {
 
     /**
      * @brief Converts the Link object to a string representation.
-     * @return A string representing the Link object, including its composite type, named type hash,
-     *         targets, top-level status, and target documents.
+     * @return A string representing the Link object, including its composite
+     * type, named type hash, targets, top-level status, and target documents.
      */
     const string to_string() const noexcept override {
         string result = "Link(" + Atom::to_string();
@@ -463,13 +484,13 @@ class Link : public Atom {
     /**
      * @brief Validates the structure of a composite type.
      *
-     * This function checks whether the given composite type adheres to the expected structure.
-     * A composite type is a list where each element can be either a string or another list of
-     * the same type. The function ensures that all elements in the composite type meet these
-     * criteria.
+     * This function checks whether the given composite type adheres to the
+     * expected structure. A composite type is a list where each element can be
+     * either a string or another list of the same type. The function ensures that
+     * all elements in the composite type meet these criteria.
      *
-     * @param composite_type A list of elements of type std::any representing the composite type
-     *                       to be validated.
+     * @param composite_type A list of elements of type std::any representing the
+     * composite type to be validated.
      * @return true if the composite type is valid, false otherwise.
      */
     static bool validate_composite_type(const ListOfAny& composite_type) {
