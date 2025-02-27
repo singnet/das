@@ -57,6 +57,20 @@ class InferenceRequest {
      */
     virtual std::string get_type();
 
+    /**
+     * @brief Get the max proof length of the inference request
+     *
+     * @return std::string
+     */
+    virtual std::string get_max_proof_length();
+
+    /**
+     * @brief Get the distributed inference control request of the inference request
+     *
+     * @return std::vector<std::string>
+     */
+    virtual std::vector<std::string> get_distributed_inference_control_request();
+
    protected:
     std::string first_handle;
     std::string second_handle;
@@ -76,6 +90,8 @@ class ProofOfImplicationOrEquivalence : public InferenceRequest {
     std::vector<std::string> patterns_link_template();
     std::string get_id() override;
     std::string get_type() override;
+    std::string get_max_proof_length() override;
+    std::vector<std::string> get_distributed_inference_control_request() override;
 };
 
 class ProofOfImplication : public InferenceRequest {
@@ -88,8 +104,8 @@ class ProofOfImplication : public InferenceRequest {
     std::vector<std::string> query() override;
     std::string get_id() override;
     std::string get_type() override;
-
-
+    std::string get_max_proof_length() override;
+    std::vector<std::string> get_distributed_inference_control_request() override;
    private:
     const std::string IMPLICATION_DEDUCTION_PROCESSOR = "IMPLICATION_DEDUCTION";
 };
@@ -104,8 +120,8 @@ class ProofOfEquivalence : public InferenceRequest {
     std::vector<std::string> query() override;
     std::string get_id() override;
     std::string get_type() override;
-
-
+    std::string get_max_proof_length() override;
+    std::vector<std::string> get_distributed_inference_control_request() override;
    private:
     const std::string EQUIVALENCE_DEDUCTION_PROCESSOR = "EQUIVALENCE_DEDUCTION";
 };
