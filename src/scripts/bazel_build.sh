@@ -26,6 +26,8 @@ if [ "$BUILD_BINARIES" = false ] && [ "$BUILD_WHEELS" = false ]; then
 fi
 
 if [ "$BUILD_BINARIES" = true ]; then
+    $BAZELISK_BUILD_CMD //:inference_agent_server
+    mv bazel-bin/inference_agent_server "$BIN_DIR"
     $BAZELISK_BUILD_CMD //:link_creation_server
     mv bazel-bin/link_creation_server "$BIN_DIR"
     $BAZELISK_BUILD_CMD //:link_creation_agent_client
@@ -38,8 +40,7 @@ if [ "$BUILD_BINARIES" = true ]; then
     mv bazel-bin/query_broker "$BIN_DIR"
     $BAZELISK_BUILD_CMD //:query
     mv bazel-bin/query "$BIN_DIR"
-    $BAZELISK_BUILD_CMD //:inference_agent
-    mv bazel-bin/inference_agent "$BIN_DIR"
+
 fi
 
 if [ "$BUILD_WHEELS" = true ]; then

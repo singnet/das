@@ -17,14 +17,14 @@
 #include "DASNode.h"
 #include "HandlesAnswer.h"
 #include "RemoteIterator.h"
-#include "das_link_creation_node.h"
-#include "das_server_node.h"
+#include "link_creation_agent_node.h"
+#include "das_agent_node.h"
 #include "service.h"
 
 using namespace query_node;
 using namespace std;
 using namespace query_element;
-
+using namespace das_agent;
 namespace link_creation_agent {
 struct LinkCreationAgentRequest {
     vector<string> query;
@@ -104,8 +104,8 @@ class LinkCreationAgent {
     LinkCreationService* service;
     vector<LinkCreationAgentRequest> request_buffer;
     query_engine::DASNode* query_node_client;
-    LinkCreationNode* link_creation_node_server;
-    das::DasAgentNode* das_client;
+    LinkCreationAgentNode* link_creation_node_server;
+    DasAgentNode* das_client;
     thread* agent_thread;
     mutex agent_mutex;
     bool is_stoping = false;
