@@ -19,8 +19,8 @@ InferenceAgent::InferenceAgent(const string& config_path) {
     cout << "Starting inference node server" << endl;
     inference_node_server = new InferenceAgentNode(inference_node_id);
     cout << "Starting link creation node client" << endl;
-    link_creation_node_client = new LinkCreationAgentNode(link_creation_agent_client_id);
-    cout << "Starting das client" << endl;
+    link_creation_node_client = new LinkCreationAgentNode(link_creation_agent_client_id, link_creation_agent_server_id);
+    cout << "Starting DAS client" << endl;
     das_client = new DasAgentNode(das_client_id, das_server_id);
     cout << "Starting distributed inference control client" << endl;
     distributed_inference_control_client = new DistributedInferenceControlAgentNode(
@@ -77,7 +77,7 @@ void InferenceAgent::run() {
             }
         } else {
             for (int i = 0; i < inference_iterators.size(); i++) {
-                if (!inference_iterators[i]->pop().empty()) {
+                if (!inference_iterators[i]->pop(false).empty()) {
                     send_stop_link_creation_request(
                         iterator_link_creation_request_map[inference_iterators[i]->get_local_id()]);
                     inference_iterators.erase(inference_iterators.begin() + i);
@@ -120,7 +120,9 @@ void InferenceAgent::send_link_creation_request(shared_ptr<InferenceRequest> inf
     link_creation_node_client->send_message(link_creation_request);
 }
 
-void InferenceAgent::send_stop_link_creation_request(shared_ptr<InferenceRequest> inference_request) {}
+void InferenceAgent::send_stop_link_creation_request(shared_ptr<InferenceRequest> inference_request) {
+    send_link_creation_request(inference_request, true);
+}
 
 void InferenceAgent::send_distributed_inference_control_request(const string& client_node_id) {
     shared_ptr<InferenceIterator<InferenceAgentNode>> inference_iterator =
@@ -145,33 +147,14 @@ const string InferenceAgent::get_next_iterator_id() {
 
 void InferenceAgent::parse_config(const string& config_path) {
     cout << "Parsing config file: " << config_path << endl;
-    ifstream file(config_path);
-    string line;
-    while (getline(file, line)) {
-        istringstream is_line(line);
-        string key;
-        if (getline(is_line, key, '=')) {
-            string value;
-            if (getline(is_line, value)) {
-                value.erase(remove(value.begin(), value.end(), ' '), value.end());
-                key.erase(remove(key.begin(), key.end(), ' '), key.end());
-                if (key == "inference_node_id") {
-                    this->inference_node_id = value;
-                } else if (key == "das_client_id") {
-                    this->das_client_id = value;
-                } else if (key == "das_server_id") {
-                    this->das_server_id = value;
-                } else if (key == "distributed_inference_control_node_id") {
-                    this->distributed_inference_control_node_id = value;
-                } else if (key == "distributed_inference_control_node_server_id") {
-                    this->distributed_inference_control_node_server_id = value;
-                } else if (key == "link_creation_agent_server_id") {
-                    this->link_creation_agent_server_id = value;
-                } else if (key == "link_creation_agent_client_id") {
-                    this->link_creation_agent_client_id = value;
-                }
-            }
-        }
-    }
-    file.close();
+    map<string, string> config = Utils::parse_config(config_path);
+
+    this->inference_node_id = config["inference_node_id"];
+    this->das_client_id = config["das_client_id"];
+    this->das_server_id = config["das_server_id"];
+    this->distributed_inference_control_node_id = config["distributed_inference_control_node_id"];
+    this->distributed_inference_control_node_server_id = config["distributed_inference_control_node_server_id"];
+    this->link_creation_agent_server_id = config["link_creation_agent_server_id"];
+    this->link_creation_agent_client_id = config["link_creation_agent_client_id"];
+
 }
