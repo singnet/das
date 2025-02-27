@@ -13,11 +13,11 @@ namespace attention_broker_server {
 /**
  * Data abstraction implementing a map handle->value using a trie (prefix tree).
  *
- * This data structure is basicaly like a hashmap mapping from handles to
- * objects of type HandleTrie::TrieValue.
+ * This data structure is basicaly like a hashmap mapping from handles to objects of
+ * type HandleTrie::TrieValue.
  *
- * When a (key, value) pair is inserted and key is already present, the method
- * merge() in value is called passing the newly inserted value.
+ * When a (key, value) pair is inserted and key is already present, the method merge()
+ * in value is called passing the newly inserted value.
  */
 class HandleTrie {
    public:
@@ -38,15 +38,15 @@ class HandleTrie {
      */
     class TrieNode {
        public:
-        TrieNode();                  /// Basic empty constructor.
-        ~TrieNode();                 /// Destructor.
+        TrieNode();           /// Basic empty constructor.
+        ~TrieNode();          /// Destructor.
 
-        TrieNode** children;         /// Array with children of this node.
-        TrieValue* value;            /// Value attached to this node or NULL if none.
-        string suffix;               /// The key (handle) attached to this node (leafs) or NULL if
-                                     /// none (internal nodes).
-        unsigned char suffix_start;  /// The point in the suffix from which this node
-                                     /// (leaf) differs from its siblings.
+        TrieNode** children;  /// Array with children of this node.
+        TrieValue* value;     /// Value attached to this node or NULL if none.
+        string
+            suffix;  /// The key (handle) attached to this node (leafs) or NULL if none (internal nodes).
+        unsigned char suffix_start;  /// The point in the suffix from which this node (leaf) differs from
+                                     /// its siblings.
         mutex trie_node_mutex;
 
         string to_string();  /// Returns a string representation of this node.
@@ -56,14 +56,13 @@ class HandleTrie {
     ~HandleTrie();                      /// Destructor.
 
     /**
-     * Insert a new key in this HandleTrie or merge its value if the key is
-     * already present.
+     * Insert a new key in this HandleTrie or merge its value if the key is already present.
      *
      * @param key Handle being inserted.
      * @param value HandleTrie::TrieValue object being inserted.
      *
-     * @return The resulting HandleTrie::TrieValue object after insertion (and
-     * eventually the merge) is processed.
+     * @return The resulting HandleTrie::TrieValue object after insertion (and eventually the merge) is
+     * processed.
      */
     TrieValue* insert(const string& key, TrieValue* value);
 
@@ -72,20 +71,17 @@ class HandleTrie {
      *
      * @param key Handle being searched.
      *
-     * @return The HandleTrie::TrieValue object attached to the passed key or NULL
-     * if none.
+     * @return The HandleTrie::TrieValue object attached to the passed key or NULL if none.
      */
     TrieValue* lookup(const string& key);
 
     /**
-     * Traverse all keys (in-order) calling the passed visit_function once per
-     * stored value.
+     * Traverse all keys (in-order) calling the passed visit_function once per stored value.
      *
-     * @param keep_root_locked Keep root HandleTrie::TrieNode locked during the
-     * whole traversing releasing the lock when it ends.
+     * @param keep_root_locked Keep root HandleTrie::TrieNode locked during the whole traversing
+     * releasing the lock when it ends.
      * @param visit_function Function to be called when each value is visited.
-     * @param data Additional information passed to visit_function or NULL if
-     * none.
+     * @param data Additional information passed to visit_function or NULL if none.
      */
     void traverse(bool keep_root_locked, bool (*visit_function)(TrieNode* node, void* data), void* data);
 

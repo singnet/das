@@ -9,15 +9,22 @@ using namespace attention_broker_server;
 // --------------------------------------------------------------------------------
 // Public methods
 
-RequestSelector::RequestSelector(unsigned int thread_id, SharedQueue* stimulus, SharedQueue* correlation)
-    : thread_id(thread_id), stimulus(stimulus), correlation(correlation) {}
+RequestSelector::RequestSelector(unsigned int thread_id,
+                                 SharedQueue* stimulus,
+                                 SharedQueue* correlation) {
+    this->thread_id = thread_id;
+    this->stimulus = stimulus;
+    this->correlation = correlation;
+}
 
-RequestSelector::~RequestSelector() = default;
+RequestSelector::~RequestSelector() {}
 
 EvenThreadCount::EvenThreadCount(unsigned int thread_id, SharedQueue* stimulus, SharedQueue* correlation)
-    : RequestSelector(thread_id, stimulus, correlation), even_thread_id((thread_id % 2) == 0) {}
+    : RequestSelector(thread_id, stimulus, correlation) {
+    even_thread_id = ((thread_id % 2) == 0);
+}
 
-EvenThreadCount::~EvenThreadCount() = default;
+EvenThreadCount::~EvenThreadCount() {}
 
 RequestSelector* RequestSelector::factory(SelectorType instance_type,
                                           unsigned int thread_id,
@@ -29,7 +36,7 @@ RequestSelector* RequestSelector::factory(SelectorType instance_type,
         }
         default: {
             Utils::error("Invalid selector type: " + to_string((int) instance_type));
-            return nullptr;  // to avoid warnings
+            return NULL;  // to avoid warnings
         }
     }
 }

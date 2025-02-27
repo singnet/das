@@ -15,30 +15,27 @@ namespace attention_broker_server {
 typedef double ImportanceType;
 
 /**
- * Data abstraction of an asymmetric Hebbian Network with only direct hebbian
- * links.
+ * Data abstraction of an asymmetric Hebbian Network with only direct hebbian links.
  *
- * A Hebbian Network, in the context of AttentionBrokerServer, is a directed
- * graph with weights in the edges A->B representing the probability of B being
- * present in a DAS query answer given that A is present. In other words,
- * provided that the atom A is one of the atoms returned in a given query in
- * DAS, the weight of the edge A->B in a HebbianNetwork is an estimate of the
- * probability of B being present in the same answer.
+ * A Hebbian Network, in the context of AttentionBrokerServer, is a directed graph with
+ * weights in the edges A->B representing the probability of B being present in a DAS
+ * query answer given that A is present. In other words, provided that the atom A is one of
+ * the atoms returned in a given query in DAS, the weight of the edge A->B in
+ * a HebbianNetwork is an estimate of the probability of B being present in the same answer.
  *
- * HebbianNetwork is asymmetric, meaning that the weight of A->B can be
- * different from the weight of B->A.
+ * HebbianNetwork is asymmetric, meaning that the weight of A->B can be different from the
+ * weight of B->A.
  *
- * All edges in HebbianNetwork are "direct" hebbian links meaning that they
- * estimate the probability of B BEING present in a answer given that A is.
- * There are no "reverse" hebbian links which would mean the probability of B
- * being NOT present in an answer given that A is.
+ * All edges in HebbianNetwork are "direct" hebbian links meaning that they estimate the
+ * probability of B BEING present in a answer given that A is. There are no "reverse"
+ * hebbian links which would mean the probability of B being NOT present in an answer
+ * given that A is.
  *
- * HebbianNetwork keeps nodes in a HandleTrie which is basically a data
- * structure to map from handle to a value object (mostly like a hashmap but
- * slightly more efficient because it makes the assumption that the key is a
- * handle). So in the stored value object it stores another HandleTrie to keep
- * track of the neighbors. So we have two types of value objects, one to
- * represent Nodes and another one to represent Edges.
+ * HebbianNetwork keeps nodes in a HandleTrie which is basically a data structure to map
+ * from handle to a value object (mostly like a hashmap but slightly more efficient because
+ * it makes the assumption that the key is a handle). So in the stored value object it stores
+ * another HandleTrie to keep track of the neighbors. So we have two types of value objects,
+ * one to represent Nodes and another one to represent Edges.
  */
 class HebbianNetwork {
    public:
@@ -48,8 +45,8 @@ class HebbianNetwork {
     unsigned int largest_arity;  /// Largest arity among nodes in this network.
     mutex largest_arity_mutex;
 
-    // Node and Link don't inherit from a common "Atom" class to avoid having
-    // virtual methods, which couldn't be properly inlined.
+    // Node and Link don't inherit from a common "Atom" class to avoid having virtual methods,
+    // which couldn't be properly inlined.
 
     /**
      * Node object used as the value in HandleTrie.
@@ -59,8 +56,8 @@ class HebbianNetwork {
         unsigned int arity;                /// Number of neighbors of this Node.
         unsigned int count;                /// Count for this Node.
         ImportanceType importance;         /// Importance of this Node.
-        ImportanceType stimuli_to_spread;  /// Amount of importance this node will spread in the
-                                           /// next stimuli spreading cycle.
+        ImportanceType stimuli_to_spread;  /// Amount of importance this node will spread in the next
+                                           /// stimuli spreading cycle.
         HandleTrie* neighbors;             // Neighbors of this Node.
         Node() {
             arity = 0;
@@ -93,8 +90,7 @@ class HebbianNetwork {
     };
 
     /**
-     * Adds a new node to this network or increase +1 to its count if it already
-     * exists.
+     * Adds a new node to this network or increase +1 to its count if it already exists.
      *
      * @param handle Atom being added.
      *
@@ -103,8 +99,7 @@ class HebbianNetwork {
     Node* add_node(string handle);
 
     /**
-     * Adds a new edge handle1->handle2 to this network or increase +1 to its
-     * count if it already exists.
+     * Adds a new edge handle1->handle2 to this network or increase +1 to its count if it already exists.
      *
      * @param handle1 Source of the edge.
      * @param handle2 Target of the edge.
@@ -114,8 +109,8 @@ class HebbianNetwork {
     Edge* add_asymmetric_edge(string handle1, string handle2, Node* node1, Node* node2);
 
     /**
-     * Adds new edges handle1->handle2 and handle2->handle1 to this network or
-     * increase +1 to their count if they already exist.
+     * Adds new edges handle1->handle2 and handle2->handle1 to this network or increase +1
+     * to their count if they already exist.
      *
      * @param handle1 One of the nodes in the edge.
      * @param handle2 The other node in the edge.
@@ -163,11 +158,10 @@ class HebbianNetwork {
      * Traverse the node's HandleTrie and call the passed function once for each
      * of the visited nodes.
      *
-     * @param keep_root_locked True iff HandleTrie root should be kept locked
-     * during all the traversal. If false, the root lock is freed just like any
-     * other internal trie node.
-     * @param visit_function Function to be called passing each visited node. This
-     * function
+     * @param keep_root_locked True iff HandleTrie root should be kept locked during
+     * all the traversal. If false, the root lock is freed just like any other internal
+     * trie node.
+     * @param visit_function Function to be called passing each visited node. This function
      * @param data Additional data to be passed to the visit_function.
      *
      * expects the Node and a pointer to eventual data used inside visit_function.

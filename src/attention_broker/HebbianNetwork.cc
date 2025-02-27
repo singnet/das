@@ -1,7 +1,5 @@
 #include "HebbianNetwork.h"
 
-#include <math.h>
-
 #include <iostream>
 #include <stack>
 
@@ -13,9 +11,11 @@ using namespace attention_broker_server;
 // --------------------------------------------------------------------------------
 // Public methods
 
-HebbianNetwork::HebbianNetwork() : nodes(new HandleTrie(HANDLE_HASH_SIZE - 1)) {
+HebbianNetwork::HebbianNetwork() {
+    nodes = new HandleTrie(HANDLE_HASH_SIZE - 1);
+    largest_arity = 0;
     tokens_mutex.lock();
-
+    tokens_to_distribute = 1.0;
     tokens_mutex.unlock();
 }
 
@@ -28,18 +28,18 @@ string HebbianNetwork::Node::to_string() {
 
 string HebbianNetwork::Edge::to_string() { return "(" + std::to_string(count) + ")"; }
 
-HebbianNetwork::Node* HebbianNetwork::add_node(const string& handle) {
-    return dynamic_cast<Node*>(nodes->insert(handle, new HebbianNetwork::Node()));
+HebbianNetwork::Node* HebbianNetwork::add_node(string handle) {
+    return (Node*) nodes->insert(handle, new HebbianNetwork::Node());
 }
 
-HebbianNetwork::Edge* HebbianNetwork::add_asymmetric_edge(const string& handle1,
-                                                          const string& handle2,
+HebbianNetwork::Edge* HebbianNetwork::add_asymmetric_edge(string handle1,
+                                                          string handle2,
                                                           Node* node1,
                                                           Node* node2) {
-    if (node1 == nullptr) {
-        node1 = dynamic_cast<Node*>(nodes->lookup(handle1));
+    if (node1 == NULL) {
+        node1 = (Node*) nodes->lookup(handle1);
     }
-    Edge* edge = dynamic_cast<Edge*>(node1->neighbors->insert(handle2, new HebbianNetwork::Edge()));
+    Edge* edge = (Edge*) node1->neighbors->insert(handle2, new HebbianNetwork::Edge());
     if (edge->count == 1) {
         // First time this edge is added
         edge->node1 = node1;
@@ -54,41 +54,38 @@ HebbianNetwork::Edge* HebbianNetwork::add_asymmetric_edge(const string& handle1,
     return edge;
 }
 
-void HebbianNetwork::add_symmetric_edge(const string& handle1,
-                                        const string& handle2,
-                                        Node* node1,
-                                        Node* node2) {
+void HebbianNetwork::add_symmetric_edge(string handle1, string handle2, Node* node1, Node* node2) {
     add_asymmetric_edge(handle1, handle2, node1, node2);
     add_asymmetric_edge(handle2, handle1, node2, node1);
 }
 
-HebbianNetwork::Node* HebbianNetwork::lookup_node(const string& handle) {
-    return dynamic_cast<Node*>(nodes->lookup(handle));
+HebbianNetwork::Node* HebbianNetwork::lookup_node(string handle) {
+    return (Node*) nodes->lookup(handle);
 }
 
-unsigned int HebbianNetwork::get_node_count(const string& handle) {
-    Node* node = dynamic_cast<Node*>(nodes->lookup(handle));
-    if (node == nullptr) {
+unsigned int HebbianNetwork::get_node_count(string handle) {
+    Node* node = (Node*) nodes->lookup(handle);
+    if (node == NULL) {
         return 0;
     } else {
         return node->count;
     }
 }
 
-ImportanceType HebbianNetwork::get_node_importance(const string& handle) {
-    Node* node = dynamic_cast<Node*>(nodes->lookup(handle));
-    if (node == nullptr) {
+ImportanceType HebbianNetwork::get_node_importance(string handle) {
+    Node* node = (Node*) nodes->lookup(handle);
+    if (node == NULL) {
         return 0;
     } else {
         return node->importance;
     }
 }
 
-unsigned int HebbianNetwork::get_asymmetric_edge_count(const string& handle1, const string& handle2) {
-    Node* source = dynamic_cast<Node*>(nodes->lookup(handle1));
-    if (source != nullptr) {
-        Edge* edge = dynamic_cast<Edge*>(source->neighbors->lookup(handle2));
-        if (edge != nullptr) {
+unsigned int HebbianNetwork::get_asymmetric_edge_count(string handle1, string handle2) {
+    Node* source = (Node*) nodes->lookup(handle1);
+    if (source != NULL) {
+        Edge* edge = (Edge*) source->neighbors->lookup(handle2);
+        if (edge != NULL) {
             return edge->count;
         }
     }
@@ -96,7 +93,7 @@ unsigned int HebbianNetwork::get_asymmetric_edge_count(const string& handle1, co
 }
 
 ImportanceType HebbianNetwork::alienate_tokens() {
-    ImportanceType answer = NAN;
+    ImportanceType answer;
     tokens_mutex.lock();
     answer = tokens_to_distribute;
     tokens_to_distribute = 0.0;

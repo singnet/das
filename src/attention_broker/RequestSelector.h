@@ -13,11 +13,10 @@ enum class SelectorType { EVEN_THREAD_COUNT };
 enum class RequestType { STIMULUS, CORRELATION };
 
 /**
- * Abstract class used in WorkerThreads to select the next request to be
- * processed among the available request queues.
+ * Abstract class used in WorkerThreads to select the next request to be processed among
+ * the available request queues.
  *
- * Concrete subclasses may implement different selection algorithms based in
- * different criteria.
+ * Concrete subclasses may implement different selection algorithms based in different criteria.
  */
 class RequestSelector {
    public:
@@ -26,8 +25,7 @@ class RequestSelector {
     /**
      * Factory method.
      *
-     * Factory method to instantiate concrete subclasses according to the passed
-     * parameter.
+     * Factory method to instantiate concrete subclasses according to the passed parameter.
      *
      * @param instance_type Type of concrete subclass to be instantiated.
      * @param thread_id ID of the thread asking for a new request.
@@ -59,11 +57,11 @@ class RequestSelector {
 };
 
 /**
- * Concrete implementation of RequestSelector which evenly distribute worker
- * threads among each type of request.
+ * Concrete implementation of RequestSelector which evenly distribute worker threads among each type of
+ * request.
  *
- * This selector keeps half of the working threads working only in "correlate"
- * requests and the other half working only in "stimulate" requests.
+ * This selector keeps half of the working threads working only in "correlate" requests and the other
+ * half working only in "stimulate" requests.
  */
 class EvenThreadCount : public RequestSelector {
    public:

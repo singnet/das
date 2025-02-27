@@ -15,17 +15,17 @@ using namespace std;
 // --------------------------------------------------------------------------------
 // Public methods
 
-WorkerThreads::WorkerThreads(SharedQueue* stimulus, SharedQueue* correlation)
-    : stimulus_requests(stimulus),
-      correlation_requests(correlation),
-      threads_count(AttentionBrokerServer::WORKER_THREADS_COUNT) {
+WorkerThreads::WorkerThreads(SharedQueue* stimulus, SharedQueue* correlation) {
+    stimulus_requests = stimulus;
+    correlation_requests = correlation;
+    threads_count = AttentionBrokerServer::WORKER_THREADS_COUNT;
     for (unsigned int i = 0; i < threads_count; i++) {
         threads.push_back(
             new thread(&WorkerThreads::worker_thread, this, i, stimulus_requests, correlation_requests));
     }
 }
 
-WorkerThreads::~WorkerThreads() = default;
+WorkerThreads::~WorkerThreads() {}
 
 void WorkerThreads::graceful_stop() {
     stop_flag_mutex.lock();
