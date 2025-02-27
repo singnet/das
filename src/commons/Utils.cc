@@ -102,3 +102,25 @@ string StopWatch::str_time() {
         return to_string(millis) + " millis";
     }
 }
+
+
+std::vector<std::string> Utils::split(const std::string& s, char delimiter) {
+    std::vector<std::string> tokens;
+    std::string token;
+    std::istringstream tokenStream(s);
+    while (std::getline(tokenStream, token, delimiter)) {
+        tokens.push_back(token);
+    }
+    return tokens;
+}
+
+std::string Utils::join(const std::vector<std::string>& tokens, char delimiter) {
+    std::string result;
+    for (size_t i = 0; i < tokens.size(); i++) {
+        if (i > 0) {
+            result += delimiter;
+        }
+        result += tokens[i];
+    }
+    return result;
+}
