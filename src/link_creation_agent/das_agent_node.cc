@@ -1,6 +1,6 @@
-#include "das_server_node.h"
+#include "das_agent_node.h"
 
-using namespace das;
+using namespace das_agent;
 using namespace std;
 using namespace distributed_algorithm_node;
 

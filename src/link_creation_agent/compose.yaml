@@ -118,7 +118,7 @@ services:
     image: das-builder
     container_name: test-das-link-create-agent-node
     working_dir: /opt
-    command: ./bin/link_creation_server --type server --config_file /tmp/config
+    command: ./bin/link_creation_server --config_file /tmp/link_creation.config
     volumes:
       - ./data:/tmp
       - ../../src:/opt
@@ -131,4 +131,24 @@ services:
       - metta-parser
       - das-attention-broker
       - das-query-agent
+    network_mode: host
+
+
+  das-inference-agent:
+    image: das-builder
+    container_name: test-das-inference-agent-node
+    working_dir: /opt
+    # command: ./bin/inference_agent_server --config_file /tmp/inference.config
+    command: sleep infinity
+    volumes:
+      - ./data:/tmp
+      - ../../src:/opt
+    restart: on-failure
+    depends_on:
+      - mongodb
+      - redis
+      - metta-parser
+      - das-attention-broker
+      - das-query-agent
+      - das-link-create-agent
     network_mode: host
