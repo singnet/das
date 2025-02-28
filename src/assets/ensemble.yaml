@@ -14,6 +14,7 @@ allocations:
     execution:
       type: docker
       image: trueagi/das:attention-broker-poc
+      cmd: ["37007"]
     dnsname: attentionbroker
 
   queryagent:
@@ -21,7 +22,6 @@ allocations:
     resources:
       cpu:
         cores: 1
-      gpus: []
       ram:
         size: 1
       disk:
@@ -29,6 +29,18 @@ allocations:
     execution:
       type: docker
       image: trueagi/das:query-agent-poc
+      cmd: ["31700"]
+      environment:
+        - DAS_REDIS_HOSTNAME=104.238.183.115
+        - DAS_REDIS_PORT=28100
+        - DAS_USE_REDIS_CLUSTER=false
+        - DAS_MONGODB_HOSTNAME=104.238.183.115
+        - DAS_MONGODB_PORT=29100
+        - DAS_MONGODB_USERNAME=admin
+        - DAS_MONGODB_PASSWORD=admin
+        - DAS_ATTENTION_BROKER_ADDRESS=attentionbroker
+        - DAS_ATTENTION_BROKER_PORT=37007
+
     dnsname: queryagent
 
   linkcreationagent:
@@ -38,29 +50,15 @@ allocations:
         cores: 1
       gpus: []
       ram:
-        size: 1
+        size: 5
       disk:
-        size: 1
+        size: 10
     execution:
       type: docker
       image: trueagi/das:link-creation-agent-poc
+      cmd: ["OPTIONS=\"--type server --config_file agent.cnf\""]
     dnsname: linkcreationagent
 
-
-  linkcreationclient:
-    executor: docker
-    resources:
-      cpu:
-        cores: 1
-      gpus: []
-      ram:
-        size: 1
-      disk:
-        size: 1
-    execution:
-      type: docker
-      image: trueagi/das:link-creation-client-poc
-    dnsname: linkcreationclient
 
 nodes:
   node1:
@@ -68,8 +66,4 @@ nodes:
       - attentionbroker
       - queryagent
       - linkcreationagent
-      - linkcreationclient
     peer: ${PEER_ID}
-    location:
-      accept: []
-      reject: []
