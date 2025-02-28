@@ -19,7 +19,8 @@ InferenceAgent::InferenceAgent(const string& config_path) {
     cout << "Starting inference node server" << endl;
     inference_node_server = new InferenceAgentNode(inference_node_id);
     cout << "Starting link creation node client" << endl;
-    link_creation_node_client = new LinkCreationAgentNode(link_creation_agent_client_id, link_creation_agent_server_id);
+    link_creation_node_client =
+        new LinkCreationAgentNode(link_creation_agent_client_id, link_creation_agent_server_id);
     cout << "Starting DAS client" << endl;
     das_client = new DasAgentNode(das_client_id, das_server_id);
     cout << "Starting distributed inference control client" << endl;
@@ -153,8 +154,8 @@ void InferenceAgent::parse_config(const string& config_path) {
     this->das_client_id = config["das_client_id"];
     this->das_server_id = config["das_server_id"];
     this->distributed_inference_control_node_id = config["distributed_inference_control_node_id"];
-    this->distributed_inference_control_node_server_id = config["distributed_inference_control_node_server_id"];
+    this->distributed_inference_control_node_server_id =
+        config["distributed_inference_control_node_server_id"];
     this->link_creation_agent_server_id = config["link_creation_agent_server_id"];
     this->link_creation_agent_client_id = config["link_creation_agent_client_id"];
-
 }

@@ -27,9 +27,7 @@ bool InferenceAgentNode::is_answers_finished() { return answers_finished; }
 
 bool InferenceAgentNode::is_answers_empty() { return answers_queue.empty(); }
 
-vector<string> InferenceAgentNode::pop_answer() { 
-    return answers_queue.dequeue(); 
-    }
+vector<string> InferenceAgentNode::pop_answer() { return answers_queue.dequeue(); }
 
 void InferenceAgentNode::set_answers_finished() { answers_finished = true; }
 

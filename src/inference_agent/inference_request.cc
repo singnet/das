@@ -31,7 +31,6 @@ std::string InferenceRequest::get_max_proof_length() { return std::to_string(max
 
 std::vector<std::string> InferenceRequest::get_distributed_inference_control_request() { return {}; }
 
-
 ProofOfImplicationOrEquivalence::ProofOfImplicationOrEquivalence(std::string first_handle,
                                                                  std::string second_handle,
                                                                  int max_proof_length)

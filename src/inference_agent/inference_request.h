@@ -106,6 +106,7 @@ class ProofOfImplication : public InferenceRequest {
     std::string get_type() override;
     std::string get_max_proof_length() override;
     std::vector<std::string> get_distributed_inference_control_request() override;
+
    private:
     const std::string IMPLICATION_DEDUCTION_PROCESSOR = "IMPLICATION_DEDUCTION";
 };
@@ -122,6 +123,7 @@ class ProofOfEquivalence : public InferenceRequest {
     std::string get_type() override;
     std::string get_max_proof_length() override;
     std::vector<std::string> get_distributed_inference_control_request() override;
+
    private:
     const std::string EQUIVALENCE_DEDUCTION_PROCESSOR = "EQUIVALENCE_DEDUCTION";
 };
