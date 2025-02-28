@@ -233,7 +233,7 @@ TEST(LinkCreateTemplate, TestLinkCreateTemplate) {
     EXPECT_EQ(get<Node>(lct8.get_targets()[1]).type, "SimpleNode");
     EXPECT_EQ(get<Node>(lct8.get_targets()[1]).value, "SimpleValue");
     link_template.clear();
-    link_template_str.clear();
+    link_template_str.clear();    
 }
 
 TEST(LinkCreateTemplate, TestInvalidLinkType) {
