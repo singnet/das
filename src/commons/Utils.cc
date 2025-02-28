@@ -109,11 +109,11 @@ map<string, string> Utils::parse_config(string const &config_path) {
     ifstream file(config_path);
     string line;
     while (getline(file, line)) {
-        istringstream is_line(line);
+        istringstream iss_line(line);
         string key;
-        if (getline(is_line, key, '=')) {
+        if (getline(iss_line, key, '=')) {
             string value;
-            if (getline(is_line, value)) {
+            if (getline(iss_line, value)) {
                 value.erase(remove_if(value.begin(), value.end(), ::isspace), value.end());
                 key.erase(remove_if(key.begin(), key.end(), ::isspace), key.end());
                 config[key] = value;

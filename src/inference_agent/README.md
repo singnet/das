@@ -34,5 +34,33 @@ make build
 
 ## Run
 
-TBD
+```
+inference_agent --config_file <config_path>
+```
+
+## Config
+
+The config file is a text file that contains the following:
+
+```
+inference_node_id = <inference_node_id>
+link_creation_agent_client_id = <link_creation_agent_client_id>
+link_creation_agent_server_id = <link_creation_agent_server_id>
+das_client_id = <das_client_id>
+das_server_id = <das_server_id>
+distributed_inference_control_node_id = <distributed_inference_control_node_id>
+distributed_inference_control_node_server_id = <distributed_inference_control_node_server_id>
+```
+
+Example:
+
+```
+inference_node_id = "localhost:8080"
+link_creation_agent_client_id = "localhost:8081"
+link_creation_agent_server_id = "localhost:8082"
+das_client_id = "localhost:8083"
+das_server_id = "localhost:8084"
+distributed_inference_control_node_id = "localhost:8085"
+distributed_inference_control_node_server_id = "localhost:8086"
+```
 
