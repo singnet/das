@@ -5,7 +5,8 @@
 #include <iomanip>
 #include <sstream>
 #include <thread>
-
+#include <fstream>
+#include <algorithm>
 #include "Utils.h"
 
 using namespace commons;
@@ -101,4 +102,24 @@ string StopWatch::str_time() {
     } else {
         return to_string(millis) + " millis";
     }
+}
+
+map<string, string> Utils::parse_config(string const &config_path) {
+    map<string, string> config;
+    ifstream file(config_path);
+    string line;
+    while (getline(file, line)) {
+        istringstream iss_line(line);
+        string key;
+        if (getline(iss_line, key, '=')) {
+            string value;
+            if (getline(iss_line, value)) {
+                value.erase(remove_if(value.begin(), value.end(), ::isspace), value.end());
+                key.erase(remove_if(key.begin(), key.end(), ::isspace), key.end());
+                config[key] = value;
+            }
+        }
+    }
+    file.close();
+    return config;
 }

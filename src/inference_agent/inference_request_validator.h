@@ -11,7 +11,7 @@
 
 class RequestValidator {
    public:
-    RequestValidator() { }
+    RequestValidator() {}
     bool validate(vector<string>& request) {
         cout << endl;
         if (request.size() != count_tokens(validator_regex)) {
@@ -39,11 +39,9 @@ class RequestValidator {
 using namespace std;
 namespace inference_agent {
 
-class InferenceRequestValidator: public RequestValidator {
+class InferenceRequestValidator : public RequestValidator {
    public:
-    InferenceRequestValidator()  {
-        validator_regex = inference_request_validator_regex;
-    }
+    InferenceRequestValidator() { validator_regex = inference_request_validator_regex; }
 
    protected:
     const string inference_request_validator_regex =
