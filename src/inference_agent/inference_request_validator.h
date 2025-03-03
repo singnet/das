@@ -8,35 +8,11 @@
 #include <regex>
 #include <string>
 #include <vector>
+#include "RequestValidator.h"
 
-class RequestValidator {
-   public:
-    RequestValidator() {}
-    bool validate(vector<string>& request) {
-        cout << endl;
-        if (request.size() != count_tokens(validator_regex)) {
-            return false;
-        }
-        std::ostringstream joined_request;
-        for (auto& token : request) {
-            joined_request << token << " ";
-        }
-        string joined_request_str = joined_request.str();
-        joined_request_str.pop_back();
-        return regex_match(joined_request_str, regex(validator_regex));
-    }
-
-   protected:
-    string validator_regex;
-    int count_tokens(const std::string& regex) {
-        std::regex tokenRegex(R"(\S+)");  // Match non-space sequences
-        std::sregex_iterator begin(regex.begin(), regex.end(), tokenRegex);
-        std::sregex_iterator end;
-        return std::distance(begin, end);
-    }
-};
 
 using namespace std;
+using namespace commons;
 namespace inference_agent {
 
 class InferenceRequestValidator : public RequestValidator {

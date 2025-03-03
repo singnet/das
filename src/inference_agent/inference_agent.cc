@@ -14,23 +14,19 @@ const std::string InferenceAgent::PROOF_OF_IMPLICATION = "PROOF_OF_IMPLICATION";
 const std::string InferenceAgent::PROOF_OF_EQUIVALENCE = "PROOF_OF_EQUIVALENCE";
 
 InferenceAgent::InferenceAgent(const string& config_path) {
-    cout << "Initializing inference agent" << endl;
     parse_config(config_path);
-    cout << "Starting inference node server" << endl;
     inference_node_server = new InferenceAgentNode(inference_node_id);
-    cout << "Starting link creation node client" << endl;
     link_creation_node_client =
         new LinkCreationAgentNode(link_creation_agent_client_id, link_creation_agent_server_id);
-    cout << "Starting DAS client" << endl;
     das_client = new DasAgentNode(das_client_id, das_server_id);
-    cout << "Starting distributed inference control client" << endl;
     distributed_inference_control_client = new DistributedInferenceControlAgentNode(
         distributed_inference_control_node_id, distributed_inference_control_node_server_id);
-    cout << "Starting inference agent thread" << endl;
-    // split the inference_node_id by ":" and get the first and last part using istringstream
-    istringstream iss(inference_node_id);
-    getline(iss, inference_node_server_host, ':');
-    getline(iss, inference_node_server_port, ':');
+    vector<string> host_port = Utils::split(inference_node_id, ':');
+    if (host_port.size() != 2) {
+        Utils::error("Invalid inference node id");
+    }
+    inference_node_server_host = host_port[0];
+    inference_node_server_port = host_port[1];
     thread_pool = new ThreadPool(iterator_pool_size);
     this->agent_thread = new thread(&InferenceAgent::run, this);
 }
@@ -55,21 +51,24 @@ void InferenceAgent::run() {
             auto answer = inference_node_server->pop_answer();
             try {
                 if (inference_request_validator.validate(answer)) {
+                    shared_ptr<InferenceRequest> inference_request;
                     if (answer.front() == PROOF_OF_IMPLICATION_OR_EQUIVALENCE) {
                         cout << "Received proof of implication or equivalence" << endl;
-                        shared_ptr<ProofOfImplicationOrEquivalence> proof_of_implication_or_equivalence =
-                            make_shared<ProofOfImplicationOrEquivalence>(
-                                answer[1], answer[2], stoi(answer[3]));
-                        string iterator_id = get_next_iterator_id();
-                        iterator_link_creation_request_map[iterator_id] =
-                            proof_of_implication_or_equivalence;  // iterator id
-                        send_link_creation_request(proof_of_implication_or_equivalence, false);
-                        send_distributed_inference_control_request(iterator_id);
+                        inference_request = make_shared<ProofOfImplicationOrEquivalence>(
+                            answer[1], answer[2], stoi(answer[3]));
                     } else if (answer.front() == PROOF_OF_IMPLICATION) {
-                        Utils::error("Proof of implication is not supported yet");
+                        cout << "Received proof of implication" << endl;
+                        inference_request =
+                            make_shared<ProofOfImplication>(answer[1], answer[2], stoi(answer[3]));
                     } else if (answer.front() == PROOF_OF_EQUIVALENCE) {
-                        Utils::error("Proof of equivalence is not supported yet");
+                        cout << "Received proof of equivalence" << endl;
+                        inference_request =
+                            make_shared<ProofOfEquivalence>(answer[1], answer[2], stoi(answer[3]));
                     }
+                    string iterator_id = get_next_iterator_id();
+                    iterator_link_creation_request_map[iterator_id] = inference_request;  // iterator id
+                    send_link_creation_request(inference_request, false);
+                    send_distributed_inference_control_request(iterator_id);
                 } else {
                     Utils::error("Invalid inference request");
                 }
@@ -99,26 +98,17 @@ void InferenceAgent::stop() {
 
 void InferenceAgent::send_link_creation_request(shared_ptr<InferenceRequest> inference_request,
                                                 bool is_stop_request) {
-    auto query = inference_request->query();
-    vector<string> link_creation_request;
-    for (auto& token : query) {
-        link_creation_request.push_back(token);
-    }
-    if (inference_request->get_type() == PROOF_OF_IMPLICATION_OR_EQUIVALENCE) {
-        auto patterns_link_template =
-            dynamic_cast<ProofOfImplicationOrEquivalence&>(*inference_request.get())
-                .patterns_link_template();
-        for (auto& token : patterns_link_template) {
-            link_creation_request.push_back(token);
+    for (auto& request_iterator : inference_request->get_requests()) {
+        vector<string> request;
+        for (auto& token : request_iterator) {
+            request.push_back(token);
         }
+        request.push_back("1000");                        // TODO check max results value
+        request.push_back(is_stop_request ? "0" : "-1");  // repeat
+        request.push_back(inference_request->get_id());   // context
+        request.push_back("false");                       // update_attention_broker
+        link_creation_node_client->send_message(request);
     }
-
-    link_creation_request.push_back(inference_request->get_max_proof_length());
-    link_creation_request.push_back(is_stop_request ? "0" : "-1");  // repeat
-    link_creation_request.push_back("inference_context");           // context
-    link_creation_request.push_back("false");                       // update_attention_broker
-
-    link_creation_node_client->send_message(link_creation_request);
 }
 
 void InferenceAgent::send_stop_link_creation_request(shared_ptr<InferenceRequest> inference_request) {

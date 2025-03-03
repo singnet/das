@@ -41,6 +41,7 @@ public:
     static map<string, string> parse_config(string const &config_path);
     static vector<string> split(string const &str, char delimiter);
     static string join(vector<string> const &tokens, char delimiter);
+    static string random_string(size_t length);
 };
 
 } // namespace commons
