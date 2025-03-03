@@ -609,11 +609,7 @@ void PatternMatchingQuery::act(shared_ptr<MessageFactory> node) {
 
         // TODO: eliminate this memory leak
         RemoteSink<HandlesAnswer>* remote_sink =
-            new RemoteSink<HandlesAnswer>(this->root_query_element,
-                                          move(query_answer_processors),
-                                          true, // self_delete
-                                          true  // delete_precedent_on_destructor
-            );
+            new RemoteSink<HandlesAnswer>(this->root_query_element, move(query_answer_processors));
     } else {
         Utils::error("Invalid command " + this->command + " in PatternMatchingQuery message");
     }

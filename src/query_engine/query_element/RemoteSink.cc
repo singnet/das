@@ -12,17 +12,15 @@ using namespace query_element;
 template <class AnswerType>
 RemoteSink<AnswerType>::RemoteSink(QueryElement* precedent,
                                    vector<unique_ptr<QueryAnswerProcessor>>&& query_answer_processors,
-                                   bool self_delete,
                                    bool delete_precedent_on_destructor)
     : Sink<AnswerType>(
           precedent, "RemoteSink(" + precedent->id + ")", delete_precedent_on_destructor, true),
       queue_processor(new thread(&RemoteSink::queue_processor_method, this)),
-      query_answer_processors(move(query_answer_processors)),
-      self_delete(self_delete) {}
+      query_answer_processors(move(query_answer_processors)) {}
 
 template <class AnswerType>
 RemoteSink<AnswerType>::~RemoteSink() {
-    this->graceful_shutdown();
+    graceful_shutdown();
 }
 
 // -------------------------------------------------------------------------------------------------
@@ -82,7 +80,4 @@ void RemoteSink<AnswerType>::queue_processor_method() {
 #ifdef DEBUG
     cout << "RemoteSink::queue_processor_method() END" << endl;
 #endif
-    if (this->self_delete) {
-        delete this;
-    }
 }
