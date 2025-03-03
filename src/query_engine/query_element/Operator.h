@@ -6,7 +6,7 @@
 #include "HandlesAnswer.h"
 #include "QueryAnswer.h"
 #include "QueryElement.h"
-
+#include "commons/MemoryPool.h"
 using namespace std;
 
 namespace query_element {
@@ -24,6 +24,11 @@ namespace query_element {
 template <unsigned int N>
 class Operator : public QueryElement {
    public:
+    static commons::MemoryPool<Operator<N>>& get_pool() {
+        static commons::MemoryPool<Operator<N>> pool(1024);  // Default size
+        return pool;
+    }
+
     // --------------------------------------------------------------------------------------------
     // Constructors and destructors
 

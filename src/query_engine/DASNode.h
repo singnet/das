@@ -52,6 +52,16 @@ class DASNode : public StarNode {
 class PatternMatchingQuery : public Message {
    public:
     PatternMatchingQuery(string command, vector<string>& tokens);
+
+    ~PatternMatchingQuery() {
+        this->root_query_element = nullptr;
+        while (!this->element_stack.empty()) {
+            QueryElement* element = this->element_stack.top();
+            this->element_stack.pop();
+            element->get_pool().deallocate(element);
+        }
+    }
+
     void act(shared_ptr<MessageFactory> node);
 
    private:
@@ -72,6 +82,7 @@ class PatternMatchingQuery : public Message {
                              stack<QueryElement*>& element_stack);
 
     QueryElement* root_query_element;
+    stack<QueryElement*> element_stack;
     string requestor_id;
     string context;
     string command;
