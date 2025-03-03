@@ -187,12 +187,9 @@ shared_ptr<LinkCreationAgentRequest> LinkCreationAgent::create_request(vector<st
         }
         lca_request->infinite = (lca_request->repeat == -1);
         string joined_string = Utils::join(lca_request->query, ' ') + Utils::join(lca_request->link_template, ' ');
-        char* joined_string_c = new char[joined_string.size() + 1];
-        for (size_t i = 0; i < joined_string.size(); i++) {
-            joined_string_c[i] = joined_string[i];
-        }
-        // char* id = compute_hash(joined_string_c);
-        // lca_request->id = string(id);
+        shared_ptr<char> joined_string_c = shared_ptr<char>(new char[joined_string.size() + 1]);
+        strcpy(joined_string_c.get(), joined_string.c_str());
+        lca_request->id = string(compute_hash(joined_string_c.get()));
         return shared_ptr<LinkCreationAgentRequest>(lca_request);
     } catch (exception& e) {
         cout << "Error parsing request: " << e.what() << endl;
