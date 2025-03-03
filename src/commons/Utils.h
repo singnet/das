@@ -4,6 +4,8 @@
 #include <string>
 #include <chrono>
 #include <map>
+#include <vector>
+
 
 using namespace std;
 
@@ -37,6 +39,8 @@ public:
     static void sleep(unsigned int milliseconds = 100);
     static string get_environment(string const &key);
     static map<string, string> parse_config(string const &config_path);
+    static vector<string> split(string const &str, char delimiter);
+    static string join(vector<string> const &tokens, char delimiter);
 };
 
 } // namespace commons
