@@ -62,14 +62,10 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Copy script to server
-        uses: appleboy/scp-action@v0.1.0
-        with:
-          host: ${{ secrets.SERVER_HOST }}
-          username: ${{ secrets.SSH_USER }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          source: "src/scripts/refrash-nunet-deployment.sh"
-          target: "/tmp/refrash-nunet-deployment.sh"
+      - name: Copy script to server using SCP
+        run: |
+          echo "Copying script to server..."
+          scp -i ${{ secrets.SSH_PRIVATE_KEY }} -o StrictHostKeyChecking=no src/scripts/refresh-nunet-deployment.sh ${{ secrets.SSH_USER }}@${{ secrets.SERVER_HOST }}:/tmp/refresh-nunet-deployment.sh
 
       - name: Load ensemble.yaml content into a variable
         id: load_ensemble
@@ -79,13 +75,11 @@ jobs:
           echo "ensemble.yaml content loaded successfully."
 
       - name: Process ensemble.yaml and execute deployment script on remote server
-        uses: appleboy/ssh-action@v0.1.0
-        with:
-          host: ${{ secrets.SERVER_HOST }}
-          username: ${{ secrets.SSH_USER }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          script: |
-            PEER_ID=$(nunet actor cmd /dms/node/peers/self -c "$USER_NAME" | jq -r '.id')
+        run: |
+          echo "Running deployment script on the remote server..."
+          ssh -i ${{ secrets.SSH_PRIVATE_KEY }} -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SERVER_HOST }} << 'EOF'
+            PEER_ID=$(nunet actor cmd /dms/node/peers/self -c $USER_NAME | jq -r '.id')
+            
             if [ -z "$PEER_ID" ]; then
               echo "Error: Could not get the peer ID"
               exit 1
@@ -96,3 +90,4 @@ jobs:
             echo "${{env.ENSEMBLE_CONTENT}}" | sed "s#\${PEER_ID}#$PEER_ID#g" > $ENSEMBLE_FILE
 
             bash +x /tmp/refresh-nunet-deployment.sh $ENSEMBLE_FILE
+          EOF
