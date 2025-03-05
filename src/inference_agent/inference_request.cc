@@ -30,12 +30,20 @@ std::string InferenceRequest::get_max_proof_length() { return std::to_string(max
 std::vector<std::string> InferenceRequest::get_distributed_inference_control_request() {
     // clang-format off
     std::vector<std::string> tokens = {
-        "CHAIN",       first_handle,    second_handle, std::to_string(max_proof_length),
-        "OR",          "LINK_TEMPLATE", "Expression",  "3",
-        "NODE",        "Symbol",        "IMPLICATION", first_handle,
-        second_handle, "LINK_TEMPLATE", "Expression",  "3",
-        "NODE",        "Symbol",        "EQUIVALENCE", first_handle,
-        second_handle};
+        "CHAIN",
+            first_handle,    
+            second_handle, 
+            std::to_string(max_proof_length),
+            "OR",          
+                "LINK_TEMPLATE", "Expression",  "3",
+                    "NODE", "Symbol", "IMPLICATION", 
+                    first_handle,
+                    second_handle, 
+                "LINK_TEMPLATE", "Expression",  "3",
+                    "NODE", "Symbol", "EQUIVALENCE", 
+                    first_handle,
+                    second_handle
+    };
     // clang-format on
     return tokens;
 }
@@ -50,28 +58,18 @@ ProofOfImplicationOrEquivalence::ProofOfImplicationOrEquivalence(std::string fir
 ProofOfImplicationOrEquivalence::~ProofOfImplicationOrEquivalence() {}
 
 std::vector<std::string> ProofOfImplicationOrEquivalence::query() {
-    std::vector<std::string> tokens = {"LINK_TEMPLATE",
-                                       "Expression",
-                                       "3",
-                                       "NODE",
-                                       "Symbol",
-                                       "EVALUATION",
-                                       "LINK_TEMPLATE",
-                                       "Expression",
-                                       "2",
-                                       "NODE",
-                                       "Symbol",
-                                       "PREDICATE",
-                                       "VARIABLE",
-                                       "P",
-                                       "LINK_TEMPLATE",
-                                       "Expression",
-                                       "2",
-                                       "NODE",
-                                       "Symbol",
-                                       "CONCEPT",
-                                       "VARIABLE",
-                                       "C"};
+    // clang-format off
+    std::vector<std::string> tokens = {
+        "LINK_TEMPLATE", "Expression", "3",
+            "NODE", "Symbol", "EVALUATION",
+            "LINK_TEMPLATE", "Expression", "2",
+                "NODE", "Symbol", "PREDICATE",
+                "VARIABLE", "P",
+            "LINK_TEMPLATE", "Expression", "2",
+                "NODE", "Symbol", "CONCEPT",
+                "VARIABLE", "C"
+    };
+    // clang-format on
     return tokens;
 }
 
@@ -123,22 +121,20 @@ std::vector<std::string> ProofOfImplicationOrEquivalence::patterns_link_template
 std::string ProofOfImplicationOrEquivalence::get_type() { return "PROOF_OF_IMPLICATION_OR_EQUIVALENCE"; }
 
 std::vector<std::vector<std::string>> ProofOfImplicationOrEquivalence::get_requests() {
+
     std::vector<std::vector<std::string>> requests;
-    std::vector<std::string> query_and_link_creation_template;
     // query + link creation template
-    for (auto token : query()) {
-        query_and_link_creation_template.push_back(token);
-    }
-    for (auto token : patterns_link_template()) {
+    std::vector<std::string> query_and_link_creation_template(this->query());
+    for (auto token : this->patterns_link_template()) {
         query_and_link_creation_template.push_back(token);
     }
     requests.push_back(query_and_link_creation_template);
-
+    // proof of implication
     ProofOfImplication proof_of_implication(first_handle, second_handle, max_proof_length);
     for (auto request : proof_of_implication.get_requests()) {
         requests.push_back(request);
     }
-
+    // proof of equivalence
     ProofOfEquivalence proof_of_equivalence(first_handle, second_handle, max_proof_length);
     for (auto request : proof_of_equivalence.get_requests()) {
         requests.push_back(request);
@@ -157,35 +153,35 @@ ProofOfImplication::~ProofOfImplication() {}
 std::vector<std::string> ProofOfImplication::query() {
     // clang-format off
     std::vector<std::string> tokens = {
-    "AND", "3",
-        "LINK_TEMPLATE", "Expression", "2",
-            "NODE", "Symbol", "SATISFYING_SET",
-            "VARIABLE", "P1",
-        "LINK_TEMPLATE", "Expression", "2",
-            "NODE", "Symbol", "SATISFYING_SET",
-            "VARIABLE", "P2",
-        "NOT",
-            "OR",
-                "LINK_TEMPLATE", "Expression", "3",
-                    "NODE", "Symbol", "IMPLICATION",
+        "AND", "3",
+            "LINK_TEMPLATE", "Expression", "2",
+                "NODE", "Symbol", "SATISFYING_SET",
+                "VARIABLE", "P1",
+            "LINK_TEMPLATE", "Expression", "2",
+                "NODE", "Symbol", "SATISFYING_SET",
+                "VARIABLE", "P2",
+            "NOT",
+                "OR",
                     "LINK_TEMPLATE", "Expression", "3",
-                        "NODE", "Symbol", "EVALUATION",
-                        "VARIABLE", "P1",
-                        "VARIABLE", "C",
+                        "NODE", "Symbol", "IMPLICATION",
+                        "LINK_TEMPLATE", "Expression", "3",
+                            "NODE", "Symbol", "EVALUATION",
+                            "VARIABLE", "P1",
+                            "VARIABLE", "C",
+                        "LINK_TEMPLATE", "Expression", "3",
+                            "NODE", "Symbol", "EVALUATION",
+                            "VARIABLE", "P2",
+                            "VARIABLE", "C",
                     "LINK_TEMPLATE", "Expression", "3",
-                        "NODE", "Symbol", "EVALUATION",
-                        "VARIABLE", "P2",
-                        "VARIABLE", "C",
-                "LINK_TEMPLATE", "Expression", "3",
-                    "NODE", "Symbol", "IMPLICATION",
-                    "LINK_TEMPLATE", "Expression", "3",
-                        "NODE", "Symbol", "EVALUATION",
-                        "VARIABLE", "P2",
-                        "VARIABLE", "C",
-                    "LINK_TEMPLATE", "Expression", "3",
-                        "NODE", "Symbol", "EVALUATION",
-                        "VARIABLE", "P1",
-                        "VARIABLE", "C"
+                        "NODE", "Symbol", "IMPLICATION",
+                        "LINK_TEMPLATE", "Expression", "3",
+                            "NODE", "Symbol", "EVALUATION",
+                            "VARIABLE", "P2",
+                            "VARIABLE", "C",
+                        "LINK_TEMPLATE", "Expression", "3",
+                            "NODE", "Symbol", "EVALUATION",
+                            "VARIABLE", "P1",
+                            "VARIABLE", "C"
     };
     // clang-format on
     return tokens;
@@ -210,37 +206,36 @@ ProofOfEquivalence::~ProofOfEquivalence() {}
 
 std::vector<std::string> ProofOfEquivalence::query() {
     // clang-format off
-    std::vector<std::string> tokens = 
-    {
-    "AND", "3",
-    "LINK_TEMPLATE", "Expression", "2",
-        "NODE", "Symbol", "PATTERNS",
-        "VARIABLE", "C1",
-    "LINK_TEMPLATE", "Expression", "2",
-        "NODE", "Symbol", "PATTERNS",
-        "VARIABLE", "C2",
-    "NOT",
-        "OR",
-            "LINK_TEMPLATE", "Expression", "3",
-                "NODE", "Symbol", "EQUIVALENCE",
+    std::vector<std::string> tokens = {
+        "AND", "3",
+        "LINK_TEMPLATE", "Expression", "2",
+            "NODE", "Symbol", "PATTERNS",
+            "VARIABLE", "C1",
+        "LINK_TEMPLATE", "Expression", "2",
+            "NODE", "Symbol", "PATTERNS",
+            "VARIABLE", "C2",
+        "NOT",
+            "OR",
                 "LINK_TEMPLATE", "Expression", "3",
-                    "NODE", "Symbol", "EVALUATION",
-                    "VARIABLE", "P",
-                    "VARIABLE", "C1",
+                    "NODE", "Symbol", "EQUIVALENCE",
+                    "LINK_TEMPLATE", "Expression", "3",
+                        "NODE", "Symbol", "EVALUATION",
+                        "VARIABLE", "P",
+                        "VARIABLE", "C1",
+                    "LINK_TEMPLATE", "Expression", "3",
+                        "NODE", "Symbol", "EVALUATION",
+                        "VARIABLE", "P",
+                        "VARIABLE", "C2",        
                 "LINK_TEMPLATE", "Expression", "3",
-                    "NODE", "Symbol", "EVALUATION",
-                    "VARIABLE", "P",
-                    "VARIABLE", "C2",        
-            "LINK_TEMPLATE", "Expression", "3",
-                "NODE", "Symbol", "EQUIVALENCE",
-                "LINK_TEMPLATE", "Expression", "3",
-                    "NODE", "Symbol", "EVALUATION",
-                    "VARIABLE", "P",
-                    "VARIABLE", "C2",
-                "LINK_TEMPLATE", "Expression", "3",
-                    "NODE", "Symbol", "EVALUATION",
-                    "VARIABLE", "P",
-                    "VARIABLE", "C1"
+                    "NODE", "Symbol", "EQUIVALENCE",
+                    "LINK_TEMPLATE", "Expression", "3",
+                        "NODE", "Symbol", "EVALUATION",
+                        "VARIABLE", "P",
+                        "VARIABLE", "C2",
+                    "LINK_TEMPLATE", "Expression", "3",
+                        "NODE", "Symbol", "EVALUATION",
+                        "VARIABLE", "P",
+                        "VARIABLE", "C1"
     };
     // clang-format on
     return tokens;

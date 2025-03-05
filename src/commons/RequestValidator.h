@@ -29,8 +29,8 @@ class RequestValidator {
    protected:
     string validator_regex;
     int count_tokens(const std::string& regex) {
-        std::regex tokenRegex(R"(\S+)");  // Match non-space sequences
-        std::sregex_iterator begin(regex.begin(), regex.end(), tokenRegex);
+        std::regex token_regex(R"(\S+)");  // Match non-space sequences
+        std::sregex_iterator begin(regex.begin(), regex.end(), token_regex);
         std::sregex_iterator end;
         return std::distance(begin, end);
     }
