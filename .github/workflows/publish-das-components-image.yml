@@ -7,7 +7,7 @@ on:
       - das-237
 
 jobs:
-  build-binaries:
+  build_binaries:
     runs-on: self-hosted
     steps:
       - name: Checkout code
@@ -25,7 +25,7 @@ jobs:
 
   build_and_publish:
     runs-on: self-hosted
-    needs: build-binaries
+    needs: build_binaries
     strategy:
       matrix:
         target: [attention-broker, query-agent, link-creation-agent, link-creation-client]
@@ -54,3 +54,45 @@ jobs:
           push: true
           target: ${{ matrix.target }}
           tags: trueagi/das:${{ matrix.target }}-poc
+
+  deploy_ensemble_to_server:
+    runs-on: self-hosted
+    needs: build_and_publish
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Copy script to server
+        uses: appleboy/scp-action@v0.1.0
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          source: "src/scripts/refrash-nunet-deployment.sh"
+          target: "/tmp/refrash-nunet-deployment.sh"
+
+      - name: Load ensemble.yaml content into a variable
+        id: load_ensemble
+        run: |
+          ENSEMBLE_CONTENT=$(cat src/assets/ensemble.yaml)
+          echo "ENSEMBLE_CONTENT=$ENSEMBLE_CONTENT" >> $GITHUB_ENV
+          echo "ensemble.yaml content loaded successfully."
+
+      - name: Process ensemble.yaml and execute deployment script on remote server
+        uses: appleboy/ssh-action@v0.1.0
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            PEER_ID=$(nunet actor cmd /dms/node/peers/self -c "$USER_NAME" | jq -r '.id')
+            if [ -z "$PEER_ID" ]; then
+              echo "Error: Could not get the peer ID"
+              exit 1
+            fi
+            echo "Peer ID: $PEER_ID"
+
+            ENSEMBLE_FILE=$(mktemp /tmp/ensemble.XXXXXX.yaml)
+            echo "${{env.ENSEMBLE_CONTENT}}" | sed "s#\${PEER_ID}#$PEER_ID#g" > $ENSEMBLE_FILE
+
+            bash +x /tmp/refresh-nunet-deployment.sh $ENSEMBLE_FILE
