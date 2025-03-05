@@ -19,7 +19,7 @@ InferenceRequest::InferenceRequest(std::string first_handle,
 
 InferenceRequest::~InferenceRequest() {}
 
-std::vector<std::string>&& InferenceRequest::query() { return {}; }
+std::vector<std::string>&& InferenceRequest::query() { return move(std::vector<std::string>{}); }
 
 std::string InferenceRequest::get_id() { return Utils::random_string(10); }
 
