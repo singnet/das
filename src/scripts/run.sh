@@ -21,4 +21,4 @@ docker run \
     "src/bin/$CONTAINER_NAME" "$@"
 
 sleep 1
-docker rm "$CONTAINER_NAME"
+docker rm -f "$CONTAINER_NAME"
