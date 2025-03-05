@@ -145,3 +145,13 @@ std::string Utils::join(const std::vector<std::string>& tokens, char delimiter) 
     }
     return result;
 }
+
+std::string Utils::random_string(size_t length) {
+    const char charset[] = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+    const size_t max_index = (sizeof(charset) - 1);
+    std::string result;
+    for (size_t i = 0; i < length; i++) {
+        result += charset[rand() % max_index];
+    }
+    return result;
+}
