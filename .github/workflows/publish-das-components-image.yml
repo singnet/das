@@ -87,7 +87,7 @@ jobs:
         run: |
           echo "Running deployment script on the remote server..."
           ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SERVER_HOST }} << 'EOF'
-            PEER_ID=$(nunet actor cmd /dms/node/peers/self -c $USER_NAME | jq -r '.id')
+            PEER_ID=$(nunet actor cmd /dms/node/peers/self -c user | jq -r '.id')
             
             if [ -z "$PEER_ID" ]; then
               echo "Error: Could not get the peer ID"
