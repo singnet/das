@@ -79,7 +79,7 @@ jobs:
       - name: Encode ensemble.yaml and store in environment
         id: load_ensemble
         run: |
-          ENSEMBLE_CONTENT=$(base64 < src/assets/ensemble.yaml)
+          ENSEMBLE_CONTENT=$(base64 -w 0 < src/assets/ensemble.yaml)
           echo "ENSEMBLE_CONTENT=$ENSEMBLE_CONTENT" >> $GITHUB_ENV
           echo "ensemble.yaml content encoded successfully."
 
