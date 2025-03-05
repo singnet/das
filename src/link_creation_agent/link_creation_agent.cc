@@ -158,6 +158,15 @@ void LinkCreationAgent::load_buffer() {
     file.close();
 }
 
+static bool is_link_template_arg(string arg) {
+    if (arg == "LIST") return true;
+    if (arg == "LINK_CREATE") return true;
+    if (arg == "PROOF_OF_IMPLICATION_OR_EQUIVALENCE") return true;
+    if (arg == "PROOF_OF_IMPLICATION") return true;
+    if (arg == "PROOF_OF_EQUIVALENCE") return true;
+    return false;
+}
+
 shared_ptr<LinkCreationAgentRequest> LinkCreationAgent::create_request(vector<string> request) {
     try {
         LinkCreationAgentRequest* lca_request = new LinkCreationAgentRequest();
@@ -165,7 +174,7 @@ shared_ptr<LinkCreationAgentRequest> LinkCreationAgent::create_request(vector<st
         bool is_link_create = false;
         for (string arg : request) {
             cursor++;
-            is_link_create = (arg == "LINK_CREATE") || is_link_create;
+            is_link_create = is_link_template_arg(arg) || is_link_create;
             if (!is_link_create) {
                 lca_request->query.push_back(arg);
             }
@@ -186,10 +195,20 @@ shared_ptr<LinkCreationAgentRequest> LinkCreationAgent::create_request(vector<st
             }
         }
         lca_request->infinite = (lca_request->repeat == -1);
-        string joined_string = Utils::join(lca_request->query, ' ') + Utils::join(lca_request->link_template, ' ');
+        string joined_string = Utils::join(lca_request->query, ' ') + Utils::join(lca_request->link_template, ' ') + lca_request->context;
         shared_ptr<char> joined_string_c = shared_ptr<char>(new char[joined_string.size() + 1]);
         strcpy(joined_string_c.get(), joined_string.c_str());
         lca_request->id = string(compute_hash(joined_string_c.get()));
+        // couts
+        cout << "Query: " << Utils::join(lca_request->query, ' ') << endl;
+        cout << "Link Template: " << Utils::join(lca_request->link_template, ' ') << endl;
+        cout << "Max Results: " << lca_request->max_results << endl;
+        cout << "Repeat: " << lca_request->repeat << endl;
+        cout << "Context: " << lca_request->context << endl;
+        cout << "Update Attention Broker: " << lca_request->update_attention_broker << endl;
+        cout << "Infinite: " << lca_request->infinite << endl;
+        cout << "ID: " << lca_request->id << endl;
+
         return shared_ptr<LinkCreationAgentRequest>(lca_request);
     } catch (exception& e) {
         cout << "Error parsing request: " << e.what() << endl;
