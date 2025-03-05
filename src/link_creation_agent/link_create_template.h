@@ -152,10 +152,21 @@ class LinkCreateTemplate {
      */
     void add_custom_field(CustomField custom_field);
 
+
    private:
     std::string link_type;
     std::vector<LinkCreateTemplateTypes> targets;
     std::vector<CustomField> custom_fields;
+};
+
+class LinkCreateTemplateList {
+   public:
+    LinkCreateTemplateList(std::vector<std::string> link_template);
+    ~LinkCreateTemplateList();
+    std::vector<LinkCreateTemplate> get_templates();
+
+   private:
+    std::vector<LinkCreateTemplate> templates;
 };
 
 }  // namespace link_creation_agent

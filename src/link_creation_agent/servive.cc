@@ -23,8 +23,16 @@ void LinkCreationService::process_request(shared_ptr<RemoteIterator<HandlesAnswe
                 Utils::sleep();
             } else {
                 cout << "LinkCreationService::process_request: Processing query_answer" << endl;
-                Link link(query_answer, link_template);
-                this->create_link(link, *das_client);
+                if (link_template.front() == "LIST") {
+                    LinkCreateTemplateList link_create_template_list(link_template);
+                    for(auto link_template : link_create_template_list.get_templates()){
+                        Link link(query_answer, link_template.tokenize());
+                        this->create_link(link, *das_client);
+                    }
+                }else{
+                    Link link(query_answer, link_template);
+                    this->create_link(link, *das_client);
+                }
                 delete query_answer;
                 if (++count == max_query_answers) break;
             }

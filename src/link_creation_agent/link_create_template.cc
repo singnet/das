@@ -273,3 +273,27 @@ std::string CustomField::to_string() {
 }
 
 std::vector<std::string> CustomField::tokenize() { return split(this->to_string(), ' '); }
+
+
+LinkCreateTemplateList::LinkCreateTemplateList(std::vector<std::string> link_template) {
+    if (get_token(link_template, 0) != "LIST")
+        throw std::invalid_argument("Can not create Link Template List: Invalid arguments");
+
+    size_t cursor = 0;
+    int link_template_size = string_to_int(get_token(link_template, 1));
+    cursor += 2;
+    for (int i = 0; i < link_template_size; i++) {
+        std::vector<std::string> sub_link_template = parse_sub_link_template(link_template, cursor);
+        this->templates.push_back(LinkCreateTemplate(sub_link_template));
+    }
+    if (this->templates.size() != link_template_size) {
+        throw std::invalid_argument("Can not create Link Template List: Invalid arguments");
+    }
+}
+
+
+LinkCreateTemplateList::~LinkCreateTemplateList() {}
+
+std::vector<LinkCreateTemplate> LinkCreateTemplateList::get_templates() {
+    return this->templates;
+}

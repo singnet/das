@@ -129,16 +129,17 @@ std::vector<std::vector<std::string>> ProofOfImplicationOrEquivalence::get_reque
         query_and_link_creation_template.push_back(token);
     }
     requests.push_back(query_and_link_creation_template);
-    // proof of implication
-    ProofOfImplication proof_of_implication(first_handle, second_handle, max_proof_length);
-    for (auto request : proof_of_implication.get_requests()) {
-        requests.push_back(request);
-    }
-    // proof of equivalence
-    ProofOfEquivalence proof_of_equivalence(first_handle, second_handle, max_proof_length);
-    for (auto request : proof_of_equivalence.get_requests()) {
-        requests.push_back(request);
-    }
+    // Not supported yet
+    // // proof of implication
+    // ProofOfImplication proof_of_implication(first_handle, second_handle, max_proof_length);
+    // for (auto request : proof_of_implication.get_requests()) {
+    //     requests.push_back(request);
+    // }
+    // // proof of equivalence
+    // ProofOfEquivalence proof_of_equivalence(first_handle, second_handle, max_proof_length);
+    // for (auto request : proof_of_equivalence.get_requests()) {
+    //     requests.push_back(request);
+    // }
 
     return requests;
 }
