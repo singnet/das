@@ -76,12 +76,12 @@ jobs:
           echo "Copying script to server..."
           scp -o StrictHostKeyChecking=no src/scripts/refresh-nunet-deployment.sh ${{ secrets.SSH_USER }}@${{ secrets.SERVER_HOST }}:/tmp/refresh-nunet-deployment.sh
 
-      - name: Load ensemble.yaml content into a variable
+      - name: Encode ensemble.yaml and store in environment
         id: load_ensemble
         run: |
-          ENSEMBLE_CONTENT=$(cat src/assets/ensemble.yaml)
+          ENSEMBLE_CONTENT=$(base64 < src/assets/ensemble.yaml)
           echo "ENSEMBLE_CONTENT=$ENSEMBLE_CONTENT" >> $GITHUB_ENV
-          echo "ensemble.yaml content loaded successfully."
+          echo "ensemble.yaml content encoded successfully."
 
       - name: Process ensemble.yaml and execute deployment script on remote server
         run: |
@@ -96,7 +96,7 @@ jobs:
             echo "Peer ID: $PEER_ID"
 
             ENSEMBLE_FILE=$(mktemp /tmp/ensemble.XXXXXX.yaml)
-            echo "${{ env.ENSEMBLE_CONTENT }}" | sed "s#\${PEER_ID}#$PEER_ID#g" > $ENSEMBLE_FILE
+            echo "${{ env.ENSEMBLE_CONTENT }}" | base64 --decode | sed "s#\${PEER_ID}#$PEER_ID#g" > $ENSEMBLE_FILE
 
             bash +x /tmp/refresh-nunet-deployment.sh $ENSEMBLE_FILE
           EOF
