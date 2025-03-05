@@ -19,7 +19,7 @@ InferenceRequest::InferenceRequest(std::string first_handle,
 
 InferenceRequest::~InferenceRequest() {}
 
-std::vector<std::string> InferenceRequest::query() { return {}; }
+std::vector<std::string>&& InferenceRequest::query() { return {}; }
 
 std::string InferenceRequest::get_id() { return Utils::random_string(10); }
 
@@ -27,9 +27,9 @@ std::string InferenceRequest::get_type() { return "INFERENCE_REQUEST"; }
 
 std::string InferenceRequest::get_max_proof_length() { return std::to_string(max_proof_length); }
 
-std::vector<std::string> InferenceRequest::get_distributed_inference_control_request() {
+std::vector<std::string>&& InferenceRequest::get_distributed_inference_control_request() {
     // clang-format off
-    std::vector<std::string> tokens = {
+    return move(std::vector<std::string>({
         "CHAIN",
             first_handle,    
             second_handle, 
@@ -43,12 +43,13 @@ std::vector<std::string> InferenceRequest::get_distributed_inference_control_req
                     "NODE", "Symbol", "EQUIVALENCE", 
                     first_handle,
                     second_handle
-    };
+    }));
     // clang-format on
-    return tokens;
 }
 
-std::vector<std::vector<std::string>> InferenceRequest::get_requests() { return {}; }
+std::vector<std::vector<std::string>>&& InferenceRequest::get_requests() {
+    return move(std::vector<std::vector<std::string>>{});
+}
 
 ProofOfImplicationOrEquivalence::ProofOfImplicationOrEquivalence(std::string first_handle,
                                                                  std::string second_handle,
@@ -57,9 +58,9 @@ ProofOfImplicationOrEquivalence::ProofOfImplicationOrEquivalence(std::string fir
 
 ProofOfImplicationOrEquivalence::~ProofOfImplicationOrEquivalence() {}
 
-std::vector<std::string> ProofOfImplicationOrEquivalence::query() {
+std::vector<std::string>&& ProofOfImplicationOrEquivalence::query() {
     // clang-format off
-    std::vector<std::string> tokens = {
+    return move(std::vector<std::string>({
         "LINK_TEMPLATE", "Expression", "3",
             "NODE", "Symbol", "EVALUATION",
             "LINK_TEMPLATE", "Expression", "2",
@@ -68,12 +69,11 @@ std::vector<std::string> ProofOfImplicationOrEquivalence::query() {
             "LINK_TEMPLATE", "Expression", "2",
                 "NODE", "Symbol", "CONCEPT",
                 "VARIABLE", "C"
-    };
+    }));
     // clang-format on
-    return tokens;
 }
 
-std::vector<std::string> ProofOfImplicationOrEquivalence::patterns_link_template() {
+std::vector<std::string>&& ProofOfImplicationOrEquivalence::patterns_link_template() {
     // SATISFYING_SET
     LinkCreateTemplate satisfying_set_link_template = LinkCreateTemplate("Expression");
     // Node("Symbol", "SATISFYING_SET");
@@ -115,13 +115,12 @@ std::vector<std::string> ProofOfImplicationOrEquivalence::patterns_link_template
     for (auto token : patterns_link_template.tokenize()) {
         tokens.push_back(token);
     }
-    return tokens;
+    return move(tokens);
 }
 
 std::string ProofOfImplicationOrEquivalence::get_type() { return "PROOF_OF_IMPLICATION_OR_EQUIVALENCE"; }
 
-std::vector<std::vector<std::string>> ProofOfImplicationOrEquivalence::get_requests() {
-
+std::vector<std::vector<std::string>>&& ProofOfImplicationOrEquivalence::get_requests() {
     std::vector<std::vector<std::string>> requests;
     // query + link creation template
     std::vector<std::string> query_and_link_creation_template(this->query());
@@ -140,7 +139,7 @@ std::vector<std::vector<std::string>> ProofOfImplicationOrEquivalence::get_reque
         requests.push_back(request);
     }
 
-    return requests;
+    return move(requests);
 }
 
 ProofOfImplication::ProofOfImplication(std::string first_handle,
@@ -150,9 +149,9 @@ ProofOfImplication::ProofOfImplication(std::string first_handle,
 
 ProofOfImplication::~ProofOfImplication() {}
 
-std::vector<std::string> ProofOfImplication::query() {
+std::vector<std::string>&& ProofOfImplication::query() {
     // clang-format off
-    std::vector<std::string> tokens = {
+    return move(std::vector<std::string>({
         "AND", "3",
             "LINK_TEMPLATE", "Expression", "2",
                 "NODE", "Symbol", "SATISFYING_SET",
@@ -182,19 +181,18 @@ std::vector<std::string> ProofOfImplication::query() {
                             "NODE", "Symbol", "EVALUATION",
                             "VARIABLE", "P1",
                             "VARIABLE", "C"
-    };
+    }));
     // clang-format on
-    return tokens;
 }
 
 std::string ProofOfImplication::get_type() { return "PROOF_OF_IMPLICATION"; }
 
-std::vector<std::vector<std::string>> ProofOfImplication::get_requests() {
+std::vector<std::vector<std::string>>&& ProofOfImplication::get_requests() {
     std::vector<std::vector<std::string>> requests;
     auto query = this->query();
     query.push_back("IMPLICATION_DEDUCTION");  // processor
     requests.push_back(query);
-    return requests;
+    return move(requests);
 }
 
 ProofOfEquivalence::ProofOfEquivalence(std::string first_handle,
@@ -204,9 +202,9 @@ ProofOfEquivalence::ProofOfEquivalence(std::string first_handle,
 
 ProofOfEquivalence::~ProofOfEquivalence() {}
 
-std::vector<std::string> ProofOfEquivalence::query() {
+std::vector<std::string>&& ProofOfEquivalence::query() {
     // clang-format off
-    std::vector<std::string> tokens = {
+    return move(std::vector<std::string>({
         "AND", "3",
         "LINK_TEMPLATE", "Expression", "2",
             "NODE", "Symbol", "PATTERNS",
@@ -236,17 +234,16 @@ std::vector<std::string> ProofOfEquivalence::query() {
                         "NODE", "Symbol", "EVALUATION",
                         "VARIABLE", "P",
                         "VARIABLE", "C1"
-    };
+    }));
     // clang-format on
-    return tokens;
 }
 
 std::string ProofOfEquivalence::get_type() { return "PROOF_OF_EQUIVALENCE"; }
 
-std::vector<std::vector<std::string>> ProofOfEquivalence::get_requests() {
+std::vector<std::vector<std::string>>&& ProofOfEquivalence::get_requests() {
     std::vector<std::vector<std::string>> requests;
     auto query = this->query();
     query.push_back("EQUIVALENCE_DEDUCTION");  // processor
     requests.push_back(query);
-    return requests;
+    return move(requests);
 }

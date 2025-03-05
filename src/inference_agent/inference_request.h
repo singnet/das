@@ -22,7 +22,7 @@ class InferenceRequest {
      *
      * @return std::vector<std::string>
      */
-    virtual std::vector<std::string> query();
+    virtual std::vector<std::string>&& query();
 
     /**
      * @brief Get the id of the inference request
@@ -50,12 +50,12 @@ class InferenceRequest {
      *
      * @return std::vector<std::string>
      */
-    virtual std::vector<std::string> get_distributed_inference_control_request();
+    virtual std::vector<std::string>&& get_distributed_inference_control_request();
 
     /**
      * @brief Get the requests of the inference request
      */
-    virtual std::vector<std::vector<std::string>> get_requests();
+    virtual std::vector<std::vector<std::string>>&& get_requests();
 
    protected:
     std::string first_handle;
@@ -70,10 +70,10 @@ class ProofOfImplicationOrEquivalence : public InferenceRequest {
                                     int max_proof_length);
     ~ProofOfImplicationOrEquivalence();
 
-    std::vector<std::string> query() override;
-    std::vector<std::string> patterns_link_template();
+    std::vector<std::string>&& query() override;
+    std::vector<std::string>&& patterns_link_template();
     std::string get_type() override;
-    std::vector<std::vector<std::string>> get_requests() override;
+    std::vector<std::vector<std::string>>&& get_requests() override;
 };
 
 class ProofOfImplication : public InferenceRequest {
@@ -81,9 +81,9 @@ class ProofOfImplication : public InferenceRequest {
     ProofOfImplication(std::string first_handle, std::string second_handle, int max_proof_length);
     ~ProofOfImplication();
 
-    std::vector<std::string> query() override;
+    std::vector<std::string>&& query() override;
     std::string get_type() override;
-    std::vector<std::vector<std::string>> get_requests() override;
+    std::vector<std::vector<std::string>>&& get_requests() override;
 
    private:
     const std::string IMPLICATION_DEDUCTION_PROCESSOR = "IMPLICATION_DEDUCTION";
@@ -94,9 +94,9 @@ class ProofOfEquivalence : public InferenceRequest {
     ProofOfEquivalence(std::string first_handle, std::string second_handle, int max_proof_length);
     ~ProofOfEquivalence();
 
-    std::vector<std::string> query() override;
+    std::vector<std::string>&& query() override;
     std::string get_type() override;
-    std::vector<std::vector<std::string>> get_requests() override;
+    std::vector<std::vector<std::string>>&& get_requests() override;
 
    private:
     const std::string EQUIVALENCE_DEDUCTION_PROCESSOR = "EQUIVALENCE_DEDUCTION";
