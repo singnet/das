@@ -41,6 +41,7 @@ class AttentionBrokerUpdater : public QueryAnswerProcessor {
         this->set_queue_processor_finished();
         if (this->queue_processor_method != NULL) {
             this->queue_processor_method->join();
+            delete this->queue_processor_method;
             this->queue_processor_method = NULL;
         }
     }

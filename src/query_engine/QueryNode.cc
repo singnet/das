@@ -121,6 +121,7 @@ QueryNodeServer<AnswerType>::~QueryNodeServer() {
     this->graceful_shutdown();
     if (this->query_answer_processor != NULL) {
         this->query_answer_processor->join();
+        delete this->query_answer_processor;
         this->query_answer_processor = NULL;
     }
 }
@@ -192,6 +193,7 @@ QueryNodeClient<AnswerType>::~QueryNodeClient() {
     this->graceful_shutdown();
     if (this->query_answer_processor != NULL) {
         this->query_answer_processor->join();
+        delete this->query_answer_processor;
         this->query_answer_processor = NULL;
     }
 }

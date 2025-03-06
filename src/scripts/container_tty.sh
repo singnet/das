@@ -13,8 +13,13 @@ if docker ps -a --format '{{.Names}}' | grep -q "^${CONTAINER_NAME}$"; then
   docker rm -f "${CONTAINER_NAME}"
 fi
 
+ENV_VARS=$(printenv | awk -F= '{print "--env "$1}')
+
 docker run --rm \
     --net="host" \
+    --volume /etc/passwd:/etc/passwd:ro \
+    $ENV_VARS \
+    --ulimit nofile=1024:4096 \
     --name=$CONTAINER_NAME \
     --volume /tmp:/tmp \
     --volume .:/opt/das \

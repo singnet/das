@@ -68,9 +68,12 @@ SynchronousSharedRAM::SynchronousSharedRAM(
 
 SynchronousSharedRAM::~SynchronousSharedRAM() {
     if (this->joined_network) {
-        for (auto thread: inbox_threads) {
+        for (auto thread: this->inbox_threads) {
             thread->join();
+            delete thread;
         }
+        this->inbox_threads.clear();
+
         NODE_QUEUE_MUTEX.lock();
         if (NODE_QUEUE.find(this->node_id) == NODE_QUEUE.end()) {
             NODE_QUEUE_MUTEX.unlock();
@@ -91,10 +94,19 @@ SynchronousGRPC::SynchronousGRPC(
 
 SynchronousGRPC::~SynchronousGRPC() {
     if (this->joined_network) {
-        for (auto thread: inbox_threads) {
+        for (auto thread: this->inbox_threads) {
             thread->join();
+            delete thread;
         }
+        this->inbox_threads.clear();
+
         this->grpc_server->Shutdown();
+        this->grpc_server.reset();
+
+        if (this->grpc_thread) {
+            this->grpc_thread->join();
+            delete this->grpc_thread;
+        }
     }
 }
 
