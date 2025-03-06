@@ -42,8 +42,7 @@ jobs:
 
       - name: Publish to PyPI
         env:
-          TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}
-          TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
+          TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
         run: |
           WHEEL_FILE=$(find . -name "${{ matrix.target }}-*.whl" | head -n 1)
           if [ -z "$WHEEL_FILE" ]; then
