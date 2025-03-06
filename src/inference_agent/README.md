@@ -29,13 +29,13 @@ PROOF_OF_IMPLICATION_OR_EQUIVALENCE "handle1" "handle2" "10"
 ## Build
 
 ```
-make build
+make build-all
 ```
 
-## Run
+## Run Server
 
 ```
-inference_agent --config_file <config_path>
+make run-inference-agent OPTIONS="path_to_config_file"
 ```
 
 ## Config
@@ -63,4 +63,5 @@ das_server_id = "localhost:8084"
 distributed_inference_control_node_id = "localhost:8085"
 distributed_inference_control_node_server_id = "localhost:8086"
 ```
+
 

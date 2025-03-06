@@ -9,8 +9,10 @@ DasAgentNode::DasAgentNode(const string& node_id, const string& server_id) : Sta
 DasAgentNode::~DasAgentNode() { DistributedAlgorithmNode::graceful_shutdown(); }
 
 void DasAgentNode::create_link(vector<string>& request) {
+    // TODO add send link creation request
     cout << "Creating link" << endl;
     for (string token : request) {
-        cout << token << endl;
+        cout << token << " ";
     }
+    cout << endl;
 }
