@@ -40,6 +40,9 @@ jobs:
           name: binaries
           path: src/bin
 
+      - name: Install twine
+        run: pip3 install twine==6.1.0
+
       - name: Publish to PyPI
         env:
           TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
