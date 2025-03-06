@@ -15,7 +15,6 @@ from selection_methods import handle_selection_method, SelectionMethodType
 from utils import Parameters, parse_file, SuppressCppOutput
 
 DEBUG = False
-SERVERS_ON_THE_NETWORK = 5
 MAX_CORRELATIONS_WITHOUT_STIMULATE = 1000
 
 
@@ -94,7 +93,8 @@ class BaseNode(StarNode):
         config_file: str = None,
         messaging_backend: MessageBrokerType = MessageBrokerType.GRPC
     ) -> None:
-        super().__init__(node_id, server_id, messaging_backend)
+        with SuppressCppOutput():
+            super().__init__(node_id, server_id, messaging_backend)
         self.params = self.load_config(config_file)
         self.atom_db = self.connect_atom_db()
         self.known_commands = {
@@ -173,13 +173,16 @@ class LeaderNode(BaseNode):
     def optimize_query(self) -> None:
         if DEBUG:
             print('[Leader.optimize_query] - START')
+
         while self.generation < self.params.max_generations:
             self._start_generation(self.query_tokens)
             self._wait_for_workers()
             individuals = self._select_best_individuals()
             self._update_attention_broker(individuals)
+
         if DEBUG:
             print('[Leader.optimize_query] - END')
+
         self.evaluated_query = True
 
     def get_best_individuals(self, query_agent_node_id: str, query_agent_server_id: str) -> list:
@@ -188,16 +191,20 @@ class LeaderNode(BaseNode):
         """
         if not self.evaluated_query:
             return None
-        answer = []
-        with SuppressCppOutput():
-            query_agent = DASNode(query_agent_node_id, query_agent_server_id)
-            remote_iterator = query_agent.pattern_matcher_query(self.query_tokens.split(' '))
-        while (len(answer) < self.params.max_query_answers and not remote_iterator.finished()):
-            if (qa := remote_iterator.pop()):
-                answer.append(qa)
-            else:
-                time.sleep(0.1)
-        return answer
+        try:
+            answer = []
+            with SuppressCppOutput():
+                query_agent = DASNode(query_agent_node_id, query_agent_server_id)
+                remote_iterator = query_agent.pattern_matcher_query(self.query_tokens.split(' '))
+            while (len(answer) < self.params.max_query_answers and not remote_iterator.finished()):
+                if (qa := remote_iterator.pop()):
+                    answer.append(qa)
+                else:
+                    time.sleep(0.1)
+            return answer
+        except Exception as e:
+            print(f"An error occurred while retrieving the best individuals: {e}")
+            raise e
 
     def node_joined_network(self, node_id: str):
         if self.is_server:
@@ -360,9 +367,9 @@ class WorkerNode(BaseNode):
     def __init__(self, node_id: str, server_id: str, query_agent_node_id: str, query_agent_server_id: str, config_file: str):
         super().__init__(node_id=node_id, server_id=server_id, config_file=config_file)
         self.node_id = node_id
-        self.query_agent = DASNode(query_agent_node_id, query_agent_server_id)
+        with SuppressCppOutput():
+            self.query_agent = DASNode(query_agent_node_id, query_agent_server_id)
         self.generation = 0
-        self.atom_db = self.connect_atom_db()
         # Flag to signal that the worker has received the lock
         self.lock_acquired = False
 
@@ -449,23 +456,3 @@ class WorkerNode(BaseNode):
 
     def _send_status(self, status: str) -> None:
         self.send("WORKER_STATUS", [self.node_id, str(self.generation), status], self.server_id)
-
-
-if __name__ == '__main__':
-    query = 'LINK_TEMPLATE Evaluation 2 NODE Type Name VARIABLE V1'
-    path = "/home/marcocapozzoli/Desktop/hub-potencializa/jobs/singularity-net/projects/das/src/optimization_agent/distributed_optimizer_config.cfg"
-
-    leader = LeaderNode("localhost:7000", "localhost:37007", query, path)
-
-    worker1 = WorkerNode("localhost:7001", "localhost:7000", "localhost:31701", "localhost:31700", path)
-    worker2 = WorkerNode("localhost:7002", "localhost:7000", "localhost:31702", "localhost:31700", path)
-    # worker3 = WorkerNode("localhost:7003", "localhost:7000", "localhost:31703", "localhost:31700", path)
-    # worker4 = WorkerNode("localhost:7004", "localhost:7000", "localhost:31704", "localhost:31700", path)
-    # worker5 = WorkerNode("localhost:7005", "localhost:7000", "localhost:31705", "localhost:31700", path)
-
-    print("\n== START ==\n")
-
-    leader.optimize_query()
-    answers = leader.get_best_individuals("localhost:31706", "localhost:31700")
-
-    print("\n== END ==\n")
