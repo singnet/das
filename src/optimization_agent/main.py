@@ -53,7 +53,7 @@ def main():
 
         leader.optimize_query()
 
-        answers = leader.get_best_individuals("localhost:31705", "localhost:31700")
+        answers = leader.get_best_individuals("localhost:41705", "localhost:31700")
 
         return [answer.to_string() for answer in answers]
     except Exception as e:
@@ -61,5 +61,5 @@ def main():
 
 
 if __name__ == '__main__':
-    print("\n== Output ==\n")
+    print("Starting optimizer")
     print(main())
