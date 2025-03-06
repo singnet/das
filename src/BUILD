@@ -1,5 +1,22 @@
 package(default_visibility = ["//visibility:public"])
 
+exports_files(
+    [
+        ".ruff.toml",
+    ],
+    visibility = ["//visibility:public"],
+)
+
+alias(
+  name = "format.check",
+  actual = "//tools/format:format.check"
+)
+
+alias(
+  name = "format",
+  actual = "//tools/format"
+)
+
 cc_binary(
     name = "attention_broker_service",
     srcs = [],
@@ -87,7 +104,7 @@ cc_binary(
 )
 
 cc_binary(
-    name = "inference_agent",
+    name = "inference_agent_server",
     srcs = [],
     defines = ["BAZEL_BUILD"],
     linkstatic = 1,

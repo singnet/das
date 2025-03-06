@@ -47,12 +47,15 @@ class TestRedisMongoDB:
 
     @pytest.fixture
     def database_custom_index(self):
-        with mock.patch(
-            "hyperon_das_atomdb.adapters.redis_mongo_db.RedisMongoDB._connection_mongo_db",
-            return_value=mongo_mock(),
-        ), mock.patch(
-            "hyperon_das_atomdb.adapters.redis_mongo_db.RedisMongoDB._connection_redis",
-            return_value=redis_mock(),
+        with (
+            mock.patch(
+                "hyperon_das_atomdb.adapters.redis_mongo_db.RedisMongoDB._connection_mongo_db",
+                return_value=mongo_mock(),
+            ),
+            mock.patch(
+                "hyperon_das_atomdb.adapters.redis_mongo_db.RedisMongoDB._connection_redis",
+                return_value=redis_mock(),
+            ),
         ):
             yield RedisMongoDB
 
@@ -175,7 +178,12 @@ class TestRedisMongoDB:
         assert len(targets) == expected_count
 
     @pytest.mark.parametrize(
-        "handle", ["handle", "2a8a69c01305563932b957de4b3a9ba6", "2a8a69c0130556=z32b957de4b3a9ba6"]
+        "handle",
+        [
+            "handle",
+            "2a8a69c01305563932b957de4b3a9ba6",
+            "2a8a69c0130556=z32b957de4b3a9ba6",
+        ],
     )
     def test_get_link_targets_invalid(self, handle, database: RedisMongoDB):
         with pytest.raises(ValueError) as exc_info:
@@ -187,7 +195,11 @@ class TestRedisMongoDB:
         "link_values,expected,expected_count",
         [
             (
-                {"link_type": "Evaluation", "target_handles": ["*", "*"], "toplevel_only": True},
+                {
+                    "link_type": "Evaluation",
+                    "target_handles": ["*", "*"],
+                    "toplevel_only": True,
+                },
                 {"bd2bb6c802a040b00659dfe7954e804d"},
                 1,
             ),
@@ -218,7 +230,10 @@ class TestRedisMongoDB:
             (
                 {
                     "link_type": "Similarity",
-                    "target_handles": ["*", ExpressionHasher.terminal_hash("Concept", "chimp")],
+                    "target_handles": [
+                        "*",
+                        ExpressionHasher.terminal_hash("Concept", "chimp"),
+                    ],
                     "toplevel_only": False,
                 },
                 {
@@ -350,7 +365,11 @@ class TestRedisMongoDB:
 
     @pytest.mark.parametrize(
         "handle,",
-        ["handle", "2a8a69c01305563932b957de4b3a9ba6", "2a8a69c0130556=z32b957de4b3a9ba6"],
+        [
+            "handle",
+            "2a8a69c01305563932b957de4b3a9ba6",
+            "2a8a69c0130556=z32b957de4b3a9ba6",
+        ],
     )
     def test_get_node_name_value_error(self, handle, database: RedisMongoDB):
         with pytest.raises(ValueError) as exc_info:
@@ -430,7 +449,10 @@ class TestRedisMongoDB:
                 "link",
                 ["type"],
                 [{"field": "type", "value": "Evaluation"}],
-                ["bd2bb6c802a040b00659dfe7954e804d", "cadd63b3fd14e34819bca4803925bf2c"],
+                [
+                    "bd2bb6c802a040b00659dfe7954e804d",
+                    "cadd63b3fd14e34819bca4803925bf2c",
+                ],
             ),
         ],
     )
@@ -652,7 +674,10 @@ class TestRedisMongoDB:
                     ("Concept", "triceratops"),
                     (
                         "Evaluation",
-                        ["d03e59654221c1e8fcda404fd5c8d6cb", "99d18c702e813b07260baf577c60c455"],
+                        [
+                            "d03e59654221c1e8fcda404fd5c8d6cb",
+                            "99d18c702e813b07260baf577c60c455",
+                        ],
                     ),
                 ],
             ),
@@ -699,17 +724,26 @@ class TestRedisMongoDB:
             ("Similarity", ["af12f10f9ae2002a1607ba0b47ba8407", "*"], 3),
             (
                 "Inheritance",
-                ["c1db9b517073e51eb7ef6fed608ec204", "b99ae727c787f1b13b452fd4c9ce1b9a"],
+                [
+                    "c1db9b517073e51eb7ef6fed608ec204",
+                    "b99ae727c787f1b13b452fd4c9ce1b9a",
+                ],
                 1,
             ),
             (
                 "Evaluation",
-                ["d03e59654221c1e8fcda404fd5c8d6cb", "99d18c702e813b07260baf577c60c455"],
+                [
+                    "d03e59654221c1e8fcda404fd5c8d6cb",
+                    "99d18c702e813b07260baf577c60c455",
+                ],
                 1,
             ),
             (
                 "Evaluation",
-                ["d03e59654221c1e8fcda404fd5c8d6cb", "99d18c702e813b07260baf577c60c455"],
+                [
+                    "d03e59654221c1e8fcda404fd5c8d6cb",
+                    "99d18c702e813b07260baf577c60c455",
+                ],
                 1,
             ),
             ("Evaluation", ["*", "99d18c702e813b07260baf577c60c455"], 1),
@@ -742,11 +776,26 @@ class TestRedisMongoDB:
                 ],
                 8,
             ),
-            ([{"field": "named_type", "value": "Similarity", "positions": [], "arity": 0}], 0),
+            (
+                [
+                    {
+                        "field": "named_type",
+                        "value": "Similarity",
+                        "positions": [],
+                        "arity": 0,
+                    }
+                ],
+                0,
+            ),
             ([{"field": "named_type", "value": "*", "positions": [], "arity": 0}], 1),
             (
                 [
-                    {"field": "named_type", "value": "*", "positions": [0, 1, 2], "arity": 3},
+                    {
+                        "field": "named_type",
+                        "value": "*",
+                        "positions": [0, 1, 2],
+                        "arity": 3,
+                    },
                 ],
                 15,
             ),
@@ -919,13 +968,23 @@ class TestRedisMongoDB:
             ),
             (
                 [
-                    {"field": "named_type", "value": "*", "positions": [1, "a"], "arity": 3},
+                    {
+                        "field": "named_type",
+                        "value": "*",
+                        "positions": [1, "a"],
+                        "arity": 3,
+                    },
                 ],
                 "Value '[1, 'a']' is not supported in 'positions'.",
             ),
             (
                 [
-                    {"field": "named_type", "value": "*", "positions": [1, 2], "arity": "a"},
+                    {
+                        "field": "named_type",
+                        "value": "*",
+                        "positions": [1, 2],
+                        "arity": "a",
+                    },
                 ],
                 "Value 'a' is not supported in 'arity'.",
             ),
@@ -1077,42 +1136,72 @@ class TestRedisMongoDB:
             ),
             (
                 [
-                    {"field": "named_type", "value": "Similarity", "positions": [1], "arity": 2},
+                    {
+                        "field": "named_type",
+                        "value": "Similarity",
+                        "positions": [1],
+                        "arity": 2,
+                    },
                 ],
                 ["*", ["*", "*"]],
                 0,
             ),
             (
                 [
-                    {"field": "named_type", "value": "Similarity", "positions": [1], "arity": 2},
+                    {
+                        "field": "named_type",
+                        "value": "Similarity",
+                        "positions": [1],
+                        "arity": 2,
+                    },
                 ],
                 ["Similarity", ["bb34ce95f161a6b37ff54b3d4c817857", "*"]],
                 1,
             ),
             (
                 [
-                    {"field": "named_type", "value": "Similarity", "positions": [1], "arity": 2},
+                    {
+                        "field": "named_type",
+                        "value": "Similarity",
+                        "positions": [1],
+                        "arity": 2,
+                    },
                 ],
                 ["Similarity", ["*", "bb34ce95f161a6b37ff54b3d4c817857"]],
                 0,
             ),
             (
                 [
-                    {"field": "named_type", "value": "Evaluation", "positions": [0, 1], "arity": 2},
+                    {
+                        "field": "named_type",
+                        "value": "Evaluation",
+                        "positions": [0, 1],
+                        "arity": 2,
+                    },
                 ],
                 ["Evaluation", ["*", "*"]],
                 2,
             ),
             (
                 [
-                    {"field": "named_type", "value": "*", "positions": [0, 1], "arity": 2},
+                    {
+                        "field": "named_type",
+                        "value": "*",
+                        "positions": [0, 1],
+                        "arity": 2,
+                    },
                 ],
                 ["Evaluation", ["*", "*"]],
                 2,
             ),
             (
                 [
-                    {"field": "named_type", "value": "Evaluation", "positions": [0, 1], "arity": 2},
+                    {
+                        "field": "named_type",
+                        "value": "Evaluation",
+                        "positions": [0, 1],
+                        "arity": 2,
+                    },
                 ],
                 ["*", ["*", "*"]],
                 0,
@@ -1138,7 +1227,12 @@ class TestRedisMongoDB:
             ),
             (
                 [
-                    {"field": "named_type", "value": "*", "positions": [0, 1], "arity": 2},
+                    {
+                        "field": "named_type",
+                        "value": "*",
+                        "positions": [0, 1],
+                        "arity": 2,
+                    },
                 ],
                 ["*", ["af12f10f9ae2002a1607ba0b47ba8407", "*"]],
                 4,
@@ -1176,7 +1270,12 @@ class TestRedisMongoDB:
             ),
             (
                 [
-                    {"field": "named_type", "value": "*", "positions": [0, 1, 2, 3], "arity": 5},
+                    {
+                        "field": "named_type",
+                        "value": "*",
+                        "positions": [0, 1, 2, 3],
+                        "arity": 5,
+                    },
                 ],
                 ["*", ["*", "*", "*", "*", "af12f10f9ae2002a1607ba0b47ba8407"]],
                 1,
@@ -1207,7 +1306,12 @@ class TestRedisMongoDB:
             ),
             (
                 [
-                    {"field": "named_type", "value": "*", "positions": [1, 2, 3, 4], "arity": 5},
+                    {
+                        "field": "named_type",
+                        "value": "*",
+                        "positions": [1, 2, 3, 4],
+                        "arity": 5,
+                    },
                 ],
                 ["*", ["0a32b476852eeb954979b87f5f6cb7af", "*", "*", "*", "*"]],
                 1,
@@ -1289,12 +1393,15 @@ class TestRedisMongoDB:
     def test_create_field_index_node_collection(self, database: RedisMongoDB):
         database.mongo_atoms_collection = mock.Mock()
         database.mongo_atoms_collection.create_index.return_value = "name_index_asc"
-        with mock.patch(
-            "hyperon_das_atomdb.index.Index.generate_index_id",
-            return_value="name_index_asc",
-        ), mock.patch(
-            "hyperon_das_atomdb.adapters.redis_mongo_db.MongoDBIndex.index_exists",
-            return_value=False,
+        with (
+            mock.patch(
+                "hyperon_das_atomdb.index.Index.generate_index_id",
+                return_value="name_index_asc",
+            ),
+            mock.patch(
+                "hyperon_das_atomdb.adapters.redis_mongo_db.MongoDBIndex.index_exists",
+                return_value=False,
+            ),
         ):
             result = database.create_field_index("node", ["name"], "Type")
 
@@ -1308,12 +1415,15 @@ class TestRedisMongoDB:
     def test_create_field_index_link_collection(self, database: RedisMongoDB):
         database.mongo_atoms_collection = mock.Mock()
         database.mongo_atoms_collection.create_index.return_value = "field_index_asc"
-        with mock.patch(
-            "hyperon_das_atomdb.index.Index.generate_index_id",
-            return_value="field_index_asc",
-        ), mock.patch(
-            "hyperon_das_atomdb.adapters.redis_mongo_db.MongoDBIndex.index_exists",
-            return_value=False,
+        with (
+            mock.patch(
+                "hyperon_das_atomdb.index.Index.generate_index_id",
+                return_value="field_index_asc",
+            ),
+            mock.patch(
+                "hyperon_das_atomdb.adapters.redis_mongo_db.MongoDBIndex.index_exists",
+                return_value=False,
+            ),
         ):
             result = database.create_field_index("link", ["field"], "Type")
 
@@ -1327,12 +1437,15 @@ class TestRedisMongoDB:
     def test_create_text_index(self, database: RedisMongoDB):
         database.mongo_atoms_collection = mock.Mock()
         database.mongo_atoms_collection.create_index.return_value = "field_index_asc"
-        with mock.patch(
-            "hyperon_das_atomdb.index.Index.generate_index_id",
-            return_value="field_index_asc",
-        ), mock.patch(
-            "hyperon_das_atomdb.adapters.redis_mongo_db.MongoDBIndex.index_exists",
-            return_value=False,
+        with (
+            mock.patch(
+                "hyperon_das_atomdb.index.Index.generate_index_id",
+                return_value="field_index_asc",
+            ),
+            mock.patch(
+                "hyperon_das_atomdb.adapters.redis_mongo_db.MongoDBIndex.index_exists",
+                return_value=False,
+            ),
         ):
             result = database.create_field_index(
                 "link", ["field"], index_type=FieldIndexType.TOKEN_INVERTED_LIST
@@ -1346,12 +1459,15 @@ class TestRedisMongoDB:
     def test_create_text_index_type(self, database: RedisMongoDB):
         database.mongo_atoms_collection = mock.Mock()
         database.mongo_atoms_collection.create_index.return_value = "field_index_asc"
-        with mock.patch(
-            "hyperon_das_atomdb.index.Index.generate_index_id",
-            return_value="field_index_asc",
-        ), mock.patch(
-            "hyperon_das_atomdb.adapters.redis_mongo_db.MongoDBIndex.index_exists",
-            return_value=False,
+        with (
+            mock.patch(
+                "hyperon_das_atomdb.index.Index.generate_index_id",
+                return_value="field_index_asc",
+            ),
+            mock.patch(
+                "hyperon_das_atomdb.adapters.redis_mongo_db.MongoDBIndex.index_exists",
+                return_value=False,
+            ),
         ):
             result = database.create_field_index(
                 "link", ["field"], "Type", index_type=FieldIndexType.TOKEN_INVERTED_LIST
@@ -1367,12 +1483,15 @@ class TestRedisMongoDB:
     def test_create_compound_index_type(self, database: RedisMongoDB):
         database.mongo_atoms_collection = mock.Mock()
         database.mongo_atoms_collection.create_index.return_value = "field_index_asc"
-        with mock.patch(
-            "hyperon_das_atomdb.index.Index.generate_index_id",
-            return_value="field_index_asc",
-        ), mock.patch(
-            "hyperon_das_atomdb.adapters.redis_mongo_db.MongoDBIndex.index_exists",
-            return_value=False,
+        with (
+            mock.patch(
+                "hyperon_das_atomdb.index.Index.generate_index_id",
+                return_value="field_index_asc",
+            ),
+            mock.patch(
+                "hyperon_das_atomdb.adapters.redis_mongo_db.MongoDBIndex.index_exists",
+                return_value=False,
+            ),
         ):
             result = database.create_field_index("link", fields=["field", "name"])
 
@@ -1385,12 +1504,15 @@ class TestRedisMongoDB:
     def test_create_compound_index_type_filter(self, database: RedisMongoDB):
         database.mongo_atoms_collection = mock.Mock()
         database.mongo_atoms_collection.create_index.return_value = "field_index_asc"
-        with mock.patch(
-            "hyperon_das_atomdb.index.Index.generate_index_id",
-            return_value="field_index_asc",
-        ), mock.patch(
-            "hyperon_das_atomdb.adapters.redis_mongo_db.MongoDBIndex.index_exists",
-            return_value=False,
+        with (
+            mock.patch(
+                "hyperon_das_atomdb.index.Index.generate_index_id",
+                return_value="field_index_asc",
+            ),
+            mock.patch(
+                "hyperon_das_atomdb.adapters.redis_mongo_db.MongoDBIndex.index_exists",
+                return_value=False,
+            ),
         ):
             result = database.create_field_index(
                 "link", named_type="Type", fields=["field", "name"]
@@ -1425,12 +1547,15 @@ class TestRedisMongoDB:
         database.mongo_atoms_collection = mock.Mock()
         database.mongo_atoms_collection.list_indexes.return_value = []
         database.mongo_atoms_collection.create_index.return_value = "name_index_asc"
-        with mock.patch(
-            "hyperon_das_atomdb.index.Index.generate_index_id",
-            return_value="name_index_asc",
-        ), mock.patch(
-            "hyperon_das_atomdb.adapters.redis_mongo_db.MongoDBIndex.index_exists",
-            return_value=False,
+        with (
+            mock.patch(
+                "hyperon_das_atomdb.index.Index.generate_index_id",
+                return_value="name_index_asc",
+            ),
+            mock.patch(
+                "hyperon_das_atomdb.adapters.redis_mongo_db.MongoDBIndex.index_exists",
+                return_value=False,
+            ),
         ):
             database.create_field_index("node", "name", "Type")
         assert database.create_field_index("node", ["name"], "Type") == "name_index_asc"

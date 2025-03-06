@@ -5,7 +5,8 @@
 #include <iomanip>
 #include <sstream>
 #include <thread>
-
+#include <fstream>
+#include <algorithm>
 #include "Utils.h"
 
 using namespace commons;
@@ -101,4 +102,56 @@ string StopWatch::str_time() {
     } else {
         return to_string(millis) + " millis";
     }
+}
+
+map<string, string> Utils::parse_config(string const &config_path) {
+    map<string, string> config;
+    ifstream file(config_path);
+    string line;
+    while (getline(file, line)) {
+        istringstream iss_line(line);
+        string key;
+        if (getline(iss_line, key, '=')) {
+            string value;
+            if (getline(iss_line, value)) {
+                value.erase(remove_if(value.begin(), value.end(), ::isspace), value.end());
+                key.erase(remove_if(key.begin(), key.end(), ::isspace), key.end());
+                config[key] = value;
+            }
+        }
+    }
+    file.close();
+    return config;
+}
+
+
+std::vector<std::string> Utils::split(const std::string& s, char delimiter) {
+    std::vector<std::string> tokens;
+    std::string token;
+    std::istringstream tokenStream(s);
+    while (std::getline(tokenStream, token, delimiter)) {
+        tokens.push_back(token);
+    }
+    return tokens;
+}
+
+std::string Utils::join(const std::vector<std::string>& tokens, char delimiter) {
+    std::string result;
+    for (size_t i = 0; i < tokens.size(); i++) {
+        if (i > 0) {
+            result += delimiter;
+        }
+        result += tokens[i];
+    }
+    return result;
+}
+
+std::string Utils::random_string(size_t length) {
+    const char charset[] = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+    const size_t max_index = (sizeof(charset) - 1);
+    std::string result;
+    for (size_t i = 0; i < length; i++) {
+        result += charset[rand() % max_index];
+    }
+    return result;
 }

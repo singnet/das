@@ -53,7 +53,15 @@ bazel:
 	@bash ./src/scripts/bazel.sh $(filter-out $@, $(MAKECMDGOALS))
 
 test-all: build-image
-	$(MAKE) bazel test //...
+	@$(MAKE) bazel test //...
+
+lint-all:
+	@$(MAKE) bazel lint \
+		"//... --fix --report --diff" \
+		| grep -vE "(Lint results|All checks passed|^[[:blank:]]*$$)"
+
+format-all:
+	@$(MAKE) bazel run format
 
 # Catch-all pattern to prevent make from complaining about unknown targets
 %:

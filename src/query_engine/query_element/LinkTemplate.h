@@ -151,6 +151,7 @@ class LinkTemplate : public Source {
         set_flow_finished();
         if (this->local_buffer_processor != NULL) {
             this->local_buffer_processor->join();
+            delete this->local_buffer_processor;
             this->local_buffer_processor = NULL;
         }
         Source::graceful_shutdown();

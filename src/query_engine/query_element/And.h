@@ -66,6 +66,7 @@ public:
         Operator<N>::graceful_shutdown();
         if (this->operator_thread != NULL) {
             this->operator_thread->join();
+            delete this->operator_thread;
             this->operator_thread = NULL;
         }
     }

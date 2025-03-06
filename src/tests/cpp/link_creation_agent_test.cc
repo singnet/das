@@ -38,7 +38,7 @@ TEST_F(LinkCreationAgentTest, TestRequest) {
     // Simulate a request
     vector<string> request = {
         "query1", "LINK_CREATE", "test", "1", "0", "VARIABLE", "V1", "10", "5", "test_context", "true"};
-    LinkCreationAgentRequest* lca_request = LinkCreationAgent::create_request(request);
+    shared_ptr<LinkCreationAgentRequest> lca_request = LinkCreationAgent::create_request(request);
     EXPECT_EQ(lca_request->query, vector<string>({"query1"}));
     EXPECT_EQ(lca_request->link_template,
               vector<string>({"LINK_CREATE", "test", "1", "0", "VARIABLE", "V1"}));
@@ -233,7 +233,7 @@ TEST(LinkCreateTemplate, TestLinkCreateTemplate) {
     EXPECT_EQ(get<Node>(lct8.get_targets()[1]).type, "SimpleNode");
     EXPECT_EQ(get<Node>(lct8.get_targets()[1]).value, "SimpleValue");
     link_template.clear();
-    link_template_str.clear();
+    link_template_str.clear();    
 }
 
 TEST(LinkCreateTemplate, TestInvalidLinkType) {
