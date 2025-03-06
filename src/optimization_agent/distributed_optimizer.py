@@ -1,16 +1,17 @@
 import json
 import time
+
 from collections import defaultdict
+from contextlib import suppress
 
 from das_node.star_node import StarNode
 from das_node.das_node import DASNode
 from das_node.query_answer import QueryAnswer
+from hyperon_das_atomdb.adapters import RedisMongoDB
 from hyperon_das_node import Message, MessageBrokerType
-
 from hyperon_das.cache.attention_broker_gateway import AttentionBrokerGateway
 
 from fitness_functions import handle_fitness_function
-from hyperon_das_atomdb.adapters import RedisMongoDB
 from selection_methods import handle_selection_method, SelectionMethodType
 from utils import Parameters, parse_file, SuppressCppOutput
 
@@ -21,12 +22,12 @@ MAX_CORRELATIONS_WITHOUT_STIMULATE = 1000
 # === Messages
 
 class StartGenerationMessage(Message):
-    def __init__(self, message: str):
+    def __init__(self, query_tokens: str):
         super().__init__()
-        self.message = message
+        self.query_tokens = query_tokens
 
     def act(self, node: "StarNode") -> None:
-        node.start(self.message)
+        node.start(self.query_tokens)
 
 
 class EvaluatedIndividualsMessage(Message):
@@ -209,7 +210,8 @@ class LeaderNode(BaseNode):
     def node_joined_network(self, node_id: str):
         if self.is_server:
             self.joinin_requests_queue.append(node_id)
-            # print(f"[Worker] Node {node_id} wants to join. Added to JOININ_REQUESTS_QUEUE.")
+            if DEBUG:
+                print(f"[Leader] Node {node_id} wants to join. Added to JOININ_REQUESTS_QUEUE.")
 
             # Automatically accepts workers (tests)
             # Search how to know the number of peers in the network
@@ -221,7 +223,8 @@ class LeaderNode(BaseNode):
 
         self.add_peer(node_id)
         self.workers[node_id] = {'generation': 1, 'status': 'live'}
-        # print(f"[Worker] Node {node_id} has been accepted and added as a peer.")
+        if DEBUG:
+            print(f"[Leader] Node {node_id} has been accepted and added as a peer.")
 
     def _start_generation(self, query: str, generation_key: str = None) -> None:
         self.generation += 1
@@ -312,12 +315,10 @@ class LeaderNode(BaseNode):
             handle = execution_stack.pop()
             single_answer.add(handle)
             joint_answer[handle] = joint_answer.get(handle, 0) + 1
-            try:
+            with suppress(ValueError):
                 targets = self.atom_db.get_link_targets(handle)
                 for target_handle in targets:
                     execution_stack.append(target_handle)
-            except ValueError:
-                pass
         return single_answer, joint_answer
 
     def _attention_broker_stimulate(self, attention_broker, joint_answer) -> None:
@@ -373,36 +374,32 @@ class WorkerNode(BaseNode):
         # Flag to signal that the worker has received the lock
         self.lock_acquired = False
 
-    def start(self, message):
+    def start(self, query_tokens):
         if DEBUG:
             print(f"[Worker.start] - {self.node_id}")
+
         self.generation += 1
-
         self._send_status("running")
-
         # Asks Leader for access to Lock
         self.send("LOCK_REQUEST", [self.node_id], self.server_id)
-
         # Worker must wait for the lock_granted message.
         while not self.lock_acquired:
             time.sleep(0.1)
-
-        self._execute(message)
-
+        self._execute(query_tokens)
         # Release the lock
         self.send("LOCK_RELEASE", [self.node_id], self.server_id)
         self.lock_acquired = False
 
-    def _execute(self, message: str) -> None:
+    def _execute(self, query_tokens: str) -> None:
         try:
-            population = self._sample_population(message)
+            population = self._sample_population(query_tokens)
 
             if not population:
                 self._send_status("fail:sample_population")
                 time.sleep(1)
                 if DEBUG:
                     print(f"[Worker.sample_population] Try again - {self.node_id}")
-                population = self._sample_population(message)
+                population = self._sample_population(query_tokens)
 
             if DEBUG:
                 print(f"[Worker.evaluate] - {self.node_id}")
