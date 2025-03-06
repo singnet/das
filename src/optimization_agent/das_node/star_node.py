@@ -7,14 +7,12 @@ class StarNode(DistributedAlgorithmNode):
 
     def __init__(
         self,
-        node_id: str = None,
+        node_id: str,
         server_id: str = None,
         messaging_backend: MessageBrokerType = MessageBrokerType.GRPC,
     ):
         # Call the parent constructor (DistributedAlgorithmNode)
-        super().__init__(
-            node_id or server_id, LeadershipBrokerType.SINGLE_MASTER_SERVER, messaging_backend
-        )
+        super().__init__(node_id, LeadershipBrokerType.SINGLE_MASTER_SERVER, messaging_backend)
         if server_id:
             # If server_id is provided, this is a client node
             self.server_id = server_id

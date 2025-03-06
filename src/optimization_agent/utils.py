@@ -8,29 +8,30 @@ from collections import namedtuple
 from typing import Any
 
 
-Parameters = namedtuple(
-    typename='Parameters',
-    field_names=[
-        'population_size',
-        'max_generations',
-        'qtd_selected_for_attention_update',
-        'max_query_answers',
-        'selection_method',
-        'fitness_function',
-        'node_id',
-        'das_node_server_id',
-        'attention_broker_server',
-        'context',
-        'mongo_hostname',
-        'mongo_port',
-        'mongo_username',
-        'mongo_password',
-        'redis_hostname',
-        'redis_port',
-        'redis_cluster',
-        'redis_ssl'
-    ]
-)
+from dataclasses import dataclass
+
+
+@dataclass
+class Parameters:
+    number_of_nodes: int = None
+    population_size: int = None
+    max_generations: int = None
+    qtd_selected_for_attention_update: int = None
+    max_query_answers: int = None
+    selection_method: str = None
+    fitness_function: callable = None
+    node_id: int = None
+    das_node_server_id: int = None
+    attention_broker_server: str = None
+    context: str = None
+    mongo_hostname: str = None
+    mongo_port: int = None
+    mongo_username: str = None
+    mongo_password: str = None
+    redis_hostname: str = None
+    redis_port: int = None
+    redis_cluster: bool = None
+    redis_ssl: bool = None
 
 
 class SuppressCppOutput:

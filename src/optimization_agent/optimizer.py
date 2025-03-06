@@ -1,4 +1,5 @@
 import time
+import sys
 
 from threading import Thread, Event, Lock
 from queue import Queue, Full
@@ -141,6 +142,9 @@ class QueryOptimizerIterator:
         After processing all generations, it fills the query answers queue and signals termination.
         """
         while self.generation <= self.params.max_generations:
+            sys.stdout.write(f"\rProcessing generation {self.generation}/{self.params.max_generations}")
+            sys.stdout.flush()
+
             population = self._sample_population()
 
             if not population:
@@ -164,7 +168,7 @@ class QueryOptimizerIterator:
         Samples a population of QueryAnswer objects using a remote iterator.
         """
         result = []
-        try:     
+        try:
             with SuppressCppOutput():
                 remote_iterator = self.das_node_client.pattern_matcher_query(self.query)
             while (len(result) < self.params.population_size and not remote_iterator.finished()):

@@ -1,5 +1,4 @@
 import argparse
-import sys
 
 from optimizer import QueryOptimizerAgent
 
@@ -26,18 +25,11 @@ def parse_args():
 
 def main():
     try:
-        sys.stdout.write("\nProcessing...")
-        sys.stdout.flush()
         args = parse_args()
         agent = QueryOptimizerAgent(args.config_file)
         iterator = agent.optimize(args.query_tokens)
-        response = []
-        for item in iterator:
-            response.append(str(item))
-        sys.stdout.write("OK\n")
-        return response
+        return [str(item) for item in iterator]
     except Exception as e:
-        sys.stdout.write("FAIL\n")
         raise e
 
 
