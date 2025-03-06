@@ -1,3 +1,7 @@
+"""
+Non distributed version
+"""
+
 import time
 import sys
 
@@ -12,7 +16,7 @@ from concurrent.futures import ThreadPoolExecutor
 
 from fitness_functions import handle_fitness_function
 from selection_methods import handle_selection_method, SelectionMethodType
-from utils import Parameters, parse_file, profile, SuppressCppOutput
+from utils import Parameters, parse_file, SuppressCppOutput
 
 # NOTE: This module, das_node, is a Python implementation of DASNode,
 # used to develop and test the optimization algorithm.
@@ -48,13 +52,28 @@ class SharedQueue:
 
 
 class QueryOptimizerAgent:
-    def __init__(self, config_file: str) -> None:
+    def __init__(
+        self,
+        config_file: str,
+        query_agent_node_id: str,
+        query_agent_server_id: str,
+        attention_broker_server_id: str
+    ) -> None:
         self.params = self._load_config(config_file)
+        self.query_agent_node_id = query_agent_node_id
+        self.query_agent_server_id = query_agent_server_id
+        self.attention_broker_server_id = attention_broker_server_id
 
     def optimize(self, query_tokens: list[str] | str) -> Iterator:
         if isinstance(query_tokens, str):
             query_tokens = query_tokens.split(' ')
-        return QueryOptimizerIterator(query_tokens, self.params)
+        return QueryOptimizerIterator(
+            query_tokens,
+            self.params,
+            self.query_agent_node_id,
+            self.query_agent_server_id,
+            self.attention_broker_server_id
+        )
 
     def _load_config(self, config_file: str) -> Parameters:
         """
@@ -82,11 +101,19 @@ class QueryOptimizerIterator:
 
     The iterator interface yields the best query answers once optimization completes.
     """
-    def __init__(self, query_tokens: list[str], parameters: Parameters, atom_db: str = None, das_node: DASNode = None) -> None:
+    def __init__(
+        self,
+        query_tokens: list[str],
+        parameters: Parameters,
+        query_agent_node_id: str,
+        query_agent_server_id: str,
+        attention_broker_server_id: str,
+    ) -> None:
         self.params = parameters
-        self.atom_db = atom_db or self._connect_atom_db()
+        self.atom_db = self._connect_atom_db()
+        self.attention_broker_server_id = attention_broker_server_id
         with SuppressCppOutput():
-            self.das_node_client = das_node or DASNode(self.params.node_id, self.params.das_node_server_id)
+            self.das_node_client = DASNode(query_agent_node_id, query_agent_server_id)
         self.query = query_tokens
         self.best_query_answers = SharedQueue(maxsize=self.params.max_query_answers)
         self.generation = 1
@@ -208,7 +235,7 @@ class QueryOptimizerIterator:
         Handles are recursively collected from each QueryAnswer, and after processing
         a defined number of correlations, the attention broker is stimulated with aggregated data.
         """
-        host, port = self.params.attention_broker_server.split(":")
+        host, port = self.attention_broker_server_id.split(":")
         attention_broker = AttentionBrokerGateway({
             'attention_broker_hostname': host,
             'attention_broker_port': port
