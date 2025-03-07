@@ -13,7 +13,7 @@ from dataclasses import dataclass
 
 @dataclass
 class Parameters:
-    number_of_nodes: int = None
+    number_nodes: int = None
     population_size: int = None
     max_generations: int = None
     qtd_selected_for_attention_update: int = None

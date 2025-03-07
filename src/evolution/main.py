@@ -11,13 +11,9 @@ def parse_args():
     )
     parser.add_argument(
         '--config-file',
+        required=True,
         default='config.cfg',
         help="Path to the configuration file (default: 'config.cfg')"
-    )
-    parser.add_argument(
-        '--number-servers',
-        required=True,
-        help="Number of servers in the network"
     )
     parser.add_argument(
         '--query-tokens',
@@ -41,7 +37,7 @@ def main():
 
         workers = []  # List to store worker references
 
-        for i in range(1, int(args.number_servers)):
+        for i in range(1, int(leader.number_nodes)):
             worker = WorkerNode(
                 node_id=f"localhost:4700{i}",
                 server_id="localhost:47000",
