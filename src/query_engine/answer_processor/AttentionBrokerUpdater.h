@@ -31,8 +31,7 @@ class AttentionBrokerUpdater : public QueryAnswerProcessor {
     AttentionBrokerUpdater(const string& query_context = "")
         : attention_broker_address(ATTENTION_BROKER_ADDRESS),
           flow_finished(false),
-          query_context(query_context),
-          queue_processor_method(new thread(&AttentionBrokerUpdater::queue_processor, this)) {
+          query_context(query_context) {
         string attention_broker_address = Utils::get_environment("DAS_ATTENTION_BROKER_ADDRESS");
         string attention_broker_port = Utils::get_environment("DAS_ATTENTION_BROKER_PORT");
         if (!attention_broker_address.empty() && !attention_broker_port.empty()) {
@@ -42,6 +41,7 @@ class AttentionBrokerUpdater : public QueryAnswerProcessor {
         cout << "AttentionBrokerUpdater::AttentionBrokerUpdater() attention_broker_address: "
              << this->attention_broker_address << endl;
 #endif
+        this->queue_processor_method = new thread(&AttentionBrokerUpdater::queue_processor, this);
     }
     virtual ~AttentionBrokerUpdater() { this->graceful_shutdown(); };
     virtual void process_answer(QueryAnswer* query_answer) override {
