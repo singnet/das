@@ -13,6 +13,7 @@
 #include "QueryAnswer.h"
 #include "QueryAnswerProcessor.h"
 #include "SharedQueue.h"
+#include "Utils.h"
 #include "attention_broker.grpc.pb.h"
 #include "attention_broker.pb.h"
 
@@ -31,7 +32,17 @@ class AttentionBrokerUpdater : public QueryAnswerProcessor {
         : attention_broker_address(ATTENTION_BROKER_ADDRESS),
           flow_finished(false),
           query_context(query_context),
-          queue_processor_method(new thread(&AttentionBrokerUpdater::queue_processor, this)) {}
+          queue_processor_method(new thread(&AttentionBrokerUpdater::queue_processor, this)) {
+        string attention_broker_address = Utils::get_environment("DAS_ATTENTION_BROKER_ADDRESS");
+        string attention_broker_port = Utils::get_environment("DAS_ATTENTION_BROKER_PORT");
+        if (!attention_broker_address.empty() && !attention_broker_port.empty()) {
+            this->attention_broker_address = attention_broker_address + ":" + attention_broker_port;
+        }
+#ifdef DEBUG
+        cout << "AttentionBrokerUpdater::AttentionBrokerUpdater() attention_broker_address: "
+             << this->attention_broker_address << endl;
+#endif
+    }
     virtual ~AttentionBrokerUpdater() { this->graceful_shutdown(); };
     virtual void process_answer(QueryAnswer* query_answer) override {
         this->answers_queue.enqueue((void*) query_answer);
