@@ -3,7 +3,9 @@
 set -eoux pipefail
 
 BAZELISK_CMD=/opt/bazel/bazelisk
-BAZELISK_BUILD_CMD="${BAZELISK_CMD} build --config=debug --subcommands"
+
+BAZELISK_BUILD_CMD="${BAZELISK_CMD} build --config=debug --subcommands --cxxopt=-fsanitize=address --cxxopt=-fno-omit-frame-pointer --linkopt=-lasan"
+
 BAZELISK_RUN_CMD="${BAZELISK_CMD} run"
 
 BUILD_BINARIES=false

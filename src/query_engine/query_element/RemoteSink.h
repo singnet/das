@@ -11,6 +11,18 @@ using namespace std;
 
 namespace query_element {
 
+template <class AnswerType>
+class RemoteSinkDeleter {
+   public:
+    void operator()(RemoteSink<AnswerType>* remote_sink) {
+        remote_sink->graceful_shutdown();
+        delete remote_sink;
+    }
+
+   private:
+    stack<;
+};
+
 /**
  * A special sink which forwards the query results to a remote QueryElement (e.g. a RemoteIterator).
  */
