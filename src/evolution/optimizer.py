@@ -52,27 +52,15 @@ class SharedQueue:
 
 
 class QueryOptimizerAgent:
-    def __init__(
-        self,
-        config_file: str,
-        query_agent_node_id: str,
-        query_agent_server_id: str,
-        attention_broker_server_id: str
-    ) -> None:
+    def __init__(self, config_file: str) -> None:
         self.params = self._load_config(config_file)
-        self.query_agent_node_id = query_agent_node_id
-        self.query_agent_server_id = query_agent_server_id
-        self.attention_broker_server_id = attention_broker_server_id
 
     def optimize(self, query_tokens: list[str] | str) -> Iterator:
         if isinstance(query_tokens, str):
             query_tokens = query_tokens.split(' ')
         return QueryOptimizerIterator(
             query_tokens,
-            self.params,
-            self.query_agent_node_id,
-            self.query_agent_server_id,
-            self.attention_broker_server_id
+            **self.params.__dict__
         )
 
     def _load_config(self, config_file: str) -> Parameters:
@@ -83,7 +71,7 @@ class QueryOptimizerAgent:
             ValueError: If the number of individuals selected for attention update exceeds population size.
         """
         config = parse_file(config_file)
-        params = Parameters(*config.values())
+        params = Parameters(**config)
         if params.qtd_selected_for_attention_update > params.population_size:
             raise ValueError("The number of selected individuals for attention update cannot be greater than the population size.")
         return params
@@ -104,18 +92,43 @@ class QueryOptimizerIterator:
     def __init__(
         self,
         query_tokens: list[str],
-        parameters: Parameters,
+        max_query_answers: int,
+        max_generations: int,
+        population_size: int,
+        qtd_selected_for_attention_update: int,
+        selection_method: str,
+        fitness_function: str,
+        attention_broker_server_id: str,
         query_agent_node_id: str,
         query_agent_server_id: str,
-        attention_broker_server_id: str,
+        mongo_hostname: str,
+        mongo_port: int,
+        mongo_username: str,
+        mongo_password: str,
+        redis_hostname: str,
+        redis_port: int,
+        redis_cluster: bool,
+        redis_ssl: bool,
+        **kwargs
     ) -> None:
-        self.params = parameters
-        self.atom_db = self._connect_atom_db()
-        self.attention_broker_server_id = attention_broker_server_id
+        self.atom_db = self._connect_atom_db(
+            mongo_hostname, mongo_port, mongo_username, mongo_password,
+            redis_hostname, redis_port, redis_cluster, redis_ssl
+        )
+
         with SuppressCppOutput():
-            self.das_node_client = DASNode(query_agent_node_id, query_agent_server_id)
-        self.query = query_tokens
-        self.best_query_answers = SharedQueue(maxsize=self.params.max_query_answers)
+            self.query_agent = DASNode(query_agent_node_id, query_agent_server_id)
+
+        self.query_tokens = query_tokens
+        self.max_query_answers = max_query_answers
+        self.max_generations = max_generations
+        self.population_size = population_size
+        self.qtd_selected_for_attention_update = qtd_selected_for_attention_update
+        self.selection_method = selection_method
+        self.fitness_function = fitness_function
+        self.attention_broker_server_id = attention_broker_server_id
+
+        self.best_query_answers = SharedQueue(maxsize=self.max_query_answers)
         self.generation = 1
         self.producer_finished = Event()
         self.atom_db_mutex = Lock()
@@ -141,20 +154,30 @@ class QueryOptimizerIterator:
     def is_empty(self) -> bool:
         return bool(self.best_query_answers.empty() and self.producer_finished.is_set())
 
-    def _connect_atom_db(self) -> RedisMongoDB:
+    def _connect_atom_db(
+        self,
+        mongo_hostname: str,
+        mongo_port: int,
+        mongo_username: str,
+        mongo_password: str,
+        redis_hostname: str,
+        redis_port: int,
+        redis_cluster: bool,
+        redis_ssl: bool
+    ) -> RedisMongoDB:
         """
         Establishes a connection to the atom database using configuration parameters.
         """
         try:
             return RedisMongoDB(
-                mongo_hostname=self.params.mongo_hostname,
-                mongo_port=self.params.mongo_port,
-                mongo_username=self.params.mongo_username,
-                mongo_password=self.params.mongo_password,
-                redis_hostname=self.params.redis_hostname,
-                redis_port=self.params.redis_port,
-                redis_cluster=self.params.redis_cluster,
-                redis_ssl=self.params.redis_ssl,
+                mongo_hostname=mongo_hostname,
+                mongo_port=mongo_port,
+                mongo_username=mongo_username,
+                mongo_password=mongo_password,
+                redis_hostname=redis_hostname,
+                redis_port=redis_port,
+                redis_cluster=redis_cluster,
+                redis_ssl=redis_ssl,
             )
         except Exception as e:
             print(f"Error: {e}")
@@ -168,8 +191,8 @@ class QueryOptimizerIterator:
         selects the best individuals, and updates the attention broker.
         After processing all generations, it fills the query answers queue and signals termination.
         """
-        while self.generation <= self.params.max_generations:
-            sys.stdout.write(f"\rProcessing generation {self.generation}/{self.params.max_generations}")
+        while self.generation <= self.max_generations:
+            sys.stdout.write(f"\rProcessing generation {self.generation}/{self.max_generations}")
             sys.stdout.flush()
 
             population = self._sample_population()
@@ -197,8 +220,8 @@ class QueryOptimizerIterator:
         result = []
         try:
             with SuppressCppOutput():
-                remote_iterator = self.das_node_client.pattern_matcher_query(self.query)
-            while (len(result) < self.params.population_size and not remote_iterator.finished()):
+                remote_iterator = self.query_agent.pattern_matcher_query(self.query_tokens)
+            while (len(result) < self.population_size and not remote_iterator.finished()):
                 if (qa := remote_iterator.pop()):
                     result.append(qa)
                 else:
@@ -215,7 +238,7 @@ class QueryOptimizerIterator:
         Returns:
             A tuple of (QueryAnswer, fitness_value).
         """
-        fitness_function = handle_fitness_function(self.params.fitness_function)
+        fitness_function = handle_fitness_function(self.fitness_function)
         with self.atom_db_mutex:
             fitness_value = fitness_function(self.atom_db, query_answer)
         return (query_answer, fitness_value)
@@ -224,9 +247,9 @@ class QueryOptimizerIterator:
         """
         Selects the best individuals from evaluated QueryAnswer tuples using the configured selection method.
         """
-        method = SelectionMethodType(self.params.selection_method)
+        method = SelectionMethodType(self.selection_method)
         selection_method = handle_selection_method(method)
-        return selection_method(evaluated_individuals, self.params.qtd_selected_for_attention_update)
+        return selection_method(evaluated_individuals, self.qtd_selected_for_attention_update)
 
     def _update_attention_broker(self, individuals: list[QueryAnswer]) -> None:
         """
@@ -266,7 +289,7 @@ class QueryOptimizerIterator:
             
             # How to send the context?
             # handle_list = []
-            # handle_list.context = self.params.context
+            # handle_list.context = self.context
             # for h in single_answer:
             #     handle_list.append(h)
 
@@ -314,7 +337,7 @@ class QueryOptimizerIterator:
             handle_count[h] = count
             weight_sum += count
         handle_count["SUM"] = weight_sum
-        # handle_count.context = self.params.context
+        # handle_count.context = self.context
         attention_broker.stimulate(handle_count)
         time.sleep(0.1)
 
@@ -323,8 +346,8 @@ class QueryOptimizerIterator:
         Fills the best_query_answers queue by selecting QueryAnswers from a remote iterator.
         """
         with SuppressCppOutput():
-            remote_iterator = self.das_node_client.pattern_matcher_query(self.query)
-        while (self.best_query_answers.size() < self.params.max_query_answers and not remote_iterator.finished()):
+            remote_iterator = self.query_agent.pattern_matcher_query(self.query_tokens)
+        while (self.best_query_answers.size() < self.max_query_answers and not remote_iterator.finished()):
             if (qa := remote_iterator.pop()):
                 self.best_query_answers.enqueue(qa)
             else:

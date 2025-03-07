@@ -20,9 +20,9 @@ class Parameters:
     max_query_answers: int = None
     selection_method: str = None
     fitness_function: callable = None
-    node_id: int = None
-    das_node_server_id: int = None
-    attention_broker_server: str = None
+    query_agent_node_id: int = None
+    query_agent_server_id: int = None
+    attention_broker_server_id: str = None
     context: str = None
     mongo_hostname: str = None
     mongo_port: int = None
@@ -34,6 +34,7 @@ class Parameters:
     redis_ssl: bool = None
 
 
+# NOTE: Used for development only
 class SuppressCppOutput:
     """Redirects C++ stdout to suppress prints from std::cout."""
 

@@ -1,63 +1,4 @@
-# Distributed Query Optimizer
-
-A Python-based evolutionary algorithm designed to optimize query answers using distributed computing. This project avoids scanning all possible answers by leveraging a user-defined fitness function to rank and boost promising query components (atoms) through an Attention Broker. Multiple servers work together via GRPC to generate diverse candidate populations and refine the best answers.
-
-## Table of Contents
-
-- [Distributed Query Optimizer](#distributed-query-optimizer)
-  - [Table of Contents](#table-of-contents)
-  - [Overview](#overview)
-  - [Features](#features)
-  - [Architecture](#architecture)
-    - [Leader Node](#leader-node)
-    - [Worker Node](#worker-node)
-  - [Usage](#usage)
-      - [Config file example](#config-file-example)
-      - [Running client:](#running-client)
-
-## Overview
-
-The Distributed Query Optimizer uses an evolutionary algorithm to find the best query answers. It repeatedly:
-- Samples a population of answers.
-- Evaluates them using a fitness function.
-- Selects top candidates to update the sorting mechanism via an Attention Broker.
-
-The optimizer is built **Distributed Algorithm Node**, where:
-- A **Leader Node** coordinates the optimization process.
-- Multiple **Worker Nodes** perform sampling, evaluation, and reporting using GRPC-based messaging.
-
-## Features
-
-- **Evolutionary Algorithm:**  
-  - Samples candidate query answers.
-  - Evaluates each candidate using a customizable fitness function.
-  - Selects the best candidates using defined selection methods.
-
-- **Attention Broker Integration:**  
-  - Aggregates promising atom handles.
-  - Boosts query optimization by stimulating the Attention Broker with aggregated data.
-
-- **Distributed Architecture:**  
-  - Leader-Worker model using GRPC for communication.
-
-## Architecture
-
-### Leader Node
-- **Role:**  
-  Coordinates generations, aggregates results from workers, and updates the Attention Broker.
-- **Key Responsibilities:**  
-  - Broadcasting generation start messages.
-  - Waiting for worker responses.
-  - Selecting best individuals and updating the Attention Broker.
-  - Managing worker status and lock requests.
-
-### Worker Node
-- **Role:**  
-  Samples query answers, evaluates their fitness, and reports results back to the Leader Node.
-- **Key Responsibilities:**  
-  - Sampling a population using a remote iterator.
-  - Evaluating each answer with a configured fitness function.
-  - Handling lock requests to synchronize critical operations.
+# Non Distributed Query Optimizer
 
 ## Usage
 
@@ -74,22 +15,24 @@ redis_hostname = "localhost"
 redis_port = 6379
 redis_cluster = False
 redis_ssl = False
-max_generations = 3
+query_agent_node_id = "localhost:31701"
+query_agent_server_id = "localhost:31700"
+attention_broker_server_id = "localhost:37007"
+max_generations = 2
 max_query_answers = 5
+population_size = 500
 qtd_selected_for_attention_update = 100
 selection_method = "roulette"
-population_size = 500
 fitness_function = "multiply_strengths"
 ```
 
 #### Running client:
 
 ```bash
-python das/src/optimization_agent/main.py --number-servers 4 --query-tokens "sample query tokens" --config-file /path/to/config.cfg
+python das/src/evolution/main.py --config-file /path/to/config.cfg --query-tokens "LINK_TEMPLATE Evaluation 2 NODE Type Name VARIABLE V1"
 ```
 
 **Parameters:**
---number-servers: Total number of servers in the network. The first server acts as the Leader, and the rest are Worker Nodes.
 --query-tokens: The query string that will be optimized.
 --config-file: Path to the configuration file (default is config.cfg).
 
@@ -97,8 +40,7 @@ If successful, you should see a message like this:
 
 ```
 Starting optimizer
-[Leader.start_generation] - generation: 1
-[Leader.start_generation] - generation: 2
-[Leader.start_generation] - generation: 3
-['QueryAnswer<1,1> [438c13716c53d8e706961d3995140c87] {(V2: 1413b251af430a07ac0810e18acc78b8)} 0.002139624', 'QueryAnswer<1,1> [3c83be1cf6f8143f5d158205cb61766b] {(V2: a13c2f82bd7809c7ae649e1806824507)} 0.0020572757', 'QueryAnswer<1,1> [596a89ed04400c0ca8a69096c8ef29ce] {(V2: 502d40809c3252afd7d6b2e6d7bab4db)} 0.0020572757', 'QueryAnswer<1,1> [ff18240f01721e6d5100e937d4245052] {(V2: 19669ffef6f6d72400fba2a335438b76)} 0.0020542662', 'QueryAnswer<1,1> [0d120641b703288828e0b802ac1473aa] {(V2: 83e0b07b3e8b8bcddcbd4bc8b4ef49c4)} 0.0020129767']
+Processing generation 1/n
+Results:
+['QueryAnswer<1,1> [296bfeeb2ce5148d78f371d0ddf395b2] {(V2: f9a98ccf36f4ba3dcfe2fc99243546fa)} 0.0029751847', 'QueryAnswer<1,1> [2f21f35e3936307c29367adf41aec59e] {(V2: a7d045ace9ea9f9ecbc9094a770cae50)} 0.0025941788', 'QueryAnswer<1,1> [9d6fe9c68e5b29a1b4616ef582e075a3] {(V2: c04cafa6ca7f157321547f4c9ff4bb39)} 0.0025350566', 'QueryAnswer<1,1> [15e8247142c5a46b6079d9df9ea61833] {(V2: f54acd64cd8541c2125588e84da17288)} 0.0024081622', 'QueryAnswer<1,1> [a9335106b2ab5e652749769b72b9e29c] {(V2: 074bd74b5b8c2c87777bf57696ec3edd)} 0.0023660637']
 ```
