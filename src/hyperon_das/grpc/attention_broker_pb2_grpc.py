@@ -73,7 +73,7 @@ def add_AttentionBrokerServicer_to_server(servicer, server):
         ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
-        "das.AttentionBroker", rpc_method_handlers
+        "dasproto.AttentionBroker", rpc_method_handlers
     )
     server.add_generic_rpc_handlers((generic_handler,))
 
