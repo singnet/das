@@ -4,7 +4,6 @@ import os
 import sys
 import time
 
-from collections import namedtuple
 from typing import Any
 
 
