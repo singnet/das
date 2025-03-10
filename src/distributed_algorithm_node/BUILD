@@ -2,8 +2,18 @@ package(default_visibility = ["//visibility:public"])
 
 cc_library(
     name = "distributed_algorithm_node_lib",
-    srcs = glob(["*.cc"]),
-    hdrs = glob(["*.h"]),
+    srcs = [
+      "DistributedAlgorithmNode.cc",
+      "LeadershipBroker.cc",
+      "MessageBroker.cc",
+      "Message.cc",
+    ],
+    hdrs = [
+      "DistributedAlgorithmNode.h",
+      "LeadershipBroker.h",
+      "MessageBroker.h",
+      "Message.h",
+    ],
     includes = ["."],
     alwayslink = 1,
     linkstatic = 1,

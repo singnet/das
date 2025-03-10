@@ -5,11 +5,6 @@ load("@rules_python//python:packaging.bzl", "py_wheel")
 package(default_visibility = ["//visibility:public"])
 
 filegroup(
-    name = "py_files",  # python files in this directory
-    srcs = glob(["*.py"]),
-)
-
-filegroup(
     name = "py_all_files",  # all python files in the project, including subdirectories
     srcs = glob(["**/*.py"]),
 )
