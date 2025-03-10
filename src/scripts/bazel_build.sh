@@ -28,6 +28,8 @@ fi
 if [ "$BUILD_BINARIES" = true ]; then
     $BAZELISK_BUILD_CMD //:inference_agent_server
     mv bazel-bin/inference_agent_server "$BIN_DIR"
+    $BAZELISK_BUILD_CMD //:inference_agent_client
+    mv bazel-bin/inference_agent_client "$BIN_DIR"
     $BAZELISK_BUILD_CMD //:link_creation_server
     mv bazel-bin/link_creation_server "$BIN_DIR"
     $BAZELISK_BUILD_CMD //:link_creation_agent_client

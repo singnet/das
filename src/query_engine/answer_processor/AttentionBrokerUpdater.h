@@ -13,6 +13,7 @@
 #include "QueryAnswer.h"
 #include "QueryAnswerProcessor.h"
 #include "SharedQueue.h"
+#include "Utils.h"
 #include "attention_broker.grpc.pb.h"
 #include "attention_broker.pb.h"
 
@@ -29,16 +30,26 @@ class AttentionBrokerUpdater : public QueryAnswerProcessor {
    public:
     AttentionBrokerUpdater(const string& query_context = "")
         : attention_broker_address(ATTENTION_BROKER_ADDRESS),
-          queue_processor_finished(false),
-          query_context(query_context),
-          queue_processor_method(new thread(&AttentionBrokerUpdater::queue_processor, this)) {}
+          flow_finished(false),
+          query_context(query_context) {
+        string attention_broker_address = Utils::get_environment("DAS_ATTENTION_BROKER_ADDRESS");
+        string attention_broker_port = Utils::get_environment("DAS_ATTENTION_BROKER_PORT");
+        if (!attention_broker_address.empty() && !attention_broker_port.empty()) {
+            this->attention_broker_address = attention_broker_address + ":" + attention_broker_port;
+        }
+#ifdef DEBUG
+        cout << "AttentionBrokerUpdater::AttentionBrokerUpdater() attention_broker_address: "
+             << this->attention_broker_address << endl;
+#endif
+        this->queue_processor_method = new thread(&AttentionBrokerUpdater::queue_processor, this);
+    }
     virtual ~AttentionBrokerUpdater() { this->graceful_shutdown(); };
     virtual void process_answer(QueryAnswer* query_answer) override {
         this->answers_queue.enqueue((void*) query_answer);
     }
-    virtual void query_answers_finished() override { this->set_queue_processor_finished(); }
+    virtual void query_answers_finished() override { this->set_flow_finished(); }
     virtual void graceful_shutdown() override {
-        this->set_queue_processor_finished();
+        this->set_flow_finished();
         if (this->queue_processor_method != NULL) {
             this->queue_processor_method->join();
             delete this->queue_processor_method;
@@ -75,7 +86,7 @@ class AttentionBrokerUpdater : public QueryAnswerProcessor {
 
         // handle_list.set_context(this->query_context);
         do {
-            if (this->is_queue_processor_finished() || this->answers_queue.empty()) {
+            if (this->is_flow_finished() && this->answers_queue.empty()) {
                 break;
             }
             bool idle_flag = true;
@@ -188,28 +199,28 @@ class AttentionBrokerUpdater : public QueryAnswerProcessor {
             }
         }
         // delete joint_answer;
-        this->set_queue_processor_finished();
+        this->set_flow_finished();
     }
 
-    void set_queue_processor_finished() {
-        this->queue_processor_finished_mutex.lock();
-        this->queue_processor_finished = true;
-        this->queue_processor_finished_mutex.unlock();
+    void set_flow_finished() {
+        this->flow_finished_mutex.lock();
+        this->flow_finished = true;
+        this->flow_finished_mutex.unlock();
     }
 
-    bool is_queue_processor_finished() {
+    bool is_flow_finished() {
         bool answer;
-        this->queue_processor_finished_mutex.lock();
-        answer = this->queue_processor_finished;
-        this->queue_processor_finished_mutex.unlock();
+        this->flow_finished_mutex.lock();
+        answer = this->flow_finished;
+        this->flow_finished_mutex.unlock();
         return answer;
     }
 
     SharedQueue answers_queue;
     string attention_broker_address;
     thread* queue_processor_method;
-    mutex queue_processor_finished_mutex;
-    bool queue_processor_finished;
+    mutex flow_finished_mutex;
+    bool flow_finished;
     string query_context;
 };
 
