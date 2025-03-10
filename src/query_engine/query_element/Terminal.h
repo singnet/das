@@ -6,7 +6,7 @@
 #include "QueryElement.h"
 #include "AtomDB.h"
 #include "expression_hasher.h"
-
+#include "commons/MemoryPool.h"
 using namespace std;
 using namespace query_engine;
 
@@ -32,6 +32,11 @@ protected:
     }
 
 public:
+
+    static commons::MemoryPool<Terminal>& get_pool() {
+        static commons::MemoryPool<Terminal> pool;
+        return pool;
+    }
 
     /**
      * Destructor.
@@ -82,6 +87,11 @@ class Node : public Terminal {
 
 public:
 
+    static commons::MemoryPool<Node>& get_pool() {
+        static commons::MemoryPool<Node> pool;
+        return pool;
+    }
+
     /**
      * Constructor.
      *
@@ -118,6 +128,11 @@ template <unsigned int ARITY>
 class Link : public Terminal {
 
 public:
+
+    static commons::MemoryPool<Link<ARITY>>& get_pool() {
+        static commons::MemoryPool<Link<ARITY>> pool;
+        return pool;
+    }
 
     /**
      * Constructor.
@@ -185,6 +200,11 @@ public:
 class Variable : public Terminal {
 
 public:
+
+    static commons::MemoryPool<Variable>& get_pool() {
+        static commons::MemoryPool<Variable> pool;
+        return pool;
+    }
 
     /**
      * Constructor.

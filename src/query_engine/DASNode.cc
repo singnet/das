@@ -159,7 +159,7 @@ QueryElement* PatternMatchingQuery::build_link_template(vector<string>& tokens,
                 targets[i] = element_stack.top();
                 element_stack.pop();
             }
-            return new LinkTemplate<1>(tokens[cursor + 1], targets, this->context);
+            return LinkTemplate<1>::get_pool().allocate(tokens[cursor + 1], targets, this->context);
         }
         case 2: {
             array<QueryElement*, 2> targets;
@@ -167,7 +167,7 @@ QueryElement* PatternMatchingQuery::build_link_template(vector<string>& tokens,
                 targets[i] = element_stack.top();
                 element_stack.pop();
             }
-            return new LinkTemplate<2>(tokens[cursor + 1], targets, this->context);
+            return LinkTemplate<2>::get_pool().allocate(tokens[cursor + 1], targets, this->context);
         }
         case 3: {
             array<QueryElement*, 3> targets;
@@ -175,7 +175,7 @@ QueryElement* PatternMatchingQuery::build_link_template(vector<string>& tokens,
                 targets[i] = element_stack.top();
                 element_stack.pop();
             }
-            return new LinkTemplate<3>(tokens[cursor + 1], targets, this->context);
+            return LinkTemplate<3>::get_pool().allocate(tokens[cursor + 1], targets, this->context);
         }
         case 4: {
             array<QueryElement*, 4> targets;
@@ -183,7 +183,7 @@ QueryElement* PatternMatchingQuery::build_link_template(vector<string>& tokens,
                 targets[i] = element_stack.top();
                 element_stack.pop();
             }
-            return new LinkTemplate<4>(tokens[cursor + 1], targets, this->context);
+            return LinkTemplate<4>::get_pool().allocate(tokens[cursor + 1], targets, this->context);
         }
         case 5: {
             array<QueryElement*, 5> targets;
@@ -191,7 +191,7 @@ QueryElement* PatternMatchingQuery::build_link_template(vector<string>& tokens,
                 targets[i] = element_stack.top();
                 element_stack.pop();
             }
-            return new LinkTemplate<5>(tokens[cursor + 1], targets, this->context);
+            return LinkTemplate<5>::get_pool().allocate(tokens[cursor + 1], targets, this->context);
         }
         case 6: {
             array<QueryElement*, 6> targets;
@@ -199,7 +199,7 @@ QueryElement* PatternMatchingQuery::build_link_template(vector<string>& tokens,
                 targets[i] = element_stack.top();
                 element_stack.pop();
             }
-            return new LinkTemplate<6>(tokens[cursor + 1], targets, this->context);
+            return LinkTemplate<6>::get_pool().allocate(tokens[cursor + 1], targets, this->context);
         }
         case 7: {
             array<QueryElement*, 7> targets;
@@ -207,7 +207,7 @@ QueryElement* PatternMatchingQuery::build_link_template(vector<string>& tokens,
                 targets[i] = element_stack.top();
                 element_stack.pop();
             }
-            return new LinkTemplate<7>(tokens[cursor + 1], targets, this->context);
+            return LinkTemplate<7>::get_pool().allocate(tokens[cursor + 1], targets, this->context);
         }
         case 8: {
             array<QueryElement*, 8> targets;
@@ -215,7 +215,7 @@ QueryElement* PatternMatchingQuery::build_link_template(vector<string>& tokens,
                 targets[i] = element_stack.top();
                 element_stack.pop();
             }
-            return new LinkTemplate<8>(tokens[cursor + 1], targets, this->context);
+            return LinkTemplate<8>::get_pool().allocate(tokens[cursor + 1], targets, this->context);
         }
         case 9: {
             array<QueryElement*, 9> targets;
@@ -223,7 +223,7 @@ QueryElement* PatternMatchingQuery::build_link_template(vector<string>& tokens,
                 targets[i] = element_stack.top();
                 element_stack.pop();
             }
-            return new LinkTemplate<9>(tokens[cursor + 1], targets, this->context);
+            return LinkTemplate<9>::get_pool().allocate(tokens[cursor + 1], targets, this->context);
         }
         case 10: {
             array<QueryElement*, 10> targets;
@@ -231,7 +231,7 @@ QueryElement* PatternMatchingQuery::build_link_template(vector<string>& tokens,
                 targets[i] = element_stack.top();
                 element_stack.pop();
             }
-            return new LinkTemplate<10>(tokens[cursor + 1], targets, this->context);
+            return LinkTemplate<10>::get_pool().allocate(tokens[cursor + 1], targets, this->context);
         }
         default: {
             Utils::error("PatternMatchingQuery message: max supported arity for LINK_TEMPLATE: 10");
@@ -255,7 +255,7 @@ QueryElement* PatternMatchingQuery::build_and(vector<string>& tokens,
                 clauses[i] = element_stack.top();
                 element_stack.pop();
             }
-            return new And<1>(clauses);
+            return And<1>::get_pool().allocate(clauses);
         }
         case 2: {
             array<QueryElement*, 2> clauses;
@@ -263,7 +263,7 @@ QueryElement* PatternMatchingQuery::build_and(vector<string>& tokens,
                 clauses[i] = element_stack.top();
                 element_stack.pop();
             }
-            return new And<2>(clauses);
+            return And<2>::get_pool().allocate(clauses);
         }
         case 3: {
             array<QueryElement*, 3> clauses;
@@ -271,7 +271,7 @@ QueryElement* PatternMatchingQuery::build_and(vector<string>& tokens,
                 clauses[i] = element_stack.top();
                 element_stack.pop();
             }
-            return new And<3>(clauses);
+            return And<3>::get_pool().allocate(clauses);
         }
         case 4: {
             array<QueryElement*, 4> clauses;
@@ -279,7 +279,7 @@ QueryElement* PatternMatchingQuery::build_and(vector<string>& tokens,
                 clauses[i] = element_stack.top();
                 element_stack.pop();
             }
-            return new And<4>(clauses);
+            return And<4>::get_pool().allocate(clauses);
         }
         case 5: {
             array<QueryElement*, 5> clauses;
@@ -287,7 +287,7 @@ QueryElement* PatternMatchingQuery::build_and(vector<string>& tokens,
                 clauses[i] = element_stack.top();
                 element_stack.pop();
             }
-            return new And<5>(clauses);
+            return And<5>::get_pool().allocate(clauses);
         }
         case 6: {
             array<QueryElement*, 6> clauses;
@@ -295,7 +295,7 @@ QueryElement* PatternMatchingQuery::build_and(vector<string>& tokens,
                 clauses[i] = element_stack.top();
                 element_stack.pop();
             }
-            return new And<6>(clauses);
+            return And<6>::get_pool().allocate(clauses);
         }
         case 7: {
             array<QueryElement*, 7> clauses;
@@ -303,7 +303,7 @@ QueryElement* PatternMatchingQuery::build_and(vector<string>& tokens,
                 clauses[i] = element_stack.top();
                 element_stack.pop();
             }
-            return new And<7>(clauses);
+            return And<7>::get_pool().allocate(clauses);
         }
         case 8: {
             array<QueryElement*, 8> clauses;
@@ -311,7 +311,7 @@ QueryElement* PatternMatchingQuery::build_and(vector<string>& tokens,
                 clauses[i] = element_stack.top();
                 element_stack.pop();
             }
-            return new And<8>(clauses);
+            return And<8>::get_pool().allocate(clauses);
         }
         case 9: {
             array<QueryElement*, 9> clauses;
@@ -319,7 +319,7 @@ QueryElement* PatternMatchingQuery::build_and(vector<string>& tokens,
                 clauses[i] = element_stack.top();
                 element_stack.pop();
             }
-            return new And<9>(clauses);
+            return And<9>::get_pool().allocate(clauses);
         }
         case 10: {
             array<QueryElement*, 10> clauses;
@@ -327,7 +327,7 @@ QueryElement* PatternMatchingQuery::build_and(vector<string>& tokens,
                 clauses[i] = element_stack.top();
                 element_stack.pop();
             }
-            return new And<10>(clauses);
+            return And<10>::get_pool().allocate(clauses);
         }
         default: {
             Utils::error("PatternMatchingQuery message: max supported num_clauses for AND: 10");
@@ -351,7 +351,7 @@ QueryElement* PatternMatchingQuery::build_or(vector<string>& tokens,
                 clauses[i] = element_stack.top();
                 element_stack.pop();
             }
-            return new Or<1>(clauses);
+            return Or<1>::get_pool().allocate(clauses);
         }
         case 2: {
             array<QueryElement*, 2> clauses;
@@ -359,7 +359,7 @@ QueryElement* PatternMatchingQuery::build_or(vector<string>& tokens,
                 clauses[i] = element_stack.top();
                 element_stack.pop();
             }
-            return new Or<2>(clauses);
+            return Or<2>::get_pool().allocate(clauses);
         }
         case 3: {
             array<QueryElement*, 3> clauses;
@@ -367,7 +367,7 @@ QueryElement* PatternMatchingQuery::build_or(vector<string>& tokens,
                 clauses[i] = element_stack.top();
                 element_stack.pop();
             }
-            return new Or<3>(clauses);
+            return Or<3>::get_pool().allocate(clauses);
         }
         case 4: {
             array<QueryElement*, 4> clauses;
@@ -375,7 +375,7 @@ QueryElement* PatternMatchingQuery::build_or(vector<string>& tokens,
                 clauses[i] = element_stack.top();
                 element_stack.pop();
             }
-            return new Or<4>(clauses);
+            return Or<4>::get_pool().allocate(clauses);
         }
         case 5: {
             array<QueryElement*, 5> clauses;
@@ -383,7 +383,7 @@ QueryElement* PatternMatchingQuery::build_or(vector<string>& tokens,
                 clauses[i] = element_stack.top();
                 element_stack.pop();
             }
-            return new Or<5>(clauses);
+            return Or<5>::get_pool().allocate(clauses);
         }
         case 6: {
             array<QueryElement*, 6> clauses;
@@ -391,7 +391,7 @@ QueryElement* PatternMatchingQuery::build_or(vector<string>& tokens,
                 clauses[i] = element_stack.top();
                 element_stack.pop();
             }
-            return new Or<6>(clauses);
+            return Or<6>::get_pool().allocate(clauses);
         }
         case 7: {
             array<QueryElement*, 7> clauses;
@@ -399,7 +399,7 @@ QueryElement* PatternMatchingQuery::build_or(vector<string>& tokens,
                 clauses[i] = element_stack.top();
                 element_stack.pop();
             }
-            return new Or<7>(clauses);
+            return Or<7>::get_pool().allocate(clauses);
         }
         case 8: {
             array<QueryElement*, 8> clauses;
@@ -407,7 +407,7 @@ QueryElement* PatternMatchingQuery::build_or(vector<string>& tokens,
                 clauses[i] = element_stack.top();
                 element_stack.pop();
             }
-            return new Or<8>(clauses);
+            return Or<8>::get_pool().allocate(clauses);
         }
         case 9: {
             array<QueryElement*, 9> clauses;
@@ -415,7 +415,7 @@ QueryElement* PatternMatchingQuery::build_or(vector<string>& tokens,
                 clauses[i] = element_stack.top();
                 element_stack.pop();
             }
-            return new Or<9>(clauses);
+            return Or<9>::get_pool().allocate(clauses);
         }
         case 10: {
             array<QueryElement*, 10> clauses;
@@ -423,7 +423,7 @@ QueryElement* PatternMatchingQuery::build_or(vector<string>& tokens,
                 clauses[i] = element_stack.top();
                 element_stack.pop();
             }
-            return new Or<10>(clauses);
+            return Or<10>::get_pool().allocate(clauses);
         }
         default: {
             Utils::error("PatternMatchingQuery message: max supported num_clauses for OR: 10");
@@ -447,7 +447,7 @@ QueryElement* PatternMatchingQuery::build_link(vector<string>& tokens,
                 targets[i] = element_stack.top();
                 element_stack.pop();
             }
-            return new Link<1>(tokens[cursor + 1], targets);
+            return Link<1>::get_pool().allocate(tokens[cursor + 1], targets);
         }
         case 2: {
             array<QueryElement*, 2> targets;
@@ -455,7 +455,7 @@ QueryElement* PatternMatchingQuery::build_link(vector<string>& tokens,
                 targets[i] = element_stack.top();
                 element_stack.pop();
             }
-            return new Link<2>(tokens[cursor + 1], targets);
+            return Link<2>::get_pool().allocate(tokens[cursor + 1], targets);
         }
         case 3: {
             array<QueryElement*, 3> targets;
@@ -463,7 +463,7 @@ QueryElement* PatternMatchingQuery::build_link(vector<string>& tokens,
                 targets[i] = element_stack.top();
                 element_stack.pop();
             }
-            return new Link<3>(tokens[cursor + 1], targets);
+            return Link<3>::get_pool().allocate(tokens[cursor + 1], targets);
         }
         case 4: {
             array<QueryElement*, 4> targets;
@@ -471,7 +471,7 @@ QueryElement* PatternMatchingQuery::build_link(vector<string>& tokens,
                 targets[i] = element_stack.top();
                 element_stack.pop();
             }
-            return new Link<4>(tokens[cursor + 1], targets);
+            return Link<4>::get_pool().allocate(tokens[cursor + 1], targets);
         }
         case 5: {
             array<QueryElement*, 5> targets;
@@ -479,7 +479,7 @@ QueryElement* PatternMatchingQuery::build_link(vector<string>& tokens,
                 targets[i] = element_stack.top();
                 element_stack.pop();
             }
-            return new Link<5>(tokens[cursor + 1], targets);
+            return Link<5>::get_pool().allocate(tokens[cursor + 1], targets);
         }
         case 6: {
             array<QueryElement*, 6> targets;
@@ -487,7 +487,7 @@ QueryElement* PatternMatchingQuery::build_link(vector<string>& tokens,
                 targets[i] = element_stack.top();
                 element_stack.pop();
             }
-            return new Link<6>(tokens[cursor + 1], targets);
+            return Link<6>::get_pool().allocate(tokens[cursor + 1], targets);
         }
         case 7: {
             array<QueryElement*, 7> targets;
@@ -495,7 +495,7 @@ QueryElement* PatternMatchingQuery::build_link(vector<string>& tokens,
                 targets[i] = element_stack.top();
                 element_stack.pop();
             }
-            return new Link<7>(tokens[cursor + 1], targets);
+            return Link<7>::get_pool().allocate(tokens[cursor + 1], targets);
         }
         case 8: {
             array<QueryElement*, 8> targets;
@@ -503,7 +503,7 @@ QueryElement* PatternMatchingQuery::build_link(vector<string>& tokens,
                 targets[i] = element_stack.top();
                 element_stack.pop();
             }
-            return new Link<8>(tokens[cursor + 1], targets);
+            return Link<8>::get_pool().allocate(tokens[cursor + 1], targets);
         }
         case 9: {
             array<QueryElement*, 9> targets;
@@ -511,7 +511,7 @@ QueryElement* PatternMatchingQuery::build_link(vector<string>& tokens,
                 targets[i] = element_stack.top();
                 element_stack.pop();
             }
-            return new Link<9>(tokens[cursor + 1], targets);
+            return Link<9>::get_pool().allocate(tokens[cursor + 1], targets);
         }
         case 10: {
             array<QueryElement*, 10> targets;
@@ -519,7 +519,7 @@ QueryElement* PatternMatchingQuery::build_link(vector<string>& tokens,
                 targets[i] = element_stack.top();
                 element_stack.pop();
             }
-            return new Link<10>(tokens[cursor + 1], targets);
+            return Link<10>::get_pool().allocate(tokens[cursor + 1], targets);
         }
         default: {
             Utils::error("PatternMatchingQuery message: max supported arity for LINK: 10");
@@ -534,7 +534,6 @@ PatternMatchingQuery::PatternMatchingQuery(string command, vector<string>& token
 #endif
 
     stack<unsigned int> execution_stack;
-    stack<QueryElement*> element_stack;
     this->requestor_id = tokens[0];
     this->context = tokens[1];
     this->command = command;
@@ -560,28 +559,28 @@ PatternMatchingQuery::PatternMatchingQuery(string command, vector<string>& token
     while (!execution_stack.empty()) {
         cursor = execution_stack.top();
         if (tokens[cursor] == "NODE") {
-            element_stack.push(new Node(tokens[cursor + 1], tokens[cursor + 2]));
+            this->element_stack.push(Node::get_pool().allocate(tokens[cursor + 1], tokens[cursor + 2]));
         } else if (tokens[cursor] == "VARIABLE") {
-            element_stack.push(new Variable(tokens[cursor + 1]));
+            this->element_stack.push(Variable::get_pool().allocate(tokens[cursor + 1]));
         } else if (tokens[cursor] == "LINK") {
-            element_stack.push(build_link(tokens, cursor, element_stack));
+            this->element_stack.push(build_link(tokens, cursor, this->element_stack));
         } else if (tokens[cursor] == "LINK_TEMPLATE") {
-            element_stack.push(build_link_template(tokens, cursor, element_stack));
+            this->element_stack.push(build_link_template(tokens, cursor, this->element_stack));
         } else if (tokens[cursor] == "AND") {
-            element_stack.push(build_and(tokens, cursor, element_stack));
+            this->element_stack.push(build_and(tokens, cursor, this->element_stack));
         } else if (tokens[cursor] == "OR") {
-            element_stack.push(build_or(tokens, cursor, element_stack));
+            this->element_stack.push(build_or(tokens, cursor, this->element_stack));
         } else {
             Utils::error("Invalid token " + tokens[cursor] + " in PatternMatchingQuery message");
         }
         execution_stack.pop();
     }
 
-    if (element_stack.size() != 1) {
+    if (this->element_stack.size() != 1) {
         Utils::error("PatternMatchingQuery message: parse error in tokens (trailing elements)");
     }
-    this->root_query_element = element_stack.top();
-    element_stack.pop();
+    this->root_query_element = this->element_stack.top();
+    this->element_stack.pop();
 #ifdef DEBUG
     cout << "PatternMatchingQuery::PatternMatchingQuery() END" << endl;
 #endif
