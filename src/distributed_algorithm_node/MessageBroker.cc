@@ -216,7 +216,7 @@ void SynchronousGRPC::inbox_thread_method() {
                 message->act(this->host_node);
             } else {
                 Utils::error("Invalid NULL Message");
-            }           
+            }
         } else {
             if (this->is_shutting_down()) {
                 stop_flag = true;

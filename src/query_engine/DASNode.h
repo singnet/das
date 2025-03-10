@@ -18,52 +18,6 @@ using namespace query_element;
 
 namespace query_engine {
 
-class RemoteSinkDeleter {
-   public:
-    RemoteSinkDeleter() {
-        this->remote_sinks_processor = new thread(&RemoteSinkDeleter::process_remote_sinks, this);
-    }
-
-    ~RemoteSinkDeleter() {
-        this->stop();
-    }
-
-    void add_remote_sink(RemoteSink<HandlesAnswer>* remote_sink) {
-        unique_lock<mutex> lock(this->remote_sinks_queue_mutex);
-        this->remote_sinks_queue.push(remote_sink);
-    }
-
-    void stop() {
-        this->should_stop = true;
-        this->remote_sinks_processor->join();
-        delete this->remote_sinks_processor;
-    }
-
-   private:
-    void process_remote_sinks() {
-        while (not this->should_stop) {
-            RemoteSink<HandlesAnswer>* remote_sink = nullptr;
-            {
-                unique_lock<mutex> lock(this->remote_sinks_queue_mutex);
-                if (not this->remote_sinks_queue.empty()) {
-                    remote_sink = this->remote_sinks_queue.front();
-                    this->remote_sinks_queue.pop();
-                }
-            }
-            if (remote_sink) {
-                remote_sink->graceful_shutdown();
-                delete remote_sink;
-            }
-            Utils::sleep(1000);
-        }
-    }
-
-    queue<RemoteSink<HandlesAnswer>*> remote_sinks_queue;
-    mutex remote_sinks_queue_mutex;
-    thread* remote_sinks_processor;
-    bool should_stop = false;
-};
-
 /**
  *
  */

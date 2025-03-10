@@ -17,7 +17,6 @@ docker run \
     --volume .:/opt/das \
     --workdir /opt/das \
     $ENV_VARS \
-    -e LD_PRELOAD=/usr/lib/gcc/x86_64-linux-gnu/11/libasan.so \
     das-builder \
     "src/bin/$CONTAINER_NAME" "$@"
 
