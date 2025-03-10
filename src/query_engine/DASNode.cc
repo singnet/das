@@ -534,7 +534,6 @@ PatternMatchingQuery::PatternMatchingQuery(string command, vector<string>& token
 #endif
 
     stack<unsigned int> execution_stack;
-    // stack<QueryElement*> element_stack;
     this->requestor_id = tokens[0];
     this->context = tokens[1];
     this->command = command;
@@ -560,28 +559,28 @@ PatternMatchingQuery::PatternMatchingQuery(string command, vector<string>& token
     while (!execution_stack.empty()) {
         cursor = execution_stack.top();
         if (tokens[cursor] == "NODE") {
-            element_stack.push(Node::get_pool().allocate(tokens[cursor + 1], tokens[cursor + 2]));
+            this->element_stack.push(Node::get_pool().allocate(tokens[cursor + 1], tokens[cursor + 2]));
         } else if (tokens[cursor] == "VARIABLE") {
-            element_stack.push(Variable::get_pool().allocate(tokens[cursor + 1]));
+            this->element_stack.push(Variable::get_pool().allocate(tokens[cursor + 1]));
         } else if (tokens[cursor] == "LINK") {
-            element_stack.push(build_link(tokens, cursor, element_stack));
+            this->element_stack.push(build_link(tokens, cursor, this->element_stack));
         } else if (tokens[cursor] == "LINK_TEMPLATE") {
-            element_stack.push(build_link_template(tokens, cursor, element_stack));
+            this->element_stack.push(build_link_template(tokens, cursor, this->element_stack));
         } else if (tokens[cursor] == "AND") {
-            element_stack.push(build_and(tokens, cursor, element_stack));
+            this->element_stack.push(build_and(tokens, cursor, this->element_stack));
         } else if (tokens[cursor] == "OR") {
-            element_stack.push(build_or(tokens, cursor, element_stack));
+            this->element_stack.push(build_or(tokens, cursor, this->element_stack));
         } else {
             Utils::error("Invalid token " + tokens[cursor] + " in PatternMatchingQuery message");
         }
         execution_stack.pop();
     }
 
-    if (element_stack.size() != 1) {
+    if (this->element_stack.size() != 1) {
         Utils::error("PatternMatchingQuery message: parse error in tokens (trailing elements)");
     }
-    this->root_query_element = element_stack.top();
-    element_stack.pop();
+    this->root_query_element = this->element_stack.top();
+    this->element_stack.pop();
 #ifdef DEBUG
     cout << "PatternMatchingQuery::PatternMatchingQuery() END" << endl;
 #endif
