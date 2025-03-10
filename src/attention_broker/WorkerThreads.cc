@@ -37,7 +37,9 @@ void WorkerThreads::graceful_stop() {
     stop_flag_mutex.unlock();
     for (thread *worker_thread: threads) {
         worker_thread->join();
+        delete worker_thread;
     }
+    threads.clear();
 }
   
 // --------------------------------------------------------------------------------

@@ -4,7 +4,7 @@
 #include <iostream>
 #include <string>
 
-#include "das_link_creation_node.h"
+#include "link_creation_agent_node.h"
 using namespace link_creation_agent;
 using namespace std;
 
@@ -37,7 +37,7 @@ int main(int argc, char* argv[]) {
         request.push_back(argv[i]);
     }
 
-    auto client = new LinkCreationNode(client_id, server_id);
+    auto client = new LinkCreationAgentNode(client_id, server_id);
     client->send_message(request);
 
     return 0;

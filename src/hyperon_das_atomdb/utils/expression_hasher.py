@@ -116,5 +116,5 @@ class ExpressionHasher:
         # TODO unreachable
         else:
             raise ValueError(
-                "Invalid base to compute composite hash: " f"{type(hash_base)}: {hash_base}"
+                f"Invalid base to compute composite hash: {type(hash_base)}: {hash_base}"
             )

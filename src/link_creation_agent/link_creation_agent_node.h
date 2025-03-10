@@ -1,31 +1,33 @@
 /**
- * @file das_link_creation_node.h
+ * @file link_creation_agent_node.h
  * @brief DAS Node server to receive link creation requests
  */
 #pragma once
 #include "StarNode.h"
 #include "queue.h"
+#include "dummy_message.h"
+
 using namespace distributed_algorithm_node;
 
 namespace link_creation_agent {
-class LinkCreationNode : public StarNode {
+class LinkCreationAgentNode : public StarNode {
    public:
     /**
      * @brief Server constructor
      * @param node_id ID of this node in the network.
      */
-    LinkCreationNode(const string& node_id);
+    LinkCreationAgentNode(const string& node_id);
     /**
      * @brief Client constructor
      * @param node_id ID of this node in the network.
      * @param server_id ID of a server.
      */
-    LinkCreationNode(const string& node_id, const string& server_id);;
+    LinkCreationAgentNode(const string& node_id, const string& server_id);;
 
     /**
      * Destructor
      */
-    ~LinkCreationNode();
+    ~LinkCreationAgentNode();
     /**
      * @brief Retrieves the next request
      */
@@ -75,24 +77,5 @@ class LinkCreationRequest : public Message {
     string client_id;
 };
 
-/**
- * @brief Dummy message for unknown commands
- */
-class DummyMessage : public Message {
-   public:
-    string command;
-    vector<string> args;
-    DummyMessage(string command, vector<string>& args) {
-        this->command = command;
-        this->args = args;
-    }
 
-    void act(shared_ptr<MessageFactory> node) {
-        cout << "DummyMessage::act" << endl;
-        cout << command << endl;
-        for (auto arg : args) {
-            cout << arg << endl;
-        }
-    }
-};
 }  // namespace link_creation_agent

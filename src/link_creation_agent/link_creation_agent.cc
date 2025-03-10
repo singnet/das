@@ -4,6 +4,7 @@
 #include <sstream>
 
 #include "RemoteIterator.h"
+#include "expression_hasher.h"
 #include "link_create_template.h"
 
 using namespace std;
@@ -14,7 +15,7 @@ using namespace query_element;
 LinkCreationAgent::LinkCreationAgent(string config_path) {
     this->config_path = config_path;
     load_config();
-    link_creation_node_server = new LinkCreationNode(link_creation_agent_server_id);
+    link_creation_node_server = new LinkCreationAgentNode(link_creation_agent_server_id);
     query_node_client = new DASNode(query_agent_client_id, query_agent_server_id);
     service = new LinkCreationService(link_creation_agent_thread_count);
     das_client = new DasAgentNode(das_agent_client_id, das_agent_server_id);
@@ -50,20 +51,20 @@ void LinkCreationAgent::run() {
     int current_buffer_position = 0;
     while (true) {
         if (is_stoping) break;
-        LinkCreationAgentRequest* lca_request = NULL;
-        bool is_from_buffer = false;
+        shared_ptr<LinkCreationAgentRequest> lca_request = NULL;
         if (!link_creation_node_server->is_query_empty()) {
             vector<string> request = link_creation_node_server->pop_request();
             lca_request = create_request(request);
             lca_request->current_interval = requests_interval_seconds;
             if (lca_request != NULL && (lca_request->infinite || lca_request->repeat > 0)) {
-                request_buffer.push_back(*lca_request);
+                request_buffer[lca_request->id] = lca_request;
             }
         } else {
             if (!request_buffer.empty()) {
-                is_from_buffer = true;
                 current_buffer_position = current_buffer_position % request_buffer.size();
-                lca_request = &request_buffer[current_buffer_position];
+                auto it = request_buffer.begin();
+                advance(it, current_buffer_position);
+                lca_request = it->second;
                 current_buffer_position++;
             }
         }
@@ -90,10 +91,8 @@ void LinkCreationAgent::run() {
             if (lca_request->repeat >= 1) lca_request->repeat--;
 
         } else {
-            if (is_from_buffer) {
-                request_buffer.erase(request_buffer.begin() + current_buffer_position - 1);
-            } else {
-                delete lca_request;
+            if (request_buffer.find(lca_request->id) != request_buffer.end()) {
+                request_buffer.erase(lca_request->id);
             }
         }
     }
@@ -143,8 +142,8 @@ void LinkCreationAgent::load_config() {
 
 void LinkCreationAgent::save_buffer() {
     ofstream file(requests_buffer_file, ios::binary);
-    for (LinkCreationAgentRequest request : request_buffer) {
-        file.write((char*) &request, sizeof(request));
+    for (auto it = request_buffer.begin(); it != request_buffer.end(); it++) {
+        file.write((char*) &it->second, sizeof(it->second));
     }
     file.close();
 }
@@ -154,19 +153,28 @@ void LinkCreationAgent::load_buffer() {
     while (file) {
         LinkCreationAgentRequest request;
         file.read((char*) &request, sizeof(request));
-        request_buffer.push_back(request);
+        request_buffer[request.id] = make_shared<LinkCreationAgentRequest>(request);
     }
     file.close();
 }
 
-LinkCreationAgentRequest* LinkCreationAgent::create_request(vector<string> request) {
+static bool is_link_template_arg(string arg) {
+    if (arg == "LIST") return true;
+    if (arg == "LINK_CREATE") return true;
+    if (arg == "PROOF_OF_IMPLICATION_OR_EQUIVALENCE") return true;
+    if (arg == "PROOF_OF_IMPLICATION") return true;
+    if (arg == "PROOF_OF_EQUIVALENCE") return true;
+    return false;
+}
+
+shared_ptr<LinkCreationAgentRequest> LinkCreationAgent::create_request(vector<string> request) {
     try {
         LinkCreationAgentRequest* lca_request = new LinkCreationAgentRequest();
         int cursor = 0;
         bool is_link_create = false;
         for (string arg : request) {
             cursor++;
-            is_link_create = (arg == "LINK_CREATE") || is_link_create;
+            is_link_create = is_link_template_arg(arg) || is_link_create;
             if (!is_link_create) {
                 lca_request->query.push_back(arg);
             }
@@ -187,7 +195,21 @@ LinkCreationAgentRequest* LinkCreationAgent::create_request(vector<string> reque
             }
         }
         lca_request->infinite = (lca_request->repeat == -1);
-        return lca_request;
+        string joined_string = Utils::join(lca_request->query, ' ') + Utils::join(lca_request->link_template, ' ') + lca_request->context;
+        shared_ptr<char> joined_string_c = shared_ptr<char>(new char[joined_string.size() + 1]);
+        strcpy(joined_string_c.get(), joined_string.c_str());
+        lca_request->id = string(compute_hash(joined_string_c.get()));
+        // couts
+        cout << "Query: " << Utils::join(lca_request->query, ' ') << endl;
+        cout << "Link Template: " << Utils::join(lca_request->link_template, ' ') << endl;
+        cout << "Max Results: " << lca_request->max_results << endl;
+        cout << "Repeat: " << lca_request->repeat << endl;
+        cout << "Context: " << lca_request->context << endl;
+        cout << "Update Attention Broker: " << lca_request->update_attention_broker << endl;
+        cout << "Infinite: " << lca_request->infinite << endl;
+        cout << "ID: " << lca_request->id << endl;
+
+        return shared_ptr<LinkCreationAgentRequest>(lca_request);
     } catch (exception& e) {
         cout << "Error parsing request: " << e.what() << endl;
         return NULL;

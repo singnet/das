@@ -59,6 +59,7 @@ using LinkCreateTemplateTypes = std::variant<Variable, Node, std::shared_ptr<Lin
  */
 class CustomField {
    public:
+    CustomField(const std::string& name);
     /**
      * @brief Constructor that initializes the custom field with a list of custom fields.
      */
@@ -87,6 +88,12 @@ class CustomField {
      * @return A vector of strings representing the tokenized custom field.
      */
     std::vector<std::string> tokenize();
+    /**
+     * @brief Adds a field to the custom field.
+     * @param name The name of the field.
+     * @param value The value of the field.
+     */
+    void add_field(const std::string& name, const CustomFieldTypes& value);
 
    private:
     std::string name;
@@ -99,6 +106,7 @@ class CustomField {
  */
 class LinkCreateTemplate {
    public:
+    LinkCreateTemplate(const std::string& link_type);
     /**
      * @brief Constructor that initializes the link creation template with a list of link templates.
      */
@@ -133,11 +141,32 @@ class LinkCreateTemplate {
      * @return A vector of strings representing the tokenized link creation template.
      */
     std::vector<std::string> tokenize();
+    /**
+     * @brief Adds a target to the link creation template.
+     * @param target The target to add to the link creation template.
+     */
+    void add_target(LinkCreateTemplateTypes target);
+    /**
+     * @brief Adds a custom field to the link creation template.
+     * @param custom_field The custom field to add to the link creation template.
+     */
+    void add_custom_field(CustomField custom_field);
+
 
    private:
     std::string link_type;
     std::vector<LinkCreateTemplateTypes> targets;
     std::vector<CustomField> custom_fields;
+};
+
+class LinkCreateTemplateList {
+   public:
+    LinkCreateTemplateList(std::vector<std::string> link_template);
+    ~LinkCreateTemplateList();
+    std::vector<LinkCreateTemplate> get_templates();
+
+   private:
+    std::vector<LinkCreateTemplate> templates;
 };
 
 }  // namespace link_creation_agent

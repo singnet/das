@@ -2,7 +2,11 @@ from unittest import mock
 
 import pytest
 
-from hyperon_das_atomdb.adapters.redis_mongo_db import MongoDBIndex, RedisMongoDB, _HashableDocument
+from hyperon_das_atomdb.adapters.redis_mongo_db import (
+    MongoDBIndex,
+    RedisMongoDB,
+    _HashableDocument,
+)
 from tests.python.helpers import dict_to_node_params
 from tests.python.unit.fixtures import redis_mongo_db  # noqa: F401
 
@@ -31,11 +35,16 @@ class TestRedisMongoExtra:
             mi.create(**params)
 
     @mock.patch(
-        "hyperon_das_atomdb.adapters.redis_mongo_db.MongoClient", return_value=mock.MagicMock()
+        "hyperon_das_atomdb.adapters.redis_mongo_db.MongoClient",
+        return_value=mock.MagicMock(),
     )
-    @mock.patch("hyperon_das_atomdb.adapters.redis_mongo_db.Redis", return_value=mock.MagicMock())
     @mock.patch(
-        "hyperon_das_atomdb.adapters.redis_mongo_db.RedisCluster", return_value=mock.MagicMock()
+        "hyperon_das_atomdb.adapters.redis_mongo_db.Redis",
+        return_value=mock.MagicMock(),
+    )
+    @mock.patch(
+        "hyperon_das_atomdb.adapters.redis_mongo_db.RedisCluster",
+        return_value=mock.MagicMock(),
     )
     def test_create_db_connection_mongo(self, mock_mongo, mock_redis, mock_redis_cluster):
         RedisMongoDB(mongo_tls_ca_file="/tmp/mock", redis_password="12", redis_username="A")

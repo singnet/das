@@ -5,6 +5,7 @@
 #include <cstring>
 #include "Operator.h"
 #include "HandlesAnswer.h"
+#include "commons/MemoryPool.h"
 
 using namespace std;
 
@@ -20,6 +21,11 @@ template <unsigned int N>
 class Or : public Operator<N> {
 
 public:
+
+    static commons::MemoryPool<Or<N>>& get_pool() {
+        static commons::MemoryPool<Or<N>> pool;
+        return pool;
+    }
 
     // --------------------------------------------------------------------------------------------
     // Constructors and destructors
@@ -61,6 +67,7 @@ public:
         Operator<N>::graceful_shutdown();
         if (this->operator_thread != NULL) {
             this->operator_thread->join();
+            delete this->operator_thread;
             this->operator_thread = NULL;
         }
     }

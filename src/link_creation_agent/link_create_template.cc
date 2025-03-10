@@ -37,6 +37,12 @@ static std::vector<std::string> split(const std::string& s, char delimiter) {
     return tokens;
 }
 
+LinkCreateTemplate::LinkCreateTemplate(const std::string& link_type) {
+    this->link_type = link_type;
+    this->targets = {};
+    this->custom_fields = {};
+}
+
 static std::vector<std::string> parse_sub_custom_field(std::vector<std::string>& link_template,
                                                        size_t& cursor) {
     if (get_token(link_template, cursor) != "CUSTOM_FIELD" || link_template.size() < cursor + 3)
@@ -187,6 +193,12 @@ std::string LinkCreateTemplate::to_string() {
 
 std::vector<std::string> LinkCreateTemplate::tokenize() { return split(this->to_string(), ' '); }
 
+void LinkCreateTemplate::add_target(LinkCreateTemplateTypes target) { this->targets.push_back(target); }
+
+void LinkCreateTemplate::add_custom_field(CustomField custom_field) { this->custom_fields.push_back(custom_field); }
+
+CustomField::CustomField(const std::string& name) { this->name = name; }
+
 CustomField::CustomField(std::vector<std::string>& custom_fields) {
     if (get_token(custom_fields, 0) != "CUSTOM_FIELD")
         throw std::invalid_argument("Can not create Custom Field: Invalid arguments");
@@ -237,6 +249,10 @@ CustomField::~CustomField() {}
 
 std::string CustomField::get_name() { return this->name; }
 
+void CustomField::add_field(const std::string& name, const CustomFieldTypes& value) {
+    this->values.push_back(std::make_tuple(name, value));
+}
+
 std::vector<std::tuple<std::string, CustomFieldTypes>> CustomField::get_values() { return this->values; }
 
 std::string CustomField::to_string() {
@@ -257,3 +273,27 @@ std::string CustomField::to_string() {
 }
 
 std::vector<std::string> CustomField::tokenize() { return split(this->to_string(), ' '); }
+
+
+LinkCreateTemplateList::LinkCreateTemplateList(std::vector<std::string> link_template) {
+    if (get_token(link_template, 0) != "LIST")
+        throw std::invalid_argument("Can not create Link Template List: Invalid arguments");
+
+    size_t cursor = 0;
+    int link_template_size = string_to_int(get_token(link_template, 1));
+    cursor += 2;
+    for (int i = 0; i < link_template_size; i++) {
+        std::vector<std::string> sub_link_template = parse_sub_link_template(link_template, cursor);
+        this->templates.push_back(LinkCreateTemplate(sub_link_template));
+    }
+    if (this->templates.size() != link_template_size) {
+        throw std::invalid_argument("Can not create Link Template List: Invalid arguments");
+    }
+}
+
+
+LinkCreateTemplateList::~LinkCreateTemplateList() {}
+
+std::vector<LinkCreateTemplate> LinkCreateTemplateList::get_templates() {
+    return this->templates;
+}

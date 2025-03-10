@@ -19,7 +19,15 @@ from .animals_kb import (
     rhino,
     similarity_docs,
 )
-from .helpers import Database, PyMongoFindExplain, _db_down, _db_up, cleanup, mongo_port, redis_port
+from .helpers import (
+    Database,
+    PyMongoFindExplain,
+    _db_down,
+    _db_up,
+    cleanup,
+    mongo_port,
+    redis_port,
+)
 
 
 def metta_to_links(input_str):
@@ -27,18 +35,18 @@ def metta_to_links(input_str):
         result = []
         while tokens:
             token = tokens.pop(0)
-            if token == '(':
+            if token == "(":
                 nested = parse_tokens(tokens)
                 result.append(nested)
-            elif token == ')':
+            elif token == ")":
                 break
             else:
                 result.append({"type": "Symbol", "name": token})
         return {"type": "Expression", "targets": result}
 
-    input_str = input_str.replace('(', ' ( ').replace(')', ' ) ')
+    input_str = input_str.replace("(", " ( ").replace(")", " ) ")
     tokens = input_str.split()
-    return parse_tokens(tokens)['targets'][0]
+    return parse_tokens(tokens)["targets"][0]
 
 
 class TestRedisMongo:
@@ -1214,7 +1222,8 @@ class TestRedisMongo:
         assert db.get_atom(link_handle).custom_attributes["score"] == 0.5
 
     @pytest.mark.parametrize(
-        "node", [({"type": "A", "name": "type_a", "custom_attributes": {"status": "ready"}})]
+        "node",
+        [({"type": "A", "name": "type_a", "custom_attributes": {"status": "ready"}})],
     )
     def test_get_atoms_by_index_custom_att(self, node, _cleanup, _db: RedisMongoDB):
         node = _db.add_node(NodeT(**node))
@@ -1339,7 +1348,7 @@ class TestRedisMongo:
                         "arity": 3,
                     }
                 ],
-                '(synonyms (gene ENSG00000278267) (microRNA_6859-1 hsa-mir-6859-1 HGNC:50039 microRNA_mir-6859-1 MIR6859-1))',
+                "(synonyms (gene ENSG00000278267) (microRNA_6859-1 hsa-mir-6859-1 HGNC:50039 microRNA_mir-6859-1 MIR6859-1))",
                 [
                     ("synonyms", "*", "*"),
                 ],
@@ -1354,7 +1363,7 @@ class TestRedisMongo:
                         "arity": 3,
                     }
                 ],
-                '(tf_name (motif ENSG00000156273) BACH1)',
+                "(tf_name (motif ENSG00000156273) BACH1)",
                 [
                     ("tf_name", "*", "*"),
                 ],

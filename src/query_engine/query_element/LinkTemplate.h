@@ -18,6 +18,7 @@
 #include "attention_broker.grpc.pb.h"
 #include "attention_broker.pb.h"
 #include "expression_hasher.h"
+#include "commons/MemoryPool.h"
 
 #define MAX_GET_IMPORTANCE_BUNDLE_SIZE ((unsigned int) 100000)
 
@@ -66,6 +67,11 @@ namespace query_element {
 template <unsigned int ARITY>
 class LinkTemplate : public Source {
    public:
+    static commons::MemoryPool<LinkTemplate<ARITY>>& get_pool() {
+        static commons::MemoryPool<LinkTemplate<ARITY>> pool;
+        return pool;
+    }
+
     // --------------------------------------------------------------------------------------------
     // Constructors and destructors
 
@@ -145,6 +151,7 @@ class LinkTemplate : public Source {
         set_flow_finished();
         if (this->local_buffer_processor != NULL) {
             this->local_buffer_processor->join();
+            delete this->local_buffer_processor;
             this->local_buffer_processor = NULL;
         }
         Source::graceful_shutdown();
