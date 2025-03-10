@@ -46,6 +46,17 @@ void RemoteSink<AnswerType>::graceful_shutdown() {
 #endif
 }
 
+template <class AnswerType>
+bool RemoteSink<AnswerType>::is_work_done() {
+    for (const auto& processor : this->query_answer_processors) {
+        if (!processor->is_work_done()) return false;
+    }
+    if (!this->input_buffer->is_query_answers_empty()) return false;
+    if (!this->input_buffer->is_query_answers_finished()) return false;
+    if (!this->is_flow_finished()) return false;
+    return true;
+}
+
 // -------------------------------------------------------------------------------------------------
 // Private methods
 

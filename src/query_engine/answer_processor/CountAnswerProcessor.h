@@ -3,13 +3,14 @@
 #include "CountAnswer.h"
 #include "QueryAnswerProcessor.h"
 #include "QueryNode.h"
+#include "Worker.h"
 
 using namespace std;
 using namespace query_node;
 
 namespace query_engine {
 
-class CountAnswerProcessor : public QueryAnswerProcessor {
+class CountAnswerProcessor : public QueryAnswerProcessor, public Worker {
    public:
     CountAnswerProcessor(const string& local_id, const string& remote_id)
         : count(0),
@@ -24,6 +25,7 @@ class CountAnswerProcessor : public QueryAnswerProcessor {
         this->output_buffer->query_answers_finished();
     }
     virtual void graceful_shutdown() override { this->output_buffer->graceful_shutdown(); }
+    virtual bool is_work_done() override { return this->output_buffer->is_work_done(); }
 
    protected:
     int count;

@@ -23,6 +23,7 @@ QueryNode<AnswerType>::QueryNode(const string& node_id,
     this->query_answer_processor = NULL;
     this->query_answers_finished_flag = false;
     this->shutdown_flag = false;
+    this->work_done_flag = false;
     if (messaging_backend == MessageBrokerType::RAM) {
         this->requires_serialization = false;
     } else {
@@ -162,6 +163,7 @@ void QueryNodeClient<AnswerType>::query_answer_processor_method() {
                 this->query_answer_queue.empty()) {
                 this->send(QUERY_ANSWERS_FINISHED_COMMAND, args, this->server_id);
                 answers_finished_flag = true;
+                this->work_done_flag = true;
             }
         } else {
             if (this->requires_serialization) {
@@ -171,6 +173,7 @@ void QueryNodeClient<AnswerType>::query_answer_processor_method() {
             }
             args.clear();
         }
+        delete query_answer;
         Utils::sleep();
     }
 }

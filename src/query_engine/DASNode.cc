@@ -534,6 +534,7 @@ PatternMatchingQuery::PatternMatchingQuery(string command, vector<string>& token
 #endif
 
     stack<unsigned int> execution_stack;
+    stack<QueryElement*> element_stack;
     this->requestor_id = tokens[0];
     this->context = tokens[1];
     this->command = command;
@@ -559,40 +560,31 @@ PatternMatchingQuery::PatternMatchingQuery(string command, vector<string>& token
     while (!execution_stack.empty()) {
         cursor = execution_stack.top();
         if (tokens[cursor] == "NODE") {
-            this->element_stack.push(Node::get_pool().allocate(tokens[cursor + 1], tokens[cursor + 2]));
+            element_stack.push(Node::get_pool().allocate(tokens[cursor + 1], tokens[cursor + 2]));
         } else if (tokens[cursor] == "VARIABLE") {
-            this->element_stack.push(Variable::get_pool().allocate(tokens[cursor + 1]));
+            element_stack.push(Variable::get_pool().allocate(tokens[cursor + 1]));
         } else if (tokens[cursor] == "LINK") {
-            this->element_stack.push(build_link(tokens, cursor, this->element_stack));
+            element_stack.push(build_link(tokens, cursor, element_stack));
         } else if (tokens[cursor] == "LINK_TEMPLATE") {
-            this->element_stack.push(build_link_template(tokens, cursor, this->element_stack));
+            element_stack.push(build_link_template(tokens, cursor, element_stack));
         } else if (tokens[cursor] == "AND") {
-            this->element_stack.push(build_and(tokens, cursor, this->element_stack));
+            element_stack.push(build_and(tokens, cursor, element_stack));
         } else if (tokens[cursor] == "OR") {
-            this->element_stack.push(build_or(tokens, cursor, this->element_stack));
+            element_stack.push(build_or(tokens, cursor, element_stack));
         } else {
             Utils::error("Invalid token " + tokens[cursor] + " in PatternMatchingQuery message");
         }
         execution_stack.pop();
     }
 
-    if (this->element_stack.size() != 1) {
+    if (element_stack.size() != 1) {
         Utils::error("PatternMatchingQuery message: parse error in tokens (trailing elements)");
     }
-    this->root_query_element = this->element_stack.top();
-    this->element_stack.pop();
+    this->root_query_element = element_stack.top();
+    element_stack.pop();
 #ifdef DEBUG
     cout << "PatternMatchingQuery::PatternMatchingQuery() END" << endl;
 #endif
-}
-
-PatternMatchingQuery::~PatternMatchingQuery() {
-    this->root_query_element = nullptr;
-    while (!this->element_stack.empty()) {
-        QueryElement* element = this->element_stack.top();
-        this->element_stack.pop();
-        element->get_pool().deallocate(element);
-    }
 }
 
 void PatternMatchingQuery::act(shared_ptr<MessageFactory> node) {
@@ -615,9 +607,11 @@ void PatternMatchingQuery::act(shared_ptr<MessageFactory> node) {
             query_answer_processors.push_back(make_unique<CountAnswerProcessor>(local_id, remote_id));
         }
 
-        // TODO: eliminate this memory leak
-        RemoteSink<HandlesAnswer>* remote_sink =
-            new RemoteSink<HandlesAnswer>(this->root_query_element, move(query_answer_processors));
+        remote_sink_handles_answer_deleter.add(new RemoteSink<HandlesAnswer>(
+            this->root_query_element,       // precedent
+            move(query_answer_processors),  // query_answer_processors
+            true                            // delete_precedent_on_destructor
+            ));
     } else {
         Utils::error("Invalid command " + this->command + " in PatternMatchingQuery message");
     }

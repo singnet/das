@@ -3,7 +3,6 @@
 
 #define DEBUG
 
-#include <queue>
 #include <stack>
 
 #include "HandlesAnswer.h"
@@ -54,9 +53,6 @@ class DASNode : public StarNode {
 class PatternMatchingQuery : public Message {
    public:
     PatternMatchingQuery(string command, vector<string>& tokens);
-
-    ~PatternMatchingQuery();
-
     void act(shared_ptr<MessageFactory> node);
 
    private:
@@ -77,11 +73,11 @@ class PatternMatchingQuery : public Message {
                              stack<QueryElement*>& element_stack);
 
     QueryElement* root_query_element;
-    stack<QueryElement*> element_stack;
     string requestor_id;
     string context;
     string command;
     bool update_attention_broker;
+
 };
 
 class CountingQuery : public Message {

@@ -7,6 +7,7 @@
 #include "DistributedAlgorithmNode.h"
 #include "QueryAnswer.h"
 #include "SharedQueue.h"
+#include "Worker.h"
 
 using namespace std;
 using namespace distributed_algorithm_node;
@@ -22,7 +23,7 @@ constexpr char* QUERY_ANSWERS_FINISHED_COMMAND = "query_answers_finished";
  *
  */
 template <class AnswerType>
-class QueryNode : public DistributedAlgorithmNode {
+class QueryNode : public DistributedAlgorithmNode, public Worker {
    public:
     QueryNode(const string& node_id,
               bool is_server,
@@ -38,10 +39,13 @@ class QueryNode : public DistributedAlgorithmNode {
     bool is_query_answers_empty();
     virtual void query_answer_processor_method() = 0;
 
+    virtual bool is_work_done() override { return this->work_done_flag; }  // as Worker
+
    protected:
     SharedQueue query_answer_queue;
     thread* query_answer_processor;
     bool requires_serialization;
+    bool work_done_flag;
 
    private:
     bool is_server;

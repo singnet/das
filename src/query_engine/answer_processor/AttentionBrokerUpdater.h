@@ -14,6 +14,7 @@
 #include "QueryAnswerProcessor.h"
 #include "SharedQueue.h"
 #include "Utils.h"
+#include "Worker.h"
 #include "attention_broker.grpc.pb.h"
 #include "attention_broker.pb.h"
 
@@ -26,7 +27,7 @@ namespace query_engine {
 
 constexpr char* ATTENTION_BROKER_ADDRESS = "localhost:37007";
 
-class AttentionBrokerUpdater : public QueryAnswerProcessor {
+class AttentionBrokerUpdater : public QueryAnswerProcessor, public Worker {
    public:
     AttentionBrokerUpdater(const string& query_context = "")
         : attention_broker_address(ATTENTION_BROKER_ADDRESS),
@@ -55,6 +56,9 @@ class AttentionBrokerUpdater : public QueryAnswerProcessor {
             delete this->queue_processor_method;
             this->queue_processor_method = NULL;
         }
+    }
+    virtual bool is_work_done() override {
+        return this->is_flow_finished() && this->answers_queue.empty();
     }
 
    protected:
@@ -86,7 +90,7 @@ class AttentionBrokerUpdater : public QueryAnswerProcessor {
 
         // handle_list.set_context(this->query_context);
         do {
-            if (this->is_flow_finished() && this->answers_queue.empty()) {
+            if (this->is_work_done()) {
                 break;
             }
             bool idle_flag = true;

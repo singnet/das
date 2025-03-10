@@ -3,13 +3,14 @@
 #include "HandlesAnswer.h"
 #include "QueryAnswerProcessor.h"
 #include "QueryNode.h"
+#include "Worker.h"
 
 using namespace std;
 using namespace query_node;
 
 namespace query_engine {
 
-class HandlesAnswerProcessor : public QueryAnswerProcessor {
+class HandlesAnswerProcessor : public QueryAnswerProcessor, public Worker {
    public:
     HandlesAnswerProcessor(const string& local_id, const string& remote_id)
         : output_buffer(make_unique<QueryNodeClient<HandlesAnswer>>(
@@ -23,6 +24,7 @@ class HandlesAnswerProcessor : public QueryAnswerProcessor {
     }
     virtual void query_answers_finished() override { this->output_buffer->query_answers_finished(); }
     virtual void graceful_shutdown() override { this->output_buffer->graceful_shutdown(); }
+    virtual bool is_work_done() override { return this->output_buffer->is_work_done(); }
 
    protected:
     unique_ptr<QueryNodeClient<HandlesAnswer>> output_buffer;

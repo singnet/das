@@ -13,6 +13,7 @@ class QueryAnswerProcessor {
     virtual void process_answer(QueryAnswer* query_answer) = 0;
     virtual void query_answers_finished() = 0;
     virtual void graceful_shutdown() = 0;
+    virtual bool is_work_done() = 0;
 };
 
 }  // namespace query_engine
