@@ -2,7 +2,7 @@
 
 ## Usage
 
-Run the optimizer using the main script. The command-line arguments specify the number of servers (nodes) and the query tokens to optimize.
+Run the optimizer using the main script. The command-line arguments specify the configuration file and the query tokens to optimize.
 
 #### Config file example
 
