@@ -31,7 +31,6 @@ cc_library(
   srcs = ["das_agent_node.cc"],
   hdrs = ["das_agent_node.h", "queue.h"],
   deps = [
-    "//query_engine:star_node",
     "//distributed_algorithm_node:distributed_algorithm_node_lib",
   ],
 )
@@ -57,7 +56,7 @@ cc_library(
   srcs = ["link_creation_agent_node.cc"],
   hdrs = ["link_creation_agent_node.h", "dummy_message.h", "queue.h"],
   deps = [
-    "//query_engine:star_node"
+    "//distributed_algorithm_node:star_node"
   ],
 )
 
