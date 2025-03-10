@@ -68,7 +68,7 @@ template <unsigned int ARITY>
 class LinkTemplate : public Source {
    public:
     static commons::MemoryPool<LinkTemplate<ARITY>>& get_pool() {
-        static commons::MemoryPool<LinkTemplate<ARITY>> pool(1024);  // Default size
+        static commons::MemoryPool<LinkTemplate<ARITY>> pool;
         return pool;
     }
 

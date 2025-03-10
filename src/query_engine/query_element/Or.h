@@ -23,7 +23,7 @@ class Or : public Operator<N> {
 public:
 
     static commons::MemoryPool<Or<N>>& get_pool() {
-        static commons::MemoryPool<Or<N>> pool(1024);  // Default size
+        static commons::MemoryPool<Or<N>> pool;
         return pool;
     }
 

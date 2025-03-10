@@ -22,7 +22,7 @@ class And : public Operator<N> {
 public:
 
     static commons::MemoryPool<And<N>>& get_pool() {
-        static commons::MemoryPool<And<N>> pool(1024);  // Default size
+        static commons::MemoryPool<And<N>> pool;
         return pool;
     }
 

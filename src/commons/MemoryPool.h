@@ -8,6 +8,8 @@ using namespace std;
 
 namespace commons {
 
+constexpr size_t MEMORY_POOL_DEFAULT_SIZE = 1024;
+
 class PoolExhaustedException : public std::runtime_error {
    public:
     explicit PoolExhaustedException()
@@ -29,7 +31,7 @@ class MemoryPool {
     std::mutex pool_mutex;
 
    public:
-    explicit MemoryPool(size_t size) : pool_size(size), memory_block(nullptr) {
+    explicit MemoryPool(size_t size = MEMORY_POOL_DEFAULT_SIZE) : pool_size(size), memory_block(nullptr) {
         memory_block = reinterpret_cast<char*>(operator new(pool_size * sizeof(T)));
 
         for (size_t i = 0; i < pool_size; ++i) {

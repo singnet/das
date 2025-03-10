@@ -13,11 +13,6 @@ QueryElement::QueryElement() {
 QueryElement::~QueryElement() {
 }
 
-commons::MemoryPool<QueryElement>& QueryElement::get_pool() {
-    static commons::MemoryPool<QueryElement> pool(1024);  // Default size
-    return pool;
-}
-
 // ------------------------------------------------------------------------------------------------
 // Protected methods
 

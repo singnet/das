@@ -34,7 +34,7 @@ protected:
 public:
 
     static commons::MemoryPool<Terminal>& get_pool() {
-        static commons::MemoryPool<Terminal> pool(1024);  // Default size
+        static commons::MemoryPool<Terminal> pool;
         return pool;
     }
 
@@ -88,7 +88,7 @@ class Node : public Terminal {
 public:
 
     static commons::MemoryPool<Node>& get_pool() {
-        static commons::MemoryPool<Node> pool(1024);  // Default size
+        static commons::MemoryPool<Node> pool;
         return pool;
     }
 
@@ -130,7 +130,7 @@ class Link : public Terminal {
 public:
 
     static commons::MemoryPool<Link<ARITY>>& get_pool() {
-        static commons::MemoryPool<Link<ARITY>> pool(1024);  // Default size
+        static commons::MemoryPool<Link<ARITY>> pool;
         return pool;
     }
 
@@ -202,7 +202,7 @@ class Variable : public Terminal {
 public:
 
     static commons::MemoryPool<Variable>& get_pool() {
-        static commons::MemoryPool<Variable> pool(1024);  // Default size
+        static commons::MemoryPool<Variable> pool;
         return pool;
     }
 

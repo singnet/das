@@ -56,7 +56,10 @@ public:
     string id;
     string subsequent_id;
 
-    static commons::MemoryPool<QueryElement>& get_pool();
+    static commons::MemoryPool<QueryElement>& get_pool() {
+        static commons::MemoryPool<QueryElement> pool;
+        return pool;
+    }
 
     /**
      * Basic constructor which solely initialize variables.

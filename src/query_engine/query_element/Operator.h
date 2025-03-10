@@ -25,7 +25,7 @@ template <unsigned int N>
 class Operator : public QueryElement {
    public:
     static commons::MemoryPool<Operator<N>>& get_pool() {
-        static commons::MemoryPool<Operator<N>> pool(1024);  // Default size
+        static commons::MemoryPool<Operator<N>> pool;
         return pool;
     }
 
