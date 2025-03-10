@@ -10,7 +10,7 @@ common --curses=yes
 # common --show_timestamps
 
 # Use half of all available CPU cores
-common --jobs=20  # HOST_CPUS*0.5
+common --jobs=HOST_CPUS*0.5
 
 # Enable bazel bzlmod (for Bazel 8+)
 common --enable_bzlmod
