@@ -43,6 +43,12 @@ run-link-creation-agent:
 run-link-creation-client:
 	@bash -x src/scripts/run.sh link_creation_agent_client $(OPTIONS)
 
+run-inference-agent:
+	@bash -x src/scripts/run.sh inference_agent_server $(OPTIONS)
+
+run-inference-agent-client:
+	@bash -x src/scripts/run.sh inference_agent_client $(OPTIONS)
+
 setup-nunet-dms:
 	@bash -x src/scripts/setup-nunet-dms.sh
 

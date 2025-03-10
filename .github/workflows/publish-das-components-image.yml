@@ -4,10 +4,9 @@ on:
   push:
     branches:
       - master
-      - das-237
 
 jobs:
-  build-binaries:
+  build_binaries:
     runs-on: self-hosted
     steps:
       - name: Checkout code
@@ -25,7 +24,7 @@ jobs:
 
   build_and_publish:
     runs-on: self-hosted
-    needs: build-binaries
+    needs: build_binaries
     strategy:
       matrix:
         target: [attention-broker, query-agent, link-creation-agent, link-creation-client]
@@ -54,3 +53,51 @@ jobs:
           push: true
           target: ${{ matrix.target }}
           tags: trueagi/das:${{ matrix.target }}-poc
+
+  deploy_ensemble_to_server:
+    runs-on: self-hosted
+    needs: build_and_publish
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up SSH key
+        run: |
+          echo "Setting up SSH key..."
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          eval "$(ssh-agent -s)"
+          ssh-add ~/.ssh/id_rsa
+
+      - name: Copy script to server using SCP
+        run: |
+          echo "Copying script to server..."
+          scp -o StrictHostKeyChecking=no src/scripts/refresh-nunet-deployment.sh ${{ secrets.SSH_USER }}@${{ secrets.SERVER_HOST }}:/tmp/refresh-nunet-deployment.sh
+
+      - name: Encode ensemble.yaml and store in environment
+        id: load_ensemble
+        run: |
+          ENSEMBLE_CONTENT=$(base64 -w 0 < src/assets/ensemble.yaml)
+          echo "ENSEMBLE_CONTENT=$ENSEMBLE_CONTENT" >> $GITHUB_ENV
+          echo "ensemble.yaml content encoded successfully."
+
+      - name: Process ensemble.yaml and execute deployment script on remote server
+        run: |
+          echo "Running deployment script on the remote server..."
+          ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SERVER_HOST }} << 'EOF'
+            export DMS_PASSPHRASE="${{ secrets.DMS_PASSPHRASE }}"
+
+            PEER_ID=$(nunet actor cmd /dms/node/peers/self -c user | jq -r '.id')
+            
+            if [ -z "$PEER_ID" ]; then
+              echo "Error: Could not get the peer ID"
+              exit 1
+            fi
+            echo "Peer ID: $PEER_ID"
+
+            ENSEMBLE_FILE=$(mktemp /tmp/ensemble.XXXXXX.yaml)
+            echo "${{ env.ENSEMBLE_CONTENT }}" | base64 --decode | sed "s#\${PEER_ID}#$PEER_ID#g" > $ENSEMBLE_FILE
+
+            bash +x /tmp/refresh-nunet-deployment.sh $ENSEMBLE_FILE
+          EOF
