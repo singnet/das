@@ -8,23 +8,23 @@ import sys
 from threading import Thread, Event, Lock
 from queue import Queue, Full
 from typing import Iterator
+from concurrent.futures import ThreadPoolExecutor
 from collections import defaultdict
 
 from hyperon_das.cache.attention_broker_gateway import AttentionBrokerGateway
 from hyperon_das_atomdb.adapters import RedisMongoDB
-from concurrent.futures import ThreadPoolExecutor
 
-from fitness_functions import handle_fitness_function
-from selection_methods import handle_selection_method, SelectionMethodType
-from utils import Parameters, parse_file, SuppressCppOutput
+from evolution.fitness_functions import handle_fitness_function
+from evolution.selection_methods import handle_selection_method, SelectionMethodType
+from evolution.utils import Parameters, parse_file, SuppressCppOutput
 
 # NOTE: This module, das_node, is a Python implementation of DASNode,
 # used to develop and test the optimization algorithm.
 # However, it is necessary to create bindings for the components already implemented in C++
 # and integrate them into this implementation.
 # Currently, I am using the implementation from this PR:
-from das_node.query_answer import QueryAnswer
-from das_node.das_node import DASNode
+from evolution.das_node.query_answer import QueryAnswer
+from evolution.das_node.das_node import DASNode
 
 MAX_CORRELATIONS_WITHOUT_STIMULATE = 1000
 

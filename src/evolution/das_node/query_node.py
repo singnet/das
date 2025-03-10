@@ -4,8 +4,8 @@ from typing import List, Optional
 
 from hyperon_das_node import DistributedAlgorithmNode, LeadershipBrokerType, Message, MessageBrokerType
 
-from das_node.query_answer import QueryAnswer
-from das_node.shared_queue import SharedQueue
+from evolution.das_node.query_answer import QueryAnswer
+from evolution.das_node.shared_queue import SharedQueue
 
 
 class QueryNode(DistributedAlgorithmNode):

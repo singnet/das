@@ -1,7 +1,7 @@
 from hyperon_das_node import Message
 
-from das_node.remote_iterator import RemoteIterator
-from das_node.star_node import StarNode
+from evolution.das_node.remote_iterator import RemoteIterator
+from evolution.das_node.star_node import StarNode
 
 
 class DASNode(StarNode):

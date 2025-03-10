@@ -1,6 +1,6 @@
 import argparse
 
-from optimizer import QueryOptimizerAgent
+from evolution.optimizer import QueryOptimizerAgent
 
 
 def parse_args():

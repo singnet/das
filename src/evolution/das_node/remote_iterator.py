@@ -1,7 +1,7 @@
 from hyperon_das_node import MessageBrokerType
-from das_node.query_answer import QueryAnswer
-from das_node.query_element import QueryElement
-from das_node.query_node import QueryNodeServer
+from evolution.das_node.query_answer import QueryAnswer
+from evolution.das_node.query_element import QueryElement
+from evolution.das_node.query_node import QueryNodeServer
 
 
 class RemoteIterator(QueryElement):
