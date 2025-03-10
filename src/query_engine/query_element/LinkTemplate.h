@@ -3,6 +3,7 @@
 
 #include <grpcpp/grpcpp.h>
 
+#include <array>
 #include <cstring>
 
 #include "And.h"
@@ -17,8 +18,8 @@
 #include "Terminal.h"
 #include "attention_broker.grpc.pb.h"
 #include "attention_broker.pb.h"
-#include "expression_hasher.h"
 #include "commons/MemoryPool.h"
+#include "expression_hasher.h"
 
 #define MAX_GET_IMPORTANCE_BUNDLE_SIZE ((unsigned int) 100000)
 
@@ -132,6 +133,9 @@ class LinkTemplate : public Source {
             delete[] this->local_answers;
             delete[] this->next_inner_answer;
         }
+        while (!this->local_buffer.empty()) {
+            delete (HandlesAnswer*) this->local_buffer.dequeue();
+        }
         local_answers_mutex.unlock();
 #ifdef DEBUG
         cout << "LinkTemplate::LinkTemplate() DESTRUCTOR END" << endl;
@@ -173,22 +177,23 @@ class LinkTemplate : public Source {
                     break;
                 }
                 case 2: {
-                    this->inner_template_iterator = make_shared<Iterator<HandlesAnswer>>(
-                        new And<2>({inner_template[0], inner_template[1]}), true);
+                    array<QueryElement*, 2> clauses = {inner_template[0], inner_template[1]};
+                    this->inner_template_iterator =
+                        make_shared<Iterator<HandlesAnswer>>(And<2>::get_pool().allocate(clauses), true);
                     break;
                 }
                 case 3: {
-                    this->inner_template_iterator = make_shared<Iterator<HandlesAnswer>>(
-                        new And<3>({inner_template[0], inner_template[1], inner_template[2]}), true);
+                    array<QueryElement*, 3> clauses = {
+                        inner_template[0], inner_template[1], inner_template[2]};
+                    this->inner_template_iterator =
+                        make_shared<Iterator<HandlesAnswer>>(And<3>::get_pool().allocate(clauses), true);
                     break;
                 }
                 case 4: {
+                    array<QueryElement*, 4> clauses = {
+                        inner_template[0], inner_template[1], inner_template[2], inner_template[3]};
                     this->inner_template_iterator =
-                        make_shared<Iterator<HandlesAnswer>>(new And<4>({inner_template[0],
-                                                                         inner_template[1],
-                                                                         inner_template[2],
-                                                                         inner_template[3]}),
-                                                             true);
+                        make_shared<Iterator<HandlesAnswer>>(And<4>::get_pool().allocate(clauses), true);
                     break;
                 }
                 default: {

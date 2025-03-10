@@ -28,7 +28,7 @@ protected:
     Terminal() : QueryElement() {
         this->handle = shared_ptr<char>{};
         this->is_variable = false;
-        this->is_terminal = true; // overrrides QueryElement default
+        this->is_terminal = true; // overrides QueryElement default
     }
 
 public:

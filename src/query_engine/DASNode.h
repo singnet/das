@@ -55,14 +55,7 @@ class PatternMatchingQuery : public Message {
    public:
     PatternMatchingQuery(string command, vector<string>& tokens);
 
-    ~PatternMatchingQuery() {
-        this->root_query_element = nullptr;
-        while (!this->element_stack.empty()) {
-            QueryElement* element = this->element_stack.top();
-            this->element_stack.pop();
-            element->get_pool().deallocate(element);
-        }
-    }
+    ~PatternMatchingQuery();
 
     void act(shared_ptr<MessageFactory> node);
 

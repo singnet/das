@@ -26,7 +26,7 @@ template <class AnswerType>
 Sink<AnswerType>::~Sink() {
     this->input_buffer->graceful_shutdown();
     if (this->delete_precedent_on_destructor) {
-        delete this->precedent;
+        this->precedent->get_pool().deallocate(this->precedent);
     }
 }
 

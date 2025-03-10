@@ -31,7 +31,12 @@ QueryNode<AnswerType>::QueryNode(const string& node_id,
 }
 
 template <class AnswerType>
-QueryNode<AnswerType>::~QueryNode() {}
+QueryNode<AnswerType>::~QueryNode() {
+    this->graceful_shutdown();
+    while (!this->query_answer_queue.empty()) {
+        delete (QueryAnswer*) this->query_answer_queue.dequeue();
+    }
+}
 
 template <class AnswerType>
 void QueryNode<AnswerType>::graceful_shutdown() {
@@ -44,6 +49,7 @@ void QueryNode<AnswerType>::graceful_shutdown() {
     this->shutdown_flag_mutex.unlock();
     if (this->query_answer_processor != NULL) {
         this->query_answer_processor->join();
+        delete this->query_answer_processor;
         this->query_answer_processor = NULL;
     }
 }
@@ -117,14 +123,7 @@ QueryNodeServer<AnswerType>::QueryNodeServer(const string& node_id, MessageBroke
 }
 
 template <class AnswerType>
-QueryNodeServer<AnswerType>::~QueryNodeServer() {
-    this->graceful_shutdown();
-    if (this->query_answer_processor != NULL) {
-        this->query_answer_processor->join();
-        delete this->query_answer_processor;
-        this->query_answer_processor = NULL;
-    }
-}
+QueryNodeServer<AnswerType>::~QueryNodeServer() {}
 
 template <class AnswerType>
 void QueryNodeServer<AnswerType>::node_joined_network(const string& node_id) {
@@ -189,14 +188,7 @@ QueryNodeClient<AnswerType>::QueryNodeClient(const string& node_id,
 }
 
 template <class AnswerType>
-QueryNodeClient<AnswerType>::~QueryNodeClient() {
-    this->graceful_shutdown();
-    if (this->query_answer_processor != NULL) {
-        this->query_answer_processor->join();
-        delete this->query_answer_processor;
-        this->query_answer_processor = NULL;
-    }
-}
+QueryNodeClient<AnswerType>::~QueryNodeClient() {}
 
 template <class AnswerType>
 void QueryNodeClient<AnswerType>::node_joined_network(const string& node_id) {

@@ -586,6 +586,15 @@ PatternMatchingQuery::PatternMatchingQuery(string command, vector<string>& token
 #endif
 }
 
+PatternMatchingQuery::~PatternMatchingQuery() {
+    this->root_query_element = nullptr;
+    while (!this->element_stack.empty()) {
+        QueryElement* element = this->element_stack.top();
+        this->element_stack.pop();
+        element->get_pool().deallocate(element);
+    }
+}
+
 void PatternMatchingQuery::act(shared_ptr<MessageFactory> node) {
 #ifdef DEBUG
     cout << "PatternMatchingQuery::act() BEGIN" << endl;
