@@ -4,8 +4,14 @@ load("@rules_python//python:packaging.bzl", "py_wheel")
 
 package(default_visibility = ["//visibility:public"])
 
+filegroup(
+    name = "py_all_files",  # all python files in the project, including subdirectories
+    srcs = glob(["**/*.py"]),
+)
+
 py_library(
     name = "hyperon_das_atomdb",
+    srcs = [":py_all_files"],
     deps = [
         ":database",
         ":exceptions",

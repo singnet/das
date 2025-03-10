@@ -5,6 +5,7 @@ package(default_visibility = ["//visibility:public"])
 
 py_library(
     name = "cache",
+    srcs = glob(["*.py"]),
     deps = [
         ":attention_broker_gateway",
         ":cache_controller",
