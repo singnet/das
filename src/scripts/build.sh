@@ -50,3 +50,5 @@ docker run --rm \
   --workdir $CONTAINER_WORKSPACE_DIR \
   ${IMAGE_NAME} \
   ./scripts/bazel_build.sh
+
+docker run --rm --volume $LOCAL_BIN_DIR:/app/bin/evolution evolution-builder
