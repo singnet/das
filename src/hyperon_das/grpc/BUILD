@@ -3,11 +3,6 @@ load("@rules_python//python:defs.bzl", "py_library")
 
 package(default_visibility = ["//visibility:public"])
 
-filegroup(
-    name = "py_files",
-    srcs = glob(["*.py"]),
-)
-
 py_library(
     name = "common_pb2",
     srcs = ["common_pb2.py"],
