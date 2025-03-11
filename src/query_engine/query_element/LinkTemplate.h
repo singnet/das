@@ -126,6 +126,17 @@ class LinkTemplate : public Source {
             delete[] this->local_answers;
             delete[] this->next_inner_answer;
         }
+        while (!this->local_buffer.empty()) {
+            delete (HandlesAnswer*) this->local_buffer.dequeue();
+        }
+        for (auto* answer : this->inner_answers) {
+            if (answer) delete answer;
+        }
+        this->inner_answers.clear();
+        for (auto* clause : this->inner_template) {
+            if (clause) delete clause;
+        }
+        this->inner_template.clear();
         local_answers_mutex.unlock();
 #ifdef DEBUG
         cout << "LinkTemplate::LinkTemplate() DESTRUCTOR END" << endl;
