@@ -25,7 +25,7 @@ cc_library(
   srcs = ["distributed_inference_control_agent_node.cc"],
   hdrs = ["distributed_inference_control_agent_node.h"],
   deps = [
-    "//query_engine:star_node",
+    "//distributed_algorithm_node:star_node",
   ],
 )
 
@@ -46,7 +46,6 @@ cc_library(
   deps = [
     "//commons:commons_lib",
     "//link_creation_agent:link_creation_agent_lib",
-    "//query_engine:star_node",
     "//distributed_algorithm_node:distributed_algorithm_node_lib"
   ],
 )
