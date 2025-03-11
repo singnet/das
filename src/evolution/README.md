@@ -1,5 +1,15 @@
 # Non Distributed Query Optimizer
 
+## How to build
+
+To build run the following command from the project root:
+
+```bash
+make build-all
+```
+
+This will generate the binary file in the `das/src/bin` directory.
+
 ## Usage
 
 Run the optimizer using the main script. The command-line arguments specify the configuration file and the query tokens to optimize.
@@ -29,7 +39,7 @@ fitness_function = "multiply_strengths"
 #### Running client:
 
 ```bash
-python das/src/evolution/main.py --config-file /path/to/config.cfg --query-tokens "LINK_TEMPLATE Evaluation 2 NODE Type Name VARIABLE V1"
+make run-evolution OPTIONS='--config-file /path/to/config.cfg --query-tokens "LINK_TEMPLATE Evaluation 2 NODE Type Name VARIABLE V1"'
 ```
 
 **Parameters:**
