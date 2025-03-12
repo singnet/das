@@ -1,10 +1,15 @@
 name: Build and Publish POC Components
 
 on:
-  push:
-    branches:
-      - master
-      - das-287
+  workflow_dispatch:
+    inputs:
+      scenario:
+        description: "Choose the deployment scenario"
+        type: choice
+        options:
+          - vultr
+          - nunet
+
 
 jobs:
   build:
@@ -101,6 +106,7 @@ jobs:
   deploy_ensemble_to_server:
     runs-on: self-hosted
     needs: build_and_publish_images
+    if: ${{ github.event.inputs.scenario == 'nunet' }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -144,4 +150,68 @@ jobs:
             echo "${{ env.ENSEMBLE_CONTENT }}" | base64 --decode | sed "s#\${PEER_ID}#$PEER_ID#g" > $ENSEMBLE_FILE
 
             bash +x /tmp/refresh-nunet-deployment.sh $ENSEMBLE_FILE
+          EOF
+
+  deploy_to_vultr:
+    runs-on: self-host
+    needs: build_and_publish_images
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up SSH key
+        run: |
+          echo "Configuring SSH access..."
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          eval "$(ssh-agent -s)"
+          ssh-add ~/.ssh/id_rsa
+
+      - name: Deploy to Vultr
+        run: |
+          ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SERVER_HOST }} << 'EOF'
+            echo "Logging into Docker Hub..."
+            docker login -u "${{ secrets.DOCKER_USERNAME }}" -p "${{ secrets.DOCKER_PASSWORD }}"
+
+            echo "Deploying Attention Broker..."
+            docker pull trueagi/das:attention-broker-poc
+            docker rm -f attention-broker 2>/dev/null || true
+            docker run --restart always --name attention-broker --network host -d trueagi/das:attention-broker-poc
+
+            echo "Deploying Query Agent..."
+            docker pull trueagi/das:query-agent-poc
+            docker rm -f query-agent 2>/dev/null || true
+            docker run --restart always --name query-agent --network host -d \
+              -e DAS_MONGODB_HOSTNAME="localhost" \
+              -e DAS_MONGODB_PORT="27017" \
+              -e DAS_MONGODB_USERNAME="admin" \
+              -e DAS_MONGODB_PASSWORD="admin" \
+              -e DAS_REDIS_HOSTNAME="localhost" \
+              -e DAS_REDIS_PORT="6379" \
+              -e DAS_USE_REDIS_CLUSTER="false" \
+              -e DAS_ATTENTION_BROKER_ADDRESS="localhost" \
+              -e DAS_ATTENTION_BROKER_PORT="16384" \
+              trueagi/das:query-agent-poc
+
+            echo "Deploying Link Creation Agent..."
+            docker pull trueagi/das:link-creation-agent-poc
+            docker rm -f link-creation-agent 2>/dev/null || true
+
+            CONFIG_FILE="/tmp/link_creation_agent_config.ini"
+            echo "Creating config file at $CONFIG_FILE..."
+            cat <<EOT > $CONFIG_FILE
+            requests_interval_seconds = 10
+            link_creation_agent_thread_count = 5
+            query_agent_server_id = localhost:35700
+            query_agent_client_id = localhost:9001
+            link_creation_agent_server_id = localhost:9080
+            das_agent_client_id = localhost:9090
+            das_agent_server_id = localhost:9091
+            requests_buffer_file = ./buffer
+            EOT
+
+            docker run --restart always --name link-creation-agent --network host -d \
+              trueagi/das:link-creation-agent-poc \
+              --type server --config_file $CONFIG_FILE
           EOF
