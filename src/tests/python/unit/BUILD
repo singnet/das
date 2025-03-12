@@ -181,3 +181,12 @@ py_test(
     ],
 )
 
+py_test(
+    name = "test_das_node",
+    size = "small",
+    srcs = ["test_das_node.py"],
+    deps = [
+        "//hyperon_das_query_engine:hyperon_das_query_engine",
+    ],
+)
+
