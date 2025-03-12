@@ -137,6 +137,7 @@ class LinkTemplate : public Source {
             if (clause) delete clause;
         }
         this->inner_template.clear();
+        this->inner_template_iterator.reset();
         local_answers_mutex.unlock();
 #ifdef DEBUG
         cout << "LinkTemplate::LinkTemplate() DESTRUCTOR END" << endl;
@@ -174,7 +175,7 @@ class LinkTemplate : public Source {
             switch (this->inner_template.size()) {
                 case 1: {
                     this->inner_template_iterator =
-                        make_shared<Iterator<HandlesAnswer>>(inner_template[0]);
+                        make_shared<Iterator<HandlesAnswer>>(inner_template[0], true);
                     break;
                 }
                 case 2: {
