@@ -324,7 +324,7 @@ void SynchronousSharedRAM::broadcast(const string &command, const vector<string>
 
 void SynchronousGRPC::join_network() {
     this->grpc_thread = new std::thread(
-        &SynchronousGRPC::grpc_thread_method,
+        &SynchronousGRPC::grpc_thread_method, 
         this);
     while (! this->grpc_server_started()) {
         Utils::sleep();
