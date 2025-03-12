@@ -80,7 +80,7 @@ public:
             this->operator_thread = NULL;
         }
     }
-
+      
     // --------------------------------------------------------------------------------------------
     // Private stuff
 
@@ -245,7 +245,7 @@ private:
                         break;
                     }
                 }
-                candidate.answer[answer_queue_index] =
+                candidate.answer[answer_queue_index] = 
                     this->query_answer[answer_queue_index][index_in_queue];
                 candidate.index[answer_queue_index] = index_in_queue;
                 candidate.fitness *= candidate.answer[answer_queue_index]->importance;
@@ -263,7 +263,7 @@ private:
     void and_operator_method() {
 
         do {
-            if (QueryElement::is_flow_finished() ||
+            if (QueryElement::is_flow_finished() || 
                 this->output_buffer->is_query_answers_finished()) {
 
                 return;
@@ -284,7 +284,7 @@ private:
                         break;
                     }
                 }
-                if (all_finished_flag &&
+                if (all_finished_flag && 
                     ! this->output_buffer->is_query_answers_finished() &&
                     // processed_all_input() is double-checked on purpose to avoid race condition
                     processed_all_input()) {
