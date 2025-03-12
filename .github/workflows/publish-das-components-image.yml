@@ -155,7 +155,7 @@ jobs:
   deploy_to_vultr:
     runs-on: self-host
     needs: build_and_publish_images
-
+    if: ${{ github.event.inputs.scenario == 'vultr' }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
