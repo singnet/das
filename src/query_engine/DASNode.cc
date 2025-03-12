@@ -609,6 +609,7 @@ void PatternMatchingQuery::act(shared_ptr<MessageFactory> node) {
             query_answer_processors.push_back(make_unique<CountAnswerProcessor>(local_id, remote_id));
         }
 
+        // TODO: eliminate this memory leak :: eliminated with LazyWorkerDeleter plus delete_precedent_on_destructor=true
         PatternMatchingQuery::remote_sinks_deleter.add(new RemoteSink<HandlesAnswer>(
             this->root_query_element,       // precedent
             move(query_answer_processors),  // processors
