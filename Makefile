@@ -61,6 +61,9 @@ bazel:
 test-all: build-image
 	@$(MAKE) bazel test //...
 
+single-test: build-image
+	@$(MAKE) bazel test $(filter-out $@, $(MAKECMDGOALS))
+
 lint-all:
 	@$(MAKE) bazel lint \
 		"//... --fix --report --diff" \
