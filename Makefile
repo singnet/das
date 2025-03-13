@@ -49,6 +49,9 @@ run-inference-agent:
 run-inference-agent-client:
 	@bash -x src/scripts/run.sh inference_agent_client $(OPTIONS)
 
+run-evolution:
+	src/bin/evolution $(OPTIONS)
+
 setup-nunet-dms:
 	@bash -x src/scripts/setup-nunet-dms.sh
 
