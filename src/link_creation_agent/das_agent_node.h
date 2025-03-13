@@ -31,4 +31,4 @@ class DasAgentNode : public StarNode {
    private:
     const string CREATE_ATOM = "create_atom";  // DAS Node command
 };
-}  // namespace das
+}  // namespace das_agent

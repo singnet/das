@@ -4,8 +4,8 @@
  */
 #pragma once
 #include "StarNode.h"
-#include "queue.h"
 #include "dummy_message.h"
+#include "queue.h"
 
 using namespace distributed_algorithm_node;
 
@@ -22,7 +22,8 @@ class LinkCreationAgentNode : public StarNode {
      * @param node_id ID of this node in the network.
      * @param server_id ID of a server.
      */
-    LinkCreationAgentNode(const string& node_id, const string& server_id);;
+    LinkCreationAgentNode(const string& node_id, const string& server_id);
+    ;
 
     /**
      * Destructor
@@ -76,6 +77,5 @@ class LinkCreationRequest : public Message {
     string server_id;
     string client_id;
 };
-
 
 }  // namespace link_creation_agent

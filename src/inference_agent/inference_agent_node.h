@@ -9,9 +9,9 @@
 #include <thread>
 #include <vector>
 
+#include "Message.h"
 #include "StarNode.h"
 #include "queue.h"
-#include "Message.h"
 
 using namespace distributed_algorithm_node;
 using namespace std;
@@ -64,7 +64,6 @@ class CreateInferenceMessage : public Message {
     void act(std::shared_ptr<MessageFactory> node) override;
     string command;
     vector<string> args;
-
 };
 
 class DistributedInferenceFinishedMessage : public Message {

@@ -9,6 +9,7 @@
  * It also handles loading and saving configurations and request buffers.
  */
 #pragma once
+#include <memory>
 #include <mutex>
 #include <string>
 #include <thread>
@@ -17,8 +18,8 @@
 #include "DASNode.h"
 #include "HandlesAnswer.h"
 #include "RemoteIterator.h"
-#include "link_creation_agent_node.h"
 #include "das_agent_node.h"
+#include "link_creation_agent_node.h"
 #include "service.h"
 
 using namespace query_node;
@@ -36,6 +37,7 @@ struct LinkCreationAgentRequest {
     bool infinite = false;
     string context = "";
     bool update_attention_broker = false;
+    string id;
 };
 
 /**
@@ -64,7 +66,7 @@ class LinkCreationAgent {
      * @brief Create the create link request.
      * @param request Request to be handled
      */
-    static LinkCreationAgentRequest* create_request(vector<string> request);
+    static shared_ptr<LinkCreationAgentRequest> create_request(vector<string> request);
 
    private:
     /**
@@ -108,7 +110,7 @@ class LinkCreationAgent {
 
     // Other attributes
     LinkCreationService* service;
-    vector<LinkCreationAgentRequest> request_buffer;
+    map<string, shared_ptr<LinkCreationAgentRequest>> request_buffer;
     query_engine::DASNode* query_node_client;
     LinkCreationAgentNode* link_creation_node_server;
     DasAgentNode* das_client;
