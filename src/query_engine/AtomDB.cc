@@ -140,16 +140,56 @@ void AtomDB::mongodb_setup() {
     }
 }
 
-shared_ptr<atomdb_api_types::HandleList> AtomDB::query_for_pattern(shared_ptr<char> pattern_handle) {
-    redisReply *reply = (redisReply *) redisCommand(this->redis_single, "SMEMBERS %s:%s", REDIS_PATTERNS_PREFIX.c_str(), pattern_handle.get());
+void AtomDB::redis_fetch_next_chunk() {
+    char command[128];
+    sprintf(command, "ZRANGE %s:%s %d %d",
+            REDIS_PATTERNS_PREFIX.c_str(),
+            this->redis_pattern_handle.get(),
+            this->redis_cursor,
+            this->redis_cursor + this->redis_chunk_size - 1);
+
+    redisReply *reply = (redisReply *) redisCommand(this->redis_single, command);
+
     if (reply == NULL) {
         Utils::error("Redis error");
+        this->redis_has_more = false;
+        return;
     }
+
     if (reply->type != REDIS_REPLY_SET && reply->type != REDIS_REPLY_ARRAY) {
         Utils::error("Invalid Redis response: " + std::to_string(reply->type));
+        this->redis_has_more = false;
+        freeReplyObject(reply);
+        return;
     }
-    // NOTE: Intentionally, we aren't destroying 'reply' objects.'reply' objects are destroyed in ~RedisSet().
-    return shared_ptr<atomdb_api_types::RedisSet>(new atomdb_api_types::RedisSet(reply));
+
+    this->redis_current_chunk = shared_ptr<atomdb_api_types::HandleList>(new atomdb_api_types::RedisSet(reply));
+
+    this->redis_has_more = (reply->elements == this->redis_chunk_size);
+}
+
+vector<std::shared_ptr<atomdb_api_types::HandleList>> AtomDB::query_for_pattern(std::shared_ptr<char> pattern_handle) {
+    this->redis_pattern_handle = pattern_handle;
+    this->redis_cursor = 0;
+    this->redis_has_more = true;
+
+    // Dynamic chunk size to be used during benchmarking (default=10,000)
+    string chunk_size_str = Utils::get_environment("DAS_REDIS_CHUNK_SIZE");
+    if (chunk_size_str != "") {
+        this->redis_chunk_size = stoi(chunk_size_str);
+    }
+
+    // Iterate over Redis patterns values
+    vector<std::shared_ptr<atomdb_api_types::HandleList>> results;
+    while (this->redis_has_more) {
+        redis_fetch_next_chunk();
+        if (this->redis_current_chunk) {
+            results.push_back(this->redis_current_chunk);
+        }
+        this->redis_cursor += this->redis_chunk_size;
+    }
+
+    return results;
 }
 
 shared_ptr<atomdb_api_types::HandleList> AtomDB::query_for_targets(shared_ptr<char> link_handle) {
