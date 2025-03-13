@@ -4,6 +4,19 @@ from hyperon_das_node import StarNode
 
 
 class TestStarNode(TestCase):
+    def test_star_node_binding(self):
+        self.assertTrue(hasattr(StarNode, "add_peer"))
+        self.assertTrue(hasattr(StarNode, "broadcast"))
+        self.assertTrue(hasattr(StarNode, "cast_leadership_vote"))
+        self.assertTrue(hasattr(StarNode, "has_leader"))
+        self.assertTrue(hasattr(StarNode, "is_leader"))
+        self.assertTrue(hasattr(StarNode, "join_network"))
+        self.assertTrue(hasattr(StarNode, "message_factory"))
+        self.assertTrue(hasattr(StarNode, "node_id"))
+        self.assertTrue(hasattr(StarNode, "node_joined_network"))
+        self.assertTrue(hasattr(StarNode, "node_joined_network"))
+        self.assertTrue(hasattr(StarNode, "send"))
+
     def test_star_node(self):
         self.server_id: str = "localhost:35700"
         self.client1_id: str = "localhost:35701"
