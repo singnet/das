@@ -1,10 +1,11 @@
+#include "link_creation_agent.h"
+
 #include <gtest/gtest.h>
 
 #include <chrono>
 #include <fstream>
 #include <thread>
 
-#include "link_creation_agent.h"
 #include "link_create_template.h"
 
 using namespace std;
@@ -113,13 +114,17 @@ vector<string> split(const string& s, char delimiter) {
 }
 
 TEST(LinkCreateTemplate, TestLinkCreateTemplate) {
-    /**  #NOTE Different from the original string test, the to_string() method is not returning the same
-       order as the input string. to_string is placing the custom fields after the targets
+    /**  #NOTE Different from the original string test, the to_string() method is
+       not returning the same order as the input string. to_string is placing the
+       custom fields after the targets
     */
     string link_template_str =
-        "LINK_CREATE Similarity 3 1 VARIABLE V1 LINK_CREATE Test 3 0 NODE Symbol A VARIABLE V2 "
-        "LINK_CREATE Test2 1 1 NODE Symbol C CUSTOM_FIELD inter 1 inter_name inter_value NODE Symbol B "
-        "CUSTOM_FIELD truth_value 2 CUSTOM_FIELD mean 2 count 10 avg 0.9 confidence 0.9";
+        "LINK_CREATE Similarity 3 1 VARIABLE V1 "
+        "LINK_CREATE Test 3 0 NODE Symbol A VARIABLE V2 "
+        "LINK_CREATE Test2 1 1 NODE Symbol C CUSTOM_FIELD "
+        "inter 1 inter_name inter_value NODE Symbol B "
+        "CUSTOM_FIELD truth_value 2 CUSTOM_FIELD mean 2 "
+        "count 10 avg 0.9 confidence 0.9";
     auto link_template = split(link_template_str, ' ');
     LinkCreateTemplate lct(link_template);
     EXPECT_EQ(lct.get_link_type(), "Similarity");
@@ -128,7 +133,8 @@ TEST(LinkCreateTemplate, TestLinkCreateTemplate) {
     link_template_str.clear();
 
     link_template_str =
-        "LINK_CREATE I 3 0 VARIABLE V1 LINK_CREATE Test 3 0 NODE Symbol A VARIABLE V2 LINK_CREATE Test2 "
+        "LINK_CREATE I 3 0 VARIABLE V1 LINK_CREATE Test 3 0 NODE "
+        "Symbol A VARIABLE V2 LINK_CREATE Test2 "
         "1 0 NODE Symbol C NODE Symbol B";
     link_template = split(link_template_str, ' ');
     LinkCreateTemplate lct2(link_template);
@@ -140,7 +146,8 @@ TEST(LinkCreateTemplate, TestLinkCreateTemplate) {
     link_template_str.clear();
 
     link_template_str =
-        "LINK_CREATE Similarity 2 1 VARIABLE V1 VARIABLE V2 CUSTOM_FIELD truth_value 2 CUSTOM_FIELD "
+        "LINK_CREATE Similarity 2 1 VARIABLE V1 VARIABLE V2 "
+        "CUSTOM_FIELD truth_value 2 CUSTOM_FIELD "
         "mean 2 count 10 avg 0.9 confidence 0.9";
     link_template = split(link_template_str, ' ');
     LinkCreateTemplate lct3(link_template);
@@ -150,7 +157,8 @@ TEST(LinkCreateTemplate, TestLinkCreateTemplate) {
     link_template_str.clear();
 
     link_template_str =
-        "LINK_CREATE link_type 2 1 NODE type1 value1 VARIABLE var1 CUSTOM_FIELD field1 1 value1 value2";
+        "LINK_CREATE link_type 2 1 NODE type1 value1 VARIABLE "
+        "var1 CUSTOM_FIELD field1 1 value1 value2";
     link_template = split(link_template_str, ' ');
     LinkCreateTemplate lct4(link_template);
     EXPECT_EQ(lct4.get_link_type(), "link_type");
@@ -159,14 +167,17 @@ TEST(LinkCreateTemplate, TestLinkCreateTemplate) {
     link_template_str.clear();
 
     link_template_str =
-        "LINK_CREATE TestLink 4 1 NODE NodeType1 Value1 VARIABLE Var1 CUSTOM_FIELD Field1 2 valuename1 "
+        "LINK_CREATE TestLink 4 1 NODE NodeType1 Value1 VARIABLE Var1 "
+        "CUSTOM_FIELD Field1 2 valuename1 "
         "Value1 valuename2 Value2 NODE NodeType2 Value2 VARIABLE Var2";
     link_template = split(link_template_str, ' ');
     LinkCreateTemplate lct5(link_template);
     EXPECT_EQ(lct5.get_link_type(), "TestLink");
     EXPECT_EQ(lct5.to_string(),
-              "LINK_CREATE TestLink 4 1 NODE NodeType1 Value1 VARIABLE Var1 NODE NodeType2 Value2 "
-              "VARIABLE Var2 CUSTOM_FIELD Field1 2 valuename1 Value1 valuename2 Value2");
+              "LINK_CREATE TestLink 4 1 NODE NodeType1 Value1 "
+              "VARIABLE Var1 NODE NodeType2 Value2 "
+              "VARIABLE Var2 CUSTOM_FIELD Field1 2 valuename1 "
+              "Value1 valuename2 Value2");
     EXPECT_EQ(lct5.get_targets().size(), 4);
     EXPECT_EQ(get<Node>(lct5.get_targets()[0]).type, "NodeType1");
     EXPECT_EQ(get<Node>(lct5.get_targets()[0]).value, "Value1");
@@ -175,7 +186,8 @@ TEST(LinkCreateTemplate, TestLinkCreateTemplate) {
     link_template_str.clear();
 
     link_template_str =
-        "LINK_CREATE AnotherLink 2 1 VARIABLE VarA NODE NodeTypeA ValueA CUSTOM_FIELD FieldA 1 NameA "
+        "LINK_CREATE AnotherLink 2 1 VARIABLE VarA NODE "
+        "NodeTypeA ValueA CUSTOM_FIELD FieldA 1 NameA "
         "ValueA";
     link_template = split(link_template_str, ' ');
     LinkCreateTemplate lct6(link_template);
@@ -195,13 +207,15 @@ TEST(LinkCreateTemplate, TestLinkCreateTemplate) {
     link_template_str.clear();
 
     link_template_str =
-        "LINK_CREATE ComplexLink 4 2 NODE Type1 Val1 VARIABLE Var1 CUSTOM_FIELD Field1 2 N1 Val1 N2 "
+        "LINK_CREATE ComplexLink 4 2 NODE Type1 Val1 VARIABLE Var1 CUSTOM_FIELD "
+        "Field1 2 N1 Val1 N2 "
         "Val2 NODE Type2 Val2 VARIABLE Var2 CUSTOM_FIELD Field2 1 N3 Val3";
     link_template = split(link_template_str, ' ');
     LinkCreateTemplate lct7(link_template);
     EXPECT_EQ(lct7.get_link_type(), "ComplexLink");
     EXPECT_EQ(lct7.to_string(),
-              "LINK_CREATE ComplexLink 4 2 NODE Type1 Val1 VARIABLE Var1 NODE Type2 Val2 VARIABLE Var2 "
+              "LINK_CREATE ComplexLink 4 2 NODE Type1 Val1 VARIABLE Var1 NODE Type2 "
+              "Val2 VARIABLE Var2 "
               "CUSTOM_FIELD Field1 2 N1 Val1 N2 Val2 CUSTOM_FIELD Field2 1 N3 Val3");
     EXPECT_EQ(lct7.get_targets().size(), 4);
     EXPECT_EQ(get<Node>(lct7.get_targets()[0]).type, "Type1");
@@ -223,7 +237,9 @@ TEST(LinkCreateTemplate, TestLinkCreateTemplate) {
     link_template.clear();
     link_template_str.clear();
 
-    link_template_str = "LINK_CREATE SimpleLink 2 0 VARIABLE SimpleVar NODE SimpleNode SimpleValue";
+    link_template_str =
+        "LINK_CREATE SimpleLink 2 0 VARIABLE SimpleVar NODE "
+        "SimpleNode SimpleValue";
     link_template = split(link_template_str, ' ');
     LinkCreateTemplate lct8(link_template);
     EXPECT_EQ(lct8.get_link_type(), "SimpleLink");
@@ -233,7 +249,7 @@ TEST(LinkCreateTemplate, TestLinkCreateTemplate) {
     EXPECT_EQ(get<Node>(lct8.get_targets()[1]).type, "SimpleNode");
     EXPECT_EQ(get<Node>(lct8.get_targets()[1]).value, "SimpleValue");
     link_template.clear();
-    link_template_str.clear();    
+    link_template_str.clear();
 }
 
 TEST(LinkCreateTemplate, TestInvalidLinkType) {
@@ -250,7 +266,8 @@ TEST(LinkCreateTemplate, TestInvalidTargetCount) {
 
 TEST(LinkCreateTemplate, TestInvalidCustomField) {
     string link_template_str =
-        "LINK_CREATE Similarity 2 1 VARIABLE V1 NODE Symbol A CUSTOM_FIELD field1";
+        "LINK_CREATE Similarity 2 1 VARIABLE V1 NODE "
+        "Symbol A CUSTOM_FIELD field1";
     auto link_template = split(link_template_str, ' ');
     EXPECT_THROW(LinkCreateTemplate lct(link_template), invalid_argument);
 }
@@ -266,7 +283,6 @@ TEST(LinkCreateTemplate, TestInvalidNode) {
     auto link_template = split(link_template_str, ' ');
     EXPECT_THROW(LinkCreateTemplate lct(link_template), invalid_argument);
 }
-
 
 TEST(Link, TestLink) {
     vector<string> link_template = split("LINK_CREATE Similarity 2 0 VARIABLE V1 VARIABLE V2", ' ');

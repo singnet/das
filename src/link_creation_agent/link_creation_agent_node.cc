@@ -8,7 +8,8 @@ LinkCreationAgentNode::LinkCreationAgentNode(const string& node_id) : StarNode(n
     is_server = true;
 }
 
-LinkCreationAgentNode::LinkCreationAgentNode(const string& node_id, const string& server_id) : StarNode(node_id, server_id) {
+LinkCreationAgentNode::LinkCreationAgentNode(const string& node_id, const string& server_id)
+    : StarNode(node_id, server_id) {
     is_server = false;
 }
 
@@ -39,7 +40,6 @@ shared_ptr<Message> LinkCreationAgentNode::message_factory(string& command, vect
     return make_shared<DummyMessage>(command, args);
 }
 
-
 void LinkCreationAgentNode::send_message(vector<string> args) {
     cout << "Sending message" << endl;
     send(CREATE_LINK, args, server_id);
@@ -54,5 +54,3 @@ void LinkCreationRequest::act(shared_ptr<MessageFactory> node) {
     auto link_node = dynamic_pointer_cast<LinkCreationAgentNode>(node);
     link_node->add_request(this->args);
 }
-
-

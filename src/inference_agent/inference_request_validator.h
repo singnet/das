@@ -8,8 +8,8 @@
 #include <regex>
 #include <string>
 #include <vector>
-#include "RequestValidator.h"
 
+#include "RequestValidator.h"
 
 using namespace std;
 using namespace commons;

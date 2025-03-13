@@ -30,9 +30,10 @@ class InferenceAgent {
     InferenceAgent(const string& config_path);
     ~InferenceAgent();
     /**
-     * @brief Start the agent, receive inference request from the client, send link_creation
-     * request to the link_creation_agent, listen when distributed inference control agent
-     * finish the inference, send request to stop link creation.
+     * @brief Start the agent, receive inference request from the client, send
+     * link_creation request to the link_creation_agent, listen when distributed
+     * inference control agent finish the inference, send request to stop link
+     * creation.
      */
     void run();
     void stop();

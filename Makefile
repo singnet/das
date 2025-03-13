@@ -66,7 +66,7 @@ lint-all:
 		"//... --fix --report --diff" \
 		| grep -vE "(Lint results|All checks passed|^[[:blank:]]*$$)"
 
-format-all:
+format-all: build-image
 	@$(MAKE) bazel run format
 
 # Catch-all pattern to prevent make from complaining about unknown targets

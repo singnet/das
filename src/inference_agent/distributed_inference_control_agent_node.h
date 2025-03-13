@@ -5,9 +5,10 @@
 
 #pragma once
 
-#include "StarNode.h"
-#include <vector>
 #include <string>
+#include <vector>
+
+#include "StarNode.h"
 using namespace distributed_algorithm_node;
 
 namespace distributed_inference_control_agent {

@@ -121,7 +121,6 @@ std::vector<std::string> ProofOfImplicationOrEquivalence::patterns_link_template
 std::string ProofOfImplicationOrEquivalence::get_type() { return "PROOF_OF_IMPLICATION_OR_EQUIVALENCE"; }
 
 std::vector<std::vector<std::string>> ProofOfImplicationOrEquivalence::get_requests() {
-
     std::vector<std::vector<std::string>> requests;
     // query + link creation template
     std::vector<std::string> query_and_link_creation_template(this->query());
