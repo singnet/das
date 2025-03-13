@@ -37,12 +37,12 @@ std::vector<std::string> InferenceRequest::get_distributed_inference_control_req
             "OR",          
                 "LINK_TEMPLATE", "Expression",  "3",
                     "NODE", "Symbol", "IMPLICATION", 
-                    first_handle,
-                    second_handle, 
+                    "_FIRST_",
+                    "_SECOND_", 
                 "LINK_TEMPLATE", "Expression",  "3",
                     "NODE", "Symbol", "EQUIVALENCE", 
-                    first_handle,
-                    second_handle
+                    "_FIRST_",
+                    "_SECOND_"
     };
     // clang-format on
     return tokens;
@@ -121,7 +121,6 @@ std::vector<std::string> ProofOfImplicationOrEquivalence::patterns_link_template
 std::string ProofOfImplicationOrEquivalence::get_type() { return "PROOF_OF_IMPLICATION_OR_EQUIVALENCE"; }
 
 std::vector<std::vector<std::string>> ProofOfImplicationOrEquivalence::get_requests() {
-
     std::vector<std::vector<std::string>> requests;
     // query + link creation template
     std::vector<std::string> query_and_link_creation_template(this->query());

@@ -6,8 +6,6 @@ using namespace link_creation_agent;
 using namespace std;
 using namespace query_engine;
 
-
-
 Link::Link(QueryAnswer* query_answer, vector<string> link_template) {
     LinkCreateTemplate link_create_template(link_template);
     HandlesAnswer* handles_answer = dynamic_cast<HandlesAnswer*>(query_answer);
@@ -23,6 +21,10 @@ Link::Link(QueryAnswer* query_answer, vector<string> link_template) {
             shared_ptr<LinkCreateTemplate> sub_link = get<std::shared_ptr<LinkCreateTemplate>>(target);
             shared_ptr<Link> sub_link_obj = make_shared<Link>(query_answer, sub_link);
             this->targets.push_back(sub_link_obj);
+        }
+        if (holds_alternative<Node>(target)) {
+            Node node = get<Node>(target);
+            this->targets.push_back(node);
         }
     }
     this->custom_fields = link_create_template.get_custom_fields();
@@ -56,10 +58,9 @@ vector<LinkTargetTypes> Link::get_targets() { return this->targets; }
 
 void Link::set_type(string type) { this->type = type; }
 
-
 void Link::add_target(LinkTargetTypes target) { this->targets.push_back(target); }
 
-vector<string> Link::tokenize() { 
+vector<string> Link::tokenize() {
     vector<string> tokens;
     tokens.push_back("LINK");
     tokens.push_back(this->type);
@@ -73,6 +74,12 @@ vector<string> Link::tokenize() {
                 tokens.push_back(token);
             }
         }
+        if (holds_alternative<Node>(target)) {
+            Node node = get<Node>(target);
+            tokens.push_back("NODE");
+            tokens.push_back(node.type);
+            tokens.push_back(node.value);
+        }
     }
     for (CustomField custom_field : this->custom_fields) {
         for (string token : custom_field.tokenize()) {
@@ -81,3 +88,5 @@ vector<string> Link::tokenize() {
     }
     return tokens;
 }
+
+vector<CustomField> Link::get_custom_fields() { return this->custom_fields; }

@@ -4,8 +4,8 @@
  */
 #pragma once
 #include "StarNode.h"
-#include "queue.h"
 #include "dummy_message.h"
+#include "queue.h"
 
 using namespace distributed_algorithm_node;
 
@@ -22,7 +22,7 @@ class LinkCreationAgentNode : public StarNode {
      * @param node_id ID of this node in the network.
      * @param server_id ID of a server.
      */
-    LinkCreationAgentNode(const string& node_id, const string& server_id);;
+    LinkCreationAgentNode(const string& node_id, const string& server_id);
 
     /**
      * Destructor
@@ -31,7 +31,7 @@ class LinkCreationAgentNode : public StarNode {
     /**
      * @brief Retrieves the next request
      */
-    vector<string> pop_request();
+    virtual vector<string> pop_request();
     /**
      * @brief Return true if the request's queue is empty
      */
@@ -54,12 +54,12 @@ class LinkCreationAgentNode : public StarNode {
      */
     virtual shared_ptr<Message> message_factory(string& command, vector<string>& args);
 
-    void send_message(vector<string> args);
+    virtual void send_message(vector<string> args);
 
    private:
     Queue<vector<string>> shared_queue;
     const string CREATE_LINK = "create_link";  // DAS Node command
-    const string CREATE_LINK_PROCESSOR = "create_link_processor"; 
+    const string CREATE_LINK_PROCESSOR = "create_link_processor";
     bool shutting_down = false;
     bool is_server = true;
 };
@@ -76,6 +76,5 @@ class LinkCreationRequest : public Message {
     string server_id;
     string client_id;
 };
-
 
 }  // namespace link_creation_agent

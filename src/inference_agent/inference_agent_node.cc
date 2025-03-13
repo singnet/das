@@ -18,6 +18,18 @@ InferenceAgentNode::InferenceAgentNode(const std::string& node_id, const std::st
     cout << "InferenceAgentNode::InferenceAgentNode Client" << endl;
 }
 
+InferenceAgentNode::InferenceAgentNode(const std::string& node_id, MessageBrokerType messaging_backend)
+    : StarNode(node_id, server_id, messaging_backend) {
+    cout << "InferenceAgentNode::InferenceAgentNode Server" << endl;
+}
+
+InferenceAgentNode::InferenceAgentNode(const std::string& node_id,
+                                       const std::string& server_id,
+                                       MessageBrokerType messaging_backend)
+    : StarNode(node_id, server_id, messaging_backend) {
+    cout << "InferenceAgentNode::InferenceAgentNode Client" << endl;
+}
+
 InferenceAgentNode::~InferenceAgentNode() {
     shutting_down = true;
     DistributedAlgorithmNode::graceful_shutdown();
