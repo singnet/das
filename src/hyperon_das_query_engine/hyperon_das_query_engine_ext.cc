@@ -4,35 +4,19 @@
 // #include <nanobind/stl/vector.h>
 // #include <nanobind/stl/shared_ptr.h>
 #include <nanobind/trampoline.h>
+#include <type_traits>
 
 #include "query_engine/DASNode.h"
-// #include "query_engine/HandlesAnswer.h"
+#include "query_engine/HandlesAnswer.h"
 #include "query_engine/QueryAnswer.h"
 
-// #include "query_engine/query_element/RemoteIterator.h"
+#include "query_engine/query_element/RemoteIterator.h"
 
 namespace nb = nanobind;
 using namespace nb::literals;
 
 using namespace std;
 using namespace query_engine;
-
-//TODO: make sure we need to override QueryAnswer methods
-// if so, neeed to change nb:class
-//
-// class QueryAnswerTrampoline : public QueryAnswer {
-//   NB_TRAMPOLINE(QueryAnswer, 3);
-//   const string& tokenize() override {
-//     NB_OVERRIDE_PURE(tokenize);
-//   }
-//   void untokenize(const string& tokens) override {
-//     NB_OVERRIDE_PURE(untokenize, tokens);
-//   }
-//   string to_string() override {
-//     NB_OVERRIDE_PURE(to_string);
-//   }
-// };
-
 
 NB_MODULE(hyperon_das_query_engine_ext, m) {
   //QueryAnswer.h bindings
@@ -42,6 +26,29 @@ NB_MODULE(hyperon_das_query_engine_ext, m) {
     .def("to_string", &QueryAnswer::to_string);
 
   //HandlesAnswer.h
+  nb::class_<HandlesAnswer, QueryAnswer>(m, "HandlesAnswer")
+    .def(nb::init<>())
+    .def(nb::init<double>(), "importance"_a)
+    .def(nb::init<const char*, double>(), "handle"_a, "importance"_a)
+    //TODO: nanobind is failing to bind the handles field
+    // error: invalid conversion from 'const char* const*' to 'char'
+    // .def_ro("handles", &HandlesAnswer::handles)
+    .def_ro("handles_size", &HandlesAnswer::handles_size)
+    .def_ro("importance", &HandlesAnswer::importance)
+    .def("add_handle", &HandlesAnswer::add_handle, "handle"_a)
+    .def("merge", &HandlesAnswer::merge, "other"_a, "merge_handles"_a)
+    .def_static("copy", &HandlesAnswer::copy, "base"_a)
+  ;
+
+  // RemoteIterator.h
+  nb::class_<RemoteIterator<HandlesAnswer>>(m, "RemoteIterator")
+   .def(nb::init<string>(), "local_id"_a)
+  .def_ro("is_terminal", &RemoteIterator<HandlesAnswer>::is_terminal)
+  .def("graceful_shutdown", &RemoteIterator<HandlesAnswer>::graceful_shutdown)
+  .def("setup_buffers", &RemoteIterator<HandlesAnswer>::setup_buffers)
+  .def("finished", &RemoteIterator<HandlesAnswer>::finished)
+  .def("pop", &RemoteIterator<HandlesAnswer>::pop)
+  ;
 
   //DASNode.h
   nb::class_<DASNode>(m, "DASNode")
@@ -75,7 +82,4 @@ NB_MODULE(hyperon_das_query_engine_ext, m) {
           "node_id"_a)
     .def("cast_leadership_vote", &DASNode::cast_leadership_vote);
 
-  //RemoteIterator.h
 }
-
-//TODO: Expose DASNode
