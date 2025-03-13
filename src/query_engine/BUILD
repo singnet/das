@@ -21,7 +21,7 @@ cc_library(
         ":handles_answer",
         ":query_answer",
         ":query_node",
-        ":star_node",
+        "//distributed_algorithm_node:star_node",
         "//query_engine/query_element:query_element_lib",
         "//query_engine/answer_processor:answer_processor_lib",
         "//attention_broker:attention_broker_server_lib",
@@ -95,16 +95,6 @@ cc_library(
     ":handles_answer",
     ":count_answer",
     "//commons:commons_lib",
-    "//distributed_algorithm_node:distributed_algorithm_node_lib",
-  ],
-)
-
-cc_library(
-  name = "star_node",
-  srcs = ["StarNode.cc"],
-  hdrs = ["StarNode.h"],
-  includes = ["."],
-  deps = [
     "//distributed_algorithm_node:distributed_algorithm_node_lib",
   ],
 )

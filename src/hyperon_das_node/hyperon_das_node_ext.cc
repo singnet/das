@@ -8,6 +8,7 @@
 #include "distributed_algorithm_node/Message.h"
 #include "distributed_algorithm_node/MessageBroker.h"
 #include "distributed_algorithm_node/LeadershipBroker.h"
+#include "distributed_algorithm_node/StarNode.h"
 
 namespace nb = nanobind;
 using namespace nb::literals; // Enables use of literal "_a" for named arguments
@@ -45,8 +46,23 @@ public:
 class DistributedAlgorithmNodeTrampoline : public DistributedAlgorithmNode {
 public:
   // Defines a trampoline for the BaseClass
-  // Since we are overriding 3 methods in Python, thon
+  // Since we are overriding 3 methods in Python
   NB_TRAMPOLINE(DistributedAlgorithmNode, 3);
+  MessagePtr message_factory(string &command, vector<string> &args) override {
+    // Allows Python to override a non pure virtual method
+    NB_OVERRIDE(message_factory, command, args);
+  };
+  void node_joined_network(const string &node_id) override {
+    NB_OVERRIDE_PURE(node_joined_network, node_id);
+  };
+  string cast_leadership_vote() override {
+    NB_OVERRIDE_PURE(cast_leadership_vote);
+  };
+};
+
+class StarNodeTrampoline : public StarNode {
+public:
+  NB_TRAMPOLINE(StarNode, 3);
   MessagePtr message_factory(string &command, vector<string> &args) override {
     // Allows Python to override a non pure virtual method
     NB_OVERRIDE(message_factory, command, args);
@@ -104,4 +120,9 @@ NB_MODULE(hyperon_das_node_ext, m) {
            "node_id"_a)
       .def("cast_leadership_vote", &DistributedAlgorithmNode::cast_leadership_vote)
       .def("message_factory", &DistributedAlgorithmNode::message_factory);
+  nb::class_<StarNode, DistributedAlgorithmNode>(m, "StarNode")
+      .def(nb::init<string, MessageBrokerType>(),
+           "node_id"_a, "messaging_backend"_a = MessageBrokerType::GRPC)
+      .def(nb::init<string, string, MessageBrokerType>(),
+           "node_id"_a, "server_id"_a, "messaging_backend"_a = MessageBrokerType::GRPC);
 }
