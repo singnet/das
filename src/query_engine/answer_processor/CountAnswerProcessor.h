@@ -25,6 +25,8 @@ class CountAnswerProcessor : public QueryAnswerProcessor {
     }
     virtual void graceful_shutdown() override { this->output_buffer->graceful_shutdown(); }
 
+    virtual bool is_work_done() override { return this->output_buffer->is_work_done(); }
+
    protected:
     int count;
     unique_ptr<QueryNodeClient<CountAnswer>> output_buffer;

@@ -22,7 +22,7 @@ done
 
 if [ "$BUILD_BINARIES" = false ] && [ "$BUILD_WHEELS" = false ]; then
     BUILD_BINARIES=true
-    BUILD_WHEELS=true
+    BUILD_WHEELS=false
 fi
 
 if [ "$BUILD_BINARIES" = true ]; then

@@ -23,6 +23,7 @@ QueryNode<AnswerType>::QueryNode(const string& node_id,
     this->query_answer_processor = NULL;
     this->query_answers_finished_flag = false;
     this->shutdown_flag = false;
+    this->work_done_flag = false;
     if (messaging_backend == MessageBrokerType::RAM) {
         this->requires_serialization = false;
     } else {
@@ -31,7 +32,12 @@ QueryNode<AnswerType>::QueryNode(const string& node_id,
 }
 
 template <class AnswerType>
-QueryNode<AnswerType>::~QueryNode() {}
+QueryNode<AnswerType>::~QueryNode() {
+    this->graceful_shutdown();
+    while (!this->query_answer_queue.empty()) {
+        delete (QueryAnswer*) this->query_answer_queue.dequeue();
+    }
+}
 
 template <class AnswerType>
 void QueryNode<AnswerType>::graceful_shutdown() {
@@ -44,6 +50,7 @@ void QueryNode<AnswerType>::graceful_shutdown() {
     this->shutdown_flag_mutex.unlock();
     if (this->query_answer_processor != NULL) {
         this->query_answer_processor->join();
+        delete this->query_answer_processor;
         this->query_answer_processor = NULL;
     }
 }
@@ -117,16 +124,6 @@ QueryNodeServer<AnswerType>::QueryNodeServer(const string& node_id, MessageBroke
 }
 
 template <class AnswerType>
-QueryNodeServer<AnswerType>::~QueryNodeServer() {
-    this->graceful_shutdown();
-    if (this->query_answer_processor != NULL) {
-        this->query_answer_processor->join();
-        delete this->query_answer_processor;
-        this->query_answer_processor = NULL;
-    }
-}
-
-template <class AnswerType>
 void QueryNodeServer<AnswerType>::node_joined_network(const string& node_id) {
     this->add_peer(node_id);
 }
@@ -163,6 +160,7 @@ void QueryNodeClient<AnswerType>::query_answer_processor_method() {
                 this->query_answer_queue.empty()) {
                 this->send(QUERY_ANSWERS_FINISHED_COMMAND, args, this->server_id);
                 answers_finished_flag = true;
+                this->work_done_flag = true;
             }
         } else {
             if (this->requires_serialization) {
@@ -172,6 +170,7 @@ void QueryNodeClient<AnswerType>::query_answer_processor_method() {
             }
             args.clear();
         }
+        delete query_answer;
         Utils::sleep();
     }
 }
@@ -186,16 +185,6 @@ QueryNodeClient<AnswerType>::QueryNodeClient(const string& node_id,
     this->server_id = server_id;
     this->add_peer(server_id);
     this->join_network();
-}
-
-template <class AnswerType>
-QueryNodeClient<AnswerType>::~QueryNodeClient() {
-    this->graceful_shutdown();
-    if (this->query_answer_processor != NULL) {
-        this->query_answer_processor->join();
-        delete this->query_answer_processor;
-        this->query_answer_processor = NULL;
-    }
 }
 
 template <class AnswerType>

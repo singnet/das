@@ -79,6 +79,10 @@ SynchronousSharedRAM::~SynchronousSharedRAM() {
             NODE_QUEUE_MUTEX.unlock();
             Utils::error("Unable to remove node from network: " + this->node_id);
         } else {
+            auto node_queue = NODE_QUEUE[this->node_id];
+            while (!node_queue->empty()) {
+                delete (CommandLinePackage*) node_queue->dequeue();
+            }
             NODE_QUEUE.erase(this->node_id);
             NODE_QUEUE_MUTEX.unlock();
         }
@@ -133,6 +137,7 @@ void SynchronousSharedRAM::inbox_thread_method() {
             CommandLinePackage *message_data = (CommandLinePackage *) request;
             if (message_data->is_broadcast) {
                 if (message_data->visited.find(this->node_id) != message_data->visited.end()) {
+                    delete message_data;
                     continue;
                 }
                 this->peers_mutex.lock();
@@ -188,6 +193,7 @@ void SynchronousGRPC::inbox_thread_method() {
                         visited.insert(message_data->visited_recipients(i));
                     }
                     if (visited.find(this->node_id) != visited.end()) {
+                        delete message_data;
                         continue;
                     }
                     message_data->add_visited_recipients(this->node_id);
@@ -442,7 +448,7 @@ grpc::Status SynchronousGRPC::execute_message(
     dasproto::Empty* reply) {
 
     if (! this->is_shutting_down()) {
-        // TODO: fix memory leak
+        // TODO: fix memory leak :: seems to fixed in SynchronousGRPC::inbox_thread_method and SynchronousGRPC::inbox_thread_method
         this->incoming_messages.enqueue((void *) new dasproto::MessageData(*request));
         return grpc::Status::OK;
     } else {

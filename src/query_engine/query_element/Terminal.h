@@ -91,7 +91,8 @@ public:
     Node(const string &type, const string &name) : Terminal() {
         this->type = type;
         this->name = name;
-        this->handle = shared_ptr<char>(terminal_hash((char *) type.c_str(), (char *) name.c_str()));
+        this->handle = shared_ptr<char>(
+            terminal_hash((char *) type.c_str(), (char *) name.c_str()), default_delete<char[]>());
     }
 
     /**
@@ -140,7 +141,8 @@ public:
                 Utils::error("Invalid Link definition");
             }
         }
-        this->handle = shared_ptr<char>(composite_hash(handle_keys, ARITY + 1));
+        this->handle = shared_ptr<char>(
+            composite_hash(handle_keys, ARITY + 1), default_delete<char[]>());
         free(handle_keys[0]);
     }
 
@@ -193,7 +195,8 @@ public:
      */
     Variable(const string &name) : Terminal() {
         this->name = name;
-        this->handle = shared_ptr<char>(strdup((char *) AtomDB::WILDCARD.c_str()));
+        this->handle = shared_ptr<char>(
+            strdup((char *) AtomDB::WILDCARD.c_str()), default_delete<char[]>());
         this->is_variable = true;
     }
 
