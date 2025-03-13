@@ -102,7 +102,8 @@ class LinkTemplate : public Source {
                 this->inner_template.push_back(targets[i - 1]);
             }
         }
-        this->handle = shared_ptr<char>(composite_hash(this->handle_keys, ARITY + 1));
+        this->handle = shared_ptr<char>(
+            composite_hash(this->handle_keys, ARITY + 1), default_delete<char[]>());
         if (!wildcard_flag) {
             free(this->handle_keys[0]);
         }

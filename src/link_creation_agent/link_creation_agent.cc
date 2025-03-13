@@ -196,7 +196,8 @@ shared_ptr<LinkCreationAgentRequest> LinkCreationAgent::create_request(vector<st
         }
         lca_request->infinite = (lca_request->repeat == -1);
         string joined_string = Utils::join(lca_request->query, ' ') + Utils::join(lca_request->link_template, ' ') + lca_request->context;
-        shared_ptr<char> joined_string_c = shared_ptr<char>(new char[joined_string.size() + 1]);
+        shared_ptr<char> joined_string_c = shared_ptr<char>(
+            new char[joined_string.size() + 1], default_delete<char[]>());
         strcpy(joined_string_c.get(), joined_string.c_str());
         lca_request->id = string(compute_hash(joined_string_c.get()));
         // couts
