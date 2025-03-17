@@ -85,15 +85,15 @@ def roulette(population: list[tuple[Any, float]], max_individuals: int) -> list[
         raise ValueError("Total fitness is zero; cannot perform roulette selection.")
 
     selection_probabilities = [fitness / total_fitness for _, fitness in population]
-    selected_individuals = []
+    selected_individuals = set()
 
-    for _ in range(max_individuals):
+    while len(selected_individuals) < max_individuals:
         selection_point = random.random()
         running_sum_of_probabilities = 0
         for (individual, _), selection_probability in zip(population, selection_probabilities):
             running_sum_of_probabilities += selection_probability
             if running_sum_of_probabilities >= selection_point:
-                selected_individuals.append(individual)
+                selected_individuals.add(individual)
                 break
 
-    return selected_individuals
+    return list(selected_individuals)
