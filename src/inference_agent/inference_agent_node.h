@@ -21,19 +21,23 @@ class InferenceAgentNode : public StarNode {
    public:
     InferenceAgentNode(const std::string& node_id);
     InferenceAgentNode(const std::string& node_id, const std::string& server_id);
+    InferenceAgentNode(const std::string& node_id, MessageBrokerType messaging_backend);
+    InferenceAgentNode(const std::string& node_id,
+                       const std::string& server_id,
+                       MessageBrokerType messaging_backend);
     ~InferenceAgentNode();
 
-    bool is_answers_finished();
-    bool is_answers_empty();
-    vector<string> pop_answer();
-    void set_answers_finished();
+    virtual bool is_answers_finished();
+    virtual bool is_answers_empty();
+    virtual vector<string> pop_answer();
+    virtual void set_answers_finished();
     /**
      * @brief Add a request to the request queue
      * @param request Request to be added
      */
-    void add_request(vector<string> request);
+    virtual void add_request(vector<string> request);
 
-    void send_message(std::vector<std::string> args);
+    virtual void send_message(std::vector<std::string> args);
 
     virtual std::shared_ptr<Message> message_factory(std::string& command,
                                                      std::vector<std::string>& args);
@@ -41,9 +45,6 @@ class InferenceAgentNode : public StarNode {
     static const std::string CREATE_INFERENCE;
     static const std::string INFERENCE_ANSWER;
     static const std::string DISTRIBUTED_INFERENCE_FINISHED;
-    // const std::string CREATE_INFERENCE = "create_inference";
-    // const std::string INFERENCE_ANSWER = "inference_answer";
-    // const std::string DISTRIBUTED_INFERENCE_FINISHED = "distributed_inference_finished";
 
    private:
     std::string local_host;

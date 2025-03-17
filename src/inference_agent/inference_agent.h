@@ -28,6 +28,10 @@ namespace inference_agent {
 class InferenceAgent {
    public:
     InferenceAgent(const string& config_path);
+    InferenceAgent(InferenceAgentNode* inference_node_server,
+                   LinkCreationAgentNode* link_creation_node_client,
+                   DasAgentNode* das_client,
+                   DistributedInferenceControlAgentNode* distributed_inference_control_client);
     ~InferenceAgent();
     /**
      * @brief Start the agent, receive inference request from the client, send link_creation
@@ -57,7 +61,6 @@ class InferenceAgent {
     std::string inference_node_server_port;
     uint16_t current_iterator_id = 0;
     int iterator_pool_size = 10;
-    ThreadPool* thread_pool;
     thread* agent_thread;
     bool is_stoping = false;
     std::mutex agent_mutex;
