@@ -8,15 +8,13 @@ RUN apt-get update && apt-get install -y \
     python3.10-venv \
     python3-pip \
     binutils \
-    && rm -rf /var/lib/apt/lists/*
+    git
 
 RUN update-alternatives --install /usr/bin/python python /usr/bin/python3.10 1
 
 WORKDIR /app
 
 ENV PYTHONPATH=/app
-
-RUN apt-get update && apt-get install -y git
 
 RUN git clone https://github.com/singnet/das-query-engine.git
 RUN cd das-query-engine && git checkout ${DAS_QUERY_ENGINE_BRANCH} &&  mv hyperon_das/ ../hyperon_das
