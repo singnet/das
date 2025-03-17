@@ -20,10 +20,7 @@ RUN apt-get update && apt-get install -y git
 
 RUN git clone https://github.com/singnet/das-query-engine.git
 RUN cd das-query-engine && git checkout ${DAS_QUERY_ENGINE_BRANCH} &&  mv hyperon_das/ ../hyperon_das
-RUN pip3 install --no-cache --upgrade pip hyperon_das_atomdb requests grpcio google protobuf pyinstaller
-
-COPY asset/hyperon_das_node-0.0.1-cp310-abi3-manylinux_2_28_x86_64.whl /app/
-RUN pip3 install /app/hyperon_das_node-0.0.1-cp310-abi3-manylinux_2_28_x86_64.whl
+RUN pip3 install --no-cache --upgrade pip hyperon_das_atomdb hyperon-das-node requests grpcio google protobuf pyinstaller
 
 COPY . /app/evolution
 

@@ -15,7 +15,7 @@ from typing import Any
 
 class SelectionMethodType(str, enum.Enum):
     BEST_FITNESS = "best_fitness"
-    FITNESS_PROPORTIONATE = "roulette"
+    ROULETTE = "roulette"
 
 
 def handle_selection_method(method: SelectionMethodType) -> callable:
@@ -33,8 +33,8 @@ def handle_selection_method(method: SelectionMethodType) -> callable:
     """
     if method == SelectionMethodType.BEST_FITNESS:
         return best_fitness
-    elif method == SelectionMethodType.FITNESS_PROPORTIONATE:
-        return fitness_proportionate
+    elif method == SelectionMethodType.ROULETTE:
+        return roulette
     else:
         raise ValueError("Unknown selection method type")
 
@@ -63,7 +63,7 @@ def best_fitness(population: list[tuple[Any, float]], max_individuals: int) -> l
     return selected_individuals
 
 
-def fitness_proportionate(population: list[tuple[Any, float]], max_individuals: int) -> list[Any]:
+def roulette(population: list[tuple[Any, float]], max_individuals: int) -> list[Any]:
     """
     Selects individuals based on the roulette wheel method (fitness-proportionate).
 

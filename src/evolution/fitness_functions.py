@@ -1,26 +1,30 @@
-import enum
-import math
+from hyperon_das_atomdb.exceptions import AtomDoesNotExist
+from typing import ClassVar
 
 
-class FitnessFunctionsTAG(str, enum.Enum):
-    MULTIPLY_STRENGTHS = "multiply_strengths"
-
-
-def handle_fitness_function(tag: str) -> callable:
-    if tag == FitnessFunctionsTAG.MULTIPLY_STRENGTHS:
-        return multiply_strengths
-    else:
-        raise ValueError("Unknown fitness function TAG")
-
-
-def multiply_strengths(atom_db, query) -> float:
-    strengths_value = []
-    for handle in query.handles:
-        atom = atom_db.get_atom(handle)
+def multiply_strengths(atom_db, handles: list[str]) -> float:
+    product = 1.0
+    found_strength = False
+    for handle in handles:
+        try:
+            atom = atom_db.get_atom(handle)
+        except AtomDoesNotExist as e:
+            print(f'Error: {e}')
+            continue
         if (custom_attributes := atom.custom_attributes):
             if (strength := custom_attributes.get('strength')):
-                strengths_value.append(strength)
-            # if (truth_value := custom_attributes.get('truth_value')):
-            #     strength, confidence = truth_value
-            #     strengths_value.append(strength)
-    return math.prod(strengths_value)
+                product *= strength
+                found_strength = True
+    return product if found_strength else 0.0
+
+
+class FitnessFunctions:
+    _fitness_functions: ClassVar[dict[str, callable]] = {
+        "multiply_strengths": multiply_strengths
+    }
+
+    @classmethod
+    def get(cls, fitness_function_name: str) -> callable:
+        if fitness_function_name not in cls._fitness_functions:
+            raise ValueError("Unknown fitness function")
+        return cls._fitness_functions[fitness_function_name]

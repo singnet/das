@@ -1,7 +1,7 @@
 """
 Non distributed version
 """
-
+import contextlib
 import time
 import sys
 
@@ -14,7 +14,7 @@ from collections import defaultdict
 from hyperon_das.cache.attention_broker_gateway import AttentionBrokerGateway
 from hyperon_das_atomdb.adapters import RedisMongoDB
 
-from evolution.fitness_functions import handle_fitness_function
+from evolution.fitness_functions import FitnessFunctions
 from evolution.selection_methods import handle_selection_method, SelectionMethodType
 from evolution.utils import Parameters, parse_file, SuppressCppOutput
 
@@ -27,28 +27,6 @@ from evolution.das_node.query_answer import QueryAnswer
 from evolution.das_node.das_node import DASNode
 
 MAX_CORRELATIONS_WITHOUT_STIMULATE = 1000
-
-
-class SharedQueue:
-    def __init__(self, maxsize):
-        self.queue = Queue(maxsize)
-
-    def enqueue(self, request):
-        try:
-            self.queue.put(request, timeout=1)
-        except Full:
-            print("Queue Full")
-
-    def dequeue(self):
-        if not self.empty():
-            return self.queue.get()
-        return None
-
-    def empty(self) -> bool:
-        return self.queue.empty()
-
-    def size(self) -> int:
-        return self.queue.qsize()
 
 
 class QueryOptimizerAgent:
@@ -128,7 +106,7 @@ class QueryOptimizerIterator:
         self.fitness_function = fitness_function
         self.attention_broker_server_id = attention_broker_server_id
 
-        self.best_query_answers = SharedQueue(maxsize=self.max_query_answers)
+        self.best_query_answers = Queue(maxsize=self.max_query_answers)
         self.generation = 1
         self.producer_finished = Event()
         self.atom_db_mutex = Lock()
@@ -144,11 +122,11 @@ class QueryOptimizerIterator:
         """
         while True:
             if self.producer_finished.is_set():
-                if (query_answer := self.best_query_answers.dequeue()):
-                    return query_answer
+                if not self.best_query_answers.empty():
+                    return self.best_query_answers.get()
                 elif self.is_empty():
                     self._shutdown_optimizer()
-                    raise StopIteration
+                    raise StopIteration     
             time.sleep(0.1)
 
     def is_empty(self) -> bool:
@@ -238,9 +216,9 @@ class QueryOptimizerIterator:
         Returns:
             A tuple of (QueryAnswer, fitness_value).
         """
-        fitness_function = handle_fitness_function(self.fitness_function)
+        fitness_function = FitnessFunctions.get(self.fitness_function)
         with self.atom_db_mutex:
-            fitness_value = fitness_function(self.atom_db, query_answer)
+            fitness_value = fitness_function(self.atom_db, query_answer.handles)
         return (query_answer, fitness_value)
 
     def _select_best_individuals(self, evaluated_individuals: list[tuple[QueryAnswer, float]]) -> list[tuple[QueryAnswer, float]]:
@@ -266,27 +244,10 @@ class QueryOptimizerIterator:
 
         correlated_count = 0
         joint_answer_global = defaultdict(int)
-        
-        # with ThreadPool
-        # with ThreadPoolExecutor(max_workers=10) as executor:
-        #     futures = [executor.submit(self._process_individual, ind) for ind in individuals]
-        #     for future in futures:
-        #         single_answer, joint_answer = future.result()
-        #         attention_broker.correlate(single_answer)
-        #         time.sleep(0.01)
-        #         for handle, count in joint_answer.items():
-        #             joint_answer_global[handle] += count
-        #         correlated_count += 1
-        #         if correlated_count >= MAX_CORRELATIONS_WITHOUT_STIMULATE:
-        #             self._attention_broker_stimulate(attention_broker, joint_answer_global)
-        #             joint_answer_global.clear()
-        #             correlated_count = 0
-        # if correlated_count > 0:
-        #     self._attention_broker_stimulate(attention_broker, joint_answer_global)
 
         for individual in individuals:
             single_answer, joint_answer = self._process_individual(individual)
-            
+
             # How to send the context?
             # handle_list = []
             # handle_list.context = self.context
@@ -347,9 +308,10 @@ class QueryOptimizerIterator:
         """
         with SuppressCppOutput():
             remote_iterator = self.query_agent.pattern_matcher_query(self.query_tokens)
-        while (self.best_query_answers.size() < self.max_query_answers and not remote_iterator.finished()):
+        while (self.best_query_answers.qsize() < self.max_query_answers and not remote_iterator.finished()):
             if (qa := remote_iterator.pop()):
-                self.best_query_answers.enqueue(qa)
+                with contextlib.suppress(Full):
+                    self.best_query_answers.put(qa, timeout=1)
             else:
                 time.sleep(0.1)
         time.sleep(0.5)

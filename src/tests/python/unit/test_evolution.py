@@ -62,8 +62,8 @@ class DummyAttentionBrokerGateway:
         self.last_stimulate = handle_count
 
 
-def dummy_handle_fitness_function(name):
-    def fitness(db, query_answer):
+def dummy_fitness_function_handle(name):
+    def fitness(db, handles):
         return 0.5
     return fitness
 
@@ -118,7 +118,7 @@ class TestQueryOptimizer:
         ), mock.patch(
             "evolution.optimizer.RedisMongoDB", new=DummyRedisMongoDB
         ), mock.patch(
-            "evolution.optimizer.handle_fitness_function", new=dummy_handle_fitness_function
+            "evolution.optimizer.FitnessFunctions.get", new=dummy_fitness_function_handle
         ), mock.patch(
             "evolution.optimizer.AttentionBrokerGateway", new=DummyAttentionBrokerGateway
         ), mock.patch.object(QueryOptimizerIterator, "_producer", lambda self: None):
@@ -133,7 +133,7 @@ class TestQueryOptimizer:
         ), mock.patch(
             "evolution.optimizer.RedisMongoDB", new=DummyRedisMongoDB
         ), mock.patch(
-            "evolution.optimizer.handle_fitness_function", new=dummy_handle_fitness_function
+            "evolution.optimizer.FitnessFunctions.get", new=dummy_fitness_function_handle
         ), mock.patch("evolution.optimizer.AttentionBrokerGateway", new=DummyAttentionBrokerGateway):
 
             agent = QueryOptimizerAgent(valid_config_path)
@@ -159,7 +159,7 @@ class TestQueryOptimizer:
         ), mock.patch(
             "evolution.optimizer.RedisMongoDB", new=DummyRedisMongoDB
         ), mock.patch(
-            "evolution.optimizer.handle_fitness_function", new=dummy_handle_fitness_function
+            "evolution.optimizer.FitnessFunctions.get", new=dummy_fitness_function_handle
         ), mock.patch(
             "evolution.optimizer.AttentionBrokerGateway", new=DummyAttentionBrokerGateway
         ), mock.patch.object(QueryOptimizerIterator, "_producer", lambda self: None):
