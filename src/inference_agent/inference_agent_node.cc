@@ -51,10 +51,6 @@ void InferenceAgentNode::add_request(vector<string> request) { answers_queue.enq
 
 std::shared_ptr<Message> InferenceAgentNode::message_factory(std::string& command,
                                                              std::vector<std::string>& args) {
-    
-    throw std::runtime_error("Not implemented");
-
-
     shared_ptr<Message> message = StarNode::message_factory(command, args);
     if (message) {
         return message;
