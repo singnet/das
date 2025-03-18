@@ -43,7 +43,7 @@ class TestDASNode(TestCase):
         self.assertTrue(issubclass(HandlesAnswer, QueryAnswer))
 
     def test_handles_answer_bindings(self):
-        # self.assertTrue(hasattr(HandlesAnswer, "handles"))
+        self.assertTrue(hasattr(HandlesAnswer, "handles"))
         self.assertTrue(hasattr(HandlesAnswer, "handles_size"))
         self.assertTrue(hasattr(HandlesAnswer, "importance"))
         self.assertTrue(hasattr(HandlesAnswer, "add_handle"))
