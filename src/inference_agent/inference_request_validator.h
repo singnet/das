@@ -17,6 +17,9 @@ namespace inference_agent {
 
 class InferenceRequestValidator : public RequestValidator {
    public:
+    /**
+     * @brief Construct a new Inference Request Validator object
+     */
     InferenceRequestValidator() { validator_regex = inference_request_validator_regex; }
 
    protected:

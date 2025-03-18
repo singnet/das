@@ -38,6 +38,20 @@ make build-all
 make run-inference-agent OPTIONS="path_to_config_file"
 ```
 
+## Run Client
+```
+make run-inference-agent-client OPTIONS="CLIENT_HOST:CLIENT_PORT SERVER_HOST:SERVER_PORT REQUEST+"
+```
+
+
+## Tests
+
+Run **only** Inference Agent tests
+```
+ make bazel test //tests/cpp:inference_agent_test
+```
+
+
 ## Config
 
 The config file is a text file that contains the following:
