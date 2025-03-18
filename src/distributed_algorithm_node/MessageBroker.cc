@@ -204,8 +204,7 @@ void SynchronousGRPC::inbox_thread_method() {
                     this->peers_mutex.unlock();
                 }
             }
-            Command command = message_data->command();
-            command.set_sender(message_data->sender());
+            string command = message_data->command();
             vector<string> args;
             int num_args = message_data->args_size();
             for (int i = 0; i < num_args; i++) {

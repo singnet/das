@@ -24,8 +24,7 @@ cc_library(
     "DistributedAlgorithmNode.h",
     "LeadershipBroker.h",
     "MessageBroker.h",
-    "Message.h",
-    "Command.h"
+    "Message.h"
   ],
   deps = [
     "@com_github_singnet_das_proto//:atom_space_node_cc_grpc",
