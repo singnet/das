@@ -185,6 +185,8 @@ vector<string> AtomDB::query_for_pattern(std::shared_ptr<char> pattern_handle) {
 
         redis_cursor += redis_chunk_size;
         redis_has_more = (reply->elements == redis_chunk_size);
+
+        freeReplyObject(reply);
     }
 
     return results;
