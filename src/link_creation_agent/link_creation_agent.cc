@@ -206,10 +206,7 @@ shared_ptr<LinkCreationAgentRequest> LinkCreationAgent::create_request(vector<st
         lca_request->infinite = (lca_request->repeat == -1);
         if (lca_request->id.empty()){
             string temp_id = to_string(time(0)) + Utils::random_string(20);
-            auto temp_id_c = shared_ptr<char>(
-                new char[temp_id.length() + 1], default_delete<char[]>());
-            strcpy(temp_id_c.get(), temp_id.c_str());
-            lca_request->id = compute_hash(temp_id_c.get());
+            lca_request->id = compute_hash((char*) temp_id.c_str());
         }
         // couts
         cout << "Query: " << Utils::join(lca_request->query, ' ') << endl;
