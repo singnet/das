@@ -1,6 +1,8 @@
 /**
  * @file distributed_inference_control_agent_node.h
  * @brief Distributed inference control agent node
+ * is responsible for sending and receiving messages
+ * to the distributed inference control agent.
  */
 
 #pragma once
