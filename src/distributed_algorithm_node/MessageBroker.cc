@@ -18,7 +18,6 @@
 
 #include "Utils.h"
 #include "MessageBroker.h"
-#include "Command.h"
 using namespace distributed_algorithm_node;
 
 unsigned int SynchronousGRPC::MESSAGE_THREAD_COUNT = 10;

@@ -1,7 +1,6 @@
 #include "inference_agent_node.h"
 
 #include "dummy_message.h"
-#include "Command.h"
 
 using namespace inference_agent;
 using namespace std;
@@ -52,11 +51,6 @@ void InferenceAgentNode::add_request(vector<string> request) { answers_queue.enq
 
 std::shared_ptr<Message> InferenceAgentNode::message_factory(std::string& command,
                                                              std::vector<std::string>& args) {
-
-    // cast comand to Command type
-    Command* _command = static_cast<Command*>(&command);
-    cout << _command->get_sender() << endl;
-
     
     throw std::runtime_error("Not implemented");
 
