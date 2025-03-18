@@ -1,5 +1,12 @@
 /**
  * @file agent.h
+ * @brief InferenceAgent class is the main
+ * class of the inference agent. It is responsible for
+ * receiving inference request from the client, sending
+ * link creation request to the link creation agent, and
+ * listening to the distributed inference control agent
+ * to finish the inference and send request to stop link
+ * creation.
  */
 
 #pragma once
@@ -28,6 +35,10 @@ namespace inference_agent {
 class InferenceAgent {
    public:
     InferenceAgent(const string& config_path);
+    InferenceAgent(InferenceAgentNode* inference_node_server,
+                   LinkCreationAgentNode* link_creation_node_client,
+                   DasAgentNode* das_client,
+                   DistributedInferenceControlAgentNode* distributed_inference_control_client);
     ~InferenceAgent();
     /**
      * @brief Start the agent, receive inference request from the client, send link_creation
@@ -35,15 +46,41 @@ class InferenceAgent {
      * finish the inference, send request to stop link creation.
      */
     void run();
+    /**
+     * @brief Stop the agent, stop the agent thread, stop the inference_node_server, stop the
+     * link_creation_node_client, stop the das_client, stop the distributed_inference_control_client.
+     */
     void stop();
 
    private:
+   /**
+    * @brief Send link creation request to the link creation agent.
+    * @param inference_request The inference request to be sent to the link creation agent.
+    * @param is_stop_request Whether the request is a stop request.
+    */
     void send_link_creation_request(shared_ptr<InferenceRequest> inference_request,
                                     bool is_stop_request);
+    /**
+     * @brief Send stop link creation request to the link creation agent.
+     * @param inference_request The inference request to be sent to the link creation agent.
+     */
     void send_stop_link_creation_request(shared_ptr<InferenceRequest> inference_request);
+    /**
+     * @brief Send stop link creation request to the link creation agent.
+     * @param inference_request The inference request to be sent to the link creation agent.
+     */
     void send_distributed_inference_control_request(const std::string& client_node_id);
+    /**
+     * @brief Send stop link creation request to the link creation agent.
+     * @param inference_request The inference request to be sent to the link creation agent.
+     */
     void parse_config(const string& config_path);
+    /**
+     * @brief Get the next iterator id.
+     * @return The next iterator id.
+     */
     const string get_next_iterator_id();
+    // Private variables
     InferenceRequestValidator inference_request_validator;
     std::vector<std::string> get_link_creation_request();
     std::string inference_node_id;
@@ -57,7 +94,6 @@ class InferenceAgent {
     std::string inference_node_server_port;
     uint16_t current_iterator_id = 0;
     int iterator_pool_size = 10;
-    ThreadPool* thread_pool;
     thread* agent_thread;
     bool is_stoping = false;
     std::mutex agent_mutex;
