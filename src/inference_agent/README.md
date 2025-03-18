@@ -15,15 +15,15 @@ Each request consists of a command and a list of parameters. The first parameter
 The following are the commands and their corresponding parameters:
 
 ```
-PROOF_OF_IMPLICATION_OR_EQUIVALENCE <handle1> <handle2> <max proof length>
-PROOF_OF_IMPLICATION <handle1> <handle2> <max proof length>
-PROOF_OF_EQUIVALENCE <handle1> <handle2> <max proof length>
+PROOF_OF_IMPLICATION_OR_EQUIVALENCE <handle1> <handle2> <max proof length> <context>
+PROOF_OF_IMPLICATION <handle1> <handle2> <max proof length> <context>
+PROOF_OF_EQUIVALENCE <handle1> <handle2> <max proof length> <context>
 ```
 
 ### Example
 
 ```
-PROOF_OF_IMPLICATION_OR_EQUIVALENCE "handle1" "handle2" "10"
+PROOF_OF_IMPLICATION_OR_EQUIVALENCE "handle1" "handle2" "10" "inference_context"
 ```
 
 ## Build

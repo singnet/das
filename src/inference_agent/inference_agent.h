@@ -48,6 +48,7 @@ class InferenceAgent {
     void send_distributed_inference_control_request(const std::string& client_node_id);
     void parse_config(const string& config_path);
     const string get_next_iterator_id();
+    const string get_next_inference_request_id();
     InferenceRequestValidator inference_request_validator;
     std::vector<std::string> get_link_creation_request();
     std::string inference_node_id;
@@ -71,6 +72,7 @@ class InferenceAgent {
     InferenceAgentNode* inference_node_server;
     LinkCreationAgentNode* link_creation_node_client;
     DistributedInferenceControlAgentNode* distributed_inference_control_client;
+    unsigned long long inference_request_id = 0;
 
     static const std::string PROOF_OF_IMPLICATION_OR_EQUIVALENCE;
     static const std::string PROOF_OF_IMPLICATION;

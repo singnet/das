@@ -140,7 +140,7 @@ TEST_F(InferenceAgentTest, TestProofOfImplicationOrEquivalence) {
         dynamic_cast<DistributedInferenceControlAgentNode*>(distributed_inference_control_node_client));
 
     inference_node_client->send_message(
-        {"PROOF_OF_IMPLICATION_OR_EQUIVALENCE", "handle1", "handle2", "1"});
+        {"PROOF_OF_IMPLICATION_OR_EQUIVALENCE", "handle1", "handle2", "1", "context"});
     this_thread::sleep_for(chrono::milliseconds(200));  // Give some time for the agent
     InferenceAgentNode dic_client = InferenceAgentNode("localhost:1111", "localhost:1121");
     dic_client.send_message({"DISTRIBUTED_INFERENCE_FINISHED"});
@@ -164,7 +164,7 @@ TEST_F(InferenceAgentTest, TestProofOfImplication) {
         dynamic_cast<DasAgentNode*>(das_node_client),
         dynamic_cast<DistributedInferenceControlAgentNode*>(distributed_inference_control_node_client));
 
-    inference_node_client->send_message({"PROOF_OF_IMPLICATION", "handle1", "handle2", "1"});
+    inference_node_client->send_message({"PROOF_OF_IMPLICATION", "handle1", "handle2", "1", "context"});
     this_thread::sleep_for(chrono::milliseconds(200));  // Give some time for the agent to start
     InferenceAgentNode dic_client = InferenceAgentNode("localhost:1111", "localhost:1121");
     dic_client.send_message({"DISTRIBUTED_INFERENCE_FINISHED"});
@@ -188,7 +188,7 @@ TEST_F(InferenceAgentTest, TestProofOfEquivalence) {
         dynamic_cast<DasAgentNode*>(das_node_client),
         dynamic_cast<DistributedInferenceControlAgentNode*>(distributed_inference_control_node_client));
 
-    inference_node_client->send_message({"PROOF_OF_EQUIVALENCE", "handle1", "handle2", "1"});
+    inference_node_client->send_message({"PROOF_OF_EQUIVALENCE", "handle1", "handle2", "1", "context"});
     this_thread::sleep_for(chrono::milliseconds(200));  // Give some time for the agent to start
     InferenceAgentNode dic_client = InferenceAgentNode("localhost:1111", "localhost:1121");
     dic_client.send_message({"DISTRIBUTED_INFERENCE_FINISHED"});
@@ -197,7 +197,7 @@ TEST_F(InferenceAgentTest, TestProofOfEquivalence) {
 }
 
 TEST(InferenceRequest, TestInferenceRequests) {
-    ProofOfImplicationOrEquivalence proof_of_implication_or_equivalence("handle1", "handle2", 1);
+    ProofOfImplicationOrEquivalence proof_of_implication_or_equivalence("handle1", "handle2", 1, "context");
     auto requests = proof_of_implication_or_equivalence.get_requests();
     auto dic_request = proof_of_implication_or_equivalence.get_distributed_inference_control_request();
     EXPECT_EQ(requests.size(), 1);
@@ -211,7 +211,7 @@ TEST(InferenceRequest, TestInferenceRequests) {
               "CHAIN handle1 handle2 1 OR LINK_TEMPLATE Expression 3 NODE Symbol IMPLICATION _FIRST_ "
               "_SECOND_ LINK_TEMPLATE Expression 3 NODE Symbol EQUIVALENCE _FIRST_ _SECOND_");
 
-    ProofOfImplication proof_of_implication("handle3", "handle4", 1);
+    ProofOfImplication proof_of_implication("handle3", "handle4", 1, "context");
     requests = proof_of_implication.get_requests();
     dic_request = proof_of_implication.get_distributed_inference_control_request();
     EXPECT_EQ(requests.size(), 1);
@@ -227,7 +227,7 @@ TEST(InferenceRequest, TestInferenceRequests) {
               "CHAIN handle3 handle4 1 OR LINK_TEMPLATE Expression 3 NODE Symbol IMPLICATION _FIRST_ "
               "_SECOND_ LINK_TEMPLATE Expression 3 NODE Symbol EQUIVALENCE _FIRST_ _SECOND_");
 
-    ProofOfEquivalence proof_of_equivalence("handle5", "handle6", 1);
+    ProofOfEquivalence proof_of_equivalence("handle5", "handle6", 1, "context");
     requests = proof_of_equivalence.get_requests();
     dic_request = proof_of_equivalence.get_distributed_inference_control_request();
     EXPECT_EQ(requests.size(), 1);
