@@ -140,53 +140,51 @@ void AtomDB::mongodb_setup() {
     }
 }
 
-void AtomDB::redis_fetch_next_chunk() {
-    char command[128];
-    sprintf(command, "ZRANGE %s:%s %d %d",
-            REDIS_PATTERNS_PREFIX.c_str(),
-            this->redis_pattern_handle.get(),
-            this->redis_cursor,
-            this->redis_cursor + this->redis_chunk_size - 1);
+vector<string> AtomDB::query_for_pattern(std::shared_ptr<char> pattern_handle) {
+    unsigned int redis_cursor = 0;
+    bool redis_has_more = true;
+    unsigned int redis_chunk_size = REDIS_CHUNK_SIZE;
+    string command;
+    redisReply *reply;
 
-    redisReply *reply = (redisReply *) redisCommand(this->redis_single, command);
-
-    if (reply == NULL) {
-        Utils::error("Redis error");
-        this->redis_has_more = false;
-        return;
-    }
-
-    if (reply->type != REDIS_REPLY_SET && reply->type != REDIS_REPLY_ARRAY) {
-        Utils::error("Invalid Redis response: " + std::to_string(reply->type));
-        this->redis_has_more = false;
-        freeReplyObject(reply);
-        return;
-    }
-
-    this->redis_current_chunk = shared_ptr<atomdb_api_types::HandleList>(new atomdb_api_types::RedisSet(reply));
-
-    this->redis_has_more = (reply->elements == this->redis_chunk_size);
-}
-
-vector<std::shared_ptr<atomdb_api_types::HandleList>> AtomDB::query_for_pattern(std::shared_ptr<char> pattern_handle) {
-    this->redis_pattern_handle = pattern_handle;
-    this->redis_cursor = 0;
-    this->redis_has_more = true;
-
-    // Dynamic chunk size to be used during benchmarking (default=10,000)
     string chunk_size_str = Utils::get_environment("DAS_REDIS_CHUNK_SIZE");
     if (chunk_size_str != "") {
-        this->redis_chunk_size = stoi(chunk_size_str);
+        redis_chunk_size = stoi(chunk_size_str);
     }
 
-    // Iterate over Redis patterns values
-    vector<std::shared_ptr<atomdb_api_types::HandleList>> results;
-    while (this->redis_has_more) {
-        redis_fetch_next_chunk();
-        if (this->redis_current_chunk) {
-            results.push_back(this->redis_current_chunk);
+    vector<string> results;
+
+    while (redis_has_more) {
+        command = (
+            "ZRANGE "
+            + REDIS_PATTERNS_PREFIX
+            + ":"
+            + pattern_handle.get()
+            + " "
+            + to_string(redis_cursor)
+            + " "
+            + to_string(redis_cursor + redis_chunk_size - 1)
+        );
+
+        reply = (redisReply *) redisCommand(this->redis_single, command.c_str());
+
+        if (reply == NULL) {
+            Utils::error("Redis error");
+            break;
         }
-        this->redis_cursor += this->redis_chunk_size;
+
+        if (reply->type != REDIS_REPLY_SET && reply->type != REDIS_REPLY_ARRAY) {
+            Utils::error("Invalid Redis response: " + std::to_string(reply->type));
+            freeReplyObject(reply);
+            break;
+        }
+
+        for (unsigned int i = 0; i < reply->elements; i++) {
+            results.push_back(reply->element[i]->str);
+        }
+
+        redis_cursor += redis_chunk_size;
+        redis_has_more = (reply->elements == redis_chunk_size);
     }
 
     return results;

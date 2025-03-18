@@ -13,6 +13,8 @@
 
 using namespace std;
 
+#define REDIS_CHUNK_SIZE ((unsigned int) 10000)
+
 namespace query_engine {
 
 
@@ -59,7 +61,7 @@ public:
         MONGODB_FIELD_NAME[MONGODB_FIELD::ID] = "_id";
     }
 
-    vector<shared_ptr<atomdb_api_types::HandleList>> query_for_pattern(shared_ptr<char> pattern_handle);
+    vector<string> query_for_pattern(shared_ptr<char> pattern_handle);
     shared_ptr<atomdb_api_types::HandleList> query_for_targets(shared_ptr<char> link_handle);
     shared_ptr<atomdb_api_types::HandleList> query_for_targets(char *link_handle_ptr);
     shared_ptr<atomdb_api_types::AtomDocument> get_atom_document(const char *handle);
@@ -80,14 +82,6 @@ private:
     void redis_setup();
     void mongodb_setup();
     void attention_broker_setup();
-
-    void redis_fetch_next_chunk();
-
-    shared_ptr<char> redis_pattern_handle;
-    unsigned int redis_chunk_size = 10000;
-    unsigned int redis_cursor = 0;
-    bool redis_has_more = true;
-    std::shared_ptr<atomdb_api_types::HandleList> redis_current_chunk;
 };
 
 } // namespace query_engine

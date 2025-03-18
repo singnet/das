@@ -145,7 +145,6 @@ class LinkTemplate : public Source {
         set_flow_finished();
         if (this->local_buffer_processor != NULL) {
             this->local_buffer_processor->join();
-            delete this->local_buffer_processor;
             this->local_buffer_processor = NULL;
         }
         Source::graceful_shutdown();
@@ -270,25 +269,18 @@ class LinkTemplate : public Source {
         cout << "fetch_links() Pattern handle: " << this->handle << endl;
 #endif
         shared_ptr<AtomDB> db = AtomDBSingleton::get_instance();
-        this->fetch_results = db->query_for_pattern(this->handle);
-        unsigned int vector_len = this->fetch_results.size();
-        unsigned int answer_count = 0;
-        for (unsigned int i = 0; i < vector_len; i++) {
-            answer_count += this->fetch_results[i]->size();
-        }
+        this->fetch_result = db->query_for_pattern(this->handle);
+        unsigned int answer_count = this->fetch_result.size();
 #ifdef DEBUG
-        cout << "fetch_links() vec: " << vector_len << endl;
-        cout << "fetch_links() ac : " << answer_count << endl;
+        cout << "fetch_links() ac: " << answer_count << endl;
 #endif
         HandlesAnswer* query_answer;
         vector<HandlesAnswer*> fetched_answers;
         if (answer_count > 0) {
             dasproto::HandleList handle_list;
             handle_list.set_context(this->context);
-            for (unsigned int i = 0; i < vector_len; i++) {
-                for (unsigned int j = 0; j < this->fetch_results[i]->size(); j++) {
-                    handle_list.add_list(this->fetch_results[i]->get_handle(j));
-                }
+            for (unsigned int i = 0; i < answer_count; i++) {
+                handle_list.add_list(this->fetch_result[i].c_str());
             }
             dasproto::ImportanceList importance_list;
             get_importance(handle_list, importance_list);
@@ -300,28 +292,25 @@ class LinkTemplate : public Source {
             this->atom_document = new shared_ptr<atomdb_api_types::AtomDocument>[answer_count];
             this->local_answers = new HandlesAnswer*[answer_count];
             this->next_inner_answer = new unsigned int[answer_count];
-            unsigned int idx = 0;
-            for (unsigned int i = 0; i < vector_len; i++) {
-                for (unsigned int j = 0; j < this->fetch_results[i]->size(); j++) {
-                    this->atom_document[idx] = db->get_atom_document(this->fetch_results[i]->get_handle(j));
-                    query_answer = new HandlesAnswer(this->fetch_results[i]->get_handle(j), importance_list.list(idx));
-                    const char* s = this->atom_document[idx]->get("targets", 0);
-                    for (unsigned int k = 0; k < this->arity; k++) {
-                        if (this->target_template[k]->is_terminal) {
-                            Terminal* terminal = (Terminal*) this->target_template[k];
-                            if (terminal->is_variable) {
-                                if (!query_answer->assignment.assign(
-                                        terminal->name.c_str(), this->atom_document[idx]->get("targets", k))) {
-                                    Utils::error(
-                                        "Error assigning variable: " + terminal->name +
-                                        " a value: " + string(this->atom_document[idx]->get("targets", k)));
-                                }
+            for (unsigned int i = 0; i < answer_count; i++) {
+                this->atom_document[i] = db->get_atom_document(this->fetch_result[i].c_str());
+                query_answer =
+                    new HandlesAnswer(this->fetch_result[i].c_str(), importance_list.list(i));
+                const char* s = this->atom_document[i]->get("targets", 0);
+                for (unsigned int j = 0; j < this->arity; j++) {
+                    if (this->target_template[j]->is_terminal) {
+                        Terminal* terminal = (Terminal*) this->target_template[j];
+                        if (terminal->is_variable) {
+                            if (!query_answer->assignment.assign(
+                                    terminal->name.c_str(), this->atom_document[i]->get("targets", j))) {
+                                Utils::error(
+                                    "Error assigning variable: " + terminal->name +
+                                    " a value: " + string(this->atom_document[i]->get("targets", j)));
                             }
                         }
                     }
-                    fetched_answers.push_back(query_answer);
-                    idx++;
                 }
+                fetched_answers.push_back(query_answer);
             }
             std::sort(fetched_answers.begin(), fetched_answers.end(), less_than_query_answer());
             for (unsigned int i = 0; i < answer_count; i++) {
@@ -454,7 +443,7 @@ class LinkTemplate : public Source {
     unsigned int arity;
     shared_ptr<char> handle;
     char* handle_keys[ARITY + 1];
-    vector<shared_ptr<atomdb_api_types::HandleList>> fetch_results;
+    vector<string> fetch_result;
     vector<shared_ptr<atomdb_api_types::AtomDocument>> atom_documents;
     vector<QueryElement*> inner_template;
     SharedQueue local_buffer;
