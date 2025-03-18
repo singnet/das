@@ -150,6 +150,7 @@ void QueryNodeClient<AnswerType>::query_answer_processor_method() {
             if (this->requires_serialization) {
                 string tokens = query_answer->tokenize();
                 args.push_back(tokens);
+                delete query_answer;
             } else {
                 args.push_back(to_string((unsigned long) query_answer));
             }
@@ -170,7 +171,6 @@ void QueryNodeClient<AnswerType>::query_answer_processor_method() {
             }
             args.clear();
         }
-        delete query_answer;
         Utils::sleep();
     }
 }
