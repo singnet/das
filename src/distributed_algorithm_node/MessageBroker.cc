@@ -18,7 +18,7 @@
 
 #include "Utils.h"
 #include "MessageBroker.h"
-
+#include "Command.h"
 using namespace distributed_algorithm_node;
 
 unsigned int SynchronousGRPC::MESSAGE_THREAD_COUNT = 10;
@@ -204,7 +204,8 @@ void SynchronousGRPC::inbox_thread_method() {
                     this->peers_mutex.unlock();
                 }
             }
-            string command = message_data->command();
+            Command command = message_data->command();
+            command.set_sender(message_data->sender());
             vector<string> args;
             int num_args = message_data->args_size();
             for (int i = 0; i < num_args; i++) {

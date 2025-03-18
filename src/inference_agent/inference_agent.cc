@@ -148,7 +148,7 @@ void InferenceAgent::send_distributed_inference_control_request(const string& cl
         make_shared<InferenceIterator<InferenceAgentNode>>(client_node_id);
     inference_iterators.push_back(inference_iterator);
     distributed_inference_control_client->send_inference_control_request(
-        iterator_link_creation_request_map[client_node_id]->get_distributed_inference_control_request());
+        iterator_link_creation_request_map[client_node_id]->get_distributed_inference_control_request(), client_node_id);
 }
 
 vector<string> InferenceAgent::get_link_creation_request() { return vector<string>(); }

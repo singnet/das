@@ -49,7 +49,7 @@ class MockDistributedInferenceControlAgentNode : public DistributedInferenceCont
 
     MOCK_METHOD(void,
                 send_inference_control_request,
-                (std::vector<std::string> inference_control_request),
+                (std::vector<std::string> inference_control_request, std::string response_node_id),
                 (override));
 };
 
@@ -129,9 +129,9 @@ TEST_F(InferenceAgentTest, TestProofOfImplicationOrEquivalence) {
         .WillRepeatedly(::testing::Invoke(
             [](const vector<string>& message) { EXPECT_EQ(message[0], "LINK_TEMPLATE"); }));
 
-    EXPECT_CALL(*distributed_inference_control_node_client, send_inference_control_request(testing::_))
+    EXPECT_CALL(*distributed_inference_control_node_client, send_inference_control_request(testing::_, testing::_))
         .WillOnce(
-            ::testing::Invoke([](const vector<string>& message) { EXPECT_EQ(message[0], "CHAIN"); }));
+            ::testing::Invoke([](const vector<string>& message, std::string response_node_id) { EXPECT_EQ(message[0], "CHAIN"); }));
 
     InferenceAgent agent(
         dynamic_cast<InferenceAgentNode*>(inference_node_server),
@@ -154,9 +154,9 @@ TEST_F(InferenceAgentTest, TestProofOfImplication) {
         .WillOnce(
             ::testing::Invoke([](const vector<string>& message) { EXPECT_EQ(message[0], "AND"); }));
 
-    EXPECT_CALL(*distributed_inference_control_node_client, send_inference_control_request(testing::_))
+    EXPECT_CALL(*distributed_inference_control_node_client, send_inference_control_request(testing::_, testing::_))
         .WillOnce(
-            ::testing::Invoke([](const vector<string>& message) { EXPECT_EQ(message[0], "CHAIN"); }));
+            ::testing::Invoke([](const vector<string>& message, std::string response_node_id) { EXPECT_EQ(message[0], "CHAIN"); }));
 
     InferenceAgent agent(
         dynamic_cast<InferenceAgentNode*>(inference_node_server),
@@ -178,9 +178,9 @@ TEST_F(InferenceAgentTest, TestProofOfEquivalence) {
         .WillOnce(
             ::testing::Invoke([](const vector<string>& message) { EXPECT_EQ(message[0], "AND"); }));
 
-    EXPECT_CALL(*distributed_inference_control_node_client, send_inference_control_request(testing::_))
+    EXPECT_CALL(*distributed_inference_control_node_client, send_inference_control_request(testing::_, testing::_))
         .WillOnce(
-            ::testing::Invoke([](const vector<string>& message) { EXPECT_EQ(message[0], "CHAIN"); }));
+            ::testing::Invoke([](const vector<string>& message, std::string response_node_id) { EXPECT_EQ(message[0], "CHAIN"); }));
 
     InferenceAgent agent(
         dynamic_cast<InferenceAgentNode*>(inference_node_server),
