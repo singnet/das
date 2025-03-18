@@ -144,6 +144,22 @@ py_test(
 )
 
 py_test(
+    name = "test_evolution",
+    srcs = ["test_evolution.py"],
+    deps = [
+        "//evolution:fitness_functions",
+        "//evolution:optimizer",
+        "//evolution:selection_methods",
+        "//evolution:utils",
+        "//evolution/das_node:das_node",
+        "//evolution/das_node:query_answer",
+        "//hyperon_das",
+        "//hyperon_das_node",
+        requirement("hyperon_das_atomdb"),
+    ],
+)
+
+py_test(
     name = "test_queries",
     srcs = ["test_queries.py"],
     deps = [
@@ -171,3 +187,13 @@ py_test(
         "//hyperon_das:utils",
     ],
 )
+
+py_test(
+    name = "test_star_node",
+    size = "small",
+    srcs = ["test_star_node.py"],
+    deps = [
+        "//hyperon_das_node:hyperon_das_node",
+    ],
+)
+

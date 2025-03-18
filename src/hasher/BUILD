@@ -2,8 +2,8 @@ package(default_visibility = ["//visibility:public"])
 
 cc_library(
     name = "hasher_lib",
-    srcs = glob(["*.cc"]),
-    hdrs = glob(["*.h"]),
+    srcs = ["expression_hasher.cc"],
+    hdrs = ["expression_hasher.h"],
     includes = ["."],
     deps = [
         "@mbedtls//:mbedtls",

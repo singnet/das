@@ -76,7 +76,7 @@ This will generate the binaries for all components in the `das/src/bin` director
 You might not be able to execute the binary directly from your machine. To simplify this process, we provide a command to run the service inside a container:
 
 ```
-make run-link-creation-agent OPTIONS="--type server --config_file <path_to_config_file>"
+make run-link-creation-agent OPTIONS="--config_file <path_to_config_file>"
 ```
 
 The configuration file (`<path_to_config_file>`) must be located in the current directory where the command is executed. This is because we use a volume to mount the file inside the container. If the file is not in the correct location, the command will fail, as the configuration file will not be available inside the container where the binary runs.
