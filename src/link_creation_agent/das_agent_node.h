@@ -26,9 +26,9 @@ class DasAgentNode : public StarNode {
      * @brief Create a link
      * @param request Request to create a link
      */
-    void create_link(vector<string>& request);
+    virtual void create_link(vector<string>& request);
 
    private:
     const string CREATE_ATOM = "create_atom";  // DAS Node command
 };
-}  // namespace das
+}  // namespace das_agent

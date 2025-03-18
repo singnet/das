@@ -27,7 +27,21 @@ InferenceAgent::InferenceAgent(const string& config_path) {
     }
     inference_node_server_host = host_port[0];
     inference_node_server_port = host_port[1];
-    thread_pool = new ThreadPool(iterator_pool_size);
+    this->agent_thread = new thread(&InferenceAgent::run, this);
+}
+
+InferenceAgent::InferenceAgent(
+    InferenceAgentNode* inference_node_server,
+    LinkCreationAgentNode* link_creation_node_client,
+    DasAgentNode* das_client,
+    DistributedInferenceControlAgentNode* distributed_inference_control_client) {
+    this->inference_node_server = inference_node_server;
+    this->link_creation_node_client = link_creation_node_client;
+    this->das_client = das_client;
+    this->distributed_inference_control_client = distributed_inference_control_client;
+    vector<string> host_port = Utils::split(this->inference_node_server->node_id(), ':');
+    this->inference_node_server_host = host_port[0];
+    this->inference_node_server_port = host_port[1];
     this->agent_thread = new thread(&InferenceAgent::run, this);
 }
 
@@ -41,6 +55,10 @@ InferenceAgent::~InferenceAgent() {
     delete das_client;
     distributed_inference_control_client->graceful_shutdown();
     delete distributed_inference_control_client;
+    if (agent_thread->joinable()) {
+        agent_thread->join();
+    }
+    delete agent_thread;
 }
 
 void InferenceAgent::run() {
