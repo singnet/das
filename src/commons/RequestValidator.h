@@ -23,11 +23,12 @@ class RequestValidator {
             return false;
         }
         string joined_request_str = Utils::join(request, ' ');
-        return regex_match(joined_request_str, regex(validator_regex));
+        return regex_match(joined_request_str, request_regex);
     }
 
    protected:
     string validator_regex;
+    regex request_regex;
     int count_tokens(const std::string& regex) {
         std::regex token_regex(R"(\S+)");  // Match non-space sequences
         std::sregex_iterator begin(regex.begin(), regex.end(), token_regex);

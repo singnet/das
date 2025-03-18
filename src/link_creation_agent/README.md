@@ -14,6 +14,7 @@ The request must have 6 elements:
 4. Repeat (int): 0 to run once, -1 to run infinitely, 1 or higher to run this number of times.
 5. Context (string): Query context for Attention Broker requests 
 6. Update Attention Broker flag (bool): true or false to update or not the Attention Broker
+7. Optional Request ID
 
 Example:
 ```

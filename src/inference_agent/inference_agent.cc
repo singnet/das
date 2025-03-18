@@ -2,6 +2,7 @@
 
 #include <fstream>
 #include <sstream>
+#include <limits.h>
 
 #include "Utils.h"
 
@@ -70,19 +71,27 @@ void InferenceAgent::run() {
             try {
                 if (inference_request_validator.validate(answer)) {
                     shared_ptr<InferenceRequest> inference_request;
-                    if (answer.front() == PROOF_OF_IMPLICATION_OR_EQUIVALENCE) {
+                    string inference_request_id = get_next_inference_request_id();
+                    string inference_command = answer.front();
+                    string first_handle = answer[1];
+                    string second_handle = answer[2];
+                    int max_proof_length = stoi(answer[3]);
+                    string context = answer[4];
+                    if (inference_command == PROOF_OF_IMPLICATION_OR_EQUIVALENCE) {
                         cout << "Received proof of implication or equivalence" << endl;
                         inference_request = make_shared<ProofOfImplicationOrEquivalence>(
-                            answer[1], answer[2], stoi(answer[3]));
-                    } else if (answer.front() == PROOF_OF_IMPLICATION) {
+                            first_handle, second_handle, max_proof_length, context
+                        );
+                    } else if (inference_command == PROOF_OF_IMPLICATION) {
                         cout << "Received proof of implication" << endl;
                         inference_request =
-                            make_shared<ProofOfImplication>(answer[1], answer[2], stoi(answer[3]));
-                    } else if (answer.front() == PROOF_OF_EQUIVALENCE) {
+                            make_shared<ProofOfImplication>(first_handle, second_handle, max_proof_length, context);
+                    } else if (inference_command == PROOF_OF_EQUIVALENCE) {
                         cout << "Received proof of equivalence" << endl;
                         inference_request =
-                            make_shared<ProofOfEquivalence>(answer[1], answer[2], stoi(answer[3]));
+                            make_shared<ProofOfEquivalence>(first_handle, second_handle, max_proof_length, context);
                     }
+                    inference_request->set_id(inference_request_id);
                     string iterator_id = get_next_iterator_id();
                     iterator_link_creation_request_map[iterator_id] = inference_request;  // iterator id
                     send_link_creation_request(inference_request, false);
@@ -121,10 +130,11 @@ void InferenceAgent::send_link_creation_request(shared_ptr<InferenceRequest> inf
         for (auto& token : request_iterator) {
             request.push_back(token);
         }
-        request.push_back("1000");                        // TODO check max results value
-        request.push_back(is_stop_request ? "0" : "-1");  // repeat
-        request.push_back(inference_request->get_id());   // context
-        request.push_back("false");                       // update_attention_broker
+        request.push_back("1000");                              // TODO check max results value
+        request.push_back(is_stop_request ? "0" : "-1");        // repeat
+        request.push_back(inference_request->get_context());    // context
+        request.push_back("false");                             // update_attention_broker
+        request.push_back(inference_request->get_id());         // inference_request_id
         link_creation_node_client->send_message(request);
     }
 }
@@ -152,6 +162,12 @@ const string InferenceAgent::get_next_iterator_id() {
     current_iterator_id = current_iterator_id % 65535 + 1;
     last_part = to_string(current_iterator_id);
     return inference_node_server_host + ":" + last_part;
+}
+
+const string InferenceAgent::get_next_inference_request_id() { 
+    // ++this->inference_request_id;
+    this->inference_request_id = ++this->inference_request_id % numeric_limits<unsigned long long>::max();
+    return to_string(this->inference_request_id);
 }
 
 void InferenceAgent::parse_config(const string& config_path) {
