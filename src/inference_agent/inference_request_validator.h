@@ -20,7 +20,10 @@ class InferenceRequestValidator : public RequestValidator {
     /**
      * @brief Construct a new Inference Request Validator object
      */
-    InferenceRequestValidator() { validator_regex = inference_request_validator_regex; }
+    InferenceRequestValidator() { 
+        validator_regex = inference_request_validator_regex;
+        request_regex = regex(inference_request_validator_regex);
+    }
 
    protected:
     const string inference_request_validator_regex =
