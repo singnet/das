@@ -15,11 +15,11 @@ def parse_args():
         default='config.cfg',
         help="Path to the configuration file (default: 'config.cfg')"
     )
-    parser.add_argument(
-        '--query-tokens',
-        required=True,
-        help="Query tokens to be optimized"
-    )
+    # parser.add_argument(
+    #     '--query-tokens',
+    #     required=False,
+    #     help="Query tokens to be optimized"
+    # )
 
     return parser.parse_args()
 
@@ -27,16 +27,17 @@ def parse_args():
 def main():
     try:
         args = parse_args()
-
         agent = QueryOptimizerAgent(config_file=args.config_file)
-        iterator = agent.optimize(query_tokens=args.query_tokens)
-        answers = [qa.to_string() for qa in iterator]
-        print("\nResults:")
-        return answers
+        agent.run_server()
     except Exception as e:
         raise e
 
 
 if __name__ == '__main__':
-    print("Starting optimizer")
+    def _sys():
+        import sys
+        sys.argv.extend([
+            '--config-file',
+            '/tmp/config.cfg'])
+    _sys()
     print(main())

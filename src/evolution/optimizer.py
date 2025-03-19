@@ -2,6 +2,7 @@
 Non distributed version
 """
 import contextlib
+import json
 import time
 import sys
 
@@ -17,6 +18,7 @@ from hyperon_das_atomdb.adapters import RedisMongoDB
 from evolution.fitness_functions import FitnessFunctions
 from evolution.selection_methods import handle_selection_method, SelectionMethodType
 from evolution.utils import Parameters, parse_file, SuppressCppOutput
+from evolution.node import EvolutionNode
 
 # NOTE: This module, das_node, is a Python implementation of DASNode,
 # used to develop and test the optimization algorithm.
@@ -32,6 +34,14 @@ MAX_CORRELATIONS_WITHOUT_STIMULATE = 1000
 class QueryOptimizerAgent:
     def __init__(self, config_file: str) -> None:
         self.params = self._load_config(config_file)
+        self.evolution_node_server = EvolutionNode(node_id=self.params.evolution_server_id)
+
+    def run_server(self):
+        while True:
+            if request := self.evolution_node_server.pop_request():
+                answers = self._process(request['data'])
+                self._send_message(request['senders'], answers)
+            time.sleep(0.5)
 
     def optimize(self, query_tokens: list[str] | str) -> Iterator:
         if isinstance(query_tokens, str):
@@ -53,6 +63,15 @@ class QueryOptimizerAgent:
         if params.qtd_selected_for_attention_update > params.population_size:
             raise ValueError("The number of selected individuals for attention update cannot be greater than the population size.")
         return params
+
+    def _process(self, query_tokens: list[str] | str) -> list[str]:
+        iterator = self.optimize(query_tokens)
+        return [qa.to_string() for qa in iterator]
+
+    def _send_message(self, senders: list[str], answers: list[str]) -> None:
+        for sender in senders:
+            self.evolution_node_client = EvolutionNode(server_id=sender)
+            self.evolution_node_client.send("evolution_finished", ["END"], sender)
 
 
 class QueryOptimizerIterator:
@@ -126,7 +145,7 @@ class QueryOptimizerIterator:
                     return self.best_query_answers.get()
                 elif self.is_empty():
                     self._shutdown_optimizer()
-                    raise StopIteration     
+                    raise StopIteration
             time.sleep(0.1)
 
     def is_empty(self) -> bool:
