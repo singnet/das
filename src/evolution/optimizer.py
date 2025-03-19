@@ -2,7 +2,6 @@
 Non distributed version
 """
 import contextlib
-import json
 import time
 import sys
 
