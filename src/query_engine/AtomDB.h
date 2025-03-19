@@ -13,8 +13,6 @@
 
 using namespace std;
 
-#define REDIS_CHUNK_SIZE ((unsigned int) 10000)
-
 namespace query_engine {
 
 
@@ -48,6 +46,7 @@ public:
     static string WILDCARD;
     static string REDIS_PATTERNS_PREFIX;
     static string REDIS_TARGETS_PREFIX;
+    static uint REDIS_CHUNK_SIZE;
     static string MONGODB_DB_NAME;
     static string MONGODB_COLLECTION_NAME;
     static string MONGODB_FIELD_NAME[MONGODB_FIELD::size];
@@ -56,6 +55,7 @@ public:
         WILDCARD = "*";
         REDIS_PATTERNS_PREFIX = "patterns";
         REDIS_TARGETS_PREFIX = "outgoing_set";
+        REDIS_CHUNK_SIZE = 10000;
         MONGODB_DB_NAME = "das";
         MONGODB_COLLECTION_NAME = "atoms";
         MONGODB_FIELD_NAME[MONGODB_FIELD::ID] = "_id";

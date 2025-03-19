@@ -16,6 +16,7 @@ using namespace commons;
 string AtomDB::WILDCARD;
 string AtomDB::REDIS_PATTERNS_PREFIX;
 string AtomDB::REDIS_TARGETS_PREFIX;
+uint AtomDB::REDIS_CHUNK_SIZE;
 string AtomDB::MONGODB_DB_NAME;
 string AtomDB::MONGODB_COLLECTION_NAME;
 string AtomDB::MONGODB_FIELD_NAME[MONGODB_FIELD::size];
@@ -143,14 +144,8 @@ void AtomDB::mongodb_setup() {
 vector<string> AtomDB::query_for_pattern(std::shared_ptr<char> pattern_handle) {
     unsigned int redis_cursor = 0;
     bool redis_has_more = true;
-    unsigned int redis_chunk_size = REDIS_CHUNK_SIZE;
     string command;
     redisReply *reply;
-
-    string chunk_size_str = Utils::get_environment("DAS_REDIS_CHUNK_SIZE");
-    if (chunk_size_str != "") {
-        redis_chunk_size = stoi(chunk_size_str);
-    }
 
     vector<string> results;
 
@@ -163,7 +158,7 @@ vector<string> AtomDB::query_for_pattern(std::shared_ptr<char> pattern_handle) {
             + " "
             + to_string(redis_cursor)
             + " "
-            + to_string(redis_cursor + redis_chunk_size - 1)
+            + to_string(redis_cursor + REDIS_CHUNK_SIZE - 1)
         );
 
         reply = (redisReply *) redisCommand(this->redis_single, command.c_str());
@@ -183,8 +178,8 @@ vector<string> AtomDB::query_for_pattern(std::shared_ptr<char> pattern_handle) {
             results.push_back(reply->element[i]->str);
         }
 
-        redis_cursor += redis_chunk_size;
-        redis_has_more = (reply->elements == redis_chunk_size);
+        redis_cursor += REDIS_CHUNK_SIZE;
+        redis_has_more = (reply->elements == REDIS_CHUNK_SIZE);
 
         freeReplyObject(reply);
     }
