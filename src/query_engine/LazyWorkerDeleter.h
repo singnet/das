@@ -63,7 +63,10 @@ class LazyWorkerDeleter {
                     }
                 }
             }
-            commons::Utils::sleep(5000);
+            for (size_t i = 0; i < 50; i++) {
+                commons::Utils::sleep(100);  // 100ms x 50 = 5s
+                if (this->shutting_down_flag) return;
+            }
         }
     }
 };
