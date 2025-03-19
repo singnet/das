@@ -14,7 +14,7 @@ class TestDASNode(TestCase):
         Test if all the attributes are present on the binding of DASNode
         """
 
-        #inherited attributes
+        # inherited attributes
         self.assertTrue(hasattr(DASNode, "add_peer"))
         self.assertTrue(hasattr(DASNode, "broadcast"))
         self.assertTrue(hasattr(DASNode, "cast_leadership_vote"))
@@ -27,7 +27,7 @@ class TestDASNode(TestCase):
         self.assertTrue(hasattr(DASNode, "node_joined_network"))
         self.assertTrue(hasattr(DASNode, "send"))
 
-        #own attributes
+        # own attributes
         self.assertTrue(hasattr(DASNode, "PATTERN_MATCHING_QUERY"))
         self.assertTrue(hasattr(DASNode, "COUNTING_QUERY"))
         self.assertTrue(hasattr(DASNode, "pattern_matcher_query"))
@@ -96,4 +96,3 @@ class TestDASNode(TestCase):
         self.assertEqual(self.server.node_id(), self.server_id)
         self.assertEqual(self.client1.node_id(), self.client1_id)
         self.assertEqual(self.client2.node_id(), self.client2_id)
-
