@@ -18,7 +18,7 @@ from hyperon_das_atomdb.adapters import RedisMongoDB
 from evolution.fitness_functions import FitnessFunctions
 from evolution.selection_methods import handle_selection_method, SelectionMethodType
 from evolution.utils import Parameters, parse_file, SuppressCppOutput
-from evolution.node import EvolutionNode
+from evolution.node import EvolutionNode, NodeIdFactory
 
 # NOTE: This module, das_node, is a Python implementation of DASNode,
 # used to develop and test the optimization algorithm.
@@ -34,6 +34,7 @@ MAX_CORRELATIONS_WITHOUT_STIMULATE = 1000
 class QueryOptimizerAgent:
     def __init__(self, config_file: str) -> None:
         self.params = self._load_config(config_file)
+        self.node_id_factory = NodeIdFactory(ip="localhost")
         self.evolution_node_server = EvolutionNode(node_id=self.params.evolution_server_id)
 
     def run_server(self):
@@ -70,7 +71,10 @@ class QueryOptimizerAgent:
 
     def _send_message(self, senders: list[str], answers: list[str]) -> None:
         for sender in senders:
-            self.evolution_node_client = EvolutionNode(server_id=sender)
+            self.evolution_node_client = EvolutionNode(
+                server_id=sender,
+                node_id_factory=self.node_id_factory
+            )
             self.evolution_node_client.send("evolution_finished", ["END"], sender)
 
 
