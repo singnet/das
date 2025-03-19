@@ -38,7 +38,7 @@ struct LinkCreationAgentRequest {
     bool infinite = false;
     string context = "";
     bool update_attention_broker = false;
-    string id;
+    string id = "";
 };
 
 /**
