@@ -151,10 +151,9 @@ py_test(
         "//evolution:optimizer",
         "//evolution:selection_methods",
         "//evolution:utils",
-        "//evolution/das_node:das_node",
-        "//evolution/das_node:query_answer",
         "//hyperon_das",
         "//hyperon_das_node",
+        "//hyperon_das_query_engine",
         requirement("hyperon_das_atomdb"),
     ],
 )
