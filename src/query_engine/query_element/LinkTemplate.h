@@ -122,7 +122,7 @@ class LinkTemplate : public Source {
 #endif
         graceful_shutdown();
         local_answers_mutex.lock();
-        delete[] this->atom_document;
+        if (this->atom_document) delete[] this->atom_document;
         if (local_answers_size > 0) {
             delete[] this->local_answers;
             delete[] this->next_inner_answer;
