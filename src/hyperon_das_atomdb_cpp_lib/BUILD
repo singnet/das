@@ -9,6 +9,13 @@ cc_library(
     ],
     includes = ["."],
     linkstatic = True,
+        linkopts = [
+        "-L/usr/local/lib",
+        "-lhiredis_cluster",
+        "-lhiredis",
+        "-lmongocxx",
+        "-lbsoncxx",
+    ],
     deps = [
       ":constants",
       ":database",
@@ -18,6 +25,7 @@ cc_library(
       ":patterns",
       ":ram_only",
       ":type_aliases",
+      ":redis_mongo",
     ],
 )
 
@@ -101,4 +109,19 @@ cc_library(
 cc_library(
   name = "type_aliases",
   hdrs = ["type_aliases.h"],
+)
+
+
+cc_library(
+  name = "redis_mongo",
+  srcs = ["redis_mongo.cc"],
+  hdrs = ["redis_mongo.h"],
+  deps = [
+    ":exceptions",
+    ":expression_hasher",
+    ":patterns",
+    ":database",
+    ":document_types",
+    "type_aliases",
+  ],
 )
