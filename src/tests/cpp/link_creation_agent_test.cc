@@ -302,7 +302,7 @@ TEST(Link, TestLink) {
     EXPECT_EQ(link.get_targets().size(), 2);
     EXPECT_EQ(get<string>(link.get_targets()[0]), "Value1");
     EXPECT_EQ(get<string>(link.get_targets()[1]), "Value2");
-    EXPECT_EQ(Utils::join(link.tokenize(), ' '), "LINK Similarity HANDLE Value1 HANDLE Value2");
+    EXPECT_EQ(Utils::join(link.tokenize(), ' '), "LINK Similarity 2 HANDLE Value1 HANDLE Value2");
     link_template.clear();
     delete query_answer;
 
@@ -315,7 +315,7 @@ TEST(Link, TestLink) {
     EXPECT_EQ(get<Node>(link.get_targets()[0]).value, "A");
     EXPECT_EQ(get<string>(link.get_targets()[1]), "Value1");
     EXPECT_EQ(get<Node>(link.get_targets()[2]).value, "B");
-    EXPECT_EQ(Utils::join(link.tokenize(), ' '), "LINK Test NODE Symbol A HANDLE Value1 NODE Symbol B");
+    EXPECT_EQ(Utils::join(link.tokenize(), ' '), "LINK Test 3 NODE Symbol A HANDLE Value1 NODE Symbol B");
     link_template.clear();
     delete query_answer;
 
@@ -334,7 +334,7 @@ TEST(Link, TestLink) {
     EXPECT_EQ(link.get_custom_fields()[0].get_values().size(), 2);
     EXPECT_EQ(get<0>(link.get_custom_fields()[0].get_values()[0]), "mean");
     EXPECT_EQ(Utils::join(link.tokenize(), ' '),
-              "LINK Test2 NODE Symbol C NODE Symbol B CUSTOM_FIELD truth_value 2 CUSTOM_FIELD mean 2 "
+              "LINK Test2 2 NODE Symbol C NODE Symbol B CUSTOM_FIELD truth_value 2 CUSTOM_FIELD mean 2 "
               "count 10 avg 0.9 confidence 0.9");
 
     link_template.clear();
@@ -355,7 +355,7 @@ TEST(Link, TestLink) {
     EXPECT_EQ(link.get_custom_fields().size(), 1);
     EXPECT_EQ(link.get_custom_fields()[0].get_name(), "truth_value");
     EXPECT_EQ(Utils::join(link.tokenize(), ' '),
-              "LINK Test3 HANDLE Value1 HANDLE Value2 CUSTOM_FIELD truth_value 2 CUSTOM_FIELD mean 2 "
+              "LINK Test3 2 HANDLE Value1 HANDLE Value2 CUSTOM_FIELD truth_value 2 CUSTOM_FIELD mean 2 "
               "count 10 avg 0.9 confidence 0.9");
     link_template.clear();
     delete query_answer;
