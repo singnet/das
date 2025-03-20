@@ -4,9 +4,10 @@ on:
   push:
     branches:
       - master
+      - das-287
 
 jobs:
-  build_binaries:
+  build:
     runs-on: self-hosted
     steps:
       - name: Checkout code
@@ -22,9 +23,52 @@ jobs:
           path: src/bin
           if-no-files-found: "error"
 
-  build_and_publish:
+  publish_wheels: 
     runs-on: self-hosted
-    needs: build_binaries
+    needs: build
+    strategy:
+      matrix:
+        target: [hyperon_das_atomdb_cpp, hyperon_das_atomdb, hyperon_das_node, hyperon_das]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download Binaries Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: binaries
+          path: src/bin
+
+      - name: Install twine
+        run: pip3 install twine==6.1.0
+
+      - name: Publish to PyPI
+        env:
+          TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
+        run: |
+          WHEEL_FILE=$(find . -name "${{ matrix.target }}-*.whl" | head -n 1)
+          if [ -z "$WHEEL_FILE" ]; then
+            echo "No wheel file found for target ${{ matrix.target }}"
+            exit 1
+          fi
+          echo "Publishing $WHEEL_FILE..."
+
+          python3 -m twine upload "$WHEEL_FILE" 2>&1 | tee /tmp/upload.log || {
+            if grep -q "File already exists" /tmp/upload.log; then
+              echo "Version already exists on PyPI. Skipping upload."
+              exit 0
+            else
+              echo "Failed to upload $WHEEL_FILE"
+              echo "Upload log:"
+              cat /tmp/upload.log
+              exit 1
+            fi
+          }
+
+  build_and_publish_images:
+    runs-on: self-hosted
+    needs: build
     strategy:
       matrix:
         target: [attention-broker, query-agent, link-creation-agent, link-creation-client]
@@ -56,7 +100,7 @@ jobs:
 
   deploy_ensemble_to_server:
     runs-on: self-hosted
-    needs: build_and_publish
+    needs: build_and_publish_images
     steps:
       - name: Checkout code
         uses: actions/checkout@v4

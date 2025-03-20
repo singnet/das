@@ -187,3 +187,14 @@ py_test(
         "//hyperon_das:utils",
     ],
 )
+
+py_test(
+    name = "test_star_node",
+    tags = ["skip"],
+    size = "small",
+    srcs = ["test_star_node.py"],
+    deps = [
+        "//hyperon_das_node:hyperon_das_node",
+    ],
+)
+

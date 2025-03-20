@@ -1,6 +1,7 @@
 load("@pypi//:requirements.bzl", "requirement")
 load("@rules_python//python:defs.bzl", "py_library")
 load("@rules_python//python:packaging.bzl", "py_wheel")
+load("@rules_python//python:packaging.bzl", "py_package")
 
 package(default_visibility = ["//visibility:public"])
 
@@ -32,6 +33,11 @@ py_library(
     ],
 )
 
+py_package(
+  name = "hyperon_das_package",
+  deps = [":hyperon_das"],
+)
+
 py_wheel(
     name = "hyperon_das_wheel",
     abi = "none",
@@ -54,7 +60,9 @@ py_wheel(
     stamp = 1,
     summary = "Query Engine API for Distributed AtomSpace",
     version = "$(DAS_VERSION)",  # must be defined when calling `bazel build` with `--define=DAS_VERSION=<version>`
-    deps = [":hyperon_das"],
+    deps = [
+        ":hyperon_das_package",
+    ],
 )
 
 py_library(

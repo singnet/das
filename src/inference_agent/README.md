@@ -15,15 +15,15 @@ Each request consists of a command and a list of parameters. The first parameter
 The following are the commands and their corresponding parameters:
 
 ```
-PROOF_OF_IMPLICATION_OR_EQUIVALENCE <handle1> <handle2> <max proof length>
-PROOF_OF_IMPLICATION <handle1> <handle2> <max proof length>
-PROOF_OF_EQUIVALENCE <handle1> <handle2> <max proof length>
+PROOF_OF_IMPLICATION_OR_EQUIVALENCE <handle1> <handle2> <max proof length> <context>
+PROOF_OF_IMPLICATION <handle1> <handle2> <max proof length> <context>
+PROOF_OF_EQUIVALENCE <handle1> <handle2> <max proof length> <context>
 ```
 
 ### Example
 
 ```
-PROOF_OF_IMPLICATION_OR_EQUIVALENCE "handle1" "handle2" "10"
+PROOF_OF_IMPLICATION_OR_EQUIVALENCE "handle1" "handle2" "10" "inference_context"
 ```
 
 ## Build
@@ -37,6 +37,20 @@ make build-all
 ```
 make run-inference-agent OPTIONS="path_to_config_file"
 ```
+
+## Run Client
+```
+make run-inference-agent-client OPTIONS="CLIENT_HOST:CLIENT_PORT SERVER_HOST:SERVER_PORT REQUEST+"
+```
+
+
+## Tests
+
+Run **only** Inference Agent tests
+```
+ make bazel test //tests/cpp:inference_agent_test
+```
+
 
 ## Config
 

@@ -172,33 +172,44 @@ shared_ptr<LinkCreationAgentRequest> LinkCreationAgent::create_request(vector<st
         LinkCreationAgentRequest* lca_request = new LinkCreationAgentRequest();
         int cursor = 0;
         bool is_link_create = false;
+        int has_id = 0;
+        if (request[request.size() - 1] != "true" && request[request.size() - 1] != "false") {
+            cout << "ID: " << request[request.size()-1] << endl;
+            has_id = 1;
+        }
         for (string arg : request) {
             cursor++;
             is_link_create = is_link_template_arg(arg) || is_link_create;
             if (!is_link_create) {
                 lca_request->query.push_back(arg);
             }
-            if (is_link_create && cursor < request.size() - 3) {
+            if (is_link_create && cursor < request.size() - 3 - has_id) {
                 lca_request->link_template.push_back(arg);
             }
-            if (cursor == request.size() - 3) {
+            if (cursor == request.size() - 3 - has_id) {
                 lca_request->max_results = stoi(arg);
             }
-            if (cursor == request.size() - 2) {
+            if (cursor == request.size() - 2 - has_id) {
                 lca_request->repeat = stoi(arg);
             }
-            if (cursor == request.size() - 1) {
+            if (cursor == request.size() - 1 - has_id) {
                 lca_request->context = arg;
             }
-            if (cursor == request.size()) {
+                if (cursor == request.size() - has_id) {
                 lca_request->update_attention_broker = (arg == "true");
+            }else{
+                if (cursor == request.size()) {
+                    lca_request->id = arg;
+                }
             }
         }
         lca_request->infinite = (lca_request->repeat == -1);
-        string joined_string = Utils::join(lca_request->query, ' ') + Utils::join(lca_request->link_template, ' ') + lca_request->context;
-        shared_ptr<char> joined_string_c = shared_ptr<char>(new char[joined_string.size() + 1]);
-        strcpy(joined_string_c.get(), joined_string.c_str());
-        lca_request->id = string(compute_hash(joined_string_c.get()));
+        if (lca_request->id.empty()){
+            string temp_id = to_string(time(0)) + Utils::random_string(20);
+            shared_ptr<char> temp_id_c = shared_ptr<char>(new char[temp_id.length() + 1], [](char* p) { delete[] p; });
+            strcpy(temp_id_c.get(), temp_id.c_str());
+            lca_request->id = compute_hash(temp_id_c.get());
+        }
         // couts
         cout << "Query: " << Utils::join(lca_request->query, ' ') << endl;
         cout << "Link Template: " << Utils::join(lca_request->link_template, ' ') << endl;

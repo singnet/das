@@ -442,7 +442,7 @@ cc_test(
 
 cc_test(
     name = "link_creation_agent_test",
-    size = "medium",
+    size = "small",
     srcs = ["link_creation_agent_test.cc"],
     copts = [
         "-Iexternal/gtest/googletest/include",
@@ -452,5 +452,27 @@ cc_test(
     deps = [
         "//link_creation_agent:link_creation_agent_lib",
         "@com_github_google_googletest//:gtest_main",
+        "//commons:commons_lib",
+
     ],
 )
+
+
+
+cc_test(
+    name = "inference_agent_test",
+    size = "small",
+    srcs = ["inference_agent_test.cc"],
+    copts = [
+        "-Iexternal/gtest/googletest/include",
+        "-Iexternal/gtest/googletest",
+    ],
+    linkstatic = 1,
+    deps = [
+        "//inference_agent:inference_agent_lib",
+        "@com_github_google_googletest//:gtest_main",
+        "//commons:commons_lib",
+
+    ],
+)
+
