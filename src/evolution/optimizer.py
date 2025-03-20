@@ -109,6 +109,7 @@ class QueryOptimizerIterator:
         redis_port: int,
         redis_cluster: bool,
         redis_ssl: bool,
+        context: str = "",
         **kwargs
     ) -> None:
         self.atom_db = self._connect_atom_db(
@@ -127,7 +128,7 @@ class QueryOptimizerIterator:
         self.selection_method = selection_method
         self.fitness_function = fitness_function
         self.attention_broker_server_id = attention_broker_server_id
-
+        self.context = context
         self.best_query_answers = Queue(maxsize=self.max_query_answers)
         self.generation = 1
         self.producer_finished = Event()
@@ -220,7 +221,7 @@ class QueryOptimizerIterator:
         result = []
         try:
             with SuppressCppOutput():
-                remote_iterator = self.query_agent.pattern_matcher_query(self.query_tokens)
+                remote_iterator = self.query_agent.pattern_matcher_query(tokens=self.query_tokens, context=self.context)
             while (len(result) < self.population_size and not remote_iterator.finished()):
                 if (qa := remote_iterator.pop()):
                     result.append(qa)
@@ -270,13 +271,7 @@ class QueryOptimizerIterator:
         for individual in individuals:
             single_answer, joint_answer = self._process_individual(individual)
 
-            # How to send the context?
-            # handle_list = []
-            # handle_list.context = self.context
-            # for h in single_answer:
-            #     handle_list.append(h)
-
-            attention_broker.correlate(single_answer)
+            attention_broker.correlate(single_answer, self.context)
 
             for handle, count in joint_answer.items():
                 joint_answer_global[handle] += count
@@ -320,8 +315,7 @@ class QueryOptimizerIterator:
             handle_count[h] = count
             weight_sum += count
         handle_count["SUM"] = weight_sum
-        # handle_count.context = self.context
-        attention_broker.stimulate(handle_count)
+        attention_broker.stimulate(handle_count, self.context)
         time.sleep(0.1)
 
     def _select_best_query_answers(self) -> None:
@@ -329,7 +323,7 @@ class QueryOptimizerIterator:
         Fills the best_query_answers queue by selecting QueryAnswers from a remote iterator.
         """
         with SuppressCppOutput():
-            remote_iterator = self.query_agent.pattern_matcher_query(self.query_tokens)
+            remote_iterator = self.query_agent.pattern_matcher_query(tokens=self.query_tokens, context=self.context)
         while (self.best_query_answers.qsize() < self.max_query_answers and not remote_iterator.finished()):
             if (qa := remote_iterator.pop()):
                 with contextlib.suppress(Full):
