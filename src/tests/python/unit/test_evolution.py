@@ -65,6 +65,7 @@ class DummyAttentionBrokerGateway:
 def dummy_fitness_function_handle(name):
     def fitness(db, handles):
         return 0.5
+
     return fitness
 
 
@@ -113,29 +114,30 @@ class TestQueryOptimizer:
 
     @pytest.fixture
     def optimizer(self):
-        with mock.patch(
-            "evolution.optimizer.DASNode", new=DummyDASNode
-        ), mock.patch(
-            "evolution.optimizer.RedisMongoDB", new=DummyRedisMongoDB
-        ), mock.patch(
-            "evolution.optimizer.FitnessFunctions.get", new=dummy_fitness_function_handle
-        ), mock.patch(
-            "evolution.optimizer.AttentionBrokerGateway", new=DummyAttentionBrokerGateway
-        ), mock.patch.object(QueryOptimizerIterator, "_producer", lambda self: None):
-            return QueryOptimizerIterator(
-                query_tokens=["token"],
-                **get_minimal_config()
-            )
+        with (
+            mock.patch("evolution.optimizer.DASNode", new=DummyDASNode),
+            mock.patch("evolution.optimizer.RedisMongoDB", new=DummyRedisMongoDB),
+            mock.patch(
+                "evolution.optimizer.FitnessFunctions.get", new=dummy_fitness_function_handle
+            ),
+            mock.patch(
+                "evolution.optimizer.AttentionBrokerGateway", new=DummyAttentionBrokerGateway
+            ),
+            mock.patch.object(QueryOptimizerIterator, "_producer", lambda self: None),
+        ):
+            return QueryOptimizerIterator(query_tokens=["token"], **get_minimal_config())
 
     def test_query_optimizer_agent_success(self, valid_config_path):
-        with mock.patch(
-            "evolution.optimizer.DASNode", new=DummyDASNode
-        ), mock.patch(
-            "evolution.optimizer.RedisMongoDB", new=DummyRedisMongoDB
-        ), mock.patch(
-            "evolution.optimizer.FitnessFunctions.get", new=dummy_fitness_function_handle
-        ), mock.patch("evolution.optimizer.AttentionBrokerGateway", new=DummyAttentionBrokerGateway):
-
+        with (
+            mock.patch("evolution.optimizer.DASNode", new=DummyDASNode),
+            mock.patch("evolution.optimizer.RedisMongoDB", new=DummyRedisMongoDB),
+            mock.patch(
+                "evolution.optimizer.FitnessFunctions.get", new=dummy_fitness_function_handle
+            ),
+            mock.patch(
+                "evolution.optimizer.AttentionBrokerGateway", new=DummyAttentionBrokerGateway
+            ),
+        ):
             agent = QueryOptimizerAgent(valid_config_path)
             iterator = agent.optimize("token1 token2")
 
@@ -147,26 +149,27 @@ class TestQueryOptimizer:
 
             assert iterator.is_empty() is True
             assert len(answers) == 2
-            assert sorted([answer.to_string() for answer in answers]) == sorted(["answer1", "answer2"])
+            assert sorted([answer.to_string() for answer in answers]) == sorted(
+                ["answer1", "answer2"]
+            )
 
     def test_query_optimizer_agent_invalid_config(self, invalid_config_path):
         with pytest.raises(ValueError):
             QueryOptimizerAgent(invalid_config_path)
 
     def test_evaluate_method(self):
-        with mock.patch(
-            "evolution.optimizer.DASNode", new=DummyDASNode
-        ), mock.patch(
-            "evolution.optimizer.RedisMongoDB", new=DummyRedisMongoDB
-        ), mock.patch(
-            "evolution.optimizer.FitnessFunctions.get", new=dummy_fitness_function_handle
-        ), mock.patch(
-            "evolution.optimizer.AttentionBrokerGateway", new=DummyAttentionBrokerGateway
-        ), mock.patch.object(QueryOptimizerIterator, "_producer", lambda self: None):
-            optimizer = QueryOptimizerIterator(
-                query_tokens=["token"],
-                **get_minimal_config()
-            )
+        with (
+            mock.patch("evolution.optimizer.DASNode", new=DummyDASNode),
+            mock.patch("evolution.optimizer.RedisMongoDB", new=DummyRedisMongoDB),
+            mock.patch(
+                "evolution.optimizer.FitnessFunctions.get", new=dummy_fitness_function_handle
+            ),
+            mock.patch(
+                "evolution.optimizer.AttentionBrokerGateway", new=DummyAttentionBrokerGateway
+            ),
+            mock.patch.object(QueryOptimizerIterator, "_producer", lambda self: None),
+        ):
+            optimizer = QueryOptimizerIterator(query_tokens=["token"], **get_minimal_config())
             dqa = DummyQueryAnswer("test")
             result = optimizer._evaluate(dqa)
 
@@ -184,7 +187,9 @@ class TestQueryOptimizer:
         assert joint_answer == {"a": 1, "b": 1}
 
     def test_attention_broker_stimulate(self, optimizer):
-        dummy_broker = DummyAttentionBrokerGateway({"attention_broker_hostname": "localhost", "attention_broker_port": "1234"})
+        dummy_broker = DummyAttentionBrokerGateway(
+            {"attention_broker_hostname": "localhost", "attention_broker_port": "1234"}
+        )
 
         joint_answer = {"a": 2, "b": 3}
 
