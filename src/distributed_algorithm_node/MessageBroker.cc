@@ -81,7 +81,8 @@ SynchronousSharedRAM::~SynchronousSharedRAM() {
         } else {
             auto node_queue = NODE_QUEUE[this->node_id];
             while (!node_queue->empty()) {
-                delete (CommandLinePackage*) node_queue->dequeue();
+                auto command_line_package = (CommandLinePackage*) node_queue->dequeue();
+                if (command_line_package) delete command_line_package;
             }
             NODE_QUEUE.erase(this->node_id);
             NODE_QUEUE_MUTEX.unlock();

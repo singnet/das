@@ -29,7 +29,7 @@ DASNode::DASNode(const string& node_id, const string& server_id) : StarNode(node
     // CLIENT
 }
 
-DASNode::~DASNode() {}
+DASNode::~DASNode() { PatternMatchingQuery::remote_sinks_deleter.stop(); }
 
 void DASNode::initialize() {
     this->first_query_port = 60000;

@@ -11,6 +11,8 @@
 using namespace query_node;
 using namespace std;
 
+#define DEBUG
+
 // --------------------------------------------------------------------------------
 // Public methods
 
@@ -33,14 +35,23 @@ QueryNode<AnswerType>::QueryNode(const string& node_id,
 
 template <class AnswerType>
 QueryNode<AnswerType>::~QueryNode() {
+#ifdef DEBUG
+    cout << "QueryNode::~QueryNode() BEGIN" << endl;
+#endif
     this->graceful_shutdown();
     while (!this->query_answer_queue.empty()) {
         delete (QueryAnswer*) this->query_answer_queue.dequeue();
     }
+#ifdef DEBUG
+    cout << "QueryNode::~QueryNode() END" << endl;
+#endif
 }
 
 template <class AnswerType>
 void QueryNode<AnswerType>::graceful_shutdown() {
+#ifdef DEBUG
+    cout << "QueryNode::graceful_shutdown() BEGIN" << endl;
+#endif
     if (is_shutting_down()) {
         return;
     }
@@ -53,6 +64,9 @@ void QueryNode<AnswerType>::graceful_shutdown() {
         delete this->query_answer_processor;
         this->query_answer_processor = NULL;
     }
+#ifdef DEBUG    
+    cout << "QueryNode::graceful_shutdown() END" << endl;
+#endif
 }
 
 template <class AnswerType>

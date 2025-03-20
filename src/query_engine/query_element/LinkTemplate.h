@@ -120,7 +120,7 @@ class LinkTemplate : public Source {
 #ifdef DEBUG
         cout << "LinkTemplate::LinkTemplate() DESTRUCTOR BEGIN" << endl;
 #endif
-        graceful_shutdown();
+        this->graceful_shutdown();
         local_answers_mutex.lock();
         if (this->atom_document) delete[] this->atom_document;
         if (local_answers_size > 0) {
@@ -155,6 +155,7 @@ class LinkTemplate : public Source {
 #ifdef DEBUG
         cout << "LinkTemplate::graceful_shutdown() BEGIN" << endl;
 #endif
+        if (this->is_flow_finished()) return;
         set_flow_finished();
         if (this->local_buffer_processor != NULL) {
             this->local_buffer_processor->join();

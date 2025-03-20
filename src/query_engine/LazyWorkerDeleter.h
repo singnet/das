@@ -27,9 +27,7 @@ class LazyWorkerDeleter {
 
     ~LazyWorkerDeleter() {
         if (this->shutting_down_flag) return;
-        this->shutting_down_flag = true;
-        this->objects_deleter_thread->join();
-        this->objects_deleter_thread.reset();
+        this->stop();
         lock_guard<mutex> lock(this->objects_mutex);
         T* obj;
         while (!this->objects.empty()) {
@@ -39,7 +37,16 @@ class LazyWorkerDeleter {
         }
     }
 
+    void stop() {
+        this->shutting_down_flag = true;
+        if (this->objects_deleter_thread) {
+            this->objects_deleter_thread->join();
+            this->objects_deleter_thread.reset();
+        }
+    }
+
     void add(T* obj) {
+        if (this->shutting_down_flag) return;
         lock_guard<mutex> lock(this->objects_mutex);
         if (!this->shutting_down_flag) this->objects.push_back(obj);
     }
@@ -55,7 +62,7 @@ class LazyWorkerDeleter {
         while (!this->shutting_down_flag) {
             {
                 lock_guard<mutex> lock(this->objects_mutex);
-                while (!this->objects.empty()) {
+                while (!this->objects.empty() && !this->shutting_down_flag) {
                     obj = this->objects.front();
                     if (obj->is_work_done()) {
                         this->objects.erase(this->objects.begin());
@@ -63,9 +70,8 @@ class LazyWorkerDeleter {
                     }
                 }
             }
-            for (size_t i = 0; i < 50; i++) {
+            for (size_t i = 0; i < 50 && !this->shutting_down_flag; i++) {
                 commons::Utils::sleep(100);  // 100ms x 50 = 5s
-                if (this->shutting_down_flag) return;
             }
         }
     }

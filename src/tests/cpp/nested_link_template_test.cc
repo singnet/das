@@ -22,19 +22,18 @@ TEST(LinkTemplate, basics) {
     setenv("DAS_MONGODB_PASSWORD", "dassecret", 1);
 
     AtomDBSingleton::init();
+
     string expression = "Expression";
     string symbol = "Symbol";
 
-    Variable v1("v1");
-    Variable v2("v2");
-    Variable v3("v3");
-    Node similarity(symbol, "Similarity");
-    Node odd_link(symbol, "OddLink");
+    auto v1 = new Variable("v1");
+    auto v2 = new Variable("v2");
+    auto similarity = new Node(symbol, "Similarity");
+    auto odd_link = new Node(symbol, "OddLink");
 
-    LinkTemplate<3> inner_template(expression, {&similarity, &v1, &v2});
-    LinkTemplate<2> outter_template(expression, {&odd_link, &inner_template});
-
-    Iterator<HandlesAnswer> iterator(&outter_template);
+    auto inner_template = new LinkTemplate<3>(expression, {similarity, v1, v2});
+    auto outter_template = new LinkTemplate<2>(expression, {odd_link, inner_template});
+    Iterator<HandlesAnswer> iterator(outter_template);
 
     HandlesAnswer *query_answer;
     unsigned int count = 0;
@@ -54,19 +53,18 @@ TEST(LinkTemplate, nested_variables) {
     string expression = "Expression";
     string symbol = "Symbol";
 
-    Variable v1("v1");
-    Variable v2("v2");
-    Variable v3("v3");
-    Node similarity(symbol, "Similarity");
-    Node odd_link(symbol, "OddLink");
-    Node human(symbol, "\"human\"");
+    auto v1 = new Variable("v1");
+    auto v2 = new Variable("v2");
+    auto similarity = new Node(symbol, "Similarity");
+    auto odd_link = new Node(symbol, "OddLink");
+    auto human = new Node(symbol, "\"human\"");
 
-    LinkTemplate<3> inner_template(expression, {&similarity, &v1, &v2});
-    LinkTemplate<2> outter_template(expression, {&odd_link, &inner_template});
-    LinkTemplate<3> human_template(expression, {&similarity, &v1, &human});
-    And<2> and_operator({&human_template, &outter_template});
+    auto inner_template = new LinkTemplate<3>(expression, {similarity, v1, v2});
+    auto outter_template = new LinkTemplate<2>(expression, {odd_link, inner_template});
+    auto human_template = new LinkTemplate<3>(expression, {similarity, v1, human});
+    auto and_operator = new And<2>({human_template, outter_template});
 
-    Iterator<HandlesAnswer> iterator(&and_operator);
+    Iterator<HandlesAnswer> iterator(and_operator);
 
     HandlesAnswer *query_answer;
     unsigned int count = 0;
