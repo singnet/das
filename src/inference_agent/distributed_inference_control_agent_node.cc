@@ -26,7 +26,7 @@ void DistributedInferenceControlAgentNode::send_inference_control_request(
         request.push_back(token);
     }
     cout << endl;
-    this->send_message(inference_control_request);
+    this->send_message(request);
 }
 
 void DistributedInferenceControlAgentNode::send_message(std::vector<std::string> args) {
