@@ -44,6 +44,7 @@ if [ "$BUILD_BINARIES" = true ]; then
     mv bazel-bin/attention_broker_service "$BIN_DIR"
     mv bazel-bin/query_broker "$BIN_DIR"
     mv bazel-bin/query "$BIN_DIR"
+    $BAZELISK_BUILD_CMD //evolution:main
 
 fi
 
@@ -61,6 +62,8 @@ if [ "$BUILD_WHEELS" = true ]; then
     mv bazel-bin/hyperon_das/*.whl "$BIN_DIR"
     mv bazel-bin/hyperon_das_node/*.whl "$BIN_DIR"
     mv bazel-bin/hyperon_das_atomdb_cpp/*.whl "$BIN_DIR"
+    $BAZELISK_BUILD_CMD //hyperon_das_query_engine:hyperon_das_query_engine_wheel
+    mv bazel-bin/hyperon_das_query_engine/*.whl "$BIN_DIR"
 fi
 
 exit $?
