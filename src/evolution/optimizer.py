@@ -5,6 +5,7 @@ import contextlib
 import time
 import sys
 
+from typing import Any
 from threading import Thread, Event, Lock
 from queue import Queue, Full
 from typing import Iterator
@@ -13,6 +14,7 @@ from collections import defaultdict
 
 from hyperon_das.cache.attention_broker_gateway import AttentionBrokerGateway
 from hyperon_das_atomdb.adapters import RedisMongoDB
+from hyperon_das_atomdb.exceptions import AtomDoesNotExist
 
 from evolution.fitness_functions import FitnessFunctions
 from evolution.selection_methods import handle_selection_method, SelectionMethodType
@@ -44,8 +46,6 @@ class QueryOptimizerAgent:
             time.sleep(0.5)
 
     def optimize(self, query_tokens: list[str] | str) -> Iterator:
-        if isinstance(query_tokens, str):
-            query_tokens = query_tokens.split(' ')
         return QueryOptimizerIterator(
             query_tokens,
             **self.params.__dict__
@@ -91,7 +91,7 @@ class QueryOptimizerIterator:
     """
     def __init__(
         self,
-        query_tokens: list[str],
+        query_tokens: list[str] | str,
         max_query_answers: int,
         max_generations: int,
         population_size: int,
@@ -120,7 +120,7 @@ class QueryOptimizerIterator:
         with SuppressCppOutput():
             self.query_agent = DASNode(query_agent_node_id, query_agent_server_id)
 
-        self.query_tokens = query_tokens
+        self.query_tokens = self._parse_tokens(query_tokens)
         self.max_query_answers = max_query_answers
         self.max_generations = max_generations
         self.population_size = population_size
@@ -183,6 +183,37 @@ class QueryOptimizerIterator:
         except Exception as e:
             print(f"Error: {e}")
             raise e
+
+    def _parse_tokens(self, tokens: list[str] | str) -> list[str]:
+        def parse_atom(token: str, atom_db: Any) -> list[str]:
+            try:
+                atom = atom_db.get_atom(token)
+            except AtomDoesNotExist as e:
+                raise e
+            if atom_db._is_document_link(atom.to_dict()):
+                result = ['LINK_TEMPLATE', atom.named_type, str(len(atom.targets))]
+                for target in atom.targets:
+                    result.extend(parse_atom(target))
+                return result
+            else:
+                return ['NODE', atom.named_type, atom.name]
+
+        parsed_tokens = []
+
+        if isinstance(tokens, str):
+            tokens = tokens.split(' ')
+
+        token_iter = iter(tokens)
+        for token in token_iter:
+            if token == 'HANDLE':
+                try:
+                    handle_token = next(token_iter)
+                    parsed_tokens.extend(parse_atom(handle_token, self.atom_db))
+                except StopIteration:
+                    raise ValueError("'HANDLE' Token missing corresponding value")
+            else:
+                parsed_tokens.append(token)
+        return parsed_tokens
 
     def _producer(self) -> None:
         """
