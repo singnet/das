@@ -19,31 +19,78 @@ using namespace std;
 namespace inference_agent {
 class InferenceAgentNode : public StarNode {
    public:
+    /**
+     * @brief Construct a new Inference Agent Node object
+     *
+     * @param node_id
+     */
     InferenceAgentNode(const std::string& node_id);
+    /**
+     * @brief Construct a new Inference Agent Node object
+     *
+     * @param node_id
+     * @param server_id
+     */
     InferenceAgentNode(const std::string& node_id, const std::string& server_id);
+    /**
+     * @brief Construct a new Inference Agent Node object
+     *
+     * @param node_id
+     * @param messaging_backend
+     */
+    InferenceAgentNode(const std::string& node_id, MessageBrokerType messaging_backend);
+    /**
+     * @brief Construct a new Inference Agent Node object
+     *
+     * @param node_id
+     * @param server_id
+     * @param messaging_backend
+     */
+    InferenceAgentNode(const std::string& node_id,
+                       const std::string& server_id,
+                       MessageBrokerType messaging_backend);
+    /**
+     * @brief Destroy the Inference Agent Node object
+     */
     ~InferenceAgentNode();
 
-    bool is_answers_finished();
-    bool is_answers_empty();
-    vector<string> pop_answer();
-    void set_answers_finished();
+    /**
+     * @brief Check if the answers queue is finished
+     */
+    virtual bool is_answers_finished();
+    /**
+     * @brief Check if the answers queue is empty
+     */
+    virtual bool is_answers_empty();
+    /**
+     * @brief Pop an answer from the answers queue
+     */
+    virtual vector<string> pop_answer();
+    /**
+     * @brief Set the answers queue as finished
+     */
+    virtual void set_answers_finished();
     /**
      * @brief Add a request to the request queue
      * @param request Request to be added
      */
-    void add_request(vector<string> request);
+    virtual void add_request(vector<string> request);
 
-    void send_message(std::vector<std::string> args);
+    /**
+     * @brief Send a message to the agent node
+     * @param args Arguments of the message
+     */
+    virtual void send_message(std::vector<std::string> args);
 
+    /**
+     * @brief Handle incoming messages
+     */
     virtual std::shared_ptr<Message> message_factory(std::string& command,
                                                      std::vector<std::string>& args);
 
     static const std::string CREATE_INFERENCE;
     static const std::string INFERENCE_ANSWER;
     static const std::string DISTRIBUTED_INFERENCE_FINISHED;
-    // const std::string CREATE_INFERENCE = "create_inference";
-    // const std::string INFERENCE_ANSWER = "inference_answer";
-    // const std::string DISTRIBUTED_INFERENCE_FINISHED = "distributed_inference_finished";
 
    private:
     std::string local_host;

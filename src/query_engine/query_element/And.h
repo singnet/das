@@ -5,11 +5,11 @@
 #include <cstring>
 #include "Operator.h"
 #include "HandlesAnswer.h"
-#include "commons/MemoryPool.h"
 
 using namespace std;
 
 namespace query_element {
+
 
 /**
  * QueryElement representing an AND logic operator.
@@ -20,11 +20,6 @@ template <unsigned int N>
 class And : public Operator<N> {
 
 public:
-
-    static commons::MemoryPool<And<N>>& get_pool() {
-        static commons::MemoryPool<And<N>> pool;
-        return pool;
-    }
 
     // --------------------------------------------------------------------------------------------
     // Constructors and destructors

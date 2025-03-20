@@ -36,6 +36,6 @@ done
 echo "Docker images updated."
 
 echo "Creating new deployment with ensemble: $ensemble_name..."
-nunet actor cmd --context user /dms/node/deployment/new -f /tmp/"$ensemble_name".yaml -t 300s
+nunet actor cmd --context user /dms/node/deployment/new -f "$ensemble_name" -t 300s
 
 echo "Process completed."

@@ -1,14 +1,17 @@
+#include "link_creation_agent.h"
+
 #include <gtest/gtest.h>
 
 #include <chrono>
 #include <fstream>
 #include <thread>
 
-#include "link_creation_agent.h"
+#include "Utils.h"
 #include "link_create_template.h"
 
 using namespace std;
 using namespace link_creation_agent;
+using namespace commons;
 
 class LinkCreationAgentTest : public ::testing::Test {
    protected:
@@ -34,7 +37,11 @@ class LinkCreationAgentTest : public ::testing::Test {
     }
 };
 
+
+
 TEST_F(LinkCreationAgentTest, TestRequest) {
+
+
     // Simulate a request
     vector<string> request = {
         "query1", "LINK_CREATE", "test", "1", "0", "VARIABLE", "V1", "10", "5", "test_context", "true"};
@@ -46,6 +53,23 @@ TEST_F(LinkCreationAgentTest, TestRequest) {
     EXPECT_EQ(lca_request->repeat, 5);
     EXPECT_EQ(lca_request->context, "test_context");
     EXPECT_EQ(lca_request->update_attention_broker, true);
+    EXPECT_EQ(lca_request->infinite, false);
+    EXPECT_EQ(lca_request->id.empty(), false);
+    request.clear();
+
+    request = {
+        "query2", "LINK_CREATE", "test2", "2", "1", "NODE", "Symbol", "A", "VARIABLE", "V1", 
+        "10", "-1", "test_context", "false", "1"};
+    lca_request = LinkCreationAgent::create_request(request);
+    EXPECT_EQ(lca_request->query, vector<string>({"query2"}));
+    EXPECT_EQ(lca_request->link_template,
+              vector<string>({"LINK_CREATE", "test2", "2", "1", "NODE", "Symbol", "A", "VARIABLE", "V1"}));
+    EXPECT_EQ(lca_request->max_results, 10);
+    EXPECT_EQ(lca_request->repeat, -1);
+    EXPECT_EQ(lca_request->context, "test_context");
+    EXPECT_EQ(lca_request->update_attention_broker, false);
+    EXPECT_EQ(lca_request->infinite, true);
+    EXPECT_EQ(lca_request->id, "1");
 }
 
 TEST_F(LinkCreationAgentTest, TestConfig) {
@@ -233,7 +257,7 @@ TEST(LinkCreateTemplate, TestLinkCreateTemplate) {
     EXPECT_EQ(get<Node>(lct8.get_targets()[1]).type, "SimpleNode");
     EXPECT_EQ(get<Node>(lct8.get_targets()[1]).value, "SimpleValue");
     link_template.clear();
-    link_template_str.clear();    
+    link_template_str.clear();
 }
 
 TEST(LinkCreateTemplate, TestInvalidLinkType) {
@@ -267,7 +291,6 @@ TEST(LinkCreateTemplate, TestInvalidNode) {
     EXPECT_THROW(LinkCreateTemplate lct(link_template), invalid_argument);
 }
 
-
 TEST(Link, TestLink) {
     vector<string> link_template = split("LINK_CREATE Similarity 2 0 VARIABLE V1 VARIABLE V2", ' ');
     HandlesAnswer* query_answer = new HandlesAnswer();
@@ -279,4 +302,61 @@ TEST(Link, TestLink) {
     EXPECT_EQ(link.get_targets().size(), 2);
     EXPECT_EQ(get<string>(link.get_targets()[0]), "Value1");
     EXPECT_EQ(get<string>(link.get_targets()[1]), "Value2");
+    EXPECT_EQ(Utils::join(link.tokenize(), ' '), "LINK Similarity HANDLE Value1 HANDLE Value2");
+    link_template.clear();
+    delete query_answer;
+
+    query_answer = new HandlesAnswer();
+    link_template = split("LINK_CREATE Test 3 0 NODE Symbol A VARIABLE V1 NODE Symbol B", ' ');
+    query_answer->assignment.assign("V1", "Value1");
+    link = Link(query_answer, link_template);
+    EXPECT_EQ(link.get_type(), "Test");
+    EXPECT_EQ(link.get_targets().size(), 3);
+    EXPECT_EQ(get<Node>(link.get_targets()[0]).value, "A");
+    EXPECT_EQ(get<string>(link.get_targets()[1]), "Value1");
+    EXPECT_EQ(get<Node>(link.get_targets()[2]).value, "B");
+    EXPECT_EQ(Utils::join(link.tokenize(), ' '), "LINK Test NODE Symbol A HANDLE Value1 NODE Symbol B");
+    link_template.clear();
+    delete query_answer;
+
+    query_answer = new HandlesAnswer();
+    link_template = split(
+        "LINK_CREATE Test2 2 1 NODE Symbol C NODE Symbol B "
+        "CUSTOM_FIELD truth_value 2 CUSTOM_FIELD mean 2 count 10 avg 0.9 confidence 0.9",
+        ' ');
+    link = Link(query_answer, link_template);
+    EXPECT_EQ(link.get_type(), "Test2");
+    EXPECT_EQ(link.get_targets().size(), 2);
+    EXPECT_EQ(get<Node>(link.get_targets()[0]).value, "C");
+    EXPECT_EQ(get<Node>(link.get_targets()[1]).value, "B");
+    EXPECT_EQ(link.get_custom_fields().size(), 1);
+    EXPECT_EQ(link.get_custom_fields()[0].get_name(), "truth_value");
+    EXPECT_EQ(link.get_custom_fields()[0].get_values().size(), 2);
+    EXPECT_EQ(get<0>(link.get_custom_fields()[0].get_values()[0]), "mean");
+    EXPECT_EQ(Utils::join(link.tokenize(), ' '),
+              "LINK Test2 NODE Symbol C NODE Symbol B CUSTOM_FIELD truth_value 2 CUSTOM_FIELD mean 2 "
+              "count 10 avg 0.9 confidence 0.9");
+
+    link_template.clear();
+    delete query_answer;
+
+    query_answer = new HandlesAnswer();
+    link_template = split(
+        "LINK_CREATE Test3 2 1 VARIABLE V1 VARIABLE V2 "
+        "CUSTOM_FIELD truth_value 2 CUSTOM_FIELD mean 2 count 10 avg 0.9 confidence 0.9",
+        ' ');
+    query_answer->assignment.assign("V1", "Value1");
+    query_answer->assignment.assign("V2", "Value2");
+    link = Link(query_answer, link_template);
+    EXPECT_EQ(link.get_type(), "Test3");
+    EXPECT_EQ(link.get_targets().size(), 2);
+    EXPECT_EQ(get<string>(link.get_targets()[0]), "Value1");
+    EXPECT_EQ(get<string>(link.get_targets()[1]), "Value2");
+    EXPECT_EQ(link.get_custom_fields().size(), 1);
+    EXPECT_EQ(link.get_custom_fields()[0].get_name(), "truth_value");
+    EXPECT_EQ(Utils::join(link.tokenize(), ' '),
+              "LINK Test3 HANDLE Value1 HANDLE Value2 CUSTOM_FIELD truth_value 2 CUSTOM_FIELD mean 2 "
+              "count 10 avg 0.9 confidence 0.9");
+    link_template.clear();
+    delete query_answer;
 }

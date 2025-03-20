@@ -5,7 +5,6 @@
 #include <memory>
 #include "Utils.h"
 #include "QueryNode.h"
-#include "commons/MemoryPool.h"
 
 #define DEBUG
 
@@ -55,11 +54,6 @@ public:
 
     string id;
     string subsequent_id;
-
-    static commons::MemoryPool<QueryElement>& get_pool() {
-        static commons::MemoryPool<QueryElement> pool;
-        return pool;
-    }
 
     /**
      * Basic constructor which solely initialize variables.

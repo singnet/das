@@ -14,6 +14,7 @@ The request must have 6 elements:
 4. Repeat (int): 0 to run once, -1 to run infinitely, 1 or higher to run this number of times.
 5. Context (string): Query context for Attention Broker requests 
 6. Update Attention Broker flag (bool): true or false to update or not the Attention Broker
+7. Optional Request ID
 
 Example:
 ```
@@ -76,7 +77,7 @@ This will generate the binaries for all components in the `das/src/bin` director
 You might not be able to execute the binary directly from your machine. To simplify this process, we provide a command to run the service inside a container:
 
 ```
-make run-link-creation-agent OPTIONS="--type server --config_file <path_to_config_file>"
+make run-link-creation-agent OPTIONS="--config_file <path_to_config_file>"
 ```
 
 The configuration file (`<path_to_config_file>`) must be located in the current directory where the command is executed. This is because we use a volume to mount the file inside the container. If the file is not in the correct location, the command will fail, as the configuration file will not be available inside the container where the binary runs.

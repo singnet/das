@@ -126,7 +126,7 @@ After setting up Redis and MongoDB, you need to run the [Attention Broker](src/a
 To execute the unit tests, simply run the following command from the project root:  
 
 ```bash
-make tests
+make test-all
 ```  
 
 This will run all the tests for the project.  

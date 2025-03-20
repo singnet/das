@@ -11,10 +11,12 @@ using namespace commons;
 
 InferenceRequest::InferenceRequest(std::string first_handle,
                                    std::string second_handle,
-                                   int max_proof_length) {
+                                   int max_proof_length,
+                                   std::string context) {
     this->first_handle = first_handle;
     this->second_handle = second_handle;
     this->max_proof_length = max_proof_length;
+    this->context = context;
 }
 
 InferenceRequest::~InferenceRequest() {}
@@ -22,6 +24,10 @@ InferenceRequest::~InferenceRequest() {}
 std::vector<std::string> InferenceRequest::query() { return {}; }
 
 std::string InferenceRequest::get_id() { return Utils::random_string(10); }
+
+void InferenceRequest::set_id(std::string inference_request_id) {
+    this->inference_request_id = inference_request_id;
+}
 
 std::string InferenceRequest::get_type() { return "INFERENCE_REQUEST"; }
 
@@ -37,12 +43,12 @@ std::vector<std::string> InferenceRequest::get_distributed_inference_control_req
             "OR",          
                 "LINK_TEMPLATE", "Expression",  "3",
                     "NODE", "Symbol", "IMPLICATION", 
-                    first_handle,
-                    second_handle, 
+                    "_FIRST_",
+                    "_SECOND_", 
                 "LINK_TEMPLATE", "Expression",  "3",
                     "NODE", "Symbol", "EQUIVALENCE", 
-                    first_handle,
-                    second_handle
+                    "_FIRST_",
+                    "_SECOND_"
     };
     // clang-format on
     return tokens;
@@ -50,10 +56,13 @@ std::vector<std::string> InferenceRequest::get_distributed_inference_control_req
 
 std::vector<std::vector<std::string>> InferenceRequest::get_requests() { return {}; }
 
+std::string InferenceRequest::get_context() { return context; }
+
 ProofOfImplicationOrEquivalence::ProofOfImplicationOrEquivalence(std::string first_handle,
                                                                  std::string second_handle,
-                                                                 int max_proof_length)
-    : InferenceRequest(first_handle, second_handle, max_proof_length) {}
+                                                                 int max_proof_length,
+                                                                 std::string context)
+    : InferenceRequest(first_handle, second_handle, max_proof_length, context) {}
 
 ProofOfImplicationOrEquivalence::~ProofOfImplicationOrEquivalence() {}
 
@@ -121,7 +130,6 @@ std::vector<std::string> ProofOfImplicationOrEquivalence::patterns_link_template
 std::string ProofOfImplicationOrEquivalence::get_type() { return "PROOF_OF_IMPLICATION_OR_EQUIVALENCE"; }
 
 std::vector<std::vector<std::string>> ProofOfImplicationOrEquivalence::get_requests() {
-
     std::vector<std::vector<std::string>> requests;
     // query + link creation template
     std::vector<std::string> query_and_link_creation_template(this->query());
@@ -146,8 +154,9 @@ std::vector<std::vector<std::string>> ProofOfImplicationOrEquivalence::get_reque
 
 ProofOfImplication::ProofOfImplication(std::string first_handle,
                                        std::string second_handle,
-                                       int max_proof_length)
-    : InferenceRequest(first_handle, second_handle, max_proof_length) {}
+                                       int max_proof_length,
+                                       std::string context)
+    : InferenceRequest(first_handle, second_handle, max_proof_length, context) {}
 
 ProofOfImplication::~ProofOfImplication() {}
 
@@ -200,8 +209,9 @@ std::vector<std::vector<std::string>> ProofOfImplication::get_requests() {
 
 ProofOfEquivalence::ProofOfEquivalence(std::string first_handle,
                                        std::string second_handle,
-                                       int max_proof_length)
-    : InferenceRequest(first_handle, second_handle, max_proof_length) {}
+                                       int max_proof_length,
+                                       std::string context)
+    : InferenceRequest(first_handle, second_handle, max_proof_length, context) {}
 
 ProofOfEquivalence::~ProofOfEquivalence() {}
 
