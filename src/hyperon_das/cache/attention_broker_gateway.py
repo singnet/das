@@ -4,7 +4,6 @@ from typing import Any, Dict, Optional, Set
 import grpc
 
 import hyperon_das.grpc.common_pb2 as common__pb2
-import hyperon_das.grpc.attention_broker_pb2 as attention_broker__pb2
 from hyperon_das.grpc.attention_broker_pb2_grpc import AttentionBrokerStub
 from hyperon_das.logger import logger
 from hyperon_das.utils import das_error
@@ -38,7 +37,7 @@ class AttentionBrokerGateway:
         logger().info(
             f"Requesting AttentionBroker at {self.server_url} to stimulate {len(handle_count)} atoms"
         )
-        message = attention_broker__pb2.HandleCount(map=handle_count, context=context)
+        message = common__pb2.HandleCount(map=handle_count, context=context)
         with grpc.insecure_channel(self.server_url) as channel:
             stub = AttentionBrokerStub(channel)
             response = stub.stimulate(message)
@@ -52,7 +51,7 @@ class AttentionBrokerGateway:
         logger().info(
             f"Requesting AttentionBroker at {self.server_url} to correlate {len(handle_set)} atoms"
         )
-        message = attention_broker__pb2.HandleList(list=handle_set, context=context)
+        message = common__pb2.HandleList(list=handle_set, context=context)
         sleep(0.05)
         with grpc.insecure_channel(self.server_url) as channel:
             stub = AttentionBrokerStub(channel)

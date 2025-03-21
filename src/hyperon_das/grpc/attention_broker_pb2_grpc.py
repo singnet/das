@@ -2,7 +2,6 @@
 """Client and server classes corresponding to protobuf-defined services."""
 import grpc
 
-import hyperon_das.grpc.attention_broker_pb2 as attention__broker__pb2
 import hyperon_das.grpc.common_pb2 as common__pb2
 
 
@@ -22,18 +21,18 @@ class AttentionBrokerStub(object):
         )
         self.stimulate = channel.unary_unary(
             "/dasproto.AttentionBroker/stimulate",
-            request_serializer=attention__broker__pb2.HandleCount.SerializeToString,
+            request_serializer=common__pb2.HandleCount.SerializeToString,
             response_deserializer=common__pb2.Ack.FromString,
         )
         self.correlate = channel.unary_unary(
             "/dasproto.AttentionBroker/correlate",
-            request_serializer=attention__broker__pb2.HandleList.SerializeToString,
+            request_serializer=common__pb2.HandleList.SerializeToString,
             response_deserializer=common__pb2.Ack.FromString,
         )
         self.get_importance = channel.unary_unary(
             "/dasproto.AttentionBroker/get_importance",
-            request_serializer=attention__broker__pb2.HandleList.SerializeToString,
-            response_deserializer=attention__broker__pb2.ImportanceList.FromString,
+            request_serializer=common__pb2.HandleList.SerializeToString,
+            response_deserializer=common__pb2.ImportanceList.FromString,
         )
 
 
@@ -74,18 +73,18 @@ def add_AttentionBrokerServicer_to_server(servicer, server):
         ),
         "stimulate": grpc.unary_unary_rpc_method_handler(
             servicer.stimulate,
-            request_deserializer=attention__broker__pb2.HandleCount.FromString,
+            request_deserializer=common__pb2.HandleCount.FromString,
             response_serializer=common__pb2.Ack.SerializeToString,
         ),
         "correlate": grpc.unary_unary_rpc_method_handler(
             servicer.correlate,
-            request_deserializer=attention__broker__pb2.HandleList.FromString,
+            request_deserializer=common__pb2.HandleList.FromString,
             response_serializer=common__pb2.Ack.SerializeToString,
         ),
         "get_importance": grpc.unary_unary_rpc_method_handler(
             servicer.get_importance,
-            request_deserializer=attention__broker__pb2.HandleList.FromString,
-            response_serializer=attention__broker__pb2.ImportanceList.SerializeToString,
+            request_deserializer=common__pb2.HandleList.FromString,
+            response_serializer=common__pb2.ImportanceList.SerializeToString,
         ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -144,7 +143,7 @@ class AttentionBroker(object):
             request,
             target,
             "/dasproto.AttentionBroker/stimulate",
-            attention__broker__pb2.HandleCount.SerializeToString,
+            common__pb2.HandleCount.SerializeToString,
             common__pb2.Ack.FromString,
             options,
             channel_credentials,
@@ -173,7 +172,7 @@ class AttentionBroker(object):
             request,
             target,
             "/dasproto.AttentionBroker/correlate",
-            attention__broker__pb2.HandleList.SerializeToString,
+            common__pb2.HandleList.SerializeToString,
             common__pb2.Ack.FromString,
             options,
             channel_credentials,
@@ -202,8 +201,8 @@ class AttentionBroker(object):
             request,
             target,
             "/dasproto.AttentionBroker/get_importance",
-            attention__broker__pb2.HandleList.SerializeToString,
-            attention__broker__pb2.ImportanceList.FromString,
+            common__pb2.HandleList.SerializeToString,
+            common__pb2.ImportanceList.FromString,
             options,
             channel_credentials,
             insecure,
