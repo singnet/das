@@ -2,11 +2,8 @@
 
 set -eoux pipefail
 
-ARCH=$(uname -m)
-
 IMAGE_NAME="das-builder"
 CONTAINER_NAME=${IMAGE_NAME}-container
-CONTAINER_CACHE_DIR=$(if [ "$ARCH" = "arm64" ]; then echo "/root/.cache"; else echo "/home/$USER/.cache"; fi)
 
 # local paths
 LOCAL_WORKDIR=$(pwd)
@@ -28,11 +25,11 @@ mkdir -p \
 CONTAINER_WORKDIR=/opt/das
 CONTAINER_WORKSPACE_DIR=/opt/das/src
 CONTAINER_BIN_DIR=$CONTAINER_WORKSPACE_DIR/bin
-CONTAINER_ASPECT_CACHE=${CONTAINER_CACHE_DIR}/aspect
-CONTAINER_BAZEL_CACHE=${CONTAINER_CACHE_DIR}/bazel
-CONTAINER_PIP_CACHE=${CONTAINER_CACHE_DIR}/pip
-CONTAINER_PIPTOOLS_CACHE=${CONTAINER_CACHE_DIR}/pip-tools
-CONTAINER_BAZELISK_CACHE=${CONTAINER_CACHE_DIR}/bazelisk
+CONTAINER_ASPECT_CACHE=/root/.cache/aspect
+CONTAINER_BAZEL_CACHE=/root/.cache/bazel
+CONTAINER_PIP_CACHE=/root/.cache/pip
+CONTAINER_PIPTOOLS_CACHE=/root/.cache/pip-tools
+CONTAINER_BAZELISK_CACHE=/root/.cache/bazelisk
 
 if docker ps -a --format '{{.Names}}' | grep -q "^${CONTAINER_NAME}$"; then
   echo "Removing existing container: ${CONTAINER_NAME}"
@@ -42,7 +39,6 @@ fi
 docker run --rm \
   --name=$CONTAINER_NAME \
   -e BIN_DIR=$CONTAINER_BIN_DIR \
-  $(if [ "$ARCH" = "arm64" ]; then echo "--user=root"; else echo "--user=$(id -u):$(id -g) --volume /etc/passwd:/etc/passwd:ro"; fi) \
   --volume $LOCAL_PIP_CACHE:$CONTAINER_PIP_CACHE \
   --volume $LOCAL_PIPTOOLS_CACHE:$CONTAINER_PIPTOOLS_CACHE \
   --volume $LOCAL_ASPECT_CACHE:$CONTAINER_ASPECT_CACHE \
@@ -52,5 +48,3 @@ docker run --rm \
   --workdir $CONTAINER_WORKSPACE_DIR \
   ${IMAGE_NAME} \
   ./scripts/bazel_build.sh
-
-docker run --rm --volume $LOCAL_BIN_DIR:/app/bin/evolution evolution-builder
