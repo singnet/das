@@ -12,6 +12,6 @@ py_library(
     name = "pattern_matcher",
     srcs = [":py_files"],
     deps = [
-        requirement("hyperon_das_atomdb"),
+        "//hyperon_das_atomdb",
     ],
 )

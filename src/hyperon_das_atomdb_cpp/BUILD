@@ -1,3 +1,5 @@
+load("@pypi//:requirements.bzl", "requirement")
+load("@rules_python//python:defs.bzl", "py_library")
 load("@nanobind_bazel//:build_defs.bzl", "nanobind_extension")
 load("@rules_python//python:packaging.bzl", "py_wheel")
 
@@ -30,7 +32,7 @@ py_wheel(
     description_content_type = "text/markdown",
     description_file = "README.md",
     distribution = "hyperon_das_atomdb_cpp",
-    platform = "manylinux_2_28_x86_64",
+    platform = "any",
     python_requires = ">=3.10",
     python_tag = "cp310",
     stamp = 1,

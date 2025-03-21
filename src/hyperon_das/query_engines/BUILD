@@ -11,7 +11,7 @@ py_library(
         "//hyperon_das:link_filters",
         "//hyperon_das:type_alias",
         "//hyperon_das:utils",
-        requirement("hyperon_das_atomdb"),
+        "//hyperon_das_atomdb",
     ],
 )
 
@@ -29,7 +29,7 @@ py_library(
         "//hyperon_das:utils",
         "//hyperon_das/cache:cache_controller",
         "//hyperon_das/cache:iterators",
-        requirement("hyperon_das_atomdb"),
+        "//hyperon_das_atomdb",
     ],
 )
 
@@ -47,6 +47,6 @@ py_library(
         "//hyperon_das:utils",
         "//hyperon_das/cache:cache_controller",
         "//hyperon_das/cache:iterators",
-        requirement("hyperon_das_atomdb"),
+        "//hyperon_das_atomdb",
     ],
 )
