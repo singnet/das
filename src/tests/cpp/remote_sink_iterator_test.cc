@@ -30,11 +30,11 @@ TEST(RemoteSinkIterator, basics) {
     string producer_id = "localhost:30801";
 
     string input_element_id = "test_source";
-    TestSource input(input_element_id);
+    TestSource* input = new TestSource(input_element_id);
     RemoteIterator<HandlesAnswer> consumer(consumer_id);
     vector<unique_ptr<QueryAnswerProcessor>> query_answer_processors;
     query_answer_processors.push_back(make_unique<HandlesAnswerProcessor>(producer_id, consumer_id));
-    RemoteSink<HandlesAnswer> producer(&input, move(query_answer_processors));
+    RemoteSink<HandlesAnswer> producer(input, move(query_answer_processors));
 
     Utils::sleep(1000);
 
@@ -45,8 +45,8 @@ TEST(RemoteSinkIterator, basics) {
     HandlesAnswer* qa1 = new HandlesAnswer("h1", 0.1);
     HandlesAnswer* qa2 = new HandlesAnswer("h2", 0.2);
 
-    input.add(qa0);
-    input.add(qa1);
+    input->add(qa0);
+    input->add(qa1);
 
     EXPECT_FALSE(consumer.finished());
     EXPECT_FALSE((qa = dynamic_cast<HandlesAnswer*>(consumer.pop())) == NULL);
@@ -61,8 +61,8 @@ TEST(RemoteSinkIterator, basics) {
     EXPECT_TRUE((qa = dynamic_cast<HandlesAnswer*>(consumer.pop())) == NULL);
     EXPECT_FALSE(consumer.finished());
 
-    input.add(qa2);
-    input.finished();
+    input->add(qa2);
+    input->finished();
     EXPECT_FALSE(consumer.finished());
 
     EXPECT_FALSE(consumer.finished());

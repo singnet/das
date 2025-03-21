@@ -62,12 +62,14 @@ class LazyWorkerDeleter {
         while (!this->shutting_down_flag) {
             {
                 lock_guard<mutex> lock(this->objects_mutex);
-                while (!this->objects.empty() && !this->shutting_down_flag) {
+                for (size_t count = 0; count < this->objects.size() && !this->shutting_down_flag;
+                     count++) {
                     obj = this->objects.front();
                     if (obj->is_work_done()) {
                         this->objects.erase(this->objects.begin());
                         delete obj;
                     }
+                    commons::Utils::sleep(100);  // 100ms
                 }
             }
             for (size_t i = 0; i < 50 && !this->shutting_down_flag; i++) {
