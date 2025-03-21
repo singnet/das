@@ -193,7 +193,7 @@ class QueryOptimizerIterator:
             if atom_db._is_document_link(atom.to_dict()):
                 result = ['LINK_TEMPLATE', atom.named_type, str(len(atom.targets))]
                 for target in atom.targets:
-                    result.extend(parse_atom(target))
+                    result.extend(parse_atom(target, atom_db))
                 return result
             else:
                 return ['NODE', atom.named_type, atom.name]
@@ -224,14 +224,15 @@ class QueryOptimizerIterator:
         After processing all generations, it fills the query answers queue and signals termination.
         """
         while self.generation <= self.max_generations:
-            sys.stdout.write(f"\rProcessing generation {self.generation}/{self.max_generations}")
-            sys.stdout.flush()
-
+            print(f"Processing generation {self.generation}/{self.max_generations}")
+          
             population = self._sample_population()
 
             if not population:
                 self.producer_finished.set()
-                raise RuntimeError("Population sampling failed: query response returned nothing.")
+                print("Population sampling failed: query response returned nothing.")
+                break
+                # raise RuntimeError("Population sampling failed: query response returned nothing.")
 
             with ThreadPoolExecutor(max_workers=10) as executor:
                 futures = [executor.submit(self._evaluate, ind) for ind in population]
@@ -251,8 +252,7 @@ class QueryOptimizerIterator:
         """
         result = []
         try:
-            with SuppressCppOutput():
-                remote_iterator = self.query_agent.pattern_matcher_query(tokens=self.query_tokens, context=self.context)
+            remote_iterator = self.query_agent.pattern_matcher_query(tokens=self.query_tokens, context=self.context)
             while (len(result) < self.population_size and not remote_iterator.finished()):
                 if (qa := remote_iterator.pop()):
                     result.append(qa)

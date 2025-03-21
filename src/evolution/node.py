@@ -8,7 +8,7 @@ from evolution.das_node.star_node import StarNode
 
 
 class NodeIdFactory:
-    def __init__(self, ip: str = "localhost", start_port: int = 70000, end_port: int = 71999):
+    def __init__(self, ip: str = "localhost", start_port: int = 20000, end_port: int = 21999):
         self.ip = ip
         self.port_generator = self._port_sequence(start_port, end_port)
 
@@ -23,7 +23,7 @@ class NodeIdFactory:
 
 
 class EvolutionRequest(Message):
-    def __init__(self, senders_id: str, request: str, *args, **kwargs):
+    def __init__(self, senders_id: str, *request: str):
         super().__init__()
         self.senders = senders_id.split(',')
         self.request = request

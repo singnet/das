@@ -23,7 +23,6 @@ class Parameters:
     query_agent_server_id: int = None
     attention_broker_server_id: str = None
     evolution_server_id: str = None
-    context: str = None
     mongo_hostname: str = None
     mongo_port: int = None
     mongo_username: str = None

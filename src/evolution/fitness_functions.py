@@ -11,8 +11,8 @@ def multiply_strengths(atom_db, handles: list[str]) -> float:
         except AtomDoesNotExist as e:
             print(f'Error: {e}')
             continue
-        if (custom_attributes := atom.custom_attributes):
-            if (strength := custom_attributes.get('strength')):
+        if custom_attributes := atom.custom_attributes:
+            if strength := custom_attributes.get('strength'):
                 product *= strength
                 found_strength = True
     return product if found_strength else 0.0
