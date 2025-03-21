@@ -14,15 +14,25 @@ _sym_db = _symbol_database.Default()
 
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x0c\x63ommon.proto\x12\x08\x64\x61sproto\"\x07\n\x05\x45mpty\"!\n\x03\x41\x63k\x12\r\n\x05\x65rror\x18\x01 \x01(\x08\x12\x0b\n\x03msg\x18\x02 \x01(\tb\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x0c\x63ommon.proto\x12\x08\x64\x61sproto\"\x07\n\x05\x45mpty\"!\n\x03\x41\x63k\x12\r\n\x05\x65rror\x18\x01 \x01(\x08\x12\x0b\n\x03msg\x18\x02 \x01(\t\"Z\n\nHandleList\x12\x0c\n\x04list\x18\x01 \x03(\t\x12\x14\n\x0crequest_type\x18\x02 \x01(\x05\x12\x17\n\x0fhebbian_network\x18\x03 \x01(\x03\x12\x0f\n\x07\x63ontext\x18\x04 \x01(\t\"\xa6\x01\n\x0bHandleCount\x12+\n\x03map\x18\x01 \x03(\x0b\x32\x1e.dasproto.HandleCount.MapEntry\x12\x14\n\x0crequest_type\x18\x02 \x01(\x05\x12\x17\n\x0fhebbian_network\x18\x03 \x01(\x03\x12\x0f\n\x07\x63ontext\x18\x04 \x01(\t\x1a*\n\x08MapEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\r:\x02\x38\x01\"\x1e\n\x0eImportanceList\x12\x0c\n\x04list\x18\x01 \x03(\x02\x62\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
 _builder.BuildTopDescriptorsAndMessages(DESCRIPTOR, 'common_pb2', _globals)
 if _descriptor._USE_C_DESCRIPTORS == False:
   DESCRIPTOR._options = None
+  _globals['_HANDLECOUNT_MAPENTRY']._options = None
+  _globals['_HANDLECOUNT_MAPENTRY']._serialized_options = b'8\001'
   _globals['_EMPTY']._serialized_start=26
   _globals['_EMPTY']._serialized_end=33
   _globals['_ACK']._serialized_start=35
   _globals['_ACK']._serialized_end=68
+  _globals['_HANDLELIST']._serialized_start=70
+  _globals['_HANDLELIST']._serialized_end=160
+  _globals['_HANDLECOUNT']._serialized_start=163
+  _globals['_HANDLECOUNT']._serialized_end=329
+  _globals['_HANDLECOUNT_MAPENTRY']._serialized_start=287
+  _globals['_HANDLECOUNT_MAPENTRY']._serialized_end=329
+  _globals['_IMPORTANCELIST']._serialized_start=331
+  _globals['_IMPORTANCELIST']._serialized_end=361
 # @@protoc_insertion_point(module_scope)
