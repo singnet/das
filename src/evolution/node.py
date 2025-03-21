@@ -53,6 +53,9 @@ class NodeIdFactory:
 class EvolutionRequest(Message):
     def __init__(self, senders_id: str, *request: str):
         super().__init__()
+        print('Request received!')
+        print(f'senders: {senders_id}')
+        print(f'request: {request}')
         self.senders = senders_id.split(',')
         self.request = request
 

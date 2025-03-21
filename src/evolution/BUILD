@@ -43,16 +43,21 @@ py_library(
 )
 
 py_library(
+    name = "node",
+    srcs = ["node.py"],
+    deps = ["//hyperon_das_node:hyperon_das_node"],
+)
+
+py_library(
     name = "optimizer",
     srcs = ["optimizer.py"],
     deps = [
         ":fitness_functions",
         ":selection_methods",
         ":utils",
+        ":node",
         "//hyperon_das:hyperon_das",
         "//hyperon_das_atomdb:hyperon_das_atomdb",
         "//hyperon_das_query_engine:hyperon_das_query_engine",
-        # "//evolution/das_node:das_node",
-        # "//evolution/das_node:query_answer",
     ],
 )

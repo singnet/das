@@ -27,11 +27,13 @@ MAX_CORRELATIONS_WITHOUT_STIMULATE = 1000
 
 class QueryOptimizerAgent:
     def __init__(self, config_file: str) -> None:
+        print('__init__')
         self.params = self._load_config(config_file)
         self.node_id_factory = NodeIdFactory(ip="localhost")
         self.evolution_node_server = EvolutionNode(node_id=self.params.evolution_server_id)
 
     def run_server(self):
+        print("Running server...")
         while True:
             if request := self.evolution_node_server.pop_request():
                 answers = self._process(request['data'])
@@ -60,6 +62,7 @@ class QueryOptimizerAgent:
         return params
 
     def _process(self, query_tokens: list[str] | str) -> list[str]:
+        print("processing message...")
         iterator = self.optimize(query_tokens)
         return [qa.to_string() for qa in iterator]
 
@@ -119,8 +122,8 @@ class QueryOptimizerIterator:
             redis_ssl,
         )
 
-        with SuppressCppOutput():
-            self.query_agent = DASNode(query_agent_node_id, query_agent_server_id)
+        # with SuppressCppOutput():
+        self.query_agent = DASNode(query_agent_node_id, query_agent_server_id, 65000, 66000)
 
         self.query_tokens = self._parse_tokens(query_tokens)
         self.max_query_answers = max_query_answers
@@ -187,6 +190,8 @@ class QueryOptimizerIterator:
             raise e
 
     def _parse_tokens(self, tokens: list[str] | str) -> list[str]:
+        print("parsing tokens...")
+
         def parse_atom(token: str, atom_db: Any) -> list[str]:
             try:
                 atom = atom_db.get_atom(token)
@@ -227,21 +232,24 @@ class QueryOptimizerIterator:
         """
         while self.generation <= self.max_generations:
             print(f"Processing generation {self.generation}/{self.max_generations}")
-          
+            print('_sample_population START')
             population = self._sample_population()
-
+            print('_sample_population END')
             if not population:
                 self.producer_finished.set()
                 print("Population sampling failed: query response returned nothing.")
                 break
                 # raise RuntimeError("Population sampling failed: query response returned nothing.")
-
+            print('_evaluate START')
             with ThreadPoolExecutor(max_workers=10) as executor:
                 futures = [executor.submit(self._evaluate, ind) for ind in population]
                 evaluated_individuals = [f.result() for f in futures]
-
+            print('_evaluate END')
+            print('_select_best_individuals START')
             selected_individuals = self._select_best_individuals(evaluated_individuals)
+            print('_update_attention_broker START')
             self._update_attention_broker(selected_individuals)
+            print('_update_attention_broker END')
             self.generation += 1
             time.sleep(0.1)
 
@@ -263,6 +271,7 @@ class QueryOptimizerIterator:
             time.sleep(0.5)
         except Exception as e:
             print(f"Population sampling failed: {e}")
+        
         return result
 
     def _evaluate(self, query_answer: QueryAnswer) -> tuple[QueryAnswer, float]:
