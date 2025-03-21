@@ -14,22 +14,20 @@ filegroup(
     srcs = glob(["**/*.py"]),
 )
 
-py_library(
-    name = "evolution",
-    srcs = [":py_all_files"],
+py_binary(
+    name = "main",
+    srcs = ["main.py"],
     deps = [
-        ":fitness_functions",
-        ":selection_methods",
-        ":utils",
-        ":optimizer",
-        "//evolution/das_node",
+      ":optimizer"
     ],
 )
 
 py_library(
     name = "fitness_functions",
     srcs = ["fitness_functions.py"],
-    deps = [],
+    deps = [
+      "//hyperon_das_atomdb:exceptions",
+    ],
 )
 
 py_library(
@@ -51,7 +49,10 @@ py_library(
         ":fitness_functions",
         ":selection_methods",
         ":utils",
-        "//evolution/das_node:das_node",
-        "//evolution/das_node:query_answer",
+        "//hyperon_das:hyperon_das",
+        "//hyperon_das_atomdb:hyperon_das_atomdb",
+        "//hyperon_das_query_engine:hyperon_das_query_engine",
+        # "//evolution/das_node:das_node",
+        # "//evolution/das_node:query_answer",
     ],
 )

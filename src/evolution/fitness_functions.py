@@ -9,19 +9,17 @@ def multiply_strengths(atom_db, handles: list[str]) -> float:
         try:
             atom = atom_db.get_atom(handle)
         except AtomDoesNotExist as e:
-            print(f'Error: {e}')
+            print(f"Error: {e}")
             continue
-        if (custom_attributes := atom.custom_attributes):
-            if (strength := custom_attributes.get('strength')):
+        if custom_attributes := atom.custom_attributes:
+            if strength := custom_attributes.get("strength"):
                 product *= strength
                 found_strength = True
     return product if found_strength else 0.0
 
 
 class FitnessFunctions:
-    _fitness_functions: ClassVar[dict[str, callable]] = {
-        "multiply_strengths": multiply_strengths
-    }
+    _fitness_functions: ClassVar[dict[str, callable]] = {"multiply_strengths": multiply_strengths}
 
     @classmethod
     def get(cls, fitness_function_name: str) -> callable:
