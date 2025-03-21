@@ -1,5 +1,7 @@
 #include "service.h"
 
+#include "link_creation_processors.h"
+
 using namespace link_creation_agent;
 using namespace std;
 using namespace query_node;
@@ -25,13 +27,27 @@ void LinkCreationService::process_request(shared_ptr<RemoteIterator<HandlesAnswe
                 cout << "LinkCreationService::process_request: Processing query_answer" << endl;
                 if (link_template.front() == "LIST") {
                     LinkCreateTemplateList link_create_template_list(link_template);
-                    for(auto link_template : link_create_template_list.get_templates()){
+                    for (auto link_template : link_create_template_list.get_templates()) {
                         Link link(query_answer, link_template.tokenize());
                         this->create_link(link, *das_client);
                     }
-                }else{
-                    Link link(query_answer, link_template);
-                    this->create_link(link, *das_client);
+                } else {
+                    if (LinkCreationProcessor::get_processor_type(link_template.front()) ==
+                        ProcessorType::PROOF_OF_IMPLICATION) {
+                        shared_ptr<LinkCreateTemplate> link_create_template =
+                            make_shared<LinkCreateTemplate>(ProcessorType::PROOF_OF_IMPLICATION);
+                        Link link(query_answer, link_create_template);
+                        this->create_link(link, *das_client);
+                    } else if (LinkCreationProcessor::get_processor_type(link_template.front()) ==
+                               ProcessorType::PROOF_OF_EQUIVALENCE) {
+                        shared_ptr<LinkCreateTemplate> link_create_template =
+                            make_shared<LinkCreateTemplate>(ProcessorType::PROOF_OF_EQUIVALENCE);
+                        Link link(query_answer, link_create_template);
+                        this->create_link(link, *das_client);
+                    } else {
+                        Link link(query_answer, link_template);
+                        this->create_link(link, *das_client);
+                    }
                 }
                 delete query_answer;
                 if (++count == max_query_answers) break;
