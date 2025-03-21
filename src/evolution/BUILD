@@ -42,13 +42,6 @@ py_library(
     deps = [],
 )
 
-
-py_library(
-    name = "node",
-    srcs = ["node.py"],
-    deps = ["//hyperon_das_node:hyperon_das_node"],
-)
-
 py_library(
     name = "optimizer",
     srcs = ["optimizer.py"],
