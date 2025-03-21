@@ -51,12 +51,12 @@ class SuppressCppOutput:
 
 def parse_file(path) -> dict[str, Any]:
     config = {}
-    with open(path, mode='r') as f:
+    with open(path, mode="r") as f:
         for line in f:
-            if not (line := line.split('#')[0].strip()):
+            if not (line := line.split("#")[0].strip()):
                 continue
 
-            parts = line.split('=')
+            parts = line.split("=")
             if len(parts) != 2:
                 raise ValueError(f"Line is not in key=value format: {line}")
 
@@ -81,4 +81,5 @@ def profile(func):
         elapsed_time = end_time - start_time
         print(f"{func.__name__} executed in {elapsed_time:.6f} seconds")
         return result
+
     return wrapper

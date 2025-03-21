@@ -1,6 +1,7 @@
 """
 Non distributed version
 """
+
 import contextlib
 import time
 import sys
@@ -14,20 +15,13 @@ from collections import defaultdict
 
 from hyperon_das.cache.attention_broker_gateway import AttentionBrokerGateway
 from hyperon_das_atomdb.adapters import RedisMongoDB
+from hyperon_das_query_engine import DASNode, QueryAnswer
 from hyperon_das_atomdb.exceptions import AtomDoesNotExist
 
 from evolution.fitness_functions import FitnessFunctions
 from evolution.selection_methods import handle_selection_method, SelectionMethodType
 from evolution.utils import Parameters, parse_file, SuppressCppOutput
 from evolution.node import EvolutionNode, NodeIdFactory
-
-# NOTE: This module, das_node, is a Python implementation of DASNode,
-# used to develop and test the optimization algorithm.
-# However, it is necessary to create bindings for the components already implemented in C++
-# and integrate them into this implementation.
-# Currently, I am using the implementation from this PR:
-from evolution.das_node.query_answer import QueryAnswer
-from evolution.das_node.das_node import DASNode
 
 MAX_CORRELATIONS_WITHOUT_STIMULATE = 1000
 
@@ -61,7 +55,9 @@ class QueryOptimizerAgent:
         config = parse_file(config_file)
         params = Parameters(**config)
         if params.qtd_selected_for_attention_update > params.population_size:
-            raise ValueError("The number of selected individuals for attention update cannot be greater than the population size.")
+            raise ValueError(
+                "The number of selected individuals for attention update cannot be greater than the population size."
+            )
         return params
 
     def _process(self, query_tokens: list[str] | str) -> list[str]:
@@ -89,6 +85,7 @@ class QueryOptimizerIterator:
 
     The iterator interface yields the best query answers once optimization completes.
     """
+
     def __init__(
         self,
         query_tokens: list[str] | str,
@@ -113,8 +110,14 @@ class QueryOptimizerIterator:
         **kwargs
     ) -> None:
         self.atom_db = self._connect_atom_db(
-            mongo_hostname, mongo_port, mongo_username, mongo_password,
-            redis_hostname, redis_port, redis_cluster, redis_ssl
+            mongo_hostname,
+            mongo_port,
+            mongo_username,
+            mongo_password,
+            redis_hostname,
+            redis_port,
+            redis_cluster,
+            redis_ssl,
         )
 
         with SuppressCppOutput():
@@ -164,7 +167,7 @@ class QueryOptimizerIterator:
         redis_hostname: str,
         redis_port: int,
         redis_cluster: bool,
-        redis_ssl: bool
+        redis_ssl: bool,
     ) -> RedisMongoDB:
         """
         Establishes a connection to the atom database using configuration parameters.
@@ -275,7 +278,9 @@ class QueryOptimizerIterator:
             fitness_value = fitness_function(self.atom_db, query_answer.handles)
         return (query_answer, fitness_value)
 
-    def _select_best_individuals(self, evaluated_individuals: list[tuple[QueryAnswer, float]]) -> list[tuple[QueryAnswer, float]]:
+    def _select_best_individuals(
+        self, evaluated_individuals: list[tuple[QueryAnswer, float]]
+    ) -> list[tuple[QueryAnswer, float]]:
         """
         Selects the best individuals from evaluated QueryAnswer tuples using the configured selection method.
         """
@@ -291,10 +296,9 @@ class QueryOptimizerIterator:
         a defined number of correlations, the attention broker is stimulated with aggregated data.
         """
         host, port = self.attention_broker_server_id.split(":")
-        attention_broker = AttentionBrokerGateway({
-            'attention_broker_hostname': host,
-            'attention_broker_port': port
-        })
+        attention_broker = AttentionBrokerGateway(
+            {"attention_broker_hostname": host, "attention_broker_port": port}
+        )
 
         correlated_count = 0
         joint_answer_global = defaultdict(int)

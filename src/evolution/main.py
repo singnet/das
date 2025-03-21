@@ -12,10 +12,10 @@ def parse_args():
         )
     )
     parser.add_argument(
-        '--config-file',
+        "--config-file",
         required=True,
-        default='config.cfg',
-        help="Path to the configuration file (default: 'config.cfg')"
+        default="config.cfg",
+        help="Path to the configuration file (default: 'config.cfg')",
     )
     return parser.parse_args()
 
