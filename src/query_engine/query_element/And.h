@@ -46,7 +46,22 @@ public:
      * Destructor.
      */
     ~And() {
+#ifdef DEBUG
+        cout << "And::~And() BEGIN" << endl;
+#endif
         graceful_shutdown();
+        for (size_t i = 0; i < N; i++) {
+            for (auto* answer : this->query_answer[i]) {
+                if (answer) {
+                    delete answer;
+                    answer = nullptr;
+                }
+            }
+            this->query_answer[i].clear();
+        }
+#ifdef DEBUG
+        cout << "And::~And() END" << endl;
+#endif
     }
 
     // --------------------------------------------------------------------------------------------

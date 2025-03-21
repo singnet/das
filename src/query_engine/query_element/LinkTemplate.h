@@ -102,7 +102,8 @@ class LinkTemplate : public Source {
                 this->inner_template.push_back(targets[i - 1]);
             }
         }
-        this->handle = shared_ptr<char>(composite_hash(this->handle_keys, ARITY + 1));
+        this->handle = shared_ptr<char>(
+            composite_hash(this->handle_keys, ARITY + 1), default_delete<char[]>());
         if (!wildcard_flag) {
             free(this->handle_keys[0]);
         }
@@ -119,13 +120,25 @@ class LinkTemplate : public Source {
 #ifdef DEBUG
         cout << "LinkTemplate::LinkTemplate() DESTRUCTOR BEGIN" << endl;
 #endif
-        graceful_shutdown();
+        this->graceful_shutdown();
         local_answers_mutex.lock();
+        if (this->atom_document) delete[] this->atom_document;
         if (local_answers_size > 0) {
-            delete[] this->atom_document;
             delete[] this->local_answers;
             delete[] this->next_inner_answer;
         }
+        while (!this->local_buffer.empty()) {
+            delete (HandlesAnswer*) this->local_buffer.dequeue();
+        }
+        for (auto* answer : this->inner_answers) {
+            if (answer) delete answer;
+        }
+        this->inner_answers.clear();
+        for (auto* clause : this->inner_template) {
+            if (clause) delete clause;
+        }
+        this->inner_template.clear();
+        this->inner_template_iterator.reset();
         local_answers_mutex.unlock();
 #ifdef DEBUG
         cout << "LinkTemplate::LinkTemplate() DESTRUCTOR END" << endl;
@@ -142,6 +155,7 @@ class LinkTemplate : public Source {
 #ifdef DEBUG
         cout << "LinkTemplate::graceful_shutdown() BEGIN" << endl;
 #endif
+        if (this->is_flow_finished()) return;
         set_flow_finished();
         if (this->local_buffer_processor != NULL) {
             this->local_buffer_processor->join();
@@ -163,7 +177,7 @@ class LinkTemplate : public Source {
             switch (this->inner_template.size()) {
                 case 1: {
                     this->inner_template_iterator =
-                        make_shared<Iterator<HandlesAnswer>>(inner_template[0]);
+                        make_shared<Iterator<HandlesAnswer>>(inner_template[0], true);
                     break;
                 }
                 case 2: {

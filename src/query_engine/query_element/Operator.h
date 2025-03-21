@@ -44,7 +44,21 @@ class Operator : public QueryElement {
     /**
      * Destructor.
      */
-    ~Operator() { this->graceful_shutdown(); }
+    ~Operator() {
+#ifdef DEBUG
+        cout << "Operator::Operator() DESTRUCTOR BEGIN" << endl;
+#endif
+        this->graceful_shutdown();
+        for (size_t i = 0; i < N; i++) {
+            if (this->precedent[i]) {
+                delete this->precedent[i];
+                this->precedent[i] = nullptr;
+            }
+        }
+#ifdef DEBUG
+        cout << "Operator::Operator() DESTRUCTOR END" << endl;
+#endif
+    }
 
     // --------------------------------------------------------------------------------------------
     // QueryElement API

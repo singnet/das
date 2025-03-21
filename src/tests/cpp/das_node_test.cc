@@ -91,9 +91,9 @@ TEST(DASNode, queries) {
 
     string das_id = "localhost:31700";
     string requestor_id = "localhost:31701";
-    DASNode *das = new DASNode(das_id);
+    DASNode das(das_id);
     Utils::sleep(1000);
-    DASNode *requestor = new DASNode(requestor_id, das_id);
+    DASNode requestor(requestor_id, das_id);
     Utils::sleep(1000);
 
     vector<string> q1 = {
@@ -151,14 +151,11 @@ TEST(DASNode, queries) {
     };
     int q5_expected_count = 5;
 
-    check_query(q1, q1_expected_count, das, requestor, "DASNode.queries");
-    check_query(q2, q2_expected_count, das, requestor, "DASNode.queries");
-    check_query(q3, q3_expected_count, das, requestor, "DASNode.queries");
-    check_query(q4, q4_expected_count, das, requestor, "DASNode.queries"); 
-    check_query(q5, q5_expected_count, das, requestor, "DASNode.queries");
-
-    //delete(requestor); // TODO: Uncomment this
-    //delete(das); // TODO: Uncomment this
+    check_query(q1, q1_expected_count, &das, &requestor, "DASNode.queries");
+    check_query(q2, q2_expected_count, &das, &requestor, "DASNode.queries");
+    check_query(q3, q3_expected_count, &das, &requestor, "DASNode.queries");
+    check_query(q4, q4_expected_count, &das, &requestor, "DASNode.queries"); 
+    check_query(q5, q5_expected_count, &das, &requestor, "DASNode.queries");
 
     cout << "XXXXXXXXXXXXXXXX DASNode.queries END" << endl;
 }
