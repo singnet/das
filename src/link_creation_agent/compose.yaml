@@ -1,44 +1,44 @@
 services:
-  redis:
-    image: redis:7.2.3-alpine
-    container_name: test-das-redis
-    restart: always
-    command: redis-server --save 20 1 --loglevel warning
-    ports:
-      - 6379:6379
-    healthcheck:
-      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
-      interval: 10s
-      timeout: 10s
-      retries: 5
-      start_period: 40s
-    network_mode: host
+  # redis:
+  #   image: redis:7.2.3-alpine
+  #   container_name: test-das-redis
+  #   restart: always
+  #   command: redis-server --save 20 1 --loglevel warning
+  #   ports:
+  #     - 6379:6379
+  #   healthcheck:
+  #     test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+  #     interval: 10s
+  #     timeout: 10s
+  #     retries: 5
+  #     start_period: 40s
+  #   network_mode: host
 
-  mongodb:
-    image: mongo:latest
-    container_name: test-das-mongodb
-    restart: always
-    environment:
-      MONGO_INITDB_ROOT_USERNAME: root
-      MONGO_INITDB_ROOT_PASSWORD: root
-    ports:
-      - 27017:27017
-    healthcheck:
-      test:
-        [
-          "CMD",
-          "echo",
-          'db.runCommand("ping").ok',
-          "|",
-          "mongo",
-          "das-mongo:27017/test",
-          "--quiet",
-        ]
-      interval: 10s
-      timeout: 10s
-      retries: 5
-      start_period: 40s
-    network_mode: host
+  # mongodb:
+  #   image: mongo:latest
+  #   container_name: test-das-mongodb
+  #   restart: always
+  #   environment:
+  #     MONGO_INITDB_ROOT_USERNAME: root
+  #     MONGO_INITDB_ROOT_PASSWORD: root
+  #   ports:
+  #     - 27017:27017
+  #   healthcheck:
+  #     test:
+  #       [
+  #         "CMD",
+  #         "echo",
+  #         'db.runCommand("ping").ok',
+  #         "|",
+  #         "mongo",
+  #         "das-mongo:27017/test",
+  #         "--quiet",
+  #       ]
+  #     interval: 10s
+  #     timeout: 10s
+  #     retries: 5
+  #     start_period: 40s
+  #   network_mode: host
 
   metta-parser:
     image: trueagi/das:0.5.4-metta-parser
@@ -57,11 +57,11 @@ services:
       DAS_MONGODB_PASSWORD: root
       DAS_DATABASE_USERNAME: root
       DAS_DATABASE_PASSWORD: root
-    depends_on:
-      mongodb:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
+    # depends_on:
+    #   mongodb:
+    #     condition: service_healthy
+    #   redis:
+    #     condition: service_healthy
     restart: on-failure
     network_mode: host
 
@@ -75,8 +75,8 @@ services:
     volumes:
       - ../../src:/opt
     depends_on:
-      - mongodb
-      - redis
+      # - mongodb
+      # - redis
       - metta-parser
     restart: on-failure
     environment:
@@ -100,8 +100,8 @@ services:
       - ../../src:/opt
     restart: on-failure
     depends_on:
-      - mongodb
-      - redis
+      # - mongodb
+      # - redis
       - metta-parser
       - das-attention-broker
     environment:
@@ -126,8 +126,8 @@ services:
       - 9090:9090
     restart: on-failure
     depends_on:
-      - mongodb
-      - redis
+      # - mongodb
+      # - redis
       - metta-parser
       - das-attention-broker
       - das-query-agent
@@ -144,8 +144,8 @@ services:
       - ../../src:/opt
     restart: on-failure
     depends_on:
-      - mongodb
-      - redis
+      # - mongodb
+      # - redis
       - metta-parser
       - das-attention-broker
       - das-query-agent

@@ -29,11 +29,20 @@ DASNode::DASNode(const string& node_id, const string& server_id) : StarNode(node
     // CLIENT
 }
 
+DASNode::DASNode(const string& node_id,
+                 const string& server_id,
+                 unsigned int first_query_port,
+                 unsigned int last_query_port)
+    : StarNode(node_id, server_id) {
+    this->first_query_port = first_query_port;
+    this->last_query_port = last_query_port;
+    initialize();
+    // CLIENT
+}
+
 DASNode::~DASNode() {}
 
 void DASNode::initialize() {
-    this->first_query_port = 60000;
-    this->last_query_port = 61999;
     string id = this->node_id();
     this->local_host = id.substr(0, id.find(":"));
     if (this->is_server) {

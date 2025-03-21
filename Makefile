@@ -52,6 +52,9 @@ run-inference-agent-client:
 run-evolution:
 	src/bin/evolution $(OPTIONS)
 
+run-das-agent:
+	@bash ./src/scripts/bazel.sh run //das_agent:main -- $(OPTIONS)
+
 setup-nunet-dms:
 	@bash -x src/scripts/setup-nunet-dms.sh
 

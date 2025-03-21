@@ -1,4 +1,5 @@
-from hyperon_das_node import DistributedAlgorithmNode, LeadershipBrokerType, MessageBrokerType, Message
+from hyperon_das_node import DistributedAlgorithmNode, Message
+from hyperon_das_node.hyperon_das_node_ext import LeadershipBrokerType, MessageBrokerType
 from typing import List
 from queue import Queue
 
