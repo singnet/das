@@ -53,6 +53,9 @@ void QueryNode<AnswerType>::graceful_shutdown() {
     cout << "QueryNode::graceful_shutdown() BEGIN" << endl;
 #endif
     if (is_shutting_down()) {
+#ifdef DEBUG
+    cout << "QueryNode::graceful_shutdown() END (already shutting down)" << endl;
+#endif
         return;
     }
     DistributedAlgorithmNode::graceful_shutdown();
@@ -64,7 +67,7 @@ void QueryNode<AnswerType>::graceful_shutdown() {
         delete this->query_answer_processor;
         this->query_answer_processor = NULL;
     }
-#ifdef DEBUG    
+#ifdef DEBUG
     cout << "QueryNode::graceful_shutdown() END" << endl;
 #endif
 }

@@ -449,7 +449,6 @@ grpc::Status SynchronousGRPC::execute_message(
     dasproto::Empty* reply) {
 
     if (! this->is_shutting_down()) {
-        // TODO: fix memory leak :: seems to fixed in SynchronousGRPC::inbox_thread_method and SynchronousGRPC::inbox_thread_method
         this->incoming_messages.enqueue((void *) new dasproto::MessageData(*request));
         return grpc::Status::OK;
     } else {
