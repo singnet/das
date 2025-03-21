@@ -2,9 +2,37 @@ import itertools
 
 from queue import Queue
 
-from hyperon_das_node import Message
+from hyperon_das_node import DistributedAlgorithmNode, LeadershipBrokerType, MessageBrokerType, Message
 
-from evolution.das_node.star_node import StarNode
+
+class StarNode(DistributedAlgorithmNode):
+    is_server: bool
+    server_id: str
+
+    def __init__(
+        self,
+        node_id: str,
+        server_id: str = None,
+        messaging_backend: MessageBrokerType = MessageBrokerType.GRPC,
+    ):
+        super().__init__(node_id, LeadershipBrokerType.SINGLE_MASTER_SERVER, messaging_backend)
+        if server_id:
+            self.server_id = server_id
+            self.is_server = False
+            self.add_peer(server_id)
+        else:
+            self.is_server = True
+        self.join_network()
+
+    def node_joined_network(self, node_id: str):
+        if self.is_server:
+            self.add_peer(node_id)
+
+    def cast_leadership_vote(self) -> str:
+        if self.is_server:
+            return self.node_id()
+        else:
+            return self.server_id
 
 
 class NodeIdFactory:

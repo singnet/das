@@ -4,7 +4,6 @@ Non distributed version
 
 import contextlib
 import time
-import sys
 
 from typing import Any
 from threading import Thread, Event, Lock
