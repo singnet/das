@@ -56,7 +56,6 @@ py_library(
         ":fitness_functions",
         ":selection_methods",
         ":utils",
-        ":node",
         "//hyperon_das:hyperon_das",
         "//hyperon_das_atomdb:hyperon_das_atomdb",
         "//hyperon_das_query_engine:hyperon_das_query_engine",
