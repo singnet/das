@@ -29,6 +29,7 @@ jobs:
           sudo bash -c "wget -O - http://45.77.4.33/apt-repo/setup.sh | bash"
           sudo apt install das-cli
           das-cli --version
+          sudo das-cli update-version --version 0.4.9
 
       - name: Download Knowledge Base
         run: curl https://raw.githubusercontent.com/singnet/das-toolbox/refs/heads/master/das-cli/src/examples/data/animals.metta -o /tmp/animals.metta
@@ -43,6 +44,9 @@ jobs:
           $DAS_MONGODB_PASSWORD
           n
           8888
+          37007
+          35500
+          9070
           EOF
 
       - name: Starting Redis and MongoDB
