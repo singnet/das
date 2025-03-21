@@ -42,9 +42,9 @@ bazel_dep(name = "mbedtls", version = "3.6.0")
 # Python
 bazel_dep(name = "rules_python", version = "1.1.0")
 python = use_extension("@rules_python//python/extensions:python.bzl", "python")
-python.toolchain(python_version = "3.10", is_default = True)
-python.toolchain(python_version = "3.11")
-python.toolchain(python_version = "3.12")
+python.toolchain(python_version = "3.10", is_default = True, ignore_root_user_error = True)
+python.toolchain(python_version = "3.11", ignore_root_user_error = True)
+python.toolchain(python_version = "3.12", ignore_root_user_error = True)
 
 pip = use_extension("@rules_python//python/extensions:pip.bzl", "pip")
 pip.parse(
