@@ -43,7 +43,6 @@ if [ "$BUILD_BINARIES" = true ]; then
     $BAZELISK_BUILD_CMD //:query
     mv bazel-bin/query "$BIN_DIR"
     $BAZELISK_BUILD_CMD //evolution:main
-
 fi
 
 if [ "$BUILD_WHEELS" = true ]; then

@@ -21,7 +21,7 @@ py_library(
     name = "ram_only",
     srcs = ["ram_only.py"],
     deps = [
-        requirement("hyperon_das_atomdb_cpp"),
+        "//hyperon_das_atomdb_cpp",
     ],
 )
 

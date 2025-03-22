@@ -1720,7 +1720,7 @@
         "usagesDigest": "QGr57otiUlM9iP5vVxnnSEx6IdfDw8DpFMXwfZKfCqk=",
         "recordedFileInputs": {
           "@@//deps/requirements_dev_lock.txt": "107ebb98d3f233030b6b87e249f531fc59cf39f3a4bddc6b68356e4773a23a8a",
-          "@@//deps/requirements_lock.txt": "35874ab3e9744885203c90cac38e622eb2a255629f03f072e6146b0dee84e94f",
+          "@@//deps/requirements_lock.txt": "2a6ce279d8a00321f3568a43844e902f7617b9b776f3714659a01bc1a9170a22",
           "@@grpc+//requirements.bazel.txt": "4c8c19a2a8f22108bf29feb5cc2694eb0c7e0c82ba0364df27fe5f5e4d7936e5",
           "@@protobuf+//python/requirements.txt": "983be60d3cec4b319dcab6d48aeb3f5b2f7c3350f26b3a9e97486c37967c73c5",
           "@@protoc-gen-validate+//python/requirements.txt": "519d7dac0ff11c4a855aaef022dc2998ece0669db3b481cdb9e5a5d88e57eb83",
@@ -3958,24 +3958,6 @@
               "requirement": "grpcio==1.69.0"
             }
           },
-          "pypi_310_hyperon_das_atomdb": {
-            "repoRuleId": "@@rules_python+//python/private/pypi:whl_library.bzl%whl_library",
-            "attributes": {
-              "dep_template": "@pypi//{name}:{target}",
-              "python_interpreter_target": "@@rules_python++python+python_3_10_host//:python",
-              "repo": "pypi_310",
-              "requirement": "hyperon-das-atomdb==0.8.10"
-            }
-          },
-          "pypi_310_hyperon_das_atomdb_cpp": {
-            "repoRuleId": "@@rules_python+//python/private/pypi:whl_library.bzl%whl_library",
-            "attributes": {
-              "dep_template": "@pypi//{name}:{target}",
-              "python_interpreter_target": "@@rules_python++python+python_3_10_host//:python",
-              "repo": "pypi_310",
-              "requirement": "hyperon-das-atomdb-cpp==0.0.2"
-            }
-          },
           "pypi_310_idna": {
             "repoRuleId": "@@rules_python+//python/private/pypi:whl_library.bzl%whl_library",
             "attributes": {
@@ -3983,24 +3965,6 @@
               "python_interpreter_target": "@@rules_python++python+python_3_10_host//:python",
               "repo": "pypi_310",
               "requirement": "idna==3.10"
-            }
-          },
-          "pypi_310_mongomock": {
-            "repoRuleId": "@@rules_python+//python/private/pypi:whl_library.bzl%whl_library",
-            "attributes": {
-              "dep_template": "@pypi//{name}:{target}",
-              "python_interpreter_target": "@@rules_python++python+python_3_10_host//:python",
-              "repo": "pypi_310",
-              "requirement": "mongomock==4.3.0"
-            }
-          },
-          "pypi_310_packaging": {
-            "repoRuleId": "@@rules_python+//python/private/pypi:whl_library.bzl%whl_library",
-            "attributes": {
-              "dep_template": "@pypi//{name}:{target}",
-              "python_interpreter_target": "@@rules_python++python+python_3_10_host//:python",
-              "repo": "pypi_310",
-              "requirement": "packaging==24.2"
             }
           },
           "pypi_310_protobuf": {
@@ -4030,15 +3994,6 @@
               "requirement": "python-dotenv==1.0.1"
             }
           },
-          "pypi_310_pytz": {
-            "repoRuleId": "@@rules_python+//python/private/pypi:whl_library.bzl%whl_library",
-            "attributes": {
-              "dep_template": "@pypi//{name}:{target}",
-              "python_interpreter_target": "@@rules_python++python+python_3_10_host//:python",
-              "repo": "pypi_310",
-              "requirement": "pytz==2024.2"
-            }
-          },
           "pypi_310_redis": {
             "repoRuleId": "@@rules_python+//python/private/pypi:whl_library.bzl%whl_library",
             "attributes": {
@@ -4055,24 +4010,6 @@
               "python_interpreter_target": "@@rules_python++python+python_3_10_host//:python",
               "repo": "pypi_310",
               "requirement": "requests==2.32.3"
-            }
-          },
-          "pypi_310_sentinels": {
-            "repoRuleId": "@@rules_python+//python/private/pypi:whl_library.bzl%whl_library",
-            "attributes": {
-              "dep_template": "@pypi//{name}:{target}",
-              "python_interpreter_target": "@@rules_python++python+python_3_10_host//:python",
-              "repo": "pypi_310",
-              "requirement": "sentinels==1.0.0"
-            }
-          },
-          "pypi_310_setuptools": {
-            "repoRuleId": "@@rules_python+//python/private/pypi:whl_library.bzl%whl_library",
-            "attributes": {
-              "dep_template": "@pypi//{name}:{target}",
-              "python_interpreter_target": "@@rules_python++python+python_3_10_host//:python",
-              "repo": "pypi_310",
-              "requirement": "setuptools==70.3.0"
             }
           },
           "pypi_310_soupsieve": {
@@ -6717,19 +6654,12 @@
                 "dnspython": "{\"pypi_310_dnspython\":[{\"version\":\"3.10\"}]}",
                 "google": "{\"pypi_310_google\":[{\"version\":\"3.10\"}]}",
                 "grpcio": "{\"pypi_310_grpcio\":[{\"version\":\"3.10\"}]}",
-                "hyperon_das_atomdb": "{\"pypi_310_hyperon_das_atomdb\":[{\"version\":\"3.10\"}]}",
-                "hyperon_das_atomdb_cpp": "{\"pypi_310_hyperon_das_atomdb_cpp\":[{\"version\":\"3.10\"}]}",
                 "idna": "{\"pypi_310_idna\":[{\"version\":\"3.10\"}]}",
-                "mongomock": "{\"pypi_310_mongomock\":[{\"version\":\"3.10\"}]}",
-                "packaging": "{\"pypi_310_packaging\":[{\"version\":\"3.10\"}]}",
                 "protobuf": "{\"pypi_310_protobuf\":[{\"version\":\"3.10\"}]}",
                 "pymongo": "{\"pypi_310_pymongo\":[{\"version\":\"3.10\"}]}",
                 "python_dotenv": "{\"pypi_310_python_dotenv\":[{\"version\":\"3.10\"}]}",
-                "pytz": "{\"pypi_310_pytz\":[{\"version\":\"3.10\"}]}",
                 "redis": "{\"pypi_310_redis\":[{\"version\":\"3.10\"}]}",
                 "requests": "{\"pypi_310_requests\":[{\"version\":\"3.10\"}]}",
-                "sentinels": "{\"pypi_310_sentinels\":[{\"version\":\"3.10\"}]}",
-                "setuptools": "{\"pypi_310_setuptools\":[{\"version\":\"3.10\"}]}",
                 "soupsieve": "{\"pypi_310_soupsieve\":[{\"version\":\"3.10\"}]}",
                 "urllib3": "{\"pypi_310_urllib3\":[{\"version\":\"3.10\"}]}"
               },
@@ -6741,19 +6671,12 @@
                 "dnspython",
                 "google",
                 "grpcio",
-                "hyperon_das_atomdb",
-                "hyperon_das_atomdb_cpp",
                 "idna",
-                "mongomock",
-                "packaging",
                 "protobuf",
                 "pymongo",
                 "python_dotenv",
-                "pytz",
                 "redis",
                 "requests",
-                "sentinels",
-                "setuptools",
                 "soupsieve",
                 "urllib3"
               ],
