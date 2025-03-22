@@ -16,7 +16,8 @@ LinkCreationAgent::LinkCreationAgent(string config_path) {
     this->config_path = config_path;
     load_config();
     link_creation_node_server = new LinkCreationAgentNode(link_creation_agent_server_id);
-    query_node_client = new DASNode(query_agent_client_id, query_agent_server_id);
+    query_node_client = new DASNode(query_agent_client_id, query_agent_server_id, query_agent_client_start_port,
+                                    query_agent_client_end_port);
     service = new LinkCreationService(link_creation_agent_thread_count);
     das_client = new DasAgentNode(das_agent_client_id, das_agent_server_id);
 
@@ -134,6 +135,11 @@ void LinkCreationAgent::load_config() {
                     this->das_agent_server_id = value;
                 else if (key == "context")
                     this->context = value;
+                else if (key == "query_agent_client_start_port")
+                    this->query_agent_client_start_port = stoul(value);
+                else if (key == "query_agent_client_end_port")
+                    this->query_agent_client_end_port = stoul(value);
+                
             }
         }
     }

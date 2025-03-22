@@ -102,6 +102,8 @@ class LinkCreationAgent {
     string das_agent_server_id;
     string requests_buffer_file;  // Path to the requests buffer file
     string context;               // Context to send to attention broker
+    unsigned int query_agent_client_start_port;
+    unsigned int query_agent_client_end_port;
 
     // Other attributes
     LinkCreationService* service;

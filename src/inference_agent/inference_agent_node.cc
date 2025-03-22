@@ -7,7 +7,7 @@ using namespace std;
 
 const std::string InferenceAgentNode::CREATE_INFERENCE = "create_inference";
 const std::string InferenceAgentNode::INFERENCE_ANSWER = "inference_answer";
-const std::string InferenceAgentNode::DISTRIBUTED_INFERENCE_FINISHED = "distributed_inference_finished";
+const std::string InferenceAgentNode::DISTRIBUTED_INFERENCE_FINISHED = "evolution_finished";
 
 InferenceAgentNode::InferenceAgentNode(const std::string& node_id) : StarNode(node_id) {
     cout << "InferenceAgentNode::InferenceAgentNode Server" << endl;
