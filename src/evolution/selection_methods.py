@@ -88,7 +88,7 @@ def roulette(population: list[tuple[Any, float]], max_individuals: int) -> list[
     selection_probabilities = [fitness / total_fitness for _, fitness in population]
     selected_individuals = set()
 
-    while len(selected_individuals) < max_individuals:
+    while len(selected_individuals) < min(len(population), max_individuals):
         selection_point = random.random()
         running_sum_of_probabilities = 0
         for (individual, _), selection_probability in zip(population, selection_probabilities):

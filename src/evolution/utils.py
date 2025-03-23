@@ -83,3 +83,16 @@ def profile(func):
         return result
 
     return wrapper
+
+
+def log_function_call(func):
+    """Decorator to log the start and end of a function call."""
+    @functools.wraps(func)
+    def wrapper(*args, **kwargs):
+        sys.stdout.write(f'\n{func.__name__} START')
+        sys.stdout.flush()
+        result = func(*args, **kwargs)
+        sys.stdout.write(f'\n{func.__name__} END')
+        sys.stdout.flush()
+        return result
+    return wrapper
