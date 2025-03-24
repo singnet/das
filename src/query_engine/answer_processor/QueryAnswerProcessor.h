@@ -2,12 +2,13 @@
 
 #include "QueryAnswer.h"
 #include "QueryNode.h"
+#include "LazyWorkerDeleter.h"
 
 using namespace std;
 
 namespace query_engine {
 
-class QueryAnswerProcessor {
+class QueryAnswerProcessor : public Worker {
    public:
     virtual ~QueryAnswerProcessor() = default;
     virtual void process_answer(QueryAnswer* query_answer) = 0;

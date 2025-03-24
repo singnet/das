@@ -57,6 +57,10 @@ class AttentionBrokerUpdater : public QueryAnswerProcessor {
         }
     }
 
+    virtual bool is_work_done() override {
+        return this->is_flow_finished() && this->answers_queue.empty();
+    }
+
    protected:
     void queue_processor() {
         // GRPC stuff
@@ -86,7 +90,7 @@ class AttentionBrokerUpdater : public QueryAnswerProcessor {
 
         // handle_list.set_context(this->query_context);
         do {
-            if (this->is_flow_finished() && this->answers_queue.empty()) {
+            if (this->is_work_done()) {
                 break;
             }
             bool idle_flag = true;
