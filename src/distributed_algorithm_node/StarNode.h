@@ -1,5 +1,5 @@
-#ifndef _QUERY_NODE_STARNODE_H
-#define _QUERY_NODE_STARNODE_H
+#ifndef _DISTRIBUTED_ALGORITHM_NODE_STARNODE_H
+#define _DISTRIBUTED_ALGORITHM_NODE_STARNODE_H
 
 #include <string>
 #include "DistributedAlgorithmNode.h"
@@ -76,4 +76,4 @@ protected:
 
 } // namespace distributed_algorithm_node
 
-#endif // _QUERY_NODE_STARNODE_H
+#endif // _DISTRIBUTED_ALGORITHM_NODE_STARNODE_H
