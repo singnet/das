@@ -16,7 +16,7 @@ py_library(
         "//hyperon_das",
         "//hyperon_das:client",
         "//hyperon_das:das",
-        requirement("hyperon_das_atomdb"),
+        "//hyperon_das_atomdb",
     ],
 )
 
@@ -52,7 +52,7 @@ py_test(
         ":helpers",
         "//hyperon_das:client",
         "//hyperon_das:link_filters",
-        requirement("hyperon_das_atomdb"),
+        "//hyperon_das_atomdb",
     ],
 )
 
@@ -98,7 +98,7 @@ py_test(
         ":helpers",
         "//hyperon_das",
         "//tests/python:helpers",
-        requirement("hyperon_das_atomdb"),
+        "//hyperon_das_atomdb",
     ],
 )
 
@@ -108,7 +108,7 @@ py_test(
     srcs = ["test_metta_api.py"],
     deps = [
         "//hyperon_das",
-        requirement("hyperon_das_atomdb"),
+        "//hyperon_das_atomdb",
     ],
 )
 
@@ -126,7 +126,7 @@ py_test(
         "//hyperon_das:exceptions",
         "//hyperon_das:link_filters",
         "//hyperon_das:traverse_engines",
-        requirement("hyperon_das_atomdb"),
+        "//hyperon_das_atomdb",
     ],
 )
 

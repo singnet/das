@@ -20,7 +20,7 @@ py_library(
         ":logger",
         "//hyperon_das_atomdb/adapters",
         "//hyperon_das_atomdb/utils",
-        requirement("hyperon_das_atomdb_cpp"),
+        "//hyperon_das_atomdb_cpp",
     ],
 )
 
@@ -58,7 +58,7 @@ py_library(
     name = "database",
     srcs = ["database.py"],
     deps = [
-        requirement("hyperon_das_atomdb_cpp"),
+        "//hyperon_das_atomdb_cpp",
     ],
 )
 
@@ -66,7 +66,7 @@ py_library(
     name = "exceptions",
     srcs = ["exceptions.py"],
     deps = [
-        requirement("hyperon_das_atomdb_cpp"),
+        "//hyperon_das_atomdb_cpp",
     ],
 )
 

@@ -27,11 +27,11 @@ mkdir -p \
 CONTAINER_WORKDIR=/opt/das
 CONTAINER_WORKSPACE_DIR=/opt/das/src
 CONTAINER_BIN_DIR=$CONTAINER_WORKSPACE_DIR/bin
-CONTAINER_ASPECT_CACHE=/home/"${USER}"/.cache/aspect
-CONTAINER_BAZEL_CACHE=/home/"${USER}"/.cache/bazel
-CONTAINER_PIP_CACHE=/home/"${USER}"/.cache/pip
-CONTAINER_PIPTOOLS_CACHE=/home/"${USER}"/.cache/pip-tools
-CONTAINER_BAZELISK_CACHE=/home/"${USER}"/.cache/bazelisk
+CONTAINER_ASPECT_CACHE=/root/.cache/aspect
+CONTAINER_BAZEL_CACHE=/root/.cache/bazel
+CONTAINER_PIP_CACHE=/root/.cache/pip
+CONTAINER_PIPTOOLS_CACHE=/root/.cache/pip-tools
+CONTAINER_BAZELISK_CACHE=/root/.cache/bazelisk
 
 if docker ps -a --format '{{.Names}}' | grep -q "^${CONTAINER_NAME}$"; then
   echo "Removing existing container: ${CONTAINER_NAME}"
@@ -39,11 +39,9 @@ if docker ps -a --format '{{.Names}}' | grep -q "^${CONTAINER_NAME}$"; then
 fi
 
 docker run --rm \
-  --user="$(id -u)":"$(id -g)" \
   --name=$CONTAINER_NAME \
   -e BIN_DIR=$CONTAINER_BIN_DIR \
   --network=host \
-  --volume /etc/passwd:/etc/passwd:ro \
   --volume "$LOCAL_PIP_CACHE":"$CONTAINER_PIP_CACHE" \
   --volume "$LOCAL_PIPTOOLS_CACHE":"$CONTAINER_PIPTOOLS_CACHE" \
   --volume "$LOCAL_ASPECT_CACHE":"$CONTAINER_ASPECT_CACHE" \

@@ -80,7 +80,7 @@ py_library(
         "//hyperon_das/cache:cache_controller",
         "//hyperon_das/query_engines:local_query_engine",
         "//hyperon_das/query_engines:remote_query_engine",
-        requirement("hyperon_das_atomdb"),
+        "//hyperon_das_atomdb",
     ],
 )
 
@@ -93,7 +93,7 @@ py_library(
         ":logger",
         ":type_alias",
         ":utils",
-        requirement("hyperon_das_atomdb"),
+        "//hyperon_das_atomdb",
         requirement("requests"),
     ],
 )
@@ -104,7 +104,7 @@ py_library(
     deps = [
         "//hyperon_das/cache",
         "//hyperon_das/cache:iterators",
-        requirement("hyperon_das_atomdb"),
+        "//hyperon_das_atomdb",
     ],
 )
 
@@ -113,7 +113,7 @@ py_library(
     srcs = ["context.py"],
     deps = [
         ":utils",
-        requirement("hyperon_das_atomdb"),
+        "//hyperon_das_atomdb",
     ],
 )
 
@@ -165,6 +165,6 @@ py_library(
     name = "link_filters",
     srcs = ["link_filters.py"],
     deps = [
-        requirement("hyperon_das_atomdb"),
+        "//hyperon_das_atomdb",
     ],
 )

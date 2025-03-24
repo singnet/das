@@ -51,7 +51,7 @@ py_library(
         "//hyperon_das",
         "//hyperon_das:das",
         "//hyperon_das/cache:cache_controller",
-        requirement("hyperon_das_atomdb"),
+        "//hyperon_das_atomdb",
     ],
 )
 
@@ -71,7 +71,7 @@ py_test(
         "//hyperon_das:utils",
         "//hyperon_das/cache:attention_broker_gateway",
         "//hyperon_das/cache:cache_controller",
-        requirement("hyperon_das_atomdb"),
+        "//hyperon_das_atomdb",
     ],
 )
 
@@ -101,7 +101,7 @@ py_test(
     srcs = ["test_context.py"],
     deps = [
         "//hyperon_das:context",
-        requirement("hyperon_das_atomdb"),
+        "//hyperon_das_atomdb",
     ],
 )
 
@@ -113,7 +113,7 @@ py_test(
         "//hyperon_das:context",
         "//hyperon_das:das",
         "//hyperon_das:traverse_engines",
-        requirement("hyperon_das_atomdb"),
+        "//hyperon_das_atomdb",
     ],
 )
 
@@ -154,7 +154,7 @@ py_test(
         "//hyperon_das",
         "//hyperon_das_node",
         "//hyperon_das_query_engine",
-        requirement("hyperon_das_atomdb"),
+        "//hyperon_das_atomdb",
     ],
 )
 
@@ -174,7 +174,7 @@ py_test(
         "//hyperon_das:constants",
         "//hyperon_das:das",
         "//tests/python:helpers",
-        requirement("hyperon_das_atomdb"),
+        "//hyperon_das_atomdb",
     ],
 )
 
