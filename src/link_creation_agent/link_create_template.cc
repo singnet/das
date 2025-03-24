@@ -43,23 +43,6 @@ LinkCreateTemplate::LinkCreateTemplate(const std::string& link_type) {
     this->custom_fields = {};
 }
 
-LinkCreateTemplate::LinkCreateTemplate(const ProcessorType& processor){
-    if (processor == ProcessorType::PROOF_OF_IMPLICATION) {
-        // TODO set targets and custom fields
-        this->link_type = "IMPLICATION";
-        this->targets = {};
-        this->custom_fields = {};
-    } else if (processor == ProcessorType::PROOF_OF_EQUIVALENCE) {
-        // TODO set targets and custom fields
-        this->link_type = "EQUIVALENCE";
-        this->targets = {};
-        this->custom_fields = {};
-    } else {
-        throw std::invalid_argument("Can not create Link Template: Invalid arguments");
-    }
-
-}
-
 static std::vector<std::string> parse_sub_custom_field(std::vector<std::string>& link_template,
                                                        size_t& cursor) {
     if (get_token(link_template, cursor) != "CUSTOM_FIELD" || link_template.size() < cursor + 3)

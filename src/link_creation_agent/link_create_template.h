@@ -10,7 +10,6 @@
 #include <variant>
 #include <vector>
 
-#include "link_creation_processors.h"
 
 namespace link_creation_agent {
 
@@ -113,10 +112,6 @@ class LinkCreateTemplate {
      * @brief Constructor that initializes the link creation template with a list of link templates.
      */
     LinkCreateTemplate(std::vector<std::string>& link_template);
-    /**
-     * @brief Constructor that initializes the link creation template with a processor type.
-     */
-    LinkCreateTemplate(const ProcessorType& processor);
     /**
      * @brief Destructor for the LinkCreateTemplate class.
      */

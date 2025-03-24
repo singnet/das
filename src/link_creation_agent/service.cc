@@ -1,6 +1,5 @@
 #include "service.h"
 
-#include "link_creation_processors.h"
 #include "template_processor.h"
 #include "equivalence_processor.h"
 #include "implication_processor.h"

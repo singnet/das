@@ -39,7 +39,7 @@ cc_library(
 cc_library(
   name = "link",
   srcs = ["link.cc"],
-  hdrs = ["link.h", "link_create_template.h", "link_creation_processors.h"],
+  hdrs = ["link.h", "link_create_template.h"],
   deps = [
     "//query_engine:query_engine_lib"
   ],
@@ -48,7 +48,7 @@ cc_library(
 cc_library(
   name = "link_create_template",
   srcs = ["link_create_template.cc"],
-  hdrs = ["link_create_template.h", "link_creation_processors.h"],
+  hdrs = ["link_create_template.h"],
   deps = [],
 )
 
@@ -64,7 +64,7 @@ cc_library(
 cc_library(
   name = "service",
   srcs = ["service.cc"],
-  hdrs = ["service.h", "thread_pool.h", "link_creation_processors.h"],
+  hdrs = ["service.h", "thread_pool.h"],
   deps = [
     ":das_agent_node",
     ":link",
