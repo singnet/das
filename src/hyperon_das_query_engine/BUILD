@@ -31,7 +31,7 @@ py_wheel(
     description_content_type = "text/markdown",
     description_file = "README_hyperon_das_query_engine.md",
     distribution = "hyperon_das_query_engine",
-    platform = "manylinux_2_28_x86_64",
+    platform = "any",
     python_requires = ">=3.10",
     python_tag = "cp310",
     stamp = 1,

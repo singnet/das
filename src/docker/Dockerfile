@@ -8,15 +8,13 @@ ARG DATA_DIR="${BASE_DIR}/data"
 ARG GRPC_DIR="${BASE_DIR}/grpc"
 ARG PROTO_DIR="${BASE_DIR}/proto"
 ARG BAZEL_DIR="${BASE_DIR}/bazel"
-ARG THIRD_PARTY="${BASE_DIR}/3rd-party"
 
 RUN mkdir -p \
     ${DAS_DIR} \
     ${DATA_DIR} \
     ${GRPC_DIR} \
     ${BAZEL_DIR} \
-    ${PROTO_DIR} \
-    ${THIRD_PARTY}
+    ${PROTO_DIR}
 
 RUN yes | apt update -y \
     && yes | apt install -y git build-essential curl protobuf-compiler python3 python3-pip cmake \
@@ -24,13 +22,12 @@ RUN yes | apt update -y \
     && yes | apt clean -y \
     && rm -rf /var/lib/apt/lists/*
 
-COPY src/assets/3rd-party.tgz ${THIRD_PARTY}
-RUN cd ${THIRD_PARTY} \
-    && tar xzvf 3rd-party.tgz \
-    && rm -f 3rd-party.tgz \
-    && mkdir -p ${DAS_DIR}/src/3rd-party \
-    && ln -s ${THIRD_PARTY} ${DAS_DIR}/src/3rd-party \
-    && mv bazelisk ${BAZEL_DIR}
+COPY src/assets/bazelisk.tgz /tmp
+RUN ARCH=$(if [ "$(uname -m)" = "aarch64" ]; then echo "arm64"; else echo "amd64"; fi) \
+    && cd /tmp \
+    && tar xzvf bazelisk.tgz \
+    && mv bazelisk-${ARCH} ${BAZEL_DIR}/bazelisk \
+    && rm -f bazelisk*
 
 ################################################################################
 # To be removed when AtomDB is properly integrated

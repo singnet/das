@@ -4,6 +4,7 @@ set -eoux pipefail
 
 IMAGE_NAME="das-builder"
 CONTAINER_NAME=${IMAGE_NAME}-container
+CONTAINER_USER=builder
 
 # local paths
 LOCAL_WORKDIR=$(pwd)
@@ -25,11 +26,11 @@ mkdir -p \
 CONTAINER_WORKDIR=/opt/das
 CONTAINER_WORKSPACE_DIR=/opt/das/src
 CONTAINER_BIN_DIR=$CONTAINER_WORKSPACE_DIR/bin
-CONTAINER_ASPECT_CACHE=/home/${USER}/.cache/aspect
-CONTAINER_BAZEL_CACHE=/home/${USER}/.cache/bazel
-CONTAINER_PIP_CACHE=/home/${USER}/.cache/pip
-CONTAINER_PIPTOOLS_CACHE=/home/${USER}/.cache/pip-tools
-CONTAINER_BAZELISK_CACHE=/home/${USER}/.cache/bazelisk
+CONTAINER_ASPECT_CACHE=/home/${CONTAINER_USER}/.cache/aspect
+CONTAINER_BAZEL_CACHE=/home/${CONTAINER_USER}/.cache/bazel
+CONTAINER_PIP_CACHE=/home/${CONTAINER_USER}/.cache/pip
+CONTAINER_PIPTOOLS_CACHE=/home/${CONTAINER_USER}/.cache/pip-tools
+CONTAINER_BAZELISK_CACHE=/home/${CONTAINER_USER}/.cache/bazelisk
 
 if docker ps -a --format '{{.Names}}' | grep -q "^${CONTAINER_NAME}$"; then
   echo "Removing existing container: ${CONTAINER_NAME}"
@@ -37,10 +38,10 @@ if docker ps -a --format '{{.Names}}' | grep -q "^${CONTAINER_NAME}$"; then
 fi
 
 docker run --rm \
-  --user=$(id -u):$(id -g) \
+  --user=$CONTAINER_USER \
+  --privileged \
   --name=$CONTAINER_NAME \
   -e BIN_DIR=$CONTAINER_BIN_DIR \
-  --volume /etc/passwd:/etc/passwd:ro \
   --volume $LOCAL_PIP_CACHE:$CONTAINER_PIP_CACHE \
   --volume $LOCAL_PIPTOOLS_CACHE:$CONTAINER_PIPTOOLS_CACHE \
   --volume $LOCAL_ASPECT_CACHE:$CONTAINER_ASPECT_CACHE \

@@ -43,6 +43,6 @@ py_library(
         "//hyperon_das:link_filters",
         "//hyperon_das:utils",
         "//hyperon_das/query_engines:query_engine_protocol",
-        requirement("hyperon_das_atomdb"),
+        "//hyperon_das_atomdb",
     ],
 )
