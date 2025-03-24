@@ -5,6 +5,8 @@ set -eoux pipefail
 IMAGE_NAME="das-builder"
 CONTAINER_NAME=${IMAGE_NAME}-container
 
+ENV_VARS=$(printenv | awk -F= '{print "--env "$1}')
+
 # local paths
 LOCAL_WORKDIR=$(pwd)
 LOCAL_BIN_DIR=$LOCAL_WORKDIR/src/bin
@@ -40,6 +42,8 @@ docker run --rm \
   --user=$(id -u):$(id -g) \
   --name=$CONTAINER_NAME \
   -e BIN_DIR=$CONTAINER_BIN_DIR \
+  $ENV_VARS \
+  --network host \
   --volume /etc/passwd:/etc/passwd:ro \
   --volume $LOCAL_PIP_CACHE:$CONTAINER_PIP_CACHE \
   --volume $LOCAL_PIPTOOLS_CACHE:$CONTAINER_PIPTOOLS_CACHE \
@@ -50,5 +54,3 @@ docker run --rm \
   --workdir $CONTAINER_WORKSPACE_DIR \
   ${IMAGE_NAME} \
   ./scripts/bazel_build.sh
-
-docker run --rm --volume $LOCAL_BIN_DIR:/app/bin/evolution evolution-builder

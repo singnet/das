@@ -10,16 +10,12 @@ def parse_args():
         )
     )
     parser.add_argument(
-        '--config-file',
+        "--config-file",
         required=True,
-        default='config.cfg',
-        help="Path to the configuration file (default: 'config.cfg')"
+        default="config.cfg",
+        help="Path to the configuration file (default: 'config.cfg')",
     )
-    parser.add_argument(
-        '--query-tokens',
-        required=True,
-        help="Query tokens to be optimized"
-    )
+    parser.add_argument("--query-tokens", required=True, help="Query tokens to be optimized")
 
     return parser.parse_args()
 
@@ -37,6 +33,6 @@ def main():
         raise e
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     print("Starting optimizer")
     print(main())

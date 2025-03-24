@@ -17,7 +17,10 @@ class InferenceRequest {
     /**
      * @brief Construct a new Inference Request object
      */
-    InferenceRequest(std::string first_handle, std::string second_handle, int max_proof_length);
+    InferenceRequest(std::string first_handle,
+                     std::string second_handle,
+                     int max_proof_length,
+                     std::string context);
     ~InferenceRequest();
     /**
      * @brief Query to send to link creation agent
@@ -32,6 +35,13 @@ class InferenceRequest {
      * @return std::string
      */
     std::string get_id();
+
+    /**
+     * @brief Set the id of the inference request
+     *
+     * @param inference_request_id
+     */
+    void set_id(std::string inference_request_id);
 
     /**
      * @brief Get the type of the inference request
@@ -59,17 +69,26 @@ class InferenceRequest {
      */
     virtual std::vector<std::vector<std::string>> get_requests();
 
+    /**
+     * @brief Get the context
+     */
+    std::string get_context();
+
    protected:
     std::string first_handle;
     std::string second_handle;
     int max_proof_length;
+    std::string context;
+    std::string inference_request_id;
+
 };
 
 class ProofOfImplicationOrEquivalence : public InferenceRequest {
    public:
     ProofOfImplicationOrEquivalence(std::string first_handle,
                                     std::string second_handle,
-                                    int max_proof_length);
+                                    int max_proof_length,
+                                    std::string context);
     ~ProofOfImplicationOrEquivalence();
 
     std::vector<std::string> query() override;
@@ -80,7 +99,10 @@ class ProofOfImplicationOrEquivalence : public InferenceRequest {
 
 class ProofOfImplication : public InferenceRequest {
    public:
-    ProofOfImplication(std::string first_handle, std::string second_handle, int max_proof_length);
+    ProofOfImplication(std::string first_handle,
+                       std::string second_handle,
+                       int max_proof_length,
+                       std::string context);
     ~ProofOfImplication();
 
     std::vector<std::string> query() override;
@@ -93,7 +115,10 @@ class ProofOfImplication : public InferenceRequest {
 
 class ProofOfEquivalence : public InferenceRequest {
    public:
-    ProofOfEquivalence(std::string first_handle, std::string second_handle, int max_proof_length);
+    ProofOfEquivalence(std::string first_handle,
+                       std::string second_handle,
+                       int max_proof_length,
+                       std::string context);
     ~ProofOfEquivalence();
 
     std::vector<std::string> query() override;

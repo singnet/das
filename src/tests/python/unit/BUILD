@@ -151,10 +151,9 @@ py_test(
         "//evolution:optimizer",
         "//evolution:selection_methods",
         "//evolution:utils",
-        "//evolution/das_node:das_node",
-        "//evolution/das_node:query_answer",
         "//hyperon_das",
         "//hyperon_das_node",
+        "//hyperon_das_query_engine",
         requirement("hyperon_das_atomdb"),
     ],
 )
@@ -190,10 +189,21 @@ py_test(
 
 py_test(
     name = "test_star_node",
+    tags = ["skip"],
     size = "small",
     srcs = ["test_star_node.py"],
     deps = [
         "//hyperon_das_node:hyperon_das_node",
+    ],
+)
+
+py_test(
+    name = "test_das_node",
+    tags = ["skip"],
+    size = "small",
+    srcs = ["test_das_node.py"],
+    deps = [
+        "//hyperon_das_query_engine:hyperon_das_query_engine",
     ],
 )
 

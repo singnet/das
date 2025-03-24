@@ -20,7 +20,13 @@ RemoteSink<AnswerType>::RemoteSink(QueryElement* precedent,
 
 template <class AnswerType>
 RemoteSink<AnswerType>::~RemoteSink() {
+#ifdef DEBUG
+    cout << "RemoteSink::~RemoteSink() BEGIN" << endl;
+#endif
     graceful_shutdown();
+#ifdef DEBUG
+    cout << "RemoteSink::~RemoteSink() END" << endl;
+#endif
 }
 
 // -------------------------------------------------------------------------------------------------

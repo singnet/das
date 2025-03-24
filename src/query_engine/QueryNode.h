@@ -5,6 +5,7 @@
 #include <thread>
 
 #include "DistributedAlgorithmNode.h"
+#include "LazyWorkerDeleter.h"
 #include "QueryAnswer.h"
 #include "SharedQueue.h"
 
@@ -22,7 +23,7 @@ constexpr char* QUERY_ANSWERS_FINISHED_COMMAND = "query_answers_finished";
  *
  */
 template <class AnswerType>
-class QueryNode : public DistributedAlgorithmNode {
+class QueryNode : public DistributedAlgorithmNode, public Worker {
    public:
     QueryNode(const string& node_id,
               bool is_server,
@@ -38,10 +39,13 @@ class QueryNode : public DistributedAlgorithmNode {
     bool is_query_answers_empty();
     virtual void query_answer_processor_method() = 0;
 
+    virtual bool is_work_done() override { return this->work_done_flag; }  // as Worker
+
    protected:
     SharedQueue query_answer_queue;
     thread* query_answer_processor;
     bool requires_serialization;
+    bool work_done_flag;
 
    private:
     bool is_server;
@@ -55,7 +59,6 @@ template <class AnswerType>
 class QueryNodeServer : public QueryNode<AnswerType> {
    public:
     QueryNodeServer(const string& node_id, MessageBrokerType messaging_backend = MessageBrokerType::RAM);
-    virtual ~QueryNodeServer();
 
     void node_joined_network(const string& node_id);
     string cast_leadership_vote();
@@ -68,7 +71,6 @@ class QueryNodeClient : public QueryNode<AnswerType> {
     QueryNodeClient(const string& node_id,
                     const string& server_id,
                     MessageBrokerType messaging_backend = MessageBrokerType::RAM);
-    virtual ~QueryNodeClient();
 
     void node_joined_network(const string& node_id);
     string cast_leadership_vote();
