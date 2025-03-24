@@ -4,10 +4,8 @@ set -eoux pipefail
 
 BAZELISK_CMD=/opt/bazel/bazelisk
 BAZELISK_BUILD_CMD="${BAZELISK_CMD} build"
+[ "${BAZEL_JOBS:-x}" != "x" ] && BAZELISK_BUILD_CMD="${BAZELISK_BUILD_CMD} --jobs=${BAZEL_JOBS}"
 BAZELISK_RUN_CMD="${BAZELISK_CMD} run"
-
-BUILD_BINARIES=false
-BUILD_WHEELS=false
 
 for arg in "$@"; do
     case $arg in
@@ -19,6 +17,9 @@ for arg in "$@"; do
             ;;
     esac
 done
+
+BUILD_BINARIES=${BUILD_BINARIES:-false}
+BUILD_WHEELS=${BUILD_WHEELS:-false}
 
 if [ "$BUILD_BINARIES" = false ] && [ "$BUILD_WHEELS" = false ]; then
     BUILD_BINARIES=true

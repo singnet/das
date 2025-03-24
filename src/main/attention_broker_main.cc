@@ -26,7 +26,7 @@ void ctrl_c_handler(int) {
 
 void run_server(unsigned int port) {
     attention_broker_server::AttentionBrokerServer service;
-    std::string server_address = "localhost:" + to_string(port);
+    std::string server_address = "0.0.0.0:" + to_string(port);
     //grpc::EnableDefaultHealthCheckService(true);
     //grpc::reflection::InitProtoReflectionServerBuilderPlugin();
     ServerBuilder builder;

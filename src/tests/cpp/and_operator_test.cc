@@ -75,10 +75,10 @@ void check_query_answer(
 
 TEST(AndOperator, basics) {
     
-    TestSource source1(1);
-    TestSource source2(2);
-    And<2> and_operator({&source1, &source2});
-    TestSink sink(&and_operator);
+    TestSource* source1 = new TestSource(1);
+    TestSource* source2 = new TestSource(2);
+    And<2>* and_operator = new And<2>({source1, source2});
+    TestSink sink(and_operator);
     HandlesAnswer *query_answer;
 
     EXPECT_TRUE(sink.empty()); EXPECT_FALSE(sink.finished());
@@ -98,24 +98,24 @@ TEST(AndOperator, basics) {
     // 2 2 - 0.03
     // --------------------------------------------------
 
-    source1.add("h1_0", 0.5, {"v1_0"}, {"1"});
-    source2.add("h2_0", 0.3, {"v1_1"}, {"2"});
-    source2.add("h2_1", 0.2, {"v2_1"}, {"1"});
+    source1->add("h1_0", 0.5, {"v1_0"}, {"1"});
+    source2->add("h2_0", 0.3, {"v1_1"}, {"2"});
+    source2->add("h2_1", 0.2, {"v2_1"}, {"1"});
     EXPECT_TRUE(sink.empty()); EXPECT_FALSE(sink.finished());
-    source1.add("h1_1", 0.4, {"v1_1"}, {"1"});
+    source1->add("h1_1", 0.4, {"v1_1"}, {"1"});
     EXPECT_FALSE(sink.empty()); EXPECT_FALSE(sink.finished());
     EXPECT_FALSE((query_answer = dynamic_cast<HandlesAnswer*>(sink.pop())) == NULL);
     EXPECT_TRUE(sink.empty()); EXPECT_FALSE(sink.finished());
     check_query_answer("1", query_answer, 0.5, 2, {"h1_0", "h2_0"});
     EXPECT_TRUE(strcmp(query_answer->assignment.get("v1_0"), "1") == 0);
     EXPECT_TRUE(strcmp(query_answer->assignment.get("v1_1"), "2") == 0);
-    source1.add("h1_2", 0.3, {"v1_2"}, {"1"});
+    source1->add("h1_2", 0.3, {"v1_2"}, {"1"});
     EXPECT_TRUE(sink.empty()); EXPECT_FALSE(sink.finished());
-    source2.add("h2_2", 0.1, {"v2_2"}, {"1"});
+    source2->add("h2_2", 0.1, {"v2_2"}, {"1"});
     EXPECT_TRUE(sink.empty()); EXPECT_FALSE(sink.finished());
-    source1.query_answers_finished();
+    source1->query_answers_finished();
     EXPECT_TRUE(sink.empty()); EXPECT_FALSE(sink.finished());
-    source2.query_answers_finished();
+    source2->query_answers_finished();
     Utils::sleep(SLEEP_DURATION);
     EXPECT_FALSE(sink.empty()); EXPECT_TRUE(sink.finished());
 
@@ -145,10 +145,12 @@ TEST(AndOperator, basics) {
     Utils::sleep(SLEEP_DURATION);
 
     EXPECT_TRUE(sink.empty()); EXPECT_TRUE(sink.finished());
+
+    delete source1;
+    delete source2;
 }
 
-TEST(AndOperator, operation_logic) {
-    
+TEST(AndOperator, operation_logic) {    
     class ImportanceFitnessPair {
         public:
         double importance;
@@ -244,7 +246,6 @@ TEST(AndOperator, operation_logic) {
     cout << "TEAR DOWN" << endl;
 
     delete sink;
-    delete and_operator;
     for (unsigned int clause = 0; clause < clause_count; clause++) {
         delete source[clause];
     }

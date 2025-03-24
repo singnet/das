@@ -11,6 +11,8 @@
 using namespace query_node;
 using namespace std;
 
+#define DEBUG
+
 // --------------------------------------------------------------------------------
 // Public methods
 
@@ -23,6 +25,7 @@ QueryNode<AnswerType>::QueryNode(const string& node_id,
     this->query_answer_processor = NULL;
     this->query_answers_finished_flag = false;
     this->shutdown_flag = false;
+    this->work_done_flag = false;
     if (messaging_backend == MessageBrokerType::RAM) {
         this->requires_serialization = false;
     } else {
@@ -31,11 +34,28 @@ QueryNode<AnswerType>::QueryNode(const string& node_id,
 }
 
 template <class AnswerType>
-QueryNode<AnswerType>::~QueryNode() {}
+QueryNode<AnswerType>::~QueryNode() {
+#ifdef DEBUG
+    cout << "QueryNode::~QueryNode() BEGIN" << endl;
+#endif
+    this->graceful_shutdown();
+    while (!this->query_answer_queue.empty()) {
+        delete (QueryAnswer*) this->query_answer_queue.dequeue();
+    }
+#ifdef DEBUG
+    cout << "QueryNode::~QueryNode() END" << endl;
+#endif
+}
 
 template <class AnswerType>
 void QueryNode<AnswerType>::graceful_shutdown() {
+#ifdef DEBUG
+    cout << "QueryNode::graceful_shutdown() BEGIN" << endl;
+#endif
     if (is_shutting_down()) {
+#ifdef DEBUG
+    cout << "QueryNode::graceful_shutdown() END (already shutting down)" << endl;
+#endif
         return;
     }
     DistributedAlgorithmNode::graceful_shutdown();
@@ -44,8 +64,12 @@ void QueryNode<AnswerType>::graceful_shutdown() {
     this->shutdown_flag_mutex.unlock();
     if (this->query_answer_processor != NULL) {
         this->query_answer_processor->join();
+        delete this->query_answer_processor;
         this->query_answer_processor = NULL;
     }
+#ifdef DEBUG
+    cout << "QueryNode::graceful_shutdown() END" << endl;
+#endif
 }
 
 template <class AnswerType>
@@ -117,16 +141,6 @@ QueryNodeServer<AnswerType>::QueryNodeServer(const string& node_id, MessageBroke
 }
 
 template <class AnswerType>
-QueryNodeServer<AnswerType>::~QueryNodeServer() {
-    this->graceful_shutdown();
-    if (this->query_answer_processor != NULL) {
-        this->query_answer_processor->join();
-        delete this->query_answer_processor;
-        this->query_answer_processor = NULL;
-    }
-}
-
-template <class AnswerType>
 void QueryNodeServer<AnswerType>::node_joined_network(const string& node_id) {
     this->add_peer(node_id);
 }
@@ -153,6 +167,7 @@ void QueryNodeClient<AnswerType>::query_answer_processor_method() {
             if (this->requires_serialization) {
                 string tokens = query_answer->tokenize();
                 args.push_back(tokens);
+                delete query_answer;
             } else {
                 args.push_back(to_string((unsigned long) query_answer));
             }
@@ -163,6 +178,7 @@ void QueryNodeClient<AnswerType>::query_answer_processor_method() {
                 this->query_answer_queue.empty()) {
                 this->send(QUERY_ANSWERS_FINISHED_COMMAND, args, this->server_id);
                 answers_finished_flag = true;
+                this->work_done_flag = true;
             }
         } else {
             if (this->requires_serialization) {
@@ -186,16 +202,6 @@ QueryNodeClient<AnswerType>::QueryNodeClient(const string& node_id,
     this->server_id = server_id;
     this->add_peer(server_id);
     this->join_network();
-}
-
-template <class AnswerType>
-QueryNodeClient<AnswerType>::~QueryNodeClient() {
-    this->graceful_shutdown();
-    if (this->query_answer_processor != NULL) {
-        this->query_answer_processor->join();
-        delete this->query_answer_processor;
-        this->query_answer_processor = NULL;
-    }
 }
 
 template <class AnswerType>
