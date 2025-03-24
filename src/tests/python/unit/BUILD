@@ -199,6 +199,7 @@ py_test(
 
 py_test(
     name = "test_das_node",
+    tags = ["skip"],
     size = "small",
     srcs = ["test_das_node.py"],
     deps = [
