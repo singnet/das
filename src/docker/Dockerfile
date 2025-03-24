@@ -23,7 +23,7 @@ RUN yes | apt update -y \
     && rm -rf /var/lib/apt/lists/*
 
 COPY src/assets/bazelisk.tgz /tmp
-RUN ARCH=$(if [ "$(uname -m)" = "aarch64" ]; then echo "arm64"; else echo "amd64"; fi) \
+RUN ARCH=$([ "$(uname -m)" = "aarch64" ] && echo "arm64" || echo "amd64") \
     && cd /tmp \
     && tar xzvf bazelisk.tgz \
     && mv bazelisk-${ARCH} ${BAZEL_DIR}/bazelisk \

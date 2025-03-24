@@ -2,9 +2,11 @@
 
 set -eoux pipefail
 
+ARCH=$(uname -m)
+
 IMAGE_NAME="das-builder"
 CONTAINER_NAME=${IMAGE_NAME}-container
-CONTAINER_USER=builder
+CONTAINER_USER=$([ "$ARCH" != "arm64" ] && echo "$USER" || echo "builder")
 
 # local paths
 LOCAL_WORKDIR=$(pwd)
@@ -38,7 +40,7 @@ if docker ps -a --format '{{.Names}}' | grep -q "^${CONTAINER_NAME}$"; then
 fi
 
 docker run --rm \
-  --user=$CONTAINER_USER \
+  $([ "$ARCH" != "arm64" ] && echo "--user=$(id -u):$(id -g) --volume /etc/passwd:/etc/passwd:ro" || echo "--user=$CONTAINER_USER") \
   --privileged \
   --name=$CONTAINER_NAME \
   -e BIN_DIR=$CONTAINER_BIN_DIR \
