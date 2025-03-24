@@ -15,6 +15,7 @@
 #include "das_agent_node.h"
 #include "link.h"
 #include "thread_pool.h"
+#include "link_processor.h"
 
 using namespace das_agent;
 using namespace query_node;
@@ -63,7 +64,7 @@ class LinkCreationService
      * @param link Link object
      * @param das_client DAS Node client
      */
-    void create_link(Link& link, DasAgentNode& das_client);
+    void create_link(LinkProcessor& link, DasAgentNode& das_client);
 };
 
 }  // namespace link_creation_agent
