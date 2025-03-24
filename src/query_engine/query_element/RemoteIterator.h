@@ -68,6 +68,9 @@ public:
      */
     QueryAnswer *pop();
 
+
+    string get_local_id() const;
+
 private:
 
     shared_ptr<QueryNode<AnswerType>> remote_input_buffer;

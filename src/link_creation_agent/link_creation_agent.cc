@@ -19,9 +19,10 @@ LinkCreationAgent::LinkCreationAgent(string config_path) {
     query_node_client = new DASNode(query_agent_client_id, query_agent_server_id, query_agent_client_start_port,
                                     query_agent_client_end_port);
     service = new LinkCreationService(link_creation_agent_thread_count);
+    service->set_timeout(query_timeout_seconds);
     das_client = new DasAgentNode(das_agent_client_id, das_agent_server_id);
 
-    this->agent_thread = new thread(&LinkCreationAgent::run, this);
+    // this->agent_thread = new thread(&LinkCreationAgent::run, this);
 }
 
 LinkCreationAgent::~LinkCreationAgent() {
@@ -139,6 +140,9 @@ void LinkCreationAgent::load_config() {
                     this->query_agent_client_start_port = stoul(value);
                 else if (key == "query_agent_client_end_port")
                     this->query_agent_client_end_port = stoul(value);
+                else if (key == "query_timeout_seconds")
+                    this->query_timeout_seconds = stoi(value);
+                
                 
             }
         }

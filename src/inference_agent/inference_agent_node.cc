@@ -83,5 +83,6 @@ DistributedInferenceFinishedMessage::DistributedInferenceFinishedMessage(std::st
 
 void DistributedInferenceFinishedMessage::act(std::shared_ptr<MessageFactory> node) {
     auto inference_node = dynamic_pointer_cast<InferenceAgentNode>(node);
+    inference_node->add_request(this->args);
     inference_node->set_answers_finished();
 }

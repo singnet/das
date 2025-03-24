@@ -21,7 +21,7 @@
 #include "RemoteIterator.h"
 #include "link_creation_agent_node.h"
 #include "das_agent_node.h"
-#include "service.h"
+#include "link_creation_service.h"
 
 using namespace query_node;
 using namespace std;
@@ -95,6 +95,7 @@ class LinkCreationAgent {
     string config_path;                    // Path to the configuration file
     int requests_interval_seconds;         // Default interval to send requests
     int link_creation_agent_thread_count;  // Number of threads to process requests
+    int query_timeout_seconds;             // Timeout for query requests
     string query_agent_client_id;          // ID of the query node client
     string query_agent_server_id;          // ID of the query node server
     string link_creation_agent_server_id;  // ID of the link creation server
@@ -104,6 +105,7 @@ class LinkCreationAgent {
     string context;               // Context to send to attention broker
     unsigned int query_agent_client_start_port;
     unsigned int query_agent_client_end_port;
+    
 
     // Other attributes
     LinkCreationService* service;

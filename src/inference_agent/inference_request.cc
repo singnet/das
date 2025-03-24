@@ -146,6 +146,7 @@ std::vector<std::string> InferenceRequest::get_distributed_inference_control_req
     int size = 0;
     std::vector<std::string> request = inference_evolution_request_builder(
         first_handle, second_handle, max_proof_length, size);
+    tokens.push_back(this->context);
     tokens.push_back("OR");
     tokens.push_back(std::to_string(size));
     for (auto token : request) {
