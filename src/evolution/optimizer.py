@@ -1,6 +1,7 @@
 """
 Non distributed version
 """
+
 import contextlib
 import time
 import sys
@@ -13,18 +14,12 @@ from collections import defaultdict
 
 from hyperon_das.cache.attention_broker_gateway import AttentionBrokerGateway
 from hyperon_das_atomdb.adapters import RedisMongoDB
+from hyperon_das_query_engine import DASNode, QueryAnswer
 
 from evolution.fitness_functions import FitnessFunctions
 from evolution.selection_methods import handle_selection_method, SelectionMethodType
 from evolution.utils import Parameters, parse_file, SuppressCppOutput
 
-# NOTE: This module, das_node, is a Python implementation of DASNode,
-# used to develop and test the optimization algorithm.
-# However, it is necessary to create bindings for the components already implemented in C++
-# and integrate them into this implementation.
-# Currently, I am using the implementation from this PR:
-from evolution.das_node.query_answer import QueryAnswer
-from evolution.das_node.das_node import DASNode
 
 MAX_CORRELATIONS_WITHOUT_STIMULATE = 1000
 
@@ -35,11 +30,8 @@ class QueryOptimizerAgent:
 
     def optimize(self, query_tokens: list[str] | str) -> Iterator:
         if isinstance(query_tokens, str):
-            query_tokens = query_tokens.split(' ')
-        return QueryOptimizerIterator(
-            query_tokens,
-            **self.params.__dict__
-        )
+            query_tokens = query_tokens.split(" ")
+        return QueryOptimizerIterator(query_tokens, **self.params.__dict__)
 
     def _load_config(self, config_file: str) -> Parameters:
         """
@@ -51,7 +43,9 @@ class QueryOptimizerAgent:
         config = parse_file(config_file)
         params = Parameters(**config)
         if params.qtd_selected_for_attention_update > params.population_size:
-            raise ValueError("The number of selected individuals for attention update cannot be greater than the population size.")
+            raise ValueError(
+                "The number of selected individuals for attention update cannot be greater than the population size."
+            )
         return params
 
 
@@ -67,6 +61,7 @@ class QueryOptimizerIterator:
 
     The iterator interface yields the best query answers once optimization completes.
     """
+
     def __init__(
         self,
         query_tokens: list[str],
@@ -87,11 +82,17 @@ class QueryOptimizerIterator:
         redis_port: int,
         redis_cluster: bool,
         redis_ssl: bool,
-        **kwargs
+        **kwargs,
     ) -> None:
         self.atom_db = self._connect_atom_db(
-            mongo_hostname, mongo_port, mongo_username, mongo_password,
-            redis_hostname, redis_port, redis_cluster, redis_ssl
+            mongo_hostname,
+            mongo_port,
+            mongo_username,
+            mongo_password,
+            redis_hostname,
+            redis_port,
+            redis_cluster,
+            redis_ssl,
         )
 
         with SuppressCppOutput():
@@ -126,7 +127,7 @@ class QueryOptimizerIterator:
                     return self.best_query_answers.get()
                 elif self.is_empty():
                     self._shutdown_optimizer()
-                    raise StopIteration     
+                    raise StopIteration
             time.sleep(0.1)
 
     def is_empty(self) -> bool:
@@ -141,7 +142,7 @@ class QueryOptimizerIterator:
         redis_hostname: str,
         redis_port: int,
         redis_cluster: bool,
-        redis_ssl: bool
+        redis_ssl: bool,
     ) -> RedisMongoDB:
         """
         Establishes a connection to the atom database using configuration parameters.
@@ -199,8 +200,8 @@ class QueryOptimizerIterator:
         try:
             with SuppressCppOutput():
                 remote_iterator = self.query_agent.pattern_matcher_query(self.query_tokens)
-            while (len(result) < self.population_size and not remote_iterator.finished()):
-                if (qa := remote_iterator.pop()):
+            while len(result) < self.population_size and not remote_iterator.finished():
+                if qa := remote_iterator.pop():
                     result.append(qa)
                 else:
                     time.sleep(0.1)
@@ -221,7 +222,9 @@ class QueryOptimizerIterator:
             fitness_value = fitness_function(self.atom_db, query_answer.handles)
         return (query_answer, fitness_value)
 
-    def _select_best_individuals(self, evaluated_individuals: list[tuple[QueryAnswer, float]]) -> list[tuple[QueryAnswer, float]]:
+    def _select_best_individuals(
+        self, evaluated_individuals: list[tuple[QueryAnswer, float]]
+    ) -> list[tuple[QueryAnswer, float]]:
         """
         Selects the best individuals from evaluated QueryAnswer tuples using the configured selection method.
         """
@@ -237,10 +240,9 @@ class QueryOptimizerIterator:
         a defined number of correlations, the attention broker is stimulated with aggregated data.
         """
         host, port = self.attention_broker_server_id.split(":")
-        attention_broker = AttentionBrokerGateway({
-            'attention_broker_hostname': host,
-            'attention_broker_port': port
-        })
+        attention_broker = AttentionBrokerGateway(
+            {"attention_broker_hostname": host, "attention_broker_port": port}
+        )
 
         correlated_count = 0
         joint_answer_global = defaultdict(int)
@@ -308,8 +310,11 @@ class QueryOptimizerIterator:
         """
         with SuppressCppOutput():
             remote_iterator = self.query_agent.pattern_matcher_query(self.query_tokens)
-        while (self.best_query_answers.qsize() < self.max_query_answers and not remote_iterator.finished()):
-            if (qa := remote_iterator.pop()):
+        while (
+            self.best_query_answers.qsize() < self.max_query_answers
+            and not remote_iterator.finished()
+        ):
+            if qa := remote_iterator.pop():
                 with contextlib.suppress(Full):
                     self.best_query_answers.put(qa, timeout=1)
             else:

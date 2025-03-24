@@ -1,6 +1,7 @@
 load("@pypi//:requirements.bzl", "requirement")
 load("@rules_python//python:defs.bzl", "py_library")
 load("@rules_python//python:packaging.bzl", "py_wheel")
+load("@rules_python//python:packaging.bzl", "py_package")
 
 package(default_visibility = ["//visibility:public"])
 
@@ -21,6 +22,11 @@ py_library(
         "//hyperon_das_atomdb/utils",
         requirement("hyperon_das_atomdb_cpp"),
     ],
+)
+
+py_package(
+    name = "hyperon_das_atomdb_package",
+    deps = [":hyperon_das_atomdb"],
 )
 
 py_wheel(
@@ -45,7 +51,7 @@ py_wheel(
     stamp = 1,
     summary = "Persistence layer for Distributed AtomSpace",
     version = "$(ATOMDB_VERSION)",  # must be defined when calling `bazel build` with `--define=ATOMDB_VERSION=<version>`
-    deps = [":hyperon_das_atomdb"],
+    deps = [":hyperon_das_atomdb_package"],
 )
 
 py_library(
