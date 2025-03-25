@@ -56,4 +56,4 @@ docker run --rm \
   --workdir "$CONTAINER_WORKSPACE_DIR" \
   --entrypoint "$BAZEL_CMD" \
   "${IMAGE_NAME}" \
-  "$@"
+  $([ ${BAZEL_JOBS:-x} != x ] && echo --jobs=${BAZEL_JOBS}) "$@"
