@@ -1,10 +1,12 @@
 #!/bin/bash
 
-set -eou pipefail
+set -exou pipefail
 
 IMAGE_NAME="das-builder"
 CONTAINER_NAME=${IMAGE_NAME}-container
 BAZEL_CMD="/opt/bazel/bazelisk"
+
+ENV_VARS=$(printenv | sort | awk -F= '{print "--env "$1}')
 
 # local paths
 LOCAL_WORKDIR=$(pwd)
@@ -42,6 +44,7 @@ docker run --rm \
   --user="$(id -u)":"$(id -g)" \
   --name=$CONTAINER_NAME \
   -e BIN_DIR=$CONTAINER_BIN_DIR \
+  $ENV_VARS \
   --network=host \
   --volume /etc/passwd:/etc/passwd:ro \
   --volume "$LOCAL_PIP_CACHE":"$CONTAINER_PIP_CACHE" \

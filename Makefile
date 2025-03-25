@@ -59,10 +59,15 @@ reset-nunet-dms:
 	@bash -x src/scripts/reset-nunet-dms.sh
 
 bazel:
-	@bash ./src/scripts/bazel.sh $(filter-out $@, $(MAKECMDGOALS))
+	@bash ./src/scripts/bazel.sh \
+	    `[ -n ${BAZEL_JOBS} ] && echo --jobs=${BAZEL_JOBS}` \
+		$(filter-out $@, $(MAKECMDGOALS))
+
+test-all-no-cache:
+	@$(MAKE) bazel 'test --cache_test_results=no //tests/...'
 
 test-all: build-image
-	@$(MAKE) bazel test //...
+	@$(MAKE) bazel test //tests/...
 
 lint-all:
 	@$(MAKE) bazel lint \
