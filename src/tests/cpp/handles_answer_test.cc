@@ -1,16 +1,15 @@
 #include <cstdlib>
 #include <cstring>
-#include "gtest/gtest.h"
 
 #include "HandlesAnswer.h"
 #include "Utils.h"
+#include "gtest/gtest.h"
 #include "test_utils.h"
 
 using namespace query_engine;
 using namespace commons;
 
 TEST(HandlesAnswer, assignments_basics) {
-
     Assignment mapping0;
 
     // Tests assign()
@@ -78,7 +77,6 @@ TEST(HandlesAnswer, assignments_basics) {
 }
 
 TEST(HandlesAnswer, handles_answer_basics) {
-
     // Tests add_handle()
     HandlesAnswer query_answer1("h1", 0);
     query_answer1.assignment.assign("v1", "1");
@@ -103,7 +101,7 @@ TEST(HandlesAnswer, handles_answer_basics) {
     EXPECT_TRUE(query_answer2.assignment.assign("v3", "x"));
 
     // Tests copy()
-    HandlesAnswer *query_answer3 = HandlesAnswer::copy(&query_answer2);
+    HandlesAnswer* query_answer3 = HandlesAnswer::copy(&query_answer2);
     EXPECT_EQ(query_answer3->handles_size, 3);
     EXPECT_TRUE(strcmp(query_answer3->handles[0], "h2") == 0);
     EXPECT_TRUE(strcmp(query_answer3->handles[1], "hx") == 0);
@@ -114,13 +112,12 @@ TEST(HandlesAnswer, handles_answer_basics) {
     EXPECT_TRUE(query_answer3->assignment.assign("v4", "x"));
 }
 
-void query_answers_equal(HandlesAnswer *qa1, HandlesAnswer *qa2) {
+void query_answers_equal(HandlesAnswer* qa1, HandlesAnswer* qa2) {
     EXPECT_TRUE(double_equals(qa1->importance, qa2->importance));
     EXPECT_EQ(qa1->to_string(), qa2->to_string());
 }
 
 TEST(HandlesAnswer, tokenization) {
-
     unsigned int NUM_TESTS = 100000;
     unsigned int MAX_HANDLES = 5;
     unsigned int MAX_ASSIGNMENTS = 10;
@@ -134,9 +131,8 @@ TEST(HandlesAnswer, tokenization) {
         }
         unsigned int label_count = 0;
         for (unsigned int i = 0; i < num_assignments; i++) {
-            input.assignment.assign(
-                strdup(sequential_label(label_count).c_str()),
-                strdup(random_handle().c_str()));
+            input.assignment.assign(strdup(sequential_label(label_count).c_str()),
+                                    strdup(random_handle().c_str()));
         }
 
         query_answers_equal(&input, HandlesAnswer::copy(&input));

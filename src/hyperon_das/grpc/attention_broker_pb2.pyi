@@ -9,7 +9,6 @@ from google.protobuf.internal import containers as _containers
 
 DESCRIPTOR: _descriptor.FileDescriptor
 
-
 class HandleList(_message.Message):
     __slots__ = ("list", "request_type", "hebbian_network", "context")
 
@@ -28,9 +27,8 @@ class HandleList(_message.Message):
         list: _Optional[_Iterable[str]] = ...,
         request_type: _Optional[int] = ...,
         hebbian_network: _Optional[int] = ...,
-        context: _Optional[str] = ...
+        context: _Optional[str] = ...,
     ) -> None: ...
-
 
 class HandleCount(_message.Message):
     __slots__ = ("map", "request_type", "hebbian_network", "context")
@@ -58,9 +56,8 @@ class HandleCount(_message.Message):
         map: _Optional[_Mapping[str, int]] = ...,
         request_type: _Optional[int] = ...,
         hebbian_network: _Optional[int] = ...,
-        context: _Optional[str] = ...
+        context: _Optional[str] = ...,
     ) -> None: ...
-
 
 class ImportanceList(_message.Message):
     __slots__ = ("list",)

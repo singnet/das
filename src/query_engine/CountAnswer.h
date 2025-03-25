@@ -13,11 +13,11 @@ namespace query_engine {
 
 class CountAnswer : public QueryAnswer {
    public:
-    CountAnswer(int count) : count(count) {};
+    CountAnswer(int count) : count(count){};
 
-    CountAnswer() : count(UNDEFINED_COUNT) {};
+    CountAnswer() : count(UNDEFINED_COUNT){};
 
-    ~CountAnswer() {};
+    ~CountAnswer(){};
 
     const string& tokenize() override {
         this->token_representation = std::to_string(this->count);

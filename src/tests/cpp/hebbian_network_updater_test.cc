@@ -1,23 +1,23 @@
-#include <cstdlib>
 #include <cmath>
+#include <cstdlib>
 
-#include "gtest/gtest.h"
-#include "common.pb.h"
-#include "attention_broker.grpc.pb.h"
-#include "attention_broker.pb.h"
-#include "test_utils.h"
-#include "expression_hasher.h"
 #include "HebbianNetwork.h"
 #include "HebbianNetworkUpdater.h"
+#include "attention_broker.grpc.pb.h"
+#include "attention_broker.pb.h"
+#include "common.pb.h"
+#include "expression_hasher.h"
+#include "gtest/gtest.h"
+#include "test_utils.h"
 
 using namespace attention_broker_server;
 
 TEST(HebbianNetworkUpdater, correlation) {
-    string *handles = build_handle_space(6);
-    HebbianNetwork *network = new HebbianNetwork();
-    dasproto::HandleList *request;
-    ExactCountHebbianUpdater *updater = \
-        (ExactCountHebbianUpdater *) HebbianNetworkUpdater::factory(HebbianNetworkUpdaterType::EXACT_COUNT);
+    string* handles = build_handle_space(6);
+    HebbianNetwork* network = new HebbianNetwork();
+    dasproto::HandleList* request;
+    ExactCountHebbianUpdater* updater = (ExactCountHebbianUpdater*) HebbianNetworkUpdater::factory(
+        HebbianNetworkUpdaterType::EXACT_COUNT);
 
     request = new dasproto::HandleList();
     request->set_hebbian_network((unsigned long) network);

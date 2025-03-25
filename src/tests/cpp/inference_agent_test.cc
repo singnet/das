@@ -197,7 +197,8 @@ TEST_F(InferenceAgentTest, TestProofOfEquivalence) {
 }
 
 TEST(InferenceRequest, TestInferenceRequests) {
-    ProofOfImplicationOrEquivalence proof_of_implication_or_equivalence("handle1", "handle2", 1, "context");
+    ProofOfImplicationOrEquivalence proof_of_implication_or_equivalence(
+        "handle1", "handle2", 1, "context");
     auto requests = proof_of_implication_or_equivalence.get_requests();
     auto dic_request = proof_of_implication_or_equivalence.get_distributed_inference_control_request();
     EXPECT_EQ(requests.size(), 1);

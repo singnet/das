@@ -102,8 +102,8 @@ class LinkTemplate : public Source {
                 this->inner_template.push_back(targets[i - 1]);
             }
         }
-        this->handle = shared_ptr<char>(
-            composite_hash(this->handle_keys, ARITY + 1), default_delete<char[]>());
+        this->handle =
+            shared_ptr<char>(composite_hash(this->handle_keys, ARITY + 1), default_delete<char[]>());
         if (!wildcard_flag) {
             free(this->handle_keys[0]);
         }
@@ -309,8 +309,7 @@ class LinkTemplate : public Source {
             this->next_inner_answer = new unsigned int[answer_count];
             for (unsigned int i = 0; i < answer_count; i++) {
                 this->atom_document[i] = db->get_atom_document(this->fetch_result[i].c_str());
-                query_answer =
-                    new HandlesAnswer(this->fetch_result[i].c_str(), importance_list.list(i));
+                query_answer = new HandlesAnswer(this->fetch_result[i].c_str(), importance_list.list(i));
                 const char* s = this->atom_document[i]->get("targets", 0);
                 for (unsigned int j = 0; j < this->arity; j++) {
                     if (this->target_template[j]->is_terminal) {

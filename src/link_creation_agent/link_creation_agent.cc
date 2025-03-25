@@ -174,7 +174,7 @@ shared_ptr<LinkCreationAgentRequest> LinkCreationAgent::create_request(vector<st
         bool is_link_create = false;
         int has_id = 0;
         if (request[request.size() - 1] != "true" && request[request.size() - 1] != "false") {
-            cout << "ID: " << request[request.size()-1] << endl;
+            cout << "ID: " << request[request.size() - 1] << endl;
             has_id = 1;
         }
         for (string arg : request) {
@@ -195,18 +195,18 @@ shared_ptr<LinkCreationAgentRequest> LinkCreationAgent::create_request(vector<st
             if (cursor == request.size() - 1 - has_id) {
                 lca_request->context = arg;
             }
-                if (cursor == request.size() - has_id) {
+            if (cursor == request.size() - has_id) {
                 lca_request->update_attention_broker = (arg == "true");
-            }else{
+            } else {
                 if (cursor == request.size()) {
                     lca_request->id = arg;
                 }
             }
         }
         lca_request->infinite = (lca_request->repeat == -1);
-        if (lca_request->id.empty()){
-            lca_request->id = compute_hash(
-                (char*) (to_string(time(0)) + Utils::random_string(20)).c_str());
+        if (lca_request->id.empty()) {
+            lca_request->id =
+                compute_hash((char*) (to_string(time(0)) + Utils::random_string(20)).c_str());
         }
         // couts
         cout << "Query: " << Utils::join(lca_request->query, ' ') << endl;

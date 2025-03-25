@@ -1,8 +1,8 @@
 #pragma once
 
+#include "LazyWorkerDeleter.h"
 #include "QueryAnswer.h"
 #include "QueryNode.h"
-#include "LazyWorkerDeleter.h"
 
 using namespace std;
 
