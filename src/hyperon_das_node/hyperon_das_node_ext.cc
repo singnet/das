@@ -96,6 +96,7 @@ NB_MODULE(hyperon_das_node_ext, m) {
     nb::enum_<MessageBrokerType>(m, "MessageBrokerType")
         .value("GRPC", MessageBrokerType::GRPC)
         .value("RAM", MessageBrokerType::RAM);
+        .export_values();
 
   // DistributedAlgorithmNode.h bindings
   nb::class_<DistributedAlgorithmNode, MessageFactory, DistributedAlgorithmNodeTrampoline>(
@@ -117,6 +118,8 @@ NB_MODULE(hyperon_das_node_ext, m) {
            "node_id"_a)
       .def("cast_leadership_vote", &DistributedAlgorithmNode::cast_leadership_vote)
       .def("message_factory", &DistributedAlgorithmNode::message_factory);
+
+  // StarNode.h bindings
   nb::class_<StarNode, DistributedAlgorithmNode>(m, "StarNode")
       .def(nb::init<const string&, MessageBrokerType>(),
            "node_id"_a, "messaging_backend"_a = MessageBrokerType::GRPC)
