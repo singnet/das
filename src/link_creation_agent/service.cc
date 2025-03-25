@@ -1,5 +1,6 @@
 #include "service.h"
 
+
 using namespace link_creation_agent;
 using namespace std;
 using namespace query_node;
@@ -23,16 +24,17 @@ void LinkCreationService::process_request(shared_ptr<RemoteIterator<HandlesAnswe
                 Utils::sleep();
             } else {
                 cout << "LinkCreationService::process_request: Processing query_answer" << endl;
-                if (link_template.front() == "LIST") {
-                    LinkCreateTemplateList link_create_template_list(link_template);
-                    for(auto link_template : link_create_template_list.get_templates()){
-                        Link link(query_answer, link_template.tokenize());
-                        this->create_link(link, *das_client);
-                    }
-                }else{
-                    Link link(query_answer, link_template);
-                    this->create_link(link, *das_client);
+                vector<vector<string>> link_tokens;
+                if (LinkCreationProcessor::get_processor_type(link_template.front()) == 
+                ProcessorType::PROOF_OF_IMPLICATION) {
+                    link_tokens = implication_processor.process(query_answer, link_template);
+                }else if (LinkCreationProcessor::get_processor_type(link_template.front()) ==
+                ProcessorType::PROOF_OF_EQUIVALENCE) {
+                    link_tokens = equivalence_processor.process(query_answer, link_template);
+                }else {
+                    link_tokens = link_template_processor.process(query_answer, link_template);
                 }
+                this->create_link(link_tokens, *das_client);
                 delete query_answer;
                 if (++count == max_query_answers) break;
             }
@@ -43,11 +45,12 @@ void LinkCreationService::process_request(shared_ptr<RemoteIterator<HandlesAnswe
     thread_pool.enqueue(job);
 }
 
-void LinkCreationService::create_link(Link& link, DasAgentNode& das_client) {
+void LinkCreationService::create_link(std::vector<std::vector<std::string>>& links, DasAgentNode& das_client) {
     // TODO check an alternative to locking this method
     std::unique_lock<std::mutex> lock(m_mutex);
-    cout << "LinkCreationService::create_link: Creating link" << endl;
-    vector<string> link_tokens = link.tokenize();
-    das_client.create_link(link_tokens);
+    for (vector<string> link_tokens : links) {
+        cout << "LinkCreationService::create_link: Creating link" << endl;
+        das_client.create_link(link_tokens);
+    }
     m_cond.notify_one();
 }

@@ -20,6 +20,7 @@ cc_library(
     ":link_create_template",
     ":link_creation_agent_node",
     ":service",
+    ":processors",
     "//distributed_algorithm_node:distributed_algorithm_node_lib",
     "//query_engine:query_engine_lib",
     "//hasher:hasher_lib",
@@ -67,6 +68,19 @@ cc_library(
   deps = [
     ":das_agent_node",
     ":link",
+    ":processors",
+    "//query_engine:query_engine_lib",
+  ],
+)
+
+
+cc_library(
+  name = "processors",
+  srcs = ["template_processor.cc", "equivalence_processor.cc", "implication_processor.cc"],
+  hdrs = ["link_processor.h", "template_processor.h", "equivalence_processor.h", "implication_processor.h"],
+  deps = [
+    ":link",
+    ":link_create_template",
     "//query_engine:query_engine_lib",
   ],
 )
