@@ -70,6 +70,7 @@ py_library(
         ":attention_broker_updater",
         "//hyperon_das:hyperon_das",
         "//hyperon_das_atomdb:hyperon_das_atomdb",
+        "//hyperon_das_query_engine:hyperon_das_query_engine",
         "//evolution/das_node:das_node",
         "//evolution/das_node:query_answer",
     ],

@@ -23,13 +23,14 @@ class NodeIdFactory:
 
 
 class EvolutionRequest(Message):
-    def __init__(self, senders_id: str, *request: str):
+    def __init__(self, senders: str, context: str, *request):
         super().__init__()
-        self.senders = senders_id.split(',')
+        self.senders = senders.split(',')
+        self.context = context
         self.request = request
 
     def act(self, node: "EvolutionNode") -> None:
-        node.add_request(self.senders, self.request)
+        node.add_request(self.senders, self.context, self.request)
 
 
 class EvolutionNode(StarNode):
@@ -61,9 +62,9 @@ class EvolutionNode(StarNode):
         if message_class := self.known_commands.get(command):
             return message_class(*args)
 
-    def add_request(self, senders: list[str], request: str) -> None:
+    def add_request(self, senders: list[str], context: str, request: str) -> None:
         if self.is_server:
-            self.request_queue.put({'senders': senders, 'data': request})
+            self.request_queue.put({'senders': senders, 'context': context, 'data': request})
 
     def pop_request(self) -> dict:
         if self.is_server and not self.request_queue.empty():
