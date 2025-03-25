@@ -1,14 +1,14 @@
-#include <iostream>
-#include <string>
-#include <stack>
-
 #include <signal.h>
 
-#include "DASNode.h"
-#include "RemoteIterator.h"
-#include "QueryAnswer.h"
-#include "AtomDBSingleton.h"
+#include <iostream>
+#include <stack>
+#include <string>
+
 #include "AtomDB.h"
+#include "AtomDBSingleton.h"
+#include "DASNode.h"
+#include "QueryAnswer.h"
+#include "RemoteIterator.h"
 #include "Utils.h"
 
 #define MAX_QUERY_ANSWERS ((unsigned int) 1000)
@@ -35,8 +35,7 @@ std::vector<std::string> split(string s, string delimiter) {
     return tokens;
 }
 
-double compute_sim1(const vector<string> &tokens1, const vector<string> &tokens2) {
-
+double compute_sim1(const vector<string>& tokens1, const vector<string>& tokens2) {
     unsigned int count = 0;
 
     /*
@@ -55,8 +54,8 @@ double compute_sim1(const vector<string> &tokens1, const vector<string> &tokens2
     }
     */
 
-    for (auto token1: tokens1) {
-        for (auto token2: tokens2) {
+    for (auto token1 : tokens1) {
+        for (auto token2 : tokens2) {
             if (token1 == token2) {
                 count++;
                 break;
@@ -64,8 +63,8 @@ double compute_sim1(const vector<string> &tokens1, const vector<string> &tokens2
         }
     }
 
-    for (auto token2: tokens2) {
-        for (auto token1: tokens1) {
+    for (auto token2 : tokens2) {
+        for (auto token1 : tokens1) {
             if (token2 == token1) {
                 count++;
                 break;
@@ -76,8 +75,7 @@ double compute_sim1(const vector<string> &tokens1, const vector<string> &tokens2
     return ((1.0) * count) / (tokens1.size() + tokens2.size());
 }
 
-double compute_sim2(const vector<string> &tokens1, const vector<string> &tokens2) {
-
+double compute_sim2(const vector<string>& tokens1, const vector<string>& tokens2) {
     if (tokens1.size() != tokens2.size()) {
         return 0.0;
     }
@@ -94,15 +92,17 @@ double compute_sim2(const vector<string> &tokens1, const vector<string> &tokens2
     return (1.0 * count) / total_length;
 }
 
-string highlight(const vector<string> &tokens1, const vector<string> &tokens2, const set<string> &highlighted) {
-    //printf("\033[31;1;4mHello\033[0m");
+string highlight(const vector<string>& tokens1,
+                 const vector<string>& tokens2,
+                 const set<string>& highlighted) {
+    // printf("\033[31;1;4mHello\033[0m");
     string answer = "";
     bool token_flag, char_flag, word_flag;
     for (unsigned int i = 0; i < tokens1.size(); i++) {
         token_flag = (highlighted.find(tokens1[i]) != highlighted.end());
         word_flag = false;
         if (highlighted.size() == 0) {
-            for (auto token: tokens2) {
+            for (auto token : tokens2) {
                 if (tokens1[i] == token) {
                     word_flag = true;
                     break;
@@ -115,7 +115,7 @@ string highlight(const vector<string> &tokens1, const vector<string> &tokens2, c
             } else {
                 char_flag = false;
             }
-            char_flag = false; // XXXXX
+            char_flag = false;  // XXXXX
             if (token_flag || char_flag || word_flag) {
                 answer += "\033[";
                 if (token_flag) {
@@ -147,8 +147,12 @@ string highlight(const vector<string> &tokens1, const vector<string> &tokens2, c
     return answer;
 }
 
-void build_link(const string &link_type_tag, const string str1, const string str2, double threshold, stack<string> &output, const set<string> &highlighted) {
-
+void build_link(const string& link_type_tag,
+                const string str1,
+                const string str2,
+                double threshold,
+                stack<string>& output,
+                const set<string>& highlighted) {
     string sentence1 = str1.substr(1, str1.size() - 2);
     string sentence2 = str2.substr(1, str2.size() - 2);
 
@@ -156,21 +160,20 @@ void build_link(const string &link_type_tag, const string str1, const string str
     vector<string> tokens2 = split(sentence2, " ");
 
     double v1 = compute_sim1(tokens1, tokens2);
-    //double v2 = compute_sim2(tokens1, tokens2);
+    // double v2 = compute_sim2(tokens1, tokens2);
 
     if (v1 >= threshold) {
-        //output.push(std::to_string(v1) + ": " + highlight(tokens1, tokens2, highlighted));
-        //output.push(std::to_string(v2) + ": " + highlight(tokens2, tokens1, highlighted));
+        // output.push(std::to_string(v1) + ": " + highlight(tokens1, tokens2, highlighted));
+        // output.push(std::to_string(v2) + ": " + highlight(tokens2, tokens1, highlighted));
         output.push(highlight(tokens1, tokens2, highlighted));
         output.push(highlight(tokens2, tokens1, highlighted));
     }
 }
 
-string handle_to_atom(const char *handle) {
-
+string handle_to_atom(const char* handle) {
     shared_ptr<AtomDB> db = AtomDBSingleton::get_instance();
     shared_ptr<atomdb_api_types::AtomDocument> document = db->get_atom_document(handle);
-    shared_ptr<atomdb_api_types::HandleList> targets = db->query_for_targets((char *) handle);
+    shared_ptr<atomdb_api_types::HandleList> targets = db->query_for_targets((char*) handle);
     string answer;
 
     if (targets != NULL) {
@@ -197,11 +200,7 @@ string handle_to_atom(const char *handle) {
     return answer;
 }
 
-void run(
-    const string &context,
-    const string &link_type_tag,
-    const set<string> highlighted) {
-
+void run(const string& context, const string& link_type_tag, const set<string> highlighted) {
     string server_id = "localhost:31700";
     string client_id = "localhost:31701";
 
@@ -229,30 +228,29 @@ void run(
     // (Contains (Sentence "aef cbe dfb fbe eca eff bad") (Word "eff"))
 
     vector<string> query_same_word = {
-        and_operator, "2",
-            link_template, expression, "3",
-                node, symbol, contains,
-                variable, sentence1,
-                variable, word1,
-            link_template, expression, "3", 
-                node, symbol, contains,
-                variable, sentence2,
-                variable, word1
-    };
+        and_operator, "2",       link_template, expression, "3",           node,       symbol, contains,
+        variable,     sentence1, variable,      word1,      link_template, expression, "3",    node,
+        symbol,       contains,  variable,      sentence2,  variable,      word1};
 
-    vector<string> query_same_size {
-        or_operator, "1",
-        link_template, expression, "4",
-            node, symbol, similarity,
-            variable, sentence1,
-            variable, sentence2,
-            variable, tv1
-    };
+    vector<string> query_same_size{or_operator,
+                                   "1",
+                                   link_template,
+                                   expression,
+                                   "4",
+                                   node,
+                                   symbol,
+                                   similarity,
+                                   variable,
+                                   sentence1,
+                                   variable,
+                                   sentence2,
+                                   variable,
+                                   tv1};
 
     DASNode client(client_id, server_id);
-    QueryAnswer *query_answer;
+    QueryAnswer* query_answer;
     unsigned int count = 0;
-    RemoteIterator *response;
+    RemoteIterator* response;
 
     if (link_type_tag == "LINK1") {
         response = client.pattern_matcher_query(query_same_word, context);
@@ -268,23 +266,24 @@ void run(
     shared_ptr<atomdb_api_types::AtomDocument> sentence_symbol_document2;
     stack<string> output;
     set<string> already_inserted_links;
-    while (! response->finished()) {
+    while (!response->finished()) {
         if ((query_answer = response->pop()) == NULL) {
             Utils::sleep();
         } else {
-            if (! strcmp(query_answer->assignment.get(sentence1.c_str()), query_answer->assignment.get(sentence2.c_str()))) {
+            if (!strcmp(query_answer->assignment.get(sentence1.c_str()),
+                        query_answer->assignment.get(sentence2.c_str()))) {
                 continue;
             }
-            //cout << query_answer->to_string() << endl;
-            //cout << handle_to_atom(query_answer->handles[0]) << endl;
-            //cout << handle_to_atom(query_answer->handles[1]) << endl;
+            // cout << query_answer->to_string() << endl;
+            // cout << handle_to_atom(query_answer->handles[0]) << endl;
+            // cout << handle_to_atom(query_answer->handles[1]) << endl;
             sentence_document1 = db->get_atom_document(query_answer->assignment.get(sentence1.c_str()));
             sentence_document2 = db->get_atom_document(query_answer->assignment.get(sentence2.c_str()));
             sentence_symbol_document1 = db->get_atom_document(sentence_document1->get("targets", 1));
             sentence_symbol_document2 = db->get_atom_document(sentence_document2->get("targets", 1));
             string s1 = string(sentence_symbol_document1->get("name"));
             string s2 = string(sentence_symbol_document2->get("name"));
-            if ((already_inserted_links.find(s1 + s2) == already_inserted_links.end()) && 
+            if ((already_inserted_links.find(s1 + s2) == already_inserted_links.end()) &&
                 (already_inserted_links.find(s2 + s1) == already_inserted_links.end())) {
                 build_link(link_type_tag, s1, s2, 0.0, output, highlighted);
                 already_inserted_links.insert(s1 + s2);
@@ -299,7 +298,7 @@ void run(
     if (count == 0) {
         cout << "No match for query" << endl;
     } else {
-        while (! output.empty()) {
+        while (!output.empty()) {
             cout << output.top() << endl;
             output.pop();
             cout << output.top() << endl;
@@ -312,7 +311,6 @@ void run(
 }
 
 int main(int argc, char* argv[]) {
-
     if (argc < 3) {
         cerr << "Usage: " << argv[0] << " <context> <link type tag> <word>*" << endl;
         exit(1);

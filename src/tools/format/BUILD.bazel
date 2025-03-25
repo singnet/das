@@ -3,11 +3,14 @@ load("@aspect_rules_lint//format:defs.bzl", "format_multirun")
 
 format_multirun(
   name = "format",
-  # cc = "@llvm_toolchain_llvm//:bin/clang-format",
+  cc = "@llvm_toolchain_llvm//:bin/clang-format",
   python = "@aspect_rules_lint//format:ruff",
-  disable_git_attribute_checks=True,
-  # starlark = "@buildifier_prebuild//:buildifier"
 
   # TODO: ADD rules for yaml, markdown, rust, c
+  # starlark = "@buildifier_prebuild//:buildifier"
+  # rust = "@rules_rust//tools/upstream_wrapper:rustfmt",
+  # yaml = "@aspect_rules_lint//format:yamlfmt",
+
+  disable_git_attribute_checks=True,
   visibility = ["//visibility:public"],
 )

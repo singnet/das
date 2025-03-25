@@ -54,7 +54,7 @@ void QueryNode<AnswerType>::graceful_shutdown() {
 #endif
     if (is_shutting_down()) {
 #ifdef DEBUG
-    cout << "QueryNode::graceful_shutdown() END (already shutting down)" << endl;
+        cout << "QueryNode::graceful_shutdown() END (already shutting down)" << endl;
 #endif
         return;
     }
