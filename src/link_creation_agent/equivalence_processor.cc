@@ -4,10 +4,8 @@ using namespace std;
 using namespace query_engine;
 using namespace link_creation_agent;
 
-void EquivalenceProcessor::process() {
-    // TODO
-}
-
-vector<vector<string>> EquivalenceProcessor::get_links() {
-    return {};
-}
+vector<vector<string>> EquivalenceProcessor::process(
+    QueryAnswer* query_answer, std::optional<std::vector<std::string>> config) {
+        // TODO
+        return {};
+    }

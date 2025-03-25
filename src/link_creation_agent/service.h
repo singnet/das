@@ -16,6 +16,10 @@
 #include "link.h"
 #include "thread_pool.h"
 #include "link_processor.h"
+#include "template_processor.h"
+#include "equivalence_processor.h"
+#include "implication_processor.h"
+
 
 using namespace das_agent;
 using namespace query_node;
@@ -58,13 +62,18 @@ class LinkCreationService
     set<string> processed_link_handles;
     std::mutex m_mutex;
     std::condition_variable m_cond;
+    LinkTemplateProcessor link_template_processor;
+    ImplicationProcessor implication_processor;
+    EquivalenceProcessor equivalence_processor;
+
+
 
     /**
      * @brief Create a link, blocking the client until the link is created
      * @param link Link object
      * @param das_client DAS Node client
      */
-    void create_link(LinkProcessor& link, DasAgentNode& das_client);
+    void create_link(std::vector<std::vector<std::string>>& links, DasAgentNode& das_client);
 };
 
 }  // namespace link_creation_agent

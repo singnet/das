@@ -4,10 +4,10 @@
  */
 
 #pragma once
+#include <optional>
+#include <stdexcept>
 #include <string>
 #include <vector>
-#include <stdexcept>
-
 
 #include "QueryAnswer.h"
 
@@ -17,13 +17,9 @@ namespace link_creation_agent {
 class LinkProcessor {
    public:
     LinkProcessor() = default;
-    LinkProcessor(QueryAnswer* query_answer) : query_answer(query_answer) {};
-    virtual std::vector<std::vector<std::string>> get_links() = 0;
-    virtual void process() = 0;
+    virtual std::vector<std::vector<std::string>> process(
+        QueryAnswer* query_answer, std::optional<std::vector<std::string>> config = std::nullopt) = 0;
     virtual ~LinkProcessor() = default;
-
-   protected:
-    QueryAnswer* query_answer;
 };
 
 enum class ProcessorType {

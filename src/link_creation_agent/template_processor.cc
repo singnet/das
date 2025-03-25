@@ -6,25 +6,33 @@ using namespace std;
 using namespace query_engine;
 using namespace link_creation_agent;
 
-void LinkTemplateProcessor::set_template(vector<string> link_template) {
-    this->link_create_template = link_template;
-}
-
-void LinkTemplateProcessor::process() {
-    if (this->link_create_template.front() == "LIST") {
-        LinkCreateTemplateList link_create_template_list(this->link_create_template);
-        for (auto link_template : link_create_template_list.get_templates()) {
-            shared_ptr<Link> link = process_template_request(link_template);
-            this->links.push_back(link);
+std::vector<std::vector<std::string>> LinkTemplateProcessor::process(
+    QueryAnswer* query_answer, std::optional<std::vector<std::string>> config) {
+        std::vector<shared_ptr<Link>> links;
+        if(config != std::nullopt){ 
+            if (config.value().front() == "LIST") {
+                LinkCreateTemplateList link_create_template_list(config.value());
+                for (auto link_template : link_create_template_list.get_templates()) {
+                    shared_ptr<Link> link = process_template_request(query_answer, link_template);
+                    links.push_back(link);
+                }
+            } else {
+                LinkCreateTemplate link_template(config.value());
+                shared_ptr<Link> link = process_template_request(query_answer, link_template);
+                links.push_back(link);
+            }
+        } else{
+            throw runtime_error("Invalid link template");
         }
-    } else {
-        LinkCreateTemplate link_template(this->link_create_template);
-        shared_ptr<Link> link = process_template_request(link_template);
-        this->links.push_back(link);
-    }
+
+        vector<vector<string>> link_tokens;
+        for (shared_ptr<Link> link : links) {
+            link_tokens.push_back(link->tokenize());
+        }
+        return link_tokens;
 }
 
-shared_ptr<Link> LinkTemplateProcessor::process_template_request(LinkCreateTemplate& link_template) {
+shared_ptr<Link> LinkTemplateProcessor::process_template_request(QueryAnswer* query_answer, LinkCreateTemplate& link_template) {
     LinkCreateTemplate link_create_template(link_template);
     HandlesAnswer* handles_answer = dynamic_cast<HandlesAnswer*>(query_answer);
     shared_ptr<Link> link = make_shared<Link>();
@@ -37,7 +45,7 @@ shared_ptr<Link> LinkTemplateProcessor::process_template_request(LinkCreateTempl
         }
         if (holds_alternative<std::shared_ptr<LinkCreateTemplate>>(target)) {
             shared_ptr<LinkCreateTemplate> sub_link = get<std::shared_ptr<LinkCreateTemplate>>(target);
-            shared_ptr<Link> sub_link_obj = process_template_request(*sub_link.get());
+            shared_ptr<Link> sub_link_obj = process_template_request(query_answer, *sub_link.get());
             link->add_target(sub_link_obj);
         }
         if (holds_alternative<Node>(target)) {
@@ -49,13 +57,3 @@ shared_ptr<Link> LinkTemplateProcessor::process_template_request(LinkCreateTempl
     return link;
 }
 
-vector<vector<string>> LinkTemplateProcessor::get_links() {
-    vector<vector<string>> links;
-    for (shared_ptr<Link> link : this->links) {
-        vector<string> link_tokens = link->tokenize();
-        links.push_back(link_tokens);
-    }
-    return links;
-}
-
-vector<shared_ptr<Link>> LinkTemplateProcessor::get_links_objs() { return this->links; }

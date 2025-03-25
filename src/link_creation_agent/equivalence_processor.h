@@ -2,16 +2,16 @@
  * @file equivalence_processor.h
  */
 
- #pragma once
+#pragma once
 #include "link_processor.h"
 
 namespace link_creation_agent {
-    class EquivalenceProcessor : public LinkProcessor {
-        public:
-            EquivalenceProcessor() = default;
-            EquivalenceProcessor(QueryAnswer* query_answer) : LinkProcessor(query_answer) {};
-            std::vector<std::vector<std::string>> get_links() override;
-            void process() override;
-            ~EquivalenceProcessor() = default;
-    };
+class EquivalenceProcessor : public LinkProcessor {
+   public:
+    EquivalenceProcessor() = default;
+    std::vector<std::vector<std::string>> process(
+        QueryAnswer* query_answer,
+        std::optional<std::vector<std::string>> config = std::nullopt) override;
+    ~EquivalenceProcessor() = default;
+};
 }  // namespace link_creation_agent

@@ -11,16 +11,12 @@ namespace link_creation_agent {
 class LinkTemplateProcessor : public LinkProcessor {
    public:
     LinkTemplateProcessor() = default;
-    LinkTemplateProcessor(QueryAnswer* query_answer) : LinkProcessor(query_answer) {};
-    void set_template(std::vector<std::string> link_template);
-    void process() override;
-    std::vector<std::vector<std::string>> get_links() override;
-    std::vector<shared_ptr<Link>> get_links_objs();
+    std::vector<std::vector<std::string>> process(
+        QueryAnswer* query_answer,
+        std::optional<std::vector<std::string>> config = std::nullopt) override;
     ~LinkTemplateProcessor() = default;
 
    private:
-    std::vector<shared_ptr<Link>> links;
-    std::vector<std::string> link_create_template;
-    shared_ptr<Link> process_template_request(LinkCreateTemplate& link_template);
+    shared_ptr<Link> process_template_request(QueryAnswer* query_answer, LinkCreateTemplate& link_template);
 };
 }  // namespace link_creation_agent

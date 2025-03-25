@@ -4,12 +4,8 @@ using namespace std;
 using namespace query_engine;
 using namespace link_creation_agent;
 
-
-void ImplicationProcessor::process() {
-    // TODO
-}
-
-vector<vector<string>> ImplicationProcessor::get_links() {
-    return {};
-}
-
+vector<vector<string>> ImplicationProcessor::process(
+    QueryAnswer* query_answer, std::optional<std::vector<std::string>> config) {
+        // TODO
+        return {};
+    }
