@@ -16,6 +16,7 @@ using namespace commons;
 string AtomDB::WILDCARD;
 string AtomDB::REDIS_PATTERNS_PREFIX;
 string AtomDB::REDIS_TARGETS_PREFIX;
+uint AtomDB::REDIS_CHUNK_SIZE;
 string AtomDB::MONGODB_DB_NAME;
 string AtomDB::MONGODB_COLLECTION_NAME;
 string AtomDB::MONGODB_FIELD_NAME[MONGODB_FIELD::size];
@@ -140,16 +141,50 @@ void AtomDB::mongodb_setup() {
     }
 }
 
-shared_ptr<atomdb_api_types::HandleList> AtomDB::query_for_pattern(shared_ptr<char> pattern_handle) {
-    redisReply *reply = (redisReply *) redisCommand(this->redis_single, "SMEMBERS %s:%s", REDIS_PATTERNS_PREFIX.c_str(), pattern_handle.get());
-    if (reply == NULL) {
-        Utils::error("Redis error");
+vector<string> AtomDB::query_for_pattern(std::shared_ptr<char> pattern_handle) {
+    unsigned int redis_cursor = 0;
+    bool redis_has_more = true;
+    string command;
+    redisReply *reply;
+
+    vector<string> results;
+
+    while (redis_has_more) {
+        command = (
+            "ZRANGE "
+            + REDIS_PATTERNS_PREFIX
+            + ":"
+            + pattern_handle.get()
+            + " "
+            + to_string(redis_cursor)
+            + " "
+            + to_string(redis_cursor + REDIS_CHUNK_SIZE - 1)
+        );
+
+        reply = (redisReply *) redisCommand(this->redis_single, command.c_str());
+
+        if (reply == NULL) {
+            Utils::error("Redis error");
+            break;
+        }
+
+        if (reply->type != REDIS_REPLY_SET && reply->type != REDIS_REPLY_ARRAY) {
+            Utils::error("Invalid Redis response: " + std::to_string(reply->type));
+            freeReplyObject(reply);
+            break;
+        }
+
+        for (unsigned int i = 0; i < reply->elements; i++) {
+            results.push_back(reply->element[i]->str);
+        }
+
+        redis_cursor += REDIS_CHUNK_SIZE;
+        redis_has_more = (reply->elements == REDIS_CHUNK_SIZE);
+
+        freeReplyObject(reply);
     }
-    if (reply->type != REDIS_REPLY_SET && reply->type != REDIS_REPLY_ARRAY) {
-        Utils::error("Invalid Redis response: " + std::to_string(reply->type));
-    }
-    // NOTE: Intentionally, we aren't destroying 'reply' objects.'reply' objects are destroyed in ~RedisSet().
-    return shared_ptr<atomdb_api_types::RedisSet>(new atomdb_api_types::RedisSet(reply));
+
+    return results;
 }
 
 shared_ptr<atomdb_api_types::HandleList> AtomDB::query_for_targets(shared_ptr<char> link_handle) {
