@@ -97,33 +97,29 @@ NB_MODULE(hyperon_das_node_ext, m) {
         .value("GRPC", MessageBrokerType::GRPC)
         .value("RAM", MessageBrokerType::RAM);
 
-    // DistributedAlgorithmNode.h bindings
-    nb::class_<DistributedAlgorithmNode, MessageFactory, DistributedAlgorithmNodeTrampoline>(
-        m, "DistributedAlgorithmNode")
-        .def(nb::init<string, LeadershipBrokerType, MessageBrokerType>(),
-             "node_id"_a,
-             "leadership_algorithm"_a,
-             "messaging_backend"_a)
-        .def("join_network", &DistributedAlgorithmNode::join_network)
-        .def("is_leader", &DistributedAlgorithmNode::is_leader)
-        .def("leader_id", &DistributedAlgorithmNode::leader_id)
-        .def("has_leader", &DistributedAlgorithmNode::has_leader)
-        // Whenever we have a parameter that is a pointer or a reference, we need
-        // to specify the name of the argument. Otherwise nanobind will add a
-        // default arg0, arg1, etc.
-        .def("add_peer", &DistributedAlgorithmNode::add_peer, "peer_id"_a)
-        .def("node_id", &DistributedAlgorithmNode::node_id)
-        .def("broadcast", &DistributedAlgorithmNode::broadcast, "command"_a, "args"_a)
-        .def("send", &DistributedAlgorithmNode::send, "command"_a, "args"_a, "recipient"_a)
-        .def("node_joined_network", &DistributedAlgorithmNode::node_joined_network, "node_id"_a)
-        .def("cast_leadership_vote", &DistributedAlgorithmNode::cast_leadership_vote)
-        .def("message_factory", &DistributedAlgorithmNode::message_factory);
-    nb::class_<StarNode, DistributedAlgorithmNode>(m, "StarNode")
-        .def(nb::init<string, MessageBrokerType>(),
-             "node_id"_a,
-             "messaging_backend"_a = MessageBrokerType::GRPC)
-        .def(nb::init<string, string, MessageBrokerType>(),
-             "node_id"_a,
-             "server_id"_a,
-             "messaging_backend"_a = MessageBrokerType::GRPC);
+  // DistributedAlgorithmNode.h bindings
+  nb::class_<DistributedAlgorithmNode, MessageFactory, DistributedAlgorithmNodeTrampoline>(
+      m, "DistributedAlgorithmNode")
+      .def(nb::init<const string&, LeadershipBrokerType, MessageBrokerType>(),
+           "node_id"_a, "leadership_algorithm"_a, "messaging_backend"_a)
+      .def("join_network", &DistributedAlgorithmNode::join_network)
+      .def("is_leader", &DistributedAlgorithmNode::is_leader)
+      .def("leader_id", &DistributedAlgorithmNode::leader_id)
+      .def("has_leader", &DistributedAlgorithmNode::has_leader)
+      // Whenever we have a parameter that is a pointer or a reference, we need
+      // to specify the name of the argument. Otherwise nanobind will add a
+      // default arg0, arg1, etc.
+      .def("add_peer", &DistributedAlgorithmNode::add_peer, "peer_id"_a)
+      .def("node_id", &DistributedAlgorithmNode::node_id)
+      .def("broadcast", &DistributedAlgorithmNode::broadcast, "command"_a, "args"_a)
+      .def("send", &DistributedAlgorithmNode::send, "command"_a, "args"_a, "recipient"_a)
+      .def("node_joined_network", &DistributedAlgorithmNode::node_joined_network,
+           "node_id"_a)
+      .def("cast_leadership_vote", &DistributedAlgorithmNode::cast_leadership_vote)
+      .def("message_factory", &DistributedAlgorithmNode::message_factory);
+  nb::class_<StarNode, DistributedAlgorithmNode>(m, "StarNode")
+      .def(nb::init<const string&, MessageBrokerType>(),
+           "node_id"_a, "messaging_backend"_a = MessageBrokerType::GRPC)
+      .def(nb::init<const string&, const string&, MessageBrokerType>(),
+           "node_id"_a, "server_id"_a, "messaging_backend"_a = MessageBrokerType::GRPC);
 }

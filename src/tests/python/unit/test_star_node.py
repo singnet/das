@@ -1,4 +1,5 @@
 from unittest import TestCase
+from time import sleep
 
 from hyperon_das_node import StarNode
 
@@ -25,6 +26,8 @@ class TestStarNode(TestCase):
         self.server = StarNode(node_id=self.server_id)
         self.client1 = StarNode(node_id=self.client1_id, server_id=self.server_id)
         self.client2 = StarNode(node_id=self.client2_id, server_id=self.server_id)
+
+        sleep(1)
 
         # Test id assignment
         self.assertEqual(self.server.node_id(), self.server_id)

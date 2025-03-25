@@ -1,4 +1,5 @@
 from unittest import TestCase
+from time import sleep
 
 from hyperon_das_query_engine import (
     DASNode,
@@ -73,6 +74,8 @@ class TestDASNode(TestCase):
         self.server = DASNode(node_id=self.server_id)
         self.client1 = DASNode(node_id=self.client1_id, server_id=self.server_id)
         self.client2 = DASNode(node_id=self.client2_id, server_id=self.server_id)
+
+        sleep(1)
 
         # Test id assignment
         self.assertEqual(self.server.node_id(), self.server_id)
