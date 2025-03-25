@@ -3,11 +3,12 @@ Non distributed version
 """
 
 import contextlib
+import json
 import time
 import sys
 
 from typing import Any
-from threading import Event, Lock
+from threading import Lock
 from queue import Queue, Full
 from typing import Iterator
 from concurrent.futures import ThreadPoolExecutor
@@ -40,13 +41,14 @@ class QueryOptimizerAgent:
             if request := self.evolution_node_server.pop_request():
                 sys.stdout.write("\nA message has arrived!")
                 sys.stdout.flush()
-                answers = self._process(request['data'])
+                answers = self._process(context=request['context'], query_tokens=request['data'])
                 self._send_message(request['senders'], answers)
             time.sleep(0.5)
 
-    def optimize(self, query_tokens: list[str] | str) -> Iterator:
+    def optimize(self, context: str, query_tokens: list[str] | str) -> Iterator:
         return QueryOptimizerIterator(
-            query_tokens,
+            context=context,
+            query_tokens=query_tokens,
             **self.params.__dict__
         )
 
@@ -66,18 +68,20 @@ class QueryOptimizerAgent:
         return params
 
     @log_function_call
-    def _process(self, query_tokens: list[str] | str) -> list[str]:
-        iterator = self.optimize(query_tokens)
+    def _process(self, context: str, query_tokens: list[str] | str) -> list[str]:
+        iterator = self.optimize(context, query_tokens)
         return [qa.to_string() for qa in iterator]
 
     @log_function_call
     def _send_message(self, senders: list[str], answers: list[str]) -> None:
+        sys.stdout.write(f'\nAnswers: {answers}\n')
+        sys.stdout.flush()
         for sender in senders:
             self.evolution_node_client = EvolutionNode(
                 server_id=sender,
                 node_id_factory=self.node_id_factory
             )
-            self.evolution_node_client.send("evolution_finished", ["END",], sender)
+            self.evolution_node_client.send("evolution_finished", [json.dumps(answers)], sender)
 
 
 class QueryOptimizerIterator:
@@ -142,7 +146,6 @@ class QueryOptimizerIterator:
         self.context = context
         self.best_query_answers = Queue(maxsize=self.max_query_answers)
         self.generation = 1
-        self.producer_finished = Event()
         self.atom_db_mutex = Lock()
         self._producer()
 
@@ -154,15 +157,9 @@ class QueryOptimizerIterator:
         Retrieves the next available QueryAnswer from the queue.
         """
         while True:
-            if self.producer_finished.is_set():
-                if not self.best_query_answers.empty():
-                    return self.best_query_answers.get()
-                elif self.is_empty():
-                    raise StopIteration
-            time.sleep(0.1)
-
-    def is_empty(self) -> bool:
-        return bool(self.best_query_answers.empty() and self.producer_finished.is_set())
+            if self.best_query_answers.empty():
+                raise StopIteration
+            return self.best_query_answers.get()
 
     def _connect_atom_db(
         self,
@@ -198,8 +195,8 @@ class QueryOptimizerIterator:
         def parse_atom(token: str, atom_db: Any) -> list[str]:
             try:
                 atom = atom_db.get_atom(token)
-            except AtomDoesNotExist as e:
-                raise e
+            except AtomDoesNotExist:
+                return ''
             if atom_db._is_document_link(atom.to_dict()):
                 result = ['LINK_TEMPLATE', atom.named_type, str(len(atom.targets))]
                 for target in atom.targets:
@@ -222,7 +219,10 @@ class QueryOptimizerIterator:
                 except StopIteration:
                     raise ValueError("'HANDLE' Token missing corresponding value")
             else:
-                parsed_tokens.append(token)
+                parsed_tokens.append(token)  
+        sys.stdout.write(f'\ntokens: {tokens}')
+        sys.stdout.write(f'\nparsed_tokens: {parsed_tokens}')
+        sys.stdout.flush()
         return parsed_tokens
 
     def _producer(self) -> None:
@@ -239,10 +239,6 @@ class QueryOptimizerIterator:
 
             population = self._sample_population(limit=self.population_size)
 
-            if not population:
-                self.producer_finished.set()
-                break
-
             with ThreadPoolExecutor(max_workers=10) as executor:
                 futures = [executor.submit(self._evaluate, ind) for ind in population]
                 evaluated_individuals = [f.result() for f in futures]
@@ -250,8 +246,8 @@ class QueryOptimizerIterator:
             selected_individuals = self._select_best_individuals(evaluated_individuals)
 
             try:
-                for ind in selected_individuals:
-                    self.attention_broker_updater.process_answer(ind)
+                for individual in selected_individuals:
+                    self.attention_broker_updater.process(individual)
             except Exception as e:
                 sys.stdout.write(f'\nAn error occurred - details: {e}')
                 sys.stdout.flush()
@@ -260,7 +256,6 @@ class QueryOptimizerIterator:
             time.sleep(0.1)
 
         self._select_best_query_answers()
-        self.producer_finished.set()
 
     @log_function_call
     def _sample_population(self, limit: int, timeout: float = 10.0) -> list[QueryAnswer]:
@@ -287,6 +282,7 @@ class QueryOptimizerIterator:
                     time.sleep(0.1)
 
             time.sleep(0.5)
+
             return result
         except Exception as e:
             print(f"Population sampling failed: {e}")
