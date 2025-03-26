@@ -64,6 +64,9 @@ bazel:
 test-all: build-image
 	@$(MAKE) bazel test //...
 
+test-all-nocache: build-image
+	@bash ./src/scripts/bazel.sh $(filter-out $@, $(MAKECMDGOALS)) test --cache_test_results=no //...
+
 lint-all:
 	@$(MAKE) bazel lint \
 		"//... --fix --report --diff" \
