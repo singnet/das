@@ -71,6 +71,15 @@ class BusNode : public DistributedAlgorithmNode {
         const string& get_ownership(const string& command);
 
         /**
+         * Check if a command is known in this bus regardless whether it has assigned
+         * ownership or not.
+         *
+         * @param command Command being looked up
+         * @return true iff the passed command has been added to this bus.
+         */
+        bool contains(const string& command);
+
+        /**
          * Returns a string representation of this class (mainly for debugging; not optimized to
          * production environment).
          */

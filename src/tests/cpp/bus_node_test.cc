@@ -10,7 +10,7 @@ class TestMessage : public Message {
    public:
     string command;
     vector<string> args;
-    TestMessage(string command, vector<string> args) {
+    TestMessage(const string& command, vector<string>& args) {
         this->command = command;
         this->args = args;
     }
@@ -19,8 +19,6 @@ class TestMessage : public Message {
 
 class TestNode : public BusNode {
    public:
-    string id;
-    BusNode::Bus bus;
     string command;
     vector<string> args;
 
@@ -29,8 +27,6 @@ class TestNode : public BusNode {
              const set<string>& node_commands,
              const string& known_peer)
         : BusNode(id, bus, node_commands, known_peer, MessageBrokerType::RAM) {
-        this->id = id;
-        this->bus = bus;
     }
 
     virtual ~TestNode() {}
@@ -158,6 +154,11 @@ TEST(BusNode, bus) {
     bus1.add("c2");
     bus1.add("c3");
 
+    EXPECT_TRUE(bus1.contains("c1");
+    EXPECT_TRUE(bus1.contains("c2");
+    EXPECT_TRUE(bus1.contains("c3");
+    EXPECT_FALSE(bus1.contains("c4");
+
     BusNode::Bus bus2(bus1);
     BusNode::Bus bus3 = bus2;
 
@@ -184,4 +185,9 @@ TEST(BusNode, bus) {
     } catch (...) {
         FAIL() << "Expected std::runtime_error";
     }
+
+    EXPECT_TRUE(bus1.contains("c1");
+    EXPECT_TRUE(bus1.contains("c2");
+    EXPECT_TRUE(bus1.contains("c3");
+    EXPECT_FALSE(bus1.contains("c4");
 }

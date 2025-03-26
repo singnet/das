@@ -8,6 +8,6 @@ using namespace service_bus;
 
 
 
-TEST(BusNode, basics) {
+TEST(ServiceBus, basics) {
 
 }

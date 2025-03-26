@@ -169,6 +169,10 @@ const string& BusNode::Bus::get_ownership(const string& command) {
     return pair->second;
 }
 
+bool BusNode::Bus::contains(const string& command) {
+    return (this->command_owner.find(command) != this->command_owner.end());
+}
+
 string BusNode::Bus::to_string() {
     string answer = "{";
     if (this->command_owner.size() > 0) {
