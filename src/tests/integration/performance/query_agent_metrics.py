@@ -4,6 +4,7 @@ import time
 
 TESTS_ROUNDS = 10
 
+
 def run_command(command: str) -> float:
     """
     Executes a shell command and returns the time taken to execute it.
@@ -32,50 +33,50 @@ def run_command(command: str) -> float:
 
 def main():
     queries: dict[str, str] = dict(
-        linktemplate_3_node_var_link = (
+        linktemplate_3_node_var_link=(
             "LINK_TEMPLATE Expression 3 "
-                "NODE Symbol Contains "
-                "VARIABLE sentence1 "
-                "LINK Expression 2 "
-                    "NODE Symbol Word "
-                    """NODE Symbol '"aaa"'"""
+            "NODE Symbol Contains "
+            "VARIABLE sentence1 "
+            "LINK Expression 2 "
+            "NODE Symbol Word "
+            """NODE Symbol '"aaa"'"""
         ),
-        and_2_linktemplate_linktemplate = (
+        and_2_linktemplate_linktemplate=(
             "AND 2 "
-                "LINK_TEMPLATE Expression 3 "
-                    "NODE Symbol Contains "
-                    "VARIABLE sentence1 "
-                    "LINK Expression 2 "
-                        "NODE Symbol Word "
-                        """NODE Symbol '"bbb"' """
-                "LINK_TEMPLATE Expression 3 "
-                    "NODE Symbol Contains "
-                    "VARIABLE sentence2 "
-                    "LINK Expression 2 "
-                        "NODE Symbol Word "
-                        """NODE Symbol '"aaa"'"""
+            "LINK_TEMPLATE Expression 3 "
+            "NODE Symbol Contains "
+            "VARIABLE sentence1 "
+            "LINK Expression 2 "
+            "NODE Symbol Word "
+            """NODE Symbol '"bbb"' """
+            "LINK_TEMPLATE Expression 3 "
+            "NODE Symbol Contains "
+            "VARIABLE sentence2 "
+            "LINK Expression 2 "
+            "NODE Symbol Word "
+            """NODE Symbol '"aaa"'"""
         ),
-        and_2_linktemplate_or_2_linktemplate_linktemplate = (
+        and_2_linktemplate_or_2_linktemplate_linktemplate=(
             "AND 2 "
-                "LINK_TEMPLATE Expression 3 "
-                    "NODE Symbol Contains "
-                    "VARIABLE sentence1 "
-                    "LINK Expression 2 "
-                        "NODE Symbol Word "
-                        """NODE Symbol '"bbb"' """
-                "OR 2 "
-                    "LINK_TEMPLATE Expression 3 "
-                        "NODE Symbol Contains "
-                        "VARIABLE sentence2 "
-                        "LINK Expression 2 "
-                            "NODE Symbol Word "
-                            """NODE Symbol '"aaa"' """
-                    "LINK_TEMPLATE Expression 3 "
-                        "NODE Symbol Contains "
-                        "VARIABLE sentence3 "
-                        "LINK Expression 2 "
-                            "NODE Symbol Word "
-                            """NODE Symbol '"ccc"'"""
+            "LINK_TEMPLATE Expression 3 "
+            "NODE Symbol Contains "
+            "VARIABLE sentence1 "
+            "LINK Expression 2 "
+            "NODE Symbol Word "
+            """NODE Symbol '"bbb"' """
+            "OR 2 "
+            "LINK_TEMPLATE Expression 3 "
+            "NODE Symbol Contains "
+            "VARIABLE sentence2 "
+            "LINK Expression 2 "
+            "NODE Symbol Word "
+            """NODE Symbol '"aaa"' """
+            "LINK_TEMPLATE Expression 3 "
+            "NODE Symbol Contains "
+            "VARIABLE sentence3 "
+            "LINK Expression 2 "
+            "NODE Symbol Word "
+            """NODE Symbol '"ccc"'"""
         ),
     )
 

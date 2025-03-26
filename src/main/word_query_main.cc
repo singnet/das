@@ -186,14 +186,23 @@ vector<string> build_tokens(const string& word_tag) {
     const string contains = "Contains";
     const string sentence1 = "sentence1";
 
-    vector<string> query_tokens = {
-        link_template, expression, "3", 
-            node, symbol, contains, 
-            variable, sentence1,
-            link, expression, "2", 
-                node, symbol, word, 
-                node, symbol, "\"" + word_tag + "\""
-    };
+    vector<string> query_tokens = {link_template,
+                                   expression,
+                                   "3",
+                                   node,
+                                   symbol,
+                                   contains,
+                                   variable,
+                                   sentence1,
+                                   link,
+                                   expression,
+                                   "2",
+                                   node,
+                                   symbol,
+                                   word,
+                                   node,
+                                   symbol,
+                                   "\"" + word_tag + "\""};
     return query_tokens;
 }
 
