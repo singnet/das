@@ -2,6 +2,7 @@
 #define _DISTRIBUTED_ALGORITHM_NODE_STARNODE_H
 
 #include <string>
+
 #include "DistributedAlgorithmNode.h"
 
 using namespace std;
@@ -15,9 +16,7 @@ namespace distributed_algorithm_node {
  * Use the different constructors to choose from client or server.
  */
 class StarNode : public DistributedAlgorithmNode {
-
-public:
-
+   public:
     // --------------------------------------------------------------------------------------------
     // Constructors and destructors
 
@@ -28,9 +27,7 @@ public:
      * @param messaging_backend Type of network communication which will be used by the nodes.
      * in the network to exchange messages. Defaulted to GRPC.
      */
-    StarNode(
-        const string &node_id, 
-        MessageBrokerType messaging_backend = MessageBrokerType::GRPC);
+    StarNode(const string& node_id, MessageBrokerType messaging_backend = MessageBrokerType::GRPC);
 
     /**
      * Client constructor.
@@ -40,10 +37,9 @@ public:
      * @param messaging_backend Type of network communication which will be used by the nodes
      *        in the network to exchange messages. Defaulted to GRPC.
      */
-    StarNode(
-        const string &node_id, 
-        const string &server_id, 
-        MessageBrokerType messaging_backend = MessageBrokerType::GRPC);
+    StarNode(const string& node_id,
+             const string& server_id,
+             MessageBrokerType messaging_backend = MessageBrokerType::GRPC);
 
     /**
      * Destructor
@@ -59,7 +55,7 @@ public:
      *
      * @param node_id ID of the newly inserted node.
      */
-    void node_joined_network(const string &node_id);
+    void node_joined_network(const string& node_id);
 
     /**
      * Method called when a leadershipo election is requested.
@@ -68,12 +64,11 @@ public:
      */
     string cast_leadership_vote();
 
-protected:
-
+   protected:
     bool is_server;
     string server_id;
 };
 
-} // namespace distributed_algorithm_node
+}  // namespace distributed_algorithm_node
 
-#endif // _DISTRIBUTED_ALGORITHM_NODE_STARNODE_H
+#endif  // _DISTRIBUTED_ALGORITHM_NODE_STARNODE_H

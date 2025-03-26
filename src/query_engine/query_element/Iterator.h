@@ -1,8 +1,8 @@
 #ifndef _QUERY_ELEMENT_ITERATOR_H
 #define _QUERY_ELEMENT_ITERATOR_H
 
-#include "Sink.h"
 #include "QueryAnswer.h"
+#include "Sink.h"
 
 using namespace std;
 using namespace query_engine;
@@ -21,13 +21,11 @@ namespace query_element {
  */
 template <class AnswerType>
 class Iterator : public Sink<AnswerType> {
-
-public:
-
+   public:
     /**
      * Constructor expects that the QueryElement below in the tree is already constructed.
      */
-    Iterator(QueryElement *precedent, bool delete_precedent_on_destructor = false);
+    Iterator(QueryElement* precedent, bool delete_precedent_on_destructor = false);
     ~Iterator();
 
     // --------------------------------------------------------------------------------------------
@@ -51,11 +49,11 @@ public:
      *
      * @return the next query answer or NULL if none are currently available.
      */
-    QueryAnswer *pop();
+    QueryAnswer* pop();
 };
 
-} // namespace query_element
+}  // namespace query_element
 
 #include "Iterator.cc"
 
-#endif // _QUERY_ELEMENT_ITERATOR_H
+#endif  // _QUERY_ELEMENT_ITERATOR_H

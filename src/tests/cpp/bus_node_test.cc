@@ -1,14 +1,13 @@
 #include <cstdlib>
-#include "gtest/gtest.h"
 
 #include "BusNode.h"
 #include "Utils.h"
+#include "gtest/gtest.h"
 
 using namespace distributed_algorithm_node;
 
-
 class TestMessage : public Message {
-public:
+   public:
     string command;
     vector<string> args;
     TestMessage(string command, vector<string> args) {
@@ -19,34 +18,24 @@ public:
 };
 
 class TestNode : public BusNode {
-
-public:
-
+   public:
     string id;
     BusNode::Bus bus;
     string command;
     vector<string> args;
 
-    TestNode(
-        const string &id, 
-        const BusNode::Bus &bus, 
-        const set<string> &node_commands,
-        const string &known_peer) : BusNode (
-            id,
-            bus,
-            node_commands,
-            known_peer,
-            MessageBrokerType::RAM
-        ) {
-
+    TestNode(const string& id,
+             const BusNode::Bus& bus,
+             const set<string>& node_commands,
+             const string& known_peer)
+        : BusNode(id, bus, node_commands, known_peer, MessageBrokerType::RAM) {
         this->id = id;
         this->bus = bus;
     }
 
-    virtual ~TestNode() {
-    }
+    virtual ~TestNode() {}
 
-    std::shared_ptr<Message> message_factory(string &command, vector<string> &args) {
+    std::shared_ptr<Message> message_factory(string& command, vector<string>& args) {
         set<string> commands = {"c1", "c2", "c3", "c4", "c5", "c6"};
         std::shared_ptr<Message> message = BusNode::message_factory(command, args);
         if (message) {
@@ -65,7 +54,7 @@ void TestMessage::act(shared_ptr<MessageFactory> node) {
     test_node->args = this->args;
 }
 
-static void check(TestNode &sender, const string &command, TestNode &receiver) {
+static void check(TestNode& sender, const string& command, TestNode& receiver) {
     sender.send_bus_command(command, {command + "arg1"});
     Utils::sleep(1000);
     EXPECT_EQ(receiver.command, command);
@@ -73,7 +62,6 @@ static void check(TestNode &sender, const string &command, TestNode &receiver) {
 }
 
 TEST(BusNode, send) {
-
     BusNode::Bus bus;
     bus.add("c1");
     bus.add("c2");
@@ -98,16 +86,16 @@ TEST(BusNode, send) {
     try {
         check(node1, "c5", node2);
         FAIL() << "Expected exception";
-    } catch(std::runtime_error const &error) {
-    } catch(...) {
+    } catch (std::runtime_error const& error) {
+    } catch (...) {
         FAIL() << "Expected std::runtime_error";
     }
 
     try {
         check(node1, "c6", node2);
         FAIL() << "Expected exception";
-    } catch(std::runtime_error const &error) {
-    } catch(...) {
+    } catch (std::runtime_error const& error) {
+    } catch (...) {
         FAIL() << "Expected std::runtime_error";
     }
 
@@ -115,7 +103,6 @@ TEST(BusNode, send) {
 }
 
 TEST(BusNode, basics) {
-
     string node1_id = "node1";
     string node2_id = "node2";
     string node3_id = "node3";
@@ -157,7 +144,7 @@ TEST(BusNode, basics) {
 
     Utils::sleep(1000);
 
-    for (auto node: {node1, node2, node3}) {
+    for (auto node : {node1, node2, node3}) {
         EXPECT_EQ(node.get_ownership("c1"), node1_id);
         EXPECT_EQ(node.get_ownership("c2"), node1_id);
         EXPECT_EQ(node.get_ownership("c3"), node2_id);
@@ -166,7 +153,6 @@ TEST(BusNode, basics) {
 }
 
 TEST(BusNode, bus) {
-
     BusNode::Bus bus1;
     bus1.add("c1");
     bus1.add("c2");
@@ -194,8 +180,8 @@ TEST(BusNode, bus) {
     try {
         bus1.set_ownership("c1", "b");
         FAIL() << "Expected exception";
-    } catch(std::runtime_error const &error) {
-    } catch(...) {
+    } catch (std::runtime_error const& error) {
+    } catch (...) {
         FAIL() << "Expected std::runtime_error";
     }
 }
