@@ -4,15 +4,13 @@
  */
 #pragma once
 
-#include "Message.h"
 #include <iostream>
 #include <vector>
 
-
+#include "Message.h"
 
 using namespace std;
 using namespace distributed_algorithm_node;
-
 
 /**
  * @brief Dummy message for unknown commands

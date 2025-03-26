@@ -8,8 +8,8 @@
 #include <regex>
 #include <string>
 #include <vector>
-#include "RequestValidator.h"
 
+#include "RequestValidator.h"
 
 using namespace std;
 using namespace commons;
@@ -20,7 +20,7 @@ class InferenceRequestValidator : public RequestValidator {
     /**
      * @brief Construct a new Inference Request Validator object
      */
-    InferenceRequestValidator() { 
+    InferenceRequestValidator() {
         validator_regex = inference_request_validator_regex;
         request_regex = regex(inference_request_validator_regex);
     }

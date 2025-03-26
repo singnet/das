@@ -1,9 +1,9 @@
 #ifndef _ATTENTION_BROKER_SERVER_STIMULUSSPREADER_H
 #define _ATTENTION_BROKER_SERVER_STIMULUSSPREADER_H
 
-#include "attention_broker.grpc.pb.h"
-#include "Utils.h"
 #include "HebbianNetwork.h"
+#include "Utils.h"
+#include "attention_broker.grpc.pb.h"
 
 using namespace std;
 
@@ -13,7 +13,8 @@ namespace attention_broker_server {
  * Algorithm used to update HebbianNetwork weights in "stimulate" requests.
  */
 enum class StimulusSpreaderType {
-    TOKEN /// Consider importance as a fixed amount of tokens distributed among atoms in the HebbianNetwork.
+    TOKEN  /// Consider importance as a fixed amount of tokens distributed among atoms in the
+           /// HebbianNetwork.
 };
 
 /**
@@ -28,12 +29,10 @@ enum class StimulusSpreaderType {
  *
  * This is an abstract class. Concrete subclasses implement different ways of spreading stimuli
  * in the HebbianNetwork.
- * 
+ *
  */
 class StimulusSpreader {
-
-public:
-
+   public:
     /**
      * Factory method.
      *
@@ -43,8 +42,8 @@ public:
      *
      * @return An object of the passed type.
      */
-    static StimulusSpreader *factory(StimulusSpreaderType instance_type);
-    virtual ~StimulusSpreader(); /// destructor.
+    static StimulusSpreader* factory(StimulusSpreaderType instance_type);
+    virtual ~StimulusSpreader();  /// destructor.
 
     /**
      * Stimulate atoms and run one cycle of stimuli spreading.
@@ -53,17 +52,15 @@ public:
      * one cycle of stimuli spreading is executed.
      *
      * @param request A list of handles to be boosted and respective counts which are used to determine
-     * the magnitude of such boost. The actual way importance is boosted and then spread among HebbianNetwork
-     * links are delegated to the concrete subclasses.
+     * the magnitude of such boost. The actual way importance is boosted and then spread among
+     * HebbianNetwork links are delegated to the concrete subclasses.
      */
-    virtual void spread_stimuli(const dasproto::HandleCount *request) = 0;
+    virtual void spread_stimuli(const dasproto::HandleCount* request) = 0;
 
-protected:
+   protected:
+    StimulusSpreader();  /// Basic empty constructor.
 
-    StimulusSpreader(); /// Basic empty constructor.
-
-private:
-
+   private:
 };
 
 /**
@@ -80,19 +77,17 @@ private:
  * HebbianNetwork. Importance boosts and stimulus spreading are implemented in a way that this
  * total amount of tokens remains fixed, unless explicitly requested by caller.
  */
-class TokenSpreader: public StimulusSpreader {
-
-public:
-
-    TokenSpreader(); /// Basic empty constructor.
-    ~TokenSpreader(); /// Destructor.
+class TokenSpreader : public StimulusSpreader {
+   public:
+    TokenSpreader();   /// Basic empty constructor.
+    ~TokenSpreader();  /// Destructor.
 
     // data structure used as parameter container in "visit" functions
     // used in trie traversal
     typedef struct {
         ImportanceType rent_rate;
         ImportanceType total_rent;
-        HandleTrie *importance_changes;
+        HandleTrie* importance_changes;
         unsigned int largest_arity;
         ImportanceType spreading_rate_lowerbound;
         ImportanceType spreading_rate_range_size;
@@ -101,18 +96,18 @@ public:
     } StimuliData;
 
     // data structure used in a private trie during importance update calculations
-    class ImportanceChanges: public HandleTrie::TrieValue {
-        public:
-            ImportanceType rent;
-            ImportanceType wages;
-            ImportanceChanges(ImportanceType r, ImportanceType w) {
-                rent = r;
-                wages = w;
-            }
-            void merge(TrieValue *other) {
-                rent += ((ImportanceChanges *) other)->rent;
-                wages += ((ImportanceChanges *) other)->wages;
-            }
+    class ImportanceChanges : public HandleTrie::TrieValue {
+       public:
+        ImportanceType rent;
+        ImportanceType wages;
+        ImportanceChanges(ImportanceType r, ImportanceType w) {
+            rent = r;
+            wages = w;
+        }
+        void merge(TrieValue* other) {
+            rent += ((ImportanceChanges*) other)->rent;
+            wages += ((ImportanceChanges*) other)->wages;
+        }
     };
 
     /**
@@ -121,23 +116,24 @@ public:
      * Atoms in the passed list have their importance boosted according to the passed counts. Then
      * one cycle of stimuli spreading is executed.
      *
-     * Boosts and stimuli spreading are actually tokens which are collected from all the nodes in the 
-     * HebbianNetwork (as a rent) and redistributed according to the passed * counts (as wages). Once 
-     * rents and wages are consolidated in each node's importance, one cycle of stimuli spreading is run 
-     * when  a % of the importance tokens of each node being redistributed to amnongst its neighbors 
+     * Boosts and stimuli spreading are actually tokens which are collected from all the nodes in the
+     * HebbianNetwork (as a rent) and redistributed according to the passed * counts (as wages). Once
+     * rents and wages are consolidated in each node's importance, one cycle of stimuli spreading is run
+     * when  a % of the importance tokens of each node being redistributed to amnongst its neighbors
      * according to the weights of the links in the HebbianNetwork.
      *
      * @param request A list of handles to be boosted and respective counts which are used to determine
      * the magnitude of such boost.
      */
-    void spread_stimuli(const dasproto::HandleCount *request);
+    void spread_stimuli(const dasproto::HandleCount* request);
 
-    // Used only in "visit" functions during trie traversals. Such functions aren't methods so this method
-    // must be public.
-    void distribute_wages(const dasproto::HandleCount *handle_count, ImportanceType &total_to_spread, StimuliData *data);
-
+    // Used only in "visit" functions during trie traversals. Such functions aren't methods so this
+    // method must be public.
+    void distribute_wages(const dasproto::HandleCount* handle_count,
+                          ImportanceType& total_to_spread,
+                          StimuliData* data);
 };
 
-} // namespace attention_broker_server
+}  // namespace attention_broker_server
 
-#endif // _ATTENTION_BROKER_SERVER_STIMULUSSPREADER_H
+#endif  // _ATTENTION_BROKER_SERVER_STIMULUSSPREADER_H

@@ -3,6 +3,7 @@
 
 #include <vector>
 
+#include "LazyWorkerDeleter.h"
 #include "QueryAnswerProcessor.h"
 #include "SharedQueue.h"
 #include "Sink.h"
@@ -15,7 +16,7 @@ namespace query_element {
  * A special sink which forwards the query results to a remote QueryElement (e.g. a RemoteIterator).
  */
 template <class AnswerType>
-class RemoteSink : public Sink<AnswerType> {
+class RemoteSink : public Sink<AnswerType>, public Worker {
    public:
     /**
      * Constructor.
@@ -42,6 +43,16 @@ class RemoteSink : public Sink<AnswerType> {
      * present in this QueryElement.
      */
     virtual void graceful_shutdown();
+
+    virtual bool is_work_done() override {
+        for (const auto& processor : this->query_answer_processors) {
+            if (!processor->is_work_done()) return false;
+        }
+        if (!this->input_buffer->is_query_answers_empty()) return false;
+        if (!this->input_buffer->is_query_answers_finished()) return false;
+        if (!this->is_flow_finished()) return false;
+        return true;
+    }
 
    private:
     thread* queue_processor;

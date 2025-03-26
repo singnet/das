@@ -37,11 +37,7 @@ class LinkCreationAgentTest : public ::testing::Test {
     }
 };
 
-
-
 TEST_F(LinkCreationAgentTest, TestRequest) {
-
-
     // Simulate a request
     vector<string> request = {
         "query1", "LINK_CREATE", "test", "1", "0", "VARIABLE", "V1", "10", "5", "test_context", "true"};
@@ -57,13 +53,26 @@ TEST_F(LinkCreationAgentTest, TestRequest) {
     EXPECT_EQ(lca_request->id.empty(), false);
     request.clear();
 
-    request = {
-        "query2", "LINK_CREATE", "test2", "2", "1", "NODE", "Symbol", "A", "VARIABLE", "V1", 
-        "10", "-1", "test_context", "false", "1"};
+    request = {"query2",
+               "LINK_CREATE",
+               "test2",
+               "2",
+               "1",
+               "NODE",
+               "Symbol",
+               "A",
+               "VARIABLE",
+               "V1",
+               "10",
+               "-1",
+               "test_context",
+               "false",
+               "1"};
     lca_request = LinkCreationAgent::create_request(request);
     EXPECT_EQ(lca_request->query, vector<string>({"query2"}));
-    EXPECT_EQ(lca_request->link_template,
-              vector<string>({"LINK_CREATE", "test2", "2", "1", "NODE", "Symbol", "A", "VARIABLE", "V1"}));
+    EXPECT_EQ(
+        lca_request->link_template,
+        vector<string>({"LINK_CREATE", "test2", "2", "1", "NODE", "Symbol", "A", "VARIABLE", "V1"}));
     EXPECT_EQ(lca_request->max_results, 10);
     EXPECT_EQ(lca_request->repeat, -1);
     EXPECT_EQ(lca_request->context, "test_context");

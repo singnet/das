@@ -80,7 +80,6 @@ class InferenceRequest {
     int max_proof_length;
     std::string context;
     std::string inference_request_id;
-
 };
 
 class ProofOfImplicationOrEquivalence : public InferenceRequest {

@@ -1,8 +1,8 @@
 #ifndef _QUERY_ELEMENT_REMOTEITERATOR_H
 #define _QUERY_ELEMENT_REMOTEITERATOR_H
 
-#include "QueryElement.h"
 #include "QueryAnswer.h"
+#include "QueryElement.h"
 
 using namespace std;
 
@@ -23,16 +23,14 @@ namespace query_element {
  */
 template <class AnswerType>
 class RemoteIterator : public QueryElement {
-
-public:
-    
+   public:
     /**
      * Constructor.
      *
      * @param local_id The id of this element in the network which connects to the RemoteSink.
      * Typically is something like "host:port".
      */
-    RemoteIterator(const string &local_id);
+    RemoteIterator(const string& local_id);
 
     /**
      * Destructor.
@@ -66,16 +64,15 @@ public:
      *
      * @return the next query answer or NULL if none are currently available.
      */
-    QueryAnswer *pop();
+    QueryAnswer* pop();
 
-private:
-
+   private:
     shared_ptr<QueryNode<AnswerType>> remote_input_buffer;
     string local_id;
 };
 
-} // namespace query_element
+}  // namespace query_element
 
 #include "RemoteIterator.cc"
 
-#endif // _QUERY_ELEMENT_REMOTEITERATOR_H
+#endif  // _QUERY_ELEMENT_REMOTEITERATOR_H

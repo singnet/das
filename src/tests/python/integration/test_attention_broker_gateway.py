@@ -21,12 +21,12 @@ class AttentionBrokerMock(ab_grpc.AttentionBrokerServicer):
 
     def correlate(self, request, context):
         global RECEIVED
-        RECEIVED = request.handle_list
+        RECEIVED = request.list
         return common.Ack(error=0, msg="OK")
 
     def stimulate(self, request, context):
         global RECEIVED
-        RECEIVED = request.handle_count
+        RECEIVED = request.map
         return common.Ack(error=0, msg="OK")
 
 

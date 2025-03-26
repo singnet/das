@@ -25,11 +25,11 @@ void LinkCreationService::process_request(shared_ptr<RemoteIterator<HandlesAnswe
                 cout << "LinkCreationService::process_request: Processing query_answer" << endl;
                 if (link_template.front() == "LIST") {
                     LinkCreateTemplateList link_create_template_list(link_template);
-                    for(auto link_template : link_create_template_list.get_templates()){
+                    for (auto link_template : link_create_template_list.get_templates()) {
                         Link link(query_answer, link_template.tokenize());
                         this->create_link(link, *das_client);
                     }
-                }else{
+                } else {
                     Link link(query_answer, link_template);
                     this->create_link(link, *das_client);
                 }

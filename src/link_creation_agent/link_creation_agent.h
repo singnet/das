@@ -9,18 +9,17 @@
  * It also handles loading and saving configurations and request buffers.
  */
 #pragma once
+#include <memory>
 #include <mutex>
 #include <string>
 #include <thread>
 #include <vector>
-#include <memory>
-
 
 #include "DASNode.h"
 #include "HandlesAnswer.h"
 #include "RemoteIterator.h"
-#include "link_creation_agent_node.h"
 #include "das_agent_node.h"
+#include "link_creation_agent_node.h"
 #include "service.h"
 
 using namespace query_node;
@@ -100,8 +99,8 @@ class LinkCreationAgent {
     string link_creation_agent_server_id;  // ID of the link creation server
     string das_agent_client_id;            // ID of the DAS client
     string das_agent_server_id;
-    string requests_buffer_file;  // Path to the requests buffer file
-    string context;               // Context to send to attention broker
+    string requests_buffer_file;           // Path to the requests buffer file
+    string context;                        // Context to send to attention broker
 
     // Other attributes
     LinkCreationService* service;

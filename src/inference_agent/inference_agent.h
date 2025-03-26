@@ -53,11 +53,11 @@ class InferenceAgent {
     void stop();
 
    private:
-   /**
-    * @brief Send link creation request to the link creation agent.
-    * @param inference_request The inference request to be sent to the link creation agent.
-    * @param is_stop_request Whether the request is a stop request.
-    */
+    /**
+     * @brief Send link creation request to the link creation agent.
+     * @param inference_request The inference request to be sent to the link creation agent.
+     * @param is_stop_request Whether the request is a stop request.
+     */
     void send_link_creation_request(shared_ptr<InferenceRequest> inference_request,
                                     bool is_stop_request);
     /**

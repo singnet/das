@@ -8,12 +8,10 @@ using namespace query_element;
 // Constructors and destructors
 
 template <class AnswerType>
-Sink<AnswerType>::Sink(
-    QueryElement *precedent, 
-    const string &id, 
-    bool delete_precedent_on_destructor,
-    bool setup_buffers_flag) {
-
+Sink<AnswerType>::Sink(QueryElement* precedent,
+                       const string& id,
+                       bool delete_precedent_on_destructor,
+                       bool setup_buffers_flag) {
     this->precedent = precedent;
     this->id = id;
     this->delete_precedent_on_destructor = delete_precedent_on_destructor;

@@ -85,8 +85,8 @@ class Database {
  */
 class InMemoryDB : public AtomDB {
    public:
-    InMemoryDB(const string& database_name = "das") : database_name(database_name) {};
-    ~InMemoryDB() {};
+    InMemoryDB(const string& database_name = "das") : database_name(database_name){};
+    ~InMemoryDB(){};
 
     const string get_node_handle(const string& node_type, const string& node_name) const override;
 
