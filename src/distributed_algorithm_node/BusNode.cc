@@ -88,7 +88,6 @@ void BusNode::send_bus_command(const string& command, const vector<string>& args
 }
 
 string BusNode::to_string() {
-    // string answer = "BusNode: " + this->node_id() + " Bus: " + this->bus.to_string();
     string answer = DistributedAlgorithmNode::to_string();
     answer += " Bus: " + this->bus.to_string();
     return answer;
