@@ -75,9 +75,9 @@ class StarNodeTrampoline : public StarNode {
         NB_OVERRIDE(message_factory, command, args);
     };
     void node_joined_network(const string& node_id) override {
-        NB_OVERRIDE_PURE(node_joined_network, node_id);
+        NB_OVERRIDE(node_joined_network, node_id);
     };
-    string cast_leadership_vote() override { NB_OVERRIDE_PURE(cast_leadership_vote); };
+    string cast_leadership_vote() override { NB_OVERRIDE(cast_leadership_vote); };
 };
 // ****************************************************************************
 
