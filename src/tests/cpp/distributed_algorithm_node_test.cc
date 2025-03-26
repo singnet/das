@@ -1,9 +1,9 @@
-#include <cstdlib>
 #include <cmath>
+#include <cstdlib>
 
-#include "gtest/gtest.h"
-#include "Utils.h"
 #include "DistributedAlgorithmNode.h"
+#include "Utils.h"
+#include "gtest/gtest.h"
 
 using namespace distributed_algorithm_node;
 
@@ -11,7 +11,7 @@ using namespace distributed_algorithm_node;
 // Utility classes - concrete subclasses of DistributedAlgorithmNode and Message
 
 class TestMessage : public Message {
-public:
+   public:
     string command;
     vector<string> args;
     TestMessage(string command, vector<string> args) {
@@ -22,35 +22,28 @@ public:
 };
 
 class TestNode : public DistributedAlgorithmNode {
-
-public:
-
+   public:
     string server_id;
     bool is_server;
     string command;
     vector<string> args;
     unsigned int node_joined_network_count;
 
-    TestNode(
-        const string &node_id,
-        const string &server_id,
-        LeadershipBrokerType leadership_algorithm,
-        MessageBrokerType messaging_backend,
-        bool is_server) : DistributedAlgorithmNode(
-            node_id,
-            leadership_algorithm,
-            messaging_backend) {
-
+    TestNode(const string& node_id,
+             const string& server_id,
+             LeadershipBrokerType leadership_algorithm,
+             MessageBrokerType messaging_backend,
+             bool is_server)
+        : DistributedAlgorithmNode(node_id, leadership_algorithm, messaging_backend) {
         this->is_server = is_server;
-        if (! is_server) {
+        if (!is_server) {
             this->server_id = server_id;
             this->add_peer(server_id);
         }
         this->node_joined_network_count = 0;
     }
 
-    virtual ~TestNode() {
-    }
+    virtual ~TestNode() {}
 
     string cast_leadership_vote() {
         if (this->is_server) {
@@ -60,14 +53,14 @@ public:
         }
     }
 
-    void node_joined_network(const string &node_id) {
+    void node_joined_network(const string& node_id) {
         this->node_joined_network_count += 1;
         if (is_server) {
             this->add_peer(node_id);
         }
     }
 
-    std::shared_ptr<Message> message_factory(string &command, vector<string> &args) {
+    std::shared_ptr<Message> message_factory(string& command, vector<string>& args) {
         std::shared_ptr<Message> message = DistributedAlgorithmNode::message_factory(command, args);
         if (message) {
             return message;
@@ -92,30 +85,17 @@ TEST(DistributedAlgorithmNode, basics) {
     string server_id = "localhost:30700";
     string client1_id = "localhost:30701";
     string client2_id = "localhost:30702";
-    TestNode *server;
-    TestNode *client1;
-    TestNode *client2;
+    TestNode* server;
+    TestNode* client1;
+    TestNode* client2;
 
-    for (auto messaging_type: {MessageBrokerType::RAM , MessageBrokerType::GRPC}) {
-
+    for (auto messaging_type : {MessageBrokerType::RAM, MessageBrokerType::GRPC}) {
         server = new TestNode(
-            server_id,
-            server_id,
-            LeadershipBrokerType::SINGLE_MASTER_SERVER,
-            messaging_type,
-            true);
+            server_id, server_id, LeadershipBrokerType::SINGLE_MASTER_SERVER, messaging_type, true);
         client1 = new TestNode(
-            client1_id,
-            server_id,
-            LeadershipBrokerType::SINGLE_MASTER_SERVER,
-            messaging_type,
-            false);
+            client1_id, server_id, LeadershipBrokerType::SINGLE_MASTER_SERVER, messaging_type, false);
         client2 = new TestNode(
-            client2_id,
-            server_id,
-            LeadershipBrokerType::SINGLE_MASTER_SERVER,
-            messaging_type,
-            false);
+            client2_id, server_id, LeadershipBrokerType::SINGLE_MASTER_SERVER, messaging_type, false);
 
         EXPECT_FALSE(server->is_leader());
         EXPECT_FALSE(client1->is_leader());
@@ -152,40 +132,25 @@ TEST(DistributedAlgorithmNode, basics) {
         delete client1;
         delete client2;
     }
-
 }
 
 TEST(DistributedAlgorithmNode, communication) {
-
     string server_id = "localhost:30700";
     string client1_id = "localhost:30701";
     string client2_id = "localhost:30702";
-    TestNode *server;
-    TestNode *client1;
-    TestNode *client2;
+    TestNode* server;
+    TestNode* client1;
+    TestNode* client2;
 
-    for (auto messaging_type: {MessageBrokerType::RAM , MessageBrokerType::GRPC}) {
-
+    for (auto messaging_type : {MessageBrokerType::RAM, MessageBrokerType::GRPC}) {
         server = new TestNode(
-            server_id,
-            server_id,
-            LeadershipBrokerType::SINGLE_MASTER_SERVER,
-            messaging_type,
-            true);
+            server_id, server_id, LeadershipBrokerType::SINGLE_MASTER_SERVER, messaging_type, true);
         server->join_network();
         client1 = new TestNode(
-            client1_id,
-            server_id,
-            LeadershipBrokerType::SINGLE_MASTER_SERVER,
-            messaging_type,
-            false);
+            client1_id, server_id, LeadershipBrokerType::SINGLE_MASTER_SERVER, messaging_type, false);
         client1->join_network();
         client2 = new TestNode(
-            client2_id,
-            server_id,
-            LeadershipBrokerType::SINGLE_MASTER_SERVER,
-            messaging_type,
-            false);
+            client2_id, server_id, LeadershipBrokerType::SINGLE_MASTER_SERVER, messaging_type, false);
         client2->join_network();
         Utils::sleep(1000);
 
@@ -198,7 +163,7 @@ TEST(DistributedAlgorithmNode, communication) {
 
         EXPECT_EQ(server->node_joined_network_count, 2);
         EXPECT_EQ(client1->node_joined_network_count, 1);
-        EXPECT_EQ(client2->node_joined_network_count, 0); // TODO Fix this. This count should be 2
+        EXPECT_EQ(client2->node_joined_network_count, 0);  // TODO Fix this. This count should be 2
 
         vector<string> args1 = {"a", "b"};
         server->broadcast("c1", args1);

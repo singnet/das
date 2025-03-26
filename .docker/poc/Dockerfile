@@ -33,3 +33,12 @@ COPY  ./src/bin/link_creation_agent_client /usr/local/bin
 RUN chmod +x /usr/local/bin/link_creation_agent_client
 
 ENTRYPOINT [ "link_creation_agent_client" ]
+
+# Build Inference Agent
+FROM trueagi/das:22.04-builder AS inference-agent
+
+COPY  ./src/bin/inference_agent_server /usr/local/bin
+
+RUN chmod +x /usr/local/bin/inference_agent_server
+
+ENTRYPOINT [ "inference_agent_server" ]

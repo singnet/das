@@ -1,8 +1,10 @@
 #include "HandlesAnswer.h"
-#include "Utils.h"
+
 #include <cmath>
 #include <cstring>
 #include <iostream>
+
+#include "Utils.h"
 
 using namespace query_engine;
 using namespace commons;
@@ -10,14 +12,11 @@ using namespace commons;
 // -------------------------------------------------------------------------------------------------
 // Assignment
 
-Assignment::Assignment() {
-    this->size = 0;
-}
+Assignment::Assignment() { this->size = 0; }
 
-Assignment::~Assignment() {
-}
+Assignment::~Assignment() {}
 
-bool Assignment::assign(const char *label, const char *value) {
+bool Assignment::assign(const char* label, const char* value) {
     for (unsigned int i = 0; i < this->size; i++) {
         // if label is already present, return true iff its value is the same
         if (strncmp(label, this->labels[i], MAX_VARIABLE_NAME_SIZE) == 0) {
@@ -29,33 +28,32 @@ bool Assignment::assign(const char *label, const char *value) {
     values[this->size] = value;
     this->size++;
     if (this->size == MAX_NUMBER_OF_VARIABLES_IN_QUERY) {
-        Utils::error(
-            "Assignment size exceeds the maximal number of allowed variables in a query: " +
-            std::to_string(MAX_NUMBER_OF_VARIABLES_IN_QUERY));
+        Utils::error("Assignment size exceeds the maximal number of allowed variables in a query: " +
+                     std::to_string(MAX_NUMBER_OF_VARIABLES_IN_QUERY));
     }
     return true;
 }
 
-bool Assignment::is_compatible(const Assignment &other) {
+bool Assignment::is_compatible(const Assignment& other) {
     for (unsigned int i = 0; i < this->size; i++) {
         for (unsigned int j = 0; j < other.size; j++) {
             if ((strncmp(this->labels[i], other.labels[j], MAX_VARIABLE_NAME_SIZE) == 0) &&
                 (strncmp(this->values[i], other.values[j], HANDLE_HASH_SIZE) != 0)) {
-                   return false;
+                return false;
             }
         }
     }
     return true;
 }
 
-void Assignment::copy_from(const Assignment &other) {
+void Assignment::copy_from(const Assignment& other) {
     this->size = other.size;
-    unsigned int num_bytes = this->size * sizeof(char *);
-    memcpy((void *) this->labels, (const void *) other.labels, num_bytes);
-    memcpy((void *) this->values, (const void *) other.values, num_bytes);
+    unsigned int num_bytes = this->size * sizeof(char*);
+    memcpy((void*) this->labels, (const void*) other.labels, num_bytes);
+    memcpy((void*) this->values, (const void*) other.values, num_bytes);
 }
 
-void Assignment::add_assignments(const Assignment &other) {
+void Assignment::add_assignments(const Assignment& other) {
     bool already_contains;
     for (unsigned int j = 0; j < other.size; j++) {
         already_contains = false;
@@ -65,7 +63,7 @@ void Assignment::add_assignments(const Assignment &other) {
                 break;
             }
         }
-        if (! already_contains) {
+        if (!already_contains) {
             this->labels[this->size] = other.labels[j];
             this->values[this->size] = other.values[j];
             this->size++;
@@ -73,7 +71,7 @@ void Assignment::add_assignments(const Assignment &other) {
     }
 }
 
-const char *Assignment::get(const char *label) {
+const char* Assignment::get(const char* label) {
     for (unsigned int i = 0; i < this->size; i++) {
         if (strncmp(label, this->labels[i], MAX_VARIABLE_NAME_SIZE) == 0) {
             return this->values[i];
@@ -82,9 +80,7 @@ const char *Assignment::get(const char *label) {
     return NULL;
 }
 
-unsigned int Assignment::variable_count() {
-    return this->size;
-}
+unsigned int Assignment::variable_count() { return this->size; }
 
 string Assignment::to_string() {
     string answer = "{";
@@ -101,40 +97,32 @@ string Assignment::to_string() {
 // -------------------------------------------------------------------------------------------------
 // HandlesAnswer
 
-
-HandlesAnswer::HandlesAnswer() : HandlesAnswer(0.0) {
-}
+HandlesAnswer::HandlesAnswer() : HandlesAnswer(0.0) {}
 
 HandlesAnswer::HandlesAnswer(double importance) {
     this->importance = importance;
     this->handles_size = 0;
 }
 
-HandlesAnswer::HandlesAnswer(const char *handle, double importance) {
+HandlesAnswer::HandlesAnswer(const char* handle, double importance) {
     this->importance = importance;
     this->handles[0] = handle;
     this->handles_size = 1;
 }
 
-HandlesAnswer::~HandlesAnswer() {
-}
+HandlesAnswer::~HandlesAnswer() {}
 
-void HandlesAnswer::add_handle(const char *handle) {
-    this->handles[this->handles_size++] = handle;
-}
+void HandlesAnswer::add_handle(const char* handle) { this->handles[this->handles_size++] = handle; }
 
-HandlesAnswer *HandlesAnswer::copy(HandlesAnswer *base) { // Static method
-    HandlesAnswer *copy = new HandlesAnswer(base->importance);
+HandlesAnswer* HandlesAnswer::copy(HandlesAnswer* base) {  // Static method
+    HandlesAnswer* copy = new HandlesAnswer(base->importance);
     copy->assignment.copy_from(base->assignment);
     copy->handles_size = base->handles_size;
-    memcpy(
-        (void *) copy->handles, 
-        (const void *) base->handles, 
-        base->handles_size * sizeof(char *));
+    memcpy((void*) copy->handles, (const void*) base->handles, base->handles_size * sizeof(char*));
     return copy;
 }
 
-bool HandlesAnswer::merge(HandlesAnswer *other, bool merge_handles) {
+bool HandlesAnswer::merge(HandlesAnswer* other, bool merge_handles) {
     if (this->assignment.is_compatible(other->assignment)) {
         this->assignment.add_assignments(other->assignment);
         bool already_exist;
@@ -148,7 +136,7 @@ bool HandlesAnswer::merge(HandlesAnswer *other, bool merge_handles) {
                         break;
                     }
                 }
-                if (! already_exist) {
+                if (!already_exist) {
                     this->handles[this->handles_size++] = other->handles[j];
                 }
             }
@@ -169,21 +157,21 @@ string HandlesAnswer::to_string() {
         }
     }
     answer += "] " + this->assignment.to_string() + " " + std::to_string(this->importance);
-    //answer += "] " + this->assignment.to_string();
+    // answer += "] " + this->assignment.to_string();
     return answer;
 }
 
-const string &HandlesAnswer::tokenize() {
+const string& HandlesAnswer::tokenize() {
     // char_count is computed to be slightly larger than actually required by assuming
     // e.g. 3 digits to represent sizes
     char importance_buffer[13];
     sprintf(importance_buffer, "%.10f", this->importance);
-    unsigned int char_count = 
-        13 // importance with 10 decimals + space
-        + 4 // (up to 3 digits) to represent this->handles_size + space
-        + this->handles_size * (HANDLE_HASH_SIZE + 1) // handles + spaces
-        + 4 // (up to 3 digits) to represent this->assignment.size + space
-        + this->assignment.size * (MAX_VARIABLE_NAME_SIZE + HANDLE_HASH_SIZE + 2); // label<space>handle<space>
+    unsigned int char_count = 13   // importance with 10 decimals + space
+                              + 4  // (up to 3 digits) to represent this->handles_size + space
+                              + this->handles_size * (HANDLE_HASH_SIZE + 1)  // handles + spaces
+                              + 4  // (up to 3 digits) to represent this->assignment.size + space
+                              + this->assignment.size * (MAX_VARIABLE_NAME_SIZE + HANDLE_HASH_SIZE +
+                                                         2);  // label<space>handle<space>
 
     this->token_representation.clear();
     this->token_representation.reserve(char_count);
@@ -208,12 +196,10 @@ const string &HandlesAnswer::tokenize() {
     return this->token_representation;
 }
 
-static inline void read_token(
-    const char *token_string, 
-    unsigned int &cursor, 
-    char *token, 
-    unsigned int token_size) {
-
+static inline void read_token(const char* token_string,
+                              unsigned int& cursor,
+                              char* token,
+                              unsigned int token_size) {
     unsigned int cursor_token = 0;
     while (token_string[cursor] != ' ') {
         if ((cursor_token == token_size) || (token_string[cursor] == '\0')) {
@@ -225,9 +211,8 @@ static inline void read_token(
     cursor++;
 }
 
-void HandlesAnswer::untokenize(const string &tokens) {
-
-    const char *token_string = tokens.c_str();
+void HandlesAnswer::untokenize(const string& tokens) {
+    const char* token_string = tokens.c_str();
     char number[4];
     char importance[13];
     char handle[HANDLE_HASH_SIZE];
@@ -241,7 +226,8 @@ void HandlesAnswer::untokenize(const string &tokens) {
     read_token(token_string, cursor, number, 4);
     this->handles_size = (unsigned int) std::stoi(number);
     if (this->handles_size > MAX_NUMBER_OF_OPERATION_CLAUSES) {
-        Utils::error("Invalid handles_size: " + std::to_string(this->handles_size) + " untokenizing HandlesAnswer");
+        Utils::error("Invalid handles_size: " + std::to_string(this->handles_size) +
+                     " untokenizing HandlesAnswer");
     }
 
     for (unsigned int i = 0; i < this->handles_size; i++) {
@@ -253,7 +239,8 @@ void HandlesAnswer::untokenize(const string &tokens) {
     this->assignment.size = (unsigned int) std::stoi(number);
 
     if (this->assignment.size > MAX_NUMBER_OF_VARIABLES_IN_QUERY) {
-        Utils::error("Invalid number of assignments: " + std::to_string(this->assignment.size) + " untokenizing HandlesAnswer");
+        Utils::error("Invalid number of assignments: " + std::to_string(this->assignment.size) +
+                     " untokenizing HandlesAnswer");
     }
 
     for (unsigned int i = 0; i < this->assignment.size; i++) {

@@ -12,20 +12,18 @@ enum class LeadershipBrokerType {
     TRUSTED_BUS_PEER
 };
 
-
 // -------------------------------------------------------------------------------------------------
 // Abstract superclass
 
 /**
  * Implements the algorithm for leader election.
  *
- * This is the abstract class defining the API used by DistributedAlgorithmNodes to deal with leader election.
- * Users of the DistributedAlgorithmNode module aren't supposed to interact with LeadershipBroker directly.
+ * This is the abstract class defining the API used by DistributedAlgorithmNodes to deal with leader
+ * election. Users of the DistributedAlgorithmNode module aren't supposed to interact with
+ * LeadershipBroker directly.
  */
 class LeadershipBroker {
-
-public:
-
+   public:
     /**
      * Factory method for concrete subclasses.
      *
@@ -64,7 +62,7 @@ public:
      *
      * @param leader_id The leader node ID.
      */
-    void set_leader_id(const string &leader_id);
+    void set_leader_id(const string& leader_id);
 
     /**
      * Return true iff a leader has been defined.
@@ -79,11 +77,9 @@ public:
      *
      * @param my_vote The vote casted by the hosting node to tghe leadership election.
      */
-    virtual void start_leader_election(const string &my_vote) = 0;
+    virtual void start_leader_election(const string& my_vote) = 0;
 
-
-private:
-
+   private:
     shared_ptr<MessageBroker> message_broker;
     string network_leader_id;
 };
@@ -97,9 +93,7 @@ private:
  * the network.
  */
 class SingleMasterServer : public LeadershipBroker {
-
-public:
-
+   public:
     /**
      * Basic constructor
      */
@@ -110,11 +104,10 @@ public:
      */
     ~SingleMasterServer();
 
-
     // ----------------------------------------------------------------
     // Public LeadershipBroker abstract API
 
-    void start_leader_election(const string &my_vote);
+    void start_leader_election(const string& my_vote);
 };
 
 /**
@@ -145,5 +138,4 @@ public:
 
 } // namespace distributed_algorithm_node
 
-#endif // _DISTRIBUTED_ALGORITHM_NODE_LEADERSHIPBROKER_H
-
+#endif  // _DISTRIBUTED_ALGORITHM_NODE_LEADERSHIPBROKER_H

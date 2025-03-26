@@ -1,11 +1,11 @@
 #ifndef _DISTRIBUTED_ALGORITHM_NODE_MESSAGEBROKER_H
 #define _DISTRIBUTED_ALGORITHM_NODE_MESSAGEBROKER_H
 
-#include <vector>
-#include <unordered_set>
+#include <mutex>
 #include <string>
 #include <thread>
-#include <mutex>
+#include <unordered_set>
+#include <vector>
 
 // TODO: Once das-proto is updated, update atom_space_node to distributed_algorithm_node
 
@@ -20,10 +20,7 @@ using namespace commons;
 
 namespace distributed_algorithm_node {
 
-enum class MessageBrokerType {
-    RAM,
-    GRPC
-};
+enum class MessageBrokerType { RAM, GRPC };
 
 class DistributedAlgorithmNode;
 
@@ -37,9 +34,7 @@ class DistributedAlgorithmNode;
  * Users of the DistributedAlgorithmNode module aren't supposed to interact with MessageBroker directly.
  */
 class MessageBroker {
-
-public:
-
+   public:
     /**
      * Factory method for concrete subclasses.
      *
@@ -49,10 +44,9 @@ public:
      * @param node_id The ID of the DistributedAlgorithmNode this MessageBroker belongs to.
      * @return An instance of the selected MessageBroker subclass.
      */
-    static shared_ptr<MessageBroker> factory(
-            MessageBrokerType instance_type, 
-            shared_ptr<MessageFactory> host_node, 
-            const string &node_id);
+    static shared_ptr<MessageBroker> factory(MessageBrokerType instance_type,
+                                             shared_ptr<MessageFactory> host_node,
+                                             const string& node_id);
 
     /**
      * Basic constructor
@@ -61,7 +55,7 @@ public:
      * node this MessageBroker belongs to.
      * @param node_id The ID of the DistributedAlgorithmNode this MessageBroker belongs to.
      */
-    MessageBroker(shared_ptr<MessageFactory> host_node, const string &node_id);
+    MessageBroker(shared_ptr<MessageFactory> host_node, const string& node_id);
 
     /**
      * Destructor.
@@ -76,7 +70,7 @@ public:
      *
      * @param peer_id The ID of the newly known peer.
      */
-    virtual void add_peer(const string &peer_id);
+    virtual void add_peer(const string& peer_id);
 
     /**
      * Returns true iff the passed peer has been previously added
@@ -84,7 +78,7 @@ public:
      * @param peer_id Peer id being checked.
      * @return true iff the passed peer has been previously added
      */
-    bool is_peer(const string &peer_id);
+    bool is_peer(const string& peer_id);
 
     /**
      * Gracefully shuts down threads or any other resources being used in communication.
@@ -116,7 +110,7 @@ public:
      * @param command The command to be executed in the target nodes.
      * @param args Arguments for the command.
      */
-    virtual void broadcast(const string &command, const vector<string> &args) = 0;
+    virtual void broadcast(const string& command, const vector<string>& args) = 0;
 
     /**
      * Sends a command to the passed node.
@@ -127,10 +121,7 @@ public:
      * @param args Arguments for the command.
      * @recipient The target node for the command.
      */
-    virtual void send(
-        const string &command, 
-        const vector<string> &args, 
-        const string &recipient) = 0;
+    virtual void send(const string& command, const vector<string>& args, const string& recipient) = 0;
 
     shared_ptr<MessageFactory> host_node;
     unordered_set<string> peers;
@@ -151,16 +142,14 @@ public:
  * Nodes are supposed to be running in the same runtime process.
  */
 class SynchronousSharedRAM : public MessageBroker {
-
-public:
-
+   public:
     /**
      * Basic constructor
      *
      * @param host_node The object responsible for building Message objects. Typically, it's The
      * node this MessageBroker belongs to.
      */
-    SynchronousSharedRAM(shared_ptr<MessageFactory> host_node, const string &node_id);
+    SynchronousSharedRAM(shared_ptr<MessageFactory> host_node, const string& node_id);
 
     /**
      * Destructor.
@@ -189,7 +178,7 @@ public:
      * @param command The command to be executed in the target nodes.
      * @param args Arguments for the command.
      */
-    virtual void broadcast(const string &command, const vector<string> &args);
+    virtual void broadcast(const string& command, const vector<string>& args);
 
     /**
      * Sends a command to the passed node.
@@ -201,16 +190,15 @@ public:
      * @param args Arguments for the command.
      * @recipient The target node for the command.
      */
-    virtual void send(const string &command, const vector<string> &args, const string &recipient);
+    virtual void send(const string& command, const vector<string>& args, const string& recipient);
 
-private:
-
+   private:
     static unsigned int MESSAGE_THREAD_COUNT;
-    static unordered_map<string, SharedQueue *> NODE_QUEUE;
+    static unordered_map<string, SharedQueue*> NODE_QUEUE;
     static mutex NODE_QUEUE_MUTEX;
 
-    vector<thread *> inbox_threads;
-    SharedQueue incoming_messages; // Thread safe container
+    vector<thread*> inbox_threads;
+    SharedQueue incoming_messages;  // Thread safe container
 
     // Methods used to start threads
     void inbox_thread_method();
@@ -255,9 +243,7 @@ private:
 // TODO: Once das-proto is updated, update atom_space_node to distributed_algorithm_node
 // class SynchronousGRPC : public MessageBroker, public dasproto::DistributedAlgorithmNode::Service {
 class SynchronousGRPC : public MessageBroker, public dasproto::AtomSpaceNode::Service {
-
-public:
-
+   public:
     /**
      * Basic constructor
      *
@@ -265,7 +251,7 @@ public:
      * node this MessageBroker belongs to.
      * @param node_id The ID of the DistributedAlgorithmNode this MessageBroker belongs to.
      */
-    SynchronousGRPC(shared_ptr<MessageFactory> host_node, const string &node_id);
+    SynchronousGRPC(shared_ptr<MessageFactory> host_node, const string& node_id);
 
     /**
      * Destructor.
@@ -279,7 +265,7 @@ public:
      *
      * @param peer_id The ID of the newly known peer.
      */
-    virtual void add_peer(const string &peer_id);
+    virtual void add_peer(const string& peer_id);
 
     // ----------------------------------------------------------------
     // Public MessageBroker abstract API
@@ -304,7 +290,7 @@ public:
      * @param command The command to be executed in the target nodes.
      * @param args Arguments for the command.
      */
-    virtual void broadcast(const string &command, const vector<string> &args);
+    virtual void broadcast(const string& command, const vector<string>& args);
 
     /**
      * Sends a command to the passed node.
@@ -316,7 +302,7 @@ public:
      * @param args Arguments for the command.
      * @recipient The target node for the command.
      */
-    virtual void send(const string &command, const vector<string> &args, const string &recipient);
+    virtual void send(const string& command, const vector<string>& args, const string& recipient);
 
     // ----------------------------------------------------------------
     // Public GRPC API
@@ -326,27 +312,24 @@ public:
      *
      * This is a standard rpc in DAS proto which all servers implement.
      */
-    grpc::Status ping(
-        grpc::ServerContext* grpc_context, 
-        const dasproto::Empty* request, 
-        dasproto::Ack* reply) override;
+    grpc::Status ping(grpc::ServerContext* grpc_context,
+                      const dasproto::Empty* request,
+                      dasproto::Ack* reply) override;
 
     /**
      * Delivers a Message to be remotely executed.
      */
-    grpc::Status execute_message(
-        grpc::ServerContext* grpc_context, 
-        const dasproto::MessageData* request, 
-        dasproto::Empty* reply) override;
+    grpc::Status execute_message(grpc::ServerContext* grpc_context,
+                                 const dasproto::MessageData* request,
+                                 dasproto::Empty* reply) override;
 
-private:
-
+   private:
     static unsigned int MESSAGE_THREAD_COUNT;
     unique_ptr<grpc::Server> grpc_server;
-    thread *grpc_thread;
-    vector<thread *> inbox_threads;
-    SharedQueue incoming_messages; // Thread safe container
-    SharedQueue outgoing_messages; // Thread safe container
+    thread* grpc_thread;
+    vector<thread*> inbox_threads;
+    SharedQueue incoming_messages;  // Thread safe container
+    SharedQueue outgoing_messages;  // Thread safe container
 
     bool grpc_server_started_flag;
     mutex grpc_server_started_flag_mutex;
@@ -366,16 +349,15 @@ private:
 // Common utility classes
 
 class CommandLinePackage {
-    public:
-        CommandLinePackage(const string &command, const vector<string> &args);
-        ~CommandLinePackage();
-        string command;
-        vector<string> args;
-        bool is_broadcast;
-        unordered_set<string> visited;
+   public:
+    CommandLinePackage(const string& command, const vector<string>& args);
+    ~CommandLinePackage();
+    string command;
+    vector<string> args;
+    bool is_broadcast;
+    unordered_set<string> visited;
 };
 
-} // namespace distributed_algorithm_node
+}  // namespace distributed_algorithm_node
 
-#endif // _DISTRIBUTED_ALGORITHM_NODE_MESSAGEBROKER_H
-
+#endif  // _DISTRIBUTED_ALGORITHM_NODE_MESSAGEBROKER_H

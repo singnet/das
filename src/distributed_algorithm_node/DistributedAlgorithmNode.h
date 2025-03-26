@@ -1,11 +1,12 @@
 #ifndef _DISTRIBUTED_ALGORITHM_NODE_DISTRIBUTEDALGORITHMNODE_H
 #define _DISTRIBUTED_ALGORITHM_NODE_DISTRIBUTEDALGORITHMNODE_H
 
-#include "LeadershipBroker.h"
-#include "MessageBroker.h"
-#include "Message.h"
 #include <string>
 #include <vector>
+
+#include "LeadershipBroker.h"
+#include "Message.h"
+#include "MessageBroker.h"
 
 using namespace std;
 
@@ -49,9 +50,7 @@ namespace distributed_algorithm_node {
  *     to these requests are delegated to concrete classes extending DistributedAlgorithmNode.
  */
 class DistributedAlgorithmNode : public MessageFactory {
-
 public:
-
     /**
      * Destructor.
      */
@@ -65,11 +64,9 @@ public:
      * @param leadership_algorithm The concrete class to be used as leadership broker.
      * @param messaging_backend The concrete class to be used as message broker.
      */
-    DistributedAlgorithmNode(
-        const string &node_id,
-        LeadershipBrokerType leadership_algorithm,
-        MessageBrokerType messaging_backend
-    );
+    DistributedAlgorithmNode(const string& node_id,
+                             LeadershipBrokerType leadership_algorithm,
+                             MessageBrokerType messaging_backend);
 
     // --------------------------------------------------------------------------------------------
     // Public API
@@ -108,7 +105,7 @@ public:
      *
      * @param peer_id The ID of the node being added as a peer.
      */
-    void add_peer(const string &peer_id);
+    void add_peer(const string& peer_id);
 
     /**
      * Returns this node's ID.
@@ -126,7 +123,7 @@ public:
      * @param command The command to be executed in the target nodes.
      * @param args Arguments for the command.
      */
-    void broadcast(const string &command, const vector<string> &args);
+    void broadcast(const string& command, const vector<string>& args);
 
     /**
      * Sends a command to the passed node.
@@ -137,7 +134,7 @@ public:
      * @param args Arguments for the command.
      * @recipient The target node for the command.
      */
-    void send(const string &command, const vector<string> &args, const string &recipient);
+    void send(const string& command, const vector<string>& args, const string& recipient);
 
     /**
      * Build the Message object which is supposed to execute the passed command.
@@ -146,7 +143,7 @@ public:
      * @param args Arguments for the command.
      * @return A Message object
      */
-    virtual shared_ptr<Message> message_factory(string &command, vector<string> &args);
+    virtual shared_ptr<Message> message_factory(string& command, vector<string>& args);
 
     /**
      * Gracefully shuts down threads or any other resources being used.
@@ -165,7 +162,7 @@ public:
      *
      * @param node_id The ID of the newly joined node.
      */
-    virtual void node_joined_network(const string &node_id) = 0;
+    virtual void node_joined_network(const string& node_id) = 0;
 
     /**
      * Casts a vote (which is the ID of the node being voted) in a leadership election.
@@ -190,6 +187,6 @@ private:
     } known_commands;
 };
 
-} // namespace distributed_algorithm_node
+}  // namespace distributed_algorithm_node
 
-#endif // _DISTRIBUTED_ALGORITHM_NODE_DISTRIBUTEDALGORITHMNODE_H
+#endif  // _DISTRIBUTED_ALGORITHM_NODE_DISTRIBUTEDALGORITHMNODE_H
