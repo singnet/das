@@ -71,7 +71,7 @@ void DistributedAlgorithmNode::graceful_shutdown() { this->message_broker->grace
 
 string DistributedAlgorithmNode::to_string() {
     string answer = "[node_id: " + this->node_id() + ", leader: " + leader_id() + ", peers: {";
-    for (auto peer: this->message_broker->peers) {
+    for (auto peer : this->message_broker->peers) {
         answer += peer;
         answer += ", ";
     }

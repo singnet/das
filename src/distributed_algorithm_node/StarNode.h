@@ -71,4 +71,4 @@ class StarNode : public DistributedAlgorithmNode {
 
 }  // namespace distributed_algorithm_node
 
-#endif // _DISTRIBUTED_ALGORITHM_NODE_STARNODE_H
+#endif  // _DISTRIBUTED_ALGORITHM_NODE_STARNODE_H

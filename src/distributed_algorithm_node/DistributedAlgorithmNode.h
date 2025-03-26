@@ -50,7 +50,7 @@ namespace distributed_algorithm_node {
  *     to these requests are delegated to concrete classes extending DistributedAlgorithmNode.
  */
 class DistributedAlgorithmNode : public MessageFactory {
-public:
+   public:
     /**
      * Destructor.
      */
@@ -176,8 +176,7 @@ public:
      */
     virtual string to_string();
 
-private:
-
+   private:
     string my_node_id;
     shared_ptr<LeadershipBroker> leadership_broker;
     shared_ptr<MessageBroker> message_broker;

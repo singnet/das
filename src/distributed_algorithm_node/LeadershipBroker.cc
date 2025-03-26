@@ -16,7 +16,7 @@ shared_ptr<LeadershipBroker> LeadershipBroker::factory(LeadershipBrokerType inst
         case LeadershipBrokerType::SINGLE_MASTER_SERVER: {
             return shared_ptr<LeadershipBroker>(new SingleMasterServer());
         }
-        case LeadershipBrokerType::TRUSTED_BUS_PEER : {
+        case LeadershipBrokerType::TRUSTED_BUS_PEER: {
             return shared_ptr<LeadershipBroker>(new TrustedBusPeer());
         }
         default: {
@@ -30,12 +30,10 @@ SingleMasterServer::SingleMasterServer() {}
 
 SingleMasterServer::~SingleMasterServer() {}
 
-SingleMasterServer::~SingleMasterServer() {}
-  
 TrustedBusPeer::TrustedBusPeer() {}
 
 TrustedBusPeer::~TrustedBusPeer() {}
-  
+
 // -------------------------------------------------------------------------------------------------
 // Public superclass API
 

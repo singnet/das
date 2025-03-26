@@ -7,10 +7,7 @@ using namespace std;
 
 namespace distributed_algorithm_node {
 
-enum class LeadershipBrokerType {
-    SINGLE_MASTER_SERVER,
-    TRUSTED_BUS_PEER
-};
+enum class LeadershipBrokerType { SINGLE_MASTER_SERVER, TRUSTED_BUS_PEER };
 
 // -------------------------------------------------------------------------------------------------
 // Abstract superclass
@@ -116,9 +113,7 @@ class SingleMasterServer : public LeadershipBroker {
  * it was the first node to join the bus.
  */
 class TrustedBusPeer : public LeadershipBroker {
-
-public:
-
+   public:
     /**
      * Basic constructor
      */
@@ -129,13 +124,12 @@ public:
      */
     ~TrustedBusPeer();
 
-
     // ----------------------------------------------------------------
     // Public LeadershipBroker abstract API
 
-    void start_leader_election(const string &my_vote);
+    void start_leader_election(const string& my_vote);
 };
 
-} // namespace distributed_algorithm_node
+}  // namespace distributed_algorithm_node
 
 #endif  // _DISTRIBUTED_ALGORITHM_NODE_LEADERSHIPBROKER_H
