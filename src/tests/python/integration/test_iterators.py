@@ -9,8 +9,6 @@ from tests.python.integration.helpers import (
     _db_down,
     _db_up,
     cleanup,
-    das_local_fixture_class,
-    das_remote_fixture_module,
     get_remote_das_port,
     load_metta_animals_base,
     metta_animal_base_handles,
@@ -33,7 +31,7 @@ class TestTraverseLinks:
         return metta_animal_base_handles.human
 
     def _is_expression_atom(self, atom: dict) -> bool:
-        if atom['named_type'] != 'Expression':
+        if atom["named_type"] != "Expression":
             return False
         return True
 
@@ -54,11 +52,11 @@ class TestTraverseLinks:
     def _check_asserts(self, das: DistributedAtomSpace, iterator: QueryAnswerIterator):
         current_value = iterator.get()
         assert current_value == das.query_engine.get_atom(
-            iterator.get()['handle'], targets_document=True
+            iterator.get()["handle"], targets_document=True
         )
         assert isinstance(current_value, dict)
         assert iterator.is_empty() is False
-        link_handles = sorted([item['handle'] for item in iterator])
+        link_handles = sorted([item["handle"] for item in iterator])
         assert len(link_handles) == 8
         assert link_handles == self._human_incoming_links()
         assert iterator.is_empty() is True
@@ -77,11 +75,11 @@ class TestTraverseLinks:
     def test_traverse_links_with_das_redis_mongo(self, human_handle, _cleanup):
         _db_up()
         das = DistributedAtomSpace(
-            query_engine='local',
-            atomdb='redis_mongo',
+            query_engine="local",
+            atomdb="redis_mongo",
             mongo_port=mongo_port,
-            mongo_username='dbadmin',
-            mongo_password='dassecret',
+            mongo_username="dbadmin",
+            mongo_password="dassecret",
             redis_port=redis_port,
             redis_cluster=False,
             redis_ssl=False,
@@ -125,16 +123,16 @@ class TestTraverseNeighbors:
         )
 
     def _is_literal_atom(self, atom: dict) -> bool:
-        if atom['is_literal'] is False:
+        if atom["is_literal"] is False:
             return False
         return True
 
     def _check_asserts(self, das: DistributedAtomSpace, iterator: TraverseNeighborsIterator):
         current_value = iterator.get()
-        assert current_value == das.get_atom(iterator.get()['handle'])
+        assert current_value == das.get_atom(iterator.get()["handle"])
         assert isinstance(current_value, dict)
         assert iterator.is_empty() is False
-        node_handles = sorted([item['handle'] for item in iterator])
+        node_handles = sorted([item["handle"] for item in iterator])
         assert len(node_handles) == 4
         assert node_handles == self._human_neighbors()
         assert iterator.is_empty() is True
@@ -153,11 +151,11 @@ class TestTraverseNeighbors:
     def test_traverse_neighbors_with_das_redis_mongo(self, human_handle, _cleanup):
         _db_up()
         das = DistributedAtomSpace(
-            query_engine='local',
-            atomdb='redis_mongo',
+            query_engine="local",
+            atomdb="redis_mongo",
             mongo_port=mongo_port,
-            mongo_username='dbadmin',
-            mongo_password='dassecret',
+            mongo_username="dbadmin",
+            mongo_password="dassecret",
             redis_port=redis_port,
             redis_cluster=False,
             redis_ssl=False,
@@ -254,27 +252,27 @@ class TestCustomQuery:
 
     def _asserts(self, das: DistributedAtomSpace):
         node_index = das.create_field_index(
-            atom_type='node', fields=['is_literal'], named_type='Symbol'
+            atom_type="node", fields=["is_literal"], named_type="Symbol"
         )
         link_index_type = das.create_field_index(
-            atom_type='link', fields=['is_toplevel'], named_type='Expression'
+            atom_type="link", fields=["is_toplevel"], named_type="Expression"
         )
         link_index_composite_type = das.create_field_index(
-            atom_type='link',
-            fields=['is_toplevel'],
-            composite_type=['Expression', 'Symbol', 'Symbol', 'Symbol'],
+            atom_type="link",
+            fields=["is_toplevel"],
+            composite_type=["Expression", "Symbol", "Symbol", "Symbol"],
         )
 
-        node_iterator = das.custom_query(node_index, query={'is_literal': True}, no_iterator=False)
+        node_iterator = das.custom_query(node_index, query={"is_literal": True}, no_iterator=False)
         link_iterator_type = das.custom_query(
             link_index_type,
-            query={'is_toplevel': True},
+            query={"is_toplevel": True},
             chunk_size=10,
             no_iterator=False,
         )
         link_iterator_composite_type = das.custom_query(
             link_index_composite_type,
-            query={'is_toplevel': True},
+            query={"is_toplevel": True},
             chunk_size=5,
             no_iterator=False,
         )
@@ -288,10 +286,10 @@ class TestCustomQuery:
 
     def _check_asserts(self, das: DistributedAtomSpace, iterator: CustomQuery):
         current_value = iterator.get()
-        assert current_value == das.get_atom(iterator.get()['handle'])
+        assert current_value == das.get_atom(iterator.get()["handle"])
         assert isinstance(current_value, dict)
         assert iterator.is_empty() is False
-        handles = sorted([item['handle'] for item in iterator])
+        handles = sorted([item["handle"] for item in iterator])
         assert iterator.is_empty() is True
         with pytest.raises(StopIteration):
             iterator.get()
@@ -311,7 +309,7 @@ class TestCustomQuery:
     @pytest.mark.skip("Waiting fix")
     def test_custom_query_with_remote_das(self):
         das = DistributedAtomSpace(
-            query_engine='remote', host=remote_das_host, port=get_remote_das_port()
+            query_engine="remote", host=remote_das_host, port=get_remote_das_port()
         )
         self._asserts(das)
 
@@ -319,36 +317,36 @@ class TestCustomQuery:
         das = das_local_fixture_class
         load_metta_animals_base(das)
         das.commit_changes()
-        atom_field = das.get_atoms_by_field({'name': '"chimp"'})
+        atom_field = das.get_atoms_by_field({"name": '"chimp"'})
         assert atom_field
 
     def test_get_atoms_by_field_remote(self, das_remote_fixture_module):
         das = das_remote_fixture_module
-        atom_field = das.get_atoms_by_field({'name': '"chimp"'})
+        atom_field = das.get_atoms_by_field({"name": '"chimp"'})
         assert atom_field
 
     def test_get_atoms_by_text_field_local(self, das_local_fixture_class):
         das = das_local_fixture_class
         load_metta_animals_base(das)
         das.commit_changes()
-        with pytest.raises(Exception, match=r'text index required for \$text query'):
+        with pytest.raises(Exception, match=r"text index required for \$text query"):
             das.get_atoms_by_text_field(text_value='"')
-        atom_text_field = das.get_atoms_by_text_field(text_value='"chim', field='name')
+        atom_text_field = das.get_atoms_by_text_field(text_value='"chim', field="name")
         assert atom_text_field
 
     def test_get_atoms_by_text_field_remote(self, das_remote_fixture_module):
         das = das_remote_fixture_module
-        atom_text_field = das.get_atoms_by_text_field(text_value='"chim', field='name')
+        atom_text_field = das.get_atoms_by_text_field(text_value='"chim', field="name")
         assert atom_text_field
 
     def test_get_atoms_starting_local(self, das_local_fixture_class):
         das = das_local_fixture_class
         load_metta_animals_base(das)
         das.commit_changes()
-        atom_starting_with = das.get_node_by_name_starting_with('Symbol', '"mon')
+        atom_starting_with = das.get_node_by_name_starting_with("Symbol", '"mon')
         assert atom_starting_with
 
     def test_get_atoms_starting_remote(self, das_remote_fixture_module):
         das = das_remote_fixture_module
-        atom_starting_with = das.get_node_by_name_starting_with('Symbol', '"mon')
+        atom_starting_with = das.get_node_by_name_starting_with("Symbol", '"mon')
         assert atom_starting_with

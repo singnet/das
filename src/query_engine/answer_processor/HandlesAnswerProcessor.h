@@ -24,6 +24,8 @@ class HandlesAnswerProcessor : public QueryAnswerProcessor {
     virtual void query_answers_finished() override { this->output_buffer->query_answers_finished(); }
     virtual void graceful_shutdown() override { this->output_buffer->graceful_shutdown(); }
 
+    virtual bool is_work_done() override { return this->output_buffer->is_work_done(); }
+
    protected:
     unique_ptr<QueryNodeClient<HandlesAnswer>> output_buffer;
 };

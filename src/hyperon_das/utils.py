@@ -230,31 +230,29 @@ def check_versions(response_body: bytes) -> None:
 
     if not remote_das_version or not remote_atomdb_version:
         raise ValueError("Invalid response from server, missing version info.")
-        
+
     # local packages versions
-    das_version = get_package_version('hyperon_das')
-    atom_db_version = get_package_version('hyperon_das_atomdb')
+    das_version = get_package_version("hyperon_das")
+    atom_db_version = get_package_version("hyperon_das_atomdb")
 
     if not das_version or not atom_db_version:
         raise ValueError("Missing version info in the local packages.")
 
     is_atomdb_compatible = compare_minor_versions(
-            remote_atomdb_version,
-            atom_db_version,
-        )
+        remote_atomdb_version,
+        atom_db_version,
+    )
     is_das_compatible = compare_minor_versions(
-            remote_das_version,
-            das_version,
-        )
+        remote_das_version,
+        das_version,
+    )
 
     if not is_atomdb_compatible or not is_das_compatible:
         local_versions = f"hyperon-das: {das_version}, hyperon-das-atomdb: {atom_db_version}"
         remote_versions = (
-                f"hyperon-das: {remote_das_version}, hyperon-das-atomdb: {remote_atomdb_version}"
-            )
-        error_message = (
-                f"Version mismatch. Local: {local_versions}. " f"Remote: {remote_versions}."
-            )
+            f"hyperon-das: {remote_das_version}, hyperon-das-atomdb: {remote_atomdb_version}"
+        )
+        error_message = f"Version mismatch. Local: {local_versions}. Remote: {remote_versions}."
         logger().error(error_message)
         raise Exception(error_message)
 

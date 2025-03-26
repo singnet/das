@@ -89,7 +89,10 @@ class AndEvaluator(ProductIterator):
 
 class LazyQueryEvaluator(ProductIterator):
     def __init__(
-        self, link_type: str, source: List[QueryAnswerIterator], query_engine: QueryEngine
+        self,
+        link_type: str,
+        source: List[QueryAnswerIterator],
+        query_engine: QueryEngine,
     ):
         super().__init__(source)
         self.link_type = link_type
@@ -161,10 +164,10 @@ class BaseLinksIterator(QueryAnswerIterator, ABC):
     def __init__(self, source: ListIterator, **kwargs) -> None:
         super().__init__(source)
         if not self.source.is_empty():
-            if not hasattr(self, 'backend'):
-                self.backend = kwargs.get('backend')
-            self.chunk_size = kwargs.get('chunk_size', 1000)
-            self.cursor = kwargs.get('cursor', 0)
+            if not hasattr(self, "backend"):
+                self.backend = kwargs.get("backend")
+            self.chunk_size = kwargs.get("chunk_size", 1000)
+            self.cursor = kwargs.get("cursor", 0)
             self.buffer_queue = deque()
             self.iterator = self.source
             self.current_value = self.get_current_value()
@@ -236,8 +239,8 @@ class BaseLinksIterator(QueryAnswerIterator, ABC):
 
 class LocalIncomingLinks(BaseLinksIterator):
     def __init__(self, source: ListIterator, **kwargs) -> None:
-        self.atom_handle = kwargs.get('atom_handle')
-        self.targets_document = kwargs.get('targets_document', False)
+        self.atom_handle = kwargs.get("atom_handle")
+        self.targets_document = kwargs.get("targets_document", False)
         super().__init__(source, **kwargs)
 
     def get_next_value(self) -> Any:
@@ -259,7 +262,11 @@ class LocalIncomingLinks(BaseLinksIterator):
                 return None
 
     def get_fetch_data_kwargs(self) -> Dict[str, Any]:
-        return {'handles_only': True, 'cursor': self.cursor, 'chunk_size': self.chunk_size}
+        return {
+            "handles_only": True,
+            "cursor": self.cursor,
+            "chunk_size": self.chunk_size,
+        }
 
     def get_fetch_data(self, **kwargs) -> tuple:
         if self.backend:
@@ -268,8 +275,8 @@ class LocalIncomingLinks(BaseLinksIterator):
 
 class RemoteIncomingLinks(BaseLinksIterator):
     def __init__(self, source: ListIterator, **kwargs) -> None:
-        self.atom_handle = kwargs.get('atom_handle')
-        self.targets_document = kwargs.get('targets_document', False)
+        self.atom_handle = kwargs.get("atom_handle")
+        self.targets_document = kwargs.get("targets_document", False)
         self.returned_handles = set()
         super().__init__(source, **kwargs)
 
@@ -278,9 +285,9 @@ class RemoteIncomingLinks(BaseLinksIterator):
             while True:
                 link_document = next(self.iterator)
                 if isinstance(link_document, tuple) or isinstance(link_document, list):
-                    handle = link_document[0]['handle']
+                    handle = link_document[0]["handle"]
                 elif isinstance(link_document, dict):
-                    handle = link_document['handle']
+                    handle = link_document["handle"]
                 elif isinstance(link_document, str):
                     handle = link_document
                 else:
@@ -299,9 +306,9 @@ class RemoteIncomingLinks(BaseLinksIterator):
 
     def get_fetch_data_kwargs(self) -> Dict[str, Any]:
         return {
-            'cursor': self.cursor,
-            'chunk_size': self.chunk_size,
-            'targets_document': self.targets_document,
+            "cursor": self.cursor,
+            "chunk_size": self.chunk_size,
+            "targets_document": self.targets_document,
         }
 
     def get_fetch_data(self, **kwargs) -> tuple:
@@ -311,9 +318,9 @@ class RemoteIncomingLinks(BaseLinksIterator):
 
 class CustomQuery(BaseLinksIterator):
     def __init__(self, source: ListIterator, **kwargs) -> None:
-        self.index_id = kwargs.pop('index_id', None)
-        self.backend = kwargs.pop('backend', None)
-        self.is_remote = kwargs.pop('is_remote', False)
+        self.index_id = kwargs.pop("index_id", None)
+        self.backend = kwargs.pop("backend", None)
+        self.is_remote = kwargs.pop("is_remote", False)
         self.kwargs = kwargs
         super().__init__(source, **kwargs)
 
@@ -330,18 +337,18 @@ class CustomQuery(BaseLinksIterator):
 
     def get_fetch_data_kwargs(self) -> Dict[str, Any]:
         kwargs = self.kwargs
-        kwargs.update({'cursor': self.cursor, 'chunk_size': self.chunk_size})
+        kwargs.update({"cursor": self.cursor, "chunk_size": self.chunk_size})
         return kwargs
 
     def get_fetch_data(self, **kwargs) -> tuple:
         if self.backend:
             if self.is_remote:
                 return self.backend.custom_query(
-                    self.index_id, query=kwargs.get('query', []), **kwargs
+                    self.index_id, query=kwargs.get("query", []), **kwargs
                 )
             else:
                 return self.backend.get_atoms_by_index(
-                    self.index_id, query=kwargs.get('query', []), **kwargs
+                    self.index_id, query=kwargs.get("query", []), **kwargs
                 )
 
 
@@ -350,13 +357,13 @@ class TraverseLinksIterator(QueryAnswerIterator):
         self, source: LocalIncomingLinks | RemoteIncomingLinks | Iterator, **kwargs
     ) -> None:
         super().__init__(source)
-        self.cursor = kwargs.get('cursor')
-        self.targets_only = kwargs.get('targets_only', False)
+        self.cursor = kwargs.get("cursor")
+        self.targets_only = kwargs.get("targets_only", False)
         self.buffer = None
-        self.link_type = kwargs.get('link_type')
-        self.cursor_position = kwargs.get('cursor_position')
-        self.target_type = kwargs.get('target_type')
-        self.custom_filter = kwargs.get('filter')
+        self.link_type = kwargs.get("link_type")
+        self.cursor_position = kwargs.get("cursor_position")
+        self.target_type = kwargs.get("target_type")
+        self.custom_filter = kwargs.get("filter")
         if not self.source.is_empty():
             self.iterator = self.source
             self.current_value = self._find_first_valid_element()
@@ -371,7 +378,7 @@ class TraverseLinksIterator(QueryAnswerIterator):
             if isinstance(link, tuple):
                 link, targets = link
             elif isinstance(link, dict):
-                targets = link.pop('targets_document', [])
+                targets = link.pop("targets_document", [])
             else:
                 raise ValueError(f"Invalid link document: {link}")
             if (
@@ -390,20 +397,20 @@ class TraverseLinksIterator(QueryAnswerIterator):
                 if isinstance(link, tuple):
                     link, targets = link
                 elif isinstance(link, dict):
-                    targets = link.get('targets_document', [])
+                    targets = link.get("targets_document", [])
                 else:
                     raise ValueError(f"Invalid link document: {link}")
                 if self._filter(link, targets):
                     return targets if self.targets_only else link
 
     def _filter(self, link: Dict[str, Any], targets: list[dict[str, Any]]) -> bool:
-        if self.link_type and self.link_type != link['named_type']:
+        if self.link_type and self.link_type != link["named_type"]:
             return False
 
         try:
             if (
                 self.cursor_position is not None
-                and self.cursor != link['targets'][self.cursor_position]
+                and self.cursor != link["targets"][self.cursor_position]
             ):
                 return False
         except IndexError:
@@ -412,12 +419,12 @@ class TraverseLinksIterator(QueryAnswerIterator):
             raise e
 
         if self.target_type:
-            if not any(target['named_type'] == self.target_type for target in targets):
+            if not any(target["named_type"] == self.target_type for target in targets):
                 return False
 
         if self.custom_filter:
             deep_link = link.copy()
-            deep_link['targets'] = targets
+            deep_link["targets"] = targets
             if self._apply_custom_filter(deep_link) is False:
                 return False
 
@@ -426,15 +433,15 @@ class TraverseLinksIterator(QueryAnswerIterator):
     def _apply_custom_filter(self, atom: Dict[str, Any], F=None) -> bool:
         custom_filter = F if F else self.custom_filter
 
-        assert callable(
-            custom_filter
-        ), "The custom_filter must be a function with this signature 'def func(atom: dict) -> bool: ...'"
+        assert callable(custom_filter), (
+            "The custom_filter must be a function with this signature 'def func(atom: dict) -> bool: ...'"
+        )
 
         try:
             if not custom_filter(atom):
                 return False
         except Exception as e:
-            raise Exception(f"Error while applying the custom filter: {e}")
+            raise Exception(f"Error while applying the custom filter: {e}") from e
 
     def is_empty(self) -> bool:
         return not self.current_value
@@ -447,7 +454,7 @@ class TraverseNeighborsIterator(QueryAnswerIterator):
         self.cursor = self.source.cursor
         self.target_type = self.source.target_type
         self.visited_neighbors = []
-        self.custom_filter = kwargs.get('filter')
+        self.custom_filter = kwargs.get("filter")
         if not self.source.is_empty():
             self.iterator = source
             self.current_value = self._find_first_valid_element()
@@ -480,16 +487,16 @@ class TraverseNeighborsIterator(QueryAnswerIterator):
         for target in targets:
             if self._filter(target):
                 match_found = True
-                self.visited_neighbors.append(target['handle'])
+                self.visited_neighbors.append(target["handle"])
                 answer.append(target)
         return (answer, match_found)
 
     def _filter(self, target: Dict[str, Any]) -> bool:
-        handle = target['handle']
+        handle = target["handle"]
         if not (
             self.cursor != handle
             and handle not in self.visited_neighbors
-            and (self.target_type == target['named_type'] or not self.target_type)
+            and (self.target_type == target["named_type"] or not self.target_type)
         ):
             return False
 

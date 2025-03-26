@@ -18,11 +18,11 @@ from hyperon_das.utils import Assignment
 class TestListIterator:
     def test_list_iterator(self):
         iterator = ListIterator(None)
-        for element in iterator:
+        for _element in iterator:
             assert False
 
         iterator = ListIterator([])
-        for element in iterator:
+        for _element in iterator:
             assert False
 
         iterator = ListIterator(
@@ -134,30 +134,30 @@ class TestProductIterator:
         for arg in [[ln, l1], [ln, l1, l2], [ln]]:
             iterator = ProductIterator([ListIterator(v) for v in arg])
             assert iterator.is_empty()
-            for element in iterator:
+            for _element in iterator:
                 assert False
             assert iterator.is_empty()
 
         for arg in [[l0, l1], [l0, l1, l2], [l0]]:
             iterator = ProductIterator([ListIterator(v) for v in arg])
             assert iterator.is_empty()
-            for element in iterator:
+            for _element in iterator:
                 assert False
             assert iterator.is_empty()
 
 
 class ConcreteBaseLinksIterator(BaseLinksIterator):
     def get_current_value(self):
-        return 'current_value'
+        return "current_value"
 
     def get_fetch_data(self, **kwargs):
         return 2024, []
 
     def get_fetch_data_kwargs(self):
-        return {'fetch_data_kwargs': True}
+        return {"fetch_data_kwargs": True}
 
     def get_next_value(self):
-        return 'next_value'
+        return "next_value"
 
 
 class TestBaseLinksIterator:
@@ -200,13 +200,13 @@ class TestBaseLinksIterator:
     def test_refresh_iterator(self):
         source = ListIterator([1, 2, 3])
         iterator = ConcreteBaseLinksIterator(source, cursor=1)
-        iterator.get_current_value = mock.MagicMock(return_value='current_value')
+        iterator.get_current_value = mock.MagicMock(return_value="current_value")
         iterator._refresh_iterator()
 
         iterator.get_current_value.assert_called_once()
         assert iterator.source.source == ListIterator(list(iterator.buffer_queue)).source
         assert iterator.iterator == iterator.source
-        assert iterator.current_value == 'current_value'
+        assert iterator.current_value == "current_value"
         assert iterator.buffer_queue == deque()
 
     def test_is_empty(self):
@@ -220,7 +220,7 @@ class TestLocalIncomingLinks:
     @pytest.fixture
     def backend(self):
         backend = mock.MagicMock()
-        backend.get_atom.side_effect = lambda x, targets_document=None: {'handle': x}
+        backend.get_atom.side_effect = lambda x, targets_document=None: {"handle": x}
         return backend
 
     def test_get_next_value(self, backend):
@@ -258,14 +258,14 @@ class TestLocalIncomingLinks:
     def test_get_fetch_data_kwargs(self, backend):
         iterator = LocalIncomingLinks(ListIterator([1, 2, 3]), backend=backend)
         assert iterator.get_fetch_data_kwargs() == {
-            'handles_only': True,
-            'cursor': iterator.cursor,
-            'chunk_size': iterator.chunk_size,
+            "handles_only": True,
+            "cursor": iterator.cursor,
+            "chunk_size": iterator.chunk_size,
         }
 
     def test_get_fetch_data(self, backend):
         iterator = LocalIncomingLinks(ListIterator([1, 2, 3]), backend=backend)
-        kwargs = {'param1': 'value1', 'param2': 'value2'}
+        kwargs = {"param1": "value1", "param2": "value2"}
         result = iterator.get_fetch_data(**kwargs)
         assert result == backend.get_incoming_links(iterator.atom_handle, **kwargs)
 
@@ -273,31 +273,36 @@ class TestLocalIncomingLinks:
 class TestRemoteIncomingLinks:
     def test_get_next_value(self):
         source = ListIterator(
-            [{'handle': 'link1'}, {'handle': 'link2'}, {'handle': 'link3'}, {'handle': 'link4'}]
+            [
+                {"handle": "link1"},
+                {"handle": "link2"},
+                {"handle": "link3"},
+                {"handle": "link4"},
+            ]
         )
         iterator = RemoteIncomingLinks(source)
-        iterator.returned_handles = set(['link2', 'link3'])
+        iterator.returned_handles = set(["link2", "link3"])
 
         iterator.get_next_value()
-        assert iterator.current_value == {'handle': 'link1'}
+        assert iterator.current_value == {"handle": "link1"}
 
         iterator.get_next_value()
-        assert iterator.current_value == {'handle': 'link4'}
+        assert iterator.current_value == {"handle": "link4"}
 
     def test_get_current_value(self):
         source = ListIterator(
             [
-                {'handle': 'link1'},
-                {'handle': 'link2'},
+                {"handle": "link1"},
+                {"handle": "link2"},
             ]
         )
         iterator = RemoteIncomingLinks(source)
 
         iterator.get_next_value()
-        assert iterator.get_current_value() == {'handle': 'link1'}
+        assert iterator.get_current_value() == {"handle": "link1"}
 
         iterator.get_next_value()
-        assert iterator.get_current_value() == {'handle': 'link2'}
+        assert iterator.get_current_value() == {"handle": "link2"}
 
         iterator = RemoteIncomingLinks(ListIterator([]))
         assert iterator.is_empty() is True
@@ -305,44 +310,50 @@ class TestRemoteIncomingLinks:
     def test_get_fetch_data_kwargs(self):
         source = ListIterator(
             [
-                {'handle': 'link1'},
-                {'handle': 'link2'},
+                {"handle": "link1"},
+                {"handle": "link2"},
             ]
         )
-        iterator = RemoteIncomingLinks(source, atom_handle='atom1', targets_document=True)
+        iterator = RemoteIncomingLinks(source, atom_handle="atom1", targets_document=True)
         kwargs = iterator.get_fetch_data_kwargs()
         assert kwargs == {
-            'cursor': iterator.cursor,
-            'chunk_size': iterator.chunk_size,
-            'targets_document': iterator.targets_document,
+            "cursor": iterator.cursor,
+            "chunk_size": iterator.chunk_size,
+            "targets_document": iterator.targets_document,
         }
 
     def test_get_fetch_data(self):
         backend = mock.MagicMock()
-        backend.get_incoming_links.return_value = (123, [{'handle': 'link1'}, {'handle': 'link2'}])
+        backend.get_incoming_links.return_value = (
+            123,
+            [{"handle": "link1"}, {"handle": "link2"}],
+        )
         source = ListIterator([])
-        iterator = RemoteIncomingLinks(source, atom_handle='atom1')
+        iterator = RemoteIncomingLinks(source, atom_handle="atom1")
         iterator.backend = backend
         result = iterator.get_fetch_data(cursor=0, chunk_size=100)
-        assert result == (123, [{'handle': 'link1'}, {'handle': 'link2'}])
-        backend.get_incoming_links.assert_called_once_with('atom1', cursor=0, chunk_size=100)
+        assert result == (123, [{"handle": "link1"}, {"handle": "link2"}])
+        backend.get_incoming_links.assert_called_once_with("atom1", cursor=0, chunk_size=100)
 
 
 class TestTraverseLinksIterator:
     @pytest.fixture
     def incoming_links(self):
-        source = ListIterator(['link1', 'link2', 'link3'])
+        source = ListIterator(["link1", "link2", "link3"])
         backend = mock.Mock()
         targets_document = True
         backend.get_atom.side_effect = lambda handle, targets_document=targets_document: (
             {
-                'handle': handle,
-                'named_type': f'Type{handle[-1]}',
-                'targets': ['node11', f'node{handle[-1]}2'],
+                "handle": handle,
+                "named_type": f"Type{handle[-1]}",
+                "targets": ["node11", f"node{handle[-1]}2"],
             },
             [
-                {'handle': 'node11', 'named_type': 'Type2'},
-                {'handle': f'node{handle[-1]}2', 'named_type': f'Type{int(handle[-1]) + 1}'},
+                {"handle": "node11", "named_type": "Type2"},
+                {
+                    "handle": f"node{handle[-1]}2",
+                    "named_type": f"Type{int(handle[-1]) + 1}",
+                },
             ],
         )
         return LocalIncomingLinks(source=source, backend=backend, targets_document=targets_document)
@@ -359,19 +370,19 @@ class TestTraverseLinksIterator:
 
         assert iterator.is_empty() is False
         assert next(iterator) == {
-            'handle': 'link1',
-            'named_type': 'Type1',
-            'targets': ['node11', 'node12'],
+            "handle": "link1",
+            "named_type": "Type1",
+            "targets": ["node11", "node12"],
         }
         assert next(iterator) == {
-            'handle': 'link2',
-            'named_type': 'Type2',
-            'targets': ['node11', 'node22'],
+            "handle": "link2",
+            "named_type": "Type2",
+            "targets": ["node11", "node22"],
         }
         assert next(iterator) == {
-            'handle': 'link3',
-            'named_type': 'Type3',
-            'targets': ['node11', 'node32'],
+            "handle": "link3",
+            "named_type": "Type3",
+            "targets": ["node11", "node32"],
         }
         with pytest.raises(StopIteration):
             next(iterator)
@@ -379,36 +390,36 @@ class TestTraverseLinksIterator:
 
     def test_with_filters(self, incoming_links):
         iterator = TraverseLinksIterator(
-            source=incoming_links, link_type='Type2', target_type='Type3'
+            source=incoming_links, link_type="Type2", target_type="Type3"
         )
 
         assert iterator.is_empty() is False
         assert next(iterator) == {
-            'handle': 'link2',
-            'named_type': 'Type2',
-            'targets': ['node11', 'node22'],
+            "handle": "link2",
+            "named_type": "Type2",
+            "targets": ["node11", "node22"],
         }
         with pytest.raises(StopIteration):
             next(iterator)
         assert iterator.is_empty() is True
 
     def test_cursor_position(self, incoming_links):
-        iterator = TraverseLinksIterator(incoming_links, cursor_position=0, cursor='node11')
+        iterator = TraverseLinksIterator(incoming_links, cursor_position=0, cursor="node11")
         assert iterator.is_empty() is False
         assert next(iterator) == {
-            'handle': 'link1',
-            'named_type': 'Type1',
-            'targets': ['node11', 'node12'],
+            "handle": "link1",
+            "named_type": "Type1",
+            "targets": ["node11", "node12"],
         }
         assert next(iterator) == {
-            'handle': 'link2',
-            'named_type': 'Type2',
-            'targets': ['node11', 'node22'],
+            "handle": "link2",
+            "named_type": "Type2",
+            "targets": ["node11", "node22"],
         }
         assert next(iterator) == {
-            'handle': 'link3',
-            'named_type': 'Type3',
-            'targets': ['node11', 'node32'],
+            "handle": "link3",
+            "named_type": "Type3",
+            "targets": ["node11", "node32"],
         }
         with pytest.raises(StopIteration):
             next(iterator)
@@ -416,15 +427,15 @@ class TestTraverseLinksIterator:
 
     def test_custom_filter(self, incoming_links):
         def custom_filter(link):
-            return link['named_type'] == 'Type3'
+            return link["named_type"] == "Type3"
 
         iterator = TraverseLinksIterator(incoming_links, filter=custom_filter)
 
         assert iterator.is_empty() is False
         assert next(iterator) == {
-            'handle': 'link3',
-            'named_type': 'Type3',
-            'targets': ['node11', 'node32'],
+            "handle": "link3",
+            "named_type": "Type3",
+            "targets": ["node11", "node32"],
         }
         with pytest.raises(StopIteration):
             next(iterator)
@@ -434,16 +445,16 @@ class TestTraverseLinksIterator:
         iterator = TraverseLinksIterator(incoming_links, targets_only=True)
         assert iterator.is_empty() is False
         assert next(iterator) == [
-            {'handle': 'node11', 'named_type': 'Type2'},
-            {'handle': 'node12', 'named_type': 'Type2'},
+            {"handle": "node11", "named_type": "Type2"},
+            {"handle": "node12", "named_type": "Type2"},
         ]
         assert next(iterator) == [
-            {'handle': 'node11', 'named_type': 'Type2'},
-            {'handle': 'node22', 'named_type': 'Type3'},
+            {"handle": "node11", "named_type": "Type2"},
+            {"handle": "node22", "named_type": "Type3"},
         ]
         assert next(iterator) == [
-            {'handle': 'node11', 'named_type': 'Type2'},
-            {'handle': 'node32', 'named_type': 'Type4'},
+            {"handle": "node11", "named_type": "Type2"},
+            {"handle": "node32", "named_type": "Type4"},
         ]
         with pytest.raises(StopIteration):
             next(iterator)
@@ -453,25 +464,28 @@ class TestTraverseLinksIterator:
 class TestTraverseNeighborsIterator:
     @pytest.fixture
     def traverse_links_iterator(self):
-        source = ListIterator(['link1', 'link2', 'link3'])
+        source = ListIterator(["link1", "link2", "link3"])
         backend = mock.Mock()
         targets_document = True
         backend.get_atom.side_effect = lambda handle, targets_document=targets_document: (
             {
-                'handle': handle,
-                'named_type': f'Type{handle[-1]}',
-                'targets': ['node11', f'node{handle[-1]}2'],
+                "handle": handle,
+                "named_type": f"Type{handle[-1]}",
+                "targets": ["node11", f"node{handle[-1]}2"],
             },
             [
-                {'handle': 'node11', 'named_type': 'Type2'},
-                {'handle': f'node{handle[-1]}2', 'named_type': f'Type{int(handle[-1]) + 1}'},
+                {"handle": "node11", "named_type": "Type2"},
+                {
+                    "handle": f"node{handle[-1]}2",
+                    "named_type": f"Type{int(handle[-1]) + 1}",
+                },
             ],
         )
         incoming_links = LocalIncomingLinks(
             source=source, backend=backend, targets_document=targets_document
         )
 
-        return TraverseLinksIterator(incoming_links, targets_only=True, cursor='node11')
+        return TraverseLinksIterator(incoming_links, targets_only=True, cursor="node11")
 
     def test_init(self, traverse_links_iterator):
         iterator = TraverseNeighborsIterator(source=traverse_links_iterator)
@@ -479,9 +493,9 @@ class TestTraverseNeighborsIterator:
         assert iterator.buffered_answer is not None
         assert iterator.cursor == traverse_links_iterator.cursor
         assert iterator.target_type == traverse_links_iterator.target_type
-        assert iterator.visited_neighbors == ['node12']
+        assert iterator.visited_neighbors == ["node12"]
         assert iterator.iterator == traverse_links_iterator
-        assert iterator.current_value == {'handle': 'node12', 'named_type': 'Type2'}
+        assert iterator.current_value == {"handle": "node12", "named_type": "Type2"}
 
     def test_next_with_buffered_answer(self):
         iterator = TraverseNeighborsIterator(source=mock.Mock())
@@ -492,29 +506,29 @@ class TestTraverseNeighborsIterator:
 
     def test_next_without_buffered_answer(self, traverse_links_iterator):
         iterator = TraverseNeighborsIterator(source=traverse_links_iterator)
-        assert next(iterator) == {'handle': 'node12', 'named_type': 'Type2'}
-        assert next(iterator) == {'handle': 'node22', 'named_type': 'Type3'}
-        assert next(iterator) == {'handle': 'node32', 'named_type': 'Type4'}
+        assert next(iterator) == {"handle": "node12", "named_type": "Type2"}
+        assert next(iterator) == {"handle": "node22", "named_type": "Type3"}
+        assert next(iterator) == {"handle": "node32", "named_type": "Type4"}
         with pytest.raises(StopIteration):
             next(iterator)
 
     def test_process_targets(self, traverse_links_iterator):
         iterator = TraverseNeighborsIterator(source=traverse_links_iterator)
         targets = [
-            {'handle': 'node11', 'named_type': 'Type2'},
-            {'handle': 'node22', 'named_type': 'Type3'},
+            {"handle": "node11", "named_type": "Type2"},
+            {"handle": "node22", "named_type": "Type3"},
         ]
         answer, match_found = iterator._process_targets(targets)
-        assert answer == [{'handle': 'node22', 'named_type': 'Type3'}]
+        assert answer == [{"handle": "node22", "named_type": "Type3"}]
         assert match_found is True
 
     def test_filter(self, traverse_links_iterator):
         iterator = TraverseNeighborsIterator(source=traverse_links_iterator)
 
-        target = {'handle': 'node11', 'named_type': 'Type2'}
+        target = {"handle": "node11", "named_type": "Type2"}
         assert iterator._filter(target) is False
 
-        target = {'handle': 'node22', 'named_type': 'Type3'}
+        target = {"handle": "node22", "named_type": "Type3"}
         assert iterator._filter(target) is True
 
     def test_is_empty(self):
@@ -524,5 +538,5 @@ class TestTraverseNeighborsIterator:
         iterator.current_value = None
         assert iterator.is_empty() is True
 
-        iterator.current_value = {'handle': 1}
+        iterator.current_value = {"handle": 1}
         assert iterator.is_empty() is False

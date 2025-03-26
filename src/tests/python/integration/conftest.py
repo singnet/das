@@ -5,7 +5,10 @@ from tests.python.integration.helpers import remote_down, remote_up
 
 def pytest_addoption(parser):
     parser.addoption(
-        "--build", action="store_true", default=False, help="Rebuilds container's test image."
+        "--build",
+        action="store_true",
+        default=False,
+        help="Rebuilds container's test image.",
     )
     parser.addoption(
         "--no-destroy",

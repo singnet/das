@@ -43,6 +43,15 @@ run-link-creation-agent:
 run-link-creation-client:
 	@bash -x src/scripts/run.sh link_creation_agent_client $(OPTIONS)
 
+run-inference-agent:
+	@bash -x src/scripts/run.sh inference_agent_server $(OPTIONS)
+
+run-inference-agent-client:
+	@bash -x src/scripts/run.sh inference_agent_client $(OPTIONS)
+
+run-evolution:
+	@bash ./src/scripts/bazel.sh run //evolution:main -- $(OPTIONS)
+
 setup-nunet-dms:
 	@bash -x src/scripts/setup-nunet-dms.sh
 
@@ -52,8 +61,19 @@ reset-nunet-dms:
 bazel:
 	@bash ./src/scripts/bazel.sh $(filter-out $@, $(MAKECMDGOALS))
 
+test-all-no-cache:
+	@$(MAKE) bazel 'test --cache_test_results=no //tests/...'
+
 test-all: build-image
-	$(MAKE) bazel test //...
+	@$(MAKE) bazel test //tests/...
+
+lint-all:
+	@$(MAKE) bazel lint \
+		"//... --fix --report --diff" \
+		| grep -vE "(Lint results|All checks passed|^[[:blank:]]*$$)"
+
+format-all:
+	@$(MAKE) bazel run format
 
 # Catch-all pattern to prevent make from complaining about unknown targets
 %:

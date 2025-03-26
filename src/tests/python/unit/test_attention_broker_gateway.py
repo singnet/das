@@ -8,8 +8,8 @@ class TestAttentionBrokerGateway:
         with pytest.raises(ValueError):
             AttentionBrokerGateway({})
         with pytest.raises(ValueError):
-            AttentionBrokerGateway({'attention_broker_hostname': 'localhost'})
+            AttentionBrokerGateway({"attention_broker_hostname": "localhost"})
         with pytest.raises(ValueError):
-            AttentionBrokerGateway({'attention_broker_port': 27000})
+            AttentionBrokerGateway({"attention_broker_port": 27000})
         # successful creation is tested in a integration test because it requires
         # actual connection to a GRPC server

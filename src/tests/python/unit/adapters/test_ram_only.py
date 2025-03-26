@@ -5,7 +5,11 @@ import pytest
 from hyperon_das_atomdb import AtomDB
 from hyperon_das_atomdb.adapters import InMemoryDB
 from hyperon_das_atomdb.database import LinkT, NodeT
-from hyperon_das_atomdb.exceptions import AddLinkException, AddNodeException, AtomDoesNotExist
+from hyperon_das_atomdb.exceptions import (
+    AddLinkException,
+    AddNodeException,
+    AtomDoesNotExist,
+)
 from hyperon_das_atomdb.utils.expression_hasher import ExpressionHasher
 from tests.python.helpers import dict_to_link_params, dict_to_node_params
 from tests.python.unit.fixtures import in_memory_db  # noqa: F401
@@ -181,8 +185,16 @@ class TestInMemoryDB:
                 "*",
                 {"c93e1e758c53912638438e2a7d7f7b7f"},
             ),
-            ([("Concept", "ent"), ("Concept", "plant")], "*", {"ee1c03e6d1f104ccd811cfbba018451a"}),
-            ([("Concept", "ent"), ("Concept", "human")], "*", {"a45af31b43ee5ea271214338a5a5bd61"}),
+            (
+                [("Concept", "ent"), ("Concept", "plant")],
+                "*",
+                {"ee1c03e6d1f104ccd811cfbba018451a"},
+            ),
+            (
+                [("Concept", "ent"), ("Concept", "human")],
+                "*",
+                {"a45af31b43ee5ea271214338a5a5bd61"},
+            ),
             (
                 [("Concept", "human"), ("Concept", "chimp")],
                 "*",
@@ -191,7 +203,10 @@ class TestInMemoryDB:
             (
                 ["*", ("Concept", "chimp")],
                 "Similarity",
-                {"b5459e299a5c5e8662c427f7e01b3bf1", "31535ddf214f5b239d3b517823cb8144"},
+                {
+                    "b5459e299a5c5e8662c427f7e01b3bf1",
+                    "31535ddf214f5b239d3b517823cb8144",
+                },
             ),
             (
                 ["*", ("Concept", "human")],
@@ -205,7 +220,10 @@ class TestInMemoryDB:
             (
                 [("Concept", "chimp"), "*"],
                 "Similarity",
-                {"abe6ad743fc81bd1c55ece2e1307a178", "2c927fdc6c0f1272ee439ceb76a6d1a4"},
+                {
+                    "abe6ad743fc81bd1c55ece2e1307a178",
+                    "2c927fdc6c0f1272ee439ceb76a6d1a4",
+                },
             ),
             (
                 [("Concept", "chimp"), "*"],

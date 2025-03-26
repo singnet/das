@@ -20,7 +20,13 @@ RemoteSink<AnswerType>::RemoteSink(QueryElement* precedent,
 
 template <class AnswerType>
 RemoteSink<AnswerType>::~RemoteSink() {
+#ifdef DEBUG
+    cout << "RemoteSink::~RemoteSink() BEGIN" << endl;
+#endif
     graceful_shutdown();
+#ifdef DEBUG
+    cout << "RemoteSink::~RemoteSink() END" << endl;
+#endif
 }
 
 // -------------------------------------------------------------------------------------------------
@@ -35,6 +41,8 @@ void RemoteSink<AnswerType>::graceful_shutdown() {
     this->set_flow_finished();
     if (this->queue_processor != NULL) {
         this->queue_processor->join();
+        delete this->queue_processor;
+        this->queue_processor = NULL;
     }
     for (const auto& processor : this->query_answer_processors) {
         processor->graceful_shutdown();

@@ -10,7 +10,6 @@ from hyperon_das.exceptions import GetTraversalCursorException
 from hyperon_das.traverse_engines import TraverseEngine
 from tests.python.integration.helpers import remote_das_host  # noqa F401
 from tests.python.integration.helpers import (
-    das_remote_fixture_module,
     get_remote_das_port,
     metta_animal_base_handles,
 )
@@ -35,12 +34,12 @@ class TestRemoteDistributedAtomSpace:
         try:
             das = das_remote_fixture_module
         except Exception as e:
-            pytest.fail(f'Connection with OpenFaaS server fail, Details: {str(e)}')
+            pytest.fail(f"Connection with OpenFaaS server fail, Details: {str(e)}")
         if not das.query_engine.remote_das.url:
-            pytest.fail('Connection with server fail')
+            pytest.fail("Connection with server fail")
         assert (
             das.query_engine.remote_das.url
-            == f'http://{remote_das_host}:{get_remote_das_port()}/function/query-engine'
+            == f"http://{remote_das_host}:{get_remote_das_port()}/function/query-engine"
         )
 
     def test_cache_controller(self, das_remote_fixture_module: DistributedAtomSpace):
@@ -51,13 +50,13 @@ class TestRemoteDistributedAtomSpace:
         result = das_remote_fixture_module.get_atom(handle=metta_animal_base_handles.human)
         assert result.handle == metta_animal_base_handles.human
         assert result.name == '"human"'
-        assert result.named_type == 'Symbol'
+        assert result.named_type == "Symbol"
 
         result = das_remote_fixture_module.get_atom(
             handle=metta_animal_base_handles.inheritance_dinosaur_reptile
         )
         assert result.handle == metta_animal_base_handles.inheritance_dinosaur_reptile
-        assert result.named_type == 'Expression'
+        assert result.named_type == "Expression"
         assert result.targets == [
             metta_animal_base_handles.Inheritance,
             metta_animal_base_handles.dinosaur,
@@ -65,7 +64,7 @@ class TestRemoteDistributedAtomSpace:
         ]
 
         with pytest.raises(AtomDoesNotExist):
-            das_remote_fixture_module.get_atom(handle='fake')
+            das_remote_fixture_module.get_atom(handle="fake")
 
     @pytest.mark.skip("Wrong values")
     def test_get_links(self, das_remote_fixture_module: DistributedAtomSpace):
@@ -85,7 +84,7 @@ class TestRemoteDistributedAtomSpace:
             metta_animal_base_handles.inheritance_typedef,
         ]
 
-        links = das_remote_fixture_module.get_links(link_filters.NamedType('Expression'))
+        links = das_remote_fixture_module.get_links(link_filters.NamedType("Expression"))
         inheritance_links = []
         for link in links:
             if metta_animal_base_handles.Inheritance in link.targets:
@@ -94,7 +93,7 @@ class TestRemoteDistributedAtomSpace:
         assert sorted(inheritance_links) == sorted(all_inheritance)
 
         links = das_remote_fixture_module.get_links(
-            link_filters.FlatTypeTemplate(['Symbol', 'Symbol', 'Symbol'], 'Expression')
+            link_filters.FlatTypeTemplate(["Symbol", "Symbol", "Symbol"], "Expression")
         )
         inheritance_links = []
         for link in links:
@@ -110,7 +109,7 @@ class TestRemoteDistributedAtomSpace:
                     metta_animal_base_handles.earthworm,
                     metta_animal_base_handles.animal,
                 ],
-                'Expression',
+                "Expression",
             )
         )
         assert link[0].handle == metta_animal_base_handles.inheritance_earthworm_animal
@@ -137,9 +136,9 @@ class TestRemoteDistributedAtomSpace:
     @pytest.mark.skip("Wrong value, review")
     def test_count_atoms(self, das_remote_fixture_module: DistributedAtomSpace):
         response = das_remote_fixture_module.count_atoms(parameters={})
-        assert response == {'atom_count': 66, 'node_count': 0, 'link_count': 0}
-        response_local = das_remote_fixture_module.count_atoms({'context': 'local'})
-        assert response_local == {'atom_count': 0, 'node_count': 0, 'link_count': 0}
+        assert response == {"atom_count": 66, "node_count": 0, "link_count": 0}
+        response_local = das_remote_fixture_module.count_atoms({"context": "local"})
+        assert response_local == {"atom_count": 0, "node_count": 0, "link_count": 0}
 
     def test_query(self, das_remote_fixture_module: DistributedAtomSpace):
         all_inheritance_mammal = [
@@ -159,7 +158,7 @@ class TestRemoteDistributedAtomSpace:
                     {"atom_type": "node", "type": "Symbol", "name": '"mammal"'},
                 ],
             },
-            {'no_iterator': True},
+            {"no_iterator": True},
         )
 
         answer = tuple([item.assignment, item.subgraph] for item in query_answer)
@@ -173,19 +172,19 @@ class TestRemoteDistributedAtomSpace:
                     link.targets_documents,
                     [
                         {
-                            'handle': metta_animal_base_handles.Inheritance,
-                            'named_type': 'Symbol',
-                            'name': "Inheritance",
+                            "handle": metta_animal_base_handles.Inheritance,
+                            "named_type": "Symbol",
+                            "name": "Inheritance",
                         },
                         {
-                            'handle': metta_animal_base_handles.chimp,
-                            'named_type': 'Symbol',
-                            'name': '"chimp"',
+                            "handle": metta_animal_base_handles.chimp,
+                            "named_type": "Symbol",
+                            "name": '"chimp"',
                         },
                         {
-                            'handle': metta_animal_base_handles.mammal,
-                            'named_type': 'Symbol',
-                            'name': '"mammal"',
+                            "handle": metta_animal_base_handles.mammal,
+                            "named_type": "Symbol",
+                            "name": '"mammal"',
                         },
                     ],
                 )
@@ -194,19 +193,19 @@ class TestRemoteDistributedAtomSpace:
                     link.targets_documents,
                     [
                         {
-                            'handle': metta_animal_base_handles.Inheritance,
-                            'named_type': 'Symbol',
-                            'name': "Inheritance",
+                            "handle": metta_animal_base_handles.Inheritance,
+                            "named_type": "Symbol",
+                            "name": "Inheritance",
                         },
                         {
-                            'handle': metta_animal_base_handles.human,
-                            'named_type': 'Symbol',
-                            'name': '"human"',
+                            "handle": metta_animal_base_handles.human,
+                            "named_type": "Symbol",
+                            "name": '"human"',
                         },
                         {
-                            'handle': metta_animal_base_handles.mammal,
-                            'named_type': 'Symbol',
-                            'name': '"mammal"',
+                            "handle": metta_animal_base_handles.mammal,
+                            "named_type": "Symbol",
+                            "name": '"mammal"',
                         },
                     ],
                 )
@@ -215,19 +214,19 @@ class TestRemoteDistributedAtomSpace:
                     link.targets_documents,
                     [
                         {
-                            'handle': metta_animal_base_handles.Inheritance,
-                            'named_type': 'Symbol',
-                            'name': "Inheritance",
+                            "handle": metta_animal_base_handles.Inheritance,
+                            "named_type": "Symbol",
+                            "name": "Inheritance",
                         },
                         {
-                            'handle': metta_animal_base_handles.monkey,
-                            'named_type': 'Symbol',
-                            'name': '"monkey"',
+                            "handle": metta_animal_base_handles.monkey,
+                            "named_type": "Symbol",
+                            "name": '"monkey"',
                         },
                         {
-                            'handle': metta_animal_base_handles.mammal,
-                            'named_type': 'Symbol',
-                            'name': '"mammal"',
+                            "handle": metta_animal_base_handles.mammal,
+                            "named_type": "Symbol",
+                            "name": '"mammal"',
                         },
                     ],
                 )
@@ -236,19 +235,19 @@ class TestRemoteDistributedAtomSpace:
                     link.targets_documents,
                     [
                         {
-                            'handle': metta_animal_base_handles.Inheritance,
-                            'named_type': 'Symbol',
-                            'name': "Inheritance",
+                            "handle": metta_animal_base_handles.Inheritance,
+                            "named_type": "Symbol",
+                            "name": "Inheritance",
                         },
                         {
-                            'handle': metta_animal_base_handles.rhino,
-                            'named_type': 'Symbol',
-                            'name': '"rhino"',
+                            "handle": metta_animal_base_handles.rhino,
+                            "named_type": "Symbol",
+                            "name": '"rhino"',
                         },
                         {
-                            'handle': metta_animal_base_handles.mammal,
-                            'named_type': 'Symbol',
-                            'name': '"mammal"',
+                            "handle": metta_animal_base_handles.mammal,
+                            "named_type": "Symbol",
+                            "name": '"mammal"',
                         },
                     ],
                 )
@@ -257,7 +256,7 @@ class TestRemoteDistributedAtomSpace:
         cursor = das_remote_fixture_module.get_traversal_cursor(metta_animal_base_handles.human)
         assert cursor.get().handle == metta_animal_base_handles.human
         with pytest.raises(GetTraversalCursorException):
-            das_remote_fixture_module.get_traversal_cursor('fake_handle')
+            das_remote_fixture_module.get_traversal_cursor("fake_handle")
 
     @pytest.mark.skip(reason="Disabled. Waiting for https://github.com/singnet/das/issues/73")
     def test_traverse_engine_methods(self, das_remote_fixture_module: DistributedAtomSpace):
@@ -267,7 +266,7 @@ class TestRemoteDistributedAtomSpace:
         assert cursor.get().handle == metta_animal_base_handles.dinosaur
 
         def is_expression_link(link):
-            return True if link['type'] == 'Expression' else False
+            return True if link["type"] == "Expression" else False
 
         links_iter = cursor.get_links(filter=is_expression_link)
 
@@ -288,23 +287,23 @@ class TestRemoteDistributedAtomSpace:
         assert count == 0
 
         def is_literal(atom: dict):
-            return True if atom['is_literal'] is True else False
+            return True if atom["is_literal"] is True else False
 
         neighbors_iter = cursor.get_neighbors(cursor_position=1, filter=is_literal)
-        assert neighbors_iter.get()['handle'] == metta_animal_base_handles.reptile
+        assert neighbors_iter.get()["handle"] == metta_animal_base_handles.reptile
 
         atom = cursor.follow_link(cursor_position=2, filter=is_literal)
-        assert atom['handle'] == metta_animal_base_handles.triceratops
+        assert atom["handle"] == metta_animal_base_handles.triceratops
 
         cursor.goto(metta_animal_base_handles.human)
-        assert cursor.get()['handle'] == metta_animal_base_handles.human
+        assert cursor.get()["handle"] == metta_animal_base_handles.human
 
-    @pytest.mark.skip('Wrong values')
+    @pytest.mark.skip("Wrong values")
     def test_fetch_atoms(self, das_remote_fixture_module):
         assert das_remote_fixture_module.backend.count_atoms() == {
-            'atom_count': 0,
-            'node_count': 0,
-            'link_count': 0,
+            "atom_count": 0,
+            "node_count": 0,
+            "link_count": 0,
         }
         das_remote_fixture_module.fetch(
             query={
@@ -318,39 +317,39 @@ class TestRemoteDistributedAtomSpace:
             }
         )
         assert das_remote_fixture_module.backend.count_atoms() == {
-            'atom_count': 10,
-            'node_count': 6,
-            'link_count': 4,
+            "atom_count": 10,
+            "node_count": 6,
+            "link_count": 4,
         }
 
-    @pytest.mark.skip('Wrong values')
+    @pytest.mark.skip("Wrong values")
     def test_fetch_all_data(self, das_remote_fixture_module):
         assert das_remote_fixture_module.backend.count_atoms() == {
-            'atom_count': 0,
-            'node_count': 0,
-            'link_count': 0,
+            "atom_count": 0,
+            "node_count": 0,
+            "link_count": 0,
         }
         das_remote_fixture_module.fetch()
         assert das_remote_fixture_module.backend.count_atoms() == {
-            'atom_count': 66,
-            'node_count': 23,
-            'link_count': 43,
+            "atom_count": 66,
+            "node_count": 23,
+            "link_count": 43,
         }
 
     def test_create_context(self, das_remote_fixture_module):
-        context_name = 'my context'
+        context_name = "my context"
         context = das_remote_fixture_module.create_context(context_name)
         assert context.name == context_name
 
     @pytest.mark.skip(reason="Disable. See https://github.com/singnet/das-query-engine/issues/259")
     def test_commit_changes(self, das_remote_fixture_module: DistributedAtomSpace):
         node = das_remote_fixture_module.get_atom(handle=metta_animal_base_handles.human)
-        assert hasattr(node, 'test_key') is False
-        assert 'test_key' not in node.custom_attributes
-        das_remote_fixture_module.add_node(NodeT(**{'type': 'Symbol', 'name': '"human"'}))
+        assert hasattr(node, "test_key") is False
+        assert "test_key" not in node.custom_attributes
+        das_remote_fixture_module.add_node(NodeT(**{"type": "Symbol", "name": '"human"'}))
         das_remote_fixture_module.commit_changes()
         node = das_remote_fixture_module.get_atom(handle=metta_animal_base_handles.human)
-        assert node.custom_attributes['test_key'] == 'test_value'
+        assert node.custom_attributes["test_key"] == "test_value"
 
     def test_commit_changes_method_with_mode_parameter(self, das_remote_fixture_module):
         das = das_remote_fixture_module
@@ -361,6 +360,9 @@ class TestRemoteDistributedAtomSpace:
 
         with pytest.raises(ValueError):
             das = DistributedAtomSpace(
-                mode='blah', query_engine='remote', host=remote_das_host, port=get_remote_das_port()
+                mode="blah",
+                query_engine="remote",
+                host=remote_das_host,
+                port=get_remote_das_port(),
             )
             das.commit_changes()

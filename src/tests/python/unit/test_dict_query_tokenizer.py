@@ -24,14 +24,14 @@ class TestDictQueryTokenizer(unittest.TestCase):
             ],
         }
         expected_tokens = (
-            'LINK_TEMPLATE Expression 3 NODE Symbol Similarity LINK Expression 2 '
+            "LINK_TEMPLATE Expression 3 NODE Symbol Similarity LINK Expression 2 "
             'NODE Symbol Concept NODE Symbol "human" VARIABLE v1'
         )
         assert DictQueryTokenizer.tokenize(query) == expected_tokens
 
     def test_untokenize_link(self):
         tokens = (
-            'LINK_TEMPLATE Expression 3 NODE Symbol Similarity LINK Expression 2 '
+            "LINK_TEMPLATE Expression 3 NODE Symbol Similarity LINK Expression 2 "
             'NODE Symbol Concept NODE Symbol "human" VARIABLE v1'
         )
         expected_query = {
@@ -55,7 +55,8 @@ class TestDictQueryTokenizer(unittest.TestCase):
     def test_tokenize_invalid_query(self):
         query = {"atom_type": "unknown", "name": "InvalidQuery"}
         with pytest.raises(
-            ValueError, match="Unsupported query, it should start with a link or an operator:"
+            ValueError,
+            match="Unsupported query, it should start with a link or an operator:",
         ):
             DictQueryTokenizer.tokenize(query)
 
@@ -91,14 +92,16 @@ class TestDictQueryTokenizer(unittest.TestCase):
     def test_tokenize_invalid_start_node(self):
         query = {"atom_type": "node", "type": "Symbol", "name": "TestNode"}
         with pytest.raises(
-            ValueError, match="Unsupported query, it should start with a link or an operator:"
+            ValueError,
+            match="Unsupported query, it should start with a link or an operator:",
         ):
             DictQueryTokenizer.tokenize(query)
 
     def test_tokenize_invalid_start_variable(self):
         query = {"atom_type": "variable", "name": "TestVariable"}
         with pytest.raises(
-            ValueError, match="Unsupported query, it should start with a link or an operator:"
+            ValueError,
+            match="Unsupported query, it should start with a link or an operator:",
         ):
             DictQueryTokenizer.tokenize(query)
 

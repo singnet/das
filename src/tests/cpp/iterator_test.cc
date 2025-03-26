@@ -1,22 +1,21 @@
-#include <cstdlib>
-#include "gtest/gtest.h"
-
-#include "QueryNode.h"
-#include "LinkTemplate.h"
-#include "AtomDBSingleton.h"
-#include "test_utils.h"
 #include "Iterator.h"
+
+#include <cstdlib>
+
+#include "AtomDBSingleton.h"
 #include "HandlesAnswer.h"
+#include "LinkTemplate.h"
+#include "QueryNode.h"
+#include "gtest/gtest.h"
+#include "test_utils.h"
 
 using namespace query_engine;
 using namespace query_element;
 using namespace query_node;
 
 class TestQueryElement : public QueryElement {
-    public:
-    TestQueryElement(const string &id) {
-        this->id = id;
-    }
+   public:
+    TestQueryElement(const string& id) { this->id = id; }
     void setup_buffers() {}
     void graceful_shutdown() {}
 };
@@ -31,7 +30,7 @@ TEST(Iterator, basics) {
 
     EXPECT_FALSE(query_answer_iterator.finished());
 
-    HandlesAnswer *qa;
+    HandlesAnswer* qa;
     HandlesAnswer qa0("h0", 0.0);
     HandlesAnswer qa1("h1", 0.1);
     HandlesAnswer qa2("h2", 0.2);
@@ -70,7 +69,6 @@ TEST(Iterator, basics) {
 }
 
 TEST(Iterator, link_template_integration) {
-
     setenv("DAS_REDIS_HOSTNAME", "localhost", 1);
     setenv("DAS_REDIS_PORT", "29000", 1);
     setenv("DAS_USE_REDIS_CLUSTER", "false", 1);
@@ -92,18 +90,18 @@ TEST(Iterator, link_template_integration) {
     LinkTemplate<3> link_template("Expression", {&similarity, &human, &v1});
     Iterator<HandlesAnswer> query_answer_iterator(&link_template);
 
-    string monkey_handle = string(terminal_hash((char *) symbol.c_str(), (char *) "\"monkey\""));
-    string chimp_handle = string(terminal_hash((char *) symbol.c_str(), (char *) "\"chimp\""));
-    string ent_handle = string(terminal_hash((char *) symbol.c_str(), (char *) "\"ent\""));
+    string monkey_handle = string(terminal_hash((char*) symbol.c_str(), (char*) "\"monkey\""));
+    string chimp_handle = string(terminal_hash((char*) symbol.c_str(), (char*) "\"chimp\""));
+    string ent_handle = string(terminal_hash((char*) symbol.c_str(), (char*) "\"ent\""));
     bool monkey_flag = false;
     bool chimp_flag = false;
     bool ent_flag = false;
-    HandlesAnswer *query_answer;
-    while (! query_answer_iterator.finished()) {
+    HandlesAnswer* query_answer;
+    while (!query_answer_iterator.finished()) {
         query_answer = dynamic_cast<HandlesAnswer*>(query_answer_iterator.pop());
         if (query_answer != NULL) {
             string var = string(query_answer->assignment.get("v1"));
-            //EXPECT_TRUE(double_equals(query_answer->importance, 0.0));
+            // EXPECT_TRUE(double_equals(query_answer->importance, 0.0));
             if (var == monkey_handle) {
                 // TODO: perform extra checks
                 monkey_flag = true;

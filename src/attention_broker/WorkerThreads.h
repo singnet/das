@@ -1,11 +1,11 @@
 #ifndef _ATTENTION_BROKER_SERVER_WORKERTHREADS_H
 #define _ATTENTION_BROKER_SERVER_WORKERTHREADS_H
 
-#include <iostream>
 #include <chrono>
+#include <iostream>
+#include <mutex>
 #include <thread>
 #include <vector>
-#include <mutex>
 
 #include "SharedQueue.h"
 
@@ -20,9 +20,7 @@ namespace attention_broker_server {
  * WorkerThreads provides an abstraction to actual threads creation and shutdown.
  */
 class WorkerThreads {
-
-public:
-
+   public:
     /**
      * Constructor.
      *
@@ -33,8 +31,8 @@ public:
      * Working threads can process any type of requests. The policy of which request
      * queue a worker thread will read from next is determined by RequestSelector.
      */
-    WorkerThreads(SharedQueue *stimulus, SharedQueue *correlation);
-    ~WorkerThreads(); /// Destructor.
+    WorkerThreads(SharedQueue* stimulus, SharedQueue* correlation);
+    ~WorkerThreads();  /// Destructor.
 
     /**
      * Gracefully and synchronously stop all threads.
@@ -46,21 +44,19 @@ public:
      */
     void graceful_stop();
 
-private:
-
+   private:
     unsigned int threads_count;
-    vector<thread *> threads;
+    vector<thread*> threads;
     bool stop_flag = false;
-    SharedQueue *stimulus_requests;
-    SharedQueue *correlation_requests;
+    SharedQueue* stimulus_requests;
+    SharedQueue* correlation_requests;
     mutex stop_flag_mutex;
 
-    void worker_thread(
-        unsigned int thread_id, 
-        SharedQueue *stimulus_requests, 
-        SharedQueue *correlation_requests);
+    void worker_thread(unsigned int thread_id,
+                       SharedQueue* stimulus_requests,
+                       SharedQueue* correlation_requests);
 };
 
-} // namespace attention_broker_server
+}  // namespace attention_broker_server
 
-#endif // _ATTENTION_BROKER_SERVER_WORKERTHREADS_H
+#endif  // _ATTENTION_BROKER_SERVER_WORKERTHREADS_H

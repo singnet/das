@@ -1,10 +1,11 @@
 #ifndef _QUERY_ELEMENT_TERMINAL_H
 #define _QUERY_ELEMENT_TERMINAL_H
 
-#include <string>
 #include <array>
-#include "QueryElement.h"
+#include <string>
+
 #include "AtomDB.h"
+#include "QueryElement.h"
 #include "expression_hasher.h"
 
 using namespace std;
@@ -19,24 +20,21 @@ namespace query_element {
  * A QueryElement which represents terminals (i.e. Nodes, Links and Variables) in the query tree.
  */
 class Terminal : public QueryElement {
-
-protected:
-
+   protected:
     /**
      * Protected constructor.
      */
     Terminal() : QueryElement() {
         this->handle = shared_ptr<char>{};
         this->is_variable = false;
-        this->is_terminal = true; // overrrides QueryElement default
+        this->is_terminal = true;  // overrrides QueryElement default
     }
 
-public:
-
+   public:
     /**
      * Destructor.
      */
-    ~Terminal() {};
+    ~Terminal(){};
 
     /**
      * Empty implementation. There are no QueryNode element to setup.
@@ -47,7 +45,7 @@ public:
      * Empty implementation. There are no QueryNode element or local thread to shut down.
      */
     void virtual graceful_shutdown() {}
-                                
+
     /**
      * Returns a string representation of this Terminal (mainly for debugging; not optimized to
      * production environment).
@@ -79,19 +77,18 @@ public:
  * QueryElement which represents a node.
  */
 class Node : public Terminal {
-
-public:
-
+   public:
     /**
      * Constructor.
      *
      * @param type Type of the node.
      * @param name Name of the node.
      */
-    Node(const string &type, const string &name) : Terminal() {
+    Node(const string& type, const string& name) : Terminal() {
         this->type = type;
         this->name = name;
-        this->handle = shared_ptr<char>(terminal_hash((char *) type.c_str(), (char *) name.c_str()));
+        this->handle = shared_ptr<char>(terminal_hash((char*) type.c_str(), (char*) name.c_str()),
+                                        default_delete<char[]>());
     }
 
     /**
@@ -116,9 +113,7 @@ public:
  */
 template <unsigned int ARITY>
 class Link : public Terminal {
-
-public:
-
+   public:
     /**
      * Constructor.
      *
@@ -126,21 +121,22 @@ public:
      * @params targets Array with targets of the Link. Targets are supposed to be
      *         handles (i.e. strings). No nesting of Nodes or other Links are allowed.
      */
-    Link(const string &type, const array<QueryElement *, ARITY> &targets) : Terminal() {
+    Link(const string& type, const array<QueryElement*, ARITY>& targets) : Terminal() {
         this->name = "";
         this->type = type;
         this->targets = targets;
         this->arity = ARITY;
-        char *handle_keys[ARITY + 1];
-        handle_keys[0] = (char *) named_type_hash((char *) type.c_str());
+        char* handle_keys[ARITY + 1];
+        handle_keys[0] = (char*) named_type_hash((char*) type.c_str());
         for (unsigned int i = 1; i < (ARITY + 1); i++) {
-            if (targets[i - 1]->is_terminal && ! ((Terminal *) targets[i - 1])->is_variable) {
-                handle_keys[i] = ((Terminal *) targets[i - 1])->handle.get();
+            if (targets[i - 1]->is_terminal && !((Terminal*) targets[i - 1])->is_variable) {
+                handle_keys[i] = ((Terminal*) targets[i - 1])->handle.get();
             } else {
                 Utils::error("Invalid Link definition");
             }
         }
-        this->handle = shared_ptr<char>(composite_hash(handle_keys, ARITY + 1));
+        this->handle =
+            shared_ptr<char>(composite_hash(handle_keys, ARITY + 1), default_delete<char[]>());
         free(handle_keys[0]);
     }
 
@@ -151,7 +147,7 @@ public:
     string to_string() {
         string answer = "(" + this->type + ", [";
         for (unsigned int i = 0; i < this->arity; i++) {
-            answer += ((Terminal *) this->targets[i])->to_string();
+            answer += ((Terminal*) this->targets[i])->to_string();
             if (i != (this->arity - 1)) {
                 answer += ", ";
             }
@@ -173,7 +169,7 @@ public:
     /**
      * Targets of the Link.
      */
-    array<QueryElement *, ARITY> targets;
+    array<QueryElement*, ARITY> targets;
 };
 
 // -------------------------------------------------------------------------------------------------
@@ -183,17 +179,16 @@ public:
  * QueryElement which represents a variable.
  */
 class Variable : public Terminal {
-
-public:
-
+   public:
     /**
      * Constructor.
      *
      * @param name Name of the Variable.
      */
-    Variable(const string &name) : Terminal() {
+    Variable(const string& name) : Terminal() {
         this->name = name;
-        this->handle = shared_ptr<char>(strdup((char *) AtomDB::WILDCARD.c_str()));
+        this->handle =
+            shared_ptr<char>(strdup((char*) AtomDB::WILDCARD.c_str()), default_delete<char[]>());
         this->is_variable = true;
     }
 
@@ -201,11 +196,9 @@ public:
      * Returns a string representation of this Variable (mainly for debugging; not optimized to
      * production environment).
      */
-    string to_string() {
-        return "$(" + this->name + ")";
-    }
+    string to_string() { return "$(" + this->name + ")"; }
 };
 
-} // namespace query_element
+}  // namespace query_element
 
-#endif // _QUERY_ELEMENT_TERMINAL_H
+#endif  // _QUERY_ELEMENT_TERMINAL_H

@@ -78,18 +78,18 @@ def cleanup(request):
 
 @pytest.fixture(scope="module")
 def das_remote_fixture_module(environment_manager):
-    yield DAS(query_engine='remote', host=remote_das_host, port=remote_das_port)
+    yield DAS(query_engine="remote", host=remote_das_host, port=remote_das_port)
 
 
 @pytest.fixture(scope="class")
 def das_local_fixture_class():
     _db_up()
     yield DAS(
-        query_engine='local',
-        atomdb='redis_mongo',
+        query_engine="local",
+        atomdb="redis_mongo",
         mongo_port=mongo_port,
-        mongo_username='dbadmin',
-        mongo_password='dassecret',
+        mongo_username="dbadmin",
+        mongo_password="dassecret",
         redis_port=redis_port,
         redis_cluster=False,
         redis_ssl=False,
@@ -101,11 +101,11 @@ def das_local_fixture_class():
 def das_local_fixture():
     _db_up()
     yield DAS(
-        query_engine='local',
-        atomdb='redis_mongo',
+        query_engine="local",
+        atomdb="redis_mongo",
         mongo_port=mongo_port,
-        mongo_username='dbadmin',
-        mongo_password='dassecret',
+        mongo_username="dbadmin",
+        mongo_password="dassecret",
         redis_port=redis_port,
         redis_cluster=False,
         redis_ssl=False,

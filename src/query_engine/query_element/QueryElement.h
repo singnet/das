@@ -1,10 +1,11 @@
 #ifndef _QUERY_ELEMENT_QUERYELEMENT_H
 #define _QUERY_ELEMENT_QUERYELEMENT_H
 
-#include <string>
 #include <memory>
-#include "Utils.h"
+#include <string>
+
 #include "QueryNode.h"
+#include "Utils.h"
 
 #define DEBUG
 
@@ -49,9 +50,7 @@ namespace query_element {
  * same machine (either in the same process or in different processes).
  */
 class QueryElement {
-
-public:
-
+   public:
     string id;
     string subsequent_id;
 
@@ -84,8 +83,7 @@ public:
      */
     bool is_terminal;
 
-protected:
-
+   protected:
     /**
      * Return true iff this QueryElement have finished its work in the flow of links up through
      * the query tree.
@@ -107,12 +105,11 @@ protected:
      */
     void set_flow_finished();
 
-private:
-
+   private:
     bool flow_finished;
     mutex flow_finished_mutex;
 };
 
-} // namespace query_element
+}  // namespace query_element
 
-#endif // _QUERY_ELEMENT_QUERYELEMENT_H
+#endif  // _QUERY_ELEMENT_QUERYELEMENT_H

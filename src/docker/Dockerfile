@@ -20,7 +20,7 @@ RUN mkdir -p \
 
 RUN yes | apt update -y \
     && yes | apt install -y git build-essential curl protobuf-compiler python3 python3-pip cmake \
-    libevent-dev libssl-dev pkg-config \
+    libevent-dev libssl-dev pkg-config libncurses5\
     && yes | apt clean -y \
     && rm -rf /var/lib/apt/lists/*
 
@@ -31,11 +31,6 @@ RUN cd ${THIRD_PARTY} \
     && mkdir -p ${DAS_DIR}/src/3rd-party \
     && ln -s ${THIRD_PARTY} ${DAS_DIR}/src/3rd-party \
     && mv bazelisk ${BAZEL_DIR}
-
-# TODO: integrate this to bazel build (https://github.com/singnet/das/issues/197)
-ADD https://raw.githubusercontent.com/singnet/das-query-engine/master/proto/attention_broker.proto ${PROTO_DIR}
-ADD https://raw.githubusercontent.com/singnet/das-query-engine/master/proto/common.proto ${PROTO_DIR}
-ADD https://raw.githubusercontent.com/singnet/das-query-engine/master/proto/echo.proto ${PROTO_DIR}
 
 ################################################################################
 # To be removed when AtomDB is properly integrated

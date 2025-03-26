@@ -327,7 +327,9 @@ class RedisMongoDB(AtomDB):
             return self.mongo_db
         except ValueError as e:
             logger().error(f"An error occurred while creating a MongoDB client - Details: {str(e)}")
-            raise ConnectionMongoDBException(message="error creating a MongoClient", details=str(e))
+            raise ConnectionMongoDBException(
+                message="error creating a MongoClient", details=str(e)
+            ) from e
 
     @staticmethod
     def _connection_redis(
@@ -357,7 +359,7 @@ class RedisMongoDB(AtomDB):
         message = (
             f"Connecting to {redis_type} at "
             + (
-                f"{redis_username}:{len(redis_password)*'*'}@"
+                f"{redis_username}:{len(redis_password) * '*'}@"
                 if redis_username and redis_password
                 else ""
             )
@@ -780,7 +782,7 @@ class RedisMongoDB(AtomDB):
                 return templates_matched
         except Exception as exception:
             logger().error(f"Failed to get matched type template - Details: {str(exception)}")
-            raise ValueError(str(exception))
+            raise ValueError(str(exception)) from exception
 
     def get_matched_type(self, link_type: str, **kwargs) -> HandleSetT:
         named_type_hash = ExpressionHasher.named_type_hash(link_type)
@@ -1400,7 +1402,7 @@ class RedisMongoDB(AtomDB):
     def reindex(self, pattern_index_templates: dict[str, list[DocumentT]] | None = None) -> None:
         if isinstance(pattern_index_templates, list):
             self._save_pattern_index(deepcopy(pattern_index_templates))
-            self._setup_indexes({'pattern_index_templates': pattern_index_templates})
+            self._setup_indexes({"pattern_index_templates": pattern_index_templates})
         self.redis.flushall()
         self._update_atom_indexes(self.mongo_atoms_collection.find({}))
 
@@ -1472,7 +1474,8 @@ class RedisMongoDB(AtomDB):
             logger().error(f"Error: {str(e)}")
         finally:
             if not index_id:
-                return (  # pylint: disable=lost-exception
+                # B012: `return` inside `finally` blocks cause exceptions to be silenced
+                return (  # noqa: B012
                     f"Index creation failed, Details: {str(exc)}"
                     if exc
                     else "Index creation failed"

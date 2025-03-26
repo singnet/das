@@ -11,7 +11,7 @@ namespace attention_broker_server {
  * Algorithm used to update HebbianNetwork weights in "correlate" requests.
  */
 enum class HebbianNetworkUpdaterType {
-    EXACT_COUNT /// Tracks counts of nodes and links computing actual weights on demand.
+    EXACT_COUNT  /// Tracks counts of nodes and links computing actual weights on demand.
 };
 
 /**
@@ -28,9 +28,7 @@ enum class HebbianNetworkUpdaterType {
  * weights in HebbianNetwork.
  */
 class HebbianNetworkUpdater {
-
-public:
-
+   public:
     /**
      * Factory method.
      *
@@ -40,8 +38,8 @@ public:
      *
      * @return An object of the passed type.
      */
-    static HebbianNetworkUpdater *factory(HebbianNetworkUpdaterType instance_type);
-    virtual ~HebbianNetworkUpdater(); /// Destructor.
+    static HebbianNetworkUpdater* factory(HebbianNetworkUpdaterType instance_type);
+    virtual ~HebbianNetworkUpdater();  /// Destructor.
 
     /**
      * Process a correlation evidence.
@@ -53,12 +51,10 @@ public:
      */
     virtual void correlation(const dasproto::HandleList* request) = 0;
 
-protected:
+   protected:
+    HebbianNetworkUpdater();  /// Basic empty constructor.
 
-    HebbianNetworkUpdater(); /// Basic empty constructor.
-
-private:
-
+   private:
 };
 
 /**
@@ -75,17 +71,15 @@ private:
  * links between them as they appear in correlation evidence (requests). Actual hebbian weights
  * between A -> B are calculated on demand by dividing count(A->B) / count(A).
  */
-class ExactCountHebbianUpdater: public HebbianNetworkUpdater {
-
-public:
-
-    ExactCountHebbianUpdater(); /// Basic empty constructor.
-    ~ExactCountHebbianUpdater(); /// Destructor.
+class ExactCountHebbianUpdater : public HebbianNetworkUpdater {
+   public:
+    ExactCountHebbianUpdater();   /// Basic empty constructor.
+    ~ExactCountHebbianUpdater();  /// Destructor.
 
     /**
      * Process a correlation evidence.
      *
-     * The evidence is used to update the weights in the HebbianNetwork. 
+     * The evidence is used to update the weights in the HebbianNetwork.
      *
      * This HebbianNetworkUpdater keeps track of actual counts of atoms and symmetric hebbian
      * links between them as they appear in correlation evidence (requests). Actual hebbian weights
@@ -93,9 +87,9 @@ public:
      *
      * @param request A list of handles of atoms which appeared in the same query answer.
      */
-    void correlation(const dasproto::HandleList *request); /// Process a correlation evidence.
+    void correlation(const dasproto::HandleList* request);  /// Process a correlation evidence.
 };
 
-} // namespace attention_broker_server
+}  // namespace attention_broker_server
 
-#endif // _ATTENTION_BROKER_SERVER_HEBBIANNETWORKUPDATER_H
+#endif  // _ATTENTION_BROKER_SERVER_HEBBIANNETWORKUPDATER_H

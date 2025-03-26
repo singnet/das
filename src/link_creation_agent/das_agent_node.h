@@ -1,5 +1,5 @@
 /**
- * @file das_server_node.h
+ * @file das_agent_node.h
  * @brief DAS Node client to send add atom requests
  */
 #pragma once
@@ -9,7 +9,7 @@
 
 using namespace distributed_algorithm_node;
 
-namespace das {
+namespace das_agent {
 class DasAgentNode : public StarNode {
    public:
     /**
@@ -26,9 +26,9 @@ class DasAgentNode : public StarNode {
      * @brief Create a link
      * @param request Request to create a link
      */
-    void create_link(vector<string>& request);
+    virtual void create_link(vector<string>& request);
 
    private:
     const string CREATE_ATOM = "create_atom";  // DAS Node command
 };
-}  // namespace das
+}  // namespace das_agent

@@ -1,35 +1,37 @@
 /**
- * @file das_link_creation_node.h
+ * @file link_creation_agent_node.h
  * @brief DAS Node server to receive link creation requests
  */
 #pragma once
 #include "StarNode.h"
+#include "dummy_message.h"
 #include "queue.h"
+
 using namespace distributed_algorithm_node;
 
 namespace link_creation_agent {
-class LinkCreationNode : public StarNode {
+class LinkCreationAgentNode : public StarNode {
    public:
     /**
      * @brief Server constructor
      * @param node_id ID of this node in the network.
      */
-    LinkCreationNode(const string& node_id);
+    LinkCreationAgentNode(const string& node_id);
     /**
      * @brief Client constructor
      * @param node_id ID of this node in the network.
      * @param server_id ID of a server.
      */
-    LinkCreationNode(const string& node_id, const string& server_id);;
+    LinkCreationAgentNode(const string& node_id, const string& server_id);
 
     /**
      * Destructor
      */
-    ~LinkCreationNode();
+    ~LinkCreationAgentNode();
     /**
      * @brief Retrieves the next request
      */
-    vector<string> pop_request();
+    virtual vector<string> pop_request();
     /**
      * @brief Return true if the request's queue is empty
      */
@@ -52,12 +54,12 @@ class LinkCreationNode : public StarNode {
      */
     virtual shared_ptr<Message> message_factory(string& command, vector<string>& args);
 
-    void send_message(vector<string> args);
+    virtual void send_message(vector<string> args);
 
    private:
     Queue<vector<string>> shared_queue;
     const string CREATE_LINK = "create_link";  // DAS Node command
-    const string CREATE_LINK_PROCESSOR = "create_link_processor"; 
+    const string CREATE_LINK_PROCESSOR = "create_link_processor";
     bool shutting_down = false;
     bool is_server = true;
 };
@@ -75,24 +77,4 @@ class LinkCreationRequest : public Message {
     string client_id;
 };
 
-/**
- * @brief Dummy message for unknown commands
- */
-class DummyMessage : public Message {
-   public:
-    string command;
-    vector<string> args;
-    DummyMessage(string command, vector<string>& args) {
-        this->command = command;
-        this->args = args;
-    }
-
-    void act(shared_ptr<MessageFactory> node) {
-        cout << "DummyMessage::act" << endl;
-        cout << command << endl;
-        for (auto arg : args) {
-            cout << arg << endl;
-        }
-    }
-};
 }  // namespace link_creation_agent

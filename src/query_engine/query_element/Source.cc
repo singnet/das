@@ -13,7 +13,7 @@ Source::Source(const string& attention_broker_address) {
 
 Source::Source() : Source("localhost:" + Source::DEFAULT_ATTENTION_BROKER_PORT) {}
 
-Source::~Source() { this->output_buffer->graceful_shutdown(); }
+Source::~Source() { this->graceful_shutdown(); }
 
 // ------------------------------------------------------------------------------------------------
 // Public methods

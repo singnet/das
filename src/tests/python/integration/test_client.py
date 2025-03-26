@@ -4,7 +4,7 @@ from hyperon_das_atomdb.database import LinkT
 
 import hyperon_das.link_filters as link_filter
 from hyperon_das.client import FunctionsClient
-from tests.python.integration.helpers import faas_fixture, metta_animal_base_handles
+from tests.python.integration.helpers import metta_animal_base_handles
 
 
 class TestVultrClientIntegration:
@@ -15,16 +15,16 @@ class TestVultrClientIntegration:
         result = faas_fixture.get_atom(handle=metta_animal_base_handles.human)
         assert result.handle == metta_animal_base_handles.human
         assert result.name == '"human"'
-        assert result.named_type == 'Symbol'
+        assert result.named_type == "Symbol"
 
         result = faas_fixture.get_atom(handle=metta_animal_base_handles.monkey)
         assert result.handle == metta_animal_base_handles.monkey
         assert result.name == '"monkey"'
-        assert result.named_type == 'Symbol'
+        assert result.named_type == "Symbol"
 
         result = faas_fixture.get_atom(handle=metta_animal_base_handles.similarity_human_monkey)
         assert result.handle == metta_animal_base_handles.similarity_human_monkey
-        assert result.named_type == 'Expression'
+        assert result.named_type == "Expression"
         assert result.targets == [
             metta_animal_base_handles.Similarity,
             metta_animal_base_handles.human,
@@ -33,16 +33,16 @@ class TestVultrClientIntegration:
 
     def test_get_links(self, faas_fixture: FunctionsClient):  # noqa: F811
         links1 = faas_fixture.get_links(
-            link_filter.FlatTypeTemplate(['Symbol', 'Symbol', 'Symbol'], 'Expression')
+            link_filter.FlatTypeTemplate(["Symbol", "Symbol", "Symbol"], "Expression")
         )
-        links2 = faas_fixture.get_links(link_filter.NamedType('Expression'))
+        links2 = faas_fixture.get_links(link_filter.NamedType("Expression"))
         assert len(links1) == 43
         assert len(links2) == 43
 
     def test_count_atoms(self, faas_fixture: FunctionsClient):
         ret = faas_fixture.count_atoms()
         print(ret)
-        assert ret == {'atom_count': 66}
+        assert ret == {"atom_count": 66}
 
     def test_query(self, faas_fixture: FunctionsClient):
         answer = faas_fixture.query(
@@ -138,18 +138,18 @@ class TestVultrClientIntegration:
         )
         assert len(response_atoms) == 8
         for atom in response_atoms:
-            assert isinstance(
-                atom, LinkT
-            ), f"Each item in body must be a LinkT instance. Received: {atom}"
+            assert isinstance(atom, LinkT), (
+                f"Each item in body must be a LinkT instance. Received: {atom}"
+            )
             assert len(atom.targets) == 3
             assert atom.handle in [a.handle for a in expected_atoms]
 
         response_atoms = faas_fixture.get_incoming_links(metta_animal_base_handles.human)
         assert len(response_atoms) == 8
         for atom in response_atoms:
-            assert isinstance(
-                atom, LinkT
-            ), f"Each item in body must be a LinkT instance. Received: {atom}"
+            assert isinstance(atom, LinkT), (
+                f"Each item in body must be a LinkT instance. Received: {atom}"
+            )
             assert len(atom.targets) == 3
             assert atom.handle in [a.handle for a in expected_atoms]
 
@@ -158,9 +158,9 @@ class TestVultrClientIntegration:
         )
         assert len(response_atoms_targets) == 8
         for atom in response_atoms_targets:
-            assert isinstance(
-                atom, LinkT
-            ), f"Each item in body must be a LinkT instance. Received: {atom}"
+            assert isinstance(atom, LinkT), (
+                f"Each item in body must be a LinkT instance. Received: {atom}"
+            )
             atom_targets = [a.to_dict() for a in atom.targets_documents]
             assert len(atom_targets) == 3
             assert atom.handle in expected_atoms_targets
