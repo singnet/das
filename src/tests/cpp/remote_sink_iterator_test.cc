@@ -38,6 +38,7 @@ TEST(RemoteSinkIterator, basics) {
 
     Utils::sleep(1000);
 
+    EXPECT_FALSE(producer.is_work_done());
     EXPECT_FALSE(consumer.finished());
 
     HandlesAnswer* qa;
@@ -69,6 +70,9 @@ TEST(RemoteSinkIterator, basics) {
     EXPECT_FALSE((qa = dynamic_cast<HandlesAnswer*>(consumer.pop())) == NULL);
     EXPECT_TRUE(strcmp(qa->handles[0], "h2") == 0);
     EXPECT_TRUE(double_equals(qa->importance, 0.2));
-    Utils::sleep(5000);  // XXXXXXXXXXXXXXXXXXXXXXXXXXX
+    size_t count = 0;
+    while (!producer.is_work_done() && count++ < 10) Utils::sleep(1000);  // 1 second
+    EXPECT_TRUE(producer.is_work_done());
+    Utils::sleep(1000);                                                   // 1 second
     EXPECT_TRUE(consumer.finished());
 }
