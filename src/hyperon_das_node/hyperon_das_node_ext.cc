@@ -4,14 +4,13 @@
 #include <nanobind/stl/vector.h>
 #include <nanobind/trampoline.h>
 
+#include <type_traits>
+
 #include "distributed_algorithm_node/DistributedAlgorithmNode.h"
 #include "distributed_algorithm_node/LeadershipBroker.h"
 #include "distributed_algorithm_node/Message.h"
 #include "distributed_algorithm_node/MessageBroker.h"
 #include "distributed_algorithm_node/StarNode.h"
-
-#include <type_traits>
-
 #include "query_engine/DASNode.h"
 #include "query_engine/HandlesAnswer.h"
 #include "query_engine/QueryAnswer.h"
@@ -106,33 +105,37 @@ NB_MODULE(hyperon_das_node_ext, m) {
         .value("RAM", MessageBrokerType::RAM)
         .export_values();
 
-  // DistributedAlgorithmNode.h bindings
-  nb::class_<DistributedAlgorithmNode, MessageFactory, DistributedAlgorithmNodeTrampoline>(
-      m, "DistributedAlgorithmNode")
-      .def(nb::init<const string&, LeadershipBrokerType, MessageBrokerType>(),
-           "node_id"_a, "leadership_algorithm"_a, "messaging_backend"_a)
-      .def("join_network", &DistributedAlgorithmNode::join_network)
-      .def("is_leader", &DistributedAlgorithmNode::is_leader)
-      .def("leader_id", &DistributedAlgorithmNode::leader_id)
-      .def("has_leader", &DistributedAlgorithmNode::has_leader)
-      // Whenever we have a parameter that is a pointer or a reference, we need
-      // to specify the name of the argument. Otherwise nanobind will add a
-      // default arg0, arg1, etc.
-      .def("add_peer", &DistributedAlgorithmNode::add_peer, "peer_id"_a)
-      .def("node_id", &DistributedAlgorithmNode::node_id)
-      .def("broadcast", &DistributedAlgorithmNode::broadcast, "command"_a, "args"_a)
-      .def("send", &DistributedAlgorithmNode::send, "command"_a, "args"_a, "recipient"_a)
-      .def("node_joined_network", &DistributedAlgorithmNode::node_joined_network,
-           "node_id"_a)
-      .def("cast_leadership_vote", &DistributedAlgorithmNode::cast_leadership_vote)
-      .def("message_factory", &DistributedAlgorithmNode::message_factory);
+    // DistributedAlgorithmNode.h bindings
+    nb::class_<DistributedAlgorithmNode, MessageFactory, DistributedAlgorithmNodeTrampoline>(
+        m, "DistributedAlgorithmNode")
+        .def(nb::init<const string&, LeadershipBrokerType, MessageBrokerType>(),
+             "node_id"_a,
+             "leadership_algorithm"_a,
+             "messaging_backend"_a)
+        .def("join_network", &DistributedAlgorithmNode::join_network)
+        .def("is_leader", &DistributedAlgorithmNode::is_leader)
+        .def("leader_id", &DistributedAlgorithmNode::leader_id)
+        .def("has_leader", &DistributedAlgorithmNode::has_leader)
+        // Whenever we have a parameter that is a pointer or a reference, we need
+        // to specify the name of the argument. Otherwise nanobind will add a
+        // default arg0, arg1, etc.
+        .def("add_peer", &DistributedAlgorithmNode::add_peer, "peer_id"_a)
+        .def("node_id", &DistributedAlgorithmNode::node_id)
+        .def("broadcast", &DistributedAlgorithmNode::broadcast, "command"_a, "args"_a)
+        .def("send", &DistributedAlgorithmNode::send, "command"_a, "args"_a, "recipient"_a)
+        .def("node_joined_network", &DistributedAlgorithmNode::node_joined_network, "node_id"_a)
+        .def("cast_leadership_vote", &DistributedAlgorithmNode::cast_leadership_vote)
+        .def("message_factory", &DistributedAlgorithmNode::message_factory);
 
-  // StarNode.h bindings
-  nb::class_<StarNode, DistributedAlgorithmNode, StarNodeTrampoline>(m, "StarNode")
-      .def(nb::init<const string&, MessageBrokerType>(),
-           "node_id"_a, "messaging_backend"_a = MessageBrokerType::GRPC)
-      .def(nb::init<const string&, const string&, MessageBrokerType>(),
-           "node_id"_a, "server_id"_a, "messaging_backend"_a = MessageBrokerType::GRPC);
+    // StarNode.h bindings
+    nb::class_<StarNode, DistributedAlgorithmNode, StarNodeTrampoline>(m, "StarNode")
+        .def(nb::init<const string&, MessageBrokerType>(),
+             "node_id"_a,
+             "messaging_backend"_a = MessageBrokerType::GRPC)
+        .def(nb::init<const string&, const string&, MessageBrokerType>(),
+             "node_id"_a,
+             "server_id"_a,
+             "messaging_backend"_a = MessageBrokerType::GRPC);
 
     // DASNode.h
     nb::class_<DASNode, StarNode>(m, "DASNode")
@@ -159,7 +162,6 @@ NB_MODULE(hyperon_das_node_ext, m) {
              "update_attention_broker"_a = false)
         .def("next_query_id", &DASNode::next_query_id)
         .def("message_factory", &DASNode::message_factory, "command"_a, "args"_a);
-
 
     // QueryAnswer.h bindings
     nb::class_<QueryAnswer>(m, "QueryAnswer")
@@ -217,5 +219,4 @@ NB_MODULE(hyperon_das_node_ext, m) {
         .def("pop", [](RemoteIterator<HandlesAnswer>& self) -> shared_ptr<HandlesAnswer> {
             return shared_ptr<HandlesAnswer>((HandlesAnswer*) self.pop());
         });
-
 }
