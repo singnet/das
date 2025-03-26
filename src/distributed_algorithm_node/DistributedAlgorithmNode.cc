@@ -68,3 +68,15 @@ std::shared_ptr<Message> DistributedAlgorithmNode::message_factory(string& comma
 }
 
 void DistributedAlgorithmNode::graceful_shutdown() { this->message_broker->graceful_shutdown(); }
+
+string DistributedAlgorithmNode::to_string() {
+    string answer = "[node_id: " + this->node_id() + ", leader: " + leader_id() + ", peers: {";
+    for (auto peer : this->message_broker->peers) {
+        answer += peer;
+        answer += ", ";
+    }
+    answer.pop_back();
+    answer.pop_back();
+    answer += "}]";
+    return answer;
+}
