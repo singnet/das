@@ -32,32 +32,3 @@ py_library(
       "//hyperon_das_node:hyperon_das_node",
     ],
 )
-
-
-
-# py_library(
-#     name = "selection_methods",
-#     srcs = ["selection_methods.py"],
-#     deps = [],
-# )
-
-# py_library(
-#     name = "utils",
-#     srcs = ["utils.py"],
-#     deps = [],
-# )
-
-# py_library(
-#     name = "optimizer",
-#     srcs = ["optimizer.py"],
-#     deps = [
-#         ":fitness_functions",
-#         ":selection_methods",
-#         ":utils",
-#         "//hyperon_das:hyperon_das",
-#         "//hyperon_das_atomdb:hyperon_das_atomdb",
-#         "//hyperon_das_query_engine:hyperon_das_query_engine",
-#         # "//evolution/das_node:das_node",
-#         # "//evolution/das_node:query_answer",
-#     ],
-# )

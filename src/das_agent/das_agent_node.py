@@ -1,7 +1,7 @@
-from hyperon_das_node import DistributedAlgorithmNode, Message
-from hyperon_das_node.hyperon_das_node_ext import LeadershipBrokerType, MessageBrokerType
+from hyperon_das_node.hyperon_das_node_ext import LeadershipBrokerType, MessageBrokerType, DistributedAlgorithmNode, Message
 from typing import List
 from queue import Queue
+from threading import Thread
 
 class DASLinkCreateMessage(Message):
     def __init__(self, command: str, args: List[str]):
@@ -23,6 +23,7 @@ class StarNode(DistributedAlgorithmNode):
     ):
         # Call the parent constructor (DistributedAlgorithmNode)
         super().__init__(node_id, LeadershipBrokerType.SINGLE_MASTER_SERVER, messaging_backend)
+        self.node_id = node_id
         if server_id:
             # If server_id is provided, this is a client node
             self.server_id = server_id
@@ -37,14 +38,14 @@ class StarNode(DistributedAlgorithmNode):
 
     def node_joined_network(self, node_id: str):
         if self.is_server:
+            print(f"Server {self.node_id} joined by {node_id}")
             self.add_peer(node_id)
 
     def cast_leadership_vote(self) -> str:
         if self.is_server:
-            return self.node_id()
+            return self.node_id
         else:
             return self.server_id
-
 
 
 class DASAgentNode(StarNode):
@@ -68,3 +69,7 @@ class DASAgentNode(StarNode):
     
     def pop_request(self):
         return self.requests.get()
+    
+    def has_request(self):
+        return not self.requests.empty()
+    

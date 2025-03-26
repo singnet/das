@@ -112,6 +112,31 @@ class Node(Element):
             return cursor, node
         raise ValueError(f"Unsupported sequence of tokens for NODE: {tokens[cursor:]}")
 
+@dataclasses.dataclass
+@ElementBuilder.register_tag("HANDLE")
+class Handle(Element):
+    """
+    A class representing a node in the tokenizer.
+
+    Attributes:
+        type (str): The type of the node.
+        name (str): The name of the node.
+    """
+
+    value: str
+
+    def to_tokens(self) -> list[str]:
+        return ["HANDLE", self.value]
+
+    @staticmethod
+    def from_tokens(tokens: list[str], cursor: int = 0) -> tuple[int, "Node"]:
+        if tokens[cursor] == "HANDLE":
+            cursor += 1  # Skip the "NODE" token
+            node = Handle(value=tokens[cursor])
+            cursor += 1  # Skip the value
+            return cursor, node
+        raise ValueError(f"Unsupported sequence of tokens for NODE: {tokens[cursor:]}")
+
 
 @dataclasses.dataclass
 @ElementBuilder.register_tag("VARIABLE")

@@ -9,6 +9,7 @@ from tokenizers.elements import (
     NotOperator,
     OrOperator,
     Variable,
+    Handle,
 )
 
 
@@ -116,6 +117,9 @@ class DictQueryTokenizer:
         },
         NotOperator: lambda operator: {
             "not": DictQueryTokenizer.to_query_mapping[type(operator.operand)](operator.operand),
+        },
+        Handle: lambda handle: {
+            "handle": handle.value,
         },
     }
 
