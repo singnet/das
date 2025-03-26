@@ -11,7 +11,7 @@
 #include "RemoteIterator.h"
 #include "Utils.h"
 
-#define MAX_QUERY_ANSWERS ((unsigned int) 10000000)
+#define MAX_QUERY_ANSWERS ((unsigned int) 500)
 
 using namespace std;
 
@@ -127,7 +127,7 @@ void run(const string& context, const string& word_tag) {
     HandlesAnswer* query_answer;
     unsigned int count = 0;
     auto response = unique_ptr<RemoteIterator<HandlesAnswer>>(
-        client.pattern_matcher_query(query_tokens, context, false));
+        client.pattern_matcher_query(query_word, context, true));
     shared_ptr<atomdb_api_types::AtomDocument> sentence_document;
     shared_ptr<atomdb_api_types::AtomDocument> sentence_name_document;
     vector<string> sentences;
@@ -147,7 +147,8 @@ void run(const string& context, const string& word_tag) {
             // cout << handle_to_atom(handle) << endl;
             sentence_name_document = db->get_atom_document(handle);
             // cout << string(sentence_name_document->get("name")) << endl;
-            auto to_highlight = word_tag != "" ? set<string>{word_tag} : set<string>{};
+            set<string> to_highlight;
+            to_highlight.insert(word_tag);
             string sentence_name = string(sentence_name_document->get("name"));
             string highlighted_sentence_name = highlight(sentence_name, to_highlight);
             string w = "\"" + word_tag + "\"";
@@ -161,79 +162,24 @@ void run(const string& context, const string& word_tag) {
     }
     if (count == 0) {
         cout << "No match for query" << endl;
-        // exit(0);
-    } else {
-        cout << "Found " << count << " matches for query" << endl;
+        exit(0);
     }
 
-    int query_count = client.count_query(query_tokens, context, false);
+    int query_count = client.count_query(query_word, context, true);
     Utils::sleep();
     cout << "Count: " << query_count << endl;
     Utils::sleep();
 }
 
-vector<string> build_tokens(const string& word_tag) {
-    const string and_operator = "AND";
-    const string or_operator = "OR";
-    const string link_template = "LINK_TEMPLATE";
-    const string link = "LINK";
-    const string node = "NODE";
-    const string variable = "VARIABLE";
-    const string expression = "Expression";
-    const string symbol = "Symbol";
-    const string sentence = "Sentence";
-    const string word = "Word";
-    const string contains = "Contains";
-    const string sentence1 = "sentence1";
-
-    vector<string> query_tokens = {link_template,
-                                   expression,
-                                   "3",
-                                   node,
-                                   symbol,
-                                   contains,
-                                   variable,
-                                   sentence1,
-                                   link,
-                                   expression,
-                                   "2",
-                                   node,
-                                   symbol,
-                                   word,
-                                   node,
-                                   symbol,
-                                   "\"" + word_tag + "\""};
-    return query_tokens;
-}
-
-void print_usage(const char* program_name) {
-    cerr << "Usage: " << endl;
-    cerr << program_name << " <context> <word tag>" << endl;
-    cerr << "OR" << endl;
-    cerr << program_name << " <context> tokens <query tokens>" << endl;
-    exit(1);
-}
-
 int main(int argc, char* argv[]) {
     if (argc < 3) {
-        print_usage(argv[0]);
+        cerr << "Usage: " << argv[0] << " <context> <word tag>" << endl;
+        exit(1);
     }
     signal(SIGINT, &ctrl_c_handler);
     string context = argv[1];
-    string query = argv[2];
-    vector<string> query_tokens;
-    if (query == "tokens") {
-        if (argc < 4) print_usage(argv[0]);
-        query_tokens = split(argv[3], " ");
-        run(context, query_tokens);
-    } else {
-        query_tokens = build_tokens(query);
-        run(context, query_tokens, query);
-    }
-    cout << "Query tokens: ";
-    for (const auto& token : query_tokens) {
-        cout << token << " ";
-    }
-    cout << endl;
+    string word_tag = argv[2];
+
+    run(context, word_tag);
     return 0;
 }
