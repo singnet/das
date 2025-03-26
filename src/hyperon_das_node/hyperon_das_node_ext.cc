@@ -137,6 +137,11 @@ NB_MODULE(hyperon_das_node_ext, m) {
              "server_id"_a,
              "messaging_backend"_a = MessageBrokerType::GRPC);
 
+    // TODO: Bindings after this comment belong to hyperon_das_query_engine_ext
+    // This is an easy fix because DASNode is a child of StarNode, and
+    // currently we could not figure out a way to make such inheritance without
+    // duplicating the binding structure in hyperon_das_query_engine_ext.
+
     // DASNode.h
     nb::class_<DASNode, StarNode>(m, "DASNode")
         .def(nb::init<const string&>(), "node_id"_a)
