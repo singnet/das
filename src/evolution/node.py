@@ -1,11 +1,7 @@
 import itertools
-import sys
 from queue import Queue
 
-from hyperon_das_node import Message
-
-from evolution.das_node.star_node import StarNode
-# from hyperon_das_node import StarNode
+from hyperon_das_node import Message, StarNode
 
 
 class NodeIdFactory:
@@ -44,11 +40,10 @@ class EvolutionNode(StarNode):
             if node_id_factory is None:
                 raise ValueError("For clients, a node_id factory must be provided")
             node_id = node_id_factory.generate_node_id()
-        super().__init__(node_id, server_id)
-        # if server_id:
-        #     super().__init__(node_id, server_id)
-        # else:
-        #     super().__init__(node_id)
+        if server_id:
+            super().__init__(node_id, server_id)
+        else:
+            super().__init__(node_id)
 
     def message_factory(self, command: str, args: list[str]) -> Message:
         """
@@ -68,11 +63,9 @@ class EvolutionNode(StarNode):
             return message_class(*args)
 
     def add_request(self, senders: list[str], context: str, request: str) -> None:
-        # if self.is_leader():
-        if self.is_server:
+        if self.is_leader():
             self.request_queue.put({'senders': senders, 'context': context, 'data': request})
 
     def pop_request(self) -> dict:
-        # if self.is_leader() and not self.request_queue.empty():
-        if self.is_server and not self.request_queue.empty():
+        if self.is_leader() and not self.request_queue.empty():
             return self.request_queue.get()

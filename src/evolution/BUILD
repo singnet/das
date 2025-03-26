@@ -27,6 +27,7 @@ py_library(
     name = "attention_broker_updater",
     srcs = ["attention_broker_updater.py"],
     deps = [
+        "//hyperon_das_node:hyperon_das_node",
         "//hyperon_das/grpc:attention_broker_pb2_grpc",
         "//hyperon_das/grpc:common_pb2",
         requirement("grpcio"),
@@ -70,8 +71,6 @@ py_library(
         ":attention_broker_updater",
         "//hyperon_das:hyperon_das",
         "//hyperon_das_atomdb:hyperon_das_atomdb",
-        "//hyperon_das_query_engine:hyperon_das_query_engine",
-        "//evolution/das_node:das_node",
-        "//evolution/das_node:query_answer",
+        "//hyperon_das_node:hyperon_das_node"
     ],
 )

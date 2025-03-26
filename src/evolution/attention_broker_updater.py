@@ -6,7 +6,7 @@ import hyperon_das.grpc.common_pb2 as common__pb2
 from hyperon_das.grpc.attention_broker_pb2_grpc import AttentionBrokerStub
 from hyperon_das_atomdb.database import AtomDB
 
-from evolution.das_node.query_answer import QueryAnswer
+from hyperon_das_node import QueryAnswer
 
 
 MAX_CORRELATIONS_WITHOUT_STIMULATE = 1000

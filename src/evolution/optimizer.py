@@ -15,9 +15,7 @@ from queue import Queue, Full
 from hyperon_das_atomdb.adapters import RedisMongoDB
 from hyperon_das_atomdb.exceptions import AtomDoesNotExist
 
-# from hyperon_das_node import DASNode, QueryAnswer
-from evolution.das_node.das_node import DASNode
-from evolution.das_node.query_answer import QueryAnswer
+from hyperon_das_node import DASNode, QueryAnswer
 
 from evolution.attention_broker_updater import AttentionBrokerUpdater
 from evolution.fitness_functions import FitnessFunctions
