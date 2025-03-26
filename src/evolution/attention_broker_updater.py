@@ -2,23 +2,23 @@ import time
 import grpc
 
 import hyperon_das.grpc.common_pb2 as common__pb2
+
 from hyperon_das.grpc.attention_broker_pb2_grpc import AttentionBrokerStub
-from evolution.utils import log_function_call
+from hyperon_das_atomdb.database import AtomDB
+
+from evolution.das_node.query_answer import QueryAnswer
 
 
-ATTENTION_BROKER_ADDRESS = "localhost:37007"
-MAX_STIMULATE_COUNT = 1
 MAX_CORRELATIONS_WITHOUT_STIMULATE = 1000
 
 
 class AttentionBrokerUpdater:
-    def __init__(self, address: str, context: str = "", atomdb: str = None):
-        self.atomdb = atomdb
+    def __init__(self, address: str, atomdb: AtomDB, context: str = ""):
         self.attention_broker_address = address
+        self.atomdb = atomdb
         self.context = context
 
-    @log_function_call
-    def process(self, query_answer):
+    def update(self, query_answer: QueryAnswer):
         single_answer = set()
         joint_answer = {}
         execution_stack = []

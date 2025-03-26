@@ -7,25 +7,23 @@ import json
 import time
 import sys
 
-from typing import Any
+from concurrent.futures import ThreadPoolExecutor
+from typing import Any, Iterator
 from threading import Lock
 from queue import Queue, Full
-from typing import Iterator
-from concurrent.futures import ThreadPoolExecutor
 
 from hyperon_das_atomdb.adapters import RedisMongoDB
+from hyperon_das_atomdb.exceptions import AtomDoesNotExist
 
-# from hyperon_das_query_engine import DASNode, QueryAnswer
+# from hyperon_das_node import DASNode, QueryAnswer
 from evolution.das_node.das_node import DASNode
 from evolution.das_node.query_answer import QueryAnswer
 
-from hyperon_das_atomdb.exceptions import AtomDoesNotExist
-
+from evolution.attention_broker_updater import AttentionBrokerUpdater
 from evolution.fitness_functions import FitnessFunctions
+from evolution.node import EvolutionNode, NodeIdFactory
 from evolution.selection_methods import handle_selection_method, SelectionMethodType
 from evolution.utils import Parameters, parse_file, log_function_call
-from evolution.node import EvolutionNode, NodeIdFactory
-from evolution.attention_broker_updater import AttentionBrokerUpdater
 
 
 class QueryOptimizerAgent:
@@ -35,11 +33,11 @@ class QueryOptimizerAgent:
         self.evolution_node_server = EvolutionNode(node_id=self.params.evolution_server_id)
 
     def run_server(self):
-        sys.stdout.write("\nRunning server...")
+        sys.stdout.write("Running server...")
         sys.stdout.flush()
         while True:
             if request := self.evolution_node_server.pop_request():
-                sys.stdout.write("\nA message has arrived!")
+                sys.stdout.write("\nNew messaage!")
                 sys.stdout.flush()
                 answers = self._process(context=request['context'], query_tokens=request['data'])
                 self._send_message(request['senders'], answers)
@@ -132,8 +130,8 @@ class QueryOptimizerIterator:
         )
         self.attention_broker_updater = AttentionBrokerUpdater(
             address=attention_broker_server_id,
-            context=context,
-            atomdb=self.atom_db
+            atomdb=self.atom_db,
+            context=context
         )
         self.query_agent = DASNode(query_agent_node_id, query_agent_server_id)
         self.query_tokens = self._parse_tokens(query_tokens)
@@ -238,24 +236,14 @@ class QueryOptimizerIterator:
             sys.stdout.flush()
 
             population = self._sample_population(limit=self.population_size)
-
-            with ThreadPoolExecutor(max_workers=10) as executor:
-                futures = [executor.submit(self._evaluate, ind) for ind in population]
-                evaluated_individuals = [f.result() for f in futures]
-
+            evaluated_individuals = self._evaluate_population(population)
             selected_individuals = self._select_best_individuals(evaluated_individuals)
-
-            try:
-                for individual in selected_individuals:
-                    self.attention_broker_updater.process(individual)
-            except Exception as e:
-                sys.stdout.write(f'\nAn error occurred - details: {e}')
-                sys.stdout.flush()
+            self._update_attention_broker(selected_individuals)
 
             self.generation += 1
             time.sleep(0.1)
 
-        self._select_best_query_answers()
+        self._sample_best_query_answers()
 
     @log_function_call
     def _sample_population(self, limit: int, timeout: float = 10.0) -> list[QueryAnswer]:
@@ -288,6 +276,12 @@ class QueryOptimizerIterator:
             print(f"Population sampling failed: {e}")
 
     @log_function_call
+    def _evaluate_population(self, population: list[QueryAnswer]) -> list[tuple[QueryAnswer, float]]:
+        with ThreadPoolExecutor(max_workers=10) as executor:
+            futures = [executor.submit(self._evaluate, ind) for ind in population]
+            evaluated_individuals = [f.result() for f in futures]
+            return evaluated_individuals
+
     def _evaluate(self, query_answer: QueryAnswer) -> tuple[QueryAnswer, float]:
         """
         Evaluates a QueryAnswer using a configured fitness function.
@@ -312,11 +306,20 @@ class QueryOptimizerIterator:
         return selection_method(evaluated_individuals, self.qtd_selected_for_attention_update)
 
     @log_function_call
-    def _select_best_query_answers(self, timeout: float = 10.0) -> None:
+    def _update_attention_broker(self, individuals: list[QueryAnswer]) -> None:
+        try:
+            for individual in individuals:
+                self.attention_broker_updater.update(individual)
+        except Exception as e:
+            sys.stdout.write(f'\nAn error occurred - details: {e}')
+            sys.stdout.flush()
+
+    @log_function_call
+    def _sample_best_query_answers(self, timeout: float = 10.0) -> None:
         """
         Fills the best_query_answers queue by selecting QueryAnswers from a remote iterator.
         """
-        best_answers = self._sample_population(self.max_query_answers, timeout=10.0)
+        best_answers = self._sample_population(self.max_query_answers, timeout=timeout)
         for qa in best_answers:
             with contextlib.suppress(Full):
                 self.best_query_answers.put(qa, timeout=1)
