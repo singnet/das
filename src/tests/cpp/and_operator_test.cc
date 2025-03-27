@@ -61,8 +61,8 @@ void check_query_answer(string tag,
 }
 
 TEST(AndOperator, basics) {
-    TestSource* source1 = new TestSource(1);
-    TestSource* source2 = new TestSource(2);
+    TestSource* source1 = new TestSource(10);
+    TestSource* source2 = new TestSource(20);
     And<2>* and_operator = new And<2>({source1, source2});
     TestSink sink(and_operator);
     HandlesAnswer* query_answer;
@@ -239,4 +239,26 @@ TEST(AndOperator, operation_logic) {
     for (unsigned int clause = 0; clause < clause_count; clause++) {
         delete source[clause];
     }
+}
+
+TEST(AndOperator, empty_source) {
+    TestSource* source1 = new TestSource(100);
+    TestSource* source2 = new TestSource(200);
+    And<2>* and_operator = new And<2>({source1, source2});
+    TestSink sink(and_operator);
+    HandlesAnswer* query_answer;
+    Utils::sleep(1000);
+
+    EXPECT_TRUE(sink.empty());
+    EXPECT_FALSE(sink.finished());
+
+    source2->add("h2_0", 0.3, {"v1_1"}, {"2"});
+    source2->add("h2_1", 0.2, {"v2_1"}, {"1"});
+    EXPECT_TRUE(sink.empty());
+    EXPECT_FALSE(sink.finished());
+    source1->query_answers_finished();
+    source2->query_answers_finished();
+    Utils::sleep(SLEEP_DURATION);
+    EXPECT_TRUE(sink.empty());
+    EXPECT_TRUE(sink.finished());
 }
