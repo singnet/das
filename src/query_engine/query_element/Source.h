@@ -41,6 +41,11 @@ class Source : public QueryElement {
      */
     virtual ~Source();
 
+    /**
+     * Helper to get AttentionBroker address from env vars or default values.
+     */
+    static string get_attention_broker_address();
+
     // --------------------------------------------------------------------------------------------
     // QueryElement API
 

@@ -152,7 +152,6 @@ class LinkCreateTemplate {
      */
     void add_custom_field(CustomField custom_field);
 
-
    private:
     std::string link_type;
     std::vector<LinkCreateTemplateTypes> targets;

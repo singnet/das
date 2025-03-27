@@ -8,7 +8,8 @@ cc_library(
   features = ["fully_static_link"],
   deps = [
     ":distributed_algorithm_node",
-    ":star_node"
+    ":star_node",
+    ":bus_node"
   ]
 )
 
@@ -39,6 +40,17 @@ cc_library(
   name = "star_node",
   srcs = ["StarNode.cc"],
   hdrs = ["StarNode.h"],
+  includes = ["."],
+  deps = [
+    "//distributed_algorithm_node:distributed_algorithm_node",
+  ],
+)
+
+
+cc_library(
+  name = "bus_node",
+  srcs = ["BusNode.cc"],
+  hdrs = ["BusNode.h"],
   includes = ["."],
   deps = [
     "//distributed_algorithm_node:distributed_algorithm_node",

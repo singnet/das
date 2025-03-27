@@ -11,12 +11,26 @@ Source::Source(const string& attention_broker_address) {
     this->attention_broker_address = attention_broker_address;
 }
 
-Source::Source() : Source("localhost:" + Source::DEFAULT_ATTENTION_BROKER_PORT) {}
+Source::Source() : Source(Source::get_attention_broker_address()) {}
 
-Source::~Source() { this->output_buffer->graceful_shutdown(); }
+Source::~Source() { this->graceful_shutdown(); }
 
 // ------------------------------------------------------------------------------------------------
 // Public methods
+
+string Source::get_attention_broker_address() {
+    string attention_broker_address = Utils::get_environment("DAS_ATTENTION_BROKER_ADDRESS");
+    string attention_broker_port = Utils::get_environment("DAS_ATTENTION_BROKER_PORT");
+    if (attention_broker_address.empty()) {
+        attention_broker_address = "localhost";
+    }
+    if (attention_broker_port.empty()) {
+        attention_broker_address += ":" + DEFAULT_ATTENTION_BROKER_PORT;
+    } else {
+        attention_broker_address += ":" + attention_broker_port;
+    }
+    return attention_broker_address;
+}
 
 void Source::setup_buffers() {
     if (this->subsequent_id == "") {

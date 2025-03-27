@@ -14,15 +14,13 @@ namespace query_element {
  * nowhere further.
  *
  * Sink adds the required DistributedAlgorithmNode (actually a specialized version of it
- * named QueryNode) and exposes a public API to interact with it transparently. Basically, 
+ * named QueryNode) and exposes a public API to interact with it transparently. Basically,
  * a server version of QueryNode (i.e. a ServerQueryNode) is setup to communicate with
  * a remote ClientQueryNode which is located in the QueryElement just below in the query tree.
  */
 template <class AnswerType>
 class Sink : public QueryElement {
-
-public:
-
+   public:
     /**
      * Constructor expects that the QueryElement below in the tree is already constructed.
      *
@@ -32,11 +30,10 @@ public:
      * also destruct the passed precedent QueryElement (defaulted to false).
      * @param setup_buffers_flag If true, the setup_buffers() method is called in the constructor.
      */
-    Sink(
-        QueryElement *precedent, 
-        const string &id, 
-        bool delete_precedent_on_destructor = false,
-        bool setup_buffers_flag = true);
+    Sink(QueryElement* precedent,
+         const string& id,
+         bool delete_precedent_on_destructor = false,
+         bool setup_buffers_flag = true);
 
     /**
      * Destructor.
@@ -57,18 +54,16 @@ public:
      */
     virtual void setup_buffers();
 
-protected:
-
+   protected:
     shared_ptr<QueryNode<AnswerType>> input_buffer;
-    QueryElement *precedent;
+    QueryElement* precedent;
 
-private:
-
+   private:
     bool delete_precedent_on_destructor;
 };
 
-} // namespace query_element
+}  // namespace query_element
 
 #include "Sink.cc"
 
-#endif // _QUERY_ELEMENT_SINK_H
+#endif  // _QUERY_ELEMENT_SINK_H

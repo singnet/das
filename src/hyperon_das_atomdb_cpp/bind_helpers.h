@@ -16,8 +16,8 @@
 
 #include <database.h>
 #include <document_types.h>
-#include <type_aliases.h>
 #include <nanobind/nanobind.h>
+#include <type_aliases.h>
 
 using namespace std;
 using namespace atomdb;

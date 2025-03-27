@@ -189,7 +189,6 @@ py_test(
 
 py_test(
     name = "test_star_node",
-    tags = ["skip"],
     size = "small",
     srcs = ["test_star_node.py"],
     deps = [

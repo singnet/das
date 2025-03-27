@@ -1,14 +1,14 @@
+#include <signal.h>
+
 #include <iostream>
 #include <string>
 
-#include <signal.h>
-
-#include "DASNode.h"
-#include "RemoteIterator.h"
-#include "HandlesAnswer.h"
-#include "CountAnswer.h"
-#include "AtomDBSingleton.h"
 #include "AtomDB.h"
+#include "AtomDBSingleton.h"
+#include "CountAnswer.h"
+#include "DASNode.h"
+#include "HandlesAnswer.h"
+#include "RemoteIterator.h"
 #include "Utils.h"
 
 #define MAX_QUERY_ANSWERS ((unsigned int) 500)
@@ -35,7 +35,7 @@ std::vector<std::string> split(string s, string delimiter) {
     return tokens;
 }
 
-string highlight(const string &s, const set<string> &highlighted) {
+string highlight(const string& s, const set<string>& highlighted) {
     vector<string> tokens = split(s.substr(1, s.size() - 2), " ");
     string answer = "";
     for (unsigned int i = 0; i < tokens.size(); i++) {
@@ -52,13 +52,10 @@ string highlight(const string &s, const set<string> &highlighted) {
     return answer;
 }
 
-
-
-string handle_to_atom(const char *handle) {
-
+string handle_to_atom(const char* handle) {
     shared_ptr<AtomDB> db = AtomDBSingleton::get_instance();
     shared_ptr<atomdb_api_types::AtomDocument> document = db->get_atom_document(handle);
-    shared_ptr<atomdb_api_types::HandleList> targets = db->query_for_targets((char *) handle);
+    shared_ptr<atomdb_api_types::HandleList> targets = db->query_for_targets((char*) handle);
     string answer;
 
     if (targets != NULL) {
@@ -85,12 +82,9 @@ string handle_to_atom(const char *handle) {
     return answer;
 }
 
-void run(
-    const string &context,
-    const string &word_tag) {
-
-    string server_id = "localhost:31700";
-    string client_id = "localhost:31701";
+void run(const string& context, const string& word_tag) {
+    string server_id = "0.0.0.0:31700";
+    string client_id = "0.0.0.0:31701";
 
     AtomDBSingleton::init();
     shared_ptr<AtomDB> db = AtomDBSingleton::get_instance();
@@ -110,38 +104,47 @@ void run(
     string word1 = "word1";
     string word2 = "word2";
 
-    vector<string> query_word = {
-        link_template, expression, "3", 
-            node, symbol, contains, 
-            variable, sentence1, 
-            link, expression, "2", 
-                node, symbol, word, 
-                node, symbol, "\"" + word_tag + "\""
-    };
+    vector<string> query_word = {link_template,
+                                 expression,
+                                 "3",
+                                 node,
+                                 symbol,
+                                 contains,
+                                 variable,
+                                 sentence1,
+                                 link,
+                                 expression,
+                                 "2",
+                                 node,
+                                 symbol,
+                                 word,
+                                 node,
+                                 symbol,
+                                 "\"" + word_tag + "\""};
 
     DASNode client(client_id, server_id);
-    
-    HandlesAnswer *query_answer;
+
+    HandlesAnswer* query_answer;
     unsigned int count = 0;
     auto response = unique_ptr<RemoteIterator<HandlesAnswer>>(
         client.pattern_matcher_query(query_word, context, true));
     shared_ptr<atomdb_api_types::AtomDocument> sentence_document;
     shared_ptr<atomdb_api_types::AtomDocument> sentence_name_document;
     vector<string> sentences;
-    while (! response->finished()) {
+    while (!response->finished()) {
         if ((query_answer = dynamic_cast<HandlesAnswer*>(response->pop())) == NULL) {
             Utils::sleep();
         } else {
-            //cout << "------------------------------------------" << endl;
-            //cout << query_answer->to_string() << endl;
-            const char *handle;
+            // cout << "------------------------------------------" << endl;
+            // cout << query_answer->to_string() << endl;
+            const char* handle;
             handle = query_answer->assignment.get(sentence1.c_str());
-            //cout << string(handle) << endl;
-            //cout << handle_to_atom(handle) << endl;
+            // cout << string(handle) << endl;
+            // cout << handle_to_atom(handle) << endl;
             sentence_document = db->get_atom_document(handle);
             handle = sentence_document->get("targets", 1);
-            //cout << string(handle) << endl;
-            //cout << handle_to_atom(handle) << endl;
+            // cout << string(handle) << endl;
+            // cout << handle_to_atom(handle) << endl;
             sentence_name_document = db->get_atom_document(handle);
             // cout << string(sentence_name_document->get("name")) << endl;
             set<string> to_highlight;
@@ -149,11 +152,8 @@ void run(
             string sentence_name = string(sentence_name_document->get("name"));
             string highlighted_sentence_name = highlight(sentence_name, to_highlight);
             string w = "\"" + word_tag + "\"";
-            string line = "(Contains (Sentence " +
-                          highlighted_sentence_name +
-                          ") (Word \"" +
-                          highlight(w, to_highlight) +
-                          "\"))";
+            string line = "(Contains (Sentence " + highlighted_sentence_name + ") (Word \"" +
+                          highlight(w, to_highlight) + "\"))";
             cout << line << endl;
             if (++count == MAX_QUERY_ANSWERS) {
                 break;
@@ -172,7 +172,6 @@ void run(
 }
 
 int main(int argc, char* argv[]) {
-
     if (argc < 3) {
         cerr << "Usage: " << argv[0] << " <context> <word tag>" << endl;
         exit(1);

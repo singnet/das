@@ -18,7 +18,7 @@ RUN mkdir -p \
 
 RUN yes | apt update -y \
     && yes | apt install -y git build-essential curl protobuf-compiler python3 python3-pip cmake \
-    libevent-dev libssl-dev pkg-config \
+    libevent-dev libssl-dev pkg-config libncurses5\
     && yes | apt clean -y \
     && rm -rf /var/lib/apt/lists/*
 

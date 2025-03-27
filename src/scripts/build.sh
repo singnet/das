@@ -8,6 +8,8 @@ IMAGE_NAME="das-builder"
 CONTAINER_NAME=${IMAGE_NAME}-container
 CONTAINER_USER=$([ "$ARCH" != "arm64" ] && echo "$USER" || echo "builder")
 
+ENV_VARS=$(printenv | awk -F= '{print "--env "$1}')
+
 # local paths
 LOCAL_WORKDIR=$(pwd)
 LOCAL_BIN_DIR=$LOCAL_WORKDIR/src/bin
@@ -44,6 +46,8 @@ docker run --rm \
   --privileged \
   --name=$CONTAINER_NAME \
   -e BIN_DIR=$CONTAINER_BIN_DIR \
+  $ENV_VARS \
+  --network host \
   --volume $LOCAL_PIP_CACHE:$CONTAINER_PIP_CACHE \
   --volume $LOCAL_PIPTOOLS_CACHE:$CONTAINER_PIPTOOLS_CACHE \
   --volume $LOCAL_ASPECT_CACHE:$CONTAINER_ASPECT_CACHE \
