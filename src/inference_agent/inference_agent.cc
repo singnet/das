@@ -1,8 +1,9 @@
 #include "inference_agent.h"
 
+#include <limits.h>
+
 #include <fstream>
 #include <sstream>
-#include <limits.h>
 
 #include "Utils.h"
 
@@ -80,16 +81,15 @@ void InferenceAgent::run() {
                     if (inference_command == PROOF_OF_IMPLICATION_OR_EQUIVALENCE) {
                         cout << "Received proof of implication or equivalence" << endl;
                         inference_request = make_shared<ProofOfImplicationOrEquivalence>(
-                            first_handle, second_handle, max_proof_length, context
-                        );
+                            first_handle, second_handle, max_proof_length, context);
                     } else if (inference_command == PROOF_OF_IMPLICATION) {
                         cout << "Received proof of implication" << endl;
-                        inference_request =
-                            make_shared<ProofOfImplication>(first_handle, second_handle, max_proof_length, context);
+                        inference_request = make_shared<ProofOfImplication>(
+                            first_handle, second_handle, max_proof_length, context);
                     } else if (inference_command == PROOF_OF_EQUIVALENCE) {
                         cout << "Received proof of equivalence" << endl;
-                        inference_request =
-                            make_shared<ProofOfEquivalence>(first_handle, second_handle, max_proof_length, context);
+                        inference_request = make_shared<ProofOfEquivalence>(
+                            first_handle, second_handle, max_proof_length, context);
                     }
                     inference_request->set_id(inference_request_id);
                     string iterator_id = get_next_iterator_id();
@@ -131,11 +131,11 @@ void InferenceAgent::send_link_creation_request(shared_ptr<InferenceRequest> inf
         for (auto& token : request_iterator) {
             request.push_back(token);
         }
-        request.push_back("1000");                              // TODO check max results value
-        request.push_back(is_stop_request ? "0" : "-1");        // repeat
-        request.push_back(inference_request->get_context());    // context
-        request.push_back("false");                             // update_attention_broker
-        request.push_back(inference_request->get_id());         // inference_request_id
+        request.push_back("1000");                            // TODO check max results value
+        request.push_back(is_stop_request ? "0" : "-1");      // repeat
+        request.push_back(inference_request->get_context());  // context
+        request.push_back("false");                           // update_attention_broker
+        request.push_back(inference_request->get_id());       // inference_request_id
         link_creation_node_client->send_message(request);
     }
 }
@@ -166,9 +166,10 @@ const string InferenceAgent::get_next_iterator_id() {
     return inference_node_server_host + ":" + last_part;
 }
 
-const string InferenceAgent::get_next_inference_request_id() { 
+const string InferenceAgent::get_next_inference_request_id() {
     // ++this->inference_request_id;
-    this->inference_request_id = ++this->inference_request_id % numeric_limits<unsigned long long>::max();
+    this->inference_request_id =
+        ++this->inference_request_id % numeric_limits<unsigned long long>::max();
     return to_string(this->inference_request_id);
 }
 

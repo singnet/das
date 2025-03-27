@@ -83,9 +83,7 @@ class ElementBuilder:
         """
         if element := ElementBuilder.elements_mapping.get(tokens[cursor]):
             return element.from_tokens(tokens, cursor)
-        raise ValueError(
-            f"Unsupported sequence of tokens for MAIN BUILDER: {tokens[cursor:]}"
-        )
+        raise ValueError(f"Unsupported sequence of tokens for MAIN BUILDER: {tokens[cursor:]}")
 
 
 @dataclasses.dataclass
@@ -113,6 +111,7 @@ class Node(Element):
             cursor += 2  # Skip the type and name tokens
             return cursor, node
         raise ValueError(f"Unsupported sequence of tokens for NODE: {tokens[cursor:]}")
+
 
 @dataclasses.dataclass
 @ElementBuilder.register_tag("HANDLE")
@@ -162,9 +161,7 @@ class Variable(Element):
             variable = Variable(name=tokens[cursor])
             cursor += 1  # Skip the name token
             return cursor, variable
-        raise ValueError(
-            f"Unsupported sequence of tokens for VARIABLE: {tokens[cursor:]}"
-        )
+        raise ValueError(f"Unsupported sequence of tokens for VARIABLE: {tokens[cursor:]}")
 
 
 @dataclasses.dataclass
@@ -332,7 +329,6 @@ class NotOperator(Element):
 @dataclasses.dataclass
 @ElementBuilder.register_tag("CUSTOM_FIELD")
 class CustomField(Element):
-
     type: str
     fields: dict[Any] = dataclasses.field(default_factory=dict)
 

@@ -1,15 +1,15 @@
 #ifndef _QUERY_ELEMENT_AND_H
 #define _QUERY_ELEMENT_AND_H
 
-#include <queue>
 #include <cstring>
-#include "Operator.h"
+#include <queue>
+
 #include "HandlesAnswer.h"
+#include "Operator.h"
 
 using namespace std;
 
 namespace query_element {
-
 
 /**
  * QueryElement representing an AND logic operator.
@@ -18,9 +18,7 @@ namespace query_element {
  */
 template <unsigned int N>
 class And : public Operator<N> {
-
-public:
-
+   public:
     // --------------------------------------------------------------------------------------------
     // Constructors and destructors
 
@@ -29,24 +27,37 @@ public:
      *
      * @param clauses Array with N clauses (each clause is supposed to be a Source or an Operator).
      */
-    And(QueryElement **clauses) : Operator<N>(clauses) {
-        initialize(clauses);
-    }
+    And(QueryElement** clauses) : Operator<N>(clauses) { initialize(clauses); }
 
     /**
      * Constructor.
      *
      * @param clauses Array with N clauses (each clause is supposed to be a Source or an Operator).
      */
-    And(const array<QueryElement *, N> &clauses) : Operator<N>(clauses) {
-        initialize((QueryElement **) clauses.data());
+    And(const array<QueryElement*, N>& clauses) : Operator<N>(clauses) {
+        initialize((QueryElement**) clauses.data());
     }
 
     /**
      * Destructor.
      */
     ~And() {
+#ifdef DEBUG
+        cout << "And::~And() BEGIN" << endl;
+#endif
         graceful_shutdown();
+        for (size_t i = 0; i < N; i++) {
+            for (auto* answer : this->query_answer[i]) {
+                if (answer) {
+                    delete answer;
+                    answer = nullptr;
+                }
+            }
+            this->query_answer[i].clear();
+        }
+#ifdef DEBUG
+        cout << "And::~And() END" << endl;
+#endif
     }
 
     // --------------------------------------------------------------------------------------------
@@ -65,43 +76,31 @@ public:
             this->operator_thread = NULL;
         }
     }
-      
+
     // --------------------------------------------------------------------------------------------
     // Private stuff
 
-private:
-
+   private:
     class CandidateRecord {
-        public:
-        HandlesAnswer *answer[N];
+       public:
+        HandlesAnswer* answer[N];
         unsigned int index[N];
         double fitness;
-        CandidateRecord() {
-        }
-        CandidateRecord(const CandidateRecord &other) {
+        CandidateRecord() {}
+        CandidateRecord(const CandidateRecord& other) {
             this->fitness = other.fitness;
-            memcpy((void *) this->index, (const void *) other.index, N * sizeof(unsigned int));
-            memcpy(
-                (void *) this->answer,
-                (const void *) other.answer,
-                N * sizeof(HandlesAnswer *));
+            memcpy((void*) this->index, (const void*) other.index, N * sizeof(unsigned int));
+            memcpy((void*) this->answer, (const void*) other.answer, N * sizeof(HandlesAnswer*));
         }
-        CandidateRecord& operator=(const CandidateRecord &other) {
+        CandidateRecord& operator=(const CandidateRecord& other) {
             this->fitness = other.fitness;
-            memcpy((void *) this->index, (const void *) other.index, N * sizeof(unsigned int));
-            memcpy(
-                (void *) this->answer,
-                (const void *) other.answer,
-                N * sizeof(HandlesAnswer *));
+            memcpy((void*) this->index, (const void*) other.index, N * sizeof(unsigned int));
+            memcpy((void*) this->answer, (const void*) other.answer, N * sizeof(HandlesAnswer*));
             return *this;
         }
-        bool operator<(const CandidateRecord &other) const {
-            return this->fitness < other.fitness;
-        }
-        bool operator>(const CandidateRecord &other) const {
-            return this->fitness > other.fitness;
-        }
-        bool operator==(const CandidateRecord &other) const {
+        bool operator<(const CandidateRecord& other) const { return this->fitness < other.fitness; }
+        bool operator>(const CandidateRecord& other) const { return this->fitness > other.fitness; }
+        bool operator==(const CandidateRecord& other) const {
             for (unsigned int i = 0; i < N; i++) {
                 if (this->index[i] != other.index[i]) {
                     return false;
@@ -121,17 +120,17 @@ private:
             }
             return hash;
         }
-     };
+    };
 
-    vector<HandlesAnswer *> query_answer[N];
+    vector<HandlesAnswer*> query_answer[N];
     unsigned int next_input_to_process[N];
     priority_queue<CandidateRecord> border;
     unordered_set<CandidateRecord, hash_function> visited;
     bool all_answers_arrived[N];
     bool no_more_answers_to_arrive;
-    thread *operator_thread;
+    thread* operator_thread;
 
-    void initialize(QueryElement **clauses) {
+    void initialize(QueryElement** clauses) {
         this->operator_thread = NULL;
         for (unsigned int i = 0; i < N; i++) {
             this->next_input_to_process[i] = 0;
@@ -150,7 +149,7 @@ private:
 
     bool ready_to_process_candidate() {
         for (unsigned int i = 0; i < N; i++) {
-            if ((! this->all_answers_arrived[i]) &&
+            if ((!this->all_answers_arrived[i]) &&
                 (this->query_answer[i].size() <= (this->next_input_to_process[i] + 1))) {
                 return false;
             }
@@ -162,17 +161,17 @@ private:
         if (this->no_more_answers_to_arrive) {
             return;
         }
-        HandlesAnswer *answer;
+        HandlesAnswer* answer;
         unsigned int all_arrived_count = 0;
         bool no_new_answer = true;
         for (unsigned int i = 0; i < N; i++) {
-            while ((answer = dynamic_cast<HandlesAnswer*>(this->input_buffer[i]->pop_query_answer())) != NULL) {
+            while ((answer = dynamic_cast<HandlesAnswer*>(this->input_buffer[i]->pop_query_answer())) !=
+                   NULL) {
                 no_new_answer = false;
                 this->query_answer[i].push_back(answer);
             }
             if (this->input_buffer[i]->is_query_answers_empty() &&
                 this->input_buffer[i]->is_query_answers_finished()) {
-
                 this->all_answers_arrived[i] = true;
                 all_arrived_count++;
             }
@@ -186,10 +185,10 @@ private:
         }
     }
 
-    void operate_candidate(const CandidateRecord &candidate) {
-        HandlesAnswer *new_query_answer = HandlesAnswer::copy(candidate.answer[0]);
+    void operate_candidate(const CandidateRecord& candidate) {
+        HandlesAnswer* new_query_answer = HandlesAnswer::copy(candidate.answer[0]);
         for (unsigned int i = 1; i < N; i++) {
-            if (! new_query_answer->merge(candidate.answer[i])) {
+            if (!new_query_answer->merge(candidate.answer[i])) {
                 delete new_query_answer;
                 return;
             }
@@ -210,7 +209,7 @@ private:
         return true;
     }
 
-    void expand_border(const CandidateRecord &last_used_candidate) {
+    void expand_border(const CandidateRecord& last_used_candidate) {
         CandidateRecord candidate;
         unsigned int index_in_queue;
         bool abort_candidate;
@@ -230,7 +229,7 @@ private:
                         break;
                     }
                 }
-                candidate.answer[answer_queue_index] = 
+                candidate.answer[answer_queue_index] =
                     this->query_answer[answer_queue_index][index_in_queue];
                 candidate.index[answer_queue_index] = index_in_queue;
                 candidate.fitness *= candidate.answer[answer_queue_index]->importance;
@@ -246,11 +245,8 @@ private:
     }
 
     void and_operator_method() {
-
         do {
-            if (QueryElement::is_flow_finished() || 
-                this->output_buffer->is_query_answers_finished()) {
-
+            if (QueryElement::is_flow_finished() || this->output_buffer->is_query_answers_finished()) {
                 return;
             }
 
@@ -259,18 +255,17 @@ private:
                     return;
                 }
                 ingest_newly_arrived_answers();
-            } while (! ready_to_process_candidate());
+            } while (!ready_to_process_candidate());
 
             if (processed_all_input()) {
                 bool all_finished_flag = true;
                 for (unsigned int i = 0; i < N; i++) {
-                    if (! this->input_buffer[i]->is_query_answers_finished()) {
+                    if (!this->input_buffer[i]->is_query_answers_finished()) {
                         all_finished_flag = false;
                         break;
                     }
                 }
-                if (all_finished_flag && 
-                    ! this->output_buffer->is_query_answers_finished() &&
+                if (all_finished_flag && !this->output_buffer->is_query_answers_finished() &&
                     // processed_all_input() is double-checked on purpose to avoid race condition
                     processed_all_input()) {
                     this->output_buffer->query_answers_finished();
@@ -300,6 +295,6 @@ private:
     }
 };
 
-} // namespace query_element
+}  // namespace query_element
 
-#endif // _QUERY_ELEMENT_AND_H
+#endif  // _QUERY_ELEMENT_AND_H

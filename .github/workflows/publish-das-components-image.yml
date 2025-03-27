@@ -71,7 +71,7 @@ jobs:
     needs: build
     strategy:
       matrix:
-        target: [attention-broker, query-agent, link-creation-agent, link-creation-client]
+        target: [attention-broker, query-agent, link-creation-agent, link-creation-client, inference-agent]
 
     steps:
       - name: Checkout code

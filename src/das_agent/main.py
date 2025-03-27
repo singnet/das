@@ -7,9 +7,11 @@ import json
 import time
 import sys
 
+
 def get_request(node: DASAgentNode):
     request = node.pop_request()
     return request
+
 
 def parse_targets(targets, atom_db):
     new_targets = []
@@ -17,9 +19,7 @@ def parse_targets(targets, atom_db):
         if target.get("atom_type") == "link":
             new_targets.append(LinkT(**target))
         elif target.get("atom_type") == "node":
-            new_targets.append(
-                NodeT(**{"type": target["type"], "name": target["name"]})
-            )
+            new_targets.append(NodeT(**{"type": target["type"], "name": target["name"]}))
         elif target.get("handle"):
             new_targets.append(atom_db.get_atom(target["handle"]))
         else:
@@ -71,32 +71,16 @@ def load_config(path):
 def main():
     parser = argparse.ArgumentParser(description="DAS Agent")
     parser.add_argument("--node_id", type=str, help="Node ID")
-    parser.add_argument(
-        "--mongo_hostname", type=str, default="localhost", help="MongoDB hostname"
-    )
+    parser.add_argument("--mongo_hostname", type=str, default="localhost", help="MongoDB hostname")
     parser.add_argument("--mongo_port", type=int, default=27017, help="MongoDB port")
-    parser.add_argument(
-        "--mongo_username", type=str, default="mongo", help="MongoDB username"
-    )
-    parser.add_argument(
-        "--mongo_password", type=str, default="mongo", help="MongoDB password"
-    )
-    parser.add_argument(
-        "--mongo_tls_ca_file", type=str, default=None, help="MongoDB TLS CA file"
-    )
-    parser.add_argument(
-        "--redis_hostname", type=str, default="localhost", help="Redis hostname"
-    )
+    parser.add_argument("--mongo_username", type=str, default="mongo", help="MongoDB username")
+    parser.add_argument("--mongo_password", type=str, default="mongo", help="MongoDB password")
+    parser.add_argument("--mongo_tls_ca_file", type=str, default=None, help="MongoDB TLS CA file")
+    parser.add_argument("--redis_hostname", type=str, default="localhost", help="Redis hostname")
     parser.add_argument("--redis_port", type=int, default=6379, help="Redis port")
-    parser.add_argument(
-        "--redis_username", type=str, default=None, help="Redis username"
-    )
-    parser.add_argument(
-        "--redis_password", type=str, default=None, help="Redis password"
-    )
-    parser.add_argument(
-        "--redis_cluster", type=bool, default=False, help="Redis cluster"
-    )
+    parser.add_argument("--redis_username", type=str, default=None, help="Redis username")
+    parser.add_argument("--redis_password", type=str, default=None, help="Redis password")
+    parser.add_argument("--redis_cluster", type=bool, default=False, help="Redis cluster")
     parser.add_argument("--redis_ssl", type=bool, default=False, help="Redis SSL")
     parser.add_argument("--config", type=str, default=None, help="Path to config file")
     _args = parser.parse_args()

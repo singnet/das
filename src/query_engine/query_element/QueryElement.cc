@@ -10,8 +10,7 @@ QueryElement::QueryElement() {
     this->is_terminal = false;
 }
 
-QueryElement::~QueryElement() {
-}
+QueryElement::~QueryElement() {}
 
 // ------------------------------------------------------------------------------------------------
 // Protected methods

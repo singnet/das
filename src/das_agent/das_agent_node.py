@@ -29,9 +29,7 @@ class StarNode(DistributedAlgorithmNode):
         messaging_backend: MessageBrokerType = MessageBrokerType.GRPC,
     ):
         # Call the parent constructor (DistributedAlgorithmNode)
-        super().__init__(
-            node_id, LeadershipBrokerType.SINGLE_MASTER_SERVER, messaging_backend
-        )
+        super().__init__(node_id, LeadershipBrokerType.SINGLE_MASTER_SERVER, messaging_backend)
         self.node_id = node_id
         if server_id:
             # If server_id is provided, this is a client node

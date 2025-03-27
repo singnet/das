@@ -1,9 +1,9 @@
 #ifndef _DISTRIBUTED_ALGORITHM_NODE_MESSAGE_H
 #define _DISTRIBUTED_ALGORITHM_NODE_MESSAGE_H
 
+#include <memory>
 #include <string>
 #include <vector>
-#include <memory>
 
 using namespace std;
 
@@ -13,13 +13,11 @@ class DistributedAlgorithmNode;
 class Message;
 
 /**
- * Interface to be implemented by nodes (concrete implementations of DistributedAlgorithmNode) in order to
- * provide a factory method for the types of messages defined in its specific network.
+ * Interface to be implemented by nodes (concrete implementations of DistributedAlgorithmNode) in order
+ * to provide a factory method for the types of messages defined in its specific network.
  */
 class MessageFactory {
-
-public:
-
+   public:
     /**
      * Message factory method.
      *
@@ -27,7 +25,7 @@ public:
      * @param args Arguments for the command.
      * @return An object of the proper class to deal with the passed command.
      */
-    virtual shared_ptr<Message> message_factory(string &command, vector<string> &args) = 0;
+    virtual shared_ptr<Message> message_factory(string& command, vector<string>& args) = 0;
 };
 
 // -------------------------------------------------------------------------------------------------
@@ -48,9 +46,7 @@ public:
  * node as parameter.
  */
 class Message {
-
-public:
-
+   public:
     /**
      * Executes the action defined in the Message in the recipient node, which is passed as
      * parameter.
@@ -69,8 +65,7 @@ public:
      */
     ~Message();
 
-private:
-
+   private:
 };
 
 // -------------------------------------------------------------------------------------------------
@@ -82,19 +77,16 @@ private:
  * joined node.
  */
 class NodeJoinedNetwork : public Message {
-
-private:
-
+   private:
     string joining_node;
 
-public:
-
+   public:
     /**
      * Basic constructor.
      *
      * @param node_id ID of the newly joined node.
      */
-    NodeJoinedNetwork(string &node_id);
+    NodeJoinedNetwork(string& node_id);
 
     /**
      * Destructor.
@@ -107,6 +99,6 @@ public:
     void act(shared_ptr<MessageFactory> node);
 };
 
-} // namespace distributed_algorithm_node
+}  // namespace distributed_algorithm_node
 
-#endif // _DISTRIBUTED_ALGORITHM_NODE_MESSAGE_H
+#endif  // _DISTRIBUTED_ALGORITHM_NODE_MESSAGE_H

@@ -99,8 +99,7 @@ class DictQueryTokenizer:
             "atom_type": "link",
             "type": link.type,
             "targets": [
-                DictQueryTokenizer.to_query_mapping[type(target)](target)
-                for target in link.targets
+                DictQueryTokenizer.to_query_mapping[type(target)](target) for target in link.targets
             ],
             "custom_attributes": link.custom_field,
         },
@@ -117,9 +116,7 @@ class DictQueryTokenizer:
             ],
         },
         NotOperator: lambda operator: {
-            "not": DictQueryTokenizer.to_query_mapping[type(operator.operand)](
-                operator.operand
-            ),
+            "not": DictQueryTokenizer.to_query_mapping[type(operator.operand)](operator.operand),
         },
         Handle: lambda handle: {
             "handle": handle.value,
@@ -153,9 +150,7 @@ class DictQueryTokenizer:
                     return NotOperator(_tokenize(_query["not"]))
                 case {"atom_type": "link", "type": str(), "targets": list()}:
                     link = Link(_query["type"])
-                    link.targets += [
-                        _tokenize(t, _parent=link) for t in _query["targets"]
-                    ]
+                    link.targets += [_tokenize(t, _parent=link) for t in _query["targets"]]
                     return link
                 case {"atom_type": "node", "type": str(), "name": str()}:
                     return Node(_query["type"], _query["name"])
@@ -209,8 +204,6 @@ class DictQueryTokenizer:
             cursor, element = ElementBuilder.from_tokens(tokens, cursor)
             if cursor != len(tokens):
                 raise ValueError("Wrong elements count")
-            if to_query_callback := DictQueryTokenizer.to_query_mapping.get(
-                type(element)
-            ):
+            if to_query_callback := DictQueryTokenizer.to_query_mapping.get(type(element)):
                 return to_query_callback(element)
         raise ValueError(f"Unsupported sequence of tokens: {tokens[cursor:]}")

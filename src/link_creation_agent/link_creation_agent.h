@@ -9,16 +9,16 @@
  * It also handles loading and saving configurations and request buffers.
  */
 #pragma once
+#include <memory>
 #include <mutex>
 #include <string>
 #include <thread>
 #include <vector>
-#include <memory>
-
 
 #include "DASNode.h"
 #include "HandlesAnswer.h"
 #include "RemoteIterator.h"
+#include "das_agent_node.h"
 #include "link_creation_agent_node.h"
 #include "das_agent_node.h"
 #include "link_creation_service.h"

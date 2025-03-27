@@ -40,7 +40,7 @@ DASNode::DASNode(const string& node_id,
     // CLIENT
 }
 
-DASNode::~DASNode() {}
+DASNode::~DASNode() { PatternMatchingQuery::remote_sinks_deleter.stop(); }
 
 void DASNode::initialize() {
     string id = this->node_id();
@@ -596,6 +596,8 @@ PatternMatchingQuery::PatternMatchingQuery(string command, vector<string>& token
 #endif
 }
 
+LazyWorkerDeleter<RemoteSink<HandlesAnswer>> PatternMatchingQuery::remote_sinks_deleter;
+
 void PatternMatchingQuery::act(shared_ptr<MessageFactory> node) {
 #ifdef DEBUG
     cout << "PatternMatchingQuery::act() BEGIN" << endl;
@@ -616,9 +618,11 @@ void PatternMatchingQuery::act(shared_ptr<MessageFactory> node) {
             query_answer_processors.push_back(make_unique<CountAnswerProcessor>(local_id, remote_id));
         }
 
-        // TODO: eliminate this memory leak
-        RemoteSink<HandlesAnswer>* remote_sink =
-            new RemoteSink<HandlesAnswer>(this->root_query_element, move(query_answer_processors));
+        PatternMatchingQuery::remote_sinks_deleter.add(new RemoteSink<HandlesAnswer>(
+            this->root_query_element,       // precedent
+            move(query_answer_processors),  // processors
+            true                            // delete_precedent_on_destructor
+            ));
     } else {
         Utils::error("Invalid command " + this->command + " in PatternMatchingQuery message");
     }

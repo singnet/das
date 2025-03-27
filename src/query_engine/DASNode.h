@@ -6,7 +6,9 @@
 #include <stack>
 
 #include "HandlesAnswer.h"
+#include "LazyWorkerDeleter.h"
 #include "RemoteIterator.h"
+#include "RemoteSink.h"
 #include "Sink.h"
 #include "StarNode.h"
 
@@ -54,6 +56,8 @@ class PatternMatchingQuery : public Message {
    public:
     PatternMatchingQuery(string command, vector<string>& tokens);
     void act(shared_ptr<MessageFactory> node);
+
+    static LazyWorkerDeleter<RemoteSink<HandlesAnswer>> remote_sinks_deleter;
 
    private:
     QueryElement* build_link_template(vector<string>& tokens,
