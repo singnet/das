@@ -16,7 +16,7 @@ class ServiceBusSingleton {
 public:
 
     ~ServiceBusSingleton() {};
-    static void init();
+    static void init(const string& host_id, const string& known_peer = "");
     static shared_ptr<ServiceBus> get_instance();
 
 

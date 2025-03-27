@@ -14,7 +14,7 @@ string BusNode::SET_COMMAND_OWNERSHIP = "set_command_ownership";
 
 BusNode::BusNode(const string& node_id,
                  const Bus& bus,
-                 const std::set<string>& node_commands,
+                 const set<string>& node_commands,
                  const string& known_peer,
                  MessageBrokerType messaging_backend)
     : DistributedAlgorithmNode(node_id, LeadershipBrokerType::TRUSTED_BUS_PEER, messaging_backend) {
@@ -30,8 +30,6 @@ BusNode::BusNode(const string& node_id,
     this->join_network();
     this->join_bus();
 }
-
-BusNode::~BusNode() {}
 
 // -------------------------------------------------------------------------------------------------
 // DistributedAlgorithmNode virtual API
@@ -50,7 +48,7 @@ string BusNode::cast_leadership_vote() {
 }
 
 shared_ptr<Message> BusNode::message_factory(string& command, vector<string>& args) {
-    std::shared_ptr<Message> message = DistributedAlgorithmNode::message_factory(command, args);
+    shared_ptr<Message> message = DistributedAlgorithmNode::message_factory(command, args);
     if (message) {
         return message;
     }
@@ -63,9 +61,9 @@ shared_ptr<Message> BusNode::message_factory(string& command, vector<string>& ar
         for (unsigned int i = 1; i < n; i++) {
             command_list.push_back(args[i]);
         }
-        return std::shared_ptr<Message>(new SetCommandOwnership(args[0], command_list));
+        return shared_ptr<Message>(new SetCommandOwnership(args[0], command_list));
     }
-    return std::shared_ptr<Message>{};
+    return shared_ptr<Message>{};
 }
 
 // -------------------------------------------------------------------------------------------------
@@ -85,6 +83,13 @@ void BusNode::send_bus_command(const string& command, const vector<string>& args
         cout << "Routing " << command << " to " + target_id << endl;
         send(command, args, target_id);
     }
+}
+
+void BusNode::take_ownership(const set<string>& commands) {
+    for (auto command : commands) {
+        this->bus.set_ownership(command, node_id());
+    }
+    broadcast_my_commands();
 }
 
 string BusNode::to_string() {
@@ -119,8 +124,6 @@ void BusNode::broadcast_my_commands(const string& target_id) {
 BusNode::Bus::Bus() {}
 
 BusNode::Bus::Bus(const Bus& other) { this->command_owner = other.command_owner; }
-
-BusNode::Bus::~Bus() {}
 
 bool BusNode::Bus::operator==(const Bus& other) { return this->command_owner == other.command_owner; }
 

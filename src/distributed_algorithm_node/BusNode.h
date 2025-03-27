@@ -40,11 +40,6 @@ class BusNode : public DistributedAlgorithmNode {
         Bus(const Bus& other);
 
         /**
-         * Destructor
-         */
-        ~Bus();
-
-        /**
          * Adds a command to this Bus.
          *
          * @param command Command to be added.
@@ -115,11 +110,6 @@ class BusNode : public DistributedAlgorithmNode {
             const string& known_peer = "",
             MessageBrokerType messaging_backend = MessageBrokerType::GRPC);
 
-    /**
-     * Destructor
-     */
-    virtual ~BusNode();
-
     // --------------------------------------------------------------------------------------------
     // DistributedAlgorithmNode virtual API
 
@@ -162,6 +152,14 @@ class BusNode : public DistributedAlgorithmNode {
      * @return The node_id of the BusNode with command's ownership or "" is none is set
      */
     const string& get_ownership(const string& command);
+
+    /**
+     * Set ownership of passed commands to this node and broadcast this information
+     * to the other bus nodes.
+     *
+     * @param commands Commands being taken.
+     */
+    void take_ownership(const set<string>& commands);
 
     /**
      * Sends a command to the node with ownership of the passed command.

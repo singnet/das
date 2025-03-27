@@ -154,10 +154,10 @@ TEST(BusNode, bus) {
     bus1.add("c2");
     bus1.add("c3");
 
-    EXPECT_TRUE(bus1.contains("c1");
-    EXPECT_TRUE(bus1.contains("c2");
-    EXPECT_TRUE(bus1.contains("c3");
-    EXPECT_FALSE(bus1.contains("c4");
+    EXPECT_TRUE(bus1.contains("c1"));
+    EXPECT_TRUE(bus1.contains("c2"));
+    EXPECT_TRUE(bus1.contains("c3"));
+    EXPECT_FALSE(bus1.contains("c4"));
 
     BusNode::Bus bus2(bus1);
     BusNode::Bus bus3 = bus2;
@@ -186,8 +186,8 @@ TEST(BusNode, bus) {
         FAIL() << "Expected std::runtime_error";
     }
 
-    EXPECT_TRUE(bus1.contains("c1");
-    EXPECT_TRUE(bus1.contains("c2");
-    EXPECT_TRUE(bus1.contains("c3");
-    EXPECT_FALSE(bus1.contains("c4");
+    EXPECT_TRUE(bus1.contains("c1"));
+    EXPECT_TRUE(bus1.contains("c2"));
+    EXPECT_TRUE(bus1.contains("c3"));
+    EXPECT_FALSE(bus1.contains("c4"));
 }

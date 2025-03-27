@@ -4,6 +4,7 @@
 #include <set>
 #include <string>
 #include "BusNode.h"
+#include "BusCommandProcessor.h"
 
 using namespace std;
 using namespace distributed_algorithm_node;
@@ -15,25 +16,23 @@ namespace service_bus {
  */
 class ServiceBus {
 
-public:
+private:
 
     class Node : public BusNode {
 
        public:
 
         Node(const string& id,
-             const BusNode::Bus& bus,
+             shared_ptr<BusNode::Bus> bus,
              const set<string>& node_commands,
-             const string& known_peer)
-            : BusNode(id, bus, node_commands, known_peer, MessageBrokerType::RAM);
-
-        virtual ~Node();
+             const string& known_peer);
 
         shared_ptr<Message> message_factory(string& command, vector<string>& args);
+        shared_ptr<BusCommandProcessor> processor;
 
        private:
 
-        BusNode::Bus bus;
+        shared_ptr<BusNode::Bus> bus;
     };
 
     class BusCommand : public Message {
@@ -47,19 +46,26 @@ public:
 
         string command;
         vector<string> args;
-    }
-
-    ServiceBus();
-    ~ServiceBus();
+    };
 
     static set<string> SERVICE_LIST;
-    static void initialize_statics() {
-        SERVICE_LIST.insert("PATTERN_MATCHING_QUERY");
+    shared_ptr<ServiceBus::Node> bus_node;
+    shared_ptr<BusNode::Bus> bus;
+
+public:
+
+    static void initialize_statics(const set<string>& commands = {}) {
+        if (commands.size() > 0) {
+            for (auto command : commands) {
+                SERVICE_LIST.insert(command);
+            }
+        } else {
+            SERVICE_LIST.insert("PATTERN_MATCHING_QUERY");
+        }
     }
 
-private:
-
-    
+    ServiceBus(const string& host_id, const string& known_peer = "");
+    void register_processor(shared_ptr<BusCommandProcessor> processor);
 };
 
 } // namespace service_bus
