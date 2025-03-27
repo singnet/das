@@ -15,7 +15,6 @@ if docker ps -a --format '{{.Names}}' | grep -q "^${CONTAINER_NAME}$"; then
   docker rm -f "${CONTAINER_NAME}"
 fi
 
-
 docker run --rm \
     --net="host" \
     --name=$CONTAINER_NAME \
