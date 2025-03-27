@@ -3,7 +3,7 @@
 CONTAINER_NAME="$1"
 shift
 
-ENV_VARS=$(printenv | awk -F= '{print "--env "$1}')
+ENV_VARS=$(test -f .env && echo "--env-file=.env" || echo "")
 
 if docker ps -a --format '{{.Names}}' | grep -q "^${CONTAINER_NAME}$"; then
   echo "Removing existing container: ${CONTAINER_NAME}"
