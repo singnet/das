@@ -11,7 +11,7 @@
 #include "RemoteIterator.h"
 #include "Utils.h"
 
-#define MAX_QUERY_ANSWERS ((unsigned int) 500)
+#define MAX_QUERY_ANSWERS ((unsigned int) 500000)
 
 using namespace std;
 
@@ -104,30 +104,21 @@ void run(const string& context, const string& word_tag) {
     string word1 = "word1";
     string word2 = "word2";
 
-    vector<string> query_word = {link_template,
-                                 expression,
-                                 "3",
-                                 node,
-                                 symbol,
-                                 contains,
-                                 variable,
-                                 sentence1,
-                                 link,
-                                 expression,
-                                 "2",
-                                 node,
-                                 symbol,
-                                 word,
-                                 node,
-                                 symbol,
-                                 "\"" + word_tag + "\""};
+    // clang-format off
+    vector<string> query_word = {
+        link_template, expression, "3",
+            node, symbol, contains,
+            variable, sentence1,
+            link, expression, "2",
+                node, symbol, word,
+                node, symbol, "\"" + word_tag + "\""};
+    // clang-format on
 
     DASNode client(client_id, server_id);
 
     HandlesAnswer* query_answer;
     unsigned int count = 0;
-    auto response = unique_ptr<RemoteIterator<HandlesAnswer>>(
-        client.pattern_matcher_query(query_word, context, true));
+    auto response = unique_ptr<RemoteIterator<HandlesAnswer>>(client.pattern_matcher_query(query_word));
     shared_ptr<atomdb_api_types::AtomDocument> sentence_document;
     shared_ptr<atomdb_api_types::AtomDocument> sentence_name_document;
     vector<string> sentences;
@@ -165,7 +156,7 @@ void run(const string& context, const string& word_tag) {
         exit(0);
     }
 
-    int query_count = client.count_query(query_word, context, true);
+    int query_count = client.count_query(query_word);
     Utils::sleep();
     cout << "Count: " << query_count << endl;
     Utils::sleep();

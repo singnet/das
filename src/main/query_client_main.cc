@@ -50,6 +50,7 @@ int main(int argc, char* argv[]) {
             if (++count == MAX_QUERY_ANSWERS) {
                 break;
             }
+            delete query_answer;
         }
     }
     if (count == 0) {
