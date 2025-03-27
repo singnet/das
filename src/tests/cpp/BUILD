@@ -441,6 +441,36 @@ cc_test(
 )
 
 cc_test(
+    name = "bus_node_test",
+    size = "small",
+    srcs = ["bus_node_test.cc"],
+    copts = [
+        "-Iexternal/gtest/googletest/include",
+        "-Iexternal/gtest/googletest",
+    ],
+    linkstatic = 1,
+    deps = [
+        "//distributed_algorithm_node:bus_node",
+        "@com_github_google_googletest//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "service_bus_test",
+    size = "small",
+    srcs = ["service_bus_test.cc"],
+    copts = [
+        "-Iexternal/gtest/googletest/include",
+        "-Iexternal/gtest/googletest",
+    ],
+    linkstatic = 1,
+    deps = [
+        "//service_bus:service_bus_lib",
+        "@com_github_google_googletest//:gtest_main",
+    ],
+)
+
+cc_test(
     name = "link_creation_agent_test",
     size = "small",
     srcs = ["link_creation_agent_test.cc"],

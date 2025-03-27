@@ -171,14 +171,19 @@ class DistributedAlgorithmNode : public MessageFactory {
      */
     virtual string cast_leadership_vote() = 0;
 
-   private:
-    struct {
-        string NODE_JOINED_NETWORK = "node_joined_network";
-    } known_commands;
+    /**
+     * Non-optimized (to be used only for debug)
+     */
+    virtual string to_string();
 
+   private:
     string my_node_id;
     shared_ptr<LeadershipBroker> leadership_broker;
     shared_ptr<MessageBroker> message_broker;
+
+    struct {
+        string NODE_JOINED_NETWORK = "node_joined_network";
+    } known_commands;
 };
 
 }  // namespace distributed_algorithm_node
