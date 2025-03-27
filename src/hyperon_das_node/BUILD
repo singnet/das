@@ -11,7 +11,10 @@ py_library(
 nanobind_extension(
     name = "hyperon_das_node_ext",
     srcs = ["hyperon_das_node_ext.cc"],
-    deps = ["//distributed_algorithm_node:distributed_algorithm_node_lib"],
+    deps = [
+      "//distributed_algorithm_node:distributed_algorithm_node_lib",
+      "//query_engine:query_engine_lib",
+    ],
 )
 
 py_wheel(
