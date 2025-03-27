@@ -14,8 +14,6 @@ cc_library(
     ],
     textual_hdrs = ["QueryNode.cc"],
     deps = [
-        ":atomdb_api_types",
-        ":atomdb_singleton",
         ":count_answer",
         ":handles_answer",
         ":query_answer",
