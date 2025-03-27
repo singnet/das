@@ -44,7 +44,7 @@ InferenceAgent::InferenceAgent(
     vector<string> host_port = Utils::split(this->inference_node_server->node_id(), ':');
     this->inference_node_server_host = host_port[0];
     this->inference_node_server_port = host_port[1];
-    // this->agent_thread = new thread(&InferenceAgent::run, this);
+    this->agent_thread = new thread(&InferenceAgent::run, this);
 }
 
 InferenceAgent::~InferenceAgent() {
@@ -57,10 +57,8 @@ InferenceAgent::~InferenceAgent() {
     delete das_client;
     distributed_inference_control_client->graceful_shutdown();
     delete distributed_inference_control_client;
-    if (agent_thread->joinable()) {
-        agent_thread->join();
-    }
-    delete agent_thread;
+    if (agent_thread != nullptr && agent_thread->joinable())  agent_thread->join();
+    if (agent_thread != nullptr) delete agent_thread;
 }
 
 void InferenceAgent::run() {
