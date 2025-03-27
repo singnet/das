@@ -3,6 +3,7 @@
 
 #include <set>
 #include <string>
+#include <mutex>
 
 #include "BusCommandProcessor.h"
 #include "BusNode.h"
@@ -66,6 +67,8 @@ class ServiceBus {
     static set<string> SERVICE_LIST;
     shared_ptr<ServiceBus::Node> bus_node;
     shared_ptr<BusNode::Bus> bus;
+    mutex api_mutex;
+    unsigned int next_request_serial;
 
    public:
     // ---------------------------------------------------------------------------------------------
@@ -79,6 +82,8 @@ class ServiceBus {
      * @param processor The BusCommandProcessor taking ownership of bus command(s).
      */
     void register_processor(shared_ptr<BusCommandProcessor> processor);
+
+    shared_ptr<BusCommandTicket> bus_command(const string& command, const vector<string>& args);
 
     // ---------------------------------------------------------------------------------------------
     // Used by ServiceBusSingleton

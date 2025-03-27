@@ -6,7 +6,7 @@ using namespace service_bus;
 
 set<string> ServiceBus::SERVICE_LIST;
 
-// --------------------------------------------------------------------------------
+// -------------------------------------------------------------------------------------------------
 // Constructors and destructors
 
 ServiceBus::Node::Node(const string& id,
@@ -18,6 +18,7 @@ ServiceBus::Node::Node(const string& id,
 }
 
 ServiceBus::ServiceBus(const string& host_id, const string& known_peer) {
+    this->next_request_serial = 1;
     this->bus = shared_ptr<BusNode::Bus>(new BusNode::Bus());
     for (auto command : ServiceBus::SERVICE_LIST) {
         this->bus->add(command);
@@ -26,15 +27,23 @@ ServiceBus::ServiceBus(const string& host_id, const string& known_peer) {
         shared_ptr<ServiceBus::Node>(new ServiceBus::Node(host_id, this->bus, {}, known_peer));
 }
 
-// --------------------------------------------------------------------------------
+// -------------------------------------------------------------------------------------------------
 // Public methods
 
 void ServiceBus::register_processor(shared_ptr<BusCommandProcessor> processor) {
+    lock_guard<mutex> semaphore(this->api_mutex);
     this->bus_node->take_ownership(processor->commands);
     this->bus_node->processor = processor;
 }
 
-// --------------------------------------------------------------------------------
+shared_ptr<BusCommandTicket> ServiceBus::bus_command(
+    const string& command, 
+    const vector<string>& args) {
+
+
+}
+
+// -------------------------------------------------------------------------------------------------
 // Messages
 
 shared_ptr<Message> ServiceBus::Node::message_factory(string& command, vector<string>& args) {
@@ -58,6 +67,6 @@ void ServiceBus::BusCommand::act(shared_ptr<MessageFactory> node) {
     if (service_bus_node->processor->check_command(this->command)) {
         service_bus_node->processor->run_command(this->command, this->args);
     } else {
-        Utils::error("Processor is now registered to process command: " + this->command);
+        Utils::error("Processor is not registered to process command: " + this->command);
     }
 }
