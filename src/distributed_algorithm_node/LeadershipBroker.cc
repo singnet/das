@@ -16,6 +16,9 @@ shared_ptr<LeadershipBroker> LeadershipBroker::factory(LeadershipBrokerType inst
         case LeadershipBrokerType::SINGLE_MASTER_SERVER: {
             return shared_ptr<LeadershipBroker>(new SingleMasterServer());
         }
+        case LeadershipBrokerType::TRUSTED_BUS_PEER: {
+            return shared_ptr<LeadershipBroker>(new TrustedBusPeer());
+        }
         default: {
             Utils::error("Invalid LeadershipBrokerType: " + to_string((int) instance_type));
             return shared_ptr<LeadershipBroker>{};
@@ -26,6 +29,10 @@ shared_ptr<LeadershipBroker> LeadershipBroker::factory(LeadershipBrokerType inst
 SingleMasterServer::SingleMasterServer() {}
 
 SingleMasterServer::~SingleMasterServer() {}
+
+TrustedBusPeer::TrustedBusPeer() {}
+
+TrustedBusPeer::~TrustedBusPeer() {}
 
 // -------------------------------------------------------------------------------------------------
 // Public superclass API
@@ -42,5 +49,7 @@ void LeadershipBroker::set_message_broker(shared_ptr<MessageBroker> message_brok
 
 // -------------------------------------------------------------------------------------------------
 // Concrete implementation of abstract LeadershipBroker API
+
+void TrustedBusPeer::start_leader_election(const string& my_vote) { this->set_leader_id(my_vote); }
 
 void SingleMasterServer::start_leader_election(const string& my_vote) { this->set_leader_id(my_vote); }
