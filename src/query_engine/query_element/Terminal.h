@@ -10,6 +10,7 @@
 
 using namespace std;
 using namespace query_engine;
+using namespace atomdb;
 
 namespace query_element {
 
