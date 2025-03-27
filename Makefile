@@ -29,7 +29,7 @@ build-image:
 	@bash -x src/scripts/docker_image_build.sh
 
 build-all: build-image
-	@bash -x src/scripts/build.sh
+	@bash -x src/scripts/build.sh scripts/bazel_build.sh
 
 run-query-agent:
 	@bash -x src/scripts/run.sh query_broker 31700
@@ -50,7 +50,7 @@ run-inference-agent-client:
 	@bash -x src/scripts/run.sh inference_agent_client $(OPTIONS)
 
 run-evolution:
-	@bash ./src/scripts/bazel.sh run //evolution:main -- $(OPTIONS)
+	@bash ./src/scripts/bazel.sh ./scripts/bazel_cmd.sh run //evolution:main -- $(OPTIONS)
 
 setup-nunet-dms:
 	@bash -x src/scripts/setup-nunet-dms.sh
@@ -59,7 +59,7 @@ reset-nunet-dms:
 	@bash -x src/scripts/reset-nunet-dms.sh
 
 bazel:
-	@bash ./src/scripts/bazel.sh $(filter-out $@, $(MAKECMDGOALS))
+	@bash ./src/scripts/bazel.sh ./scripts/bazel_cmd.sh $(filter-out $@, $(MAKECMDGOALS))
 
 test-all-no-cache:
 	@$(MAKE) bazel 'test --cache_test_results=no //tests/...'

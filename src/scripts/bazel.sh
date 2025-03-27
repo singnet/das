@@ -4,9 +4,17 @@ set -exou pipefail
 
 IMAGE_NAME="das-builder"
 CONTAINER_NAME=${IMAGE_NAME}-container
-BAZEL_CMD="/opt/bazel/bazelisk"
 
 ENV_VARS=$(test -f .env && echo "--env-file=.env" || echo "")
+
+# Ensure an entrypoint is provided
+if [ -z "$1" ]; then
+    echo "Usage: $0 <entrypoint>"
+    exit 1
+fi
+
+ENTRYPOINT="$1"
+shift
 
 # local paths
 LOCAL_WORKDIR=$(pwd)
@@ -36,6 +44,6 @@ docker run --rm \
   --volume "$LOCAL_CACHE":"$CONTAINER_CACHE" \
   --volume "$LOCAL_WORKDIR":"$CONTAINER_WORKDIR" \
   --workdir "$CONTAINER_WORKSPACE_DIR" \
-  --entrypoint "$BAZEL_CMD" \
+  --entrypoint "${ENTRYPOINT}" \
   "${IMAGE_NAME}" \
-  $([ ${BAZEL_JOBS:-x} != x ] && echo --jobs=${BAZEL_JOBS}) "$@"
+  "${@}"
