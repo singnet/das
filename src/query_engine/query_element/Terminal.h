@@ -4,7 +4,7 @@
 #include <array>
 #include <string>
 
-#include "AtomDB.h"
+#include "AtomDBSingleton.h"
 #include "QueryElement.h"
 #include "expression_hasher.h"
 

@@ -17,6 +17,7 @@ cc_library(
     srcs = ["query_engine_main.cc"],
     # hdrs = glob(["*.h"]),
     deps = [
+        "//atomdb:atomdb_singleton",
         "//query_engine:query_engine_lib",
     ],
 )
@@ -26,6 +27,7 @@ cc_library(
     srcs = ["query_client_main.cc"],
     # hdrs = glob(["*.h"]),
     deps = [
+        "//atomdb:atomdb_singleton",
         "//query_engine:query_engine_lib",
     ],
 )
@@ -35,6 +37,7 @@ cc_library(
     srcs = ["link_creation_engine_main.cc"],
     # hdrs = glob(["*.h"]),
     deps = [
+        "//atomdb:atomdb_singleton",
         "//query_engine:query_engine_lib",
     ],
 )
@@ -44,6 +47,7 @@ cc_library(
     srcs = ["word_query_main.cc"],
     # hdrs = glob(["*.h"]),
     deps = [
+        "//atomdb:atomdb_singleton",
         "//query_engine:query_engine_lib",
     ],
 )
