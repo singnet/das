@@ -57,7 +57,7 @@ InferenceAgent::~InferenceAgent() {
     delete das_client;
     distributed_inference_control_client->graceful_shutdown();
     delete distributed_inference_control_client;
-    if (agent_thread != nullptr && agent_thread->joinable())  agent_thread->join();
+    if (agent_thread != nullptr && agent_thread->joinable()) agent_thread->join();
     if (agent_thread != nullptr) delete agent_thread;
 }
 
@@ -103,7 +103,8 @@ void InferenceAgent::run() {
         } else {
             for (int i = 0; i < inference_iterators.size(); i++) {
                 if (!inference_iterators[i]->pop(false).empty()) {
-                    cout << "Inference iterator ID: " << inference_iterators[i]->get_local_id() << " finished" << endl;
+                    cout << "Inference iterator ID: " << inference_iterators[i]->get_local_id()
+                         << " finished" << endl;
                     send_stop_link_creation_request(
                         iterator_link_creation_request_map[inference_iterators[i]->get_local_id()]);
                     inference_iterators.erase(inference_iterators.begin() + i);
@@ -148,7 +149,8 @@ void InferenceAgent::send_distributed_inference_control_request(const string& cl
     cout << "Sending distributed inference control request ID: " << client_node_id << endl;
     inference_iterators.push_back(inference_iterator);
     distributed_inference_control_client->send_inference_control_request(
-        iterator_link_creation_request_map[client_node_id]->get_distributed_inference_control_request(), client_node_id);
+        iterator_link_creation_request_map[client_node_id]->get_distributed_inference_control_request(),
+        client_node_id);
 }
 
 vector<string> InferenceAgent::get_link_creation_request() { return vector<string>(); }

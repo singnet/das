@@ -324,7 +324,8 @@ TEST(Link, TestLink) {
     EXPECT_EQ(get<Node>(link.get_targets()[0]).value, "A");
     EXPECT_EQ(get<string>(link.get_targets()[1]), "Value1");
     EXPECT_EQ(get<Node>(link.get_targets()[2]).value, "B");
-    EXPECT_EQ(Utils::join(link.tokenize(), ' '), "LINK Test 3 NODE Symbol A HANDLE Value1 NODE Symbol B");
+    EXPECT_EQ(Utils::join(link.tokenize(), ' '),
+              "LINK Test 3 NODE Symbol A HANDLE Value1 NODE Symbol B");
     link_template.clear();
     delete query_answer;
 

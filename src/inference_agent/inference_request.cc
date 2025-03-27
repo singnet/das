@@ -1,6 +1,7 @@
+#include "inference_request.h"
+
 #include <memory>
 
-#include "inference_request.h"
 #include "Utils.h"
 #include "link_create_template.h"
 
@@ -33,7 +34,7 @@ std::string InferenceRequest::get_type() { return "INFERENCE_REQUEST"; }
 
 std::string InferenceRequest::get_max_proof_length() { return std::to_string(max_proof_length); }
 
-template<typename T>
+template <typename T>
 static vector<vector<T>> product(const std::vector<T>& iterable, size_t repeat) {
     std::vector<std::vector<T>> result;
     std::vector<T> current(repeat, iterable[0]);
@@ -91,20 +92,24 @@ static std::vector<std::string> inference_evolution_request_builder(std::string 
             vars.push_back("V" + std::to_string(i));
         }
         vars.push_back(second_handle);
-        auto commands_product = product<std::string>({commands}, vars.size() -1);
-        for(auto cp: commands_product){
+        auto commands_product = product<std::string>({commands}, vars.size() - 1);
+        for (auto cp : commands_product) {
             counter++;
             request.push_back("AND");
             request.push_back(std::to_string(vars.size() - 1));
             for (int i = 1; i < vars.size(); i++) {
                 for (auto token : query_template) {
                     if (token == "_TYPE_") {
-                        request.push_back(cp[i-1]);
+                        request.push_back(cp[i - 1]);
                     } else if (token == "_FIRST_") {
-                        request.push_back((vars[i - 1] == first_handle || vars[i - 1] == second_handle)? "HANDLE" : "VARIABLE");
+                        request.push_back((vars[i - 1] == first_handle || vars[i - 1] == second_handle)
+                                              ? "HANDLE"
+                                              : "VARIABLE");
                         request.push_back(vars[i - 1]);
                     } else if (token == "_SECOND_") {
-                        request.push_back((vars[i] == first_handle || vars[i] == second_handle)? "HANDLE" : "VARIABLE");
+                        request.push_back((vars[i] == first_handle || vars[i] == second_handle)
+                                              ? "HANDLE"
+                                              : "VARIABLE");
                         request.push_back(vars[i]);
                     } else {
                         request.push_back(token);
@@ -121,11 +126,11 @@ static std::vector<std::string> inference_evolution_request_builder(std::string 
         //             if (token == "_TYPE_") {
         //                 request.push_back(ttype);
         //             } else if (token == "_FIRST_") {
-        //                 request.push_back((vars[i - 1] == first_handle || vars[i - 1] == second_handle)? "HANDLE" : "VARIABLE");
-        //                 request.push_back(vars[i - 1]);
+        //                 request.push_back((vars[i - 1] == first_handle || vars[i - 1] ==
+        //                 second_handle)? "HANDLE" : "VARIABLE"); request.push_back(vars[i - 1]);
         //             } else if (token == "_SECOND_") {
-        //                 request.push_back((vars[i] == first_handle || vars[i] == second_handle)? "HANDLE" : "VARIABLE");
-        //                 request.push_back(vars[i]);
+        //                 request.push_back((vars[i] == first_handle || vars[i] == second_handle)?
+        //                 "HANDLE" : "VARIABLE"); request.push_back(vars[i]);
         //             } else {
         //                 request.push_back(token);
         //             }
@@ -133,8 +138,8 @@ static std::vector<std::string> inference_evolution_request_builder(std::string 
         //     }
         // }
 
-        for (auto tkn :
-             inference_evolution_request_builder(first_handle, second_handle, max_proof_length - 1, counter)) {
+        for (auto tkn : inference_evolution_request_builder(
+                 first_handle, second_handle, max_proof_length - 1, counter)) {
             request.push_back(tkn);
         }
     }
@@ -144,8 +149,8 @@ static std::vector<std::string> inference_evolution_request_builder(std::string 
 std::vector<std::string> InferenceRequest::get_distributed_inference_control_request() {
     std::vector<std::string> tokens;
     int size = 0;
-    std::vector<std::string> request = inference_evolution_request_builder(
-        first_handle, second_handle, max_proof_length, size);
+    std::vector<std::string> request =
+        inference_evolution_request_builder(first_handle, second_handle, max_proof_length, size);
     tokens.push_back(this->context);
     tokens.push_back("OR");
     tokens.push_back(std::to_string(size));

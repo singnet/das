@@ -66,7 +66,6 @@ class RemoteIterator : public QueryElement {
      */
     QueryAnswer* pop();
 
-
     string get_local_id() const;
 
    private:

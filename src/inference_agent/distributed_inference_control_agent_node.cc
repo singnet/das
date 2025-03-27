@@ -30,5 +30,5 @@ void DistributedInferenceControlAgentNode::send_inference_control_request(
 }
 
 void DistributedInferenceControlAgentNode::send_message(std::vector<std::string> args) {
-   send(EVOLUTION_REQUEST_COMMAND, args, this->server_id);
+    send(EVOLUTION_REQUEST_COMMAND, args, this->server_id);
 }

@@ -4,7 +4,8 @@ using namespace das_agent;
 using namespace std;
 using namespace distributed_algorithm_node;
 
-DasAgentNode::DasAgentNode(const string& node_id, const string& server_id) : StarNode(node_id, server_id) {
+DasAgentNode::DasAgentNode(const string& node_id, const string& server_id)
+    : StarNode(node_id, server_id) {
     this->node_id = node_id;
     this->server_id = server_id;
 }

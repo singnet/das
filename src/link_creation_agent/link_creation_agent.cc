@@ -85,7 +85,7 @@ void LinkCreationAgent::run() {
 
             service->process_request(
                 iterator, das_client, lca_request->link_template, lca_request->max_results);
-                
+
             lca_request->last_execution = time(0);
             lca_request->current_interval =
                 (lca_request->current_interval * 2) %

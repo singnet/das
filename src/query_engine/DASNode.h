@@ -28,7 +28,10 @@ class DASNode : public StarNode {
 
     DASNode(const string& node_id);
     DASNode(const string& node_id, const string& server_id);
-    DASNode(const string& node_id, const string& server_id, unsigned int first_query_port, unsigned int last_query_port);
+    DASNode(const string& node_id,
+            const string& server_id,
+            unsigned int first_query_port,
+            unsigned int last_query_port);
     ~DASNode();
 
     RemoteIterator<HandlesAnswer>* pattern_matcher_query(const vector<string>& tokens,

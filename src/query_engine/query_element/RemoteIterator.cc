@@ -43,7 +43,6 @@ QueryAnswer* RemoteIterator<AnswerType>::pop() {
     return (QueryAnswer*) this->remote_input_buffer->pop_query_answer();
 }
 
-
 template <class AnswerType>
 string RemoteIterator<AnswerType>::get_local_id() const {
     return this->local_id;

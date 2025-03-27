@@ -20,7 +20,6 @@
 #include "RemoteIterator.h"
 #include "das_agent_node.h"
 #include "link_creation_agent_node.h"
-#include "das_agent_node.h"
 #include "link_creation_service.h"
 
 using namespace query_node;
@@ -101,11 +100,10 @@ class LinkCreationAgent {
     string link_creation_agent_server_id;  // ID of the link creation server
     string das_agent_client_id;            // ID of the DAS client
     string das_agent_server_id;
-    string requests_buffer_file;  // Path to the requests buffer file
-    string context;               // Context to send to attention broker
+    string requests_buffer_file;           // Path to the requests buffer file
+    string context;                        // Context to send to attention broker
     unsigned int query_agent_client_start_port;
     unsigned int query_agent_client_end_port;
-    
 
     // Other attributes
     LinkCreationService* service;
