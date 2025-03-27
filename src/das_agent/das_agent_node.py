@@ -1,7 +1,13 @@
-from hyperon_das_node.hyperon_das_node_ext import LeadershipBrokerType, MessageBrokerType, DistributedAlgorithmNode, Message
+from hyperon_das_node.hyperon_das_node_ext import (
+    LeadershipBrokerType,
+    MessageBrokerType,
+    DistributedAlgorithmNode,
+    Message,
+)
 from typing import List
 from queue import Queue
 from threading import Thread
+
 
 class DASLinkCreateMessage(Message):
     def __init__(self, command: str, args: List[str]):
@@ -10,6 +16,7 @@ class DASLinkCreateMessage(Message):
 
     def act(self, node, *args, **kwargs):
         node.add_request(self.message)
+
 
 class StarNode(DistributedAlgorithmNode):
     is_server: bool
@@ -22,7 +29,9 @@ class StarNode(DistributedAlgorithmNode):
         messaging_backend: MessageBrokerType = MessageBrokerType.GRPC,
     ):
         # Call the parent constructor (DistributedAlgorithmNode)
-        super().__init__(node_id, LeadershipBrokerType.SINGLE_MASTER_SERVER, messaging_backend)
+        super().__init__(
+            node_id, LeadershipBrokerType.SINGLE_MASTER_SERVER, messaging_backend
+        )
         self.node_id = node_id
         if server_id:
             # If server_id is provided, this is a client node
@@ -60,16 +69,15 @@ class DASAgentNode(StarNode):
         if command == "create_link":
             return DASLinkCreateMessage(command, args)
         return None
-    
+
     def send_message(self, command: str, args: list, receiver_id: str):
         self.send(command, args, receiver_id)
 
     def add_request(self, request):
         self.requests.put(request)
-    
+
     def pop_request(self):
         return self.requests.get()
-    
+
     def has_request(self):
         return not self.requests.empty()
-    

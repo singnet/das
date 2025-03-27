@@ -16,7 +16,9 @@ LinkCreationAgent::LinkCreationAgent(string config_path) {
     this->config_path = config_path;
     load_config();
     link_creation_node_server = new LinkCreationAgentNode(link_creation_agent_server_id);
-    query_node_client = new DASNode(query_agent_client_id, query_agent_server_id, query_agent_client_start_port,
+    query_node_client = new DASNode(query_agent_client_id,
+                                    query_agent_server_id,
+                                    query_agent_client_start_port,
                                     query_agent_client_end_port);
     service = new LinkCreationService(link_creation_agent_thread_count);
     service->set_timeout(query_timeout_seconds);
@@ -77,13 +79,13 @@ void LinkCreationAgent::run() {
             continue;
         }
 
-        shared_ptr<RemoteIterator<HandlesAnswer>> iterator =
-            query(lca_request->query, lca_request->context, lca_request->update_attention_broker);
-
-        service->process_request(
-            iterator, das_client, lca_request->link_template, lca_request->max_results);
-
         if (lca_request->infinite || lca_request->repeat > 0) {
+            shared_ptr<RemoteIterator<HandlesAnswer>> iterator =
+                query(lca_request->query, lca_request->context, lca_request->update_attention_broker);
+
+            service->process_request(
+                iterator, das_client, lca_request->link_template, lca_request->max_results);
+                
             lca_request->last_execution = time(0);
             lca_request->current_interval =
                 (lca_request->current_interval * 2) %
@@ -94,6 +96,7 @@ void LinkCreationAgent::run() {
 
         } else {
             if (request_buffer.find(lca_request->id) != request_buffer.end()) {
+                cout << "Removing request ID: " << lca_request->id << endl;
                 request_buffer.erase(lca_request->id);
             }
         }
@@ -142,8 +145,6 @@ void LinkCreationAgent::load_config() {
                     this->query_agent_client_end_port = stoul(value);
                 else if (key == "query_timeout_seconds")
                     this->query_timeout_seconds = stoi(value);
-                
-                
             }
         }
     }
@@ -184,7 +185,7 @@ shared_ptr<LinkCreationAgentRequest> LinkCreationAgent::create_request(vector<st
         bool is_link_create = false;
         int has_id = 0;
         if (request[request.size() - 1] != "true" && request[request.size() - 1] != "false") {
-            cout << "ID: " << request[request.size()-1] << endl;
+            cout << "ID: " << request[request.size() - 1] << endl;
             has_id = 1;
         }
         for (string arg : request) {
@@ -205,18 +206,19 @@ shared_ptr<LinkCreationAgentRequest> LinkCreationAgent::create_request(vector<st
             if (cursor == request.size() - 1 - has_id) {
                 lca_request->context = arg;
             }
-                if (cursor == request.size() - has_id) {
+            if (cursor == request.size() - has_id) {
                 lca_request->update_attention_broker = (arg == "true");
-            }else{
+            } else {
                 if (cursor == request.size()) {
                     lca_request->id = arg;
                 }
             }
         }
         lca_request->infinite = (lca_request->repeat == -1);
-        if (lca_request->id.empty()){
+        if (lca_request->id.empty()) {
             string temp_id = to_string(time(0)) + Utils::random_string(20);
-            shared_ptr<char> temp_id_c = shared_ptr<char>(new char[temp_id.length() + 1], [](char* p) { delete[] p; });
+            shared_ptr<char> temp_id_c =
+                shared_ptr<char>(new char[temp_id.length() + 1], [](char* p) { delete[] p; });
             strcpy(temp_id_c.get(), temp_id.c_str());
             lca_request->id = compute_hash(temp_id_c.get());
         }

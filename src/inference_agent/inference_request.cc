@@ -23,7 +23,7 @@ InferenceRequest::~InferenceRequest() {}
 
 std::vector<std::string> InferenceRequest::query() { return {}; }
 
-std::string InferenceRequest::get_id() { return Utils::random_string(10); }
+std::string InferenceRequest::get_id() { return inference_request_id; }
 
 void InferenceRequest::set_id(std::string inference_request_id) {
     this->inference_request_id = inference_request_id;

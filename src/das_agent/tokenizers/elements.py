@@ -83,7 +83,9 @@ class ElementBuilder:
         """
         if element := ElementBuilder.elements_mapping.get(tokens[cursor]):
             return element.from_tokens(tokens, cursor)
-        raise ValueError(f"Unsupported sequence of tokens for MAIN BUILDER: {tokens[cursor:]}")
+        raise ValueError(
+            f"Unsupported sequence of tokens for MAIN BUILDER: {tokens[cursor:]}"
+        )
 
 
 @dataclasses.dataclass
@@ -160,7 +162,9 @@ class Variable(Element):
             variable = Variable(name=tokens[cursor])
             cursor += 1  # Skip the name token
             return cursor, variable
-        raise ValueError(f"Unsupported sequence of tokens for VARIABLE: {tokens[cursor:]}")
+        raise ValueError(
+            f"Unsupported sequence of tokens for VARIABLE: {tokens[cursor:]}"
+        )
 
 
 @dataclasses.dataclass
@@ -323,7 +327,7 @@ class NotOperator(Element):
             cursor, operand = ElementBuilder.from_tokens(tokens, cursor)
             return cursor, NotOperator(operand)
         raise ValueError(f"Unsupported sequence of tokens for NOT: {tokens[cursor:]}")
-    
+
 
 @dataclasses.dataclass
 @ElementBuilder.register_tag("CUSTOM_FIELD")
@@ -356,7 +360,7 @@ class CustomField(Element):
                     cursor += 2
             return cursor, custom_field
         raise ValueError(f"Unsupported sequence of tokens for LINK: {tokens[cursor:]}")
-    
+
     def __iter__(self):
         cf_dict = {}
         tmp = {}
