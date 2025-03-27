@@ -11,7 +11,14 @@ Source::Source(const string& attention_broker_address) {
     this->attention_broker_address = attention_broker_address;
 }
 
-Source::Source() {
+Source::Source() : Source(Source::get_attention_broker_address()) {}
+
+Source::~Source() { this->graceful_shutdown(); }
+
+// ------------------------------------------------------------------------------------------------
+// Public methods
+
+string Source::get_attention_broker_address() {
     string attention_broker_address = Utils::get_environment("DAS_ATTENTION_BROKER_ADDRESS");
     string attention_broker_port = Utils::get_environment("DAS_ATTENTION_BROKER_PORT");
     if (attention_broker_address.empty()) {
@@ -22,13 +29,8 @@ Source::Source() {
     } else {
         attention_broker_address += ":" + attention_broker_port;
     }
-    this->attention_broker_address = attention_broker_address;
+    return attention_broker_address;
 }
-
-Source::~Source() { this->graceful_shutdown(); }
-
-// ------------------------------------------------------------------------------------------------
-// Public methods
 
 void Source::setup_buffers() {
     if (this->subsequent_id == "") {
