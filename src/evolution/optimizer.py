@@ -21,7 +21,7 @@ from evolution.attention_broker_updater import AttentionBrokerUpdater
 from evolution.fitness_functions import FitnessFunctions
 from evolution.node import EvolutionNode, NodeIdFactory
 from evolution.selection_methods import handle_selection_method, SelectionMethodType
-from evolution.utils import Parameters, parse_file, log_function_call
+from evolution.utils import Parameters, parse_file
 
 
 class QueryOptimizerAgent:
@@ -35,7 +35,7 @@ class QueryOptimizerAgent:
         sys.stdout.flush()
         while True:
             if request := self.evolution_node_server.pop_request():
-                sys.stdout.write("\nNew messaage!")
+                sys.stdout.write("\nNew message!\n")
                 sys.stdout.flush()
                 answers = self._process(context=request['context'], query_tokens=request['data'])
                 self._send_message(request['senders'], answers)
@@ -63,15 +63,15 @@ class QueryOptimizerAgent:
             )
         return params
 
-    @log_function_call
     def _process(self, context: str, query_tokens: list[str] | str) -> list[str]:
         iterator = self.optimize(context, query_tokens)
         return [qa.to_string() for qa in iterator]
 
-    @log_function_call
     def _send_message(self, senders: list[str], answers: list[str]) -> None:
+        sys.stdout.write(f'\nAnswers Count: {len(answers)}\n')
         sys.stdout.write(f'\nAnswers: {answers}\n')
         sys.stdout.flush()
+
         for sender in senders:
             self.evolution_node_client = EvolutionNode(
                 server_id=sender,
@@ -186,7 +186,6 @@ class QueryOptimizerIterator:
             print(f"Error: {e}")
             raise e
 
-    @log_function_call
     def _parse_tokens(self, tokens: list[str] | str) -> list[str]:
         def parse_atom(token: str, atom_db: Any) -> list[str]:
             try:
@@ -216,9 +215,11 @@ class QueryOptimizerIterator:
                     raise ValueError("'HANDLE' Token missing corresponding value")
             else:
                 parsed_tokens.append(token)  
+
         sys.stdout.write(f'\ntokens: {tokens}')
         sys.stdout.write(f'\nparsed_tokens: {parsed_tokens}')
         sys.stdout.flush()
+
         return parsed_tokens
 
     def _producer(self) -> None:
@@ -230,12 +231,16 @@ class QueryOptimizerIterator:
         After processing all generations, it fills the query answers queue and signals termination.
         """
         while self.generation <= self.max_generations:
-            sys.stdout.write(f"\ngeneration {self.generation}/{self.max_generations}")
+            sys.stdout.write(f"\n===> Generation {self.generation}/{self.max_generations}\n")
             sys.stdout.flush()
 
             population = self._sample_population(limit=self.population_size)
             evaluated_individuals = self._evaluate_population(population)
             selected_individuals = self._select_best_individuals(evaluated_individuals)
+
+            sys.stdout.write(f'\nbest_individuals: {[(ind.to_string(), fit) for ind, fit in selected_individuals[:5]]}')
+            sys.stdout.flush()
+
             self._update_attention_broker(selected_individuals)
 
             self.generation += 1
@@ -243,7 +248,6 @@ class QueryOptimizerIterator:
 
         self._sample_best_query_answers()
 
-    @log_function_call
     def _sample_population(self, limit: int, timeout: float = 10.0) -> list[QueryAnswer]:
         """
         Samples a population of QueryAnswer objects using a remote iterator.
@@ -273,7 +277,6 @@ class QueryOptimizerIterator:
         except Exception as e:
             print(f"Population sampling failed: {e}")
 
-    @log_function_call
     def _evaluate_population(self, population: list[QueryAnswer]) -> list[tuple[QueryAnswer, float]]:
         with ThreadPoolExecutor(max_workers=10) as executor:
             futures = [executor.submit(self._evaluate, ind) for ind in population]
@@ -292,7 +295,6 @@ class QueryOptimizerIterator:
             fitness_value = fitness_function(self.atom_db, query_answer.handles)
         return (query_answer, fitness_value)
 
-    @log_function_call
     def _select_best_individuals(
         self, evaluated_individuals: list[tuple[QueryAnswer, float]]
     ) -> list[QueryAnswer]:
@@ -303,16 +305,14 @@ class QueryOptimizerIterator:
         selection_method = handle_selection_method(method)
         return selection_method(evaluated_individuals, self.qtd_selected_for_attention_update)
 
-    @log_function_call
     def _update_attention_broker(self, individuals: list[QueryAnswer]) -> None:
         try:
-            for individual in individuals:
+            for individual, fitness in individuals:
                 self.attention_broker_updater.update(individual)
         except Exception as e:
             sys.stdout.write(f'\nAn error occurred - details: {e}')
             sys.stdout.flush()
 
-    @log_function_call
     def _sample_best_query_answers(self, timeout: float = 10.0) -> None:
         """
         Fills the best_query_answers queue by selecting QueryAnswers from a remote iterator.
