@@ -46,6 +46,4 @@ TEST(ServiceBus, basics) {
     service_bus2.register_processor(processor2);
     service_bus3.register_processor(processor3);
     Utils::sleep(1000);
-
-
 }

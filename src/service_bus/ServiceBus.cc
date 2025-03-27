@@ -22,7 +22,8 @@ ServiceBus::ServiceBus(const string& host_id, const string& known_peer) {
     for (auto command : ServiceBus::SERVICE_LIST) {
         this->bus->add(command);
     }
-    this->bus_node = shared_ptr<ServiceBus::Node>(new ServiceBus::Node(host_id, this->bus, {}, known_peer));
+    this->bus_node = 
+        shared_ptr<ServiceBus::Node>(new ServiceBus::Node(host_id, this->bus, {}, known_peer));
 }
 
 // --------------------------------------------------------------------------------
