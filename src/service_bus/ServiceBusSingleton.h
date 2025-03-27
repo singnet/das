@@ -2,6 +2,7 @@
 #define _SERVICE_BUS_SERVICEBUSSINGLETON_H
 
 #include <memory>
+
 #include "ServiceBus.h"
 
 using namespace std;
@@ -18,10 +19,8 @@ namespace service_bus {
  * this method, init() is supposed to be called in order to initialize all the static state.
  */
 class ServiceBusSingleton {
-
-public:
-
-    ~ServiceBusSingleton() {};
+   public:
+    ~ServiceBusSingleton(){};
 
     /**
      * Initializes static state of the singleton object.
@@ -43,14 +42,12 @@ public:
      */
     static shared_ptr<ServiceBus> get_instance();
 
-
-private:
-
-    ServiceBusSingleton() {};
+   private:
+    ServiceBusSingleton(){};
     static bool initialized;
     static shared_ptr<ServiceBus> service_bus;
 };
 
-} // namespace service_bus
+}  // namespace service_bus
 
-#endif // _SERVICE_BUS_SERVICEBUSSINGLETON_H
+#endif  // _SERVICE_BUS_SERVICEBUSSINGLETON_H

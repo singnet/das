@@ -1,29 +1,25 @@
 #include <cstdlib>
-#include "gtest/gtest.h"
 
 #include "ServiceBusSingleton.h"
 #include "Utils.h"
+#include "gtest/gtest.h"
 
 using namespace service_bus;
 
 class TestProcessor : public BusCommandProcessor {
+   public:
+    string command;
+    vector<string> args;
 
-    public:
+    TestProcessor(const set<string>& commands) : BusCommandProcessor(commands) {}
 
-        string command;
-        vector<string> args;
-
-        TestProcessor(const set<string>& commands) : BusCommandProcessor(commands) {
-        }
-    
-        void run_command(const string& command,const  vector<string>& args) {
-            this->command = command;
-            this->args = args;
-        }
+    void run_command(const string& command, const vector<string>& args) {
+        this->command = command;
+        this->args = args;
+    }
 };
 
 TEST(ServiceBus, basics) {
-
     set<string> commands = {"c1", "c2", "c3", "c4", "c5"};
     shared_ptr<TestProcessor> processor1(new TestProcessor({"c1", "c4"}));
     shared_ptr<TestProcessor> processor2(new TestProcessor({"c2"}));
@@ -36,7 +32,7 @@ TEST(ServiceBus, basics) {
         bus.add(command);
     }
     ServiceBus::initialize_statics(commands);
-    
+
     ServiceBus service_bus1(peer1_id);
     Utils::sleep(1000);
     ServiceBus service_bus2(peer2_id);

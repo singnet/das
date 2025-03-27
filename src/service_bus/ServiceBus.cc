@@ -1,4 +1,5 @@
 #include "ServiceBus.h"
+
 #include "Utils.h"
 
 using namespace service_bus;
@@ -13,7 +14,6 @@ ServiceBus::Node::Node(const string& id,
                        const set<string>& node_commands,
                        const string& known_peer)
     : BusNode(id, *bus, node_commands, known_peer, MessageBrokerType::GRPC) {
-
     this->bus = bus;
 }
 
@@ -22,7 +22,7 @@ ServiceBus::ServiceBus(const string& host_id, const string& known_peer) {
     for (auto command : ServiceBus::SERVICE_LIST) {
         this->bus->add(command);
     }
-    this->bus_node = 
+    this->bus_node =
         shared_ptr<ServiceBus::Node>(new ServiceBus::Node(host_id, this->bus, {}, known_peer));
 }
 
@@ -37,9 +37,7 @@ void ServiceBus::register_processor(shared_ptr<BusCommandProcessor> processor) {
 // --------------------------------------------------------------------------------
 // Messages
 
-shared_ptr<Message> ServiceBus::Node::message_factory(string& command, 
-                                                           vector<string>& args) {
-
+shared_ptr<Message> ServiceBus::Node::message_factory(string& command, vector<string>& args) {
     shared_ptr<Message> message = BusNode::message_factory(command, args);
     if (message) {
         return message;
@@ -50,9 +48,7 @@ shared_ptr<Message> ServiceBus::Node::message_factory(string& command,
     return shared_ptr<Message>{};
 }
 
-ServiceBus::BusCommand::BusCommand(const string& command, 
-                                   const vector<string>& args) {
-
+ServiceBus::BusCommand::BusCommand(const string& command, const vector<string>& args) {
     this->command = command;
     this->args = args;
 }
@@ -65,5 +61,3 @@ void ServiceBus::BusCommand::act(shared_ptr<MessageFactory> node) {
         Utils::error("Processor is now registered to process command: " + this->command);
     }
 }
-
-

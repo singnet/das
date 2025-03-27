@@ -1,9 +1,9 @@
 #ifndef _SERVICE_BUS_BUSCOMMANDPROCESSOR_H
 #define _SERVICE_BUS_BUSCOMMANDPROCESSOR_H
 
-#include<set>
-#include<vector>
-#include<string>
+#include <set>
+#include <string>
+#include <vector>
 
 using namespace std;
 
@@ -18,8 +18,7 @@ namespace service_bus {
 class BusCommandProcessor {
     friend class ServiceBus;
 
-public:
-
+   public:
     /**
      * Basic constructor which expects the set of commands whose ownership will be taken.
      *
@@ -31,16 +30,14 @@ public:
     // ---------------------------------------------------------------------------------------------
     // Virtual API which need to be iomplemented in concrete subclasses.
 
-    virtual void run_command(const string& command,const  vector<string>& args) = 0;
+    virtual void run_command(const string& command, const vector<string>& args) = 0;
 
-
-private:
-
+   private:
     bool check_command(const string& command);
 
     set<string> commands;
 };
 
-} // namespace service_bus
+}  // namespace service_bus
 
-#endif // _SERVICE_BUS_BUSCOMMANDPROCESSOR_H
+#endif  // _SERVICE_BUS_BUSCOMMANDPROCESSOR_H

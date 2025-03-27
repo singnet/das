@@ -3,8 +3,9 @@
 
 #include <set>
 #include <string>
-#include "BusNode.h"
+
 #include "BusCommandProcessor.h"
+#include "BusNode.h"
 
 using namespace std;
 using namespace distributed_algorithm_node;
@@ -16,7 +17,7 @@ namespace service_bus {
  * the API for many DAS services provided by its agents.
  *
  * Elements in the bus can be either command providers or command issuers (or both).
- * 
+ *
  * Command issuers just use ServiceBus to issue commands. It doesn't provide any service
  * (i.e. it doesn't process any commands) itself. Command providers listen to the bus
  * for commands it's responsible for and process such commands when other bus element
@@ -37,13 +38,9 @@ namespace service_bus {
  * - PATTERN_MATCHING_QUERY
  */
 class ServiceBus {
-
-private:
-
+   private:
     class Node : public BusNode {
-
        public:
-
         Node(const string& id,
              shared_ptr<BusNode::Bus> bus,
              const set<string>& node_commands,
@@ -53,19 +50,15 @@ private:
         shared_ptr<BusCommandProcessor> processor;
 
        private:
-
         shared_ptr<BusNode::Bus> bus;
     };
 
     class BusCommand : public Message {
-
        public:
-
         BusCommand(const string& command, const vector<string>& args);
         void act(shared_ptr<MessageFactory> node);
 
        private:
-
         string command;
         vector<string> args;
     };
@@ -74,8 +67,7 @@ private:
     shared_ptr<ServiceBus::Node> bus_node;
     shared_ptr<BusNode::Bus> bus;
 
-public:
-
+   public:
     // ---------------------------------------------------------------------------------------------
     // Public API
 
@@ -112,6 +104,6 @@ public:
     ServiceBus(const string& host_id, const string& known_peer = "");
 };
 
-} // namespace service_bus
+}  // namespace service_bus
 
-#endif // _SERVICE_BUS_SERVICEBUS_H
+#endif  // _SERVICE_BUS_SERVICEBUS_H

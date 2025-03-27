@@ -26,8 +26,7 @@ class TestNode : public BusNode {
              const BusNode::Bus& bus,
              const set<string>& node_commands,
              const string& known_peer)
-        : BusNode(id, bus, node_commands, known_peer, MessageBrokerType::RAM) {
-    }
+        : BusNode(id, bus, node_commands, known_peer, MessageBrokerType::RAM) {}
 
     virtual ~TestNode() {}
 
