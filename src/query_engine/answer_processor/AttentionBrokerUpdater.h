@@ -125,6 +125,7 @@ class AttentionBrokerUpdater : public QueryAnswerProcessor {
                 for (unsigned int i = 0; i < queue_record->size; i++) {
                     execution_stack.push(string(queue_record->handles[i]));
                 }
+                delete queue_record;
                 while (!execution_stack.empty()) {
                     handle = execution_stack.top();
                     execution_stack.pop();
