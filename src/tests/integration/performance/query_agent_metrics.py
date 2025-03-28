@@ -10,7 +10,7 @@ def start_query_agent():
     """
     Starts (or restarts) the Query Agent.
     """
-    return subprocess.Popen(
+    subprocess.Popen(
         "make run-query-agent",  # This command restarts the Query Agent if it is already running
         shell=True,
         stdout=subprocess.PIPE,
