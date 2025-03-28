@@ -127,7 +127,7 @@ def main():
             print(f"  {round}: ", flush=True, end="")
 
             # Start the Query Agent
-            process = start_query_agent()
+            query_agent_process = start_query_agent()
 
             # Wait for the Query Agent to be ready
             time.sleep(3)  # Adjust this time as needed
@@ -136,7 +136,7 @@ def main():
             round_time = run_command(cmd_prefix + query.replace("\n", " ") + cmd_suffix)
 
             # Stop the Query Agent
-            stop_query_agent(process)
+            stop_query_agent(query_agent_process)
 
             execution_time += round_time
 
