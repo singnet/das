@@ -31,16 +31,15 @@ class AttentionBrokerUpdater : public QueryAnswerProcessor {
     class QueueRecord {
        public:
         unsigned int size;
-        char **handles;
-        QueueRecord(HandlesAnswer *answer) {
+        char** handles;
+        QueueRecord(HandlesAnswer* answer) {
             this->size = answer->handles_size;
-            this->handles = (char **) malloc(answer->handles_size * sizeof(char *));
-            memcpy(this->handles, answer->handles, answer->handles_size * sizeof(char *));
+            this->handles = (char**) malloc(answer->handles_size * sizeof(char*));
+            memcpy(this->handles, answer->handles, answer->handles_size * sizeof(char*));
         }
-        ~QueueRecord() {
-            free(this->handles);
-        }
+        ~QueueRecord() { free(this->handles); }
     };
+
    public:
     AttentionBrokerUpdater(const string& query_context = "")
         : attention_broker_address(ATTENTION_BROKER_ADDRESS),
@@ -59,7 +58,7 @@ class AttentionBrokerUpdater : public QueryAnswerProcessor {
     }
     virtual ~AttentionBrokerUpdater() { this->graceful_shutdown(); };
     virtual void process_answer(QueryAnswer* query_answer) override {
-        QueueRecord *record = new QueueRecord((HandlesAnswer *) query_answer);
+        QueueRecord* record = new QueueRecord((HandlesAnswer*) query_answer);
         this->answers_queue.enqueue((void*) record);
     }
     virtual void query_answers_finished() override { this->set_flow_finished(); }
