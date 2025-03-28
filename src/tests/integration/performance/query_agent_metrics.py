@@ -6,17 +6,32 @@ import time
 TESTS_ROUNDS = 10
 
 
-def start_query_agent():
+def start_query_agent() -> subprocess.Popen:
     """
-    Starts (or restarts) the Query Agent.
+    Starts the Query Agent.
+
+    Returns:
+        subprocess.Popen: The process object for the Query Agent.
     """
-    subprocess.Popen(
-        "make run-query-agent",  # This command restarts the Query Agent if it is already running
+    process = subprocess.Popen(
+        "make run-query-agent",
         shell=True,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
     )
     time.sleep(3)  # Wait for the Query Agent to start and be ready
+    return process
+
+
+def stop_query_agent(process: subprocess.Popen):
+    """
+    Stops the Query Agent.
+
+    Args:
+        process (subprocess.Popen): The process object for the Query Agent.
+    """
+    process.terminate()
+    process.wait()
 
 
 def run_command(command: str) -> float:
@@ -113,11 +128,14 @@ def main():
         for round in range(TESTS_ROUNDS):
             print(f"  {round}: ", flush=True, end="")
 
-            # Start/restart the Query Agent
-            start_query_agent()
+            # Start the Query Agent
+            query_agent_process = start_query_agent()
 
             # Run the query
             round_time = run_command(cmd_prefix + query.replace("\n", " ") + cmd_suffix)
+
+            # Stop the Query Agent
+            stop_query_agent(query_agent_process)
 
             execution_time += round_time
 
