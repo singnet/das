@@ -1,0 +1,41 @@
+Running query 'linktemplate_3_node_var_link'...
+Rounds [for round in range(10)]:
+  0: 5.93 seconds
+  1: 6.16 seconds
+  2: 6.16 seconds
+  3: 6.05 seconds
+  4: 6.07 seconds
+  5: 5.94 seconds
+  6: 6.09 seconds
+  7: 6.34 seconds
+  8: 5.94 seconds
+  9: 6.27 seconds
+Average time for 'linktemplate_3_node_var_link': 6.09 seconds
+
+Running query 'and_2_linktemplate_linktemplate'...
+Rounds [for round in range(10)]:
+  0: 10.02 seconds
+  1: 10.03 seconds
+  2: 10.42 seconds
+  3: 10.43 seconds
+  4: 10.32 seconds
+  5: 10.02 seconds
+  6: 10.14 seconds
+  7: 10.93 seconds
+  8: 10.44 seconds
+  9: 10.33 seconds
+Average time for 'and_2_linktemplate_linktemplate': 10.31 seconds
+
+Running query 'and_2_linktemplate_or_2_linktemplate_linktemplate'...
+Rounds [for round in range(10)]:
+  0: 15.06 seconds
+  1: 15.14 seconds
+  2: 14.68 seconds
+  3: 14.43 seconds
+  4: 13.94 seconds
+  5: 15.37 seconds
+  6: 14.85 seconds
+  7: 14.75 seconds
+  8: 14.14 seconds
+  9: 14.27 seconds
+Average time for 'and_2_linktemplate_or_2_linktemplate_linktemplate': 14.66 seconds

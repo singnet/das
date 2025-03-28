@@ -10,7 +10,7 @@
 #include "RemoteIterator.h"
 #include "Utils.h"
 
-#define MAX_QUERY_ANSWERS ((unsigned int) 1000)
+#define MAX_QUERY_ANSWERS ((unsigned int) 1)
 
 using namespace std;
 
@@ -52,6 +52,7 @@ int main(int argc, char* argv[]) {
             if (++count == MAX_QUERY_ANSWERS) {
                 break;
             }
+            delete query_answer;
         }
     }
     if (count == 0) {
