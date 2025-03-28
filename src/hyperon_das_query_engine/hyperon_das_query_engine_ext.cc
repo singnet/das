@@ -79,11 +79,6 @@ NB_MODULE(hyperon_das_query_engine_ext, m) {
     nb::class_<DASNode>(m, "DASNode")
         .def(nb::init<const string&>(), "node_id"_a)
         .def(nb::init<const string&, const string&>(), "node_id"_a, "server_id"_a)
-        .def(nb::init<const string&, const string&, unsigned int, unsigned int>(),
-             "node_id"_a,
-             "server_id"_a,
-             "first_query_port"_a,
-             "last_query_port"_a)
         .def_ro_static("PATTERN_MATCHING_QUERY", &DASNode::PATTERN_MATCHING_QUERY)
         .def_ro_static("COUNTING_QUERY", &DASNode::COUNTING_QUERY)
         .def(
