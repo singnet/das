@@ -1,6 +1,5 @@
 #include <cstdlib>
 
-#include "AtomDB.h"
 #include "AtomDBSingleton.h"
 #include "DASNode.h"
 #include "HandlesAnswer.h"
@@ -9,6 +8,7 @@
 #include "test_utils.h"
 
 using namespace query_engine;
+using namespace atomdb;
 
 string handle_to_atom(const char* handle) {
     shared_ptr<AtomDB> db = AtomDBSingleton::get_instance();

@@ -2,8 +2,7 @@
 
 #include "Utils.h"
 
-using namespace query_engine;
-using namespace commons;
+using namespace atomdb;
 
 bool AtomDBSingleton::initialized = false;
 shared_ptr<AtomDB> AtomDBSingleton::atom_db = shared_ptr<AtomDB>{};
@@ -16,8 +15,8 @@ void AtomDBSingleton::init() {
         Utils::error(
             "AtomDBSingleton already initialized. AtomDBSingleton::init() should be called only once.");
     } else {
-        AtomDB::initialize_statics();
-        atom_db = shared_ptr<AtomDB>(new AtomDB());
+        RedisMongoDB::initialize_statics();
+        atom_db = shared_ptr<AtomDB>(new RedisMongoDB());
         initialized = true;
     }
 }

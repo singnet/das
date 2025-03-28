@@ -21,6 +21,7 @@
 #define MAX_STIMULATE_COUNT ((unsigned int) 1)
 
 using namespace std;
+using namespace atomdb;
 
 namespace query_engine {
 

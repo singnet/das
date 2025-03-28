@@ -1,6 +1,5 @@
 #include <cstdlib>
 
-#include "AtomDB.h"
 #include "AtomDBSingleton.h"
 #include "HandlesAnswer.h"
 #include "LinkTemplate.h"
