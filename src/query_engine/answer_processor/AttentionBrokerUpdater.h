@@ -28,6 +28,19 @@ namespace query_engine {
 constexpr char* ATTENTION_BROKER_ADDRESS = "localhost:37007";
 
 class AttentionBrokerUpdater : public QueryAnswerProcessor {
+   private:
+    class QueueRecord {
+       public:
+        unsigned int size;
+        char** handles;
+        QueueRecord(HandlesAnswer* answer) {
+            this->size = answer->handles_size;
+            this->handles = (char**) malloc(answer->handles_size * sizeof(char*));
+            memcpy(this->handles, answer->handles, answer->handles_size * sizeof(char*));
+        }
+        ~QueueRecord() { free(this->handles); }
+    };
+
    public:
     AttentionBrokerUpdater(const string& query_context = "")
         : attention_broker_address(ATTENTION_BROKER_ADDRESS),
@@ -46,7 +59,8 @@ class AttentionBrokerUpdater : public QueryAnswerProcessor {
     }
     virtual ~AttentionBrokerUpdater() { this->graceful_shutdown(); };
     virtual void process_answer(QueryAnswer* query_answer) override {
-        this->answers_queue.enqueue((void*) query_answer);
+        QueueRecord* record = new QueueRecord((HandlesAnswer*) query_answer);
+        this->answers_queue.enqueue((void*) record);
     }
     virtual void query_answers_finished() override { this->set_flow_finished(); }
     virtual void graceful_shutdown() override {
@@ -95,10 +109,10 @@ class AttentionBrokerUpdater : public QueryAnswerProcessor {
                 break;
             }
             bool idle_flag = true;
-            HandlesAnswer* handles_answer;
+            QueueRecord* queue_record;
             string handle;
             unsigned int count;
-            while ((handles_answer = (HandlesAnswer*) this->answers_queue.dequeue()) != NULL) {
+            while ((queue_record = ((QueueRecord*) (this->answers_queue.dequeue()))) != NULL) {
                 if (stimulated_count == MAX_STIMULATE_COUNT) {
                     continue;
                 }
@@ -109,9 +123,10 @@ class AttentionBrokerUpdater : public QueryAnswerProcessor {
                          << count_total_processed << endl;
                 }
 #endif
-                for (unsigned int i = 0; i < handles_answer->handles_size; i++) {
-                    execution_stack.push(string(handles_answer->handles[i]));
+                for (unsigned int i = 0; i < queue_record->size; i++) {
+                    execution_stack.push(string(queue_record->handles[i]));
                 }
+                delete queue_record;
                 while (!execution_stack.empty()) {
                     handle = execution_stack.top();
                     execution_stack.pop();
