@@ -201,6 +201,9 @@ class And : public Operator<N> {
             return false;
         } else {
             for (unsigned int i = 0; i < N; i++) {
+                if ((this->next_input_to_process[i] == this->query_answer[i].size()) && (this->all_answers_arrived[i])) {
+                    return true;
+                }
                 if (this->next_input_to_process[i] < this->query_answer[i].size()) {
                     return false;
                 }
@@ -275,6 +278,9 @@ class And : public Operator<N> {
             }
 
             if (this->border.size() == 0) {
+                if (processed_all_input()) {
+                    continue;
+                }
                 CandidateRecord candidate;
                 double fitness = 1.0;
                 for (unsigned int i = 0; i < N; i++) {

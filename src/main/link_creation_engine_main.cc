@@ -201,8 +201,8 @@ string handle_to_atom(const char* handle) {
 }
 
 void run(const string& context, const string& link_type_tag, const set<string> highlighted) {
-    string server_id = "localhost:31700";
-    string client_id = "localhost:31701";
+    string server_id = "0.0.0.0:31700";
+    string client_id = "0.0.0.0:31701";
 
     AtomDBSingleton::init();
     shared_ptr<AtomDB> db = AtomDBSingleton::get_instance();
