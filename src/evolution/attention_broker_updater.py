@@ -18,7 +18,7 @@ class AttentionBrokerUpdater:
         self.atomdb = atomdb
         self.context = context
 
-    def update(self, query_answer: QueryAnswer):
+    def update(self, individuals: list[tuple[QueryAnswer, float]]):
         single_answer = set()
         joint_answer = {}
         execution_stack = []
@@ -26,58 +26,52 @@ class AttentionBrokerUpdater:
         correlated_count = 0
         stimulated_count = 0
 
-        idle_flag = True
+        for query_answer, _ in individuals:
+            for i in range(query_answer.handles_size):
+                execution_stack.append(str(query_answer.handles[i]))
 
-        for i in range(query_answer.handles_size):
-            execution_stack.append(str(query_answer.handles[i]))
+            while execution_stack:
+                handle = execution_stack.pop()
+                single_answer.add(handle)
+                count = joint_answer.get(handle, 0) + 1
+                joint_answer[handle] = count
 
-        while execution_stack:
-            handle = execution_stack.pop()
-            single_answer.add(handle)
-            count = joint_answer.get(handle, 0) + 1
-            joint_answer[handle] = count
-
-            try:
-                targets = self.atomdb.get_link_targets(handle)
-                for target in targets:
-                    execution_stack.append(target)
-            except Exception:
-                pass
-
-        with grpc.insecure_channel(self.attention_broker_address) as channel:
-            stub = AttentionBrokerStub(channel)
-            message = common__pb2.HandleList(list=list(single_answer), context=self.context)
-            response = stub.correlate(message)
-            if response.msg != "CORRELATE":
-                print("Failed GRPC command: AttentionBroker::correlate()")
-
-        single_answer.clear()
-
-        idle_flag = False
-        correlated_count += 1
-
-        if correlated_count == MAX_CORRELATIONS_WITHOUT_STIMULATE:
-            correlated_count = 0
-
-            handle_count = {}
-            weight_sum = sum(joint_answer.values())
-            for handle, count in joint_answer.items():
-                handle_count[handle] = count
-            handle_count["SUM"] = weight_sum
-
-            message = common__pb2.HandleCount(map=handle_count, context=self.context)
+                try:
+                    targets = self.atomdb.get_link_targets(handle)
+                    for target in targets:
+                        execution_stack.append(target)
+                except Exception:
+                    pass
 
             with grpc.insecure_channel(self.attention_broker_address) as channel:
                 stub = AttentionBrokerStub(channel)
-                response = stub.stimulate(message)
-                if response.msg != "STIMULATE":
-                    print("Failed GRPC command: AttentionBroker::stimulate()")
+                message = common__pb2.HandleList(list=list(single_answer), context=self.context)
+                response = stub.correlate(message)
+                if response.msg != "CORRELATE":
+                    print("Failed GRPC command: AttentionBroker.correlate()")
 
-            stimulated_count += 1
-            joint_answer.clear()
+            single_answer.clear()
+            correlated_count += 1
 
-        if idle_flag:
-            time.sleep(0.1)
+            if correlated_count == MAX_CORRELATIONS_WITHOUT_STIMULATE:
+                correlated_count = 0
+
+                handle_count = {}
+                weight_sum = sum(joint_answer.values())
+                for handle, count in joint_answer.items():
+                    handle_count[handle] = count
+                handle_count["SUM"] = weight_sum
+
+                message = common__pb2.HandleCount(map=handle_count, context=self.context)
+
+                with grpc.insecure_channel(self.attention_broker_address) as channel:
+                    stub = AttentionBrokerStub(channel)
+                    response = stub.stimulate(message)
+                    if response.msg != "STIMULATE":
+                        print("Failed GRPC command: AttentionBroker.stimulate()")
+
+                stimulated_count += 1
+                joint_answer.clear()
 
         if correlated_count > 0:
             weight_sum = sum(joint_answer.values())
@@ -94,6 +88,6 @@ class AttentionBrokerUpdater:
                 stub = AttentionBrokerStub(channel)
                 response = stub.stimulate(message)
                 if response.msg != "STIMULATE":
-                    print("Failed GRPC command: AttentionBroker::stimulate()")
+                    print("Failed GRPC command: AttentionBroker.stimulate()")
 
             stimulated_count += 1
