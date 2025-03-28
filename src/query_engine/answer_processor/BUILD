@@ -18,7 +18,8 @@ cc_library(
   deps = [
     ":query_answer_processor",
     "//query_engine:handles_answer",
-    "//query_engine:atomdb_api_types",
+    "//atomdb:atomdb_singleton",
+    "//atomdb:atomdb_api_types",
     "//commons:commons_lib",
     "//attention_broker:attention_broker_server_lib",
   ],

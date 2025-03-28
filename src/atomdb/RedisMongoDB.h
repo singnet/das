@@ -1,5 +1,4 @@
-#ifndef _QUERY_ENGINE_ATOMDB_H
-#define _QUERY_ENGINE_ATOMDB_H
+#pragma once
 
 #include <hiredis_cluster/hircluster.h>
 
@@ -11,11 +10,12 @@
 #include <mutex>
 #include <vector>
 
+#include "AtomDB.h"
 #include "AtomDBAPITypes.h"
 
 using namespace std;
 
-namespace query_engine {
+namespace atomdb {
 
 enum MONGODB_FIELD { ID = 0, size };
 
@@ -34,12 +34,11 @@ enum MONGODB_FIELD { ID = 0, size };
 // I think it's pointless to make any further documentation while we don't make this integrfation.
 // -------------------------------------------------------------------------------------------------
 
-class AtomDB {
+class RedisMongoDB : public AtomDB {
    public:
-    AtomDB();
-    ~AtomDB();
+    RedisMongoDB();
+    ~RedisMongoDB();
 
-    static string WILDCARD;
     static string REDIS_PATTERNS_PREFIX;
     static string REDIS_TARGETS_PREFIX;
     static uint REDIS_CHUNK_SIZE;
@@ -48,7 +47,6 @@ class AtomDB {
     static string MONGODB_FIELD_NAME[MONGODB_FIELD::size];
 
     static void initialize_statics() {
-        WILDCARD = "*";
         REDIS_PATTERNS_PREFIX = "patterns";
         REDIS_TARGETS_PREFIX = "outgoing_set";
         REDIS_CHUNK_SIZE = 10000;
@@ -79,6 +77,4 @@ class AtomDB {
     void attention_broker_setup();
 };
 
-}  // namespace query_engine
-
-#endif  // _QUERY_ENGINE_ATOMDB_H
+}  // namespace atomdb

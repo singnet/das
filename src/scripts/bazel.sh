@@ -35,14 +35,13 @@ CONTAINER_PIP_CACHE=/home/"${USER}"/.cache/pip
 CONTAINER_PIPTOOLS_CACHE=/home/"${USER}"/.cache/pip-tools
 CONTAINER_BAZELISK_CACHE=/home/"${USER}"/.cache/bazelisk
 
-if docker ps -a --format '{{.Names}}' | grep -q "^${CONTAINER_NAME}$"; then
-  echo "Removing existing container: ${CONTAINER_NAME}"
-  docker rm -f "${CONTAINER_NAME}"
-fi
+# if docker ps -a --format '{{.Names}}' | grep -q "^${CONTAINER_NAME}$"; then
+#   echo "Removing existing container: ${CONTAINER_NAME}"
+#   docker rm -f "${CONTAINER_NAME}"
+# fi
 
 docker run --rm \
   --user="$(id -u)":"$(id -g)" \
-  --name=$CONTAINER_NAME \
   -e BIN_DIR=$CONTAINER_BIN_DIR \
   $ENV_VARS \
   --network=host \

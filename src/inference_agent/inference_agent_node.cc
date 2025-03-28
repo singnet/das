@@ -7,7 +7,7 @@ using namespace std;
 
 const std::string InferenceAgentNode::CREATE_INFERENCE = "create_inference";
 const std::string InferenceAgentNode::INFERENCE_ANSWER = "inference_answer";
-const std::string InferenceAgentNode::DISTRIBUTED_INFERENCE_FINISHED = "distributed_inference_finished";
+const std::string InferenceAgentNode::DISTRIBUTED_INFERENCE_FINISHED = "evolution_finished";
 
 InferenceAgentNode::InferenceAgentNode(const std::string& node_id) : StarNode(node_id) {
     cout << "InferenceAgentNode::InferenceAgentNode Server" << endl;
@@ -83,5 +83,6 @@ DistributedInferenceFinishedMessage::DistributedInferenceFinishedMessage(std::st
 
 void DistributedInferenceFinishedMessage::act(std::shared_ptr<MessageFactory> node) {
     auto inference_node = dynamic_pointer_cast<InferenceAgentNode>(node);
+    inference_node->add_request(this->args);
     inference_node->set_answers_finished();
 }

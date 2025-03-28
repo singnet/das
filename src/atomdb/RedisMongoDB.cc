@@ -1,4 +1,4 @@
-#include "AtomDB.h"
+#include "RedisMongoDB.h"
 
 #include <grpcpp/grpcpp.h>
 
@@ -12,24 +12,23 @@
 #include "attention_broker.grpc.pb.h"
 #include "attention_broker.pb.h"
 
-using namespace query_engine;
+using namespace atomdb;
 using namespace commons;
 
-string AtomDB::WILDCARD;
-string AtomDB::REDIS_PATTERNS_PREFIX;
-string AtomDB::REDIS_TARGETS_PREFIX;
-uint AtomDB::REDIS_CHUNK_SIZE;
-string AtomDB::MONGODB_DB_NAME;
-string AtomDB::MONGODB_COLLECTION_NAME;
-string AtomDB::MONGODB_FIELD_NAME[MONGODB_FIELD::size];
+string RedisMongoDB::REDIS_PATTERNS_PREFIX;
+string RedisMongoDB::REDIS_TARGETS_PREFIX;
+uint RedisMongoDB::REDIS_CHUNK_SIZE;
+string RedisMongoDB::MONGODB_DB_NAME;
+string RedisMongoDB::MONGODB_COLLECTION_NAME;
+string RedisMongoDB::MONGODB_FIELD_NAME[MONGODB_FIELD::size];
 
-AtomDB::AtomDB() {
+RedisMongoDB::RedisMongoDB() {
     redis_setup();
     mongodb_setup();
     attention_broker_setup();
 }
 
-AtomDB::~AtomDB() {
+RedisMongoDB::~RedisMongoDB() {
     if (this->redis_cluster != NULL) {
         redisClusterFree(this->redis_cluster);
     }
@@ -40,7 +39,7 @@ AtomDB::~AtomDB() {
     // delete this->mongodb_client;
 }
 
-void AtomDB::attention_broker_setup() {
+void RedisMongoDB::attention_broker_setup() {
     grpc::ClientContext context;
     grpc::Status status;
     dasproto::Empty empty;
@@ -70,7 +69,7 @@ void AtomDB::attention_broker_setup() {
     }
 }
 
-void AtomDB::redis_setup() {
+void RedisMongoDB::redis_setup() {
     string host = Utils::get_environment("DAS_REDIS_HOSTNAME");
     string port = Utils::get_environment("DAS_REDIS_PORT");
     string address = host + ":" + port;
@@ -104,12 +103,12 @@ void AtomDB::redis_setup() {
     }
 }
 
-mongocxx::database AtomDB::get_database() {
+mongocxx::database RedisMongoDB::get_database() {
     auto database = this->mongodb_pool->acquire();
     return database[MONGODB_DB_NAME];
 }
 
-void AtomDB::mongodb_setup() {
+void RedisMongoDB::mongodb_setup() {
     string host = Utils::get_environment("DAS_MONGODB_HOSTNAME");
     string port = Utils::get_environment("DAS_MONGODB_PORT");
     string user = Utils::get_environment("DAS_MONGODB_USERNAME");
@@ -142,7 +141,7 @@ void AtomDB::mongodb_setup() {
     }
 }
 
-vector<string> AtomDB::query_for_pattern(std::shared_ptr<char> pattern_handle) {
+vector<string> RedisMongoDB::query_for_pattern(std::shared_ptr<char> pattern_handle) {
     unsigned int redis_cursor = 0;
     bool redis_has_more = true;
     string command;
@@ -180,11 +179,11 @@ vector<string> AtomDB::query_for_pattern(std::shared_ptr<char> pattern_handle) {
     return results;
 }
 
-shared_ptr<atomdb_api_types::HandleList> AtomDB::query_for_targets(shared_ptr<char> link_handle) {
+shared_ptr<atomdb_api_types::HandleList> RedisMongoDB::query_for_targets(shared_ptr<char> link_handle) {
     return query_for_targets(link_handle.get());
 }
 
-shared_ptr<atomdb_api_types::HandleList> AtomDB::query_for_targets(char* link_handle_ptr) {
+shared_ptr<atomdb_api_types::HandleList> RedisMongoDB::query_for_targets(char* link_handle_ptr) {
     redisReply* reply = (redisReply*) redisCommand(
         this->redis_single, "GET %s:%s", REDIS_TARGETS_PREFIX.c_str(), link_handle_ptr);
     /*
@@ -205,7 +204,7 @@ shared_ptr<atomdb_api_types::HandleList> AtomDB::query_for_targets(char* link_ha
         new atomdb_api_types::RedisStringBundle(reply));
 }
 
-shared_ptr<atomdb_api_types::AtomDocument> AtomDB::get_atom_document(const char* handle) {
+shared_ptr<atomdb_api_types::AtomDocument> RedisMongoDB::get_atom_document(const char* handle) {
     this->mongodb_mutex.lock();
     auto mongodb_collection = get_database()[MONGODB_COLLECTION_NAME];
     auto reply = mongodb_collection.find_one(bsoncxx::v_noabi::builder::basic::make_document(

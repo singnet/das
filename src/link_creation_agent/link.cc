@@ -64,6 +64,7 @@ vector<string> Link::tokenize() {
     vector<string> tokens;
     tokens.push_back("LINK");
     tokens.push_back(this->type);
+    tokens.push_back(to_string(this->targets.size()));
     for (LinkTargetTypes target : this->targets) {
         if (holds_alternative<string>(target)) {
             tokens.push_back("HANDLE");

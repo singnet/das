@@ -24,6 +24,7 @@
 using namespace std;
 using namespace query_engine;
 using namespace attention_broker_server;
+using namespace atomdb;
 
 namespace query_element {
 

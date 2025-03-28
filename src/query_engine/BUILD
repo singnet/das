@@ -14,9 +14,6 @@ cc_library(
     ],
     textual_hdrs = ["QueryNode.cc"],
     deps = [
-        ":atomdb",
-        ":atomdb_api_types",
-        ":atomdb_singleton",
         ":count_answer",
         ":handles_answer",
         ":query_answer",
@@ -30,38 +27,6 @@ cc_library(
         "//commons:commons_lib",
         "@mbedtls//:mbedtls",
     ],
-)
-
-cc_library(
-  name = "atomdb",
-  srcs = ["AtomDB.cc"],
-  hdrs = ["AtomDB.h"],
-  deps = [
-    ":atomdb_api_types",
-    "//attention_broker:attention_broker_server_lib",
-    "//commons:commons_lib",
-  ],
-)
-
-cc_library(
-  name = "atomdb_api_types",
-  srcs = ["AtomDBAPITypes.cc"],
-  hdrs = ["AtomDBAPITypes.h"],
-  deps = [
-    "//hasher:hasher_lib",
-    "//commons:commons_lib",
-  ],
-)
-
-cc_library(
-  name = "atomdb_singleton",
-  srcs = ["AtomDBSingleton.cc"],
-  hdrs = ["AtomDBSingleton.h"],
-  deps = [
-    ":atomdb",
-    ":atomdb_api_types",
-    "//commons:commons_lib",
-  ],
 )
 
 cc_library(
