@@ -54,6 +54,7 @@ def stop_query_agent(process: subprocess.Popen):
         process (subprocess.Popen): A Popen object that was returned by `start_query_agent()`.
     """
     process.terminate()
+    process.wait()
 
 
 # def stop_query_agent(process: subprocess.Popen):
