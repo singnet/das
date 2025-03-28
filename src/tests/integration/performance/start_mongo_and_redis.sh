@@ -1,17 +1,28 @@
-#!/bin/bash -x
+#!/bin/bash
+
+set -exou pipefail
+
 # This script is used to start MongoDB and Redis for performance testing.
 
-# start MongoDB
+# Set up MongoDB
+
+MONGO_CONTAINER_NAME="mongodb-perf-tests-38000"
+
+echo "===== Removing existing MongoDB container if it exists ====="
+if docker ps -a --format '{{.Names}}' | grep -q "^${MONGO_CONTAINER_NAME}$"; then
+  echo "Removing existing container: ${MONGO_CONTAINER_NAME}"
+  docker rm -f "${MONGO_CONTAINER_NAME}"
+fi
+echo
 
 echo "===== Setting up MongoDB data on /tmp ====="
-sudo rm -rf /tmp/mongodb-data /tmp/mongodb-configdb \
-  && sudo mkdir -p /tmp/mongodb-data /tmp/mongodb-configdb \
-  && sudo tar jvxf /opt/das/data/perf-test/mongodb-data.tar.bz2 -C /tmp/mongodb-data/ \
-  && sudo chown -R 999:999 /tmp/mongodb-data /tmp/mongodb-configdb
+sudo rm -rf /tmp/mongodb-data /tmp/mongodb-configdb
+sudo mkdir -p /tmp/mongodb-data /tmp/mongodb-configdb
+sudo tar jvxf /opt/das/data/perf-test/mongodb-data.tar.bz2 -C /tmp/mongodb-data/
+sudo chown -R 999:999 /tmp/mongodb-data /tmp/mongodb-configdb
 echo
+
 echo "===== Starting MongoDB on port 38000 ====="
-docker stop mongodb-perf-tests-38000 || true && \
-docker rm mongodb-perf-tests-38000 || true && \
 docker run \
   --name "mongodb-perf-tests-38000" \
   --runtime "runc" \
@@ -40,19 +51,28 @@ docker run \
   "mongo:6.0.13-jammy" \
   "mongod"
 
+echo "MongoDB started on port 38000 (container: ${MONGO_CONTAINER_NAME})"
+
 echo
 echo
 
-# start Redis
-echo "===== Setting up Redis data on /tmp ====="
-sudo rm -rf /tmp/redis-data \
-  && sudo mkdir -p /tmp/redis-data \
-  && sudo tar jvxf /opt/das/data/perf-test/redis-data.tar.bz2 -C /tmp/redis-data/ \
-  && sudo chown -R 999:1000 /tmp/redis-data
+# Set up Redis
+REDIS_CONTAINER_NAME="redis-perf-tests-39000"
+echo "===== Removing existing Redis container if it exists ====="
+if docker ps -a --format '{{.Names}}' | grep -q "^${REDIS_CONTAINER_NAME}$"; then
+  echo "Removing existing container: ${REDIS_CONTAINER_NAME}"
+  docker rm -f "${REDIS_CONTAINER_NAME}"
+fi
 echo
+
+echo "===== Setting up Redis data on /tmp ====="
+sudo rm -rf /tmp/redis-data
+sudo mkdir -p /tmp/redis-data
+sudo tar jvxf /opt/das/data/perf-test/redis-data.tar.bz2 -C /tmp/redis-data/
+sudo chown -R 999:1000 /tmp/redis-data
+echo
+
 echo "===== Starting Redis on port 39000 ====="  
-docker stop redis-perf-tests-39000 || true && \
-docker rm redis-perf-tests-39000 || true && \
 docker run \
   --name "redis-perf-tests-39000" \
   --runtime "runc" \
@@ -72,3 +92,4 @@ docker run \
   "redis:7.2.3-alpine" \
   "redis-server" "--port" "39000" "--appendonly" "yes" "--protected-mode" "no"
 
+echo "Redis started on port 39000 (container: ${REDIS_CONTAINER_NAME})"
