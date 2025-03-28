@@ -15,13 +15,13 @@ make bazel clean
 make build-all
 ```
 
-4. Start MongoDB and Redis using the following script (it requires `sudo` permissions):
+4. Start MongoDB and Redis using the following script (it requires `sudo` and `docker` permissions):
 
 ```bash
 sudo bash ./src/tests/integration/performance/start_mongo_and_redis.sh
 ```
 
-5. Run the performance test:
+5. Run the performance test (it requires `docker` permissions):
 
 ```bash
 make performance-test
