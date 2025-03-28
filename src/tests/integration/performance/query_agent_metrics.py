@@ -1,9 +1,22 @@
 import subprocess
 import sys
 import time
+import os
 
 # Number of times to run each query. At the end, the average time will be printed.
 TESTS_ROUNDS = 10
+
+
+def set_env_vars():
+    """
+    Sets the environment variables for the Query Agent.
+    """
+    os.environ["DAS_MONGODB_HOSTNAME"] = "localhost"
+    os.environ["DAS_MONGODB_PORT"] = "38000"
+    os.environ["DAS_MONGODB_USERNAME"] = "dbadmin"
+    os.environ["DAS_MONGODB_PASSWORD"] = "dassecret"
+    os.environ["DAS_REDIS_HOSTNAME"] = "localhost"
+    os.environ["DAS_REDIS_PORT"] = "39000"
 
 
 def start_query_agent() -> subprocess.Popen:
@@ -63,6 +76,8 @@ def run_command(command: str) -> float:
 
 
 def main():
+    set_env_vars()
+
     # fmt: off
     queries: dict[str, str] = dict(
         linktemplate_3_node_var_link=("""
