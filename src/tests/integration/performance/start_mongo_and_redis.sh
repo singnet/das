@@ -12,6 +12,9 @@ echo "===== Removing existing MongoDB container if it exists ====="
 if docker ps -a --format '{{.Names}}' | grep -q "^${MONGO_CONTAINER_NAME}$"; then
   echo "Removing existing container: ${MONGO_CONTAINER_NAME}"
   docker rm -f "${MONGO_CONTAINER_NAME}"
+else
+  echo "No existing container found with name: ${MONGO_CONTAINER_NAME}"
+  echo "Proceeding to create a new MongoDB container."
 fi
 echo
 
@@ -64,6 +67,9 @@ echo "===== Removing existing Redis container if it exists ====="
 if docker ps -a --format '{{.Names}}' | grep -q "^${REDIS_CONTAINER_NAME}$"; then
   echo "Removing existing container: ${REDIS_CONTAINER_NAME}"
   docker rm -f "${REDIS_CONTAINER_NAME}"
+else
+  echo "No existing container found with name: ${REDIS_CONTAINER_NAME}"
+  echo "Proceeding to create a new Redis container."
 fi
 echo
 
