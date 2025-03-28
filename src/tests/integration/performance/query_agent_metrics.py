@@ -16,7 +16,6 @@ def start_query_agent() -> subprocess.Popen:
     process = subprocess.Popen(
         "make run-query-agent",
         shell=True,
-        check=True,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
     )
@@ -145,8 +144,6 @@ def main():
         execution_time_avg = execution_time / TESTS_ROUNDS
 
         print(f"Average time for '{name}': {execution_time_avg:.2f} seconds")
-
-    time.sleep(3)
 
 
 if __name__ == "__main__":
