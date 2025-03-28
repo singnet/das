@@ -1,23 +1,28 @@
 import subprocess
 import sys
 import time
+import os
+from typing import MutableMapping
 
 # Number of times to run each query. At the end, the average time will be printed.
 TESTS_ROUNDS = 10
 
 
-def get_env_vars() -> dict:
+def get_env_vars() -> MutableMapping:
     """
     Sets the environment variables for the Query Agent.
     """
-    return {
-        "DAS_MONGODB_HOSTNAME": "localhost",
-        "DAS_MONGODB_PORT": "38000",
-        "DAS_MONGODB_USERNAME": "dbadmin",
-        "DAS_MONGODB_PASSWORD": "dassecret",
-        "DAS_REDIS_HOSTNAME": "localhost",
-        "DAS_REDIS_PORT": "39000",
-    }
+    os.environ.update(
+        {
+            "DAS_MONGODB_HOSTNAME": "localhost",
+            "DAS_MONGODB_PORT": "38000",
+            "DAS_MONGODB_USERNAME": "dbadmin",
+            "DAS_MONGODB_PASSWORD": "dassecret",
+            "DAS_REDIS_HOSTNAME": "localhost",
+            "DAS_REDIS_PORT": "39000",
+        }
+    )
+    return os.environ
 
 
 def start_process(command: str) -> subprocess.Popen:
