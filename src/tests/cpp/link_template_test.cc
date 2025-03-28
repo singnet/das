@@ -16,8 +16,8 @@ TEST(LinkTemplate, basics) {
     setenv("DAS_USE_REDIS_CLUSTER", "false", 1);
     setenv("DAS_MONGODB_HOSTNAME", "localhost", 1);
     setenv("DAS_MONGODB_PORT", "28000", 1);
-    setenv("DAS_MONGODB_USERNAME", "dbadmin", 1);
-    setenv("DAS_MONGODB_PASSWORD", "dassecret", 1);
+    setenv("DAS_MONGODB_USERNAME", "root", 1);
+    setenv("DAS_MONGODB_PASSWORD", "root", 1);
 
     string server_node_id = "SERVER";
     QueryNodeServer<HandlesAnswer> server_node(server_node_id);

@@ -16,6 +16,9 @@
 #include "link.h"
 #include "thread_pool.h"
 
+#define DEBUG
+
+
 using namespace das_agent;
 using namespace query_node;
 using namespace query_element;

@@ -11,6 +11,7 @@
 
 using namespace std;
 using namespace distributed_algorithm_node;
+#define DEBUG
 
 /**
  * @brief Dummy message for unknown commands
@@ -25,10 +26,12 @@ class DummyMessage : public Message {
     }
 
     void act(shared_ptr<MessageFactory> node) {
+        #ifdef DEBUG
         cout << "DummyMessage::act" << endl;
         cout << command << endl;
         for (auto arg : args) {
             cout << arg << endl;
         }
+        #endif
     }
 };
