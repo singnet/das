@@ -95,7 +95,7 @@ class InferenceAgent {
     std::string inference_node_server_port;
     uint16_t current_iterator_id = 0;
     int iterator_pool_size = 10;
-    thread* agent_thread;
+    thread* agent_thread = nullptr;
     bool is_stoping = false;
     std::mutex agent_mutex;
     std::unordered_map<std::string, std::shared_ptr<InferenceRequest>>

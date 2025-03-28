@@ -1,8 +1,9 @@
 #include "inference_request.h"
 
+#include <memory>
+
 #include "Utils.h"
 #include "link_create_template.h"
-#include "memory"
 
 using namespace std;
 using namespace inference_agent;
@@ -23,7 +24,7 @@ InferenceRequest::~InferenceRequest() {}
 
 std::vector<std::string> InferenceRequest::query() { return {}; }
 
-std::string InferenceRequest::get_id() { return Utils::random_string(10); }
+std::string InferenceRequest::get_id() { return inference_request_id; }
 
 void InferenceRequest::set_id(std::string inference_request_id) {
     this->inference_request_id = inference_request_id;
@@ -33,24 +34,129 @@ std::string InferenceRequest::get_type() { return "INFERENCE_REQUEST"; }
 
 std::string InferenceRequest::get_max_proof_length() { return std::to_string(max_proof_length); }
 
-std::vector<std::string> InferenceRequest::get_distributed_inference_control_request() {
+template <typename T>
+static vector<vector<T>> product(const std::vector<T>& iterable, size_t repeat) {
+    std::vector<std::vector<T>> result;
+    std::vector<T> current(repeat, iterable[0]);
+    result.push_back(current);
+
+    for (size_t i = 0; i < repeat; i++) {
+        std::vector<std::vector<T>> temp;
+        for (const auto& item : iterable) {
+            for (const auto& vec : result) {
+                std::vector<T> new_vec = vec;
+                new_vec[i] = item;
+                temp.push_back(new_vec);
+            }
+        }
+        result = std::move(temp);
+    }
+
+    return result;
+}
+
+static std::vector<std::string> inference_evolution_request_builder(std::string first_handle,
+                                                                    std::string second_handle,
+                                                                    int max_proof_length,
+                                                                    int& counter) {
     // clang-format off
-    std::vector<std::string> tokens = {
-        "CHAIN",
-            first_handle,    
-            second_handle, 
-            std::to_string(max_proof_length),
-            "OR",          
-                "LINK_TEMPLATE", "Expression",  "3",
-                    "NODE", "Symbol", "IMPLICATION", 
-                    "_FIRST_",
-                    "_SECOND_", 
-                "LINK_TEMPLATE", "Expression",  "3",
-                    "NODE", "Symbol", "EQUIVALENCE", 
-                    "_FIRST_",
-                    "_SECOND_"
-    };
+    std::vector<std::string> query_template = {
+        "LINK_TEMPLATE", "Expression",  "3",
+        "NODE", "Symbol", "_TYPE_", 
+        "_FIRST_",
+        "_SECOND_", };
     // clang-format on
+    std::vector<std::string> commands = {"IMPLICATION", "EQUIVALENCE"};
+    std::vector<std::string> request;
+    if (max_proof_length == 1) {
+        counter += commands.size();
+        for (auto ttype : commands) {
+            for (auto token : query_template) {
+                if (token == "_TYPE_") {
+                    request.push_back(ttype);
+                } else if (token == "_FIRST_") {
+                    request.push_back("HANDLE");
+                    request.push_back(first_handle);
+                } else if (token == "_SECOND_") {
+                    request.push_back("HANDLE");
+                    request.push_back(second_handle);
+                } else {
+                    request.push_back(token);
+                }
+            }
+        }
+    } else {
+        std::vector<std::string> vars;
+        vars.push_back(first_handle);
+        for (int i = 1; i < max_proof_length; i++) {
+            vars.push_back("V" + std::to_string(i));
+        }
+        vars.push_back(second_handle);
+        auto commands_product = product<std::string>({commands}, vars.size() - 1);
+        for (auto cp : commands_product) {
+            counter++;
+            request.push_back("AND");
+            request.push_back(std::to_string(vars.size() - 1));
+            for (int i = 1; i < vars.size(); i++) {
+                for (auto token : query_template) {
+                    if (token == "_TYPE_") {
+                        request.push_back(cp[i - 1]);
+                    } else if (token == "_FIRST_") {
+                        request.push_back((vars[i - 1] == first_handle || vars[i - 1] == second_handle)
+                                              ? "HANDLE"
+                                              : "VARIABLE");
+                        request.push_back(vars[i - 1]);
+                    } else if (token == "_SECOND_") {
+                        request.push_back((vars[i] == first_handle || vars[i] == second_handle)
+                                              ? "HANDLE"
+                                              : "VARIABLE");
+                        request.push_back(vars[i]);
+                    } else {
+                        request.push_back(token);
+                    }
+                }
+            }
+        }
+
+        // for (auto ttype : commands) {
+        //     request.push_back("AND");
+        //     request.push_back(std::to_string(vars.size() - 1));
+        //     for (int i = 1; i < vars.size(); i++) {
+        //         for (auto token : query_template) {
+        //             if (token == "_TYPE_") {
+        //                 request.push_back(ttype);
+        //             } else if (token == "_FIRST_") {
+        //                 request.push_back((vars[i - 1] == first_handle || vars[i - 1] ==
+        //                 second_handle)? "HANDLE" : "VARIABLE"); request.push_back(vars[i - 1]);
+        //             } else if (token == "_SECOND_") {
+        //                 request.push_back((vars[i] == first_handle || vars[i] == second_handle)?
+        //                 "HANDLE" : "VARIABLE"); request.push_back(vars[i]);
+        //             } else {
+        //                 request.push_back(token);
+        //             }
+        //         }
+        //     }
+        // }
+
+        for (auto tkn : inference_evolution_request_builder(
+                 first_handle, second_handle, max_proof_length - 1, counter)) {
+            request.push_back(tkn);
+        }
+    }
+    return request;
+}
+
+std::vector<std::string> InferenceRequest::get_distributed_inference_control_request() {
+    std::vector<std::string> tokens;
+    int size = 0;
+    std::vector<std::string> request =
+        inference_evolution_request_builder(first_handle, second_handle, max_proof_length, size);
+    tokens.push_back(this->context);
+    tokens.push_back("OR");
+    tokens.push_back(std::to_string(size));
+    for (auto token : request) {
+        tokens.push_back(token);
+    }
     return tokens;
 }
 
