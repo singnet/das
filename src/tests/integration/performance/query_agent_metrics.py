@@ -166,7 +166,7 @@ def main():
             time.sleep(3)  # Adjust this time as needed
 
             # Run the query
-            round_time = run_command(cmd_prefix + query.replace("\n", " ") + cmd_suffix)
+            round_time = run_command(cmd_prefix + '"' + query.replace("\n", " ") + '"' + cmd_suffix)
 
             # Stop the Query Agent
             stop_query_agent(query_agent_process)
