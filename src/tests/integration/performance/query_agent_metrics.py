@@ -11,11 +11,12 @@ def start_query_agent():
     Starts (or restarts) the Query Agent.
     """
     return subprocess.Popen(
-        "make run-query-agent",  # this command restarts the Query Agent if it is already running
+        "make run-query-agent",  # This command restarts the Query Agent if it is already running
         shell=True,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
     )
+    time.sleep(3)  # Wait for the Query Agent to start and be ready
 
 
 def run_command(command: str) -> float:
@@ -114,8 +115,6 @@ def main():
 
             # Start/restart the Query Agent
             start_query_agent()
-
-            time.sleep(3)
 
             # Run the query
             round_time = run_command(cmd_prefix + query.replace("\n", " ") + cmd_suffix)
