@@ -23,7 +23,7 @@ MONGO_TMP_CONFIGDB="/tmp/mongodb-configdb"
 echo "===== Setting up MongoDB data on ${MONGO_TMP_DATA} ====="
 sudo rm -rf "${MONGO_TMP_DATA}" "${MONGO_TMP_CONFIGDB}"
 sudo mkdir -p "${MONGO_TMP_DATA}" "${MONGO_TMP_CONFIGDB}"
-sudo pv /opt/das/data/perf-test/mongodb-data.tar.bz2 | tar jvxf - -C "${MONGO_TMP_DATA}/"
+sudo pv /opt/das/data/perf-test/mongodb-data.tar.bz2 | tar jxf - -C "${MONGO_TMP_DATA}/"
 sudo chown -R 999:999 "${MONGO_TMP_DATA}" "${MONGO_TMP_CONFIGDB}"
 echo
 
@@ -77,7 +77,7 @@ REDIS_TMP_DATA="/tmp/redis-data"
 echo "===== Setting up Redis data on ${REDIS_TMP_DATA} ====="
 sudo rm -rf "${REDIS_TMP_DATA}"
 sudo mkdir -p "${REDIS_TMP_DATA}"
-sudo pv /opt/das/data/perf-test/redis-data.tar.bz2 | tar jvxf - -C "${REDIS_TMP_DATA}/"
+sudo pv /opt/das/data/perf-test/redis-data.tar.bz2 | tar jxf - -C "${REDIS_TMP_DATA}/"
 sudo chown -R 999:1000 "${REDIS_TMP_DATA}"
 echo
 
