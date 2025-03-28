@@ -19,28 +19,16 @@ def set_env_vars():
     os.environ["DAS_REDIS_PORT"] = "39000"
 
 
-def start_query_agent() -> subprocess.Popen:
-    """
-    Starts the Query Agent (with the command `make run-query-agent`) and returns a Popen object.
-
-    Returns:
-        subprocess.Popen: A Popen object that can be used to stop the Query Agent later with `process.terminate()`.
-    """
+def start_process(command: str) -> subprocess.Popen:
     return subprocess.Popen(
-        "make run-query-agent",
+        command,
         shell=True,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
     )
 
 
-def stop_query_agent(process: subprocess.Popen):
-    """
-    Stops the Query Agent (with the command `make stop-query-agent`).
-
-    Args:
-        process (subprocess.Popen): A Popen object that was returned by `start_query_agent()`.
-    """
+def stop_process(process: subprocess.Popen):
     process.terminate()
     process.wait()
 
@@ -131,6 +119,11 @@ def main():
     cmd_prefix = "bash src/scripts/run.sh query 'localhost:31701' 'localhost:31700' "  # Prefix for all commands
     cmd_suffix = ""  # Suffix for all commands
 
+    # Start the Attention Broker
+    attention_broker_process = start_process("make run-attention-broker")
+    # Wait for the Attention Broker to be ready
+    time.sleep(3)  # Adjust this time as needed
+
     for name, query in queries.items():
         print(f"\nRunning query '{name}'...")
 
@@ -142,7 +135,7 @@ def main():
             print(f"  {round}: ", flush=True, end="")
 
             # Start the Query Agent
-            query_agent_process = start_query_agent()
+            query_agent_process = start_process("make run-query-agent")
 
             # Wait for the Query Agent to be ready
             time.sleep(3)  # Adjust this time as needed
@@ -151,7 +144,7 @@ def main():
             round_time = run_command(cmd_prefix + query.replace("\n", " ") + cmd_suffix)
 
             # Stop the Query Agent
-            stop_query_agent(query_agent_process)
+            stop_process(query_agent_process)
 
             execution_time += round_time
 
@@ -160,6 +153,9 @@ def main():
         execution_time_avg = execution_time / TESTS_ROUNDS
 
         print(f"Average time for '{name}': {execution_time_avg:.2f} seconds")
+
+    # Stop the Attention Broker
+    stop_process(attention_broker_process)
 
 
 if __name__ == "__main__":
