@@ -6,23 +6,6 @@ import time
 TESTS_ROUNDS = 10
 
 
-# def start_query_agent() -> subprocess.Popen:
-#     """
-#     Starts the Query Agent.
-
-#     Returns:
-#         subprocess.Popen: The process object for the Query Agent.
-#     """
-#     process = subprocess.Popen(
-#         "make run-query-agent",
-#         shell=True,
-#         stdout=subprocess.PIPE,
-#         stderr=subprocess.PIPE,
-#     )
-#     time.sleep(3)  # Wait for the Query Agent to start and be ready
-#     return process
-
-
 def start_query_agent() -> subprocess.Popen:
     """
     Starts the Query Agent (with the command `make run-query-agent`) and returns a Popen object.
@@ -30,16 +13,12 @@ def start_query_agent() -> subprocess.Popen:
     Returns:
         subprocess.Popen: A Popen object that can be used to stop the Query Agent later with `process.terminate()`.
     """
-    print("Starting Query Agent...", flush=True)
-    qa_process = subprocess.Popen(
+    return subprocess.Popen(
         "make run-query-agent",
         shell=True,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
     )
-    # Wait for the Query Agent to be ready
-    time.sleep(3)  # Adjust this time as needed
-    return qa_process
 
 
 def stop_query_agent(process: subprocess.Popen):
@@ -51,18 +30,6 @@ def stop_query_agent(process: subprocess.Popen):
     """
     process.terminate()
     process.wait()
-    time.sleep(3)  # Wait for the process to terminate
-
-
-# def stop_query_agent(process: subprocess.Popen):
-#     """
-#     Stops the Query Agent.
-
-#     Args:
-#         process (subprocess.Popen): The process object for the Query Agent.
-#     """
-#     process.terminate()
-#     process.wait()
 
 
 def run_command(command: str) -> float:
@@ -149,33 +116,6 @@ def main():
     cmd_prefix = "bash src/scripts/run.sh query 'localhost:31701' 'localhost:31700' "  # Prefix for all commands
     cmd_suffix = ""  # Suffix for all commands
 
-    # for name, query in queries.items():
-    #     print(f"\nRunning query '{name}'...")
-
-    #     execution_time: float = 0.0
-
-    #     print(f"Rounds [for round in range({TESTS_ROUNDS})]:", flush=True)
-
-    #     for round in range(TESTS_ROUNDS):
-    #         print(f"  {round}: ", flush=True, end="")
-
-    #         # Start the Query Agent
-    #         query_agent_process = start_query_agent()
-
-    #         # Run the query
-    #         round_time = run_command(cmd_prefix + query.replace("\n", " ") + cmd_suffix)
-
-    #         # Stop the Query Agent
-    #         stop_query_agent(query_agent_process)
-
-    #         execution_time += round_time
-
-    #         print(f"{round_time:.2f} seconds")
-
-    #     execution_time_avg = execution_time / TESTS_ROUNDS
-
-    #     print(f"Average time for '{name}': {execution_time_avg:.2f} seconds")
-
     for name, query in queries.items():
         print(f"\nRunning query '{name}'...")
 
@@ -189,8 +129,8 @@ def main():
             # Start the Query Agent
             process = start_query_agent()
 
-            # # Wait for the Query Agent to be ready
-            # time.sleep(3)  # Adjust this time as needed
+            # Wait for the Query Agent to be ready
+            time.sleep(3)  # Adjust this time as needed
 
             # Run the query
             round_time = run_command(cmd_prefix + query.replace("\n", " ") + cmd_suffix)
