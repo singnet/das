@@ -143,6 +143,33 @@ def main():
     cmd_prefix = "bash src/scripts/run.sh query 'localhost:31701' 'localhost:31700' "  # Prefix for all commands
     cmd_suffix = ""  # Suffix for all commands
 
+    # for name, query in queries.items():
+    #     print(f"\nRunning query '{name}'...")
+
+    #     execution_time: float = 0.0
+
+    #     print(f"Rounds [for round in range({TESTS_ROUNDS})]:", flush=True)
+
+    #     for round in range(TESTS_ROUNDS):
+    #         print(f"  {round}: ", flush=True, end="")
+
+    #         # Start the Query Agent
+    #         query_agent_process = start_query_agent()
+
+    #         # Run the query
+    #         round_time = run_command(cmd_prefix + query.replace("\n", " ") + cmd_suffix)
+
+    #         # Stop the Query Agent
+    #         stop_query_agent(query_agent_process)
+
+    #         execution_time += round_time
+
+    #         print(f"{round_time:.2f} seconds")
+
+    #     execution_time_avg = execution_time / TESTS_ROUNDS
+
+    #     print(f"Average time for '{name}': {execution_time_avg:.2f} seconds")
+
     for name, query in queries.items():
         print(f"\nRunning query '{name}'...")
 
@@ -154,13 +181,15 @@ def main():
             print(f"  {round}: ", flush=True, end="")
 
             # Start the Query Agent
-            query_agent_process = start_query_agent()
+            process = start_query_agent()
+
+            time.sleep(3)
 
             # Run the query
-            round_time = run_command(cmd_prefix + query.replace("\n", " ") + cmd_suffix)
+            round_time = run_command(f"{cmd_prefix}{query}{cmd_suffix}")
 
             # Stop the Query Agent
-            stop_query_agent(query_agent_process)
+            stop_query_agent(process)
 
             execution_time += round_time
 
