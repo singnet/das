@@ -18,7 +18,7 @@ make build-all
 4. Start MongoDB and Redis using the following script (it requires `sudo` permissions):
 
 ```bash
-sudo ./src/tests/integration/performance/start_mongo_and_redis.sh
+sudo bash ./src/tests/integration/performance/start_mongo_and_redis.sh
 ```
 
 5. Run the performance test:
