@@ -10,7 +10,7 @@
 #include "RemoteIterator.h"
 #include "Utils.h"
 
-#define MAX_QUERY_ANSWERS ((unsigned int) 10000000)
+#define MAX_QUERY_ANSWERS ((unsigned int) 1)
 
 using namespace std;
 
