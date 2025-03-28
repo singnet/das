@@ -16,6 +16,7 @@ def start_query_agent() -> subprocess.Popen:
     process = subprocess.Popen(
         "make run-query-agent",
         shell=True,
+        check=True,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
     )
