@@ -2,34 +2,8 @@ import subprocess
 import sys
 import time
 
-QUERY_CLIENT_CONTAINER_NAME = "das-query-client"
-
 # Number of times to run each query. At the end, the average time will be printed.
 TESTS_ROUNDS = 10
-
-
-def start_query_client_container() -> subprocess.Popen:
-    command = f"""
-        docker run --rm \
-            --name="{QUERY_CLIENT_CONTAINER_NAME}" \
-            --network host \
-            --volume .:/opt/das \
-            --workdir /opt/das \
-            das-builder \
-            tail
-    """
-    process = subprocess.Popen(
-        command,
-        shell=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-    )
-    return process
-
-
-def stop_query_client_container(process: subprocess.Popen):
-    process.terminate()
-    process.wait()
 
 
 def start_query_agent() -> subprocess.Popen:
@@ -139,14 +113,7 @@ def main():
     )
     # fmt: on
 
-    # Start the Query Client container
-    query_client_process = start_query_client_container()
-    # Wait for the Query Client to be ready
-    time.sleep(3)  # Adjust this time as needed
-    print("Query Client container started.")
-
-    # cmd_prefix = "bash src/scripts/run.sh query 'localhost:31701' 'localhost:31700' "  # Prefix for all commands
-    cmd_prefix = f"docker exec -it {QUERY_CLIENT_CONTAINER_NAME} src/bin/query 'localhost:31701' 'localhost:31700' "  # Prefix for all commands
+    cmd_prefix = "bash src/scripts/run.sh query 'localhost:31701' 'localhost:31700' "  # Prefix for all commands
     cmd_suffix = ""  # Suffix for all commands
 
     for name, query in queries.items():
@@ -178,9 +145,6 @@ def main():
         execution_time_avg = execution_time / TESTS_ROUNDS
 
         print(f"Average time for '{name}': {execution_time_avg:.2f} seconds")
-
-    # Stop the Query Client container
-    stop_query_client_container(query_client_process)
 
 
 if __name__ == "__main__":
