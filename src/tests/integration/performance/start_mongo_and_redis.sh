@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -exou pipefail
+set -eou pipefail
 
 # This script is used to start MongoDB and Redis for performance testing.
 
