@@ -1,22 +1,23 @@
 import subprocess
 import sys
 import time
-import os
 
 # Number of times to run each query. At the end, the average time will be printed.
 TESTS_ROUNDS = 10
 
 
-def set_env_vars():
+def get_env_vars() -> dict:
     """
     Sets the environment variables for the Query Agent.
     """
-    os.environ["DAS_MONGODB_HOSTNAME"] = "localhost"
-    os.environ["DAS_MONGODB_PORT"] = "38000"
-    os.environ["DAS_MONGODB_USERNAME"] = "dbadmin"
-    os.environ["DAS_MONGODB_PASSWORD"] = "dassecret"
-    os.environ["DAS_REDIS_HOSTNAME"] = "localhost"
-    os.environ["DAS_REDIS_PORT"] = "39000"
+    return {
+        "DAS_MONGODB_HOSTNAME": "localhost",
+        "DAS_MONGODB_PORT": "38000",
+        "DAS_MONGODB_USERNAME": "dbadmin",
+        "DAS_MONGODB_PASSWORD": "dassecret",
+        "DAS_REDIS_HOSTNAME": "localhost",
+        "DAS_REDIS_PORT": "39000",
+    }
 
 
 def start_process(command: str) -> subprocess.Popen:
@@ -25,6 +26,7 @@ def start_process(command: str) -> subprocess.Popen:
         shell=True,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
+        env=get_env_vars(),
     )
 
 
@@ -54,6 +56,7 @@ def run_command(command: str, check: bool = True) -> float:
             check=check,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
+            env=get_env_vars(),
         )
     except subprocess.CalledProcessError:
         print(f"Command failed: {command}")
@@ -64,8 +67,6 @@ def run_command(command: str, check: bool = True) -> float:
 
 
 def main():
-    set_env_vars()
-
     # fmt: off
     queries: dict[str, str] = dict(
         linktemplate_3_node_var_link=("""
