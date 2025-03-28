@@ -122,7 +122,7 @@ def main():
     )
     # fmt: on
 
-    cmd_prefix = "bash src/scripts/run.sh query false 'localhost:31701' 'localhost:31700' "  # Prefix for all commands
+    cmd_prefix = "bash src/scripts/run.sh query 'localhost:31701' 'localhost:31700' false "  # Prefix for all commands
     cmd_suffix = ""  # Suffix for all commands
 
     # Start the Attention Broker
