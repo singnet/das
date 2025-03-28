@@ -122,7 +122,7 @@ def main():
     )
     # fmt: on
 
-    cmd_prefix = "bash src/scripts/run.sh query 'localhost:31701' 'localhost:31700' "  # Prefix for all commands
+    cmd_prefix = "bash src/scripts/run.sh query false 'localhost:31701' 'localhost:31700' "  # Prefix for all commands
     cmd_suffix = ""  # Suffix for all commands
 
     # Start the Attention Broker
@@ -131,11 +131,9 @@ def main():
     # Wait for the Attention Broker to be ready
     time.sleep(3)  # Adjust this time as needed
 
-    query_agent_process = start_process("make run-query-agent")
+    start_process("make run-query-agent")
     time.sleep(3)
-    # stop_process(query_agent_process)
-    # time.sleep(3)
-
+    
     for name, query in queries.items():
         print(f"\nRunning query '{name}'...")
 
@@ -145,7 +143,7 @@ def main():
 
         for round in range(TESTS_ROUNDS):
             # Start the Query Agent
-            # query_agent_process = start_process("make run-query-agent")
+            query_agent_process = start_process("make run-query-agent")
 
             # Wait for the Query Agent to be ready
             time.sleep(3)  # Adjust this time as needed
@@ -156,7 +154,7 @@ def main():
             round_time = run_command(cmd_prefix + query.replace("\n", " ") + cmd_suffix)
 
             # Stop the Query Agent
-            # stop_process(query_agent_process)
+            stop_process(query_agent_process)
 
             execution_time += round_time
 
