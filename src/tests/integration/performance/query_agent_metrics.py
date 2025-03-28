@@ -30,13 +30,19 @@ def start_query_agent() -> subprocess.Popen:
     Returns:
         subprocess.Popen: A Popen object that can be used to stop the Query Agent later with `process.terminate()`.
     """
+    print("Starting Query Agent...", flush=True)
     process = subprocess.Popen(
         "make run-query-agent",
         shell=True,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
     )
-    # time.sleep(3)  # Wait for the Query Agent to start and be ready
+    print("Query Agent started.", flush=True)
+    print("Waiting for Query Agent to be ready...", flush=True)
+    # Wait for the Query Agent to be ready
+    time.sleep(3)  # Adjust this time as needed
+    print("Query Agent is ready.", flush=True)
+    print("Query Agent PID:", process.pid, flush=True)
     return process
 
 
@@ -185,8 +191,8 @@ def main():
             # Start the Query Agent
             process = start_query_agent()
 
-            # Wait for the Query Agent to be ready
-            time.sleep(3)  # Adjust this time as needed
+            # # Wait for the Query Agent to be ready
+            # time.sleep(3)  # Adjust this time as needed
 
             # Run the query
             round_time = run_command(cmd_prefix + query.replace("\n", " ") + cmd_suffix)
