@@ -131,9 +131,6 @@ def main():
     # Wait for the Attention Broker to be ready
     time.sleep(3)  # Adjust this time as needed
 
-    start_process("make run-query-agent")
-    time.sleep(3)
-    
     for name, query in queries.items():
         print(f"\nRunning query '{name}'...")
 
