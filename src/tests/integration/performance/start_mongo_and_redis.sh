@@ -15,11 +15,13 @@ if docker ps -a --format '{{.Names}}' | grep -q "^${MONGO_CONTAINER_NAME}$"; the
 fi
 echo
 
-echo "===== Setting up MongoDB data on /tmp ====="
-sudo rm -rf /tmp/mongodb-data /tmp/mongodb-configdb
-sudo mkdir -p /tmp/mongodb-data /tmp/mongodb-configdb
-sudo tar jvxf /opt/das/data/perf-test/mongodb-data.tar.bz2 -C /tmp/mongodb-data/
-sudo chown -R 999:999 /tmp/mongodb-data /tmp/mongodb-configdb
+MONGO_TMP_DATA="/tmp/mongodb-data"
+MONGO_TMP_CONFIGDB="/tmp/mongodb-configdb"
+echo "===== Setting up MongoDB data on ${MONGO_TMP_DATA} ====="
+sudo rm -rf "${MONGO_TMP_DATA}" "${MONGO_TMP_CONFIGDB}"
+sudo mkdir -p "${MONGO_TMP_DATA}" "${MONGO_TMP_CONFIGDB}"
+sudo tar jvxf /opt/das/data/perf-test/mongodb-data.tar.bz2 -C "${MONGO_TMP_DATA}/"
+sudo chown -R 999:999 "${MONGO_TMP_DATA}" "${MONGO_TMP_CONFIGDB}"
 echo
 
 echo "===== Starting MongoDB on port 38000 ====="
@@ -65,11 +67,12 @@ if docker ps -a --format '{{.Names}}' | grep -q "^${REDIS_CONTAINER_NAME}$"; the
 fi
 echo
 
-echo "===== Setting up Redis data on /tmp ====="
-sudo rm -rf /tmp/redis-data
-sudo mkdir -p /tmp/redis-data
-sudo tar jvxf /opt/das/data/perf-test/redis-data.tar.bz2 -C /tmp/redis-data/
-sudo chown -R 999:1000 /tmp/redis-data
+REDIS_TMP_DATA="/tmp/redis-data"
+echo "===== Setting up Redis data on ${REDIS_TMP_DATA} ====="
+sudo rm -rf "${REDIS_TMP_DATA}"
+sudo mkdir -p "${REDIS_TMP_DATA}"
+sudo tar jvxf /opt/das/data/perf-test/redis-data.tar.bz2 -C "${REDIS_TMP_DATA}/"
+sudo chown -R 999:1000 "${REDIS_TMP_DATA}"
 echo
 
 echo "===== Starting Redis on port 39000 ====="  
