@@ -15,6 +15,7 @@ fi
 
 docker run --rm \
     --net="host" \
+    --name=$CONTAINER_NAME \
     --volume /tmp:/tmp \
     --volume .:/opt/das \
     -it das-builder \
