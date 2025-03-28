@@ -234,26 +234,25 @@ class QueryOptimizerIterator:
                 evaluated_individuals = self._evaluate_population(population)
                 selected_individuals = self._select_best_individuals(evaluated_individuals)
 
-            if DEBUG:
-                print(f"\n===> Generation {self.generation}/{self.max_generations}", flush=True)
+            print(f"\n===> Generation {self.generation}/{self.max_generations}", flush=True)
 
-                the_best = 10
-                sorted_selected_individuals = sorted(selected_individuals, key=lambda x: x[1], reverse=True)
-                resp = "\n".join(
-                    f"individual: {ind.to_string()} | fitness: {fit}"
-                    for ind, fit in sorted_selected_individuals[:the_best]
-                )
+            the_best = 10
+            sorted_selected_individuals = sorted(selected_individuals, key=lambda x: x[1], reverse=True)
+            resp = "\n".join(
+                f"individual: {ind.to_string()} | fitness: {fit}"
+                for ind, fit in sorted_selected_individuals[:the_best]
+            )
 
-                print(f'\nThe best {the_best} individuals:', flush=True)
-                print(f'\n{resp}', flush=True)
+            print(f'\nThe best {the_best} individuals:', flush=True)
+            print(f'\n{resp}', flush=True)
 
-                if selected_individuals:
-                    fitness_values = sorted([fitness for _, fitness in selected_individuals], reverse=True)
-                    print('\nStatistics:\n', flush=True)
-                    print(f"Greater Fitness: {fitness_values[0]}", flush=True)
-                    print(f"Average Fitness: {statistics.mean(fitness_values)}", flush=True)
-                    print(f"Median Fitness: {statistics.median(fitness_values)}", flush=True)
-                    print(f"Standard Deviation: {statistics.pstdev(fitness_values)}\n", flush=True)
+            if selected_individuals:
+                fitness_values = sorted([fitness for _, fitness in selected_individuals], reverse=True)
+                print('\nStatistics:\n', flush=True)
+                print(f"Greater Fitness: {fitness_values[0]}", flush=True)
+                print(f"Average Fitness: {statistics.mean(fitness_values)}", flush=True)
+                print(f"Median Fitness: {statistics.median(fitness_values)}", flush=True)
+                print(f"Standard Deviation: {statistics.pstdev(fitness_values)}\n", flush=True)
 
             with SuppressCppOutput():
                 self._update_attention_broker(selected_individuals)
