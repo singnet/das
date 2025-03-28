@@ -4,18 +4,22 @@ set -eou pipefail
 
 # This script is used to start MongoDB and Redis for performance testing.
 
-# Set up MongoDB
+function stop_container() {
+  CONTAINER_NAME="$1"
+  echo "===== Removing existing container ${CONTAINER_NAME} if it exists ====="
+  if docker ps -a --format '{{.Names}}' | grep -q "^${CONTAINER_NAME}$"; then
+    echo "Stopping and removing existing container: ${CONTAINER_NAME}"
+    _=$(docker stop "${CONTAINER_NAME}" 2>&1 > /dev/null)
+    _=$(docker rm "${CONTAINER_NAME}" 2>&1 > /dev/null)
+  else
+    echo "No existing container found with name: ${CONTAINER_NAME}"
+  fi
+}
+
+# Set up MongoDB ===================================================================================
 
 MONGO_CONTAINER_NAME="mongodb-perf-tests-38000"
-
-echo "===== Removing existing MongoDB container if it exists ====="
-if docker ps -a --format '{{.Names}}' | grep -q "^${MONGO_CONTAINER_NAME}$"; then
-  echo "Removing existing container: ${MONGO_CONTAINER_NAME}"
-  _=$(docker rm -f "${MONGO_CONTAINER_NAME}" 2>&1 > /dev/null)
-else
-  echo "No existing container found with name: ${MONGO_CONTAINER_NAME}"
-  echo "Proceeding to create a new MongoDB container."
-fi
+stop_container "${MONGO_CONTAINER_NAME}"
 echo
 
 MONGO_TMP_DATA="/tmp/mongodb-data"
@@ -61,16 +65,10 @@ echo "MongoDB started on port 38000 (container: ${MONGO_CONTAINER_NAME})"
 echo
 echo
 
-# Set up Redis
+# Set up Redis =====================================================================================
+
 REDIS_CONTAINER_NAME="redis-perf-tests-39000"
-echo "===== Removing existing Redis container if it exists ====="
-if docker ps -a --format '{{.Names}}' | grep -q "^${REDIS_CONTAINER_NAME}$"; then
-  echo "Removing existing container: ${REDIS_CONTAINER_NAME}"
-  _=$(docker rm -f "${REDIS_CONTAINER_NAME}" 2>&1 > /dev/null)
-else
-  echo "No existing container found with name: ${REDIS_CONTAINER_NAME}"
-  echo "Proceeding to create a new Redis container."
-fi
+stop_container "${REDIS_CONTAINER_NAME}"
 echo
 
 REDIS_TMP_DATA="/tmp/redis-data"
