@@ -126,6 +126,7 @@ def main():
     cmd_suffix = ""  # Suffix for all commands
 
     # Start the Attention Broker
+    print("Starting Attention Broker...", flush=True)
     attention_broker_process = start_process("make run-attention-broker")
     # Wait for the Attention Broker to be ready
     time.sleep(3)  # Adjust this time as needed
@@ -161,6 +162,7 @@ def main():
         print(f"Average time for '{name}': {execution_time_avg:.2f} seconds")
 
     # Stop the Attention Broker
+    print("Stopping Attention Broker...", flush=True)
     stop_process(attention_broker_process)
 
 
