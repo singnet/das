@@ -51,6 +51,7 @@ def stop_query_agent(process: subprocess.Popen):
     """
     process.terminate()
     process.wait()
+    time.sleep(3)  # Wait for the process to terminate
 
 
 # def stop_query_agent(process: subprocess.Popen):
