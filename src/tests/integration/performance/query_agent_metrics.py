@@ -2,32 +2,20 @@ import subprocess
 import sys
 import time
 
-TESTS_ROUNDS = 10  # Number of times to run each query. At the end, the average time will be printed.
+# Number of times to run each query. At the end, the average time will be printed.
+TESTS_ROUNDS = 10
 
 
-def start_query_agent() -> subprocess.Popen:
+def start_query_agent():
     """
-    Starts the Query Agent (with the command `make run-query-agent`) and returns a Popen object.
-
-    Returns:
-        subprocess.Popen: A Popen object that can be used to stop the Query Agent later with `process.terminate()`.
+    Starts (or restarts) the Query Agent.
     """
     return subprocess.Popen(
-        "make run-query-agent",
+        "make run-query-agent",  # this command restarts the Query Agent if it is already running
         shell=True,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
     )
-
-
-def stop_query_agent(process: subprocess.Popen):
-    """
-    Stops the Query Agent (with the command `make stop-query-agent`).
-
-    Args:
-        process (subprocess.Popen): A Popen object that was returned by `start_query_agent()`.
-    """
-    process.terminate()
 
 
 def run_command(command: str) -> float:
@@ -63,51 +51,51 @@ def run_command(command: str) -> float:
 def main():
     # fmt: off
     queries: dict[str, str] = dict(
-        linktemplate_3_node_var_link=(
-            "LINK_TEMPLATE Expression 3 "
-                "NODE Symbol Contains "
-                "VARIABLE sentence1 "
-                "LINK Expression 2 "
-                    "NODE Symbol Word "
-                    """NODE Symbol '"aaa"'"""
-        ),
-        and_2_linktemplate_linktemplate=(
-            "AND 2 "
-                "LINK_TEMPLATE Expression 3 "
-                    "NODE Symbol Contains "
-                    "VARIABLE sentence1 "
-                    "LINK Expression 2 "
-                        "NODE Symbol Word "
-                        """NODE Symbol '"bbb"' """
-                "LINK_TEMPLATE Expression 3 "
-                    "NODE Symbol Contains "
-                    "VARIABLE sentence2 "
-                    "LINK Expression 2 "
-                        "NODE Symbol Word "
-                        """NODE Symbol '"aaa"'"""
-        ),
-        and_2_linktemplate_or_2_linktemplate_linktemplate=(
-            "AND 2 "
-                "LINK_TEMPLATE Expression 3 "
-                    "NODE Symbol Contains "
-                    "VARIABLE sentence1 "
-                    "LINK Expression 2 "
-                        "NODE Symbol Word "
-                        """NODE Symbol '"bbb"' """
-                "OR 2 "
-                    "LINK_TEMPLATE Expression 3 "
-                        "NODE Symbol Contains "
-                        "VARIABLE sentence2 "
-                        "LINK Expression 2 "
-                            "NODE Symbol Word "
-                            """NODE Symbol '"aaa"' """
-                    "LINK_TEMPLATE Expression 3 "
-                        "NODE Symbol Contains "
-                        "VARIABLE sentence3 "
-                        "LINK Expression 2 "
-                            "NODE Symbol Word "
-                            """NODE Symbol '"ccc"'"""
-        ),
+        linktemplate_3_node_var_link=("""
+            LINK_TEMPLATE Expression 3
+                NODE Symbol Contains
+                VARIABLE sentence1
+                LINK Expression 2
+                    NODE Symbol Word
+                    NODE Symbol '"aaa"'
+        """),
+        and_2_linktemplate_linktemplate=("""
+            AND 2
+                LINK_TEMPLATE Expression 3
+                    NODE Symbol Contains
+                    VARIABLE sentence1
+                    LINK Expression 2
+                        NODE Symbol Word
+                        NODE Symbol '"bbb"'
+                LINK_TEMPLATE Expression 3
+                    NODE Symbol Contains
+                    VARIABLE sentence2
+                    LINK Expression 2
+                        NODE Symbol Word
+                        NODE Symbol '"aaa"'
+        """),
+        and_2_linktemplate_or_2_linktemplate_linktemplate=("""
+            AND 2
+                LINK_TEMPLATE Expression 3
+                    NODE Symbol Contains
+                    VARIABLE sentence1
+                    LINK Expression 2
+                        NODE Symbol Word
+                        NODE Symbol '"bbb"'
+                OR 2
+                    LINK_TEMPLATE Expression 3
+                        NODE Symbol Contains
+                        VARIABLE sentence2
+                        LINK Expression 2
+                            NODE Symbol Word
+                            NODE Symbol '"aaa"'
+                    LINK_TEMPLATE Expression 3
+                        NODE Symbol Contains
+                        VARIABLE sentence3
+                        LINK Expression 2
+                            NODE Symbol Word
+                            NODE Symbol '"ccc"'
+        """),
     )
     # fmt: on
 
@@ -116,35 +104,32 @@ def main():
 
     for name, query in queries.items():
         print(f"\nRunning query '{name}'...")
-        
+
         execution_time: float = 0.0
-        
+
         print(f"Rounds [for round in range({TESTS_ROUNDS})]:", flush=True)
-        
+
         for round in range(TESTS_ROUNDS):
             print(f"  {round}: ", flush=True, end="")
 
-            # Start the Query Agent
-            process = start_query_agent()
+            # Start/restart the Query Agent
+            start_query_agent()
 
             time.sleep(3)
-        
-            # Run the query
-            round_time = run_command(f"{cmd_prefix}{query}{cmd_suffix}")
 
-            # Stop the Query Agent
-            stop_query_agent(process)
-        
+            # Run the query
+            round_time = run_command(cmd_prefix + query.replace("\n", " ") + cmd_suffix)
+
             execution_time += round_time
-        
+
             print(f"{round_time:.2f} seconds")
-        
+
         execution_time_avg = execution_time / TESTS_ROUNDS
-        
+
         print(f"Average time for '{name}': {execution_time_avg:.2f} seconds")
+
+    time.sleep(3)
 
 
 if __name__ == "__main__":
     main()
-
-
