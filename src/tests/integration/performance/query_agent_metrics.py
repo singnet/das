@@ -162,7 +162,7 @@ def main():
         print(f"Average time for '{name}': {execution_time_avg:.2f} seconds")
 
     # Stop the Attention Broker
-    print("Stopping Attention Broker...", flush=True)
+    print("\nStopping Attention Broker...", flush=True)
     stop_process(attention_broker_process)
 
 
