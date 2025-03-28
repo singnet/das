@@ -3,9 +3,8 @@ Non distributed version
 """
 
 import contextlib
-import json
+import statistics
 import time
-import sys
 
 from concurrent.futures import ThreadPoolExecutor
 from typing import Any, Iterator
@@ -22,6 +21,9 @@ from evolution.fitness_functions import FitnessFunctions
 from evolution.node import EvolutionNode, NodeIdFactory
 from evolution.selection_methods import handle_selection_method, SelectionMethodType
 from evolution.utils import Parameters, parse_file
+from evolution.utils import SuppressCppOutput
+
+DEBUG = True
 
 
 class QueryOptimizerAgent:
@@ -31,12 +33,10 @@ class QueryOptimizerAgent:
         self.evolution_node_server = EvolutionNode(node_id=self.params.evolution_server_id)
 
     def run_server(self):
-        sys.stdout.write("Running server...")
-        sys.stdout.flush()
+        print("Running server...", flush=True)
         while True:
             if request := self.evolution_node_server.pop_request():
-                sys.stdout.write("\nNew message!\n")
-                sys.stdout.flush()
+                print("\nNew message!\n", flush=True)
                 answers = self._process(context=request['context'], query_tokens=request['data'])
                 self._send_message(request['senders'], answers)
             time.sleep(0.5)
@@ -63,21 +63,20 @@ class QueryOptimizerAgent:
             )
         return params
 
-    def _process(self, context: str, query_tokens: list[str] | str) -> list[str]:
+    def _process(self, context: str, query_tokens: list[str] | str) -> str:
         iterator = self.optimize(context, query_tokens)
-        return [qa.to_string() for qa in iterator]
+        resp = "\n".join(f"{qa.to_string()}" for qa in iterator)
+        return resp
 
-    def _send_message(self, senders: list[str], answers: list[str]) -> None:
-        sys.stdout.write(f'\nAnswers Count: {len(answers)}\n')
-        sys.stdout.write(f'\nAnswers: {answers}\n')
-        sys.stdout.flush()
+    def _send_message(self, senders: list[str], answers: str) -> None:
+        print(f'\nAnswers: \n{answers}\n', flush=True)
 
         for sender in senders:
             self.evolution_node_client = EvolutionNode(
                 server_id=sender,
                 node_id_factory=self.node_id_factory
             )
-            self.evolution_node_client.send("evolution_finished", [json.dumps(answers)], sender)
+            self.evolution_node_client.send("evolution_finished", [answers], sender)
 
 
 class QueryOptimizerIterator:
@@ -183,7 +182,7 @@ class QueryOptimizerIterator:
                 redis_ssl=redis_ssl,
             )
         except Exception as e:
-            print(f"Error: {e}")
+            print(f"Error: {e}", flush=True)
             raise e
 
     def _parse_tokens(self, tokens: list[str] | str) -> list[str]:
@@ -216,9 +215,8 @@ class QueryOptimizerIterator:
             else:
                 parsed_tokens.append(token)  
 
-        sys.stdout.write(f'\ntokens: {tokens}')
-        sys.stdout.write(f'\nparsed_tokens: {parsed_tokens}')
-        sys.stdout.flush()
+        print(f'\ntokens: {tokens}', flush=True)
+        print(f'\nparsed_tokens: {parsed_tokens}', flush=True)
 
         return parsed_tokens
 
@@ -231,22 +229,40 @@ class QueryOptimizerIterator:
         After processing all generations, it fills the query answers queue and signals termination.
         """
         while self.generation <= self.max_generations:
-            sys.stdout.write(f"\n===> Generation {self.generation}/{self.max_generations}\n")
-            sys.stdout.flush()
+            with SuppressCppOutput():
+                population = self._sample_population(limit=self.population_size)            
+                evaluated_individuals = self._evaluate_population(population)
+                selected_individuals = self._select_best_individuals(evaluated_individuals)
 
-            population = self._sample_population(limit=self.population_size)
-            evaluated_individuals = self._evaluate_population(population)
-            selected_individuals = self._select_best_individuals(evaluated_individuals)
+            if DEBUG:
+                print(f"\n===> Generation {self.generation}/{self.max_generations}", flush=True)
 
-            sys.stdout.write(f'\nbest_individuals: {[(ind.to_string(), fit) for ind, fit in selected_individuals[:5]]}')
-            sys.stdout.flush()
+                the_best = 10
+                sorted_selected_individuals = sorted(selected_individuals, key=lambda x: x[1], reverse=True)
+                resp = "\n".join(
+                    f"individual: {ind.to_string()} | fitness: {fit}"
+                    for ind, fit in sorted_selected_individuals[:the_best]
+                )
 
-            self._update_attention_broker(selected_individuals)
+                print(f'\nThe best {the_best} individuals:', flush=True)
+                print(f'\n{resp}', flush=True)
+
+                if selected_individuals:
+                    fitness_values = sorted([fitness for _, fitness in selected_individuals], reverse=True)
+                    print('\nStatistics:\n', flush=True)
+                    print(f"Greater Fitness: {fitness_values[0]}", flush=True)
+                    print(f"Average Fitness: {statistics.mean(fitness_values)}", flush=True)
+                    print(f"Median Fitness: {statistics.median(fitness_values)}", flush=True)
+                    print(f"Standard Deviation: {statistics.pstdev(fitness_values)}\n", flush=True)
+
+            with SuppressCppOutput():
+                self._update_attention_broker(selected_individuals)
 
             self.generation += 1
             time.sleep(0.1)
 
-        self._sample_best_query_answers()
+        with SuppressCppOutput():
+            self._sample_best_query_answers()
 
     def _sample_population(self, limit: int, timeout: float = 10.0) -> list[QueryAnswer]:
         """
@@ -262,8 +278,7 @@ class QueryOptimizerIterator:
 
             while (len(result) < limit and not remote_iterator.finished()):
                 if time.time() - start_time > timeout:
-                    sys.stdout.write("\nTimeout reached while sampling the population.\n")
-                    sys.stdout.flush()
+                    print("\nTimeout reached while sampling the population.\n", flush=True)
                     break
 
                 if (qa := remote_iterator.pop()):
@@ -275,7 +290,7 @@ class QueryOptimizerIterator:
 
             return result
         except Exception as e:
-            print(f"Population sampling failed: {e}")
+            print(f"\nPopulation sampling failed: {e}\n", flush=True)
 
     def _evaluate_population(self, population: list[QueryAnswer]) -> list[tuple[QueryAnswer, float]]:
         with ThreadPoolExecutor(max_workers=10) as executor:
@@ -305,13 +320,11 @@ class QueryOptimizerIterator:
         selection_method = handle_selection_method(method)
         return selection_method(evaluated_individuals, self.qtd_selected_for_attention_update)
 
-    def _update_attention_broker(self, individuals: list[QueryAnswer]) -> None:
+    def _update_attention_broker(self, individuals: list[tuple[QueryAnswer, float]]) -> None:
         try:
-            for individual, fitness in individuals:
-                self.attention_broker_updater.update(individual)
+            self.attention_broker_updater.update(individuals)
         except Exception as e:
-            sys.stdout.write(f'\nAn error occurred - details: {e}')
-            sys.stdout.flush()
+            print(f'\nAn error occurred - details: {e}\n', flush=True)
 
     def _sample_best_query_answers(self, timeout: float = 10.0) -> None:
         """
