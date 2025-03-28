@@ -1,12 +1,15 @@
-#!/bin/bash
+#!/bin/bash -x
 # This script is used to start MongoDB and Redis for performance testing.
 
 # start MongoDB
+
+echo "===== Setting up MongoDB data on /tmp ====="
 sudo rm -rf /tmp/mongodb-data /tmp/mongodb-configdb \
   && sudo mkdir -p /tmp/mongodb-data /tmp/mongodb-configdb \
   && sudo tar jvxf /opt/das/data/perf-test/mongodb-data.tar.bz2 -C /tmp/mongodb-data/ \
   && sudo chown -R 999:999 /tmp/mongodb-data /tmp/mongodb-configdb
-
+echo
+echo "===== Starting MongoDB on port 38000 ====="
 docker stop mongodb-perf-tests-38000 || true && \
 docker rm mongodb-perf-tests-38000 || true && \
 docker run \
@@ -37,12 +40,17 @@ docker run \
   "mongo:6.0.13-jammy" \
   "mongod"
 
+echo
+echo
+
 # start Redis
+echo "===== Setting up Redis data on /tmp ====="
 sudo rm -rf /tmp/redis-data \
   && sudo mkdir -p /tmp/redis-data \
   && sudo tar jvxf /opt/das/data/perf-test/redis-data.tar.bz2 -C /tmp/redis-data/ \
   && sudo chown -R 999:1000 /tmp/redis-data
-  
+echo
+echo "===== Starting Redis on port 39000 ====="  
 docker stop redis-perf-tests-39000 || true && \
 docker rm redis-perf-tests-39000 || true && \
 docker run \

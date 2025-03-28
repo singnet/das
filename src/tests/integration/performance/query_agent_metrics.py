@@ -33,7 +33,7 @@ def stop_process(process: subprocess.Popen):
     process.wait()
 
 
-def run_command(command: str) -> float:
+def run_command(command: str, check: bool = True) -> float:
     """
     Executes a shell command and returns the time taken to execute it.
 
@@ -51,7 +51,7 @@ def run_command(command: str) -> float:
         subprocess.run(
             command,
             shell=True,
-            check=True,
+            check=check,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
         )
