@@ -15,7 +15,7 @@ def start_query_client_container() -> subprocess.Popen:
             --network host \
             --volume .:/opt/das \
             --workdir /opt/das \
-            das-builder \
+            -it das-builder \
             tail
     """
     process = subprocess.Popen(
