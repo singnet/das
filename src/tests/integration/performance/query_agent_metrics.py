@@ -19,6 +19,8 @@ def start_query_agent() -> subprocess.Popen:
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
     )
+    time.sleep(1)  # Wait for the process to start
+    print(process.stdout.read().decode())
     time.sleep(3)  # Wait for the Query Agent to start and be ready
     return process
 
