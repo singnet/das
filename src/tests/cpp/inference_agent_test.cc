@@ -49,7 +49,7 @@ class MockDistributedInferenceControlAgentNode : public DistributedInferenceCont
 
     MOCK_METHOD(void,
                 send_inference_control_request,
-                (std::vector<std::string> inference_control_request),
+                (std::vector<std::string> inference_control_request, std::string response_node_id),
                 (override));
 };
 
@@ -119,7 +119,14 @@ class InferenceAgentTest : public ::testing::Test {
 
 TEST_F(InferenceAgentTest, TestConfig) {
     agent = new InferenceAgent("inference_test_config.cfg");
+    thread agent_thread(&InferenceAgent::run, agent);
+    this_thread::sleep_for(chrono::milliseconds(200));  // Give some time for the agent to start
+    agent->stop();
+    cout << "Stopping agent" << endl;
+    if (agent_thread.joinable()) agent_thread.join();
+    cout << "Agent stopped" << endl;
     delete agent;
+    cout << "Deleting agent" << endl;
     clear_mocks();
 }
 
@@ -129,9 +136,11 @@ TEST_F(InferenceAgentTest, TestProofOfImplicationOrEquivalence) {
         .WillRepeatedly(::testing::Invoke(
             [](const vector<string>& message) { EXPECT_EQ(message[0], "LINK_TEMPLATE"); }));
 
-    EXPECT_CALL(*distributed_inference_control_node_client, send_inference_control_request(testing::_))
-        .WillOnce(
-            ::testing::Invoke([](const vector<string>& message) { EXPECT_EQ(message[0], "CHAIN"); }));
+    EXPECT_CALL(*distributed_inference_control_node_client,
+                send_inference_control_request(testing::_, testing::_))
+        .WillOnce(::testing::Invoke([](const vector<string>& message, std::string response_node_id) {
+            EXPECT_EQ(message[0], "context");
+        }));
 
     InferenceAgent agent(
         dynamic_cast<InferenceAgentNode*>(inference_node_server),
@@ -154,9 +163,11 @@ TEST_F(InferenceAgentTest, TestProofOfImplication) {
         .WillOnce(
             ::testing::Invoke([](const vector<string>& message) { EXPECT_EQ(message[0], "AND"); }));
 
-    EXPECT_CALL(*distributed_inference_control_node_client, send_inference_control_request(testing::_))
-        .WillOnce(
-            ::testing::Invoke([](const vector<string>& message) { EXPECT_EQ(message[0], "CHAIN"); }));
+    EXPECT_CALL(*distributed_inference_control_node_client,
+                send_inference_control_request(testing::_, testing::_))
+        .WillOnce(::testing::Invoke([](const vector<string>& message, std::string response_node_id) {
+            EXPECT_EQ(message[0], "context");
+        }));
 
     InferenceAgent agent(
         dynamic_cast<InferenceAgentNode*>(inference_node_server),
@@ -178,9 +189,11 @@ TEST_F(InferenceAgentTest, TestProofOfEquivalence) {
         .WillOnce(
             ::testing::Invoke([](const vector<string>& message) { EXPECT_EQ(message[0], "AND"); }));
 
-    EXPECT_CALL(*distributed_inference_control_node_client, send_inference_control_request(testing::_))
-        .WillOnce(
-            ::testing::Invoke([](const vector<string>& message) { EXPECT_EQ(message[0], "CHAIN"); }));
+    EXPECT_CALL(*distributed_inference_control_node_client,
+                send_inference_control_request(testing::_, testing::_))
+        .WillOnce(::testing::Invoke([](const vector<string>& message, std::string response_node_id) {
+            EXPECT_EQ(message[0], "context");
+        }));
 
     InferenceAgent agent(
         dynamic_cast<InferenceAgentNode*>(inference_node_server),
@@ -208,11 +221,12 @@ TEST(InferenceRequest, TestInferenceRequests) {
               "LINK_CREATE Expression 2 1 NODE Symbol SATISFYING_SET VARIABLE P CUSTOM_FIELD "
               "truth_value 2 strength 1.0 confidence 1.0 LINK_CREATE Expression 2 1 NODE Symbol "
               "PATTERNS VARIABLE C CUSTOM_FIELD truth_value 2 strength 1.0 confidence 1.0");
-    EXPECT_EQ(Utils::join(dic_request, ' '),
-              "CHAIN handle1 handle2 1 OR LINK_TEMPLATE Expression 3 NODE Symbol IMPLICATION _FIRST_ "
-              "_SECOND_ LINK_TEMPLATE Expression 3 NODE Symbol EQUIVALENCE _FIRST_ _SECOND_");
+    EXPECT_EQ(
+        Utils::join(dic_request, ' '),
+        "context OR 2 LINK_TEMPLATE Expression 3 NODE Symbol IMPLICATION HANDLE handle1 HANDLE handle2 "
+        "LINK_TEMPLATE Expression 3 NODE Symbol EQUIVALENCE HANDLE handle1 HANDLE handle2");
 
-    ProofOfImplication proof_of_implication("handle3", "handle4", 1, "context");
+    ProofOfImplication proof_of_implication("handle3", "handle4", 2, "context");
     requests = proof_of_implication.get_requests();
     dic_request = proof_of_implication.get_distributed_inference_control_request();
     EXPECT_EQ(requests.size(), 1);
@@ -225,10 +239,19 @@ TEST(InferenceRequest, TestInferenceRequests) {
               "Symbol EVALUATION VARIABLE P2 VARIABLE C LINK_TEMPLATE Expression 3 NODE Symbol "
               "EVALUATION VARIABLE P1 VARIABLE C IMPLICATION_DEDUCTION");
     EXPECT_EQ(Utils::join(dic_request, ' '),
-              "CHAIN handle3 handle4 1 OR LINK_TEMPLATE Expression 3 NODE Symbol IMPLICATION _FIRST_ "
-              "_SECOND_ LINK_TEMPLATE Expression 3 NODE Symbol EQUIVALENCE _FIRST_ _SECOND_");
+              "context OR 6 AND 2 LINK_TEMPLATE Expression 3 NODE Symbol IMPLICATION HANDLE handle3 "
+              "VARIABLE V1 "
+              "LINK_TEMPLATE Expression 3 NODE Symbol IMPLICATION VARIABLE V1 HANDLE handle4 AND 2 "
+              "LINK_TEMPLATE Expression 3 NODE Symbol EQUIVALENCE HANDLE handle3 VARIABLE V1 "
+              "LINK_TEMPLATE Expression 3 NODE Symbol IMPLICATION VARIABLE V1 HANDLE handle4 AND 2 "
+              "LINK_TEMPLATE Expression 3 NODE Symbol IMPLICATION HANDLE handle3 VARIABLE V1 "
+              "LINK_TEMPLATE Expression 3 NODE Symbol EQUIVALENCE VARIABLE V1 HANDLE handle4 AND 2 "
+              "LINK_TEMPLATE Expression 3 NODE Symbol EQUIVALENCE HANDLE handle3 VARIABLE V1 "
+              "LINK_TEMPLATE Expression 3 NODE Symbol EQUIVALENCE VARIABLE V1 HANDLE handle4 "
+              "LINK_TEMPLATE Expression 3 NODE Symbol IMPLICATION HANDLE handle3 HANDLE handle4 "
+              "LINK_TEMPLATE Expression 3 NODE Symbol EQUIVALENCE HANDLE handle3 HANDLE handle4");
 
-    ProofOfEquivalence proof_of_equivalence("handle5", "handle6", 1, "context");
+    ProofOfEquivalence proof_of_equivalence("handle5", "handle6", 1, "context2");
     requests = proof_of_equivalence.get_requests();
     dic_request = proof_of_equivalence.get_distributed_inference_control_request();
     EXPECT_EQ(requests.size(), 1);
@@ -240,9 +263,10 @@ TEST(InferenceRequest, TestInferenceRequests) {
               "LINK_TEMPLATE Expression 3 NODE Symbol EQUIVALENCE LINK_TEMPLATE Expression 3 NODE "
               "Symbol EVALUATION VARIABLE P VARIABLE C2 LINK_TEMPLATE Expression 3 NODE Symbol "
               "EVALUATION VARIABLE P VARIABLE C1 EQUIVALENCE_DEDUCTION");
-    EXPECT_EQ(Utils::join(dic_request, ' '),
-              "CHAIN handle5 handle6 1 OR LINK_TEMPLATE Expression 3 NODE Symbol IMPLICATION _FIRST_ "
-              "_SECOND_ LINK_TEMPLATE Expression 3 NODE Symbol EQUIVALENCE _FIRST_ _SECOND_");
+    EXPECT_EQ(
+        Utils::join(dic_request, ' '),
+        "context2 OR 2 LINK_TEMPLATE Expression 3 NODE Symbol IMPLICATION HANDLE handle5 HANDLE handle6 "
+        "LINK_TEMPLATE Expression 3 NODE Symbol EQUIVALENCE HANDLE handle5 HANDLE handle6");
 }
 
 TEST(InferenceRequestValidator, InvalidRequests) {

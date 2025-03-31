@@ -16,11 +16,15 @@ LinkCreationAgent::LinkCreationAgent(string config_path) {
     this->config_path = config_path;
     load_config();
     link_creation_node_server = new LinkCreationAgentNode(link_creation_agent_server_id);
-    query_node_client = new DASNode(query_agent_client_id, query_agent_server_id);
+    query_node_client = new DASNode(query_agent_client_id,
+                                    query_agent_server_id,
+                                    query_agent_client_start_port,
+                                    query_agent_client_end_port);
     service = new LinkCreationService(link_creation_agent_thread_count);
+    service->set_timeout(query_timeout_seconds);
     das_client = new DasAgentNode(das_agent_client_id, das_agent_server_id);
 
-    this->agent_thread = new thread(&LinkCreationAgent::run, this);
+    // this->agent_thread = new thread(&LinkCreationAgent::run, this);
 }
 
 LinkCreationAgent::~LinkCreationAgent() {
@@ -75,13 +79,13 @@ void LinkCreationAgent::run() {
             continue;
         }
 
-        shared_ptr<RemoteIterator<HandlesAnswer>> iterator =
-            query(lca_request->query, lca_request->context, lca_request->update_attention_broker);
-
-        service->process_request(
-            iterator, das_client, lca_request->link_template, lca_request->max_results);
-
         if (lca_request->infinite || lca_request->repeat > 0) {
+            shared_ptr<RemoteIterator<HandlesAnswer>> iterator =
+                query(lca_request->query, lca_request->context, lca_request->update_attention_broker);
+
+            service->process_request(
+                iterator, das_client, lca_request->link_template, lca_request->max_results);
+
             lca_request->last_execution = time(0);
             lca_request->current_interval =
                 (lca_request->current_interval * 2) %
@@ -92,6 +96,7 @@ void LinkCreationAgent::run() {
 
         } else {
             if (request_buffer.find(lca_request->id) != request_buffer.end()) {
+                cout << "Removing request ID: " << lca_request->id << endl;
                 request_buffer.erase(lca_request->id);
             }
         }
@@ -134,6 +139,12 @@ void LinkCreationAgent::load_config() {
                     this->das_agent_server_id = value;
                 else if (key == "context")
                     this->context = value;
+                else if (key == "query_agent_client_start_port")
+                    this->query_agent_client_start_port = stoul(value);
+                else if (key == "query_agent_client_end_port")
+                    this->query_agent_client_end_port = stoul(value);
+                else if (key == "query_timeout_seconds")
+                    this->query_timeout_seconds = stoi(value);
             }
         }
     }

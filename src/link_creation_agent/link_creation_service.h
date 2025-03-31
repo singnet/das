@@ -1,5 +1,5 @@
 /**
- * @file service.h
+ * @file link_creation_service.h
  * @brief Link Creation Service class
  */
 #pragma once
@@ -46,6 +46,8 @@ class LinkCreationService
                          DasAgentNode* das_client,
                          vector<string>& link_template,
                          int max_query_answers);
+
+    void set_timeout(int timeout);
     /**
      * @brief Destructor
      */
@@ -57,6 +59,7 @@ class LinkCreationService
     set<string> processed_link_handles;
     std::mutex m_mutex;
     std::condition_variable m_cond;
+    int timeout = 60;
 
     /**
      * @brief Create a link, blocking the client until the link is created

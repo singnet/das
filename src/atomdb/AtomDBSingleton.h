@@ -1,13 +1,12 @@
-#ifndef _QUERY_ENGINE_ATOMDBSINGLETON_H
-#define _QUERY_ENGINE_ATOMDBSINGLETON_H
+#pragma once
 
 #include <memory>
 
-#include "AtomDB.h"
+#include "RedisMongoDB.h"
 
 using namespace std;
 
-namespace query_engine {
+namespace atomdb {
 
 // -------------------------------------------------------------------------------------------------
 // NOTE TO REVIEWER:
@@ -29,6 +28,4 @@ class AtomDBSingleton {
     static shared_ptr<AtomDB> atom_db;
 };
 
-}  // namespace query_engine
-
-#endif  // _QUERY_ENGINE_ATOMDBSINGLETON_H
+}  // namespace atomdb

@@ -201,7 +201,8 @@ class And : public Operator<N> {
             return false;
         } else {
             for (unsigned int i = 0; i < N; i++) {
-                if ((this->next_input_to_process[i] == this->query_answer[i].size()) && (this->all_answers_arrived[i])) {
+                if ((this->next_input_to_process[i] == this->query_answer[i].size()) &&
+                    (this->all_answers_arrived[i])) {
                     return true;
                 }
                 if (this->next_input_to_process[i] < this->query_answer[i].size()) {
