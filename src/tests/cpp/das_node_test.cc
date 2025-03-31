@@ -48,7 +48,8 @@ void check_query(vector<string>& query,
                  bool update_attention_broker = false) {
     cout << "XXXXXXXXXXXXXXXX DASNode.queries CHECK BEGIN" << endl;
     QueryAnswer* query_answer;
-    RemoteIterator<HandlesAnswer>* response = requestor->pattern_matcher_query(query, context, update_attention_broker);
+    RemoteIterator<HandlesAnswer>* response =
+        requestor->pattern_matcher_query(query, context, update_attention_broker);
     unsigned int count = 0;
     while (!response->finished()) {
         while ((query_answer = response->pop()) == NULL) {
