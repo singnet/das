@@ -8,6 +8,7 @@
 #include "Utils.h"
 
 using namespace std;
+using namespace atomdb;
 
 void ctrl_c_handler(int) {
     // std::cout << "Stopping query engine server..." << std::endl;

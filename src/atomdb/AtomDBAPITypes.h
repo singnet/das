@@ -15,7 +15,7 @@
 using namespace std;
 using namespace commons;
 
-namespace query_engine {
+namespace atomdb {
 namespace atomdb_api_types {
 
 // -------------------------------------------------------------------------------------------------
@@ -94,6 +94,6 @@ class MongodbDocument : public AtomDocument {
 };
 
 }  // namespace atomdb_api_types
-}  // namespace query_engine
+}  // namespace atomdb
 
 #endif  // _QUERY_ENGINE_ATOMDBAPITYPES_H

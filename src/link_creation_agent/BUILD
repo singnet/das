@@ -5,13 +5,13 @@ cc_library(
   srcs = [
     "link_creation_agent.cc",
     "link.cc",
-    "service.cc",
+    "link_creation_service.cc",
 
   ],
   hdrs = [
     "link_creation_agent.h",
     "link.h",
-    "service.h",
+    "link_creation_service.h",
   ],
   includes = ["."],
   deps = [
@@ -62,8 +62,8 @@ cc_library(
 
 cc_library(
   name = "service",
-  srcs = ["service.cc"],
-  hdrs = ["service.h", "thread_pool.h"],
+  srcs = ["link_creation_service.cc"],
+  hdrs = ["link_creation_service.h", "thread_pool.h"],
   deps = [
     ":das_agent_node",
     ":link",

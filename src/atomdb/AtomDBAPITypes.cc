@@ -5,7 +5,7 @@
 #include "Utils.h"
 #include "expression_hasher.h"
 
-using namespace query_engine;
+using namespace atomdb;
 using namespace atomdb_api_types;
 using namespace commons;
 

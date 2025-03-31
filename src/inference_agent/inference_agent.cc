@@ -29,7 +29,7 @@ InferenceAgent::InferenceAgent(const string& config_path) {
     }
     inference_node_server_host = host_port[0];
     inference_node_server_port = host_port[1];
-    this->agent_thread = new thread(&InferenceAgent::run, this);
+    // this->agent_thread = new thread(&InferenceAgent::run, this);
 }
 
 InferenceAgent::InferenceAgent(
@@ -57,10 +57,8 @@ InferenceAgent::~InferenceAgent() {
     delete das_client;
     distributed_inference_control_client->graceful_shutdown();
     delete distributed_inference_control_client;
-    if (agent_thread->joinable()) {
-        agent_thread->join();
-    }
-    delete agent_thread;
+    if (agent_thread != nullptr && agent_thread->joinable()) agent_thread->join();
+    if (agent_thread != nullptr) delete agent_thread;
 }
 
 void InferenceAgent::run() {
@@ -105,6 +103,8 @@ void InferenceAgent::run() {
         } else {
             for (int i = 0; i < inference_iterators.size(); i++) {
                 if (!inference_iterators[i]->pop(false).empty()) {
+                    cout << "Inference iterator ID: " << inference_iterators[i]->get_local_id()
+                         << " finished" << endl;
                     send_stop_link_creation_request(
                         iterator_link_creation_request_map[inference_iterators[i]->get_local_id()]);
                     inference_iterators.erase(inference_iterators.begin() + i);
@@ -146,9 +146,11 @@ void InferenceAgent::send_stop_link_creation_request(shared_ptr<InferenceRequest
 void InferenceAgent::send_distributed_inference_control_request(const string& client_node_id) {
     shared_ptr<InferenceIterator<InferenceAgentNode>> inference_iterator =
         make_shared<InferenceIterator<InferenceAgentNode>>(client_node_id);
+    cout << "Sending distributed inference control request ID: " << client_node_id << endl;
     inference_iterators.push_back(inference_iterator);
     distributed_inference_control_client->send_inference_control_request(
-        iterator_link_creation_request_map[client_node_id]->get_distributed_inference_control_request());
+        iterator_link_creation_request_map[client_node_id]->get_distributed_inference_control_request(),
+        client_node_id);
 }
 
 vector<string> InferenceAgent::get_link_creation_request() { return vector<string>(); }

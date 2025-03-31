@@ -1,6 +1,5 @@
 #include <cstdlib>
 
-#include "AtomDB.h"
 #include "AtomDBSingleton.h"
 #include "DASNode.h"
 #include "HandlesAnswer.h"
@@ -9,6 +8,7 @@
 #include "test_utils.h"
 
 using namespace query_engine;
+using namespace atomdb;
 
 string handle_to_atom(const char* handle) {
     shared_ptr<AtomDB> db = AtomDBSingleton::get_instance();
@@ -44,10 +44,12 @@ void check_query(vector<string>& query,
                  unsigned int expected_count,
                  DASNode* das,
                  DASNode* requestor,
-                 const string& context) {
+                 const string& context,
+                 bool update_attention_broker = false) {
     cout << "XXXXXXXXXXXXXXXX DASNode.queries CHECK BEGIN" << endl;
     QueryAnswer* query_answer;
-    RemoteIterator<HandlesAnswer>* response = requestor->pattern_matcher_query(query, context);
+    RemoteIterator<HandlesAnswer>* response =
+        requestor->pattern_matcher_query(query, context, update_attention_broker);
     unsigned int count = 0;
     while (!response->finished()) {
         while ((query_answer = response->pop()) == NULL) {
@@ -142,6 +144,12 @@ TEST(DASNode, queries) {
     check_query(q3, q3_expected_count, &das, &requestor, "DASNode.queries");
     check_query(q4, q4_expected_count, &das, &requestor, "DASNode.queries");
     check_query(q5, q5_expected_count, &das, &requestor, "DASNode.queries");
+
+    check_query(q1, q1_expected_count, &das, &requestor, "DASNode.queries", true);
+    check_query(q2, q2_expected_count, &das, &requestor, "DASNode.queries", true);
+    check_query(q3, q3_expected_count, &das, &requestor, "DASNode.queries", true);
+    check_query(q4, q4_expected_count, &das, &requestor, "DASNode.queries", true);
+    check_query(q5, q5_expected_count, &das, &requestor, "DASNode.queries", true);
 
     cout << "XXXXXXXXXXXXXXXX DASNode.queries END" << endl;
 }

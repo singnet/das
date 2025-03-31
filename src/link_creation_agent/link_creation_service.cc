@@ -1,4 +1,4 @@
-#include "service.h"
+#include "link_creation_service.h"
 
 using namespace link_creation_agent;
 using namespace std;
@@ -13,16 +13,24 @@ void LinkCreationService::process_request(shared_ptr<RemoteIterator<HandlesAnswe
                                           vector<string>& link_template,
                                           int max_query_answers) {
     auto job = [this, iterator, das_client, link_template, max_query_answers]() {
-        // TODO timeout
         QueryAnswer* query_answer;
         int count = 0;
+        long start = time(0);
         while (!iterator->finished()) {
             this_thread::sleep_for(chrono::seconds(1));
+            // timeout
+            if (time(0) - start > timeout) {
+                cout << "LinkCreationService::process_request: Timeout for iterator ID: "
+                     << iterator->get_local_id() << endl;
+                return;
+            }
             if ((query_answer = iterator->pop()) == NULL) {
-                cout << "LinkCreationService::process_request: Waiting for query answer" << endl;
+                cout << "LinkCreationService::process_request: Waiting for query answer ID: "
+                     << iterator->get_local_id() << endl;
                 Utils::sleep();
             } else {
-                cout << "LinkCreationService::process_request: Processing query_answer" << endl;
+                cout << "LinkCreationService::process_request: Processing query_answer ID: "
+                     << iterator->get_local_id() << endl;
                 if (link_template.front() == "LIST") {
                     LinkCreateTemplateList link_create_template_list(link_template);
                     for (auto link_template : link_create_template_list.get_templates()) {
@@ -37,7 +45,8 @@ void LinkCreationService::process_request(shared_ptr<RemoteIterator<HandlesAnswe
                 if (++count == max_query_answers) break;
             }
         }
-        cout << "LinkCreationService::process_request: Finished processing iterator" << endl;
+        cout << "LinkCreationService::process_request: Finished processing iterator ID: "
+             << iterator->get_local_id() << endl;
     };
 
     thread_pool.enqueue(job);
@@ -51,3 +60,5 @@ void LinkCreationService::create_link(Link& link, DasAgentNode& das_client) {
     das_client.create_link(link_tokens);
     m_cond.notify_one();
 }
+
+void LinkCreationService::set_timeout(int timeout) { this->timeout = timeout; }

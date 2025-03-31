@@ -3,7 +3,6 @@
 #include <iostream>
 #include <string>
 
-#include "AtomDB.h"
 #include "AtomDBSingleton.h"
 #include "CountAnswer.h"
 #include "DASNode.h"
@@ -14,6 +13,7 @@
 #define MAX_QUERY_ANSWERS ((unsigned int) 500)
 
 using namespace std;
+using namespace atomdb;
 
 void ctrl_c_handler(int) {
     std::cout << "Stopping link creation engine server..." << std::endl;
