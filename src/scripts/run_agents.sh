@@ -126,7 +126,7 @@ if [ "$PARAM" == "start" ]; then
         IFS=';' read -r AGENT_NAME AGENT_PATH <<< "$AGENT"
         echo "Starting agent: $AGENT_NAME"
         bash -c "$PWD/$AGENT_PATH $AGENT_NAME" >> /dev/null &
-        # sleep 5
+        sleep 5
     done
     exit 0
 fi

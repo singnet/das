@@ -178,10 +178,10 @@ std::vector<std::string> ProofOfImplicationOrEquivalence::query() {
         "LINK_TEMPLATE", "Expression", "3",
             "NODE", "Symbol", "EVALUATION",
             "LINK_TEMPLATE", "Expression", "2",
-                "NODE", "Symbol", "Predicate",
+                "NODE", "Symbol", "PREDICATE",
                 "VARIABLE", "P",
             "LINK_TEMPLATE", "Expression", "2",
-                "NODE", "Symbol", "Concept",
+                "NODE", "Symbol", "CONCEPT",
                 "VARIABLE", "C"
     };
     // clang-format on

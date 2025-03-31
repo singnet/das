@@ -7,7 +7,7 @@
 #include "dummy_message.h"
 #include "queue.h"
 
-#define DEBUG
+// #define DEBUG
 
 using namespace distributed_algorithm_node;
 

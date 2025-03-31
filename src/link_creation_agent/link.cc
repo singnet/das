@@ -98,7 +98,6 @@ vector<CustomField> Link::get_custom_fields() { return this->custom_fields; }
 
 string Link::to_metta_string() {
     string metta_string = "(";
-    metta_string += this->type + " ";
     for (LinkTargetTypes target : this->targets) {
         if (holds_alternative<string>(target)) {
             metta_string += get<string>(target) + " ";

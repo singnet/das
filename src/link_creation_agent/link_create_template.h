@@ -10,7 +10,7 @@
 #include <variant>
 #include <vector>
 
-#define DEBUG
+// #define DEBUG
 
 namespace link_creation_agent {
 
