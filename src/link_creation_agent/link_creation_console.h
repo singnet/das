@@ -4,12 +4,13 @@
 
 #pragma once
 
-#include "AtomDBAPITypes.h"
-#include "AtomDBSingleton.h"
-#include "AtomDB.h"
-#include "link.h"
 #include <memory>
 #include <string>
+
+#include "AtomDB.h"
+#include "AtomDBAPITypes.h"
+#include "AtomDBSingleton.h"
+#include "link.h"
 
 using namespace atomdb;
 using namespace std;

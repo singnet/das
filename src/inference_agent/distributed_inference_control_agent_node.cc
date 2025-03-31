@@ -21,13 +21,13 @@ void DistributedInferenceControlAgentNode::send_inference_control_request(
     std::vector<std::string> inference_control_request, std::string response_node_id) {
     std::vector<std::string> request;
     request.push_back(response_node_id);
-    #ifdef DEBUG
+#ifdef DEBUG
     for (auto& token : inference_control_request) {
         cout << token << " ";
         request.push_back(token);
     }
     cout << endl;
-    #endif
+#endif
     this->send_message(request);
 }
 

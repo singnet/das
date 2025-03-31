@@ -69,8 +69,6 @@ def load_config(path):
 
 
 def main():
-    import os
-    print(os.path.abspath(__file__))
     parser = argparse.ArgumentParser(description="DAS Agent")
     parser.add_argument("--node_id", type=str, help="Node ID")
     parser.add_argument("--mongo_hostname", type=str, default="localhost", help="MongoDB hostname")
@@ -85,10 +83,15 @@ def main():
     parser.add_argument("--redis_cluster", type=bool, default=False, help="Redis cluster")
     parser.add_argument("--redis_ssl", type=bool, default=False, help="Redis SSL")
     parser.add_argument("--config", type=str, default=None, help="Json config")
+    parser.add_argument("--config_file", type=str, default=None, help="Path to config file")
+
     _args = parser.parse_args()
 
     if _args.config:
         config = json.loads(_args.config)
+        _args = argparse.Namespace(**{**vars(_args), **config})
+    elif _args.config_file:
+        config = load_config(_args.config_file)
         _args = argparse.Namespace(**{**vars(_args), **config})
 
     _node = DASAgentNode(_args.node_id)

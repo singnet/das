@@ -22,8 +22,7 @@
 #include "link_creation_agent_node.h"
 #include "link_creation_service.h"
 
-// #define DEBUG
-
+#define DEBUG
 
 using namespace query_node;
 using namespace std;

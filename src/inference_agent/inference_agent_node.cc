@@ -9,22 +9,18 @@ const std::string InferenceAgentNode::CREATE_INFERENCE = "create_inference";
 const std::string InferenceAgentNode::INFERENCE_ANSWER = "inference_answer";
 const std::string InferenceAgentNode::DISTRIBUTED_INFERENCE_FINISHED = "evolution_finished";
 
-InferenceAgentNode::InferenceAgentNode(const std::string& node_id) : StarNode(node_id) {
-}
+InferenceAgentNode::InferenceAgentNode(const std::string& node_id) : StarNode(node_id) {}
 
 InferenceAgentNode::InferenceAgentNode(const std::string& node_id, const std::string& server_id)
-    : StarNode(node_id, server_id) {
-}
+    : StarNode(node_id, server_id) {}
 
 InferenceAgentNode::InferenceAgentNode(const std::string& node_id, MessageBrokerType messaging_backend)
-    : StarNode(node_id, server_id, messaging_backend) {
-}
+    : StarNode(node_id, server_id, messaging_backend) {}
 
 InferenceAgentNode::InferenceAgentNode(const std::string& node_id,
                                        const std::string& server_id,
                                        MessageBrokerType messaging_backend)
-    : StarNode(node_id, server_id, messaging_backend) {
-}
+    : StarNode(node_id, server_id, messaging_backend) {}
 
 InferenceAgentNode::~InferenceAgentNode() {
     shutting_down = true;
@@ -57,9 +53,9 @@ std::shared_ptr<Message> InferenceAgentNode::message_factory(std::string& comman
     if (command == DISTRIBUTED_INFERENCE_FINISHED) {
         return make_shared<DistributedInferenceFinishedMessage>(command, args);
     }
-    #ifdef DEBUG
+#ifdef DEBUG
     cout << "Command not recognized" << endl;
-    #endif
+#endif
     return make_shared<DummyMessage>(command, args);
 }
 

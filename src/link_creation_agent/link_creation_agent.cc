@@ -96,9 +96,9 @@ void LinkCreationAgent::run() {
 
         } else {
             if (request_buffer.find(lca_request->id) != request_buffer.end()) {
-                #ifdef DEBUG
+#ifdef DEBUG
                 cout << "Removing request ID: " << lca_request->id << endl;
-                #endif
+#endif
                 request_buffer.erase(lca_request->id);
             }
         }
@@ -220,7 +220,7 @@ shared_ptr<LinkCreationAgentRequest> LinkCreationAgent::create_request(vector<st
             lca_request->id =
                 compute_hash((char*) (to_string(time(0)) + Utils::random_string(20)).c_str());
         }
-        #ifdef DEBUG
+#ifdef DEBUG
         cout << "Query: " << Utils::join(lca_request->query, ' ') << endl;
         cout << "Link Template: " << Utils::join(lca_request->link_template, ' ') << endl;
         cout << "Max Results: " << lca_request->max_results << endl;
@@ -229,13 +229,13 @@ shared_ptr<LinkCreationAgentRequest> LinkCreationAgent::create_request(vector<st
         cout << "Update Attention Broker: " << lca_request->update_attention_broker << endl;
         cout << "Infinite: " << lca_request->infinite << endl;
         cout << "ID: " << lca_request->id << endl;
-        #endif
+#endif
 
         return shared_ptr<LinkCreationAgentRequest>(lca_request);
     } catch (exception& e) {
-        #ifdef DEBUG
+#ifdef DEBUG
         cout << "Error parsing request: " << e.what() << endl;
-        #endif
+#endif
         return NULL;
     }
 }

@@ -113,18 +113,16 @@ string Link::to_metta_string() {
     // remove the last space
     if (metta_string.back() == ' ') {
         metta_string[metta_string.size() - 1] = ')';
-    }else{
+    } else {
         metta_string += ")";
     }
     return metta_string;
 }
 
-
 Link Link::untokenize(const vector<string>& tokens) {
     int cursor = 0;
     return untokenize_link(tokens, cursor);
 }
-
 
 Link Link::untokenize_link(const vector<string>& tokens, int& cursor) {
     Link link;
@@ -159,7 +157,7 @@ Link Link::untokenize_link(const vector<string>& tokens, int& cursor) {
         } else {
             throw std::runtime_error("Invalid token: " + tokens[cursor]);
         }
-         // TODO: Implement custom field untokenization
+        // TODO: Implement custom field untokenization
     }
     return link;
 }

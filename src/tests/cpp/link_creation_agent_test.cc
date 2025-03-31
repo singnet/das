@@ -395,5 +395,4 @@ TEST(Link, TestLink) {
     EXPECT_EQ(l.to_metta_string(), "(Value1 (A Value2 (C D)) B)");
     link_template.clear();
     delete query_answer;
-
 }
