@@ -22,7 +22,7 @@ class Parameters:
     query_agent_node_id: int = None
     query_agent_server_id: int = None
     attention_broker_server_id: str = None
-    context: str = None
+    evolution_server_id: str = None
     mongo_hostname: str = None
     mongo_port: int = None
     mongo_username: str = None
@@ -82,4 +82,17 @@ def profile(func):
         print(f"{func.__name__} executed in {elapsed_time:.6f} seconds")
         return result
 
+    return wrapper
+
+
+def log_function_call(func):
+    """Decorator to log the start and end of a function call."""
+    @functools.wraps(func)
+    def wrapper(*args, **kwargs):
+        sys.stdout.write(f'\n{func.__name__} START')
+        sys.stdout.flush()
+        result = func(*args, **kwargs)
+        sys.stdout.write(f'\n{func.__name__} END')
+        sys.stdout.flush()
+        return result
     return wrapper
