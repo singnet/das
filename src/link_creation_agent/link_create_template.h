@@ -97,12 +97,12 @@ class CustomField {
      */
     void add_field(const std::string& name, const CustomFieldTypes& value);
 
-    CustomField untokenize(std::vector<std::string> tokens);
+    CustomField untokenize(const std::vector<std::string>& tokens);
 
    private:
     std::string name;
     std::vector<std::tuple<std::string, CustomFieldTypes>> values;
-    CustomField untokenize(std::vector<std::string> tokens, int& cursor);
+    CustomField untokenize(const std::vector<std::string>& tokens, int& cursor);
 };
 
 /**

@@ -120,13 +120,13 @@ string Link::to_metta_string() {
 }
 
 
-Link Link::untokenize(vector<string> tokens) {
+Link Link::untokenize(const vector<string>& tokens) {
     int cursor = 0;
     return untokenize_link(tokens, cursor);
 }
 
 
-Link Link::untokenize_link(vector<string> tokens, int& cursor) {
+Link Link::untokenize_link(const vector<string>& tokens, int& cursor) {
     Link link;
     if (tokens[cursor] != "LINK") {
         throw std::runtime_error("Invalid token: " + tokens[cursor]);

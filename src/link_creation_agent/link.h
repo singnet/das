@@ -53,7 +53,7 @@ class Link {
 
     string to_metta_string();
 
-    Link untokenize(vector<string> tokens);
+    Link untokenize(const vector<string>& tokens);
 
     /**
      * @brief Get the custom fields of the link
@@ -65,6 +65,6 @@ class Link {
     string type;
     vector<LinkTargetTypes> targets;
     vector<CustomField> custom_fields;
-    Link untokenize_link(vector<string> tokens, int& cursor);
+    Link untokenize_link(const vector<string>& tokens, int& cursor);
 };
 }  // namespace link_creation_agent

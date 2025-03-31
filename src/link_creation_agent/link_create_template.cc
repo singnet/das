@@ -274,32 +274,14 @@ std::string CustomField::to_string() {
     return custom_field;
 }
 
-CustomField CustomField::untokenize(std::vector<std::string> tokens) {
+CustomField CustomField::untokenize(const std::vector<std::string>& tokens) {
     int cursor = 0;
     return untokenize(tokens, cursor);
 }
 
-CustomField CustomField::untokenize(std::vector<std::string> tokens, int& cursor) {
-    if (tokens[cursor] != "CUSTOM_FIELD") {
-        throw std::runtime_error("Invalid token: " + tokens[cursor]);
-    }
-    cursor++;
-    this->name = tokens[cursor];
-    cursor++;
-    int num_values = stoi(tokens[cursor]);
-    cursor++;
-    for (int i = 0; i < num_values; i++) {
-        if (tokens[cursor] == "CUSTOM_FIELD") {
-            std::shared_ptr<CustomField> sub_custom_field =
-                std::make_shared<CustomField>(untokenize(tokens, cursor));
-            this->values.push_back(std::make_tuple(this->name, sub_custom_field));
-        } else {
-            this->values.push_back(
-                std::make_tuple(tokens[cursor], tokens[cursor + 1]));
-            cursor += 2;
-        }
-    }
-    return *this;
+CustomField CustomField::untokenize(const std::vector<std::string>& tokens, int& cursor) {
+    // TODO implement untokenize
+    return CustomField("");
 }
 
 std::vector<std::string> CustomField::tokenize() { return split(this->to_string(), ' '); }
