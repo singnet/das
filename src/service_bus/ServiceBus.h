@@ -1,14 +1,16 @@
-#ifndef _SERVICE_BUS_SERVICEBUS_H
-#define _SERVICE_BUS_SERVICEBUS_H
+#pragma once
 
 #include <set>
 #include <string>
 #include <mutex>
 
-#include "BusCommandProcessor.h"
 #include "BusNode.h"
+#include "BusCommandProcessor.h"
+#include "SharedQueue.h"
+#include "Utils.h"
 
 using namespace std;
+using namespace commons;
 using namespace distributed_algorithm_node;
 
 namespace service_bus {
@@ -54,9 +56,9 @@ class ServiceBus {
         shared_ptr<BusNode::Bus> bus;
     };
 
-    class BusCommand : public Message {
+    class BusCommandMessage : public Message {
        public:
-        BusCommand(const string& command, const vector<string>& args);
+        BusCommandMessage(const string& command, const vector<string>& args);
         void act(shared_ptr<MessageFactory> node);
 
        private:
@@ -65,6 +67,9 @@ class ServiceBus {
     };
 
     static set<string> SERVICE_LIST;
+    static unsigned int COMMAND_PROXY_PORT_LOWER;
+    static unsigned int COMMAND_PROXY_PORT_UPPER;
+    static SharedQueue *port_pool;
     shared_ptr<ServiceBus::Node> bus_node;
     shared_ptr<BusNode::Bus> bus;
     mutex api_mutex;
@@ -83,7 +88,7 @@ class ServiceBus {
      */
     void register_processor(shared_ptr<BusCommandProcessor> processor);
 
-    shared_ptr<BusCommandTicket> bus_command(const string& command, const vector<string>& args);
+    void issue_bus_command(shared_ptr<BusCommandProxy> bus_command);
 
     // ---------------------------------------------------------------------------------------------
     // Used by ServiceBusSingleton
@@ -100,6 +105,19 @@ class ServiceBus {
         } else {
             SERVICE_LIST.insert("PATTERN_MATCHING_QUERY");
         }
+        COMMAND_PROXY_PORT_LOWER = 64000;
+        COMMAND_PROXY_PORT_UPPER = 64999;
+        if (COMMAND_PROXY_PORT_LOWER > COMMAND_PROXY_PORT_UPPER) {
+            Utils::error("Invalid port limits [" + 
+                to_string(COMMAND_PROXY_PORT_LOWER) +
+                ".." +
+                to_string(COMMAND_PROXY_PORT_UPPER) +
+                "]");
+        }
+        port_pool = new SharedQueue();
+        for (unsigned long port = COMMAND_PROXY_PORT_LOWER; port <= COMMAND_PROXY_PORT_UPPER; port++) {
+            port_pool->enqueue((void *) port);
+        }
     }
 
     /**
@@ -110,5 +128,3 @@ class ServiceBus {
 };
 
 }  // namespace service_bus
-
-#endif  // _SERVICE_BUS_SERVICEBUS_H

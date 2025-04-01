@@ -1,5 +1,4 @@
-#ifndef _SERVICE_BUS_SERVICEBUSSINGLETON_H
-#define _SERVICE_BUS_SERVICEBUSSINGLETON_H
+#pragma once
 
 #include <memory>
 
@@ -49,5 +48,3 @@ class ServiceBusSingleton {
 };
 
 }  // namespace service_bus
-
-#endif  // _SERVICE_BUS_SERVICEBUSSINGLETON_H

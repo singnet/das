@@ -60,4 +60,10 @@ TEST(SharedQueueTest, basics) {
     EXPECT_EQ((char*) q1.dequeue(), "12");
     EXPECT_EQ((char*) q1.dequeue(), "13");
     EXPECT_EQ((char*) q1.dequeue(), "14");
+
+    SharedQueue q2;
+    unsigned long p1 = 10107;
+    q2.enqueue((void *) p1);
+    unsigned long p2 = (unsigned long) q2.dequeue();
+    EXPECT_EQ(p1, p2);
 }

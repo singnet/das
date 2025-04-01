@@ -1,9 +1,9 @@
-#ifndef _SERVICE_BUS_BUSCOMMANDPROCESSOR_H
-#define _SERVICE_BUS_BUSCOMMANDPROCESSOR_H
+#pragma once
 
 #include <set>
 #include <string>
 #include <vector>
+#include "BusCommandProxy.h"
 
 using namespace std;
 
@@ -28,9 +28,10 @@ class BusCommandProcessor {
     virtual ~BusCommandProcessor() {}
 
     // ---------------------------------------------------------------------------------------------
-    // Virtual API which need to be iomplemented in concrete subclasses.
+    // Virtual API which need to be implemented in concrete subclasses.
 
-    virtual void run_command(const string& command, const vector<string>& args) = 0;
+    virtual shared_ptr<BusCommandProxy> factory_empty_proxy() = 0;
+    virtual void run_command(shared_ptr<BusCommandProxy> proxy) = 0;
 
    private:
     bool check_command(const string& command);
@@ -39,5 +40,3 @@ class BusCommandProcessor {
 };
 
 }  // namespace service_bus
-
-#endif  // _SERVICE_BUS_BUSCOMMANDPROCESSOR_H
