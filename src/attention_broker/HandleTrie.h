@@ -20,41 +20,40 @@ namespace attention_broker_server {
  * in value is called passing the newly inserted value.
  */
 class HandleTrie {
-
-public:
-
+   public:
     /**
      * Virtual basic class to be extended by objects used as "values".
      */
     class TrieValue {
-        protected:
-            TrieValue(); /// basic empty constructor.
-        public:
-            virtual ~TrieValue(); /// Destructor.
-            virtual void merge(TrieValue *other) = 0; /// Called when a repeated handle is inserted.
-            virtual string to_string(); /// Returns a string representation of the value object.
-
+       protected:
+        TrieValue();                               /// basic empty constructor.
+       public:
+        virtual ~TrieValue();                      /// Destructor.
+        virtual void merge(TrieValue* other) = 0;  /// Called when a repeated handle is inserted.
+        virtual string to_string();  /// Returns a string representation of the value object.
     };
 
     /**
      * A node in the prefix tree used to store keys.
      */
     class TrieNode {
-        public:
-            TrieNode(); /// Basic empty constructor.
-            ~TrieNode(); /// Destructor.
+       public:
+        TrieNode();           /// Basic empty constructor.
+        ~TrieNode();          /// Destructor.
 
-            TrieNode **children; /// Array with children of this node.
-            TrieValue *value; /// Value attached to this node or NULL if none.
-            string suffix; /// The key (handle) attached to this node (leafs) or NULL if none (internal nodes).
-            unsigned char suffix_start; /// The point in the suffix from which this node (leaf) differs from its siblings.
-            mutex trie_node_mutex;
+        TrieNode** children;  /// Array with children of this node.
+        TrieValue* value;     /// Value attached to this node or NULL if none.
+        string
+            suffix;  /// The key (handle) attached to this node (leafs) or NULL if none (internal nodes).
+        unsigned char suffix_start;  /// The point in the suffix from which this node (leaf) differs from
+                                     /// its siblings.
+        mutex trie_node_mutex;
 
-            string to_string(); /// Returns a string representation of this node.
+        string to_string();  /// Returns a string representation of this node.
     };
 
-    HandleTrie(unsigned int key_size); /// Basic constructor.
-    ~HandleTrie(); /// Destructor.
+    HandleTrie(unsigned int key_size);  /// Basic constructor.
+    ~HandleTrie();                      /// Destructor.
 
     /**
      * Insert a new key in this HandleTrie or merge its value if the key is already present.
@@ -62,9 +61,10 @@ public:
      * @param key Handle being inserted.
      * @param value HandleTrie::TrieValue object being inserted.
      *
-     * @return The resulting HandleTrie::TrieValue object after insertion (and eventually the merge) is processed.
+     * @return The resulting HandleTrie::TrieValue object after insertion (and eventually the merge) is
+     * processed.
      */
-    TrieValue *insert(const string &key, TrieValue *value);
+    TrieValue* insert(const string& key, TrieValue* value);
 
     /**
      * Lookup for a given handle.
@@ -73,7 +73,7 @@ public:
      *
      * @return The HandleTrie::TrieValue object attached to the passed key or NULL if none.
      */
-    TrieValue *lookup(const string &key);
+    TrieValue* lookup(const string& key);
 
     /**
      * Traverse all keys (in-order) calling the passed visit_function once per stored value.
@@ -83,12 +83,11 @@ public:
      * @param visit_function Function to be called when each value is visited.
      * @param data Additional information passed to visit_function or NULL if none.
      */
-    void traverse(bool keep_root_locked, bool (*visit_function)(TrieNode *node, void *data), void *data);
+    void traverse(bool keep_root_locked, bool (*visit_function)(TrieNode* node, void* data), void* data);
 
-    TrieNode *root;
+    TrieNode* root;
 
-private:
-
+   private:
     static unsigned char TLB[256];
     static bool TLB_INITIALIZED;
     static void TLB_INIT() {
@@ -114,6 +113,6 @@ private:
     unsigned int key_size;
 };
 
-} // namespace attention_broker_server
+}  // namespace attention_broker_server
 
-#endif // _ATTENTION_BROKER_SERVER_HANDLETRIE_H
+#endif  // _ATTENTION_BROKER_SERVER_HANDLETRIE_H

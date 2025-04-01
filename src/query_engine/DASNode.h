@@ -6,7 +6,9 @@
 #include <stack>
 
 #include "HandlesAnswer.h"
+#include "LazyWorkerDeleter.h"
 #include "RemoteIterator.h"
+#include "RemoteSink.h"
 #include "Sink.h"
 #include "StarNode.h"
 
@@ -26,6 +28,10 @@ class DASNode : public StarNode {
 
     DASNode(const string& node_id);
     DASNode(const string& node_id, const string& server_id);
+    DASNode(const string& node_id,
+            const string& server_id,
+            unsigned int first_query_port,
+            unsigned int last_query_port);
     ~DASNode();
 
     RemoteIterator<HandlesAnswer>* pattern_matcher_query(const vector<string>& tokens,
@@ -45,14 +51,16 @@ class DASNode : public StarNode {
 
     string local_host;
     unsigned int next_query_port;
-    unsigned int first_query_port;
-    unsigned int last_query_port;
+    unsigned int first_query_port = 60000;
+    unsigned int last_query_port = 61999;
 };
 
 class PatternMatchingQuery : public Message {
    public:
     PatternMatchingQuery(string command, vector<string>& tokens);
     void act(shared_ptr<MessageFactory> node);
+
+    static LazyWorkerDeleter<RemoteSink<HandlesAnswer>> remote_sinks_deleter;
 
    private:
     QueryElement* build_link_template(vector<string>& tokens,

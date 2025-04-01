@@ -50,7 +50,13 @@ run-inference-agent-client:
 	@bash -x src/scripts/run.sh inference_agent_client $(OPTIONS)
 
 run-evolution:
-	src/bin/evolution $(OPTIONS)
+	@bash ./src/scripts/bazel.sh run //evolution:main -- $(OPTIONS)
+
+run-das-agent:
+	@bash ./src/scripts/bazel.sh run //das_agent:main -- $(OPTIONS)
+
+agents:
+	@bash -x src/scripts/run_agents.sh $(filter-out $@, $(MAKECMDGOALS))
 
 setup-nunet-dms:
 	@bash -x src/scripts/setup-nunet-dms.sh
@@ -58,11 +64,14 @@ setup-nunet-dms:
 reset-nunet-dms:
 	@bash -x src/scripts/reset-nunet-dms.sh
 
-bazel:
+bazel: build-image
 	@bash ./src/scripts/bazel.sh $(filter-out $@, $(MAKECMDGOALS))
 
+test-all-no-cache:
+	@$(MAKE) bazel 'test --cache_test_results=no //tests/...'
+
 test-all: build-image
-	@$(MAKE) bazel test //...
+	@$(MAKE) bazel test //tests/...
 
 lint-all:
 	@$(MAKE) bazel lint \
@@ -71,6 +80,9 @@ lint-all:
 
 format-all:
 	@$(MAKE) bazel run format
+
+performance-tests:
+	@python3 src/tests/integration/performance/query_agent_metrics.py
 
 # Catch-all pattern to prevent make from complaining about unknown targets
 %:

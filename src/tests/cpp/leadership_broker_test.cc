@@ -1,18 +1,17 @@
-#include <cstdlib>
 #include <cmath>
+#include <cstdlib>
 
-#include "gtest/gtest.h"
 #include "LeadershipBroker.h"
+#include "gtest/gtest.h"
 
 using namespace distributed_algorithm_node;
 
 TEST(LeadershipBroker, basics) {
-
     try {
         LeadershipBroker::factory((LeadershipBrokerType) -1);
         FAIL() << "Expected exception";
-    } catch(std::runtime_error const &error) {
-    } catch(...) {
+    } catch (std::runtime_error const& error) {
+    } catch (...) {
         FAIL() << "Expected std::runtime_error";
     }
 

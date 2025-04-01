@@ -7,6 +7,8 @@
 #include "StarNode.h"
 #include "queue.h"
 
+#define DEBUG
+
 using namespace distributed_algorithm_node;
 
 namespace das_agent {
@@ -30,5 +32,7 @@ class DasAgentNode : public StarNode {
 
    private:
     const string CREATE_ATOM = "create_atom";  // DAS Node command
+    string node_id;                            // ID of this node in the network
+    string server_id;                          // ID of a server
 };
 }  // namespace das_agent

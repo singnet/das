@@ -1,3 +1,5 @@
+import signal
+import sys
 import argparse
 
 from evolution.optimizer import QueryOptimizerAgent
@@ -10,33 +12,32 @@ def parse_args():
         )
     )
     parser.add_argument(
-        '--config-file',
+        "--config-file",
         required=True,
-        default='config.cfg',
-        help="Path to the configuration file (default: 'config.cfg')"
+        default="config.cfg",
+        help="Path to the configuration file (default: 'config.cfg')",
     )
-    parser.add_argument(
-        '--query-tokens',
-        required=True,
-        help="Query tokens to be optimized"
-    )
-
     return parser.parse_args()
+
+
+def shutdown_handler(signum, frame):
+    print("Stopping server...")
+    sys.exit(0)
 
 
 def main():
     try:
         args = parse_args()
-
         agent = QueryOptimizerAgent(config_file=args.config_file)
-        iterator = agent.optimize(query_tokens=args.query_tokens)
-        answers = [qa.to_string() for qa in iterator]
-        print("\nResults:")
-        return answers
+
+        signal.signal(signal.SIGINT, shutdown_handler)
+        signal.signal(signal.SIGTERM, shutdown_handler)
+
+        agent.run_server()
     except Exception as e:
-        raise e
+        print(f"An error occurred - Details: {str(e)}")
+        return 1
 
 
 if __name__ == '__main__':
-    print("Starting optimizer")
-    print(main())
+    sys.exit(main())

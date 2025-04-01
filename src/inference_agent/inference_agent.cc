@@ -1,8 +1,9 @@
 #include "inference_agent.h"
 
+#include <limits.h>
+
 #include <fstream>
 #include <sstream>
-#include <limits.h>
 
 #include "Utils.h"
 
@@ -28,7 +29,7 @@ InferenceAgent::InferenceAgent(const string& config_path) {
     }
     inference_node_server_host = host_port[0];
     inference_node_server_port = host_port[1];
-    this->agent_thread = new thread(&InferenceAgent::run, this);
+    // this->agent_thread = new thread(&InferenceAgent::run, this);
 }
 
 InferenceAgent::InferenceAgent(
@@ -56,10 +57,8 @@ InferenceAgent::~InferenceAgent() {
     delete das_client;
     distributed_inference_control_client->graceful_shutdown();
     delete distributed_inference_control_client;
-    if (agent_thread->joinable()) {
-        agent_thread->join();
-    }
-    delete agent_thread;
+    if (agent_thread != nullptr && agent_thread->joinable()) agent_thread->join();
+    if (agent_thread != nullptr) delete agent_thread;
 }
 
 void InferenceAgent::run() {
@@ -78,18 +77,23 @@ void InferenceAgent::run() {
                     int max_proof_length = stoi(answer[3]);
                     string context = answer[4];
                     if (inference_command == PROOF_OF_IMPLICATION_OR_EQUIVALENCE) {
+#ifdef DEBUG
                         cout << "Received proof of implication or equivalence" << endl;
+#endif
                         inference_request = make_shared<ProofOfImplicationOrEquivalence>(
-                            first_handle, second_handle, max_proof_length, context
-                        );
+                            first_handle, second_handle, max_proof_length, context);
                     } else if (inference_command == PROOF_OF_IMPLICATION) {
+#ifdef DEBUG
                         cout << "Received proof of implication" << endl;
-                        inference_request =
-                            make_shared<ProofOfImplication>(first_handle, second_handle, max_proof_length, context);
+#endif
+                        inference_request = make_shared<ProofOfImplication>(
+                            first_handle, second_handle, max_proof_length, context);
                     } else if (inference_command == PROOF_OF_EQUIVALENCE) {
+#ifdef DEBUG
                         cout << "Received proof of equivalence" << endl;
-                        inference_request =
-                            make_shared<ProofOfEquivalence>(first_handle, second_handle, max_proof_length, context);
+#endif
+                        inference_request = make_shared<ProofOfEquivalence>(
+                            first_handle, second_handle, max_proof_length, context);
                     }
                     inference_request->set_id(inference_request_id);
                     string iterator_id = get_next_iterator_id();
@@ -105,6 +109,10 @@ void InferenceAgent::run() {
         } else {
             for (int i = 0; i < inference_iterators.size(); i++) {
                 if (!inference_iterators[i]->pop(false).empty()) {
+#ifdef DEBUG
+                    cout << "Inference iterator ID: " << inference_iterators[i]->get_local_id()
+                         << " finished" << endl;
+#endif
                     send_stop_link_creation_request(
                         iterator_link_creation_request_map[inference_iterators[i]->get_local_id()]);
                     inference_iterators.erase(inference_iterators.begin() + i);
@@ -130,11 +138,11 @@ void InferenceAgent::send_link_creation_request(shared_ptr<InferenceRequest> inf
         for (auto& token : request_iterator) {
             request.push_back(token);
         }
-        request.push_back("1000");                              // TODO check max results value
-        request.push_back(is_stop_request ? "0" : "-1");        // repeat
-        request.push_back(inference_request->get_context());    // context
-        request.push_back("false");                             // update_attention_broker
-        request.push_back(inference_request->get_id());         // inference_request_id
+        request.push_back("1000");                            // TODO check max results value
+        request.push_back(is_stop_request ? "0" : "-1");      // repeat
+        request.push_back(inference_request->get_context());  // context
+        request.push_back("false");                           // update_attention_broker
+        request.push_back(inference_request->get_id());       // inference_request_id
         link_creation_node_client->send_message(request);
     }
 }
@@ -146,9 +154,13 @@ void InferenceAgent::send_stop_link_creation_request(shared_ptr<InferenceRequest
 void InferenceAgent::send_distributed_inference_control_request(const string& client_node_id) {
     shared_ptr<InferenceIterator<InferenceAgentNode>> inference_iterator =
         make_shared<InferenceIterator<InferenceAgentNode>>(client_node_id);
+#ifdef DEBUG
+    cout << "Sending distributed inference control request ID: " << client_node_id << endl;
+#endif
     inference_iterators.push_back(inference_iterator);
     distributed_inference_control_client->send_inference_control_request(
-        iterator_link_creation_request_map[client_node_id]->get_distributed_inference_control_request());
+        iterator_link_creation_request_map[client_node_id]->get_distributed_inference_control_request(),
+        client_node_id);
 }
 
 vector<string> InferenceAgent::get_link_creation_request() { return vector<string>(); }
@@ -164,14 +176,17 @@ const string InferenceAgent::get_next_iterator_id() {
     return inference_node_server_host + ":" + last_part;
 }
 
-const string InferenceAgent::get_next_inference_request_id() { 
+const string InferenceAgent::get_next_inference_request_id() {
     // ++this->inference_request_id;
-    this->inference_request_id = ++this->inference_request_id % numeric_limits<unsigned long long>::max();
+    this->inference_request_id =
+        ++this->inference_request_id % numeric_limits<unsigned long long>::max();
     return to_string(this->inference_request_id);
 }
 
 void InferenceAgent::parse_config(const string& config_path) {
+#ifdef DEBUG
     cout << "Parsing config file: " << config_path << endl;
+#endif
     map<string, string> config = Utils::parse_config(config_path);
 
     this->inference_node_id = config["inference_node_id"];

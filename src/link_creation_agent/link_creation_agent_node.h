@@ -7,6 +7,8 @@
 #include "dummy_message.h"
 #include "queue.h"
 
+#define DEBUG
+
 using namespace distributed_algorithm_node;
 
 namespace link_creation_agent {

@@ -5,13 +5,13 @@ cc_library(
   srcs = [
     "link_creation_agent.cc",
     "link.cc",
-    "service.cc",
+    "link_creation_service.cc",
 
   ],
   hdrs = [
     "link_creation_agent.h",
     "link.h",
-    "service.h",
+    "link_creation_service.h",
   ],
   includes = ["."],
   deps = [
@@ -20,6 +20,7 @@ cc_library(
     ":link_create_template",
     ":link_creation_agent_node",
     ":service",
+    ":link_creation_console",
     ":processors",
     "//distributed_algorithm_node:distributed_algorithm_node_lib",
     "//query_engine:query_engine_lib",
@@ -32,6 +33,7 @@ cc_library(
   srcs = ["das_agent_node.cc"],
   hdrs = ["das_agent_node.h", "queue.h"],
   deps = [
+    ":link_creation_console",
     "//distributed_algorithm_node:distributed_algorithm_node_lib",
   ],
 )
@@ -61,10 +63,23 @@ cc_library(
   ],
 )
 
+
+cc_library(
+  name = "link_creation_console",
+  srcs = ["link_creation_console.cc"],
+  hdrs = ["link_creation_console.h"],
+  deps = [
+    ":link",
+    "//atomdb:atomdb_singleton",
+    "//atomdb:atomdb_api_types",
+    "//atomdb:atomdb",
+  ],
+)
+
 cc_library(
   name = "service",
-  srcs = ["service.cc"],
-  hdrs = ["service.h", "thread_pool.h"],
+  srcs = ["link_creation_service.cc"],
+  hdrs = ["link_creation_service.h", "thread_pool.h"],
   deps = [
     ":das_agent_node",
     ":link",

@@ -195,7 +195,9 @@ std::vector<std::string> LinkCreateTemplate::tokenize() { return split(this->to_
 
 void LinkCreateTemplate::add_target(LinkCreateTemplateTypes target) { this->targets.push_back(target); }
 
-void LinkCreateTemplate::add_custom_field(CustomField custom_field) { this->custom_fields.push_back(custom_field); }
+void LinkCreateTemplate::add_custom_field(CustomField custom_field) {
+    this->custom_fields.push_back(custom_field);
+}
 
 CustomField::CustomField(const std::string& name) { this->name = name; }
 
@@ -272,8 +274,17 @@ std::string CustomField::to_string() {
     return custom_field;
 }
 
-std::vector<std::string> CustomField::tokenize() { return split(this->to_string(), ' '); }
+CustomField CustomField::untokenize(const std::vector<std::string>& tokens) {
+    int cursor = 0;
+    return untokenize(tokens, cursor);
+}
 
+CustomField CustomField::untokenize(const std::vector<std::string>& tokens, int& cursor) {
+    // TODO implement untokenize
+    return CustomField("");
+}
+
+std::vector<std::string> CustomField::tokenize() { return split(this->to_string(), ' '); }
 
 LinkCreateTemplateList::LinkCreateTemplateList(std::vector<std::string> link_template) {
     if (get_token(link_template, 0) != "LIST")
@@ -291,9 +302,6 @@ LinkCreateTemplateList::LinkCreateTemplateList(std::vector<std::string> link_tem
     }
 }
 
-
 LinkCreateTemplateList::~LinkCreateTemplateList() {}
 
-std::vector<LinkCreateTemplate> LinkCreateTemplateList::get_templates() {
-    return this->templates;
-}
+std::vector<LinkCreateTemplate> LinkCreateTemplateList::get_templates() { return this->templates; }

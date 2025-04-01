@@ -1,43 +1,50 @@
 """
 Non distributed version
 """
+
 import contextlib
+import statistics
 import time
-import sys
 
-from threading import Thread, Event, Lock
-from queue import Queue, Full
-from typing import Iterator
 from concurrent.futures import ThreadPoolExecutor
-from collections import defaultdict
+from typing import Any, Iterator
+from threading import Lock
+from queue import Queue, Full
 
-from hyperon_das.cache.attention_broker_gateway import AttentionBrokerGateway
 from hyperon_das_atomdb.adapters import RedisMongoDB
+from hyperon_das_atomdb.exceptions import AtomDoesNotExist
 
+from hyperon_das_node import DASNode, QueryAnswer
+
+from evolution.attention_broker_updater import AttentionBrokerUpdater
 from evolution.fitness_functions import FitnessFunctions
+from evolution.node import EvolutionNode, NodeIdFactory
 from evolution.selection_methods import handle_selection_method, SelectionMethodType
-from evolution.utils import Parameters, parse_file, SuppressCppOutput
+from evolution.utils import Parameters, parse_file
+from evolution.utils import SuppressCppOutput
 
-# NOTE: This module, das_node, is a Python implementation of DASNode,
-# used to develop and test the optimization algorithm.
-# However, it is necessary to create bindings for the components already implemented in C++
-# and integrate them into this implementation.
-# Currently, I am using the implementation from this PR:
-from evolution.das_node.query_answer import QueryAnswer
-from evolution.das_node.das_node import DASNode
-
-MAX_CORRELATIONS_WITHOUT_STIMULATE = 1000
+DEBUG = True
 
 
 class QueryOptimizerAgent:
     def __init__(self, config_file: str) -> None:
         self.params = self._load_config(config_file)
+        self.node_id_factory = NodeIdFactory(ip="localhost")
+        self.evolution_node_server = EvolutionNode(node_id=self.params.evolution_server_id)
 
-    def optimize(self, query_tokens: list[str] | str) -> Iterator:
-        if isinstance(query_tokens, str):
-            query_tokens = query_tokens.split(' ')
+    def run_server(self):
+        print("Running server...", flush=True)
+        while True:
+            if request := self.evolution_node_server.pop_request():
+                print("\nNew message!\n", flush=True)
+                answers = self._process(context=request['context'], query_tokens=request['data'])
+                self._send_message(request['senders'], answers)
+            time.sleep(0.5)
+
+    def optimize(self, context: str, query_tokens: list[str] | str) -> Iterator:
         return QueryOptimizerIterator(
-            query_tokens,
+            context=context,
+            query_tokens=query_tokens,
             **self.params.__dict__
         )
 
@@ -51,8 +58,25 @@ class QueryOptimizerAgent:
         config = parse_file(config_file)
         params = Parameters(**config)
         if params.qtd_selected_for_attention_update > params.population_size:
-            raise ValueError("The number of selected individuals for attention update cannot be greater than the population size.")
+            raise ValueError(
+                "The number of selected individuals for attention update cannot be greater than the population size."
+            )
         return params
+
+    def _process(self, context: str, query_tokens: list[str] | str) -> str:
+        iterator = self.optimize(context, query_tokens)
+        resp = "\n".join(f"{qa.to_string()}" for qa in iterator)
+        return resp
+
+    def _send_message(self, senders: list[str], answers: str) -> None:
+        print(f'\nAnswers: \n{answers}\n', flush=True)
+
+        for sender in senders:
+            self.evolution_node_client = EvolutionNode(
+                server_id=sender,
+                node_id_factory=self.node_id_factory
+            )
+            self.evolution_node_client.send("evolution_finished", [answers], sender)
 
 
 class QueryOptimizerIterator:
@@ -67,9 +91,10 @@ class QueryOptimizerIterator:
 
     The iterator interface yields the best query answers once optimization completes.
     """
+
     def __init__(
         self,
-        query_tokens: list[str],
+        query_tokens: list[str] | str,
         max_query_answers: int,
         max_generations: int,
         population_size: int,
@@ -87,31 +112,37 @@ class QueryOptimizerIterator:
         redis_port: int,
         redis_cluster: bool,
         redis_ssl: bool,
+        context: str = "",
         **kwargs
     ) -> None:
         self.atom_db = self._connect_atom_db(
-            mongo_hostname, mongo_port, mongo_username, mongo_password,
-            redis_hostname, redis_port, redis_cluster, redis_ssl
+            mongo_hostname,
+            mongo_port,
+            mongo_username,
+            mongo_password,
+            redis_hostname,
+            redis_port,
+            redis_cluster,
+            redis_ssl,
         )
-
-        with SuppressCppOutput():
-            self.query_agent = DASNode(query_agent_node_id, query_agent_server_id)
-
-        self.query_tokens = query_tokens
+        self.attention_broker_updater = AttentionBrokerUpdater(
+            address=attention_broker_server_id,
+            atomdb=self.atom_db,
+            context=context
+        )
+        self.query_agent = DASNode(query_agent_node_id, query_agent_server_id)
+        self.query_tokens = self._parse_tokens(query_tokens)
         self.max_query_answers = max_query_answers
         self.max_generations = max_generations
         self.population_size = population_size
         self.qtd_selected_for_attention_update = qtd_selected_for_attention_update
         self.selection_method = selection_method
         self.fitness_function = fitness_function
-        self.attention_broker_server_id = attention_broker_server_id
-
+        self.context = context
         self.best_query_answers = Queue(maxsize=self.max_query_answers)
         self.generation = 1
-        self.producer_finished = Event()
         self.atom_db_mutex = Lock()
-        self._producer_thread = Thread(target=self._producer)
-        self._producer_thread.start()
+        self._producer()
 
     def __iter__(self):
         return self
@@ -121,16 +152,9 @@ class QueryOptimizerIterator:
         Retrieves the next available QueryAnswer from the queue.
         """
         while True:
-            if self.producer_finished.is_set():
-                if not self.best_query_answers.empty():
-                    return self.best_query_answers.get()
-                elif self.is_empty():
-                    self._shutdown_optimizer()
-                    raise StopIteration     
-            time.sleep(0.1)
-
-    def is_empty(self) -> bool:
-        return bool(self.best_query_answers.empty() and self.producer_finished.is_set())
+            if self.best_query_answers.empty():
+                raise StopIteration
+            return self.best_query_answers.get()
 
     def _connect_atom_db(
         self,
@@ -141,7 +165,7 @@ class QueryOptimizerIterator:
         redis_hostname: str,
         redis_port: int,
         redis_cluster: bool,
-        redis_ssl: bool
+        redis_ssl: bool,
     ) -> RedisMongoDB:
         """
         Establishes a connection to the atom database using configuration parameters.
@@ -158,8 +182,43 @@ class QueryOptimizerIterator:
                 redis_ssl=redis_ssl,
             )
         except Exception as e:
-            print(f"Error: {e}")
+            print(f"Error: {e}", flush=True)
             raise e
+
+    def _parse_tokens(self, tokens: list[str] | str) -> list[str]:
+        def parse_atom(token: str, atom_db: Any) -> list[str]:
+            try:
+                atom = atom_db.get_atom(token)
+            except AtomDoesNotExist:
+                return ''
+            if atom_db._is_document_link(atom.to_dict()):
+                result = ['LINK_TEMPLATE', atom.named_type, str(len(atom.targets))]
+                for target in atom.targets:
+                    result.extend(parse_atom(target, atom_db))
+                return result
+            else:
+                return ['NODE', atom.named_type, atom.name]
+
+        parsed_tokens = []
+
+        if isinstance(tokens, str):
+            tokens = tokens.split(' ')
+
+        token_iter = iter(tokens)
+        for token in token_iter:
+            if token == 'HANDLE':
+                try:
+                    handle_token = next(token_iter)
+                    parsed_tokens.extend(parse_atom(handle_token, self.atom_db))
+                except StopIteration:
+                    raise ValueError("'HANDLE' Token missing corresponding value")
+            else:
+                parsed_tokens.append(token)  
+
+        print(f'\ntokens: {tokens}', flush=True)
+        print(f'\nparsed_tokens: {parsed_tokens}', flush=True)
+
+        return parsed_tokens
 
     def _producer(self) -> None:
         """
@@ -170,58 +229,86 @@ class QueryOptimizerIterator:
         After processing all generations, it fills the query answers queue and signals termination.
         """
         while self.generation <= self.max_generations:
-            sys.stdout.write(f"\rProcessing generation {self.generation}/{self.max_generations}")
-            sys.stdout.flush()
+            with SuppressCppOutput():
+                population = self._sample_population(limit=self.population_size)            
+                evaluated_individuals = self._evaluate_population(population)
+                selected_individuals = self._select_best_individuals(evaluated_individuals)
 
-            population = self._sample_population()
+            print(f"\n===> Generation {self.generation}/{self.max_generations}", flush=True)
 
-            if not population:
-                self.producer_finished.set()
-                raise RuntimeError("Population sampling failed: query response returned nothing.")
+            the_best = 10
+            sorted_selected_individuals = sorted(selected_individuals, key=lambda x: x[1], reverse=True)
+            resp = "\n".join(
+                f"individual: {ind.to_string()} | fitness: {fit}"
+                for ind, fit in sorted_selected_individuals[:the_best]
+            )
 
-            with ThreadPoolExecutor(max_workers=10) as executor:
-                futures = [executor.submit(self._evaluate, ind) for ind in population]
-                evaluated_individuals = [f.result() for f in futures]
+            print(f'\nThe best {the_best} individuals:', flush=True)
+            print(f'\n{resp}', flush=True)
 
-            selected_individuals = self._select_best_individuals(evaluated_individuals)
-            self._update_attention_broker(selected_individuals)
+            if selected_individuals:
+                fitness_values = sorted([fitness for _, fitness in selected_individuals], reverse=True)
+                print('\nStatistics:\n', flush=True)
+                print(f"Best Fitness: {fitness_values[0]}", flush=True)
+                print(f"Average Fitness: {statistics.mean(fitness_values)}", flush=True)
+                print(f"Median Fitness: {statistics.median(fitness_values)}", flush=True)
+                print(f"Standard Deviation: {statistics.pstdev(fitness_values)}\n", flush=True)
+
+            with SuppressCppOutput():
+                self._update_attention_broker(selected_individuals)
+
             self.generation += 1
             time.sleep(0.1)
 
-        self._select_best_query_answers()
-        self.producer_finished.set()
+        with SuppressCppOutput():
+            self._sample_best_query_answers()
 
-    def _sample_population(self) -> list[QueryAnswer]:
+    def _sample_population(self, limit: int, timeout: float = 10.0) -> list[QueryAnswer]:
         """
         Samples a population of QueryAnswer objects using a remote iterator.
         """
         result = []
+        start_time = time.time()
         try:
-            with SuppressCppOutput():
-                remote_iterator = self.query_agent.pattern_matcher_query(self.query_tokens)
-            while (len(result) < self.population_size and not remote_iterator.finished()):
+            remote_iterator = self.query_agent.pattern_matcher_query(
+                tokens=self.query_tokens,
+                context=self.context
+            )
+
+            while (len(result) < limit and not remote_iterator.finished()):
+                if time.time() - start_time > timeout:
+                    print("\nTimeout reached while sampling the population.\n", flush=True)
+                    break
+
                 if (qa := remote_iterator.pop()):
                     result.append(qa)
                 else:
                     time.sleep(0.1)
+
             time.sleep(0.5)
+
+            return result
         except Exception as e:
-            print(f"Population sampling failed: {e}")
-        return result
+            print(f"\nPopulation sampling failed: {e}\n", flush=True)
+
+    def _evaluate_population(self, population: list[QueryAnswer]) -> list[tuple[QueryAnswer, float]]:
+        with ThreadPoolExecutor(max_workers=10) as executor:
+            futures = [executor.submit(self._evaluate, ind) for ind in population]
+            evaluated_individuals = [f.result() for f in futures]
+            return evaluated_individuals
 
     def _evaluate(self, query_answer: QueryAnswer) -> tuple[QueryAnswer, float]:
         """
         Evaluates a QueryAnswer using a configured fitness function.
-
-        Returns:
-            A tuple of (QueryAnswer, fitness_value).
         """
         fitness_function = FitnessFunctions.get(self.fitness_function)
         with self.atom_db_mutex:
             fitness_value = fitness_function(self.atom_db, query_answer.handles)
         return (query_answer, fitness_value)
 
-    def _select_best_individuals(self, evaluated_individuals: list[tuple[QueryAnswer, float]]) -> list[tuple[QueryAnswer, float]]:
+    def _select_best_individuals(
+        self, evaluated_individuals: list[tuple[QueryAnswer, float]]
+    ) -> list[tuple[QueryAnswer, float]]:
         """
         Selects the best individuals from evaluated QueryAnswer tuples using the configured selection method.
         """
@@ -229,97 +316,17 @@ class QueryOptimizerIterator:
         selection_method = handle_selection_method(method)
         return selection_method(evaluated_individuals, self.qtd_selected_for_attention_update)
 
-    def _update_attention_broker(self, individuals: list[QueryAnswer]) -> None:
-        """
-        Updates the attention broker by correlating handles extracted from selected QueryAnswers.
+    def _update_attention_broker(self, individuals: list[tuple[QueryAnswer, float]]) -> None:
+        try:
+            self.attention_broker_updater.update(individuals)
+        except Exception as e:
+            print(f'\nAn error occurred - details: {e}\n', flush=True)
 
-        Handles are recursively collected from each QueryAnswer, and after processing
-        a defined number of correlations, the attention broker is stimulated with aggregated data.
-        """
-        host, port = self.attention_broker_server_id.split(":")
-        attention_broker = AttentionBrokerGateway({
-            'attention_broker_hostname': host,
-            'attention_broker_port': port
-        })
-
-        correlated_count = 0
-        joint_answer_global = defaultdict(int)
-
-        for individual in individuals:
-            single_answer, joint_answer = self._process_individual(individual)
-
-            # How to send the context?
-            # handle_list = []
-            # handle_list.context = self.context
-            # for h in single_answer:
-            #     handle_list.append(h)
-
-            attention_broker.correlate(single_answer)
-
-            for handle, count in joint_answer.items():
-                joint_answer_global[handle] += count
-
-            correlated_count += 1
-
-            if correlated_count >= MAX_CORRELATIONS_WITHOUT_STIMULATE:
-                self._attention_broker_stimulate(attention_broker, joint_answer_global)
-                joint_answer_global.clear()
-                correlated_count = 0
-
-        if correlated_count > 0:
-            self._attention_broker_stimulate(attention_broker, joint_answer_global)
-
-    def _process_individual(self, query_answer: QueryAnswer):
-        execution_stack = [handle for handle in query_answer.handles]
-        single_answer = set()
-        joint_answer = {}
-        while execution_stack:
-            handle = execution_stack.pop()
-            single_answer.add(handle)
-            joint_answer[handle] = joint_answer.get(handle, 0) + 1
-            try:
-                with self.atom_db_mutex:
-                    targets = self.atom_db.get_link_targets(handle)
-                for target_handle in targets:
-                    execution_stack.append(target_handle)
-            except ValueError:
-                pass
-        return single_answer, joint_answer
-
-    def _attention_broker_stimulate(self, attention_broker, joint_answer) -> None:
-        """
-        Stimulates the attention broker using aggregated handle counts.
-
-        Aggregates the counts and adds a "SUM" entry representing the total weight.
-        """
-        handle_count = {}
-        weight_sum = 0
-        for h, count in joint_answer.items():
-            handle_count[h] = count
-            weight_sum += count
-        handle_count["SUM"] = weight_sum
-        # handle_count.context = self.context
-        attention_broker.stimulate(handle_count)
-        time.sleep(0.1)
-
-    def _select_best_query_answers(self) -> None:
+    def _sample_best_query_answers(self, timeout: float = 10.0) -> None:
         """
         Fills the best_query_answers queue by selecting QueryAnswers from a remote iterator.
         """
-        with SuppressCppOutput():
-            remote_iterator = self.query_agent.pattern_matcher_query(self.query_tokens)
-        while (self.best_query_answers.qsize() < self.max_query_answers and not remote_iterator.finished()):
-            if (qa := remote_iterator.pop()):
-                with contextlib.suppress(Full):
-                    self.best_query_answers.put(qa, timeout=1)
-            else:
-                time.sleep(0.1)
-        time.sleep(0.5)
-
-    def _shutdown_optimizer(self) -> None:
-        """
-        Signals the optimizer thread to shut down gracefully.
-        """
-        self.producer_finished.set()
-        if self._producer_thread.is_alive():
-            self._producer_thread.join(timeout=2)
+        best_answers = self._sample_population(self.max_query_answers, timeout=timeout)
+        for qa in best_answers:
+            with contextlib.suppress(Full):
+                self.best_query_answers.put(qa, timeout=1)

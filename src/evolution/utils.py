@@ -22,7 +22,7 @@ class Parameters:
     query_agent_node_id: int = None
     query_agent_server_id: int = None
     attention_broker_server_id: str = None
-    context: str = None
+    evolution_server_id: str = None
     mongo_hostname: str = None
     mongo_port: int = None
     mongo_username: str = None
@@ -51,12 +51,12 @@ class SuppressCppOutput:
 
 def parse_file(path) -> dict[str, Any]:
     config = {}
-    with open(path, mode='r') as f:
+    with open(path, mode="r") as f:
         for line in f:
-            if not (line := line.split('#')[0].strip()):
+            if not (line := line.split("#")[0].strip()):
                 continue
 
-            parts = line.split('=')
+            parts = line.split("=")
             if len(parts) != 2:
                 raise ValueError(f"Line is not in key=value format: {line}")
 
@@ -80,5 +80,19 @@ def profile(func):
         end_time = time.perf_counter()
         elapsed_time = end_time - start_time
         print(f"{func.__name__} executed in {elapsed_time:.6f} seconds")
+        return result
+
+    return wrapper
+
+
+def log_function_call(func):
+    """Decorator to log the start and end of a function call."""
+    @functools.wraps(func)
+    def wrapper(*args, **kwargs):
+        sys.stdout.write(f'\n{func.__name__} START')
+        sys.stdout.flush()
+        result = func(*args, **kwargs)
+        sys.stdout.write(f'\n{func.__name__} END')
+        sys.stdout.flush()
         return result
     return wrapper

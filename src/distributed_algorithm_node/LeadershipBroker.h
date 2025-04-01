@@ -7,10 +7,7 @@ using namespace std;
 
 namespace distributed_algorithm_node {
 
-enum class LeadershipBrokerType {
-    SINGLE_MASTER_SERVER
-};
-
+enum class LeadershipBrokerType { SINGLE_MASTER_SERVER, TRUSTED_BUS_PEER };
 
 // -------------------------------------------------------------------------------------------------
 // Abstract superclass
@@ -18,13 +15,12 @@ enum class LeadershipBrokerType {
 /**
  * Implements the algorithm for leader election.
  *
- * This is the abstract class defining the API used by DistributedAlgorithmNodes to deal with leader election.
- * Users of the DistributedAlgorithmNode module aren't supposed to interact with LeadershipBroker directly.
+ * This is the abstract class defining the API used by DistributedAlgorithmNodes to deal with leader
+ * election. Users of the DistributedAlgorithmNode module aren't supposed to interact with
+ * LeadershipBroker directly.
  */
 class LeadershipBroker {
-
-public:
-
+   public:
     /**
      * Factory method for concrete subclasses.
      *
@@ -63,7 +59,7 @@ public:
      *
      * @param leader_id The leader node ID.
      */
-    void set_leader_id(const string &leader_id);
+    void set_leader_id(const string& leader_id);
 
     /**
      * Return true iff a leader has been defined.
@@ -78,11 +74,9 @@ public:
      *
      * @param my_vote The vote casted by the hosting node to tghe leadership election.
      */
-    virtual void start_leader_election(const string &my_vote) = 0;
+    virtual void start_leader_election(const string& my_vote) = 0;
 
-
-private:
-
+   private:
     shared_ptr<MessageBroker> message_broker;
     string network_leader_id;
 };
@@ -96,9 +90,7 @@ private:
  * the network.
  */
 class SingleMasterServer : public LeadershipBroker {
-
-public:
-
+   public:
     /**
      * Basic constructor
      */
@@ -109,14 +101,35 @@ public:
      */
     ~SingleMasterServer();
 
+    // ----------------------------------------------------------------
+    // Public LeadershipBroker abstract API
+
+    void start_leader_election(const string& my_vote);
+};
+
+/**
+ * Concrete implementation of a leadership selection algorithm in a service BUS where there are
+ * no leaders, only known trusted peers. Each bus node has either 1 trusted peer or ZERO, when
+ * it was the first node to join the bus.
+ */
+class TrustedBusPeer : public LeadershipBroker {
+   public:
+    /**
+     * Basic constructor
+     */
+    TrustedBusPeer();
+
+    /**
+     * Destructor
+     */
+    ~TrustedBusPeer();
 
     // ----------------------------------------------------------------
     // Public LeadershipBroker abstract API
 
-    void start_leader_election(const string &my_vote);
+    void start_leader_election(const string& my_vote);
 };
 
-} // namespace distributed_algorithm_node
+}  // namespace distributed_algorithm_node
 
-#endif // _DISTRIBUTED_ALGORITHM_NODE_LEADERSHIPBROKER_H
-
+#endif  // _DISTRIBUTED_ALGORITHM_NODE_LEADERSHIPBROKER_H

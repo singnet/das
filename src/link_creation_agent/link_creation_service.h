@@ -1,5 +1,5 @@
 /**
- * @file service.h
+ * @file link_creation_service.h
  * @brief Link Creation Service class
  */
 #pragma once
@@ -21,6 +21,8 @@
 #include "implication_processor.h"
 #include "DASNode.h"
 
+
+#define DEBUG
 
 using namespace das_agent;
 using namespace query_node;
@@ -52,6 +54,8 @@ class LinkCreationService
                          DasAgentNode* das_client,
                          vector<string>& link_template,
                          int max_query_answers);
+
+    void set_timeout(int timeout);
     /**
      * @brief Destructor
      */
@@ -67,7 +71,7 @@ class LinkCreationService
     shared_ptr<ImplicationProcessor> implication_processor;
     shared_ptr<EquivalenceProcessor> equivalence_processor;
 
-
+    int timeout = 60;
 
     /**
      * @brief Create a link, blocking the client until the link is created

@@ -1,8 +1,10 @@
-#include "expression_hasher.h"
-#include "Utils.h"
 #include "test_utils.h"
+
 #include <algorithm>
 #include <iostream>
+
+#include "Utils.h"
+#include "expression_hasher.h"
 
 static char REVERSE_TLB[16] = {
     '0',
@@ -23,9 +25,7 @@ static char REVERSE_TLB[16] = {
     'f',
 };
 
-double random_importance() {
-    return ((double) rand()) / RAND_MAX;
-}
+double random_importance() { return ((double) rand()) / RAND_MAX; }
 
 string random_handle() {
     char buffer[HANDLE_HASH_SIZE];
@@ -38,9 +38,7 @@ string random_handle() {
     return s;
 }
 
-string sequential_label(unsigned int &count, string prefix) {
-    return prefix + std::to_string(count++);
-}
+string sequential_label(unsigned int& count, string prefix) { return prefix + std::to_string(count++); }
 
 string prefixed_random_handle(string prefix) {
     char buffer[HANDLE_HASH_SIZE];
@@ -57,12 +55,10 @@ string prefixed_random_handle(string prefix) {
     return s;
 }
 
-static bool str_comp(string &a, string &b) {
-    return a.compare(b) < 0;
-}
+static bool str_comp(string& a, string& b) { return a.compare(b) < 0; }
 
-string *build_handle_space(unsigned int size, bool sort) {
-    string *answer = new string[size];
+string* build_handle_space(unsigned int size, bool sort) {
+    string* answer = new string[size];
     for (unsigned int i = 0; i < size; i++) {
         answer[i] = random_handle();
     }
@@ -72,6 +68,4 @@ string *build_handle_space(unsigned int size, bool sort) {
     return answer;
 }
 
-bool double_equals(double v1, double v2) {
-    return fabs(v2 - v1) < 0.001;
-}
+bool double_equals(double v1, double v2) { return fabs(v2 - v1) < 0.001; }

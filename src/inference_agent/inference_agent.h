@@ -53,11 +53,11 @@ class InferenceAgent {
     void stop();
 
    private:
-   /**
-    * @brief Send link creation request to the link creation agent.
-    * @param inference_request The inference request to be sent to the link creation agent.
-    * @param is_stop_request Whether the request is a stop request.
-    */
+    /**
+     * @brief Send link creation request to the link creation agent.
+     * @param inference_request The inference request to be sent to the link creation agent.
+     * @param is_stop_request Whether the request is a stop request.
+     */
     void send_link_creation_request(shared_ptr<InferenceRequest> inference_request,
                                     bool is_stop_request);
     /**
@@ -95,7 +95,7 @@ class InferenceAgent {
     std::string inference_node_server_port;
     uint16_t current_iterator_id = 0;
     int iterator_pool_size = 10;
-    thread* agent_thread;
+    thread* agent_thread = nullptr;
     bool is_stoping = false;
     std::mutex agent_mutex;
     std::unordered_map<std::string, std::shared_ptr<InferenceRequest>>

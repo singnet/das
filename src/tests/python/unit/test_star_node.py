@@ -1,9 +1,23 @@
 from unittest import TestCase
+from time import sleep
 
 from hyperon_das_node import StarNode
 
 
 class TestStarNode(TestCase):
+    def test_star_node_binding(self):
+        self.assertTrue(hasattr(StarNode, "add_peer"))
+        self.assertTrue(hasattr(StarNode, "broadcast"))
+        self.assertTrue(hasattr(StarNode, "cast_leadership_vote"))
+        self.assertTrue(hasattr(StarNode, "has_leader"))
+        self.assertTrue(hasattr(StarNode, "is_leader"))
+        self.assertTrue(hasattr(StarNode, "join_network"))
+        self.assertTrue(hasattr(StarNode, "message_factory"))
+        self.assertTrue(hasattr(StarNode, "node_id"))
+        self.assertTrue(hasattr(StarNode, "node_joined_network"))
+        self.assertTrue(hasattr(StarNode, "node_joined_network"))
+        self.assertTrue(hasattr(StarNode, "send"))
+
     def test_star_node(self):
         self.server_id: str = "localhost:35700"
         self.client1_id: str = "localhost:35701"
@@ -12,6 +26,8 @@ class TestStarNode(TestCase):
         self.server = StarNode(node_id=self.server_id)
         self.client1 = StarNode(node_id=self.client1_id, server_id=self.server_id)
         self.client2 = StarNode(node_id=self.client2_id, server_id=self.server_id)
+
+        sleep(1)
 
         # Test id assignment
         self.assertEqual(self.server.node_id(), self.server_id)

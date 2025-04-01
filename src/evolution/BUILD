@@ -14,22 +14,33 @@ filegroup(
     srcs = glob(["**/*.py"]),
 )
 
-py_library(
-    name = "evolution",
-    srcs = [":py_all_files"],
+
+py_binary(
+    name = "main",
+    srcs = ["main.py"],
     deps = [
-        ":fitness_functions",
-        ":selection_methods",
-        ":utils",
-        ":optimizer",
-        "//evolution/das_node",
+      ":optimizer"
+    ],
+)
+
+py_library(
+    name = "attention_broker_updater",
+    srcs = ["attention_broker_updater.py"],
+    deps = [
+        "//hyperon_das_node:hyperon_das_node",
+        "//hyperon_das/grpc:attention_broker_pb2_grpc",
+        "//hyperon_das/grpc:common_pb2",
+        "//hyperon_das/grpc:attention_broker_pb2",
+        requirement("grpcio"),
     ],
 )
 
 py_library(
     name = "fitness_functions",
     srcs = ["fitness_functions.py"],
-    deps = [],
+    deps = [
+      "//hyperon_das_atomdb:exceptions",
+    ],
 )
 
 py_library(
@@ -45,13 +56,22 @@ py_library(
 )
 
 py_library(
+    name = "node",
+    srcs = ["node.py"],
+    deps = ["//hyperon_das_node:hyperon_das_node"],
+)
+
+py_library(
     name = "optimizer",
     srcs = ["optimizer.py"],
     deps = [
         ":fitness_functions",
         ":selection_methods",
         ":utils",
-        "//evolution/das_node:das_node",
-        "//evolution/das_node:query_answer",
+        ":node",
+        ":attention_broker_updater",
+        "//hyperon_das:hyperon_das",
+        "//hyperon_das_atomdb:hyperon_das_atomdb",
+        "//hyperon_das_node:hyperon_das_node"
     ],
 )
