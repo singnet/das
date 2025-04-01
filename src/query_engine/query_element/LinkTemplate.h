@@ -295,8 +295,9 @@ class LinkTemplate : public Source {
         if (answer_count > 0) {
             dasproto::HandleList handle_list;
             handle_list.set_context(this->context);
-            for (unsigned int i = 0; i < answer_count; i++) {
-                handle_list.add_list(this->fetch_result[i].c_str());
+            char* handle;
+            while ((handle = this->fetch_result->next()) != nullptr) {
+                handle_list.add_list(handle);
             }
             dasproto::ImportanceList importance_list;
             get_importance(handle_list, importance_list);
@@ -308,9 +309,10 @@ class LinkTemplate : public Source {
             this->atom_document = new shared_ptr<atomdb_api_types::AtomDocument>[answer_count];
             this->local_answers = new HandlesAnswer*[answer_count];
             this->next_inner_answer = new unsigned int[answer_count];
-            for (unsigned int i = 0; i < answer_count; i++) {
-                this->atom_document[i] = db->get_atom_document(this->fetch_result[i].c_str());
-                query_answer = new HandlesAnswer(this->fetch_result[i].c_str(), importance_list.list(i));
+            unsigned int i = 0;
+            while ((handle = this->fetch_result->next()) != nullptr) {
+                this->atom_document[i] = db->get_atom_document(handle);
+                query_answer = new HandlesAnswer(handle, importance_list.list(i));
                 const char* s = this->atom_document[i]->get("targets", 0);
                 for (unsigned int j = 0; j < this->arity; j++) {
                     if (this->target_template[j]->is_terminal) {
@@ -458,7 +460,7 @@ class LinkTemplate : public Source {
     unsigned int arity;
     shared_ptr<char> handle;
     char* handle_keys[ARITY + 1];
-    vector<string> fetch_result;
+    shared_ptr<atomdb_api_types::HandleSet> fetch_result;
     vector<shared_ptr<atomdb_api_types::AtomDocument>> atom_documents;
     vector<QueryElement*> inner_template;
     SharedQueue local_buffer;

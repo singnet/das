@@ -1,4 +1,4 @@
-#include "AtomDBAPITypes.h"
+#include "RedisMongoDBAPITypes.h"
 
 #include <cstring>
 
@@ -9,29 +9,63 @@ using namespace atomdb;
 using namespace atomdb_api_types;
 using namespace commons;
 
-RedisSet::RedisSet(redisReply* reply) : HandleList() {
-    this->redis_reply = reply;
+HandleSetRedis::HandleSetRedis() : HandleSet() {
+    this->handles_size = 0;
+    this->outer_idx = 0;
+    this->inner_idx = 0;
+}
+
+HandleSetRedis::HandleSetRedis(redisReply* reply) : HandleSet() {
+    this->replies.push_back(reply);
     this->handles_size = reply->elements;
-    this->handles = new char*[this->handles_size];
-    for (unsigned int i = 0; i < this->handles_size; i++) {
-        handles[i] = reply->element[i]->str;
+    this->outer_idx = 0;
+    this->inner_idx = 0;
+}
+
+HandleSetRedis::~HandleSetRedis() {
+    for (auto reply : this->replies) {
+        freeReplyObject(reply);
     }
 }
 
-RedisSet::~RedisSet() {
-    delete[] this->handles;
-    freeReplyObject(this->redis_reply);
+void HandleSetRedis::append(void* data) {
+    redisReply* reply = static_cast<redisReply*>(data);
+    this->handles_size += reply->elements;
+    this->replies.push_back(reply);
 }
 
-const char* RedisSet::get_handle(unsigned int index) {
-    if (index > this->handles_size) {
-        Utils::error("Handle index out of bounds: " + to_string(index) +
-                     " Answer array size: " + to_string(this->handles_size));
+unsigned int HandleSetRedis::size() { return this->handles_size; }
+
+char* HandleSetRedis::next() {
+    if (this->outer_idx >= this->replies.size()) {
+        // No more elements, reset indexes and return nullptr.
+        this->outer_idx = 0;
+        this->inner_idx = 0;
+        return nullptr;
     }
-    return handles[index];
-}
 
-unsigned int RedisSet::size() { return this->handles_size; }
+    redisReply* reply = this->replies[this->outer_idx];
+
+    // If inner_idx exists, get its element and bump it.
+    if (this->inner_idx < reply->elements) {
+        return reply->element[this->inner_idx++]->str;
+    }
+
+    // If not, point to the next outer_idx (redisReply)
+    this->outer_idx++;
+    this->inner_idx = 0;
+
+    // Get first element of the next redisReply
+    if (this->outer_idx < this->replies.size()) {
+        reply = this->replies[this->outer_idx];
+        return reply->element[this->inner_idx++]->str;
+    }
+
+    // No more elements, reset indexes and return nullptr
+    this->outer_idx = 0;
+    this->inner_idx = 0;
+    return nullptr;
+}
 
 RedisStringBundle::RedisStringBundle(redisReply* reply) : HandleList() {
     unsigned int handle_length = (HANDLE_HASH_SIZE - 1);
@@ -56,6 +90,7 @@ const char* RedisStringBundle::get_handle(unsigned int index) {
         Utils::error("Handle index out of bounds: " + to_string(index) +
                      " Answer handles size: " + to_string(this->handles_size));
     }
+    // 
     return handles[index];
 }
 
