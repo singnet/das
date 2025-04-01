@@ -328,6 +328,7 @@ class LinkTemplate : public Source {
                     }
                 }
                 fetched_answers.push_back(query_answer);
+                i++;
             }
             std::sort(fetched_answers.begin(), fetched_answers.end(), less_than_query_answer());
             for (unsigned int i = 0; i < answer_count; i++) {
