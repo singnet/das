@@ -2,8 +2,11 @@
 
 set -exou pipefail
 
+NAME=$2
+# rep;ace special chars from name
+NAME=${NAME//[^[:alnum:]]/}
 IMAGE_NAME="das-builder"
-CONTAINER_NAME=${IMAGE_NAME}-container
+CONTAINER_NAME=$NAME
 BAZEL_CMD="/opt/bazel/bazelisk"
 
 ENV_VARS=$(printenv | sort | awk -F= '{print "--env "$1}')
@@ -43,6 +46,7 @@ CONTAINER_BAZELISK_CACHE=/home/"${USER}"/.cache/bazelisk
 docker run --rm \
   --user="$(id -u)":"$(id -g)" \
   -e BIN_DIR=$CONTAINER_BIN_DIR \
+  --name="${CONTAINER_NAME}" \
   $ENV_VARS \
   --network=host \
   --volume /etc/passwd:/etc/passwd:ro \

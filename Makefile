@@ -55,6 +55,9 @@ run-evolution:
 run-das-agent:
 	@bash ./src/scripts/bazel.sh run //das_agent:main -- $(OPTIONS)
 
+agents:
+	@bash -x src/scripts/run_agents.sh $(filter-out $@, $(MAKECMDGOALS))
+
 setup-nunet-dms:
 	@bash -x src/scripts/setup-nunet-dms.sh
 

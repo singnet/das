@@ -82,12 +82,17 @@ def main():
     parser.add_argument("--redis_password", type=str, default=None, help="Redis password")
     parser.add_argument("--redis_cluster", type=bool, default=False, help="Redis cluster")
     parser.add_argument("--redis_ssl", type=bool, default=False, help="Redis SSL")
-    parser.add_argument("--config", type=str, default=None, help="Path to config file")
+    parser.add_argument("--config", type=str, default=None, help="Json config")
+    parser.add_argument("--config_file", type=str, default=None, help="Path to config file")
+
     _args = parser.parse_args()
 
     if _args.config:
-        config = load_config(_args.config)
-        args = argparse.Namespace(**{**vars(args), **config})
+        config = json.loads(_args.config)
+        _args = argparse.Namespace(**{**vars(_args), **config})
+    elif _args.config_file:
+        config = load_config(_args.config_file)
+        _args = argparse.Namespace(**{**vars(_args), **config})
 
     _node = DASAgentNode(_args.node_id)
     _atom_db = RedisMongoDB(
