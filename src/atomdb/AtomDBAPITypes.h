@@ -24,22 +24,22 @@ namespace atomdb_api_types {
 // -------------------------------------------------------------------------------------------------
 
 class HandleList {
-    public:
-     HandleList() {}
-     virtual ~HandleList() {}
- 
-     virtual const char* get_handle(unsigned int index) = 0;
-     virtual unsigned int size() = 0;
+   public:
+    HandleList() {}
+    virtual ~HandleList() {}
+
+    virtual const char* get_handle(unsigned int index) = 0;
+    virtual unsigned int size() = 0;
 };
 
 class HandleSet {
-    public:
-     HandleSet() {}
-     virtual ~HandleSet() {}
- 
-     virtual unsigned int size() = 0;
-     virtual void append(void* data) = 0;
-     virtual char* next() = 0;
+   public:
+    HandleSet() {}
+    virtual ~HandleSet() {}
+
+    virtual unsigned int size() = 0;
+    virtual void append(void* data) = 0;
+    virtual char* next() = 0;
 };
 
 class AtomDocument {

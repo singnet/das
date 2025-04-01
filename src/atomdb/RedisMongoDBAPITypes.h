@@ -1,7 +1,5 @@
 #pragma once
 
-#include "AtomDBAPITypes.h"
-
 #include <hiredis_cluster/hircluster.h>
 
 #include <bsoncxx/builder/basic/document.hpp>
@@ -10,9 +8,9 @@
 #include <mongocxx/exception/exception.hpp>
 #include <mongocxx/instance.hpp>
 #include <mongocxx/uri.hpp>
-
 #include <vector>
 
+#include "AtomDBAPITypes.h"
 #include "Utils.h"
 
 using namespace std;
@@ -20,23 +18,22 @@ using namespace commons;
 
 namespace atomdb {
 namespace atomdb_api_types {
-        
 
 class HandleSetRedis : public HandleSet {
-    public:
-     HandleSetRedis();
-     HandleSetRedis(redisReply* reply);
-     ~HandleSetRedis();
- 
-     unsigned int size();
-     void append(void* data);
-     char* next();
+   public:
+    HandleSetRedis();
+    HandleSetRedis(redisReply* reply);
+    ~HandleSetRedis();
 
-    private:
-     unsigned int handles_size;
-     unsigned int outer_idx;
-     unsigned int inner_idx;
-     vector<redisReply*> replies;
+    unsigned int size();
+    void append(void* data);
+    char* next();
+
+   private:
+    unsigned int handles_size;
+    unsigned int outer_idx;
+    unsigned int inner_idx;
+    vector<redisReply*> replies;
 };
 
 class RedisStringBundle : public HandleList {

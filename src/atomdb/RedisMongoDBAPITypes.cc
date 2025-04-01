@@ -90,7 +90,7 @@ const char* RedisStringBundle::get_handle(unsigned int index) {
         Utils::error("Handle index out of bounds: " + to_string(index) +
                      " Answer handles size: " + to_string(this->handles_size));
     }
-    // 
+    //
     return handles[index];
 }
 

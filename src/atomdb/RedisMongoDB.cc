@@ -141,13 +141,15 @@ void RedisMongoDB::mongodb_setup() {
     }
 }
 
-shared_ptr<atomdb_api_types::HandleSet> RedisMongoDB::query_for_pattern(std::shared_ptr<char> pattern_handle) {
+shared_ptr<atomdb_api_types::HandleSet> RedisMongoDB::query_for_pattern(
+    std::shared_ptr<char> pattern_handle) {
     unsigned int redis_cursor = 0;
     bool redis_has_more = true;
     string command;
     redisReply* reply;
 
-    shared_ptr<atomdb_api_types::HandleSetRedis> handle_set = std::make_shared<atomdb_api_types::HandleSetRedis>();
+    shared_ptr<atomdb_api_types::HandleSetRedis> handle_set =
+        std::make_shared<atomdb_api_types::HandleSetRedis>();
 
     while (redis_has_more) {
         command = ("ZRANGE " + REDIS_PATTERNS_PREFIX + ":" + pattern_handle.get() + " " +

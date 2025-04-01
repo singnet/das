@@ -286,7 +286,7 @@ class LinkTemplate : public Source {
 #endif
         shared_ptr<AtomDB> db = AtomDBSingleton::get_instance();
         this->fetch_result = db->query_for_pattern(this->handle);
-        unsigned int answer_count = this->fetch_result.size();
+        unsigned int answer_count = this->fetch_result->size();
 #ifdef DEBUG
         cout << "fetch_links() ac: " << answer_count << endl;
 #endif
