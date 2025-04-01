@@ -3,8 +3,15 @@
 using namespace link_creation_agent;
 using namespace std;
 using namespace query_node;
+using namespace query_engine;
 
-LinkCreationService::LinkCreationService(int thread_count) : thread_pool(thread_count) {}
+LinkCreationService::LinkCreationService(int thread_count, shared_ptr<DASNode> das_node)
+    : thread_pool(thread_count) {
+    this->link_template_processor = make_shared<LinkTemplateProcessor>();
+    this->equivalence_processor = make_shared<EquivalenceProcessor>();
+    this->implication_processor = make_shared<ImplicationProcessor>();
+    this->equivalence_processor->set_das_node(das_node);
+}
 
 LinkCreationService::~LinkCreationService() {}
 
@@ -37,16 +44,17 @@ void LinkCreationService::process_request(shared_ptr<RemoteIterator<HandlesAnswe
                 cout << "LinkCreationService::process_request: Processing query_answer ID: "
                      << iterator->get_local_id() << endl;
 #endif
-                if (link_template.front() == "LIST") {
-                    LinkCreateTemplateList link_create_template_list(link_template);
-                    for (auto link_template : link_create_template_list.get_templates()) {
-                        Link link(query_answer, link_template.tokenize());
-                        this->create_link(link, *das_client);
-                    }
+                vector<vector<string>> link_tokens;
+                if (LinkCreationProcessor::get_processor_type(link_template.front()) ==
+                    ProcessorType::PROOF_OF_IMPLICATION) {
+                    link_tokens = implication_processor->process(query_answer);
+                } else if (LinkCreationProcessor::get_processor_type(link_template.front()) ==
+                           ProcessorType::PROOF_OF_EQUIVALENCE) {
+                    link_tokens = equivalence_processor->process(query_answer);
                 } else {
-                    Link link(query_answer, link_template);
-                    this->create_link(link, *das_client);
+                    link_tokens = link_template_processor->process(query_answer, link_template);
                 }
+                this->create_link(link_tokens, *das_client);
                 delete query_answer;
                 if (++count == max_query_answers) break;
             }
@@ -60,14 +68,17 @@ void LinkCreationService::process_request(shared_ptr<RemoteIterator<HandlesAnswe
     thread_pool.enqueue(job);
 }
 
-void LinkCreationService::create_link(Link& link, DasAgentNode& das_client) {
+void LinkCreationService::create_link(std::vector<std::vector<std::string>>& links,
+                                      DasAgentNode& das_client) {
     // TODO check an alternative to locking this method
     std::unique_lock<std::mutex> lock(m_mutex);
+    for (vector<string> link_tokens : links) {
 #ifdef DEBUG
-    cout << "LinkCreationService::create_link: Creating link" << endl;
+        cout << "LinkCreationService::create_link: Creating link" << endl;
 #endif
-    vector<string> link_tokens = link.tokenize();
-    das_client.create_link(link_tokens);
+        das_client.create_link(link_tokens);
+    }
+
     m_cond.notify_one();
 }
 

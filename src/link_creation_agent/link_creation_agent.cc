@@ -20,7 +20,7 @@ LinkCreationAgent::LinkCreationAgent(string config_path) {
                                     query_agent_server_id,
                                     query_agent_client_start_port,
                                     query_agent_client_end_port);
-    service = new LinkCreationService(link_creation_agent_thread_count);
+    service = new LinkCreationService(link_creation_agent_thread_count, shared_ptr<DASNode>(query_node_client));
     service->set_timeout(query_timeout_seconds);
     das_client = new DasAgentNode(das_agent_client_id, das_agent_server_id);
 

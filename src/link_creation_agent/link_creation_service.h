@@ -15,6 +15,12 @@
 #include "das_agent_node.h"
 #include "link.h"
 #include "thread_pool.h"
+#include "link_processor.h"
+#include "template_processor.h"
+#include "equivalence_processor.h"
+#include "implication_processor.h"
+#include "DASNode.h"
+
 
 #define DEBUG
 
@@ -38,7 +44,7 @@ class LinkCreationService
 
 {
    public:
-    LinkCreationService(int thread_count);
+    LinkCreationService(int thread_count, shared_ptr<DASNode> das_node);
     /**
      * @brief Add an iterator to process in thread pool
      * @param iterator RemoteIterator object
@@ -61,6 +67,10 @@ class LinkCreationService
     set<string> processed_link_handles;
     std::mutex m_mutex;
     std::condition_variable m_cond;
+    shared_ptr<LinkTemplateProcessor> link_template_processor;
+    shared_ptr<ImplicationProcessor> implication_processor;
+    shared_ptr<EquivalenceProcessor> equivalence_processor;
+
     int timeout = 60;
 
     /**
@@ -68,7 +78,7 @@ class LinkCreationService
      * @param link Link object
      * @param das_client DAS Node client
      */
-    void create_link(Link& link, DasAgentNode& das_client);
+    void create_link(std::vector<std::vector<std::string>>& links, DasAgentNode& das_client);
 };
 
 }  // namespace link_creation_agent
