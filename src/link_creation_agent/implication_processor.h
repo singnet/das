@@ -11,6 +11,6 @@ class ImplicationProcessor : public LinkProcessor {
     ImplicationProcessor() = default;
     std::vector<std::vector<std::string>> process(
         QueryAnswer* query_answer,
-        std::optional<std::vector<std::string>> config = std::nullopt) override;
+        std::optional<std::vector<std::string>> extra_params = nullopt) override;
 };
 }  // namespace link_creation_agent

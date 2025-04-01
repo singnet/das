@@ -17,9 +17,8 @@ LinkCreationAgent::LinkCreationAgent(string config_path) {
     load_config();
     link_creation_node_server = new LinkCreationAgentNode(link_creation_agent_server_id);
     query_node_client = new DASNode(query_agent_client_id, query_agent_server_id);
-    service = new LinkCreationService(link_creation_agent_thread_count);
+    service = new LinkCreationService(link_creation_agent_thread_count, shared_ptr<DASNode>(query_node_client));
     das_client = new DasAgentNode(das_agent_client_id, das_agent_server_id);
-
     this->agent_thread = new thread(&LinkCreationAgent::run, this);
 }
 

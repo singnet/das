@@ -19,6 +19,7 @@
 #include "template_processor.h"
 #include "equivalence_processor.h"
 #include "implication_processor.h"
+#include "DASNode.h"
 
 
 using namespace das_agent;
@@ -41,7 +42,7 @@ class LinkCreationService
 
 {
    public:
-    LinkCreationService(int thread_count);
+    LinkCreationService(int thread_count, shared_ptr<DASNode> das_node);
     /**
      * @brief Add an iterator to process in thread pool
      * @param iterator RemoteIterator object
@@ -62,9 +63,9 @@ class LinkCreationService
     set<string> processed_link_handles;
     std::mutex m_mutex;
     std::condition_variable m_cond;
-    LinkTemplateProcessor link_template_processor;
-    ImplicationProcessor implication_processor;
-    EquivalenceProcessor equivalence_processor;
+    shared_ptr<LinkTemplateProcessor> link_template_processor;
+    shared_ptr<ImplicationProcessor> implication_processor;
+    shared_ptr<EquivalenceProcessor> equivalence_processor;
 
 
 

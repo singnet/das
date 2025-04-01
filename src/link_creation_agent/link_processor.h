@@ -8,6 +8,7 @@
 #include <stdexcept>
 #include <string>
 #include <vector>
+#include <memory>
 
 #include "QueryAnswer.h"
 
@@ -18,7 +19,7 @@ class LinkProcessor {
    public:
     LinkProcessor() = default;
     virtual std::vector<std::vector<std::string>> process(
-        QueryAnswer* query_answer, std::optional<std::vector<std::string>> config = std::nullopt) = 0;
+        QueryAnswer* query_answer, std::optional<std::vector<std::string>> extra_params = nullopt) = 0;
     virtual ~LinkProcessor() = default;
 };
 

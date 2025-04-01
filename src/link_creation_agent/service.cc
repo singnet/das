@@ -4,8 +4,14 @@
 using namespace link_creation_agent;
 using namespace std;
 using namespace query_node;
+using namespace query_engine;
 
-LinkCreationService::LinkCreationService(int thread_count) : thread_pool(thread_count) {}
+LinkCreationService::LinkCreationService(int thread_count, shared_ptr<DASNode> das_node) : thread_pool(thread_count) {
+    this->link_template_processor = make_shared<LinkTemplateProcessor>();
+    this->equivalence_processor = make_shared<EquivalenceProcessor>();
+    this->implication_processor = make_shared<ImplicationProcessor>();
+    this->equivalence_processor->set_das_node(das_node);
+}
 
 LinkCreationService::~LinkCreationService() {}
 
@@ -27,12 +33,12 @@ void LinkCreationService::process_request(shared_ptr<RemoteIterator<HandlesAnswe
                 vector<vector<string>> link_tokens;
                 if (LinkCreationProcessor::get_processor_type(link_template.front()) == 
                 ProcessorType::PROOF_OF_IMPLICATION) {
-                    link_tokens = implication_processor.process(query_answer, link_template);
+                    link_tokens = implication_processor->process(query_answer);
                 }else if (LinkCreationProcessor::get_processor_type(link_template.front()) ==
                 ProcessorType::PROOF_OF_EQUIVALENCE) {
-                    link_tokens = equivalence_processor.process(query_answer, link_template);
+                    link_tokens = equivalence_processor->process(query_answer);
                 }else {
-                    link_tokens = link_template_processor.process(query_answer, link_template);
+                    link_tokens = link_template_processor->process(query_answer, link_template);
                 }
                 this->create_link(link_tokens, *das_client);
                 delete query_answer;
