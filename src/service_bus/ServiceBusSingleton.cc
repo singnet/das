@@ -12,14 +12,17 @@ mutex ServiceBusSingleton::API_MUTEX;
 // -------------------------------------------------------------------------------------------------
 // Public methods
 
-void ServiceBusSingleton::init(const string& host_id, const string& known_peer) {
+void ServiceBusSingleton::init(const string& host_id,
+                               const string& known_peer,
+                               unsigned int port_lower,
+                               unsigned int port_upper) {
     lock_guard<mutex> semaphore(API_MUTEX);
     if (INITIALIZED) {
         Utils::error(
             "ServiceBusSingleton already initialized. "
             "ServiceBusSingleton::init() should be called only once.");
     } else {
-        ServiceBus::initialize_statics();
+        ServiceBus::initialize_statics({}, port_lower, port_upper);
         SERVICE_BUS = shared_ptr<ServiceBus>(new ServiceBus(host_id, known_peer));
         INITIALIZED = true;
     }

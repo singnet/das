@@ -127,7 +127,9 @@ class ServiceBus {
      * This method is not actually part of the API, it's supposed to be called
      * by ServiceBusSingleton. It's kept public to make it easier to write unit tests.
      */
-    static void initialize_statics(const set<string>& commands = {}) {
+    static void initialize_statics(const set<string>& commands = {},
+                                   unsigned int port_lower = 64000,
+                                   unsigned int port_upper = 64999) {
         if (commands.size() > 0) {
             for (auto command : commands) {
                 SERVICE_LIST.insert(command);
@@ -135,8 +137,8 @@ class ServiceBus {
         } else {
             SERVICE_LIST.insert("PATTERN_MATCHING_QUERY");
         }
-        COMMAND_PROXY_PORT_LOWER = 64000;
-        COMMAND_PROXY_PORT_UPPER = 64999;
+        COMMAND_PROXY_PORT_LOWER = port_lower;
+        COMMAND_PROXY_PORT_UPPER = port_upper;
         if (COMMAND_PROXY_PORT_LOWER > COMMAND_PROXY_PORT_UPPER) {
             Utils::error("Invalid port limits [" + to_string(COMMAND_PROXY_PORT_LOWER) + ".." +
                          to_string(COMMAND_PROXY_PORT_UPPER) + "]");
