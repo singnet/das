@@ -312,6 +312,7 @@ TEST(Link, TestLink) {
     EXPECT_EQ(get<string>(link.get_targets()[0]), "Value1");
     EXPECT_EQ(get<string>(link.get_targets()[1]), "Value2");
     EXPECT_EQ(Utils::join(link.tokenize(), ' '), "LINK Similarity 2 HANDLE Value1 HANDLE Value2");
+    EXPECT_EQ(link.to_metta_string(), "(Value1 Value2)");
     link_template.clear();
     delete query_answer;
 
@@ -326,6 +327,8 @@ TEST(Link, TestLink) {
     EXPECT_EQ(get<Node>(link.get_targets()[2]).value, "B");
     EXPECT_EQ(Utils::join(link.tokenize(), ' '),
               "LINK Test 3 NODE Symbol A HANDLE Value1 NODE Symbol B");
+    EXPECT_EQ(link.to_metta_string(), "(A Value1 B)");
+
     link_template.clear();
     delete query_answer;
 
@@ -367,6 +370,29 @@ TEST(Link, TestLink) {
     EXPECT_EQ(Utils::join(link.tokenize(), ' '),
               "LINK Test3 2 HANDLE Value1 HANDLE Value2 CUSTOM_FIELD truth_value 2 CUSTOM_FIELD mean 2 "
               "count 10 avg 0.9 confidence 0.9");
+    link_template.clear();
+    delete query_answer;
+
+    // clang-format off
+    link_template = split(
+    "LINK_CREATE I 3 0 "
+        "VARIABLE V1 "
+        "LINK_CREATE Test 3 0 "
+            "NODE Symbol A "
+            "VARIABLE V2 "
+            "LINK_CREATE Test2 2 0 "
+                "NODE Symbol C "
+                "NODE Symbol D "
+        "NODE Symbol B", ' ');
+    // clang-format on
+    query_answer = new HandlesAnswer();
+    query_answer->assignment.assign("V1", "Value1");
+    query_answer->assignment.assign("V2", "Value2");
+    link = Link(query_answer, link_template);
+    cout << Utils::join(link.tokenize(), ' ') << endl;
+    EXPECT_EQ(link.to_metta_string(), "(Value1 (A Value2 (C D)) B)");
+    Link l = link.untokenize(link.tokenize());
+    EXPECT_EQ(l.to_metta_string(), "(Value1 (A Value2 (C D)) B)");
     link_template.clear();
     delete query_answer;
 }

@@ -16,6 +16,9 @@ cc_library(
     ":inference_request",
     ":inference_agent_node",
     "//link_creation_agent:link_creation_agent_lib",
+      "//atomdb:atomdb_singleton",
+    "//atomdb:atomdb_api_types",
+    "//atomdb:atomdb",
     "//commons:commons_lib",
   ],
 )
