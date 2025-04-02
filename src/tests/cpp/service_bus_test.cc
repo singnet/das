@@ -74,7 +74,7 @@ TEST(ServiceBus, basics) {
     service_bus1.register_processor(processor1);
     service_bus2.register_processor(processor2);
     service_bus3.register_processor(processor3);
-    Utils::sleep(5000);
+    Utils::sleep(1000);
 
     check_command(service_bus2, processor1, "c1");
     check_command(service_bus3, processor1, "c1");
