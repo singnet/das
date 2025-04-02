@@ -32,14 +32,19 @@ class HandleList {
     virtual unsigned int size() = 0;
 };
 
+class HandleSetIterator {
+    public:
+     virtual char* next() = 0;
+};
+
 class HandleSet {
    public:
     HandleSet() {}
     virtual ~HandleSet() {}
 
     virtual unsigned int size() = 0;
-    virtual void append(void* data) = 0;
-    virtual char* next() = 0;
+    virtual void append(shared_ptr<HandleSet> other) = 0;
+    virtual shared_ptr<HandleSetIterator> get_iterator() = 0;
 };
 
 class AtomDocument {

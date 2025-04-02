@@ -11,15 +11,11 @@ using namespace commons;
 
 HandleSetRedis::HandleSetRedis() : HandleSet() {
     this->handles_size = 0;
-    this->outer_idx = 0;
-    this->inner_idx = 0;
 }
 
 HandleSetRedis::HandleSetRedis(redisReply* reply) : HandleSet() {
     this->replies.push_back(reply);
     this->handles_size = reply->elements;
-    this->outer_idx = 0;
-    this->inner_idx = 0;
 }
 
 HandleSetRedis::~HandleSetRedis() {
@@ -28,23 +24,36 @@ HandleSetRedis::~HandleSetRedis() {
     }
 }
 
-void HandleSetRedis::append(void* data) {
-    redisReply* reply = static_cast<redisReply*>(data);
-    this->handles_size += reply->elements;
-    this->replies.push_back(reply);
+void HandleSetRedis::append(shared_ptr<HandleSet> other) {
+    auto handle_set_redis = dynamic_pointer_cast<HandleSetRedis>(other);
+    for (auto reply : handle_set_redis->replies) {
+        this->replies.push_back(reply);
+        this->handles_size += reply->elements;    
+    }
 }
 
 unsigned int HandleSetRedis::size() { return this->handles_size; }
 
-char* HandleSetRedis::next() {
-    if (this->outer_idx >= this->replies.size()) {
+shared_ptr<HandleSetIterator> HandleSetRedis::get_iterator() {
+    shared_ptr<HandleSetRedisIterator> it(new HandleSetRedisIterator(this));
+    return it;
+}
+
+HandleSetRedisIterator::HandleSetRedisIterator(HandleSetRedis* handle_set) {
+    this->handle_set = handle_set;
+    this->outer_idx = 0;
+    this->inner_idx = 0;
+};
+
+HandleSetRedisIterator::~HandleSetRedisIterator() {};
+
+char* HandleSetRedisIterator::next() {
+    if (this->outer_idx >= this->handle_set->replies.size()) {
         // No more elements, reset indexes and return nullptr.
-        this->outer_idx = 0;
-        this->inner_idx = 0;
         return nullptr;
     }
 
-    redisReply* reply = this->replies[this->outer_idx];
+    redisReply* reply = this->handle_set->replies[this->outer_idx];
 
     // If inner_idx exists, get its element and bump it.
     if (this->inner_idx < reply->elements) {
@@ -56,14 +65,12 @@ char* HandleSetRedis::next() {
     this->inner_idx = 0;
 
     // Get first element of the next redisReply
-    if (this->outer_idx < this->replies.size()) {
-        reply = this->replies[this->outer_idx];
+    if (this->outer_idx < this->handle_set->replies.size()) {
+        reply = this->handle_set->replies[this->outer_idx];
         return reply->element[this->inner_idx++]->str;
     }
 
     // No more elements, reset indexes and return nullptr
-    this->outer_idx = 0;
-    this->inner_idx = 0;
     return nullptr;
 }
 

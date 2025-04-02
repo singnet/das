@@ -20,20 +20,34 @@ namespace atomdb {
 namespace atomdb_api_types {
 
 class HandleSetRedis : public HandleSet {
+
+   friend class HandleSetRedisIterator;
+
    public:
     HandleSetRedis();
     HandleSetRedis(redisReply* reply);
     ~HandleSetRedis();
 
     unsigned int size();
-    void append(void* data);
-    char* next();
+    void append(shared_ptr<HandleSet> other);
+    shared_ptr<HandleSetIterator> get_iterator();
 
    private:
     unsigned int handles_size;
-    unsigned int outer_idx;
-    unsigned int inner_idx;
     vector<redisReply*> replies;
+};
+
+class HandleSetRedisIterator : public HandleSetIterator {
+    public:
+     HandleSetRedisIterator(HandleSetRedis* handle_set);
+     ~HandleSetRedisIterator();
+
+     char* next();
+
+    private:
+     HandleSetRedis* handle_set;
+     unsigned int outer_idx;
+     unsigned int inner_idx;
 };
 
 class RedisStringBundle : public HandleList {

@@ -149,7 +149,7 @@ shared_ptr<atomdb_api_types::HandleSet> RedisMongoDB::query_for_pattern(
     redisReply* reply;
 
     shared_ptr<atomdb_api_types::HandleSetRedis> handle_set =
-        std::make_shared<atomdb_api_types::HandleSetRedis>();
+        make_shared<atomdb_api_types::HandleSetRedis>();
 
     while (redis_has_more) {
         command = ("ZRANGE " + REDIS_PATTERNS_PREFIX + ":" + pattern_handle.get() + " " +
@@ -171,7 +171,7 @@ shared_ptr<atomdb_api_types::HandleSet> RedisMongoDB::query_for_pattern(
         redis_cursor += REDIS_CHUNK_SIZE;
         redis_has_more = (reply->elements == REDIS_CHUNK_SIZE);
 
-        handle_set->append(reply);
+        handle_set->append(make_shared<atomdb_api_types::HandleSetRedis>(reply));
     }
 
     return handle_set;

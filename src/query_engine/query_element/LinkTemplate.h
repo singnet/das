@@ -295,6 +295,7 @@ class LinkTemplate : public Source {
         if (answer_count > 0) {
             dasproto::HandleList handle_list;
             handle_list.set_context(this->context);
+            auto it = this->fetch_result->get_iterator();
             char* handle;
             while ((handle = this->fetch_result->next()) != nullptr) {
                 handle_list.add_list(handle);
@@ -309,8 +310,9 @@ class LinkTemplate : public Source {
             this->atom_document = new shared_ptr<atomdb_api_types::AtomDocument>[answer_count];
             this->local_answers = new HandlesAnswer*[answer_count];
             this->next_inner_answer = new unsigned int[answer_count];
+            it = this->fetch_result->get_iterator();
             unsigned int i = 0;
-            while ((handle = this->fetch_result->next()) != nullptr) {
+            while ((handle = it->next()) != nullptr) {
                 this->atom_document[i] = db->get_atom_document(handle);
                 query_answer = new HandlesAnswer(handle, importance_list.list(i));
                 const char* s = this->atom_document[i]->get("targets", 0);
