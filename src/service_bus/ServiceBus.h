@@ -6,6 +6,7 @@
 
 #include "BusNode.h"
 #include "BusCommandProcessor.h"
+#include "BusCommandProxy.h"
 #include "SharedQueue.h"
 #include "Utils.h"
 
@@ -21,15 +22,15 @@ namespace service_bus {
  *
  * Elements in the bus can be either command providers or command issuers (or both).
  *
- * Command issuers just use ServiceBus to issue commands. It doesn't provide any service
- * (i.e. it doesn't process any commands) itself. Command providers listen to the bus
- * for commands it's responsible for and process such commands when other bus element
+ * Command issuers just use ServiceBus to issue commands. They doesn't provide any service
+ * (i.e. They doesn't process any commands) itself. Command providers listen to the bus
+ * for commands they're responsible for and process such commands when other bus element
  * issues them. Command providers must explicitely register themselves as so in order
- * to receive commands.
+ * to receive commands from the bus.
  *
- * The list of commands is fixed and represents the services provided by agents in
- * the DAS architecture. As agents join the bus, they register themselves as command
- * providers taking the ownership of commands in this list. Any attempt to take
+ * The list of commands is fixed (hard-wired in code) and represents the services provided
+ * by agents in the DAS architecture. As agents join the bus, they register themselves as
+ * command providers taking the ownership of commands in this list. Any attempt to take
  * ownership of a command that have already been taken will throw an exception. It means
  * that each service (i.e. each command) may be assigned to only one bus element.
  * Any attemps to issue a command which hasn't be assigned to any bus element will also
@@ -39,9 +40,25 @@ namespace service_bus {
  * (TODO: update this list and add hints for commands' arguments)
  *
  * - PATTERN_MATCHING_QUERY
+ *
+ * Command processors must extend BusCommandProcessor and be registered by calling
+ * register_processor(). Command issuers must create BusCommandProxy objects in order
+ * to issue commands by calling issue_bus_command().
+ *
+ * There's one BusCommandProxy concrete subclass for each bus command. In addition to
+ * the information of the command and its arguments, this proxy object is also aware of
+ * the actual object that's delivered to the caller as command response (e.g
+ * PATTERN_MATCHING_QUERY synchronously delivers an interator which is asynchronously feed
+ * up by the corresponding command processor. In addition to this, this proxy also allow
+ * RPC communication between the command caller and respective processor.
  */
 class ServiceBus {
-   private:
+
+    // ---------------------------------------------------------------------------------------------
+    // Private inner classes used for RPC among bus elements
+
+    private:
+
     class Node : public BusNode {
        public:
         Node(const string& id,
@@ -66,18 +83,26 @@ class ServiceBus {
         vector<string> args;
     };
 
+    // ---------------------------------------------------------------------------------------------
+    // Private static state initialized by ServiceBusSingleton
+
     static set<string> SERVICE_LIST;
     static unsigned int COMMAND_PROXY_PORT_LOWER;
     static unsigned int COMMAND_PROXY_PORT_UPPER;
-    static SharedQueue *port_pool;
+    static SharedQueue *PORT_POOL;
+
+    // ---------------------------------------------------------------------------------------------
+    // Private state
+
     shared_ptr<ServiceBus::Node> bus_node;
     shared_ptr<BusNode::Bus> bus;
     mutex api_mutex;
     unsigned int next_request_serial;
 
-   public:
     // ---------------------------------------------------------------------------------------------
     // Public API
+
+    public:
 
     /**
      * Registers a processor making it take the ownership of one or more bus commands.
@@ -88,6 +113,14 @@ class ServiceBus {
      */
     void register_processor(shared_ptr<BusCommandProcessor> processor);
 
+    /**
+     * Issues a command in the bus.
+     *
+     * If the passed command is not in the list of bus commands or if no processors have taken
+     * ownership for it yet, an exception is thrown.
+     *
+     * @param bus_command A BusCommandProxy with the command and its arguments.
+     */
     void issue_bus_command(shared_ptr<BusCommandProxy> bus_command);
 
     // ---------------------------------------------------------------------------------------------
@@ -114,9 +147,9 @@ class ServiceBus {
                 to_string(COMMAND_PROXY_PORT_UPPER) +
                 "]");
         }
-        port_pool = new SharedQueue();
+        PORT_POOL = new SharedQueue();
         for (unsigned long port = COMMAND_PROXY_PORT_LOWER; port <= COMMAND_PROXY_PORT_UPPER; port++) {
-            port_pool->enqueue((void *) port);
+            PORT_POOL->enqueue((void *) port);
         }
     }
 

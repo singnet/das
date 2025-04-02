@@ -15,12 +15,13 @@ BusCommandProxy::BusCommandProxy() {
 
 BusCommandProxy::BusCommandProxy(const string& command, const vector<string>& args)
     : command(command), args(args) {
-    this->proxy_port = 0;
-    this->port_pool = NULL;
 }
 
 BusCommandProxy::~BusCommandProxy() {
+    // port_pool is initialized by ServiceBus. It's an static member of a singleton so there's no
+    // need to manage its deletion
     if ((this->port_pool != NULL) && (this->proxy_port != 0)) {
+        // Return the port to the pool of available ports
         this->port_pool->enqueue((void *) this->proxy_port);
     }
 }
@@ -30,7 +31,12 @@ ProxyNode::ProxyNode(BusCommandProxy *proxy, const string& node_id) : StarNode(n
     this->proxy = proxy;
 }
 
-ProxyNode::ProxyNode(BusCommandProxy *proxy, const string& node_id, const string& server_id) : StarNode(node_id, server_id) {
+ProxyNode::ProxyNode(
+    BusCommandProxy *proxy, 
+    const string& node_id, 
+    const string& server_id) 
+    : StarNode(node_id, server_id) {
+
     // CLIENT running in BUS command processor
     this->proxy = proxy;
 }
@@ -61,6 +67,14 @@ void BusCommandProxy::setup_proxy_node(const string& client_id, const string &se
 
 void BusCommandProxy::to_remote_peer(const string& command, const vector<string>& args) {
     this->proxy_node->to_remote_peer(command, args);
+}
+
+const string &BusCommandProxy::get_command() {
+    return this->command;
+}
+
+const vector<string> &BusCommandProxy::get_args() {
+    return this->args;
 }
 
 // -------------------------------------------------------------------------------------------------

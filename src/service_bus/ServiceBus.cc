@@ -5,7 +5,7 @@ using namespace service_bus;
 set<string> ServiceBus::SERVICE_LIST;
 unsigned int ServiceBus::COMMAND_PROXY_PORT_LOWER;
 unsigned int ServiceBus::COMMAND_PROXY_PORT_UPPER;
-SharedQueue *ServiceBus::port_pool;
+SharedQueue *ServiceBus::PORT_POOL;
 
 // -------------------------------------------------------------------------------------------------
 // Constructors and destructors
@@ -29,7 +29,7 @@ ServiceBus::ServiceBus(const string& host_id, const string& known_peer) {
 }
 
 // -------------------------------------------------------------------------------------------------
-// Public methods
+// Public API
 
 void ServiceBus::register_processor(shared_ptr<BusCommandProcessor> processor) {
     lock_guard<mutex> semaphore(this->api_mutex);
@@ -41,8 +41,8 @@ void ServiceBus::issue_bus_command(shared_ptr<BusCommandProxy> proxy) {
     lock_guard<mutex> semaphore(this->api_mutex);
     proxy->requestor_id = this->bus_node->node_id();
     proxy->serial = this->next_request_serial++;
-    proxy->proxy_port = (unsigned long) ServiceBus::port_pool->dequeue();
-    proxy->port_pool = ServiceBus::port_pool;
+    proxy->proxy_port = (unsigned long) ServiceBus::PORT_POOL->dequeue();
+    proxy->port_pool = ServiceBus::PORT_POOL;
     if (proxy->proxy_port == 0) {
         Utils::error("No port is available to start bus command proxy");
     } else {
@@ -81,8 +81,8 @@ void ServiceBus::BusCommandMessage::act(shared_ptr<MessageFactory> node) {
     auto service_bus_node = dynamic_pointer_cast<ServiceBus::Node>(node);
     if (service_bus_node->processor->check_command(this->command)) {
         shared_ptr<BusCommandProxy> proxy = service_bus_node->processor->factory_empty_proxy();
-        proxy->proxy_port = (unsigned long) ServiceBus::port_pool->dequeue();
-        proxy->port_pool = ServiceBus::port_pool;
+        proxy->proxy_port = (unsigned long) ServiceBus::PORT_POOL->dequeue();
+        proxy->port_pool = ServiceBus::PORT_POOL;
         if (proxy->proxy_port == 0) {
             Utils::error("No port is available to start bus command proxy");
         }

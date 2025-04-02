@@ -1,6 +1,7 @@
 #pragma once
 
 #include <memory>
+#include <mutex>
 
 #include "ServiceBus.h"
 
@@ -9,7 +10,7 @@ using namespace std;
 namespace service_bus {
 
 /**
- * Wrapper for initialization and instantiation of ServiceBus.
+ * Wrapper for static initialization and instantiation of ServiceBus.
  *
  * ServiceBus objects are singletons which are supposed to be accessed through this class, which
  * performs proper initialization in addition to manage the control of the singleton instantiation.
@@ -43,8 +44,9 @@ class ServiceBusSingleton {
 
    private:
     ServiceBusSingleton(){};
-    static bool initialized;
-    static shared_ptr<ServiceBus> service_bus;
+    static bool INITIALIZED;
+    static shared_ptr<ServiceBus> SERVICE_BUS;
+    static mutex API_MUTEX;
 };
 
 }  // namespace service_bus

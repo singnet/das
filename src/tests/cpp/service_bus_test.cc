@@ -34,8 +34,8 @@ class TestProcessor : public BusCommandProcessor {
     }
 
     void run_command(shared_ptr<BusCommandProxy> proxy) {
-        this->command = proxy->command;
-        this->args = proxy->args;
+        this->command = proxy->get_command();
+        this->args = proxy->get_args();
         this->proxy = proxy;
     }
 };
