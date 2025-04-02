@@ -52,6 +52,10 @@ vector<CustomField> Link::get_custom_fields() { return this->custom_fields; }
 
 void Link::set_custom_fields(vector<CustomField> custom_fields) { this->custom_fields = custom_fields; }
 
+void Link::add_custom_field(CustomField custom_field) {
+    this->custom_fields.push_back(custom_field);
+}
+
 string Link::to_metta_string() {
     string metta_string = "(";
     for (LinkTargetTypes target : this->targets) {

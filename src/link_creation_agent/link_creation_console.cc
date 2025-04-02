@@ -9,7 +9,11 @@ shared_ptr<Console> Console::console_instance = nullptr;
 shared_ptr<Console> Console::get_instance() {
     if (!console_instance) {
         console_instance = shared_ptr<Console>(new Console());
-        AtomDBSingleton::init();
+        try{
+            AtomDBSingleton::init();
+        } catch (const std::exception& e) {
+            cerr << "Error: " << e.what() << endl;
+        }
     }
     return console_instance;
 }

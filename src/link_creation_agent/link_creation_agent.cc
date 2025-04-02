@@ -230,6 +230,9 @@ shared_ptr<LinkCreationAgentRequest> LinkCreationAgent::create_request(vector<st
         cout << "Infinite: " << lca_request->infinite << endl;
         cout << "ID: " << lca_request->id << endl;
 #endif
+        // if (lca_request->link_template.front() == "PROOF_OF_IMPLICATION"){
+        //     throw invalid_argument("PROOF_OF_IMPLICATION is not supported yet");
+        // }
 
         return shared_ptr<LinkCreationAgentRequest>(lca_request);
     } catch (exception& e) {

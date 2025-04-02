@@ -180,9 +180,7 @@ std::vector<std::string> ProofOfImplicationOrEquivalence::query() {
             "LINK_TEMPLATE", "Expression", "2",
                 "NODE", "Symbol", "PREDICATE",
                 "VARIABLE", "P",
-            "LINK_TEMPLATE", "Expression", "2",
-                "NODE", "Symbol", "Concept",
-                "VARIABLE", "C"
+            "VARIABLE", "C"
     };
     // clang-format on
     return tokens;
@@ -243,17 +241,17 @@ std::vector<std::vector<std::string>> ProofOfImplicationOrEquivalence::get_reque
         query_and_link_creation_template.push_back(token);
     }
     requests.push_back(query_and_link_creation_template);
-    // Not supported yet
-    // // proof of implication
-    ProofOfImplication proof_of_implication(first_handle, second_handle, max_proof_length, context);
-    for (auto request : proof_of_implication.get_requests()) {
-        requests.push_back(request);
-    }
-    // // proof of equivalence
-    // ProofOfEquivalence proof_of_equivalence(first_handle, second_handle, max_proof_length);
-    // for (auto request : proof_of_equivalence.get_requests()) {
+    //  Not supported yet
+    //  proof of implication
+    // ProofOfImplication proof_of_implication(first_handle, second_handle, max_proof_length, context);
+    // for (auto request : proof_of_implication.get_requests()) {
     //     requests.push_back(request);
     // }
+    // proof of equivalence
+    ProofOfEquivalence proof_of_equivalence(first_handle, second_handle, max_proof_length, context);
+    for (auto request : proof_of_equivalence.get_requests()) {
+        requests.push_back(request);
+    }
 
     return requests;
 }
@@ -269,35 +267,35 @@ ProofOfImplication::~ProofOfImplication() {}
 std::vector<std::string> ProofOfImplication::query() {
     // clang-format off
     std::vector<std::string> tokens = {
-        "AND", "3",
+        "AND", "2",
             "LINK_TEMPLATE", "Expression", "2",
                 "NODE", "Symbol", "SATISFYING_SET",
                 "VARIABLE", "P1",
             "LINK_TEMPLATE", "Expression", "2",
                 "NODE", "Symbol", "SATISFYING_SET",
                 "VARIABLE", "P2",
-            "NOT",
-                "OR",
-                    "LINK_TEMPLATE", "Expression", "3",
-                        "NODE", "Symbol", "IMPLICATION",
-                        "LINK_TEMPLATE", "Expression", "3",
-                            "NODE", "Symbol", "EVALUATION",
-                            "VARIABLE", "P1",
-                            "VARIABLE", "C",
-                        "LINK_TEMPLATE", "Expression", "3",
-                            "NODE", "Symbol", "EVALUATION",
-                            "VARIABLE", "P2",
-                            "VARIABLE", "C",
-                    "LINK_TEMPLATE", "Expression", "3",
-                        "NODE", "Symbol", "IMPLICATION",
-                        "LINK_TEMPLATE", "Expression", "3",
-                            "NODE", "Symbol", "EVALUATION",
-                            "VARIABLE", "P2",
-                            "VARIABLE", "C",
-                        "LINK_TEMPLATE", "Expression", "3",
-                            "NODE", "Symbol", "EVALUATION",
-                            "VARIABLE", "P1",
-                            "VARIABLE", "C"
+            // "NOT",
+            //     "OR",
+            //         "LINK_TEMPLATE", "Expression", "3",
+            //             "NODE", "Symbol", "IMPLICATION",
+            //             "LINK_TEMPLATE", "Expression", "3",
+            //                 "NODE", "Symbol", "EVALUATION",
+            //                 "VARIABLE", "P1",
+            //                 "VARIABLE", "C",
+            //             "LINK_TEMPLATE", "Expression", "3",
+            //                 "NODE", "Symbol", "EVALUATION",
+            //                 "VARIABLE", "P2",
+            //                 "VARIABLE", "C",
+            //         "LINK_TEMPLATE", "Expression", "3",
+            //             "NODE", "Symbol", "IMPLICATION",
+            //             "LINK_TEMPLATE", "Expression", "3",
+            //                 "NODE", "Symbol", "EVALUATION",
+            //                 "VARIABLE", "P2",
+            //                 "VARIABLE", "C",
+            //             "LINK_TEMPLATE", "Expression", "3",
+            //                 "NODE", "Symbol", "EVALUATION",
+            //                 "VARIABLE", "P1",
+            //                 "VARIABLE", "C"
     };
     // clang-format on
     return tokens;
@@ -308,7 +306,7 @@ std::string ProofOfImplication::get_type() { return "PROOF_OF_IMPLICATION"; }
 std::vector<std::vector<std::string>> ProofOfImplication::get_requests() {
     std::vector<std::vector<std::string>> requests;
     auto query = this->query();
-    query.push_back("IMPLICATION_DEDUCTION");  // processor
+    query.push_back(this->get_type());  // processor
     requests.push_back(query);
     return requests;
 }
@@ -363,7 +361,7 @@ std::string ProofOfEquivalence::get_type() { return "PROOF_OF_EQUIVALENCE"; }
 std::vector<std::vector<std::string>> ProofOfEquivalence::get_requests() {
     std::vector<std::vector<std::string>> requests;
     auto query = this->query();
-    query.push_back("EQUIVALENCE_DEDUCTION");  // processor
+    query.push_back(this->get_type());  // processor
     requests.push_back(query);
     return requests;
 }

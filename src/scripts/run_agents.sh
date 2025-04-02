@@ -2,6 +2,20 @@
 set -e
 PWD=$(pwd)
 
+
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+BLUE='\033[0;34m'
+YELLOW='\033[0;33m'
+CYAN='\033[0;36m'
+ORANGE='\033[38;5;214m'   
+LIGHT_CYAN='\033[38;5;44m' 
+PURPLE='\033[38;5;141m'    
+GRAY='\033[38;5;250m'      
+PINK='\033[38;5;205m'      
+NC='\033[0m'
+colors=("$GREEN" "$PURPLE" "$YELLOW" "$LIGHT_CYAN" "$PINK" "$GRAY")
+
 # Default values for environment variables
 ## Agents
 ATTENTION_BROKER_PORT=${ATTENTION_BROKER_PORT:-37007}
@@ -98,7 +112,7 @@ AGENTS=(
 )
 
 PARAM=$1
-
+set +x
 if [ "$PARAM" == "stop" ]; then
     echo "Stopping all agents..."
     for AGENT in "${AGENTS[@]}"; do
@@ -121,12 +135,19 @@ if [ "$PARAM" == "stop" ]; then
 fi
 if [ "$PARAM" == "start" ]; then
     echo "Starting all agents..."
+    i=0
     for AGENT in "${AGENTS[@]}"; do
         # Split the agent and path
         IFS=';' read -r AGENT_NAME AGENT_PATH <<< "$AGENT"
-        echo "Starting agent: $AGENT_NAME"
-        bash -c "$PWD/$AGENT_PATH $AGENT_NAME" >> /dev/null &
+        # echo "Starting agent: $AGENT_NAME"
+        {
+            echo -e "${colors[i % ${#colors[@]}]}Starting: $AGENT_NAME ${commands[i]}${NC}"
+            bash -c "$PWD/$AGENT_PATH $AGENT_NAME" 2>&1 | while IFS= read -r line; do
+                echo -e "${colors[i % ${#colors[@]}]}$line${NC}"
+            done
+        } &
         sleep 5
+        i=$((i + 1))
     done
     exit 0
 fi

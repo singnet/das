@@ -10,7 +10,10 @@ LinkCreationService::LinkCreationService(int thread_count, shared_ptr<DASNode> d
     this->link_template_processor = make_shared<LinkTemplateProcessor>();
     this->equivalence_processor = make_shared<EquivalenceProcessor>();
     this->implication_processor = make_shared<ImplicationProcessor>();
+    shared_ptr<mutex> processors_mutex = make_shared<mutex>();
     this->equivalence_processor->set_das_node(das_node);
+    this->equivalence_processor->set_mutex(processors_mutex);
+    this->implication_processor->set_das_node(das_node);
 }
 
 LinkCreationService::~LinkCreationService() {}
@@ -27,23 +30,23 @@ void LinkCreationService::process_request(shared_ptr<RemoteIterator<HandlesAnswe
             this_thread::sleep_for(chrono::seconds(1));
             // timeout
             if (time(0) - start > timeout) {
-#ifdef DEBUG
+                #ifdef DEBUG
                 cout << "LinkCreationService::process_request: Timeout for iterator ID: "
                      << iterator->get_local_id() << endl;
-#endif
+                #endif
                 return;
             }
             if ((query_answer = iterator->pop()) == NULL) {
-#ifdef DEBUG
+                #ifdef DEBUG
                 cout << "LinkCreationService::process_request: Waiting for query answer ID: "
                      << iterator->get_local_id() << endl;
-#endif
+                #endif
                 Utils::sleep();
             } else {
-#ifdef DEBUG
+                #ifdef DEBUG
                 cout << "LinkCreationService::process_request: Processing query_answer ID: "
                      << iterator->get_local_id() << endl;
-#endif
+                #endif
                 vector<vector<string>> link_tokens;
                 if (LinkCreationProcessor::get_processor_type(link_template.front()) ==
                     ProcessorType::PROOF_OF_IMPLICATION) {
@@ -71,15 +74,17 @@ void LinkCreationService::process_request(shared_ptr<RemoteIterator<HandlesAnswe
 void LinkCreationService::create_link(std::vector<std::vector<std::string>>& links,
                                       DasAgentNode& das_client) {
     // TODO check an alternative to locking this method
-    std::unique_lock<std::mutex> lock(m_mutex);
+    // std::unique_lock<std::mutex> lock(m_mutex);
+    m_mutex.lock();
     for (vector<string> link_tokens : links) {
 #ifdef DEBUG
         cout << "LinkCreationService::create_link: Creating link" << endl;
 #endif
         das_client.create_link(link_tokens);
     }
-
-    m_cond.notify_one();
+    m_mutex.unlock();
+    // std::unique_lock<std::mutex> unlock(m_mutex);
+    // m_cond.notify_one();
 }
 
 void LinkCreationService::set_timeout(int timeout) { this->timeout = timeout; }

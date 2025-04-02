@@ -47,7 +47,6 @@ docker run --rm \
   --user="$(id -u)":"$(id -g)" \
   -e BIN_DIR=$CONTAINER_BIN_DIR \
   --name="${CONTAINER_NAME}" \
-  $ENV_VARS \
   --network=host \
   --volume /etc/passwd:/etc/passwd:ro \
   --volume "$LOCAL_PIP_CACHE":"$CONTAINER_PIP_CACHE" \

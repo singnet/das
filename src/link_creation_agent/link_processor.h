@@ -26,6 +26,7 @@ class LinkProcessor {
 enum class ProcessorType {
     PROOF_OF_IMPLICATION,
     PROOF_OF_EQUIVALENCE,
+    INVALID
 };
 
 class LinkCreationProcessor {
@@ -36,7 +37,7 @@ class LinkCreationProcessor {
         } else if (processor == "PROOF_OF_EQUIVALENCE") {
             return ProcessorType::PROOF_OF_EQUIVALENCE;
         } else {
-            throw runtime_error("Invalid processor type");
+            return ProcessorType::INVALID;
         }
     }
 };
