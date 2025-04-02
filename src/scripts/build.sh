@@ -7,6 +7,15 @@ CONTAINER_NAME=${IMAGE_NAME}-container
 
 ENV_VARS=$(test -f .env && echo "--env-file=.env" || echo "")
 
+# Ensure an entrypoint is provided
+if [ -z "$1" ]; then
+    echo "Usage: $0 <entrypoint>"
+    exit 1
+fi
+
+ENTRYPOINT="$1"
+shift
+
 # local paths
 LOCAL_WORKDIR=$(pwd)
 LOCAL_BIN_DIR=$LOCAL_WORKDIR/src/bin
@@ -35,6 +44,6 @@ docker run --rm \
   --volume $LOCAL_CACHE:$CONTAINER_CACHE \
   --volume $LOCAL_WORKDIR:$CONTAINER_WORKDIR \
   --workdir $CONTAINER_WORKSPACE_DIR \
+  --entrypoint "${ENTRYPOINT}" \
   ${IMAGE_NAME} \
-  ./scripts/bazel_build.sh
-
+  "${@}"
