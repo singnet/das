@@ -33,8 +33,8 @@ class HandleList {
 };
 
 class HandleSetIterator {
-    public:
-     virtual char* next() = 0;
+   public:
+    virtual char* next() = 0;
 };
 
 class HandleSet {

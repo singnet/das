@@ -9,9 +9,7 @@ using namespace atomdb;
 using namespace atomdb_api_types;
 using namespace commons;
 
-HandleSetRedis::HandleSetRedis() : HandleSet() {
-    this->handles_size = 0;
-}
+HandleSetRedis::HandleSetRedis() : HandleSet() { this->handles_size = 0; }
 
 HandleSetRedis::HandleSetRedis(redisReply* reply) : HandleSet() {
     this->replies.push_back(reply);
@@ -28,7 +26,7 @@ void HandleSetRedis::append(shared_ptr<HandleSet> other) {
     auto handle_set_redis = dynamic_pointer_cast<HandleSetRedis>(other);
     for (auto reply : handle_set_redis->replies) {
         this->replies.push_back(reply);
-        this->handles_size += reply->elements;    
+        this->handles_size += reply->elements;
     }
 }
 
@@ -45,7 +43,7 @@ HandleSetRedisIterator::HandleSetRedisIterator(HandleSetRedis* handle_set) {
     this->inner_idx = 0;
 };
 
-HandleSetRedisIterator::~HandleSetRedisIterator() {};
+HandleSetRedisIterator::~HandleSetRedisIterator(){};
 
 char* HandleSetRedisIterator::next() {
     if (this->outer_idx >= this->handle_set->replies.size()) {
