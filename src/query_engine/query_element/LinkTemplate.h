@@ -175,35 +175,51 @@ class LinkTemplate : public Source {
 #endif
         Source::setup_buffers();
         if (this->inner_template.size() > 0) {
+            // clang-format off
             switch (this->inner_template.size()) {
                 case 1: {
                     this->inner_template_iterator =
-                        make_shared<Iterator<HandlesAnswer>>(inner_template[0], true);
+                        make_shared<Iterator<HandlesAnswer>>(
+                            inner_template[0],
+                            true  // delete_precedent_on_destructor
+                        );
                     break;
                 }
                 case 2: {
-                    this->inner_template_iterator = make_shared<Iterator<HandlesAnswer>>(
-                        new And<2>({inner_template[0], inner_template[1]}), true);
+                    this->inner_template_iterator = 
+                        make_shared<Iterator<HandlesAnswer>>(
+                            new And<2>(
+                                {inner_template[0], inner_template[1]}
+                            ),
+                            true  // delete_precedent_on_destructor
+                        );
                     break;
                 }
                 case 3: {
-                    this->inner_template_iterator = make_shared<Iterator<HandlesAnswer>>(
-                        new And<3>({inner_template[0], inner_template[1], inner_template[2]}), true);
+                    this->inner_template_iterator = 
+                        make_shared<Iterator<HandlesAnswer>>(
+                            new And<3>(
+                                {inner_template[0], inner_template[1], inner_template[2]}
+                            ),
+                            true  // delete_precedent_on_destructor
+                        );
                     break;
                 }
                 case 4: {
                     this->inner_template_iterator =
-                        make_shared<Iterator<HandlesAnswer>>(new And<4>({inner_template[0],
-                                                                         inner_template[1],
-                                                                         inner_template[2],
-                                                                         inner_template[3]}),
-                                                             true);
+                        make_shared<Iterator<HandlesAnswer>>(
+                            new And<4>(
+                                {inner_template[0], inner_template[1], inner_template[2], inner_template[3]}
+                            ),
+                            true  // delete_precedent_on_destructor
+                        );
                     break;
                 }
                 default: {
                     Utils::error("Invalid number of inner templates (> 4) in link template.");
                 }
             }
+            // clang-format on
         }
         this->local_buffer_processor = new thread(&LinkTemplate::local_buffer_processor_method, this);
         fetch_links();
