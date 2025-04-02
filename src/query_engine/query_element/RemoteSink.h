@@ -23,12 +23,9 @@ class RemoteSink : public Sink<AnswerType>, public Worker {
      *
      * @param precedent QueryElement just below in the query tree.
      * @param query_answer_processors List of processors to be applied to the query answers.
-     * @param delete_precedent_on_destructor If true, the destructor of this QueryElement will
-     *        also destruct the passed precedent QueryElement (defaulted to false).
      */
-    RemoteSink(QueryElement* precedent,
-               vector<unique_ptr<QueryAnswerProcessor>>&& query_answer_processors,
-               bool delete_precedent_on_destructor = false);
+    RemoteSink(shared_ptr<QueryElement> precedent,
+               vector<unique_ptr<QueryAnswerProcessor>>&& query_answer_processors);
 
     /**
      * Destructor.

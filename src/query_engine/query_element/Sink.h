@@ -26,14 +26,9 @@ class Sink : public QueryElement {
      *
      * @param precedent QueryElement just below in the query tree.
      * @param id Unique id for this QueryElement.
-     * @param delete_precedent_on_destructor If true, the destructor of this QueryElement will
-     * also destruct the passed precedent QueryElement (defaulted to false).
      * @param setup_buffers_flag If true, the setup_buffers() method is called in the constructor.
      */
-    Sink(QueryElement* precedent,
-         const string& id,
-         bool delete_precedent_on_destructor = false,
-         bool setup_buffers_flag = true);
+    Sink(shared_ptr<QueryElement> precedent, const string& id, bool setup_buffers_flag = true);
 
     /**
      * Destructor.
@@ -49,17 +44,14 @@ class Sink : public QueryElement {
     virtual void graceful_shutdown();
 
     /**
-     * Setup a ServerQueryNode to commnunicate with one or more QueryElement just below in the
+     * Setup a ServerQueryNode to communicate with one or more QueryElement just below in the
      * query tree.
      */
     virtual void setup_buffers();
 
    protected:
     shared_ptr<QueryNode<AnswerType>> input_buffer;
-    QueryElement* precedent;
-
-   private:
-    bool delete_precedent_on_destructor;
+    shared_ptr<QueryElement> precedent;
 };
 
 }  // namespace query_element

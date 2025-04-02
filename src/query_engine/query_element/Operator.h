@@ -32,14 +32,7 @@ class Operator : public QueryElement {
      *
      * @param clauses Array of QueryElement, each of them a clause in the operation.
      */
-    Operator(const array<QueryElement*, N>& clauses) { initialize((QueryElement**) clauses.data()); }
-
-    /**
-     * Constructor.
-     *
-     * @param clauses Array of QueryElement, each of them a clause in the operation.
-     */
-    Operator(QueryElement** clauses) { initialize(clauses); }
+    Operator(const array<shared_ptr<QueryElement>, N>& clauses) { initialize(clauses); }
 
     /**
      * Destructor.
@@ -49,12 +42,7 @@ class Operator : public QueryElement {
         cout << "Operator::Operator() DESTRUCTOR BEGIN" << endl;
 #endif
         this->graceful_shutdown();
-        for (size_t i = 0; i < N; i++) {
-            if (this->precedent[i]) {
-                delete this->precedent[i];
-                this->precedent[i] = nullptr;
-            }
-        }
+        for (size_t i = 0; i < N; i++) this->precedent[i] = nullptr;
 #ifdef DEBUG
         cout << "Operator::Operator() DESTRUCTOR END" << endl;
 #endif
@@ -106,12 +94,12 @@ class Operator : public QueryElement {
     }
 
    protected:
-    QueryElement* precedent[N];
+    shared_ptr<QueryElement> precedent[N];
     shared_ptr<QueryNodeServer<HandlesAnswer>> input_buffer[N];
     shared_ptr<QueryNodeClient<HandlesAnswer>> output_buffer;
 
    private:
-    void initialize(QueryElement** clauses) {
+    void initialize(const array<shared_ptr<QueryElement>, N>& clauses) {
         if (N > MAX_NUMBER_OF_OPERATION_CLAUSES) {
             Utils::error("Operation exceeds max number of clauses: " + to_string(N));
         }

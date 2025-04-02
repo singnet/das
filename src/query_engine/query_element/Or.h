@@ -27,16 +27,7 @@ class Or : public Operator<N> {
      *
      * @param clauses Array with N clauses (each clause is supposed to be a Source or an Operator).
      */
-    Or(QueryElement** clauses) : Operator<N>(clauses) { initialize(clauses); }
-
-    /**
-     * Constructor.
-     *
-     * @param clauses Array with N clauses (each clause is supposed to be a Source or an Operator).
-     */
-    Or(const array<QueryElement*, N>& clauses) : Operator<N>(clauses) {
-        initialize((QueryElement**) clauses.data());
-    }
+    Or(const array<shared_ptr<QueryElement>, N>& clauses) : Operator<N>(clauses) { initialize(clauses); }
 
     /**
      * Destructor.
@@ -70,7 +61,7 @@ class Or : public Operator<N> {
     bool no_more_answers_to_arrive;
     thread* operator_thread;
 
-    void initialize(QueryElement** clauses) {
+    void initialize(const array<shared_ptr<QueryElement>, N>& clauses) {
         this->operator_thread = NULL;
         for (unsigned int i = 0; i < N; i++) {
             this->next_input_to_process[i] = 0;
