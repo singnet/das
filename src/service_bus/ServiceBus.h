@@ -1,12 +1,12 @@
 #pragma once
 
+#include <mutex>
 #include <set>
 #include <string>
-#include <mutex>
 
-#include "BusNode.h"
 #include "BusCommandProcessor.h"
 #include "BusCommandProxy.h"
+#include "BusNode.h"
 #include "SharedQueue.h"
 #include "Utils.h"
 
@@ -53,12 +53,10 @@ namespace service_bus {
  * RPC communication between the command caller and respective processor.
  */
 class ServiceBus {
-
     // ---------------------------------------------------------------------------------------------
     // Private inner classes used for RPC among bus elements
 
-    private:
-
+   private:
     class Node : public BusNode {
        public:
         Node(const string& id,
@@ -89,7 +87,7 @@ class ServiceBus {
     static set<string> SERVICE_LIST;
     static unsigned int COMMAND_PROXY_PORT_LOWER;
     static unsigned int COMMAND_PROXY_PORT_UPPER;
-    static SharedQueue *PORT_POOL;
+    static SharedQueue* PORT_POOL;
 
     // ---------------------------------------------------------------------------------------------
     // Private state
@@ -102,8 +100,7 @@ class ServiceBus {
     // ---------------------------------------------------------------------------------------------
     // Public API
 
-    public:
-
+   public:
     /**
      * Registers a processor making it take the ownership of one or more bus commands.
      *
@@ -141,15 +138,12 @@ class ServiceBus {
         COMMAND_PROXY_PORT_LOWER = 64000;
         COMMAND_PROXY_PORT_UPPER = 64999;
         if (COMMAND_PROXY_PORT_LOWER > COMMAND_PROXY_PORT_UPPER) {
-            Utils::error("Invalid port limits [" + 
-                to_string(COMMAND_PROXY_PORT_LOWER) +
-                ".." +
-                to_string(COMMAND_PROXY_PORT_UPPER) +
-                "]");
+            Utils::error("Invalid port limits [" + to_string(COMMAND_PROXY_PORT_LOWER) + ".." +
+                         to_string(COMMAND_PROXY_PORT_UPPER) + "]");
         }
         PORT_POOL = new SharedQueue();
         for (unsigned long port = COMMAND_PROXY_PORT_LOWER; port <= COMMAND_PROXY_PORT_UPPER; port++) {
-            PORT_POOL->enqueue((void *) port);
+            PORT_POOL->enqueue((void*) port);
         }
     }
 

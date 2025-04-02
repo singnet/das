@@ -11,9 +11,7 @@ class TestProxy : public BusCommandProxy {
     string remote_command;
     vector<string> remote_args;
     TestProxy() {}
-    TestProxy(const string &command, vector<string> &args)
-        : BusCommandProxy(command, args) {
-    }
+    TestProxy(const string& command, vector<string>& args) : BusCommandProxy(command, args) {}
     void from_remote_peer(const string& command, const vector<string>& args) {
         this->remote_command = command;
         this->remote_args = args;
@@ -40,7 +38,7 @@ class TestProcessor : public BusCommandProcessor {
     }
 };
 
-void check_command(ServiceBus &source, shared_ptr<TestProcessor> target, const string &command) {
+void check_command(ServiceBus& source, shared_ptr<TestProcessor> target, const string& command) {
     vector<string> args;
     string arg = command + "_arg";
     args.push_back(arg);
@@ -59,7 +57,6 @@ void check_command(ServiceBus &source, shared_ptr<TestProcessor> target, const s
 }
 
 TEST(ServiceBus, basics) {
-
     set<string> commands = {"c1", "c2", "c3", "c4", "c5"};
     ServiceBus::initialize_statics(commands);
     shared_ptr<TestProcessor> processor1(new TestProcessor({"c1", "c4"}));

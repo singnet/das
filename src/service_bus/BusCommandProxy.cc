@@ -1,4 +1,5 @@
 #include "BusCommandProxy.h"
+
 #include "Utils.h"
 
 using namespace service_bus;
@@ -14,40 +15,34 @@ BusCommandProxy::BusCommandProxy() {
 }
 
 BusCommandProxy::BusCommandProxy(const string& command, const vector<string>& args)
-    : command(command), args(args) {
-}
+    : command(command), args(args) {}
 
 BusCommandProxy::~BusCommandProxy() {
     // port_pool is initialized by ServiceBus. It's an static member of a singleton so there's no
     // need to manage its deletion
     if ((this->port_pool != NULL) && (this->proxy_port != 0)) {
         // Return the port to the pool of available ports
-        this->port_pool->enqueue((void *) this->proxy_port);
+        this->port_pool->enqueue((void*) this->proxy_port);
     }
 }
 
-ProxyNode::ProxyNode(BusCommandProxy *proxy, const string& node_id) : StarNode(node_id) {
+ProxyNode::ProxyNode(BusCommandProxy* proxy, const string& node_id) : StarNode(node_id) {
     // SERVER running in BUS command requestor
     this->proxy = proxy;
 }
 
-ProxyNode::ProxyNode(
-    BusCommandProxy *proxy, 
-    const string& node_id, 
-    const string& server_id) 
+ProxyNode::ProxyNode(BusCommandProxy* proxy, const string& node_id, const string& server_id)
     : StarNode(node_id, server_id) {
-
     // CLIENT running in BUS command processor
     this->proxy = proxy;
 }
 
-ProxyNode::~ProxyNode() {
-}
+ProxyNode::~ProxyNode() {}
 
 // -------------------------------------------------------------------------------------------------
 // Proxy API
 
-void BusCommandProxy::setup_proxy_node(const string& client_id, const string &server_id) {
+void BusCommandProxy::setup_proxy_node(const string& client_id, const string& server_id) {
     if ((this->port_pool == NULL) || (this->proxy_port == 0)) {
         Utils::error("Proxy node can't be set up");
     } else {
@@ -69,18 +64,14 @@ void BusCommandProxy::to_remote_peer(const string& command, const vector<string>
     this->proxy_node->to_remote_peer(command, args);
 }
 
-const string &BusCommandProxy::get_command() {
-    return this->command;
-}
+const string& BusCommandProxy::get_command() { return this->command; }
 
-const vector<string> &BusCommandProxy::get_args() {
-    return this->args;
-}
+const vector<string>& BusCommandProxy::get_args() { return this->args; }
 
 // -------------------------------------------------------------------------------------------------
 // ProxyNode API
 
-void ProxyNode::remote_call(const string &command, const vector<string> &args) {
+void ProxyNode::remote_call(const string& command, const vector<string>& args) {
     this->proxy->from_remote_peer(command, args);
 }
 

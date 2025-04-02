@@ -63,7 +63,7 @@ TEST(SharedQueueTest, basics) {
 
     SharedQueue q2;
     unsigned long p1 = 10107;
-    q2.enqueue((void *) p1);
+    q2.enqueue((void*) p1);
     unsigned long p2 = (unsigned long) q2.dequeue();
     EXPECT_EQ(p1, p2);
 }

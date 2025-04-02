@@ -5,7 +5,7 @@ using namespace service_bus;
 set<string> ServiceBus::SERVICE_LIST;
 unsigned int ServiceBus::COMMAND_PROXY_PORT_LOWER;
 unsigned int ServiceBus::COMMAND_PROXY_PORT_UPPER;
-SharedQueue *ServiceBus::PORT_POOL;
+SharedQueue* ServiceBus::PORT_POOL;
 
 // -------------------------------------------------------------------------------------------------
 // Constructors and destructors
