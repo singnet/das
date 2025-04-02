@@ -10,6 +10,8 @@
 #include <variant>
 #include <vector>
 
+#define DEBUG
+
 namespace link_creation_agent {
 
 class CustomField;         // Forward declaration
@@ -95,9 +97,12 @@ class CustomField {
      */
     void add_field(const std::string& name, const CustomFieldTypes& value);
 
+    CustomField untokenize(const std::vector<std::string>& tokens);
+
    private:
     std::string name;
     std::vector<std::tuple<std::string, CustomFieldTypes>> values;
+    CustomField untokenize(const std::vector<std::string>& tokens, int& cursor);
 };
 
 /**

@@ -20,6 +20,7 @@ cc_library(
     ":link_create_template",
     ":link_creation_agent_node",
     ":service",
+    ":link_creation_console",
     "//distributed_algorithm_node:distributed_algorithm_node_lib",
     "//query_engine:query_engine_lib",
     "//hasher:hasher_lib",
@@ -31,6 +32,7 @@ cc_library(
   srcs = ["das_agent_node.cc"],
   hdrs = ["das_agent_node.h", "queue.h"],
   deps = [
+    ":link_creation_console",
     "//distributed_algorithm_node:distributed_algorithm_node_lib",
   ],
 )
@@ -57,6 +59,19 @@ cc_library(
   hdrs = ["link_creation_agent_node.h", "dummy_message.h", "queue.h"],
   deps = [
     "//distributed_algorithm_node:star_node"
+  ],
+)
+
+
+cc_library(
+  name = "link_creation_console",
+  srcs = ["link_creation_console.cc"],
+  hdrs = ["link_creation_console.h"],
+  deps = [
+    ":link",
+    "//atomdb:atomdb_singleton",
+    "//atomdb:atomdb_api_types",
+    "//atomdb:atomdb",
   ],
 )
 

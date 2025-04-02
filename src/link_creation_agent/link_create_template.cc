@@ -274,6 +274,16 @@ std::string CustomField::to_string() {
     return custom_field;
 }
 
+CustomField CustomField::untokenize(const std::vector<std::string>& tokens) {
+    int cursor = 0;
+    return untokenize(tokens, cursor);
+}
+
+CustomField CustomField::untokenize(const std::vector<std::string>& tokens, int& cursor) {
+    // TODO implement untokenize
+    return CustomField("");
+}
+
 std::vector<std::string> CustomField::tokenize() { return split(this->to_string(), ' '); }
 
 LinkCreateTemplateList::LinkCreateTemplateList(std::vector<std::string> link_template) {
