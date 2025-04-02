@@ -297,7 +297,7 @@ class LinkTemplate : public Source {
             handle_list.set_context(this->context);
             auto it = this->fetch_result->get_iterator();
             char* handle;
-            while ((handle = this->fetch_result->next()) != nullptr) {
+            while ((handle = it->next()) != nullptr) {
                 handle_list.add_list(handle);
             }
             dasproto::ImportanceList importance_list;
