@@ -88,6 +88,7 @@ void BusNode::send_bus_command(const string& command, const vector<string>& args
 void BusNode::take_ownership(const set<string>& commands) {
     for (auto command : commands) {
         this->bus.set_ownership(command, node_id());
+        this->my_commands.insert(command);
     }
     broadcast_my_commands();
 }

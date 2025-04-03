@@ -8,7 +8,9 @@ cc_library(
   deps = [
     ":service_bus_singleton",
     ":service_bus",
+    ":bus_command_proxy",
     ":bus_command_processor",
+    "//distributed_algorithm_node:distributed_algorithm_node_lib",
     "//commons:commons_lib",
   ],
 )
@@ -35,10 +37,21 @@ cc_library(
 )
 
 cc_library(
+  name = "bus_command_proxy",
+  srcs = ["BusCommandProxy.cc"],
+  hdrs = ["BusCommandProxy.h"],
+  deps = [
+    "//distributed_algorithm_node:bus_node",
+    "//commons:commons_lib",
+  ],
+)
+
+cc_library(
   name = "bus_command_processor",
   srcs = ["BusCommandProcessor.cc"],
   hdrs = ["BusCommandProcessor.h"],
   deps = [
+    ":bus_command_proxy",
     "//distributed_algorithm_node:bus_node",
     "//commons:commons_lib",
   ],

@@ -1,13 +1,17 @@
-#ifndef _SERVICE_BUS_SERVICEBUS_H
-#define _SERVICE_BUS_SERVICEBUS_H
+#pragma once
 
+#include <mutex>
 #include <set>
 #include <string>
 
 #include "BusCommandProcessor.h"
+#include "BusCommandProxy.h"
 #include "BusNode.h"
+#include "SharedQueue.h"
+#include "Utils.h"
 
 using namespace std;
+using namespace commons;
 using namespace distributed_algorithm_node;
 
 namespace service_bus {
@@ -18,15 +22,15 @@ namespace service_bus {
  *
  * Elements in the bus can be either command providers or command issuers (or both).
  *
- * Command issuers just use ServiceBus to issue commands. It doesn't provide any service
- * (i.e. it doesn't process any commands) itself. Command providers listen to the bus
- * for commands it's responsible for and process such commands when other bus element
+ * Command issuers just use ServiceBus to issue commands. They don't provide any service
+ * (i.e. They don't process any commands) themselves. Command providers listen to the bus
+ * for commands they're responsible for and process such commands when other bus element
  * issues them. Command providers must explicitely register themselves as so in order
- * to receive commands.
+ * to receive commands from the bus.
  *
- * The list of commands is fixed and represents the services provided by agents in
- * the DAS architecture. As agents join the bus, they register themselves as command
- * providers taking the ownership of commands in this list. Any attempt to take
+ * The list of commands is fixed (hard-wired in code) and represents the services provided
+ * by agents in the DAS architecture. As agents join the bus, they register themselves as
+ * command providers taking the ownership of commands in this list. Any attempt to take
  * ownership of a command that have already been taken will throw an exception. It means
  * that each service (i.e. each command) may be assigned to only one bus element.
  * Any attemps to issue a command which hasn't be assigned to any bus element will also
@@ -36,8 +40,22 @@ namespace service_bus {
  * (TODO: update this list and add hints for commands' arguments)
  *
  * - PATTERN_MATCHING_QUERY
+ *
+ * Command processors must extend BusCommandProcessor and be registered by calling
+ * register_processor(). Command issuers must create BusCommandProxy objects in order
+ * to issue commands by calling issue_bus_command().
+ *
+ * There's one BusCommandProxy concrete subclass for each bus command. In addition to
+ * the information of the command and its arguments, this proxy object is also aware of
+ * the actual object that's delivered to the caller as command response (e.g
+ * PATTERN_MATCHING_QUERY synchronously delivers an interator which is asynchronously feed
+ * up by the corresponding command processor. In addition to this, this proxy also allow
+ * RPC communication between the command caller and respective processor.
  */
 class ServiceBus {
+    // ---------------------------------------------------------------------------------------------
+    // Private inner classes used for RPC among bus elements
+
    private:
     class Node : public BusNode {
        public:
@@ -53,9 +71,9 @@ class ServiceBus {
         shared_ptr<BusNode::Bus> bus;
     };
 
-    class BusCommand : public Message {
+    class BusCommandMessage : public Message {
        public:
-        BusCommand(const string& command, const vector<string>& args);
+        BusCommandMessage(const string& command, const vector<string>& args);
         void act(shared_ptr<MessageFactory> node);
 
        private:
@@ -63,14 +81,26 @@ class ServiceBus {
         vector<string> args;
     };
 
+    // ---------------------------------------------------------------------------------------------
+    // Private static state initialized by ServiceBusSingleton
+
     static set<string> SERVICE_LIST;
+    static unsigned int COMMAND_PROXY_PORT_LOWER;
+    static unsigned int COMMAND_PROXY_PORT_UPPER;
+    static SharedQueue* PORT_POOL;
+
+    // ---------------------------------------------------------------------------------------------
+    // Private state
+
     shared_ptr<ServiceBus::Node> bus_node;
     shared_ptr<BusNode::Bus> bus;
+    mutex api_mutex;
+    unsigned int next_request_serial;
 
-   public:
     // ---------------------------------------------------------------------------------------------
     // Public API
 
+   public:
     /**
      * Registers a processor making it take the ownership of one or more bus commands.
      *
@@ -80,6 +110,16 @@ class ServiceBus {
      */
     void register_processor(shared_ptr<BusCommandProcessor> processor);
 
+    /**
+     * Issues a command in the bus.
+     *
+     * If the passed command is not in the list of bus commands or if no processors have taken
+     * ownership for it yet, an exception is thrown.
+     *
+     * @param bus_command A BusCommandProxy with the command and its arguments.
+     */
+    void issue_bus_command(shared_ptr<BusCommandProxy> bus_command);
+
     // ---------------------------------------------------------------------------------------------
     // Used by ServiceBusSingleton
 
@@ -87,13 +127,25 @@ class ServiceBus {
      * This method is not actually part of the API, it's supposed to be called
      * by ServiceBusSingleton. It's kept public to make it easier to write unit tests.
      */
-    static void initialize_statics(const set<string>& commands = {}) {
+    static void initialize_statics(const set<string>& commands = {},
+                                   unsigned int port_lower = 64000,
+                                   unsigned int port_upper = 64999) {
         if (commands.size() > 0) {
             for (auto command : commands) {
                 SERVICE_LIST.insert(command);
             }
         } else {
             SERVICE_LIST.insert("PATTERN_MATCHING_QUERY");
+        }
+        COMMAND_PROXY_PORT_LOWER = port_lower;
+        COMMAND_PROXY_PORT_UPPER = port_upper;
+        if (COMMAND_PROXY_PORT_LOWER > COMMAND_PROXY_PORT_UPPER) {
+            Utils::error("Invalid port limits [" + to_string(COMMAND_PROXY_PORT_LOWER) + ".." +
+                         to_string(COMMAND_PROXY_PORT_UPPER) + "]");
+        }
+        PORT_POOL = new SharedQueue();
+        for (unsigned long port = COMMAND_PROXY_PORT_LOWER; port <= COMMAND_PROXY_PORT_UPPER; port++) {
+            PORT_POOL->enqueue((void*) port);
         }
     }
 
@@ -105,5 +157,3 @@ class ServiceBus {
 };
 
 }  // namespace service_bus
-
-#endif  // _SERVICE_BUS_SERVICEBUS_H

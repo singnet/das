@@ -1,5 +1,4 @@
-#ifndef _DISTRIBUTED_ALGORITHM_NODE_STARNODE_H
-#define _DISTRIBUTED_ALGORITHM_NODE_STARNODE_H
+#pragma once
 
 #include <string>
 
@@ -203,5 +202,3 @@ class SetCommandOwnership : public Message {
 };
 
 }  // namespace distributed_algorithm_node
-
-#endif  // _DISTRIBUTED_ALGORITHM_NODE_STARNODE_H
