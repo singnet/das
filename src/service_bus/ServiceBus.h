@@ -22,8 +22,8 @@ namespace service_bus {
  *
  * Elements in the bus can be either command providers or command issuers (or both).
  *
- * Command issuers just use ServiceBus to issue commands. They doesn't provide any service
- * (i.e. They doesn't process any commands) itself. Command providers listen to the bus
+ * Command issuers just use ServiceBus to issue commands. They don't provide any service
+ * (i.e. They don't process any commands) themselves. Command providers listen to the bus
  * for commands they're responsible for and process such commands when other bus element
  * issues them. Command providers must explicitely register themselves as so in order
  * to receive commands from the bus.
