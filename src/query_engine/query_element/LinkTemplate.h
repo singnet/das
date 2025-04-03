@@ -79,7 +79,7 @@ class LinkTemplate : public Source {
      *        consider STI (short term importance).
      */
     LinkTemplate(const string& type,
-                 const array<QueryElement*, ARITY>& targets,
+                 const array<shared_ptr<QueryElement>, ARITY>& targets,
                  const string& context = "") {
         this->context = context;
         this->arity = ARITY;
@@ -97,7 +97,7 @@ class LinkTemplate : public Source {
             // It's safe to get stored shared_ptr's raw pointer here because handle_keys[]
             // is used solely in this scope so it's guaranteed that handle will not be freed.
             if (targets[i - 1]->is_terminal) {
-                this->handle_keys[i] = ((Terminal*) targets[i - 1])->handle.get();
+                this->handle_keys[i] = dynamic_pointer_cast<Terminal>(targets[i - 1])->handle.get();
             } else {
                 this->handle_keys[i] = (char*) AtomDB::WILDCARD.c_str();
                 this->inner_template.push_back(targets[i - 1]);
@@ -135,9 +135,6 @@ class LinkTemplate : public Source {
             if (answer) delete answer;
         }
         this->inner_answers.clear();
-        for (auto* clause : this->inner_template) {
-            if (clause) delete clause;
-        }
         this->inner_template.clear();
         this->inner_template_iterator.reset();
         local_answers_mutex.unlock();
@@ -175,35 +172,65 @@ class LinkTemplate : public Source {
 #endif
         Source::setup_buffers();
         if (this->inner_template.size() > 0) {
+            // clang-format off
             switch (this->inner_template.size()) {
                 case 1: {
                     this->inner_template_iterator =
-                        make_shared<Iterator<HandlesAnswer>>(inner_template[0], true);
+                        make_shared<Iterator<HandlesAnswer>>(
+                            inner_template[0]
+                        );
                     break;
                 }
                 case 2: {
-                    this->inner_template_iterator = make_shared<Iterator<HandlesAnswer>>(
-                        new And<2>({inner_template[0], inner_template[1]}), true);
+                    this->inner_template_iterator = 
+                        make_shared<Iterator<HandlesAnswer>>(
+                            make_shared<And<2>>(
+                                array<shared_ptr<QueryElement>, 2>(
+                                    {
+                                        inner_template[0],
+                                        inner_template[1]
+                                    }
+                                )
+                            )
+                        );
                     break;
                 }
                 case 3: {
-                    this->inner_template_iterator = make_shared<Iterator<HandlesAnswer>>(
-                        new And<3>({inner_template[0], inner_template[1], inner_template[2]}), true);
+                    this->inner_template_iterator = 
+                        make_shared<Iterator<HandlesAnswer>>(
+                            make_shared<And<3>>(
+                                array<shared_ptr<QueryElement>, 3>(
+                                    {
+                                        inner_template[0],
+                                        inner_template[1],
+                                        inner_template[2]
+                                    }
+                                )
+                            )
+                        );
                     break;
                 }
                 case 4: {
                     this->inner_template_iterator =
-                        make_shared<Iterator<HandlesAnswer>>(new And<4>({inner_template[0],
-                                                                         inner_template[1],
-                                                                         inner_template[2],
-                                                                         inner_template[3]}),
-                                                             true);
+                        make_shared<Iterator<HandlesAnswer>>(
+                            make_shared<And<4>>(
+                                array<shared_ptr<QueryElement>, 4>(
+                                    {
+                                        inner_template[0],
+                                        inner_template[1],
+                                        inner_template[2],
+                                        inner_template[3]
+                                    }
+                                )
+                            )
+                        );
                     break;
                 }
                 default: {
                     Utils::error("Invalid number of inner templates (> 4) in link template.");
                 }
             }
+            // clang-format on
         }
         this->local_buffer_processor = new thread(&LinkTemplate::local_buffer_processor_method, this);
         fetch_links();
@@ -314,7 +341,7 @@ class LinkTemplate : public Source {
                 const char* s = this->atom_document[i]->get("targets", 0);
                 for (unsigned int j = 0; j < this->arity; j++) {
                     if (this->target_template[j]->is_terminal) {
-                        Terminal* terminal = (Terminal*) this->target_template[j];
+                        auto terminal = dynamic_pointer_cast<Terminal>(this->target_template[j]);
                         if (terminal->is_variable) {
                             if (!query_answer->assignment.assign(
                                     terminal->name.c_str(), this->atom_document[i]->get("targets", j))) {
@@ -454,13 +481,13 @@ class LinkTemplate : public Source {
 
    private:
     string type;
-    array<QueryElement*, ARITY> target_template;
+    array<shared_ptr<QueryElement>, ARITY> target_template;
     unsigned int arity;
     shared_ptr<char> handle;
     char* handle_keys[ARITY + 1];
     vector<string> fetch_result;
     vector<shared_ptr<atomdb_api_types::AtomDocument>> atom_documents;
-    vector<QueryElement*> inner_template;
+    vector<shared_ptr<QueryElement>> inner_template;
     SharedQueue local_buffer;
     thread* local_buffer_processor;
     bool fetch_finished;
