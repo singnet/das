@@ -40,6 +40,7 @@ namespace service_bus {
  * (TODO: update this list and add hints for commands' arguments)
  *
  * - PATTERN_MATCHING_QUERY
+ * - COUNTING_QUERY
  *
  * Command processors must extend BusCommandProcessor and be registered by calling
  * register_processor(). Command issuers must create BusCommandProxy objects in order
@@ -101,6 +102,10 @@ class ServiceBus {
     // Public API
 
    public:
+
+    static string PATTERN_MATCHING_QUERY;
+    static string COUNTING_QUERY;
+
     /**
      * Registers a processor making it take the ownership of one or more bus commands.
      *
@@ -135,7 +140,8 @@ class ServiceBus {
                 SERVICE_LIST.insert(command);
             }
         } else {
-            SERVICE_LIST.insert("PATTERN_MATCHING_QUERY");
+            SERVICE_LIST.insert(PATTERN_MATCHING_QUERY);
+            SERVICE_LIST.insert(COUNTING_QUERY);
         }
         COMMAND_PROXY_PORT_LOWER = port_lower;
         COMMAND_PROXY_PORT_UPPER = port_upper;

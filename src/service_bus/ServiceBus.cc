@@ -2,6 +2,9 @@
 
 using namespace service_bus;
 
+string ServiceBus::PATTERN_MATCHING_QUERY = "pattern_matching_query";
+string ServiceBus::COUNTING_QUERY = "counting_query";
+
 set<string> ServiceBus::SERVICE_LIST;
 unsigned int ServiceBus::COMMAND_PROXY_PORT_LOWER;
 unsigned int ServiceBus::COMMAND_PROXY_PORT_UPPER;
