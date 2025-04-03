@@ -39,7 +39,7 @@ class TestSource : public Source {
 
 class TestSink : public Sink<HandlesAnswer> {
    public:
-    TestSink(QueryElement* precedent)
+    TestSink(shared_ptr<QueryElement> precedent)
         : Sink<HandlesAnswer>(precedent, "TestSink(" + precedent->id + ")") {}
     ~TestSink() {}
     bool empty() { return this->input_buffer->is_query_answers_empty(); }
@@ -61,9 +61,9 @@ void check_query_answer(string tag,
 }
 
 TEST(AndOperator, basics) {
-    TestSource* source1 = new TestSource(10);
-    TestSource* source2 = new TestSource(20);
-    And<2>* and_operator = new And<2>({source1, source2});
+    auto source1 = make_shared<TestSource>(10);
+    auto source2 = make_shared<TestSource>(20);
+    auto and_operator = make_shared<And<2>>(array<shared_ptr<QueryElement>, 2>({source1, source2}));
     TestSink sink(and_operator);
     HandlesAnswer* query_answer;
 
@@ -140,9 +140,6 @@ TEST(AndOperator, basics) {
 
     EXPECT_TRUE(sink.empty());
     EXPECT_TRUE(sink.finished());
-
-    delete source1;
-    delete source2;
 }
 
 TEST(AndOperator, operation_logic) {
@@ -176,12 +173,12 @@ TEST(AndOperator, operation_logic) {
     priority_queue<ImportanceFitnessPair> fitness_heap;
     ImportanceFitnessPair pair;
     HandlesAnswer* query_answer;
-    TestSource* source[3];
+    array<shared_ptr<QueryElement>, 3> source;
     for (unsigned int clause = 0; clause < clause_count; clause++) {
-        source[clause] = new TestSource(clause);
+        source[clause] = make_shared<TestSource>(clause);
     }
-    And<3>* and_operator = new And<3>((QueryElement**) source);
-    TestSink* sink = new TestSink(and_operator);
+    auto and_operator = make_shared<And<3>>(source);
+    auto sink = make_shared<TestSink>(and_operator);
 
     for (unsigned int clause = 0; clause < clause_count; clause++) {
         for (unsigned int link = 0; link < link_count; link++) {
@@ -193,10 +190,11 @@ TEST(AndOperator, operation_logic) {
     cout << "QUEUES POPULATION" << endl;
 
     for (unsigned int clause = 0; clause < clause_count; clause++) {
+        auto test_source = dynamic_pointer_cast<TestSource>(source[clause]);
         for (unsigned int link = 0; link < link_count; link++) {
-            source[clause]->add(random_handle().c_str(), importance[clause][link], {"v"}, {"1"}, false);
+            test_source->add(random_handle().c_str(), importance[clause][link], {"v"}, {"1"}, false);
         }
-        source[clause]->query_answers_finished();
+        test_source->query_answers_finished();
     }
 
     cout << "MATRIX POPULATION" << endl;
@@ -234,19 +232,13 @@ TEST(AndOperator, operation_logic) {
 
     Utils::sleep(5000);
     cout << "TEAR DOWN" << endl;
-
-    delete sink;
-    for (unsigned int clause = 0; clause < clause_count; clause++) {
-        delete source[clause];
-    }
 }
 
 TEST(AndOperator, empty_source) {
-    TestSource* source1 = new TestSource(100);
-    TestSource* source2 = new TestSource(200);
-    And<2>* and_operator = new And<2>({source1, source2});
+    auto source1 = make_shared<TestSource>(100);
+    auto source2 = make_shared<TestSource>(200);
+    auto and_operator = make_shared<And<2>>(array<shared_ptr<QueryElement>, 2>({source1, source2}));
     TestSink sink(and_operator);
-    HandlesAnswer* query_answer;
     Utils::sleep(1000);
 
     EXPECT_TRUE(sink.empty());
