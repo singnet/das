@@ -1125,7 +1125,7 @@ class RedisMongoDB(AtomDB):
         """
         key = _build_redis_key(key_prefix, handle)
         results = self.redis.zrange(key, 0, -1, withscores=True)
-        return set([r[0] for r in results])
+        return {r[0] for r in results}
 
     def _delete_smember_template(self, handle: str, smember: str) -> None:
         """
