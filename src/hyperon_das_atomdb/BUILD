@@ -30,28 +30,28 @@ py_package(
 )
 
 py_wheel(
-    name = "hyperon_das_atomdb_wheel",
-    abi = "none",
-    author = "Andre Senna",
-    author_email = "andre@singularitynet.io",
-    classifiers = [
+    name="hyperon_das_atomdb_wheel",
+    abi="none",
+    author="Andre Senna",
+    author_email="andre@singularitynet.io",
+    classifiers=[
         "Programming Language :: Python :: 3",
         "Programming Language :: Python :: 3.10",
         "Programming Language :: Python :: 3.11",
         "Programming Language :: Python :: 3.12",
         "Programming Language :: Python :: 3.13",
     ],
-    description_content_type = "text/markdown",
-    description_file = "README.md",
-    distribution = "hyperon_das_atomdb",
-    platform = "any",
-    python_requires = ">=3.10",
-    python_tag = "py3",
-    requires_file = "//deps:requirements_lock.txt",
-    stamp = 1,
-    summary = "Persistence layer for Distributed AtomSpace",
-    version = "$(ATOMDB_VERSION)",  # must be defined when calling `bazel build` with `--define=ATOMDB_VERSION=<version>`
-    deps = [":hyperon_das_atomdb_package"],
+    description_content_type="text/markdown",
+    description_file="README.md",
+    distribution="hyperon_das_atomdb",
+    platform="any",
+    python_requires=">=3.10",
+    python_tag="py3",
+    requires_file="//deps:requirements_lock.txt",
+    stamp=1,
+    summary="Persistence layer for Distributed AtomSpace",
+    version="$(DAS_VERSION)",  # must be defined when calling `bazel build` with `--define=ATOMDB_VERSION=<version>`
+    deps=[":hyperon_das_atomdb_package"],
 )
 
 py_library(
