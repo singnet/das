@@ -58,9 +58,11 @@ void Link::add_custom_field(CustomField custom_field) {
 
 string Link::to_metta_string() {
     string metta_string = "(";
+    bool is_custom_fields_added = false;
     for (LinkTargetTypes target : this->targets) {
         if (holds_alternative<string>(target)) {
             metta_string += get<string>(target) + " ";
+
         }
         if (holds_alternative<shared_ptr<Link>>(target)) {
             metta_string += get<shared_ptr<Link>>(target)->to_metta_string() + " ";
@@ -68,6 +70,12 @@ string Link::to_metta_string() {
         if (holds_alternative<Node>(target)) {
             Node node = get<Node>(target);
             metta_string += node.value + " ";
+            if(!is_custom_fields_added) {
+                for (CustomField custom_field : this->custom_fields) {
+                    metta_string += custom_field.to_metta_string() + " ";
+                }
+                is_custom_fields_added = true;
+            }
         }
     }
     // remove the last space
@@ -117,7 +125,35 @@ Link Link::untokenize_link(const vector<string>& tokens, int& cursor) {
         } else {
             throw std::runtime_error("Invalid token: " + tokens[cursor]);
         }
-        // TODO: Implement custom field untokenization
+        if (tokens[cursor] == "CUSTOM_FIELD") {
+            vector<string> custom_field_args;
+            custom_field_args.push_back(tokens[cursor]);
+             cursor++;
+            string custom_field_name = tokens[cursor];
+            custom_field_args.push_back(tokens[cursor]);
+            cursor++;
+            int custom_field_size = stoi(tokens[cursor]);
+            custom_field_args.push_back(tokens[cursor]);
+            cursor++;
+            vector<CustomField> custom_fields;
+            for (int i = 0; i < custom_field_size; i++) {
+                custom_field_args.push_back(tokens[cursor]);
+                if(tokens[cursor] == "CUSTOM_FIELD"){
+                    cursor++;
+                    custom_field_args.push_back(tokens[cursor]);
+                    cursor++;
+                    custom_field_args.push_back(tokens[cursor]);
+                    custom_field_size += stoi(tokens[cursor]);
+                    cursor++;
+                } else {
+                    cursor++;
+                    custom_field_args.push_back(tokens[cursor]);
+                    cursor++;
+                }
+            }
+            CustomField custom_field = CustomField(custom_field_args);
+            link.add_custom_field(custom_field);
+        }
     }
     return link;
 }

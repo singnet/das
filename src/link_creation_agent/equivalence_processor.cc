@@ -50,6 +50,10 @@ vector<vector<string>> EquivalenceProcessor::process(
     HandlesAnswer* handles_answer = dynamic_cast<HandlesAnswer*>(query_answer);
     string c1_handle = handles_answer->assignment.get("C1");
     string c2_handle = handles_answer->assignment.get("C2");
+    string context = "";
+    if (extra_params.has_value()) {
+        context = extra_params.value().front();
+    }
     if (c1_handle == c2_handle) {
         // clang-format off
         #ifdef DEBUG
@@ -60,13 +64,22 @@ vector<vector<string>> EquivalenceProcessor::process(
     }
     string c1_name = AtomDBSingleton::get_instance()->get_atom_document(c1_handle.c_str())->get("name");
     string c2_name = AtomDBSingleton::get_instance()->get_atom_document(c2_handle.c_str())->get("name");
+    cout << "EquivalenceProcessor::process: (" << c1_name << ", " << c2_name << ")" << endl;
+    // return {};
     auto pattern_query = get_pattern_query(c1_name, c2_name);
     if (this->das_node == nullptr) {
         throw runtime_error("EquivalenceProcessor::process: DASNode is not set");
     }
+    if (this->processor_mutex == nullptr) {
+        throw runtime_error("EquivalenceProcessor::process: processor_mutex is not set");
+    }
+    cout << "EquivalenceProcessor::process: locking " << endl;
     this->processor_mutex->lock();
-    int count = this->das_node->count_query(pattern_query);  // TODO context
+    cout << "EquivalenceProcessor::process: locked " << endl;
+    int count = this->das_node->count_query(pattern_query, context, false, 10);  // TODO context
+    cout << "EquivalenceProcessor::process: releasing " << endl;
     this->processor_mutex->unlock();
+    cout << "EquivalenceProcessor::process: released " << endl;
     if (count <= 0) {
         // clang-format off
         #ifdef DEBUG
@@ -81,8 +94,12 @@ vector<vector<string>> EquivalenceProcessor::process(
     cout << "EquivalenceProcessor::process: (" << c1_name << ", " << c2_name << ") " << "Strength: " << strength << endl;
     cout << "EquivalenceProcessor::process: 2/" << count << endl;
     vector<vector<string>> result;
+    Node equivalence_node;
+    equivalence_node.type = "Symbol";
+    equivalence_node.value = "EQUIVALENCE";
     Link link_c1_c2;
-    link_c1_c2.set_type("EQUIVALENCE");
+    link_c1_c2.set_type("Expression");
+    link_c1_c2.add_target(equivalence_node);
     link_c1_c2.add_target(c1_handle);
     link_c1_c2.add_target(c2_handle);
     auto custom_field = CustomField("truth_value");
@@ -91,7 +108,8 @@ vector<vector<string>> EquivalenceProcessor::process(
     link_c1_c2.add_custom_field(custom_field);
 
     Link link_c2_c1;
-    link_c2_c1.set_type("EQUIVALENCE");
+    link_c2_c1.set_type("Expression");
+    link_c2_c1.add_target(equivalence_node);
     link_c2_c1.add_target(c2_handle);
     link_c2_c1.add_target(c1_handle);
     auto custom_field2 = CustomField("truth_value");

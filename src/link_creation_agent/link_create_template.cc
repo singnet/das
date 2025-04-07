@@ -274,6 +274,27 @@ std::string CustomField::to_string() {
     return custom_field;
 }
 
+std::string CustomField::to_metta_string(){
+    std::string metta_string = "[";
+    for (auto value : this->values) {
+        CustomFieldTypes field_value = std::get<1>(value);
+        if (std::holds_alternative<std::string>(field_value)) {
+            metta_string += std::get<0>(value) + " " + std::get<std::string>(field_value) + " ";
+        } else {
+            std::shared_ptr<CustomField> sub_custom_field =
+                std::get<std::shared_ptr<CustomField>>(field_value);
+            metta_string += sub_custom_field->to_metta_string();
+            metta_string += " ";
+        }
+    }
+    if (metta_string.back() == ' ') {
+        metta_string[metta_string.size() - 1] = ']';
+    } else {
+        metta_string += "]";
+    }
+    return metta_string;
+}
+
 CustomField CustomField::untokenize(const std::vector<std::string>& tokens) {
     int cursor = 0;
     return untokenize(tokens, cursor);

@@ -99,6 +99,8 @@ class CustomField {
 
     CustomField untokenize(const std::vector<std::string>& tokens);
 
+    std::string to_metta_string();
+
    private:
     std::string name;
     std::vector<std::tuple<std::string, CustomFieldTypes>> values;

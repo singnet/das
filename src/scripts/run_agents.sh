@@ -38,7 +38,7 @@ LINK_CREATION_QUERY_AGENT_START_PORT=${LINK_CREATION_QUERY_AGENT_START_PORT:-160
 LINK_CREATION_QUERY_AGENT_END_PORT=${LINK_CREATION_QUERY_AGENT_END_PORT:-16200}
 LINK_CREATION_QUERY_TIMEOUT_SECONDS=${LINK_CREATION_QUERY_TIMEOUT_SECONDS:-20}
 LINK_CREATION_REQUESTS_INTERVAL_SECONDS=${LINK_CREATION_REQUESTS_INTERVAL_SECONDS:-5}
-LINK_CREATION_REQUESTS_BUFFER_FILE=${LINK_CREATION_REQUESTS_BUFFER_FILE:-"/tmp/bufer"}
+LINK_CREATION_REQUESTS_BUFFER_FILE=${LINK_CREATION_REQUESTS_BUFFER_FILE:-"buffer"}
 LINK_CREATION_AGENT_THREAD_COUNT=${LINK_CREATION_AGENT_THREAD_COUNT:-1}
 
 ## Other Params
@@ -76,6 +76,7 @@ else
     echo "query_timeout_seconds = $LINK_CREATION_QUERY_TIMEOUT_SECONDS" >> $PWD/src/bin/link_creation_server.cfg
     echo "requests_interval_seconds = $LINK_CREATION_REQUESTS_INTERVAL_SECONDS" >> $PWD/src/bin/link_creation_server.cfg
     echo "requests_buffer_file = $LINK_CREATION_REQUESTS_BUFFER_FILE" >> $PWD/src/bin/link_creation_server.cfg
+    echo "metta_file_path = /opt/das/src/bin" >> $PWD/src/bin/link_creation_server.cfg
 fi
 
 # Inference Agent params
@@ -105,7 +106,7 @@ DAS_AGENT_CONFIG=$(echo $DAS_AGENT_CONFIG_JSON)
 # List of agent and paths
 AGENTS=(
     "attention_broker_service $ATTENTION_BROKER_PORT;src/scripts/run.sh"
-    "query_broker $QUERY_AGENT_PORT;src/scripts/run.sh"
+    # "query_broker $QUERY_AGENT_PORT;src/scripts/run.sh"
     "link_creation_server --config_file ./src/bin/link_creation_server.cfg;src/scripts/run.sh"
     "inference_agent_server --config_file ./src/bin/inference_agent_server.cfg;src/scripts/run.sh"
     "run //das_agent:main -- --config $DAS_AGENT_CONFIG;src/scripts/bazel.sh"

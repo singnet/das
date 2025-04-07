@@ -97,7 +97,8 @@ NB_MODULE(hyperon_das_query_engine_ext, m) {
              &DASNode::count_query,
              "tokens"_a,
              "context"_a = "",
-             "update_attention_broker"_a = false)
+             "update_attention_broker"_a = false,
+             "timeout"_a = 3600)
         .def("next_query_id", &DASNode::next_query_id)
         .def("message_factory", &DASNode::message_factory, "command"_a, "args"_a)
 

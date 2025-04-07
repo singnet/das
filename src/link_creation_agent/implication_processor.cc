@@ -18,6 +18,7 @@ ImplicationProcessor::ImplicationProcessor() {
 void ImplicationProcessor::set_das_node(shared_ptr<DASNode> das_node) { this->das_node = das_node; }
 
 void ImplicationProcessor::set_mutex(shared_ptr<mutex> processor_mutex) { this->processor_mutex = processor_mutex; }
+
 vector<string> ImplicationProcessor::get_satisfying_set_query(const string& p1, const string& p2) {
     // clang-format off
     vector<string> pattern_query = {

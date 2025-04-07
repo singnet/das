@@ -18,7 +18,7 @@ shared_ptr<Console> Console::get_instance() {
     return console_instance;
 }
 
-void Console::print_metta(std::vector<string> tokens) {
+string Console::print_metta(std::vector<string> tokens) {
     if (tokens.front() == "LINK") {
         std::vector<string> link_tokens;
         try {
@@ -39,8 +39,9 @@ void Console::print_metta(std::vector<string> tokens) {
                     link_tokens.push_back(tokens[i]);
                 }
             }
-            std::cout << "Creating link" << Link().untokenize(link_tokens).to_metta_string()
-                      << std::endl;
+            std::string metta_string = Link().untokenize(link_tokens).to_metta_string();
+            std::cout << "Creating link" << metta_string << std::endl;
+            return metta_string;
         } catch (const std::exception& e) {
             std::cerr << e.what() << std::endl;
         }
