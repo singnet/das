@@ -50,7 +50,7 @@ py_wheel(
     requires_file="//deps:requirements_lock.txt",
     stamp=1,
     summary="Persistence layer for Distributed AtomSpace",
-    version="$(DAS_VERSION)",  # must be defined when calling `bazel build` with `--define=ATOMDB_VERSION=<version>`
+    version="$(DAS_VERSION)",  # must be defined when calling `bazel build` with `--define=DAS_VERSION=<version>`
     deps=[":hyperon_das_atomdb_package"],
 )
 
