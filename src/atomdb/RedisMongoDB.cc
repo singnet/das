@@ -22,6 +22,23 @@ string RedisMongoDB::MONGODB_DB_NAME;
 string RedisMongoDB::MONGODB_COLLECTION_NAME;
 string RedisMongoDB::MONGODB_FIELD_NAME[MONGODB_FIELD::size];
 
+// #define CACHE_DEBUG
+
+#ifdef CACHE_DEBUG
+#define COUT(x) cout << x << endl
+#else
+#define COUT(x)
+#endif
+
+unordered_map<string, shared_ptr<atomdb_api_types::MongodbDocument>> RedisMongoDB::mongodb_doc_cache;
+mutex RedisMongoDB::mongodb_doc_cache_mutex;
+
+unordered_map<string, shared_ptr<vector<string>>> RedisMongoDB::pattern_matching_cache;
+mutex RedisMongoDB::pattern_matching_cache_mutex;
+
+unordered_map<string, shared_ptr<atomdb_api_types::HandleList>> RedisMongoDB::handle_list_cache;
+mutex RedisMongoDB::handle_list_cache_mutex;
+
 RedisMongoDB::RedisMongoDB() {
     redis_setup();
     mongodb_setup();
@@ -141,13 +158,20 @@ void RedisMongoDB::mongodb_setup() {
     }
 }
 
-vector<string> RedisMongoDB::query_for_pattern(std::shared_ptr<char> pattern_handle) {
+shared_ptr<vector<string>> RedisMongoDB::query_for_pattern(std::shared_ptr<char> pattern_handle) {
+    lock_guard<mutex> lock(pattern_matching_cache_mutex);
+    if (pattern_matching_cache.find(pattern_handle.get()) != pattern_matching_cache.end()) {
+        COUT("RedisMongoDB::query_for_pattern :: Found in cache " << pattern_handle.get());
+        return pattern_matching_cache[pattern_handle.get()];
+    }
+    COUT("RedisMongoDB::query_for_pattern :: Not found in cache " << pattern_handle.get());
+
     unsigned int redis_cursor = 0;
     bool redis_has_more = true;
     string command;
     redisReply* reply;
 
-    vector<string> results;
+    auto results = make_shared<vector<string>>();
 
     while (redis_has_more) {
         command = ("ZRANGE " + REDIS_PATTERNS_PREFIX + ":" + pattern_handle.get() + " " +
@@ -157,17 +181,16 @@ vector<string> RedisMongoDB::query_for_pattern(std::shared_ptr<char> pattern_han
 
         if (reply == NULL) {
             Utils::error("Redis error");
-            break;
         }
 
         if (reply->type != REDIS_REPLY_SET && reply->type != REDIS_REPLY_ARRAY) {
-            Utils::error("Invalid Redis response: " + std::to_string(reply->type));
+            auto error_type = std::to_string(reply->type);
             freeReplyObject(reply);
-            break;
+            Utils::error("Invalid Redis response: " + error_type);
         }
 
         for (unsigned int i = 0; i < reply->elements; i++) {
-            results.push_back(reply->element[i]->str);
+            results->push_back(reply->element[i]->str);
         }
 
         redis_cursor += REDIS_CHUNK_SIZE;
@@ -176,7 +199,9 @@ vector<string> RedisMongoDB::query_for_pattern(std::shared_ptr<char> pattern_han
         freeReplyObject(reply);
     }
 
-    return results;
+    pattern_matching_cache[pattern_handle.get()] = move(results);
+
+    return pattern_matching_cache[pattern_handle.get()];
 }
 
 shared_ptr<atomdb_api_types::HandleList> RedisMongoDB::query_for_targets(shared_ptr<char> link_handle) {
@@ -184,6 +209,13 @@ shared_ptr<atomdb_api_types::HandleList> RedisMongoDB::query_for_targets(shared_
 }
 
 shared_ptr<atomdb_api_types::HandleList> RedisMongoDB::query_for_targets(char* link_handle_ptr) {
+    lock_guard<mutex> lock(handle_list_cache_mutex);
+    if (handle_list_cache.find(link_handle_ptr) != handle_list_cache.end()) {
+        COUT("RedisMongoDB::query_for_targets :: Found in cache " << link_handle_ptr);
+        return handle_list_cache[link_handle_ptr];
+    }
+    COUT("RedisMongoDB::query_for_targets :: Not found in cache " << link_handle_ptr);
+
     redisReply* reply = (redisReply*) redisCommand(
         this->redis_single, "GET %s:%s", REDIS_TARGETS_PREFIX.c_str(), link_handle_ptr);
     /*
@@ -192,7 +224,8 @@ shared_ptr<atomdb_api_types::HandleList> RedisMongoDB::query_for_targets(char* l
     }
     */
     if ((reply == NULL) || (reply->type == REDIS_REPLY_NIL)) {
-        return shared_ptr<atomdb_api_types::HandleList>(NULL);
+        handle_list_cache[link_handle_ptr] = shared_ptr<atomdb_api_types::HandleList>(NULL);
+        return handle_list_cache[link_handle_ptr];
     }
     if (reply->type != REDIS_REPLY_STRING) {
         Utils::error("Invalid Redis response: " + std::to_string(reply->type) +
@@ -200,16 +233,23 @@ shared_ptr<atomdb_api_types::HandleList> RedisMongoDB::query_for_targets(char* l
     }
     // NOTE: Intentionally, we aren't destroying 'reply' objects.'reply' objects are destroyed in
     // ~RedisSet().
-    return shared_ptr<atomdb_api_types::RedisStringBundle>(
-        new atomdb_api_types::RedisStringBundle(reply));
+    handle_list_cache[link_handle_ptr] = make_shared<atomdb_api_types::RedisStringBundle>(reply);
+    return handle_list_cache[link_handle_ptr];
 }
 
 shared_ptr<atomdb_api_types::AtomDocument> RedisMongoDB::get_atom_document(const char* handle) {
+    lock_guard<mutex> lock(mongodb_doc_cache_mutex);
+    if (mongodb_doc_cache.find(handle) != mongodb_doc_cache.end()) {
+        COUT("RedisMongoDB::get_atom_document :: Found in cache " << handle);
+        return mongodb_doc_cache[handle];
+    }
+    COUT("RedisMongoDB::get_atom_document :: Not found in cache " << handle);
     this->mongodb_mutex.lock();
     auto mongodb_collection = get_database()[MONGODB_COLLECTION_NAME];
     auto reply = mongodb_collection.find_one(bsoncxx::v_noabi::builder::basic::make_document(
         bsoncxx::v_noabi::builder::basic::kvp(MONGODB_FIELD_NAME[MONGODB_FIELD::ID], handle)));
     // cout << bsoncxx::to_json(*reply) << endl; // Note to reviewer: please let this dead code here
     this->mongodb_mutex.unlock();
-    return shared_ptr<atomdb_api_types::MongodbDocument>(new atomdb_api_types::MongodbDocument(reply));
+    mongodb_doc_cache[handle] = move(make_shared<atomdb_api_types::MongodbDocument>(reply));
+    return mongodb_doc_cache[handle];
 }
