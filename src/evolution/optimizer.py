@@ -37,15 +37,13 @@ class QueryOptimizerAgent:
         while True:
             if request := self.evolution_node_server.pop_request():
                 print("\nNew message!\n", flush=True)
-                answers = self._process(context=request['context'], query_tokens=request['data'])
-                self._send_message(request['senders'], answers)
+                answers = self._process(context=request["context"], query_tokens=request["data"])
+                self._send_message(request["senders"], answers)
             time.sleep(0.5)
 
     def optimize(self, context: str, query_tokens: list[str] | str) -> Iterator:
         return QueryOptimizerIterator(
-            context=context,
-            query_tokens=query_tokens,
-            **self.params.__dict__
+            context=context, query_tokens=query_tokens, **self.params.__dict__
         )
 
     def _load_config(self, config_file: str) -> Parameters:
@@ -69,12 +67,11 @@ class QueryOptimizerAgent:
         return resp
 
     def _send_message(self, senders: list[str], answers: str) -> None:
-        print(f'\nAnswers: \n{answers}\n', flush=True)
+        print(f"\nAnswers: \n{answers}\n", flush=True)
 
         for sender in senders:
             self.evolution_node_client = EvolutionNode(
-                server_id=sender,
-                node_id_factory=self.node_id_factory
+                server_id=sender, node_id_factory=self.node_id_factory
             )
             self.evolution_node_client.send("evolution_finished", [answers], sender)
 
@@ -113,7 +110,7 @@ class QueryOptimizerIterator:
         redis_cluster: bool,
         redis_ssl: bool,
         context: str = "",
-        **kwargs
+        **kwargs,
     ) -> None:
         self.atom_db = self._connect_atom_db(
             mongo_hostname,
@@ -126,9 +123,7 @@ class QueryOptimizerIterator:
             redis_ssl,
         )
         self.attention_broker_updater = AttentionBrokerUpdater(
-            address=attention_broker_server_id,
-            atomdb=self.atom_db,
-            context=context
+            address=attention_broker_server_id, atomdb=self.atom_db, context=context
         )
         self.query_agent = DASNode(query_agent_node_id, query_agent_server_id)
         self.query_tokens = self._parse_tokens(query_tokens)
@@ -190,33 +185,33 @@ class QueryOptimizerIterator:
             try:
                 atom = atom_db.get_atom(token)
             except AtomDoesNotExist:
-                return ''
+                return ""
             if atom_db._is_document_link(atom.to_dict()):
-                result = ['LINK_TEMPLATE', atom.named_type, str(len(atom.targets))]
+                result = ["LINK_TEMPLATE", atom.named_type, str(len(atom.targets))]
                 for target in atom.targets:
                     result.extend(parse_atom(target, atom_db))
                 return result
             else:
-                return ['NODE', atom.named_type, atom.name]
+                return ["NODE", atom.named_type, atom.name]
 
         parsed_tokens = []
 
         if isinstance(tokens, str):
-            tokens = tokens.split(' ')
+            tokens = tokens.split(" ")
 
         token_iter = iter(tokens)
         for token in token_iter:
-            if token == 'HANDLE':
+            if token == "HANDLE":
                 try:
                     handle_token = next(token_iter)
                     parsed_tokens.extend(parse_atom(handle_token, self.atom_db))
                 except StopIteration:
                     raise ValueError("'HANDLE' Token missing corresponding value")
             else:
-                parsed_tokens.append(token)  
+                parsed_tokens.append(token)
 
-        print(f'\ntokens: {tokens}', flush=True)
-        print(f'\nparsed_tokens: {parsed_tokens}', flush=True)
+        print(f"\ntokens: {tokens}", flush=True)
+        print(f"\nparsed_tokens: {parsed_tokens}", flush=True)
 
         return parsed_tokens
 
@@ -230,25 +225,29 @@ class QueryOptimizerIterator:
         """
         while self.generation <= self.max_generations:
             with SuppressCppOutput():
-                population = self._sample_population(limit=self.population_size)            
+                population = self._sample_population(limit=self.population_size)
                 evaluated_individuals = self._evaluate_population(population)
                 selected_individuals = self._select_best_individuals(evaluated_individuals)
 
             print(f"\n===> Generation {self.generation}/{self.max_generations}", flush=True)
 
             the_best = 10
-            sorted_selected_individuals = sorted(selected_individuals, key=lambda x: x[1], reverse=True)
+            sorted_selected_individuals = sorted(
+                selected_individuals, key=lambda x: x[1], reverse=True
+            )
             resp = "\n".join(
                 f"individual: {ind.to_string()} | fitness: {fit}"
                 for ind, fit in sorted_selected_individuals[:the_best]
             )
 
-            print(f'\nThe best {the_best} individuals:', flush=True)
-            print(f'\n{resp}', flush=True)
+            print(f"\nThe best {the_best} individuals:", flush=True)
+            print(f"\n{resp}", flush=True)
 
             if selected_individuals:
-                fitness_values = sorted([fitness for _, fitness in selected_individuals], reverse=True)
-                print('\nStatistics:\n', flush=True)
+                fitness_values = sorted(
+                    [fitness for _, fitness in selected_individuals], reverse=True
+                )
+                print("\nStatistics:\n", flush=True)
                 print(f"Best Fitness: {fitness_values[0]}", flush=True)
                 print(f"Average Fitness: {statistics.mean(fitness_values)}", flush=True)
                 print(f"Median Fitness: {statistics.median(fitness_values)}", flush=True)
@@ -271,16 +270,15 @@ class QueryOptimizerIterator:
         start_time = time.time()
         try:
             remote_iterator = self.query_agent.pattern_matcher_query(
-                tokens=self.query_tokens,
-                context=self.context
+                tokens=self.query_tokens, context=self.context
             )
 
-            while (len(result) < limit and not remote_iterator.finished()):
+            while len(result) < limit and not remote_iterator.finished():
                 if time.time() - start_time > timeout:
                     print("\nTimeout reached while sampling the population.\n", flush=True)
                     break
 
-                if (qa := remote_iterator.pop()):
+                if qa := remote_iterator.pop():
                     result.append(qa)
                 else:
                     time.sleep(0.1)
@@ -291,7 +289,9 @@ class QueryOptimizerIterator:
         except Exception as e:
             print(f"\nPopulation sampling failed: {e}\n", flush=True)
 
-    def _evaluate_population(self, population: list[QueryAnswer]) -> list[tuple[QueryAnswer, float]]:
+    def _evaluate_population(
+        self, population: list[QueryAnswer]
+    ) -> list[tuple[QueryAnswer, float]]:
         with ThreadPoolExecutor(max_workers=10) as executor:
             futures = [executor.submit(self._evaluate, ind) for ind in population]
             evaluated_individuals = [f.result() for f in futures]
@@ -320,7 +320,7 @@ class QueryOptimizerIterator:
         try:
             self.attention_broker_updater.update(individuals)
         except Exception as e:
-            print(f'\nAn error occurred - details: {e}\n', flush=True)
+            print(f"\nAn error occurred - details: {e}\n", flush=True)
 
     def _sample_best_query_answers(self, timeout: float = 10.0) -> None:
         """

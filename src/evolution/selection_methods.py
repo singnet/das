@@ -85,7 +85,10 @@ def roulette(population: list[tuple[Any, float]], max_individuals: int) -> list[
     total_fitness = sum(fitness for _, fitness in population)
 
     if total_fitness == 0:
-        print(f"Total fitness is zero for population {population}. cannot perform roulette selection.", flush=True)
+        print(
+            f"Total fitness is zero for population {population}. cannot perform roulette selection.",
+            flush=True,
+        )
         return []
 
     selection_probabilities = [fitness / total_fitness for _, fitness in population]
@@ -101,6 +104,7 @@ def roulette(population: list[tuple[Any, float]], max_individuals: int) -> list[
                 break
 
     return list(selected_individuals)
+
 
 # NOTE: For tests
 # def roulette_with_removal(population: list[tuple[Any, float]], max_individuals: int) -> list[Any]:
