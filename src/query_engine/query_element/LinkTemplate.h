@@ -312,8 +312,8 @@ class LinkTemplate : public Source {
         cout << "fetch_links() Pattern handle: " << this->handle << endl;
 #endif
         shared_ptr<AtomDB> db = AtomDBSingleton::get_instance();
-        auto fetch_result = db->query_for_pattern(this->handle);
-        unsigned int answer_count = fetch_result->size();
+        this->fetch_result = db->query_for_pattern(this->handle);
+        unsigned int answer_count = this->fetch_result->size();
 #ifdef DEBUG
         cout << "fetch_links() ac: " << answer_count << endl;
 #endif
@@ -323,7 +323,7 @@ class LinkTemplate : public Source {
             dasproto::HandleList handle_list;
             handle_list.set_context(this->context);
             for (unsigned int i = 0; i < answer_count; i++) {
-                handle_list.add_list((*fetch_result)[i].c_str());
+                handle_list.add_list((*this->fetch_result)[i].c_str());
             }
             dasproto::ImportanceList importance_list;
             get_importance(handle_list, importance_list);
@@ -336,8 +336,9 @@ class LinkTemplate : public Source {
             this->local_answers = new HandlesAnswer*[answer_count];
             this->next_inner_answer = new unsigned int[answer_count];
             for (unsigned int i = 0; i < answer_count; i++) {
-                this->atom_document[i] = db->get_atom_document((*fetch_result)[i].c_str());
-                query_answer = new HandlesAnswer((*fetch_result)[i].c_str(), importance_list.list(i));
+                this->atom_document[i] = db->get_atom_document((*this->fetch_result)[i].c_str());
+                query_answer =
+                    new HandlesAnswer((*this->fetch_result)[i].c_str(), importance_list.list(i));
                 const char* s = this->atom_document[i]->get("targets", 0);
                 for (unsigned int j = 0; j < this->arity; j++) {
                     if (this->target_template[j]->is_terminal) {
@@ -485,6 +486,7 @@ class LinkTemplate : public Source {
     unsigned int arity;
     shared_ptr<char> handle;
     char* handle_keys[ARITY + 1];
+    shared_ptr<vector<string>> fetch_result;
     vector<shared_ptr<atomdb_api_types::AtomDocument>> atom_documents;
     vector<shared_ptr<QueryElement>> inner_template;
     SharedQueue local_buffer;
