@@ -37,7 +37,18 @@ cc_library(
   deps = [
     ":atomdb",
     ":atomdb_api_types",
+    ":atomdb_cache",
     "//attention_broker:attention_broker_server_lib",
     "//commons:commons_lib",
+  ],
+)
+
+cc_library(
+  name = "atomdb_cache",
+  srcs = ["AtomDBCache.cc"],
+  hdrs = ["AtomDBCache.h"],
+  includes = ["."],
+  deps = [
+    ":atomdb_api_types",
   ],
 )

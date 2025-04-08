@@ -12,6 +12,7 @@
 
 #include "AtomDB.h"
 #include "AtomDBAPITypes.h"
+#include "AtomDBCache.h"
 
 using namespace std;
 
@@ -69,21 +70,13 @@ class RedisMongoDB : public AtomDB {
     mongocxx::v_noabi::collection mongodb_collection;
     mutex mongodb_mutex;
     mongocxx::pool* mongodb_pool;
+    shared_ptr<AtomDBCache> atomdb_cache;
 
     mongocxx::database get_database();
 
     void redis_setup();
     void mongodb_setup();
     void attention_broker_setup();
-
-    static unordered_map<string, shared_ptr<atomdb_api_types::MongodbDocument>> mongodb_doc_cache;
-    static mutex mongodb_doc_cache_mutex;
-
-    static unordered_map<string, shared_ptr<vector<string>>> pattern_matching_cache;
-    static mutex pattern_matching_cache_mutex;
-
-    static unordered_map<string, shared_ptr<atomdb_api_types::HandleList>> handle_list_cache;
-    static mutex handle_list_cache_mutex;
 };
 
 }  // namespace atomdb
