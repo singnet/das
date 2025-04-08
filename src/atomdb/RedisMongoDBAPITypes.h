@@ -23,8 +23,8 @@ class HandleSetRedis : public HandleSet {
     friend class HandleSetRedisIterator;
 
    public:
-    HandleSetRedis();
-    HandleSetRedis(redisReply* reply);
+    HandleSetRedis(bool delete_replies_on_destruction = true);
+    HandleSetRedis(redisReply* reply, bool delete_replies_on_destruction = true);
     ~HandleSetRedis();
 
     unsigned int size();
@@ -34,6 +34,7 @@ class HandleSetRedis : public HandleSet {
    private:
     unsigned int handles_size;
     vector<redisReply*> replies;
+    bool delete_replies_on_destruction;
 };
 
 class HandleSetRedisIterator : public HandleSetIterator {

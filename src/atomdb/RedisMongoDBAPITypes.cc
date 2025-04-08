@@ -9,16 +9,22 @@ using namespace atomdb;
 using namespace atomdb_api_types;
 using namespace commons;
 
-HandleSetRedis::HandleSetRedis() : HandleSet() { this->handles_size = 0; }
+HandleSetRedis::HandleSetRedis(bool delete_replies_on_destruction) : HandleSet() {
+    this->handles_size = 0;
+    this->delete_replies_on_destruction = delete_replies_on_destruction;
+}
 
-HandleSetRedis::HandleSetRedis(redisReply* reply) : HandleSet() {
+HandleSetRedis::HandleSetRedis(redisReply* reply, bool delete_replies_on_destruction) : HandleSet() {
     this->replies.push_back(reply);
     this->handles_size = reply->elements;
+    this->delete_replies_on_destruction = delete_replies_on_destruction;
 }
 
 HandleSetRedis::~HandleSetRedis() {
-    for (auto reply : this->replies) {
-        freeReplyObject(reply);
+    if (this->delete_replies_on_destruction) {
+        for (auto reply : this->replies) {
+            freeReplyObject(reply);
+        }
     }
 }
 

@@ -171,7 +171,7 @@ shared_ptr<atomdb_api_types::HandleSet> RedisMongoDB::query_for_pattern(
         redis_cursor += REDIS_CHUNK_SIZE;
         redis_has_more = (reply->elements == REDIS_CHUNK_SIZE);
 
-        handle_set->append(make_shared<atomdb_api_types::HandleSetRedis>(reply));
+        handle_set->append(make_shared<atomdb_api_types::HandleSetRedis>(reply, false));
     }
 
     return handle_set;
