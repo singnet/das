@@ -323,7 +323,7 @@ class LinkTemplate : public Source {
             dasproto::HandleList handle_list;
             handle_list.set_context(this->context);
             for (unsigned int i = 0; i < answer_count; i++) {
-                handle_list.add_list((*this->fetch_result)[i].c_str());
+                handle_list.add_list(this->fetch_result->at(i).c_str());
             }
             dasproto::ImportanceList importance_list;
             get_importance(handle_list, importance_list);
@@ -336,9 +336,9 @@ class LinkTemplate : public Source {
             this->local_answers = new HandlesAnswer*[answer_count];
             this->next_inner_answer = new unsigned int[answer_count];
             for (unsigned int i = 0; i < answer_count; i++) {
-                this->atom_document[i] = db->get_atom_document((*this->fetch_result)[i].c_str());
+                this->atom_document[i] = db->get_atom_document(this->fetch_result->at(i).c_str());
                 query_answer =
-                    new HandlesAnswer((*this->fetch_result)[i].c_str(), importance_list.list(i));
+                    new HandlesAnswer(this->fetch_result->at(i).c_str(), importance_list.list(i));
                 const char* s = this->atom_document[i]->get("targets", 0);
                 for (unsigned int j = 0; j < this->arity; j++) {
                     if (this->target_template[j]->is_terminal) {
