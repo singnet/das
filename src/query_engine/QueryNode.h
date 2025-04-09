@@ -15,10 +15,6 @@ using namespace query_engine;
 
 namespace query_node {
 
-constexpr char* QUERY_ANSWER_TOKENS_FLOW_COMMAND = "query_answer_tokens_flow";
-constexpr char* QUERY_ANSWER_FLOW_COMMAND = "query_answer_flow";
-constexpr char* QUERY_ANSWERS_FINISHED_COMMAND = "query_answers_finished";
-
 /**
  *
  */
@@ -40,6 +36,10 @@ class QueryNode : public DistributedAlgorithmNode, public Worker {
     virtual void query_answer_processor_method() = 0;
 
     virtual bool is_work_done() override { return this->work_done_flag; }  // as Worker
+
+    static string QUERY_ANSWER_TOKENS_FLOW_COMMAND;
+    static string QUERY_ANSWER_FLOW_COMMAND;
+    static string QUERY_ANSWERS_FINISHED_COMMAND;
 
    protected:
     SharedQueue query_answer_queue;

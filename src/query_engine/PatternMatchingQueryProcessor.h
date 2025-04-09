@@ -2,11 +2,14 @@
 
 #include <memory>
 #include <thread>
+#include <stack>
 #include "BusCommandProcessor.h"
 #include "PatternMatchingQueryProxy.h"
 #include "QueryElement.h"
 
 using namespace std;
+using namespace service_bus;
+using namespace query_element;
 
 namespace atomdb {
 
@@ -37,12 +40,27 @@ public:
 
 private:
 
-    void setup_query_tree();
-    void thread_process_one_query();
+    shared_ptr<QueryElement> setup_query_tree(shared_ptr<PatternMatchingQueryProxy> proxy);
+    void thread_process_one_query(shared_ptr<PatternMatchingQueryProxy> proxy);
+    shared_ptr<QueryElement> build_link_template(shared_ptr<PatternMatchingQueryProxy> proxy,
+                                                 unsigned int cursor,
+                                                 stack<shared_ptr<QueryElement>>& element_stack);
 
+    shared_ptr<QueryElement> build_and(shared_ptr<PatternMatchingQueryProxy> proxy,
+                                       unsigned int cursor,
+                                       stack<shared_ptr<QueryElement>>& element_stack);
+
+    shared_ptr<QueryElement> build_or(shared_ptr<PatternMatchingQueryProxy> proxy,
+                                      unsigned int cursor,
+                                      stack<shared_ptr<QueryElement>>& element_stack);
+
+    shared_ptr<QueryElement> build_link(shared_ptr<PatternMatchingQueryProxy> proxy,
+                                        unsigned int cursor,
+                                        stack<shared_ptr<QueryElement>>& element_stack);
+
+    vector<thread*> query_threads;
+    mutex query_threads_mutex;
     shared_ptr<PatternMatchingQueryProxy> proxy;
-    shared_ptr<QueryElement> root_query_element;
-    thread* query_processor;
 };
 
 } // namespace atomdb

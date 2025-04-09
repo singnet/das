@@ -59,21 +59,31 @@ void RemoteSink<AnswerType>::queue_processor_method() {
     cout << "RemoteSink::queue_processor_method() BEGIN" << endl;
 #endif
     do {
+    cout << "RemoteSink::queue_processor_method() 1" << endl;
         if (this->is_flow_finished() || (this->input_buffer->is_query_answers_finished() &&
                                          this->input_buffer->is_query_answers_empty())) {
             break;
         }
+    cout << "RemoteSink::queue_processor_method() 2" << endl;
         bool idle_flag = true;
         QueryAnswer* qa;
+    cout << "RemoteSink::queue_processor_method() 3" << endl;
         while ((qa = dynamic_cast<QueryAnswer*>(this->input_buffer->pop_query_answer())) != NULL) {
+    cout << "RemoteSink::queue_processor_method() 4" << endl;
             for (const auto& processor : this->query_answer_processors) {
+    cout << "RemoteSink::queue_processor_method() 5" << endl;
                 processor->process_answer(qa);
+    cout << "RemoteSink::queue_processor_method() 6" << endl;
             }
+    cout << "RemoteSink::queue_processor_method() 7" << endl;
             idle_flag = false;
+    cout << "RemoteSink::queue_processor_method() 8" << endl;
         }
+    cout << "RemoteSink::queue_processor_method() 9" << endl;
         if (idle_flag) {
             Utils::sleep();
         }
+    cout << "RemoteSink::queue_processor_method() 10" << endl;
     } while (true);
 
 #ifdef DEBUG

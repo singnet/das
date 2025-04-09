@@ -18,6 +18,8 @@ cc_library(
         ":handles_answer",
         ":query_answer",
         ":query_node",
+        ":pattern_matching_query_processor",
+        ":pattern_matching_query_proxy",
         "//distributed_algorithm_node:star_node",
         "//query_engine/query_element:query_element_lib",
         "//query_engine/answer_processor:answer_processor_lib",
@@ -59,7 +61,31 @@ cc_library(
     ":query_answer",
     ":handles_answer",
     ":count_answer",
+    "//hasher:hasher_lib",
     "//commons:commons_lib",
     "//distributed_algorithm_node:distributed_algorithm_node_lib",
+  ],
+)
+
+cc_library(
+  name = "pattern_matching_query_proxy",
+  srcs = ["PatternMatchingQueryProxy.cc"],
+  hdrs = ["PatternMatchingQueryProxy.h"],
+  deps = [
+    "//distributed_algorithm_node:distributed_algorithm_node",
+    "//service_bus:bus_command_proxy",
+    ":query_node",
+    ":handles_answer",
+  ],
+)
+
+cc_library(
+  name = "pattern_matching_query_processor",
+  srcs = ["PatternMatchingQueryProcessor.cc"],
+  hdrs = ["PatternMatchingQueryProcessor.h"],
+  deps = [
+    "//service_bus:bus_command_processor",
+    "//query_engine/query_element:query_element_lib",
+    ":pattern_matching_query_proxy",
   ],
 )

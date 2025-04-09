@@ -11,6 +11,13 @@
 using namespace query_node;
 using namespace std;
 
+template <class AnswerType>
+string QueryNode<AnswerType>::QUERY_ANSWER_TOKENS_FLOW_COMMAND = "query_answer_tokens_flow";
+template <class AnswerType>
+string QueryNode<AnswerType>::QUERY_ANSWER_FLOW_COMMAND = "query_answer_flow";
+template <class AnswerType>
+string QueryNode<AnswerType>::QUERY_ANSWERS_FINISHED_COMMAND = "query_answers_finished";
+
 #define DEBUG
 
 // --------------------------------------------------------------------------------
@@ -176,15 +183,15 @@ void QueryNodeClient<AnswerType>::query_answer_processor_method() {
             // The order of the AND clauses below matters
             if (!answers_finished_flag && this->is_query_answers_finished() &&
                 this->query_answer_queue.empty()) {
-                this->send(QUERY_ANSWERS_FINISHED_COMMAND, args, this->server_id);
+                this->send(QueryNode<AnswerType>::QUERY_ANSWERS_FINISHED_COMMAND, args, this->server_id);
                 answers_finished_flag = true;
                 this->work_done_flag = true;
             }
         } else {
             if (this->requires_serialization) {
-                this->send(QUERY_ANSWER_TOKENS_FLOW_COMMAND, args, this->server_id);
+                this->send(QueryNode<AnswerType>::QUERY_ANSWER_TOKENS_FLOW_COMMAND, args, this->server_id);
             } else {
-                this->send(QUERY_ANSWER_FLOW_COMMAND, args, this->server_id);
+                this->send(QueryNode<AnswerType>::QUERY_ANSWER_FLOW_COMMAND, args, this->server_id);
             }
             args.clear();
         }

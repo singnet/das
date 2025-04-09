@@ -7,7 +7,7 @@
 #include "BusCommandProcessor.h"
 #include "BusCommandProxy.h"
 #include "BusNode.h"
-#include "SharedQueue.h"
+#include "PortPool.h"
 #include "Utils.h"
 
 using namespace std;
@@ -86,9 +86,6 @@ class ServiceBus {
     // Private static state initialized by ServiceBusSingleton
 
     static set<string> SERVICE_LIST;
-    static unsigned int COMMAND_PROXY_PORT_LOWER;
-    static unsigned int COMMAND_PROXY_PORT_UPPER;
-    static SharedQueue* PORT_POOL;
 
     // ---------------------------------------------------------------------------------------------
     // Private state
@@ -143,16 +140,7 @@ class ServiceBus {
             SERVICE_LIST.insert(PATTERN_MATCHING_QUERY);
             SERVICE_LIST.insert(COUNTING_QUERY);
         }
-        COMMAND_PROXY_PORT_LOWER = port_lower;
-        COMMAND_PROXY_PORT_UPPER = port_upper;
-        if (COMMAND_PROXY_PORT_LOWER > COMMAND_PROXY_PORT_UPPER) {
-            Utils::error("Invalid port limits [" + to_string(COMMAND_PROXY_PORT_LOWER) + ".." +
-                         to_string(COMMAND_PROXY_PORT_UPPER) + "]");
-        }
-        PORT_POOL = new SharedQueue();
-        for (unsigned long port = COMMAND_PROXY_PORT_LOWER; port <= COMMAND_PROXY_PORT_UPPER; port++) {
-            PORT_POOL->enqueue((void*) port);
-        }
+        PortPool::initialize_statics(port_lower, port_upper);
     }
 
     /**

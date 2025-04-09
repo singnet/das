@@ -1,6 +1,5 @@
 #pragma once
 
-#include "SharedQueue.h"
 #include "StarNode.h"
 
 using namespace std;
@@ -122,6 +121,27 @@ class BusCommandProxy {
      */
     const vector<string>& get_args();
 
+    /**
+     * Returns the request serial number.
+     *
+     * @return The request serial number.
+     */
+    unsigned int get_serial();
+
+    /**
+     * Returns the node id of this proxy.
+     *
+     * @return The node id of this proxy.
+     */
+    string my_id();
+
+    /**
+     * Returns the node id of the remote proxy linked to this one.
+     *
+     * @return The node id of the remote proxy linked to this one.
+     */
+    string peer_id();
+
     // ---------------------------------------------------------------------------------------------
     // BusCommandProxy RPC
 
@@ -151,16 +171,17 @@ class BusCommandProxy {
      */
     virtual void from_remote_peer(const string& command, const vector<string>& args) = 0;
 
-   private:
-    void setup_proxy_node(const string& client_id = "", const string& server_id = "");
-
     string command;
     vector<string> args;
+
+   private:
+
+    void setup_proxy_node(const string& client_id = "", const string& server_id = "");
+
     string requestor_id;
     unsigned int serial;
     unsigned long proxy_port;
     ProxyNode* proxy_node;
-    SharedQueue* port_pool;
 };
 
 }  // namespace service_bus

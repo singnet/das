@@ -4,11 +4,7 @@ using namespace service_bus;
 
 string ServiceBus::PATTERN_MATCHING_QUERY = "pattern_matching_query";
 string ServiceBus::COUNTING_QUERY = "counting_query";
-
 set<string> ServiceBus::SERVICE_LIST;
-unsigned int ServiceBus::COMMAND_PROXY_PORT_LOWER;
-unsigned int ServiceBus::COMMAND_PROXY_PORT_UPPER;
-SharedQueue* ServiceBus::PORT_POOL;
 
 // -------------------------------------------------------------------------------------------------
 // Constructors and destructors
@@ -44,8 +40,7 @@ void ServiceBus::issue_bus_command(shared_ptr<BusCommandProxy> proxy) {
     lock_guard<mutex> semaphore(this->api_mutex);
     proxy->requestor_id = this->bus_node->node_id();
     proxy->serial = this->next_request_serial++;
-    proxy->proxy_port = (unsigned long) ServiceBus::PORT_POOL->dequeue();
-    proxy->port_pool = ServiceBus::PORT_POOL;
+    proxy->proxy_port = PortPool::get_port();
     if (proxy->proxy_port == 0) {
         Utils::error("No port is available to start bus command proxy");
     } else {
@@ -84,8 +79,7 @@ void ServiceBus::BusCommandMessage::act(shared_ptr<MessageFactory> node) {
     auto service_bus_node = dynamic_pointer_cast<ServiceBus::Node>(node);
     if (service_bus_node->processor->check_command(this->command)) {
         shared_ptr<BusCommandProxy> proxy = service_bus_node->processor->factory_empty_proxy();
-        proxy->proxy_port = (unsigned long) ServiceBus::PORT_POOL->dequeue();
-        proxy->port_pool = ServiceBus::PORT_POOL;
+        proxy->proxy_port = PortPool::get_port();
         if (proxy->proxy_port == 0) {
             Utils::error("No port is available to start bus command proxy");
         }

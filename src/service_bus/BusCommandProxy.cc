@@ -1,4 +1,5 @@
 #include "BusCommandProxy.h"
+#include "PortPool.h"
 
 #include "Utils.h"
 
@@ -11,18 +12,15 @@ string ProxyNode::PROXY_COMMAND = "bus_command_proxy";
 
 BusCommandProxy::BusCommandProxy() {
     this->proxy_port = 0;
-    this->port_pool = NULL;
 }
 
 BusCommandProxy::BusCommandProxy(const string& command, const vector<string>& args)
     : command(command), args(args) {}
 
 BusCommandProxy::~BusCommandProxy() {
-    // port_pool is initialized by ServiceBus. It's an static member of a singleton so there's no
-    // need to manage its deletion
-    if ((this->port_pool != NULL) && (this->proxy_port != 0)) {
+    if (this->proxy_port != 0) {
         // Return the port to the pool of available ports
-        this->port_pool->enqueue((void*) this->proxy_port);
+        PortPool::return_port(this->proxy_port);
     }
 }
 
@@ -43,7 +41,7 @@ ProxyNode::~ProxyNode() {}
 // Proxy API
 
 void BusCommandProxy::setup_proxy_node(const string& client_id, const string& server_id) {
-    if ((this->port_pool == NULL) || (this->proxy_port == 0)) {
+    if (this->proxy_port == 0) {
         Utils::error("Proxy node can't be set up");
     } else {
         if (client_id == "") {
@@ -67,6 +65,13 @@ void BusCommandProxy::to_remote_peer(const string& command, const vector<string>
 const string& BusCommandProxy::get_command() { return this->command; }
 
 const vector<string>& BusCommandProxy::get_args() { return this->args; }
+
+unsigned int BusCommandProxy::get_serial() { return this->serial; }
+
+string BusCommandProxy::my_id() { return this->proxy_node->node_id(); }
+
+string BusCommandProxy::peer_id() { return this->proxy_node->peer_id; }
+
 
 // -------------------------------------------------------------------------------------------------
 // ProxyNode API
