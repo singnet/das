@@ -1,0 +1,4 @@
+redis>=5.0.0,<6.0.0
+pymongo>=4.5.0,<4.6.0
+python-dotenv>=1.0.0,<2.0.0
+hyperon-das-atomdb-cpp>=0.0.2
