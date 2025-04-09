@@ -10,11 +10,19 @@ cc_library(
 
 cc_library(
   name = "atomdb_api_types",
-  srcs = ["AtomDBAPITypes.cc"],
   hdrs = ["AtomDBAPITypes.h"],
   deps = [
     "//hasher:hasher_lib",
     "//commons:commons_lib",
+  ],
+)
+
+cc_library(
+  name = "redis_mongodb_api_types",
+  srcs = ["RedisMongoDBAPITypes.cc"],
+  hdrs = ["RedisMongoDBAPITypes.h"],
+  deps = [
+    ":atomdb_api_types",
   ],
 )
 
@@ -36,7 +44,7 @@ cc_library(
   includes = ["."],
   deps = [
     ":atomdb",
-    ":atomdb_api_types",
+    ":redis_mongodb_api_types",
     ":atomdb_cache",
     "//attention_broker:attention_broker_server_lib",
     "//commons:commons_lib",

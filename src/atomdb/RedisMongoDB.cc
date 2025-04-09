@@ -143,11 +143,12 @@ void RedisMongoDB::mongodb_setup() {
     }
 }
 
-shared_ptr<vector<string>> RedisMongoDB::query_for_pattern(std::shared_ptr<char> pattern_handle) {
-    shared_ptr<vector<string>> results;
+shared_ptr<shared_ptr<atomdb_api_types::HandleSet>> RedisMongoDB::query_for_pattern(
+    std::shared_ptr<char> pattern_handle) {
+    shared_ptr<atomdb_api_types::HandleSetRedis> handle_set;
     if (this->atomdb_cache != nullptr) {
-        results = this->atomdb_cache->query_for_pattern(pattern_handle.get());
-        if (results != nullptr) return results;
+        handle_set = this->atomdb_cache->query_for_pattern(pattern_handle.get());
+        if (handle_set != nullptr) return handle_set;
     }
 
     unsigned int redis_cursor = 0;
@@ -155,7 +156,7 @@ shared_ptr<vector<string>> RedisMongoDB::query_for_pattern(std::shared_ptr<char>
     string command;
     redisReply* reply;
 
-    results = make_shared<vector<string>>();
+    handle_set = make_shared<atomdb_api_types::HandleSetRedis>();
 
     while (redis_has_more) {
         command = ("ZRANGE " + REDIS_PATTERNS_PREFIX + ":" + pattern_handle.get() + " " +
@@ -173,19 +174,15 @@ shared_ptr<vector<string>> RedisMongoDB::query_for_pattern(std::shared_ptr<char>
             Utils::error("Invalid Redis response: " + error_type);
         }
 
-        for (unsigned int i = 0; i < reply->elements; i++) {
-            results->push_back(reply->element[i]->str);
-        }
-
         redis_cursor += REDIS_CHUNK_SIZE;
         redis_has_more = (reply->elements == REDIS_CHUNK_SIZE);
 
-        freeReplyObject(reply);
+        handle_set->append(make_shared<atomdb_api_types::HandleSetRedis>(reply, false));
     }
 
     if (this->atomdb_cache != nullptr)
-        this->atomdb_cache->add_pattern_matching(pattern_handle.get(), results);
-    return results;
+        this->atomdb_cache->add_pattern_matching(pattern_handle.get(), handle_set);
+    return handle_set;
 }
 
 shared_ptr<atomdb_api_types::HandleList> RedisMongoDB::query_for_targets(shared_ptr<char> link_handle) {
