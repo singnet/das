@@ -16,7 +16,7 @@ string handle_to_atom(const char* handle) {
     shared_ptr<atomdb_api_types::HandleList> targets = db->query_for_targets((char*) handle);
     string answer;
 
-    if (targets != NULL) {
+    if (targets != nullptr) {
         // is link
         answer += "<";
         answer += document->get("named_type");
@@ -84,6 +84,7 @@ TEST(DASNode, queries) {
     setenv("DAS_MONGODB_PORT", "28000", 1);
     setenv("DAS_MONGODB_USERNAME", "dbadmin", 1);
     setenv("DAS_MONGODB_PASSWORD", "dassecret", 1);
+    setenv("DAS_DISABLE_ATOMDB_CACHE", "true", 1);
     AtomDBSingleton::init();
 
     string das_id = "localhost:31700";
