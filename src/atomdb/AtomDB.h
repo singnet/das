@@ -13,7 +13,8 @@ class AtomDB {
 
     static inline string WILDCARD = "*";
 
-    virtual vector<string> query_for_pattern(shared_ptr<char> pattern_handle) = 0;
+    virtual shared_ptr<atomdb_api_types::HandleSet> query_for_pattern(
+        shared_ptr<char> pattern_handle) = 0;
     virtual shared_ptr<atomdb_api_types::HandleList> query_for_targets(shared_ptr<char> link_handle) = 0;
     virtual shared_ptr<atomdb_api_types::HandleList> query_for_targets(char* link_handle_ptr) = 0;
     virtual shared_ptr<atomdb_api_types::AtomDocument> get_atom_document(const char* handle) = 0;
