@@ -55,7 +55,7 @@ class StarNode : public DistributedAlgorithmNode {
      *
      * @param node_id ID of the newly inserted node.
      */
-    void node_joined_network(const string& node_id);
+    virtual void node_joined_network(const string& node_id);
 
     /**
      * Method called when a leadershipo election is requested.

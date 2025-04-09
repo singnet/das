@@ -8,8 +8,8 @@ using namespace query_element;
 // Public methods
 
 template <class AnswerType>
-Iterator<AnswerType>::Iterator(QueryElement* precedent, bool delete_precedent_on_destructor)
-    : Sink<AnswerType>(precedent, "Iterator(" + precedent->id + ")", delete_precedent_on_destructor) {}
+Iterator<AnswerType>::Iterator(shared_ptr<QueryElement> precedent)
+    : Sink<AnswerType>(precedent, "Iterator(" + precedent->id + ")") {}
 
 template <class AnswerType>
 Iterator<AnswerType>::~Iterator() {}

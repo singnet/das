@@ -27,5 +27,5 @@ sudo bash ./src/tests/integration/performance/start_mongo_and_redis.sh
 make performance-tests
 ```
 
-6. Save the results in a file named `performance_results_$(date +%Y-%m-%d_%H-%M-%S).txt` if you want to keep it and commit it to the repository.
+6. Save the results in a file named `performance_results_$(date +%Y-%m-%d_%H-%M-%S).txt` into the `results` directory if you want to keep it and then commit it to the repository.
 

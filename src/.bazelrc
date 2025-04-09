@@ -21,10 +21,7 @@ common --enable_bzlmod
 build --spawn_strategy=local
 
 # Define versions
-build --define=ATOMDB_VERSION=0.8.11
-build --define=DAS_VERSION=0.9.17
-build --define=DAS_NODE_VERSION=0.0.1
-build --define=DAS_QUERY_ENGINE_VERSION=0.0.1
+build --define=DAS_VERSION=0.10.0
 
 
 # Enable debugging symbols for development

@@ -26,13 +26,13 @@ TEST(LinkTemplate, basics) {
     string expression = "Expression";
     string symbol = "Symbol";
 
-    Variable v1("v1");
-    Variable v2("v2");
-    Variable v3("v3");
-    Node similarity(symbol, "Similarity");
-    Node human(symbol, "\"human\"");
+    auto v1 = make_shared<Variable>("v1");
+    auto v2 = make_shared<Variable>("v2");
+    auto v3 = make_shared<Variable>("v3");
+    auto similarity = make_shared<Node>(symbol, "Similarity");
+    auto human = make_shared<Node>(symbol, "\"human\"");
 
-    LinkTemplate<3> link_template1("Expression", {&similarity, &human, &v1});
+    LinkTemplate<3> link_template1("Expression", {similarity, human, v1});
     link_template1.subsequent_id = server_node_id;
     link_template1.setup_buffers();
     // link_template1.fetch_links();

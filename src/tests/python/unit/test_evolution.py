@@ -6,7 +6,12 @@ from unittest import mock
 from evolution.optimizer import QueryOptimizerAgent, QueryOptimizerIterator
 from evolution.fitness_functions import multiply_strengths, FitnessFunctions
 from hyperon_das_atomdb.exceptions import AtomDoesNotExist
-from evolution.selection_methods import SelectionMethodType, handle_selection_method, roulette, best_fitness
+from evolution.selection_methods import (
+    SelectionMethodType,
+    handle_selection_method,
+    roulette,
+    best_fitness,
+)
 from evolution.node import NodeIdFactory, EvolutionNode, EvolutionRequest
 from evolution.attention_broker_updater import AttentionBrokerUpdater
 from evolution.utils import Parameters, SuppressCppOutput
@@ -323,20 +328,12 @@ class TestSelectionMethods:
         assert "Unknown selection method type" in str(excinfo.value)
 
     def test_best_fitness_selection(self):
-        population = [
-            ("ind1", 0.1),
-            ("ind2", 0.2),
-            ("ind3", 0.15),
-            ("ind4", 0.5)
-        ]
+        population = [("ind1", 0.1), ("ind2", 0.2), ("ind3", 0.15), ("ind4", 0.5)]
         selected = best_fitness(population, 2)
         assert selected == [("ind4", 0.5), ("ind2", 0.2)]
 
     def test_best_fitness_selection_less_than_max(self):
-        population = [
-            ("ind1", 0.1),
-            ("ind2", 0.2)
-        ]
+        population = [("ind1", 0.1), ("ind2", 0.2)]
         selected = best_fitness(population, 5)
         assert selected == [("ind2", 0.2), ("ind1", 0.1)]
 
@@ -345,20 +342,13 @@ class TestSelectionMethods:
         assert selected == []
 
     def test_roulette_selection(self):
-        population = [
-            ("ind1", 0.11),
-            ("ind2", 0.33),
-            ("ind3", 0.22)
-        ]
+        population = [("ind1", 0.11), ("ind2", 0.33), ("ind3", 0.22)]
         selected = roulette(population, 2)
         assert len(selected) == 2
         assert all(ind in ["ind1", "ind2", "ind3"] for ind, _ in selected)
 
     def test_roulette_total_fitness_zero(self, capsys):
-        population = [
-            ("ind1", 0.0),
-            ("ind2", 0.0)
-        ]
+        population = [("ind1", 0.0), ("ind2", 0.0)]
         selected = roulette(population, 2)
         assert selected == []
         captured = capsys.readouterr().out
@@ -371,10 +361,7 @@ class TestSelectionMethods:
         assert "Total fitness is zero" in captured
 
     def test_roulette_selection_less_than_max(self):
-        population = [
-            ("ind1", 0.81),
-            ("ind2", 0.43)
-        ]
+        population = [("ind1", 0.81), ("ind2", 0.43)]
         selected = roulette(population, 5)
         assert len(selected) == 2
         assert all(ind in ["ind1", "ind2"] for ind, _ in selected)
@@ -394,7 +381,11 @@ class TestEvolutionNode:
         node = EvolutionNode("localhost:0000")
         req = EvolutionRequest("localhost:1234,localhost:4321", "test_context", "arg1", "arg2")
         req.act(node)
-        expected = {'senders': ["localhost:1234", "localhost:4321"], 'context': "test_context", 'data': ("arg1", "arg2")}
+        expected = {
+            "senders": ["localhost:1234", "localhost:4321"],
+            "context": "test_context",
+            "data": ("arg1", "arg2"),
+        }
         assert node.request_queue.qsize() == 1
         assert node.request_queue.empty() is False
         assert node.request_queue.get() == expected
@@ -410,7 +401,9 @@ class TestEvolutionNode:
 
     def test_message_factory_with_super_message(self):
         original_message_factory = EvolutionNode.__bases__[0].message_factory
-        EvolutionNode.__bases__[0].message_factory = lambda self, command, args: "dummy_super_message"
+        EvolutionNode.__bases__[0].message_factory = (
+            lambda self, command, args: "dummy_super_message"
+        )
         node = EvolutionNode(node_id="localhost:8081", server_id="localhost:8080")
         result = node.message_factory("any_command", ["arg"])
         assert result == "dummy_super_message"
@@ -420,7 +413,9 @@ class TestEvolutionNode:
         original_message_factory = EvolutionNode.__bases__[0].message_factory
         EvolutionNode.__bases__[0].message_factory = lambda self, command, args: None
         node = EvolutionNode(node_id="localhost:8081", server_id="localhost:8080")
-        result = node.message_factory("evolution_request", ["localhost:1234,localhost:4321", "test_context", "arg1"])
+        result = node.message_factory(
+            "evolution_request", ["localhost:1234,localhost:4321", "test_context", "arg1"]
+        )
         assert isinstance(result, EvolutionRequest)
         assert result.senders == ["localhost:1234", "localhost:4321"]
         assert result.context == "test_context"
@@ -433,16 +428,24 @@ class TestEvolutionNode:
         node.add_request(["localhost:1234", "localhost:4321"], "context_test", "data_test")
         assert node.request_queue.empty() is False
         request = node.pop_request()
-        expected = {'senders': ["localhost:1234", "localhost:4321"], 'context': "context_test", 'data': "data_test"}
+        expected = {
+            "senders": ["localhost:1234", "localhost:4321"],
+            "context": "context_test",
+            "data": "data_test",
+        }
         assert request == expected
         assert node.request_queue.empty()
 
     def test_add_and_pop_request_as_non_leader(self):
-        node = EvolutionNode(node_id="localhost:8081", server_id="localhost:8080", node_id_factory=NodeIdFactory("localhost"))
+        node = EvolutionNode(
+            node_id="localhost:8081",
+            server_id="localhost:8080",
+            node_id_factory=NodeIdFactory("localhost"),
+        )
         assert node.is_leader() is False
         node.add_request(["sender"], "context", "data")
         assert node.request_queue.empty()
-        node.request_queue.put({'senders': ["sender"], 'context': "context", 'data': "data"})
+        node.request_queue.put({"senders": ["sender"], "context": "context", "data": "data"})
         result = node.pop_request()
         assert result is None
 
@@ -461,6 +464,7 @@ class TestAttentionBrokerUpdater:
             def func(message):
                 self.last_message = message
                 return TestAttentionBrokerUpdater.DummyAck(self.response_msg)
+
             return func
 
         def __enter__(self):
@@ -508,7 +512,7 @@ class TestAttentionBrokerUpdater:
         atomdb = TestAttentionBrokerUpdater.DummyAtomDB()
         channels = [
             TestAttentionBrokerUpdater.DummyChannel("CORRELATE"),
-            TestAttentionBrokerUpdater.DummyChannel("STIMULATE")
+            TestAttentionBrokerUpdater.DummyChannel("STIMULATE"),
         ]
 
         def fake_insecure_channel(address):
@@ -526,7 +530,7 @@ class TestAttentionBrokerUpdater:
         atomdb = TestAttentionBrokerUpdater.DummyAtomDB(raise_for=["X"])
         channels = [
             TestAttentionBrokerUpdater.DummyChannel("CORRELATE"),
-            TestAttentionBrokerUpdater.DummyChannel("STIMULATE")
+            TestAttentionBrokerUpdater.DummyChannel("STIMULATE"),
         ]
 
         def fake_insecure_channel(address):
@@ -547,12 +551,12 @@ class TestAttentionBrokerUpdater:
 
         channels = [
             TestAttentionBrokerUpdater.DummyChannel("FAIL"),
-            TestAttentionBrokerUpdater.DummyChannel("STIMULATE")
+            TestAttentionBrokerUpdater.DummyChannel("STIMULATE"),
         ]
-        
+
         def fake_insecure_channel(address):
             return channels.pop(0)
-        
+
         monkeypatch.setattr(grpc, "insecure_channel", fake_insecure_channel)
         updater = AttentionBrokerUpdater("dummy_address", atomdb, context="correlate_fail")
         updater.update(individuals)
@@ -566,12 +570,12 @@ class TestAttentionBrokerUpdater:
 
         channels = [
             TestAttentionBrokerUpdater.DummyChannel("CORRELATE"),
-            TestAttentionBrokerUpdater.DummyChannel("FAIL")
+            TestAttentionBrokerUpdater.DummyChannel("FAIL"),
         ]
 
         def fake_insecure_channel(address):
             return channels.pop(0)
-        
+
         monkeypatch.setattr(grpc, "insecure_channel", fake_insecure_channel)
         updater = AttentionBrokerUpdater("dummy_address", atomdb, context="stimulate_fail")
         updater.update(individuals)
@@ -584,7 +588,7 @@ class TestAttentionBrokerUpdater:
         atomdb = TestAttentionBrokerUpdater.DummyAtomDB(target_map={"A": ["B"], "B": []})
         channels = [
             TestAttentionBrokerUpdater.DummyChannel("CORRELATE"),
-            TestAttentionBrokerUpdater.DummyChannel("STIMULATE")
+            TestAttentionBrokerUpdater.DummyChannel("STIMULATE"),
         ]
 
         def fake_insecure_channel(address):
@@ -608,8 +612,7 @@ class TestAttentionBrokerUpdater:
 
     def test_update_max_correlations(self, monkeypatch):
         individuals = [
-            (TestAttentionBrokerUpdater.DummyQueryAnswer([str(i)]), 0.5)
-            for i in range(1001)
+            (TestAttentionBrokerUpdater.DummyQueryAnswer([str(i)]), 0.5) for i in range(1001)
         ]
         atomdb = TestAttentionBrokerUpdater.DummyAtomDB()
         channels = []
