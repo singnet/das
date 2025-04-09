@@ -38,7 +38,7 @@ void AtomDBCache::add_atom_document(const char* handle,
     atom_doc_cache[handle] = document;
 }
 
-shared_ptr<vector<string>> AtomDBCache::query_for_pattern(const char* pattern_handle) {
+shared_ptr<atomdb_api_types::HandleSet> AtomDBCache::query_for_pattern(const char* pattern_handle) {
     lock_guard<mutex> lock(pattern_matching_cache_mutex);
     if (pattern_matching_cache.find(pattern_handle) != pattern_matching_cache.end()) {
         DEBUG_PRINT("AtomDBCache::query_for_pattern :: Found in cache " << pattern_handle);
@@ -48,7 +48,8 @@ shared_ptr<vector<string>> AtomDBCache::query_for_pattern(const char* pattern_ha
     return nullptr;
 }
 
-void AtomDBCache::add_pattern_matching(const char* pattern_handle, shared_ptr<vector<string>> results) {
+void AtomDBCache::add_pattern_matching(const char* pattern_handle,
+                                       shared_ptr<atomdb_api_types::HandleSet> results) {
     lock_guard<mutex> lock(pattern_matching_cache_mutex);
     pattern_matching_cache[pattern_handle] = results;
 }

@@ -84,7 +84,6 @@ TEST(DASNode, queries) {
     setenv("DAS_MONGODB_PORT", "28000", 1);
     setenv("DAS_MONGODB_USERNAME", "dbadmin", 1);
     setenv("DAS_MONGODB_PASSWORD", "dassecret", 1);
-    setenv("DAS_DISABLE_ATOMDB_CACHE", "true", 1);
     AtomDBSingleton::init();
 
     string das_id = "localhost:31700";

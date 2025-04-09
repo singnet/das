@@ -56,7 +56,7 @@ class AtomDBCache {
      * @param pattern_handle The handle of the pattern.
      * @return The result of the query if it is cached, nullptr otherwise.
      */
-    shared_ptr<vector<string>> query_for_pattern(const char* pattern_handle);
+    shared_ptr<atomdb_api_types::HandleSet> query_for_pattern(const char* pattern_handle);
 
     /**
      * @brief Add a pattern matching to the cache.
@@ -64,7 +64,8 @@ class AtomDBCache {
      * @param pattern_handle The handle of the pattern.
      * @param results The result of the query to be cached.
      */
-    void add_pattern_matching(const char* pattern_handle, shared_ptr<vector<string>> results);
+    void add_pattern_matching(const char* pattern_handle,
+                              shared_ptr<atomdb_api_types::HandleSet> results);
 
     /**
      * @brief Query for targets.
@@ -105,7 +106,7 @@ class AtomDBCache {
     /**
      * @brief The cache for pattern matching results.
      */
-    unordered_map<string, shared_ptr<vector<string>>> pattern_matching_cache;
+    unordered_map<string, shared_ptr<atomdb_api_types::HandleSet>> pattern_matching_cache;
     /**
      * @brief The mutex for the pattern matching cache.
      */

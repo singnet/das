@@ -11,8 +11,8 @@
 #include <vector>
 
 #include "AtomDB.h"
-#include "RedisMongoDBAPITypes.h"
 #include "AtomDBCache.h"
+#include "RedisMongoDBAPITypes.h"
 
 using namespace std;
 

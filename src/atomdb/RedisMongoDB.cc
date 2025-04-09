@@ -143,9 +143,9 @@ void RedisMongoDB::mongodb_setup() {
     }
 }
 
-shared_ptr<shared_ptr<atomdb_api_types::HandleSet>> RedisMongoDB::query_for_pattern(
+shared_ptr<atomdb_api_types::HandleSet> RedisMongoDB::query_for_pattern(
     std::shared_ptr<char> pattern_handle) {
-    shared_ptr<atomdb_api_types::HandleSetRedis> handle_set;
+    shared_ptr<atomdb_api_types::HandleSet> handle_set;
     if (this->atomdb_cache != nullptr) {
         handle_set = this->atomdb_cache->query_for_pattern(pattern_handle.get());
         if (handle_set != nullptr) return handle_set;
@@ -213,7 +213,7 @@ shared_ptr<atomdb_api_types::HandleList> RedisMongoDB::query_for_targets(char* l
     }
     // NOTE: Intentionally, we aren't destroying 'reply' objects.'reply' objects are destroyed in
     // ~RedisSet().
-    handle_list = make_shared<atomdb_api_types::RedisSet>(reply);
+    handle_list = make_shared<atomdb_api_types::RedisStringBundle>(reply);
     if (this->atomdb_cache != nullptr) this->atomdb_cache->add_handle_list(link_handle_ptr, handle_list);
     return handle_list;
 }
