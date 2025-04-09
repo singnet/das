@@ -11,6 +11,7 @@
 #include "AttentionBrokerServer.h"
 #include "HandlesAnswer.h"
 #include "Iterator.h"
+#include "PatternMatchingCache.h"
 #include "QueryNode.h"
 #include "SharedQueue.h"
 #include "Source.h"
@@ -88,8 +89,10 @@ class LinkTemplate : public Source {
         this->fetch_finished = false;
         this->atom_document = NULL;
         this->local_answers = NULL;
+        this->next_inner_answer = NULL;
         this->local_answers_size = 0;
         this->local_buffer_processor = NULL;
+        this->pattern_matching_cache = PatternMatchingCache::get_instance();
         bool wildcard_flag = (type == AtomDB::WILDCARD);
         this->handle_keys[0] =
             (wildcard_flag ? (char*) AtomDB::WILDCARD.c_str() : named_type_hash((char*) type.c_str()));
@@ -124,10 +127,8 @@ class LinkTemplate : public Source {
         this->graceful_shutdown();
         local_answers_mutex.lock();
         if (this->atom_document) delete[] this->atom_document;
-        if (local_answers_size > 0) {
-            delete[] this->local_answers;
-            delete[] this->next_inner_answer;
-        }
+        if (this->local_answers) delete[] this->local_answers;
+        if (this->next_inner_answer) delete[] this->next_inner_answer;
         while (!this->local_buffer.empty()) {
             delete (HandlesAnswer*) this->local_buffer.dequeue();
         }
@@ -268,9 +269,10 @@ class LinkTemplate : public Source {
                         dasproto::ImportanceList& importance_list) {
         auto stub = dasproto::AttentionBroker::NewStub(
             grpc::CreateChannel(this->attention_broker_address, grpc::InsecureChannelCredentials()));
+        auto grpc_context = unique_ptr<grpc::ClientContext>(new grpc::ClientContext());
 
         if (handle_list.list_size() <= MAX_GET_IMPORTANCE_BUNDLE_SIZE) {
-            stub->get_importance(new grpc::ClientContext(), handle_list, &importance_list);
+            stub->get_importance(grpc_context.get(), handle_list, &importance_list);
             return;
         }
 
@@ -297,7 +299,7 @@ class LinkTemplate : public Source {
 #ifdef DEBUG
             cout << "discharging: " << small_handle_list.list_size() << endl;
 #endif
-            stub->get_importance(new grpc::ClientContext(), small_handle_list, &small_importance_list);
+            stub->get_importance(grpc_context.get(), small_handle_list, &small_importance_list);
             for (unsigned int i = 0; i < small_importance_list.list_size(); i++) {
                 importance_list.add_list(small_importance_list.list(i));
             }
@@ -312,7 +314,7 @@ class LinkTemplate : public Source {
         cout << "fetch_links() Pattern handle: " << this->handle << endl;
 #endif
         shared_ptr<AtomDB> db = AtomDBSingleton::get_instance();
-        this->fetch_result = db->query_for_pattern(this->handle);
+        this->fetch_result = this->pattern_matching_cache->get(this->handle);
         unsigned int answer_count = this->fetch_result.size();
 #ifdef DEBUG
         cout << "fetch_links() ac: " << answer_count << endl;
@@ -501,6 +503,7 @@ class LinkTemplate : public Source {
     unsigned int local_answers_size;
     mutex local_answers_mutex;
     string context;
+    shared_ptr<PatternMatchingCache> pattern_matching_cache;
 };
 
 }  // namespace query_element
