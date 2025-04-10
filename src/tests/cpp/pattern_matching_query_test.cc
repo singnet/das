@@ -37,7 +37,7 @@ void check_query(vector<string>& query,
         Utils::sleep();
     }
 
-    unique_ptr<HandlesAnswer> query_answer;
+    unique_ptr<QueryAnswer> query_answer;
     while (!proxy1->finished()) {
         while (! (query_answer = proxy1->pop())) {
             if (proxy1->finished()) {

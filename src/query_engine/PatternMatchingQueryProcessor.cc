@@ -1,16 +1,12 @@
 #include "PatternMatchingQueryProcessor.h"
 #include "PatternMatchingQueryProxy.h"
 #include "ServiceBus.h"
-#include "AttentionBrokerUpdater.h"
-#include "CountAnswerProcessor.h"
-#include "HandlesAnswerProcessor.h"
-#include "QueryAnswerProcessor.h"
+#include "AtomDBSingleton.h"
 #include "LinkTemplate.h"
 #include "Or.h"
 #include "And.h"
 #include "Terminal.h"
-#include "RemoteSink.h"
-#include "RemoteIterator.h"
+#include "Sink.h"
 
 using namespace atomdb;
 
@@ -48,6 +44,98 @@ void PatternMatchingQueryProcessor::run_command(shared_ptr<BusCommandProxy> prox
 // -------------------------------------------------------------------------------------------------
 // Private methods
 
+void PatternMatchingQueryProcessor::update_attention_broker_single_answer(
+    shared_ptr<PatternMatchingQueryProxy> proxy,
+    QueryAnswer *answer,
+    set<string>& joint_answer
+    ) {
+    
+    shared_ptr<AtomDB> db = AtomDBSingleton::get_instance();
+    set<string> single_answer;
+    stack<char*> execution_stack;
+
+    for (unsigned int i = 0; i < answer->handles_size; i++) {
+        execution_stack.push(answer->handles[i]);
+    }
+
+    while (!execution_stack.empty()) {
+        string handle = string(execution_stack.top());
+        execution_stack.pop();
+        // Updates single_answer (correlation)
+        single_answer.insert(handle);
+        // Updates joint answer (stimulation)
+        joint_answer.insert(handle);
+        // Gets targets and stack them
+        shared_ptr<atomdb_api_types::HandleList> query_result = 
+            db->query_for_targets((char*) handle.c_str());
+        if (query_result != NULL) {  // if handle is link
+            unsigned int query_result_size = query_result->size();
+            for (unsigned int i = 0; i < query_result_size; i++) {
+                execution_stack.push(query_result->get_handle(i));
+            }
+        }
+    }
+
+    auto stub = dasproto::AttentionBroker::NewStub(
+        grpc::CreateChannel(ATTENTION_BROKER_ADDRESS,
+                            grpc::InsecureChannelCredentials()));
+
+    dasproto::HandleList() handle_list; // GRPC command parameter
+    dasproto::Ack ack;                  // GRPC command return
+    handle_list.set_context(proxy->get_context());
+    for (auto handle : single_answer) {
+        handle_list.add_list(handle);
+    }
+    stub->correlate(new grpc::ClientContext(), handle_list, &ack);
+    if (ack->msg() != "CORRELATE") {
+        Utils::error("Failed GRPC command: AttentionBroker::correlate()");
+    }
+}
+
+void PatternMatchingQueryProcessor::update_attention_broker_joint_answer(
+    shared_ptr<PatternMatchingQueryProxy> proxy,
+    set<string>& joint_answer) {
+
+    auto stub = dasproto::AttentionBroker::NewStub(
+        grpc::CreateChannel(ATTENTION_BROKER_ADDRESS,
+                            grpc::InsecureChannelCredentials()));
+
+    dasproto::HandleCount() handle_count; // GRPC command parameter
+    dasproto::Ack ack;                    // GRPC command return
+    handle_count.set_context(proxy->get_context());
+    for (auto handle : joint_answer) {
+        handle_count.mutable_map()[handle] = 1;
+    }
+    handle_count.mutable_map()["SUM"] = joint_answer.size();
+    stub->stimulate(new grpc::ClientContext(), handle_count, &ack);
+    if (ack->msg() != "STIMULATE") {
+        Utils::error("Failed GRPC command: AttentionBroker::stimulate()");
+    }
+}
+
+void PatternMatchingQueryProcessor::process_query_answers(
+    shared_ptr<PatternMatchingQueryProxy> proxy, 
+    shared_ptr<Sink> query_sink,
+    set<string>& joint_answer, // used to stimulate attention broker
+    unsigned int& answer_count) {
+
+    vector<string> answer_bundle;
+    QueryAnswer *answer;
+    while ((answer = query_sink->input_buffer->pop_query_answer()) != NULL) {
+        answer_count++;
+        if (! proxy->get_count_flag()) {
+            answer_bundle.push_back(answer->tokenize());
+        }
+        if (proxy->get_attention_update_flag()) {
+            update_attention_broker_single_answer(proxy, answer, joint_answer);
+        }
+        delete answer;
+    }
+    if (answer_bundle.size() > 0) {
+        proxy->to_remote_peer(PatternMatchingQueryProxy::ANSWER_BUNDLE, answer_bundle);
+    }
+}
+
 void PatternMatchingQueryProcessor::thread_process_one_query(shared_ptr<PatternMatchingQueryProxy> proxy) {
 
     if (proxy->args.size() < 2) {
@@ -57,42 +145,38 @@ void PatternMatchingQueryProcessor::thread_process_one_query(shared_ptr<PatternM
     proxy->update_attention_broker = (proxy->args[1] == "1");
     proxy->query_tokens.insert(proxy->query_tokens.begin(), proxy->args.begin() + 2, proxy->args.end());
     shared_ptr<QueryElement> root_query_element = setup_query_tree(proxy);
+    set<string>& joint_answer; // used to stimulate attention broker
     string command = proxy->get_command();
-    unsigned int remote_sink_port_number;
+    unsigned int sink_port_number;
     if (command == ServiceBus::PATTERN_MATCHING_QUERY || 
         command == ServiceBus::COUNTING_QUERY) {
-        remote_sink_port_number = PortPool::get_port();
+        sink_port_number = PortPool::get_port();
         string id = proxy->my_id();
         string host = id.substr(0, id.find(":"));
-        string local_id = host + ":" + to_string(remote_sink_port_number);
-        string remote_id = proxy->peer_id();
-        vector<unique_ptr<QueryAnswerProcessor>> query_answer_processors;
-        if (command == ServiceBus::PATTERN_MATCHING_QUERY) {
-            proxy->count_flag = false;
-            cout << "XXXXX thread_process_one_query() HandlesAnswerProcessor local_id: " << local_id << " remote_id: " << remote_id << endl;
-            query_answer_processors.push_back(make_unique<HandlesAnswerProcessor>(local_id, remote_id));
-            if (proxy->update_attention_broker) {
-                query_answer_processors.push_back(make_unique<AttentionBrokerUpdater>(proxy->context));
-            }
-        } else if (command == ServiceBus::COUNTING_QUERY) {
-            proxy->count_flag = true;
-            query_answer_processors.push_back(make_unique<CountAnswerProcessor>(local_id, remote_id));
-        }
-        cout << "XXXXX thread_process_one_query() building RemoteSink" << endl;
-        RemoteSink<HandlesAnswer> sink(root_query_element, move(query_answer_processors));
-        cout << "XXXXX thread_process_one_query() going to sleep and wait for query to finish" << endl;
-        while (! (sink.is_work_done() || proxy->is_aborting())) {
+        string local_id = host + ":" + to_string(sink_port_number);
+        shared_ptr<Sink> query_sink = 
+            make_shared<Sink>(root_query_element, local_id);
+        unsigned int answer_count = 0;
+        while (! (this->query_sink->is_query_answers_finished() || proxy->is_aborting())) {
+            process_query_answers(proxy, query_sink, joint_answer, answer_count);
             Utils::sleep();
         }
-        cout << "XXXXX thread_process_one_query() query results delivered. Shutting down..." << endl;
+        if (proxy->get_count_flag() && (! proxy->is_aborting())) {
+            proxy->to_remote_peer(PatternMatchingQueryProxy::COUNT, to_string(answer_count));
+        }
+        if (proxy->get_attention_update_flag()) {
+            update_attention_broker_joint_answer(proxy, joint_answer);
+        }
         sink.graceful_shutdown();
         PortPool::return_port(remote_sink_port_number);
-        cout << "XXXXX thread_process_one_query() Thread finished" << endl;
     } else {
         Utils::error("Invalid command " + command + " in PatternMatchingQueryProcessor");
     }
     // TODO add a call to join/delete/remove thread
 }
+
+// -------------------------------------------------------------------------------------------------
+// Private methods - query tree building
 
 shared_ptr<QueryElement> PatternMatchingQueryProcessor::setup_query_tree(shared_ptr<PatternMatchingQueryProxy> proxy) {
 

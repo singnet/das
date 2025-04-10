@@ -4,7 +4,7 @@
 #include <cstring>
 #include <queue>
 
-#include "HandlesAnswer.h"
+#include "QueryAnswer.h"
 #include "Operator.h"
 
 using namespace std;
@@ -76,19 +76,19 @@ class And : public Operator<N> {
    private:
     class CandidateRecord {
        public:
-        HandlesAnswer* answer[N];
+        QueryAnswer* answer[N];
         unsigned int index[N];
         double fitness;
         CandidateRecord() {}
         CandidateRecord(const CandidateRecord& other) {
             this->fitness = other.fitness;
             memcpy((void*) this->index, (const void*) other.index, N * sizeof(unsigned int));
-            memcpy((void*) this->answer, (const void*) other.answer, N * sizeof(HandlesAnswer*));
+            memcpy((void*) this->answer, (const void*) other.answer, N * sizeof(QueryAnswer*));
         }
         CandidateRecord& operator=(const CandidateRecord& other) {
             this->fitness = other.fitness;
             memcpy((void*) this->index, (const void*) other.index, N * sizeof(unsigned int));
-            memcpy((void*) this->answer, (const void*) other.answer, N * sizeof(HandlesAnswer*));
+            memcpy((void*) this->answer, (const void*) other.answer, N * sizeof(QueryAnswer*));
             return *this;
         }
         bool operator<(const CandidateRecord& other) const { return this->fitness < other.fitness; }
@@ -115,7 +115,7 @@ class And : public Operator<N> {
         }
     };
 
-    vector<HandlesAnswer*> query_answer[N];
+    vector<QueryAnswer*> query_answer[N];
     unsigned int next_input_to_process[N];
     priority_queue<CandidateRecord> border;
     unordered_set<CandidateRecord, hash_function> visited;
@@ -154,11 +154,11 @@ class And : public Operator<N> {
         if (this->no_more_answers_to_arrive) {
             return;
         }
-        HandlesAnswer* answer;
+        QueryAnswer* answer;
         unsigned int all_arrived_count = 0;
         bool no_new_answer = true;
         for (unsigned int i = 0; i < N; i++) {
-            while ((answer = dynamic_cast<HandlesAnswer*>(this->input_buffer[i]->pop_query_answer())) !=
+            while ((answer = dynamic_cast<QueryAnswer*>(this->input_buffer[i]->pop_query_answer())) !=
                    NULL) {
                 no_new_answer = false;
                 this->query_answer[i].push_back(answer);
@@ -179,7 +179,7 @@ class And : public Operator<N> {
     }
 
     void operate_candidate(const CandidateRecord& candidate) {
-        HandlesAnswer* new_query_answer = HandlesAnswer::copy(candidate.answer[0]);
+        QueryAnswer* new_query_answer = QueryAnswer::copy(candidate.answer[0]);
         for (unsigned int i = 1; i < N; i++) {
             if (!new_query_answer->merge(candidate.answer[i])) {
                 delete new_query_answer;

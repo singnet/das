@@ -3,7 +3,7 @@
 
 #include <mutex>
 
-#include "HandlesAnswer.h"
+#include "QueryAnswer.h"
 #include "QueryAnswer.h"
 #include "QueryElement.h"
 
@@ -65,11 +65,11 @@ class Operator : public QueryElement {
             Utils::error("Invalid empty id");
         }
 
-        this->output_buffer = make_shared<QueryNodeClient<HandlesAnswer>>(this->id, this->subsequent_id);
+        this->output_buffer = make_shared<QueryNodeClient>(this->id, this->subsequent_id);
         string server_node_id;
         for (unsigned int i = 0; i < N; i++) {
             server_node_id = this->id + "_" + to_string(i);
-            this->input_buffer[i] = make_shared<QueryNodeServer<HandlesAnswer>>(server_node_id);
+            this->input_buffer[i] = make_shared<QueryNodeServer>(server_node_id);
             this->precedent[i]->subsequent_id = server_node_id;
             this->precedent[i]->setup_buffers();
         }
@@ -95,8 +95,8 @@ class Operator : public QueryElement {
 
    protected:
     shared_ptr<QueryElement> precedent[N];
-    shared_ptr<QueryNodeServer<HandlesAnswer>> input_buffer[N];
-    shared_ptr<QueryNodeClient<HandlesAnswer>> output_buffer;
+    shared_ptr<QueryNodeServer> input_buffer[N];
+    shared_ptr<QueryNodeClient> output_buffer;
 
    private:
     void initialize(const array<shared_ptr<QueryElement>, N>& clauses) {

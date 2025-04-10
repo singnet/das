@@ -1,11 +1,9 @@
-#ifndef _QUERY_NODE_QUERYNODE_H
-#define _QUERY_NODE_QUERYNODE_H
+#pragma once
 
 #include <string>
 #include <thread>
 
 #include "DistributedAlgorithmNode.h"
-#include "LazyWorkerDeleter.h"
 #include "QueryAnswer.h"
 #include "SharedQueue.h"
 
@@ -15,11 +13,7 @@ using namespace query_engine;
 
 namespace query_node {
 
-/**
- *
- */
-template <class AnswerType>
-class QueryNode : public DistributedAlgorithmNode, public Worker {
+class QueryNode : public DistributedAlgorithmNode {
    public:
     QueryNode(const string& node_id,
               bool is_server,
@@ -35,7 +29,7 @@ class QueryNode : public DistributedAlgorithmNode, public Worker {
     bool is_query_answers_empty();
     virtual void query_answer_processor_method() = 0;
 
-    virtual bool is_work_done() override { return this->work_done_flag; }  // as Worker
+    virtual bool is_work_done() { return this->work_done_flag; }  // as Worker
 
     static string QUERY_ANSWER_TOKENS_FLOW_COMMAND;
     static string QUERY_ANSWER_FLOW_COMMAND;
@@ -55,8 +49,7 @@ class QueryNode : public DistributedAlgorithmNode, public Worker {
     mutex query_answers_finished_flag_mutex;
 };
 
-template <class AnswerType>
-class QueryNodeServer : public QueryNode<AnswerType> {
+class QueryNodeServer : public QueryNode {
    public:
     QueryNodeServer(const string& node_id, MessageBrokerType messaging_backend = MessageBrokerType::RAM);
 
@@ -65,8 +58,7 @@ class QueryNodeServer : public QueryNode<AnswerType> {
     void query_answer_processor_method();
 };
 
-template <class AnswerType>
-class QueryNodeClient : public QueryNode<AnswerType> {
+class QueryNodeClient : public QueryNode {
    public:
     QueryNodeClient(const string& node_id,
                     const string& server_id,
@@ -80,7 +72,6 @@ class QueryNodeClient : public QueryNode<AnswerType> {
     string server_id;
 };
 
-template <class AnswerType>
 class QueryAnswerFlow : public Message {
    public:
     QueryAnswerFlow(string command, vector<string>& args);
@@ -90,7 +81,6 @@ class QueryAnswerFlow : public Message {
     vector<QueryAnswer*> query_answers;
 };
 
-template <class AnswerType>
 class QueryAnswerTokensFlow : public Message {
    public:
     QueryAnswerTokensFlow(string command, vector<string>& args);
@@ -100,7 +90,6 @@ class QueryAnswerTokensFlow : public Message {
     vector<string> query_answers_tokens;
 };
 
-template <class AnswerType>
 class QueryAnswersFinished : public Message {
    public:
     QueryAnswersFinished(string command, vector<string>& args);
@@ -108,7 +97,3 @@ class QueryAnswersFinished : public Message {
 };
 
 }  // namespace query_node
-
-#include "QueryNode.cc"
-
-#endif  // _QUERY_NODE_QUERYNODE_H

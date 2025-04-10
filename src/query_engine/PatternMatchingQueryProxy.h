@@ -2,8 +2,8 @@
 
 #include <mutex>
 #include "BusCommandProxy.h"
+#include "QueryAnswer.h"
 #include "SharedQueue.h"
-#include "HandlesAnswer.h"
 #include "Message.h"
 
 using namespace std;
@@ -29,31 +29,37 @@ public:
 
     bool is_aborting();
     void abort();
+    const string& get_context();
+    bool get_attention_update_flag();
+    const vector<string>& get_query_tokens();
+    bool get_count_flag();
 
-    void from_remote_peer(const string& command, const vector<string>& args);
-    void query_answer_tokens_flow(const vector<string>& args);
+    void answer_bundle(const vector<string>& args);
+    void count_answer(const vector<string>& args);
     void query_answers_finished(const vector<string>& args);
     void abort(const vector<string>& args);
-
-    virtual shared_ptr<Message> message_factory(string& command, vector<string>& args);
+    void from_remote_peer(const string& command, const vector<string>& args) override;
 
     bool finished();
-    unique_ptr<HandlesAnswer> pop();
+    unique_ptr<QueryAnswer> pop();
     unsigned int get_count();
 
     static string ABORT;
+    static string ANSWER_BUNDLE;
+    static string COUNT;
+    static string FINISHED;
+
+private:
+
+    mutex api_mutex;
+    bool abort_flag;
+    SharedQueue answer_queue;
+    unsigned int answer_count;
+    bool answer_flow_finished;
     string context;
     bool update_attention_broker;
     vector<string> query_tokens;
     bool count_flag;
-
-private:
-
-    bool abort_flag;
-    mutex api_mutex;
-    SharedQueue answer_queue;
-    unsigned int answer_count;
-    bool answer_flow_finished;
 
     void init();
 };

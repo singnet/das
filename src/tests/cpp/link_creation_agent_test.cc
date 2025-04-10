@@ -302,7 +302,7 @@ TEST(LinkCreateTemplate, TestInvalidNode) {
 
 TEST(Link, TestLink) {
     vector<string> link_template = split("LINK_CREATE Similarity 2 0 VARIABLE V1 VARIABLE V2", ' ');
-    HandlesAnswer* query_answer = new HandlesAnswer();
+    QueryAnswer* query_answer = new QueryAnswer();
     query_answer->assignment.assign("V1", "Value1");
     query_answer->assignment.assign("V2", "Value2");
 
@@ -316,7 +316,7 @@ TEST(Link, TestLink) {
     link_template.clear();
     delete query_answer;
 
-    query_answer = new HandlesAnswer();
+    query_answer = new QueryAnswer();
     link_template = split("LINK_CREATE Test 3 0 NODE Symbol A VARIABLE V1 NODE Symbol B", ' ');
     query_answer->assignment.assign("V1", "Value1");
     link = Link(query_answer, link_template);
@@ -332,7 +332,7 @@ TEST(Link, TestLink) {
     link_template.clear();
     delete query_answer;
 
-    query_answer = new HandlesAnswer();
+    query_answer = new QueryAnswer();
     link_template = split(
         "LINK_CREATE Test2 2 1 NODE Symbol C NODE Symbol B "
         "CUSTOM_FIELD truth_value 2 CUSTOM_FIELD mean 2 count 10 avg 0.9 confidence 0.9",
@@ -353,7 +353,7 @@ TEST(Link, TestLink) {
     link_template.clear();
     delete query_answer;
 
-    query_answer = new HandlesAnswer();
+    query_answer = new QueryAnswer();
     link_template = split(
         "LINK_CREATE Test3 2 1 VARIABLE V1 VARIABLE V2 "
         "CUSTOM_FIELD truth_value 2 CUSTOM_FIELD mean 2 count 10 avg 0.9 confidence 0.9",
@@ -385,7 +385,7 @@ TEST(Link, TestLink) {
                 "NODE Symbol D "
         "NODE Symbol B", ' ');
     // clang-format on
-    query_answer = new HandlesAnswer();
+    query_answer = new QueryAnswer();
     query_answer->assignment.assign("V1", "Value1");
     query_answer->assignment.assign("V2", "Value2");
     link = Link(query_answer, link_template);

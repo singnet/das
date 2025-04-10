@@ -232,31 +232,10 @@ cc_test(
 )
 
 cc_test(
-    name = "handles_answer_test",
+    name = "query_answer_test",
     size = "small",
     srcs = [
-        "handles_answer_test.cc",
-        "test_utils.cc",
-        "test_utils.h",
-    ],
-    copts = [
-        "-Iexternal/gtest/googletest/include",
-        "-Iexternal/gtest/googletest",
-    ],
-    linkopts = [
-    ],
-    linkstatic = 1,
-    deps = [
-        "//query_engine:query_engine_lib",
-        "@com_github_google_googletest//:gtest_main",
-    ],
-)
-
-cc_test(
-    name = "count_answer_test",
-    size = "small",
-    srcs = [
-        "count_answer_test.cc",
+        "query_answer_test.cc",
         "test_utils.cc",
         "test_utils.h",
     ],
@@ -305,33 +284,6 @@ cc_test(
     size = "small",
     srcs = [
         "iterator_test.cc",
-        "test_utils.cc",
-        "test_utils.h",
-    ],
-    copts = [
-        "-Iexternal/gtest/googletest/include",
-        "-Iexternal/gtest/googletest",
-    ],
-    linkopts = [
-        "-L/usr/local/lib",
-        "-lhiredis_cluster",
-        "-lhiredis",
-        "-lmongocxx",
-        "-lbsoncxx",
-    ],
-    linkstatic = 1,
-    deps = [
-        "//query_engine:query_engine_lib",
-        "@com_github_google_googletest//:gtest_main",
-        "@mbedtls//:mbedtls",
-    ],
-)
-
-cc_test(
-    name = "remote_sink_iterator_test",
-    size = "small",
-    srcs = [
-        "remote_sink_iterator_test.cc",
         "test_utils.cc",
         "test_utils.h",
     ],

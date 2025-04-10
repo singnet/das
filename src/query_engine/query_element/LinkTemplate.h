@@ -9,7 +9,7 @@
 #include "AtomDBAPITypes.h"
 #include "AtomDBSingleton.h"
 #include "AttentionBrokerServer.h"
-#include "HandlesAnswer.h"
+#include "QueryAnswer.h"
 #include "Iterator.h"
 #include "QueryNode.h"
 #include "SharedQueue.h"
@@ -129,7 +129,7 @@ class LinkTemplate : public Source {
             delete[] this->next_inner_answer;
         }
         while (!this->local_buffer.empty()) {
-            delete (HandlesAnswer*) this->local_buffer.dequeue();
+            delete (QueryAnswer*) this->local_buffer.dequeue();
         }
         for (auto* answer : this->inner_answers) {
             if (answer) delete answer;
@@ -176,14 +176,14 @@ class LinkTemplate : public Source {
             switch (this->inner_template.size()) {
                 case 1: {
                     this->inner_template_iterator =
-                        make_shared<Iterator<HandlesAnswer>>(
+                        make_shared<Iterator<QueryAnswer>>(
                             inner_template[0]
                         );
                     break;
                 }
                 case 2: {
                     this->inner_template_iterator = 
-                        make_shared<Iterator<HandlesAnswer>>(
+                        make_shared<Iterator<QueryAnswer>>(
                             make_shared<And<2>>(
                                 array<shared_ptr<QueryElement>, 2>(
                                     {
@@ -197,7 +197,7 @@ class LinkTemplate : public Source {
                 }
                 case 3: {
                     this->inner_template_iterator = 
-                        make_shared<Iterator<HandlesAnswer>>(
+                        make_shared<Iterator<QueryAnswer>>(
                             make_shared<And<3>>(
                                 array<shared_ptr<QueryElement>, 3>(
                                     {
@@ -212,7 +212,7 @@ class LinkTemplate : public Source {
                 }
                 case 4: {
                     this->inner_template_iterator =
-                        make_shared<Iterator<HandlesAnswer>>(
+                        make_shared<Iterator<QueryAnswer>>(
                             make_shared<And<4>>(
                                 array<shared_ptr<QueryElement>, 4>(
                                     {
@@ -241,7 +241,7 @@ class LinkTemplate : public Source {
 
    private:
     struct less_than_query_answer {
-        inline bool operator()(const HandlesAnswer* qa1, const HandlesAnswer* qa2) {
+        inline bool operator()(const QueryAnswer* qa1, const QueryAnswer* qa2) {
             // Reversed check as we want descending sort
             return (qa1->importance > qa2->importance);
         }
@@ -317,8 +317,8 @@ class LinkTemplate : public Source {
 #ifdef DEBUG
         cout << "fetch_links() ac: " << answer_count << endl;
 #endif
-        HandlesAnswer* query_answer;
-        vector<HandlesAnswer*> fetched_answers;
+        QueryAnswer* query_answer;
+        vector<QueryAnswer*> fetched_answers;
         if (answer_count > 0) {
             dasproto::HandleList handle_list;
             handle_list.set_context(this->context);
@@ -333,11 +333,11 @@ class LinkTemplate : public Source {
                              " Expected size: " + std::to_string(answer_count));
             }
             this->atom_document = new shared_ptr<atomdb_api_types::AtomDocument>[answer_count];
-            this->local_answers = new HandlesAnswer*[answer_count];
+            this->local_answers = new QueryAnswer*[answer_count];
             this->next_inner_answer = new unsigned int[answer_count];
             for (unsigned int i = 0; i < answer_count; i++) {
                 this->atom_document[i] = db->get_atom_document(this->fetch_result[i].c_str());
-                query_answer = new HandlesAnswer(this->fetch_result[i].c_str(), importance_list.list(i));
+                query_answer = new QueryAnswer(this->fetch_result[i].c_str(), importance_list.list(i));
                 const char* s = this->atom_document[i]->get("targets", 0);
                 for (unsigned int j = 0; j < this->arity; j++) {
                     if (this->target_template[j]->is_terminal) {
@@ -411,8 +411,8 @@ class LinkTemplate : public Source {
 
     bool ingest_newly_arrived_answers() {
         bool flag = false;
-        HandlesAnswer* query_answer;
-        while ((query_answer = dynamic_cast<HandlesAnswer*>(this->inner_template_iterator->pop())) !=
+        QueryAnswer* query_answer;
+        while ((query_answer = dynamic_cast<QueryAnswer*>(this->inner_template_iterator->pop())) !=
                NULL) {
             this->inner_answers.push_back(query_answer);
             flag = true;
@@ -423,8 +423,8 @@ class LinkTemplate : public Source {
     void local_buffer_processor_method() {
         if (this->inner_template.size() == 0) {
             while (!(this->is_flow_finished() && this->local_buffer.empty())) {
-                HandlesAnswer* query_answer;
-                while ((query_answer = (HandlesAnswer*) this->local_buffer.dequeue()) != NULL) {
+                QueryAnswer* query_answer;
+                while ((query_answer = (QueryAnswer*) this->local_buffer.dequeue()) != NULL) {
                     this->output_buffer->add_query_answer(query_answer);
                 }
                 Utils::sleep();
@@ -492,12 +492,12 @@ class LinkTemplate : public Source {
     thread* local_buffer_processor;
     bool fetch_finished;
     mutex fetch_finished_mutex;
-    shared_ptr<QueryNodeServer<HandlesAnswer>> target_buffer[ARITY];
-    shared_ptr<Iterator<HandlesAnswer>> inner_template_iterator;
+    shared_ptr<QueryNodeServer> target_buffer[ARITY];
+    shared_ptr<Iterator<QueryAnswer>> inner_template_iterator;
     shared_ptr<atomdb_api_types::AtomDocument>* atom_document;
-    HandlesAnswer** local_answers;
+    QueryAnswer** local_answers;
     unsigned int* next_inner_answer;
-    vector<HandlesAnswer*> inner_answers;
+    vector<QueryAnswer*> inner_answers;
     unsigned int local_answers_size;
     mutex local_answers_mutex;
     string context;

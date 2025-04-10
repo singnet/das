@@ -2,7 +2,7 @@
 #include <cstring>
 
 #include "And.h"
-#include "HandlesAnswer.h"
+#include "QueryAnswer.h"
 #include "Sink.h"
 #include "Source.h"
 #include "gtest/gtest.h"
@@ -24,7 +24,7 @@ class TestSource : public Source {
              const array<const char*, 1>& labels,
              const array<const char*, 1>& values,
              bool sleep_flag = true) {
-        HandlesAnswer* query_answer = new HandlesAnswer(handle, importance);
+        QueryAnswer* query_answer = new QueryAnswer(handle, importance);
         for (unsigned int i = 0; i < labels.size(); i++) {
             query_answer->assignment.assign(labels[i], values[i]);
         }
@@ -37,10 +37,10 @@ class TestSource : public Source {
     void query_answers_finished() { return this->output_buffer->query_answers_finished(); }
 };
 
-class TestSink : public Sink<HandlesAnswer> {
+class TestSink : public Sink<QueryAnswer> {
    public:
     TestSink(shared_ptr<QueryElement> precedent)
-        : Sink<HandlesAnswer>(precedent, "TestSink(" + precedent->id + ")") {}
+        : Sink<QueryAnswer>(precedent, "TestSink(" + precedent->id + ")") {}
     ~TestSink() {}
     bool empty() { return this->input_buffer->is_query_answers_empty(); }
     bool finished() { return this->input_buffer->is_query_answers_finished(); }
@@ -48,7 +48,7 @@ class TestSink : public Sink<HandlesAnswer> {
 };
 
 void check_query_answer(string tag,
-                        HandlesAnswer* query_answer,
+                        QueryAnswer* query_answer,
                         double importance,
                         unsigned int handles_size,
                         const array<const char*, 2>& handles) {
@@ -65,7 +65,7 @@ TEST(AndOperator, basics) {
     auto source2 = make_shared<TestSource>(20);
     auto and_operator = make_shared<And<2>>(array<shared_ptr<QueryElement>, 2>({source1, source2}));
     TestSink sink(and_operator);
-    HandlesAnswer* query_answer;
+    QueryAnswer* query_answer;
 
     EXPECT_TRUE(sink.empty());
     EXPECT_FALSE(sink.finished());
@@ -93,7 +93,7 @@ TEST(AndOperator, basics) {
     source1->add("h1_1", 0.4, {"v1_1"}, {"1"});
     EXPECT_FALSE(sink.empty());
     EXPECT_FALSE(sink.finished());
-    EXPECT_FALSE((query_answer = dynamic_cast<HandlesAnswer*>(sink.pop())) == NULL);
+    EXPECT_FALSE((query_answer = dynamic_cast<QueryAnswer*>(sink.pop())) == NULL);
     EXPECT_TRUE(sink.empty());
     EXPECT_FALSE(sink.finished());
     check_query_answer("1", query_answer, 0.5, 2, {"h1_0", "h2_0"});
@@ -115,25 +115,25 @@ TEST(AndOperator, basics) {
 
     // {"h1_1", "h2_0"} is not popped because it's invalid
 
-    EXPECT_FALSE((query_answer = dynamic_cast<HandlesAnswer*>(sink.pop())) == NULL);
+    EXPECT_FALSE((query_answer = dynamic_cast<QueryAnswer*>(sink.pop())) == NULL);
     check_query_answer("3", query_answer, 0.5, 2, {"h1_0", "h2_1"});
 
-    EXPECT_FALSE((query_answer = dynamic_cast<HandlesAnswer*>(sink.pop())) == NULL);
+    EXPECT_FALSE((query_answer = dynamic_cast<QueryAnswer*>(sink.pop())) == NULL);
     check_query_answer("4", query_answer, 0.3, 2, {"h1_2", "h2_0"});
 
-    EXPECT_FALSE((query_answer = dynamic_cast<HandlesAnswer*>(sink.pop())) == NULL);
+    EXPECT_FALSE((query_answer = dynamic_cast<QueryAnswer*>(sink.pop())) == NULL);
     check_query_answer("5", query_answer, 0.4, 2, {"h1_1", "h2_1"});
 
-    EXPECT_FALSE((query_answer = dynamic_cast<HandlesAnswer*>(sink.pop())) == NULL);
+    EXPECT_FALSE((query_answer = dynamic_cast<QueryAnswer*>(sink.pop())) == NULL);
     check_query_answer("6", query_answer, 0.3, 2, {"h1_2", "h2_1"});
 
-    EXPECT_FALSE((query_answer = dynamic_cast<HandlesAnswer*>(sink.pop())) == NULL);
+    EXPECT_FALSE((query_answer = dynamic_cast<QueryAnswer*>(sink.pop())) == NULL);
     check_query_answer("7", query_answer, 0.5, 2, {"h1_0", "h2_2"});
 
-    EXPECT_FALSE((query_answer = dynamic_cast<HandlesAnswer*>(sink.pop())) == NULL);
+    EXPECT_FALSE((query_answer = dynamic_cast<QueryAnswer*>(sink.pop())) == NULL);
     check_query_answer("8", query_answer, 0.4, 2, {"h1_1", "h2_2"});
 
-    EXPECT_FALSE((query_answer = dynamic_cast<HandlesAnswer*>(sink.pop())) == NULL);
+    EXPECT_FALSE((query_answer = dynamic_cast<QueryAnswer*>(sink.pop())) == NULL);
     EXPECT_TRUE(sink.empty());
     check_query_answer("9", query_answer, 0.3, 2, {"h1_2", "h2_2"});
     Utils::sleep(SLEEP_DURATION);
@@ -172,7 +172,7 @@ TEST(AndOperator, operation_logic) {
     array<array<double, 100>, 3> importance;
     priority_queue<ImportanceFitnessPair> fitness_heap;
     ImportanceFitnessPair pair;
-    HandlesAnswer* query_answer;
+    QueryAnswer* query_answer;
     array<shared_ptr<QueryElement>, 3> source;
     for (unsigned int clause = 0; clause < clause_count; clause++) {
         source[clause] = make_shared<TestSource>(clause);
@@ -221,7 +221,7 @@ TEST(AndOperator, operation_logic) {
             Utils::sleep();
             continue;
         }
-        EXPECT_FALSE((query_answer = dynamic_cast<HandlesAnswer*>(sink->pop())) == NULL);
+        EXPECT_FALSE((query_answer = dynamic_cast<QueryAnswer*>(sink->pop())) == NULL);
         pair = fitness_heap.top();
         cout << count << " CHECK: " << query_answer->importance << " " << pair.importance << " ("
              << pair.fitness << ")" << endl;

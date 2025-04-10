@@ -3,7 +3,7 @@
 #include <cstdlib>
 
 #include "AtomDBSingleton.h"
-#include "HandlesAnswer.h"
+#include "QueryAnswer.h"
 #include "LinkTemplate.h"
 #include "QueryNode.h"
 #include "gtest/gtest.h"
@@ -23,33 +23,33 @@ class TestQueryElement : public QueryElement {
 TEST(Iterator, basics) {
     string client_id = "no_query_element";
     auto dummy = make_shared<TestQueryElement>(client_id);
-    Iterator<HandlesAnswer> query_answer_iterator(dummy);
+    Iterator<QueryAnswer> query_answer_iterator(dummy);
     string server_id = query_answer_iterator.id;
     EXPECT_FALSE(server_id == "");
-    QueryNodeClient<HandlesAnswer> client_node(client_id, query_answer_iterator.id);
+    QueryNodeClient client_node(client_id, query_answer_iterator.id);
 
     EXPECT_FALSE(query_answer_iterator.finished());
 
-    HandlesAnswer* qa;
-    HandlesAnswer qa0("h0", 0.0);
-    HandlesAnswer qa1("h1", 0.1);
-    HandlesAnswer qa2("h2", 0.2);
+    QueryAnswer* qa;
+    QueryAnswer qa0("h0", 0.0);
+    QueryAnswer qa1("h1", 0.1);
+    QueryAnswer qa2("h2", 0.2);
 
     client_node.add_query_answer(&qa0);
     client_node.add_query_answer(&qa1);
     Utils::sleep(1000);
 
     EXPECT_FALSE(query_answer_iterator.finished());
-    qa = dynamic_cast<HandlesAnswer*>(query_answer_iterator.pop());
+    qa = dynamic_cast<QueryAnswer*>(query_answer_iterator.pop());
     EXPECT_TRUE(strcmp(qa->handles[0], "h0") == 0);
     EXPECT_TRUE(double_equals(qa->importance, 0.0));
 
     EXPECT_FALSE(query_answer_iterator.finished());
-    qa = dynamic_cast<HandlesAnswer*>(query_answer_iterator.pop());
+    qa = dynamic_cast<QueryAnswer*>(query_answer_iterator.pop());
     EXPECT_TRUE(strcmp(qa->handles[0], "h1") == 0);
     EXPECT_TRUE(double_equals(qa->importance, 0.1));
 
-    qa = dynamic_cast<HandlesAnswer*>(query_answer_iterator.pop());
+    qa = dynamic_cast<QueryAnswer*>(query_answer_iterator.pop());
     EXPECT_TRUE(qa == NULL);
     EXPECT_FALSE(query_answer_iterator.finished());
 
@@ -62,7 +62,7 @@ TEST(Iterator, basics) {
     Utils::sleep(1000);
 
     EXPECT_FALSE(query_answer_iterator.finished());
-    qa = dynamic_cast<HandlesAnswer*>(query_answer_iterator.pop());
+    qa = dynamic_cast<QueryAnswer*>(query_answer_iterator.pop());
     EXPECT_TRUE(strcmp(qa->handles[0], "h2") == 0);
     EXPECT_TRUE(double_equals(qa->importance, 0.2));
     EXPECT_TRUE(query_answer_iterator.finished());
@@ -89,7 +89,7 @@ TEST(Iterator, link_template_integration) {
 
     auto link_template = make_shared<LinkTemplate<3>>(
         "Expression", array<shared_ptr<QueryElement>, 3>({similarity, human, v1}));
-    Iterator<HandlesAnswer> query_answer_iterator(link_template);
+    Iterator<QueryAnswer> query_answer_iterator(link_template);
 
     string monkey_handle = string(terminal_hash((char*) symbol.c_str(), (char*) "\"monkey\""));
     string chimp_handle = string(terminal_hash((char*) symbol.c_str(), (char*) "\"chimp\""));
@@ -97,9 +97,9 @@ TEST(Iterator, link_template_integration) {
     bool monkey_flag = false;
     bool chimp_flag = false;
     bool ent_flag = false;
-    HandlesAnswer* query_answer;
+    QueryAnswer* query_answer;
     while (!query_answer_iterator.finished()) {
-        query_answer = dynamic_cast<HandlesAnswer*>(query_answer_iterator.pop());
+        query_answer = dynamic_cast<QueryAnswer*>(query_answer_iterator.pop());
         if (query_answer != NULL) {
             string var = string(query_answer->assignment.get("v1"));
             // EXPECT_TRUE(double_equals(query_answer->importance, 0.0));
