@@ -63,3 +63,40 @@ jobs:
 
       - name: Execute Unit Test Suite
         run: make test-all
+
+  performance-tests:
+    runs-on: self-hosted
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Build all targets
+        run: make build-all
+
+      - name: Start MongoDB and Redis
+        run: sudo bash ./src/tests/integration/performance/start_mongo_and_redis.sh
+
+      - name: Run performance tests
+        run: make performance-tests
+
+      - name: Get latest performance result file
+        id: get-performance-result
+        run: |
+          FILE=$(ls -t ./src/tests/integration/performance/performance_results_*.txt | head -n 1)
+          echo "Latest file: $FILE"
+  
+          CONTENT=$(cat "$FILE")
+  
+          ESCAPED_CONTENT="${CONTENT//$'\n'/\\n}"
+  
+          echo "content=$ESCAPED_CONTENT" >> $GITHUB_OUTPUT
+
+      - name: Send success notification
+        if: steps.get-performance-result.outputs.content != ''
+        uses: singnet/integration-github-mattermost@master
+        with:
+          webhook-url: ${{ secrets.SCHEDULED_REPOS_MATTERMOST_WEBHOOK_URL }}
+          message: |
+            PERFORMANCE TEST - ${{ matrix.repo.name }}
+
+            ${{ steps.get-performance-result.outputs.content }} 
