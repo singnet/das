@@ -52,7 +52,7 @@ void PatternMatchingQueryProcessor::update_attention_broker_single_answer(
     
     shared_ptr<AtomDB> db = AtomDBSingleton::get_instance();
     set<string> single_answer;
-    stack<char*> execution_stack;
+    stack<const char*> execution_stack;
 
     for (unsigned int i = 0; i < answer->handles_size; i++) {
         execution_stack.push(answer->handles[i]);
@@ -80,14 +80,14 @@ void PatternMatchingQueryProcessor::update_attention_broker_single_answer(
         grpc::CreateChannel(ATTENTION_BROKER_ADDRESS,
                             grpc::InsecureChannelCredentials()));
 
-    dasproto::HandleList() handle_list; // GRPC command parameter
+    dasproto::HandleList handle_list; // GRPC command parameter
     dasproto::Ack ack;                  // GRPC command return
     handle_list.set_context(proxy->get_context());
     for (auto handle : single_answer) {
         handle_list.add_list(handle);
     }
     stub->correlate(new grpc::ClientContext(), handle_list, &ack);
-    if (ack->msg() != "CORRELATE") {
+    if (ack.msg() != "CORRELATE") {
         Utils::error("Failed GRPC command: AttentionBroker::correlate()");
     }
 }
@@ -100,15 +100,15 @@ void PatternMatchingQueryProcessor::update_attention_broker_joint_answer(
         grpc::CreateChannel(ATTENTION_BROKER_ADDRESS,
                             grpc::InsecureChannelCredentials()));
 
-    dasproto::HandleCount() handle_count; // GRPC command parameter
+    dasproto::HandleCount handle_count; // GRPC command parameter
     dasproto::Ack ack;                    // GRPC command return
     handle_count.set_context(proxy->get_context());
     for (auto handle : joint_answer) {
-        handle_count.mutable_map()[handle] = 1;
+        (*handle_count.mutable_map())[handle] = 1;
     }
-    handle_count.mutable_map()["SUM"] = joint_answer.size();
+    (*handle_count.mutable_map())["SUM"] = joint_answer.size();
     stub->stimulate(new grpc::ClientContext(), handle_count, &ack);
-    if (ack->msg() != "STIMULATE") {
+    if (ack.msg() != "STIMULATE") {
         Utils::error("Failed GRPC command: AttentionBroker::stimulate()");
     }
 }
@@ -141,11 +141,11 @@ void PatternMatchingQueryProcessor::thread_process_one_query(shared_ptr<PatternM
     if (proxy->args.size() < 2) {
         Utils::error("Syntax error in query command. Missing implicit parameters.");
     }
-    proxy->context = proxy->args[0];
-    proxy->update_attention_broker = (proxy->args[1] == "1");
+    proxy->set_context(proxy->args[0]);
+    proxy->set_attention_update_flag(proxy->args[1] == "1");
     proxy->query_tokens.insert(proxy->query_tokens.begin(), proxy->args.begin() + 2, proxy->args.end());
     shared_ptr<QueryElement> root_query_element = setup_query_tree(proxy);
-    set<string>& joint_answer; // used to stimulate attention broker
+    set<string> joint_answer; // used to stimulate attention broker
     string command = proxy->get_command();
     unsigned int sink_port_number;
     if (command == ServiceBus::PATTERN_MATCHING_QUERY || 
@@ -157,18 +157,18 @@ void PatternMatchingQueryProcessor::thread_process_one_query(shared_ptr<PatternM
         shared_ptr<Sink> query_sink = 
             make_shared<Sink>(root_query_element, local_id);
         unsigned int answer_count = 0;
-        while (! (this->query_sink->is_query_answers_finished() || proxy->is_aborting())) {
+        while (! (query_sink->finished() || proxy->is_aborting())) {
             process_query_answers(proxy, query_sink, joint_answer, answer_count);
             Utils::sleep();
         }
         if (proxy->get_count_flag() && (! proxy->is_aborting())) {
-            proxy->to_remote_peer(PatternMatchingQueryProxy::COUNT, to_string(answer_count));
+            proxy->to_remote_peer(PatternMatchingQueryProxy::COUNT, {std::to_string(answer_count)});
         }
         if (proxy->get_attention_update_flag()) {
             update_attention_broker_joint_answer(proxy, joint_answer);
         }
-        sink.graceful_shutdown();
-        PortPool::return_port(remote_sink_port_number);
+        query_sink->graceful_shutdown();
+        PortPool::return_port(sink_port_number);
     } else {
         Utils::error("Invalid command " + command + " in PatternMatchingQueryProcessor");
     }
@@ -250,7 +250,7 @@ shared_ptr<QueryElement> PatternMatchingQueryProcessor::build_link_template(
                 targets[i] = element_stack.top();
                 element_stack.pop();
             }
-            return make_shared<LinkTemplate<1>>(proxy->query_tokens[cursor + 1], targets, proxy->context);
+            return make_shared<LinkTemplate<1>>(proxy->query_tokens[cursor + 1], targets, proxy->get_context());
         }
         case 2: {
             array<shared_ptr<QueryElement>, 2> targets;
@@ -258,7 +258,7 @@ shared_ptr<QueryElement> PatternMatchingQueryProcessor::build_link_template(
                 targets[i] = element_stack.top();
                 element_stack.pop();
             }
-            return make_shared<LinkTemplate<2>>(proxy->query_tokens[cursor + 1], targets, proxy->context);
+            return make_shared<LinkTemplate<2>>(proxy->query_tokens[cursor + 1], targets, proxy->get_context());
         }
         case 3: {
             array<shared_ptr<QueryElement>, 3> targets;
@@ -266,7 +266,7 @@ shared_ptr<QueryElement> PatternMatchingQueryProcessor::build_link_template(
                 targets[i] = element_stack.top();
                 element_stack.pop();
             }
-            return make_shared<LinkTemplate<3>>(proxy->query_tokens[cursor + 1], targets, proxy->context);
+            return make_shared<LinkTemplate<3>>(proxy->query_tokens[cursor + 1], targets, proxy->get_context());
         }
         case 4: {
             array<shared_ptr<QueryElement>, 4> targets;
@@ -274,7 +274,7 @@ shared_ptr<QueryElement> PatternMatchingQueryProcessor::build_link_template(
                 targets[i] = element_stack.top();
                 element_stack.pop();
             }
-            return make_shared<LinkTemplate<4>>(proxy->query_tokens[cursor + 1], targets, proxy->context);
+            return make_shared<LinkTemplate<4>>(proxy->query_tokens[cursor + 1], targets, proxy->get_context());
         }
         case 5: {
             array<shared_ptr<QueryElement>, 5> targets;
@@ -282,7 +282,7 @@ shared_ptr<QueryElement> PatternMatchingQueryProcessor::build_link_template(
                 targets[i] = element_stack.top();
                 element_stack.pop();
             }
-            return make_shared<LinkTemplate<5>>(proxy->query_tokens[cursor + 1], targets, proxy->context);
+            return make_shared<LinkTemplate<5>>(proxy->query_tokens[cursor + 1], targets, proxy->get_context());
         }
         case 6: {
             array<shared_ptr<QueryElement>, 6> targets;
@@ -290,7 +290,7 @@ shared_ptr<QueryElement> PatternMatchingQueryProcessor::build_link_template(
                 targets[i] = element_stack.top();
                 element_stack.pop();
             }
-            return make_shared<LinkTemplate<6>>(proxy->query_tokens[cursor + 1], targets, proxy->context);
+            return make_shared<LinkTemplate<6>>(proxy->query_tokens[cursor + 1], targets, proxy->get_context());
         }
         case 7: {
             array<shared_ptr<QueryElement>, 7> targets;
@@ -298,7 +298,7 @@ shared_ptr<QueryElement> PatternMatchingQueryProcessor::build_link_template(
                 targets[i] = element_stack.top();
                 element_stack.pop();
             }
-            return make_shared<LinkTemplate<7>>(proxy->query_tokens[cursor + 1], targets, proxy->context);
+            return make_shared<LinkTemplate<7>>(proxy->query_tokens[cursor + 1], targets, proxy->get_context());
         }
         case 8: {
             array<shared_ptr<QueryElement>, 8> targets;
@@ -306,7 +306,7 @@ shared_ptr<QueryElement> PatternMatchingQueryProcessor::build_link_template(
                 targets[i] = element_stack.top();
                 element_stack.pop();
             }
-            return make_shared<LinkTemplate<8>>(proxy->query_tokens[cursor + 1], targets, proxy->context);
+            return make_shared<LinkTemplate<8>>(proxy->query_tokens[cursor + 1], targets, proxy->get_context());
         }
         case 9: {
             array<shared_ptr<QueryElement>, 9> targets;
@@ -314,7 +314,7 @@ shared_ptr<QueryElement> PatternMatchingQueryProcessor::build_link_template(
                 targets[i] = element_stack.top();
                 element_stack.pop();
             }
-            return make_shared<LinkTemplate<9>>(proxy->query_tokens[cursor + 1], targets, proxy->context);
+            return make_shared<LinkTemplate<9>>(proxy->query_tokens[cursor + 1], targets, proxy->get_context());
         }
         case 10: {
             array<shared_ptr<QueryElement>, 10> targets;
@@ -322,7 +322,7 @@ shared_ptr<QueryElement> PatternMatchingQueryProcessor::build_link_template(
                 targets[i] = element_stack.top();
                 element_stack.pop();
             }
-            return make_shared<LinkTemplate<10>>(proxy->query_tokens[cursor + 1], targets, proxy->context);
+            return make_shared<LinkTemplate<10>>(proxy->query_tokens[cursor + 1], targets, proxy->get_context());
         }
         default: {
             Utils::error("PATTERN_MATCHING_QUERY message: max supported arity for LINK_TEMPLATE: 10");

@@ -35,7 +35,7 @@ py_wheel(
     python_requires = ">=3.10",
     python_tag = "cp310",
     stamp = 1,
-    summary = "DAS Node python package",
+    summary = "Query engine python package",
     version = "$(DAS_QUERY_ENGINE_VERSION)",  # must be defined when calling `bazel build` with `--define=DAS_NODE_VERSION=<version>`
     deps = [
         ":hyperon_das_query_engine",

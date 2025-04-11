@@ -23,7 +23,7 @@ class TestQueryElement : public QueryElement {
 TEST(Iterator, basics) {
     string client_id = "no_query_element";
     auto dummy = make_shared<TestQueryElement>(client_id);
-    Iterator<QueryAnswer> query_answer_iterator(dummy);
+    Iterator query_answer_iterator(dummy);
     string server_id = query_answer_iterator.id;
     EXPECT_FALSE(server_id == "");
     QueryNodeClient client_node(client_id, query_answer_iterator.id);
@@ -89,7 +89,7 @@ TEST(Iterator, link_template_integration) {
 
     auto link_template = make_shared<LinkTemplate<3>>(
         "Expression", array<shared_ptr<QueryElement>, 3>({similarity, human, v1}));
-    Iterator<QueryAnswer> query_answer_iterator(link_template);
+    Iterator query_answer_iterator(link_template);
 
     string monkey_handle = string(terminal_hash((char*) symbol.c_str(), (char*) "\"monkey\""));
     string chimp_handle = string(terminal_hash((char*) symbol.c_str(), (char*) "\"chimp\""));

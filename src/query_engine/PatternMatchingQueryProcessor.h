@@ -6,7 +6,7 @@
 #include "BusCommandProcessor.h"
 #include "PatternMatchingQueryProxy.h"
 #include "QueryElement.h"
-#include "QueryNode.h"
+#include "Sink.h"
 
 #define ATTENTION_BROKER_ADDRESS "localhost:37007"
 

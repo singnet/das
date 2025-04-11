@@ -47,6 +47,13 @@ class Sink : public QueryElement {
      */
     virtual void setup_buffers();
 
+    /**
+     * Returns true iff the input_buffer is empty and the answer flow is finished.
+     *
+     * @return true iff the input_buffer is empty and the answer flow is finished.
+     */
+    bool finished();
+
     shared_ptr<QueryNode> input_buffer;
 
    protected:

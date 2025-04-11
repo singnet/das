@@ -114,11 +114,11 @@ QueryAnswer::~QueryAnswer() {}
 
 void QueryAnswer::add_handle(const char* handle) { this->handles[this->handles_size++] = handle; }
 
-QueryAnswer* QueryAnswer::copy(QueryAnswer* base) {  // Static method
-    QueryAnswer* copy = new QueryAnswer(base->importance);
-    copy->assignment.copy_from(base->assignment);
-    copy->handles_size = base->handles_size;
-    memcpy((void*) copy->handles, (const void*) base->handles, base->handles_size * sizeof(char*));
+QueryAnswer* QueryAnswer::copy(QueryAnswer* other) {  // Static method
+    QueryAnswer* copy = new QueryAnswer(other->importance);
+    copy->assignment.copy_from(other->assignment);
+    copy->handles_size = other->handles_size;
+    memcpy((void*) copy->handles, (const void*) other->handles, other->handles_size * sizeof(char*));
     return copy;
 }
 

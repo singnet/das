@@ -64,9 +64,19 @@ const string& PatternMatchingQueryProxy::get_context() {
     return this->context;
 }
 
+void PatternMatchingQueryProxy::set_context(const string& context) {
+    lock_guard<mutex> semaphore(this->api_mutex);
+    this->context = context;
+}
+
 bool PatternMatchingQueryProxy::get_attention_update_flag() {
     lock_guard<mutex> semaphore(this->api_mutex);
     return this->update_attention_broker;
+}
+
+void PatternMatchingQueryProxy::set_attention_update_flag(bool flag) {
+    lock_guard<mutex> semaphore(this->api_mutex);
+    this->update_attention_broker = flag;
 }
 
 const vector<string>& PatternMatchingQueryProxy::get_query_tokens() {
@@ -85,12 +95,12 @@ bool PatternMatchingQueryProxy::finished() {
            (this->count_flag || (this->answer_queue.size() == 0));
 }
 
-unique_ptr<QueryAnswer> PatternMatchingQueryProxy::pop() {
+shared_ptr<QueryAnswer> PatternMatchingQueryProxy::pop() {
     lock_guard<mutex> semaphore(this->api_mutex);
     if (this->count_flag) {
         Utils::error("Can't pop QueryAnswers from count_only queries.");
     }
-    return unique_ptr<QueryAnswer>((QueryAnswer*) this->answer_queue.dequeue());
+    return shared_ptr<QueryAnswer>((QueryAnswer*) this->answer_queue.dequeue());
 }
 
 unsigned int PatternMatchingQueryProxy::get_count() {

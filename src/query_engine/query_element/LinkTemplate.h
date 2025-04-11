@@ -176,14 +176,14 @@ class LinkTemplate : public Source {
             switch (this->inner_template.size()) {
                 case 1: {
                     this->inner_template_iterator =
-                        make_shared<Iterator<QueryAnswer>>(
+                        make_shared<Iterator>(
                             inner_template[0]
                         );
                     break;
                 }
                 case 2: {
                     this->inner_template_iterator = 
-                        make_shared<Iterator<QueryAnswer>>(
+                        make_shared<Iterator>(
                             make_shared<And<2>>(
                                 array<shared_ptr<QueryElement>, 2>(
                                     {
@@ -197,7 +197,7 @@ class LinkTemplate : public Source {
                 }
                 case 3: {
                     this->inner_template_iterator = 
-                        make_shared<Iterator<QueryAnswer>>(
+                        make_shared<Iterator>(
                             make_shared<And<3>>(
                                 array<shared_ptr<QueryElement>, 3>(
                                     {
@@ -212,7 +212,7 @@ class LinkTemplate : public Source {
                 }
                 case 4: {
                     this->inner_template_iterator =
-                        make_shared<Iterator<QueryAnswer>>(
+                        make_shared<Iterator>(
                             make_shared<And<4>>(
                                 array<shared_ptr<QueryElement>, 4>(
                                     {
@@ -493,7 +493,7 @@ class LinkTemplate : public Source {
     bool fetch_finished;
     mutex fetch_finished_mutex;
     shared_ptr<QueryNodeServer> target_buffer[ARITY];
-    shared_ptr<Iterator<QueryAnswer>> inner_template_iterator;
+    shared_ptr<Iterator> inner_template_iterator;
     shared_ptr<atomdb_api_types::AtomDocument>* atom_document;
     QueryAnswer** local_answers;
     unsigned int* next_inner_answer;

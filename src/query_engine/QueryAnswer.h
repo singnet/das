@@ -217,7 +217,7 @@ class QueryAnswer {
      *
      *  A new QueryAnswer object is allocated but the assignment and the handles are shallow-copied.
      */
-    static QueryAnswer* copy(QueryAnswer* base);
+    static QueryAnswer* copy(QueryAnswer* other);
 
     /**
      * Tokenizes the QueryAnswer in a single std::string object (tokens separated by spaces).

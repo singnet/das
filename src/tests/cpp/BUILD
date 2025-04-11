@@ -426,6 +426,7 @@ cc_test(
         "//link_creation_agent:link_creation_agent_lib",
         "@com_github_google_googletest//:gtest_main",
         "//commons:commons_lib",
+        "//service_bus:service_bus_lib",
 
     ],
 )

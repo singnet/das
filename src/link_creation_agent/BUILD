@@ -23,6 +23,7 @@ cc_library(
     ":link_creation_console",
     "//distributed_algorithm_node:distributed_algorithm_node_lib",
     "//query_engine:query_engine_lib",
+    "//service_bus:service_bus_lib",
     "//hasher:hasher_lib",
   ],
 )
@@ -83,5 +84,6 @@ cc_library(
     ":das_agent_node",
     ":link",
     "//query_engine:query_engine_lib",
+    "//commons:commons_lib",
   ],
 )

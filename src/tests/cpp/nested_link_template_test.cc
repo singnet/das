@@ -33,7 +33,7 @@ TEST(LinkTemplate, basics) {
         expression, array<shared_ptr<QueryElement>, 3>({similarity, v1, v2}));
     auto outter_template = make_shared<LinkTemplate<2>>(
         expression, array<shared_ptr<QueryElement>, 2>({odd_link, inner_template}));
-    Iterator<QueryAnswer> iterator(outter_template);
+    Iterator iterator(outter_template);
 
     QueryAnswer* query_answer;
     unsigned int count = 0;
@@ -67,7 +67,7 @@ TEST(LinkTemplate, nested_variables) {
     auto and_operator =
         make_shared<And<2>>(array<shared_ptr<QueryElement>, 2>({human_template, outter_template}));
 
-    Iterator<QueryAnswer> iterator(and_operator);
+    Iterator iterator(and_operator);
 
     QueryAnswer* query_answer;
     unsigned int count = 0;

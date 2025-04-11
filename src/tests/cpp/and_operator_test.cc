@@ -37,10 +37,10 @@ class TestSource : public Source {
     void query_answers_finished() { return this->output_buffer->query_answers_finished(); }
 };
 
-class TestSink : public Sink<QueryAnswer> {
+class TestSink : public Sink {
    public:
     TestSink(shared_ptr<QueryElement> precedent)
-        : Sink<QueryAnswer>(precedent, "TestSink(" + precedent->id + ")") {}
+        : Sink(precedent, "TestSink(" + precedent->id + ")") {}
     ~TestSink() {}
     bool empty() { return this->input_buffer->is_query_answers_empty(); }
     bool finished() { return this->input_buffer->is_query_answers_finished(); }

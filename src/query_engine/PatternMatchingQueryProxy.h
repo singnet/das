@@ -30,7 +30,9 @@ public:
     bool is_aborting();
     void abort();
     const string& get_context();
+    void set_context(const string& context);
     bool get_attention_update_flag();
+    void set_attention_update_flag(bool flag);
     const vector<string>& get_query_tokens();
     bool get_count_flag();
 
@@ -41,13 +43,15 @@ public:
     void from_remote_peer(const string& command, const vector<string>& args) override;
 
     bool finished();
-    unique_ptr<QueryAnswer> pop();
+    shared_ptr<QueryAnswer> pop();
     unsigned int get_count();
 
     static string ABORT;
     static string ANSWER_BUNDLE;
     static string COUNT;
     static string FINISHED;
+
+    vector<string> query_tokens;
 
 private:
 
@@ -58,7 +62,6 @@ private:
     bool answer_flow_finished;
     string context;
     bool update_attention_broker;
-    vector<string> query_tokens;
     bool count_flag;
 
     void init();
