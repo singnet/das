@@ -48,7 +48,9 @@ class AttentionBrokerUpdater:
 
             with grpc.insecure_channel(self.attention_broker_address) as channel:
                 stub = AttentionBrokerStub(channel)
-                message = attention__broker__pb2.HandleList(list=list(single_answer), context=self.context)
+                message = attention__broker__pb2.HandleList(
+                    list=list(single_answer), context=self.context
+                )
                 response = stub.correlate(message)
                 if response.msg != "CORRELATE":
                     print("Failed GRPC command: AttentionBroker.correlate()")

@@ -1,5 +1,5 @@
 load("@rules_python//python:defs.bzl", "py_library")
-load("@pypi//:requirements.bzl", "requirement")
+load("@pypi_das//:requirements.bzl", "requirement")
 
 
 package(default_visibility = ["//visibility:public"])

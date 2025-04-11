@@ -313,7 +313,7 @@ class LinkTemplate : public Source {
 #endif
         shared_ptr<AtomDB> db = AtomDBSingleton::get_instance();
         this->fetch_result = db->query_for_pattern(this->handle);
-        unsigned int answer_count = this->fetch_result.size();
+        unsigned int answer_count = this->fetch_result->size();
 #ifdef DEBUG
         cout << "fetch_links() ac: " << answer_count << endl;
 #endif
@@ -322,8 +322,10 @@ class LinkTemplate : public Source {
         if (answer_count > 0) {
             dasproto::HandleList handle_list;
             handle_list.set_context(this->context);
-            for (unsigned int i = 0; i < answer_count; i++) {
-                handle_list.add_list(this->fetch_result[i].c_str());
+            auto it = this->fetch_result->get_iterator();
+            char* handle;
+            while ((handle = it->next()) != nullptr) {
+                handle_list.add_list(handle);
             }
             dasproto::ImportanceList importance_list;
             get_importance(handle_list, importance_list);
@@ -335,9 +337,11 @@ class LinkTemplate : public Source {
             this->atom_document = new shared_ptr<atomdb_api_types::AtomDocument>[answer_count];
             this->local_answers = new QueryAnswer*[answer_count];
             this->next_inner_answer = new unsigned int[answer_count];
-            for (unsigned int i = 0; i < answer_count; i++) {
-                this->atom_document[i] = db->get_atom_document(this->fetch_result[i].c_str());
-                query_answer = new QueryAnswer(this->fetch_result[i].c_str(), importance_list.list(i));
+            it = this->fetch_result->get_iterator();
+            unsigned int i = 0;
+            while ((handle = it->next()) != nullptr) {
+                this->atom_document[i] = db->get_atom_document(handle);
+                query_answer = new QueryAnswer(handle, importance_list.list(i));
                 const char* s = this->atom_document[i]->get("targets", 0);
                 for (unsigned int j = 0; j < this->arity; j++) {
                     if (this->target_template[j]->is_terminal) {
@@ -353,6 +357,7 @@ class LinkTemplate : public Source {
                     }
                 }
                 fetched_answers.push_back(query_answer);
+                i++;
             }
             std::sort(fetched_answers.begin(), fetched_answers.end(), less_than_query_answer());
             for (unsigned int i = 0; i < answer_count; i++) {
@@ -485,7 +490,7 @@ class LinkTemplate : public Source {
     unsigned int arity;
     shared_ptr<char> handle;
     char* handle_keys[ARITY + 1];
-    vector<string> fetch_result;
+    shared_ptr<atomdb_api_types::HandleSet> fetch_result;
     vector<shared_ptr<atomdb_api_types::AtomDocument>> atom_documents;
     vector<shared_ptr<QueryElement>> inner_template;
     SharedQueue local_buffer;
