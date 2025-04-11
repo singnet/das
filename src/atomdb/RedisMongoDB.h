@@ -11,6 +11,7 @@
 #include <vector>
 
 #include "AtomDB.h"
+#include "AtomDBCacheSingleton.h"
 #include "RedisMongoDBAPITypes.h"
 
 using namespace std;
@@ -54,6 +55,7 @@ class RedisMongoDB : public AtomDB {
     mongocxx::v_noabi::collection mongodb_collection;
     mutex mongodb_mutex;
     mongocxx::pool* mongodb_pool;
+    shared_ptr<AtomDBCache> atomdb_cache;
 
     mongocxx::database get_database();
 

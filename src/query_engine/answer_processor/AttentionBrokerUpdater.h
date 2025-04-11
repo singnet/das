@@ -142,7 +142,7 @@ class AttentionBrokerUpdater : public QueryAnswerProcessor {
                     // joint_answer->insert(handle, new AccumulatorValue());
                     //  Gets targets and stack them
                     query_result = db->query_for_targets((char*) handle.c_str());
-                    if (query_result != NULL) {  // if handle is link
+                    if (query_result != nullptr) {  // if handle is link
                         unsigned int query_result_size = query_result->size();
                         for (unsigned int i = 0; i < query_result_size; i++) {
                             execution_stack.push(string(query_result->get_handle(i)));
