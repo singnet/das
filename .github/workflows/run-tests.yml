@@ -72,13 +72,13 @@ jobs:
 
       - name: Install dependencies
         run: sudo apt-get update && \
-          sudo apt-get install -y pv
+          apt-get install -y pv
 
       - name: Build all targets
         run: make build-all
 
       - name: Start MongoDB and Redis
-        run: sudo bash ./src/tests/integration/performance/start_mongo_and_redis.sh
+        run: bash ./src/tests/integration/performance/start_mongo_and_redis.sh
 
       - name: Run performance tests
         run: make performance-tests
