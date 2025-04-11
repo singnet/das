@@ -2,7 +2,7 @@
 
 set -eou pipefail
 
-DATA_FOLDER="$HOME/.cache/das"
+DATA_FOLDER="/home/ubuntu/.cache/das"
 
 # This script is used to start MongoDB and Redis for performance testing.
 
