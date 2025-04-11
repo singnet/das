@@ -143,4 +143,5 @@ TEST(PatternMatchingQuery, queries) {
     check_query(q4, q4_expected_count, &client_bus, "DASNode.queries", true);
     check_query(q5, q5_expected_count, &client_bus, "DASNode.queries", true);
     */
+    Utils::sleep(5000);
 }
