@@ -3,6 +3,7 @@
 #include <iostream>
 #include <string>
 
+#include "AtomDBCacheSingleton.h"
 #include "AtomDBSingleton.h"
 #include "DASNode.h"
 #include "Utils.h"
@@ -25,6 +26,7 @@ int main(int argc, char* argv[]) {
 
     string server_id = "0.0.0.0:" + string(argv[1]);
     signal(SIGINT, &ctrl_c_handler);
+    AtomDBCacheSingleton::init();
     AtomDBSingleton::init();
     DASNode server(server_id);
     cout

@@ -45,7 +45,7 @@ cc_library(
   deps = [
     ":atomdb",
     ":redis_mongodb_api_types",
-    ":atomdb_cache",
+    ":atomdb_cache_singleton",
     "//attention_broker:attention_broker_server_lib",
     "//commons:commons_lib",
   ],
@@ -58,5 +58,17 @@ cc_library(
   includes = ["."],
   deps = [
     ":atomdb_api_types",
+    "//commons:logger",
+  ],
+)
+
+cc_library(
+  name = "atomdb_cache_singleton",
+  srcs = ["AtomDBCacheSingleton.cc"],
+  hdrs = ["AtomDBCacheSingleton.h"],
+  includes = ["."],
+  deps = [
+    ":atomdb_cache",
+    "//commons:utils",
   ],
 )

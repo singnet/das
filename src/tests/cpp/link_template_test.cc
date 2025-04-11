@@ -1,5 +1,6 @@
 #include <cstdlib>
 
+#include "AtomDBCacheSingleton.h"
 #include "AtomDBSingleton.h"
 #include "HandlesAnswer.h"
 #include "LinkTemplate.h"
@@ -22,6 +23,7 @@ TEST(LinkTemplate, basics) {
     string server_node_id = "SERVER";
     QueryNodeServer<HandlesAnswer> server_node(server_node_id);
 
+    AtomDBCacheSingleton::init();
     AtomDBSingleton::init();
     string expression = "Expression";
     string symbol = "Symbol";

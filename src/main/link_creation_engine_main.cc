@@ -4,6 +4,7 @@
 #include <stack>
 #include <string>
 
+#include "AtomDBCacheSingleton.h"
 #include "AtomDBSingleton.h"
 #include "DASNode.h"
 #include "QueryAnswer.h"
@@ -204,6 +205,7 @@ void run(const string& context, const string& link_type_tag, const set<string> h
     string server_id = "0.0.0.0:31700";
     string client_id = "0.0.0.0:31701";
 
+    AtomDBCacheSingleton::init();
     AtomDBSingleton::init();
     shared_ptr<AtomDB> db = AtomDBSingleton::get_instance();
 

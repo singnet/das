@@ -27,7 +27,7 @@ RedisMongoDB::RedisMongoDB() {
     mongodb_setup();
     attention_broker_setup();
     bool disable_cache = (Utils::get_environment("DAS_DISABLE_ATOMDB_CACHE") == "true");
-    this->atomdb_cache = disable_cache ? nullptr : AtomDBCache::get_instance();
+    this->atomdb_cache = disable_cache ? nullptr : AtomDBCacheSingleton::get_instance();
 }
 
 RedisMongoDB::~RedisMongoDB() {

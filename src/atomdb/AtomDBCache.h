@@ -18,21 +18,21 @@ namespace atomdb {
  * This class is a simple cache for results from the AtomDB. It stores the results in memory
  * and returns them directly if they are already cached.
  *
- * @note This class is designed to be used as a singleton.
+ * @note This class can be instantiated as a singleton with the AtomDBCacheSingleton class.
  */
 class AtomDBCache {
    public:
     /**
+     * @brief Constructor.
+     *
+     * The constructor is private to ensure that the correct instance is created.
+     */
+    AtomDBCache() {}
+
+    /**
      * @brief Destructor.
      */
     virtual ~AtomDBCache() {}
-
-    /**
-     * @brief Get the instance of this class.
-     *
-     * @return The instance of this class.
-     */
-    static shared_ptr<AtomDBCache> get_instance();
 
     /**
      * @brief Get an atom document from the cache.
@@ -84,16 +84,6 @@ class AtomDBCache {
     void add_handle_list(const char* link_handle, shared_ptr<atomdb_api_types::HandleList> results);
 
    private:
-    /**
-     * @brief Constructor.
-     *
-     * The constructor is private to ensure that the correct instance is created.
-     */
-    AtomDBCache() {}
-
-    static shared_ptr<AtomDBCache> instance;
-    static mutex instance_mutex;
-
     /**
      * @brief The cache for atom documents.
      */

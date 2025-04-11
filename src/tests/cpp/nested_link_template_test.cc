@@ -1,5 +1,6 @@
 #include <cstdlib>
 
+#include "AtomDBCacheSingleton.h"
 #include "AtomDBSingleton.h"
 #include "HandlesAnswer.h"
 #include "LinkTemplate.h"
@@ -19,6 +20,7 @@ TEST(LinkTemplate, basics) {
     setenv("DAS_MONGODB_USERNAME", "dbadmin", 1);
     setenv("DAS_MONGODB_PASSWORD", "dassecret", 1);
 
+    AtomDBCacheSingleton::init();
     AtomDBSingleton::init();
 
     string expression = "Expression";
