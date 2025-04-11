@@ -2,7 +2,6 @@
 
 #include <cstdlib>
 
-#include "AtomDBCacheSingleton.h"
 #include "AtomDBSingleton.h"
 #include "HandlesAnswer.h"
 #include "LinkTemplate.h"
@@ -78,7 +77,6 @@ TEST(Iterator, link_template_integration) {
     setenv("DAS_MONGODB_USERNAME", "dbadmin", 1);
     setenv("DAS_MONGODB_PASSWORD", "dassecret", 1);
 
-    AtomDBCacheSingleton::init();
     AtomDBSingleton::init();
     string expression = "Expression";
     string symbol = "Symbol";

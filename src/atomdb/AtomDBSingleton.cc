@@ -1,5 +1,6 @@
 #include "AtomDBSingleton.h"
 
+#include "AtomDBCacheSingleton.h"
 #include "Utils.h"
 
 using namespace atomdb;
@@ -15,6 +16,7 @@ void AtomDBSingleton::init() {
         Utils::error(
             "AtomDBSingleton already initialized. AtomDBSingleton::init() should be called only once.");
     } else {
+        AtomDBCacheSingleton::init();
         RedisMongoDB::initialize_statics();
         AtomDBSingleton::atom_db = shared_ptr<AtomDB>(new RedisMongoDB());
         AtomDBSingleton::initialized = true;

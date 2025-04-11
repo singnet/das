@@ -1,6 +1,5 @@
 #include <cstdlib>
 
-#include "AtomDBCacheSingleton.h"
 #include "AtomDBSingleton.h"
 #include "DASNode.h"
 #include "HandlesAnswer.h"
@@ -85,7 +84,6 @@ TEST(DASNode, queries) {
     setenv("DAS_MONGODB_PORT", "28000", 1);
     setenv("DAS_MONGODB_USERNAME", "dbadmin", 1);
     setenv("DAS_MONGODB_PASSWORD", "dassecret", 1);
-    AtomDBCacheSingleton::init();
     AtomDBSingleton::init();
 
     string das_id = "localhost:31700";

@@ -31,6 +31,7 @@ cc_library(
   srcs = ["AtomDBSingleton.cc"],
   hdrs = ["AtomDBSingleton.h"],
   deps = [
+    ":atomdb_cache_singleton",
     ":redis_mongodb",
     "//atomdb:atomdb_api_types",
     "//commons:commons_lib",

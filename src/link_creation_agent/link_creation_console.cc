@@ -1,6 +1,5 @@
 #include "link_creation_console.h"
 
-#include "AtomDBCacheSingleton.h"
 #include "AtomDBSingleton.h"
 
 using namespace link_creation_agent;
@@ -12,7 +11,6 @@ shared_ptr<Console> Console::console_instance = nullptr;
 shared_ptr<Console> Console::get_instance() {
     if (!console_instance) {
         console_instance = shared_ptr<Console>(new Console());
-        AtomDBCacheSingleton::init();
         AtomDBSingleton::init();
     }
     return console_instance;
