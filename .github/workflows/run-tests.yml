@@ -71,7 +71,7 @@ jobs:
 
   performance:
     runs-on: self-hosted
-    if: github.event.inputs.performance == true
+    if: github.event.inputs.performance == 'true'
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
