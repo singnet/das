@@ -71,8 +71,9 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Install dependencies
-        run: sudo apt update -y && \
-          sudo apt install -y pv
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y pv
 
       - name: Build all targets
         run: make build-all
