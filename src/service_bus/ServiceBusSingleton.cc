@@ -1,6 +1,8 @@
 #include "ServiceBusSingleton.h"
-
 #include "Utils.h"
+
+#define LOG_LEVEL DEBUG_LEVEL
+#include "Logger.h"
 
 using namespace service_bus;
 using namespace commons;

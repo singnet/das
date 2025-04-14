@@ -1,7 +1,9 @@
 #include "BusCommandProxy.h"
 #include "PortPool.h"
-
 #include "Utils.h"
+
+#define LOG_LEVEL DEBUG_LEVEL
+#include "Logger.h"
 
 using namespace service_bus;
 
@@ -77,6 +79,7 @@ string BusCommandProxy::peer_id() { return this->proxy_node->peer_id; }
 // ProxyNode API
 
 void ProxyNode::remote_call(const string& command, const vector<string>& args) {
+    LOG_DEBUG("Remote command: " << command << " arrived at ProxyNode " << this->node_id());
     this->proxy->from_remote_peer(command, args);
 }
 

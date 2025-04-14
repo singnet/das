@@ -40,7 +40,6 @@ namespace service_bus {
  * (TODO: update this list and add hints for commands' arguments)
  *
  * - PATTERN_MATCHING_QUERY
- * - COUNTING_QUERY
  *
  * Command processors must extend BusCommandProcessor and be registered by calling
  * register_processor(). Command issuers must create BusCommandProxy objects in order
@@ -101,7 +100,6 @@ class ServiceBus {
    public:
 
     static string PATTERN_MATCHING_QUERY;
-    static string COUNTING_QUERY;
 
     /**
      * Registers a processor making it take the ownership of one or more bus commands.
@@ -131,23 +129,18 @@ class ServiceBus {
      */
     static void initialize_statics(const set<string>& commands = {},
                                    unsigned int port_lower = 64000,
-                                   unsigned int port_upper = 64999) {
-        if (commands.size() > 0) {
-            for (auto command : commands) {
-                SERVICE_LIST.insert(command);
-            }
-        } else {
-            SERVICE_LIST.insert(PATTERN_MATCHING_QUERY);
-            SERVICE_LIST.insert(COUNTING_QUERY);
-        }
-        PortPool::initialize_statics(port_lower, port_upper);
-    }
+                                   unsigned int port_upper = 64999);
 
     /**
      * Constructor is not actually part of the API, it's supposed to be called
      * by ServiceBusSingleton. It's kept public to make it easier to write unit tests.
      */
     ServiceBus(const string& host_id, const string& known_peer = "");
+
+    /**
+     * Destructor
+     */
+    ~ServiceBus();
 };
 
 }  // namespace service_bus

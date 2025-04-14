@@ -3,6 +3,9 @@
 #include "MessageBroker.h"
 #include "Utils.h"
 
+#define LOG_LEVEL DEBUG_LEVEL
+#include "Logger.h"
+
 using namespace query_node;
 using namespace std;
 
@@ -32,26 +35,16 @@ QueryNode::QueryNode(const string& node_id,
 }
 
 QueryNode::~QueryNode() {
-#ifdef DEBUG
-    cout << "QueryNode::~QueryNode() BEGIN" << endl;
-#endif
+    LOG_DEBUG("Destroying QueryNode " << this->node_id());
     this->graceful_shutdown();
     while (!this->query_answer_queue.empty()) {
         delete (QueryAnswer*) this->query_answer_queue.dequeue();
     }
-#ifdef DEBUG
-    cout << "QueryNode::~QueryNode() END" << endl;
-#endif
+    LOG_DEBUG("Destroying QueryNode " << this->node_id() << " DONE");
 }
 
 void QueryNode::graceful_shutdown() {
-#ifdef DEBUG
-    cout << "QueryNode::graceful_shutdown() BEGIN" << endl;
-#endif
     if (is_shutting_down()) {
-#ifdef DEBUG
-        cout << "QueryNode::graceful_shutdown() END (already shutting down)" << endl;
-#endif
         return;
     }
     DistributedAlgorithmNode::graceful_shutdown();
@@ -63,9 +56,6 @@ void QueryNode::graceful_shutdown() {
         delete this->query_answer_processor;
         this->query_answer_processor = NULL;
     }
-#ifdef DEBUG
-    cout << "QueryNode::graceful_shutdown() END" << endl;
-#endif
 }
 
 bool QueryNode::is_shutting_down() {

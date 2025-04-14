@@ -1,6 +1,9 @@
 #include "ServiceBus.h"
 #include "PatternMatchingQueryProxy.h"
 
+#define LOG_LEVEL DEBUG_LEVEL
+#include "Logger.h"
+
 using namespace query_engine;
 
 string PatternMatchingQueryProxy::ABORT = "abort";
@@ -28,11 +31,7 @@ PatternMatchingQueryProxy::PatternMatchingQueryProxy(
 
     lock_guard<mutex> semaphore(this->api_mutex);
     init();
-    if (count_only) {
-        this->command = ServiceBus::COUNTING_QUERY;
-    } else {
-        this->command = ServiceBus::PATTERN_MATCHING_QUERY;
-    }
+    this->command = ServiceBus::PATTERN_MATCHING_QUERY;
     this->count_flag = count_only;
     this->args = {context, to_string(update_attention_broker)};
     this->args.insert(this->args.end(), tokens.begin(), tokens.end());
@@ -149,8 +148,7 @@ void PatternMatchingQueryProxy::abort(const vector<string>& args) {
 
 void PatternMatchingQueryProxy::from_remote_peer(const string& command, const vector<string>& args) {
     lock_guard<mutex> semaphore(this->api_mutex);
-    cout << "XXXXXX from_remote_peer() my_id: " << my_id() << " peer_id: " << peer_id() << endl;
-    cout << "XXXXXX from_remote_peer() command: " << command << endl;
+    LOG_DEBUG("Proxy command: " << command << " from " << this->peer_id() << " received by " << this->my_id());
     if (command == ANSWER_BUNDLE) {
         answer_bundle(args);
     } else if (command == COUNT) {
@@ -162,5 +160,4 @@ void PatternMatchingQueryProxy::from_remote_peer(const string& command, const ve
     } else {
         Utils::error("Invalid proxy command: " + command);
     }
-    cout << "XXXXXX from_remote_peer() Done" << endl;
 }

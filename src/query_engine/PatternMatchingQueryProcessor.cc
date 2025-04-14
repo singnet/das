@@ -8,6 +8,9 @@
 #include "Terminal.h"
 #include "Sink.h"
 
+#define LOG_LEVEL DEBUG_LEVEL
+#include "Logger.h"
+
 using namespace atomdb;
 
 // -------------------------------------------------------------------------------------------------
@@ -35,6 +38,7 @@ shared_ptr<BusCommandProxy> PatternMatchingQueryProcessor::factory_empty_proxy()
 void PatternMatchingQueryProcessor::run_command(shared_ptr<BusCommandProxy> proxy) {
     lock_guard<mutex> semaphore(this->query_threads_mutex);
     auto query_proxy = dynamic_pointer_cast<PatternMatchingQueryProxy>(proxy);
+    LOG_DEBUG("Starting new thread to run command: " << proxy->get_command());
     this->query_threads.push_back(
         new thread(&PatternMatchingQueryProcessor::thread_process_one_query, 
         this, 
@@ -144,12 +148,12 @@ void PatternMatchingQueryProcessor::thread_process_one_query(shared_ptr<PatternM
     proxy->set_context(proxy->args[0]);
     proxy->set_attention_update_flag(proxy->args[1] == "1");
     proxy->query_tokens.insert(proxy->query_tokens.begin(), proxy->args.begin() + 2, proxy->args.end());
+    LOG_DEBUG("Setting up query tree");
     shared_ptr<QueryElement> root_query_element = setup_query_tree(proxy);
     set<string> joint_answer; // used to stimulate attention broker
     string command = proxy->get_command();
     unsigned int sink_port_number;
-    if (command == ServiceBus::PATTERN_MATCHING_QUERY || 
-        command == ServiceBus::COUNTING_QUERY) {
+    if (command == ServiceBus::PATTERN_MATCHING_QUERY) {
         sink_port_number = PortPool::get_port();
         string id = proxy->my_id();
         string host = id.substr(0, id.find(":"));
@@ -157,14 +161,17 @@ void PatternMatchingQueryProcessor::thread_process_one_query(shared_ptr<PatternM
         shared_ptr<Sink> query_sink = 
             make_shared<Sink>(root_query_element, local_id);
         unsigned int answer_count = 0;
+        LOG_DEBUG("Processing QueryAnswer objects");
         while (! (query_sink->finished() || proxy->is_aborting())) {
             process_query_answers(proxy, query_sink, joint_answer, answer_count);
             Utils::sleep();
         }
         if (proxy->get_count_flag() && (! proxy->is_aborting())) {
+            LOG_DEBUG("Answering count_only query");
             proxy->to_remote_peer(PatternMatchingQueryProxy::COUNT, {std::to_string(answer_count)});
         }
         if (proxy->get_attention_update_flag()) {
+            LOG_DEBUG("Updating AttentionBroker (stimulate)");
             update_attention_broker_joint_answer(proxy, joint_answer);
         }
         query_sink->graceful_shutdown();
@@ -172,6 +179,7 @@ void PatternMatchingQueryProcessor::thread_process_one_query(shared_ptr<PatternM
     } else {
         Utils::error("Invalid command " + command + " in PatternMatchingQueryProcessor");
     }
+    LOG_DEBUG("Command finished: " << proxy->get_command());
     // TODO add a call to join/delete/remove thread
 }
 
