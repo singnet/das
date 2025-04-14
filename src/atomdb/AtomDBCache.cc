@@ -5,14 +5,14 @@
 using namespace std;
 using namespace atomdb;
 
-shared_ptr<atomdb_api_types::AtomDocument> AtomDBCache::get_atom_document(const char* handle) {
+AtomDBCache::GetAtomDocumentResult AtomDBCache::get_atom_document(const char* handle) {
     lock_guard<mutex> lock(atom_doc_cache_mutex);
     if (atom_doc_cache.find(handle) != atom_doc_cache.end()) {
         LOG_DEBUG("cache hit " << handle);
-        return atom_doc_cache[handle];
+        return {true, atom_doc_cache[handle]};
     }
     LOG_DEBUG("cache miss " << handle);
-    return nullptr;
+    return {false, nullptr};
 }
 
 void AtomDBCache::add_atom_document(const char* handle,
@@ -21,14 +21,14 @@ void AtomDBCache::add_atom_document(const char* handle,
     atom_doc_cache[handle] = document;
 }
 
-shared_ptr<atomdb_api_types::HandleSet> AtomDBCache::query_for_pattern(const char* pattern_handle) {
+AtomDBCache::QueryForPatternResult AtomDBCache::query_for_pattern(const char* pattern_handle) {
     lock_guard<mutex> lock(pattern_matching_cache_mutex);
     if (pattern_matching_cache.find(pattern_handle) != pattern_matching_cache.end()) {
         LOG_DEBUG("cache hit " << pattern_handle);
-        return pattern_matching_cache[pattern_handle];
+        return {true, pattern_matching_cache[pattern_handle]};
     }
     LOG_DEBUG("cache miss " << pattern_handle);
-    return nullptr;
+    return {false, nullptr};
 }
 
 void AtomDBCache::add_pattern_matching(const char* pattern_handle,
@@ -37,14 +37,14 @@ void AtomDBCache::add_pattern_matching(const char* pattern_handle,
     pattern_matching_cache[pattern_handle] = results;
 }
 
-shared_ptr<atomdb_api_types::HandleList> AtomDBCache::query_for_targets(const char* link_handle) {
+AtomDBCache::QueryForTargetsResult AtomDBCache::query_for_targets(const char* link_handle) {
     lock_guard<mutex> lock(handle_list_cache_mutex);
     if (handle_list_cache.find(link_handle) != handle_list_cache.end()) {
         LOG_DEBUG("cache hit " << link_handle);
-        return handle_list_cache[link_handle];
+        return {true, handle_list_cache[link_handle]};
     }
     LOG_DEBUG("cache miss " << link_handle);
-    return nullptr;
+    return {false, nullptr};
 }
 
 void AtomDBCache::add_handle_list(const char* link_handle,
