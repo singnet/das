@@ -28,7 +28,7 @@ class Terminal : public QueryElement {
     Terminal() : QueryElement() {
         this->handle = shared_ptr<char>{};
         this->is_variable = false;
-        this->is_terminal = true;  // overrrides QueryElement default
+        this->is_terminal = true;  // overrides QueryElement default
     }
 
    public:
@@ -122,7 +122,7 @@ class Link : public Terminal {
      * @params targets Array with targets of the Link. Targets are supposed to be
      *         handles (i.e. strings). No nesting of Nodes or other Links are allowed.
      */
-    Link(const string& type, const array<QueryElement*, ARITY>& targets) : Terminal() {
+    Link(const string& type, const array<shared_ptr<QueryElement>, ARITY>& targets) : Terminal() {
         this->name = "";
         this->type = type;
         this->targets = targets;
@@ -130,8 +130,9 @@ class Link : public Terminal {
         char* handle_keys[ARITY + 1];
         handle_keys[0] = (char*) named_type_hash((char*) type.c_str());
         for (unsigned int i = 1; i < (ARITY + 1); i++) {
-            if (targets[i - 1]->is_terminal && !((Terminal*) targets[i - 1])->is_variable) {
-                handle_keys[i] = ((Terminal*) targets[i - 1])->handle.get();
+            if (targets[i - 1]->is_terminal &&
+                !dynamic_pointer_cast<Terminal>(targets[i - 1])->is_variable) {
+                handle_keys[i] = dynamic_pointer_cast<Terminal>(targets[i - 1])->handle.get();
             } else {
                 Utils::error("Invalid Link definition");
             }
@@ -148,7 +149,7 @@ class Link : public Terminal {
     string to_string() {
         string answer = "(" + this->type + ", [";
         for (unsigned int i = 0; i < this->arity; i++) {
-            answer += ((Terminal*) this->targets[i])->to_string();
+            answer += dynamic_pointer_cast<Terminal>(this->targets[i])->to_string();
             if (i != (this->arity - 1)) {
                 answer += ", ";
             }
@@ -170,7 +171,7 @@ class Link : public Terminal {
     /**
      * Targets of the Link.
      */
-    array<QueryElement*, ARITY> targets;
+    array<shared_ptr<QueryElement>, ARITY> targets;
 };
 
 // -------------------------------------------------------------------------------------------------

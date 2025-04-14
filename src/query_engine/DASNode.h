@@ -64,23 +64,23 @@ class PatternMatchingQuery : public Message {
     static LazyWorkerDeleter<RemoteSink<HandlesAnswer>> remote_sinks_deleter;
 
    private:
-    QueryElement* build_link_template(vector<string>& tokens,
+    shared_ptr<QueryElement> build_link_template(vector<string>& tokens,
+                                                 unsigned int cursor,
+                                                 stack<shared_ptr<QueryElement>>& element_stack);
+
+    shared_ptr<QueryElement> build_and(vector<string>& tokens,
+                                       unsigned int cursor,
+                                       stack<shared_ptr<QueryElement>>& element_stack);
+
+    shared_ptr<QueryElement> build_or(vector<string>& tokens,
                                       unsigned int cursor,
-                                      stack<QueryElement*>& element_stack);
+                                      stack<shared_ptr<QueryElement>>& element_stack);
 
-    QueryElement* build_and(vector<string>& tokens,
-                            unsigned int cursor,
-                            stack<QueryElement*>& element_stack);
+    shared_ptr<QueryElement> build_link(vector<string>& tokens,
+                                        unsigned int cursor,
+                                        stack<shared_ptr<QueryElement>>& element_stack);
 
-    QueryElement* build_or(vector<string>& tokens,
-                           unsigned int cursor,
-                           stack<QueryElement*>& element_stack);
-
-    QueryElement* build_link(vector<string>& tokens,
-                             unsigned int cursor,
-                             stack<QueryElement*>& element_stack);
-
-    QueryElement* root_query_element;
+    shared_ptr<QueryElement> root_query_element;
     string requestor_id;
     string context;
     string command;

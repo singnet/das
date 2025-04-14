@@ -60,10 +60,15 @@ class LazyWorkerDeleter {
     void objects_deleter_method() {
         T* obj;
         while (!this->shutting_down_flag) {
+            // clang-format off
             {
                 lock_guard<mutex> lock(this->objects_mutex);
-                for (size_t count = 0; count < this->objects.size() && !this->shutting_down_flag;
-                     count++) {
+                
+                for (
+                    size_t count = 0;
+                    count < this->objects.size() && !this->shutting_down_flag;
+                    count++
+                ) {
                     obj = this->objects.front();
                     if (obj->is_work_done()) {
                         this->objects.erase(this->objects.begin());
@@ -71,10 +76,16 @@ class LazyWorkerDeleter {
                     }
                     commons::Utils::sleep(100);  // 100ms
                 }
+                
             }
-            for (size_t i = 0; i < 50 && !this->shutting_down_flag; i++) {
+            for (
+                size_t i = 0;
+                i < 50 && !this->shutting_down_flag;
+                i++
+            ) {
                 commons::Utils::sleep(100);  // 100ms x 50 = 5s
             }
+            // clang-format on
         }
     }
 };

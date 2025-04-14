@@ -1,15 +1,20 @@
-# TODO: merge `utils` and `commons` (https://github.com/singnet/das/issues/181)
-
 package(default_visibility = ["//visibility:public"])
 
 cc_library(
     name = "commons_lib",
-    hdrs = ["RequestValidator.h"],
     includes = ["."],
     deps = [
-      ":utils",
-      ":shared_queue",
+        ":logger",
+        ":request_validator",
+        ":shared_queue",
+        ":utils",
     ],
+)
+
+cc_library(
+    name = "request_validator",
+    hdrs = ["RequestValidator.h"],
+    deps = [],
 )
 
 cc_library(
@@ -23,5 +28,11 @@ cc_library(
     name = "shared_queue",
     srcs = ["SharedQueue.cc"],
     hdrs = ["SharedQueue.h"],
+    deps = [],
+)
+
+cc_library(
+    name = "logger",
+    hdrs = ["Logger.h"],
     deps = [],
 )

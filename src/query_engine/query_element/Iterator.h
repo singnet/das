@@ -25,7 +25,7 @@ class Iterator : public Sink<AnswerType> {
     /**
      * Constructor expects that the QueryElement below in the tree is already constructed.
      */
-    Iterator(QueryElement* precedent, bool delete_precedent_on_destructor = false);
+    Iterator(shared_ptr<QueryElement> precedent);
     ~Iterator();
 
     // --------------------------------------------------------------------------------------------

@@ -1,9 +1,10 @@
-#ifndef _SERVICE_BUS_BUSCOMMANDPROCESSOR_H
-#define _SERVICE_BUS_BUSCOMMANDPROCESSOR_H
+#pragma once
 
 #include <set>
 #include <string>
 #include <vector>
+
+#include "BusCommandProxy.h"
 
 using namespace std;
 
@@ -12,8 +13,14 @@ namespace service_bus {
 /**
  * Bus element responsible for processing of one or more bus commands.
  *
- * Subclasses must provide concrete implementation of run_command(), which
+ * Concrete subclasses must provide concrete implementation of run_command(), which
  * is the method called when one of the taken commands are issued in the bus.
+ *
+ * Whenever a new command processor is implemented, it's required to implement a
+ * concrete subclass of BusCommandProxy as well (or reuse some other concrete
+ * subclass). Anyway, the processor is required to define which subclass to use as
+ * it must implement the virtual method factory_empty_proxy() which is supposed to
+ * return an empty object of the proper BusCommandProxy.
  */
 class BusCommandProcessor {
     friend class ServiceBus;
@@ -25,12 +32,26 @@ class BusCommandProcessor {
      * @param commands Set of commands owned by the BusCommandProcessor
      */
     BusCommandProcessor(const set<string>& commands);
+
+    /**
+     * Desctructor.
+     */
     virtual ~BusCommandProcessor() {}
 
     // ---------------------------------------------------------------------------------------------
-    // Virtual API which need to be iomplemented in concrete subclasses.
+    // Virtual API which need to be implemented in concrete subclasses.
 
-    virtual void run_command(const string& command, const vector<string>& args) = 0;
+    /**
+     * Returns an empty instance of the BusCommandProxy required to issue the command.
+     *
+     * @return An empty instance of the BusCommandProxy required to issue the command.
+     */
+    virtual shared_ptr<BusCommandProxy> factory_empty_proxy() = 0;
+
+    /**
+     * Method which is called when a command owned by the processor is issued in the bus.
+     */
+    virtual void run_command(shared_ptr<BusCommandProxy> proxy) = 0;
 
    private:
     bool check_command(const string& command);
@@ -39,5 +60,3 @@ class BusCommandProcessor {
 };
 
 }  // namespace service_bus
-
-#endif  // _SERVICE_BUS_BUSCOMMANDPROCESSOR_H

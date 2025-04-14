@@ -30,7 +30,7 @@ TEST(RemoteSinkIterator, basics) {
     string producer_id = "localhost:30801";
 
     string input_element_id = "test_source";
-    TestSource* input = new TestSource(input_element_id);
+    auto input = make_shared<TestSource>(input_element_id);
     RemoteIterator<HandlesAnswer> consumer(consumer_id);
     vector<unique_ptr<QueryAnswerProcessor>> query_answer_processors;
     query_answer_processors.push_back(make_unique<HandlesAnswerProcessor>(producer_id, consumer_id));

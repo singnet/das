@@ -10,11 +10,9 @@ using namespace query_element;
 // Constructors and destructors
 
 template <class AnswerType>
-RemoteSink<AnswerType>::RemoteSink(QueryElement* precedent,
-                                   vector<unique_ptr<QueryAnswerProcessor>>&& query_answer_processors,
-                                   bool delete_precedent_on_destructor)
-    : Sink<AnswerType>(
-          precedent, "RemoteSink(" + precedent->id + ")", delete_precedent_on_destructor, true),
+RemoteSink<AnswerType>::RemoteSink(shared_ptr<QueryElement> precedent,
+                                   vector<unique_ptr<QueryAnswerProcessor>>&& query_answer_processors)
+    : Sink<AnswerType>(precedent, "RemoteSink(" + precedent->id + ")", true),
       queue_processor(new thread(&RemoteSink::queue_processor_method, this)),
       query_answer_processors(move(query_answer_processors)) {}
 

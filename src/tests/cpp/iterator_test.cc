@@ -22,8 +22,8 @@ class TestQueryElement : public QueryElement {
 
 TEST(Iterator, basics) {
     string client_id = "no_query_element";
-    TestQueryElement dummy(client_id);
-    Iterator<HandlesAnswer> query_answer_iterator(&dummy);
+    auto dummy = make_shared<TestQueryElement>(client_id);
+    Iterator<HandlesAnswer> query_answer_iterator(dummy);
     string server_id = query_answer_iterator.id;
     EXPECT_FALSE(server_id == "");
     QueryNodeClient<HandlesAnswer> client_node(client_id, query_answer_iterator.id);
@@ -81,14 +81,15 @@ TEST(Iterator, link_template_integration) {
     string expression = "Expression";
     string symbol = "Symbol";
 
-    Variable v1("v1");
-    Variable v2("v2");
-    Variable v3("v3");
-    Node similarity(symbol, "Similarity");
-    Node human(symbol, "\"human\"");
+    auto v1 = make_shared<Variable>("v1");
+    auto v2 = make_shared<Variable>("v2");
+    auto v3 = make_shared<Variable>("v3");
+    auto similarity = make_shared<Node>(symbol, "Similarity");
+    auto human = make_shared<Node>(symbol, "\"human\"");
 
-    LinkTemplate<3> link_template("Expression", {&similarity, &human, &v1});
-    Iterator<HandlesAnswer> query_answer_iterator(&link_template);
+    auto link_template = make_shared<LinkTemplate<3>>(
+        "Expression", array<shared_ptr<QueryElement>, 3>({similarity, human, v1}));
+    Iterator<HandlesAnswer> query_answer_iterator(link_template);
 
     string monkey_handle = string(terminal_hash((char*) symbol.c_str(), (char*) "\"monkey\""));
     string chimp_handle = string(terminal_hash((char*) symbol.c_str(), (char*) "\"chimp\""));

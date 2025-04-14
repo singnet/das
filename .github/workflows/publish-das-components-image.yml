@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - master
-      - das-287
 
 jobs:
   build:
@@ -77,6 +76,13 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Extract DAS_VERSION from .bazelrc
+        id: get_version
+        run: |
+          VERSION=$(grep -oP '(?<=--define=DAS_VERSION=)[0-9\.]+' src/.bazelrc)
+          echo "DAS_VERSION=$VERSION" >> $GITHUB_ENV
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
       - name: Download Binaries Artifacts
         uses: actions/download-artifact@v4
         with:
@@ -96,7 +102,7 @@ jobs:
           file: .docker/poc/Dockerfile
           push: true
           target: ${{ matrix.target }}
-          tags: trueagi/das:${{ matrix.target }}-poc
+          tags: trueagi/das:${{ matrix.target }}-${{ steps.get_version.outputs.version }}
 
   deploy_ensemble_to_server:
     runs-on: self-hosted

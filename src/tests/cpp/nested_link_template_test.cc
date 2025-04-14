@@ -24,13 +24,15 @@ TEST(LinkTemplate, basics) {
     string expression = "Expression";
     string symbol = "Symbol";
 
-    auto v1 = new Variable("v1");
-    auto v2 = new Variable("v2");
-    auto similarity = new Node(symbol, "Similarity");
-    auto odd_link = new Node(symbol, "OddLink");
+    auto v1 = make_shared<Variable>("v1");
+    auto v2 = make_shared<Variable>("v2");
+    auto similarity = make_shared<Node>(symbol, "Similarity");
+    auto odd_link = make_shared<Node>(symbol, "OddLink");
 
-    auto inner_template = new LinkTemplate<3>(expression, {similarity, v1, v2});
-    auto outter_template = new LinkTemplate<2>(expression, {odd_link, inner_template});
+    auto inner_template = make_shared<LinkTemplate<3>>(
+        expression, array<shared_ptr<QueryElement>, 3>({similarity, v1, v2}));
+    auto outter_template = make_shared<LinkTemplate<2>>(
+        expression, array<shared_ptr<QueryElement>, 2>({odd_link, inner_template}));
     Iterator<HandlesAnswer> iterator(outter_template);
 
     HandlesAnswer* query_answer;
@@ -50,16 +52,20 @@ TEST(LinkTemplate, nested_variables) {
     string expression = "Expression";
     string symbol = "Symbol";
 
-    auto v1 = new Variable("v1");
-    auto v2 = new Variable("v2");
-    auto similarity = new Node(symbol, "Similarity");
-    auto odd_link = new Node(symbol, "OddLink");
-    auto human = new Node(symbol, "\"human\"");
+    auto v1 = make_shared<Variable>("v1");
+    auto v2 = make_shared<Variable>("v2");
+    auto similarity = make_shared<Node>(symbol, "Similarity");
+    auto odd_link = make_shared<Node>(symbol, "OddLink");
+    auto human = make_shared<Node>(symbol, "\"human\"");
 
-    auto inner_template = new LinkTemplate<3>(expression, {similarity, v1, v2});
-    auto outter_template = new LinkTemplate<2>(expression, {odd_link, inner_template});
-    auto human_template = new LinkTemplate<3>(expression, {similarity, v1, human});
-    auto and_operator = new And<2>({human_template, outter_template});
+    auto inner_template = make_shared<LinkTemplate<3>>(
+        expression, array<shared_ptr<QueryElement>, 3>({similarity, v1, v2}));
+    auto outter_template = make_shared<LinkTemplate<2>>(
+        expression, array<shared_ptr<QueryElement>, 2>({odd_link, inner_template}));
+    auto human_template = make_shared<LinkTemplate<3>>(
+        expression, array<shared_ptr<QueryElement>, 3>({similarity, v1, human}));
+    auto and_operator =
+        make_shared<And<2>>(array<shared_ptr<QueryElement>, 2>({human_template, outter_template}));
 
     Iterator<HandlesAnswer> iterator(and_operator);
 

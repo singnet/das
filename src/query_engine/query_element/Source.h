@@ -62,7 +62,7 @@ class Source : public QueryElement {
    protected:
     string attention_broker_address;
     shared_ptr<QueryNode<HandlesAnswer>> output_buffer;
-    QueryElement* subsequent;
+    shared_ptr<QueryElement> subsequent;
 };
 
 }  // namespace query_element

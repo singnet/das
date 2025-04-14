@@ -1,6 +1,8 @@
 #include "link_creation_console.h"
 #include "Logger.h"
 
+#include "AtomDBSingleton.h"
+
 using namespace link_creation_agent;
 using namespace std;
 using namespace atomdb;
