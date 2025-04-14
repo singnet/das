@@ -6,6 +6,7 @@
 
 #include <iostream>
 #include <vector>
+#include "Logger.h"
 
 #include "Message.h"
 
@@ -26,12 +27,6 @@ class DummyMessage : public Message {
     }
 
     void act(shared_ptr<MessageFactory> node) {
-#ifdef DEBUG
-        cout << "DummyMessage::act" << endl;
-        cout << command << endl;
-        for (auto arg : args) {
-            cout << arg << endl;
-        }
-#endif
+        LOG_DEBUG(command);
     }
 };

@@ -175,11 +175,19 @@ ProofOfImplicationOrEquivalence::~ProofOfImplicationOrEquivalence() {}
 std::vector<std::string> ProofOfImplicationOrEquivalence::query() {
     // clang-format off
     std::vector<std::string> tokens = {
+        // "LINK_TEMPLATE", "Expression", "3",
+        //     "NODE", "Symbol", "EVALUATION",
+        //     "LINK_TEMPLATE", "Expression", "2",
+        //         "NODE", "Symbol", "PREDICATE",
+        //         "VARIABLE", "P",
+        //     "VARIABLE", "C"
         "LINK_TEMPLATE", "Expression", "3",
-            "NODE", "Symbol", "EVALUATION",
-            "LINK_TEMPLATE", "Expression", "2",
-                "NODE", "Symbol", "PREDICATE",
-                "VARIABLE", "P",
+        "NODE", "Symbol", "EVALUATION",
+        "LINK_TEMPLATE", "Expression", "2",
+            "NODE", "Symbol", "PREDICATE",
+            "VARIABLE", "P",
+        "LINK_TEMPLATE", "Expression", "2",
+            "NODE", "Symbol", "CONCEPT",
             "VARIABLE", "C"
     };
     // clang-format on
@@ -243,10 +251,10 @@ std::vector<std::vector<std::string>> ProofOfImplicationOrEquivalence::get_reque
     requests.push_back(query_and_link_creation_template);
     //  Not supported yet
     //  proof of implication
-    // ProofOfImplication proof_of_implication(first_handle, second_handle, max_proof_length, context);
-    // for (auto request : proof_of_implication.get_requests()) {
-    //     requests.push_back(request);
-    // }
+    ProofOfImplication proof_of_implication(first_handle, second_handle, max_proof_length, context);
+    for (auto request : proof_of_implication.get_requests()) {
+        requests.push_back(request);
+    }
     // proof of equivalence
     ProofOfEquivalence proof_of_equivalence(first_handle, second_handle, max_proof_length, context);
     for (auto request : proof_of_equivalence.get_requests()) {

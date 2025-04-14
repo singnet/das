@@ -1,4 +1,5 @@
 #include "equivalence_processor.h"
+#include "Logger.h"
 
 #include <iostream>
 
@@ -30,13 +31,17 @@ vector<string> EquivalenceProcessor::get_pattern_query(const string& c1, const s
                 "LINK_TEMPLATE", "Expression", "2",
                     "NODE", "Symbol", "PREDICATE",
                     "VARIABLE", "P",
-                "NODE", "Symbol", c1,
+                "LINK_TEMPLATE", "Expression", "2",
+                    "NODE", "Symbol", "CONCEPT",
+                    "NODE", "Symbol", c1,
             "LINK_TEMPLATE", "Expression", "3",
                 "NODE", "Symbol", "EVALUATION",
                 "LINK_TEMPLATE", "Expression", "2",
                     "NODE", "Symbol", "PREDICATE",
                     "VARIABLE", "P",
-                "NODE", "Symbol", c2
+                "LINK_TEMPLATE", "Expression", "2",
+                    "NODE", "Symbol", "CONCEPT",
+                    "NODE", "Symbol", c2
     };
     // clang-format on
     return pattern_query;
@@ -55,44 +60,31 @@ vector<vector<string>> EquivalenceProcessor::process(
         context = extra_params.value().front();
     }
     if (c1_handle == c2_handle) {
-        // clang-format off
-        #ifdef DEBUG
-        cout << "EquivalenceProcessor::process: C1 and C2 are the same, skipping equivalence processing." << endl;
-        #endif
-        // clang-format on
+        LOG_INFO("EquivalenceProcessor::process: C1 and C2 are the same, skipping equivalence processing.");
         return {};
     }
     string c1_name = AtomDBSingleton::get_instance()->get_atom_document(c1_handle.c_str())->get("name");
     string c2_name = AtomDBSingleton::get_instance()->get_atom_document(c2_handle.c_str())->get("name");
-    cout << "EquivalenceProcessor::process: (" << c1_name << ", " << c2_name << ")" << endl;
-    // return {};
+    LOG_DEBUG("EquivalenceProcessor::process: (" << c1_name << ", " << c2_name << ")");
     auto pattern_query = get_pattern_query(c1_name, c2_name);
     if (this->das_node == nullptr) {
-        throw runtime_error("EquivalenceProcessor::process: DASNode is not set");
+        LOG_ERROR("EquivalenceProcessor::process: DASNode is not set");
     }
     if (this->processor_mutex == nullptr) {
-        throw runtime_error("EquivalenceProcessor::process: processor_mutex is not set");
+        LOG_ERROR("EquivalenceProcessor::process: processor_mutex is not set");
     }
-    cout << "EquivalenceProcessor::process: locking " << endl;
     this->processor_mutex->lock();
-    cout << "EquivalenceProcessor::process: locked " << endl;
     int count = this->das_node->count_query(pattern_query, context, false, 10);  // TODO context
-    cout << "EquivalenceProcessor::process: releasing " << endl;
     this->processor_mutex->unlock();
-    cout << "EquivalenceProcessor::process: released " << endl;
     if (count <= 0) {
-        // clang-format off
-        #ifdef DEBUG
-        cout << "EquivalenceProcessor::process: No pattern found for " << c1_name << " and " 
-        << c2_name << ", skipping equivalence processing." << endl;
-        #endif
-        // clang-format on
+        LOG_DEBUG("EquivalenceProcessor::process: No pattern found for " << c1_name << " and " << c2_name
+                  << ", skipping equivalence processing.");
         return {};
     }
     // two elements per query answer
     double strength = double(2) / count;
-    cout << "EquivalenceProcessor::process: (" << c1_name << ", " << c2_name << ") " << "Strength: " << strength << endl;
-    cout << "EquivalenceProcessor::process: 2/" << count << endl;
+    LOG_INFO("EquivalenceProcessor::process: (" << c1_name << ", " << c2_name << ") " << "Strength: " << strength);
+    LOG_DEBUG("EquivalenceProcessor::process: 2/" << count);
     vector<vector<string>> result;
     Node equivalence_node;
     equivalence_node.type = "Symbol";

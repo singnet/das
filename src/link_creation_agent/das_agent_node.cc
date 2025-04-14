@@ -1,4 +1,5 @@
 #include "das_agent_node.h"
+#include "Logger.h"
 
 
 using namespace das_agent;
@@ -17,6 +18,6 @@ void DasAgentNode::create_link(vector<string>& request) {
     try{
         this->send("create_link", request, this->server_id);
     } catch (const std::exception& e) {
-        cout << "DasAgentNode::create_link: Exception: " << e.what() << endl;
+        LOG_ERROR("DasAgentNode::create_link: Exception: " << e.what());
     }
 }

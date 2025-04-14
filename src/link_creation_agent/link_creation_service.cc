@@ -1,4 +1,5 @@
 #include "link_creation_service.h"
+#include "Logger.h"
 
 #include <fstream>
 
@@ -11,7 +12,7 @@ using namespace query_node;
 using namespace query_engine;
 
 static void add_to_file(string file_path, string file_name, string content) {
-    cout << "LinkCreationService::add_to_file: Adding to file: " << file_path + "/" + file_name << endl;
+    LOG_DEBUG("LinkCreationService::add_to_file: Adding to file: " << file_path << "/" << file_name);
     ofstream file(file_path + "/" + file_name, ios::app);
     if (file.is_open()) {
         file << content << endl;
@@ -55,29 +56,24 @@ void LinkCreationService::process_request(shared_ptr<RemoteIterator<HandlesAnswe
         this->das_client = das_client;
     }
     auto job = [this, iterator, das_client, link_template, max_query_answers, context, request_id]() {
+        LOG_DEBUG("LinkCreationService::process_request: Processing request ID: " << request_id);
         QueryAnswer* query_answer;
         int count = 0;
         long start = time(0);
         while (!iterator->finished() || this->is_stoping) {
-            this_thread::sleep_for(chrono::seconds(1));
+            // this_thread::sleep_for(chrono::seconds(1));
             if (time(0) - start > timeout) {
-#ifdef DEBUG
-                cout << "LinkCreationService::process_request: Timeout for iterator ID: "
-                     << iterator->get_local_id() << endl;
-#endif
+                LOG_DEBUG("LinkCreationService::process_request: Timeout for iterator ID: "
+                          << iterator->get_local_id());
                 return;
             }
             if ((query_answer = iterator->pop()) == NULL) {
-#ifdef DEBUG
-                cout << "LinkCreationService::process_request: Waiting for query answer ID: "
-                     << iterator->get_local_id() << endl;
-#endif
+                LOG_DEBUG("LinkCreationService::process_request: No query answer for iterator ID: "
+                          << iterator->get_local_id());
                 Utils::sleep();
             } else {
-#ifdef DEBUG
-                cout << "LinkCreationService::process_request: Processing query_answer ID: "
-                     << iterator->get_local_id() << endl;
-#endif
+                LOG_DEBUG("LinkCreationService::process_request: Processing query_answer ID: "
+                          << iterator->get_local_id());
 
                 try {
                     vector<vector<string>> link_tokens;
@@ -93,8 +89,6 @@ void LinkCreationService::process_request(shared_ptr<RemoteIterator<HandlesAnswe
                         link_tokens = link_template_processor->process(query_answer, link_template);
                     }
                     for (auto& link : link_tokens) {
-                        cout << "LinkCreationService::process_request: Adding link to the queue "
-                             << endl;
                         this->link_creation_queue.enqueue(make_tuple(request_id, link));
                     }
                     // unique_lock<mutex> lock(this->m_mutex);
@@ -102,7 +96,7 @@ void LinkCreationService::process_request(shared_ptr<RemoteIterator<HandlesAnswe
                     // lock.unlock();
                     delete query_answer;
                 } catch (const std::exception& e) {
-                    cout << "LinkCreationService::process_request: Exception: " << e.what() << endl;
+                    LOG_ERROR("LinkCreationService::process_request: Exception: " << e.what());
                     delete query_answer;
                     continue;
                 }
@@ -126,7 +120,7 @@ void LinkCreationService::create_link(std::vector<std::vector<std::string>>& lin
             das_client.create_link(link_tokens);
         }
     } catch (const std::exception& e) {
-        cout << "LinkCreationService::create_link: Exception: " << e.what() << endl;
+        LOG_ERROR("LinkCreationService::create_link: Exception: " << e.what());
     }
 }
 

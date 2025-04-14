@@ -1,4 +1,5 @@
 #include "link_creation_console.h"
+#include "Logger.h"
 
 using namespace link_creation_agent;
 using namespace std;
@@ -40,7 +41,7 @@ string Console::print_metta(std::vector<string> tokens) {
                 }
             }
             std::string metta_string = Link().untokenize(link_tokens).to_metta_string();
-            std::cout << "Creating link" << metta_string << std::endl;
+            LOG_INFO("MeTTa Expression: " << metta_string);
             return metta_string;
         } catch (const std::exception& e) {
             std::cerr << e.what() << std::endl;

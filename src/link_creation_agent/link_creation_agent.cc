@@ -1,4 +1,5 @@
 #include "link_creation_agent.h"
+#include "Logger.h"
 
 #include <fstream>
 #include <sstream>
@@ -83,9 +84,12 @@ void LinkCreationAgent::run() {
 
         if (lca_request->infinite || lca_request->repeat > 0) {
             query_agent_mutex->lock();
+            LOG_DEBUG("Processing request ID: " << lca_request->id);
+            LOG_DEBUG("Current size of request buffer: " << request_buffer.size());
             shared_ptr<RemoteIterator<HandlesAnswer>> iterator =
                 query(lca_request->query, lca_request->context, lca_request->update_attention_broker);
             query_agent_mutex->unlock();
+
             service->process_request(
                 iterator, das_client, lca_request->link_template, lca_request->context, lca_request->id, lca_request->max_results);
 
@@ -99,9 +103,7 @@ void LinkCreationAgent::run() {
 
         } else {
             if (request_buffer.find(lca_request->id) != request_buffer.end()) {
-                #ifdef DEBUG
-                cout << "Removing request ID: " << lca_request->id << endl;
-                #endif
+                LOG_DEBUG("Removing request ID: " << lca_request->id);
                 request_buffer.erase(lca_request->id);
             }
         }
@@ -197,26 +199,22 @@ shared_ptr<LinkCreationAgentRequest> LinkCreationAgent::create_request(vector<st
         if (lca_request->id.empty()) {
             lca_request->id =
                 compute_hash((char*) (to_string(time(0)) + Utils::random_string(20)).c_str());
+        }else{
+            lca_request->id = lca_request->id + "-" + compute_hash((char*) Utils::join(lca_request->link_template, ' ').c_str());
         }
-#ifdef DEBUG
-        cout << "Query: " << Utils::join(lca_request->query, ' ') << endl;
-        cout << "Link Template: " << Utils::join(lca_request->link_template, ' ') << endl;
-        cout << "Max Results: " << lca_request->max_results << endl;
-        cout << "Repeat: " << lca_request->repeat << endl;
-        cout << "Context: " << lca_request->context << endl;
-        cout << "Update Attention Broker: " << lca_request->update_attention_broker << endl;
-        cout << "Infinite: " << lca_request->infinite << endl;
-        cout << "ID: " << lca_request->id << endl;
-#endif
-        // if (lca_request->link_template.front() == "PROOF_OF_IMPLICATION"){
-        //     throw invalid_argument("PROOF_OF_IMPLICATION is not supported yet");
-        // }
+        LOG_DEBUG("Creating request ID: " << lca_request->id);
+        LOG_DEBUG("Query: " << Utils::join(lca_request->query, ' '));
+        LOG_DEBUG("Link Template: " << Utils::join(lca_request->link_template, ' '));
+        LOG_DEBUG("Max Results: " << to_string(lca_request->max_results));
+        LOG_DEBUG("Repeat: " << to_string(lca_request->repeat));
+        LOG_DEBUG("Context: " << lca_request->context);
+        LOG_DEBUG("Update Attention Broker: " << to_string(lca_request->update_attention_broker));
+        LOG_DEBUG("Infinite: " << to_string(lca_request->infinite));
 
         return shared_ptr<LinkCreationAgentRequest>(lca_request);
     } catch (exception& e) {
-#ifdef DEBUG
-        cout << "Error parsing request: " << e.what() << endl;
-#endif
+        LOG_ERROR("Error parsing request: " << string(e.what()));
+
         return NULL;
     }
 }

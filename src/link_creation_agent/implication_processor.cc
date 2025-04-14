@@ -1,6 +1,7 @@
 #include "implication_processor.h"
 #include "AtomDBSingleton.h"
 #include "link.h"
+#include "Logger.h"
 
 using namespace std;
 using namespace query_engine;
@@ -28,12 +29,16 @@ vector<string> ImplicationProcessor::get_satisfying_set_query(const string& p1, 
                 "LINK_TEMPLATE", "Expression", "2",
                     "NODE", "Symbol", "PREDICATE",
                     "NODE", "Symbol", p1,
+                "LINK_TEMPLATE", "Expression", "2",
+                "NODE", "Symbol", "CONCEPT",
                 "VARIABLE", "C",
             "LINK_TEMPLATE", "Expression", "3",
                 "NODE", "Symbol", "EVALUATION",
                 "LINK_TEMPLATE", "Expression", "2",
                     "NODE", "Symbol", "PREDICATE",
                     "NODE", "Symbol", p2,
+                "LINK_TEMPLATE", "Expression", "2",
+                "NODE", "Symbol", "CONCEPT",
                 "VARIABLE", "C"
     };
     // clang-format on
@@ -47,11 +52,7 @@ vector<vector<string>> ImplicationProcessor::process(
     string p1_handle = handles_answer->assignment.get("P1");
     string p2_handle = handles_answer->assignment.get("P2");
     if (p1_handle == p2_handle) {
-        // clang-format off
-        #ifdef DEBUG
-        cout << "ImplicationProcessor::process: P1 and P2 are the same, skipping implication processing." << endl;
-        #endif
-        // clang-format on
+        LOG_INFO("ImplicationProcessor::process: P1 and P2 are the same, skipping implication processing.");
         return {};
     }
     string p1_name = AtomDBSingleton::get_instance()->get_atom_document(p1_handle.c_str())->get("name");
@@ -62,6 +63,8 @@ vector<vector<string>> ImplicationProcessor::process(
         "LINK_TEMPLATE", "Expression", "2",
             "NODE", "Symbol", "PREDICATE",
             "NODE", "Symbol", p1_name,
+        "LINK_TEMPLATE", "Expression", "2",
+        "NODE", "Symbol", "CONCEPT",
         "VARIABLE", "P1"
     };
     vector<string> pattern_query_2 = {
@@ -70,21 +73,19 @@ vector<vector<string>> ImplicationProcessor::process(
         "LINK_TEMPLATE", "Expression", "2",
             "NODE", "Symbol", "PREDICATE",
             "NODE", "Symbol", p2_name,
+        "LINK_TEMPLATE", "Expression", "2",
+        "NODE", "Symbol", "CONCEPT",
         "VARIABLE", "P2"
     };
     int p1_set_size = this->das_node->count_query(pattern_query_1);
-    cout << "ImplicationProcessor::process: p1_set_size(" << p1_name << "): " << p1_set_size << endl;
+    LOG_DEBUG("ImplicationProcessor::process: p1_set_size(" << p1_name << "): " << p1_set_size);
     int p2_set_size = this->das_node->count_query(pattern_query_2);
-    cout << "ImplicationProcessor::process: p2_set_size(" << p2_name << "): " << p2_set_size << endl;
+    LOG_DEBUG("ImplicationProcessor::process: p2_set_size(" << p2_name << "): " << p2_set_size);
     int p1_p2_set_size = this->das_node->count_query(get_satisfying_set_query(p1_name, p2_name));
-    cout << "ImplicationProcessor::process: p1_p2_set_size(" << p1_name << ", " << p2_name << "): " << p1_p2_set_size << endl;
+    LOG_DEBUG("ImplicationProcessor::process: p1_p2_set_size(" << p1_name << ", " << p2_name << "): " << p1_p2_set_size);
     if (p1_set_size == 0 || p2_set_size == 0 || p1_p2_set_size == 0) {
-        // clang-format off
-        #ifdef DEBUG
-        cout << "ImplicationProcessor::process: No pattern found for " << p1_name << " and " 
-        << p2_name << ", skipping implication processing." << endl;
-        #endif
-        // clang-format on
+        LOG_INFO("ImplicationProcessor::process: No pattern found for " << p1_name << " and " 
+                  << p2_name << ", skipping implication processing.");
         return {};
     }
     double p1_p2_strength = double(p1_set_size) / p1_p2_set_size;
