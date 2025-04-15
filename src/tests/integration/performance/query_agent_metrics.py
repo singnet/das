@@ -180,10 +180,10 @@ def main():
     # For some unknown reason, the Query Agent needs to be started in advance, even if it will
     # already be started down below. This is a workaround to avoid the Query Agent to crash later.
     # This issue only happens in this particular script.
-    # query_agent_process = start_process("make run-query-agent")
-    # time.sleep(3)
-    # stop_process(query_agent_process)
-    # time.sleep(3)
+    query_agent_process = start_process("make run-query-agent")
+    time.sleep(3)
+    stop_process(query_agent_process)
+    time.sleep(3)
 
     for name, query in queries.items():
         print(f"\nRunning query '{name}'...")
