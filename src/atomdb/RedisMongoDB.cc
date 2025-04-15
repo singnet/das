@@ -145,10 +145,9 @@ void RedisMongoDB::mongodb_setup() {
 
 shared_ptr<atomdb_api_types::HandleSet> RedisMongoDB::query_for_pattern(
     std::shared_ptr<char> pattern_handle) {
-    shared_ptr<atomdb_api_types::HandleSet> handle_set;
     if (this->atomdb_cache != nullptr) {
-        handle_set = this->atomdb_cache->query_for_pattern(pattern_handle.get());
-        if (handle_set != nullptr) return handle_set;
+        auto cache_result = this->atomdb_cache->query_for_pattern(pattern_handle.get());
+        if (cache_result.is_cache_hit) return cache_result.result;
     }
 
     unsigned int redis_cursor = 0;
@@ -156,7 +155,7 @@ shared_ptr<atomdb_api_types::HandleSet> RedisMongoDB::query_for_pattern(
     string command;
     redisReply* reply;
 
-    handle_set = make_shared<atomdb_api_types::HandleSetRedis>();
+    auto handle_set = make_shared<atomdb_api_types::HandleSetRedis>();
 
     while (redis_has_more) {
         command = ("ZRANGE " + REDIS_PATTERNS_PREFIX + ":" + pattern_handle.get() + " " +
@@ -190,10 +189,9 @@ shared_ptr<atomdb_api_types::HandleList> RedisMongoDB::query_for_targets(shared_
 }
 
 shared_ptr<atomdb_api_types::HandleList> RedisMongoDB::query_for_targets(char* link_handle_ptr) {
-    shared_ptr<atomdb_api_types::HandleList> handle_list;
     if (this->atomdb_cache != nullptr) {
-        handle_list = this->atomdb_cache->query_for_targets(link_handle_ptr);
-        if (handle_list != nullptr) return handle_list;
+        auto cache_result = this->atomdb_cache->query_for_targets(link_handle_ptr);
+        if (cache_result.is_cache_hit) return cache_result.result;
     }
 
     redisReply* reply = (redisReply*) redisCommand(
@@ -213,16 +211,15 @@ shared_ptr<atomdb_api_types::HandleList> RedisMongoDB::query_for_targets(char* l
     }
     // NOTE: Intentionally, we aren't destroying 'reply' objects.'reply' objects are destroyed in
     // ~RedisSet().
-    handle_list = make_shared<atomdb_api_types::RedisStringBundle>(reply);
+    auto handle_list = make_shared<atomdb_api_types::RedisStringBundle>(reply);
     if (this->atomdb_cache != nullptr) this->atomdb_cache->add_handle_list(link_handle_ptr, handle_list);
     return handle_list;
 }
 
 shared_ptr<atomdb_api_types::AtomDocument> RedisMongoDB::get_atom_document(const char* handle) {
-    shared_ptr<atomdb_api_types::AtomDocument> atom_document;
     if (this->atomdb_cache != nullptr) {
-        atom_document = this->atomdb_cache->get_atom_document(handle);
-        if (atom_document != nullptr) return atom_document;
+        auto cache_result = this->atomdb_cache->get_atom_document(handle);
+        if (cache_result.is_cache_hit) return cache_result.result;
     }
 
     this->mongodb_mutex.lock();
@@ -232,7 +229,7 @@ shared_ptr<atomdb_api_types::AtomDocument> RedisMongoDB::get_atom_document(const
     // cout << bsoncxx::to_json(*reply) << endl; // Note to reviewer: please let this dead code here
     this->mongodb_mutex.unlock();
 
-    atom_document = make_shared<atomdb_api_types::MongodbDocument>(reply);
+    auto atom_document = make_shared<atomdb_api_types::MongodbDocument>(reply);
     if (this->atomdb_cache != nullptr) this->atomdb_cache->add_atom_document(handle, atom_document);
     return atom_document;
 }
