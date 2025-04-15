@@ -21,6 +21,7 @@ cc_library(
   name = "operator",
   hdrs = ["Operator.h"],
   deps = [
+    ":output_buffers",
     ":query_element",
     "//query_engine:query_answer",
   ],
@@ -108,6 +109,15 @@ cc_library(
   srcs = ["Source.cc"],
   hdrs = ["Source.h"],
   deps = [
+    ":output_buffers",
     ":query_element",
+  ],
+)
+
+cc_library(
+  name = "output_buffers",
+  hdrs = ["OutputBuffers.h"],
+  deps = [
+    "//query_engine:query_node",
   ],
 )

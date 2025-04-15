@@ -2,7 +2,9 @@
 #define _QUERY_ELEMENT_QUERYELEMENT_H
 
 #include <memory>
+#include <mutex>
 #include <string>
+#include <vector>
 
 #include "QueryNode.h"
 #include "Utils.h"
@@ -52,7 +54,6 @@ namespace query_element {
 class QueryElement {
    public:
     string id;
-    string subsequent_id;
 
     /**
      * Basic constructor which solely initialize variables.
@@ -83,6 +84,11 @@ class QueryElement {
      */
     bool is_terminal;
 
+    void add_subsequent_id(const string& id) {
+        lock_guard<mutex> lock(this->subsequent_ids_mutex);
+        this->subsequent_ids.push_back(id);
+    }
+
    protected:
     /**
      * Return true iff this QueryElement have finished its work in the flow of links up through
@@ -104,6 +110,9 @@ class QueryElement {
      * comments in method is_flow_finished().
      */
     void set_flow_finished();
+
+    vector<string> subsequent_ids;
+    mutex subsequent_ids_mutex;
 
    private:
     bool flow_finished;

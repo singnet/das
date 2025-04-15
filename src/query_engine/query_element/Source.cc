@@ -33,13 +33,13 @@ string Source::get_attention_broker_address() {
 }
 
 void Source::setup_buffers() {
-    if (this->subsequent_id == "") {
-        Utils::error("Invalid empty parent id");
+    if (this->subsequent_ids.empty()) {
+        Utils::error("Invalid empty parents ids");
     }
     if (this->id == "") {
         Utils::error("Invalid empty id");
     }
-    this->output_buffer = make_shared<QueryNodeClient>(this->id, this->subsequent_id);
+    this->output_buffers = make_shared<OutputBuffers>(this->id, this->subsequent_ids);
 }
 
-void Source::graceful_shutdown() { this->output_buffer->graceful_shutdown(); }
+void Source::graceful_shutdown() { this->output_buffers->graceful_shutdown(); }

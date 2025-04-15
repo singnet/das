@@ -430,7 +430,7 @@ class LinkTemplate : public Source {
             while (!(this->is_flow_finished() && this->local_buffer.empty())) {
                 QueryAnswer* query_answer;
                 while ((query_answer = (QueryAnswer*) this->local_buffer.dequeue()) != NULL) {
-                    this->output_buffer->add_query_answer(query_answer);
+                    this->output_buffers->add_query_answer(query_answer);
                 }
                 Utils::sleep();
             }
@@ -441,7 +441,7 @@ class LinkTemplate : public Source {
                     for (unsigned int i = 0; i < size; i++) {
                         if (this->local_answers[i] != NULL) {
                             if (is_feasible(i)) {
-                                this->output_buffer->add_query_answer(this->local_answers[i]);
+                                this->output_buffers->add_query_answer(this->local_answers[i]);
                                 this->local_answers[i] = NULL;
                             } else {
                                 if (this->inner_template_iterator->finished()) {
@@ -455,7 +455,7 @@ class LinkTemplate : public Source {
                         for (unsigned int i = 0; i < size; i++) {
                             if (this->local_answers[i] != NULL) {
                                 if (is_feasible(i)) {
-                                    this->output_buffer->add_query_answer(this->local_answers[i]);
+                                    this->output_buffers->add_query_answer(this->local_answers[i]);
                                 }
                                 this->local_answers[i] = NULL;
                             }
@@ -476,7 +476,7 @@ class LinkTemplate : public Source {
                 }
             }
         }
-        this->output_buffer->query_answers_finished();
+        this->output_buffers->query_answers_finished();
     }
 
     static unsigned int next_instance_count() {

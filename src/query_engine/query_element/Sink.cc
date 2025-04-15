@@ -21,14 +21,18 @@ Sink::~Sink() {
 // Public methods
 
 void Sink::setup_buffers() {
-    if (this->subsequent_id != "") {
-        Utils::error("Invalid non-empty subsequent id: " + this->subsequent_id);
+    if (!this->subsequent_ids.empty()) {
+        string ids;
+        for (auto& subsequent_id : this->subsequent_ids) {
+            ids += subsequent_id + " ";
+        }
+        Utils::error("Invalid non-empty subsequent ids: " + ids);
     }
     if (this->id == "") {
         Utils::error("Invalid empty id");
     }
     this->input_buffer = make_shared<QueryNodeServer>(this->id);
-    this->precedent->subsequent_id = this->id;
+    this->precedent->add_subsequent_id(this->id);
     this->precedent->setup_buffers();
 }
 

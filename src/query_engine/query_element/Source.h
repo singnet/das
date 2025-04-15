@@ -1,6 +1,7 @@
 #ifndef _QUERY_ELEMENT_SOURCE_H
 #define _QUERY_ELEMENT_SOURCE_H
 
+#include "OutputBuffers.h"
 #include "QueryAnswer.h"
 #include "QueryElement.h"
 
@@ -61,8 +62,7 @@ class Source : public QueryElement {
 
    protected:
     string attention_broker_address;
-    shared_ptr<QueryNode> output_buffer;
-    shared_ptr<QueryElement> subsequent;
+    shared_ptr<OutputBuffers> output_buffers;
 };
 
 }  // namespace query_element

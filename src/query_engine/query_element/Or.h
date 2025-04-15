@@ -145,7 +145,7 @@ class Or : public Operator<N> {
 
     void or_operator_method() {
         do {
-            if (QueryElement::is_flow_finished() || this->output_buffer->is_query_answers_finished()) {
+            if (QueryElement::is_flow_finished() || this->output_buffers->is_query_answers_finished()) {
                 return;
             }
 
@@ -167,10 +167,10 @@ class Or : public Operator<N> {
                     }
                 }
                 cout << "XXXXXXX 3" << endl;
-                if (all_finished_flag && !this->output_buffer->is_query_answers_finished() &&
+                if (all_finished_flag && !this->output_buffers->is_query_answers_finished() &&
                     // processed_all_input() is double-checked on purpose to avoid race condition
                     processed_all_input()) {
-                    this->output_buffer->query_answers_finished();
+                    this->output_buffers->query_answers_finished();
                 }
                 cout << "XXXXXXX 4" << endl;
                 Utils::sleep();
@@ -184,7 +184,7 @@ class Or : public Operator<N> {
                 this->query_answer[selected_clause][this->next_input_to_process[selected_clause]++];
             cout << std::to_string(selected_clause) << ": " << selected_query_answer->to_string()
                  << endl;
-            this->output_buffer->add_query_answer(selected_query_answer);
+            this->output_buffers->add_query_answer(selected_query_answer);
             cout << "XXXXXXX 7" << endl;
         } while (true);
     }

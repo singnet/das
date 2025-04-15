@@ -3,6 +3,7 @@
 
 #include <mutex>
 
+#include "OutputBuffers.h"
 #include "QueryAnswer.h"
 #include "QueryAnswer.h"
 #include "QueryElement.h"
@@ -58,19 +59,20 @@ class Operator : public QueryElement {
      * in the operation.
      */
     virtual void setup_buffers() {
-        if (this->subsequent_id == "") {
-            Utils::error("Invalid empty parent id");
+        if (this->subsequent_ids.empty()) {
+            Utils::error("Invalid empty parents ids");
         }
         if (this->id == "") {
             Utils::error("Invalid empty id");
         }
 
-        this->output_buffer = make_shared<QueryNodeClient>(this->id, this->subsequent_id);
+        this->output_buffers = make_shared<OutputBuffers>(this->id, this->subsequent_ids);
+
         string server_node_id;
         for (unsigned int i = 0; i < N; i++) {
             server_node_id = this->id + "_" + to_string(i);
             this->input_buffer[i] = make_shared<QueryNodeServer>(server_node_id);
-            this->precedent[i]->subsequent_id = server_node_id;
+            this->precedent[i]->add_subsequent_id(server_node_id);
             this->precedent[i]->setup_buffers();
         }
     }
@@ -87,7 +89,7 @@ class Operator : public QueryElement {
             this->precedent[i]->graceful_shutdown();
         }
         set_flow_finished();
-        this->output_buffer->graceful_shutdown();
+        this->output_buffers->graceful_shutdown();
         for (unsigned int i = 0; i < N; i++) {
             this->input_buffer[i]->graceful_shutdown();
         }
@@ -96,7 +98,7 @@ class Operator : public QueryElement {
    protected:
     shared_ptr<QueryElement> precedent[N];
     shared_ptr<QueryNodeServer> input_buffer[N];
-    shared_ptr<QueryNodeClient> output_buffer;
+    shared_ptr<OutputBuffers> output_buffers;
 
    private:
     void initialize(const array<shared_ptr<QueryElement>, N>& clauses) {

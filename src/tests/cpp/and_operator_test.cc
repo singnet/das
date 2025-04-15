@@ -28,13 +28,13 @@ class TestSource : public Source {
         for (unsigned int i = 0; i < labels.size(); i++) {
             query_answer->assignment.assign(labels[i], values[i]);
         }
-        this->output_buffer->add_query_answer(query_answer);
+        this->output_buffers->add_query_answer(query_answer);
         if (sleep_flag) {
             Utils::sleep(SLEEP_DURATION);
         }
     }
 
-    void query_answers_finished() { return this->output_buffer->query_answers_finished(); }
+    void query_answers_finished() { return this->output_buffers->query_answers_finished(); }
 };
 
 class TestSink : public Sink {
