@@ -3,7 +3,7 @@
 set -eoux pipefail
 
 BAZELISK_CMD=/opt/bazel/bazelisk
-BAZELISK_BUILD_CMD="${BAZELISK_CMD} build"
+BAZELISK_BUILD_CMD="${BAZELISK_CMD} build --noshow_progress"
 [ "${BAZEL_JOBS:-x}" != "x" ] && BAZELISK_BUILD_CMD="${BAZELISK_BUILD_CMD} --jobs=${BAZEL_JOBS}"
 BAZELISK_RUN_CMD="${BAZELISK_CMD} run"
 BUILD_TARGETS=""

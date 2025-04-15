@@ -11,19 +11,17 @@
 #include "attention_broker.pb.h"
 #include "common.pb.h"
 
-// attention_broker_server::AttentionBrokerServer service;
+attention_broker_server::AttentionBrokerServer service;
 
-/*
 void ctrl_c_handler(int) {
     std::cout << "Stopping AttentionBrokerServer..." << std::endl;
     service.graceful_shutdown();
     std::cout << "Done." << std::endl;
     exit(0);
 }
-*/
 
 void run_server(unsigned int port) {
-    attention_broker_server::AttentionBrokerServer service;
+    // attention_broker_server::AttentionBrokerServer service;
     std::string server_address = "0.0.0.0:" + to_string(port);
     // grpc::EnableDefaultHealthCheckService(true);
     // grpc::reflection::InitProtoReflectionServerBuilderPlugin();
@@ -42,7 +40,8 @@ int main(int argc, char* argv[]) {
         exit(1);
     }
     unsigned int port = stoi(argv[1]);
-    // signal(SIGINT, &ctrl_c_handler);
+    signal(SIGINT, &ctrl_c_handler);
+    signal(SIGTERM, &ctrl_c_handler);
     run_server(port);
     return 0;
 }
