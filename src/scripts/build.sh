@@ -3,7 +3,7 @@
 set -eoux pipefail
 
 IMAGE_NAME="das-builder"
-CONTAINER_NAME=${IMAGE_NAME}-container
+CONTAINER_NAME="das-builder-$(uuidgen | cut -d '-' -f 1)-$(date +%Y%m%d%H%M%S)"
 
 ENV_VARS=$(test -f .env && echo "--env-file=.env" || echo "")
 
@@ -20,11 +20,6 @@ CONTAINER_WORKSPACE_DIR=/opt/das/src
 CONTAINER_BIN_DIR=$CONTAINER_WORKSPACE_DIR/bin
 CONTAINER_CACHE=/home/${USER}/.cache
 
-if docker ps -a --format '{{.Names}}' | grep -q "^${CONTAINER_NAME}$"; then
-  echo "Removing existing container: ${CONTAINER_NAME}"
-  docker rm -f "${CONTAINER_NAME}"
-fi
-
 docker run --rm \
   --user=$(id -u):$(id -g) \
   --name=$CONTAINER_NAME \
@@ -38,3 +33,9 @@ docker run --rm \
   ${IMAGE_NAME} \
   ./scripts/bazel_build.sh
 
+sleep 1
+
+if docker ps -a --format '{{.Names}}' | grep -q "^${CONTAINER_NAME}$"; then
+  echo "Removing existing container: ${CONTAINER_NAME}"
+  _=$(docker rm -f "${CONTAINER_NAME}" 2>&1 > /dev/null || true)
+fi
