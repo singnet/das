@@ -51,7 +51,8 @@ if [ "$BUILD_BINARIES" = true ]; then
 fi
 
 if [ "$BUILD_WHEELS" = true ]; then
-    $BAZELISK_RUN_CMD //deps:requirements.update
+    $BAZELISK_RUN_CMD //deps:requirements_atomdb.update
+    $BAZELISK_RUN_CMD //deps:requirements_das.update
     $BAZELISK_RUN_CMD //deps:requirements_dev.update
 
     BUILD_TARGETS+=" //hyperon_das_atomdb:hyperon_das_atomdb_wheel"

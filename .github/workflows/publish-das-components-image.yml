@@ -79,7 +79,7 @@ jobs:
       - name: Extract DAS_VERSION from .bazelrc
         id: get_version
         run: |
-          VERSION=$(grep -oP '(?<=--define=DAS_VERSION=)[0-9\.]+' .bazelrc)
+          VERSION=$(grep -oP '(?<=--define=DAS_VERSION=)[0-9\.]+' src/.bazelrc)
           echo "DAS_VERSION=$VERSION" >> $GITHUB_ENV
           echo "version=$VERSION" >> $GITHUB_OUTPUT
 

@@ -1,4 +1,4 @@
-load("@pypi//:requirements.bzl", "requirement")
+load("@pypi_das//:requirements.bzl", "requirement")
 load("@rules_python//python:defs.bzl", "py_library")
 load("@rules_python//python:packaging.bzl", "py_wheel")
 load("@rules_python//python:packaging.bzl", "py_package")
@@ -56,7 +56,7 @@ py_wheel(
     platform = "any",
     python_requires = ">=3.10",
     python_tag = "py3",
-    requires_file = "//deps:requirements_lock.txt",
+    requires_file = "//deps:requirements_das_lock.txt",
     stamp = 1,
     summary = "Query Engine API for Distributed AtomSpace",
     version = "$(DAS_VERSION)",  # must be defined when calling `bazel build` with `--define=DAS_VERSION=<version>`

@@ -1,4 +1,4 @@
-load("@pypi//:requirements.bzl", "requirement")
+load("@pypi_das//:requirements.bzl", "requirement")
 load("@pypi_dev//:requirements.bzl", dev_requirement = "requirement")
 load("@rules_python//python:defs.bzl", "py_library")
 load("//tools/bazel/pytest:defs.bzl", "py_test")
