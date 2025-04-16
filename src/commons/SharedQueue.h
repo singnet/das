@@ -35,8 +35,17 @@ class SharedQueue {
 
     /**
      * Returns true iff the queue is empty.
+     *
+     * @return true iff the queue is empty.
      */
     bool empty();
+
+    /**
+     * Returns the number of elements in the queue.
+     *
+     * @return The number of elements in the queue.
+     */
+    unsigned int size();
 
    protected:
     unsigned int current_size();
@@ -48,7 +57,7 @@ class SharedQueue {
     std::mutex shared_queue_mutex;
 
     void** requests;  // GRPC documentation states that request types should not be inherited
-    unsigned int size;
+    unsigned int allocated_size;
     unsigned int count;
     unsigned int start;
     unsigned int end;

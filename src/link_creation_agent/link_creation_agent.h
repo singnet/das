@@ -15,18 +15,16 @@
 #include <thread>
 #include <vector>
 
-#include "DASNode.h"
-#include "HandlesAnswer.h"
-#include "RemoteIterator.h"
+#include "PatternMatchingQueryProxy.h"
+#include "QueryAnswer.h"
+#include "ServiceBusSingleton.h"
 #include "das_agent_node.h"
 #include "link_creation_agent_node.h"
 #include "link_creation_service.h"
 
 #define DEBUG
 
-using namespace query_node;
 using namespace std;
-using namespace query_element;
 using namespace das_agent;
 namespace link_creation_agent {
 struct LinkCreationAgentRequest {
@@ -70,11 +68,11 @@ class LinkCreationAgent {
    private:
     /**
      * @brief Sends a query to DAS Query Agent
-     * @returns Returns a shared_ptr<RemoteIterator>, to iterate through the requests
+     * @returns Returns a shared_ptr<PatternMatchingQueryProxy>, to iterate through the results
      */
-    shared_ptr<RemoteIterator<HandlesAnswer>> query(vector<string>& query_tokens,
-                                                    string context,
-                                                    bool update_attention_broker);
+    shared_ptr<PatternMatchingQueryProxy> query(vector<string>& query_tokens,
+                                                string context,
+                                                bool update_attention_broker);
     /**
      * @brief Load config file
      */
@@ -110,7 +108,7 @@ class LinkCreationAgent {
     // Other attributes
     LinkCreationService* service;
     map<string, shared_ptr<LinkCreationAgentRequest>> request_buffer;
-    query_engine::DASNode* query_node_client;
+    shared_ptr<service_bus::ServiceBus> service_bus;
     LinkCreationAgentNode* link_creation_node_server;
     DasAgentNode* das_client;
     thread* agent_thread;

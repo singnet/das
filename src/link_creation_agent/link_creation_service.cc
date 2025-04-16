@@ -1,41 +1,42 @@
 #include "link_creation_service.h"
 
+#include "Utils.h"
+
 using namespace link_creation_agent;
 using namespace std;
-using namespace query_node;
 
 LinkCreationService::LinkCreationService(int thread_count) : thread_pool(thread_count) {}
 
 LinkCreationService::~LinkCreationService() {}
 
-void LinkCreationService::process_request(shared_ptr<RemoteIterator<HandlesAnswer>> iterator,
+void LinkCreationService::process_request(shared_ptr<PatternMatchingQueryProxy> proxy,
                                           DasAgentNode* das_client,
                                           vector<string>& link_template,
                                           int max_query_answers) {
-    auto job = [this, iterator, das_client, link_template, max_query_answers]() {
-        QueryAnswer* query_answer;
+    auto job = [this, proxy, das_client, link_template, max_query_answers]() {
+        shared_ptr<QueryAnswer> query_answer;
         int count = 0;
         long start = time(0);
-        while (!iterator->finished()) {
-            this_thread::sleep_for(chrono::seconds(1));
+        while (!proxy->finished()) {
+            // NOTE TO REVISOR:
+            // Althought it's not the purpose of this PR, I changed the way this thread is being
+            // put to sleep because, the way it were, it was sleeping for 1 second after processing
+            // each QueryAnswer EVEN IF THERE ARE MORE Query Answers waiting in the queue. The expected
+            // behavior is to put the thread to sleep only when there's no QueryAnswer sitting in the
+            // queue.
+
             // timeout
             if (time(0) - start > timeout) {
 #ifdef DEBUG
                 cout << "LinkCreationService::process_request: Timeout for iterator ID: "
-                     << iterator->get_local_id() << endl;
+                     << proxy->my_id() << endl;
 #endif
                 return;
             }
-            if ((query_answer = iterator->pop()) == NULL) {
-#ifdef DEBUG
-                cout << "LinkCreationService::process_request: Waiting for query answer ID: "
-                     << iterator->get_local_id() << endl;
-#endif
-                Utils::sleep();
-            } else {
+            while ((query_answer = proxy->pop()) != NULL) {
 #ifdef DEBUG
                 cout << "LinkCreationService::process_request: Processing query_answer ID: "
-                     << iterator->get_local_id() << endl;
+                     << proxy->my_id() << endl;
 #endif
                 if (link_template.front() == "LIST") {
                     LinkCreateTemplateList link_create_template_list(link_template);
@@ -47,13 +48,18 @@ void LinkCreationService::process_request(shared_ptr<RemoteIterator<HandlesAnswe
                     Link link(query_answer, link_template);
                     this->create_link(link, *das_client);
                 }
-                delete query_answer;
                 if (++count == max_query_answers) break;
             }
+            if (count == max_query_answers) break;
+#ifdef DEBUG
+            cout << "LinkCreationService::process_request: Waiting for query answer ID: "
+                 << proxy->my_id() << endl;
+#endif
+            Utils::sleep();
         }
 #ifdef DEBUG
         cout << "LinkCreationService::process_request: Finished processing iterator ID: "
-             << iterator->get_local_id() << endl;
+             << proxy->my_id() << endl;
 #endif
     };
 

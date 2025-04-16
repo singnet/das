@@ -1,5 +1,4 @@
-#ifndef _ATTENTION_BROKER_SERVER_ATTENTIONBROKERSERVER_H
-#define _ATTENTION_BROKER_SERVER_ATTENTIONBROKERSERVER_H
+#pragma once
 
 #define DEBUG
 
@@ -151,5 +150,3 @@ class AttentionBrokerServer final : public AttentionBroker::Service {
 };
 
 }  // namespace attention_broker_server
-
-#endif  // _ATTENTION_BROKER_SERVER_ATTENTIONBROKERSERVER_H

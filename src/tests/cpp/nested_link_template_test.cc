@@ -1,8 +1,8 @@
 #include <cstdlib>
 
 #include "AtomDBSingleton.h"
-#include "HandlesAnswer.h"
 #include "LinkTemplate.h"
+#include "QueryAnswer.h"
 #include "QueryNode.h"
 #include "gtest/gtest.h"
 #include "test_utils.h"
@@ -33,12 +33,12 @@ TEST(LinkTemplate, basics) {
         expression, array<shared_ptr<QueryElement>, 3>({similarity, v1, v2}));
     auto outter_template = make_shared<LinkTemplate<2>>(
         expression, array<shared_ptr<QueryElement>, 2>({odd_link, inner_template}));
-    Iterator<HandlesAnswer> iterator(outter_template);
+    Iterator iterator(outter_template);
 
-    HandlesAnswer* query_answer;
+    QueryAnswer* query_answer;
     unsigned int count = 0;
     while (!iterator.finished()) {
-        if ((query_answer = dynamic_cast<HandlesAnswer*>(iterator.pop())) == NULL) {
+        if ((query_answer = dynamic_cast<QueryAnswer*>(iterator.pop())) == NULL) {
             Utils::sleep();
         } else {
             EXPECT_TRUE(double_equals(query_answer->importance, 0.0));
@@ -67,12 +67,12 @@ TEST(LinkTemplate, nested_variables) {
     auto and_operator =
         make_shared<And<2>>(array<shared_ptr<QueryElement>, 2>({human_template, outter_template}));
 
-    Iterator<HandlesAnswer> iterator(and_operator);
+    Iterator iterator(and_operator);
 
-    HandlesAnswer* query_answer;
+    QueryAnswer* query_answer;
     unsigned int count = 0;
     while (!iterator.finished()) {
-        if ((query_answer = dynamic_cast<HandlesAnswer*>(iterator.pop())) == NULL) {
+        if ((query_answer = dynamic_cast<QueryAnswer*>(iterator.pop())) == NULL) {
             Utils::sleep();
         } else {
             // EXPECT_TRUE(double_equals(query_answer->importance, 0.0));

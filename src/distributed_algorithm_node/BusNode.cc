@@ -4,6 +4,9 @@
 #include "MessageBroker.h"
 #include "Utils.h"
 
+#define LOG_LEVEL INFO_LEVEL
+#include "Logger.h"
+
 using namespace distributed_algorithm_node;
 using namespace std;
 
@@ -22,9 +25,11 @@ BusNode::BusNode(const string& node_id,
     this->trusted_known_peer_id = known_peer;
     this->my_commands = node_commands;
     if (known_peer != "") {
+        LOG_DEBUG("New BUS node: " << node_id << " (known peer: " << known_peer << ")");
         this->is_master = false;
         this->add_peer(known_peer);
     } else {
+        LOG_INFO("New BUS on: " << node_id);
         this->is_master = true;
     }
     this->join_network();
@@ -35,6 +40,9 @@ BusNode::BusNode(const string& node_id,
 // DistributedAlgorithmNode virtual API
 
 void BusNode::node_joined_network(const string& node_id) {
+    if (this->is_master) {
+        LOG_INFO("New element " << node_id << " joined the service BUS");
+    }
     this->add_peer(node_id);
     broadcast_my_commands(node_id);
 }
@@ -80,13 +88,15 @@ void BusNode::send_bus_command(const string& command, const vector<string>& args
     if (target_id == "") {
         Utils::error("Bus: no owner is defined for command <" + command + ">");
     } else {
-        cout << "Routing " << command << " to " + target_id << endl;
+        LOG_DEBUG("BUS node " << this->node_id() << " is routing command " << command << " to "
+                              << target_id);
         send(command, args, target_id);
     }
 }
 
 void BusNode::take_ownership(const set<string>& commands) {
     for (auto command : commands) {
+        LOG_INFO("BUS node " << this->node_id() << " is taking ownership of command " << command);
         this->bus.set_ownership(command, node_id());
         this->my_commands.insert(command);
     }
@@ -105,16 +115,18 @@ string BusNode::to_string() {
 void BusNode::join_bus() { broadcast_my_commands(); }
 
 void BusNode::broadcast_my_commands(const string& target_id) {
-    vector<string> args;
-    args.push_back(this->node_id());
-    for (auto command : this->my_commands) {
-        this->set_ownership(command, this->node_id());
-        args.push_back(command);
-    }
-    if (target_id == "") {
-        broadcast(BusNode::SET_COMMAND_OWNERSHIP, args);
-    } else {
-        send(BusNode::SET_COMMAND_OWNERSHIP, args, target_id);
+    if (this->my_commands.size() > 0) {
+        vector<string> args;
+        args.push_back(this->node_id());
+        for (auto command : this->my_commands) {
+            this->set_ownership(command, this->node_id());
+            args.push_back(command);
+        }
+        if (target_id == "") {
+            broadcast(BusNode::SET_COMMAND_OWNERSHIP, args);
+        } else {
+            send(BusNode::SET_COMMAND_OWNERSHIP, args, target_id);
+        }
     }
 }
 

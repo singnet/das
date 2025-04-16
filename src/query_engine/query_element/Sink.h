@@ -1,5 +1,4 @@
-#ifndef _QUERY_ELEMENT_SINK_H
-#define _QUERY_ELEMENT_SINK_H
+#pragma once
 
 #include "QueryElement.h"
 
@@ -18,7 +17,6 @@ namespace query_element {
  * a server version of QueryNode (i.e. a ServerQueryNode) is setup to communicate with
  * a remote ClientQueryNode which is located in the QueryElement just below in the query tree.
  */
-template <class AnswerType>
 class Sink : public QueryElement {
    public:
     /**
@@ -49,13 +47,17 @@ class Sink : public QueryElement {
      */
     virtual void setup_buffers();
 
+    /**
+     * Returns true iff the input_buffer is empty and the answer flow is finished.
+     *
+     * @return true iff the input_buffer is empty and the answer flow is finished.
+     */
+    bool finished();
+
+    shared_ptr<QueryNode> input_buffer;
+
    protected:
-    shared_ptr<QueryNode<AnswerType>> input_buffer;
     shared_ptr<QueryElement> precedent;
 };
 
 }  // namespace query_element
-
-#include "Sink.cc"
-
-#endif  // _QUERY_ELEMENT_SINK_H

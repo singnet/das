@@ -7,7 +7,6 @@
 #include <variant>
 #include <vector>
 
-#include "HandlesAnswer.h"
 #include "QueryAnswer.h"
 #include "link_create_template.h"
 
@@ -22,8 +21,8 @@ using LinkTargetTypes = std::variant<std::string, std::shared_ptr<Link>, Node>;
 
 class Link {
    public:
-    Link(QueryAnswer* query_answer, vector<string> link_template);
-    Link(QueryAnswer* query_answer, shared_ptr<LinkCreateTemplate> link_create_template);
+    Link(shared_ptr<QueryAnswer> query_answer, vector<string> link_template);
+    Link(shared_ptr<QueryAnswer> query_answer, shared_ptr<LinkCreateTemplate> link_create_template);
     Link();
     ~Link();
     /**

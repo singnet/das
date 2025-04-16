@@ -6,16 +6,15 @@ using namespace link_creation_agent;
 using namespace std;
 using namespace query_engine;
 
-Link::Link(QueryAnswer* query_answer, vector<string> link_template) {
+Link::Link(shared_ptr<QueryAnswer> query_answer, vector<string> link_template) {
     LinkCreateTemplate link_create_template(link_template);
-    HandlesAnswer* handles_answer = dynamic_cast<HandlesAnswer*>(query_answer);
 
     this->type = link_create_template.get_link_type();
     vector<LinkCreateTemplateTypes> targets = link_create_template.get_targets();
     for (LinkCreateTemplateTypes target : targets) {
         if (holds_alternative<Variable>(target)) {
             string token = get<Variable>(target).name;
-            this->targets.push_back(handles_answer->assignment.get(token.c_str()));
+            this->targets.push_back(query_answer->assignment.get(token.c_str()));
         }
         if (holds_alternative<std::shared_ptr<LinkCreateTemplate>>(target)) {
             shared_ptr<LinkCreateTemplate> sub_link = get<std::shared_ptr<LinkCreateTemplate>>(target);
@@ -30,14 +29,13 @@ Link::Link(QueryAnswer* query_answer, vector<string> link_template) {
     this->custom_fields = link_create_template.get_custom_fields();
 }
 
-Link::Link(QueryAnswer* query_answer, shared_ptr<LinkCreateTemplate> link_create_template) {
-    HandlesAnswer* handles_answer = dynamic_cast<HandlesAnswer*>(query_answer);
+Link::Link(shared_ptr<QueryAnswer> query_answer, shared_ptr<LinkCreateTemplate> link_create_template) {
     this->type = link_create_template->get_link_type();
     vector<LinkCreateTemplateTypes> targets = link_create_template->get_targets();
     for (LinkCreateTemplateTypes target : targets) {
         if (holds_alternative<Variable>(target)) {
             string token = get<Variable>(target).name;
-            this->targets.push_back(handles_answer->assignment.get(token.c_str()));
+            this->targets.push_back(query_answer->assignment.get(token.c_str()));
         }
         if (holds_alternative<std::shared_ptr<LinkCreateTemplate>>(target)) {
             shared_ptr<LinkCreateTemplate> sub_link = get<std::shared_ptr<LinkCreateTemplate>>(target);

@@ -1,7 +1,7 @@
 #include <cstdlib>
 #include <cstring>
 
-#include "HandlesAnswer.h"
+#include "QueryAnswer.h"
 #include "Utils.h"
 #include "gtest/gtest.h"
 #include "test_utils.h"
@@ -9,7 +9,7 @@
 using namespace query_engine;
 using namespace commons;
 
-TEST(HandlesAnswer, assignments_basics) {
+TEST(QueryAnswer, assignments_basics) {
     Assignment mapping0;
 
     // Tests assign()
@@ -76,9 +76,9 @@ TEST(HandlesAnswer, assignments_basics) {
     EXPECT_TRUE(mapping4.to_string() != "");
 }
 
-TEST(HandlesAnswer, handles_answer_basics) {
+TEST(QueryAnswer, handles_answer_basics) {
     // Tests add_handle()
-    HandlesAnswer query_answer1("h1", 0);
+    QueryAnswer query_answer1("h1", 0);
     query_answer1.assignment.assign("v1", "1");
     EXPECT_EQ(query_answer1.handles_size, 1);
     EXPECT_TRUE(strcmp(query_answer1.handles[0], "h1") == 0);
@@ -88,7 +88,7 @@ TEST(HandlesAnswer, handles_answer_basics) {
     EXPECT_TRUE(strcmp(query_answer1.handles[1], "hx") == 0);
 
     // Tests merge()
-    HandlesAnswer query_answer2("h2", 0);
+    QueryAnswer query_answer2("h2", 0);
     query_answer2.assignment.assign("v2", "2");
     query_answer2.add_handle("hx");
     query_answer2.merge(&query_answer1);
@@ -101,7 +101,7 @@ TEST(HandlesAnswer, handles_answer_basics) {
     EXPECT_TRUE(query_answer2.assignment.assign("v3", "x"));
 
     // Tests copy()
-    HandlesAnswer* query_answer3 = HandlesAnswer::copy(&query_answer2);
+    QueryAnswer* query_answer3 = QueryAnswer::copy(&query_answer2);
     EXPECT_EQ(query_answer3->handles_size, 3);
     EXPECT_TRUE(strcmp(query_answer3->handles[0], "h2") == 0);
     EXPECT_TRUE(strcmp(query_answer3->handles[1], "hx") == 0);
@@ -112,12 +112,12 @@ TEST(HandlesAnswer, handles_answer_basics) {
     EXPECT_TRUE(query_answer3->assignment.assign("v4", "x"));
 }
 
-void query_answers_equal(HandlesAnswer* qa1, HandlesAnswer* qa2) {
+void query_answers_equal(QueryAnswer* qa1, QueryAnswer* qa2) {
     EXPECT_TRUE(double_equals(qa1->importance, qa2->importance));
     EXPECT_EQ(qa1->to_string(), qa2->to_string());
 }
 
-TEST(HandlesAnswer, tokenization) {
+TEST(QueryAnswer, tokenization) {
     unsigned int NUM_TESTS = 100000;
     unsigned int MAX_HANDLES = 5;
     unsigned int MAX_ASSIGNMENTS = 10;
@@ -125,7 +125,7 @@ TEST(HandlesAnswer, tokenization) {
     for (unsigned int test = 0; test < NUM_TESTS; test++) {
         unsigned int num_handles = (rand() % MAX_HANDLES) + 1;
         unsigned int num_assignments = (rand() % MAX_ASSIGNMENTS);
-        HandlesAnswer input(Utils::flip_coin() ? 1 : 0);
+        QueryAnswer input(Utils::flip_coin() ? 1 : 0);
         for (unsigned int i = 0; i < num_handles; i++) {
             input.add_handle(strdup(random_handle().c_str()));
         }
@@ -135,9 +135,9 @@ TEST(HandlesAnswer, tokenization) {
                                     strdup(random_handle().c_str()));
         }
 
-        query_answers_equal(&input, HandlesAnswer::copy(&input));
+        query_answers_equal(&input, QueryAnswer::copy(&input));
         string token_string = input.tokenize();
-        HandlesAnswer output(0.0);
+        QueryAnswer output(0.0);
         output.untokenize(token_string);
         query_answers_equal(&input, &output);
     }
