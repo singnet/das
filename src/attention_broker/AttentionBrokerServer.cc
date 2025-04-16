@@ -1,6 +1,8 @@
 #include "AttentionBrokerServer.h"
-
 #include "RequestSelector.h"
+
+#define LOG_LEVEL INFO_LEVEL
+#include "Logger.h"
 
 using namespace attention_broker_server;
 
@@ -55,10 +57,7 @@ Status AttentionBrokerServer::ping(ServerContext* grpc_context,
 Status AttentionBrokerServer::stimulate(ServerContext* grpc_context,
                                         const dasproto::HandleCount* request,
                                         dasproto::Ack* reply) {
-#ifdef DEBUG
-    cout << "AttentionBrokerServer::stimulate() BEGIN" << endl;
-    cout << "Context: " << request->context() << endl;
-#endif
+    LOG_INFO("Stimulating " << request->map_size() << " handles");
     if (request->map_size() > 0) {
         HebbianNetwork* network = select_hebbian_network(request->context());
         ((dasproto::HandleCount*) request)->set_hebbian_network((long) network);
@@ -66,12 +65,10 @@ Status AttentionBrokerServer::stimulate(ServerContext* grpc_context,
         this->stimulus_spreader->spread_stimuli(request);
     }
     reply->set_msg("STIMULATE");
-#ifdef DEBUG
-    cout << "AttentionBrokerServer::stimulate() END" << endl;
-#endif
     if (rpc_api_enabled) {
         return Status::OK;
     } else {
+        LOG_ERROR("AttentionBrokerServer::stimulate() failed");
         return Status::CANCELLED;
     }
 }
@@ -79,10 +76,7 @@ Status AttentionBrokerServer::stimulate(ServerContext* grpc_context,
 Status AttentionBrokerServer::correlate(ServerContext* grpc_context,
                                         const dasproto::HandleList* request,
                                         dasproto::Ack* reply) {
-#ifdef DEBUG
-    cout << "AttentionBrokerServer::correlate() BEGIN" << endl;
-    cout << "Context: " << request->context() << endl;
-#endif
+    LOG_INFO("Correlating " << request->list_size() << " handles");
     if (request->list_size() > 0) {
         HebbianNetwork* network = select_hebbian_network(request->context());
         ((dasproto::HandleList*) request)->set_hebbian_network((long) network);
@@ -90,12 +84,10 @@ Status AttentionBrokerServer::correlate(ServerContext* grpc_context,
         this->updater->correlation(request);
     }
     reply->set_msg("CORRELATE");
-#ifdef DEBUG
-    cout << "AttentionBrokerServer::correlate() END" << endl;
-#endif
     if (rpc_api_enabled) {
         return Status::OK;
     } else {
+        LOG_ERROR("AttentionBrokerServer::correlate() failed");
         return Status::CANCELLED;
     }
 }
@@ -103,10 +95,7 @@ Status AttentionBrokerServer::correlate(ServerContext* grpc_context,
 Status AttentionBrokerServer::get_importance(ServerContext* grpc_context,
                                              const dasproto::HandleList* request,
                                              dasproto::ImportanceList* reply) {
-#ifdef DEBUG
-    cout << "AttentionBrokerServer::get_importance() BEGIN" << endl;
-    cout << "Context: " << request->context() << endl;
-#endif
+    LOG_INFO("Getting importance of " << request->list_size() << " handles");
     if (this->rpc_api_enabled) {
         int num_handles = request->list_size();
         if (num_handles > 0) {
@@ -116,11 +105,9 @@ Status AttentionBrokerServer::get_importance(ServerContext* grpc_context,
                 reply->add_list(importance);
             }
         }
-#ifdef DEBUG
-        cout << "AttentionBrokerServer::get_importance() END" << endl;
-#endif
         return Status::OK;
     } else {
+        LOG_ERROR("AttentionBrokerServer::get_importance() failed");
         return Status::CANCELLED;
     }
 }

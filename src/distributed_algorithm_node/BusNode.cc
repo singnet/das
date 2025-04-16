@@ -96,7 +96,7 @@ void BusNode::send_bus_command(const string& command, const vector<string>& args
 
 void BusNode::take_ownership(const set<string>& commands) {
     for (auto command : commands) {
-        LOG_DEBUG("BUS node " << this->node_id() << " is taking ownership of command " << command);
+        LOG_INFO("BUS node " << this->node_id() << " is taking ownership of command " << command);
         this->bus.set_ownership(command, node_id());
         this->my_commands.insert(command);
     }

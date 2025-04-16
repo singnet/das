@@ -1,11 +1,12 @@
-#ifndef _QUERY_ELEMENT_OR_H
-#define _QUERY_ELEMENT_OR_H
+#pragma once
 
 #include <cstring>
 #include <queue>
-
 #include "Operator.h"
 #include "QueryAnswer.h"
+
+#define LOG_LEVEL INFO_LEVEL
+#include "Logger.h"
 
 using namespace std;
 
@@ -76,6 +77,7 @@ class Or : public Operator<N> {
             }
         }
         this->id += ")";
+        LOG_INFO(this->id);
     }
 
     bool ready_to_process_candidate() {
@@ -156,9 +158,7 @@ class Or : public Operator<N> {
                 ingest_newly_arrived_answers();
             } while (!ready_to_process_candidate());
 
-            cout << "XXXXXXX 1" << endl;
             if (processed_all_input()) {
-                cout << "XXXXXXX 2" << endl;
                 bool all_finished_flag = true;
                 for (unsigned int i = 0; i < N; i++) {
                     if (!this->input_buffer[i]->is_query_answers_finished()) {
@@ -166,30 +166,21 @@ class Or : public Operator<N> {
                         break;
                     }
                 }
-                cout << "XXXXXXX 3" << endl;
                 if (all_finished_flag && !this->output_buffer->is_query_answers_finished() &&
                     // processed_all_input() is double-checked on purpose to avoid race condition
                     processed_all_input()) {
                     this->output_buffer->query_answers_finished();
                 }
-                cout << "XXXXXXX 4" << endl;
                 Utils::sleep();
                 continue;
             }
-            cout << "XXXXXXX 5" << endl;
 
             unsigned int selected_clause = select_answer();
-            cout << "XXXXXXX 6" << endl;
             QueryAnswer* selected_query_answer =
                 this->query_answer[selected_clause][this->next_input_to_process[selected_clause]++];
-            cout << std::to_string(selected_clause) << ": " << selected_query_answer->to_string()
-                 << endl;
             this->output_buffer->add_query_answer(selected_query_answer);
-            cout << "XXXXXXX 7" << endl;
         } while (true);
     }
 };
 
 }  // namespace query_element
-
-#endif  // _QUERY_ELEMENT_OR_H

@@ -1,5 +1,7 @@
-#ifndef _QUERY_ELEMENT_LINKTEMPLATE_H
-#define _QUERY_ELEMENT_LINKTEMPLATE_H
+#pragma once
+
+#define LOG_LEVEL INFO_LEVEL
+#include "Logger.h"
 
 #include <grpcpp/grpcpp.h>
 
@@ -112,15 +114,13 @@ class LinkTemplate : public Source {
         // that we want the string for this identifier to be the same as the string representing
         // the handle.
         this->id = this->handle.get() + std::to_string(LinkTemplate::next_instance_count());
+        LOG_INFO("LinkTemplate " << this->to_string());
     }
 
     /**
      * Destructor.
      */
     virtual ~LinkTemplate() {
-#ifdef DEBUG
-        cout << "LinkTemplate::LinkTemplate() DESTRUCTOR BEGIN" << endl;
-#endif
         this->graceful_shutdown();
         local_answers_mutex.lock();
         if (this->atom_document) delete[] this->atom_document;
@@ -138,9 +138,6 @@ class LinkTemplate : public Source {
         this->inner_template.clear();
         this->inner_template_iterator.reset();
         local_answers_mutex.unlock();
-#ifdef DEBUG
-        cout << "LinkTemplate::LinkTemplate() DESTRUCTOR END" << endl;
-#endif
     }
 
     // --------------------------------------------------------------------------------------------
@@ -150,9 +147,6 @@ class LinkTemplate : public Source {
      * Gracefully shuts down this QueryElement's processor thread.
      */
     virtual void graceful_shutdown() {
-#ifdef DEBUG
-        cout << "LinkTemplate::graceful_shutdown() BEGIN" << endl;
-#endif
         if (this->is_flow_finished()) return;
         set_flow_finished();
         if (this->local_buffer_processor != NULL) {
@@ -161,15 +155,9 @@ class LinkTemplate : public Source {
             this->local_buffer_processor = NULL;
         }
         Source::graceful_shutdown();
-#ifdef DEBUG
-        cout << "LinkTemplate::graceful_shutdown() END" << endl;
-#endif
     }
 
     virtual void setup_buffers() {
-#ifdef DEBUG
-        cout << "LinkTemplate::setup_buffers() BEGIN" << endl;
-#endif
         Source::setup_buffers();
         if (this->inner_template.size() > 0) {
             // clang-format off
@@ -234,9 +222,6 @@ class LinkTemplate : public Source {
         }
         this->local_buffer_processor = new thread(&LinkTemplate::local_buffer_processor_method, this);
         fetch_links();
-#ifdef DEBUG
-        cout << "LinkTemplate::setup_buffers() END" << endl;
-#endif
     }
 
    private:
@@ -273,20 +258,15 @@ class LinkTemplate : public Source {
             stub->get_importance(new grpc::ClientContext(), handle_list, &importance_list);
             return;
         }
-
-#ifdef DEBUG
-        cout << "get_importance() paginating" << endl;
+        LOG_DEBUG("Paginating get_importance()");
         unsigned int page_count = 1;
-#endif
 
         dasproto::HandleList small_handle_list;
         dasproto::ImportanceList small_importance_list;
         unsigned int remaining = handle_list.list_size();
         unsigned int cursor = 0;
         while (remaining > 0) {
-#ifdef DEBUG
-            cout << "get_importance() page: " << page_count++ << endl;
-#endif
+            LOG_DEBUG("get_importance() page: " << page_count++);
             for (unsigned int i = 0; i < MAX_GET_IMPORTANCE_BUNDLE_SIZE; i++) {
                 if (cursor == handle_list.list_size()) {
                     break;
@@ -294,9 +274,7 @@ class LinkTemplate : public Source {
                 small_handle_list.add_list(handle_list.list(cursor++));
                 remaining--;
             }
-#ifdef DEBUG
-            cout << "discharging: " << small_handle_list.list_size() << endl;
-#endif
+            LOG_DEBUG("get_importance() discharging: " << small_handle_list.list_size());
             stub->get_importance(new grpc::ClientContext(), small_handle_list, &small_importance_list);
             for (unsigned int i = 0; i < small_importance_list.list_size(); i++) {
                 importance_list.add_list(small_importance_list.list(i));
@@ -307,16 +285,10 @@ class LinkTemplate : public Source {
     }
 
     void fetch_links() {
-#ifdef DEBUG
-        cout << "fetch_links() BEGIN" << endl;
-        cout << "fetch_links() Pattern handle: " << this->handle << endl;
-#endif
         shared_ptr<AtomDB> db = AtomDBSingleton::get_instance();
         this->fetch_result = db->query_for_pattern(this->handle);
         unsigned int answer_count = this->fetch_result->size();
-#ifdef DEBUG
-        cout << "fetch_links() ac: " << answer_count << endl;
-#endif
+        LOG_INFO("Fetched " << answer_count << " links for link template " << this->to_string());
         QueryAnswer* query_answer;
         vector<QueryAnswer*> fetched_answers;
         if (answer_count > 0) {
@@ -375,9 +347,6 @@ class LinkTemplate : public Source {
         } else {
             set_flow_finished();
         }
-#ifdef DEBUG
-        cout << "fetch_links() END" << endl;
-#endif
     }
 
     bool is_feasible(unsigned int index) {
@@ -484,6 +453,21 @@ class LinkTemplate : public Source {
         return instance_count++;
     }
 
+    string to_string() {
+        string answer = string(this->handle.get()) + " [" + this->type + " <";
+        for (unsigned int i = 0; i < this->arity; i++) {
+            answer += this->handle_keys[i];
+            if (this->target_template[i]->id != "") {
+                answer += " (" + target_template[i]->id + ")";
+            }
+            if (i != (this->arity -1)) {
+                answer += ", ";
+            }
+        }
+        answer += ">]";
+        return answer;
+    }
+
    private:
     string type;
     array<shared_ptr<QueryElement>, ARITY> target_template;
@@ -509,5 +493,3 @@ class LinkTemplate : public Source {
 };
 
 }  // namespace query_element
-
-#endif  // _QUERY_ELEMENT_LINKTEMPLATE_H

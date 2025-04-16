@@ -1,5 +1,4 @@
-#ifndef _QUERY_ELEMENT_OPERATOR_H
-#define _QUERY_ELEMENT_OPERATOR_H
+#pragma once
 
 #include <mutex>
 
@@ -37,14 +36,8 @@ class Operator : public QueryElement {
      * Destructor.
      */
     ~Operator() {
-#ifdef DEBUG
-        cout << "Operator::Operator() DESTRUCTOR BEGIN" << endl;
-#endif
         this->graceful_shutdown();
         for (size_t i = 0; i < N; i++) this->precedent[i] = nullptr;
-#ifdef DEBUG
-        cout << "Operator::Operator() DESTRUCTOR END" << endl;
-#endif
     }
 
     // --------------------------------------------------------------------------------------------
@@ -109,5 +102,3 @@ class Operator : public QueryElement {
 };
 
 }  // namespace query_element
-
-#endif  // _QUERY_ELEMENT_OPERATOR_H
