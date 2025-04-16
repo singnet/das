@@ -2,11 +2,29 @@ import subprocess
 import sys
 import time
 import os
-from typing import MutableMapping
+from typing import MutableMapping, Dict
 
 # Number of times to run each query. At the end, the average time will be printed.
 TESTS_ROUNDS = 10
 
+ENV_FILE_PATH = ".env"
+
+
+def create_or_update_env_file(env_vars: Dict[str, str], file_path: str = ENV_FILE_PATH):
+    existing_vars = {}
+
+    if os.path.exists(file_path):
+        with open(file_path, "r") as file:
+            for line in file:
+                if "=" in line and not line.strip().startswith("#"):
+                    key, value = line.strip().split("=", 1)
+                    existing_vars[key] = value
+
+    existing_vars.update(env_vars)
+
+    with open(file_path, "w") as file:
+        for key, value in existing_vars.items():
+            file.write(f"{key}={value}\n")
 
 def get_env_vars() -> MutableMapping:
     """
@@ -72,6 +90,8 @@ def run_command(command: str, check: bool = True) -> float:
 
 
 def main():
+    create_or_update_env_file(get_env_vars())
+
     # fmt: off
     queries: dict[str, str] = dict(
         linktemplate_3_node_var_link=("""
@@ -135,7 +155,7 @@ def main():
     # already be started down below. This is a workaround to avoid the Query Agent to crash later.
     # This issue only happens in this particular script.
     query_agent_process = start_process("make run-query-agent")
-    time.sleep(3)
+    time.sleep(10)
     stop_process(query_agent_process)
     time.sleep(3)
 
