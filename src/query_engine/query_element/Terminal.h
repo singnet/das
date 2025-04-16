@@ -2,6 +2,7 @@
 
 #include <array>
 #include <string>
+
 #include "AtomDBSingleton.h"
 #include "QueryElement.h"
 #include "expression_hasher.h"

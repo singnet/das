@@ -2,6 +2,7 @@
 
 #include <cstring>
 #include <queue>
+
 #include "Operator.h"
 #include "QueryAnswer.h"
 

@@ -1,8 +1,6 @@
 #pragma once
 
 #define LOG_LEVEL INFO_LEVEL
-#include "Logger.h"
-
 #include <grpcpp/grpcpp.h>
 
 #include <cstring>
@@ -12,6 +10,7 @@
 #include "AtomDBSingleton.h"
 #include "AttentionBrokerServer.h"
 #include "Iterator.h"
+#include "Logger.h"
 #include "QueryAnswer.h"
 #include "QueryNode.h"
 #include "SharedQueue.h"
@@ -460,7 +459,7 @@ class LinkTemplate : public Source {
             if (this->target_template[i]->id != "") {
                 answer += " (" + target_template[i]->id + ")";
             }
-            if (i != (this->arity -1)) {
+            if (i != (this->arity - 1)) {
                 answer += ", ";
             }
         }
