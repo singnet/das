@@ -17,7 +17,7 @@ using namespace query_element;
 namespace atomdb {
 
 /**
- *
+ * Bus element responsible for processing PATTERN_MATCHING_QUERY commands.
  */
 class PatternMatchingQueryProcessor : public BusCommandProcessor {
 

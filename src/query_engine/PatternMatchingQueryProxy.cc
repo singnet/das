@@ -1,18 +1,18 @@
 #include "ServiceBus.h"
 #include "PatternMatchingQueryProxy.h"
 
-#define LOG_LEVEL DEBUG_LEVEL
+#define LOG_LEVEL INFO_LEVEL
 #include "Logger.h"
 
 using namespace query_engine;
+
+// -------------------------------------------------------------------------------------------------
+// Constructors, destructors and initialization
 
 string PatternMatchingQueryProxy::ABORT = "abort";
 string PatternMatchingQueryProxy::ANSWER_BUNDLE = "answer_bundle";
 string PatternMatchingQueryProxy::COUNT = "count";
 string PatternMatchingQueryProxy::FINISHED = "finished";
-
-// -------------------------------------------------------------------------------------------------
-// Public methods
 
 PatternMatchingQueryProxy::PatternMatchingQueryProxy() {
     // constructor typically used in processor
@@ -28,12 +28,11 @@ PatternMatchingQueryProxy::PatternMatchingQueryProxy(
     : BusCommandProxy() {
 
     // constructor typically used in requestor
-
     lock_guard<mutex> semaphore(this->api_mutex);
     init();
     this->command = ServiceBus::PATTERN_MATCHING_QUERY;
     this->count_flag = count_only;
-    this->args = {context, to_string(update_attention_broker)};
+    this->args = {context, to_string(update_attention_broker), to_string(count_flag)};
     this->args.insert(this->args.end(), tokens.begin(), tokens.end());
 }
 
@@ -48,14 +47,39 @@ void PatternMatchingQueryProxy::init() {
 PatternMatchingQueryProxy::~PatternMatchingQueryProxy() {
 }
 
-bool PatternMatchingQueryProxy::is_aborting() {
+// -------------------------------------------------------------------------------------------------
+// Client-side API
+
+bool PatternMatchingQueryProxy::finished() {
     lock_guard<mutex> semaphore(this->api_mutex);
-    return this->abort_flag;
+    return this->answer_flow_finished &&
+           (this->count_flag || (this->answer_queue.size() == 0));
+}
+
+shared_ptr<QueryAnswer> PatternMatchingQueryProxy::pop() {
+    lock_guard<mutex> semaphore(this->api_mutex);
+    if (this->count_flag) {
+        Utils::error("Can't pop QueryAnswers from count_only queries.");
+    }
+    return shared_ptr<QueryAnswer>((QueryAnswer*) this->answer_queue.dequeue());
+}
+
+unsigned int PatternMatchingQueryProxy::get_count() {
+    lock_guard<mutex> semaphore(this->api_mutex);
+    return this->answer_count;
 }
 
 void PatternMatchingQueryProxy::abort() {
     lock_guard<mutex> semaphore(this->api_mutex);
     // AQUI TODO Implementar
+}
+
+// -------------------------------------------------------------------------------------------------
+// Server-side API
+
+bool PatternMatchingQueryProxy::is_aborting() {
+    lock_guard<mutex> semaphore(this->api_mutex);
+    return this->abort_flag;
 }
 
 const string& PatternMatchingQueryProxy::get_context() {
@@ -88,23 +112,27 @@ bool PatternMatchingQueryProxy::get_count_flag() {
     return this->count_flag;
 }
 
-bool PatternMatchingQueryProxy::finished() {
+void PatternMatchingQueryProxy::set_count_flag(bool flag) {
     lock_guard<mutex> semaphore(this->api_mutex);
-    return this->answer_flow_finished &&
-           (this->count_flag || (this->answer_queue.size() == 0));
+    this->count_flag = flag;
 }
 
-shared_ptr<QueryAnswer> PatternMatchingQueryProxy::pop() {
-    lock_guard<mutex> semaphore(this->api_mutex);
-    if (this->count_flag) {
-        Utils::error("Can't pop QueryAnswers from count_only queries.");
+// ---------------------------------------------------------------------------------------------
+// Virtual superclass API from_remote_peer() and the piggyback methods called by it
+
+void PatternMatchingQueryProxy::from_remote_peer(const string& command, const vector<string>& args) {
+    LOG_DEBUG("Proxy command: <" << command << "> from " << this->peer_id() << " received in " << this->my_id());
+    if (command == ANSWER_BUNDLE) {
+        answer_bundle(args);
+    } else if (command == COUNT) {
+        count_answer(args);
+    } else if (command == FINISHED) {
+        query_answers_finished(args);
+    } else if (command == ABORT) {
+        abort(args);
+    } else {
+        Utils::error("Invalid proxy command: <" + command + ">");
     }
-    return shared_ptr<QueryAnswer>((QueryAnswer*) this->answer_queue.dequeue());
-}
-
-unsigned int PatternMatchingQueryProxy::get_count() {
-    lock_guard<mutex> semaphore(this->api_mutex);
-    return this->answer_count;
 }
 
 void PatternMatchingQueryProxy::answer_bundle(const vector<string>& args) {
@@ -144,20 +172,4 @@ void PatternMatchingQueryProxy::query_answers_finished(const vector<string>& arg
 void PatternMatchingQueryProxy::abort(const vector<string>& args) {
     lock_guard<mutex> semaphore(this->api_mutex);
     this->abort_flag = true;
-}
-
-void PatternMatchingQueryProxy::from_remote_peer(const string& command, const vector<string>& args) {
-    lock_guard<mutex> semaphore(this->api_mutex);
-    LOG_DEBUG("Proxy command: " << command << " from " << this->peer_id() << " received by " << this->my_id());
-    if (command == ANSWER_BUNDLE) {
-        answer_bundle(args);
-    } else if (command == COUNT) {
-        count_answer(args);
-    } else if (command == FINISHED) {
-        query_answers_finished(args);
-    } else if (command == ABORT) {
-        abort(args);
-    } else {
-        Utils::error("Invalid proxy command: " + command);
-    }
 }

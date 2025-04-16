@@ -8,7 +8,7 @@
 #include "Terminal.h"
 #include "Sink.h"
 
-#define LOG_LEVEL DEBUG_LEVEL
+#define LOG_LEVEL INFO_LEVEL
 #include "Logger.h"
 
 using namespace atomdb;
@@ -38,7 +38,7 @@ shared_ptr<BusCommandProxy> PatternMatchingQueryProcessor::factory_empty_proxy()
 void PatternMatchingQueryProcessor::run_command(shared_ptr<BusCommandProxy> proxy) {
     lock_guard<mutex> semaphore(this->query_threads_mutex);
     auto query_proxy = dynamic_pointer_cast<PatternMatchingQueryProxy>(proxy);
-    LOG_DEBUG("Starting new thread to run command: " << proxy->get_command());
+    LOG_DEBUG("Starting new thread to run command: <" << proxy->get_command() << ">");
     this->query_threads.push_back(
         new thread(&PatternMatchingQueryProcessor::thread_process_one_query, 
         this, 
@@ -56,14 +56,15 @@ void PatternMatchingQueryProcessor::update_attention_broker_single_answer(
     
     shared_ptr<AtomDB> db = AtomDBSingleton::get_instance();
     set<string> single_answer;
-    stack<const char*> execution_stack;
+    stack<string> execution_stack;
 
     for (unsigned int i = 0; i < answer->handles_size; i++) {
-        execution_stack.push(answer->handles[i]);
+        string handle = string(answer->handles[i]);
+        execution_stack.push(string(answer->handles[i]));
     }
 
     while (!execution_stack.empty()) {
-        string handle = string(execution_stack.top());
+        string handle = execution_stack.top();
         execution_stack.pop();
         // Updates single_answer (correlation)
         single_answer.insert(handle);
@@ -75,7 +76,7 @@ void PatternMatchingQueryProcessor::update_attention_broker_single_answer(
         if (query_result != NULL) {  // if handle is link
             unsigned int query_result_size = query_result->size();
             for (unsigned int i = 0; i < query_result_size; i++) {
-                execution_stack.push(query_result->get_handle(i));
+                execution_stack.push(string(query_result->get_handle(i)));
             }
         }
     }
@@ -85,11 +86,12 @@ void PatternMatchingQueryProcessor::update_attention_broker_single_answer(
                             grpc::InsecureChannelCredentials()));
 
     dasproto::HandleList handle_list; // GRPC command parameter
-    dasproto::Ack ack;                  // GRPC command return
+    dasproto::Ack ack;                // GRPC command return
     handle_list.set_context(proxy->get_context());
     for (auto handle : single_answer) {
         handle_list.add_list(handle);
     }
+    LOG_DEBUG("Calling AttentionBroker GRPC. Correlating " << single_answer.size() << " handles");
     stub->correlate(new grpc::ClientContext(), handle_list, &ack);
     if (ack.msg() != "CORRELATE") {
         Utils::error("Failed GRPC command: AttentionBroker::correlate()");
@@ -105,12 +107,13 @@ void PatternMatchingQueryProcessor::update_attention_broker_joint_answer(
                             grpc::InsecureChannelCredentials()));
 
     dasproto::HandleCount handle_count; // GRPC command parameter
-    dasproto::Ack ack;                    // GRPC command return
+    dasproto::Ack ack;                 // GRPC command return
     handle_count.set_context(proxy->get_context());
     for (auto handle : joint_answer) {
         (*handle_count.mutable_map())[handle] = 1;
     }
     (*handle_count.mutable_map())["SUM"] = joint_answer.size();
+    LOG_DEBUG("Calling AttentionBroker GRPC. Stimulating " << joint_answer.size() << " handles");
     stub->stimulate(new grpc::ClientContext(), handle_count, &ack);
     if (ack.msg() != "STIMULATE") {
         Utils::error("Failed GRPC command: AttentionBroker::stimulate()");
@@ -147,7 +150,8 @@ void PatternMatchingQueryProcessor::thread_process_one_query(shared_ptr<PatternM
     }
     proxy->set_context(proxy->args[0]);
     proxy->set_attention_update_flag(proxy->args[1] == "1");
-    proxy->query_tokens.insert(proxy->query_tokens.begin(), proxy->args.begin() + 2, proxy->args.end());
+    proxy->set_count_flag(proxy->args[2] == "1");
+    proxy->query_tokens.insert(proxy->query_tokens.begin(), proxy->args.begin() + 3, proxy->args.end());
     LOG_DEBUG("Setting up query tree");
     shared_ptr<QueryElement> root_query_element = setup_query_tree(proxy);
     set<string> joint_answer; // used to stimulate attention broker
@@ -159,7 +163,7 @@ void PatternMatchingQueryProcessor::thread_process_one_query(shared_ptr<PatternM
         string host = id.substr(0, id.find(":"));
         string local_id = host + ":" + to_string(sink_port_number);
         shared_ptr<Sink> query_sink = 
-            make_shared<Sink>(root_query_element, local_id);
+            make_shared<Sink>(root_query_element, "Sink_" + proxy->peer_id() + "_" + std::to_string(proxy->get_serial()));
         unsigned int answer_count = 0;
         LOG_DEBUG("Processing QueryAnswer objects");
         while (! (query_sink->finished() || proxy->is_aborting())) {
@@ -170,16 +174,18 @@ void PatternMatchingQueryProcessor::thread_process_one_query(shared_ptr<PatternM
             LOG_DEBUG("Answering count_only query");
             proxy->to_remote_peer(PatternMatchingQueryProxy::COUNT, {std::to_string(answer_count)});
         }
+        proxy->to_remote_peer(PatternMatchingQueryProxy::FINISHED, {});
         if (proxy->get_attention_update_flag()) {
             LOG_DEBUG("Updating AttentionBroker (stimulate)");
             update_attention_broker_joint_answer(proxy, joint_answer);
         }
+        Utils::sleep(500);
         query_sink->graceful_shutdown();
         PortPool::return_port(sink_port_number);
     } else {
         Utils::error("Invalid command " + command + " in PatternMatchingQueryProcessor");
     }
-    LOG_DEBUG("Command finished: " << proxy->get_command());
+    LOG_DEBUG("Command finished: <" << proxy->get_command() << ">");
     // TODO add a call to join/delete/remove thread
 }
 

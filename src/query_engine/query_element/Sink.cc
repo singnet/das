@@ -38,5 +38,5 @@ void Sink::graceful_shutdown() {
 }
 
 bool Sink::finished() {
-    return (QueryElement::is_flow_finished() && this->input_buffer->is_query_answers_finished());
+    return (this->input_buffer->is_query_answers_empty() && this->input_buffer->is_query_answers_finished());
 }

@@ -3,7 +3,7 @@
 #include "MessageBroker.h"
 #include "Utils.h"
 
-#define LOG_LEVEL DEBUG_LEVEL
+#define LOG_LEVEL INFO_LEVEL
 #include "Logger.h"
 
 using namespace query_node;
@@ -47,6 +47,7 @@ void QueryNode::graceful_shutdown() {
     if (is_shutting_down()) {
         return;
     }
+    LOG_DEBUG("Gracefully shutting down QueryNode " << this->node_id());
     DistributedAlgorithmNode::graceful_shutdown();
     this->shutdown_flag_mutex.lock();
     this->shutdown_flag = true;
@@ -56,6 +57,7 @@ void QueryNode::graceful_shutdown() {
         delete this->query_answer_processor;
         this->query_answer_processor = NULL;
     }
+    LOG_DEBUG("Gracefully shutting down QueryNode " << this->node_id() << " DONE");
 }
 
 bool QueryNode::is_shutting_down() {

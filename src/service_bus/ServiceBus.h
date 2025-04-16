@@ -59,6 +59,7 @@ class ServiceBus {
    private:
     class Node : public BusNode {
        public:
+        Node();
         Node(const string& id,
              shared_ptr<BusNode::Bus> bus,
              const set<string>& node_commands,
@@ -130,6 +131,11 @@ class ServiceBus {
     static void initialize_statics(const set<string>& commands = {},
                                    unsigned int port_lower = 64000,
                                    unsigned int port_upper = 64999);
+
+    /**
+     * Empty constructor.
+     */
+    ServiceBus();
 
     /**
      * Constructor is not actually part of the API, it's supposed to be called

@@ -15,8 +15,6 @@ void check_query(vector<string>& query,
                  const string& context,
                  bool update_attention_broker) {
 
-    cout << "XXXXXXXXXXXXXXXX DASNode.queries CHECK BEGIN" << endl;
-
     shared_ptr<PatternMatchingQueryProxy> proxy1(new PatternMatchingQueryProxy(
         query,
         context,
@@ -30,30 +28,16 @@ void check_query(vector<string>& query,
 
     client_bus->issue_bus_command(proxy1);
     unsigned int count = 0;
-    //while (! proxy1->finished()) {
-    //    if (proxy1->pop() != NULL) {
-    //        count++;
-    //    }
-    //    Utils::sleep();
-    //}
-
     shared_ptr<QueryAnswer> query_answer;
     while (!proxy1->finished()) {
-    cout << "XXXXXXXXXXXXXXXX DASNode.queries CHECK 1" << endl;
         while (! (query_answer = proxy1->pop())) {
-    cout << "XXXXXXXXXXXXXXXX DASNode.queries CHECK 2" << endl;
             if (proxy1->finished()) {
-    cout << "XXXXXXXXXXXXXXXX DASNode.queries CHECK 3" << endl;
                 break;
             } else {
-    cout << "XXXXXXXXXXXXXXXX DASNode.queries CHECK 4" << endl;
                 Utils::sleep();
             }
         }
-    cout << "XXXXXXXXXXXXXXXX DASNode.queries CHECK 5" << endl;
         if (query_answer) {
-            cout << "XXXXX " << query_answer->to_string() << endl;
-            // cout << "XXXXX " << handle_to_atom(query_answer->handles[0]) << endl;
             count++;
         }
     }
@@ -82,17 +66,12 @@ TEST(PatternMatchingQuery, queries) {
     string peer1_id = "localhost:33701";
     string peer2_id = "localhost:33702";
 
-    //ServiceBus server_bus(peer1_id);
-    //ServiceBus *server_bus = new ServiceBus(peer1_id);
-    //Utils::sleep(1000);
-    //ServiceBus client_bus(peer2_id, peer1_id);
-    ServiceBus client_bus(peer2_id, "localhost:31700");
-    //ServiceBus *client_bus = new ServiceBus(peer2_id, peer1_id);
-    //ServiceBus *client_bus = new ServiceBus(peer2_id, "localhost:31700");
-    //ServiceBus *client_bus = new ServiceBus(peer2_id);
-    Utils::sleep(1000);
-    //client_bus.register_processor(make_shared<PatternMatchingQueryProcessor>());
-    //Utils::sleep(1000);
+    ServiceBus *server_bus = new ServiceBus(peer1_id);
+    Utils::sleep(500);
+    server_bus->register_processor(make_shared<PatternMatchingQueryProcessor>());
+    Utils::sleep(500);
+    ServiceBus *client_bus = new ServiceBus(peer2_id, peer1_id);
+    Utils::sleep(500);
 
     vector<string> q1 = {"LINK_TEMPLATE",
                          "Expression",
@@ -140,16 +119,17 @@ TEST(PatternMatchingQuery, queries) {
                          "v1",   "NODE",   "Symbol",        "\"snake\""};
     int q5_expected_count = 5;
 
-    check_query(q1, q1_expected_count, &client_bus, "DASNode.queries", false);
-    check_query(q2, q2_expected_count, &client_bus, "DASNode.queries", false);
-    check_query(q3, q3_expected_count, &client_bus, "DASNode.queries", false);
-    check_query(q4, q4_expected_count, &client_bus, "DASNode.queries", false);
-    check_query(q5, q5_expected_count, &client_bus, "DASNode.queries", false);
+    check_query(q1, q1_expected_count, client_bus, "PatternMatchingQuery.queries", false);
+    check_query(q2, q2_expected_count, client_bus, "PatternMatchingQuery.queries", false);
+    check_query(q3, q3_expected_count, client_bus, "PatternMatchingQuery.queries", false);
+    check_query(q4, q4_expected_count, client_bus, "PatternMatchingQuery.queries", false);
+    check_query(q5, q5_expected_count, client_bus, "PatternMatchingQuery.queries", false);
 
-    check_query(q1, q1_expected_count, &client_bus, "DASNode.queries", true);
-    check_query(q2, q2_expected_count, &client_bus, "DASNode.queries", true);
-    check_query(q3, q3_expected_count, &client_bus, "DASNode.queries", true);
-    check_query(q4, q4_expected_count, &client_bus, "DASNode.queries", true);
-    check_query(q5, q5_expected_count, &client_bus, "DASNode.queries", true);
+    check_query(q1, q1_expected_count, client_bus, "PatternMatchingQuery.queries", true);
+    check_query(q2, q2_expected_count, client_bus, "PatternMatchingQuery.queries", true);
+    check_query(q3, q3_expected_count, client_bus, "PatternMatchingQuery.queries", true);
+    check_query(q4, q4_expected_count, client_bus, "PatternMatchingQuery.queries", true);
+    check_query(q5, q5_expected_count, client_bus, "PatternMatchingQuery.queries", true);
+
     Utils::sleep(1000);
 }
