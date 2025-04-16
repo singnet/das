@@ -2,12 +2,9 @@
 
 set -exou pipefail
 
-NAME=$2
-# rep;ace special chars from name
-NAME=${NAME//[^[:alnum:]]/}
 IMAGE_NAME="das-builder"
-CONTAINER_NAME=$NAME
 BAZEL_CMD="/opt/bazel/bazelisk"
+CONTAINER_NAME="das-bazel-cmd-$(uuidgen | cut -d '-' -f 1)-$(date +%Y%m%d%H%M%S)"
 
 ENV_VARS=$(test -f .env && echo "--env-file=.env" || echo "")
 
@@ -24,11 +21,6 @@ CONTAINER_WORKSPACE_DIR=/opt/das/src
 CONTAINER_BIN_DIR=$CONTAINER_WORKSPACE_DIR/bin
 CONTAINER_CACHE=/home/"${USER}"/.cache
 
-# if docker ps -a --format '{{.Names}}' | grep -q "^${CONTAINER_NAME}$"; then
-#   echo "Removing existing container: ${CONTAINER_NAME}"
-#   docker rm -f "${CONTAINER_NAME}"
-# fi
-
 docker run --rm \
   --user="$(id -u)":"$(id -g)" \
   -e BIN_DIR=$CONTAINER_BIN_DIR \
@@ -41,3 +33,10 @@ docker run --rm \
   --entrypoint "$BAZEL_CMD" \
   "${IMAGE_NAME}" \
   $([ ${BAZEL_JOBS:-x} != x ] && echo --jobs=${BAZEL_JOBS}) "$@"
+
+sleep 1
+
+if docker ps -a --format '{{.Names}}' | grep -q "^${CONTAINER_NAME}$"; then
+  echo "Removing existing container: ${CONTAINER_NAME}"
+  _=$(docker rm -f "${CONTAINER_NAME}" 2>&1 > /dev/null || true)
+fi
