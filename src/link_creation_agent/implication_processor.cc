@@ -26,20 +26,20 @@ vector<string> ImplicationProcessor::get_satisfying_set_query(const string& p1, 
         "AND", "2",
             "LINK_TEMPLATE", "Expression", "3",
                 "NODE", "Symbol", "EVALUATION",
-                "LINK_TEMPLATE", "Expression", "2",
+                "LINK", "Expression", "2",
                     "NODE", "Symbol", "PREDICATE",
                     "NODE", "Symbol", p1,
                 "LINK_TEMPLATE", "Expression", "2",
-                "NODE", "Symbol", "CONCEPT",
-                "VARIABLE", "C",
+                    "NODE", "Symbol", "CONCEPT",
+                    "VARIABLE", "C",
             "LINK_TEMPLATE", "Expression", "3",
                 "NODE", "Symbol", "EVALUATION",
-                "LINK_TEMPLATE", "Expression", "2",
+                "LINK", "Expression", "2",
                     "NODE", "Symbol", "PREDICATE",
                     "NODE", "Symbol", p2,
                 "LINK_TEMPLATE", "Expression", "2",
-                "NODE", "Symbol", "CONCEPT",
-                "VARIABLE", "C"
+                    "NODE", "Symbol", "CONCEPT",
+                    "VARIABLE", "C"
     };
     // clang-format on
     return pattern_query;
@@ -60,7 +60,7 @@ vector<vector<string>> ImplicationProcessor::process(
     vector<string> pattern_query_1 = {
         "LINK_TEMPLATE", "Expression", "3",
         "NODE", "Symbol", "EVALUATION",
-        "LINK_TEMPLATE", "Expression", "2",
+        "LINK", "Expression", "2",
             "NODE", "Symbol", "PREDICATE",
             "NODE", "Symbol", p1_name,
         "LINK_TEMPLATE", "Expression", "2",
@@ -70,7 +70,7 @@ vector<vector<string>> ImplicationProcessor::process(
     vector<string> pattern_query_2 = {
         "LINK_TEMPLATE", "Expression", "3",
         "NODE", "Symbol", "EVALUATION",
-        "LINK_TEMPLATE", "Expression", "2",
+        "LINK", "Expression", "2",
             "NODE", "Symbol", "PREDICATE",
             "NODE", "Symbol", p2_name,
         "LINK_TEMPLATE", "Expression", "2",
