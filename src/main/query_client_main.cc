@@ -34,7 +34,7 @@ int main(int argc, char* argv[]) {
     string server_id = string(argv[2]);
     bool update_attention_broker = (string(argv[3]) == "true" || string(argv[3]) == "1");
 
-    ServiceBusSingleton::init(client_id, server_id);
+    ServiceBusSingleton::init(client_id, server_id, 54000, 54500);
 
     // check if argv[4] is a number which is the max number of query answers
     // if not, set it to MAX_QUERY_ANSWERS
