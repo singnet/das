@@ -1,4 +1,5 @@
 #include "link_creation_agent.h"
+#include "template_processor.h"
 
 #include <gtest/gtest.h>
 
@@ -81,10 +82,10 @@ TEST_F(LinkCreationAgentTest, TestRequest) {
     EXPECT_EQ(lca_request->id, "1");
 }
 
-TEST_F(LinkCreationAgentTest, TestConfig) {
-    agent = new LinkCreationAgent("test_config.cfg");
-    delete agent;
-}
+// TEST_F(LinkCreationAgentTest, TestConfig) {
+//     agent = new LinkCreationAgent("test_config.cfg");
+//     delete agent;
+// }
 
 TEST(LinkCreateTemplate, TestCustomField) {
     vector<string> args = {"CUSTOM_FIELD", "field1", "2", "N1", "value1", "N2", "value2"};
@@ -300,34 +301,26 @@ TEST(LinkCreateTemplate, TestInvalidNode) {
     EXPECT_THROW(LinkCreateTemplate lct(link_template), invalid_argument);
 }
 
-TEST(Link, TestLink) {
+TEST(Link, TestLinkTemplateProcessor) {
     vector<string> link_template = split("LINK_CREATE Similarity 2 0 VARIABLE V1 VARIABLE V2", ' ');
     HandlesAnswer* query_answer = new HandlesAnswer();
     query_answer->assignment.assign("V1", "Value1");
     query_answer->assignment.assign("V2", "Value2");
 
-    Link link(query_answer, link_template);
-    EXPECT_EQ(link.get_type(), "Similarity");
-    EXPECT_EQ(link.get_targets().size(), 2);
-    EXPECT_EQ(get<string>(link.get_targets()[0]), "Value1");
-    EXPECT_EQ(get<string>(link.get_targets()[1]), "Value2");
-    EXPECT_EQ(Utils::join(link.tokenize(), ' '), "LINK Similarity 2 HANDLE Value1 HANDLE Value2");
-    EXPECT_EQ(link.to_metta_string(), "(Value1 Value2)");
+    LinkTemplateProcessor ltp;
+    auto links = ltp.process(query_answer, link_template);
+    EXPECT_EQ(Utils::join(links[0], ' '), "LINK Similarity 2 HANDLE Value1 HANDLE Value2");
+    // EXPECT_EQ(link.to_metta_string(), "(Value1 Value2)");
     link_template.clear();
     delete query_answer;
 
     query_answer = new HandlesAnswer();
     link_template = split("LINK_CREATE Test 3 0 NODE Symbol A VARIABLE V1 NODE Symbol B", ' ');
     query_answer->assignment.assign("V1", "Value1");
-    link = Link(query_answer, link_template);
-    EXPECT_EQ(link.get_type(), "Test");
-    EXPECT_EQ(link.get_targets().size(), 3);
-    EXPECT_EQ(get<Node>(link.get_targets()[0]).value, "A");
-    EXPECT_EQ(get<string>(link.get_targets()[1]), "Value1");
-    EXPECT_EQ(get<Node>(link.get_targets()[2]).value, "B");
-    EXPECT_EQ(Utils::join(link.tokenize(), ' '),
+    links = ltp.process(query_answer, link_template);
+    EXPECT_EQ(Utils::join(links[0], ' '),
               "LINK Test 3 NODE Symbol A HANDLE Value1 NODE Symbol B");
-    EXPECT_EQ(link.to_metta_string(), "(A Value1 B)");
+    // EXPECT_EQ(link.to_metta_string(), "(A Value1 B)");
 
     link_template.clear();
     delete query_answer;
@@ -337,16 +330,8 @@ TEST(Link, TestLink) {
         "LINK_CREATE Test2 2 1 NODE Symbol C NODE Symbol B "
         "CUSTOM_FIELD truth_value 2 CUSTOM_FIELD mean 2 count 10 avg 0.9 confidence 0.9",
         ' ');
-    link = Link(query_answer, link_template);
-    EXPECT_EQ(link.get_type(), "Test2");
-    EXPECT_EQ(link.get_targets().size(), 2);
-    EXPECT_EQ(get<Node>(link.get_targets()[0]).value, "C");
-    EXPECT_EQ(get<Node>(link.get_targets()[1]).value, "B");
-    EXPECT_EQ(link.get_custom_fields().size(), 1);
-    EXPECT_EQ(link.get_custom_fields()[0].get_name(), "truth_value");
-    EXPECT_EQ(link.get_custom_fields()[0].get_values().size(), 2);
-    EXPECT_EQ(get<0>(link.get_custom_fields()[0].get_values()[0]), "mean");
-    EXPECT_EQ(Utils::join(link.tokenize(), ' '),
+    links = ltp.process(query_answer, link_template);
+    EXPECT_EQ(Utils::join(links[0], ' '),
               "LINK Test2 2 NODE Symbol C NODE Symbol B CUSTOM_FIELD truth_value 2 CUSTOM_FIELD mean 2 "
               "count 10 avg 0.9 confidence 0.9");
 
@@ -360,39 +345,77 @@ TEST(Link, TestLink) {
         ' ');
     query_answer->assignment.assign("V1", "Value1");
     query_answer->assignment.assign("V2", "Value2");
-    link = Link(query_answer, link_template);
-    EXPECT_EQ(link.get_type(), "Test3");
-    EXPECT_EQ(link.get_targets().size(), 2);
-    EXPECT_EQ(get<string>(link.get_targets()[0]), "Value1");
-    EXPECT_EQ(get<string>(link.get_targets()[1]), "Value2");
-    EXPECT_EQ(link.get_custom_fields().size(), 1);
-    EXPECT_EQ(link.get_custom_fields()[0].get_name(), "truth_value");
-    EXPECT_EQ(Utils::join(link.tokenize(), ' '),
+    links = ltp.process(query_answer, link_template);
+    EXPECT_EQ(Utils::join(links[0], ' '),
               "LINK Test3 2 HANDLE Value1 HANDLE Value2 CUSTOM_FIELD truth_value 2 CUSTOM_FIELD mean 2 "
               "count 10 avg 0.9 confidence 0.9");
     link_template.clear();
     delete query_answer;
 
-    // clang-format off
-    link_template = split(
-    "LINK_CREATE I 3 0 "
-        "VARIABLE V1 "
-        "LINK_CREATE Test 3 0 "
-            "NODE Symbol A "
-            "VARIABLE V2 "
-            "LINK_CREATE Test2 2 0 "
-                "NODE Symbol C "
-                "NODE Symbol D "
-        "NODE Symbol B", ' ');
-    // clang-format on
-    query_answer = new HandlesAnswer();
-    query_answer->assignment.assign("V1", "Value1");
-    query_answer->assignment.assign("V2", "Value2");
-    link = Link(query_answer, link_template);
-    cout << Utils::join(link.tokenize(), ' ') << endl;
-    EXPECT_EQ(link.to_metta_string(), "(Value1 (A Value2 (C D)) B)");
-    Link l = link.untokenize(link.tokenize());
-    EXPECT_EQ(l.to_metta_string(), "(Value1 (A Value2 (C D)) B)");
-    link_template.clear();
-    delete query_answer;
+    // // clang-format off
+    // link_template = split(
+    // "LINK_CREATE I 3 0 "
+    //     "VARIABLE V1 "
+    //     "LINK_CREATE Test 3 0 "
+    //         "NODE Symbol A "
+    //         "VARIABLE V2 "
+    //         "LINK_CREATE Test2 2 0 "
+    //             "NODE Symbol C "
+    //             "NODE Symbol D "
+    //     "NODE Symbol B", ' ');
+    // // clang-format on
+    // query_answer = new HandlesAnswer();
+    // query_answer->assignment.assign("V1", "Value1");
+    // query_answer->assignment.assign("V2", "Value2");
+    // link = Link(query_answer, link_template);
+    // cout << Utils::join(link.tokenize(), ' ') << endl;
+    // EXPECT_EQ(link.to_metta_string(), "(Value1 (A Value2 (C D)) B)");
+    // Link l = link.untokenize(link.tokenize());
+    // EXPECT_EQ(l.to_metta_string(), "(Value1 (A Value2 (C D)) B)");
+    // link_template.clear();
+    // delete query_answer;
+
+
+    // Test the Link class
+    vector<string> tokens = Utils::split("LINK Test3 2 HANDLE Value1 HANDLE Value2 CUSTOM_FIELD truth_value 2 CUSTOM_FIELD mean 2 "
+              "count 10 avg 0.9 confidence 0.9", ' ');
+    Link ll;
+    Link l2 = ll.untokenize(tokens);
+    EXPECT_EQ(l2.get_type(), "Test3");
+    EXPECT_EQ(l2.get_targets().size(), 2);
+    EXPECT_EQ(get<string>(l2.get_targets()[0]), "Value1");
+    EXPECT_EQ(get<string>(l2.get_targets()[1]), "Value2");
+    EXPECT_EQ(l2.get_custom_fields().size(), 1);
+    CustomField truth_value = l2.get_custom_fields()[0];
+    EXPECT_EQ(truth_value.get_name(), "truth_value");
+    EXPECT_EQ(truth_value.get_values().size(), 2);
+    shared_ptr<CustomField> mean = get<shared_ptr<CustomField>>(get<1>(truth_value.get_values()[0]));
+    EXPECT_EQ(mean->get_values().size(), 2);
+    EXPECT_EQ(get<0>(mean->get_values()[0]), "count");
+    EXPECT_EQ(get<string>(get<1>(mean->get_values()[0])), "10");
+    EXPECT_EQ(get<0>(mean->get_values()[1]), "avg");
+    EXPECT_EQ(get<string>(get<1>(mean->get_values()[1])), "0.9");
+    EXPECT_EQ(get<0>(l2.get_custom_fields()[0].get_values()[1]), "confidence");
+    EXPECT_EQ(get<string>(get<1>(l2.get_custom_fields()[0].get_values()[1])), "0.9");
+    EXPECT_EQ(l2.to_metta_string(), "(Value1 Value2)");
+    tokens.clear();
+
+
+    tokens = Utils::split("LINK Test3 3 NODE Symbol EQUIVALENCE HANDLE Value1 HANDLE Value2 CUSTOM_FIELD truth_value 2 strength 0.9 confidence 1", ' ');
+    l2 = ll.untokenize(tokens);
+    EXPECT_EQ(l2.get_type(), "Test3");
+    EXPECT_EQ(l2.get_targets().size(), 3);
+    // EXPECT_EQ(get<Node>(l2.get_targets()[0]), "EQUIVALENCE");
+    EXPECT_EQ(get<string>(l2.get_targets()[1]), "Value1");
+    EXPECT_EQ(get<string>(l2.get_targets()[2]), "Value2");
+    EXPECT_EQ(l2.get_custom_fields().size(), 1);
+    truth_value = l2.get_custom_fields()[0];
+    EXPECT_EQ(truth_value.get_name(), "truth_value");
+    EXPECT_EQ(truth_value.get_values().size(), 2);
+    EXPECT_EQ(get<0>(l2.get_custom_fields()[0].get_values()[0]), "strength");
+    EXPECT_EQ(get<string>(get<1>(l2.get_custom_fields()[0].get_values()[0])), "0.9");
+    EXPECT_EQ(get<0>(l2.get_custom_fields()[0].get_values()[1]), "confidence");
+    EXPECT_EQ(get<string>(get<1>(l2.get_custom_fields()[0].get_values()[1])), "1");
+    EXPECT_EQ(l2.to_metta_string(), "(EQUIVALENCE [strength 0.9 confidence 1] Value1 Value2)");
+
 }

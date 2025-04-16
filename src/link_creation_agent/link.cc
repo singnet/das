@@ -6,52 +6,6 @@ using namespace link_creation_agent;
 using namespace std;
 using namespace query_engine;
 
-Link::Link(QueryAnswer* query_answer, vector<string> link_template) {
-    LinkCreateTemplate link_create_template(link_template);
-    HandlesAnswer* handles_answer = dynamic_cast<HandlesAnswer*>(query_answer);
-
-    this->type = link_create_template.get_link_type();
-    vector<LinkCreateTemplateTypes> targets = link_create_template.get_targets();
-    for (LinkCreateTemplateTypes target : targets) {
-        if (holds_alternative<Variable>(target)) {
-            string token = get<Variable>(target).name;
-            this->targets.push_back(handles_answer->assignment.get(token.c_str()));
-        }
-        if (holds_alternative<std::shared_ptr<LinkCreateTemplate>>(target)) {
-            shared_ptr<LinkCreateTemplate> sub_link = get<std::shared_ptr<LinkCreateTemplate>>(target);
-            shared_ptr<Link> sub_link_obj = make_shared<Link>(query_answer, sub_link);
-            this->targets.push_back(sub_link_obj);
-        }
-        if (holds_alternative<Node>(target)) {
-            Node node = get<Node>(target);
-            this->targets.push_back(node);
-        }
-    }
-    this->custom_fields = link_create_template.get_custom_fields();
-}
-
-Link::Link(QueryAnswer* query_answer, shared_ptr<LinkCreateTemplate> link_create_template) {
-    HandlesAnswer* handles_answer = dynamic_cast<HandlesAnswer*>(query_answer);
-    this->type = link_create_template->get_link_type();
-    vector<LinkCreateTemplateTypes> targets = link_create_template->get_targets();
-    for (LinkCreateTemplateTypes target : targets) {
-        if (holds_alternative<Variable>(target)) {
-            string token = get<Variable>(target).name;
-            this->targets.push_back(handles_answer->assignment.get(token.c_str()));
-        }
-        if (holds_alternative<std::shared_ptr<LinkCreateTemplate>>(target)) {
-            shared_ptr<LinkCreateTemplate> sub_link = get<std::shared_ptr<LinkCreateTemplate>>(target);
-            shared_ptr<Link> sub_link_obj = make_shared<Link>(query_answer, sub_link);
-            this->targets.push_back(sub_link_obj);
-        }
-        if (holds_alternative<Node>(target)) {
-            Node node = get<Node>(target);
-            this->targets.push_back(node);
-        }
-    }
-    this->custom_fields = link_create_template->get_custom_fields();
-}
-
 Link::Link() {}
 
 Link::~Link() {}
@@ -96,11 +50,19 @@ vector<string> Link::tokenize() {
 
 vector<CustomField> Link::get_custom_fields() { return this->custom_fields; }
 
+void Link::set_custom_fields(vector<CustomField> custom_fields) { this->custom_fields = custom_fields; }
+
+void Link::add_custom_field(CustomField custom_field) {
+    this->custom_fields.push_back(custom_field);
+}
+
 string Link::to_metta_string() {
     string metta_string = "(";
+    bool is_custom_fields_added = false;
     for (LinkTargetTypes target : this->targets) {
         if (holds_alternative<string>(target)) {
             metta_string += get<string>(target) + " ";
+
         }
         if (holds_alternative<shared_ptr<Link>>(target)) {
             metta_string += get<shared_ptr<Link>>(target)->to_metta_string() + " ";
@@ -108,6 +70,12 @@ string Link::to_metta_string() {
         if (holds_alternative<Node>(target)) {
             Node node = get<Node>(target);
             metta_string += node.value + " ";
+            if(!is_custom_fields_added) {
+                for (CustomField custom_field : this->custom_fields) {
+                    metta_string += custom_field.to_metta_string() + " ";
+                }
+                is_custom_fields_added = true;
+            }
         }
     }
     // remove the last space
@@ -157,7 +125,35 @@ Link Link::untokenize_link(const vector<string>& tokens, int& cursor) {
         } else {
             throw std::runtime_error("Invalid token: " + tokens[cursor]);
         }
-        // TODO: Implement custom field untokenization
+        if (tokens[cursor] == "CUSTOM_FIELD") {
+            vector<string> custom_field_args;
+            custom_field_args.push_back(tokens[cursor]);
+             cursor++;
+            string custom_field_name = tokens[cursor];
+            custom_field_args.push_back(tokens[cursor]);
+            cursor++;
+            int custom_field_size = stoi(tokens[cursor]);
+            custom_field_args.push_back(tokens[cursor]);
+            cursor++;
+            vector<CustomField> custom_fields;
+            for (int i = 0; i < custom_field_size; i++) {
+                custom_field_args.push_back(tokens[cursor]);
+                if(tokens[cursor] == "CUSTOM_FIELD"){
+                    cursor++;
+                    custom_field_args.push_back(tokens[cursor]);
+                    cursor++;
+                    custom_field_args.push_back(tokens[cursor]);
+                    custom_field_size += stoi(tokens[cursor]);
+                    cursor++;
+                } else {
+                    cursor++;
+                    custom_field_args.push_back(tokens[cursor]);
+                    cursor++;
+                }
+            }
+            CustomField custom_field = CustomField(custom_field_args);
+            link.add_custom_field(custom_field);
+        }
     }
     return link;
 }

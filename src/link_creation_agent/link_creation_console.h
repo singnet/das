@@ -21,7 +21,7 @@ class Console {
    public:
     static shared_ptr<Console> get_instance();
     ~Console() {}
-    void print_metta(std::vector<string> tokens);
+    string print_metta(std::vector<string> tokens);
 
    private:
     Console(){};

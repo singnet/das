@@ -103,7 +103,7 @@ class LinkCreationAgent {
     string das_agent_client_id;            // ID of the DAS client
     string das_agent_server_id;
     string requests_buffer_file;           // Path to the requests buffer file
-    string context;                        // Context to send to attention broker
+    string metta_file_path = ".";             // Path to the metta file
     unsigned int query_agent_client_start_port;
     unsigned int query_agent_client_end_port;
 
@@ -117,5 +117,6 @@ class LinkCreationAgent {
     mutex agent_mutex;
     bool is_stoping = false;
     int loop_interval = 100;  // miliseconds
+    shared_ptr<mutex> query_agent_mutex;
 };
 }  // namespace link_creation_agent

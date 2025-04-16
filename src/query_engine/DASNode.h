@@ -40,7 +40,8 @@ class DASNode : public StarNode {
 
     int count_query(const vector<string>& tokens,
                     const string& context = "",
-                    bool update_attention_broker = false);
+                    bool update_attention_broker = false,
+                    int timeout = 3600);
 
     string next_query_id();
 

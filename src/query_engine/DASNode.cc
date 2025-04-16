@@ -81,7 +81,8 @@ RemoteIterator<HandlesAnswer>* DASNode::pattern_matcher_query(const vector<strin
 
 int DASNode::count_query(const vector<string>& tokens,
                          const string& context,
-                         bool update_attention_broker) {
+                         bool update_attention_broker, 
+                         int timeout) {
 #ifdef DEBUG
     cout << "DASNode::count_query() BEGIN" << endl;
     cout << "DASNode::count_query() tokens.size(): " << tokens.size() << endl;
@@ -100,7 +101,15 @@ int DASNode::count_query(const vector<string>& tokens,
     int count = UNDEFINED_COUNT;
     CountAnswer* count_answer;
     auto count_iterator = make_unique<RemoteIterator<CountAnswer>>(query_id);
+    // timeout
+    long start = time(0);
     while (not count_iterator->finished()) {
+        if (time(0) - start > timeout) {
+            #ifdef DEBUG
+            cout << "DASNode::count_query(): Timeout for iterator ID: " << query_id << endl;
+            #endif
+            return UNDEFINED_COUNT;
+        }
         if ((count_answer = dynamic_cast<CountAnswer*>(count_iterator->pop())) != nullptr) {
             count = count_answer->get_count();
             break;

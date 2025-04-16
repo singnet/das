@@ -22,8 +22,6 @@ using LinkTargetTypes = std::variant<std::string, std::shared_ptr<Link>, Node>;
 
 class Link {
    public:
-    Link(QueryAnswer* query_answer, vector<string> link_template);
-    Link(QueryAnswer* query_answer, shared_ptr<LinkCreateTemplate> link_create_template);
     Link();
     ~Link();
     /**
@@ -60,6 +58,11 @@ class Link {
      * @returns Returns the custom fields of the link
      */
     vector<CustomField> get_custom_fields();
+
+    void add_custom_field(CustomField custom_field);
+
+
+    void set_custom_fields(vector<CustomField> custom_fields);
 
    private:
     string type;

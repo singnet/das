@@ -29,6 +29,8 @@ def parse_targets(targets, atom_db):
 
 
 def build_link(request, atom_db) -> LinkT:
+    print("Building link")
+    print(request)
     link = DictQueryTokenizer.untokenize(request)
     print(link)
     tt = [dict(named_type=t.get("type"), **t) for t in link["targets"]]

@@ -24,7 +24,6 @@ docker run --rm \
   --user=$(id -u):$(id -g) \
   --name=$CONTAINER_NAME \
   -e BIN_DIR=$CONTAINER_BIN_DIR \
-  ${ENV_VARS} \
   --network host \
   --volume /etc/passwd:/etc/passwd:ro \
   --volume $LOCAL_CACHE:$CONTAINER_CACHE \

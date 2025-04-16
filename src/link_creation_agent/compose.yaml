@@ -40,30 +40,30 @@ services:
   #     start_period: 40s
   #   network_mode: host
 
-  metta-parser:
-    image: trueagi/das:0.5.4-metta-parser
-    container_name: test-das-metta-parser
-    working_dir: /opt/das-metta-parser
-    command: db_loader /tmp/animals.metta
-    volumes:
-      - ./data:/tmp
-    environment:
-      DAS_MONGODB_NAME: das
-      DAS_MONGODB_HOSTNAME: localhost
-      DAS_MONGODB_PORT: 27017
-      DAS_REDIS_HOSTNAME: localhost
-      DAS_REDIS_PORT: 6379
-      DAS_MONGODB_USERNAME: admin
-      DAS_MONGODB_PASSWORD: admin
-      DAS_DATABASE_USERNAME: admin
-      DAS_DATABASE_PASSWORD: admin
-    # depends_on:
-    #   mongodb:
-    #     condition: service_healthy
-    #   redis:
-    #     condition: service_healthy
-    restart: on-failure
-    network_mode: "host"
+  # metta-parser:
+  #   image: trueagi/das:0.5.4-metta-parser
+  #   container_name: test-das-metta-parser
+  #   working_dir: /opt/das-metta-parser
+  #   command: db_loader /tmp/animals.metta
+  #   volumes:
+  #     - ./data:/tmp
+  #   environment:
+  #     DAS_MONGODB_NAME: das
+  #     DAS_MONGODB_HOSTNAME: localhost
+  #     DAS_MONGODB_PORT: 27017
+  #     DAS_REDIS_HOSTNAME: localhost
+  #     DAS_REDIS_PORT: 6379
+  #     DAS_MONGODB_USERNAME: admin
+  #     DAS_MONGODB_PASSWORD: admin
+  #     DAS_DATABASE_USERNAME: admin
+  #     DAS_DATABASE_PASSWORD: admin
+  #   # depends_on:
+  #   #   mongodb:
+  #   #     condition: service_healthy
+  #   #   redis:
+  #   #     condition: service_healthy
+  #   restart: on-failure
+  #   network_mode: "host"
 
   # das-attention-broker:
   #   working_dir: /opt
@@ -89,30 +89,30 @@ services:
   #     DAS_MONGODB_PASSWORD: root
   #   network_mode: "host"
 
-  # das-query-agent:
-  #   working_dir: /opt
-  #   image: das-builder
-  #   container_name: test-das-query-agent-node
-  #   command: ./bin/query_broker 35700
-  #   ports:
-  #     - 35700:35700
-  #   volumes:
-  #     - ../../src:/opt
-  #   restart: on-failure
-  #   depends_on:
-  #     # - mongodb
-  #     # - redis
-  #     - metta-parser
-  #     - das-attention-broker
-  #   environment:
-  #     DAS_MONGODB_NAME: das
-  #     DAS_MONGODB_HOSTNAME: localhost
-  #     DAS_MONGODB_PORT: 27017
-  #     DAS_REDIS_HOSTNAME: 0.0.0.0
-  #     DAS_REDIS_PORT: 6379
-  #     DAS_MONGODB_USERNAME: admin
-  #     DAS_MONGODB_PASSWORD: admin
-  #   network_mode: "host"
+  das-query-agent:
+    working_dir: /opt
+    image: das-builder
+    container_name: test-das-query-agent-node
+    command: ./bin/query_broker 31700
+    # ports:
+    #   - 35700:35700
+    volumes:
+      - ../../src:/opt
+    restart: on-failure
+    # depends_on:
+      # - mongodb
+      # - redis
+      # - metta-parser
+      # - das-attention-broker
+    environment:
+      DAS_MONGODB_NAME: das
+      DAS_MONGODB_HOSTNAME: localhost
+      DAS_MONGODB_PORT: 27017
+      DAS_REDIS_HOSTNAME: 0.0.0.0
+      DAS_REDIS_PORT: 6379
+      DAS_MONGODB_USERNAME: admin
+      DAS_MONGODB_PASSWORD: admin
+    network_mode: "host"
 
   # das-link-create-agent:
   #   image: das-builder
