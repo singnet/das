@@ -87,6 +87,7 @@ void run(const string& context, const string& word_tag) {
     string server_id = "0.0.0.0:31700";
     string client_id = "0.0.0.0:31701";
 
+    ;
     AtomDBSingleton::init();
     shared_ptr<AtomDB> db = AtomDBSingleton::get_instance();
     ServiceBusSingleton::init(client_id, server_id);

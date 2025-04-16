@@ -8,6 +8,36 @@
 using namespace query_engine;
 using namespace atomdb;
 
+string handle_to_atom(const char* handle) {
+    shared_ptr<AtomDB> db = AtomDBSingleton::get_instance();
+    shared_ptr<atomdb_api_types::AtomDocument> document = db->get_atom_document(handle);
+    shared_ptr<atomdb_api_types::HandleList> targets = db->query_for_targets((char*) handle);
+    string answer;
+
+    if (targets != nullptr) {
+        // is link
+        answer += "<";
+        answer += document->get("named_type");
+        answer += ": [";
+        for (unsigned int i = 0; i < targets->size(); i++) {
+            answer += handle_to_atom(targets->get_handle(i));
+            if (i < (targets->size() - 1)) {
+                answer += ", ";
+            }
+        }
+        answer += ">";
+    } else {
+        // is node
+        answer += "(";
+        answer += document->get("named_type");
+        answer += ": ";
+        answer += document->get("name");
+        answer += ")";
+    }
+
+    return answer;
+}
+
 void check_query(vector<string>& query,
                  unsigned int expected_count,
                  ServiceBus* client_bus,
