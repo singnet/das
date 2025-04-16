@@ -9,12 +9,13 @@
 #include "AtomDBAPITypes.h"
 #include "AtomDBSingleton.h"
 #include "AttentionBrokerServer.h"
-#include "QueryAnswer.h"
 #include "Iterator.h"
+#include "QueryAnswer.h"
 #include "QueryNode.h"
 #include "SharedQueue.h"
 #include "Source.h"
 #include "Terminal.h"
+#include "Utils.h"
 #include "attention_broker.grpc.pb.h"
 #include "attention_broker.pb.h"
 #include "expression_hasher.h"
@@ -86,32 +87,67 @@ class LinkTemplate : public Source {
         this->type = type;
         this->target_template = targets;
         this->fetch_finished = false;
+        this->setup_buffers_triggered = false;
+        this->expected_subsequent_ids_size = 1;
         this->atom_document = NULL;
         this->local_answers = NULL;
         this->local_answers_size = 0;
         this->local_buffer_processor = NULL;
+        this->handle =
+            LinkTemplate<ARITY>::build_handle(type, targets, this->handle_keys, &this->inner_template);
+
+        // This is correct. id is not necessarily a handle but an identifier. It just happens
+        // that we want the string for this identifier to be the same as the string representing
+        // the handle.
+        this->id = this->handle.get() + std::to_string(LinkTemplate::next_instance_count());
+    }
+
+    /**
+     * @brief Constructs a handle for a link template based on specified type and target elements.
+     *
+     * This function creates a composite hash that uniquely represents a link template using
+     * the provided type and target elements. If external handle keys are provided, they are
+     * used directly; otherwise, new handle keys are generated. Targets that are not terminal
+     * elements are added to the inner template, if provided.
+     *
+     * @param type The type of the link.
+     * @param targets An array of target elements used in the link template.
+     * @param external_handle_keys (Optional) An array of external handle keys to use.
+     * @param inner_template (Optional) A vector to which non-terminal targets will be added.
+     * @return A shared pointer to the constructed handle.
+     */
+    static shared_ptr<char> build_handle(
+        const string& type,
+        const array<shared_ptr<QueryElement>, ARITY>& targets,
+        char** external_handle_keys = NULL,
+        vector<shared_ptr<query_element::QueryElement>>* inner_template = NULL) {
         bool wildcard_flag = (type == AtomDB::WILDCARD);
-        this->handle_keys[0] =
+        char** handle_keys;
+        if (external_handle_keys != NULL) {
+            handle_keys = external_handle_keys;
+        } else {
+            handle_keys = new char*[ARITY + 1];
+        }
+        handle_keys[0] =
             (wildcard_flag ? (char*) AtomDB::WILDCARD.c_str() : named_type_hash((char*) type.c_str()));
         for (unsigned int i = 1; i <= ARITY; i++) {
             // It's safe to get stored shared_ptr's raw pointer here because handle_keys[]
             // is used solely in this scope so it's guaranteed that handle will not be freed.
             if (targets[i - 1]->is_terminal) {
-                this->handle_keys[i] = dynamic_pointer_cast<Terminal>(targets[i - 1])->handle.get();
+                handle_keys[i] = dynamic_pointer_cast<Terminal>(targets[i - 1])->handle.get();
             } else {
-                this->handle_keys[i] = (char*) AtomDB::WILDCARD.c_str();
-                this->inner_template.push_back(targets[i - 1]);
+                handle_keys[i] = (char*) AtomDB::WILDCARD.c_str();
+                if (inner_template != NULL) inner_template->push_back(targets[i - 1]);
             }
         }
-        this->handle =
-            shared_ptr<char>(composite_hash(this->handle_keys, ARITY + 1), default_delete<char[]>());
-        if (!wildcard_flag) {
-            free(this->handle_keys[0]);
+        auto handle = shared_ptr<char>(composite_hash(handle_keys, ARITY + 1), default_delete<char[]>());
+
+        if (external_handle_keys == NULL) {
+            delete[] handle_keys;
+        } else {
+            if (!wildcard_flag) free(handle_keys[0]);
         }
-        // This is correct. id is not necessarily a handle but an identifier. It just happens
-        // that we want the string for this identifier to be the same as the string representing
-        // the handle.
-        this->id = this->handle.get() + std::to_string(LinkTemplate::next_instance_count());
+        return handle;
     }
 
     /**
@@ -167,9 +203,23 @@ class LinkTemplate : public Source {
     }
 
     virtual void setup_buffers() {
+        if (this->setup_buffers_triggered) return;
+        {
+            lock_guard<mutex> lock(setup_buffers_mutex);
+            if (this->setup_buffers_triggered) return;
+            this->setup_buffers_triggered = true;
+        }
 #ifdef DEBUG
         cout << "LinkTemplate::setup_buffers() BEGIN" << endl;
 #endif
+        do {
+            {
+                lock_guard<mutex> lock(this->subsequent_ids_mutex);
+                if (this->expected_subsequent_ids_size == this->subsequent_ids.size()) break;
+            }
+            Utils::sleep();
+        } while (true);
+
         Source::setup_buffers();
         if (this->inner_template.size() > 0) {
             // clang-format off
@@ -506,6 +556,8 @@ class LinkTemplate : public Source {
     unsigned int local_answers_size;
     mutex local_answers_mutex;
     string context;
+    mutex setup_buffers_mutex;
+    bool setup_buffers_triggered;
 };
 
 }  // namespace query_element

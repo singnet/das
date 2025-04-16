@@ -224,15 +224,47 @@ shared_ptr<QueryElement> PatternMatchingQueryProcessor::setup_query_tree(
     return element_stack.top();
 }
 
-#define BUILD_LINK_TEMPLATE(N)                                               \
-    {                                                                        \
-        array<shared_ptr<QueryElement>, N> targets;                          \
-        for (unsigned int i = 0; i < N; i++) {                               \
-            targets[i] = element_stack.top();                                \
-            element_stack.pop();                                             \
-        }                                                                    \
-        return make_shared<LinkTemplate<N>>(                                 \
-            proxy->query_tokens[cursor + 1], targets, proxy->get_context()); \
+shared_ptr<QueryElement> PatternMatchingQueryProcessor::get_link_template_from_cache(
+    const shared_ptr<char>& handle) {
+    lock_guard<mutex> guard(this->link_template_cache_mutex);
+    string handle_str = string((char*) handle.get());
+    auto it = this->link_template_cache.find(handle_str);
+    if (it != this->link_template_cache.end()) {
+        LOG_DEBUG("cache hit: " << handle_str);
+        return it->second;
+    }
+    LOG_DEBUG("cache miss: " << handle_str);
+    return nullptr;
+}
+
+void PatternMatchingQueryProcessor::add_link_template_to_cache(const shared_ptr<char>& handle,
+                                                               shared_ptr<QueryElement> link_template) {
+    lock_guard<mutex> guard(this->link_template_cache_mutex);
+    string handle_str = string((char*) handle.get());
+    if (this->link_template_cache.find(handle_str) == this->link_template_cache.end()) {
+        this->link_template_cache[handle_str] = link_template;
+    } else {
+        Utils::error("Link template with handle '" + handle_str + "' already exists in cache");
+    }
+}
+
+#define BUILD_LINK_TEMPLATE(N)                                                                     \
+    {                                                                                              \
+        array<shared_ptr<QueryElement>, N> targets;                                                \
+        for (unsigned int i = 0; i < N; i++) {                                                     \
+            targets[i] = element_stack.top();                                                      \
+            element_stack.pop();                                                                   \
+        }                                                                                          \
+        auto handle = LinkTemplate<N>::build_handle(proxy->query_tokens[cursor + 1], targets);     \
+        shared_ptr<QueryElement> link_template = this->get_link_template_from_cache(handle);       \
+        if (link_template != nullptr) {                                                            \
+            dynamic_pointer_cast<LinkTemplate<N>>(link_template)->expected_subsequent_ids_size++; \
+            return link_template;                                                                  \
+        }                                                                                          \
+        link_template = make_shared<LinkTemplate<N>>(                                              \
+            proxy->query_tokens[cursor + 1], targets, proxy->get_context());                       \
+        this->add_link_template_to_cache(handle, link_template);                                   \
+        return link_template;                                                                      \
     }
 
 shared_ptr<QueryElement> PatternMatchingQueryProcessor::build_link_template(

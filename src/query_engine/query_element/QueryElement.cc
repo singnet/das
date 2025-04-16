@@ -8,6 +8,7 @@ using namespace query_element;
 QueryElement::QueryElement() {
     this->flow_finished = false;
     this->is_terminal = false;
+    this->expected_subsequent_ids_size = 0;
 }
 
 QueryElement::~QueryElement() {}

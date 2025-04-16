@@ -54,6 +54,7 @@ namespace query_element {
 class QueryElement {
    public:
     string id;
+    int expected_subsequent_ids_size;
 
     /**
      * Basic constructor which solely initialize variables.
