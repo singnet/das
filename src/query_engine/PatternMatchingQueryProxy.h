@@ -1,10 +1,11 @@
 #pragma once
 
 #include <mutex>
+
 #include "BusCommandProxy.h"
+#include "Message.h"
 #include "QueryAnswer.h"
 #include "SharedQueue.h"
-#include "Message.h"
 
 using namespace std;
 using namespace service_bus;
@@ -23,17 +24,15 @@ namespace query_engine {
  * the actual query tokens, flags etc).
  */
 class PatternMatchingQueryProxy : public BusCommandProxy {
-
-public:
-
+   public:
     // ---------------------------------------------------------------------------------------------
     // Constructors, destructors and static state
 
     // Commands allowed at the proxy level (caller <--> processor)
-    static string ABORT;         // Abort current query
-    static string ANSWER_BUNDLE; // Delivery of a bundle with QueryAnswer objects
-    static string COUNT;         // Delivery of the final result of a count_only query
-    static string FINISHED;      // Notification that all query results have alkready been delivered
+    static string ABORT;          // Abort current query
+    static string ANSWER_BUNDLE;  // Delivery of a bundle with QueryAnswer objects
+    static string COUNT;          // Delivery of the final result of a count_only query
+    static string FINISHED;       // Notification that all query results have alkready been delivered
 
     /**
      * Empty constructor typically used on server side.
@@ -51,11 +50,10 @@ public:
      * actually provide the query answers (i.e. no QueryAnswer is sent from the command executor and
      * the caller of the query).
      */
-    PatternMatchingQueryProxy(
-        const vector<string>& tokens,
-        const string& context = "",
-        bool update_attention_broker = false,
-        bool count_only = false);
+    PatternMatchingQueryProxy(const vector<string>& tokens,
+                              const string& context = "",
+                              bool update_attention_broker = false,
+                              bool count_only = false);
 
     /**
      * Destructor.
@@ -214,8 +212,7 @@ public:
 
     vector<string> query_tokens;
 
-private:
-
+   private:
     mutex api_mutex;
     bool abort_flag;
     SharedQueue answer_queue;
@@ -228,4 +225,4 @@ private:
     void init();
 };
 
-} // namespace query_engine
+}  // namespace query_engine

@@ -13,10 +13,10 @@ LinkCreationAgent::LinkCreationAgent(string config_path) {
     this->config_path = config_path;
     load_config();
     link_creation_node_server = new LinkCreationAgentNode(link_creation_agent_server_id);
-    //query_node_client = new DASNode(query_agent_client_id,
-    //                                query_agent_server_id,
-    //                                query_agent_client_start_port,
-    //                                query_agent_client_end_port);
+    // query_node_client = new DASNode(query_agent_client_id,
+    //                                 query_agent_server_id,
+    //                                 query_agent_client_start_port,
+    //                                 query_agent_client_end_port);
     service_bus = ServiceBusSingleton::get_instance();
     service = new LinkCreationService(link_creation_agent_thread_count);
     service->set_timeout(query_timeout_seconds);
@@ -102,12 +102,10 @@ void LinkCreationAgent::run() {
 }
 
 shared_ptr<PatternMatchingQueryProxy> LinkCreationAgent::query(vector<string>& query_tokens,
-                                                                   string context,
-                                                                   bool update_attention_broker) {
-    shared_ptr<PatternMatchingQueryProxy> proxy = make_shared<PatternMatchingQueryProxy>(
-        query_tokens,
-        context,
-        update_attention_broker);
+                                                               string context,
+                                                               bool update_attention_broker) {
+    shared_ptr<PatternMatchingQueryProxy> proxy =
+        make_shared<PatternMatchingQueryProxy>(query_tokens, context, update_attention_broker);
     service_bus->issue_bus_command(proxy);
     return proxy;
 }

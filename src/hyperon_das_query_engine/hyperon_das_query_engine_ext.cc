@@ -15,7 +15,6 @@ using namespace std;
 using namespace query_engine;
 
 NB_MODULE(hyperon_das_query_engine_ext, m) {
-
     // QueryAnswer.h
     nb::class_<QueryAnswer>(m, "QueryAnswer")
         .def(nb::init<>())

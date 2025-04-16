@@ -4,9 +4,9 @@
 #include <string>
 
 #include "AtomDBSingleton.h"
-#include "ServiceBusSingleton.h"
 #include "PatternMatchingQueryProxy.h"
 #include "QueryAnswer.h"
+#include "ServiceBusSingleton.h"
 #include "Utils.h"
 
 #define MAX_QUERY_ANSWERS ((unsigned int) 1)
@@ -59,7 +59,7 @@ int main(int argc, char* argv[]) {
     }
 
     shared_ptr<ServiceBus> service_bus = ServiceBusSingleton::get_instance();
-    shared_ptr<PatternMatchingQueryProxy> proxy = 
+    shared_ptr<PatternMatchingQueryProxy> proxy =
         make_shared<PatternMatchingQueryProxy>(query, "", update_attention_broker);
     service_bus->issue_bus_command(proxy);
     shared_ptr<QueryAnswer> query_answer;

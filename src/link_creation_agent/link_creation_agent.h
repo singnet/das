@@ -15,9 +15,9 @@
 #include <thread>
 #include <vector>
 
-#include "ServiceBusSingleton.h"
 #include "PatternMatchingQueryProxy.h"
 #include "QueryAnswer.h"
+#include "ServiceBusSingleton.h"
 #include "das_agent_node.h"
 #include "link_creation_agent_node.h"
 #include "link_creation_service.h"

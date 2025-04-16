@@ -99,7 +99,6 @@ class ServiceBus {
     // Public API
 
    public:
-
     static string PATTERN_MATCHING_QUERY;
 
     /**

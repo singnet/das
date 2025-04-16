@@ -1,12 +1,13 @@
 #include "PatternMatchingQueryProcessor.h"
-#include "PatternMatchingQueryProxy.h"
-#include "ServiceBus.h"
+
+#include "And.h"
 #include "AtomDBSingleton.h"
 #include "LinkTemplate.h"
 #include "Or.h"
-#include "And.h"
-#include "Terminal.h"
+#include "PatternMatchingQueryProxy.h"
+#include "ServiceBus.h"
 #include "Sink.h"
+#include "Terminal.h"
 
 #define LOG_LEVEL INFO_LEVEL
 #include "Logger.h"
@@ -16,9 +17,8 @@ using namespace atomdb;
 // -------------------------------------------------------------------------------------------------
 // Constructors and destructors
 
-PatternMatchingQueryProcessor::PatternMatchingQueryProcessor() 
-    : BusCommandProcessor({ServiceBus::PATTERN_MATCHING_QUERY}) {
-}
+PatternMatchingQueryProcessor::PatternMatchingQueryProcessor()
+    : BusCommandProcessor({ServiceBus::PATTERN_MATCHING_QUERY}) {}
 
 PatternMatchingQueryProcessor::~PatternMatchingQueryProcessor() {
     for (auto thread : this->query_threads) {
@@ -40,20 +40,14 @@ void PatternMatchingQueryProcessor::run_command(shared_ptr<BusCommandProxy> prox
     auto query_proxy = dynamic_pointer_cast<PatternMatchingQueryProxy>(proxy);
     LOG_DEBUG("Starting new thread to run command: <" << proxy->get_command() << ">");
     this->query_threads.push_back(
-        new thread(&PatternMatchingQueryProcessor::thread_process_one_query, 
-        this, 
-        query_proxy));
+        new thread(&PatternMatchingQueryProcessor::thread_process_one_query, this, query_proxy));
 }
 
 // -------------------------------------------------------------------------------------------------
 // Private methods
 
 void PatternMatchingQueryProcessor::update_attention_broker_single_answer(
-    shared_ptr<PatternMatchingQueryProxy> proxy,
-    QueryAnswer *answer,
-    set<string>& joint_answer
-    ) {
-    
+    shared_ptr<PatternMatchingQueryProxy> proxy, QueryAnswer* answer, set<string>& joint_answer) {
     shared_ptr<AtomDB> db = AtomDBSingleton::get_instance();
     set<string> single_answer;
     stack<string> execution_stack;
@@ -71,7 +65,7 @@ void PatternMatchingQueryProcessor::update_attention_broker_single_answer(
         // Updates joint answer (stimulation)
         joint_answer.insert(handle);
         // Gets targets and stack them
-        shared_ptr<atomdb_api_types::HandleList> query_result = 
+        shared_ptr<atomdb_api_types::HandleList> query_result =
             db->query_for_targets((char*) handle.c_str());
         if (query_result != NULL) {  // if handle is link
             unsigned int query_result_size = query_result->size();
@@ -82,11 +76,10 @@ void PatternMatchingQueryProcessor::update_attention_broker_single_answer(
     }
 
     auto stub = dasproto::AttentionBroker::NewStub(
-        grpc::CreateChannel(ATTENTION_BROKER_ADDRESS,
-                            grpc::InsecureChannelCredentials()));
+        grpc::CreateChannel(ATTENTION_BROKER_ADDRESS, grpc::InsecureChannelCredentials()));
 
-    dasproto::HandleList handle_list; // GRPC command parameter
-    dasproto::Ack ack;                // GRPC command return
+    dasproto::HandleList handle_list;  // GRPC command parameter
+    dasproto::Ack ack;                 // GRPC command return
     handle_list.set_context(proxy->get_context());
     for (auto handle : single_answer) {
         handle_list.add_list(handle);
@@ -99,15 +92,12 @@ void PatternMatchingQueryProcessor::update_attention_broker_single_answer(
 }
 
 void PatternMatchingQueryProcessor::update_attention_broker_joint_answer(
-    shared_ptr<PatternMatchingQueryProxy> proxy,
-    set<string>& joint_answer) {
-
+    shared_ptr<PatternMatchingQueryProxy> proxy, set<string>& joint_answer) {
     auto stub = dasproto::AttentionBroker::NewStub(
-        grpc::CreateChannel(ATTENTION_BROKER_ADDRESS,
-                            grpc::InsecureChannelCredentials()));
+        grpc::CreateChannel(ATTENTION_BROKER_ADDRESS, grpc::InsecureChannelCredentials()));
 
-    dasproto::HandleCount handle_count; // GRPC command parameter
-    dasproto::Ack ack;                 // GRPC command return
+    dasproto::HandleCount handle_count;  // GRPC command parameter
+    dasproto::Ack ack;                   // GRPC command return
     handle_count.set_context(proxy->get_context());
     for (auto handle : joint_answer) {
         (*handle_count.mutable_map())[handle] = 1;
@@ -121,16 +111,15 @@ void PatternMatchingQueryProcessor::update_attention_broker_joint_answer(
 }
 
 void PatternMatchingQueryProcessor::process_query_answers(
-    shared_ptr<PatternMatchingQueryProxy> proxy, 
+    shared_ptr<PatternMatchingQueryProxy> proxy,
     shared_ptr<Sink> query_sink,
-    set<string>& joint_answer, // used to stimulate attention broker
+    set<string>& joint_answer,  // used to stimulate attention broker
     unsigned int& answer_count) {
-
     vector<string> answer_bundle;
-    QueryAnswer *answer;
+    QueryAnswer* answer;
     while ((answer = query_sink->input_buffer->pop_query_answer()) != NULL) {
         answer_count++;
-        if (! proxy->get_count_flag()) {
+        if (!proxy->get_count_flag()) {
             answer_bundle.push_back(answer->tokenize());
         }
         if (proxy->get_attention_update_flag()) {
@@ -143,8 +132,8 @@ void PatternMatchingQueryProcessor::process_query_answers(
     }
 }
 
-void PatternMatchingQueryProcessor::thread_process_one_query(shared_ptr<PatternMatchingQueryProxy> proxy) {
-
+void PatternMatchingQueryProcessor::thread_process_one_query(
+    shared_ptr<PatternMatchingQueryProxy> proxy) {
     if (proxy->args.size() < 2) {
         Utils::error("Syntax error in query command. Missing implicit parameters.");
     }
@@ -154,21 +143,20 @@ void PatternMatchingQueryProcessor::thread_process_one_query(shared_ptr<PatternM
     proxy->query_tokens.insert(proxy->query_tokens.begin(), proxy->args.begin() + 3, proxy->args.end());
     LOG_DEBUG("Setting up query tree");
     shared_ptr<QueryElement> root_query_element = setup_query_tree(proxy);
-    set<string> joint_answer; // used to stimulate attention broker
+    set<string> joint_answer;  // used to stimulate attention broker
     string command = proxy->get_command();
     unsigned int sink_port_number;
     if (command == ServiceBus::PATTERN_MATCHING_QUERY) {
         sink_port_number = PortPool::get_port();
         shared_ptr<Sink> query_sink = make_shared<Sink>(
-            root_query_element, 
-            "Sink_" + proxy->peer_id() + "_" + std::to_string(proxy->get_serial()));
+            root_query_element, "Sink_" + proxy->peer_id() + "_" + std::to_string(proxy->get_serial()));
         unsigned int answer_count = 0;
         LOG_DEBUG("Processing QueryAnswer objects");
-        while (! (query_sink->finished() || proxy->is_aborting())) {
+        while (!(query_sink->finished() || proxy->is_aborting())) {
             process_query_answers(proxy, query_sink, joint_answer, answer_count);
             Utils::sleep();
         }
-        if (proxy->get_count_flag() && (! proxy->is_aborting())) {
+        if (proxy->get_count_flag() && (!proxy->is_aborting())) {
             LOG_DEBUG("Answering count_only query");
             proxy->to_remote_peer(PatternMatchingQueryProxy::COUNT, {std::to_string(answer_count)});
         }
@@ -191,8 +179,8 @@ void PatternMatchingQueryProcessor::thread_process_one_query(shared_ptr<PatternM
 // -------------------------------------------------------------------------------------------------
 // Private methods - query tree building
 
-shared_ptr<QueryElement> PatternMatchingQueryProcessor::setup_query_tree(shared_ptr<PatternMatchingQueryProxy> proxy) {
-
+shared_ptr<QueryElement> PatternMatchingQueryProcessor::setup_query_tree(
+    shared_ptr<PatternMatchingQueryProxy> proxy) {
     stack<unsigned int> execution_stack;
     stack<shared_ptr<QueryElement>> element_stack;
     unsigned int cursor = 0;
@@ -200,8 +188,7 @@ shared_ptr<QueryElement> PatternMatchingQueryProcessor::setup_query_tree(shared_
 
     while (cursor < tokens_count) {
         execution_stack.push(cursor);
-        if ((proxy->query_tokens[cursor] == "VARIABLE") || 
-            (proxy->query_tokens[cursor] == "AND") || 
+        if ((proxy->query_tokens[cursor] == "VARIABLE") || (proxy->query_tokens[cursor] == "AND") ||
             ((proxy->query_tokens[cursor] == "OR"))) {
             cursor += 2;
         } else {
@@ -216,8 +203,7 @@ shared_ptr<QueryElement> PatternMatchingQueryProcessor::setup_query_tree(shared_
         cursor = execution_stack.top();
         if (proxy->query_tokens[cursor] == "NODE") {
             element_stack.push(
-                make_shared<Node>(proxy->query_tokens[cursor + 1], 
-                proxy->query_tokens[cursor + 2]));
+                make_shared<Node>(proxy->query_tokens[cursor + 1], proxy->query_tokens[cursor + 2]));
         } else if (proxy->query_tokens[cursor] == "VARIABLE") {
             element_stack.push(make_shared<Variable>(proxy->query_tokens[cursor + 1]));
         } else if (proxy->query_tokens[cursor] == "LINK") {
@@ -229,31 +215,29 @@ shared_ptr<QueryElement> PatternMatchingQueryProcessor::setup_query_tree(shared_
         } else if (proxy->query_tokens[cursor] == "OR") {
             element_stack.push(build_or(proxy, cursor, element_stack));
         } else {
-            Utils::error(
-                "Invalid token " + 
-                proxy->query_tokens[cursor] + 
-                " in PATTERN_MATCHING_QUERY message");
+            Utils::error("Invalid token " + proxy->query_tokens[cursor] +
+                         " in PATTERN_MATCHING_QUERY message");
         }
         execution_stack.pop();
     }
 
     if (element_stack.size() != 1) {
-        Utils::error("PATTERN_MATCHING_QUERY message: "
+        Utils::error(
+            "PATTERN_MATCHING_QUERY message: "
             "parse error in query tokens (trailing elements)");
     }
     return element_stack.top();
 }
 
-
 shared_ptr<QueryElement> PatternMatchingQueryProcessor::build_link_template(
     shared_ptr<PatternMatchingQueryProxy> proxy,
-    unsigned int cursor, 
+    unsigned int cursor,
     stack<shared_ptr<QueryElement>>& element_stack) {
-
     unsigned int arity = std::stoi(proxy->query_tokens[cursor + 2]);
     if (element_stack.size() < arity) {
         Utils::error(
-            "PATTERN_MATCHING_QUERY message: parse error in tokens - too few arguments for LINK_TEMPLATE");
+            "PATTERN_MATCHING_QUERY message: parse error in tokens - too few arguments for "
+            "LINK_TEMPLATE");
     }
     switch (arity) {
         // TODO: consider replacing each "case" below by a pre-processor macro call
@@ -263,7 +247,8 @@ shared_ptr<QueryElement> PatternMatchingQueryProcessor::build_link_template(
                 targets[i] = element_stack.top();
                 element_stack.pop();
             }
-            return make_shared<LinkTemplate<1>>(proxy->query_tokens[cursor + 1], targets, proxy->get_context());
+            return make_shared<LinkTemplate<1>>(
+                proxy->query_tokens[cursor + 1], targets, proxy->get_context());
         }
         case 2: {
             array<shared_ptr<QueryElement>, 2> targets;
@@ -271,7 +256,8 @@ shared_ptr<QueryElement> PatternMatchingQueryProcessor::build_link_template(
                 targets[i] = element_stack.top();
                 element_stack.pop();
             }
-            return make_shared<LinkTemplate<2>>(proxy->query_tokens[cursor + 1], targets, proxy->get_context());
+            return make_shared<LinkTemplate<2>>(
+                proxy->query_tokens[cursor + 1], targets, proxy->get_context());
         }
         case 3: {
             array<shared_ptr<QueryElement>, 3> targets;
@@ -279,7 +265,8 @@ shared_ptr<QueryElement> PatternMatchingQueryProcessor::build_link_template(
                 targets[i] = element_stack.top();
                 element_stack.pop();
             }
-            return make_shared<LinkTemplate<3>>(proxy->query_tokens[cursor + 1], targets, proxy->get_context());
+            return make_shared<LinkTemplate<3>>(
+                proxy->query_tokens[cursor + 1], targets, proxy->get_context());
         }
         case 4: {
             array<shared_ptr<QueryElement>, 4> targets;
@@ -287,7 +274,8 @@ shared_ptr<QueryElement> PatternMatchingQueryProcessor::build_link_template(
                 targets[i] = element_stack.top();
                 element_stack.pop();
             }
-            return make_shared<LinkTemplate<4>>(proxy->query_tokens[cursor + 1], targets, proxy->get_context());
+            return make_shared<LinkTemplate<4>>(
+                proxy->query_tokens[cursor + 1], targets, proxy->get_context());
         }
         case 5: {
             array<shared_ptr<QueryElement>, 5> targets;
@@ -295,7 +283,8 @@ shared_ptr<QueryElement> PatternMatchingQueryProcessor::build_link_template(
                 targets[i] = element_stack.top();
                 element_stack.pop();
             }
-            return make_shared<LinkTemplate<5>>(proxy->query_tokens[cursor + 1], targets, proxy->get_context());
+            return make_shared<LinkTemplate<5>>(
+                proxy->query_tokens[cursor + 1], targets, proxy->get_context());
         }
         case 6: {
             array<shared_ptr<QueryElement>, 6> targets;
@@ -303,7 +292,8 @@ shared_ptr<QueryElement> PatternMatchingQueryProcessor::build_link_template(
                 targets[i] = element_stack.top();
                 element_stack.pop();
             }
-            return make_shared<LinkTemplate<6>>(proxy->query_tokens[cursor + 1], targets, proxy->get_context());
+            return make_shared<LinkTemplate<6>>(
+                proxy->query_tokens[cursor + 1], targets, proxy->get_context());
         }
         case 7: {
             array<shared_ptr<QueryElement>, 7> targets;
@@ -311,7 +301,8 @@ shared_ptr<QueryElement> PatternMatchingQueryProcessor::build_link_template(
                 targets[i] = element_stack.top();
                 element_stack.pop();
             }
-            return make_shared<LinkTemplate<7>>(proxy->query_tokens[cursor + 1], targets, proxy->get_context());
+            return make_shared<LinkTemplate<7>>(
+                proxy->query_tokens[cursor + 1], targets, proxy->get_context());
         }
         case 8: {
             array<shared_ptr<QueryElement>, 8> targets;
@@ -319,7 +310,8 @@ shared_ptr<QueryElement> PatternMatchingQueryProcessor::build_link_template(
                 targets[i] = element_stack.top();
                 element_stack.pop();
             }
-            return make_shared<LinkTemplate<8>>(proxy->query_tokens[cursor + 1], targets, proxy->get_context());
+            return make_shared<LinkTemplate<8>>(
+                proxy->query_tokens[cursor + 1], targets, proxy->get_context());
         }
         case 9: {
             array<shared_ptr<QueryElement>, 9> targets;
@@ -327,7 +319,8 @@ shared_ptr<QueryElement> PatternMatchingQueryProcessor::build_link_template(
                 targets[i] = element_stack.top();
                 element_stack.pop();
             }
-            return make_shared<LinkTemplate<9>>(proxy->query_tokens[cursor + 1], targets, proxy->get_context());
+            return make_shared<LinkTemplate<9>>(
+                proxy->query_tokens[cursor + 1], targets, proxy->get_context());
         }
         case 10: {
             array<shared_ptr<QueryElement>, 10> targets;
@@ -335,7 +328,8 @@ shared_ptr<QueryElement> PatternMatchingQueryProcessor::build_link_template(
                 targets[i] = element_stack.top();
                 element_stack.pop();
             }
-            return make_shared<LinkTemplate<10>>(proxy->query_tokens[cursor + 1], targets, proxy->get_context());
+            return make_shared<LinkTemplate<10>>(
+                proxy->query_tokens[cursor + 1], targets, proxy->get_context());
         }
         default: {
             Utils::error("PATTERN_MATCHING_QUERY message: max supported arity for LINK_TEMPLATE: 10");
@@ -346,12 +340,12 @@ shared_ptr<QueryElement> PatternMatchingQueryProcessor::build_link_template(
 
 shared_ptr<QueryElement> PatternMatchingQueryProcessor::build_and(
     shared_ptr<PatternMatchingQueryProxy> proxy,
-    unsigned int cursor, 
+    unsigned int cursor,
     stack<shared_ptr<QueryElement>>& element_stack) {
-
     unsigned int num_clauses = std::stoi(proxy->query_tokens[cursor + 1]);
     if (element_stack.size() < num_clauses) {
-        Utils::error("PATTERN_MATCHING_QUERY message: parse error in tokens - too few arguments for AND");
+        Utils::error(
+            "PATTERN_MATCHING_QUERY message: parse error in tokens - too few arguments for AND");
     }
     switch (num_clauses) {
         // TODO: consider replacing each "case" below by a pre-processor macro call
@@ -446,7 +440,6 @@ shared_ptr<QueryElement> PatternMatchingQueryProcessor::build_or(
     shared_ptr<PatternMatchingQueryProxy> proxy,
     unsigned int cursor,
     stack<shared_ptr<QueryElement>>& element_stack) {
-
     unsigned int num_clauses = std::stoi(proxy->query_tokens[cursor + 1]);
     if (element_stack.size() < num_clauses) {
         Utils::error("PATTERN_MATCHING_QUERY message: parse error in tokens - too few arguments for OR");
@@ -542,12 +535,12 @@ shared_ptr<QueryElement> PatternMatchingQueryProcessor::build_or(
 
 shared_ptr<QueryElement> PatternMatchingQueryProcessor::build_link(
     shared_ptr<PatternMatchingQueryProxy> proxy,
-    unsigned int cursor, 
+    unsigned int cursor,
     stack<shared_ptr<QueryElement>>& element_stack) {
-
     unsigned int arity = std::stoi(proxy->query_tokens[cursor + 2]);
     if (element_stack.size() < arity) {
-        Utils::error("PATTERN_MATCHING_QUERY message: parse error in tokens - too few arguments for LINK");
+        Utils::error(
+            "PATTERN_MATCHING_QUERY message: parse error in tokens - too few arguments for LINK");
     }
     switch (arity) {
         // TODO: consider replacing each "case" below by a pre-processor macro call
@@ -637,4 +630,3 @@ shared_ptr<QueryElement> PatternMatchingQueryProcessor::build_link(
     }
     return NULL;  // Just to avoid warnings. This is not actually reachable.
 }
-

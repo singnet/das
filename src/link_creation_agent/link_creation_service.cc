@@ -1,4 +1,5 @@
 #include "link_creation_service.h"
+
 #include "Utils.h"
 
 using namespace link_creation_agent;
@@ -17,7 +18,6 @@ void LinkCreationService::process_request(shared_ptr<PatternMatchingQueryProxy> 
         int count = 0;
         long start = time(0);
         while (!proxy->finished()) {
-
             // NOTE TO REVISOR:
             // Althought it's not the purpose of this PR, I changed the way this thread is being
             // put to sleep because, the way it were, it was sleeping for 1 second after processing

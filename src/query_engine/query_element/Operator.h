@@ -4,7 +4,6 @@
 #include <mutex>
 
 #include "QueryAnswer.h"
-#include "QueryAnswer.h"
 #include "QueryElement.h"
 
 using namespace std;

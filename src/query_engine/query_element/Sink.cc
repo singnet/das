@@ -13,9 +13,7 @@ Sink::Sink(shared_ptr<QueryElement> precedent, const string& id, bool setup_buff
     }
 }
 
-Sink::~Sink() {
-    this->input_buffer->graceful_shutdown();
-}
+Sink::~Sink() { this->input_buffer->graceful_shutdown(); }
 
 // ------------------------------------------------------------------------------------------------
 // Public methods
@@ -38,5 +36,6 @@ void Sink::graceful_shutdown() {
 }
 
 bool Sink::finished() {
-    return (this->input_buffer->is_query_answers_empty() && this->input_buffer->is_query_answers_finished());
+    return (this->input_buffer->is_query_answers_empty() &&
+            this->input_buffer->is_query_answers_finished());
 }

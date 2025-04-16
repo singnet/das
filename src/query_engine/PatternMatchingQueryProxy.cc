@@ -1,5 +1,6 @@
-#include "ServiceBus.h"
 #include "PatternMatchingQueryProxy.h"
+
+#include "ServiceBus.h"
 
 #define LOG_LEVEL INFO_LEVEL
 #include "Logger.h"
@@ -20,13 +21,11 @@ PatternMatchingQueryProxy::PatternMatchingQueryProxy() {
     init();
 }
 
-PatternMatchingQueryProxy::PatternMatchingQueryProxy(
-    const vector<string>& tokens,
-    const string& context,
-    bool update_attention_broker,
-    bool count_only) 
+PatternMatchingQueryProxy::PatternMatchingQueryProxy(const vector<string>& tokens,
+                                                     const string& context,
+                                                     bool update_attention_broker,
+                                                     bool count_only)
     : BusCommandProxy() {
-
     // constructor typically used in requestor
     lock_guard<mutex> semaphore(this->api_mutex);
     init();
@@ -44,17 +43,15 @@ void PatternMatchingQueryProxy::init() {
     this->count_flag = false;
 }
 
-PatternMatchingQueryProxy::~PatternMatchingQueryProxy() {
-}
+PatternMatchingQueryProxy::~PatternMatchingQueryProxy() {}
 
 // -------------------------------------------------------------------------------------------------
 // Client-side API
 
 bool PatternMatchingQueryProxy::finished() {
     lock_guard<mutex> semaphore(this->api_mutex);
-    return 
-        this->abort_flag ||
-        (this->answer_flow_finished && (this->count_flag || (this->answer_queue.size() == 0)));
+    return this->abort_flag ||
+           (this->answer_flow_finished && (this->count_flag || (this->answer_queue.size() == 0)));
 }
 
 shared_ptr<QueryAnswer> PatternMatchingQueryProxy::pop() {
@@ -77,7 +74,7 @@ unsigned int PatternMatchingQueryProxy::get_count() {
 void PatternMatchingQueryProxy::abort() {
     lock_guard<mutex> semaphore(this->api_mutex);
     Utils::error("Method not implemented");
-    if (! this->answer_flow_finished) {
+    if (!this->answer_flow_finished) {
         to_remote_peer(ABORT, {});
     }
     this->abort_flag = true;
@@ -130,7 +127,8 @@ void PatternMatchingQueryProxy::set_count_flag(bool flag) {
 // Virtual superclass API from_remote_peer() and the piggyback methods called by it
 
 void PatternMatchingQueryProxy::from_remote_peer(const string& command, const vector<string>& args) {
-    LOG_DEBUG("Proxy command: <" << command << "> from " << this->peer_id() << " received in " << this->my_id());
+    LOG_DEBUG("Proxy command: <" << command << "> from " << this->peer_id() << " received in "
+                                 << this->my_id());
     if (command == ANSWER_BUNDLE) {
         answer_bundle(args);
     } else if (command == COUNT) {
@@ -146,7 +144,7 @@ void PatternMatchingQueryProxy::from_remote_peer(const string& command, const ve
 
 void PatternMatchingQueryProxy::answer_bundle(const vector<string>& args) {
     lock_guard<mutex> semaphore(this->api_mutex);
-    if (! this->abort_flag) {
+    if (!this->abort_flag) {
         if (args.size() == 0) {
             Utils::error("Invalid empty query answer");
         }
@@ -156,7 +154,7 @@ void PatternMatchingQueryProxy::answer_bundle(const vector<string>& args) {
             for (auto tokens : args) {
                 QueryAnswer* query_answer = new QueryAnswer();
                 query_answer->untokenize(tokens);
-                this->answer_queue.enqueue((void *) query_answer);
+                this->answer_queue.enqueue((void*) query_answer);
                 this->answer_count++;
             }
         }
@@ -165,11 +163,11 @@ void PatternMatchingQueryProxy::answer_bundle(const vector<string>& args) {
 
 void PatternMatchingQueryProxy::count_answer(const vector<string>& args) {
     lock_guard<mutex> semaphore(this->api_mutex);
-    if (! this->abort_flag) {
+    if (!this->abort_flag) {
         if (args.size() != 1) {
             Utils::error("Invalid args for count command");
         }
-        if (! this->count_flag) {
+        if (!this->count_flag) {
             Utils::error("Invalid count command. Query is not count_only.");
         } else {
             this->answer_count = stoi(args[0]);
@@ -179,7 +177,7 @@ void PatternMatchingQueryProxy::count_answer(const vector<string>& args) {
 
 void PatternMatchingQueryProxy::query_answers_finished(const vector<string>& args) {
     lock_guard<mutex> semaphore(this->api_mutex);
-    if (! this->abort_flag) {
+    if (!this->abort_flag) {
         this->answer_flow_finished = true;
     }
 }

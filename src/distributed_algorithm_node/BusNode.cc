@@ -40,7 +40,7 @@ BusNode::BusNode(const string& node_id,
 // DistributedAlgorithmNode virtual API
 
 void BusNode::node_joined_network(const string& node_id) {
-    if (this->is_master = true) {
+    if (this->is_master) {
         LOG_INFO("New element " << node_id << " joined the service BUS");
     }
     this->add_peer(node_id);
@@ -88,7 +88,8 @@ void BusNode::send_bus_command(const string& command, const vector<string>& args
     if (target_id == "") {
         Utils::error("Bus: no owner is defined for command <" + command + ">");
     } else {
-        LOG_DEBUG("BUS node " << this->node_id() << " is routing command " << command << " to " << target_id);
+        LOG_DEBUG("BUS node " << this->node_id() << " is routing command " << command << " to "
+                              << target_id);
         send(command, args, target_id);
     }
 }

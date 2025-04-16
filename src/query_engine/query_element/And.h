@@ -4,8 +4,8 @@
 #include <cstring>
 #include <queue>
 
-#include "QueryAnswer.h"
 #include "Operator.h"
+#include "QueryAnswer.h"
 
 using namespace std;
 

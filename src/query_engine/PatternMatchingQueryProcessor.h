@@ -1,8 +1,9 @@
 #pragma once
 
 #include <memory>
-#include <thread>
 #include <stack>
+#include <thread>
+
 #include "BusCommandProcessor.h"
 #include "PatternMatchingQueryProxy.h"
 #include "QueryElement.h"
@@ -20,9 +21,7 @@ namespace atomdb {
  * Bus element responsible for processing PATTERN_MATCHING_QUERY commands.
  */
 class PatternMatchingQueryProcessor : public BusCommandProcessor {
-
-public:
-
+   public:
     PatternMatchingQueryProcessor();
     ~PatternMatchingQueryProcessor();
 
@@ -41,21 +40,16 @@ public:
      */
     virtual void run_command(shared_ptr<BusCommandProxy> proxy);
 
-private:
-
-    void update_attention_broker_single_answer(
-        shared_ptr<PatternMatchingQueryProxy> proxy,
-        QueryAnswer *answer,
-        set<string>& joint_answer
-        );
-    void update_attention_broker_joint_answer(
-        shared_ptr<PatternMatchingQueryProxy> proxy,
-        set<string>& joint_answer);
-    void process_query_answers(
-        shared_ptr<PatternMatchingQueryProxy> proxy, 
-        shared_ptr<Sink> query_sink,
-        set<string>& joint_answer,
-        unsigned int& answer_count);
+   private:
+    void update_attention_broker_single_answer(shared_ptr<PatternMatchingQueryProxy> proxy,
+                                               QueryAnswer* answer,
+                                               set<string>& joint_answer);
+    void update_attention_broker_joint_answer(shared_ptr<PatternMatchingQueryProxy> proxy,
+                                              set<string>& joint_answer);
+    void process_query_answers(shared_ptr<PatternMatchingQueryProxy> proxy,
+                               shared_ptr<Sink> query_sink,
+                               set<string>& joint_answer,
+                               unsigned int& answer_count);
     shared_ptr<QueryElement> setup_query_tree(shared_ptr<PatternMatchingQueryProxy> proxy);
     void thread_process_one_query(shared_ptr<PatternMatchingQueryProxy> proxy);
     shared_ptr<QueryElement> build_link_template(shared_ptr<PatternMatchingQueryProxy> proxy,
@@ -79,4 +73,4 @@ private:
     shared_ptr<PatternMatchingQueryProxy> proxy;
 };
 
-} // namespace atomdb
+}  // namespace atomdb

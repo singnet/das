@@ -74,7 +74,6 @@ class Message {
  * Typically used when a node is supposed to accept a command but do anything about it.
  */
 class DoNothing : public Message {
-
    public:
     DoNothing() {}
     ~DoNothing() {}

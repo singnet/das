@@ -4,9 +4,9 @@
 #include <string>
 
 #include "AtomDBSingleton.h"
-#include "ServiceBusSingleton.h"
 #include "PatternMatchingQueryProxy.h"
 #include "QueryAnswer.h"
+#include "ServiceBusSingleton.h"
 #include "Utils.h"
 
 #define MAX_QUERY_ANSWERS ((unsigned int) 500)
@@ -125,7 +125,7 @@ void run(const string& context, const string& word_tag) {
                                  symbol,
                                  "\"" + word_tag + "\""};
 
-    shared_ptr<PatternMatchingQueryProxy> proxy = 
+    shared_ptr<PatternMatchingQueryProxy> proxy =
         make_shared<PatternMatchingQueryProxy>(query_word, context, true);
     service_bus->issue_bus_command(proxy);
 
@@ -169,10 +169,10 @@ void run(const string& context, const string& word_tag) {
         exit(0);
     }
 
-    shared_ptr<PatternMatchingQueryProxy> proxy2 = 
+    shared_ptr<PatternMatchingQueryProxy> proxy2 =
         make_shared<PatternMatchingQueryProxy>(query_word, context, true, true);
     service_bus->issue_bus_command(proxy2);
-    while (! proxy2->finished()) {
+    while (!proxy2->finished()) {
         Utils::sleep();
     }
     int query_count = proxy2->get_count();

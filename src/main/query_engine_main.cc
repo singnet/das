@@ -4,8 +4,8 @@
 #include <string>
 
 #include "AtomDBSingleton.h"
-#include "ServiceBusSingleton.h"
 #include "PatternMatchingQueryProcessor.h"
+#include "ServiceBusSingleton.h"
 #include "Utils.h"
 
 using namespace std;

@@ -1,4 +1,5 @@
 #include "BusCommandProxy.h"
+
 #include "PortPool.h"
 #include "Utils.h"
 
@@ -12,9 +13,7 @@ string ProxyNode::PROXY_COMMAND = "bus_command_proxy";
 // -------------------------------------------------------------------------------------------------
 // Constructors and destructors
 
-BusCommandProxy::BusCommandProxy() {
-    this->proxy_port = 0;
-}
+BusCommandProxy::BusCommandProxy() { this->proxy_port = 0; }
 
 BusCommandProxy::BusCommandProxy(const string& command, const vector<string>& args)
     : command(command), args(args) {}
@@ -76,7 +75,6 @@ unsigned int BusCommandProxy::get_serial() { return this->serial; }
 string BusCommandProxy::my_id() { return this->proxy_node->node_id(); }
 
 string BusCommandProxy::peer_id() { return this->proxy_node->peer_id; }
-
 
 // -------------------------------------------------------------------------------------------------
 // ProxyNode API

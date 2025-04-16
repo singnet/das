@@ -1,8 +1,8 @@
-#include "Utils.h"
-#include "ServiceBus.h"
+#include "AtomDBSingleton.h"
 #include "PatternMatchingQueryProcessor.h"
 #include "PatternMatchingQueryProxy.h"
-#include "AtomDBSingleton.h"
+#include "ServiceBus.h"
+#include "Utils.h"
 #include "gtest/gtest.h"
 
 using namespace query_engine;
@@ -13,23 +13,17 @@ void check_query(vector<string>& query,
                  ServiceBus* client_bus,
                  const string& context,
                  bool update_attention_broker) {
+    shared_ptr<PatternMatchingQueryProxy> proxy1(
+        new PatternMatchingQueryProxy(query, context, update_attention_broker));
 
-    shared_ptr<PatternMatchingQueryProxy> proxy1(new PatternMatchingQueryProxy(
-        query,
-        context,
-        update_attention_broker));
-
-    shared_ptr<PatternMatchingQueryProxy> proxy2(new PatternMatchingQueryProxy(
-        query,
-        context,
-        update_attention_broker,
-        true));
+    shared_ptr<PatternMatchingQueryProxy> proxy2(
+        new PatternMatchingQueryProxy(query, context, update_attention_broker, true));
 
     client_bus->issue_bus_command(proxy1);
     unsigned int count = 0;
     shared_ptr<QueryAnswer> query_answer;
     while (!proxy1->finished()) {
-        while (! (query_answer = proxy1->pop())) {
+        while (!(query_answer = proxy1->pop())) {
             if (proxy1->finished()) {
                 break;
             } else {
@@ -44,7 +38,7 @@ void check_query(vector<string>& query,
     EXPECT_EQ(proxy1->get_count(), expected_count);
 
     client_bus->issue_bus_command(proxy2);
-    while (! proxy2->finished()) {
+    while (!proxy2->finished()) {
         Utils::sleep();
     }
     EXPECT_EQ(proxy2->get_count(), expected_count);
@@ -65,11 +59,11 @@ TEST(PatternMatchingQuery, queries) {
     string peer1_id = "localhost:33701";
     string peer2_id = "localhost:33702";
 
-    ServiceBus *server_bus = new ServiceBus(peer1_id);
+    ServiceBus* server_bus = new ServiceBus(peer1_id);
     Utils::sleep(500);
     server_bus->register_processor(make_shared<PatternMatchingQueryProcessor>());
     Utils::sleep(500);
-    ServiceBus *client_bus = new ServiceBus(peer2_id, peer1_id);
+    ServiceBus* client_bus = new ServiceBus(peer2_id, peer1_id);
     Utils::sleep(500);
 
     vector<string> q1 = {"LINK_TEMPLATE",

@@ -10,8 +10,8 @@
 #include <mutex>
 #include <set>
 
-#include "QueryAnswer.h"
 #include "PatternMatchingQueryProxy.h"
+#include "QueryAnswer.h"
 #include "das_agent_node.h"
 #include "link.h"
 #include "thread_pool.h"

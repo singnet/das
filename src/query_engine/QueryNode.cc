@@ -1,4 +1,5 @@
 #include "QueryNode.h"
+
 #include "LeadershipBroker.h"
 #include "MessageBroker.h"
 #include "Utils.h"
@@ -18,9 +19,7 @@ string QueryNode::QUERY_ANSWERS_FINISHED_COMMAND = "query_answers_finished";
 // --------------------------------------------------------------------------------
 // Public methods
 
-QueryNode::QueryNode(const string& node_id,
-                     bool is_server,
-                     MessageBrokerType messaging_backend)
+QueryNode::QueryNode(const string& node_id, bool is_server, MessageBrokerType messaging_backend)
     : DistributedAlgorithmNode(node_id, LeadershipBrokerType::SINGLE_MASTER_SERVER, messaging_backend) {
     this->is_server = is_server;
     this->query_answer_processor = NULL;
@@ -105,28 +104,19 @@ void QueryNode::add_query_answer(QueryAnswer* query_answer) {
     }
 }
 
-QueryAnswer* QueryNode::pop_query_answer() {
-    return (QueryAnswer*) this->query_answer_queue.dequeue();
-}
+QueryAnswer* QueryNode::pop_query_answer() { return (QueryAnswer*) this->query_answer_queue.dequeue(); }
 
-bool QueryNode::is_query_answers_empty() {
-    return this->query_answer_queue.empty();
-}
+bool QueryNode::is_query_answers_empty() { return this->query_answer_queue.empty(); }
 
 QueryNodeServer::QueryNodeServer(const string& node_id, MessageBrokerType messaging_backend)
     : QueryNode(node_id, true, messaging_backend) {
     this->join_network();
-    this->query_answer_processor =
-        new thread(&QueryNodeServer::query_answer_processor_method, this);
+    this->query_answer_processor = new thread(&QueryNodeServer::query_answer_processor_method, this);
 }
 
-void QueryNodeServer::node_joined_network(const string& node_id) {
-    this->add_peer(node_id);
-}
+void QueryNodeServer::node_joined_network(const string& node_id) { this->add_peer(node_id); }
 
-string QueryNodeServer::cast_leadership_vote() {
-    return this->node_id();
-}
+string QueryNodeServer::cast_leadership_vote() { return this->node_id(); }
 
 void QueryNodeServer::query_answer_processor_method() {
     while (!this->is_shutting_down()) {
@@ -169,11 +159,10 @@ void QueryNodeClient::query_answer_processor_method() {
 }
 
 QueryNodeClient::QueryNodeClient(const string& node_id,
-                                             const string& server_id,
-                                             MessageBrokerType messaging_backend)
+                                 const string& server_id,
+                                 MessageBrokerType messaging_backend)
     : QueryNode(node_id, true, messaging_backend) {
-    this->query_answer_processor =
-        new thread(&QueryNodeClient::query_answer_processor_method, this);
+    this->query_answer_processor = new thread(&QueryNodeClient::query_answer_processor_method, this);
     this->server_id = server_id;
     this->add_peer(server_id);
     this->join_network();
@@ -183,9 +172,7 @@ void QueryNodeClient::node_joined_network(const string& node_id) {
     // do nothing
 }
 
-string QueryNodeClient::cast_leadership_vote() {
-    return this->server_id;
-}
+string QueryNodeClient::cast_leadership_vote() { return this->server_id; }
 
 QueryAnswerFlow::QueryAnswerFlow(string command, vector<string>& args) {
     for (auto pointer_string : args) {

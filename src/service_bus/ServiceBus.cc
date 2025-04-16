@@ -37,8 +37,8 @@ ServiceBus::~ServiceBus() {
 }
 
 void ServiceBus::initialize_statics(const set<string>& commands,
-                               unsigned int port_lower,
-                               unsigned int port_upper) {
+                                    unsigned int port_lower,
+                                    unsigned int port_upper) {
     LOG_INFO("BUS static initialization");
     if (commands.size() > 0) {
         for (auto command : commands) {
@@ -104,7 +104,8 @@ ServiceBus::BusCommandMessage::BusCommandMessage(const string& command, const ve
 
 void ServiceBus::BusCommandMessage::act(shared_ptr<MessageFactory> node) {
     auto service_bus_node = dynamic_pointer_cast<ServiceBus::Node>(node);
-    LOG_INFO("Command: <" << this->command << "> delivered to bus element: " << service_bus_node->node_id());
+    LOG_INFO("Command: <" << this->command
+                          << "> delivered to bus element: " << service_bus_node->node_id());
     if (service_bus_node->processor->check_command(this->command)) {
         shared_ptr<BusCommandProxy> proxy = service_bus_node->processor->factory_empty_proxy();
         proxy->proxy_port = PortPool::get_port();

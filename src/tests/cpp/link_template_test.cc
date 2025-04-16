@@ -1,8 +1,8 @@
 #include <cstdlib>
 
 #include "AtomDBSingleton.h"
-#include "QueryAnswer.h"
 #include "LinkTemplate.h"
+#include "QueryAnswer.h"
 #include "QueryNode.h"
 #include "gtest/gtest.h"
 #include "test_utils.h"

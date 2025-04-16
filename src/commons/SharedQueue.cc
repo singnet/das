@@ -15,7 +15,7 @@ SharedQueue::SharedQueue(unsigned int initial_size) {
 
 SharedQueue::~SharedQueue() { delete[] requests; }
 
-unsigned int SharedQueue::size() { 
+unsigned int SharedQueue::size() {
     unsigned int answer;
     shared_queue_mutex.lock();
     answer = count;
