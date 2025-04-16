@@ -1,12 +1,22 @@
 name: Run Unit & Integration tests
 
 on:
-  workflow_call:
   pull_request:
     branches:
       - develop
       - master
+
+  workflow_call:
+    inputs:
+      performance:
+        type: boolean
+        default: true
+
   workflow_dispatch:
+    inputs:
+      performance:
+        type: boolean
+        default: true
 
 jobs:
   unit-tests:
@@ -63,3 +73,28 @@ jobs:
 
       - name: Execute Unit Test Suite
         run: make test-all
+
+  performance:
+    runs-on: self-hosted
+    if: github.event.inputs.performance == 'true' && (github.event_name == 'workflow_dispatch' || github.event_name == 'workflow_call')
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y pv
+
+      - name: Build all targets
+        run: make build-all
+
+      - name: Start MongoDB and Redis
+        run: sudo bash ./src/tests/integration/performance/start_mongo_and_redis.sh
+
+      - name: Run performance tests
+        run: make performance-tests
+
+      - name: Performance result
+        id: result
+        run: cat $(ls -t ./src/tests/integration/performance/results/performance_results_*.txt | head -n 1)
