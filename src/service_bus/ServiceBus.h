@@ -133,11 +133,6 @@ class ServiceBus {
                                    unsigned int port_upper = 64999);
 
     /**
-     * Empty constructor.
-     */
-    ServiceBus();
-
-    /**
      * Constructor is not actually part of the API, it's supposed to be called
      * by ServiceBusSingleton. It's kept public to make it easier to write unit tests.
      */

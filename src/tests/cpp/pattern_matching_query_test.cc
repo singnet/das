@@ -8,7 +8,6 @@
 using namespace query_engine;
 using namespace atomdb;
 
-
 void check_query(vector<string>& query,
                  unsigned int expected_count,
                  ServiceBus* client_bus,

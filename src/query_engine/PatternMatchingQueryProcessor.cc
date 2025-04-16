@@ -159,11 +159,9 @@ void PatternMatchingQueryProcessor::thread_process_one_query(shared_ptr<PatternM
     unsigned int sink_port_number;
     if (command == ServiceBus::PATTERN_MATCHING_QUERY) {
         sink_port_number = PortPool::get_port();
-        string id = proxy->my_id();
-        string host = id.substr(0, id.find(":"));
-        string local_id = host + ":" + to_string(sink_port_number);
-        shared_ptr<Sink> query_sink = 
-            make_shared<Sink>(root_query_element, "Sink_" + proxy->peer_id() + "_" + std::to_string(proxy->get_serial()));
+        shared_ptr<Sink> query_sink = make_shared<Sink>(
+            root_query_element, 
+            "Sink_" + proxy->peer_id() + "_" + std::to_string(proxy->get_serial()));
         unsigned int answer_count = 0;
         LOG_DEBUG("Processing QueryAnswer objects");
         while (! (query_sink->finished() || proxy->is_aborting())) {
@@ -186,6 +184,7 @@ void PatternMatchingQueryProcessor::thread_process_one_query(shared_ptr<PatternM
         Utils::error("Invalid command " + command + " in PatternMatchingQueryProcessor");
     }
     LOG_DEBUG("Command finished: <" << proxy->get_command() << ">");
+    Utils::sleep(1000);
     // TODO add a call to join/delete/remove thread
 }
 

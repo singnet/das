@@ -19,9 +19,6 @@ ServiceBus::Node::Node(const string& id,
     this->bus = bus;
 }
 
-ServiceBus::ServiceBus() {
-}
-
 ServiceBus::ServiceBus(const string& host_id, const string& known_peer) {
     this->next_request_serial = 1;
     this->bus = shared_ptr<BusNode::Bus>(new BusNode::Bus());
@@ -35,6 +32,8 @@ ServiceBus::ServiceBus(const string& host_id, const string& known_peer) {
 
 ServiceBus::~ServiceBus() {
     LOG_DEBUG("Destroying ServiceBus " << bus_node->node_id());
+    this->bus_node->graceful_shutdown();
+    LOG_DEBUG("Destroying ServiceBus " << bus_node->node_id() << " DONE");
 }
 
 void ServiceBus::initialize_statics(const set<string>& commands,
