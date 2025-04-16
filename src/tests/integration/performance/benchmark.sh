@@ -26,15 +26,25 @@ create_or_update_env_file() {
 }
 
 start_process() {
-  local cmd=$1
-  eval "$cmd" &
+  local cmd="$1"
+
+  (
+    $cmd
+  ) > /tmp/${cmd// /_}.log 2>&1 &
+
   echo $!
 }
 
 stop_process() {
   local pid=$1
-  kill "$pid"
-  wait "$pid" 2>/dev/null || true
+
+  if kill -0 "$pid" 2>/dev/null; then
+    kill "$pid"
+    wait "$pid" 2>/dev/null || true
+    echo "Process $pid stopped."
+  else
+    echo "Process $pid does not exist."
+  fi
 }
 
 run_command() {
@@ -68,7 +78,7 @@ main() {
 
   echo "Warm-up Query Agent..."
   qa_pid=$(start_process "make run-query-agent")
-  sleep 10
+  sleep 3
   stop_process "$qa_pid"
   sleep 3
 
