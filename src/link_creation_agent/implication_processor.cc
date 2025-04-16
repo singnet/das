@@ -51,6 +51,10 @@ vector<vector<string>> ImplicationProcessor::process(
     HandlesAnswer* handles_answer = dynamic_cast<HandlesAnswer*>(query_answer);
     string p1_handle = handles_answer->assignment.get("P1");
     string p2_handle = handles_answer->assignment.get("P2");
+    string context = "";
+    if (extra_params.has_value()) {
+        context = extra_params.value().front();
+    }
     if (p1_handle == p2_handle) {
         LOG_INFO("ImplicationProcessor::process: P1 and P2 are the same, skipping implication processing.");
         return {};
@@ -77,23 +81,33 @@ vector<vector<string>> ImplicationProcessor::process(
         "NODE", "Symbol", "CONCEPT",
         "VARIABLE", "P2"
     };
-    int p1_set_size = this->das_node->count_query(pattern_query_1);
+    this->processor_mutex->lock();
+    int p1_set_size = this->das_node->count_query(pattern_query_1, context, false, 10);
+    this->processor_mutex->unlock();
     LOG_DEBUG("ImplicationProcessor::process: p1_set_size(" << p1_name << "): " << p1_set_size);
-    int p2_set_size = this->das_node->count_query(pattern_query_2);
+    this->processor_mutex->lock();
+    int p2_set_size = this->das_node->count_query(pattern_query_2, context, false, 10);
+    this->processor_mutex->unlock();
     LOG_DEBUG("ImplicationProcessor::process: p2_set_size(" << p2_name << "): " << p2_set_size);
-    int p1_p2_set_size = this->das_node->count_query(get_satisfying_set_query(p1_name, p2_name));
+    this->processor_mutex->lock();
+    int p1_p2_set_size = this->das_node->count_query(get_satisfying_set_query(p1_name, p2_name), context, false, 10);
+    this->processor_mutex->unlock();
     LOG_DEBUG("ImplicationProcessor::process: p1_p2_set_size(" << p1_name << ", " << p2_name << "): " << p1_p2_set_size);
     if (p1_set_size == 0 || p2_set_size == 0 || p1_p2_set_size == 0) {
         LOG_INFO("ImplicationProcessor::process: No pattern found for " << p1_name << " and " 
                   << p2_name << ", skipping implication processing.");
         return {};
     }
-    double p1_p2_strength = double(p1_set_size) / p1_p2_set_size;
-    double p2_p1_strength = double(p2_set_size) / p1_p2_set_size;
+    double p1_p2_strength = double(p1_p2_set_size) / double(p1_set_size);
+    double p2_p1_strength = double(p1_p2_set_size) / double(p2_set_size);
     
     vector<vector<string>> result;
+    Node implication_node;
+    implication_node.type = "Symbol";
+    implication_node.value = "IMPLICATION";
     Link link_p1_p2;
-    link_p1_p2.set_type("IMPLICATION");
+    link_p1_p2.set_type("Expression");
+    link_p1_p2.add_target(implication_node);
     link_p1_p2.add_target(p1_handle);
     link_p1_p2.add_target(p2_handle);
     auto custom_field_p1_p2 = CustomField("truth_value");
@@ -102,7 +116,8 @@ vector<vector<string>> ImplicationProcessor::process(
     link_p1_p2.add_custom_field(custom_field_p1_p2);
 
     Link link_p2_p1;
-    link_p2_p1.set_type("IMPLICATION");
+    link_p2_p1.set_type("Expression");
+    link_p2_p1.add_target(implication_node);
     link_p2_p1.add_target(p2_handle);
     link_p2_p1.add_target(p1_handle);
     auto custom_field_p2_p1 = CustomField("truth_value");

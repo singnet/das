@@ -56,23 +56,23 @@ void LinkCreationService::process_request(shared_ptr<RemoteIterator<HandlesAnswe
         this->das_client = das_client;
     }
     auto job = [this, iterator, das_client, link_template, max_query_answers, context, request_id]() {
-        LOG_DEBUG("LinkCreationService::process_request: Processing request ID: " << request_id);
+        LOG_DEBUG("LinkCreationService::process_request: " << request_id << "Processing request ID: " << request_id);
         QueryAnswer* query_answer;
         int count = 0;
         long start = time(0);
         while (!iterator->finished() || this->is_stoping) {
             // this_thread::sleep_for(chrono::seconds(1));
             if (time(0) - start > timeout) {
-                LOG_DEBUG("LinkCreationService::process_request: Timeout for iterator ID: "
+                LOG_DEBUG("LinkCreationService::process_request: " << request_id <<"Timeout for iterator ID: "
                           << iterator->get_local_id());
                 return;
             }
             if ((query_answer = iterator->pop()) == NULL) {
-                LOG_DEBUG("LinkCreationService::process_request: No query answer for iterator ID: "
-                          << iterator->get_local_id());
+                // LOG_DEBUG("LinkCreationService::process_request: No query answer for iterator ID: "
+                //           << iterator->get_local_id());
                 Utils::sleep();
             } else {
-                LOG_DEBUG("LinkCreationService::process_request: Processing query_answer ID: "
+                LOG_DEBUG("LinkCreationService::process_request:" << request_id << "Processing query_answer ID: "
                           << iterator->get_local_id());
 
                 try {
@@ -96,14 +96,14 @@ void LinkCreationService::process_request(shared_ptr<RemoteIterator<HandlesAnswe
                     // lock.unlock();
                     delete query_answer;
                 } catch (const std::exception& e) {
-                    LOG_ERROR("LinkCreationService::process_request: Exception: " << e.what());
+                    LOG_ERROR("LinkCreationService::process_request: " << request_id << "Exception: " << e.what());
                     delete query_answer;
                     continue;
                 }
                 if (++count == max_query_answers) break;
             }
         }
-        LOG_DEBUG("LinkCreationService::process_request: Finished processing iterator ID: " + iterator->get_local_id());
+        LOG_DEBUG("LinkCreationService::process_request: " << request_id << "Finished processing iterator ID: " + iterator->get_local_id());
     };
 
     thread_pool.enqueue(job);

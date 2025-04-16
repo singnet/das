@@ -112,26 +112,42 @@ AGENTS=(
     "run //das_agent:main -- --config $DAS_AGENT_CONFIG;src/scripts/bazel.sh"
 )
 
-PARAM=$1
-set +x
-if [ "$PARAM" == "stop" ]; then
-    echo "Stopping all agents..."
+
+# stop function
+stop() {
+   echo "Stopping all agents..."
     for AGENT in "${AGENTS[@]}"; do
         # Split the agent and path
         IFS=';' read -r AGENT_NAME AGENT_PATH <<< "$AGENT"
         echo "Stopping agent: $AGENT_NAME"
         # split AGENT_NAME by space
         if [[ "$AGENT_PATH" == *"src/scripts/run.sh"* ]]; then
-            IFS=' ' read -r CONTAINER_NAME _ <<< "$AGENT_NAME"
-            docker rm -f "$CONTAINER_NAME"
+            IFS=' ' read -r TEMP_NAME _ <<< "$AGENT_NAME"
+            CONTAINER_NAME=`docker ps | grep $TEMP_NAME | awk '{print $10}'`
+            # docker rm -f "$CONTAINER_NAME"
         else
-            IFS=' ' read -r _ CONTAINER_NAME _ <<< "$AGENT_NAME"
-            CONTAINER_NAME=${CONTAINER_NAME//[^[:alnum:]]/}
+            # IFS=' ' read -r _ TEMP_NAME _ <<< "$AGENT_NAME"
+            CONTAINER_NAME=`docker ps | grep das-bazel-cmd | awk '{print $10}'`
+            # CONTAINER_NAME=${CONTAINER_NAME//[^[:alnum:]]/}
+        fi
+        if [ -z "$CONTAINER_NAME" ]; then
+            echo -e "${RED}No container found for agent: $AGENT_NAME${NC}"
+            echo "Container name: $CONTAINER_NAME"
+            continue
         fi
         docker rm -f "$CONTAINER_NAME"
-        rm -f $LINK_CREATION_FILE_PATH
-        rm -f $INFERENCE_AGENT_FILE_PATH
     done
+    rm -f $LINK_CREATION_FILE_PATH
+    rm -f $INFERENCE_AGENT_FILE_PATH
+}
+
+trap stop SIGINT
+trap stop SIGTERM
+
+PARAM=$1
+set +x
+if [ "$PARAM" == "stop" ]; then
+    stop
     exit 0
 fi
 if [ "$PARAM" == "start" ]; then
@@ -150,5 +166,5 @@ if [ "$PARAM" == "start" ]; then
         sleep 5
         i=$((i + 1))
     done
-    exit 0
+    wait
 fi

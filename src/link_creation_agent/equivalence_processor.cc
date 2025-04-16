@@ -31,7 +31,7 @@ vector<string> EquivalenceProcessor::get_pattern_query(const string& c1, const s
                 "LINK_TEMPLATE", "Expression", "2",
                     "NODE", "Symbol", "PREDICATE",
                     "VARIABLE", "P",
-                "LINK_TEMPLATE", "Expression", "2",
+                "LINK", "Expression", "2",
                     "NODE", "Symbol", "CONCEPT",
                     "NODE", "Symbol", c1,
             "LINK_TEMPLATE", "Expression", "3",
@@ -39,7 +39,7 @@ vector<string> EquivalenceProcessor::get_pattern_query(const string& c1, const s
                 "LINK_TEMPLATE", "Expression", "2",
                     "NODE", "Symbol", "PREDICATE",
                     "VARIABLE", "P",
-                "LINK_TEMPLATE", "Expression", "2",
+                "LINK", "Expression", "2",
                     "NODE", "Symbol", "CONCEPT",
                     "NODE", "Symbol", c2
     };
