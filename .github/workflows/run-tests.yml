@@ -92,4 +92,4 @@ jobs:
 
       - name: Performance result
         id: result
-        run: cat $(ls -t ./src/tests/integration/performance/performance_results_*.txt | head -n 1)
+        run: cat $(ls -t ./src/tests/integration/performance/results/performance_results_*.txt | head -n 1)
