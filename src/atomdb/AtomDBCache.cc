@@ -1,7 +1,6 @@
 #include "AtomDBCache.h"
 
-#define LOG_LEVEL LOG_INFO
-
+#define LOG_LEVEL INFO_LEVEL
 #include "Logger.h"
 
 using namespace std;

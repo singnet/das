@@ -17,6 +17,9 @@
 #include "atom_space_node.grpc.pb.h"
 #include "atom_space_node.pb.h"
 
+#define LOG_LEVEL INFO_LEVEL
+#include "Logger.h"
+
 using namespace distributed_algorithm_node;
 
 unsigned int SynchronousGRPC::MESSAGE_THREAD_COUNT = 10;
@@ -215,6 +218,7 @@ void SynchronousGRPC::inbox_thread_method() {
             delete message_data;
             std::shared_ptr<Message> message = this->host_node->message_factory(command, args);
             if (message) {
+                LOG_DEBUG("Acting command: " << command << " at node " << this->node_id);
                 message->act(this->host_node);
             } else {
                 Utils::error("Invalid NULL Message");
@@ -249,6 +253,7 @@ bool MessageBroker::is_peer(const string& peer_id) {
 }
 
 void MessageBroker::graceful_shutdown() {
+    LOG_DEBUG("Gracefully shutting down MessageBroker at node: " << this->node_id);
     this->shutdown_flag_mutex.lock();
     this->shutdown_flag = true;
     this->shutdown_flag_mutex.unlock();

@@ -4,24 +4,22 @@
 #include <fstream>
 #include <sstream>
 
-#include "RemoteIterator.h"
 #include "expression_hasher.h"
 #include "link_create_template.h"
 
 using namespace std;
 using namespace link_creation_agent;
-using namespace query_node;
-using namespace query_element;
 
 LinkCreationAgent::LinkCreationAgent(string config_path) {
     this->config_path = config_path;
     load_config();
     this->query_agent_mutex = make_shared<mutex>();
     link_creation_node_server = new LinkCreationAgentNode(link_creation_agent_server_id);
-    query_node_client = new DASNode(query_agent_client_id,
-                                    query_agent_server_id,
-                                    query_agent_client_start_port,
-                                    query_agent_client_end_port);
+    // query_node_client = new DASNode(query_agent_client_id,
+    //                                 query_agent_server_id,
+    //                                 query_agent_client_start_port,
+    //                                 query_agent_client_end_port);
+    service_bus = ServiceBusSingleton::get_instance();
     service = new LinkCreationService(link_creation_agent_thread_count, shared_ptr<DASNode>(query_node_client));
     service->set_timeout(query_timeout_seconds);
     service->set_query_agent_mutex(this->query_agent_mutex);
@@ -33,7 +31,6 @@ LinkCreationAgent::LinkCreationAgent(string config_path) {
 LinkCreationAgent::~LinkCreationAgent() {
     stop();
     delete link_creation_node_server;
-    delete query_node_client;
     delete service;
     delete das_client;
 }
@@ -46,7 +43,6 @@ void LinkCreationAgent::stop() {
     }
     agent_mutex.unlock();
     link_creation_node_server->graceful_shutdown();
-    query_node_client->graceful_shutdown();
     das_client->graceful_shutdown();
     if (agent_thread != NULL && agent_thread->joinable()) {
         agent_thread->join();
@@ -86,12 +82,12 @@ void LinkCreationAgent::run() {
             query_agent_mutex->lock();
             LOG_DEBUG("Processing request ID: " << lca_request->id);
             LOG_DEBUG("Current size of request buffer: " << request_buffer.size());
-            shared_ptr<RemoteIterator<HandlesAnswer>> iterator =
+            shared_ptr<PatternMatchingQueryProxy> proxy =
                 query(lca_request->query, lca_request->context, lca_request->update_attention_broker);
             query_agent_mutex->unlock();
 
             service->process_request(
-                iterator, das_client, lca_request->link_template, lca_request->context, lca_request->id, lca_request->max_results);
+                proxy, das_client, lca_request->link_template, lca_request->max_results);
 
             lca_request->last_execution = time(0);
             lca_request->current_interval =
@@ -110,11 +106,13 @@ void LinkCreationAgent::run() {
     }
 }
 
-shared_ptr<RemoteIterator<HandlesAnswer>> LinkCreationAgent::query(vector<string>& query_tokens,
-                                                                   string context,
-                                                                   bool update_attention_broker) {
-    return shared_ptr<RemoteIterator<HandlesAnswer>>(
-        query_node_client->pattern_matcher_query(query_tokens, context, update_attention_broker));
+shared_ptr<PatternMatchingQueryProxy> LinkCreationAgent::query(vector<string>& query_tokens,
+                                                               string context,
+                                                               bool update_attention_broker) {
+    shared_ptr<PatternMatchingQueryProxy> proxy =
+        make_shared<PatternMatchingQueryProxy>(query_tokens, context, update_attention_broker);
+    service_bus->issue_bus_command(proxy);
+    return proxy;
 }
 
 void LinkCreationAgent::load_config() {

@@ -19,6 +19,7 @@ class LinkCreationAgentTest : public ::testing::Test {
     LinkCreationAgent* agent;
 
     void SetUp() override {
+        ServiceBusSingleton::init("localhost:7002");
         // Create a temporary config file for testing
         ofstream config_file("test_config.cfg");
         config_file << "requests_interval_seconds=1\n";
@@ -39,6 +40,9 @@ class LinkCreationAgentTest : public ::testing::Test {
 };
 
 TEST_F(LinkCreationAgentTest, TestRequest) {
+    // test config
+    agent = new LinkCreationAgent("test_config.cfg");
+    delete agent;
     // Simulate a request
     vector<string> request = {
         "query1", "LINK_CREATE", "test", "1", "0", "VARIABLE", "V1", "10", "5", "test_context", "true"};
@@ -303,7 +307,7 @@ TEST(LinkCreateTemplate, TestInvalidNode) {
 
 TEST(Link, TestLinkTemplateProcessor) {
     vector<string> link_template = split("LINK_CREATE Similarity 2 0 VARIABLE V1 VARIABLE V2", ' ');
-    HandlesAnswer* query_answer = new HandlesAnswer();
+    shared_ptr<QueryAnswer> query_answer = make_shared<QueryAnswer>();
     query_answer->assignment.assign("V1", "Value1");
     query_answer->assignment.assign("V2", "Value2");
 
@@ -312,9 +316,8 @@ TEST(Link, TestLinkTemplateProcessor) {
     EXPECT_EQ(Utils::join(links[0], ' '), "LINK Similarity 2 HANDLE Value1 HANDLE Value2");
     // EXPECT_EQ(link.to_metta_string(), "(Value1 Value2)");
     link_template.clear();
-    delete query_answer;
 
-    query_answer = new HandlesAnswer();
+    query_answer = make_shared<QueryAnswer>();
     link_template = split("LINK_CREATE Test 3 0 NODE Symbol A VARIABLE V1 NODE Symbol B", ' ');
     query_answer->assignment.assign("V1", "Value1");
     links = ltp.process(query_answer, link_template);
@@ -323,9 +326,8 @@ TEST(Link, TestLinkTemplateProcessor) {
     // EXPECT_EQ(link.to_metta_string(), "(A Value1 B)");
 
     link_template.clear();
-    delete query_answer;
 
-    query_answer = new HandlesAnswer();
+    query_answer = make_shared<QueryAnswer>();
     link_template = split(
         "LINK_CREATE Test2 2 1 NODE Symbol C NODE Symbol B "
         "CUSTOM_FIELD truth_value 2 CUSTOM_FIELD mean 2 count 10 avg 0.9 confidence 0.9",
@@ -336,9 +338,8 @@ TEST(Link, TestLinkTemplateProcessor) {
               "count 10 avg 0.9 confidence 0.9");
 
     link_template.clear();
-    delete query_answer;
 
-    query_answer = new HandlesAnswer();
+    query_answer = make_shared<QueryAnswer>();
     link_template = split(
         "LINK_CREATE Test3 2 1 VARIABLE V1 VARIABLE V2 "
         "CUSTOM_FIELD truth_value 2 CUSTOM_FIELD mean 2 count 10 avg 0.9 confidence 0.9",
@@ -350,7 +351,6 @@ TEST(Link, TestLinkTemplateProcessor) {
               "LINK Test3 2 HANDLE Value1 HANDLE Value2 CUSTOM_FIELD truth_value 2 CUSTOM_FIELD mean 2 "
               "count 10 avg 0.9 confidence 0.9");
     link_template.clear();
-    delete query_answer;
 
     // // clang-format off
     // link_template = split(

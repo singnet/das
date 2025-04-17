@@ -24,6 +24,7 @@ cc_library(
     ":processors",
     "//distributed_algorithm_node:distributed_algorithm_node_lib",
     "//query_engine:query_engine_lib",
+    "//service_bus:service_bus_lib",
     "//hasher:hasher_lib",
   ],
 )
@@ -97,5 +98,6 @@ cc_library(
     ":link",
     ":link_create_template",
     "//query_engine:query_engine_lib",
+    "//commons:commons_lib",
   ],
 )

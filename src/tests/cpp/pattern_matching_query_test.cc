@@ -1,11 +1,9 @@
-#include <cstdlib>
-
 #include "AtomDBSingleton.h"
-#include "DASNode.h"
-#include "HandlesAnswer.h"
+#include "PatternMatchingQueryProcessor.h"
+#include "PatternMatchingQueryProxy.h"
+#include "ServiceBus.h"
 #include "Utils.h"
 #include "gtest/gtest.h"
-#include "test_utils.h"
 
 using namespace query_engine;
 using namespace atomdb;
@@ -42,41 +40,41 @@ string handle_to_atom(const char* handle) {
 
 void check_query(vector<string>& query,
                  unsigned int expected_count,
-                 DASNode* das,
-                 DASNode* requestor,
+                 ServiceBus* client_bus,
                  const string& context,
-                 bool update_attention_broker = false) {
-    cout << "XXXXXXXXXXXXXXXX DASNode.queries CHECK BEGIN" << endl;
-    QueryAnswer* query_answer;
-    RemoteIterator<HandlesAnswer>* response =
-        requestor->pattern_matcher_query(query, context, update_attention_broker);
+                 bool update_attention_broker) {
+    shared_ptr<PatternMatchingQueryProxy> proxy1(
+        new PatternMatchingQueryProxy(query, context, update_attention_broker));
+
+    shared_ptr<PatternMatchingQueryProxy> proxy2(
+        new PatternMatchingQueryProxy(query, context, update_attention_broker, true));
+
+    client_bus->issue_bus_command(proxy1);
     unsigned int count = 0;
-    while (!response->finished()) {
-        while ((query_answer = response->pop()) == NULL) {
-            if (response->finished()) {
+    shared_ptr<QueryAnswer> query_answer;
+    while (!proxy1->finished()) {
+        while (!(query_answer = proxy1->pop())) {
+            if (proxy1->finished()) {
                 break;
             } else {
                 Utils::sleep();
             }
         }
-        if (query_answer != NULL) {
-            cout << "XXXXX " << query_answer->to_string() << endl;
-            // cout << "XXXXX " << handle_to_atom(query_answer->handles[0]) << endl;
+        if (query_answer) {
             count++;
         }
     }
     EXPECT_EQ(count, expected_count);
+    EXPECT_EQ(proxy1->get_count(), expected_count);
 
-    // Count query
-    EXPECT_EQ(requestor->count_query(query, context), expected_count);
-
-    delete response;
-    cout << "XXXXXXXXXXXXXXXX DASNode.queries CHECK END" << endl;
+    client_bus->issue_bus_command(proxy2);
+    while (!proxy2->finished()) {
+        Utils::sleep();
+    }
+    EXPECT_EQ(proxy2->get_count(), expected_count);
 }
 
-TEST(DASNode, queries) {
-    cout << "XXXXXXXXXXXXXXXX DASNode.queries BEGIN" << endl;
-
+TEST(PatternMatchingQuery, queries) {
     setenv("DAS_REDIS_HOSTNAME", "localhost", 1);
     setenv("DAS_REDIS_PORT", "29000", 1);
     setenv("DAS_USE_REDIS_CLUSTER", "false", 1);
@@ -84,14 +82,19 @@ TEST(DASNode, queries) {
     setenv("DAS_MONGODB_PORT", "28000", 1);
     setenv("DAS_MONGODB_USERNAME", "dbadmin", 1);
     setenv("DAS_MONGODB_PASSWORD", "dassecret", 1);
-    AtomDBSingleton::init();
 
-    string das_id = "localhost:31700";
-    string requestor_id = "localhost:31701";
-    DASNode das(das_id);
-    Utils::sleep(1000);
-    DASNode requestor(requestor_id, das_id);
-    Utils::sleep(1000);
+    AtomDBSingleton::init();
+    ServiceBus::initialize_statics({}, 54000, 54500);
+
+    string peer1_id = "localhost:33701";
+    string peer2_id = "localhost:33702";
+
+    ServiceBus* server_bus = new ServiceBus(peer1_id);
+    Utils::sleep(500);
+    server_bus->register_processor(make_shared<PatternMatchingQueryProcessor>());
+    Utils::sleep(500);
+    ServiceBus* client_bus = new ServiceBus(peer2_id, peer1_id);
+    Utils::sleep(500);
 
     vector<string> q1 = {"LINK_TEMPLATE",
                          "Expression",
@@ -139,17 +142,17 @@ TEST(DASNode, queries) {
                          "v1",   "NODE",   "Symbol",        "\"snake\""};
     int q5_expected_count = 5;
 
-    check_query(q1, q1_expected_count, &das, &requestor, "DASNode.queries");
-    check_query(q2, q2_expected_count, &das, &requestor, "DASNode.queries");
-    check_query(q3, q3_expected_count, &das, &requestor, "DASNode.queries");
-    check_query(q4, q4_expected_count, &das, &requestor, "DASNode.queries");
-    check_query(q5, q5_expected_count, &das, &requestor, "DASNode.queries");
+    check_query(q1, q1_expected_count, client_bus, "PatternMatchingQuery.queries", false);
+    check_query(q2, q2_expected_count, client_bus, "PatternMatchingQuery.queries", false);
+    check_query(q3, q3_expected_count, client_bus, "PatternMatchingQuery.queries", false);
+    check_query(q4, q4_expected_count, client_bus, "PatternMatchingQuery.queries", false);
+    check_query(q5, q5_expected_count, client_bus, "PatternMatchingQuery.queries", false);
 
-    check_query(q1, q1_expected_count, &das, &requestor, "DASNode.queries", true);
-    check_query(q2, q2_expected_count, &das, &requestor, "DASNode.queries", true);
-    check_query(q3, q3_expected_count, &das, &requestor, "DASNode.queries", true);
-    check_query(q4, q4_expected_count, &das, &requestor, "DASNode.queries", true);
-    check_query(q5, q5_expected_count, &das, &requestor, "DASNode.queries", true);
+    check_query(q1, q1_expected_count, client_bus, "PatternMatchingQuery.queries", true);
+    check_query(q2, q2_expected_count, client_bus, "PatternMatchingQuery.queries", true);
+    check_query(q3, q3_expected_count, client_bus, "PatternMatchingQuery.queries", true);
+    check_query(q4, q4_expected_count, client_bus, "PatternMatchingQuery.queries", true);
+    check_query(q5, q5_expected_count, client_bus, "PatternMatchingQuery.queries", true);
 
-    cout << "XXXXXXXXXXXXXXXX DASNode.queries END" << endl;
+    Utils::sleep(1000);
 }

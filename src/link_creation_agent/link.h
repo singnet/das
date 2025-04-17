@@ -7,7 +7,6 @@
 #include <variant>
 #include <vector>
 
-#include "HandlesAnswer.h"
 #include "QueryAnswer.h"
 #include "link_create_template.h"
 
