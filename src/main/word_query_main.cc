@@ -178,6 +178,7 @@ int main(int argc, char* argv[]) {
         exit(1);
     }
     signal(SIGINT, &ctrl_c_handler);
+    signal(SIGTERM, &ctrl_c_handler);
     string context = argv[1];
     string word_tag = argv[2];
 

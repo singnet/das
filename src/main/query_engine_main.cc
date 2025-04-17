@@ -25,6 +25,7 @@ int main(int argc, char* argv[]) {
 
     string server_id = "0.0.0.0:" + string(argv[1]);
     signal(SIGINT, &ctrl_c_handler);
+    signal(SIGTERM, &ctrl_c_handler);
     AtomDBSingleton::init();
     DASNode server(server_id);
     cout

@@ -2,27 +2,28 @@ import subprocess
 import sys
 import time
 import os
-from typing import MutableMapping
 
 # Number of times to run each query. At the end, the average time will be printed.
 TESTS_ROUNDS = 10
 
 
-def get_env_vars() -> MutableMapping:
+def set_dot_env_file():
     """
-    Sets the environment variables for the Query Agent.
+    Sets the environment variables in the .env file.
     """
-    os.environ.update(
-        {
-            "DAS_MONGODB_HOSTNAME": "localhost",
-            "DAS_MONGODB_PORT": "38000",
-            "DAS_MONGODB_USERNAME": "dbadmin",
-            "DAS_MONGODB_PASSWORD": "dassecret",
-            "DAS_REDIS_HOSTNAME": "localhost",
-            "DAS_REDIS_PORT": "39000",
-        }
-    )
-    return os.environ
+    # remove the .env file if it exists
+    if os.path.exists(".env"):
+        os.remove(".env")
+    # create a new .env file
+    with open(".env", "w") as f:
+        f.write(
+            "DAS_MONGODB_HOSTNAME=localhost\n"
+            "DAS_MONGODB_PORT=38000\n"
+            "DAS_MONGODB_USERNAME=dbadmin\n"
+            "DAS_MONGODB_PASSWORD=dassecret\n"
+            "DAS_REDIS_HOSTNAME=localhost\n"
+            "DAS_REDIS_PORT=39000\n"
+        )
 
 
 def start_process(command: str) -> subprocess.Popen:
@@ -31,11 +32,12 @@ def start_process(command: str) -> subprocess.Popen:
         shell=True,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
-        env=get_env_vars(),
+        preexec_fn=os.setsid,
     )
 
 
 def stop_process(process: subprocess.Popen):
+    os.killpg(os.getpgid(process.pid), subprocess.signal.SIGTERM)
     process.terminate()
     process.wait()
 
@@ -61,7 +63,6 @@ def run_command(command: str, check: bool = True) -> float:
             check=check,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
-            env=get_env_vars(),
         )
     except subprocess.CalledProcessError:
         print(f"Command failed: {command}")
@@ -72,6 +73,8 @@ def run_command(command: str, check: bool = True) -> float:
 
 
 def main():
+    set_dot_env_file()
+
     # fmt: off
     queries: dict[str, str] = dict(
         linktemplate_3_node_var_link=("""
@@ -122,7 +125,7 @@ def main():
     )
     # fmt: on
 
-    cmd_prefix = "bash src/scripts/run.sh query 'localhost:31701' 'localhost:31700' false "  # Prefix for all commands
+    cmd_prefix = "bash src/scripts/run.sh query 'localhost:31701' 'localhost:31700' false 1"  # Prefix for all commands
     cmd_suffix = ""  # Suffix for all commands
 
     # Start the Attention Broker
@@ -131,13 +134,14 @@ def main():
     # Wait for the Attention Broker to be ready
     time.sleep(3)  # Adjust this time as needed
 
-    # For some unknown reason, the Query Agent needs to be started in advance, even if it will
-    # already be started down below. This is a workaround to avoid the Query Agent to crash later.
-    # This issue only happens in this particular script.
-    query_agent_process = start_process("make run-query-agent")
-    time.sleep(3)
-    stop_process(query_agent_process)
-    time.sleep(3)
+    # TODO: Remove this workaround as it seems to no longer be needed
+    # # For some unknown reason, the Query Agent needs to be started in advance, even if it will
+    # # already be started down below. This is a workaround to avoid the Query Agent to crash later.
+    # # This issue only happens in this particular script.
+    # query_agent_process = start_process("make run-query-agent")
+    # time.sleep(3)
+    # stop_process(query_agent_process)
+    # time.sleep(3)
 
     for name, query in queries.items():
         print(f"\nRunning query '{name}'...")

@@ -50,6 +50,7 @@ int main(int argc, char* argv[]) {
     cout << "Using max_query_answers: " << max_query_answers << endl;
 
     signal(SIGINT, &ctrl_c_handler);
+    signal(SIGTERM, &ctrl_c_handler);
     vector<string> query;
     for (int i = tokens_start_position; i < argc; i++) {
         query.push_back(argv[i]);
