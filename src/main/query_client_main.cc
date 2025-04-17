@@ -74,6 +74,7 @@ int main(int argc, char* argv[]) {
             }
         }
     }
+    cout << count << " answers" << endl;
     if (count == 0) {
         cout << "No match for query" << endl;
     }

@@ -94,6 +94,27 @@ string Assignment::to_string() {
     return answer;
 }
 
+bool Assignment::operator==(const Assignment& other) const {
+    if (this->size != other.size) {
+        return false;
+    }
+    unsigned int n = this->size;
+    for (unsigned int i = 0; i < n; i++) {
+        unsigned int j = 0;
+        while ((j != n) && strncmp(this->labels[i], other.labels[j], MAX_VARIABLE_NAME_SIZE)) {
+            j++;
+        }
+        if (j == n) {
+            // There's a variable in "this" which doesn't exist in "other"
+            return false;
+        } else if (strncmp(this->values[i], other.values[j], HANDLE_HASH_SIZE)) {
+            // There same variable have different values in "this" and "other"
+            return false;
+        }
+    }
+    return true;
+}
+
 // -------------------------------------------------------------------------------------------------
 // QueryAnswer
 
