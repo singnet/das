@@ -6,6 +6,8 @@ import os
 # Number of times to run each query. At the end, the average time will be printed.
 TESTS_ROUNDS = 10
 
+FAILED_TIME = -1.0  # Time to be returned when the query fails
+
 
 def set_dot_env_file():
     """
@@ -83,8 +85,7 @@ def run_command(command: str, check: bool = True) -> float:
             stderr=subprocess.PIPE,
         )
     except subprocess.CalledProcessError:
-        print(f"Command failed: {command}")
-        sys.exit(1)
+        return FAILED_TIME
     end_time = time.perf_counter()
     execution_time = end_time - start_time
     return execution_time
@@ -167,6 +168,7 @@ def main():
 
         print(f"Rounds [for round in range({TESTS_ROUNDS})]:", flush=True)
 
+        valid_rounds = TESTS_ROUNDS
         for round in range(TESTS_ROUNDS):
             # Start the Query Agent
             query_agent_process = start_process("make run-query-agent")
@@ -182,13 +184,18 @@ def main():
             # Stop the Query Agent
             stop_process(query_agent_process)
 
-            execution_time += round_time
+            if round_time != FAILED_TIME:
+                execution_time += round_time
+                print(f"{round_time:.2f} seconds")
+            else:
+                print("Failed")
+                valid_rounds -= 1
 
-            print(f"{round_time:.2f} seconds")
+        execution_time_avg = execution_time / valid_rounds
 
-        execution_time_avg = execution_time / TESTS_ROUNDS
-
-        print(f"Average time for '{name}': {execution_time_avg:.2f} seconds")
+        print(
+            f"Average time for '{name}': {execution_time_avg:.2f} seconds (over {valid_rounds} rounds)"
+        )
 
     # Stop the Attention Broker
     print("\nStopping Attention Broker...", flush=True)
