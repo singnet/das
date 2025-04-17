@@ -27,6 +27,22 @@ def set_dot_env_file():
 
 
 def start_process(command: str) -> subprocess.Popen:
+    if "run-attention-broker" in command:
+        subprocess.run(
+            "docker rm -f $(docker ps -a | awk '/attention_broker/ {print $1}')",
+            shell=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            check=False,
+        )
+    elif "run-query-agent" in command:
+        subprocess.run(
+            "docker rm -f $(docker ps -a | awk '/query_broker/ {print $1}')",
+            shell=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            check=False,
+        )
     return subprocess.Popen(
         command,
         shell=True,
@@ -37,7 +53,24 @@ def start_process(command: str) -> subprocess.Popen:
 
 
 def stop_process(process: subprocess.Popen):
+    if "run-attention-broker" in str(process.args):
+        subprocess.run(
+            "docker rm -f $(docker ps -a | awk '/attention_broker/ {print $1}')",
+            shell=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            check=False,
+        )
+    elif "run-query-agent" in str(process.args):
+        subprocess.run(
+            "docker rm -f $(docker ps -a | awk '/query_broker/ {print $1}')",
+            shell=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            check=False,
+        )
     os.killpg(os.getpgid(process.pid), subprocess.signal.SIGTERM)
+    os.killpg(os.getpgid(process.pid), subprocess.signal.SIGKILL)
     process.terminate()
     process.wait()
 
@@ -125,6 +158,14 @@ def main():
     )
     # fmt: on
 
+    subprocess.run(
+        "docker rm -f $(docker ps -a | awk '/(attention|query)_broker/ {print $1}')",
+        shell=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        check=False,
+    )
+
     cmd_prefix = "bash src/scripts/run.sh query 'localhost:31701' 'localhost:31700' false 1"  # Prefix for all commands
     cmd_suffix = ""  # Suffix for all commands
 
@@ -134,14 +175,13 @@ def main():
     # Wait for the Attention Broker to be ready
     time.sleep(3)  # Adjust this time as needed
 
-    # TODO: Remove this workaround as it seems to no longer be needed
-    # # For some unknown reason, the Query Agent needs to be started in advance, even if it will
-    # # already be started down below. This is a workaround to avoid the Query Agent to crash later.
-    # # This issue only happens in this particular script.
-    # query_agent_process = start_process("make run-query-agent")
-    # time.sleep(3)
-    # stop_process(query_agent_process)
-    # time.sleep(3)
+    # For some unknown reason, the Query Agent needs to be started in advance, even if it will
+    # already be started down below. This is a workaround to avoid the Query Agent to crash later.
+    # This issue only happens in this particular script.
+    query_agent_process = start_process("make run-query-agent")
+    time.sleep(3)
+    stop_process(query_agent_process)
+    time.sleep(3)
 
     for name, query in queries.items():
         print(f"\nRunning query '{name}'...")
