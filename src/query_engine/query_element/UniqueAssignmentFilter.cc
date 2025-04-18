@@ -59,7 +59,7 @@ void UniqueAssignmentFilter::thread_filter() {
                 already_used.insert(answer->assignment);
                 this->output_buffer->add_query_answer(answer);
             } else  {
-                // Assignment already passed. Delete QueryAnswer.
+                // Assignment has already been processed. Delete duplicate QueryAnswer.
                 delete answer;
             }
         } else {

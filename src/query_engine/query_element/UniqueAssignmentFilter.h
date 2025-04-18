@@ -7,6 +7,12 @@ using namespace std;
 namespace query_element {
 
 /**
+ * This QueryElement acts like an unary operator which filters out QueryAnswers withthe exact
+ * same assignments as a previously processed one.
+ *
+ * This element is added to the query tree by the query command processor, i.e., there are
+ * no tokens associated with it to explicitly put it in a query. The caller is supposed to
+ * build a proxy object setting an unique assignment flag in proxy's constructor.
  */
 class UniqueAssignmentFilter : public Operator<1> {
    public:
@@ -28,7 +34,15 @@ class UniqueAssignmentFilter : public Operator<1> {
     // --------------------------------------------------------------------------------------------
     // QueryElement API
 
+    /**
+     * Setup a ServerQueryNode to communicate with one or more QueryElement just below in the
+     * query tree.
+     */
     virtual void setup_buffers();
+
+    /**
+     * Gracefully shuts down the QueryNode.
+     */
     virtual void graceful_shutdown();
 
     // --------------------------------------------------------------------------------------------
