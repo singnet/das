@@ -1,4 +1,4 @@
-#include "HandlesAnswer.h"
+#include "QueryAnswer.h"
 
 #include <cmath>
 #include <cstring>
@@ -94,35 +94,56 @@ string Assignment::to_string() {
     return answer;
 }
 
+bool Assignment::operator==(const Assignment& other) const {
+    if (this->size != other.size) {
+        return false;
+    }
+    unsigned int n = this->size;
+    for (unsigned int i = 0; i < n; i++) {
+        unsigned int j = 0;
+        while ((j != n) && strncmp(this->labels[i], other.labels[j], MAX_VARIABLE_NAME_SIZE)) {
+            j++;
+        }
+        if (j == n) {
+            // There's a variable in "this" which doesn't exist in "other"
+            return false;
+        } else if (strncmp(this->values[i], other.values[j], HANDLE_HASH_SIZE)) {
+            // There same variable have different values in "this" and "other"
+            return false;
+        }
+    }
+    return true;
+}
+
 // -------------------------------------------------------------------------------------------------
-// HandlesAnswer
+// QueryAnswer
 
-HandlesAnswer::HandlesAnswer() : HandlesAnswer(0.0) {}
+QueryAnswer::QueryAnswer() : QueryAnswer(0.0) {}
 
-HandlesAnswer::HandlesAnswer(double importance) {
+QueryAnswer::QueryAnswer(double importance) {
     this->importance = importance;
     this->handles_size = 0;
 }
 
-HandlesAnswer::HandlesAnswer(const char* handle, double importance) {
+QueryAnswer::QueryAnswer(const char* handle, double importance) {
     this->importance = importance;
     this->handles[0] = handle;
     this->handles_size = 1;
 }
 
-HandlesAnswer::~HandlesAnswer() {}
+QueryAnswer::~QueryAnswer() {}
 
-void HandlesAnswer::add_handle(const char* handle) { this->handles[this->handles_size++] = handle; }
+void QueryAnswer::add_handle(const char* handle) { this->handles[this->handles_size++] = handle; }
 
-HandlesAnswer* HandlesAnswer::copy(HandlesAnswer* base) {  // Static method
-    HandlesAnswer* copy = new HandlesAnswer(base->importance);
-    copy->assignment.copy_from(base->assignment);
-    copy->handles_size = base->handles_size;
-    memcpy((void*) copy->handles, (const void*) base->handles, base->handles_size * sizeof(char*));
+QueryAnswer* QueryAnswer::copy(QueryAnswer* other) {  // Static method
+    QueryAnswer* copy = new QueryAnswer(other->importance);
+    copy->assignment.copy_from(other->assignment);
+    copy->handles_size = other->handles_size;
+    memcpy((void*) copy->handles, (const void*) other->handles, other->handles_size * sizeof(char*));
     return copy;
 }
 
-bool HandlesAnswer::merge(HandlesAnswer* other, bool merge_handles) {
+bool QueryAnswer::merge(QueryAnswer* other, bool merge_handles) {
     if (this->assignment.is_compatible(other->assignment)) {
         this->assignment.add_assignments(other->assignment);
         bool already_exist;
@@ -147,8 +168,8 @@ bool HandlesAnswer::merge(HandlesAnswer* other, bool merge_handles) {
     }
 }
 
-string HandlesAnswer::to_string() {
-    string answer = "HandlesAnswer<" + std::to_string(this->handles_size) + ",";
+string QueryAnswer::to_string() {
+    string answer = "QueryAnswer<" + std::to_string(this->handles_size) + ",";
     answer += std::to_string(this->assignment.variable_count()) + "> [";
     for (unsigned int i = 0; i < this->handles_size; i++) {
         answer += string(this->handles[i]);
@@ -161,7 +182,7 @@ string HandlesAnswer::to_string() {
     return answer;
 }
 
-const string& HandlesAnswer::tokenize() {
+const string& QueryAnswer::tokenize() {
     // char_count is computed to be slightly larger than actually required by assuming
     // e.g. 3 digits to represent sizes
     char importance_buffer[13];
@@ -211,7 +232,7 @@ static inline void read_token(const char* token_string,
     cursor++;
 }
 
-void HandlesAnswer::untokenize(const string& tokens) {
+void QueryAnswer::untokenize(const string& tokens) {
     const char* token_string = tokens.c_str();
     char number[4];
     char importance[13];
@@ -227,7 +248,7 @@ void HandlesAnswer::untokenize(const string& tokens) {
     this->handles_size = (unsigned int) std::stoi(number);
     if (this->handles_size > MAX_NUMBER_OF_OPERATION_CLAUSES) {
         Utils::error("Invalid handles_size: " + std::to_string(this->handles_size) +
-                     " untokenizing HandlesAnswer");
+                     " untokenizing QueryAnswer");
     }
 
     for (unsigned int i = 0; i < this->handles_size; i++) {
@@ -240,7 +261,7 @@ void HandlesAnswer::untokenize(const string& tokens) {
 
     if (this->assignment.size > MAX_NUMBER_OF_VARIABLES_IN_QUERY) {
         Utils::error("Invalid number of assignments: " + std::to_string(this->assignment.size) +
-                     " untokenizing HandlesAnswer");
+                     " untokenizing QueryAnswer");
     }
 
     for (unsigned int i = 0; i < this->assignment.size; i++) {
@@ -251,6 +272,6 @@ void HandlesAnswer::untokenize(const string& tokens) {
     }
 
     if (token_string[cursor] != '\0') {
-        Utils::error("Invalid token string - invalid text after HandlesAnswer definition");
+        Utils::error("Invalid token string - invalid text after QueryAnswer definition");
     }
 }

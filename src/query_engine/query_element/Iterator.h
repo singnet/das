@@ -1,5 +1,4 @@
-#ifndef _QUERY_ELEMENT_ITERATOR_H
-#define _QUERY_ELEMENT_ITERATOR_H
+#pragma once
 
 #include "QueryAnswer.h"
 #include "Sink.h"
@@ -19,8 +18,7 @@ namespace query_element {
  * query answers and another to check if more answers can still be expected.
  *
  */
-template <class AnswerType>
-class Iterator : public Sink<AnswerType> {
+class Iterator : public Sink {
    public:
     /**
      * Constructor expects that the QueryElement below in the tree is already constructed.
@@ -53,7 +51,3 @@ class Iterator : public Sink<AnswerType> {
 };
 
 }  // namespace query_element
-
-#include "Iterator.cc"
-
-#endif  // _QUERY_ELEMENT_ITERATOR_H

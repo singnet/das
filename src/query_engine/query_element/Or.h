@@ -1,11 +1,13 @@
-#ifndef _QUERY_ELEMENT_OR_H
-#define _QUERY_ELEMENT_OR_H
+#pragma once
 
 #include <cstring>
 #include <queue>
 
-#include "HandlesAnswer.h"
 #include "Operator.h"
+#include "QueryAnswer.h"
+
+#define LOG_LEVEL INFO_LEVEL
+#include "Logger.h"
 
 using namespace std;
 
@@ -55,7 +57,7 @@ class Or : public Operator<N> {
     // Private stuff
 
    private:
-    vector<HandlesAnswer*> query_answer[N];
+    vector<QueryAnswer*> query_answer[N];
     unsigned int next_input_to_process[N];
     bool all_answers_arrived[N];
     bool no_more_answers_to_arrive;
@@ -76,6 +78,7 @@ class Or : public Operator<N> {
             }
         }
         this->id += ")";
+        LOG_INFO(this->id);
     }
 
     bool ready_to_process_candidate() {
@@ -92,11 +95,11 @@ class Or : public Operator<N> {
         if (this->no_more_answers_to_arrive) {
             return;
         }
-        HandlesAnswer* answer;
+        QueryAnswer* answer;
         unsigned int all_arrived_count = 0;
         bool no_new_answer = true;
         for (unsigned int i = 0; i < N; i++) {
-            while ((answer = dynamic_cast<HandlesAnswer*>(this->input_buffer[i]->pop_query_answer())) !=
+            while ((answer = dynamic_cast<QueryAnswer*>(this->input_buffer[i]->pop_query_answer())) !=
                    NULL) {
                 no_new_answer = false;
                 this->query_answer[i].push_back(answer);
@@ -156,9 +159,7 @@ class Or : public Operator<N> {
                 ingest_newly_arrived_answers();
             } while (!ready_to_process_candidate());
 
-            cout << "XXXXXXX 1" << endl;
             if (processed_all_input()) {
-                cout << "XXXXXXX 2" << endl;
                 bool all_finished_flag = true;
                 for (unsigned int i = 0; i < N; i++) {
                     if (!this->input_buffer[i]->is_query_answers_finished()) {
@@ -166,30 +167,21 @@ class Or : public Operator<N> {
                         break;
                     }
                 }
-                cout << "XXXXXXX 3" << endl;
                 if (all_finished_flag && !this->output_buffer->is_query_answers_finished() &&
                     // processed_all_input() is double-checked on purpose to avoid race condition
                     processed_all_input()) {
                     this->output_buffer->query_answers_finished();
                 }
-                cout << "XXXXXXX 4" << endl;
                 Utils::sleep();
                 continue;
             }
-            cout << "XXXXXXX 5" << endl;
 
             unsigned int selected_clause = select_answer();
-            cout << "XXXXXXX 6" << endl;
-            HandlesAnswer* selected_query_answer =
+            QueryAnswer* selected_query_answer =
                 this->query_answer[selected_clause][this->next_input_to_process[selected_clause]++];
-            cout << std::to_string(selected_clause) << ": " << selected_query_answer->to_string()
-                 << endl;
             this->output_buffer->add_query_answer(selected_query_answer);
-            cout << "XXXXXXX 7" << endl;
         } while (true);
     }
 };
 
 }  // namespace query_element
-
-#endif  // _QUERY_ELEMENT_OR_H

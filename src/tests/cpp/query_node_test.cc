@@ -1,4 +1,4 @@
-#include "HandlesAnswer.h"
+#include "QueryAnswer.h"
 #include "QueryNode.h"
 #include "Utils.h"
 #include "gtest/gtest.h"
@@ -11,9 +11,9 @@ TEST(QueryNode, basics) {
     string client1_id = "client1";
     string client2_id = "client2";
 
-    QueryNodeServer<HandlesAnswer> server(server_id);
-    QueryNodeClient<HandlesAnswer> client1(client1_id, server_id);
-    QueryNodeClient<HandlesAnswer> client2(client2_id, server_id);
+    QueryNodeServer server(server_id);
+    QueryNodeClient client1(client1_id, server_id);
+    QueryNodeClient client2(client2_id, server_id);
 
     EXPECT_TRUE(server.is_query_answers_empty());
     EXPECT_FALSE(server.is_query_answers_finished());

@@ -1,8 +1,8 @@
 #include <cstdlib>
 
 #include "AtomDBSingleton.h"
-#include "HandlesAnswer.h"
 #include "LinkTemplate.h"
+#include "QueryAnswer.h"
 #include "QueryNode.h"
 #include "gtest/gtest.h"
 #include "test_utils.h"
@@ -20,7 +20,7 @@ TEST(LinkTemplate, basics) {
     setenv("DAS_MONGODB_PASSWORD", "dassecret", 1);
 
     string server_node_id = "SERVER";
-    QueryNodeServer<HandlesAnswer> server_node(server_node_id);
+    QueryNodeServer server_node(server_node_id);
 
     AtomDBSingleton::init();
     string expression = "Expression";
@@ -44,8 +44,8 @@ TEST(LinkTemplate, basics) {
     bool monkey_flag = false;
     bool chimp_flag = false;
     bool ent_flag = false;
-    HandlesAnswer* query_answer;
-    while ((query_answer = dynamic_cast<HandlesAnswer*>(server_node.pop_query_answer())) != NULL) {
+    QueryAnswer* query_answer;
+    while ((query_answer = dynamic_cast<QueryAnswer*>(server_node.pop_query_answer())) != NULL) {
         string var = string(query_answer->assignment.get("v1"));
         // EXPECT_TRUE(double_equals(query_answer->importance, 0.0));
         if (var == monkey_handle) {

@@ -68,6 +68,18 @@ class Message {
    private:
 };
 
+/**
+ * Concrete Message implementation wich executes nothing.
+ *
+ * Typically used when a node is supposed to accept a command but do anything about it.
+ */
+class DoNothing : public Message {
+   public:
+    DoNothing() {}
+    ~DoNothing() {}
+    void act(shared_ptr<MessageFactory> node) {}
+};
+
 // -------------------------------------------------------------------------------------------------
 // Concrete Messages used in basic DistributedAlgorithmNode settings
 

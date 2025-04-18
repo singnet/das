@@ -10,8 +10,8 @@
 #include <mutex>
 #include <set>
 
-#include "HandlesAnswer.h"
-#include "RemoteIterator.h"
+#include "PatternMatchingQueryProxy.h"
+#include "QueryAnswer.h"
 #include "das_agent_node.h"
 #include "link.h"
 #include "thread_pool.h"
@@ -19,8 +19,6 @@
 #define DEBUG
 
 using namespace das_agent;
-using namespace query_node;
-using namespace query_element;
 namespace link_creation_agent {
 /**
  * @class LinkCreationService
@@ -41,10 +39,10 @@ class LinkCreationService
     LinkCreationService(int thread_count);
     /**
      * @brief Add an iterator to process in thread pool
-     * @param iterator RemoteIterator object
+     * @param proxy PatternMatchingQueryProxy object
      * @param das_client DAS Node client
      */
-    void process_request(shared_ptr<RemoteIterator<HandlesAnswer>> iterator,
+    void process_request(shared_ptr<PatternMatchingQueryProxy> proxy,
                          DasAgentNode* das_client,
                          vector<string>& link_template,
                          int max_query_answers);

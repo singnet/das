@@ -17,6 +17,7 @@ cc_library(
     deps = [
         "//atomdb:atomdb_singleton",
         "//query_engine:query_engine_lib",
+        "//service_bus:service_bus_lib",
     ],
 )
 
@@ -26,6 +27,7 @@ cc_library(
     deps = [
         "//atomdb:atomdb_singleton",
         "//query_engine:query_engine_lib",
+        "//service_bus:service_bus_lib",
     ],
 )
 
@@ -35,6 +37,7 @@ cc_library(
     deps = [
         "//atomdb:atomdb_singleton",
         "//query_engine:query_engine_lib",
+        "//service_bus:service_bus_lib",
     ],
 )
 
@@ -44,6 +47,7 @@ cc_library(
     deps = [
         "//atomdb:atomdb_singleton",
         "//query_engine:query_engine_lib",
+        "//service_bus:service_bus_lib",
     ],
 )
 

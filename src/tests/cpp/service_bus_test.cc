@@ -58,7 +58,7 @@ void check_command(ServiceBus& source, shared_ptr<TestProcessor> target, const s
 
 TEST(ServiceBus, basics) {
     set<string> commands = {"c1", "c2", "c3", "c4", "c5"};
-    ServiceBus::initialize_statics(commands);
+    ServiceBus::initialize_statics(commands, 44000, 45000);
     shared_ptr<TestProcessor> processor1(new TestProcessor({"c1", "c4"}));
     shared_ptr<TestProcessor> processor2(new TestProcessor({"c2"}));
     shared_ptr<TestProcessor> processor3(new TestProcessor({"c3"}));
