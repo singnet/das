@@ -1,3 +1,4 @@
+#include <unordered_set>
 #include <cstdlib>
 #include <cstring>
 
@@ -146,6 +147,35 @@ TEST(QueryAnswer, assignments_equal) {
     EXPECT_FALSE(mapping6 == mapping8);
 
     EXPECT_FALSE(mapping7 == mapping8);
+
+    unordered_set<Assignment> set;
+    set.insert(mapping1);
+    EXPECT_TRUE(set.find(mapping1) != set.end());
+    EXPECT_TRUE(set.find(mapping2) != set.end());
+    EXPECT_TRUE(set.find(mapping3) == set.end());
+    EXPECT_TRUE(set.find(mapping4) == set.end());
+    EXPECT_TRUE(set.find(mapping5) == set.end());
+    EXPECT_TRUE(set.find(mapping6) == set.end());
+    EXPECT_TRUE(set.find(mapping7) == set.end());
+    EXPECT_TRUE(set.find(mapping8) == set.end());
+    set.insert(mapping2);
+    EXPECT_TRUE(set.find(mapping1) != set.end());
+    EXPECT_TRUE(set.find(mapping2) != set.end());
+    EXPECT_TRUE(set.find(mapping3) == set.end());
+    EXPECT_TRUE(set.find(mapping4) == set.end());
+    EXPECT_TRUE(set.find(mapping5) == set.end());
+    EXPECT_TRUE(set.find(mapping6) == set.end());
+    EXPECT_TRUE(set.find(mapping7) == set.end());
+    EXPECT_TRUE(set.find(mapping8) == set.end());
+    set.insert(mapping3);
+    EXPECT_TRUE(set.find(mapping1) != set.end());
+    EXPECT_TRUE(set.find(mapping2) != set.end());
+    EXPECT_TRUE(set.find(mapping3) != set.end());
+    EXPECT_TRUE(set.find(mapping4) == set.end());
+    EXPECT_TRUE(set.find(mapping5) == set.end());
+    EXPECT_TRUE(set.find(mapping6) == set.end());
+    EXPECT_TRUE(set.find(mapping7) == set.end());
+    EXPECT_TRUE(set.find(mapping8) == set.end());
 }
 
 

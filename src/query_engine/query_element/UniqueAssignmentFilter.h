@@ -8,7 +8,7 @@ namespace query_element {
 
 /**
  */
-class FilterVariableEquivalence : public Operator<1> {
+class UniqueAssignmentFilter : public Operator<1> {
    public:
     // --------------------------------------------------------------------------------------------
     // Constructors and destructors
@@ -18,12 +18,12 @@ class FilterVariableEquivalence : public Operator<1> {
      *
      * @param input Input QueryElement which is supposed to be a Source or an Operator
      */
-    FilterVariableEquivalence(const shared_ptr<QueryElement>& input);
+    UniqueAssignmentFilter(const shared_ptr<QueryElement>& input);
 
     /**
      * Destructor.
      */
-    virtual ~FilterVariableEquivalence();
+    virtual ~UniqueAssignmentFilter();
 
     // --------------------------------------------------------------------------------------------
     // QueryElement API
