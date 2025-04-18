@@ -47,8 +47,8 @@ void check_query(vector<string>& query,
                  const string& context,
                  bool update_attention_broker,
                  bool unique_assignment) {
-    shared_ptr<PatternMatchingQueryProxy> proxy1(
-        new PatternMatchingQueryProxy(query, context, unique_assignment, update_attention_broker, false));
+    shared_ptr<PatternMatchingQueryProxy> proxy1(new PatternMatchingQueryProxy(
+        query, context, unique_assignment, update_attention_broker, false));
 
     shared_ptr<PatternMatchingQueryProxy> proxy2(
         new PatternMatchingQueryProxy(query, context, unique_assignment, update_attention_broker, true));

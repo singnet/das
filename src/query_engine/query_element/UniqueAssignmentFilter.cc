@@ -9,9 +9,9 @@ using namespace query_element;
 // -------------------------------------------------------------------------------------------------
 // Constructors, destructors and initialization
 
-UniqueAssignmentFilter::UniqueAssignmentFilter(const shared_ptr<QueryElement>& input) 
-    : Operator<1>({input}) { 
-    initialize(input); 
+UniqueAssignmentFilter::UniqueAssignmentFilter(const shared_ptr<QueryElement>& input)
+    : Operator<1>({input}) {
+    initialize(input);
 }
 
 UniqueAssignmentFilter::~UniqueAssignmentFilter() { graceful_shutdown(); }
@@ -42,23 +42,21 @@ void UniqueAssignmentFilter::graceful_shutdown() {
 // Private methods
 
 void UniqueAssignmentFilter::thread_filter() {
-
     unordered_set<Assignment> already_used;
 
     while (true) {
         if (this->input_buffer[0]->is_query_answers_finished() &&
             this->input_buffer[0]->is_query_answers_empty()) {
-
             this->output_buffer->query_answers_finished();
             break;
         }
-        QueryAnswer *answer = dynamic_cast<QueryAnswer*>(this->input_buffer[0]->pop_query_answer());
+        QueryAnswer* answer = dynamic_cast<QueryAnswer*>(this->input_buffer[0]->pop_query_answer());
         if (answer != NULL) {
             if (already_used.find(answer->assignment) == already_used.end()) {
                 // New assignment. Let the QueryAnswer pass.
                 already_used.insert(answer->assignment);
                 this->output_buffer->add_query_answer(answer);
-            } else  {
+            } else {
                 // Assignment has already been processed. Delete duplicate QueryAnswer.
                 delete answer;
             }

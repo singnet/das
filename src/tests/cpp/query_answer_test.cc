@@ -1,6 +1,6 @@
-#include <unordered_set>
 #include <cstdlib>
 #include <cstring>
+#include <unordered_set>
 
 #include "QueryAnswer.h"
 #include "Utils.h"
@@ -177,7 +177,6 @@ TEST(QueryAnswer, assignments_equal) {
     EXPECT_TRUE(set.find(mapping7) == set.end());
     EXPECT_TRUE(set.find(mapping8) == set.end());
 }
-
 
 TEST(QueryAnswer, handles_answer_basics) {
     // Tests add_handle()

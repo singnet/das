@@ -122,7 +122,6 @@ class Assignment {
      */
     bool operator==(const Assignment& other) const;
 
-
    private:
     const char* labels[MAX_NUMBER_OF_VARIABLES_IN_QUERY];
     const char* values[MAX_NUMBER_OF_VARIABLES_IN_QUERY];
@@ -271,17 +270,18 @@ class QueryAnswer {
 
 template <>
 struct std::hash<query_engine::Assignment> {
-  std::size_t operator()(const query_engine::Assignment& k) const {
+    std::size_t operator()(const query_engine::Assignment& k) const {
+        if (k.size == 0) {
+            return 0;
+        }
 
-    if (k.size == 0) {
-        return 0;
+        std::size_t hash_value = 1;
+        for (unsigned int i = 0; i < k.size; i++) {
+            hash_value = hash_value ^ ((std::hash<string>()(string(k.labels[i])) ^
+                                        (std::hash<string>()(string(k.values[i])) << 1)) >>
+                                       1);
+        }
+
+        return hash_value;
     }
-
-    std::size_t hash_value = 1;
-    for (unsigned int i = 0; i < k.size; i++) {
-        hash_value = hash_value ^ ((std::hash<string>()(string(k.labels[i])) ^ (std::hash<string>()(string(k.values[i])) << 1)) >> 1);
-    }
-
-    return hash_value;
-  }
 };

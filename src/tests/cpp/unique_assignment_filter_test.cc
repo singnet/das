@@ -1,10 +1,10 @@
 #include <cstdlib>
 #include <cstring>
 
-#include "UniqueAssignmentFilter.h"
 #include "QueryAnswer.h"
 #include "Sink.h"
 #include "Source.h"
+#include "UniqueAssignmentFilter.h"
 #include "gtest/gtest.h"
 #include "test_utils.h"
 
@@ -71,15 +71,15 @@ TEST(UniqueAssignmentFilter, basics) {
     source->add("h1", 0.0, {"v1"}, {"1"});
     source->add("h2", 0.0, {"v2"}, {"2"});
     source->add("h3", 0.0, {"v3"}, {"3"});
-    source->add("h4", 0.0, {"v1"}, {"1"}); // Duplicated
-    source->add("h2", 0.0, {"v3"}, {"3"}); // Duplicated
-    source->add("h3", 0.0, {"v3"}, {"3"}); // Duplicated
+    source->add("h4", 0.0, {"v1"}, {"1"});  // Duplicated
+    source->add("h2", 0.0, {"v3"}, {"3"});  // Duplicated
+    source->add("h3", 0.0, {"v3"}, {"3"});  // Duplicated
     source->add("h1", 0.0, {"v1"}, {"2"});
     source->add("h1", 0.0, {"v2"}, {"1"});
-    source->add("h2", 0.0, {"v1"}, {"2"}); // Duplicated
-    source->add("h2", 0.0, {"v2"}, {"1"}); // Duplicated
-    source->add("h1", 0.0, {"v2"}, {"2"}); // Duplicated
-    source->add("h1", 0.0, {"v3"}, {"3"}); // Duplicated
+    source->add("h2", 0.0, {"v1"}, {"2"});  // Duplicated
+    source->add("h2", 0.0, {"v2"}, {"1"});  // Duplicated
+    source->add("h1", 0.0, {"v2"}, {"2"});  // Duplicated
+    source->add("h1", 0.0, {"v3"}, {"3"});  // Duplicated
 
     EXPECT_FALSE(sink.empty());
     EXPECT_FALSE(sink.finished());

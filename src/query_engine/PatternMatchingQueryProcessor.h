@@ -68,9 +68,10 @@ class PatternMatchingQueryProcessor : public BusCommandProcessor {
                                         unsigned int cursor,
                                         stack<shared_ptr<QueryElement>>& element_stack);
 
-    shared_ptr<QueryElement> build_unique_assignment_filter(shared_ptr<PatternMatchingQueryProxy> proxy,
-                                        unsigned int cursor,
-                                        stack<shared_ptr<QueryElement>>& element_stack);
+    shared_ptr<QueryElement> build_unique_assignment_filter(
+        shared_ptr<PatternMatchingQueryProxy> proxy,
+        unsigned int cursor,
+        stack<shared_ptr<QueryElement>>& element_stack);
 
     vector<thread*> query_threads;
     mutex query_threads_mutex;

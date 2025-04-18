@@ -143,7 +143,8 @@ void PatternMatchingQueryProcessor::thread_process_one_query(
     proxy->set_unique_assignment_flag(proxy->args[skip_arg++] == "1");
     proxy->set_attention_update_flag(proxy->args[skip_arg++] == "1");
     proxy->set_count_flag(proxy->args[skip_arg++] == "1");
-    proxy->query_tokens.insert(proxy->query_tokens.begin(), proxy->args.begin() + skip_arg, proxy->args.end());
+    proxy->query_tokens.insert(
+        proxy->query_tokens.begin(), proxy->args.begin() + skip_arg, proxy->args.end());
     LOG_DEBUG("Setting up query tree");
     shared_ptr<QueryElement> root_query_element = setup_query_tree(proxy);
     set<string> joint_answer;  // used to stimulate attention broker
@@ -644,10 +645,10 @@ shared_ptr<QueryElement> PatternMatchingQueryProcessor::build_unique_assignment_
     shared_ptr<PatternMatchingQueryProxy> proxy,
     unsigned int cursor,
     stack<shared_ptr<QueryElement>>& element_stack) {
-
     if (element_stack.size() < 1) {
         Utils::error(
-            "PATTERN_MATCHING_QUERY message: parse error in tokens - too few arguments for UniqueAssignmentFilter");
+            "PATTERN_MATCHING_QUERY message: parse error in tokens - too few arguments for "
+            "UniqueAssignmentFilter");
     }
 
     shared_ptr<QueryElement> input = element_stack.top();
