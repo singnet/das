@@ -1,5 +1,4 @@
-#ifndef _QUERY_ELEMENT_QUERYELEMENT_H
-#define _QUERY_ELEMENT_QUERYELEMENT_H
+#pragma once
 
 #include <memory>
 #include <mutex>
@@ -121,5 +120,3 @@ class QueryElement {
 };
 
 }  // namespace query_element
-
-#endif  // _QUERY_ELEMENT_QUERYELEMENT_H

@@ -8,7 +8,6 @@
 #include <vector>
 
 #include "QueryAnswer.h"
-#include "QueryAnswer.h"
 #include "link_create_template.h"
 
 using namespace std;

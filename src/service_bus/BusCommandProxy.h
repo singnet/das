@@ -175,7 +175,6 @@ class BusCommandProxy {
     vector<string> args;
 
    private:
-
     void setup_proxy_node(const string& client_id = "", const string& server_id = "");
 
     string requestor_id;

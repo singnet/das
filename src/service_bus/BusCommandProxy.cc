@@ -1,8 +1,9 @@
 #include "BusCommandProxy.h"
+
 #include "PortPool.h"
 #include "Utils.h"
 
-#define LOG_LEVEL DEBUG_LEVEL
+#define LOG_LEVEL INFO_LEVEL
 #include "Logger.h"
 
 using namespace service_bus;
@@ -12,9 +13,7 @@ string ProxyNode::PROXY_COMMAND = "bus_command_proxy";
 // -------------------------------------------------------------------------------------------------
 // Constructors and destructors
 
-BusCommandProxy::BusCommandProxy() {
-    this->proxy_port = 0;
-}
+BusCommandProxy::BusCommandProxy() { this->proxy_port = 0; }
 
 BusCommandProxy::BusCommandProxy(const string& command, const vector<string>& args)
     : command(command), args(args) {}
@@ -23,6 +22,8 @@ BusCommandProxy::~BusCommandProxy() {
     if (this->proxy_port != 0) {
         // Return the port to the pool of available ports
         PortPool::return_port(this->proxy_port);
+        this->proxy_node->graceful_shutdown();
+        delete this->proxy_node;
     }
 }
 
@@ -61,6 +62,7 @@ void BusCommandProxy::setup_proxy_node(const string& client_id, const string& se
 }
 
 void BusCommandProxy::to_remote_peer(const string& command, const vector<string>& args) {
+    LOG_DEBUG(this->proxy_node->node_id() << " is issuing proxy command <" << command << ">");
     this->proxy_node->to_remote_peer(command, args);
 }
 
@@ -74,12 +76,11 @@ string BusCommandProxy::my_id() { return this->proxy_node->node_id(); }
 
 string BusCommandProxy::peer_id() { return this->proxy_node->peer_id; }
 
-
 // -------------------------------------------------------------------------------------------------
 // ProxyNode API
 
 void ProxyNode::remote_call(const string& command, const vector<string>& args) {
-    LOG_DEBUG("Remote command: " << command << " arrived at ProxyNode " << this->node_id());
+    LOG_INFO("Remote command: <" << command << "> arrived at ProxyNode " << this->node_id());
     this->proxy->from_remote_peer(command, args);
 }
 

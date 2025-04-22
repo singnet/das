@@ -176,7 +176,7 @@ string handle_to_atom(const char* handle) {
     shared_ptr<atomdb_api_types::HandleList> targets = db->query_for_targets((char*) handle);
     string answer;
 
-    if (targets != NULL) {
+    if (targets != nullptr) {
         // is link
         answer += "<";
         answer += document->get("named_type");
@@ -316,6 +316,7 @@ int main(int argc, char* argv[]) {
         exit(1);
     }
     signal(SIGINT, &ctrl_c_handler);
+    signal(SIGTERM, &ctrl_c_handler);
     string context = argv[1];
     string link_type_tag = argv[2];
 

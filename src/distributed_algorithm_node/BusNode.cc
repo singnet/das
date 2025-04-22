@@ -4,7 +4,7 @@
 #include "MessageBroker.h"
 #include "Utils.h"
 
-#define LOG_LEVEL DEBUG_LEVEL
+#define LOG_LEVEL INFO_LEVEL
 #include "Logger.h"
 
 using namespace distributed_algorithm_node;
@@ -40,7 +40,7 @@ BusNode::BusNode(const string& node_id,
 // DistributedAlgorithmNode virtual API
 
 void BusNode::node_joined_network(const string& node_id) {
-    if (this->is_master = true) {
+    if (this->is_master) {
         LOG_INFO("New element " << node_id << " joined the service BUS");
     }
     this->add_peer(node_id);
@@ -88,14 +88,15 @@ void BusNode::send_bus_command(const string& command, const vector<string>& args
     if (target_id == "") {
         Utils::error("Bus: no owner is defined for command <" + command + ">");
     } else {
-        LOG_DEBUG("BUS node " << this->node_id() << " is routing command " << command << " to " << target_id);
+        LOG_DEBUG("BUS node " << this->node_id() << " is routing command " << command << " to "
+                              << target_id);
         send(command, args, target_id);
     }
 }
 
 void BusNode::take_ownership(const set<string>& commands) {
     for (auto command : commands) {
-        LOG_DEBUG("BUS node " << this->node_id() << " is taking ownership of command " << command);
+        LOG_INFO("BUS node " << this->node_id() << " is taking ownership of command " << command);
         this->bus.set_ownership(command, node_id());
         this->my_commands.insert(command);
     }

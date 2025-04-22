@@ -1,5 +1,4 @@
-#ifndef _QUERY_ELEMENT_SOURCE_H
-#define _QUERY_ELEMENT_SOURCE_H
+#pragma once
 
 #include "OutputBuffers.h"
 #include "QueryAnswer.h"
@@ -66,5 +65,3 @@ class Source : public QueryElement {
 };
 
 }  // namespace query_element
-
-#endif  // _QUERY_ELEMENT_SOURCE_H

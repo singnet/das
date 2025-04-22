@@ -1,6 +1,6 @@
 #include "PortPool.h"
 
-#define LOG_LEVEL DEBUG_LEVEL
+#define LOG_LEVEL INFO_LEVEL
 #include "Logger.h"
 
 using namespace service_bus;
@@ -11,8 +11,8 @@ unsigned long PortPool::PORT_UPPER = 0;
 
 void PortPool::initialize_statics(unsigned long port_lower, unsigned long port_upper) {
     if (port_lower > port_upper) {
-        Utils::error("Invalid port limits [" + to_string(port_lower) + ".." +
-                     to_string(port_upper) + "]");
+        Utils::error("Invalid port limits [" + to_string(port_lower) + ".." + to_string(port_upper) +
+                     "]");
     }
 
     LOG_INFO("Port range: [" << port_lower << " : " << port_upper << "]");
@@ -26,13 +26,11 @@ void PortPool::initialize_statics(unsigned long port_lower, unsigned long port_u
 
 unsigned long PortPool::get_port() {
     unsigned long port = (unsigned long) POOL->dequeue();
-    if (! port) {
-        Utils::error("Unable to get available PORT number in [" +
-        to_string(PORT_LOWER) + ".." + to_string(PORT_UPPER) + "]");
+    if (!port) {
+        Utils::error("Unable to get available PORT number in [" + to_string(PORT_LOWER) + ".." +
+                     to_string(PORT_UPPER) + "]");
     }
     return port;
 }
 
-void PortPool::return_port(unsigned long port) {
-    POOL->enqueue((void *) port);
-}
+void PortPool::return_port(unsigned long port) { POOL->enqueue((void*) port); }

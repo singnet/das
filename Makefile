@@ -68,10 +68,10 @@ bazel: build-image
 	@bash ./src/scripts/bazel.sh $(filter-out $@, $(MAKECMDGOALS))
 
 test-all-no-cache:
-	@$(MAKE) bazel 'test --cache_test_results=no //tests/...'
+	@$(MAKE) bazel 'test --noshow_progress --cache_test_results=no //tests/...'
 
 test-all: build-image
-	@$(MAKE) bazel test //tests/...
+	@$(MAKE) bazel 'test --noshow_progress //tests/...'
 
 lint-all:
 	@$(MAKE) bazel lint \

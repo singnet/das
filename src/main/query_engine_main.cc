@@ -4,8 +4,8 @@
 #include <string>
 
 #include "AtomDBSingleton.h"
-#include "ServiceBusSingleton.h"
 #include "PatternMatchingQueryProcessor.h"
+#include "ServiceBusSingleton.h"
 #include "Utils.h"
 
 using namespace std;
@@ -28,6 +28,7 @@ int main(int argc, char* argv[]) {
 
     string server_id = "0.0.0.0:" + string(argv[1]);
     signal(SIGINT, &ctrl_c_handler);
+    signal(SIGTERM, &ctrl_c_handler);
     AtomDBSingleton::init();
     ServiceBusSingleton::init(server_id);
     shared_ptr<ServiceBus> service_bus = ServiceBusSingleton::get_instance();

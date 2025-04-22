@@ -4,9 +4,9 @@
 #include <string>
 
 #include "AtomDBSingleton.h"
-#include "ServiceBusSingleton.h"
 #include "PatternMatchingQueryProxy.h"
 #include "QueryAnswer.h"
+#include "ServiceBusSingleton.h"
 #include "Utils.h"
 
 #define MAX_QUERY_ANSWERS ((unsigned int) 1)
@@ -33,8 +33,12 @@ int main(int argc, char* argv[]) {
     string client_id = string(argv[1]);
     string server_id = string(argv[2]);
     bool update_attention_broker = (string(argv[3]) == "true" || string(argv[3]) == "1");
+    if (update_attention_broker) {
+        cerr << "Enforcing update_attention_broker=false regardeless the passed parameter" << endl;
+    }
+    update_attention_broker = false;
 
-    ServiceBusSingleton::init(client_id, server_id);
+    ServiceBusSingleton::init(client_id, server_id, 54000, 54500);
 
     // check if argv[4] is a number which is the max number of query answers
     // if not, set it to MAX_QUERY_ANSWERS
@@ -53,13 +57,14 @@ int main(int argc, char* argv[]) {
     cout << "Using max_query_answers: " << max_query_answers << endl;
 
     signal(SIGINT, &ctrl_c_handler);
+    signal(SIGTERM, &ctrl_c_handler);
     vector<string> query;
     for (int i = tokens_start_position; i < argc; i++) {
         query.push_back(argv[i]);
     }
 
     shared_ptr<ServiceBus> service_bus = ServiceBusSingleton::get_instance();
-    shared_ptr<PatternMatchingQueryProxy> proxy = 
+    shared_ptr<PatternMatchingQueryProxy> proxy =
         make_shared<PatternMatchingQueryProxy>(query, "", update_attention_broker);
     service_bus->issue_bus_command(proxy);
     shared_ptr<QueryAnswer> query_answer;

@@ -59,6 +59,7 @@ class ServiceBus {
    private:
     class Node : public BusNode {
        public:
+        Node();
         Node(const string& id,
              shared_ptr<BusNode::Bus> bus,
              const set<string>& node_commands,
@@ -98,7 +99,6 @@ class ServiceBus {
     // Public API
 
    public:
-
     static string PATTERN_MATCHING_QUERY;
 
     /**

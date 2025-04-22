@@ -1,11 +1,13 @@
-#ifndef _QUERY_ELEMENT_AND_H
-#define _QUERY_ELEMENT_AND_H
+#pragma once
 
 #include <cstring>
 #include <queue>
 
-#include "QueryAnswer.h"
 #include "Operator.h"
+#include "QueryAnswer.h"
+
+#define LOG_LEVEL INFO_LEVEL
+#include "Logger.h"
 
 using namespace std;
 
@@ -35,9 +37,6 @@ class And : public Operator<N> {
      * Destructor.
      */
     ~And() {
-#ifdef DEBUG
-        cout << "And::~And() BEGIN" << endl;
-#endif
         graceful_shutdown();
         for (size_t i = 0; i < N; i++) {
             for (auto* answer : this->query_answer[i]) {
@@ -48,9 +47,6 @@ class And : public Operator<N> {
             }
             this->query_answer[i].clear();
         }
-#ifdef DEBUG
-        cout << "And::~And() END" << endl;
-#endif
     }
 
     // --------------------------------------------------------------------------------------------
@@ -138,6 +134,7 @@ class And : public Operator<N> {
             }
         }
         this->id += ")";
+        LOG_INFO(this->id);
     }
 
     bool ready_to_process_candidate() {
@@ -296,5 +293,3 @@ class And : public Operator<N> {
 };
 
 }  // namespace query_element
-
-#endif  // _QUERY_ELEMENT_AND_H
