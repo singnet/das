@@ -142,7 +142,8 @@ void PatternMatchingQueryProcessor::thread_process_one_query(
     proxy->set_count_flag(proxy->args[2] == "1");
     proxy->query_tokens.insert(proxy->query_tokens.begin(), proxy->args.begin() + 3, proxy->args.end());
     LOG_DEBUG("Setting up query tree");
-    shared_ptr<QueryElement> root_query_element = setup_query_tree(proxy);
+    auto query_element_registry = make_unique<QueryElementRegistry>();
+    shared_ptr<QueryElement> root_query_element = setup_query_tree(proxy, query_element_registry.get());
     set<string> joint_answer;  // used to stimulate attention broker
     string command = proxy->get_command();
     unsigned int sink_port_number;
@@ -180,7 +181,7 @@ void PatternMatchingQueryProcessor::thread_process_one_query(
 // Private methods - query tree building
 
 shared_ptr<QueryElement> PatternMatchingQueryProcessor::setup_query_tree(
-    shared_ptr<PatternMatchingQueryProxy> proxy) {
+    shared_ptr<PatternMatchingQueryProxy> proxy, QueryElementRegistry* query_element_registry) {
     stack<unsigned int> execution_stack;
     stack<shared_ptr<QueryElement>> element_stack;
     unsigned int cursor = 0;
@@ -209,7 +210,8 @@ shared_ptr<QueryElement> PatternMatchingQueryProcessor::setup_query_tree(
         } else if (proxy->query_tokens[cursor] == "LINK") {
             element_stack.push(build_link(proxy, cursor, element_stack));
         } else if (proxy->query_tokens[cursor] == "LINK_TEMPLATE") {
-            element_stack.push(build_link_template(proxy, cursor, element_stack));
+            element_stack.push(
+                build_link_template(proxy, cursor, element_stack, query_element_registry));
         } else if (proxy->query_tokens[cursor] == "AND") {
             element_stack.push(build_and(proxy, cursor, element_stack));
         } else if (proxy->query_tokens[cursor] == "OR") {
@@ -229,30 +231,6 @@ shared_ptr<QueryElement> PatternMatchingQueryProcessor::setup_query_tree(
     return element_stack.top();
 }
 
-shared_ptr<QueryElement> PatternMatchingQueryProcessor::get_link_template_from_cache(
-    const shared_ptr<char>& handle) {
-    lock_guard<mutex> guard(this->link_template_cache_mutex);
-    string handle_str = string((char*) handle.get());
-    auto it = this->link_template_cache.find(handle_str);
-    if (it != this->link_template_cache.end()) {
-        LOG_DEBUG("cache hit: " << handle_str);
-        return it->second;
-    }
-    LOG_DEBUG("cache miss: " << handle_str);
-    return nullptr;
-}
-
-void PatternMatchingQueryProcessor::add_link_template_to_cache(const shared_ptr<char>& handle,
-                                                               shared_ptr<QueryElement> link_template) {
-    lock_guard<mutex> guard(this->link_template_cache_mutex);
-    string handle_str = string((char*) handle.get());
-    if (this->link_template_cache.find(handle_str) == this->link_template_cache.end()) {
-        this->link_template_cache[handle_str] = link_template;
-    } else {
-        Utils::error("Link template with handle '" + handle_str + "' already exists in cache");
-    }
-}
-
 #define BUILD_LINK_TEMPLATE(N)                                                                    \
     {                                                                                             \
         array<shared_ptr<QueryElement>, N> targets;                                               \
@@ -261,21 +239,22 @@ void PatternMatchingQueryProcessor::add_link_template_to_cache(const shared_ptr<
             element_stack.pop();                                                                  \
         }                                                                                         \
         auto handle = LinkTemplate<N>::build_handle(proxy->query_tokens[cursor + 1], targets);    \
-        shared_ptr<QueryElement> link_template = this->get_link_template_from_cache(handle);      \
+        shared_ptr<QueryElement> link_template = query_element_registry->get(handle);             \
         if (link_template != nullptr) {                                                           \
             dynamic_pointer_cast<LinkTemplate<N>>(link_template)->expected_subsequent_ids_size++; \
             return link_template;                                                                 \
         }                                                                                         \
         link_template = make_shared<LinkTemplate<N>>(                                             \
             proxy->query_tokens[cursor + 1], targets, proxy->get_context());                      \
-        this->add_link_template_to_cache(handle, link_template);                                  \
+        query_element_registry->add(handle, link_template);                                       \
         return link_template;                                                                     \
     }
 
 shared_ptr<QueryElement> PatternMatchingQueryProcessor::build_link_template(
     shared_ptr<PatternMatchingQueryProxy> proxy,
     unsigned int cursor,
-    stack<shared_ptr<QueryElement>>& element_stack) {
+    stack<shared_ptr<QueryElement>>& element_stack,
+    QueryElementRegistry* query_element_registry) {
     unsigned int arity = std::stoi(proxy->query_tokens[cursor + 2]);
     if (element_stack.size() < arity) {
         Utils::error(

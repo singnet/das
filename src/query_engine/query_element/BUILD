@@ -13,6 +13,8 @@ cc_library(
     ":query_element",
     ":link_template",
     ":source",
+    ":output_buffers",
+    ":query_element_registry",
   ],
 )
 
@@ -99,6 +101,15 @@ cc_library(
     "//atomdb:atomdb_singleton",
     "//query_engine:query_node",
     "//attention_broker:attention_broker_server_lib",
+    "//commons:commons_lib",
+  ],
+)
+
+cc_library(
+  name = "query_element_registry",
+  hdrs = ["QueryElementRegistry.h"],
+  deps = [
+    ":query_element",
     "//commons:commons_lib",
   ],
 )
