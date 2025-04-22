@@ -56,7 +56,8 @@ class PatternMatchingQueryProxy : public BusCommandProxy {
                               const string& context,
                               bool unique_assignment,
                               bool update_attention_broker,
-                              bool count_only);
+                              bool count_only,
+                              unsigned int max_answer_count = 0);
 
     /**
      * Destructor.
@@ -112,6 +113,15 @@ class PatternMatchingQueryProxy : public BusCommandProxy {
      * @return true iff a request to abort has been issued by the caller.
      */
     bool is_aborting();
+
+    /**
+     * Setter for abort_flag
+     *
+     * abort_flag tells the processor to stop processing the query
+     *
+     * @param flag Flag
+     */
+    void set_abort_flag(bool flag);
 
     /**
      * Getter for context
@@ -190,6 +200,23 @@ class PatternMatchingQueryProxy : public BusCommandProxy {
      */
     const vector<string>& get_query_tokens();
 
+    /**
+     * Setter for max_answer_count
+     *
+     * max_answer_count limits the number of query answers delivered to the caller. When this limit
+     * is reached, the query is aborted.
+     *
+     * @param max_answer_count max_answer_count
+     */
+    void set_max_answer_count(unsigned int max_answer_count);
+
+    /**
+     * Getter for max_answer_count
+     *
+     * @return max_answer_count
+     */
+    unsigned int get_max_answer_count();
+
     // ---------------------------------------------------------------------------------------------
     // Virtual superclass API from_remote_peer() and the piggyback methods called by it
 
@@ -243,6 +270,7 @@ class PatternMatchingQueryProxy : public BusCommandProxy {
     bool update_attention_broker;
     bool count_flag;
     bool unique_assignment_flag;
+    unsigned int max_answer_count;
 
     void init();
 };

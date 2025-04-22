@@ -10,7 +10,8 @@
 #include "Terminal.h"
 #include "UniqueAssignmentFilter.h"
 
-#define LOG_LEVEL INFO_LEVEL
+#undef LOG_LEVEL
+#define LOG_LEVEL DEBUG_LEVEL
 #include "Logger.h"
 
 using namespace atomdb;
@@ -118,6 +119,7 @@ void PatternMatchingQueryProcessor::process_query_answers(
     unsigned int& answer_count) {
     vector<string> answer_bundle;
     QueryAnswer* answer;
+    unsigned int max_answer_count = proxy->get_max_answer_count();
     while ((answer = query_sink->input_buffer->pop_query_answer()) != NULL) {
         answer_count++;
         if (!proxy->get_count_flag()) {
@@ -127,8 +129,12 @@ void PatternMatchingQueryProcessor::process_query_answers(
             update_attention_broker_single_answer(proxy, answer, joint_answer);
         }
         delete answer;
+        if ((max_answer_count > 0) && (answer_count >= max_answer_count)) {
+            proxy->set_abort_flag(true);
+        }
     }
     if (answer_bundle.size() > 0) {
+        LOG_DEBUG("Sending bundle with " << answer_bundle.size() << " answers.");
         proxy->to_remote_peer(PatternMatchingQueryProxy::ANSWER_BUNDLE, answer_bundle);
     }
 }
@@ -143,6 +149,7 @@ void PatternMatchingQueryProcessor::thread_process_one_query(
     proxy->set_unique_assignment_flag(proxy->args[skip_arg++] == "1");
     proxy->set_attention_update_flag(proxy->args[skip_arg++] == "1");
     proxy->set_count_flag(proxy->args[skip_arg++] == "1");
+    proxy->set_max_answer_count(stoi(proxy->args[skip_arg++]));
     proxy->query_tokens.insert(
         proxy->query_tokens.begin(), proxy->args.begin() + skip_arg, proxy->args.end());
     LOG_DEBUG("Setting up query tree");

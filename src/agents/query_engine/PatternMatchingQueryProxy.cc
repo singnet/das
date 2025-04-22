@@ -25,7 +25,8 @@ PatternMatchingQueryProxy::PatternMatchingQueryProxy(const vector<string>& token
                                                      const string& context,
                                                      bool unique_assignment,
                                                      bool update_attention_broker,
-                                                     bool count_only)
+                                                     bool count_only,
+                                                     unsigned int max_answer_count)
     : BusCommandProxy() {
     // constructor typically used in requestor
     lock_guard<mutex> semaphore(this->api_mutex);
@@ -33,10 +34,12 @@ PatternMatchingQueryProxy::PatternMatchingQueryProxy(const vector<string>& token
     this->command = ServiceBus::PATTERN_MATCHING_QUERY;
     this->count_flag = count_only;
     this->unique_assignment_flag = unique_assignment;
+    this->max_answer_count = max_answer_count;
     this->args = {context,
                   to_string(unique_assignment),
                   to_string(update_attention_broker),
-                  to_string(count_flag)};
+                  to_string(count_flag),
+                  to_string(max_answer_count)};
     this->args.insert(this->args.end(), tokens.begin(), tokens.end());
 }
 
@@ -47,6 +50,7 @@ void PatternMatchingQueryProxy::init() {
     this->update_attention_broker = false;
     this->answer_count = 0;
     this->count_flag = false;
+    this->max_answer_count = 0;
 }
 
 PatternMatchingQueryProxy::~PatternMatchingQueryProxy() {}
@@ -88,6 +92,11 @@ void PatternMatchingQueryProxy::abort() {
 
 // -------------------------------------------------------------------------------------------------
 // Server-side API
+
+void PatternMatchingQueryProxy::set_abort_flag(bool flag) {
+    lock_guard<mutex> semaphore(this->api_mutex);
+    this->abort_flag = flag;
+}
 
 bool PatternMatchingQueryProxy::is_aborting() {
     lock_guard<mutex> semaphore(this->api_mutex);
@@ -137,6 +146,13 @@ bool PatternMatchingQueryProxy::get_unique_assignment_flag() {
 void PatternMatchingQueryProxy::set_unique_assignment_flag(bool flag) {
     lock_guard<mutex> semaphore(this->api_mutex);
     this->unique_assignment_flag = flag;
+
+void PatternMatchingQueryProxy::set_max_answer_count(unsigned int max_answer_count) {
+    this->max_answer_count = max_answer_count;
+}
+
+unsigned int PatternMatchingQueryProxy::get_max_answer_count() {
+    return this->max_answer_count;
 }
 
 // ---------------------------------------------------------------------------------------------
