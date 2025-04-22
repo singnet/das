@@ -8,14 +8,11 @@ namespace evolution {
  *
  */
 class Evolution {
-
-public:
-
+   public:
     Evolution();
     ~Evolution();
 
-private:
-
+   private:
 };
 
-} // namespace evolution
+}  // namespace evolution

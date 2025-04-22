@@ -27,7 +27,7 @@ int main(int argc, char* argv[]) {
     signal(SIGINT, &ctrl_c_handler);
     ServiceBusSingleton::init(server_id);
     shared_ptr<ServiceBus> service_bus = ServiceBusSingleton::get_instance();
-    //service_bus->register_processor(make_shared<PatternMatchingQueryProcessor>());
+    // service_bus->register_processor(make_shared<PatternMatchingQueryProcessor>());
     cout
         << "#############################     REQUEST QUEUE EMPTY     ##################################"
         << endl;
