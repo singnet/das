@@ -33,6 +33,10 @@ int main(int argc, char* argv[]) {
     string client_id = string(argv[1]);
     string server_id = string(argv[2]);
     bool update_attention_broker = (string(argv[3]) == "true" || string(argv[3]) == "1");
+    if (update_attention_broker) {
+        cerr << "Enforcing update_attention_broker=false regardeless the passed parameter" << endl;
+    }
+    update_attention_broker = false;
 
     ServiceBusSingleton::init(client_id, server_id, 54000, 54500);
 
