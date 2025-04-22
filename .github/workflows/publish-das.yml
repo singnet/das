@@ -1,32 +1,55 @@
----
-name: Publish DAS
+name: Build and Publish DAS
 
 on:
-  workflow_dispatch:
-    inputs:
-      version:
-        description: "Version"
-        required: true
+  push:
+    branches:
+      - master
 
 jobs:
+  build:
+    runs-on: self-hosted
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Build Binaries
+        run: make build-all
+
+      - name: Upload Binaries as Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: binaries
+          path: src/bin
+          if-no-files-found: "error"
+
+      - name: Extract DAS_VERSION from .bazelrc
+        id: get_version
+        run: |
+          VERSION=$(grep -oP '(?<=--define=DAS_VERSION=)[0-9\.]+' src/.bazelrc)
+          echo "DAS_VERSION=$VERSION" >> $GITHUB_ENV
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+    outputs:
+      version: ${{steps.get_version.outputs.version}}
+
   tag:
-    if: github.ref == 'refs/heads/master'
+    needs: build
     uses: singnet/das/.github/workflows/run-semver.yml@master
     with:
-      version: ${{ github.event.inputs.version }}
+      version: ${{ needs.build.outputs.version }}
       version-strategy: bump-version-from-variable-value
       job-image-namespace: trueagi
       job-image-version-semver: semantic-versioning
       main-branch: master
       version-tag-regex-pattern: /^\d+\.\d+\.\d+$/
       version-require-confirmation: "true"
-      title: New version of DAS
+      title: New DAS version released
       deliverable: Tagged branch (${{ github.ref_name }}) in the repository
     secrets: inherit
 
   publish-query-engine-doc:
     runs-on: self-hosted
-    if: github.ref == 'refs/heads/master'
+    needs: build
     steps:
       - name: Checkout Query Engine Repo
         uses: actions/checkout@v4
@@ -58,3 +81,93 @@ jobs:
           poetry lock --no-update 
           poetry export --with doc -f requirements.txt | pip install -r /dev/stdin
           mkdocs gh-deploy --force
+
+
+  publish_wheels:
+    runs-on: self-hosted
+    needs: build
+    strategy:
+      matrix:
+        target:
+          [
+            hyperon_das_atomdb_cpp,
+            hyperon_das_atomdb,
+            hyperon_das_node,
+            hyperon_das,
+          ]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download Binaries Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: binaries
+          path: src/bin
+
+      - name: Install twine
+        run: pip3 install twine==6.1.0
+
+      - name: Publish to PyPI
+        env:
+          TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
+        run: |
+          WHEEL_FILE=$(find . -name "${{ matrix.target }}-*.whl" | head -n 1)
+          if [ -z "$WHEEL_FILE" ]; then
+            echo "No wheel file found for target ${{ matrix.target }}"
+            exit 1
+          fi
+          echo "Publishing $WHEEL_FILE..."
+
+          python3 -m twine upload "$WHEEL_FILE" 2>&1 | tee /tmp/upload.log || {
+            if grep -q "File already exists" /tmp/upload.log; then
+              echo "Version already exists on PyPI. Skipping upload."
+              exit 0
+            else
+              echo "Failed to upload $WHEEL_FILE"
+              echo "Upload log:"
+              cat /tmp/upload.log
+              exit 1
+            fi
+          }
+
+  build_and_publish_images:
+    runs-on: self-hosted
+    needs: build
+    strategy:
+      matrix:
+        target:
+          [
+            attention-broker,
+            query-agent,
+            link-creation-agent,
+            link-creation-client,
+            inference-agent,
+          ]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download Binaries Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: binaries
+          path: src/bin
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Build and Push Docker Image
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          file: .docker/poc/Dockerfile
+          push: true
+          target: ${{ matrix.target }}
+          tags: trueagi/das:${{ matrix.target }}-${{ needs.build.outputs.version }}
+
