@@ -101,6 +101,7 @@ class LinkTemplate : public Source {
         // that we want the string for this identifier to be the same as the string representing
         // the handle.
         this->id = this->handle.get() + std::to_string(LinkTemplate::next_instance_count());
+
         LOG_INFO("LinkTemplate " << this->to_string());
     }
 
@@ -142,15 +143,15 @@ class LinkTemplate : public Source {
                 if (inner_template != NULL) inner_template->push_back(targets[i - 1]);
             }
         }
-        this->handle =
-            shared_ptr<char>(composite_hash(this->handle_keys, ARITY + 1), default_delete<char[]>());
-        if (!wildcard_flag) {
-            free(this->handle_keys[0]);
+        auto handle = shared_ptr<char>(composite_hash(handle_keys, ARITY + 1), default_delete<char[]>());
+
+        if (external_handle_keys == NULL) {
+            delete[] handle_keys;
+        } else {
+            if (!wildcard_flag) free(handle_keys[0]);
         }
-        // This is correct. id is not necessarily a handle but an identifier. It just happens
-        // that we want the string for this identifier to be the same as the string representing
-        // the handle.
-        this->id = this->handle.get() + std::to_string(LinkTemplate::next_instance_count());
+
+        return handle;
     }
 
     /**
