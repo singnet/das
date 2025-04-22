@@ -16,7 +16,16 @@ cc_library(
     srcs = ["query_engine_main.cc"],
     deps = [
         "//atomdb:atomdb_singleton",
-        "//query_engine:query_engine_lib",
+        "//agents/query_engine:query_engine_lib",
+        "//service_bus:service_bus_lib",
+    ],
+)
+
+cc_library(
+    name = "evolution_main_lib",
+    srcs = ["evolution_main.cc"],
+    deps = [
+        "//agents/evolution:evolution_lib",
         "//service_bus:service_bus_lib",
     ],
 )
@@ -26,7 +35,7 @@ cc_library(
     srcs = ["query_client_main.cc"],
     deps = [
         "//atomdb:atomdb_singleton",
-        "//query_engine:query_engine_lib",
+        "//agents/query_engine:query_engine_lib",
         "//service_bus:service_bus_lib",
     ],
 )
@@ -36,7 +45,7 @@ cc_library(
     srcs = ["link_creation_engine_main.cc"],
     deps = [
         "//atomdb:atomdb_singleton",
-        "//query_engine:query_engine_lib",
+        "//agents/query_engine:query_engine_lib",
         "//service_bus:service_bus_lib",
     ],
 )
@@ -46,7 +55,7 @@ cc_library(
     srcs = ["word_query_main.cc"],
     deps = [
         "//atomdb:atomdb_singleton",
-        "//query_engine:query_engine_lib",
+        "//agents/query_engine:query_engine_lib",
         "//service_bus:service_bus_lib",
     ],
 )

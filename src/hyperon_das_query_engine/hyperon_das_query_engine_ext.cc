@@ -6,7 +6,7 @@
 
 #include <type_traits>
 
-#include "query_engine/QueryAnswer.h"
+#include "agents/query_engine/QueryAnswer.h"
 
 namespace nb = nanobind;
 using namespace nb::literals;

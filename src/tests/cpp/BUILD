@@ -197,7 +197,7 @@ cc_test(
     ],
     linkstatic = 1,
     deps = [
-        "//query_engine:query_engine_lib",
+        "//agents/query_engine:query_engine_lib",
         "@com_github_google_googletest//:gtest_main",
         "@mbedtls//:mbedtls",
     ],
@@ -224,7 +224,7 @@ cc_test(
     ],
     linkstatic = 1,
     deps = [
-        "//query_engine:query_engine_lib",
+        "//agents/query_engine:query_engine_lib",
         "//atomdb:atomdb_singleton",
         "@com_github_google_googletest//:gtest_main",
         "@mbedtls//:mbedtls",
@@ -247,7 +247,7 @@ cc_test(
     ],
     linkstatic = 1,
     deps = [
-        "//query_engine:query_engine_lib",
+        "//agents/query_engine:query_engine_lib",
         "@com_github_google_googletest//:gtest_main",
     ],
 )
@@ -273,7 +273,7 @@ cc_test(
     ],
     linkstatic = 1,
     deps = [
-        "//query_engine:query_engine_lib",
+        "//agents/query_engine:query_engine_lib",
         "@com_github_google_googletest//:gtest_main",
         "@mbedtls//:mbedtls",
     ],
@@ -300,7 +300,7 @@ cc_test(
     ],
     linkstatic = 1,
     deps = [
-        "//query_engine:query_engine_lib",
+        "//agents/query_engine:query_engine_lib",
         "@com_github_google_googletest//:gtest_main",
         "@mbedtls//:mbedtls",
     ],
@@ -327,7 +327,7 @@ cc_test(
     ],
     linkstatic = 1,
     deps = [
-        "//query_engine:query_engine_lib",
+        "//agents/query_engine:query_engine_lib",
         "@com_github_google_googletest//:gtest_main",
         "@mbedtls//:mbedtls",
     ],
@@ -343,7 +343,7 @@ cc_test(
     ],
     linkstatic = 1,
     deps = [
-        "//query_engine:query_engine_lib",
+        "//agents/query_engine:query_engine_lib",
         "@com_github_google_googletest//:gtest_main",
     ],
 )
@@ -434,7 +434,7 @@ cc_test(
     linkstatic = 1,
     deps = [
         "//service_bus:service_bus_lib",
-        "//query_engine:query_engine_lib",
+        "//agents/query_engine:query_engine_lib",
         "//atomdb:atomdb_singleton",
         "@com_github_google_googletest//:gtest_main",
     ],
