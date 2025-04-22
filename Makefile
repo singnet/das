@@ -82,7 +82,7 @@ format-all:
 	@$(MAKE) bazel run format
 
 performance-tests:
-	@bash -x ./src/tests/integration/performance/benchmark.sh
+	@python ./src/tests/integration/performance/query_agent_metrics.py
 
 # Catch-all pattern to prevent make from complaining about unknown targets
 %:
