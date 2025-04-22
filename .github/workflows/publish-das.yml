@@ -11,6 +11,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Build Binaries
         run: make build-all
@@ -29,12 +31,23 @@ jobs:
           echo "DAS_VERSION=$VERSION" >> $GITHUB_ENV
           echo "version=$VERSION" >> $GITHUB_OUTPUT
 
+      - name: Check if version already exists
+        id: check_version
+        run: |
+          if git rev-parse "refs/tags/${{ steps.get_version.outputs.version }}" >/dev/null 2>&1; then
+            echo "version_exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "version_exists=false" >> $GITHUB_OUTPUT
+          fi
+
     outputs:
       version: ${{steps.get_version.outputs.version}}
+      version_exists: ${{steps.check_version.outputs.version_exists}} 
 
   tag:
     needs: build
     uses: singnet/das/.github/workflows/run-semver.yml@master
+    if: needs.build.outputs.version_exists != 'true'
     with:
       version: ${{ needs.build.outputs.version }}
       version-strategy: bump-version-from-variable-value
@@ -50,6 +63,7 @@ jobs:
   publish-query-engine-doc:
     runs-on: self-hosted
     needs: build
+    if: needs.build.outputs.version_exists != 'true'
     steps:
       - name: Checkout Query Engine Repo
         uses: actions/checkout@v4
@@ -74,7 +88,7 @@ jobs:
           python-version: ^3.10
 
       - name: Install Poetry
-        run: pip install poetry
+        run: pip install poetry==1.4.2
 
       - name: Update Documentation
         run: |
@@ -85,6 +99,7 @@ jobs:
 
   publish_wheels:
     runs-on: self-hosted
+    if: needs.build.outputs.version_exists != 'true'
     needs: build
     strategy:
       matrix:
@@ -134,6 +149,7 @@ jobs:
 
   build_and_publish_images:
     runs-on: self-hosted
+    if: needs.build.outputs.version_exists != 'true'
     needs: build
     strategy:
       matrix:
