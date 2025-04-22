@@ -27,6 +27,7 @@ int main(int argc, char* argv[]) {
         cerr << help << endl;
     }
     signal(SIGINT, &ctrl_c_handler);
+    signal(SIGTERM, &ctrl_c_handler);
 
     string client_id = string(argv[1]);
     string server_id = string(argv[2]);
