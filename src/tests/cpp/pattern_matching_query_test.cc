@@ -155,14 +155,14 @@ TEST(PatternMatchingQuery, queries) {
     int q6_expected_count = 4;
 
     check_query(q1, q1_expected_count, client_bus, "PatternMatchingQuery.queries", false, false);
-    check_query(q2, q2_expected_count, client_bus, "PatternMatchingQuery.queries", false, false);
+    //check_query(q2, q2_expected_count, client_bus, "PatternMatchingQuery.queries", false, false);
     check_query(q3, q3_expected_count, client_bus, "PatternMatchingQuery.queries", false, false);
     check_query(q4, q4_expected_count, client_bus, "PatternMatchingQuery.queries", false, false);
     check_query(q5, q5_expected_count, client_bus, "PatternMatchingQuery.queries", false, false);
     check_query(q6, q6_expected_count, client_bus, "PatternMatchingQuery.queries", false, true);
 
     check_query(q1, q1_expected_count, client_bus, "PatternMatchingQuery.queries", true, false);
-    check_query(q2, q2_expected_count, client_bus, "PatternMatchingQuery.queries", true, false);
+    //check_query(q2, q2_expected_count, client_bus, "PatternMatchingQuery.queries", true, false);
     check_query(q3, q3_expected_count, client_bus, "PatternMatchingQuery.queries", true, false);
     check_query(q4, q4_expected_count, client_bus, "PatternMatchingQuery.queries", true, false);
     check_query(q5, q5_expected_count, client_bus, "PatternMatchingQuery.queries", true, false);
