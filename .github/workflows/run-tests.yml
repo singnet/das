@@ -1,12 +1,22 @@
 name: Run Unit & Integration tests
 
 on:
-  workflow_call:
   pull_request:
     branches:
       - develop
       - master
+
+  workflow_call:
+    inputs:
+      performance:
+        type: boolean
+        default: true
+
   workflow_dispatch:
+    inputs:
+      performance:
+        type: boolean
+        default: true
 
 jobs:
   unit-tests:
@@ -63,3 +73,56 @@ jobs:
 
       - name: Execute Unit Test Suite
         run: make test-all
+
+  performance:
+    runs-on: self-hosted
+    if: github.event.inputs.performance == 'true' && (github.event_name == 'workflow_dispatch' || github.event_name == 'workflow_call')
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y pv
+
+      - name: Build all targets
+        run: make build-all
+
+      - name: Start MongoDB and Redis
+        run: sudo bash ./src/tests/integration/performance/start_mongo_and_redis.sh
+
+      - name: Run performance tests
+        id: performance-output
+        run: |
+          set -e
+          output=$(make performance-tests)
+          echo "$output"
+          echo "full_output<<EOF" >> $GITHUB_OUTPUT
+          echo "$output" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Send success notification
+        if: success()
+        uses: singnet/integration-github-mattermost@master
+        with:
+          webhook-url: ${{ secrets.SCHEDULED_REPOS_MATTERMOST_WEBHOOK_URL }}
+          message: |
+            SUCCESS - CI workflow succeeded in repository `${{ github.repository }}`
+
+            ```
+            ${{ steps.performance-output.outputs.full_output }}
+            ```
+
+      - name: Send failure notification
+        if: failure()
+        uses: singnet/integration-github-mattermost@master
+        with:
+          webhook-url: ${{ secrets.SCHEDULED_REPOS_MATTERMOST_WEBHOOK_URL }}
+          message: |
+            FAILURE - CI workflow failed in repository `${{ github.repository }}`
+
+            ```
+            ${{ steps.performance-output.outputs.full_output }}
+            ```
+            @channel
