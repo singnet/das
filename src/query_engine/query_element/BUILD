@@ -108,6 +108,7 @@ cc_library(
 cc_library(
   name = "query_element_registry",
   hdrs = ["QueryElementRegistry.h"],
+  srcs = ["QueryElementRegistry.cc"],
   deps = [
     ":query_element",
     "//commons:commons_lib",

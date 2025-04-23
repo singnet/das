@@ -39,7 +39,7 @@ void Source::setup_buffers() {
     if (this->id == "") {
         Utils::error("Invalid empty id");
     }
-    this->output_buffers = make_shared<OutputBuffers>(this->id, this->consumers);
+    this->output_buffers = make_unique<OutputBuffers>(this->id, this->consumers);
 }
 
 void Source::graceful_shutdown() { this->output_buffers->graceful_shutdown(); }

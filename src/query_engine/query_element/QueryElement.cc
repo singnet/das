@@ -14,6 +14,14 @@ QueryElement::QueryElement() {
 QueryElement::~QueryElement() {}
 
 // ------------------------------------------------------------------------------------------------
+// Public methods
+
+void QueryElement::subscribe(const string& id) {
+    lock_guard<mutex> lock(this->consumers_mutex);
+    this->consumers.push_back(id);
+}
+
+// ------------------------------------------------------------------------------------------------
 // Protected methods
 
 void QueryElement::set_flow_finished() {

@@ -1,16 +1,19 @@
 #pragma once
 
-#define LOG_LEVEL DEBUG_LEVEL
 #include <grpcpp/grpcpp.h>
 
 #include <cstring>
+
+// clang-format off
+#define LOG_LEVEL INFO_LEVEL
+#include "Logger.h"
+// clang-format on
 
 #include "And.h"
 #include "AtomDBAPITypes.h"
 #include "AtomDBSingleton.h"
 #include "AttentionBrokerServer.h"
 #include "Iterator.h"
-#include "Logger.h"
 #include "QueryAnswer.h"
 #include "QueryNode.h"
 #include "SharedQueue.h"
@@ -98,10 +101,9 @@ class LinkTemplate : public Source {
         this->handle =
             LinkTemplate<ARITY>::build_handle(type, targets, this->handle_keys, &this->inner_template);
 
-        // This is correct. id is not necessarily a handle but an identifier. It just happens
-        // that we want the string for this identifier to be the same as the string representing
-        // the handle.
-        this->id = this->handle.get();  // + std::to_string(LinkTemplate::next_instance_count());
+        // This is correct. id is not necessarily a handle but an identifier.
+        // It is passed in to the constructor of OutputBuffers as a unique prefix.
+        this->id = this->handle.get();
 
         LOG_INFO("LinkTemplate " << this->to_string());
     }
@@ -224,13 +226,17 @@ class LinkTemplate : public Source {
         do {
             {
                 LOG_DEBUG("LinkTemplate::setup_buffers() waiting for consumers");
+
                 lock_guard<mutex> lock(this->consumers_mutex);
+
                 LOG_DEBUG("expected_number_of_consumers: " << this->expected_number_of_consumers);
                 LOG_DEBUG("consumers.size(): " << this->consumers.size());
+
                 if (this->expected_number_of_consumers == this->consumers.size()) break;
             }
             Utils::sleep();
         } while (true);
+
         LOG_DEBUG("LinkTemplate::setup_buffers() consumers ready");
 
         Source::setup_buffers();
@@ -517,11 +523,6 @@ class LinkTemplate : public Source {
             }
         }
         this->output_buffers->query_answers_finished();
-    }
-
-    static unsigned int next_instance_count() {
-        static unsigned int instance_count = 0;
-        return instance_count++;
     }
 
     string to_string() {

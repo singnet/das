@@ -58,7 +58,7 @@ class Operator : public QueryElement {
             Utils::error("Invalid empty id");
         }
 
-        this->output_buffers = make_shared<OutputBuffers>(this->id, this->consumers);
+        this->output_buffers = make_unique<OutputBuffers>(this->id, this->consumers);
 
         string server_node_id;
         for (unsigned int i = 0; i < N; i++) {
@@ -90,7 +90,7 @@ class Operator : public QueryElement {
    protected:
     shared_ptr<QueryElement> precedent[N];
     shared_ptr<QueryNodeServer> input_buffer[N];
-    shared_ptr<OutputBuffers> output_buffers;
+    unique_ptr<OutputBuffers> output_buffers;
 
    private:
     void initialize(const array<shared_ptr<QueryElement>, N>& clauses) {

@@ -61,7 +61,7 @@ class Source : public QueryElement {
 
    protected:
     string attention_broker_address;
-    shared_ptr<OutputBuffers> output_buffers;
+    unique_ptr<OutputBuffers> output_buffers;
 };
 
 }  // namespace query_element

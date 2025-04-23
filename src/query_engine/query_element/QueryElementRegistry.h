@@ -5,47 +5,63 @@
 #include <string>
 #include <unordered_map>
 
-#define LOG_LEVEL DEBUG_LEVEL
-
+// clang-format off
+#define LOG_LEVEL INFO_LEVEL
 #include "Logger.h"
+// clang-format on
+
 #include "QueryElement.h"
 
 using namespace std;
 
 namespace query_element {
 
+/**
+ * @brief Class that stores and retrieves QueryElements by their keys.
+ *
+ * The class allows to store and retrieve QueryElements by their keys, similar to a cache.
+ * It is used by the PatternMatchingQueryProcessor to store and retrieve reusable QueryElements
+ * created from the query tokens.
+ *
+ * @note This class is not thread-safe.
+ */
 class QueryElementRegistry {
    public:
-    QueryElementRegistry() {}
-    ~QueryElementRegistry() {}
+    /**
+     * @brief Constructor.
+     */
+    QueryElementRegistry();
 
-    void add(const shared_ptr<char>& key, shared_ptr<QueryElement> element) {
-        this->add(string((char*) key.get()), element);
-    }
+    /**
+     * @brief Destructor.
+     */
+    ~QueryElementRegistry();
 
-    void add(const string& key, shared_ptr<QueryElement> element) {
-        lock_guard<mutex> guard(this->registry_mutex);
-        if (this->registry.find(key) == this->registry.end()) {
-            this->registry[key] = element;
-        } else {
-            Utils::error("Query element with key '" + key + "' already exists in the registry");
-        }
-    }
+    /**
+     * @brief Adds a QueryElement to the registry.
+     *
+     * @param key The key to use to store the QueryElement.
+     * @param element The QueryElement to store.
+     */
+    void add(const string& key, shared_ptr<QueryElement> element);
 
-    shared_ptr<QueryElement> get(const shared_ptr<char>& key) {
-        return this->get(string((char*) key.get()));
-    }
+    /**
+     * @brief Alias for add(string, QueryElement).
+     */
+    void add(const shared_ptr<char>& key, shared_ptr<QueryElement> element);
 
-    shared_ptr<QueryElement> get(const string& key) {
-        lock_guard<mutex> guard(this->registry_mutex);
-        auto it = this->registry.find(key);
-        if (it != this->registry.end()) {
-            LOG_DEBUG("QueryElementRegistry::get - found key: " << key);
-            return it->second;
-        }
-        LOG_DEBUG("QueryElementRegistry::get - did not find key: " << key);
-        return nullptr;
-    }
+    /**
+     * @brief Retrieves a QueryElement from the registry.
+     *
+     * @param key The key to use to retrieve the QueryElement.
+     * @return The QueryElement associated with the key, or nullptr if none was found.
+     */
+    shared_ptr<QueryElement> get(const string& key);
+
+    /**
+     * @brief Alias for get(string).
+     */
+    shared_ptr<QueryElement> get(const shared_ptr<char>& key);
 
    private:
     unordered_map<string, shared_ptr<QueryElement>> registry;

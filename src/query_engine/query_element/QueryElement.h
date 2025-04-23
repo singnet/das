@@ -84,10 +84,13 @@ class QueryElement {
      */
     bool is_terminal;
 
-    void subscribe(const string& id) {
-        lock_guard<mutex> lock(this->consumers_mutex);
-        this->consumers.push_back(id);
-    }
+    /**
+     * Adds a QueryElement id to the list of subscribers of this QueryElement. This method is
+     * thread-safe.
+     *
+     * @param id The id of the QueryElement which is subscribing to this QueryElement.
+     */
+    void subscribe(const string& id);
 
    protected:
     /**
