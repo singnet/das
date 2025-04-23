@@ -60,7 +60,6 @@ class Link {
 
     void add_custom_field(CustomField custom_field);
 
-
     void set_custom_fields(vector<CustomField> custom_fields);
 
    private:

@@ -1,12 +1,10 @@
 #include "link_creation_service.h"
-#include "Logger.h"
 
 #include <fstream>
 
 #include "Logger.h"
-#include "link_creation_console.h"
-
 #include "Utils.h"
+#include "link_creation_console.h"
 
 using namespace link_creation_agent;
 using namespace std;
@@ -48,16 +46,14 @@ LinkCreationService::~LinkCreationService() {
     }
 }
 
-static void enqueue_link_creation_request(
-    Queue<tuple<string, vector<string>>>& link_creation_queue,
-    const string& request_id,
-    const vector<vector<string>>& link_tokens,
-    mutex& m_mutex) {
+static void enqueue_link_creation_request(Queue<tuple<string, vector<string>>>& link_creation_queue,
+                                          const string& request_id,
+                                          const vector<vector<string>>& link_tokens,
+                                          mutex& m_mutex) {
     lock_guard<mutex> lock(m_mutex);
     for (const auto& link : link_tokens) {
         link_creation_queue.enqueue(make_tuple(request_id, link));
     }
-
 }
 
 void LinkCreationService::process_request(shared_ptr<PatternMatchingQueryProxy> proxy,
@@ -77,7 +73,8 @@ void LinkCreationService::process_request(shared_ptr<PatternMatchingQueryProxy> 
         while (!proxy->finished()) {
             // timeout
             if (time(0) - start > this->timeout) {
-                LOG_INFO("[" << request_id << "]" << " - Timeout for iterator ID: " << proxy->my_id());
+                LOG_INFO("[" << request_id << "]"
+                             << " - Timeout for iterator ID: " << proxy->my_id());
                 return;
             }
             if ((query_answer = proxy->pop()) == NULL) {
@@ -85,7 +82,8 @@ void LinkCreationService::process_request(shared_ptr<PatternMatchingQueryProxy> 
                 //           << iterator->get_local_id());
                 Utils::sleep();
             } else {
-                // LOG_DEBUG("LinkCreationService::process_request: " << request_id << "Processing query_answer ID: "
+                // LOG_DEBUG("LinkCreationService::process_request: " << request_id << "Processing
+                // query_answer ID: "
                 //           << proxy->my_id());
 
                 try {
@@ -101,7 +99,8 @@ void LinkCreationService::process_request(shared_ptr<PatternMatchingQueryProxy> 
                     } else {
                         link_tokens = link_template_processor->process(query_answer, link_template);
                     }
-                    enqueue_link_creation_request(this->link_creation_queue, request_id, link_tokens, this->m_mutex);
+                    enqueue_link_creation_request(
+                        this->link_creation_queue, request_id, link_tokens, this->m_mutex);
                     // for (auto& link : link_tokens) {
                     //     this->link_creation_queue.enqueue(make_tuple(request_id, link));
                     // }
@@ -110,14 +109,16 @@ void LinkCreationService::process_request(shared_ptr<PatternMatchingQueryProxy> 
                     // lock.unlock();
                     // delete query_answer;
                 } catch (const std::exception& e) {
-                    LOG_ERROR("[" << request_id << "]" <<" Exception: " << e.what());
+                    LOG_ERROR("[" << request_id << "]"
+                                  << " Exception: " << e.what());
                     continue;
                 }
                 if (++count == max_query_answers) break;
             }
             if (count == max_query_answers) break;
         }
-        LOG_INFO("[" << request_id << "]" <<" - Finished processing iterator ID: " + proxy->my_id());
+        LOG_INFO("[" << request_id << "]"
+                     << " - Finished processing iterator ID: " + proxy->my_id());
     };
 
     thread_pool.enqueue(job);
@@ -151,7 +152,7 @@ void LinkCreationService::create_link_threaded() {
                 LOG_INFO("Duplicate link creation request, skipping.");
                 continue;
             }
-            try{
+            try {
                 add_to_file(metta_file_path, id + ".metta", meta_content);
                 das_client->create_link(request);
             } catch (const std::exception& e) {

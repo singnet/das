@@ -1,8 +1,9 @@
 #include "implication_processor.h"
+
 #include "AtomDBSingleton.h"
+#include "Logger.h"
 #include "PatternMatchingQueryProxy.h"
 #include "link.h"
-#include "Logger.h"
 
 using namespace std;
 using namespace query_engine;
@@ -17,9 +18,13 @@ ImplicationProcessor::ImplicationProcessor() {
     }
 }
 
-void ImplicationProcessor::set_das_node(shared_ptr<service_bus::ServiceBus> das_node) { this->das_node = das_node; }
+void ImplicationProcessor::set_das_node(shared_ptr<service_bus::ServiceBus> das_node) {
+    this->das_node = das_node;
+}
 
-void ImplicationProcessor::set_mutex(shared_ptr<mutex> processor_mutex) { this->processor_mutex = processor_mutex; }
+void ImplicationProcessor::set_mutex(shared_ptr<mutex> processor_mutex) {
+    this->processor_mutex = processor_mutex;
+}
 
 vector<string> ImplicationProcessor::get_satisfying_set_query(const string& p1, const string& p2) {
     // clang-format off
@@ -46,11 +51,11 @@ vector<string> ImplicationProcessor::get_satisfying_set_query(const string& p1, 
     return pattern_query;
 }
 
-
-// static int query_counter(vector<string>& query, mutex& query_mutex, string& context, shared_ptr<service_bus::ServiceBus> service_bus) {
+// static int query_counter(vector<string>& query, mutex& query_mutex, string& context,
+// shared_ptr<service_bus::ServiceBus> service_bus) {
 //     lock_guard<mutex> lock(query_mutex);
-//     shared_ptr<PatternMatchingQueryProxy> count_query = make_shared<PatternMatchingQueryProxy>(query, context, false, true);
-//     service_bus->issue_bus_command(count_query);
+//     shared_ptr<PatternMatchingQueryProxy> count_query = make_shared<PatternMatchingQueryProxy>(query,
+//     context, false, true); service_bus->issue_bus_command(count_query);
 //     while(!count_query->finished()) {
 //         Utils::sleep();
 //     }
@@ -73,28 +78,19 @@ vector<vector<string>> ImplicationProcessor::process(
     }
     string p1_name = AtomDBSingleton::get_instance()->get_atom_document(p1_handle.c_str())->get("name");
     string p2_name = AtomDBSingleton::get_instance()->get_atom_document(p2_handle.c_str())->get("name");
-    vector<string> pattern_query_1 = {
-        "LINK_TEMPLATE", "Expression", "3",
-        "NODE", "Symbol", "EVALUATION",
-        "LINK", "Expression", "2",
-            "NODE", "Symbol", "PREDICATE",
-            "NODE", "Symbol", p1_name,
-        "LINK_TEMPLATE", "Expression", "2",
-        "NODE", "Symbol", "CONCEPT",
-        "VARIABLE", "P1"
-    };
-    vector<string> pattern_query_2 = {
-        "LINK_TEMPLATE", "Expression", "3",
-        "NODE", "Symbol", "EVALUATION",
-        "LINK", "Expression", "2",
-            "NODE", "Symbol", "PREDICATE",
-            "NODE", "Symbol", p2_name,
-        "LINK_TEMPLATE", "Expression", "2",
-        "NODE", "Symbol", "CONCEPT",
-        "VARIABLE", "P2"
-    };
+    vector<string> pattern_query_1 = {"LINK_TEMPLATE", "Expression", "3",          "NODE",   "Symbol",
+                                      "EVALUATION",    "LINK",       "Expression", "2",      "NODE",
+                                      "Symbol",        "PREDICATE",  "NODE",       "Symbol", p1_name,
+                                      "LINK_TEMPLATE", "Expression", "2",          "NODE",   "Symbol",
+                                      "CONCEPT",       "VARIABLE",   "P1"};
+    vector<string> pattern_query_2 = {"LINK_TEMPLATE", "Expression", "3",          "NODE",   "Symbol",
+                                      "EVALUATION",    "LINK",       "Expression", "2",      "NODE",
+                                      "Symbol",        "PREDICATE",  "NODE",       "Symbol", p2_name,
+                                      "LINK_TEMPLATE", "Expression", "2",          "NODE",   "Symbol",
+                                      "CONCEPT",       "VARIABLE",   "P2"};
     LOG_DEBUG("Quering for " << p1_name);
-    // shared_ptr<PatternMatchingQueryProxy> count_query_p1 = make_shared<PatternMatchingQueryProxy>(pattern_query_1, context, false, true);
+    // shared_ptr<PatternMatchingQueryProxy> count_query_p1 =
+    // make_shared<PatternMatchingQueryProxy>(pattern_query_1, context, false, true);
     // this->das_node->issue_bus_command(count_query_p1);
     // while(!count_query_p1->finished()) {
     //     Utils::sleep();
@@ -102,10 +98,9 @@ vector<vector<string>> ImplicationProcessor::process(
     // int p1_set_size = count_query_p1->get_count();
     int p1_set_size = count_query(pattern_query_1, *this->processor_mutex, context, this->das_node);
 
-
-
     LOG_DEBUG("P1 set size(" << p1_name << "): " << p1_set_size);
-    // shared_ptr<PatternMatchingQueryProxy> count_query_p2 = make_shared<PatternMatchingQueryProxy>(pattern_query_2, context, false, true);
+    // shared_ptr<PatternMatchingQueryProxy> count_query_p2 =
+    // make_shared<PatternMatchingQueryProxy>(pattern_query_2, context, false, true);
     // this->das_node->issue_bus_command(count_query_p2);
     // while (!count_query_p2->finished())
     // {
@@ -114,27 +109,29 @@ vector<vector<string>> ImplicationProcessor::process(
     // int p2_set_size = count_query_p2->get_count();
     // int p2_set_size = query_counter(pattern_query_2, *this->processor_mutex, context, this->das_node);
     int p2_set_size = count_query(pattern_query_2, *this->processor_mutex, context, this->das_node);
-    
 
     LOG_DEBUG("P2 set size(" << p2_name << "): " << p2_set_size);
     auto satisfying_set_query = get_satisfying_set_query(p1_name, p2_name);
-    // shared_ptr<PatternMatchingQueryProxy> count_query_p1_p2 = make_shared<PatternMatchingQueryProxy>(satisfying_set_query, context, false, true);
+    // shared_ptr<PatternMatchingQueryProxy> count_query_p1_p2 =
+    // make_shared<PatternMatchingQueryProxy>(satisfying_set_query, context, false, true);
     // this->das_node->issue_bus_command(count_query_p1_p2);
     // while (!count_query_p1_p2->finished())
     // {
     //     Utils::sleep();
     // }
     // int p1_p2_set_size = count_query_p1_p2->get_count();
-    int p1_p2_set_size = count_query(satisfying_set_query, *this->processor_mutex, context, this->das_node);
+    int p1_p2_set_size =
+        count_query(satisfying_set_query, *this->processor_mutex, context, this->das_node);
 
     LOG_DEBUG("P1 and P2 set size(" << p1_name << ", " << p2_name << "): " << p1_p2_set_size);
     if (p1_set_size == 0 || p2_set_size == 0 || p1_p2_set_size == 0) {
-        LOG_INFO("No pattern found for " << p1_name << " and " << p2_name << ", skipping implication processing.");
+        LOG_INFO("No pattern found for " << p1_name << " and " << p2_name
+                                         << ", skipping implication processing.");
         return {};
     }
     double p1_p2_strength = double(p1_p2_set_size) / double(p1_set_size);
     double p2_p1_strength = double(p1_p2_set_size) / double(p2_set_size);
-    
+
     vector<vector<string>> result;
     Node implication_node;
     implication_node.type = "Symbol";
@@ -160,7 +157,7 @@ vector<vector<string>> ImplicationProcessor::process(
     link_p2_p1.add_custom_field(custom_field_p2_p1);
 
     result.push_back(link_p1_p2.tokenize());
-    result.push_back(link_p2_p1.tokenize());    
+    result.push_back(link_p2_p1.tokenize());
 
     return result;
 }

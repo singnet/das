@@ -1,5 +1,4 @@
 #include "link_creation_agent.h"
-#include "template_processor.h"
 
 #include <gtest/gtest.h>
 
@@ -9,6 +8,7 @@
 
 #include "Utils.h"
 #include "link_create_template.h"
+#include "template_processor.h"
 
 using namespace std;
 using namespace link_creation_agent;
@@ -321,8 +321,7 @@ TEST(Link, TestLinkTemplateProcessor) {
     link_template = split("LINK_CREATE Test 3 0 NODE Symbol A VARIABLE V1 NODE Symbol B", ' ');
     query_answer->assignment.assign("V1", "Value1");
     links = ltp.process(query_answer, link_template);
-    EXPECT_EQ(Utils::join(links[0], ' '),
-              "LINK Test 3 NODE Symbol A HANDLE Value1 NODE Symbol B");
+    EXPECT_EQ(Utils::join(links[0], ' '), "LINK Test 3 NODE Symbol A HANDLE Value1 NODE Symbol B");
     // EXPECT_EQ(link.to_metta_string(), "(A Value1 B)");
 
     link_template.clear();
@@ -375,10 +374,11 @@ TEST(Link, TestLinkTemplateProcessor) {
     // link_template.clear();
     // delete query_answer;
 
-
     // Test the Link class
-    vector<string> tokens = Utils::split("LINK Test3 2 HANDLE Value1 HANDLE Value2 CUSTOM_FIELD truth_value 2 CUSTOM_FIELD mean 2 "
-              "count 10 avg 0.9 confidence 0.9", ' ');
+    vector<string> tokens = Utils::split(
+        "LINK Test3 2 HANDLE Value1 HANDLE Value2 CUSTOM_FIELD truth_value 2 CUSTOM_FIELD mean 2 "
+        "count 10 avg 0.9 confidence 0.9",
+        ' ');
     Link ll;
     Link l2 = ll.untokenize(tokens);
     EXPECT_EQ(l2.get_type(), "Test3");
@@ -400,8 +400,10 @@ TEST(Link, TestLinkTemplateProcessor) {
     EXPECT_EQ(l2.to_metta_string(), "(Value1 Value2)");
     tokens.clear();
 
-
-    tokens = Utils::split("LINK Test3 3 NODE Symbol EQUIVALENCE HANDLE Value1 HANDLE Value2 CUSTOM_FIELD truth_value 2 strength 0.9 confidence 1", ' ');
+    tokens = Utils::split(
+        "LINK Test3 3 NODE Symbol EQUIVALENCE HANDLE Value1 HANDLE Value2 CUSTOM_FIELD truth_value 2 "
+        "strength 0.9 confidence 1",
+        ' ');
     l2 = ll.untokenize(tokens);
     EXPECT_EQ(l2.get_type(), "Test3");
     EXPECT_EQ(l2.get_targets().size(), 3);
@@ -417,5 +419,4 @@ TEST(Link, TestLinkTemplateProcessor) {
     EXPECT_EQ(get<0>(l2.get_custom_fields()[0].get_values()[1]), "confidence");
     EXPECT_EQ(get<string>(get<1>(l2.get_custom_fields()[0].get_values()[1])), "1");
     EXPECT_EQ(l2.to_metta_string(), "(EQUIVALENCE [strength 0.9 confidence 1] Value1 Value2)");
-
 }

@@ -1,10 +1,10 @@
 #include "equivalence_processor.h"
-#include "Logger.h"
-#include "PatternMatchingQueryProxy.h"
 
 #include <iostream>
 
 #include "AtomDBSingleton.h"
+#include "Logger.h"
+#include "PatternMatchingQueryProxy.h"
 #include "link.h"
 
 using namespace std;
@@ -20,7 +20,9 @@ EquivalenceProcessor::EquivalenceProcessor() {
     }
 }
 
-void EquivalenceProcessor::set_mutex(shared_ptr<mutex> processor_mutex) { this->processor_mutex = processor_mutex; }
+void EquivalenceProcessor::set_mutex(shared_ptr<mutex> processor_mutex) {
+    this->processor_mutex = processor_mutex;
+}
 
 vector<string> EquivalenceProcessor::get_pattern_query(const string& c1, const string& c2) {
     // clang-format off
@@ -47,7 +49,9 @@ vector<string> EquivalenceProcessor::get_pattern_query(const string& c1, const s
     return pattern_query;
 }
 
-void EquivalenceProcessor::set_das_node(shared_ptr<service_bus::ServiceBus> das_node) { this->das_node = das_node; }
+void EquivalenceProcessor::set_das_node(shared_ptr<service_bus::ServiceBus> das_node) {
+    this->das_node = das_node;
+}
 
 vector<vector<string>> EquivalenceProcessor::process(
     shared_ptr<QueryAnswer> query_answer, std::optional<std::vector<std::string>> extra_params) {
@@ -77,9 +81,9 @@ vector<vector<string>> EquivalenceProcessor::process(
     // LOG_DEBUG("Sending Equivalence Query");
     LOG_DEBUG("Query: " << Utils::join(pattern_query, ' '));
     int count = 0;
-    try{
-   
-        // shared_ptr<PatternMatchingQueryProxy> count_query = make_shared<PatternMatchingQueryProxy>(pattern_query, context, false, true);
+    try {
+        // shared_ptr<PatternMatchingQueryProxy> count_query =
+        // make_shared<PatternMatchingQueryProxy>(pattern_query, context, false, true);
         // this->das_node->issue_bus_command(count_query);
         // while (!count_query->finished()) {
         //     // LOG_DEBUG("Waiting for count " << c1_name << " and " << c2_name << " query to finish");
@@ -91,7 +95,7 @@ vector<vector<string>> EquivalenceProcessor::process(
         // this->processor_mutex->unlock();
         if (count <= 0) {
             LOG_DEBUG("No pattern found for " << c1_name << " and " << c2_name
-                    << ", skipping equivalence processing.");
+                                              << ", skipping equivalence processing.");
             return {};
         }
     } catch (const std::exception& e) {
@@ -100,7 +104,8 @@ vector<vector<string>> EquivalenceProcessor::process(
     }
     // two elements per query answer
     double strength = double(2) / count;
-    LOG_INFO("(" << c1_name << ", " << c2_name << ") " << "Strength: " << strength);
+    LOG_INFO("(" << c1_name << ", " << c2_name << ") "
+                 << "Strength: " << strength);
     // LOG_DEBUG("2/" << count);
     vector<vector<string>> result;
     Node equivalence_node;

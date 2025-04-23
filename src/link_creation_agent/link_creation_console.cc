@@ -1,7 +1,7 @@
 #include "link_creation_console.h"
-#include "Logger.h"
 
 #include "AtomDBSingleton.h"
+#include "Logger.h"
 
 using namespace link_creation_agent;
 using namespace std;
@@ -12,7 +12,7 @@ shared_ptr<Console> Console::console_instance = nullptr;
 shared_ptr<Console> Console::get_instance() {
     if (!console_instance) {
         console_instance = shared_ptr<Console>(new Console());
-        try{
+        try {
             AtomDBSingleton::init();
         } catch (const std::exception& e) {
             cerr << "Error: " << e.what() << endl;

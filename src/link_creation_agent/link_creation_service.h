@@ -12,16 +12,15 @@
 
 #include "PatternMatchingQueryProxy.h"
 #include "QueryAnswer.h"
+#include "ServiceBusSingleton.h"
 #include "das_agent_node.h"
-#include "link.h"
-#include "thread_pool.h"
-#include "link_processor.h"
-#include "template_processor.h"
 #include "equivalence_processor.h"
 #include "implication_processor.h"
-#include "ServiceBusSingleton.h"
+#include "link.h"
+#include "link_processor.h"
 #include "queue.h"
-
+#include "template_processor.h"
+#include "thread_pool.h"
 
 #define DEBUG
 
@@ -82,14 +81,16 @@ class LinkCreationService
     thread create_link_thread;
     set<string> metta_expression_set;
 
-    int timeout = 300 * 1000;  
+    int timeout = 300 * 1000;
 
     /**
      * @brief Create a link, blocking the client until the link is created
      * @param link Link object
      * @param das_client DAS Node client
      */
-    void create_link(std::vector<std::vector<std::string>>& links, DasAgentNode& das_client, string id = "");
+    void create_link(std::vector<std::vector<std::string>>& links,
+                     DasAgentNode& das_client,
+                     string id = "");
     void create_link_threaded();
 };
 

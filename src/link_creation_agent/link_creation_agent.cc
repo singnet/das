@@ -1,9 +1,9 @@
 #include "link_creation_agent.h"
-#include "Logger.h"
 
 #include <fstream>
 #include <sstream>
 
+#include "Logger.h"
 #include "expression_hasher.h"
 #include "link_create_template.h"
 
@@ -19,7 +19,10 @@ LinkCreationAgent::LinkCreationAgent(string config_path) {
     //                                 query_agent_server_id,
     //                                 query_agent_client_start_port,
     //                                 query_agent_client_end_port);
-    ServiceBusSingleton::init(query_agent_client_id, query_agent_server_id, query_agent_client_start_port, query_agent_client_end_port);
+    ServiceBusSingleton::init(query_agent_client_id,
+                              query_agent_server_id,
+                              query_agent_client_start_port,
+                              query_agent_client_end_port);
     service_bus = ServiceBusSingleton::get_instance();
     service = new LinkCreationService(link_creation_agent_thread_count, service_bus);
     service->set_timeout(query_timeout_seconds);
@@ -87,8 +90,12 @@ void LinkCreationAgent::run() {
             shared_ptr<PatternMatchingQueryProxy> proxy =
                 query(lca_request->query, lca_request->context, lca_request->update_attention_broker);
 
-            service->process_request(
-                proxy, das_client, lca_request->link_template, lca_request->context, lca_request->id, lca_request->max_results);
+            service->process_request(proxy,
+                                     das_client,
+                                     lca_request->link_template,
+                                     lca_request->context,
+                                     lca_request->id,
+                                     lca_request->max_results);
             // query_agent_mutex->unlock();
 
             lca_request->last_execution = time(0);
@@ -113,7 +120,7 @@ shared_ptr<PatternMatchingQueryProxy> LinkCreationAgent::query(vector<string>& q
                                                                bool update_attention_broker) {
     shared_ptr<PatternMatchingQueryProxy> proxy =
         make_shared<PatternMatchingQueryProxy>(query_tokens, context, update_attention_broker);
-        
+
     service_bus->issue_bus_command(proxy);
     return proxy;
 }
@@ -200,8 +207,9 @@ shared_ptr<LinkCreationAgentRequest> LinkCreationAgent::create_request(vector<st
         if (lca_request->id.empty()) {
             lca_request->id =
                 compute_hash((char*) (to_string(time(0)) + Utils::random_string(20)).c_str());
-        }else{
-            lca_request->id = lca_request->id + "-" + compute_hash((char*) Utils::join(lca_request->link_template, ' ').c_str());
+        } else {
+            lca_request->id = lca_request->id + "-" +
+                              compute_hash((char*) Utils::join(lca_request->link_template, ' ').c_str());
         }
         LOG_DEBUG("Creating request ID: " << lca_request->id);
         LOG_DEBUG("Query: " << Utils::join(lca_request->query, ' '));

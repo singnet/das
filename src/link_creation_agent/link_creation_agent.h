@@ -102,7 +102,7 @@ class LinkCreationAgent {
     string das_agent_client_id;            // ID of the DAS client
     string das_agent_server_id;
     string requests_buffer_file;           // Path to the requests buffer file
-    string metta_file_path = ".";             // Path to the metta file
+    string metta_file_path = ".";          // Path to the metta file
     unsigned int query_agent_client_start_port;
     unsigned int query_agent_client_end_port;
 

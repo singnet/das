@@ -6,8 +6,8 @@
 
 #include <iostream>
 #include <vector>
-#include "Logger.h"
 
+#include "Logger.h"
 #include "Message.h"
 
 using namespace std;
@@ -26,7 +26,5 @@ class DummyMessage : public Message {
         this->args = args;
     }
 
-    void act(shared_ptr<MessageFactory> node) {
-        LOG_DEBUG(command);
-    }
+    void act(shared_ptr<MessageFactory> node) { LOG_DEBUG(command); }
 };

@@ -1,11 +1,11 @@
 #include "inference_agent.h"
-#include "Logger.h"
 
 #include <limits.h>
 
 #include <fstream>
 #include <sstream>
 
+#include "Logger.h"
 #include "Utils.h"
 
 using namespace std;
@@ -106,7 +106,7 @@ void InferenceAgent::run() {
         } else {
             for (int i = 0; i < inference_iterators.size(); i++) {
                 if (!inference_iterators[i]->pop(false).empty()) {
-                    LOG_DEBUG("Iterator ID: " << inference_iterators[i]->get_local_id()  << " finished");
+                    LOG_DEBUG("Iterator ID: " << inference_iterators[i]->get_local_id() << " finished");
                     send_stop_link_creation_request(
                         iterator_link_creation_request_map[inference_iterators[i]->get_local_id()]);
                     inference_iterators.erase(inference_iterators.begin() + i);

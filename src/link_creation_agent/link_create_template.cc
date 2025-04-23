@@ -274,7 +274,7 @@ std::string CustomField::to_string() {
     return custom_field;
 }
 
-std::string CustomField::to_metta_string(){
+std::string CustomField::to_metta_string() {
     std::string metta_string = "[";
     for (auto value : this->values) {
         CustomFieldTypes field_value = std::get<1>(value);

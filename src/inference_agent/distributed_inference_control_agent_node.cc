@@ -1,8 +1,9 @@
 #include "distributed_inference_control_agent_node.h"
-#include "Logger.h"
-#include "Utils.h"
 
 #include <iostream>
+
+#include "Logger.h"
+#include "Utils.h"
 using namespace distributed_inference_control_agent;
 using namespace commons;
 

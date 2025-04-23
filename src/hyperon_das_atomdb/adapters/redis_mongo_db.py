@@ -756,7 +756,9 @@ class RedisMongoDB(AtomDB):
         )
 
         pattern_hash = ExpressionHasher.composite_hash([link_type_hash, *target_handles])
-        patterns_matched = self._retrieve_hash_targets_value_from_sorted_set(KeyPrefix.PATTERNS, pattern_hash)
+        patterns_matched = self._retrieve_hash_targets_value_from_sorted_set(
+            KeyPrefix.PATTERNS, pattern_hash
+        )
         if kwargs.get("toplevel_only", False):
             return self._filter_non_toplevel(patterns_matched)
         else:
@@ -1106,23 +1108,25 @@ class RedisMongoDB(AtomDB):
         """
         key = _build_redis_key(key_prefix, handle)
         return self._get_redis_members(key)
-    
-    def _retrieve_hash_targets_value_from_sorted_set(self, key_prefix: str, handle: str) -> HandleSetT:
-            """
-            Retrieve the hash targets value for the given identifier from a sorted set in Redis
-            This method constructs a Redis key using the provided key prefix and handle, and retrieves
-            the members associated with that key.
-            If the members are not found, it returns an empty list.
-            Args:
-                key_prefix (str): The prefix to be used in the Redis key.
-                handle (str): The unique identifier for the atom whose hash targets value is to be
-                    retrieved.
-            Returns:
-                HandleSetT: Set of members in the hash targets value.
-            """
-            key = _build_redis_key(key_prefix, handle)
-            results = self.redis.zrange(key, 0, -1, withscores=True)
-            return {r[0] for r in results}
+
+    def _retrieve_hash_targets_value_from_sorted_set(
+        self, key_prefix: str, handle: str
+    ) -> HandleSetT:
+        """
+        Retrieve the hash targets value for the given identifier from a sorted set in Redis
+        This method constructs a Redis key using the provided key prefix and handle, and retrieves
+        the members associated with that key.
+        If the members are not found, it returns an empty list.
+        Args:
+            key_prefix (str): The prefix to be used in the Redis key.
+            handle (str): The unique identifier for the atom whose hash targets value is to be
+                retrieved.
+        Returns:
+            HandleSetT: Set of members in the hash targets value.
+        """
+        key = _build_redis_key(key_prefix, handle)
+        results = self.redis.zrange(key, 0, -1, withscores=True)
+        return {r[0] for r in results}
 
     def _delete_smember_template(self, handle: str, smember: str) -> None:
         """
