@@ -103,7 +103,7 @@ class LinkTemplate : public Source {
 
         // This is correct. id is not necessarily a handle but an identifier.
         // It is passed in to the constructor of OutputBuffers as a unique prefix.
-        this->id = this->handle.get();
+        this->id = string((char*) this->handle.get());
 
         LOG_INFO("LinkTemplate " << this->to_string());
     }
@@ -125,11 +125,11 @@ class LinkTemplate : public Source {
     static shared_ptr<char> build_handle(
         const string& type,
         const array<shared_ptr<QueryElement>, ARITY>& targets,
-        char** external_handle_keys = NULL,
-        vector<shared_ptr<query_element::QueryElement>>* inner_template = NULL) {
+        char** external_handle_keys = nullptr,
+        vector<shared_ptr<query_element::QueryElement>>* inner_template = nullptr) {
         bool wildcard_flag = (type == AtomDB::WILDCARD);
         char** handle_keys;
-        if (external_handle_keys != NULL) {
+        if (external_handle_keys != nullptr) {
             handle_keys = external_handle_keys;
         } else {
             handle_keys = new char*[ARITY + 1];
@@ -143,12 +143,12 @@ class LinkTemplate : public Source {
                 handle_keys[i] = dynamic_pointer_cast<Terminal>(targets[i - 1])->handle.get();
             } else {
                 handle_keys[i] = (char*) AtomDB::WILDCARD.c_str();
-                if (inner_template != NULL) inner_template->push_back(targets[i - 1]);
+                if (inner_template != nullptr) inner_template->push_back(targets[i - 1]);
             }
         }
         auto handle = shared_ptr<char>(composite_hash(handle_keys, ARITY + 1), default_delete<char[]>());
 
-        if (external_handle_keys == NULL) {
+        if (external_handle_keys == nullptr) {
             delete[] handle_keys;
         } else {
             if (!wildcard_flag) free(handle_keys[0]);
@@ -164,10 +164,8 @@ class LinkTemplate : public Source {
         this->graceful_shutdown();
         local_answers_mutex.lock();
         if (this->atom_document) delete[] this->atom_document;
-        if (local_answers_size > 0) {
-            delete[] this->local_answers;
-            delete[] this->next_inner_answer;
-        }
+        if (this->local_answers) delete[] this->local_answers;
+        if (this->next_inner_answer) delete[] this->next_inner_answer;
         while (!this->local_buffer.empty()) {
             delete (QueryAnswer*) this->local_buffer.dequeue();
         }
@@ -528,7 +526,7 @@ class LinkTemplate : public Source {
     string to_string() {
         string answer = string(this->handle.get()) + " [" + this->type + " <";
         for (unsigned int i = 0; i < this->arity; i++) {
-            answer += this->handle_keys[i];
+            answer += this->handle_keys[i + 1];
             if (this->target_template[i]->id != "") {
                 answer += " (" + target_template[i]->id + ")";
             }
