@@ -8,6 +8,7 @@
 #include <functional>
 #include <map>
 #include <mutex>
+#include <shared_mutex>
 #include <set>
 
 #include "PatternMatchingQueryProxy.h"
@@ -69,7 +70,7 @@ class LinkCreationService
     // this can be changed to a better data structure
     set<string> processed_link_handles;
     string metta_file_path;
-    std::mutex m_mutex;
+    std::shared_mutex m_mutex;
     std::condition_variable m_cond;
     shared_ptr<LinkTemplateProcessor> link_template_processor;
     shared_ptr<ImplicationProcessor> implication_processor;
@@ -92,6 +93,9 @@ class LinkCreationService
                      DasAgentNode& das_client,
                      string id = "");
     void create_link_threaded();
+    vector<vector<string>> process_query_answer(shared_ptr<QueryAnswer> query_answer, vector<string> params, vector<string> link_template);
+    void enqueue_link_creation_request(const string& request_id, const vector<vector<string>>& link_tokens);
+
 };
 
 }  // namespace link_creation_agent

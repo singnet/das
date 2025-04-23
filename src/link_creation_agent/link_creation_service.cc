@@ -46,11 +46,9 @@ LinkCreationService::~LinkCreationService() {
     }
 }
 
-static void enqueue_link_creation_request(Queue<tuple<string, vector<string>>>& link_creation_queue,
-                                          const string& request_id,
-                                          const vector<vector<string>>& link_tokens,
-                                          mutex& m_mutex) {
-    lock_guard<mutex> lock(m_mutex);
+void LinkCreationService::enqueue_link_creation_request(const string& request_id,
+                                                        const vector<vector<string>>& link_tokens) {
+    lock_guard<shared_mutex> lock(m_mutex);
     for (const auto& link : link_tokens) {
         link_creation_queue.enqueue(make_tuple(request_id, link));
     }
@@ -71,43 +69,20 @@ void LinkCreationService::process_request(shared_ptr<PatternMatchingQueryProxy> 
         int count = 0;
         long start = time(0);
         while (!proxy->finished()) {
-            // timeout
             if (time(0) - start > this->timeout) {
                 LOG_INFO("[" << request_id << "]"
                              << " - Timeout for iterator ID: " << proxy->my_id());
                 return;
             }
             if ((query_answer = proxy->pop()) == NULL) {
-                // LOG_DEBUG("LinkCreationService::process_request: No query answer for iterator ID: "
-                //           << iterator->get_local_id());
                 Utils::sleep();
             } else {
-                // LOG_DEBUG("LinkCreationService::process_request: " << request_id << "Processing
-                // query_answer ID: "
-                //           << proxy->my_id());
-
                 try {
                     vector<vector<string>> link_tokens;
                     vector<string> extra_params;
                     extra_params.push_back(context);
-                    if (LinkCreationProcessor::get_processor_type(link_template.front()) ==
-                        ProcessorType::PROOF_OF_IMPLICATION) {
-                        link_tokens = implication_processor->process(query_answer, extra_params);
-                    } else if (LinkCreationProcessor::get_processor_type(link_template.front()) ==
-                               ProcessorType::PROOF_OF_EQUIVALENCE) {
-                        link_tokens = equivalence_processor->process(query_answer, extra_params);
-                    } else {
-                        link_tokens = link_template_processor->process(query_answer, link_template);
-                    }
-                    enqueue_link_creation_request(
-                        this->link_creation_queue, request_id, link_tokens, this->m_mutex);
-                    // for (auto& link : link_tokens) {
-                    //     this->link_creation_queue.enqueue(make_tuple(request_id, link));
-                    // }
-                    // unique_lock<mutex> lock(this->m_mutex);
-                    // this->create_link(link_tokens, *das_client, iterator->get_local_id());
-                    // lock.unlock();
-                    // delete query_answer;
+                    link_tokens = process_query_answer(query_answer, extra_params, link_template);
+                    enqueue_link_creation_request(request_id, link_tokens);
                 } catch (const std::exception& e) {
                     LOG_ERROR("[" << request_id << "]"
                                   << " Exception: " << e.what());
@@ -122,6 +97,20 @@ void LinkCreationService::process_request(shared_ptr<PatternMatchingQueryProxy> 
     };
 
     thread_pool.enqueue(job);
+}
+
+vector<vector<string>> LinkCreationService::process_query_answer(shared_ptr<QueryAnswer> query_answer,
+                                                                 vector<string> params,
+                                                                 vector<string> link_template) {
+    if (LinkCreationProcessor::get_processor_type(link_template.front()) ==
+        ProcessorType::PROOF_OF_IMPLICATION) {
+        return implication_processor->process(query_answer, params);
+    } else if (LinkCreationProcessor::get_processor_type(link_template.front()) ==
+               ProcessorType::PROOF_OF_EQUIVALENCE) {
+        return equivalence_processor->process(query_answer, params);
+    } else {
+        return link_template_processor->process(query_answer, link_template);
+    }
 }
 
 void LinkCreationService::create_link(std::vector<std::vector<std::string>>& links,
@@ -159,8 +148,9 @@ void LinkCreationService::create_link_threaded() {
                 LOG_ERROR("Exception: " << e.what());
             }
             metta_expression_set.insert(meta_content);
+        } else {
+            this_thread::sleep_for(chrono::milliseconds(300));
         }
-        this_thread::sleep_for(chrono::milliseconds(300));
     }
 }
 

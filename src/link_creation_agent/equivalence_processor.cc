@@ -71,9 +71,9 @@ vector<vector<string>> EquivalenceProcessor::process(
     string c2_name = AtomDBSingleton::get_instance()->get_atom_document(c2_handle.c_str())->get("name");
     LOG_DEBUG("(" << c1_name << ", " << c2_name << ")");
     auto pattern_query = get_pattern_query(c1_name, c2_name);
-    if (this->das_node == nullptr) {
-        LOG_ERROR("DASNode is not set");
-    }
+    // if (this->das_node == nullptr) {
+    //     LOG_ERROR("DASNode is not set");
+    // }
     if (this->processor_mutex == nullptr) {
         LOG_ERROR("processor_mutex is not set");
     }

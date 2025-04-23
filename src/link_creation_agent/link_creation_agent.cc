@@ -24,7 +24,7 @@ LinkCreationAgent::LinkCreationAgent(string config_path) {
                               query_agent_client_start_port,
                               query_agent_client_end_port);
     service_bus = ServiceBusSingleton::get_instance();
-    service = new LinkCreationService(link_creation_agent_thread_count, service_bus);
+    service = new LinkCreationService(link_creation_agent_thread_count, nullptr);
     service->set_timeout(query_timeout_seconds);
     service->set_query_agent_mutex(this->query_agent_mutex);
     service->set_metta_file_path(metta_file_path);
@@ -99,9 +99,9 @@ void LinkCreationAgent::run() {
             // query_agent_mutex->unlock();
 
             lca_request->last_execution = time(0);
-            lca_request->current_interval =
-                (lca_request->current_interval * 2) %
-                86400;  // TODO Add exponential backoff, resets after 24 hours
+            // lca_request->current_interval =
+            //     (lca_request->current_interval * 2) %
+            //     86400;  // TODO Add exponential backoff, resets after 24 hours
 
             if (lca_request->infinite) continue;
             if (lca_request->repeat >= 1) lca_request->repeat--;
@@ -118,10 +118,10 @@ void LinkCreationAgent::run() {
 shared_ptr<PatternMatchingQueryProxy> LinkCreationAgent::query(vector<string>& query_tokens,
                                                                string context,
                                                                bool update_attention_broker) {
+    // lock_guard<mutex> lock(*query_agent_mutex.get());    
     shared_ptr<PatternMatchingQueryProxy> proxy =
         make_shared<PatternMatchingQueryProxy>(query_tokens, context, update_attention_broker);
-
-    service_bus->issue_bus_command(proxy);
+    ServiceBusSingleton::get_instance()->issue_bus_command(proxy);
     return proxy;
 }
 
