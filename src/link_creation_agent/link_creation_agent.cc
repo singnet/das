@@ -19,8 +19,9 @@ LinkCreationAgent::LinkCreationAgent(string config_path) {
     //                                 query_agent_server_id,
     //                                 query_agent_client_start_port,
     //                                 query_agent_client_end_port);
+    ServiceBusSingleton::init(query_agent_client_id, query_agent_server_id, query_agent_client_start_port, query_agent_client_end_port);
     service_bus = ServiceBusSingleton::get_instance();
-    service = new LinkCreationService(link_creation_agent_thread_count, shared_ptr<DASNode>(query_node_client));
+    service = new LinkCreationService(link_creation_agent_thread_count, service_bus);
     service->set_timeout(query_timeout_seconds);
     service->set_query_agent_mutex(this->query_agent_mutex);
     service->set_metta_file_path(metta_file_path);
@@ -72,22 +73,23 @@ void LinkCreationAgent::run() {
             }
         }
 
-        if (lca_request == NULL ||
+        if (lca_request == nullptr ||
             lca_request->last_execution + lca_request->current_interval > time(0)) {
             this_thread::sleep_for(chrono::milliseconds(loop_interval));
             continue;
         }
 
         if (lca_request->infinite || lca_request->repeat > 0) {
-            query_agent_mutex->lock();
+            // query_agent_mutex->lock();
+            LOG_DEBUG("Request IDX: " << current_buffer_position);
             LOG_DEBUG("Processing request ID: " << lca_request->id);
             LOG_DEBUG("Current size of request buffer: " << request_buffer.size());
             shared_ptr<PatternMatchingQueryProxy> proxy =
                 query(lca_request->query, lca_request->context, lca_request->update_attention_broker);
-            query_agent_mutex->unlock();
 
             service->process_request(
-                proxy, das_client, lca_request->link_template, lca_request->max_results);
+                proxy, das_client, lca_request->link_template, lca_request->context, lca_request->id, lca_request->max_results);
+            // query_agent_mutex->unlock();
 
             lca_request->last_execution = time(0);
             lca_request->current_interval =
@@ -111,6 +113,7 @@ shared_ptr<PatternMatchingQueryProxy> LinkCreationAgent::query(vector<string>& q
                                                                bool update_attention_broker) {
     shared_ptr<PatternMatchingQueryProxy> proxy =
         make_shared<PatternMatchingQueryProxy>(query_tokens, context, update_attention_broker);
+        
     service_bus->issue_bus_command(proxy);
     return proxy;
 }

@@ -26,6 +26,7 @@
 
 using namespace std;
 using namespace das_agent;
+using namespace query_engine;
 namespace link_creation_agent {
 struct LinkCreationAgentRequest {
     vector<string> query;

@@ -7,7 +7,7 @@ using namespace query_engine;
 using namespace link_creation_agent;
 
 std::vector<std::vector<std::string>> LinkTemplateProcessor::process(
-    QueryAnswer* query_answer, std::optional<std::vector<std::string>> extra_params) {
+    shared_ptr<QueryAnswer> query_answer, std::optional<std::vector<std::string>> extra_params) {
     std::vector<shared_ptr<Link>> links;
     // if
     if (extra_params == nullopt) {
@@ -31,17 +31,17 @@ std::vector<std::vector<std::string>> LinkTemplateProcessor::process(
     return link_tokens;
 }
 
-shared_ptr<Link> LinkTemplateProcessor::process_template_request(QueryAnswer* query_answer,
+shared_ptr<Link> LinkTemplateProcessor::process_template_request(shared_ptr<QueryAnswer> query_answer,
                                                                  LinkCreateTemplate& link_template) {
     LinkCreateTemplate link_create_template(link_template);
-    HandlesAnswer* handles_answer = dynamic_cast<HandlesAnswer*>(query_answer);
+    // HandlesAnswer* handles_answer = dynamic_cast<HandlesAnswer*>(query_answer);
     shared_ptr<Link> link = make_shared<Link>();
     link->set_type(link_create_template.get_link_type());
     vector<LinkCreateTemplateTypes> targets = link_create_template.get_targets();
     for (LinkCreateTemplateTypes target : targets) {
         if (holds_alternative<Variable>(target)) {
             string token = get<Variable>(target).name;
-            link->add_target(handles_answer->assignment.get(token.c_str()));
+            link->add_target(query_answer->assignment.get(token.c_str()));
         }
         if (holds_alternative<std::shared_ptr<LinkCreateTemplate>>(target)) {
             shared_ptr<LinkCreateTemplate> sub_link = get<std::shared_ptr<LinkCreateTemplate>>(target);

@@ -35,9 +35,9 @@ INFERENCE_AGENT_LINK_CREATION_AGENT_ID=${INFERENCE_AGENT_LINK_CREATION_AGENT_ID:
 
 ## Link Creation Agent
 LINK_CREATION_QUERY_AGENT_START_PORT=${LINK_CREATION_QUERY_AGENT_START_PORT:-16000}
-LINK_CREATION_QUERY_AGENT_END_PORT=${LINK_CREATION_QUERY_AGENT_END_PORT:-16200}
-LINK_CREATION_QUERY_TIMEOUT_SECONDS=${LINK_CREATION_QUERY_TIMEOUT_SECONDS:-20}
-LINK_CREATION_REQUESTS_INTERVAL_SECONDS=${LINK_CREATION_REQUESTS_INTERVAL_SECONDS:-5}
+LINK_CREATION_QUERY_AGENT_END_PORT=${LINK_CREATION_QUERY_AGENT_END_PORT:-18000}
+LINK_CREATION_QUERY_TIMEOUT_SECONDS=${LINK_CREATION_QUERY_TIMEOUT_SECONDS:-600}
+LINK_CREATION_REQUESTS_INTERVAL_SECONDS=${LINK_CREATION_REQUESTS_INTERVAL_SECONDS:-120}
 LINK_CREATION_REQUESTS_BUFFER_FILE=${LINK_CREATION_REQUESTS_BUFFER_FILE:-"buffer"}
 LINK_CREATION_AGENT_THREAD_COUNT=${LINK_CREATION_AGENT_THREAD_COUNT:-1}
 
@@ -122,17 +122,18 @@ stop() {
         echo "Stopping agent: $AGENT_NAME"
         # split AGENT_NAME by space
         if [[ "$AGENT_PATH" == *"src/scripts/run.sh"* ]]; then
-            IFS=' ' read -r TEMP_NAME _ <<< "$AGENT_NAME"
-            CONTAINER_NAME=`docker ps | grep $TEMP_NAME | awk '{print $10}'`
+            IFS=' ' read -r TEMP_NAME _ _ <<< "$AGENT_NAME"
+            echo "$TEMP_NAME"
+            CONTAINER_NAME=`docker ps | grep $TEMP_NAME | awk '{print $NF}'`
             # docker rm -f "$CONTAINER_NAME"
         else
             # IFS=' ' read -r _ TEMP_NAME _ <<< "$AGENT_NAME"
-            CONTAINER_NAME=`docker ps | grep das-bazel-cmd | awk '{print $10}'`
+            CONTAINER_NAME=`docker ps | grep das-bazel-cmd | awk '{print $NF}'`
             # CONTAINER_NAME=${CONTAINER_NAME//[^[:alnum:]]/}
         fi
         if [ -z "$CONTAINER_NAME" ]; then
-            echo -e "${RED}No container found for agent: $AGENT_NAME${NC}"
-            echo "Container name: $CONTAINER_NAME"
+            # echo -e "${RED}No container found for agent: $AGENT_NAME${NC}"
+            # echo "Container name: $CONTAINER_NAME"
             continue
         fi
         docker rm -f "$CONTAINER_NAME"
@@ -166,5 +167,7 @@ if [ "$PARAM" == "start" ]; then
         sleep 5
         i=$((i + 1))
     done
+    echo "======================================================================================"
+    echo "All agents started."
     wait
 fi

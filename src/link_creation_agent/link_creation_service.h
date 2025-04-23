@@ -19,13 +19,14 @@
 #include "template_processor.h"
 #include "equivalence_processor.h"
 #include "implication_processor.h"
-#include "DASNode.h"
+#include "ServiceBusSingleton.h"
 #include "queue.h"
 
 
 #define DEBUG
 
 using namespace das_agent;
+using namespace query_engine;
 namespace link_creation_agent {
 /**
  * @class LinkCreationService
@@ -43,7 +44,7 @@ class LinkCreationService
 
 {
    public:
-    LinkCreationService(int thread_count, shared_ptr<DASNode> das_node);
+    LinkCreationService(int thread_count, shared_ptr<service_bus::ServiceBus> das_node);
     /**
      * @brief Add an iterator to process in thread pool
      * @param proxy PatternMatchingQueryProxy object
@@ -79,8 +80,9 @@ class LinkCreationService
     DasAgentNode* das_client = nullptr;
     bool is_stoping = false;
     thread create_link_thread;
+    set<string> metta_expression_set;
 
-    int timeout = 60;
+    int timeout = 300 * 1000;  
 
     /**
      * @brief Create a link, blocking the client until the link is created

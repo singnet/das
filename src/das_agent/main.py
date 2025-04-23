@@ -23,16 +23,12 @@ def parse_targets(targets, atom_db):
         elif target.get("handle"):
             new_targets.append(atom_db.get_atom(target["handle"]))
         else:
-            print(target)
             raise Exception("Invalid target")
     return new_targets
 
 
 def build_link(request, atom_db) -> LinkT:
-    print("Building link")
-    print(request)
     link = DictQueryTokenizer.untokenize(request)
-    print(link)
     tt = [dict(named_type=t.get("type"), **t) for t in link["targets"]]
     targets = parse_targets(tt, atom_db)
     custom_attributes = {}
@@ -51,12 +47,11 @@ def create_link(request, atom_db):
     link = build_link(" ".join(request), atom_db)
     atom_db.add_link(link)
     atom_db.commit()
-    print("Link created")
+    print("Link processed")
 
 
 def run(node: DASAgentNode, atom_db: RedisMongoDB):
     while True:
-        print("Processing request")
         sys.stdout.flush()
         request = get_request(node)
         sys.stdout.flush()

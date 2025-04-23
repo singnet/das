@@ -1,4 +1,5 @@
 #include "inference_agent.h"
+#include "Logger.h"
 
 #include <limits.h>
 
@@ -62,11 +63,13 @@ InferenceAgent::~InferenceAgent() {
 }
 
 void InferenceAgent::run() {
-    cout << "Inference agent is running" << endl;
+    LOG_DEBUG("Inference agent is running");
     while (true) {
         if (is_stoping) break;
         if (!inference_node_server->is_answers_empty()) {
+            LOG_DEBUG("Received answers");
             auto answer = inference_node_server->pop_answer();
+            LOG_DEBUG("Received answer: " << Utils::join(answer, ' '));
             try {
                 if (inference_request_validator.validate(answer)) {
                     shared_ptr<InferenceRequest> inference_request;
@@ -77,21 +80,15 @@ void InferenceAgent::run() {
                     int max_proof_length = stoi(answer[3]);
                     string context = answer[4];
                     if (inference_command == PROOF_OF_IMPLICATION_OR_EQUIVALENCE) {
-#ifdef DEBUG
-                        cout << "Received proof of implication or equivalence" << endl;
-#endif
+                        LOG_DEBUG("Received proof of implication or equivalence");
                         inference_request = make_shared<ProofOfImplicationOrEquivalence>(
                             first_handle, second_handle, max_proof_length, context);
                     } else if (inference_command == PROOF_OF_IMPLICATION) {
-#ifdef DEBUG
-                        cout << "Received proof of implication" << endl;
-#endif
+                        LOG_DEBUG("Received proof of implication");
                         inference_request = make_shared<ProofOfImplication>(
                             first_handle, second_handle, max_proof_length, context);
                     } else if (inference_command == PROOF_OF_EQUIVALENCE) {
-#ifdef DEBUG
-                        cout << "Received proof of equivalence" << endl;
-#endif
+                        LOG_DEBUG("Received proof of equivalence");
                         inference_request = make_shared<ProofOfEquivalence>(
                             first_handle, second_handle, max_proof_length, context);
                     }
@@ -104,15 +101,12 @@ void InferenceAgent::run() {
                     Utils::error("Invalid inference request");
                 }
             } catch (const std::exception& e) {
-                cout << "Error: " << e.what() << endl;
+                LOG_ERROR("Exception: " << e.what());
             }
         } else {
             for (int i = 0; i < inference_iterators.size(); i++) {
                 if (!inference_iterators[i]->pop(false).empty()) {
-#ifdef DEBUG
-                    cout << "Inference iterator ID: " << inference_iterators[i]->get_local_id()
-                         << " finished" << endl;
-#endif
+                    LOG_DEBUG("Iterator ID: " << inference_iterators[i]->get_local_id()  << " finished");
                     send_stop_link_creation_request(
                         iterator_link_creation_request_map[inference_iterators[i]->get_local_id()]);
                     inference_iterators.erase(inference_iterators.begin() + i);
@@ -154,13 +148,12 @@ void InferenceAgent::send_stop_link_creation_request(shared_ptr<InferenceRequest
 void InferenceAgent::send_distributed_inference_control_request(const string& client_node_id) {
     shared_ptr<InferenceIterator<InferenceAgentNode>> inference_iterator =
         make_shared<InferenceIterator<InferenceAgentNode>>(client_node_id);
-#ifdef DEBUG
-    cout << "Sending distributed inference control request ID: " << client_node_id << endl;
-#endif
     inference_iterators.push_back(inference_iterator);
-    distributed_inference_control_client->send_inference_control_request(
-        iterator_link_creation_request_map[client_node_id]->get_distributed_inference_control_request(),
-        client_node_id);
+    LOG_DEBUG("Sending distributed inference control request ID: " << client_node_id);
+    // distributed_inference_control_client->send_inference_control_request(
+    //     iterator_link_creation_request_map[client_node_id]->get_distributed_inference_control_request(),
+    //     client_node_id);
+    LOG_DEBUG("Distributed inference control request sent");
 }
 
 vector<string> InferenceAgent::get_link_creation_request() { return vector<string>(); }
@@ -184,9 +177,7 @@ const string InferenceAgent::get_next_inference_request_id() {
 }
 
 void InferenceAgent::parse_config(const string& config_path) {
-#ifdef DEBUG
-    cout << "Parsing config file: " << config_path << endl;
-#endif
+    LOG_DEBUG("Parsing config file: " << config_path);
     map<string, string> config = Utils::parse_config(config_path);
 
     this->inference_node_id = config["inference_node_id"];

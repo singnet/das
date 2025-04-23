@@ -12,11 +12,11 @@ class LinkTemplateProcessor : public LinkProcessor {
    public:
     LinkTemplateProcessor() = default;
     std::vector<std::vector<std::string>> process(
-        QueryAnswer* query_answer,
+        shared_ptr<QueryAnswer> query_answer,
         std::optional<std::vector<std::string>> extra_params = nullopt) override;
     ~LinkTemplateProcessor() = default;
 
    private:
-    shared_ptr<Link> process_template_request(QueryAnswer* query_answer, LinkCreateTemplate& link_template);
+    shared_ptr<Link> process_template_request(shared_ptr<QueryAnswer> query_answer, LinkCreateTemplate& link_template);
 };
 }  // namespace link_creation_agent

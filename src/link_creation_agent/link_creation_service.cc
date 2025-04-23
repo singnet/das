@@ -10,21 +10,21 @@
 
 using namespace link_creation_agent;
 using namespace std;
-using namespace query_node;
+// using namespace query_node;
 using namespace query_engine;
 
 static void add_to_file(string file_path, string file_name, string content) {
-    LOG_DEBUG("LinkCreationService::add_to_file: Adding to file: " << file_path << "/" << file_name);
+    LOG_INFO("Saving to file: " << file_path << "/" << file_name);
     ofstream file(file_path + "/" + file_name, ios::app);
     if (file.is_open()) {
         file << content << endl;
         file.close();
     } else {
-        cerr << "Error opening file: " << file_path + "/" + file_name << endl;
+        LOG_ERROR("Error opening file: " << file_path + "/" + file_name);
     }
 }
 
-LinkCreationService::LinkCreationService(int thread_count, shared_ptr<DASNode> das_node)
+LinkCreationService::LinkCreationService(int thread_count, shared_ptr<service_bus::ServiceBus> das_node)
     : thread_pool(thread_count) {
     this->link_template_processor = make_shared<LinkTemplateProcessor>();
     this->equivalence_processor = make_shared<EquivalenceProcessor>();
@@ -48,6 +48,18 @@ LinkCreationService::~LinkCreationService() {
     }
 }
 
+static void enqueue_link_creation_request(
+    Queue<tuple<string, vector<string>>>& link_creation_queue,
+    const string& request_id,
+    const vector<vector<string>>& link_tokens,
+    mutex& m_mutex) {
+    lock_guard<mutex> lock(m_mutex);
+    for (const auto& link : link_tokens) {
+        link_creation_queue.enqueue(make_tuple(request_id, link));
+    }
+
+}
+
 void LinkCreationService::process_request(shared_ptr<PatternMatchingQueryProxy> proxy,
                                           DasAgentNode* das_client,
                                           vector<string>& link_template,
@@ -58,22 +70,14 @@ void LinkCreationService::process_request(shared_ptr<PatternMatchingQueryProxy> 
         this->das_client = das_client;
     }
     auto job = [this, proxy, das_client, link_template, max_query_answers, context, request_id]() {
-        LOG_DEBUG("LinkCreationService::process_request: " << request_id << "Processing request ID: " << request_id);
+        LOG_INFO("[" << request_id << "] - Processing request");
         shared_ptr<QueryAnswer> query_answer;
         int count = 0;
         long start = time(0);
         while (!proxy->finished()) {
-            // NOTE TO REVISOR:
-            // Althought it's not the purpose of this PR, I changed the way this thread is being
-            // put to sleep because, the way it were, it was sleeping for 1 second after processing
-            // each QueryAnswer EVEN IF THERE ARE MORE Query Answers waiting in the queue. The expected
-            // behavior is to put the thread to sleep only when there's no QueryAnswer sitting in the
-            // queue.
-
             // timeout
-            if (time(0) - start > timeout) {
-                LOG_DEBUG("LinkCreationService::process_request: " << request_id <<"Timeout for iterator ID: "
-                          << proxy->my_id());
+            if (time(0) - start > this->timeout) {
+                LOG_INFO("[" << request_id << "]" << " - Timeout for iterator ID: " << proxy->my_id());
                 return;
             }
             if ((query_answer = proxy->pop()) == NULL) {
@@ -81,8 +85,8 @@ void LinkCreationService::process_request(shared_ptr<PatternMatchingQueryProxy> 
                 //           << iterator->get_local_id());
                 Utils::sleep();
             } else {
-                LOG_DEBUG("LinkCreationService::process_request:" << request_id << "Processing query_answer ID: "
-                          << iterator->get_local_id());
+                // LOG_DEBUG("LinkCreationService::process_request: " << request_id << "Processing query_answer ID: "
+                //           << proxy->my_id());
 
                 try {
                     vector<vector<string>> link_tokens;
@@ -97,28 +101,23 @@ void LinkCreationService::process_request(shared_ptr<PatternMatchingQueryProxy> 
                     } else {
                         link_tokens = link_template_processor->process(query_answer, link_template);
                     }
-                    for (auto& link : link_tokens) {
-                        this->link_creation_queue.enqueue(make_tuple(request_id, link));
-                    }
+                    enqueue_link_creation_request(this->link_creation_queue, request_id, link_tokens, this->m_mutex);
+                    // for (auto& link : link_tokens) {
+                    //     this->link_creation_queue.enqueue(make_tuple(request_id, link));
+                    // }
                     // unique_lock<mutex> lock(this->m_mutex);
                     // this->create_link(link_tokens, *das_client, iterator->get_local_id());
                     // lock.unlock();
-                    delete query_answer;
+                    // delete query_answer;
                 } catch (const std::exception& e) {
-                    LOG_ERROR("LinkCreationService::process_request: " << request_id << "Exception: " << e.what());
-                    delete query_answer;
+                    LOG_ERROR("[" << request_id << "]" <<" Exception: " << e.what());
                     continue;
                 }
                 if (++count == max_query_answers) break;
             }
             if (count == max_query_answers) break;
-#ifdef DEBUG
-            cout << "LinkCreationService::process_request: Waiting for query answer ID: "
-                 << proxy->my_id() << endl;
-#endif
-            Utils::sleep();
         }
-        LOG_DEBUG("LinkCreationService::process_request: " << request_id << "Finished processing iterator ID: " + proxy->my_id());
+        LOG_INFO("[" << request_id << "]" <<" - Finished processing iterator ID: " + proxy->my_id());
     };
 
     thread_pool.enqueue(job);
@@ -135,7 +134,7 @@ void LinkCreationService::create_link(std::vector<std::vector<std::string>>& lin
             das_client.create_link(link_tokens);
         }
     } catch (const std::exception& e) {
-        LOG_ERROR("LinkCreationService::create_link: Exception: " << e.what());
+        LOG_ERROR("Exception: " << e.what());
     }
 }
 
@@ -144,13 +143,21 @@ void LinkCreationService::set_timeout(int timeout) { this->timeout = timeout; }
 void LinkCreationService::create_link_threaded() {
     while (!is_stoping) {
         if (!link_creation_queue.empty()) {
-            LOG_DEBUG("LinkCreationService::create_link: Creating link " << 5);
             auto request_map = link_creation_queue.dequeue();
             string id = get<0>(request_map);
             vector<string> request = get<1>(request_map);
             string meta_content = link_creation_agent::Console::get_instance()->print_metta(request);
-            add_to_file(metta_file_path, id + ".metta", meta_content);
-            das_client->create_link(request);
+            if (metta_expression_set.find(meta_content) != metta_expression_set.end()) {
+                LOG_INFO("Duplicate link creation request, skipping.");
+                continue;
+            }
+            try{
+                add_to_file(metta_file_path, id + ".metta", meta_content);
+                das_client->create_link(request);
+            } catch (const std::exception& e) {
+                LOG_ERROR("Exception: " << e.what());
+            }
+            metta_expression_set.insert(meta_content);
         }
         this_thread::sleep_for(chrono::milliseconds(300));
     }
