@@ -5,6 +5,9 @@
 #include "Utils.h"
 #include "gtest/gtest.h"
 
+#define LOG_LEVEL INFO_LEVEL
+#include "Logger.h"
+
 using namespace query_engine;
 using namespace atomdb;
 
@@ -42,12 +45,13 @@ void check_query(vector<string>& query,
                  unsigned int expected_count,
                  ServiceBus* client_bus,
                  const string& context,
-                 bool update_attention_broker) {
-    shared_ptr<PatternMatchingQueryProxy> proxy1(
-        new PatternMatchingQueryProxy(query, context, update_attention_broker));
+                 bool update_attention_broker,
+                 bool unique_assignment) {
+    shared_ptr<PatternMatchingQueryProxy> proxy1(new PatternMatchingQueryProxy(
+        query, context, unique_assignment, update_attention_broker, false));
 
     shared_ptr<PatternMatchingQueryProxy> proxy2(
-        new PatternMatchingQueryProxy(query, context, update_attention_broker, true));
+        new PatternMatchingQueryProxy(query, context, unique_assignment, update_attention_broker, true));
 
     client_bus->issue_bus_command(proxy1);
     unsigned int count = 0;
@@ -61,6 +65,7 @@ void check_query(vector<string>& query,
             }
         }
         if (query_answer) {
+            LOG_INFO(">>>>>>>>>> " << query_answer->assignment.to_string());
             count++;
         }
     }
@@ -142,17 +147,26 @@ TEST(PatternMatchingQuery, queries) {
                          "v1",   "NODE",   "Symbol",        "\"snake\""};
     int q5_expected_count = 5;
 
-    check_query(q1, q1_expected_count, client_bus, "PatternMatchingQuery.queries", false);
-    check_query(q2, q2_expected_count, client_bus, "PatternMatchingQuery.queries", false);
-    check_query(q3, q3_expected_count, client_bus, "PatternMatchingQuery.queries", false);
-    check_query(q4, q4_expected_count, client_bus, "PatternMatchingQuery.queries", false);
-    check_query(q5, q5_expected_count, client_bus, "PatternMatchingQuery.queries", false);
+    vector<string> q6 = {"OR",   "2",      "LINK_TEMPLATE", "Expression",    "3",
+                         "NODE", "Symbol", "Similarity",    "VARIABLE",      "v1",
+                         "NODE", "Symbol", "\"human\"",     "LINK_TEMPLATE", "Expression",
+                         "3",    "NODE",   "Symbol",        "Similarity",    "VARIABLE",
+                         "v1",   "NODE",   "Symbol",        "\"chimp\""};
+    int q6_expected_count = 4;
 
-    check_query(q1, q1_expected_count, client_bus, "PatternMatchingQuery.queries", true);
-    check_query(q2, q2_expected_count, client_bus, "PatternMatchingQuery.queries", true);
-    check_query(q3, q3_expected_count, client_bus, "PatternMatchingQuery.queries", true);
-    check_query(q4, q4_expected_count, client_bus, "PatternMatchingQuery.queries", true);
-    check_query(q5, q5_expected_count, client_bus, "PatternMatchingQuery.queries", true);
+    check_query(q1, q1_expected_count, client_bus, "PatternMatchingQuery.queries", false, false);
+    check_query(q2, q2_expected_count, client_bus, "PatternMatchingQuery.queries", false, false);
+    check_query(q3, q3_expected_count, client_bus, "PatternMatchingQuery.queries", false, false);
+    check_query(q4, q4_expected_count, client_bus, "PatternMatchingQuery.queries", false, false);
+    check_query(q5, q5_expected_count, client_bus, "PatternMatchingQuery.queries", false, false);
+    check_query(q6, q6_expected_count, client_bus, "PatternMatchingQuery.queries", false, true);
+
+    check_query(q1, q1_expected_count, client_bus, "PatternMatchingQuery.queries", true, false);
+    check_query(q2, q2_expected_count, client_bus, "PatternMatchingQuery.queries", true, false);
+    check_query(q3, q3_expected_count, client_bus, "PatternMatchingQuery.queries", true, false);
+    check_query(q4, q4_expected_count, client_bus, "PatternMatchingQuery.queries", true, false);
+    check_query(q5, q5_expected_count, client_bus, "PatternMatchingQuery.queries", true, false);
+    check_query(q6, q6_expected_count, client_bus, "PatternMatchingQuery.queries", true, true);
 
     Utils::sleep(2000);
 }
