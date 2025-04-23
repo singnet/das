@@ -124,7 +124,7 @@ TEST(PatternMatchingQuery, queries) {
                          "\"human\"",
                          "VARIABLE",
                          "v1"};
-    int q2_expected_count = 3;
+    //int q2_expected_count = 3;
 
     vector<string> q3 = {"AND",  "2",      "LINK_TEMPLATE", "Expression",    "3",
                          "NODE", "Symbol", "Similarity",    "VARIABLE",      "v1",
