@@ -53,7 +53,7 @@ namespace query_element {
 class QueryElement {
    public:
     string id;
-    int expected_subsequent_ids_size;
+    int expected_number_of_consumers;
 
     /**
      * Basic constructor which solely initialize variables.
@@ -84,9 +84,9 @@ class QueryElement {
      */
     bool is_terminal;
 
-    void add_subsequent_id(const string& id) {
-        lock_guard<mutex> lock(this->subsequent_ids_mutex);
-        this->subsequent_ids.push_back(id);
+    void subscribe(const string& id) {
+        lock_guard<mutex> lock(this->consumers_mutex);
+        this->consumers.push_back(id);
     }
 
    protected:
@@ -111,8 +111,8 @@ class QueryElement {
      */
     void set_flow_finished();
 
-    vector<string> subsequent_ids;
-    mutex subsequent_ids_mutex;
+    vector<string> consumers;
+    mutex consumers_mutex;
 
    private:
     bool flow_finished;

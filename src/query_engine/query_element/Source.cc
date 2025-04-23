@@ -33,13 +33,13 @@ string Source::get_attention_broker_address() {
 }
 
 void Source::setup_buffers() {
-    if (this->subsequent_ids.empty()) {
-        Utils::error("Invalid empty parents ids");
+    if (this->consumers.empty()) {
+        Utils::error("Invalid empty consumers");
     }
     if (this->id == "") {
         Utils::error("Invalid empty id");
     }
-    this->output_buffers = make_shared<OutputBuffers>(this->id, this->subsequent_ids);
+    this->output_buffers = make_shared<OutputBuffers>(this->id, this->consumers);
 }
 
 void Source::graceful_shutdown() { this->output_buffers->graceful_shutdown(); }

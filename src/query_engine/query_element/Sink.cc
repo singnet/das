@@ -19,10 +19,10 @@ Sink::~Sink() { this->input_buffer->graceful_shutdown(); }
 // Public methods
 
 void Sink::setup_buffers() {
-    if (!this->subsequent_ids.empty()) {
+    if (!this->consumers.empty()) {
         string ids;
-        for (auto& subsequent_id : this->subsequent_ids) {
-            ids += subsequent_id + " ";
+        for (auto& consumer : this->consumers) {
+            ids += consumer + " ";
         }
         Utils::error("Invalid non-empty subsequent ids: " + ids);
     }
@@ -30,7 +30,7 @@ void Sink::setup_buffers() {
         Utils::error("Invalid empty id");
     }
     this->input_buffer = make_shared<QueryNodeServer>(this->id);
-    this->precedent->add_subsequent_id(this->id);
+    this->precedent->subscribe(this->id);
     this->precedent->setup_buffers();
 }
 

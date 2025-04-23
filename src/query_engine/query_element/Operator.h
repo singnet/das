@@ -51,20 +51,20 @@ class Operator : public QueryElement {
      * in the operation.
      */
     virtual void setup_buffers() {
-        if (this->subsequent_ids.empty()) {
-            Utils::error("Invalid empty parents ids");
+        if (this->consumers.empty()) {
+            Utils::error("Invalid empty consumers");
         }
         if (this->id == "") {
             Utils::error("Invalid empty id");
         }
 
-        this->output_buffers = make_shared<OutputBuffers>(this->id, this->subsequent_ids);
+        this->output_buffers = make_shared<OutputBuffers>(this->id, this->consumers);
 
         string server_node_id;
         for (unsigned int i = 0; i < N; i++) {
             server_node_id = this->id + "_" + to_string(i);
             this->input_buffer[i] = make_shared<QueryNodeServer>(server_node_id);
-            this->precedent[i]->add_subsequent_id(server_node_id);
+            this->precedent[i]->subscribe(server_node_id);
             this->precedent[i]->setup_buffers();
         }
     }

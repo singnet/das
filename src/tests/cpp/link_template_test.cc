@@ -33,7 +33,7 @@ TEST(LinkTemplate, basics) {
     auto human = make_shared<Node>(symbol, "\"human\"");
 
     LinkTemplate<3> link_template1("Expression", {similarity, human, v1});
-    link_template1.add_subsequent_id(server_node_id);
+    link_template1.subscribe(server_node_id);
     link_template1.setup_buffers();
     // link_template1.fetch_links();
     Utils::sleep(1000);

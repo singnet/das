@@ -129,6 +129,7 @@ cc_library(
   name = "output_buffers",
   hdrs = ["OutputBuffers.h"],
   deps = [
+    "//commons:commons_lib",
     "//query_engine:query_node",
   ],
 )

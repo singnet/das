@@ -1,6 +1,6 @@
 #pragma once
 
-#define LOG_LEVEL INFO_LEVEL
+#define LOG_LEVEL DEBUG_LEVEL
 #include <grpcpp/grpcpp.h>
 
 #include <cstring>
@@ -89,18 +89,19 @@ class LinkTemplate : public Source {
         this->target_template = targets;
         this->fetch_finished = false;
         this->setup_buffers_triggered = false;
-        this->expected_subsequent_ids_size = 1;
+        this->expected_number_of_consumers = 1;
         this->atom_document = NULL;
         this->local_answers = NULL;
         this->local_answers_size = 0;
-        this->local_buffer_processor = NULL;
+        this->local_buffer_processor = nullptr;
+        this->setup_buffers_thread = nullptr;
         this->handle =
             LinkTemplate<ARITY>::build_handle(type, targets, this->handle_keys, &this->inner_template);
 
         // This is correct. id is not necessarily a handle but an identifier. It just happens
         // that we want the string for this identifier to be the same as the string representing
         // the handle.
-        this->id = this->handle.get() + std::to_string(LinkTemplate::next_instance_count());
+        this->id = this->handle.get();  // + std::to_string(LinkTemplate::next_instance_count());
 
         LOG_INFO("LinkTemplate " << this->to_string());
     }
@@ -186,28 +187,51 @@ class LinkTemplate : public Source {
     virtual void graceful_shutdown() {
         if (this->is_flow_finished()) return;
         set_flow_finished();
-        if (this->local_buffer_processor != NULL) {
+        if (this->local_buffer_processor != nullptr) {
             this->local_buffer_processor->join();
             delete this->local_buffer_processor;
-            this->local_buffer_processor = NULL;
+            this->local_buffer_processor = nullptr;
+        }
+        if (this->setup_buffers_thread != nullptr) {
+            this->setup_buffers_thread->join();
+            delete this->setup_buffers_thread;
+            this->setup_buffers_thread = nullptr;
         }
         Source::graceful_shutdown();
     }
 
     virtual void setup_buffers() {
-        if (this->setup_buffers_triggered) return;
+        if (this->setup_buffers_triggered) {
+            LOG_DEBUG("LinkTemplate::setup_buffers() already triggered - before lock");
+            return;
+        }
         {
             lock_guard<mutex> lock(setup_buffers_mutex);
-            if (this->setup_buffers_triggered) return;
+            if (this->setup_buffers_triggered) {
+                LOG_DEBUG("LinkTemplate::setup_buffers() already triggered - after lock");
+                return;
+            }
             this->setup_buffers_triggered = true;
         }
+        this->setup_buffers_thread = new thread(&LinkTemplate::_setup_buffers, this);
+    }
+
+   private:
+    // --------------------------------------------------------------------------------------------
+    // Private methods
+
+    void _setup_buffers() {
         do {
             {
-                lock_guard<mutex> lock(this->subsequent_ids_mutex);
-                if (this->expected_subsequent_ids_size == this->subsequent_ids.size()) break;
+                LOG_DEBUG("LinkTemplate::setup_buffers() waiting for consumers");
+                lock_guard<mutex> lock(this->consumers_mutex);
+                LOG_DEBUG("expected_number_of_consumers: " << this->expected_number_of_consumers);
+                LOG_DEBUG("consumers.size(): " << this->consumers.size());
+                if (this->expected_number_of_consumers == this->consumers.size()) break;
             }
             Utils::sleep();
         } while (true);
+        LOG_DEBUG("LinkTemplate::setup_buffers() consumers ready");
 
         Source::setup_buffers();
         if (this->inner_template.size() > 0) {
@@ -275,16 +299,12 @@ class LinkTemplate : public Source {
         fetch_links();
     }
 
-   private:
     struct less_than_query_answer {
         inline bool operator()(const QueryAnswer* qa1, const QueryAnswer* qa2) {
             // Reversed check as we want descending sort
             return (qa1->importance > qa2->importance);
         }
     };
-
-    // --------------------------------------------------------------------------------------------
-    // Private methods
 
     void increment_local_answers_size() {
         local_answers_mutex.lock();
@@ -543,6 +563,7 @@ class LinkTemplate : public Source {
     string context;
     mutex setup_buffers_mutex;
     bool setup_buffers_triggered;
+    thread* setup_buffers_thread;
 };
 
 }  // namespace query_element

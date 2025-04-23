@@ -241,7 +241,7 @@ shared_ptr<QueryElement> PatternMatchingQueryProcessor::setup_query_tree(
         auto handle = LinkTemplate<N>::build_handle(proxy->query_tokens[cursor + 1], targets);    \
         shared_ptr<QueryElement> link_template = query_element_registry->get(handle);             \
         if (link_template != nullptr) {                                                           \
-            dynamic_pointer_cast<LinkTemplate<N>>(link_template)->expected_subsequent_ids_size++; \
+            dynamic_pointer_cast<LinkTemplate<N>>(link_template)->expected_number_of_consumers++; \
             return link_template;                                                                 \
         }                                                                                         \
         link_template = make_shared<LinkTemplate<N>>(                                             \
