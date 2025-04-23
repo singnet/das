@@ -93,36 +93,4 @@ jobs:
         run: sudo bash ./src/tests/integration/performance/start_mongo_and_redis.sh
 
       - name: Run performance tests
-        id: performance-output
-        run: |
-          set -e
-          output=$(make performance-tests)
-          echo "$output"
-          echo "full_output<<EOF" >> $GITHUB_OUTPUT
-          echo "$output" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
-
-      - name: Send success notification
-        if: success()
-        uses: singnet/integration-github-mattermost@master
-        with:
-          webhook-url: ${{ secrets.SCHEDULED_REPOS_MATTERMOST_WEBHOOK_URL }}
-          message: |
-            SUCCESS - CI workflow succeeded in repository `${{ github.repository }}`
-
-            ```
-            ${{ steps.performance-output.outputs.full_output }}
-            ```
-
-      - name: Send failure notification
-        if: failure()
-        uses: singnet/integration-github-mattermost@master
-        with:
-          webhook-url: ${{ secrets.SCHEDULED_REPOS_MATTERMOST_WEBHOOK_URL }}
-          message: |
-            FAILURE - CI workflow failed in repository `${{ github.repository }}`
-
-            ```
-            ${{ steps.performance-output.outputs.full_output }}
-            ```
-            @channel
+        run: make performance-tests
