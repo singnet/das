@@ -33,6 +33,10 @@ int main(int argc, char* argv[]) {
     string client_id = string(argv[1]);
     string server_id = string(argv[2]);
     bool update_attention_broker = (string(argv[3]) == "true" || string(argv[3]) == "1");
+    if (update_attention_broker) {
+        cerr << "Enforcing update_attention_broker=false regardeless the passed parameter" << endl;
+    }
+    update_attention_broker = false;
 
     ServiceBusSingleton::init(client_id, server_id, 54000, 54500);
 
@@ -53,6 +57,7 @@ int main(int argc, char* argv[]) {
     cout << "Using max_query_answers: " << max_query_answers << endl;
 
     signal(SIGINT, &ctrl_c_handler);
+    signal(SIGTERM, &ctrl_c_handler);
     vector<string> query;
     for (int i = tokens_start_position; i < argc; i++) {
         query.push_back(argv[i]);
@@ -60,7 +65,7 @@ int main(int argc, char* argv[]) {
 
     shared_ptr<ServiceBus> service_bus = ServiceBusSingleton::get_instance();
     shared_ptr<PatternMatchingQueryProxy> proxy =
-        make_shared<PatternMatchingQueryProxy>(query, "", update_attention_broker);
+        make_shared<PatternMatchingQueryProxy>(query, "", true, update_attention_broker, false);
     service_bus->issue_bus_command(proxy);
     shared_ptr<QueryAnswer> query_answer;
     int count = 0;
@@ -74,6 +79,7 @@ int main(int argc, char* argv[]) {
             }
         }
     }
+    cout << count << " answers" << endl;
     if (count == 0) {
         cout << "No match for query" << endl;
     }

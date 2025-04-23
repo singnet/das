@@ -127,7 +127,7 @@ void run(const string& context, const string& word_tag) {
                                  "\"" + word_tag + "\""};
 
     shared_ptr<PatternMatchingQueryProxy> proxy =
-        make_shared<PatternMatchingQueryProxy>(query_word, context, true);
+        make_shared<PatternMatchingQueryProxy>(query_word, context, false, true, false);
     service_bus->issue_bus_command(proxy);
 
     shared_ptr<QueryAnswer> query_answer;
@@ -171,7 +171,7 @@ void run(const string& context, const string& word_tag) {
     }
 
     shared_ptr<PatternMatchingQueryProxy> proxy2 =
-        make_shared<PatternMatchingQueryProxy>(query_word, context, true, true);
+        make_shared<PatternMatchingQueryProxy>(query_word, context, true, true, false);
     service_bus->issue_bus_command(proxy2);
     while (!proxy2->finished()) {
         Utils::sleep();
@@ -186,6 +186,7 @@ int main(int argc, char* argv[]) {
         exit(1);
     }
     signal(SIGINT, &ctrl_c_handler);
+    signal(SIGTERM, &ctrl_c_handler);
     string context = argv[1];
     string word_tag = argv[2];
 

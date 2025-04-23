@@ -1,5 +1,6 @@
 #include <cstdlib>
 #include <cstring>
+#include <unordered_set>
 
 #include "QueryAnswer.h"
 #include "Utils.h"
@@ -74,6 +75,107 @@ TEST(QueryAnswer, assignments_basics) {
     EXPECT_TRUE(mapping0.to_string() != "");
     EXPECT_TRUE(mapping1.to_string() != "");
     EXPECT_TRUE(mapping4.to_string() != "");
+}
+
+TEST(QueryAnswer, assignments_equal) {
+    Assignment mapping1;
+    EXPECT_TRUE(mapping1.assign("v1", "1"));
+    EXPECT_TRUE(mapping1.assign("v2", "2"));
+    Assignment mapping2;
+    EXPECT_TRUE(mapping2.assign("v1", "1"));
+    EXPECT_TRUE(mapping2.assign("v2", "2"));
+    Assignment mapping3;
+    EXPECT_TRUE(mapping3.assign("v1", "1"));
+    EXPECT_TRUE(mapping3.assign("v2", "1"));
+    Assignment mapping4;
+    EXPECT_TRUE(mapping4.assign("v1", "2"));
+    EXPECT_TRUE(mapping4.assign("v2", "2"));
+    Assignment mapping5;
+    EXPECT_TRUE(mapping5.assign("v3", "1"));
+    EXPECT_TRUE(mapping5.assign("v2", "2"));
+    Assignment mapping6;
+    EXPECT_TRUE(mapping6.assign("v1", "1"));
+    EXPECT_TRUE(mapping6.assign("v3", "2"));
+    Assignment mapping7;
+    EXPECT_TRUE(mapping7.assign("v1", "1"));
+    EXPECT_TRUE(mapping7.assign("v2", "2"));
+    EXPECT_TRUE(mapping7.assign("v3", "3"));
+    Assignment mapping8;
+    EXPECT_TRUE(mapping8.assign("v1", "1"));
+
+    EXPECT_TRUE(mapping1 == mapping1);
+    EXPECT_TRUE(mapping2 == mapping2);
+    EXPECT_TRUE(mapping3 == mapping3);
+    EXPECT_TRUE(mapping4 == mapping4);
+    EXPECT_TRUE(mapping5 == mapping5);
+    EXPECT_TRUE(mapping6 == mapping6);
+    EXPECT_TRUE(mapping7 == mapping7);
+    EXPECT_TRUE(mapping8 == mapping8);
+
+    EXPECT_TRUE(mapping1 == mapping2);
+    EXPECT_FALSE(mapping1 == mapping3);
+    EXPECT_FALSE(mapping1 == mapping4);
+    EXPECT_FALSE(mapping1 == mapping5);
+    EXPECT_FALSE(mapping1 == mapping6);
+    EXPECT_FALSE(mapping1 == mapping7);
+    EXPECT_FALSE(mapping1 == mapping8);
+
+    EXPECT_TRUE(mapping2 == mapping1);
+    EXPECT_FALSE(mapping2 == mapping3);
+    EXPECT_FALSE(mapping2 == mapping4);
+    EXPECT_FALSE(mapping2 == mapping5);
+    EXPECT_FALSE(mapping2 == mapping6);
+    EXPECT_FALSE(mapping2 == mapping7);
+    EXPECT_FALSE(mapping2 == mapping8);
+
+    EXPECT_FALSE(mapping3 == mapping4);
+    EXPECT_FALSE(mapping3 == mapping5);
+    EXPECT_FALSE(mapping3 == mapping6);
+    EXPECT_FALSE(mapping3 == mapping7);
+    EXPECT_FALSE(mapping3 == mapping8);
+
+    EXPECT_FALSE(mapping4 == mapping5);
+    EXPECT_FALSE(mapping4 == mapping6);
+    EXPECT_FALSE(mapping4 == mapping7);
+    EXPECT_FALSE(mapping4 == mapping8);
+
+    EXPECT_FALSE(mapping5 == mapping6);
+    EXPECT_FALSE(mapping5 == mapping7);
+    EXPECT_FALSE(mapping5 == mapping8);
+
+    EXPECT_FALSE(mapping6 == mapping7);
+    EXPECT_FALSE(mapping6 == mapping8);
+
+    EXPECT_FALSE(mapping7 == mapping8);
+
+    unordered_set<Assignment> set;
+    set.insert(mapping1);
+    EXPECT_TRUE(set.find(mapping1) != set.end());
+    EXPECT_TRUE(set.find(mapping2) != set.end());
+    EXPECT_TRUE(set.find(mapping3) == set.end());
+    EXPECT_TRUE(set.find(mapping4) == set.end());
+    EXPECT_TRUE(set.find(mapping5) == set.end());
+    EXPECT_TRUE(set.find(mapping6) == set.end());
+    EXPECT_TRUE(set.find(mapping7) == set.end());
+    EXPECT_TRUE(set.find(mapping8) == set.end());
+    set.insert(mapping2);
+    EXPECT_TRUE(set.find(mapping1) != set.end());
+    EXPECT_TRUE(set.find(mapping2) != set.end());
+    EXPECT_TRUE(set.find(mapping3) == set.end());
+    EXPECT_TRUE(set.find(mapping4) == set.end());
+    EXPECT_TRUE(set.find(mapping5) == set.end());
+    EXPECT_TRUE(set.find(mapping6) == set.end());
+    EXPECT_TRUE(set.find(mapping7) == set.end());
+    EXPECT_TRUE(set.find(mapping8) == set.end());
+    set.insert(mapping3);
+    EXPECT_TRUE(set.find(mapping1) != set.end());
+    EXPECT_TRUE(set.find(mapping2) != set.end());
+    EXPECT_TRUE(set.find(mapping3) != set.end());
+    EXPECT_TRUE(set.find(mapping4) == set.end());
+    EXPECT_TRUE(set.find(mapping5) == set.end());
+    EXPECT_TRUE(set.find(mapping6) == set.end());
+    EXPECT_TRUE(set.find(mapping7) == set.end());
+    EXPECT_TRUE(set.find(mapping8) == set.end());
 }
 
 TEST(QueryAnswer, handles_answer_basics) {
