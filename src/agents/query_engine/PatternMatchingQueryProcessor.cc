@@ -10,7 +10,6 @@
 #include "Terminal.h"
 #include "UniqueAssignmentFilter.h"
 
-#undef LOG_LEVEL
 #define LOG_LEVEL DEBUG_LEVEL
 #include "Logger.h"
 
@@ -156,9 +155,7 @@ void PatternMatchingQueryProcessor::thread_process_one_query(
     shared_ptr<QueryElement> root_query_element = setup_query_tree(proxy);
     set<string> joint_answer;  // used to stimulate attention broker
     string command = proxy->get_command();
-    unsigned int sink_port_number;
     if (command == ServiceBus::PATTERN_MATCHING_QUERY) {
-        sink_port_number = PortPool::get_port();
         shared_ptr<Sink> query_sink = make_shared<Sink>(
             root_query_element, "Sink_" + proxy->peer_id() + "_" + std::to_string(proxy->get_serial()));
         unsigned int answer_count = 0;
@@ -178,7 +175,6 @@ void PatternMatchingQueryProcessor::thread_process_one_query(
         }
         Utils::sleep(500);
         query_sink->graceful_shutdown();
-        PortPool::return_port(sink_port_number);
     } else {
         Utils::error("Invalid command " + command + " in PatternMatchingQueryProcessor");
     }

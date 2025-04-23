@@ -48,10 +48,10 @@ void check_query(vector<string>& query,
                  bool update_attention_broker,
                  bool unique_assignment) {
     shared_ptr<PatternMatchingQueryProxy> proxy1(new PatternMatchingQueryProxy(
-        query, context, unique_assignment, update_attention_broker, false));
+        query, context, unique_assignment, update_attention_broker, false, 1000));
 
     shared_ptr<PatternMatchingQueryProxy> proxy2(
-        new PatternMatchingQueryProxy(query, context, unique_assignment, update_attention_broker, true));
+        new PatternMatchingQueryProxy(query, context, unique_assignment, update_attention_broker, true, 1000));
 
     client_bus->issue_bus_command(proxy1);
     unsigned int count = 0;
@@ -72,11 +72,13 @@ void check_query(vector<string>& query,
     EXPECT_EQ(count, expected_count);
     EXPECT_EQ(proxy1->get_count(), expected_count);
 
+    //Utils::sleep(2000); // XXX
     client_bus->issue_bus_command(proxy2);
     while (!proxy2->finished()) {
         Utils::sleep();
     }
     EXPECT_EQ(proxy2->get_count(), expected_count);
+    //Utils::sleep(2000); // XXX
 }
 
 TEST(PatternMatchingQuery, queries) {
@@ -89,7 +91,7 @@ TEST(PatternMatchingQuery, queries) {
     setenv("DAS_MONGODB_PASSWORD", "dassecret", 1);
 
     AtomDBSingleton::init();
-    ServiceBus::initialize_statics({}, 54000, 54500);
+    ServiceBus::initialize_statics({}, 54000, 54999);
 
     string peer1_id = "localhost:33701";
     string peer2_id = "localhost:33702";
@@ -168,5 +170,5 @@ TEST(PatternMatchingQuery, queries) {
     check_query(q5, q5_expected_count, client_bus, "PatternMatchingQuery.queries", true, false);
     check_query(q6, q6_expected_count, client_bus, "PatternMatchingQuery.queries", true, true);
 
-    Utils::sleep(1000);
+    Utils::sleep(2000);
 }

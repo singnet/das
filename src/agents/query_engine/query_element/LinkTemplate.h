@@ -1,6 +1,6 @@
 #pragma once
 
-#define LOG_LEVEL INFO_LEVEL
+#define LOG_LEVEL DEBUG_LEVEL
 #include <grpcpp/grpcpp.h>
 
 #include <cstring>

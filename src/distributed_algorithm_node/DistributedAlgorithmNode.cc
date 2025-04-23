@@ -2,7 +2,7 @@
 
 #include "Utils.h"
 
-#define LOG_LEVEL INFO_LEVEL
+#define LOG_LEVEL DEBUG_LEVEL
 #include "Logger.h"
 
 using namespace distributed_algorithm_node;
@@ -29,7 +29,6 @@ void DistributedAlgorithmNode::join_network() {
     LOG_DEBUG("Node " << this->node_id() << " is joining the network");
     this->leadership_broker->set_message_broker(this->message_broker);
     this->message_broker->join_network();
-    // Utils::sleep(1000);
     string my_leadership_vote = this->cast_leadership_vote();
     this->leadership_broker->start_leader_election(my_leadership_vote);
     while (!this->has_leader()) {

@@ -2,7 +2,7 @@
 
 #include "ServiceBus.h"
 
-#define LOG_LEVEL INFO_LEVEL
+#define LOG_LEVEL DEBUG_LEVEL
 #include "Logger.h"
 
 using namespace query_engine;
@@ -146,12 +146,15 @@ bool PatternMatchingQueryProxy::get_unique_assignment_flag() {
 void PatternMatchingQueryProxy::set_unique_assignment_flag(bool flag) {
     lock_guard<mutex> semaphore(this->api_mutex);
     this->unique_assignment_flag = flag;
+}
 
 void PatternMatchingQueryProxy::set_max_answer_count(unsigned int max_answer_count) {
+    lock_guard<mutex> semaphore(this->api_mutex);
     this->max_answer_count = max_answer_count;
 }
 
 unsigned int PatternMatchingQueryProxy::get_max_answer_count() {
+    lock_guard<mutex> semaphore(this->api_mutex);
     return this->max_answer_count;
 }
 
