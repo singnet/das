@@ -11,7 +11,7 @@ CONTAINER_NAME="das-${BINARY_NAME}-$(uuidgen | cut -d '-' -f 1)-$(date +%Y%m%d%H
 ENV_VARS=$(test -f .env && echo "--env-file=.env" || echo "")
 
 mkdir -p bin
-docker run --rm \
+docker run \
     --name="${CONTAINER_NAME}" \
     --network host \
     --volume .:/opt/das \
