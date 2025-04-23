@@ -1696,7 +1696,7 @@
     },
     "@@rules_python+//python/extensions:pip.bzl%pip": {
       "general": {
-        "bzlTransitiveDigest": "x72ACxH0lg548pLZKK9wAv+7cWdByXE5Bne5Mn8QlP8=",
+        "bzlTransitiveDigest": "mLtDDq7T+aT/HQ/12nj2s0WRihrguWSxSPW4ESkta+Q=",
         "usagesDigest": "l42R1Kgi9Hg+b5Ckec7/dh8Qv2d3RXCVukvBI/vt6Js=",
         "recordedFileInputs": {
           "@@//deps/requirements_atomdb_lock.txt": "fe4d4fc7664d539ba5b347c12959073d0b4a328237d470734d0d59e4d2f1100c",

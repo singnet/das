@@ -4,11 +4,14 @@
 #include <string>
 
 #include "AtomDBSingleton.h"
-#include "DASNode.h"
+#include "PatternMatchingQueryProcessor.h"
+#include "ServiceBusSingleton.h"
 #include "Utils.h"
 
 using namespace std;
 using namespace atomdb;
+using namespace query_engine;
+using namespace service_bus;
 
 void ctrl_c_handler(int) {
     // std::cout << "Stopping query engine server..." << std::endl;
@@ -27,7 +30,10 @@ int main(int argc, char* argv[]) {
     signal(SIGINT, &ctrl_c_handler);
     signal(SIGTERM, &ctrl_c_handler);
     AtomDBSingleton::init();
-    DASNode server(server_id);
+    ServiceBusSingleton::init(server_id);
+    shared_ptr<ServiceBus> service_bus = ServiceBusSingleton::get_instance();
+    service_bus->register_processor(make_shared<PatternMatchingQueryProcessor>());
+
     cout
         << "#############################     REQUEST QUEUE EMPTY     ##################################"
         << endl;

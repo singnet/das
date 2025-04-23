@@ -7,7 +7,7 @@
 #include "BusCommandProcessor.h"
 #include "BusCommandProxy.h"
 #include "BusNode.h"
-#include "SharedQueue.h"
+#include "PortPool.h"
 #include "Utils.h"
 
 using namespace std;
@@ -59,6 +59,7 @@ class ServiceBus {
    private:
     class Node : public BusNode {
        public:
+        Node();
         Node(const string& id,
              shared_ptr<BusNode::Bus> bus,
              const set<string>& node_commands,
@@ -85,9 +86,6 @@ class ServiceBus {
     // Private static state initialized by ServiceBusSingleton
 
     static set<string> SERVICE_LIST;
-    static unsigned int COMMAND_PROXY_PORT_LOWER;
-    static unsigned int COMMAND_PROXY_PORT_UPPER;
-    static SharedQueue* PORT_POOL;
 
     // ---------------------------------------------------------------------------------------------
     // Private state
@@ -101,6 +99,8 @@ class ServiceBus {
     // Public API
 
    public:
+    static string PATTERN_MATCHING_QUERY;
+
     /**
      * Registers a processor making it take the ownership of one or more bus commands.
      *
@@ -129,31 +129,18 @@ class ServiceBus {
      */
     static void initialize_statics(const set<string>& commands = {},
                                    unsigned int port_lower = 64000,
-                                   unsigned int port_upper = 64999) {
-        if (commands.size() > 0) {
-            for (auto command : commands) {
-                SERVICE_LIST.insert(command);
-            }
-        } else {
-            SERVICE_LIST.insert("PATTERN_MATCHING_QUERY");
-        }
-        COMMAND_PROXY_PORT_LOWER = port_lower;
-        COMMAND_PROXY_PORT_UPPER = port_upper;
-        if (COMMAND_PROXY_PORT_LOWER > COMMAND_PROXY_PORT_UPPER) {
-            Utils::error("Invalid port limits [" + to_string(COMMAND_PROXY_PORT_LOWER) + ".." +
-                         to_string(COMMAND_PROXY_PORT_UPPER) + "]");
-        }
-        PORT_POOL = new SharedQueue();
-        for (unsigned long port = COMMAND_PROXY_PORT_LOWER; port <= COMMAND_PROXY_PORT_UPPER; port++) {
-            PORT_POOL->enqueue((void*) port);
-        }
-    }
+                                   unsigned int port_upper = 64999);
 
     /**
      * Constructor is not actually part of the API, it's supposed to be called
      * by ServiceBusSingleton. It's kept public to make it easier to write unit tests.
      */
     ServiceBus(const string& host_id, const string& known_peer = "");
+
+    /**
+     * Destructor
+     */
+    ~ServiceBus();
 };
 
 }  // namespace service_bus

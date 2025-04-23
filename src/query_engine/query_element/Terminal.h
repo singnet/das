@@ -1,5 +1,4 @@
-#ifndef _QUERY_ELEMENT_TERMINAL_H
-#define _QUERY_ELEMENT_TERMINAL_H
+#pragma once
 
 #include <array>
 #include <string>
@@ -7,6 +6,9 @@
 #include "AtomDBSingleton.h"
 #include "QueryElement.h"
 #include "expression_hasher.h"
+
+#define LOG_LEVEL INFO_LEVEL
+#include "Logger.h"
 
 using namespace std;
 using namespace query_engine;
@@ -90,6 +92,7 @@ class Node : public Terminal {
         this->name = name;
         this->handle = shared_ptr<char>(terminal_hash((char*) type.c_str(), (char*) name.c_str()),
                                         default_delete<char[]>());
+        LOG_INFO("Node " << this->to_string());
     }
 
     /**
@@ -140,6 +143,7 @@ class Link : public Terminal {
         this->handle =
             shared_ptr<char>(composite_hash(handle_keys, ARITY + 1), default_delete<char[]>());
         free(handle_keys[0]);
+        LOG_INFO("Link " << this->to_string());
     }
 
     /**
@@ -202,5 +206,3 @@ class Variable : public Terminal {
 };
 
 }  // namespace query_element
-
-#endif  // _QUERY_ELEMENT_TERMINAL_H

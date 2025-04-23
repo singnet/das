@@ -1,6 +1,6 @@
-#ifndef _QUERY_ELEMENT_LINKTEMPLATE_H
-#define _QUERY_ELEMENT_LINKTEMPLATE_H
+#pragma once
 
+#define LOG_LEVEL INFO_LEVEL
 #include <grpcpp/grpcpp.h>
 
 #include <cstring>
@@ -9,8 +9,9 @@
 #include "AtomDBAPITypes.h"
 #include "AtomDBSingleton.h"
 #include "AttentionBrokerServer.h"
-#include "HandlesAnswer.h"
 #include "Iterator.h"
+#include "Logger.h"
+#include "QueryAnswer.h"
 #include "QueryNode.h"
 #include "SharedQueue.h"
 #include "Source.h"
@@ -112,15 +113,13 @@ class LinkTemplate : public Source {
         // that we want the string for this identifier to be the same as the string representing
         // the handle.
         this->id = this->handle.get() + std::to_string(LinkTemplate::next_instance_count());
+        LOG_INFO("LinkTemplate " << this->to_string());
     }
 
     /**
      * Destructor.
      */
     virtual ~LinkTemplate() {
-#ifdef DEBUG
-        cout << "LinkTemplate::LinkTemplate() DESTRUCTOR BEGIN" << endl;
-#endif
         this->graceful_shutdown();
         local_answers_mutex.lock();
         if (this->atom_document) delete[] this->atom_document;
@@ -129,7 +128,7 @@ class LinkTemplate : public Source {
             delete[] this->next_inner_answer;
         }
         while (!this->local_buffer.empty()) {
-            delete (HandlesAnswer*) this->local_buffer.dequeue();
+            delete (QueryAnswer*) this->local_buffer.dequeue();
         }
         for (auto* answer : this->inner_answers) {
             if (answer) delete answer;
@@ -138,9 +137,6 @@ class LinkTemplate : public Source {
         this->inner_template.clear();
         this->inner_template_iterator.reset();
         local_answers_mutex.unlock();
-#ifdef DEBUG
-        cout << "LinkTemplate::LinkTemplate() DESTRUCTOR END" << endl;
-#endif
     }
 
     // --------------------------------------------------------------------------------------------
@@ -150,9 +146,6 @@ class LinkTemplate : public Source {
      * Gracefully shuts down this QueryElement's processor thread.
      */
     virtual void graceful_shutdown() {
-#ifdef DEBUG
-        cout << "LinkTemplate::graceful_shutdown() BEGIN" << endl;
-#endif
         if (this->is_flow_finished()) return;
         set_flow_finished();
         if (this->local_buffer_processor != NULL) {
@@ -161,29 +154,23 @@ class LinkTemplate : public Source {
             this->local_buffer_processor = NULL;
         }
         Source::graceful_shutdown();
-#ifdef DEBUG
-        cout << "LinkTemplate::graceful_shutdown() END" << endl;
-#endif
     }
 
     virtual void setup_buffers() {
-#ifdef DEBUG
-        cout << "LinkTemplate::setup_buffers() BEGIN" << endl;
-#endif
         Source::setup_buffers();
         if (this->inner_template.size() > 0) {
             // clang-format off
             switch (this->inner_template.size()) {
                 case 1: {
                     this->inner_template_iterator =
-                        make_shared<Iterator<HandlesAnswer>>(
+                        make_shared<Iterator>(
                             inner_template[0]
                         );
                     break;
                 }
                 case 2: {
                     this->inner_template_iterator = 
-                        make_shared<Iterator<HandlesAnswer>>(
+                        make_shared<Iterator>(
                             make_shared<And<2>>(
                                 array<shared_ptr<QueryElement>, 2>(
                                     {
@@ -197,7 +184,7 @@ class LinkTemplate : public Source {
                 }
                 case 3: {
                     this->inner_template_iterator = 
-                        make_shared<Iterator<HandlesAnswer>>(
+                        make_shared<Iterator>(
                             make_shared<And<3>>(
                                 array<shared_ptr<QueryElement>, 3>(
                                     {
@@ -212,7 +199,7 @@ class LinkTemplate : public Source {
                 }
                 case 4: {
                     this->inner_template_iterator =
-                        make_shared<Iterator<HandlesAnswer>>(
+                        make_shared<Iterator>(
                             make_shared<And<4>>(
                                 array<shared_ptr<QueryElement>, 4>(
                                     {
@@ -234,14 +221,11 @@ class LinkTemplate : public Source {
         }
         this->local_buffer_processor = new thread(&LinkTemplate::local_buffer_processor_method, this);
         fetch_links();
-#ifdef DEBUG
-        cout << "LinkTemplate::setup_buffers() END" << endl;
-#endif
     }
 
    private:
     struct less_than_query_answer {
-        inline bool operator()(const HandlesAnswer* qa1, const HandlesAnswer* qa2) {
+        inline bool operator()(const QueryAnswer* qa1, const QueryAnswer* qa2) {
             // Reversed check as we want descending sort
             return (qa1->importance > qa2->importance);
         }
@@ -273,20 +257,15 @@ class LinkTemplate : public Source {
             stub->get_importance(new grpc::ClientContext(), handle_list, &importance_list);
             return;
         }
-
-#ifdef DEBUG
-        cout << "get_importance() paginating" << endl;
+        LOG_DEBUG("Paginating get_importance()");
         unsigned int page_count = 1;
-#endif
 
         dasproto::HandleList small_handle_list;
         dasproto::ImportanceList small_importance_list;
         unsigned int remaining = handle_list.list_size();
         unsigned int cursor = 0;
         while (remaining > 0) {
-#ifdef DEBUG
-            cout << "get_importance() page: " << page_count++ << endl;
-#endif
+            LOG_DEBUG("get_importance() page: " << page_count++);
             for (unsigned int i = 0; i < MAX_GET_IMPORTANCE_BUNDLE_SIZE; i++) {
                 if (cursor == handle_list.list_size()) {
                     break;
@@ -294,9 +273,7 @@ class LinkTemplate : public Source {
                 small_handle_list.add_list(handle_list.list(cursor++));
                 remaining--;
             }
-#ifdef DEBUG
-            cout << "discharging: " << small_handle_list.list_size() << endl;
-#endif
+            LOG_DEBUG("get_importance() discharging: " << small_handle_list.list_size());
             stub->get_importance(new grpc::ClientContext(), small_handle_list, &small_importance_list);
             for (unsigned int i = 0; i < small_importance_list.list_size(); i++) {
                 importance_list.add_list(small_importance_list.list(i));
@@ -307,18 +284,12 @@ class LinkTemplate : public Source {
     }
 
     void fetch_links() {
-#ifdef DEBUG
-        cout << "fetch_links() BEGIN" << endl;
-        cout << "fetch_links() Pattern handle: " << this->handle << endl;
-#endif
         shared_ptr<AtomDB> db = AtomDBSingleton::get_instance();
         this->fetch_result = db->query_for_pattern(this->handle);
         unsigned int answer_count = this->fetch_result->size();
-#ifdef DEBUG
-        cout << "fetch_links() ac: " << answer_count << endl;
-#endif
-        HandlesAnswer* query_answer;
-        vector<HandlesAnswer*> fetched_answers;
+        LOG_INFO("Fetched " << answer_count << " links for link template " << this->to_string());
+        QueryAnswer* query_answer;
+        vector<QueryAnswer*> fetched_answers;
         if (answer_count > 0) {
             dasproto::HandleList handle_list;
             handle_list.set_context(this->context);
@@ -335,13 +306,13 @@ class LinkTemplate : public Source {
                              " Expected size: " + std::to_string(answer_count));
             }
             this->atom_document = new shared_ptr<atomdb_api_types::AtomDocument>[answer_count];
-            this->local_answers = new HandlesAnswer*[answer_count];
+            this->local_answers = new QueryAnswer*[answer_count];
             this->next_inner_answer = new unsigned int[answer_count];
             it = this->fetch_result->get_iterator();
             unsigned int i = 0;
             while ((handle = it->next()) != nullptr) {
                 this->atom_document[i] = db->get_atom_document(handle);
-                query_answer = new HandlesAnswer(handle, importance_list.list(i));
+                query_answer = new QueryAnswer(handle, importance_list.list(i));
                 const char* s = this->atom_document[i]->get("targets", 0);
                 for (unsigned int j = 0; j < this->arity; j++) {
                     if (this->target_template[j]->is_terminal) {
@@ -375,9 +346,6 @@ class LinkTemplate : public Source {
         } else {
             set_flow_finished();
         }
-#ifdef DEBUG
-        cout << "fetch_links() END" << endl;
-#endif
     }
 
     bool is_feasible(unsigned int index) {
@@ -416,8 +384,8 @@ class LinkTemplate : public Source {
 
     bool ingest_newly_arrived_answers() {
         bool flag = false;
-        HandlesAnswer* query_answer;
-        while ((query_answer = dynamic_cast<HandlesAnswer*>(this->inner_template_iterator->pop())) !=
+        QueryAnswer* query_answer;
+        while ((query_answer = dynamic_cast<QueryAnswer*>(this->inner_template_iterator->pop())) !=
                NULL) {
             this->inner_answers.push_back(query_answer);
             flag = true;
@@ -428,8 +396,8 @@ class LinkTemplate : public Source {
     void local_buffer_processor_method() {
         if (this->inner_template.size() == 0) {
             while (!(this->is_flow_finished() && this->local_buffer.empty())) {
-                HandlesAnswer* query_answer;
-                while ((query_answer = (HandlesAnswer*) this->local_buffer.dequeue()) != NULL) {
+                QueryAnswer* query_answer;
+                while ((query_answer = (QueryAnswer*) this->local_buffer.dequeue()) != NULL) {
                     this->output_buffer->add_query_answer(query_answer);
                 }
                 Utils::sleep();
@@ -484,6 +452,21 @@ class LinkTemplate : public Source {
         return instance_count++;
     }
 
+    string to_string() {
+        string answer = string(this->handle.get()) + " [" + this->type + " <";
+        for (unsigned int i = 0; i < this->arity; i++) {
+            answer += this->handle_keys[i];
+            if (this->target_template[i]->id != "") {
+                answer += " (" + target_template[i]->id + ")";
+            }
+            if (i != (this->arity - 1)) {
+                answer += ", ";
+            }
+        }
+        answer += ">]";
+        return answer;
+    }
+
    private:
     string type;
     array<shared_ptr<QueryElement>, ARITY> target_template;
@@ -497,17 +480,15 @@ class LinkTemplate : public Source {
     thread* local_buffer_processor;
     bool fetch_finished;
     mutex fetch_finished_mutex;
-    shared_ptr<QueryNodeServer<HandlesAnswer>> target_buffer[ARITY];
-    shared_ptr<Iterator<HandlesAnswer>> inner_template_iterator;
+    shared_ptr<QueryNodeServer> target_buffer[ARITY];
+    shared_ptr<Iterator> inner_template_iterator;
     shared_ptr<atomdb_api_types::AtomDocument>* atom_document;
-    HandlesAnswer** local_answers;
+    QueryAnswer** local_answers;
     unsigned int* next_inner_answer;
-    vector<HandlesAnswer*> inner_answers;
+    vector<QueryAnswer*> inner_answers;
     unsigned int local_answers_size;
     mutex local_answers_mutex;
     string context;
 };
 
 }  // namespace query_element
-
-#endif  // _QUERY_ELEMENT_LINKTEMPLATE_H
