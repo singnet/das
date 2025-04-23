@@ -8,6 +8,7 @@
 #include "ServiceBus.h"
 #include "Sink.h"
 #include "Terminal.h"
+#include "StoppableThread.h"
 
 #define LOG_LEVEL INFO_LEVEL
 #include "Logger.h"

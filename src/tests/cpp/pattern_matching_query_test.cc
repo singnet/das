@@ -153,6 +153,5 @@ TEST(PatternMatchingQuery, queries) {
     check_query(q3, q3_expected_count, client_bus, "PatternMatchingQuery.queries", true);
     check_query(q4, q4_expected_count, client_bus, "PatternMatchingQuery.queries", true);
     check_query(q5, q5_expected_count, client_bus, "PatternMatchingQuery.queries", true);
-
     Utils::sleep(2000);
 }

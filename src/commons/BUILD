@@ -8,6 +8,7 @@ cc_library(
         ":request_validator",
         ":shared_queue",
         ":utils",
+        ":stoppable_thread",
     ],
 )
 
@@ -35,4 +36,13 @@ cc_library(
     name = "logger",
     hdrs = ["Logger.h"],
     deps = [],
+)
+
+cc_library(
+    name = "stoppable_thread",
+    srcs = ["StoppableThread.cc"],
+    hdrs = ["StoppableThread.h"],
+    deps = [
+        ":logger",
+    ],
 )
