@@ -2,6 +2,9 @@
 
 #include "Utils.h"
 
+#define LOG_LEVEL INFO_LEVEL
+#include "Logger.h"
+
 using namespace service_bus;
 using namespace commons;
 
@@ -25,6 +28,7 @@ void ServiceBusSingleton::init(const string& host_id,
         ServiceBus::initialize_statics({}, port_lower, port_upper);
         SERVICE_BUS = shared_ptr<ServiceBus>(new ServiceBus(host_id, known_peer));
         INITIALIZED = true;
+        Utils::sleep(500);
     }
 }
 

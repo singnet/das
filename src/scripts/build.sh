@@ -5,7 +5,7 @@ set -eoux pipefail
 ARCH=$(uname -m)
 
 IMAGE_NAME="das-builder"
-CONTAINER_NAME=${IMAGE_NAME}-container
+CONTAINER_NAME="das-builder-$(uuidgen | cut -d '-' -f 1)-$(date +%Y%m%d%H%M%S)"
 CONTAINER_USER=$([ "$ARCH" != "arm64" ] && echo "$USER" || echo "builder")
 
 ENV_VARS=$(test -f .env && echo "--env-file=.env" || echo "")
@@ -23,11 +23,6 @@ CONTAINER_WORKSPACE_DIR=/opt/das/src
 CONTAINER_BIN_DIR=$CONTAINER_WORKSPACE_DIR/bin
 CONTAINER_CACHE=/home/${CONTAINER_USER}/.cache
 
-if docker ps -a --format '{{.Names}}' | grep -q "^${CONTAINER_NAME}$"; then
-  echo "Removing existing container: ${CONTAINER_NAME}"
-  docker rm -f "${CONTAINER_NAME}"
-fi
-
 docker run --rm \
   $([ "$ARCH" != "arm64" ] && echo "--user=$(id -u):$(id -g) --volume /etc/passwd:/etc/passwd:ro" || echo "--user=$CONTAINER_USER") \
   --privileged \
@@ -40,3 +35,10 @@ docker run --rm \
   --workdir $CONTAINER_WORKSPACE_DIR \
   ${IMAGE_NAME} \
   ./scripts/bazel_build.sh
+
+sleep 1
+
+if docker ps -a --format '{{.Names}}' | grep -q "^${CONTAINER_NAME}$"; then
+  echo "Removing existing container: ${CONTAINER_NAME}"
+  _=$(docker rm -f "${CONTAINER_NAME}" 2>&1 > /dev/null || true)
+fi

@@ -4,16 +4,17 @@
 #include <string>
 
 #include "AtomDBSingleton.h"
-#include "CountAnswer.h"
-#include "DASNode.h"
-#include "HandlesAnswer.h"
-#include "RemoteIterator.h"
+#include "PatternMatchingQueryProxy.h"
+#include "QueryAnswer.h"
+#include "ServiceBusSingleton.h"
 #include "Utils.h"
 
 #define MAX_QUERY_ANSWERS ((unsigned int) 500)
 
 using namespace std;
 using namespace atomdb;
+using namespace query_engine;
+using namespace service_bus;
 
 void ctrl_c_handler(int) {
     std::cout << "Stopping link creation engine server..." << std::endl;
@@ -89,6 +90,8 @@ void run(const string& context, const string& word_tag) {
     ;
     AtomDBSingleton::init();
     shared_ptr<AtomDB> db = AtomDBSingleton::get_instance();
+    ServiceBusSingleton::init(client_id, server_id);
+    shared_ptr<ServiceBus> service_bus = ServiceBusSingleton::get_instance();
 
     string and_operator = "AND";
     string link_template = "LINK_TEMPLATE";
@@ -123,17 +126,18 @@ void run(const string& context, const string& word_tag) {
                                  symbol,
                                  "\"" + word_tag + "\""};
 
-    DASNode client(client_id, server_id);
+    shared_ptr<PatternMatchingQueryProxy> proxy =
+        make_shared<PatternMatchingQueryProxy>(query_word, context, true);
+    service_bus->issue_bus_command(proxy);
 
-    HandlesAnswer* query_answer;
+    shared_ptr<QueryAnswer> query_answer;
     unsigned int count = 0;
-    auto response = unique_ptr<RemoteIterator<HandlesAnswer>>(
-        client.pattern_matcher_query(query_word, context, true));
+
     shared_ptr<atomdb_api_types::AtomDocument> sentence_document;
     shared_ptr<atomdb_api_types::AtomDocument> sentence_name_document;
     vector<string> sentences;
-    while (!response->finished()) {
-        if ((query_answer = dynamic_cast<HandlesAnswer*>(response->pop())) == NULL) {
+    while (!proxy->finished()) {
+        if ((query_answer = proxy->pop()) == NULL) {
             Utils::sleep();
         } else {
             // cout << "------------------------------------------" << endl;
@@ -166,10 +170,14 @@ void run(const string& context, const string& word_tag) {
         exit(0);
     }
 
-    int query_count = client.count_query(query_word, context, true);
-    Utils::sleep();
+    shared_ptr<PatternMatchingQueryProxy> proxy2 =
+        make_shared<PatternMatchingQueryProxy>(query_word, context, true, true);
+    service_bus->issue_bus_command(proxy2);
+    while (!proxy2->finished()) {
+        Utils::sleep();
+    }
+    int query_count = proxy2->get_count();
     cout << "Count: " << query_count << endl;
-    Utils::sleep();
 }
 
 int main(int argc, char* argv[]) {
@@ -178,6 +186,7 @@ int main(int argc, char* argv[]) {
         exit(1);
     }
     signal(SIGINT, &ctrl_c_handler);
+    signal(SIGTERM, &ctrl_c_handler);
     string context = argv[1];
     string word_tag = argv[2];
 

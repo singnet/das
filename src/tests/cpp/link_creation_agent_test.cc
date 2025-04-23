@@ -18,6 +18,7 @@ class LinkCreationAgentTest : public ::testing::Test {
     LinkCreationAgent* agent;
 
     void SetUp() override {
+        ServiceBusSingleton::init("localhost:7002");
         // Create a temporary config file for testing
         ofstream config_file("test_config.cfg");
         config_file << "requests_interval_seconds=1\n";
@@ -38,6 +39,9 @@ class LinkCreationAgentTest : public ::testing::Test {
 };
 
 TEST_F(LinkCreationAgentTest, TestRequest) {
+    // test config
+    agent = new LinkCreationAgent("test_config.cfg");
+    delete agent;
     // Simulate a request
     vector<string> request = {
         "query1", "LINK_CREATE", "test", "1", "0", "VARIABLE", "V1", "10", "5", "test_context", "true"};
@@ -79,11 +83,6 @@ TEST_F(LinkCreationAgentTest, TestRequest) {
     EXPECT_EQ(lca_request->update_attention_broker, false);
     EXPECT_EQ(lca_request->infinite, true);
     EXPECT_EQ(lca_request->id, "1");
-}
-
-TEST_F(LinkCreationAgentTest, TestConfig) {
-    agent = new LinkCreationAgent("test_config.cfg");
-    delete agent;
 }
 
 TEST(LinkCreateTemplate, TestCustomField) {
@@ -302,7 +301,7 @@ TEST(LinkCreateTemplate, TestInvalidNode) {
 
 TEST(Link, TestLink) {
     vector<string> link_template = split("LINK_CREATE Similarity 2 0 VARIABLE V1 VARIABLE V2", ' ');
-    HandlesAnswer* query_answer = new HandlesAnswer();
+    shared_ptr<QueryAnswer> query_answer = make_shared<QueryAnswer>();
     query_answer->assignment.assign("V1", "Value1");
     query_answer->assignment.assign("V2", "Value2");
 
@@ -314,9 +313,8 @@ TEST(Link, TestLink) {
     EXPECT_EQ(Utils::join(link.tokenize(), ' '), "LINK Similarity 2 HANDLE Value1 HANDLE Value2");
     EXPECT_EQ(link.to_metta_string(), "(Value1 Value2)");
     link_template.clear();
-    delete query_answer;
 
-    query_answer = new HandlesAnswer();
+    query_answer = make_shared<QueryAnswer>();
     link_template = split("LINK_CREATE Test 3 0 NODE Symbol A VARIABLE V1 NODE Symbol B", ' ');
     query_answer->assignment.assign("V1", "Value1");
     link = Link(query_answer, link_template);
@@ -330,9 +328,8 @@ TEST(Link, TestLink) {
     EXPECT_EQ(link.to_metta_string(), "(A Value1 B)");
 
     link_template.clear();
-    delete query_answer;
 
-    query_answer = new HandlesAnswer();
+    query_answer = make_shared<QueryAnswer>();
     link_template = split(
         "LINK_CREATE Test2 2 1 NODE Symbol C NODE Symbol B "
         "CUSTOM_FIELD truth_value 2 CUSTOM_FIELD mean 2 count 10 avg 0.9 confidence 0.9",
@@ -351,9 +348,8 @@ TEST(Link, TestLink) {
               "count 10 avg 0.9 confidence 0.9");
 
     link_template.clear();
-    delete query_answer;
 
-    query_answer = new HandlesAnswer();
+    query_answer = make_shared<QueryAnswer>();
     link_template = split(
         "LINK_CREATE Test3 2 1 VARIABLE V1 VARIABLE V2 "
         "CUSTOM_FIELD truth_value 2 CUSTOM_FIELD mean 2 count 10 avg 0.9 confidence 0.9",
@@ -371,7 +367,6 @@ TEST(Link, TestLink) {
               "LINK Test3 2 HANDLE Value1 HANDLE Value2 CUSTOM_FIELD truth_value 2 CUSTOM_FIELD mean 2 "
               "count 10 avg 0.9 confidence 0.9");
     link_template.clear();
-    delete query_answer;
 
     // clang-format off
     link_template = split(
@@ -385,7 +380,7 @@ TEST(Link, TestLink) {
                 "NODE Symbol D "
         "NODE Symbol B", ' ');
     // clang-format on
-    query_answer = new HandlesAnswer();
+    query_answer = make_shared<QueryAnswer>();
     query_answer->assignment.assign("V1", "Value1");
     query_answer->assignment.assign("V2", "Value2");
     link = Link(query_answer, link_template);
@@ -394,5 +389,4 @@ TEST(Link, TestLink) {
     Link l = link.untokenize(link.tokenize());
     EXPECT_EQ(l.to_metta_string(), "(Value1 (A Value2 (C D)) B)");
     link_template.clear();
-    delete query_answer;
 }

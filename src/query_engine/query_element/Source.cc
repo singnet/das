@@ -39,7 +39,7 @@ void Source::setup_buffers() {
     if (this->id == "") {
         Utils::error("Invalid empty id");
     }
-    this->output_buffer = make_shared<QueryNodeClient<HandlesAnswer>>(this->id, this->subsequent_id);
+    this->output_buffer = make_shared<QueryNodeClient>(this->id, this->subsequent_id);
 }
 
 void Source::graceful_shutdown() { this->output_buffer->graceful_shutdown(); }

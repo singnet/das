@@ -1,24 +1,28 @@
 #!/bin/bash
 
-CONTAINER_NAME="$1"
+set -eoux pipefail
+
+BINARY_NAME="${1}"
 shift
+
+IMAGE_NAME="das-builder"
+CONTAINER_NAME="das-${BINARY_NAME}-$(uuidgen | cut -d '-' -f 1)-$(date +%Y%m%d%H%M%S)"
 
 ENV_VARS=$(test -f .env && echo "--env-file=.env" || echo "")
 
-if docker ps -a --format '{{.Names}}' | grep -q "^${CONTAINER_NAME}$"; then
-  echo "Removing existing container: ${CONTAINER_NAME}"
-  docker rm -f "${CONTAINER_NAME}"
-fi
-
 mkdir -p bin
-docker run \
-    --name="$CONTAINER_NAME" \
+docker run --rm \
+    --name="${CONTAINER_NAME}" \
     --network host \
     --volume .:/opt/das \
     --workdir /opt/das \
     $ENV_VARS \
-    das-builder \
-    "src/bin/$CONTAINER_NAME" "$@"
+    "${IMAGE_NAME}" \
+    "src/bin/${BINARY_NAME}" "$@"
 
 sleep 1
-docker rm -f "$CONTAINER_NAME"
+
+if docker ps -a --format '{{.Names}}' | grep -q "^${CONTAINER_NAME}$"; then
+  echo "Removing existing container: ${CONTAINER_NAME}"
+  _=$(docker rm -f "${CONTAINER_NAME}" 2>&1 > /dev/null || true)
+fi

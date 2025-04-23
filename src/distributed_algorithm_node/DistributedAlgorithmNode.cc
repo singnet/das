@@ -2,6 +2,9 @@
 
 #include "Utils.h"
 
+#define LOG_LEVEL INFO_LEVEL
+#include "Logger.h"
+
 using namespace distributed_algorithm_node;
 using namespace commons;
 
@@ -23,6 +26,7 @@ DistributedAlgorithmNode::~DistributedAlgorithmNode() { this->graceful_shutdown(
 // Public API
 
 void DistributedAlgorithmNode::join_network() {
+    LOG_DEBUG("Node " << this->node_id() << " is joining the network");
     this->leadership_broker->set_message_broker(this->message_broker);
     this->message_broker->join_network();
     // Utils::sleep(1000);
@@ -31,6 +35,7 @@ void DistributedAlgorithmNode::join_network() {
     while (!this->has_leader()) {
         Utils::sleep();
     }
+    LOG_DEBUG("Node " << this->node_id() << " believes the leader is " << this->leader_id());
     vector<string> args;
     args.push_back(this->node_id());
     this->message_broker->broadcast(this->known_commands.NODE_JOINED_NETWORK, args);
@@ -67,7 +72,11 @@ std::shared_ptr<Message> DistributedAlgorithmNode::message_factory(string& comma
     }
 }
 
-void DistributedAlgorithmNode::graceful_shutdown() { this->message_broker->graceful_shutdown(); }
+void DistributedAlgorithmNode::graceful_shutdown() {
+    LOG_DEBUG("Shuting down DistributedAlgorithmNode " << this->node_id());
+    this->message_broker->graceful_shutdown();
+    LOG_DEBUG("Shuting down DistributedAlgorithmNode " << this->node_id() << " done");
+}
 
 string DistributedAlgorithmNode::to_string() {
     string answer = "[node_id: " + this->node_id() + ", leader: " + leader_id() + ", peers: {";

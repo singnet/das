@@ -23,6 +23,30 @@ namespace atomdb {
 class AtomDBCache {
    public:
     /**
+     * @brief The result type for cached pattern matching.
+     */
+    typedef struct {
+        bool is_cache_hit;
+        shared_ptr<atomdb_api_types::HandleSet> result;
+    } QueryForPatternResult;
+
+    /**
+     * @brief The result type for cached atom documents.
+     */
+    typedef struct {
+        bool is_cache_hit;
+        shared_ptr<atomdb_api_types::AtomDocument> result;
+    } GetAtomDocumentResult;
+
+    /**
+     * @brief The result type for cached targets.
+     */
+    typedef struct {
+        bool is_cache_hit;
+        shared_ptr<atomdb_api_types::HandleList> result;
+    } QueryForTargetsResult;
+
+    /**
      * @brief Constructor.
      *
      * The constructor is private to ensure that the correct instance is created.
@@ -40,7 +64,7 @@ class AtomDBCache {
      * @param handle The handle of the atom document.
      * @return The atom document if it is cached, nullptr otherwise.
      */
-    shared_ptr<atomdb_api_types::AtomDocument> get_atom_document(const char* handle);
+    GetAtomDocumentResult get_atom_document(const char* handle);
 
     /**
      * @brief Add an atom document to the cache.
@@ -56,7 +80,7 @@ class AtomDBCache {
      * @param pattern_handle The handle of the pattern.
      * @return The result of the query if it is cached, nullptr otherwise.
      */
-    shared_ptr<atomdb_api_types::HandleSet> query_for_pattern(const char* pattern_handle);
+    QueryForPatternResult query_for_pattern(const char* pattern_handle);
 
     /**
      * @brief Add a pattern matching to the cache.
@@ -73,7 +97,7 @@ class AtomDBCache {
      * @param link_handle The handle of the link.
      * @return The list of targets if it is cached, nullptr otherwise.
      */
-    shared_ptr<atomdb_api_types::HandleList> query_for_targets(const char* link_handle);
+    QueryForTargetsResult query_for_targets(const char* link_handle);
 
     /**
      * @brief Add a handle list to the cache.
