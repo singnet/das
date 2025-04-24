@@ -67,8 +67,14 @@ vector<vector<string>> EquivalenceProcessor::process(
         LOG_INFO("C1 and C2 are the same, skipping equivalence processing.");
         return {};
     }
-    string c1_name = AtomDBSingleton::get_instance()->get_atom_document(c1_handle.c_str())->get("name");
-    string c2_name = AtomDBSingleton::get_instance()->get_atom_document(c2_handle.c_str())->get("name");
+    try{
+        string c1_name = AtomDBSingleton::get_instance()->get_atom_document(c1_handle.c_str())->get("name");
+        string c2_name = AtomDBSingleton::get_instance()->get_atom_document(c2_handle.c_str())->get("name");
+    } catch (const std::exception& e) {
+        LOG_ERROR("Exception: " << e.what());
+        return {};
+    }
+
     LOG_DEBUG("(" << c1_name << ", " << c2_name << ")");
     auto pattern_query = get_pattern_query(c1_name, c2_name);
     // if (this->das_node == nullptr) {
