@@ -67,10 +67,13 @@ vector<vector<string>> EquivalenceProcessor::process(
         LOG_INFO("C1 and C2 are the same, skipping equivalence processing.");
         return {};
     }
+    string c1_name;
+    string c2_name;
     try{
-        string c1_name = AtomDBSingleton::get_instance()->get_atom_document(c1_handle.c_str())->get("name");
-        string c2_name = AtomDBSingleton::get_instance()->get_atom_document(c2_handle.c_str())->get("name");
+        c1_name = AtomDBSingleton::get_instance()->get_atom_document(c1_handle.c_str())->get("name");
+        c2_name = AtomDBSingleton::get_instance()->get_atom_document(c2_handle.c_str())->get("name");
     } catch (const std::exception& e) {
+        LOG_ERROR("Failed to get handles: " << c1_handle << ", " << c2_handle);
         LOG_ERROR("Exception: " << e.what());
         return {};
     }

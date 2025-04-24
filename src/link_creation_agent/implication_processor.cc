@@ -65,10 +65,13 @@ vector<vector<string>> ImplicationProcessor::process(
         LOG_INFO("P1 and P2 are the same, skipping implication processing.");
         return {};
     }
+    string p1_name;
+    string p2_name;
     try{
-        string p1_name = AtomDBSingleton::get_instance()->get_atom_document(p1_handle.c_str())->get("name");
-        string p2_name = AtomDBSingleton::get_instance()->get_atom_document(p2_handle.c_str())->get("name");
+        p1_name = AtomDBSingleton::get_instance()->get_atom_document(p1_handle.c_str())->get("name");
+        p2_name = AtomDBSingleton::get_instance()->get_atom_document(p2_handle.c_str())->get("name");
     }catch(const std::exception& e){
+        LOG_ERROR("Failed to get handles: " << p1_handle << ", " << p2_handle);
         LOG_ERROR("Failed to get atom name: " << e.what());
         return {};
     }
