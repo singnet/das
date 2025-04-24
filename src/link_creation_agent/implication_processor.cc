@@ -14,7 +14,7 @@ ImplicationProcessor::ImplicationProcessor() {
     try {
         AtomDBSingleton::init();
     } catch (const std::exception& e) {
-        cerr << "Error: " << e.what() << endl;
+         // TODO fix this
     }
 }
 
