@@ -78,6 +78,9 @@ void InferenceAgent::run() {
                     string first_handle = answer[1];
                     string second_handle = answer[2];
                     int max_proof_length = stoi(answer[3]);
+                    if (max_proof_length > max_proof_length_limit) {
+                        Utils::error("Max proof length exceeded");
+                    }
                     string context = answer[4];
                     if (inference_command == PROOF_OF_IMPLICATION_OR_EQUIVALENCE) {
                         LOG_DEBUG("Received proof of implication or equivalence");
@@ -150,9 +153,9 @@ void InferenceAgent::send_distributed_inference_control_request(const string& cl
         make_shared<InferenceIterator<InferenceAgentNode>>(client_node_id);
     inference_iterators.push_back(inference_iterator);
     LOG_DEBUG("Sending distributed inference control request ID: " << client_node_id);
-    // distributed_inference_control_client->send_inference_control_request(
-    //     iterator_link_creation_request_map[client_node_id]->get_distributed_inference_control_request(),
-    //     client_node_id);
+    distributed_inference_control_client->send_inference_control_request(
+        iterator_link_creation_request_map[client_node_id]->get_distributed_inference_control_request(),
+        client_node_id);
     LOG_DEBUG("Distributed inference control request sent");
 }
 
