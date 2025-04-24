@@ -6,12 +6,12 @@
 
 #include <type_traits>
 
+#include "agents/query_engine/QueryAnswer.h"
 #include "distributed_algorithm_node/DistributedAlgorithmNode.h"
 #include "distributed_algorithm_node/LeadershipBroker.h"
 #include "distributed_algorithm_node/Message.h"
 #include "distributed_algorithm_node/MessageBroker.h"
 #include "distributed_algorithm_node/StarNode.h"
-#include "query_engine/QueryAnswer.h"
 
 namespace nb = nanobind;
 using namespace nb::literals;  // Enables use of literal "_a" for named arguments
