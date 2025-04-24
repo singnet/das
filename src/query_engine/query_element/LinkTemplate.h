@@ -331,10 +331,11 @@ class LinkTemplate : public Source {
     }
 
     shared_ptr<dasproto::ImportanceList> get_importance(const dasproto::HandleList& handle_list) {
-        lock_guard<mutex> lock(LinkTemplate<ARITY>::get_importance_mutex);
         if (this->query_element_registry != nullptr) {
-            auto il = this->query_element_registry->get(this->handle);
+            LinkTemplate<ARITY>::get_importance_mutex.lock() auto il =
+                this->query_element_registry->get(this->handle);
             if (il != nullptr) {
+                LinkTemplate<ARITY>::get_importance_mutex.unlock();
                 return dynamic_pointer_cast<ImportanceList>(il)->importance_list;
             }
         }
@@ -347,6 +348,7 @@ class LinkTemplate : public Source {
             if (this->query_element_registry != nullptr) {
                 this->query_element_registry->add(this->handle,
                                                   make_shared<ImportanceList>(importance_list));
+                LinkTemplate<ARITY>::get_importance_mutex.unlock();
             }
             return importance_list;
         }
@@ -377,6 +379,7 @@ class LinkTemplate : public Source {
         if (this->query_element_registry != nullptr) {
             this->query_element_registry->add(this->handle,
                                               make_shared<ImportanceList>(importance_list));
+            LinkTemplate<ARITY>::get_importance_mutex.unlock();
         }
         return importance_list;
     }

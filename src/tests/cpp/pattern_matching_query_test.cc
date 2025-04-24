@@ -70,7 +70,7 @@ void check_query(vector<string>& query,
     // giving time to the server to close the previous connection
     // otherwise the test fails with "Node ID already in the network"
     Utils::sleep(3000);
-    
+
     client_bus->issue_bus_command(proxy2);
     while (!proxy2->finished()) {
         Utils::sleep();
