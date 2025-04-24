@@ -82,17 +82,7 @@ vector<vector<string>> EquivalenceProcessor::process(
     LOG_DEBUG("Query: " << Utils::join(pattern_query, ' '));
     int count = 0;
     try {
-        // shared_ptr<PatternMatchingQueryProxy> count_query =
-        // make_shared<PatternMatchingQueryProxy>(pattern_query, context, false, true);
-        // this->das_node->issue_bus_command(count_query);
-        // while (!count_query->finished()) {
-        //     // LOG_DEBUG("Waiting for count " << c1_name << " and " << c2_name << " query to finish");
-        //     Utils::sleep();
-        // }
-        // count = count_query->get_count();
         count = count_query(pattern_query, *this->processor_mutex, context, this->das_node);
-        // int count = this->das_node->count_query(pattern_query, context, false, 10);  // TODO context
-        // this->processor_mutex->unlock();
         if (count <= 0) {
             LOG_DEBUG("No pattern found for " << c1_name << " and " << c2_name
                                               << ", skipping equivalence processing.");

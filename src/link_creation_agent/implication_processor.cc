@@ -51,17 +51,6 @@ vector<string> ImplicationProcessor::get_satisfying_set_query(const string& p1, 
     return pattern_query;
 }
 
-// static int query_counter(vector<string>& query, mutex& query_mutex, string& context,
-// shared_ptr<service_bus::ServiceBus> service_bus) {
-//     lock_guard<mutex> lock(query_mutex);
-//     shared_ptr<PatternMatchingQueryProxy> count_query = make_shared<PatternMatchingQueryProxy>(query,
-//     context, false, true); service_bus->issue_bus_command(count_query);
-//     while(!count_query->finished()) {
-//         Utils::sleep();
-//     }
-//     return count_query->get_count();
-// }
-
 vector<vector<string>> ImplicationProcessor::process(
     shared_ptr<QueryAnswer> query_answer, std::optional<std::vector<std::string>> extra_params) {
     // P1 P2
@@ -89,41 +78,16 @@ vector<vector<string>> ImplicationProcessor::process(
                                       "LINK_TEMPLATE", "Expression", "2",          "NODE",   "Symbol",
                                       "CONCEPT",       "VARIABLE",   "P2"};
     LOG_DEBUG("Quering for " << p1_name);
-    // shared_ptr<PatternMatchingQueryProxy> count_query_p1 =
-    // make_shared<PatternMatchingQueryProxy>(pattern_query_1, context, false, true);
-    // this->das_node->issue_bus_command(count_query_p1);
-    // while(!count_query_p1->finished()) {
-    //     Utils::sleep();
-    // }
-    // int p1_set_size = count_query_p1->get_count();
     int p1_set_size = count_query(pattern_query_1, *this->processor_mutex, context, this->das_node);
-
     LOG_DEBUG("P1 set size(" << p1_name << "): " << p1_set_size);
-    // shared_ptr<PatternMatchingQueryProxy> count_query_p2 =
-    // make_shared<PatternMatchingQueryProxy>(pattern_query_2, context, false, true);
-    // this->das_node->issue_bus_command(count_query_p2);
-    // while (!count_query_p2->finished())
-    // {
-    //     Utils::sleep();
-    // }
-    // int p2_set_size = count_query_p2->get_count();
-    // int p2_set_size = query_counter(pattern_query_2, *this->processor_mutex, context, this->das_node);
     int p2_set_size = count_query(pattern_query_2, *this->processor_mutex, context, this->das_node);
-
     LOG_DEBUG("P2 set size(" << p2_name << "): " << p2_set_size);
     auto satisfying_set_query = get_satisfying_set_query(p1_name, p2_name);
-    // shared_ptr<PatternMatchingQueryProxy> count_query_p1_p2 =
-    // make_shared<PatternMatchingQueryProxy>(satisfying_set_query, context, false, true);
-    // this->das_node->issue_bus_command(count_query_p1_p2);
-    // while (!count_query_p1_p2->finished())
-    // {
-    //     Utils::sleep();
-    // }
-    // int p1_p2_set_size = count_query_p1_p2->get_count();
     int p1_p2_set_size =
         count_query(satisfying_set_query, *this->processor_mutex, context, this->das_node);
 
     LOG_DEBUG("P1 and P2 set size(" << p1_name << ", " << p2_name << "): " << p1_p2_set_size);
+
     if (p1_set_size == 0 || p2_set_size == 0 || p1_p2_set_size == 0) {
         LOG_INFO("No pattern found for " << p1_name << " and " << p2_name
                                          << ", skipping implication processing.");

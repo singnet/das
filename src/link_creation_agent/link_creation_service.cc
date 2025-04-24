@@ -48,7 +48,6 @@ LinkCreationService::~LinkCreationService() {
 
 void LinkCreationService::enqueue_link_creation_request(const string& request_id,
                                                         const vector<vector<string>>& link_tokens) {
-    lock_guard<shared_mutex> lock(m_mutex);
     for (const auto& link : link_tokens) {
         link_creation_queue.enqueue(make_tuple(request_id, link));
     }
@@ -81,6 +80,7 @@ void LinkCreationService::process_request(shared_ptr<PatternMatchingQueryProxy> 
                     vector<vector<string>> link_tokens;
                     vector<string> extra_params;
                     extra_params.push_back(context);
+                    shared_lock lock(m_mutex);
                     link_tokens = process_query_answer(query_answer, extra_params, link_template);
                     enqueue_link_creation_request(request_id, link_tokens);
                 } catch (const std::exception& e) {

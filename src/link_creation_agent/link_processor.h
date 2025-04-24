@@ -10,8 +10,8 @@
 #include <stdexcept>
 #include <string>
 #include <vector>
-#include "Logger.h"
 
+#include "Logger.h"
 #include "PatternMatchingQueryProxy.h"
 #include "QueryAnswer.h"
 #include "ServiceBusSingleton.h"
@@ -28,18 +28,33 @@ class LinkProcessor {
         shared_ptr<QueryAnswer> query_answer,
         std::optional<std::vector<std::string>> extra_params = nullopt) = 0;
     virtual ~LinkProcessor() = default;
-    int count_query(vector<string>& query,
+    static int count_query(vector<string>& query,
                            mutex& query_mutex,
                            string& context,
                            shared_ptr<service_bus::ServiceBus> service_bus) {
-        shared_ptr<PatternMatchingQueryProxy> query_count_proxy =
-            make_shared<PatternMatchingQueryProxy>(query, context, false, true);
-        ServiceBusSingleton::get_instance()->issue_bus_command(query_count_proxy);
-        while (!query_count_proxy->finished()) {
-            Utils::sleep();
-        }
-        return query_count_proxy->get_count();
+        int count = _count_query(query, query_mutex, context, service_bus);
+        Utils::sleep(500);  // TODO fix this, waiting to delete to not crash
+        return count;
     }
+    static int _count_query(vector<string>& query,
+                            mutex& query_mutex,
+                            string& context,
+                            shared_ptr<service_bus::ServiceBus> service_bus) {
+        try {
+            shared_ptr<PatternMatchingQueryProxy> query_count_proxy =
+                make_shared<PatternMatchingQueryProxy>(query, context, true, false, true);
+            ServiceBusSingleton::get_instance()->issue_bus_command(query_count_proxy);
+            while (!query_count_proxy->finished()) {
+                Utils::sleep(20);
+            }
+            return query_count_proxy->get_count();
+        } catch (const std::exception& e) {
+            LOG_ERROR("Exception: " << e.what());
+            return 0;
+        }
+    }
+    // protected:
+    // mutex processor_mutex;
 };
 
 enum class ProcessorType { PROOF_OF_IMPLICATION, PROOF_OF_EQUIVALENCE, INVALID };
