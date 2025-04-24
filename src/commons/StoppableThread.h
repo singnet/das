@@ -18,9 +18,10 @@ public:
     StoppableThread(const string &id);
     ~StoppableThread();
 
-    void run(thread *thread_object);
+    void attach(thread *thread_object);
     void stop();
     bool stopped();
+    string get_id();
 
 private:
 

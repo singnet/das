@@ -44,5 +44,6 @@ cc_library(
     hdrs = ["StoppableThread.h"],
     deps = [
         ":logger",
+        ":utils",
     ],
 )
