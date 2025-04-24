@@ -46,7 +46,9 @@ string Console::print_metta(std::vector<string> tokens) {
             LOG_INFO("MeTTa Expression: " << metta_string);
             return metta_string;
         } catch (const std::exception& e) {
-            std::cerr << e.what() << std::endl;
+            LOG_ERROR("Exception: " << e.what());
+            LOG_ERROR("Failed to create MeTTa expression for " << Utils::join(tokens, ' '));
+            return "";
         }
     }
 }

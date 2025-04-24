@@ -163,7 +163,7 @@ if [ "$PARAM" == "start" ]; then
         {
             echo -e "${colors[i % ${#colors[@]}]}Starting: $AGENT_NAME ${commands[i]}${NC}"
             bash -c "$PWD/$AGENT_PATH $AGENT_NAME" 2>&1 | while IFS= read -r line; do
-                echo -e "${colors[i % ${#colors[@]}]}$line${NC}"
+                echo -e "${colors[i % ${#colors[@]}]}[$AGENT_NAME]$line${NC}"
             done
         } &
         sleep 5

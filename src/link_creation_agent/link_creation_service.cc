@@ -137,6 +137,10 @@ void LinkCreationService::create_link_threaded() {
             string id = get<0>(request_map);
             vector<string> request = get<1>(request_map);
             string meta_content = link_creation_agent::Console::get_instance()->print_metta(request);
+            if (meta_content.empty()) {
+                LOG_ERROR("Failed to create MeTTa expression for " << Utils::join(request, ' '));
+                continue;
+            }
             if (metta_expression_set.find(meta_content) != metta_expression_set.end()) {
                 LOG_INFO("Duplicate link creation request, skipping.");
                 continue;
