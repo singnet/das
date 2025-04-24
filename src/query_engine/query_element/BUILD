@@ -93,7 +93,9 @@ cc_library(
   deps = [
     ":and",
     ":or",
+    ":importance_list",
     ":iterator",
+    ":query_element_registry",
     ":terminal",
     ":source",
     "//hasher:hasher_lib",
@@ -132,5 +134,14 @@ cc_library(
   deps = [
     "//commons:commons_lib",
     "//query_engine:query_node",
+  ],
+)
+
+cc_library(
+  name = "importance_list",
+  hdrs = ["ImportanceList.h"],
+  deps = [
+    ":query_element",
+    "//attention_broker:attention_broker_server_lib",
   ],
 )

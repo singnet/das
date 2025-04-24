@@ -11,6 +11,7 @@ QueryElementRegistry::~QueryElementRegistry() {}
 void QueryElementRegistry::add(const string& key, shared_ptr<QueryElement> element) {
     lock_guard<mutex> guard(registry_mutex);
     if (registry.find(key) == registry.end()) {
+        LOG_DEBUG("QueryElementRegistry::add - added key: " << key);
         registry[key] = element;
     } else {
         Utils::error("Query element with key '" + key + "' already exists in the registry");

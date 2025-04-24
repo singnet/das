@@ -231,23 +231,17 @@ shared_ptr<QueryElement> PatternMatchingQueryProcessor::setup_query_tree(
     return element_stack.top();
 }
 
-#define BUILD_LINK_TEMPLATE(N)                                                                    \
-    {                                                                                             \
-        array<shared_ptr<QueryElement>, N> targets;                                               \
-        for (unsigned int i = 0; i < N; i++) {                                                    \
-            targets[i] = element_stack.top();                                                     \
-            element_stack.pop();                                                                  \
-        }                                                                                         \
-        auto handle = LinkTemplate<N>::build_handle(proxy->query_tokens[cursor + 1], targets);    \
-        shared_ptr<QueryElement> link_template = query_element_registry->get(handle);             \
-        if (link_template != nullptr) {                                                           \
-            dynamic_pointer_cast<LinkTemplate<N>>(link_template)->expected_number_of_consumers++; \
-            return link_template;                                                                 \
-        }                                                                                         \
-        link_template = make_shared<LinkTemplate<N>>(                                             \
-            proxy->query_tokens[cursor + 1], targets, proxy->get_context());                      \
-        query_element_registry->add(handle, link_template);                                       \
-        return link_template;                                                                     \
+#define BUILD_LINK_TEMPLATE(N)                                               \
+    {                                                                        \
+        array<shared_ptr<QueryElement>, N> targets;                          \
+        for (unsigned int i = 0; i < N; i++) {                               \
+            targets[i] = element_stack.top();                                \
+            element_stack.pop();                                             \
+        }                                                                    \
+        return make_shared<LinkTemplate<N>>(proxy->query_tokens[cursor + 1], \
+                                            move(targets),                   \
+                                            proxy->get_context(),            \
+                                            query_element_registry);         \
     }
 
 shared_ptr<QueryElement> PatternMatchingQueryProcessor::build_link_template(
@@ -358,14 +352,14 @@ shared_ptr<QueryElement> PatternMatchingQueryProcessor::build_or(
     return NULL;  // Just to avoid warnings. This is not actually reachable.
 }
 
-#define BUILD_LINK(N)                                                          \
-    {                                                                          \
-        array<shared_ptr<QueryElement>, N> targets;                            \
-        for (unsigned int i = 0; i < N; i++) {                                 \
-            targets[i] = element_stack.top();                                  \
-            element_stack.pop();                                               \
-        }                                                                      \
-        return make_shared<Link<N>>(proxy->query_tokens[cursor + 1], targets); \
+#define BUILD_LINK(N)                                                                \
+    {                                                                                \
+        array<shared_ptr<QueryElement>, N> targets;                                  \
+        for (unsigned int i = 0; i < N; i++) {                                       \
+            targets[i] = element_stack.top();                                        \
+            element_stack.pop();                                                     \
+        }                                                                            \
+        return make_shared<Link<N>>(proxy->query_tokens[cursor + 1], move(targets)); \
     }
 
 shared_ptr<QueryElement> PatternMatchingQueryProcessor::build_link(

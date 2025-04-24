@@ -398,7 +398,7 @@ cc_test(
 
 cc_test(
     name = "pattern_matching_query_test",
-    size = "small",
+    size = "medium",
     srcs = ["pattern_matching_query_test.cc"],
     copts = [
         "-Iexternal/gtest/googletest/include",

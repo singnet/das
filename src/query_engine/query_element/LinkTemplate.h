@@ -3,6 +3,7 @@
 #include <grpcpp/grpcpp.h>
 
 #include <cstring>
+#include <optional>
 
 // clang-format off
 #define LOG_LEVEL INFO_LEVEL
@@ -13,8 +14,10 @@
 #include "AtomDBAPITypes.h"
 #include "AtomDBSingleton.h"
 #include "AttentionBrokerServer.h"
+#include "ImportanceList.h"
 #include "Iterator.h"
 #include "QueryAnswer.h"
+#include "QueryElementRegistry.h"
 #include "QueryNode.h"
 #include "SharedQueue.h"
 #include "Source.h"
@@ -82,14 +85,17 @@ class LinkTemplate : public Source {
      * @param targets An array with targets which can each be a Terminal or a nested LinkTemplate.
      * @param context An optional string defining the context used by the AttentionBroker to
      *        consider STI (short term importance).
+     * @param query_element_registry An optional pointer to a QueryElementRegistry.
      */
     LinkTemplate(const string& type,
-                 const array<shared_ptr<QueryElement>, ARITY>& targets,
-                 const string& context = "") {
+                 array<shared_ptr<QueryElement>, ARITY>&& targets,
+                 const string& context = "",
+                 QueryElementRegistry* query_element_registry = nullptr) {
         this->context = context;
         this->arity = ARITY;
         this->type = type;
-        this->target_template = targets;
+        this->query_element_registry = query_element_registry;
+        this->target_template = move(targets);
         this->fetch_finished = false;
         this->setup_buffers_triggered = false;
         this->expected_number_of_consumers = 1;
@@ -98,8 +104,8 @@ class LinkTemplate : public Source {
         this->local_answers_size = 0;
         this->local_buffer_processor = nullptr;
         this->setup_buffers_thread = nullptr;
-        this->handle =
-            LinkTemplate<ARITY>::build_handle(type, targets, this->handle_keys, &this->inner_template);
+        this->handle = LinkTemplate<ARITY>::build_handle(
+            type, this->target_template, this->handle_keys, &this->inner_template);
 
         // This is correct. id is not necessarily a handle but an identifier.
         // It is passed in to the constructor of OutputBuffers as a unique prefix.
@@ -324,14 +330,25 @@ class LinkTemplate : public Source {
         return answer;
     }
 
-    void get_importance(const dasproto::HandleList& handle_list,
-                        dasproto::ImportanceList& importance_list) {
+    shared_ptr<dasproto::ImportanceList> get_importance(const dasproto::HandleList& handle_list) {
+        lock_guard<mutex> lock(LinkTemplate<ARITY>::get_importance_mutex);
+        if (this->query_element_registry != nullptr) {
+            auto il = this->query_element_registry->get(this->handle);
+            if (il != nullptr) {
+                return dynamic_pointer_cast<ImportanceList>(il)->importance_list;
+            }
+        }
+        auto importance_list = make_shared<dasproto::ImportanceList>();
         auto stub = dasproto::AttentionBroker::NewStub(
             grpc::CreateChannel(this->attention_broker_address, grpc::InsecureChannelCredentials()));
 
         if (handle_list.list_size() <= MAX_GET_IMPORTANCE_BUNDLE_SIZE) {
-            stub->get_importance(new grpc::ClientContext(), handle_list, &importance_list);
-            return;
+            stub->get_importance(new grpc::ClientContext(), handle_list, importance_list.get());
+            if (this->query_element_registry != nullptr) {
+                this->query_element_registry->add(this->handle,
+                                                  make_shared<ImportanceList>(importance_list));
+            }
+            return importance_list;
         }
         LOG_DEBUG("Paginating get_importance()");
         unsigned int page_count = 1;
@@ -352,11 +369,16 @@ class LinkTemplate : public Source {
             LOG_DEBUG("get_importance() discharging: " << small_handle_list.list_size());
             stub->get_importance(new grpc::ClientContext(), small_handle_list, &small_importance_list);
             for (unsigned int i = 0; i < small_importance_list.list_size(); i++) {
-                importance_list.add_list(small_importance_list.list(i));
+                importance_list->add_list(small_importance_list.list(i));
             }
             small_handle_list.clear_list();
             small_importance_list.clear_list();
         }
+        if (this->query_element_registry != nullptr) {
+            this->query_element_registry->add(this->handle,
+                                              make_shared<ImportanceList>(importance_list));
+        }
+        return importance_list;
     }
 
     void fetch_links() {
@@ -374,11 +396,10 @@ class LinkTemplate : public Source {
             while ((handle = it->next()) != nullptr) {
                 handle_list.add_list(handle);
             }
-            dasproto::ImportanceList importance_list;
-            get_importance(handle_list, importance_list);
-            if (importance_list.list_size() != answer_count) {
+            auto importance_list = get_importance(handle_list);
+            if (importance_list->list_size() != answer_count) {
                 Utils::error("Invalid AttentionBroker answer. Size: " +
-                             std::to_string(importance_list.list_size()) +
+                             std::to_string(importance_list->list_size()) +
                              " Expected size: " + std::to_string(answer_count));
             }
             this->atom_document = new shared_ptr<atomdb_api_types::AtomDocument>[answer_count];
@@ -388,8 +409,7 @@ class LinkTemplate : public Source {
             unsigned int i = 0;
             while ((handle = it->next()) != nullptr) {
                 this->atom_document[i] = db->get_atom_document(handle);
-                query_answer = new QueryAnswer(handle, importance_list.list(i));
-                const char* s = this->atom_document[i]->get("targets", 0);
+                query_answer = new QueryAnswer(handle, importance_list->list(i));
                 for (unsigned int j = 0; j < this->arity; j++) {
                     if (this->target_template[j]->is_terminal) {
                         auto terminal = dynamic_pointer_cast<Terminal>(this->target_template[j]);
@@ -563,6 +583,11 @@ class LinkTemplate : public Source {
     mutex setup_buffers_mutex;
     bool setup_buffers_triggered;
     thread* setup_buffers_thread;
+    QueryElementRegistry* query_element_registry;
+    static mutex get_importance_mutex;
 };
+
+template <unsigned int ARITY>
+std::mutex LinkTemplate<ARITY>::get_importance_mutex;
 
 }  // namespace query_element

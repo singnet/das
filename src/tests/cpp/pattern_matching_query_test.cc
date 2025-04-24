@@ -67,6 +67,10 @@ void check_query(vector<string>& query,
     EXPECT_EQ(count, expected_count);
     EXPECT_EQ(proxy1->get_count(), expected_count);
 
+    // giving time to the server to close the previous connection
+    // otherwise the test fails with "Node ID already in the network"
+    Utils::sleep(3000);
+    
     client_bus->issue_bus_command(proxy2);
     while (!proxy2->finished()) {
         Utils::sleep();
