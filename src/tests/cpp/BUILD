@@ -280,6 +280,33 @@ cc_test(
 )
 
 cc_test(
+    name = "unique_assignment_filter_test",
+    size = "medium",
+    srcs = [
+        "unique_assignment_filter_test.cc",
+        "test_utils.cc",
+        "test_utils.h",
+    ],
+    copts = [
+        "-Iexternal/gtest/googletest/include",
+        "-Iexternal/gtest/googletest",
+    ],
+    linkopts = [
+        "-L/usr/local/lib",
+        "-lhiredis_cluster",
+        "-lhiredis",
+        "-lmongocxx",
+        "-lbsoncxx",
+    ],
+    linkstatic = 1,
+    deps = [
+        "//query_engine:query_engine_lib",
+        "@com_github_google_googletest//:gtest_main",
+        "@mbedtls//:mbedtls",
+    ],
+)
+
+cc_test(
     name = "iterator_test",
     size = "small",
     srcs = [

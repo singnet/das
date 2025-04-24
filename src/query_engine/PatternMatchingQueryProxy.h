@@ -44,6 +44,8 @@ class PatternMatchingQueryProxy : public BusCommandProxy {
      *
      * @param tokens Query tokens.
      * @param context AttentionBroker context
+     * @param unique_assignment When true, operators (e.g. And, Or) don't output more than one
+     * QueryAnswer with the same variable assignment.
      * @param update_attention_broker Flag to trigger AttentionBroker update based on this query
      * results
      * @param count_only Flag to indicate that this query is supposed to count the results and not
@@ -51,9 +53,10 @@ class PatternMatchingQueryProxy : public BusCommandProxy {
      * the caller of the query).
      */
     PatternMatchingQueryProxy(const vector<string>& tokens,
-                              const string& context = "",
-                              bool update_attention_broker = false,
-                              bool count_only = false);
+                              const string& context,
+                              bool unique_assignment,
+                              bool update_attention_broker,
+                              bool count_only);
 
     /**
      * Destructor.
@@ -163,6 +166,24 @@ class PatternMatchingQueryProxy : public BusCommandProxy {
     void set_count_flag(bool flag);
 
     /**
+     * Getter for unique_assignment_flag
+     *
+     * unique_assignment_flag prevents duplicated variable assignment in Operators' output
+     *
+     * @return unique_assignment_flag
+     */
+    bool get_unique_assignment_flag();
+
+    /**
+     * Setter for unique_assignment_flag
+     *
+     * unique_assignment_flag prevents duplicated variable assignment in Operators' output
+     *
+     * @param flag Flag
+     */
+    void set_unique_assignment_flag(bool flag);
+
+    /**
      * Getter for query_tokens
      *
      * @return query_tokens
@@ -221,6 +242,7 @@ class PatternMatchingQueryProxy : public BusCommandProxy {
     string context;
     bool update_attention_broker;
     bool count_flag;
+    bool unique_assignment_flag;
 
     void init();
 };

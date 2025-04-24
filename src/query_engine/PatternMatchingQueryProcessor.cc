@@ -9,6 +9,7 @@
 #include "Sink.h"
 #include "Terminal.h"
 #include "StoppableThread.h"
+#include "UniqueAssignmentFilter.h"
 
 #define LOG_LEVEL INFO_LEVEL
 #include "Logger.h"
@@ -138,10 +139,13 @@ void PatternMatchingQueryProcessor::thread_process_one_query(
     if (proxy->args.size() < 2) {
         Utils::error("Syntax error in query command. Missing implicit parameters.");
     }
-    proxy->set_context(proxy->args[0]);
-    proxy->set_attention_update_flag(proxy->args[1] == "1");
-    proxy->set_count_flag(proxy->args[2] == "1");
-    proxy->query_tokens.insert(proxy->query_tokens.begin(), proxy->args.begin() + 3, proxy->args.end());
+    unsigned int skip_arg = 0;
+    proxy->set_context(proxy->args[skip_arg++]);
+    proxy->set_unique_assignment_flag(proxy->args[skip_arg++] == "1");
+    proxy->set_attention_update_flag(proxy->args[skip_arg++] == "1");
+    proxy->set_count_flag(proxy->args[skip_arg++] == "1");
+    proxy->query_tokens.insert(
+        proxy->query_tokens.begin(), proxy->args.begin() + skip_arg, proxy->args.end());
     LOG_DEBUG("Setting up query tree");
     shared_ptr<QueryElement> root_query_element = setup_query_tree(proxy);
     set<string> joint_answer;  // used to stimulate attention broker
@@ -213,8 +217,14 @@ shared_ptr<QueryElement> PatternMatchingQueryProcessor::setup_query_tree(
             element_stack.push(build_link_template(proxy, cursor, element_stack));
         } else if (proxy->query_tokens[cursor] == "AND") {
             element_stack.push(build_and(proxy, cursor, element_stack));
+            if (proxy->get_unique_assignment_flag()) {
+                element_stack.push(build_unique_assignment_filter(proxy, cursor, element_stack));
+            }
         } else if (proxy->query_tokens[cursor] == "OR") {
             element_stack.push(build_or(proxy, cursor, element_stack));
+            if (proxy->get_unique_assignment_flag()) {
+                element_stack.push(build_unique_assignment_filter(proxy, cursor, element_stack));
+            }
         } else {
             Utils::error("Invalid token " + proxy->query_tokens[cursor] +
                          " in PATTERN_MATCHING_QUERY message");
@@ -630,4 +640,19 @@ shared_ptr<QueryElement> PatternMatchingQueryProcessor::build_link(
         }
     }
     return NULL;  // Just to avoid warnings. This is not actually reachable.
+}
+
+shared_ptr<QueryElement> PatternMatchingQueryProcessor::build_unique_assignment_filter(
+    shared_ptr<PatternMatchingQueryProxy> proxy,
+    unsigned int cursor,
+    stack<shared_ptr<QueryElement>>& element_stack) {
+    if (element_stack.size() < 1) {
+        Utils::error(
+            "PATTERN_MATCHING_QUERY message: parse error in tokens - too few arguments for "
+            "UniqueAssignmentFilter");
+    }
+
+    shared_ptr<QueryElement> input = element_stack.top();
+    element_stack.pop();
+    return make_shared<UniqueAssignmentFilter>(input);
 }

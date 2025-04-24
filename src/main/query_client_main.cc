@@ -65,7 +65,7 @@ int main(int argc, char* argv[]) {
 
     shared_ptr<ServiceBus> service_bus = ServiceBusSingleton::get_instance();
     shared_ptr<PatternMatchingQueryProxy> proxy =
-        make_shared<PatternMatchingQueryProxy>(query, "", update_attention_broker);
+        make_shared<PatternMatchingQueryProxy>(query, "", true, update_attention_broker, false);
     service_bus->issue_bus_command(proxy);
     shared_ptr<QueryAnswer> query_answer;
     int count = 0;
@@ -79,6 +79,7 @@ int main(int argc, char* argv[]) {
             }
         }
     }
+    cout << count << " answers" << endl;
     if (count == 0) {
         cout << "No match for query" << endl;
     }

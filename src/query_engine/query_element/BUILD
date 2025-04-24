@@ -13,6 +13,7 @@ cc_library(
     ":query_element",
     ":link_template",
     ":source",
+    ":unique_assignment_filter",
   ],
 )
 
@@ -102,6 +103,15 @@ cc_library(
   ],
 )
 
+
+cc_library(
+  name = "unique_assignment_filter",
+  srcs = ["UniqueAssignmentFilter.cc"],
+  hdrs = ["UniqueAssignmentFilter.h"],
+  deps = [
+    ":query_element",
+  ],
+)
 
 cc_library(
   name = "source",
