@@ -18,7 +18,7 @@ cc_library(
         ":pattern_matching_query_processor",
         ":pattern_matching_query_proxy",
         "//distributed_algorithm_node:star_node",
-        "//query_engine/query_element:query_element_lib",
+        "//agents/query_engine/query_element:query_element_lib",
         "//attention_broker:attention_broker_server_lib",
         "//distributed_algorithm_node:distributed_algorithm_node_lib",
         "//hasher:hasher_lib",
@@ -68,7 +68,7 @@ cc_library(
   hdrs = ["PatternMatchingQueryProcessor.h"],
   deps = [
     "//service_bus:bus_command_processor",
-    "//query_engine/query_element:query_element_lib",
+    "//agents/query_engine/query_element:query_element_lib",
     ":pattern_matching_query_proxy",
   ],
 )
