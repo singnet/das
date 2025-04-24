@@ -41,6 +41,7 @@ int main(int argc, char* argv[]) {
         exit(1);
     }
     signal(SIGINT, &ctrl_c_handler);
+    signal(SIGTERM, &ctrl_c_handler);
     string config_path = argv[2];
 
     cout << "Starting server" << endl;

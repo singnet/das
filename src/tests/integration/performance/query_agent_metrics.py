@@ -2,40 +2,89 @@ import subprocess
 import sys
 import time
 import os
-from typing import MutableMapping
 
 # Number of times to run each query. At the end, the average time will be printed.
 TESTS_ROUNDS = 10
 
+FAILED_TIME = -1.0  # Time to be returned when the query fails
 
-def get_env_vars() -> MutableMapping:
+ANY_ROUND_FAILED = False  # Flag to indicate if any round failed
+
+
+def set_dot_env_file():
     """
-    Sets the environment variables for the Query Agent.
+    Sets the environment variables in the .env file.
     """
-    os.environ.update(
-        {
-            "DAS_MONGODB_HOSTNAME": "localhost",
-            "DAS_MONGODB_PORT": "38000",
-            "DAS_MONGODB_USERNAME": "dbadmin",
-            "DAS_MONGODB_PASSWORD": "dassecret",
-            "DAS_REDIS_HOSTNAME": "localhost",
-            "DAS_REDIS_PORT": "39000",
-        }
+    # remove the .env file if it exists
+    if os.path.exists(".env"):
+        os.remove(".env")
+    # create a new .env file
+    with open(".env", "w") as f:
+        f.write(
+            "DAS_MONGODB_HOSTNAME=localhost\n"
+            "DAS_MONGODB_PORT=38000\n"
+            "DAS_MONGODB_USERNAME=dbadmin\n"
+            "DAS_MONGODB_PASSWORD=dassecret\n"
+            "DAS_REDIS_HOSTNAME=localhost\n"
+            "DAS_REDIS_PORT=39000\n"
+        )
+
+
+def force_stop(pattern: str):
+    """
+    Forcefully stops a running container that matches the given pattern.
+
+    The pattern should be either "run-attention-broker" or "run-query-agent".
+    The function will remove the container and its associated resources.
+    """
+    if "run-attention-broker" in pattern:
+        pattern = "attention_broker"
+    elif "run-query-agent" in pattern:
+        pattern = "query_broker"
+    else:
+        return
+    subprocess.run(
+        "docker rm -f $(docker ps -a | awk '/" + pattern + "/ {print $1}')",
+        shell=True,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.STDOUT,
+        check=False,
     )
-    return os.environ
 
 
 def start_process(command: str) -> subprocess.Popen:
+    """
+    Starts a new process with the given command.
+
+    The command is executed using subprocess.Popen. The process is started
+    with the preexec_fn argument set to os.setsid, which makes the process
+    the leader of a new process group. This allows the process to be killed
+    using os.killpg, including all its children.
+
+    Args:
+        command (str): The shell command to be executed.
+
+    Returns:
+        subprocess.Popen: The process object.
+    """
+    force_stop(command)
     return subprocess.Popen(
         command,
         shell=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        env=get_env_vars(),
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.STDOUT,
+        preexec_fn=os.setsid,
     )
 
 
 def stop_process(process: subprocess.Popen):
+    """
+    Stops a subprocess.Popen object and kills its process group.
+
+    This method is used to stop a process and all its children.
+    """
+    force_stop(str(process.args))
+    os.killpg(os.getpgid(process.pid), subprocess.signal.SIGTERM)
     process.terminate()
     process.wait()
 
@@ -48,10 +97,7 @@ def run_command(command: str, check: bool = True) -> float:
         command (str): The shell command to be executed.
 
     Returns:
-        float: The execution time of the command in seconds.
-
-    Raises:
-        SystemExit: If the command execution fails.
+        float: The execution time of the command in seconds. -1 if the command fails.
     """
     start_time = time.perf_counter()
     try:
@@ -59,19 +105,19 @@ def run_command(command: str, check: bool = True) -> float:
             command,
             shell=True,
             check=check,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            env=get_env_vars(),
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.STDOUT,
         )
     except subprocess.CalledProcessError:
-        print(f"Command failed: {command}")
-        sys.exit(1)
+        return FAILED_TIME
     end_time = time.perf_counter()
     execution_time = end_time - start_time
     return execution_time
 
 
 def main():
+    set_dot_env_file()
+
     # fmt: off
     queries: dict[str, str] = dict(
         linktemplate_3_node_var_link=("""
@@ -122,7 +168,7 @@ def main():
     )
     # fmt: on
 
-    cmd_prefix = "bash src/scripts/run.sh query 'localhost:31701' 'localhost:31700' false "  # Prefix for all commands
+    cmd_prefix = "bash src/scripts/run.sh query 'localhost:31701' 'localhost:31700' false 1"  # Prefix for all commands
     cmd_suffix = ""  # Suffix for all commands
 
     # Start the Attention Broker
@@ -146,6 +192,7 @@ def main():
 
         print(f"Rounds [for round in range({TESTS_ROUNDS})]:", flush=True)
 
+        valid_rounds = TESTS_ROUNDS
         for round in range(TESTS_ROUNDS):
             # Start the Query Agent
             query_agent_process = start_process("make run-query-agent")
@@ -161,13 +208,20 @@ def main():
             # Stop the Query Agent
             stop_process(query_agent_process)
 
-            execution_time += round_time
+            if round_time != FAILED_TIME:
+                execution_time += round_time
+                print(f"{round_time:.2f} seconds")
+            else:
+                print("Failed")
+                valid_rounds -= 1
+                global ANY_ROUND_FAILED
+                ANY_ROUND_FAILED = True
 
-            print(f"{round_time:.2f} seconds")
+        execution_time_avg = execution_time / valid_rounds
 
-        execution_time_avg = execution_time / TESTS_ROUNDS
-
-        print(f"Average time for '{name}': {execution_time_avg:.2f} seconds")
+        print(
+            f"Average time for '{name}': {execution_time_avg:.2f} seconds (over {valid_rounds} rounds)"
+        )
 
     # Stop the Attention Broker
     print("\nStopping Attention Broker...", flush=True)
@@ -176,3 +230,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+    sys.exit(-1 if ANY_ROUND_FAILED else 0)

@@ -38,6 +38,7 @@ int main(int argc, char* argv[]) {
         request.push_back(argv[i]);
     }
     signal(SIGINT, &ctrl_c_handler);
+    signal(SIGTERM, &ctrl_c_handler);
     string config_path = argv[2];
     cout << "Starting inference agent" << endl;
     auto client = new InferenceAgentNode(client_id, server_id);

@@ -316,6 +316,7 @@ int main(int argc, char* argv[]) {
         exit(1);
     }
     signal(SIGINT, &ctrl_c_handler);
+    signal(SIGTERM, &ctrl_c_handler);
     string context = argv[1];
     string link_type_tag = argv[2];
 
