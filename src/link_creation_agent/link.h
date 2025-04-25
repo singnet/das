@@ -46,11 +46,11 @@ class Link {
      * @brief Tokenize the link
      * @returns Returns the tokenized link
      */
-    vector<string> tokenize();
+    vector<string> tokenize(bool include_custom_field_size = true);
 
     string to_metta_string();
 
-    Link untokenize(const vector<string>& tokens);
+    static Link untokenize(const vector<string>& tokens);
 
     /**
      * @brief Get the custom fields of the link
@@ -64,8 +64,8 @@ class Link {
 
    private:
     string type;
-    vector<LinkTargetTypes> targets;
-    vector<CustomField> custom_fields;
-    Link untokenize_link(const vector<string>& tokens, int& cursor);
+    vector<LinkTargetTypes> targets = {};
+    vector<CustomField> custom_fields = {};
+    static Link untokenize_link(const vector<string>& tokens, int& cursor);
 };
 }  // namespace link_creation_agent

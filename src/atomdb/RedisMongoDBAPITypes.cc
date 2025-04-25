@@ -123,6 +123,10 @@ const char* MongodbDocument::get(const string& array_key, unsigned int index) {
     return ((*this->document)[array_key]).get_array().value[index].get_string().value.data();
 }
 
+bool MongodbDocument::contains(const string& key) {
+    return ((*this->document).view()).find(key) != ((*this->document).view()).end();
+}
+
 unsigned int MongodbDocument::get_size(const string& array_key) {
     // NOTE TO REVIEWER
     // TODO: this implementation is wrong and need to be fixed before integration in das-atom-db

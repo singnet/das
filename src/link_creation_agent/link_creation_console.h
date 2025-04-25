@@ -11,6 +11,7 @@
 #include "AtomDBAPITypes.h"
 #include "AtomDBSingleton.h"
 #include "link.h"
+#include "variant"
 
 using namespace atomdb;
 using namespace std;
@@ -22,6 +23,7 @@ class Console {
     static shared_ptr<Console> get_instance();
     ~Console() {}
     string print_metta(std::vector<string> tokens);
+    LinkTargetTypes get_atom(std::string handle);
 
    private:
     Console(){};

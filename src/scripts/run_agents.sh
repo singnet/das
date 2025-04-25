@@ -36,8 +36,8 @@ INFERENCE_AGENT_LINK_CREATION_AGENT_ID=${INFERENCE_AGENT_LINK_CREATION_AGENT_ID:
 ## Link Creation Agent
 LINK_CREATION_QUERY_AGENT_START_PORT=${LINK_CREATION_QUERY_AGENT_START_PORT:-16000}
 LINK_CREATION_QUERY_AGENT_END_PORT=${LINK_CREATION_QUERY_AGENT_END_PORT:-18000}
-LINK_CREATION_QUERY_TIMEOUT_SECONDS=${LINK_CREATION_QUERY_TIMEOUT_SECONDS:-600}
-LINK_CREATION_REQUESTS_INTERVAL_SECONDS=${LINK_CREATION_REQUESTS_INTERVAL_SECONDS:-10}
+LINK_CREATION_QUERY_TIMEOUT_SECONDS=${LINK_CREATION_QUERY_TIMEOUT_SECONDS:-18000}
+LINK_CREATION_REQUESTS_INTERVAL_SECONDS=${LINK_CREATION_REQUESTS_INTERVAL_SECONDS:-18000}
 LINK_CREATION_REQUESTS_BUFFER_FILE=${LINK_CREATION_REQUESTS_BUFFER_FILE:-"buffer"}
 LINK_CREATION_AGENT_THREAD_COUNT=${LINK_CREATION_AGENT_THREAD_COUNT:-1}
 
@@ -79,6 +79,7 @@ else
     echo "requests_interval_seconds = $LINK_CREATION_REQUESTS_INTERVAL_SECONDS" >> $PWD/src/bin/link_creation_server.cfg
     echo "requests_buffer_file = $LINK_CREATION_REQUESTS_BUFFER_FILE" >> $PWD/src/bin/link_creation_server.cfg
     echo "metta_file_path = /opt/das/src/bin" >> $PWD/src/bin/link_creation_server.cfg
+    echo "save_links_to_db = true" >> $PWD/src/bin/link_creation_server.cfg
 fi
 
 # Inference Agent params
@@ -159,17 +160,16 @@ if [ "$PARAM" == "start" ]; then
     for AGENT in "${AGENTS[@]}"; do
         # Split the agent and path
         IFS=';' read -r AGENT_NAME AGENT_PATH <<< "$AGENT"
+        IFS=' ' read -r TEMP_NAME _ _ <<< "$AGENT_NAME"
         # echo "Starting agent: $AGENT_NAME"
         {
             echo -e "${colors[i % ${#colors[@]}]}Starting: $AGENT_NAME ${commands[i]}${NC}"
             bash -c "$PWD/$AGENT_PATH $AGENT_NAME" 2>&1 | while IFS= read -r line; do
-                echo -e "${colors[i % ${#colors[@]}]}[$AGENT_NAME]$line${NC}"
+                echo -e "${colors[i % ${#colors[@]}]}[$TEMP_NAME] $line${NC}"
             done
         } &
         sleep 5
         i=$((i + 1))
     done
-    echo "======================================================================================"
-    echo "All agents started."
     wait
 fi

@@ -30,6 +30,13 @@ class LinkCreateTemplate;  // Forward declaration
 struct Node {
     std::string type;
     std::string value;
+    std::vector<std::string> tokenize() {
+        std::vector<std::string> tokens;
+        tokens.push_back("NODE");
+        tokens.push_back(type);
+        tokens.push_back(value);
+        return tokens;
+    }
 };
 
 /**
@@ -162,7 +169,7 @@ class LinkCreateTemplate {
    private:
     std::string link_type;
     std::vector<LinkCreateTemplateTypes> targets;
-    std::vector<CustomField> custom_fields;
+    std::vector<CustomField> custom_fields = {};
 };
 
 class LinkCreateTemplateList {

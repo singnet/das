@@ -1,5 +1,6 @@
 from hyperon_das_atomdb.adapters import RedisMongoDB
-from hyperon_das_atomdb.database import LinkT, NodeT
+from hyperon_das_atomdb.database import LinkT, NodeT, Link
+# from hyperon_das_atomdb_cpp.document_types import Link
 from tokenizers.dict_query_tokenizer import DictQueryTokenizer
 from das_agent_node import DASAgentNode
 import argparse
@@ -16,19 +17,31 @@ def get_request(node: DASAgentNode):
 def parse_targets(targets, atom_db):
     new_targets = []
     for target in targets:
+        if isinstance(target, str):
+            atom = atom_db.get_atom(target)
+            if isinstance(atom, Link):
+                new_targets.append(LinkT(**{"type": atom.named_type, "targets": parse_targets(atom.targets, atom_db)}))
+            else:
+                new_targets.append(NodeT(**{"type": atom.named_type, "name": atom.name}))
+            continue
         if target.get("atom_type") == "link":
             new_targets.append(LinkT(**target))
         elif target.get("atom_type") == "node":
             new_targets.append(NodeT(**{"type": target["type"], "name": target["name"]}))
         elif target.get("handle"):
-            new_targets.append(atom_db.get_atom(target["handle"]))
+            atom = atom_db.get_atom(target["handle"])
+            if isinstance(atom, Link):
+                new_targets.append(LinkT(**{"type": atom.named_type, "targets": parse_targets(atom.targets, atom_db)}))
+            else:
+                new_targets.append(NodeT(**{"type": atom.named_type, "name": atom.name}))
         else:
             raise Exception("Invalid target")
     return new_targets
 
 
-def build_link(request, atom_db) -> LinkT:
+def build_link(request, atom_db) -> LinkT:  
     link = DictQueryTokenizer.untokenize(request)
+    link["type"] = link.get("named_type", link["type"])
     tt = [dict(named_type=t.get("type"), **t) for t in link["targets"]]
     targets = parse_targets(tt, atom_db)
     custom_attributes = {}

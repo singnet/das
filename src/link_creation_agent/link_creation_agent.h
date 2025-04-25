@@ -103,6 +103,8 @@ class LinkCreationAgent {
     string das_agent_server_id;
     string requests_buffer_file;           // Path to the requests buffer file
     string metta_file_path = ".";          // Path to the metta file
+    bool save_links_to_db = false;  // Save links on DB
+    bool save_links_to_metta_file = true;  // Save links on file
     unsigned int query_agent_client_start_port;
     unsigned int query_agent_client_end_port;
 

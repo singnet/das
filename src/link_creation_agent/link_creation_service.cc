@@ -63,7 +63,6 @@ void LinkCreationService::process_request(shared_ptr<PatternMatchingQueryProxy> 
         this->das_client = das_client;
     }
     auto job = [this, proxy, das_client, link_template, max_query_answers, context, request_id]() {
-        LOG_INFO("[" << request_id << "] - Processing request");
         shared_ptr<QueryAnswer> query_answer;
         int count = 0;
         long start = time(0);
@@ -92,8 +91,10 @@ void LinkCreationService::process_request(shared_ptr<PatternMatchingQueryProxy> 
             }
             if (count == max_query_answers) break;
         }
+        Utils::sleep(1000);
         LOG_INFO("[" << request_id << "]"
-                     << " - Finished processing iterator ID: " + proxy->my_id());
+                     << " - Finished processing iterator ID: " + proxy->my_id() << " with count: " << count);
+        
     };
 
     thread_pool.enqueue(job);
@@ -136,22 +137,29 @@ void LinkCreationService::create_link_threaded() {
             auto request_map = link_creation_queue.dequeue();
             string id = get<0>(request_map);
             vector<string> request = get<1>(request_map);
-            string meta_content = link_creation_agent::Console::get_instance()->print_metta(request);
-            if (meta_content.empty()) {
-                LOG_ERROR("Failed to create MeTTa expression for " << Utils::join(request, ' '));
-                continue;
-            }
-            if (metta_expression_set.find(meta_content) != metta_expression_set.end()) {
-                LOG_INFO("Duplicate link creation request, skipping.");
-                continue;
-            }
             try {
-                add_to_file(metta_file_path, id + ".metta", meta_content);
-                das_client->create_link(request);
+                string meta_content = link_creation_agent::Console::get_instance()->print_metta(request);
+                if (meta_content.empty()) {
+                    LOG_ERROR("Failed to create MeTTa expression for " << Utils::join(request, ' '));
+                    continue;
+                }
+                if (metta_expression_set.find(meta_content) != metta_expression_set.end()) {
+                    LOG_INFO("Duplicate link creation request, skipping.");
+                    continue;
+                }
+                if(this->save_links_to_metta_file){
+
+                    LOG_INFO("MeTTa Expression: " << meta_content); 
+                    add_to_file(metta_file_path, id + ".metta", meta_content);
+                }
+                if(this->save_links_to_db){
+                    LOG_INFO("TOKENS: " << Utils::join(request, ' '));
+                    das_client->create_link(request);
+                }
+                metta_expression_set.insert(meta_content);
             } catch (const std::exception& e) {
                 LOG_ERROR("Exception: " << e.what());
             }
-            metta_expression_set.insert(meta_content);
         } else {
             this_thread::sleep_for(chrono::milliseconds(300));
         }

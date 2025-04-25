@@ -37,6 +37,7 @@ shared_ptr<Link> LinkTemplateProcessor::process_template_request(shared_ptr<Quer
     // HandlesAnswer* handles_answer = dynamic_cast<HandlesAnswer*>(query_answer);
     shared_ptr<Link> link = make_shared<Link>();
     link->set_type(link_create_template.get_link_type());
+    link->set_custom_fields(link_create_template.get_custom_fields());
     vector<LinkCreateTemplateTypes> targets = link_create_template.get_targets();
     for (LinkCreateTemplateTypes target : targets) {
         if (holds_alternative<Variable>(target)) {
@@ -53,6 +54,5 @@ shared_ptr<Link> LinkTemplateProcessor::process_template_request(shared_ptr<Quer
             link->add_target(node);
         }
     }
-    link->set_custom_fields(link_create_template.get_custom_fields());
     return link;
 }

@@ -97,6 +97,7 @@ cc_library(
   deps = [
     ":link",
     ":link_create_template",
+    ":link_creation_console",
     "//query_engine:query_engine_lib",
     "//commons:commons_lib",
   ],

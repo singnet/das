@@ -20,7 +20,9 @@ class EquivalenceProcessor : public LinkProcessor {
     ~EquivalenceProcessor() = default;
 
    private:
-    static std::vector<std::string> get_pattern_query(const std::string& c1, const std::string& c2);
+    // static std::vector<std::string> get_pattern_query(const std::string& c1, const std::string& c2);
+    static std::vector<std::string> get_pattern_query(const std::vector<std::string>& c1,
+                                                      const std::vector<std::string>& c2);
     shared_ptr<service_bus::ServiceBus> das_node = nullptr;  // check for concurrency
     shared_ptr<mutex> processor_mutex = nullptr;
 };

@@ -19,8 +19,11 @@ class ImplicationProcessor : public LinkProcessor {
     void set_mutex(shared_ptr<mutex> processor_mutex);
 
    private:
-    static std::vector<std::string> get_satisfying_set_query(const std::string& p1,
-                                                             const std::string& p2);
+    // static std::vector<std::string> get_satisfying_set_query(const std::string& p1,
+    //                                                          const std::string& p2);
+    static std::vector<std::string> get_pattern_query(const std::vector<std::string>& p);
+    static std::vector<std::string> get_satisfying_set_query(const std::vector<std::string>& p1,
+                                                             const std::vector<std::string>& p2);
     shared_ptr<service_bus::ServiceBus> das_node = nullptr;  // check for concurrency
     shared_ptr<mutex> processor_mutex = nullptr;
 };

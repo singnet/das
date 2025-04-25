@@ -60,6 +60,10 @@ class LinkCreationService
     void set_timeout(int timeout);
     void set_query_agent_mutex(shared_ptr<mutex> query_agent_mutex);
     void set_metta_file_path(string metta_file_path);
+    void set_save_links_to_metta_file(bool save_links_to_metta_file) {
+        this->save_links_to_metta_file = save_links_to_metta_file;
+    }
+    void set_save_links_to_db(bool save_links_to_db) { this->save_links_to_db = save_links_to_db; }
     /**
      * @brief Destructor
      */
@@ -81,6 +85,8 @@ class LinkCreationService
     bool is_stoping = false;
     thread create_link_thread;
     set<string> metta_expression_set;
+    bool save_links_to_metta_file = false;
+    bool save_links_to_db = false;
 
     int timeout = 300 * 1000;
 

@@ -4,6 +4,7 @@
 #include "Logger.h"
 #include "PatternMatchingQueryProxy.h"
 #include "link.h"
+#include "link_creation_console.h"
 
 using namespace std;
 using namespace query_engine;
@@ -14,7 +15,7 @@ ImplicationProcessor::ImplicationProcessor() {
     try {
         AtomDBSingleton::init();
     } catch (const std::exception& e) {
-         // TODO fix this
+        // TODO fix this
     }
 }
 
@@ -26,28 +27,104 @@ void ImplicationProcessor::set_mutex(shared_ptr<mutex> processor_mutex) {
     this->processor_mutex = processor_mutex;
 }
 
-vector<string> ImplicationProcessor::get_satisfying_set_query(const string& p1, const string& p2) {
+// vector<string> ImplicationProcessor::get_satisfying_set_query(const string& p1, const string& p2) {
+//     // clang-format off
+//     vector<string> pattern_query = {
+//         "AND", "2",
+//             "LINK_TEMPLATE", "Expression", "3",
+//                 "NODE", "Symbol", "EVALUATION",
+//                 "LINK", "Expression", "2",
+//                     "NODE", "Symbol", "PREDICATE",
+//                     "NODE", "Symbol", p1,
+//                 "LINK_TEMPLATE", "Expression", "2",
+//                     "NODE", "Symbol", "CONCEPT",
+//                     "VARIABLE", "C",
+//             "LINK_TEMPLATE", "Expression", "3",
+//                 "NODE", "Symbol", "EVALUATION",
+//                 "LINK", "Expression", "2",
+//                     "NODE", "Symbol", "PREDICATE",
+//                     "NODE", "Symbol", p2,
+//                 "LINK_TEMPLATE", "Expression", "2",
+//                     "NODE", "Symbol", "CONCEPT",
+//                     "VARIABLE", "C"
+//     };
+//     // clang-format on
+//     string pattern_query_str =
+//         "AND 2 "
+//         "LINK_TEMPLATE Expression 3 "
+//         "NODE Symbol EVALUATION "
+//         "LINK Expression 2 "
+//         "NODE Symbol PREDICATE " +
+//         p1 +
+//         " "
+//         "LINK_TEMPLATE Expression 2 "
+//         "NODE Symbol CONCEPT "
+//         "VARIABLE C "
+//         "LINK_TEMPLATE Expression 3 "
+//         "NODE Symbol EVALUATION "
+//         "LINK Expression 2 "
+//         "NODE Symbol PREDICATE " +
+//         p2 +
+//         " "
+//         "LINK_TEMPLATE Expression 2 "
+//         "NODE Symbol CONCEPT "
+//         "VARIABLE C";
+//     return Utils::split(pattern_query_str, ' ');
+// }
+
+vector<string> ImplicationProcessor::get_pattern_query(const vector<string>& p) {
     // clang-format off
-    vector<string> pattern_query = {
-        "AND", "2",
-            "LINK_TEMPLATE", "Expression", "3",
-                "NODE", "Symbol", "EVALUATION",
-                "LINK", "Expression", "2",
-                    "NODE", "Symbol", "PREDICATE",
-                    "NODE", "Symbol", p1,
-                "LINK_TEMPLATE", "Expression", "2",
-                    "NODE", "Symbol", "CONCEPT",
-                    "VARIABLE", "C",
-            "LINK_TEMPLATE", "Expression", "3",
-                "NODE", "Symbol", "EVALUATION",
-                "LINK", "Expression", "2",
-                    "NODE", "Symbol", "PREDICATE",
-                    "NODE", "Symbol", p2,
-                "LINK_TEMPLATE", "Expression", "2",
-                    "NODE", "Symbol", "CONCEPT",
-                    "VARIABLE", "C"
+    vector<vector<string>> templates = {
+        {
+        "LINK_TEMPLATE", "Expression", "3",
+            "NODE", "Symbol", "EVALUATION",    
+            "LINK", "Expression", "2",      
+                "NODE", "Symbol", "PREDICATE"},
+                p,
+           {"LINK_TEMPLATE", "Expression", "2",          
+                "NODE", "Symbol", "CONCEPT",       
+                "VARIABLE", "PX"}
     };
     // clang-format on
+    vector<string> pattern_query;
+    for(const auto& q_template : templates) {
+        for (const auto& token : q_template) {
+            pattern_query.push_back(token);
+        }
+    }
+    return pattern_query;
+}
+
+vector<string> ImplicationProcessor::get_satisfying_set_query(const vector<string>& p1,
+                                                                const vector<string>& p2) {
+    // clang-format off
+    vector<vector<string>> templates = {
+        {"AND", "2",
+                "LINK_TEMPLATE", "Expression", "3",
+                    "NODE", "Symbol", "EVALUATION",
+                    "LINK", "Expression", "2",
+                        "NODE", "Symbol", "PREDICATE"},
+                        p1,
+                   {"LINK_TEMPLATE", "Expression", "2",
+                        "NODE", "Symbol", "CONCEPT",
+                        "VARIABLE", "C",
+                "LINK_TEMPLATE", "Expression", "3",
+                    "NODE", "Symbol", "EVALUATION",
+                    "LINK", "Expression", "2",
+                        "NODE", "Symbol", "PREDICATE"},
+                        p2,
+                    {"LINK_TEMPLATE", "Expression", "2",
+                        "NODE", "Symbol", "CONCEPT",
+                        "VARIABLE", "C"}
+    };
+
+    // clang-format on
+    vector<string> pattern_query;
+    for(const auto& q_template : templates) {
+        for (const auto& token : q_template) {
+            pattern_query.push_back(token);
+        }
+    }
     return pattern_query;
 }
 
@@ -65,39 +142,78 @@ vector<vector<string>> ImplicationProcessor::process(
         LOG_INFO("P1 and P2 are the same, skipping implication processing.");
         return {};
     }
-    string p1_name;
-    string p2_name;
-    try{
-        p1_name = AtomDBSingleton::get_instance()->get_atom_document(p1_handle.c_str())->get("name");
-        p2_name = AtomDBSingleton::get_instance()->get_atom_document(p2_handle.c_str())->get("name");
-    }catch(const std::exception& e){
+    vector<string> p1_name;
+    vector<string> p2_name;
+    string p1_metta;
+    string p2_metta;
+    try {
+        auto p1_atom = Console::get_instance()->get_atom(p1_handle);
+        auto p2_atom = Console::get_instance()->get_atom(p2_handle);
+        if (std::holds_alternative<Node>(p1_atom)) {
+            p1_name = std::get<Node>(p1_atom).tokenize();
+            // p1_name = Utils::join(node_tokens, ' ');
+            p1_metta = Console::get_instance()->print_metta(p1_name);
+        } else if (std::holds_alternative<shared_ptr<Link>>(p1_atom)) {
+            p1_name = std::get<shared_ptr<Link>>(p1_atom)->tokenize(false);
+            // p1_name = Utils::join(link_tokens, ' ');
+            auto tokenize_metta = std::get<shared_ptr<Link>>(p1_atom)->tokenize();
+            p1_metta = Console::get_instance()->print_metta(tokenize_metta);
+        }
+        if (std::holds_alternative<Node>(p2_atom)) {
+            p2_name = std::get<Node>(p2_atom).tokenize();
+            // p2_name = Utils::join(node_tokens, ' ');
+            p2_metta = Console::get_instance()->print_metta(p2_name);
+        } else if (std::holds_alternative<shared_ptr<Link>>(p2_atom)) {
+            p2_name = std::get<shared_ptr<Link>>(p2_atom)->tokenize(false);
+            // p2_name = Utils::join(link_tokens, ' ');
+            auto tokenize_metta = std::get<shared_ptr<Link>>(p2_atom)->tokenize();
+            p2_metta = Console::get_instance()->print_metta(tokenize_metta);
+        }
+    } catch (const std::exception& e) {
         LOG_ERROR("Failed to get handles: " << p1_handle << ", " << p2_handle);
         LOG_ERROR("Failed to get atom name: " << e.what());
         return {};
     }
-    vector<string> pattern_query_1 = {"LINK_TEMPLATE", "Expression", "3",          "NODE",   "Symbol",
-                                      "EVALUATION",    "LINK",       "Expression", "2",      "NODE",
-                                      "Symbol",        "PREDICATE",  "NODE",       "Symbol", p1_name,
-                                      "LINK_TEMPLATE", "Expression", "2",          "NODE",   "Symbol",
-                                      "CONCEPT",       "VARIABLE",   "P1"};
-    vector<string> pattern_query_2 = {"LINK_TEMPLATE", "Expression", "3",          "NODE",   "Symbol",
-                                      "EVALUATION",    "LINK",       "Expression", "2",      "NODE",
-                                      "Symbol",        "PREDICATE",  "NODE",       "Symbol", p2_name,
-                                      "LINK_TEMPLATE", "Expression", "2",          "NODE",   "Symbol",
-                                      "CONCEPT",       "VARIABLE",   "P2"};
-    LOG_DEBUG("Quering for " << p1_name);
-    int p1_set_size = count_query(pattern_query_1, *this->processor_mutex, context, this->das_node);
-    LOG_DEBUG("P1 set size(" << p1_name << "): " << p1_set_size);
-    int p2_set_size = count_query(pattern_query_2, *this->processor_mutex, context, this->das_node);
-    LOG_DEBUG("P2 set size(" << p2_name << "): " << p2_set_size);
-    auto satisfying_set_query = get_satisfying_set_query(p1_name, p2_name);
-    int p1_p2_set_size =
-        count_query(satisfying_set_query, *this->processor_mutex, context, this->das_node);
 
-    LOG_DEBUG("P1 and P2 set size(" << p1_name << ", " << p2_name << "): " << p1_p2_set_size);
+    // clang-format off
+    // vector<string> pattern_query_1 = {
+    //     "LINK_TEMPLATE", "Expression", "3",
+    //         "NODE", "Symbol", "EVALUATION",    
+    //         "LINK", "Expression", "2",      
+    //             "NODE", "Symbol", "PREDICATE",  
+    //             "NODE", "Symbol", p1_name,
+    //         "LINK_TEMPLATE", "Expression", "2",          
+    //             "NODE", "Symbol", "CONCEPT",       
+    //             "VARIABLE", "P1"};
+    // vector<string> pattern_query_2 = {"LINK_TEMPLATE", "Expression", "3",          "NODE",   "Symbol",
+    //                                   "EVALUATION",    "LINK",       "Expression", "2",      "NODE",
+    //                                   "Symbol",        "PREDICATE",  "NODE",       "Symbol", p2_name,
+    //                                   "LINK_TEMPLATE", "Expression", "2",          "NODE",   "Symbol",
+    //                                   "CONCEPT",       "VARIABLE",   "P2"};
+
+    // clang-format on
+
+    // auto pattern_query_1 = Utils::split(pattern_query_1_str, ' ');
+    // auto pattern_query_2 = Utils::split(pattern_query_2_str, ' ');
+    // LOG_DEBUG("P1 Query: " << pattern_query_1_str);
+    auto pattern_query_1 = get_pattern_query(p1_name);
+    auto pattern_query_2 = get_pattern_query(p2_name);
+    LOG_DEBUG("P1 Query: " << Utils::join(pattern_query_1, ' '));
+    LOG_DEBUG("P2 Query: " << Utils::join(pattern_query_2, ' '));
+    int p1_set_size = count_query(pattern_query_1, context);
+    LOG_DEBUG("P1 set size(" << p1_metta << "): " << p1_set_size);
+
+    // LOG_DEBUG("P2 Query: " << pattern_query_2_str);
+    int p2_set_size = count_query(pattern_query_2, context);
+    LOG_DEBUG("P2 set size(" << p2_metta << "): " << p2_set_size);
+    auto satisfying_set_query = get_satisfying_set_query(p1_name, p2_name);
+    LOG_DEBUG("Satisfying Set Query: " << Utils::join(satisfying_set_query, ' '));
+    int p1_p2_set_size = count_query(satisfying_set_query, context);
+
+    LOG_DEBUG("P1 and P2 set size(" << p1_metta << ", " << p2_metta << "): " << p1_p2_set_size);
 
     if (p1_set_size == 0 || p2_set_size == 0 || p1_p2_set_size == 0) {
-        LOG_INFO("No pattern found for " << p1_name << " and " << p2_name
+        LOG_INFO("No pattern found for " << p1_metta << " and " << p2_metta
                                          << ", skipping implication processing.");
         return {};
     }

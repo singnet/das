@@ -28,6 +28,14 @@ LinkCreationAgent::LinkCreationAgent(string config_path) {
     service->set_timeout(query_timeout_seconds);
     service->set_query_agent_mutex(this->query_agent_mutex);
     service->set_metta_file_path(metta_file_path);
+    if (save_links_to_metta_file){
+        LOG_DEBUG("Saving links to metta file: " << metta_file_path);
+    }
+    if (save_links_to_db){
+        LOG_DEBUG("Saving links to DB");
+    }
+    service->set_save_links_to_metta_file(save_links_to_metta_file);
+    service->set_save_links_to_db(save_links_to_db);
     das_client = new DasAgentNode(das_agent_client_id, das_agent_server_id);
     // this->agent_thread = new thread(&LinkCreationAgent::run, this);
 }
@@ -139,6 +147,8 @@ void LinkCreationAgent::load_config() {
     this->query_agent_client_end_port = stoul(config_map["query_agent_client_end_port"]);
     this->query_timeout_seconds = stoi(config_map["query_timeout_seconds"]);
     this->metta_file_path = config_map["metta_file_path"];
+    this->save_links_to_db = config_map.find("save_links_to_db") != config_map.end() ? config_map["save_links_to_db"] == "true": this->save_links_to_db;
+    this->save_links_to_metta_file = config_map.find("save_links_to_metta_file") != config_map.end() ? config_map["save_links_to_metta_file"] == "true": this->save_links_to_metta_file;
 }
 
 void LinkCreationAgent::save_buffer() {
