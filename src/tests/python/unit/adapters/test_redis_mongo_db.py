@@ -1,1235 +1,473 @@
+import json
+import pathlib
+from unittest import mock
+
 import pytest
+from pymongo.errors import OperationFailure
 
 from hyperon_das_atomdb.adapters import RedisMongoDB
 from hyperon_das_atomdb.adapters.redis_mongo_db import KeyPrefix
-from hyperon_das_atomdb.database import WILDCARD, AtomDB, FieldIndexType, LinkT, NodeT
+from hyperon_das_atomdb.database import FieldIndexType, FieldNames, LinkT
+from hyperon_das_atomdb.exceptions import AtomDoesNotExist
 from hyperon_das_atomdb.utils.expression_hasher import ExpressionHasher
-from tests.python.helpers import dict_to_link_params, dict_to_node_params
+from tests.python.helpers import add_node, dict_to_link_params, dict_to_node_params
+from tests.python.unit.fixtures import mongo_mock, redis_mock, redis_mongo_db  # noqa: F401
 
-from .animals_kb import (
-    animal,
-    chimp,
-    ent,
-    human,
-    inheritance,
-    inheritance_docs,
-    mammal,
-    monkey,
-    node_docs,
-    rhino,
-    similarity_docs,
-)
-from .helpers import (
-    Database,
-    PyMongoFindExplain,
-    _db_down,
-    _db_up,
-    cleanup,
-    mongo_port,
-    redis_port,
-)
+FILE_CACHE = {}
 
 
-def metta_to_links(input_str):
-    def parse_tokens(tokens):
-        result = []
-        while tokens:
-            token = tokens.pop(0)
-            if token == "(":
-                nested = parse_tokens(tokens)
-                result.append(nested)
-            elif token == ")":
-                break
+def loader(file_name):
+    global FILE_CACHE
+    path = pathlib.Path(__file__).parent.resolve()
+    filename = f"{path}/data/{file_name}"
+    if filename not in FILE_CACHE:
+        with open(filename) as f:
+            FILE_CACHE[filename] = json.load(f)
+    return FILE_CACHE[filename]
+
+
+class TestRedisMongoDB:
+    def _load_database(self, db):
+        atoms = loader("atom_mongo_redis.json")
+        self.atom_count = 44
+        self.node_count = 14
+        self.link_count = 30
+        for atom in atoms:
+            if "name" in atom:
+                db.add_node(dict_to_node_params(atom))
             else:
-                result.append({"type": "Symbol", "name": token})
-        return {"type": "Expression", "targets": result}
-
-    input_str = input_str.replace("(", " ( ").replace(")", " ) ")
-    tokens = input_str.split()
-    return parse_tokens(tokens)["targets"][0]
-
-
-class TestRedisMongo:
-    @pytest.fixture(scope="session", autouse=True)
-    def _cleanup(self, request):
-        return cleanup(request)
-
-    @pytest.fixture()
-    def _db(self):
-        _db_up(Database.REDIS, Database.MONGO)
-        yield self._connect_db()
-        _db_down()
-
-    @pytest.fixture()
-    def redis_mongo_up(self):
-        _db_up(Database.REDIS, Database.MONGO)
-        yield
-        _db_down()
-
-    def _add_atoms(self, db: RedisMongoDB):
-        for node in node_docs.values():
-            db.add_node(dict_to_node_params(node))
-        for link in inheritance_docs.values():
-            db.add_link(dict_to_link_params(link))
-        for link in similarity_docs.values():
-            db.add_link(dict_to_link_params(link))
-
-    def _connect_db(self, extra_params: dict | None = None):
-        params = {
-            "mongo_port": mongo_port,
-            "mongo_username": "dbadmin",
-            "mongo_password": "dassecret",
-            "redis_port": redis_port,
-            "redis_cluster": False,
-            "redis_ssl": False,
-        }
-        if extra_params:
-            params.update(extra_params)
-        db = RedisMongoDB(**params)
-        return db
-
-    def _check_basic_patterns(self, db, toplevel_only=False):
-        answers = db.get_matched_links(
-            "Inheritance",
-            [WILDCARD, db.node_handle("Concept", "mammal")],
-            toplevel_only=toplevel_only,
-        )
-        assert sorted([db.get_atom(answer).targets[0] for answer in answers]) == sorted(
-            [human, monkey, chimp, rhino]
-        )
-        answers = db.get_matched_links(
-            "Inheritance",
-            [db.node_handle("Concept", "mammal"), WILDCARD],
-            toplevel_only=toplevel_only,
-        )
-        assert sorted([db.get_atom(answer).targets[1] for answer in answers]) == sorted([animal])
-        answers = db.get_matched_links(
-            "Similarity",
-            [WILDCARD, db.node_handle("Concept", "human")],
-            toplevel_only=toplevel_only,
-        )
-        assert sorted([db.get_atom(answer).targets[0] for answer in answers]) == sorted(
-            [monkey, chimp, ent]
-        )
-        answers = db.get_matched_links(
-            "Similarity",
-            [db.node_handle("Concept", "human"), WILDCARD],
-            toplevel_only=toplevel_only,
-        )
-        assert sorted([db.get_atom(answer).targets[1] for answer in answers]) == sorted(
-            [monkey, chimp, ent]
-        )
-
-    def test_redis_retrieve(self, _cleanup, _db: RedisMongoDB):
-        db = _db
-        self._add_atoms(db)
-        assert db.count_atoms() == {"atom_count": 0}
-        db.commit()
-        assert db.count_atoms() == {"atom_count": 40}
-        assert db.count_atoms({"precise": True}) == {
-            "atom_count": 40,
-            "node_count": 14,
-            "link_count": 26,
-        }
-        assert db._retrieve_name(human) == "human"
-
-        links = db._retrieve_incoming_set(mammal)
-        assert len(links) == 5
-        for link in links:
-            outgoing = db._retrieve_outgoing_set(link)
-            assert outgoing in [
-                [human, mammal],
-                [monkey, mammal],
-                [chimp, mammal],
-                [rhino, mammal],
-                [mammal, animal],
-            ]
-
-        templates = db._retrieve_hash_targets_value(
-            KeyPrefix.TEMPLATES, "41c082428b28d7e9ea96160f7fd614ad"
-        )
-        assert sorted(templates) == sorted(
-            [
-                "116df61c01859c710d178ba14a483509",
-                "1c3bf151ea200b2d9e088a1178d060cb",
-                "4120e428ab0fa162a04328e5217912ff",
-                "75756335011dcedb71a0d9a7bd2da9e8",
-                "906fa505ae3bc6336d80a5f9aaa47b3b",
-                "959924e3aab197af80a84c1ab261fd65",
-                "b0f428929706d1d991e4d712ad08f9ab",
-                "c93e1e758c53912638438e2a7d7f7b7f",
-                "e4685d56969398253b6f77efd21dc347",
-                "ee1c03e6d1f104ccd811cfbba018451a",
-                "f31dfe97db782e8cec26de18dddf8965",
-                "fbf03d17d6a40feff828a3f2c6e86f05",
-            ]
-        )
-
-        patterns = db._retrieve_hash_targets_value_from_sorted_set(
-            KeyPrefix.PATTERNS, "112002ff70ea491aad735f978e9d95f5"
-        )
-        assert sorted(patterns) == sorted(
-            [
-                "75756335011dcedb71a0d9a7bd2da9e8",
-                "fbf03d17d6a40feff828a3f2c6e86f05",
-                "f31dfe97db782e8cec26de18dddf8965",
-                "c93e1e758c53912638438e2a7d7f7b7f",
-            ]
-        )
-
-    def test_patterns(self, _cleanup, _db: RedisMongoDB):
-        db = _db
-        self._add_atoms(db)
-        db.commit()
-        assert db.count_atoms() == {"atom_count": 40}
-        self._check_basic_patterns(db)
-
-    def test_commit(self, _cleanup, _db: RedisMongoDB):
-        db = _db
-        assert db.count_atoms() == {"atom_count": 0}
-        self._add_atoms(db)
-        assert db.count_atoms() == {"atom_count": 0}
-        db.commit()
-        assert db.count_atoms() == {"atom_count": 40}
-        answers = db.get_matched_links(
-            "Inheritance", [WILDCARD, db.node_handle("Concept", "mammal")]
-        )
-        assert sorted([db.get_atom(answer).targets[0] for answer in answers]) == sorted(
-            [human, monkey, chimp, rhino]
-        )
-        assert db.get_atom(human).name == node_docs[human]["name"]
-        link_pre = db.get_atom(inheritance[human][mammal])
-        assert link_pre.custom_attributes == dict()
-        assert link_pre.named_type == "Inheritance"
-        assert link_pre.targets == [human, mammal]
-        link_new = inheritance_docs[inheritance[human][mammal]].copy()
-        custom_attributes = {"strength": 1.0}
-        link_new["custom_attributes"] = custom_attributes
-        db.add_link(dict_to_link_params(link_new))
-        db.add_link(
-            dict_to_link_params(
-                {
-                    "type": "Inheritance",
-                    "targets": [
-                        {"type": "Concept", "name": "dog"},
-                        {"type": "Concept", "name": "mammal"},
-                    ],
-                }
-            )
-        )
-        db.commit()
-        assert db.count_atoms({"precise": True}) == {
-            "atom_count": 42,
-            "node_count": 15,
-            "link_count": 27,
-        }
-        link_pos = db.get_atom(inheritance[human][mammal])
-        assert link_pos.named_type == "Inheritance"
-        assert link_pos.targets == [human, mammal]
-        assert isinstance(link_pos.custom_attributes, dict)
-        assert "strength" in link_pos.custom_attributes
-        assert isinstance(link_pos.custom_attributes["strength"], float)
-        assert link_pos.custom_attributes["strength"] == 1.0
-        dog = db.node_handle("Concept", "dog")
-        assert db.get_node_name(dog) == "dog"
-        new_link_handle = db.get_link_handle("Inheritance", [dog, mammal])
-        new_link = db.get_atom(new_link_handle)
-        assert db.get_link_targets(new_link_handle) == new_link.targets
-        answers = db.get_matched_links(
-            "Inheritance", [WILDCARD, db.node_handle("Concept", "mammal")]
-        )
-        assert sorted([db.get_atom(answer).targets[0] for answer in answers]) == sorted(
-            [human, monkey, chimp, rhino, dog]
-        )
-
-    def test_reindex(self, _cleanup, _db: RedisMongoDB):
-        db = _db
-        self._add_atoms(db)
-        db.commit()
-        db.reindex()
-        assert db.count_atoms() == {"atom_count": 40}
-        self._check_basic_patterns(db)
-        _db_down()
-
-    def test_delete_atom(self, _cleanup, _db: RedisMongoDB):
-        def _add_all_links():
-            db.add_link(
-                dict_to_link_params(
-                    {
-                        "type": "Inheritance",
-                        "targets": [
-                            {"type": "Concept", "name": "cat"},
-                            {"type": "Concept", "name": "mammal"},
-                        ],
-                    }
-                )
-            )
-            db.add_link(
-                dict_to_link_params(
-                    {
-                        "type": "Inheritance",
-                        "targets": [
-                            {"type": "Concept", "name": "dog"},
-                            {"type": "Concept", "name": "mammal"},
-                        ],
-                    }
-                )
-            )
-            db.commit()
-
-        def _add_nested_links():
-            db.add_link(
-                dict_to_link_params(
-                    {
-                        "type": "Inheritance",
-                        "targets": [
-                            {
-                                "type": "Inheritance",
-                                "targets": [
-                                    {"type": "Concept", "name": "dog"},
-                                    {
-                                        "type": "Inheritance",
-                                        "targets": [
-                                            {"type": "Concept", "name": "cat"},
-                                            {"type": "Concept", "name": "mammal"},
-                                        ],
-                                    },
-                                ],
-                            },
-                            {"type": "Concept", "name": "mammal"},
-                        ],
-                    }
-                )
-            )
-            db.commit()
-
-        def _check_asserts():
-            assert db.count_atoms({"precise": True}) == {
-                "atom_count": 5,
-                "node_count": 3,
-                "link_count": 2,
-            }
-            assert db._retrieve_name(cat_handle) == "cat"
-            assert db._retrieve_name(dog_handle) == "dog"
-            assert db._retrieve_name(mammal_handle) == "mammal"
-            assert db._retrieve_incoming_set(cat_handle) == {inheritance_cat_mammal_handle}
-            assert db._retrieve_incoming_set(dog_handle) == {inheritance_dog_mammal_handle}
-            assert sorted(db._retrieve_incoming_set(mammal_handle)) == sorted(
-                [inheritance_cat_mammal_handle, inheritance_dog_mammal_handle]
-            )
-            assert db._retrieve_incoming_set(inheritance_cat_mammal_handle) == set()
-            assert db._retrieve_incoming_set(inheritance_dog_mammal_handle) == set()
-            assert sorted(db._retrieve_outgoing_set(inheritance_cat_mammal_handle)) == sorted(
-                [cat_handle, mammal_handle]
-            )
-            assert sorted(db._retrieve_outgoing_set(inheritance_dog_mammal_handle)) == sorted(
-                [dog_handle, mammal_handle]
-            )
-            assert sorted(
-                db._retrieve_hash_targets_value(
-                    KeyPrefix.TEMPLATES, "e40489cd1e7102e35469c937e05c8bba"
-                )
-            ) == sorted([inheritance_dog_mammal_handle, inheritance_cat_mammal_handle])
-            assert sorted(
-                db._retrieve_hash_targets_value(
-                    KeyPrefix.TEMPLATES, "41c082428b28d7e9ea96160f7fd614ad"
-                )
-            ) == sorted([inheritance_dog_mammal_handle, inheritance_cat_mammal_handle])
-
-            links = [
-                db.get_atom(inheritance_cat_mammal_handle),
-                db.get_atom(inheritance_dog_mammal_handle),
-            ]
-            keys = set()
-            for link in links:
-                for template in db.pattern_index_templates:
-                    key = db._apply_index_template(
-                        template,
-                        link.named_type_hash,
-                        link.targets,
-                        len(link.targets),
-                    )
-                    keys.add(key)
-            assert set([p for p in db.redis.keys("patterns:*")]) == keys
-
-            assert sorted(
-                db._retrieve_hash_targets_value_from_sorted_set(
-                    KeyPrefix.PATTERNS, "112002ff70ea491aad735f978e9d95f5"
-                )
-            ) == sorted([inheritance_dog_mammal_handle, inheritance_cat_mammal_handle])
-            assert sorted(
-                db._retrieve_hash_targets_value_from_sorted_set(
-                    KeyPrefix.PATTERNS, "6e644e70a9fe3145c88b5b6261af5754"
-                )
-            ) == sorted([inheritance_dog_mammal_handle, inheritance_cat_mammal_handle])
-            assert sorted(
-                db._retrieve_hash_targets_value_from_sorted_set(
-                    KeyPrefix.PATTERNS, "5dd515aa7a451276feac4f8b9d84ae91"
-                )
-            ) == sorted([inheritance_dog_mammal_handle, inheritance_cat_mammal_handle])
-            assert sorted(
-                db._retrieve_hash_targets_value_from_sorted_set(
-                    KeyPrefix.PATTERNS, "7ead6cfa03894c62761162b7603aa885"
-                )
-            ) == sorted([inheritance_dog_mammal_handle, inheritance_cat_mammal_handle])
-            assert db._retrieve_hash_targets_value_from_sorted_set(
-                KeyPrefix.PATTERNS, "e55007a8477a4e6bf4fec76e4ffd7e10"
-            ) == {inheritance_dog_mammal_handle}
-            assert db._retrieve_hash_targets_value_from_sorted_set(
-                KeyPrefix.PATTERNS, "23dc149b3218d166a14730db55249126"
-            ) == {inheritance_dog_mammal_handle}
-            assert db._retrieve_hash_targets_value_from_sorted_set(
-                KeyPrefix.PATTERNS, "399751d7319f9061d97cd1d75728b66b"
-            ) == {inheritance_dog_mammal_handle}
-            assert db._retrieve_hash_targets_value_from_sorted_set(
-                KeyPrefix.PATTERNS, "d0eaae6eaf750e821b26642cef32becf"
-            ) == {inheritance_dog_mammal_handle}
-            assert db._retrieve_hash_targets_value_from_sorted_set(
-                KeyPrefix.PATTERNS, "f29daafee640d91aa7091e44551fc74a"
-            ) == {inheritance_cat_mammal_handle}
-            assert db._retrieve_hash_targets_value_from_sorted_set(
-                KeyPrefix.PATTERNS, "a11d7cbf62bc544f75702b5fb6a514ff"
-            ) == {inheritance_cat_mammal_handle}
-            assert db._retrieve_hash_targets_value_from_sorted_set(
-                KeyPrefix.PATTERNS, "3ba42d45a50c89600d92fb3f1a46c1b5"
-            ) == {inheritance_cat_mammal_handle}
-            assert db._retrieve_hash_targets_value_from_sorted_set(
-                KeyPrefix.PATTERNS, "9fb71ffef74a1a98eb0bfce7aa3d54e3"
-            ) == {inheritance_cat_mammal_handle}
-
-        def _check_asserts_2():
-            assert db.count_atoms() == {"atom_count": 3}
-            assert db._retrieve_name(cat_handle) == "cat"
-            assert db._retrieve_name(dog_handle) == "dog"
-            assert db._retrieve_name(mammal_handle) == "mammal"
-            assert db._retrieve_incoming_set(cat_handle) == set()
-            assert db._retrieve_incoming_set(dog_handle) == set()
-            assert db._retrieve_incoming_set(mammal_handle) == set()
-            assert db._retrieve_outgoing_set(inheritance_cat_mammal_handle) == []
-            assert db._retrieve_outgoing_set(inheritance_dog_mammal_handle) == []
-            assert (
-                db._retrieve_hash_targets_value(
-                    KeyPrefix.TEMPLATES, "e40489cd1e7102e35469c937e05c8bba"
-                )
-                == set()
-            )
-            assert (
-                db._retrieve_hash_targets_value(
-                    KeyPrefix.TEMPLATES, "41c082428b28d7e9ea96160f7fd614ad"
-                )
-                == set()
-            )
-            assert (
-                db._retrieve_hash_targets_value_from_sorted_set(
-                    KeyPrefix.PATTERNS, "112002ff70ea491aad735f978e9d95f5"
-                )
-                == set()
-            )
-            assert (
-                db._retrieve_hash_targets_value_from_sorted_set(
-                    KeyPrefix.PATTERNS, "6e644e70a9fe3145c88b5b6261af5754"
-                )
-                == set()
-            )
-            assert (
-                db._retrieve_hash_targets_value_from_sorted_set(
-                    KeyPrefix.PATTERNS, "5dd515aa7a451276feac4f8b9d84ae91"
-                )
-                == set()
-            )
-            assert (
-                db._retrieve_hash_targets_value_from_sorted_set(
-                    KeyPrefix.PATTERNS, "7ead6cfa03894c62761162b7603aa885"
-                )
-                == set()
-            )
-            assert (
-                db._retrieve_hash_targets_value_from_sorted_set(
-                    KeyPrefix.PATTERNS, "e55007a8477a4e6bf4fec76e4ffd7e10"
-                )
-                == set()
-            )
-            assert (
-                db._retrieve_hash_targets_value_from_sorted_set(
-                    KeyPrefix.PATTERNS, "23dc149b3218d166a14730db55249126"
-                )
-                == set()
-            )
-            assert (
-                db._retrieve_hash_targets_value_from_sorted_set(
-                    KeyPrefix.PATTERNS, "399751d7319f9061d97cd1d75728b66b"
-                )
-                == set()
-            )
-            assert (
-                db._retrieve_hash_targets_value_from_sorted_set(
-                    KeyPrefix.PATTERNS, "d0eaae6eaf750e821b26642cef32becf"
-                )
-                == set()
-            )
-            assert (
-                db._retrieve_hash_targets_value_from_sorted_set(
-                    KeyPrefix.PATTERNS, "f29daafee640d91aa7091e44551fc74a"
-                )
-                == set()
-            )
-            assert (
-                db._retrieve_hash_targets_value_from_sorted_set(
-                    KeyPrefix.PATTERNS, "a11d7cbf62bc544f75702b5fb6a514ff"
-                )
-                == set()
-            )
-            assert (
-                db._retrieve_hash_targets_value_from_sorted_set(
-                    KeyPrefix.PATTERNS, "3ba42d45a50c89600d92fb3f1a46c1b5"
-                )
-                == set()
-            )
-            assert (
-                db._retrieve_hash_targets_value_from_sorted_set(
-                    KeyPrefix.PATTERNS, "9fb71ffef74a1a98eb0bfce7aa3d54e3"
-                )
-                == set()
-            )
-
-        def _check_asserts_3():
-            assert db.count_atoms() == {"atom_count": 2}
-            assert db._retrieve_name(cat_handle) == "cat"
-            assert db._retrieve_name(dog_handle) == "dog"
-            assert db._retrieve_name(mammal_handle) is None
-            assert db._retrieve_incoming_set(cat_handle) == set()
-            assert db._retrieve_incoming_set(dog_handle) == set()
-            assert db._retrieve_incoming_set(mammal_handle) == set()
-            assert db._retrieve_outgoing_set(inheritance_cat_mammal_handle) == []
-            assert db._retrieve_outgoing_set(inheritance_dog_mammal_handle) == []
-            assert (
-                db._retrieve_hash_targets_value(
-                    KeyPrefix.TEMPLATES, "e40489cd1e7102e35469c937e05c8bba"
-                )
-                == set()
-            )
-            assert (
-                db._retrieve_hash_targets_value(
-                    KeyPrefix.TEMPLATES, "41c082428b28d7e9ea96160f7fd614ad"
-                )
-                == set()
-            )
-            assert (
-                db._retrieve_hash_targets_value_from_sorted_set(
-                    KeyPrefix.PATTERNS, "112002ff70ea491aad735f978e9d95f5"
-                )
-                == set()
-            )
-            assert (
-                db._retrieve_hash_targets_value_from_sorted_set(
-                    KeyPrefix.PATTERNS, "6e644e70a9fe3145c88b5b6261af5754"
-                )
-                == set()
-            )
-            assert (
-                db._retrieve_hash_targets_value_from_sorted_set(
-                    KeyPrefix.PATTERNS, "5dd515aa7a451276feac4f8b9d84ae91"
-                )
-                == set()
-            )
-            assert (
-                db._retrieve_hash_targets_value_from_sorted_set(
-                    KeyPrefix.PATTERNS, "7ead6cfa03894c62761162b7603aa885"
-                )
-                == set()
-            )
-            assert (
-                db._retrieve_hash_targets_value_from_sorted_set(
-                    KeyPrefix.PATTERNS, "e55007a8477a4e6bf4fec76e4ffd7e10"
-                )
-                == set()
-            )
-            assert (
-                db._retrieve_hash_targets_value_from_sorted_set(
-                    KeyPrefix.PATTERNS, "23dc149b3218d166a14730db55249126"
-                )
-                == set()
-            )
-            assert (
-                db._retrieve_hash_targets_value_from_sorted_set(
-                    KeyPrefix.PATTERNS, "399751d7319f9061d97cd1d75728b66b"
-                )
-                == set()
-            )
-            assert (
-                db._retrieve_hash_targets_value_from_sorted_set(
-                    KeyPrefix.PATTERNS, "d0eaae6eaf750e821b26642cef32becf"
-                )
-                == set()
-            )
-            assert (
-                db._retrieve_hash_targets_value_from_sorted_set(
-                    KeyPrefix.PATTERNS, "f29daafee640d91aa7091e44551fc74a"
-                )
-                == set()
-            )
-            assert (
-                db._retrieve_hash_targets_value_from_sorted_set(
-                    KeyPrefix.PATTERNS, "a11d7cbf62bc544f75702b5fb6a514ff"
-                )
-                == set()
-            )
-            assert (
-                db._retrieve_hash_targets_value_from_sorted_set(
-                    KeyPrefix.PATTERNS, "3ba42d45a50c89600d92fb3f1a46c1b5"
-                )
-                == set()
-            )
-            assert (
-                db._retrieve_hash_targets_value_from_sorted_set(
-                    KeyPrefix.PATTERNS, "9fb71ffef74a1a98eb0bfce7aa3d54e3"
-                )
-                == set()
-            )
-
-        def _check_asserts_4():
-            assert db.count_atoms({"precise": True}) == {
-                "atom_count": 3,
-                "node_count": 2,
-                "link_count": 1,
-            }
-            assert db._retrieve_name(cat_handle) is None
-            assert db._retrieve_name(dog_handle) == "dog"
-            assert db._retrieve_name(mammal_handle) == "mammal"
-            assert db._retrieve_incoming_set(cat_handle) == set()
-            assert db._retrieve_incoming_set(dog_handle) == {inheritance_dog_mammal_handle}
-            assert db._retrieve_incoming_set(mammal_handle) == {inheritance_dog_mammal_handle}
-            assert db._retrieve_outgoing_set(inheritance_cat_mammal_handle) == []
-            assert sorted(db._retrieve_outgoing_set(inheritance_dog_mammal_handle)) == sorted(
-                [dog_handle, mammal_handle]
-            )
-            assert db._retrieve_hash_targets_value(
-                KeyPrefix.TEMPLATES, "e40489cd1e7102e35469c937e05c8bba"
-            ) == {inheritance_dog_mammal_handle}
-            assert db._retrieve_hash_targets_value(
-                KeyPrefix.TEMPLATES, "41c082428b28d7e9ea96160f7fd614ad"
-            ) == {inheritance_dog_mammal_handle}
-            assert db._retrieve_hash_targets_value_from_sorted_set(
-                KeyPrefix.PATTERNS, "112002ff70ea491aad735f978e9d95f5"
-            ) == {inheritance_dog_mammal_handle}
-            assert db._retrieve_hash_targets_value_from_sorted_set(
-                KeyPrefix.PATTERNS, "6e644e70a9fe3145c88b5b6261af5754"
-            ) == {inheritance_dog_mammal_handle}
-            assert db._retrieve_hash_targets_value_from_sorted_set(
-                KeyPrefix.PATTERNS, "5dd515aa7a451276feac4f8b9d84ae91"
-            ) == {inheritance_dog_mammal_handle}
-            assert db._retrieve_hash_targets_value_from_sorted_set(
-                KeyPrefix.PATTERNS, "7ead6cfa03894c62761162b7603aa885"
-            ) == {inheritance_dog_mammal_handle}
-            assert db._retrieve_hash_targets_value_from_sorted_set(
-                KeyPrefix.PATTERNS, "e55007a8477a4e6bf4fec76e4ffd7e10"
-            ) == {inheritance_dog_mammal_handle}
-            assert db._retrieve_hash_targets_value_from_sorted_set(
-                KeyPrefix.PATTERNS, "23dc149b3218d166a14730db55249126"
-            ) == {inheritance_dog_mammal_handle}
-            assert db._retrieve_hash_targets_value_from_sorted_set(
-                KeyPrefix.PATTERNS, "399751d7319f9061d97cd1d75728b66b"
-            ) == {inheritance_dog_mammal_handle}
-            assert db._retrieve_hash_targets_value_from_sorted_set(
-                KeyPrefix.PATTERNS, "d0eaae6eaf750e821b26642cef32becf"
-            ) == {inheritance_dog_mammal_handle}
-            assert (
-                db._retrieve_hash_targets_value_from_sorted_set(
-                    KeyPrefix.PATTERNS, "f29daafee640d91aa7091e44551fc74a"
-                )
-                == set()
-            )
-            assert (
-                db._retrieve_hash_targets_value_from_sorted_set(
-                    KeyPrefix.PATTERNS, "a11d7cbf62bc544f75702b5fb6a514ff"
-                )
-                == set()
-            )
-            assert (
-                db._retrieve_hash_targets_value_from_sorted_set(
-                    KeyPrefix.PATTERNS, "3ba42d45a50c89600d92fb3f1a46c1b5"
-                )
-                == set()
-            )
-            assert (
-                db._retrieve_hash_targets_value_from_sorted_set(
-                    KeyPrefix.PATTERNS, "9fb71ffef74a1a98eb0bfce7aa3d54e3"
-                )
-                == set()
-            )
-
-        def _check_asserts_5():
-            assert db.count_atoms({"precise": True}) == {
-                "atom_count": 3,
-                "node_count": 2,
-                "link_count": 1,
-            }
-            assert db._retrieve_name(cat_handle) == "cat"
-            assert db._retrieve_name(dog_handle) is None
-            assert db._retrieve_name(mammal_handle) == "mammal"
-            assert db._retrieve_incoming_set(cat_handle) == {inheritance_cat_mammal_handle}
-            assert db._retrieve_incoming_set(dog_handle) == set()
-            assert db._retrieve_incoming_set(mammal_handle) == {inheritance_cat_mammal_handle}
-            assert sorted(db._retrieve_outgoing_set(inheritance_cat_mammal_handle)) == sorted(
-                [cat_handle, mammal_handle]
-            )
-            assert db._retrieve_outgoing_set(inheritance_dog_mammal_handle) == []
-            assert db._retrieve_hash_targets_value(
-                KeyPrefix.TEMPLATES, "e40489cd1e7102e35469c937e05c8bba"
-            ) == {inheritance_cat_mammal_handle}
-            assert db._retrieve_hash_targets_value(
-                KeyPrefix.TEMPLATES, "41c082428b28d7e9ea96160f7fd614ad"
-            ) == {inheritance_cat_mammal_handle}
-            assert db._retrieve_hash_targets_value_from_sorted_set(
-                KeyPrefix.PATTERNS, "112002ff70ea491aad735f978e9d95f5"
-            ) == {inheritance_cat_mammal_handle}
-            assert db._retrieve_hash_targets_value_from_sorted_set(
-                KeyPrefix.PATTERNS, "6e644e70a9fe3145c88b5b6261af5754"
-            ) == {inheritance_cat_mammal_handle}
-            assert db._retrieve_hash_targets_value_from_sorted_set(
-                KeyPrefix.PATTERNS, "5dd515aa7a451276feac4f8b9d84ae91"
-            ) == {inheritance_cat_mammal_handle}
-            assert db._retrieve_hash_targets_value_from_sorted_set(
-                KeyPrefix.PATTERNS, "7ead6cfa03894c62761162b7603aa885"
-            ) == {inheritance_cat_mammal_handle}
-            assert (
-                db._retrieve_hash_targets_value_from_sorted_set(
-                    KeyPrefix.PATTERNS, "e55007a8477a4e6bf4fec76e4ffd7e10"
-                )
-                == set()
-            )
-            assert (
-                db._retrieve_hash_targets_value_from_sorted_set(
-                    KeyPrefix.PATTERNS, "23dc149b3218d166a14730db55249126"
-                )
-                == set()
-            )
-            assert (
-                db._retrieve_hash_targets_value_from_sorted_set(
-                    KeyPrefix.PATTERNS, "399751d7319f9061d97cd1d75728b66b"
-                )
-                == set()
-            )
-            assert (
-                db._retrieve_hash_targets_value_from_sorted_set(
-                    KeyPrefix.PATTERNS, "d0eaae6eaf750e821b26642cef32becf"
-                )
-                == set()
-            )
-            assert db._retrieve_hash_targets_value_from_sorted_set(
-                KeyPrefix.PATTERNS, "f29daafee640d91aa7091e44551fc74a"
-            ) == {inheritance_cat_mammal_handle}
-            assert db._retrieve_hash_targets_value_from_sorted_set(
-                KeyPrefix.PATTERNS, "a11d7cbf62bc544f75702b5fb6a514ff"
-            ) == {inheritance_cat_mammal_handle}
-            assert db._retrieve_hash_targets_value_from_sorted_set(
-                KeyPrefix.PATTERNS, "3ba42d45a50c89600d92fb3f1a46c1b5"
-            ) == {inheritance_cat_mammal_handle}
-            assert db._retrieve_hash_targets_value_from_sorted_set(
-                KeyPrefix.PATTERNS, "9fb71ffef74a1a98eb0bfce7aa3d54e3"
-            ) == {inheritance_cat_mammal_handle}
-
-        db = _db
-
-        cat_handle = AtomDB.node_handle("Concept", "cat")
-        dog_handle = AtomDB.node_handle("Concept", "dog")
-        mammal_handle = AtomDB.node_handle("Concept", "mammal")
-        inheritance_cat_mammal_handle = AtomDB.link_handle(
-            "Inheritance", [cat_handle, mammal_handle]
-        )
-        inheritance_dog_mammal_handle = AtomDB.link_handle(
-            "Inheritance", [dog_handle, mammal_handle]
-        )
-
-        assert db.count_atoms() == {"atom_count": 0}
-
-        _add_all_links()
-        _check_asserts()
-
-        db.delete_atom(inheritance_cat_mammal_handle)
-        db.delete_atom(inheritance_dog_mammal_handle)
-        _check_asserts_2()
-
-        _add_all_links()
-        db.delete_atom(mammal_handle)
-        _check_asserts_3()
-
-        _add_all_links()
-        db.delete_atom(cat_handle)
-        _check_asserts_4()
-
-        db.add_link(
-            dict_to_link_params(
-                {
-                    "type": "Inheritance",
-                    "targets": [
-                        {"type": "Concept", "name": "cat"},
-                        {"type": "Concept", "name": "mammal"},
-                    ],
-                }
-            )
-        )
+                is_toplevel = atom.pop("is_toplevel", True)
+                db.add_link(dict_to_link_params(atom), toplevel=is_toplevel)
         db.commit()
 
-        db.delete_atom(dog_handle)
-        _check_asserts_5()
+    @pytest.fixture
+    def database(self, redis_mongo_db: RedisMongoDB):  # noqa: F811
+        self._load_database(redis_mongo_db)
+        yield redis_mongo_db
 
-        db.clear_database()
-
-        _add_nested_links()
-        db.delete_atom(inheritance_cat_mammal_handle)
-        _check_asserts_2()
-
-    def test_get_matched_with_pagination(self, _cleanup, _db: RedisMongoDB):
-        db = _db
-        self._add_atoms(db)
-        db.commit()
-
-        response = db.get_matched_links("Similarity", [human, monkey])
-        assert response == {AtomDB.link_handle("Similarity", [human, monkey])}
-
-        response = db.get_matched_links("Fake", [human, monkey])
-        assert response == set()
-
-        response = db.get_matched_links("Similarity", [human, "*"])
-        assert sorted(response) == sorted(
-            [
-                "16f7e407087bfa0b35b13d13a1aadcae",
-                "b5459e299a5c5e8662c427f7e01b3bf1",
-                "bad7472f41a0e7d601ca294eb4607c3a",
-            ]
-        )
-
-        template = ["Inheritance", "Concept", "Concept"]
-
-        response = db.get_matched_type_template(template)
-        assert sorted(response) == sorted(
-            [
-                "116df61c01859c710d178ba14a483509",
-                "1c3bf151ea200b2d9e088a1178d060cb",
-                "4120e428ab0fa162a04328e5217912ff",
-                "75756335011dcedb71a0d9a7bd2da9e8",
-                "906fa505ae3bc6336d80a5f9aaa47b3b",
-                "959924e3aab197af80a84c1ab261fd65",
-                "b0f428929706d1d991e4d712ad08f9ab",
-                "c93e1e758c53912638438e2a7d7f7b7f",
-                "e4685d56969398253b6f77efd21dc347",
-                "ee1c03e6d1f104ccd811cfbba018451a",
-                "f31dfe97db782e8cec26de18dddf8965",
-                "fbf03d17d6a40feff828a3f2c6e86f05",
-            ]
-        )
-
-        response = db.get_matched_type("Inheritance")
-        assert sorted(response) == sorted(
-            [
-                "116df61c01859c710d178ba14a483509",
-                "1c3bf151ea200b2d9e088a1178d060cb",
-                "4120e428ab0fa162a04328e5217912ff",
-                "75756335011dcedb71a0d9a7bd2da9e8",
-                "906fa505ae3bc6336d80a5f9aaa47b3b",
-                "959924e3aab197af80a84c1ab261fd65",
-                "b0f428929706d1d991e4d712ad08f9ab",
-                "c93e1e758c53912638438e2a7d7f7b7f",
-                "e4685d56969398253b6f77efd21dc347",
-                "ee1c03e6d1f104ccd811cfbba018451a",
-                "f31dfe97db782e8cec26de18dddf8965",
-                "fbf03d17d6a40feff828a3f2c6e86f05",
-            ]
-        )
-
-    def test_create_field_index(self, _cleanup, _db: RedisMongoDB):
-        db = _db
-        self._add_atoms(db)
-        db.commit()
-        db.add_link(
-            dict_to_link_params(
-                {
-                    "type": "Similarity",
-                    "targets": [
-                        {"type": "Concept", "name": "human"},
-                        {"type": "Concept", "name": "monkey"},
-                    ],
-                    "custom_attributes": {"tag": "DAS"},
-                }
-            )
-        )
-        db.commit()
-
-        collection = db.mongo_atoms_collection
-
-        response = collection.find(
-            {"named_type": "Similarity", "custom_attributes.tag": "DAS"}
-        ).explain()
-
-        with pytest.raises(KeyError):
-            response["queryPlanner"]["winningPlan"]["inputStage"]["indexName"]
-
-        # Create the index
-        my_index = db.create_field_index(
-            atom_type="link", fields=["custom_attributes.tag"], named_type="Similarity"
-        )
-
-        collection_index_names = [idx.get("name") for idx in collection.list_indexes()]
-        #
-        assert my_index in collection_index_names
-
-        # # Using the index
-        response = collection.find(
-            {"named_type": "Similarity", "custom_attributes.tag": "DAS"}
-        ).explain()
-
-        assert my_index == response["queryPlanner"]["winningPlan"]["inputStage"]["indexName"]
-
-        with PyMongoFindExplain(db.mongo_atoms_collection) as explain:
-            _, doc = db.get_atoms_by_index(
-                my_index, [{"field": "custom_attributes.tag", "value": "DAS"}]
-            )
-            assert doc[0].handle == ExpressionHasher.expression_hash(
-                ExpressionHasher.named_type_hash("Similarity"), [human, monkey]
-            )
-            assert doc[0].targets == [human, monkey]
-            assert explain[0]["executionStats"]["executionSuccess"]
-            assert explain[0]["executionStats"]["executionStages"]["docsExamined"] == 1
-            assert explain[0]["executionStats"]["executionStages"]["stage"] == "FETCH"
-            assert (
-                explain[0]["executionStats"]["executionStages"]["inputStage"]["stage"] == "IXSCAN"
-            )
-            assert (
-                explain[0]["executionStats"]["executionStages"]["inputStage"]["keysExamined"] == 1
-            )
-            assert (
-                explain[0]["executionStats"]["executionStages"]["inputStage"]["indexName"]
-                == my_index
-            )
-
-    def test_create_text_index(self, _cleanup, _db: RedisMongoDB):
-        db: RedisMongoDB = _db
-        self._add_atoms(db)
-        db.add_link(
-            dict_to_link_params(
-                {
-                    "type": "Similarity",
-                    "targets": [
-                        {"type": "Concept", "name": "human"},
-                        {"type": "Concept", "name": "monkey"},
-                    ],
-                    "custom_attributes": {"tag": "DAS"},
-                }
-            )
-        )
-        db.commit()
-
-        collection = db.mongo_atoms_collection
-
-        # Create the index
-        my_index = db.create_field_index(
-            atom_type="link",
-            fields=["custom_attributes.tag"],
-            named_type="Similarity",
-            index_type=FieldIndexType.TOKEN_INVERTED_LIST,
-        )
-
-        collection_index_names = [idx.get("name") for idx in collection.list_indexes()]
-        print(my_index)
-        assert my_index in collection_index_names
-
-    def test_create_compound_index(self, _cleanup, _db: RedisMongoDB):
-        db: RedisMongoDB = _db
-        self._add_atoms(db)
-        db.add_link(
-            dict_to_link_params(
-                {
-                    "type": "Similarity",
-                    "targets": [
-                        {"type": "Concept", "name": "human"},
-                        {"type": "Concept", "name": "monkey"},
-                    ],
-                    "custom_attributes": {"tag": "DAS"},
-                }
-            )
-        )
-        db.commit()
-        collection = db.mongo_atoms_collection
-        # Create the index
-        my_index = db.create_field_index(
-            atom_type="link",
-            fields=["custom_attributes.type", "custom_attributes.tag"],
-            named_type="Similarity",
-            index_type=FieldIndexType.BINARY_TREE,
-        )
-        collection_index_names = [idx.get("name") for idx in collection.list_indexes()]
-        assert my_index in collection_index_names
-
-    def test_get_atoms_by_field_no_index(self, _cleanup, _db: RedisMongoDB):
-        db: RedisMongoDB = _db
-        self._add_atoms(db)
-        db.add_link(
-            dict_to_link_params(
-                {
-                    "type": "Similarity",
-                    "targets": [
-                        {"type": "Concept", "name": "human"},
-                        {"type": "Concept", "name": "monkey"},
-                    ],
-                    "custom_attributes": {"tag": "DAS"},
-                }
-            )
-        )
-        db.commit()
-
-        with PyMongoFindExplain(db.mongo_atoms_collection) as explain:
-            result = db.get_atoms_by_field([{"field": "custom_attributes.tag", "value": "DAS"}])
-            assert len(result) == 1
-            assert explain[0]["executionStats"]["executionSuccess"]
-            assert explain[0]["queryPlanner"]["winningPlan"]["stage"] == "COLLSCAN"
-            assert explain[0]["executionStats"]["totalKeysExamined"] == 0
-
-    def test_get_atoms_by_field_with_index(self, _cleanup, _db: RedisMongoDB):
-        # pytest.skip(
-        #     "Requires new implementation since the new custom attributes were introduced. See https://github.com/singnet/das-atom-db/issues/255"
-        # )
-        db: RedisMongoDB = _db
-        self._add_atoms(db)
-        db.add_link(
-            dict_to_link_params(
-                {
-                    "type": "Similarity",
-                    "targets": [
-                        {"type": "Concept", "name": "human"},
-                        {"type": "Concept", "name": "monkey"},
-                    ],
-                    "custom_attributes": {"tag": "DAS"},
-                }
-            )
-        )
-        db.commit()
-        my_index = db.create_field_index(atom_type="link", fields=["custom_attributes.tag"])
-
-        with PyMongoFindExplain(db.mongo_atoms_collection) as explain:
-            result = db.get_atoms_by_field([{"field": "custom_attributes.tag", "value": "DAS"}])
-            assert len(result) == 1
-            assert explain[0]["executionStats"]["executionSuccess"]
-            assert explain[0]["executionStats"]["nReturned"] == 1
-            assert explain[0]["executionStats"]["executionStages"]["stage"] == "FETCH"
-            assert (
-                explain[0]["executionStats"]["executionStages"]["inputStage"]["stage"] == "IXSCAN"
-            )
-            assert (
-                explain[0]["executionStats"]["executionStages"]["inputStage"]["keysExamined"] == 1
-            )
-            assert (
-                explain[0]["executionStats"]["executionStages"]["inputStage"]["indexName"]
-                == my_index
-            )
-
-    def test_get_atoms_by_index(self, _cleanup, _db: RedisMongoDB):
-        db: RedisMongoDB = _db
-        db.add_link(
-            dict_to_link_params(
-                {
-                    "type": "Similarity",
-                    "targets": [
-                        {"type": "Concept", "name": "human"},
-                        {"type": "Concept", "name": "monkey"},
-                    ],
-                    "custom_attributes": {"tag": "DAS"},
-                }
-            )
-        )
-        db.add_link(
-            dict_to_link_params(
-                {
-                    "type": "Similarity",
-                    "targets": [
-                        {"type": "Concept", "name": "mammal"},
-                        {"type": "Concept", "name": "monkey"},
-                    ],
-                    "custom_attributes": {"tag": "DAS2"},
-                }
-            )
-        )
-        db.commit()
-
-        my_index = db.create_field_index(
-            atom_type="link", fields=["custom_attributes.tag"], named_type="Similarity"
-        )
-
-        with PyMongoFindExplain(db.mongo_atoms_collection) as explain:
-            _, doc = db.get_atoms_by_index(
-                my_index, [{"field": "custom_attributes.tag", "value": "DAS2"}]
-            )
-            assert doc[0].handle == ExpressionHasher.expression_hash(
-                ExpressionHasher.named_type_hash("Similarity"), [mammal, monkey]
-            )
-            assert doc[0].targets == [mammal, monkey]
-            assert explain[0]["executionStats"]["executionSuccess"]
-            assert explain[0]["executionStats"]["nReturned"] == 1
-            assert explain[0]["executionStats"]["executionStages"]["stage"] == "FETCH"
-            assert (
-                explain[0]["executionStats"]["executionStages"]["inputStage"]["stage"] == "IXSCAN"
-            )
-            assert (
-                explain[0]["executionStats"]["executionStages"]["inputStage"]["keysExamined"] == 1
-            )
-            assert (
-                explain[0]["executionStats"]["executionStages"]["inputStage"]["indexName"]
-                == my_index
-            )
-
-    def test_get_atoms_by_text_field_regex(self, _cleanup, _db: RedisMongoDB):
-        db: RedisMongoDB = _db
-        self._add_atoms(db)
-        db.commit()
-
-        with PyMongoFindExplain(db.mongo_atoms_collection) as explain:
-            result = db.get_atoms_by_text_field("mammal", "name")
-            assert len(result) == 1
-            assert result[0] == db.get_node_handle("Concept", "mammal")
-            assert explain[0]["executionStats"]["executionSuccess"]
-            assert (
-                explain[0]["executionStats"]["executionStages"]["inputStage"]["stage"] == "IXSCAN"
-            )
-            assert explain[0]["executionStats"]["totalKeysExamined"] == 14
-
-    def test_get_atoms_by_text_field_with_index(self, _cleanup, _db: RedisMongoDB):
-        db: RedisMongoDB = _db
-        self._add_atoms(db)
-        db.commit()
-        # Create index
-
-        db.create_field_index(
-            atom_type="node",
-            fields=["custom_attributes.name"],
-            index_type=FieldIndexType.TOKEN_INVERTED_LIST,
-        )
-
-        with PyMongoFindExplain(db.mongo_atoms_collection) as explain:
-            result = db.get_atoms_by_text_field("custom_attributes.mammal")
-            assert len(result) == 1
-            assert result[0] == db.get_node_handle("Concept", "mammal")
-            assert explain[0]["executionStats"]["executionSuccess"]
-            assert explain[0]["executionStats"]["executionStages"]["stage"] == "TEXT_MATCH"
-            assert explain[0]["executionStats"]["totalKeysExamined"] == 1
-
-    def test_get_node_starting_name(self, _cleanup, _db: RedisMongoDB):
-        db = _db
-        self._add_atoms(db)
-        db.commit()
-        with PyMongoFindExplain(db.mongo_atoms_collection) as explain:
-            result = db.get_node_by_name_starting_with("Concept", "mamm")
-            assert len(result) == 1
-            assert result[0] == db.get_node_handle("Concept", "mammal")
-            assert explain[0]["executionStats"]["executionSuccess"]
-            assert (
-                explain[0]["executionStats"]["executionStages"]["inputStage"]["stage"] == "IXSCAN"
-            )
-            assert explain[0]["executionStats"]["totalKeysExamined"] == 2
-            assert explain[0]["executionStats"]["totalDocsExamined"] == 1
-
-    def test_bulk_insert(self, _cleanup, _db: RedisMongoDB):
-        db = _db
-        assert db.count_atoms() == {"atom_count": 0}
-
-        documents = [
-            NodeT(
-                _id="node1",
-                handle="node1",
-                composite_type_hash="ConceptHash",
-                name="human",
-                named_type="Concept",
+    @pytest.fixture
+    def database_custom_index(self):
+        with (
+            mock.patch(
+                "hyperon_das_atomdb.adapters.redis_mongo_db.RedisMongoDB._connection_mongo_db",
+                return_value=mongo_mock(),
             ),
-            NodeT(
-                _id="node2",
-                handle="node2",
-                composite_type_hash="ConceptHash",
-                name="monkey",
-                named_type="Concept",
+            mock.patch(
+                "hyperon_das_atomdb.adapters.redis_mongo_db.RedisMongoDB._connection_redis",
+                return_value=redis_mock(),
             ),
-        ]
-        handle = db.link_handle("Similarity", ["node1", "node2"])
-        documents.append(
-            LinkT(
-                _id=handle,
-                handle=handle,
-                composite_type_hash="CompositeTypeHash",
-                is_toplevel=True,
-                composite_type=["SimilarityHash", "ConceptHash", "ConceptHash"],
-                named_type="Similarity",
-                named_type_hash="SimilarityHash",
-                targets=["node1", "node2"],
-            ),
-        )
+        ):
+            yield RedisMongoDB
 
-        db.bulk_insert(documents)
+    def test_node_exists(self, database: RedisMongoDB):
+        node_type = "Concept"
+        node_name = "monkey"
+        resp = database.node_exists(node_type, node_name)
+        assert resp is True
 
-        assert db.count_atoms() == {"atom_count": 3}
-        assert db.get_matched_links("Similarity", ["node1", "node2"]) == {
-            db.link_handle("Similarity", ["node1", "node2"])
-        }
-        similarity = db.get_all_links("Similarity")
-        assert similarity == {db.link_handle("Similarity", ["node1", "node2"])}
-        assert db.get_all_nodes_handles("Concept") == ["node1", "node2"]
+    def test_node_exists_false(self, database: RedisMongoDB):
+        node_type = "Concept"
+        node_name = "human-fake"
 
-    def test_retrieve_all_atoms(self, _cleanup, _db: RedisMongoDB):
-        db = _db
-        self._add_atoms(db)
-        db.commit()
-        response = db.retrieve_all_atoms()
-        inheritance = db.get_all_links("Inheritance")
-        similarity = db.get_all_links("Similarity")
-        links = inheritance.union(similarity)
-        nodes = db.get_all_nodes_handles("Concept")
-        assert len(response) == len(links) + len(nodes)
+        resp = database.node_exists(node_type, node_name)
 
-    def test_add_fields_to_atoms(self, _cleanup, _db: RedisMongoDB):
-        db = _db
-        self._add_atoms(db)
-        db.commit()
-        human = db.node_handle("Concept", "human")
-        monkey = db.node_handle("Concept", "monkey")
-        link_handle = db.link_handle("Similarity", [human, monkey])
+        assert resp is False
 
-        node_human = db.get_atom(human)
+    def test_link_exists(self, database: RedisMongoDB):
+        human = ExpressionHasher.terminal_hash("Concept", "human")
+        monkey = ExpressionHasher.terminal_hash("Concept", "monkey")
 
-        assert node_human.handle == human
-        assert node_human.name == "human"
-        assert node_human.named_type == "Concept"
+        resp = database.link_exists("Similarity", [human, monkey])
 
-        node_human_params = node_human
-        node_human_params.custom_attributes = {"score": 0.5}
+        assert resp is True
 
-        db.add_node(node_human_params)
-        db.commit()
+    def test_link_exists_false(self, database: RedisMongoDB):
+        human = ExpressionHasher.terminal_hash("Concept", "fake")
+        monkey = ExpressionHasher.terminal_hash("Concept", "monkey")
 
-        assert db.get_atom(human).custom_attributes["score"] == 0.5
+        resp = database.link_exists("Similarity", [human, monkey])
 
-        link_similarity = db.get_atom(link_handle, deep_representation=True)
+        assert resp is False
 
-        assert link_similarity.handle == link_handle
-        assert link_similarity.named_type == "Similarity"
-        assert [target.to_dict() for target in link_similarity.targets_documents] == [
-            db.get_atom(human).to_dict(),
-            db.get_atom(monkey).to_dict(),
-        ]
+    def test_get_node_handle(self, database: RedisMongoDB):
+        node_type = "Concept"
+        node_name = "human"
 
-        link_params = link_similarity
-        link_params.custom_attributes = {"score": 0.5}
+        resp = database.get_node_handle(node_type, node_name)
 
-        db.add_link(link_params)
-        db.commit()
-
-        assert db.get_atom(link_handle).custom_attributes["score"] == 0.5
+        assert resp == ExpressionHasher.terminal_hash("Concept", "human")
 
     @pytest.mark.parametrize(
-        "node",
-        [({"type": "A", "name": "type_a", "custom_attributes": {"status": "ready"}})],
+        "node_type,node_name",
+        [
+            ("Concept", ""),
+            ("Concept", "test"),
+            ("Similarity", ""),
+        ],
     )
-    def test_get_atoms_by_index_custom_att(self, node, _cleanup, _db: RedisMongoDB):
-        node = _db.add_node(NodeT(**node))
-        _db.commit()
-        result = _db.create_field_index("node", fields=["custom_attributes.status"])
-        cursor, actual = _db.get_atoms_by_index(
+    def test_get_node_handle_node_does_not_exist(
+        self, node_type, node_name, database: RedisMongoDB
+    ):
+        with pytest.raises(AtomDoesNotExist) as exc_info:
+            database.get_node_handle(node_type, node_name)
+        assert exc_info.type is AtomDoesNotExist
+        assert exc_info.value.args[0] == "Nonexistent atom"
+
+    @pytest.mark.parametrize(
+        "link_type,targets,expected",
+        [
+            (
+                "Similarity",
+                [("Concept", "human"), ("Concept", "chimp")],
+                "b5459e299a5c5e8662c427f7e01b3bf1",
+            ),
+        ],
+    )
+    def test_get_link_handle(self, link_type, targets, expected, database: RedisMongoDB):
+        resp = database.get_link_handle(
+            link_type=link_type,
+            target_handles=[ExpressionHasher.terminal_hash(*t) for t in targets],
+        )
+        assert resp is not None
+        assert isinstance(resp, str)
+        assert resp == expected
+
+    @pytest.mark.parametrize(
+        "link_type,targets",
+        [
+            ("Similarity", [("Concept", "brazil"), ("Concept", "travel")]),
+            ("Similarity", [("Concept", "*"), ("Concept", "*")]),
+            ("Similarity", [("Concept", "$"), ("Concept", "*")]),
+            ("Concept", []),
+            ("$", []),
+        ],
+    )
+    def test_get_link_handle_link_does_not_exist(self, link_type, targets, database: RedisMongoDB):
+        with pytest.raises(AtomDoesNotExist) as exc_info:
+            database.get_link_handle(
+                link_type=link_type,
+                target_handles=[ExpressionHasher.terminal_hash(*t) for t in targets],
+            )
+        assert exc_info.type is AtomDoesNotExist
+        assert exc_info.value.args[0] == "Nonexistent atom"
+
+    @pytest.mark.parametrize(
+        "link_type,targets,expected_count",
+        [
+            ("Similarity", [("Concept", "human"), ("Concept", "chimp")], 2),
+            ("Inheritance", [("Concept", "human"), ("Concept", "mammal")], 2),
+            ("Evaluation", [("Concept", "triceratops"), ("Concept", "rhino")], 2),
+            (
+                "LinkTest",
+                [
+                    ("Concept", "triceratops"),
+                    ("Concept", "rhino"),
+                    ("Concept", "ent"),
+                    ("Concept", "reptile"),
+                ],
+                4,
+            ),
+        ],
+    )
+    def test_get_link_targets(self, link_type, targets, expected_count, database: RedisMongoDB):
+        handle = database.get_link_handle(
+            link_type, [database.get_node_handle(*t) for t in targets]
+        )
+        targets = database.get_link_targets(handle)
+        assert isinstance(targets, list)
+        assert len(targets) == expected_count
+
+    @pytest.mark.parametrize(
+        "handle",
+        [
+            "handle",
+            "2a8a69c01305563932b957de4b3a9ba6",
+            "2a8a69c0130556=z32b957de4b3a9ba6",
+        ],
+    )
+    def test_get_link_targets_invalid(self, handle, database: RedisMongoDB):
+        with pytest.raises(ValueError) as exc_info:
+            database.get_link_targets(f"{handle}-Fake")
+        assert exc_info.type is ValueError
+        assert exc_info.value.args[0] == f"Invalid handle: {handle}-Fake"
+
+    @pytest.mark.parametrize(
+        "link_values,expected,expected_count",
+        [
+            (
+                {
+                    "link_type": "Evaluation",
+                    "target_handles": ["*", "*"],
+                    "toplevel_only": True,
+                },
+                {"bd2bb6c802a040b00659dfe7954e804d"},
+                1,
+            ),
+            (
+                {
+                    "link_type": "*",
+                    "target_handles": [
+                        ExpressionHasher.terminal_hash("Concept", "human"),
+                        ExpressionHasher.terminal_hash("Concept", "chimp"),
+                    ],
+                    "toplevel_only": False,
+                },
+                {"b5459e299a5c5e8662c427f7e01b3bf1"},
+                1,
+            ),
+            (
+                {
+                    "link_type": "Similarity",
+                    "target_handles": [
+                        ExpressionHasher.terminal_hash("Concept", "human"),
+                        ExpressionHasher.terminal_hash("Concept", "monkey"),
+                    ],
+                    "toplevel_only": False,
+                },
+                {"bad7472f41a0e7d601ca294eb4607c3a"},
+                1,
+            ),
+            (
+                {
+                    "link_type": "Similarity",
+                    "target_handles": [
+                        "*",
+                        ExpressionHasher.terminal_hash("Concept", "chimp"),
+                    ],
+                    "toplevel_only": False,
+                },
+                {
+                    "31535ddf214f5b239d3b517823cb8144",
+                    "b5459e299a5c5e8662c427f7e01b3bf1",
+                },
+                2,
+            ),
+        ],
+    )
+    def test_get_matched_links_toplevel_only(
+        self, link_values, expected, expected_count, database: RedisMongoDB
+    ):
+        actual = database.get_matched_links(**link_values)
+        assert expected == actual
+        assert len(actual) == expected_count
+
+    @pytest.mark.parametrize(
+        "node_type,names,expected",
+        [
+            ("Concept", True, 14),
+            ("Concept", False, 14),
+            ("Test", True, 0),
+            ("Test", False, 0),
+            ("Inheritance", True, 0),
+            ("Inheritance", False, 0),
+            ("Evaluation", True, 0),
+            ("Evaluation", False, 0),
+            ("Similarity", True, 0),
+            ("Similarity", False, 0),
+        ],
+    )
+    def test_get_all_nodes(self, node_type, names, expected, database: RedisMongoDB):
+        if node_type in {"Inheritance", "Evaluation", "Similarity"}:
+            pytest.skip(
+                "Returning links, also break if it's a link and name is true"
+                "https://github.com/singnet/das-atom-db/issues/210"
+            )
+        if names:
+            ret = database.get_all_nodes_names(node_type)
+        else:
+            ret = database.get_all_nodes_handles(node_type)
+        assert len(ret) == expected
+
+    @pytest.mark.parametrize(
+        "template,expected",
+        [
+            (["Inheritance", "Concept", "Concept"], 12),
+            (["Similarity", "Concept", "Concept"], 14),
+            (["Inheritanc", "Concept", "blah"], 0),
+        ],
+    )
+    def test_get_matched_type_template(self, template, expected, database: RedisMongoDB):
+        matched = database.get_matched_type_template(template)
+        matched_links = database.get_matched_links(template[0], ["*", "*"])
+        assert len(matched) == expected
+        assert matched_links == matched
+
+    @pytest.mark.parametrize(
+        "template,template_equal,expected",
+        [
+            (["Inheritance", "Concept", "Concept"], ["Inheritance", ["*", "*"]], 12),
+            (["Similarity", "Concept", "Concept"], ["Similarity", ["*", "*"]], 14),
+        ],
+    )
+    def test_get_matched_type_template_equal(
+        self, template, template_equal, expected, database: RedisMongoDB
+    ):
+        matched = database.get_matched_type_template(template)
+        to_match = database.get_matched_links(*template_equal)
+        assert len(matched) == expected
+        assert to_match == matched
+
+    @pytest.mark.parametrize(
+        "template_list",
+        [
+            ["Inheritance", "Concept", "Concept", {"aaa": "bbb"}],
+        ],
+    )
+    def test_get_matched_type_template_error(self, template_list, database: RedisMongoDB):
+        with pytest.raises(ValueError) as exc_info:
+            database.get_matched_type_template(template_list)
+        assert exc_info.type is ValueError
+
+    @pytest.mark.parametrize(
+        "link_type,expected",
+        [
+            ("Evaluation", 2),
+            ("Inheritance", 12),
+            ("Similarity", 14),
+            ("Concept", 0),
+        ],
+    )
+    def test_get_matched_type(self, link_type, expected, database: RedisMongoDB):
+        links = database.get_matched_type(link_type)
+        assert len(links) == expected
+        assert isinstance(links, set)
+
+    @pytest.mark.parametrize(
+        "link_type,top_level,expected",
+        [
+            ("Evaluation", True, 1),
+            ("Evaluation", False, 2),
+            ("Inheritance", True, 12),
+            ("Inheritance", False, 12),
+            ("Similarity", False, 14),
+            ("Similarity", False, 14),
+        ],
+    )
+    def test_get_matched_type_toplevel_only(
+        self, link_type, top_level, expected, database: RedisMongoDB
+    ):
+        ret = database.get_matched_type(link_type, toplevel_only=top_level)
+        assert len(ret) == expected
+        assert isinstance(ret, set)
+
+    @pytest.mark.parametrize(
+        "node_type,node_name",
+        [
+            ("Concept", "monkey"),
+            ("Concept", "human"),
+            ("Concept", "mammal"),
+        ],
+    )
+    def test_get_node_name(self, node_type, node_name, database: RedisMongoDB):
+        handle = database.get_node_handle(node_type, node_name)
+        db_name = database.get_node_name(handle)
+        assert db_name == node_name
+
+    @pytest.mark.parametrize(
+        "handle,",
+        [
+            "handle",
+            "2a8a69c01305563932b957de4b3a9ba6",
+            "2a8a69c0130556=z32b957de4b3a9ba6",
+        ],
+    )
+    def test_get_node_name_value_error(self, handle, database: RedisMongoDB):
+        with pytest.raises(ValueError) as exc_info:
+            database.get_node_name("handle")
+        assert exc_info.type is ValueError
+        assert exc_info.value.args[0] == "Invalid handle: handle"
+
+    @pytest.mark.parametrize(
+        "node_type,node_name,expected",
+        [
+            (
+                "Concept",
+                "ma",
+                sorted(
+                    [
+                        ExpressionHasher.terminal_hash("Concept", "human"),
+                        ExpressionHasher.terminal_hash("Concept", "mammal"),
+                        ExpressionHasher.terminal_hash("Concept", "animal"),
+                    ]
+                ),
+            ),
+            ("blah", "Concept", []),
+            ("Concept", "blah", []),
+            ("Similarity", "ma", []),
+        ],
+    )
+    def test_get_matched_node_name(self, node_type, node_name, expected, database: RedisMongoDB):
+        actual = sorted(database.get_node_by_name(node_type, node_name))
+        assert expected == actual
+
+    @pytest.mark.parametrize(
+        "node_type,node_name,expected",
+        [
+            (
+                "Concept",
+                "ma",
+                sorted(
+                    [
+                        ExpressionHasher.terminal_hash("Concept", "mammal"),
+                    ]
+                ),
+            ),
+            ("blah", "Concept", []),
+            (
+                "Concept",
+                "h",
+                sorted(
+                    [
+                        ExpressionHasher.terminal_hash("Concept", "human"),
+                    ]
+                ),
+            ),
+        ],
+    )
+    def test_get_startswith_node_name(self, node_type, node_name, expected, database: RedisMongoDB):
+        actual = database.get_node_by_name_starting_with(node_type, node_name)
+        assert expected == actual
+
+    def test_get_node_by_field(self, database: RedisMongoDB):
+        expected = [
+            database.get_node_handle("Concept", "mammal"),
+        ]
+        actual = database.get_atoms_by_field([{"field": "name", "value": "mammal"}])
+
+        assert expected == actual
+
+    @pytest.mark.parametrize(
+        "atom_type,fields,query,expected",
+        [
+            (
+                "node",
+                ["name"],
+                [{"field": "name", "value": "mammal"}],
+                [ExpressionHasher.terminal_hash("Concept", "mammal")],
+            ),
+            (
+                "link",
+                ["type"],
+                [{"field": "type", "value": "Evaluation"}],
+                [
+                    "bd2bb6c802a040b00659dfe7954e804d",
+                    "cadd63b3fd14e34819bca4803925bf2c",
+                ],
+            ),
+        ],
+    )
+    def test_get_atoms_by_index(self, atom_type, fields, query, expected, database: RedisMongoDB):
+        result = database.create_field_index(atom_type, fields=fields)
+        cursor, actual = database.get_atoms_by_index(result, query)
+        assert cursor == 0
+        assert isinstance(actual, list)
+        assert all([a.handle in expected for a in actual])
+
+    @pytest.mark.parametrize("node", [("A", "type_a", "redis_mongo_db", {"status": "ready"})])
+    def test_get_atoms_by_index_custom_att(self, node, database: RedisMongoDB):
+        node = add_node(database, *node)
+        result = database.create_field_index("node", fields=["custom_attributes.status"])
+        cursor, actual = database.get_atoms_by_index(
             result, [{"field": "custom_attributes.status", "value": "ready"}]
         )
         assert cursor == 0
@@ -1237,151 +475,1087 @@ class TestRedisMongo:
         assert len(actual) == 1
         assert all([a.handle == node.handle for a in actual])
 
-    def test_commit_with_buffer(self, _cleanup, _db: RedisMongoDB):
-        db = _db
-        assert db.count_atoms() == {"atom_count": 0}
-        buffer = [
-            {
-                "_id": "26d35e45817f4270f2b7cff971b04138",
-                "composite_type_hash": "d99a604c79ce3c2e76a2f43488d5d4c3",
-                "name": "dog",
-                "named_type": "Concept",
-            },
-            {
-                "_id": "b7db6a9ed2191eb77ee54479570db9a4",
-                "composite_type_hash": "d99a604c79ce3c2e76a2f43488d5d4c3",
-                "name": "cat",
-                "named_type": "Concept",
-            },
-            {
-                "_id": "3dab102938606f4549d68405ec9f4f61",
-                "composite_type_hash": "ed73ea081d170e1d89fc950820ce1cee",
-                "is_toplevel": True,
-                "composite_type": [
-                    "a9dea78180588431ec64d6bc4872fdbc",
-                    "d99a604c79ce3c2e76a2f43488d5d4c3",
-                    "d99a604c79ce3c2e76a2f43488d5d4c3",
-                ],
-                "named_type": "Similarity",
-                "named_type_hash": "a9dea78180588431ec64d6bc4872fdbc",
-                "key_0": "26d35e45817f4270f2b7cff971b04138",
-                "key_1": "b7db6a9ed2191eb77ee54479570db9a4",
-            },
-        ]
-        db.commit(buffer=buffer)
-        assert db.count_atoms({"precise": True}) == {
-            "atom_count": 3,
-            "node_count": 2,
-            "link_count": 1,
-        }
-        assert db.get_atom("26d35e45817f4270f2b7cff971b04138").name == "dog"
-        assert db.get_atom("b7db6a9ed2191eb77ee54479570db9a4").name == "cat"
-        assert db.get_atom("3dab102938606f4549d68405ec9f4f61").targets == [
-            "26d35e45817f4270f2b7cff971b04138",
-            "b7db6a9ed2191eb77ee54479570db9a4",
-        ]
+    @pytest.mark.parametrize(
+        "text_value,field,expected",
+        [
+            ("mammal", "name", [ExpressionHasher.terminal_hash("Concept", "mammal")]),
+        ],
+    )
+    def test_get_node_by_text_field(self, text_value, field, expected, database: RedisMongoDB):
+        actual = database.get_atoms_by_text_field(text_value, field)
+        assert expected == actual
 
     @pytest.mark.parametrize(
-        "template,metta_link,queries,expected",
+        "handle,expected",
+        [
+            (ExpressionHasher.terminal_hash("Concept", "monkey"), "Concept"),
+            (ExpressionHasher.terminal_hash("Concept", "human"), "Concept"),
+            ("b5459e299a5c5e8662c427f7e01b3bf1", None),  # Similarity handle
+        ],
+    )
+    def test_get_node_type(self, handle, expected, database: RedisMongoDB):
+        resp_node = database.get_node_type(handle)
+        if expected is None:
+            assert resp_node is None
+        else:
+            assert expected == resp_node
+
+    def test_get_node_type_without_cache(self, database: RedisMongoDB):
+        from hyperon_das_atomdb.adapters import redis_mongo_db  # noqa: F811
+
+        redis_mongo_db.USE_CACHED_NODE_TYPES = False
+        monkey = database.get_node_handle("Concept", "monkey")
+        resp_node = database.get_node_type(monkey)
+        assert "Concept" == resp_node
+
+    @pytest.mark.parametrize(
+        "handle,expected",
+        [
+            (ExpressionHasher.terminal_hash("Concept", "monkey"), None),
+            (ExpressionHasher.terminal_hash("Concept", "human"), None),
+            ("b5459e299a5c5e8662c427f7e01b3bf1", "Similarity"),
+        ],
+    )
+    def test_get_link_type(self, handle, expected, database: RedisMongoDB):
+        resp_link = database.get_link_type(handle)
+        if expected is None:
+            assert resp_link is None
+        else:
+            assert expected == resp_link
+
+    def test_get_link_type_without_cache(self, database: RedisMongoDB):
+        from hyperon_das_atomdb.adapters import redis_mongo_db  # noqa: F811
+
+        redis_mongo_db.USE_CACHED_LINK_TYPES = False
+        human = database.get_node_handle("Concept", "human")
+        chimp = database.get_node_handle("Concept", "chimp")
+        link_handle = database.get_link_handle("Similarity", [human, chimp])
+        resp_link = database.get_link_type(link_handle)
+        assert "Similarity" == resp_link
+
+    def test_atom_count(self, database: RedisMongoDB):
+        response = database.count_atoms({"precise": True})
+        assert response == {
+            "atom_count": self.atom_count,
+            "node_count": self.node_count,
+            "link_count": self.link_count,
+        }
+
+    def test_atom_count_fast(self, database: RedisMongoDB):
+        response = database.count_atoms()
+        assert response == {"atom_count": self.atom_count}
+
+    def test_add_node(self, database: RedisMongoDB):
+        assert {"atom_count": self.atom_count} == database.count_atoms()
+        all_nodes_before = database.get_all_nodes_handles("Concept")
+        database.add_node(dict_to_node_params({"type": "Concept", "name": "lion"}))
+        database.commit()
+        all_nodes_after = database.get_all_nodes_handles("Concept")
+        assert len(all_nodes_before) == self.node_count
+        assert len(all_nodes_after) == self.node_count + 1
+        assert {
+            "atom_count": self.atom_count + 1,
+            "node_count": self.node_count + 1,
+            "link_count": self.link_count,
+        } == database.count_atoms({"precise": True})
+        new_node_handle = database.get_node_handle("Concept", "lion")
+        assert new_node_handle == ExpressionHasher.terminal_hash("Concept", "lion")
+        assert new_node_handle not in all_nodes_before
+        assert new_node_handle in all_nodes_after
+        new_node = database.get_atom(new_node_handle)
+        assert new_node.handle == new_node_handle
+        assert new_node.named_type == "Concept"
+        assert new_node.name == "lion"
+
+    def test_add_link(self, database: RedisMongoDB):
+        assert {"atom_count": self.atom_count} == database.count_atoms()
+
+        all_nodes_before = database.get_all_nodes_handles("Concept")
+        similarity = database.get_all_links("Similarity")
+        inheritance = database.get_all_links("Inheritance")
+        evaluation = database.get_all_links("Evaluation")
+        all_links_before = similarity.union(inheritance).union(evaluation)
+        database.add_link(
+            dict_to_link_params(
+                {
+                    "type": "Similarity",
+                    "targets": [
+                        {"type": "Concept", "name": "lion"},
+                        {"type": "Concept", "name": "cat"},
+                        {
+                            "type": "Dumminity",
+                            "targets": [
+                                {"type": "Dummy", "name": "dummy1"},
+                                {"type": "Dummy", "name": "dummy2"},
+                                {
+                                    "type": "Anidity",
+                                    "targets": [
+                                        {"type": "Any", "name": "any1"},
+                                        {"type": "Any", "name": "any2"},
+                                    ],
+                                },
+                            ],
+                        },
+                    ],
+                }
+            )
+        )
+        database.commit()
+        all_nodes_after = database.get_all_nodes_handles("Concept")
+        similarity = database.get_all_links("Similarity")
+        inheritance = database.get_all_links("Inheritance")
+        evaluation = database.get_all_links("Evaluation")
+        all_links_after = similarity.union(inheritance).union(evaluation)
+        assert len(all_nodes_before) == self.node_count
+        assert len(all_nodes_after) == self.node_count + 2
+        assert len(all_links_before) == 28
+        assert len(all_links_after) == 29
+        assert {
+            "atom_count": 53,
+            "node_count": 20,
+            "link_count": 33,
+        } == database.count_atoms({"precise": True})
+
+        new_node_handle = database.get_node_handle("Concept", "lion")
+        assert new_node_handle == ExpressionHasher.terminal_hash("Concept", "lion")
+        assert new_node_handle not in all_nodes_before
+        assert new_node_handle in all_nodes_after
+        new_node = database.get_atom(new_node_handle)
+        assert new_node.handle == new_node_handle
+        assert new_node.named_type == "Concept"
+        assert new_node.name == "lion"
+
+        new_node_handle = database.get_node_handle("Concept", "cat")
+        assert new_node_handle == ExpressionHasher.terminal_hash("Concept", "cat")
+        assert new_node_handle not in all_nodes_before
+        assert new_node_handle in all_nodes_after
+        new_node = database.get_atom(new_node_handle)
+        assert new_node.handle == new_node_handle
+        assert new_node.named_type == "Concept"
+        assert new_node.name == "cat"
+
+    @pytest.mark.parametrize(
+        "node,expected_count",
+        [
+            (("Concept", "human"), 8),
+            (("Concept", "monkey"), 6),
+            (("Concept", "rhino"), 5),
+            (("Concept", "reptile"), 4),
+        ],
+    )
+    def test_get_incoming_links_by_node(self, node, expected_count, database: RedisMongoDB):
+        handle = database.get_node_handle(*node)
+        links = database.get_incoming_links_atoms(atom_handle=handle)
+        link_handles = database.get_incoming_links_handles(atom_handle=handle)
+        assert len(links) > 0
+        assert all(isinstance(link, str) for link in link_handles)
+        answer = database.redis.smembers(f"{KeyPrefix.INCOMING_SET.value}:{handle}")
+        assert len(links) == len(answer) == expected_count
+        assert sorted(link_handles) == sorted(answer)
+        assert all([handle in link.targets for link in links])
+
+    @pytest.mark.parametrize(
+        "key",
+        list(KeyPrefix),
+    )
+    def test_redis_keys(self, key, database: RedisMongoDB):
+        assert str(key) not in {k.split(":")[0] for k in database.redis.cache.keys()}
+        assert str(key.value) in {k.split(":")[0] for k in database.redis.cache.keys()}
+
+    @pytest.mark.parametrize(
+        "link_type,link_targets",
+        [
+            ("Similarity", [("Concept", "human"), ("Concept", "monkey")]),
+            ("Inheritance", [("Concept", "snake"), ("Concept", "reptile")]),
+            ("Evaluation", [("Concept", "triceratops"), ("Concept", "rhino")]),
+            (
+                "Evaluation",
+                [
+                    ("Concept", "triceratops"),
+                    (
+                        "Evaluation",
+                        [
+                            "d03e59654221c1e8fcda404fd5c8d6cb",
+                            "99d18c702e813b07260baf577c60c455",
+                        ],
+                    ),
+                ],
+            ),
+        ],
+    )
+    def test_get_incoming_links_by_links(self, link_type, link_targets, database: RedisMongoDB):
+        handle = database.get_link_handle(
+            link_type,
+            [
+                database.get_node_handle(*t)
+                if all([isinstance(tt, str) for tt in t])
+                else database.get_link_handle(*t)
+                for t in link_targets
+            ],
+        )
+        for target in link_targets:
+            if all([isinstance(t, str) for t in target]):
+                h = database.get_node_handle(*target)
+            else:
+                database.get_link_handle(*target)
+            links = database.get_incoming_links_handles(atom_handle=h)
+            assert len(links) > 0
+            assert all(isinstance(link, str) for link in links)
+            answer = database.redis.smembers(f"{KeyPrefix.INCOMING_SET.value}:{h}")
+            assert isinstance(answer, set)
+            assert sorted(links) == sorted(answer)
+            assert handle in links
+            links = database.get_incoming_links_atoms(atom_handle=h)
+            atom = database.get_atom(handle=handle)
+            assert atom.handle in [link.handle for link in links]
+            links = database.get_incoming_links_atoms(atom_handle=h, targets_document=True)
+            assert len(links) > 0
+            assert all(isinstance(link, LinkT) for link in links)
+            for link in links:
+                for a, b in zip(link.targets, link.targets_documents):
+                    assert a == b.handle
+
+    @pytest.mark.parametrize(
+        "link_type,link_targets,expected_count",
+        [
+            ("*", ["*", "*"], 28),
+            # ("LinkTest", ["*", "*", "*", "*"], 1),
+            ("Similarity", ["*", "af12f10f9ae2002a1607ba0b47ba8407"], 3),
+            ("Similarity", ["af12f10f9ae2002a1607ba0b47ba8407", "*"], 3),
+            (
+                "Inheritance",
+                [
+                    "c1db9b517073e51eb7ef6fed608ec204",
+                    "b99ae727c787f1b13b452fd4c9ce1b9a",
+                ],
+                1,
+            ),
+            (
+                "Evaluation",
+                [
+                    "d03e59654221c1e8fcda404fd5c8d6cb",
+                    "99d18c702e813b07260baf577c60c455",
+                ],
+                1,
+            ),
+            (
+                "Evaluation",
+                [
+                    "d03e59654221c1e8fcda404fd5c8d6cb",
+                    "99d18c702e813b07260baf577c60c455",
+                ],
+                1,
+            ),
+            ("Evaluation", ["*", "99d18c702e813b07260baf577c60c455"], 1),
+        ],
+    )
+    def test_redis_patterns(self, link_type, link_targets, expected_count, database: RedisMongoDB):
+        links = database.get_matched_links(link_type, link_targets)
+        pattern_hash = ExpressionHasher.composite_hash(
+            [
+                ExpressionHasher.named_type_hash(link_type) if link_type != "*" else "*",
+                *link_targets,
+            ]
+        )
+        answer = database.redis.smembers(f"{KeyPrefix.PATTERNS.value}:{pattern_hash}")
+        assert len(answer) == len(links) == expected_count
+        assert sorted(links) == sorted(answer)
+        assert len(links) == expected_count
+
+    @pytest.mark.parametrize(
+        "templates,expected",
         [
             (
                 [
                     {
-                        "field": "targets[0]",
-                        "value": ExpressionHasher.terminal_hash("Symbol", "Similarity"),
-                        "positions": [1, 2],
-                        "arity": 3,
+                        "field": "named_type",
+                        "value": "Similarity",
+                        "positions": [5, 6, 8],
+                        "arity": 10,
                     }
-                ],
-                '(Similarity "Human" "Monkey")',
-                [
-                    ("Similarity", "*", '"Monkey"'),
-                    ("Similarity", '"Human"', "*"),
-                    ("Similarity", '"Human"', "*"),
-                    ("Similarity", "*", "*"),
                 ],
                 8,
             ),
             (
                 [
                     {
-                        "field": "targets[0]",
-                        "value": ExpressionHasher.terminal_hash("Symbol", "transcribed_to"),
-                        "positions": [1, 2],
-                        "arity": 3,
+                        "field": "named_type",
+                        "value": "Similarity",
+                        "positions": [],
+                        "arity": 0,
                     }
                 ],
-                '(transcribed_to (gene "ENSG00000290825") (transcript "ENST00000456328"))',
+                0,
+            ),
+            ([{"field": "named_type", "value": "*", "positions": [], "arity": 0}], 1),
+            (
                 [
-                    ("transcribed_to", "*", "*"),
-                    (
-                        "transcribed_to",
-                        ExpressionHasher.composite_hash(
-                            [
-                                ExpressionHasher.named_type_hash("Expression"),
-                                ExpressionHasher.terminal_hash("Symbol", "gene"),
-                                ExpressionHasher.terminal_hash("Symbol", '"ENSG00000290825"'),
-                            ]
-                        ),
-                        "*",
-                    ),
-                    (
-                        "transcribed_to",
-                        "*",
-                        ExpressionHasher.composite_hash(
-                            [
-                                ExpressionHasher.named_type_hash("Expression"),
-                                ExpressionHasher.terminal_hash("Symbol", "transcript"),
-                                ExpressionHasher.terminal_hash("Symbol", '"ENST00000456328"'),
-                            ]
-                        ),
-                    ),
+                    {
+                        "field": "named_type",
+                        "value": "*",
+                        "positions": [0, 1, 2],
+                        "arity": 3,
+                    },
+                ],
+                15,
+            ),
+            (
+                [
+                    {
+                        "field": "targets[0]",
+                        "value": "b5459e299a5c5e8662c427f7e01b3bf1",
+                        "positions": [1, 2],
+                        "arity": 3,
+                    },
                 ],
                 8,
             ),
             (
                 [
                     {
-                        "field": "targets[0]",
-                        "value": ExpressionHasher.terminal_hash("Symbol", "synonyms"),
-                        "positions": [1, 2],
+                        "field": "named_type",
+                        "value": "Similarity",
+                        "positions": [0, 1, 2],
                         "arity": 3,
                     }
-                ],
-                "(synonyms (gene ENSG00000278267) (microRNA_6859-1 hsa-mir-6859-1 HGNC:50039 microRNA_mir-6859-1 MIR6859-1))",
-                [
-                    ("synonyms", "*", "*"),
-                ],
-                8,
-            ),
-            (
-                [
-                    {
-                        "field": "targets[0]",
-                        "value": ExpressionHasher.terminal_hash("Symbol", "tf_name"),
-                        "positions": [1, 2],
-                        "arity": 3,
-                    }
-                ],
-                "(tf_name (motif ENSG00000156273) BACH1)",
-                [
-                    ("tf_name", "*", "*"),
                 ],
                 8,
             ),
         ],
     )
-    def test_index_pattern_generation(
-        self, template, metta_link, queries, expected, _cleanup, redis_mongo_up
+    def test_custom_index_templates_size(
+        self, templates, expected, database_custom_index: RedisMongoDB
     ):
-        db: RedisMongoDB = self._connect_db({"pattern_index_templates": template})
-        db.add_link(dict_to_link_params(metta_to_links(metta_link)))
-        db.commit()
-        for q in queries:
-            tt = [
-                n if n == "*" or len(n) == 32 else ExpressionHasher.terminal_hash("Symbol", n)
-                for n in q
-            ]
-            links: set[str] = db.get_matched_links("*", tt)
-            assert len(links) == 1
+        self.database_config = {"pattern_index_templates": templates}
+        db = database_custom_index(**self.database_config)
+        print(db.pattern_index_templates)
         assert len(db.pattern_index_templates) == expected
+
+    @pytest.mark.parametrize(
+        "templates,expected",
+        [
+            (
+                [
+                    {
+                        "field": "targets[0]",
+                        "value": "af12f10f9ae2002a1607ba0b47ba8407",
+                        "positions": [1],
+                        "arity": 3,
+                    },
+                ],
+                4,
+            ),
+            (None, 15),  # Loads default index template
+            (
+                [
+                    {
+                        "field": "named_type",
+                        "value": "Similarity",
+                        "positions": [5, 6, 8],
+                        "arity": 10,
+                    }
+                ],
+                8,
+            ),
+        ],
+    )
+    def test_custom_index_templates_load(
+        self, templates, expected, database_custom_index: RedisMongoDB
+    ):
+        self.database_config = {"pattern_index_templates": templates}
+        db = database_custom_index(**self.database_config)
+        db._load_pattern_index({})
+        assert db.pattern_templates == templates if templates is not None else True
+        assert len(db.pattern_index_templates) == expected
+
+    @pytest.mark.parametrize(
+        "templates,expected",
+        [
+            (
+                [
+                    {
+                        "field": "targets[0]",
+                        "value": "af12f10f9ae2002a1607ba0b47ba8407",
+                        "positions": [1],
+                        "arity": 3,
+                    },
+                ],
+                15,
+            )
+        ],
+    )
+    def test_custom_index_templates_load_error(
+        self, templates, expected, database_custom_index: RedisMongoDB
+    ):
+        self.database_config = {"pattern_index_templates": templates}
+        db = database_custom_index()  # loads the default template
+        with pytest.raises(ValueError) as exec_info:
+            db._load_pattern_index(self.database_config)  # force new value
+        assert exec_info.type is ValueError
+        assert (
+            exec_info.value.args[0]
+            == "'pattern_index_templates' value doesn't match with found on database"
+        )
+
+    @pytest.mark.parametrize(
+        "templates,expected",
+        [
+            (
+                [
+                    {
+                        "field": "targets[0]",
+                        "value": "af12f10f9ae2002a1607ba0b47ba8407",
+                        "positions": [1, 5],
+                        "arity": 3,
+                    },
+                ],
+                "'positions' parameter must be in range of the arity.",
+            ),
+            (
+                [
+                    {
+                        "field": "targets[0]",
+                        "value": "af12f10f9ae2002a1607ba0b47ba8407",
+                        "positions": [1, 2, 3, 4, 5],
+                        "arity": 10,
+                    },
+                ],
+                "'positions' array should be less than 4.",
+            ),
+            (
+                [
+                    {
+                        "field": "targets[5]",
+                        "value": "af12f10f9ae2002a1607ba0b47ba8407",
+                        "positions": [1, 2],
+                        "arity": 3,
+                    },
+                ],
+                "'target[]' index must be in range of arity.",
+            ),
+            (
+                [
+                    {
+                        "field": "targets[0]",
+                        "value": "af12f10f9ae2002a1607ba0b47ba8407",
+                        "positions": [1, 2],
+                        "arity": -1,
+                    },
+                ],
+                "'arity' must be an integer greater than or equal to zero.",
+            ),
+            (
+                [
+                    {
+                        "field": "targets[0]",
+                        "value": "af12f10f9ae2002a1607ba0b47ba8407",
+                        "positions": [1, 2],
+                        "arity": "-1",
+                    },
+                ],
+                "'arity' must be an integer greater than or equal to zero.",
+            ),
+            (
+                [
+                    {
+                        "field": "type",
+                        "value": "af12f10f9ae2002a1607ba0b47ba8407",
+                        "positions": [1, 2],
+                        "arity": "-1",
+                    },
+                ],
+                "Value 'type' is not supported in 'field'.",
+            ),
+            (
+                [
+                    {
+                        "field": "named_type",
+                        "value": "*",
+                        "positions": [1, "a"],
+                        "arity": 3,
+                    },
+                ],
+                "Value '[1, 'a']' is not supported in 'positions'.",
+            ),
+            (
+                [
+                    {
+                        "field": "named_type",
+                        "value": "*",
+                        "positions": [1, 2],
+                        "arity": "a",
+                    },
+                ],
+                "Value 'a' is not supported in 'arity'.",
+            ),
+        ],
+    )
+    def test_custom_index_templates_error(
+        self, templates, expected, database_custom_index: RedisMongoDB
+    ):
+        self.database_config = {"pattern_index_templates": templates}
+        with pytest.raises(ValueError) as exec_info:
+            database_custom_index(**self.database_config)  # loads the default template
+        assert exec_info.type is ValueError
+        assert exec_info.value.args[0] == expected
+
+    @pytest.mark.parametrize(
+        "templates,expected",
+        [
+            (
+                [
+                    {
+                        "field": "named_type",
+                        "value": "Similarity",
+                        "positions": [5, 6, 8],
+                        "arity": 10,
+                    }
+                ],
+                8,
+            ),
+            (
+                [
+                    {
+                        "field": "targets[0]",
+                        "value": "b5459e299a5c5e8662c427f7e01b3bf1",
+                        "positions": [1, 2],
+                        "arity": 3,
+                    },
+                ],
+                8,
+            ),
+            (
+                [
+                    {
+                        "field": "named_type",
+                        "value": "Similarity",
+                        "positions": [0, 1, 2],
+                        "arity": 3,
+                    }
+                ],
+                8,
+            ),
+        ],
+    )
+    def test_custom_index_templates_target(
+        self, templates, expected, database_custom_index: RedisMongoDB
+    ):
+        self.database_config = {"pattern_index_templates": templates}
+        db = database_custom_index(**self.database_config)
+        db._load_pattern_index({})
+        assert db.pattern_templates == templates
+        assert len(db.pattern_index_templates) == expected
+
+    @pytest.mark.parametrize(
+        "templates,expected",
+        [
+            (
+                [
+                    {
+                        "field": "targets[0]",
+                        "value": "af12f10f9ae2002a1607ba0b47ba8407",
+                        "positions": [1],
+                        "arity": 3,
+                    },
+                ],
+                4,
+            )
+        ],
+    )
+    def test_custom_index_templates_reindex(
+        self, templates, expected, database_custom_index: RedisMongoDB
+    ):
+        self.database_config = {"pattern_index_templates": templates}
+        db: RedisMongoDB = database_custom_index()  # loads the default template
+        assert len(db.pattern_index_templates) == 15
+        db.reindex(**self.database_config)
+        assert len(db.pattern_index_templates) == expected
+
+    @pytest.mark.parametrize(
+        "templates,link_template,expected_default,expected",
+        [
+            (
+                [
+                    {
+                        "field": "targets[0]",
+                        "value": "af12f10f9ae2002a1607ba0b47ba8407",
+                        "positions": [2],
+                        "arity": 3,
+                    },
+                ],
+                ["*", ["af12f10f9ae2002a1607ba0b47ba8407", "*"]],
+                4,
+                0,
+            ),
+            (
+                [
+                    {
+                        "field": "targets[1]",
+                        "value": "af12f10f9ae2002a1607ba0b47ba8407",
+                        "positions": [0, 2],
+                        "arity": 3,
+                    },
+                ],
+                ["*", ["*", "af12f10f9ae2002a1607ba0b47ba8407"]],
+                3,
+                3,
+            ),
+        ],
+    )
+    def test_custom_index_templates_reindex_find(
+        self,
+        templates,
+        link_template,
+        expected_default,
+        expected,
+        database_custom_index: RedisMongoDB,
+    ):
+        self.database_config = {"pattern_index_templates": templates}
+        db: RedisMongoDB = database_custom_index()  # loads the default template
+        self._load_database(db)
+        links = db.get_matched_links(*link_template)
+        assert len(links) == expected_default
+        db.reindex(**self.database_config)
+        links = db.get_matched_links(*link_template)
+        assert len(links) == expected
+
+    @pytest.mark.parametrize(
+        "templates,link_template,expected",
+        [
+            (
+                [
+                    {
+                        "field": "targets[0]",
+                        "value": "af12f10f9ae2002a1607ba0b47ba8407",
+                        "positions": [2],
+                        "arity": 3,
+                    },
+                ],
+                ["*", ["af12f10f9ae2002a1607ba0b47ba8407", "*"]],
+                0,
+            ),
+            (
+                [
+                    {
+                        "field": "named_type",
+                        "value": "Similarity",
+                        "positions": [1],
+                        "arity": 2,
+                    },
+                ],
+                ["*", ["*", "*"]],
+                0,
+            ),
+            (
+                [
+                    {
+                        "field": "named_type",
+                        "value": "Similarity",
+                        "positions": [1],
+                        "arity": 2,
+                    },
+                ],
+                ["Similarity", ["bb34ce95f161a6b37ff54b3d4c817857", "*"]],
+                1,
+            ),
+            (
+                [
+                    {
+                        "field": "named_type",
+                        "value": "Similarity",
+                        "positions": [1],
+                        "arity": 2,
+                    },
+                ],
+                ["Similarity", ["*", "bb34ce95f161a6b37ff54b3d4c817857"]],
+                0,
+            ),
+            (
+                [
+                    {
+                        "field": "named_type",
+                        "value": "Evaluation",
+                        "positions": [0, 1],
+                        "arity": 2,
+                    },
+                ],
+                ["Evaluation", ["*", "*"]],
+                2,
+            ),
+            (
+                [
+                    {
+                        "field": "named_type",
+                        "value": "*",
+                        "positions": [0, 1],
+                        "arity": 2,
+                    },
+                ],
+                ["Evaluation", ["*", "*"]],
+                2,
+            ),
+            (
+                [
+                    {
+                        "field": "named_type",
+                        "value": "Evaluation",
+                        "positions": [0, 1],
+                        "arity": 2,
+                    },
+                ],
+                ["*", ["*", "*"]],
+                0,
+            ),
+            (
+                [
+                    {
+                        "field": "targets[0]",
+                        "value": "af12f10f9ae2002a1607ba0b47ba8407",
+                        "positions": [1],
+                        "arity": 3,
+                    },
+                ],
+                ["*", ["af12f10f9ae2002a1607ba0b47ba8407", "*"]],
+                4,
+            ),
+            (
+                [
+                    {"field": "named_type", "value": "*", "positions": [1], "arity": 2},
+                ],
+                ["*", ["af12f10f9ae2002a1607ba0b47ba8407", "*"]],
+                4,
+            ),
+            (
+                [
+                    {
+                        "field": "named_type",
+                        "value": "*",
+                        "positions": [0, 1],
+                        "arity": 2,
+                    },
+                ],
+                ["*", ["af12f10f9ae2002a1607ba0b47ba8407", "*"]],
+                4,
+            ),
+            (
+                [
+                    {"field": "named_type", "value": "*", "positions": [1], "arity": 2},
+                ],
+                ["*", ["*", "af12f10f9ae2002a1607ba0b47ba8407"]],
+                0,
+            ),
+            (
+                [
+                    {
+                        "field": "targets[0]",
+                        "value": "af12f10f9ae2002a1607ba0b47ba8407",
+                        "positions": [1, 2],
+                        "arity": 3,
+                    },
+                ],
+                ["*", ["af12f10f9ae2002a1607ba0b47ba8407", "*"]],
+                4,
+            ),
+            (
+                [
+                    {
+                        "field": "targets[1]",
+                        "value": "af12f10f9ae2002a1607ba0b47ba8407",
+                        "positions": [0, 2],
+                        "arity": 3,
+                    },
+                ],
+                ["*", ["*", "af12f10f9ae2002a1607ba0b47ba8407"]],
+                3,
+            ),
+            (
+                [
+                    {
+                        "field": "named_type",
+                        "value": "*",
+                        "positions": [0, 1, 2, 3],
+                        "arity": 5,
+                    },
+                ],
+                ["*", ["*", "*", "*", "*", "af12f10f9ae2002a1607ba0b47ba8407"]],
+                1,
+            ),
+            (
+                [
+                    {
+                        "field": "named_type",
+                        "value": "BigLink",
+                        "positions": [0, 1, 2, 3],
+                        "arity": 5,
+                    },
+                ],
+                ["*", ["*", "*", "*", "*", "af12f10f9ae2002a1607ba0b47ba8407"]],
+                0,
+            ),
+            (
+                [
+                    {
+                        "field": "named_type",
+                        "value": "BigLink",
+                        "positions": [0, 1, 2, 3],
+                        "arity": 5,
+                    },
+                ],
+                ["BigLink", ["*", "*", "*", "*", "af12f10f9ae2002a1607ba0b47ba8407"]],
+                1,
+            ),
+            (
+                [
+                    {
+                        "field": "named_type",
+                        "value": "*",
+                        "positions": [1, 2, 3, 4],
+                        "arity": 5,
+                    },
+                ],
+                ["*", ["0a32b476852eeb954979b87f5f6cb7af", "*", "*", "*", "*"]],
+                1,
+            ),
+        ],
+    )
+    def test_custom_index_templates_find(
+        self, templates, link_template, expected, database_custom_index: RedisMongoDB
+    ):
+        self.database_config = {"pattern_index_templates": templates}
+        db: RedisMongoDB = database_custom_index(
+            **self.database_config
+        )  # loads the default template
+        self._load_database(db)
+        links = db.get_matched_links(*link_template)
+        assert len(links) == expected
+
+    @pytest.mark.parametrize(
+        "template_values,expected_count",
+        [
+            (["Inheritance", "Concept", "Concept"], 12),
+            (["Inheritance"], 12),
+            (["Inheritance", "Concept", "Concept"], 12),
+            (["Inheritance"], 12),
+            (["Similarity", "Concept", "Concept"], 14),
+            (["Similarity"], 14),
+            (["Evaluation", "Concept", "Concept"], 1),
+            (["Evaluation"], 2),
+            (["Evaluation", "Concept", ["Evaluation", "Concept", "Concept"]], 1),
+        ],
+    )
+    def test_redis_templates(self, template_values, expected_count, database: RedisMongoDB):
+        links = database.get_matched_type_template(template_values)
+        hash_base = database._build_named_type_hash_template(template_values)
+        template_hash = ExpressionHasher.composite_hash(hash_base)
+        answer = database.redis.smembers(f"{KeyPrefix.TEMPLATES.value}:{template_hash}")
+        assert len(answer) == len(links) == expected_count
+        assert sorted(links) == sorted(answer)
+        assert len(links) == expected_count
+
+    @pytest.mark.parametrize(
+        "node_type,expected_count",
+        [
+            ("Concept", 14),
+            ("Empty", 0),
+        ],
+    )
+    def test_redis_names(self, node_type, expected_count, database: RedisMongoDB):
+        nodes = database.get_all_nodes_handles(node_type)
+        assert len(nodes) == expected_count
+        assert all(
+            [database.redis.smembers(f"{KeyPrefix.NAMED_ENTITIES.value}:{node}") for node in nodes]
+        )
+
+    @pytest.mark.parametrize(
+        "link_type,expected_count",
+        [
+            ("Inheritance", 12),
+            ("Similarity", 14),
+            ("Evaluation", 2),
+        ],
+    )
+    def test_redis_outgoing_set(self, link_type, expected_count, database: RedisMongoDB):
+        links = database.get_all_links(link_type)
+        assert len(links) == expected_count
+        assert all(
+            [database.redis.smembers(f"{KeyPrefix.OUTGOING_SET.value}:{link}") for link in links]
+        )
+
+    def test_get_atom_type(self, database: RedisMongoDB):
+        h = database.get_node_handle("Concept", "human")
+        m = database.get_node_handle("Concept", "mammal")
+        i = database.get_link_handle("Inheritance", [h, m])
+
+        assert "Concept" == database.get_atom_type(h)
+        assert "Concept" == database.get_atom_type(m)
+        assert "Inheritance" == database.get_atom_type(i)
+
+    def test_create_field_index_node_collection(self, database: RedisMongoDB):
+        database.mongo_atoms_collection = mock.Mock()
+        database.mongo_atoms_collection.create_index.return_value = "name_index_asc"
+        with (
+            mock.patch(
+                "hyperon_das_atomdb.index.Index.generate_index_id",
+                return_value="name_index_asc",
+            ),
+            mock.patch(
+                "hyperon_das_atomdb.adapters.redis_mongo_db.MongoDBIndex.index_exists",
+                return_value=False,
+            ),
+        ):
+            result = database.create_field_index("node", ["name"], "Type")
+
+        assert result == "name_index_asc"
+        database.mongo_atoms_collection.create_index.assert_called_once_with(
+            [("name", 1)],
+            name="node_name_index_asc",
+            partialFilterExpression={FieldNames.TYPE_NAME: {"$eq": "Type"}},
+        )
+
+    def test_create_field_index_link_collection(self, database: RedisMongoDB):
+        database.mongo_atoms_collection = mock.Mock()
+        database.mongo_atoms_collection.create_index.return_value = "field_index_asc"
+        with (
+            mock.patch(
+                "hyperon_das_atomdb.index.Index.generate_index_id",
+                return_value="field_index_asc",
+            ),
+            mock.patch(
+                "hyperon_das_atomdb.adapters.redis_mongo_db.MongoDBIndex.index_exists",
+                return_value=False,
+            ),
+        ):
+            result = database.create_field_index("link", ["field"], "Type")
+
+        assert result == "field_index_asc"
+        database.mongo_atoms_collection.create_index.assert_called_once_with(
+            [("field", 1)],
+            name="link_field_index_asc",
+            partialFilterExpression={FieldNames.TYPE_NAME: {"$eq": "Type"}},
+        )
+
+    def test_create_text_index(self, database: RedisMongoDB):
+        database.mongo_atoms_collection = mock.Mock()
+        database.mongo_atoms_collection.create_index.return_value = "field_index_asc"
+        with (
+            mock.patch(
+                "hyperon_das_atomdb.index.Index.generate_index_id",
+                return_value="field_index_asc",
+            ),
+            mock.patch(
+                "hyperon_das_atomdb.adapters.redis_mongo_db.MongoDBIndex.index_exists",
+                return_value=False,
+            ),
+        ):
+            result = database.create_field_index(
+                "link", ["field"], index_type=FieldIndexType.TOKEN_INVERTED_LIST
+            )
+
+        assert result == "field_index_asc"
+        database.mongo_atoms_collection.create_index.assert_called_once_with(
+            [("field", "text")], name="link_field_index_asc_text"
+        )
+
+    def test_create_text_index_type(self, database: RedisMongoDB):
+        database.mongo_atoms_collection = mock.Mock()
+        database.mongo_atoms_collection.create_index.return_value = "field_index_asc"
+        with (
+            mock.patch(
+                "hyperon_das_atomdb.index.Index.generate_index_id",
+                return_value="field_index_asc",
+            ),
+            mock.patch(
+                "hyperon_das_atomdb.adapters.redis_mongo_db.MongoDBIndex.index_exists",
+                return_value=False,
+            ),
+        ):
+            result = database.create_field_index(
+                "link", ["field"], "Type", index_type=FieldIndexType.TOKEN_INVERTED_LIST
+            )
+
+        assert result == "field_index_asc"
+        database.mongo_atoms_collection.create_index.assert_called_once_with(
+            [("field", "text")],
+            name="link_field_index_asc_text",
+            partialFilterExpression={FieldNames.TYPE_NAME: {"$eq": "Type"}},
+        )
+
+    def test_create_compound_index_type(self, database: RedisMongoDB):
+        database.mongo_atoms_collection = mock.Mock()
+        database.mongo_atoms_collection.create_index.return_value = "field_index_asc"
+        with (
+            mock.patch(
+                "hyperon_das_atomdb.index.Index.generate_index_id",
+                return_value="field_index_asc",
+            ),
+            mock.patch(
+                "hyperon_das_atomdb.adapters.redis_mongo_db.MongoDBIndex.index_exists",
+                return_value=False,
+            ),
+        ):
+            result = database.create_field_index("link", fields=["field", "name"])
+
+        assert result == "field_index_asc"
+        database.mongo_atoms_collection.create_index.assert_called_once_with(
+            [("field", 1), ("name", 1)],
+            name="link_field_index_asc",
+        )
+
+    def test_create_compound_index_type_filter(self, database: RedisMongoDB):
+        database.mongo_atoms_collection = mock.Mock()
+        database.mongo_atoms_collection.create_index.return_value = "field_index_asc"
+        with (
+            mock.patch(
+                "hyperon_das_atomdb.index.Index.generate_index_id",
+                return_value="field_index_asc",
+            ),
+            mock.patch(
+                "hyperon_das_atomdb.adapters.redis_mongo_db.MongoDBIndex.index_exists",
+                return_value=False,
+            ),
+        ):
+            result = database.create_field_index(
+                "link", named_type="Type", fields=["field", "name"]
+            )
+
+        assert result == "field_index_asc"
+        database.mongo_atoms_collection.create_index.assert_called_once_with(
+            [("field", 1), ("name", 1)],
+            name="link_field_index_asc",
+            partialFilterExpression={FieldNames.TYPE_NAME: {"$eq": "Type"}},
+        )
+
+    @pytest.mark.skip(reason="Change the way to handle this test")
+    def test_create_field_index_invalid_collection(self, database: RedisMongoDB):
+        with pytest.raises(ValueError):
+            database.create_field_index("invalid_atom_type", ["field"], "type")
+
+    def test_create_field_index_operation_failure(self, database: RedisMongoDB):
+        database.mongo_atoms_collection = mock.Mock()
+        database.mongo_atoms_collection.create_index.side_effect = OperationFailure(
+            "Index creation failed"
+        )
+        with mock.patch(
+            "hyperon_das_atomdb.adapters.redis_mongo_db.MongoDBIndex.index_exists",
+            return_value=False,
+        ):
+            result = database.create_field_index("node", ["field"], "Type")
+
+        assert result == "Index creation failed, Details: Index creation failed"
+
+    def test_create_field_index_already_exists(self, database: RedisMongoDB):
+        database.mongo_atoms_collection = mock.Mock()
+        database.mongo_atoms_collection.list_indexes.return_value = []
+        database.mongo_atoms_collection.create_index.return_value = "name_index_asc"
+        with (
+            mock.patch(
+                "hyperon_das_atomdb.index.Index.generate_index_id",
+                return_value="name_index_asc",
+            ),
+            mock.patch(
+                "hyperon_das_atomdb.adapters.redis_mongo_db.MongoDBIndex.index_exists",
+                return_value=False,
+            ),
+        ):
+            database.create_field_index("node", "name", "Type")
+        assert database.create_field_index("node", ["name"], "Type") == "name_index_asc"
