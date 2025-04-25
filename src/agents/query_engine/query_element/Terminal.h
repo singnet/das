@@ -125,17 +125,17 @@ class Link : public Terminal {
      * @params targets Array with targets of the Link. Targets are supposed to be
      *         handles (i.e. strings). No nesting of Nodes or other Links are allowed.
      */
-    Link(const string& type, const array<shared_ptr<QueryElement>, ARITY>& targets) : Terminal() {
+    Link(const string& type, array<shared_ptr<QueryElement>, ARITY>&& targets) : Terminal() {
         this->name = "";
         this->type = type;
-        this->targets = targets;
+        this->targets = move(targets);
         this->arity = ARITY;
         char* handle_keys[ARITY + 1];
         handle_keys[0] = (char*) named_type_hash((char*) type.c_str());
         for (unsigned int i = 1; i < (ARITY + 1); i++) {
-            if (targets[i - 1]->is_terminal &&
-                !dynamic_pointer_cast<Terminal>(targets[i - 1])->is_variable) {
-                handle_keys[i] = dynamic_pointer_cast<Terminal>(targets[i - 1])->handle.get();
+            if (this->targets[i - 1]->is_terminal &&
+                !dynamic_pointer_cast<Terminal>(this->targets[i - 1])->is_variable) {
+                handle_keys[i] = dynamic_pointer_cast<Terminal>(this->targets[i - 1])->handle.get();
             } else {
                 Utils::error("Invalid Link definition");
             }

@@ -72,6 +72,10 @@ void check_query(vector<string>& query,
     EXPECT_EQ(count, expected_count);
     EXPECT_EQ(proxy1->get_count(), expected_count);
 
+    // giving time to the server to close the previous connection
+    // otherwise the test fails with "Node ID already in the network"
+    Utils::sleep(3000);
+
     client_bus->issue_bus_command(proxy2);
     while (!proxy2->finished()) {
         Utils::sleep();
@@ -101,58 +105,75 @@ TEST(PatternMatchingQuery, queries) {
     ServiceBus* client_bus = new ServiceBus(peer2_id, peer1_id);
     Utils::sleep(500);
 
-    vector<string> q1 = {"LINK_TEMPLATE",
-                         "Expression",
-                         "3",
-                         "NODE",
-                         "Symbol",
-                         "Similarity",
-                         "VARIABLE",
-                         "v1",
-                         "VARIABLE",
-                         "v2"};
+    // clang-format off
+    vector<string> q1 = {
+        "LINK_TEMPLATE", "Expression", "3",
+            "NODE", "Symbol", "Similarity",
+            "VARIABLE", "v1",
+            "VARIABLE", "v2"
+    };
     int q1_expected_count = 14;
 
-    vector<string> q2 = {"LINK_TEMPLATE",
-                         "Expression",
-                         "3",
-                         "NODE",
-                         "Symbol",
-                         "Similarity",
-                         "NODE",
-                         "Symbol",
-                         "\"human\"",
-                         "VARIABLE",
-                         "v1"};
+    vector<string> q2 = {
+        "LINK_TEMPLATE", "Expression", "3",
+            "NODE", "Symbol", "Similarity",
+            "NODE", "Symbol", "\"human\"",
+            "VARIABLE", "v1"
+    };
     // int q2_expected_count = 3;
 
-    vector<string> q3 = {"AND",  "2",      "LINK_TEMPLATE", "Expression",    "3",
-                         "NODE", "Symbol", "Similarity",    "VARIABLE",      "v1",
-                         "NODE", "Symbol", "\"human\"",     "LINK_TEMPLATE", "Expression",
-                         "3",    "NODE",   "Symbol",        "Inheritance",   "VARIABLE",
-                         "v1",   "NODE",   "Symbol",        "\"plant\""};
+    vector<string> q3 = {
+        "AND", "2",
+            "LINK_TEMPLATE", "Expression", "3",
+                "NODE", "Symbol", "Similarity",
+                "VARIABLE", "v1",
+                "NODE", "Symbol", "\"human\"",
+            "LINK_TEMPLATE", "Expression", "3",
+                "NODE", "Symbol", "Inheritance",
+                "VARIABLE", "v1",
+                "NODE", "Symbol", "\"plant\""
+    };
     int q3_expected_count = 1;
 
-    vector<string> q4 = {"AND",      "2",      "LINK_TEMPLATE", "Expression", "3",
-                         "NODE",     "Symbol", "Similarity",    "VARIABLE",   "v1",
-                         "VARIABLE", "v2",     "LINK_TEMPLATE", "Expression", "3",
-                         "NODE",     "Symbol", "Similarity",    "VARIABLE",   "v2",
-                         "VARIABLE", "v3"};
+    vector<string> q4 = {
+        "AND", "2",
+            "LINK_TEMPLATE", "Expression", "3",
+                "NODE", "Symbol", "Similarity",
+                "VARIABLE", "v1",
+                "VARIABLE", "v2",
+            "LINK_TEMPLATE", "Expression", "3",
+                "NODE", "Symbol", "Similarity",
+                "VARIABLE", "v2",
+                "VARIABLE", "v3"
+    };
     int q4_expected_count = 26;  // TODO: FIX THIS count should be == 1
 
-    vector<string> q5 = {"OR",   "2",      "LINK_TEMPLATE", "Expression",    "3",
-                         "NODE", "Symbol", "Similarity",    "VARIABLE",      "v1",
-                         "NODE", "Symbol", "\"human\"",     "LINK_TEMPLATE", "Expression",
-                         "3",    "NODE",   "Symbol",        "Similarity",    "VARIABLE",
-                         "v1",   "NODE",   "Symbol",        "\"snake\""};
+    vector<string> q5 = {
+        "OR", "2",
+            "LINK_TEMPLATE", "Expression",    "3",
+                "NODE", "Symbol", "Similarity",
+                "VARIABLE", "v1",
+                "NODE", "Symbol", "\"human\"",
+            "LINK_TEMPLATE", "Expression", "3",
+                "NODE", "Symbol", "Similarity",
+                "VARIABLE", "v1",
+                "NODE", "Symbol", "\"snake\""
+    };
     int q5_expected_count = 5;
-
-    vector<string> q6 = {"OR",   "2",      "LINK_TEMPLATE", "Expression",    "3",
-                         "NODE", "Symbol", "Similarity",    "VARIABLE",      "v1",
-                         "NODE", "Symbol", "\"human\"",     "LINK_TEMPLATE", "Expression",
-                         "3",    "NODE",   "Symbol",        "Similarity",    "VARIABLE",
-                         "v1",   "NODE",   "Symbol",        "\"chimp\""};
+    
+    vector<string> q6 = {
+        "OR", "2",
+            "LINK_TEMPLATE", "Expression", "3",
+                "NODE", "Symbol", "Similarity",
+                "VARIABLE", "v1",
+                "NODE", "Symbol", "\"human\"",
+            "LINK_TEMPLATE", "Expression", "3",
+                "NODE", "Symbol", "Similarity",
+                "VARIABLE", "v1",
+                "NODE", "Symbol", "\"chimp\""
+    };
     int q6_expected_count = 4;
+    // clang-format on
 
     check_query(q1, q1_expected_count, client_bus, "PatternMatchingQuery.queries", false, false);
     // check_query(q2, q2_expected_count, client_bus, "PatternMatchingQuery.queries", false, false);
