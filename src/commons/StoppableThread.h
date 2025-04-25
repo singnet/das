@@ -16,8 +16,8 @@ namespace commons {
  *
  * To use StoppableThread:
  *
- * (1) Create a shared_ptr<StoppableThread> object passing an ID string (this id is used in logging messages).
- *     The idea is that this ID is unique but this is not actually required in the scope of
+ * (1) Create a shared_ptr<StoppableThread> object passing an ID string (this id is used in logging
+ * messages). The idea is that this ID is unique but this is not actually required in the scope of
  *     StoppableThread. Uniqueness, however, is useful in scenarios where we have multiple
  *     threads running the same method/function and we need to distiguinsh among them (either in
  *     the logs or in the code that controls the threads).
@@ -28,8 +28,8 @@ namespace commons {
  *     of the Stoppable interface is to allow "aborting" behavior.
  * (3) After creating the StoppedThread object as described in (1), call attach() passing the std::thread
  *     object.
- * (4) Outside the thread method/function, use stop() to make the thread stop, join and be deleted. Joining
- *     and deletion are optional. Use stop(false) to skip them.
+ * (4) Outside the thread method/function, use stop() to make the thread stop, join and be deleted.
+ * Joining and deletion are optional. Use stop(false) to skip them.
  */
 class StoppableThread : public Stoppable {
    public:

@@ -8,7 +8,7 @@
 using namespace commons;
 
 // -------------------------------------------------------------------------------------------------
-// Public methods
+// Constructors and destructors
 
 StoppableThread::StoppableThread(const string& id) {
     LOG_DEBUG("Creating StoppableThread: " << id);
@@ -18,6 +18,9 @@ StoppableThread::StoppableThread(const string& id) {
 }
 
 StoppableThread::~StoppableThread() { stop(); }
+
+// -------------------------------------------------------------------------------------------------
+// Public methods
 
 void StoppableThread::attach(thread* thread_object) { this->thread_object = thread_object; }
 
