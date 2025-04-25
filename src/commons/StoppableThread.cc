@@ -1,4 +1,5 @@
 #include "StoppableThread.h"
+
 #include "Utils.h"
 
 #define LOG_LEVEL DEBUG_LEVEL
@@ -9,29 +10,23 @@ using namespace commons;
 // -------------------------------------------------------------------------------------------------
 // Public methods
 
-StoppableThread::StoppableThread(const string &id) {
+StoppableThread::StoppableThread(const string& id) {
     LOG_DEBUG("Creating StoppableThread: " << id);
     this->stop_flag = false;
     this->id = id;
     this->thread_object = NULL;
 }
 
-StoppableThread::~StoppableThread() {
-    stop();
-}
+StoppableThread::~StoppableThread() { stop(); }
 
-void StoppableThread::attach(thread *thread_object) {
-    this->thread_object = thread_object;
-}
+void StoppableThread::attach(thread* thread_object) { this->thread_object = thread_object; }
 
-void StoppableThread::stop() {
-    this->stop(true);
-}
+void StoppableThread::stop() { this->stop(true); }
 
 void StoppableThread::stop(bool join_thread) {
     if (this->thread_object == NULL) {
         Utils::error("No thread attached to StoppableThread: " + this->id);
-    } else if (! this->stop_flag) {
+    } else if (!this->stop_flag) {
         LOG_DEBUG("Stopping thread: " << this->id);
         this->stop_flag_mutex.lock();
         this->stop_flag = true;
@@ -52,6 +47,4 @@ bool StoppableThread::stopped() {
     return answer;
 }
 
-string StoppableThread::get_id() {
-    return this->id;
-}
+string StoppableThread::get_id() { return this->id; }

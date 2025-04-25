@@ -267,12 +267,10 @@ void SynchronousSharedRAM::join_network() {
         NODE_QUEUE_MUTEX.unlock();
     }
     for (unsigned int i = 0; i < MESSAGE_THREAD_COUNT; i++) {
-        shared_ptr<StoppableThread> stoppable_thread = 
-            make_shared<StoppableThread>("Thread_inbox<"  + this->node_id + "_" + std::to_string(i) + ">");
-        stoppable_thread->attach(new thread(
-            &SynchronousSharedRAM::inbox_thread_method, 
-            this,
-            stoppable_thread));
+        shared_ptr<StoppableThread> stoppable_thread = make_shared<StoppableThread>(
+            "Thread_inbox<" + this->node_id + "_" + std::to_string(i) + ">");
+        stoppable_thread->attach(
+            new thread(&SynchronousSharedRAM::inbox_thread_method, this, stoppable_thread));
         this->inbox_threads.push_back(stoppable_thread);
     }
     this->joined_network = true;
@@ -320,16 +318,16 @@ void SynchronousSharedRAM::stop() {
 // SynchronousGRPC
 
 void SynchronousGRPC::join_network() {
-    this->grpc_thread = 
-        make_shared<StoppableThread>("Thread_GRPC<"  + this->node_id + ">");
+    this->grpc_thread = make_shared<StoppableThread>("Thread_GRPC<" + this->node_id + ">");
     this->grpc_thread->attach(new thread(&SynchronousGRPC::grpc_thread_method, this, this->grpc_thread));
     while (!this->grpc_server_started()) {
         Utils::sleep();
     }
     for (unsigned int i = 0; i < MESSAGE_THREAD_COUNT; i++) {
-        shared_ptr<StoppableThread> stoppable_thread = 
-            make_shared<StoppableThread>("Thread_inbox<"  + this->node_id + "_" + std::to_string(i) + ">");
-        stoppable_thread->attach(new thread(&SynchronousGRPC::inbox_thread_method, this, stoppable_thread));
+        shared_ptr<StoppableThread> stoppable_thread = make_shared<StoppableThread>(
+            "Thread_inbox<" + this->node_id + "_" + std::to_string(i) + ">");
+        stoppable_thread->attach(
+            new thread(&SynchronousGRPC::inbox_thread_method, this, stoppable_thread));
         this->inbox_threads.push_back(stoppable_thread);
     }
     while (!this->inbox_setup_finished()) {

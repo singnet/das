@@ -7,8 +7,8 @@
 #include "PatternMatchingQueryProxy.h"
 #include "ServiceBus.h"
 #include "Sink.h"
-#include "Terminal.h"
 #include "StoppableThread.h"
+#include "Terminal.h"
 #include "UniqueAssignmentFilter.h"
 
 #define LOG_LEVEL DEBUG_LEVEL
@@ -22,8 +22,7 @@ using namespace atomdb;
 PatternMatchingQueryProcessor::PatternMatchingQueryProcessor()
     : BusCommandProcessor({ServiceBus::PATTERN_MATCHING_QUERY}) {}
 
-PatternMatchingQueryProcessor::~PatternMatchingQueryProcessor() {
-}
+PatternMatchingQueryProcessor::~PatternMatchingQueryProcessor() {}
 
 // -------------------------------------------------------------------------------------------------
 // Public methods
@@ -36,17 +35,17 @@ shared_ptr<BusCommandProxy> PatternMatchingQueryProcessor::factory_empty_proxy()
 void PatternMatchingQueryProcessor::run_command(shared_ptr<BusCommandProxy> proxy) {
     lock_guard<mutex> semaphore(this->query_threads_mutex);
     auto query_proxy = dynamic_pointer_cast<PatternMatchingQueryProxy>(proxy);
-    string thread_id = "thread<" +  proxy->my_id() + "_" + std::to_string(proxy->get_serial()) + ">";
-    LOG_DEBUG("Starting new thread: " << thread_id << " to run command: <" << proxy->get_command() << ">");
+    string thread_id = "thread<" + proxy->my_id() + "_" + std::to_string(proxy->get_serial()) + ">";
+    LOG_DEBUG("Starting new thread: " << thread_id << " to run command: <" << proxy->get_command()
+                                      << ">");
     if (this->query_threads.find(thread_id) != this->query_threads.end()) {
         Utils::error("Invalid thread id: " + thread_id);
     } else {
         shared_ptr<StoppableThread> stoppable_thread = make_shared<StoppableThread>(thread_id);
-        stoppable_thread->attach(new thread(
-            &PatternMatchingQueryProcessor::thread_process_one_query, 
-            this, 
-            stoppable_thread, 
-            query_proxy));
+        stoppable_thread->attach(new thread(&PatternMatchingQueryProcessor::thread_process_one_query,
+                                            this,
+                                            stoppable_thread,
+                                            query_proxy));
         this->query_threads[thread_id] = stoppable_thread;
     }
 }
@@ -141,8 +140,7 @@ void PatternMatchingQueryProcessor::process_query_answers(
 }
 
 void PatternMatchingQueryProcessor::thread_process_one_query(
-    shared_ptr<StoppableThread> monitor,
-    shared_ptr<PatternMatchingQueryProxy> proxy) {
+    shared_ptr<StoppableThread> monitor, shared_ptr<PatternMatchingQueryProxy> proxy) {
     if (proxy->args.size() < 2) {
         Utils::error("Syntax error in query command. Missing implicit parameters.");
     }
