@@ -22,7 +22,7 @@ BusCommandProxy::~BusCommandProxy() {
     if (this->proxy_port != 0) {
         // Return the port to the pool of available ports
         PortPool::return_port(this->proxy_port);
-        this->proxy_node->graceful_shutdown();
+        this->proxy_node->stop();
         delete this->proxy_node;
     }
 }

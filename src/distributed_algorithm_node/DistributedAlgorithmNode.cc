@@ -20,7 +20,7 @@ DistributedAlgorithmNode::DistributedAlgorithmNode(const string& node_id,
                                node_id);
 }
 
-DistributedAlgorithmNode::~DistributedAlgorithmNode() { this->graceful_shutdown(); }
+DistributedAlgorithmNode::~DistributedAlgorithmNode() { this->stop(); }
 
 // -------------------------------------------------------------------------------------------------
 // Public API
@@ -72,10 +72,20 @@ std::shared_ptr<Message> DistributedAlgorithmNode::message_factory(string& comma
     }
 }
 
-void DistributedAlgorithmNode::graceful_shutdown() {
+void DistributedAlgorithmNode::stop() {
     LOG_DEBUG("Shuting down DistributedAlgorithmNode " << this->node_id());
     this->message_broker->stop();
+    this->stop_flag_mutex.lock();
+    this->stop_flag = true;
+    this->stop_flag_mutex.unlock();
     LOG_DEBUG("Shuting down DistributedAlgorithmNode " << this->node_id() << " done");
+}
+
+bool DistributedAlgorithmNode::stopped() {
+    this->stop_flag_mutex.lock();
+    bool answer = this->stop_flag;
+    this->stop_flag_mutex.unlock();
+    return answer;
 }
 
 string DistributedAlgorithmNode::to_string() {

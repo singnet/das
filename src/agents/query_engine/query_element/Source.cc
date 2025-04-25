@@ -13,7 +13,7 @@ Source::Source(const string& attention_broker_address) {
 
 Source::Source() : Source(Source::get_attention_broker_address()) {}
 
-Source::~Source() { this->graceful_shutdown(); }
+Source::~Source() { this->stop(); }
 
 // ------------------------------------------------------------------------------------------------
 // Public methods
@@ -42,4 +42,7 @@ void Source::setup_buffers() {
     this->output_buffer = make_shared<QueryNodeClient>(this->id, this->subsequent_id);
 }
 
-void Source::graceful_shutdown() { this->output_buffer->graceful_shutdown(); }
+void Source::stop() {
+    QueryElement::stop();
+    this->output_buffer->stop(); 
+}

@@ -90,9 +90,17 @@ class StoppableThread : public Stoppable {
      */
     string get_id();
 
+    /**
+     * Returns a string representation of this object.
+     *
+     * @return a string representation of this object.
+     */
+    const string& to_string();
+
    private:
     bool stop_flag;
     string id;
+    string string_representation;
     mutex stop_flag_mutex;
     thread* thread_object;
 };

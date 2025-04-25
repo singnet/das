@@ -14,7 +14,7 @@ UniqueAssignmentFilter::UniqueAssignmentFilter(const shared_ptr<QueryElement>& i
     initialize(input);
 }
 
-UniqueAssignmentFilter::~UniqueAssignmentFilter() { graceful_shutdown(); }
+UniqueAssignmentFilter::~UniqueAssignmentFilter() { stop(); }
 
 void UniqueAssignmentFilter::initialize(const shared_ptr<QueryElement>& input) {
     this->id = "UniqueAssignmentFilter(" + input->id + ")";
@@ -26,22 +26,20 @@ void UniqueAssignmentFilter::initialize(const shared_ptr<QueryElement>& input) {
 
 void UniqueAssignmentFilter::setup_buffers() {
     Operator<1>::setup_buffers();
-    this->operator_thread = new thread(&UniqueAssignmentFilter::thread_filter, this);
+    this->operator_thread = make_shared<StoppableThread>(this->id);
+    this->operator_thread->attach(new thread(&UniqueAssignmentFilter::thread_filter, this, shared_ptr<StoppableThread> monitor));
 }
 
-void UniqueAssignmentFilter::graceful_shutdown() {
-    Operator<1>::graceful_shutdown();
-    if (this->operator_thread != NULL) {
-        this->operator_thread->join();
-        delete this->operator_thread;
-        this->operator_thread = NULL;
+void UniqueAssignmentFilter::stop() {
+    if (! stopped()) {
+        Operator<1>::stop();
     }
 }
 
 // -------------------------------------------------------------------------------------------------
 // Private methods
 
-void UniqueAssignmentFilter::thread_filter() {
+void UniqueAssignmentFilter::thread_filter(shared_ptr<StoppableThread> monitor) {
     unordered_set<Assignment> already_used;
 
     while (true) {

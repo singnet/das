@@ -1,6 +1,9 @@
 #pragma once
 
+#include <memory>
+
 #include "Operator.h"
+#include "StoppableThread.h"
 
 using namespace std;
 
@@ -43,16 +46,16 @@ class UniqueAssignmentFilter : public Operator<1> {
     /**
      * Gracefully shuts down the QueryNode.
      */
-    virtual void graceful_shutdown();
+    virtual void stop();
 
     // --------------------------------------------------------------------------------------------
     // Private stuff
 
    private:
-    thread* operator_thread;
+    shared_ptr<StoppableThread> operator_thread;
 
     void initialize(const shared_ptr<QueryElement>& input);
-    void thread_filter();
+    void thread_filter(shared_ptr<StoppableThread> monitor);
 };
 
 }  // namespace query_element

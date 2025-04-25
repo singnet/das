@@ -45,11 +45,6 @@ class Terminal : public QueryElement {
     void virtual setup_buffers() {}
 
     /**
-     * Empty implementation. There are no QueryNode element or local thread to shut down.
-     */
-    void virtual graceful_shutdown() {}
-
-    /**
      * Returns a string representation of this Terminal (mainly for debugging; not optimized to
      * production environment).
      */

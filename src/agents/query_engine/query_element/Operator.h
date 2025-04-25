@@ -36,7 +36,7 @@ class Operator : public QueryElement {
      * Destructor.
      */
     ~Operator() {
-        this->graceful_shutdown();
+        this->stop();
         for (size_t i = 0; i < N; i++) this->precedent[i] = nullptr;
     }
 
@@ -71,17 +71,17 @@ class Operator : public QueryElement {
      * Gracefully shuts down the QueryNodes attached to the upstream and downstream communication
      * in the query tree.
      */
-    virtual void graceful_shutdown() {
-        if (is_flow_finished()) {
-            return;
-        }
-        for (unsigned int i = 0; i < N; i++) {
-            this->precedent[i]->graceful_shutdown();
-        }
-        set_flow_finished();
-        this->output_buffer->graceful_shutdown();
-        for (unsigned int i = 0; i < N; i++) {
-            this->input_buffer[i]->graceful_shutdown();
+    virtual void stop() {
+        if (! stopped()) {
+            QueryElement::stop();
+            for (unsigned int i = 0; i < N; i++) {
+                this->precedent[i]->stop();
+            }
+            set_flow_finished();
+            this->output_buffer->stop();
+            for (unsigned int i = 0; i < N; i++) {
+                this->input_buffer[i]->stop();
+            }
         }
     }
 

@@ -1,5 +1,8 @@
 #include "QueryElement.h"
 
+#define LOG_LEVEL INFO_LEVEL
+#include "Logger.h"
+
 using namespace query_element;
 
 // ------------------------------------------------------------------------------------------------
@@ -10,21 +13,31 @@ QueryElement::QueryElement() {
     this->is_terminal = false;
 }
 
-QueryElement::~QueryElement() {}
+QueryElement::~QueryElement() { stop(); }
+
+// ------------------------------------------------------------------------------------------------
+// Public methods
+
+void QueryElement::stop() {
+    lock_guard<mutex> semaphore(this->stop_flag_mutex);
+    LOG_DEBUG("Stopping QueryElement: " << this->id);
+    this->stop_flag = true;
+}
+
+bool MessageBroker::stopped() {
+    lock_guard<mutex> semaphore(this->stop_flag_mutex);
+    return this->stop_flag;
+}
 
 // ------------------------------------------------------------------------------------------------
 // Protected methods
 
 void QueryElement::set_flow_finished() {
-    this->flow_finished_mutex.lock();
+    lock_guard<mutex> semaphore(this->flow_finished_mutex);
     this->flow_finished = true;
-    this->flow_finished_mutex.unlock();
 }
 
 bool QueryElement::is_flow_finished() {
-    bool answer;
-    this->flow_finished_mutex.lock();
-    answer = this->flow_finished;
-    this->flow_finished_mutex.unlock();
-    return answer;
+    lock_guard<mutex> semaphore(this->flow_finished_mutex);
+    return this->flow_finished;
 }

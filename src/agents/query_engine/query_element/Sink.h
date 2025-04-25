@@ -37,9 +37,9 @@ class Sink : public QueryElement {
     // QueryElement API
 
     /**
-     * Gracefully shuts down the QueryNode.
+     * Gracefully shuts down threads or any other resources being used in communication.
      */
-    virtual void graceful_shutdown();
+    virtual void stop();
 
     /**
      * Setup a ServerQueryNode to communicate with one or more QueryElement just below in the

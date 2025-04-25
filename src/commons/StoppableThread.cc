@@ -14,6 +14,7 @@ StoppableThread::StoppableThread(const string& id) {
     LOG_DEBUG("Creating StoppableThread: " << id);
     this->stop_flag = false;
     this->id = id;
+    this->string_representation = "Thread<" + id + ">";
     this->thread_object = NULL;
 }
 
@@ -51,3 +52,5 @@ bool StoppableThread::stopped() {
 }
 
 string StoppableThread::get_id() { return this->id; }
+
+const string& StoppableThread::to_string() { return this->string_representation; }

@@ -32,7 +32,7 @@ ServiceBus::ServiceBus(const string& host_id, const string& known_peer) {
 
 ServiceBus::~ServiceBus() {
     LOG_DEBUG("Destroying ServiceBus " << bus_node->node_id());
-    this->bus_node->graceful_shutdown();
+    this->bus_node->stop();
     LOG_DEBUG("Destroying ServiceBus " << bus_node->node_id() << " DONE");
 }
 

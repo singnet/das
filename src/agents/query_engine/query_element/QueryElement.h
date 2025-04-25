@@ -48,7 +48,7 @@ namespace query_element {
  * same tree (i.e. of the same query) being processed in different machines or all of them in the
  * same machine (either in the same process or in different processes).
  */
-class QueryElement {
+class QueryElement : public Stoppable {
    public:
     string id;
     string subsequent_id;
@@ -64,6 +64,22 @@ class QueryElement {
     virtual ~QueryElement();
 
     // --------------------------------------------------------------------------------------------
+    // Stoppable API
+
+    /**
+     * Gracefully shuts down threads or any other resources being used in communication.
+     */
+    virtual void stop();
+
+    /**
+     * Returns true iff this element is shuting down.
+     *
+     * The idea is to allow concrete subclasses to know when a graceful shutdown has been requested
+     * so threads or any other resources being used in communication can be stoped/released/etc.
+     */
+    bool stopped();
+
+    // --------------------------------------------------------------------------------------------
     // API to be extended by concrete subclasses
 
     /**
@@ -71,11 +87,6 @@ class QueryElement {
      * after all ids and other topological-related setup in the query tree is finished.
      */
     virtual void setup_buffers() = 0;
-
-    /**
-     * Synchronously request this QueryElement to shutdown any threads it may have spawned.
-     */
-    virtual void graceful_shutdown() = 0;
 
     /**
      * Indicates whether this QueryElement is a Terminal (i.e. Node, Link or Variable).
@@ -107,6 +118,8 @@ class QueryElement {
    private:
     bool flow_finished;
     mutex flow_finished_mutex;
+    bool stop_flag;
+    mutex stop_flag_mutex;
 };
 
 }  // namespace query_element

@@ -22,9 +22,7 @@ string QueryNode::QUERY_ANSWERS_FINISHED_COMMAND = "query_answers_finished";
 QueryNode::QueryNode(const string& node_id, bool is_server, MessageBrokerType messaging_backend)
     : DistributedAlgorithmNode(node_id, LeadershipBrokerType::SINGLE_MASTER_SERVER, messaging_backend) {
     this->is_server = is_server;
-    this->query_answer_processor = NULL;
     this->query_answers_finished_flag = false;
-    this->shutdown_flag = false;
     this->work_done_flag = false;
     if (messaging_backend == MessageBrokerType::RAM) {
         this->requires_serialization = false;
@@ -35,36 +33,19 @@ QueryNode::QueryNode(const string& node_id, bool is_server, MessageBrokerType me
 
 QueryNode::~QueryNode() {
     LOG_DEBUG("Destroying QueryNode " << this->node_id());
-    this->graceful_shutdown();
+    this->stop();
     while (!this->query_answer_queue.empty()) {
         delete (QueryAnswer*) this->query_answer_queue.dequeue();
     }
     LOG_DEBUG("Destroying QueryNode " << this->node_id() << " DONE");
 }
 
-void QueryNode::graceful_shutdown() {
-    if (is_shutting_down()) {
-        return;
+void QueryNode::stop() {
+    if (! stopped()) {
+        LOG_DEBUG("Gracefully shutting down QueryNode " << this->node_id());
+        DistributedAlgorithmNode::stop();
+        LOG_DEBUG("Gracefully shutting down QueryNode " << this->node_id() << " DONE");
     }
-    LOG_DEBUG("Gracefully shutting down QueryNode " << this->node_id());
-    DistributedAlgorithmNode::graceful_shutdown();
-    this->shutdown_flag_mutex.lock();
-    this->shutdown_flag = true;
-    this->shutdown_flag_mutex.unlock();
-    if (this->query_answer_processor != NULL) {
-        this->query_answer_processor->join();
-        delete this->query_answer_processor;
-        this->query_answer_processor = NULL;
-    }
-    LOG_DEBUG("Gracefully shutting down QueryNode " << this->node_id() << " DONE");
-}
-
-bool QueryNode::is_shutting_down() {
-    bool answer;
-    this->shutdown_flag_mutex.lock();
-    answer = this->shutdown_flag;
-    this->shutdown_flag_mutex.unlock();
-    return answer;
 }
 
 void QueryNode::query_answers_finished() {
@@ -111,24 +92,25 @@ bool QueryNode::is_query_answers_empty() { return this->query_answer_queue.empty
 QueryNodeServer::QueryNodeServer(const string& node_id, MessageBrokerType messaging_backend)
     : QueryNode(node_id, true, messaging_backend) {
     this->join_network();
-    this->query_answer_processor = new thread(&QueryNodeServer::query_answer_processor_method, this);
+    this->query_answer_processor = make_shared<StoppableThread>(node_id);
+    this->query_answer_processor->attach(new thread(&QueryNodeServer::query_answer_processor_method, this, this->query_answer_processor));
 }
 
 void QueryNodeServer::node_joined_network(const string& node_id) { this->add_peer(node_id); }
 
 string QueryNodeServer::cast_leadership_vote() { return this->node_id(); }
 
-void QueryNodeServer::query_answer_processor_method() {
-    while (!this->is_shutting_down()) {
+void QueryNodeServer::query_answer_processor_method(shared_ptr<StoppableThread> monitor) {
+    while (!this->stopped()) {
         Utils::sleep();
     }
 }
 
-void QueryNodeClient::query_answer_processor_method() {
+void QueryNodeClient::query_answer_processor_method(shared_ptr<StoppableThread> monitor) {
     QueryAnswer* query_answer;
     vector<string> args;
     bool answers_finished_flag = false;
-    while (!this->is_shutting_down()) {
+    while (!this->stopped()) {
         while ((query_answer = (QueryAnswer*) this->query_answer_queue.dequeue()) != NULL) {
             if (this->requires_serialization) {
                 string tokens = query_answer->tokenize();
@@ -162,7 +144,8 @@ QueryNodeClient::QueryNodeClient(const string& node_id,
                                  const string& server_id,
                                  MessageBrokerType messaging_backend)
     : QueryNode(node_id, true, messaging_backend) {
-    this->query_answer_processor = new thread(&QueryNodeClient::query_answer_processor_method, this);
+    this->query_answer_processor = make_shared<StoppableThread>(node_id);
+    this->query_answer_processor->attach(new thread(&QueryNodeClient::query_answer_processor_method, this, this->query_answer_processor));
     this->server_id = server_id;
     this->add_peer(server_id);
     this->join_network();

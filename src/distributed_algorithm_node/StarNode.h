@@ -1,5 +1,4 @@
-#ifndef _DISTRIBUTED_ALGORITHM_NODE_STARNODE_H
-#define _DISTRIBUTED_ALGORITHM_NODE_STARNODE_H
+#pragma once
 
 #include <string>
 
@@ -70,5 +69,3 @@ class StarNode : public DistributedAlgorithmNode {
 };
 
 }  // namespace distributed_algorithm_node
-
-#endif  // _DISTRIBUTED_ALGORITHM_NODE_STARNODE_H

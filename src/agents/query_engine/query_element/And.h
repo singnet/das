@@ -5,6 +5,7 @@
 
 #include "Operator.h"
 #include "QueryAnswer.h"
+#include "StoppableThread.h"
 
 #define LOG_LEVEL INFO_LEVEL
 #include "Logger.h"
@@ -37,7 +38,7 @@ class And : public Operator<N> {
      * Destructor.
      */
     ~And() {
-        graceful_shutdown();
+        stop();
         for (size_t i = 0; i < N; i++) {
             for (auto* answer : this->query_answer[i]) {
                 if (answer) {
@@ -54,15 +55,13 @@ class And : public Operator<N> {
 
     virtual void setup_buffers() {
         Operator<N>::setup_buffers();
-        this->operator_thread = new thread(&And::and_operator_method, this);
+        this->operator_thread = make_shared<StoppableThread>(this->id);
+        this->operator_thread->attach(new thread(&And::and_operator_method, this, this->operator_thread));
     }
 
-    virtual void graceful_shutdown() {
-        Operator<N>::graceful_shutdown();
-        if (this->operator_thread != NULL) {
-            this->operator_thread->join();
-            delete this->operator_thread;
-            this->operator_thread = NULL;
+    virtual void stop() {
+        if (! stopped()) {
+            Operator<N>::stop();
         }
     }
 
@@ -117,10 +116,9 @@ class And : public Operator<N> {
     unordered_set<CandidateRecord, hash_function> visited;
     bool all_answers_arrived[N];
     bool no_more_answers_to_arrive;
-    thread* operator_thread;
+    shared_ptr<StoppableThread> operator_thread;
 
     void initialize(const array<shared_ptr<QueryElement>, N>& clauses) {
-        this->operator_thread = NULL;
         for (unsigned int i = 0; i < N; i++) {
             this->next_input_to_process[i] = 0;
             this->all_answers_arrived[i] = false;
@@ -238,7 +236,7 @@ class And : public Operator<N> {
         }
     }
 
-    void and_operator_method() {
+    void and_operator_method(shared_ptr<StoppableThread> monitor) {
         do {
             if (QueryElement::is_flow_finished() || this->output_buffer->is_query_answers_finished()) {
                 return;

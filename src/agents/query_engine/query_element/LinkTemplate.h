@@ -19,6 +19,7 @@
 #include "attention_broker.grpc.pb.h"
 #include "attention_broker.pb.h"
 #include "expression_hasher.h"
+#include "StoppableThread.h"
 
 #define MAX_GET_IMPORTANCE_BUNDLE_SIZE ((unsigned int) 100000)
 
@@ -90,7 +91,6 @@ class LinkTemplate : public Source {
         this->atom_document = NULL;
         this->local_answers = NULL;
         this->local_answers_size = 0;
-        this->local_buffer_processor = NULL;
         bool wildcard_flag = (type == AtomDB::WILDCARD);
         this->handle_keys[0] =
             (wildcard_flag ? (char*) AtomDB::WILDCARD.c_str() : named_type_hash((char*) type.c_str()));
@@ -120,7 +120,7 @@ class LinkTemplate : public Source {
      * Destructor.
      */
     virtual ~LinkTemplate() {
-        this->graceful_shutdown();
+        this->stop();
         local_answers_mutex.lock();
         if (this->atom_document) delete[] this->atom_document;
         if (local_answers_size > 0) {
@@ -145,15 +145,12 @@ class LinkTemplate : public Source {
     /**
      * Gracefully shuts down this QueryElement's processor thread.
      */
-    virtual void graceful_shutdown() {
-        if (this->is_flow_finished()) return;
-        set_flow_finished();
-        if (this->local_buffer_processor != NULL) {
-            this->local_buffer_processor->join();
-            delete this->local_buffer_processor;
-            this->local_buffer_processor = NULL;
+    virtual void stop() {
+        if (! stopped()) {
+            if (this->is_flow_finished()) return;
+            set_flow_finished();
+            Source::stop();
         }
-        Source::graceful_shutdown();
     }
 
     virtual void setup_buffers() {
@@ -219,7 +216,9 @@ class LinkTemplate : public Source {
             }
             // clang-format on
         }
-        this->local_buffer_processor = new thread(&LinkTemplate::local_buffer_processor_method, this);
+
+        this->local_buffer_processor = make_shared<StoppableThread>(this->id);
+        this->local_buffer_processor->attach(new thread(&LinkTemplate::local_buffer_processor_method, this, this->local_buffer_processor));
         fetch_links();
     }
 
@@ -393,7 +392,7 @@ class LinkTemplate : public Source {
         return flag;
     }
 
-    void local_buffer_processor_method() {
+    void local_buffer_processor_method(shared_ptr<StoppableThread> monitor) {
         if (this->inner_template.size() == 0) {
             while (!(this->is_flow_finished() && this->local_buffer.empty())) {
                 QueryAnswer* query_answer;
@@ -477,7 +476,7 @@ class LinkTemplate : public Source {
     vector<shared_ptr<atomdb_api_types::AtomDocument>> atom_documents;
     vector<shared_ptr<QueryElement>> inner_template;
     SharedQueue local_buffer;
-    thread* local_buffer_processor;
+    shared_ptr<StoppableThread> local_buffer_processor;
     bool fetch_finished;
     mutex fetch_finished_mutex;
     shared_ptr<QueryNodeServer> target_buffer[ARITY];

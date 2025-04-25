@@ -13,7 +13,7 @@ Sink::Sink(shared_ptr<QueryElement> precedent, const string& id, bool setup_buff
     }
 }
 
-Sink::~Sink() { this->input_buffer->graceful_shutdown(); }
+Sink::~Sink() { this->input_buffer->stop(); }
 
 // ------------------------------------------------------------------------------------------------
 // Public methods
@@ -30,9 +30,11 @@ void Sink::setup_buffers() {
     this->precedent->setup_buffers();
 }
 
-void Sink::graceful_shutdown() {
-    this->input_buffer->graceful_shutdown();
-    this->precedent->graceful_shutdown();
+void Sink::stop() {
+    if (! stopped()) {
+        this->input_buffer->stop();
+        this->precedent->stop();
+    }
 }
 
 bool Sink::finished() {

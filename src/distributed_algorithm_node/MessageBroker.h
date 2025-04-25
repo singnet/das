@@ -1,5 +1,4 @@
-#ifndef _DISTRIBUTED_ALGORITHM_NODE_MESSAGEBROKER_H
-#define _DISTRIBUTED_ALGORITHM_NODE_MESSAGEBROKER_H
+#pragma once
 
 #include <mutex>
 #include <string>
@@ -370,5 +369,3 @@ class CommandLinePackage {
 };
 
 }  // namespace distributed_algorithm_node
-
-#endif  // _DISTRIBUTED_ALGORITHM_NODE_MESSAGEBROKER_H

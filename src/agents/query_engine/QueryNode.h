@@ -6,6 +6,7 @@
 #include "DistributedAlgorithmNode.h"
 #include "QueryAnswer.h"
 #include "SharedQueue.h"
+#include "StoppableThread.h"
 
 using namespace std;
 using namespace distributed_algorithm_node;
@@ -20,14 +21,13 @@ class QueryNode : public DistributedAlgorithmNode {
               MessageBrokerType messaging_backend = MessageBrokerType::RAM);
     virtual ~QueryNode();
     virtual shared_ptr<Message> message_factory(string& command, vector<string>& args);
-    virtual void graceful_shutdown();
-    bool is_shutting_down();
+    virtual void stop();
     void query_answers_finished();
     bool is_query_answers_finished();
     void add_query_answer(QueryAnswer* query_answer);
     QueryAnswer* pop_query_answer();
     bool is_query_answers_empty();
-    virtual void query_answer_processor_method() = 0;
+    virtual void query_answer_processor_method(shared_ptr<StoppableThread> monitor) = 0;
 
     virtual bool is_work_done() { return this->work_done_flag; }  // as Worker
 
@@ -37,14 +37,12 @@ class QueryNode : public DistributedAlgorithmNode {
 
    protected:
     SharedQueue query_answer_queue;
-    thread* query_answer_processor;
+    shared_ptr<StoppableThread> query_answer_processor;
     bool requires_serialization;
     bool work_done_flag;
 
    private:
     bool is_server;
-    bool shutdown_flag;
-    mutex shutdown_flag_mutex;
     bool query_answers_finished_flag;
     mutex query_answers_finished_flag_mutex;
 };
@@ -55,7 +53,7 @@ class QueryNodeServer : public QueryNode {
 
     void node_joined_network(const string& node_id);
     string cast_leadership_vote();
-    void query_answer_processor_method();
+    void query_answer_processor_method(shared_ptr<StoppableThread> monitor);
 };
 
 class QueryNodeClient : public QueryNode {
@@ -66,7 +64,7 @@ class QueryNodeClient : public QueryNode {
 
     void node_joined_network(const string& node_id);
     string cast_leadership_vote();
-    void query_answer_processor_method();
+    void query_answer_processor_method(shared_ptr<StoppableThread> monitor);
 
    private:
     string server_id;

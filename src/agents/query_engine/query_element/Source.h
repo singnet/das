@@ -49,14 +49,15 @@ class Source : public QueryElement {
     // QueryElement API
 
     /**
-     * Gracefully shuts down the QueryNode.
-     */
-    virtual void graceful_shutdown();
-
-    /**
      * Setup a ClientQueryNode to communicate with the upper QueryElement.
      */
     virtual void setup_buffers();
+
+    /**
+     * Gracefully shuts down threads or any other resources being used in communication.
+     */
+    virtual void stop();
+
 
    protected:
     string attention_broker_address;

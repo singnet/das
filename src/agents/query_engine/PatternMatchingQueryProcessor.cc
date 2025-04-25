@@ -35,13 +35,12 @@ shared_ptr<BusCommandProxy> PatternMatchingQueryProcessor::factory_empty_proxy()
 void PatternMatchingQueryProcessor::run_command(shared_ptr<BusCommandProxy> proxy) {
     lock_guard<mutex> semaphore(this->query_threads_mutex);
     auto query_proxy = dynamic_pointer_cast<PatternMatchingQueryProxy>(proxy);
-    string thread_id = "thread<" + proxy->my_id() + "_" + std::to_string(proxy->get_serial()) + ">";
-    LOG_DEBUG("Starting new thread: " << thread_id << " to run command: <" << proxy->get_command()
-                                      << ">");
+    string thread_id = proxy->my_id() + "_" + std::to_string(proxy->get_serial());
     if (this->query_threads.find(thread_id) != this->query_threads.end()) {
         Utils::error("Invalid thread id: " + thread_id);
     } else {
         shared_ptr<StoppableThread> stoppable_thread = make_shared<StoppableThread>(thread_id);
+        LOG_DEBUG("Starting new thread: " << stoppable_thread->to_string() << " to run command: <" << proxy->get_command() << ">");
         stoppable_thread->attach(new thread(&PatternMatchingQueryProcessor::thread_process_one_query,
                                             this,
                                             stoppable_thread,
