@@ -1,5 +1,4 @@
-#ifndef _DISTRIBUTED_ALGORITHM_NODE_MESSAGE_H
-#define _DISTRIBUTED_ALGORITHM_NODE_MESSAGE_H
+#pragma once
 
 #include <memory>
 #include <string>
@@ -112,5 +111,3 @@ class NodeJoinedNetwork : public Message {
 };
 
 }  // namespace distributed_algorithm_node
-
-#endif  // _DISTRIBUTED_ALGORITHM_NODE_MESSAGE_H

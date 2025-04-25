@@ -1,5 +1,4 @@
-#ifndef _DISTRIBUTED_ALGORITHM_NODE_DISTRIBUTEDALGORITHMNODE_H
-#define _DISTRIBUTED_ALGORITHM_NODE_DISTRIBUTEDALGORITHMNODE_H
+#pragma once
 
 #include <string>
 #include <vector>
@@ -187,5 +186,3 @@ class DistributedAlgorithmNode : public MessageFactory {
 };
 
 }  // namespace distributed_algorithm_node
-
-#endif  // _DISTRIBUTED_ALGORITHM_NODE_DISTRIBUTEDALGORITHMNODE_H
