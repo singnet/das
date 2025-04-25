@@ -15,7 +15,7 @@ for arg in "$@"; do
             BUILD_BINARIES=true
             ;;
         --wheels)
-            BUILD_WHEELS=true
+            BUILD_WHEELS=false
             ;;
     esac
 done
