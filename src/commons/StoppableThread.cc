@@ -25,18 +25,23 @@ void StoppableThread::attach(thread *thread_object) {
 }
 
 void StoppableThread::stop() {
+    this->stop(true);
+}
+
+void StoppableThread::stop(bool join_thread) {
     if (this->thread_object == NULL) {
         Utils::error("No thread attached to StoppableThread: " + this->id);
-    } else {
+    } else if (! this->stop_flag) {
         LOG_DEBUG("Stopping thread: " << this->id);
         this->stop_flag_mutex.lock();
         this->stop_flag = true;
         this->stop_flag_mutex.unlock();
-
-        LOG_DEBUG("Joining thread: " << this->id);
-        this->thread_object->join();
-        LOG_DEBUG("Thread joined: " << this->id << ". destroying it.");
-        delete this->thread_object;
+        if (join_thread) {
+            LOG_DEBUG("Joining thread: " << this->id);
+            this->thread_object->join();
+            LOG_DEBUG("Thread joined: " << this->id << ". destroying it.");
+            delete this->thread_object;
+        }
     }
 }
 

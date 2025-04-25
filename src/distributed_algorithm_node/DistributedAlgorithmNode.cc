@@ -74,7 +74,7 @@ std::shared_ptr<Message> DistributedAlgorithmNode::message_factory(string& comma
 
 void DistributedAlgorithmNode::graceful_shutdown() {
     LOG_DEBUG("Shuting down DistributedAlgorithmNode " << this->node_id());
-    this->message_broker->graceful_shutdown();
+    this->message_broker->stop();
     LOG_DEBUG("Shuting down DistributedAlgorithmNode " << this->node_id() << " done");
 }
 

@@ -1,11 +1,11 @@
 #pragma once
 
 #include <string>
+#include <thread>
 
 #include "DistributedAlgorithmNode.h"
 #include "QueryAnswer.h"
 #include "SharedQueue.h"
-#include "StoppableThread.h"
 
 using namespace std;
 using namespace distributed_algorithm_node;
@@ -37,7 +37,7 @@ class QueryNode : public DistributedAlgorithmNode {
 
    protected:
     SharedQueue query_answer_queue;
-    shared_ptr<StoppableThread> query_answer_processor;
+    thread* query_answer_processor;
     bool requires_serialization;
     bool work_done_flag;
 

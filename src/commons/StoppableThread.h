@@ -4,6 +4,8 @@
 #include <mutex>
 #include <string>
 
+#include "Stoppable.h"
+
 using namespace std;
 
 namespace commons {
@@ -11,7 +13,7 @@ namespace commons {
 /**
  *
  */
-class StoppableThread {
+class StoppableThread : public Stoppable {
 
 public:
 
@@ -19,6 +21,7 @@ public:
     ~StoppableThread();
 
     void attach(thread *thread_object);
+    void stop(bool join_thread);
     void stop();
     bool stopped();
     string get_id();

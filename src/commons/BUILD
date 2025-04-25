@@ -2,48 +2,19 @@ package(default_visibility = ["//visibility:public"])
 
 cc_library(
     name = "commons_lib",
+    srcs = [
+        "Utils.cc",
+        "SharedQueue.cc",
+        "StoppableThread.cc",
+    ],
+    hdrs = [
+        "Utils.h",
+        "SharedQueue.h",
+        "StoppableThread.h",
+        "Logger.h",
+        "RequestValidator.h",
+        "Stoppable.h",
+    ],
     includes = ["."],
-    deps = [
-        ":logger",
-        ":request_validator",
-        ":shared_queue",
-        ":utils",
-        ":stoppable_thread",
-    ],
-)
-
-cc_library(
-    name = "request_validator",
-    hdrs = ["RequestValidator.h"],
     deps = [],
-)
-
-cc_library(
-    name = "utils",
-    srcs = ["Utils.cc"],
-    hdrs = ["Utils.h"],
-    deps = [],
-)
-
-cc_library(
-    name = "shared_queue",
-    srcs = ["SharedQueue.cc"],
-    hdrs = ["SharedQueue.h"],
-    deps = [],
-)
-
-cc_library(
-    name = "logger",
-    hdrs = ["Logger.h"],
-    deps = [],
-)
-
-cc_library(
-    name = "stoppable_thread",
-    srcs = ["StoppableThread.cc"],
-    hdrs = ["StoppableThread.h"],
-    deps = [
-        ":logger",
-        ":utils",
-    ],
 )
