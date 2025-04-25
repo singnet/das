@@ -8,7 +8,6 @@
 
 using namespace link_creation_agent;
 using namespace std;
-// using namespace query_node;
 using namespace query_engine;
 
 static void add_to_file(string file_path, string file_name, string content) {
@@ -22,21 +21,12 @@ static void add_to_file(string file_path, string file_name, string content) {
     }
 }
 
-LinkCreationService::LinkCreationService(int thread_count, shared_ptr<service_bus::ServiceBus> das_node)
-    : thread_pool(thread_count) {
+LinkCreationService::LinkCreationService(int thread_count) : thread_pool(thread_count) {
     this->link_template_processor = make_shared<LinkTemplateProcessor>();
     this->equivalence_processor = make_shared<EquivalenceProcessor>();
     this->implication_processor = make_shared<ImplicationProcessor>();
-    this->equivalence_processor->set_das_node(das_node);
-    this->implication_processor->set_das_node(das_node);
     // run create_link in a separate thread
-    this->create_link_thread = thread(&LinkCreationService::create_link_threaded, this);
-}
-
-void LinkCreationService::set_query_agent_mutex(shared_ptr<mutex> query_agent_mutex) {
-    this->query_agent_mutex = query_agent_mutex;
-    this->implication_processor->set_mutex(query_agent_mutex);
-    this->equivalence_processor->set_mutex(query_agent_mutex);
+    this->create_link_thread = thread(&LinkCreationService::create_links, this);
 }
 
 LinkCreationService::~LinkCreationService() {
@@ -82,7 +72,7 @@ void LinkCreationService::process_request(shared_ptr<PatternMatchingQueryProxy> 
                     shared_lock lock(m_mutex);
                     link_tokens = process_query_answer(query_answer, extra_params, link_template);
                     enqueue_link_creation_request(request_id, link_tokens);
-                } catch (const std::exception& e) {
+                } catch (const exception& e) {
                     LOG_ERROR("[" << request_id << "]"
                                   << " Exception: " << e.what());
                     continue;
@@ -93,8 +83,8 @@ void LinkCreationService::process_request(shared_ptr<PatternMatchingQueryProxy> 
         }
         Utils::sleep(1000);
         LOG_INFO("[" << request_id << "]"
-                     << " - Finished processing iterator ID: " + proxy->my_id() << " with count: " << count);
-        
+                     << " - Finished processing iterator ID: " + proxy->my_id()
+                     << " with count: " << count);
     };
 
     thread_pool.enqueue(job);
@@ -114,31 +104,17 @@ vector<vector<string>> LinkCreationService::process_query_answer(shared_ptr<Quer
     }
 }
 
-void LinkCreationService::create_link(std::vector<std::vector<std::string>>& links,
-                                      DasAgentNode& das_client,
-                                      string id) {
-    // TODO check an alternative to locking this method
-    try {
-        for (vector<string> link_tokens : links) {
-            string metta_str = link_creation_agent::Console::get_instance()->print_metta(link_tokens);
-            add_to_file(metta_file_path, id + ".metta", metta_str);
-            das_client.create_link(link_tokens);
-        }
-    } catch (const std::exception& e) {
-        LOG_ERROR("Exception: " << e.what());
-    }
-}
-
 void LinkCreationService::set_timeout(int timeout) { this->timeout = timeout; }
 
-void LinkCreationService::create_link_threaded() {
+void LinkCreationService::create_links() {
     while (!is_stoping) {
         if (!link_creation_queue.empty()) {
             auto request_map = link_creation_queue.dequeue();
             string id = get<0>(request_map);
             vector<string> request = get<1>(request_map);
             try {
-                string meta_content = link_creation_agent::Console::get_instance()->print_metta(request);
+                string meta_content =
+                    link_creation_agent::Console::get_instance()->tokens_to_metta_string(request);
                 if (meta_content.empty()) {
                     LOG_ERROR("Failed to create MeTTa expression for " << Utils::join(request, ' '));
                     continue;
@@ -147,17 +123,16 @@ void LinkCreationService::create_link_threaded() {
                     LOG_INFO("Duplicate link creation request, skipping.");
                     continue;
                 }
-                if(this->save_links_to_metta_file){
-
-                    LOG_INFO("MeTTa Expression: " << meta_content); 
+                if (this->save_links_to_metta_file) {
+                    LOG_INFO("MeTTa Expression: " << meta_content);
                     add_to_file(metta_file_path, id + ".metta", meta_content);
                 }
-                if(this->save_links_to_db){
+                if (this->save_links_to_db) {
                     LOG_INFO("TOKENS: " << Utils::join(request, ' '));
                     das_client->create_link(request);
                 }
                 metta_expression_set.insert(meta_content);
-            } catch (const std::exception& e) {
+            } catch (const exception& e) {
                 LOG_ERROR("Exception: " << e.what());
             }
         } else {

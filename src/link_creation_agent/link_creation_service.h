@@ -8,8 +8,8 @@
 #include <functional>
 #include <map>
 #include <mutex>
-#include <shared_mutex>
 #include <set>
+#include <shared_mutex>
 
 #include "PatternMatchingQueryProxy.h"
 #include "QueryAnswer.h"
@@ -23,10 +23,9 @@
 #include "template_processor.h"
 #include "thread_pool.h"
 
-#define DEBUG
-
 using namespace das_agent;
 using namespace query_engine;
+using namespace std;
 namespace link_creation_agent {
 /**
  * @class LinkCreationService
@@ -44,7 +43,7 @@ class LinkCreationService
 
 {
    public:
-    LinkCreationService(int thread_count, shared_ptr<service_bus::ServiceBus> das_node);
+    LinkCreationService(int thread_count);
     /**
      * @brief Add an iterator to process in thread pool
      * @param proxy PatternMatchingQueryProxy object
@@ -58,7 +57,6 @@ class LinkCreationService
                          int max_query_answers);
 
     void set_timeout(int timeout);
-    void set_query_agent_mutex(shared_ptr<mutex> query_agent_mutex);
     void set_metta_file_path(string metta_file_path);
     void set_save_links_to_metta_file(bool save_links_to_metta_file) {
         this->save_links_to_metta_file = save_links_to_metta_file;
@@ -74,8 +72,8 @@ class LinkCreationService
     // this can be changed to a better data structure
     set<string> processed_link_handles;
     string metta_file_path;
-    std::shared_mutex m_mutex;
-    std::condition_variable m_cond;
+    shared_mutex m_mutex;
+    condition_variable m_cond;
     shared_ptr<LinkTemplateProcessor> link_template_processor;
     shared_ptr<ImplicationProcessor> implication_processor;
     shared_ptr<EquivalenceProcessor> equivalence_processor;
@@ -95,13 +93,12 @@ class LinkCreationService
      * @param link Link object
      * @param das_client DAS Node client
      */
-    void create_link(std::vector<std::vector<std::string>>& links,
-                     DasAgentNode& das_client,
-                     string id = "");
-    void create_link_threaded();
-    vector<vector<string>> process_query_answer(shared_ptr<QueryAnswer> query_answer, vector<string> params, vector<string> link_template);
-    void enqueue_link_creation_request(const string& request_id, const vector<vector<string>>& link_tokens);
-
+    void create_links();
+    vector<vector<string>> process_query_answer(shared_ptr<QueryAnswer> query_answer,
+                                                vector<string> params,
+                                                vector<string> link_template);
+    void enqueue_link_creation_request(const string& request_id,
+                                       const vector<vector<string>>& link_tokens);
 };
 
 }  // namespace link_creation_agent

@@ -6,9 +6,9 @@ using namespace std;
 using namespace query_engine;
 using namespace link_creation_agent;
 
-std::vector<std::vector<std::string>> LinkTemplateProcessor::process(
-    shared_ptr<QueryAnswer> query_answer, std::optional<std::vector<std::string>> extra_params) {
-    std::vector<shared_ptr<Link>> links;
+vector<vector<string>> LinkTemplateProcessor::process(shared_ptr<QueryAnswer> query_answer,
+                                                      optional<vector<string>> extra_params) {
+    vector<shared_ptr<Link>> links;
     // if
     if (extra_params == nullopt) {
         throw runtime_error("Invalid link template");
@@ -44,8 +44,8 @@ shared_ptr<Link> LinkTemplateProcessor::process_template_request(shared_ptr<Quer
             string token = get<Variable>(target).name;
             link->add_target(query_answer->assignment.get(token.c_str()));
         }
-        if (holds_alternative<std::shared_ptr<LinkCreateTemplate>>(target)) {
-            shared_ptr<LinkCreateTemplate> sub_link = get<std::shared_ptr<LinkCreateTemplate>>(target);
+        if (holds_alternative<shared_ptr<LinkCreateTemplate>>(target)) {
+            shared_ptr<LinkCreateTemplate> sub_link = get<shared_ptr<LinkCreateTemplate>>(target);
             shared_ptr<Link> sub_link_obj = process_template_request(query_answer, *sub_link.get());
             link->add_target(sub_link_obj);
         }

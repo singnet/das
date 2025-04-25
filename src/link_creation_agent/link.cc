@@ -1,7 +1,8 @@
 #include "link.h"
-#include "Logger.h"
 
 #include <iostream>
+
+#include "Logger.h"
 
 using namespace link_creation_agent;
 using namespace std;
@@ -96,36 +97,34 @@ string Link::to_metta_string() {
     return metta_string;
 }
 
- Link Link::untokenize(const vector<string>& tokens) {
+Link Link::untokenize(const vector<string>& tokens, bool include_custom_field_size) {
     int cursor = 0;
-    return untokenize_link(tokens, cursor);
+    return untokenize_link(tokens, cursor, include_custom_field_size);
 }
 
-Link Link::untokenize_link(const vector<string>& tokens, int& cursor) {
+Link Link::untokenize_link(const vector<string>& tokens, int& cursor, bool include_custom_field_size) {
     Link link;
     if (tokens[cursor] != "LINK") {
-        throw std::runtime_error("Invalid token: " + tokens[cursor]);
+        throw runtime_error("Invalid token: " + tokens[cursor]);
     }
     cursor++;
     link.type = tokens[cursor];
     cursor++;
+
     int num_targets = stoi(tokens[cursor]);
     cursor++;
-    // LOG_DEBUG("Num targets: " << num_targets);
-    // LOG_DEBUG("Cursor: " << cursor);
-    // LOG_DEBUG("Tokens size: " << tokens[cursor]);
-    int num_custom_fields = stoi(tokens[cursor]);
-    cursor++;
+    int num_custom_fields = 0;
+    if (include_custom_field_size) {
+        num_custom_fields = stoi(tokens[cursor]);
+        cursor++;
+    }
     for (int i = 0; i < num_targets; i++) {
-        // LOG_DEBUG("UUUU -1");
         if (tokens[cursor] == "HANDLE") {
-            // LOG_DEBUG("UUUU 0");
             cursor++;
             string handle = tokens[cursor];
             link.targets.push_back(handle);
             cursor++;
         } else if (tokens[cursor] == "NODE") {
-            // LOG_DEBUG("UUUU 1");
             cursor++;
             string node_type = tokens[cursor];
             cursor++;
@@ -136,41 +135,12 @@ Link Link::untokenize_link(const vector<string>& tokens, int& cursor) {
             link.targets.push_back(node);
             cursor++;
         } else if (tokens[cursor] == "LINK") {
-            // LOG_DEBUG("UUUU 2");
-            shared_ptr<Link> sub_link = make_shared<Link>(untokenize_link(tokens, cursor));
+            shared_ptr<Link> sub_link =
+                make_shared<Link>(untokenize_link(tokens, cursor, include_custom_field_size));
             link.targets.push_back(sub_link);
         } else {
-            throw std::runtime_error("Invalid token: " + tokens[cursor]);
+            throw runtime_error("Invalid token: " + tokens[cursor]);
         }
-        // if (tokens[cursor] == "CUSTOM_FIELD") {
-        //     vector<string> custom_field_args;
-        //     custom_field_args.push_back(tokens[cursor]);
-        //     cursor++;
-        //     string custom_field_name = tokens[cursor];
-        //     custom_field_args.push_back(tokens[cursor]);
-        //     cursor++;
-        //     int custom_field_size = stoi(tokens[cursor]);
-        //     custom_field_args.push_back(tokens[cursor]);
-        //     cursor++;
-        //     vector<CustomField> custom_fields;
-        //     for (int i = 0; i < custom_field_size; i++) {
-        //         custom_field_args.push_back(tokens[cursor]);
-        //         if (tokens[cursor] == "CUSTOM_FIELD") {
-        //             cursor++;
-        //             custom_field_args.push_back(tokens[cursor]);
-        //             cursor++;
-        //             custom_field_args.push_back(tokens[cursor]);
-        //             custom_field_size += stoi(tokens[cursor]);
-        //             cursor++;
-        //         } else {
-        //             cursor++;
-        //             custom_field_args.push_back(tokens[cursor]);
-        //             cursor++;
-        //         }
-        //     }
-        //     CustomField custom_field = CustomField(custom_field_args);
-        //     link.add_custom_field(custom_field);
-        // }
     }
     if (num_custom_fields > 0 && cursor < tokens.size() && tokens[cursor] == "CUSTOM_FIELD") {
         vector<string> custom_field_args;

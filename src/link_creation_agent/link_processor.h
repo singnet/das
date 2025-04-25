@@ -19,25 +19,21 @@
 
 using namespace query_engine;
 using namespace commons;
+using namespace std;
 
 namespace link_creation_agent {
 class LinkProcessor {
    public:
     LinkProcessor() = default;
-    virtual std::vector<std::vector<std::string>> process(
-        shared_ptr<QueryAnswer> query_answer,
-        std::optional<std::vector<std::string>> extra_params = nullopt) = 0;
+    virtual vector<vector<string>> process(shared_ptr<QueryAnswer> query_answer,
+                                           optional<vector<string>> extra_params = nullopt) = 0;
     virtual ~LinkProcessor() = default;
-    static int count_query(vector<string>& query,
-                           string& context,
-                           bool is_unique_assignment = true) {
+    static int count_query(vector<string>& query, string& context, bool is_unique_assignment = true) {
         int count = _count_query(query, context, is_unique_assignment);
         Utils::sleep(700);  // TODO fix this, waiting to delete to not crash
         return count;
     }
-    static int _count_query(vector<string>& query,
-                            string& context,
-                            bool is_unique_assignment = true) {
+    static int _count_query(vector<string>& query, string& context, bool is_unique_assignment = true) {
         try {
             shared_ptr<PatternMatchingQueryProxy> query_count_proxy =
                 make_shared<PatternMatchingQueryProxy>(
@@ -47,13 +43,11 @@ class LinkProcessor {
                 Utils::sleep(20);
             }
             return query_count_proxy->get_count();
-        } catch (const std::exception& e) {
+        } catch (const exception& e) {
             LOG_ERROR("Exception: " << e.what());
             return 0;
         }
     }
-    // protected:
-    // mutex processor_mutex;
 };
 
 enum class ProcessorType { PROOF_OF_IMPLICATION, PROOF_OF_EQUIVALENCE, INVALID };

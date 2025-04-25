@@ -13,31 +13,24 @@ using namespace link_creation_agent;
 LinkCreationAgent::LinkCreationAgent(string config_path) {
     this->config_path = config_path;
     load_config();
-    this->query_agent_mutex = make_shared<mutex>();
     link_creation_node_server = new LinkCreationAgentNode(link_creation_agent_server_id);
-    // query_node_client = new DASNode(query_agent_client_id,
-    //                                 query_agent_server_id,
-    //                                 query_agent_client_start_port,
-    //                                 query_agent_client_end_port);
     ServiceBusSingleton::init(query_agent_client_id,
                               query_agent_server_id,
                               query_agent_client_start_port,
                               query_agent_client_end_port);
-    service_bus = ServiceBusSingleton::get_instance();
-    service = new LinkCreationService(link_creation_agent_thread_count, nullptr);
+    service = new LinkCreationService(link_creation_agent_thread_count);
     service->set_timeout(query_timeout_seconds);
-    service->set_query_agent_mutex(this->query_agent_mutex);
     service->set_metta_file_path(metta_file_path);
-    if (save_links_to_metta_file){
+    if (save_links_to_metta_file) {
         LOG_DEBUG("Saving links to metta file: " << metta_file_path);
     }
-    if (save_links_to_db){
+    if (save_links_to_db) {
         LOG_DEBUG("Saving links to DB");
     }
     service->set_save_links_to_metta_file(save_links_to_metta_file);
     service->set_save_links_to_db(save_links_to_db);
     das_client = new DasAgentNode(das_agent_client_id, das_agent_server_id);
-    // this->agent_thread = new thread(&LinkCreationAgent::run, this);
+    this->agent_thread = new thread(&LinkCreationAgent::run, this);
 }
 
 LinkCreationAgent::~LinkCreationAgent() {
@@ -64,6 +57,8 @@ void LinkCreationAgent::stop() {
 
 void LinkCreationAgent::run() {
     int current_buffer_position = 0;
+    if (is_running) return;
+    is_running = true;
     while (true) {
         if (is_stoping) break;
         shared_ptr<LinkCreationAgentRequest> lca_request = NULL;
@@ -86,7 +81,7 @@ void LinkCreationAgent::run() {
 
         if (lca_request == nullptr ||
             lca_request->last_execution + lca_request->current_interval > time(0)) {
-            this_thread::sleep_for(chrono::milliseconds(loop_interval));
+            Utils::sleep(loop_interval);
             continue;
         }
 
@@ -104,13 +99,7 @@ void LinkCreationAgent::run() {
                                      lca_request->context,
                                      lca_request->id,
                                      lca_request->max_results);
-            // query_agent_mutex->unlock();
-
             lca_request->last_execution = time(0);
-            // lca_request->current_interval =
-            //     (lca_request->current_interval * 2) %
-            //     86400;  // TODO Add exponential backoff, resets after 24 hours
-
             if (lca_request->infinite) continue;
             if (lca_request->repeat >= 1) lca_request->repeat--;
 
@@ -126,7 +115,6 @@ void LinkCreationAgent::run() {
 shared_ptr<PatternMatchingQueryProxy> LinkCreationAgent::query(vector<string>& query_tokens,
                                                                string context,
                                                                bool update_attention_broker) {
-    // lock_guard<mutex> lock(*query_agent_mutex.get());    
     shared_ptr<PatternMatchingQueryProxy> proxy = make_shared<PatternMatchingQueryProxy>(
         query_tokens, context, false, update_attention_broker, false);
     ServiceBusSingleton::get_instance()->issue_bus_command(proxy);
@@ -147,8 +135,12 @@ void LinkCreationAgent::load_config() {
     this->query_agent_client_end_port = stoul(config_map["query_agent_client_end_port"]);
     this->query_timeout_seconds = stoi(config_map["query_timeout_seconds"]);
     this->metta_file_path = config_map["metta_file_path"];
-    this->save_links_to_db = config_map.find("save_links_to_db") != config_map.end() ? config_map["save_links_to_db"] == "true": this->save_links_to_db;
-    this->save_links_to_metta_file = config_map.find("save_links_to_metta_file") != config_map.end() ? config_map["save_links_to_metta_file"] == "true": this->save_links_to_metta_file;
+    this->save_links_to_db = config_map.find("save_links_to_db") != config_map.end()
+                                 ? config_map["save_links_to_db"] == "true"
+                                 : this->save_links_to_db;
+    this->save_links_to_metta_file = config_map.find("save_links_to_metta_file") != config_map.end()
+                                         ? config_map["save_links_to_metta_file"] == "true"
+                                         : this->save_links_to_metta_file;
 }
 
 void LinkCreationAgent::save_buffer() {

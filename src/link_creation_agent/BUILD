@@ -52,7 +52,9 @@ cc_library(
   name = "link_create_template",
   srcs = ["link_create_template.cc"],
   hdrs = ["link_create_template.h"],
-  deps = [],
+  deps = [
+    "//commons:commons_lib",
+  ],
 )
 
 cc_library(

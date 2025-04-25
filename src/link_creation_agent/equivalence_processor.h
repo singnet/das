@@ -3,27 +3,25 @@
  */
 
 #pragma once
-#include "ServiceBusSingleton.h"
+#include "link.h"
 #include "link_processor.h"
 
 using namespace query_engine;
+using namespace std;
 namespace link_creation_agent {
 class EquivalenceProcessor : public LinkProcessor {
    public:
     EquivalenceProcessor();
-    std::vector<std::vector<std::string>> process(
-        shared_ptr<QueryAnswer> query_answer,
-        std::optional<std::vector<std::string>> extra_params = nullopt) override;
-    void set_das_node(shared_ptr<service_bus::ServiceBus> das_node);
-    void set_mutex(shared_ptr<mutex> processor_mutex);
+    vector<vector<string>> process(shared_ptr<QueryAnswer> query_answer,
+                                   optional<vector<string>> extra_params = nullopt) override;
 
     ~EquivalenceProcessor() = default;
 
    private:
-    // static std::vector<std::string> get_pattern_query(const std::string& c1, const std::string& c2);
-    static std::vector<std::string> get_pattern_query(const std::vector<std::string>& c1,
-                                                      const std::vector<std::string>& c2);
-    shared_ptr<service_bus::ServiceBus> das_node = nullptr;  // check for concurrency
-    shared_ptr<mutex> processor_mutex = nullptr;
+    static vector<string> get_pattern_query(const vector<string>& c1, const vector<string>& c2);
+    static vector<string> get_tokenized_atom(const string& handle);
+    static Link build_link(const string& link_type,
+                           vector<LinkTargetTypes> targets,
+                           vector<CustomField> custom_fields);
 };
 }  // namespace link_creation_agent

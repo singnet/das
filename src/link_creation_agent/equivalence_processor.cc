@@ -1,11 +1,6 @@
 #include "equivalence_processor.h"
 
-#include <iostream>
-
-#include "AtomDBSingleton.h"
 #include "Logger.h"
-#include "PatternMatchingQueryProxy.h"
-#include "link.h"
 #include "link_creation_console.h"
 
 using namespace std;
@@ -13,64 +8,10 @@ using namespace query_engine;
 using namespace link_creation_agent;
 using namespace atomdb;
 
-EquivalenceProcessor::EquivalenceProcessor() {
-    try {
-        AtomDBSingleton::init();
-    } catch (const std::exception& e) {
-        // TODO fix this
-    }
-}
-
-void EquivalenceProcessor::set_mutex(shared_ptr<mutex> processor_mutex) {
-    this->processor_mutex = processor_mutex;
-}
-
-// vector<string> EquivalenceProcessor::get_pattern_query(const string& c1, const string& c2) {
-//     // clang-format off
-//     // vector<string> pattern_query = {
-//     //     "OR", "2",
-//     //         "LINK_TEMPLATE", "Expression", "3",
-//     //             "NODE", "Symbol", "EVALUATION",
-//     //             "LINK_TEMPLATE", "Expression", "2",
-//     //                 "NODE", "Symbol", "PREDICATE",
-//     //                 "VARIABLE", "P",
-//     //             "LINK", "Expression", "2",
-//     //                 "NODE", "Symbol", "CONCEPT",
-//     //                 "NODE", "Symbol", c1,
-//     //         "LINK_TEMPLATE", "Expression", "3",
-//     //             "NODE", "Symbol", "EVALUATION",
-//     //             "LINK_TEMPLATE", "Expression", "2",
-//     //                 "NODE", "Symbol", "PREDICATE",
-//     //                 "VARIABLE", "P",
-//     //             "LINK", "Expression", "2",
-//     //                 "NODE", "Symbol", "CONCEPT",
-//     //                 "NODE", "Symbol", c2
-//     // };
-
-//     string pattern_query_str = "OR 2 "
-//                                 "LINK_TEMPLATE Expression 3 "
-//                                 "NODE Symbol EVALUATION "
-//                                 "LINK_TEMPLATE Expression 2 "
-//                                 "NODE Symbol PREDICATE "
-//                                 "VARIABLE P "
-//                                 "LINK Expression 2 "
-//                                 "NODE Symbol CONCEPT ";
-//     pattern_query_str += c1 + " ";
-//     pattern_query_str += "LINK_TEMPLATE Expression 3 "
-//                          "NODE Symbol EVALUATION "
-//                          "LINK_TEMPLATE Expression 2 "
-//                          "NODE Symbol PREDICATE "
-//                          "VARIABLE P "
-//                          "LINK Expression 2 "
-//                          "NODE Symbol CONCEPT ";
-//     pattern_query_str += c2;
-
-//     // clang-format on
-//     return Utils::split(pattern_query_str, ' ');
-// }
+EquivalenceProcessor::EquivalenceProcessor() {}
 
 vector<string> EquivalenceProcessor::get_pattern_query(const vector<string>& c1,
-                                                         const vector<string>& c2) {
+                                                       const vector<string>& c2) {
     // clang-format off
     vector<vector<string>> templates = {
         {"OR", "2",
@@ -93,7 +34,7 @@ vector<string> EquivalenceProcessor::get_pattern_query(const vector<string>& c1,
         };
     // clang-format on
     vector<string> pattern_query;
-    for(const auto& q_template : templates) {
+    for (const auto& q_template : templates) {
         for (const auto& token : q_template) {
             pattern_query.push_back(token);
         }
@@ -101,69 +42,54 @@ vector<string> EquivalenceProcessor::get_pattern_query(const vector<string>& c1,
     return pattern_query;
 }
 
-void EquivalenceProcessor::set_das_node(shared_ptr<service_bus::ServiceBus> das_node) {
-    this->das_node = das_node;
+vector<string> EquivalenceProcessor::get_tokenized_atom(const string& handle) {
+    vector<string> tokens;
+    try {
+        auto atom = Console::get_instance()->get_atom(handle);
+        if (holds_alternative<Node>(atom)) {
+            return get<Node>(atom).tokenize();
+        } else if (holds_alternative<shared_ptr<Link>>(atom)) {
+            return get<shared_ptr<Link>>(atom)->tokenize(false);
+        }
+    } catch (const exception& e) {
+        LOG_ERROR("Failed to get handle: " << handle);
+        LOG_ERROR("Exception: " << e.what());
+        return {};
+    }
 }
 
-vector<vector<string>> EquivalenceProcessor::process(
-    shared_ptr<QueryAnswer> query_answer, std::optional<std::vector<std::string>> extra_params) {
+Link EquivalenceProcessor::build_link(const string& link_type,
+                                      vector<LinkTargetTypes> targets,
+                                      vector<CustomField> custom_fields) {
+    Link link;
+    link.set_type(link_type);
+    for (const auto& target : targets) {
+        link.add_target(target);
+    }
+    for (const auto& custom_field : custom_fields) {
+        link.add_custom_field(custom_field);
+    }
+    return link;
+}
+
+vector<vector<string>> EquivalenceProcessor::process(shared_ptr<QueryAnswer> query_answer,
+                                                     optional<vector<string>> extra_params) {
     // C1 C2
-    // HandlesAnswer* handles_answer = dynamic_cast<HandlesAnswer*>(query_answer);
     string c1_handle = query_answer->assignment.get("C1");
     string c2_handle = query_answer->assignment.get("C2");
     string context = "";
     if (extra_params.has_value()) {
         context = extra_params.value().front();
     }
-
     if (c1_handle == c2_handle) {
         LOG_INFO("C1 and C2 are the same, skipping equivalence processing.");
         return {};
     }
-    vector<string> c1_name;
-    vector<string> c2_name;
-    string c1_metta;
-    string c2_metta;
-    try {
-        auto c1_atom = Console::get_instance()->get_atom(c1_handle);
-        auto c2_atom = Console::get_instance()->get_atom(c2_handle);
-        if (std::holds_alternative<Node>(c1_atom)) {
-            c1_name = std::get<Node>(c1_atom).tokenize();
-            // c1_name = Utils::join(node_tokens, ' ');
-            c1_metta = Console::get_instance()->print_metta(c1_name);
-        } else if (std::holds_alternative<shared_ptr<Link>>(c1_atom)) {
-            c1_name = std::get<shared_ptr<Link>>(c1_atom)->tokenize(false);
-            // c1_name = Utils::join(link_tokens, ' ');
-            auto tokenize_metta = std::get<shared_ptr<Link>>(c1_atom)->tokenize();
-            c1_metta = Console::get_instance()->print_metta(tokenize_metta);
-        }
-        if (std::holds_alternative<Node>(c2_atom)) {
-            c2_name = std::get<Node>(c2_atom).tokenize();
-            // c2_name = Utils::join(node_tokens, ' ');
-            c2_metta = Console::get_instance()->print_metta(c2_name);
-        } else if (std::holds_alternative<shared_ptr<Link>>(c2_atom)) {
-            c2_name = std::get<shared_ptr<Link>>(c2_atom)->tokenize(false);
-            // c2_name = Utils::join(link_tokens, ' ');
-            auto tokenize_metta = std::get<shared_ptr<Link>>(c2_atom)->tokenize();
-            c2_metta = Console::get_instance()->print_metta(tokenize_metta);
-        }
-    } catch (const std::exception& e) {
-        LOG_ERROR("Failed to get handles: " << c1_handle << ", " << c2_handle);
-        LOG_ERROR("Exception: " << e.what());
-        return {};
-    }
-
-    LOG_DEBUG("(" << c1_metta << ", " << c2_metta << ")");
+    vector<string> c1_name = get_tokenized_atom(c1_handle);
+    vector<string> c2_name = get_tokenized_atom(c2_handle);
+    string c1_metta = Console::get_instance()->tokens_to_metta_string(c1_name, false);
+    string c2_metta = Console::get_instance()->tokens_to_metta_string(c2_name, false);
     auto pattern_query = get_pattern_query(c1_name, c2_name);
-    // if (this->das_node == nullptr) {
-    //     LOG_ERROR("DASNode is not set");
-    // }
-    if (this->processor_mutex == nullptr) {
-        LOG_ERROR("processor_mutex is not set");
-    }
-    // this->processor_mutex->lock();
-    // LOG_DEBUG("Sending Equivalence Query");
-    LOG_DEBUG("Query: " << Utils::join(pattern_query, ' '));
     int count = 0;
     try {
         count = count_query(pattern_query, context);
@@ -174,16 +100,16 @@ vector<vector<string>> EquivalenceProcessor::process(
         }
         // check if there is only one pattern
         if (count == 1) {
-            LOG_DEBUG("Found only one pattern for " << c1_metta << " and " << c2_metta
-                                                    << ", checking if it is correct...");
+            LOG_DEBUG("Found one pattern for " << c1_metta << " and " << c2_metta
+                                               << ", checking if it is correct...");
             count = count_query(pattern_query, context, false);
             if (count <= 1) {
-                LOG_DEBUG("Found only one pattern for " << c1_metta << " and " << c2_metta
-                                                        << ", skipping equivalence processing.");
+                LOG_DEBUG("Found one pattern for " << c1_metta << " and " << c2_metta
+                                                   << ", skipping equivalence processing.");
                 return {};
             }
         }
-    } catch (const std::exception& e) {
+    } catch (const exception& e) {
         LOG_ERROR("Exception: " << e.what());
         return {};
     }
@@ -191,31 +117,16 @@ vector<vector<string>> EquivalenceProcessor::process(
     double strength = double(2) / count;
     LOG_INFO("(" << c1_metta << ", " << c2_metta << ") "
                  << "Strength: " << strength);
-    // LOG_DEBUG("2/" << count);
     vector<vector<string>> result;
+    // create the link
     Node equivalence_node;
     equivalence_node.type = "Symbol";
     equivalence_node.value = "EQUIVALENCE";
-    Link link_c1_c2;
-    link_c1_c2.set_type("Expression");
-    link_c1_c2.add_target(equivalence_node);
-    link_c1_c2.add_target(c1_handle);
-    link_c1_c2.add_target(c2_handle);
     auto custom_field = CustomField("truth_value");
     custom_field.add_field("strength", to_string(strength));
     custom_field.add_field("confidence", to_string(1));
-    link_c1_c2.add_custom_field(custom_field);
-
-    Link link_c2_c1;
-    link_c2_c1.set_type("Expression");
-    link_c2_c1.add_target(equivalence_node);
-    link_c2_c1.add_target(c2_handle);
-    link_c2_c1.add_target(c1_handle);
-    auto custom_field2 = CustomField("truth_value");
-    custom_field2.add_field("strength", to_string(strength));
-    custom_field2.add_field("confidence", to_string(1));
-    link_c2_c1.add_custom_field(custom_field2);
-
+    Link link_c1_c2 = build_link("Expression", {equivalence_node, c1_handle, c2_handle}, {custom_field});
+    Link link_c2_c1 = build_link("Expression", {equivalence_node, c2_handle, c1_handle}, {custom_field});
     result.push_back(link_c1_c2.tokenize());
     result.push_back(link_c2_c1.tokenize());
     return result;

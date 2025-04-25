@@ -17,7 +17,7 @@ DasAgentNode::~DasAgentNode() { DistributedAlgorithmNode::graceful_shutdown(); }
 void DasAgentNode::create_link(vector<string>& request) {
     try {
         this->send("create_link", request, this->server_id);
-    } catch (const std::exception& e) {
+    } catch (const exception& e) {
         LOG_ERROR("DasAgentNode::create_link: Exception: " << e.what());
     }
 }

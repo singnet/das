@@ -17,7 +17,7 @@ namespace link_creation_agent {
 
 class Link;  // forward declaration
 
-using LinkTargetTypes = std::variant<std::string, std::shared_ptr<Link>, Node>;
+using LinkTargetTypes = variant<string, shared_ptr<Link>, Node>;
 
 class Link {
    public:
@@ -50,7 +50,7 @@ class Link {
 
     string to_metta_string();
 
-    static Link untokenize(const vector<string>& tokens);
+    static Link untokenize(const vector<string>& tokens, bool include_custom_field_size = true);
 
     /**
      * @brief Get the custom fields of the link
@@ -66,6 +66,8 @@ class Link {
     string type;
     vector<LinkTargetTypes> targets = {};
     vector<CustomField> custom_fields = {};
-    static Link untokenize_link(const vector<string>& tokens, int& cursor);
+    static Link untokenize_link(const vector<string>& tokens,
+                                int& cursor,
+                                bool include_custom_field_size);
 };
 }  // namespace link_creation_agent

@@ -1,5 +1,6 @@
 from hyperon_das_atomdb.adapters import RedisMongoDB
 from hyperon_das_atomdb.database import LinkT, NodeT, Link
+
 # from hyperon_das_atomdb_cpp.document_types import Link
 from tokenizers.dict_query_tokenizer import DictQueryTokenizer
 from das_agent_node import DASAgentNode
@@ -20,7 +21,11 @@ def parse_targets(targets, atom_db):
         if isinstance(target, str):
             atom = atom_db.get_atom(target)
             if isinstance(atom, Link):
-                new_targets.append(LinkT(**{"type": atom.named_type, "targets": parse_targets(atom.targets, atom_db)}))
+                new_targets.append(
+                    LinkT(
+                        **{"type": atom.named_type, "targets": parse_targets(atom.targets, atom_db)}
+                    )
+                )
             else:
                 new_targets.append(NodeT(**{"type": atom.named_type, "name": atom.name}))
             continue
@@ -31,7 +36,11 @@ def parse_targets(targets, atom_db):
         elif target.get("handle"):
             atom = atom_db.get_atom(target["handle"])
             if isinstance(atom, Link):
-                new_targets.append(LinkT(**{"type": atom.named_type, "targets": parse_targets(atom.targets, atom_db)}))
+                new_targets.append(
+                    LinkT(
+                        **{"type": atom.named_type, "targets": parse_targets(atom.targets, atom_db)}
+                    )
+                )
             else:
                 new_targets.append(NodeT(**{"type": atom.named_type, "name": atom.name}))
         else:
@@ -39,7 +48,7 @@ def parse_targets(targets, atom_db):
     return new_targets
 
 
-def build_link(request, atom_db) -> LinkT:  
+def build_link(request, atom_db) -> LinkT:
     link = DictQueryTokenizer.untokenize(request)
     link["type"] = link.get("named_type", link["type"])
     tt = [dict(named_type=t.get("type"), **t) for t in link["targets"]]

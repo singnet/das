@@ -7,13 +7,14 @@
 #include "link.h"
 #include "link_processor.h"
 
+using namespace std;
+
 namespace link_creation_agent {
 class LinkTemplateProcessor : public LinkProcessor {
    public:
     LinkTemplateProcessor() = default;
-    std::vector<std::vector<std::string>> process(
-        shared_ptr<QueryAnswer> query_answer,
-        std::optional<std::vector<std::string>> extra_params = nullopt) override;
+    vector<vector<string>> process(shared_ptr<QueryAnswer> query_answer,
+                                   optional<vector<string>> extra_params = nullopt) override;
     ~LinkTemplateProcessor() = default;
 
    private:

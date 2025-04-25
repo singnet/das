@@ -14,14 +14,14 @@ shared_ptr<Console> Console::get_instance() {
         console_instance = shared_ptr<Console>(new Console());
         try {
             AtomDBSingleton::init();
-        } catch (const std::exception& e) {
+        } catch (const exception& e) {
         }
     }
     return console_instance;
 }
 
-LinkTargetTypes Console::get_atom(std::string handle) {
-    std::shared_ptr<AtomDB> atom_db = AtomDBSingleton::get_instance();
+LinkTargetTypes Console::get_atom(string handle) {
+    shared_ptr<AtomDB> atom_db = AtomDBSingleton::get_instance();
     auto atom = atom_db->get_atom_document(handle.c_str());
     if (atom->contains("name")) {
         Node node;
@@ -42,22 +42,21 @@ LinkTargetTypes Console::get_atom(std::string handle) {
     Utils::error("Error parsing Atom: " + handle);
 }
 
-string Console::print_metta(std::vector<string> tokens) {
-    // LOG_DEBUG("Tokens: " << Utils::join(tokens, ' '));
+string Console::tokens_to_metta_string(vector<string> tokens, bool has_custom_field_size) {
     try {
         if (tokens.front() == "LINK") {
-            std::vector<string> link_tokens;
+            vector<string> link_tokens;
             for (int i = 0; i < tokens.size(); i++) {
                 if (tokens[i] == "HANDLE") {
                     i++;
                     auto atom = get_atom(tokens[i]);
-                    if (std::holds_alternative<shared_ptr<Link>>(atom)) {
-                        for (auto token : std::get<shared_ptr<Link>>(atom)->tokenize()) {
+                    if (holds_alternative<shared_ptr<Link>>(atom)) {
+                        for (auto token : get<shared_ptr<Link>>(atom)->tokenize()) {
                             link_tokens.push_back(token);
                         }
                     }
-                    if (std::holds_alternative<Node>(atom)) {
-                        for (auto token : std::get<Node>(atom).tokenize()) {
+                    if (holds_alternative<Node>(atom)) {
+                        for (auto token : get<Node>(atom).tokenize()) {
                             link_tokens.push_back(token);
                         }
                     }
@@ -65,21 +64,23 @@ string Console::print_metta(std::vector<string> tokens) {
                     link_tokens.push_back(tokens[i]);
                 }
             }
-            Link link = Link::untokenize(link_tokens);
-            std::string metta_string = link.to_metta_string();
-            // LOG_INFO("MeTTa Expression: " << metta_string);
+            Link link = Link::untokenize(link_tokens, has_custom_field_size);
+            string metta_string = link.to_metta_string();
             return metta_string;
         }
         if (tokens.front() == "NODE") {
             string metta_string = "(: " + tokens[2] + " " + tokens[1] + ")";
-            // LOG_INFO("MeTTa Expression: " << metta_string);
             return metta_string;
         }
         LOG_ERROR("Failed to create MeTTa expression for " << Utils::join(tokens, ' '));
         return "";
-    } catch (const std::exception& e) {
+    } catch (const exception& e) {
         LOG_ERROR("Exception: " << e.what());
         LOG_ERROR("Failed to create MeTTa expression for " << Utils::join(tokens, ' '));
         return "";
     }
+}
+
+void Console::print_metta(vector<string> tokens, bool has_custom_field_size) {
+    LOG_INFO("MeTTa Expression: " << tokens_to_metta_string(tokens, has_custom_field_size));
 }

@@ -22,8 +22,9 @@ class Console {
    public:
     static shared_ptr<Console> get_instance();
     ~Console() {}
-    string print_metta(std::vector<string> tokens);
-    LinkTargetTypes get_atom(std::string handle);
+    void print_metta(vector<string> tokens, bool has_custom_field_size = true);
+    string tokens_to_metta_string(vector<string> tokens, bool has_custom_field_size = true);
+    LinkTargetTypes get_atom(string handle);
 
    private:
     Console(){};

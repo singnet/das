@@ -12,7 +12,6 @@
 
 using namespace std;
 using namespace distributed_algorithm_node;
-#define DEBUG
 
 /**
  * @brief Dummy message for unknown commands

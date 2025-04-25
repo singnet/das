@@ -29,12 +29,12 @@ class ThreadPool {
         for (size_t i = 0; i < threads; ++i) {
             workers.emplace_back([this] {
                 while (true) {
-                    std::function<void()> task;
+                    function<void()> task;
                     {
-                        std::unique_lock<std::mutex> lock(queue_mutex);
+                        unique_lock<mutex> lock(queue_mutex);
                         condition.wait(lock, [this] { return stop || !tasks.empty(); });
                         if (stop && tasks.empty()) return;
-                        task = std::move(tasks.front());
+                        task = move(tasks.front());
                         tasks.pop();
                     }
                     task();
@@ -48,11 +48,11 @@ class ThreadPool {
      */
     ~ThreadPool() {
         {
-            std::unique_lock<std::mutex> lock(queue_mutex);
+            unique_lock<mutex> lock(queue_mutex);
             stop = true;
         }
         condition.notify_all();
-        for (std::thread& worker : workers) worker.join();
+        for (thread& worker : workers) worker.join();
     }
 
     /**
@@ -61,16 +61,16 @@ class ThreadPool {
      */
     void enqueue(function<void()> task) {
         {
-            unique_lock<std::mutex> lock(queue_mutex);
+            unique_lock<mutex> lock(queue_mutex);
             tasks.emplace(move(task));
         }
         condition.notify_one();
     }
 
    private:
-    std::vector<std::thread> workers;
-    std::queue<std::function<void()>> tasks;
-    std::mutex queue_mutex;
-    std::condition_variable condition;
+    vector<thread> workers;
+    queue<function<void()>> tasks;
+    mutex queue_mutex;
+    condition_variable condition;
     bool stop = false;
 };
