@@ -135,7 +135,7 @@ void InferenceAgent::send_link_creation_request(shared_ptr<InferenceRequest> inf
         for (auto& token : request_iterator) {
             request.push_back(token);
         }
-        request.push_back("1000");                            // TODO check max results value
+        request.push_back("1000000");                            // TODO check max results value
         request.push_back(is_stop_request ? "0" : "-1");      // repeat
         request.push_back(inference_request->get_context());  // context
         request.push_back("false");                           // update_attention_broker
