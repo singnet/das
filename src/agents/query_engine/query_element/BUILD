@@ -13,6 +13,7 @@ cc_library(
     ":query_element",
     ":link_template",
     ":source",
+    ":unique_assignment_filter",
   ],
 )
 
@@ -22,7 +23,7 @@ cc_library(
   hdrs = ["Operator.h"],
   deps = [
     ":query_element",
-    "//query_engine:query_answer",
+    "//agents/query_engine:query_answer",
   ],
 )
 
@@ -58,7 +59,7 @@ cc_library(
   hdrs = ["Iterator.h"],
   deps = [
     ":sink",
-    "//query_engine:query_answer",
+    "//agents/query_engine:query_answer",
   ],
 )
 
@@ -78,7 +79,7 @@ cc_library(
   srcs = ["QueryElement.cc"],
   hdrs = ["QueryElement.h"],
   deps = [
-    "//query_engine:query_node",
+    "//agents/query_engine:query_node",
     "//commons:commons_lib",
   ],
 )
@@ -96,12 +97,21 @@ cc_library(
     "//hasher:hasher_lib",
     "//atomdb:atomdb_api_types",
     "//atomdb:atomdb_singleton",
-    "//query_engine:query_node",
+    "//agents/query_engine:query_node",
     "//attention_broker:attention_broker_server_lib",
     "//commons:commons_lib",
   ],
 )
 
+
+cc_library(
+  name = "unique_assignment_filter",
+  srcs = ["UniqueAssignmentFilter.cc"],
+  hdrs = ["UniqueAssignmentFilter.h"],
+  deps = [
+    ":query_element",
+  ],
+)
 
 cc_library(
   name = "source",

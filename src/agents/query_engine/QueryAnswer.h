@@ -26,6 +26,7 @@ namespace query_engine {
  */
 class Assignment {
     friend class QueryAnswer;
+    friend struct std::hash<Assignment>;
 
    public:
     /**
@@ -114,6 +115,12 @@ class Assignment {
      * production environment).
      */
     string to_string();
+
+    /**
+     * Two Assignments are equal iff they have the exact set of variable lables with
+     * the exact same assigned values.
+     */
+    bool operator==(const Assignment& other) const;
 
    private:
     const char* labels[MAX_NUMBER_OF_VARIABLES_IN_QUERY];
@@ -260,3 +267,21 @@ class QueryAnswer {
 };
 
 }  // namespace query_engine
+
+template <>
+struct std::hash<query_engine::Assignment> {
+    std::size_t operator()(const query_engine::Assignment& k) const {
+        if (k.size == 0) {
+            return 0;
+        }
+
+        std::size_t hash_value = 1;
+        for (unsigned int i = 0; i < k.size; i++) {
+            hash_value = hash_value ^ ((std::hash<string>()(string(k.labels[i])) ^
+                                        (std::hash<string>()(string(k.values[i])) << 1)) >>
+                                       1);
+        }
+
+        return hash_value;
+    }
+};

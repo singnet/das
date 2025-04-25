@@ -12,7 +12,7 @@ nanobind_extension(
     name = "hyperon_das_query_engine_ext",
     srcs = ["hyperon_das_query_engine_ext.cc"],
     deps = [
-      "//query_engine:query_engine_lib"
+      "//agents/query_engine:query_engine_lib"
     ],
 )
 

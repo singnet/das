@@ -13,7 +13,7 @@ nanobind_extension(
     srcs = ["hyperon_das_node_ext.cc"],
     deps = [
       "//distributed_algorithm_node:distributed_algorithm_node_lib",
-      "//query_engine:query_engine_lib",
+      "//agents/query_engine:query_engine_lib",
     ],
 )
 
