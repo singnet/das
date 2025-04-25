@@ -313,7 +313,6 @@ class LinkTemplate : public Source {
             while ((handle = it->next()) != nullptr) {
                 this->atom_document[i] = db->get_atom_document(handle);
                 query_answer = new QueryAnswer(handle, importance_list.list(i));
-                const char* s = this->atom_document[i]->get("targets", 0);
                 for (unsigned int j = 0; j < this->arity; j++) {
                     if (this->target_template[j]->is_terminal) {
                         auto terminal = dynamic_pointer_cast<Terminal>(this->target_template[j]);
