@@ -284,11 +284,15 @@ class LinkTemplate : public Source {
     }
 
     void fetch_links() {
-        LOG_INFO("HERE-1")
-        shared_ptr<AtomDB> db = AtomDBSingleton::get_instance();
-        this->fetch_result = db->query_for_pattern(this->handle);
-        unsigned int answer_count = this->fetch_result->size();
-        LOG_INFO("HERE-2")
+        shared_ptr<AtomDB> db;
+        unsigned int answer_count = 0;
+        try {
+            db = AtomDBSingleton::get_instance();
+            this->fetch_result = db->query_for_pattern(this->handle);
+            answer_count = this->fetch_result->size();
+        } catch (const std::exception& e) {
+            cout << "[[ Error ]]: " << e.what() << endl;
+        }
         LOG_INFO("Fetched " << answer_count << " links for link template " << this->to_string());
         QueryAnswer* query_answer;
         vector<QueryAnswer*> fetched_answers;
