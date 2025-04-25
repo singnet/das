@@ -19,7 +19,7 @@ class LinkCreationAgentTest : public ::testing::Test {
     LinkCreationAgent* agent;
 
     void SetUp() override {
-        ServiceBusSingleton::init("localhost:7002");
+        // ServiceBusSingleton::init("localhost:7002");
         // Create a temporary config file for testing
         ofstream config_file("test_config.cfg");
         config_file << "requests_interval_seconds=1\n";
@@ -30,6 +30,12 @@ class LinkCreationAgentTest : public ::testing::Test {
         config_file << "das_agent_client_id=localhost:7004\n";
         config_file << "das_agent_server_id=localhost:7005\n";
         config_file << "requests_buffer_file=test_buffer.bin\n";
+        config_file << "query_timeout_seconds=1\n";
+        config_file << "query_agent_client_start_port=7001\n";
+        config_file << "query_agent_client_end_port=7002\n";
+        config_file << "metta_file_path=.\n";
+        config_file << "save_links_to_db=false\n";
+        config_file << "save_links_to_metta_file=true\n";
         config_file.close();
     }
 
@@ -83,7 +89,7 @@ TEST_F(LinkCreationAgentTest, TestRequest) {
     EXPECT_EQ(lca_request->context, "test_context");
     EXPECT_EQ(lca_request->update_attention_broker, false);
     EXPECT_EQ(lca_request->infinite, true);
-    EXPECT_EQ(lca_request->id, "1");
+    EXPECT_EQ(lca_request->id, "1-d1e04bd3bec19f7393ab03482281f296");
 }
 
 // TEST_F(LinkCreationAgentTest, TestConfig) {
@@ -313,7 +319,7 @@ TEST(Link, TestLinkTemplateProcessor) {
 
     LinkTemplateProcessor ltp;
     auto links = ltp.process(query_answer, link_template);
-    EXPECT_EQ(Utils::join(links[0], ' '), "LINK Similarity 2 HANDLE Value1 HANDLE Value2");
+    EXPECT_EQ(Utils::join(links[0], ' '), "LINK Similarity 2 0 HANDLE Value1 HANDLE Value2");
     // EXPECT_EQ(link.to_metta_string(), "(Value1 Value2)");
     link_template.clear();
 
@@ -321,7 +327,7 @@ TEST(Link, TestLinkTemplateProcessor) {
     link_template = split("LINK_CREATE Test 3 0 NODE Symbol A VARIABLE V1 NODE Symbol B", ' ');
     query_answer->assignment.assign("V1", "Value1");
     links = ltp.process(query_answer, link_template);
-    EXPECT_EQ(Utils::join(links[0], ' '), "LINK Test 3 NODE Symbol A HANDLE Value1 NODE Symbol B");
+    EXPECT_EQ(Utils::join(links[0], ' '), "LINK Test 3 0 NODE Symbol A HANDLE Value1 NODE Symbol B");
     // EXPECT_EQ(link.to_metta_string(), "(A Value1 B)");
 
     link_template.clear();
@@ -333,7 +339,7 @@ TEST(Link, TestLinkTemplateProcessor) {
         ' ');
     links = ltp.process(query_answer, link_template);
     EXPECT_EQ(Utils::join(links[0], ' '),
-              "LINK Test2 2 NODE Symbol C NODE Symbol B CUSTOM_FIELD truth_value 2 CUSTOM_FIELD mean 2 "
+              "LINK Test2 2 1 NODE Symbol C NODE Symbol B CUSTOM_FIELD truth_value 2 CUSTOM_FIELD mean 2 "
               "count 10 avg 0.9 confidence 0.9");
 
     link_template.clear();
@@ -347,36 +353,15 @@ TEST(Link, TestLinkTemplateProcessor) {
     query_answer->assignment.assign("V2", "Value2");
     links = ltp.process(query_answer, link_template);
     EXPECT_EQ(Utils::join(links[0], ' '),
-              "LINK Test3 2 HANDLE Value1 HANDLE Value2 CUSTOM_FIELD truth_value 2 CUSTOM_FIELD mean 2 "
+              "LINK Test3 2 1 HANDLE Value1 HANDLE Value2 CUSTOM_FIELD truth_value 2 CUSTOM_FIELD mean 2 "
               "count 10 avg 0.9 confidence 0.9");
     link_template.clear();
 
-    // // clang-format off
-    // link_template = split(
-    // "LINK_CREATE I 3 0 "
-    //     "VARIABLE V1 "
-    //     "LINK_CREATE Test 3 0 "
-    //         "NODE Symbol A "
-    //         "VARIABLE V2 "
-    //         "LINK_CREATE Test2 2 0 "
-    //             "NODE Symbol C "
-    //             "NODE Symbol D "
-    //     "NODE Symbol B", ' ');
-    // // clang-format on
-    // query_answer = new HandlesAnswer();
-    // query_answer->assignment.assign("V1", "Value1");
-    // query_answer->assignment.assign("V2", "Value2");
-    // link = Link(query_answer, link_template);
-    // cout << Utils::join(link.tokenize(), ' ') << endl;
-    // EXPECT_EQ(link.to_metta_string(), "(Value1 (A Value2 (C D)) B)");
-    // Link l = link.untokenize(link.tokenize());
-    // EXPECT_EQ(l.to_metta_string(), "(Value1 (A Value2 (C D)) B)");
-    // link_template.clear();
-    // delete query_answer;
+
 
     // Test the Link class
     vector<string> tokens = Utils::split(
-        "LINK Test3 2 HANDLE Value1 HANDLE Value2 CUSTOM_FIELD truth_value 2 CUSTOM_FIELD mean 2 "
+        "LINK Test3 2 1 HANDLE Value1 HANDLE Value2 CUSTOM_FIELD truth_value 2 CUSTOM_FIELD mean 2 "
         "count 10 avg 0.9 confidence 0.9",
         ' ');
     Link ll;
@@ -397,11 +382,11 @@ TEST(Link, TestLinkTemplateProcessor) {
     EXPECT_EQ(get<string>(get<1>(mean->get_values()[1])), "0.9");
     EXPECT_EQ(get<0>(l2.get_custom_fields()[0].get_values()[1]), "confidence");
     EXPECT_EQ(get<string>(get<1>(l2.get_custom_fields()[0].get_values()[1])), "0.9");
-    EXPECT_EQ(l2.to_metta_string(), "(Value1 Value2)");
+    EXPECT_EQ(l2.to_metta_string(), "(Value1 [[count 10 avg 0.9] confidence 0.9] Value2)");
     tokens.clear();
 
     tokens = Utils::split(
-        "LINK Test3 3 NODE Symbol EQUIVALENCE HANDLE Value1 HANDLE Value2 CUSTOM_FIELD truth_value 2 "
+        "LINK Test3 3 1 NODE Symbol EQUIVALENCE HANDLE Value1 HANDLE Value2 CUSTOM_FIELD truth_value 2 "
         "strength 0.9 confidence 1",
         ' ');
     l2 = ll.untokenize(tokens);

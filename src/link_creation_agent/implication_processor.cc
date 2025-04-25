@@ -1,7 +1,7 @@
 #include "implication_processor.h"
 
 #include "Logger.h"
-#include "link_creation_console.h"
+#include "link_creation_db_helper.h"
 
 using namespace std;
 using namespace query_engine;
@@ -69,7 +69,7 @@ vector<string> ImplicationProcessor::get_satisfying_set_query(const vector<strin
 vector<string> ImplicationProcessor::get_tokenized_atom(const string& handle) {
     vector<string> tokens;
     try {
-        auto atom = Console::get_instance()->get_atom(handle);
+        auto atom = LinkCreateDBSingleton::get_instance()->get_atom(handle);
         if (holds_alternative<Node>(atom)) {
             return get<Node>(atom).tokenize();
         } else if (holds_alternative<shared_ptr<Link>>(atom)) {
@@ -111,8 +111,8 @@ vector<vector<string>> ImplicationProcessor::process(shared_ptr<QueryAnswer> que
     }
     vector<string> p1_name = get_tokenized_atom(p1_handle);
     vector<string> p2_name = get_tokenized_atom(p2_handle);
-    string p1_metta = Console::get_instance()->tokens_to_metta_string(p1_name, false);
-    string p2_metta = Console::get_instance()->tokens_to_metta_string(p2_name, false);
+    string p1_metta = LinkCreateDBSingleton::get_instance()->tokens_to_metta_string(p1_name, false);
+    string p2_metta = LinkCreateDBSingleton::get_instance()->tokens_to_metta_string(p2_name, false);
 
     auto pattern_query_1 = get_pattern_query(p1_name);
     auto pattern_query_2 = get_pattern_query(p2_name);

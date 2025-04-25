@@ -4,7 +4,7 @@
 
 #include "Logger.h"
 #include "Utils.h"
-#include "link_creation_console.h"
+#include "link_creation_db_helper.h"
 
 using namespace link_creation_agent;
 using namespace std;
@@ -114,7 +114,7 @@ void LinkCreationService::create_links() {
             vector<string> request = get<1>(request_map);
             try {
                 string meta_content =
-                    link_creation_agent::Console::get_instance()->tokens_to_metta_string(request);
+                    link_creation_agent::LinkCreateDBSingleton::get_instance()->tokens_to_metta_string(request);
                 if (meta_content.empty()) {
                     LOG_ERROR("Failed to create MeTTa expression for " << Utils::join(request, ' '));
                     continue;
