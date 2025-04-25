@@ -94,6 +94,44 @@ class MockRedis:
 
         return (new_cursor, elements[start:end])
 
+    def zrange(self, name: str, start: int, end: int, withscores: bool = False):
+        if name not in self.cache:
+            return []
+
+        sorted_items = sorted(self.cache[name].items(), key=lambda item: (item[1], item[0]))
+        length = len(sorted_items)
+
+        if start < 0:
+            start = max(0, length + start)
+        if end < 0:
+            end = length + end
+
+        sliced = sorted_items[start:end + 1]
+        if withscores:
+            return sliced
+        else:
+            return [member for member, score in sliced]
+
+    def zadd(self, name: str, mapping: dict):
+        if name not in self.cache:
+            self.cache[name] = {}
+        added_count = 0
+        for member, score in mapping.items():
+            if member not in self.cache[name]:
+                added_count += 1
+            self.cache[name][member] = score
+        return added_count
+
+    def zrem(self, name: str, *values):
+        if name not in self.cache or not isinstance(self.cache[name], dict):
+            return 0
+        removed_count = 0
+        for value in values:
+            if value in self.cache[name]:
+                del self.cache[name][value]
+                removed_count += 1
+        return removed_count
+
 
 def mongo_mock():
     return mongomock.MongoClient().db
