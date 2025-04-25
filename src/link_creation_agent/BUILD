@@ -23,7 +23,7 @@ cc_library(
     ":link_creation_console",
     ":processors",
     "//distributed_algorithm_node:distributed_algorithm_node_lib",
-    "//query_engine:query_engine_lib",
+    "//agents/query_engine:query_engine_lib",
     "//service_bus:service_bus_lib",
     "//hasher:hasher_lib",
   ],
@@ -44,7 +44,7 @@ cc_library(
   srcs = ["link.cc"],
   hdrs = ["link.h", "link_create_template.h"],
   deps = [
-    "//query_engine:query_engine_lib"
+    "//agents/query_engine:query_engine_lib"
   ],
 )
 
@@ -87,7 +87,7 @@ cc_library(
     ":das_agent_node",
     ":link",
     ":processors",
-    "//query_engine:query_engine_lib",
+    "//agents/query_engine:query_engine_lib",
   ],
 )
 
@@ -100,7 +100,7 @@ cc_library(
     ":link",
     ":link_create_template",
     ":link_creation_console",
-    "//query_engine:query_engine_lib",
+    "//agents/query_engine:query_engine_lib",
     "//commons:commons_lib",
   ],
 )

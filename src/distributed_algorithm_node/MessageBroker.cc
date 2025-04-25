@@ -53,7 +53,7 @@ MessageBroker::MessageBroker(shared_ptr<MessageFactory> host_node, const string&
     }
     this->host_node = host_node;
     this->node_id = node_id;
-    this->shutdown_flag = false;
+    this->stop_flag = false;
     this->joined_network = false;
 }
 
@@ -64,10 +64,7 @@ SynchronousSharedRAM::SynchronousSharedRAM(shared_ptr<MessageFactory> host_node,
 
 SynchronousSharedRAM::~SynchronousSharedRAM() {
     if (this->joined_network) {
-        for (auto thread : this->inbox_threads) {
-            thread->join();
-            delete thread;
-        }
+        this->stop();
         this->inbox_threads.clear();
 
         NODE_QUEUE_MUTEX.lock();
@@ -94,26 +91,20 @@ SynchronousGRPC::SynchronousGRPC(shared_ptr<MessageFactory> host_node, const str
 
 SynchronousGRPC::~SynchronousGRPC() {
     if (this->joined_network) {
-        for (auto thread : this->inbox_threads) {
-            thread->join();
-            delete thread;
-        }
+        this->stop();
         this->inbox_threads.clear();
 
         this->grpc_server->Shutdown();
         this->grpc_server.reset();
 
-        if (this->grpc_thread) {
-            this->grpc_thread->join();
-            delete this->grpc_thread;
-        }
+        this->grpc_thread->stop();
     }
 }
 
 // -------------------------------------------------------------------------------------------------
 // Methods used to start threads
 
-void SynchronousGRPC::grpc_thread_method() {
+void SynchronousGRPC::grpc_thread_method(shared_ptr<StoppableThread> monitor) {
     grpc::EnableDefaultHealthCheckService(false);
     grpc::reflection::InitProtoReflectionServerBuilderPlugin();
     grpc::ServerBuilder builder;
@@ -125,8 +116,8 @@ void SynchronousGRPC::grpc_thread_method() {
     this->grpc_server->Wait();
 }
 
-void SynchronousSharedRAM::inbox_thread_method() {
-    bool stop_flag = false;
+void SynchronousSharedRAM::inbox_thread_method(shared_ptr<StoppableThread> monitor) {
+    bool stop_thread_loop = false;
     do {
         void* request = this->incoming_messages.dequeue();
         if (request != NULL) {
@@ -159,17 +150,17 @@ void SynchronousSharedRAM::inbox_thread_method() {
                 Utils::error("Invalid NULL Message");
             }
         } else {
-            if (this->is_shutting_down()) {
-                stop_flag = true;
+            if (monitor->stopped()) {
+                stop_thread_loop = true;
             } else {
                 Utils::sleep();
             }
         }
-    } while (!stop_flag);
+    } while (!stop_thread_loop);
 }
 
-void SynchronousGRPC::inbox_thread_method() {
-    bool stop_flag = false;
+void SynchronousGRPC::inbox_thread_method(shared_ptr<StoppableThread> monitor) {
+    bool stop_thread_loop = false;
     set_inbox_setup_finished();
     do {
         void* request = this->incoming_messages.dequeue();
@@ -224,13 +215,13 @@ void SynchronousGRPC::inbox_thread_method() {
                 Utils::error("Invalid NULL Message");
             }
         } else {
-            if (this->is_shutting_down()) {
-                stop_flag = true;
+            if (monitor->stopped()) {
+                stop_thread_loop = true;
             } else {
                 Utils::sleep();
             }
         }
-    } while (!stop_flag);
+    } while (!stop_thread_loop);
 }
 
 // -------------------------------------------------------------------------------------------------
@@ -252,19 +243,15 @@ bool MessageBroker::is_peer(const string& peer_id) {
     return answer;
 }
 
-void MessageBroker::graceful_shutdown() {
-    LOG_DEBUG("Gracefully shutting down MessageBroker at node: " << this->node_id);
-    this->shutdown_flag_mutex.lock();
-    this->shutdown_flag = true;
-    this->shutdown_flag_mutex.unlock();
+void MessageBroker::stop() {
+    lock_guard<mutex> semaphore(this->stop_flag_mutex);
+    LOG_DEBUG("Stopping MessageBroker at node: " << this->node_id);
+    this->stop_flag = true;
 }
 
-bool MessageBroker::is_shutting_down() {
-    bool answer;
-    this->shutdown_flag_mutex.lock();
-    answer = this->shutdown_flag;
-    this->shutdown_flag_mutex.unlock();
-    return answer;
+bool MessageBroker::stopped() {
+    lock_guard<mutex> semaphore(this->stop_flag_mutex);
+    return this->stop_flag;
 }
 
 // ----------------------------------------------------------------
@@ -280,7 +267,11 @@ void SynchronousSharedRAM::join_network() {
         NODE_QUEUE_MUTEX.unlock();
     }
     for (unsigned int i = 0; i < MESSAGE_THREAD_COUNT; i++) {
-        this->inbox_threads.push_back(new thread(&SynchronousSharedRAM::inbox_thread_method, this));
+        shared_ptr<StoppableThread> stoppable_thread = make_shared<StoppableThread>(
+            "Thread_inbox<" + this->node_id + "_" + std::to_string(i) + ">");
+        stoppable_thread->attach(
+            new thread(&SynchronousSharedRAM::inbox_thread_method, this, stoppable_thread));
+        this->inbox_threads.push_back(stoppable_thread);
     }
     this->joined_network = true;
 }
@@ -288,7 +279,7 @@ void SynchronousSharedRAM::join_network() {
 void SynchronousSharedRAM::send(const string& command,
                                 const vector<string>& args,
                                 const string& recipient) {
-    if (!this->is_shutting_down()) {
+    if (!this->stopped()) {
         if (!is_peer(recipient)) {
             Utils::error("Unknown peer: " + recipient);
         }
@@ -298,7 +289,7 @@ void SynchronousSharedRAM::send(const string& command,
 }
 
 void SynchronousSharedRAM::broadcast(const string& command, const vector<string>& args) {
-    if (!this->is_shutting_down()) {
+    if (!this->stopped()) {
         this->peers_mutex.lock();
         unsigned int num_peers = this->peers.size();
         if (num_peers == 0) {
@@ -316,16 +307,28 @@ void SynchronousSharedRAM::broadcast(const string& command, const vector<string>
     }
 }
 
+void SynchronousSharedRAM::stop() {
+    MessageBroker::stop();
+    for (auto thread : this->inbox_threads) {
+        thread->stop();
+    }
+}
+
 // ----------------------------------------------------------------
 // SynchronousGRPC
 
 void SynchronousGRPC::join_network() {
-    this->grpc_thread = new std::thread(&SynchronousGRPC::grpc_thread_method, this);
+    this->grpc_thread = make_shared<StoppableThread>("Thread_GRPC<" + this->node_id + ">");
+    this->grpc_thread->attach(new thread(&SynchronousGRPC::grpc_thread_method, this, this->grpc_thread));
     while (!this->grpc_server_started()) {
         Utils::sleep();
     }
     for (unsigned int i = 0; i < MESSAGE_THREAD_COUNT; i++) {
-        this->inbox_threads.push_back(new thread(&SynchronousGRPC::inbox_thread_method, this));
+        shared_ptr<StoppableThread> stoppable_thread = make_shared<StoppableThread>(
+            "Thread_inbox<" + this->node_id + "_" + std::to_string(i) + ">");
+        stoppable_thread->attach(
+            new thread(&SynchronousGRPC::inbox_thread_method, this, stoppable_thread));
+        this->inbox_threads.push_back(stoppable_thread);
     }
     while (!this->inbox_setup_finished()) {
         Utils::sleep();
@@ -417,6 +420,14 @@ bool SynchronousGRPC::inbox_setup_finished() {
     return answer;
 }
 
+void SynchronousGRPC::stop() {
+    MessageBroker::stop();
+    for (auto thread : this->inbox_threads) {
+        thread->stop();
+    }
+    grpc_thread->stop(false);
+}
+
 // -------------------------------------------------------------------------------------------------
 // GRPC Server API
 
@@ -424,7 +435,7 @@ grpc::Status SynchronousGRPC::ping(grpc::ServerContext* grpc_context,
                                    const dasproto::Empty* request,
                                    dasproto::Ack* reply) {
     reply->set_msg("PING");
-    if (!this->is_shutting_down()) {
+    if (!this->stopped()) {
         return grpc::Status::OK;
     } else {
         return grpc::Status::CANCELLED;
@@ -434,7 +445,7 @@ grpc::Status SynchronousGRPC::ping(grpc::ServerContext* grpc_context,
 grpc::Status SynchronousGRPC::execute_message(grpc::ServerContext* grpc_context,
                                               const dasproto::MessageData* request,
                                               dasproto::Empty* reply) {
-    if (!this->is_shutting_down()) {
+    if (!this->stopped()) {
         this->incoming_messages.enqueue((void*) new dasproto::MessageData(*request));
         return grpc::Status::OK;
     } else {
