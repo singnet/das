@@ -36,7 +36,7 @@ int main(int argc, char* argv[]) {
     if (update_attention_broker) {
         cerr << "Enforcing update_attention_broker=false regardeless the passed parameter" << endl;
     }
-    update_attention_broker = false;
+    update_attention_broker = true;
 
     ServiceBusSingleton::init(client_id, server_id, 54000, 54500);
 

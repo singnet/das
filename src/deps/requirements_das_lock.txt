@@ -4,20 +4,12 @@
 #
 #    bazel run //deps:requirements_das.update
 #
-async-timeout==5.0.1
-    # via
-    #   hyperon-das-atomdb
-    #   redis
 beautifulsoup4==4.13.3
     # via google
 certifi==2025.1.31
     # via requests
 charset-normalizer==3.4.1
     # via requests
-dnspython==2.7.0
-    # via
-    #   hyperon-das-atomdb
-    #   pymongo
 google==3.0.0
     # via -r deps/requirements_das.in
 grpcio==1.71.0
@@ -26,12 +18,6 @@ idna==3.10
     # via requests
 protobuf==4.25.6
     # via -r deps/requirements_das.in
-pymongo==4.5.0
-    # via hyperon-das-atomdb
-python-dotenv==1.0.1
-    # via hyperon-das-atomdb
-redis==5.2.1
-    # via hyperon-das-atomdb
 requests==2.32.3
     # via -r deps/requirements_das.in
 soupsieve==2.6
