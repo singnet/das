@@ -4,22 +4,24 @@
 #include <mutex>
 #include <queue>
 
+using namespace std;
+
 template <typename T>
 class Queue {
    private:
-    std::queue<T> m_queue;
-    std::mutex m_mutex;
-    std::condition_variable m_cond;
+    queue<T> m_queue;
+    mutex m_mutex;
+    condition_variable m_cond;
 
    public:
     void enqueue(T item) {
-        std::unique_lock<std::mutex> lock(m_mutex);
+        unique_lock<mutex> lock(m_mutex);
         m_queue.push(item);
         m_cond.notify_one();
     }
 
     T dequeue() {
-        std::unique_lock<std::mutex> lock(m_mutex);
+        unique_lock<mutex> lock(m_mutex);
         m_cond.wait(lock, [this]() { return !m_queue.empty(); });
         T item = m_queue.front();
         m_queue.pop();
@@ -28,7 +30,7 @@ class Queue {
 
     bool empty() {
         bool answer;
-        std::unique_lock<std::mutex> lock(m_mutex);
+        unique_lock<mutex> lock(m_mutex);
         answer = m_queue.empty();
         m_cond.notify_one();
         return answer;

@@ -20,7 +20,8 @@ cc_library(
     ":link_create_template",
     ":link_creation_agent_node",
     ":service",
-    ":link_creation_console",
+    ":link_creation_db_helper",
+    ":processors",
     "//distributed_algorithm_node:distributed_algorithm_node_lib",
     "//agents/query_engine:query_engine_lib",
     "//service_bus:service_bus_lib",
@@ -33,7 +34,7 @@ cc_library(
   srcs = ["das_agent_node.cc"],
   hdrs = ["das_agent_node.h", "queue.h"],
   deps = [
-    ":link_creation_console",
+    ":link_creation_db_helper",
     "//distributed_algorithm_node:distributed_algorithm_node_lib",
   ],
 )
@@ -51,7 +52,9 @@ cc_library(
   name = "link_create_template",
   srcs = ["link_create_template.cc"],
   hdrs = ["link_create_template.h"],
-  deps = [],
+  deps = [
+    "//commons:commons_lib",
+  ],
 )
 
 cc_library(
@@ -65,9 +68,9 @@ cc_library(
 
 
 cc_library(
-  name = "link_creation_console",
-  srcs = ["link_creation_console.cc"],
-  hdrs = ["link_creation_console.h"],
+  name = "link_creation_db_helper",
+  srcs = ["link_creation_db_helper.cc"],
+  hdrs = ["link_creation_db_helper.h"],
   deps = [
     ":link",
     "//atomdb:atomdb_singleton",
@@ -83,6 +86,20 @@ cc_library(
   deps = [
     ":das_agent_node",
     ":link",
+    ":processors",
+    "//agents/query_engine:query_engine_lib",
+  ],
+)
+
+
+cc_library(
+  name = "processors",
+  srcs = ["template_processor.cc", "equivalence_processor.cc", "implication_processor.cc"],
+  hdrs = ["link_processor.h", "template_processor.h", "equivalence_processor.h", "implication_processor.h"],
+  deps = [
+    ":link",
+    ":link_create_template",
+    ":link_creation_db_helper",
     "//agents/query_engine:query_engine_lib",
     "//commons:commons_lib",
   ],

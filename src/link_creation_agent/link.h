@@ -17,12 +17,10 @@ namespace link_creation_agent {
 
 class Link;  // forward declaration
 
-using LinkTargetTypes = std::variant<std::string, std::shared_ptr<Link>, Node>;
+using LinkTargetTypes = variant<string, shared_ptr<Link>, Node>;
 
 class Link {
    public:
-    Link(shared_ptr<QueryAnswer> query_answer, vector<string> link_template);
-    Link(shared_ptr<QueryAnswer> query_answer, shared_ptr<LinkCreateTemplate> link_create_template);
     Link();
     ~Link();
     /**
@@ -48,11 +46,11 @@ class Link {
      * @brief Tokenize the link
      * @returns Returns the tokenized link
      */
-    vector<string> tokenize();
+    vector<string> tokenize(bool include_custom_field_size = true);
 
     string to_metta_string();
 
-    Link untokenize(const vector<string>& tokens);
+    static Link untokenize(const vector<string>& tokens, bool include_custom_field_size = true);
 
     /**
      * @brief Get the custom fields of the link
@@ -60,10 +58,16 @@ class Link {
      */
     vector<CustomField> get_custom_fields();
 
+    void add_custom_field(CustomField custom_field);
+
+    void set_custom_fields(vector<CustomField> custom_fields);
+
    private:
     string type;
-    vector<LinkTargetTypes> targets;
-    vector<CustomField> custom_fields;
-    Link untokenize_link(const vector<string>& tokens, int& cursor);
+    vector<LinkTargetTypes> targets = {};
+    vector<CustomField> custom_fields = {};
+    static Link untokenize_link(const vector<string>& tokens,
+                                int& cursor,
+                                bool include_custom_field_size);
 };
 }  // namespace link_creation_agent

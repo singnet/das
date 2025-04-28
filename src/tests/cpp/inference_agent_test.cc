@@ -132,9 +132,9 @@ TEST_F(InferenceAgentTest, TestConfig) {
 
 TEST_F(InferenceAgentTest, TestProofOfImplicationOrEquivalence) {
     EXPECT_CALL(*link_creation_node_client, send_message(testing::_))
-        .Times(2)
+        .Times(6)
         .WillRepeatedly(::testing::Invoke(
-            [](const vector<string>& message) { EXPECT_EQ(message[0], "LINK_TEMPLATE"); }));
+            [](const vector<string>& message) {  }));
 
     EXPECT_CALL(*distributed_inference_control_node_client,
                 send_inference_control_request(testing::_, testing::_))
@@ -214,7 +214,7 @@ TEST(InferenceRequest, TestInferenceRequests) {
         "handle1", "handle2", 1, "context");
     auto requests = proof_of_implication_or_equivalence.get_requests();
     auto dic_request = proof_of_implication_or_equivalence.get_distributed_inference_control_request();
-    EXPECT_EQ(requests.size(), 1);
+    EXPECT_EQ(requests.size(), 3);
     EXPECT_EQ(Utils::join(requests[0], ' '),
               "LINK_TEMPLATE Expression 3 NODE Symbol EVALUATION LINK_TEMPLATE Expression 2 NODE Symbol "
               "PREDICATE VARIABLE P LINK_TEMPLATE Expression 2 NODE Symbol CONCEPT VARIABLE C LIST 2 "
@@ -231,13 +231,7 @@ TEST(InferenceRequest, TestInferenceRequests) {
     dic_request = proof_of_implication.get_distributed_inference_control_request();
     EXPECT_EQ(requests.size(), 1);
     EXPECT_EQ(Utils::join(requests[0], ' '),
-              "AND 3 LINK_TEMPLATE Expression 2 NODE Symbol SATISFYING_SET VARIABLE P1 LINK_TEMPLATE "
-              "Expression 2 NODE Symbol SATISFYING_SET VARIABLE P2 NOT OR LINK_TEMPLATE Expression 3 "
-              "NODE Symbol IMPLICATION LINK_TEMPLATE Expression 3 NODE Symbol EVALUATION VARIABLE P1 "
-              "VARIABLE C LINK_TEMPLATE Expression 3 NODE Symbol EVALUATION VARIABLE P2 VARIABLE C "
-              "LINK_TEMPLATE Expression 3 NODE Symbol IMPLICATION LINK_TEMPLATE Expression 3 NODE "
-              "Symbol EVALUATION VARIABLE P2 VARIABLE C LINK_TEMPLATE Expression 3 NODE Symbol "
-              "EVALUATION VARIABLE P1 VARIABLE C IMPLICATION_DEDUCTION");
+              "AND 2 LINK_TEMPLATE Expression 2 NODE Symbol SATISFYING_SET VARIABLE P1 LINK_TEMPLATE Expression 2 NODE Symbol SATISFYING_SET VARIABLE P2 PROOF_OF_IMPLICATION");
     EXPECT_EQ(Utils::join(dic_request, ' '),
               "context OR 6 AND 2 LINK_TEMPLATE Expression 3 NODE Symbol IMPLICATION HANDLE handle3 "
               "VARIABLE V1 "
@@ -256,13 +250,7 @@ TEST(InferenceRequest, TestInferenceRequests) {
     dic_request = proof_of_equivalence.get_distributed_inference_control_request();
     EXPECT_EQ(requests.size(), 1);
     EXPECT_EQ(Utils::join(requests[0], ' '),
-              "AND 3 LINK_TEMPLATE Expression 2 NODE Symbol PATTERNS VARIABLE C1 LINK_TEMPLATE "
-              "Expression 2 NODE Symbol PATTERNS VARIABLE C2 NOT OR LINK_TEMPLATE Expression 3 NODE "
-              "Symbol EQUIVALENCE LINK_TEMPLATE Expression 3 NODE Symbol EVALUATION VARIABLE P VARIABLE "
-              "C1 LINK_TEMPLATE Expression 3 NODE Symbol EVALUATION VARIABLE P VARIABLE C2 "
-              "LINK_TEMPLATE Expression 3 NODE Symbol EQUIVALENCE LINK_TEMPLATE Expression 3 NODE "
-              "Symbol EVALUATION VARIABLE P VARIABLE C2 LINK_TEMPLATE Expression 3 NODE Symbol "
-              "EVALUATION VARIABLE P VARIABLE C1 EQUIVALENCE_DEDUCTION");
+              "AND 2 LINK_TEMPLATE Expression 2 NODE Symbol PATTERNS VARIABLE C1 LINK_TEMPLATE Expression 2 NODE Symbol PATTERNS VARIABLE C2 PROOF_OF_EQUIVALENCE");
     EXPECT_EQ(
         Utils::join(dic_request, ' '),
         "context2 OR 2 LINK_TEMPLATE Expression 3 NODE Symbol IMPLICATION HANDLE handle5 HANDLE handle6 "
