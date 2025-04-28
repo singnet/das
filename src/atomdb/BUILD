@@ -59,7 +59,7 @@ cc_library(
   includes = ["."],
   deps = [
     ":atomdb_api_types",
-    "//commons:logger",
+    "//commons:commons_lib",
   ],
 )
 
@@ -70,6 +70,6 @@ cc_library(
   includes = ["."],
   deps = [
     ":atomdb_cache",
-    "//commons:utils",
+    "//commons:commons_lib",
   ],
 )
