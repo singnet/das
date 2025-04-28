@@ -127,7 +127,7 @@ class And : public Operator<N> {
             this->all_answers_arrived[i] = false;
         }
         this->no_more_answers_to_arrive = false;
-        this-> query_answer_count = 0;
+        this->query_answer_count = 0;
         this->id = "And(";
         for (unsigned int i = 0; i < N; i++) {
             this->id += clauses[i]->id;
