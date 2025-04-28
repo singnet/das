@@ -124,13 +124,20 @@ void PatternMatchingQueryProcessor::process_query_answers(
     unsigned int& answer_count) {
     vector<string> answer_bundle;
     QueryAnswer* answer;
+    unsigned int bundle_count = 0;
     while ((answer = query_sink->input_buffer->pop_query_answer()) != NULL) {
         answer_count++;
+        bundle_count++;
         if (!proxy->get_count_flag()) {
             answer_bundle.push_back(answer->tokenize());
         }
         if (proxy->get_attention_update_flag()) {
             update_attention_broker_single_answer(proxy, answer, joint_answer);
+        }
+        if (answer_bundle.size() >= MAX_BUNDLE_SIZE) {
+            proxy->to_remote_peer(PatternMatchingQueryProxy::ANSWER_BUNDLE, answer_bundle);
+            answer_bundle.clear();
+            bundle_count = 0;
         }
         delete answer;
     }
@@ -171,12 +178,14 @@ void PatternMatchingQueryProcessor::thread_process_one_query(
             LOG_DEBUG("Answering count_only query");
             proxy->to_remote_peer(PatternMatchingQueryProxy::COUNT, {std::to_string(answer_count)});
         }
+        Utils::sleep(500);
         proxy->to_remote_peer(PatternMatchingQueryProxy::FINISHED, {});
         if (proxy->get_attention_update_flag()) {
             LOG_DEBUG("Updating AttentionBroker (stimulate)");
             update_attention_broker_joint_answer(proxy, joint_answer);
         }
         Utils::sleep(500);
+        LOG_INFO("Total processed answers: " << answer_count);
         query_sink->graceful_shutdown();
         PortPool::return_port(sink_port_number);
     } else {

@@ -62,6 +62,7 @@ class Or : public Operator<N> {
     bool all_answers_arrived[N];
     bool no_more_answers_to_arrive;
     thread* operator_thread;
+    unsigned int answer_count;
 
     void initialize(const array<shared_ptr<QueryElement>, N>& clauses) {
         this->operator_thread = NULL;
@@ -70,6 +71,7 @@ class Or : public Operator<N> {
             this->all_answers_arrived[i] = false;
         }
         this->no_more_answers_to_arrive = false;
+        answer_count = 0;
         this->id = "Or(";
         for (unsigned int i = 0; i < N; i++) {
             this->id += clauses[i]->id;
@@ -171,6 +173,7 @@ class Or : public Operator<N> {
                     // processed_all_input() is double-checked on purpose to avoid race condition
                     processed_all_input()) {
                     this->output_buffer->query_answers_finished();
+                    LOG_INFO(this->id << " processed " << this->answer_count << " answers." << endl);
                 }
                 Utils::sleep();
                 continue;
@@ -180,6 +183,7 @@ class Or : public Operator<N> {
             QueryAnswer* selected_query_answer =
                 this->query_answer[selected_clause][this->next_input_to_process[selected_clause]++];
             this->output_buffer->add_query_answer(selected_query_answer);
+            this->answer_count++;
         } while (true);
     }
 };
