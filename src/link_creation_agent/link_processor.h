@@ -30,7 +30,7 @@ class LinkProcessor {
     virtual ~LinkProcessor() = default;
     static int count_query(vector<string>& query, string& context, bool is_unique_assignment = true) {
         int count = _count_query(query, context, is_unique_assignment);
-        Utils::sleep(500);  // TODO fix this, waiting to delete to not crash
+        // Utils::sleep(500);  // TODO fix this, waiting to delete to not crash
         return count;
     }
     static int _count_query(vector<string>& query, string& context, bool is_unique_assignment = true) {
