@@ -34,7 +34,7 @@ int main(int argc, char* argv[]) {
     string server_id = string(argv[2]);
     bool update_attention_broker = (string(argv[3]) == "true" || string(argv[3]) == "1");
     if (update_attention_broker) {
-        cerr << "Enforcing update_attention_broker=false regardeless the passed parameter" << endl;
+        cerr << "Enforcing update_attention_broker=false regardless the passed parameter" << endl;
     }
     update_attention_broker = true;
 

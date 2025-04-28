@@ -1,6 +1,20 @@
 #!/bin/bash
-set -e
+# set -e
 PWD=$(pwd)
+
+
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+BLUE='\033[0;34m'
+YELLOW='\033[0;33m'
+CYAN='\033[0;36m'
+ORANGE='\033[38;5;214m'   
+LIGHT_CYAN='\033[38;5;44m' 
+PURPLE='\033[38;5;141m'    
+GRAY='\033[38;5;250m'      
+PINK='\033[38;5;205m'      
+NC='\033[0m'
+colors=("$GREEN" "$PURPLE" "$YELLOW" "$LIGHT_CYAN" "$PINK" "$GRAY")
 
 # Default values for environment variables
 ## Agents
@@ -20,11 +34,11 @@ INFERENCE_AGENT_EVOLUTION_AGENT_ID=${INFERENCE_AGENT_EVOLUTION_AGENT_ID:-"localh
 INFERENCE_AGENT_LINK_CREATION_AGENT_ID=${INFERENCE_AGENT_LINK_CREATION_AGENT_ID:-"localhost:9081"}
 
 ## Link Creation Agent
-LINK_CREATION_QUERY_AGENT_START_PORT=${LINK_CREATION_QUERY_AGENT_START_PORT:-16000}
-LINK_CREATION_QUERY_AGENT_END_PORT=${LINK_CREATION_QUERY_AGENT_END_PORT:-16200}
-LINK_CREATION_QUERY_TIMEOUT_SECONDS=${LINK_CREATION_QUERY_TIMEOUT_SECONDS:-20}
-LINK_CREATION_REQUESTS_INTERVAL_SECONDS=${LINK_CREATION_REQUESTS_INTERVAL_SECONDS:-5}
-LINK_CREATION_REQUESTS_BUFFER_FILE=${LINK_CREATION_REQUESTS_BUFFER_FILE:-"/tmp/bufer"}
+LINK_CREATION_QUERY_AGENT_START_PORT=${LINK_CREATION_QUERY_AGENT_START_PORT:-12000}
+LINK_CREATION_QUERY_AGENT_END_PORT=${LINK_CREATION_QUERY_AGENT_END_PORT:-18000}
+LINK_CREATION_QUERY_TIMEOUT_SECONDS=${LINK_CREATION_QUERY_TIMEOUT_SECONDS:-18000}
+LINK_CREATION_REQUESTS_INTERVAL_SECONDS=${LINK_CREATION_REQUESTS_INTERVAL_SECONDS:-18000}
+LINK_CREATION_REQUESTS_BUFFER_FILE=${LINK_CREATION_REQUESTS_BUFFER_FILE:-"buffer"}
 LINK_CREATION_AGENT_THREAD_COUNT=${LINK_CREATION_AGENT_THREAD_COUNT:-1}
 
 ## Other Params
@@ -34,6 +48,7 @@ DAS_MONGODB_HOSTNAME=${DAS_MONGODB_HOSTNAME:-"localhost"}
 DAS_MONGODB_PORT=${DAS_MONGODB_PORT:-27017}
 DAS_MONGODB_USERNAME=${DAS_MONGODB_USERNAME:-"admin"}
 DAS_MONGODB_PASSWORD=${DAS_MONGODB_PASSWORD:-"admin"}
+DISABLE_ATOMDB_CACHE=${DISABLE_ATOMDB_CACHE:-"true"}
 
 export DAS_REDIS_HOSTNAME=$DAS_REDIS_HOSTNAME
 export DAS_REDIS_PORT=$DAS_REDIS_PORT
@@ -41,6 +56,7 @@ export DAS_MONGODB_HOSTNAME=$DAS_MONGODB_HOSTNAME
 export DAS_MONGODB_PORT=$DAS_MONGODB_PORT
 export DAS_MONGODB_USERNAME=$DAS_MONGODB_USERNAME
 export DAS_MONGODB_PASSWORD=$DAS_MONGODB_PASSWORD
+export DAS_DISABLE_ATOMDB_CACHE=$DISABLE_ATOMDB_CACHE
 
 
 # Link Creation Agent params
@@ -62,6 +78,8 @@ else
     echo "query_timeout_seconds = $LINK_CREATION_QUERY_TIMEOUT_SECONDS" >> $PWD/src/bin/link_creation_server.cfg
     echo "requests_interval_seconds = $LINK_CREATION_REQUESTS_INTERVAL_SECONDS" >> $PWD/src/bin/link_creation_server.cfg
     echo "requests_buffer_file = $LINK_CREATION_REQUESTS_BUFFER_FILE" >> $PWD/src/bin/link_creation_server.cfg
+    echo "metta_file_path = /opt/das/src/bin" >> $PWD/src/bin/link_creation_server.cfg
+    echo "save_links_to_db = true" >> $PWD/src/bin/link_creation_server.cfg
 fi
 
 # Inference Agent params
@@ -97,36 +115,61 @@ AGENTS=(
     "run //das_agent:main -- --config $DAS_AGENT_CONFIG;src/scripts/bazel.sh"
 )
 
-PARAM=$1
 
-if [ "$PARAM" == "stop" ]; then
-    echo "Stopping all agents..."
+# stop function
+stop() {
+   echo "Stopping all agents..."
     for AGENT in "${AGENTS[@]}"; do
         # Split the agent and path
         IFS=';' read -r AGENT_NAME AGENT_PATH <<< "$AGENT"
         echo "Stopping agent: $AGENT_NAME"
         # split AGENT_NAME by space
         if [[ "$AGENT_PATH" == *"src/scripts/run.sh"* ]]; then
-            IFS=' ' read -r CONTAINER_NAME _ <<< "$AGENT_NAME"
-            docker rm -f "$CONTAINER_NAME"
+            IFS=' ' read -r TEMP_NAME _ _ <<< "$AGENT_NAME"
+            echo "$TEMP_NAME"
+            CONTAINER_NAME=`docker ps | grep $TEMP_NAME | awk '{print $NF}'`
+            # docker rm -f "$CONTAINER_NAME"
         else
-            IFS=' ' read -r _ CONTAINER_NAME _ <<< "$AGENT_NAME"
-            CONTAINER_NAME=${CONTAINER_NAME//[^[:alnum:]]/}
+            # IFS=' ' read -r _ TEMP_NAME _ <<< "$AGENT_NAME"
+            CONTAINER_NAME=`docker ps | grep das-bazel-cmd | awk '{print $NF}'`
+            # CONTAINER_NAME=${CONTAINER_NAME//[^[:alnum:]]/}
+        fi
+        if [ -z "$CONTAINER_NAME" ]; then
+            # echo -e "${RED}No container found for agent: $AGENT_NAME${NC}"
+            # echo "Container name: $CONTAINER_NAME"
+            continue
         fi
         docker rm -f "$CONTAINER_NAME"
-        rm -f $LINK_CREATION_FILE_PATH
-        rm -f $INFERENCE_AGENT_FILE_PATH
     done
+    rm -f $LINK_CREATION_FILE_PATH
+    rm -f $INFERENCE_AGENT_FILE_PATH
+}
+
+trap stop SIGINT
+trap stop SIGTERM
+
+PARAM=$1
+set +x
+if [ "$PARAM" == "stop" ]; then
+    stop
     exit 0
 fi
 if [ "$PARAM" == "start" ]; then
     echo "Starting all agents..."
+    i=0
     for AGENT in "${AGENTS[@]}"; do
         # Split the agent and path
         IFS=';' read -r AGENT_NAME AGENT_PATH <<< "$AGENT"
-        echo "Starting agent: $AGENT_NAME"
-        bash -c "$PWD/$AGENT_PATH $AGENT_NAME" >> /dev/null &
+        IFS=' ' read -r TEMP_NAME _ _ <<< "$AGENT_NAME"
+        # echo "Starting agent: $AGENT_NAME"
+        {
+            echo -e "${colors[i % ${#colors[@]}]}Starting: $AGENT_NAME ${commands[i]}${NC}"
+            bash -c "$PWD/$AGENT_PATH $AGENT_NAME" 2>&1 | while IFS= read -r line; do
+                echo -e "${colors[i % ${#colors[@]}]}[$TEMP_NAME] $line${NC}"
+            done
+        } &
         sleep 5
+        i=$((i + 1))
     done
-    exit 0
+    wait
 fi

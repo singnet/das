@@ -16,16 +16,14 @@
 #include <vector>
 
 #include "PatternMatchingQueryProxy.h"
-#include "QueryAnswer.h"
 #include "ServiceBusSingleton.h"
 #include "das_agent_node.h"
 #include "link_creation_agent_node.h"
 #include "link_creation_service.h"
 
-#define DEBUG
-
 using namespace std;
 using namespace das_agent;
+using namespace query_engine;
 namespace link_creation_agent {
 struct LinkCreationAgentRequest {
     vector<string> query;
@@ -101,19 +99,22 @@ class LinkCreationAgent {
     string das_agent_client_id;            // ID of the DAS client
     string das_agent_server_id;
     string requests_buffer_file;           // Path to the requests buffer file
-    string context;                        // Context to send to attention broker
+    string metta_file_path = ".";          // Path to the metta file
+    bool save_links_to_db = false;         // Save links on DB
+    bool save_links_to_metta_file = true;  // Save links on file
     unsigned int query_agent_client_start_port;
     unsigned int query_agent_client_end_port;
 
     // Other attributes
     LinkCreationService* service;
     map<string, shared_ptr<LinkCreationAgentRequest>> request_buffer;
-    shared_ptr<service_bus::ServiceBus> service_bus;
     LinkCreationAgentNode* link_creation_node_server;
     DasAgentNode* das_client;
     thread* agent_thread;
     mutex agent_mutex;
     bool is_stoping = false;
+    bool is_running = false;
+
     int loop_interval = 100;  // miliseconds
 };
 }  // namespace link_creation_agent

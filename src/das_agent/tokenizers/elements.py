@@ -198,6 +198,8 @@ class Link(Element):
             link = Link(type=tokens[cursor])
             cursor += 1  # Skip the type token
             target_count = int(tokens[cursor])
+            cursor += 1  # Skip the target count token
+            custom_field_count = int(tokens[cursor])
             if target_count < 2:
                 raise ValueError("Link requires at least two targets")
             cursor += 1  # Skip the target count token
@@ -206,9 +208,10 @@ class Link(Element):
                 if isinstance(target, Variable):
                     link.is_template = True
                 link.targets.append(target)
-            if tokens[cursor] == "CUSTOM_FIELD":
-                cursor, custom_field = ElementBuilder.from_tokens(tokens, cursor)
-                link.custom_field = dict(custom_field)
+            for _ in range(custom_field_count):
+                if tokens[cursor] == "CUSTOM_FIELD":
+                    cursor, custom_field = ElementBuilder.from_tokens(tokens, cursor)
+                    link.custom_field = dict(custom_field)
             if link_tag == "LINK_TEMPLATE" and not link.is_template:
                 raise ValueError("Template link without variables")
             elif link_tag == "LINK" and link.is_template:

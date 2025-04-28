@@ -14,9 +14,10 @@ cc_library(
     ":link_template",
     ":source",
     ":unique_assignment_filter",
+    ":query_element_registry",
+    ":importance_list",
   ],
 )
-
 
 cc_library(
   name = "operator",
@@ -63,7 +64,6 @@ cc_library(
   ],
 )
 
-
 cc_library(
   name = "sink",
   srcs = ["Sink.cc"],
@@ -72,7 +72,6 @@ cc_library(
     ":query_element",
   ],
 )
-
 
 cc_library(
   name = "query_element",
@@ -84,14 +83,15 @@ cc_library(
   ],
 )
 
-
 cc_library(
   name = "link_template",
   hdrs = ["LinkTemplate.h"],
   deps = [
     ":and",
     ":or",
+    ":importance_list",
     ":iterator",
+    ":query_element_registry",
     ":terminal",
     ":source",
     "//hasher:hasher_lib",
@@ -103,6 +103,24 @@ cc_library(
   ],
 )
 
+cc_library(
+  name = "query_element_registry",
+  hdrs = ["QueryElementRegistry.h"],
+  srcs = ["QueryElementRegistry.cc"],
+  deps = [
+    ":query_element",
+    "//commons:commons_lib",
+  ],
+)
+
+cc_library(
+  name = "importance_list",
+  hdrs = ["ImportanceList.h"],
+  deps = [
+    ":query_element",
+    "//attention_broker:attention_broker_server_lib",
+  ],
+)
 
 cc_library(
   name = "unique_assignment_filter",

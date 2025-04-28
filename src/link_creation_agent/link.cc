@@ -2,53 +2,11 @@
 
 #include <iostream>
 
+#include "Logger.h"
+
 using namespace link_creation_agent;
 using namespace std;
 using namespace query_engine;
-
-Link::Link(shared_ptr<QueryAnswer> query_answer, vector<string> link_template) {
-    LinkCreateTemplate link_create_template(link_template);
-
-    this->type = link_create_template.get_link_type();
-    vector<LinkCreateTemplateTypes> targets = link_create_template.get_targets();
-    for (LinkCreateTemplateTypes target : targets) {
-        if (holds_alternative<Variable>(target)) {
-            string token = get<Variable>(target).name;
-            this->targets.push_back(query_answer->assignment.get(token.c_str()));
-        }
-        if (holds_alternative<std::shared_ptr<LinkCreateTemplate>>(target)) {
-            shared_ptr<LinkCreateTemplate> sub_link = get<std::shared_ptr<LinkCreateTemplate>>(target);
-            shared_ptr<Link> sub_link_obj = make_shared<Link>(query_answer, sub_link);
-            this->targets.push_back(sub_link_obj);
-        }
-        if (holds_alternative<Node>(target)) {
-            Node node = get<Node>(target);
-            this->targets.push_back(node);
-        }
-    }
-    this->custom_fields = link_create_template.get_custom_fields();
-}
-
-Link::Link(shared_ptr<QueryAnswer> query_answer, shared_ptr<LinkCreateTemplate> link_create_template) {
-    this->type = link_create_template->get_link_type();
-    vector<LinkCreateTemplateTypes> targets = link_create_template->get_targets();
-    for (LinkCreateTemplateTypes target : targets) {
-        if (holds_alternative<Variable>(target)) {
-            string token = get<Variable>(target).name;
-            this->targets.push_back(query_answer->assignment.get(token.c_str()));
-        }
-        if (holds_alternative<std::shared_ptr<LinkCreateTemplate>>(target)) {
-            shared_ptr<LinkCreateTemplate> sub_link = get<std::shared_ptr<LinkCreateTemplate>>(target);
-            shared_ptr<Link> sub_link_obj = make_shared<Link>(query_answer, sub_link);
-            this->targets.push_back(sub_link_obj);
-        }
-        if (holds_alternative<Node>(target)) {
-            Node node = get<Node>(target);
-            this->targets.push_back(node);
-        }
-    }
-    this->custom_fields = link_create_template->get_custom_fields();
-}
 
 Link::Link() {}
 
@@ -62,18 +20,21 @@ void Link::set_type(string type) { this->type = type; }
 
 void Link::add_target(LinkTargetTypes target) { this->targets.push_back(target); }
 
-vector<string> Link::tokenize() {
+vector<string> Link::tokenize(bool include_custom_field_size) {
     vector<string> tokens;
     tokens.push_back("LINK");
     tokens.push_back(this->type);
     tokens.push_back(to_string(this->targets.size()));
+    if (include_custom_field_size) {
+        tokens.push_back(to_string(this->custom_fields.size()));
+    }
     for (LinkTargetTypes target : this->targets) {
         if (holds_alternative<string>(target)) {
             tokens.push_back("HANDLE");
             tokens.push_back(get<string>(target));
         }
         if (holds_alternative<shared_ptr<Link>>(target)) {
-            for (string token : get<shared_ptr<Link>>(target)->tokenize()) {
+            for (string token : get<shared_ptr<Link>>(target)->tokenize(include_custom_field_size)) {
                 tokens.push_back(token);
             }
         }
@@ -94,20 +55,39 @@ vector<string> Link::tokenize() {
 
 vector<CustomField> Link::get_custom_fields() { return this->custom_fields; }
 
+void Link::set_custom_fields(vector<CustomField> custom_fields) { this->custom_fields = custom_fields; }
+
+void Link::add_custom_field(CustomField custom_field) { this->custom_fields.push_back(custom_field); }
+
 string Link::to_metta_string() {
+    // LOG_DEBUG("MMM 0");
     string metta_string = "(";
+    bool is_custom_fields_added = false;
+    int count = 0;
     for (LinkTargetTypes target : this->targets) {
+        // LOG_DEBUG("MMM 1");
         if (holds_alternative<string>(target)) {
+            // LOG_DEBUG("MMM 2");
             metta_string += get<string>(target) + " ";
         }
         if (holds_alternative<shared_ptr<Link>>(target)) {
+            // LOG_DEBUG("MMM 3");
             metta_string += get<shared_ptr<Link>>(target)->to_metta_string() + " ";
         }
         if (holds_alternative<Node>(target)) {
+            // LOG_DEBUG("MMM 4");
             Node node = get<Node>(target);
             metta_string += node.value + " ";
         }
+        if (!is_custom_fields_added) {
+            // LOG_DEBUG("MMM 5");
+            for (CustomField custom_field : this->custom_fields) {
+                metta_string += custom_field.to_metta_string() + " ";
+            }
+            is_custom_fields_added = true;
+        }
     }
+    // LOG_DEBUG("MMM 6");
     // remove the last space
     if (metta_string.back() == ' ') {
         metta_string[metta_string.size() - 1] = ')';
@@ -117,21 +97,27 @@ string Link::to_metta_string() {
     return metta_string;
 }
 
-Link Link::untokenize(const vector<string>& tokens) {
+Link Link::untokenize(const vector<string>& tokens, bool include_custom_field_size) {
     int cursor = 0;
-    return untokenize_link(tokens, cursor);
+    return untokenize_link(tokens, cursor, include_custom_field_size);
 }
 
-Link Link::untokenize_link(const vector<string>& tokens, int& cursor) {
+Link Link::untokenize_link(const vector<string>& tokens, int& cursor, bool include_custom_field_size) {
     Link link;
     if (tokens[cursor] != "LINK") {
-        throw std::runtime_error("Invalid token: " + tokens[cursor]);
+        throw runtime_error("Invalid token: " + tokens[cursor]);
     }
     cursor++;
     link.type = tokens[cursor];
     cursor++;
+
     int num_targets = stoi(tokens[cursor]);
     cursor++;
+    int num_custom_fields = 0;
+    if (include_custom_field_size) {
+        num_custom_fields = stoi(tokens[cursor]);
+        cursor++;
+    }
     for (int i = 0; i < num_targets; i++) {
         if (tokens[cursor] == "HANDLE") {
             cursor++;
@@ -149,13 +135,19 @@ Link Link::untokenize_link(const vector<string>& tokens, int& cursor) {
             link.targets.push_back(node);
             cursor++;
         } else if (tokens[cursor] == "LINK") {
-            shared_ptr<Link> sub_link = make_shared<Link>();
-            *sub_link = untokenize_link(tokens, cursor);
+            shared_ptr<Link> sub_link =
+                make_shared<Link>(untokenize_link(tokens, cursor, include_custom_field_size));
             link.targets.push_back(sub_link);
         } else {
-            throw std::runtime_error("Invalid token: " + tokens[cursor]);
+            throw runtime_error("Invalid token: " + tokens[cursor]);
         }
-        // TODO: Implement custom field untokenization
+    }
+    if (num_custom_fields > 0 && cursor < tokens.size() && tokens[cursor] == "CUSTOM_FIELD") {
+        vector<string> custom_field_args;
+        for (int i = cursor; i < tokens.size(); i++) {
+            custom_field_args.push_back(tokens[i]);
+        }
+        link.add_custom_field(CustomField(custom_field_args));
     }
     return link;
 }

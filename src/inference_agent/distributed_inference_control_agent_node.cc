@@ -1,7 +1,11 @@
 #include "distributed_inference_control_agent_node.h"
 
 #include <iostream>
+
+#include "Logger.h"
+#include "Utils.h"
 using namespace distributed_inference_control_agent;
+using namespace commons;
 
 const std::string DistributedInferenceControlAgentNode::EVOLUTION_REQUEST_COMMAND = "evolution_request";
 
@@ -21,13 +25,10 @@ void DistributedInferenceControlAgentNode::send_inference_control_request(
     std::vector<std::string> inference_control_request, std::string response_node_id) {
     std::vector<std::string> request;
     request.push_back(response_node_id);
-#ifdef DEBUG
     for (auto& token : inference_control_request) {
-        cout << token << " ";
         request.push_back(token);
     }
-    cout << endl;
-#endif
+    LOG_DEBUG("Sending distributed inference control request ID: " << Utils::join(request, ' '));
     this->send_message(request);
 }
 

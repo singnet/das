@@ -7,8 +7,6 @@
 #include "StarNode.h"
 #include "queue.h"
 
-#define DEBUG
-
 using namespace distributed_algorithm_node;
 
 namespace das_agent {

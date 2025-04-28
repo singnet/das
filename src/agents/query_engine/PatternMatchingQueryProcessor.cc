@@ -7,10 +7,11 @@
 #include "PatternMatchingQueryProxy.h"
 #include "ServiceBus.h"
 #include "Sink.h"
+#include "StoppableThread.h"
 #include "Terminal.h"
 #include "UniqueAssignmentFilter.h"
 
-#define LOG_LEVEL INFO_LEVEL
+#define LOG_LEVEL DEBUG_LEVEL
 #include "Logger.h"
 
 using namespace atomdb;
@@ -21,12 +22,7 @@ using namespace atomdb;
 PatternMatchingQueryProcessor::PatternMatchingQueryProcessor()
     : BusCommandProcessor({ServiceBus::PATTERN_MATCHING_QUERY}) {}
 
-PatternMatchingQueryProcessor::~PatternMatchingQueryProcessor() {
-    for (auto thread : this->query_threads) {
-        thread->join();
-        delete thread;
-    }
-}
+PatternMatchingQueryProcessor::~PatternMatchingQueryProcessor() {}
 
 // -------------------------------------------------------------------------------------------------
 // Public methods
@@ -39,9 +35,19 @@ shared_ptr<BusCommandProxy> PatternMatchingQueryProcessor::factory_empty_proxy()
 void PatternMatchingQueryProcessor::run_command(shared_ptr<BusCommandProxy> proxy) {
     lock_guard<mutex> semaphore(this->query_threads_mutex);
     auto query_proxy = dynamic_pointer_cast<PatternMatchingQueryProxy>(proxy);
-    LOG_DEBUG("Starting new thread to run command: <" << proxy->get_command() << ">");
-    this->query_threads.push_back(
-        new thread(&PatternMatchingQueryProcessor::thread_process_one_query, this, query_proxy));
+    string thread_id = "thread<" + proxy->my_id() + "_" + std::to_string(proxy->get_serial()) + ">";
+    LOG_DEBUG("Starting new thread: " << thread_id << " to run command: <" << proxy->get_command()
+                                      << ">");
+    if (this->query_threads.find(thread_id) != this->query_threads.end()) {
+        Utils::error("Invalid thread id: " + thread_id);
+    } else {
+        shared_ptr<StoppableThread> stoppable_thread = make_shared<StoppableThread>(thread_id);
+        stoppable_thread->attach(new thread(&PatternMatchingQueryProcessor::thread_process_one_query,
+                                            this,
+                                            stoppable_thread,
+                                            query_proxy));
+        this->query_threads[thread_id] = stoppable_thread;
+    }
 }
 
 // -------------------------------------------------------------------------------------------------
@@ -134,7 +140,7 @@ void PatternMatchingQueryProcessor::process_query_answers(
 }
 
 void PatternMatchingQueryProcessor::thread_process_one_query(
-    shared_ptr<PatternMatchingQueryProxy> proxy) {
+    shared_ptr<StoppableThread> monitor, shared_ptr<PatternMatchingQueryProxy> proxy) {
     if (proxy->args.size() < 2) {
         Utils::error("Syntax error in query command. Missing implicit parameters.");
     }
@@ -146,7 +152,8 @@ void PatternMatchingQueryProcessor::thread_process_one_query(
     proxy->query_tokens.insert(
         proxy->query_tokens.begin(), proxy->args.begin() + skip_arg, proxy->args.end());
     LOG_DEBUG("Setting up query tree");
-    shared_ptr<QueryElement> root_query_element = setup_query_tree(proxy);
+    auto query_element_registry = make_unique<QueryElementRegistry>();
+    shared_ptr<QueryElement> root_query_element = setup_query_tree(proxy, query_element_registry.get());
     set<string> joint_answer;  // used to stimulate attention broker
     string command = proxy->get_command();
     unsigned int sink_port_number;
@@ -176,15 +183,19 @@ void PatternMatchingQueryProcessor::thread_process_one_query(
         Utils::error("Invalid command " + command + " in PatternMatchingQueryProcessor");
     }
     LOG_DEBUG("Command finished: <" << proxy->get_command() << ">");
-    Utils::sleep(1000);
-    // TODO add a call to join/delete/remove thread
+    // TODO add a call to remove_query_thread(monitor->get_id());
+}
+
+void PatternMatchingQueryProcessor::remove_query_thread(const string& stoppable_thread_id) {
+    lock_guard<mutex> semaphore(this->query_threads_mutex);
+    this->query_threads.erase(this->query_threads.find(stoppable_thread_id));
 }
 
 // -------------------------------------------------------------------------------------------------
 // Private methods - query tree building
 
 shared_ptr<QueryElement> PatternMatchingQueryProcessor::setup_query_tree(
-    shared_ptr<PatternMatchingQueryProxy> proxy) {
+    shared_ptr<PatternMatchingQueryProxy> proxy, QueryElementRegistry* query_element_registry) {
     stack<unsigned int> execution_stack;
     stack<shared_ptr<QueryElement>> element_stack;
     unsigned int cursor = 0;
@@ -213,7 +224,8 @@ shared_ptr<QueryElement> PatternMatchingQueryProcessor::setup_query_tree(
         } else if (proxy->query_tokens[cursor] == "LINK") {
             element_stack.push(build_link(proxy, cursor, element_stack));
         } else if (proxy->query_tokens[cursor] == "LINK_TEMPLATE") {
-            element_stack.push(build_link_template(proxy, cursor, element_stack));
+            element_stack.push(
+                build_link_template(proxy, cursor, element_stack, query_element_registry));
         } else if (proxy->query_tokens[cursor] == "AND") {
             element_stack.push(build_and(proxy, cursor, element_stack));
             if (proxy->get_unique_assignment_flag()) {
@@ -239,114 +251,59 @@ shared_ptr<QueryElement> PatternMatchingQueryProcessor::setup_query_tree(
     return element_stack.top();
 }
 
+#define BUILD_LINK_TEMPLATE(N)                                               \
+    {                                                                        \
+        array<shared_ptr<QueryElement>, N> targets;                          \
+        for (unsigned int i = 0; i < N; i++) {                               \
+            targets[i] = element_stack.top();                                \
+            element_stack.pop();                                             \
+        }                                                                    \
+        return make_shared<LinkTemplate<N>>(proxy->query_tokens[cursor + 1], \
+                                            move(targets),                   \
+                                            proxy->get_context(),            \
+                                            query_element_registry);         \
+    }
+
 shared_ptr<QueryElement> PatternMatchingQueryProcessor::build_link_template(
     shared_ptr<PatternMatchingQueryProxy> proxy,
     unsigned int cursor,
-    stack<shared_ptr<QueryElement>>& element_stack) {
+    stack<shared_ptr<QueryElement>>& element_stack,
+    QueryElementRegistry* query_element_registry) {
     unsigned int arity = std::stoi(proxy->query_tokens[cursor + 2]);
     if (element_stack.size() < arity) {
         Utils::error(
             "PATTERN_MATCHING_QUERY message: parse error in tokens - too few arguments for "
             "LINK_TEMPLATE");
     }
+    // clang-format off
     switch (arity) {
-        // TODO: consider replacing each "case" below by a pre-processor macro call
-        case 1: {
-            array<shared_ptr<QueryElement>, 1> targets;
-            for (unsigned int i = 0; i < 1; i++) {
-                targets[i] = element_stack.top();
-                element_stack.pop();
-            }
-            return make_shared<LinkTemplate<1>>(
-                proxy->query_tokens[cursor + 1], targets, proxy->get_context());
-        }
-        case 2: {
-            array<shared_ptr<QueryElement>, 2> targets;
-            for (unsigned int i = 0; i < 2; i++) {
-                targets[i] = element_stack.top();
-                element_stack.pop();
-            }
-            return make_shared<LinkTemplate<2>>(
-                proxy->query_tokens[cursor + 1], targets, proxy->get_context());
-        }
-        case 3: {
-            array<shared_ptr<QueryElement>, 3> targets;
-            for (unsigned int i = 0; i < 3; i++) {
-                targets[i] = element_stack.top();
-                element_stack.pop();
-            }
-            return make_shared<LinkTemplate<3>>(
-                proxy->query_tokens[cursor + 1], targets, proxy->get_context());
-        }
-        case 4: {
-            array<shared_ptr<QueryElement>, 4> targets;
-            for (unsigned int i = 0; i < 4; i++) {
-                targets[i] = element_stack.top();
-                element_stack.pop();
-            }
-            return make_shared<LinkTemplate<4>>(
-                proxy->query_tokens[cursor + 1], targets, proxy->get_context());
-        }
-        case 5: {
-            array<shared_ptr<QueryElement>, 5> targets;
-            for (unsigned int i = 0; i < 5; i++) {
-                targets[i] = element_stack.top();
-                element_stack.pop();
-            }
-            return make_shared<LinkTemplate<5>>(
-                proxy->query_tokens[cursor + 1], targets, proxy->get_context());
-        }
-        case 6: {
-            array<shared_ptr<QueryElement>, 6> targets;
-            for (unsigned int i = 0; i < 6; i++) {
-                targets[i] = element_stack.top();
-                element_stack.pop();
-            }
-            return make_shared<LinkTemplate<6>>(
-                proxy->query_tokens[cursor + 1], targets, proxy->get_context());
-        }
-        case 7: {
-            array<shared_ptr<QueryElement>, 7> targets;
-            for (unsigned int i = 0; i < 7; i++) {
-                targets[i] = element_stack.top();
-                element_stack.pop();
-            }
-            return make_shared<LinkTemplate<7>>(
-                proxy->query_tokens[cursor + 1], targets, proxy->get_context());
-        }
-        case 8: {
-            array<shared_ptr<QueryElement>, 8> targets;
-            for (unsigned int i = 0; i < 8; i++) {
-                targets[i] = element_stack.top();
-                element_stack.pop();
-            }
-            return make_shared<LinkTemplate<8>>(
-                proxy->query_tokens[cursor + 1], targets, proxy->get_context());
-        }
-        case 9: {
-            array<shared_ptr<QueryElement>, 9> targets;
-            for (unsigned int i = 0; i < 9; i++) {
-                targets[i] = element_stack.top();
-                element_stack.pop();
-            }
-            return make_shared<LinkTemplate<9>>(
-                proxy->query_tokens[cursor + 1], targets, proxy->get_context());
-        }
-        case 10: {
-            array<shared_ptr<QueryElement>, 10> targets;
-            for (unsigned int i = 0; i < 10; i++) {
-                targets[i] = element_stack.top();
-                element_stack.pop();
-            }
-            return make_shared<LinkTemplate<10>>(
-                proxy->query_tokens[cursor + 1], targets, proxy->get_context());
-        }
+        case  1: BUILD_LINK_TEMPLATE(1);
+        case  2: BUILD_LINK_TEMPLATE(2);
+        case  3: BUILD_LINK_TEMPLATE(3);
+        case  4: BUILD_LINK_TEMPLATE(4);
+        case  5: BUILD_LINK_TEMPLATE(5);
+        case  6: BUILD_LINK_TEMPLATE(6);
+        case  7: BUILD_LINK_TEMPLATE(7);
+        case  8: BUILD_LINK_TEMPLATE(8);
+        case  9: BUILD_LINK_TEMPLATE(9);
+        case 10: BUILD_LINK_TEMPLATE(10);
+        // clang-format on
         default: {
             Utils::error("PATTERN_MATCHING_QUERY message: max supported arity for LINK_TEMPLATE: 10");
         }
     }
     return NULL;  // Just to avoid warnings. This is not actually reachable.
 }
+
+#define BUILD_AND(N)                                \
+    {                                               \
+        array<shared_ptr<QueryElement>, N> clauses; \
+        for (unsigned int i = 0; i < N; i++) {      \
+            clauses[i] = element_stack.top();       \
+            element_stack.pop();                    \
+        }                                           \
+        return make_shared<And<N>>(clauses);        \
+    }
 
 shared_ptr<QueryElement> PatternMatchingQueryProcessor::build_and(
     shared_ptr<PatternMatchingQueryProxy> proxy,
@@ -357,94 +314,35 @@ shared_ptr<QueryElement> PatternMatchingQueryProcessor::build_and(
         Utils::error(
             "PATTERN_MATCHING_QUERY message: parse error in tokens - too few arguments for AND");
     }
+    // clang-format off
     switch (num_clauses) {
-        // TODO: consider replacing each "case" below by a pre-processor macro call
-        case 1: {
-            array<shared_ptr<QueryElement>, 1> clauses;
-            for (unsigned int i = 0; i < 1; i++) {
-                clauses[i] = element_stack.top();
-                element_stack.pop();
-            }
-            return make_shared<And<1>>(clauses);
-        }
-        case 2: {
-            array<shared_ptr<QueryElement>, 2> clauses;
-            for (unsigned int i = 0; i < 2; i++) {
-                clauses[i] = element_stack.top();
-                element_stack.pop();
-            }
-            return make_shared<And<2>>(clauses);
-        }
-        case 3: {
-            array<shared_ptr<QueryElement>, 3> clauses;
-            for (unsigned int i = 0; i < 3; i++) {
-                clauses[i] = element_stack.top();
-                element_stack.pop();
-            }
-            return make_shared<And<3>>(clauses);
-        }
-        case 4: {
-            array<shared_ptr<QueryElement>, 4> clauses;
-            for (unsigned int i = 0; i < 4; i++) {
-                clauses[i] = element_stack.top();
-                element_stack.pop();
-            }
-            return make_shared<And<4>>(clauses);
-        }
-        case 5: {
-            array<shared_ptr<QueryElement>, 5> clauses;
-            for (unsigned int i = 0; i < 5; i++) {
-                clauses[i] = element_stack.top();
-                element_stack.pop();
-            }
-            return make_shared<And<5>>(clauses);
-        }
-        case 6: {
-            array<shared_ptr<QueryElement>, 6> clauses;
-            for (unsigned int i = 0; i < 6; i++) {
-                clauses[i] = element_stack.top();
-                element_stack.pop();
-            }
-            return make_shared<And<6>>(clauses);
-        }
-        case 7: {
-            array<shared_ptr<QueryElement>, 7> clauses;
-            for (unsigned int i = 0; i < 7; i++) {
-                clauses[i] = element_stack.top();
-                element_stack.pop();
-            }
-            return make_shared<And<7>>(clauses);
-        }
-        case 8: {
-            array<shared_ptr<QueryElement>, 8> clauses;
-            for (unsigned int i = 0; i < 8; i++) {
-                clauses[i] = element_stack.top();
-                element_stack.pop();
-            }
-            return make_shared<And<8>>(clauses);
-        }
-        case 9: {
-            array<shared_ptr<QueryElement>, 9> clauses;
-            for (unsigned int i = 0; i < 9; i++) {
-                clauses[i] = element_stack.top();
-                element_stack.pop();
-            }
-            return make_shared<And<9>>(clauses);
-        }
-        case 10: {
-            array<shared_ptr<QueryElement>, 10> clauses;
-            for (unsigned int i = 0; i < 10; i++) {
-                clauses[i] = element_stack.top();
-                element_stack.pop();
-            }
-            return make_shared<And<10>>(clauses);
-        }
+        case  1: BUILD_AND(1)
+        case  2: BUILD_AND(2)
+        case  3: BUILD_AND(3)
+        case  4: BUILD_AND(4)
+        case  5: BUILD_AND(5)
+        case  6: BUILD_AND(6)
+        case  7: BUILD_AND(7)
+        case  8: BUILD_AND(8)
+        case  9: BUILD_AND(9)
+        case 10: BUILD_AND(10)
+        // clang-format on
         default: {
             Utils::error("PATTERN_MATCHING_QUERY message: max supported num_clauses for AND: 10");
         }
     }
     return NULL;  // Just to avoid warnings. This is not actually reachable.
 }
+
+#define BUILD_OR(N)                                 \
+    {                                               \
+        array<shared_ptr<QueryElement>, N> clauses; \
+        for (unsigned int i = 0; i < N; i++) {      \
+            clauses[i] = element_stack.top();       \
+            element_stack.pop();                    \
+        }                                           \
+        return make_shared<Or<N>>(clauses);         \
+    }
 
 shared_ptr<QueryElement> PatternMatchingQueryProcessor::build_or(
     shared_ptr<PatternMatchingQueryProxy> proxy,
@@ -454,94 +352,35 @@ shared_ptr<QueryElement> PatternMatchingQueryProcessor::build_or(
     if (element_stack.size() < num_clauses) {
         Utils::error("PATTERN_MATCHING_QUERY message: parse error in tokens - too few arguments for OR");
     }
+    // clang-format off
     switch (num_clauses) {
-        // TODO: consider replacing each "case" below by a pre-processor macro call
-        case 1: {
-            array<shared_ptr<QueryElement>, 1> clauses;
-            for (unsigned int i = 0; i < 1; i++) {
-                clauses[i] = element_stack.top();
-                element_stack.pop();
-            }
-            return make_shared<Or<1>>(clauses);
-        }
-        case 2: {
-            array<shared_ptr<QueryElement>, 2> clauses;
-            for (unsigned int i = 0; i < 2; i++) {
-                clauses[i] = element_stack.top();
-                element_stack.pop();
-            }
-            return make_shared<Or<2>>(clauses);
-        }
-        case 3: {
-            array<shared_ptr<QueryElement>, 3> clauses;
-            for (unsigned int i = 0; i < 3; i++) {
-                clauses[i] = element_stack.top();
-                element_stack.pop();
-            }
-            return make_shared<Or<3>>(clauses);
-        }
-        case 4: {
-            array<shared_ptr<QueryElement>, 4> clauses;
-            for (unsigned int i = 0; i < 4; i++) {
-                clauses[i] = element_stack.top();
-                element_stack.pop();
-            }
-            return make_shared<Or<4>>(clauses);
-        }
-        case 5: {
-            array<shared_ptr<QueryElement>, 5> clauses;
-            for (unsigned int i = 0; i < 5; i++) {
-                clauses[i] = element_stack.top();
-                element_stack.pop();
-            }
-            return make_shared<Or<5>>(clauses);
-        }
-        case 6: {
-            array<shared_ptr<QueryElement>, 6> clauses;
-            for (unsigned int i = 0; i < 6; i++) {
-                clauses[i] = element_stack.top();
-                element_stack.pop();
-            }
-            return make_shared<Or<6>>(clauses);
-        }
-        case 7: {
-            array<shared_ptr<QueryElement>, 7> clauses;
-            for (unsigned int i = 0; i < 7; i++) {
-                clauses[i] = element_stack.top();
-                element_stack.pop();
-            }
-            return make_shared<Or<7>>(clauses);
-        }
-        case 8: {
-            array<shared_ptr<QueryElement>, 8> clauses;
-            for (unsigned int i = 0; i < 8; i++) {
-                clauses[i] = element_stack.top();
-                element_stack.pop();
-            }
-            return make_shared<Or<8>>(clauses);
-        }
-        case 9: {
-            array<shared_ptr<QueryElement>, 9> clauses;
-            for (unsigned int i = 0; i < 9; i++) {
-                clauses[i] = element_stack.top();
-                element_stack.pop();
-            }
-            return make_shared<Or<9>>(clauses);
-        }
-        case 10: {
-            array<shared_ptr<QueryElement>, 10> clauses;
-            for (unsigned int i = 0; i < 10; i++) {
-                clauses[i] = element_stack.top();
-                element_stack.pop();
-            }
-            return make_shared<Or<10>>(clauses);
-        }
+        case  1: BUILD_OR(1)
+        case  2: BUILD_OR(2)
+        case  3: BUILD_OR(3)
+        case  4: BUILD_OR(4)
+        case  5: BUILD_OR(5)
+        case  6: BUILD_OR(6)
+        case  7: BUILD_OR(7)
+        case  8: BUILD_OR(8)
+        case  9: BUILD_OR(9)
+        case 10: BUILD_OR(10)
+        // clang-format on
         default: {
             Utils::error("PATTERN_MATCHING_QUERY message: max supported num_clauses for OR: 10");
         }
     }
     return NULL;  // Just to avoid warnings. This is not actually reachable.
 }
+
+#define BUILD_LINK(N)                                                                \
+    {                                                                                \
+        array<shared_ptr<QueryElement>, N> targets;                                  \
+        for (unsigned int i = 0; i < N; i++) {                                       \
+            targets[i] = element_stack.top();                                        \
+            element_stack.pop();                                                     \
+        }                                                                            \
+        return make_shared<Link<N>>(proxy->query_tokens[cursor + 1], move(targets)); \
+    }
 
 shared_ptr<QueryElement> PatternMatchingQueryProcessor::build_link(
     shared_ptr<PatternMatchingQueryProxy> proxy,
@@ -552,88 +391,19 @@ shared_ptr<QueryElement> PatternMatchingQueryProcessor::build_link(
         Utils::error(
             "PATTERN_MATCHING_QUERY message: parse error in tokens - too few arguments for LINK");
     }
+    // clang-format off
     switch (arity) {
-        // TODO: consider replacing each "case" below by a pre-processor macro call
-        case 1: {
-            array<shared_ptr<QueryElement>, 1> targets;
-            for (unsigned int i = 0; i < 1; i++) {
-                targets[i] = element_stack.top();
-                element_stack.pop();
-            }
-            return make_shared<Link<1>>(proxy->query_tokens[cursor + 1], targets);
-        }
-        case 2: {
-            array<shared_ptr<QueryElement>, 2> targets;
-            for (unsigned int i = 0; i < 2; i++) {
-                targets[i] = element_stack.top();
-                element_stack.pop();
-            }
-            return make_shared<Link<2>>(proxy->query_tokens[cursor + 1], targets);
-        }
-        case 3: {
-            array<shared_ptr<QueryElement>, 3> targets;
-            for (unsigned int i = 0; i < 3; i++) {
-                targets[i] = element_stack.top();
-                element_stack.pop();
-            }
-            return make_shared<Link<3>>(proxy->query_tokens[cursor + 1], targets);
-        }
-        case 4: {
-            array<shared_ptr<QueryElement>, 4> targets;
-            for (unsigned int i = 0; i < 4; i++) {
-                targets[i] = element_stack.top();
-                element_stack.pop();
-            }
-            return make_shared<Link<4>>(proxy->query_tokens[cursor + 1], targets);
-        }
-        case 5: {
-            array<shared_ptr<QueryElement>, 5> targets;
-            for (unsigned int i = 0; i < 5; i++) {
-                targets[i] = element_stack.top();
-                element_stack.pop();
-            }
-            return make_shared<Link<5>>(proxy->query_tokens[cursor + 1], targets);
-        }
-        case 6: {
-            array<shared_ptr<QueryElement>, 6> targets;
-            for (unsigned int i = 0; i < 6; i++) {
-                targets[i] = element_stack.top();
-                element_stack.pop();
-            }
-            return make_shared<Link<6>>(proxy->query_tokens[cursor + 1], targets);
-        }
-        case 7: {
-            array<shared_ptr<QueryElement>, 7> targets;
-            for (unsigned int i = 0; i < 7; i++) {
-                targets[i] = element_stack.top();
-                element_stack.pop();
-            }
-            return make_shared<Link<7>>(proxy->query_tokens[cursor + 1], targets);
-        }
-        case 8: {
-            array<shared_ptr<QueryElement>, 8> targets;
-            for (unsigned int i = 0; i < 8; i++) {
-                targets[i] = element_stack.top();
-                element_stack.pop();
-            }
-            return make_shared<Link<8>>(proxy->query_tokens[cursor + 1], targets);
-        }
-        case 9: {
-            array<shared_ptr<QueryElement>, 9> targets;
-            for (unsigned int i = 0; i < 9; i++) {
-                targets[i] = element_stack.top();
-                element_stack.pop();
-            }
-            return make_shared<Link<9>>(proxy->query_tokens[cursor + 1], targets);
-        }
-        case 10: {
-            array<shared_ptr<QueryElement>, 10> targets;
-            for (unsigned int i = 0; i < 10; i++) {
-                targets[i] = element_stack.top();
-                element_stack.pop();
-            }
-            return make_shared<Link<10>>(proxy->query_tokens[cursor + 1], targets);
-        }
+        case  1: BUILD_LINK(1)
+        case  2: BUILD_LINK(2)
+        case  3: BUILD_LINK(3)
+        case  4: BUILD_LINK(4)
+        case  5: BUILD_LINK(5)
+        case  6: BUILD_LINK(6)
+        case  7: BUILD_LINK(7)
+        case  8: BUILD_LINK(8)
+        case  9: BUILD_LINK(9)
+        case 10: BUILD_LINK(10)
+        // clang-format on
         default: {
             Utils::error("PATTERN_MATCHING_QUERY message: max supported arity for LINK: 10");
         }

@@ -5,13 +5,20 @@
 
 #include <cstring>
 
+// clang-format off
+#define LOG_LEVEL INFO_LEVEL
+#include "Logger.h"
+// clang-format on
+
 #include "And.h"
 #include "AtomDBAPITypes.h"
 #include "AtomDBSingleton.h"
 #include "AttentionBrokerServer.h"
+#include "ImportanceList.h"
 #include "Iterator.h"
 #include "Logger.h"
 #include "QueryAnswer.h"
+#include "QueryElementRegistry.h"
 #include "QueryNode.h"
 #include "SharedQueue.h"
 #include "Source.h"
@@ -80,12 +87,14 @@ class LinkTemplate : public Source {
      *        consider STI (short term importance).
      */
     LinkTemplate(const string& type,
-                 const array<shared_ptr<QueryElement>, ARITY>& targets,
-                 const string& context = "") {
+                 array<shared_ptr<QueryElement>, ARITY>&& targets,
+                 const string& context = "",
+                 QueryElementRegistry* query_element_registry = nullptr) {
         this->context = context;
         this->arity = ARITY;
         this->type = type;
-        this->target_template = targets;
+        this->query_element_registry = query_element_registry;
+        this->target_template = move(targets);
         this->fetch_finished = false;
         this->atom_document = NULL;
         this->local_answers = NULL;
@@ -97,11 +106,12 @@ class LinkTemplate : public Source {
         for (unsigned int i = 1; i <= ARITY; i++) {
             // It's safe to get stored shared_ptr's raw pointer here because handle_keys[]
             // is used solely in this scope so it's guaranteed that handle will not be freed.
-            if (targets[i - 1]->is_terminal) {
-                this->handle_keys[i] = dynamic_pointer_cast<Terminal>(targets[i - 1])->handle.get();
+            if (this->target_template[i - 1]->is_terminal) {
+                this->handle_keys[i] =
+                    dynamic_pointer_cast<Terminal>(this->target_template[i - 1])->handle.get();
             } else {
                 this->handle_keys[i] = (char*) AtomDB::WILDCARD.c_str();
-                this->inner_template.push_back(targets[i - 1]);
+                this->inner_template.push_back(this->target_template[i - 1]);
             }
         }
         this->handle =
@@ -121,12 +131,10 @@ class LinkTemplate : public Source {
      */
     virtual ~LinkTemplate() {
         this->graceful_shutdown();
-        local_answers_mutex.lock();
+        lock_guard<mutex> lock(this->local_answers_mutex);
         if (this->atom_document) delete[] this->atom_document;
-        if (local_answers_size > 0) {
-            delete[] this->local_answers;
-            delete[] this->next_inner_answer;
-        }
+        if (this->local_answers) delete[] this->local_answers;
+        if (this->next_inner_answer) delete[] this->next_inner_answer;
         while (!this->local_buffer.empty()) {
             delete (QueryAnswer*) this->local_buffer.dequeue();
         }
@@ -136,7 +144,6 @@ class LinkTemplate : public Source {
         this->inner_answers.clear();
         this->inner_template.clear();
         this->inner_template_iterator.reset();
-        local_answers_mutex.unlock();
     }
 
     // --------------------------------------------------------------------------------------------
@@ -224,15 +231,15 @@ class LinkTemplate : public Source {
     }
 
    private:
+    // --------------------------------------------------------------------------------------------
+    // Private methods and attributes
+
     struct less_than_query_answer {
         inline bool operator()(const QueryAnswer* qa1, const QueryAnswer* qa2) {
             // Reversed check as we want descending sort
             return (qa1->importance > qa2->importance);
         }
     };
-
-    // --------------------------------------------------------------------------------------------
-    // Private methods
 
     void increment_local_answers_size() {
         local_answers_mutex.lock();
@@ -248,39 +255,54 @@ class LinkTemplate : public Source {
         return answer;
     }
 
-    void get_importance(const dasproto::HandleList& handle_list,
-                        dasproto::ImportanceList& importance_list) {
+    shared_ptr<dasproto::ImportanceList> get_importance(const dasproto::HandleList& handle_list) {
+        if (this->query_element_registry != nullptr) {
+            LinkTemplate<ARITY>::get_importance_mutex.lock();
+            auto il = this->query_element_registry->get(this->handle);
+            if (il != nullptr) {
+                LinkTemplate<ARITY>::get_importance_mutex.unlock();
+                return dynamic_pointer_cast<ImportanceList>(il)->importance_list;
+            }
+        }
+        auto importance_list = make_shared<dasproto::ImportanceList>();
         auto stub = dasproto::AttentionBroker::NewStub(
             grpc::CreateChannel(this->attention_broker_address, grpc::InsecureChannelCredentials()));
 
         if (handle_list.list_size() <= MAX_GET_IMPORTANCE_BUNDLE_SIZE) {
-            stub->get_importance(new grpc::ClientContext(), handle_list, &importance_list);
-            return;
-        }
-        LOG_DEBUG("Paginating get_importance()");
-        unsigned int page_count = 1;
+            stub->get_importance(new grpc::ClientContext(), handle_list, importance_list.get());
+        } else {
+            LOG_DEBUG("Paginating get_importance()");
+            unsigned int page_count = 1;
 
-        dasproto::HandleList small_handle_list;
-        dasproto::ImportanceList small_importance_list;
-        unsigned int remaining = handle_list.list_size();
-        unsigned int cursor = 0;
-        while (remaining > 0) {
-            LOG_DEBUG("get_importance() page: " << page_count++);
-            for (unsigned int i = 0; i < MAX_GET_IMPORTANCE_BUNDLE_SIZE; i++) {
-                if (cursor == handle_list.list_size()) {
-                    break;
+            dasproto::HandleList small_handle_list;
+            dasproto::ImportanceList small_importance_list;
+            unsigned int remaining = handle_list.list_size();
+            unsigned int cursor = 0;
+            while (remaining > 0) {
+                LOG_DEBUG("get_importance() page: " << page_count++);
+                for (unsigned int i = 0; i < MAX_GET_IMPORTANCE_BUNDLE_SIZE; i++) {
+                    if (cursor == handle_list.list_size()) {
+                        break;
+                    }
+                    small_handle_list.add_list(handle_list.list(cursor++));
+                    remaining--;
                 }
-                small_handle_list.add_list(handle_list.list(cursor++));
-                remaining--;
+                LOG_DEBUG("get_importance() discharging: " << small_handle_list.list_size());
+                stub->get_importance(
+                    new grpc::ClientContext(), small_handle_list, &small_importance_list);
+                for (unsigned int i = 0; i < small_importance_list.list_size(); i++) {
+                    importance_list->add_list(small_importance_list.list(i));
+                }
+                small_handle_list.clear_list();
+                small_importance_list.clear_list();
             }
-            LOG_DEBUG("get_importance() discharging: " << small_handle_list.list_size());
-            stub->get_importance(new grpc::ClientContext(), small_handle_list, &small_importance_list);
-            for (unsigned int i = 0; i < small_importance_list.list_size(); i++) {
-                importance_list.add_list(small_importance_list.list(i));
-            }
-            small_handle_list.clear_list();
-            small_importance_list.clear_list();
         }
+        if (this->query_element_registry != nullptr) {
+            this->query_element_registry->add(this->handle,
+                                              make_shared<ImportanceList>(importance_list));
+            LinkTemplate<ARITY>::get_importance_mutex.unlock();
+        }
+        return importance_list;
     }
 
     void fetch_links() {
@@ -298,11 +320,10 @@ class LinkTemplate : public Source {
             while ((handle = it->next()) != nullptr) {
                 handle_list.add_list(handle);
             }
-            dasproto::ImportanceList importance_list;
-            get_importance(handle_list, importance_list);
-            if (importance_list.list_size() != answer_count) {
+            auto importance_list = get_importance(handle_list);
+            if (importance_list->list_size() != answer_count) {
                 Utils::error("Invalid AttentionBroker answer. Size: " +
-                             std::to_string(importance_list.list_size()) +
+                             std::to_string(importance_list->list_size()) +
                              " Expected size: " + std::to_string(answer_count));
             }
             this->atom_document = new shared_ptr<atomdb_api_types::AtomDocument>[answer_count];
@@ -312,8 +333,7 @@ class LinkTemplate : public Source {
             unsigned int i = 0;
             while ((handle = it->next()) != nullptr) {
                 this->atom_document[i] = db->get_atom_document(handle);
-                query_answer = new QueryAnswer(handle, importance_list.list(i));
-                const char* s = this->atom_document[i]->get("targets", 0);
+                query_answer = new QueryAnswer(handle, importance_list->list(i));
                 for (unsigned int j = 0; j < this->arity; j++) {
                     if (this->target_template[j]->is_terminal) {
                         auto terminal = dynamic_pointer_cast<Terminal>(this->target_template[j]);
@@ -455,7 +475,7 @@ class LinkTemplate : public Source {
     string to_string() {
         string answer = string(this->handle.get()) + " [" + this->type + " <";
         for (unsigned int i = 0; i < this->arity; i++) {
-            answer += this->handle_keys[i];
+            answer += this->handle_keys[i + 1];  // index 0 must be skipped
             if (this->target_template[i]->id != "") {
                 answer += " (" + target_template[i]->id + ")";
             }
@@ -467,7 +487,6 @@ class LinkTemplate : public Source {
         return answer;
     }
 
-   private:
     string type;
     array<shared_ptr<QueryElement>, ARITY> target_template;
     unsigned int arity;
@@ -489,6 +508,11 @@ class LinkTemplate : public Source {
     unsigned int local_answers_size;
     mutex local_answers_mutex;
     string context;
+    QueryElementRegistry* query_element_registry;
+    static mutex get_importance_mutex;
 };
+
+template <unsigned int ARITY>
+std::mutex LinkTemplate<ARITY>::get_importance_mutex;
 
 }  // namespace query_element
