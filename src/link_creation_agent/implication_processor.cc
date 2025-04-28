@@ -8,61 +8,67 @@ using namespace query_engine;
 using namespace link_creation_agent;
 using namespace atomdb;
 
+// clang-format off
+vector<string> ImplicationProcessor::pattern_template_1 = {
+    "LINK_TEMPLATE", "Expression", "3",
+        "NODE", "Symbol", "EVALUATION",    
+        "LINK", "Expression", "2",      
+            "NODE", "Symbol", "PREDICATE"
+};
+
+vector<string> ImplicationProcessor::pattern_template_2 = {
+    "LINK_TEMPLATE", "Expression", "2",          
+        "NODE", "Symbol", "CONCEPT",       
+        "VARIABLE", "PX"
+};
+
+vector<string> ImplicationProcessor::ss_template_1 = {
+    "AND", "2",
+    "LINK_TEMPLATE", "Expression", "3",
+        "NODE", "Symbol", "EVALUATION",
+        "LINK", "Expression", "2",
+            "NODE", "Symbol", "PREDICATE"
+};
+
+vector<string> ImplicationProcessor::ss_template_2 = {
+    "LINK_TEMPLATE", "Expression", "2",
+        "NODE", "Symbol", "CONCEPT",
+        "VARIABLE", "C",
+    "LINK_TEMPLATE", "Expression", "3",
+        "NODE", "Symbol", "EVALUATION",
+        "LINK", "Expression", "2",
+            "NODE", "Symbol", "PREDICATE"
+};
+
+vector<string> ImplicationProcessor::ss_template_3 = {
+    "LINK_TEMPLATE", "Expression", "2",
+        "NODE", "Symbol", "CONCEPT",
+        "VARIABLE", "C"
+};
+
+// clang-format on
+
 ImplicationProcessor::ImplicationProcessor() {}
 
 vector<string> ImplicationProcessor::get_pattern_query(const vector<string>& p) {
-    // clang-format off
-    vector<vector<string>> templates = {
-        {
-        "LINK_TEMPLATE", "Expression", "3",
-            "NODE", "Symbol", "EVALUATION",    
-            "LINK", "Expression", "2",      
-                "NODE", "Symbol", "PREDICATE"},
-                p,
-           {"LINK_TEMPLATE", "Expression", "2",          
-                "NODE", "Symbol", "CONCEPT",       
-                "VARIABLE", "PX"}
-    };
-    // clang-format on
     vector<string> pattern_query;
-    for (const auto& q_template : templates) {
-        for (const auto& token : q_template) {
-            pattern_query.push_back(token);
-        }
-    }
+    pattern_query.reserve(pattern_template_1.size() + p.size() + pattern_template_2.size());
+    pattern_query.insert(pattern_query.end(), pattern_template_1.begin(), pattern_template_1.end());
+    pattern_query.insert(pattern_query.end(), p.begin(), p.end());
+    pattern_query.insert(pattern_query.end(), pattern_template_2.begin(), pattern_template_2.end());
+
     return pattern_query;
 }
 
 vector<string> ImplicationProcessor::get_satisfying_set_query(const vector<string>& p1,
                                                               const vector<string>& p2) {
-    // clang-format off
-    vector<vector<string>> templates = {
-        {"AND", "2",
-                "LINK_TEMPLATE", "Expression", "3",
-                    "NODE", "Symbol", "EVALUATION",
-                    "LINK", "Expression", "2",
-                        "NODE", "Symbol", "PREDICATE"},
-                        p1,
-                   {"LINK_TEMPLATE", "Expression", "2",
-                        "NODE", "Symbol", "CONCEPT",
-                        "VARIABLE", "C",
-                "LINK_TEMPLATE", "Expression", "3",
-                    "NODE", "Symbol", "EVALUATION",
-                    "LINK", "Expression", "2",
-                        "NODE", "Symbol", "PREDICATE"},
-                        p2,
-                    {"LINK_TEMPLATE", "Expression", "2",
-                        "NODE", "Symbol", "CONCEPT",
-                        "VARIABLE", "C"}
-    };
-
-    // clang-format on
     vector<string> pattern_query;
-    for (const auto& q_template : templates) {
-        for (const auto& token : q_template) {
-            pattern_query.push_back(token);
-        }
-    }
+    pattern_query.reserve(ss_template_1.size() + p1.size() + ss_template_2.size() + p2.size() + ss_template_3.size());
+    pattern_query.insert(pattern_query.end(), ss_template_1.begin(), ss_template_1.end());
+    pattern_query.insert(pattern_query.end(), p1.begin(), p1.end());
+    pattern_query.insert(pattern_query.end(), ss_template_2.begin(), ss_template_2.end());
+    pattern_query.insert(pattern_query.end(), p2.begin(), p2.end());
+    pattern_query.insert(pattern_query.end(), ss_template_3.begin(), ss_template_3.end());
     return pattern_query;
 }
 

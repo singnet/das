@@ -150,7 +150,7 @@ bool Utils::is_number(const string& s) {
     return !s.empty() &&
            find_if(s.begin(), s.end(), [](unsigned char c) { return !isdigit(c); }) == s.end();
 }
-// TODO move this to a utils file
+
 int Utils::string_to_int(const string& s) {
     if (!is_number(s)) {
         throw invalid_argument("Can not convert string to int: Invalid arguments");

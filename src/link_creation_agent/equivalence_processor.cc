@@ -8,38 +8,41 @@ using namespace query_engine;
 using namespace link_creation_agent;
 using namespace atomdb;
 
+// clang-format off
+vector<string> EquivalenceProcessor::count_query_template_1 = {
+    "OR", "2",
+        "LINK_TEMPLATE", "Expression", "3",
+            "NODE", "Symbol", "EVALUATION",
+            "LINK_TEMPLATE", "Expression", "2",
+                "NODE", "Symbol", "PREDICATE",
+                "VARIABLE", "P",
+            "LINK", "Expression", "2",
+                "NODE", "Symbol", "CONCEPT"
+};
+
+vector<string> EquivalenceProcessor::count_query_template_2 = {
+    "LINK_TEMPLATE", "Expression", "3",
+        "NODE", "Symbol", "EVALUATION",
+        "LINK_TEMPLATE", "Expression", "2",
+            "NODE", "Symbol", "PREDICATE",
+            "VARIABLE", "P",
+        "LINK", "Expression", "2",
+            "NODE", "Symbol", "CONCEPT"
+};
+// clang-format on
+
 EquivalenceProcessor::EquivalenceProcessor() {}
 
 vector<string> EquivalenceProcessor::get_pattern_query(const vector<string>& c1,
                                                        const vector<string>& c2) {
-    // clang-format off
-    vector<vector<string>> templates = {
-        {"OR", "2",
-            "LINK_TEMPLATE", "Expression", "3",
-                "NODE", "Symbol", "EVALUATION",
-                "LINK_TEMPLATE", "Expression", "2",
-                    "NODE", "Symbol", "PREDICATE",
-                    "VARIABLE", "P",
-                "LINK", "Expression", "2",
-                    "NODE", "Symbol", "CONCEPT"},
-                    c1,
-            {"LINK_TEMPLATE", "Expression", "3",
-                "NODE", "Symbol", "EVALUATION",
-                "LINK_TEMPLATE", "Expression", "2",
-                    "NODE", "Symbol", "PREDICATE",
-                    "VARIABLE", "P",
-                "LINK", "Expression", "2",
-                    "NODE", "Symbol", "CONCEPT"},
-                    c2
-        };
-    // clang-format on
-    vector<string> pattern_query;
-    for (const auto& q_template : templates) {
-        for (const auto& token : q_template) {
-            pattern_query.push_back(token);
-        }
-    }
-    return pattern_query;
+    vector<string> query;
+    query.reserve(count_query_template_1.size() + c1.size() + count_query_template_2.size() + c2.size());
+    query.insert(query.end(), count_query_template_1.begin(), count_query_template_1.end());
+    query.insert(query.end(), c1.begin(), c1.end());
+    query.insert(query.end(), count_query_template_2.begin(), count_query_template_2.end());
+    query.insert(query.end(), c2.begin(), c2.end());
+
+    return query;
 }
 
 vector<string> EquivalenceProcessor::get_tokenized_atom(const string& handle) {

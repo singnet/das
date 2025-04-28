@@ -17,8 +17,11 @@ class ImplicationProcessor : public LinkProcessor {
                                    optional<vector<string>> extra_params = nullopt) override;
 
    private:
-    // static vector<string> get_satisfying_set_query(const string& p1,
-    //                                                          const string& p2);
+    static vector<string> pattern_template_1;
+    static vector<string> pattern_template_2;
+    static vector<string> ss_template_1;
+    static vector<string> ss_template_2;
+    static vector<string> ss_template_3;
     static vector<string> get_pattern_query(const vector<string>& p);
     static vector<string> get_satisfying_set_query(const vector<string>& p1, const vector<string>& p2);
     static vector<string> get_tokenized_atom(const string& handle);

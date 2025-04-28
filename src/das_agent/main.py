@@ -23,26 +23,24 @@ def parse_targets(targets, atom_db):
             if isinstance(atom, Link):
                 new_targets.append(
                     LinkT(
-                        **{"type": atom.named_type, "targets": parse_targets(atom.targets, atom_db)}
+                        type=atom.named_type, targets=parse_targets(atom.targets, atom_db)
                     )
                 )
             else:
-                new_targets.append(NodeT(**{"type": atom.named_type, "name": atom.name}))
+                new_targets.append(NodeT(type=atom.named_type, name=atom.name))
             continue
         if target.get("atom_type") == "link":
             new_targets.append(LinkT(**target))
         elif target.get("atom_type") == "node":
-            new_targets.append(NodeT(**{"type": target["type"], "name": target["name"]}))
+            new_targets.append(NodeT(type=target["type"], name=target["name"]))
         elif target.get("handle"):
             atom = atom_db.get_atom(target["handle"])
             if isinstance(atom, Link):
                 new_targets.append(
-                    LinkT(
-                        **{"type": atom.named_type, "targets": parse_targets(atom.targets, atom_db)}
-                    )
+                    LinkT(type=atom.named_type, targets=parse_targets(atom.targets, atom_db))
                 )
             else:
-                new_targets.append(NodeT(**{"type": atom.named_type, "name": atom.name}))
+                new_targets.append(NodeT(type=atom.named_type, name=atom.name))
         else:
             raise Exception("Invalid target")
     return new_targets

@@ -20,6 +20,8 @@ class EquivalenceProcessor : public LinkProcessor {
    private:
     static vector<string> get_pattern_query(const vector<string>& c1, const vector<string>& c2);
     static vector<string> get_tokenized_atom(const string& handle);
+    static vector<string> count_query_template_1;
+    static vector<string> count_query_template_2;
     static Link build_link(const string& link_type,
                            vector<LinkTargetTypes> targets,
                            vector<CustomField> custom_fields);
