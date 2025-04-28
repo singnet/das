@@ -1,5 +1,8 @@
 #include "Source.h"
 
+#define LOG_LEVEL LEVEL_DEBUG
+#include "Logger.h"
+
 using namespace query_element;
 
 string Source::DEFAULT_ATTENTION_BROKER_PORT = "37007";
@@ -43,6 +46,7 @@ void Source::setup_buffers() {
 }
 
 void Source::stop() {
+    LOG_DEBUG("Stopping SOURCE: " << this->id);
     QueryElement::stop();
     this->output_buffer->stop(); 
 }

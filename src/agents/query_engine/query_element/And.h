@@ -7,7 +7,7 @@
 #include "QueryAnswer.h"
 #include "StoppableThread.h"
 
-#define LOG_LEVEL INFO_LEVEL
+#define LOG_LEVEL DEBUG_LEVEL
 #include "Logger.h"
 
 using namespace std;
@@ -55,12 +55,13 @@ class And : public Operator<N> {
 
     virtual void setup_buffers() {
         Operator<N>::setup_buffers();
-        this->operator_thread = make_shared<StoppableThread>(this->id);
+        this->operator_thread = make_shared<StoppableThread>("operator:" + this->id);
         this->operator_thread->attach(new thread(&And::and_operator_method, this, this->operator_thread));
     }
 
     virtual void stop() {
-        if (! stopped()) {
+        LOG_DEBUG("Stopping AND: " << this->id);
+        if (! this->stopped()) {
             Operator<N>::stop();
         }
     }

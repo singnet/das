@@ -3,7 +3,7 @@
 #include "PortPool.h"
 #include "Utils.h"
 
-#define LOG_LEVEL INFO_LEVEL
+#define LOG_LEVEL DEBUG_LEVEL
 #include "Logger.h"
 
 using namespace service_bus;
@@ -22,7 +22,7 @@ BusCommandProxy::~BusCommandProxy() {
     if (this->proxy_port != 0) {
         // Return the port to the pool of available ports
         PortPool::return_port(this->proxy_port);
-        this->proxy_node->stop();
+        //this->proxy_node->stop();
         delete this->proxy_node;
     }
 }
@@ -38,7 +38,9 @@ ProxyNode::ProxyNode(BusCommandProxy* proxy, const string& node_id, const string
     this->proxy = proxy;
 }
 
-ProxyNode::~ProxyNode() {}
+ProxyNode::~ProxyNode() {
+    cout << "XXX ProxyNode::~ProxyNode()" << endl;
+}
 
 // -------------------------------------------------------------------------------------------------
 // Proxy API

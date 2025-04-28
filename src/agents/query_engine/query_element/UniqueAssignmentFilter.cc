@@ -1,6 +1,6 @@
 #include "UniqueAssignmentFilter.h"
 
-#define LOG_LEVEL INFO_LEVEL
+#define LOG_LEVEL DEBUG_LEVEL
 #include "Logger.h"
 
 using namespace std;
@@ -26,8 +26,8 @@ void UniqueAssignmentFilter::initialize(const shared_ptr<QueryElement>& input) {
 
 void UniqueAssignmentFilter::setup_buffers() {
     Operator<1>::setup_buffers();
-    this->operator_thread = make_shared<StoppableThread>(this->id);
-    this->operator_thread->attach(new thread(&UniqueAssignmentFilter::thread_filter, this, shared_ptr<StoppableThread> monitor));
+    this->operator_thread = make_shared<StoppableThread>("operator:" + this->id);
+    this->operator_thread->attach(new thread(&UniqueAssignmentFilter::thread_filter, this, this->operator_thread));
 }
 
 void UniqueAssignmentFilter::stop() {

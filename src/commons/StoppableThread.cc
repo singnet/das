@@ -11,14 +11,17 @@ using namespace commons;
 // Constructors and destructors
 
 StoppableThread::StoppableThread(const string& id) {
-    LOG_DEBUG("Creating StoppableThread: " << id);
     this->stop_flag = false;
     this->id = id;
     this->string_representation = "Thread<" + id + ">";
     this->thread_object = NULL;
+    LOG_DEBUG("Creating StoppableThread: " << this->to_string());
 }
 
-StoppableThread::~StoppableThread() { stop(); }
+StoppableThread::~StoppableThread() { 
+    stop(); 
+    delete this->thread_object;
+}
 
 // -------------------------------------------------------------------------------------------------
 // Public methods
@@ -29,17 +32,22 @@ void StoppableThread::stop() { this->stop(true); }
 
 void StoppableThread::stop(bool join_thread) {
     if (this->thread_object == NULL) {
-        Utils::error("No thread attached to StoppableThread: " + this->id);
-    } else if (!this->stop_flag) {
-        LOG_DEBUG("Stopping thread: " << this->id);
+        Utils::error("No thread attached to StoppableThread: " + this->to_string());
+    } else {
         this->stop_flag_mutex.lock();
-        this->stop_flag = true;
-        this->stop_flag_mutex.unlock();
-        if (join_thread) {
-            LOG_DEBUG("Joining thread: " << this->id);
-            this->thread_object->join();
-            LOG_DEBUG("Thread joined: " << this->id << ". destroying it.");
-            delete this->thread_object;
+        if (! this->stop_flag) {
+            LOG_DEBUG("Stopping thread: " << this->to_string());
+            this->stop_flag = true;
+            if (join_thread) {
+                LOG_DEBUG("Joining thread: " << this->to_string());
+                this->stop_flag_mutex.unlock();
+                this->thread_object->join();
+                LOG_DEBUG("Thread joined: " << this->to_string());
+            } else {
+                this->stop_flag_mutex.unlock();
+            }
+        } else {
+            this->stop_flag_mutex.unlock();
         }
     }
 }

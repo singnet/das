@@ -1,6 +1,6 @@
 #include "QueryElement.h"
 
-#define LOG_LEVEL INFO_LEVEL
+#define LOG_LEVEL DEBUG_LEVEL
 #include "Logger.h"
 
 using namespace query_element;
@@ -24,7 +24,7 @@ void QueryElement::stop() {
     this->stop_flag = true;
 }
 
-bool MessageBroker::stopped() {
+bool QueryElement::stopped() {
     lock_guard<mutex> semaphore(this->stop_flag_mutex);
     return this->stop_flag;
 }

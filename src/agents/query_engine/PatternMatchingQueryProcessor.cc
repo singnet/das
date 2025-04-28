@@ -35,7 +35,7 @@ shared_ptr<BusCommandProxy> PatternMatchingQueryProcessor::factory_empty_proxy()
 void PatternMatchingQueryProcessor::run_command(shared_ptr<BusCommandProxy> proxy) {
     lock_guard<mutex> semaphore(this->query_threads_mutex);
     auto query_proxy = dynamic_pointer_cast<PatternMatchingQueryProxy>(proxy);
-    string thread_id = proxy->my_id() + "_" + std::to_string(proxy->get_serial());
+    string thread_id = "thread_process_one_query_" + proxy->my_id() + "_" + std::to_string(proxy->get_serial());
     if (this->query_threads.find(thread_id) != this->query_threads.end()) {
         Utils::error("Invalid thread id: " + thread_id);
     } else {
@@ -175,7 +175,7 @@ void PatternMatchingQueryProcessor::thread_process_one_query(
             update_attention_broker_joint_answer(proxy, joint_answer);
         }
         Utils::sleep(500);
-        query_sink->graceful_shutdown();
+        query_sink->stop();
         PortPool::return_port(sink_port_number);
     } else {
         Utils::error("Invalid command " + command + " in PatternMatchingQueryProcessor");

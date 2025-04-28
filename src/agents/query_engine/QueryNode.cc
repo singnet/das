@@ -4,7 +4,7 @@
 #include "MessageBroker.h"
 #include "Utils.h"
 
-#define LOG_LEVEL INFO_LEVEL
+#define LOG_LEVEL DEBUG_LEVEL
 #include "Logger.h"
 
 using namespace query_node;
@@ -92,7 +92,7 @@ bool QueryNode::is_query_answers_empty() { return this->query_answer_queue.empty
 QueryNodeServer::QueryNodeServer(const string& node_id, MessageBrokerType messaging_backend)
     : QueryNode(node_id, true, messaging_backend) {
     this->join_network();
-    this->query_answer_processor = make_shared<StoppableThread>(node_id);
+    this->query_answer_processor = make_shared<StoppableThread>("server_processor:" + node_id);
     this->query_answer_processor->attach(new thread(&QueryNodeServer::query_answer_processor_method, this, this->query_answer_processor));
 }
 
@@ -144,7 +144,7 @@ QueryNodeClient::QueryNodeClient(const string& node_id,
                                  const string& server_id,
                                  MessageBrokerType messaging_backend)
     : QueryNode(node_id, true, messaging_backend) {
-    this->query_answer_processor = make_shared<StoppableThread>(node_id);
+    this->query_answer_processor = make_shared<StoppableThread>("client_processor:" + node_id);
     this->query_answer_processor->attach(new thread(&QueryNodeClient::query_answer_processor_method, this, this->query_answer_processor));
     this->server_id = server_id;
     this->add_peer(server_id);

@@ -1,6 +1,6 @@
 #pragma once
 
-#define LOG_LEVEL INFO_LEVEL
+#define LOG_LEVEL DEBUG_LEVEL
 #include <grpcpp/grpcpp.h>
 
 #include <cstring>
@@ -112,7 +112,7 @@ class LinkTemplate : public Source {
         // This is correct. id is not necessarily a handle but an identifier. It just happens
         // that we want the string for this identifier to be the same as the string representing
         // the handle.
-        this->id = this->handle.get() + std::to_string(LinkTemplate::next_instance_count());
+        this->id = string(this->handle.get()) + "_" + std::to_string(LinkTemplate::next_instance_count());
         LOG_INFO("LinkTemplate " << this->to_string());
     }
 
@@ -146,15 +146,26 @@ class LinkTemplate : public Source {
      * Gracefully shuts down this QueryElement's processor thread.
      */
     virtual void stop() {
+        LOG_DEBUG("Stopping LINK_TEMPLATE: " << this->id);
         if (! stopped()) {
-            if (this->is_flow_finished()) return;
+            cout << "XXXXXXXXXXXXX LT stop() 1" << endl;
+            //if (this->is_flow_finished()) return;
+            cout << "XXXXXXXXXXXXX LT stop() 2" << endl;
             set_flow_finished();
+            cout << "XXXXXXXXXXXXX LT stop() 3" << endl;
+            this->local_buffer_processor->stop();
+            cout << "XXXXXXXXXXXXX LT stop() 4" << endl;
             Source::stop();
+            cout << "XXXXXXXXXXXXX LT stop() 5" << endl;
         }
+            cout << "XXXXXXXXXXXXX LT stop() 6" << endl;
     }
 
     virtual void setup_buffers() {
+        cout << "XXXXXXXXXXXXX LT::setup_buffers() 1" << endl;
         Source::setup_buffers();
+        cout << "XXXXXXXXXXXXX LT::setup_buffers() 2" << endl;
+        cout << "XXXXXXXXXXXXX LT::setup_buffers() inner size: " << this->inner_template.size() << endl;
         if (this->inner_template.size() > 0) {
             // clang-format off
             switch (this->inner_template.size()) {
@@ -217,8 +228,11 @@ class LinkTemplate : public Source {
             // clang-format on
         }
 
-        this->local_buffer_processor = make_shared<StoppableThread>(this->id);
+        cout << "XXXXXXXXXXXXX LT::setup_buffers() 3" << endl;
+        this->local_buffer_processor = make_shared<StoppableThread>("local_processor:" + this->id);
+        cout << "XXXXXXXXXXXXX LT::setup_buffers() 4" << endl;
         this->local_buffer_processor->attach(new thread(&LinkTemplate::local_buffer_processor_method, this, this->local_buffer_processor));
+        cout << "XXXXXXXXXXXXX LT::setup_buffers() 5" << endl;
         fetch_links();
     }
 

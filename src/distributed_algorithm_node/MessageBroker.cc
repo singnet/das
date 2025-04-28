@@ -17,7 +17,7 @@
 #include "atom_space_node.grpc.pb.h"
 #include "atom_space_node.pb.h"
 
-#define LOG_LEVEL INFO_LEVEL
+#define LOG_LEVEL DEBUG_LEVEL
 #include "Logger.h"
 
 using namespace distributed_algorithm_node;
@@ -63,6 +63,7 @@ SynchronousSharedRAM::SynchronousSharedRAM(shared_ptr<MessageFactory> host_node,
     : MessageBroker(host_node, node_id) {}
 
 SynchronousSharedRAM::~SynchronousSharedRAM() {
+    cout << "XXX SynchronousSharedRAM::~SynchronousSharedRAM() BEGIN" << endl;
     if (this->joined_network) {
         this->stop();
         this->inbox_threads.clear();
@@ -81,6 +82,7 @@ SynchronousSharedRAM::~SynchronousSharedRAM() {
             NODE_QUEUE_MUTEX.unlock();
         }
     }
+    cout << "XXX SynchronousSharedRAM::~SynchronousSharedRAM() END" << endl;
 }
 
 SynchronousGRPC::SynchronousGRPC(shared_ptr<MessageFactory> host_node, const string& node_id)
@@ -90,15 +92,16 @@ SynchronousGRPC::SynchronousGRPC(shared_ptr<MessageFactory> host_node, const str
 }
 
 SynchronousGRPC::~SynchronousGRPC() {
+    cout << "XXX SynchronousGRPC::~SynchronousGRPC() BEGIN" << endl;
     if (this->joined_network) {
         this->stop();
         this->inbox_threads.clear();
 
+        this->grpc_thread->stop();
         this->grpc_server->Shutdown();
         this->grpc_server.reset();
-
-        this->grpc_thread->stop();
     }
+    cout << "XXX SynchronousGRPC::~SynchronousGRPC() END" << endl;
 }
 
 // -------------------------------------------------------------------------------------------------
@@ -309,9 +312,11 @@ void SynchronousSharedRAM::broadcast(const string& command, const vector<string>
 
 void SynchronousSharedRAM::stop() {
     MessageBroker::stop();
+    LOG_DEBUG("SynchronousSharedRAM stopping " << this->inbox_threads.size() << " threads...");
     for (auto thread : this->inbox_threads) {
         thread->stop();
     }
+    LOG_DEBUG("SynchronousSharedRAM stopping " << this->inbox_threads.size() << " threads. Done.");
 }
 
 // ----------------------------------------------------------------
@@ -325,7 +330,7 @@ void SynchronousGRPC::join_network() {
     }
     for (unsigned int i = 0; i < MESSAGE_THREAD_COUNT; i++) {
         shared_ptr<StoppableThread> stoppable_thread = make_shared<StoppableThread>(
-            "inbox" + this->node_id + "_" + std::to_string(i));
+            "inbox_" + this->node_id + "_" + std::to_string(i));
         stoppable_thread->attach(
             new thread(&SynchronousGRPC::inbox_thread_method, this, stoppable_thread));
         this->inbox_threads.push_back(stoppable_thread);
@@ -421,11 +426,15 @@ bool SynchronousGRPC::inbox_setup_finished() {
 }
 
 void SynchronousGRPC::stop() {
-    MessageBroker::stop();
-    for (auto thread : this->inbox_threads) {
-        thread->stop();
+    if (! stopped()) {
+        MessageBroker::stop();
+        LOG_DEBUG("SynchronousGRPC stopping " << this->inbox_threads.size() << " threads...");
+        for (auto thread : this->inbox_threads) {
+            thread->stop();
+        }
+        LOG_DEBUG("SynchronousGRPC stopping " << this->inbox_threads.size() << " threads. Done");
+        grpc_thread->stop(false);
     }
-    grpc_thread->stop(false);
 }
 
 // -------------------------------------------------------------------------------------------------

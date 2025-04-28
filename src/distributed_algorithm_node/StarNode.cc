@@ -23,7 +23,9 @@ StarNode::StarNode(const string& node_id, const string& server_id, MessageBroker
     this->join_network();
 }
 
-StarNode::~StarNode() {}
+StarNode::~StarNode() {
+    cout << "XXX StarNode::~StarNode()" << endl;
+}
 
 // -------------------------------------------------------------------------------------------------
 // DistributedAlgorithmNode virtual API

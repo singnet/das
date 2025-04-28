@@ -1,5 +1,8 @@
 #include "Sink.h"
 
+#define LOG_LEVEL LEVEL_DEBUG
+#include "Logger.h"
+
 using namespace query_element;
 
 // ------------------------------------------------------------------------------------------------
@@ -13,7 +16,9 @@ Sink::Sink(shared_ptr<QueryElement> precedent, const string& id, bool setup_buff
     }
 }
 
-Sink::~Sink() { this->input_buffer->stop(); }
+Sink::~Sink() { 
+    this->stop();
+}
 
 // ------------------------------------------------------------------------------------------------
 // Public methods
@@ -31,9 +36,18 @@ void Sink::setup_buffers() {
 }
 
 void Sink::stop() {
+    LOG_DEBUG("Stopping SINK: " << this->id);
     if (! stopped()) {
+        cout << "Precedent: " << this->precedent->id << endl;
+        cout << "XXXXXXXXXXXXXXXXXXXXXXX 1" << endl;
+        QueryElement::stop();
+        cout << "XXXXXXXXXXXXXXXXXXXXXXX 2" << endl;
         this->input_buffer->stop();
+        cout << "XXXXXXXXXXXXXXXXXXXXXXX 3" << endl;
         this->precedent->stop();
+        cout << "XXXXXXXXXXXXXXXXXXXXXXX 4" << endl;
+    } else {
+        cout << "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX Sink::stop() Already stopped" << endl;
     }
 }
 
