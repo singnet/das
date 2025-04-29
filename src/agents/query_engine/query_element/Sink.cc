@@ -11,6 +11,7 @@ Sink::Sink(shared_ptr<QueryElement> precedent, const string& id, bool setup_buff
     if (setup_buffers_flag) {
         setup_buffers();
     }
+    this->query_answer_count = 0;
 }
 
 Sink::~Sink() { this->input_buffer->graceful_shutdown(); }
