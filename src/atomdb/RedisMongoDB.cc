@@ -11,6 +11,7 @@
 #include "Utils.h"
 #include "attention_broker.grpc.pb.h"
 #include "attention_broker.pb.h"
+#include "Logger.h"
 
 using namespace atomdb;
 using namespace commons;
@@ -161,7 +162,11 @@ shared_ptr<atomdb_api_types::HandleSet> RedisMongoDB::query_for_pattern(
         command = ("ZRANGE " + REDIS_PATTERNS_PREFIX + ":" + pattern_handle.get() + " " +
                    to_string(redis_cursor) + " " + to_string(redis_cursor + REDIS_CHUNK_SIZE - 1));
 
-        reply = (redisReply*) redisCommand(this->redis_single, command.c_str());
+        if (this->cluster_flag) {
+            reply = (redisReply*) redisClusterCommand(this->redis_cluster, command.c_str());
+        } else {
+            reply = (redisReply*) redisCommand(this->redis_single, command.c_str());
+        }
 
         if (reply == NULL) {
             Utils::error("Redis error");
@@ -193,9 +198,14 @@ shared_ptr<atomdb_api_types::HandleList> RedisMongoDB::query_for_targets(char* l
         auto cache_result = this->atomdb_cache->query_for_targets(link_handle_ptr);
         if (cache_result.is_cache_hit) return cache_result.result;
     }
-
-    redisReply* reply = (redisReply*) redisCommand(
-        this->redis_single, "GET %s:%s", REDIS_TARGETS_PREFIX.c_str(), link_handle_ptr);
+    redisReply* reply;
+    if (this->cluster_flag) {
+        reply = (redisReply*) redisClusterCommand(
+            this->redis_cluster, "GET %s:%s", REDIS_TARGETS_PREFIX.c_str(), link_handle_ptr);
+    } else {
+        reply = (redisReply*) redisCommand(
+            this->redis_single, "GET %s:%s", REDIS_TARGETS_PREFIX.c_str(), link_handle_ptr);
+    }
     /*
     if (reply == NULL) {
         Utils::error("Redis error");

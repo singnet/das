@@ -326,23 +326,25 @@ class LinkTemplate : public Source {
                              std::to_string(importance_list->list_size()) +
                              " Expected size: " + std::to_string(answer_count));
             }
-            this->atom_document = new shared_ptr<atomdb_api_types::AtomDocument>[answer_count];
+            this->atom_document = new shared_ptr<AtomDocumentTargets>[answer_count];
             this->local_answers = new QueryAnswer*[answer_count];
             this->next_inner_answer = new unsigned int[answer_count];
             it = this->fetch_result->get_iterator();
             unsigned int i = 0;
+            LOG_INFO("Fetching atom documents");
             while ((handle = it->next()) != nullptr) {
-                this->atom_document[i] = db->get_atom_document(handle);
+                this->atom_document[i] = make_shared<AtomDocumentTargets>();
+                this->atom_document[i]->targets = db->query_for_targets(handle);
                 query_answer = new QueryAnswer(handle, importance_list->list(i));
                 for (unsigned int j = 0; j < this->arity; j++) {
                     if (this->target_template[j]->is_terminal) {
                         auto terminal = dynamic_pointer_cast<Terminal>(this->target_template[j]);
                         if (terminal->is_variable) {
                             if (!query_answer->assignment.assign(
-                                    terminal->name.c_str(), this->atom_document[i]->get("targets", j))) {
+                                    terminal->name.c_str(), this->atom_document[i]->targets->get_handle(j))) {
                                 Utils::error(
                                     "Error assigning variable: " + terminal->name +
-                                    " a value: " + string(this->atom_document[i]->get("targets", j)));
+                                    " a value: " );
                             }
                         }
                     }
@@ -350,6 +352,7 @@ class LinkTemplate : public Source {
                 fetched_answers.push_back(query_answer);
                 i++;
             }
+            LOG_INFO("Sorting answers");
             std::sort(fetched_answers.begin(), fetched_answers.end(), less_than_query_answer());
             for (unsigned int i = 0; i < answer_count; i++) {
                 if (this->inner_template.size() == 0) {
@@ -360,21 +363,24 @@ class LinkTemplate : public Source {
                     this->increment_local_answers_size();
                 }
             }
+            LOG_INFO("Sorting answers finished");
             if (this->inner_template.size() == 0) {
                 set_flow_finished();
             }
         } else {
             set_flow_finished();
         }
+        LOG_INFO("Fetching links finished");
     }
 
     bool is_feasible(unsigned int index) {
+        LOG_INFO("Checking feasibility for index");
         unsigned int inner_answers_size = inner_answers.size();
         unsigned int cursor = this->next_inner_answer[index];
         while (cursor < inner_answers_size) {
             if (this->inner_answers[cursor] != NULL) {
                 bool passed_first_check = true;
-                unsigned int arity = this->atom_document[index]->get_size("targets");
+                unsigned int arity = this->atom_document[index]->targets->size();
                 unsigned int target_cursor = 0;
                 for (unsigned int i = 0; i < arity; i++) {
                     // Note to reviewer: pointer comparison is correct here
@@ -382,7 +388,7 @@ class LinkTemplate : public Source {
                         if (target_cursor > this->inner_answers[cursor]->handles_size) {
                             Utils::error("Invalid query answer in inner link template match");
                         }
-                        if (strncmp(this->atom_document[index]->get("targets", i),
+                        if (strncmp(this->atom_document[index]->targets->get_handle(i),
                                     this->inner_answers[cursor]->handles[target_cursor++],
                                     HANDLE_HASH_SIZE)) {
                             passed_first_check = false;
@@ -487,6 +493,10 @@ class LinkTemplate : public Source {
         return answer;
     }
 
+
+    struct AtomDocumentTargets{
+        shared_ptr<atomdb_api_types::HandleList> targets;
+    };
     string type;
     array<shared_ptr<QueryElement>, ARITY> target_template;
     unsigned int arity;
@@ -501,7 +511,7 @@ class LinkTemplate : public Source {
     mutex fetch_finished_mutex;
     shared_ptr<QueryNodeServer> target_buffer[ARITY];
     shared_ptr<Iterator> inner_template_iterator;
-    shared_ptr<atomdb_api_types::AtomDocument>* atom_document;
+    shared_ptr<AtomDocumentTargets>* atom_document;
     QueryAnswer** local_answers;
     unsigned int* next_inner_answer;
     vector<QueryAnswer*> inner_answers;
@@ -510,6 +520,7 @@ class LinkTemplate : public Source {
     string context;
     QueryElementRegistry* query_element_registry;
     static mutex get_importance_mutex;
+
 };
 
 template <unsigned int ARITY>

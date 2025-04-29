@@ -161,11 +161,16 @@ if [ "$PARAM" == "start" ]; then
         # Split the agent and path
         IFS=';' read -r AGENT_NAME AGENT_PATH <<< "$AGENT"
         IFS=' ' read -r TEMP_NAME _ _ <<< "$AGENT_NAME"
+        # create a log file
+        LOG_FILE="$PWD/logs/$TEMP_NAME.log"
+        mkdir -p logs
+        touch $LOG_FILE
         # echo "Starting agent: $AGENT_NAME"
         {
             echo -e "${colors[i % ${#colors[@]}]}Starting: $AGENT_NAME ${commands[i]}${NC}"
             bash -c "$PWD/$AGENT_PATH $AGENT_NAME" 2>&1 | while IFS= read -r line; do
                 echo -e "${colors[i % ${#colors[@]}]}[$TEMP_NAME] $line${NC}"
+                echo "$line" >> $LOG_FILE
             done
         } &
         sleep 5
