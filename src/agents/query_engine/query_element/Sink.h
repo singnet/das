@@ -58,6 +58,7 @@ class Sink : public QueryElement {
 
    protected:
     shared_ptr<QueryElement> precedent;
+    unsigned int query_answer_count;
 };
 
 }  // namespace query_element
