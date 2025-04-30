@@ -71,7 +71,9 @@ char* HandleSetRedisIterator::next() {
     // Get first element of the next redisReply
     if (this->outer_idx < this->handle_set->replies.size()) {
         reply = this->handle_set->replies[this->outer_idx];
-        return reply->element[this->inner_idx++]->str;
+        if (this->inner_idx < reply->elements) {
+            return reply->element[this->inner_idx++]->str;
+        }
     }
 
     // No more elements, reset indexes and return nullptr
