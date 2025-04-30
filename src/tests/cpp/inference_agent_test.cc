@@ -133,8 +133,7 @@ TEST_F(InferenceAgentTest, TestConfig) {
 TEST_F(InferenceAgentTest, TestProofOfImplicationOrEquivalence) {
     EXPECT_CALL(*link_creation_node_client, send_message(testing::_))
         .Times(6)
-        .WillRepeatedly(::testing::Invoke(
-            [](const vector<string>& message) {  }));
+        .WillRepeatedly(::testing::Invoke([](const vector<string>& message) {}));
 
     EXPECT_CALL(*distributed_inference_control_node_client,
                 send_inference_control_request(testing::_, testing::_))
@@ -231,7 +230,8 @@ TEST(InferenceRequest, TestInferenceRequests) {
     dic_request = proof_of_implication.get_distributed_inference_control_request();
     EXPECT_EQ(requests.size(), 1);
     EXPECT_EQ(Utils::join(requests[0], ' '),
-              "AND 2 LINK_TEMPLATE Expression 2 NODE Symbol SATISFYING_SET VARIABLE P1 LINK_TEMPLATE Expression 2 NODE Symbol SATISFYING_SET VARIABLE P2 PROOF_OF_IMPLICATION");
+              "AND 2 LINK_TEMPLATE Expression 2 NODE Symbol SATISFYING_SET VARIABLE P1 LINK_TEMPLATE "
+              "Expression 2 NODE Symbol SATISFYING_SET VARIABLE P2 PROOF_OF_IMPLICATION");
     EXPECT_EQ(Utils::join(dic_request, ' '),
               "context OR 6 AND 2 LINK_TEMPLATE Expression 3 NODE Symbol IMPLICATION HANDLE handle3 "
               "VARIABLE V1 "
@@ -250,7 +250,8 @@ TEST(InferenceRequest, TestInferenceRequests) {
     dic_request = proof_of_equivalence.get_distributed_inference_control_request();
     EXPECT_EQ(requests.size(), 1);
     EXPECT_EQ(Utils::join(requests[0], ' '),
-              "AND 2 LINK_TEMPLATE Expression 2 NODE Symbol PATTERNS VARIABLE C1 LINK_TEMPLATE Expression 2 NODE Symbol PATTERNS VARIABLE C2 PROOF_OF_EQUIVALENCE");
+              "AND 2 LINK_TEMPLATE Expression 2 NODE Symbol PATTERNS VARIABLE C1 LINK_TEMPLATE "
+              "Expression 2 NODE Symbol PATTERNS VARIABLE C2 PROOF_OF_EQUIVALENCE");
     EXPECT_EQ(
         Utils::join(dic_request, ' '),
         "context2 OR 2 LINK_TEMPLATE Expression 3 NODE Symbol IMPLICATION HANDLE handle5 HANDLE handle6 "

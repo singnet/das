@@ -338,9 +338,10 @@ TEST(Link, TestLinkTemplateProcessor) {
         "CUSTOM_FIELD truth_value 2 CUSTOM_FIELD mean 2 count 10 avg 0.9 confidence 0.9",
         ' ');
     links = ltp.process(query_answer, link_template);
-    EXPECT_EQ(Utils::join(links[0], ' '),
-              "LINK Test2 2 1 NODE Symbol C NODE Symbol B CUSTOM_FIELD truth_value 2 CUSTOM_FIELD mean 2 "
-              "count 10 avg 0.9 confidence 0.9");
+    EXPECT_EQ(
+        Utils::join(links[0], ' '),
+        "LINK Test2 2 1 NODE Symbol C NODE Symbol B CUSTOM_FIELD truth_value 2 CUSTOM_FIELD mean 2 "
+        "count 10 avg 0.9 confidence 0.9");
 
     link_template.clear();
 
@@ -352,12 +353,11 @@ TEST(Link, TestLinkTemplateProcessor) {
     query_answer->assignment.assign("V1", "Value1");
     query_answer->assignment.assign("V2", "Value2");
     links = ltp.process(query_answer, link_template);
-    EXPECT_EQ(Utils::join(links[0], ' '),
-              "LINK Test3 2 1 HANDLE Value1 HANDLE Value2 CUSTOM_FIELD truth_value 2 CUSTOM_FIELD mean 2 "
-              "count 10 avg 0.9 confidence 0.9");
+    EXPECT_EQ(
+        Utils::join(links[0], ' '),
+        "LINK Test3 2 1 HANDLE Value1 HANDLE Value2 CUSTOM_FIELD truth_value 2 CUSTOM_FIELD mean 2 "
+        "count 10 avg 0.9 confidence 0.9");
     link_template.clear();
-
-
 
     // Test the Link class
     vector<string> tokens = Utils::split(

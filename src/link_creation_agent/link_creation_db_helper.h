@@ -27,7 +27,7 @@ class LinkCreateDBSingleton {
     LinkTargetTypes get_atom(string handle);
 
    private:
-   LinkCreateDBSingleton(){};
+    LinkCreateDBSingleton(){};
     static shared_ptr<LinkCreateDBSingleton> instance;
 };
 
