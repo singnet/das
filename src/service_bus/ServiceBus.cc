@@ -79,9 +79,6 @@ void ServiceBus::issue_bus_command(shared_ptr<BusCommandProxy> proxy) {
         for (auto arg : proxy->args) {
             args.push_back(arg);
         }
-        for (auto arg : args) {
-            cout << "ARG: " << arg << endl;
-        }
         this->bus_node->send_bus_command(proxy->command, args);
     }
 }
