@@ -28,6 +28,7 @@ docker run --rm \
   --privileged \
   --name=$CONTAINER_NAME \
   -e BIN_DIR=$CONTAINER_BIN_DIR \
+  $ENV_VARS \
   --network host \
   --volume $LOCAL_CACHE:$CONTAINER_CACHE \
   --volume $LOCAL_WORKDIR:$CONTAINER_WORKDIR \
