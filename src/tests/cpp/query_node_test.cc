@@ -64,4 +64,10 @@ TEST(QueryNode, basics) {
     EXPECT_TRUE(client1.is_query_answers_finished());
     EXPECT_TRUE(client2.is_query_answers_empty());
     EXPECT_TRUE(client2.is_query_answers_finished());
+
+    Utils::sleep(2000);
+    cout << "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX" << endl;
+    cout << "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX" << endl;
+    cout << "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX" << endl;
+    cout << "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX" << endl;
 }

@@ -71,14 +71,6 @@ class QueryElement : public Stoppable {
      */
     virtual void stop();
 
-    /**
-     * Returns true iff this element is shuting down.
-     *
-     * The idea is to allow concrete subclasses to know when a graceful shutdown has been requested
-     * so threads or any other resources being used in communication can be stoped/released/etc.
-     */
-    bool stopped();
-
     // --------------------------------------------------------------------------------------------
     // API to be extended by concrete subclasses
 
@@ -118,8 +110,6 @@ class QueryElement : public Stoppable {
    private:
     bool flow_finished;
     mutex flow_finished_mutex;
-    bool stop_flag;
-    mutex stop_flag_mutex;
 };
 
 }  // namespace query_element

@@ -74,14 +74,7 @@ class StoppableThread : public Stoppable {
      *
      * The attached thread will be joined (by calling thread::join()) and deleted.
      */
-    void stop();
-
-    /**
-     * Returns true iff the "stop" flag has be set.
-     *
-     * @return true iff the "stop" flag has be set.
-     */
-    bool stopped();
+    virtual void stop();
 
     /**
      * Getter for the ID of this StoppableThread.
@@ -98,10 +91,8 @@ class StoppableThread : public Stoppable {
     const string& to_string();
 
    private:
-    bool stop_flag;
     string id;
     string string_representation;
-    mutex stop_flag_mutex;
     thread* thread_object;
 };
 

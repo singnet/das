@@ -38,7 +38,6 @@ class And : public Operator<N> {
      * Destructor.
      */
     ~And() {
-        stop();
         for (size_t i = 0; i < N; i++) {
             for (auto* answer : this->query_answer[i]) {
                 if (answer) {
@@ -57,13 +56,6 @@ class And : public Operator<N> {
         Operator<N>::setup_buffers();
         this->operator_thread = make_shared<StoppableThread>("operator:" + this->id);
         this->operator_thread->attach(new thread(&And::and_operator_method, this, this->operator_thread));
-    }
-
-    virtual void stop() {
-        LOG_DEBUG("Stopping AND: " << this->id);
-        if (! this->stopped()) {
-            Operator<N>::stop();
-        }
     }
 
     // --------------------------------------------------------------------------------------------

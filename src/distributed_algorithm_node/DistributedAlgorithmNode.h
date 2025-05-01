@@ -50,7 +50,7 @@ namespace distributed_algorithm_node {
  *     election and notification of new nodes joning the network. The proper way to respond
  *     to these requests are delegated to concrete classes extending DistributedAlgorithmNode.
  */
-class DistributedAlgorithmNode : public MessageFactory, Stoppable {
+class DistributedAlgorithmNode : public MessageFactory, public Stoppable {
    public:
     /**
      * Destructor.
@@ -151,13 +151,6 @@ class DistributedAlgorithmNode : public MessageFactory, Stoppable {
      */
     virtual void stop();
 
-    /**
-     * Returns true iff this node is being (or has already been) shut down.
-     *
-     * @return true iff this node is being (or has already been) shut down.
-     */
-    bool stopped();
-
     // --------------------------------------------------------------------------------------------
     // API to be extended by concrete subclasses
 
@@ -188,8 +181,6 @@ class DistributedAlgorithmNode : public MessageFactory, Stoppable {
     string my_node_id;
     shared_ptr<LeadershipBroker> leadership_broker;
     shared_ptr<MessageBroker> message_broker;
-    bool stop_flag;
-    mutex stop_flag_mutex;
 
     struct {
         string NODE_JOINED_NETWORK = "node_joined_network";

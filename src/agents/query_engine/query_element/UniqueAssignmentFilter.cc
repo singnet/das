@@ -14,7 +14,7 @@ UniqueAssignmentFilter::UniqueAssignmentFilter(const shared_ptr<QueryElement>& i
     initialize(input);
 }
 
-UniqueAssignmentFilter::~UniqueAssignmentFilter() { stop(); }
+UniqueAssignmentFilter::~UniqueAssignmentFilter() {}
 
 void UniqueAssignmentFilter::initialize(const shared_ptr<QueryElement>& input) {
     this->id = "UniqueAssignmentFilter(" + input->id + ")";
@@ -28,12 +28,6 @@ void UniqueAssignmentFilter::setup_buffers() {
     Operator<1>::setup_buffers();
     this->operator_thread = make_shared<StoppableThread>("operator:" + this->id);
     this->operator_thread->attach(new thread(&UniqueAssignmentFilter::thread_filter, this, this->operator_thread));
-}
-
-void UniqueAssignmentFilter::stop() {
-    if (! stopped()) {
-        Operator<1>::stop();
-    }
 }
 
 // -------------------------------------------------------------------------------------------------

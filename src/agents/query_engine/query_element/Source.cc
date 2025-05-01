@@ -46,7 +46,8 @@ void Source::setup_buffers() {
 }
 
 void Source::stop() {
-    LOG_DEBUG("Stopping SOURCE: " << this->id);
-    QueryElement::stop();
-    this->output_buffer->stop(); 
+    if (! check_and_set_stopped()) {
+        LOG_DEBUG("Stopping SOURCE: " << this->id);
+        this->output_buffer->stop(); 
+    }
 }

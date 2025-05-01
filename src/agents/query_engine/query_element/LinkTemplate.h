@@ -146,19 +146,13 @@ class LinkTemplate : public Source {
      * Gracefully shuts down this QueryElement's processor thread.
      */
     virtual void stop() {
-        LOG_DEBUG("Stopping LINK_TEMPLATE: " << this->id);
         if (! stopped()) {
-            cout << "XXXXXXXXXXXXX LT stop() 1" << endl;
+            LOG_DEBUG("Stopping LINK_TEMPLATE: " << this->id);
             //if (this->is_flow_finished()) return;
-            cout << "XXXXXXXXXXXXX LT stop() 2" << endl;
             set_flow_finished();
-            cout << "XXXXXXXXXXXXX LT stop() 3" << endl;
             this->local_buffer_processor->stop();
-            cout << "XXXXXXXXXXXXX LT stop() 4" << endl;
             Source::stop();
-            cout << "XXXXXXXXXXXXX LT stop() 5" << endl;
         }
-            cout << "XXXXXXXXXXXXX LT stop() 6" << endl;
     }
 
     virtual void setup_buffers() {

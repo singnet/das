@@ -85,14 +85,6 @@ class MessageBroker : public Stoppable {
      */
     virtual void stop();
 
-    /**
-     * Returns true iff this MessageBroker is shuting down.
-     *
-     * The idea is to allow concrete subclasses to know when a graceful shutdown has been requested
-     * so threads or any other resources being used in communication can be stoped/released/etc.
-     */
-    bool stopped();
-
     // ----------------------------------------------------------------
     // Public abstract API
 
@@ -127,8 +119,6 @@ class MessageBroker : public Stoppable {
     unordered_set<string> peers;
     mutex peers_mutex;
     string node_id;
-    bool stop_flag;
-    mutex stop_flag_mutex;
     bool joined_network;
 };
 
@@ -195,7 +185,7 @@ class SynchronousSharedRAM : public MessageBroker {
     /**
      * Gracefully shuts down threads or any other resources being used in communication.
      */
-    void stop();
+    virtual void stop();
 
    private:
     static unsigned int MESSAGE_THREAD_COUNT;
@@ -312,7 +302,7 @@ class SynchronousGRPC : public MessageBroker, public dasproto::AtomSpaceNode::Se
     /**
      * Gracefully shuts down threads or any other resources being used in communication.
      */
-    void stop();
+    virtual void stop();
 
     // ----------------------------------------------------------------
     // Public GRPC API

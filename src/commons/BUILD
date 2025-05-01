@@ -5,15 +5,16 @@ cc_library(
     srcs = [
         "Utils.cc",
         "SharedQueue.cc",
+        "Stoppable.cc",
         "StoppableThread.cc",
     ],
     hdrs = [
         "Utils.h",
         "SharedQueue.h",
+        "Stoppable.h",
         "StoppableThread.h",
         "Logger.h",
         "RequestValidator.h",
-        "Stoppable.h",
     ],
     includes = ["."],
     deps = [],

@@ -36,18 +36,10 @@ void Sink::setup_buffers() {
 }
 
 void Sink::stop() {
-    LOG_DEBUG("Stopping SINK: " << this->id);
-    if (! stopped()) {
-        cout << "Precedent: " << this->precedent->id << endl;
-        cout << "XXXXXXXXXXXXXXXXXXXXXXX 1" << endl;
-        QueryElement::stop();
-        cout << "XXXXXXXXXXXXXXXXXXXXXXX 2" << endl;
+    if (! check_and_set_stopped()) {
+        LOG_DEBUG("Stopping SINK: " << this->id);
         this->input_buffer->stop();
-        cout << "XXXXXXXXXXXXXXXXXXXXXXX 3" << endl;
         this->precedent->stop();
-        cout << "XXXXXXXXXXXXXXXXXXXXXXX 4" << endl;
-    } else {
-        cout << "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX Sink::stop() Already stopped" << endl;
     }
 }
 

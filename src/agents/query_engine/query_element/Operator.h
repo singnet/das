@@ -72,8 +72,7 @@ class Operator : public QueryElement {
      * in the query tree.
      */
     virtual void stop() {
-        if (! stopped()) {
-            QueryElement::stop();
+        if (! check_and_set_stopped()) {
             for (unsigned int i = 0; i < N; i++) {
                 this->precedent[i]->stop();
             }

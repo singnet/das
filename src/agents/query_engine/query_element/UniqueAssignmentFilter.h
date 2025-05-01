@@ -43,11 +43,6 @@ class UniqueAssignmentFilter : public Operator<1> {
      */
     virtual void setup_buffers();
 
-    /**
-     * Gracefully shuts down the QueryNode.
-     */
-    virtual void stop();
-
     // --------------------------------------------------------------------------------------------
     // Private stuff
 

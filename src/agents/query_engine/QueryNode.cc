@@ -8,6 +8,7 @@
 #include "Logger.h"
 
 using namespace query_node;
+using namespace commons;
 using namespace std;
 
 string QueryNode::QUERY_ANSWER_TOKENS_FLOW_COMMAND = "query_answer_tokens_flow";
@@ -33,19 +34,10 @@ QueryNode::QueryNode(const string& node_id, bool is_server, MessageBrokerType me
 
 QueryNode::~QueryNode() {
     LOG_DEBUG("Destroying QueryNode " << this->node_id());
-    this->stop();
     while (!this->query_answer_queue.empty()) {
         delete (QueryAnswer*) this->query_answer_queue.dequeue();
     }
     LOG_DEBUG("Destroying QueryNode " << this->node_id() << " DONE");
-}
-
-void QueryNode::stop() {
-    if (! stopped()) {
-        LOG_DEBUG("Gracefully shutting down QueryNode " << this->node_id());
-        DistributedAlgorithmNode::stop();
-        LOG_DEBUG("Gracefully shutting down QueryNode " << this->node_id() << " DONE");
-    }
 }
 
 void QueryNode::query_answers_finished() {
@@ -101,7 +93,7 @@ void QueryNodeServer::node_joined_network(const string& node_id) { this->add_pee
 string QueryNodeServer::cast_leadership_vote() { return this->node_id(); }
 
 void QueryNodeServer::query_answer_processor_method(shared_ptr<StoppableThread> monitor) {
-    while (!this->stopped()) {
+    while (! stopped()) {
         Utils::sleep();
     }
 }
@@ -110,7 +102,7 @@ void QueryNodeClient::query_answer_processor_method(shared_ptr<StoppableThread> 
     QueryAnswer* query_answer;
     vector<string> args;
     bool answers_finished_flag = false;
-    while (!this->stopped()) {
+    while (! stopped()) {
         while ((query_answer = (QueryAnswer*) this->query_answer_queue.dequeue()) != NULL) {
             if (this->requires_serialization) {
                 string tokens = query_answer->tokenize();

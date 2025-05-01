@@ -15,18 +15,8 @@ QueryElement::QueryElement() {
 
 QueryElement::~QueryElement() { stop(); }
 
-// ------------------------------------------------------------------------------------------------
-// Public methods
-
 void QueryElement::stop() {
-    lock_guard<mutex> semaphore(this->stop_flag_mutex);
-    LOG_DEBUG("Stopping QueryElement: " << this->id);
-    this->stop_flag = true;
-}
-
-bool QueryElement::stopped() {
-    lock_guard<mutex> semaphore(this->stop_flag_mutex);
-    return this->stop_flag;
+    if (check_and_set_stopped()) {}
 }
 
 // ------------------------------------------------------------------------------------------------

@@ -47,10 +47,10 @@ class Or : public Operator<N> {
     }
 
     virtual void stop() {
-        LOG_DEBUG("Stopping OR: " << this->id);
         if (! this->stopped()) {
-            Operator<N>::stop();
+            LOG_DEBUG("Stopping OR: " << this->id);
             this->operator_thread->stop();
+            Operator<N>::stop();
         }
     }
 

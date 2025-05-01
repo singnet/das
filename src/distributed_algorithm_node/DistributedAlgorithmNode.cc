@@ -75,19 +75,11 @@ std::shared_ptr<Message> DistributedAlgorithmNode::message_factory(string& comma
 }
 
 void DistributedAlgorithmNode::stop() {
-    LOG_DEBUG("Shuting down DistributedAlgorithmNode " << this->node_id());
-    this->message_broker->stop();
-    this->stop_flag_mutex.lock();
-    this->stop_flag = true;
-    this->stop_flag_mutex.unlock();
-    LOG_DEBUG("Shuting down DistributedAlgorithmNode " << this->node_id() << " done");
-}
-
-bool DistributedAlgorithmNode::stopped() {
-    this->stop_flag_mutex.lock();
-    bool answer = this->stop_flag;
-    this->stop_flag_mutex.unlock();
-    return answer;
+    if (! check_and_set_stopped()) {
+        LOG_DEBUG("Shuting down DistributedAlgorithmNode " << this->node_id());
+        this->message_broker->stop();
+        LOG_DEBUG("Shuting down DistributedAlgorithmNode " << this->node_id() << " done");
+    }
 }
 
 string DistributedAlgorithmNode::to_string() {

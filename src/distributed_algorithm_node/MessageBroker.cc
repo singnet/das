@@ -53,7 +53,6 @@ MessageBroker::MessageBroker(shared_ptr<MessageFactory> host_node, const string&
     }
     this->host_node = host_node;
     this->node_id = node_id;
-    this->stop_flag = false;
     this->joined_network = false;
 }
 
@@ -97,7 +96,7 @@ SynchronousGRPC::~SynchronousGRPC() {
         this->stop();
         this->inbox_threads.clear();
 
-        this->grpc_thread->stop();
+        this->grpc_thread->stop(false);
         this->grpc_server->Shutdown();
         this->grpc_server.reset();
     }
@@ -247,14 +246,6 @@ bool MessageBroker::is_peer(const string& peer_id) {
 }
 
 void MessageBroker::stop() {
-    lock_guard<mutex> semaphore(this->stop_flag_mutex);
-    LOG_DEBUG("Stopping MessageBroker at node: " << this->node_id);
-    this->stop_flag = true;
-}
-
-bool MessageBroker::stopped() {
-    lock_guard<mutex> semaphore(this->stop_flag_mutex);
-    return this->stop_flag;
 }
 
 // ----------------------------------------------------------------
@@ -311,12 +302,13 @@ void SynchronousSharedRAM::broadcast(const string& command, const vector<string>
 }
 
 void SynchronousSharedRAM::stop() {
-    MessageBroker::stop();
-    LOG_DEBUG("SynchronousSharedRAM stopping " << this->inbox_threads.size() << " threads...");
-    for (auto thread : this->inbox_threads) {
-        thread->stop();
+    if (! check_and_set_stopped()) {
+        LOG_DEBUG("SynchronousSharedRAM stopping " << this->inbox_threads.size() << " threads...");
+        for (auto thread : this->inbox_threads) {
+            thread->stop();
+        }
+        LOG_DEBUG("SynchronousSharedRAM stopping " << this->inbox_threads.size() << " threads. Done.");
     }
-    LOG_DEBUG("SynchronousSharedRAM stopping " << this->inbox_threads.size() << " threads. Done.");
 }
 
 // ----------------------------------------------------------------
@@ -426,14 +418,12 @@ bool SynchronousGRPC::inbox_setup_finished() {
 }
 
 void SynchronousGRPC::stop() {
-    if (! stopped()) {
-        MessageBroker::stop();
+    if (! check_and_set_stopped()) {
         LOG_DEBUG("SynchronousGRPC stopping " << this->inbox_threads.size() << " threads...");
         for (auto thread : this->inbox_threads) {
             thread->stop();
         }
         LOG_DEBUG("SynchronousGRPC stopping " << this->inbox_threads.size() << " threads. Done");
-        grpc_thread->stop(false);
     }
 }
 

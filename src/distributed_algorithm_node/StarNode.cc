@@ -24,7 +24,6 @@ StarNode::StarNode(const string& node_id, const string& server_id, MessageBroker
 }
 
 StarNode::~StarNode() {
-    cout << "XXX StarNode::~StarNode()" << endl;
 }
 
 // -------------------------------------------------------------------------------------------------

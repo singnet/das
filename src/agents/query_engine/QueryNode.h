@@ -21,7 +21,6 @@ class QueryNode : public DistributedAlgorithmNode {
               MessageBrokerType messaging_backend = MessageBrokerType::RAM);
     virtual ~QueryNode();
     virtual shared_ptr<Message> message_factory(string& command, vector<string>& args);
-    virtual void stop();
     void query_answers_finished();
     bool is_query_answers_finished();
     void add_query_answer(QueryAnswer* query_answer);

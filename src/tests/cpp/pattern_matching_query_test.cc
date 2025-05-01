@@ -158,16 +158,16 @@ TEST(PatternMatchingQuery, queries) {
     int q6_expected_count = 4;
 
     check_query(q1, q1_expected_count, client_bus, "PatternMatchingQuery.queries", false, false);
-    Utils::sleep(2000); cout << "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX 1" << endl;
+    Utils::sleep(2000); cout << "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX 1 XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX" << endl;
     // check_query(q2, q2_expected_count, client_bus, "PatternMatchingQuery.queries", false, false);
     check_query(q3, q3_expected_count, client_bus, "PatternMatchingQuery.queries", false, false);
-    Utils::sleep(2000); cout << "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX 2" << endl;
+    Utils::sleep(2000); cout << "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX 2 XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX" << endl;
     check_query(q4, q4_expected_count, client_bus, "PatternMatchingQuery.queries", false, false);
-    Utils::sleep(2000); cout << "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX 3" << endl;
+    Utils::sleep(2000); cout << "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX 3 XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX" << endl;
     check_query(q5, q5_expected_count, client_bus, "PatternMatchingQuery.queries", false, false);
-    Utils::sleep(2000); cout << "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX 4" << endl;
+    Utils::sleep(2000); cout << "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX 4 XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX" << endl;
     check_query(q6, q6_expected_count, client_bus, "PatternMatchingQuery.queries", false, true);
-    Utils::sleep(2000); cout << "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX 5" << endl;
+    Utils::sleep(2000); cout << "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX 5 XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX" << endl;
 
     check_query(q1, q1_expected_count, client_bus, "PatternMatchingQuery.queries", true, false);
     // check_query(q2, q2_expected_count, client_bus, "PatternMatchingQuery.queries", true, false);
@@ -176,11 +176,11 @@ TEST(PatternMatchingQuery, queries) {
     check_query(q5, q5_expected_count, client_bus, "PatternMatchingQuery.queries", true, false);
     check_query(q6, q6_expected_count, client_bus, "PatternMatchingQuery.queries", true, true);
     Utils::sleep(2000);
-    cout << "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX END" << endl;
-    cout << "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX END" << endl;
-    cout << "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX END" << endl;
-    cout << "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX END" << endl;
-    cout << "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX END" << endl;
+    cout << "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX END XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX" << endl;
+    cout << "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX END XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX" << endl;
+    cout << "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX END XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX" << endl;
+    cout << "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX END XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX" << endl;
+    cout << "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX END XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX" << endl;
 
     Utils::sleep(2000);
     cout << "YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY" << endl;
