@@ -3,6 +3,9 @@
 #include <hiredis_cluster/hircluster.h>
 
 #include <bsoncxx/json.hpp>
+#include <mongocxx/options/find.hpp>
+#include <bsoncxx/builder/stream/document.hpp>
+#include <bsoncxx/builder/stream/helpers.hpp>
 #include <memory>
 #include <mongocxx/client.hpp>
 #include <mongocxx/instance.hpp>
@@ -45,6 +48,7 @@ class RedisMongoDB : public AtomDB {
     shared_ptr<atomdb_api_types::HandleList> query_for_targets(shared_ptr<char> link_handle);
     shared_ptr<atomdb_api_types::HandleList> query_for_targets(char* link_handle_ptr);
     shared_ptr<atomdb_api_types::AtomDocument> get_atom_document(const char* handle);
+    vector<shared_ptr<atomdb_api_types::AtomDocument>> get_atom_documents(vector<string>& handles);
 
    private:
     bool cluster_flag;

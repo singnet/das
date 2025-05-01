@@ -251,15 +251,15 @@ std::vector<std::vector<std::string>> ProofOfImplicationOrEquivalence::get_reque
     requests.push_back(query_and_link_creation_template);
     //  Not supported yet
     //  proof of implication
-    ProofOfImplication proof_of_implication(first_handle, second_handle, max_proof_length, context);
-    for (auto request : proof_of_implication.get_requests()) {
-        requests.push_back(request);
-    }
-    // proof of equivalence
-    ProofOfEquivalence proof_of_equivalence(first_handle, second_handle, max_proof_length, context);
-    for (auto request : proof_of_equivalence.get_requests()) {
-        requests.push_back(request);
-    }
+    // ProofOfImplication proof_of_implication(first_handle, second_handle, max_proof_length, context);
+    // for (auto request : proof_of_implication.get_requests()) {
+    //     requests.push_back(request);
+    // }
+    // // proof of equivalence
+    // ProofOfEquivalence proof_of_equivalence(first_handle, second_handle, max_proof_length, context);
+    // for (auto request : proof_of_equivalence.get_requests()) {
+    //     requests.push_back(request);
+    // }
 
     return requests;
 }

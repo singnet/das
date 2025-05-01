@@ -18,6 +18,7 @@ class AtomDB {
     virtual shared_ptr<atomdb_api_types::HandleList> query_for_targets(shared_ptr<char> link_handle) = 0;
     virtual shared_ptr<atomdb_api_types::HandleList> query_for_targets(char* link_handle_ptr) = 0;
     virtual shared_ptr<atomdb_api_types::AtomDocument> get_atom_document(const char* handle) = 0;
+    virtual vector<shared_ptr<atomdb_api_types::AtomDocument>> get_atom_documents(vector<string>& handles) = 0;
 
    private:
     virtual void attention_broker_setup() = 0;

@@ -11,6 +11,7 @@
 #include <set>
 #include <shared_mutex>
 
+#include "commons/thread_pool.h"
 #include "PatternMatchingQueryProxy.h"
 #include "QueryAnswer.h"
 #include "ServiceBusSingleton.h"
@@ -21,7 +22,6 @@
 #include "link_processor.h"
 #include "queue.h"
 #include "template_processor.h"
-#include "thread_pool.h"
 
 using namespace das_agent;
 using namespace query_engine;

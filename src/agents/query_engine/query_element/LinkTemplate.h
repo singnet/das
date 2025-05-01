@@ -8,6 +8,7 @@
 // clang-format off
 #define LOG_LEVEL INFO_LEVEL
 #include "Logger.h"
+#include "Utils.h"
 // clang-format on
 
 #include "And.h"
@@ -26,6 +27,8 @@
 #include "attention_broker.grpc.pb.h"
 #include "attention_broker.pb.h"
 #include "expression_hasher.h"
+#include "thread_pool.h"
+#include <shared_mutex>
 
 #define MAX_GET_IMPORTANCE_BUNDLE_SIZE ((unsigned int) 100000)
 
@@ -35,6 +38,42 @@ using namespace attention_broker_server;
 using namespace atomdb;
 
 namespace query_element {
+
+
+    class TargetsHandleList : public atomdb_api_types::HandleList {
+       public:
+       TargetsHandleList(shared_ptr<atomdb_api_types::AtomDocument> document) : atomdb_api_types::HandleList() {
+            this->handles_size = document->get_size("targets");
+            this->handles = new char*[this->handles_size];
+            for (unsigned int i = 0; i < this->handles_size; i++) {
+                this->handles[i] = strndup(document->get("targets", i), HANDLE_HASH_SIZE - 1);
+            }
+            // this->document = document;
+
+        }
+        ~TargetsHandleList() {
+            for (unsigned int i = 0; i < this->handles_size; i++) {
+                free(this->handles[i]);
+            }
+            delete[] this->handles;
+        }
+
+        const char* get_handle(unsigned int index) {
+            if (index > this->handles_size) {
+                Utils::error("Handle index out of bounds: " + to_string(index) +
+                             " Answer handles size: " + to_string(this->handles_size));
+            }
+            //
+            return handles[index];
+        }
+        
+        unsigned int size() { return this->handles_size; }
+
+        private:
+        unsigned int handles_size;
+        char** handles;
+        // shared_ptr<atomdb_api_types::AtomDocument> document;
+    };
 
 /**
  * Concrete Source that searches for a pattern in the AtomDB and feeds the QueryElement up in the
@@ -227,6 +266,7 @@ class LinkTemplate : public Source {
             // clang-format on
         }
         this->local_buffer_processor = new thread(&LinkTemplate::local_buffer_processor_method, this);
+        LOG_INFO("Starting local buffer processor thread for link template");
         fetch_links();
     }
 
@@ -312,6 +352,7 @@ class LinkTemplate : public Source {
         LOG_INFO("Fetched " << answer_count << " links for link template " << this->to_string());
         QueryAnswer* query_answer;
         vector<QueryAnswer*> fetched_answers;
+        fetched_answers.reserve(answer_count);
         if (answer_count > 0) {
             dasproto::HandleList handle_list;
             handle_list.set_context(this->context);
@@ -330,29 +371,70 @@ class LinkTemplate : public Source {
             this->local_answers = new QueryAnswer*[answer_count];
             this->next_inner_answer = new unsigned int[answer_count];
             it = this->fetch_result->get_iterator();
-            unsigned int i = 0;
+            unsigned int ii = 0;
+            unsigned int db_count = 0;
+            StopWatch stopwatch;
+            stopwatch.start();
+            shared_mutex t_mutex;
             LOG_INFO("Fetching atom documents");
+            vector<string> handles;
+            int split = 1000;
+            split = split > answer_count ? answer_count -1 : split;
             while ((handle = it->next()) != nullptr) {
-                // this->atom_document[i] = make_shared<AtomDocumentTargets>();
-                this->atom_document[i] = db->query_for_targets(handle);
-                query_answer = new QueryAnswer(handle, importance_list->list(i));
-                for (unsigned int j = 0; j < this->arity; j++) {
-                    if (this->target_template[j]->is_terminal) {
-                        auto terminal = dynamic_pointer_cast<Terminal>(this->target_template[j]);
-                        if (terminal->is_variable) {
-                            if (!query_answer->assignment.assign(
-                                    terminal->name.c_str(), this->atom_document[i]->get_handle(j))) {
-                                Utils::error(
-                                    "Error assigning variable: " + terminal->name +
-                                    " a value: " );
-                            }
-                        }
+                if (((ii > 0) && ((ii % split) == 0))) {
+                    int start = ii - split;
+                    int end = ii;
+                    if (end + split > answer_count) {
+                        end = answer_count;
                     }
+                    auto job = [this, db, &db_count, start, end, &fetched_answers, importance_list, &t_mutex, &stopwatch, &handle_list]() {
+                        vector<string> handles;
+                        for (int i = start; i < end; i++) {
+                            handles.push_back(handle_list.list(i));
+                        }
+                        auto atom_handle_list = db->get_atom_documents(handles);
+                        int c = 0;
+                        for (int i = start; i < end; i++) {
+                            auto hh = handle_list.list(i).c_str();
+                            this->atom_document[i] = make_shared<TargetsHandleList>(atom_handle_list[c++]);
+                            db_count++;
+                            // shared_ptr<QueryAnswer> query_answer = make_shared<QueryAnswer>(hh, importance_list->list(i));
+                            QueryAnswer* query_answer = new QueryAnswer(hh, importance_list->list(i));
+                            for (unsigned int j = 0; j < this->arity; j++) {
+                                if (this->target_template[j]->is_terminal) {
+                                    auto terminal = dynamic_pointer_cast<Terminal>(this->target_template[j]);
+                                    if (terminal->is_variable) {
+                                        if (!query_answer->assignment.assign(
+                                                terminal->name.c_str(), this->atom_document[i]->get_handle(j))) {
+                                            Utils::error(
+                                                "Error assigning variable: " + terminal->name +
+                                                " a value: " );
+                                        }
+                                    }
+                                }
+                            }
+                            // show percentage
+                            int total = handle_list.list_size();
+                            if (db_count % (total / 10) == 0) {
+                                LOG_INFO("Fetched " << (double(db_count) / double(total)) * double(100) << "% atom documents from Mongo DB: " << db_count << "/" << total);
+                            }
+                            fetched_answers[i] = query_answer;
+                        }
+
+                    };
+                    thread_pool.enqueue(job);
                 }
-                fetched_answers.push_back(query_answer);
-                i++;
+                ii++;
             }
-            LOG_INFO("Sorting answers");
+            // LOG_INFO("Waiting for threads to finish, processing " << ii << " links");
+            while (!thread_pool.empty()) {
+                // LOG_INFO("Waiting for threads to finish, running threads " << thread_pool.size() << " total of links: " << answer_count );
+                Utils::sleep();
+            }
+            thread_pool.wait();
+            stopwatch.stop();
+            LOG_INFO("Fetched " << db_count << " from MongoDB of  " << answer_count << " in: " << stopwatch.milliseconds() / 1000 << " seconds");  
+            LOG_INFO("Sorting");
             std::sort(fetched_answers.begin(), fetched_answers.end(), less_than_query_answer());
             for (unsigned int i = 0; i < answer_count; i++) {
                 if (this->inner_template.size() == 0) {
@@ -374,7 +456,7 @@ class LinkTemplate : public Source {
     }
 
     bool is_feasible(unsigned int index) {
-        LOG_INFO("Checking feasibility for index");
+        // LOG_INFO("Checking feasibility for index");
         unsigned int inner_answers_size = inner_answers.size();
         unsigned int cursor = this->next_inner_answer[index];
         while (cursor < inner_answers_size) {
@@ -396,6 +478,7 @@ class LinkTemplate : public Source {
                         }
                     }
                 }
+                // LOG_INFO("Merge");
                 if (passed_first_check &&
                     this->local_answers[index]->merge(this->inner_answers[cursor], false)) {
                     this->inner_answers[cursor] = NULL;
@@ -421,7 +504,9 @@ class LinkTemplate : public Source {
 
     void local_buffer_processor_method() {
         if (this->inner_template.size() == 0) {
+            // LOG_INFO("Inner");
             while (!(this->is_flow_finished() && this->local_buffer.empty())) {
+                LOG_INFO("Processing local buffer");
                 QueryAnswer* query_answer;
                 while ((query_answer = (QueryAnswer*) this->local_buffer.dequeue()) != NULL) {
                     this->output_buffer->add_query_answer(query_answer);
@@ -429,9 +514,11 @@ class LinkTemplate : public Source {
                 Utils::sleep();
             }
         } else {
+            // LOG_INFO("External");
             while (!this->is_flow_finished()) {
                 unsigned int size = get_local_answers_size();
                 if (ingest_newly_arrived_answers()) {
+                    // LOG_INFO("Processing ingested answers");
                     for (unsigned int i = 0; i < size; i++) {
                         if (this->local_answers[i] != NULL) {
                             if (is_feasible(i)) {
@@ -445,7 +532,9 @@ class LinkTemplate : public Source {
                         }
                     }
                 } else {
+                    // LOG_INFO("Waiting for inner template iterator to finish");
                     if (this->inner_template_iterator->finished()) {
+                        // LOG_INFO("Inner template iterator finished");
                         for (unsigned int i = 0; i < size; i++) {
                             if (this->local_answers[i] != NULL) {
                                 if (is_feasible(i)) {
@@ -458,14 +547,17 @@ class LinkTemplate : public Source {
                         Utils::sleep();
                     }
                 }
+                // LOG_INFO("All answers finshed");  
                 bool finished_flag = true;
                 for (unsigned int i = 0; i < size; i++) {
+                    // LOG_INFO("Checking if answer is finished");
                     if (this->local_answers[i] != NULL) {
                         finished_flag = false;
                         break;
                     }
                 }
                 if (this->inner_template_iterator->finished()) {
+                    // LOG_INFO("Inner template iterator finished");
                     set_flow_finished();
                 }
             }
@@ -520,6 +612,7 @@ class LinkTemplate : public Source {
     string context;
     QueryElementRegistry* query_element_registry;
     static mutex get_importance_mutex;
+    ThreadPool thread_pool = ThreadPool(16);
 
 };
 
