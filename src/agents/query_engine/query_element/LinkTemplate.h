@@ -378,13 +378,13 @@ class LinkTemplate : public Source {
             shared_mutex t_mutex;
             LOG_INFO("Fetching atom documents");
             vector<string> handles;
-            int split = 1000;
-            split = split > answer_count ? answer_count -1 : split;
+            int chunk_size = 1000;
+            chunk_size = chunk_size > answer_count ? answer_count -1 : chunk_size;
             while ((handle = it->next()) != nullptr) {
-                if (((ii > 0) && ((ii % split) == 0))) {
-                    int start = ii - split;
+                if (((ii > 0) && ((ii % chunk_size) == 0))) {
+                    int start = ii - chunk_size;
                     int end = ii;
-                    if (end + split > answer_count) {
+                    if (end + chunk_size > answer_count) {
                         end = answer_count;
                     }
                     auto job = [this, db, &db_count, start, end, &fetched_answers, importance_list, &t_mutex, &stopwatch, &handle_list]() {
