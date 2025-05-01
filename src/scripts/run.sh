@@ -11,7 +11,7 @@ CONTAINER_NAME="das-${BINARY_NAME}-$(uuidgen | cut -d '-' -f 1)-$(date +%Y%m%d%H
 ENV_VARS=$(test -f .env && echo "--env-file=.env" || echo "")
 
 mkdir -p bin
-docker run --rm \
+docker run \
     --name="${CONTAINER_NAME}" \
     --network host \
     --volume .:/opt/das \
@@ -22,7 +22,7 @@ docker run --rm \
 
 sleep 1
 
-if docker ps -a --format '{{.Names}}' | grep -q "^${CONTAINER_NAME}$"; then
-  echo "Removing existing container: ${CONTAINER_NAME}"
-  _=$(docker rm -f "${CONTAINER_NAME}" 2>&1 > /dev/null || true)
-fi
+# if docker ps -a --format '{{.Names}}' | grep -q "^${CONTAINER_NAME}$"; then
+#   echo "Removing existing container: ${CONTAINER_NAME}"
+#   _=$(docker rm -f "${CONTAINER_NAME}" 2>&1 > /dev/null || true)
+# fi
