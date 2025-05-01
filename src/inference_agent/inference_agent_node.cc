@@ -24,13 +24,19 @@ InferenceAgentNode::InferenceAgentNode(const std::string& node_id,
 
 InferenceAgentNode::~InferenceAgentNode() {
     shutting_down = true;
-    DistributedAlgorithmNode::graceful_shutdown();
+    DistributedAlgorithmNode::stop();
 }
 
 bool InferenceAgentNode::is_answers_finished() { return answers_finished; }
 
 bool InferenceAgentNode::is_answers_empty() { return answers_queue.empty(); }
 
+// TODO: FIXME: Fix starvation hazard
+// The call to dequeue() is synchronous, i.e., the thread will block until something is added
+// to the queue. So if pop_answer() is called AFTER the last entry has been enqueued but
+// BEFORE answers_finished is set to true, dequeue() will block forever.
+//
+// Suggested fix: use an asynchronous dequeue(), which would never block
 vector<string> InferenceAgentNode::pop_answer() { return answers_queue.dequeue(); }
 
 void InferenceAgentNode::set_answers_finished() { answers_finished = true; }
@@ -78,5 +84,6 @@ DistributedInferenceFinishedMessage::DistributedInferenceFinishedMessage(std::st
 void DistributedInferenceFinishedMessage::act(std::shared_ptr<MessageFactory> node) {
     auto inference_node = dynamic_pointer_cast<InferenceAgentNode>(node);
     inference_node->add_request(this->args);
+    // TODO: FIXME: Investigate possible race condition below
     inference_node->set_answers_finished();
 }

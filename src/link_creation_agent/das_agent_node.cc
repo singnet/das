@@ -12,7 +12,7 @@ DasAgentNode::DasAgentNode(const string& node_id, const string& server_id)
     this->server_id = server_id;
 }
 
-DasAgentNode::~DasAgentNode() { DistributedAlgorithmNode::graceful_shutdown(); }
+DasAgentNode::~DasAgentNode() {}
 
 void DasAgentNode::create_link(vector<string>& request) {
     try {

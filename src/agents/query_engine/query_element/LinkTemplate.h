@@ -130,10 +130,11 @@ class LinkTemplate : public Source {
      * Destructor.
      */
     virtual ~LinkTemplate() {
-        lock_guard<mutex> lock(this->local_answers_mutex);
         this->stop();
         if (this->atom_document) delete[] this->atom_document;
+        local_answers_mutex.lock();
         if (this->local_answers) delete[] this->local_answers;
+        local_answers_mutex.unlock();
         if (this->next_inner_answer) delete[] this->next_inner_answer;
         while (!this->local_buffer.empty()) {
             delete (QueryAnswer*) this->local_buffer.dequeue();

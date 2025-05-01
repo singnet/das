@@ -39,7 +39,5 @@ class ImportanceList : public QueryElement {
 
    private:
     void setup_buffers() override {}
-
-    void graceful_shutdown() override {}
 };
 }  // namespace query_element

@@ -17,7 +17,7 @@ LinkCreationAgentNode::LinkCreationAgentNode(const string& node_id, const string
 
 LinkCreationAgentNode::~LinkCreationAgentNode() {
     shutting_down = true;
-    DistributedAlgorithmNode::graceful_shutdown();
+    DistributedAlgorithmNode::stop();
 }
 
 vector<string> LinkCreationAgentNode::pop_request() { return shared_queue.dequeue(); }

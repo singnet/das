@@ -50,13 +50,13 @@ InferenceAgent::InferenceAgent(
 
 InferenceAgent::~InferenceAgent() {
     stop();
-    inference_node_server->graceful_shutdown();
+    inference_node_server->stop();
     delete inference_node_server;
-    link_creation_node_client->graceful_shutdown();
+    link_creation_node_client->stop();
     delete link_creation_node_client;
-    das_client->graceful_shutdown();
+    das_client->stop();
     delete das_client;
-    distributed_inference_control_client->graceful_shutdown();
+    distributed_inference_control_client->stop();
     delete distributed_inference_control_client;
     if (agent_thread != nullptr && agent_thread->joinable()) agent_thread->join();
     if (agent_thread != nullptr) delete agent_thread;

@@ -18,7 +18,6 @@ DistributedInferenceControlAgentNode::DistributedInferenceControlAgentNode(const
 }
 
 DistributedInferenceControlAgentNode::~DistributedInferenceControlAgentNode() {
-    DistributedAlgorithmNode::graceful_shutdown();
 }
 
 void DistributedInferenceControlAgentNode::send_inference_control_request(

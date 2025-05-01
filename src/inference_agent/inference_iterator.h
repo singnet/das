@@ -37,7 +37,7 @@ class InferenceIterator {
     /**
      * @brief Gracefully shutdown the iterator
      */
-    void graceful_shutdown() { this->remote_input_buffer->graceful_shutdown(); }
+    void graceful_shutdown() { this->remote_input_buffer->stop(); }
 
     /**
      * @brief Check if the iterator is finished

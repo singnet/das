@@ -47,8 +47,8 @@ void LinkCreationAgent::stop() {
         save_buffer();
     }
     agent_mutex.unlock();
-    link_creation_node_server->graceful_shutdown();
-    das_client->graceful_shutdown();
+    link_creation_node_server->stop();
+    das_client->stop();
     if (agent_thread != NULL && agent_thread->joinable()) {
         agent_thread->join();
         agent_thread = NULL;

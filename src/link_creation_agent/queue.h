@@ -22,6 +22,9 @@ class Queue {
 
     T dequeue() {
         unique_lock<mutex> lock(m_mutex);
+        // TODO: FIXME: Fix starvation hazard: nothing prevents the same thread(s) from being
+        // waked up to take the lock while other(s) are kept sleeping. Investigate
+        // if notify_all can be used instead.
         m_cond.wait(lock, [this]() { return !m_queue.empty(); });
         T item = m_queue.front();
         m_queue.pop();
