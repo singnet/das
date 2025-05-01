@@ -26,7 +26,6 @@ class QueryNode : public DistributedAlgorithmNode {
     void add_query_answer(QueryAnswer* query_answer);
     QueryAnswer* pop_query_answer();
     bool is_query_answers_empty();
-    virtual void query_answer_processor_method(shared_ptr<StoppableThread> monitor) = 0;
 
     virtual bool is_work_done() { return this->work_done_flag; }  // as Worker
 

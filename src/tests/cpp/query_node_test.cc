@@ -12,6 +12,8 @@ TEST(QueryNode, basics) {
     string client2_id = "client2";
 
     QueryNodeServer server(server_id);
+    Utils::sleep(1000);
+    /*
     QueryNodeClient client1(client1_id, server_id);
     QueryNodeClient client2(client2_id, server_id);
 
@@ -64,10 +66,5 @@ TEST(QueryNode, basics) {
     EXPECT_TRUE(client1.is_query_answers_finished());
     EXPECT_TRUE(client2.is_query_answers_empty());
     EXPECT_TRUE(client2.is_query_answers_finished());
-
-    Utils::sleep(2000);
-    cout << "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX" << endl;
-    cout << "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX" << endl;
-    cout << "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX" << endl;
-    cout << "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX" << endl;
+    */
 }

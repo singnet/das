@@ -21,7 +21,6 @@ DistributedAlgorithmNode::DistributedAlgorithmNode(const string& node_id,
 }
 
 DistributedAlgorithmNode::~DistributedAlgorithmNode() { 
-    cout << "XXX DistributedAlgorithmNode::~DistributedAlgorithmNode()" << endl;
     this->stop(); 
 }
 

@@ -2,7 +2,7 @@
 
 #include "Utils.h"
 
-#define LOG_LEVEL INFO_LEVEL
+#define LOG_LEVEL DEBUG_LEVEL
 #include "Logger.h"
 
 using namespace commons;
@@ -19,7 +19,7 @@ StoppableThread::StoppableThread(const string& id) {
 
 StoppableThread::~StoppableThread() { 
     stop(); 
-    delete this->thread_object;
+    //delete this->thread_object;
 }
 
 // -------------------------------------------------------------------------------------------------
@@ -27,7 +27,9 @@ StoppableThread::~StoppableThread() {
 
 void StoppableThread::attach(thread* thread_object) { this->thread_object = thread_object; }
 
-void StoppableThread::stop() { this->stop(true); }
+void StoppableThread::stop() { 
+    this->stop(true); 
+}
 
 void StoppableThread::stop(bool join_thread) {
     if (this->thread_object == NULL) {
@@ -36,9 +38,10 @@ void StoppableThread::stop(bool join_thread) {
         if (! check_and_set_stopped()) {
             LOG_DEBUG("Stopping thread: " << this->to_string() << "(join_thread: " << join_thread << ")");
             if (join_thread) {
-                LOG_DEBUG("Joining thread: " << this->to_string());
-                this->thread_object->join();
-                LOG_DEBUG("Thread joined: " << this->to_string());
+                LOG_DEBUG("Thread joining and destruction disabled.");
+                //LOG_DEBUG("Joining thread: " << this->to_string());
+                //this->thread_object->join();
+                //LOG_DEBUG("Thread joined: " << this->to_string());
             }
         }
     }

@@ -139,11 +139,11 @@ TEST(BusNode, basics) {
 
     Utils::sleep(1000);
 
-    for (auto node : {node1, node2, node3}) {
-        EXPECT_EQ(node.get_ownership("c1"), node1_id);
-        EXPECT_EQ(node.get_ownership("c2"), node1_id);
-        EXPECT_EQ(node.get_ownership("c3"), node2_id);
-        EXPECT_EQ(node.get_ownership("c4"), "");
+    for (auto node : {&node1, &node2, &node3}) {
+        EXPECT_EQ(node->get_ownership("c1"), node1_id);
+        EXPECT_EQ(node->get_ownership("c2"), node1_id);
+        EXPECT_EQ(node->get_ownership("c3"), node2_id);
+        EXPECT_EQ(node->get_ownership("c4"), "");
     }
 }
 

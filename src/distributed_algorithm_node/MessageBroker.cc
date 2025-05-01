@@ -62,7 +62,6 @@ SynchronousSharedRAM::SynchronousSharedRAM(shared_ptr<MessageFactory> host_node,
     : MessageBroker(host_node, node_id) {}
 
 SynchronousSharedRAM::~SynchronousSharedRAM() {
-    cout << "XXX SynchronousSharedRAM::~SynchronousSharedRAM() BEGIN" << endl;
     if (this->joined_network) {
         this->stop();
         this->inbox_threads.clear();
@@ -81,7 +80,6 @@ SynchronousSharedRAM::~SynchronousSharedRAM() {
             NODE_QUEUE_MUTEX.unlock();
         }
     }
-    cout << "XXX SynchronousSharedRAM::~SynchronousSharedRAM() END" << endl;
 }
 
 SynchronousGRPC::SynchronousGRPC(shared_ptr<MessageFactory> host_node, const string& node_id)
@@ -91,7 +89,6 @@ SynchronousGRPC::SynchronousGRPC(shared_ptr<MessageFactory> host_node, const str
 }
 
 SynchronousGRPC::~SynchronousGRPC() {
-    cout << "XXX SynchronousGRPC::~SynchronousGRPC() BEGIN" << endl;
     if (this->joined_network) {
         this->stop();
         this->inbox_threads.clear();
@@ -100,7 +97,6 @@ SynchronousGRPC::~SynchronousGRPC() {
         this->grpc_server->Shutdown();
         this->grpc_server.reset();
     }
-    cout << "XXX SynchronousGRPC::~SynchronousGRPC() END" << endl;
 }
 
 // -------------------------------------------------------------------------------------------------
@@ -155,7 +151,6 @@ void SynchronousSharedRAM::inbox_thread_method(shared_ptr<StoppableThread> monit
             if (monitor->stopped()) {
                 stop_thread_loop = true;
             } else {
-                Utils::sleep();
             }
         }
     } while (!stop_thread_loop);

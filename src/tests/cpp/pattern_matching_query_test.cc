@@ -50,8 +50,8 @@ void check_query(vector<string>& query,
     shared_ptr<PatternMatchingQueryProxy> proxy1(new PatternMatchingQueryProxy(
         query, context, unique_assignment, update_attention_broker, false));
 
-    //shared_ptr<PatternMatchingQueryProxy> proxy2(
-    //    new PatternMatchingQueryProxy(query, context, unique_assignment, update_attention_broker, true));
+    shared_ptr<PatternMatchingQueryProxy> proxy2(
+        new PatternMatchingQueryProxy(query, context, unique_assignment, update_attention_broker, true));
 
     client_bus->issue_bus_command(proxy1);
     unsigned int count = 0;
@@ -74,7 +74,8 @@ void check_query(vector<string>& query,
 
     // giving time to the server to close the previous connection
     // otherwise the test fails with "Node ID already in the network"
-    Utils::sleep(3000);
+    //Utils::sleep(1000); // Hopefully fixed but I'll let this here 
+                          // to help debug in case it hadn't.
 
     client_bus->issue_bus_command(proxy2);
     while (!proxy2->finished()) {

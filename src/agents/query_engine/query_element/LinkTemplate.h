@@ -164,10 +164,7 @@ class LinkTemplate : public Source {
     }
 
     virtual void setup_buffers() {
-        cout << "XXXXXXXXXXXXX LT::setup_buffers() 1" << endl;
         Source::setup_buffers();
-        cout << "XXXXXXXXXXXXX LT::setup_buffers() 2" << endl;
-        cout << "XXXXXXXXXXXXX LT::setup_buffers() inner size: " << this->inner_template.size() << endl;
         if (this->inner_template.size() > 0) {
             // clang-format off
             switch (this->inner_template.size()) {
@@ -230,11 +227,8 @@ class LinkTemplate : public Source {
             // clang-format on
         }
 
-        cout << "XXXXXXXXXXXXX LT::setup_buffers() 3" << endl;
         this->local_buffer_processor = make_shared<StoppableThread>("local_processor:" + this->id);
-        cout << "XXXXXXXXXXXXX LT::setup_buffers() 4" << endl;
         this->local_buffer_processor->attach(new thread(&LinkTemplate::local_buffer_processor_method, this, this->local_buffer_processor));
-        cout << "XXXXXXXXXXXXX LT::setup_buffers() 5" << endl;
         fetch_links();
     }
 
