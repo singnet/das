@@ -71,7 +71,9 @@ char* HandleSetRedisIterator::next() {
     // Get first element of the next redisReply
     if (this->outer_idx < this->handle_set->replies.size()) {
         reply = this->handle_set->replies[this->outer_idx];
-        return reply->element[this->inner_idx++]->str;
+        if (this->inner_idx < reply->elements) {
+            return reply->element[this->inner_idx++]->str;
+        }
     }
 
     // No more elements, reset indexes and return nullptr
@@ -121,6 +123,10 @@ const char* MongodbDocument::get(const string& key) {
 const char* MongodbDocument::get(const string& array_key, unsigned int index) {
     // Note for reference: .to_string() instead of .data() would return a std::string
     return ((*this->document)[array_key]).get_array().value[index].get_string().value.data();
+}
+
+bool MongodbDocument::contains(const string& key) {
+    return ((*this->document).view()).find(key) != ((*this->document).view()).end();
 }
 
 unsigned int MongodbDocument::get_size(const string& array_key) {

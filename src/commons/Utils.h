@@ -40,6 +40,8 @@ class Utils {
     static vector<string> split(string const& str, char delimiter);
     static string join(vector<string> const& tokens, char delimiter);
     static string random_string(size_t length);
+    static bool is_number(const string& s);
+    static int string_to_int(const string& s);
 };
 
 }  // namespace commons

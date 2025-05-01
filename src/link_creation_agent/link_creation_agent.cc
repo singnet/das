@@ -3,6 +3,7 @@
 #include <fstream>
 #include <sstream>
 
+#include "Logger.h"
 #include "expression_hasher.h"
 #include "link_create_template.h"
 
@@ -13,16 +14,23 @@ LinkCreationAgent::LinkCreationAgent(string config_path) {
     this->config_path = config_path;
     load_config();
     link_creation_node_server = new LinkCreationAgentNode(link_creation_agent_server_id);
-    // query_node_client = new DASNode(query_agent_client_id,
-    //                                 query_agent_server_id,
-    //                                 query_agent_client_start_port,
-    //                                 query_agent_client_end_port);
-    service_bus = ServiceBusSingleton::get_instance();
+    ServiceBusSingleton::init(query_agent_client_id,
+                              query_agent_server_id,
+                              query_agent_client_start_port,
+                              query_agent_client_end_port);
     service = new LinkCreationService(link_creation_agent_thread_count);
     service->set_timeout(query_timeout_seconds);
+    service->set_metta_file_path(metta_file_path);
+    if (save_links_to_metta_file) {
+        LOG_DEBUG("Saving links to metta file: " << metta_file_path);
+    }
+    if (save_links_to_db) {
+        LOG_DEBUG("Saving links to DB");
+    }
+    service->set_save_links_to_metta_file(save_links_to_metta_file);
+    service->set_save_links_to_db(save_links_to_db);
     das_client = new DasAgentNode(das_agent_client_id, das_agent_server_id);
-
-    // this->agent_thread = new thread(&LinkCreationAgent::run, this);
+    this->agent_thread = new thread(&LinkCreationAgent::run, this);
 }
 
 LinkCreationAgent::~LinkCreationAgent() {
@@ -49,6 +57,8 @@ void LinkCreationAgent::stop() {
 
 void LinkCreationAgent::run() {
     int current_buffer_position = 0;
+    if (is_running) return;
+    is_running = true;
     while (true) {
         if (is_stoping) break;
         shared_ptr<LinkCreationAgentRequest> lca_request = NULL;
@@ -69,32 +79,33 @@ void LinkCreationAgent::run() {
             }
         }
 
-        if (lca_request == NULL ||
+        if (lca_request == nullptr ||
             lca_request->last_execution + lca_request->current_interval > time(0)) {
-            this_thread::sleep_for(chrono::milliseconds(loop_interval));
+            Utils::sleep(loop_interval);
             continue;
         }
 
         if (lca_request->infinite || lca_request->repeat > 0) {
+            // query_agent_mutex->lock();
+            LOG_DEBUG("Request IDX: " << current_buffer_position);
+            LOG_DEBUG("Processing request ID: " << lca_request->id);
+            LOG_DEBUG("Current size of request buffer: " << request_buffer.size());
             shared_ptr<PatternMatchingQueryProxy> proxy =
                 query(lca_request->query, lca_request->context, lca_request->update_attention_broker);
 
-            service->process_request(
-                proxy, das_client, lca_request->link_template, lca_request->max_results);
-
+            service->process_request(proxy,
+                                     das_client,
+                                     lca_request->link_template,
+                                     lca_request->context,
+                                     lca_request->id,
+                                     lca_request->max_results);
             lca_request->last_execution = time(0);
-            lca_request->current_interval =
-                (lca_request->current_interval * 2) %
-                86400;  // TODO Add exponential backoff, resets after 24 hours
-
             if (lca_request->infinite) continue;
             if (lca_request->repeat >= 1) lca_request->repeat--;
 
         } else {
             if (request_buffer.find(lca_request->id) != request_buffer.end()) {
-#ifdef DEBUG
-                cout << "Removing request ID: " << lca_request->id << endl;
-#endif
+                LOG_DEBUG("Removing request ID: " << lca_request->id);
                 request_buffer.erase(lca_request->id);
             }
         }
@@ -106,49 +117,30 @@ shared_ptr<PatternMatchingQueryProxy> LinkCreationAgent::query(vector<string>& q
                                                                bool update_attention_broker) {
     shared_ptr<PatternMatchingQueryProxy> proxy = make_shared<PatternMatchingQueryProxy>(
         query_tokens, context, false, update_attention_broker, false);
-    service_bus->issue_bus_command(proxy);
+    ServiceBusSingleton::get_instance()->issue_bus_command(proxy);
     return proxy;
 }
 
 void LinkCreationAgent::load_config() {
-    ifstream file(config_path);
-    string line;
-    while (getline(file, line)) {
-        istringstream is_line(line);
-        string key;
-        if (getline(is_line, key, '=')) {
-            string value;
-            if (getline(is_line, value)) {
-                value.erase(remove(value.begin(), value.end(), ' '), value.end());
-                key.erase(remove(key.begin(), key.end(), ' '), key.end());
-                if (key == "requests_interval_seconds")
-                    this->requests_interval_seconds = stoi(value);
-                else if (key == "link_creation_agent_thread_count")
-                    this->link_creation_agent_thread_count = stoi(value);
-                else if (key == "query_agent_client_id")
-                    this->query_agent_client_id = value;
-                else if (key == "query_agent_server_id")
-                    this->query_agent_server_id = value;
-                else if (key == "link_creation_agent_server_id")
-                    this->link_creation_agent_server_id = value;
-                else if (key == "das_agent_client_id")
-                    this->das_agent_client_id = value;
-                else if (key == "requests_buffer_file")
-                    this->requests_buffer_file = value;
-                else if (key == "das_agent_server_id")
-                    this->das_agent_server_id = value;
-                else if (key == "context")
-                    this->context = value;
-                else if (key == "query_agent_client_start_port")
-                    this->query_agent_client_start_port = stoul(value);
-                else if (key == "query_agent_client_end_port")
-                    this->query_agent_client_end_port = stoul(value);
-                else if (key == "query_timeout_seconds")
-                    this->query_timeout_seconds = stoi(value);
-            }
-        }
-    }
-    file.close();
+    map<string, string> config_map = Utils::parse_config(config_path);
+    this->requests_interval_seconds = stoi(config_map["requests_interval_seconds"]);
+    this->link_creation_agent_thread_count = stoi(config_map["link_creation_agent_thread_count"]);
+    this->query_agent_client_id = config_map["query_agent_client_id"];
+    this->query_agent_server_id = config_map["query_agent_server_id"];
+    this->link_creation_agent_server_id = config_map["link_creation_agent_server_id"];
+    this->das_agent_client_id = config_map["das_agent_client_id"];
+    this->requests_buffer_file = config_map["requests_buffer_file"];
+    this->das_agent_server_id = config_map["das_agent_server_id"];
+    this->query_agent_client_start_port = stoul(config_map["query_agent_client_start_port"]);
+    this->query_agent_client_end_port = stoul(config_map["query_agent_client_end_port"]);
+    this->query_timeout_seconds = stoi(config_map["query_timeout_seconds"]);
+    this->metta_file_path = config_map["metta_file_path"];
+    this->save_links_to_db = config_map.find("save_links_to_db") != config_map.end()
+                                 ? config_map["save_links_to_db"] == "true"
+                                 : this->save_links_to_db;
+    this->save_links_to_metta_file = config_map.find("save_links_to_metta_file") != config_map.end()
+                                         ? config_map["save_links_to_metta_file"] == "true"
+                                         : this->save_links_to_metta_file;
 }
 
 void LinkCreationAgent::save_buffer() {
@@ -217,23 +209,23 @@ shared_ptr<LinkCreationAgentRequest> LinkCreationAgent::create_request(vector<st
         if (lca_request->id.empty()) {
             lca_request->id =
                 compute_hash((char*) (to_string(time(0)) + Utils::random_string(20)).c_str());
+        } else {
+            lca_request->id = lca_request->id + "-" +
+                              compute_hash((char*) Utils::join(lca_request->link_template, ' ').c_str());
         }
-#ifdef DEBUG
-        cout << "Query: " << Utils::join(lca_request->query, ' ') << endl;
-        cout << "Link Template: " << Utils::join(lca_request->link_template, ' ') << endl;
-        cout << "Max Results: " << lca_request->max_results << endl;
-        cout << "Repeat: " << lca_request->repeat << endl;
-        cout << "Context: " << lca_request->context << endl;
-        cout << "Update Attention Broker: " << lca_request->update_attention_broker << endl;
-        cout << "Infinite: " << lca_request->infinite << endl;
-        cout << "ID: " << lca_request->id << endl;
-#endif
+        LOG_DEBUG("Creating request ID: " << lca_request->id);
+        LOG_DEBUG("Query: " << Utils::join(lca_request->query, ' '));
+        LOG_DEBUG("Link Template: " << Utils::join(lca_request->link_template, ' '));
+        LOG_DEBUG("Max Results: " << to_string(lca_request->max_results));
+        LOG_DEBUG("Repeat: " << to_string(lca_request->repeat));
+        LOG_DEBUG("Context: " << lca_request->context);
+        LOG_DEBUG("Update Attention Broker: " << to_string(lca_request->update_attention_broker));
+        LOG_DEBUG("Infinite: " << to_string(lca_request->infinite));
 
         return shared_ptr<LinkCreationAgentRequest>(lca_request);
     } catch (exception& e) {
-#ifdef DEBUG
-        cout << "Error parsing request: " << e.what() << endl;
-#endif
+        LOG_ERROR("Error parsing request: " << string(e.what()));
+
         return NULL;
     }
 }

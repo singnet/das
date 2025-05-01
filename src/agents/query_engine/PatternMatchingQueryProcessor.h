@@ -8,10 +8,12 @@
 #include "BusCommandProcessor.h"
 #include "PatternMatchingQueryProxy.h"
 #include "QueryElement.h"
+#include "QueryElementRegistry.h"
 #include "Sink.h"
 #include "StoppableThread.h"
 
 #define ATTENTION_BROKER_ADDRESS "localhost:37007"
+#define MAX_BUNDLE_SIZE ((unsigned int) 10000)
 
 using namespace std;
 using namespace service_bus;
@@ -52,12 +54,14 @@ class PatternMatchingQueryProcessor : public BusCommandProcessor {
                                shared_ptr<Sink> query_sink,
                                set<string>& joint_answer,
                                unsigned int& answer_count);
-    shared_ptr<QueryElement> setup_query_tree(shared_ptr<PatternMatchingQueryProxy> proxy);
+    shared_ptr<QueryElement> setup_query_tree(shared_ptr<PatternMatchingQueryProxy> proxy,
+                                              QueryElementRegistry* query_element_registry);
     void thread_process_one_query(shared_ptr<StoppableThread>,
                                   shared_ptr<PatternMatchingQueryProxy> proxy);
     shared_ptr<QueryElement> build_link_template(shared_ptr<PatternMatchingQueryProxy> proxy,
                                                  unsigned int cursor,
-                                                 stack<shared_ptr<QueryElement>>& element_stack);
+                                                 stack<shared_ptr<QueryElement>>& element_stack,
+                                                 QueryElementRegistry* query_element_registry);
 
     shared_ptr<QueryElement> build_and(shared_ptr<PatternMatchingQueryProxy> proxy,
                                        unsigned int cursor,

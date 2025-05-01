@@ -65,7 +65,7 @@ void StopWatch::reset() {
 }
 
 unsigned long StopWatch::milliseconds() {
-    return std::chrono::duration_cast<std::chrono::milliseconds>(accumulator).count();
+    return chrono::duration_cast<chrono::milliseconds>(accumulator).count();
 }
 
 string StopWatch::str_time() {
@@ -86,8 +86,8 @@ string StopWatch::str_time() {
         return to_string(minutes) + " mins " + to_string(seconds) + " secs";
     } else if (seconds > 0) {
         // double s = ((double) ((seconds * 1000) + millis)) / 1000.0;
-        // std::stringstream stream;
-        // stream << std::fixed << std::setprecision(3) << s;
+        // stringstream stream;
+        // stream << fixed << setprecision(3) << s;
         // return stream.str() + " secs";
         return to_string(seconds) + " secs " + to_string(millis) + " millis";
     } else {
@@ -115,18 +115,18 @@ map<string, string> Utils::parse_config(string const& config_path) {
     return config;
 }
 
-std::vector<std::string> Utils::split(const std::string& s, char delimiter) {
-    std::vector<std::string> tokens;
-    std::string token;
-    std::istringstream tokenStream(s);
-    while (std::getline(tokenStream, token, delimiter)) {
+vector<string> Utils::split(const string& s, char delimiter) {
+    vector<string> tokens;
+    string token;
+    istringstream tokenStream(s);
+    while (getline(tokenStream, token, delimiter)) {
         tokens.push_back(token);
     }
     return tokens;
 }
 
-std::string Utils::join(const std::vector<std::string>& tokens, char delimiter) {
-    std::string result;
+string Utils::join(const vector<string>& tokens, char delimiter) {
+    string result;
     for (size_t i = 0; i < tokens.size(); i++) {
         if (i > 0) {
             result += delimiter;
@@ -136,12 +136,24 @@ std::string Utils::join(const std::vector<std::string>& tokens, char delimiter) 
     return result;
 }
 
-std::string Utils::random_string(size_t length) {
+string Utils::random_string(size_t length) {
     const char charset[] = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
     const size_t max_index = (sizeof(charset) - 1);
-    std::string result;
+    string result;
     for (size_t i = 0; i < length; i++) {
         result += charset[rand() % max_index];
     }
     return result;
+}
+
+bool Utils::is_number(const string& s) {
+    return !s.empty() &&
+           find_if(s.begin(), s.end(), [](unsigned char c) { return !isdigit(c); }) == s.end();
+}
+
+int Utils::string_to_int(const string& s) {
+    if (!is_number(s)) {
+        throw invalid_argument("Can not convert string to int: Invalid arguments");
+    }
+    return stoi(s);
 }

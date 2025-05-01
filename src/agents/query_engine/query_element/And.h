@@ -110,6 +110,7 @@ class And : public Operator<N> {
     bool all_answers_arrived[N];
     bool no_more_answers_to_arrive;
     shared_ptr<StoppableThread> operator_thread;
+    unsigned int query_answer_count;
 
     void initialize(const array<shared_ptr<QueryElement>, N>& clauses) {
         for (unsigned int i = 0; i < N; i++) {
@@ -117,6 +118,7 @@ class And : public Operator<N> {
             this->all_answers_arrived[i] = false;
         }
         this->no_more_answers_to_arrive = false;
+        this->query_answer_count = 0;
         this->id = "And(";
         for (unsigned int i = 0; i < N; i++) {
             this->id += clauses[i]->id;
@@ -174,6 +176,7 @@ class And : public Operator<N> {
                 return;
             }
         }
+        this->query_answer_count++;
         this->output_buffer->add_query_answer(new_query_answer);
     }
 
@@ -254,6 +257,7 @@ class And : public Operator<N> {
                     // processed_all_input() is double-checked on purpose to avoid race condition
                     processed_all_input()) {
                     this->output_buffer->query_answers_finished();
+                    LOG_INFO(this->id << " processed " << this->query_answer_count << " answers.");
                 }
                 Utils::sleep();
                 continue;
