@@ -377,7 +377,6 @@ class LinkTemplate : public Source {
             stopwatch.start();
             shared_mutex t_mutex;
             LOG_INFO("Fetching atom documents");
-            vector<string> handles;
             int chunk_size = 1000;
             chunk_size = chunk_size > answer_count ? answer_count -1 : chunk_size;
             while ((handle = it->next()) != nullptr) {
@@ -399,7 +398,7 @@ class LinkTemplate : public Source {
                             this->atom_document[i] = make_shared<TargetsHandleList>(atom_handle_list[c++]);
                             db_count++;
                             // shared_ptr<QueryAnswer> query_answer = make_shared<QueryAnswer>(hh, importance_list->list(i));
-                            QueryAnswer* query_answer = new QueryAnswer(hh, importance_list->list(i));
+                            QueryAnswer* query_answer = new QueryAnswer(strndup(hh, HANDLE_HASH_SIZE - 1), importance_list->list(i));
                             for (unsigned int j = 0; j < this->arity; j++) {
                                 if (this->target_template[j]->is_terminal) {
                                     auto terminal = dynamic_pointer_cast<Terminal>(this->target_template[j]);
@@ -478,7 +477,6 @@ class LinkTemplate : public Source {
                         }
                     }
                 }
-                // LOG_INFO("Merge");
                 if (passed_first_check &&
                     this->local_answers[index]->merge(this->inner_answers[cursor], false)) {
                     this->inner_answers[cursor] = NULL;
