@@ -49,6 +49,9 @@ class LinkTemplate2 : public Source {
                 this->inner_template.push_back(this->target_template[i - 1]);
             }
         }
+        if (this->inner_template.size() == 0) {
+            Utils::error("LinkTemplate2: No inner template.");
+        }
         this->handle =
             shared_ptr<char>(composite_hash(this->handle_keys, ARITY + 1), default_delete<char[]>());
         if (!wildcard_flag) {
@@ -66,10 +69,6 @@ class LinkTemplate2 : public Source {
      */
     virtual ~LinkTemplate2() {
         this->graceful_shutdown();
-        for (auto* answer : this->inner_answers) {
-            if (answer) delete answer;
-        }
-        this->inner_answers.clear();
         this->inner_template.clear();
         this->inner_template_iterator.reset();
     }
@@ -172,6 +171,7 @@ class LinkTemplate2 : public Source {
                 handle_keys[i + 1] =
                     dynamic_pointer_cast<Terminal>(this->target_template[i])->handle.get();
             } else {
+                // QueryAnswer doesn't have one or more handles for this template
                 if (qa_handles_index == qa_handles_size) {
                     free(handle_keys[0]);
                     return nullptr;
@@ -187,25 +187,12 @@ class LinkTemplate2 : public Source {
         return atom_document->contains("_id") ? atom_document : nullptr;
     }
 
-    bool ingest_newly_arrived_answers() {
-        bool flag = false;
-        QueryAnswer* query_answer;
-        while ((query_answer = dynamic_cast<QueryAnswer*>(this->inner_template_iterator->pop())) !=
-               NULL) {
-            LOG_INFO("LinkTemplate2 " << this->to_string()
-                                      << " got answer: " << query_answer->to_string());
-            this->inner_answers.push_back(query_answer);
-            flag = true;
-        }
-        return flag;
-    }
-
     void inner_templates_processor_method() {
         while (!this->is_flow_finished()) {
-            if (this->ingest_newly_arrived_answers()) {
-                while (!this->inner_answers.empty()) {
-                    QueryAnswer* query_answer = this->inner_answers.back();
-                    this->inner_answers.pop_back();
+            if (!this->inner_template_iterator->finished()) {
+                QueryAnswer* query_answer;
+                while ((query_answer =
+                            dynamic_cast<QueryAnswer*>(this->inner_template_iterator->pop())) != NULL) {
                     auto atom_document = this->get_atom(query_answer);
                     if (atom_document == nullptr) {
                         delete query_answer;
@@ -218,10 +205,7 @@ class LinkTemplate2 : public Source {
                     delete query_answer;
                 };
             } else {
-                Utils::sleep();
-            }
-            if (this->inner_template_iterator->finished()) {
-                set_flow_finished();
+                this->set_flow_finished();
             }
         }
         this->output_buffer->query_answers_finished();
@@ -255,7 +239,6 @@ class LinkTemplate2 : public Source {
     vector<shared_ptr<QueryElement>> inner_template;
     thread* inner_templates_processor;
     shared_ptr<Iterator> inner_template_iterator;
-    vector<QueryAnswer*> inner_answers;
 };
 
 }  // namespace query_element
