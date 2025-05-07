@@ -22,6 +22,8 @@ using namespace std;
 using namespace query_engine;
 using namespace atomdb;
 
+#define DB_LINK_HANDLES_BATCH_SIZE ((unsigned int) 1000)
+
 namespace query_element {
 
 template <unsigned int ARITY>
@@ -189,6 +191,8 @@ class LinkTemplate2 : public Source {
         while (!this->is_flow_finished()) {
             if (!this->inner_template_iterator->finished()) {
                 QueryAnswer* query_answer;
+                this->link_handles.clear();
+                this->link_handles_to_query_answers.clear();
                 while ((query_answer =
                             dynamic_cast<QueryAnswer*>(this->inner_template_iterator->pop())) != NULL) {
                     auto link_handle = this->get_link_handle(query_answer);
@@ -196,15 +200,30 @@ class LinkTemplate2 : public Source {
                         delete query_answer;
                         continue;
                     }
-                    if (!this->db->link_exists(link_handle)) {
-                        delete query_answer;
-                        free(link_handle);
-                        continue;
+                    this->link_handles.push_back(link_handle);
+                    this->link_handles_to_query_answers[link_handle] = query_answer;
+                    free(link_handle);
+                    if (this->link_handles.size() >= DB_LINK_HANDLES_BATCH_SIZE) {
+                        break;
                     }
-                    query_answer->handles[0] = link_handle;
+                }
+                if (this->link_handles.size() == 0) {
+                    continue;
+                }
+                auto existing_handles = this->db->links_exist(this->link_handles);
+                if (existing_handles.size() == 0) {
+                    continue;
+                }
+                for (auto& link_handle : existing_handles) {
+                    query_answer = this->link_handles_to_query_answers[link_handle];
+                    query_answer->handles[0] = strdup(link_handle.c_str());
                     query_answer->handles_size = 1;
                     this->output_buffer->add_query_answer(query_answer);
-                };
+                    this->link_handles_to_query_answers.erase(link_handle);
+                }
+                for (auto& [link_handle, query_answer] : this->link_handles_to_query_answers) {
+                    delete query_answer;
+                }
             } else {
                 this->set_flow_finished();
             }
@@ -241,6 +260,8 @@ class LinkTemplate2 : public Source {
     thread* inner_templates_processor;
     shared_ptr<Iterator> inner_template_iterator;
     shared_ptr<AtomDB> db;
+    vector<string> link_handles;
+    unordered_map<string, QueryAnswer*> link_handles_to_query_answers;
 };
 
 }  // namespace query_element
