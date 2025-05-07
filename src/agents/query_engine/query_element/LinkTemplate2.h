@@ -36,6 +36,7 @@ class LinkTemplate2 : public Source {
         this->target_template = move(targets);
         this->inner_templates_processor = NULL;
         bool wildcard_flag = (type == AtomDB::WILDCARD);
+        this->db = AtomDBSingleton::get_instance();
         this->handle_keys[0] =
             (wildcard_flag ? (char*) AtomDB::WILDCARD.c_str() : named_type_hash((char*) type.c_str()));
         for (unsigned int i = 1; i <= ARITY; i++) {
@@ -161,7 +162,7 @@ class LinkTemplate2 : public Source {
     // --------------------------------------------------------------------------------------------
     // Private methods and attributes
 
-    shared_ptr<atomdb_api_types::AtomDocument> get_atom(QueryAnswer* query_answer) {
+    char* get_link_handle(QueryAnswer* query_answer) {
         char* handle_keys[ARITY];
         handle_keys[0] = named_type_hash((char*) this->type.c_str());
         auto qa_handles_size = query_answer->handles_size;
@@ -174,17 +175,14 @@ class LinkTemplate2 : public Source {
                 // QueryAnswer doesn't have one or more handles for this template
                 if (qa_handles_index == qa_handles_size) {
                     free(handle_keys[0]);
-                    return nullptr;
+                    return NULL;
                 }
                 handle_keys[i + 1] = (char*) query_answer->handles[qa_handles_index++];
             }
         }
-        char* hash = composite_hash(handle_keys, ARITY + 1);
-        shared_ptr<AtomDB> db = AtomDBSingleton::get_instance();
-        auto atom_document = db->get_atom_document(hash);
+        auto hash = composite_hash(handle_keys, ARITY + 1);
         free(handle_keys[0]);
-        free(hash);
-        return atom_document->contains("_id") ? atom_document : nullptr;
+        return hash;
     }
 
     void inner_templates_processor_method() {
@@ -193,16 +191,19 @@ class LinkTemplate2 : public Source {
                 QueryAnswer* query_answer;
                 while ((query_answer =
                             dynamic_cast<QueryAnswer*>(this->inner_template_iterator->pop())) != NULL) {
-                    auto atom_document = this->get_atom(query_answer);
-                    if (atom_document == nullptr) {
+                    auto link_handle = this->get_link_handle(query_answer);
+                    if (link_handle == NULL) {
                         delete query_answer;
                         continue;
                     }
-                    auto handle = strdup(atom_document->get("_id"));
-                    QueryAnswer* new_answer = new QueryAnswer(handle, query_answer->importance);
-                    new_answer->assignment.copy_from(query_answer->assignment);
-                    this->output_buffer->add_query_answer(new_answer);
-                    delete query_answer;
+                    if (!this->db->link_exists(link_handle)) {
+                        delete query_answer;
+                        free(link_handle);
+                        continue;
+                    }
+                    query_answer->handles[0] = link_handle;
+                    query_answer->handles_size = 1;
+                    this->output_buffer->add_query_answer(query_answer);
                 };
             } else {
                 this->set_flow_finished();
@@ -239,6 +240,7 @@ class LinkTemplate2 : public Source {
     vector<shared_ptr<QueryElement>> inner_template;
     thread* inner_templates_processor;
     shared_ptr<Iterator> inner_template_iterator;
+    shared_ptr<AtomDB> db;
 };
 
 }  // namespace query_element

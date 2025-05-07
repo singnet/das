@@ -237,3 +237,12 @@ shared_ptr<atomdb_api_types::AtomDocument> RedisMongoDB::get_atom_document(const
     if (this->atomdb_cache != nullptr) this->atomdb_cache->add_atom_document(handle, atom_document);
     return atom_document;
 }
+
+bool RedisMongoDB::link_exists(const char* link_handle) {
+    this->mongodb_mutex.lock();
+    auto mongodb_collection = get_database()[MONGODB_COLLECTION_NAME];
+    auto reply = mongodb_collection.find_one(bsoncxx::v_noabi::builder::basic::make_document(
+        bsoncxx::v_noabi::builder::basic::kvp(MONGODB_FIELD_NAME[MONGODB_FIELD::ID], link_handle)));
+    this->mongodb_mutex.unlock();
+    return reply != core::v1::nullopt;
+}
