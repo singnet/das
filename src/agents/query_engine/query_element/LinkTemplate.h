@@ -504,7 +504,7 @@ class LinkTemplate : public Source {
         if (this->inner_template.size() == 0) {
             // LOG_INFO("Inner");
             while (!(this->is_flow_finished() && this->local_buffer.empty())) {
-                LOG_INFO("Processing local buffer");
+                // LOG_INFO("Processing local buffer");
                 QueryAnswer* query_answer;
                 while ((query_answer = (QueryAnswer*) this->local_buffer.dequeue()) != NULL) {
                     this->output_buffer->add_query_answer(query_answer);
