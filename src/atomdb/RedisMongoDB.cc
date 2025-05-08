@@ -258,9 +258,7 @@ std::vector<std::string> RedisMongoDB::links_exist(const std::vector<std::string
     bsoncxx::builder::basic::document filter_builder;
     bsoncxx::builder::basic::array array_builder;
 
-    for (const auto& handle : link_handles) {
-        array_builder.append(handle);
-    }
+    for (const auto& handle : link_handles) array_builder.append(handle);
 
     filter_builder.append(
         bsoncxx::builder::basic::kvp(MONGODB_FIELD_NAME[MONGODB_FIELD::ID],
@@ -279,7 +277,7 @@ std::vector<std::string> RedisMongoDB::links_exist(const std::vector<std::string
     std::vector<std::string> existing_links;
     for (const auto& doc : cursor) {
         existing_links.push_back(
-            doc[MONGODB_FIELD_NAME[MONGODB_FIELD::ID]].get_utf8().value.to_string());
+            doc[MONGODB_FIELD_NAME[MONGODB_FIELD::ID]].get_string().value.to_string());
     }
 
     return existing_links;
