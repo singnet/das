@@ -2,8 +2,6 @@
 
 #include <hiredis_cluster/hircluster.h>
 
-#include <bsoncxx/builder/stream/document.hpp>
-#include <bsoncxx/builder/stream/helpers.hpp>
 #include <bsoncxx/json.hpp>
 #include <memory>
 #include <mongocxx/client.hpp>

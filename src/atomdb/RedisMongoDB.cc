@@ -3,6 +3,8 @@
 #include <grpcpp/grpcpp.h>
 
 #include <algorithm>
+#include <bsoncxx/builder/stream/document.hpp>
+#include <bsoncxx/builder/stream/helpers.hpp>
 #include <iostream>
 #include <memory>
 #include <string>
@@ -253,22 +255,32 @@ std::vector<std::string> RedisMongoDB::links_exist(const std::vector<std::string
     lock_guard<std::mutex> lock(this->mongodb_mutex);
     auto mongodb_collection = get_database()[MONGODB_COLLECTION_NAME];
 
-    bsoncxx::builder::stream::document filter_builder;
-    auto array = filter_builder << MONGODB_FIELD_NAME[MONGODB_FIELD::ID]
-                                << bsoncxx::builder::stream::open_document << "$in"
-                                << bsoncxx::builder::stream::open_array;
-    for (const auto& handle : link_handles) {
-        array << handle;
-    }
-    array << bsoncxx::builder::stream::close_array << bsoncxx::builder::stream::close_document;
-    auto filter = filter_builder.view();
+    bsoncxx::builder::basic::document filter_builder;
+    bsoncxx::builder::basic::array array_builder;
 
-    auto cursor = mongodb_collection.distinct(MONGODB_FIELD_NAME[MONGODB_FIELD::ID], filter);
+    for (const auto& handle : link_handles) {
+        array_builder.append(handle);
+    }
+
+    filter_builder.append(
+        bsoncxx::builder::basic::kvp(MONGODB_FIELD_NAME[MONGODB_FIELD::ID],
+                                     bsoncxx::builder::basic::make_document(
+                                         bsoncxx::builder::basic::kvp("$in", array_builder.view()))));
+
+    // Only project the ID field
+    bsoncxx::builder::basic::document projection_builder;
+    projection_builder.append(bsoncxx::builder::basic::kvp(MONGODB_FIELD_NAME[MONGODB_FIELD::ID], 1));
+
+    mongocxx::options::find options;
+    options.projection(projection_builder.view());
+
+    auto cursor = mongodb_collection.find(filter_builder.view(), options);
 
     std::vector<std::string> existing_links;
-    // for (const auto& doc : cursor) {
-    //     existing_links.push_back(
-    //         doc[MONGODB_FIELD_NAME[MONGODB_FIELD::ID]].get_utf8().value.to_string());
-    // }
+    for (const auto& doc : cursor) {
+        existing_links.push_back(
+            doc[MONGODB_FIELD_NAME[MONGODB_FIELD::ID]].get_utf8().value.to_string());
+    }
+
     return existing_links;
 }
