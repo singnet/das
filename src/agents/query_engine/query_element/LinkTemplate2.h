@@ -189,43 +189,43 @@ class LinkTemplate2 : public Source {
 
     void inner_templates_processor_method() {
         while (!this->is_flow_finished()) {
-            if (!this->inner_template_iterator->finished()) {
-                QueryAnswer* query_answer;
-                this->link_handles.clear();
-                this->link_handles_to_query_answers.clear();
-                while ((query_answer =
-                            dynamic_cast<QueryAnswer*>(this->inner_template_iterator->pop())) != NULL) {
-                    auto link_handle = this->get_link_handle(query_answer);
-                    if (link_handle == NULL) {
-                        delete query_answer;
-                        continue;
-                    }
-                    this->link_handles.push_back(link_handle);
-                    this->link_handles_to_query_answers[link_handle] = query_answer;
-                    free(link_handle);
-                    if (this->link_handles.size() >= DB_LINK_HANDLES_BATCH_SIZE) {
-                        break;
-                    }
-                }
-                if (this->link_handles.size() == 0) {
-                    continue;
-                }
-                auto existing_handles = this->db->links_exist(this->link_handles);
-                if (existing_handles.size() == 0) {
-                    continue;
-                }
-                for (auto& link_handle : existing_handles) {
-                    query_answer = this->link_handles_to_query_answers[link_handle];
-                    query_answer->handles[0] = strdup(link_handle.c_str());
-                    query_answer->handles_size = 1;
-                    this->output_buffer->add_query_answer(query_answer);
-                    this->link_handles_to_query_answers.erase(link_handle);
-                }
-                for (auto& [link_handle, query_answer] : this->link_handles_to_query_answers) {
-                    delete query_answer;
-                }
-            } else {
+            if (this->inner_template_iterator->finished()) {
                 this->set_flow_finished();
+                break;
+            }
+            QueryAnswer* query_answer;
+            this->link_handles.clear();
+            this->link_handles_to_query_answers.clear();
+            // clang-format off
+            while (
+                (query_answer = 
+                    dynamic_cast<QueryAnswer*>(this->inner_template_iterator->pop())) != NULL) {
+                // clang-format on
+                auto link_handle = this->get_link_handle(query_answer);
+                if (link_handle == NULL) {
+                    delete query_answer;
+                    continue;
+                }
+                this->link_handles.push_back(link_handle);
+                this->link_handles_to_query_answers[link_handle] = query_answer;
+                free(link_handle);
+                if (this->link_handles.size() >= DB_LINK_HANDLES_BATCH_SIZE) {
+                    break;
+                }
+            }
+            if (this->link_handles.size() == 0) {
+                continue;
+            }
+            auto existing_handles = this->db->links_exist(this->link_handles);
+            for (auto& link_handle : existing_handles) {
+                query_answer = this->link_handles_to_query_answers[link_handle];
+                query_answer->handles[0] = strdup(link_handle.c_str());
+                query_answer->handles_size = 1;
+                this->output_buffer->add_query_answer(query_answer);
+                this->link_handles_to_query_answers.erase(link_handle);
+            }
+            for (auto& [link_handle, query_answer] : this->link_handles_to_query_answers) {
+                delete query_answer;
             }
         }
         this->output_buffer->query_answers_finished();
