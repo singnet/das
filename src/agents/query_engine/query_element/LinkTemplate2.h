@@ -193,7 +193,6 @@ class LinkTemplate2 : public Source {
                 this->set_flow_finished();
                 break;
             }
-            char* link_handle;
             QueryAnswer* query_answer;
             this->link_handles_count = 0;
             this->link_handles_to_query_answers.clear();
@@ -202,7 +201,7 @@ class LinkTemplate2 : public Source {
                 (query_answer = 
                     dynamic_cast<QueryAnswer*>(this->inner_template_iterator->pop())) != NULL) {
                 // clang-format on
-                link_handle = this->get_link_handle(query_answer);
+                auto link_handle = this->get_link_handle(query_answer);
                 if (link_handle == NULL) {
                     delete query_answer;
                     continue;
@@ -218,6 +217,7 @@ class LinkTemplate2 : public Source {
             }
             size_t existing_handles_count =
                 this->db->links_exist(this->link_handles, this->link_handles_count);
+            char* link_handle;
             for (size_t i = 0; i < existing_handles_count; i++) {
                 link_handle = this->link_handles[i];
                 query_answer = this->link_handles_to_query_answers[link_handle];
