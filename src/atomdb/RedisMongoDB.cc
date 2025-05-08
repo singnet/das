@@ -249,8 +249,24 @@ bool RedisMongoDB::link_exists(const char* link_handle) {
     return reply != core::v1::nullopt;
 }
 
-std::vector<std::string> RedisMongoDB::links_exist(const std::vector<std::string>& link_handles) {
-    if (link_handles.empty()) return {};
+/**
+ * @brief Checks the existence of multiple links in the MongoDB collection.
+ *
+ * This function searches the MongoDB collection for the existence of links specified by their handles.
+ * It updates the input array of link handles with only those handles that exist in the database.
+ *
+ * @param link_handles An array of C-strings representing the link handles to be checked.
+ * @param link_handles_count The number of link handles provided in the array.
+ * @return The count of link handles that exist in the MongoDB collection.
+ *
+ * The function locks the MongoDB mutex to ensure thread safety during the database operations.
+ * It constructs a filter to check for the presence of any of the provided link handles in the database.
+ * Only the ID field is projected from the database documents. The input array of link handles is
+ * updated in-place with the existing link handles, and the total number of existing links found is
+ * returned.
+ */
+size_t RedisMongoDB::links_exist(char** link_handles, size_t link_handles_count) {
+    if (link_handles_count == 0) return {};
 
     lock_guard<std::mutex> lock(this->mongodb_mutex);
     auto mongodb_collection = get_database()[MONGODB_COLLECTION_NAME];
@@ -258,7 +274,7 @@ std::vector<std::string> RedisMongoDB::links_exist(const std::vector<std::string
     bsoncxx::builder::basic::document filter_builder;
     bsoncxx::builder::basic::array array_builder;
 
-    for (const auto& handle : link_handles) array_builder.append(handle);
+    for (size_t i = 0; i < link_handles_count; i++) array_builder.append(link_handles[i]);
 
     filter_builder.append(
         bsoncxx::builder::basic::kvp(MONGODB_FIELD_NAME[MONGODB_FIELD::ID],
@@ -274,11 +290,11 @@ std::vector<std::string> RedisMongoDB::links_exist(const std::vector<std::string
 
     auto cursor = mongodb_collection.find(filter_builder.view(), options);
 
-    std::vector<std::string> existing_links;
-    for (const auto& doc : cursor) {
-        existing_links.push_back(
-            doc[MONGODB_FIELD_NAME[MONGODB_FIELD::ID]].get_string().value.to_string());
+    size_t existing_links_count = 0;
+    for (auto&& doc : cursor) {
+        link_handles[existing_links_count++] =
+            strdup(doc[MONGODB_FIELD_NAME[MONGODB_FIELD::ID]].get_string().value.to_string().c_str());
     }
 
-    return existing_links;
+    return existing_links_count;
 }

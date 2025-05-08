@@ -46,7 +46,7 @@ class RedisMongoDB : public AtomDB {
     shared_ptr<atomdb_api_types::HandleList> query_for_targets(char* link_handle_ptr);
     shared_ptr<atomdb_api_types::AtomDocument> get_atom_document(const char* handle);
     bool link_exists(const char* link_handle);
-    std::vector<std::string> links_exist(const std::vector<std::string>& link_handles);
+    size_t links_exist(char** link_handles, size_t link_handles_count);
 
    private:
     bool cluster_flag;
