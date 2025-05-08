@@ -273,7 +273,7 @@ class LinkTemplate2 : public Source {
     shared_ptr<AtomDB> db;
     char* link_handles[DB_LINK_HANDLES_BATCH_SIZE];
     size_t link_handles_count;
-    unordered_map<char*, QueryAnswer*> link_handles_to_query_answers;
+    unordered_map<string, QueryAnswer*> link_handles_to_query_answers;
 };
 
 }  // namespace query_element
