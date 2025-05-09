@@ -22,9 +22,7 @@ def parse_targets(targets, atom_db):
             atom = atom_db.get_atom(target)
             if isinstance(atom, Link):
                 new_targets.append(
-                    LinkT(
-                        type=atom.named_type, targets=parse_targets(atom.targets, atom_db)
-                    )
+                    LinkT(type=atom.named_type, targets=parse_targets(atom.targets, atom_db))
                 )
             else:
                 new_targets.append(NodeT(type=atom.named_type, name=atom.name))

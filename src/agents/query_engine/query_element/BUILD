@@ -12,6 +12,7 @@ cc_library(
     ":sink",
     ":query_element",
     ":link_template",
+    ":link_template2",
     ":source",
     ":unique_assignment_filter",
     ":query_element_registry",
@@ -100,6 +101,14 @@ cc_library(
     "//agents/query_engine:query_node",
     "//attention_broker:attention_broker_server_lib",
     "//commons:commons_lib",
+  ],
+)
+
+cc_library(
+  name = "link_template2",
+  hdrs = ["LinkTemplate2.h"],
+  deps = [
+    ":link_template",
   ],
 )
 

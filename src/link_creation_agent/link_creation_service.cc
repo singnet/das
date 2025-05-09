@@ -114,7 +114,8 @@ void LinkCreationService::create_links() {
             vector<string> request = get<1>(request_map);
             try {
                 string meta_content =
-                    link_creation_agent::LinkCreateDBSingleton::get_instance()->tokens_to_metta_string(request);
+                    link_creation_agent::LinkCreateDBSingleton::get_instance()->tokens_to_metta_string(
+                        request);
                 if (meta_content.empty()) {
                     LOG_ERROR("Failed to create MeTTa expression for " << Utils::join(request, ' '));
                     continue;

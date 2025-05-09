@@ -3,6 +3,7 @@
 #include "And.h"
 #include "AtomDBSingleton.h"
 #include "LinkTemplate.h"
+#include "LinkTemplate2.h"
 #include "Or.h"
 #include "PatternMatchingQueryProxy.h"
 #include "ServiceBus.h"
@@ -235,6 +236,8 @@ shared_ptr<QueryElement> PatternMatchingQueryProcessor::setup_query_tree(
         } else if (proxy->query_tokens[cursor] == "LINK_TEMPLATE") {
             element_stack.push(
                 build_link_template(proxy, cursor, element_stack, query_element_registry));
+        } else if (proxy->query_tokens[cursor] == "LINK_TEMPLATE2") {
+            element_stack.push(build_link_template2(proxy, cursor, element_stack));
         } else if (proxy->query_tokens[cursor] == "AND") {
             element_stack.push(build_and(proxy, cursor, element_stack));
             if (proxy->get_unique_assignment_flag()) {
@@ -299,6 +302,46 @@ shared_ptr<QueryElement> PatternMatchingQueryProcessor::build_link_template(
         // clang-format on
         default: {
             Utils::error("PATTERN_MATCHING_QUERY message: max supported arity for LINK_TEMPLATE: 10");
+        }
+    }
+    return NULL;  // Just to avoid warnings. This is not actually reachable.
+}
+
+#define BUILD_LINK_TEMPLATE2(N)                                                               \
+    {                                                                                         \
+        array<shared_ptr<QueryElement>, N> targets;                                           \
+        for (unsigned int i = 0; i < N; i++) {                                                \
+            targets[i] = element_stack.top();                                                 \
+            element_stack.pop();                                                              \
+        }                                                                                     \
+        return make_shared<LinkTemplate2<N>>(proxy->query_tokens[cursor + 1], move(targets)); \
+    }
+
+shared_ptr<QueryElement> PatternMatchingQueryProcessor::build_link_template2(
+    shared_ptr<PatternMatchingQueryProxy> proxy,
+    unsigned int cursor,
+    stack<shared_ptr<QueryElement>>& element_stack) {
+    unsigned int arity = std::stoi(proxy->query_tokens[cursor + 2]);
+    if (element_stack.size() < arity) {
+        Utils::error(
+            "PATTERN_MATCHING_QUERY message: parse error in tokens - too few arguments for "
+            "LINK_TEMPLATE2");
+    }
+    // clang-format off
+    switch (arity) {
+        case  1: BUILD_LINK_TEMPLATE2(1);
+        case  2: BUILD_LINK_TEMPLATE2(2);
+        case  3: BUILD_LINK_TEMPLATE2(3);
+        case  4: BUILD_LINK_TEMPLATE2(4);
+        case  5: BUILD_LINK_TEMPLATE2(5);
+        case  6: BUILD_LINK_TEMPLATE2(6);
+        case  7: BUILD_LINK_TEMPLATE2(7);
+        case  8: BUILD_LINK_TEMPLATE2(8);
+        case  9: BUILD_LINK_TEMPLATE2(9);
+        case 10: BUILD_LINK_TEMPLATE2(10);
+        // clang-format on
+        default: {
+            Utils::error("PATTERN_MATCHING_QUERY message: max supported arity for LINK_TEMPLATE2: 10");
         }
     }
     return NULL;  // Just to avoid warnings. This is not actually reachable.

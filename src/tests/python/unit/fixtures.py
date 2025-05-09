@@ -93,7 +93,7 @@ class MockRedis:
         new_cursor = end if end < len(elements) else 0
 
         return (new_cursor, elements[start:end])
-    
+
     def zrange(self, name: str, start: int, end: int, withscores: bool = False):
         if name not in self.cache:
             return []
@@ -106,7 +106,7 @@ class MockRedis:
         if end < 0:
             end = length + end
 
-        sliced = sorted_items[start:end + 1]
+        sliced = sorted_items[start : end + 1]
         if withscores:
             return sliced
         else:
@@ -131,6 +131,7 @@ class MockRedis:
                 del self.cache[name][value]
                 removed_count += 1
         return removed_count
+
 
 def mongo_mock():
     return mongomock.MongoClient().db
