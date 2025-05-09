@@ -249,10 +249,10 @@ bool RedisMongoDB::link_exists(const char* link_handle) {
     return reply != core::v1::nullopt;
 }
 
-std::vector<std::string> RedisMongoDB::links_exist(const std::vector<std::string>& link_handles) {
+vector<string> RedisMongoDB::links_exist(const vector<string>& link_handles) {
     if (link_handles.empty()) return {};
 
-    lock_guard<std::mutex> lock(this->mongodb_mutex);
+    lock_guard<mutex> lock(this->mongodb_mutex);
     auto mongodb_collection = get_database()[MONGODB_COLLECTION_NAME];
 
     bsoncxx::builder::basic::document filter_builder;
@@ -274,7 +274,7 @@ std::vector<std::string> RedisMongoDB::links_exist(const std::vector<std::string
 
     auto cursor = mongodb_collection.find(filter_builder.view(), options);
 
-    std::vector<std::string> existing_links;
+    vector<string> existing_links;
     for (const auto& doc : cursor) {
         existing_links.push_back(
             doc[MONGODB_FIELD_NAME[MONGODB_FIELD::ID]].get_string().value.to_string());
