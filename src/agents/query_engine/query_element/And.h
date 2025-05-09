@@ -6,7 +6,7 @@
 #include "Operator.h"
 #include "QueryAnswer.h"
 
-#define LOG_LEVEL INFO_LEVEL
+#define LOG_LEVEL DEBUG_LEVEL
 #include "Logger.h"
 
 using namespace std;
@@ -207,6 +207,7 @@ class And : public Operator<N> {
     }
 
     void expand_border(const CandidateRecord& last_used_candidate) {
+        LOG_DEBUG("expanding border :: current size: " << this->border.size());
         CandidateRecord candidate;
         unsigned int index_in_queue;
         bool abort_candidate;
