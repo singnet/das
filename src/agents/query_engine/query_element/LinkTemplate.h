@@ -1,6 +1,5 @@
 #pragma once
 
-#define LOG_LEVEL INFO_LEVEL
 #include <grpcpp/grpcpp.h>
 
 #include <cstring>
@@ -16,7 +15,6 @@
 #include "AttentionBrokerServer.h"
 #include "ImportanceList.h"
 #include "Iterator.h"
-#include "Logger.h"
 #include "QueryAnswer.h"
 #include "QueryElementRegistry.h"
 #include "QueryNode.h"
