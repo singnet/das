@@ -84,6 +84,9 @@ format-all:
 performance-tests:
 	@python3 src/tests/integration/performance/query_agent_metrics.py
 
+run-debug:
+	@bash ./src/scripts/debug.sh
+
 # Catch-all pattern to prevent make from complaining about unknown targets
 %:
 	@:
