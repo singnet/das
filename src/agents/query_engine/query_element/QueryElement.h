@@ -82,6 +82,11 @@ class QueryElement {
      */
     bool is_terminal;
 
+    /**
+     * Indicates whether this QueryElement is a Operator (i.e. AND, OR or NOT).
+     */
+    bool is_operator;
+
    protected:
     /**
      * Return true iff this QueryElement have finished its work in the flow of links up through

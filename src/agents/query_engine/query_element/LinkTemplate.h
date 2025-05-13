@@ -228,6 +228,19 @@ class LinkTemplate : public Source {
         fetch_links();
     }
 
+    vector<pair<size_t, string>> get_variables() {
+        vector<pair<size_t, string>> variables;
+        for (unsigned int i = 0; i < this->arity; i++) {
+            if (this->target_template[i]->is_terminal) {
+                auto terminal = dynamic_pointer_cast<Terminal>(this->target_template[i]);
+                if (terminal->is_variable) {
+                    variables.push_back({i, terminal->name});
+                }
+            }
+        }
+        return variables;
+    }
+
    private:
     // --------------------------------------------------------------------------------------------
     // Private methods and attributes
