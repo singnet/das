@@ -7,4 +7,4 @@ from hyperon_das.das import DistributedAtomSpace
 
 __all__ = ["DistributedAtomSpace"]
 
-__version__ = "0.9.14"
+__version__ = "0.10.2"
