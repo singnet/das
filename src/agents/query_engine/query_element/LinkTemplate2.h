@@ -50,9 +50,6 @@ class LinkTemplate2 : public Source {
             // is used solely in this scope so it's guaranteed that handle will not be freed.
             if (this->target_template[i - 1]->is_terminal) {
                 auto terminal = dynamic_pointer_cast<Terminal>(this->target_template[i - 1]);
-                if (terminal->is_variable) {
-                    Utils::error("LinkTemplate2 does not support variables.");
-                }
                 this->handle_keys[i] =
                     dynamic_pointer_cast<Terminal>(this->target_template[i - 1])->handle.get();
             } else {
@@ -203,20 +200,32 @@ class LinkTemplate2 : public Source {
                 inner_template = this->inner_template[inner_template_index++];
                 switch (inner_template->arity) {
                     case 1:
-                        variables =
-                            dynamic_pointer_cast<LinkTemplate<1>>(inner_template)->get_variables();
+                        if (auto lt = dynamic_pointer_cast<LinkTemplate<1>>(inner_template)) {
+                            variables = lt->get_variables();
+                        } else if (auto lt2 = dynamic_pointer_cast<LinkTemplate2<1>>(inner_template)) {
+                            variables = lt2->get_variables();
+                        }
                         break;
                     case 2:
-                        variables =
-                            dynamic_pointer_cast<LinkTemplate<2>>(inner_template)->get_variables();
+                        if (auto lt = dynamic_pointer_cast<LinkTemplate<2>>(inner_template)) {
+                            variables = lt->get_variables();
+                        } else if (auto lt2 = dynamic_pointer_cast<LinkTemplate2<2>>(inner_template)) {
+                            variables = lt2->get_variables();
+                        }
                         break;
                     case 3:
-                        variables =
-                            dynamic_pointer_cast<LinkTemplate<3>>(inner_template)->get_variables();
+                        if (auto lt = dynamic_pointer_cast<LinkTemplate<3>>(inner_template)) {
+                            variables = lt->get_variables();
+                        } else if (auto lt2 = dynamic_pointer_cast<LinkTemplate2<3>>(inner_template)) {
+                            variables = lt2->get_variables();
+                        }
                         break;
                     case 4:
-                        variables =
-                            dynamic_pointer_cast<LinkTemplate<4>>(inner_template)->get_variables();
+                        if (auto lt = dynamic_pointer_cast<LinkTemplate<4>>(inner_template)) {
+                            variables = lt->get_variables();
+                        } else if (auto lt2 = dynamic_pointer_cast<LinkTemplate2<4>>(inner_template)) {
+                            variables = lt2->get_variables();
+                        }
                         break;
                     default:
                         Utils::error("Invalid number of inner templates in link template.");
