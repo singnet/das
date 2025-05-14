@@ -50,6 +50,9 @@ class LinkTemplate2 : public Source {
             // is used solely in this scope so it's guaranteed that handle will not be freed.
             if (this->target_template[i - 1]->is_terminal) {
                 auto terminal = dynamic_pointer_cast<Terminal>(this->target_template[i - 1]);
+                if (terminal->is_variable) {
+                    Utils::error("LinkTemplate2 does not support variables.");
+                }
                 this->handle_keys[i] =
                     dynamic_pointer_cast<Terminal>(this->target_template[i - 1])->handle.get();
             } else {
@@ -183,11 +186,12 @@ class LinkTemplate2 : public Source {
     // Private methods and attributes
 
     char* get_link_handle(QueryAnswer* query_answer) {
-        char* handle_keys[ARITY];
+        char* handle_keys[ARITY + 1];
         vector<pair<size_t, string>> variables;
         size_t inner_template_index = 0;
         shared_ptr<query_element::QueryElement> inner_template;
         shared_ptr<atomdb::atomdb_api_types::AtomDocument> atom;
+        bool is_lt2 = false;
         for (unsigned int i = 0; i < ARITY; i++) {
             if (this->target_template[i]->is_terminal) {
                 handle_keys[i + 1] =
@@ -198,37 +202,42 @@ class LinkTemplate2 : public Source {
                 }
                 handle_keys[i + 1] = NULL;
                 inner_template = this->inner_template[inner_template_index++];
+                is_lt2 = false;
                 switch (inner_template->arity) {
                     case 1:
                         if (auto lt = dynamic_pointer_cast<LinkTemplate<1>>(inner_template)) {
                             variables = lt->get_variables();
                         } else if (auto lt2 = dynamic_pointer_cast<LinkTemplate2<1>>(inner_template)) {
-                            variables = lt2->get_variables();
+                            is_lt2 = true;
                         }
                         break;
                     case 2:
                         if (auto lt = dynamic_pointer_cast<LinkTemplate<2>>(inner_template)) {
                             variables = lt->get_variables();
                         } else if (auto lt2 = dynamic_pointer_cast<LinkTemplate2<2>>(inner_template)) {
-                            variables = lt2->get_variables();
+                            is_lt2 = true;
                         }
                         break;
                     case 3:
                         if (auto lt = dynamic_pointer_cast<LinkTemplate<3>>(inner_template)) {
                             variables = lt->get_variables();
                         } else if (auto lt2 = dynamic_pointer_cast<LinkTemplate2<3>>(inner_template)) {
-                            variables = lt2->get_variables();
+                            is_lt2 = true;
                         }
                         break;
                     case 4:
                         if (auto lt = dynamic_pointer_cast<LinkTemplate<4>>(inner_template)) {
                             variables = lt->get_variables();
                         } else if (auto lt2 = dynamic_pointer_cast<LinkTemplate2<4>>(inner_template)) {
-                            variables = lt2->get_variables();
+                            is_lt2 = true;
                         }
                         break;
                     default:
                         Utils::error("Invalid number of inner templates in link template.");
+                }
+                if (is_lt2) {
+                    handle_keys[i + 1] = (char*) query_answer->handles[0];
+                    continue;
                 }
                 // clang-format off
                 for (
