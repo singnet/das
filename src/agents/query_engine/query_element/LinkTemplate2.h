@@ -3,7 +3,7 @@
 #include <cstring>
 
 // clang-format off
-#define LOG_LEVEL INFO_LEVEL
+#define LOG_LEVEL DEBUG_LEVEL
 #include "Logger.h"
 // clang-format on
 
@@ -186,21 +186,20 @@ class LinkTemplate2 : public Source {
     // Private methods and attributes
 
     char* get_link_handle(QueryAnswer* query_answer) {
-        char* handle_keys[ARITY + 1];
+        char* keys[ARITY + 1];
         vector<pair<size_t, string>> variables;
         size_t inner_template_index = 0;
         shared_ptr<query_element::QueryElement> inner_template;
         shared_ptr<atomdb::atomdb_api_types::AtomDocument> atom;
         bool is_lt2 = false;
         for (unsigned int i = 0; i < ARITY; i++) {
+            keys[i + 1] = NULL;
             if (this->target_template[i]->is_terminal) {
-                handle_keys[i + 1] =
-                    dynamic_pointer_cast<Terminal>(this->target_template[i])->handle.get();
+                keys[i + 1] = dynamic_pointer_cast<Terminal>(this->target_template[i])->handle.get();
             } else {
                 if (inner_template_index >= this->inner_template.size()) {
                     Utils::error("Invalid inner template index.");
                 }
-                handle_keys[i + 1] = NULL;
                 inner_template = this->inner_template[inner_template_index++];
                 is_lt2 = false;
                 switch (inner_template->arity) {
@@ -236,7 +235,7 @@ class LinkTemplate2 : public Source {
                         Utils::error("Invalid number of inner templates in link template.");
                 }
                 if (is_lt2) {
-                    handle_keys[i + 1] = (char*) query_answer->handles[0];
+                    keys[i + 1] = (char*) query_answer->handles[0];
                     continue;
                 }
                 // clang-format off
@@ -247,28 +246,39 @@ class LinkTemplate2 : public Source {
                 ) {
                     // clang-format on
                     auto qa_handle = query_answer->handles[qa_handles_index];
+                    // cout << ">> qa_handle: " << qa_handle << endl;
                     atom = this->db->get_atom_document(qa_handle);
                     if (!atom->contains("targets")) continue;
                     for (auto& [index, name] : variables) {
+                        // cout << "index: " << index << " name: " << name << endl;
                         auto target_handle = atom->get("targets", index);
+                        // cout << "target_handle: " << target_handle << endl;
                         if (!target_handle) continue;
                         auto assignment_handle = query_answer->assignment.get(name.c_str());
+                        // cout << "assignment_handle: " << assignment_handle << endl;
                         if (!assignment_handle) continue;
-                        if (target_handle == assignment_handle) {
-                            handle_keys[i + 1] = (char*) qa_handle;
+                        if (strcmp(target_handle, assignment_handle) == 0) {
+                            // cout << ">> Found match: " << target_handle << endl;
+                            keys[i + 1] = (char*) qa_handle;
                             break;
                         }
                     }
-                    if (handle_keys[i + 1] != NULL) break;
+                    if (keys[i + 1] != NULL) break;
                 }
-                if (handle_keys[i + 1] == NULL) {
-                    return NULL;
-                }
+                if (keys[i + 1] == NULL) return NULL;
             }
+            if (keys[i + 1] == NULL) return NULL;
         }
-        handle_keys[0] = named_type_hash((char*) this->type.c_str());
-        auto hash = composite_hash(handle_keys, ARITY + 1);
-        free(handle_keys[0]);
+        keys[0] = named_type_hash((char*) this->type.c_str());
+        if (this->arity == 3) {
+            string keys_str = ">> handle keys: ";
+            for (unsigned int i = 1; i <= ARITY; i++) {
+                keys_str += string(keys[i]) + " ";
+            }
+            cout << keys_str << endl;
+        }
+        auto hash = composite_hash(keys, ARITY + 1);
+        free(keys[0]);
         return hash;
     }
 
@@ -286,7 +296,9 @@ class LinkTemplate2 : public Source {
                 (query_answer = 
                     dynamic_cast<QueryAnswer*>(this->inner_template_iterator->pop())) != NULL) {
                 // clang-format on
+                // cout << ">> " << query_answer->to_string() << endl;
                 auto link_handle = this->get_link_handle(query_answer);
+                // cout << ">> Link handle: " << (link_handle == NULL ? "(null)" : link_handle) << endl;
                 if (link_handle == NULL) {
                     delete query_answer;
                     continue;
