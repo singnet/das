@@ -52,6 +52,7 @@ class QueryElement {
    public:
     string id;
     string subsequent_id;
+    unsigned int arity;
 
     /**
      * Basic constructor which solely initialize variables.

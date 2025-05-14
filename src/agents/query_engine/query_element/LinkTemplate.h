@@ -500,7 +500,6 @@ class LinkTemplate : public Source {
 
     string type;
     array<shared_ptr<QueryElement>, ARITY> target_template;
-    unsigned int arity;
     shared_ptr<char> handle;
     char* handle_keys[ARITY + 1];
     shared_ptr<atomdb_api_types::HandleSet> fetch_result;

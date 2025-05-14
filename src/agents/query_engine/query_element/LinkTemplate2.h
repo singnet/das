@@ -185,9 +185,12 @@ class LinkTemplate2 : public Source {
     // --------------------------------------------------------------------------------------------
     // Private methods and attributes
 
-    char* get_lt2_handle(QueryAnswer* query_answer) {
+    char* get_link_handle(QueryAnswer* query_answer) {
         char* handle_keys[ARITY];
+        vector<pair<size_t, string>> variables;
         size_t inner_template_index = 0;
+        shared_ptr<query_element::QueryElement> inner_template;
+        shared_ptr<atomdb::atomdb_api_types::AtomDocument> atom;
         for (unsigned int i = 0; i < ARITY; i++) {
             if (this->target_template[i]->is_terminal) {
                 handle_keys[i + 1] =
@@ -196,14 +199,29 @@ class LinkTemplate2 : public Source {
                 if (inner_template_index >= this->inner_template.size()) {
                     Utils::error("Invalid inner template index.");
                 }
-                cout << "[1]" << endl;
                 handle_keys[i + 1] = NULL;
-                auto inner_template = this->inner_template[inner_template_index++];
-                cout << "[5]" << endl;
-                vector<pair<size_t, string>> variables =
-                    dynamic_pointer_cast<LinkTemplate<ARITY>>(inner_template)->get_variables();
+                inner_template = this->inner_template[inner_template_index++];
+                switch (inner_template->arity) {
+                    case 1:
+                        variables =
+                            dynamic_pointer_cast<LinkTemplate<1>>(inner_template)->get_variables();
+                        break;
+                    case 2:
+                        variables =
+                            dynamic_pointer_cast<LinkTemplate<2>>(inner_template)->get_variables();
+                        break;
+                    case 3:
+                        variables =
+                            dynamic_pointer_cast<LinkTemplate<3>>(inner_template)->get_variables();
+                        break;
+                    case 4:
+                        variables =
+                            dynamic_pointer_cast<LinkTemplate<4>>(inner_template)->get_variables();
+                        break;
+                    default:
+                        Utils::error("Invalid number of inner templates in link template.");
+                }
                 // clang-format off
-                cout << "[10]" << endl;
                 for (
                     size_t qa_handles_index = 0;
                     qa_handles_index < query_answer->handles_size;
@@ -211,28 +229,23 @@ class LinkTemplate2 : public Source {
                 ) {
                     // clang-format on
                     auto qa_handle = query_answer->handles[qa_handles_index];
-                    auto atom = this->db->get_atom_document(qa_handle);
-                    cout << "[15]" << endl;
+                    atom = this->db->get_atom_document(qa_handle);
                     if (!atom->contains("targets")) continue;
                     for (auto& [index, name] : variables) {
                         auto target_handle = atom->get("targets", index);
-                        cout << "[20]" << endl;
                         if (!target_handle) continue;
                         auto assignment_handle = query_answer->assignment.get(name.c_str());
                         if (!assignment_handle) continue;
-                        cout << "[25]" << endl;
                         if (target_handle == assignment_handle) {
                             handle_keys[i + 1] = (char*) qa_handle;
                             break;
                         }
                     }
-                    cout << "[30]" << endl;
                     if (handle_keys[i + 1] != NULL) break;
                 }
                 if (handle_keys[i + 1] == NULL) {
                     return NULL;
                 }
-                cout << "[35]" << endl;
             }
         }
         handle_keys[0] = named_type_hash((char*) this->type.c_str());
@@ -255,7 +268,7 @@ class LinkTemplate2 : public Source {
                 (query_answer = 
                     dynamic_cast<QueryAnswer*>(this->inner_template_iterator->pop())) != NULL) {
                 // clang-format on
-                auto link_handle = this->get_lt2_handle(query_answer);
+                auto link_handle = this->get_link_handle(query_answer);
                 if (link_handle == NULL) {
                     delete query_answer;
                     continue;
@@ -307,7 +320,6 @@ class LinkTemplate2 : public Source {
 
     string type;
     array<shared_ptr<QueryElement>, ARITY> target_template;
-    unsigned int arity;
     shared_ptr<char> handle;
     char* handle_keys[ARITY + 1];
     vector<shared_ptr<QueryElement>> inner_template;
