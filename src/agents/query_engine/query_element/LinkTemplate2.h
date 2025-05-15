@@ -261,15 +261,11 @@ class LinkTemplate2 : public Source {
      * @return A char pointer representing the composite hash link handle, or NULL if no match exists.
      */
     char* get_link_handle(QueryAnswer* query_answer) {
-        vector<pair<size_t, string>> variables;
-        size_t inner_template_index = 0;
+        size_t i = 0;  // template vars index
         shared_ptr<atomdb::atomdb_api_types::AtomDocument> atom;
         for (auto inner_position : this->inner_positions) {
+            if (i >= this->inner_template.size()) Utils::error("Invalid inner template index.");
             this->keys_template[inner_position] = NULL;
-            if (inner_template_index >= this->inner_template.size()) {
-                Utils::error("Invalid inner template index.");
-            }
-            variables = this->inner_template_variables[inner_template_index++];
             // clang-format off
             for (
                 size_t qa_handles_index = 0;
@@ -280,7 +276,7 @@ class LinkTemplate2 : public Source {
                 auto qa_handle = query_answer->handles[qa_handles_index];
                 atom = this->db->get_atom_document(qa_handle);
                 if (!atom->contains("targets")) continue;
-                for (auto& [index, name] : variables) {
+                for (auto& [index, name] : this->inner_template_variables[i]) {
                     auto target_handle = atom->get("targets", index);
                     if (!target_handle) continue;
                     auto assignment_handle = query_answer->assignment.get(name.c_str());
@@ -293,6 +289,7 @@ class LinkTemplate2 : public Source {
                 if (this->keys_template[inner_position] != NULL) break;
             }
             if (this->keys_template[inner_position] == NULL) return NULL;
+            i++;
         }
         return composite_hash(this->keys_template, ARITY + 1);
     }
