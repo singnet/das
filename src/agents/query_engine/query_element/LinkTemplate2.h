@@ -3,7 +3,7 @@
 #include <cstring>
 
 // clang-format off
-#define LOG_LEVEL DEBUG_LEVEL
+#define LOG_LEVEL INFO_LEVEL
 #include "Logger.h"
 // clang-format on
 
@@ -251,19 +251,14 @@ class LinkTemplate2 : public Source {
             ) {
                 // clang-format on
                 auto qa_handle = query_answer->handles[qa_handles_index];
-                // cout << ">> qa_handle: " << qa_handle << endl;
                 atom = this->db->get_atom_document(qa_handle);
                 if (!atom->contains("targets")) continue;
                 for (auto& [index, name] : variables) {
-                    // cout << "index: " << index << " name: " << name << endl;
                     auto target_handle = atom->get("targets", index);
-                    // cout << "target_handle: " << target_handle << endl;
                     if (!target_handle) continue;
                     auto assignment_handle = query_answer->assignment.get(name.c_str());
-                    // cout << "assignment_handle: " << assignment_handle << endl;
                     if (!assignment_handle) continue;
                     if (strcmp(target_handle, assignment_handle) == 0) {
-                        // cout << ">> Found match: " << target_handle << endl;
                         this->keys_template[inner_position] = (char*) qa_handle;
                         break;
                     }
@@ -289,10 +284,7 @@ class LinkTemplate2 : public Source {
                 (query_answer = 
                     dynamic_cast<QueryAnswer*>(this->inner_template_iterator->pop())) != NULL) {
                 // clang-format on
-                // cout << ">> " << query_answer->to_string() << endl;
                 auto link_handle = this->get_link_handle(query_answer);
-                // cout << ">> Link handle: " << (link_handle == NULL ? "(null)" : link_handle) <<
-                // endl;
                 if (link_handle == NULL) {
                     delete query_answer;
                     continue;
