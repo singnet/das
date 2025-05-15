@@ -57,8 +57,8 @@ class LinkTemplate2 : public Source {
                 }
                 this->handle_keys[i] =
                     dynamic_pointer_cast<Terminal>(this->target_template[i - 1])->handle.get();
-                this->keys_template[i] =
-                    this->handle_keys[i];  // to be used in the `get_link_handle` method
+                this->keys_template[i] =  // to be used in the `get_link_handle` method
+                    this->handle_keys[i];
             } else {
                 this->handle_keys[i] = (char*) AtomDB::WILDCARD.c_str();
                 this->inner_template.push_back(this->target_template[i - 1]);
@@ -356,15 +356,18 @@ class LinkTemplate2 : public Source {
     array<shared_ptr<QueryElement>, ARITY> target_template;
     shared_ptr<char> handle;
     char* handle_keys[ARITY + 1];
-    char* keys_template[ARITY + 1];  // to be used in the `get_link_handle` method
-    vector<size_t> inner_positions;  // to be used in the `get_link_handle` method
     vector<shared_ptr<QueryElement>> inner_template;
-    vector<vector<pair<size_t, string>>> inner_template_variables;
     thread* inner_templates_processor;
     shared_ptr<Iterator> inner_template_iterator;
     shared_ptr<AtomDB> db;
     vector<string> link_handles;
     unordered_map<string, QueryAnswer*> link_handles_to_query_answers;
+
+    /* ∨∨∨ to be used in the `get_link_handle` method ∨∨∨ */
+    char* keys_template[ARITY + 1];
+    vector<size_t> inner_positions;
+    vector<vector<pair<size_t, string>>> inner_template_variables;
+    /* ∧∧∧ to be used in the `get_link_handle` method ∧∧∧ */
 };
 
 }  // namespace query_element
