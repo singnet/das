@@ -195,6 +195,19 @@ class LinkTemplate2 : public Source {
     // --------------------------------------------------------------------------------------------
     // Private methods and attributes
 
+    /**
+     * Generates a link handle by matching data from QueryAnswer with the LinkTemplate2 structure.
+     * This function iterates over the inner templates, extracting variables and identifying matches
+     * between the template's targets and the QueryAnswer's assignment. If a match is found, it
+     * assigns the query answer's handle to the template's key. The resulting composite hash of keys
+     * is returned as the link handle. If no match is found for a template, the function returns NULL.
+     *
+     * @note This functions is not thread-safe.
+     * @note Caller is responsible for freeing the returned char pointer.
+     *
+     * @param query_answer Pointer to a QueryAnswer object containing handles and variable assignments.
+     * @return A char pointer representing the composite hash link handle, or NULL if no match exists.
+     */
     char* get_link_handle(QueryAnswer* query_answer) {
         vector<pair<size_t, string>> variables;
         size_t inner_template_index = 0;
