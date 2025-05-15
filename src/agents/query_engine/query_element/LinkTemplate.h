@@ -337,12 +337,19 @@ class LinkTemplate : public Source {
                              std::to_string(importance_list->list_size()) +
                              " Expected size: " + std::to_string(answer_count));
             }
+
+            // update answer_count to the number of importances > 0
+            answer_count = 0;
+            for (size_t i = 0; i < importance_list->list_size(); i++)
+                if (importance_list->list(i) > 0.0) answer_count++;
+
             this->atom_document = new shared_ptr<atomdb_api_types::AtomDocument>[answer_count];
             this->local_answers = new QueryAnswer*[answer_count];
             this->next_inner_answer = new unsigned int[answer_count];
             it = this->fetch_result->get_iterator();
             unsigned int i = 0;
             while ((handle = it->next()) != nullptr) {
+                if (importance_list->list(i) <= 0.0) continue;
                 this->atom_document[i] = db->get_atom_document(handle);
                 query_answer = new QueryAnswer(handle, importance_list->list(i));
                 for (unsigned int j = 0; j < this->arity; j++) {
@@ -418,6 +425,10 @@ class LinkTemplate : public Source {
         QueryAnswer* query_answer;
         while ((query_answer = dynamic_cast<QueryAnswer*>(this->inner_template_iterator->pop())) !=
                NULL) {
+            if (query_answer->importance <= 0.0) {
+                delete query_answer;
+                continue;
+            }
             this->inner_answers.push_back(query_answer);
             flag = true;
         }
@@ -429,6 +440,10 @@ class LinkTemplate : public Source {
             while (!(this->is_flow_finished() && this->local_buffer.empty())) {
                 QueryAnswer* query_answer;
                 while ((query_answer = (QueryAnswer*) this->local_buffer.dequeue()) != NULL) {
+                    if (query_answer->importance <= 0.0) {
+                        delete query_answer;
+                        continue;
+                    }
                     this->output_buffer->add_query_answer(query_answer);
                 }
                 Utils::sleep();
