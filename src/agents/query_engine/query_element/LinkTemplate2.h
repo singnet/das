@@ -3,7 +3,7 @@
 #include <cstring>
 
 // clang-format off
-#define LOG_LEVEL DEBUG_LEVEL
+#define LOG_LEVEL INFO_LEVEL
 #include "Logger.h"
 // clang-format on
 
@@ -42,7 +42,9 @@ class LinkTemplate2 : public Source {
         this->db = AtomDBSingleton::get_instance();
         this->handle_keys[0] =
             (wildcard_flag ? (char*) AtomDB::WILDCARD.c_str() : named_type_hash((char*) type.c_str()));
+        this->keys_template[0] = this->handle_keys[0];  // to be used in the `get_link_handle` method
         for (unsigned int i = 1; i <= ARITY; i++) {
+            this->keys_template[i] = NULL;
             if (this->target_template[i - 1]->is_operator) {
                 Utils::error("LinkTemplate2 does not support operators.");
             }
@@ -55,9 +57,11 @@ class LinkTemplate2 : public Source {
                 }
                 this->handle_keys[i] =
                     dynamic_pointer_cast<Terminal>(this->target_template[i - 1])->handle.get();
+                this->keys_template[i] = this->handle_keys[i];
             } else {
                 this->handle_keys[i] = (char*) AtomDB::WILDCARD.c_str();
                 this->inner_template.push_back(this->target_template[i - 1]);
+                this->inner_positions.push_back(i);  // to be used in the `get_link_handle` method
             }
         }
         if (this->inner_template.size() == 0) {
@@ -65,9 +69,12 @@ class LinkTemplate2 : public Source {
         }
         this->handle =
             shared_ptr<char>(composite_hash(this->handle_keys, ARITY + 1), default_delete<char[]>());
-        if (!wildcard_flag) {
+
+        // moved to the destructor
+        /*if (!wildcard_flag) {
             free(this->handle_keys[0]);
-        }
+        }*/
+
         // This is correct. id is not necessarily a handle but an identifier. It just happens
         // that we want the string for this identifier to be the same as the string representing
         // the handle.
@@ -80,6 +87,9 @@ class LinkTemplate2 : public Source {
      */
     virtual ~LinkTemplate2() {
         this->graceful_shutdown();
+        if (this->handle_keys[0] != (char*) AtomDB::WILDCARD.c_str()) {
+            free(this->handle_keys[0]);
+        }
         this->inner_template.clear();
         this->inner_template_iterator.reset();
     }
@@ -185,101 +195,92 @@ class LinkTemplate2 : public Source {
     // --------------------------------------------------------------------------------------------
     // Private methods and attributes
 
+    /**
+     * Generates a link handle by matching data from QueryAnswer with the LinkTemplate2 structure.
+     * This function iterates over the inner templates, extracting variables and identifying matches
+     * between the template's targets and the QueryAnswer's assignment. If a match is found, it
+     * assigns the query answer's handle to the template's key. The resulting composite hash of keys
+     * is returned as the link handle. If no match is found for a template, the function returns NULL.
+     *
+     * @note This functions is not thread-safe.
+     * @note Caller is responsible for freeing the returned char pointer.
+     *
+     * @param query_answer Pointer to a QueryAnswer object containing handles and variable assignments.
+     * @return A char pointer representing the composite hash link handle, or NULL if no match exists.
+     */
     char* get_link_handle(QueryAnswer* query_answer) {
-        char* keys[ARITY + 1];
         vector<pair<size_t, string>> variables;
         size_t inner_template_index = 0;
         shared_ptr<query_element::QueryElement> inner_template;
         shared_ptr<atomdb::atomdb_api_types::AtomDocument> atom;
         bool is_lt2 = false;
-        for (unsigned int i = 0; i < ARITY; i++) {
-            keys[i + 1] = NULL;
-            if (this->target_template[i]->is_terminal) {
-                keys[i + 1] = dynamic_pointer_cast<Terminal>(this->target_template[i])->handle.get();
-            } else {
-                if (inner_template_index >= this->inner_template.size()) {
-                    Utils::error("Invalid inner template index.");
-                }
-                inner_template = this->inner_template[inner_template_index++];
-                is_lt2 = false;
-                switch (inner_template->arity) {
-                    case 1:
-                        if (auto lt = dynamic_pointer_cast<LinkTemplate<1>>(inner_template)) {
-                            variables = lt->get_variables();
-                        } else if (auto lt2 = dynamic_pointer_cast<LinkTemplate2<1>>(inner_template)) {
-                            is_lt2 = true;
-                        }
-                        break;
-                    case 2:
-                        if (auto lt = dynamic_pointer_cast<LinkTemplate<2>>(inner_template)) {
-                            variables = lt->get_variables();
-                        } else if (auto lt2 = dynamic_pointer_cast<LinkTemplate2<2>>(inner_template)) {
-                            is_lt2 = true;
-                        }
-                        break;
-                    case 3:
-                        if (auto lt = dynamic_pointer_cast<LinkTemplate<3>>(inner_template)) {
-                            variables = lt->get_variables();
-                        } else if (auto lt2 = dynamic_pointer_cast<LinkTemplate2<3>>(inner_template)) {
-                            is_lt2 = true;
-                        }
-                        break;
-                    case 4:
-                        if (auto lt = dynamic_pointer_cast<LinkTemplate<4>>(inner_template)) {
-                            variables = lt->get_variables();
-                        } else if (auto lt2 = dynamic_pointer_cast<LinkTemplate2<4>>(inner_template)) {
-                            is_lt2 = true;
-                        }
-                        break;
-                    default:
-                        Utils::error("Invalid number of inner templates in link template.");
-                }
-                if (is_lt2) {
-                    keys[i + 1] = (char*) query_answer->handles[0];
-                    continue;
-                }
-                // clang-format off
-                for (
-                    size_t qa_handles_index = 0;
-                    qa_handles_index < query_answer->handles_size;
-                    qa_handles_index++
-                ) {
-                    // clang-format on
-                    auto qa_handle = query_answer->handles[qa_handles_index];
-                    // cout << ">> qa_handle: " << qa_handle << endl;
-                    atom = this->db->get_atom_document(qa_handle);
-                    if (!atom->contains("targets")) continue;
-                    for (auto& [index, name] : variables) {
-                        // cout << "index: " << index << " name: " << name << endl;
-                        auto target_handle = atom->get("targets", index);
-                        // cout << "target_handle: " << target_handle << endl;
-                        if (!target_handle) continue;
-                        auto assignment_handle = query_answer->assignment.get(name.c_str());
-                        // cout << "assignment_handle: " << assignment_handle << endl;
-                        if (!assignment_handle) continue;
-                        if (strcmp(target_handle, assignment_handle) == 0) {
-                            // cout << ">> Found match: " << target_handle << endl;
-                            keys[i + 1] = (char*) qa_handle;
-                            break;
-                        }
-                    }
-                    if (keys[i + 1] != NULL) break;
-                }
-                if (keys[i + 1] == NULL) return NULL;
+        for (auto inner_position : this->inner_positions) {
+            this->keys_template[inner_position] = NULL;
+            if (inner_template_index >= this->inner_template.size()) {
+                Utils::error("Invalid inner template index.");
             }
-            if (keys[i + 1] == NULL) return NULL;
+            inner_template = this->inner_template[inner_template_index++];
+            is_lt2 = false;
+            switch (inner_template->arity) {
+                case 1:
+                    if (auto lt = dynamic_pointer_cast<LinkTemplate<1>>(inner_template)) {
+                        variables = lt->get_variables();
+                    } else if (auto lt2 = dynamic_pointer_cast<LinkTemplate2<1>>(inner_template)) {
+                        is_lt2 = true;
+                    }
+                    break;
+                case 2:
+                    if (auto lt = dynamic_pointer_cast<LinkTemplate<2>>(inner_template)) {
+                        variables = lt->get_variables();
+                    } else if (auto lt2 = dynamic_pointer_cast<LinkTemplate2<2>>(inner_template)) {
+                        is_lt2 = true;
+                    }
+                    break;
+                case 3:
+                    if (auto lt = dynamic_pointer_cast<LinkTemplate<3>>(inner_template)) {
+                        variables = lt->get_variables();
+                    } else if (auto lt2 = dynamic_pointer_cast<LinkTemplate2<3>>(inner_template)) {
+                        is_lt2 = true;
+                    }
+                    break;
+                case 4:
+                    if (auto lt = dynamic_pointer_cast<LinkTemplate<4>>(inner_template)) {
+                        variables = lt->get_variables();
+                    } else if (auto lt2 = dynamic_pointer_cast<LinkTemplate2<4>>(inner_template)) {
+                        is_lt2 = true;
+                    }
+                    break;
+                default:
+                    Utils::error("Invalid number of inner templates in link template.");
+            }
+            if (is_lt2) {
+                Utils::error("LinkTemplate2 does not support LinkTemplate2 as inner templates.");
+            }
+            // clang-format off
+            for (
+                size_t qa_handles_index = 0;
+                qa_handles_index < query_answer->handles_size;
+                qa_handles_index++
+            ) {
+                // clang-format on
+                auto qa_handle = query_answer->handles[qa_handles_index];
+                atom = this->db->get_atom_document(qa_handle);
+                if (!atom->contains("targets")) continue;
+                for (auto& [index, name] : variables) {
+                    auto target_handle = atom->get("targets", index);
+                    if (!target_handle) continue;
+                    auto assignment_handle = query_answer->assignment.get(name.c_str());
+                    if (!assignment_handle) continue;
+                    if (strcmp(target_handle, assignment_handle) == 0) {
+                        this->keys_template[inner_position] = (char*) qa_handle;
+                        break;
+                    }
+                }
+                if (this->keys_template[inner_position] != NULL) break;
+            }
+            if (this->keys_template[inner_position] == NULL) return NULL;
         }
-        keys[0] = named_type_hash((char*) this->type.c_str());
-        // if (this->arity == 3) {
-        //     string keys_str = ">> handle keys: ";
-        //     for (unsigned int i = 1; i <= ARITY; i++) {
-        //         keys_str += string(keys[i]) + " ";
-        //     }
-        //     cout << keys_str << endl;
-        // }
-        auto hash = composite_hash(keys, ARITY + 1);
-        free(keys[0]);
-        return hash;
+        return composite_hash(this->keys_template, ARITY + 1);
     }
 
     void inner_templates_processor_method() {
@@ -296,9 +297,7 @@ class LinkTemplate2 : public Source {
                 (query_answer = 
                     dynamic_cast<QueryAnswer*>(this->inner_template_iterator->pop())) != NULL) {
                 // clang-format on
-                // cout << ">> " << query_answer->to_string() << endl;
                 auto link_handle = this->get_link_handle(query_answer);
-                // cout << ">> Link handle: " << (link_handle == NULL ? "(null)" : link_handle) << endl;
                 if (link_handle == NULL) {
                     delete query_answer;
                     continue;
@@ -352,6 +351,8 @@ class LinkTemplate2 : public Source {
     array<shared_ptr<QueryElement>, ARITY> target_template;
     shared_ptr<char> handle;
     char* handle_keys[ARITY + 1];
+    char* keys_template[ARITY + 1];  // to be used in the `get_link_handle` method
+    vector<size_t> inner_positions;  // to be used in the `get_link_handle` method
     vector<shared_ptr<QueryElement>> inner_template;
     thread* inner_templates_processor;
     shared_ptr<Iterator> inner_template_iterator;
