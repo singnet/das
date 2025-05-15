@@ -319,13 +319,9 @@ class LinkTemplate2 : public Source {
                 this->link_handles.push_back(link_handle);
                 this->link_handles_to_query_answers[link_handle] = query_answer;
                 free(link_handle);
-                if (this->link_handles.size() >= DB_LINK_HANDLES_BATCH_SIZE) {
-                    break;
-                }
+                if (this->link_handles.size() >= DB_LINK_HANDLES_BATCH_SIZE) break;
             }
-            if (this->link_handles.size() == 0) {
-                continue;
-            }
+            if (this->link_handles.size() == 0) continue;
             auto existing_handles = this->db->links_exist(this->link_handles);
             for (auto& link_handle : existing_handles) {
                 query_answer = this->link_handles_to_query_answers[link_handle];
@@ -334,9 +330,7 @@ class LinkTemplate2 : public Source {
                 this->output_buffer->add_query_answer(query_answer);
                 this->link_handles_to_query_answers.erase(link_handle);
             }
-            for (auto& [link_handle, query_answer] : this->link_handles_to_query_answers) {
-                delete query_answer;
-            }
+            for (auto& [_, query_answer] : this->link_handles_to_query_answers) delete query_answer;
         }
         this->output_buffer->query_answers_finished();
     }
