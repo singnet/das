@@ -57,7 +57,8 @@ class LinkTemplate2 : public Source {
                 }
                 this->handle_keys[i] =
                     dynamic_pointer_cast<Terminal>(this->target_template[i - 1])->handle.get();
-                this->keys_template[i] = this->handle_keys[i];
+                this->keys_template[i] =
+                    this->handle_keys[i];  // to be used in the `get_link_handle` method
             } else {
                 this->handle_keys[i] = (char*) AtomDB::WILDCARD.c_str();
                 this->inner_template.push_back(this->target_template[i - 1]);
