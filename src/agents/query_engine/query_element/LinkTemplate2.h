@@ -270,13 +270,13 @@ class LinkTemplate2 : public Source {
             if (keys[i + 1] == NULL) return NULL;
         }
         keys[0] = named_type_hash((char*) this->type.c_str());
-        if (this->arity == 3) {
-            string keys_str = ">> handle keys: ";
-            for (unsigned int i = 1; i <= ARITY; i++) {
-                keys_str += string(keys[i]) + " ";
-            }
-            cout << keys_str << endl;
-        }
+        // if (this->arity == 3) {
+        //     string keys_str = ">> handle keys: ";
+        //     for (unsigned int i = 1; i <= ARITY; i++) {
+        //         keys_str += string(keys[i]) + " ";
+        //     }
+        //     cout << keys_str << endl;
+        // }
         auto hash = composite_hash(keys, ARITY + 1);
         free(keys[0]);
         return hash;
