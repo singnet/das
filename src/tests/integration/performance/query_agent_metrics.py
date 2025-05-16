@@ -181,7 +181,7 @@ def main():
     # already be started down below. This is a workaround to avoid the Query Agent to crash later.
     # This issue only happens in this particular script.
     query_agent_process = start_process("make run-query-agent")
-    time.sleep(3)
+    time.sleep(10)
     stop_process(query_agent_process)
     time.sleep(3)
 
