@@ -32,10 +32,12 @@ build-all: build-image
 	@bash -x src/scripts/build.sh
 
 run-query-agent:
-	@bash -x src/scripts/run.sh query_broker 31700
+	@PORT=$$(bash src/scripts/gkctl_auto_join_and_reserve.sh | tail -n 1); \
+	bash -x src/scripts/run.sh query_broker $$PORT
 
 run-attention-broker:
-	@bash -x src/scripts/run.sh attention_broker_service 37007
+	@PORT=$$(bash src/scripts/gkctl_auto_join_and_reserve.sh | tail -n 1); \
+	bash -x src/scripts/run.sh attention_broker_service $$PORT
 
 run-link-creation-agent:
 	@bash -x src/scripts/run.sh link_creation_server $(OPTIONS)

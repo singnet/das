@@ -2,7 +2,7 @@
 
 set -e
 
-local config_file_path="src/config/config.py"
+local config_file_path="das-cli/src/settings/config.py"
 
 if ! source "$hooks_path/common/dependency-check.sh"; then
     return 0
