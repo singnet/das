@@ -113,7 +113,7 @@ function change_bazel_das_version_definition() {
     fi
 
     sed -i.bak -E "s|(--define=DAS_VERSION=).*|\1${new_package_version}|" "$bazelrc_path"
-    echo "DAS_new_package_version updated to $new_package_version in $bazelrc_path"
+    echo "DAS_VERSION updated to $new_package_version in $bazelrc_path"
 }
 
 change_bazel_das_version_definition
