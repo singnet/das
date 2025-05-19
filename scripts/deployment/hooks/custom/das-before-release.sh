@@ -104,4 +104,17 @@ function generate_release_notes() {
     fi
 }
 
+function change_bazel_das_version_definition() {
+    local bazelrc_path="src/.bazelrc"
+
+    if [ ! -f "$bazelrc_path" ]; then
+        echo "File $bazelrc_path could not be found"
+        exit 1
+    fi
+
+    sed -i.bak -E "s|(--define=DAS_VERSION=).*|\1${new_package_version}|" "$bazelrc_path"
+    echo "DAS_VERSION updated to $new_package_version in $bazelrc_path"
+}
+
+change_bazel_das_version_definition
 generate_release_notes

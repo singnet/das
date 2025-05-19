@@ -11,7 +11,7 @@
   },
   {
     "repository": "https://github.com/singnet/das-toolbox.git",
-    "workflow": "run-tests.yml",
+    "workflow": "run-das-cli-tests.yml",
     "ref": "master"
   },
   {
