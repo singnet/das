@@ -10,7 +10,7 @@
   {
     "name": "das-toolbox",
     "repository": "https://github.com/singnet/das-toolbox.git",
-    "workflow": "build.yml",
+    "workflow": "deploy-das-cli.yml",
     "ref": "master",
     "hooks": {
       "beforeRelease": "custom/das-toolbox-before-release.sh",
@@ -52,7 +52,7 @@
   {
     "name": "das",
     "repository": "https://github.com/singnet/das.git",
-    "workflow": "publish.yml",
+    "workflow": "publish-das.yml",
     "ref": "master",
     "hooks": {
       "beforeRelease": "custom/das-before-release.sh"
