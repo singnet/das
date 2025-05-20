@@ -57,9 +57,9 @@ class LinkTemplate2 : public Source {
         }
         this->handle =
             shared_ptr<char>(composite_hash(this->handle_keys, ARITY + 1), default_delete<char[]>());
-        if (!wildcard_flag) {
-            free(this->handle_keys[0]);
-        }
+        // if (!wildcard_flag) {
+        //     free(this->handle_keys[0]);
+        // }
         // This is correct. id is not necessarily a handle but an identifier. It just happens
         // that we want the string for this identifier to be the same as the string representing
         // the handle.
@@ -176,14 +176,14 @@ class LinkTemplate2 : public Source {
             } else {
                 // QueryAnswer doesn't have one or more handles for this template
                 if (qa_handles_index == qa_handles_size) {
-                    free(handle_keys[0]);
+                    // free(handle_keys[0]);
                     return NULL;
                 }
                 handle_keys[i + 1] = (char*) query_answer->handles[qa_handles_index++];
             }
         }
         auto hash = composite_hash(handle_keys, ARITY + 1);
-        free(handle_keys[0]);
+        // free(handle_keys[0]);
         return hash;
     }
 

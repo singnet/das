@@ -173,12 +173,10 @@ class Or : public Operator<N> {
                     // processed_all_input() is double-checked on purpose to avoid race condition
                     processed_all_input()) {
                     this->output_buffer->query_answers_finished();
-                    LOG_INFO(this->id << " processed " << this->answer_count << " answers." << endl);
                 }
                 Utils::sleep();
                 continue;
             }
-
             unsigned int selected_clause = select_answer();
             QueryAnswer* selected_query_answer =
                 this->query_answer[selected_clause][this->next_input_to_process[selected_clause]++];

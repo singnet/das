@@ -157,3 +157,20 @@ int Utils::string_to_int(const string& s) {
     }
     return stoi(s);
 }
+
+
+size_t Utils::memory_usage() {
+    std::ifstream stat_stream("/proc/self/status");
+    std::string line;
+    while (std::getline(stat_stream, line)) {
+        if (line.substr(0, 6) == "VmRSS:") {
+            std::istringstream iss(line);
+            std::string key;
+            size_t value;
+            std::string unit;
+            iss >> key >> value >> unit; // ex: VmRSS:  1234 kB
+            return value; // em kB
+        }
+    }
+    return 0;
+}

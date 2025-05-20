@@ -36,8 +36,8 @@ INFERENCE_AGENT_LINK_CREATION_AGENT_ID=${INFERENCE_AGENT_LINK_CREATION_AGENT_ID:
 ## Link Creation Agent
 LINK_CREATION_QUERY_AGENT_START_PORT=${LINK_CREATION_QUERY_AGENT_START_PORT:-12000}
 LINK_CREATION_QUERY_AGENT_END_PORT=${LINK_CREATION_QUERY_AGENT_END_PORT:-18000}
-LINK_CREATION_QUERY_TIMEOUT_SECONDS=${LINK_CREATION_QUERY_TIMEOUT_SECONDS:-18000}
-LINK_CREATION_REQUESTS_INTERVAL_SECONDS=${LINK_CREATION_REQUESTS_INTERVAL_SECONDS:-18000}
+LINK_CREATION_QUERY_TIMEOUT_SECONDS=${LINK_CREATION_QUERY_TIMEOUT_SECONDS:-28800}
+LINK_CREATION_REQUESTS_INTERVAL_SECONDS=${LINK_CREATION_REQUESTS_INTERVAL_SECONDS:-28900}
 LINK_CREATION_REQUESTS_BUFFER_FILE=${LINK_CREATION_REQUESTS_BUFFER_FILE:-"buffer"}
 LINK_CREATION_AGENT_THREAD_COUNT=${LINK_CREATION_AGENT_THREAD_COUNT:-1}
 
@@ -48,7 +48,8 @@ DAS_MONGODB_HOSTNAME=${DAS_MONGODB_HOSTNAME:-"localhost"}
 DAS_MONGODB_PORT=${DAS_MONGODB_PORT:-27017}
 DAS_MONGODB_USERNAME=${DAS_MONGODB_USERNAME:-"admin"}
 DAS_MONGODB_PASSWORD=${DAS_MONGODB_PASSWORD:-"admin"}
-DISABLE_ATOMDB_CACHE=${DISABLE_ATOMDB_CACHE:-"true"}
+DISABLE_ATOMDB_CACHE=${DAS_DISABLE_ATOMDB_CACHE:-"false"}
+SAVE_LINKS_TO_DB=${SAVE_LINKS_TO_DB:-"false"}
 
 export DAS_REDIS_HOSTNAME=$DAS_REDIS_HOSTNAME
 export DAS_REDIS_PORT=$DAS_REDIS_PORT
@@ -79,7 +80,7 @@ else
     echo "requests_interval_seconds = $LINK_CREATION_REQUESTS_INTERVAL_SECONDS" >> $PWD/src/bin/link_creation_server.cfg
     echo "requests_buffer_file = $LINK_CREATION_REQUESTS_BUFFER_FILE" >> $PWD/src/bin/link_creation_server.cfg
     echo "metta_file_path = /opt/das/src/bin" >> $PWD/src/bin/link_creation_server.cfg
-    echo "save_links_to_db = true" >> $PWD/src/bin/link_creation_server.cfg
+    echo "save_links_to_db = $SAVE_LINKS_TO_DB" >> $PWD/src/bin/link_creation_server.cfg
 fi
 
 # Inference Agent params
@@ -112,7 +113,7 @@ AGENTS=(
     "query_broker $QUERY_AGENT_PORT;src/scripts/run.sh"
     "link_creation_server --config_file ./src/bin/link_creation_server.cfg;src/scripts/run.sh"
     "inference_agent_server --config_file ./src/bin/inference_agent_server.cfg;src/scripts/run.sh"
-    "run //das_agent:main -- --config $DAS_AGENT_CONFIG;src/scripts/bazel.sh"
+    # "run //das_agent:main -- --config $DAS_AGENT_CONFIG;src/scripts/bazel.sh"
 )
 
 
@@ -161,11 +162,16 @@ if [ "$PARAM" == "start" ]; then
         # Split the agent and path
         IFS=';' read -r AGENT_NAME AGENT_PATH <<< "$AGENT"
         IFS=' ' read -r TEMP_NAME _ _ <<< "$AGENT_NAME"
+        # create a log file
+        LOG_FILE="$PWD/logs/$TEMP_NAME.log"
+        mkdir -p logs
+        touch $LOG_FILE
         # echo "Starting agent: $AGENT_NAME"
         {
             echo -e "${colors[i % ${#colors[@]}]}Starting: $AGENT_NAME ${commands[i]}${NC}"
             bash -c "$PWD/$AGENT_PATH $AGENT_NAME" 2>&1 | while IFS= read -r line; do
                 echo -e "${colors[i % ${#colors[@]}]}[$TEMP_NAME] $line${NC}"
+                echo "$line" >> $LOG_FILE
             done
         } &
         sleep 5

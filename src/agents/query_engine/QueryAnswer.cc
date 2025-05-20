@@ -131,7 +131,23 @@ QueryAnswer::QueryAnswer(const char* handle, double importance) {
     this->handles_size = 1;
 }
 
-QueryAnswer::~QueryAnswer() {}
+QueryAnswer::QueryAnswer(const char* handle, double importance, bool allocate_handle) {
+    this->importance = importance;
+    if (allocate_handle) {
+        this->handles[0] = strndup(handle, HANDLE_HASH_SIZE - 1);
+    } else {
+        this->handles[0] = handle;
+    }
+    this->handles_size = 1;
+    this->allocate_handle = allocate_handle;
+}
+
+QueryAnswer::~QueryAnswer() {
+    if (this->allocate_handle) {
+        free((void*) this->handles[0]);
+    }
+
+}
 
 void QueryAnswer::add_handle(const char* handle) { this->handles[this->handles_size++] = handle; }
 

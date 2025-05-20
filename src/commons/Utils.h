@@ -42,6 +42,7 @@ class Utils {
     static string random_string(size_t length);
     static bool is_number(const string& s);
     static int string_to_int(const string& s);
+    static size_t memory_usage();
 };
 
 }  // namespace commons

@@ -7,6 +7,7 @@
 // clang-format off
 #define LOG_LEVEL INFO_LEVEL
 #include "Logger.h"
+#include "Utils.h"
 // clang-format on
 
 #include "And.h"
@@ -15,6 +16,7 @@
 #include "AttentionBrokerServer.h"
 #include "ImportanceList.h"
 #include "Iterator.h"
+#include "Logger.h"
 #include "QueryAnswer.h"
 #include "QueryElementRegistry.h"
 #include "QueryNode.h"
@@ -24,6 +26,8 @@
 #include "attention_broker.grpc.pb.h"
 #include "attention_broker.pb.h"
 #include "expression_hasher.h"
+#include "ThreadPool.h"
+#include <shared_mutex>
 
 #define MAX_GET_IMPORTANCE_BUNDLE_SIZE ((unsigned int) 100000)
 
@@ -33,6 +37,42 @@ using namespace attention_broker_server;
 using namespace atomdb;
 
 namespace query_element {
+
+
+    class TargetsHandleList : public atomdb_api_types::HandleList {
+       public:
+       TargetsHandleList(shared_ptr<atomdb_api_types::AtomDocument> document) : atomdb_api_types::HandleList() {
+            this->handles_size = document->get_size("targets");
+            this->handles = new char*[this->handles_size];
+            for (unsigned int i = 0; i < this->handles_size; i++) {
+                this->handles[i] = strndup(document->get("targets", i), HANDLE_HASH_SIZE - 1);
+            }
+            // this->document = document;
+
+        }
+        ~TargetsHandleList() {
+            for (unsigned int i = 0; i < this->handles_size; i++) {
+                free(this->handles[i]);
+            }
+            delete[] this->handles;
+        }
+
+        const char* get_handle(unsigned int index) {
+            if (index > this->handles_size) {
+                Utils::error("Handle index out of bounds: " + to_string(index) +
+                             " Answer handles size: " + to_string(this->handles_size));
+            }
+            //
+            return handles[index];
+        }
+        
+        unsigned int size() { return this->handles_size; }
+
+        private:
+        unsigned int handles_size;
+        char** handles;
+        // shared_ptr<atomdb_api_types::AtomDocument> document;
+    };
 
 /**
  * Concrete Source that searches for a pattern in the AtomDB and feeds the QueryElement up in the
@@ -225,6 +265,7 @@ class LinkTemplate : public Source {
             // clang-format on
         }
         this->local_buffer_processor = new thread(&LinkTemplate::local_buffer_processor_method, this);
+        LOG_INFO("Starting local buffer processor thread for link template");
         fetch_links();
     }
 
@@ -307,9 +348,10 @@ class LinkTemplate : public Source {
         shared_ptr<AtomDB> db = AtomDBSingleton::get_instance();
         this->fetch_result = db->query_for_pattern(this->handle);
         unsigned int answer_count = this->fetch_result->size();
-        LOG_INFO("Fetched " << answer_count << " links for link template " << this->to_string());
+        LOG_INFO("Fetching " << answer_count << " links for link template " << this->id);
         QueryAnswer* query_answer;
-        vector<QueryAnswer*> fetched_answers;
+        vector<QueryAnswer*> fetched_answers = {NULL};
+        fetched_answers.reserve(answer_count);
         if (answer_count > 0) {
             dasproto::HandleList handle_list;
             handle_list.set_context(this->context);
@@ -324,30 +366,93 @@ class LinkTemplate : public Source {
                              std::to_string(importance_list->list_size()) +
                              " Expected size: " + std::to_string(answer_count));
             }
-            this->atom_document = new shared_ptr<atomdb_api_types::AtomDocument>[answer_count];
+            this->atom_document = new shared_ptr<atomdb_api_types::HandleList>[answer_count];
             this->local_answers = new QueryAnswer*[answer_count];
             this->next_inner_answer = new unsigned int[answer_count];
-            it = this->fetch_result->get_iterator();
-            unsigned int i = 0;
-            while ((handle = it->next()) != nullptr) {
-                this->atom_document[i] = db->get_atom_document(handle);
-                query_answer = new QueryAnswer(handle, importance_list->list(i));
-                for (unsigned int j = 0; j < this->arity; j++) {
-                    if (this->target_template[j]->is_terminal) {
-                        auto terminal = dynamic_pointer_cast<Terminal>(this->target_template[j]);
-                        if (terminal->is_variable) {
-                            if (!query_answer->assignment.assign(
-                                    terminal->name.c_str(), this->atom_document[i]->get("targets", j))) {
-                                Utils::error(
-                                    "Error assigning variable: " + terminal->name +
-                                    " a value: " + string(this->atom_document[i]->get("targets", j)));
-                            }
-                        }
+            // it = this->fetch_result->get_iterator();
+            // unsigned int ii = 0;
+            unsigned int db_count = 0;
+            StopWatch stopwatch;
+            stopwatch.start();
+            shared_mutex t_mutex;
+            LOG_INFO("Fetching atom documents");
+            int chunk_size = 1000;
+            bool show = answer_count < 10;
+            chunk_size = chunk_size > answer_count ? answer_count -1 : chunk_size;
+            // while ((handle = it->next()) != nullptr) {
+            for (int ii = 0; ii < answer_count; ii++){
+                if (((ii > 0) && ((ii % chunk_size) == 0)) || answer_count == 1) {
+                    int start = ii - chunk_size;
+                    int end = ii;
+                    if (end + chunk_size > answer_count || answer_count == 1) {
+                        end = answer_count;
                     }
+                    auto job = [this, db, &db_count, start, end, &fetched_answers, importance_list, &t_mutex, &stopwatch, &handle_list]() {
+                        // LOG_INFO("Fetching atom documents from MongoDB: " << start << " to " << end);
+                        vector<string> handles;
+                        for (int i = start; i < end; i++) {
+                            handles.push_back(handle_list.list(i));
+                        }
+                        auto atom_handle_list = db->get_atom_documents(handles);
+                        int c = 0;
+                        for (int i = start; i < end; i++) {
+                            auto hh = handle_list.list(i).c_str();
+                            this->atom_document[i] = make_shared<TargetsHandleList>(atom_handle_list[c++]);
+                            db_count++;
+
+                            QueryAnswer* query_answer = new QueryAnswer(hh, importance_list->list(i), true);
+
+                            for (unsigned int j = 0; j < this->arity; j++) {
+                                if (this->target_template[j]->is_terminal) {
+                                    auto terminal = dynamic_pointer_cast<Terminal>(this->target_template[j]);
+                                    if (terminal->is_variable) {
+                                        if (!query_answer->assignment.assign(
+                                                terminal->name.c_str(), this->atom_document[i]->get_handle(j))) {
+                                            Utils::error(
+                                                "Error assigning variable: " + terminal->name +
+                                                " a value: " );
+                                        }
+                                    }
+                                }
+                            }
+
+                            // show percentage
+                            int total = handle_list.list_size();
+                            if ((total / 10) > 0 && db_count % (total / 10) == 0) {
+                                LOG_INFO("Fetched " << (double(db_count) / double(total)) * double(100) << "% atom documents from Mongo DB: " << db_count << "/" << total);
+                            }
+                            fetched_answers[i] = query_answer;
+                        }
+
+                    };
+                    thread_pool.enqueue(job);
+
                 }
-                fetched_answers.push_back(query_answer);
-                i++;
+                // ii++;
             }
+            // LOG_INFO("Waiting for threads to finish, processing " << ii << " links");
+            while (!thread_pool.empty()) {
+                // LOG_INFO("Waiting for threads to finish, running threads " << thread_pool.size() << " total of links: " << answer_count );
+                Utils::sleep();
+            }
+            thread_pool.wait();
+            stopwatch.stop();
+            Utils::sleep(1000);
+            // if (db_count != answer_count) {
+            //     LOG_INFO("Invalid number of answers fetched from MongoDB");
+            //     for (int i = 0; i < handle_list.list_size(); i++) {
+            //         // LOG_INFO("Handle: " << handle_list.list(i));
+            //         handles.push_back(handle_list.list(i));
+            //     }
+            //     for(auto* answer : fetched_answers) {
+            //         if (answer == NULL) {
+            //             Utils::error("Invalid number of answers fetched from MongoDB. Fetched: " +
+            //                 std::to_string(db_count) + " Expected: " + std::to_string(answer_count) + " Fetched: " + std::to_string(fetched_answers.size()));
+            //         }
+            //     }
+            // }
+            LOG_INFO("Fetched " << db_count << " from MongoDB of  " << answer_count << " in: " << stopwatch.milliseconds() / 1000 << " seconds");  
+            LOG_INFO("Sorting");
             std::sort(fetched_answers.begin(), fetched_answers.end(), less_than_query_answer());
             for (unsigned int i = 0; i < answer_count; i++) {
                 if (this->inner_template.size() == 0) {
@@ -358,21 +463,24 @@ class LinkTemplate : public Source {
                     this->increment_local_answers_size();
                 }
             }
+            LOG_INFO("Sorting answers finished");
             if (this->inner_template.size() == 0) {
                 set_flow_finished();
             }
         } else {
             set_flow_finished();
         }
+        LOG_INFO("Fetching links finished");
     }
 
     bool is_feasible(unsigned int index) {
+        // LOG_INFO("Checking feasibility for index");
         unsigned int inner_answers_size = inner_answers.size();
         unsigned int cursor = this->next_inner_answer[index];
         while (cursor < inner_answers_size) {
             if (this->inner_answers[cursor] != NULL) {
                 bool passed_first_check = true;
-                unsigned int arity = this->atom_document[index]->get_size("targets");
+                unsigned int arity = this->atom_document[index]->size();
                 unsigned int target_cursor = 0;
                 for (unsigned int i = 0; i < arity; i++) {
                     // Note to reviewer: pointer comparison is correct here
@@ -380,7 +488,7 @@ class LinkTemplate : public Source {
                         if (target_cursor > this->inner_answers[cursor]->handles_size) {
                             Utils::error("Invalid query answer in inner link template match");
                         }
-                        if (strncmp(this->atom_document[index]->get("targets", i),
+                        if (strncmp(this->atom_document[index]->get_handle(i),
                                     this->inner_answers[cursor]->handles[target_cursor++],
                                     HANDLE_HASH_SIZE)) {
                             passed_first_check = false;
@@ -424,6 +532,7 @@ class LinkTemplate : public Source {
             while (!this->is_flow_finished()) {
                 unsigned int size = get_local_answers_size();
                 if (ingest_newly_arrived_answers()) {
+
                     for (unsigned int i = 0; i < size; i++) {
                         if (this->local_answers[i] != NULL) {
                             if (is_feasible(i)) {
@@ -438,6 +547,7 @@ class LinkTemplate : public Source {
                     }
                 } else {
                     if (this->inner_template_iterator->finished()) {
+
                         for (unsigned int i = 0; i < size; i++) {
                             if (this->local_answers[i] != NULL) {
                                 if (is_feasible(i)) {
@@ -450,6 +560,7 @@ class LinkTemplate : public Source {
                         Utils::sleep();
                     }
                 }
+
                 bool finished_flag = true;
                 for (unsigned int i = 0; i < size; i++) {
                     if (this->local_answers[i] != NULL) {
@@ -485,6 +596,10 @@ class LinkTemplate : public Source {
         return answer;
     }
 
+
+    struct AtomDocumentTargets{
+        shared_ptr<atomdb_api_types::HandleList> targets;
+    };
     string type;
     array<shared_ptr<QueryElement>, ARITY> target_template;
     unsigned int arity;
@@ -499,7 +614,7 @@ class LinkTemplate : public Source {
     mutex fetch_finished_mutex;
     shared_ptr<QueryNodeServer> target_buffer[ARITY];
     shared_ptr<Iterator> inner_template_iterator;
-    shared_ptr<atomdb_api_types::AtomDocument>* atom_document;
+    shared_ptr<atomdb_api_types::HandleList>* atom_document;
     QueryAnswer** local_answers;
     unsigned int* next_inner_answer;
     vector<QueryAnswer*> inner_answers;
@@ -508,6 +623,8 @@ class LinkTemplate : public Source {
     string context;
     QueryElementRegistry* query_element_registry;
     static mutex get_importance_mutex;
+    ThreadPool thread_pool = ThreadPool(16);
+
 };
 
 template <unsigned int ARITY>

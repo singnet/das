@@ -178,6 +178,9 @@ class QueryAnswer {
      */
     Assignment assignment;
 
+
+    QueryAnswer(const char* handle, double importance, bool allocate_handle);
+
     /**
      * Constructor.
      *
@@ -264,6 +267,7 @@ class QueryAnswer {
 
    private:
     string token_representation;
+    bool allocate_handle;
 };
 
 }  // namespace query_engine

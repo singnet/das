@@ -11,6 +11,10 @@
 
 using namespace std;
 
+// #define MAX_BORDER_SIZE ((unsigned int) 2345000) 
+#define MAX_BORDER_SIZE ((unsigned int) 1675000) 
+
+
 namespace query_element {
 
 /**
@@ -119,6 +123,7 @@ class And : public Operator<N> {
     bool no_more_answers_to_arrive;
     thread* operator_thread;
     unsigned int query_answer_count;
+    unsigned int border_acumulater = 1675000;
 
     void initialize(const array<shared_ptr<QueryElement>, N>& clauses) {
         this->operator_thread = NULL;
@@ -207,6 +212,20 @@ class And : public Operator<N> {
     }
 
     void expand_border(const CandidateRecord& last_used_candidate) {
+        int border_wait_count = 0;
+        // int max_border_size = 1675000;
+        while(this->border.size() > this->border_acumulater){
+            LOG_INFO("Waiting for border to be smaller...");
+            LOG_INFO("Current size: " << this->border.size() << " / " << this->border_acumulater);
+            Utils::sleep(1000);
+            if (border_wait_count > 3){
+                this->border_acumulater += 10000;
+                LOG_INFO("Border is not shrinking after " << border_wait_count << " seconds, adding more room: " <<  this->border_acumulater);
+                border_wait_count = 0;
+            }
+            border_wait_count++;
+        }
+
         CandidateRecord candidate;
         unsigned int index_in_queue;
         bool abort_candidate;

@@ -14,6 +14,7 @@ cc_library(
         "Logger.h",
         "RequestValidator.h",
         "Stoppable.h",
+        "ThreadPool.h",
     ],
     includes = ["."],
     deps = [],
