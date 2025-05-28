@@ -37,7 +37,6 @@ if [ "$BUILD_BINARIES" = true ]; then
     BUILD_TARGETS+=" //:attention_broker_service"
     BUILD_TARGETS+=" //:query_broker"
     BUILD_TARGETS+=" //:query"
-    BUILD_TARGETS+=" //evolution:main"
 
     MOVE_TARGETS+=" bazel-bin/inference_agent_server"
     MOVE_TARGETS+=" bazel-bin/inference_agent_client"
@@ -54,18 +53,6 @@ if [ "$BUILD_WHEELS" = true ]; then
     $BAZELISK_RUN_CMD //deps:requirements_atomdb.update
     $BAZELISK_RUN_CMD //deps:requirements_das.update
     $BAZELISK_RUN_CMD //deps:requirements_dev.update
-
-    BUILD_TARGETS+=" //hyperon_das_atomdb:hyperon_das_atomdb_wheel"
-    BUILD_TARGETS+=" //hyperon_das:hyperon_das_wheel"
-    BUILD_TARGETS+=" //hyperon_das_node:hyperon_das_node_wheel"
-    BUILD_TARGETS+=" //hyperon_das_atomdb_cpp:hyperon_das_atomdb_cpp_wheel"
-    BUILD_TARGETS+=" //hyperon_das_query_engine:hyperon_das_query_engine_wheel"
-
-    MOVE_TARGETS+=" bazel-bin/hyperon_das_atomdb/*.whl"
-    MOVE_TARGETS+=" bazel-bin/hyperon_das/*.whl"
-    MOVE_TARGETS+=" bazel-bin/hyperon_das_node/*.whl"
-    MOVE_TARGETS+=" bazel-bin/hyperon_das_atomdb_cpp/*.whl"
-    MOVE_TARGETS+=" bazel-bin/hyperon_das_query_engine/*.whl"
 fi
 
 $BAZELISK_BUILD_CMD $BUILD_TARGETS
