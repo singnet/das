@@ -50,9 +50,7 @@ if [ "$BUILD_BINARIES" = true ]; then
 fi
 
 if [ "$BUILD_WHEELS" = true ]; then
-    $BAZELISK_RUN_CMD //deps:requirements_atomdb.update
-    $BAZELISK_RUN_CMD //deps:requirements_das.update
-    $BAZELISK_RUN_CMD //deps:requirements_dev.update
+    $BAZELISK_RUN_CMD //deps:requirements_python_client.update
 fi
 
 $BAZELISK_BUILD_CMD $BUILD_TARGETS
