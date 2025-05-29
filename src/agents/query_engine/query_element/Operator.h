@@ -30,7 +30,10 @@ class Operator : public QueryElement {
      *
      * @param clauses Array of QueryElement, each of them a clause in the operation.
      */
-    Operator(const array<shared_ptr<QueryElement>, N>& clauses) { initialize(clauses); }
+    Operator(const array<shared_ptr<QueryElement>, N>& clauses) {
+        initialize(clauses);
+        this->is_operator = true;
+    }
 
     /**
      * Destructor.
