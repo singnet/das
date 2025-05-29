@@ -36,8 +36,7 @@ run-query-agent:
 	bash -x src/scripts/run.sh query_broker $$PORT
 
 run-attention-broker:
-	@PORT=$$(bash src/scripts/gkctl_auto_join_and_reserve.sh | tail -n 1); \
-	bash -x src/scripts/run.sh attention_broker_service $$PORT
+	@bash -x src/scripts/run.sh attention_broker_service 37007
 
 run-link-creation-agent:
 	@bash -x src/scripts/run.sh link_creation_server $(OPTIONS)
