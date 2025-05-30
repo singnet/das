@@ -1,0 +1,2 @@
+class ServiceBusSingleton:
+    pass
