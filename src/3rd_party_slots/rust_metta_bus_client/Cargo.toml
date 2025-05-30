@@ -11,7 +11,7 @@ regex = "1.11.0"
 log = "0.4.0"
 env_logger = "0.8.4"
 
-hyperon-atom = { git = "https://github.com/trueagi-io/hyperon-experimental.git" }
+hyperon-atom = { git = "https://github.com/trueagi-io/hyperon-experimental.git", version = "0.2.5" }
 
 mongodb = "3.2.3"
 bson = "2.14.0"
