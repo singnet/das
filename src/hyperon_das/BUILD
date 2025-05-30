@@ -1,7 +1,6 @@
 load("@pypi_das//:requirements.bzl", "requirement")
 load("@rules_python//python:defs.bzl", "py_library")
-load("@rules_python//python:packaging.bzl", "py_wheel")
-load("@rules_python//python:packaging.bzl", "py_package")
+load("@rules_python//python:packaging.bzl", "py_package", "py_wheel")
 
 package(default_visibility = ["//visibility:public"])
 
@@ -34,8 +33,8 @@ py_library(
 )
 
 py_package(
-  name = "hyperon_das_package",
-  deps = [":hyperon_das"],
+    name = "hyperon_das_package",
+    deps = [":hyperon_das"],
 )
 
 py_wheel(

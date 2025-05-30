@@ -42,11 +42,11 @@ py_test(
 
 py_test(
     name = "test_client",
-    # TODO: Fix #263 https://github.com/singnet/das/issues/263 
-    # skiping due to infraestructure issues related to this test
-    tags = ["skip"],
     size = "large",
     srcs = ["test_client.py"],
+    # TODO: Fix #263 https://github.com/singnet/das/issues/263
+    # skiping due to infraestructure issues related to this test
+    tags = ["skip"],
     deps = [
         ":conftest",
         ":helpers",
@@ -58,11 +58,11 @@ py_test(
 
 py_test(
     name = "test_das_query_api",
-    # TODO: Fix #263 https://github.com/singnet/das/issues/263 
-    # skiping due to infraestructure issues related to this test
-    tags = ["skip"],
     size = "large",
     srcs = ["test_das_query_api.py"],
+    # TODO: Fix #263 https://github.com/singnet/das/issues/263
+    # skiping due to infraestructure issues related to this test
+    tags = ["skip"],
     deps = [
         ":conftest",
         ":helpers",
@@ -72,11 +72,11 @@ py_test(
 
 py_test(
     name = "test_iterators",
-    # TODO: Fix #263 https://github.com/singnet/das/issues/263 
-    # skiping due to infraestructure issues related to this test
-    tags = ["skip"],
     size = "large",
     srcs = ["test_iterators.py"],
+    # TODO: Fix #263 https://github.com/singnet/das/issues/263
+    # skiping due to infraestructure issues related to this test
+    tags = ["skip"],
     deps = [
         ":conftest",
         ":helpers",
@@ -88,11 +88,11 @@ py_test(
 
 py_test(
     name = "test_local_das",
-    # TODO: Fix #263 https://github.com/singnet/das/issues/263 
-    # skiping due to infraestructure issues related to this test
-    tags = ["skip"],
     size = "large",
     srcs = ["test_local_das.py"],
+    # TODO: Fix #263 https://github.com/singnet/das/issues/263
+    # skiping due to infraestructure issues related to this test
+    tags = ["skip"],
     deps = [
         ":conftest",
         ":helpers",
@@ -114,11 +114,11 @@ py_test(
 
 py_test(
     name = "test_remote_das",
-    # TODO: Fix #263 https://github.com/singnet/das/issues/263 
-    # skiping due to infraestructure issues related to this test
-    tags = ["skip"],
     size = "large",
     srcs = ["test_remote_das.py"],
+    # TODO: Fix #263 https://github.com/singnet/das/issues/263
+    # skiping due to infraestructure issues related to this test
+    tags = ["skip"],
     deps = [
         ":conftest",
         ":helpers",

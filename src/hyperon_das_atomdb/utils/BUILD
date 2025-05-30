@@ -5,7 +5,10 @@ package(default_visibility = ["//visibility:public"])
 
 py_library(
     name = "utils",
-    srcs = ["expression_hasher.py", "settings.py"],
+    srcs = [
+        "expression_hasher.py",
+        "settings.py",
+    ],
     deps = [
         ":expression_hasher",
         ":settings",

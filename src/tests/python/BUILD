@@ -9,4 +9,3 @@ py_library(
         "//hyperon_das_atomdb:database",
     ],
 )
-

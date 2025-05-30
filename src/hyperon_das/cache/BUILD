@@ -19,8 +19,8 @@ py_library(
     deps = [
         "//hyperon_das:logger",
         "//hyperon_das:utils",
-        "//hyperon_das/grpc:attention_broker_pb2_grpc",
         "//hyperon_das/grpc:attention_broker_pb2",
+        "//hyperon_das/grpc:attention_broker_pb2_grpc",
         "//hyperon_das/grpc:common_pb2",
         requirement("grpcio"),
     ],

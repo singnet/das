@@ -17,10 +17,10 @@ py_library(
 
 py_test(
     name = "test_redis_mongo",
-    # TODO: Fix #263 https://github.com/singnet/das/issues/263 
+    srcs = ["test_redis_mongo.py"],
+    # TODO: Fix #263 https://github.com/singnet/das/issues/263
     # skiping due to infraestructure issues related to this test
     tags = ["skip"],
-    srcs = ["test_redis_mongo.py"],
     deps = [
         ":animals_kb",
         ":helpers",

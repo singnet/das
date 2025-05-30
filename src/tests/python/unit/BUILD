@@ -192,6 +192,6 @@ py_test(
     size = "small",
     srcs = ["test_star_node.py"],
     deps = [
-        "//hyperon_das_node:hyperon_das_node",
+        "//hyperon_das_node",
     ],
 )

@@ -36,7 +36,6 @@ use_repo(llvm, "llvm_toolchain", "llvm_toolchain_llvm")
 # https://github.com/bazelbuild/bazel-central-registry/pull/3320#issuecomment-2546030208.
 # FIXME: Remove once fixed upstream in googletest and abseil-cpp.
 bazel_dep(name = "re2", version = "2024-07-02.bcr.1")
-
 bazel_dep(name = "abseil-cpp", version = "20250127.0")
 bazel_dep(name = "rules_apple", version = "3.17.1", repo_name = "build_bazel_rules_apple")
 bazel_dep(name = "protoc-gen-validate", version = "1.0.4.bcr.2", repo_name = "com_envoyproxy_protoc_gen_validate")
@@ -52,8 +51,12 @@ bazel_dep(name = "mbedtls", version = "3.6.0")
 
 # Python
 bazel_dep(name = "rules_python", version = "1.1.0")
+
 python = use_extension("@rules_python//python/extensions:python.bzl", "python")
-python.toolchain(python_version = "3.10", is_default = True)
+python.toolchain(
+    is_default = True,
+    python_version = "3.10",
+)
 python.toolchain(python_version = "3.11")
 python.toolchain(python_version = "3.12")
 
@@ -64,14 +67,12 @@ pip.parse(
     requirements_lock = "//deps:requirements_atomdb_lock.txt",
 )
 use_repo(pip, "pypi_atomdb")
-
 pip.parse(
     hub_name = "pypi_das",
     python_version = "3.10",
     requirements_lock = "//deps:requirements_das_lock.txt",
 )
 use_repo(pip, "pypi_das")
-
 pip.parse(
     hub_name = "pypi_dev",
     python_version = "3.10",
@@ -83,9 +84,20 @@ use_repo(pip, "pypi_dev")
 bazel_dep(name = "nanobind_bazel", version = "2.4.0")
 
 http_archive = use_repo_rule("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
+
 http_archive(
     name = "com_github_singnet_das_proto",
-    strip_prefix = "das-proto-0.1.14",
     sha256 = "c1e32db184cddb58468139d2fdc592be876c58cf67aa2600a2ec9670ca03cdc9",
+    strip_prefix = "das-proto-0.1.14",
     urls = ["https://github.com/singnet/das-proto/archive/refs/tags/0.1.14.tar.gz"],
 )
+
+# Deps for formatting and linting BUILD files
+bazel_dep(name = "cgrindel_bazel_starlib", version = "0.27.0")
+bazel_dep(name = "buildifier_prebuilt", version = "8.0.3")
+
+bzlformat_pkg = use_extension(
+    "@cgrindel_bazel_starlib//bzlformat:extensions.bzl",
+    "bzlformat_pkg",
+)
+use_repo(bzlformat_pkg, "bzlformat")
