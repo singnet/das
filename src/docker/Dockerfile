@@ -30,7 +30,8 @@ RUN cd ${THIRD_PARTY} \
     && rm -f 3rd-party.tgz \
     && mkdir -p ${DAS_DIR}/src/3rd-party \
     && ln -s ${THIRD_PARTY} ${DAS_DIR}/src/3rd-party \
-    && mv bazelisk ${BAZEL_DIR}
+    && mv bazelisk-linux-amd64 buildifier-linux-amd64 ${BAZEL_DIR} \
+    && chmod +x ${BAZEL_DIR}/*
 
 ################################################################################
 # To be removed when AtomDB is properly integrated

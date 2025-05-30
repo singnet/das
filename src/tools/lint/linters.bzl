@@ -9,4 +9,3 @@ ruff = lint_ruff_aspect(
 )
 
 ruff_test = lint_test(aspect = ruff)
-

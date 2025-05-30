@@ -13,7 +13,7 @@ cc_test(
         "@com_github_grpc_grpc//:grpc++",
         "@com_github_grpc_grpc//:grpc++_reflection",
         "@com_github_singnet_das_proto//:attention_broker_cc_grpc",
-        "@mbedtls//:mbedtls",
+        "@mbedtls",
     ],
 )
 
@@ -32,7 +32,7 @@ cc_test(
         "@com_github_grpc_grpc//:grpc++",
         "@com_github_grpc_grpc//:grpc++_reflection",
         "@com_github_singnet_das_proto//:attention_broker_cc_grpc",
-        "@mbedtls//:mbedtls",
+        "@mbedtls",
     ],
 )
 
@@ -56,7 +56,7 @@ cc_test(
         "@com_github_grpc_grpc//:grpc++",
         "@com_github_grpc_grpc//:grpc++_reflection",
         "@com_github_singnet_das_proto//:attention_broker_cc_grpc",
-        "@mbedtls//:mbedtls",
+        "@mbedtls",
     ],
 )
 
@@ -79,7 +79,7 @@ cc_test(
         "@com_github_grpc_grpc//:grpc++",
         "@com_github_grpc_grpc//:grpc++_reflection",
         "@com_github_singnet_das_proto//:attention_broker_cc_grpc",
-        "@mbedtls//:mbedtls",
+        "@mbedtls",
     ],
 )
 
@@ -102,7 +102,7 @@ cc_test(
         "@com_github_grpc_grpc//:grpc++",
         "@com_github_grpc_grpc//:grpc++_reflection",
         "@com_github_singnet_das_proto//:attention_broker_cc_grpc",
-        "@mbedtls//:mbedtls",
+        "@mbedtls",
     ],
 )
 
@@ -126,7 +126,7 @@ cc_test(
         "@com_github_grpc_grpc//:grpc++",
         "@com_github_grpc_grpc//:grpc++_reflection",
         "@com_github_singnet_das_proto//:attention_broker_cc_grpc",
-        "@mbedtls//:mbedtls",
+        "@mbedtls",
     ],
 )
 
@@ -149,7 +149,7 @@ cc_test(
         "@com_github_grpc_grpc//:grpc++",
         "@com_github_grpc_grpc//:grpc++_reflection",
         "@com_github_singnet_das_proto//:attention_broker_cc_grpc",
-        "@mbedtls//:mbedtls",
+        "@mbedtls",
     ],
 )
 
@@ -172,7 +172,7 @@ cc_test(
         "@com_github_grpc_grpc//:grpc++",
         "@com_github_grpc_grpc//:grpc++_reflection",
         "@com_github_singnet_das_proto//:attention_broker_cc_grpc",
-        "@mbedtls//:mbedtls",
+        "@mbedtls",
     ],
 )
 
@@ -199,7 +199,7 @@ cc_test(
     deps = [
         "//agents/query_engine:query_engine_lib",
         "@com_github_google_googletest//:gtest_main",
-        "@mbedtls//:mbedtls",
+        "@mbedtls",
     ],
 )
 
@@ -227,7 +227,7 @@ cc_test(
         "//agents/query_engine:query_engine_lib",
         "//atomdb:atomdb_singleton",
         "@com_github_google_googletest//:gtest_main",
-        "@mbedtls//:mbedtls",
+        "@mbedtls",
     ],
 )
 
@@ -275,7 +275,7 @@ cc_test(
     deps = [
         "//agents/query_engine:query_engine_lib",
         "@com_github_google_googletest//:gtest_main",
-        "@mbedtls//:mbedtls",
+        "@mbedtls",
     ],
 )
 
@@ -283,9 +283,9 @@ cc_test(
     name = "unique_assignment_filter_test",
     size = "medium",
     srcs = [
-        "unique_assignment_filter_test.cc",
         "test_utils.cc",
         "test_utils.h",
+        "unique_assignment_filter_test.cc",
     ],
     copts = [
         "-Iexternal/gtest/googletest/include",
@@ -302,7 +302,7 @@ cc_test(
     deps = [
         "//agents/query_engine:query_engine_lib",
         "@com_github_google_googletest//:gtest_main",
-        "@mbedtls//:mbedtls",
+        "@mbedtls",
     ],
 )
 
@@ -329,7 +329,7 @@ cc_test(
     deps = [
         "//agents/query_engine:query_engine_lib",
         "@com_github_google_googletest//:gtest_main",
-        "@mbedtls//:mbedtls",
+        "@mbedtls",
     ],
 )
 
@@ -433,9 +433,9 @@ cc_test(
     ],
     linkstatic = 1,
     deps = [
-        "//service_bus:service_bus_lib",
         "//agents/query_engine:query_engine_lib",
         "//atomdb:atomdb_singleton",
+        "//service_bus:service_bus_lib",
         "@com_github_google_googletest//:gtest_main",
     ],
 )
@@ -450,11 +450,10 @@ cc_test(
     ],
     linkstatic = 1,
     deps = [
-        "//link_creation_agent:link_creation_agent_lib",
-        "@com_github_google_googletest//:gtest_main",
         "//commons:commons_lib",
+        "//link_creation_agent:link_creation_agent_lib",
         "//service_bus:service_bus_lib",
-
+        "@com_github_google_googletest//:gtest_main",
     ],
 )
 
@@ -468,10 +467,8 @@ cc_test(
     ],
     linkstatic = 1,
     deps = [
+        "//commons:commons_lib",
         "//inference_agent:inference_agent_lib",
         "@com_github_google_googletest//:gtest_main",
-        "//commons:commons_lib",
-
     ],
 )
-
