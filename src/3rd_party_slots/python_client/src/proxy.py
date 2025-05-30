@@ -1,4 +1,3 @@
-import threading
 import grpc
 from concurrent import futures
 
@@ -6,8 +5,22 @@ from atom_space_node_grpc import atom_space_node_pb2_grpc
 from atom_space_node_grpc import atom_space_node_pb2
 
 
+# WIP
+
 class PatternMatchingQueryProxy:
-    def __init__(self, tokens: list[str], context: str, unique_assignment: bool, update_attention_broker: bool, count_only: bool):
+    ABORT = "ABORT"           # Abort current query
+    ANSWER_BUNDLE = "ANSWER_BUNDLE"  # Delivery of a bundle with QueryAnswer objects
+    COUNT = "COUNT"           # Delivery of the final result of a count_only query
+    FINISHED = "FINISHED"     # Notification that all query results have already been delivered
+
+    def __init__(
+        self,
+        tokens: list[str] = None,
+        context: str = "",
+        unique_assignment: bool = False,
+        update_attention_broker: bool = False,
+        count_only: bool = False
+    ) -> None:
         pass
 
     def pop(self) -> None:
@@ -24,14 +37,13 @@ class ProxyNode:
     pass
 
 
-# WIP
 class StarNode(atom_space_node_pb2_grpc.AtomSpaceNodeServicer):
     def __init__(self, node_id: str, proxy: PatternMatchingQueryProxy):
         self.node_id = node_id
         self.proxy = proxy
 
     def process_message(self, msg: atom_space_node_pb2.MessageData):
-        print(f"StarNode::process_message()[{self.node_id}]: MessageData -> len={len(msg.args)}")
+        print(f"StarNode.process_message()[{self.node_id}]: MessageData -> len={len(msg.args)}")
 
         if msg.command in ["query_answer_tokens_flow", "bus_command_proxy"]:
             args = msg.args
@@ -40,13 +52,13 @@ class StarNode(atom_space_node_pb2_grpc.AtomSpaceNodeServicer):
 
         with self.proxy.lock:
             for arg in args:
-                if arg == "FINISHED":
+                if arg == PatternMatchingQueryProxy.FINISHED:
                     self.proxy.answer_flow_finished = True
                     break
-                elif arg == "ABORT":
+                elif arg == PatternMatchingQueryProxy.ABORT:
                     self.proxy.abort_flag = True
                     break
-                elif arg in ["ANSWER_BUNDLE", "COUNT"]:
+                elif arg in [PatternMatchingQueryProxy.ANSWER_BUNDLE, PatternMatchingQueryProxy.COUNT]:
                     continue
                 else:
                     self.proxy.answer_count += 1
