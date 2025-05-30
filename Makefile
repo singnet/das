@@ -79,7 +79,7 @@ format-all:
 	@$(MAKE) bazel run format
 
 performance-tests:
-	@python3 src/tests/integration/performance/query_agent_metrics.py
+	@python ./src/tests/integration/performance/query_agent_metrics.py
 
 # Catch-all pattern to prevent make from complaining about unknown targets
 %:
