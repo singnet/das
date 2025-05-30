@@ -12,6 +12,12 @@ on:
       repo:
         required: true
         type: string
+      project_title:
+        required: true
+        type: string
+      field_name:
+        required: true
+        type: string
     secrets:
       GH_TOKEN:
         required: true
@@ -26,14 +32,13 @@ jobs:
           ISSUE_TITLE: ${{ inputs.issue_title }}
           ISSUE_URL: ${{ inputs.issue_url }}
           REPO: ${{ inputs.repo }}
+          PROJECT_TITLE: ${{ inputs.project_title }}
+          FIELD_NAME: ${{ inputs.field_name }}
         run: |
           set -e
 
           OWNER=$(echo "$REPO" | cut -d/ -f1)
           REPO_NAME=$(echo "$REPO" | cut -d/ -f2)
-
-          PROJECT_TITLE="Documentation Project"  # Adjust this to your actual project name
-          FIELD_NAME="Update docs"               # Adjust this to your actual field (column) name
 
           echo "Fetching Project ID..."
           PROJECT_ID=$(gh api graphql -F owner="$OWNER" -F name="$REPO_NAME" -F projectTitle="$PROJECT_TITLE" -f query='
@@ -70,7 +75,7 @@ jobs:
                 }
               }
             }
-          ' -F projectId="$PROJECT_ID" | jq -r '.data.node.fields.nodes[] | select(.name=="'$FIELD_NAME'") | .id')
+          ' -F projectId="$PROJECT_ID" | jq -r '.data.node.fields.nodes[] | select(.name==env.FIELD_NAME) | .id')
 
           if [ -z "$FIELD_ID" ]; then
             echo "Field (column) not found: $FIELD_NAME"

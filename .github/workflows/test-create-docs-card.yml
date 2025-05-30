@@ -12,5 +12,7 @@ jobs:
       issue_title: 'Test title'
       issue_url: 'https://github.com/singnet/das/issues/28'
       repo: ${{ github.repository }}
+      project_title: "DAS - Dev Team"
+      field_name: "Update docs"
     secrets:
       GH_TOKEN: ${{ secrets.GH_TOKEN }}
