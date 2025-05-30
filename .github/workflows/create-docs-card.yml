@@ -20,25 +20,90 @@ jobs:
   create-docs-card:
     runs-on: ubuntu-latest
     steps:
-      - name: Create project card for documentation
+      - name: Create project card for documentation (Projects v2)
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
-          ISSUE_URL: ${{ inputs.issue_url }}
           ISSUE_TITLE: ${{ inputs.issue_title }}
+          ISSUE_URL: ${{ inputs.issue_url }}
           REPO: ${{ inputs.repo }}
         run: |
-          COLUMN_NAME="Update docs"
+          set -e
 
-          PROJECT_ID=$(gh api repos/$REPO/projects | jq -r '.[0].id')
-          COLUMN_ID=$(gh api /projects/$PROJECT_ID/columns | jq -r ".[] | select(.name==\"$COLUMN_NAME\") | .id")
+          OWNER=$(echo "$REPO" | cut -d/ -f1)
+          REPO_NAME=$(echo "$REPO" | cut -d/ -f2)
 
-          if [ -z "$COLUMN_ID" ]; then
-            echo "Project column not found"
+          PROJECT_TITLE="Documentation Project"  # Adjust this to your actual project name
+          FIELD_NAME="Update docs"               # Adjust this to your actual field (column) name
+
+          echo "Fetching Project ID..."
+          PROJECT_ID=$(gh api graphql -F owner="$OWNER" -F name="$REPO_NAME" -F projectTitle="$PROJECT_TITLE" -f query='
+            query($owner: String!, $name: String!, $projectTitle: String!) {
+              repository(owner: $owner, name: $name) {
+                projectsV2(first: 10, query: $projectTitle) {
+                  nodes {
+                    id
+                    title
+                  }
+                }
+              }
+            }
+          ' | jq -r '.data.repository.projectsV2.nodes[] | select(.title == env.PROJECT_TITLE) | .id')
+
+          if [ -z "$PROJECT_ID" ]; then
+            echo "Project not found: $PROJECT_TITLE"
             exit 1
           fi
 
-          gh api /projects/columns/$COLUMN_ID/cards \
-            -f note="**${ISSUE_TITLE}**\n[Original Issue](${ISSUE_URL})" \
-            -H "Accept: application/vnd.github.v3+json"
+          echo "Project ID found: $PROJECT_ID"
 
-          echo "Card created in column: $COLUMN_NAME"
+          echo "Fetching field ID for the column..."
+          FIELD_ID=$(gh api graphql -f query='
+            query ($projectId: ID!) {
+              node(id: $projectId) {
+                ... on ProjectV2 {
+                  fields(first: 20) {
+                    nodes {
+                      id
+                      name
+                    }
+                  }
+                }
+              }
+            }
+          ' -F projectId="$PROJECT_ID" | jq -r '.data.node.fields.nodes[] | select(.name=="'$FIELD_NAME'") | .id')
+
+          if [ -z "$FIELD_ID" ]; then
+            echo "Field (column) not found: $FIELD_NAME"
+            exit 1
+          fi
+
+          echo "Field ID found: $FIELD_ID"
+
+          echo "Creating a new project card..."
+
+          CREATE_CARD_MUTATION='
+            mutation ($projectId: ID!, $title: String!) {
+              addProjectV2ItemByDraftIssue(input: {
+                projectId: $projectId,
+                title: $title
+              }) {
+                item {
+                  id
+                }
+              }
+            }
+          '
+
+          CONTENT="**${ISSUE_TITLE}** - [Original Issue](${ISSUE_URL})"
+
+          RESULT=$(gh api graphql -f query="$CREATE_CARD_MUTATION" -F projectId="$PROJECT_ID" -F title="$CONTENT")
+
+          ITEM_ID=$(echo "$RESULT" | jq -r '.data.addProjectV2ItemByDraftIssue.item.id')
+
+          if [ -z "$ITEM_ID" ] || [ "$ITEM_ID" = "null" ]; then
+            echo "Failed to create project card."
+            echo "$RESULT"
+            exit 1
+          fi
+
+          echo "Project card created successfully with ID: $ITEM_ID"
