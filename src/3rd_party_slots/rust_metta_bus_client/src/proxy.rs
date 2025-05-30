@@ -39,7 +39,7 @@ pub struct PatternMatchingQueryProxy {
 	pub args: Vec<String>,
 	pub requestor_id: String,
 	pub serial: u64,
-	pub proxy_port: u32,
+	pub proxy_port: u16,
 	pub proxy_node: ProxyNode,
 
 	pub maybe_mongodb_repo: Option<MongoRepository>,
@@ -187,7 +187,7 @@ impl Drop for ProxyNode {
 			log::trace!(target: "das", "Dropping ProxyNode with data: {}", self.node_id);
 			let splitted = self.node_id.split(":").collect::<Vec<_>>();
 			if splitted.len() == 2 {
-				let port = splitted[1].parse::<u32>().unwrap();
+				let port = splitted[1].parse::<u16>().unwrap();
 				PortPool::return_port(port);
 			} else {
 				log::error!(target: "das", "Failed to parse and return port from: {}", self.node_id);

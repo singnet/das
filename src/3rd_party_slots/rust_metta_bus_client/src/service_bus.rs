@@ -12,8 +12,8 @@ pub struct ServiceBus {
 
 impl ServiceBus {
 	pub fn new(
-		host_id: String, known_peer: String, commands: Vec<String>, port_lower: u32,
-		port_upper: u32,
+		host_id: String, known_peer: String, commands: Vec<String>, port_lower: u16,
+		port_upper: u16,
 	) -> Result<Self, BoxError> {
 		let bus_node = BusNode::new(host_id, commands.clone(), known_peer)?;
 		PortPool::initialize_statics(port_lower, port_upper)?;

@@ -12,7 +12,7 @@ pub struct ServiceBusSingleton;
 
 impl ServiceBusSingleton {
 	pub fn init(
-		host_id: String, known_peer: String, port_lower: u32, port_upper: u32,
+		host_id: String, known_peer: String, port_lower: u16, port_upper: u16,
 	) -> Result<(), BoxError> {
 		INITIALIZED.set(true).expect("ServiceBusSingleton already initialized!");
 		let service_bus = ServiceBus::new(

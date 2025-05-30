@@ -8,10 +8,11 @@ use std::{
 use helpers::{split_ignore_quoted, translate};
 use hyperon_atom::{
 	matcher::{Bindings, BindingsSet},
-	Atom, VariableAtom,
+	Atom, ExecError, VariableAtom,
 };
 use proxy::PatternMatchingQueryProxy;
 use service_bus::ServiceBus;
+use service_bus_singleton::ServiceBusSingleton;
 use types::BoxError;
 
 pub mod bus;
@@ -167,4 +168,21 @@ pub fn query(
 	proxy.drop_runtime();
 
 	Ok(bindings_set)
+}
+
+pub fn init_service_bus(
+	host_id: String, known_peer: String, port_lower: u16, port_upper: u16,
+) -> Result<ServiceBus, BoxError> {
+	ServiceBusSingleton::init(host_id, known_peer, port_lower, port_upper)?;
+	Ok(ServiceBusSingleton::get_instance())
+}
+
+pub fn host_id_from_atom(atom: &Atom) -> Result<String, ExecError> {
+	let endpoint = atom.to_string().replace("(", "").replace(")", "");
+	if let Some((_, port_str)) = endpoint.split_once(':') {
+		if port_str.parse::<u16>().is_ok() {
+			return Ok(endpoint);
+		}
+	}
+	Err(ExecError::from("new-das arguments must be a valid endpoint (eg. 0.0.0.0:8080)"))
 }

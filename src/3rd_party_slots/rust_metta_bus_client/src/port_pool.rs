@@ -6,15 +6,15 @@ use std::{
 use crate::types::BoxError;
 
 static INITIALIZED: OnceLock<bool> = OnceLock::new();
-static POOL: OnceLock<Arc<Mutex<VecDeque<u32>>>> = OnceLock::new();
-static PORT_LOWER: OnceLock<u32> = OnceLock::new();
-static PORT_UPPER: OnceLock<u32> = OnceLock::new();
+static POOL: OnceLock<Arc<Mutex<VecDeque<u16>>>> = OnceLock::new();
+static PORT_LOWER: OnceLock<u16> = OnceLock::new();
+static PORT_UPPER: OnceLock<u16> = OnceLock::new();
 
 #[derive(Debug, Default, Clone)]
 pub struct PortPool;
 
 impl PortPool {
-	pub fn initialize_statics(port_lower: u32, port_upper: u32) -> Result<(), BoxError> {
+	pub fn initialize_statics(port_lower: u16, port_upper: u16) -> Result<(), BoxError> {
 		INITIALIZED.set(true).expect("PortPool already initialized!");
 
 		let mut queue = VecDeque::with_capacity((port_upper - port_lower + 1) as usize);
@@ -30,7 +30,7 @@ impl PortPool {
 	}
 
 	/// Retrieves a port from the pool.
-	pub fn get_port() -> u32 {
+	pub fn get_port() -> u16 {
 		INITIALIZED.get().expect("PortPool not initialized!");
 		let locked_pool = POOL.get().unwrap();
 		match locked_pool.lock() {
@@ -44,7 +44,7 @@ impl PortPool {
 	}
 
 	/// Returns a port to the pool.
-	pub fn return_port(port: u32) {
+	pub fn return_port(port: u16) {
 		INITIALIZED.get().expect("PortPool not initialized!");
 		let locked_pool = POOL.get().unwrap();
 		match locked_pool.lock() {
