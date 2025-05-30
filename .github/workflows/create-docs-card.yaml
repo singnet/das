@@ -1,0 +1,44 @@
+name: Create Docs Project Card
+
+on:
+  workflow_call:
+    inputs:
+      issue_title:
+        required: true
+        type: string
+      issue_url:
+        required: true
+        type: string
+      repo:
+        required: true
+        type: string
+    secrets:
+      GH_TOKEN:
+        required: true
+
+jobs:
+  create-docs-card:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Create project card for documentation
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+          ISSUE_URL: ${{ inputs.issue_url }}
+          ISSUE_TITLE: ${{ inputs.issue_title }}
+          REPO: ${{ inputs.repo }}
+        run: |
+          COLUMN_NAME="Update docs"
+
+          PROJECT_ID=$(gh api repos/$REPO/projects | jq -r '.[0].id')
+          COLUMN_ID=$(gh api /projects/$PROJECT_ID/columns | jq -r ".[] | select(.name==\"$COLUMN_NAME\") | .id")
+
+          if [ -z "$COLUMN_ID" ]; then
+            echo "Project column not found"
+            exit 1
+          fi
+
+          gh api /projects/columns/$COLUMN_ID/cards \
+            -f note="**${ISSUE_TITLE}**\n[Original Issue](${ISSUE_URL})" \
+            -H "Accept: application/vnd.github.v3+json"
+
+          echo "Card created in column: $COLUMN_NAME"
