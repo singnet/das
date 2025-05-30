@@ -1,0 +1,16 @@
+name: Manual Test - Trigger Docs Card
+
+on:
+    push:
+        branches:
+            - das-28
+
+jobs:
+  trigger-workflow:
+    uses: singnet/das/.github/workflows/create-docs-card.yml@das-28
+    with:
+      issue_title: 'Test title'
+      issue_url: 'https://github.com/singnet/das/issues/28'
+      repo: ${{ github.repository }}
+    secrets:
+      GH_TOKEN: ${{ secrets.GH_TOKEN }}
