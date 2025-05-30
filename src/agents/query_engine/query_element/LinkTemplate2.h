@@ -308,6 +308,10 @@ class LinkTemplate2 : public Source {
                 (query_answer = 
                     dynamic_cast<QueryAnswer*>(this->inner_template_iterator->pop())) != NULL) {
                 // clang-format on
+                if (query_answer->importance <= 0.0) {
+                    delete query_answer;
+                    continue;
+                }
                 auto link_handle = this->get_link_handle(query_answer);
                 if (link_handle == NULL) {
                     delete query_answer;
