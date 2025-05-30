@@ -35,7 +35,7 @@ jobs:
           PROJECT_TITLE: ${{ inputs.project_title }}
           FIELD_NAME: ${{ inputs.field_name }}
         run: |
-          set -e
+          set -euo pipefail
 
           OWNER=$(echo "$REPO" | cut -d/ -f1)
           REPO_NAME=$(echo "$REPO" | cut -d/ -f2)
@@ -44,7 +44,7 @@ jobs:
           PROJECT_ID=$(gh api graphql -F owner="$OWNER" -F name="$REPO_NAME" -F projectTitle="$PROJECT_TITLE" -f query='
             query($owner: String!, $name: String!, $projectTitle: String!) {
               repository(owner: $owner, name: $name) {
-                projectsV2(first: 10, query: $projectTitle) {
+                projectsV2(first: 10) {
                   nodes {
                     id
                     title
@@ -52,7 +52,7 @@ jobs:
                 }
               }
             }
-          ' | jq -r '.data.repository.projectsV2.nodes[] | select(.title == env.PROJECT_TITLE) | .id')
+          ' | jq -r --arg title "$PROJECT_TITLE" '.data.repository.projectsV2.nodes[] | select(.title == $title) | .id')
 
           if [ -z "$PROJECT_ID" ]; then
             echo "Project not found: $PROJECT_TITLE"
@@ -66,27 +66,31 @@ jobs:
             query ($projectId: ID!) {
               node(id: $projectId) {
                 ... on ProjectV2 {
-                  fields(first: 20) {
+                  fields(first: 50) {
                     nodes {
-                      id
-                      name
+                      ... on ProjectV2Field {
+                        id
+                        name
+                      }
                     }
                   }
                 }
               }
             }
-          ' -F projectId="$PROJECT_ID" | jq -r '.data.node.fields.nodes[] | select(.name==env.FIELD_NAME) | .id')
+          ' -F projectId="$PROJECT_ID" | jq -r --arg field "$FIELD_NAME" '.data.node.fields.nodes[] | select(.name == $field) | .id')
 
           if [ -z "$FIELD_ID" ]; then
             echo "Field (column) not found: $FIELD_NAME"
             exit 1
           fi
 
-          echo "Field ID found: $FIELD_ID"
+          echo "✅ Field ID found: $FIELD_ID"
 
-          echo "Creating a new project card..."
+          echo "Creating a new draft issue item in the project..."
 
-          CREATE_CARD_MUTATION='
+          CONTENT="**${ISSUE_TITLE}** - [Original Issue](${ISSUE_URL})"
+
+          CREATE_ITEM_RESULT=$(gh api graphql -f query='
             mutation ($projectId: ID!, $title: String!) {
               addProjectV2ItemByDraftIssue(input: {
                 projectId: $projectId,
@@ -97,18 +101,14 @@ jobs:
                 }
               }
             }
-          '
+          ' -F projectId="$PROJECT_ID" -F title="$CONTENT")
 
-          CONTENT="**${ISSUE_TITLE}** - [Original Issue](${ISSUE_URL})"
+          ITEM_ID=$(echo "$CREATE_ITEM_RESULT" | jq -r '.data.addProjectV2ItemByDraftIssue.item.id')
 
-          RESULT=$(gh api graphql -f query="$CREATE_CARD_MUTATION" -F projectId="$PROJECT_ID" -F title="$CONTENT")
-
-          ITEM_ID=$(echo "$RESULT" | jq -r '.data.addProjectV2ItemByDraftIssue.item.id')
-
-          if [ -z "$ITEM_ID" ] || [ "$ITEM_ID" = "null" ]; then
-            echo "Failed to create project card."
-            echo "$RESULT"
+          if [ -z "$ITEM_ID" ] || [ "$ITEM_ID" == "null" ]; then
+            echo "Failed to create project item."
+            echo "$CREATE_ITEM_RESULT"
             exit 1
           fi
 
-          echo "Project card created successfully with ID: $ITEM_ID"
+          echo "Project card created with ID: $ITEM_ID"
