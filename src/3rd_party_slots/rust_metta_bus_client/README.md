@@ -72,7 +72,10 @@ python3 das_cli.py config set
 # Start DBs
 python3 das_cli.py db start
 
-# Load a MeTTa sample file
+# Get a MeTTa sample file
+curl https://raw.githubusercontent.com/singnet/das-toolbox/refs/heads/master/das-cli/src/examples/data/animals.metta -o /tmp/animals.metta
+
+# Load the MeTTa sample file to DBs
 python3 das_cli.py metta load /tmp/animals.metta
 
 # Start Attention Broker
