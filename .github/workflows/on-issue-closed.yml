@@ -1,4 +1,4 @@
-name: Trigger Docs Card on Issue Close
+name: Trigger Workflow on Issue Closed
 
 on:
   issues:
@@ -7,7 +7,7 @@ on:
 jobs:
   trigger-workflow:
     if: contains(join(github.event.issue.labels.*.name, ','), 'Update docs')
-    uses: singnet/das/.github/workflows/on-issue-closed-handler@master
+    uses: singnet/das/.github/workflows/on-issue-closed-handler.yml@master
     with:
       repo: ${{ github.event.repository.name }}
       owner: ${{ github.event.repository.owner.login }}

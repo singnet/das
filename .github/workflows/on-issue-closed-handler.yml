@@ -1,4 +1,4 @@
-name: 
+name: On Issue Closed Update Project Card
 
 on:
   workflow_call:
@@ -14,7 +14,7 @@ on:
       issue_number:
         description: 'Issue number'
         required: true
-        type: integer
+        type: number
       label_name:
         description: 'Label name to check for triggering the workflow'
         required: true
@@ -22,7 +22,7 @@ on:
       project_number:
         description: 'Project number to update the card in'
         required: true
-        type: integer
+        type: number
       target_column_name:
         description: 'Target column name in the project to move the card to'
         required: true
@@ -42,6 +42,7 @@ jobs:
         run: chmod +x scripts/on-issue-closed.sh
 
       - name: Update project card for documentation
+        run: ./scripts/on-issue-closed.sh
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
           REPO: ${{ inputs.repo }}
@@ -50,5 +51,4 @@ jobs:
           LABEL_NAME: ${{ inputs.label_name }}
           PROJECT_NUMBER: ${{ inputs.project_number }}
           TARGET_COLUMN_NAME: ${{ inputs.target_column_name }}
-          API_URL: "https://api.github.com
-        run: ./scripts/on-issue-closed.sh
+          API_URL: "https://api.github.com"
