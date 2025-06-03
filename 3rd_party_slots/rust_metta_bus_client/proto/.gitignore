@@ -1,0 +1,5 @@
+bazel-bin
+bazel-das-proto
+bazel-out
+bazel-testlogs
+
