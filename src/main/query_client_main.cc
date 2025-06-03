@@ -4,7 +4,7 @@
 #include <string>
 
 #include "AtomDBSingleton.h"
-#include "PatternMatchingQueryProxy.h"
+#include "AtomSpace.h"
 #include "QueryAnswer.h"
 #include "ServiceBusSingleton.h"
 #include "Utils.h"
@@ -64,8 +64,7 @@ int main(int argc, char* argv[]) {
     }
 
     shared_ptr<ServiceBus> service_bus = ServiceBusSingleton::get_instance();
-    shared_ptr<PatternMatchingQueryProxy> proxy =
-        make_shared<PatternMatchingQueryProxy>(query, "", true, update_attention_broker, false);
+    auto proxy = atomspace::AtomSpace(service_bus).pattern_matching_query(query);
     service_bus->issue_bus_command(proxy);
     shared_ptr<QueryAnswer> query_answer;
     int count = 0;
