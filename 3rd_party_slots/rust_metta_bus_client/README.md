@@ -9,7 +9,7 @@ This package implements a client to connect and send pattern matching queries to
 Clone the repo:
 ```sh
 git clone https://github.com/singnet/das.git
-cd das/src/3rd_party_slots/rust_metta_bus_client
+cd das/3rd_party_slots/rust_metta_bus_client
 ```
 
 Install `rustup`:
