@@ -20,17 +20,17 @@ RUN mkdir -p \
 
 RUN yes | apt update -y \
     && yes | apt install -y git build-essential curl protobuf-compiler python3 python3-pip cmake \
-    libevent-dev libssl-dev pkg-config libncurses5\
+    libevent-dev libssl-dev pkg-config libncurses5 \
     && yes | apt clean -y \
     && rm -rf /var/lib/apt/lists/*
 
-COPY src/assets/bazelisk.tgz /tmp
+COPY src/assets/3rd-party.tgz /tmp
 RUN ARCH=$([ "$(uname -m)" = "aarch64" ] && echo "arm64" || echo "amd64") \
     && cd /tmp \
-    && tar xzvf bazelisk.tgz \
+    && tar xzvf 3rd-party.tgz \
     && mv bazelisk-${ARCH} ${BAZEL_DIR}/bazelisk \
     && mv buildifier-${ARCH} ${BAZEL_DIR}/buildifier \
-    && rm -f bazelisk*
+    && chmod +x ${BAZEL_DIR}/*
 
 ################################################################################
 # To be removed when AtomDB is properly integrated
