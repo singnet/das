@@ -1,5 +1,4 @@
-#ifndef _ATTENTION_BROKER_SERVER_HANDLETRIE_H
-#define _ATTENTION_BROKER_SERVER_HANDLETRIE_H
+#pragma once
 
 #include <mutex>
 #include <string>
@@ -8,12 +7,12 @@
 
 using namespace std;
 
-namespace attention_broker_server {
+namespace commons {
 
 /**
  * Data abstraction implementing a map handle->value using a trie (prefix tree).
  *
- * This data structure is basicaly like a hashmap mapping from handles to objects of
+ * This data structure is basically like a hashmap mapping from handles to objects of
  * type HandleTrie::TrieValue.
  *
  * When a (key, value) pair is inserted and key is already present, the method merge()
@@ -113,6 +112,4 @@ class HandleTrie {
     unsigned int key_size;
 };
 
-}  // namespace attention_broker_server
-
-#endif  // _ATTENTION_BROKER_SERVER_HANDLETRIE_H
+}  // namespace commons
