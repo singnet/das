@@ -1,0 +1,54 @@
+name: 
+
+on:
+  workflow_call:
+    inputs:
+      repo:
+        description: 'Repository name'
+        required: true
+        type: string
+      owner:
+        description: 'Repository owner'
+        required: true
+        type: string
+      issue_number:
+        description: 'Issue number'
+        required: true
+        type: integer
+      label_name:
+        description: 'Label name to check for triggering the workflow'
+        required: true
+        type: string
+      project_number:
+        description: 'Project number to update the card in'
+        required: true
+        type: integer
+      target_column_name:
+        description: 'Target column name in the project to move the card to'
+        required: true
+        type: string 
+    secrets:
+      GH_TOKEN:
+        required: true
+
+jobs:
+  update-project-card:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set execute permission
+        run: chmod +x scripts/on-issue-closed.sh
+
+      - name: Update project card for documentation
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+          REPO: ${{ inputs.repo }}
+          OWNER: ${{ inputs.owner }}
+          ISSUE_NUMBER: ${{ inputs.issue_number }}
+          LABEL_NAME: ${{ inputs.label_name }}
+          PROJECT_NUMBER: ${{ inputs.project_number }}
+          TARGET_COLUMN_NAME: ${{ inputs.target_column_name }}
+          API_URL: "https://api.github.com
+        run: ./scripts/on-issue-closed.sh

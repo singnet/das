@@ -1,0 +1,19 @@
+name: Trigger Docs Card on Issue Close
+
+on:
+  issues:
+    types: [closed]
+
+jobs:
+  trigger-workflow:
+    if: contains(join(github.event.issue.labels.*.name, ','), 'Update docs')
+    uses: singnet/das/.github/workflows/on-issue-closed-handler@master
+    with:
+      repo: ${{ github.event.repository.name }}
+      owner: ${{ github.event.repository.owner.login }}
+      issue_number: ${{ github.event.issue.number }}
+      label_name: 'Update docs'
+      project_number: 6
+      target_column_name: 'Update docs'
+    secrets:
+      GH_TOKEN: ${{ secrets.GH_TOKEN }}
