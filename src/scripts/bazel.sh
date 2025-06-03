@@ -6,6 +6,7 @@ ARCH=$(uname -m)
 
 IMAGE_NAME="das-builder"
 CONTAINER_USER=$([ "$ARCH" != "arm64" ] && echo "$USER" || echo "builder")
+BAZEL_CMD="/opt/bazel/bazelisk"
 CONTAINER_NAME="das-bazel-cmd-$(uuidgen | cut -d '-' -f 1)-$(date +%Y%m%d%H%M%S)"
 
 ENV_VARS=$(test -f .env && echo "--env-file=.env" || echo "")

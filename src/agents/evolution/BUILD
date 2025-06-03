@@ -6,7 +6,7 @@ cc_library(
     hdrs = ["Evolution.h"],
     includes = ["."],
     deps = [
-        "//service_bus:service_bus_lib",
         "//commons:commons_lib",
+        "//service_bus:service_bus_lib",
     ],
 )

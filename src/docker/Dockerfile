@@ -8,13 +8,15 @@ ARG DATA_DIR="${BASE_DIR}/data"
 ARG GRPC_DIR="${BASE_DIR}/grpc"
 ARG PROTO_DIR="${BASE_DIR}/proto"
 ARG BAZEL_DIR="${BASE_DIR}/bazel"
+ARG THIRD_PARTY="${BASE_DIR}/3rd-party"
 
 RUN mkdir -p \
     ${DAS_DIR} \
     ${DATA_DIR} \
     ${GRPC_DIR} \
     ${BAZEL_DIR} \
-    ${PROTO_DIR}
+    ${PROTO_DIR} \
+    ${THIRD_PARTY}
 
 RUN yes | apt update -y \
     && yes | apt install -y git build-essential curl protobuf-compiler python3 python3-pip cmake \
@@ -27,6 +29,7 @@ RUN ARCH=$([ "$(uname -m)" = "aarch64" ] && echo "arm64" || echo "amd64") \
     && cd /tmp \
     && tar xzvf bazelisk.tgz \
     && mv bazelisk-${ARCH} ${BAZEL_DIR}/bazelisk \
+    && mv buildifier-${ARCH} ${BAZEL_DIR}/buildifier \
     && rm -f bazelisk*
 
 ################################################################################
