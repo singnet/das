@@ -1,3 +1,0 @@
-[submodule "3rd_party_slots/rust_metta_bus_client/proto"]
-	path = 3rd_party_slots/rust_metta_bus_client/proto
-	url = https://github.com/singnet/das-proto
