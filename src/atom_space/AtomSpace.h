@@ -210,7 +210,9 @@ class AtomSpace {
      * @brief Construct an AtomSpace with a given ServiceBus.
      * @param bus Shared pointer to the ServiceBus instance.
      */
-    AtomSpace(shared_ptr<ServiceBus> bus);
+    AtomSpace(shared_ptr<ServiceBus> bus) : bus(bus) {
+        this->handle_trie = make_unique<HandleTrie>(HANDLE_SIZE);
+    }
 
     /**
      * @brief Retrieve an atom by handle.
