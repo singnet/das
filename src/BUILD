@@ -3,19 +3,19 @@ package(default_visibility = ["//visibility:public"])
 exports_files(
     [
         ".ruff.toml",
-        ".clang-format"
+        ".clang-format",
     ],
     visibility = ["//visibility:public"],
 )
 
 alias(
-  name = "format.check",
-  actual = "//tools/format:format.check"
+    name = "format.check",
+    actual = "//tools/format:format.check",
 )
 
 alias(
-  name = "format",
-  actual = "//tools/format"
+    name = "format",
+    actual = "//tools/format",
 )
 
 cc_binary(
@@ -24,12 +24,12 @@ cc_binary(
     defines = ["BAZEL_BUILD"],
     linkstatic = 1,
     deps = [
-        "//main:attention_broker_main_lib",
         "//commons:commons_lib",
+        "//main:attention_broker_main_lib",
         "@com_github_grpc_grpc//:grpc++",
         "@com_github_grpc_grpc//:grpc++_reflection",
         "@com_github_singnet_das_proto//:attention_broker_cc_grpc",
-        "@mbedtls//:mbedtls",
+        "@mbedtls",
     ],
 )
 
@@ -39,9 +39,9 @@ cc_binary(
     defines = ["BAZEL_BUILD"],
     linkstatic = 1,
     deps = [
-        "//main:query_engine_main_lib",
         "//commons:commons_lib",
-        "@mbedtls//:mbedtls",
+        "//main:query_engine_main_lib",
+        "@mbedtls",
     ],
 )
 
@@ -51,9 +51,9 @@ cc_binary(
     defines = ["BAZEL_BUILD"],
     linkstatic = 1,
     deps = [
-        "//main:query_client_main_lib",
         "//commons:commons_lib",
-        "@mbedtls//:mbedtls",
+        "//main:query_client_main_lib",
+        "@mbedtls",
     ],
 )
 
@@ -63,9 +63,9 @@ cc_binary(
     defines = ["BAZEL_BUILD"],
     linkstatic = 1,
     deps = [
-        "//main:link_creation_engine_main_lib",
         "//commons:commons_lib",
-        "@mbedtls//:mbedtls",
+        "//main:link_creation_engine_main_lib",
+        "@mbedtls",
     ],
 )
 
@@ -75,13 +75,11 @@ cc_binary(
     defines = ["BAZEL_BUILD"],
     linkstatic = 1,
     deps = [
-        "//main:word_query_main_lib",
         "//commons:commons_lib",
-        "@mbedtls//:mbedtls",
+        "//main:word_query_main_lib",
+        "@mbedtls",
     ],
 )
-
-
 
 cc_binary(
     name = "link_creation_server",
@@ -92,7 +90,6 @@ cc_binary(
         "//main:link_creation_agent_main_lib",
     ],
 )
-
 
 cc_binary(
     name = "link_creation_agent_client",
@@ -113,7 +110,6 @@ cc_binary(
         "//main:inference_agent_main_lib",
     ],
 )
-
 
 cc_binary(
     name = "inference_agent_client",

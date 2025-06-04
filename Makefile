@@ -32,7 +32,8 @@ build-all: build-image
 	@bash -x src/scripts/build.sh
 
 run-query-agent:
-	@bash -x src/scripts/run.sh query_broker 31700
+	@PORT=$$(bash src/scripts/gkctl_auto_join_and_reserve.sh | tail -n 1); \
+	bash -x src/scripts/run.sh query_broker $$PORT
 
 run-attention-broker:
 	@bash -x src/scripts/run.sh attention_broker_service 37007
@@ -48,9 +49,6 @@ run-inference-agent:
 
 run-inference-agent-client:
 	@bash -x src/scripts/run.sh inference_agent_client $(OPTIONS)
-
-run-evolution:
-	@bash ./src/scripts/bazel.sh run //evolution:main -- $(OPTIONS)
 
 run-das-agent:
 	@bash ./src/scripts/bazel.sh run //das_agent:main -- $(OPTIONS)

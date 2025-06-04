@@ -6,6 +6,6 @@ cc_library(
     hdrs = ["expression_hasher.h"],
     includes = ["."],
     deps = [
-        "@mbedtls//:mbedtls",
-    ]
+        "@mbedtls",
+    ],
 )
