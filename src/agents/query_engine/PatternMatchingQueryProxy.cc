@@ -33,12 +33,10 @@ PatternMatchingQueryProxy::PatternMatchingQueryProxy(const vector<string>& token
     this->command = ServiceBus::PATTERN_MATCHING_QUERY;
     this->count_flag = count_only;
     this->unique_assignment_flag = unique_assignment;
-    this->args = {
-        context,
-        to_string(unique_assignment),
-        to_string(update_attention_broker),
-        to_string(count_flag)
-    };
+    this->args = {context,
+                  to_string(unique_assignment),
+                  to_string(update_attention_broker),
+                  to_string(count_flag)};
     this->args.insert(this->args.end(), tokens.begin(), tokens.end());
 }
 

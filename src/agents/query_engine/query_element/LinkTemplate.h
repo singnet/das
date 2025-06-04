@@ -322,39 +322,26 @@ class LinkTemplate : public Source {
         unsigned int answer_count = this->fetch_result->size();
         LOG_INFO("Fetched " << answer_count << " links for link template " << this->to_string());
         QueryAnswer* query_answer;
-        LOG_INFO("LT[1]");
         vector<QueryAnswer*> fetched_answers;
-        LOG_INFO("LT[2]");
         if (answer_count > 0) {
-            LOG_INFO("LT[3]");
             dasproto::HandleList handle_list;
-            LOG_INFO("LT[4]");
             handle_list.set_context(this->context);
-            LOG_INFO("LT[5]");
             auto it = this->fetch_result->get_iterator();
-            LOG_INFO("LT[6]");
             char* handle;
-            LOG_INFO("LT[7]");
             while ((handle = it->next()) != nullptr) {
                 handle_list.add_list(handle);
             }
-            LOG_INFO("LT[8]");
             auto importance_list = get_importance(handle_list);
-            LOG_INFO("LT[9]");
             if (importance_list->list_size() != answer_count) {
                 Utils::error("Invalid AttentionBroker answer. Size: " +
                              std::to_string(importance_list->list_size()) +
                              " Expected size: " + std::to_string(answer_count));
             }
-            LOG_INFO("LT[10]");
             this->atom_document = new shared_ptr<atomdb_api_types::AtomDocument>[answer_count];
             this->local_answers = new QueryAnswer*[answer_count];
             this->next_inner_answer = new unsigned int[answer_count];
-            LOG_INFO("LT[11]");
             it = this->fetch_result->get_iterator();
-            LOG_INFO("LT[12]");
             unsigned int i = 0;
-            LOG_INFO("LT[13]");
             while ((handle = it->next()) != nullptr) {
                 this->atom_document[i] = db->get_atom_document(handle);
                 query_answer = new QueryAnswer(handle, importance_list->list(i));
@@ -374,9 +361,7 @@ class LinkTemplate : public Source {
                 fetched_answers.push_back(query_answer);
                 i++;
             }
-            LOG_INFO("LT[14]");
             std::sort(fetched_answers.begin(), fetched_answers.end(), less_than_query_answer());
-            LOG_INFO("LT[15]");
             for (unsigned int i = 0; i < answer_count; i++) {
                 if (this->inner_template.size() == 0) {
                     this->local_buffer.enqueue((void*) fetched_answers[i]);
@@ -386,7 +371,6 @@ class LinkTemplate : public Source {
                     this->increment_local_answers_size();
                 }
             }
-            LOG_INFO("LT[16]");
             if (this->inner_template.size() == 0) {
                 set_flow_finished();
             }
