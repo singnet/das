@@ -143,9 +143,9 @@ QueryAnswer::QueryAnswer(const char* handle, double importance, bool allocate_ha
 }
 
 QueryAnswer::~QueryAnswer() {
-    if (this->allocate_handle) {
-        free((void*) this->handles[0]);
-    }
+    // if (this->allocate_handle) {
+    //     free((void*) this->handles[0]);
+    // }
 
 }
 
