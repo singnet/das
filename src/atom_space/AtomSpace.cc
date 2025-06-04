@@ -21,14 +21,14 @@ const Atom* AtomSpace::get_atom(const char* handle, Scope scope) {
 
 // -------------------------------------------------------------------------------------------------
 const Node* AtomSpace::get_node(const string& type, const string& name, Scope scope) {
-    auto node = this->get_atom(Node::compute_handle(type, name));
+    auto node = this->get_atom(Node::compute_handle(type, name), scope);
     if (node) return dynamic_cast<const Node*>(node);
     return NULL;
 }
 
 // -------------------------------------------------------------------------------------------------
 const Link* AtomSpace::get_link(const string& type, const vector<Atom*>& targets, Scope scope) {
-    auto link = this->get_atom(Link::compute_handle(type, targets));
+    auto link = this->get_atom(Link::compute_handle(type, targets), scope);
     if (link) return dynamic_cast<const Link*>(link);
     return NULL;
 }
