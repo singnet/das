@@ -51,7 +51,7 @@ class Node : public Atom {
         }
     }
 
-    virtual string to_string() const {
+    virtual string to_string() override {
         return "Node(type: " + this->type + ", name: " + this->name + ")";
     }
 
@@ -119,12 +119,12 @@ class Link : public Atom {
     /**
      * @throws std::runtime_error if a target is not a Node or Link.
      */
-    virtual string to_string() const {
+    virtual string to_string() override {
         string result = "Link(type: " + this->type + ", targets: [";
         for (const auto& target : this->targets) {
-            if (const Node* node = dynamic_cast<const Node*>(target)) {
+            if (Node* node = dynamic_cast<Node*>(target)) {
                 result += node->to_string() + ", ";
-            } else if (const Link* link = dynamic_cast<const Link*>(target)) {
+            } else if (Link* link = dynamic_cast<Link*>(target)) {
                 result += link->to_string() + ", ";
             } else {
                 throw runtime_error("Unsupported target type in Link::to_string");
@@ -165,9 +165,9 @@ class Link : public Atom {
         char* link_type_hash = named_type_hash((char*) type.c_str());
         char** targets_handles = new char*[targets.size()];
         for (size_t i = 0; i < targets.size(); ++i) {
-            if (const Node* node = dynamic_cast<const Node*>(targets[i])) {
+            if (Node* node = dynamic_cast<Node*>(targets[i])) {
                 targets_handles[i] = Node::compute_handle(node->type, node->name);
-            } else if (const Link* link = dynamic_cast<const Link*>(targets[i])) {
+            } else if (Link* link = dynamic_cast<Link*>(targets[i])) {
                 targets_handles[i] = Link::compute_handle(link->type, link->targets);
             } else {
                 throw runtime_error("Unsupported target type in Link::compute_handle");
