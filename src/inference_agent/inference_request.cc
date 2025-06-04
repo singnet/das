@@ -181,7 +181,7 @@ std::vector<std::string> ProofOfImplicationOrEquivalence::query() {
         //         "NODE", "Symbol", "PREDICATE",
         //         "VARIABLE", "P",
         //     "VARIABLE", "C"
-        "LINK_TEMPLATE", "Expression", "3",
+        "LINK_TEMPLATE2", "Expression", "3",
         "NODE", "Symbol", "EVALUATION",
         "LINK_TEMPLATE", "Expression", "2",
             "NODE", "Symbol", "PREDICATE",
