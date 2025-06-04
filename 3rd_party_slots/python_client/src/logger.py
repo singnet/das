@@ -8,6 +8,4 @@ log.setLevel(logging.INFO)
 
 handler = logging.StreamHandler()
 handler.setFormatter(logging.Formatter(fmt=log_format, datefmt=date_format))
-
-if not log.handlers:
-    log.addHandler(handler)
+log.addHandler(handler)
