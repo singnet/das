@@ -2,7 +2,6 @@
 
 #include <memory>
 
-#include "AtomDB.h"
 #include "HandleTrie.h"
 #include "PatternMatchingQueryProxy.h"
 #include "ServiceBus.h"
@@ -13,7 +12,6 @@
 #define MINIMUM_TARGETS_SIZE 2
 
 using namespace std;
-using namespace atomdb;
 using namespace commons;
 using namespace service_bus;
 using namespace query_engine;

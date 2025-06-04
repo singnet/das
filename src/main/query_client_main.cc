@@ -14,6 +14,7 @@
 using namespace std;
 using namespace query_engine;
 using namespace service_bus;
+using namespace atomspace;
 
 void ctrl_c_handler(int) {
     std::cout << "Stopping query engine server..." << std::endl;
@@ -64,7 +65,7 @@ int main(int argc, char* argv[]) {
     }
 
     shared_ptr<ServiceBus> service_bus = ServiceBusSingleton::get_instance();
-    auto proxy = atomspace::AtomSpace(service_bus).pattern_matching_query(query);
+    auto proxy = AtomSpace(service_bus).pattern_matching_query(query);
     service_bus->issue_bus_command(proxy);
     shared_ptr<QueryAnswer> query_answer;
     int count = 0;
