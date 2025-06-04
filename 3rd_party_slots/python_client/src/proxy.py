@@ -1,3 +1,4 @@
+import abc
 import grpc
 import threading
 from concurrent import futures
@@ -11,16 +12,23 @@ from src.port_pool import PortPool
 from src.logger import log
 
 
-class BusCommandProxy:
-    def __init__(self, command: str = None, args: list[str] = None):
+class BaseCommandProxy(abc.ABC):
+    """Base class for command proxies, handling configuration and shutdown of proxy nodes."""
+
+    def __init__(self, command: str = None, args: list[str] = None) -> None:
+        self.command = command
+        self.args = args or []
         self.proxy_port: int = 0
-        self.command: str = command
-        self.args: list[str] = args
-        self.proxy_node: 'ProxyNode' = None
+        self.proxy_node: 'AtomSpaceNodeManager' = None
         self.requestor_id: str = None
         self.serial: int = None
+    
+    @abc.abstractmethod
+    def process_message(self, msg: list[str]) -> None:
+        """Processes received messages. Must be implemented by subclasses."""
 
-    def setup_proxy_node(self, client_id: str = "", server_id: str = ""):
+    def setup_proxy_node(self, client_id: str = "", server_id: str = "") -> None:
+        """Sets up the proxy node based on client and server IDs."""
         if self.proxy_port == 0:
             raise RuntimeError("Proxy node can't be set up")
         else:
@@ -28,53 +36,56 @@ class BusCommandProxy:
                 id = self.requestor_id
                 requestor_host = id.split(":")[0]
                 requestor_id = requestor_host + ":" + str(self.proxy_port)
-                self.proxy_node = ProxyNode(proxy=self, node_id=requestor_id, server_id=server_id)
+                self.proxy_node = AtomSpaceNodeManager(node_id=requestor_id, server_id=server_id, handler=self)
             else:
-                self.proxy_node = ProxyNode(proxy=self, node_id=client_id, server_id=server_id)
+                self.proxy_node = AtomSpaceNodeManager(node_id=client_id, server_id=server_id, handler=self)
                 self.proxy_node.peer_id = server_id
+            self.proxy_node.start()
 
     def graceful_shutdown(self):
+        """Performs a graceful shutdown of the proxy node, releasing the port."""
         log.info(f"graceful_shutdown port: {self.proxy_port}")
         if self.proxy_port != 0:
+            if self.proxy_node:
+                self.proxy_node.stop()
+                self.proxy_node.wait_for_termination()
             PortPool.return_port(self.proxy_port)
-            self.proxy_node.graceful_shutdown()
 
 
-class PatternMatchingQueryProxy(BusCommandProxy):
-    ABORT = "abort"           # Abort current query
-    ANSWER_BUNDLE = "answer_bundle"  # Delivery of a bundle with QueryAnswer objects
-    COUNT = "count"           # Delivery of the final result of a count_only query
-    FINISHED = "finished"     # Notification that all query results have already been delivered
+class PatternMatchingQueryHandler(BaseCommandProxy):
+    """Handler for pattern matching queries, managing execution and results."""
+
+    ABORT = "abort"
+    ANSWER_BUNDLE = "answer_bundle"
+    COUNT = "count"
+    FINISHED = "finished"
 
     def __init__(
         self,
-        tokens: list[str] = None,
+        tokens: list[str],
         context: str = "",
         unique_assignment: bool = False,
         update_attention_broker: bool = False,
         count_only: bool = False
     ) -> None:
-        super().__init__()
-        self.answer_queue = Queue()
-        self.api_mutex = threading.Lock()
-        
-        self.answer_flow_finished = False
-        self.abort_flag = False
-        self.update_attention_broker = False
-        self.answer_count = 0
-
-        self.command = BusCommand.PATTERN_MATCHING_QUERY
-        self.count_flag = count_only
-        self.unique_assignment_flag = unique_assignment        
-        self.args = [
+        super().__init__(command=BusCommand.PATTERN_MATCHING_QUERY, args=[
             context,
             str(unique_assignment),
             str(update_attention_broker),
             str(count_only),
-        ] + tokens
+        ] + tokens)
+        self.answer_queue = Queue()
+        self._lock = threading.Lock()
+        self.answer_flow_finished = False
+        self.abort_flag = False
+        self.update_attention_broker = update_attention_broker
+        self.answer_count = 0
+        self.count_flag = count_only
+        self.unique_assignment_flag = unique_assignment
 
     def finished(self) -> bool:
-        with self.api_mutex:
+        """Checks if the answers is finished or aborted."""
+        with self._lock:
             return (
                 self.abort_flag or (
                     self.answer_flow_finished and (self.count_flag or self.answer_queue.empty())
@@ -82,80 +93,49 @@ class PatternMatchingQueryProxy(BusCommandProxy):
             )
 
     def pop(self):
-        with self.api_mutex:
+        """Pops and returns the next item from the answer queue, if available."""
+        with self._lock:
             if self.count_flag:
-                print("Can't pop QueryAnswers from count_only queries.")
+                log.warning("Can't pop QueryAnswers from count_only queries.")
                 return None
             if self.abort_flag:
-                print(f"abort_flag: {self.abort_flag}")
+                log.warning(f"abort_flag: {self.abort_flag}")
                 return None
             try:
                 return self.answer_queue.get(block=False)
             except Empty:
                 return None
-        print("proxy.pop END")
 
-    def get_count(self) -> None:
-        pass
-
-
-class ProxyNode:
-    def __init__(self, proxy: 'PatternMatchingQueryProxy', node_id: str, server_id: str) -> None:
-        self.peer_id = None
-        self._node_id = node_id
-        self._server_id = server_id
-        self.service = NodeServicer(node_id, proxy)
-        self.service.start()
-
-    def node_id(self):
-        return self._node_id
-
-    def server_id(self):
-        return self._server_id
-
-    def graceful_shutdown(self):
-        self.service.stop()
-
-
-class NodeServicer(atom__space__node__pb2__grpc.AtomSpaceNodeServicer):
-    def __init__(self, node_id: str, proxy: PatternMatchingQueryProxy):
-        self.node_id = node_id
-        self.proxy = proxy
-        self.server = None
-
-    def ping(self, request=None, context=None):
-        return common__pb2.Ack(error=False, msg="ack")
-
-    def execute_message(self, request: atom__space__node__pb2.MessageData, context=None):
-        self.process_message(request)
-        return common__pb2.Empty()
-
-    def process_message(self, msg: atom__space__node__pb2.MessageData):      
-        log.info(f"Remote command: <{msg.command}> arrived at NodeServicer {self.node_id}")
-
-        if msg.command in ["query_answer_tokens_flow", "bus_command_proxy"]:
-            args = msg.args
-        else:
-            args = []
-
-        with self.proxy.api_mutex:
-            for arg in args:
-                if arg == PatternMatchingQueryProxy.FINISHED:
-                    if not self.proxy.abort_flag:
-                        self.proxy.answer_flow_finished = True
+    def process_message(self, msg: list[str]) -> None:
+        """Processes received messages, updating the answer queue or flags."""
+        with self._lock:
+            for item in msg:
+                if item == self.FINISHED:
+                    if not self.abort_flag:
+                        self.answer_flow_finished = True
                     break
-                elif arg == PatternMatchingQueryProxy.ABORT:
-                    self.proxy.abort_flag = True
+                elif item == self.ABORT:
+                    self.abort_flag = True
                     break
-                elif arg in [PatternMatchingQueryProxy.ANSWER_BUNDLE, PatternMatchingQueryProxy.COUNT]:
+                elif item in [self.ANSWER_BUNDLE, self.COUNT]:
                     continue
                 else:
-                    self.proxy.answer_count += 1
-                    self.proxy.answer_queue.put(arg)
+                    self.answer_count += 1
+                    self.answer_queue.put(item)
+
+
+class AtomSpaceNodeManager:
+    """Manages the AtomSpace node, including the gRPC server lifecycle."""
+    def __init__(self, node_id: str, server_id: str, handler: BaseCommandProxy) -> None:
+        self.server = None
+        self.peer_id = None
+        self.node_id = node_id
+        self.server_id = server_id
+        self.servicer = AtomSpaceNodeServicer(handler)
 
     def start(self):
         self.server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
-        atom__space__node__pb2__grpc.add_AtomSpaceNodeServicer_to_server(self, self.server)
+        atom__space__node__pb2__grpc.add_AtomSpaceNodeServicer_to_server(self.servicer, self.server)
         self.server.add_insecure_port(self.node_id)
         self.server.start()
 
@@ -166,19 +146,18 @@ class NodeServicer(atom__space__node__pb2__grpc.AtomSpaceNodeServicer):
     def wait_for_termination(self):
         if self.server:
             self.server.wait_for_termination()
-        
-    # async approach
-    
-    # async def start(self):
-    #     self.server = grpc.aio.server(futures.ThreadPoolExecutor(max_workers=10))
-    #     atom__space__node__pb2__grpc.add_AtomSpaceNodeServicer_to_server(self, self.server)
-    #     self.server.add_insecure_port(self.node_id)
-    #     await self.server.start()
-    
-    # async def stop(self, grace=None):
-    #     if self.server:
-    #         await self.server.stop(grace)
-    
-    # async def wait_for_termination(self):
-    #     if self.server:
-    #         await self.server.wait_for_termination()
+
+
+class AtomSpaceNodeServicer(atom__space__node__pb2__grpc.AtomSpaceNodeServicer):
+    """Implements the gRPC service for the AtomSpace node."""
+    def __init__(self, handler: BaseCommandProxy):
+        self.handler = handler
+
+    def ping(self, request=None, context=None):
+        return common__pb2.Ack(error=False, msg="ack")
+
+    def execute_message(self, request: atom__space__node__pb2.MessageData, context=None):
+        log.info(f"Remote command: <{request.command}> arrived at AtomSpaceNodeServicer {self.handler.proxy_node.node_id}")
+        if request.command in ["query_answer_tokens_flow", "bus_command_proxy"]:
+            self.handler.process_message(request.args)
+        return common__pb2.Empty()

@@ -1,7 +1,7 @@
 import enum
 
 
-class BusCommand(enum.Enum, str):
+class BusCommand(str, enum.Enum):
     PATTERN_MATCHING_QUERY = "pattern_matching_query"
 
 

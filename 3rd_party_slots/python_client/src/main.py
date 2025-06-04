@@ -2,7 +2,7 @@ import argparse
 import sys
 import time
 
-from src.proxy import PatternMatchingQueryProxy
+from src.proxy import PatternMatchingQueryHandler
 from src.servicebus import ServiceBusSingleton
 
 
@@ -62,7 +62,7 @@ def main():
 
     tokens = preserve_quotes_parser(args.query_tokens)
 
-    proxy = PatternMatchingQueryProxy(
+    proxy = PatternMatchingQueryHandler(
         tokens=tokens,
         update_attention_broker=bool(args.update_attention_broker)
     )
@@ -80,7 +80,7 @@ def main():
         while count < int(args.max_query_answers) and not proxy.finished():
             answer = proxy.pop()
             if answer:
-                print(f"\nquery_answer: {answer}\n")
+                print(f"query_answer: {answer}")
                 count += 1
             else:
                 time.sleep(0.1)

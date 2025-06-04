@@ -1,8 +1,8 @@
 import threading
 from src.port_pool import PortPool
 from src.bus_node import BusNode
-from src.proxy import PatternMatchingQueryProxy
-from src.bus import PATTERN_MATCHING_QUERY
+from src.proxy import PatternMatchingQueryHandler
+from src.bus import BusCommand
 from src.logger import log
 
 
@@ -13,10 +13,11 @@ class ServiceBus:
         self.bus_node: 'BusNode' = BusNode(host_id, commands, known_peer)
         PortPool.initialize_statics(port_lower, port_upper)
 
-    def issue_bus_command(self, proxy: 'PatternMatchingQueryProxy'):
-        log.info(f"{self.bus_node.node_id()} is issuing BUS command <{proxy.command}>")
-        proxy.requestor_id = self.bus_node.node_id()
+    def issue_bus_command(self, proxy: 'PatternMatchingQueryHandler'):
+        log.info(f"{self.bus_node.node_id} is issuing BUS command <{proxy.command}>")
+
         self.next_request_serial += 1
+        proxy.requestor_id = self.bus_node.node_id
         proxy.serial = self.next_request_serial
         proxy.proxy_port = PortPool.get_port()
 
@@ -24,13 +25,13 @@ class ServiceBus:
             raise RuntimeError("No port is available to start bus command proxy")
         else:
             proxy.setup_proxy_node()
-            args = []
-            args.append(proxy.requestor_id)
-            args.append(str(proxy.serial))
-            args.append(proxy.proxy_node.node_id())
 
-            for arg in proxy.args:
-                args.append(arg)
+            args = [
+                proxy.requestor_id,
+                str(proxy.serial),
+                proxy.proxy_node.node_id
+            ]
+            args.extend(proxy.args)
 
             # TODO
             try:
@@ -61,7 +62,7 @@ class ServiceBusSingleton(metaclass=ServiceBusSingletonMeta):
         self.service_bus = ServiceBus(
             host_id,
             known_peer,
-            [PATTERN_MATCHING_QUERY],
+            [BusCommand.PATTERN_MATCHING_QUERY],
             port_lower,
             port_upper
         )
