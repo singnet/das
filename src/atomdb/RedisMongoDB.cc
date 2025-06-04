@@ -3,6 +3,8 @@
 #include <grpcpp/grpcpp.h>
 
 #include <algorithm>
+#include <bsoncxx/builder/stream/document.hpp>
+#include <bsoncxx/builder/stream/helpers.hpp>
 #include <iostream>
 #include <memory>
 #include <string>
@@ -181,6 +183,10 @@ shared_ptr<atomdb_api_types::HandleSet> RedisMongoDB::query_for_pattern(
         redis_cursor += REDIS_CHUNK_SIZE;
         redis_has_more = (reply->elements == REDIS_CHUNK_SIZE);
 
+        if (reply->elements == 0) {
+            freeReplyObject(reply);
+            break;
+        }
         handle_set->append(make_shared<atomdb_api_types::HandleSetRedis>(reply, false));
     }
 
@@ -254,6 +260,49 @@ shared_ptr<atomdb_api_types::AtomDocument> RedisMongoDB::get_atom_document(const
     auto atom_document = make_shared<atomdb_api_types::MongodbDocument>(reply);
     if (this->atomdb_cache != nullptr) this->atomdb_cache->add_atom_document(handle, atom_document);
     return atom_document;
+}
+
+bool RedisMongoDB::link_exists(const char* link_handle) {
+    this->mongodb_mutex.lock();
+    auto mongodb_collection = get_database()[MONGODB_COLLECTION_NAME];
+    auto reply = mongodb_collection.find_one(bsoncxx::v_noabi::builder::basic::make_document(
+        bsoncxx::v_noabi::builder::basic::kvp(MONGODB_FIELD_NAME[MONGODB_FIELD::ID], link_handle)));
+    this->mongodb_mutex.unlock();
+    return reply != core::v1::nullopt;
+}
+
+vector<string> RedisMongoDB::links_exist(const vector<string>& link_handles) {
+    if (link_handles.empty()) return {};
+
+    lock_guard<mutex> lock(this->mongodb_mutex);
+    auto mongodb_collection = get_database()[MONGODB_COLLECTION_NAME];
+
+    bsoncxx::builder::basic::document filter_builder;
+    bsoncxx::builder::basic::array array_builder;
+
+    for (const auto& handle : link_handles) array_builder.append(handle);
+
+    filter_builder.append(
+        bsoncxx::builder::basic::kvp(MONGODB_FIELD_NAME[MONGODB_FIELD::ID],
+                                     bsoncxx::builder::basic::make_document(
+                                         bsoncxx::builder::basic::kvp("$in", array_builder.view()))));
+
+    // Only project the ID field
+    bsoncxx::builder::basic::document projection_builder;
+    projection_builder.append(bsoncxx::builder::basic::kvp(MONGODB_FIELD_NAME[MONGODB_FIELD::ID], 1));
+
+    mongocxx::options::find options;
+    options.projection(projection_builder.view());
+
+    auto cursor = mongodb_collection.find(filter_builder.view(), options);
+
+    vector<string> existing_links;
+    for (const auto& doc : cursor) {
+        existing_links.push_back(
+            doc[MONGODB_FIELD_NAME[MONGODB_FIELD::ID]].get_string().value.to_string());
+    }
+
+    return existing_links;
 }
 
 

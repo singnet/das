@@ -3,7 +3,7 @@
 set -exou pipefail
 
 IMAGE_NAME="das-builder"
-BAZEL_CMD="/opt/bazel/bazelisk"
+BAZEL_CMD="/opt/bazel/bazelisk-linux-amd64"
 CONTAINER_NAME="das-bazel-cmd-$(uuidgen | cut -d '-' -f 1)-$(date +%Y%m%d%H%M%S)"
 
 ENV_VARS=$(test -f .env && echo "--env-file=.env" || echo "")

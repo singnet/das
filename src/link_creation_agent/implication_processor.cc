@@ -63,7 +63,8 @@ vector<string> ImplicationProcessor::get_pattern_query(const vector<string>& p) 
 vector<string> ImplicationProcessor::get_satisfying_set_query(const vector<string>& p1,
                                                               const vector<string>& p2) {
     vector<string> pattern_query;
-    pattern_query.reserve(ss_template_1.size() + p1.size() + ss_template_2.size() + p2.size() + ss_template_3.size());
+    pattern_query.reserve(ss_template_1.size() + p1.size() + ss_template_2.size() + p2.size() +
+                          ss_template_3.size());
     pattern_query.insert(pattern_query.end(), ss_template_1.begin(), ss_template_1.end());
     pattern_query.insert(pattern_query.end(), p1.begin(), p1.end());
     pattern_query.insert(pattern_query.end(), ss_template_2.begin(), ss_template_2.end());

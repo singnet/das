@@ -1,6 +1,5 @@
 #pragma once
 
-#define LOG_LEVEL INFO_LEVEL
 #include <grpcpp/grpcpp.h>
 
 #include <cstring>
@@ -17,7 +16,6 @@
 #include "AttentionBrokerServer.h"
 #include "ImportanceList.h"
 #include "Iterator.h"
-#include "Logger.h"
 #include "QueryAnswer.h"
 #include "QueryElementRegistry.h"
 #include "QueryNode.h"
@@ -268,6 +266,19 @@ class LinkTemplate : public Source {
         this->local_buffer_processor = new thread(&LinkTemplate::local_buffer_processor_method, this);
         LOG_INFO("Starting local buffer processor thread for link template");
         fetch_links();
+    }
+
+    vector<pair<size_t, string>> get_variables() {
+        vector<pair<size_t, string>> variables;
+        for (unsigned int i = 0; i < this->arity; i++) {
+            if (this->target_template[i]->is_terminal) {
+                auto terminal = dynamic_pointer_cast<Terminal>(this->target_template[i]);
+                if (terminal->is_variable) {
+                    variables.push_back({i, terminal->name});
+                }
+            }
+        }
+        return variables;
     }
 
    private:
@@ -589,7 +600,6 @@ class LinkTemplate : public Source {
     };
     string type;
     array<shared_ptr<QueryElement>, ARITY> target_template;
-    unsigned int arity;
     shared_ptr<char> handle;
     char* handle_keys[ARITY + 1];
     shared_ptr<atomdb_api_types::HandleSet> fetch_result;

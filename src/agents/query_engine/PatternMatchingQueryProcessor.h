@@ -13,6 +13,7 @@
 #include "StoppableThread.h"
 
 #define ATTENTION_BROKER_ADDRESS "localhost:37007"
+#define MAX_BUNDLE_SIZE ((unsigned int) 10000)
 
 using namespace std;
 using namespace service_bus;
@@ -61,6 +62,10 @@ class PatternMatchingQueryProcessor : public BusCommandProcessor {
                                                  unsigned int cursor,
                                                  stack<shared_ptr<QueryElement>>& element_stack,
                                                  QueryElementRegistry* query_element_registry);
+
+    shared_ptr<QueryElement> build_link_template2(shared_ptr<PatternMatchingQueryProxy> proxy,
+                                                  unsigned int cursor,
+                                                  stack<shared_ptr<QueryElement>>& element_stack);
 
     shared_ptr<QueryElement> build_and(shared_ptr<PatternMatchingQueryProxy> proxy,
                                        unsigned int cursor,

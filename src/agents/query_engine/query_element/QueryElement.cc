@@ -8,6 +8,8 @@ using namespace query_element;
 QueryElement::QueryElement() {
     this->flow_finished = false;
     this->is_terminal = false;
+    this->is_operator = false;
+    this->arity = 0;
 }
 
 QueryElement::~QueryElement() {}

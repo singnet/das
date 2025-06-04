@@ -52,6 +52,7 @@ class QueryElement {
    public:
     string id;
     string subsequent_id;
+    unsigned int arity;
 
     /**
      * Basic constructor which solely initialize variables.
@@ -81,6 +82,11 @@ class QueryElement {
      * Indicates whether this QueryElement is a Terminal (i.e. Node, Link or Variable).
      */
     bool is_terminal;
+
+    /**
+     * Indicates whether this QueryElement is a Operator (i.e. AND, OR or NOT).
+     */
+    bool is_operator;
 
    protected:
     /**

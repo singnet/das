@@ -49,9 +49,6 @@ run-inference-agent:
 run-inference-agent-client:
 	@bash -x src/scripts/run.sh inference_agent_client $(OPTIONS)
 
-run-evolution:
-	@bash ./src/scripts/bazel.sh run //evolution:main -- $(OPTIONS)
-
 run-das-agent:
 	@bash ./src/scripts/bazel.sh run //das_agent:main -- $(OPTIONS)
 
