@@ -21,20 +21,11 @@ namespace atomspace {
 // -------------------------------------------------------------------------------------------------
 class Atom : public HandleTrie::TrieValue {
    public:
-    /**
-     * @brief Virtual destructor for Atom.
-     */
     virtual ~Atom() override = default;
 
-    /**
-     * @brief Get a string representation of the Atom.
-     * @return A string describing the Atom.
-     */
     virtual string to_string() override { return "Atom"; }
 
     /**
-     * @brief Merge another TrieValue into this Atom.
-     * @param other The other TrieValue.
      * @throws std::runtime_error Always, as merge is not implemented for Atom.
      */
     virtual void merge(HandleTrie::TrieValue* other) override {
@@ -60,17 +51,11 @@ class Node : public Atom {
         }
     }
 
-    /**
-     * @brief Get a string representation of the Node.
-     * @return A string describing the Node.
-     */
     virtual string to_string() const {
         return "Node(type: " + this->type + ", name: " + this->name + ")";
     }
 
     /**
-     * @brief Merge another TrieValue into this Node.
-     * @param other The other TrieValue.
      * @throws std::runtime_error Always, as merge is not implemented for Node.
      */
     void merge(HandleTrie::TrieValue* other) override {
@@ -132,8 +117,6 @@ class Link : public Atom {
     }
 
     /**
-     * @brief Get a string representation of the Link.
-     * @return A string describing the Link and its targets.
      * @throws std::runtime_error if a target is not a Node or Link.
      */
     virtual string to_string() const {
@@ -153,8 +136,6 @@ class Link : public Atom {
     }
 
     /**
-     * @brief Merge another TrieValue into this Link.
-     * @param other The other TrieValue.
      * @throws std::runtime_error Always, as merge is not implemented for Link.
      */
     void merge(HandleTrie::TrieValue* other) override {
