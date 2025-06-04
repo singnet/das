@@ -40,15 +40,6 @@ class Atom : public HandleTrie::TrieValue {
     virtual void merge(HandleTrie::TrieValue* other) override {
         throw runtime_error("Merge not implemented for Atom");
     }
-
-    /**
-     * @brief Compute the handle for this Atom.
-     *
-     * The handle is not stored in the Atom object and must be implemented by derived classes.
-     *
-     * @return A newly allocated char array containing the handle (caller must free).
-     */
-    virtual char* compute_handle() const = 0;
 };
 
 // -------------------------------------------------------------------------------------------------
@@ -84,20 +75,6 @@ class Node : public Atom {
      */
     void merge(HandleTrie::TrieValue* other) override {
         throw runtime_error("Merge not implemented for Node");
-    }
-
-    /**
-     * @brief Compute the handle for this Node.
-     *
-     * The handle is computed from the node type and name.
-     * The handle is not stored in the Node object.
-     *
-     * @return A newly allocated char array containing the handle (caller must free).
-     *
-     * @note Caller is responsible for freeing the returned handle.
-     */
-    virtual char* compute_handle() const override {
-        return Node::compute_handle(this->type, this->name);
     }
 
     /**
@@ -185,20 +162,6 @@ class Link : public Atom {
     }
 
     /**
-     * @brief Compute the handle for this Link instance.
-     *
-     * The handle is computed from the link type and the handles of its targets.
-     * The handle is not stored in the Link object.
-     *
-     * @return A newly allocated char array containing the handle (caller must free).
-     * @throws std::runtime_error if a target is not a Node or Link.
-     * @note Caller is responsible for freeing the returned handle.
-     */
-    virtual char* compute_handle() const override {
-        return Link::compute_handle(this->type, this->targets);
-    }
-
-    /**
      * @brief Compute the handle for a Link given its type and targets.
      *
      * This static utility computes a handle for a Link using the provided type and target atoms,
@@ -222,9 +185,9 @@ class Link : public Atom {
         char** targets_handles = new char*[targets.size()];
         for (size_t i = 0; i < targets.size(); ++i) {
             if (const Node* node = dynamic_cast<const Node*>(targets[i])) {
-                targets_handles[i] = node->compute_handle();
+                targets_handles[i] = Node::compute_handle(node->type, node->name);
             } else if (const Link* link = dynamic_cast<const Link*>(targets[i])) {
-                targets_handles[i] = link->compute_handle();
+                targets_handles[i] = Link::compute_handle(link->type, link->targets);
             } else {
                 throw runtime_error("Unsupported target type in Link::compute_handle");
             }

@@ -69,17 +69,15 @@ void AtomSpace::pattern_matching_fetch(const vector<string>& query, unsigned int
 
 // -------------------------------------------------------------------------------------------------
 char* AtomSpace::add_node(const string& type, const string& name) {
-    Node* node = new Node(type, name);
-    char* handle = node->compute_handle();
-    this->handle_trie->insert(handle, node);
+    char* handle = Node::compute_handle(type, name);
+    this->handle_trie->insert(handle, new Node(type, name));
     return handle;
 }
 
 // -------------------------------------------------------------------------------------------------
 char* AtomSpace::add_link(const string& type, const vector<Atom*>& targets) {
-    Link* link = new Link(type, targets);
-    char* handle = link->compute_handle();
-    this->handle_trie->insert(handle, link);
+    char* handle = Link::compute_handle(type, targets);
+    this->handle_trie->insert(handle, new Link(type, targets));
     return handle;
 }
 
