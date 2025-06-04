@@ -18,6 +18,7 @@ using namespace query_engine;
 
 namespace atomspace {
 
+// -------------------------------------------------------------------------------------------------
 class Atom : public HandleTrie::TrieValue {
    public:
     /**
@@ -50,6 +51,7 @@ class Atom : public HandleTrie::TrieValue {
     virtual char* compute_handle() const = 0;
 };
 
+// -------------------------------------------------------------------------------------------------
 class Node : public Atom {
    public:
     string type;  ///< The type of the node.
@@ -95,10 +97,29 @@ class Node : public Atom {
      * @note Caller is responsible for freeing the returned handle.
      */
     virtual char* compute_handle() const override {
-        return terminal_hash((char*) this->type.c_str(), (char*) this->name.c_str());
+        return Node::compute_handle(this->type, this->name);
+    }
+
+    /**
+     * @brief Compute the handle for a Node given its type and name.
+     *
+     * This static utility computes a handle for a Node using the provided type and name,
+     * without requiring an instantiated Node object.
+     *
+     * @param type The type of the node.
+     * @param name The name of the node.
+     * @return A newly allocated char array containing the handle (caller must free).
+     * @note Caller is responsible for freeing the returned handle.
+     */
+    static char* compute_handle(const string& type, const string& name) {
+        if (type.empty() || name.empty()) {
+            throw runtime_error("Node type and name must not be empty");
+        }
+        return terminal_hash((char*) type.c_str(), (char*) name.c_str());
     }
 };
 
+// -------------------------------------------------------------------------------------------------
 class Link : public Atom {
    public:
     string type;            ///< The type of the link.
@@ -164,38 +185,64 @@ class Link : public Atom {
     }
 
     /**
-     * @brief Compute the handle for this Link.
+     * @brief Compute the handle for this Link instance.
      *
      * The handle is computed from the link type and the handles of its targets.
      * The handle is not stored in the Link object.
      *
      * @return A newly allocated char array containing the handle (caller must free).
      * @throws std::runtime_error if a target is not a Node or Link.
-     *
      * @note Caller is responsible for freeing the returned handle.
      */
     virtual char* compute_handle() const override {
-        char* link_type_hash = named_type_hash((char*) this->type.c_str());
-        char** targets_handles = new char*[this->targets.size()];
-        for (size_t i = 0; i < this->targets.size(); ++i) {
-            if (const Node* node = dynamic_cast<const Node*>(this->targets[i])) {
+        return Link::compute_handle(this->type, this->targets);
+    }
+
+    /**
+     * @brief Compute the handle for a Link given its type and targets.
+     *
+     * This static utility computes a handle for a Link using the provided type and target atoms,
+     * without requiring an instantiated Link object.
+     *
+     * @param type The type of the link.
+     * @param targets The target atoms of the link.
+     * @return A newly allocated char array containing the handle (caller must free).
+     * @throws std::runtime_error if a target is not a Node or Link.
+     * @note Caller is responsible for freeing the returned handle.
+     */
+    static char* compute_handle(const string& type, const vector<Atom*>& targets) {
+        if (type.empty()) {
+            throw runtime_error("Link type must not be empty");
+        }
+        if (targets.size() < MINIMUM_TARGETS_SIZE) {
+            throw runtime_error("Link must have at least " + std::to_string(MINIMUM_TARGETS_SIZE) +
+                                " targets");
+        }
+        char* link_type_hash = named_type_hash((char*) type.c_str());
+        char** targets_handles = new char*[targets.size()];
+        for (size_t i = 0; i < targets.size(); ++i) {
+            if (const Node* node = dynamic_cast<const Node*>(targets[i])) {
                 targets_handles[i] = node->compute_handle();
-            } else if (const Link* link = dynamic_cast<const Link*>(this->targets[i])) {
+            } else if (const Link* link = dynamic_cast<const Link*>(targets[i])) {
                 targets_handles[i] = link->compute_handle();
             } else {
                 throw runtime_error("Unsupported target type in Link::compute_handle");
             }
         }
-        char* handle = expression_hash(link_type_hash, targets_handles, this->targets.size());
-        delete link_type_hash;            // Clean up the dynamically allocated hash
-        for (size_t i = 0; i < this->targets.size(); ++i) {
-            delete[] targets_handles[i];  // Clean up each target handle
-        }
-        delete[] targets_handles;         // Clean up the dynamically allocated array
+        char* handle = expression_hash(link_type_hash, targets_handles, targets.size());
+        delete link_type_hash;     // Clean up the dynamically allocated hash
+        delete[] targets_handles;  // Clean up the dynamically allocated array
         return handle;
     }
 };
 
+// -------------------------------------------------------------------------------------------------
+/**
+ * @brief AtomSpace class for managing atoms, nodes, and links.
+ *
+ * This class provides methods to retrieve, add, and commit atoms, nodes, and links,
+ * as well as to perform pattern matching queries via a service bus.
+ */
 class AtomSpace {
    public:
     /**
@@ -210,16 +257,14 @@ class AtomSpace {
      * @brief Construct an AtomSpace with a given ServiceBus.
      * @param bus Shared pointer to the ServiceBus instance.
      */
-    AtomSpace(shared_ptr<ServiceBus> bus) : bus(bus) {
-        this->handle_trie = make_unique<HandleTrie>(HANDLE_SIZE);
-    }
+    AtomSpace(shared_ptr<ServiceBus> bus);
 
     /**
      * @brief Retrieve an atom by handle.
      *
      * LOCAL_ONLY and REMOTE_ONLY look for the atom in db or by issuing a service bus command
-     * accordingly. For LOCAL_AND_REMOTE, look for the atom in the db. If present, return it. Otherwise,
-     * issue a command in the bus.
+     * accordingly. For LOCAL_AND_REMOTE, look for the atom in the db. If present, return it.
+     * Otherwise, issue a command in the bus.
      *
      * @param handle The atom handle.
      * @param scope Where to search for the atom (default: LOCAL_AND_REMOTE).
@@ -231,8 +276,8 @@ class AtomSpace {
      * @brief Retrieve a node by type and name.
      *
      * LOCAL_ONLY and REMOTE_ONLY look for the node in db or by issuing a service bus command
-     * accordingly. For LOCAL_AND_REMOTE, look for the node in the db. If present, return it. Otherwise,
-     * issue a command in the bus.
+     * accordingly. For LOCAL_AND_REMOTE, look for the node in the db. If present, return it.
+     * Otherwise, issue a command in the bus.
      *
      * @param type Node type.
      * @param name Node name.
@@ -245,8 +290,8 @@ class AtomSpace {
      * @brief Retrieve a link by type and targets.
      *
      * LOCAL_ONLY and REMOTE_ONLY look for the link in db or by issuing a service bus command
-     * accordingly. For LOCAL_AND_REMOTE, look for the link in the db. If present, return it. Otherwise,
-     * issue a command in the bus.
+     * accordingly. For LOCAL_AND_REMOTE, look for the link in the db. If present, return it.
+     * Otherwise, issue a command in the bus.
      *
      * @param type Link type.
      * @param targets List of target atoms.
@@ -291,7 +336,8 @@ class AtomSpace {
                                         bool update_attention_broker = false);
 
     /**
-     * @brief Fetch Atoms of a pattern matching results from the remote database and store them locally.
+     * @brief Fetch Atoms of a pattern matching results from the remote database and store them
+     * locally.
      *
      * @param query The query pattern.
      * @param answers_count Maximum number of answers to fetch (0 = all).
@@ -327,9 +373,9 @@ class AtomSpace {
      * @brief Commit changes to the AtomSpace.
      *
      * If LOCAL scope is selected (LOCAL_ONLY or LOCAL_AND_REMOTE), commit ALL atoms in local db by
-     * sending them to the server (by issuing a command in the service bus). Atoms should be kept in the
-     * local db. The command should wait this sync ends before going to the next step. Once local changes
-     * are committed, issue a DB COMMIT command in the service bus.
+     * sending them to the server (by issuing a command in the service bus). Atoms should be kept in
+     * the local db. The command should wait this sync ends before going to the next step. Once local
+     * changes are committed, issue a DB COMMIT command in the service bus.
      *
      * @param scope Where to commit changes (default: LOCAL_AND_REMOTE).
      */

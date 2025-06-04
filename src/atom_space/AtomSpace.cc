@@ -6,6 +6,10 @@ using namespace query_engine;
 namespace atomspace {
 
 // -------------------------------------------------------------------------------------------------
+AtomSpace::AtomSpace(shared_ptr<ServiceBus> bus)
+    : bus(bus), handle_trie(make_unique<HandleTrie>(HANDLE_SIZE)) {}
+
+// -------------------------------------------------------------------------------------------------
 const Atom* AtomSpace::get_atom(const char* handle, Scope scope) {
     if (scope == LOCAL_ONLY || scope == LOCAL_AND_REMOTE) {
         auto atom = this->handle_trie->lookup(handle);
@@ -17,14 +21,14 @@ const Atom* AtomSpace::get_atom(const char* handle, Scope scope) {
 
 // -------------------------------------------------------------------------------------------------
 const Node* AtomSpace::get_node(const string& type, const string& name, Scope scope) {
-    auto node = this->get_atom(Node(type, name).compute_handle());
+    auto node = this->get_atom(Node::compute_handle(type, name));
     if (node) return dynamic_cast<const Node*>(node);
     return NULL;
 }
 
 // -------------------------------------------------------------------------------------------------
 const Link* AtomSpace::get_link(const string& type, const vector<Atom*>& targets, Scope scope) {
-    auto link = this->get_atom(Link(type, targets).compute_handle());
+    auto link = this->get_atom(Link::compute_handle(type, targets));
     if (link) return dynamic_cast<const Link*>(link);
     return NULL;
 }
