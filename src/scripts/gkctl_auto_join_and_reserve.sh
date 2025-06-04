@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -euo pipefail
+set -uo pipefail
 
 gkctl instance list --current > /dev/null 2>&1
 if [ $? -ne 0 ]; then
