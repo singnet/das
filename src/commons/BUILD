@@ -16,7 +16,7 @@ cc_library(
         "Stoppable.h",
         "StoppableThread.h",
         "Utils.h",
-        "thread_pool.h"
+        "ThreadPool.h"
     ],
     includes = ["."],
     deps = [],

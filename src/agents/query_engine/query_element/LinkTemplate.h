@@ -25,7 +25,7 @@
 #include "attention_broker.grpc.pb.h"
 #include "attention_broker.pb.h"
 #include "expression_hasher.h"
-#include "thread_pool.h"
+#include "ThreadPool.h"
 #include <shared_mutex>
 
 #define MAX_GET_IMPORTANCE_BUNDLE_SIZE ((unsigned int) 100000)

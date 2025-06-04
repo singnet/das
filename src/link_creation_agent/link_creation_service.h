@@ -11,7 +11,7 @@
 #include <set>
 #include <shared_mutex>
 
-#include "commons/thread_pool.h"
+#include "commons/ThreadPool.h"
 #include "PatternMatchingQueryProxy.h"
 #include "QueryAnswer.h"
 #include "ServiceBusSingleton.h"
