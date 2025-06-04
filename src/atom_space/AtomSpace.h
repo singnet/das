@@ -9,7 +9,7 @@
 
 #define HANDLE_SIZE 32
 #define IGNORE_ANSWER_COUNT 0
-#define MINIMUM_TARGETS_SIZE 2
+#define MINIMUM_TARGETS_SIZE 1
 
 using namespace std;
 using namespace commons;
@@ -25,12 +25,7 @@ class Atom : public HandleTrie::TrieValue {
 
     virtual string to_string() override { return "Atom"; }
 
-    /**
-     * @throws std::runtime_error Always, as merge is not implemented for Atom.
-     */
-    virtual void merge(HandleTrie::TrieValue* other) override {
-        throw runtime_error("Merge not implemented for Atom");
-    }
+    virtual void merge(HandleTrie::TrieValue* other) override {}
 };
 
 // -------------------------------------------------------------------------------------------------
@@ -55,12 +50,7 @@ class Node : public Atom {
         return "Node(type: " + this->type + ", name: " + this->name + ")";
     }
 
-    /**
-     * @throws std::runtime_error Always, as merge is not implemented for Node.
-     */
-    void merge(HandleTrie::TrieValue* other) override {
-        throw runtime_error("Merge not implemented for Node");
-    }
+    void merge(HandleTrie::TrieValue* other) override {}
 
     /**
      * @brief Compute the handle for a Node given its type and name.
@@ -86,7 +76,6 @@ class Link : public Atom {
    public:
     string type;            ///< The type of the link.
     vector<Atom*> targets;  ///< The target atoms of the link.
-    bool delete_targets;    ///< Whether to delete target atoms on destruction.
 
     /**
      * @brief Construct a Link.
@@ -95,8 +84,7 @@ class Link : public Atom {
      * @param delete_targets If true, Link will delete its targets on destruction.
      * @throws std::runtime_error if type is empty or targets.size() < MINIMUM_TARGETS_SIZE.
      */
-    Link(const string& type, const vector<Atom*>& targets, bool delete_targets = false)
-        : type(type), targets(targets), delete_targets(delete_targets) {
+    Link(const string& type, const vector<Atom*>& targets) : type(type), targets(targets) {
         if (this->type.empty()) {
             throw runtime_error("Link type must not be empty");
         }
@@ -104,16 +92,6 @@ class Link : public Atom {
             throw runtime_error("Link must have at least " + std::to_string(MINIMUM_TARGETS_SIZE) +
                                 " targets");
         }
-    }
-
-    /**
-     * @brief Destructor for Link.
-     *
-     * Deletes target atoms if delete_targets is true.
-     */
-    virtual ~Link() {
-        if (delete_targets)
-            for (auto& target : targets) delete target;
     }
 
     /**
@@ -135,12 +113,7 @@ class Link : public Atom {
         return result;
     }
 
-    /**
-     * @throws std::runtime_error Always, as merge is not implemented for Link.
-     */
-    void merge(HandleTrie::TrieValue* other) override {
-        throw runtime_error("Merge not implemented for Link");
-    }
+    void merge(HandleTrie::TrieValue* other) override {}
 
     /**
      * @brief Compute the handle for a Link given its type and targets.
@@ -155,26 +128,68 @@ class Link : public Atom {
      * @note Caller is responsible for freeing the returned handle.
      */
     static char* compute_handle(const string& type, const vector<Atom*>& targets) {
-        if (type.empty()) {
-            throw runtime_error("Link type must not be empty");
-        }
-        if (targets.size() < MINIMUM_TARGETS_SIZE) {
-            throw runtime_error("Link must have at least " + std::to_string(MINIMUM_TARGETS_SIZE) +
-                                " targets");
-        }
-        char* link_type_hash = named_type_hash((char*) type.c_str());
-        char** targets_handles = new char*[targets.size()];
-        for (size_t i = 0; i < targets.size(); ++i) {
-            if (Node* node = dynamic_cast<Node*>(targets[i])) {
-                targets_handles[i] = Node::compute_handle(node->type, node->name);
-            } else if (Link* link = dynamic_cast<Link*>(targets[i])) {
-                targets_handles[i] = Link::compute_handle(link->type, link->targets);
+        char* link_type_hash = named_type_hash((char*) type.c_str());  // Will be freed later
+        char** targets_handles = new char*[targets.size()];            // Will be freed later
+        size_t i = 0;
+        for (const auto& target : targets) {
+            if (Node* node = dynamic_cast<Node*>(target)) {
+                targets_handles[i++] = Node::compute_handle(node->type, node->name);
+            } else if (Link* link = dynamic_cast<Link*>(target)) {
+                targets_handles[i++] = Link::compute_handle(link->type, link->targets);
             } else {
                 throw runtime_error("Unsupported target type in Link::compute_handle");
             }
         }
-        char* handle = expression_hash(link_type_hash, targets_handles, targets.size());
-        delete link_type_hash;     // Clean up the dynamically allocated hash
+        return Link::_compute_handle(link_type_hash, targets_handles, targets.size());
+    }
+
+    /**
+     * @brief Compute the handle for a Link given its type and targets (string handles).
+     *
+     * This static utility computes a handle for a Link using the provided type and a vector of target
+     * handles (as strings), without requiring an instantiated Link object.
+     *
+     * @param type The type of the link.
+     * @param targets The handles of the target atoms as strings.
+     * @return A newly allocated char array containing the handle (caller must free).
+     * @note Caller is responsible for freeing the returned handle.
+     */
+    static char* compute_handle(const string& type, const vector<string>& targets) {
+        char* link_type_hash = named_type_hash((char*) type.c_str());  // Will be freed later
+        char** targets_handles = new char*[targets.size()];            // Will be freed later
+        size_t i = 0;
+        for (const auto& target : targets) targets_handles[i++] = (char*) target.c_str();
+        return Link::_compute_handle(link_type_hash, targets_handles, targets.size());
+    }
+
+   private:
+    /**
+     * @brief Compute the handle for a Link given its type hash and target handles.
+     *
+     * This private static utility computes a handle for a Link using the provided type hash and an array
+     * of target handles. Used internally by the public compute_handle methods.
+     *
+     * @param type_hash The hash of the link type (dynamically allocated, will be freed).
+     * @param targets_handles Array of target atom handles (dynamically allocated, will be freed).
+     * @param targets_size Number of target atoms.
+     * @return A newly allocated char array containing the handle (caller must free).
+     * @throws std::runtime_error if type_hash or targets_handles is null, if type_hash size is too
+     * small, or if targets_size is less than MINIMUM_TARGETS_SIZE.
+     * @note This function frees type_hash and targets_handles.
+     */
+    static char* _compute_handle(char* type_hash, char** targets_handles, unsigned int targets_size) {
+        if (type_hash == nullptr || targets_handles == nullptr) {
+            throw runtime_error("Type hash and targets handles must not be null");
+        }
+        if (sizeof(type_hash) < HANDLE_SIZE) {
+            throw runtime_error("Type hash size is too small");
+        }
+        if (targets_size < MINIMUM_TARGETS_SIZE) {
+            throw runtime_error("Link must have at least " + std::to_string(MINIMUM_TARGETS_SIZE) +
+                                " targets");
+        }
+        char* handle = expression_hash(type_hash, targets_handles, targets_size);
+        free(type_hash);           // Clean up the dynamically allocated hash
         delete[] targets_handles;  // Clean up the dynamically allocated array
         return handle;
     }
