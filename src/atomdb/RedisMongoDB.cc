@@ -307,11 +307,8 @@ vector<string> RedisMongoDB::links_exist(const vector<string>& link_handles) {
 
 
 
-vector<shared_ptr<atomdb_api_types::AtomDocument>> RedisMongoDB::get_atom_documents(vector<string>& handles) {
-    // if (this->atomdb_cache != nullptr) {
-    //     auto cache_result = this->atomdb_cache->get_atom_document(handle);
-    //     if (cache_result.is_cache_hit) return cache_result.result;
-    // }
+vector<shared_ptr<atomdb_api_types::AtomDocument>> RedisMongoDB::get_atom_documents(vector<string>& handles, vector<string>& fields) {
+    // TODO Add cache support for this method
     this->mongodb_mutex.lock();
     vector<shared_ptr<atomdb_api_types::AtomDocument>> atom_documents;
     auto mongodb_collection = get_database()[MONGODB_COLLECTION_NAME];
@@ -321,26 +318,18 @@ vector<shared_ptr<atomdb_api_types::AtomDocument>> RedisMongoDB::get_atom_docume
     for (const auto& id : handles) {
         array << id;
     }
-
     array << bsoncxx::builder::stream::close_array << bsoncxx::builder::stream::close_document;
     auto filter = filter_builder.view();
     bsoncxx::builder::stream::document projection_builder;
-    projection_builder << "targets" << 1 << "_id" << 0;
+    for (const auto& field : fields) {
+        projection_builder << field << 1; // Include the field in the projection
+    }
     auto cursor = mongodb_collection.find(filter, mongocxx::options::find{}.projection(projection_builder.view()));
-
-    // auto reply = mongodb_collection.find_one(bsoncxx::v_noabi::builder::basic::make_document(
-    //     bsoncxx::v_noabi::builder::basic::kvp(MONGODB_FIELD_NAME[MONGODB_FIELD::ID], handle)));
-    // cout << bsoncxx::to_json(*reply) << endl; // Note to reviewer: please let this dead code here
-
     for (const auto& view : cursor) {
         core::v1::optional<bsoncxx::v_noabi::document::value> opt_val = bsoncxx::v_noabi::document::value(view);
         auto atom_document = make_shared<atomdb_api_types::MongodbDocument>(opt_val);
         atom_documents.push_back(atom_document);
     }
     this->mongodb_mutex.unlock();
-
-
-    // auto atom_document = make_shared<atomdb_api_types::MongodbDocument>(reply);
-    // if (this->atomdb_cache != nullptr) this->atomdb_cache->add_atom_document(handle, atom_document);
     return atom_documents;
 }

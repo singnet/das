@@ -50,7 +50,7 @@ class RedisMongoDB : public AtomDB {
     shared_ptr<atomdb_api_types::AtomDocument> get_atom_document(const char* handle);
     bool link_exists(const char* link_handle);
     std::vector<std::string> links_exist(const std::vector<std::string>& link_handles);
-    vector<shared_ptr<atomdb_api_types::AtomDocument>> get_atom_documents(vector<string>& handles);
+    vector<shared_ptr<atomdb_api_types::AtomDocument>> get_atom_documents(vector<string>& handles, vector<string>& fields);
 
    private:
     bool cluster_flag;

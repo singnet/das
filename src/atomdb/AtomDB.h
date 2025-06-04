@@ -20,7 +20,7 @@ class AtomDB {
     virtual shared_ptr<atomdb_api_types::AtomDocument> get_atom_document(const char* handle) = 0;
     virtual bool link_exists(const char* link_handle) = 0;
     virtual std::vector<std::string> links_exist(const std::vector<std::string>& link_handles) = 0;
-    virtual vector<shared_ptr<atomdb_api_types::AtomDocument>> get_atom_documents(vector<string>& handles) = 0;
+    virtual vector<shared_ptr<atomdb_api_types::AtomDocument>> get_atom_documents(vector<string>& handles, vector<string>& fields) = 0;
 
    private:
     virtual void attention_broker_setup() = 0;
