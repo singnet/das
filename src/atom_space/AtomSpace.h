@@ -21,9 +21,20 @@ namespace atomspace {
 // -------------------------------------------------------------------------------------------------
 class Atom : public HandleTrie::TrieValue {
    public:
+    string type;  ///< The type of the atom.
+
+    /**
+     * @brief Construct an Atom.
+     * @param type The type of the atom.
+     * @throws std::runtime_error if type is empty.
+     */
+    Atom(const string& type) : type(type) {
+        if (this->type.empty()) throw runtime_error("Atom type must not be empty");
+    }
+
     virtual ~Atom() override = default;
 
-    virtual string to_string() override { return "Atom"; }
+    virtual string to_string() override { return "Atom(type: " + this->type + ")"; }
 
     virtual void merge(HandleTrie::TrieValue* other) override {}
 };
@@ -31,7 +42,6 @@ class Atom : public HandleTrie::TrieValue {
 // -------------------------------------------------------------------------------------------------
 class Node : public Atom {
    public:
-    string type;  ///< The type of the node.
     string name;  ///< The name of the node.
 
     /**
@@ -40,17 +50,13 @@ class Node : public Atom {
      * @param name The name of the node.
      * @throws std::runtime_error if type or name is empty.
      */
-    Node(const string& type, const string& name) : type(type), name(name) {
-        if (this->type.empty() || this->name.empty()) {
-            throw runtime_error("Node type and name must not be empty");
-        }
+    Node(const string& type, const string& name) : Atom(type), name(name) {
+        if (this->name.empty()) throw runtime_error("Node name must not be empty");
     }
 
     virtual string to_string() override {
         return "Node(type: " + this->type + ", name: " + this->name + ")";
     }
-
-    void merge(HandleTrie::TrieValue* other) override {}
 
     /**
      * @brief Compute the handle for a Node given its type and name.
@@ -74,7 +80,6 @@ class Node : public Atom {
 // -------------------------------------------------------------------------------------------------
 class Link : public Atom {
    public:
-    string type;            ///< The type of the link.
     vector<Atom*> targets;  ///< The target atoms of the link.
 
     /**
@@ -84,10 +89,7 @@ class Link : public Atom {
      * @param delete_targets If true, Link will delete its targets on destruction.
      * @throws std::runtime_error if type is empty or targets.size() < MINIMUM_TARGETS_SIZE.
      */
-    Link(const string& type, const vector<Atom*>& targets) : type(type), targets(targets) {
-        if (this->type.empty()) {
-            throw runtime_error("Link type must not be empty");
-        }
+    Link(const string& type, const vector<Atom*>& targets) : Atom(type), targets(targets) {
         if (this->targets.size() < MINIMUM_TARGETS_SIZE) {
             throw runtime_error("Link must have at least " + std::to_string(MINIMUM_TARGETS_SIZE) +
                                 " targets");
@@ -112,8 +114,6 @@ class Link : public Atom {
         result += "])";
         return result;
     }
-
-    void merge(HandleTrie::TrieValue* other) override {}
 
     /**
      * @brief Compute the handle for a Link given its type and targets.
@@ -181,7 +181,7 @@ class Link : public Atom {
         if (type_hash == nullptr || targets_handles == nullptr) {
             throw runtime_error("Type hash and targets handles must not be null");
         }
-        if (sizeof(type_hash) < HANDLE_SIZE) {
+        if (strlen(type_hash) < HANDLE_SIZE) {
             throw runtime_error("Type hash size is too small");
         }
         if (targets_size < MINIMUM_TARGETS_SIZE) {
