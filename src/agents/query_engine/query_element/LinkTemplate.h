@@ -26,7 +26,6 @@
 #include "attention_broker.pb.h"
 #include "expression_hasher.h"
 #include "ThreadPool.h"
-#include <shared_mutex>
 
 #define MAX_GET_IMPORTANCE_BUNDLE_SIZE ((unsigned int) 100000)
 
@@ -355,10 +354,6 @@ class LinkTemplate : public Source {
             it = this->fetch_result->get_iterator();
             unsigned int ii = 0;
             unsigned int db_count = 0;
-            StopWatch stopwatch;
-            stopwatch.start();
-            shared_mutex t_mutex;
-            int chunk_size = 1000;
             vector<string> atom_fields = {"targets"};
             chunk_size = chunk_size > answer_count ? answer_count -1 : chunk_size;
             for (int ii = 0; ii < answer_count; ii++){
@@ -368,7 +363,7 @@ class LinkTemplate : public Source {
                     if (end + chunk_size > answer_count || answer_count == 1) {
                         end = answer_count;
                     }
-                    auto job = [this, db, &db_count, start, end, &fetched_answers, importance_list, &t_mutex, &stopwatch, &handle_list, &atom_fields]() {
+                    auto job = [this, db, &db_count, start, end, &fetched_answers, importance_list, &handle_list, &atom_fields]() {
                         vector<string> handles;
                         for (int i = start; i < end; i++) {
                             handles.push_back(handle_list.list(i));
@@ -407,8 +402,6 @@ class LinkTemplate : public Source {
                 }
             }
             thread_pool->wait();
-            stopwatch.stop();
-            LOG_INFO("Fetched " << db_count << " from MongoDB of  " << answer_count << " in: " << stopwatch.milliseconds() / 1000 << " seconds");  
             std::sort(fetched_answers.begin(), fetched_answers.end(), less_than_query_answer());
             for (unsigned int i = 0; i < answer_count; i++) {
                 if (this->inner_template.size() == 0) {
@@ -428,7 +421,6 @@ class LinkTemplate : public Source {
     }
 
     bool is_feasible(unsigned int index) {
-        // LOG_INFO("Checking feasibility for index");
         unsigned int inner_answers_size = inner_answers.size();
         unsigned int cursor = this->next_inner_answer[index];
         while (cursor < inner_answers_size) {
