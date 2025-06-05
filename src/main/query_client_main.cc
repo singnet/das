@@ -65,7 +65,7 @@ int main(int argc, char* argv[]) {
     }
 
     shared_ptr<ServiceBus> service_bus = ServiceBusSingleton::get_instance();
-    auto proxy = AtomSpace(service_bus).pattern_matching_query(query);
+    auto proxy = AtomSpace().pattern_matching_query(query);
     service_bus->issue_bus_command(proxy);
     shared_ptr<QueryAnswer> query_answer;
     int count = 0;
