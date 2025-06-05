@@ -18,7 +18,7 @@ using namespace std;
 
 namespace atomdb {
 
-enum MONGODB_FIELD { ID = 0, size };
+enum MONGODB_FIELD { ID = 0, TARGETS, size };
 
 class RedisMongoDB : public AtomDB {
    public:
@@ -39,6 +39,7 @@ class RedisMongoDB : public AtomDB {
         MONGODB_DB_NAME = "das";
         MONGODB_COLLECTION_NAME = "atoms";
         MONGODB_FIELD_NAME[MONGODB_FIELD::ID] = "_id";
+        MONGODB_FIELD_NAME[MONGODB_FIELD::TARGETS] = "targets";
     }
 
     shared_ptr<atomdb_api_types::HandleSet> query_for_pattern(shared_ptr<char> pattern_handle);

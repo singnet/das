@@ -235,7 +235,8 @@ shared_ptr<atomdb_api_types::AtomDocument> RedisMongoDB::get_atom_document(const
     // cout << bsoncxx::to_json(*reply) << endl; // Note to reviewer: please let this dead code here
     this->mongodb_mutex.unlock();
 
-    auto atom_document = make_shared<atomdb_api_types::MongodbDocument>(reply);
+    auto atom_document =
+        reply != core::v1::nullopt ? make_shared<atomdb_api_types::MongodbDocument>(reply) : nullptr;
     if (this->atomdb_cache != nullptr) this->atomdb_cache->add_atom_document(handle, atom_document);
     return atom_document;
 }
@@ -246,7 +247,8 @@ bool RedisMongoDB::link_exists(const char* link_handle) {
     auto reply = mongodb_collection.find_one(bsoncxx::v_noabi::builder::basic::make_document(
         bsoncxx::v_noabi::builder::basic::kvp(MONGODB_FIELD_NAME[MONGODB_FIELD::ID], link_handle)));
     this->mongodb_mutex.unlock();
-    return reply != core::v1::nullopt;
+    return (reply != core::v1::nullopt &&
+            reply->view().find(MONGODB_FIELD_NAME[MONGODB_FIELD::TARGETS]) != reply->view().end());
 }
 
 vector<string> RedisMongoDB::links_exist(const vector<string>& link_handles) {
