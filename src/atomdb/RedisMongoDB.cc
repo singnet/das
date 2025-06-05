@@ -10,10 +10,10 @@
 #include <string>
 
 #include "AttentionBrokerServer.h"
+#include "Logger.h"
 #include "Utils.h"
 #include "attention_broker.grpc.pb.h"
 #include "attention_broker.pb.h"
-#include "Logger.h"
 
 using namespace atomdb;
 using namespace commons;
@@ -214,15 +214,14 @@ shared_ptr<atomdb_api_types::HandleList> RedisMongoDB::query_for_targets(char* l
             reply = (redisReply*) redisCommand(
                 this->redis_single, "GET %s:%s", REDIS_TARGETS_PREFIX.c_str(), link_handle_ptr);
         }
-        
+
         if (reply == NULL) {
             Utils::error("Redis error");
         }
 
-
-    
         if ((reply == NULL) || (reply->type == REDIS_REPLY_NIL)) {
-            if (this->atomdb_cache != nullptr) this->atomdb_cache->add_handle_list(link_handle_ptr, nullptr);
+            if (this->atomdb_cache != nullptr)
+                this->atomdb_cache->add_handle_list(link_handle_ptr, nullptr);
             return nullptr;
         }
 
@@ -231,11 +230,10 @@ shared_ptr<atomdb_api_types::HandleList> RedisMongoDB::query_for_targets(char* l
                          " != " + std::to_string(REDIS_REPLY_STRING));
         }
 
-      
     } catch (const std::exception& e) {
         Utils::error(e.what());
     }
-    
+
     // NOTE: Intentionally, we aren't destroying 'reply' objects.'reply' objects are destroyed in
     // ~RedisSet().
     auto handle_list = make_shared<atomdb_api_types::RedisStringBundle>(reply);
@@ -305,16 +303,16 @@ vector<string> RedisMongoDB::links_exist(const vector<string>& link_handles) {
     return existing_links;
 }
 
-
-
-vector<shared_ptr<atomdb_api_types::AtomDocument>> RedisMongoDB::get_atom_documents(vector<string>& handles, vector<string>& fields) {
+vector<shared_ptr<atomdb_api_types::AtomDocument>> RedisMongoDB::get_atom_documents(
+    vector<string>& handles, vector<string>& fields) {
     // TODO Add cache support for this method
     this->mongodb_mutex.lock();
     vector<shared_ptr<atomdb_api_types::AtomDocument>> atom_documents;
     auto mongodb_collection = get_database()[MONGODB_COLLECTION_NAME];
     bsoncxx::builder::stream::document filter_builder;
-    auto array = filter_builder << MONGODB_FIELD_NAME[MONGODB_FIELD::ID] << bsoncxx::builder::stream::open_document
-                                << "$in" << bsoncxx::builder::stream::open_array;
+    auto array = filter_builder << MONGODB_FIELD_NAME[MONGODB_FIELD::ID]
+                                << bsoncxx::builder::stream::open_document << "$in"
+                                << bsoncxx::builder::stream::open_array;
     for (const auto& id : handles) {
         array << id;
     }
@@ -322,11 +320,13 @@ vector<shared_ptr<atomdb_api_types::AtomDocument>> RedisMongoDB::get_atom_docume
     auto filter = filter_builder.view();
     bsoncxx::builder::stream::document projection_builder;
     for (const auto& field : fields) {
-        projection_builder << field << 1; // Include the field in the projection
+        projection_builder << field << 1;  // Include the field in the projection
     }
-    auto cursor = mongodb_collection.find(filter, mongocxx::options::find{}.projection(projection_builder.view()));
+    auto cursor =
+        mongodb_collection.find(filter, mongocxx::options::find{}.projection(projection_builder.view()));
     for (const auto& view : cursor) {
-        core::v1::optional<bsoncxx::v_noabi::document::value> opt_val = bsoncxx::v_noabi::document::value(view);
+        core::v1::optional<bsoncxx::v_noabi::document::value> opt_val =
+            bsoncxx::v_noabi::document::value(view);
         auto atom_document = make_shared<atomdb_api_types::MongodbDocument>(opt_val);
         atom_documents.push_back(atom_document);
     }

@@ -71,8 +71,9 @@ class ThreadPool {
     }
 
     void wait() {
-        while(true){
-            if (tasks.empty() && all_of(thread_status.begin(), thread_status.end(), [](bool b) { return !b; })) 
+        while (true) {
+            if (tasks.empty() &&
+                all_of(thread_status.begin(), thread_status.end(), [](bool b) { return !b; }))
                 break;
         }
     }
@@ -81,7 +82,7 @@ class ThreadPool {
         unique_lock<mutex> lock(queue_mutex);
         return tasks.size();
     }
-    
+
     bool empty() {
         unique_lock<mutex> lock(queue_mutex);
         return tasks.empty();
@@ -94,5 +95,4 @@ class ThreadPool {
     mutex queue_mutex;
     condition_variable condition;
     bool stop = false;
-    
 };

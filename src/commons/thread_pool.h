@@ -67,7 +67,6 @@ class ThreadPool {
         condition.notify_one();
     }
 
-
     void wait() {
         unique_lock<mutex> lock(queue_mutex);
         condition.wait(lock, [this] { return tasks.empty(); });
@@ -77,7 +76,7 @@ class ThreadPool {
         unique_lock<mutex> lock(queue_mutex);
         return tasks.size();
     }
-    
+
     bool empty() {
         unique_lock<mutex> lock(queue_mutex);
         return tasks.empty();

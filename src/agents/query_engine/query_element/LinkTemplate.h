@@ -22,10 +22,10 @@
 #include "SharedQueue.h"
 #include "Source.h"
 #include "Terminal.h"
+#include "ThreadPool.h"
 #include "attention_broker.grpc.pb.h"
 #include "attention_broker.pb.h"
 #include "expression_hasher.h"
-#include "ThreadPool.h"
 
 #define MAX_GET_IMPORTANCE_BUNDLE_SIZE ((unsigned int) 100000)
 
@@ -100,8 +100,8 @@ class LinkTemplate : public Source {
         this->local_answers_size = 0;
         this->local_buffer_processor = NULL;
         this->chunk_size = Utils::get_environment("MONGODB_CHUNK_SIZE").empty()
-                                 ? 1000
-                                 : Utils::string_to_int(Utils::get_environment("MONGODB_CHUNK_SIZE"));
+                               ? 1000
+                               : Utils::string_to_int(Utils::get_environment("MONGODB_CHUNK_SIZE"));
         int thread_count = Utils::get_environment("THREAD_COUNT").empty()
                                ? 1
                                : Utils::string_to_int(Utils::get_environment("THREAD_COUNT"));
@@ -355,15 +355,23 @@ class LinkTemplate : public Source {
             unsigned int ii = 0;
             unsigned int db_count = 0;
             vector<string> atom_fields = {"targets"};
-            chunk_size = chunk_size > answer_count ? answer_count -1 : chunk_size;
-            for (int ii = 0; ii < answer_count; ii++){
+            chunk_size = chunk_size > answer_count ? answer_count - 1 : chunk_size;
+            for (int ii = 0; ii < answer_count; ii++) {
                 if (((ii > 0) && ((ii % chunk_size) == 0)) || answer_count == 1) {
                     int start = ii - chunk_size;
                     int end = ii;
                     if (end + chunk_size > answer_count || answer_count == 1) {
                         end = answer_count;
                     }
-                    auto job = [this, db, &db_count, start, end, &fetched_answers, importance_list, &handle_list, &atom_fields]() {
+                    auto job = [this,
+                                db,
+                                &db_count,
+                                start,
+                                end,
+                                &fetched_answers,
+                                importance_list,
+                                &handle_list,
+                                &atom_fields]() {
                         vector<string> handles;
                         for (int i = start; i < end; i++) {
                             handles.push_back(handle_list.list(i));
@@ -374,16 +382,18 @@ class LinkTemplate : public Source {
                             auto handle = handle_list.list(i).c_str();
                             this->atom_document[i] = atom_handle_list[c++];
                             db_count++;
-                            QueryAnswer* query_answer = new QueryAnswer(strndup(handle, HANDLE_HASH_SIZE - 1), importance_list->list(i));
+                            QueryAnswer* query_answer = new QueryAnswer(
+                                strndup(handle, HANDLE_HASH_SIZE - 1), importance_list->list(i));
                             for (unsigned int j = 0; j < this->arity; j++) {
                                 if (this->target_template[j]->is_terminal) {
-                                    auto terminal = dynamic_pointer_cast<Terminal>(this->target_template[j]);
+                                    auto terminal =
+                                        dynamic_pointer_cast<Terminal>(this->target_template[j]);
                                     if (terminal->is_variable) {
                                         if (!query_answer->assignment.assign(
-                                                terminal->name.c_str(), this->atom_document[i]->get("targets", j))) {
-                                            Utils::error(
-                                                "Error assigning variable: " + terminal->name +
-                                                " a value: " );
+                                                terminal->name.c_str(),
+                                                this->atom_document[i]->get("targets", j))) {
+                                            Utils::error("Error assigning variable: " + terminal->name +
+                                                         " a value: ");
                                         }
                                     }
                                 }
@@ -391,14 +401,14 @@ class LinkTemplate : public Source {
                             // show percentage
                             int total = handle_list.list_size();
                             if ((total / 10) > 0 && db_count % (total / 10) == 0) {
-                                LOG_INFO("Fetched " << (double(db_count) / double(total)) * double(100) << "% atom documents from Mongo DB: " << db_count << "/" << total);
+                                LOG_INFO("Fetched " << (double(db_count) / double(total)) * double(100)
+                                                    << "% atom documents from Mongo DB: " << db_count
+                                                    << "/" << total);
                             }
                             fetched_answers[i] = query_answer;
                         }
-
                     };
                     thread_pool->enqueue(job);
-
                 }
             }
             thread_pool->wait();
@@ -562,8 +572,7 @@ class LinkTemplate : public Source {
     QueryElementRegistry* query_element_registry;
     static mutex get_importance_mutex;
     int chunk_size = 1000;
-    ThreadPool *thread_pool;
-
+    ThreadPool* thread_pool;
 };
 
 template <unsigned int ARITY>

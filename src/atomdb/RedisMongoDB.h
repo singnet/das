@@ -2,13 +2,13 @@
 
 #include <hiredis_cluster/hircluster.h>
 
-#include <bsoncxx/json.hpp>
-#include <mongocxx/options/find.hpp>
 #include <bsoncxx/builder/stream/document.hpp>
 #include <bsoncxx/builder/stream/helpers.hpp>
+#include <bsoncxx/json.hpp>
 #include <memory>
 #include <mongocxx/client.hpp>
 #include <mongocxx/instance.hpp>
+#include <mongocxx/options/find.hpp>
 #include <mongocxx/pool.hpp>
 #include <mutex>
 #include <vector>
@@ -50,7 +50,8 @@ class RedisMongoDB : public AtomDB {
     shared_ptr<atomdb_api_types::AtomDocument> get_atom_document(const char* handle);
     bool link_exists(const char* link_handle);
     std::vector<std::string> links_exist(const std::vector<std::string>& link_handles);
-    vector<shared_ptr<atomdb_api_types::AtomDocument>> get_atom_documents(vector<string>& handles, vector<string>& fields);
+    vector<shared_ptr<atomdb_api_types::AtomDocument>> get_atom_documents(vector<string>& handles,
+                                                                          vector<string>& fields);
 
    private:
     bool cluster_flag;

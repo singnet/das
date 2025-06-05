@@ -11,10 +11,10 @@
 #include <set>
 #include <shared_mutex>
 
-#include "commons/ThreadPool.h"
 #include "PatternMatchingQueryProxy.h"
 #include "QueryAnswer.h"
 #include "ServiceBusSingleton.h"
+#include "commons/ThreadPool.h"
 #include "das_agent_node.h"
 #include "equivalence_processor.h"
 #include "implication_processor.h"
