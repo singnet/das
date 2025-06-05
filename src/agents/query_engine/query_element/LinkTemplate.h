@@ -100,6 +100,13 @@ class LinkTemplate : public Source {
         this->local_answers = NULL;
         this->local_answers_size = 0;
         this->local_buffer_processor = NULL;
+        this->chunk_size = Utils::get_environment("MONGODB_CHUNK_SIZE").empty()
+                                 ? 1000
+                                 : Utils::string_to_int(Utils::get_environment("MONGODB_CHUNK_SIZE"));
+        int thread_count = Utils::get_environment("THREAD_COUNT").empty()
+                               ? 1
+                               : Utils::string_to_int(Utils::get_environment("THREAD_COUNT"));
+        this->thread_pool = new ThreadPool(thread_count);
         bool wildcard_flag = (type == AtomDB::WILDCARD);
         this->handle_keys[0] =
             (wildcard_flag ? (char*) AtomDB::WILDCARD.c_str() : named_type_hash((char*) type.c_str()));
@@ -141,6 +148,7 @@ class LinkTemplate : public Source {
         for (auto* answer : this->inner_answers) {
             if (answer) delete answer;
         }
+        delete this->thread_pool;
         this->inner_answers.clear();
         this->inner_template.clear();
         this->inner_template_iterator.reset();
@@ -350,7 +358,6 @@ class LinkTemplate : public Source {
             StopWatch stopwatch;
             stopwatch.start();
             shared_mutex t_mutex;
-            LOG_INFO("Fetching atom documents");
             int chunk_size = 1000;
             vector<string> atom_fields = {"targets"};
             chunk_size = chunk_size > answer_count ? answer_count -1 : chunk_size;
@@ -395,11 +402,11 @@ class LinkTemplate : public Source {
                         }
 
                     };
-                    thread_pool.enqueue(job);
+                    thread_pool->enqueue(job);
 
                 }
             }
-            thread_pool.wait();
+            thread_pool->wait();
             stopwatch.stop();
             LOG_INFO("Fetched " << db_count << " from MongoDB of  " << answer_count << " in: " << stopwatch.milliseconds() / 1000 << " seconds");  
             std::sort(fetched_answers.begin(), fetched_answers.end(), less_than_query_answer());
@@ -562,7 +569,8 @@ class LinkTemplate : public Source {
     string context;
     QueryElementRegistry* query_element_registry;
     static mutex get_importance_mutex;
-    ThreadPool thread_pool = ThreadPool(16);
+    int chunk_size = 1000;
+    ThreadPool *thread_pool;
 
 };
 
