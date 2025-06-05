@@ -9,6 +9,7 @@ cc_library(
     includes = ["."],
     deps = [
         "//agents/query_engine:query_engine_lib",
+        "//atomdb:atomdb_singleton",
         "//commons:handle_trie",
         "//hasher:hasher_lib",
         "//service_bus:service_bus_lib",

@@ -2,6 +2,7 @@
 
 #include <memory>
 
+#include "AtomDBSingleton.h"
 #include "HandleTrie.h"
 #include "PatternMatchingQueryProxy.h"
 #include "ServiceBus.h"
@@ -12,6 +13,7 @@
 #define MINIMUM_TARGETS_SIZE 1
 
 using namespace std;
+using namespace atomdb;
 using namespace commons;
 using namespace service_bus;
 using namespace query_engine;
@@ -343,6 +345,7 @@ class AtomSpace {
    private:
     shared_ptr<ServiceBus> bus;
     unique_ptr<HandleTrie> handle_trie;
+    shared_ptr<AtomDB> db;
 };
 
 }  // namespace atomspace

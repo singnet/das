@@ -7,7 +7,7 @@ namespace atomspace {
 
 // -------------------------------------------------------------------------------------------------
 AtomSpace::AtomSpace(shared_ptr<ServiceBus> bus)
-    : bus(bus), handle_trie(make_unique<HandleTrie>(HANDLE_SIZE)) {}
+    : bus(bus), handle_trie(make_unique<HandleTrie>(HANDLE_SIZE)), db(AtomDBSingleton::get_instance()) {}
 
 // -------------------------------------------------------------------------------------------------
 const Atom* AtomSpace::get_atom(const char* handle, Scope scope) {
