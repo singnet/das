@@ -214,7 +214,7 @@ class Link : public Atom {
      * small, or if targets_size is less than MINIMUM_TARGETS_SIZE.
      * @note This function frees type_hash and targets_handles.
      */
-    static char* _compute_handle(char* type_hash, char** targets_handles, unsigned int targets_size) {
+    static char* _compute_handle(char* type_hash, char** targets_handles, size_t targets_size) {
         if (type_hash == nullptr || targets_handles == nullptr) {
             throw runtime_error("Type hash and targets handles must not be null");
         }

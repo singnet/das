@@ -61,7 +61,7 @@ const Link* AtomSpace::get_link(const string& type, const vector<const Atom*>& t
 
 // -------------------------------------------------------------------------------------------------
 shared_ptr<PatternMatchingQueryProxy> AtomSpace::pattern_matching_query(const vector<string>& query,
-                                                                        unsigned int answers_count,
+                                                                        size_t answers_count,
                                                                         const string& context,
                                                                         bool unique_assignment,
                                                                         bool update_attention_broker,
@@ -75,10 +75,10 @@ shared_ptr<PatternMatchingQueryProxy> AtomSpace::pattern_matching_query(const ve
 }
 
 // -------------------------------------------------------------------------------------------------
-unsigned int AtomSpace::pattern_matching_count(const vector<string>& query,
-                                               const string& context,
-                                               bool unique_assignment,
-                                               bool update_attention_broker) {
+size_t AtomSpace::pattern_matching_count(const vector<string>& query,
+                                         const string& context,
+                                         bool unique_assignment,
+                                         bool update_attention_broker) {
     auto proxy = this->pattern_matching_query(query,
                                               /*answers_count=*/IGNORE_ANSWER_COUNT,
                                               context,
@@ -89,7 +89,7 @@ unsigned int AtomSpace::pattern_matching_count(const vector<string>& query,
 }
 
 // -------------------------------------------------------------------------------------------------
-void AtomSpace::pattern_matching_fetch(const vector<string>& query, unsigned int answers_count) {
+void AtomSpace::pattern_matching_fetch(const vector<string>& query, size_t answers_count) {
     auto proxy = this->pattern_matching_query(query, answers_count);
     this->bus->issue_bus_command(proxy);
     shared_ptr<QueryAnswer> query_answer;
@@ -130,9 +130,10 @@ const Atom* AtomSpace::atom_from_document(const shared_ptr<AtomDocument>& docume
     if (document->contains("targets")) {
         // If the document contains targets, it is a Link.
         vector<const Atom*> targets;
+        const char* target_handle;
         size_t size = document->get_size("targets");
-        for (size_t i = 0; i < size; ++i) {
-            const char* target_handle = document->get("targets", i);
+        for (size_t i = 0; i < size; i++) {
+            target_handle = document->get("targets", i);
             auto target_atom = this->get_atom(target_handle, LOCAL_AND_REMOTE);
             if (target_atom) {
                 targets.push_back(target_atom);

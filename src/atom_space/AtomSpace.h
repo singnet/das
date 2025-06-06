@@ -97,7 +97,7 @@ class AtomSpace {
      */
     shared_ptr<PatternMatchingQueryProxy> pattern_matching_query(
         const vector<string>& query,
-        unsigned int answers_count = IGNORE_ANSWER_COUNT,
+        size_t answers_count = IGNORE_ANSWER_COUNT,
         const string& context = "",
         bool unique_assignment = true,
         bool update_attention_broker = false,
@@ -112,10 +112,10 @@ class AtomSpace {
      * @param update_attention_broker Whether to update the attention broker.
      * @return Number of matches.
      */
-    unsigned int pattern_matching_count(const vector<string>& query,
-                                        const string& context = "",
-                                        bool unique_assignment = true,
-                                        bool update_attention_broker = false);
+    size_t pattern_matching_count(const vector<string>& query,
+                                  const string& context = "",
+                                  bool unique_assignment = true,
+                                  bool update_attention_broker = false);
 
     /**
      * @brief Fetch Atoms of a pattern matching results from the remote database and store them
@@ -124,8 +124,7 @@ class AtomSpace {
      * @param query The query pattern.
      * @param answers_count Maximum number of answers to fetch (0 = all).
      */
-    void pattern_matching_fetch(const vector<string>& query,
-                                unsigned int answers_count = IGNORE_ANSWER_COUNT);
+    void pattern_matching_fetch(const vector<string>& query, size_t answers_count = IGNORE_ANSWER_COUNT);
 
     /**
      * @brief Add a node to the AtomSpace.
