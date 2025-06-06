@@ -8,7 +8,7 @@ cc_test(
     ],
     linkstatic = 1,
     deps = [
-        "//attention_broker:attention_broker_server_lib",
+        "//attention_broker:attention_broker_lib",
         "@com_github_google_googletest//:gtest_main",
         "@com_github_grpc_grpc//:grpc++",
         "@com_github_grpc_grpc//:grpc++_reflection",
@@ -27,7 +27,7 @@ cc_test(
     ],
     linkstatic = 1,
     deps = [
-        "//attention_broker:attention_broker_server_lib",
+        "//attention_broker:attention_broker_lib",
         "@com_github_google_googletest//:gtest_main",
         "@com_github_grpc_grpc//:grpc++",
         "@com_github_grpc_grpc//:grpc++_reflection",
@@ -37,10 +37,10 @@ cc_test(
 )
 
 cc_test(
-    name = "attention_broker_server_test",
+    name = "attention_broker_test",
     size = "small",
     srcs = [
-        "attention_broker_server_test.cc",
+        "attention_broker_test.cc",
         "test_utils.cc",
         "test_utils.h",
     ],
@@ -50,7 +50,7 @@ cc_test(
     ],
     linkstatic = 1,
     deps = [
-        "//attention_broker:attention_broker_server_lib",
+        "//attention_broker:attention_broker_lib",
         "//commons:commons_lib",
         "@com_github_google_googletest//:gtest_main",
         "@com_github_grpc_grpc//:grpc++",
@@ -74,7 +74,7 @@ cc_test(
     ],
     linkstatic = 1,
     deps = [
-        "//attention_broker:attention_broker_server_lib",
+        "//attention_broker:attention_broker_lib",
         "@com_github_google_googletest//:gtest_main",
         "@com_github_grpc_grpc//:grpc++",
         "@com_github_grpc_grpc//:grpc++_reflection",
@@ -97,7 +97,7 @@ cc_test(
     ],
     linkstatic = 1,
     deps = [
-        "//attention_broker:attention_broker_server_lib",
+        "//attention_broker:attention_broker_lib",
         "@com_github_google_googletest//:gtest_main",
         "@com_github_grpc_grpc//:grpc++",
         "@com_github_grpc_grpc//:grpc++_reflection",
@@ -120,7 +120,7 @@ cc_test(
     ],
     linkstatic = 1,
     deps = [
-        "//attention_broker:attention_broker_server_lib",
+        "//attention_broker:attention_broker_lib",
         "//commons:commons_lib",
         "@com_github_google_googletest//:gtest_main",
         "@com_github_grpc_grpc//:grpc++",
@@ -144,7 +144,7 @@ cc_test(
     ],
     linkstatic = 1,
     deps = [
-        "//attention_broker:attention_broker_server_lib",
+        "//attention_broker:attention_broker_lib",
         "@com_github_google_googletest//:gtest_main",
         "@com_github_grpc_grpc//:grpc++",
         "@com_github_grpc_grpc//:grpc++_reflection",
@@ -167,7 +167,7 @@ cc_test(
     ],
     linkstatic = 1,
     deps = [
-        "//attention_broker:attention_broker_server_lib",
+        "//attention_broker:attention_broker_lib",
         "@com_github_google_googletest//:gtest_main",
         "@com_github_grpc_grpc//:grpc++",
         "@com_github_grpc_grpc//:grpc++_reflection",
