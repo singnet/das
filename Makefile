@@ -67,15 +67,9 @@ bazel: build-image
 test-all-no-cache:
 	@$(MAKE) bazel 'test --noshow_progress --cache_test_results=no //tests/...'
 
-test-all: build-image test_environment_up
+test-all: build-image
 	@$(MAKE) bazel 'test --noshow_progress //tests/...'
-	test-environment-down
 
-test-environment-up:
-	@bash -x src/scripts/test_environment_up.sh
-
-test-environment-down:
-	@bash -x src/scripts/test_environment_down.sh
 
 lint-all:
 	@$(MAKE) bazel lint \
