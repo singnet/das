@@ -3,43 +3,8 @@ import sys
 import time
 
 from python_bus_client.proxy import PatternMatchingQueryHandler
-from python_bus_client.servicebus import ServiceBusSingleton
-
-
-def preserve_quotes_parser(s: str):
-    tokens = []
-    current = []
-    inside_quotes = False
-
-    i = 0
-    while i < len(s):
-        c = s[i]
-
-        if c == '"':
-            if inside_quotes:
-                current.append(c)
-                tokens.append(''.join(current))
-                current = []
-                inside_quotes = False
-            else:
-                if current:
-                    tokens.append(''.join(current))
-                    current = []
-                current.append(c)
-                inside_quotes = True
-        elif c == ' ' and not inside_quotes:
-            if current:
-                tokens.append(''.join(current))
-                current = []
-        else:
-            current.append(c)
-
-        i += 1
-
-    if current:
-        tokens.append(''.join(current))
-
-    return tokens
+from python_bus_client.service_bus import ServiceBusSingleton
+from python_bus_client.helpers import tokenize_preserve_quotes
 
 
 def parse_arguments():
@@ -54,22 +19,47 @@ def parse_arguments():
     return parser.parse_args()
 
 
-def main():
-    args = parse_arguments()
+def pattern_matching_query(
+    client_id: str = None,
+    server_id: str = None,
+    update_attention_broker: bool = None,
+    max_query_answers: int = None,
+    query_tokens: list[str] | str = None
+):
+    if any([client_id, server_id, update_attention_broker, max_query_answers, query_tokens]):
+        if not client_id:
+            raise ValueError("client_id is required")
 
-    if int(args.max_query_answers) <= 0:
-        sys.exit("--max-query-answers cannot be 0 or negative")
+        if not server_id:
+            raise ValueError("server_id is required")
 
-    tokens = preserve_quotes_parser(args.query_tokens)
+        if not query_tokens:
+            raise ValueError("query_tokens is required")
+
+        max_query_answers = max_query_answers or 1
+    
+        if isinstance(query_tokens, str):
+            query_tokens = tokenize_preserve_quotes(query_tokens)
+    else:
+        args = parse_arguments()
+
+        if int(args.max_query_answers) <= 0:
+            sys.exit("--max-query-answers cannot be 0 or negative")
+
+        client_id = args.client_id
+        server_id = args.server_id
+        update_attention_broker = args.update_attention_broker
+        max_query_answers = args.max_query_answers
+        query_tokens = tokenize_preserve_quotes(args.query_tokens)
 
     proxy = PatternMatchingQueryHandler(
-        tokens=tokens,
-        update_attention_broker=bool(args.update_attention_broker)
+        tokens=query_tokens,
+        update_attention_broker=bool(update_attention_broker)
     )
 
     service_bus = ServiceBusSingleton(
-        host_id=args.client_id,
-        known_peer=args.server_id,
+        host_id=client_id,
+        known_peer=server_id,
         port_lower=54000,
         port_upper=54500
     ).get_instance()
@@ -77,7 +67,7 @@ def main():
     try:
         service_bus.issue_bus_command(proxy)
         count = 0
-        while count < int(args.max_query_answers) and not proxy.finished():
+        while count < int(max_query_answers) and not proxy.finished():
             answer = proxy.pop()
             if answer:
                 print(f"query_answer: {answer}")
@@ -94,4 +84,4 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    pattern_matching_query()
