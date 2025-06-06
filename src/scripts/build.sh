@@ -2,6 +2,7 @@
 
 OUTPUT_DIR_BINARIES="bin"
 OUTPUT_DIR_LIBRARIES="lib"
+DAS_LIBRARY_NAME="hyperon_das"
 
 set -eoux pipefail
 
@@ -45,5 +46,5 @@ fi
 
 mkdir -p $OUTPUT_DIR_BINARIES
 mkdir -p $OUTPUT_DIR_LIBRARIES
-cp -f src/bin/*.so $OUTPUT_DIR_LIBRARIES
 cp -f src/bin/* $OUTPUT_DIR_BINARIES
+mv -f $OUTPUT_DIR_BINARIES/das.so $OUTPUT_DIR_LIBRARIES/$DAS_LIBRARY_NAME.so
