@@ -35,7 +35,7 @@ class Atom : public HandleTrie::TrieValue {
 
     virtual ~Atom() override = default;
 
-    virtual string to_string() override { return "Atom(type: " + this->type + ")"; }
+    virtual string to_string() const { return "Atom(type: " + this->type + ")"; }
 
     virtual void merge(HandleTrie::TrieValue* other) override {}
 };
@@ -67,7 +67,7 @@ class Node : public Atom {
         }
     }
 
-    virtual string to_string() override {
+    virtual string to_string() const {
         return "Node(type: " + this->type + ", name: " + this->name + ")";
     }
 
@@ -93,7 +93,7 @@ class Node : public Atom {
 // -------------------------------------------------------------------------------------------------
 class Link : public Atom {
    public:
-    vector<Atom*> targets;  ///< The target atoms of the link.
+    vector<const Atom*> targets;  ///< The target atoms of the link.
 
     /**
      * @brief Construct a Link.
@@ -102,7 +102,7 @@ class Link : public Atom {
      * @param delete_targets If true, Link will delete its targets on destruction.
      * @throws std::runtime_error if type is empty or targets.size() < MINIMUM_TARGETS_SIZE.
      */
-    Link(const string& type, const vector<Atom*>& targets) : Atom(type), targets(targets) {
+    Link(const string& type, const vector<const Atom*>& targets) : Atom(type), targets(targets) {
         this->validate();
     }
 
@@ -113,7 +113,7 @@ class Link : public Atom {
      * @param targets The target atoms of the link (rvalue reference, will be moved).
      * @throws std::runtime_error if type is empty or targets.size() < MINIMUM_TARGETS_SIZE.
      */
-    Link(const string& type, vector<Atom*>&& targets) : Atom(type), targets(move(targets)) {
+    Link(const string& type, vector<const Atom*>&& targets) : Atom(type), targets(move(targets)) {
         this->validate();
     }
 
@@ -136,12 +136,12 @@ class Link : public Atom {
     /**
      * @throws std::runtime_error if a target is not a Node or Link.
      */
-    virtual string to_string() override {
+    virtual string to_string() const {
         string result = "Link(type: " + this->type + ", targets: [";
         for (const auto& target : this->targets) {
-            if (Node* node = dynamic_cast<Node*>(target)) {
+            if (const Node* node = dynamic_cast<const Node*>(target)) {
                 result += node->to_string() + ", ";
-            } else if (Link* link = dynamic_cast<Link*>(target)) {
+            } else if (const Link* link = dynamic_cast<const Link*>(target)) {
                 result += link->to_string() + ", ";
             } else {
                 throw runtime_error("Unsupported target type in Link::to_string");
@@ -164,14 +164,14 @@ class Link : public Atom {
      * @throws std::runtime_error if a target is not a Node or Link.
      * @note Caller is responsible for freeing the returned handle.
      */
-    static char* compute_handle(const string& type, const vector<Atom*>& targets) {
+    static char* compute_handle(const string& type, const vector<const Atom*>& targets) {
         char* link_type_hash = named_type_hash((char*) type.c_str());  // Will be freed later
         char** targets_handles = new char*[targets.size()];            // Will be freed later
         size_t i = 0;
         for (const auto& target : targets) {
-            if (Node* node = dynamic_cast<Node*>(target)) {
+            if (const Node* node = dynamic_cast<const Node*>(target)) {
                 targets_handles[i++] = Node::compute_handle(node->type, node->name);
-            } else if (Link* link = dynamic_cast<Link*>(target)) {
+            } else if (const Link* link = dynamic_cast<const Link*>(target)) {
                 targets_handles[i++] = Link::compute_handle(link->type, link->targets);
             } else {
                 throw runtime_error("Unsupported target type in Link::compute_handle");

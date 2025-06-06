@@ -81,7 +81,7 @@ class AtomSpace {
      * @return Pointer to the Link, or nullptr if not found.
      */
     const Link* get_link(const string& type,
-                         const vector<Atom*>& targets,
+                         const vector<const Atom*>& targets,
                          Scope scope = LOCAL_AND_REMOTE);
 
     /**
@@ -149,7 +149,7 @@ class AtomSpace {
      * @param targets List of target atoms.
      * @return The handle of the new link (caller is responsible for freeing).
      */
-    char* add_link(const string& type, const vector<Atom*>& targets);
+    char* add_link(const string& type, const vector<const Atom*>& targets);
 
     /**
      * @brief Commit changes to the AtomSpace.
@@ -176,7 +176,7 @@ class AtomSpace {
      * @throws std::runtime_error if the document is invalid (does not contain "targets" or "name").
      * @note The caller is responsible for deleting the returned Atom.
      */
-    Atom* atom_from_document(const shared_ptr<AtomDocument>& document);
+    const Atom* atom_from_document(const shared_ptr<AtomDocument>& document);
 };
 
 }  // namespace atomspace

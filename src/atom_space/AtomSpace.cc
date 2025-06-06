@@ -28,7 +28,7 @@ const Atom* AtomSpace::get_atom(const char* handle, Scope scope) {
     if (atom_document) {
         auto atom = this->atom_from_document(atom_document);
         if (atom) {
-            this->handle_trie->insert(handle, atom);
+            this->handle_trie->insert(handle, (HandleTrie::TrieValue*) atom);
             return atom;
         }
     }
@@ -48,7 +48,7 @@ const Node* AtomSpace::get_node(const string& type, const string& name, Scope sc
 }
 
 // -------------------------------------------------------------------------------------------------
-const Link* AtomSpace::get_link(const string& type, const vector<Atom*>& targets, Scope scope) {
+const Link* AtomSpace::get_link(const string& type, const vector<const Atom*>& targets, Scope scope) {
     auto handle = Link::compute_handle(type, targets);
     auto link = this->get_atom(handle, scope);
     if (link) {
@@ -93,14 +93,14 @@ void AtomSpace::pattern_matching_fetch(const vector<string>& query, unsigned int
     auto proxy = this->pattern_matching_query(query, answers_count);
     this->bus->issue_bus_command(proxy);
     shared_ptr<QueryAnswer> query_answer;
+    const char* handle;
     while (!proxy->finished()) {
         if ((query_answer = proxy->pop()) == NULL) {
             Utils::sleep();
         } else {
             for (size_t i = 0; i < query_answer->handles_size; i++) {
-                const char* handle = query_answer->handles[i];
-                auto atom_document = this->db->get_atom_document(handle);
-                this->handle_trie->insert(handle, this->atom_from_document(atom_document));
+                handle = query_answer->handles[i];
+                this->get_atom(handle, LOCAL_AND_REMOTE);  // Ensure the atom is loaded into the trie
             }
         }
     }
@@ -114,7 +114,7 @@ char* AtomSpace::add_node(const string& type, const string& name) {
 }
 
 // -------------------------------------------------------------------------------------------------
-char* AtomSpace::add_link(const string& type, const vector<Atom*>& targets) {
+char* AtomSpace::add_link(const string& type, const vector<const Atom*>& targets) {
     char* handle = Link::compute_handle(type, targets);
     this->handle_trie->insert(handle, new Link(type, targets));
     return handle;
@@ -126,16 +126,16 @@ void AtomSpace::commit_changes(Scope scope) {
 }
 
 // -------------------------------------------------------------------------------------------------
-Atom* AtomSpace::atom_from_document(const shared_ptr<AtomDocument>& document) {
+const Atom* AtomSpace::atom_from_document(const shared_ptr<AtomDocument>& document) {
     if (document->contains("targets")) {
         // If the document contains targets, it is a Link.
-        vector<Atom*> targets;
+        vector<const Atom*> targets;
         size_t size = document->get_size("targets");
         for (size_t i = 0; i < size; ++i) {
             const char* target_handle = document->get("targets", i);
-            auto target_document = this->db->get_atom_document(target_handle);
-            if (target_document) {
-                targets.push_back(this->atom_from_document(target_document));
+            auto target_atom = this->get_atom(target_handle, LOCAL_AND_REMOTE);
+            if (target_atom) {
+                targets.push_back(target_atom);
             } else {
                 throw runtime_error("Target document not found for handle: " + string(target_handle));
             }
