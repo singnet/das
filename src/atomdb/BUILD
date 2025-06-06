@@ -5,11 +5,11 @@ cc_library(
     deps = [
         ":atomdb",
         ":atomdb_api_types",
-        ":redis_mongodb_api_types",
-        ":atomdb_singleton",
-        ":redis_mongodb",
         ":atomdb_cache",
         ":atomdb_cache_singleton",
+        ":atomdb_singleton",
+        ":redis_mongodb",
+        ":redis_mongodb_api_types",
     ],
 )
 

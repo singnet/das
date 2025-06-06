@@ -20,10 +20,21 @@ alias(
 
 cc_shared_library(
     name = "das",
+    additional_linker_inputs = [
+    ],
+    dynamic_deps = [
+    ],
     shared_lib_name = "das.so",
+    user_link_flags = [
+        "-L/usr/local/lib",
+        "-lhiredis_cluster",
+        "-lhiredis",
+        "-lmongocxx",
+        "-lbsoncxx",
+    ],
     deps = [
-        "//agents/query_engine:query_engine_lib",
         "//agents/evolution:evolution_lib",
+        "//agents/query_engine:query_engine_lib",
         "//atomdb:atomdb_lib",
         "//attention_broker:attention_broker_lib",
         "//commons:commons_lib",
@@ -32,17 +43,6 @@ cc_shared_library(
         "//inference_agent:inference_agent_lib",
         "//link_creation_agent:link_creation_agent_lib",
         "//service_bus:service_bus_lib",
-    ],
-    dynamic_deps = [
-    ],
-    additional_linker_inputs = [
-    ],
-    user_link_flags = [
-        "-L/usr/local/lib",
-        "-lhiredis_cluster",
-        "-lhiredis",
-        "-lmongocxx",
-        "-lbsoncxx",
     ],
 )
 
