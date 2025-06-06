@@ -1,7 +1,7 @@
 package(default_visibility = ["//visibility:public"])
 
 cc_library(
-    name = "Evolution_lib",
+    name = "evolution_lib",
     srcs = ["Evolution.cc"],
     hdrs = ["Evolution.h"],
     includes = ["."],

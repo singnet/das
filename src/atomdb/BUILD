@@ -1,6 +1,19 @@
 package(default_visibility = ["//visibility:public"])
 
 cc_library(
+    name = "atomdb_lib",
+    deps = [
+        ":atomdb",
+        ":atomdb_api_types",
+        ":redis_mongodb_api_types",
+        ":atomdb_singleton",
+        ":redis_mongodb",
+        ":atomdb_cache",
+        ":atomdb_cache_singleton",
+    ],
+)
+
+cc_library(
     name = "atomdb",
     hdrs = ["AtomDB.h"],
     deps = [
@@ -47,7 +60,7 @@ cc_library(
         ":atomdb",
         ":atomdb_cache_singleton",
         ":redis_mongodb_api_types",
-        "//attention_broker:attention_broker_server_lib",
+        "//attention_broker:attention_broker_lib",
         "//commons:commons_lib",
     ],
 )

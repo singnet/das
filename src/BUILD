@@ -18,6 +18,34 @@ alias(
     actual = "//tools/format",
 )
 
+cc_shared_library(
+    name = "das",
+    shared_lib_name = "das.so",
+    deps = [
+        "//agents/query_engine:query_engine_lib",
+        "//agents/evolution:evolution_lib",
+        "//atomdb:atomdb_lib",
+        "//attention_broker:attention_broker_lib",
+        "//commons:commons_lib",
+        "//distributed_algorithm_node:distributed_algorithm_node_lib",
+        "//hasher:hasher_lib",
+        "//inference_agent:inference_agent_lib",
+        "//link_creation_agent:link_creation_agent_lib",
+        "//service_bus:service_bus_lib",
+    ],
+    dynamic_deps = [
+    ],
+    additional_linker_inputs = [
+    ],
+    user_link_flags = [
+        "-L/usr/local/lib",
+        "-lhiredis_cluster",
+        "-lhiredis",
+        "-lmongocxx",
+        "-lbsoncxx",
+    ],
+)
+
 cc_binary(
     name = "attention_broker_service",
     srcs = [],
