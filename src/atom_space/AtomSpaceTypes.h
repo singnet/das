@@ -153,6 +153,31 @@ class Link : public Atom {
     }
 
     /**
+     * @brief Convert a vector of Atom pointers to an array of handles.
+     *
+     * For each Atom in the input vector, computes its handle (allocating a new C-string for each).
+     *
+     * @param targets The vector of Atom pointers.
+     * @return A newly allocated array of C-string handles (char**). Caller is responsible for freeing
+     *         each handle with free() and the array itself with delete[].
+     * @throws std::runtime_error if a target is not a Node or Link.
+     */
+    static char** targets_to_handles(const vector<const Atom*>& targets) {
+        char** handles = new char*[targets.size()];  // Will be freed later by the caller
+        size_t i = 0;
+        for (const auto& target : targets) {
+            if (const Node* node = dynamic_cast<const Node*>(target)) {
+                handles[i++] = Node::compute_handle(node->type, node->name);
+            } else if (const Link* link = dynamic_cast<const Link*>(target)) {
+                handles[i++] = Link::compute_handle(link->type, link->targets);
+            } else {
+                throw runtime_error("Unsupported target type in Link::targets_to_handles");
+            }
+        }
+        return handles;
+    }
+
+    /**
      * @brief Compute the handle for a Link given its type and targets.
      *
      * This static utility computes a handle for a Link using the provided type and target atoms,
@@ -166,21 +191,13 @@ class Link : public Atom {
      */
     static char* compute_handle(const string& type, const vector<const Atom*>& targets) {
         char* link_type_hash = named_type_hash((char*) type.c_str());  // Will be freed later
-        char** targets_handles = new char*[targets.size()];            // Will be freed later
-        size_t i = 0;
-        for (const auto& target : targets) {
-            if (const Node* node = dynamic_cast<const Node*>(target)) {
-                targets_handles[i++] = Node::compute_handle(node->type, node->name);
-            } else if (const Link* link = dynamic_cast<const Link*>(target)) {
-                targets_handles[i++] = Link::compute_handle(link->type, link->targets);
-            } else {
-                throw runtime_error("Unsupported target type in Link::compute_handle");
-            }
-        }
-        auto link = Link::compute_handle(link_type_hash, targets_handles, targets.size());
-        free(link_type_hash);      // Clean up the dynamically allocated hash
-        delete[] targets_handles;  // Clean up the dynamically allocated array
-        return link;
+        auto targets_handles = Link::targets_to_handles(targets);      // Will be freed later
+        auto link_handle = Link::compute_handle(link_type_hash, targets_handles, targets.size());
+        free(link_type_hash);          // Clean up the dynamically allocated hash
+        for (size_t i = 0; i < targets.size(); i++)
+            free(targets_handles[i]);  // Clean up the dynamically allocated handles
+        delete[] targets_handles;      // Clean up the dynamically allocated array
+        return link_handle;
     }
 
     /**
@@ -199,10 +216,10 @@ class Link : public Atom {
         char** targets_handles = new char*[targets.size()];            // Will be freed later
         size_t i = 0;
         for (const auto& target : targets) targets_handles[i++] = (char*) target.c_str();
-        auto link = Link::compute_handle(link_type_hash, targets_handles, targets.size());
+        auto link_handle = Link::compute_handle(link_type_hash, targets_handles, targets.size());
         free(link_type_hash);      // Clean up the dynamically allocated hash
         delete[] targets_handles;  // Clean up the dynamically allocated array
-        return link;
+        return link_handle;
     }
 
     /**

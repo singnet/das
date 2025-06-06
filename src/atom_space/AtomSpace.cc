@@ -122,10 +122,36 @@ char* AtomSpace::add_link(const string& type, const vector<const Atom*>& targets
 
 // -------------------------------------------------------------------------------------------------
 void AtomSpace::commit_changes(Scope scope) {
-    // TODO: Implement commit logic once the server-side supports it.
+    /*
+    If LOCAL scope is selected (LOCAL_ONLY or LOCAL_AND_REMOTE), commit ALL atoms in the handle trie
+    by sending them to the remote DB. Atoms should be kept in the handle trie.
+    The command should wait this sync ends before going to the next step.
+    */
+    if (scope == LOCAL_ONLY) {
+        // Commit only locally, no remote action needed.
+        return;
+    }
+    auto commit_changes_visit_lambda = [](HandleTrie::TrieNode* trie_node, void* user_data) -> bool {
+        auto db = static_cast<AtomDB*>(user_data);
+        if (const auto node = dynamic_cast<const Node*>(trie_node->value)) {
+            db->add_node(node->type.c_str(), node->name.c_str());
+        } else if (const auto link = dynamic_cast<const Link*>(trie_node->value)) {
+            auto targets_handles = Link::targets_to_handles(link->targets);  // Will be freed later
+            db->add_link(link->type.c_str(), targets_handles, link->targets.size());
+            for (size_t i = 0; i < link->targets.size(); i++)
+                free(targets_handles[i]);  // Clean up the dynamically allocated handles
+            delete[] targets_handles;      // Clean up the dynamically allocated array
+        } else {
+            Utils::error("Unsupported Atom type for commit: " + trie_node->to_string());
+            return false;  // Unsupported type, cannot commit
+        }
+        return true;
+    };
+    this->handle_trie->traverse(true, commit_changes_visit_lambda, this->db.get());
 }
 
-// -------------------------------------------------------------------------------------------------
+// PRIVATE METHODS /////////////////////////////////////////////////////////////////////////////////
+
 Atom* AtomSpace::atom_from_document(const shared_ptr<AtomDocument>& document) {
     if (document->contains("targets")) {
         // If the document contains targets, it is a Link.
