@@ -9,6 +9,7 @@
 #include "expression_hasher.h"
 
 using namespace std;
+using namespace commons;
 
 namespace attention_broker_server {
 

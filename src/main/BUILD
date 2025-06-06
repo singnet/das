@@ -1,3 +1,5 @@
+load("@rules_cc//cc:cc_library.bzl", "cc_library")
+
 package(default_visibility = ["//visibility:public"])
 
 cc_library(
@@ -25,7 +27,7 @@ cc_library(
     name = "query_client_main_lib",
     srcs = ["query_client_main.cc"],
     deps = [
-        "//agents/query_engine:query_engine_lib",
+        "//atom_space:atom_space_lib",
         "//atomdb:atomdb_singleton",
         "//service_bus:service_bus_lib",
     ],

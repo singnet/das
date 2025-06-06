@@ -68,8 +68,8 @@ class InferenceAgentTest : public ::testing::Test {
         config_file << "inference_node_id=localhost:4000\n";
         config_file << "das_client_id=localhost:9090\n";
         config_file << "das_server_id=localhost:9091\n";
-        config_file << "distributed_inference_control_node_id=localhost:5000\n";
-        config_file << "distributed_inference_control_node_server_id=localhost:5001\n";
+        config_file << "distributed_inference_control_node_id=localhost:6000\n";
+        config_file << "distributed_inference_control_node_server_id=localhost:6001\n";
         config_file << "link_creation_agent_server_id=localhost:9080\n";
         config_file << "link_creation_agent_client_id=localhost:9081\n";
         config_file.close();

@@ -4,7 +4,7 @@
 #include <string>
 
 #include "AtomDBSingleton.h"
-#include "PatternMatchingQueryProxy.h"
+#include "AtomSpace.h"
 #include "QueryAnswer.h"
 #include "ServiceBusSingleton.h"
 #include "Utils.h"
@@ -14,6 +14,7 @@
 using namespace std;
 using namespace query_engine;
 using namespace service_bus;
+using namespace atomspace;
 
 void ctrl_c_handler(int) {
     std::cout << "Stopping query engine server..." << std::endl;
@@ -29,6 +30,8 @@ int main(int argc, char* argv[]) {
              << endl;
         exit(1);
     }
+
+    AtomDBSingleton::init();
 
     string client_id = string(argv[1]);
     string server_id = string(argv[2]);
@@ -63,10 +66,7 @@ int main(int argc, char* argv[]) {
         query.push_back(argv[i]);
     }
 
-    shared_ptr<ServiceBus> service_bus = ServiceBusSingleton::get_instance();
-    shared_ptr<PatternMatchingQueryProxy> proxy =
-        make_shared<PatternMatchingQueryProxy>(query, "", true, update_attention_broker, false);
-    service_bus->issue_bus_command(proxy);
+    auto proxy = AtomSpace().pattern_matching_query(query);
     shared_ptr<QueryAnswer> query_answer;
     int count = 0;
     while (!proxy->finished()) {
