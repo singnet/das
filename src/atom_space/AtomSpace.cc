@@ -122,11 +122,6 @@ char* AtomSpace::add_link(const string& type, const vector<const Atom*>& targets
 
 // -------------------------------------------------------------------------------------------------
 void AtomSpace::commit_changes(Scope scope) {
-    /*
-    If LOCAL scope is selected (LOCAL_ONLY or LOCAL_AND_REMOTE), commit ALL atoms in the handle trie
-    by sending them to the remote DB. Atoms should be kept in the handle trie.
-    The command should wait this sync ends before going to the next step.
-    */
     if (scope == LOCAL_ONLY) {
         // Commit only locally, no remote action needed.
         return;
