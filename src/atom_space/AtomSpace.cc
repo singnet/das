@@ -28,7 +28,7 @@ const Atom* AtomSpace::get_atom(const char* handle, Scope scope) {
     if (atom_document) {
         auto atom = this->atom_from_document(atom_document);
         if (atom) {
-            this->handle_trie->insert(handle, (HandleTrie::TrieValue*) atom);
+            this->handle_trie->insert(handle, atom);
             return atom;
         }
     }
@@ -126,7 +126,7 @@ void AtomSpace::commit_changes(Scope scope) {
 }
 
 // -------------------------------------------------------------------------------------------------
-const Atom* AtomSpace::atom_from_document(const shared_ptr<AtomDocument>& document) {
+Atom* AtomSpace::atom_from_document(const shared_ptr<AtomDocument>& document) {
     if (document->contains("targets")) {
         // If the document contains targets, it is a Link.
         vector<const Atom*> targets;

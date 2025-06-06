@@ -175,7 +175,7 @@ class AtomSpace {
      * @throws std::runtime_error if the document is invalid (does not contain "targets" or "name").
      * @note The caller is responsible for deleting the returned Atom.
      */
-    const Atom* atom_from_document(const shared_ptr<AtomDocument>& document);
+    Atom* atom_from_document(const shared_ptr<AtomDocument>& document);
 };
 
 }  // namespace atomspace

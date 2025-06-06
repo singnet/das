@@ -177,7 +177,10 @@ class Link : public Atom {
                 throw runtime_error("Unsupported target type in Link::compute_handle");
             }
         }
-        return Link::_compute_handle(link_type_hash, targets_handles, targets.size());
+        auto link = Link::compute_handle(link_type_hash, targets_handles, targets.size());
+        free(link_type_hash);      // Clean up the dynamically allocated hash
+        delete[] targets_handles;  // Clean up the dynamically allocated array
+        return link;
     }
 
     /**
@@ -196,10 +199,12 @@ class Link : public Atom {
         char** targets_handles = new char*[targets.size()];            // Will be freed later
         size_t i = 0;
         for (const auto& target : targets) targets_handles[i++] = (char*) target.c_str();
-        return Link::_compute_handle(link_type_hash, targets_handles, targets.size());
+        auto link = Link::compute_handle(link_type_hash, targets_handles, targets.size());
+        free(link_type_hash);      // Clean up the dynamically allocated hash
+        delete[] targets_handles;  // Clean up the dynamically allocated array
+        return link;
     }
 
-   private:
     /**
      * @brief Compute the handle for a Link given its type hash and target handles.
      *
@@ -212,9 +217,8 @@ class Link : public Atom {
      * @return A newly allocated char array containing the handle (caller must free).
      * @throws std::runtime_error if type_hash or targets_handles is null, if type_hash size is too
      * small, or if targets_size is less than MINIMUM_TARGETS_SIZE.
-     * @note This function frees type_hash and targets_handles.
      */
-    static char* _compute_handle(char* type_hash, char** targets_handles, size_t targets_size) {
+    static char* compute_handle(char* type_hash, char** targets_handles, size_t targets_size) {
         if (type_hash == nullptr || targets_handles == nullptr) {
             throw runtime_error("Type hash and targets handles must not be null");
         }
@@ -225,10 +229,7 @@ class Link : public Atom {
             throw runtime_error("Link must have at least " + std::to_string(MINIMUM_TARGETS_SIZE) +
                                 " targets");
         }
-        char* handle = expression_hash(type_hash, targets_handles, targets_size);
-        free(type_hash);           // Clean up the dynamically allocated hash
-        delete[] targets_handles;  // Clean up the dynamically allocated array
-        return handle;
+        return expression_hash(type_hash, targets_handles, targets_size);
     }
 };
 
