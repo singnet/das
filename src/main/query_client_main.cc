@@ -31,6 +31,8 @@ int main(int argc, char* argv[]) {
         exit(1);
     }
 
+    AtomDBSingleton::init();
+
     string client_id = string(argv[1]);
     string server_id = string(argv[2]);
     bool update_attention_broker = (string(argv[3]) == "true" || string(argv[3]) == "1");
@@ -64,9 +66,7 @@ int main(int argc, char* argv[]) {
         query.push_back(argv[i]);
     }
 
-    shared_ptr<ServiceBus> service_bus = ServiceBusSingleton::get_instance();
     auto proxy = AtomSpace().pattern_matching_query(query);
-    service_bus->issue_bus_command(proxy);
     shared_ptr<QueryAnswer> query_answer;
     int count = 0;
     while (!proxy->finished()) {
