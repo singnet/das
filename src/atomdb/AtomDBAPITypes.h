@@ -45,23 +45,22 @@ class CustomAttributesMap : public unordered_map<string, CustomAttributesValue> 
     /**
      * @brief Get the value associated with a key, cast to the requested type.
      *
-     * If the key exists and the value can be cast to type T, returns an optional containing the value.
-     * Otherwise, returns std::nullopt.
+     * If the key exists and the value can be cast to type T, returns a pointer to the value.
+     * Otherwise, returns nullptr.
      *
      * @tparam T The type to cast the value to (must match the variant type).
      * @param key The key to look up in the map.
-     * @return std::optional<T> containing the value if present and of the correct type, otherwise
-     * std::nullopt.
+     * @return Pointer to the value if present and of the correct type, otherwise nullptr.
      */
     template <typename T>
-    const optional<T> get(const string& key) const {
+    const T* get(const string& key) const {
         auto it = this->find(key);
         if (it != this->end()) {
             if (auto attr = std::get_if<T>(&it->second)) {
-                return *attr;
+                return attr;
             }
         }
-        return nullopt;
+        return nullptr;
     }
 
     /**
