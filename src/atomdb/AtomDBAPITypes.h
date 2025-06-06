@@ -27,20 +27,19 @@ namespace atomdb_api_types {
 // I think it's pointless to make any further documentation while we don't make this integration.
 // -------------------------------------------------------------------------------------------------
 
-using CustomAttributesKey = string;
 using CustomAttributesValue = variant<string, long, double, bool>;
 
 /**
- * @brief A specialization of std::unordered_map using CustomAttributesKey as key and
+ * @brief A specialization of std::unordered_map using string as key and
  * CustomAttributesValue as value, with additional helper methods.
  *
- * This class specializes std::unordered_map to use CustomAttributesKey as the key type and
+ * This class specializes std::unordered_map to use string as the key type and
  * CustomAttributesValue as the value type. It also implements several helper methods for
  * convenient access and manipulation of custom attributes.
  */
-class CustomAttributesMap : public unordered_map<CustomAttributesKey, CustomAttributesValue> {
+class CustomAttributesMap : public unordered_map<string, CustomAttributesValue> {
    public:
-    using unordered_map<CustomAttributesKey,
+    using unordered_map<string,
                         CustomAttributesValue>::unordered_map;  // Inherit constructors
 
     /**
@@ -55,7 +54,7 @@ class CustomAttributesMap : public unordered_map<CustomAttributesKey, CustomAttr
      * std::nullopt.
      */
     template <typename T>
-    const optional<T> get(const CustomAttributesKey& key) const {
+    const optional<T> get(const string& key) const {
         auto it = this->find(key);
         if (it != this->end()) {
             if (auto attr = std::get_if<T>(&it->second)) {
