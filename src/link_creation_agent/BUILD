@@ -90,15 +90,13 @@ cc_library(
 cc_library(
     name = "service",
     srcs = ["link_creation_service.cc"],
-    hdrs = [
-        "link_creation_service.h",
-        "thread_pool.h",
-    ],
+    hdrs = ["link_creation_service.h"],
     deps = [
         ":das_agent_node",
         ":link",
         ":processors",
         "//agents/query_engine:query_engine_lib",
+        "//commons:commons_lib",
     ],
 )
 

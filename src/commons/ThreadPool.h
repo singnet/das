@@ -22,30 +22,33 @@
 using namespace std;
 class ThreadPool {
    public:
-    /**
-     * @brief Constructor
-     */
     explicit ThreadPool(size_t threads) {
         for (size_t i = 0; i < threads; ++i) {
-            workers.emplace_back([this] {
+            workers.emplace_back([this, i] {
                 while (true) {
                     function<void()> task;
                     {
                         unique_lock<mutex> lock(queue_mutex);
                         condition.wait(lock, [this] { return stop || !tasks.empty(); });
                         if (stop && tasks.empty()) return;
+
                         task = move(tasks.front());
                         tasks.pop();
+                        ++active_tasks;
                     }
                     task();
+                    {
+                        unique_lock<mutex> lock(queue_mutex);
+                        --active_tasks;
+                        if (tasks.empty() && active_tasks == 0) {
+                            done_condition.notify_all();
+                        }
+                    }
                 }
             });
         }
     }
 
-    /**
-     * @brief Destructor
-     */
     ~ThreadPool() {
         {
             unique_lock<mutex> lock(queue_mutex);
@@ -55,10 +58,6 @@ class ThreadPool {
         for (thread& worker : workers) worker.join();
     }
 
-    /**
-     * @brief Enqueue a task to the thread pool
-     * @param task Task to be enqueued
-     */
     void enqueue(function<void()> task) {
         {
             unique_lock<mutex> lock(queue_mutex);
@@ -67,10 +66,29 @@ class ThreadPool {
         condition.notify_one();
     }
 
+    int size() {
+        unique_lock<mutex> lock(queue_mutex);
+        return tasks.size();
+    }
+
+    bool empty() {
+        unique_lock<mutex> lock(queue_mutex);
+        return tasks.empty();
+    }
+
+    void wait() {
+        unique_lock<mutex> lock(queue_mutex);
+        done_condition.wait(lock, [this] {
+            return tasks.empty() && active_tasks == 0;
+        });
+    }
+
    private:
     vector<thread> workers;
     queue<function<void()>> tasks;
     mutex queue_mutex;
     condition_variable condition;
+    condition_variable done_condition;
+    size_t active_tasks = 0;
     bool stop = false;
 };
