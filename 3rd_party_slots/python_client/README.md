@@ -62,10 +62,10 @@ The client can be used in two ways: programmatically as a Python package or via 
 
 **Note:** For it to work you need a server Query Agent listening on port 54001
 
-After installing the wheel, you can import the pattern_matching_query function from the python_bus_client.main module. Below is an example of querying:
+After installing the wheel, you can import the pattern_matching_query function from the hyperon_das.main module. Below is an example of querying:
 
 ```bash
-from python_bus_client.main import pattern_matching_query
+from hyperon_das.main import pattern_matching_query
 
 pattern_matching_query(
     client_id="localhost:54000",
@@ -78,7 +78,7 @@ pattern_matching_query(
         "NODE", "Symbol", '"Alzheimer\'s disease"',
         "LINK_TEMPLATE2", "Expression", "2", "NODE", "Symbol", "CONCEPT",
         "LINK_TEMPLATE", "Expression", "2", "NODE", "Symbol", "public.cvterm",
-        "VARIABLE", "ID"]
+        "VARIABLE", "ID"
     ],
     update_attention_broker=False,
     max_query_answers=1
@@ -90,7 +90,7 @@ pattern_matching_query(
 You can also run the client directly from the command line after installation. The following command sends the same query as above:
 
 ```bash
-python -m python_bus_client.main \
+python -m hyperon_das.main \
     --client-id localhost:54000 \
     --server-id localhost:31700 \
     --query-tokens "LINK_TEMPLATE Expression 3 NODE Symbol EVALUATION LINK Expression 2 NODE Symbol PREDICATE LINK Expression 3 NODE Symbol public.cvterm NODE Symbol public.cvterm.name NODE Symbol "\"Alzheimer's disease\"" LINK_TEMPLATE2 Expression 2 NODE Symbol CONCEPT LINK_TEMPLATE Expression 2 NODE Symbol public.cvterm VARIABLE ID" \

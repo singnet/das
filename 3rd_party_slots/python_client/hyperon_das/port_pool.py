@@ -1,5 +1,5 @@
 from queue import Queue, Empty
-from python_bus_client.logger import log
+from hyperon_das.logger import log
 
 
 class PortPool:

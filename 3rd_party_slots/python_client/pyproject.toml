@@ -4,7 +4,7 @@ version = "0.1.0"
 description = "This package implements a client to connect and send commands to the DAS Service Bus"
 authors = ["marcocapozzoli <marcocapozzoli90@gmail.com>"]
 readme = "README.md"
-packages = [{include = "python_bus_client"}]
+packages = [{include = "hyperon_das"}]
 
 [tool.poetry.dependencies]
 python = "^3.10"
@@ -12,6 +12,9 @@ grpcio = "^1.72.1"
 grpcio-tools = "^1.72.1"
 protobuf = "^6.31.1"
 google = "^3.0.0"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.4.0"
 
 [build-system]
 requires = ["poetry-core"]

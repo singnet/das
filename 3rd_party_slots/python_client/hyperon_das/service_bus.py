@@ -1,9 +1,9 @@
 import threading
-from python_bus_client.port_pool import PortPool
-from python_bus_client.bus_node import BusNode
-from python_bus_client.proxy import PatternMatchingQueryHandler
-from python_bus_client.bus import BusCommand
-from python_bus_client.logger import log
+from hyperon_das.port_pool import PortPool
+from hyperon_das.bus_node import BusNode
+from hyperon_das.proxy import PatternMatchingQueryHandler
+from hyperon_das.bus import BusCommand
+from hyperon_das.logger import log
 
 
 class ServiceBus:

@@ -2,9 +2,9 @@ import argparse
 import sys
 import time
 
-from python_bus_client.proxy import PatternMatchingQueryHandler
-from python_bus_client.service_bus import ServiceBusSingleton
-from python_bus_client.helpers import tokenize_preserve_quotes
+from hyperon_das.proxy import PatternMatchingQueryHandler
+from hyperon_das.service_bus import ServiceBusSingleton
+from hyperon_das.helpers import tokenize_preserve_quotes
 
 
 def parse_arguments():
