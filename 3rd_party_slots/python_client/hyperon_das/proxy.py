@@ -3,13 +3,13 @@ import grpc
 import threading
 from concurrent import futures
 from queue import Queue, Empty
-import python_bus_client._grpc.atom_space_node_pb2_grpc as atom__space__node__pb2__grpc
-import python_bus_client._grpc.atom_space_node_pb2 as atom__space__node__pb2
-import python_bus_client._grpc.common_pb2 as common__pb2
+import hyperon_das._grpc.atom_space_node_pb2_grpc as atom__space__node__pb2__grpc
+import hyperon_das._grpc.atom_space_node_pb2 as atom__space__node__pb2
+import hyperon_das._grpc.common_pb2 as common__pb2
 
-from python_bus_client.bus import BusCommand
-from python_bus_client.port_pool import PortPool
-from python_bus_client.logger import log
+from hyperon_das.bus import BusCommand
+from hyperon_das.port_pool import PortPool
+from hyperon_das.logger import log
 
 
 class BaseCommandProxy(abc.ABC):

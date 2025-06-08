@@ -1,10 +1,10 @@
 import grpc
 
-from python_bus_client._grpc.atom_space_node_pb2_grpc import AtomSpaceNodeStub
-from python_bus_client._grpc import atom_space_node_pb2
+from hyperon_das._grpc.atom_space_node_pb2_grpc import AtomSpaceNodeStub
+from hyperon_das._grpc import atom_space_node_pb2
 
-from python_bus_client.bus import Bus
-from python_bus_client.logger import log
+from hyperon_das.bus import Bus
+from hyperon_das.logger import log
 
 
 class BusNode:
