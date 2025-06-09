@@ -3,7 +3,7 @@ load("@rules_cc//cc:cc_library.bzl", "cc_library")
 package(default_visibility = ["//visibility:public"])
 
 cc_library(
-    name = "attention_broker_server_lib",
+    name = "attention_broker_lib",
     srcs = [
         "AttentionBrokerServer.cc",
         "StimulusSpreader.cc",
