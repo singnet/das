@@ -47,13 +47,11 @@ void check_query(vector<string>& query,
                  const string& context,
                  bool update_attention_broker,
                  bool unique_assignment) {
-    shared_ptr<PatternMatchingQueryProxy> proxy1(new PatternMatchingQueryProxy(
-        query, context));
+    shared_ptr<PatternMatchingQueryProxy> proxy1(new PatternMatchingQueryProxy(query, context));
     proxy1->set_unique_assignment_flag(unique_assignment);
     proxy1->set_attention_update_flag(update_attention_broker);
 
-    shared_ptr<PatternMatchingQueryProxy> proxy2(
-        new PatternMatchingQueryProxy(query, context));
+    shared_ptr<PatternMatchingQueryProxy> proxy2(new PatternMatchingQueryProxy(query, context));
     proxy2->set_unique_assignment_flag(unique_assignment);
     proxy2->set_attention_update_flag(update_attention_broker);
     proxy2->set_count_flag(true);

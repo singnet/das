@@ -21,8 +21,7 @@ PatternMatchingQueryProxy::PatternMatchingQueryProxy() {
     init();
 }
 
-PatternMatchingQueryProxy::PatternMatchingQueryProxy(const vector<string>& tokens,
-                                                     const string& context)
+PatternMatchingQueryProxy::PatternMatchingQueryProxy(const vector<string>& tokens, const string& context)
     : BusCommandProxy() {
     // constructor typically used in requestor
     lock_guard<mutex> semaphore(this->api_mutex);
@@ -46,13 +45,11 @@ void PatternMatchingQueryProxy::init() {
 }
 
 void PatternMatchingQueryProxy::pack_custom_args() {
-    vector<string> custom_args = {
-        this->context,
-        to_string(this->unique_assignment_flag),
-        to_string(this->positive_importance_flag),
-        to_string(this->update_attention_broker),
-        to_string(this->count_flag)
-    };
+    vector<string> custom_args = {this->context,
+                                  to_string(this->unique_assignment_flag),
+                                  to_string(this->positive_importance_flag),
+                                  to_string(this->update_attention_broker),
+                                  to_string(this->count_flag)};
     this->args.insert(this->args.begin(), custom_args.begin(), custom_args.end());
 }
 

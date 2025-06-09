@@ -36,8 +36,7 @@ class LinkProcessor {
     static int _count_query(vector<string>& query, string& context, bool is_unique_assignment = true) {
         try {
             shared_ptr<PatternMatchingQueryProxy> query_count_proxy =
-                make_shared<PatternMatchingQueryProxy>(
-                    query, context);
+                make_shared<PatternMatchingQueryProxy>(query, context);
             query_count_proxy->set_unique_assignment_flag(is_unique_assignment);
             query_count_proxy->set_count_flag(true);
             ServiceBusSingleton::get_instance()->issue_bus_command(query_count_proxy);

@@ -45,8 +45,7 @@ class PatternMatchingQueryProxy : public BusCommandProxy {
      * @param tokens Query tokens.
      * @param context AttentionBroker context
      */
-    PatternMatchingQueryProxy(const vector<string>& tokens,
-                              const string& context);
+    PatternMatchingQueryProxy(const vector<string>& tokens, const string& context);
 
     /**
      * Destructor.
@@ -251,7 +250,6 @@ class PatternMatchingQueryProxy : public BusCommandProxy {
     vector<string> query_tokens;
 
    private:
-
     void init();
     void set_default_query_parameters();
 
