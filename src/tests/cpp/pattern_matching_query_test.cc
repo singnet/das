@@ -46,15 +46,18 @@ void check_query(vector<string>& query,
                  ServiceBus* client_bus,
                  const string& context,
                  bool update_attention_broker,
-                 bool unique_assignment) {
+                 bool unique_assignment,
+                 bool positive_importance) {
     shared_ptr<PatternMatchingQueryProxy> proxy1(new PatternMatchingQueryProxy(query, context));
     proxy1->set_unique_assignment_flag(unique_assignment);
     proxy1->set_attention_update_flag(update_attention_broker);
+    proxy1->set_positive_importance_flag(positive_importance);
 
     shared_ptr<PatternMatchingQueryProxy> proxy2(new PatternMatchingQueryProxy(query, context));
     proxy2->set_unique_assignment_flag(unique_assignment);
     proxy2->set_attention_update_flag(update_attention_broker);
     proxy2->set_count_flag(true);
+    proxy2->set_positive_importance_flag(positive_importance);
 
     client_bus->issue_bus_command(proxy1);
     unsigned int count = 0;
@@ -123,7 +126,7 @@ TEST(PatternMatchingQuery, queries) {
             "NODE", "Symbol", "\"human\"",
             "VARIABLE", "v1"
     };
-    // int q2_expected_count = 3;
+    int q2_expected_count = 3;
 
     vector<string> q3 = {
         "AND", "2",
@@ -178,19 +181,15 @@ TEST(PatternMatchingQuery, queries) {
     int q6_expected_count = 4;
     // clang-format on
 
-    check_query(q1, q1_expected_count, client_bus, "PatternMatchingQuery.queries", false, false);
-    // check_query(q2, q2_expected_count, client_bus, "PatternMatchingQuery.queries", false, false);
-    check_query(q3, q3_expected_count, client_bus, "PatternMatchingQuery.queries", false, false);
-    check_query(q4, q4_expected_count, client_bus, "PatternMatchingQuery.queries", false, false);
-    check_query(q5, q5_expected_count, client_bus, "PatternMatchingQuery.queries", false, false);
-    check_query(q6, q6_expected_count, client_bus, "PatternMatchingQuery.queries", false, true);
+    check_query(q1, q1_expected_count, client_bus, "PatternMatchingQuery.queries", false, false, false);
+    check_query(q2, q2_expected_count, client_bus, "PatternMatchingQuery.queries", false, false, false);
+    check_query(q3, q3_expected_count, client_bus, "PatternMatchingQuery.queries", false, false, false);
+    check_query(q4, q4_expected_count, client_bus, "PatternMatchingQuery.queries", false, false, false);
+    check_query(q5, q5_expected_count, client_bus, "PatternMatchingQuery.queries", false, false, false);
+    check_query(q6, q6_expected_count, client_bus, "PatternMatchingQuery.queries", false, true, false);
 
-    check_query(q1, q1_expected_count, client_bus, "PatternMatchingQuery.queries", true, false);
-    // check_query(q2, q2_expected_count, client_bus, "PatternMatchingQuery.queries", true, false);
-    check_query(q3, q3_expected_count, client_bus, "PatternMatchingQuery.queries", true, false);
-    check_query(q4, q4_expected_count, client_bus, "PatternMatchingQuery.queries", true, false);
-    check_query(q5, q5_expected_count, client_bus, "PatternMatchingQuery.queries", true, false);
-    check_query(q6, q6_expected_count, client_bus, "PatternMatchingQuery.queries", true, true);
+    check_query(q2, q2_expected_count, client_bus, "PatternMatchingQuery.queries", true, false, false);
+    check_query(q1, 3, client_bus, "PatternMatchingQuery.queries", false, false, true);
 
     Utils::sleep(2000);
 }

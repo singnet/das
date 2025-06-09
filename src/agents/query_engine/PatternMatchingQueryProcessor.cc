@@ -264,17 +264,20 @@ shared_ptr<QueryElement> PatternMatchingQueryProcessor::setup_query_tree(
     return element_stack.top();
 }
 
-#define BUILD_LINK_TEMPLATE(N)                                               \
-    {                                                                        \
-        array<shared_ptr<QueryElement>, N> targets;                          \
-        for (unsigned int i = 0; i < N; i++) {                               \
-            targets[i] = element_stack.top();                                \
-            element_stack.pop();                                             \
-        }                                                                    \
-        return make_shared<LinkTemplate<N>>(proxy->query_tokens[cursor + 1], \
-                                            move(targets),                   \
-                                            proxy->get_context(),            \
-                                            query_element_registry);         \
+#define BUILD_LINK_TEMPLATE(N)                                                              \
+    {                                                                                       \
+        array<shared_ptr<QueryElement>, N> targets;                                         \
+        for (unsigned int i = 0; i < N; i++) {                                              \
+            targets[i] = element_stack.top();                                               \
+            element_stack.pop();                                                            \
+        }                                                                                   \
+        auto link_template =                                                                \
+            make_shared<LinkTemplate<N>>(proxy->query_tokens[cursor + 1],                   \
+                                         move(targets),                                     \
+                                         proxy->get_context(),                              \
+                                         query_element_registry);                           \
+        link_template->set_positive_importance_flag(proxy->get_positive_importance_flag()); \
+        return link_template;                                                               \
     }
 
 shared_ptr<QueryElement> PatternMatchingQueryProcessor::build_link_template(
