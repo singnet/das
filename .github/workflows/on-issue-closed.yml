@@ -15,5 +15,7 @@ jobs:
       label_name: 'Update docs'
       project_number: 6
       target_column_name: 'Update docs'
+      issue_name: ${{ github.event.issue.title }}
+      issue_labels: '["documentation"]'
     secrets:
       GH_TOKEN: ${{ secrets.GH_TOKEN }}
