@@ -351,56 +351,57 @@ class LinkTemplate : public Source {
             this->atom_document = new shared_ptr<atomdb_api_types::AtomDocument>[answer_count];
             this->local_answers = new QueryAnswer*[answer_count];
             this->next_inner_answer = new unsigned int[answer_count];
-            it = this->fetch_result->get_iterator();
-            unsigned int ii = 0;
             unsigned int db_count = 0;
             vector<string> atom_fields = {"targets"};
-            chunk_size = chunk_size > answer_count ? answer_count: chunk_size;
-            int chunks = (answer_count / chunk_size) ;
-            for(int j=0; j< chunks; j++){
+            chunk_size = chunk_size > answer_count ? answer_count : chunk_size;
+            int chunks = ceil(answer_count / float(chunk_size));
+            for (int j = 0; j < chunks; j++) {
                 int start = j * chunk_size;
                 int end = (j + 1) * chunk_size;
                 if (end > answer_count) {
-                    end = answer_count ;
+                    end = answer_count;
                 }
-                auto job = [this, db, &db_count, start, end, &fetched_answers, 
-                        importance_list, &handle_list, &atom_fields]() {
-                        vector<string> handles;
-                        for (int i = start; i < end; i++) {
-                            handles.push_back(handle_list.list(i));
-                        }
-                        auto atom_handle_list = db->get_atom_documents(handles, atom_fields);
-                        int c = 0;
-                        for (int i = start; i < end; i++) {
-                            auto handle = handle_list.list(i).c_str();
-                            this->atom_document[i] = atom_handle_list[c++];
-                            db_count++;
-                            QueryAnswer* query_answer = new QueryAnswer(strndup(handle, HANDLE_HASH_SIZE - 1), importance_list->list(i));
-                            for (unsigned int j = 0; j < this->arity; j++) {
-                                if (this->target_template[j]->is_terminal) {
-                                    auto terminal = dynamic_pointer_cast<Terminal>(this->target_template[j]);
-                                    if (terminal->is_variable) {
-                                        if (!query_answer->assignment.assign(
-                                                terminal->name.c_str(), 
-                                                this->atom_document[i]->get("targets", j))) {
-                                            Utils::error(
-                                                "Error assigning variable: " + terminal->name +
-                                                " a value: " + string(this->atom_document[i]->get("targets", j)));
-                                        }
+                // clang-format off
+                auto job = [this, db, &db_count, start, end, &fetched_answers,
+                            importance_list, &handle_list, &atom_fields]() {
+                    // clang-format on
+                    vector<string> handles;
+                    for (int i = start; i < end; i++) {
+                        handles.push_back(handle_list.list(i));
+                    }
+                    auto atom_handle_list = db->get_atom_documents(handles, atom_fields);
+                    int c = 0;
+                    for (int i = start; i < end; i++) {
+                        auto handle = handle_list.list(i).c_str();
+                        this->atom_document[i] = atom_handle_list[c++];
+                        db_count++;
+                        QueryAnswer* query_answer = new QueryAnswer(
+                            strndup(handle, HANDLE_HASH_SIZE - 1), importance_list->list(i));
+                        for (unsigned int j = 0; j < this->arity; j++) {
+                            if (this->target_template[j]->is_terminal) {
+                                auto terminal = dynamic_pointer_cast<Terminal>(this->target_template[j]);
+                                if (terminal->is_variable) {
+                                    if (!query_answer->assignment.assign(
+                                            terminal->name.c_str(),
+                                            this->atom_document[i]->get("targets", j))) {
+                                        Utils::error("Error assigning variable: " + terminal->name +
+                                                     " a value: " +
+                                                     string(this->atom_document[i]->get("targets", j)));
                                     }
                                 }
                             }
-                            // show percentage
-                            int total = handle_list.list_size();
-                            if ((total / 10) > 0 && db_count % (total / 10) == 0) {
-                                LOG_INFO("Fetched " << (double(db_count) / double(total)) * double(100)
-                                                    << "% atom documents from Mongo DB: " << db_count
-                                                    << "/" << total);
-                            }
-                            fetched_answers[i] = query_answer;
                         }
-                    };
-                    thread_pool->enqueue(job);
+                        // show percentage
+                        int total = handle_list.list_size();
+                        if ((total / 10) > 0 && db_count % (total / 10) == 0) {
+                            LOG_INFO("Fetched " << (double(db_count) / double(total)) * double(100)
+                                                << "% atom documents from Mongo DB: " << db_count << "/"
+                                                << total);
+                        }
+                        fetched_answers[i] = query_answer;
+                    }
+                };
+                thread_pool->enqueue(job);
             }
             thread_pool->wait();
             std::sort(fetched_answers.begin(), fetched_answers.end(), less_than_query_answer());

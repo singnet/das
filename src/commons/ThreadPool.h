@@ -78,9 +78,7 @@ class ThreadPool {
 
     void wait() {
         unique_lock<mutex> lock(queue_mutex);
-        done_condition.wait(lock, [this] {
-            return tasks.empty() && active_tasks == 0;
-        });
+        done_condition.wait(lock, [this] { return tasks.empty() && active_tasks == 0; });
     }
 
    private:
