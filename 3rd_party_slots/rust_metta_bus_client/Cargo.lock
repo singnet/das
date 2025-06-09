@@ -197,6 +197,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "72b3254f16251a8381aa12e40e3c4d2f0199f8c6508fbecb9d91f575e0fbb8c6"
 
 [[package]]
+name = "bimap"
+version = "0.6.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "230c5f1ca6a325a32553f8640d31ac9b49f2411e901e427570154868b46da4f7"
+
+[[package]]
 name = "bitflags"
 version = "1.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -873,7 +879,7 @@ dependencies = [
 [[package]]
 name = "hyperon-atom"
 version = "0.2.5"
-source = "git+https://github.com/trueagi-io/hyperon-experimental.git#79325e309848c517ffea3288c12aa660e6f63fdd"
+source = "git+https://github.com/trueagi-io/hyperon-experimental.git#da46ca1121b7fbd5bca5b594136a8a1d3aa1a8d5"
 dependencies = [
  "bitset",
  "hyperon-common",
@@ -884,10 +890,22 @@ dependencies = [
 [[package]]
 name = "hyperon-common"
 version = "0.2.5"
-source = "git+https://github.com/trueagi-io/hyperon-experimental.git#79325e309848c517ffea3288c12aa660e6f63fdd"
+source = "git+https://github.com/trueagi-io/hyperon-experimental.git#da46ca1121b7fbd5bca5b594136a8a1d3aa1a8d5"
 dependencies = [
  "itertools 0.13.0",
  "log",
+]
+
+[[package]]
+name = "hyperon-space"
+version = "0.2.5"
+source = "git+https://github.com/trueagi-io/hyperon-experimental.git#da46ca1121b7fbd5bca5b594136a8a1d3aa1a8d5"
+dependencies = [
+ "bimap",
+ "hyperon-atom",
+ "hyperon-common",
+ "log",
+ "smallvec",
 ]
 
 [[package]]
@@ -1227,6 +1245,8 @@ dependencies = [
  "bson",
  "env_logger",
  "hyperon-atom",
+ "hyperon-common",
+ "hyperon-space",
  "log",
  "mongodb",
  "prost",

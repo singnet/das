@@ -1,3 +1,5 @@
+load("@rules_cc//cc:cc_library.bzl", "cc_library")
+
 package(default_visibility = ["//visibility:public"])
 
 cc_library(
@@ -97,7 +99,7 @@ cc_library(
         "//agents/query_engine:query_node",
         "//atomdb:atomdb_api_types",
         "//atomdb:atomdb_singleton",
-        "//attention_broker:attention_broker_server_lib",
+        "//attention_broker:attention_broker_lib",
         "//commons:commons_lib",
         "//hasher:hasher_lib",
     ],
@@ -126,7 +128,7 @@ cc_library(
     hdrs = ["ImportanceList.h"],
     deps = [
         ":query_element",
-        "//attention_broker:attention_broker_server_lib",
+        "//attention_broker:attention_broker_lib",
     ],
 )
 

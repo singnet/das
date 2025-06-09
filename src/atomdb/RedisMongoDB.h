@@ -21,7 +21,7 @@ using namespace std;
 
 namespace atomdb {
 
-enum MONGODB_FIELD { ID = 0, size };
+enum MONGODB_FIELD { ID = 0, TARGETS, size };
 
 class RedisMongoDB : public AtomDB {
    public:
@@ -42,6 +42,7 @@ class RedisMongoDB : public AtomDB {
         MONGODB_DB_NAME = "das";
         MONGODB_COLLECTION_NAME = "atoms";
         MONGODB_FIELD_NAME[MONGODB_FIELD::ID] = "_id";
+        MONGODB_FIELD_NAME[MONGODB_FIELD::TARGETS] = "targets";
     }
 
     shared_ptr<atomdb_api_types::HandleSet> query_for_pattern(shared_ptr<char> pattern_handle);
@@ -50,6 +51,8 @@ class RedisMongoDB : public AtomDB {
     shared_ptr<atomdb_api_types::AtomDocument> get_atom_document(const char* handle);
     bool link_exists(const char* link_handle);
     std::vector<std::string> links_exist(const std::vector<std::string>& link_handles);
+    char* add_node(const char* type, const char* name);
+    char* add_link(const char* type, char** targets, size_t targets_size);
     vector<shared_ptr<atomdb_api_types::AtomDocument>> get_atom_documents(vector<string>& handles,
                                                                           vector<string>& fields);
 

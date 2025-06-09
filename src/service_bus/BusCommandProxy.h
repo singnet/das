@@ -171,6 +171,11 @@ class BusCommandProxy {
      */
     virtual void from_remote_peer(const string& command, const vector<string>& args) = 0;
 
+    /**
+     * Pack specific command args (in concrete subclasses) into args vector
+     */
+    virtual void pack_custom_args() = 0;
+
     string command;
     vector<string> args;
 

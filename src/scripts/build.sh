@@ -1,5 +1,9 @@
 #!/bin/bash
 
+OUTPUT_DIR_BINARIES="bin"
+OUTPUT_DIR_LIBRARIES="lib"
+DAS_LIBRARY_NAME="hyperon_das"
+
 set -eoux pipefail
 
 IMAGE_NAME="das-builder"
@@ -39,3 +43,8 @@ if docker ps -a --format '{{.Names}}' | grep -q "^${CONTAINER_NAME}$"; then
   echo "Removing existing container: ${CONTAINER_NAME}"
   _=$(docker rm -f "${CONTAINER_NAME}" 2>&1 > /dev/null || true)
 fi
+
+mkdir -p $OUTPUT_DIR_BINARIES
+mkdir -p $OUTPUT_DIR_LIBRARIES
+cp -f src/bin/* $OUTPUT_DIR_BINARIES
+mv -f $OUTPUT_DIR_BINARIES/das.so $OUTPUT_DIR_LIBRARIES/$DAS_LIBRARY_NAME.so

@@ -1,3 +1,5 @@
+load("@rules_cc//cc:cc_library.bzl", "cc_library")
+
 package(default_visibility = ["//visibility:public"])
 
 cc_library(
@@ -18,7 +20,7 @@ cc_library(
         ":query_answer",
         ":query_node",
         "//agents/query_engine/query_element:query_element_lib",
-        "//attention_broker:attention_broker_server_lib",
+        "//attention_broker:attention_broker_lib",
         "//commons:commons_lib",
         "//distributed_algorithm_node:distributed_algorithm_node_lib",
         "//distributed_algorithm_node:star_node",

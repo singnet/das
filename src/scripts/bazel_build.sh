@@ -37,6 +37,7 @@ if [ "$BUILD_BINARIES" = true ]; then
     BUILD_TARGETS+=" //:attention_broker_service"
     BUILD_TARGETS+=" //:query_broker"
     BUILD_TARGETS+=" //:query"
+    BUILD_TARGETS+=" //:das"
 
     MOVE_TARGETS+=" bazel-bin/inference_agent_server"
     MOVE_TARGETS+=" bazel-bin/inference_agent_client"
@@ -46,6 +47,7 @@ if [ "$BUILD_BINARIES" = true ]; then
     MOVE_TARGETS+=" bazel-bin/attention_broker_service"
     MOVE_TARGETS+=" bazel-bin/query_broker"
     MOVE_TARGETS+=" bazel-bin/query"
+    MOVE_TARGETS+=" bazel-bin/das.so"
 
 fi
 
