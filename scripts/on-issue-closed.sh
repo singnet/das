@@ -7,16 +7,39 @@ get_issue_labels() {
     jq -r '.labels[].name'
 }
 
-remove_label_from_issue() {
-  curl -s -X DELETE -H "Authorization: token $GH_TOKEN" \
-    "$API_URL/repos/$REPO/issues/$ISSUE_NUMBER/labels/$(urlencode "$LABEL_NAME")"
+add_labels_to_issue() {
+  curl -s -X POST -H "Authorization: token $GH_TOKEN" \
+    -H "Content-Type: application/json" \
+    -d "$ISSUE_LABELS" \
+    "$API_URL/repos/$REPO/issues/$ISSUE_NUMBER/labels" > /dev/null
 }
 
-reopen_issue() {
-  curl -s -X PATCH -H "Authorization: token $GH_TOKEN" \
-    -H "Content-Type: application/json" \
-    -d '{"state": "open"}' \
-    "$API_URL/repos/$REPO/issues/$ISSUE_NUMBER"
+build_project_card() {
+  local PROJECT_ID="$1"
+  local TITLE="$2"
+  local BODY="Card automatically created from issue #$ISSUE_NUMBER in repository $REPO."
+  jq -n \
+    --arg projectId "$PROJECT_ID" \
+    --arg title "$TITLE" \
+    --arg body "$BODY" \
+    '{
+      query: "mutation($projectId: ID!, $title: String!, $body: String!) {
+        addProjectV2ItemByTitle(input: {
+          projectId: $projectId
+          title: $title
+          body: $body
+        }) {
+          item {
+            id
+          }
+        }
+      }",
+      variables: {
+        projectId: $projectId,
+        title: $title,
+        body: $body
+      }
+    }'
 }
 
 urlencode() {
@@ -43,28 +66,6 @@ get_project_fields() {
       }
     }",
     variables: { org: $org, number: $number }
-  }'
-}
-
-build_get_project_item_query() {
-  jq -n --arg owner "$OWNER" --arg name "$(basename "$REPO")" --argjson issue "$ISSUE_NUMBER" '{
-    query: "query($owner: String!, $name: String!, $issue: Int!) {
-      repository(owner: $owner, name: $name) {
-        issue(number: $issue) {
-          projectItems(first: 10) {
-            nodes {
-              id
-              project { id title }
-            }
-          }
-        }
-      }
-    }",
-    variables: {
-      owner: $owner,
-      name: $name,
-      issue: $issue
-    }
   }'
 }
 
@@ -106,22 +107,30 @@ build_mutation_payload() {
   }'
 }
 
-move_issue_to_column() {
+create_issue_card() {
+  CARD_RESPONSE=$(curl -s -H "Authorization: bearer $GH_TOKEN" -X POST -d "$(build_project_card "$PROJECT_ID" "$ISSUE_NAME")" "$API_URL/graphql")
+  echo "$CARD_RESPONSE" | jq -r '.data.addProjectV2ItemByTitle.item.id'
+
+  if [ -z "$CARD_RESPONSE" ]; then
+    echo "Failed to create project card for issue #$ISSUE_NUMBER"
+    exit 1
+  fi
+
+
+  add_labels_to_issue
+}
+
+main() {
   echo "Checking labels for issue #$ISSUE_NUMBER..."
 
   if echo "$(get_issue_labels)" | grep -q "$LABEL_NAME"; then
     echo "Label '$LABEL_NAME' found."
 
-    remove_label_from_issue
-    echo "Label '$LABEL_NAME' removed."
+    ITEM_ID=$(create_issue_card)
+    echo "Project card ID: $ITEM_ID"
 
-    reopen_issue
-    echo "Issue reopened."
-
-    sleep 10s
     echo "🔍 Fetching project columns..."
     FIELDS_RESPONSE=$(curl -s -H "Authorization: bearer $GH_TOKEN" -X POST -d "$(get_project_fields)" "$API_URL/graphql")
-
 
     PROJECT_ID=$(echo "$FIELDS_RESPONSE" | jq -r '.data.organization.projectV2.id')
     STATUS_FIELD=$(echo "$FIELDS_RESPONSE" | jq -c '.data.organization.projectV2.fields.nodes[] | select(.name == "Status")')
@@ -131,9 +140,6 @@ move_issue_to_column() {
     echo "Project ID: $PROJECT_ID"
     echo "Field 'Status': $STATUS_FIELD_ID"
     echo "Target column: $TARGET_COLUMN_NAME ($TARGET_COLUMN_ID)"
-
-    ITEM_ID=$(get_project_item_id_for_issue)
-    echo "Project card ID: $ITEM_ID"
 
     echo "Moving card to '$TARGET_COLUMN_NAME'..."
     curl -s -X POST "$API_URL/graphql" \
@@ -147,4 +153,4 @@ move_issue_to_column() {
   fi
 }
 
-move_issue_to_column
+main
