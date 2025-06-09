@@ -22,31 +22,38 @@ PatternMatchingQueryProxy::PatternMatchingQueryProxy() {
 }
 
 PatternMatchingQueryProxy::PatternMatchingQueryProxy(const vector<string>& tokens,
-                                                     const string& context,
-                                                     bool unique_assignment,
-                                                     bool update_attention_broker,
-                                                     bool count_only)
+                                                     const string& context)
     : BusCommandProxy() {
     // constructor typically used in requestor
     lock_guard<mutex> semaphore(this->api_mutex);
     init();
     this->command = ServiceBus::PATTERN_MATCHING_QUERY;
-    this->count_flag = count_only;
-    this->unique_assignment_flag = unique_assignment;
-    this->args = {context,
-                  to_string(unique_assignment),
-                  to_string(update_attention_broker),
-                  to_string(count_flag)};
     this->args.insert(this->args.end(), tokens.begin(), tokens.end());
+}
+
+void PatternMatchingQueryProxy::set_default_query_parameters() {
+    this->unique_assignment_flag = false;
+    this->positive_importance_flag = false;
+    this->update_attention_broker = false;
+    this->count_flag = false;
 }
 
 void PatternMatchingQueryProxy::init() {
     this->answer_flow_finished = false;
     this->abort_flag = false;
-    this->unique_assignment_flag = false;
-    this->update_attention_broker = false;
     this->answer_count = 0;
-    this->count_flag = false;
+    set_default_query_parameters();
+}
+
+void PatternMatchingQueryProxy::pack_custom_args() {
+    vector<string> custom_args = {
+        this->context,
+        to_string(this->unique_assignment_flag),
+        to_string(this->positive_importance_flag),
+        to_string(this->update_attention_broker),
+        to_string(this->count_flag)
+    };
+    this->args.insert(this->args.begin(), custom_args.begin(), custom_args.end());
 }
 
 PatternMatchingQueryProxy::~PatternMatchingQueryProxy() {}
@@ -104,6 +111,14 @@ void PatternMatchingQueryProxy::set_context(const string& context) {
     this->context = context;
 }
 
+const vector<string>& PatternMatchingQueryProxy::get_query_tokens() {
+    lock_guard<mutex> semaphore(this->api_mutex);
+    return this->query_tokens;
+}
+
+// -------------------------------------------------------------------------------------------------
+// Query parameters getters and setters
+
 bool PatternMatchingQueryProxy::get_attention_update_flag() {
     lock_guard<mutex> semaphore(this->api_mutex);
     return this->update_attention_broker;
@@ -112,11 +127,6 @@ bool PatternMatchingQueryProxy::get_attention_update_flag() {
 void PatternMatchingQueryProxy::set_attention_update_flag(bool flag) {
     lock_guard<mutex> semaphore(this->api_mutex);
     this->update_attention_broker = flag;
-}
-
-const vector<string>& PatternMatchingQueryProxy::get_query_tokens() {
-    lock_guard<mutex> semaphore(this->api_mutex);
-    return this->query_tokens;
 }
 
 bool PatternMatchingQueryProxy::get_count_flag() {
@@ -137,6 +147,16 @@ bool PatternMatchingQueryProxy::get_unique_assignment_flag() {
 void PatternMatchingQueryProxy::set_unique_assignment_flag(bool flag) {
     lock_guard<mutex> semaphore(this->api_mutex);
     this->unique_assignment_flag = flag;
+}
+
+bool PatternMatchingQueryProxy::get_positive_importance_flag() {
+    lock_guard<mutex> semaphore(this->api_mutex);
+    return this->positive_importance_flag;
+}
+
+void PatternMatchingQueryProxy::set_positive_importance_flag(bool flag) {
+    lock_guard<mutex> semaphore(this->api_mutex);
+    this->positive_importance_flag = flag;
 }
 
 // ---------------------------------------------------------------------------------------------

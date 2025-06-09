@@ -44,19 +44,9 @@ class PatternMatchingQueryProxy : public BusCommandProxy {
      *
      * @param tokens Query tokens.
      * @param context AttentionBroker context
-     * @param unique_assignment When true, operators (e.g. And, Or) don't output more than one
-     * QueryAnswer with the same variable assignment.
-     * @param update_attention_broker Flag to trigger AttentionBroker update based on this query
-     * results
-     * @param count_only Flag to indicate that this query is supposed to count the results and not
-     * actually provide the query answers (i.e. no QueryAnswer is sent from the command executor and
-     * the caller of the query).
      */
     PatternMatchingQueryProxy(const vector<string>& tokens,
-                              const string& context,
-                              bool unique_assignment,
-                              bool update_attention_broker,
-                              bool count_only);
+                              const string& context);
 
     /**
      * Destructor.
@@ -128,6 +118,22 @@ class PatternMatchingQueryProxy : public BusCommandProxy {
     void set_context(const string& context);
 
     /**
+     * Getter for query_tokens
+     *
+     * @return query_tokens
+     */
+    const vector<string>& get_query_tokens();
+
+    /**
+     * Pack query arguments into args vector
+     */
+
+    void pack_custom_args();
+
+    // ---------------------------------------------------------------------------------------------
+    // Query parameters getters and setters
+
+    /**
      * Getter for attention_update_flag
      *
      * attention_update_flag tells the processor whether AttentionBroker is supposed to be updated
@@ -184,11 +190,22 @@ class PatternMatchingQueryProxy : public BusCommandProxy {
     void set_unique_assignment_flag(bool flag);
 
     /**
-     * Getter for query_tokens
+     * Getter for positive_importance_flag
      *
-     * @return query_tokens
+     * positive_importance_flag indicates that only answers whose importance > 0 are to be returned
+     *
+     * @return positive_importance_flag
      */
-    const vector<string>& get_query_tokens();
+    bool get_positive_importance_flag();
+
+    /**
+     * Setter for positive_importance_flag
+     *
+     * positive_importance_flag indicates that only answers whose importance > 0 are to be returned
+     *
+     * @param flag Flag
+     */
+    void set_positive_importance_flag(bool flag);
 
     // ---------------------------------------------------------------------------------------------
     // Virtual superclass API from_remote_peer() and the piggyback methods called by it
@@ -234,17 +251,34 @@ class PatternMatchingQueryProxy : public BusCommandProxy {
     vector<string> query_tokens;
 
    private:
+
+    void init();
+    void set_default_query_parameters();
+
     mutex api_mutex;
     bool abort_flag;
     SharedQueue answer_queue;
     unsigned int answer_count;
     bool answer_flow_finished;
     string context;
+
+    // ---------------------------------------------------------------------------------------------
+    // Query parameters
+
+    // Triggers AttentionBroker update based on this query's results
     bool update_attention_broker;
-    bool count_flag;
+
+    // When true, operators (e.g. And, Or) don't output more than one
+    // QueryAnswer with the same variable assignment.
     bool unique_assignment_flag;
 
-    void init();
+    // Indicates that only answres whose importance > 0 are supposed to be returned
+    bool positive_importance_flag;
+
+    // indicates that this query is supposed to count the results and not
+    // actually provide the query answers (i.e. no QueryAnswer is sent from the
+    // command executor and the caller of the query).
+    bool count_flag;
 };
 
 }  // namespace query_engine

@@ -116,7 +116,8 @@ shared_ptr<PatternMatchingQueryProxy> LinkCreationAgent::query(vector<string>& q
                                                                string context,
                                                                bool update_attention_broker) {
     shared_ptr<PatternMatchingQueryProxy> proxy = make_shared<PatternMatchingQueryProxy>(
-        query_tokens, context, false, update_attention_broker, false);
+        query_tokens, context);
+    proxy->set_attention_update_flag(update_attention_broker);
     ServiceBusSingleton::get_instance()->issue_bus_command(proxy);
     return proxy;
 }

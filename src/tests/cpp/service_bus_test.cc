@@ -16,6 +16,7 @@ class TestProxy : public BusCommandProxy {
         this->remote_command = command;
         this->remote_args = args;
     }
+    void pack_custom_args() {}
 };
 
 class TestProcessor : public BusCommandProcessor {
