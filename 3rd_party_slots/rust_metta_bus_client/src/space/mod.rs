@@ -28,17 +28,15 @@ impl DistributedAtomSpace {
 	}
 
 	pub fn add(&mut self, atom: Atom) {
-		self.common.notify_all_observers(&SpaceEvent::Add(atom));
+		todo!()
 	}
 
 	pub fn remove(&mut self, atom: &Atom) -> bool {
-		self.common.notify_all_observers(&SpaceEvent::Remove(atom.clone()));
-		true
+		todo!()
 	}
 
 	pub fn replace(&mut self, from: &Atom, to: Atom) -> bool {
-		self.common.notify_all_observers(&SpaceEvent::Replace(from.clone(), to));
-		true
+		todo!()
 	}
 }
 
