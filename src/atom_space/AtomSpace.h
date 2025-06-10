@@ -134,9 +134,12 @@ class AtomSpace {
      *
      * @param type Node type.
      * @param name Node name.
+     * @param custom_attributes Custom attributes for the node (optional).
      * @return The handle of the new node (caller is responsible for freeing).
      */
-    char* add_node(const string& type, const string& name);
+    char* add_node(const string& type,
+                   const string& nam,
+                   const CustomAttributesMap& custom_attributes = {});
 
     /**
      * @brief Add a link to the AtomSpace.
@@ -146,9 +149,12 @@ class AtomSpace {
      *
      * @param type Link type.
      * @param targets List of target atoms.
+     * @param custom_attributes Custom attributes for the link (optional).
      * @return The handle of the new link (caller is responsible for freeing).
      */
-    char* add_link(const string& type, const vector<const Atom*>& targets);
+    char* add_link(const string& type,
+                   const vector<const Atom*>& targets,
+                   const CustomAttributesMap& custom_attributes = {});
 
     /**
      * @brief Commit changes to the AtomSpace.

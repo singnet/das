@@ -110,16 +110,20 @@ void AtomSpace::pattern_matching_fetch(const vector<string>& query, size_t answe
 }
 
 // -------------------------------------------------------------------------------------------------
-char* AtomSpace::add_node(const string& type, const string& name) {
+char* AtomSpace::add_node(const string& type,
+                          const string& name,
+                          const CustomAttributesMap& custom_attributes) {
     char* handle = Node::compute_handle(type, name);
-    this->handle_trie->insert(handle, new Node(type, name));
+    this->handle_trie->insert(handle, new Node(type, name, custom_attributes));
     return handle;
 }
 
 // -------------------------------------------------------------------------------------------------
-char* AtomSpace::add_link(const string& type, const vector<const Atom*>& targets) {
+char* AtomSpace::add_link(const string& type,
+                          const vector<const Atom*>& targets,
+                          const CustomAttributesMap& custom_attributes) {
     char* handle = Link::compute_handle(type, targets);
-    this->handle_trie->insert(handle, new Link(type, targets));
+    this->handle_trie->insert(handle, new Link(type, targets, custom_attributes));
     return handle;
 }
 
@@ -132,10 +136,11 @@ void AtomSpace::commit_changes(Scope scope) {
     auto commit_changes_visit_lambda = [](HandleTrie::TrieNode* trie_node, void* user_data) -> bool {
         auto db = static_cast<AtomDB*>(user_data);
         if (const auto node = dynamic_cast<const Node*>(trie_node->value)) {
-            db->add_node(node->type.c_str(), node->name.c_str());
+            db->add_node(node->type.c_str(), node->name.c_str(), node->custom_attributes);
         } else if (const auto link = dynamic_cast<const Link*>(trie_node->value)) {
             auto targets_handles = Link::targets_to_handles(link->targets);  // Will be freed later
-            db->add_link(link->type.c_str(), targets_handles, link->targets.size());
+            db->add_link(
+                link->type.c_str(), targets_handles, link->targets.size(), link->custom_attributes);
             for (size_t i = 0; i < link->targets.size(); i++)
                 free(targets_handles[i]);  // Clean up the dynamically allocated handles
             delete[] targets_handles;      // Clean up the dynamically allocated array
