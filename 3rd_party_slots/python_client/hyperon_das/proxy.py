@@ -23,7 +23,7 @@ class BaseCommandProxy(abc.ABC):
         self.proxy_node: 'AtomSpaceNodeManager' = None
         self.requestor_id: str = None
         self.serial: int = None
-    
+
     @abc.abstractmethod
     def process_message(self, msg: list[str]) -> None:
         """Processes received messages. Must be implemented by subclasses."""
@@ -45,8 +45,8 @@ class BaseCommandProxy(abc.ABC):
 
     def graceful_shutdown(self):
         """Performs a graceful shutdown of the proxy node, releasing the port."""
-        log.info(f"graceful_shutdown port: {self.proxy_port}")
         if self.proxy_port != 0:
+            log.info(f"graceful_shutdown port: {self.proxy_port}")
             if self.proxy_node:
                 self.proxy_node.stop()
                 self.proxy_node.wait_for_termination()
