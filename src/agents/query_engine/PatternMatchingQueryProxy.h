@@ -217,7 +217,7 @@ class PatternMatchingQueryProxy : public BusCommandProxy {
      * @param command RPC command
      * @param args RPC command's arguments
      */
-    void from_remote_peer(const string& command, const vector<string>& args) override;
+    bool from_remote_peer(const string& command, const vector<string>& args) override;
 
     /**
      * Piggyback method called by ABORT command

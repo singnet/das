@@ -9,6 +9,7 @@
 using namespace service_bus;
 
 string ProxyNode::PROXY_COMMAND = "bus_command_proxy";
+string BusCommandProxy::PEER_ERROR = "peer_error";
 
 // -------------------------------------------------------------------------------------------------
 // Constructors and destructors
@@ -66,6 +67,15 @@ void BusCommandProxy::to_remote_peer(const string& command, const vector<string>
     this->proxy_node->to_remote_peer(command, args);
 }
 
+bool BusCommandProxy::from_remote_peer(const string& command, const vector<string>& args) {
+    if (command == PEER_ERROR) {
+        raise_error(args[0], stoi(args[1]));
+        return true;
+    } else {
+        return false;
+    }
+}
+
 const string& BusCommandProxy::get_command() { return this->command; }
 
 const vector<string>& BusCommandProxy::get_args() { return this->args; }
@@ -75,6 +85,18 @@ unsigned int BusCommandProxy::get_serial() { return this->serial; }
 string BusCommandProxy::my_id() { return this->proxy_node->node_id(); }
 
 string BusCommandProxy::peer_id() { return this->proxy_node->peer_id; }
+
+void BusCommandProxy::raise_error(const string& error_message, unsigned int error_code) {
+    string prefix = "Error ";
+    if (error_code > 0) {
+        prefix += std::to_string(error_code) + " ";
+    }
+    Utils::error(prefix + " on peer - " + error_message);
+}
+
+void BusCommandProxy::raise_error_on_peer(const string& error_message, unsigned int error_code) {
+    to_remote_peer(PEER_ERROR, {error_message, std::to_string(error_code)});
+}
 
 // -------------------------------------------------------------------------------------------------
 // ProxyNode API
