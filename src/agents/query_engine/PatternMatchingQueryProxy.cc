@@ -159,20 +159,23 @@ void PatternMatchingQueryProxy::set_positive_importance_flag(bool flag) {
 // ---------------------------------------------------------------------------------------------
 // Virtual superclass API from_remote_peer() and the piggyback methods called by it
 
-void PatternMatchingQueryProxy::from_remote_peer(const string& command, const vector<string>& args) {
+bool PatternMatchingQueryProxy::from_remote_peer(const string& command, const vector<string>& args) {
     LOG_DEBUG("Proxy command: <" << command << "> from " << this->peer_id() << " received in "
                                  << this->my_id());
-    if (command == ANSWER_BUNDLE) {
-        answer_bundle(args);
-    } else if (command == COUNT) {
-        count_answer(args);
-    } else if (command == FINISHED) {
-        query_answers_finished(args);
-    } else if (command == ABORT) {
-        abort(args);
-    } else {
-        Utils::error("Invalid proxy command: <" + command + ">");
+    if (! BusCommandProxy::from_remote_peer(command, args)) {
+        if (command == ANSWER_BUNDLE) {
+            answer_bundle(args);
+        } else if (command == COUNT) {
+            count_answer(args);
+        } else if (command == FINISHED) {
+            query_answers_finished(args);
+        } else if (command == ABORT) {
+            abort(args);
+        } else {
+            Utils::error("Invalid proxy command: <" + command + ">");
+        }
     }
+    return true;
 }
 
 void PatternMatchingQueryProxy::answer_bundle(const vector<string>& args) {
