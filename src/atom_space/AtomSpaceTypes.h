@@ -42,8 +42,8 @@ class Atom : public HandleTrie::TrieValue {
     virtual ~Atom() override = default;
 
     virtual string to_string() const {
-        return "Atom(type: " + this->type +
-               ", custom_attributes: " + this->custom_attributes.to_string() + ")";
+        return "Atom(type: '" + this->type +
+               "', custom_attributes: " + this->custom_attributes.to_string() + ")";
     }
 
     virtual void merge(HandleTrie::TrieValue* other) override {}
@@ -80,8 +80,8 @@ class Node : public Atom {
     }
 
     virtual string to_string() const {
-        return "Node(type: " + this->type + ", name: " + this->name +
-               ", custom_attributes: " + this->custom_attributes.to_string() + ")";
+        return "Node(type: '" + this->type + "', name: '" + this->name +
+               "', custom_attributes: " + this->custom_attributes.to_string() + ")";
     }
 
     /**
@@ -156,7 +156,7 @@ class Link : public Atom {
      * @throws std::runtime_error if a target is not a Node or Link.
      */
     virtual string to_string() const {
-        string result = "Link(type: " + this->type + ", targets: [";
+        string result = "Link(type: '" + this->type + "', targets: [";
         if (!this->targets.empty()) {
             for (const auto& target : this->targets) {
                 if (const Node* node = dynamic_cast<const Node*>(target)) {

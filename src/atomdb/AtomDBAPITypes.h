@@ -44,6 +44,16 @@ class CustomAttributesMap : public unordered_map<string, CustomAttributesValue> 
                         CustomAttributesValue>::unordered_map;  // Inherit constructors
 
     /**
+     * @brief Construct a CustomAttributesMap from an initializer list.
+     * @param init The initializer list of key-value pairs.
+     * @example
+     * CustomAttributesMap attrs = {{"key1", "value1"}, {"key2", 42}};
+     */
+    template <typename K, typename V>
+    CustomAttributesMap(std::initializer_list<std::pair<K, V>> init)
+        : unordered_map<string, CustomAttributesValue>(init.begin(), init.end()) {}
+
+    /**
      * @brief Get the value associated with a key, cast to the requested type.
      *
      * If the key exists and the value can be cast to type T, returns a pointer to the value.
