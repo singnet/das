@@ -9,6 +9,7 @@
 #include <sstream>
 #include <stdexcept>
 #include <thread>
+
 #include "Logger.h"
 
 using namespace commons;
@@ -21,9 +22,9 @@ Utils::Utils() {}
 
 Utils::~Utils() {}
 
-void Utils::error(string msg) { 
+void Utils::error(string msg) {
     LOG_ERROR(msg);
-    throw runtime_error(msg); 
+    throw runtime_error(msg);
 }
 
 void Utils::warning(string msg) { cerr << msg << endl; }

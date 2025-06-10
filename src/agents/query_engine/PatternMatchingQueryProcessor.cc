@@ -163,14 +163,16 @@ void PatternMatchingQueryProcessor::thread_process_one_query(
             proxy->query_tokens.begin(), proxy->args.begin() + skip_arg, proxy->args.end());
         LOG_DEBUG("Setting up query tree");
         auto query_element_registry = make_unique<QueryElementRegistry>();
-        shared_ptr<QueryElement> root_query_element = setup_query_tree(proxy, query_element_registry.get());
+        shared_ptr<QueryElement> root_query_element =
+            setup_query_tree(proxy, query_element_registry.get());
         set<string> joint_answer;  // used to stimulate attention broker
         string command = proxy->get_command();
         unsigned int sink_port_number;
         if (command == ServiceBus::PATTERN_MATCHING_QUERY) {
             sink_port_number = PortPool::get_port();
             shared_ptr<Sink> query_sink = make_shared<Sink>(
-                root_query_element, "Sink_" + proxy->peer_id() + "_" + std::to_string(proxy->get_serial()));
+                root_query_element,
+                "Sink_" + proxy->peer_id() + "_" + std::to_string(proxy->get_serial()));
             unsigned int answer_count = 0;
             LOG_DEBUG("Processing QueryAnswer objects");
             while (!(query_sink->finished() || proxy->is_aborting())) {

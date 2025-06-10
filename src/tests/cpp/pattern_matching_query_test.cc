@@ -185,15 +185,22 @@ TEST(PatternMatchingQuery, queries) {
     // clang-format on
 
     // Regular queries
-    check_query(q1, q1_expected_count, client_bus, "PatternMatchingQuery.queries", false, false, false, false);
-    check_query(q2, q2_expected_count, client_bus, "PatternMatchingQuery.queries", false, false, false, false);
-    check_query(q3, q3_expected_count, client_bus, "PatternMatchingQuery.queries", false, false, false, false);
-    check_query(q4, q4_expected_count, client_bus, "PatternMatchingQuery.queries", false, false, false, false);
-    check_query(q5, q5_expected_count, client_bus, "PatternMatchingQuery.queries", false, false, false, false);
-    check_query(q6, q6_expected_count, client_bus, "PatternMatchingQuery.queries", false, true, false, false);
+    check_query(
+        q1, q1_expected_count, client_bus, "PatternMatchingQuery.queries", false, false, false, false);
+    check_query(
+        q2, q2_expected_count, client_bus, "PatternMatchingQuery.queries", false, false, false, false);
+    check_query(
+        q3, q3_expected_count, client_bus, "PatternMatchingQuery.queries", false, false, false, false);
+    check_query(
+        q4, q4_expected_count, client_bus, "PatternMatchingQuery.queries", false, false, false, false);
+    check_query(
+        q5, q5_expected_count, client_bus, "PatternMatchingQuery.queries", false, false, false, false);
+    check_query(
+        q6, q6_expected_count, client_bus, "PatternMatchingQuery.queries", false, true, false, false);
 
     // Importance filtering
-    check_query(q2, q2_expected_count, client_bus, "PatternMatchingQuery.queries", true, false, false, false);
+    check_query(
+        q2, q2_expected_count, client_bus, "PatternMatchingQuery.queries", true, false, false, false);
     check_query(q1, 3, client_bus, "PatternMatchingQuery.queries", false, false, true, false);
 
     // Remote exception
