@@ -15,6 +15,8 @@ use service_bus::ServiceBus;
 use service_bus_singleton::ServiceBusSingleton;
 use types::BoxError;
 
+pub mod space;
+
 pub mod bus;
 pub mod bus_node;
 pub mod helpers;

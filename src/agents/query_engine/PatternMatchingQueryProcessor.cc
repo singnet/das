@@ -155,6 +155,7 @@ void PatternMatchingQueryProcessor::thread_process_one_query(
     unsigned int skip_arg = 0;
     proxy->set_context(proxy->args[skip_arg++]);
     proxy->set_unique_assignment_flag(proxy->args[skip_arg++] == "1");
+    proxy->set_positive_importance_flag(proxy->args[skip_arg++] == "1");
     proxy->set_attention_update_flag(proxy->args[skip_arg++] == "1");
     proxy->set_count_flag(proxy->args[skip_arg++] == "1");
     proxy->query_tokens.insert(

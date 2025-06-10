@@ -15,24 +15,33 @@ on:
         description: 'Issue number'
         required: true
         type: number
+      issue_name:
+        description: 'Issue name'
+        required: true
+        type: string
       label_name:
         description: 'Label name to check for triggering the workflow'
         required: true
         type: string
       project_number:
-        description: 'Project number to update the card in'
+        description: 'Project number to create the card in'
         required: true
         type: number
       target_column_name:
         description: 'Target column name in the project to move the card to'
         required: true
-        type: string 
+        type: string
+      issue_labels:
+        description: 'Labels to apply to the issue'
+        required: false
+        type: string
+        default: '[]'
     secrets:
       GH_TOKEN:
         required: true
 
 jobs:
-  update-project-card:
+  create-project-card:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -52,3 +61,5 @@ jobs:
           PROJECT_NUMBER: ${{ inputs.project_number }}
           TARGET_COLUMN_NAME: ${{ inputs.target_column_name }}
           API_URL: "https://api.github.com"
+          ISSUE_NAME: ${{ inputs.issue_name }}
+          ISSUE_LABELS: ${{ inputs.issue_labels || '[]' }}

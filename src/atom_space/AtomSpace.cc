@@ -68,8 +68,11 @@ shared_ptr<PatternMatchingQueryProxy> AtomSpace::pattern_matching_query(const ve
                                                                         bool count_only) {
     // TODO: Use `answers_count` parameter to limit the number of answers once the functionality is
     // implemented on the server side.
-    auto proxy = make_shared<PatternMatchingQueryProxy>(
-        query, context, unique_assignment, update_attention_broker, count_only);
+    auto proxy = make_shared<PatternMatchingQueryProxy>(query, context);
+    proxy->set_unique_assignment_flag(unique_assignment);
+    proxy->set_attention_update_flag(update_attention_broker);
+    proxy->set_count_flag(count_only);
+
     this->bus->issue_bus_command(proxy);
     return proxy;
 }
