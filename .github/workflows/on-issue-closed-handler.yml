@@ -37,7 +37,7 @@ on:
         type: string
         default: '[]'
       issue_assignees:
-        description: 'Assignees for the issue'
+        description: 'List of issue assignees. e.g. ["marcocapozzoli"]'
         required: false
         type: string
         default: '[]'
