@@ -506,3 +506,22 @@ cc_test(
         "@com_github_google_googletest//:gtest_main",
     ],
 )
+
+cc_test(
+    name = "atom_space_test",
+    size = "small",
+    srcs = ["atom_space_test.cc"],
+    copts = [
+        "-Iexternal/gtest/googletest/include",
+        "-Iexternal/gtest/googletest",
+    ],
+    linkstatic = 1,
+    deps = [
+        "//agents/query_engine:query_engine_lib",
+        "//atom_space:atom_space_lib",
+        "//atom_space:atom_space_types",
+        "//atomdb:atomdb_api_types",
+        "//service_bus:service_bus_lib",
+        "@com_github_google_googletest//:gtest_main",
+    ],
+)

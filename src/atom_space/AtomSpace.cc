@@ -10,9 +10,9 @@ namespace atomspace {
 
 // -------------------------------------------------------------------------------------------------
 AtomSpace::AtomSpace()
-    : bus(ServiceBusSingleton::get_instance()),
-      handle_trie(make_unique<HandleTrie>(HANDLE_SIZE)),
-      db(AtomDBSingleton::get_instance()) {}
+    : db(AtomDBSingleton::get_instance()),
+      bus(ServiceBusSingleton::get_instance()),
+      handle_trie(make_unique<HandleTrie>(HANDLE_SIZE)) {}
 
 // -------------------------------------------------------------------------------------------------
 const Atom* AtomSpace::get_atom(const char* handle, Scope scope) {

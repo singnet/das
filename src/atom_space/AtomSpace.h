@@ -168,10 +168,12 @@ class AtomSpace {
      */
     void commit_changes(Scope scope = LOCAL_AND_REMOTE);
 
+   protected:
+    shared_ptr<AtomDB> db;  // to allow mocking in tests
+
    private:
     shared_ptr<ServiceBus> bus;
     unique_ptr<HandleTrie> handle_trie;
-    shared_ptr<AtomDB> db;
 
     /**
      * @brief Create an Atom from a document.
