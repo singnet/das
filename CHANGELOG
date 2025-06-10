@@ -1,3 +1,4 @@
 [#386] Limits answer bundle size in query command processor
 [#421] Use an optional proxy parameter to filter QueryAnswers with zeroed importance
 [#433] Build a dynamic lib with all the libs from all the packages and add it to lib/das.os
+[#418] Implement remote error handling across peers in the ServiceBus
