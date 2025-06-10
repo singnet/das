@@ -99,11 +99,13 @@ class LinkTemplate : public Source {
         this->local_answers = NULL;
         this->local_answers_size = 0;
         this->local_buffer_processor = NULL;
+        int max_threads = std::thread::hardware_concurrency();
+        int fetch_threads = max_threads > 0 ? ceil(max_threads / 2) : 1;
         this->chunk_size = Utils::get_environment("FETCH_CHUNK_SIZE").empty()
                                ? 1000
                                : Utils::string_to_int(Utils::get_environment("FETCH_CHUNK_SIZE"));
         int thread_count = Utils::get_environment("FETCH_THREAD_COUNT").empty()
-                               ? 1
+                               ? fetch_threads
                                : Utils::string_to_int(Utils::get_environment("FETCH_THREAD_COUNT"));
         this->thread_pool = new ThreadPool(thread_count);
         bool wildcard_flag = (type == AtomDB::WILDCARD);
