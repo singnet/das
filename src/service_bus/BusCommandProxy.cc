@@ -89,7 +89,7 @@ string BusCommandProxy::peer_id() { return this->proxy_node->peer_id; }
 void BusCommandProxy::raise_error(const string& error_message, unsigned int error_code) {
     string prefix = "Error ";
     if (error_code > 0) {
-        prefix += std::to_string(error_code) + " "; 
+        prefix += std::to_string(error_code) + " ";
     }
     Utils::error(prefix + " on peer - " + error_message);
 }

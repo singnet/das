@@ -162,7 +162,7 @@ void PatternMatchingQueryProxy::set_positive_importance_flag(bool flag) {
 bool PatternMatchingQueryProxy::from_remote_peer(const string& command, const vector<string>& args) {
     LOG_DEBUG("Proxy command: <" << command << "> from " << this->peer_id() << " received in "
                                  << this->my_id());
-    if (! BusCommandProxy::from_remote_peer(command, args)) {
+    if (!BusCommandProxy::from_remote_peer(command, args)) {
         if (command == ANSWER_BUNDLE) {
             answer_bundle(args);
         } else if (command == COUNT) {

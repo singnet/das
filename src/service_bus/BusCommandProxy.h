@@ -84,9 +84,8 @@ class BusCommandProxy {
     friend class ServiceBus;
 
    public:
-
     // Commands allowed at the proxy level (caller <--> processor)
-    static string PEER_ERROR;          // Raise an error in peer
+    static string PEER_ERROR;  // Raise an error in peer
 
     /**
      * Basic constructor.
