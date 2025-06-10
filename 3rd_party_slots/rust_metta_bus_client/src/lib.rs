@@ -29,15 +29,25 @@ pub mod types;
 pub fn query_with_das(
 	space_name: Option<String>, service_bus: Arc<Mutex<ServiceBus>>, atom: &Atom,
 ) -> Result<BindingsSet, BoxError> {
-	let count_only = false;
-	let update_attention_broker = false;
 	let unique_assignment = true;
-	query(space_name, service_bus, atom, unique_assignment, update_attention_broker, count_only)
+	let positive_importance = false;
+	let update_attention_broker = false;
+	let count_only = false;
+	query(
+		space_name,
+		service_bus,
+		atom,
+		unique_assignment,
+		positive_importance,
+		update_attention_broker,
+		count_only,
+	)
 }
 
 pub fn query(
 	space_name: Option<String>, service_bus: Arc<Mutex<ServiceBus>>, atom: &Atom,
-	unique_assignment: bool, update_attention_broker: bool, count_only: bool,
+	unique_assignment: bool, positive_importance: bool, update_attention_broker: bool,
+	count_only: bool,
 ) -> Result<BindingsSet, BoxError> {
 	let mut bindings_set = BindingsSet::empty();
 	// Parsing possible parameters: ((max_query_answers) (query))
@@ -114,6 +124,7 @@ pub fn query(
 		tokens,
 		context,
 		unique_assignment,
+		positive_importance,
 		update_attention_broker,
 		count_only,
 	)?;

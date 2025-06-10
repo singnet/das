@@ -1,4 +1,5 @@
 use std::collections::VecDeque;
+use std::net::{SocketAddr, ToSocketAddrs};
 use std::sync::{Arc, Mutex, RwLock};
 use std::{env, thread};
 
@@ -49,12 +50,13 @@ pub struct PatternMatchingQueryProxy {
 
 impl PatternMatchingQueryProxy {
 	pub fn new(
-		tokens: Vec<String>, context: String, unique_assignment: bool,
+		tokens: Vec<String>, context: String, unique_assignment: bool, positive_importance: bool,
 		update_attention_broker: bool, count_only: bool,
 	) -> Result<Self, BoxError> {
 		let mut args = vec![
 			context.clone(),
 			unique_assignment.to_string(),
+			positive_importance.to_string(),
 			update_attention_broker.to_string(),
 			count_only.to_string(),
 		];
@@ -196,22 +198,29 @@ impl Drop for ProxyNode {
 	}
 }
 
-#[derive(Default, Clone)]
+#[derive(Clone)]
 pub struct StarNode {
-	node_id: String,
+	address: SocketAddr,
 	proxy: Arc<PatternMatchingQueryProxy>,
 }
 
 impl StarNode {
 	pub fn new(node_id: String, proxy: Arc<PatternMatchingQueryProxy>) -> Self {
-		Self { node_id, proxy }
+		Self { address: StarNode::check_host_id(node_id), proxy }
+	}
+
+	fn check_host_id(host_id: String) -> SocketAddr {
+		match host_id.to_socket_addrs() {
+			Ok(mut iter) => iter.next().unwrap(),
+			Err(err) => panic!("Can not use '{}' as socket address: {}", host_id, err),
+		}
 	}
 
 	fn process_message(&self, msg: MessageData) {
 		log::debug!(
 			target: "das",
 			"StarNode::process_message()[{}]: MessageData -> len={:?}",
-			self.node_id,
+			self.address,
 			msg.args.len()
 		);
 		let args = match msg.command.as_str() {
@@ -267,7 +276,7 @@ pub trait GrpcServer {
 #[tonic::async_trait]
 impl GrpcServer for StarNode {
 	async fn start_server(self) -> Result<(), BoxError> {
-		let addr = self.node_id.parse()?;
+		let addr = self.address;
 		log::debug!(target: "das", "StarNode::start_server(): Inside gRPC server thread at {:?}", addr);
 		Server::builder().add_service(AtomSpaceNodeServer::new(self)).serve(addr).await.unwrap();
 		Ok(())
