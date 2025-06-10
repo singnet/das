@@ -22,6 +22,8 @@ class AtomDB {
     virtual std::vector<std::string> links_exist(const std::vector<std::string>& link_handles) = 0;
     virtual char* add_node(const char* type, const char* name) = 0;
     virtual char* add_link(const char* type, char** targets, size_t targets_size) = 0;
+    virtual vector<shared_ptr<atomdb_api_types::AtomDocument>> get_atom_documents(
+        vector<string>& handles, vector<string>& fields) = 0;
 
    private:
     virtual void attention_broker_setup() = 0;

@@ -14,6 +14,7 @@
 #include "PatternMatchingQueryProxy.h"
 #include "QueryAnswer.h"
 #include "ServiceBusSingleton.h"
+#include "commons/ThreadPool.h"
 #include "das_agent_node.h"
 #include "equivalence_processor.h"
 #include "implication_processor.h"
@@ -21,7 +22,6 @@
 #include "link_processor.h"
 #include "queue.h"
 #include "template_processor.h"
-#include "thread_pool.h"
 
 using namespace das_agent;
 using namespace query_engine;

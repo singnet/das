@@ -71,6 +71,7 @@ test-all-no-cache:
 test-all: build-image
 	@$(MAKE) bazel 'test --noshow_progress //tests/...'
 
+
 lint-all:
 	@$(MAKE) bazel lint \
 		"//... --fix --report --diff" \
