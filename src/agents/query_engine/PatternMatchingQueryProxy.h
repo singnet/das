@@ -207,7 +207,14 @@ class PatternMatchingQueryProxy : public BusCommandProxy {
     void set_positive_importance_flag(bool flag);
 
     // ---------------------------------------------------------------------------------------------
-    // Virtual superclass API from_remote_peer() and the piggyback methods called by it
+    // Virtual superclass API and the piggyback methods called by it
+
+    /**
+     * Piggyback method called when raise_error_on_peer() is called in peer's side.
+     *
+     * error_code == 0 means that NO ERROR CODE has been provided
+     */
+    void raise_error(const string& error_message, unsigned int error_code = 0);
 
     /**
      * Receive a command and its arguments passed by the remote peer.
@@ -248,6 +255,9 @@ class PatternMatchingQueryProxy : public BusCommandProxy {
     void query_answers_finished(const vector<string>& args);
 
     vector<string> query_tokens;
+    bool error_flag;
+    unsigned int error_code;
+    string error_message;
 
    private:
     void init();
