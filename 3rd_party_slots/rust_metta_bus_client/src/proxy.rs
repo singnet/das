@@ -200,13 +200,13 @@ impl Drop for ProxyNode {
 
 #[derive(Clone)]
 pub struct StarNode {
-	node_id: SocketAddr,
+	address: SocketAddr,
 	proxy: Arc<PatternMatchingQueryProxy>,
 }
 
 impl StarNode {
 	pub fn new(node_id: String, proxy: Arc<PatternMatchingQueryProxy>) -> Self {
-		Self { node_id: StarNode::check_host_id(node_id), proxy }
+		Self { address: StarNode::check_host_id(node_id), proxy }
 	}
 
 	fn check_host_id(host_id: String) -> SocketAddr {
@@ -220,7 +220,7 @@ impl StarNode {
 		log::debug!(
 			target: "das",
 			"StarNode::process_message()[{}]: MessageData -> len={:?}",
-			self.node_id,
+			self.address,
 			msg.args.len()
 		);
 		let args = match msg.command.as_str() {
@@ -276,7 +276,7 @@ pub trait GrpcServer {
 #[tonic::async_trait]
 impl GrpcServer for StarNode {
 	async fn start_server(self) -> Result<(), BoxError> {
-		let addr = self.node_id;
+		let addr = self.address;
 		log::debug!(target: "das", "StarNode::start_server(): Inside gRPC server thread at {:?}", addr);
 		Server::builder().add_service(AtomSpaceNodeServer::new(self)).serve(addr).await.unwrap();
 		Ok(())
