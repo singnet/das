@@ -152,7 +152,15 @@ main() {
     echo "Field 'Status': $STATUS_FIELD_ID"
     echo "Target column: $TARGET_COLUMN_NAME ($TARGET_COLUMN_ID)"
 
-    ISSUE_ASSIGNEES=$(get_issue_assignees "$ISSUE_NUMBER")
+    if [[ "$ISSUE_ASSIGNEES" == "[]" || -z "$ISSUE_ASSIGNEES" ]]; then
+      ISSUE_ASSIGNEES=$(get_issue_assignees "$ISSUE_NUMBER")
+      if [ -z "$ISSUE_ASSIGNEES" ]; then
+        echo "No assignees found for issue #$ISSUE_NUMBER."
+      fi
+    fi
+    echo "Assignees for the new project card: $ISSUE_ASSIGNEES"
+
+    ITEM_RESPONSE=$(create_issue_card "$PROJECT_ID" "$ISSUE_ASSIGNEES")SSUE_ASSIGNEES=$(get_issue_assignees "$ISSUE_NUMBER")
     if [ -z "$ISSUE_ASSIGNEES" ]; then
       echo "No assignees found for issue #$ISSUE_NUMBER."
     fi
