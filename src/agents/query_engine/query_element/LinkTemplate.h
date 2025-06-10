@@ -346,6 +346,7 @@ class LinkTemplate : public Source {
                 for (unsigned int i = 0; i < importance_list->list_size(); i++) {
                     if (! (importance_list->list(i) > 0.0)) {
                         answer_count--;
+                    }
                 }
                 LOG_INFO("Considering " << answer_count << " links after importance filtering");
             }
