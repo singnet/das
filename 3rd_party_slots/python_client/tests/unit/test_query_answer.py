@@ -29,27 +29,84 @@ class TestAssignment:
             self.assign.assign("c", "3")
         assert "exceeds the maximal number" in str(exc.value)
 
+    def test_get(self):
+        a1 = Assignment()
+        a1.assign("v1", "1")
+        a1.assign("v2", "2")
+
+        assert a1.get("v1") == "1"
+        assert a1.get("v2") == "2"
+        assert a1.get("blah") is None
+        assert a1.get("v11") is None
+        assert a1.get("v") is None
+        assert a1.get("") is None
+
     def test_is_compatible(self):
+        a0 = Assignment()
         a1 = Assignment()
         a2 = Assignment()
-        a1.assign("x", "v1")
-        a2.assign("x", "v1")
-        a2.assign("y", "v2")
-        assert a1.is_compatible(a2)
-        a2.assign("x", "v3")
-        assert a1.is_compatible(a2)
+        a3 = Assignment()
+
+        a1.assign("v1", "1")
+        a1.assign("v2", "2")
+        a1.assign("v2", "2")
+        a1.assign("v2", "3")
+
+        a2.assign("v1", "1")
+        a2.assign("v3", "3")
+
+        a3.assign("v1", "1")
+        a3.assign("v2", "3")
+
+        assert a1.is_compatible(a0) is True
+        assert a2.is_compatible(a0) is True
+        assert a3.is_compatible(a0) is True
+        assert a0.is_compatible(a1) is True
+        assert a0.is_compatible(a2) is True
+        assert a0.is_compatible(a3) is True
+        assert a1.is_compatible(a2) is True
+        assert a2.is_compatible(a1) is True
+        assert a2.is_compatible(a3) is True
+        assert a3.is_compatible(a2) is True
+        assert a1.is_compatible(a3) is False
+        assert a3.is_compatible(a1) is False
 
     def test_copy_from_and_add_assignments(self):
         a1 = Assignment()
         a2 = Assignment()
-        a2.assign("x", "v1")
-        a2.assign("y", "v2")
-        a1.copy_from(a2)
-        assert a1 == a2
         a3 = Assignment()
-        a3.assign("x", "v1")
-        a3.add_assignments(a2)
-        assert a3.get("y") == "v2"
+        a4 = Assignment()
+
+        a1.assign("v1", "1")
+        a1.assign("v2", "2")
+        a1.assign("v2", "2")
+        a1.assign("v2", "3")
+        a2.assign("v1", "1")
+        a2.assign("v3", "3")
+        a3.assign("v1", "1")
+        a3.assign("v2", "3")
+
+        a4.copy_from(a1)
+
+        assert a4.get("v1") == "1"
+        assert a4.get("v2") == "2"
+        assert a4.is_compatible(a2) is True
+        assert a2.is_compatible(a4) is True
+        assert a4.is_compatible(a3) is False
+        assert a3.is_compatible(a4) is False
+
+        a4.add_assignments(a1)
+        a4.add_assignments(a2)
+
+        assert a4.get("v1") == "1"
+        assert a4.get("v2") == "2"
+        assert a4.get("v3") == "3"
+        assert a1.is_compatible(a4) is True
+        assert a2.is_compatible(a4) is True
+        assert a3.is_compatible(a4) is False
+        assert a4.is_compatible(a1) is True
+        assert a4.is_compatible(a2) is True
+        assert a4.is_compatible(a3) is False
 
     def test_to_string_and_eq(self):
         self.assign.assign("a", "1")
