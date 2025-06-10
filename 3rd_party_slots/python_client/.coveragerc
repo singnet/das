@@ -1,0 +1,3 @@
+[run]
+omit =
+    hyperon_das/_grpc/*

@@ -8,13 +8,14 @@ packages = [{include = "hyperon_das"}]
 
 [tool.poetry.dependencies]
 python = "^3.10"
-grpcio = "^1.72.1"
-grpcio-tools = "^1.72.1"
-protobuf = "^6.31.1"
-google = "^3.0.0"
+grpcio = "1.72.1"
+grpcio-tools = "1.72.1"
+protobuf = "6.31.1"
+google = "3.0.0"
 
 [tool.poetry.group.dev.dependencies]
-pytest = "^8.4.0"
+pytest = "8.4.0"
+pytest-cov = "6.1.1"
 
 [build-system]
 requires = ["poetry-core"]

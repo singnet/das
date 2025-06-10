@@ -185,7 +185,7 @@ class QueryAnswer:
         tokens.append(str(len(self.handles)))
         tokens.extend(self.handles)
         tokens.append(str(self.assignment.variable_count()))
-        for label, value in self.assignment.assignment_dict.items():
+        for label, value in self.assignment._mapping.items():
             tokens.append(label)
             tokens.append(value)
         return " ".join(tokens)
