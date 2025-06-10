@@ -242,9 +242,7 @@ class LinkTemplate : public Source {
         return variables;
     }
 
-    void set_positive_importance_flag(bool flag) {
-        this->positive_importance_flag = flag;
-    }
+    void set_positive_importance_flag(bool flag) { this->positive_importance_flag = flag; }
 
    private:
     // --------------------------------------------------------------------------------------------
@@ -344,7 +342,7 @@ class LinkTemplate : public Source {
             }
             if (this->positive_importance_flag) {
                 for (unsigned int i = 0; i < importance_list->list_size(); i++) {
-                    if (! (importance_list->list(i) > 0.0)) {
+                    if (!(importance_list->list(i) > 0.0)) {
                         answer_count--;
                     }
                 }
@@ -357,7 +355,7 @@ class LinkTemplate : public Source {
             unsigned int document_cursor = 0;
             unsigned int importance_cursor = 0;
             while ((handle = it->next()) != nullptr) {
-                if (! this->positive_importance_flag || (importance_list->list(importance_cursor) > 0)) {
+                if (!this->positive_importance_flag || (importance_list->list(importance_cursor) > 0)) {
                     this->atom_document[document_cursor] = db->get_atom_document(handle);
                     query_answer = new QueryAnswer(handle, importance_list->list(importance_cursor));
                     for (unsigned int j = 0; j < this->arity; j++) {
@@ -365,10 +363,11 @@ class LinkTemplate : public Source {
                             auto terminal = dynamic_pointer_cast<Terminal>(this->target_template[j]);
                             if (terminal->is_variable) {
                                 if (!query_answer->assignment.assign(
-                                        terminal->name.c_str(), this->atom_document[document_cursor]->get("targets", j))) {
+                                        terminal->name.c_str(),
+                                        this->atom_document[document_cursor]->get("targets", j))) {
                                     Utils::error(
-                                        "Error assigning variable: " + terminal->name +
-                                        " a value: " + string(this->atom_document[document_cursor]->get("targets", j)));
+                                        "Error assigning variable: " + terminal->name + " a value: " +
+                                        string(this->atom_document[document_cursor]->get("targets", j)));
                                 }
                             }
                         }
