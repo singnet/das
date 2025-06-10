@@ -1,1 +1,2 @@
 [#386] Limits answer bundle size in query command processor
+[#421] Use an optional proxy parameter to filter QueryAnswers with zeroed importance
