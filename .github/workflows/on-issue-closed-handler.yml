@@ -36,6 +36,12 @@ on:
         required: false
         type: string
         default: '[]'
+      issue_assignees:
+        description: 'Assignees for the issue'
+        required: false
+        type: string
+        default: '[]'
+
     secrets:
       GH_TOKEN:
         required: true
@@ -63,3 +69,4 @@ jobs:
           API_URL: "https://api.github.com"
           ISSUE_NAME: ${{ inputs.issue_name }}
           ISSUE_LABELS: ${{ inputs.issue_labels || '[]' }}
+          ISSUE_ASSIGNEES: ${{ inputs.issue_assignees || '[]' }}

@@ -5,7 +5,7 @@ on:
     types: [closed]
 
 jobs:
-  trigger-workflow:
+  trigger-on-update-docs-workflow:
     if: contains(join(github.event.issue.labels.*.name, ','), 'Update docs')
     uses: singnet/das/.github/workflows/on-issue-closed-handler.yml@master
     with:
@@ -14,8 +14,40 @@ jobs:
       issue_number: ${{ github.event.issue.number }}
       label_name: 'Update docs'
       project_number: 6
-      target_column_name: 'Update docs'
+      target_column_name: 'Pending update'
       issue_name: ${{ github.event.issue.title }}
       issue_labels: '["documentation"]'
+    secrets:
+      GH_TOKEN: ${{ secrets.GH_TOKEN }}
+
+  trigger-on-update-rust-client-workflow:
+    if: contains(join(github.event.issue.labels.*.name, ','), 'Update Rust client')
+    uses: singnet/das/.github/workflows/on-issue-closed-handler.yml@master
+    with:
+      repo: ${{ github.repository }}
+      owner: ${{ github.repository_owner }}
+      issue_number: ${{ github.event.issue.number }}
+      label_name: 'Update Rust client'
+      project_number: 6
+      target_column_name: 'Pending update'
+      issue_name: ${{ github.event.issue.title }}
+      issue_labels: '["Rust client"]'
+      issue_assignees: '["arturgontijo"]'
+    secrets:
+      GH_TOKEN: ${{ secrets.GH_TOKEN }}
+
+  trigger-on-update-python-client-workflow:
+    if: contains(join(github.event.issue.labels.*.name, ','), 'Update Python client')
+    uses: singnet/das/.github/workflows/on-issue-closed-handler.yml@master
+    with:
+      repo: ${{ github.repository }}
+      owner: ${{ github.repository_owner }}
+      issue_number: ${{ github.event.issue.number }}
+      label_name: 'Update Python client'
+      project_number: 6
+      target_column_name: 'Pending update'
+      issue_name: ${{ github.event.issue.title }}
+      issue_labels: '["Python client"]'
+      issue_assignees: '["marcocapozzoli"]'
     secrets:
       GH_TOKEN: ${{ secrets.GH_TOKEN }}
