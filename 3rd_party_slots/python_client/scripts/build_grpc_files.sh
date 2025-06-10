@@ -4,7 +4,7 @@ mkdir -p $(pwd)/hyperon_das/_grpc
 
 if [ -z "$1" ]
 then
-    echo "Usage: mongo-up.sh PROTO_DIR"
+    echo "Usage: build_grpc_files.sh PROTO_DIR"
     exit 1
 else
     PROTO_DIR=$1
