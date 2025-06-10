@@ -15,8 +15,17 @@ fn main() -> Result<(), BoxError> {
 	// ./metta_bus_client localhost:11234 localhost:35700 1 LINK_TEMPLATE ...
 	let args: Vec<String> = env::args().collect();
 
-	if args.len() < 5 {
-		println!("Usage: {} CLIENT_HOST:CLIENT_PORT SERVER_HOST:SERVER_PORT UPDATE_ATTENTION_BROKER QUERY_TOKEN+ (hosts are supposed to be public IPs or known hostnames)", &args[0]);
+	if args.len() < 6 {
+		println!(
+			"Usage: {} \
+			CLIENT_HOST:CLIENT_PORT \
+			SERVER_HOST:SERVER_PORT \
+			UPDATE_ATTENTION_BROKER \
+			POSITIVE_IMPORTANCE \
+			QUERY_TOKEN+ \
+			(hosts are supposed to be public IPs or known hostnames)",
+			&args[0]
+		);
 		exit(1)
 	}
 
@@ -26,11 +35,13 @@ fn main() -> Result<(), BoxError> {
 	let context = "";
 
 	let update_attention_broker = &args[3] == "true" || &args[3] == "1";
+	let positive_importance = &args[4] == "true" || &args[4] == "1";
+
 	let unique_assignment = true;
 	let count_only = false;
 
-	let mut tokens_start_position = 4;
-	let max_query_answers = match (args[4]).parse::<u32>() {
+	let mut tokens_start_position = 5;
+	let max_query_answers = match (args[5]).parse::<u32>() {
 		Ok(value) => {
 			tokens_start_position += 1;
 			value
@@ -57,6 +68,7 @@ fn main() -> Result<(), BoxError> {
 		service_bus,
 		&Atom::expr(atoms),
 		unique_assignment,
+		positive_importance,
 		update_attention_broker,
 		count_only,
 	)?;
