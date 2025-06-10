@@ -28,7 +28,7 @@ class Atom : public HandleTrie::TrieValue {
      * @param type The type of the atom.
      * @throws std::runtime_error if type is empty.
      */
-    Atom(const string& type, const CustomAttributesMap& custom_attributes = CustomAttributesMap())
+    Atom(const string& type, const CustomAttributesMap& custom_attributes = {})
         : type(type), custom_attributes(custom_attributes) {
         this->validate();
     }
@@ -60,9 +60,7 @@ class Node : public Atom {
      * @param name The name of the node.
      * @throws std::runtime_error if type or name is empty.
      */
-    Node(const string& type,
-         const string& name,
-         const CustomAttributesMap& custom_attributes = CustomAttributesMap())
+    Node(const string& type, const string& name, const CustomAttributesMap& custom_attributes = {})
         : Atom(type, custom_attributes), name(name) {
         this->validate();
     }
@@ -119,7 +117,7 @@ class Link : public Atom {
      */
     Link(const string& type,
          const vector<const Atom*>& targets,
-         const CustomAttributesMap& custom_attributes = CustomAttributesMap())
+         const CustomAttributesMap& custom_attributes = {})
         : Atom(type, custom_attributes), targets(targets) {
         this->validate();
     }
@@ -133,7 +131,7 @@ class Link : public Atom {
      */
     Link(const string& type,
          vector<const Atom*>&& targets,
-         const CustomAttributesMap& custom_attributes = CustomAttributesMap())
+         const CustomAttributesMap& custom_attributes = {})
         : Atom(type, custom_attributes), targets(move(targets)) {
         this->validate();
     }
