@@ -16,8 +16,8 @@ namespace agents {
 class BaseProxy : public BusCommandProxy {
    public:
     // Commands allowed at the proxy level (caller <--> processor)
-    static string ABORT;          // Abort current command
-    static string FINISHED;       // Notification that all results have already been delivered
+    static string ABORT;     // Abort current command
+    static string FINISHED;  // Notification that all results have already been delivered
 
     BaseProxy();
     virtual ~BaseProxy();
@@ -87,7 +87,6 @@ class BaseProxy : public BusCommandProxy {
     string error_message;
 
    private:
-
     mutex api_mutex;
     bool abort_flag;
     bool command_finished_flag;

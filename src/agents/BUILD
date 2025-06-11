@@ -8,9 +8,9 @@ cc_library(
     hdrs = [],
     includes = ["."],
     deps = [
-        "//agents/query_engine:query_engine_lib",
-        "//agents/evolution:evolution_lib",
         ":base_proxy",
+        "//agents/evolution:evolution_lib",
+        "//agents/query_engine:query_engine_lib",
     ],
 )
 
