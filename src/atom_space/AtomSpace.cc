@@ -21,7 +21,7 @@ const Atom* AtomSpace::get_atom(const char* handle, Scope scope) {
         if (atom) {
             return dynamic_cast<const Atom*>(atom);
         } else if (scope == LOCAL_ONLY) {
-            return NULL;  // If LOCAL_ONLY, return NULL if not found locally.
+            return nullptr;  // If LOCAL_ONLY, return nullptr if not found locally.
         }
     }
     auto atom_document = this->db->get_atom_document(handle);
@@ -32,7 +32,7 @@ const Atom* AtomSpace::get_atom(const char* handle, Scope scope) {
             return atom;
         }
     }
-    return NULL;
+    return nullptr;
 }
 
 // -------------------------------------------------------------------------------------------------
@@ -44,7 +44,7 @@ const Node* AtomSpace::get_node(const string& type, const string& name, Scope sc
         return dynamic_cast<const Node*>(node);
     }
     free(handle);
-    return NULL;
+    return nullptr;
 }
 
 // -------------------------------------------------------------------------------------------------
@@ -56,7 +56,7 @@ const Link* AtomSpace::get_link(const string& type, const vector<const Atom*>& t
         return dynamic_cast<const Link*>(link);
     }
     free(handle);
-    return NULL;
+    return nullptr;
 }
 
 // -------------------------------------------------------------------------------------------------
@@ -98,7 +98,7 @@ void AtomSpace::pattern_matching_fetch(const vector<string>& query, size_t answe
     shared_ptr<QueryAnswer> query_answer;
     const char* handle;
     while (!proxy->finished()) {
-        if ((query_answer = proxy->pop()) == NULL) {
+        if ((query_answer = proxy->pop()) == nullptr) {
             Utils::sleep();
         } else {
             for (size_t i = 0; i < query_answer->handles_size; i++) {
@@ -146,9 +146,9 @@ void AtomSpace::commit_changes(Scope scope) {
             delete[] targets_handles;      // Clean up the dynamically allocated array
         } else {
             Utils::error("Unsupported Atom type for commit: " + trie_node->to_string());
-            return false;  // Unsupported type, cannot commit
+            return true;  // Unsupported type, cannot commit
         }
-        return true;
+        return false;
     };
     this->handle_trie->traverse(true, commit_changes_visit_lambda, this->db.get());
 }
@@ -178,7 +178,7 @@ Atom* AtomSpace::atom_from_document(const shared_ptr<AtomDocument>& document) {
         // Something unexpected
         throw runtime_error("Invalid AtomDocument: must contain either 'targets' or 'name'");
     }
-    return NULL;  // Should never reach here
+    return nullptr;  // Should never reach here
 }
 
 }  // namespace atomspace

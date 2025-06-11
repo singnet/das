@@ -171,19 +171,19 @@ class AtomSpace {
    protected:
     shared_ptr<AtomDB> db;  // to allow mocking in tests
 
-   private:
-    shared_ptr<ServiceBus> bus;
-    unique_ptr<HandleTrie> handle_trie;
-
     /**
      * @brief Create an Atom from a document.
      *
      * @param document The AtomDocument to create the Atom from.
-     * @return A pointer to the created Atom, or NULL if the document is invalid.
+     * @return A pointer to the created Atom, or nullptr if the document is invalid.
      * @throws std::runtime_error if the document is invalid (does not contain "targets" or "name").
      * @note The caller is responsible for deleting the returned Atom.
      */
     Atom* atom_from_document(const shared_ptr<AtomDocument>& document);
+
+   private:
+    shared_ptr<ServiceBus> bus;
+    unique_ptr<HandleTrie> handle_trie;
 };
 
 }  // namespace atomspace
