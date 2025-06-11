@@ -10,6 +10,8 @@
 #include <stdexcept>
 #include <thread>
 
+#include "Logger.h"
+
 using namespace commons;
 using namespace std;
 
@@ -20,7 +22,11 @@ Utils::Utils() {}
 
 Utils::~Utils() {}
 
-void Utils::error(string msg) { throw runtime_error(msg); }
+void Utils::error(string msg) {
+    LOG_ERROR(msg);
+    throw runtime_error(msg);
+}
+
 void Utils::warning(string msg) { cerr << msg << endl; }
 
 bool Utils::flip_coin(double true_probability) {
