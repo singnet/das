@@ -21,7 +21,7 @@ cc_library(
         "//atomdb:atomdb_api_types",
         "//atomdb:atomdb_singleton",
         "//commons:commons_lib",
-        "//link_creation_agent:link_creation_agent_lib",
+        "//agents/link_creation_agent:link_creation_agent_lib",
     ],
 )
 
@@ -40,7 +40,7 @@ cc_library(
     hdrs = ["inference_request.h"],
     deps = [
         "//commons:commons_lib",
-        "//link_creation_agent:link_creation_agent_lib",
+        "//agents/link_creation_agent:link_creation_agent_lib",
     ],
 )
 
@@ -51,6 +51,6 @@ cc_library(
     deps = [
         "//commons:commons_lib",
         "//distributed_algorithm_node:distributed_algorithm_node_lib",
-        "//link_creation_agent:link_creation_agent_lib",
+        "//agents/link_creation_agent:link_creation_agent_lib",
     ],
 )
