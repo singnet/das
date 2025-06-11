@@ -19,6 +19,7 @@ cc_library(
     hdrs = ["QueryEvolutionProxy.h"],
     includes = ["."],
     deps = [
+        "//agents:base_proxy",
         "//agents/query_engine:query_answer",
         "//commons:commons_lib",
         "//service_bus:service_bus_lib",
