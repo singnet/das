@@ -85,3 +85,4 @@ performance-tests:
 # Catch-all pattern to prevent make from complaining about unknown targets
 %:
 	@:
+
