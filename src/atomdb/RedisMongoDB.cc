@@ -24,6 +24,7 @@ uint RedisMongoDB::REDIS_CHUNK_SIZE;
 string RedisMongoDB::MONGODB_DB_NAME;
 string RedisMongoDB::MONGODB_COLLECTION_NAME;
 string RedisMongoDB::MONGODB_FIELD_NAME[MONGODB_FIELD::size];
+uint RedisMongoDB::MONGODB_CHUNK_SIZE;
 
 RedisMongoDB::RedisMongoDB() {
     redis_setup();
@@ -118,6 +119,14 @@ void RedisMongoDB::mongodb_setup() {
     string port = Utils::get_environment("DAS_MONGODB_PORT");
     string user = Utils::get_environment("DAS_MONGODB_USERNAME");
     string password = Utils::get_environment("DAS_MONGODB_PASSWORD");
+    try{
+        uint chunk_size = Utils::string_to_int(Utils::get_environment("DAS_MONGODB_CHUNK_SIZE"));
+        if (chunk_size > 0) {
+            MONGODB_CHUNK_SIZE = chunk_size;
+        }
+    } catch (const std::exception& e) {
+        Utils::warning("Error reading MongoDB chunk size, using default value");
+    }
     if (host == "" || port == "" || user == "" || password == "") {
         Utils::error(
             string("You need to set MongoDB access info as environment variables: ") +
@@ -318,30 +327,52 @@ char* RedisMongoDB::add_link(const char* type, char** targets, size_t targets_si
 vector<shared_ptr<atomdb_api_types::AtomDocument>> RedisMongoDB::get_atom_documents(
     vector<string>& handles, vector<string>& fields) {
     // TODO Add cache support for this method
-    this->mongodb_mutex.lock();
     vector<shared_ptr<atomdb_api_types::AtomDocument>> atom_documents;
+
+    if (handles.empty()) {
+        return atom_documents;
+    }
+
+    this->mongodb_mutex.lock();
     auto mongodb_collection = get_database()[MONGODB_COLLECTION_NAME];
-    bsoncxx::builder::stream::document filter_builder;
-    auto array = filter_builder << MONGODB_FIELD_NAME[MONGODB_FIELD::ID]
-                                << bsoncxx::builder::stream::open_document << "$in"
-                                << bsoncxx::builder::stream::open_array;
-    for (const auto& id : handles) {
-        array << id;
+
+    try {
+        // Process handles in batches
+        uint handle_count = handles.size();
+        for (size_t i = 0; i < handles.size(); i += MONGODB_CHUNK_SIZE) {
+            size_t batch_size = min(MONGODB_CHUNK_SIZE, uint(handle_count - i));
+            // Build filter
+            bsoncxx::builder::stream::document filter_builder;
+            auto array = filter_builder << MONGODB_FIELD_NAME[MONGODB_FIELD::ID]
+                                       << bsoncxx::builder::stream::open_document << "$in"
+                                       << bsoncxx::builder::stream::open_array;
+            for (int j = i; j < (i + batch_size); j++) {
+                array << handles[j];
+            }
+            array << bsoncxx::builder::stream::close_array << bsoncxx::builder::stream::close_document;
+
+            // Build projection
+            bsoncxx::builder::stream::document projection_builder;
+            for (const auto& field : fields) {
+                projection_builder << field << 1;
+            }
+
+            auto cursor = mongodb_collection.find(
+                filter_builder.view(),
+                mongocxx::options::find{}.projection(projection_builder.view())
+            );
+
+            for (const auto& view : cursor) {
+                core::v1::optional<bsoncxx::v_noabi::document::value> opt_val =
+                    bsoncxx::v_noabi::document::value(view);
+                auto atom_document = make_shared<atomdb_api_types::MongodbDocument>(opt_val);
+                atom_documents.push_back(atom_document);
+            }
+        }
+    } catch (const exception& e) {
+        Utils::error("MongoDB error: " + string(e.what()));
     }
-    array << bsoncxx::builder::stream::close_array << bsoncxx::builder::stream::close_document;
-    auto filter = filter_builder.view();
-    bsoncxx::builder::stream::document projection_builder;
-    for (const auto& field : fields) {
-        projection_builder << field << 1;  // Include the field in the projection
-    }
-    auto cursor =
-        mongodb_collection.find(filter, mongocxx::options::find{}.projection(projection_builder.view()));
-    for (const auto& view : cursor) {
-        core::v1::optional<bsoncxx::v_noabi::document::value> opt_val =
-            bsoncxx::v_noabi::document::value(view);
-        auto atom_document = make_shared<atomdb_api_types::MongodbDocument>(opt_val);
-        atom_documents.push_back(atom_document);
-    }
+
     this->mongodb_mutex.unlock();
     return atom_documents;
 }

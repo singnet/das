@@ -34,6 +34,7 @@ class RedisMongoDB : public AtomDB {
     static string MONGODB_DB_NAME;
     static string MONGODB_COLLECTION_NAME;
     static string MONGODB_FIELD_NAME[MONGODB_FIELD::size];
+    static uint MONGODB_CHUNK_SIZE;
 
     static void initialize_statics() {
         REDIS_PATTERNS_PREFIX = "patterns";
@@ -43,6 +44,7 @@ class RedisMongoDB : public AtomDB {
         MONGODB_COLLECTION_NAME = "atoms";
         MONGODB_FIELD_NAME[MONGODB_FIELD::ID] = "_id";
         MONGODB_FIELD_NAME[MONGODB_FIELD::TARGETS] = "targets";
+        MONGODB_CHUNK_SIZE = 1000;
     }
 
     shared_ptr<atomdb_api_types::HandleSet> query_for_pattern(shared_ptr<char> pattern_handle);

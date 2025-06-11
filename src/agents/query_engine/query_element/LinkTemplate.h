@@ -94,7 +94,6 @@ class LinkTemplate : public Source {
         this->query_element_registry = query_element_registry;
         this->target_template = move(targets);
         this->fetch_finished = false;
-        this->atom_document = NULL;
         this->local_answers = NULL;
         this->local_answers_size = 0;
         this->positive_importance_flag = false;
@@ -131,7 +130,6 @@ class LinkTemplate : public Source {
     virtual ~LinkTemplate() {
         this->graceful_shutdown();
         lock_guard<mutex> lock(this->local_answers_mutex);
-        if (this->atom_document) delete[] this->atom_document;
         if (this->local_answers) delete[] this->local_answers;
         if (this->next_inner_answer) delete[] this->next_inner_answer;
         while (!this->local_buffer.empty()) {
@@ -354,16 +352,16 @@ class LinkTemplate : public Source {
                 }
                 LOG_INFO("Considering " << answer_count << " links after importance filtering");
             }
-            this->atom_document = new shared_ptr<atomdb_api_types::AtomDocument>[answer_count];
+            vector<string> atom_fields = {"targets"};
+            this->atom_document = db->get_atom_documents(handles, atom_fields);
             this->local_answers = new QueryAnswer*[answer_count];
             this->next_inner_answer = new unsigned int[answer_count];
             it = this->fetch_result->get_iterator();
             unsigned int document_cursor = 0;
             unsigned int importance_cursor = 0;
-            while ((handle = it->next()) != nullptr) {
+            for (int i = 0; i < this->atom_document.size(); i++) {
                 if (!this->positive_importance_flag || (importance_list->list(importance_cursor) > 0)) {
-                    this->atom_document[document_cursor] = db->get_atom_document(handle);
-                    query_answer = new QueryAnswer(handle, importance_list->list(importance_cursor));
+                    query_answer = new QueryAnswer(strndup(handles[i].c_str(), HANDLE_HASH_SIZE - 1), importance_list->list(importance_cursor));
                     for (unsigned int j = 0; j < this->arity; j++) {
                         if (this->target_template[j]->is_terminal) {
                             auto terminal = dynamic_pointer_cast<Terminal>(this->target_template[j]);
@@ -533,7 +531,7 @@ class LinkTemplate : public Source {
     mutex fetch_finished_mutex;
     shared_ptr<QueryNodeServer> target_buffer[ARITY];
     shared_ptr<Iterator> inner_template_iterator;
-    shared_ptr<atomdb_api_types::AtomDocument>* atom_document;
+    vector<shared_ptr<atomdb_api_types::AtomDocument>> atom_document;
     QueryAnswer** local_answers;
     unsigned int* next_inner_answer;
     vector<QueryAnswer*> inner_answers;
