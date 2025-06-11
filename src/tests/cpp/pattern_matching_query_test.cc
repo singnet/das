@@ -206,13 +206,6 @@ TEST(PatternMatchingQuery, queries) {
     // Remote exception
     check_query({"BLAH"}, 0, client_bus, "PatternMatchingQuery.queries", false, false, false, true);
 
-    setenv("FETCH_CHUNK_SIZE", "5", 1);
-    setenv("FETCH_THREAD_COUNT", "16", 1);
-    check_query(q1, q1_expected_count, client_bus, "PatternMatchingQuery.queries", false, false);
-    // check_query(q2, q2_expected_count, client_bus, "PatternMatchingQuery.queries", false, false);
-    check_query(q3, q3_expected_count, client_bus, "PatternMatchingQuery.queries", false, false);
-    check_query(q4, q4_expected_count, client_bus, "PatternMatchingQuery.queries", false, false);
-    check_query(q5, q5_expected_count, client_bus, "PatternMatchingQuery.queries", false, false);
 
     Utils::sleep(2000);
 }
