@@ -39,9 +39,7 @@ class QueryEvolutionProcessor : public BusCommandProcessor {
     virtual void run_command(shared_ptr<BusCommandProxy> proxy);
 
    private:
-
-    void thread_process_one_query(shared_ptr<StoppableThread>,
-                                  shared_ptr<QueryEvolutionProxy> proxy);
+    void thread_process_one_query(shared_ptr<StoppableThread>, shared_ptr<QueryEvolutionProxy> proxy);
 
     void remove_query_thread(const string& stoppable_thread_id);
     map<string, shared_ptr<StoppableThread>> query_threads;

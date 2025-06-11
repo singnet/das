@@ -1,4 +1,5 @@
 #include "QueryEvolutionProcessor.h"
+
 #include "QueryEvolutionProxy.h"
 #include "ServiceBus.h"
 
@@ -33,10 +34,8 @@ void QueryEvolutionProcessor::run_command(shared_ptr<BusCommandProxy> proxy) {
         Utils::error("Invalid thread id: " + thread_id);
     } else {
         shared_ptr<StoppableThread> stoppable_thread = make_shared<StoppableThread>(thread_id);
-        stoppable_thread->attach(new thread(&QueryEvolutionProcessor::thread_process_one_query,
-                                            this,
-                                            stoppable_thread,
-                                            query_proxy));
+        stoppable_thread->attach(new thread(
+            &QueryEvolutionProcessor::thread_process_one_query, this, stoppable_thread, query_proxy));
         this->query_threads[thread_id] = stoppable_thread;
     }
 }
@@ -44,8 +43,8 @@ void QueryEvolutionProcessor::run_command(shared_ptr<BusCommandProxy> proxy) {
 // -------------------------------------------------------------------------------------------------
 // Private methods
 
-void QueryEvolutionProcessor::thread_process_one_query(
-    shared_ptr<StoppableThread> monitor, shared_ptr<QueryEvolutionProxy> proxy) {
+void QueryEvolutionProcessor::thread_process_one_query(shared_ptr<StoppableThread> monitor,
+                                                       shared_ptr<QueryEvolutionProxy> proxy) {
     try {
         if (proxy->args.size() < 2) {
             Utils::error("Syntax error in query command. Missing implicit parameters.");

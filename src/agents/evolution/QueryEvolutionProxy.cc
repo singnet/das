@@ -29,9 +29,7 @@ QueryEvolutionProxy::QueryEvolutionProxy(const vector<string>& tokens, const str
     this->args.insert(this->args.end(), tokens.begin(), tokens.end());
 }
 
-void QueryEvolutionProxy::set_default_query_parameters() {
-    this->unique_assignment_flag = false;
-}
+void QueryEvolutionProxy::set_default_query_parameters() { this->unique_assignment_flag = false; }
 
 void QueryEvolutionProxy::init() {
     this->answer_flow_finished = false;
@@ -41,8 +39,7 @@ void QueryEvolutionProxy::init() {
 }
 
 void QueryEvolutionProxy::pack_custom_args() {
-    vector<string> custom_args = {this->context,
-                                  to_string(this->unique_assignment_flag)};
+    vector<string> custom_args = {this->context, to_string(this->unique_assignment_flag)};
     this->args.insert(this->args.begin(), custom_args.begin(), custom_args.end());
 }
 

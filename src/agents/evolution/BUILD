@@ -8,8 +8,8 @@ cc_library(
     hdrs = [],
     includes = ["."],
     deps = [
-        ":query_evolution_proxy",
         ":query_evolution_processor",
+        ":query_evolution_proxy",
     ],
 )
 
