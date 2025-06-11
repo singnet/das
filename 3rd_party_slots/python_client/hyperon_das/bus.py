@@ -8,7 +8,7 @@ class BusCommand(str, enum.Enum):
 class Bus:
     def __init__(self, other: 'Bus' = None) -> None:
         if other is not None:
-            self._command_owner = dict(other.command_owner)
+            self._command_owner = dict(other._command_owner)
         else:
             self._command_owner = {}
 

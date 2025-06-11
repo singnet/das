@@ -176,7 +176,7 @@ class LinkTemplate2 : public Source {
                     break;
                 }
                 case 2: {
-                    this->inner_template_iterator = 
+                    this->inner_template_iterator =
                         make_shared<Iterator>(
                             make_shared<And<2>>(
                                 array<shared_ptr<QueryElement>, 2>(
@@ -190,7 +190,7 @@ class LinkTemplate2 : public Source {
                     break;
                 }
                 case 3: {
-                    this->inner_template_iterator = 
+                    this->inner_template_iterator =
                         make_shared<Iterator>(
                             make_shared<And<3>>(
                                 array<shared_ptr<QueryElement>, 3>(
@@ -305,7 +305,7 @@ class LinkTemplate2 : public Source {
             this->link_handles_to_query_answers.clear();
             // clang-format off
             while (
-                (query_answer = 
+                (query_answer =
                     dynamic_cast<QueryAnswer*>(this->inner_template_iterator->pop())) != NULL) {
                 // clang-format on
                 auto link_handle = this->get_link_handle(query_answer);

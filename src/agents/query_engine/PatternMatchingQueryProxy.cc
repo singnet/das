@@ -41,6 +41,7 @@ void PatternMatchingQueryProxy::init() {
     this->answer_flow_finished = false;
     this->abort_flag = false;
     this->answer_count = 0;
+    this->error_flag = false;
     set_default_query_parameters();
 }
 
@@ -157,22 +158,39 @@ void PatternMatchingQueryProxy::set_positive_importance_flag(bool flag) {
 }
 
 // ---------------------------------------------------------------------------------------------
-// Virtual superclass API from_remote_peer() and the piggyback methods called by it
+// Virtual superclass API and the piggyback methods called by it
 
-void PatternMatchingQueryProxy::from_remote_peer(const string& command, const vector<string>& args) {
+void PatternMatchingQueryProxy::raise_error(const string& error_message, unsigned int error_code) {
+    string error = "Exception thrown in command processor.";
+    if (error_code > 0) {
+        error += " Error code: " + std::to_string(error_code);
+    }
+    error += "\n";
+    error += error_message;
+    this->error_flag = true;
+    this->error_code = error_code;
+    this->error_message = error;
+    LOG_ERROR(error);
+    query_answers_finished({});
+}
+
+bool PatternMatchingQueryProxy::from_remote_peer(const string& command, const vector<string>& args) {
     LOG_DEBUG("Proxy command: <" << command << "> from " << this->peer_id() << " received in "
                                  << this->my_id());
-    if (command == ANSWER_BUNDLE) {
-        answer_bundle(args);
-    } else if (command == COUNT) {
-        count_answer(args);
-    } else if (command == FINISHED) {
-        query_answers_finished(args);
-    } else if (command == ABORT) {
-        abort(args);
-    } else {
-        Utils::error("Invalid proxy command: <" + command + ">");
+    if (!BusCommandProxy::from_remote_peer(command, args)) {
+        if (command == ANSWER_BUNDLE) {
+            answer_bundle(args);
+        } else if (command == COUNT) {
+            count_answer(args);
+        } else if (command == FINISHED) {
+            query_answers_finished(args);
+        } else if (command == ABORT) {
+            abort(args);
+        } else {
+            Utils::error("Invalid proxy command: <" + command + ">");
+        }
     }
+    return true;
 }
 
 void PatternMatchingQueryProxy::answer_bundle(const vector<string>& args) {

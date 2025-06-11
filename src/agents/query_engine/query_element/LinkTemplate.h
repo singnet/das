@@ -7,7 +7,6 @@
 // clang-format off
 #define LOG_LEVEL INFO_LEVEL
 #include "Logger.h"
-#include "Utils.h"
 // clang-format on
 
 #include "And.h"
@@ -22,7 +21,6 @@
 #include "SharedQueue.h"
 #include "Source.h"
 #include "Terminal.h"
-#include "ThreadPool.h"
 #include "attention_broker.grpc.pb.h"
 #include "attention_broker.pb.h"
 #include "expression_hasher.h"
@@ -35,6 +33,7 @@ using namespace attention_broker_server;
 using namespace atomdb;
 
 namespace query_element {
+
 /**
  * Concrete Source that searches for a pattern in the AtomDB and feeds the QueryElement up in the
  * query tree with the resulting links.
@@ -98,16 +97,8 @@ class LinkTemplate : public Source {
         this->atom_document = NULL;
         this->local_answers = NULL;
         this->local_answers_size = 0;
+        this->positive_importance_flag = false;
         this->local_buffer_processor = NULL;
-        int max_threads = std::thread::hardware_concurrency();
-        int fetch_threads = max_threads > 0 ? ceil(max_threads / 2) : 1;
-        this->chunk_size = Utils::get_environment("FETCH_CHUNK_SIZE").empty()
-                               ? 1000
-                               : Utils::string_to_int(Utils::get_environment("FETCH_CHUNK_SIZE"));
-        int thread_count = Utils::get_environment("FETCH_THREAD_COUNT").empty()
-                               ? fetch_threads
-                               : Utils::string_to_int(Utils::get_environment("FETCH_THREAD_COUNT"));
-        this->thread_pool = new ThreadPool(thread_count);
         bool wildcard_flag = (type == AtomDB::WILDCARD);
         this->handle_keys[0] =
             (wildcard_flag ? (char*) AtomDB::WILDCARD.c_str() : named_type_hash((char*) type.c_str()));
@@ -149,7 +140,6 @@ class LinkTemplate : public Source {
         for (auto* answer : this->inner_answers) {
             if (answer) delete answer;
         }
-        delete this->thread_pool;
         this->inner_answers.clear();
         this->inner_template.clear();
         this->inner_template_iterator.reset();
@@ -236,7 +226,6 @@ class LinkTemplate : public Source {
             // clang-format on
         }
         this->local_buffer_processor = new thread(&LinkTemplate::local_buffer_processor_method, this);
-        LOG_INFO("Starting local buffer processor thread for link template");
         fetch_links();
     }
 
@@ -252,6 +241,8 @@ class LinkTemplate : public Source {
         }
         return variables;
     }
+
+    void set_positive_importance_flag(bool flag) { this->positive_importance_flag = flag; }
 
    private:
     // --------------------------------------------------------------------------------------------
@@ -335,7 +326,6 @@ class LinkTemplate : public Source {
         LOG_INFO("Fetched " << answer_count << " links for link template " << this->to_string());
         QueryAnswer* query_answer;
         vector<QueryAnswer*> fetched_answers;
-        fetched_answers.resize(answer_count, NULL);
         if (answer_count > 0) {
             dasproto::HandleList handle_list;
             handle_list.set_context(this->context);
@@ -350,62 +340,43 @@ class LinkTemplate : public Source {
                              std::to_string(importance_list->list_size()) +
                              " Expected size: " + std::to_string(answer_count));
             }
+            if (this->positive_importance_flag) {
+                for (unsigned int i = 0; i < importance_list->list_size(); i++) {
+                    if (!(importance_list->list(i) > 0.0)) {
+                        answer_count--;
+                    }
+                }
+                LOG_INFO("Considering " << answer_count << " links after importance filtering");
+            }
             this->atom_document = new shared_ptr<atomdb_api_types::AtomDocument>[answer_count];
             this->local_answers = new QueryAnswer*[answer_count];
             this->next_inner_answer = new unsigned int[answer_count];
-            unsigned int db_count = 0;
-            vector<string> atom_fields = {"targets"};
-            chunk_size = chunk_size > answer_count ? answer_count : chunk_size;
-            int chunks = ceil(answer_count / float(chunk_size));
-            for (int j = 0; j < chunks; j++) {
-                int start = j * chunk_size;
-                int end = (j + 1) * chunk_size;
-                if (end > answer_count) {
-                    end = answer_count;
-                }
-                // clang-format off
-                auto job = [this, db, &db_count, start, end, &fetched_answers,
-                            importance_list, &handle_list, &atom_fields]() {
-                    // clang-format on
-                    vector<string> handles;
-                    for (int i = start; i < end; i++) {
-                        handles.push_back(handle_list.list(i));
-                    }
-                    auto atom_handle_list = db->get_atom_documents(handles, atom_fields);
-                    int c = 0;
-                    for (int i = start; i < end; i++) {
-                        auto handle = handle_list.list(i).c_str();
-                        this->atom_document[i] = atom_handle_list[c++];
-                        db_count++;
-                        QueryAnswer* query_answer = new QueryAnswer(
-                            strndup(handle, HANDLE_HASH_SIZE - 1), importance_list->list(i));
-                        for (unsigned int j = 0; j < this->arity; j++) {
-                            if (this->target_template[j]->is_terminal) {
-                                auto terminal = dynamic_pointer_cast<Terminal>(this->target_template[j]);
-                                if (terminal->is_variable) {
-                                    if (!query_answer->assignment.assign(
-                                            terminal->name.c_str(),
-                                            this->atom_document[i]->get("targets", j))) {
-                                        Utils::error("Error assigning variable: " + terminal->name +
-                                                     " a value: " +
-                                                     string(this->atom_document[i]->get("targets", j)));
-                                    }
+            it = this->fetch_result->get_iterator();
+            unsigned int document_cursor = 0;
+            unsigned int importance_cursor = 0;
+            while ((handle = it->next()) != nullptr) {
+                if (!this->positive_importance_flag || (importance_list->list(importance_cursor) > 0)) {
+                    this->atom_document[document_cursor] = db->get_atom_document(handle);
+                    query_answer = new QueryAnswer(handle, importance_list->list(importance_cursor));
+                    for (unsigned int j = 0; j < this->arity; j++) {
+                        if (this->target_template[j]->is_terminal) {
+                            auto terminal = dynamic_pointer_cast<Terminal>(this->target_template[j]);
+                            if (terminal->is_variable) {
+                                if (!query_answer->assignment.assign(
+                                        terminal->name.c_str(),
+                                        this->atom_document[document_cursor]->get("targets", j))) {
+                                    Utils::error(
+                                        "Error assigning variable: " + terminal->name + " a value: " +
+                                        string(this->atom_document[document_cursor]->get("targets", j)));
                                 }
                             }
                         }
-                        // show percentage
-                        int total = handle_list.list_size();
-                        if ((total / 10) > 0 && db_count % (total / 10) == 0) {
-                            LOG_INFO("Fetched " << (double(db_count) / double(total)) * double(100)
-                                                << "% atom documents from Mongo DB: " << db_count << "/"
-                                                << total);
-                        }
-                        fetched_answers[i] = query_answer;
                     }
-                };
-                thread_pool->enqueue(job);
+                    fetched_answers.push_back(query_answer);
+                    document_cursor++;
+                }
+                importance_cursor++;
             }
-            thread_pool->wait();
             std::sort(fetched_answers.begin(), fetched_answers.end(), less_than_query_answer());
             for (unsigned int i = 0; i < answer_count; i++) {
                 if (this->inner_template.size() == 0) {
@@ -565,8 +536,7 @@ class LinkTemplate : public Source {
     string context;
     QueryElementRegistry* query_element_registry;
     static mutex get_importance_mutex;
-    int chunk_size = 1000;
-    ThreadPool* thread_pool;
+    bool positive_importance_flag;
 };
 
 template <unsigned int ARITY>

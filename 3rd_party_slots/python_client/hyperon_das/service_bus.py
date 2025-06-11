@@ -10,7 +10,7 @@ class ServiceBus:
     def __init__(self, host_id: str, known_peer: str, commands: list[str], port_lower: int, port_upper: int):
         self.service_list: list[str] = []
         self.next_request_serial: int = 0
-        self.bus_node: 'BusNode' = BusNode(host_id, commands, known_peer)
+        self.bus_node = BusNode(host_id, commands, known_peer)
         PortPool.initialize_statics(port_lower, port_upper)
 
     def issue_bus_command(self, proxy: 'PatternMatchingQueryHandler'):

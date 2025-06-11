@@ -70,7 +70,7 @@ def pattern_matching_query(
         while count < int(max_query_answers) and not proxy.finished():
             answer = proxy.pop()
             if answer:
-                print(f"query_answer: {answer}")
+                print(f"query_answer: {answer.to_string()}")
                 count += 1
             else:
                 time.sleep(0.1)

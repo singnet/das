@@ -84,6 +84,9 @@ class BusCommandProxy {
     friend class ServiceBus;
 
    public:
+    // Commands allowed at the proxy level (caller <--> processor)
+    static string PEER_ERROR;  // Raise an error in peer
+
     /**
      * Basic constructor.
      */
@@ -142,6 +145,11 @@ class BusCommandProxy {
      */
     string peer_id();
 
+    /**
+     * Piggyback method called when raise_error_on_peer() is called in peer's side.
+     */
+    virtual void raise_error(const string& error_message, unsigned int error_code = 0);
+
     // ---------------------------------------------------------------------------------------------
     // BusCommandProxy RPC
 
@@ -168,13 +176,23 @@ class BusCommandProxy {
      *
      * @param command RPC command
      * @param args RPC command's arguments
+     * @return true iff the command is supposed to be processed in this
+     * class (rather than in a subclass).
      */
-    virtual void from_remote_peer(const string& command, const vector<string>& args) = 0;
+    virtual bool from_remote_peer(const string& command, const vector<string>& args);
 
     /**
      * Pack specific command args (in concrete subclasses) into args vector
      */
     virtual void pack_custom_args() = 0;
+
+    /**
+     * Raise an error on remote peer by calling raise_error() passing the error code and message.
+     *
+     * Subclasses may override raise_error() to catch errors and prevent the exception from
+     * being actually raised.
+     */
+    void raise_error_on_peer(const string& error_message, unsigned int error_code = 0);
 
     string command;
     vector<string> args;

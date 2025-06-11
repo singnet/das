@@ -104,8 +104,9 @@ create_issue_card() {
   local TITLE="$ISSUE_NAME"
   local BODY="This issue was automatically created from issue #$ISSUE_NUMBER in the repository $REPO."
 
+  local ASSIGNEES_JSON
   if [[ -n "$ASSIGNEES" ]]; then
-    ASSIGNEES_JSON=$(jq -n --argjson arr "$(jq -R 'split(",")' <<<"$ASSIGNEES")" '$arr')
+    ASSIGNEES_JSON="$ASSIGNEES"
   else
     ASSIGNEES_JSON="[]"
   fi
@@ -131,7 +132,21 @@ get_issue_assignees() {
 
   curl -s -H "Authorization: Bearer $GH_TOKEN" \
     -H "Accept: application/vnd.github+json" \
-    "$API_URL/repos/$REPO/issues/$ISSUE_NUMBER" | jq -r '.assignees | map(.login) | join(",")'
+    "$API_URL/repos/$REPO/issues/$ISSUE_NUMBER" \
+    | jq '[.assignees[]?.login]'
+}
+
+
+move_issue_to_column() {
+  local PROJECT_ID="$1"
+  local PROJECT_ITEM_ID="$2"
+  local FIELD_ID="$3"
+  local TARGET_COLUMN_ID="$4"
+
+  curl -s -X POST "$API_URL/graphql" \
+    -H "Authorization: bearer $GH_TOKEN" \
+    -H "Content-Type: application/json" \
+    -d "$(build_mutation_payload "$PROJECT_ID" "$PROJECT_ITEM_ID" "$FIELD_ID" "$TARGET_COLUMN_ID")"
 }
 
 main() {
@@ -145,14 +160,29 @@ main() {
 
     PROJECT_ID=$(echo "$FIELDS_RESPONSE" | jq -r '.data.organization.projectV2.id')
     STATUS_FIELD=$(echo "$FIELDS_RESPONSE" | jq -c '.data.organization.projectV2.fields.nodes[] | select(.name == "Status")')
+    PRIORITY_FIELD=$(echo "$FIELDS_RESPONSE" | jq -c '.data.organization.projectV2.fields.nodes[] | select(.name == "Priority")')
+
     STATUS_FIELD_ID=$(echo "$STATUS_FIELD" | jq -r '.id')
+    PRIORITY_FIELD_ID=$(echo "$PRIORITY_FIELD" | jq -r '.id')
+
     TARGET_COLUMN_ID=$(echo "$STATUS_FIELD" | jq -r --arg col "$TARGET_COLUMN_NAME" '.options[] | select(.name == $col) | .id')
+
+    PRIORITY_COLUMN_NAME="🏔 High"
+    PRIORITY_COLUMN_ID=$(echo "$PRIORITY_FIELD" | jq -r --arg col "$PRIORITY_COLUMN_NAME" '.options[] | select(.name == $col) | .id')
 
     echo "Project ID: $PROJECT_ID"
     echo "Field 'Status': $STATUS_FIELD_ID"
     echo "Target column: $TARGET_COLUMN_NAME ($TARGET_COLUMN_ID)"
+    echo "Priority field: $PRIORITY_FIELD_ID"
+    echo "Priority column: $PRIORITY_COLUMN_NAME ($PRIORITY_COLUMN_ID)"
 
-    ISSUE_ASSIGNEES=$(get_issue_assignees "$ISSUE_NUMBER")
+    if [[ "$ISSUE_ASSIGNEES" == "[]" || -z "$ISSUE_ASSIGNEES" ]]; then
+      ISSUE_ASSIGNEES=$(get_issue_assignees "$ISSUE_NUMBER")
+      if [ -z "$ISSUE_ASSIGNEES" ]; then
+        echo "No assignees found for issue #$ISSUE_NUMBER."
+      fi
+    fi
+
     if [ -z "$ISSUE_ASSIGNEES" ]; then
       echo "No assignees found for issue #$ISSUE_NUMBER."
     fi
@@ -187,12 +217,12 @@ main() {
 
     echo "Issue #$ITEM_NUMBER added to project $PROJECT_NUMBER."
 
-    echo "Moving card to '$TARGET_COLUMN_NAME'..."
-    curl -s -X POST "$API_URL/graphql" \
-      -H "Authorization: bearer $GH_TOKEN" \
-      -H "Content-Type: application/json" \
-      -d "$(build_mutation_payload "$PROJECT_ID" "$PROJECT_ITEM_ID" "$STATUS_FIELD_ID" "$TARGET_COLUMN_ID")"
+    echo "Move card to $PRIORITY_COLUMN_NAME column..."
+    move_issue_to_column "$PROJECT_ID" "$PROJECT_ITEM_ID" "$PRIORITY_FIELD_ID" "$PRIORITY_COLUMN_ID"
+    echo "Card moved to $PRIORITY_COLUMN_NAME column successfully!"
 
+    echo "Moving card to '$TARGET_COLUMN_NAME'..."
+    move_issue_to_column "$PROJECT_ID" "$PROJECT_ITEM_ID" "$STATUS_FIELD_ID" "$TARGET_COLUMN_ID"
     echo "Card moved successfully!"
   else
     echo "Label '$LABEL_NAME' not found on issue #$ISSUE_NUMBER. No action taken."

@@ -12,9 +12,10 @@ class TestProxy : public BusCommandProxy {
     vector<string> remote_args;
     TestProxy() {}
     TestProxy(const string& command, vector<string>& args) : BusCommandProxy(command, args) {}
-    void from_remote_peer(const string& command, const vector<string>& args) {
+    bool from_remote_peer(const string& command, const vector<string>& args) {
         this->remote_command = command;
         this->remote_args = args;
+        return true;
     }
     void pack_custom_args() {}
 };

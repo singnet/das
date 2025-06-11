@@ -9,7 +9,7 @@ use hyperon_atom::{matcher::BindingsSet, Atom};
 
 use crate::{query_with_das, service_bus::ServiceBus};
 
-use hyperon_space::{Space, SpaceCommon, SpaceEvent, SpaceMut, SpaceVisitor};
+use hyperon_space::{Space, SpaceCommon, SpaceMut, SpaceVisitor};
 
 #[derive(Clone)]
 pub struct DistributedAtomSpace {
@@ -27,15 +27,15 @@ impl DistributedAtomSpace {
 		query_with_das(self.name.clone(), self.service_bus.clone(), query).unwrap()
 	}
 
-	pub fn add(&mut self, atom: Atom) {
+	pub fn add(&mut self, _atom: Atom) {
 		todo!()
 	}
 
-	pub fn remove(&mut self, atom: &Atom) -> bool {
+	pub fn remove(&mut self, _atom: &Atom) -> bool {
 		todo!()
 	}
 
-	pub fn replace(&mut self, from: &Atom, to: Atom) -> bool {
+	pub fn replace(&mut self, _from: &Atom, _to: Atom) -> bool {
 		todo!()
 	}
 }

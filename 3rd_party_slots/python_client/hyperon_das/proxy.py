@@ -10,6 +10,7 @@ import hyperon_das._grpc.common_pb2 as common__pb2
 from hyperon_das.bus import BusCommand
 from hyperon_das.port_pool import PortPool
 from hyperon_das.logger import log
+from hyperon_das.query_answer import QueryAnswer
 
 
 class BaseCommandProxy(abc.ABC):
@@ -22,7 +23,7 @@ class BaseCommandProxy(abc.ABC):
         self.proxy_node: 'AtomSpaceNodeManager' = None
         self.requestor_id: str = None
         self.serial: int = None
-    
+
     @abc.abstractmethod
     def process_message(self, msg: list[str]) -> None:
         """Processes received messages. Must be implemented by subclasses."""
@@ -44,8 +45,8 @@ class BaseCommandProxy(abc.ABC):
 
     def graceful_shutdown(self):
         """Performs a graceful shutdown of the proxy node, releasing the port."""
-        log.info(f"graceful_shutdown port: {self.proxy_port}")
         if self.proxy_port != 0:
+            log.info(f"graceful_shutdown port: {self.proxy_port}")
             if self.proxy_node:
                 self.proxy_node.stop()
                 self.proxy_node.wait_for_termination()
@@ -92,7 +93,7 @@ class PatternMatchingQueryHandler(BaseCommandProxy):
                 )
             )
 
-    def pop(self):
+    def pop(self) -> QueryAnswer | None:
         """Pops and returns the next item from the answer queue, if available."""
         with self._lock:
             if self.count_flag:
@@ -109,19 +110,21 @@ class PatternMatchingQueryHandler(BaseCommandProxy):
     def process_message(self, msg: list[str]) -> None:
         """Processes received messages, updating the answer queue or flags."""
         with self._lock:
-            for item in msg:
-                if item == self.FINISHED:
+            for tokens in msg:
+                if tokens == self.FINISHED:
                     if not self.abort_flag:
                         self.answer_flow_finished = True
                     break
-                elif item == self.ABORT:
+                elif tokens == self.ABORT:
                     self.abort_flag = True
                     break
-                elif item in [self.ANSWER_BUNDLE, self.COUNT]:
+                elif tokens in [self.ANSWER_BUNDLE, self.COUNT]:
                     continue
                 else:
                     self.answer_count += 1
-                    self.answer_queue.put(item)
+                    query_answer = QueryAnswer()
+                    query_answer.untokenize(tokens)                    
+                    self.answer_queue.put(query_answer)
 
 
 class AtomSpaceNodeManager:
