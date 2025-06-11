@@ -37,25 +37,21 @@ const Atom* AtomSpace::get_atom(const char* handle, Scope scope) {
 
 // -------------------------------------------------------------------------------------------------
 const Node* AtomSpace::get_node(const string& type, const string& name, Scope scope) {
-    auto handle = Node::compute_handle(type, name);
-    auto node = this->get_atom(handle, scope);
+    unique_ptr<char, HandleDeleter> handle(Node::compute_handle(type, name));
+    auto node = this->get_atom(handle.get(), scope);
     if (node) {
-        free(handle);
         return dynamic_cast<const Node*>(node);
     }
-    free(handle);
     return nullptr;
 }
 
 // -------------------------------------------------------------------------------------------------
 const Link* AtomSpace::get_link(const string& type, const vector<const Atom*>& targets, Scope scope) {
-    auto handle = Link::compute_handle(type, targets);
-    auto link = this->get_atom(handle, scope);
+    unique_ptr<char, HandleDeleter> handle(Link::compute_handle(type, targets));
+    auto link = this->get_atom(handle.get(), scope);
     if (link) {
-        free(handle);
         return dynamic_cast<const Link*>(link);
     }
-    free(handle);
     return nullptr;
 }
 
@@ -138,12 +134,12 @@ void AtomSpace::commit_changes(Scope scope) {
         if (const auto node = dynamic_cast<const Node*>(trie_node->value)) {
             db->add_node(node->type.c_str(), node->name.c_str(), node->custom_attributes);
         } else if (const auto link = dynamic_cast<const Link*>(trie_node->value)) {
-            auto targets_handles = Link::targets_to_handles(link->targets);  // Will be freed later
-            db->add_link(
-                link->type.c_str(), targets_handles, link->targets.size(), link->custom_attributes);
-            for (size_t i = 0; i < link->targets.size(); i++)
-                free(targets_handles[i]);  // Clean up the dynamically allocated handles
-            delete[] targets_handles;      // Clean up the dynamically allocated array
+            unique_ptr<char*[], TargetHandlesDeleter> targets_handles(
+                Link::targets_to_handles(link->targets), TargetHandlesDeleter(link->targets.size()));
+            db->add_link(link->type.c_str(),
+                         targets_handles.get(),
+                         link->targets.size(),
+                         link->custom_attributes);
         } else {
             Utils::error("Unsupported Atom type for commit: " + trie_node->to_string());
             return true;  // Unsupported type, cannot commit

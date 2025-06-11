@@ -14,10 +14,6 @@ using namespace atomspace;
 using namespace atomdb;
 using namespace atomdb_api_types;
 
-struct HandleDeleter {
-    void operator()(char* ptr) const { free(ptr); }
-};
-
 // Mock AtomDocument for testing
 class MockAtomDocument : public AtomDocument {
    private:
@@ -321,7 +317,8 @@ TEST_F(AtomSpaceTest, CommitLinksRemote) {
     vector<const Atom*> targets;
     targets.push_back(space->get_atom(node1_handle.get(), AtomSpace::LOCAL_ONLY));
     targets.push_back(space->get_atom(node2_handle.get(), AtomSpace::LOCAL_ONLY));
-    auto targets_handles = Link::targets_to_handles(targets);
+    unique_ptr<char*[], TargetHandlesDeleter> targets_handles(Link::targets_to_handles(targets),
+                                                              TargetHandlesDeleter(targets.size()));
 
     unique_ptr<char, HandleDeleter> link_handle(space->add_link("ListLink", targets));
 
@@ -335,7 +332,8 @@ TEST_F(AtomSpaceTest, CommitLinksRemote) {
         EXPECT_EQ(get<1>(mock_db->add_link_calls[0])[i], targets_handles[i]);
     }
 
-    delete[] targets_handles;
+    // for (size_t i = 0; i < targets.size(); i++) free(targets_handles[i]);
+    // delete[] targets_handles;
 }
 
 // Global test environment for AtomDB initialization

@@ -17,6 +17,29 @@ using namespace atomdb::atomdb_api_types;
 
 namespace atomspace {
 
+struct HandleDeleter {
+    void operator()(char* ptr) const { free(ptr); }
+};
+
+struct TargetHandlesDeleter {
+    size_t size;
+
+    TargetHandlesDeleter(size_t s) : size(s) {}
+
+    void operator()(char** ptr) const {
+        if (ptr) {
+            // Free each individual string
+            for (size_t i = 0; i < size; i++) {
+                if (ptr[i]) {
+                    free(ptr[i]);
+                }
+            }
+            // Free the array itself
+            delete[] ptr;
+        }
+    }
+};
+
 // -------------------------------------------------------------------------------------------------
 class Atom : public HandleTrie::TrieValue {
    public:
@@ -211,12 +234,9 @@ class Link : public Atom {
      * @note Caller is responsible for freeing the returned handle.
      */
     static char* compute_handle(const string& type, const vector<const Atom*>& targets) {
-        auto targets_handles = Link::targets_to_handles(targets);  // Will be freed later
-        auto link_handle = Link::compute_handle(type.c_str(), targets_handles, targets.size());
-        for (size_t i = 0; i < targets.size(); i++)
-            free(targets_handles[i]);  // Clean up the dynamically allocated handles
-        delete[] targets_handles;      // Clean up the dynamically allocated array
-        return link_handle;
+        unique_ptr<char*[], TargetHandlesDeleter> targets_handles(Link::targets_to_handles(targets),
+                                                                  TargetHandlesDeleter(targets.size()));
+        return Link::compute_handle(type.c_str(), targets_handles.get(), targets.size());
     }
 
     /**
@@ -231,11 +251,11 @@ class Link : public Atom {
      * @note Caller is responsible for freeing the returned handle.
      */
     static char* compute_handle(const string& type, const vector<string>& targets) {
-        char** targets_handles = new char*[targets.size()];  // Will be freed later
+        unique_ptr<char*[], TargetHandlesDeleter> targets_handles(new char*[targets.size()],
+                                                                  TargetHandlesDeleter(targets.size()));
         size_t i = 0;
         for (const auto& target : targets) targets_handles[i++] = (char*) target.c_str();
-        auto link_handle = Link::compute_handle(type.c_str(), targets_handles, targets.size());
-        delete[] targets_handles;  // Clean up the dynamically allocated array
+        auto link_handle = Link::compute_handle(type.c_str(), targets_handles.get(), targets.size());
         return link_handle;
     }
 
@@ -263,10 +283,8 @@ class Link : public Atom {
             throw runtime_error("Link must have at least " + std::to_string(MINIMUM_TARGETS_SIZE) +
                                 " targets");
         }
-        char* type_hash = named_type_hash((char*) type);
-        auto handle = expression_hash(type_hash, targets_handles, targets_size);
-        free(type_hash);
-        return handle;
+        unique_ptr<char, HandleDeleter> type_hash(named_type_hash((char*) type));
+        return expression_hash(type_hash.get(), targets_handles, targets_size);
     }
 };
 

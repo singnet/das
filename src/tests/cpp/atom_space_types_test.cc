@@ -64,13 +64,12 @@ TEST(LinkTest, LinkTargetsToHandles) {
     Node n1("Type1", "Name1");
     Node n2("Type2", "Name2");
     vector<const Atom*> targets = {&n1, &n2};
-    char** handles = Link::targets_to_handles(targets);
+    unique_ptr<char*[], TargetHandlesDeleter> handles(Link::targets_to_handles(targets),
+                                                      TargetHandlesDeleter(targets.size()));
     ASSERT_NE(handles, nullptr);
     for (size_t i = 0; i < targets.size(); ++i) {
         ASSERT_NE(handles[i], nullptr);
-        free(handles[i]);
     }
-    delete[] handles;
 }
 
 TEST(LinkTest, LinkComputeHandleFromAtoms) {
