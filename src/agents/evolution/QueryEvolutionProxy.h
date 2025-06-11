@@ -9,21 +9,21 @@
 
 using namespace std;
 using namespace service_bus;
-using namespace distributed_algorithm_node;
+using namespace query_engine;
 
-namespace query_engine {
+namespace evolution {
 
 /**
- * Proxy which allows communication between the caller of the PATTERN_MATCHONG_COMMAND and
+ * Proxy which allows communication between the caller of the QUERY_EVOLUTION command and
  * the bus element actually executing it.
  *
- * The caller can use this object in order to iterate through results of the query and to
- * abort the query execution before it finished.
+ * The caller can use this object in order to iterate through results of the command and to
+ * abort the command execution before it finished.
  *
- * On the command processor side, this object is used to retrieve query parameters (e.g.
+ * On the command processor side, this object is used to retrieve command parameters (e.g.
  * the actual query tokens, flags etc).
  */
-class PatternMatchingQueryProxy : public BusCommandProxy {
+class QueryEvolutionProxy : public BusCommandProxy {
    public:
     // ---------------------------------------------------------------------------------------------
     // Constructors, destructors and static state
@@ -31,13 +31,12 @@ class PatternMatchingQueryProxy : public BusCommandProxy {
     // Commands allowed at the proxy level (caller <--> processor)
     static string ABORT;          // Abort current query
     static string ANSWER_BUNDLE;  // Delivery of a bundle with QueryAnswer objects
-    static string COUNT;          // Delivery of the final result of a count_only query
     static string FINISHED;       // Notification that all query results have alkready been delivered
 
     /**
      * Empty constructor typically used on server side.
      */
-    PatternMatchingQueryProxy();
+    QueryEvolutionProxy();
 
     /**
      * Basic constructor typically used on client side.
@@ -45,12 +44,12 @@ class PatternMatchingQueryProxy : public BusCommandProxy {
      * @param tokens Query tokens.
      * @param context AttentionBroker context
      */
-    PatternMatchingQueryProxy(const vector<string>& tokens, const string& context);
+    QueryEvolutionProxy(const vector<string>& tokens, const string& context);
 
     /**
      * Destructor.
      */
-    virtual ~PatternMatchingQueryProxy();
+    virtual ~QueryEvolutionProxy();
 
     // ---------------------------------------------------------------------------------------------
     // Client-side API
@@ -73,14 +72,11 @@ class PatternMatchingQueryProxy : public BusCommandProxy {
     shared_ptr<QueryAnswer> pop();
 
     /**
-     * Returns the number of QueryAnswers delivered so far or the total number of answers in a
-     * count_only query.
+     * Returns the number of QueryAnswers delivered so far.
      *
-     * NOTE: the count (when used in a regular i.e. count_only=false) is for delivered answers,
-     * not iterated ones.
+     * NOTE: the count is for delivered answers not iterated ones.
      *
-     * @return The number of QueryAnswers delivered so far or the total number of answers in a
-     * count_only query.
+     * @return The number of QueryAnswers delivered so far.
      */
     unsigned int get_count();
 
@@ -132,44 +128,6 @@ class PatternMatchingQueryProxy : public BusCommandProxy {
     // Query parameters getters and setters
 
     /**
-     * Getter for attention_update_flag
-     *
-     * attention_update_flag tells the processor whether AttentionBroker is supposed to be updated
-     * when the query is being processed.
-     *
-     * @return attention_update_flag
-     */
-    bool get_attention_update_flag();
-
-    /**
-     * Setter for attention_update_flag
-     *
-     * attention_update_flag tells the processor whether AttentionBroker is supposed to be updated
-     * when the query is being processed.
-     *
-     * @param flag Flag
-     */
-    void set_attention_update_flag(bool flag);
-
-    /**
-     * Getter for count_flag
-     *
-     * count_flag tells the processor whether the query is count_only
-     *
-     * @return count_flag
-     */
-    bool get_count_flag();
-
-    /**
-     * Setter for count_flag
-     *
-     * count_flag tells the processor whether the query is count_only
-     *
-     * @param flag Flag
-     */
-    void set_count_flag(bool flag);
-
-    /**
      * Getter for unique_assignment_flag
      *
      * unique_assignment_flag prevents duplicated variable assignment in Operators' output
@@ -186,24 +144,6 @@ class PatternMatchingQueryProxy : public BusCommandProxy {
      * @param flag Flag
      */
     void set_unique_assignment_flag(bool flag);
-
-    /**
-     * Getter for positive_importance_flag
-     *
-     * positive_importance_flag indicates that only answers whose importance > 0 are to be returned
-     *
-     * @return positive_importance_flag
-     */
-    bool get_positive_importance_flag();
-
-    /**
-     * Setter for positive_importance_flag
-     *
-     * positive_importance_flag indicates that only answers whose importance > 0 are to be returned
-     *
-     * @param flag Flag
-     */
-    void set_positive_importance_flag(bool flag);
 
     // ---------------------------------------------------------------------------------------------
     // Virtual superclass API and the piggyback methods called by it
@@ -240,13 +180,6 @@ class PatternMatchingQueryProxy : public BusCommandProxy {
     void answer_bundle(const vector<string>& args);
 
     /**
-     * Piggyback method called by COUNT command
-     *
-     * @param args Command arguments (one argument with the total number of answers)
-     */
-    void count_answer(const vector<string>& args);
-
-    /**
      * Piggyback method called by FINISHED command
      *
      * @param args Command arguments (empty for FINISHED command)
@@ -272,20 +205,9 @@ class PatternMatchingQueryProxy : public BusCommandProxy {
     // ---------------------------------------------------------------------------------------------
     // Query parameters
 
-    // Triggers AttentionBroker update based on this query's results
-    bool update_attention_broker;
-
     // When true, operators (e.g. And, Or) don't output more than one
     // QueryAnswer with the same variable assignment.
     bool unique_assignment_flag;
-
-    // Indicates that only answres whose importance > 0 are supposed to be returned
-    bool positive_importance_flag;
-
-    // indicates that this query is supposed to count the results and not
-    // actually provide the query answers (i.e. no QueryAnswer is sent from the
-    // command executor and the caller of the query).
-    bool count_flag;
 };
 
-}  // namespace query_engine
+}  // namespace evolution
