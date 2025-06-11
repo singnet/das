@@ -1248,8 +1248,8 @@
         "bzlTransitiveDigest": "mLtDDq7T+aT/HQ/12nj2s0WRihrguWSxSPW4ESkta+Q=",
         "usagesDigest": "l42R1Kgi9Hg+b5Ckec7/dh8Qv2d3RXCVukvBI/vt6Js=",
         "recordedFileInputs": {
-          "@@//deps/requirements_atomdb_lock.txt": "fe4d4fc7664d539ba5b347c12959073d0b4a328237d470734d0d59e4d2f1100c",
-          "@@//deps/requirements_das_lock.txt": "e0616258a2e3b4c72905ee8a1923800f335c68c180516973380e5732b3d908f0",
+          "@@//deps/requirements_atomdb_lock.txt": "8f881341c3da863d19c8c2a73d443cb753a0d8214540db57d7f4ac7a6822b41a",
+          "@@//deps/requirements_das_lock.txt": "22a93564c4045d1b25a0b16f01ca0911c887494a37e9facad2730a682511f0a2",
           "@@//deps/requirements_dev_lock.txt": "107ebb98d3f233030b6b87e249f531fc59cf39f3a4bddc6b68356e4773a23a8a",
           "@@grpc+//requirements.bazel.txt": "4c8c19a2a8f22108bf29feb5cc2694eb0c7e0c82ba0364df27fe5f5e4d7936e5",
           "@@protobuf+//python/requirements.txt": "983be60d3cec4b319dcab6d48aeb3f5b2f7c3350f26b3a9e97486c37967c73c5",
@@ -3443,15 +3443,6 @@
               "requirement": "dnspython==2.7.0"
             }
           },
-          "pypi_atomdb_310_hyperon_das_atomdb_cpp": {
-            "repoRuleId": "@@rules_python+//python/private/pypi:whl_library.bzl%whl_library",
-            "attributes": {
-              "dep_template": "@pypi_atomdb//{name}:{target}",
-              "python_interpreter_target": "@@rules_python++python+python_3_10_host//:python",
-              "repo": "pypi_atomdb_310",
-              "requirement": "hyperon-das-atomdb-cpp==0.10.1"
-            }
-          },
           "pypi_atomdb_310_pymongo": {
             "repoRuleId": "@@rules_python+//python/private/pypi:whl_library.bzl%whl_library",
             "attributes": {
@@ -3477,15 +3468,6 @@
               "python_interpreter_target": "@@rules_python++python+python_3_10_host//:python",
               "repo": "pypi_atomdb_310",
               "requirement": "redis==5.2.1"
-            }
-          },
-          "pypi_das_310_async_timeout": {
-            "repoRuleId": "@@rules_python+//python/private/pypi:whl_library.bzl%whl_library",
-            "attributes": {
-              "dep_template": "@pypi_das//{name}:{target}",
-              "python_interpreter_target": "@@rules_python++python+python_3_10_host//:python",
-              "repo": "pypi_das_310",
-              "requirement": "async-timeout==5.0.1"
             }
           },
           "pypi_das_310_beautifulsoup4": {
@@ -3515,15 +3497,6 @@
               "requirement": "charset-normalizer==3.4.1"
             }
           },
-          "pypi_das_310_dnspython": {
-            "repoRuleId": "@@rules_python+//python/private/pypi:whl_library.bzl%whl_library",
-            "attributes": {
-              "dep_template": "@pypi_das//{name}:{target}",
-              "python_interpreter_target": "@@rules_python++python+python_3_10_host//:python",
-              "repo": "pypi_das_310",
-              "requirement": "dnspython==2.7.0"
-            }
-          },
           "pypi_das_310_google": {
             "repoRuleId": "@@rules_python+//python/private/pypi:whl_library.bzl%whl_library",
             "attributes": {
@@ -3542,24 +3515,6 @@
               "requirement": "grpcio==1.71.0"
             }
           },
-          "pypi_das_310_hyperon_das_atomdb": {
-            "repoRuleId": "@@rules_python+//python/private/pypi:whl_library.bzl%whl_library",
-            "attributes": {
-              "dep_template": "@pypi_das//{name}:{target}",
-              "python_interpreter_target": "@@rules_python++python+python_3_10_host//:python",
-              "repo": "pypi_das_310",
-              "requirement": "hyperon-das-atomdb==0.10.1"
-            }
-          },
-          "pypi_das_310_hyperon_das_atomdb_cpp": {
-            "repoRuleId": "@@rules_python+//python/private/pypi:whl_library.bzl%whl_library",
-            "attributes": {
-              "dep_template": "@pypi_das//{name}:{target}",
-              "python_interpreter_target": "@@rules_python++python+python_3_10_host//:python",
-              "repo": "pypi_das_310",
-              "requirement": "hyperon-das-atomdb-cpp==0.0.2"
-            }
-          },
           "pypi_das_310_idna": {
             "repoRuleId": "@@rules_python+//python/private/pypi:whl_library.bzl%whl_library",
             "attributes": {
@@ -3576,33 +3531,6 @@
               "python_interpreter_target": "@@rules_python++python+python_3_10_host//:python",
               "repo": "pypi_das_310",
               "requirement": "protobuf==4.25.6"
-            }
-          },
-          "pypi_das_310_pymongo": {
-            "repoRuleId": "@@rules_python+//python/private/pypi:whl_library.bzl%whl_library",
-            "attributes": {
-              "dep_template": "@pypi_das//{name}:{target}",
-              "python_interpreter_target": "@@rules_python++python+python_3_10_host//:python",
-              "repo": "pypi_das_310",
-              "requirement": "pymongo==4.5.0"
-            }
-          },
-          "pypi_das_310_python_dotenv": {
-            "repoRuleId": "@@rules_python+//python/private/pypi:whl_library.bzl%whl_library",
-            "attributes": {
-              "dep_template": "@pypi_das//{name}:{target}",
-              "python_interpreter_target": "@@rules_python++python+python_3_10_host//:python",
-              "repo": "pypi_das_310",
-              "requirement": "python-dotenv==1.0.1"
-            }
-          },
-          "pypi_das_310_redis": {
-            "repoRuleId": "@@rules_python+//python/private/pypi:whl_library.bzl%whl_library",
-            "attributes": {
-              "dep_template": "@pypi_das//{name}:{target}",
-              "python_interpreter_target": "@@rules_python++python+python_3_10_host//:python",
-              "repo": "pypi_das_310",
-              "requirement": "redis==5.2.1"
             }
           },
           "pypi_das_310_requests": {
@@ -6260,7 +6188,6 @@
               "whl_map": {
                 "async_timeout": "{\"pypi_atomdb_310_async_timeout\":[{\"version\":\"3.10\"}]}",
                 "dnspython": "{\"pypi_atomdb_310_dnspython\":[{\"version\":\"3.10\"}]}",
-                "hyperon_das_atomdb_cpp": "{\"pypi_atomdb_310_hyperon_das_atomdb_cpp\":[{\"version\":\"3.10\"}]}",
                 "pymongo": "{\"pypi_atomdb_310_pymongo\":[{\"version\":\"3.10\"}]}",
                 "python_dotenv": "{\"pypi_atomdb_310_python_dotenv\":[{\"version\":\"3.10\"}]}",
                 "redis": "{\"pypi_atomdb_310_redis\":[{\"version\":\"3.10\"}]}"
@@ -6268,7 +6195,6 @@
               "packages": [
                 "async_timeout",
                 "dnspython",
-                "hyperon_das_atomdb_cpp",
                 "pymongo",
                 "python_dotenv",
                 "redis"
@@ -6282,40 +6208,26 @@
               "repo_name": "pypi_das",
               "extra_hub_aliases": {},
               "whl_map": {
-                "async_timeout": "{\"pypi_das_310_async_timeout\":[{\"version\":\"3.10\"}]}",
                 "beautifulsoup4": "{\"pypi_das_310_beautifulsoup4\":[{\"version\":\"3.10\"}]}",
                 "certifi": "{\"pypi_das_310_certifi\":[{\"version\":\"3.10\"}]}",
                 "charset_normalizer": "{\"pypi_das_310_charset_normalizer\":[{\"version\":\"3.10\"}]}",
-                "dnspython": "{\"pypi_das_310_dnspython\":[{\"version\":\"3.10\"}]}",
                 "google": "{\"pypi_das_310_google\":[{\"version\":\"3.10\"}]}",
                 "grpcio": "{\"pypi_das_310_grpcio\":[{\"version\":\"3.10\"}]}",
-                "hyperon_das_atomdb": "{\"pypi_das_310_hyperon_das_atomdb\":[{\"version\":\"3.10\"}]}",
-                "hyperon_das_atomdb_cpp": "{\"pypi_das_310_hyperon_das_atomdb_cpp\":[{\"version\":\"3.10\"}]}",
                 "idna": "{\"pypi_das_310_idna\":[{\"version\":\"3.10\"}]}",
                 "protobuf": "{\"pypi_das_310_protobuf\":[{\"version\":\"3.10\"}]}",
-                "pymongo": "{\"pypi_das_310_pymongo\":[{\"version\":\"3.10\"}]}",
-                "python_dotenv": "{\"pypi_das_310_python_dotenv\":[{\"version\":\"3.10\"}]}",
-                "redis": "{\"pypi_das_310_redis\":[{\"version\":\"3.10\"}]}",
                 "requests": "{\"pypi_das_310_requests\":[{\"version\":\"3.10\"}]}",
                 "soupsieve": "{\"pypi_das_310_soupsieve\":[{\"version\":\"3.10\"}]}",
                 "typing_extensions": "{\"pypi_das_310_typing_extensions\":[{\"version\":\"3.10\"}]}",
                 "urllib3": "{\"pypi_das_310_urllib3\":[{\"version\":\"3.10\"}]}"
               },
               "packages": [
-                "async_timeout",
                 "beautifulsoup4",
                 "certifi",
                 "charset_normalizer",
-                "dnspython",
                 "google",
                 "grpcio",
-                "hyperon_das_atomdb",
-                "hyperon_das_atomdb_cpp",
                 "idna",
                 "protobuf",
-                "pymongo",
-                "python_dotenv",
-                "redis",
                 "requests",
                 "soupsieve",
                 "typing_extensions",
