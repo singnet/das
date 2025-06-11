@@ -206,6 +206,5 @@ TEST(PatternMatchingQuery, queries) {
     // Remote exception
     check_query({"BLAH"}, 0, client_bus, "PatternMatchingQuery.queries", false, false, false, true);
 
-
     Utils::sleep(2000);
 }
