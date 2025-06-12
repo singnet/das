@@ -17,28 +17,68 @@ using namespace atomdb::atomdb_api_types;
 
 namespace atomspace {
 
+// -------------------------------------------------------------------------------------------------
+/**
+ * @brief Custom deleter for single C-string handles.
+ *
+ * This struct is intended for use with smart pointers managing single C-string handles
+ * (char*), such as those returned by Node::compute_handle or Link::compute_handle.
+ * It will free the memory using free().
+ *
+ * Example usage:
+ * @code
+ *   std::unique_ptr<char, HandleDeleter> handle(Node::compute_handle(type, name));
+ * @endcode
+ */
 struct HandleDeleter {
     void operator()(char* ptr) const { free(ptr); }
 };
 
+// -------------------------------------------------------------------------------------------------
+/**
+ * @brief Custom deleter for arrays of C-string handles.
+ *
+ * This struct is intended for use with smart pointers managing arrays of C-string handles
+ * (char**), such as those returned by Link::targets_to_handles. It will delete the array itself,
+ * and optionally delete each individual C-string handle in the array.
+ *
+ * @note If `delete_targets` is true (the default), each handle (`ptr[i]`) will be freed.
+ *       If `delete_targets` is false, only the array itself is deleted.
+ * @note The `use_free` parameter controls whether to use `free()` (default, for C-allocated strings)
+ *       or `delete[]` (for C++-allocated arrays) when deleting each handle.
+ *
+ * Example usage:
+ * @code
+ *   std::unique_ptr<char*[], TargetHandlesDeleter> handles(
+ *       Link::targets_to_handles(targets),
+ *       TargetHandlesDeleter(targets.size())
+ *   );
+ * @endcode
+ */
 struct TargetHandlesDeleter {
     size_t size;
     bool delete_targets = true;  ///< If true, delete the target handles.
+    bool use_free = true;        ///< If true, use free() instead of delete[] for handles.
 
-    TargetHandlesDeleter(size_t s, bool delete_targets = true)
-        : size(s), delete_targets(delete_targets) {}
+    /**
+     * @brief Construct a TargetHandlesDeleter.
+     * @param size The number of handles in the array.
+     * @param delete_targets If true, delete each handle in the array as well as the array itself.
+     * @param use_free If true, use free() instead of delete[] for handles.
+     */
+    TargetHandlesDeleter(size_t size, bool delete_targets = true, bool use_free = true)
+        : size(size), delete_targets(delete_targets), use_free(use_free) {}
 
+    /**
+     * @brief Function call operator to delete the array and optionally its contents.
+     * @param ptr The array of C-string handles to delete.
+     */
     void operator()(char** ptr) const {
-        if (ptr) {
-            for (size_t i = 0; i < size; ++i) {
-                if (ptr[i]) {
-                    if (delete_targets) {
-                        delete[] ptr[i];
-                    }
-                }
-            }
-            delete[] ptr;
-        }
+        if (!ptr) return;
+        if (delete_targets)
+            for (size_t i = 0; i < size; ++i)
+                if (ptr[i]) (use_free ? free(ptr[i]) : delete[] ptr[i]);
+        delete[] ptr;
     }
 };
 
@@ -204,8 +244,8 @@ class Link : public Atom {
      * For each Atom in the input vector, computes its handle (allocating a new C-string for each).
      *
      * @param targets The vector of Atom pointers.
-     * @return A newly allocated array of C-string handles (char**). Caller is responsible for freeing
-     *         each handle with free() and the array itself with delete[].
+     * @return A newly allocated array of C-string handles (char**). Caller is responsible for
+     * freeing each handle with free() and the array itself with delete[].
      * @throws std::runtime_error if a target is not a Node or Link.
      */
     static char** targets_to_handles(const vector<const Atom*>& targets) {
@@ -245,8 +285,8 @@ class Link : public Atom {
     /**
      * @brief Compute the handle for a Link given its type and targets (string handles).
      *
-     * This static utility computes a handle for a Link using the provided type and a vector of target
-     * handles (as strings), without requiring an instantiated Link object.
+     * This static utility computes a handle for a Link using the provided type and a vector of
+     * target handles (as strings), without requiring an instantiated Link object.
      *
      * @param type The type of the link.
      * @param targets The handles of the target atoms as strings.
@@ -264,8 +304,8 @@ class Link : public Atom {
     /**
      * @brief Compute the handle for a Link given its type hash and target handles.
      *
-     * This private static utility computes a handle for a Link using the provided type hash and an array
-     * of target handles. Used internally by the public compute_handle methods.
+     * This private static utility computes a handle for a Link using the provided type hash and an
+     * array of target handles. Used internally by the public compute_handle methods.
      *
      * @param type The link type.
      * @param targets_handles Array of target atom handles (dynamically allocated, will be freed).
