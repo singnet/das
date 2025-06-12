@@ -1,11 +1,11 @@
 /**
- * @file template_processor.h
+ * @file TemplateProcessor.h
  * @brief Template Processor class
  */
 
 #pragma once
-#include "link.h"
-#include "link_processor.h"
+#include "LCALink.h"
+#include "LinkProcessor.h"
 
 using namespace std;
 

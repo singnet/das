@@ -11,7 +11,7 @@
 
 #include "Message.h"
 #include "StarNode.h"
-#include "queue.h"
+#include "LCAQueue.h"
 
 using namespace distributed_algorithm_node;
 using namespace std;

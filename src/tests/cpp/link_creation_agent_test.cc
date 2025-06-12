@@ -1,4 +1,4 @@
-#include "link_creation_agent.h"
+#include "LinkCreationAgent.h"
 
 #include <gtest/gtest.h>
 
@@ -7,8 +7,8 @@
 #include <thread>
 
 #include "Utils.h"
-#include "link_create_template.h"
-#include "template_processor.h"
+#include "LinkCreateTemplate.h"
+#include "TemplateProcessor.h"
 
 using namespace std;
 using namespace link_creation_agent;

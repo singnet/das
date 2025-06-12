@@ -1,11 +1,11 @@
-#include "link_creation_agent.h"
+#include "LinkCreationAgent.h"
 
 #include <fstream>
 #include <sstream>
 
 #include "Logger.h"
 #include "expression_hasher.h"
-#include "link_create_template.h"
+#include "LinkCreateTemplate.h"
 
 using namespace std;
 using namespace link_creation_agent;
@@ -174,7 +174,7 @@ static bool is_link_template_arg(string arg) {
 shared_ptr<LinkCreationAgentRequest> LinkCreationAgent::create_request(vector<string> request) {
     try {
         LinkCreationAgentRequest* lca_request = new LinkCreationAgentRequest();
-        int cursor = 0;
+        long unsigned int cursor = 0;
         bool is_link_create = false;
         int has_id = 0;
         if (request[request.size() - 1] != "true" && request[request.size() - 1] != "false") {

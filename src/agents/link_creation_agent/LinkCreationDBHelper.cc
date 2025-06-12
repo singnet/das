@@ -1,4 +1,4 @@
-#include "link_creation_db_helper.h"
+#include "LinkCreationDBHelper.h"
 
 #include "AtomDBSingleton.h"
 #include "Logger.h"

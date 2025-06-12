@@ -1,5 +1,5 @@
 /**
- * @file link.h
+ * @file LCALink.h
  * @brief Link definition
  */
 #pragma once
@@ -8,7 +8,7 @@
 #include <vector>
 
 #include "QueryAnswer.h"
-#include "link_create_template.h"
+#include "LinkCreateTemplate.h"
 
 using namespace std;
 using namespace query_engine;
@@ -67,7 +67,7 @@ class Link {
     vector<LinkTargetTypes> targets = {};
     vector<CustomField> custom_fields = {};
     static Link untokenize_link(const vector<string>& tokens,
-                                int& cursor,
+                                size_t& cursor,
                                 bool include_custom_field_size);
 };
 }  // namespace link_creation_agent

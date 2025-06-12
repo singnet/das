@@ -1,4 +1,4 @@
-#include "link_creation_agent_node.h"
+#include "LinkCreationAgentNode.h"
 
 #include "Logger.h"
 

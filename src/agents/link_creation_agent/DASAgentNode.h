@@ -1,11 +1,11 @@
 /**
- * @file das_agent_node.h
+ * @file DASAgentNode.h
  * @brief DAS Node client to send add atom requests
  */
 #pragma once
 #include "DistributedAlgorithmNode.h"
 #include "StarNode.h"
-#include "queue.h"
+#include "LCAQueue.h"
 
 using namespace distributed_algorithm_node;
 

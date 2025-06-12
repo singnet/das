@@ -1,7 +1,7 @@
-#include "implication_processor.h"
+#include "ImplicationProcessor.h"
 
 #include "Logger.h"
-#include "link_creation_db_helper.h"
+#include "LinkCreationDBHelper.h"
 
 using namespace std;
 using namespace query_engine;
@@ -87,6 +87,7 @@ vector<string> ImplicationProcessor::get_tokenized_atom(const string& handle) {
         LOG_ERROR("Exception: " << e.what());
         return {};
     }
+    return {};
 }
 
 Link ImplicationProcessor::build_link(const string& link_type,

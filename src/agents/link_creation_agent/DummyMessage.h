@@ -1,5 +1,5 @@
 /**
- * @file dummy_message.h
+ * @file DummyMessage.h
  * @brief Dummy message for link creation agent
  */
 #pragma once

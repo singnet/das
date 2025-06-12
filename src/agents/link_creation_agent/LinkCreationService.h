@@ -1,5 +1,5 @@
 /**
- * @file link_creation_service.h
+ * @file LinkCreationService.h
  * @brief Link Creation Service class
  */
 #pragma once
@@ -14,14 +14,14 @@
 #include "PatternMatchingQueryProxy.h"
 #include "QueryAnswer.h"
 #include "ServiceBusSingleton.h"
-#include "das_agent_node.h"
-#include "equivalence_processor.h"
-#include "implication_processor.h"
-#include "link.h"
-#include "link_processor.h"
-#include "queue.h"
-#include "template_processor.h"
-#include "thread_pool.h"
+#include "DASAgentNode.h"
+#include "EquivalenceProcessor.h"
+#include "ImplicationProcessor.h"
+#include "LCALink.h"
+#include "LinkProcessor.h"
+#include "LCAQueue.h"
+#include "TemplateProcessor.h"
+#include "ThreadPool.h"
 
 using namespace das_agent;
 using namespace query_engine;

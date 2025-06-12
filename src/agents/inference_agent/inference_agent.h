@@ -17,14 +17,14 @@
 #include <thread>
 #include <vector>
 
-#include "das_agent_node.h"
+#include "DASAgentNode.h"
 #include "distributed_inference_control_agent_node.h"
 #include "inference_agent_node.h"
 #include "inference_iterator.h"
 #include "inference_request.h"
 #include "inference_request_validator.h"
-#include "link_creation_agent_node.h"
-#include "thread_pool.h"
+#include "LinkCreationAgentNode.h"
+#include "ThreadPool.h"
 
 using namespace distributed_algorithm_node;
 using namespace link_creation_agent;

@@ -1,11 +1,11 @@
 /**
- * @file link_creation_agent_node.h
+ * @file LinkCreationAgentNode.h
  * @brief DAS Node server to receive link creation requests
  */
 #pragma once
 #include "StarNode.h"
-#include "dummy_message.h"
-#include "queue.h"
+#include "DummyMessage.h"
+#include "LCAQueue.h"
 
 using namespace distributed_algorithm_node;
 

@@ -1,10 +1,10 @@
-#include "link_creation_service.h"
+#include "LinkCreationService.h"
 
 #include <fstream>
 
 #include "Logger.h"
 #include "Utils.h"
-#include "link_creation_db_helper.h"
+#include "LinkCreationDBHelper.h"
 
 using namespace link_creation_agent;
 using namespace std;

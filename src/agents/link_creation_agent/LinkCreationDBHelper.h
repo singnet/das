@@ -1,5 +1,5 @@
 /**
- * @file link_creation_db_helper.h
+ * @file LinkCreationDBHelper.h
  */
 
 #pragma once
@@ -10,7 +10,7 @@
 #include "AtomDB.h"
 #include "AtomDBAPITypes.h"
 #include "AtomDBSingleton.h"
-#include "link.h"
+#include "LCALink.h"
 #include "variant"
 
 using namespace atomdb;

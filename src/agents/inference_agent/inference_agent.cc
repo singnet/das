@@ -107,7 +107,7 @@ void InferenceAgent::run() {
                 LOG_ERROR("Exception: " << e.what());
             }
         } else {
-            for (int i = 0; i < inference_iterators.size(); i++) {
+            for (long unsigned int i = 0; i < inference_iterators.size(); i++) {
                 if (!inference_iterators[i]->pop(false).empty()) {
                     LOG_DEBUG("Iterator ID: " << inference_iterators[i]->get_local_id() << " finished");
                     send_stop_link_creation_request(
@@ -173,9 +173,8 @@ const string InferenceAgent::get_next_iterator_id() {
 }
 
 const string InferenceAgent::get_next_inference_request_id() {
-    // ++this->inference_request_id;
-    this->inference_request_id =
-        ++this->inference_request_id % numeric_limits<unsigned long long>::max();
+    ++this->inference_request_id;
+    this->inference_request_id %= numeric_limits<unsigned long long>::max();
     return to_string(this->inference_request_id);
 }
 

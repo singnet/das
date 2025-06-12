@@ -1,7 +1,7 @@
-#include "equivalence_processor.h"
+#include "EquivalenceProcessor.h"
 
 #include "Logger.h"
-#include "link_creation_db_helper.h"
+#include "LinkCreationDBHelper.h"
 
 using namespace std;
 using namespace query_engine;
@@ -59,6 +59,7 @@ vector<string> EquivalenceProcessor::get_tokenized_atom(const string& handle) {
         LOG_ERROR("Exception: " << e.what());
         return {};
     }
+    return {};
 }
 
 Link EquivalenceProcessor::build_link(const string& link_type,

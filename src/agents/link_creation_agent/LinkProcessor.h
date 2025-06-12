@@ -1,5 +1,5 @@
 /**
- * @file link_processor.h
+ * @file LinkProcessor.h
  * @brief Link Processor class
  */
 

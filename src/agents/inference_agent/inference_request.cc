@@ -3,7 +3,7 @@
 #include <memory>
 
 #include "Utils.h"
-#include "link_create_template.h"
+#include "LinkCreateTemplate.h"
 
 using namespace std;
 using namespace inference_agent;
@@ -97,7 +97,7 @@ static std::vector<std::string> inference_evolution_request_builder(std::string 
             counter++;
             request.push_back("AND");
             request.push_back(std::to_string(vars.size() - 1));
-            for (int i = 1; i < vars.size(); i++) {
+            for (long unsigned int i = 1; i < vars.size(); i++) {
                 for (auto token : query_template) {
                     if (token == "_TYPE_") {
                         request.push_back(cp[i - 1]);

@@ -1,6 +1,6 @@
 #include "inference_agent_node.h"
 
-#include "dummy_message.h"
+#include "DummyMessage.h"
 
 using namespace inference_agent;
 using namespace std;

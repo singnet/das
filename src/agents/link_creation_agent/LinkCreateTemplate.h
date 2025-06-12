@@ -1,5 +1,5 @@
 /**
- * @file link_create_template.h
+ * @file LinkCreateTemplate.h
  * @brief LinkCreateTemplate class to handle link creation templates
  */
 

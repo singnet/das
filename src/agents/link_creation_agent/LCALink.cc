@@ -1,4 +1,4 @@
-#include "link.h"
+#include "LCALink.h"
 
 #include <iostream>
 
@@ -63,7 +63,6 @@ string Link::to_metta_string() {
     // LOG_DEBUG("MMM 0");
     string metta_string = "(";
     bool is_custom_fields_added = false;
-    int count = 0;
     for (LinkTargetTypes target : this->targets) {
         // LOG_DEBUG("MMM 1");
         if (holds_alternative<string>(target)) {
@@ -98,11 +97,11 @@ string Link::to_metta_string() {
 }
 
 Link Link::untokenize(const vector<string>& tokens, bool include_custom_field_size) {
-    int cursor = 0;
+    size_t cursor = 0;
     return untokenize_link(tokens, cursor, include_custom_field_size);
 }
 
-Link Link::untokenize_link(const vector<string>& tokens, int& cursor, bool include_custom_field_size) {
+Link Link::untokenize_link(const vector<string>& tokens, size_t& cursor, bool include_custom_field_size) {
     Link link;
     if (tokens[cursor] != "LINK") {
         throw runtime_error("Invalid token: " + tokens[cursor]);
@@ -144,7 +143,7 @@ Link Link::untokenize_link(const vector<string>& tokens, int& cursor, bool inclu
     }
     if (num_custom_fields > 0 && cursor < tokens.size() && tokens[cursor] == "CUSTOM_FIELD") {
         vector<string> custom_field_args;
-        for (int i = cursor; i < tokens.size(); i++) {
+        for (long unsigned int i = cursor; i < tokens.size(); i++) {
             custom_field_args.push_back(tokens[i]);
         }
         link.add_custom_field(CustomField(custom_field_args));

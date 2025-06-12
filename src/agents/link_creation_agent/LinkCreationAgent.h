@@ -1,5 +1,5 @@
 /**
- * @file link_creation_agent.h
+ * @file LinkCreationAgent.h
  * @brief Agent class to handle link creation requests
  *
  * This file contains the definition of the LinkCreationAgent class and the
@@ -17,9 +17,9 @@
 
 #include "PatternMatchingQueryProxy.h"
 #include "ServiceBusSingleton.h"
-#include "das_agent_node.h"
-#include "link_creation_agent_node.h"
-#include "link_creation_service.h"
+#include "DASAgentNode.h"
+#include "LinkCreationAgentNode.h"
+#include "LinkCreationService.h"
 
 using namespace std;
 using namespace das_agent;

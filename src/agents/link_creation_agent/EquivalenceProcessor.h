@@ -1,10 +1,10 @@
 /**
- * @file equivalence_processor.h
+ * @file EquivalenceProcessor.h
  */
 
 #pragma once
-#include "link.h"
-#include "link_processor.h"
+#include "LCALink.h"
+#include "LinkProcessor.h"
 
 using namespace query_engine;
 using namespace std;
