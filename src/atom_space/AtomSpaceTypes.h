@@ -23,18 +23,20 @@ struct HandleDeleter {
 
 struct TargetHandlesDeleter {
     size_t size;
+    bool delete_targets = true;  ///< If true, delete the target handles.
 
-    TargetHandlesDeleter(size_t s) : size(s) {}
+    TargetHandlesDeleter(size_t s, bool delete_targets = true)
+        : size(s), delete_targets(delete_targets) {}
 
     void operator()(char** ptr) const {
         if (ptr) {
-            // Free each individual string
-            for (size_t i = 0; i < size; i++) {
+            for (size_t i = 0; i < size; ++i) {
                 if (ptr[i]) {
-                    free(ptr[i]);
+                    if (delete_targets) {
+                        delete[] ptr[i];
+                    }
                 }
             }
-            // Free the array itself
             delete[] ptr;
         }
     }
@@ -236,6 +238,7 @@ class Link : public Atom {
     static char* compute_handle(const string& type, const vector<const Atom*>& targets) {
         unique_ptr<char*[], TargetHandlesDeleter> targets_handles(Link::targets_to_handles(targets),
                                                                   TargetHandlesDeleter(targets.size()));
+
         return Link::compute_handle(type.c_str(), targets_handles.get(), targets.size());
     }
 
@@ -251,12 +254,11 @@ class Link : public Atom {
      * @note Caller is responsible for freeing the returned handle.
      */
     static char* compute_handle(const string& type, const vector<string>& targets) {
-        unique_ptr<char*[], TargetHandlesDeleter> targets_handles(new char*[targets.size()],
-                                                                  TargetHandlesDeleter(targets.size()));
+        unique_ptr<char*[], TargetHandlesDeleter> targets_handles(
+            new char*[targets.size()], TargetHandlesDeleter(targets.size(), false));
         size_t i = 0;
         for (const auto& target : targets) targets_handles[i++] = (char*) target.c_str();
-        auto link_handle = Link::compute_handle(type.c_str(), targets_handles.get(), targets.size());
-        return link_handle;
+        return Link::compute_handle(type.c_str(), targets_handles.get(), targets.size());
     }
 
     /**
@@ -270,7 +272,7 @@ class Link : public Atom {
      * @param targets_size Number of target atoms.
      * @return A newly allocated char array containing the handle (caller must free).
      * @throws std::runtime_error if type or targets_handles is null, if type size is too
-     * small, or if targets_size is less than MINIMUM_TARGETS_SIZE.
+     *                            small, or if targets_size is less than MINIMUM_TARGETS_SIZE.
      */
     static char* compute_handle(const char* type, char** targets_handles, size_t targets_size) {
         if (type == nullptr || targets_handles == nullptr) {

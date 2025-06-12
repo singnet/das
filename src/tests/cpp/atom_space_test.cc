@@ -331,9 +331,6 @@ TEST_F(AtomSpaceTest, CommitLinksRemote) {
     for (size_t i = 0; i < targets.size(); ++i) {
         EXPECT_EQ(get<1>(mock_db->add_link_calls[0])[i], targets_handles[i]);
     }
-
-    // for (size_t i = 0; i < targets.size(); i++) free(targets_handles[i]);
-    // delete[] targets_handles;
 }
 
 // Global test environment for AtomDB initialization

@@ -5,11 +5,6 @@
 using namespace std;
 using namespace atomspace;
 
-// Helper to free char* returned by compute_handle
-struct HandleDeleter {
-    void operator()(char* ptr) const { free(ptr); }
-};
-
 TEST(AtomTest, AtomTypeValidation) {
     EXPECT_NO_THROW(Atom("Type"));
     EXPECT_THROW(Atom(""), runtime_error);
