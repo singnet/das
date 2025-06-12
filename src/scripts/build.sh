@@ -6,8 +6,11 @@ DAS_LIBRARY_NAME="hyperon_das"
 
 set -eoux pipefail
 
+ARCH=$(uname -m)
+
 IMAGE_NAME="das-builder"
 CONTAINER_NAME="das-builder-$(uuidgen | cut -d '-' -f 1)-$(date +%Y%m%d%H%M%S)"
+CONTAINER_USER=$([ "$ARCH" != "arm64" ] && echo "$USER" || echo "builder")
 
 ENV_VARS=$(test -f .env && echo "--env-file=.env" || echo "")
 
@@ -22,15 +25,15 @@ mkdir -p $LOCAL_BIN_DIR $LOCAL_CACHE
 CONTAINER_WORKDIR=/opt/das
 CONTAINER_WORKSPACE_DIR=/opt/das/src
 CONTAINER_BIN_DIR=$CONTAINER_WORKSPACE_DIR/bin
-CONTAINER_CACHE=/home/${USER}/.cache
+CONTAINER_CACHE=/home/${CONTAINER_USER}/.cache
 
 docker run --rm \
-  --user=$(id -u):$(id -g) \
+  $([ "$ARCH" != "arm64" ] && echo "--user=$(id -u):$(id -g) --volume /etc/passwd:/etc/passwd:ro" || echo "--user=$CONTAINER_USER") \
+  --privileged \
   --name=$CONTAINER_NAME \
   -e BIN_DIR=$CONTAINER_BIN_DIR \
   $ENV_VARS \
   --network host \
-  --volume /etc/passwd:/etc/passwd:ro \
   --volume $LOCAL_CACHE:$CONTAINER_CACHE \
   --volume $LOCAL_WORKDIR:$CONTAINER_WORKDIR \
   --workdir $CONTAINER_WORKSPACE_DIR \

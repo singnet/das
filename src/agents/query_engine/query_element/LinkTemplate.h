@@ -97,6 +97,7 @@ class LinkTemplate : public Source {
         this->atom_document = NULL;
         this->local_answers = NULL;
         this->local_answers_size = 0;
+        this->positive_importance_flag = false;
         this->local_buffer_processor = NULL;
         bool wildcard_flag = (type == AtomDB::WILDCARD);
         this->handle_keys[0] =
@@ -241,6 +242,8 @@ class LinkTemplate : public Source {
         return variables;
     }
 
+    void set_positive_importance_flag(bool flag) { this->positive_importance_flag = flag; }
+
    private:
     // --------------------------------------------------------------------------------------------
     // Private methods and attributes
@@ -266,7 +269,7 @@ class LinkTemplate : public Source {
         return answer;
     }
 
-    shared_ptr<dasproto::ImportanceList> get_importance(const dasproto::HandleList& handle_list) {
+    shared_ptr<dasproto::ImportanceList> get_importance(const vector<std::string>& handles) {
         if (this->query_element_registry != nullptr) {
             LinkTemplate<ARITY>::get_importance_mutex.lock();
             auto il = this->query_element_registry->get(this->handle);
@@ -275,6 +278,13 @@ class LinkTemplate : public Source {
                 return dynamic_pointer_cast<ImportanceList>(il)->importance_list;
             }
         }
+
+        dasproto::HandleList handle_list;
+        handle_list.set_context(this->context);
+        for (auto handle : handles) {
+            handle_list.add_list(handle);
+        }
+
         auto importance_list = make_shared<dasproto::ImportanceList>();
         auto stub = dasproto::AttentionBroker::NewStub(
             grpc::CreateChannel(this->attention_broker_address, grpc::InsecureChannelCredentials()));
@@ -324,42 +334,54 @@ class LinkTemplate : public Source {
         QueryAnswer* query_answer;
         vector<QueryAnswer*> fetched_answers;
         if (answer_count > 0) {
-            dasproto::HandleList handle_list;
-            handle_list.set_context(this->context);
+            vector<string> handles;
             auto it = this->fetch_result->get_iterator();
             char* handle;
             while ((handle = it->next()) != nullptr) {
-                handle_list.add_list(handle);
+                handles.push_back(handle);
             }
-            auto importance_list = get_importance(handle_list);
+            auto importance_list = get_importance(handles);
             if (importance_list->list_size() != answer_count) {
                 Utils::error("Invalid AttentionBroker answer. Size: " +
                              std::to_string(importance_list->list_size()) +
                              " Expected size: " + std::to_string(answer_count));
             }
+            if (this->positive_importance_flag) {
+                for (unsigned int i = 0; i < importance_list->list_size(); i++) {
+                    if (!(importance_list->list(i) > 0.0)) {
+                        answer_count--;
+                    }
+                }
+                LOG_INFO("Considering " << answer_count << " links after importance filtering");
+            }
             this->atom_document = new shared_ptr<atomdb_api_types::AtomDocument>[answer_count];
             this->local_answers = new QueryAnswer*[answer_count];
             this->next_inner_answer = new unsigned int[answer_count];
             it = this->fetch_result->get_iterator();
-            unsigned int i = 0;
+            unsigned int document_cursor = 0;
+            unsigned int importance_cursor = 0;
             while ((handle = it->next()) != nullptr) {
-                this->atom_document[i] = db->get_atom_document(handle);
-                query_answer = new QueryAnswer(handle, importance_list->list(i));
-                for (unsigned int j = 0; j < this->arity; j++) {
-                    if (this->target_template[j]->is_terminal) {
-                        auto terminal = dynamic_pointer_cast<Terminal>(this->target_template[j]);
-                        if (terminal->is_variable) {
-                            if (!query_answer->assignment.assign(
-                                    terminal->name.c_str(), this->atom_document[i]->get("targets", j))) {
-                                Utils::error(
-                                    "Error assigning variable: " + terminal->name +
-                                    " a value: " + string(this->atom_document[i]->get("targets", j)));
+                if (!this->positive_importance_flag || (importance_list->list(importance_cursor) > 0)) {
+                    this->atom_document[document_cursor] = db->get_atom_document(handle);
+                    query_answer = new QueryAnswer(handle, importance_list->list(importance_cursor));
+                    for (unsigned int j = 0; j < this->arity; j++) {
+                        if (this->target_template[j]->is_terminal) {
+                            auto terminal = dynamic_pointer_cast<Terminal>(this->target_template[j]);
+                            if (terminal->is_variable) {
+                                if (!query_answer->assignment.assign(
+                                        terminal->name.c_str(),
+                                        this->atom_document[document_cursor]->get("targets", j))) {
+                                    Utils::error(
+                                        "Error assigning variable: " + terminal->name + " a value: " +
+                                        string(this->atom_document[document_cursor]->get("targets", j)));
+                                }
                             }
                         }
                     }
+                    fetched_answers.push_back(query_answer);
+                    document_cursor++;
                 }
-                fetched_answers.push_back(query_answer);
-                i++;
+                importance_cursor++;
             }
             std::sort(fetched_answers.begin(), fetched_answers.end(), less_than_query_answer());
             for (unsigned int i = 0; i < answer_count; i++) {
@@ -520,6 +542,7 @@ class LinkTemplate : public Source {
     string context;
     QueryElementRegistry* query_element_registry;
     static mutex get_importance_mutex;
+    bool positive_importance_flag;
 };
 
 template <unsigned int ARITY>

@@ -20,17 +20,16 @@ RUN mkdir -p \
 
 RUN yes | apt update -y \
     && yes | apt install -y git build-essential curl protobuf-compiler python3 python3-pip cmake \
-    libevent-dev libssl-dev pkg-config libncurses5\
+    libevent-dev libssl-dev pkg-config libncurses5 \
     && yes | apt clean -y \
     && rm -rf /var/lib/apt/lists/*
 
-COPY src/assets/3rd-party.tgz ${THIRD_PARTY}
-RUN cd ${THIRD_PARTY} \
+COPY src/assets/3rd-party.tgz /tmp
+RUN ARCH=$([ "$(uname -m)" = "aarch64" ] && echo "arm64" || echo "amd64") \
+    && cd /tmp \
     && tar xzvf 3rd-party.tgz \
-    && rm -f 3rd-party.tgz \
-    && mkdir -p ${DAS_DIR}/src/3rd-party \
-    && ln -s ${THIRD_PARTY} ${DAS_DIR}/src/3rd-party \
-    && mv bazelisk-linux-amd64 buildifier-linux-amd64 ${BAZEL_DIR} \
+    && mv bazelisk-${ARCH} ${BAZEL_DIR}/bazelisk \
+    && mv buildifier-${ARCH} ${BAZEL_DIR}/buildifier \
     && chmod +x ${BAZEL_DIR}/*
 
 ################################################################################
