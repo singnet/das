@@ -325,7 +325,7 @@ char* RedisMongoDB::add_link(const char* type, char** targets, size_t targets_si
 }
 
 vector<shared_ptr<atomdb_api_types::AtomDocument>> RedisMongoDB::get_atom_documents(
-    vector<string>& handles, vector<string>& fields) {
+    const vector<string>& handles, const vector<string>& fields) {
     // TODO Add cache support for this method
     vector<shared_ptr<atomdb_api_types::AtomDocument>> atom_documents;
 

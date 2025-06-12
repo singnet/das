@@ -352,27 +352,27 @@ class LinkTemplate : public Source {
                 }
                 LOG_INFO("Considering " << answer_count << " links after importance filtering");
             }
-            vector<string> atom_fields = {"targets"};
-            this->atom_document = db->get_atom_documents(handles, atom_fields);
+            // vector<string> atom_fields = ;
+            this->atom_documents = db->get_atom_documents(handles, {"targets"});
             this->local_answers = new QueryAnswer*[answer_count];
             this->next_inner_answer = new unsigned int[answer_count];
             it = this->fetch_result->get_iterator();
             unsigned int document_cursor = 0;
             unsigned int importance_cursor = 0;
-            for (int i = 0; i < this->atom_document.size(); i++) {
+            for (auto &handle : handles) {
                 if (!this->positive_importance_flag || (importance_list->list(importance_cursor) > 0)) {
                     // TODO remove this memory leak
-                    query_answer = new QueryAnswer(strndup(handles[i].c_str(), HANDLE_HASH_SIZE - 1), importance_list->list(importance_cursor));
+                    query_answer = new QueryAnswer(strndup(handle.c_str(), HANDLE_HASH_SIZE - 1), importance_list->list(importance_cursor));
                     for (unsigned int j = 0; j < this->arity; j++) {
                         if (this->target_template[j]->is_terminal) {
                             auto terminal = dynamic_pointer_cast<Terminal>(this->target_template[j]);
                             if (terminal->is_variable) {
                                 if (!query_answer->assignment.assign(
                                         terminal->name.c_str(),
-                                        this->atom_document[document_cursor]->get("targets", j))) {
+                                        this->atom_documents[document_cursor]->get("targets", j))) {
                                     Utils::error(
                                         "Error assigning variable: " + terminal->name + " a value: " +
-                                        string(this->atom_document[document_cursor]->get("targets", j)));
+                                        string(this->atom_documents[document_cursor]->get("targets", j)));
                                 }
                             }
                         }
@@ -406,7 +406,7 @@ class LinkTemplate : public Source {
         while (cursor < inner_answers_size) {
             if (this->inner_answers[cursor] != NULL) {
                 bool passed_first_check = true;
-                unsigned int arity = this->atom_document[index]->get_size("targets");
+                unsigned int arity = this->atom_documents[index]->get_size("targets");
                 unsigned int target_cursor = 0;
                 for (unsigned int i = 0; i < arity; i++) {
                     // Note to reviewer: pointer comparison is correct here
@@ -414,7 +414,7 @@ class LinkTemplate : public Source {
                         if (target_cursor > this->inner_answers[cursor]->handles_size) {
                             Utils::error("Invalid query answer in inner link template match");
                         }
-                        if (strncmp(this->atom_document[index]->get("targets", i),
+                        if (strncmp(this->atom_documents[index]->get("targets", i),
                                     this->inner_answers[cursor]->handles[target_cursor++],
                                     HANDLE_HASH_SIZE)) {
                             passed_first_check = false;
@@ -532,7 +532,6 @@ class LinkTemplate : public Source {
     mutex fetch_finished_mutex;
     shared_ptr<QueryNodeServer> target_buffer[ARITY];
     shared_ptr<Iterator> inner_template_iterator;
-    vector<shared_ptr<atomdb_api_types::AtomDocument>> atom_document;
     QueryAnswer** local_answers;
     unsigned int* next_inner_answer;
     vector<QueryAnswer*> inner_answers;
