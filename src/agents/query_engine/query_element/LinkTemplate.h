@@ -361,6 +361,7 @@ class LinkTemplate : public Source {
             unsigned int importance_cursor = 0;
             for (int i = 0; i < this->atom_document.size(); i++) {
                 if (!this->positive_importance_flag || (importance_list->list(importance_cursor) > 0)) {
+                    // TODO remove this memory leak
                     query_answer = new QueryAnswer(strndup(handles[i].c_str(), HANDLE_HASH_SIZE - 1), importance_list->list(importance_cursor));
                     for (unsigned int j = 0; j < this->arity; j++) {
                         if (this->target_template[j]->is_terminal) {
