@@ -359,10 +359,9 @@ class LinkTemplate : public Source {
             it = this->fetch_result->get_iterator();
             unsigned int document_cursor = 0;
             unsigned int importance_cursor = 0;
-            for (auto &handle : handles) {
+            while ((handle = it->next()) != nullptr) {
                 if (!this->positive_importance_flag || (importance_list->list(importance_cursor) > 0)) {
-                    // TODO remove this memory leak
-                    query_answer = new QueryAnswer(strndup(handle.c_str(), HANDLE_HASH_SIZE - 1), importance_list->list(importance_cursor));
+                    query_answer = new QueryAnswer(handle, importance_list->list(importance_cursor));
                     for (unsigned int j = 0; j < this->arity; j++) {
                         if (this->target_template[j]->is_terminal) {
                             auto terminal = dynamic_pointer_cast<Terminal>(this->target_template[j]);
