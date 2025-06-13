@@ -14,6 +14,9 @@
 #include "attention_broker.grpc.pb.h"
 #include "attention_broker.pb.h"
 
+#define LOG_LEVEL INFO_LEVEL
+#include "Logger.h"
+
 using namespace atomdb;
 using namespace commons;
 
@@ -40,7 +43,6 @@ RedisMongoDB::~RedisMongoDB() {
         redisFree(this->redis_single);
     }
     delete this->mongodb_pool;
-    // delete this->mongodb_client;
 }
 
 void RedisMongoDB::attention_broker_setup() {
@@ -64,7 +66,7 @@ void RedisMongoDB::attention_broker_setup() {
         grpc::CreateChannel(attention_broker_address, grpc::InsecureChannelCredentials()));
     status = stub->ping(&context, empty, &ack);
     if (status.ok()) {
-        std::cout << "Connected to AttentionBroker at " << attention_broker_address << endl;
+        LOG_INFO("Connected to AttentionBroker at " << attention_broker_address);
     } else {
         Utils::error("Couldn't connect to AttentionBroker at " + attention_broker_address);
     }
@@ -103,7 +105,7 @@ void RedisMongoDB::redis_setup() {
     } else if (this->cluster_flag && this->redis_cluster->err) {
         Utils::error("Redis cluster error: " + string(this->redis_cluster->errstr));
     } else {
-        cout << "Connected to (" << cluster_tag << ") Redis at " << address << endl;
+        LOG_INFO("Connected to (" << cluster_tag << ") Redis at " << address);
     }
 }
 
@@ -129,17 +131,12 @@ void RedisMongoDB::mongodb_setup() {
         mongocxx::instance instance;
         auto uri = mongocxx::uri{url};
         this->mongodb_pool = new mongocxx::pool(uri);
-        this->mongodb = get_database();
-
-        // this->mongodb_client = new mongocxx::client(uri);
-        // this->mongodb = (*this->mongodb_client)[MONGODB_DB_NAME];
+        // Health check using ping command
+        auto mongodb = get_database();
         const auto ping_cmd =
             bsoncxx::builder::basic::make_document(bsoncxx::builder::basic::kvp("ping", 1));
-        this->mongodb.run_command(ping_cmd.view());
-        this->mongodb_collection = this->mongodb[MONGODB_COLLECTION_NAME];
-        // auto atom_count = this->mongodb_collection.count_documents({});
-        // std::cout << "Connected to MongoDB at " << address << " Atom count: " << atom_count << endl;
-        std::cout << "Connected to MongoDB at " << address << endl;
+        mongodb.run_command(ping_cmd.view());
+        LOG_INFO("Connected to MongoDB at " << address);
     } catch (const std::exception& e) {
         Utils::error(e.what());
     }
@@ -202,11 +199,7 @@ shared_ptr<atomdb_api_types::HandleList> RedisMongoDB::query_for_targets(char* l
 
     redisReply* reply = (redisReply*) redisCommand(
         this->redis_single, "GET %s:%s", REDIS_TARGETS_PREFIX.c_str(), link_handle_ptr);
-    /*
-    if (reply == NULL) {
-        Utils::error("Redis error");
-    }
-    */
+
     if ((reply == NULL) || (reply->type == REDIS_REPLY_NIL)) {
         if (this->atomdb_cache != nullptr) this->atomdb_cache->add_handle_list(link_handle_ptr, nullptr);
         return nullptr;
@@ -228,12 +221,9 @@ shared_ptr<atomdb_api_types::AtomDocument> RedisMongoDB::get_atom_document(const
         if (cache_result.is_cache_hit) return cache_result.result;
     }
 
-    this->mongodb_mutex.lock();
     auto mongodb_collection = get_database()[MONGODB_COLLECTION_NAME];
     auto reply = mongodb_collection.find_one(bsoncxx::v_noabi::builder::basic::make_document(
         bsoncxx::v_noabi::builder::basic::kvp(MONGODB_FIELD_NAME[MONGODB_FIELD::ID], handle)));
-    // cout << bsoncxx::to_json(*reply) << endl; // Note to reviewer: please let this dead code here
-    this->mongodb_mutex.unlock();
 
     auto atom_document =
         reply != core::v1::nullopt ? make_shared<atomdb_api_types::MongodbDocument>(reply) : nullptr;
@@ -242,11 +232,9 @@ shared_ptr<atomdb_api_types::AtomDocument> RedisMongoDB::get_atom_document(const
 }
 
 bool RedisMongoDB::link_exists(const char* link_handle) {
-    this->mongodb_mutex.lock();
     auto mongodb_collection = get_database()[MONGODB_COLLECTION_NAME];
     auto reply = mongodb_collection.find_one(bsoncxx::v_noabi::builder::basic::make_document(
         bsoncxx::v_noabi::builder::basic::kvp(MONGODB_FIELD_NAME[MONGODB_FIELD::ID], link_handle)));
-    this->mongodb_mutex.unlock();
     return (reply != core::v1::nullopt &&
             reply->view().find(MONGODB_FIELD_NAME[MONGODB_FIELD::TARGETS]) != reply->view().end());
 }
@@ -254,7 +242,6 @@ bool RedisMongoDB::link_exists(const char* link_handle) {
 vector<string> RedisMongoDB::links_exist(const vector<string>& link_handles) {
     if (link_handles.empty()) return {};
 
-    lock_guard<mutex> lock(this->mongodb_mutex);
     auto mongodb_collection = get_database()[MONGODB_COLLECTION_NAME];
 
     bsoncxx::builder::basic::document filter_builder;
