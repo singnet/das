@@ -79,6 +79,11 @@ class MockAtomDB : public AtomDB {
         return nullptr;
     }
 
+    vector<shared_ptr<AtomDocument>> get_atom_documents(const vector<string>& handles,
+                                                        const vector<string>& fields) override {
+        return {};  // Not implemented for this mock
+    }
+
     bool link_exists(const char*) override { return false; }
     vector<string> links_exist(const vector<string>&) override { return {}; }
 

@@ -27,6 +27,8 @@ class AtomDB {
                            char** targets,
                            size_t targets_size,
                            const atomdb_api_types::CustomAttributesMap& custom_attributes) = 0;
+    virtual vector<shared_ptr<atomdb_api_types::AtomDocument>> get_atom_documents(
+        const vector<string>& handles, const vector<string>& fields) = 0;
 
    private:
     virtual void attention_broker_setup() = 0;
