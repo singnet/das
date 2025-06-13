@@ -445,6 +445,21 @@ cc_test(
 )
 
 cc_test(
+    name = "query_evolution_test",
+    size = "small",
+    srcs = ["query_evolution_test.cc"],
+    copts = [
+        "-Iexternal/gtest/googletest/include",
+        "-Iexternal/gtest/googletest",
+    ],
+    linkstatic = 1,
+    deps = [
+        "//agents/evolution:evolution_lib",
+        "@com_github_google_googletest//:gtest_main",
+    ],
+)
+
+cc_test(
     name = "link_creation_agent_test",
     size = "small",
     srcs = ["link_creation_agent_test.cc"],
