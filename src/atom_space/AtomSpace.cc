@@ -10,9 +10,9 @@ namespace atomspace {
 
 // -------------------------------------------------------------------------------------------------
 AtomSpace::AtomSpace()
-    : bus(ServiceBusSingleton::get_instance()),
-      handle_trie(make_unique<HandleTrie>(HANDLE_SIZE)),
-      db(AtomDBSingleton::get_instance()) {}
+    : db(AtomDBSingleton::get_instance()),
+      bus(ServiceBusSingleton::get_instance()),
+      handle_trie(make_unique<HandleTrie>(HANDLE_SIZE)) {}
 
 // -------------------------------------------------------------------------------------------------
 const Atom* AtomSpace::get_atom(const char* handle, Scope scope) {
@@ -21,7 +21,7 @@ const Atom* AtomSpace::get_atom(const char* handle, Scope scope) {
         if (atom) {
             return dynamic_cast<const Atom*>(atom);
         } else if (scope == LOCAL_ONLY) {
-            return NULL;  // If LOCAL_ONLY, return NULL if not found locally.
+            return nullptr;  // If LOCAL_ONLY, return nullptr if not found locally.
         }
     }
     auto atom_document = this->db->get_atom_document(handle);
@@ -32,31 +32,27 @@ const Atom* AtomSpace::get_atom(const char* handle, Scope scope) {
             return atom;
         }
     }
-    return NULL;
+    return nullptr;
 }
 
 // -------------------------------------------------------------------------------------------------
 const Node* AtomSpace::get_node(const string& type, const string& name, Scope scope) {
-    auto handle = Node::compute_handle(type, name);
-    auto node = this->get_atom(handle, scope);
+    unique_ptr<char, HandleDeleter> handle(Node::compute_handle(type, name));
+    auto node = this->get_atom(handle.get(), scope);
     if (node) {
-        free(handle);
         return dynamic_cast<const Node*>(node);
     }
-    free(handle);
-    return NULL;
+    return nullptr;
 }
 
 // -------------------------------------------------------------------------------------------------
 const Link* AtomSpace::get_link(const string& type, const vector<const Atom*>& targets, Scope scope) {
-    auto handle = Link::compute_handle(type, targets);
-    auto link = this->get_atom(handle, scope);
+    unique_ptr<char, HandleDeleter> handle(Link::compute_handle(type, targets));
+    auto link = this->get_atom(handle.get(), scope);
     if (link) {
-        free(handle);
         return dynamic_cast<const Link*>(link);
     }
-    free(handle);
-    return NULL;
+    return nullptr;
 }
 
 // -------------------------------------------------------------------------------------------------
@@ -98,7 +94,7 @@ void AtomSpace::pattern_matching_fetch(const vector<string>& query, size_t answe
     shared_ptr<QueryAnswer> query_answer;
     const char* handle;
     while (!proxy->finished()) {
-        if ((query_answer = proxy->pop()) == NULL) {
+        if ((query_answer = proxy->pop()) == nullptr) {
             Utils::sleep();
         } else {
             for (size_t i = 0; i < query_answer->handles_size; i++) {
@@ -110,16 +106,20 @@ void AtomSpace::pattern_matching_fetch(const vector<string>& query, size_t answe
 }
 
 // -------------------------------------------------------------------------------------------------
-char* AtomSpace::add_node(const string& type, const string& name) {
+char* AtomSpace::add_node(const string& type,
+                          const string& name,
+                          const CustomAttributesMap& custom_attributes) {
     char* handle = Node::compute_handle(type, name);
-    this->handle_trie->insert(handle, new Node(type, name));
+    this->handle_trie->insert(handle, new Node(type, name, custom_attributes));
     return handle;
 }
 
 // -------------------------------------------------------------------------------------------------
-char* AtomSpace::add_link(const string& type, const vector<const Atom*>& targets) {
+char* AtomSpace::add_link(const string& type,
+                          const vector<const Atom*>& targets,
+                          const CustomAttributesMap& custom_attributes) {
     char* handle = Link::compute_handle(type, targets);
-    this->handle_trie->insert(handle, new Link(type, targets));
+    this->handle_trie->insert(handle, new Link(type, targets, custom_attributes));
     return handle;
 }
 
@@ -132,18 +132,19 @@ void AtomSpace::commit_changes(Scope scope) {
     auto commit_changes_visit_lambda = [](HandleTrie::TrieNode* trie_node, void* user_data) -> bool {
         auto db = static_cast<AtomDB*>(user_data);
         if (const auto node = dynamic_cast<const Node*>(trie_node->value)) {
-            db->add_node(node->type.c_str(), node->name.c_str());
+            db->add_node(node->type.c_str(), node->name.c_str(), node->custom_attributes);
         } else if (const auto link = dynamic_cast<const Link*>(trie_node->value)) {
-            auto targets_handles = Link::targets_to_handles(link->targets);  // Will be freed later
-            db->add_link(link->type.c_str(), targets_handles, link->targets.size());
-            for (size_t i = 0; i < link->targets.size(); i++)
-                free(targets_handles[i]);  // Clean up the dynamically allocated handles
-            delete[] targets_handles;      // Clean up the dynamically allocated array
+            unique_ptr<char*[], TargetHandlesDeleter> targets_handles(
+                Link::targets_to_handles(link->targets), TargetHandlesDeleter(link->targets.size()));
+            db->add_link(link->type.c_str(),
+                         targets_handles.get(),
+                         link->targets.size(),
+                         link->custom_attributes);
         } else {
             Utils::error("Unsupported Atom type for commit: " + trie_node->to_string());
-            return false;  // Unsupported type, cannot commit
+            return true;  // Unsupported type, cannot commit
         }
-        return true;
+        return false;
     };
     this->handle_trie->traverse(true, commit_changes_visit_lambda, this->db.get());
 }
@@ -173,7 +174,7 @@ Atom* AtomSpace::atom_from_document(const shared_ptr<AtomDocument>& document) {
         // Something unexpected
         throw runtime_error("Invalid AtomDocument: must contain either 'targets' or 'name'");
     }
-    return NULL;  // Should never reach here
+    return nullptr;  // Should never reach here
 }
 
 }  // namespace atomspace
