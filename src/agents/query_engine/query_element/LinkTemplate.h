@@ -269,7 +269,7 @@ class LinkTemplate : public Source {
         return answer;
     }
 
-    shared_ptr<dasproto::ImportanceList> get_importance(const dasproto::HandleList& handle_list) {
+    shared_ptr<dasproto::ImportanceList> get_importance(const vector<std::string>& handles) {
         if (this->query_element_registry != nullptr) {
             LinkTemplate<ARITY>::get_importance_mutex.lock();
             auto il = this->query_element_registry->get(this->handle);
@@ -278,6 +278,13 @@ class LinkTemplate : public Source {
                 return dynamic_pointer_cast<ImportanceList>(il)->importance_list;
             }
         }
+
+        dasproto::HandleList handle_list;
+        handle_list.set_context(this->context);
+        for (auto handle : handles) {
+            handle_list.add_list(handle);
+        }
+
         auto importance_list = make_shared<dasproto::ImportanceList>();
         auto stub = dasproto::AttentionBroker::NewStub(
             grpc::CreateChannel(this->attention_broker_address, grpc::InsecureChannelCredentials()));
@@ -327,14 +334,13 @@ class LinkTemplate : public Source {
         QueryAnswer* query_answer;
         vector<QueryAnswer*> fetched_answers;
         if (answer_count > 0) {
-            dasproto::HandleList handle_list;
-            handle_list.set_context(this->context);
+            vector<string> handles;
             auto it = this->fetch_result->get_iterator();
             char* handle;
             while ((handle = it->next()) != nullptr) {
-                handle_list.add_list(handle);
+                handles.push_back(handle);
             }
-            auto importance_list = get_importance(handle_list);
+            auto importance_list = get_importance(handles);
             if (importance_list->list_size() != answer_count) {
                 Utils::error("Invalid AttentionBroker answer. Size: " +
                              std::to_string(importance_list->list_size()) +
