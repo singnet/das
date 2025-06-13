@@ -66,7 +66,7 @@ class RedisStringBundle : public HandleList {
 
 class MongodbDocument : public AtomDocument {
    public:
-    MongodbDocument(core::v1::optional<bsoncxx::v_noabi::document::value>& document);
+    MongodbDocument(bsoncxx::v_noabi::stdx::optional<bsoncxx::v_noabi::document::value>& document);
     ~MongodbDocument();
 
     const char* get(const string& key);
@@ -75,7 +75,7 @@ class MongodbDocument : public AtomDocument {
     virtual bool contains(const string& key);
 
    private:
-    core::v1::optional<bsoncxx::v_noabi::document::value> document;
+    bsoncxx::v_noabi::stdx::optional<bsoncxx::v_noabi::document::value> document;
 };
 
 }  // namespace atomdb_api_types

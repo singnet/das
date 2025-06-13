@@ -109,7 +109,7 @@ const char* RedisStringBundle::get_handle(unsigned int index) {
 
 unsigned int RedisStringBundle::size() { return this->handles_size; }
 
-MongodbDocument::MongodbDocument(core::v1::optional<bsoncxx::v_noabi::document::value>& document) {
+MongodbDocument::MongodbDocument(bsoncxx::v_noabi::stdx::optional<bsoncxx::v_noabi::document::value>& document) {
     this->document = document;
 }
 

@@ -58,8 +58,6 @@ class RedisMongoDB : public AtomDB {
     mongocxx::pool* mongodb_pool;
     shared_ptr<AtomDBCache> atomdb_cache;
 
-    mongocxx::database get_database();
-
     void redis_setup();
     void mongodb_setup();
     void attention_broker_setup();

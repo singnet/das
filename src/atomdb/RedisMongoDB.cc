@@ -3,6 +3,7 @@
 #include <grpcpp/grpcpp.h>
 
 #include <algorithm>
+#include <bsoncxx/types.hpp>
 #include <bsoncxx/builder/stream/document.hpp>
 #include <bsoncxx/builder/stream/helpers.hpp>
 #include <iostream>
@@ -109,11 +110,6 @@ void RedisMongoDB::redis_setup() {
     }
 }
 
-mongocxx::database RedisMongoDB::get_database() {
-    auto database = this->mongodb_pool->acquire();
-    return database[MONGODB_DB_NAME];
-}
-
 void RedisMongoDB::mongodb_setup() {
     string host = Utils::get_environment("DAS_MONGODB_HOSTNAME");
     string port = Utils::get_environment("DAS_MONGODB_PORT");
@@ -132,7 +128,8 @@ void RedisMongoDB::mongodb_setup() {
         auto uri = mongocxx::uri{url};
         this->mongodb_pool = new mongocxx::pool(uri);
         // Health check using ping command
-        auto mongodb = get_database();
+        auto conn = this->mongodb_pool->acquire();
+        auto mongodb = (*conn)[MONGODB_DB_NAME];
         const auto ping_cmd =
             bsoncxx::builder::basic::make_document(bsoncxx::builder::basic::kvp("ping", 1));
         mongodb.run_command(ping_cmd.view());
@@ -221,56 +218,63 @@ shared_ptr<atomdb_api_types::AtomDocument> RedisMongoDB::get_atom_document(const
         if (cache_result.is_cache_hit) return cache_result.result;
     }
 
-    auto mongodb_collection = get_database()[MONGODB_COLLECTION_NAME];
+    auto conn = this->mongodb_pool->acquire();
+    auto mongodb_collection = (*conn)[MONGODB_DB_NAME][MONGODB_COLLECTION_NAME];
     auto reply = mongodb_collection.find_one(bsoncxx::v_noabi::builder::basic::make_document(
         bsoncxx::v_noabi::builder::basic::kvp(MONGODB_FIELD_NAME[MONGODB_FIELD::ID], handle)));
 
     auto atom_document =
-        reply != core::v1::nullopt ? make_shared<atomdb_api_types::MongodbDocument>(reply) : nullptr;
+        reply != bsoncxx::v_noabi::stdx::nullopt ? make_shared<atomdb_api_types::MongodbDocument>(reply) : nullptr;
     if (this->atomdb_cache != nullptr) this->atomdb_cache->add_atom_document(handle, atom_document);
     return atom_document;
 }
 
 bool RedisMongoDB::link_exists(const char* link_handle) {
-    auto mongodb_collection = get_database()[MONGODB_COLLECTION_NAME];
+    auto conn = this->mongodb_pool->acquire();
+    auto mongodb_collection = (*conn)[MONGODB_DB_NAME][MONGODB_COLLECTION_NAME];
     auto reply = mongodb_collection.find_one(bsoncxx::v_noabi::builder::basic::make_document(
         bsoncxx::v_noabi::builder::basic::kvp(MONGODB_FIELD_NAME[MONGODB_FIELD::ID], link_handle)));
-    return (reply != core::v1::nullopt &&
+    return (reply != bsoncxx::v_noabi::stdx::nullopt &&
             reply->view().find(MONGODB_FIELD_NAME[MONGODB_FIELD::TARGETS]) != reply->view().end());
 }
 
 vector<string> RedisMongoDB::links_exist(const vector<string>& link_handles) {
     if (link_handles.empty()) return {};
 
-    auto mongodb_collection = get_database()[MONGODB_COLLECTION_NAME];
+    auto conn = this->mongodb_pool->acquire();
+    auto mongodb_collection = (*conn)[MONGODB_DB_NAME][MONGODB_COLLECTION_NAME];
+
+    bsoncxx::builder::basic::array handle_ids;
+    for (const auto& handle : link_handles) {
+        handle_ids.append(handle);
+    }
 
     bsoncxx::builder::basic::document filter_builder;
-    bsoncxx::builder::basic::array array_builder;
+    filter_builder.append(bsoncxx::builder::basic::kvp(
+        MONGODB_FIELD_NAME[MONGODB_FIELD::ID],
+        bsoncxx::builder::basic::make_document(
+            bsoncxx::builder::basic::kvp("$in", handle_ids)
+        )
+    ));
 
-    for (const auto& handle : link_handles) array_builder.append(handle);
+    auto filter = filter_builder.extract();
 
-    filter_builder.append(
-        bsoncxx::builder::basic::kvp(MONGODB_FIELD_NAME[MONGODB_FIELD::ID],
-                                     bsoncxx::builder::basic::make_document(
-                                         bsoncxx::builder::basic::kvp("$in", array_builder.view()))));
-
-    // Only project the ID field
-    bsoncxx::builder::basic::document projection_builder;
-    projection_builder.append(bsoncxx::builder::basic::kvp(MONGODB_FIELD_NAME[MONGODB_FIELD::ID], 1));
-
-    mongocxx::options::find options;
-    options.projection(projection_builder.view());
-
-    auto cursor = mongodb_collection.find(filter_builder.view(), options);
+    auto cursor = mongodb_collection.distinct(
+        MONGODB_FIELD_NAME[MONGODB_FIELD::ID],
+        filter.view()
+    );
 
     vector<string> existing_links;
     for (const auto& doc : cursor) {
-        existing_links.push_back(
-            doc[MONGODB_FIELD_NAME[MONGODB_FIELD::ID]].get_string().value.to_string());
+        auto values = doc["values"].get_array().value;
+        for (auto&& val : values) {
+            existing_links.push_back(val.get_string().value.data());
+        }
     }
 
     return existing_links;
 }
+
 
 char* RedisMongoDB::add_node(const char* type, const char* name) {
     // TODO: Implement add_node logic
