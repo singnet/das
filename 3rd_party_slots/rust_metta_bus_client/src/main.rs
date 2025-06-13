@@ -60,9 +60,7 @@ fn main() -> Result<(), BoxError> {
 		}
 	}
 
-	let port_lower: u16 = client_id.split(":").nth(1).unwrap().parse().unwrap();
-	let port_upper: u16 = port_lower + 1000;
-	ServiceBusSingleton::init(client_id.to_string(), server_id.to_string(), port_lower, port_upper)?;
+	ServiceBusSingleton::init(client_id.to_string(), server_id.to_string(), 64000, 64999)?;
 	let service_bus = Arc::new(Mutex::new(ServiceBusSingleton::get_instance()));
 
 	let bindings_set = query(
