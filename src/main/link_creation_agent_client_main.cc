@@ -4,7 +4,7 @@
 #include <iostream>
 #include <string>
 
-#include "link_creation_agent_node.h"
+#include "LinkCreationAgentNode.h"
 using namespace link_creation_agent;
 using namespace std;
 

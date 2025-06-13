@@ -1,10 +1,9 @@
-#include "inference_agent.h"
-
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
 #include <fstream>
 
+#include "InferenceAgent.h"
 #include "MessageBroker.h"
 #include "Utils.h"
 

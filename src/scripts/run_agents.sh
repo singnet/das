@@ -112,7 +112,7 @@ AGENTS=(
     "query_broker $QUERY_AGENT_PORT;src/scripts/run.sh"
     "link_creation_server --config_file ./src/bin/link_creation_server.cfg;src/scripts/run.sh"
     "inference_agent_server --config_file ./src/bin/inference_agent_server.cfg;src/scripts/run.sh"
-    "run //das_agent:main -- --config $DAS_AGENT_CONFIG;src/scripts/bazel.sh"
+    # "run //das_agent:main -- --config $DAS_AGENT_CONFIG;src/scripts/bazel.sh"
 )
 
 

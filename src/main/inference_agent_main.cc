@@ -1,6 +1,6 @@
 #include <signal.h>
 
-#include "inference_agent.h"
+#include "InferenceAgent.h"
 using namespace inference_agent;
 using namespace std;
 

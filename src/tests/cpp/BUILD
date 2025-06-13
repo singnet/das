@@ -454,8 +454,8 @@ cc_test(
     ],
     linkstatic = 1,
     deps = [
+        "//agents/link_creation_agent:link_creation_agent_lib",
         "//commons:commons_lib",
-        "//link_creation_agent:link_creation_agent_lib",
         "//service_bus:service_bus_lib",
         "@com_github_google_googletest//:gtest_main",
     ],
@@ -471,8 +471,8 @@ cc_test(
     ],
     linkstatic = 1,
     deps = [
+        "//agents/inference_agent:inference_agent_lib",
         "//commons:commons_lib",
-        "//inference_agent:inference_agent_lib",
         "@com_github_google_googletest//:gtest_main",
     ],
 )
