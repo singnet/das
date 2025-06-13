@@ -352,7 +352,6 @@ class LinkTemplate : public Source {
                 }
                 LOG_INFO("Considering " << answer_count << " links after importance filtering");
             }
-            // vector<string> atom_fields = ;
             this->atom_documents = db->get_atom_documents(handles, {"targets"});
             this->local_answers = new QueryAnswer*[answer_count];
             this->next_inner_answer = new unsigned int[answer_count];
