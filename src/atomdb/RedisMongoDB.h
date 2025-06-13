@@ -53,8 +53,13 @@ class RedisMongoDB : public AtomDB {
     shared_ptr<atomdb_api_types::AtomDocument> get_atom_document(const char* handle);
     bool link_exists(const char* link_handle);
     std::vector<std::string> links_exist(const std::vector<std::string>& link_handles);
-    char* add_node(const char* type, const char* name);
-    char* add_link(const char* type, char** targets, size_t targets_size);
+    char* add_node(const char* type,
+                   const char* name,
+                   const atomdb_api_types::CustomAttributesMap& custom_attributes = {});
+    char* add_link(const char* type,
+                   char** targets,
+                   size_t targets_size,
+                   const atomdb_api_types::CustomAttributesMap& custom_attributes = {});
     vector<shared_ptr<atomdb_api_types::AtomDocument>> get_atom_documents(const vector<string>& handles,
                                                                           const vector<string>& fields);
 
