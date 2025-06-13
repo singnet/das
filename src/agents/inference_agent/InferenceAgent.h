@@ -18,11 +18,11 @@
 #include <vector>
 
 #include "DASAgentNode.h"
-#include "distributed_inference_control_agent_node.h"
-#include "inference_agent_node.h"
-#include "inference_iterator.h"
-#include "inference_request.h"
-#include "inference_request_validator.h"
+#include "EvolutionAgentNode.h"
+#include "InferenceAgentNode.h"
+#include "InferenceIterator.h"
+#include "InferenceRequest.h"
+#include "InferenceRequestValidator.h"
 #include "LinkCreationAgentNode.h"
 #include "ThreadPool.h"
 

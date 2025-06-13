@@ -5,12 +5,12 @@ package(default_visibility = ["//visibility:public"])
 cc_library(
     name = "inference_agent_lib",
     srcs = [
-        "inference_agent.cc",
+        "InferenceAgent.cc",
     ],
     hdrs = [
-        "inference_agent.h",
-        "inference_iterator.h",
-        "inference_request_validator.h",
+        "InferenceAgent.h",
+        "InferenceIterator.h",
+        "InferenceRequestValidator.h",
     ],
     includes = ["."],
     deps = [
@@ -27,8 +27,8 @@ cc_library(
 
 cc_library(
     name = "distributed_inference_control_agent_node",
-    srcs = ["distributed_inference_control_agent_node.cc"],
-    hdrs = ["distributed_inference_control_agent_node.h"],
+    srcs = ["EvolutionAgentNode.cc"],
+    hdrs = ["EvolutionAgentNode.h"],
     deps = [
         "//distributed_algorithm_node:star_node",
     ],
@@ -36,8 +36,8 @@ cc_library(
 
 cc_library(
     name = "inference_request",
-    srcs = ["inference_request.cc"],
-    hdrs = ["inference_request.h"],
+    srcs = ["InferenceRequest.cc"],
+    hdrs = ["InferenceRequest.h"],
     deps = [
         "//commons:commons_lib",
         "//agents/link_creation_agent:link_creation_agent_lib",
@@ -46,8 +46,8 @@ cc_library(
 
 cc_library(
     name = "inference_agent_node",
-    srcs = ["inference_agent_node.cc"],
-    hdrs = ["inference_agent_node.h"],
+    srcs = ["InferenceAgentNode.cc"],
+    hdrs = ["InferenceAgentNode.h"],
     deps = [
         "//commons:commons_lib",
         "//distributed_algorithm_node:distributed_algorithm_node_lib",

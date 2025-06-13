@@ -1,4 +1,4 @@
-#include "distributed_inference_control_agent_node.h"
+#include "EvolutionAgentNode.h"
 
 #include <iostream>
 

@@ -1,5 +1,5 @@
 /**
- * @file inference_request.h
+ * @file InferenceRequest.h
  * @brief InferenceRequest class is a helper
  * class to create inference requests to be sent to the link creation agent
  * and distributed inference control agent.

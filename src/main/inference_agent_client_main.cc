@@ -4,7 +4,7 @@
 #include <iostream>
 #include <string>
 
-#include "inference_agent_node.h"
+#include "InferenceAgentNode.h"
 
 using namespace inference_agent;
 using namespace std;

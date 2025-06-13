@@ -1,5 +1,5 @@
 /**
- * @file inference_iterator.h
+ * @file InferenceIterator.h
  * @brief InferenceIterator class is a helper
  * class to iterate over the answers of a node
  */

@@ -1,4 +1,4 @@
-#include "inference_agent_node.h"
+#include "InferenceAgentNode.h"
 
 #include "DummyMessage.h"
 

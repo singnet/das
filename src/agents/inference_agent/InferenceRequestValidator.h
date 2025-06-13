@@ -1,5 +1,5 @@
 /**
- * @file inference_request_validator.h
+ * @file InferenceRequestValidator.h
  * @brief Validates inference requests
  */
 

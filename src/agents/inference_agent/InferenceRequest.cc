@@ -1,4 +1,4 @@
-#include "inference_request.h"
+#include "InferenceRequest.h"
 
 #include <memory>
 

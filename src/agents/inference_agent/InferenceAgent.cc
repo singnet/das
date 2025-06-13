@@ -1,4 +1,4 @@
-#include "inference_agent.h"
+#include "InferenceAgent.h"
 
 #include <limits.h>
 
