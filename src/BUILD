@@ -33,8 +33,7 @@ cc_shared_library(
         "-lbsoncxx",
     ],
     deps = [
-        "//agents/evolution:evolution_lib",
-        "//agents/query_engine:query_engine_lib",
+        "//agents:agents_lib",
         "//atomdb:atomdb_lib",
         "//attention_broker:attention_broker_lib",
         "//commons:commons_lib",

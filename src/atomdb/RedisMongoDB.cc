@@ -3,7 +3,6 @@
 #include <grpcpp/grpcpp.h>
 
 #include <algorithm>
-#include <bsoncxx/types.hpp>
 #include <bsoncxx/builder/stream/document.hpp>
 #include <bsoncxx/builder/stream/helpers.hpp>
 #include <iostream>
@@ -275,13 +274,17 @@ vector<string> RedisMongoDB::links_exist(const vector<string>& link_handles) {
     return existing_links;
 }
 
-
-char* RedisMongoDB::add_node(const char* type, const char* name) {
+char* RedisMongoDB::add_node(const char* type,
+                             const char* name,
+                             const atomdb_api_types::CustomAttributesMap& custom_attributes) {
     // TODO: Implement add_node logic
     return NULL;
 }
 
-char* RedisMongoDB::add_link(const char* type, char** targets, size_t targets_size) {
+char* RedisMongoDB::add_link(const char* type,
+                             char** targets,
+                             size_t targets_size,
+                             const atomdb_api_types::CustomAttributesMap& custom_attributes) {
     // TODO: Implement add_link logic
     return NULL;
 }

@@ -134,9 +134,12 @@ class AtomSpace {
      *
      * @param type Node type.
      * @param name Node name.
+     * @param custom_attributes Custom attributes for the node (optional).
      * @return The handle of the new node (caller is responsible for freeing).
      */
-    char* add_node(const string& type, const string& name);
+    char* add_node(const string& type,
+                   const string& nam,
+                   const CustomAttributesMap& custom_attributes = {});
 
     /**
      * @brief Add a link to the AtomSpace.
@@ -146,9 +149,12 @@ class AtomSpace {
      *
      * @param type Link type.
      * @param targets List of target atoms.
+     * @param custom_attributes Custom attributes for the link (optional).
      * @return The handle of the new link (caller is responsible for freeing).
      */
-    char* add_link(const string& type, const vector<const Atom*>& targets);
+    char* add_link(const string& type,
+                   const vector<const Atom*>& targets,
+                   const CustomAttributesMap& custom_attributes = {});
 
     /**
      * @brief Commit changes to the AtomSpace.
@@ -162,20 +168,22 @@ class AtomSpace {
      */
     void commit_changes(Scope scope = LOCAL_AND_REMOTE);
 
-   private:
-    shared_ptr<ServiceBus> bus;
-    unique_ptr<HandleTrie> handle_trie;
-    shared_ptr<AtomDB> db;
+   protected:
+    shared_ptr<AtomDB> db;  // to allow mocking in tests
 
     /**
      * @brief Create an Atom from a document.
      *
      * @param document The AtomDocument to create the Atom from.
-     * @return A pointer to the created Atom, or NULL if the document is invalid.
+     * @return A pointer to the created Atom, or nullptr if the document is invalid.
      * @throws std::runtime_error if the document is invalid (does not contain "targets" or "name").
      * @note The caller is responsible for deleting the returned Atom.
      */
     Atom* atom_from_document(const shared_ptr<AtomDocument>& document);
+
+   private:
+    shared_ptr<ServiceBus> bus;
+    unique_ptr<HandleTrie> handle_trie;
 };
 
 }  // namespace atomspace

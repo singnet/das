@@ -126,7 +126,6 @@ class PatternMatchingQueryProxy : public BusCommandProxy {
     /**
      * Pack query arguments into args vector
      */
-
     void pack_custom_args();
 
     // ---------------------------------------------------------------------------------------------

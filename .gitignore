@@ -196,6 +196,7 @@ tags
 # Backup
 *.bak
 
+bin
 src/bin
 src/bazel**
 
