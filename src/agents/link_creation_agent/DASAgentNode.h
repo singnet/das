@@ -4,8 +4,8 @@
  */
 #pragma once
 #include "DistributedAlgorithmNode.h"
-#include "StarNode.h"
 #include "LCAQueue.h"
+#include "StarNode.h"
 
 using namespace distributed_algorithm_node;
 

@@ -11,15 +11,15 @@
 #include <set>
 #include <shared_mutex>
 
-#include "PatternMatchingQueryProxy.h"
-#include "QueryAnswer.h"
-#include "ServiceBusSingleton.h"
 #include "DASAgentNode.h"
 #include "EquivalenceProcessor.h"
 #include "ImplicationProcessor.h"
 #include "LCALink.h"
-#include "LinkProcessor.h"
 #include "LCAQueue.h"
+#include "LinkProcessor.h"
+#include "PatternMatchingQueryProxy.h"
+#include "QueryAnswer.h"
+#include "ServiceBusSingleton.h"
 #include "TemplateProcessor.h"
 #include "ThreadPool.h"
 

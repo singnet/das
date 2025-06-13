@@ -2,9 +2,9 @@
 
 #include <fstream>
 
+#include "LinkCreationDBHelper.h"
 #include "Logger.h"
 #include "Utils.h"
-#include "LinkCreationDBHelper.h"
 
 using namespace link_creation_agent;
 using namespace std;

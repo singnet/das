@@ -101,7 +101,9 @@ Link Link::untokenize(const vector<string>& tokens, bool include_custom_field_si
     return untokenize_link(tokens, cursor, include_custom_field_size);
 }
 
-Link Link::untokenize_link(const vector<string>& tokens, size_t& cursor, bool include_custom_field_size) {
+Link Link::untokenize_link(const vector<string>& tokens,
+                           size_t& cursor,
+                           bool include_custom_field_size) {
     Link link;
     if (tokens[cursor] != "LINK") {
         throw runtime_error("Invalid token: " + tokens[cursor]);

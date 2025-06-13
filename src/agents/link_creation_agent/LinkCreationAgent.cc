@@ -3,9 +3,9 @@
 #include <fstream>
 #include <sstream>
 
+#include "LinkCreateTemplate.h"
 #include "Logger.h"
 #include "expression_hasher.h"
-#include "LinkCreateTemplate.h"
 
 using namespace std;
 using namespace link_creation_agent;

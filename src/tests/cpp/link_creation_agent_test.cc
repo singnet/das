@@ -1,14 +1,13 @@
-#include "LinkCreationAgent.h"
-
 #include <gtest/gtest.h>
 
 #include <chrono>
 #include <fstream>
 #include <thread>
 
-#include "Utils.h"
 #include "LinkCreateTemplate.h"
+#include "LinkCreationAgent.h"
 #include "TemplateProcessor.h"
+#include "Utils.h"
 
 using namespace std;
 using namespace link_creation_agent;

@@ -3,9 +3,9 @@
  * @brief DAS Node server to receive link creation requests
  */
 #pragma once
-#include "StarNode.h"
 #include "DummyMessage.h"
 #include "LCAQueue.h"
+#include "StarNode.h"
 
 using namespace distributed_algorithm_node;
 

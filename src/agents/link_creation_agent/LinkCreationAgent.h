@@ -15,11 +15,11 @@
 #include <thread>
 #include <vector>
 
-#include "PatternMatchingQueryProxy.h"
-#include "ServiceBusSingleton.h"
 #include "DASAgentNode.h"
 #include "LinkCreationAgentNode.h"
 #include "LinkCreationService.h"
+#include "PatternMatchingQueryProxy.h"
+#include "ServiceBusSingleton.h"
 
 using namespace std;
 using namespace das_agent;

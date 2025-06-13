@@ -69,8 +69,8 @@ cc_library(
     srcs = ["LinkCreationAgentNode.cc"],
     hdrs = [
         "DummyMessage.h",
-        "LinkCreationAgentNode.h",
         "LCAQueue.h",
+        "LinkCreationAgentNode.h",
     ],
     deps = [
         "//distributed_algorithm_node:star_node",

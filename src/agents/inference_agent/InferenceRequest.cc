@@ -2,8 +2,8 @@
 
 #include <memory>
 
-#include "Utils.h"
 #include "LinkCreateTemplate.h"
+#include "Utils.h"
 
 using namespace std;
 using namespace inference_agent;

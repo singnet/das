@@ -7,8 +7,8 @@
 #include <variant>
 #include <vector>
 
-#include "QueryAnswer.h"
 #include "LinkCreateTemplate.h"
+#include "QueryAnswer.h"
 
 using namespace std;
 using namespace query_engine;

@@ -1,7 +1,7 @@
 #include "ImplicationProcessor.h"
 
-#include "Logger.h"
 #include "LinkCreationDBHelper.h"
+#include "Logger.h"
 
 using namespace std;
 using namespace query_engine;

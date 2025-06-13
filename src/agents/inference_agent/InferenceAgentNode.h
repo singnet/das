@@ -9,9 +9,9 @@
 #include <thread>
 #include <vector>
 
+#include "LCAQueue.h"
 #include "Message.h"
 #include "StarNode.h"
-#include "LCAQueue.h"
 
 using namespace distributed_algorithm_node;
 using namespace std;
