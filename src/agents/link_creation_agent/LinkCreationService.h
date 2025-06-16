@@ -20,19 +20,8 @@
 #include "PatternMatchingQueryProxy.h"
 #include "QueryAnswer.h"
 #include "ServiceBusSingleton.h"
-<<<<<<< HEAD:src/agents/link_creation_agent/LinkCreationService.h
 #include "TemplateProcessor.h"
 #include "ThreadPool.h"
-=======
-#include "commons/ThreadPool.h"
-#include "das_agent_node.h"
-#include "equivalence_processor.h"
-#include "implication_processor.h"
-#include "link.h"
-#include "link_processor.h"
-#include "queue.h"
-#include "template_processor.h"
->>>>>>> 9d4956eff3cf60f050e998f75a603612ebd310f1:src/link_creation_agent/link_creation_service.h
 
 using namespace das_agent;
 using namespace query_engine;

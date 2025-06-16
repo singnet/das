@@ -91,16 +91,11 @@ cc_library(
 
 cc_library(
     name = "service",
-<<<<<<< HEAD:src/agents/link_creation_agent/BUILD
     srcs = ["LinkCreationService.cc"],
     hdrs = [
         "LinkCreationService.h",
         "ThreadPool.h",
     ],
-=======
-    srcs = ["link_creation_service.cc"],
-    hdrs = ["link_creation_service.h"],
->>>>>>> 9d4956eff3cf60f050e998f75a603612ebd310f1:src/link_creation_agent/BUILD
     deps = [
         ":das_agent_node",
         ":link",
