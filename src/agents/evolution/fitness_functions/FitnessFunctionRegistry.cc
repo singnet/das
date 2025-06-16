@@ -2,13 +2,15 @@
 #include "FitnessFunction.h"
 #include "Utils.h"
 
+// -------------------------------------------------------------------------------------------------
+// Add your header here
+#include "UnitTestFunction.h"
+// -------------------------------------------------------------------------------------------------
+
 using namespace fitness_functions;
 using namespace commons;
 bool FitnessFunctionRegistry::INITIALIZED = false;
 map<string, shared_ptr<FitnessFunction>> FitnessFunctionRegistry::FUNCTION;
-
-// Add your header here
-#include "UnitTestFunction.h"
 
 void FitnessFunctionRegistry::initialize_statics() {
     if (INITIALIZED) {
@@ -17,8 +19,11 @@ void FitnessFunctionRegistry::initialize_statics() {
             "FitnessFunctionRegistry::init() should be called only once.");
     } else {
         INITIALIZED = true;
-        // Add your function here using a unique string key
         FUNCTION["unit_test"] = make_shared<UnitTestFunction>();
+        // -----------------------------------------------------------------------------------------
+        // Add your function here using a unique string key
+        // FUNCTION["my_function_tag"] = make_shared<MyFunction>();
+        // -----------------------------------------------------------------------------------------
     }
 }
 
