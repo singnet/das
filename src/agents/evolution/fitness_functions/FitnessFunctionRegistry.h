@@ -1,9 +1,10 @@
 #pragma once
 
-#include "FitnessFunction.h"
+#include <map>
 #include <memory>
 #include <mutex>
-#include <map>
+
+#include "FitnessFunction.h"
 
 using namespace std;
 
@@ -15,16 +16,16 @@ namespace fitness_functions {
  * In order to register a fitness function, edit FitnessFunctionRegistry.cc
  */
 class FitnessFunctionRegistry {
-
-public:
+   public:
     ~FitnessFunctionRegistry() {}
     static shared_ptr<FitnessFunction> function(const string& tag);
     static void initialize_statics();
-private:
+
+   private:
     FitnessFunctionRegistry() {}
 
     static bool INITIALIZED;
     static map<string, shared_ptr<FitnessFunction>> FUNCTION;
 };
 
-} // namespace fitness_functions
+}  // namespace fitness_functions

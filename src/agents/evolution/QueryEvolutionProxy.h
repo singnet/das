@@ -3,10 +3,10 @@
 #include <mutex>
 
 #include "BaseProxy.h"
+#include "FitnessFunction.h"
 #include "Message.h"
 #include "QueryAnswer.h"
 #include "SharedQueue.h"
-#include "FitnessFunction.h"
 
 using namespace std;
 using namespace service_bus;
@@ -45,7 +45,9 @@ class QueryEvolutionProxy : public BaseProxy {
      * @param tokens Query tokens.
      * @param context AttentionBroker context
      */
-    QueryEvolutionProxy(const vector<string>& tokens, const string& fitness_function, const string& context);
+    QueryEvolutionProxy(const vector<string>& tokens,
+                        const string& fitness_function,
+                        const string& context);
 
     /**
      * Destructor.
@@ -192,7 +194,7 @@ class QueryEvolutionProxy : public BaseProxy {
 
     /**
      * Fitness function selector.
-     */ 
+     */
     string fitness_function_tag;
 };
 

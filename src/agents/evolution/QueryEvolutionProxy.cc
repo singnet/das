@@ -19,12 +19,10 @@ QueryEvolutionProxy::QueryEvolutionProxy() {
     init();
 }
 
-QueryEvolutionProxy::QueryEvolutionProxy(
-    const vector<string>& tokens, 
-    const string& fitness_function,
-    const string& context)
+QueryEvolutionProxy::QueryEvolutionProxy(const vector<string>& tokens,
+                                         const string& fitness_function,
+                                         const string& context)
     : BaseProxy() {
-
     // constructor typically used in requestor
     lock_guard<mutex> semaphore(this->api_mutex);
     init();
@@ -34,8 +32,8 @@ QueryEvolutionProxy::QueryEvolutionProxy(
     this->args.insert(this->args.end(), tokens.begin(), tokens.end());
 }
 
-void QueryEvolutionProxy::set_default_query_parameters() { 
-    this->unique_assignment_flag = false; 
+void QueryEvolutionProxy::set_default_query_parameters() {
+    this->unique_assignment_flag = false;
     this->fitness_function_tag = "";
 }
 
@@ -46,10 +44,7 @@ void QueryEvolutionProxy::init() {
 
 void QueryEvolutionProxy::pack_custom_args() {
     vector<string> custom_args = {
-        this->context, 
-        std::to_string(this->unique_assignment_flag),
-        this->fitness_function_tag
-    };
+        this->context, std::to_string(this->unique_assignment_flag), this->fitness_function_tag};
     this->args.insert(this->args.begin(), custom_args.begin(), custom_args.end());
 }
 

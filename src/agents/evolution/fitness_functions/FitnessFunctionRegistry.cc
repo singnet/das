@@ -1,4 +1,5 @@
 #include "FitnessFunctionRegistry.h"
+
 #include "FitnessFunction.h"
 #include "Utils.h"
 
@@ -35,15 +36,8 @@ shared_ptr<FitnessFunction> FitnessFunctionRegistry::function(const string& tag)
             Utils::error("Unkown fitness function: " + tag);
         }
     } else {
-        Utils::error("FitnessFunctionRegistry isn't initialized. Call FitnessFunctionRegistry::init() first.");
+        Utils::error(
+            "FitnessFunctionRegistry isn't initialized. Call FitnessFunctionRegistry::init() first.");
     }
     return shared_ptr<FitnessFunction>(nullptr);
 }
-
-//FitnessFunctionRegistry::function.insert(std::make_pair("unit_test", new UnitTestFunction()));
-
-/*
-map<string, shared_ptr<FitnessFunction>> FitnessFunctionRegistry::function = {
-    {"unit_test", static_cast<FitnessFunction>(make_shared<UnitTestFunction>(new UnitTestFunction()))},
-};
-*/

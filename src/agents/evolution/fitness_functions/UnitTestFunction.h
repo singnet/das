@@ -7,16 +7,13 @@ using namespace std;
 namespace fitness_functions {
 
 class UnitTestFunction : public FitnessFunction {
-
-public:
-
+   public:
     UnitTestFunction() {}
     ~UnitTestFunction() {}
 
     float eval(shared_ptr<QueryAnswer> query_answer) override;
 
-private:
-
+   private:
 };
 
-} // namespace fitness_functions
+}  // namespace fitness_functions
