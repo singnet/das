@@ -1,3 +1,7 @@
+load("@rules_cc//cc:cc_test.bzl", "cc_test")
+
+package(default_visibility = ["//visibility:public"])
+
 cc_test(
     name = "shared_queue_test",
     size = "small",
@@ -441,6 +445,21 @@ cc_test(
 )
 
 cc_test(
+    name = "query_evolution_test",
+    size = "small",
+    srcs = ["query_evolution_test.cc"],
+    copts = [
+        "-Iexternal/gtest/googletest/include",
+        "-Iexternal/gtest/googletest",
+    ],
+    linkstatic = 1,
+    deps = [
+        "//agents/evolution:evolution_lib",
+        "@com_github_google_googletest//:gtest_main",
+    ],
+)
+
+cc_test(
     name = "link_creation_agent_test",
     size = "small",
     srcs = ["link_creation_agent_test.cc"],
@@ -469,6 +488,55 @@ cc_test(
     deps = [
         "//agents/inference_agent:inference_agent_lib",
         "//commons:commons_lib",
+        "@com_github_google_googletest//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "custom_attributes_test",
+    size = "small",
+    srcs = ["custom_attributes_test.cc"],
+    copts = [
+        "-Iexternal/gtest/googletest/include",
+        "-Iexternal/gtest/googletest",
+    ],
+    linkstatic = 1,
+    deps = [
+        "//atomdb:atomdb_api_types",
+        "@com_github_google_googletest//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "atom_space_types_test",
+    size = "small",
+    srcs = ["atom_space_types_test.cc"],
+    copts = [
+        "-Iexternal/gtest/googletest/include",
+        "-Iexternal/gtest/googletest",
+    ],
+    linkstatic = 1,
+    deps = [
+        "//atom_space:atom_space_types",
+        "@com_github_google_googletest//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "atom_space_test",
+    size = "small",
+    srcs = ["atom_space_test.cc"],
+    copts = [
+        "-Iexternal/gtest/googletest/include",
+        "-Iexternal/gtest/googletest",
+    ],
+    linkstatic = 1,
+    deps = [
+        "//agents/query_engine:query_engine_lib",
+        "//atom_space:atom_space_lib",
+        "//atom_space:atom_space_types",
+        "//atomdb:atomdb_api_types",
+        "//service_bus:service_bus_lib",
         "@com_github_google_googletest//:gtest_main",
     ],
 )

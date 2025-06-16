@@ -196,7 +196,7 @@ tags
 # Backup
 *.bak
 
-src/bin
+bin
 src/bazel**
 
 .nogit/

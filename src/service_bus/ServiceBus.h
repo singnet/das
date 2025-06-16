@@ -40,6 +40,7 @@ namespace service_bus {
  * (TODO: update this list and add hints for commands' arguments)
  *
  * - PATTERN_MATCHING_QUERY
+ * - QUERY_EVOLUTION
  *
  * Command processors must extend BusCommandProcessor and be registered by calling
  * register_processor(). Command issuers must create BusCommandProxy objects in order
@@ -100,6 +101,7 @@ class ServiceBus {
 
    public:
     static string PATTERN_MATCHING_QUERY;
+    static string QUERY_EVOLUTION;
 
     /**
      * Registers a processor making it take the ownership of one or more bus commands.

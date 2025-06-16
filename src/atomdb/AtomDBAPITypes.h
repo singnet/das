@@ -1,5 +1,6 @@
 #pragma once
 
+#include <algorithm>
 #include <optional>
 #include <unordered_map>
 #include <variant>
@@ -43,6 +44,16 @@ class CustomAttributesMap : public unordered_map<string, CustomAttributesValue> 
                         CustomAttributesValue>::unordered_map;  // Inherit constructors
 
     /**
+     * @brief Construct a CustomAttributesMap from an initializer list.
+     * @param init The initializer list of key-value pairs.
+     * @example
+     * CustomAttributesMap attrs = {{"key1", "value1"}, {"key2", 42}};
+     */
+    template <typename K, typename V>
+    CustomAttributesMap(std::initializer_list<std::pair<K, V>> init)
+        : unordered_map<string, CustomAttributesValue>(init.begin(), init.end()) {}
+
+    /**
      * @brief Get the value associated with a key, cast to the requested type.
      *
      * If the key exists and the value can be cast to type T, returns a pointer to the value.
@@ -69,7 +80,20 @@ class CustomAttributesMap : public unordered_map<string, CustomAttributesValue> 
      */
     string to_string() const {
         string result = "{";
-        for (const auto& [key, value] : *this) {
+        if (this->empty()) {
+            return result + "}";
+        }
+
+        // Sort keys for consistent output
+        // Note: This is not strictly necessary, but it makes the output predictable and easier to read.
+        vector<string> keys;
+        for (const auto& pair : *this) {
+            keys.push_back(pair.first);
+        }
+        std::sort(keys.begin(), keys.end());
+
+        for (const auto& key : keys) {
+            const auto& value = this->at(key);
             result += key + ": ";
             if (auto str = std::get_if<string>(&value)) {
                 result += "'" + *str + "'";
@@ -82,10 +106,12 @@ class CustomAttributesMap : public unordered_map<string, CustomAttributesValue> 
             }
             result += ", ";
         }
+
+        // Remove the last comma and space
         result.pop_back();
         result.pop_back();
-        result += "}";
-        return result;
+
+        return result + "}";
     }
 };
 

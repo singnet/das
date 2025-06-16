@@ -4,6 +4,7 @@ package(default_visibility = ["//visibility:public"])
 
 cc_library(
     name = "atomdb_lib",
+    includes = ["."],
     deps = [
         ":atomdb",
         ":atomdb_api_types",
@@ -18,6 +19,7 @@ cc_library(
 cc_library(
     name = "atomdb",
     hdrs = ["AtomDB.h"],
+    includes = ["."],
     deps = [
         ":atomdb_api_types",
     ],
@@ -26,6 +28,7 @@ cc_library(
 cc_library(
     name = "atomdb_api_types",
     hdrs = ["AtomDBAPITypes.h"],
+    includes = ["."],
     deps = [
         "//commons:commons_lib",
         "//hasher:hasher_lib",
@@ -36,6 +39,7 @@ cc_library(
     name = "redis_mongodb_api_types",
     srcs = ["RedisMongoDBAPITypes.cc"],
     hdrs = ["RedisMongoDBAPITypes.h"],
+    includes = ["."],
     deps = [
         ":atomdb_api_types",
     ],
@@ -45,6 +49,7 @@ cc_library(
     name = "atomdb_singleton",
     srcs = ["AtomDBSingleton.cc"],
     hdrs = ["AtomDBSingleton.h"],
+    includes = ["."],
     deps = [
         ":atomdb_cache_singleton",
         ":redis_mongodb",

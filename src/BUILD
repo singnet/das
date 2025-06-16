@@ -33,6 +33,7 @@ cc_shared_library(
         "-lbsoncxx",
     ],
     deps = [
+        "//agents:agents_lib",
         "//agents/evolution:evolution_lib",
         "//agents/inference_agent:inference_agent_lib",
         "//agents/link_creation_agent:link_creation_agent_lib",
