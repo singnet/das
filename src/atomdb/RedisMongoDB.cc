@@ -10,12 +10,10 @@
 #include <string>
 
 #include "AttentionBrokerServer.h"
+#include "Logger.h"
 #include "Utils.h"
 #include "attention_broker.grpc.pb.h"
 #include "attention_broker.pb.h"
-
-#define LOG_LEVEL INFO_LEVEL
-#include "Logger.h"
 
 using namespace atomdb;
 using namespace commons;
@@ -26,6 +24,7 @@ uint RedisMongoDB::REDIS_CHUNK_SIZE;
 string RedisMongoDB::MONGODB_DB_NAME;
 string RedisMongoDB::MONGODB_COLLECTION_NAME;
 string RedisMongoDB::MONGODB_FIELD_NAME[MONGODB_FIELD::size];
+uint RedisMongoDB::MONGODB_CHUNK_SIZE;
 
 RedisMongoDB::RedisMongoDB() {
     redis_setup();
@@ -114,6 +113,14 @@ void RedisMongoDB::mongodb_setup() {
     string port = Utils::get_environment("DAS_MONGODB_PORT");
     string user = Utils::get_environment("DAS_MONGODB_USERNAME");
     string password = Utils::get_environment("DAS_MONGODB_PASSWORD");
+    try{
+        uint chunk_size = Utils::string_to_int(Utils::get_environment("DAS_MONGODB_CHUNK_SIZE"));
+        if (chunk_size > 0) {
+            MONGODB_CHUNK_SIZE = chunk_size;
+        }
+    } catch (const std::exception& e) {
+        Utils::warning("Error reading MongoDB chunk size, using default value");
+    }
     if (host == "" || port == "" || user == "" || password == "") {
         Utils::error(
             string("You need to set MongoDB access info as environment variables: ") +
@@ -156,7 +163,11 @@ shared_ptr<atomdb_api_types::HandleSet> RedisMongoDB::query_for_pattern(
         command = ("ZRANGE " + REDIS_PATTERNS_PREFIX + ":" + pattern_handle.get() + " " +
                    to_string(redis_cursor) + " " + to_string(redis_cursor + REDIS_CHUNK_SIZE - 1));
 
-        reply = (redisReply*) redisCommand(this->redis_single, command.c_str());
+        if (this->cluster_flag) {
+            reply = (redisReply*) redisClusterCommand(this->redis_cluster, command.c_str());
+        } else {
+            reply = (redisReply*) redisCommand(this->redis_single, command.c_str());
+        }
 
         if (reply == NULL) {
             Utils::error("Redis error");
@@ -193,20 +204,39 @@ shared_ptr<atomdb_api_types::HandleList> RedisMongoDB::query_for_targets(char* l
         if (cache_result.is_cache_hit) return cache_result.result;
     }
 
-    redisReply* reply = (redisReply*) redisCommand(
-        this->redis_single, "GET %s:%s", REDIS_TARGETS_PREFIX.c_str(), link_handle_ptr);
+    redisReply* reply;
+    try {
+        if (this->cluster_flag) {
+            reply = (redisReply*) redisClusterCommand(
+                this->redis_cluster, "GET %s:%s", REDIS_TARGETS_PREFIX.c_str(), link_handle_ptr);
+        } else {
+            reply = (redisReply*) redisCommand(
+                this->redis_single, "GET %s:%s", REDIS_TARGETS_PREFIX.c_str(), link_handle_ptr);
+        }
 
-    if ((reply == NULL) || (reply->type == REDIS_REPLY_NIL)) {
-        if (this->atomdb_cache != nullptr) this->atomdb_cache->add_handle_list(link_handle_ptr, nullptr);
-        return nullptr;
+        if (reply == NULL) {
+            Utils::error("Redis error");
+        }
+
+        if ((reply == NULL) || (reply->type == REDIS_REPLY_NIL)) {
+            if (this->atomdb_cache != nullptr)
+                this->atomdb_cache->add_handle_list(link_handle_ptr, nullptr);
+            return nullptr;
+        }
+
+        if (reply->type != REDIS_REPLY_STRING) {
+            Utils::error("Invalid Redis response: " + std::to_string(reply->type) +
+                         " != " + std::to_string(REDIS_REPLY_STRING));
+        }
+
+    } catch (const std::exception& e) {
+        Utils::error(e.what());
     }
-    if (reply->type != REDIS_REPLY_STRING) {
-        Utils::error("Invalid Redis response: " + std::to_string(reply->type) +
-                     " != " + std::to_string(REDIS_REPLY_STRING));
-    }
+
     // NOTE: Intentionally, we aren't destroying 'reply' objects.'reply' objects are destroyed in
     // ~RedisSet().
     auto handle_list = make_shared<atomdb_api_types::RedisStringBundle>(reply);
+
     if (this->atomdb_cache != nullptr) this->atomdb_cache->add_handle_list(link_handle_ptr, handle_list);
     return handle_list;
 }
@@ -287,4 +317,56 @@ char* RedisMongoDB::add_link(const char* type,
                              const atomdb_api_types::CustomAttributesMap& custom_attributes) {
     // TODO: Implement add_link logic
     return NULL;
+}
+
+vector<shared_ptr<atomdb_api_types::AtomDocument>> RedisMongoDB::get_atom_documents(
+    const vector<string>& handles, const vector<string>& fields) {
+    // TODO Add cache support for this method
+    vector<shared_ptr<atomdb_api_types::AtomDocument>> atom_documents;
+
+    if (handles.empty()) {
+        return atom_documents;
+    }
+
+    auto conn = this->mongodb_pool->acquire();
+    auto mongodb_collection = (*conn)[MONGODB_DB_NAME][MONGODB_COLLECTION_NAME];
+
+    try {
+        // Process handles in batches
+        uint handle_count = handles.size();
+        for (size_t i = 0; i < handles.size(); i += MONGODB_CHUNK_SIZE) {
+            size_t batch_size = min(MONGODB_CHUNK_SIZE, uint(handle_count - i));
+            // Build filter
+            bsoncxx::builder::stream::document filter_builder;
+            auto array = filter_builder << MONGODB_FIELD_NAME[MONGODB_FIELD::ID]
+                                       << bsoncxx::builder::stream::open_document << "$in"
+                                       << bsoncxx::builder::stream::open_array;
+            for (int j = i; j < (i + batch_size); j++) {
+                array << handles[j];
+            }
+            array << bsoncxx::builder::stream::close_array << bsoncxx::builder::stream::close_document;
+
+            // Build projection
+            bsoncxx::builder::stream::document projection_builder;
+            for (const auto& field : fields) {
+                projection_builder << field << 1;
+            }
+
+            auto cursor = mongodb_collection.find(
+                filter_builder.view(),
+                mongocxx::options::find{}.projection(projection_builder.view())
+            );
+
+            for (const auto& view : cursor) {
+                core::v1::optional<bsoncxx::v_noabi::document::value> opt_val =
+                    bsoncxx::v_noabi::document::value(view);
+                auto atom_document = make_shared<atomdb_api_types::MongodbDocument>(opt_val);
+                atom_documents.push_back(atom_document);
+            }
+        }
+    } catch (const exception& e) {
+        Utils::error("MongoDB error: " + string(e.what()));
+    }
+
+    return atom_documents;
 }

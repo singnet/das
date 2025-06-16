@@ -1,8 +1,9 @@
 #include "QueryEvolutionProxy.h"
 
+#include "FitnessFunctionRegistry.h"
 #include "ServiceBus.h"
 
-#define LOG_LEVEL INFO_LEVEL
+#define LOG_LEVEL DEBUG_LEVEL
 #include "Logger.h"
 
 using namespace evolution;
@@ -18,16 +19,23 @@ QueryEvolutionProxy::QueryEvolutionProxy() {
     init();
 }
 
-QueryEvolutionProxy::QueryEvolutionProxy(const vector<string>& tokens, const string& context)
+QueryEvolutionProxy::QueryEvolutionProxy(const vector<string>& tokens,
+                                         const string& fitness_function,
+                                         const string& context)
     : BaseProxy() {
     // constructor typically used in requestor
     lock_guard<mutex> semaphore(this->api_mutex);
     init();
+    this->fitness_function_tag = fitness_function;
+    this->context = context;
     this->command = ServiceBus::QUERY_EVOLUTION;
     this->args.insert(this->args.end(), tokens.begin(), tokens.end());
 }
 
-void QueryEvolutionProxy::set_default_query_parameters() { this->unique_assignment_flag = false; }
+void QueryEvolutionProxy::set_default_query_parameters() {
+    this->unique_assignment_flag = false;
+    this->fitness_function_tag = "";
+}
 
 void QueryEvolutionProxy::init() {
     this->answer_count = 0;
@@ -35,8 +43,18 @@ void QueryEvolutionProxy::init() {
 }
 
 void QueryEvolutionProxy::pack_custom_args() {
-    vector<string> custom_args = {this->context, to_string(this->unique_assignment_flag)};
+    vector<string> custom_args = {
+        this->context, std::to_string(this->unique_assignment_flag), this->fitness_function_tag};
     this->args.insert(this->args.begin(), custom_args.begin(), custom_args.end());
+}
+
+string QueryEvolutionProxy::to_string() {
+    string answer = "{";
+    answer += "context: " + this->get_context();
+    answer += " unique_assignment: " + string(this->get_unique_assignment_flag() ? "true" : "false");
+    answer += " fitness_function: " + this->get_fitness_function_tag();
+    answer += "}";
+    return answer;
 }
 
 QueryEvolutionProxy::~QueryEvolutionProxy() {}
@@ -89,6 +107,21 @@ void QueryEvolutionProxy::set_unique_assignment_flag(bool flag) {
     this->unique_assignment_flag = flag;
 }
 
+const string& QueryEvolutionProxy::get_fitness_function_tag() {
+    lock_guard<mutex> semaphore(this->api_mutex);
+    return this->fitness_function_tag;
+}
+
+void QueryEvolutionProxy::set_fitness_function_tag(const string& tag) {
+    lock_guard<mutex> semaphore(this->api_mutex);
+    if ((this->fitness_function_tag != "") && (tag != this->fitness_function_tag)) {
+        Utils::error("Invalid reset of fitness function: " + this->fitness_function_tag + " --> " + tag);
+    } else {
+        this->fitness_function_tag = tag;
+        this->fitness_function_object = FitnessFunctionRegistry::function(tag);
+    }
+}
+
 // ---------------------------------------------------------------------------------------------
 // Virtual superclass API and the piggyback methods called by it
 
@@ -98,12 +131,12 @@ bool QueryEvolutionProxy::from_remote_peer(const string& command, const vector<s
     if (!BaseProxy::from_remote_peer(command, args)) {
         if (command == ANSWER_BUNDLE) {
             answer_bundle(args);
-            return true;
         } else {
-            Utils::error("Invalid proxy command: <" + command + ">");
+            Utils::error("Invalid QueryEvolutionProxy command: <" + command + ">");
+            return false;
         }
     }
-    return false;
+    return true;
 }
 
 void QueryEvolutionProxy::answer_bundle(const vector<string>& args) {

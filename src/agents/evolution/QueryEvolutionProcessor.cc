@@ -3,7 +3,7 @@
 #include "QueryEvolutionProxy.h"
 #include "ServiceBus.h"
 
-#define LOG_LEVEL INFO_LEVEL
+#define LOG_LEVEL DEBUG_LEVEL
 #include "Logger.h"
 
 using namespace evolution;
@@ -52,10 +52,12 @@ void QueryEvolutionProcessor::thread_process_one_query(shared_ptr<StoppableThrea
         unsigned int skip_arg = 0;
         proxy->set_context(proxy->args[skip_arg++]);
         proxy->set_unique_assignment_flag(proxy->args[skip_arg++] == "1");
+        proxy->set_fitness_function_tag(proxy->args[skip_arg++]);
         proxy->query_tokens.insert(
             proxy->query_tokens.begin(), proxy->args.begin() + skip_arg, proxy->args.end());
         string command = proxy->get_command();
         if (command == ServiceBus::QUERY_EVOLUTION) {
+            LOG_DEBUG("QUERY_EVOLUTION proxy: " << proxy->to_string());
         } else {
             Utils::error("Invalid command " + command + " in QueryEvolutionProcessor");
         }
