@@ -188,6 +188,7 @@ bool PatternMatchingQueryProxy::from_remote_peer(const string& command, const ve
             abort(args);
         } else {
             Utils::error("Invalid proxy command: <" + command + ">");
+            return false;
         }
     }
     return true;
