@@ -2,7 +2,7 @@
 
 #include "ServiceBus.h"
 
-#define LOG_LEVEL INFO_LEVEL
+#define LOG_LEVEL DEBUG_LEVEL
 #include "Logger.h"
 
 using namespace agents;
@@ -69,15 +69,13 @@ bool BaseProxy::from_remote_peer(const string& command, const vector<string>& ar
     if (!BusCommandProxy::from_remote_peer(command, args)) {
         if (command == FINISHED) {
             command_finished(args);
-            return true;
         } else if (command == ABORT) {
             abort(args);
-            return true;
         } else {
-            Utils::error("Invalid proxy command: <" + command + ">");
+            return false;
         }
     }
-    return false;
+    return true;
 }
 
 void BaseProxy::command_finished(const vector<string>& args) {

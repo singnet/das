@@ -10,6 +10,7 @@ cc_library(
     deps = [
         ":query_evolution_processor",
         ":query_evolution_proxy",
+        "//agents/evolution/fitness_functions:fitness_functions_lib",
     ],
 )
 
@@ -21,6 +22,7 @@ cc_library(
     deps = [
         "//agents:base_proxy",
         "//agents/query_engine:query_answer",
+        "//agents/evolution/fitness_functions:fitness_functions_lib",
         "//commons:commons_lib",
         "//service_bus:service_bus_lib",
     ],

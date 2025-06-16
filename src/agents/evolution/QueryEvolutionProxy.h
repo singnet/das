@@ -6,11 +6,13 @@
 #include "Message.h"
 #include "QueryAnswer.h"
 #include "SharedQueue.h"
+#include "FitnessFunction.h"
 
 using namespace std;
 using namespace service_bus;
 using namespace query_engine;
 using namespace agents;
+using namespace fitness_functions;
 
 namespace evolution {
 
@@ -43,7 +45,7 @@ class QueryEvolutionProxy : public BaseProxy {
      * @param tokens Query tokens.
      * @param context AttentionBroker context
      */
-    QueryEvolutionProxy(const vector<string>& tokens, const string& context);
+    QueryEvolutionProxy(const vector<string>& tokens, const string& fitness_function, const string& context);
 
     /**
      * Destructor.
@@ -101,6 +103,13 @@ class QueryEvolutionProxy : public BaseProxy {
      */
     void pack_custom_args();
 
+    /**
+     * Returns a string representation with all command parameter values.
+     *
+     * @return a string representation with all command parameter values.
+     */
+    string to_string();
+
     // ---------------------------------------------------------------------------------------------
     // Query parameters getters and setters
 
@@ -122,6 +131,24 @@ class QueryEvolutionProxy : public BaseProxy {
      */
     void set_unique_assignment_flag(bool flag);
 
+    /**
+     * Getter for fitness_function_tag
+     *
+     * fitness_function_tag is the id for the fitness function to be used to evaluate query answers
+     *
+     * @return fitness_function_tag
+     */
+    const string& get_fitness_function_tag();
+
+    /**
+     * Setter for fitness_function_tag
+     *
+     * fitness_function_tag is the id for the fitness function to be used to evaluate query answers
+     *
+     * @param flag Flag
+     */
+    void set_fitness_function_tag(const string& tag);
+
     // ---------------------------------------------------------------------------------------------
     // Virtual superclass API and the piggyback methods called by it
 
@@ -133,7 +160,7 @@ class QueryEvolutionProxy : public BaseProxy {
      * @param command RPC command
      * @param args RPC command's arguments
      */
-    bool from_remote_peer(const string& command, const vector<string>& args) override;
+    virtual bool from_remote_peer(const string& command, const vector<string>& args) override;
 
     /**
      * Piggyback method called by ANSWER_BUNDLE command
@@ -152,13 +179,21 @@ class QueryEvolutionProxy : public BaseProxy {
     SharedQueue answer_queue;
     unsigned int answer_count;
     string context;
+    shared_ptr<FitnessFunction> fitness_function_object;
 
     // ---------------------------------------------------------------------------------------------
     // Query parameters
 
-    // When true, operators (e.g. And, Or) don't output more than one
-    // QueryAnswer with the same variable assignment.
+    /**
+     * When true, query operators (e.g. And, Or) don't output more than one
+     * QueryAnswer with the same variable assignment.
+     * */
     bool unique_assignment_flag;
+
+    /**
+     * Fitness function selector.
+     */ 
+    string fitness_function_tag;
 };
 
 }  // namespace evolution
