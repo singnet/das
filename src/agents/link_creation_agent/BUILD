@@ -101,6 +101,7 @@ cc_library(
         ":link",
         ":processors",
         "//agents/query_engine:query_engine_lib",
+        "//commons:commons_lib",
     ],
 )
 
