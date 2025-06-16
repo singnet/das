@@ -341,7 +341,7 @@ vector<shared_ptr<atomdb_api_types::AtomDocument>> RedisMongoDB::get_atom_docume
             auto array = filter_builder << MONGODB_FIELD_NAME[MONGODB_FIELD::ID]
                                        << bsoncxx::builder::stream::open_document << "$in"
                                        << bsoncxx::builder::stream::open_array;
-            for (int j = i; j < (i + batch_size); j++) {
+            for (size_t j = i; j < (i + batch_size); j++) {
                 array << handles[j];
             }
             array << bsoncxx::builder::stream::close_array << bsoncxx::builder::stream::close_document;
@@ -358,7 +358,7 @@ vector<shared_ptr<atomdb_api_types::AtomDocument>> RedisMongoDB::get_atom_docume
             );
 
             for (const auto& view : cursor) {
-                core::v1::optional<bsoncxx::v_noabi::document::value> opt_val =
+                bsoncxx::v_noabi::stdx::optional<bsoncxx::v_noabi::document::value> opt_val =
                     bsoncxx::v_noabi::document::value(view);
                 auto atom_document = make_shared<atomdb_api_types::MongodbDocument>(opt_val);
                 atom_documents.push_back(atom_document);
