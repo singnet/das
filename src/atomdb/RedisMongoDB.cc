@@ -375,6 +375,7 @@ vector<shared_ptr<atomdb_api_types::AtomDocument>> RedisMongoDB::get_atom_docume
             }
         }
     } catch (const exception& e) {
+        this->mongodb_mutex.unlock();
         Utils::error("MongoDB error: " + string(e.what()));
     }
 
