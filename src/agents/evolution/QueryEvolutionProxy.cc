@@ -58,7 +58,7 @@ string QueryEvolutionProxy::to_string() {
     answer += "context: " + this->get_context();
     answer += " unique_assignment: " + string(this->get_unique_assignment_flag() ? "true" : "false");
     answer += " fitness_function: " + this->get_fitness_function_tag();
-    answer += " population_size: " + this->get_population_size();
+    answer += " population_size: " + std::to_string(this->get_population_size());
     answer += "}";
     return answer;
 }

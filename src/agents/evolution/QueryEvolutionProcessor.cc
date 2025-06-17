@@ -100,6 +100,8 @@ void QueryEvolutionProcessor::evolve_query(shared_ptr<StoppableThread> monitor,
     vector<std::pair<shared_ptr<QueryAnswer>, float>> population;
     while (!monitor->stopped()) {
         sample_population(monitor, proxy, population);
+        LOG_DEBUG("New population sampled: " << population.size() << " individuals.");
+        break;
     }
 }
 
