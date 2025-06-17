@@ -196,9 +196,9 @@ void PatternMatchingQueryProcessor::thread_process_one_query(
         } else {
             Utils::error("Invalid command " + command + " in PatternMatchingQueryProcessor");
         }
-    } catch (const std::runtime_error exception) {
+    } catch (const std::runtime_error& exception) {
         proxy->raise_error_on_peer(exception.what());
-    } catch (const std::exception exception) {
+    } catch (const std::exception& exception) {
         proxy->raise_error_on_peer(exception.what());
     }
     LOG_DEBUG("Command finished: <" << proxy->get_command() << ">");

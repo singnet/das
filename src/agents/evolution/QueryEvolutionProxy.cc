@@ -35,6 +35,7 @@ QueryEvolutionProxy::QueryEvolutionProxy(const vector<string>& tokens,
 void QueryEvolutionProxy::set_default_query_parameters() {
     this->unique_assignment_flag = false;
     this->fitness_function_tag = "";
+    this->population_size = 1000;
 }
 
 void QueryEvolutionProxy::init() {
@@ -44,7 +45,11 @@ void QueryEvolutionProxy::init() {
 
 void QueryEvolutionProxy::pack_custom_args() {
     vector<string> custom_args = {
-        this->context, std::to_string(this->unique_assignment_flag), this->fitness_function_tag};
+        this->context,
+        std::to_string(this->unique_assignment_flag),
+        this->fitness_function_tag,
+        std::to_string(this->population_size),
+    };
     this->args.insert(this->args.begin(), custom_args.begin(), custom_args.end());
 }
 
@@ -53,6 +58,7 @@ string QueryEvolutionProxy::to_string() {
     answer += "context: " + this->get_context();
     answer += " unique_assignment: " + string(this->get_unique_assignment_flag() ? "true" : "false");
     answer += " fitness_function: " + this->get_fitness_function_tag();
+    answer += " population_size: " + this->get_population_size();
     answer += "}";
     return answer;
 }
@@ -94,6 +100,15 @@ const vector<string>& QueryEvolutionProxy::get_query_tokens() {
     return this->query_tokens;
 }
 
+float QueryEvolutionProxy::compute_fitness(shared_ptr<QueryAnswer> answer) {
+    if (this->fitness_function_tag == "") {
+        Utils::error("Invalid empty fitness function tag");
+        return 0;
+    } else {
+        return this->fitness_function_object->eval(answer);
+    }
+}
+
 // -------------------------------------------------------------------------------------------------
 // Query parameters getters and setters
 
@@ -117,9 +132,22 @@ void QueryEvolutionProxy::set_fitness_function_tag(const string& tag) {
     if ((this->fitness_function_tag != "") && (tag != this->fitness_function_tag)) {
         Utils::error("Invalid reset of fitness function: " + this->fitness_function_tag + " --> " + tag);
     } else {
+        if (tag == "") {
+            Utils::error("Invalid empty fitness function tag");
+        }
         this->fitness_function_tag = tag;
         this->fitness_function_object = FitnessFunctionRegistry::function(tag);
     }
+}
+
+unsigned int QueryEvolutionProxy::get_population_size() {
+    lock_guard<mutex> semaphore(this->api_mutex);
+    return this->population_size;
+}
+
+void QueryEvolutionProxy::set_population_size(unsigned int population_size) {
+    lock_guard<mutex> semaphore(this->api_mutex);
+    this->population_size = population_size;
 }
 
 // ---------------------------------------------------------------------------------------------
