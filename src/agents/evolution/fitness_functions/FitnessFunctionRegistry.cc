@@ -37,7 +37,7 @@ shared_ptr<FitnessFunction> FitnessFunctionRegistry::function(const string& tag)
         }
     } else {
         Utils::error(
-            "FitnessFunctionRegistry isn't initialized. Call FitnessFunctionRegistry::init() first.");
+            "FitnessFunctionRegistry isn't initialized. Call FitnessFunctionRegistry::initialize_statics() first.");
     }
     return shared_ptr<FitnessFunction>(nullptr);
 }

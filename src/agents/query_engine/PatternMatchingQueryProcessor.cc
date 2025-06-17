@@ -12,7 +12,7 @@
 #include "Terminal.h"
 #include "UniqueAssignmentFilter.h"
 
-#define LOG_LEVEL INFO_LEVEL
+#define LOG_LEVEL DEBUG_LEVEL
 #include "Logger.h"
 
 using namespace atomdb;
