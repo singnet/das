@@ -540,3 +540,30 @@ cc_test(
         "@com_github_google_googletest//:gtest_main",
     ],
 )
+
+cc_test(
+    name = "redis_mongodb_test",
+    size = "medium",
+    srcs = [
+        "redis_mongodb_test.cc",
+        "test_utils.cc",
+        "test_utils.h",
+    ],
+    copts = [
+        "-Iexternal/gtest/googletest/include",
+        "-Iexternal/gtest/googletest",
+    ],
+    linkopts = [
+        "-L/usr/local/lib",
+        "-lhiredis_cluster",
+        "-lhiredis",
+        "-lmongocxx",
+        "-lbsoncxx",
+    ],
+    linkstatic = 1,
+    deps = [
+        "//atomdb:atomdb_singleton",
+        "@com_github_google_googletest//:gtest_main",
+        "@mbedtls",
+    ],
+)

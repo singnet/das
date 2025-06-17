@@ -11,6 +11,8 @@ cc_library(
         ":atomdb_cache",
         ":atomdb_cache_singleton",
         ":atomdb_singleton",
+        ":redis_context",
+        ":redis_context_pool",
         ":redis_mongodb",
         ":redis_mongodb_api_types",
     ],
@@ -32,6 +34,27 @@ cc_library(
     deps = [
         "//commons:commons_lib",
         "//hasher:hasher_lib",
+    ],
+)
+
+cc_library(
+    name = "redis_context",
+    srcs = ["RedisContext.cc"],
+    hdrs = ["RedisContext.h"],
+    includes = ["."],
+    deps = [
+        "//commons:commons_lib",
+    ],
+)
+
+cc_library(
+    name = "redis_context_pool",
+    srcs = ["RedisContextPool.cc"],
+    hdrs = ["RedisContextPool.h"],
+    includes = ["."],
+    deps = [
+        ":redis_context",
+        "//commons:commons_lib",
     ],
 )
 
@@ -66,6 +89,7 @@ cc_library(
     deps = [
         ":atomdb",
         ":atomdb_cache_singleton",
+        ":redis_context_pool",
         ":redis_mongodb_api_types",
         "//attention_broker:attention_broker_lib",
         "//commons:commons_lib",

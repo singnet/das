@@ -15,6 +15,7 @@
 
 #include "AtomDB.h"
 #include "AtomDBCacheSingleton.h"
+#include "RedisContextPool.h"
 #include "RedisMongoDBAPITypes.h"
 
 using namespace std;
@@ -65,8 +66,7 @@ class RedisMongoDB : public AtomDB {
 
    private:
     bool cluster_flag;
-    redisClusterContext* redis_cluster;
-    redisContext* redis_single;
+    RedisContextPool* redis_pool;
     mongocxx::pool* mongodb_pool;
     shared_ptr<AtomDBCache> atomdb_cache;
 

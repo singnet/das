@@ -35,13 +35,8 @@ RedisMongoDB::RedisMongoDB() {
 }
 
 RedisMongoDB::~RedisMongoDB() {
-    if (this->redis_cluster != NULL) {
-        redisClusterFree(this->redis_cluster);
-    }
-    if (this->redis_single != NULL) {
-        redisFree(this->redis_single);
-    }
     delete this->mongodb_pool;
+    delete this->redis_pool;
 }
 
 void RedisMongoDB::attention_broker_setup() {
@@ -87,25 +82,9 @@ void RedisMongoDB::redis_setup() {
             "You need to set Redis access info as environment variables: DAS_REDIS_HOSTNAME, "
             "DAS_REDIS_PORT and DAS_USE_REDIS_CLUSTER");
     }
-    string cluster_tag = (this->cluster_flag ? "CLUSTER" : "NON-CLUSTER");
-
-    if (this->cluster_flag) {
-        this->redis_cluster = redisClusterConnect(address.c_str(), 0);
-        this->redis_single = NULL;
-    } else {
-        this->redis_single = redisConnect(host.c_str(), stoi(port));
-        this->redis_cluster = NULL;
-    }
-
-    if (this->redis_cluster == NULL && this->redis_single == NULL) {
-        Utils::error("Connection error.");
-    } else if ((!this->cluster_flag) && this->redis_single->err) {
-        Utils::error("Redis error: " + string(this->redis_single->errstr));
-    } else if (this->cluster_flag && this->redis_cluster->err) {
-        Utils::error("Redis cluster error: " + string(this->redis_cluster->errstr));
-    } else {
-        LOG_INFO("Connected to (" << cluster_tag << ") Redis at " << address);
-    }
+    this->redis_pool = new RedisContextPool(this->cluster_flag, host, port, address);
+    LOG_INFO("Connected to (" << (this->cluster_flag ? "CLUSTER" : "NON-CLUSTER") << ") Redis at "
+                              << address);
 }
 
 void RedisMongoDB::mongodb_setup() {
@@ -113,7 +92,7 @@ void RedisMongoDB::mongodb_setup() {
     string port = Utils::get_environment("DAS_MONGODB_PORT");
     string user = Utils::get_environment("DAS_MONGODB_USERNAME");
     string password = Utils::get_environment("DAS_MONGODB_PASSWORD");
-    try{
+    try {
         uint chunk_size = Utils::string_to_int(Utils::get_environment("DAS_MONGODB_CHUNK_SIZE"));
         if (chunk_size > 0) {
             MONGODB_CHUNK_SIZE = chunk_size;
@@ -157,17 +136,14 @@ shared_ptr<atomdb_api_types::HandleSet> RedisMongoDB::query_for_pattern(
     string command;
     redisReply* reply;
 
+    auto ctx = this->redis_pool->acquire();
     auto handle_set = make_shared<atomdb_api_types::HandleSetRedis>();
 
     while (redis_has_more) {
         command = ("ZRANGE " + REDIS_PATTERNS_PREFIX + ":" + pattern_handle.get() + " " +
                    to_string(redis_cursor) + " " + to_string(redis_cursor + REDIS_CHUNK_SIZE - 1));
 
-        if (this->cluster_flag) {
-            reply = (redisReply*) redisClusterCommand(this->redis_cluster, command.c_str());
-        } else {
-            reply = (redisReply*) redisCommand(this->redis_single, command.c_str());
-        }
+        reply = ctx->execute(command.c_str());
 
         if (reply == NULL) {
             Utils::error("Redis error");
@@ -206,13 +182,9 @@ shared_ptr<atomdb_api_types::HandleList> RedisMongoDB::query_for_targets(char* l
 
     redisReply* reply;
     try {
-        if (this->cluster_flag) {
-            reply = (redisReply*) redisClusterCommand(
-                this->redis_cluster, "GET %s:%s", REDIS_TARGETS_PREFIX.c_str(), link_handle_ptr);
-        } else {
-            reply = (redisReply*) redisCommand(
-                this->redis_single, "GET %s:%s", REDIS_TARGETS_PREFIX.c_str(), link_handle_ptr);
-        }
+        auto ctx = this->redis_pool->acquire();
+        auto command = "GET " + REDIS_TARGETS_PREFIX + ":" + link_handle_ptr;
+        reply = ctx->execute(command.c_str());
 
         if (reply == NULL) {
             Utils::error("Redis error");
@@ -252,8 +224,9 @@ shared_ptr<atomdb_api_types::AtomDocument> RedisMongoDB::get_atom_document(const
     auto reply = mongodb_collection.find_one(bsoncxx::v_noabi::builder::basic::make_document(
         bsoncxx::v_noabi::builder::basic::kvp(MONGODB_FIELD_NAME[MONGODB_FIELD::ID], handle)));
 
-    auto atom_document =
-        reply != bsoncxx::v_noabi::stdx::nullopt ? make_shared<atomdb_api_types::MongodbDocument>(reply) : nullptr;
+    auto atom_document = reply != bsoncxx::v_noabi::stdx::nullopt
+                             ? make_shared<atomdb_api_types::MongodbDocument>(reply)
+                             : nullptr;
     if (this->atomdb_cache != nullptr) this->atomdb_cache->add_atom_document(handle, atom_document);
     return atom_document;
 }
@@ -281,17 +254,11 @@ vector<string> RedisMongoDB::links_exist(const vector<string>& link_handles) {
     bsoncxx::builder::basic::document filter_builder;
     filter_builder.append(bsoncxx::builder::basic::kvp(
         MONGODB_FIELD_NAME[MONGODB_FIELD::ID],
-        bsoncxx::builder::basic::make_document(
-            bsoncxx::builder::basic::kvp("$in", handle_ids)
-        )
-    ));
+        bsoncxx::builder::basic::make_document(bsoncxx::builder::basic::kvp("$in", handle_ids))));
 
     auto filter = filter_builder.extract();
 
-    auto cursor = mongodb_collection.distinct(
-        MONGODB_FIELD_NAME[MONGODB_FIELD::ID],
-        filter.view()
-    );
+    auto cursor = mongodb_collection.distinct(MONGODB_FIELD_NAME[MONGODB_FIELD::ID], filter.view());
 
     vector<string> existing_links;
     for (const auto& doc : cursor) {
@@ -339,8 +306,8 @@ vector<shared_ptr<atomdb_api_types::AtomDocument>> RedisMongoDB::get_atom_docume
             // Build filter
             bsoncxx::builder::stream::document filter_builder;
             auto array = filter_builder << MONGODB_FIELD_NAME[MONGODB_FIELD::ID]
-                                       << bsoncxx::builder::stream::open_document << "$in"
-                                       << bsoncxx::builder::stream::open_array;
+                                        << bsoncxx::builder::stream::open_document << "$in"
+                                        << bsoncxx::builder::stream::open_array;
             for (size_t j = i; j < (i + batch_size); j++) {
                 array << handles[j];
             }
@@ -353,9 +320,7 @@ vector<shared_ptr<atomdb_api_types::AtomDocument>> RedisMongoDB::get_atom_docume
             }
 
             auto cursor = mongodb_collection.find(
-                filter_builder.view(),
-                mongocxx::options::find{}.projection(projection_builder.view())
-            );
+                filter_builder.view(), mongocxx::options::find{}.projection(projection_builder.view()));
 
             for (const auto& view : cursor) {
                 bsoncxx::v_noabi::stdx::optional<bsoncxx::v_noabi::document::value> opt_val =
