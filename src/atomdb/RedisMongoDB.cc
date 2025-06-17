@@ -113,7 +113,7 @@ void RedisMongoDB::mongodb_setup() {
     string port = Utils::get_environment("DAS_MONGODB_PORT");
     string user = Utils::get_environment("DAS_MONGODB_USERNAME");
     string password = Utils::get_environment("DAS_MONGODB_PASSWORD");
-    try{
+    try {
         uint chunk_size = Utils::string_to_int(Utils::get_environment("DAS_MONGODB_CHUNK_SIZE"));
         if (chunk_size > 0) {
             MONGODB_CHUNK_SIZE = chunk_size;
@@ -252,8 +252,9 @@ shared_ptr<atomdb_api_types::AtomDocument> RedisMongoDB::get_atom_document(const
     auto reply = mongodb_collection.find_one(bsoncxx::v_noabi::builder::basic::make_document(
         bsoncxx::v_noabi::builder::basic::kvp(MONGODB_FIELD_NAME[MONGODB_FIELD::ID], handle)));
 
-    auto atom_document =
-        reply != bsoncxx::v_noabi::stdx::nullopt ? make_shared<atomdb_api_types::MongodbDocument>(reply) : nullptr;
+    auto atom_document = reply != bsoncxx::v_noabi::stdx::nullopt
+                             ? make_shared<atomdb_api_types::MongodbDocument>(reply)
+                             : nullptr;
     if (this->atomdb_cache != nullptr) this->atomdb_cache->add_atom_document(handle, atom_document);
     return atom_document;
 }
@@ -281,17 +282,11 @@ vector<string> RedisMongoDB::links_exist(const vector<string>& link_handles) {
     bsoncxx::builder::basic::document filter_builder;
     filter_builder.append(bsoncxx::builder::basic::kvp(
         MONGODB_FIELD_NAME[MONGODB_FIELD::ID],
-        bsoncxx::builder::basic::make_document(
-            bsoncxx::builder::basic::kvp("$in", handle_ids)
-        )
-    ));
+        bsoncxx::builder::basic::make_document(bsoncxx::builder::basic::kvp("$in", handle_ids))));
 
     auto filter = filter_builder.extract();
 
-    auto cursor = mongodb_collection.distinct(
-        MONGODB_FIELD_NAME[MONGODB_FIELD::ID],
-        filter.view()
-    );
+    auto cursor = mongodb_collection.distinct(MONGODB_FIELD_NAME[MONGODB_FIELD::ID], filter.view());
 
     vector<string> existing_links;
     for (const auto& doc : cursor) {
@@ -339,8 +334,8 @@ vector<shared_ptr<atomdb_api_types::AtomDocument>> RedisMongoDB::get_atom_docume
             // Build filter
             bsoncxx::builder::stream::document filter_builder;
             auto array = filter_builder << MONGODB_FIELD_NAME[MONGODB_FIELD::ID]
-                                       << bsoncxx::builder::stream::open_document << "$in"
-                                       << bsoncxx::builder::stream::open_array;
+                                        << bsoncxx::builder::stream::open_document << "$in"
+                                        << bsoncxx::builder::stream::open_array;
             for (size_t j = i; j < (i + batch_size); j++) {
                 array << handles[j];
             }
@@ -353,9 +348,7 @@ vector<shared_ptr<atomdb_api_types::AtomDocument>> RedisMongoDB::get_atom_docume
             }
 
             auto cursor = mongodb_collection.find(
-                filter_builder.view(),
-                mongocxx::options::find{}.projection(projection_builder.view())
-            );
+                filter_builder.view(), mongocxx::options::find{}.projection(projection_builder.view()));
 
             for (const auto& view : cursor) {
                 bsoncxx::v_noabi::stdx::optional<bsoncxx::v_noabi::document::value> opt_val =

@@ -62,6 +62,8 @@ RUN cd /tmp \
 # add regular user
 RUN useradd -ms /bin/bash builder
 
+RUN git config --global --add safe.directory ${DAS_DIR}
+
 ################################################################################
 
 
