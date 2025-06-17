@@ -34,6 +34,16 @@ cc_library(
 )
 
 cc_library(
+    name = "evolution_client_main_lib",
+    srcs = ["evolution_client_main.cc"],
+    deps = [
+        "//agents/evolution:evolution_lib",
+        "//atomdb:atomdb_singleton",
+        "//service_bus:service_bus_lib",
+    ],
+)
+
+cc_library(
     name = "query_client_main_lib",
     srcs = ["query_client_main.cc"],
     deps = [
