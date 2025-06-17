@@ -10,6 +10,7 @@
 #include <string>
 
 #include "AttentionBrokerServer.h"
+#include "Logger.h"
 #include "Utils.h"
 #include "attention_broker.grpc.pb.h"
 #include "attention_broker.pb.h"
@@ -23,6 +24,7 @@ uint RedisMongoDB::REDIS_CHUNK_SIZE;
 string RedisMongoDB::MONGODB_DB_NAME;
 string RedisMongoDB::MONGODB_COLLECTION_NAME;
 string RedisMongoDB::MONGODB_FIELD_NAME[MONGODB_FIELD::size];
+uint RedisMongoDB::MONGODB_CHUNK_SIZE;
 
 RedisMongoDB::RedisMongoDB() {
     redis_setup();
@@ -40,7 +42,6 @@ RedisMongoDB::~RedisMongoDB() {
         redisFree(this->redis_single);
     }
     delete this->mongodb_pool;
-    // delete this->mongodb_client;
 }
 
 void RedisMongoDB::attention_broker_setup() {
@@ -64,7 +65,7 @@ void RedisMongoDB::attention_broker_setup() {
         grpc::CreateChannel(attention_broker_address, grpc::InsecureChannelCredentials()));
     status = stub->ping(&context, empty, &ack);
     if (status.ok()) {
-        std::cout << "Connected to AttentionBroker at " << attention_broker_address << endl;
+        LOG_INFO("Connected to AttentionBroker at " << attention_broker_address);
     } else {
         Utils::error("Couldn't connect to AttentionBroker at " + attention_broker_address);
     }
@@ -103,13 +104,8 @@ void RedisMongoDB::redis_setup() {
     } else if (this->cluster_flag && this->redis_cluster->err) {
         Utils::error("Redis cluster error: " + string(this->redis_cluster->errstr));
     } else {
-        cout << "Connected to (" << cluster_tag << ") Redis at " << address << endl;
+        LOG_INFO("Connected to (" << cluster_tag << ") Redis at " << address);
     }
-}
-
-mongocxx::database RedisMongoDB::get_database() {
-    auto database = this->mongodb_pool->acquire();
-    return database[MONGODB_DB_NAME];
 }
 
 void RedisMongoDB::mongodb_setup() {
@@ -117,6 +113,14 @@ void RedisMongoDB::mongodb_setup() {
     string port = Utils::get_environment("DAS_MONGODB_PORT");
     string user = Utils::get_environment("DAS_MONGODB_USERNAME");
     string password = Utils::get_environment("DAS_MONGODB_PASSWORD");
+    try{
+        uint chunk_size = Utils::string_to_int(Utils::get_environment("DAS_MONGODB_CHUNK_SIZE"));
+        if (chunk_size > 0) {
+            MONGODB_CHUNK_SIZE = chunk_size;
+        }
+    } catch (const std::exception& e) {
+        Utils::warning("Error reading MongoDB chunk size, using default value");
+    }
     if (host == "" || port == "" || user == "" || password == "") {
         Utils::error(
             string("You need to set MongoDB access info as environment variables: ") +
@@ -129,17 +133,13 @@ void RedisMongoDB::mongodb_setup() {
         mongocxx::instance instance;
         auto uri = mongocxx::uri{url};
         this->mongodb_pool = new mongocxx::pool(uri);
-        this->mongodb = get_database();
-
-        // this->mongodb_client = new mongocxx::client(uri);
-        // this->mongodb = (*this->mongodb_client)[MONGODB_DB_NAME];
+        // Health check using ping command
+        auto conn = this->mongodb_pool->acquire();
+        auto mongodb = (*conn)[MONGODB_DB_NAME];
         const auto ping_cmd =
             bsoncxx::builder::basic::make_document(bsoncxx::builder::basic::kvp("ping", 1));
-        this->mongodb.run_command(ping_cmd.view());
-        this->mongodb_collection = this->mongodb[MONGODB_COLLECTION_NAME];
-        // auto atom_count = this->mongodb_collection.count_documents({});
-        // std::cout << "Connected to MongoDB at " << address << " Atom count: " << atom_count << endl;
-        std::cout << "Connected to MongoDB at " << address << endl;
+        mongodb.run_command(ping_cmd.view());
+        LOG_INFO("Connected to MongoDB at " << address);
     } catch (const std::exception& e) {
         Utils::error(e.what());
     }
@@ -163,7 +163,11 @@ shared_ptr<atomdb_api_types::HandleSet> RedisMongoDB::query_for_pattern(
         command = ("ZRANGE " + REDIS_PATTERNS_PREFIX + ":" + pattern_handle.get() + " " +
                    to_string(redis_cursor) + " " + to_string(redis_cursor + REDIS_CHUNK_SIZE - 1));
 
-        reply = (redisReply*) redisCommand(this->redis_single, command.c_str());
+        if (this->cluster_flag) {
+            reply = (redisReply*) redisClusterCommand(this->redis_cluster, command.c_str());
+        } else {
+            reply = (redisReply*) redisCommand(this->redis_single, command.c_str());
+        }
 
         if (reply == NULL) {
             Utils::error("Redis error");
@@ -200,24 +204,39 @@ shared_ptr<atomdb_api_types::HandleList> RedisMongoDB::query_for_targets(char* l
         if (cache_result.is_cache_hit) return cache_result.result;
     }
 
-    redisReply* reply = (redisReply*) redisCommand(
-        this->redis_single, "GET %s:%s", REDIS_TARGETS_PREFIX.c_str(), link_handle_ptr);
-    /*
-    if (reply == NULL) {
-        Utils::error("Redis error");
+    redisReply* reply;
+    try {
+        if (this->cluster_flag) {
+            reply = (redisReply*) redisClusterCommand(
+                this->redis_cluster, "GET %s:%s", REDIS_TARGETS_PREFIX.c_str(), link_handle_ptr);
+        } else {
+            reply = (redisReply*) redisCommand(
+                this->redis_single, "GET %s:%s", REDIS_TARGETS_PREFIX.c_str(), link_handle_ptr);
+        }
+
+        if (reply == NULL) {
+            Utils::error("Redis error");
+        }
+
+        if ((reply == NULL) || (reply->type == REDIS_REPLY_NIL)) {
+            if (this->atomdb_cache != nullptr)
+                this->atomdb_cache->add_handle_list(link_handle_ptr, nullptr);
+            return nullptr;
+        }
+
+        if (reply->type != REDIS_REPLY_STRING) {
+            Utils::error("Invalid Redis response: " + std::to_string(reply->type) +
+                         " != " + std::to_string(REDIS_REPLY_STRING));
+        }
+
+    } catch (const std::exception& e) {
+        Utils::error(e.what());
     }
-    */
-    if ((reply == NULL) || (reply->type == REDIS_REPLY_NIL)) {
-        if (this->atomdb_cache != nullptr) this->atomdb_cache->add_handle_list(link_handle_ptr, nullptr);
-        return nullptr;
-    }
-    if (reply->type != REDIS_REPLY_STRING) {
-        Utils::error("Invalid Redis response: " + std::to_string(reply->type) +
-                     " != " + std::to_string(REDIS_REPLY_STRING));
-    }
+
     // NOTE: Intentionally, we aren't destroying 'reply' objects.'reply' objects are destroyed in
     // ~RedisSet().
     auto handle_list = make_shared<atomdb_api_types::RedisStringBundle>(reply);
+
     if (this->atomdb_cache != nullptr) this->atomdb_cache->add_handle_list(link_handle_ptr, handle_list);
     return handle_list;
 }
@@ -228,58 +247,58 @@ shared_ptr<atomdb_api_types::AtomDocument> RedisMongoDB::get_atom_document(const
         if (cache_result.is_cache_hit) return cache_result.result;
     }
 
-    this->mongodb_mutex.lock();
-    auto mongodb_collection = get_database()[MONGODB_COLLECTION_NAME];
+    auto conn = this->mongodb_pool->acquire();
+    auto mongodb_collection = (*conn)[MONGODB_DB_NAME][MONGODB_COLLECTION_NAME];
     auto reply = mongodb_collection.find_one(bsoncxx::v_noabi::builder::basic::make_document(
         bsoncxx::v_noabi::builder::basic::kvp(MONGODB_FIELD_NAME[MONGODB_FIELD::ID], handle)));
-    // cout << bsoncxx::to_json(*reply) << endl; // Note to reviewer: please let this dead code here
-    this->mongodb_mutex.unlock();
 
     auto atom_document =
-        reply != core::v1::nullopt ? make_shared<atomdb_api_types::MongodbDocument>(reply) : nullptr;
+        reply != bsoncxx::v_noabi::stdx::nullopt ? make_shared<atomdb_api_types::MongodbDocument>(reply) : nullptr;
     if (this->atomdb_cache != nullptr) this->atomdb_cache->add_atom_document(handle, atom_document);
     return atom_document;
 }
 
 bool RedisMongoDB::link_exists(const char* link_handle) {
-    this->mongodb_mutex.lock();
-    auto mongodb_collection = get_database()[MONGODB_COLLECTION_NAME];
+    auto conn = this->mongodb_pool->acquire();
+    auto mongodb_collection = (*conn)[MONGODB_DB_NAME][MONGODB_COLLECTION_NAME];
     auto reply = mongodb_collection.find_one(bsoncxx::v_noabi::builder::basic::make_document(
         bsoncxx::v_noabi::builder::basic::kvp(MONGODB_FIELD_NAME[MONGODB_FIELD::ID], link_handle)));
-    this->mongodb_mutex.unlock();
-    return (reply != core::v1::nullopt &&
+    return (reply != bsoncxx::v_noabi::stdx::nullopt &&
             reply->view().find(MONGODB_FIELD_NAME[MONGODB_FIELD::TARGETS]) != reply->view().end());
 }
 
 vector<string> RedisMongoDB::links_exist(const vector<string>& link_handles) {
     if (link_handles.empty()) return {};
 
-    lock_guard<mutex> lock(this->mongodb_mutex);
-    auto mongodb_collection = get_database()[MONGODB_COLLECTION_NAME];
+    auto conn = this->mongodb_pool->acquire();
+    auto mongodb_collection = (*conn)[MONGODB_DB_NAME][MONGODB_COLLECTION_NAME];
+
+    bsoncxx::builder::basic::array handle_ids;
+    for (const auto& handle : link_handles) {
+        handle_ids.append(handle);
+    }
 
     bsoncxx::builder::basic::document filter_builder;
-    bsoncxx::builder::basic::array array_builder;
+    filter_builder.append(bsoncxx::builder::basic::kvp(
+        MONGODB_FIELD_NAME[MONGODB_FIELD::ID],
+        bsoncxx::builder::basic::make_document(
+            bsoncxx::builder::basic::kvp("$in", handle_ids)
+        )
+    ));
 
-    for (const auto& handle : link_handles) array_builder.append(handle);
+    auto filter = filter_builder.extract();
 
-    filter_builder.append(
-        bsoncxx::builder::basic::kvp(MONGODB_FIELD_NAME[MONGODB_FIELD::ID],
-                                     bsoncxx::builder::basic::make_document(
-                                         bsoncxx::builder::basic::kvp("$in", array_builder.view()))));
-
-    // Only project the ID field
-    bsoncxx::builder::basic::document projection_builder;
-    projection_builder.append(bsoncxx::builder::basic::kvp(MONGODB_FIELD_NAME[MONGODB_FIELD::ID], 1));
-
-    mongocxx::options::find options;
-    options.projection(projection_builder.view());
-
-    auto cursor = mongodb_collection.find(filter_builder.view(), options);
+    auto cursor = mongodb_collection.distinct(
+        MONGODB_FIELD_NAME[MONGODB_FIELD::ID],
+        filter.view()
+    );
 
     vector<string> existing_links;
     for (const auto& doc : cursor) {
-        existing_links.push_back(
-            doc[MONGODB_FIELD_NAME[MONGODB_FIELD::ID]].get_string().value.to_string());
+        auto values = doc["values"].get_array().value;
+        for (auto&& val : values) {
+            existing_links.push_back(val.get_string().value.data());
+        }
     }
 
     return existing_links;
@@ -298,4 +317,56 @@ char* RedisMongoDB::add_link(const char* type,
                              const atomdb_api_types::CustomAttributesMap& custom_attributes) {
     // TODO: Implement add_link logic
     return NULL;
+}
+
+vector<shared_ptr<atomdb_api_types::AtomDocument>> RedisMongoDB::get_atom_documents(
+    const vector<string>& handles, const vector<string>& fields) {
+    // TODO Add cache support for this method
+    vector<shared_ptr<atomdb_api_types::AtomDocument>> atom_documents;
+
+    if (handles.empty()) {
+        return atom_documents;
+    }
+
+    auto conn = this->mongodb_pool->acquire();
+    auto mongodb_collection = (*conn)[MONGODB_DB_NAME][MONGODB_COLLECTION_NAME];
+
+    try {
+        // Process handles in batches
+        uint handle_count = handles.size();
+        for (size_t i = 0; i < handles.size(); i += MONGODB_CHUNK_SIZE) {
+            size_t batch_size = min(MONGODB_CHUNK_SIZE, uint(handle_count - i));
+            // Build filter
+            bsoncxx::builder::stream::document filter_builder;
+            auto array = filter_builder << MONGODB_FIELD_NAME[MONGODB_FIELD::ID]
+                                       << bsoncxx::builder::stream::open_document << "$in"
+                                       << bsoncxx::builder::stream::open_array;
+            for (size_t j = i; j < (i + batch_size); j++) {
+                array << handles[j];
+            }
+            array << bsoncxx::builder::stream::close_array << bsoncxx::builder::stream::close_document;
+
+            // Build projection
+            bsoncxx::builder::stream::document projection_builder;
+            for (const auto& field : fields) {
+                projection_builder << field << 1;
+            }
+
+            auto cursor = mongodb_collection.find(
+                filter_builder.view(),
+                mongocxx::options::find{}.projection(projection_builder.view())
+            );
+
+            for (const auto& view : cursor) {
+                bsoncxx::v_noabi::stdx::optional<bsoncxx::v_noabi::document::value> opt_val =
+                    bsoncxx::v_noabi::document::value(view);
+                auto atom_document = make_shared<atomdb_api_types::MongodbDocument>(opt_val);
+                atom_documents.push_back(atom_document);
+            }
+        }
+    } catch (const exception& e) {
+        Utils::error("MongoDB error: " + string(e.what()));
+    }
+
+    return atom_documents;
 }

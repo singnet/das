@@ -2,10 +2,13 @@
 
 #include <hiredis_cluster/hircluster.h>
 
+#include <bsoncxx/builder/stream/document.hpp>
+#include <bsoncxx/builder/stream/helpers.hpp>
 #include <bsoncxx/json.hpp>
 #include <memory>
 #include <mongocxx/client.hpp>
 #include <mongocxx/instance.hpp>
+#include <mongocxx/options/find.hpp>
 #include <mongocxx/pool.hpp>
 #include <mutex>
 #include <vector>
@@ -31,6 +34,7 @@ class RedisMongoDB : public AtomDB {
     static string MONGODB_DB_NAME;
     static string MONGODB_COLLECTION_NAME;
     static string MONGODB_FIELD_NAME[MONGODB_FIELD::size];
+    static uint MONGODB_CHUNK_SIZE;
 
     static void initialize_statics() {
         REDIS_PATTERNS_PREFIX = "patterns";
@@ -40,6 +44,7 @@ class RedisMongoDB : public AtomDB {
         MONGODB_COLLECTION_NAME = "atoms";
         MONGODB_FIELD_NAME[MONGODB_FIELD::ID] = "_id";
         MONGODB_FIELD_NAME[MONGODB_FIELD::TARGETS] = "targets";
+        MONGODB_CHUNK_SIZE = 1000;
     }
 
     shared_ptr<atomdb_api_types::HandleSet> query_for_pattern(shared_ptr<char> pattern_handle);
@@ -55,19 +60,15 @@ class RedisMongoDB : public AtomDB {
                    char** targets,
                    size_t targets_size,
                    const atomdb_api_types::CustomAttributesMap& custom_attributes = {});
+    vector<shared_ptr<atomdb_api_types::AtomDocument>> get_atom_documents(const vector<string>& handles,
+                                                                          const vector<string>& fields);
 
    private:
     bool cluster_flag;
     redisClusterContext* redis_cluster;
     redisContext* redis_single;
-    mongocxx::client* mongodb_client;
-    mongocxx::database mongodb;
-    mongocxx::v_noabi::collection mongodb_collection;
-    mutex mongodb_mutex;
     mongocxx::pool* mongodb_pool;
     shared_ptr<AtomDBCache> atomdb_cache;
-
-    mongocxx::database get_database();
 
     void redis_setup();
     void mongodb_setup();
