@@ -5,8 +5,8 @@
 
 #include "AtomDBSingleton.h"
 #include "QueryAnswer.h"
-#include "ServiceBusSingleton.h"
 #include "QueryEvolutionProxy.h"
+#include "ServiceBusSingleton.h"
 #include "Utils.h"
 
 using namespace std;
