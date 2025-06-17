@@ -241,7 +241,9 @@ TEST_F(RedisMongoDBTest, ConcurrentLinksExist) {
 
     auto worker = [&](int thread_id) {
         try {
-            auto link_exists = db->links_exist({"68ea071c32d4dbf0a7d8e8e00f2fb823", "00000000000000000000000000000000", "7ec8526b8c8f15a6ac55273fedbf694f"});
+            auto link_exists = db->links_exist({"68ea071c32d4dbf0a7d8e8e00f2fb823",
+                                                "00000000000000000000000000000000",
+                                                "7ec8526b8c8f15a6ac55273fedbf694f"});
             ASSERT_EQ(link_exists.size(), 2);
             success_count++;
         } catch (const exception& e) {
@@ -260,7 +262,9 @@ TEST_F(RedisMongoDBTest, ConcurrentLinksExist) {
     EXPECT_EQ(success_count, num_threads);
 
     // Test non-existing link
-    auto link_exists = db->links_exist({"00000000000000000000000000000000", "00000000000000000000000000000001", "00000000000000000000000000000002"});
+    auto link_exists = db->links_exist({"00000000000000000000000000000000",
+                                        "00000000000000000000000000000001",
+                                        "00000000000000000000000000000002"});
     EXPECT_EQ(link_exists.size(), 0);
 }
 
