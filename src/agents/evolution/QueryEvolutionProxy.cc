@@ -45,8 +45,8 @@ void QueryEvolutionProxy::init() {
 
 void QueryEvolutionProxy::pack_custom_args() {
     vector<string> custom_args = {
-        this->context, 
-        std::to_string(this->unique_assignment_flag), 
+        this->context,
+        std::to_string(this->unique_assignment_flag),
         this->fitness_function_tag,
         std::to_string(this->population_size),
     };

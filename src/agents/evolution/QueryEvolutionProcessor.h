@@ -4,10 +4,10 @@
 #include <memory>
 #include <thread>
 
+#include "AtomSpace.h"
 #include "BusCommandProcessor.h"
 #include "QueryEvolutionProxy.h"
 #include "StoppableThread.h"
-#include "AtomSpace.h"
 
 #define MAX_BUNDLE_SIZE ((unsigned int) 10000)
 
@@ -46,6 +46,7 @@ class QueryEvolutionProcessor : public BusCommandProcessor {
     void sample_population(shared_ptr<StoppableThread> monitor,
                            shared_ptr<QueryEvolutionProxy> proxy,
                            vector<std::pair<shared_ptr<QueryAnswer>, float>>& population);
+
    private:
     void thread_process_one_query(shared_ptr<StoppableThread>, shared_ptr<QueryEvolutionProxy> proxy);
     void remove_query_thread(const string& stoppable_thread_id);

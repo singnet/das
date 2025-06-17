@@ -1,28 +1,29 @@
 #include "AtomDBSingleton.h"
+#include "AtomSpace.h"
 #include "FitnessFunctionRegistry.h"
 #include "PatternMatchingQueryProcessor.h"
 #include "QueryEvolutionProcessor.h"
 #include "QueryEvolutionProxy.h"
-#include "ServiceBusSingleton.h"
 #include "ServiceBus.h"
-#include "AtomSpace.h"
+#include "ServiceBusSingleton.h"
 #include "Utils.h"
 #include "gtest/gtest.h"
 
-//#define LOG_LEVEL DEBUG_LEVEL
-//#include "Logger.h"
+// #define LOG_LEVEL DEBUG_LEVEL
+// #include "Logger.h"
 
 using namespace evolution;
 
 class TestProcessor : public QueryEvolutionProcessor {
-    public:
-        AtomSpace atom_space;
-        TestProcessor() {}
-        ~TestProcessor() {}
-        void sample_population(shared_ptr<QueryEvolutionProxy> proxy, vector<std::pair<shared_ptr<QueryAnswer>, float>>& population) {
-            shared_ptr<StoppableThread> monitor;
-            QueryEvolutionProcessor::sample_population(monitor, proxy, population);
-        }
+   public:
+    AtomSpace atom_space;
+    TestProcessor() {}
+    ~TestProcessor() {}
+    void sample_population(shared_ptr<QueryEvolutionProxy> proxy,
+                           vector<std::pair<shared_ptr<QueryAnswer>, float>>& population) {
+        shared_ptr<StoppableThread> monitor;
+        QueryEvolutionProcessor::sample_population(monitor, proxy, population);
+    }
 };
 
 TEST(QueryEvolution, protected_methods) {
@@ -61,5 +62,5 @@ TEST(QueryEvolution, protected_methods) {
 
     auto proxy = make_shared<QueryEvolutionProxy>(query, "unit_test", "query_evolution_test");
     vector<std::pair<shared_ptr<QueryAnswer>, float>> population;
-    //processor->sample_population(proxy, population);
+    // processor->sample_population(proxy, population);
 }
