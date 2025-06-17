@@ -42,7 +42,6 @@ RedisMongoDB::~RedisMongoDB() {
         redisFree(this->redis_single);
     }
     delete this->mongodb_pool;
-    // delete this->mongodb_client;
 }
 
 void RedisMongoDB::attention_broker_setup() {
@@ -66,7 +65,7 @@ void RedisMongoDB::attention_broker_setup() {
         grpc::CreateChannel(attention_broker_address, grpc::InsecureChannelCredentials()));
     status = stub->ping(&context, empty, &ack);
     if (status.ok()) {
-        std::cout << "Connected to AttentionBroker at " << attention_broker_address << endl;
+        LOG_INFO("Connected to AttentionBroker at " << attention_broker_address);
     } else {
         Utils::error("Couldn't connect to AttentionBroker at " + attention_broker_address);
     }
@@ -105,13 +104,8 @@ void RedisMongoDB::redis_setup() {
     } else if (this->cluster_flag && this->redis_cluster->err) {
         Utils::error("Redis cluster error: " + string(this->redis_cluster->errstr));
     } else {
-        cout << "Connected to (" << cluster_tag << ") Redis at " << address << endl;
+        LOG_INFO("Connected to (" << cluster_tag << ") Redis at " << address);
     }
-}
-
-mongocxx::database RedisMongoDB::get_database() {
-    auto database = this->mongodb_pool->acquire();
-    return database[MONGODB_DB_NAME];
 }
 
 void RedisMongoDB::mongodb_setup() {
@@ -139,17 +133,13 @@ void RedisMongoDB::mongodb_setup() {
         mongocxx::instance instance;
         auto uri = mongocxx::uri{url};
         this->mongodb_pool = new mongocxx::pool(uri);
-        this->mongodb = get_database();
-
-        // this->mongodb_client = new mongocxx::client(uri);
-        // this->mongodb = (*this->mongodb_client)[MONGODB_DB_NAME];
+        // Health check using ping command
+        auto conn = this->mongodb_pool->acquire();
+        auto mongodb = (*conn)[MONGODB_DB_NAME];
         const auto ping_cmd =
             bsoncxx::builder::basic::make_document(bsoncxx::builder::basic::kvp("ping", 1));
-        this->mongodb.run_command(ping_cmd.view());
-        this->mongodb_collection = this->mongodb[MONGODB_COLLECTION_NAME];
-        // auto atom_count = this->mongodb_collection.count_documents({});
-        // std::cout << "Connected to MongoDB at " << address << " Atom count: " << atom_count << endl;
-        std::cout << "Connected to MongoDB at " << address << endl;
+        mongodb.run_command(ping_cmd.view());
+        LOG_INFO("Connected to MongoDB at " << address);
     } catch (const std::exception& e) {
         Utils::error(e.what());
     }
@@ -257,58 +247,58 @@ shared_ptr<atomdb_api_types::AtomDocument> RedisMongoDB::get_atom_document(const
         if (cache_result.is_cache_hit) return cache_result.result;
     }
 
-    this->mongodb_mutex.lock();
-    auto mongodb_collection = get_database()[MONGODB_COLLECTION_NAME];
+    auto conn = this->mongodb_pool->acquire();
+    auto mongodb_collection = (*conn)[MONGODB_DB_NAME][MONGODB_COLLECTION_NAME];
     auto reply = mongodb_collection.find_one(bsoncxx::v_noabi::builder::basic::make_document(
         bsoncxx::v_noabi::builder::basic::kvp(MONGODB_FIELD_NAME[MONGODB_FIELD::ID], handle)));
-    // cout << bsoncxx::to_json(*reply) << endl; // Note to reviewer: please let this dead code here
-    this->mongodb_mutex.unlock();
 
     auto atom_document =
-        reply != core::v1::nullopt ? make_shared<atomdb_api_types::MongodbDocument>(reply) : nullptr;
+        reply != bsoncxx::v_noabi::stdx::nullopt ? make_shared<atomdb_api_types::MongodbDocument>(reply) : nullptr;
     if (this->atomdb_cache != nullptr) this->atomdb_cache->add_atom_document(handle, atom_document);
     return atom_document;
 }
 
 bool RedisMongoDB::link_exists(const char* link_handle) {
-    this->mongodb_mutex.lock();
-    auto mongodb_collection = get_database()[MONGODB_COLLECTION_NAME];
+    auto conn = this->mongodb_pool->acquire();
+    auto mongodb_collection = (*conn)[MONGODB_DB_NAME][MONGODB_COLLECTION_NAME];
     auto reply = mongodb_collection.find_one(bsoncxx::v_noabi::builder::basic::make_document(
         bsoncxx::v_noabi::builder::basic::kvp(MONGODB_FIELD_NAME[MONGODB_FIELD::ID], link_handle)));
-    this->mongodb_mutex.unlock();
-    return (reply != core::v1::nullopt &&
+    return (reply != bsoncxx::v_noabi::stdx::nullopt &&
             reply->view().find(MONGODB_FIELD_NAME[MONGODB_FIELD::TARGETS]) != reply->view().end());
 }
 
 vector<string> RedisMongoDB::links_exist(const vector<string>& link_handles) {
     if (link_handles.empty()) return {};
 
-    lock_guard<mutex> lock(this->mongodb_mutex);
-    auto mongodb_collection = get_database()[MONGODB_COLLECTION_NAME];
+    auto conn = this->mongodb_pool->acquire();
+    auto mongodb_collection = (*conn)[MONGODB_DB_NAME][MONGODB_COLLECTION_NAME];
+
+    bsoncxx::builder::basic::array handle_ids;
+    for (const auto& handle : link_handles) {
+        handle_ids.append(handle);
+    }
 
     bsoncxx::builder::basic::document filter_builder;
-    bsoncxx::builder::basic::array array_builder;
+    filter_builder.append(bsoncxx::builder::basic::kvp(
+        MONGODB_FIELD_NAME[MONGODB_FIELD::ID],
+        bsoncxx::builder::basic::make_document(
+            bsoncxx::builder::basic::kvp("$in", handle_ids)
+        )
+    ));
 
-    for (const auto& handle : link_handles) array_builder.append(handle);
+    auto filter = filter_builder.extract();
 
-    filter_builder.append(
-        bsoncxx::builder::basic::kvp(MONGODB_FIELD_NAME[MONGODB_FIELD::ID],
-                                     bsoncxx::builder::basic::make_document(
-                                         bsoncxx::builder::basic::kvp("$in", array_builder.view()))));
-
-    // Only project the ID field
-    bsoncxx::builder::basic::document projection_builder;
-    projection_builder.append(bsoncxx::builder::basic::kvp(MONGODB_FIELD_NAME[MONGODB_FIELD::ID], 1));
-
-    mongocxx::options::find options;
-    options.projection(projection_builder.view());
-
-    auto cursor = mongodb_collection.find(filter_builder.view(), options);
+    auto cursor = mongodb_collection.distinct(
+        MONGODB_FIELD_NAME[MONGODB_FIELD::ID],
+        filter.view()
+    );
 
     vector<string> existing_links;
     for (const auto& doc : cursor) {
-        existing_links.push_back(
-            doc[MONGODB_FIELD_NAME[MONGODB_FIELD::ID]].get_string().value.to_string());
+        auto values = doc["values"].get_array().value;
+        for (auto&& val : values) {
+            existing_links.push_back(val.get_string().value.data());
+        }
     }
 
     return existing_links;
@@ -338,8 +328,8 @@ vector<shared_ptr<atomdb_api_types::AtomDocument>> RedisMongoDB::get_atom_docume
         return atom_documents;
     }
 
-    this->mongodb_mutex.lock();
-    auto mongodb_collection = get_database()[MONGODB_COLLECTION_NAME];
+    auto conn = this->mongodb_pool->acquire();
+    auto mongodb_collection = (*conn)[MONGODB_DB_NAME][MONGODB_COLLECTION_NAME];
 
     try {
         // Process handles in batches
@@ -351,7 +341,7 @@ vector<shared_ptr<atomdb_api_types::AtomDocument>> RedisMongoDB::get_atom_docume
             auto array = filter_builder << MONGODB_FIELD_NAME[MONGODB_FIELD::ID]
                                        << bsoncxx::builder::stream::open_document << "$in"
                                        << bsoncxx::builder::stream::open_array;
-            for (int j = i; j < (i + batch_size); j++) {
+            for (size_t j = i; j < (i + batch_size); j++) {
                 array << handles[j];
             }
             array << bsoncxx::builder::stream::close_array << bsoncxx::builder::stream::close_document;
@@ -368,17 +358,15 @@ vector<shared_ptr<atomdb_api_types::AtomDocument>> RedisMongoDB::get_atom_docume
             );
 
             for (const auto& view : cursor) {
-                core::v1::optional<bsoncxx::v_noabi::document::value> opt_val =
+                bsoncxx::v_noabi::stdx::optional<bsoncxx::v_noabi::document::value> opt_val =
                     bsoncxx::v_noabi::document::value(view);
                 auto atom_document = make_shared<atomdb_api_types::MongodbDocument>(opt_val);
                 atom_documents.push_back(atom_document);
             }
         }
     } catch (const exception& e) {
-        this->mongodb_mutex.unlock();
         Utils::error("MongoDB error: " + string(e.what()));
     }
 
-    this->mongodb_mutex.unlock();
     return atom_documents;
 }

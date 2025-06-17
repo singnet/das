@@ -67,14 +67,8 @@ class RedisMongoDB : public AtomDB {
     bool cluster_flag;
     redisClusterContext* redis_cluster;
     redisContext* redis_single;
-    mongocxx::client* mongodb_client;
-    mongocxx::database mongodb;
-    mongocxx::v_noabi::collection mongodb_collection;
-    mutex mongodb_mutex;
     mongocxx::pool* mongodb_pool;
     shared_ptr<AtomDBCache> atomdb_cache;
-
-    mongocxx::database get_database();
 
     void redis_setup();
     void mongodb_setup();
