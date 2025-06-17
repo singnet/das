@@ -36,6 +36,7 @@ cc_library(
     deps = [
         ":query_evolution_proxy",
         "//agents/query_engine:query_answer",
+        "//atom_space:atom_space_lib",
         "//commons:commons_lib",
         "//service_bus:service_bus_lib",
     ],

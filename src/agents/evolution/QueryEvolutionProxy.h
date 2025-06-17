@@ -106,6 +106,14 @@ class QueryEvolutionProxy : public BaseProxy {
     void pack_custom_args();
 
     /**
+     * Compute the fitness value of the passed QueryAnswer.
+     *
+     * @param answer QueryAnswer to whose fitness value is to be computed.
+     * @return The fitness value of the passed QueryAnswer.
+     */
+    float compute_fitness(shared_ptr<QueryAnswer> answer);
+
+    /**
      * Returns a string representation with all command parameter values.
      *
      * @return a string representation with all command parameter values.
@@ -150,6 +158,24 @@ class QueryEvolutionProxy : public BaseProxy {
      * @param flag Flag
      */
     void set_fitness_function_tag(const string& tag);
+
+    /**
+     * Getter for population_size
+     *
+     * population_size Number of answers sampled every evolution cycle.
+     *
+     * @return population_size
+     */
+    unsigned int get_population_size();
+
+    /**
+     * Setter for population_size
+     *
+     * population_size Number of answers sampled every evolution cycle.
+     *
+     * @param population_size Population size
+     */
+    void set_population_size(unsigned int population_size);
 
     // ---------------------------------------------------------------------------------------------
     // Virtual superclass API and the piggyback methods called by it
@@ -196,6 +222,11 @@ class QueryEvolutionProxy : public BaseProxy {
      * Fitness function selector.
      */
     string fitness_function_tag;
+
+    /**
+     * Number of answers sampled every evolution cycle.
+     */
+    unsigned int population_size;
 };
 
 }  // namespace evolution

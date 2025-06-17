@@ -53,11 +53,13 @@ void QueryEvolutionProcessor::thread_process_one_query(shared_ptr<StoppableThrea
         proxy->set_context(proxy->args[skip_arg++]);
         proxy->set_unique_assignment_flag(proxy->args[skip_arg++] == "1");
         proxy->set_fitness_function_tag(proxy->args[skip_arg++]);
+        proxy->set_population_size(std::stoi(proxy->args[skip_arg++]));
         proxy->query_tokens.insert(
             proxy->query_tokens.begin(), proxy->args.begin() + skip_arg, proxy->args.end());
         string command = proxy->get_command();
         if (command == ServiceBus::QUERY_EVOLUTION) {
             LOG_DEBUG("QUERY_EVOLUTION proxy: " << proxy->to_string());
+            this->evolve_query(monitor, proxy);
         } else {
             Utils::error("Invalid command " + command + " in QueryEvolutionProcessor");
         }
@@ -68,6 +70,38 @@ void QueryEvolutionProcessor::thread_process_one_query(shared_ptr<StoppableThrea
     }
     LOG_DEBUG("Command finished: <" << proxy->get_command() << ">");
     // TODO add a call to remove_query_thread(monitor->get_id());
+}
+
+void QueryEvolutionProcessor::sample_population(shared_ptr<StoppableThread> monitor,
+                                                shared_ptr<QueryEvolutionProxy> proxy,
+                                                vector<std::pair<shared_ptr<QueryAnswer>, float>>& population) {
+
+    unsigned int population_size = proxy->get_population_size();
+    auto pm = atom_space.pattern_matching_query(proxy->get_query_tokens(),
+                                                population_size,
+                                                proxy->get_context());
+    while ((! pm->finished()) && (! monitor->stopped()) && (population.size() < population_size)) {
+        shared_ptr<QueryAnswer> answer = pm->pop();
+        if (answer != NULL) {
+            float fitness = proxy->compute_fitness(answer);
+            population.push_back(make_pair(answer, fitness));
+        } else {
+            Utils::sleep();
+        }
+    }
+    if (! pm->finished()) {
+        // TODO Uncomment this when abort() is implemented
+        // pm->abort();
+        LOG_ERROR("Couldn't abort pattern matching query because abort() is not implemented");
+    }
+}
+
+void QueryEvolutionProcessor::evolve_query(shared_ptr<StoppableThread> monitor,
+                                           shared_ptr<QueryEvolutionProxy> proxy) {
+    vector<std::pair<shared_ptr<QueryAnswer>, float>> population;
+    while (! monitor->stopped()) {
+        sample_population(monitor, proxy, population);
+    }
 }
 
 void QueryEvolutionProcessor::remove_query_thread(const string& stoppable_thread_id) {
