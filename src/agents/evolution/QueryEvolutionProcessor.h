@@ -4,6 +4,7 @@
 #include <memory>
 #include <thread>
 
+#include "AtomSpace.h"
 #include "BusCommandProcessor.h"
 #include "QueryEvolutionProxy.h"
 #include "StoppableThread.h"
@@ -12,6 +13,7 @@
 
 using namespace std;
 using namespace service_bus;
+using namespace atomspace;
 
 namespace evolution {
 
@@ -38,13 +40,21 @@ class QueryEvolutionProcessor : public BusCommandProcessor {
      */
     virtual void run_command(shared_ptr<BusCommandProxy> proxy);
 
+   protected:
+    // Protected to ease writing tests
+    void evolve_query(shared_ptr<StoppableThread> monitor, shared_ptr<QueryEvolutionProxy> proxy);
+    void sample_population(shared_ptr<StoppableThread> monitor,
+                           shared_ptr<QueryEvolutionProxy> proxy,
+                           vector<std::pair<shared_ptr<QueryAnswer>, float>>& population);
+
    private:
     void thread_process_one_query(shared_ptr<StoppableThread>, shared_ptr<QueryEvolutionProxy> proxy);
-
     void remove_query_thread(const string& stoppable_thread_id);
+
     map<string, shared_ptr<StoppableThread>> query_threads;
     mutex query_threads_mutex;
     shared_ptr<QueryEvolutionProxy> proxy;
+    AtomSpace atom_space;
 };
 
 }  // namespace evolution
