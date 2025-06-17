@@ -103,6 +103,7 @@ const vector<string>& QueryEvolutionProxy::get_query_tokens() {
 float QueryEvolutionProxy::compute_fitness(shared_ptr<QueryAnswer> answer) {
     if (this->fitness_function_tag == "") {
         Utils::error("Invalid empty fitness function tag");
+        return 0;
     } else {
         return this->fitness_function_object->eval(answer);
     }
