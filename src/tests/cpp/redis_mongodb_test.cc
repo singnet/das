@@ -8,6 +8,7 @@
 #include <vector>
 
 #include "AtomDBSingleton.h"
+#include "LinkTemplateInterface.h"
 #include "RedisMongoDB.h"
 #include "expression_hasher.h"
 
@@ -59,6 +60,16 @@ class RedisMongoDBTest : public ::testing::Test {
     shared_ptr<RedisMongoDB> db;
 };
 
+class LinkTemplateHandle : public LinkTemplateInterface {
+   public:
+    LinkTemplateHandle(const char* handle) : handle(handle) {}
+
+    const char* get_handle() const override { return this->handle; }
+
+   private:
+    const char* handle;
+};
+
 TEST_F(RedisMongoDBTest, ConcurrentQueryForPattern) {
     const int num_threads = 200;
     vector<thread> threads;
@@ -66,10 +77,12 @@ TEST_F(RedisMongoDBTest, ConcurrentQueryForPattern) {
 
     auto worker = [&](int thread_id) {
         try {
-            auto handle_set = db->query_for_pattern(handle_ptr("e8ca47108af6d35664f8813e1f96c5fa"));
+            auto link_template = new LinkTemplateHandle("e8ca47108af6d35664f8813e1f96c5fa");
+            auto handle_set = db->query_for_pattern(*link_template);
             ASSERT_NE(handle_set, nullptr);
             ASSERT_EQ(handle_set->size(), 3);
             success_count++;
+            delete link_template;
         } catch (const exception& e) {
             cout << "Thread " << thread_id << " failed with error: " << e.what() << endl;
         }
@@ -86,8 +99,9 @@ TEST_F(RedisMongoDBTest, ConcurrentQueryForPattern) {
     EXPECT_EQ(success_count, num_threads);
 
     // Test non-existing pattern
-    auto non_existing_pattern = handle_ptr("00000000000000000000000000000000");
-    auto handle_set = db->query_for_pattern(non_existing_pattern);
+    auto link_template = new LinkTemplateHandle("00000000000000000000000000000000");
+    auto handle_set = db->query_for_pattern(*link_template);
+    delete link_template;
     EXPECT_EQ(handle_set->size(), 0);
 }
 

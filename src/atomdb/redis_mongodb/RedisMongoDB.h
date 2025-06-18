@@ -48,7 +48,8 @@ class RedisMongoDB : public AtomDB {
         MONGODB_CHUNK_SIZE = 1000;
     }
 
-    shared_ptr<atomdb_api_types::HandleSet> query_for_pattern(shared_ptr<char> pattern_handle);
+    shared_ptr<atomdb_api_types::HandleSet> query_for_pattern(
+        const LinkTemplateInterface& link_template);
     shared_ptr<atomdb_api_types::HandleList> query_for_targets(shared_ptr<char> link_handle);
     shared_ptr<atomdb_api_types::HandleList> query_for_targets(char* link_handle_ptr);
     shared_ptr<atomdb_api_types::AtomDocument> get_atom_document(const char* handle);

@@ -15,6 +15,7 @@
 #include "AttentionBrokerServer.h"
 #include "ImportanceList.h"
 #include "Iterator.h"
+#include "LinkTemplateInterface.h"
 #include "QueryAnswer.h"
 #include "QueryElementRegistry.h"
 #include "QueryNode.h"
@@ -71,7 +72,7 @@ namespace query_element {
  * Returned links are guaranteed to satisfy all variable settings properly.
  */
 template <unsigned int ARITY>
-class LinkTemplate : public Source {
+class LinkTemplate : public Source, public LinkTemplateInterface {
    public:
     // --------------------------------------------------------------------------------------------
     // Constructors and destructors
@@ -242,6 +243,8 @@ class LinkTemplate : public Source {
 
     void set_positive_importance_flag(bool flag) { this->positive_importance_flag = flag; }
 
+    const char* get_handle() const override { return this->handle.get(); }
+
    private:
     // --------------------------------------------------------------------------------------------
     // Private methods and attributes
@@ -326,7 +329,7 @@ class LinkTemplate : public Source {
 
     void fetch_links() {
         shared_ptr<AtomDB> db = AtomDBSingleton::get_instance();
-        this->fetch_result = db->query_for_pattern(this->handle);
+        this->fetch_result = db->query_for_pattern(*this);
         unsigned int answer_count = this->fetch_result->size();
         LOG_INFO("Fetched " << answer_count << " links for link template " << this->to_string());
         QueryAnswer* query_answer;
