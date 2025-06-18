@@ -118,7 +118,7 @@ void run(const string& context, const string& word_tag1, const string& word_tag2
                 variable, sentence1,
                 link, expression, "2",
                     node, symbol, word,
-                    node, symbol, "\"" + word_tag2 + "\"",
+                    node, symbol, "\"" + word_tag2 + "\""
     };
     // clang-format on
 
