@@ -65,7 +65,7 @@ class QueryEvolutionProxy : public BaseProxy {
      *
      * @return The next QueryAnswer object or NULL if none is available.
      */
-    shared_ptr<QueryAnswer> pop();
+    std::pair<shared_ptr<QueryAnswer>, float> pop();
 
     /**
      * Returns the number of QueryAnswers delivered so far.

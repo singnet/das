@@ -124,6 +124,7 @@ void run(const string& context, const string& word_tag1, const string& word_tag2
 
     shared_ptr<QueryEvolutionProxy> proxy =
         make_shared<QueryEvolutionProxy>(or_two_words, "unit_test", context);
+    proxy->set_population_size(100);
     service_bus->issue_bus_command(proxy);
 
     shared_ptr<QueryAnswer> query_answer;
@@ -149,8 +150,6 @@ void run(const string& context, const string& word_tag1, const string& word_tag2
             sentence_name_document = db->get_atom_document(handle);
             // cout << string(sentence_name_document->get("name")) << endl;
             set<string> to_highlight = {word_tag1, word_tag2};
-            to_highlight.insert(word_tag1);
-            to_highlight.insert(word_tag2);
             string sentence_name = string(sentence_name_document->get("name"));
             string highlighted_sentence_name = highlight(sentence_name, to_highlight);
             cout << highlighted_sentence_name << endl;
