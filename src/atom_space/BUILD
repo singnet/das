@@ -9,6 +9,7 @@ cc_library(
     includes = ["."],
     deps = [
         ":atom_space_types",
+        ":link_template_interface",
         "//agents/query_engine:query_engine_lib",
         "//atomdb:atomdb_api_types",
         "//atomdb:atomdb_singleton",

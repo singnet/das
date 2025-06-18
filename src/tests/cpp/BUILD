@@ -562,7 +562,7 @@ cc_test(
     ],
     linkstatic = 1,
     deps = [
-        "//agents/query_engine:query_engine_lib",
+        "//atom_space:link_template_interface",
         "//atomdb:atomdb_singleton",
         "@com_github_google_googletest//:gtest_main",
         "@mbedtls",
