@@ -125,9 +125,9 @@ void RedisMongoDB::mongodb_setup() {
 }
 
 shared_ptr<atomdb_api_types::HandleSet> RedisMongoDB::query_for_pattern(
-    std::shared_ptr<char> pattern_handle) {
+    const LinkTemplateInterface& link_template) {
     if (this->atomdb_cache != nullptr) {
-        auto cache_result = this->atomdb_cache->query_for_pattern(pattern_handle.get());
+        auto cache_result = this->atomdb_cache->query_for_pattern(link_template);
         if (cache_result.is_cache_hit) return cache_result.result;
     }
 
@@ -137,10 +137,12 @@ shared_ptr<atomdb_api_types::HandleSet> RedisMongoDB::query_for_pattern(
     redisReply* reply;
 
     auto ctx = this->redis_pool->acquire();
+
+    auto pattern_handle = link_template.handle.get();
     auto handle_set = make_shared<atomdb_api_types::HandleSetRedis>();
 
     while (redis_has_more) {
-        command = ("ZRANGE " + REDIS_PATTERNS_PREFIX + ":" + pattern_handle.get() + " " +
+        command = ("ZRANGE " + REDIS_PATTERNS_PREFIX + ":" + pattern_handle + " " +
                    to_string(redis_cursor) + " " + to_string(redis_cursor + REDIS_CHUNK_SIZE - 1));
 
         reply = ctx->execute(command.c_str());
@@ -166,7 +168,7 @@ shared_ptr<atomdb_api_types::HandleSet> RedisMongoDB::query_for_pattern(
     }
 
     if (this->atomdb_cache != nullptr)
-        this->atomdb_cache->add_pattern_matching(pattern_handle.get(), handle_set);
+        this->atomdb_cache->add_pattern_matching(pattern_handle, handle_set);
     return handle_set;
 }
 

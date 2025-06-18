@@ -3,6 +3,7 @@
 #include <grpcpp/grpcpp.h>
 
 #include <cstring>
+#include <memory>
 
 // clang-format off
 #define LOG_LEVEL INFO_LEVEL
@@ -15,6 +16,7 @@
 #include "AttentionBrokerServer.h"
 #include "ImportanceList.h"
 #include "Iterator.h"
+#include "LinkTemplateInterface.h"
 #include "QueryAnswer.h"
 #include "QueryElementRegistry.h"
 #include "QueryNode.h"
@@ -71,7 +73,7 @@ namespace query_element {
  * Returned links are guaranteed to satisfy all variable settings properly.
  */
 template <unsigned int ARITY>
-class LinkTemplate : public Source {
+class LinkTemplate : public Source, public LinkTemplateInterface {
    public:
     // --------------------------------------------------------------------------------------------
     // Constructors and destructors
@@ -326,7 +328,7 @@ class LinkTemplate : public Source {
 
     void fetch_links() {
         shared_ptr<AtomDB> db = AtomDBSingleton::get_instance();
-        this->fetch_result = db->query_for_pattern(this->handle);
+        this->fetch_result = db->query_for_pattern(*this);
         unsigned int answer_count = this->fetch_result->size();
         LOG_INFO("Fetched " << answer_count << " links for link template " << this->to_string());
         QueryAnswer* query_answer;
@@ -520,7 +522,6 @@ class LinkTemplate : public Source {
 
     string type;
     array<shared_ptr<QueryElement>, ARITY> target_template;
-    shared_ptr<char> handle;
     char* handle_keys[ARITY + 1];
     shared_ptr<atomdb_api_types::HandleSet> fetch_result;
     vector<shared_ptr<atomdb_api_types::AtomDocument>> atom_documents;

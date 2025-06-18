@@ -30,3 +30,10 @@ cc_library(
         "//hasher:hasher_lib",
     ],
 )
+
+cc_library(
+    name = "link_template_interface",
+    hdrs = ["LinkTemplateInterface.h"],
+    includes = ["."],
+    deps = [],
+)

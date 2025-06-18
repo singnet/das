@@ -77,10 +77,10 @@ class AtomDBCache {
     /**
      * @brief Query for a pattern matching.
      *
-     * @param pattern_handle The handle of the pattern.
+     * @param link_template A LinkTemplateInterface.
      * @return The result of the query if it is cached, nullptr otherwise.
      */
-    QueryForPatternResult query_for_pattern(const char* pattern_handle);
+    QueryForPatternResult query_for_pattern(const LinkTemplateInterface& link_template);
 
     /**
      * @brief Add a pattern matching to the cache.

@@ -5,6 +5,7 @@
 #include <unordered_map>
 #include <variant>
 
+#include "LinkTemplateInterface.h"
 #include "Utils.h"
 
 using namespace std;

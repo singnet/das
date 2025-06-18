@@ -66,7 +66,9 @@ TEST_F(RedisMongoDBTest, ConcurrentQueryForPattern) {
 
     auto worker = [&](int thread_id) {
         try {
-            auto handle_set = db->query_for_pattern(handle_ptr("e8ca47108af6d35664f8813e1f96c5fa"));
+            auto link_template = LinkTemplateInterface();
+            link_template.handle = handle_ptr("e8ca47108af6d35664f8813e1f96c5fa");
+            auto handle_set = db->query_for_pattern(link_template);
             ASSERT_NE(handle_set, nullptr);
             ASSERT_EQ(handle_set->size(), 3);
             success_count++;
@@ -86,8 +88,9 @@ TEST_F(RedisMongoDBTest, ConcurrentQueryForPattern) {
     EXPECT_EQ(success_count, num_threads);
 
     // Test non-existing pattern
-    auto non_existing_pattern = handle_ptr("00000000000000000000000000000000");
-    auto handle_set = db->query_for_pattern(non_existing_pattern);
+    auto link_template = LinkTemplateInterface();
+    link_template.handle = handle_ptr("00000000000000000000000000000000");
+    auto handle_set = db->query_for_pattern(link_template);
     EXPECT_EQ(handle_set->size(), 0);
 }
 
