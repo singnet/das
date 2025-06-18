@@ -13,12 +13,12 @@ class RedisContext {
     explicit RedisContext(bool is_cluster);
     ~RedisContext();
 
-    void setContext(redisContext* ctx);
-    void setContext(redisClusterContext* ctx);
+    void set_context(redisContext* ctx);
+    void set_context(redisClusterContext* ctx);
 
     redisReply* execute(const char* command);
-    bool hasError() const;
-    const char* getError() const;
+    bool has_error() const;
+    const char* get_error() const;
 
    private:
     bool cluster_flag;

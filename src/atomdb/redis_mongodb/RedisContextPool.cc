@@ -40,7 +40,7 @@ shared_ptr<RedisContext> RedisContextPool::acquire() {
             if (cluster_ctx) redisClusterFree(cluster_ctx);
             Utils::error("Redis cluster connection error: " + err);
         }
-        ctx->setContext(cluster_ctx);
+        ctx->set_context(cluster_ctx);
     } else {
         auto single_ctx = redisConnect(host.c_str(), stoi(port));
         if (!single_ctx || single_ctx->err) {
@@ -48,7 +48,7 @@ shared_ptr<RedisContext> RedisContextPool::acquire() {
             if (single_ctx) redisFree(single_ctx);
             Utils::error("Redis connection error: " + err);
         }
-        ctx->setContext(single_ctx);
+        ctx->set_context(single_ctx);
     }
 
     total_contexts++;

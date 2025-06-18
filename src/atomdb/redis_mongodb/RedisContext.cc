@@ -15,13 +15,13 @@ RedisContext::~RedisContext() {
     }
 }
 
-void RedisContext::setContext(redisContext* ctx) {
+void RedisContext::set_context(redisContext* ctx) {
     if (!cluster_flag) {
         single_ctx = ctx;
     }
 }
 
-void RedisContext::setContext(redisClusterContext* ctx) {
+void RedisContext::set_context(redisClusterContext* ctx) {
     if (cluster_flag) {
         cluster_ctx = ctx;
     }
@@ -35,7 +35,7 @@ redisReply* RedisContext::execute(const char* command) {
     }
 }
 
-bool RedisContext::hasError() const {
+bool RedisContext::has_error() const {
     if (cluster_flag) {
         return cluster_ctx && cluster_ctx->err;
     } else {
@@ -43,7 +43,7 @@ bool RedisContext::hasError() const {
     }
 }
 
-const char* RedisContext::getError() const {
+const char* RedisContext::get_error() const {
     if (cluster_flag) {
         return cluster_ctx ? cluster_ctx->errstr : nullptr;
     } else {
