@@ -11,8 +11,7 @@ cc_library(
         ":atomdb_cache",
         ":atomdb_cache_singleton",
         ":atomdb_singleton",
-        ":redis_mongodb",
-        ":redis_mongodb_api_types",
+        "//atomdb/redis_mongodb:redis_mongodb_lib",
     ],
 )
 
@@ -36,38 +35,14 @@ cc_library(
 )
 
 cc_library(
-    name = "redis_mongodb_api_types",
-    srcs = ["RedisMongoDBAPITypes.cc"],
-    hdrs = ["RedisMongoDBAPITypes.h"],
-    includes = ["."],
-    deps = [
-        ":atomdb_api_types",
-    ],
-)
-
-cc_library(
     name = "atomdb_singleton",
     srcs = ["AtomDBSingleton.cc"],
     hdrs = ["AtomDBSingleton.h"],
     includes = ["."],
     deps = [
         ":atomdb_cache_singleton",
-        ":redis_mongodb",
         "//atomdb:atomdb_api_types",
-        "//commons:commons_lib",
-    ],
-)
-
-cc_library(
-    name = "redis_mongodb",
-    srcs = ["RedisMongoDB.cc"],
-    hdrs = ["RedisMongoDB.h"],
-    includes = ["."],
-    deps = [
-        ":atomdb",
-        ":atomdb_cache_singleton",
-        ":redis_mongodb_api_types",
-        "//attention_broker:attention_broker_lib",
+        "//atomdb/redis_mongodb",
         "//commons:commons_lib",
     ],
 )
