@@ -193,9 +193,9 @@ const string& QueryAnswer::tokenize() {
     char importance_buffer[13];
     sprintf(strength_buffer, "%.10f", this->strength);
     sprintf(importance_buffer, "%.10f", this->importance);
-    unsigned int char_count = 13   // strength with 10 decimals + space
-                              + 13 // importance with 10 decimals + space
-                              + 4  // (up to 3 digits) to represent this->handles_size + space
+    unsigned int char_count = 13    // strength with 10 decimals + space
+                              + 13  // importance with 10 decimals + space
+                              + 4   // (up to 3 digits) to represent this->handles_size + space
                               + this->handles_size * (HANDLE_HASH_SIZE + 1)  // handles + spaces
                               + 4  // (up to 3 digits) to represent this->assignment.size + space
                               + this->assignment.size * (MAX_VARIABLE_NAME_SIZE + HANDLE_HASH_SIZE +
