@@ -174,6 +174,12 @@ class QueryAnswer {
     double importance;
 
     /**
+     * Strength value which can be understood in different ways depending on the
+     * cognitive algorithm using it.
+     */
+    double strength;
+
+    /**
      * Underlying assignment of variables which led to this QueryAnswer.
      */
     Assignment assignment;
