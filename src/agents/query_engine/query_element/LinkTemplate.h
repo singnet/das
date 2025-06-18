@@ -3,7 +3,6 @@
 #include <grpcpp/grpcpp.h>
 
 #include <cstring>
-#include <memory>
 
 // clang-format off
 #define LOG_LEVEL INFO_LEVEL
