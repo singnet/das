@@ -35,13 +35,8 @@ RedisMongoDB::RedisMongoDB() {
 }
 
 RedisMongoDB::~RedisMongoDB() {
-    if (this->redis_cluster != NULL) {
-        redisClusterFree(this->redis_cluster);
-    }
-    if (this->redis_single != NULL) {
-        redisFree(this->redis_single);
-    }
     delete this->mongodb_pool;
+    delete this->redis_pool;
 }
 
 void RedisMongoDB::attention_broker_setup() {
@@ -87,25 +82,9 @@ void RedisMongoDB::redis_setup() {
             "You need to set Redis access info as environment variables: DAS_REDIS_HOSTNAME, "
             "DAS_REDIS_PORT and DAS_USE_REDIS_CLUSTER");
     }
-    string cluster_tag = (this->cluster_flag ? "CLUSTER" : "NON-CLUSTER");
-
-    if (this->cluster_flag) {
-        this->redis_cluster = redisClusterConnect(address.c_str(), 0);
-        this->redis_single = NULL;
-    } else {
-        this->redis_single = redisConnect(host.c_str(), stoi(port));
-        this->redis_cluster = NULL;
-    }
-
-    if (this->redis_cluster == NULL && this->redis_single == NULL) {
-        Utils::error("Connection error.");
-    } else if ((!this->cluster_flag) && this->redis_single->err) {
-        Utils::error("Redis error: " + string(this->redis_single->errstr));
-    } else if (this->cluster_flag && this->redis_cluster->err) {
-        Utils::error("Redis cluster error: " + string(this->redis_cluster->errstr));
-    } else {
-        LOG_INFO("Connected to (" << cluster_tag << ") Redis at " << address);
-    }
+    this->redis_pool = new RedisContextPool(this->cluster_flag, host, port, address);
+    LOG_INFO("Connected to (" << (this->cluster_flag ? "CLUSTER" : "NON-CLUSTER") << ") Redis at "
+                              << address);
 }
 
 void RedisMongoDB::mongodb_setup() {
@@ -157,17 +136,14 @@ shared_ptr<atomdb_api_types::HandleSet> RedisMongoDB::query_for_pattern(
     string command;
     redisReply* reply;
 
+    auto ctx = this->redis_pool->acquire();
     auto handle_set = make_shared<atomdb_api_types::HandleSetRedis>();
 
     while (redis_has_more) {
         command = ("ZRANGE " + REDIS_PATTERNS_PREFIX + ":" + pattern_handle.get() + " " +
                    to_string(redis_cursor) + " " + to_string(redis_cursor + REDIS_CHUNK_SIZE - 1));
 
-        if (this->cluster_flag) {
-            reply = (redisReply*) redisClusterCommand(this->redis_cluster, command.c_str());
-        } else {
-            reply = (redisReply*) redisCommand(this->redis_single, command.c_str());
-        }
+        reply = ctx->execute(command.c_str());
 
         if (reply == NULL) {
             Utils::error("Redis error");
@@ -206,13 +182,9 @@ shared_ptr<atomdb_api_types::HandleList> RedisMongoDB::query_for_targets(char* l
 
     redisReply* reply;
     try {
-        if (this->cluster_flag) {
-            reply = (redisReply*) redisClusterCommand(
-                this->redis_cluster, "GET %s:%s", REDIS_TARGETS_PREFIX.c_str(), link_handle_ptr);
-        } else {
-            reply = (redisReply*) redisCommand(
-                this->redis_single, "GET %s:%s", REDIS_TARGETS_PREFIX.c_str(), link_handle_ptr);
-        }
+        auto ctx = this->redis_pool->acquire();
+        auto command = "GET " + REDIS_TARGETS_PREFIX + ":" + link_handle_ptr;
+        reply = ctx->execute(command.c_str());
 
         if (reply == NULL) {
             Utils::error("Redis error");
