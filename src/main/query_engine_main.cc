@@ -30,7 +30,7 @@ int main(int argc, char* argv[]) {
     signal(SIGINT, &ctrl_c_handler);
     signal(SIGTERM, &ctrl_c_handler);
     AtomDBSingleton::init();
-    ServiceBusSingleton::init(server_id);
+    ServiceBusSingleton::init(server_id, "", 61000, 61999);
     shared_ptr<ServiceBus> service_bus = ServiceBusSingleton::get_instance();
     service_bus->register_processor(make_shared<PatternMatchingQueryProcessor>());
 

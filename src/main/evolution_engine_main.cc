@@ -32,7 +32,8 @@ int main(int argc, char* argv[]) {
     string server_id = "0.0.0.0:" + string(argv[1]);
 
     AtomDBSingleton::init();
-    ServiceBusSingleton::init(server_id, argv[2]);
+    ServiceBusSingleton::init(server_id, argv[2], 62000, 62999);
+
     FitnessFunctionRegistry::initialize_statics();
 
     signal(SIGINT, &ctrl_c_handler);

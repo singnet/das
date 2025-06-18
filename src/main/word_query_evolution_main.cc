@@ -4,7 +4,7 @@
 #include <string>
 
 #include "AtomDBSingleton.h"
-#include "PatternMatchingQueryProxy.h"
+#include "QueryEvolutionProxy.h"
 #include "QueryAnswer.h"
 #include "ServiceBusSingleton.h"
 #include "Utils.h"
@@ -14,6 +14,7 @@
 using namespace std;
 using namespace atomdb;
 using namespace query_engine;
+using namespace evolution;
 using namespace service_bus;
 
 std::vector<std::string> split(string s, string delimiter) {
@@ -77,7 +78,7 @@ string handle_to_atom(const char* handle) {
     return answer;
 }
 
-void run(const string& context, const string& word_tag) {
+void run(const string& context, const string& word_tag1, const string& word_tag2) {
     string server_id = "0.0.0.0:24001";
     string client_id = "0.0.0.0:34001";
 
@@ -103,70 +104,26 @@ void run(const string& context, const string& word_tag) {
     string word1 = "word1";
     string word2 = "word2";
 
-    vector<string> query_word = {link_template,
-                                 expression,
-                                 "3",
-                                 node,
-                                 symbol,
-                                 contains,
-                                 variable,
-                                 sentence1,
-                                 link,
-                                 expression,
-                                 "2",
-                                 node,
-                                 symbol,
-                                 word,
-                                 node,
-                                 symbol,
-                                 "\"" + word_tag + "\""};
-
-    string word_tag1 = "aaa";
-    string word_tag2 = "bbb";
+    // clang-format off
     vector<string> or_two_words = {
-        or_operator,
-        "2",
-        link_template,
-        expression,
-        "3",
-        node,
-        symbol,
-        contains,
-        variable,
-        sentence1,
-        link,
-        expression,
-        "2",
-        node,
-        symbol,
-        word,
-        node,
-        symbol,
-        "\"" + word_tag1 + "\"",
-        link_template,
-        expression,
-        "3",
-        node,
-        symbol,
-        contains,
-        variable,
-        sentence1,
-        link,
-        expression,
-        "2",
-        node,
-        symbol,
-        word,
-        node,
-        symbol,
-        "\"" + word_tag2 + "\"",
+        or_operator, "2",
+            link_template, expression, "3",
+                node, symbol, contains,
+                variable, sentence1,
+                link, expression, "2",
+                    node, symbol, word,
+                    node, symbol, "\"" + word_tag1 + "\"",
+            link_template, expression, "3",
+                node, symbol, contains,
+                variable, sentence1,
+                link, expression, "2",
+                    node, symbol, word,
+                    node, symbol, "\"" + word_tag2 + "\"",
     };
+    // clang-format on
 
-    //shared_ptr<PatternMatchingQueryProxy> proxy =
-    //    make_shared<PatternMatchingQueryProxy>(query_word, context);
-    shared_ptr<PatternMatchingQueryProxy> proxy =
-        make_shared<PatternMatchingQueryProxy>(or_two_words, context);
-    proxy->set_attention_update_flag(false);
+    shared_ptr<QueryEvolutionProxy> proxy =
+        make_shared<QueryEvolutionProxy>(or_two_words, "unit_test", context);
     service_bus->issue_bus_command(proxy);
 
     shared_ptr<QueryAnswer> query_answer;
@@ -191,16 +148,11 @@ void run(const string& context, const string& word_tag) {
             // cout << handle_to_atom(handle) << endl;
             sentence_name_document = db->get_atom_document(handle);
             // cout << string(sentence_name_document->get("name")) << endl;
-            set<string> to_highlight;
-            //to_highlight.insert(word_tag);
+            set<string> to_highlight = {word_tag1, word_tag2};
             to_highlight.insert(word_tag1);
             to_highlight.insert(word_tag2);
             string sentence_name = string(sentence_name_document->get("name"));
             string highlighted_sentence_name = highlight(sentence_name, to_highlight);
-            string w = "\"" + word_tag + "\"";
-            //string line = "(Contains (Sentence " + highlighted_sentence_name + ") (Word \"" +
-            //              highlight(w, to_highlight) + "\"))";
-            //cout << line << endl;
             cout << highlighted_sentence_name << endl;
             if (++count == MAX_QUERY_ANSWERS) {
                 break;
@@ -216,13 +168,14 @@ void run(const string& context, const string& word_tag) {
 }
 
 int main(int argc, char* argv[]) {
-    if (argc < 3) {
-        cerr << "Usage: " << argv[0] << " <context> <word tag>" << endl;
+    if (argc != 4) {
+        cerr << "Usage: " << argv[0] << " <context> <word tag 1> <word tag 2>" << endl;
         exit(1);
     }
     string context = argv[1];
-    string word_tag = argv[2];
+    string word_tag1 = argv[2];
+    string word_tag2 = argv[3];
 
-    run(context, word_tag);
+    run(context, word_tag1, word_tag2);
     return 0;
 }

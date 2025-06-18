@@ -161,6 +161,7 @@ void PatternMatchingQueryProcessor::thread_process_one_query(
         proxy->set_count_flag(proxy->args[skip_arg++] == "1");
         proxy->query_tokens.insert(
             proxy->query_tokens.begin(), proxy->args.begin() + skip_arg, proxy->args.end());
+        LOG_DEBUG("attention_update_flag: " + proxy->get_attention_update_flag());
         LOG_DEBUG("Setting up query tree");
         auto query_element_registry = make_unique<QueryElementRegistry>();
         shared_ptr<QueryElement> root_query_element =

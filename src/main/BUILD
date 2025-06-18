@@ -74,6 +74,16 @@ cc_library(
 )
 
 cc_library(
+    name = "word_query_evolution_main_lib",
+    srcs = ["word_query_evolution_main.cc"],
+    deps = [
+        "//agents/evolution:evolution_lib",
+        "//atomdb:atomdb_singleton",
+        "//service_bus:service_bus_lib",
+    ],
+)
+
+cc_library(
     name = "link_creation_agent_main_lib",
     srcs = ["link_creation_agent_main.cc"],
     deps = [

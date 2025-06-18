@@ -202,3 +202,10 @@ src/bazel**
 .nogit/
 .vscode/
 _grpc/
+
+# Misc personal
+src/ab.sh
+src/env
+src/evolution.sh
+src/integration_test.sh
+src/query_agent.sh
