@@ -138,7 +138,7 @@ shared_ptr<atomdb_api_types::HandleSet> RedisMongoDB::query_for_pattern(
 
     auto ctx = this->redis_pool->acquire();
 
-    auto pattern_handle = link_template.handle.get();
+    auto pattern_handle = link_template.get_handle().get();
     auto handle_set = make_shared<atomdb_api_types::HandleSetRedis>();
 
     while (redis_has_more) {
@@ -169,6 +169,7 @@ shared_ptr<atomdb_api_types::HandleSet> RedisMongoDB::query_for_pattern(
 
     if (this->atomdb_cache != nullptr)
         this->atomdb_cache->add_pattern_matching(pattern_handle, handle_set);
+    LOG_INFO("--- INNER ---- Handle set size: " + to_string(handle_set->size()));
     return handle_set;
 }
 

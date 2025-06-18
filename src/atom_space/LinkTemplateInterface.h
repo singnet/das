@@ -8,5 +8,5 @@ class LinkTemplateInterface {
    public:
     virtual ~LinkTemplateInterface() = default;
 
-    shared_ptr<char> handle;
+    virtual shared_ptr<char> get_handle() const = 0;
 };

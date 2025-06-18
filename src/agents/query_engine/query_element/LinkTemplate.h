@@ -243,6 +243,10 @@ class LinkTemplate : public Source, public LinkTemplateInterface {
 
     void set_positive_importance_flag(bool flag) { this->positive_importance_flag = flag; }
 
+    shared_ptr<char> get_handle() const override {
+        return this->handle;
+    }
+
    private:
     // --------------------------------------------------------------------------------------------
     // Private methods and attributes
@@ -521,6 +525,7 @@ class LinkTemplate : public Source, public LinkTemplateInterface {
 
     string type;
     array<shared_ptr<QueryElement>, ARITY> target_template;
+    shared_ptr<char> handle;
     char* handle_keys[ARITY + 1];
     shared_ptr<atomdb_api_types::HandleSet> fetch_result;
     vector<shared_ptr<atomdb_api_types::AtomDocument>> atom_documents;
