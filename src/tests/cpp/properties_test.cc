@@ -8,7 +8,7 @@ using namespace std;
 using namespace atomdb::atomdb_api_types;
 using namespace commons;
 
-TEST(CustomAttributesMapTest, InsertAndGetString) {
+TEST(PropertiesTest, InsertAndGetString) {
     Properties map;
     map["foo"] = string("bar");
     const string* value = map.get<string>("foo");
@@ -16,7 +16,7 @@ TEST(CustomAttributesMapTest, InsertAndGetString) {
     EXPECT_EQ(*value, "bar");
 }
 
-TEST(CustomAttributesMapTest, InsertAndGetLong) {
+TEST(PropertiesTest, InsertAndGetLong) {
     Properties map;
     map["num"] = 42L;
     const long* value = map.get<long>("num");
@@ -24,7 +24,7 @@ TEST(CustomAttributesMapTest, InsertAndGetLong) {
     EXPECT_EQ(*value, 42L);
 }
 
-TEST(CustomAttributesMapTest, InsertAndGetDouble) {
+TEST(PropertiesTest, InsertAndGetDouble) {
     Properties map;
     map["pi"] = 3.14;
     const double* value = map.get<double>("pi");
@@ -32,7 +32,7 @@ TEST(CustomAttributesMapTest, InsertAndGetDouble) {
     EXPECT_DOUBLE_EQ(*value, 3.14);
 }
 
-TEST(CustomAttributesMapTest, InsertAndGetBool) {
+TEST(PropertiesTest, InsertAndGetBool) {
     Properties map;
     map["flag"] = true;
     const bool* value = map.get<bool>("flag");
@@ -40,20 +40,20 @@ TEST(CustomAttributesMapTest, InsertAndGetBool) {
     EXPECT_TRUE(*value);
 }
 
-TEST(CustomAttributesMapTest, GetWrongTypeReturnsNullptr) {
+TEST(PropertiesTest, GetWrongTypeReturnsNullptr) {
     Properties map;
     map["foo"] = string("bar");
     const long* value = map.get<long>("foo");
     EXPECT_EQ(value, nullptr);
 }
 
-TEST(CustomAttributesMapTest, GetNonexistentKeyReturnsNullptr) {
+TEST(PropertiesTest, GetNonexistentKeyReturnsNullptr) {
     Properties map;
     const string* value = map.get<string>("missing");
     EXPECT_EQ(value, nullptr);
 }
 
-TEST(CustomAttributesMapTest, ToStringRepresentation) {
+TEST(PropertiesTest, ToStringRepresentation) {
     Properties map;
     map["foo"] = string("bar");
     map["num"] = 42L;
