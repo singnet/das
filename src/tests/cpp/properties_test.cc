@@ -1,7 +1,8 @@
+#include "Properties.h"
+
 #include <gtest/gtest.h>
 
 #include "atomdb/AtomDBAPITypes.h"
-#include "Properties.h"
 
 using namespace std;
 using namespace atomdb::atomdb_api_types;

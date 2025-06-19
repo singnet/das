@@ -518,8 +518,8 @@ cc_test(
     ],
     linkstatic = 1,
     deps = [
-        "//commons:commons_lib",
         "//atom_space:atom_space_types",
+        "//commons:commons_lib",
         "@com_github_google_googletest//:gtest_main",
     ],
 )
@@ -534,11 +534,11 @@ cc_test(
     ],
     linkstatic = 1,
     deps = [
-        "//commons:commons_lib",
         "//agents/query_engine:query_engine_lib",
         "//atom_space:atom_space_lib",
         "//atom_space:atom_space_types",
         "//atomdb:atomdb_api_types",
+        "//commons:commons_lib",
         "//service_bus:service_bus_lib",
         "@com_github_google_googletest//:gtest_main",
     ],

@@ -273,9 +273,7 @@ vector<string> RedisMongoDB::links_exist(const vector<string>& link_handles) {
     return existing_links;
 }
 
-char* RedisMongoDB::add_node(const char* type,
-                             const char* name,
-                             const Properties& custom_attributes) {
+char* RedisMongoDB::add_node(const char* type, const char* name, const Properties& custom_attributes) {
     // TODO: Implement add_node logic
     return NULL;
 }

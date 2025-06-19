@@ -6,8 +6,8 @@
 
 #include "AtomDBAPITypes.h"
 #include "HandleTrie.h"
-#include "expression_hasher.h"
 #include "Properties.h"
+#include "expression_hasher.h"
 
 #define HANDLE_SIZE 32
 #define MINIMUM_TARGETS_SIZE 1
@@ -86,7 +86,7 @@ struct TargetHandlesDeleter {
 // -------------------------------------------------------------------------------------------------
 class Atom : public HandleTrie::TrieValue {
    public:
-    string type;                            ///< The type of the atom.
+    string type;                   ///< The type of the atom.
     Properties custom_attributes;  ///< Custom attributes for the atom.
 
     /**
@@ -195,9 +195,7 @@ class Link : public Atom {
      * @param targets The target atoms of the link (rvalue reference, will be moved).
      * @throws std::runtime_error if type is empty or targets.size() < MINIMUM_TARGETS_SIZE.
      */
-    Link(const string& type,
-         vector<const Atom*>&& targets,
-         const Properties& custom_attributes = {})
+    Link(const string& type, vector<const Atom*>&& targets, const Properties& custom_attributes = {})
         : Atom(type, custom_attributes), targets(move(targets)) {
         this->validate();
     }

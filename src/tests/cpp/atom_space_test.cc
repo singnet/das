@@ -7,8 +7,8 @@
 #include "AtomDBSingleton.h"
 #include "AtomSpace.h"
 #include "AtomSpaceTypes.h"
-#include "ServiceBusSingleton.h"
 #include "Properties.h"
+#include "ServiceBusSingleton.h"
 
 using namespace std;
 using namespace atomspace;

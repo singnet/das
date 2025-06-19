@@ -1,7 +1,7 @@
 #include <gtest/gtest.h>
 
-#include "atom_space/AtomSpaceTypes.h"
 #include "Properties.h"
+#include "atom_space/AtomSpaceTypes.h"
 
 using namespace std;
 using namespace atomspace;

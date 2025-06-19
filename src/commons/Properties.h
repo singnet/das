@@ -89,4 +89,4 @@ class Properties : public unordered_map<string, PropertyValue> {
     }
 };
 
-} // namespace commons
+}  // namespace commons
