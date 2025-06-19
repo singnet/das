@@ -15,7 +15,7 @@ using namespace agents;
 namespace agents {
 
 class BaseQueryProxy : public BaseProxy {
-   protected: // This is an abstract class
+   protected:  // This is an abstract class
     /**
      * Empty constructor typically used on server side.
      */
@@ -159,7 +159,6 @@ class BaseQueryProxy : public BaseProxy {
      * error_code == 0 means that NO ERROR CODE has been provided
      */
     void raise_error(const string& error_message, unsigned int error_code = 0);
-
 
     /**
      * Receive a command and its arguments passed by the remote peer.

@@ -29,7 +29,7 @@ class PatternMatchingQueryProxy : public BaseQueryProxy {
     // Constructors, destructors and static state
 
     // Commands allowed at the proxy level (caller <--> processor)
-    static string COUNT;          // Delivery of the final result of a count_only query
+    static string COUNT;  // Delivery of the final result of a count_only query
 
     /**
      * Empty constructor typically used on server side.

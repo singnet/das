@@ -67,11 +67,11 @@ string PatternMatchingQueryProxy::to_string() {
     string answer = "{";
     answer += BaseQueryProxy::to_string();
     answer += " count_flag: " + string(this->get_count_flag() ? "true" : "false");
-    answer += " positive_importance_flag: " + string(this->get_positive_importance_flag() ? "true" : "false");
+    answer +=
+        " positive_importance_flag: " + string(this->get_positive_importance_flag() ? "true" : "false");
     answer += "}";
     return answer;
 }
-
 
 // -------------------------------------------------------------------------------------------------
 // Query parameters getters and setters

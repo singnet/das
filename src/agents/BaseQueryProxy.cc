@@ -14,7 +14,6 @@ string BaseQueryProxy::ABORT = "abort";
 string BaseQueryProxy::ANSWER_BUNDLE = "answer_bundle";
 string BaseQueryProxy::FINISHED = "finished";
 
-
 BaseQueryProxy::BaseQueryProxy() {
     // constructor typically used in processor
     lock_guard<mutex> semaphore(this->api_mutex);
