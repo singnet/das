@@ -1,8 +1,10 @@
 #pragma once
 
 #include "AtomDBAPITypes.h"
+#include "Properties.h"
 
 using namespace std;
+using namespace commons;
 
 namespace atomdb {
 
@@ -22,11 +24,11 @@ class AtomDB {
     virtual std::vector<std::string> links_exist(const std::vector<std::string>& link_handles) = 0;
     virtual char* add_node(const char* type,
                            const char* name,
-                           const atomdb_api_types::CustomAttributesMap& custom_attributes) = 0;
+                           const Properties& custom_attributes) = 0;
     virtual char* add_link(const char* type,
                            char** targets,
                            size_t targets_size,
-                           const atomdb_api_types::CustomAttributesMap& custom_attributes) = 0;
+                           const Properties& custom_attributes) = 0;
     virtual vector<shared_ptr<atomdb_api_types::AtomDocument>> get_atom_documents(
         const vector<string>& handles, const vector<string>& fields) = 0;
 

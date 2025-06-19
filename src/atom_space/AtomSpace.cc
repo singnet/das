@@ -108,7 +108,7 @@ void AtomSpace::pattern_matching_fetch(const vector<string>& query, size_t answe
 // -------------------------------------------------------------------------------------------------
 char* AtomSpace::add_node(const string& type,
                           const string& name,
-                          const CustomAttributesMap& custom_attributes) {
+                          const Properties& custom_attributes) {
     char* handle = Node::compute_handle(type, name);
     this->handle_trie->insert(handle, new Node(type, name, custom_attributes));
     return handle;
@@ -117,7 +117,7 @@ char* AtomSpace::add_node(const string& type,
 // -------------------------------------------------------------------------------------------------
 char* AtomSpace::add_link(const string& type,
                           const vector<const Atom*>& targets,
-                          const CustomAttributesMap& custom_attributes) {
+                          const Properties& custom_attributes) {
     char* handle = Link::compute_handle(type, targets);
     this->handle_trie->insert(handle, new Link(type, targets, custom_attributes));
     return handle;

@@ -493,9 +493,9 @@ cc_test(
 )
 
 cc_test(
-    name = "custom_attributes_test",
+    name = "properties_test",
     size = "small",
-    srcs = ["custom_attributes_test.cc"],
+    srcs = ["properties_test.cc"],
     copts = [
         "-Iexternal/gtest/googletest/include",
         "-Iexternal/gtest/googletest",
@@ -503,6 +503,7 @@ cc_test(
     linkstatic = 1,
     deps = [
         "//atomdb:atomdb_api_types",
+        "//commons:commons_lib",
         "@com_github_google_googletest//:gtest_main",
     ],
 )
@@ -517,6 +518,7 @@ cc_test(
     ],
     linkstatic = 1,
     deps = [
+        "//commons:commons_lib",
         "//atom_space:atom_space_types",
         "@com_github_google_googletest//:gtest_main",
     ],
@@ -532,6 +534,7 @@ cc_test(
     ],
     linkstatic = 1,
     deps = [
+        "//commons:commons_lib",
         "//agents/query_engine:query_engine_lib",
         "//atom_space:atom_space_lib",
         "//atom_space:atom_space_types",

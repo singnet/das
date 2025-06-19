@@ -7,6 +7,7 @@
 #include "AtomDBAPITypes.h"
 #include "HandleTrie.h"
 #include "expression_hasher.h"
+#include "Properties.h"
 
 #define HANDLE_SIZE 32
 #define MINIMUM_TARGETS_SIZE 1
@@ -86,14 +87,14 @@ struct TargetHandlesDeleter {
 class Atom : public HandleTrie::TrieValue {
    public:
     string type;                            ///< The type of the atom.
-    CustomAttributesMap custom_attributes;  ///< Custom attributes for the atom.
+    Properties custom_attributes;  ///< Custom attributes for the atom.
 
     /**
      * @brief Construct an Atom.
      * @param type The type of the atom.
      * @throws std::runtime_error if type is empty.
      */
-    Atom(const string& type, const CustomAttributesMap& custom_attributes = {})
+    Atom(const string& type, const Properties& custom_attributes = {})
         : type(type), custom_attributes(custom_attributes) {
         this->validate();
     }
@@ -125,7 +126,7 @@ class Node : public Atom {
      * @param name The name of the node.
      * @throws std::runtime_error if type or name is empty.
      */
-    Node(const string& type, const string& name, const CustomAttributesMap& custom_attributes = {})
+    Node(const string& type, const string& name, const Properties& custom_attributes = {})
         : Atom(type, custom_attributes), name(name) {
         this->validate();
     }
@@ -182,7 +183,7 @@ class Link : public Atom {
      */
     Link(const string& type,
          const vector<const Atom*>& targets,
-         const CustomAttributesMap& custom_attributes = {})
+         const Properties& custom_attributes = {})
         : Atom(type, custom_attributes), targets(targets) {
         this->validate();
     }
@@ -196,7 +197,7 @@ class Link : public Atom {
      */
     Link(const string& type,
          vector<const Atom*>&& targets,
-         const CustomAttributesMap& custom_attributes = {})
+         const Properties& custom_attributes = {})
         : Atom(type, custom_attributes), targets(move(targets)) {
         this->validate();
     }

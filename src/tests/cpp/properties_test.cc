@@ -1,12 +1,14 @@
 #include <gtest/gtest.h>
 
 #include "atomdb/AtomDBAPITypes.h"
+#include "Properties.h"
 
 using namespace std;
 using namespace atomdb::atomdb_api_types;
+using namespace commons;
 
 TEST(CustomAttributesMapTest, InsertAndGetString) {
-    CustomAttributesMap map;
+    Properties map;
     map["foo"] = string("bar");
     const string* value = map.get<string>("foo");
     ASSERT_NE(value, nullptr);
@@ -14,7 +16,7 @@ TEST(CustomAttributesMapTest, InsertAndGetString) {
 }
 
 TEST(CustomAttributesMapTest, InsertAndGetLong) {
-    CustomAttributesMap map;
+    Properties map;
     map["num"] = 42L;
     const long* value = map.get<long>("num");
     ASSERT_NE(value, nullptr);
@@ -22,7 +24,7 @@ TEST(CustomAttributesMapTest, InsertAndGetLong) {
 }
 
 TEST(CustomAttributesMapTest, InsertAndGetDouble) {
-    CustomAttributesMap map;
+    Properties map;
     map["pi"] = 3.14;
     const double* value = map.get<double>("pi");
     ASSERT_NE(value, nullptr);
@@ -30,7 +32,7 @@ TEST(CustomAttributesMapTest, InsertAndGetDouble) {
 }
 
 TEST(CustomAttributesMapTest, InsertAndGetBool) {
-    CustomAttributesMap map;
+    Properties map;
     map["flag"] = true;
     const bool* value = map.get<bool>("flag");
     ASSERT_NE(value, nullptr);
@@ -38,20 +40,20 @@ TEST(CustomAttributesMapTest, InsertAndGetBool) {
 }
 
 TEST(CustomAttributesMapTest, GetWrongTypeReturnsNullptr) {
-    CustomAttributesMap map;
+    Properties map;
     map["foo"] = string("bar");
     const long* value = map.get<long>("foo");
     EXPECT_EQ(value, nullptr);
 }
 
 TEST(CustomAttributesMapTest, GetNonexistentKeyReturnsNullptr) {
-    CustomAttributesMap map;
+    Properties map;
     const string* value = map.get<string>("missing");
     EXPECT_EQ(value, nullptr);
 }
 
 TEST(CustomAttributesMapTest, ToStringRepresentation) {
-    CustomAttributesMap map;
+    Properties map;
     map["foo"] = string("bar");
     map["num"] = 42L;
     map["pi"] = 3.14;
