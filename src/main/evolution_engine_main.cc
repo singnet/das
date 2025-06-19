@@ -4,17 +4,15 @@
 #include <string>
 
 #include "AtomDBSingleton.h"
+#include "FitnessFunctionRegistry.h"
 #include "QueryEvolutionProcessor.h"
 #include "ServiceBusSingleton.h"
-#include "FitnessFunctionRegistry.h"
 #include "Utils.h"
 
 using namespace std;
 using namespace atomdb;
 using namespace evolution;
 using namespace service_bus;
-
-
 
 void ctrl_c_handler(int) {
     std::cout << "Stopping evolution engine server..." << std::endl;
@@ -23,7 +21,6 @@ void ctrl_c_handler(int) {
 }
 
 int main(int argc, char* argv[]) {
-
     if (argc != 3) {
         cerr << "Usage: " << argv[0] << " <port> BUS_IP:PORT" << endl;
         exit(1);

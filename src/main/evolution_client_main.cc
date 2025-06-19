@@ -4,10 +4,10 @@
 #include <string>
 
 #include "AtomDBSingleton.h"
+#include "FitnessFunctionRegistry.h"
 #include "QueryAnswer.h"
 #include "QueryEvolutionProxy.h"
 #include "ServiceBusSingleton.h"
-#include "FitnessFunctionRegistry.h"
 #include "Utils.h"
 
 using namespace std;
@@ -23,7 +23,6 @@ void ctrl_c_handler(int) {
 }
 
 int main(int argc, char* argv[]) {
-
     if (argc < 4) {
         cerr << "Usage: " << argv[0] << " <port> BUS_IP:PORT TOKENS+" << endl;
         exit(1);

@@ -1,4 +1,5 @@
 #include "BaseQueryProxy.h"
+
 #include "ServiceBus.h"
 
 #define LOG_LEVEL DEBUG_LEVEL
@@ -17,8 +18,7 @@ BaseQueryProxy::BaseQueryProxy() {
     init();
 }
 
-BaseQueryProxy::BaseQueryProxy(const vector<string>& tokens, const string& context)
-    : BaseProxy() {
+BaseQueryProxy::BaseQueryProxy(const vector<string>& tokens, const string& context) : BaseProxy() {
     // constructor typically used in requestor
     lock_guard<mutex> semaphore(this->api_mutex);
     init();

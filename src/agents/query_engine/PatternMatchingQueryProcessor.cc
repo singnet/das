@@ -185,7 +185,8 @@ void PatternMatchingQueryProcessor::thread_process_one_query(
                 }
                 if (proxy->get_count_flag() && (!proxy->is_aborting())) {
                     LOG_DEBUG("Answering count_only query");
-                    proxy->to_remote_peer(PatternMatchingQueryProxy::COUNT, {std::to_string(answer_count)});
+                    proxy->to_remote_peer(PatternMatchingQueryProxy::COUNT,
+                                          {std::to_string(answer_count)});
                 }
                 Utils::sleep(500);
                 proxy->to_remote_peer(PatternMatchingQueryProxy::FINISHED, {});

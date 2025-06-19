@@ -4,8 +4,8 @@
 #include <string>
 
 #include "AtomDBSingleton.h"
-#include "QueryEvolutionProxy.h"
 #include "QueryAnswer.h"
+#include "QueryEvolutionProxy.h"
 #include "ServiceBusSingleton.h"
 #include "Utils.h"
 

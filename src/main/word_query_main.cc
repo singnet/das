@@ -162,8 +162,8 @@ void run(const string& context, const string& word_tag) {
         "\"" + word_tag2 + "\"",
     };
 
-    //shared_ptr<PatternMatchingQueryProxy> proxy =
-    //    make_shared<PatternMatchingQueryProxy>(query_word, context);
+    // shared_ptr<PatternMatchingQueryProxy> proxy =
+    //     make_shared<PatternMatchingQueryProxy>(query_word, context);
     shared_ptr<PatternMatchingQueryProxy> proxy =
         make_shared<PatternMatchingQueryProxy>(or_two_words, context);
     proxy->set_attention_update_flag(false);
@@ -192,15 +192,15 @@ void run(const string& context, const string& word_tag) {
             sentence_name_document = db->get_atom_document(handle);
             // cout << string(sentence_name_document->get("name")) << endl;
             set<string> to_highlight;
-            //to_highlight.insert(word_tag);
+            // to_highlight.insert(word_tag);
             to_highlight.insert(word_tag1);
             to_highlight.insert(word_tag2);
             string sentence_name = string(sentence_name_document->get("name"));
             string highlighted_sentence_name = highlight(sentence_name, to_highlight);
             string w = "\"" + word_tag + "\"";
-            //string line = "(Contains (Sentence " + highlighted_sentence_name + ") (Word \"" +
-            //              highlight(w, to_highlight) + "\"))";
-            //cout << line << endl;
+            // string line = "(Contains (Sentence " + highlighted_sentence_name + ") (Word \"" +
+            //               highlight(w, to_highlight) + "\"))";
+            // cout << line << endl;
             cout << highlighted_sentence_name << endl;
             if (++count == MAX_QUERY_ANSWERS) {
                 break;
