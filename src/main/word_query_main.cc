@@ -9,12 +9,18 @@
 #include "ServiceBusSingleton.h"
 #include "Utils.h"
 
-#define MAX_QUERY_ANSWERS ((unsigned int) 100000)
+#define MAX_QUERY_ANSWERS ((unsigned int) 500)
 
 using namespace std;
 using namespace atomdb;
 using namespace query_engine;
 using namespace service_bus;
+
+void ctrl_c_handler(int) {
+    std::cout << "Stopping link creation engine server..." << std::endl;
+    std::cout << "Done." << std::endl;
+    exit(0);
+}
 
 std::vector<std::string> split(string s, string delimiter) {
     std::vector<std::string> tokens;
@@ -78,17 +84,15 @@ string handle_to_atom(const char* handle) {
 }
 
 void run(const string& context, const string& word_tag) {
-    string server_id = "0.0.0.0:24001";
-    string client_id = "0.0.0.0:34001";
+    string server_id = "0.0.0.0:31700";
+    string client_id = "0.0.0.0:31701";
 
     AtomDBSingleton::init();
     shared_ptr<AtomDB> db = AtomDBSingleton::get_instance();
-    ServiceBusSingleton::init(client_id, server_id, 63000, 63999);
-
+    ServiceBusSingleton::init(client_id, server_id);
     shared_ptr<ServiceBus> service_bus = ServiceBusSingleton::get_instance();
 
     string and_operator = "AND";
-    string or_operator = "OR";
     string link_template = "LINK_TEMPLATE";
     string link = "LINK";
     string node = "NODE";
@@ -121,52 +125,9 @@ void run(const string& context, const string& word_tag) {
                                  symbol,
                                  "\"" + word_tag + "\""};
 
-    string word_tag1 = "aaa";
-    string word_tag2 = "bbb";
-    vector<string> or_two_words = {
-        or_operator,
-        "2",
-        link_template,
-        expression,
-        "3",
-        node,
-        symbol,
-        contains,
-        variable,
-        sentence1,
-        link,
-        expression,
-        "2",
-        node,
-        symbol,
-        word,
-        node,
-        symbol,
-        "\"" + word_tag1 + "\"",
-        link_template,
-        expression,
-        "3",
-        node,
-        symbol,
-        contains,
-        variable,
-        sentence1,
-        link,
-        expression,
-        "2",
-        node,
-        symbol,
-        word,
-        node,
-        symbol,
-        "\"" + word_tag2 + "\"",
-    };
-
-    // shared_ptr<PatternMatchingQueryProxy> proxy =
-    //     make_shared<PatternMatchingQueryProxy>(query_word, context);
     shared_ptr<PatternMatchingQueryProxy> proxy =
-        make_shared<PatternMatchingQueryProxy>(or_two_words, context);
-    proxy->set_attention_update_flag(false);
+        make_shared<PatternMatchingQueryProxy>(query_word, context);
+    proxy->set_attention_update_flag(true);
     service_bus->issue_bus_command(proxy);
 
     shared_ptr<QueryAnswer> query_answer;
@@ -192,16 +153,13 @@ void run(const string& context, const string& word_tag) {
             sentence_name_document = db->get_atom_document(handle);
             // cout << string(sentence_name_document->get("name")) << endl;
             set<string> to_highlight;
-            // to_highlight.insert(word_tag);
-            to_highlight.insert(word_tag1);
-            to_highlight.insert(word_tag2);
+            to_highlight.insert(word_tag);
             string sentence_name = string(sentence_name_document->get("name"));
             string highlighted_sentence_name = highlight(sentence_name, to_highlight);
             string w = "\"" + word_tag + "\"";
-            // string line = "(Contains (Sentence " + highlighted_sentence_name + ") (Word \"" +
-            //               highlight(w, to_highlight) + "\"))";
-            // cout << line << endl;
-            cout << highlighted_sentence_name << endl;
+            string line = "(Contains (Sentence " + highlighted_sentence_name + ") (Word \"" +
+                          highlight(w, to_highlight) + "\"))";
+            cout << line << endl;
             if (++count == MAX_QUERY_ANSWERS) {
                 break;
             }
@@ -210,9 +168,18 @@ void run(const string& context, const string& word_tag) {
     if (count == 0) {
         cout << "No match for query" << endl;
         exit(0);
-    } else {
-        cout << "Count: " << count << endl;
     }
+
+    shared_ptr<PatternMatchingQueryProxy> proxy2 =
+        make_shared<PatternMatchingQueryProxy>(query_word, context);
+    proxy2->set_unique_assignment_flag(true);
+    proxy2->set_attention_update_flag(true);
+    service_bus->issue_bus_command(proxy2);
+    while (!proxy2->finished()) {
+        Utils::sleep();
+    }
+    int query_count = proxy2->get_count();
+    cout << "Count: " << query_count << endl;
 }
 
 int main(int argc, char* argv[]) {
@@ -220,6 +187,8 @@ int main(int argc, char* argv[]) {
         cerr << "Usage: " << argv[0] << " <context> <word tag>" << endl;
         exit(1);
     }
+    signal(SIGINT, &ctrl_c_handler);
+    signal(SIGTERM, &ctrl_c_handler);
     string context = argv[1];
     string word_tag = argv[2];
 
