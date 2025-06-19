@@ -15,13 +15,7 @@ using namespace agents;
 namespace agents {
 
 class BaseQueryProxy : public BaseProxy {
-   public:
-    // ---------------------------------------------------------------------------------------------
-    // Constructors, destructors and static state
-
-    // Commands allowed at the proxy level (caller <--> processor)
-    static string ANSWER_BUNDLE;  // Delivery of a bundle with QueryAnswer objects
-
+   protected: // This is an abstract class
     /**
      * Empty constructor typically used on server side.
      */
@@ -34,6 +28,15 @@ class BaseQueryProxy : public BaseProxy {
      * @param context AttentionBroker context
      */
     BaseQueryProxy(const vector<string>& tokens, const string& context);
+
+   public:
+    // ---------------------------------------------------------------------------------------------
+    // Constructors, destructors and static state
+
+    // Commands allowed at the proxy level (caller <--> processor)
+    static string ANSWER_BUNDLE;  // Delivery of a bundle with QueryAnswer objects
+    static string ABORT;          // Abort current query
+    static string FINISHED;       // Notification that all query results have alkready been delivered
 
     /**
      * Destructor.
@@ -51,7 +54,7 @@ class BaseQueryProxy : public BaseProxy {
      *
      * @return The next QueryAnswer object or NULL if none is available.
      */
-    shared_ptr<QueryAnswer> pop();
+    virtual shared_ptr<QueryAnswer> pop();
 
     /**
      * Returns the number of answers delivered so far.
@@ -61,6 +64,11 @@ class BaseQueryProxy : public BaseProxy {
      * @return The number of answers delivered so far.
      */
     unsigned int get_count();
+
+    /**
+     * Sets answers count.
+     */
+    void set_count(unsigned int count);
 
     // ---------------------------------------------------------------------------------------------
     // Server-side API
@@ -122,8 +130,36 @@ class BaseQueryProxy : public BaseProxy {
      */
     void set_unique_assignment_flag(bool flag);
 
+    /**
+     * Getter for attention_update_flag
+     *
+     * attention_update_flag Atutomatically trigger attention allocation update on pattern matcher
+     * queries.
+     *
+     * @return attention_update_flag
+     */
+    bool get_attention_update_flag();
+
+    /**
+     * Setter for attention_update_flag
+     *
+     * attention_update_flag Atutomatically trigger attention allocation update on pattern matcher
+     * queries.
+     *
+     * @param flag Flag
+     */
+    void set_attention_update_flag(bool flag);
+
     // ---------------------------------------------------------------------------------------------
     // Virtual superclass API and the piggyback methods called by it
+
+    /**
+     * Piggyback method called when raise_error_on_peer() is called in peer's side.
+     *
+     * error_code == 0 means that NO ERROR CODE has been provided
+     */
+    void raise_error(const string& error_message, unsigned int error_code = 0);
+
 
     /**
      * Receive a command and its arguments passed by the remote peer.
@@ -142,7 +178,17 @@ class BaseQueryProxy : public BaseProxy {
      */
     void answer_bundle(const vector<string>& args);
 
+    /**
+     * Piggyback method called by FINISHED command
+     *
+     * @param args Command arguments (empty for FINISHED command)
+     */
+    void query_answers_finished(const vector<string>& args);
+
     vector<string> query_tokens;
+    bool error_flag;
+    unsigned int error_code;
+    string error_message;
 
    private:
     void init();
@@ -159,6 +205,11 @@ class BaseQueryProxy : public BaseProxy {
      * QueryAnswer with the same variable assignment.
      * */
     bool unique_assignment_flag;
+
+    /**
+     * When true, queries issued to the pattern matcher will trigger attention update automatically.
+     * */
+    bool attention_update_flag;
 };
 
 }  // namespace agents
