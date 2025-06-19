@@ -2,8 +2,6 @@
 
 #include <algorithm>
 #include <optional>
-#include <unordered_map>
-#include <variant>
 
 #include "LinkTemplateInterface.h"
 #include "Utils.h"

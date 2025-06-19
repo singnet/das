@@ -1,5 +1,13 @@
 #pragma once
 
+#include <algorithm>
+#include <string>
+#include <unordered_map>
+#include <variant>
+#include <vector>
+
+using namespace std;
+
 namespace commons {
 
 using PropertyValue = variant<string, long, double, bool>;
