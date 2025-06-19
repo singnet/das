@@ -5,7 +5,7 @@
 #include <cstring>
 
 // clang-format off
-#define LOG_LEVEL DEBUG_LEVEL
+#define LOG_LEVEL INFO_LEVEL
 #include "Logger.h"
 // clang-format on
 
