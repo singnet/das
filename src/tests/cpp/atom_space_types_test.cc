@@ -1,9 +1,11 @@
 #include <gtest/gtest.h>
 
+#include "Properties.h"
 #include "atom_space/AtomSpaceTypes.h"
 
 using namespace std;
 using namespace atomspace;
+using namespace commons;
 
 TEST(AtomTest, AtomTypeValidation) {
     EXPECT_NO_THROW(Atom("Type"));
@@ -94,7 +96,7 @@ TEST(LinkTest, LinkComputeHandleFromRaw) {
 }
 
 TEST(NodeTest, NodeWithCustomAttributes) {
-    CustomAttributesMap attrs;
+    Properties attrs;
     attrs["foo"] = std::string("bar");
     attrs["num"] = 42L;
     Node n("Type", "Name", attrs);

@@ -11,6 +11,7 @@ cc_library(
     ],
     hdrs = [
         "Logger.h",
+        "Properties.h",
         "RequestValidator.h",
         "SharedQueue.h",
         "Stoppable.h",

@@ -7,12 +7,14 @@
 #include "AtomDBSingleton.h"
 #include "AtomSpace.h"
 #include "AtomSpaceTypes.h"
+#include "Properties.h"
 #include "ServiceBusSingleton.h"
 
 using namespace std;
 using namespace atomspace;
 using namespace atomdb;
 using namespace atomdb_api_types;
+using namespace commons;
 
 // Mock AtomDocument for testing
 class MockAtomDocument : public AtomDocument {
@@ -59,8 +61,8 @@ class MockAtomDB : public AtomDB {
    public:
     // Track method calls
     mutable vector<string> get_atom_calls;
-    vector<tuple<string, string, CustomAttributesMap>> add_node_calls;
-    vector<tuple<string, vector<string>, CustomAttributesMap>> add_link_calls;
+    vector<tuple<string, string, Properties>> add_node_calls;
+    vector<tuple<string, vector<string>, Properties>> add_link_calls;
 
     // Mock documents to return
     map<string, shared_ptr<AtomDocument>> docs;
@@ -87,7 +89,7 @@ class MockAtomDB : public AtomDB {
     bool link_exists(const char*) override { return false; }
     vector<string> links_exist(const vector<string>&) override { return {}; }
 
-    char* add_node(const char* type, const char* name, const CustomAttributesMap& attrs) override {
+    char* add_node(const char* type, const char* name, const Properties& attrs) override {
         add_node_calls.push_back({type, name, attrs});
         string handle = string("node_") + type + "_" + name;
         return strdup(handle.c_str());
@@ -96,7 +98,7 @@ class MockAtomDB : public AtomDB {
     char* add_link(const char* type,
                    char** targets,
                    size_t targets_size,
-                   const CustomAttributesMap& attrs) override {
+                   const Properties& attrs) override {
         vector<string> target_handles;
         for (size_t i = 0; i < targets_size; i++) {
             target_handles.push_back(targets[i]);
