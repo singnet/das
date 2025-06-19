@@ -14,6 +14,9 @@ string BaseQueryProxy::ABORT = "abort";
 string BaseQueryProxy::ANSWER_BUNDLE = "answer_bundle";
 string BaseQueryProxy::FINISHED = "finished";
 
+string BaseQueryProxy::UNIQUE_ASSIGNMENT_FLAG = "unique_assignment_flag";
+string BaseQueryProxy::ATTENTION_UPDATE_FLAG = "attention_update_flag";
+
 BaseQueryProxy::BaseQueryProxy() {
     // constructor typically used in processor
     lock_guard<mutex> semaphore(this->api_mutex);
@@ -25,13 +28,13 @@ BaseQueryProxy::BaseQueryProxy(const vector<string>& tokens, const string& conte
     lock_guard<mutex> semaphore(this->api_mutex);
     init();
     this->context = context;
-    this->args.insert(this->args.end(), tokens.begin(), tokens.end());
+    this->query_tokens.insert(this->query_tokens.end(), tokens.begin(), tokens.end());
 }
 
 void BaseQueryProxy::init() {
-    this->answer_count = 0;
-    this->unique_assignment_flag = false;
-    this->attention_update_flag = false;
+    this->answer_count = 0L;
+    this->parameters[UNIQUE_ASSIGNMENT_FLAG] = false;
+    this->parameters[ATTENTION_UPDATE_FLAG] = false;
 }
 
 BaseQueryProxy::~BaseQueryProxy() {}
@@ -58,17 +61,29 @@ void BaseQueryProxy::set_count(unsigned int count) {
     this->answer_count = count;
 }
 
+void BaseQueryProxy::tokenize(vector<string>& output) {
+    output.insert(output.begin(), this->query_tokens.begin(), this->query_tokens.end());
+    output.insert(output.begin(), std::to_string(this->get_query_tokens().size()));
+    output.insert(output.begin(), this->get_context());
+    BaseProxy::tokenize(output);
+}
+
 // -------------------------------------------------------------------------------------------------
 // Server-side API
+
+void BaseQueryProxy::untokenize(vector<string>& tokens) {
+    BaseQuery::untokenize(tokens);
+    this->context = tokens[0];
+    unsigned int num_query_tokens = std::stoi(tokens[1]);
+    this->query_tokens.insert(this->query_tokens.begin(), 
+                              tokens.begin() + 2;
+                              tokens.begin() + 2 + num_query_tokens);
+    tokens.erase(tokens.begin(), tokens.begin() + 2 + num_query_tokens);
+}
 
 const string& BaseQueryProxy::get_context() {
     lock_guard<mutex> semaphore(this->api_mutex);
     return this->context;
-}
-
-void BaseQueryProxy::set_context(const string& context) {
-    lock_guard<mutex> semaphore(this->api_mutex);
-    this->context = context;
 }
 
 const vector<string>& BaseQueryProxy::get_query_tokens() {
@@ -79,33 +94,9 @@ const vector<string>& BaseQueryProxy::get_query_tokens() {
 string BaseQueryProxy::to_string() {
     string answer = "{";
     answer += "context: " + this->get_context();
-    answer += " unique_assignment: " + string(this->get_unique_assignment_flag() ? "true" : "false");
-    answer += " attention_update_flag: " + string(attention_update_flag ? "true" : "false");
+    answer += " " + BaseProxy::to_string();
     answer += "}";
     return answer;
-}
-
-// -------------------------------------------------------------------------------------------------
-// Query parameters getters and setters
-
-bool BaseQueryProxy::get_unique_assignment_flag() {
-    lock_guard<mutex> semaphore(this->api_mutex);
-    return this->unique_assignment_flag;
-}
-
-void BaseQueryProxy::set_unique_assignment_flag(bool flag) {
-    lock_guard<mutex> semaphore(this->api_mutex);
-    this->unique_assignment_flag = flag;
-}
-
-bool BaseQueryProxy::get_attention_update_flag() {
-    lock_guard<mutex> semaphore(this->api_mutex);
-    return this->attention_update_flag;
-}
-
-void BaseQueryProxy::set_attention_update_flag(bool flag) {
-    lock_guard<mutex> semaphore(this->api_mutex);
-    this->attention_update_flag = flag;
 }
 
 // ---------------------------------------------------------------------------------------------

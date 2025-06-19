@@ -38,6 +38,13 @@ class BaseQueryProxy : public BaseProxy {
     static string ABORT;          // Abort current query
     static string FINISHED;       // Notification that all query results have alkready been delivered
 
+    // Query command's optional parameters
+    static string UNIQUE_ASSIGNMENT_FLAG; // When true, query operators (e.g. And, Or) don't output
+                                          // more than one QueryAnswer with the same variable
+                                          // assignment.
+    static string ATTENTION_UPDATE_FLAG;  // When true, queries issued to the pattern matcher will
+                                          // trigger attention update automatically.
+
     /**
      * Destructor.
      */
@@ -70,8 +77,23 @@ class BaseQueryProxy : public BaseProxy {
      */
     void set_count(unsigned int count);
 
+    /**
+     * Write a tokenized representation of this proxy in the passed `output` vector.
+     *
+     * @param output Vector where the tokens will be put.
+     */
+    virtual void tokenize(vector<string>& output);
+
     // ---------------------------------------------------------------------------------------------
     // Server-side API
+
+    /**
+     * Extrtact the tokens from the begining of the passed tokens vector (AND ERASE THEM) in order
+     * to build this proxy.
+     *
+     * @param tokens Tokens vector (CHANGED BY SIDE-EFFECT)
+     */
+    virtual void untokenize(vector<string>& tokens);
 
     /**
      * Push an answer to the proxy. This answer will end in the peer proxy but it may not happen
@@ -89,13 +111,6 @@ class BaseQueryProxy : public BaseProxy {
     const string& get_context();
 
     /**
-     * Setter for context
-     *
-     * @param context Context
-     */
-    void set_context(const string& context);
-
-    /**
      * Getter for query_tokens
      *
      * @return query_tokens
@@ -108,47 +123,6 @@ class BaseQueryProxy : public BaseProxy {
      * @return a string representation with all command parameter values.
      */
     virtual string to_string();
-
-    // ---------------------------------------------------------------------------------------------
-    // Query parameters getters and setters
-
-    /**
-     * Getter for unique_assignment_flag
-     *
-     * unique_assignment_flag prevents duplicated variable assignment in Operators' output
-     *
-     * @return unique_assignment_flag
-     */
-    bool get_unique_assignment_flag();
-
-    /**
-     * Setter for unique_assignment_flag
-     *
-     * unique_assignment_flag prevents duplicated variable assignment in Operators' output
-     *
-     * @param flag Flag
-     */
-    void set_unique_assignment_flag(bool flag);
-
-    /**
-     * Getter for attention_update_flag
-     *
-     * attention_update_flag Atutomatically trigger attention allocation update on pattern matcher
-     * queries.
-     *
-     * @return attention_update_flag
-     */
-    bool get_attention_update_flag();
-
-    /**
-     * Setter for attention_update_flag
-     *
-     * attention_update_flag Atutomatically trigger attention allocation update on pattern matcher
-     * queries.
-     *
-     * @param flag Flag
-     */
-    void set_attention_update_flag(bool flag);
 
     // ---------------------------------------------------------------------------------------------
     // Virtual superclass API and the piggyback methods called by it
@@ -184,7 +158,6 @@ class BaseQueryProxy : public BaseProxy {
      */
     void query_answers_finished(const vector<string>& args);
 
-    vector<string> query_tokens;
     bool error_flag;
     unsigned int error_code;
     string error_message;
@@ -195,20 +168,7 @@ class BaseQueryProxy : public BaseProxy {
     SharedQueue answer_queue;
     unsigned int answer_count;
     string context;
-
-    // ---------------------------------------------------------------------------------------------
-    // Query parameters
-
-    /**
-     * When true, query operators (e.g. And, Or) don't output more than one
-     * QueryAnswer with the same variable assignment.
-     * */
-    bool unique_assignment_flag;
-
-    /**
-     * When true, queries issued to the pattern matcher will trigger attention update automatically.
-     * */
-    bool attention_update_flag;
+    vector<string> query_tokens;
 };
 
 }  // namespace agents

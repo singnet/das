@@ -12,28 +12,26 @@ using namespace query_engine;
 
 string PatternMatchingQueryProxy::COUNT = "count";
 
+string PatternMatchingQueryProxy::POSITIVE_IMPORTANCE_FLAG = "positive_importance_flag";
+string PatternMatchingQueryProxy::COUNT_FLAG = "count_flag";
+
 PatternMatchingQueryProxy::PatternMatchingQueryProxy() {
     // constructor typically used in processor
     lock_guard<mutex> semaphore(this->api_mutex);
-    init();
+    set_default_parameters();
 }
 
 PatternMatchingQueryProxy::PatternMatchingQueryProxy(const vector<string>& tokens, const string& context)
     : BaseQueryProxy(tokens, context) {
     // constructor typically used in requestor
     lock_guard<mutex> semaphore(this->api_mutex);
-    init();
+    set_default_parameters();
     this->command = ServiceBus::PATTERN_MATCHING_QUERY;
 }
 
-void PatternMatchingQueryProxy::set_default_query_parameters() {
-    this->positive_importance_flag = false;
-    this->count_flag = false;
-}
-
-void PatternMatchingQueryProxy::init() {
-    this->error_flag = false;
-    set_default_query_parameters();
+void PatternMatchingQueryProxy::set_default_parameters() {
+    this->parameters["POSITIVE_IMPORTANCE_FLAG"] = false;
+    this->parameters["COUNT_FLAG"] = false;
 }
 
 PatternMatchingQueryProxy::~PatternMatchingQueryProxy() {}
@@ -54,46 +52,16 @@ shared_ptr<QueryAnswer> PatternMatchingQueryProxy::pop() {
 // -------------------------------------------------------------------------------------------------
 // Server-side API
 
-void PatternMatchingQueryProxy::pack_custom_args() {
+void PatternMatchingQueryProxy::pack_command_line_args() {
+    tokenize(this->args);
+    /*
     vector<string> custom_args = {this->get_context(),
                                   std::to_string(this->get_unique_assignment_flag()),
                                   std::to_string(this->positive_importance_flag),
                                   std::to_string(this->get_attention_update_flag()),
                                   std::to_string(this->count_flag)};
     this->args.insert(this->args.begin(), custom_args.begin(), custom_args.end());
-}
-
-string PatternMatchingQueryProxy::to_string() {
-    string answer = "{";
-    answer += BaseQueryProxy::to_string();
-    answer += " count_flag: " + string(this->get_count_flag() ? "true" : "false");
-    answer +=
-        " positive_importance_flag: " + string(this->get_positive_importance_flag() ? "true" : "false");
-    answer += "}";
-    return answer;
-}
-
-// -------------------------------------------------------------------------------------------------
-// Query parameters getters and setters
-
-bool PatternMatchingQueryProxy::get_count_flag() {
-    lock_guard<mutex> semaphore(this->api_mutex);
-    return this->count_flag;
-}
-
-void PatternMatchingQueryProxy::set_count_flag(bool flag) {
-    lock_guard<mutex> semaphore(this->api_mutex);
-    this->count_flag = flag;
-}
-
-bool PatternMatchingQueryProxy::get_positive_importance_flag() {
-    lock_guard<mutex> semaphore(this->api_mutex);
-    return this->positive_importance_flag;
-}
-
-void PatternMatchingQueryProxy::set_positive_importance_flag(bool flag) {
-    lock_guard<mutex> semaphore(this->api_mutex);
-    this->positive_importance_flag = flag;
+    */
 }
 
 // ---------------------------------------------------------------------------------------------

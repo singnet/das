@@ -132,7 +132,7 @@ void PatternMatchingQueryProcessor::process_query_answers(
         if (!proxy->get_count_flag()) {
             answer_bundle.push_back(answer->tokenize());
         }
-        if (proxy->get_attention_update_flag()) {
+        if (proxy->parameters[ATTENTION_UPDATE_FLAG]) {
             update_attention_broker_single_answer(proxy, answer, joint_answer);
         }
         if (answer_bundle.size() >= MAX_BUNDLE_SIZE) {
@@ -161,7 +161,7 @@ void PatternMatchingQueryProcessor::thread_process_one_query(
         proxy->set_count_flag(proxy->args[skip_arg++] == "1");
         proxy->query_tokens.insert(
             proxy->query_tokens.begin(), proxy->args.begin() + skip_arg, proxy->args.end());
-        LOG_DEBUG("attention_update_flag: " << proxy->get_attention_update_flag());
+        LOG_DEBUG("attention_update_flag: " << proxy->parameters[ATTENTION_UPDATE_FLAG]);
         LOG_DEBUG("Setting up query tree");
         auto query_element_registry = make_unique<QueryElementRegistry>();
         shared_ptr<QueryElement> root_query_element =
@@ -190,7 +190,7 @@ void PatternMatchingQueryProcessor::thread_process_one_query(
                 }
                 Utils::sleep(500);
                 proxy->to_remote_peer(PatternMatchingQueryProxy::FINISHED, {});
-                if (proxy->get_attention_update_flag()) {
+                if (proxy->parameters[ATTENTION_UPDATE_FLAG]) {
                     LOG_DEBUG("Updating AttentionBroker (stimulate)");
                     update_attention_broker_joint_answer(proxy, joint_answer);
                 }
@@ -257,12 +257,12 @@ shared_ptr<QueryElement> PatternMatchingQueryProcessor::setup_query_tree(
             element_stack.push(build_link_template2(proxy, cursor, element_stack));
         } else if (proxy->query_tokens[cursor] == "AND") {
             element_stack.push(build_and(proxy, cursor, element_stack));
-            if (proxy->get_unique_assignment_flag()) {
+            if (proxy->parameters[UNIQUE_ASSIGNMENT_FLAG]) {
                 element_stack.push(build_unique_assignment_filter(proxy, cursor, element_stack));
             }
         } else if (proxy->query_tokens[cursor] == "OR") {
             element_stack.push(build_or(proxy, cursor, element_stack));
-            if (proxy->get_unique_assignment_flag()) {
+            if (proxy->parameters[UNIQUE_ASSIGNMENT_FLAG]) {
                 element_stack.push(build_unique_assignment_filter(proxy, cursor, element_stack));
             }
         } else {

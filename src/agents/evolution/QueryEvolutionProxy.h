@@ -43,6 +43,8 @@ class QueryEvolutionProxy : public BaseQueryProxy {
                         const string& fitness_function,
                         const string& context);
 
+    AQUI migrar para o design novo das properties
+
     /**
      * Destructor.
      */

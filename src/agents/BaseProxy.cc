@@ -17,6 +17,7 @@ BaseProxy::BaseProxy() {
     lock_guard<mutex> semaphore(this->api_mutex);
     this->command_finished_flag = false;
     this->abort_flag = false;
+    this->error_flag = false;
 }
 
 BaseProxy::~BaseProxy() {}
@@ -38,12 +39,37 @@ void BaseProxy::abort() {
     this->abort_flag = true;
 }
 
+void BaseProxy::tokenize(vector<string>& output) {
+    vector<string> parameters_tokens = this->parameters.tokenize();
+    parameters_tokens.insert(parameters_tokens.begin, std::to_string(parameters_tokens.size()));
+    output.insert(output.begin(), parameters_tokens.begin(), parameters_tokens.end());
+}
+
 // -------------------------------------------------------------------------------------------------
 // Server-side API
+
+void BaseProxy::untokenize(vector<string>& tokens) {
+    unsigned int num_property_tokens = std::stoi(tokens[0]);
+    if (num_property_tokens > 0) {
+        vector<string> properties_tokens;
+        properties_tokens.insert(properties_tokens.begin(), 
+                                 tokens.begin() + 1, 
+                                 tokens.begin() + 1 + num_property_tokens);
+        this->properties.untokenize(properties_tokens);
+        tokens.erase(tokens.begin(), tokens.begin() + 1 + num_property_tokens);
+    }
+}
 
 bool BaseProxy::is_aborting() {
     lock_guard<mutex> semaphore(this->api_mutex);
     return this->abort_flag;
+}
+
+string BaseProxy::to_string() {
+    string answer = "{";
+    answer += "parameters: " + this->parameters.to_string();
+    answer += "}";
+    return answer;
 }
 
 // ---------------------------------------------------------------------------------------------
