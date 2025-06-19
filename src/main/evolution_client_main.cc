@@ -4,6 +4,7 @@
 #include <string>
 
 #include "AtomDBSingleton.h"
+#include "FitnessFunctionRegistry.h"
 #include "QueryAnswer.h"
 #include "QueryEvolutionProxy.h"
 #include "ServiceBusSingleton.h"
@@ -22,30 +23,30 @@ void ctrl_c_handler(int) {
 }
 
 int main(int argc, char* argv[]) {
-    if (argc < 3) {
-        cerr << "Usage: " << argv[0]
-             << " CLIENT_HOST:CLIENT_PORT SERVER_HOST:SERVER_PORT QUERY_TOKEN+ "
-                "(hosts are supposed to be public IPs or known hostnames)"
-             << endl;
+    if (argc < 4) {
+        cerr << "Usage: " << argv[0] << " <port> BUS_IP:PORT TOKENS+" << endl;
         exit(1);
     }
 
+    string server_id = "0.0.0.0:" + string(argv[1]);
+
     AtomDBSingleton::init();
-
-    string client_id = string(argv[1]);
-    string server_id = string(argv[2]);
-
-    ServiceBusSingleton::init(client_id, server_id, 54000, 54500);
+    ServiceBusSingleton::init(server_id, argv[2]);
+    FitnessFunctionRegistry::initialize_statics();
 
     signal(SIGINT, &ctrl_c_handler);
     signal(SIGTERM, &ctrl_c_handler);
+
     vector<string> query;
     for (int i = 3; i < argc; i++) {
         query.push_back(argv[i]);
     }
 
     auto proxy = make_shared<QueryEvolutionProxy>(query, "unit_test", "evolution_client");
+    auto bus = ServiceBusSingleton::get_instance();
     shared_ptr<QueryAnswer> query_answer;
+    bus->issue_bus_command(proxy);
+
     int count = 1;
     while (!proxy->finished()) {
         if ((query_answer = proxy->pop()) == NULL) {

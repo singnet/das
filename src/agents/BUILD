@@ -9,8 +9,7 @@ cc_library(
     includes = ["."],
     deps = [
         ":base_proxy",
-        "//agents/evolution:evolution_lib",
-        "//agents/query_engine:query_engine_lib",
+        ":base_query_proxy",
     ],
 )
 
@@ -20,6 +19,19 @@ cc_library(
     hdrs = ["BaseProxy.h"],
     includes = ["."],
     deps = [
+        "//commons:commons_lib",
+        "//service_bus:service_bus_lib",
+    ],
+)
+
+cc_library(
+    name = "base_query_proxy",
+    srcs = ["BaseQueryProxy.cc"],
+    hdrs = ["BaseQueryProxy.h"],
+    includes = ["."],
+    deps = [
+        ":base_proxy",
+        "//agents/query_engine:query_answer",
         "//commons:commons_lib",
         "//service_bus:service_bus_lib",
     ],

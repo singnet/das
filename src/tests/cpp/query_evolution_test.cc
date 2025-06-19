@@ -38,7 +38,7 @@ TEST(QueryEvolution, protected_methods) {
 
     string peer1_id = "localhost:33801";
     string peer2_id = "localhost:33802";
-    ServiceBusSingleton::init(peer1_id, "", 54501, 55000);
+    ServiceBusSingleton::init(peer1_id, "", 64000, 64999);
     FitnessFunctionRegistry::initialize_statics();
     shared_ptr<ServiceBus> query_bus = ServiceBusSingleton::get_instance();
     query_bus->register_processor(make_shared<PatternMatchingQueryProcessor>());

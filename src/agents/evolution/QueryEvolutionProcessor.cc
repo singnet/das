@@ -7,6 +7,7 @@
 #include "Logger.h"
 
 using namespace evolution;
+using namespace query_engine;
 
 // -------------------------------------------------------------------------------------------------
 // Constructors and destructors
@@ -92,6 +93,16 @@ void QueryEvolutionProcessor::sample_population(
         // TODO Uncomment this when abort() is implemented
         // pm->abort();
         LOG_ERROR("Couldn't abort pattern matching query because abort() is not implemented");
+        unsigned int count = 0;
+        while (!pm->finished()) {
+            shared_ptr<QueryAnswer> query_answer;
+            if ((query_answer = pm->pop()) == NULL) {
+                Utils::sleep();
+            } else {
+                count++;
+            }
+        }
+        LOG_ERROR("Discarding " << count << " answers");
     }
 }
 
@@ -100,6 +111,8 @@ void QueryEvolutionProcessor::evolve_query(shared_ptr<StoppableThread> monitor,
     vector<std::pair<shared_ptr<QueryAnswer>, float>> population;
     while (!monitor->stopped()) {
         sample_population(monitor, proxy, population);
+        LOG_DEBUG("New population sampled: " << population.size() << " individuals.");
+        break;
     }
 }
 

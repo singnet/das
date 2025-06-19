@@ -135,6 +135,18 @@ cc_binary(
 )
 
 cc_binary(
+    name = "word_query_evolution",
+    srcs = [],
+    defines = ["BAZEL_BUILD"],
+    linkstatic = 1,
+    deps = [
+        "//commons:commons_lib",
+        "//main:word_query_evolution_main_lib",
+        "@mbedtls",
+    ],
+)
+
+cc_binary(
     name = "link_creation_server",
     srcs = [],
     defines = ["BAZEL_BUILD"],

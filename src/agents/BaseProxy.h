@@ -30,7 +30,7 @@ class BaseProxy : public BusCommandProxy {
      *
      * @return true iff all QueryAnswer objects have been delivered AND iterated.
      */
-    bool finished();
+    virtual bool finished();
 
     /**
      * Abort a query.
