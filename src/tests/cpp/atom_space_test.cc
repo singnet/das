@@ -3,7 +3,6 @@
 #include <algorithm>
 #include <cstdlib>
 
-#include "AtomDBAPITypes.h"
 #include "AtomDBSingleton.h"
 #include "AtomSpace.h"
 #include "AtomSpaceTypes.h"
@@ -12,8 +11,6 @@
 
 using namespace std;
 using namespace atomspace;
-using namespace atomdb;
-using namespace atomdb_api_types;
 using namespace commons;
 
 // Mock AtomDocument for testing
@@ -89,21 +86,21 @@ class MockAtomDB : public AtomDB {
     bool link_exists(const char*) override { return false; }
     vector<string> links_exist(const vector<string>&) override { return {}; }
 
-    char* add_node(const char* type, const char* name, const Properties& attrs) override {
-        add_node_calls.push_back({type, name, attrs});
-        string handle = string("node_") + type + "_" + name;
+    char* add_node(const atomspace::Node* node) override {
+        add_node_calls.push_back({node->type, node->name, node->custom_attributes});
+        string handle = string("node_") + node->type + "_" + node->name;
         return strdup(handle.c_str());
     }
 
-    char* add_link(const char* type,
-                   char** targets,
-                   size_t targets_size,
-                   const Properties& attrs) override {
+    char* add_link(const atomspace::Link* link) override {
+        size_t targets_size = link->targets.size();
+        unique_ptr<char*[], TargetHandlesDeleter> targets(
+            atomspace::Link::targets_to_handles(link->targets), TargetHandlesDeleter(targets_size));
         vector<string> target_handles;
         for (size_t i = 0; i < targets_size; i++) {
             target_handles.push_back(targets[i]);
         }
-        add_link_calls.push_back({type, target_handles, attrs});
+        add_link_calls.push_back({link->type, target_handles, link->custom_attributes});
         return strdup("link_handle");
     }
 

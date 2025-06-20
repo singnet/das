@@ -537,7 +537,6 @@ cc_test(
         "//agents/query_engine:query_engine_lib",
         "//atom_space:atom_space_lib",
         "//atom_space:atom_space_types",
-        "//atomdb:atomdb_api_types",
         "//commons:commons_lib",
         "//service_bus:service_bus_lib",
         "@com_github_google_googletest//:gtest_main",
@@ -546,7 +545,7 @@ cc_test(
 
 cc_test(
     name = "redis_mongodb_test",
-    size = "medium",
+    size = "small",
     srcs = [
         "redis_mongodb_test.cc",
         "test_utils.cc",

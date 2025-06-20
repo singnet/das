@@ -1,10 +1,10 @@
 #pragma once
 
+#include <cstring>
 #include <stdexcept>
 #include <string>
 #include <vector>
 
-#include "AtomDBAPITypes.h"
 #include "HandleTrie.h"
 #include "Properties.h"
 #include "expression_hasher.h"
@@ -14,7 +14,6 @@
 
 using namespace std;
 using namespace commons;
-using namespace atomdb::atomdb_api_types;
 
 namespace atomspace {
 
