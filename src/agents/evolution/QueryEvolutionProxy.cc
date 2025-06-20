@@ -11,6 +11,8 @@ using namespace evolution;
 // -------------------------------------------------------------------------------------------------
 // Constructors, destructors and initialization
 
+string QueryEvolutionProxy::POPULATION_SIZE = "population_size";
+
 QueryEvolutionProxy::QueryEvolutionProxy() {
     // constructor typically used in processor
     lock_guard<mutex> semaphore(this->api_mutex);
@@ -22,32 +24,20 @@ QueryEvolutionProxy::QueryEvolutionProxy(const vector<string>& tokens,
                                          const string& context)
     : BaseQueryProxy(tokens, context) {
     // constructor typically used in requestor
-    lock_guard<mutex> semaphore(this->api_mutex);
     set_default_query_parameters();
-    this->fitness_function_tag = fitness_function;
+    set_fitness_function_tag(fitness_function);
     this->command = ServiceBus::QUERY_EVOLUTION;
 }
 
 void QueryEvolutionProxy::set_default_query_parameters() {
-    this->fitness_function_tag = "";
-    this->population_size = 1000;
-}
-
-void QueryEvolutionProxy::pack_custom_args() {
-    vector<string> custom_args = {
-        this->get_context(),
-        std::to_string(this->get_unique_assignment_flag()),
-        this->fitness_function_tag,
-        std::to_string(this->population_size),
-    };
-    this->args.insert(this->args.begin(), custom_args.begin(), custom_args.end());
+    this->parameters[POPULATION_SIZE] = 1000;
 }
 
 string QueryEvolutionProxy::to_string() {
+    lock_guard<mutex> semaphore(this->api_mutex);
     string answer = "{";
     answer += BaseQueryProxy::to_string();
-    answer += " fitness_function: " + this->get_fitness_function_tag();
-    answer += " population_size: " + std::to_string(this->get_population_size());
+    answer += " fitness_function: " + this->fitness_function_tag;
     answer += "}";
     return answer;
 }
@@ -55,7 +45,26 @@ string QueryEvolutionProxy::to_string() {
 QueryEvolutionProxy::~QueryEvolutionProxy() {}
 
 // -------------------------------------------------------------------------------------------------
+// Client-side API
+
+void QueryEvolutionProxy::pack_command_line_args() {
+    tokenize(this->args);
+}
+
+void QueryEvolutionProxy::tokenize(vector<string>& output) {
+    lock_guard<mutex> semaphore(this->api_mutex);
+    output.insert(output.begin(), this->fitness_function_tag);
+    BaseQueryProxy::tokenize(output);
+}
+
+// -------------------------------------------------------------------------------------------------
 // Server-side API
+
+void QueryEvolutionProxy::untokenize(vector<string>& tokens) {
+    BaseQueryProxy::untokenize(tokens);
+    set_fitness_function_tag(tokens[0]);
+    tokens.erase(tokens.begin(), tokens.begin() + 1);
+}
 
 float QueryEvolutionProxy::compute_fitness(shared_ptr<QueryAnswer> answer) {
     if (this->fitness_function_tag == "") {
@@ -64,14 +73,6 @@ float QueryEvolutionProxy::compute_fitness(shared_ptr<QueryAnswer> answer) {
     } else {
         return this->fitness_function_object->eval(answer);
     }
-}
-
-// -------------------------------------------------------------------------------------------------
-// Query parameters getters and setters
-
-const string& QueryEvolutionProxy::get_fitness_function_tag() {
-    lock_guard<mutex> semaphore(this->api_mutex);
-    return this->fitness_function_tag;
 }
 
 void QueryEvolutionProxy::set_fitness_function_tag(const string& tag) {
@@ -85,16 +86,6 @@ void QueryEvolutionProxy::set_fitness_function_tag(const string& tag) {
         this->fitness_function_tag = tag;
         this->fitness_function_object = FitnessFunctionRegistry::function(tag);
     }
-}
-
-unsigned int QueryEvolutionProxy::get_population_size() {
-    lock_guard<mutex> semaphore(this->api_mutex);
-    return this->population_size;
-}
-
-void QueryEvolutionProxy::set_population_size(unsigned int population_size) {
-    lock_guard<mutex> semaphore(this->api_mutex);
-    this->population_size = population_size;
 }
 
 // ---------------------------------------------------------------------------------------------

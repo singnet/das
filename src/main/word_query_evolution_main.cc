@@ -7,6 +7,7 @@
 #include "QueryAnswer.h"
 #include "QueryEvolutionProxy.h"
 #include "ServiceBusSingleton.h"
+#include "FitnessFunctionRegistry.h"
 #include "Utils.h"
 
 #define MAX_QUERY_ANSWERS ((unsigned int) 100000)
@@ -85,6 +86,7 @@ void run(const string& context, const string& word_tag1, const string& word_tag2
     AtomDBSingleton::init();
     shared_ptr<AtomDB> db = AtomDBSingleton::get_instance();
     ServiceBusSingleton::init(client_id, server_id, 63000, 63999);
+    FitnessFunctionRegistry::initialize_statics();
 
     shared_ptr<ServiceBus> service_bus = ServiceBusSingleton::get_instance();
 
@@ -124,7 +126,7 @@ void run(const string& context, const string& word_tag1, const string& word_tag2
 
     shared_ptr<QueryEvolutionProxy> proxy =
         make_shared<QueryEvolutionProxy>(or_two_words, "unit_test", context);
-    proxy->set_population_size(100);
+    proxy->parameters[QueryEvolutionProxy::POPULATION_SIZE] = (unsigned int) 100;
     service_bus->issue_bus_command(proxy);
 
     shared_ptr<QueryAnswer> query_answer;

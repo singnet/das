@@ -41,7 +41,7 @@ void BaseProxy::abort() {
 
 void BaseProxy::tokenize(vector<string>& output) {
     vector<string> parameters_tokens = this->parameters.tokenize();
-    parameters_tokens.insert(parameters_tokens.begin, std::to_string(parameters_tokens.size()));
+    parameters_tokens.insert(parameters_tokens.begin(), std::to_string(parameters_tokens.size()));
     output.insert(output.begin(), parameters_tokens.begin(), parameters_tokens.end());
 }
 
@@ -55,7 +55,7 @@ void BaseProxy::untokenize(vector<string>& tokens) {
         properties_tokens.insert(properties_tokens.begin(), 
                                  tokens.begin() + 1, 
                                  tokens.begin() + 1 + num_property_tokens);
-        this->properties.untokenize(properties_tokens);
+        this->parameters.untokenize(properties_tokens);
         tokens.erase(tokens.begin(), tokens.begin() + 1 + num_property_tokens);
     }
 }

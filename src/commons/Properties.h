@@ -175,9 +175,9 @@ class Properties : public unordered_map<string, PropertyValue> {
                 if (type == "string") {
                     (*this)[key] = value;
                 } else if (type == "long") {
-                    (*this)[key] = stoi(value);
+                    (*this)[key] = (long) stoi(value);
                 } else if (type == "unsigned_int") {
-                    (*this)[key] = stoi(value);
+                    (*this)[key] = (unsigned int) stoi(value);
                 } else if (type == "double") {
                     (*this)[key] = stod(value);
                 } else if (type == "bool") {

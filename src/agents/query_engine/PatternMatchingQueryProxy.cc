@@ -30,8 +30,8 @@ PatternMatchingQueryProxy::PatternMatchingQueryProxy(const vector<string>& token
 }
 
 void PatternMatchingQueryProxy::set_default_parameters() {
-    this->parameters["POSITIVE_IMPORTANCE_FLAG"] = false;
-    this->parameters["COUNT_FLAG"] = false;
+    this->parameters[POSITIVE_IMPORTANCE_FLAG] = false;
+    this->parameters[COUNT_FLAG] = false;
 }
 
 PatternMatchingQueryProxy::~PatternMatchingQueryProxy() {}
@@ -41,7 +41,7 @@ PatternMatchingQueryProxy::~PatternMatchingQueryProxy() {}
 
 shared_ptr<QueryAnswer> PatternMatchingQueryProxy::pop() {
     lock_guard<mutex> semaphore(this->api_mutex);
-    if (this->count_flag) {
+    if (this->parameters.get<bool>(COUNT_FLAG)) {
         Utils::error("Can't pop QueryAnswers from count_only queries.");
         return shared_ptr<QueryAnswer>(NULL);
     } else {
@@ -54,14 +54,6 @@ shared_ptr<QueryAnswer> PatternMatchingQueryProxy::pop() {
 
 void PatternMatchingQueryProxy::pack_command_line_args() {
     tokenize(this->args);
-    /*
-    vector<string> custom_args = {this->get_context(),
-                                  std::to_string(this->get_unique_assignment_flag()),
-                                  std::to_string(this->positive_importance_flag),
-                                  std::to_string(this->get_attention_update_flag()),
-                                  std::to_string(this->count_flag)};
-    this->args.insert(this->args.begin(), custom_args.begin(), custom_args.end());
-    */
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -90,7 +82,7 @@ void PatternMatchingQueryProxy::count_answer(const vector<string>& args) {
         if (args.size() != 1) {
             Utils::error("Invalid args for count command");
         }
-        if (!this->count_flag) {
+        if (!this->parameters.get<bool>(COUNT_FLAG)) {
             Utils::error("Invalid count command. Query is not count_only.");
         } else {
             this->set_count(stoi(args[0]));

@@ -57,24 +57,31 @@ TEST(PropertiesTest, ToStringRepresentation) {
     Properties map;
     map["foo"] = string("bar");
     map["num"] = 42L;
-    map["uint"] = 1;
+    map["uint"] = (unsigned int) 1;
     map["pi"] = 3.14;
     map["flag"] = false;
     string str = map.to_string();
-    // Order is guaranteed: flag, foo, num, pi
+    // Order is guaranteed: flag, foo, num, pi, uint
     EXPECT_EQ(str, "{flag: false, foo: 'bar', num: 42, pi: 3.140000, uint: 1}");
 }
 
 TEST(PropertiesTest, Tokenization) {
-    Properties map;
-    map["foo"] = string("bar");
-    map["num"] = 42L;
-    map["uint"] = 1;
-    map["pi"] = 3.14;
-    map["flag"] = false;
-    vector<string> v = map.tokenize();
-    // Order is guaranteed: flag, foo, num, pi
-    EXPECT_EQ(v.size(), 12);
+    Properties map1;
+    map1["foo"] = string("bar");
+    map1["num"] = 42L;
+    map1["uint"] = (unsigned int) 1;
+    map1["pi"] = 3.14;
+    map1["flag"] = false;
+    vector<string> v = map1.tokenize();
+
+    EXPECT_EQ(map1.get<string>("foo"), string("bar"));
+    EXPECT_EQ(map1.get<long>("num"), 42L);
+    EXPECT_EQ(map1.get<unsigned int>("uint"), (unsigned int) 1);
+    EXPECT_EQ(map1.get<double>("pi"), 3.14);
+    EXPECT_EQ(map1.get<bool>("flag"), false);
+
+    // Order is guaranteed: flag, foo, num, pi, uint
+    EXPECT_EQ(v.size(), 15);
     unsigned int cursor = 0;
     EXPECT_EQ(v[cursor++], "flag");
     EXPECT_EQ(v[cursor++], "bool");
@@ -91,11 +98,13 @@ TEST(PropertiesTest, Tokenization) {
     EXPECT_EQ(v[cursor++], "uint");
     EXPECT_EQ(v[cursor++], "unsigned_int");
     EXPECT_EQ(v[cursor++], "1");
+
     Properties map2;
     map2.untokenize(v);
+
     EXPECT_EQ(map2.get<string>("foo"), string("bar"));
     EXPECT_EQ(map2.get<long>("num"), 42L);
     EXPECT_EQ(map2.get<double>("pi"), 3.14);
     EXPECT_EQ(map2.get<bool>("flag"), false);
-    EXPECT_EQ(map2.get<unsigned int>("uint"), 1);
+    EXPECT_EQ(map2.get<unsigned int>("uint"), (unsigned int) 1);
 }

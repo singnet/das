@@ -17,7 +17,7 @@ class TestProxy : public BusCommandProxy {
         this->remote_args = args;
         return true;
     }
-    void pack_custom_args() {}
+    void pack_command_line_args() {}
 };
 
 class TestProcessor : public BusCommandProcessor {

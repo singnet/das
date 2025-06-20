@@ -72,11 +72,12 @@ void BaseQueryProxy::tokenize(vector<string>& output) {
 // Server-side API
 
 void BaseQueryProxy::untokenize(vector<string>& tokens) {
-    BaseQuery::untokenize(tokens);
+    BaseProxy::untokenize(tokens);
     this->context = tokens[0];
     unsigned int num_query_tokens = std::stoi(tokens[1]);
+
     this->query_tokens.insert(this->query_tokens.begin(), 
-                              tokens.begin() + 2;
+                              tokens.begin() + 2,
                               tokens.begin() + 2 + num_query_tokens);
     tokens.erase(tokens.begin(), tokens.begin() + 2 + num_query_tokens);
 }
@@ -101,20 +102,6 @@ string BaseQueryProxy::to_string() {
 
 // ---------------------------------------------------------------------------------------------
 // Virtual superclass API and the piggyback methods called by it
-
-void BaseQueryProxy::raise_error(const string& error_message, unsigned int error_code) {
-    string error = "Exception thrown in command processor.";
-    if (error_code > 0) {
-        error += " Error code: " + std::to_string(error_code);
-    }
-    error += "\n";
-    error += error_message;
-    this->error_flag = true;
-    this->error_code = error_code;
-    this->error_message = error;
-    LOG_ERROR(error);
-    command_finished({});
-}
 
 bool BaseQueryProxy::from_remote_peer(const string& command, const vector<string>& args) {
     LOG_DEBUG("Proxy command: <" << command << "> from " << this->peer_id() << " received in "
