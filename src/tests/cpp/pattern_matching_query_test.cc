@@ -50,15 +50,17 @@ void check_query(const vector<string>& query,
                  bool positive_importance,
                  bool error_flag) {
     shared_ptr<PatternMatchingQueryProxy> proxy1(new PatternMatchingQueryProxy(query, context));
-    proxy1->set_unique_assignment_flag(unique_assignment);
-    proxy1->set_attention_update_flag(update_attention_broker);
-    proxy1->set_positive_importance_flag(positive_importance);
+    proxy1->parameters[BaseQueryProxy::UNIQUE_ASSIGNMENT_FLAG] = unique_assignment;
+    proxy1->parameters[BaseQueryProxy::ATTENTION_UPDATE_FLAG] = update_attention_broker;
+    proxy1->parameters[PatternMatchingQueryProxy::POSITIVE_IMPORTANCE_FLAG] = positive_importance;
+    LOG_INFO("proxy1: " + proxy1->to_string());
 
     shared_ptr<PatternMatchingQueryProxy> proxy2(new PatternMatchingQueryProxy(query, context));
-    proxy2->set_unique_assignment_flag(unique_assignment);
-    proxy2->set_attention_update_flag(update_attention_broker);
-    proxy2->set_count_flag(true);
-    proxy2->set_positive_importance_flag(positive_importance);
+    proxy2->parameters[BaseQueryProxy::UNIQUE_ASSIGNMENT_FLAG] = unique_assignment;
+    proxy2->parameters[BaseQueryProxy::ATTENTION_UPDATE_FLAG] = update_attention_broker;
+    proxy2->parameters[PatternMatchingQueryProxy::COUNT_FLAG] = true;
+    proxy2->parameters[PatternMatchingQueryProxy::POSITIVE_IMPORTANCE_FLAG] = positive_importance;
+    LOG_INFO("proxy2: " + proxy2->to_string());
 
     client_bus->issue_bus_command(proxy1);
     unsigned int count = 0;
@@ -182,29 +184,22 @@ TEST(PatternMatchingQuery, queries) {
                 "NODE", "Symbol", "\"chimp\""
     };
     int q6_expected_count = 4;
-    // clang-format on
 
     // Regular queries
-    check_query(
-        q1, q1_expected_count, client_bus, "PatternMatchingQuery.queries", false, false, false, false);
-    check_query(
-        q2, q2_expected_count, client_bus, "PatternMatchingQuery.queries", false, false, false, false);
-    check_query(
-        q3, q3_expected_count, client_bus, "PatternMatchingQuery.queries", false, false, false, false);
-    check_query(
-        q4, q4_expected_count, client_bus, "PatternMatchingQuery.queries", false, false, false, false);
-    check_query(
-        q5, q5_expected_count, client_bus, "PatternMatchingQuery.queries", false, false, false, false);
-    check_query(
-        q6, q6_expected_count, client_bus, "PatternMatchingQuery.queries", false, true, false, false);
+    check_query(q1, q1_expected_count, client_bus, "PatternMatchingQuery.queries", false, false, false, false);
+    check_query(q2, q2_expected_count, client_bus, "PatternMatchingQuery.queries", false, false, false, false);
+    check_query(q3, q3_expected_count, client_bus, "PatternMatchingQuery.queries", false, false, false, false);
+    check_query(q4, q4_expected_count, client_bus, "PatternMatchingQuery.queries", false, false, false, false);
+    check_query(q5, q5_expected_count, client_bus, "PatternMatchingQuery.queries", false, false, false, false);
+    check_query(q6, q6_expected_count, client_bus, "PatternMatchingQuery.queries", false, true, false, false);
 
     // Importance filtering
-    check_query(
-        q2, q2_expected_count, client_bus, "PatternMatchingQuery.queries", true, false, false, false);
+    check_query(q2, q2_expected_count, client_bus, "PatternMatchingQuery.queries", true, false, false, false);
     check_query(q1, 3, client_bus, "PatternMatchingQuery.queries", false, false, true, false);
 
     // Remote exception
     check_query({"BLAH"}, 0, client_bus, "PatternMatchingQuery.queries", false, false, false, true);
 
     Utils::sleep(2000);
+    // clang-format on
 }

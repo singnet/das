@@ -28,6 +28,9 @@ class QueryEvolutionProxy : public BaseQueryProxy {
     // ---------------------------------------------------------------------------------------------
     // Constructors, destructors and static state
 
+    // Query command's optional parameters
+    static string POPULATION_SIZE;
+
     /**
      * Empty constructor typically used on server side.
      */
@@ -49,12 +52,30 @@ class QueryEvolutionProxy : public BaseQueryProxy {
     virtual ~QueryEvolutionProxy();
 
     // ---------------------------------------------------------------------------------------------
+    // Client-side API
+
+    /**
+     * Builds the args vector to be passed in the RPC
+     */
+    void pack_command_line_args();
+
+    /**
+     * Write a tokenized representation of this proxy in the passed `output` vector.
+     *
+     * @param output Vector where the tokens will be put.
+     */
+    virtual void tokenize(vector<string>& output);
+
+    // ---------------------------------------------------------------------------------------------
     // Server-side API
 
     /**
-     * Pack query arguments into args vector
+     * Extrtact the tokens from the begining of the passed tokens vector (AND ERASE THEM) in order
+     * to build this proxy.
+     *
+     * @param tokens Tokens vector (CHANGED BY SIDE-EFFECT)
      */
-    void pack_custom_args();
+    virtual void untokenize(vector<string>& tokens);
 
     /**
      * Compute the fitness value of the passed QueryAnswer.
@@ -72,45 +93,6 @@ class QueryEvolutionProxy : public BaseQueryProxy {
     virtual string to_string();
 
     // ---------------------------------------------------------------------------------------------
-    // Query parameters getters and setters
-
-    /**
-     * Getter for fitness_function_tag
-     *
-     * fitness_function_tag is the id for the fitness function to be used to evaluate query answers
-     *
-     * @return fitness_function_tag
-     */
-    const string& get_fitness_function_tag();
-
-    /**
-     * Setter for fitness_function_tag
-     *
-     * fitness_function_tag is the id for the fitness function to be used to evaluate query answers
-     *
-     * @param flag Flag
-     */
-    void set_fitness_function_tag(const string& tag);
-
-    /**
-     * Getter for population_size
-     *
-     * population_size Number of answers sampled every evolution cycle.
-     *
-     * @return population_size
-     */
-    unsigned int get_population_size();
-
-    /**
-     * Setter for population_size
-     *
-     * population_size Number of answers sampled every evolution cycle.
-     *
-     * @param population_size Population size
-     */
-    void set_population_size(unsigned int population_size);
-
-    // ---------------------------------------------------------------------------------------------
     // Virtual superclass API and the piggyback methods called by it
 
     /**
@@ -125,22 +107,11 @@ class QueryEvolutionProxy : public BaseQueryProxy {
 
    private:
     void set_default_query_parameters();
+    void set_fitness_function_tag(const string& tag);
 
     mutex api_mutex;
     shared_ptr<FitnessFunction> fitness_function_object;
-
-    // ---------------------------------------------------------------------------------------------
-    // Query parameters
-
-    /**
-     * Fitness function selector.
-     */
     string fitness_function_tag;
-
-    /**
-     * Number of answers sampled every evolution cycle.
-     */
-    unsigned int population_size;
 };
 
 }  // namespace evolution

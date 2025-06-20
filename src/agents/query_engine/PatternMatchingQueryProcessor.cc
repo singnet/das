@@ -129,10 +129,10 @@ void PatternMatchingQueryProcessor::process_query_answers(
     while ((answer = query_sink->input_buffer->pop_query_answer()) != NULL) {
         answer_count++;
         bundle_count++;
-        if (!proxy->get_count_flag()) {
+        if (!proxy->parameters.get<bool>(PatternMatchingQueryProxy::COUNT_FLAG)) {
             answer_bundle.push_back(answer->tokenize());
         }
-        if (proxy->get_attention_update_flag()) {
+        if (proxy->parameters.get<bool>(BaseQueryProxy::ATTENTION_UPDATE_FLAG)) {
             update_attention_broker_single_answer(proxy, answer, joint_answer);
         }
         if (answer_bundle.size() >= MAX_BUNDLE_SIZE) {
@@ -150,18 +150,8 @@ void PatternMatchingQueryProcessor::process_query_answers(
 void PatternMatchingQueryProcessor::thread_process_one_query(
     shared_ptr<StoppableThread> monitor, shared_ptr<PatternMatchingQueryProxy> proxy) {
     try {
-        if (proxy->args.size() < 2) {
-            Utils::error("Syntax error in query command. Missing implicit parameters.");
-        }
-        unsigned int skip_arg = 0;
-        proxy->set_context(proxy->args[skip_arg++]);
-        proxy->set_unique_assignment_flag(proxy->args[skip_arg++] == "1");
-        proxy->set_positive_importance_flag(proxy->args[skip_arg++] == "1");
-        proxy->set_attention_update_flag(proxy->args[skip_arg++] == "1");
-        proxy->set_count_flag(proxy->args[skip_arg++] == "1");
-        proxy->query_tokens.insert(
-            proxy->query_tokens.begin(), proxy->args.begin() + skip_arg, proxy->args.end());
-        LOG_DEBUG("attention_update_flag: " << proxy->get_attention_update_flag());
+        proxy->untokenize(proxy->args);
+        LOG_DEBUG("proxy: " + proxy->to_string());
         LOG_DEBUG("Setting up query tree");
         auto query_element_registry = make_unique<QueryElementRegistry>();
         shared_ptr<QueryElement> root_query_element =
@@ -183,14 +173,15 @@ void PatternMatchingQueryProcessor::thread_process_one_query(
                     process_query_answers(proxy, query_sink, joint_answer, answer_count);
                     Utils::sleep();
                 }
-                if (proxy->get_count_flag() && (!proxy->is_aborting())) {
+                if (proxy->parameters.get<bool>(PatternMatchingQueryProxy::COUNT_FLAG) &&
+                    (!proxy->is_aborting())) {
                     LOG_DEBUG("Answering count_only query");
                     proxy->to_remote_peer(PatternMatchingQueryProxy::COUNT,
                                           {std::to_string(answer_count)});
                 }
                 Utils::sleep(500);
                 proxy->to_remote_peer(PatternMatchingQueryProxy::FINISHED, {});
-                if (proxy->get_attention_update_flag()) {
+                if (proxy->parameters.get<bool>(BaseQueryProxy::ATTENTION_UPDATE_FLAG)) {
                     LOG_DEBUG("Updating AttentionBroker (stimulate)");
                     update_attention_broker_joint_answer(proxy, joint_answer);
                 }
@@ -224,12 +215,13 @@ shared_ptr<QueryElement> PatternMatchingQueryProcessor::setup_query_tree(
     stack<unsigned int> execution_stack;
     stack<shared_ptr<QueryElement>> element_stack;
     unsigned int cursor = 0;
-    unsigned int tokens_count = proxy->query_tokens.size();
+    const vector<string> query_tokens = proxy->get_query_tokens();
+    unsigned int tokens_count = query_tokens.size();
 
     while (cursor < tokens_count) {
         execution_stack.push(cursor);
-        if ((proxy->query_tokens[cursor] == "VARIABLE") || (proxy->query_tokens[cursor] == "AND") ||
-            ((proxy->query_tokens[cursor] == "OR"))) {
+        if ((query_tokens[cursor] == "VARIABLE") || (query_tokens[cursor] == "AND") ||
+            ((query_tokens[cursor] == "OR"))) {
             cursor += 2;
         } else {
             cursor += 3;
@@ -243,31 +235,29 @@ shared_ptr<QueryElement> PatternMatchingQueryProcessor::setup_query_tree(
 
     while (!execution_stack.empty()) {
         cursor = execution_stack.top();
-        if (proxy->query_tokens[cursor] == "NODE") {
-            element_stack.push(
-                make_shared<Node>(proxy->query_tokens[cursor + 1], proxy->query_tokens[cursor + 2]));
-        } else if (proxy->query_tokens[cursor] == "VARIABLE") {
-            element_stack.push(make_shared<Variable>(proxy->query_tokens[cursor + 1]));
-        } else if (proxy->query_tokens[cursor] == "LINK") {
+        if (query_tokens[cursor] == "NODE") {
+            element_stack.push(make_shared<Node>(query_tokens[cursor + 1], query_tokens[cursor + 2]));
+        } else if (query_tokens[cursor] == "VARIABLE") {
+            element_stack.push(make_shared<Variable>(query_tokens[cursor + 1]));
+        } else if (query_tokens[cursor] == "LINK") {
             element_stack.push(build_link(proxy, cursor, element_stack));
-        } else if (proxy->query_tokens[cursor] == "LINK_TEMPLATE") {
+        } else if (query_tokens[cursor] == "LINK_TEMPLATE") {
             element_stack.push(
                 build_link_template(proxy, cursor, element_stack, query_element_registry));
-        } else if (proxy->query_tokens[cursor] == "LINK_TEMPLATE2") {
+        } else if (query_tokens[cursor] == "LINK_TEMPLATE2") {
             element_stack.push(build_link_template2(proxy, cursor, element_stack));
-        } else if (proxy->query_tokens[cursor] == "AND") {
+        } else if (query_tokens[cursor] == "AND") {
             element_stack.push(build_and(proxy, cursor, element_stack));
-            if (proxy->get_unique_assignment_flag()) {
+            if (proxy->parameters.get<bool>(BaseQueryProxy::UNIQUE_ASSIGNMENT_FLAG)) {
                 element_stack.push(build_unique_assignment_filter(proxy, cursor, element_stack));
             }
-        } else if (proxy->query_tokens[cursor] == "OR") {
+        } else if (query_tokens[cursor] == "OR") {
             element_stack.push(build_or(proxy, cursor, element_stack));
-            if (proxy->get_unique_assignment_flag()) {
+            if (proxy->parameters.get<bool>(BaseQueryProxy::UNIQUE_ASSIGNMENT_FLAG)) {
                 element_stack.push(build_unique_assignment_filter(proxy, cursor, element_stack));
             }
         } else {
-            Utils::error("Invalid token " + proxy->query_tokens[cursor] +
-                         " in PATTERN_MATCHING_QUERY message");
+            Utils::error("Invalid token " + query_tokens[cursor] + " in PATTERN_MATCHING_QUERY message");
         }
         execution_stack.pop();
     }
@@ -279,19 +269,18 @@ shared_ptr<QueryElement> PatternMatchingQueryProcessor::setup_query_tree(
     return element_stack.top();
 }
 
-#define BUILD_LINK_TEMPLATE(N)                                                              \
-    {                                                                                       \
-        array<shared_ptr<QueryElement>, N> targets;                                         \
-        for (unsigned int i = 0; i < N; i++) {                                              \
-            targets[i] = element_stack.top();                                               \
-            element_stack.pop();                                                            \
-        }                                                                                   \
-        auto link_template = make_shared<LinkTemplate<N>>(proxy->query_tokens[cursor + 1],  \
-                                                          move(targets),                    \
-                                                          proxy->get_context(),             \
-                                                          query_element_registry);          \
-        link_template->set_positive_importance_flag(proxy->get_positive_importance_flag()); \
-        return link_template;                                                               \
+#define BUILD_LINK_TEMPLATE(N)                                                                      \
+    {                                                                                               \
+        array<shared_ptr<QueryElement>, N> targets;                                                 \
+        for (unsigned int i = 0; i < N; i++) {                                                      \
+            targets[i] = element_stack.top();                                                       \
+            element_stack.pop();                                                                    \
+        }                                                                                           \
+        auto link_template = make_shared<LinkTemplate<N>>(                                          \
+            query_tokens[cursor + 1], move(targets), proxy->get_context(), query_element_registry); \
+        link_template->set_positive_importance_flag(                                                \
+            proxy->parameters.get<bool>(PatternMatchingQueryProxy::POSITIVE_IMPORTANCE_FLAG));      \
+        return link_template;                                                                       \
     }
 
 shared_ptr<QueryElement> PatternMatchingQueryProcessor::build_link_template(
@@ -299,7 +288,8 @@ shared_ptr<QueryElement> PatternMatchingQueryProcessor::build_link_template(
     unsigned int cursor,
     stack<shared_ptr<QueryElement>>& element_stack,
     QueryElementRegistry* query_element_registry) {
-    unsigned int arity = std::stoi(proxy->query_tokens[cursor + 2]);
+    const vector<string> query_tokens = proxy->get_query_tokens();
+    unsigned int arity = std::stoi(query_tokens[cursor + 2]);
     if (element_stack.size() < arity) {
         Utils::error(
             "PATTERN_MATCHING_QUERY message: parse error in tokens - too few arguments for "
@@ -325,21 +315,22 @@ shared_ptr<QueryElement> PatternMatchingQueryProcessor::build_link_template(
     return NULL;  // Just to avoid warnings. This is not actually reachable.
 }
 
-#define BUILD_LINK_TEMPLATE2(N)                                                               \
-    {                                                                                         \
-        array<shared_ptr<QueryElement>, N> targets;                                           \
-        for (unsigned int i = 0; i < N; i++) {                                                \
-            targets[i] = element_stack.top();                                                 \
-            element_stack.pop();                                                              \
-        }                                                                                     \
-        return make_shared<LinkTemplate2<N>>(proxy->query_tokens[cursor + 1], move(targets)); \
+#define BUILD_LINK_TEMPLATE2(N)                                                        \
+    {                                                                                  \
+        array<shared_ptr<QueryElement>, N> targets;                                    \
+        for (unsigned int i = 0; i < N; i++) {                                         \
+            targets[i] = element_stack.top();                                          \
+            element_stack.pop();                                                       \
+        }                                                                              \
+        return make_shared<LinkTemplate2<N>>(query_tokens[cursor + 1], move(targets)); \
     }
 
 shared_ptr<QueryElement> PatternMatchingQueryProcessor::build_link_template2(
     shared_ptr<PatternMatchingQueryProxy> proxy,
     unsigned int cursor,
     stack<shared_ptr<QueryElement>>& element_stack) {
-    unsigned int arity = std::stoi(proxy->query_tokens[cursor + 2]);
+    const vector<string> query_tokens = proxy->get_query_tokens();
+    unsigned int arity = std::stoi(query_tokens[cursor + 2]);
     if (element_stack.size() < arity) {
         Utils::error(
             "PATTERN_MATCHING_QUERY message: parse error in tokens - too few arguments for "
@@ -379,7 +370,8 @@ shared_ptr<QueryElement> PatternMatchingQueryProcessor::build_and(
     shared_ptr<PatternMatchingQueryProxy> proxy,
     unsigned int cursor,
     stack<shared_ptr<QueryElement>>& element_stack) {
-    unsigned int num_clauses = std::stoi(proxy->query_tokens[cursor + 1]);
+    const vector<string> query_tokens = proxy->get_query_tokens();
+    unsigned int num_clauses = std::stoi(query_tokens[cursor + 1]);
     if (element_stack.size() < num_clauses) {
         Utils::error(
             "PATTERN_MATCHING_QUERY message: parse error in tokens - too few arguments for AND");
@@ -418,7 +410,8 @@ shared_ptr<QueryElement> PatternMatchingQueryProcessor::build_or(
     shared_ptr<PatternMatchingQueryProxy> proxy,
     unsigned int cursor,
     stack<shared_ptr<QueryElement>>& element_stack) {
-    unsigned int num_clauses = std::stoi(proxy->query_tokens[cursor + 1]);
+    const vector<string> query_tokens = proxy->get_query_tokens();
+    unsigned int num_clauses = std::stoi(query_tokens[cursor + 1]);
     if (element_stack.size() < num_clauses) {
         Utils::error("PATTERN_MATCHING_QUERY message: parse error in tokens - too few arguments for OR");
     }
@@ -442,21 +435,22 @@ shared_ptr<QueryElement> PatternMatchingQueryProcessor::build_or(
     return NULL;  // Just to avoid warnings. This is not actually reachable.
 }
 
-#define BUILD_LINK(N)                                                                \
-    {                                                                                \
-        array<shared_ptr<QueryElement>, N> targets;                                  \
-        for (unsigned int i = 0; i < N; i++) {                                       \
-            targets[i] = element_stack.top();                                        \
-            element_stack.pop();                                                     \
-        }                                                                            \
-        return make_shared<Link<N>>(proxy->query_tokens[cursor + 1], move(targets)); \
+#define BUILD_LINK(N)                                                         \
+    {                                                                         \
+        array<shared_ptr<QueryElement>, N> targets;                           \
+        for (unsigned int i = 0; i < N; i++) {                                \
+            targets[i] = element_stack.top();                                 \
+            element_stack.pop();                                              \
+        }                                                                     \
+        return make_shared<Link<N>>(query_tokens[cursor + 1], move(targets)); \
     }
 
 shared_ptr<QueryElement> PatternMatchingQueryProcessor::build_link(
     shared_ptr<PatternMatchingQueryProxy> proxy,
     unsigned int cursor,
     stack<shared_ptr<QueryElement>>& element_stack) {
-    unsigned int arity = std::stoi(proxy->query_tokens[cursor + 2]);
+    const vector<string> query_tokens = proxy->get_query_tokens();
+    unsigned int arity = std::stoi(query_tokens[cursor + 2]);
     if (element_stack.size() < arity) {
         Utils::error(
             "PATTERN_MATCHING_QUERY message: parse error in tokens - too few arguments for LINK");

@@ -4,3 +4,4 @@
 [#418] Implement remote error handling across peers in the ServiceBus
 [#505] Add a strength value to QueryAnswer
 [#511] Create a Properties class in commons by moving and renaming CustomAttributesMap from AtomDB package
+[#499] Refactor proxy classes to use commons:Properties

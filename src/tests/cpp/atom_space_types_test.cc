@@ -100,8 +100,8 @@ TEST(NodeTest, NodeWithCustomAttributes) {
     attrs["foo"] = std::string("bar");
     attrs["num"] = 42L;
     Node n("Type", "Name", attrs);
-    EXPECT_EQ(n.custom_attributes.get<std::string>("foo") != nullptr, true);
-    EXPECT_EQ(n.custom_attributes.get<long>("num") != nullptr, true);
+    EXPECT_EQ(n.custom_attributes.get_ptr<std::string>("foo") != nullptr, true);
+    EXPECT_EQ(n.custom_attributes.get_ptr<long>("num") != nullptr, true);
     std::string s = n.to_string();
     EXPECT_EQ(s, "Node(type: 'Type', name: 'Name', custom_attributes: {foo: 'bar', num: 42})");
 }
@@ -111,7 +111,7 @@ TEST(LinkTest, LinkWithCustomAttributes) {
     Node n2("Type2", "Name2");
     std::vector<const Atom*> targets = {&n1, &n2};
     Link l("LinkType", targets, {{"flag", true}, {"count", 10}});
-    EXPECT_EQ(l.custom_attributes.get<bool>("flag") != nullptr, true);
+    EXPECT_EQ(l.custom_attributes.get_ptr<bool>("flag") != nullptr, true);
     std::string s = l.to_string();
     // clang-format off
     EXPECT_EQ(

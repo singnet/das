@@ -31,6 +31,13 @@ class PatternMatchingQueryProxy : public BaseQueryProxy {
     // Commands allowed at the proxy level (caller <--> processor)
     static string COUNT;  // Delivery of the final result of a count_only query
 
+    // Query command's optional parameters
+    static string POSITIVE_IMPORTANCE_FLAG;  // Indicates that only answres whose importance > 0
+                                             // are supposed to be returned
+
+    static string COUNT_FLAG;  // indicates that this query is supposed to count the results and not
+                               // actually provide the query answers (i.e. no QueryAnswer is sent
+                               // from the command executor and the caller of the query).
     /**
      * Empty constructor typically used on server side.
      */
@@ -66,55 +73,9 @@ class PatternMatchingQueryProxy : public BaseQueryProxy {
     // Server-side API
 
     /**
-     * Pack query arguments into args vector
+     * Builds the args vector to be passed in the RPC
      */
-    void pack_custom_args();
-
-    /**
-     * Returns a string representation with all command parameter values.
-     *
-     * @return a string representation with all command parameter values.
-     */
-    virtual string to_string();
-
-    // ---------------------------------------------------------------------------------------------
-    // Query parameters getters and setters
-
-    /**
-     * Getter for count_flag
-     *
-     * count_flag tells the processor whether the query is count_only
-     *
-     * @return count_flag
-     */
-    bool get_count_flag();
-
-    /**
-     * Setter for count_flag
-     *
-     * count_flag tells the processor whether the query is count_only
-     *
-     * @param flag Flag
-     */
-    void set_count_flag(bool flag);
-
-    /**
-     * Getter for positive_importance_flag
-     *
-     * positive_importance_flag indicates that only answers whose importance > 0 are to be returned
-     *
-     * @return positive_importance_flag
-     */
-    bool get_positive_importance_flag();
-
-    /**
-     * Setter for positive_importance_flag
-     *
-     * positive_importance_flag indicates that only answers whose importance > 0 are to be returned
-     *
-     * @param flag Flag
-     */
-    void set_positive_importance_flag(bool flag);
+    void pack_command_line_args();
 
     // ---------------------------------------------------------------------------------------------
     // Virtual superclass API and the piggyback methods called by it
@@ -138,20 +99,9 @@ class PatternMatchingQueryProxy : public BaseQueryProxy {
 
    private:
     void init();
-    void set_default_query_parameters();
+    void set_default_parameters();
 
     mutex api_mutex;
-
-    // ---------------------------------------------------------------------------------------------
-    // Query parameters
-
-    // Indicates that only answres whose importance > 0 are supposed to be returned
-    bool positive_importance_flag;
-
-    // indicates that this query is supposed to count the results and not
-    // actually provide the query answers (i.e. no QueryAnswer is sent from the
-    // command executor and the caller of the query).
-    bool count_flag;
 };
 
 }  // namespace query_engine
