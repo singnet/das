@@ -29,9 +29,7 @@ QueryEvolutionProxy::QueryEvolutionProxy(const vector<string>& tokens,
     this->command = ServiceBus::QUERY_EVOLUTION;
 }
 
-void QueryEvolutionProxy::set_default_query_parameters() {
-    this->parameters[POPULATION_SIZE] = 1000;
-}
+void QueryEvolutionProxy::set_default_query_parameters() { this->parameters[POPULATION_SIZE] = 1000; }
 
 string QueryEvolutionProxy::to_string() {
     lock_guard<mutex> semaphore(this->api_mutex);
@@ -47,9 +45,7 @@ QueryEvolutionProxy::~QueryEvolutionProxy() {}
 // -------------------------------------------------------------------------------------------------
 // Client-side API
 
-void QueryEvolutionProxy::pack_command_line_args() {
-    tokenize(this->args);
-}
+void QueryEvolutionProxy::pack_command_line_args() { tokenize(this->args); }
 
 void QueryEvolutionProxy::tokenize(vector<string>& output) {
     lock_guard<mutex> semaphore(this->api_mutex);

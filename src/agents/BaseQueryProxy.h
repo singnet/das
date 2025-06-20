@@ -39,11 +39,11 @@ class BaseQueryProxy : public BaseProxy {
     static string FINISHED;       // Notification that all query results have alkready been delivered
 
     // Query command's optional parameters
-    static string UNIQUE_ASSIGNMENT_FLAG; // When true, query operators (e.g. And, Or) don't output
-                                          // more than one QueryAnswer with the same variable
-                                          // assignment.
-    static string ATTENTION_UPDATE_FLAG;  // When true, queries issued to the pattern matcher will
-                                          // trigger attention update automatically.
+    static string UNIQUE_ASSIGNMENT_FLAG;  // When true, query operators (e.g. And, Or) don't output
+                                           // more than one QueryAnswer with the same variable
+                                           // assignment.
+    static string ATTENTION_UPDATE_FLAG;   // When true, queries issued to the pattern matcher will
+                                           // trigger attention update automatically.
 
     /**
      * Destructor.

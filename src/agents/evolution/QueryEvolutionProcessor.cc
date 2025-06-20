@@ -72,7 +72,8 @@ void QueryEvolutionProcessor::sample_population(
     shared_ptr<StoppableThread> monitor,
     shared_ptr<QueryEvolutionProxy> proxy,
     vector<std::pair<shared_ptr<QueryAnswer>, float>>& population) {
-    unsigned int population_size = proxy->parameters.get<unsigned int>(QueryEvolutionProxy::POPULATION_SIZE);
+    unsigned int population_size =
+        proxy->parameters.get<unsigned int>(QueryEvolutionProxy::POPULATION_SIZE);
     auto pm = atom_space.pattern_matching_query(
         proxy->get_query_tokens(), population_size, proxy->get_context());
     while ((!pm->finished()) && (!monitor->stopped()) && (population.size() < population_size)) {

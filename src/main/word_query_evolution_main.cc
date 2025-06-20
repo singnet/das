@@ -4,10 +4,10 @@
 #include <string>
 
 #include "AtomDBSingleton.h"
+#include "FitnessFunctionRegistry.h"
 #include "QueryAnswer.h"
 #include "QueryEvolutionProxy.h"
 #include "ServiceBusSingleton.h"
-#include "FitnessFunctionRegistry.h"
 #include "Utils.h"
 
 #define MAX_QUERY_ANSWERS ((unsigned int) 100000)

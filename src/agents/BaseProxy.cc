@@ -52,9 +52,8 @@ void BaseProxy::untokenize(vector<string>& tokens) {
     unsigned int num_property_tokens = std::stoi(tokens[0]);
     if (num_property_tokens > 0) {
         vector<string> properties_tokens;
-        properties_tokens.insert(properties_tokens.begin(), 
-                                 tokens.begin() + 1, 
-                                 tokens.begin() + 1 + num_property_tokens);
+        properties_tokens.insert(
+            properties_tokens.begin(), tokens.begin() + 1, tokens.begin() + 1 + num_property_tokens);
         this->parameters.untokenize(properties_tokens);
         tokens.erase(tokens.begin(), tokens.begin() + 1 + num_property_tokens);
     }

@@ -32,12 +32,12 @@ class PatternMatchingQueryProxy : public BaseQueryProxy {
     static string COUNT;  // Delivery of the final result of a count_only query
 
     // Query command's optional parameters
-    static string POSITIVE_IMPORTANCE_FLAG; // Indicates that only answres whose importance > 0
-                                            // are supposed to be returned
+    static string POSITIVE_IMPORTANCE_FLAG;  // Indicates that only answres whose importance > 0
+                                             // are supposed to be returned
 
-    static string COUNT_FLAG; // indicates that this query is supposed to count the results and not
-                              // actually provide the query answers (i.e. no QueryAnswer is sent
-                              // from the command executor and the caller of the query).
+    static string COUNT_FLAG;  // indicates that this query is supposed to count the results and not
+                               // actually provide the query answers (i.e. no QueryAnswer is sent
+                               // from the command executor and the caller of the query).
     /**
      * Empty constructor typically used on server side.
      */
@@ -104,4 +104,4 @@ class PatternMatchingQueryProxy : public BaseQueryProxy {
     mutex api_mutex;
 };
 
-} // namespace query_engine
+}  // namespace query_engine

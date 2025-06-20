@@ -173,7 +173,8 @@ void PatternMatchingQueryProcessor::thread_process_one_query(
                     process_query_answers(proxy, query_sink, joint_answer, answer_count);
                     Utils::sleep();
                 }
-                if (proxy->parameters.get<bool>(PatternMatchingQueryProxy::COUNT_FLAG) && (!proxy->is_aborting())) {
+                if (proxy->parameters.get<bool>(PatternMatchingQueryProxy::COUNT_FLAG) &&
+                    (!proxy->is_aborting())) {
                     LOG_DEBUG("Answering count_only query");
                     proxy->to_remote_peer(PatternMatchingQueryProxy::COUNT,
                                           {std::to_string(answer_count)});
@@ -235,8 +236,7 @@ shared_ptr<QueryElement> PatternMatchingQueryProcessor::setup_query_tree(
     while (!execution_stack.empty()) {
         cursor = execution_stack.top();
         if (query_tokens[cursor] == "NODE") {
-            element_stack.push(
-                make_shared<Node>(query_tokens[cursor + 1], query_tokens[cursor + 2]));
+            element_stack.push(make_shared<Node>(query_tokens[cursor + 1], query_tokens[cursor + 2]));
         } else if (query_tokens[cursor] == "VARIABLE") {
             element_stack.push(make_shared<Variable>(query_tokens[cursor + 1]));
         } else if (query_tokens[cursor] == "LINK") {
@@ -257,8 +257,7 @@ shared_ptr<QueryElement> PatternMatchingQueryProcessor::setup_query_tree(
                 element_stack.push(build_unique_assignment_filter(proxy, cursor, element_stack));
             }
         } else {
-            Utils::error("Invalid token " + query_tokens[cursor] +
-                         " in PATTERN_MATCHING_QUERY message");
+            Utils::error("Invalid token " + query_tokens[cursor] + " in PATTERN_MATCHING_QUERY message");
         }
         execution_stack.pop();
     }
@@ -270,19 +269,18 @@ shared_ptr<QueryElement> PatternMatchingQueryProcessor::setup_query_tree(
     return element_stack.top();
 }
 
-#define BUILD_LINK_TEMPLATE(N)                                                                                                         \
-    {                                                                                                                                  \
-        array<shared_ptr<QueryElement>, N> targets;                                                                                    \
-        for (unsigned int i = 0; i < N; i++) {                                                                                         \
-            targets[i] = element_stack.top();                                                                                          \
-            element_stack.pop();                                                                                                       \
-        }                                                                                                                              \
-        auto link_template = make_shared<LinkTemplate<N>>(query_tokens[cursor + 1],                                                    \
-                                                          move(targets),                                                               \
-                                                          proxy->get_context(),                                                        \
-                                                          query_element_registry);                                                     \
-        link_template->set_positive_importance_flag(proxy->parameters.get<bool>(PatternMatchingQueryProxy::POSITIVE_IMPORTANCE_FLAG)); \
-        return link_template;                                                                                                          \
+#define BUILD_LINK_TEMPLATE(N)                                                                      \
+    {                                                                                               \
+        array<shared_ptr<QueryElement>, N> targets;                                                 \
+        for (unsigned int i = 0; i < N; i++) {                                                      \
+            targets[i] = element_stack.top();                                                       \
+            element_stack.pop();                                                                    \
+        }                                                                                           \
+        auto link_template = make_shared<LinkTemplate<N>>(                                          \
+            query_tokens[cursor + 1], move(targets), proxy->get_context(), query_element_registry); \
+        link_template->set_positive_importance_flag(                                                \
+            proxy->parameters.get<bool>(PatternMatchingQueryProxy::POSITIVE_IMPORTANCE_FLAG));      \
+        return link_template;                                                                       \
     }
 
 shared_ptr<QueryElement> PatternMatchingQueryProcessor::build_link_template(

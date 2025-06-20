@@ -3,8 +3,8 @@
 #include <mutex>
 
 #include "BusCommandProxy.h"
-#include "Properties.h"
 #include "Message.h"
+#include "Properties.h"
 
 using namespace std;
 using namespace service_bus;

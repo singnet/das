@@ -52,9 +52,7 @@ shared_ptr<QueryAnswer> PatternMatchingQueryProxy::pop() {
 // -------------------------------------------------------------------------------------------------
 // Server-side API
 
-void PatternMatchingQueryProxy::pack_command_line_args() {
-    tokenize(this->args);
-}
+void PatternMatchingQueryProxy::pack_command_line_args() { tokenize(this->args); }
 
 // ---------------------------------------------------------------------------------------------
 // Virtual superclass API and the piggyback methods called by it

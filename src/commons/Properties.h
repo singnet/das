@@ -122,13 +122,15 @@ class Properties : public unordered_map<string, PropertyValue> {
 
     /**
      * @brief Convert the Properties to a representation as a vector of tokens (strings)
-     * @return A string representation of the map in the form {key1, type1, value1, key2, type2, value2, ...}.
+     * @return A string representation of the map in the form {key1, type1, value1, key2, type2, value2,
+     * ...}.
      */
     vector<string> tokenize() const {
         vector<string> result;
-        if (! this->empty()) {
+        if (!this->empty()) {
             // Sort keys for consistent output
-            // Note: This is not strictly necessary, but it makes the output predictable and easier to read.
+            // Note: This is not strictly necessary, but it makes the output predictable and easier to
+            // read.
             vector<string> keys;
             for (const auto& pair : *this) {
                 keys.push_back(pair.first);
