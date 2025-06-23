@@ -67,12 +67,15 @@ class RedisStringBundle : public HandleList {
 class MongodbDocument : public AtomDocument {
    public:
     MongodbDocument(bsoncxx::v_noabi::stdx::optional<bsoncxx::v_noabi::document::value>& document);
+    MongodbDocument(const atomspace::Node* node);
+    MongodbDocument(const atomspace::Link* link);
     ~MongodbDocument();
 
     const char* get(const string& key);
     virtual const char* get(const string& array_key, unsigned int index);
     virtual unsigned int get_size(const string& array_key);
     virtual bool contains(const string& key);
+    bsoncxx::v_noabi::document::value value();
 
    private:
     bsoncxx::v_noabi::stdx::optional<bsoncxx::v_noabi::document::value> document;

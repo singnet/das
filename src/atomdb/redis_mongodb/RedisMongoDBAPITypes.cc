@@ -8,6 +8,7 @@
 using namespace atomdb;
 using namespace atomdb_api_types;
 using namespace commons;
+using namespace std;
 
 HandleSetRedis::HandleSetRedis(bool delete_replies_on_destruction) : HandleSet() {
     this->handles_size = 0;
@@ -142,4 +143,77 @@ unsigned int MongodbDocument::get_size(const string& array_key) {
     // MongodbDocument::get_size() size: " << ((*this->document)[array_key]).get_array().value.length() /
     // HANDLE_HASH_SIZE << endl;
     return ((*this->document)[array_key]).get_array().value.length() / HANDLE_HASH_SIZE;
+}
+
+bsoncxx::v_noabi::document::value MongodbDocument::value() { return this->document.value(); }
+
+void append_custom_attributes(bsoncxx::builder::basic::document& doc,
+                              const Properties& custom_attributes) {
+    for (const auto& [key, value] : custom_attributes) {
+        visit(
+            [&](auto&& arg) {
+                using T = decay_t<decltype(arg)>;
+                if constexpr (is_same_v<T, string>) {
+                    doc.append(bsoncxx::builder::basic::kvp(key, arg));
+                } else if constexpr (is_same_v<T, long>) {
+                    doc.append(bsoncxx::builder::basic::kvp(key, static_cast<int64_t>(arg)));
+                } else if constexpr (is_same_v<T, double>) {
+                    doc.append(bsoncxx::builder::basic::kvp(key, arg));
+                } else if constexpr (is_same_v<T, bool>) {
+                    doc.append(bsoncxx::builder::basic::kvp(key, arg));
+                }
+            },
+            value);
+    }
+}
+
+MongodbDocument::MongodbDocument(const atomspace::Node* node) {
+    char* handle = atomspace::Node::compute_handle(node->type, node->name);
+
+    const char* elements[1] = {node->type.c_str()};
+
+    bsoncxx::builder::basic::document doc;
+    doc.append(bsoncxx::builder::basic::kvp("_id", handle));
+    doc.append(bsoncxx::builder::basic::kvp("composite_type_hash",
+                                            composite_hash(const_cast<char**>(elements), 1)));
+    doc.append(bsoncxx::builder::basic::kvp("name", node->name));
+    doc.append(bsoncxx::builder::basic::kvp("named_type", node->type));
+    append_custom_attributes(doc, node->custom_attributes);
+    this->document = doc.extract();
+}
+
+MongodbDocument::MongodbDocument(const atomspace::Link* link) {
+    char* handle = atomspace::Link::compute_handle(link->type, link->targets);
+
+    const char* named_type_hash_elements[1] = {link->type.c_str()};
+    char* named_type_hash = composite_hash(const_cast<char**>(named_type_hash_elements), 1);
+
+    const char* elements[link->targets.size() + 1];
+    elements[0] = named_type_hash;
+
+    bsoncxx::builder::basic::array composite_type;
+    composite_type.append(named_type_hash);
+    for (size_t i = 0; i < link->targets.size(); i++) {
+        const char* type_hash_elements[1] = {link->targets[i]->type.c_str()};
+        auto type_hash = composite_hash(const_cast<char**>(type_hash_elements), 1);
+        elements[i + 1] = type_hash;
+        composite_type.append(type_hash);
+    }
+
+    bsoncxx::builder::basic::array targets;
+    auto targets_hashes = atomspace::Link::targets_to_handles(link->targets);
+    for (size_t i = 0; i < link->targets.size(); i++) {
+        targets.append(targets_hashes[i]);
+    }
+
+    bsoncxx::builder::basic::document doc;
+    doc.append(bsoncxx::builder::basic::kvp("_id", handle));
+    doc.append(bsoncxx::builder::basic::kvp(
+        "composite_type_hash", composite_hash(const_cast<char**>(elements), link->targets.size() + 1)));
+    doc.append(bsoncxx::builder::basic::kvp("composite_type", composite_type));
+    doc.append(bsoncxx::builder::basic::kvp("named_type", link->type));
+    doc.append(bsoncxx::builder::basic::kvp("named_type_hash", named_type_hash));
+    doc.append(bsoncxx::builder::basic::kvp("targets", targets));
+    append_custom_attributes(doc, link->custom_attributes);
+    this->document = doc.extract();
 }

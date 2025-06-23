@@ -50,15 +50,25 @@ class RedisMongoDB : public AtomDB {
 
     shared_ptr<atomdb_api_types::HandleSet> query_for_pattern(
         const LinkTemplateInterface& link_template);
+
     shared_ptr<atomdb_api_types::HandleList> query_for_targets(shared_ptr<char> link_handle);
     shared_ptr<atomdb_api_types::HandleList> query_for_targets(char* link_handle_ptr);
+
     shared_ptr<atomdb_api_types::AtomDocument> get_atom_document(const char* handle);
-    bool link_exists(const char* link_handle);
-    std::vector<std::string> links_exist(const std::vector<std::string>& link_handles);
-    char* add_node(const atomspace::Node* node);
-    char* add_link(const atomspace::Link* link);
     vector<shared_ptr<atomdb_api_types::AtomDocument>> get_atom_documents(const vector<string>& handles,
                                                                           const vector<string>& fields);
+
+    bool link_exists(const char* link_handle);
+    vector<string> links_exist(const vector<string>& link_handles);
+
+    char* add_node(const atomspace::Node* node);
+    vector<string> add_nodes(const vector<atomspace::Node*>& nodes);
+
+    char* add_link(const atomspace::Link* link);
+    vector<string> add_links(const vector<atomspace::Link*>& links);
+
+    bool delete_atom(const char* handle);
+    uint delete_atoms(const vector<string>& handles);
 
    private:
     bool cluster_flag;
