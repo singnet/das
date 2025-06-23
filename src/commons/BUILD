@@ -5,13 +5,15 @@ package(default_visibility = ["//visibility:public"])
 cc_library(
     name = "commons_lib",
     srcs = [
+        "Config.cc",
+        "ConfigFileSingleton.cc",
         "SharedQueue.cc",
         "StoppableThread.cc",
         "Utils.cc",
-        "Config.cc",
-        "ConfigFileSingleton.cc",
     ],
     hdrs = [
+        "Config.h",
+        "ConfigFileSingleton.h",
         "Logger.h",
         "RequestValidator.h",
         "SharedQueue.h",
@@ -19,8 +21,6 @@ cc_library(
         "StoppableThread.h",
         "ThreadPool.h",
         "Utils.h",
-        "Config.h",
-        "ConfigFileSingleton.h",
     ],
     includes = ["."],
     deps = [],

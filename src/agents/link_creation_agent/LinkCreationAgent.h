@@ -64,11 +64,9 @@ class LinkCreationAgent {
      */
     static shared_ptr<LinkCreationAgentRequest> create_request(vector<string> request);
 
-
     void process_request(vector<string> request);
 
     void abort_request(const string& request_id);
-
 
    private:
     /**

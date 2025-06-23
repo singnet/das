@@ -4,13 +4,13 @@
 #include <fstream>
 #include <thread>
 
+#include "AtomDBSingleton.h"
+#include "ConfigFileSingleton.h"
 #include "LinkCreateTemplate.h"
 #include "LinkCreationAgent.h"
+#include "LinkCreationRequestProcessor.h"
 #include "TemplateProcessor.h"
 #include "Utils.h"
-#include "ConfigFileSingleton.h"
-#include "LinkCreationRequestProcessor.h"
-#include "AtomDBSingleton.h"
 
 using namespace std;
 using namespace link_creation_agent;
@@ -92,12 +92,12 @@ TEST_F(LinkCreationAgentTest, TestRequest) {
 }
 
 TEST_F(LinkCreationAgentTest, TestConfig) {
-        ConfigFileSingleton::init("test_config.cfg");
-        // AtomDBSingleton::init();
-        auto config = ConfigFileSingleton::get_instance();
-        ServiceBusSingleton::init(config->get(ConfigKeys::Agents::LinkCreation::SERVER_ID));
-        shared_ptr<ServiceBus> service_bus = ServiceBusSingleton::get_instance();
-        service_bus->register_processor(make_shared<LinkCreationRequestProcessor>());
+    ConfigFileSingleton::init("test_config.cfg");
+    // AtomDBSingleton::init();
+    auto config = ConfigFileSingleton::get_instance();
+    ServiceBusSingleton::init(config->get(ConfigKeys::Agents::LinkCreation::SERVER_ID));
+    shared_ptr<ServiceBus> service_bus = ServiceBusSingleton::get_instance();
+    service_bus->register_processor(make_shared<LinkCreationRequestProcessor>());
 }
 
 TEST(LinkCreateTemplate, TestCustomField) {

@@ -5,9 +5,9 @@
 
 #include "LinkCreateTemplate.h"
 #define LOG_LEVEL DEBUG_LEVEL
+#include "ConfigFileSingleton.h"
 #include "Logger.h"
 #include "expression_hasher.h"
-#include "ConfigFileSingleton.h"
 
 using namespace std;
 using namespace link_creation_agent;
@@ -98,7 +98,6 @@ void LinkCreationAgent::run() {
 
         LOG_DEBUG("LCArequest ID: " << (lca_request ? lca_request->id : "NULL"));
 
-
         if (lca_request->infinite || lca_request->repeat > 0) {
             LOG_DEBUG("Request IDX: " << current_buffer_position);
             LOG_DEBUG("Processing request ID: " << lca_request->id);
@@ -152,15 +151,14 @@ void LinkCreationAgent::load_config() {
     auto metta_file_path = config_file->get(ConfigKeys::Agents::LinkCreation::METTA_FILE_PATH);
     this->metta_file_path = metta_file_path;
     auto save_to_metta_file = config_file->get(ConfigKeys::Agents::LinkCreation::SAVE_TO_METTA_FILE);
-    this->save_links_to_metta_file = (save_to_metta_file == "true" ||
-                                      save_to_metta_file == "1" || save_to_metta_file == "yes");
+    this->save_links_to_metta_file =
+        (save_to_metta_file == "true" || save_to_metta_file == "1" || save_to_metta_file == "yes");
     auto save_to_db = config_file->get(ConfigKeys::Agents::LinkCreation::SAVE_TO_DB);
     this->save_links_to_db = (save_to_db == "true" || save_to_db == "1" || save_to_db == "yes");
     auto query_start_port = config_file->get(ConfigKeys::Agents::LinkCreation::QUERY_START_PORT);
     this->query_agent_client_start_port = Utils::string_to_int(query_start_port);
     auto query_end_port = config_file->get(ConfigKeys::Agents::LinkCreation::QUERY_END_PORT);
-    this->query_agent_client_end_port = Utils::string_to_int(query_end_port);                                    
-    
+    this->query_agent_client_end_port = Utils::string_to_int(query_end_port);
 }
 
 void LinkCreationAgent::save_buffer() {
@@ -242,7 +240,6 @@ shared_ptr<LinkCreationAgentRequest> LinkCreationAgent::create_request(vector<st
         throw invalid_argument("Invalid request format: " + string(e.what()));
     }
     return nullptr;
-
 }
 
 void LinkCreationAgent::process_request(vector<string> request) {

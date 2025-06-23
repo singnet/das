@@ -368,9 +368,10 @@ class LinkTemplate : public Source {
                                 if (!query_answer->assignment.assign(
                                         terminal->name.c_str(),
                                         this->atom_documents[document_cursor]->get("targets", j))) {
-                                    Utils::error(
-                                        "Error assigning variable: " + terminal->name + " a value: " +
-                                        string(this->atom_documents[document_cursor]->get("targets", j)));
+                                    Utils::error("Error assigning variable: " + terminal->name +
+                                                 " a value: " +
+                                                 string(this->atom_documents[document_cursor]->get(
+                                                     "targets", j)));
                                 }
                             }
                         }

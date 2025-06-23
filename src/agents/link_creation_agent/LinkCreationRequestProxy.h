@@ -26,8 +26,8 @@ class LinkCreationRequestProxy : public BusCommandProxy {
     // Constructors, destructors and static state
 
     // Commands allowed at the proxy level (caller <--> processor)
-    static string ABORT;          // Abort current link creation
-    static string LINK_CREATION_FAILED; // Notification that a link creation failed
+    static string ABORT;                 // Abort current link creation
+    static string LINK_CREATION_FAILED;  // Notification that a link creation failed
     /**
      * Empty constructor typically used on server side.
      */
@@ -60,8 +60,8 @@ class LinkCreationRequestProxy : public BusCommandProxy {
      */
     void abort();
 
-    unsigned int error_code; // Error code if an error occurred
-    string error_message; // Error message if an error occurred
+    unsigned int error_code;  // Error code if an error occurred
+    string error_message;     // Error message if an error occurred
 
     /**
      * Raise an error in the remote peer.
@@ -74,10 +74,11 @@ class LinkCreationRequestProxy : public BusCommandProxy {
     virtual void pack_custom_args() override {
         // No custom args to pack for this proxy
     }
+
    private:
     void init();
-    
+
     mutex api_mutex;
     bool abort_flag;
 };
-} // namespace link_creation_agent
+}  // namespace link_creation_agent

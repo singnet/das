@@ -5,13 +5,12 @@
 #include <string>
 
 #include "AtomDBSingleton.h"
-#include "ServiceBusSingleton.h"
 #include "LinkCreationRequestProxy.h"
+#include "ServiceBusSingleton.h"
 using namespace link_creation_agent;
 using namespace std;
 using namespace service_bus;
 using namespace atomdb;
-
 
 void ctrl_c_handler(int) {
     std::cout << "Stopping client..." << std::endl;

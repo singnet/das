@@ -5,9 +5,9 @@
 #include <string>
 
 #include "AtomDBSingleton.h"
+#include "ConfigFileSingleton.h"
 #include "LinkCreationRequestProcessor.h"
 #include "ServiceBusSingleton.h"
-#include "ConfigFileSingleton.h"
 using namespace std;
 using namespace link_creation_agent;
 using namespace atomdb;
@@ -52,8 +52,7 @@ int main(int argc, char* argv[]) {
     shared_ptr<Config> config = ConfigFileSingleton::get_instance();
     AtomDBSingleton::init();
     ServiceBusSingleton::init(config->get(ConfigKeys::Agents::LinkCreation::SERVER_ID),
-        config->get(ConfigKeys::Agents::LinkCreation::QUERY_SERVER)
-    );
+                              config->get(ConfigKeys::Agents::LinkCreation::QUERY_SERVER));
     shared_ptr<ServiceBus> service_bus = ServiceBusSingleton::get_instance();
     service_bus->register_processor(make_shared<LinkCreationRequestProcessor>());
 
