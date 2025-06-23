@@ -11,10 +11,12 @@ cc_library(
     ],
     hdrs = [
         "Logger.h",
+        "Properties.h",
         "RequestValidator.h",
         "SharedQueue.h",
         "Stoppable.h",
         "StoppableThread.h",
+        "ThreadPool.h",
         "Utils.h",
     ],
     includes = ["."],

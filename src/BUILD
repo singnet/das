@@ -34,13 +34,15 @@ cc_shared_library(
     ],
     deps = [
         "//agents:agents_lib",
+        "//agents/evolution:evolution_lib",
+        "//agents/inference_agent:inference_agent_lib",
+        "//agents/link_creation_agent:link_creation_agent_lib",
+        "//agents/query_engine:query_engine_lib",
         "//atomdb:atomdb_lib",
         "//attention_broker:attention_broker_lib",
         "//commons:commons_lib",
         "//distributed_algorithm_node:distributed_algorithm_node_lib",
         "//hasher:hasher_lib",
-        "//inference_agent:inference_agent_lib",
-        "//link_creation_agent:link_creation_agent_lib",
         "//service_bus:service_bus_lib",
     ],
 )
@@ -68,6 +70,30 @@ cc_binary(
     deps = [
         "//commons:commons_lib",
         "//main:query_engine_main_lib",
+        "@mbedtls",
+    ],
+)
+
+cc_binary(
+    name = "evolution_broker",
+    srcs = [],
+    defines = ["BAZEL_BUILD"],
+    linkstatic = 1,
+    deps = [
+        "//commons:commons_lib",
+        "//main:evolution_engine_main_lib",
+        "@mbedtls",
+    ],
+)
+
+cc_binary(
+    name = "evolution_client",
+    srcs = [],
+    defines = ["BAZEL_BUILD"],
+    linkstatic = 1,
+    deps = [
+        "//commons:commons_lib",
+        "//main:evolution_client_main_lib",
         "@mbedtls",
     ],
 )
@@ -104,6 +130,18 @@ cc_binary(
     deps = [
         "//commons:commons_lib",
         "//main:word_query_main_lib",
+        "@mbedtls",
+    ],
+)
+
+cc_binary(
+    name = "word_query_evolution",
+    srcs = [],
+    defines = ["BAZEL_BUILD"],
+    linkstatic = 1,
+    deps = [
+        "//commons:commons_lib",
+        "//main:word_query_evolution_main_lib",
         "@mbedtls",
     ],
 )

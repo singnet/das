@@ -197,7 +197,6 @@ tags
 *.bak
 
 bin
-src/bin
 src/bazel**
 
 .nogit/

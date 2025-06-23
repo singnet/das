@@ -10,6 +10,7 @@ cc_library(
     deps = [
         ":query_evolution_processor",
         ":query_evolution_proxy",
+        "//agents/evolution/fitness_functions:fitness_functions_lib",
     ],
 )
 
@@ -19,7 +20,8 @@ cc_library(
     hdrs = ["QueryEvolutionProxy.h"],
     includes = ["."],
     deps = [
-        "//agents:base_proxy",
+        "//agents:agents_lib",
+        "//agents/evolution/fitness_functions:fitness_functions_lib",
         "//agents/query_engine:query_answer",
         "//commons:commons_lib",
         "//service_bus:service_bus_lib",
@@ -34,6 +36,7 @@ cc_library(
     deps = [
         ":query_evolution_proxy",
         "//agents/query_engine:query_answer",
+        "//atom_space:atom_space_lib",
         "//commons:commons_lib",
         "//service_bus:service_bus_lib",
     ],

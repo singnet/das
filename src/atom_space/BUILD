@@ -9,6 +9,7 @@ cc_library(
     includes = ["."],
     deps = [
         ":atom_space_types",
+        ":link_template_interface",
         "//agents/query_engine:query_engine_lib",
         "//atomdb:atomdb_api_types",
         "//atomdb:atomdb_singleton",
@@ -25,8 +26,14 @@ cc_library(
     hdrs = ["AtomSpaceTypes.h"],
     includes = ["."],
     deps = [
-        "//atomdb:atomdb_api_types",
         "//commons:handle_trie",
         "//hasher:hasher_lib",
     ],
+)
+
+cc_library(
+    name = "link_template_interface",
+    hdrs = ["LinkTemplateInterface.h"],
+    includes = ["."],
+    deps = [],
 )

@@ -15,6 +15,7 @@
 #include "AttentionBrokerServer.h"
 #include "ImportanceList.h"
 #include "Iterator.h"
+#include "LinkTemplateInterface.h"
 #include "QueryAnswer.h"
 #include "QueryElementRegistry.h"
 #include "QueryNode.h"
@@ -71,7 +72,7 @@ namespace query_element {
  * Returned links are guaranteed to satisfy all variable settings properly.
  */
 template <unsigned int ARITY>
-class LinkTemplate : public Source {
+class LinkTemplate : public Source, public LinkTemplateInterface {
    public:
     // --------------------------------------------------------------------------------------------
     // Constructors and destructors
@@ -94,7 +95,6 @@ class LinkTemplate : public Source {
         this->query_element_registry = query_element_registry;
         this->target_template = move(targets);
         this->fetch_finished = false;
-        this->atom_document = NULL;
         this->local_answers = NULL;
         this->local_answers_size = 0;
         this->positive_importance_flag = false;
@@ -131,7 +131,6 @@ class LinkTemplate : public Source {
     virtual ~LinkTemplate() {
         this->graceful_shutdown();
         lock_guard<mutex> lock(this->local_answers_mutex);
-        if (this->atom_document) delete[] this->atom_document;
         if (this->local_answers) delete[] this->local_answers;
         if (this->next_inner_answer) delete[] this->next_inner_answer;
         while (!this->local_buffer.empty()) {
@@ -244,6 +243,8 @@ class LinkTemplate : public Source {
 
     void set_positive_importance_flag(bool flag) { this->positive_importance_flag = flag; }
 
+    const char* get_handle() const override { return this->handle.get(); }
+
    private:
     // --------------------------------------------------------------------------------------------
     // Private methods and attributes
@@ -328,7 +329,7 @@ class LinkTemplate : public Source {
 
     void fetch_links() {
         shared_ptr<AtomDB> db = AtomDBSingleton::get_instance();
-        this->fetch_result = db->query_for_pattern(this->handle);
+        this->fetch_result = db->query_for_pattern(*this);
         unsigned int answer_count = this->fetch_result->size();
         LOG_INFO("Fetched " << answer_count << " links for link template " << this->to_string());
         QueryAnswer* query_answer;
@@ -354,7 +355,7 @@ class LinkTemplate : public Source {
                 }
                 LOG_INFO("Considering " << answer_count << " links after importance filtering");
             }
-            this->atom_document = new shared_ptr<atomdb_api_types::AtomDocument>[answer_count];
+            this->atom_documents = db->get_atom_documents(handles, {"targets"});
             this->local_answers = new QueryAnswer*[answer_count];
             this->next_inner_answer = new unsigned int[answer_count];
             it = this->fetch_result->get_iterator();
@@ -362,7 +363,6 @@ class LinkTemplate : public Source {
             unsigned int importance_cursor = 0;
             while ((handle = it->next()) != nullptr) {
                 if (!this->positive_importance_flag || (importance_list->list(importance_cursor) > 0)) {
-                    this->atom_document[document_cursor] = db->get_atom_document(handle);
                     query_answer = new QueryAnswer(handle, importance_list->list(importance_cursor));
                     for (unsigned int j = 0; j < this->arity; j++) {
                         if (this->target_template[j]->is_terminal) {
@@ -370,10 +370,11 @@ class LinkTemplate : public Source {
                             if (terminal->is_variable) {
                                 if (!query_answer->assignment.assign(
                                         terminal->name.c_str(),
-                                        this->atom_document[document_cursor]->get("targets", j))) {
-                                    Utils::error(
-                                        "Error assigning variable: " + terminal->name + " a value: " +
-                                        string(this->atom_document[document_cursor]->get("targets", j)));
+                                        this->atom_documents[document_cursor]->get("targets", j))) {
+                                    Utils::error("Error assigning variable: " + terminal->name +
+                                                 " a value: " +
+                                                 string(this->atom_documents[document_cursor]->get(
+                                                     "targets", j)));
                                 }
                             }
                         }
@@ -407,7 +408,7 @@ class LinkTemplate : public Source {
         while (cursor < inner_answers_size) {
             if (this->inner_answers[cursor] != NULL) {
                 bool passed_first_check = true;
-                unsigned int arity = this->atom_document[index]->get_size("targets");
+                unsigned int arity = this->atom_documents[index]->get_size("targets");
                 unsigned int target_cursor = 0;
                 for (unsigned int i = 0; i < arity; i++) {
                     // Note to reviewer: pointer comparison is correct here
@@ -415,7 +416,7 @@ class LinkTemplate : public Source {
                         if (target_cursor > this->inner_answers[cursor]->handles_size) {
                             Utils::error("Invalid query answer in inner link template match");
                         }
-                        if (strncmp(this->atom_document[index]->get("targets", i),
+                        if (strncmp(this->atom_documents[index]->get("targets", i),
                                     this->inner_answers[cursor]->handles[target_cursor++],
                                     HANDLE_HASH_SIZE)) {
                             passed_first_check = false;
@@ -533,7 +534,6 @@ class LinkTemplate : public Source {
     mutex fetch_finished_mutex;
     shared_ptr<QueryNodeServer> target_buffer[ARITY];
     shared_ptr<Iterator> inner_template_iterator;
-    shared_ptr<atomdb_api_types::AtomDocument>* atom_document;
     QueryAnswer** local_answers;
     unsigned int* next_inner_answer;
     vector<QueryAnswer*> inner_answers;

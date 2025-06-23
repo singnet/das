@@ -161,6 +161,7 @@ void PatternMatchingQueryProcessor::thread_process_one_query(
         proxy->set_count_flag(proxy->args[skip_arg++] == "1");
         proxy->query_tokens.insert(
             proxy->query_tokens.begin(), proxy->args.begin() + skip_arg, proxy->args.end());
+        LOG_DEBUG("attention_update_flag: " << proxy->get_attention_update_flag());
         LOG_DEBUG("Setting up query tree");
         auto query_element_registry = make_unique<QueryElementRegistry>();
         shared_ptr<QueryElement> root_query_element =
@@ -168,37 +169,42 @@ void PatternMatchingQueryProcessor::thread_process_one_query(
         set<string> joint_answer;  // used to stimulate attention broker
         string command = proxy->get_command();
         unsigned int sink_port_number;
-        if (command == ServiceBus::PATTERN_MATCHING_QUERY) {
-            sink_port_number = PortPool::get_port();
-            shared_ptr<Sink> query_sink = make_shared<Sink>(
-                root_query_element,
-                "Sink_" + proxy->peer_id() + "_" + std::to_string(proxy->get_serial()));
-            unsigned int answer_count = 0;
-            LOG_DEBUG("Processing QueryAnswer objects");
-            while (!(query_sink->finished() || proxy->is_aborting())) {
-                process_query_answers(proxy, query_sink, joint_answer, answer_count);
-                Utils::sleep();
-            }
-            if (proxy->get_count_flag() && (!proxy->is_aborting())) {
-                LOG_DEBUG("Answering count_only query");
-                proxy->to_remote_peer(PatternMatchingQueryProxy::COUNT, {std::to_string(answer_count)});
-            }
-            Utils::sleep(500);
-            proxy->to_remote_peer(PatternMatchingQueryProxy::FINISHED, {});
-            if (proxy->get_attention_update_flag()) {
-                LOG_DEBUG("Updating AttentionBroker (stimulate)");
-                update_attention_broker_joint_answer(proxy, joint_answer);
-            }
-            Utils::sleep(500);
-            LOG_INFO("Total processed answers: " << answer_count);
-            query_sink->graceful_shutdown();
-            PortPool::return_port(sink_port_number);
+        if (root_query_element == NULL) {
+            Utils::error("Invalid empty query tree.");
         } else {
-            Utils::error("Invalid command " + command + " in PatternMatchingQueryProcessor");
+            if (command == ServiceBus::PATTERN_MATCHING_QUERY) {
+                sink_port_number = PortPool::get_port();
+                shared_ptr<Sink> query_sink = make_shared<Sink>(
+                    root_query_element,
+                    "Sink_" + proxy->peer_id() + "_" + std::to_string(proxy->get_serial()));
+                unsigned int answer_count = 0;
+                LOG_DEBUG("Processing QueryAnswer objects");
+                while (!(query_sink->finished() || proxy->is_aborting())) {
+                    process_query_answers(proxy, query_sink, joint_answer, answer_count);
+                    Utils::sleep();
+                }
+                if (proxy->get_count_flag() && (!proxy->is_aborting())) {
+                    LOG_DEBUG("Answering count_only query");
+                    proxy->to_remote_peer(PatternMatchingQueryProxy::COUNT,
+                                          {std::to_string(answer_count)});
+                }
+                Utils::sleep(500);
+                proxy->to_remote_peer(PatternMatchingQueryProxy::FINISHED, {});
+                if (proxy->get_attention_update_flag()) {
+                    LOG_DEBUG("Updating AttentionBroker (stimulate)");
+                    update_attention_broker_joint_answer(proxy, joint_answer);
+                }
+                Utils::sleep(500);
+                LOG_INFO("Total processed answers: " << answer_count);
+                query_sink->graceful_shutdown();
+                PortPool::return_port(sink_port_number);
+            } else {
+                Utils::error("Invalid command " + command + " in PatternMatchingQueryProcessor");
+            }
         }
-    } catch (const std::runtime_error exception) {
+    } catch (const std::runtime_error& exception) {
         proxy->raise_error_on_peer(exception.what());
-    } catch (const std::exception exception) {
+    } catch (const std::exception& exception) {
         proxy->raise_error_on_peer(exception.what());
     }
     LOG_DEBUG("Command finished: <" << proxy->get_command() << ">");
@@ -229,8 +235,10 @@ shared_ptr<QueryElement> PatternMatchingQueryProcessor::setup_query_tree(
             cursor += 3;
         }
     }
+
     if (cursor != tokens_count) {
-        Utils::error("PATTERN_MATCHING_QUERY message: parse error in query tokens");
+        Utils::error("Parse error in query tokens");
+        return shared_ptr<QueryElement>(NULL);
     }
 
     while (!execution_stack.empty()) {
@@ -265,9 +273,8 @@ shared_ptr<QueryElement> PatternMatchingQueryProcessor::setup_query_tree(
     }
 
     if (element_stack.size() != 1) {
-        Utils::error(
-            "PATTERN_MATCHING_QUERY message: "
-            "parse error in query tokens (trailing elements)");
+        Utils::error("Parse error in query tokens (trailing elements)");
+        return shared_ptr<QueryElement>(NULL);
     }
     return element_stack.top();
 }

@@ -24,6 +24,26 @@ cc_library(
 )
 
 cc_library(
+    name = "evolution_engine_main_lib",
+    srcs = ["evolution_engine_main.cc"],
+    deps = [
+        "//agents/evolution:evolution_lib",
+        "//atomdb:atomdb_singleton",
+        "//service_bus:service_bus_lib",
+    ],
+)
+
+cc_library(
+    name = "evolution_client_main_lib",
+    srcs = ["evolution_client_main.cc"],
+    deps = [
+        "//agents/evolution:evolution_lib",
+        "//atomdb:atomdb_singleton",
+        "//service_bus:service_bus_lib",
+    ],
+)
+
+cc_library(
     name = "query_client_main_lib",
     srcs = ["query_client_main.cc"],
     deps = [
@@ -54,10 +74,20 @@ cc_library(
 )
 
 cc_library(
+    name = "word_query_evolution_main_lib",
+    srcs = ["word_query_evolution_main.cc"],
+    deps = [
+        "//agents/evolution:evolution_lib",
+        "//atomdb:atomdb_singleton",
+        "//service_bus:service_bus_lib",
+    ],
+)
+
+cc_library(
     name = "link_creation_agent_main_lib",
     srcs = ["link_creation_agent_main.cc"],
     deps = [
-        "//link_creation_agent:link_creation_agent_lib",
+        "//agents/link_creation_agent:link_creation_agent_lib",
     ],
 )
 
@@ -65,7 +95,7 @@ cc_library(
     name = "link_creation_agent_client_main_lib",
     srcs = ["link_creation_agent_client_main.cc"],
     deps = [
-        "//link_creation_agent:link_creation_agent_lib",
+        "//agents/link_creation_agent:link_creation_agent_lib",
     ],
 )
 
@@ -73,7 +103,7 @@ cc_library(
     name = "inference_agent_main_lib",
     srcs = ["inference_agent_main.cc"],
     deps = [
-        "//inference_agent:inference_agent_lib",
+        "//agents/inference_agent:inference_agent_lib",
     ],
 )
 
@@ -81,6 +111,6 @@ cc_library(
     name = "inference_agent_client_main_lib",
     srcs = ["inference_agent_client_main.cc"],
     deps = [
-        "//inference_agent:inference_agent_lib",
+        "//agents/inference_agent:inference_agent_lib",
     ],
 )

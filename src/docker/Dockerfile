@@ -36,7 +36,7 @@ RUN ARCH=$([ "$(uname -m)" = "aarch64" ] && echo "arm64" || echo "amd64") \
 # To be removed when AtomDB is properly integrated
 # Redis client
 COPY src/assets/hiredis-cluster.tgz /tmp
-COPY src/assets/mongo-cxx-driver-r3.11.0.tar.gz /tmp
+COPY src/assets/mongo-cxx-driver-r4.1.0.tar.gz /tmp
 COPY src/assets/cpp-httplib-master.zip /tmp
 RUN cd /tmp \
     && tar xzf hiredis-cluster.tgz \
@@ -50,8 +50,8 @@ RUN cd /tmp \
     && ldconfig
 # MongoDB client
 RUN cd /tmp \
-    && tar xzvf mongo-cxx-driver-r3.11.0.tar.gz \
-    && cd /tmp/mongo-cxx-driver-r3.11.0/build/ \
+    && tar xzvf mongo-cxx-driver-r4.1.0.tar.gz \
+    && cd /tmp/mongo-cxx-driver-r4.1.0/build/ \
     && cmake .. -DCMAKE_BUILD_TYPE=Release -DMONGOCXX_OVERRIDE_DEFAULT_INSTALL_PREFIX=OFF \
     && cmake --build . \
     && cmake --build . --target install \
@@ -68,6 +68,8 @@ RUN cd /tmp \
 
 # add regular user
 RUN useradd -ms /bin/bash builder
+
+RUN git config --global --add safe.directory ${DAS_DIR}
 
 ################################################################################
 

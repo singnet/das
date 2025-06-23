@@ -469,8 +469,8 @@ cc_test(
     ],
     linkstatic = 1,
     deps = [
+        "//agents/link_creation_agent:link_creation_agent_lib",
         "//commons:commons_lib",
-        "//link_creation_agent:link_creation_agent_lib",
         "//service_bus:service_bus_lib",
         "@com_github_google_googletest//:gtest_main",
     ],
@@ -486,16 +486,16 @@ cc_test(
     ],
     linkstatic = 1,
     deps = [
+        "//agents/inference_agent:inference_agent_lib",
         "//commons:commons_lib",
-        "//inference_agent:inference_agent_lib",
         "@com_github_google_googletest//:gtest_main",
     ],
 )
 
 cc_test(
-    name = "custom_attributes_test",
+    name = "properties_test",
     size = "small",
-    srcs = ["custom_attributes_test.cc"],
+    srcs = ["properties_test.cc"],
     copts = [
         "-Iexternal/gtest/googletest/include",
         "-Iexternal/gtest/googletest",
@@ -503,6 +503,7 @@ cc_test(
     linkstatic = 1,
     deps = [
         "//atomdb:atomdb_api_types",
+        "//commons:commons_lib",
         "@com_github_google_googletest//:gtest_main",
     ],
 )
@@ -518,6 +519,7 @@ cc_test(
     linkstatic = 1,
     deps = [
         "//atom_space:atom_space_types",
+        "//commons:commons_lib",
         "@com_github_google_googletest//:gtest_main",
     ],
 )
@@ -535,8 +537,36 @@ cc_test(
         "//agents/query_engine:query_engine_lib",
         "//atom_space:atom_space_lib",
         "//atom_space:atom_space_types",
-        "//atomdb:atomdb_api_types",
+        "//commons:commons_lib",
         "//service_bus:service_bus_lib",
         "@com_github_google_googletest//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "redis_mongodb_test",
+    size = "small",
+    srcs = [
+        "redis_mongodb_test.cc",
+        "test_utils.cc",
+        "test_utils.h",
+    ],
+    copts = [
+        "-Iexternal/gtest/googletest/include",
+        "-Iexternal/gtest/googletest",
+    ],
+    linkopts = [
+        "-L/usr/local/lib",
+        "-lhiredis_cluster",
+        "-lhiredis",
+        "-lmongocxx",
+        "-lbsoncxx",
+    ],
+    linkstatic = 1,
+    deps = [
+        "//atom_space:link_template_interface",
+        "//atomdb:atomdb_singleton",
+        "@com_github_google_googletest//:gtest_main",
+        "@mbedtls",
     ],
 )

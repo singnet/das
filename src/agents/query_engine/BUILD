@@ -59,6 +59,7 @@ cc_library(
     hdrs = ["PatternMatchingQueryProxy.h"],
     deps = [
         ":query_answer",
+        "//agents:agents_lib",
         "//distributed_algorithm_node",
         "//service_bus:bus_command_proxy",
     ],

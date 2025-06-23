@@ -1,11 +1,12 @@
 #pragma once
 
+#include <cstring>
 #include <stdexcept>
 #include <string>
 #include <vector>
 
-#include "AtomDBAPITypes.h"
 #include "HandleTrie.h"
+#include "Properties.h"
 #include "expression_hasher.h"
 
 #define HANDLE_SIZE 32
@@ -13,7 +14,6 @@
 
 using namespace std;
 using namespace commons;
-using namespace atomdb::atomdb_api_types;
 
 namespace atomspace {
 
@@ -85,15 +85,15 @@ struct TargetHandlesDeleter {
 // -------------------------------------------------------------------------------------------------
 class Atom : public HandleTrie::TrieValue {
    public:
-    string type;                            ///< The type of the atom.
-    CustomAttributesMap custom_attributes;  ///< Custom attributes for the atom.
+    string type;                   ///< The type of the atom.
+    Properties custom_attributes;  ///< Custom attributes for the atom.
 
     /**
      * @brief Construct an Atom.
      * @param type The type of the atom.
      * @throws std::runtime_error if type is empty.
      */
-    Atom(const string& type, const CustomAttributesMap& custom_attributes = {})
+    Atom(const string& type, const Properties& custom_attributes = {})
         : type(type), custom_attributes(custom_attributes) {
         this->validate();
     }
@@ -125,7 +125,7 @@ class Node : public Atom {
      * @param name The name of the node.
      * @throws std::runtime_error if type or name is empty.
      */
-    Node(const string& type, const string& name, const CustomAttributesMap& custom_attributes = {})
+    Node(const string& type, const string& name, const Properties& custom_attributes = {})
         : Atom(type, custom_attributes), name(name) {
         this->validate();
     }
@@ -182,7 +182,7 @@ class Link : public Atom {
      */
     Link(const string& type,
          const vector<const Atom*>& targets,
-         const CustomAttributesMap& custom_attributes = {})
+         const Properties& custom_attributes = {})
         : Atom(type, custom_attributes), targets(targets) {
         this->validate();
     }
@@ -194,9 +194,7 @@ class Link : public Atom {
      * @param targets The target atoms of the link (rvalue reference, will be moved).
      * @throws std::runtime_error if type is empty or targets.size() < MINIMUM_TARGETS_SIZE.
      */
-    Link(const string& type,
-         vector<const Atom*>&& targets,
-         const CustomAttributesMap& custom_attributes = {})
+    Link(const string& type, vector<const Atom*>&& targets, const Properties& custom_attributes = {})
         : Atom(type, custom_attributes), targets(move(targets)) {
         this->validate();
     }
