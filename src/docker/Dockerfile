@@ -19,7 +19,7 @@ RUN mkdir -p \
     ${THIRD_PARTY}
 
 RUN yes | apt update -y \
-    && yes | apt install -y git build-essential curl protobuf-compiler python3 python3-pip cmake \
+    && yes | apt install -y git build-essential curl protobuf-compiler python3 python3-pip cmake unzip \
     libevent-dev libssl-dev pkg-config libncurses5 \
     && yes | apt clean -y \
     && rm -rf /var/lib/apt/lists/*
@@ -37,6 +37,7 @@ RUN ARCH=$([ "$(uname -m)" = "aarch64" ] && echo "arm64" || echo "amd64") \
 # Redis client
 COPY src/assets/hiredis-cluster.tgz /tmp
 COPY src/assets/mongo-cxx-driver-r3.11.0.tar.gz /tmp
+COPY src/assets/cpp-httplib-master.zip /tmp
 RUN cd /tmp \
     && tar xzf hiredis-cluster.tgz \
     && cd hiredis-cluster \
@@ -58,6 +59,12 @@ RUN cd /tmp \
     && ln -s /usr/local/include/bsoncxx/v_noabi/bsoncxx/third_party/mnmlstc/core/ /usr/local/include/core \
     && ln -s /usr/local/include/mongocxx/v_noabi/mongocxx/* /usr/local/include/mongocxx/ \
     && ldconfig
+# cpp-httplib
+RUN cd /tmp \
+    && unzip cpp-httplib-master.zip \
+    && ln -s /src/assets/cpp-httplib-master/httplib.h /usr/local/include/httplib.h \
+    && ldconfig
+
 
 # add regular user
 RUN useradd -ms /bin/bash builder

@@ -93,3 +93,28 @@ cc_library(
         "//commons:commons_lib",
     ],
 )
+
+cc_library(
+    name = "morkdb_api_types",
+    srcs = ["MorkDBAPITypes.cc"],
+    hdrs = ["MorkDBAPITypes.h"],
+    includes = ["."],
+    deps = [
+        ":atomdb_api_types",
+    ],
+)
+
+cc_library(
+    name = "mork_mongodb",
+    srcs = ["MorkMongoDB.cc"],
+    hdrs = ["MorkMongoDB.h"],
+    includes = ["."],
+    deps = [
+        ":atomdb",
+        ":atomdb_cache_singleton",
+        ":redis_mongodb_api_types",
+        ":morkdb_api_types",
+        "//attention_broker:attention_broker_lib",
+        "//commons:commons_lib",
+    ],
+)
