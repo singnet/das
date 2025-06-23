@@ -46,7 +46,12 @@ void LinkCreationRequestProcessor::process_link_create_request(shared_ptr<BusCom
 
 
 void LinkCreationRequestProcessor::abort_link_create_request(shared_ptr<BusCommandProxy> proxy) {
-    // TODO
+    auto request_proxy = dynamic_pointer_cast<LinkCreationRequestProxy>(proxy);
+    if (request_proxy == nullptr) {
+        proxy->raise_error_on_peer("Invalid proxy type for ABORT command");
+    }
+    LOG_DEBUG("Aborting link creation request: " << request_proxy->get_args().back());
+    this->link_creation_agent->abort_request(proxy->peer_id() + to_string(proxy->get_serial()));
 }
 
 

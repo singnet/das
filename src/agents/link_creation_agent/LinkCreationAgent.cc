@@ -226,13 +226,7 @@ shared_ptr<LinkCreationAgentRequest> LinkCreationAgent::create_request(vector<st
             }
         }
         lca_request->infinite = (lca_request->repeat == -1);
-        if (lca_request->id.empty()) {
-            lca_request->id =
-                compute_hash((char*) (to_string(time(0)) + Utils::random_string(20)).c_str());
-        } else {
-            lca_request->id = lca_request->id + "-" +
-                              compute_hash((char*) Utils::join(lca_request->link_template, ' ').c_str());
-        }
+        lca_request->id = compute_hash((char*) lca_request->id.c_str());
         LOG_DEBUG("Creating request ID: " << lca_request->id);
         LOG_DEBUG("Query: " << Utils::join(lca_request->query, ' '));
         LOG_DEBUG("Link Template: " << Utils::join(lca_request->link_template, ' '));
@@ -257,10 +251,11 @@ void LinkCreationAgent::process_request(vector<string> request) {
 
 void LinkCreationAgent::abort_request(const string& request_id) {
     lock_guard<mutex> lock(agent_mutex);
-    if (request_buffer.find(request_id) != request_buffer.end()) {
-        request_buffer.erase(request_id);
-        LOG_DEBUG("Aborted request ID: " << request_id);
+    string request_id_hash = compute_hash((char*) request_id.c_str());
+    if (request_buffer.find(request_id_hash) != request_buffer.end()) {
+        request_buffer.erase(request_id_hash);
+        LOG_DEBUG("Aborted request ID: " << request_id_hash);
     } else {
-        LOG_DEBUG("Request ID: " << request_id << " not found in buffer");
+        LOG_DEBUG("Request ID: " << request_id_hash << " not found in buffer");
     }
 }
