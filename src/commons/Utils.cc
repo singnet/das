@@ -163,3 +163,12 @@ int Utils::string_to_int(const string& s) {
     }
     return stoi(s);
 }
+
+string Utils::trim(const string& s) {
+    const string whitespace = " \n\r\t\f\v";
+    size_t start = s.find_first_not_of(whitespace);
+    if (start == string::npos) { return ""; }
+    size_t end = s.find_last_not_of(whitespace);
+    return s.substr(start, end - start + 1);
+}
+
