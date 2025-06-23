@@ -4,6 +4,7 @@
 #include <sstream>
 
 #include "LinkCreateTemplate.h"
+#define LOG_LEVEL DEBUG_LEVEL
 #include "Logger.h"
 #include "expression_hasher.h"
 #include "ConfigFileSingleton.h"
@@ -89,12 +90,14 @@ void LinkCreationAgent::run() {
                 current_buffer_position++;
             }
         }
-
         if (lca_request == nullptr ||
             lca_request->last_execution + lca_request->current_interval > time(0)) {
             Utils::sleep(loop_interval);
             continue;
         }
+
+        LOG_DEBUG("LCArequest ID: " << (lca_request ? lca_request->id : "NULL"));
+
 
         if (lca_request->infinite || lca_request->repeat > 0) {
             LOG_DEBUG("Request IDX: " << current_buffer_position);

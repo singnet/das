@@ -51,7 +51,9 @@ int main(int argc, char* argv[]) {
     ConfigFileSingleton::init(config_path);
     shared_ptr<Config> config = ConfigFileSingleton::get_instance();
     AtomDBSingleton::init();
-    ServiceBusSingleton::init(config->get(ConfigKeys::Agents::LinkCreation::SERVER_ID));
+    ServiceBusSingleton::init(config->get(ConfigKeys::Agents::LinkCreation::SERVER_ID),
+        config->get(ConfigKeys::Agents::LinkCreation::QUERY_SERVER)
+    );
     shared_ptr<ServiceBus> service_bus = ServiceBusSingleton::get_instance();
     service_bus->register_processor(make_shared<LinkCreationRequestProcessor>());
 
