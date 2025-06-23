@@ -8,33 +8,33 @@
 #include "LinkCreationAgent.h"
 #include "TemplateProcessor.h"
 #include "Utils.h"
+#include "ConfigFileSingleton.h"
+#include "LinkCreationRequestProcessor.h"
+#include "AtomDBSingleton.h"
 
 using namespace std;
 using namespace link_creation_agent;
 using namespace commons;
+using namespace service_bus;
+using namespace atomdb;
 
 class LinkCreationAgentTest : public ::testing::Test {
    protected:
-    LinkCreationAgent* agent;
-
     void SetUp() override {
-        // ServiceBusSingleton::init("localhost:7002");
-        // Create a temporary config file for testing
         ofstream config_file("test_config.cfg");
-        config_file << "requests_interval_seconds=1\n";
-        config_file << "link_creation_agent_thread_count=1\n";
-        config_file << "query_agent_client_id=localhost:7001\n";
-        config_file << "query_agent_server_id=localhost:7002\n";
-        config_file << "link_creation_agent_server_id=localhost:7003\n";
+        config_file << ConfigKeys::Agents::LinkCreation::REQUESTS_INTERVAL << "=1\n";
+        config_file << ConfigKeys::Agents::LinkCreation::THREAD_COUNT << "=1\n";
+        config_file << ConfigKeys::Agents::LinkCreation::QUERY_SERVER << "=localhost:7002\n";
+        config_file << ConfigKeys::Agents::LinkCreation::SERVER_ID << "=localhost:7003\n";
         config_file << "das_agent_client_id=localhost:7004\n";
         config_file << "das_agent_server_id=localhost:7005\n";
-        config_file << "requests_buffer_file=test_buffer.bin\n";
-        config_file << "query_timeout_seconds=1\n";
-        config_file << "query_agent_client_start_port=7001\n";
-        config_file << "query_agent_client_end_port=7002\n";
-        config_file << "metta_file_path=.\n";
-        config_file << "save_links_to_db=false\n";
-        config_file << "save_links_to_metta_file=true\n";
+        config_file << ConfigKeys::Agents::LinkCreation::BUFFER_FILE << "=test_buffer.bin\n";
+        config_file << ConfigKeys::Agents::LinkCreation::QUERY_TIMEOUT << "=1\n";
+        config_file << ConfigKeys::Agents::LinkCreation::QUERY_START_PORT << "=7001\n";
+        config_file << ConfigKeys::Agents::LinkCreation::QUERY_END_PORT << "=7002\n";
+        config_file << ConfigKeys::Agents::LinkCreation::METTA_FILE_PATH << "=.\n";
+        config_file << ConfigKeys::Agents::LinkCreation::SAVE_TO_DB << "=false\n";
+        config_file << ConfigKeys::Agents::LinkCreation::SAVE_TO_METTA_FILE << "=true\n";
         config_file.close();
     }
 
@@ -46,8 +46,8 @@ class LinkCreationAgentTest : public ::testing::Test {
 
 TEST_F(LinkCreationAgentTest, TestRequest) {
     // test config
-    agent = new LinkCreationAgent("test_config.cfg");
-    delete agent;
+    // agent = new LinkCreationAgent("test_config.cfg");
+    // delete agent;
     // Simulate a request
     vector<string> request = {
         "query1", "LINK_CREATE", "test", "1", "0", "VARIABLE", "V1", "10", "5", "test_context", "true"};
@@ -91,10 +91,14 @@ TEST_F(LinkCreationAgentTest, TestRequest) {
     EXPECT_EQ(lca_request->id, "1-d1e04bd3bec19f7393ab03482281f296");
 }
 
-// TEST_F(LinkCreationAgentTest, TestConfig) {
-//     agent = new LinkCreationAgent("test_config.cfg");
-//     delete agent;
-// }
+TEST_F(LinkCreationAgentTest, TestConfig) {
+        ConfigFileSingleton::init("test_config.cfg");
+        // AtomDBSingleton::init();
+        auto config = ConfigFileSingleton::get_instance();
+        ServiceBusSingleton::init(config->get(ConfigKeys::Agents::LinkCreation::SERVER_ID));
+        shared_ptr<ServiceBus> service_bus = ServiceBusSingleton::get_instance();
+        service_bus->register_processor(make_shared<LinkCreationRequestProcessor>());
+}
 
 TEST(LinkCreateTemplate, TestCustomField) {
     vector<string> args = {"CUSTOM_FIELD", "field1", "2", "N1", "value1", "N2", "value2"};

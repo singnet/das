@@ -8,6 +8,8 @@ cc_library(
         "SharedQueue.cc",
         "StoppableThread.cc",
         "Utils.cc",
+        "Config.cc",
+        "ConfigFileSingleton.cc",
     ],
     hdrs = [
         "Logger.h",
@@ -17,6 +19,8 @@ cc_library(
         "StoppableThread.h",
         "ThreadPool.h",
         "Utils.h",
+        "Config.h",
+        "ConfigFileSingleton.h",
     ],
     includes = ["."],
     deps = [],

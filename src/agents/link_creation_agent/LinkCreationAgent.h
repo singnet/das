@@ -49,6 +49,7 @@ struct LinkCreationAgentRequest {
 class LinkCreationAgent {
    public:
     LinkCreationAgent(string config_path);
+    LinkCreationAgent();
     ~LinkCreationAgent();
 
     /**
@@ -62,6 +63,12 @@ class LinkCreationAgent {
      * @param request Request to be handled
      */
     static shared_ptr<LinkCreationAgentRequest> create_request(vector<string> request);
+
+
+    void process_request(vector<string> request);
+
+    void abort_request(const string& request_id);
+
 
    private:
     /**
@@ -109,6 +116,7 @@ class LinkCreationAgent {
     LinkCreationService* service;
     map<string, shared_ptr<LinkCreationAgentRequest>> request_buffer;
     LinkCreationAgentNode* link_creation_node_server;
+    Queue<shared_ptr<LinkCreationAgentRequest>> requests_queue;  // Queue to hold requests
     DasAgentNode* das_client;
     thread* agent_thread;
     mutex agent_mutex;

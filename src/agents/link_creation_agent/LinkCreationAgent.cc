@@ -6,18 +6,14 @@
 #include "LinkCreateTemplate.h"
 #include "Logger.h"
 #include "expression_hasher.h"
+#include "ConfigFileSingleton.h"
 
 using namespace std;
 using namespace link_creation_agent;
 
-LinkCreationAgent::LinkCreationAgent(string config_path) {
-    this->config_path = config_path;
+LinkCreationAgent::LinkCreationAgent() {
+    this->config_path = "config/link_creation_agent.conf";
     load_config();
-    link_creation_node_server = new LinkCreationAgentNode(link_creation_agent_server_id);
-    ServiceBusSingleton::init(query_agent_client_id,
-                              query_agent_server_id,
-                              query_agent_client_start_port,
-                              query_agent_client_end_port);
     service = new LinkCreationService(link_creation_agent_thread_count);
     service->set_timeout(query_timeout_seconds);
     service->set_metta_file_path(metta_file_path);
@@ -29,15 +25,32 @@ LinkCreationAgent::LinkCreationAgent(string config_path) {
     }
     service->set_save_links_to_metta_file(save_links_to_metta_file);
     service->set_save_links_to_db(save_links_to_db);
-    das_client = new DasAgentNode(das_agent_client_id, das_agent_server_id);
+    das_client = nullptr;
+    this->agent_thread = new thread(&LinkCreationAgent::run, this);
+}
+
+LinkCreationAgent::LinkCreationAgent(string config_path) {
+    this->config_path = config_path;
+    load_config();
+    service = new LinkCreationService(link_creation_agent_thread_count);
+    service->set_timeout(query_timeout_seconds);
+    service->set_metta_file_path(metta_file_path);
+    if (save_links_to_metta_file) {
+        LOG_DEBUG("Saving links to metta file: " << metta_file_path);
+    }
+    if (save_links_to_db) {
+        LOG_DEBUG("Saving links to DB");
+    }
+    service->set_save_links_to_metta_file(save_links_to_metta_file);
+    service->set_save_links_to_db(save_links_to_db);
+    das_client = nullptr;
     this->agent_thread = new thread(&LinkCreationAgent::run, this);
 }
 
 LinkCreationAgent::~LinkCreationAgent() {
     stop();
-    delete link_creation_node_server;
     delete service;
-    delete das_client;
+    // delete das_client;
 }
 
 void LinkCreationAgent::stop() {
@@ -47,8 +60,7 @@ void LinkCreationAgent::stop() {
         save_buffer();
     }
     agent_mutex.unlock();
-    link_creation_node_server->graceful_shutdown();
-    das_client->graceful_shutdown();
+    // das_client->graceful_shutdown();
     if (agent_thread != NULL && agent_thread->joinable()) {
         agent_thread->join();
         agent_thread = NULL;
@@ -61,10 +73,9 @@ void LinkCreationAgent::run() {
     is_running = true;
     while (true) {
         if (is_stoping) break;
-        shared_ptr<LinkCreationAgentRequest> lca_request = NULL;
-        if (!link_creation_node_server->is_query_empty()) {
-            vector<string> request = link_creation_node_server->pop_request();
-            lca_request = create_request(request);
+        shared_ptr<LinkCreationAgentRequest> lca_request = nullptr;
+        if (!requests_queue.empty()) {
+            lca_request = requests_queue.dequeue();
             lca_request->current_interval = requests_interval_seconds;
             if (lca_request != NULL && (lca_request->infinite || lca_request->repeat > 0)) {
                 request_buffer[lca_request->id] = lca_request;
@@ -86,7 +97,6 @@ void LinkCreationAgent::run() {
         }
 
         if (lca_request->infinite || lca_request->repeat > 0) {
-            // query_agent_mutex->lock();
             LOG_DEBUG("Request IDX: " << current_buffer_position);
             LOG_DEBUG("Processing request ID: " << lca_request->id);
             LOG_DEBUG("Current size of request buffer: " << request_buffer.size());
@@ -123,25 +133,31 @@ shared_ptr<PatternMatchingQueryProxy> LinkCreationAgent::query(vector<string>& q
 }
 
 void LinkCreationAgent::load_config() {
-    map<string, string> config_map = Utils::parse_config(config_path);
-    this->requests_interval_seconds = stoi(config_map["requests_interval_seconds"]);
-    this->link_creation_agent_thread_count = stoi(config_map["link_creation_agent_thread_count"]);
-    this->query_agent_client_id = config_map["query_agent_client_id"];
-    this->query_agent_server_id = config_map["query_agent_server_id"];
-    this->link_creation_agent_server_id = config_map["link_creation_agent_server_id"];
-    this->das_agent_client_id = config_map["das_agent_client_id"];
-    this->requests_buffer_file = config_map["requests_buffer_file"];
-    this->das_agent_server_id = config_map["das_agent_server_id"];
-    this->query_agent_client_start_port = stoul(config_map["query_agent_client_start_port"]);
-    this->query_agent_client_end_port = stoul(config_map["query_agent_client_end_port"]);
-    this->query_timeout_seconds = stoi(config_map["query_timeout_seconds"]);
-    this->metta_file_path = config_map["metta_file_path"];
-    this->save_links_to_db = config_map.find("save_links_to_db") != config_map.end()
-                                 ? config_map["save_links_to_db"] == "true"
-                                 : this->save_links_to_db;
-    this->save_links_to_metta_file = config_map.find("save_links_to_metta_file") != config_map.end()
-                                         ? config_map["save_links_to_metta_file"] == "true"
-                                         : this->save_links_to_metta_file;
+    auto config_file = ConfigFileSingleton::get_instance();
+    auto requests_interval = config_file->get(ConfigKeys::Agents::LinkCreation::REQUESTS_INTERVAL);
+    this->requests_interval_seconds = Utils::string_to_int(requests_interval);
+    auto thread_count = config_file->get(ConfigKeys::Agents::LinkCreation::THREAD_COUNT);
+    this->link_creation_agent_thread_count = Utils::string_to_int(thread_count);
+    auto query_server = config_file->get(ConfigKeys::Agents::LinkCreation::QUERY_SERVER);
+    this->query_agent_server_id = query_server;
+    auto query_timeout = config_file->get(ConfigKeys::Agents::LinkCreation::QUERY_TIMEOUT);
+    this->query_timeout_seconds = Utils::string_to_int(query_timeout);
+    auto server_id = config_file->get(ConfigKeys::Agents::LinkCreation::SERVER_ID);
+    this->link_creation_agent_server_id = server_id;
+    auto buffer_file = config_file->get(ConfigKeys::Agents::LinkCreation::BUFFER_FILE);
+    this->requests_buffer_file = buffer_file;
+    auto metta_file_path = config_file->get(ConfigKeys::Agents::LinkCreation::METTA_FILE_PATH);
+    this->metta_file_path = metta_file_path;
+    auto save_to_metta_file = config_file->get(ConfigKeys::Agents::LinkCreation::SAVE_TO_METTA_FILE);
+    this->save_links_to_metta_file = (save_to_metta_file == "true" ||
+                                      save_to_metta_file == "1" || save_to_metta_file == "yes");
+    auto save_to_db = config_file->get(ConfigKeys::Agents::LinkCreation::SAVE_TO_DB);
+    this->save_links_to_db = (save_to_db == "true" || save_to_db == "1" || save_to_db == "yes");
+    auto query_start_port = config_file->get(ConfigKeys::Agents::LinkCreation::QUERY_START_PORT);
+    this->query_agent_client_start_port = Utils::string_to_int(query_start_port);
+    auto query_end_port = config_file->get(ConfigKeys::Agents::LinkCreation::QUERY_END_PORT);
+    this->query_agent_client_end_port = Utils::string_to_int(query_end_port);                                    
+    
 }
 
 void LinkCreationAgent::save_buffer() {
@@ -226,7 +242,22 @@ shared_ptr<LinkCreationAgentRequest> LinkCreationAgent::create_request(vector<st
         return shared_ptr<LinkCreationAgentRequest>(lca_request);
     } catch (exception& e) {
         LOG_ERROR("Error parsing request: " << string(e.what()));
+        throw invalid_argument("Invalid request format: " + string(e.what()));
+    }
+    return nullptr;
 
-        return NULL;
+}
+
+void LinkCreationAgent::process_request(vector<string> request) {
+    this->requests_queue.enqueue(create_request(request));
+}
+
+void LinkCreationAgent::abort_request(const string& request_id) {
+    lock_guard<mutex> lock(agent_mutex);
+    if (request_buffer.find(request_id) != request_buffer.end()) {
+        request_buffer.erase(request_id);
+        LOG_DEBUG("Aborted request ID: " << request_id);
+    } else {
+        LOG_DEBUG("Request ID: " << request_id << " not found in buffer");
     }
 }

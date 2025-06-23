@@ -102,6 +102,7 @@ class ServiceBus {
    public:
     static string PATTERN_MATCHING_QUERY;
     static string QUERY_EVOLUTION;
+    static string LINK_CREATE_REQUEST;
 
     /**
      * Registers a processor making it take the ownership of one or more bus commands.

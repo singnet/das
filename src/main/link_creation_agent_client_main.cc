@@ -23,22 +23,22 @@ int main(int argc, char* argv[]) {
     MAX_RESULTS and REPEAT are optional, the default value for MAX_RESULTS is 1000 and for REPEAT is 1
     )"""";
 
-    if ((argc < 4)) {
-        cerr << help << endl;
-    }
-    signal(SIGINT, &ctrl_c_handler);
-    signal(SIGTERM, &ctrl_c_handler);
+    // if ((argc < 4)) {
+    //     cerr << help << endl;
+    // }
+    // signal(SIGINT, &ctrl_c_handler);
+    // signal(SIGTERM, &ctrl_c_handler);
 
-    string client_id = string(argv[1]);
-    string server_id = string(argv[2]);
+    // string client_id = string(argv[1]);
+    // string server_id = string(argv[2]);
 
-    vector<string> request;
-    for (int i = 3; i < argc; i++) {
-        request.push_back(argv[i]);
-    }
+    // vector<string> request;
+    // for (int i = 3; i < argc; i++) {
+    //     request.push_back(argv[i]);
+    // }
 
-    auto client = new LinkCreationAgentNode(client_id, server_id);
-    client->send_message(request);
+    // auto client = new LinkCreationAgentNode(client_id, server_id);
+    // client->send_message(request);
 
     return 0;
 }

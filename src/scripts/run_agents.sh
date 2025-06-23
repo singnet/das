@@ -68,19 +68,21 @@ if [ -f "$LINK_CREATION_FILE_PATH" ]; then
 else
     echo "Creating file $LINK_CREATION_FILE_PATH."
     touch $PWD/src/bin/link_creation_server.cfg
-    echo "link_creation_agent_thread_count = $LINK_CREATION_AGENT_THREAD_COUNT" >> $PWD/src/bin/link_creation_server.cfg
-    echo "link_creation_agent_server_id = $LINK_CREATION_AGENT_NODE_ID" >> $PWD/src/bin/link_creation_server.cfg
-    echo "query_agent_server_id = $QUERY_AGENT_NODE_ID" >> $PWD/src/bin/link_creation_server.cfg
+    echo "link_creation_agent.thread_count = $LINK_CREATION_AGENT_THREAD_COUNT" >> $PWD/src/bin/link_creation_server.cfg
+    echo "link_creation_agent.server_id = $LINK_CREATION_AGENT_NODE_ID" >> $PWD/src/bin/link_creation_server.cfg
+    echo "link_creation_agent.query_server = $QUERY_AGENT_NODE_ID" >> $PWD/src/bin/link_creation_server.cfg
     echo "query_agent_client_id = $LINK_CREATION_QUERY_AGENT_ID" >> $PWD/src/bin/link_creation_server.cfg
-    echo "query_agent_client_start_port = $LINK_CREATION_QUERY_AGENT_START_PORT" >> $PWD/src/bin/link_creation_server.cfg
-    echo "query_agent_client_end_port = $LINK_CREATION_QUERY_AGENT_END_PORT" >> $PWD/src/bin/link_creation_server.cfg
+    echo "link_creation_agent.query_start_port = $LINK_CREATION_QUERY_AGENT_START_PORT" >> $PWD/src/bin/link_creation_server.cfg
+    echo "link_creation_agent.query_end_port = $LINK_CREATION_QUERY_AGENT_END_PORT" >> $PWD/src/bin/link_creation_server.cfg
     echo "das_agent_client_id = $LINK_CREATION_DAS_AGENT_ID" >> $PWD/src/bin/link_creation_server.cfg
     echo "das_agent_server_id = $DAS_AGENT_NODE_ID" >> $PWD/src/bin/link_creation_server.cfg
-    echo "query_timeout_seconds = $LINK_CREATION_QUERY_TIMEOUT_SECONDS" >> $PWD/src/bin/link_creation_server.cfg
-    echo "requests_interval_seconds = $LINK_CREATION_REQUESTS_INTERVAL_SECONDS" >> $PWD/src/bin/link_creation_server.cfg
-    echo "requests_buffer_file = $LINK_CREATION_REQUESTS_BUFFER_FILE" >> $PWD/src/bin/link_creation_server.cfg
-    echo "metta_file_path = /opt/das/src/bin" >> $PWD/src/bin/link_creation_server.cfg
-    echo "save_links_to_db = $SAVE_LINKS_TO_DB" >> $PWD/src/bin/link_creation_server.cfg
+    echo "link_creation_agent.query_timeout = $LINK_CREATION_QUERY_TIMEOUT_SECONDS" >> $PWD/src/bin/link_creation_server.cfg
+    echo "link_creation_agent.requests_interval = $LINK_CREATION_REQUESTS_INTERVAL_SECONDS" >> $PWD/src/bin/link_creation_server.cfg
+    echo "link_creation_agent.buffer_file = $LINK_CREATION_REQUESTS_BUFFER_FILE" >> $PWD/src/bin/link_creation_server.cfg
+    echo "link_creation_agent.metta_file_path = /opt/das/src/bin" >> $PWD/src/bin/link_creation_server.cfg
+    echo "link_creation_agent.save_to_db = $SAVE_LINKS_TO_DB" >> $PWD/src/bin/link_creation_server.cfg
+    echo "link_creation_agent.server_id = $LINK_CREATION_AGENT_NODE_ID" >> $PWD/src/bin/link_creation_server.cfg
+    echo "link_creation_agent.save_to_metta_file = true" >> $PWD/src/bin/link_creation_server.cfg
 fi
 
 # Inference Agent params

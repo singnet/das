@@ -4,9 +4,14 @@
 #include <iostream>
 #include <string>
 
-#include "LinkCreationAgent.h"
-using namespace link_creation_agent;
+#include "AtomDBSingleton.h"
+#include "LinkCreationRequestProcessor.h"
+#include "ServiceBusSingleton.h"
+#include "ConfigFileSingleton.h"
 using namespace std;
+using namespace link_creation_agent;
+using namespace atomdb;
+using namespace service_bus;
 
 void ctrl_c_handler(int) {
     std::cout << "Stopping server..." << std::endl;
@@ -40,12 +45,22 @@ int main(int argc, char* argv[]) {
         }
         exit(1);
     }
+    string config_path = argv[2];
     signal(SIGINT, &ctrl_c_handler);
     signal(SIGTERM, &ctrl_c_handler);
-    string config_path = argv[2];
+    ConfigFileSingleton::init(config_path);
+    shared_ptr<Config> config = ConfigFileSingleton::get_instance();
+    AtomDBSingleton::init();
+    ServiceBusSingleton::init(config->get(ConfigKeys::Agents::LinkCreation::SERVER_ID));
+    shared_ptr<ServiceBus> service_bus = ServiceBusSingleton::get_instance();
+    service_bus->register_processor(make_shared<LinkCreationRequestProcessor>());
 
-    cout << "Starting server" << endl;
-    auto server = new LinkCreationAgent(config_path);
-    server->run();
+    do {
+        Utils::sleep(1000);
+    } while (true);
+
+    // cout << "Starting server" << endl;
+    // auto server = new LinkCreationAgent(config_path);
+    // server->run();
     return 0;
 }
