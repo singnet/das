@@ -71,8 +71,12 @@ class LinkCreationRequestProxy : public BusCommandProxy {
      */
     virtual void raise_error(const string& error_message, unsigned int error_code = 0) override;
 
-    virtual void pack_custom_args() override {
+    virtual void pack_custom_args() {
         // No custom args to pack for this proxy
+    }
+
+    virtual void pack_command_line_args() override {
+        // No command line args to pack for this proxy
     }
 
    private:
