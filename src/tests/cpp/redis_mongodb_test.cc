@@ -13,6 +13,7 @@
 #include "expression_hasher.h"
 
 using namespace atomdb;
+using namespace atomspace;
 using namespace std;
 
 class RedisMongoDBTestEnvironment : public ::testing::Environment {
@@ -255,10 +256,10 @@ TEST_F(RedisMongoDBTest, ConcurrentLinksExist) {
 
     auto worker = [&](int thread_id) {
         try {
-            auto link_exists = db->links_exist({"68ea071c32d4dbf0a7d8e8e00f2fb823",
+            auto links_exist = db->links_exist({"68ea071c32d4dbf0a7d8e8e00f2fb823",
                                                 "00000000000000000000000000000000",
                                                 "7ec8526b8c8f15a6ac55273fedbf694f"});
-            ASSERT_EQ(link_exists.size(), 2);
+            ASSERT_EQ(links_exist.size(), 2);
             success_count++;
         } catch (const exception& e) {
             cout << "Thread " << thread_id << " failed with error: " << e.what() << endl;
@@ -276,10 +277,99 @@ TEST_F(RedisMongoDBTest, ConcurrentLinksExist) {
     EXPECT_EQ(success_count, num_threads);
 
     // Test non-existing link
-    auto link_exists = db->links_exist({"00000000000000000000000000000000",
+    auto links_exist = db->links_exist({"00000000000000000000000000000000",
                                         "00000000000000000000000000000001",
                                         "00000000000000000000000000000002"});
-    EXPECT_EQ(link_exists.size(), 0);
+    EXPECT_EQ(links_exist.size(), 0);
+}
+
+TEST_F(RedisMongoDBTest, AddAndDeleteNode) {
+    Properties custom_attributes;
+    custom_attributes["is_literal"] = true;
+
+    auto node = new Node("Symbol", "\"test-1\"", custom_attributes);
+
+    auto node_handle = Node::compute_handle(node->type, node->name);
+
+    // Check if node exists, if so, delete it
+    auto node_document = db->get_atom_document(node_handle);
+    if (node_document != nullptr) {
+        auto deleted = db->delete_atom(node_handle);
+        EXPECT_TRUE(deleted);
+    }
+
+    auto handle = db->add_node(node);
+    EXPECT_NE(handle, nullptr);
+
+    auto deleted = db->delete_atom(handle);
+    EXPECT_TRUE(deleted);
+}
+
+TEST_F(RedisMongoDBTest, AddAndDeleteNodes) {
+    vector<Node*> nodes;
+    for (int i = 0; i < 10; i++) {
+        nodes.push_back(new Node("Symbol", "add-nodes-" + to_string(i)));
+    }
+
+    auto handles = db->add_nodes(nodes);
+    EXPECT_EQ(handles.size(), 10);
+
+    auto nodes_documents = db->get_atom_documents(handles, {"_id"});
+    EXPECT_EQ(nodes_documents.size(), 10);
+
+    auto deleted = db->delete_atoms(handles);
+    EXPECT_EQ(deleted, 10);
+
+    auto nodes_documents_after_delete = db->get_atom_documents(handles, {"_id"});
+    EXPECT_EQ(nodes_documents_after_delete.size(), 0);
+}
+
+TEST_F(RedisMongoDBTest, AddAndDeleteLink) {
+    Properties custom_attributes;
+    custom_attributes["is_toplevel"] = true;
+
+    auto similarity_node = new Node("Symbol", "Similarity");
+    auto test_1_node = new Node("Symbol", "\"test-1\"");
+    auto test_2_node = new Node("Symbol", "\"test-2\"");
+
+    auto link = new Link("Expression", {similarity_node, test_1_node, test_2_node}, custom_attributes);
+
+    auto link_handle = Link::compute_handle(link->type, link->targets);
+
+    // Check if link exists, if so, delete it
+    auto node_exists = db->link_exists(link_handle);
+    if (node_exists) {
+        auto deleted = db->delete_atom(link_handle);
+        EXPECT_TRUE(deleted);
+    }
+
+    auto handle = db->add_link(link);
+    EXPECT_NE(handle, nullptr);
+
+    auto deleted = db->delete_atom(handle);
+    EXPECT_TRUE(deleted);
+}
+
+TEST_F(RedisMongoDBTest, AddAndDeleteLinks) {
+    vector<Link*> links;
+    for (int i = 0; i < 10; i++) {
+        auto similarity_node = new Node("Symbol", "Similarity");
+        auto test_1_node = new Node("Symbol", "add-links-1-" + to_string(i));
+        auto test_2_node = new Node("Symbol", "add-links-2-" + to_string(i));
+        links.push_back(new Link("Expression", {similarity_node, test_1_node, test_2_node}));
+    }
+
+    auto handles = db->add_links(links);
+    EXPECT_EQ(handles.size(), 10);
+
+    auto links_exist = db->links_exist(handles);
+    EXPECT_EQ(links_exist.size(), 10);
+
+    auto deleted = db->delete_atoms(handles);
+    EXPECT_EQ(deleted, 10);
+
+    auto links_exist_after_delete = db->links_exist(handles);
+    EXPECT_EQ(links_exist_after_delete.size(), 0);
 }
 
 int main(int argc, char** argv) {
