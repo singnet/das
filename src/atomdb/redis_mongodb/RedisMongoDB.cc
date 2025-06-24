@@ -292,7 +292,7 @@ bool RedisMongoDB::link_exists(const char* link_handle) {
             reply->view().find(MONGODB_FIELD_NAME[MONGODB_FIELD::TARGETS]) != reply->view().end());
 }
 
-vector<string> RedisMongoDB::links_exist(const vector<string>& link_handles) {
+set<string> RedisMongoDB::links_exist(const vector<string>& link_handles) {
     if (link_handles.empty()) return {};
 
     auto conn = this->mongodb_pool->acquire();
@@ -311,17 +311,18 @@ vector<string> RedisMongoDB::links_exist(const vector<string>& link_handles) {
     // Only project _id and targets
     bsoncxx::builder::basic::document projection_builder;
     projection_builder.append(bsoncxx::builder::basic::kvp(MONGODB_FIELD_NAME[MONGODB_FIELD::ID], 1));
-    projection_builder.append(bsoncxx::builder::basic::kvp(MONGODB_FIELD_NAME[MONGODB_FIELD::TARGETS], 1));
+    projection_builder.append(
+        bsoncxx::builder::basic::kvp(MONGODB_FIELD_NAME[MONGODB_FIELD::TARGETS], 1));
 
     auto cursor = mongodb_collection.find(
         filter_builder.view(), mongocxx::options::find{}.projection(projection_builder.view()));
 
-    vector<string> existing_links;
+    set<string> existing_links;
     for (const auto& view : cursor) {
-        auto it = view.find("targets");
+        auto it = view.find(MONGODB_FIELD_NAME[MONGODB_FIELD::TARGETS]);
         if (it != view.end() && it->type() == bsoncxx::type::k_array) {
             auto doc_id = view.find(MONGODB_FIELD_NAME[MONGODB_FIELD::ID]);
-            existing_links.push_back(doc_id->get_string().value.data());
+            existing_links.insert(doc_id->get_string().value.data());
         }
     }
 

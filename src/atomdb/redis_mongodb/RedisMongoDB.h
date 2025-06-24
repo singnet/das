@@ -11,6 +11,7 @@
 #include <mongocxx/options/find.hpp>
 #include <mongocxx/pool.hpp>
 #include <mutex>
+#include <set>
 #include <vector>
 
 #include "AtomDB.h"
@@ -59,7 +60,7 @@ class RedisMongoDB : public AtomDB {
                                                                           const vector<string>& fields);
 
     bool link_exists(const char* link_handle);
-    vector<string> links_exist(const vector<string>& link_handles);
+    set<string> links_exist(const vector<string>& link_handles);
 
     char* add_node(const atomspace::Node* node);
     vector<string> add_nodes(const vector<atomspace::Node*>& nodes);
