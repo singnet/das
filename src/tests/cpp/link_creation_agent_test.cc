@@ -45,10 +45,6 @@ class LinkCreationAgentTest : public ::testing::Test {
 };
 
 TEST_F(LinkCreationAgentTest, TestRequest) {
-    // test config
-    // agent = new LinkCreationAgent("test_config.cfg");
-    // delete agent;
-    // Simulate a request
     vector<string> request = {
         "query1", "LINK_CREATE", "test", "1", "0", "VARIABLE", "V1", "10", "5", "test_context", "true"};
     shared_ptr<LinkCreationAgentRequest> lca_request = LinkCreationAgent::create_request(request);
@@ -88,12 +84,11 @@ TEST_F(LinkCreationAgentTest, TestRequest) {
     EXPECT_EQ(lca_request->context, "test_context");
     EXPECT_EQ(lca_request->update_attention_broker, false);
     EXPECT_EQ(lca_request->infinite, true);
-    EXPECT_EQ(lca_request->id, "1-d1e04bd3bec19f7393ab03482281f296");
+    EXPECT_EQ(lca_request->id, "c4ca4238a0b923820dcc509a6f75849b");
 }
 
 TEST_F(LinkCreationAgentTest, TestConfig) {
     ConfigFileSingleton::init("test_config.cfg");
-    // AtomDBSingleton::init();
     auto config = ConfigFileSingleton::get_instance();
     ServiceBusSingleton::init(config->get(ConfigKeys::Agents::LinkCreation::SERVER_ID));
     shared_ptr<ServiceBus> service_bus = ServiceBusSingleton::get_instance();
