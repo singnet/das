@@ -75,6 +75,30 @@ cc_binary(
 )
 
 cc_binary(
+    name = "evolution_broker",
+    srcs = [],
+    defines = ["BAZEL_BUILD"],
+    linkstatic = 1,
+    deps = [
+        "//commons:commons_lib",
+        "//main:evolution_engine_main_lib",
+        "@mbedtls",
+    ],
+)
+
+cc_binary(
+    name = "evolution_client",
+    srcs = [],
+    defines = ["BAZEL_BUILD"],
+    linkstatic = 1,
+    deps = [
+        "//commons:commons_lib",
+        "//main:evolution_client_main_lib",
+        "@mbedtls",
+    ],
+)
+
+cc_binary(
     name = "query",
     srcs = [],
     defines = ["BAZEL_BUILD"],
@@ -106,6 +130,18 @@ cc_binary(
     deps = [
         "//commons:commons_lib",
         "//main:word_query_main_lib",
+        "@mbedtls",
+    ],
+)
+
+cc_binary(
+    name = "word_query_evolution",
+    srcs = [],
+    defines = ["BAZEL_BUILD"],
+    linkstatic = 1,
+    deps = [
+        "//commons:commons_lib",
+        "//main:word_query_evolution_main_lib",
         "@mbedtls",
     ],
 )

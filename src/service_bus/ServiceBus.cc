@@ -80,7 +80,7 @@ void ServiceBus::issue_bus_command(shared_ptr<BusCommandProxy> proxy) {
         args.push_back(proxy->requestor_id);
         args.push_back(to_string(proxy->serial));
         args.push_back(proxy->proxy_node->node_id());
-        proxy->pack_custom_args();
+        proxy->pack_command_line_args();
         for (auto arg : proxy->args) {
             args.push_back(arg);
         }

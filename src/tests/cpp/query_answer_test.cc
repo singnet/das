@@ -215,6 +215,7 @@ TEST(QueryAnswer, handles_answer_basics) {
 }
 
 void query_answers_equal(QueryAnswer* qa1, QueryAnswer* qa2) {
+    EXPECT_TRUE(double_equals(qa1->strength, qa2->strength));
     EXPECT_TRUE(double_equals(qa1->importance, qa2->importance));
     EXPECT_EQ(qa1->to_string(), qa2->to_string());
 }

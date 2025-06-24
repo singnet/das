@@ -62,4 +62,4 @@ jobs:
         run: make run-attention-broker &
 
       - name: Execute Unit Test Suite
-        run: make test-all
+        run: make bazel 'test --noshow_progress //tests/...'

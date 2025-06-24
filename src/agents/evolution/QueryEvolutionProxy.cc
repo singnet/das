@@ -11,48 +11,31 @@ using namespace evolution;
 // -------------------------------------------------------------------------------------------------
 // Constructors, destructors and initialization
 
-string QueryEvolutionProxy::ANSWER_BUNDLE = "answer_bundle";
+string QueryEvolutionProxy::POPULATION_SIZE = "population_size";
 
 QueryEvolutionProxy::QueryEvolutionProxy() {
     // constructor typically used in processor
     lock_guard<mutex> semaphore(this->api_mutex);
-    init();
+    set_default_query_parameters();
 }
 
 QueryEvolutionProxy::QueryEvolutionProxy(const vector<string>& tokens,
                                          const string& fitness_function,
                                          const string& context)
-    : BaseProxy() {
+    : BaseQueryProxy(tokens, context) {
     // constructor typically used in requestor
-    lock_guard<mutex> semaphore(this->api_mutex);
-    init();
-    this->fitness_function_tag = fitness_function;
-    this->context = context;
-    this->command = ServiceBus::QUERY_EVOLUTION;
-    this->args.insert(this->args.end(), tokens.begin(), tokens.end());
-}
-
-void QueryEvolutionProxy::set_default_query_parameters() {
-    this->unique_assignment_flag = false;
-    this->fitness_function_tag = "";
-}
-
-void QueryEvolutionProxy::init() {
-    this->answer_count = 0;
     set_default_query_parameters();
+    set_fitness_function_tag(fitness_function);
+    this->command = ServiceBus::QUERY_EVOLUTION;
 }
 
-void QueryEvolutionProxy::pack_custom_args() {
-    vector<string> custom_args = {
-        this->context, std::to_string(this->unique_assignment_flag), this->fitness_function_tag};
-    this->args.insert(this->args.begin(), custom_args.begin(), custom_args.end());
-}
+void QueryEvolutionProxy::set_default_query_parameters() { this->parameters[POPULATION_SIZE] = 1000; }
 
 string QueryEvolutionProxy::to_string() {
+    lock_guard<mutex> semaphore(this->api_mutex);
     string answer = "{";
-    answer += "context: " + this->get_context();
-    answer += " unique_assignment: " + string(this->get_unique_assignment_flag() ? "true" : "false");
-    answer += " fitness_function: " + this->get_fitness_function_tag();
+    answer += BaseQueryProxy::to_string();
+    answer += " fitness_function: " + this->fitness_function_tag;
     answer += "}";
     return answer;
 }
@@ -62,54 +45,30 @@ QueryEvolutionProxy::~QueryEvolutionProxy() {}
 // -------------------------------------------------------------------------------------------------
 // Client-side API
 
-shared_ptr<QueryAnswer> QueryEvolutionProxy::pop() {
-    lock_guard<mutex> semaphore(this->api_mutex);
-    if (this->is_aborting()) {
-        return shared_ptr<QueryAnswer>(NULL);
-    } else {
-        return shared_ptr<QueryAnswer>((QueryAnswer*) this->answer_queue.dequeue());
-    }
-}
+void QueryEvolutionProxy::pack_command_line_args() { tokenize(this->args); }
 
-unsigned int QueryEvolutionProxy::get_count() {
+void QueryEvolutionProxy::tokenize(vector<string>& output) {
     lock_guard<mutex> semaphore(this->api_mutex);
-    return this->answer_count;
+    output.insert(output.begin(), this->fitness_function_tag);
+    BaseQueryProxy::tokenize(output);
 }
 
 // -------------------------------------------------------------------------------------------------
 // Server-side API
 
-const string& QueryEvolutionProxy::get_context() {
-    lock_guard<mutex> semaphore(this->api_mutex);
-    return this->context;
+void QueryEvolutionProxy::untokenize(vector<string>& tokens) {
+    BaseQueryProxy::untokenize(tokens);
+    set_fitness_function_tag(tokens[0]);
+    tokens.erase(tokens.begin(), tokens.begin() + 1);
 }
 
-void QueryEvolutionProxy::set_context(const string& context) {
-    lock_guard<mutex> semaphore(this->api_mutex);
-    this->context = context;
-}
-
-const vector<string>& QueryEvolutionProxy::get_query_tokens() {
-    lock_guard<mutex> semaphore(this->api_mutex);
-    return this->query_tokens;
-}
-
-// -------------------------------------------------------------------------------------------------
-// Query parameters getters and setters
-
-bool QueryEvolutionProxy::get_unique_assignment_flag() {
-    lock_guard<mutex> semaphore(this->api_mutex);
-    return this->unique_assignment_flag;
-}
-
-void QueryEvolutionProxy::set_unique_assignment_flag(bool flag) {
-    lock_guard<mutex> semaphore(this->api_mutex);
-    this->unique_assignment_flag = flag;
-}
-
-const string& QueryEvolutionProxy::get_fitness_function_tag() {
-    lock_guard<mutex> semaphore(this->api_mutex);
-    return this->fitness_function_tag;
+float QueryEvolutionProxy::compute_fitness(shared_ptr<QueryAnswer> answer) {
+    if (this->fitness_function_tag == "") {
+        Utils::error("Invalid empty fitness function tag");
+        return 0;
+    } else {
+        return this->fitness_function_object->eval(answer);
+    }
 }
 
 void QueryEvolutionProxy::set_fitness_function_tag(const string& tag) {
@@ -117,6 +76,9 @@ void QueryEvolutionProxy::set_fitness_function_tag(const string& tag) {
     if ((this->fitness_function_tag != "") && (tag != this->fitness_function_tag)) {
         Utils::error("Invalid reset of fitness function: " + this->fitness_function_tag + " --> " + tag);
     } else {
+        if (tag == "") {
+            Utils::error("Invalid empty fitness function tag");
+        }
         this->fitness_function_tag = tag;
         this->fitness_function_object = FitnessFunctionRegistry::function(tag);
     }
@@ -128,29 +90,10 @@ void QueryEvolutionProxy::set_fitness_function_tag(const string& tag) {
 bool QueryEvolutionProxy::from_remote_peer(const string& command, const vector<string>& args) {
     LOG_DEBUG("Proxy command: <" << command << "> from " << this->peer_id() << " received in "
                                  << this->my_id());
-    if (!BaseProxy::from_remote_peer(command, args)) {
-        if (command == ANSWER_BUNDLE) {
-            answer_bundle(args);
-        } else {
-            Utils::error("Invalid QueryEvolutionProxy command: <" + command + ">");
-            return false;
-        }
-    }
-    return true;
-}
-
-void QueryEvolutionProxy::answer_bundle(const vector<string>& args) {
-    lock_guard<mutex> semaphore(this->api_mutex);
-    if (!this->is_aborting()) {
-        if (args.size() == 0) {
-            Utils::error("Invalid empty query answer");
-        } else {
-            for (auto tokens : args) {
-                QueryAnswer* query_answer = new QueryAnswer();
-                query_answer->untokenize(tokens);
-                this->answer_queue.enqueue((void*) query_answer);
-                this->answer_count++;
-            }
-        }
+    if (BaseQueryProxy::from_remote_peer(command, args)) {
+        return true;
+    } else {
+        Utils::error("Invalid QueryEvolutionProxy command: <" + command + ">");
+        return false;
     }
 }

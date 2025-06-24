@@ -24,6 +24,26 @@ cc_library(
 )
 
 cc_library(
+    name = "evolution_engine_main_lib",
+    srcs = ["evolution_engine_main.cc"],
+    deps = [
+        "//agents/evolution:evolution_lib",
+        "//atomdb:atomdb_singleton",
+        "//service_bus:service_bus_lib",
+    ],
+)
+
+cc_library(
+    name = "evolution_client_main_lib",
+    srcs = ["evolution_client_main.cc"],
+    deps = [
+        "//agents/evolution:evolution_lib",
+        "//atomdb:atomdb_singleton",
+        "//service_bus:service_bus_lib",
+    ],
+)
+
+cc_library(
     name = "query_client_main_lib",
     srcs = ["query_client_main.cc"],
     deps = [
@@ -48,6 +68,16 @@ cc_library(
     srcs = ["word_query_main.cc"],
     deps = [
         "//agents/query_engine:query_engine_lib",
+        "//atomdb:atomdb_singleton",
+        "//service_bus:service_bus_lib",
+    ],
+)
+
+cc_library(
+    name = "word_query_evolution_main_lib",
+    srcs = ["word_query_evolution_main.cc"],
+    deps = [
+        "//agents/evolution:evolution_lib",
         "//atomdb:atomdb_singleton",
         "//service_bus:service_bus_lib",
     ],

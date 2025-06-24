@@ -65,9 +65,9 @@ shared_ptr<PatternMatchingQueryProxy> AtomSpace::pattern_matching_query(const ve
     // TODO: Use `answers_count` parameter to limit the number of answers once the functionality is
     // implemented on the server side.
     auto proxy = make_shared<PatternMatchingQueryProxy>(query, context);
-    proxy->set_unique_assignment_flag(unique_assignment);
-    proxy->set_attention_update_flag(update_attention_broker);
-    proxy->set_count_flag(count_only);
+    proxy->parameters[BaseQueryProxy::UNIQUE_ASSIGNMENT_FLAG] = unique_assignment;
+    proxy->parameters[BaseQueryProxy::ATTENTION_UPDATE_FLAG] = update_attention_broker;
+    proxy->parameters[PatternMatchingQueryProxy::COUNT_FLAG] = count_only;
 
     this->bus->issue_bus_command(proxy);
     return proxy;
@@ -106,9 +106,7 @@ void AtomSpace::pattern_matching_fetch(const vector<string>& query, size_t answe
 }
 
 // -------------------------------------------------------------------------------------------------
-char* AtomSpace::add_node(const string& type,
-                          const string& name,
-                          const CustomAttributesMap& custom_attributes) {
+char* AtomSpace::add_node(const string& type, const string& name, const Properties& custom_attributes) {
     char* handle = Node::compute_handle(type, name);
     this->handle_trie->insert(handle, new Node(type, name, custom_attributes));
     return handle;
@@ -117,7 +115,7 @@ char* AtomSpace::add_node(const string& type,
 // -------------------------------------------------------------------------------------------------
 char* AtomSpace::add_link(const string& type,
                           const vector<const Atom*>& targets,
-                          const CustomAttributesMap& custom_attributes) {
+                          const Properties& custom_attributes) {
     char* handle = Link::compute_handle(type, targets);
     this->handle_trie->insert(handle, new Link(type, targets, custom_attributes));
     return handle;
@@ -132,14 +130,11 @@ void AtomSpace::commit_changes(Scope scope) {
     auto commit_changes_visit_lambda = [](HandleTrie::TrieNode* trie_node, void* user_data) -> bool {
         auto db = static_cast<AtomDB*>(user_data);
         if (const auto node = dynamic_cast<const Node*>(trie_node->value)) {
-            db->add_node(node->type.c_str(), node->name.c_str(), node->custom_attributes);
+            db->add_node(node);
         } else if (const auto link = dynamic_cast<const Link*>(trie_node->value)) {
             unique_ptr<char*[], TargetHandlesDeleter> targets_handles(
                 Link::targets_to_handles(link->targets), TargetHandlesDeleter(link->targets.size()));
-            db->add_link(link->type.c_str(),
-                         targets_handles.get(),
-                         link->targets.size(),
-                         link->custom_attributes);
+            db->add_link(link);
         } else {
             Utils::error("Unsupported Atom type for commit: " + trie_node->to_string());
             return true;  // Unsupported type, cannot commit

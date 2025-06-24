@@ -4,23 +4,19 @@
 #include <string>
 
 #include "AtomDBSingleton.h"
-#include "PatternMatchingQueryProxy.h"
+#include "FitnessFunctionRegistry.h"
 #include "QueryAnswer.h"
+#include "QueryEvolutionProxy.h"
 #include "ServiceBusSingleton.h"
 #include "Utils.h"
 
-#define MAX_QUERY_ANSWERS ((unsigned int) 500)
+#define MAX_QUERY_ANSWERS ((unsigned int) 100000)
 
 using namespace std;
 using namespace atomdb;
 using namespace query_engine;
+using namespace evolution;
 using namespace service_bus;
-
-void ctrl_c_handler(int) {
-    std::cout << "Stopping link creation engine server..." << std::endl;
-    std::cout << "Done." << std::endl;
-    exit(0);
-}
 
 std::vector<std::string> split(string s, string delimiter) {
     std::vector<std::string> tokens;
@@ -83,16 +79,19 @@ string handle_to_atom(const char* handle) {
     return answer;
 }
 
-void run(const string& context, const string& word_tag) {
-    string server_id = "0.0.0.0:31700";
-    string client_id = "0.0.0.0:31701";
+void run(const string& context, const string& word_tag1, const string& word_tag2) {
+    string server_id = "0.0.0.0:24001";
+    string client_id = "0.0.0.0:34001";
 
     AtomDBSingleton::init();
     shared_ptr<AtomDB> db = AtomDBSingleton::get_instance();
-    ServiceBusSingleton::init(client_id, server_id);
+    ServiceBusSingleton::init(client_id, server_id, 63000, 63999);
+    FitnessFunctionRegistry::initialize_statics();
+
     shared_ptr<ServiceBus> service_bus = ServiceBusSingleton::get_instance();
 
     string and_operator = "AND";
+    string or_operator = "OR";
     string link_template = "LINK_TEMPLATE";
     string link = "LINK";
     string node = "NODE";
@@ -107,27 +106,27 @@ void run(const string& context, const string& word_tag) {
     string word1 = "word1";
     string word2 = "word2";
 
-    vector<string> query_word = {link_template,
-                                 expression,
-                                 "3",
-                                 node,
-                                 symbol,
-                                 contains,
-                                 variable,
-                                 sentence1,
-                                 link,
-                                 expression,
-                                 "2",
-                                 node,
-                                 symbol,
-                                 word,
-                                 node,
-                                 symbol,
-                                 "\"" + word_tag + "\""};
+    // clang-format off
+    vector<string> or_two_words = {
+        or_operator, "2",
+            link_template, expression, "3",
+                node, symbol, contains,
+                variable, sentence1,
+                link, expression, "2",
+                    node, symbol, word,
+                    node, symbol, "\"" + word_tag1 + "\"",
+            link_template, expression, "3",
+                node, symbol, contains,
+                variable, sentence1,
+                link, expression, "2",
+                    node, symbol, word,
+                    node, symbol, "\"" + word_tag2 + "\""
+    };
+    // clang-format on
 
-    shared_ptr<PatternMatchingQueryProxy> proxy =
-        make_shared<PatternMatchingQueryProxy>(query_word, context);
-    proxy->parameters[BaseQueryProxy::ATTENTION_UPDATE_FLAG] = true;
+    shared_ptr<QueryEvolutionProxy> proxy =
+        make_shared<QueryEvolutionProxy>(or_two_words, "unit_test", context);
+    proxy->parameters[QueryEvolutionProxy::POPULATION_SIZE] = (unsigned int) 100;
     service_bus->issue_bus_command(proxy);
 
     shared_ptr<QueryAnswer> query_answer;
@@ -152,14 +151,10 @@ void run(const string& context, const string& word_tag) {
             // cout << handle_to_atom(handle) << endl;
             sentence_name_document = db->get_atom_document(handle);
             // cout << string(sentence_name_document->get("name")) << endl;
-            set<string> to_highlight;
-            to_highlight.insert(word_tag);
+            set<string> to_highlight = {word_tag1, word_tag2};
             string sentence_name = string(sentence_name_document->get("name"));
             string highlighted_sentence_name = highlight(sentence_name, to_highlight);
-            string w = "\"" + word_tag + "\"";
-            string line = "(Contains (Sentence " + highlighted_sentence_name + ") (Word \"" +
-                          highlight(w, to_highlight) + "\"))";
-            cout << line << endl;
+            cout << highlighted_sentence_name << endl;
             if (++count == MAX_QUERY_ANSWERS) {
                 break;
             }
@@ -168,30 +163,20 @@ void run(const string& context, const string& word_tag) {
     if (count == 0) {
         cout << "No match for query" << endl;
         exit(0);
+    } else {
+        cout << "Count: " << count << endl;
     }
-
-    shared_ptr<PatternMatchingQueryProxy> proxy2 =
-        make_shared<PatternMatchingQueryProxy>(query_word, context);
-    proxy2->parameters[BaseQueryProxy::UNIQUE_ASSIGNMENT_FLAG] = true;
-    proxy2->parameters[BaseQueryProxy::ATTENTION_UPDATE_FLAG] = true;
-    service_bus->issue_bus_command(proxy2);
-    while (!proxy2->finished()) {
-        Utils::sleep();
-    }
-    int query_count = proxy2->get_count();
-    cout << "Count: " << query_count << endl;
 }
 
 int main(int argc, char* argv[]) {
-    if (argc < 3) {
-        cerr << "Usage: " << argv[0] << " <context> <word tag>" << endl;
+    if (argc != 4) {
+        cerr << "Usage: " << argv[0] << " <context> <word tag 1> <word tag 2>" << endl;
         exit(1);
     }
-    signal(SIGINT, &ctrl_c_handler);
-    signal(SIGTERM, &ctrl_c_handler);
     string context = argv[1];
-    string word_tag = argv[2];
+    string word_tag1 = argv[2];
+    string word_tag2 = argv[3];
 
-    run(context, word_tag);
+    run(context, word_tag1, word_tag2);
     return 0;
 }

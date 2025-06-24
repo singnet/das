@@ -15,6 +15,7 @@ cc_library(
         "Config.h",
         "ConfigFileSingleton.h",
         "Logger.h",
+        "Properties.h",
         "RequestValidator.h",
         "SharedQueue.h",
         "Stoppable.h",

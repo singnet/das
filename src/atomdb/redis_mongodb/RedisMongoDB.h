@@ -15,6 +15,7 @@
 
 #include "AtomDB.h"
 #include "AtomDBCacheSingleton.h"
+#include "RedisContextPool.h"
 #include "RedisMongoDBAPITypes.h"
 
 using namespace std;
@@ -47,26 +48,21 @@ class RedisMongoDB : public AtomDB {
         MONGODB_CHUNK_SIZE = 1000;
     }
 
-    shared_ptr<atomdb_api_types::HandleSet> query_for_pattern(shared_ptr<char> pattern_handle);
+    shared_ptr<atomdb_api_types::HandleSet> query_for_pattern(
+        const LinkTemplateInterface& link_template);
     shared_ptr<atomdb_api_types::HandleList> query_for_targets(shared_ptr<char> link_handle);
     shared_ptr<atomdb_api_types::HandleList> query_for_targets(char* link_handle_ptr);
     shared_ptr<atomdb_api_types::AtomDocument> get_atom_document(const char* handle);
     bool link_exists(const char* link_handle);
     std::vector<std::string> links_exist(const std::vector<std::string>& link_handles);
-    char* add_node(const char* type,
-                   const char* name,
-                   const atomdb_api_types::CustomAttributesMap& custom_attributes = {});
-    char* add_link(const char* type,
-                   char** targets,
-                   size_t targets_size,
-                   const atomdb_api_types::CustomAttributesMap& custom_attributes = {});
+    char* add_node(const atomspace::Node* node);
+    char* add_link(const atomspace::Link* link);
     vector<shared_ptr<atomdb_api_types::AtomDocument>> get_atom_documents(const vector<string>& handles,
                                                                           const vector<string>& fields);
 
    private:
     bool cluster_flag;
-    redisClusterContext* redis_cluster;
-    redisContext* redis_single;
+    RedisContextPool* redis_pool;
     mongocxx::pool* mongodb_pool;
     shared_ptr<AtomDBCache> atomdb_cache;
 

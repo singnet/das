@@ -4,6 +4,7 @@
 
 #include "BusCommandProxy.h"
 #include "Message.h"
+#include "Properties.h"
 
 using namespace std;
 using namespace service_bus;
@@ -30,7 +31,7 @@ class BaseProxy : public BusCommandProxy {
      *
      * @return true iff all QueryAnswer objects have been delivered AND iterated.
      */
-    bool finished();
+    virtual bool finished();
 
     /**
      * Abort a query.
@@ -40,8 +41,23 @@ class BaseProxy : public BusCommandProxy {
      */
     void abort();
 
+    /**
+     * Write a tokenized representation of this proxy in the passed `output` vector.
+     *
+     * @param output Vector where the tokens will be put.
+     */
+    virtual void tokenize(vector<string>& output);
+
     // ---------------------------------------------------------------------------------------------
     // Server-side API
+
+    /**
+     * Extrtact the tokens from the begining of the passed tokens vector (AND ERASE THEM) in order
+     * to build this proxy.
+     *
+     * @param tokens Tokens vector (CHANGED BY SIDE-EFFECT)
+     */
+    virtual void untokenize(vector<string>& tokens);
 
     /**
      * Returns true iff a request to abort has been issued by the caller.
@@ -49,6 +65,13 @@ class BaseProxy : public BusCommandProxy {
      * @return true iff a request to abort has been issued by the caller.
      */
     bool is_aborting();
+
+    /**
+     * Returns a string representation with all command parameter values.
+     *
+     * @return a string representation with all command parameter values.
+     */
+    virtual string to_string();
 
     // ---------------------------------------------------------------------------------------------
     // Virtual superclass API and the piggyback methods called by it
@@ -82,6 +105,7 @@ class BaseProxy : public BusCommandProxy {
      */
     void command_finished(const vector<string>& args);
 
+    Properties parameters;
     bool error_flag;
     unsigned int error_code;
     string error_message;
