@@ -124,7 +124,6 @@ void PatternMatchingQueryProcessor::process_query_answers(
     shared_ptr<Sink> query_sink,
     set<string>& joint_answer,  // used to stimulate attention broker
     unsigned int& answer_count) {
-
     QueryAnswer* answer;
     while ((answer = query_sink->input_buffer->pop_query_answer()) != NULL) {
         answer_count++;

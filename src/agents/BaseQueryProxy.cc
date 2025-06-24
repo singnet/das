@@ -86,7 +86,7 @@ void BaseQueryProxy::flush_answer_bundle() {
         to_remote_peer(ANSWER_BUNDLE, this->answer_bundle_vector);
         this->answer_bundle_vector.clear();
     }
-    Utils::sleep(); // TODO remove this
+    Utils::sleep();  // TODO remove this
 }
 
 void BaseQueryProxy::query_processing_finished() {

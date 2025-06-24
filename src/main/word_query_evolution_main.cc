@@ -1,7 +1,7 @@
 #include <signal.h>
 
-#include <iostream>
 #include <iomanip>
+#include <iostream>
 #include <string>
 
 #include "AtomDBSingleton.h"
@@ -160,7 +160,8 @@ void run(const string& context, const string& word_tag1, const string& word_tag2
             set<string> to_highlight = {word_tag1, word_tag2};
             string sentence_name = string(sentence_name_document->get("name"));
             string highlighted_sentence_name = highlight(sentence_name, to_highlight);
-            cout << std::fixed << std::setw(6) << std::setprecision(4) << std::setfill('0') << fitness << ": " << highlighted_sentence_name << endl;
+            cout << std::fixed << std::setw(6) << std::setprecision(4) << std::setfill('0') << fitness
+                 << ": " << highlighted_sentence_name << endl;
             if (++count == MAX_QUERY_ANSWERS) {
                 break;
             }

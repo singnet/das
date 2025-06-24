@@ -1,18 +1,16 @@
 #include "CountLetterFunction.h"
-#include "Utils.h"
+
 #include "AtomDBSingleton.h"
+#include "Utils.h"
 
 #define VARIABLE_NAME "sentence1"
 #define LETTER_TO_COUNT 'c'
 
 using namespace fitness_functions;
 
-CountLetterFunction::CountLetterFunction() {
-    this->db = AtomDBSingleton::get_instance();
-}
+CountLetterFunction::CountLetterFunction() { this->db = AtomDBSingleton::get_instance(); }
 
-float CountLetterFunction::eval(shared_ptr<QueryAnswer> query_answer) { 
-
+float CountLetterFunction::eval(shared_ptr<QueryAnswer> query_answer) {
     if (query_answer->handles_size != 1) {
         Utils::error("Invalid answer in CountLetterFunction");
         return 0;

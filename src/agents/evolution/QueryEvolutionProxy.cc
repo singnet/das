@@ -34,9 +34,9 @@ QueryEvolutionProxy::QueryEvolutionProxy(const vector<string>& tokens,
     this->num_generations = 0;
 }
 
-void QueryEvolutionProxy::set_default_query_parameters() { 
-    this->parameters[POPULATION_SIZE] = (unsigned int) 1000; 
-    this->parameters[MAX_GENERATIONS] = (unsigned int) 100; 
+void QueryEvolutionProxy::set_default_query_parameters() {
+    this->parameters[POPULATION_SIZE] = (unsigned int) 1000;
+    this->parameters[MAX_GENERATIONS] = (unsigned int) 100;
     this->parameters[ELITISM_RATE] = (double) 0.01;
     this->parameters[SELECTION_RATE] = (double) 0.1;
 }
@@ -85,8 +85,8 @@ bool QueryEvolutionProxy::stop_criteria_met() {
     return (this->num_generations >= this->parameters.get<unsigned int>(MAX_GENERATIONS));
 }
 
-void QueryEvolutionProxy::new_population_sampled(vector<std::pair<shared_ptr<QueryAnswer>, float>>& population) {
-
+void QueryEvolutionProxy::new_population_sampled(
+    vector<std::pair<shared_ptr<QueryAnswer>, float>>& population) {
     if (population[0].second > best_reported_fitness) {
         for (int i = population.size() - 1; i >= 0; i--) {
             if (population[i].second > this->best_reported_fitness) {

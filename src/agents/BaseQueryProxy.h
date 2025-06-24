@@ -45,8 +45,8 @@ class BaseQueryProxy : public BaseProxy {
     static string ATTENTION_UPDATE_FLAG;   // When true, queries issued to the pattern matcher will
                                            // trigger attention update automatically.
 
-    static string MAX_BUNDLE_SIZE; // Max number of answers buffered before flushing them to the peer
-                                   // client proxy.
+    static string MAX_BUNDLE_SIZE;  // Max number of answers buffered before flushing them to the peer
+                                    // client proxy.
 
     /**
      * Destructor.

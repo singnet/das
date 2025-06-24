@@ -31,8 +31,8 @@ class QueryEvolutionProxy : public BaseQueryProxy {
     // Query command's optional parameters
     static string POPULATION_SIZE;
     static string MAX_GENERATIONS;
-    static string ELITISM_RATE; // Rate on POPULATION_SIZE
-    static string SELECTION_RATE; // Rate on POPULATION_SIZE
+    static string ELITISM_RATE;    // Rate on POPULATION_SIZE
+    static string SELECTION_RATE;  // Rate on POPULATION_SIZE
 
     /**
      * Empty constructor typically used on server side.
@@ -100,7 +100,6 @@ class QueryEvolutionProxy : public BaseQueryProxy {
      * new asnwers to the client caller etc.
      */
     void new_population_sampled(vector<std::pair<shared_ptr<QueryAnswer>, float>>& population);
-
 
     /**
      * Returns a string representation with all command parameter values.
