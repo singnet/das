@@ -2,7 +2,7 @@
 
 #include "ServiceBus.h"
 
-#define LOG_LEVEL DEBUG_LEVEL
+#define LOG_LEVEL INFO_LEVEL
 #include "Logger.h"
 
 using namespace agents;
@@ -16,6 +16,7 @@ string BaseQueryProxy::FINISHED = "finished";
 
 string BaseQueryProxy::UNIQUE_ASSIGNMENT_FLAG = "unique_assignment_flag";
 string BaseQueryProxy::ATTENTION_UPDATE_FLAG = "attention_update_flag";
+string BaseQueryProxy::MAX_BUNDLE_SIZE = "max_bundle_size";
 
 BaseQueryProxy::BaseQueryProxy() {
     // constructor typically used in processor
@@ -32,9 +33,10 @@ BaseQueryProxy::BaseQueryProxy(const vector<string>& tokens, const string& conte
 }
 
 void BaseQueryProxy::init() {
-    this->answer_count = 0L;
+    this->answer_count = 0;
     this->parameters[UNIQUE_ASSIGNMENT_FLAG] = false;
     this->parameters[ATTENTION_UPDATE_FLAG] = false;
+    this->parameters[MAX_BUNDLE_SIZE] = (unsigned int) 1000;
 }
 
 BaseQueryProxy::~BaseQueryProxy() {}
@@ -70,6 +72,27 @@ void BaseQueryProxy::tokenize(vector<string>& output) {
 
 // -------------------------------------------------------------------------------------------------
 // Server-side API
+
+void BaseQueryProxy::push(shared_ptr<QueryAnswer> answer) {
+    lock_guard<mutex> semaphore(this->api_mutex);
+    this->answer_bundle_vector.push_back(answer->tokenize());
+    if (this->answer_bundle_vector.size() >= this->parameters.get<unsigned int>(MAX_BUNDLE_SIZE)) {
+        flush_answer_bundle();
+    }
+}
+
+void BaseQueryProxy::flush_answer_bundle() {
+    if (this->answer_bundle_vector.size() > 0) {
+        to_remote_peer(ANSWER_BUNDLE, this->answer_bundle_vector);
+        this->answer_bundle_vector.clear();
+    }
+    Utils::sleep(); // TODO remove this
+}
+
+void BaseQueryProxy::query_processing_finished() {
+    flush_answer_bundle();
+    to_remote_peer(FINISHED, {});
+}
 
 void BaseQueryProxy::untokenize(vector<string>& tokens) {
     BaseProxy::untokenize(tokens);

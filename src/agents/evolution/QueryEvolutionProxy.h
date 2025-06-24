@@ -30,6 +30,9 @@ class QueryEvolutionProxy : public BaseQueryProxy {
 
     // Query command's optional parameters
     static string POPULATION_SIZE;
+    static string MAX_GENERATIONS;
+    static string ELITISM_RATE; // Rate on POPULATION_SIZE
+    static string SELECTION_RATE; // Rate on POPULATION_SIZE
 
     /**
      * Empty constructor typically used on server side.
@@ -86,6 +89,20 @@ class QueryEvolutionProxy : public BaseQueryProxy {
     float compute_fitness(shared_ptr<QueryAnswer> answer);
 
     /**
+     * Return true iff the one or more of the stop criteria have been met.
+     *
+     * @return true iff the one or more of the stop criteria have been met.
+     */
+    bool stop_criteria_met();
+
+    /**
+     * Perform actions after a new population is sampled such as reporting any good
+     * new asnwers to the client caller etc.
+     */
+    void new_population_sampled(vector<std::pair<shared_ptr<QueryAnswer>, float>>& population);
+
+
+    /**
      * Returns a string representation with all command parameter values.
      *
      * @return a string representation with all command parameter values.
@@ -112,6 +129,8 @@ class QueryEvolutionProxy : public BaseQueryProxy {
     mutex api_mutex;
     shared_ptr<FitnessFunction> fitness_function_object;
     string fitness_function_tag;
+    float best_reported_fitness;
+    unsigned int num_generations;
 };
 
 }  // namespace evolution

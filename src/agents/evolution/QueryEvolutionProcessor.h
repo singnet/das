@@ -42,7 +42,20 @@ class QueryEvolutionProcessor : public BusCommandProcessor {
 
    protected:
     // Protected to ease writing tests
+    void select_best_individuals(shared_ptr<QueryEvolutionProxy> proxy,
+                                 vector<std::pair<shared_ptr<QueryAnswer>, float>>& population,
+                                 vector<std::pair<shared_ptr<QueryAnswer>, float>>& selected);
+
+    void select_one_by_tournament(shared_ptr<QueryEvolutionProxy> proxy,
+                                  vector<std::pair<shared_ptr<QueryAnswer>, float>>& population,
+                                  vector<std::pair<shared_ptr<QueryAnswer>, float>>& selected);
+
+    void apply_elitism(shared_ptr<QueryEvolutionProxy> proxy,
+                       vector<std::pair<shared_ptr<QueryAnswer>, float>>& population,
+                       vector<std::pair<shared_ptr<QueryAnswer>, float>>& selected);
+
     void evolve_query(shared_ptr<StoppableThread> monitor, shared_ptr<QueryEvolutionProxy> proxy);
+
     void sample_population(shared_ptr<StoppableThread> monitor,
                            shared_ptr<QueryEvolutionProxy> proxy,
                            vector<std::pair<shared_ptr<QueryAnswer>, float>>& population);

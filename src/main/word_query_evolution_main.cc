@@ -1,6 +1,7 @@
 #include <signal.h>
 
 #include <iostream>
+#include <iomanip>
 #include <string>
 
 #include "AtomDBSingleton.h"
@@ -125,8 +126,12 @@ void run(const string& context, const string& word_tag1, const string& word_tag2
     // clang-format on
 
     shared_ptr<QueryEvolutionProxy> proxy =
-        make_shared<QueryEvolutionProxy>(or_two_words, "unit_test", context);
+        make_shared<QueryEvolutionProxy>(or_two_words, "count_letter", context);
     proxy->parameters[QueryEvolutionProxy::POPULATION_SIZE] = (unsigned int) 100;
+    proxy->parameters[QueryEvolutionProxy::MAX_GENERATIONS] = (unsigned int) 1;
+    proxy->parameters[QueryEvolutionProxy::ELITISM_RATE] = (double) 0.01;
+    proxy->parameters[QueryEvolutionProxy::SELECTION_RATE] = (double) 0.1;
+    proxy->parameters[BaseQueryProxy::MAX_BUNDLE_SIZE] = (unsigned int) 1;
     service_bus->issue_bus_command(proxy);
 
     shared_ptr<QueryAnswer> query_answer;
@@ -143,6 +148,7 @@ void run(const string& context, const string& word_tag1, const string& word_tag2
             // cout << query_answer->to_string() << endl;
             const char* handle;
             handle = query_answer->assignment.get(sentence1.c_str());
+            float fitness = query_answer->strength;
             // cout << string(handle) << endl;
             // cout << handle_to_atom(handle) << endl;
             sentence_document = db->get_atom_document(handle);
@@ -154,7 +160,7 @@ void run(const string& context, const string& word_tag1, const string& word_tag2
             set<string> to_highlight = {word_tag1, word_tag2};
             string sentence_name = string(sentence_name_document->get("name"));
             string highlighted_sentence_name = highlight(sentence_name, to_highlight);
-            cout << highlighted_sentence_name << endl;
+            cout << std::fixed << std::setw(6) << std::setprecision(4) << std::setfill('0') << fitness << ": " << highlighted_sentence_name << endl;
             if (++count == MAX_QUERY_ANSWERS) {
                 break;
             }
