@@ -292,8 +292,8 @@ TEST_F(RedisMongoDBTest, AddAndDeleteNode) {
     auto node_handle = Node::compute_handle(node->type, node->name);
 
     // Check if node exists, if so, delete it
-    auto node_exists = db->link_exists(node_handle);
-    if (node_exists) {
+    auto node_document = db->get_atom_document(node_handle);
+    if (node_document != nullptr) {
         auto deleted = db->delete_atom(node_handle);
         EXPECT_TRUE(deleted);
     }
@@ -314,14 +314,14 @@ TEST_F(RedisMongoDBTest, AddAndDeleteNodes) {
     auto handles = db->add_nodes(nodes);
     EXPECT_EQ(handles.size(), 10);
 
-    auto links_exist = db->links_exist(handles);
-    EXPECT_EQ(links_exist.size(), 10);
+    auto nodes_documents = db->get_atom_documents(handles, {"_id"});
+    EXPECT_EQ(nodes_documents.size(), 10);
 
     auto deleted = db->delete_atoms(handles);
     EXPECT_EQ(deleted, 10);
 
-    auto links_exist_after_delete = db->links_exist(handles);
-    EXPECT_EQ(links_exist_after_delete.size(), 0);
+    auto nodes_documents_after_delete = db->get_atom_documents(handles, {"_id"});
+    EXPECT_EQ(nodes_documents_after_delete.size(), 0);
 }
 
 TEST_F(RedisMongoDBTest, AddAndDeleteLink) {

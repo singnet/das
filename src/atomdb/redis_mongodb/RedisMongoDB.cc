@@ -308,15 +308,20 @@ vector<string> RedisMongoDB::links_exist(const vector<string>& link_handles) {
         MONGODB_FIELD_NAME[MONGODB_FIELD::ID],
         bsoncxx::builder::basic::make_document(bsoncxx::builder::basic::kvp("$in", handle_ids))));
 
-    auto filter = filter_builder.extract();
+    // Only project _id and targets
+    bsoncxx::builder::basic::document projection_builder;
+    projection_builder.append(bsoncxx::builder::basic::kvp(MONGODB_FIELD_NAME[MONGODB_FIELD::ID], 1));
+    projection_builder.append(bsoncxx::builder::basic::kvp(MONGODB_FIELD_NAME[MONGODB_FIELD::TARGETS], 1));
 
-    auto cursor = mongodb_collection.distinct(MONGODB_FIELD_NAME[MONGODB_FIELD::ID], filter.view());
+    auto cursor = mongodb_collection.find(
+        filter_builder.view(), mongocxx::options::find{}.projection(projection_builder.view()));
 
     vector<string> existing_links;
-    for (const auto& doc : cursor) {
-        auto values = doc["values"].get_array().value;
-        for (auto&& val : values) {
-            existing_links.push_back(val.get_string().value.data());
+    for (const auto& view : cursor) {
+        auto it = view.find("targets");
+        if (it != view.end() && it->type() == bsoncxx::type::k_array) {
+            auto doc_id = view.find(MONGODB_FIELD_NAME[MONGODB_FIELD::ID]);
+            existing_links.push_back(doc_id->get_string().value.data());
         }
     }
 
