@@ -80,6 +80,7 @@ void PatternMatchingQueryProcessor::update_attention_broker_single_answer(
             for (unsigned int i = 0; i < query_result_size; i++) {
                 execution_stack.push(string(query_result->get_handle(i)));
             }
+        } else {
         }
     }
 
@@ -127,11 +128,11 @@ void PatternMatchingQueryProcessor::process_query_answers(
     QueryAnswer* answer;
     while ((answer = query_sink->input_buffer->pop_query_answer()) != NULL) {
         answer_count++;
-        if (!proxy->parameters.get<bool>(PatternMatchingQueryProxy::COUNT_FLAG)) {
-            proxy->push(shared_ptr<QueryAnswer>(answer));
-        }
         if (proxy->parameters.get<bool>(BaseQueryProxy::ATTENTION_UPDATE_FLAG)) {
             update_attention_broker_single_answer(proxy, answer, joint_answer);
+        }
+        if (!proxy->parameters.get<bool>(PatternMatchingQueryProxy::COUNT_FLAG)) {
+            proxy->push(shared_ptr<QueryAnswer>(answer));
         }
     }
 }
