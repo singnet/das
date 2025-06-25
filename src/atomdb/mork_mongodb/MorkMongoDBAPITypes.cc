@@ -10,9 +10,7 @@ HandleSetMork::HandleSetMork(string handle) : HandleSet() {
     this->handles_size += 1;
 }
 HandleSetMork::~HandleSetMork() {}
-unsigned int HandleSetMork::size() {
-    return this->handles_size;
-}
+unsigned int HandleSetMork::size() { return this->handles_size; }
 void HandleSetMork::append(shared_ptr<HandleSet> other) {
     auto handle_set_mork = dynamic_pointer_cast<HandleSetMork>(other);
     for (auto handle : handle_set_mork->handles) {
@@ -33,7 +31,7 @@ HandleSetMorkIterator::HandleSetMorkIterator(HandleSetMork* handle_set) : handle
 HandleSetMorkIterator::~HandleSetMorkIterator() {}
 char* HandleSetMorkIterator::next() {
     if (it == end) return nullptr;
-    const string& s = *it; 
+    const string& s = *it;
     ++it;
     return const_cast<char*>(s.c_str());
 }

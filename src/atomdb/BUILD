@@ -11,8 +11,8 @@ cc_library(
         ":atomdb_cache",
         ":atomdb_cache_singleton",
         ":atomdb_singleton",
-        "//atomdb/redis_mongodb:redis_mongodb_lib",
         "//atomdb/mork_mongodb:mork_mongodb_lib",
+        "//atomdb/redis_mongodb:redis_mongodb_lib",
     ],
 )
 
@@ -44,8 +44,8 @@ cc_library(
     deps = [
         ":atomdb_cache_singleton",
         "//atomdb:atomdb_api_types",
-        "//atomdb/redis_mongodb",
         "//atomdb/mork_mongodb",
+        "//atomdb/redis_mongodb",
         "//commons:commons_lib",
     ],
 )

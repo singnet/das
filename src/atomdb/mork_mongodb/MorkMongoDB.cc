@@ -26,12 +26,11 @@ uint MorkMongoDB::MONGODB_CHUNK_SIZE2;
 // --> MorkClient
 MorkClient::MorkClient(const string& base_url)
     : base_url_(Utils::trim(base_url.empty() ? Utils::get_environment("MORK_URL") : base_url)),
-    cli(httplib::Client(base_url)) {
+      cli(httplib::Client(base_url)) {
     send_request("GET", "/status/-");
 }
 MorkClient::~MorkClient() {}
-string MorkClient::post(
-    const string& data, const string& pattern, const string& template_) {
+string MorkClient::post(const string& data, const string& pattern, const string& template_) {
     auto path = "/upload/" + url_encode(pattern) + "/" + url_encode(template_);
     auto res = send_request("POST", path, data);
     return res->body;
@@ -41,13 +40,12 @@ vector<string> MorkClient::get(const string& pattern, const string& template_) {
     auto res = send_request("GET", path);
     return Utils::split(res->body, '\n');
 }
-httplib::Result MorkClient::send_request(
-    const string& method, const string& path, const string& data) {
+httplib::Result MorkClient::send_request(const string& method, const string& path, const string& data) {
     httplib::Result res;
 
     // TODO: Improve the way build with schema
     string url = "http://" + this->base_url_ + path;
-    
+
     if (method == "GET") {
         res = this->cli.Get(url);
     } else if (method == "POST") {
@@ -90,9 +88,7 @@ MorkMongoDB::MorkMongoDB() {
     bool disable_cache = (Utils::get_environment("DAS_DISABLE_ATOMDB_CACHE") == "true");
     this->atomdb_cache = disable_cache ? nullptr : AtomDBCacheSingleton::get_instance();
 }
-MorkMongoDB::~MorkMongoDB() {
-    delete this->mongodb_pool;
-}
+MorkMongoDB::~MorkMongoDB() { delete this->mongodb_pool; }
 void MorkMongoDB::mork_setup() {
     string host = Utils::get_environment("DAS_MORK_HOSTNAME");
     string port = Utils::get_environment("DAS_MORK_PORT");
@@ -177,13 +173,12 @@ void MorkMongoDB::attention_broker_setup() {
     }
 }
 shared_ptr<atomdb_api_types::HandleSet> MorkMongoDB::query_for_pattern(
-    const LinkTemplateInterface& link_template)
-{
+    const LinkTemplateInterface& link_template) {
     if (this->atomdb_cache != nullptr) {
         auto cache_result = this->atomdb_cache->query_for_pattern(link_template);
         if (cache_result.is_cache_hit) return cache_result.result;
     }
-    // WIP - This method will be implemented in the LinkTemplate 
+    // WIP - This method will be implemented in the LinkTemplate
     string pattern_metta = link_template.get_metta_expression();
     // template should equals to pattern_metta
     vector<string> raw_expressions = this->mork_client->get(pattern_metta, pattern_metta);
@@ -205,7 +200,7 @@ vector<string> MorkMongoDB::tokenize_expression(const string& expr) {
     vector<string> tokens;
     regex re(R"(\(|\)|"[^"]*"|[^\s()]+)");
     auto begin = sregex_iterator(expr.begin(), expr.end(), re);
-    auto end   = sregex_iterator();
+    auto end = sregex_iterator();
     for (auto it = begin; it != end; ++it) {
         tokens.push_back(it->str());
     }
@@ -219,12 +214,12 @@ MorkMongoDB::Node MorkMongoDB::parse_tokens_to_node(const vector<string>& tokens
             if (tokens[pos] == "(") {
                 node.targets.push_back(parse_tokens_to_node(tokens, pos));
             } else {
-                Node leaf{ tokens[pos++], {} };
+                Node leaf{tokens[pos++], {}};
                 node.targets.push_back(move(leaf));
             }
         }
         if (pos < tokens.size() && tokens[pos] == ")") {
-           ++pos;
+            ++pos;
         }
     } else {
         node.name = tokens[pos++];
@@ -245,29 +240,26 @@ string MorkMongoDB::resolve_node_handle(Node& node) {
 
     if (node.targets.empty()) {
         filter_builder.append(
-            bsoncxx::builder::basic::kvp(
-                MONGODB_FIELD_NAME2[MONGODB_FIELD2::NAME], node.name));
+            bsoncxx::builder::basic::kvp(MONGODB_FIELD_NAME2[MONGODB_FIELD2::NAME], node.name));
     } else {
         bsoncxx::builder::basic::array children_array;
         for (auto& child : node.targets) {
             children_array.append(resolve_node_handle(child));
         }
 
-        filter_builder.append(
-            bsoncxx::builder::basic::kvp(
-                MONGODB_FIELD_NAME2[MONGODB_FIELD2::ID2],
-                bsoncxx::builder::basic::make_document(
-                    bsoncxx::builder::basic::kvp("$all", children_array.view()))));
-        
+        filter_builder.append(bsoncxx::builder::basic::kvp(
+            MONGODB_FIELD_NAME2[MONGODB_FIELD2::ID2],
+            bsoncxx::builder::basic::make_document(
+                bsoncxx::builder::basic::kvp("$all", children_array.view()))));
+
         bsoncxx::builder::basic::document proj_builder;
-        proj_builder.append(
-            bsoncxx::builder::basic::kvp(MONGODB_FIELD_NAME2[MONGODB_FIELD2::ID2], 1));
+        proj_builder.append(bsoncxx::builder::basic::kvp(MONGODB_FIELD_NAME2[MONGODB_FIELD2::ID2], 1));
         find_opts.projection(proj_builder.view());
     }
-    
+
     auto result = collection.find_one(filter_builder.view(), find_opts);
     if (!result) return "";
-    
+
     auto id_element = (*result)[MONGODB_FIELD_NAME2[MONGODB_FIELD2::ID2]];
     return id_element.get_string().value.data();
 }
@@ -286,8 +278,11 @@ shared_ptr<atomdb_api_types::AtomDocument> MorkMongoDB::get_atom_document(const 
 
     auto conn = this->mongodb_pool->acquire();
     auto mongodb_collection = (*conn)[MONGODB_DB_NAME2][MONGODB_COLLECTION_NAME2];
-    auto reply = mongodb_collection.find_one(bsoncxx::v_noabi::builder::basic::make_document(bsoncxx::v_noabi::builder::basic::kvp(MONGODB_FIELD_NAME2[MONGODB_FIELD2::ID2], handle)));
-    auto atom_document = reply != bsoncxx::v_noabi::stdx::nullopt ? make_shared<atomdb_api_types::MongodbDocument2>(reply) : nullptr;
+    auto reply = mongodb_collection.find_one(bsoncxx::v_noabi::builder::basic::make_document(
+        bsoncxx::v_noabi::builder::basic::kvp(MONGODB_FIELD_NAME2[MONGODB_FIELD2::ID2], handle)));
+    auto atom_document = reply != bsoncxx::v_noabi::stdx::nullopt
+                             ? make_shared<atomdb_api_types::MongodbDocument2>(reply)
+                             : nullptr;
     if (this->atomdb_cache != nullptr) this->atomdb_cache->add_atom_document(handle, atom_document);
     return atom_document;
 }
@@ -318,8 +313,7 @@ set<string> MorkMongoDB::links_exist(const vector<string>& link_handles) {
     // Only project _id and targets
     bsoncxx::builder::basic::document projection_builder;
     projection_builder.append(bsoncxx::builder::basic::kvp(MONGODB_FIELD_NAME2[MONGODB_FIELD2::ID2], 1));
-    projection_builder.append(
-        bsoncxx::builder::basic::kvp(MONGODB_FIELD_NAME2[MONGODB_FIELD2::ID2], 1));
+    projection_builder.append(bsoncxx::builder::basic::kvp(MONGODB_FIELD_NAME2[MONGODB_FIELD2::ID2], 1));
 
     auto cursor = mongodb_collection.find(
         filter_builder.view(), mongocxx::options::find{}.projection(projection_builder.view()));

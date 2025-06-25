@@ -2,8 +2,8 @@
 
 #include <memory>
 
-#include "RedisMongoDB.h"
 #include "MorkMongoDB.h"
+#include "RedisMongoDB.h"
 
 using namespace std;
 
@@ -20,7 +20,8 @@ namespace atomdb {
 class AtomDBSingleton {
    public:
     ~AtomDBSingleton() {}
-    static void init(atomdb_api_types::ATOMDB_TYPE atomdb_type = atomdb_api_types::ATOMDB_TYPE::REDIS_MONGODB);
+    static void init(
+        atomdb_api_types::ATOMDB_TYPE atomdb_type = atomdb_api_types::ATOMDB_TYPE::REDIS_MONGODB);
     static shared_ptr<AtomDB> get_instance();
 
    private:
