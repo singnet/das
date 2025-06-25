@@ -15,6 +15,7 @@ using namespace std;
 using namespace query_engine;
 using namespace service_bus;
 using namespace atomspace;
+using namespace atomdb;
 
 void ctrl_c_handler(int) {
     std::cout << "Stopping query engine server..." << std::endl;
@@ -31,7 +32,7 @@ int main(int argc, char* argv[]) {
         exit(1);
     }
 
-    AtomDBSingleton::init();
+    AtomDBSingleton::init(atomdb_api_types::ATOMDB_TYPE::MORK_MONGODB);
 
     string client_id = string(argv[1]);
     string server_id = string(argv[2]);
