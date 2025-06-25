@@ -1,12 +1,10 @@
 #include "LinkCreationRequestProxy.h"
 
 #include "ServiceBus.h"
-#define LOG_LEVEL INFO_LEVEL
 #include "Logger.h"
 
 using namespace link_creation_agent;
 
-const string LinkCreationRequestProxy::Commands::ABORT = "abort";
 
 const string LinkCreationRequestProxy::Parameters::QUERY_INTERVAL =
     "link_creation_agent.requests_interval";

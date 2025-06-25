@@ -24,7 +24,7 @@ class LinkCreationRequestProxy : public BaseProxy {
    public:
     // ---------------------------------------------------------------------------------------------
     struct Commands {
-        static const string ABORT;  // Abort command
+        // Commands allowed at the proxy level 
     };
 
     struct Parameters {
@@ -49,16 +49,28 @@ class LinkCreationRequestProxy : public BaseProxy {
      */
     virtual ~LinkCreationRequestProxy();
 
+    /**
+     * Pack the command line arguments into the args vector.
+     *
+     */
     virtual void pack_command_line_args();
 
+    /**
+     * Set default parameters for the link creation request.
+     *
+     * This method initializes the default parameters for the request.
+     */
     void set_default_parameters();
 
+    /**
+     * Set a parameter for the link creation request.
+     *
+     * @param key The key of the parameter to set.
+     * @param value The value of the parameter to set.
+     */
     void set_parameter(const string& key, const PropertyValue& value);
 
    private:
-    void init();
-
     mutex api_mutex;
-    bool abort_flag;
 };
 }  // namespace link_creation_agent

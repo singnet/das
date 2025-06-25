@@ -32,9 +32,7 @@ shared_ptr<BusCommandProxy> LinkCreationRequestProcessor::factory_empty_proxy() 
 void LinkCreationRequestProcessor::run_command(shared_ptr<BusCommandProxy> proxy) {
     auto request_proxy = dynamic_pointer_cast<LinkCreationRequestProxy>(proxy);
     request_proxy->untokenize(request_proxy->args);
-    if (request_proxy->get_command() == LinkCreationRequestProxy::Commands::ABORT) {
-        abort_link_create_request(request_proxy);
-    } else if (request_proxy->get_command() == ServiceBus::LINK_CREATE_REQUEST) {
+    if (request_proxy->get_command() == ServiceBus::LINK_CREATE_REQUEST) {
         process_link_create_request(request_proxy);
     } else {
         proxy->raise_error_on_peer("Invalid command: " + request_proxy->get_command());
