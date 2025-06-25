@@ -40,23 +40,6 @@ LinkCreationAgent::LinkCreationAgent(int request_interval,
     this->agent_thread = new thread(&LinkCreationAgent::run, this);
 }
 
-// LinkCreationAgent::LinkCreationAgent(string config_path) {
-//     this->config_path = config_path;
-//     load_config();
-//     service = new LinkCreationService(link_creation_agent_thread_count);
-//     service->set_timeout(query_timeout_seconds);
-//     service->set_metta_file_path(metta_file_path);
-//     if (save_links_to_metta_file) {
-//         LOG_DEBUG("Saving links to metta file: " << metta_file_path);
-//     }
-//     if (save_links_to_db) {
-//         LOG_DEBUG("Saving links to DB");
-//     }
-//     service->set_save_links_to_metta_file(save_links_to_metta_file);
-//     service->set_save_links_to_db(save_links_to_db);
-//     das_client = nullptr;
-//     this->agent_thread = new thread(&LinkCreationAgent::run, this);
-// }
 
 LinkCreationAgent::~LinkCreationAgent() {
     stop();
@@ -143,33 +126,6 @@ shared_ptr<PatternMatchingQueryProxy> LinkCreationAgent::query(vector<string>& q
     ServiceBusSingleton::get_instance()->issue_bus_command(proxy);
     return proxy;
 }
-
-// void LinkCreationAgent::load_config() {
-//     auto config_file = ConfigFileSingleton::get_instance();
-//     auto requests_interval = config_file->get(ConfigKeys::Agents::LinkCreation::REQUESTS_INTERVAL);
-//     this->requests_interval_seconds = Utils::string_to_int(requests_interval);
-//     auto thread_count = config_file->get(ConfigKeys::Agents::LinkCreation::THREAD_COUNT);
-//     this->link_creation_agent_thread_count = Utils::string_to_int(thread_count);
-//     auto query_server = config_file->get(ConfigKeys::Agents::LinkCreation::QUERY_SERVER);
-//     this->query_agent_server_id = query_server;
-//     auto query_timeout = config_file->get(ConfigKeys::Agents::LinkCreation::QUERY_TIMEOUT);
-//     this->query_timeout_seconds = Utils::string_to_int(query_timeout);
-//     auto server_id = config_file->get(ConfigKeys::Agents::LinkCreation::SERVER_ID);
-//     this->link_creation_agent_server_id = server_id;
-//     auto buffer_file = config_file->get(ConfigKeys::Agents::LinkCreation::BUFFER_FILE);
-//     this->requests_buffer_file = buffer_file;
-//     auto metta_file_path = config_file->get(ConfigKeys::Agents::LinkCreation::METTA_FILE_PATH);
-//     this->metta_file_path = metta_file_path;
-//     auto save_to_metta_file = config_file->get(ConfigKeys::Agents::LinkCreation::SAVE_TO_METTA_FILE);
-//     this->save_links_to_metta_file =
-//         (save_to_metta_file == "true" || save_to_metta_file == "1" || save_to_metta_file == "yes");
-//     auto save_to_db = config_file->get(ConfigKeys::Agents::LinkCreation::SAVE_TO_DB);
-//     this->save_links_to_db = (save_to_db == "true" || save_to_db == "1" || save_to_db == "yes");
-//     auto query_start_port = config_file->get(ConfigKeys::Agents::LinkCreation::QUERY_START_PORT);
-//     this->query_agent_client_start_port = Utils::string_to_int(query_start_port);
-//     auto query_end_port = config_file->get(ConfigKeys::Agents::LinkCreation::QUERY_END_PORT);
-//     this->query_agent_client_end_port = Utils::string_to_int(query_end_port);
-// }
 
 void LinkCreationAgent::save_buffer() {
     ofstream file(requests_buffer_file, ios::binary);

@@ -13,7 +13,7 @@ using namespace distributed_algorithm_node;
 
 namespace link_creation_agent {
 /**
- * Proxy which allows communication between the caller of the LINK_CREATE_REQUEST and
+ * Proxy which allows communication between the caller of the LINK_CREATION and
  * the bus element actually executing it.
  *
  * The caller can use this object in order to create links and to abort the link creation

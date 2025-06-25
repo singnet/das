@@ -12,7 +12,7 @@ LinkCreationRequestProcessor::LinkCreationRequestProcessor(int request_interval,
                                                            string metta_file_path,
                                                            bool save_links_to_metta_file,
                                                            bool save_links_to_db)
-    : BusCommandProcessor({ServiceBus::LINK_CREATE_REQUEST}) {
+    : BusCommandProcessor({ServiceBus::LINK_CREATION}) {
     this->link_creation_agent = new LinkCreationAgent(request_interval,
                                                       thread_count,
                                                       default_timeout,
@@ -32,7 +32,7 @@ shared_ptr<BusCommandProxy> LinkCreationRequestProcessor::factory_empty_proxy() 
 void LinkCreationRequestProcessor::run_command(shared_ptr<BusCommandProxy> proxy) {
     auto request_proxy = dynamic_pointer_cast<LinkCreationRequestProxy>(proxy);
     request_proxy->untokenize(request_proxy->args);
-    if (request_proxy->get_command() == ServiceBus::LINK_CREATE_REQUEST) {
+    if (request_proxy->get_command() == ServiceBus::LINK_CREATION) {
         process_link_create_request(request_proxy);
     } else {
         proxy->raise_error_on_peer("Invalid command: " + request_proxy->get_command());
@@ -42,7 +42,7 @@ void LinkCreationRequestProcessor::run_command(shared_ptr<BusCommandProxy> proxy
 void LinkCreationRequestProcessor::process_link_create_request(shared_ptr<BusCommandProxy> proxy) {
     auto request_proxy = dynamic_pointer_cast<LinkCreationRequestProxy>(proxy);
     if (request_proxy == nullptr) {
-        proxy->raise_error_on_peer("Invalid proxy type for LINK_CREATE_REQUEST");
+        proxy->raise_error_on_peer("Invalid proxy type for LINK_CREATION");
     }
     try {
         LOG_DEBUG("Processing link creation request: " << Utils::join(request_proxy->get_args(), ' '));

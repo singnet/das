@@ -14,7 +14,7 @@ LinkCreationRequestProxy::LinkCreationRequestProxy() : BaseProxy() {}
 
 LinkCreationRequestProxy::LinkCreationRequestProxy(const vector<string>& tokens) : BaseProxy() {
     lock_guard<mutex> semaphore(this->api_mutex);
-    this->command = ServiceBus::LINK_CREATE_REQUEST;
+    this->command = ServiceBus::LINK_CREATION;
     this->args.insert(this->args.end(), tokens.begin(), tokens.end());
 }
 
