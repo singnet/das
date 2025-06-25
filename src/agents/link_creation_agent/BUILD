@@ -159,6 +159,7 @@ cc_library(
     srcs = ["LinkCreationRequestProxy.cc"],
     hdrs = ["LinkCreationRequestProxy.h"],
     deps = [
+        "//agents:agents_lib",
         "//distributed_algorithm_node:distributed_algorithm_node_lib",
         "//hasher:hasher_lib",
         "//service_bus:service_bus_lib",

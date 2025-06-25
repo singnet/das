@@ -5,9 +5,10 @@
 #include <string>
 
 #include "AtomDBSingleton.h"
-#include "ConfigFileSingleton.h"
 #include "LinkCreationRequestProcessor.h"
 #include "ServiceBusSingleton.h"
+#include "Utils.h"
+
 using namespace std;
 using namespace link_creation_agent;
 using namespace atomdb;
@@ -28,10 +29,19 @@ void ctrl_c_handler(int) {
  */
 int main(int argc, char* argv[]) {
     string help = R""""(
-    Usage: link_creation_agent --config_file <path> --type <client/server>
+    Usage: link_creation_agent server_address peer_address [start_port] [end_port] [request_interval] [thread_count] [default_timeout] [buffer_file] [metta_file_path] [save_links_to_metta_file] [save_links_to_db]
     Suported args:
-    --config_file   path to config file
-    --help          print this message
+        server_address: The address of the server to connect to, in the form "host:port"
+        peer_address: The address of the peer to connect to, in the form "host:port"
+        start_port: The lower bound for the port numbers to be used by the command proxy (default: 64000)
+        end_port: The upper bound for the port numbers to be used by the command proxy (default: 64999)
+        request_interval: The interval in seconds to send requests (default: 1)
+        thread_count: The number of threads to process requests (default: 1)
+        default_timeout: The timeout in seconds for query requests (default: 10)
+        buffer_file: The path to the requests buffer file (default: "requests_buffer.bin")
+        metta_file_path: The path to the metta file (default: "./")
+        save_links_to_metta_file: Whether to save links to the metta file (default: true)
+        save_links_to_db: Whether to save links to the database (default: false)
 
     Requests must be in the following format:
     QUERY, LINK_TEMPLATE, MAX_RESULTS, REPEAT
@@ -45,23 +55,35 @@ int main(int argc, char* argv[]) {
         }
         exit(1);
     }
-    string config_path = argv[2];
+    string server_address = argv[1];
+    string peer_address = argv[2];
+    unsigned int start_port = argc > 3 ? Utils::string_to_int(argv[3]) : 64000;
+    unsigned int end_port = argc > 4 ? Utils::string_to_int(argv[4]) : 64999;
+    int request_interval = argc > 5 ? Utils::string_to_int(argv[5]) : 1;
+    int thread_count = argc > 6 ? Utils::string_to_int(argv[6]) : 1;
+    int default_timeout = argc > 7 ? Utils::string_to_int(argv[7]) : 10;
+    string buffer_file = argc > 8 ? argv[8] : "requests_buffer.bin";
+    string metta_file_path = argc > 9 ? argv[9] : "./";
+    bool save_links_to_metta_file = argc > 10 && (string(argv[10]) == string("true") ||
+                                                  string(argv[10]) == "1" || string(argv[10]) == "yes");
+    bool save_links_to_db = argc > 11 && (string(argv[11]) == string("true") ||
+                                          string(argv[11]) == "1" || string(argv[11]) == "yes");
+
     signal(SIGINT, &ctrl_c_handler);
     signal(SIGTERM, &ctrl_c_handler);
-    ConfigFileSingleton::init(config_path);
-    shared_ptr<Config> config = ConfigFileSingleton::get_instance();
     AtomDBSingleton::init();
-    ServiceBusSingleton::init(config->get(ConfigKeys::Agents::LinkCreation::SERVER_ID),
-                              config->get(ConfigKeys::Agents::LinkCreation::QUERY_SERVER));
+    ServiceBusSingleton::init(server_address, peer_address, start_port, end_port);
     shared_ptr<ServiceBus> service_bus = ServiceBusSingleton::get_instance();
-    service_bus->register_processor(make_shared<LinkCreationRequestProcessor>());
+    service_bus->register_processor(make_shared<LinkCreationRequestProcessor>(request_interval,
+                                                                              thread_count,
+                                                                              default_timeout,
+                                                                              buffer_file,
+                                                                              metta_file_path,
+                                                                              save_links_to_metta_file,
+                                                                              save_links_to_db));
 
     do {
         Utils::sleep(1000);
     } while (true);
-
-    // cout << "Starting server" << endl;
-    // auto server = new LinkCreationAgent(config_path);
-    // server->run();
     return 0;
 }

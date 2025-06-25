@@ -5,7 +5,6 @@
 #include <thread>
 
 #include "AtomDBSingleton.h"
-#include "ConfigFileSingleton.h"
 #include "LinkCreateTemplate.h"
 #include "LinkCreationAgent.h"
 #include "LinkCreationRequestProcessor.h"
@@ -20,26 +19,43 @@ using namespace atomdb;
 
 class LinkCreationAgentTest : public ::testing::Test {
    protected:
+    int request_interval;
+    int thread_count;
+    int default_timeout;
+    string buffer_file_path;
+    string metta_file_path;
+    bool save_links_to_metta_file = true;
+    bool save_links_to_db = false;
+    string server_id;
+
     void SetUp() override {
-        ofstream config_file("test_config.cfg");
-        config_file << ConfigKeys::Agents::LinkCreation::REQUESTS_INTERVAL << "=1\n";
-        config_file << ConfigKeys::Agents::LinkCreation::THREAD_COUNT << "=1\n";
-        config_file << ConfigKeys::Agents::LinkCreation::QUERY_SERVER << "=localhost:7002\n";
-        config_file << ConfigKeys::Agents::LinkCreation::SERVER_ID << "=localhost:7003\n";
-        config_file << "das_agent_client_id=localhost:7004\n";
-        config_file << "das_agent_server_id=localhost:7005\n";
-        config_file << ConfigKeys::Agents::LinkCreation::BUFFER_FILE << "=test_buffer.bin\n";
-        config_file << ConfigKeys::Agents::LinkCreation::QUERY_TIMEOUT << "=1\n";
-        config_file << ConfigKeys::Agents::LinkCreation::QUERY_START_PORT << "=7001\n";
-        config_file << ConfigKeys::Agents::LinkCreation::QUERY_END_PORT << "=7002\n";
-        config_file << ConfigKeys::Agents::LinkCreation::METTA_FILE_PATH << "=.\n";
-        config_file << ConfigKeys::Agents::LinkCreation::SAVE_TO_DB << "=false\n";
-        config_file << ConfigKeys::Agents::LinkCreation::SAVE_TO_METTA_FILE << "=true\n";
-        config_file.close();
+        this->request_interval = 1;
+        this->thread_count = 1;
+        this->default_timeout = 10;
+        this->buffer_file_path = "test_buffer.bin";
+        this->metta_file_path = ".";
+        this->save_links_to_metta_file = true;
+        this->save_links_to_db = false;
+        this->server_id = "localhost:7003";
+        // ofstream config_file("test_config.cfg");
+        // config_file << ConfigKeys::Agents::LinkCreation::REQUESTS_INTERVAL << "=1\n";
+        // config_file << ConfigKeys::Agents::LinkCreation::THREAD_COUNT << "=1\n";
+        // config_file << ConfigKeys::Agents::LinkCreation::QUERY_SERVER << "=localhost:7002\n";
+        // config_file << ConfigKeys::Agents::LinkCreation::SERVER_ID << "=localhost:7003\n";
+        // config_file << "das_agent_client_id=localhost:7004\n";
+        // config_file << "das_agent_server_id=localhost:7005\n";
+        // config_file << ConfigKeys::Agents::LinkCreation::BUFFER_FILE << "=test_buffer.bin\n";
+        // config_file << ConfigKeys::Agents::LinkCreation::QUERY_TIMEOUT << "=1\n";
+        // config_file << ConfigKeys::Agents::LinkCreation::QUERY_START_PORT << "=7001\n";
+        // config_file << ConfigKeys::Agents::LinkCreation::QUERY_END_PORT << "=7002\n";
+        // config_file << ConfigKeys::Agents::LinkCreation::METTA_FILE_PATH << "=.\n";
+        // config_file << ConfigKeys::Agents::LinkCreation::SAVE_TO_DB << "=false\n";
+        // config_file << ConfigKeys::Agents::LinkCreation::SAVE_TO_METTA_FILE << "=true\n";
+        // config_file.close();
     }
 
     void TearDown() override {
-        remove("test_config.cfg");
+        // remove("test_config.cfg");
         remove("test_buffer.bin");
     }
 };
@@ -88,11 +104,16 @@ TEST_F(LinkCreationAgentTest, TestRequest) {
 }
 
 TEST_F(LinkCreationAgentTest, TestConfig) {
-    ConfigFileSingleton::init("test_config.cfg");
-    auto config = ConfigFileSingleton::get_instance();
-    ServiceBusSingleton::init(config->get(ConfigKeys::Agents::LinkCreation::SERVER_ID));
+    ServiceBusSingleton::init(this->server_id);
     shared_ptr<ServiceBus> service_bus = ServiceBusSingleton::get_instance();
-    service_bus->register_processor(make_shared<LinkCreationRequestProcessor>());
+    service_bus->register_processor(
+        make_shared<LinkCreationRequestProcessor>(this->request_interval,
+                                                  this->thread_count,
+                                                  this->default_timeout,
+                                                  this->buffer_file_path,
+                                                  this->metta_file_path,
+                                                  this->save_links_to_metta_file,
+                                                  this->save_links_to_db));
 }
 
 TEST(LinkCreateTemplate, TestCustomField) {

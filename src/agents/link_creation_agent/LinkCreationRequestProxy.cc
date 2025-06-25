@@ -6,45 +6,30 @@
 
 using namespace link_creation_agent;
 
-string LinkCreationRequestProxy::ABORT = "abort";
-string LinkCreationRequestProxy::LINK_CREATION_FAILED = "link_creation_failed";
+const string LinkCreationRequestProxy::Commands::ABORT = "abort";
 
-LinkCreationRequestProxy::LinkCreationRequestProxy() {
-    lock_guard<mutex> semaphore(this->api_mutex);
-    init();
-}
+const string LinkCreationRequestProxy::Parameters::QUERY_INTERVAL =
+    "link_creation_agent.requests_interval";
+const string LinkCreationRequestProxy::Parameters::QUERY_TIMEOUT = "link_creation_agent.query_timeout";
 
-LinkCreationRequestProxy::LinkCreationRequestProxy(const vector<string>& tokens) : BusCommandProxy() {
+LinkCreationRequestProxy::LinkCreationRequestProxy() : BaseProxy() {}
+
+LinkCreationRequestProxy::LinkCreationRequestProxy(const vector<string>& tokens) : BaseProxy() {
     lock_guard<mutex> semaphore(this->api_mutex);
-    init();
     this->command = ServiceBus::LINK_CREATE_REQUEST;
     this->args.insert(this->args.end(), tokens.begin(), tokens.end());
 }
 
-void LinkCreationRequestProxy::init() { this->abort_flag = false; }
-
 LinkCreationRequestProxy::~LinkCreationRequestProxy() {}
 
-bool LinkCreationRequestProxy::finished() {
-    lock_guard<mutex> semaphore(this->api_mutex);
-    return this->abort_flag;
+void LinkCreationRequestProxy::pack_command_line_args() { tokenize(this->args); }
+
+void LinkCreationRequestProxy::set_default_parameters() {
+    this->parameters[LinkCreationRequestProxy::Parameters::QUERY_INTERVAL] = 800;
+    this->parameters[LinkCreationRequestProxy::Parameters::QUERY_TIMEOUT] = 600;
 }
 
-void LinkCreationRequestProxy::abort() {
+void LinkCreationRequestProxy::set_parameter(const string& key, const PropertyValue& value) {
     lock_guard<mutex> semaphore(this->api_mutex);
-    this->abort_flag = true;
-    this->to_remote_peer(ABORT, {});
-}
-
-void LinkCreationRequestProxy::raise_error(const string& error_message, unsigned int error_code) {
-    string error = "Exception thrown in command processor.";
-    if (error_code > 0) {
-        error += " Error code: " + std::to_string(error_code);
-    }
-    error += "\n";
-    error += error_message;
-    this->error_code = error_code;
-    this->error_message = error;
-    // LOG_ERROR(error);
-    throw runtime_error(error);
+    this->parameters[key] = value;
 }

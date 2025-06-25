@@ -48,7 +48,13 @@ struct LinkCreationAgentRequest {
  */
 class LinkCreationAgent {
    public:
-    LinkCreationAgent(string config_path);
+    LinkCreationAgent(int request_interval,
+                      int thread_count,
+                      int default_timeout,
+                      string buffer_file_path,
+                      string metta_file_path,
+                      bool save_links_to_metta_file,
+                      bool save_links_to_db);
     LinkCreationAgent();
     ~LinkCreationAgent();
 
@@ -76,10 +82,10 @@ class LinkCreationAgent {
     shared_ptr<PatternMatchingQueryProxy> query(vector<string>& query_tokens,
                                                 string context,
                                                 bool update_attention_broker);
-    /**
-     * @brief Load config file
-     */
-    void load_config();
+    // /**
+    //  * @brief Load config file
+    //  */
+    // void load_config();
     /**
      * @brief Save all requests that have the infinite value set as true to the disk or DB.
      */

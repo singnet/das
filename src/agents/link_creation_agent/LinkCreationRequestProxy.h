@@ -4,11 +4,11 @@
 
 #pragma once
 
-#include "BusCommandProxy.h"
+#include "BaseProxy.h"
 #include "Message.h"
 
 using namespace std;
-using namespace service_bus;
+using namespace agents;
 using namespace distributed_algorithm_node;
 
 namespace link_creation_agent {
@@ -20,14 +20,18 @@ namespace link_creation_agent {
  * process before it finished.
  *
  */
-class LinkCreationRequestProxy : public BusCommandProxy {
+class LinkCreationRequestProxy : public BaseProxy {
    public:
     // ---------------------------------------------------------------------------------------------
-    // Constructors, destructors and static state
+    struct Commands {
+        static const string ABORT;  // Abort command
+    };
 
-    // Commands allowed at the proxy level (caller <--> processor)
-    static string ABORT;                 // Abort current link creation
-    static string LINK_CREATION_FAILED;  // Notification that a link creation failed
+    struct Parameters {
+        static const string QUERY_INTERVAL;
+        static const string QUERY_TIMEOUT;
+    };
+
     /**
      * Empty constructor typically used on server side.
      */
@@ -45,39 +49,11 @@ class LinkCreationRequestProxy : public BusCommandProxy {
      */
     virtual ~LinkCreationRequestProxy();
 
-    // ---------------------------------------------------------------------------------------------
-    // Client-side API
+    virtual void pack_command_line_args();
 
-    /**
-     * Returns true iff all link creation requests have been processed.
-     *
-     * @return true iff all link creation requests have been processed.
-     */
-    bool finished();
+    void set_default_parameters();
 
-    /**
-     * Abort the link creation process.
-     */
-    void abort();
-
-    unsigned int error_code;  // Error code if an error occurred
-    string error_message;     // Error message if an error occurred
-
-    /**
-     * Raise an error in the remote peer.
-     *
-     * @param error_message Error message to be raised
-     * @param error_code Error code to be raised
-     */
-    virtual void raise_error(const string& error_message, unsigned int error_code = 0) override;
-
-    virtual void pack_custom_args() {
-        // No custom args to pack for this proxy
-    }
-
-    virtual void pack_command_line_args() override {
-        // No command line args to pack for this proxy
-    }
+    void set_parameter(const string& key, const PropertyValue& value);
 
    private:
     void init();

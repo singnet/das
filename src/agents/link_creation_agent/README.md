@@ -74,42 +74,45 @@ This will generate the binaries for all components in the `das/src/bin` director
 
 > Before running the Link Creation Agent, you need to start the Query Agent. For more information on how to set up and run the Query Agent, refer to [query-agent.md](../query_engine/README.md).
 
-You might not be able to execute the binary directly from your machine. To simplify this process, we provide a command to run the service inside a container:
+You might not be able to execute the binary directly from your machine. To simplify this process, we provide a command to run the service inside a container, the parameters inside the square brackets are optional:
 
 ```
-make run-link-creation-agent OPTIONS="--config_file <path_to_config_file>"
+make run-link-creation-agent OPTIONS="link_creation_agent server_address peer_address [start_port] [end_port] [request_interval] [thread_count] [default_timeout] [buffer_file] [metta_file_path] [save_links_to_metta_file] [save_links_to_db]"
 ```
 
-The configuration file (`<path_to_config_file>`) must be located in the current directory where the command is executed. This is because we use a volume to mount the file inside the container. If the file is not in the correct location, the command will fail, as the configuration file will not be available inside the container where the binary runs.
 
 
-#### Config file example
+#### Parameters and default values
 
-```
-requests_interval_seconds = 10
-link_creation_agent_thread_count = 5
-query_agent_server_id = localhost:35700
-query_agent_client_id = localhost:9001
-link_creation_agent_server_id = localhost:9080
-das_agent_client_id = localhost:9090
-das_agent_server_id = localhost:9091
-requests_buffer_file = ./buffer
-```
+* server_address: The address of the server to connect to, in the form "host:port"
+* peer_address: The address of the peer to connect to, in the form "host:port"
+* start_port: The lower bound for the port numbers to be used by the command proxy (default: 64000)
+* end_port: The upper bound for the port numbers to be used by the command proxy (default: 64999)
+* request_interval: The interval in seconds to send requests (default: 1)
+* thread_count: The number of threads to process requests (default: 1)
+* default_timeout: The timeout in seconds for query requests (default: 10)
+* buffer_file: The path to the requests buffer file (default: "requests_buffer.bin")
+* metta_file_path: The path to the metta file (default: "./")
+* save_links_to_metta_file: Whether to save links to the metta file (default: true)
+* save_links_to_db: Whether to save links to the database (default: false)
 
-* default_interval: The default interval to run requests that repeat one or more times
-* thread_count: The number of threads to process Query Agent requests
-* query_node_server_id: IP + port of the Query Agent server.
-* query_node_client_id: IP + port of the Query Agent client (local machine)
-* link_creation_server_id: IP + port of the Link Creation Agent
-* das_client_id: IP + port of DAS to add links
-* requests_buffer_file: path to request buffer, where are stored all requests that repeat
 
 
 #### Running client
 
 ```
-make run-link-creation-client OPTIONS="localhost:1010 localhost:9080 LINK_TEMPLATE Expression 3 NODE Symbol Similarity VARIABLE V1 VARIABLE V2 LINK_CREATE Similarity 2 1 VARIABLE V1 VARIABLE V2 CUSTOM_FIELD truth_value 2 CUSTOM_FIELD mean 2 count 10 avg 0.9 confidence 0.9 10 0 test false"
+make run-link-creation-client OPTIONS="localhost:1010 localhost:9080 LINK_TEMPLATE Expression 3 NODE Symbol Similarity VARIABLE V1 VARIABLE V2 LINK_CREATE Similarity 2 1 VARIABLE V1 VARIABLE V2 CUSTOM_FIELD truth_value 2 CUSTOM_FIELD mean 2 count 10 avg 0.9 confidence 0.9 10 1 test false"
 ```
+##### OPTIONS parameters are: 
+* client_host: The address of the client (localhost:1010)
+* server_host: The address of the server (localhost:9080)
+* query: Base query to create links (LINK_TEMPLATE Expression 3 NODE Symbol Similarity VARIABLE V1 VARIABLE V2)
+* create_template: Template to create the new links (LINK_CREATE Similarity 2 1 VARIABLE V1 VARIABLE V2 CUSTOM_FIELD truth_value 2 CUSTOM_FIELD mean 2 count 10 avg 0.9 confidence 0.9)
+* max_result: Max number of responses of the query to process (10)
+* repeat: Repeat the query and link creations, should be greater than 0, 0 is reserved for other agents (1)
+* context: Context of the query (test)
+* update_attention_broker: "true" if this query should update the Attention Broker (false)
+
 
 If successful, you should see a message like this:
 
