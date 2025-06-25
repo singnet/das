@@ -34,10 +34,11 @@ RUN ARCH=$([ "$(uname -m)" = "aarch64" ] && echo "arm64" || echo "amd64") \
 
 ################################################################################
 # To be removed when AtomDB is properly integrated
-# Redis client
 COPY src/assets/hiredis-cluster.tgz /tmp
 COPY src/assets/mongo-cxx-driver-r4.1.0.tar.gz /tmp
 COPY src/assets/cpp-httplib-master.zip /tmp
+
+# Redis client
 RUN cd /tmp \
     && tar xzf hiredis-cluster.tgz \
     && cd hiredis-cluster \
@@ -48,6 +49,7 @@ RUN cd /tmp \
     && make install \
     && echo "/usr/local/lib" > /etc/ld.so.conf.d/local.conf \
     && ldconfig
+
 # MongoDB client
 RUN cd /tmp \
     && tar xzvf mongo-cxx-driver-r4.1.0.tar.gz \
@@ -59,11 +61,12 @@ RUN cd /tmp \
     && ln -s /usr/local/include/bsoncxx/v_noabi/bsoncxx/third_party/mnmlstc/core/ /usr/local/include/core \
     && ln -s /usr/local/include/mongocxx/v_noabi/mongocxx/* /usr/local/include/mongocxx/ \
     && ldconfig
+
 # cpp-httplib
 RUN cd /tmp \
-    && unzip cpp-httplib-master.zip \
-    && ln -s /src/assets/cpp-httplib-master/httplib.h /usr/local/include/httplib.h \
-    && ldconfig
+    && unzip -q cpp-httplib-master.zip \
+    && cp cpp-httplib-master/httplib.h /usr/local/include/ \
+    && rm -rf /tmp/cpp-httplib-master*
 
 
 # add regular user
