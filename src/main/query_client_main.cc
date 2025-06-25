@@ -32,7 +32,7 @@ int main(int argc, char* argv[]) {
         exit(1);
     }
 
-    AtomDBSingleton::init(atomdb_api_types::ATOMDB_TYPE::MORK_MONGODB);
+    AtomDBSingleton::init();
 
     string client_id = string(argv[1]);
     string server_id = string(argv[2]);

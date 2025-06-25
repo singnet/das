@@ -18,10 +18,10 @@
 using namespace atomdb;
 using namespace commons;
 
-string MorkMongoDB::MONGODB_DB_NAME;
-string MorkMongoDB::MONGODB_COLLECTION_NAME;
-string MorkMongoDB::MONGODB_FIELD__NAME[MONGODB_FIELD_::size_];
-uint MorkMongoDB::MONGODB_CHUNK_SIZE;
+string MorkMongoDB::MONGODB_DB_NAME2;
+string MorkMongoDB::MONGODB_COLLECTION_NAME2;
+string MorkMongoDB::MONGODB_FIELD_NAME2[MONGODB_FIELD2::size2];
+uint MorkMongoDB::MONGODB_CHUNK_SIZE2;
 
 // --> MorkClient
 MorkClient::MorkClient(const string& base_url)
@@ -119,7 +119,7 @@ void MorkMongoDB::mongodb_setup() {
     try {
         uint chunk_size = Utils::string_to_int(Utils::get_environment("DAS_MONGODB_CHUNK_SIZE"));
         if (chunk_size > 0) {
-            MONGODB_CHUNK_SIZE = chunk_size;
+            MONGODB_CHUNK_SIZE2 = chunk_size;
         }
     } catch (const exception& e) {
         Utils::warning("Error reading MongoDB chunk size, using default value");
@@ -138,7 +138,7 @@ void MorkMongoDB::mongodb_setup() {
         this->mongodb_pool = new mongocxx::pool(uri);
         // Health check using ping command
         auto conn = this->mongodb_pool->acquire();
-        auto mongodb = (*conn)[MONGODB_DB_NAME];
+        auto mongodb = (*conn)[MONGODB_DB_NAME2];
         const auto ping_cmd =
             bsoncxx::builder::basic::make_document(bsoncxx::builder::basic::kvp("ping", 1));
         mongodb.run_command(ping_cmd.view());
@@ -219,8 +219,6 @@ MorkMongoDB::Node MorkMongoDB::parse_tokens_to_node(const vector<string>& tokens
             if (tokens[pos] == "(") {
                 node.targets.push_back(parse_tokens_to_node(tokens, pos));
             } else {
-                // Node leaf;
-                // leaf.name = tokens[pos++];
                 Node leaf{ tokens[pos++], {} };
                 node.targets.push_back(move(leaf));
             }
@@ -240,7 +238,7 @@ MorkMongoDB::Node MorkMongoDB::parse_expression_tree(const string& expr) {
 }
 string MorkMongoDB::resolve_node_handle(Node& node) {
     auto conn = this->mongodb_pool->acquire();
-    auto collection = (*conn)[MONGODB_DB_NAME][MONGODB_COLLECTION_NAME];
+    auto collection = (*conn)[MONGODB_DB_NAME2][MONGODB_COLLECTION_NAME2];
 
     bsoncxx::builder::basic::document filter_builder;
     mongocxx::options::find find_opts;
@@ -248,7 +246,7 @@ string MorkMongoDB::resolve_node_handle(Node& node) {
     if (node.targets.empty()) {
         filter_builder.append(
             bsoncxx::builder::basic::kvp(
-                MONGODB_FIELD__NAME[MONGODB_FIELD_::NAME_], node.name));
+                MONGODB_FIELD_NAME2[MONGODB_FIELD2::NAME], node.name));
     } else {
         bsoncxx::builder::basic::array children_array;
         for (auto& child : node.targets) {
@@ -257,20 +255,20 @@ string MorkMongoDB::resolve_node_handle(Node& node) {
 
         filter_builder.append(
             bsoncxx::builder::basic::kvp(
-                MONGODB_FIELD__NAME[MONGODB_FIELD_::TARGETS_],
+                MONGODB_FIELD_NAME2[MONGODB_FIELD2::ID2],
                 bsoncxx::builder::basic::make_document(
                     bsoncxx::builder::basic::kvp("$all", children_array.view()))));
         
         bsoncxx::builder::basic::document proj_builder;
         proj_builder.append(
-            bsoncxx::builder::basic::kvp(MONGODB_FIELD__NAME[MONGODB_FIELD_::ID_], 1));
+            bsoncxx::builder::basic::kvp(MONGODB_FIELD_NAME2[MONGODB_FIELD2::ID2], 1));
         find_opts.projection(proj_builder.view());
     }
     
     auto result = collection.find_one(filter_builder.view(), find_opts);
     if (!result) return "";
     
-    auto id_element = (*result)[MONGODB_FIELD__NAME[MONGODB_FIELD_::ID_]];
+    auto id_element = (*result)[MONGODB_FIELD_NAME2[MONGODB_FIELD2::ID2]];
     return id_element.get_string().value.data();
 }
 shared_ptr<atomdb_api_types::HandleList> MorkMongoDB::query_for_targets(shared_ptr<char> link_handle) {
@@ -287,25 +285,25 @@ shared_ptr<atomdb_api_types::AtomDocument> MorkMongoDB::get_atom_document(const 
     }
 
     auto conn = this->mongodb_pool->acquire();
-    auto mongodb_collection = (*conn)[MONGODB_DB_NAME][MONGODB_COLLECTION_NAME];
-    auto reply = mongodb_collection.find_one(bsoncxx::v_noabi::builder::basic::make_document(bsoncxx::v_noabi::builder::basic::kvp(MONGODB_FIELD__NAME[MONGODB_FIELD_::ID_], handle)));
+    auto mongodb_collection = (*conn)[MONGODB_DB_NAME2][MONGODB_COLLECTION_NAME2];
+    auto reply = mongodb_collection.find_one(bsoncxx::v_noabi::builder::basic::make_document(bsoncxx::v_noabi::builder::basic::kvp(MONGODB_FIELD_NAME2[MONGODB_FIELD2::ID2], handle)));
     auto atom_document = reply != bsoncxx::v_noabi::stdx::nullopt ? make_shared<atomdb_api_types::MongodbDocument2>(reply) : nullptr;
     if (this->atomdb_cache != nullptr) this->atomdb_cache->add_atom_document(handle, atom_document);
     return atom_document;
 }
 bool MorkMongoDB::link_exists(const char* link_handle) {
     auto conn = this->mongodb_pool->acquire();
-    auto mongodb_collection = (*conn)[MONGODB_DB_NAME][MONGODB_COLLECTION_NAME];
+    auto mongodb_collection = (*conn)[MONGODB_DB_NAME2][MONGODB_COLLECTION_NAME2];
     auto reply = mongodb_collection.find_one(bsoncxx::v_noabi::builder::basic::make_document(
-        bsoncxx::v_noabi::builder::basic::kvp(MONGODB_FIELD__NAME[MONGODB_FIELD_::ID_], link_handle)));
+        bsoncxx::v_noabi::builder::basic::kvp(MONGODB_FIELD_NAME2[MONGODB_FIELD2::ID2], link_handle)));
     return (reply != bsoncxx::v_noabi::stdx::nullopt &&
-            reply->view().find(MONGODB_FIELD__NAME[MONGODB_FIELD_::TARGETS_]) != reply->view().end());
+            reply->view().find(MONGODB_FIELD_NAME2[MONGODB_FIELD2::ID2]) != reply->view().end());
 }
-vector<string> MorkMongoDB::links_exist(const vector<string>& link_handles) {
+set<string> MorkMongoDB::links_exist(const vector<string>& link_handles) {
     if (link_handles.empty()) return {};
 
     auto conn = this->mongodb_pool->acquire();
-    auto mongodb_collection = (*conn)[MONGODB_DB_NAME][MONGODB_COLLECTION_NAME];
+    auto mongodb_collection = (*conn)[MONGODB_DB_NAME2][MONGODB_COLLECTION_NAME2];
 
     bsoncxx::builder::basic::array handle_ids;
     for (const auto& handle : link_handles) {
@@ -314,18 +312,24 @@ vector<string> MorkMongoDB::links_exist(const vector<string>& link_handles) {
 
     bsoncxx::builder::basic::document filter_builder;
     filter_builder.append(bsoncxx::builder::basic::kvp(
-        MONGODB_FIELD__NAME[MONGODB_FIELD_::ID_],
+        MONGODB_FIELD_NAME2[MONGODB_FIELD2::ID2],
         bsoncxx::builder::basic::make_document(bsoncxx::builder::basic::kvp("$in", handle_ids))));
 
-    auto filter = filter_builder.extract();
+    // Only project _id and targets
+    bsoncxx::builder::basic::document projection_builder;
+    projection_builder.append(bsoncxx::builder::basic::kvp(MONGODB_FIELD_NAME2[MONGODB_FIELD2::ID2], 1));
+    projection_builder.append(
+        bsoncxx::builder::basic::kvp(MONGODB_FIELD_NAME2[MONGODB_FIELD2::ID2], 1));
 
-    auto cursor = mongodb_collection.distinct(MONGODB_FIELD__NAME[MONGODB_FIELD_::ID_], filter.view());
+    auto cursor = mongodb_collection.find(
+        filter_builder.view(), mongocxx::options::find{}.projection(projection_builder.view()));
 
-    vector<string> existing_links;
-    for (const auto& doc : cursor) {
-        auto values = doc["values"].get_array().value;
-        for (auto&& val : values) {
-            existing_links.push_back(val.get_string().value.data());
+    set<string> existing_links;
+    for (const auto& view : cursor) {
+        auto it = view.find(MONGODB_FIELD_NAME2[MONGODB_FIELD2::ID2]);
+        if (it != view.end() && it->type() == bsoncxx::type::k_array) {
+            auto doc_id = view.find(MONGODB_FIELD_NAME2[MONGODB_FIELD2::ID2]);
+            existing_links.insert(doc_id->get_string().value.data());
         }
     }
 
@@ -341,16 +345,16 @@ vector<shared_ptr<atomdb_api_types::AtomDocument>> MorkMongoDB::get_atom_documen
     }
 
     auto conn = this->mongodb_pool->acquire();
-    auto mongodb_collection = (*conn)[MONGODB_DB_NAME][MONGODB_COLLECTION_NAME];
+    auto mongodb_collection = (*conn)[MONGODB_DB_NAME2][MONGODB_COLLECTION_NAME2];
 
     try {
         // Process handles in batches
         uint handle_count = handles.size();
-        for (size_t i = 0; i < handles.size(); i += MONGODB_CHUNK_SIZE) {
-            size_t batch_size = min(MONGODB_CHUNK_SIZE, uint(handle_count - i));
+        for (size_t i = 0; i < handles.size(); i += MONGODB_CHUNK_SIZE2) {
+            size_t batch_size = min(MONGODB_CHUNK_SIZE2, uint(handle_count - i));
             // Build filter
             bsoncxx::builder::stream::document filter_builder;
-            auto array = filter_builder << MONGODB_FIELD__NAME[MONGODB_FIELD_::ID_]
+            auto array = filter_builder << MONGODB_FIELD_NAME2[MONGODB_FIELD2::ID2]
                                         << bsoncxx::builder::stream::open_document << "$in"
                                         << bsoncxx::builder::stream::open_array;
             for (size_t j = i; j < (i + batch_size); j++) {

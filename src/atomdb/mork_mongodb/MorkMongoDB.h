@@ -20,7 +20,7 @@
 
 namespace atomdb {
 
-enum MONGODB_FIELD_ { ID_ = 0, NAME_, TARGETS_, size_ };
+enum MONGODB_FIELD2 { ID2 = 0, NAME, TARGETS2, size2 };
 
 class MorkClient {
     public:
@@ -41,18 +41,18 @@ class MorkMongoDB : public AtomDB {
         MorkMongoDB();
         ~MorkMongoDB();
 
-        static string MONGODB_DB_NAME;
-        static string MONGODB_COLLECTION_NAME;
-        static string MONGODB_FIELD__NAME[MONGODB_FIELD_::size_];
-        static uint MONGODB_CHUNK_SIZE;
+        static string MONGODB_DB_NAME2;
+        static string MONGODB_COLLECTION_NAME2;
+        static string MONGODB_FIELD_NAME2[MONGODB_FIELD2::size2];
+        static uint MONGODB_CHUNK_SIZE2;
 
         static void initialize_statics() {
-            MONGODB_DB_NAME = "das";
-            MONGODB_COLLECTION_NAME = "atoms";
-            MONGODB_FIELD__NAME[MONGODB_FIELD_::ID_] = "_id";
-            MONGODB_FIELD__NAME[MONGODB_FIELD_::TARGETS_] = "targets";
-            MONGODB_FIELD__NAME[MONGODB_FIELD_::NAME_] = "name";
-            MONGODB_CHUNK_SIZE = 1000;
+            MONGODB_DB_NAME2 = "das";
+            MONGODB_COLLECTION_NAME2 = "atoms";
+            MONGODB_FIELD_NAME2[MONGODB_FIELD2::ID2] = "_id";
+            MONGODB_FIELD_NAME2[MONGODB_FIELD2::TARGETS2] = "targets";
+            MONGODB_FIELD_NAME2[MONGODB_FIELD2::NAME] = "name";
+            MONGODB_CHUNK_SIZE2 = 1000;
         }
 
         shared_ptr<atomdb_api_types::HandleSet> query_for_pattern(const LinkTemplateInterface& link_template);
@@ -62,7 +62,7 @@ class MorkMongoDB : public AtomDB {
         vector<shared_ptr<atomdb_api_types::AtomDocument>> get_atom_documents(const vector<string>& handles,
                                                                         const vector<string>& fields);
         bool link_exists(const char* link_handle);
-        vector<string> links_exist(const vector<string>& link_handles);
+        set<string> links_exist(const vector<string>& link_handles);
         char* add_node(const atomspace::Node* node);
         char* add_link(const atomspace::Link* link);
 
