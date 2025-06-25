@@ -50,13 +50,8 @@ void QueryEvolutionProcessor::thread_process_one_query(shared_ptr<StoppableThrea
         if (proxy->args.size() < 2) {
             Utils::error("Syntax error in query command. Missing implicit parameters.");
         }
-        unsigned int skip_arg = 0;
-        proxy->set_context(proxy->args[skip_arg++]);
-        proxy->set_unique_assignment_flag(proxy->args[skip_arg++] == "1");
-        proxy->set_fitness_function_tag(proxy->args[skip_arg++]);
-        proxy->set_population_size(std::stoi(proxy->args[skip_arg++]));
-        proxy->query_tokens.insert(
-            proxy->query_tokens.begin(), proxy->args.begin() + skip_arg, proxy->args.end());
+        proxy->untokenize(proxy->args);
+        LOG_DEBUG("proxy: " + proxy->to_string());
         string command = proxy->get_command();
         if (command == ServiceBus::QUERY_EVOLUTION) {
             LOG_DEBUG("QUERY_EVOLUTION proxy: " << proxy->to_string());
@@ -77,7 +72,8 @@ void QueryEvolutionProcessor::sample_population(
     shared_ptr<StoppableThread> monitor,
     shared_ptr<QueryEvolutionProxy> proxy,
     vector<std::pair<shared_ptr<QueryAnswer>, float>>& population) {
-    unsigned int population_size = proxy->get_population_size();
+    unsigned int population_size =
+        proxy->parameters.get<unsigned int>(QueryEvolutionProxy::POPULATION_SIZE);
     auto pm = atom_space.pattern_matching_query(
         proxy->get_query_tokens(), population_size, proxy->get_context());
     while ((!pm->finished()) && (!monitor->stopped()) && (population.size() < population_size)) {

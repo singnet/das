@@ -184,7 +184,7 @@ class BusCommandProxy {
     /**
      * Pack specific command args (in concrete subclasses) into args vector
      */
-    virtual void pack_custom_args() = 0;
+    virtual void pack_command_line_args() = 0;
 
     /**
      * Raise an error on remote peer by calling raise_error() passing the error code and message.

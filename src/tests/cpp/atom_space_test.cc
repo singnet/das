@@ -84,7 +84,7 @@ class MockAtomDB : public AtomDB {
     }
 
     bool link_exists(const char*) override { return false; }
-    vector<string> links_exist(const vector<string>&) override { return {}; }
+    set<string> links_exist(const vector<string>&) override { return {}; }
 
     char* add_node(const atomspace::Node* node) override {
         add_node_calls.push_back({node->type, node->name, node->custom_attributes});
