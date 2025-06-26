@@ -16,11 +16,9 @@
 #include "AtomDB.h"
 #include "AtomDBCacheSingleton.h"
 #include "MorkMongoDBAPITypes.h"
-// #include "RedisMongoDB.h"
+#include "RedisMongoDB.h"
 
 namespace atomdb {
-
-enum MONGODB_FIELD2 { ID2 = 0, NAME, TARGETS2, size2 };
 
 class MorkClient {
    public:
@@ -41,40 +39,35 @@ class MorkMongoDB : public AtomDB {
     MorkMongoDB();
     ~MorkMongoDB();
 
-    static string MONGODB_DB_NAME2;
-    static string MONGODB_COLLECTION_NAME2;
-    static string MONGODB_FIELD_NAME2[MONGODB_FIELD2::size2];
-    static uint MONGODB_CHUNK_SIZE2;
-
-    static void initialize_statics() {
-        MONGODB_DB_NAME2 = "das";
-        MONGODB_COLLECTION_NAME2 = "atoms";
-        MONGODB_FIELD_NAME2[MONGODB_FIELD2::ID2] = "_id";
-        MONGODB_FIELD_NAME2[MONGODB_FIELD2::TARGETS2] = "targets";
-        MONGODB_FIELD_NAME2[MONGODB_FIELD2::NAME] = "name";
-        MONGODB_CHUNK_SIZE2 = 1000;
-    }
+    static void initialize_statics() { RedisMongoDB::initialize_statics(); }
 
     shared_ptr<atomdb_api_types::HandleSet> query_for_pattern(
         const LinkTemplateInterface& link_template);
     shared_ptr<atomdb_api_types::HandleList> query_for_targets(shared_ptr<char> link_handle);
     shared_ptr<atomdb_api_types::HandleList> query_for_targets(char* link_handle_ptr);
-    shared_ptr<atomdb_api_types::AtomDocument> get_atom_document(const char* handle);
+
+    // Delegates for RedisMongoDB
+    shared_ptr<atomdb_api_types::AtomDocument> get_atom_document(const char* handle) {
+        return this->redis_mongodb->get_atom_document(handle);
+    }
+    bool link_exists(const char* link_handle) { return this->redis_mongodb->link_exists(link_handle); }
+    set<string> links_exist(const vector<string>& link_handles) {
+        return this->redis_mongodb->links_exist(link_handles);
+    }
     vector<shared_ptr<atomdb_api_types::AtomDocument>> get_atom_documents(const vector<string>& handles,
-                                                                          const vector<string>& fields);
-    bool link_exists(const char* link_handle);
-    set<string> links_exist(const vector<string>& link_handles);
-    char* add_node(const atomspace::Node* node);
-    char* add_link(const atomspace::Link* link);
+                                                                          const vector<string>& fields) {
+        return this->redis_mongodb->get_atom_documents(handles, fields);
+    }
+    char* add_node(const atomspace::Node* node) { return this->redis_mongodb->add_node(node); }
+    char* add_link(const atomspace::Link* link) { return this->redis_mongodb->add_link(link); }
 
    private:
-    shared_ptr<MorkClient> mork_client;
+    shared_ptr<RedisMongoDB> redis_mongodb;
     mongocxx::pool* mongodb_pool;
-    // shared_ptr<RedisMongoDB> redis_mongodb;
     shared_ptr<AtomDBCache> atomdb_cache;
+    shared_ptr<MorkClient> mork_client;
 
     void mork_setup();
-    void mongodb_setup();
     void attention_broker_setup();
 
     struct Node {

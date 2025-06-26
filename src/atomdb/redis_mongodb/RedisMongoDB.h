@@ -23,11 +23,9 @@ using namespace std;
 
 namespace atomdb {
 
-enum MONGODB_FIELD { ID = 0, TARGETS, size };
+enum MONGODB_FIELD { ID = 0, NAME, TARGETS, size };
 
 class RedisMongoDB : public AtomDB {
-    // friend class MorkMongoDB;
-
    public:
     RedisMongoDB();
     ~RedisMongoDB();
@@ -48,7 +46,7 @@ class RedisMongoDB : public AtomDB {
         MONGODB_COLLECTION_NAME = "atoms";
         MONGODB_FIELD_NAME[MONGODB_FIELD::ID] = "_id";
         MONGODB_FIELD_NAME[MONGODB_FIELD::TARGETS] = "targets";
-        // MONGODB_FIELD_NAME[MONGODB_FIELD::NAME] = "name";
+        MONGODB_FIELD_NAME[MONGODB_FIELD::NAME] = "name";
         MONGODB_CHUNK_SIZE = 1000;
     }
 
@@ -73,6 +71,9 @@ class RedisMongoDB : public AtomDB {
 
     bool delete_atom(const char* handle);
     uint delete_atoms(const vector<string>& handles);
+
+    mongocxx::pool* get_mongo_pool() const { return mongodb_pool; }
+    shared_ptr<AtomDBCache> get_atomdb_cache() const { return atomdb_cache; }
 
    private:
     bool cluster_flag;
