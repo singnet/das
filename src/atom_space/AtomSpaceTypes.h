@@ -326,16 +326,18 @@ class Link : public Atom {
         unsigned int arity = this->targets.size();
         unsigned int cursor = 0;
         char** handles = new char*[arity + 1];
-        handles[cursor++] = ::named_type_hash((char*) type.c_str());
         for (string handle : this->composite_type(decoder)) {
-            handles[cursor++] = (char*) handle.c_str();
+            handles[cursor++] = strdup(handle.c_str());
         }
-        char* handle_cstr = composite_hash(handles, arity + 1);
+        char* hash_cstr = ::composite_hash(handles, arity + 1);
 
-        string handle_string(handle_cstr);
-        free(handle_cstr);
+        string hash_string(hash_cstr);
+        free(hash_cstr);
+        for (int i = arity; i >= 0; i--) {
+            free(handles[i]);
+        }
         delete[] handles;
-        return handle_string;
+        return hash_string;
     }
 
     /**
@@ -344,7 +346,9 @@ class Link : public Atom {
      * @return A newly built composite type for this atom.
      */
     virtual vector<string> composite_type(HandleDecoder& decoder) const {
+
         vector<string> composite_type;
+        composite_type.push_back(named_type_hash());
         for (string handle : this->targets) {
             shared_ptr<Atom> atom = decoder.get_atom(handle);
             if (atom == NULL) {

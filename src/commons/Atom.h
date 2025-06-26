@@ -89,10 +89,10 @@ class Atom : public HandleTrie::TrieValue {
      * @return A newly built named type hash for this atom.
      */
     virtual string named_type_hash() const {
-        char* handle_cstr = ::named_type_hash((char*) type.c_str());
-        string handle_string(handle_cstr);
-        free(handle_cstr);
-        return handle_string;
+        char* hash_cstr = ::named_type_hash((char*) type.c_str());
+        string hash_string(hash_cstr);
+        free(hash_cstr);
+        return hash_string;
     }
 
     /**

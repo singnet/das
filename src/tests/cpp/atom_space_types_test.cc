@@ -1,6 +1,7 @@
 #include <gtest/gtest.h>
 
 #include "Properties.h"
+#include "expression_hasher.h"
 #include "atom_space/AtomSpaceTypes.h"
 
 using namespace std;
@@ -119,4 +120,77 @@ TEST(LinkTest, LinkWithCustomAttributes) {
         ")"
     );
     // clang-format on
+}
+
+TEST(LinkTest, CompositeTypes) {
+
+    class TestDecoder: public HandleDecoder {
+       public:
+        map<string, shared_ptr<Atom>> atoms;
+        shared_ptr<Atom> get_atom(const string& handle) {
+            return this->atoms[handle];
+        }
+        shared_ptr<Atom> add_atom(shared_ptr<Atom> atom) {
+            this->atoms[atom->handle()] = atom;
+            return atom;
+        }
+    };
+
+    TestDecoder db;
+    string symbol = MettaMapping::SYMBOL_NODE_TYPE;
+    string expression = MettaMapping::EXPRESSION_LINK_TYPE;
+    vector<string> v;
+
+    auto node1 = db.add_atom(make_shared<Node>(symbol, string("n1")));
+    auto node2 = db.add_atom(make_shared<Node>(symbol, string("n2")));
+    auto node3 = db.add_atom(make_shared<Node>(symbol, string("n3")));
+    auto node4 = db.add_atom(make_shared<Node>(symbol, string("n4")));
+
+    v = {node1->handle(), node2->handle()};
+    auto link1 = db.add_atom(make_shared<Link>(expression, v));
+    v = {node3->handle(), link1->handle()};
+    auto link2 = db.add_atom(make_shared<Link>(expression, v));
+    v = {link2->handle(), node4->handle()};
+    auto link3 = db.add_atom(make_shared<Link>(expression, v));
+
+    string symbol_hash = string(named_type_hash((char *) symbol.c_str()));
+    string expression_hash = string(named_type_hash((char *) expression.c_str()));
+
+    EXPECT_EQ(node1->composite_type_hash(db), symbol_hash);
+    EXPECT_EQ(node2->composite_type_hash(db), symbol_hash);
+    EXPECT_EQ(node3->composite_type_hash(db), symbol_hash);
+    EXPECT_EQ(node4->composite_type_hash(db), symbol_hash);
+
+    vector<string> link1_composite = link1->composite_type(db);
+    string link1_composite_hash = link1->composite_type_hash(db);
+    vector<string> link2_composite = link2->composite_type(db);
+    string link2_composite_hash = link2->composite_type_hash(db);
+    vector<string> link3_composite = link3->composite_type(db);
+    string link3_composite_hash = link3->composite_type_hash(db);
+
+    // clang-format off
+    cout << "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX" << endl;
+    cout << "node1: " << node1->handle() << endl;
+    cout << "node2: " << node2->handle() << endl;
+    cout << "node3: " << node3->handle() << endl;
+    cout << "node4: " << node4->handle() << endl;
+    cout << "Expression: " << expression_hash << " Symbol: " << symbol_hash << endl;
+    cout << "----------------------------------------------" << endl;
+    cout << "link1: " << link1->handle() << " " << link1->to_string() << endl;
+    cout << link1_composite.size() << " " << link1_composite[0] << " " << link1_composite[1] << " " << link1_composite[2] << endl;
+    cout << link1_composite_hash << endl;
+    cout << "----------------------------------------------" << endl;
+    cout << "link2: " << link2->handle() << " " << link2->to_string() << endl;
+    cout << link2_composite.size() << " " << link2_composite[0] << " " << link2_composite[1] << " " << link2_composite[2] << endl;
+    cout << link2_composite_hash << endl;
+    cout << "----------------------------------------------" << endl;
+    cout << "link3: " << link3->handle() << " " << link3->to_string() << endl;
+    cout << link3_composite.size() << " " << link3_composite[0] << " " << link3_composite[1] << " " << link3_composite[2] << endl;
+    cout << link3_composite_hash << endl;
+    cout << "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX" << endl;
+    // clang-format on
+
+    EXPECT_TRUE(link1_composite == vector<string>({expression_hash, symbol_hash, symbol_hash}));
+    EXPECT_TRUE(link2_composite == vector<string>({expression_hash, symbol_hash, link1_composite_hash}));
+    EXPECT_TRUE(link3_composite == vector<string>({expression_hash, link2_composite_hash, symbol_hash}));
 }
