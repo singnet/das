@@ -346,7 +346,6 @@ class Link : public Atom {
      * @return A newly built composite type for this atom.
      */
     virtual vector<string> composite_type(HandleDecoder& decoder) const {
-
         vector<string> composite_type;
         composite_type.push_back(named_type_hash());
         for (string handle : this->targets) {

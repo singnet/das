@@ -1,8 +1,8 @@
 #include <gtest/gtest.h>
 
 #include "Properties.h"
-#include "expression_hasher.h"
 #include "atom_space/AtomSpaceTypes.h"
+#include "expression_hasher.h"
 
 using namespace std;
 using namespace atomspace;
@@ -123,13 +123,10 @@ TEST(LinkTest, LinkWithCustomAttributes) {
 }
 
 TEST(LinkTest, CompositeTypes) {
-
-    class TestDecoder: public HandleDecoder {
+    class TestDecoder : public HandleDecoder {
        public:
         map<string, shared_ptr<Atom>> atoms;
-        shared_ptr<Atom> get_atom(const string& handle) {
-            return this->atoms[handle];
-        }
+        shared_ptr<Atom> get_atom(const string& handle) { return this->atoms[handle]; }
         shared_ptr<Atom> add_atom(shared_ptr<Atom> atom) {
             this->atoms[atom->handle()] = atom;
             return atom;
@@ -153,8 +150,8 @@ TEST(LinkTest, CompositeTypes) {
     v = {link2->handle(), node4->handle()};
     auto link3 = db.add_atom(make_shared<Link>(expression, v));
 
-    string symbol_hash = string(named_type_hash((char *) symbol.c_str()));
-    string expression_hash = string(named_type_hash((char *) expression.c_str()));
+    string symbol_hash = string(named_type_hash((char*) symbol.c_str()));
+    string expression_hash = string(named_type_hash((char*) expression.c_str()));
 
     EXPECT_EQ(node1->composite_type_hash(db), symbol_hash);
     EXPECT_EQ(node2->composite_type_hash(db), symbol_hash);
