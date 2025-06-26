@@ -39,38 +39,3 @@ char* HandleSetMorkIterator::next() {
 
 // --> HandleList
 // <--
-
-MongodbDocument2::MongodbDocument2(
-    bsoncxx::v_noabi::stdx::optional<bsoncxx::v_noabi::document::value>& document) {
-    this->document = document;
-}
-
-MongodbDocument2::~MongodbDocument2() {}
-
-const char* MongodbDocument2::get(const string& key) {
-    // Note for reference: .to_string() instead of .data() would return a std::string
-    return ((*this->document)[key]).get_string().value.data();
-}
-
-const char* MongodbDocument2::get(const string& array_key, unsigned int index) {
-    // Note for reference: .to_string() instead of .data() would return a std::string
-    return ((*this->document)[array_key]).get_array().value[index].get_string().value.data();
-}
-
-bool MongodbDocument2::contains(const string& key) {
-    return ((*this->document).view()).find(key) != ((*this->document).view()).end();
-}
-
-unsigned int MongodbDocument2::get_size(const string& array_key) {
-    // NOTE TO REVIEWER
-    // TODO: this implementation is wrong and need to be fixed before integration in das-atom-db
-    // I couldn't figure out a way to discover the number of elements in a BSON array.
-    // cout << "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX" << endl;
-    // cout << "XXXXXXXXXXXXXXXXXXX MongodbDocument::get_size()" << endl;
-    // cout << "XXXXXXXXXXXXXXXXXXX MongodbDocument::get_size() length: " <<
-    // ((*this->document)[array_key]).get_array().value.length() << endl; cout << "XXXXXXXXXXXXXXXXXXX
-    // MongodbDocument::get_size() HASH: " << HANDLE_HASH_SIZE << endl; cout << "XXXXXXXXXXXXXXXXXXX
-    // MongodbDocument::get_size() size: " << ((*this->document)[array_key]).get_array().value.length() /
-    // HANDLE_HASH_SIZE << endl;
-    return ((*this->document)[array_key]).get_array().value.length() / HANDLE_HASH_SIZE;
-}

@@ -57,20 +57,6 @@ class HandleListMork : public HandleList {
     unsigned int size();
 };
 
-class MongodbDocument2 : public AtomDocument {
-   public:
-    MongodbDocument2(bsoncxx::v_noabi::stdx::optional<bsoncxx::v_noabi::document::value>& document);
-    ~MongodbDocument2();
-
-    const char* get(const string& key);
-    virtual const char* get(const string& array_key, unsigned int index);
-    virtual unsigned int get_size(const string& array_key);
-    virtual bool contains(const string& key);
-
-   private:
-    bsoncxx::v_noabi::stdx::optional<bsoncxx::v_noabi::document::value> document;
-};
-
 }  // namespace atomdb_api_types
 
 }  // namespace atomdb

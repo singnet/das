@@ -21,9 +21,11 @@ void AtomDBSingleton::init(atomdb_api_types::ATOMDB_TYPE atomdb_type) {
         if (atomdb_type == atomdb_api_types::ATOMDB_TYPE::MORK_MONGODB) {
             MorkMongoDB::initialize_statics();
             AtomDBSingleton::atom_db = shared_ptr<AtomDB>(new MorkMongoDB());
-        } else {
+        } else if {
             RedisMongoDB::initialize_statics();
             AtomDBSingleton::atom_db = shared_ptr<AtomDB>(new RedisMongoDB());
+        } else {
+            Utils::error("Unknown atomdb_type passed to AtomDBSingleton::init().");
         }
 
         AtomDBSingleton::initialized = true;
