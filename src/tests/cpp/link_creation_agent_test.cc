@@ -4,51 +4,45 @@
 #include <fstream>
 #include <thread>
 
+#include "AtomDBSingleton.h"
 #include "LinkCreateTemplate.h"
 #include "LinkCreationAgent.h"
+#include "LinkCreationRequestProcessor.h"
 #include "TemplateProcessor.h"
 #include "Utils.h"
 
 using namespace std;
 using namespace link_creation_agent;
 using namespace commons;
+using namespace service_bus;
+using namespace atomdb;
 
 class LinkCreationAgentTest : public ::testing::Test {
    protected:
-    LinkCreationAgent* agent;
+    int request_interval;
+    int thread_count;
+    int default_timeout;
+    string buffer_file_path;
+    string metta_file_path;
+    bool save_links_to_metta_file = true;
+    bool save_links_to_db = false;
+    string server_id;
 
     void SetUp() override {
-        // ServiceBusSingleton::init("localhost:7002");
-        // Create a temporary config file for testing
-        ofstream config_file("test_config.cfg");
-        config_file << "requests_interval_seconds=1\n";
-        config_file << "link_creation_agent_thread_count=1\n";
-        config_file << "query_agent_client_id=localhost:7001\n";
-        config_file << "query_agent_server_id=localhost:7002\n";
-        config_file << "link_creation_agent_server_id=localhost:7003\n";
-        config_file << "das_agent_client_id=localhost:7004\n";
-        config_file << "das_agent_server_id=localhost:7005\n";
-        config_file << "requests_buffer_file=test_buffer.bin\n";
-        config_file << "query_timeout_seconds=1\n";
-        config_file << "query_agent_client_start_port=7001\n";
-        config_file << "query_agent_client_end_port=7002\n";
-        config_file << "metta_file_path=.\n";
-        config_file << "save_links_to_db=false\n";
-        config_file << "save_links_to_metta_file=true\n";
-        config_file.close();
+        this->request_interval = 1;
+        this->thread_count = 1;
+        this->default_timeout = 10;
+        this->buffer_file_path = "test_buffer.bin";
+        this->metta_file_path = ".";
+        this->save_links_to_metta_file = true;
+        this->save_links_to_db = false;
+        this->server_id = "localhost:7003";
     }
 
-    void TearDown() override {
-        remove("test_config.cfg");
-        remove("test_buffer.bin");
-    }
+    void TearDown() override { remove("test_buffer.bin"); }
 };
 
 TEST_F(LinkCreationAgentTest, TestRequest) {
-    // test config
-    agent = new LinkCreationAgent("test_config.cfg");
-    delete agent;
-    // Simulate a request
     vector<string> request = {
         "query1", "LINK_CREATE", "test", "1", "0", "VARIABLE", "V1", "10", "5", "test_context", "true"};
     shared_ptr<LinkCreationAgentRequest> lca_request = LinkCreationAgent::create_request(request);
@@ -88,13 +82,21 @@ TEST_F(LinkCreationAgentTest, TestRequest) {
     EXPECT_EQ(lca_request->context, "test_context");
     EXPECT_EQ(lca_request->update_attention_broker, false);
     EXPECT_EQ(lca_request->infinite, true);
-    EXPECT_EQ(lca_request->id, "1-d1e04bd3bec19f7393ab03482281f296");
+    EXPECT_EQ(lca_request->id, "c4ca4238a0b923820dcc509a6f75849b");
 }
 
-// TEST_F(LinkCreationAgentTest, TestConfig) {
-//     agent = new LinkCreationAgent("test_config.cfg");
-//     delete agent;
-// }
+TEST_F(LinkCreationAgentTest, TestConfig) {
+    ServiceBusSingleton::init(this->server_id);
+    shared_ptr<ServiceBus> service_bus = ServiceBusSingleton::get_instance();
+    service_bus->register_processor(
+        make_shared<LinkCreationRequestProcessor>(this->request_interval,
+                                                  this->thread_count,
+                                                  this->default_timeout,
+                                                  this->buffer_file_path,
+                                                  this->metta_file_path,
+                                                  this->save_links_to_metta_file,
+                                                  this->save_links_to_db));
+}
 
 TEST(LinkCreateTemplate, TestCustomField) {
     vector<string> args = {"CUSTOM_FIELD", "field1", "2", "N1", "value1", "N2", "value2"};

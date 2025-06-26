@@ -22,6 +22,7 @@ cc_library(
         ":link_creation_agent_node",
         ":link_creation_db_helper",
         ":processors",
+        ":request_processor",
         ":service",
         "//agents/query_engine:query_engine_lib",
         "//distributed_algorithm_node:distributed_algorithm_node_lib",
@@ -124,5 +125,43 @@ cc_library(
         ":link_creation_db_helper",
         "//agents/query_engine:query_engine_lib",
         "//commons:commons_lib",
+    ],
+)
+
+cc_library(
+    name = "request_processor",
+    srcs = [
+        "LinkCreationAgent.cc",
+        "LinkCreationRequestProcessor.cc",
+    ],
+    hdrs = [
+        "LinkCreationAgent.h",
+        "LinkCreationRequestProcessor.h",
+    ],
+    deps = [
+        ":das_agent_node",
+        ":link",
+        ":link_create_template",
+        ":link_creation_agent_node",
+        ":link_creation_db_helper",
+        ":processors",
+        ":request_proxy",
+        ":service",
+        "//agents/query_engine:query_engine_lib",
+        "//distributed_algorithm_node:distributed_algorithm_node_lib",
+        "//hasher:hasher_lib",
+        "//service_bus:service_bus_lib",
+    ],
+)
+
+cc_library(
+    name = "request_proxy",
+    srcs = ["LinkCreationRequestProxy.cc"],
+    hdrs = ["LinkCreationRequestProxy.h"],
+    deps = [
+        "//agents:agents_lib",
+        "//distributed_algorithm_node:distributed_algorithm_node_lib",
+        "//hasher:hasher_lib",
+        "//service_bus:service_bus_lib",
     ],
 )
