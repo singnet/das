@@ -10,6 +10,8 @@
 #include <string>
 #include <vector>
 
+using namespace std;
+
 namespace inference_agent {
 
 class InferenceRequest {
@@ -17,115 +19,119 @@ class InferenceRequest {
     /**
      * @brief Construct a new Inference Request object
      */
-    InferenceRequest(std::string first_handle,
-                     std::string second_handle,
+    InferenceRequest(string first_handle,
+                     string second_handle,
                      int max_proof_length,
-                     std::string context);
+                     string context,
+                     string max_answers = "1000000",
+                     string update_attention_broker = "false");
     ~InferenceRequest();
     /**
      * @brief Query to send to link creation agent
      *
-     * @return std::vector<std::string>
+     * @return vector<string>
      */
-    virtual std::vector<std::string> query();
+    virtual vector<string> query();
 
     /**
      * @brief Get the id of the inference request
      *
-     * @return std::string
+     * @return string
      */
-    std::string get_id();
+    string get_id();
 
     /**
      * @brief Set the id of the inference request
      *
      * @param inference_request_id
      */
-    void set_id(std::string inference_request_id);
+    void set_id(string inference_request_id);
 
     /**
      * @brief Get the type of the inference request
      *
-     * @return std::string
+     * @return string
      */
-    virtual std::string get_type();
+    virtual string get_type();
 
     /**
      * @brief Get the max proof length of the inference request
      *
-     * @return std::string
+     * @return string
      */
-    virtual std::string get_max_proof_length();
+    virtual string get_max_proof_length();
 
     /**
      * @brief Get the distributed inference control request of the inference request
      *
-     * @return std::vector<std::string>
+     * @return vector<string>
      */
-    virtual std::vector<std::string> get_distributed_inference_control_request();
+    virtual vector<string> get_distributed_inference_control_request();
 
     /**
      * @brief Get the requests of the inference request
      */
-    virtual std::vector<std::vector<std::string>> get_requests();
+    virtual vector<vector<string>> get_requests();
 
     /**
      * @brief Get the context
      */
-    std::string get_context();
+    string get_context();
 
    protected:
-    std::string first_handle;
-    std::string second_handle;
+    string first_handle;
+    string second_handle;
     int max_proof_length;
-    std::string context;
-    std::string inference_request_id;
+    string context;
+    string inference_request_id;
+    string max_answers;
+    string update_attention_broker;
 };
 
 class ProofOfImplicationOrEquivalence : public InferenceRequest {
    public:
-    ProofOfImplicationOrEquivalence(std::string first_handle,
-                                    std::string second_handle,
+    ProofOfImplicationOrEquivalence(string first_handle,
+                                    string second_handle,
                                     int max_proof_length,
-                                    std::string context);
+                                    string context);
     ~ProofOfImplicationOrEquivalence();
 
-    std::vector<std::string> query() override;
-    std::vector<std::string> patterns_link_template();
-    std::string get_type() override;
-    std::vector<std::vector<std::string>> get_requests() override;
+    vector<string> query() override;
+    vector<string> patterns_link_template();
+    string get_type() override;
+    vector<vector<string>> get_requests() override;
 };
 
 class ProofOfImplication : public InferenceRequest {
    public:
-    ProofOfImplication(std::string first_handle,
-                       std::string second_handle,
+    ProofOfImplication(string first_handle,
+                       string second_handle,
                        int max_proof_length,
-                       std::string context);
+                       string context);
     ~ProofOfImplication();
 
-    std::vector<std::string> query() override;
-    std::string get_type() override;
-    std::vector<std::vector<std::string>> get_requests() override;
+    vector<string> query() override;
+    string get_type() override;
+    vector<vector<string>> get_requests() override;
 
    private:
-    const std::string IMPLICATION_DEDUCTION_PROCESSOR = "IMPLICATION_DEDUCTION";
+    const string IMPLICATION_DEDUCTION_PROCESSOR = "IMPLICATION_DEDUCTION";
 };
 
 class ProofOfEquivalence : public InferenceRequest {
    public:
-    ProofOfEquivalence(std::string first_handle,
-                       std::string second_handle,
+    ProofOfEquivalence(string first_handle,
+                       string second_handle,
                        int max_proof_length,
-                       std::string context);
+                       string context);
     ~ProofOfEquivalence();
 
-    std::vector<std::string> query() override;
-    std::string get_type() override;
-    std::vector<std::vector<std::string>> get_requests() override;
+    vector<string> query() override;
+    string get_type() override;
+    vector<vector<string>> get_requests() override;
 
    private:
-    const std::string EQUIVALENCE_DEDUCTION_PROCESSOR = "EQUIVALENCE_DEDUCTION";
+    const string EQUIVALENCE_DEDUCTION_PROCESSOR = "EQUIVALENCE_DEDUCTION";
 };
 
 }  // namespace inference_agent

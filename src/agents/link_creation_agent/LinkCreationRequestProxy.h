@@ -30,6 +30,7 @@ class LinkCreationRequestProxy : public BaseProxy {
     struct Parameters {
         static const string QUERY_INTERVAL;
         static const string QUERY_TIMEOUT;
+        static const string ABORT_FLAG;
     };
 
     /**

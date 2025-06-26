@@ -10,10 +10,12 @@ using namespace inference_agent;
 using namespace link_creation_agent;
 using namespace commons;
 
-InferenceRequest::InferenceRequest(std::string first_handle,
-                                   std::string second_handle,
+InferenceRequest::InferenceRequest(string first_handle,
+                                   string second_handle,
                                    int max_proof_length,
-                                   std::string context) {
+                                   string context,
+                                   string max_answers,
+                                   string update_attention_broker) {
     this->first_handle = first_handle;
     this->second_handle = second_handle;
     this->max_proof_length = max_proof_length;
@@ -22,52 +24,52 @@ InferenceRequest::InferenceRequest(std::string first_handle,
 
 InferenceRequest::~InferenceRequest() {}
 
-std::vector<std::string> InferenceRequest::query() { return {}; }
+vector<string> InferenceRequest::query() { return {}; }
 
-std::string InferenceRequest::get_id() { return inference_request_id; }
+string InferenceRequest::get_id() { return inference_request_id; }
 
-void InferenceRequest::set_id(std::string inference_request_id) {
+void InferenceRequest::set_id(string inference_request_id) {
     this->inference_request_id = inference_request_id;
 }
 
-std::string InferenceRequest::get_type() { return "INFERENCE_REQUEST"; }
+string InferenceRequest::get_type() { return "INFERENCE_REQUEST"; }
 
-std::string InferenceRequest::get_max_proof_length() { return std::to_string(max_proof_length); }
+string InferenceRequest::get_max_proof_length() { return to_string(max_proof_length); }
 
 template <typename T>
-static vector<vector<T>> product(const std::vector<T>& iterable, size_t repeat) {
-    std::vector<std::vector<T>> result;
-    std::vector<T> current(repeat, iterable[0]);
+static vector<vector<T>> product(const vector<T>& iterable, size_t repeat) {
+    vector<vector<T>> result;
+    vector<T> current(repeat, iterable[0]);
     result.push_back(current);
 
     for (size_t i = 0; i < repeat; i++) {
-        std::vector<std::vector<T>> temp;
+        vector<vector<T>> temp;
         for (const auto& item : iterable) {
             for (const auto& vec : result) {
-                std::vector<T> new_vec = vec;
+                vector<T> new_vec = vec;
                 new_vec[i] = item;
                 temp.push_back(new_vec);
             }
         }
-        result = std::move(temp);
+        result = move(temp);
     }
 
     return result;
 }
 
-static std::vector<std::string> inference_evolution_request_builder(std::string first_handle,
-                                                                    std::string second_handle,
+static vector<string> inference_evolution_request_builder(string first_handle,
+                                                                    string second_handle,
                                                                     int max_proof_length,
                                                                     int& counter) {
     // clang-format off
-    std::vector<std::string> query_template = {
+    vector<string> query_template = {
         "LINK_TEMPLATE", "Expression",  "3",
         "NODE", "Symbol", "_TYPE_", 
         "_FIRST_",
         "_SECOND_", };
     // clang-format on
-    std::vector<std::string> commands = {"IMPLICATION", "EQUIVALENCE"};
-    std::vector<std::string> request;
+    vector<string> commands = {"IMPLICATION", "EQUIVALENCE"};
+    vector<string> request;
     if (max_proof_length == 1) {
         counter += commands.size();
         for (auto ttype : commands) {
@@ -86,17 +88,17 @@ static std::vector<std::string> inference_evolution_request_builder(std::string 
             }
         }
     } else {
-        std::vector<std::string> vars;
+        vector<string> vars;
         vars.push_back(first_handle);
         for (int i = 1; i < max_proof_length; i++) {
-            vars.push_back("V" + std::to_string(i));
+            vars.push_back("V" + to_string(i));
         }
         vars.push_back(second_handle);
-        auto commands_product = product<std::string>({commands}, vars.size() - 1);
+        auto commands_product = product<string>({commands}, vars.size() - 1);
         for (auto cp : commands_product) {
             counter++;
             request.push_back("AND");
-            request.push_back(std::to_string(vars.size() - 1));
+            request.push_back(to_string(vars.size() - 1));
             for (long unsigned int i = 1; i < vars.size(); i++) {
                 for (auto token : query_template) {
                     if (token == "_TYPE_") {
@@ -118,26 +120,6 @@ static std::vector<std::string> inference_evolution_request_builder(std::string 
             }
         }
 
-        // for (auto ttype : commands) {
-        //     request.push_back("AND");
-        //     request.push_back(std::to_string(vars.size() - 1));
-        //     for (int i = 1; i < vars.size(); i++) {
-        //         for (auto token : query_template) {
-        //             if (token == "_TYPE_") {
-        //                 request.push_back(ttype);
-        //             } else if (token == "_FIRST_") {
-        //                 request.push_back((vars[i - 1] == first_handle || vars[i - 1] ==
-        //                 second_handle)? "HANDLE" : "VARIABLE"); request.push_back(vars[i - 1]);
-        //             } else if (token == "_SECOND_") {
-        //                 request.push_back((vars[i] == first_handle || vars[i] == second_handle)?
-        //                 "HANDLE" : "VARIABLE"); request.push_back(vars[i]);
-        //             } else {
-        //                 request.push_back(token);
-        //             }
-        //         }
-        //     }
-        // }
-
         for (auto tkn : inference_evolution_request_builder(
                  first_handle, second_handle, max_proof_length - 1, counter)) {
             request.push_back(tkn);
@@ -146,41 +128,35 @@ static std::vector<std::string> inference_evolution_request_builder(std::string 
     return request;
 }
 
-std::vector<std::string> InferenceRequest::get_distributed_inference_control_request() {
-    std::vector<std::string> tokens;
+vector<string> InferenceRequest::get_distributed_inference_control_request() {
+    vector<string> tokens;
     int size = 0;
-    std::vector<std::string> request =
+    vector<string> request =
         inference_evolution_request_builder(first_handle, second_handle, max_proof_length, size);
     tokens.push_back(this->context);
     tokens.push_back("OR");
-    tokens.push_back(std::to_string(size));
+    tokens.push_back(to_string(size));
     for (auto token : request) {
         tokens.push_back(token);
     }
     return tokens;
 }
 
-std::vector<std::vector<std::string>> InferenceRequest::get_requests() { return {}; }
+vector<vector<string>> InferenceRequest::get_requests() { return {}; }
 
-std::string InferenceRequest::get_context() { return context; }
+string InferenceRequest::get_context() { return context; }
 
-ProofOfImplicationOrEquivalence::ProofOfImplicationOrEquivalence(std::string first_handle,
-                                                                 std::string second_handle,
+ProofOfImplicationOrEquivalence::ProofOfImplicationOrEquivalence(string first_handle,
+                                                                 string second_handle,
                                                                  int max_proof_length,
-                                                                 std::string context)
+                                                                 string context)
     : InferenceRequest(first_handle, second_handle, max_proof_length, context) {}
 
 ProofOfImplicationOrEquivalence::~ProofOfImplicationOrEquivalence() {}
 
-std::vector<std::string> ProofOfImplicationOrEquivalence::query() {
+vector<string> ProofOfImplicationOrEquivalence::query() {
     // clang-format off
-    std::vector<std::string> tokens = {
-        // "LINK_TEMPLATE", "Expression", "3",
-        //     "NODE", "Symbol", "EVALUATION",
-        //     "LINK_TEMPLATE", "Expression", "2",
-        //         "NODE", "Symbol", "PREDICATE",
-        //         "VARIABLE", "P",
-        //     "VARIABLE", "C"
+    vector<string> tokens = {
         "LINK_TEMPLATE", "Expression", "3",
         "NODE", "Symbol", "EVALUATION",
         "LINK_TEMPLATE", "Expression", "2",
@@ -194,7 +170,7 @@ std::vector<std::string> ProofOfImplicationOrEquivalence::query() {
     return tokens;
 }
 
-std::vector<std::string> ProofOfImplicationOrEquivalence::patterns_link_template() {
+vector<string> ProofOfImplicationOrEquivalence::patterns_link_template() {
     // SATISFYING_SET
     LinkCreateTemplate satisfying_set_link_template = LinkCreateTemplate("Expression");
     // Node("Symbol", "SATISFYING_SET");
@@ -227,7 +203,7 @@ std::vector<std::string> ProofOfImplicationOrEquivalence::patterns_link_template
     patterns_custom_field.add_field("confidence", "1.0");
     patterns_link_template.add_custom_field(patterns_custom_field);
 
-    std::vector<std::string> tokens;
+    vector<string> tokens;
     tokens.push_back("LIST");
     tokens.push_back("2");
     for (auto token : satisfying_set_link_template.tokenize()) {
@@ -239,12 +215,12 @@ std::vector<std::string> ProofOfImplicationOrEquivalence::patterns_link_template
     return tokens;
 }
 
-std::string ProofOfImplicationOrEquivalence::get_type() { return "PROOF_OF_IMPLICATION_OR_EQUIVALENCE"; }
+string ProofOfImplicationOrEquivalence::get_type() { return "PROOF_OF_IMPLICATION_OR_EQUIVALENCE"; }
 
-std::vector<std::vector<std::string>> ProofOfImplicationOrEquivalence::get_requests() {
-    std::vector<std::vector<std::string>> requests;
+vector<vector<string>> ProofOfImplicationOrEquivalence::get_requests() {
+    vector<vector<string>> requests;
     // query + link creation template
-    std::vector<std::string> query_and_link_creation_template(this->query());
+    vector<string> query_and_link_creation_template(this->query());
     for (auto token : this->patterns_link_template()) {
         query_and_link_creation_template.push_back(token);
     }
@@ -264,17 +240,17 @@ std::vector<std::vector<std::string>> ProofOfImplicationOrEquivalence::get_reque
     return requests;
 }
 
-ProofOfImplication::ProofOfImplication(std::string first_handle,
-                                       std::string second_handle,
+ProofOfImplication::ProofOfImplication(string first_handle,
+                                       string second_handle,
                                        int max_proof_length,
-                                       std::string context)
+                                       string context)
     : InferenceRequest(first_handle, second_handle, max_proof_length, context) {}
 
 ProofOfImplication::~ProofOfImplication() {}
 
-std::vector<std::string> ProofOfImplication::query() {
+vector<string> ProofOfImplication::query() {
     // clang-format off
-    std::vector<std::string> tokens = {
+    vector<string> tokens = {
         "AND", "2",
             "LINK_TEMPLATE", "Expression", "2",
                 "NODE", "Symbol", "SATISFYING_SET",
@@ -309,27 +285,27 @@ std::vector<std::string> ProofOfImplication::query() {
     return tokens;
 }
 
-std::string ProofOfImplication::get_type() { return "PROOF_OF_IMPLICATION"; }
+string ProofOfImplication::get_type() { return "PROOF_OF_IMPLICATION"; }
 
-std::vector<std::vector<std::string>> ProofOfImplication::get_requests() {
-    std::vector<std::vector<std::string>> requests;
+vector<vector<string>> ProofOfImplication::get_requests() {
+    vector<vector<string>> requests;
     auto query = this->query();
     query.push_back(this->get_type());  // processor
     requests.push_back(query);
     return requests;
 }
 
-ProofOfEquivalence::ProofOfEquivalence(std::string first_handle,
-                                       std::string second_handle,
+ProofOfEquivalence::ProofOfEquivalence(string first_handle,
+                                       string second_handle,
                                        int max_proof_length,
-                                       std::string context)
+                                       string context)
     : InferenceRequest(first_handle, second_handle, max_proof_length, context) {}
 
 ProofOfEquivalence::~ProofOfEquivalence() {}
 
-std::vector<std::string> ProofOfEquivalence::query() {
+vector<string> ProofOfEquivalence::query() {
     // clang-format off
-    std::vector<std::string> tokens = {
+    vector<string> tokens = {
         "AND", "2",
         "LINK_TEMPLATE", "Expression", "2",
             "NODE", "Symbol", "PATTERNS",
@@ -364,10 +340,10 @@ std::vector<std::string> ProofOfEquivalence::query() {
     return tokens;
 }
 
-std::string ProofOfEquivalence::get_type() { return "PROOF_OF_EQUIVALENCE"; }
+string ProofOfEquivalence::get_type() { return "PROOF_OF_EQUIVALENCE"; }
 
-std::vector<std::vector<std::string>> ProofOfEquivalence::get_requests() {
-    std::vector<std::vector<std::string>> requests;
+vector<vector<string>> ProofOfEquivalence::get_requests() {
+    vector<vector<string>> requests;
     auto query = this->query();
     query.push_back(this->get_type());  // processor
     requests.push_back(query);

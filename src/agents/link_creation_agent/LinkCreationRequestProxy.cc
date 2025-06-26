@@ -9,6 +9,8 @@ const string LinkCreationRequestProxy::Parameters::QUERY_INTERVAL =
     "link_creation_agent.requests_interval";
 const string LinkCreationRequestProxy::Parameters::QUERY_TIMEOUT = "link_creation_agent.query_timeout";
 
+const string LinkCreationRequestProxy::Parameters::ABORT_FLAG = "link_creation_agent.abort_flag";
+
 LinkCreationRequestProxy::LinkCreationRequestProxy() : BaseProxy() {}
 
 LinkCreationRequestProxy::LinkCreationRequestProxy(const vector<string>& tokens) : BaseProxy() {
