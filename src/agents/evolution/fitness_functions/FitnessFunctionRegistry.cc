@@ -5,6 +5,7 @@
 
 // -------------------------------------------------------------------------------------------------
 // Add your header here
+#include "CountLetterFunction.h"
 #include "UnitTestFunction.h"
 // -------------------------------------------------------------------------------------------------
 
@@ -25,6 +26,7 @@ void FitnessFunctionRegistry::initialize_statics() {
         // Add your function here using a unique string key
         // FUNCTION["my_function_tag"] = make_shared<MyFunction>();
         // -----------------------------------------------------------------------------------------
+        FUNCTION["count_letter"] = make_shared<CountLetterFunction>();
     }
 }
 

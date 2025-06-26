@@ -45,6 +45,9 @@ class BaseQueryProxy : public BaseProxy {
     static string ATTENTION_UPDATE_FLAG;   // When true, queries issued to the pattern matcher will
                                            // trigger attention update automatically.
 
+    static string MAX_BUNDLE_SIZE;  // Max number of answers buffered before flushing them to the peer
+                                    // client proxy.
+
     /**
      * Destructor.
      */
@@ -97,11 +100,21 @@ class BaseQueryProxy : public BaseProxy {
 
     /**
      * Push an answer to the proxy. This answer will end in the peer proxy but it may not happen
-     * immediatelly because of the answer bundle algorithm.
+     * immediatelly because of the answer buffering algorithm.
      *
      * @param answer Answer to push.
      */
-    void push(shared_ptr<QueryAnswer> answer);
+    virtual void push(shared_ptr<QueryAnswer> answer);
+
+    /**
+     * Send current answer bundle to remote client peer.
+     */
+    void flush_answer_bundle();
+
+    /**
+     * Called by processor to indicate that the processing of the current query is finished.
+     */
+    void query_processing_finished();
 
     /**
      * Getter for context
@@ -158,6 +171,7 @@ class BaseQueryProxy : public BaseProxy {
     unsigned int answer_count;
     string context;
     vector<string> query_tokens;
+    vector<string> answer_bundle_vector;
 };
 
 }  // namespace agents

@@ -102,7 +102,7 @@ void BusCommandProxy::raise_error_on_peer(const string& error_message, unsigned 
 // ProxyNode API
 
 void ProxyNode::remote_call(const string& command, const vector<string>& args) {
-    LOG_INFO("Remote command: <" << command << "> arrived at ProxyNode " << this->node_id());
+    LOG_DEBUG("Remote command: <" << command << "> arrived at ProxyNode " << this->node_id());
     this->proxy->from_remote_peer(command, args);
 }
 

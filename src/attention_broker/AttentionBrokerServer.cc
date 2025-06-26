@@ -78,11 +78,13 @@ Status AttentionBrokerServer::correlate(ServerContext* grpc_context,
                                         const dasproto::HandleList* request,
                                         dasproto::Ack* reply) {
     LOG_INFO("Correlating " << request->list_size() << " handles");
-    if (request->list_size() > 0) {
+    if (request->list_size() > 1) {
         HebbianNetwork* network = select_hebbian_network(request->context());
         ((dasproto::HandleList*) request)->set_hebbian_network((long) network);
         // this->correlation_requests->enqueue((void *) request);
         this->updater->correlation(request);
+    } else {
+        LOG_INFO("Discarding invalid correlation request with too few arguments.");
     }
     reply->set_msg("CORRELATE");
     if (rpc_api_enabled) {
