@@ -40,7 +40,6 @@ LinkCreationAgent::LinkCreationAgent(int request_interval,
     this->agent_thread = new thread(&LinkCreationAgent::run, this);
 }
 
-
 LinkCreationAgent::~LinkCreationAgent() {
     stop();
     delete service;

@@ -1,10 +1,9 @@
 #include "LinkCreationRequestProxy.h"
 
-#include "ServiceBus.h"
 #include "Logger.h"
+#include "ServiceBus.h"
 
 using namespace link_creation_agent;
-
 
 const string LinkCreationRequestProxy::Parameters::QUERY_INTERVAL =
     "link_creation_agent.requests_interval";
@@ -23,8 +22,8 @@ LinkCreationRequestProxy::~LinkCreationRequestProxy() {}
 void LinkCreationRequestProxy::pack_command_line_args() { tokenize(this->args); }
 
 void LinkCreationRequestProxy::set_default_parameters() {
-    this->parameters[LinkCreationRequestProxy::Parameters::QUERY_INTERVAL] = 800;
-    this->parameters[LinkCreationRequestProxy::Parameters::QUERY_TIMEOUT] = 600;
+    this->parameters[LinkCreationRequestProxy::Parameters::QUERY_INTERVAL] = (unsigned int) 800;
+    this->parameters[LinkCreationRequestProxy::Parameters::QUERY_TIMEOUT] = (unsigned int) 600;
 }
 
 void LinkCreationRequestProxy::set_parameter(const string& key, const PropertyValue& value) {

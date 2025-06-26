@@ -39,10 +39,7 @@ class LinkCreationAgentTest : public ::testing::Test {
         this->server_id = "localhost:7003";
     }
 
-    void TearDown() override {
-        // remove("test_config.cfg");
-        remove("test_buffer.bin");
-    }
+    void TearDown() override { remove("test_buffer.bin"); }
 };
 
 TEST_F(LinkCreationAgentTest, TestRequest) {

@@ -24,7 +24,7 @@ class LinkCreationRequestProxy : public BaseProxy {
    public:
     // ---------------------------------------------------------------------------------------------
     struct Commands {
-        // Commands allowed at the proxy level 
+        // Commands allowed at the proxy level
     };
 
     struct Parameters {
