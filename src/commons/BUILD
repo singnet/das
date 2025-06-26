@@ -8,6 +8,7 @@ cc_library(
         "SharedQueue.cc",
         "StoppableThread.cc",
         "Utils.cc",
+        "MettaMapping.cc",
     ],
     hdrs = [
         "Logger.h",
@@ -18,6 +19,9 @@ cc_library(
         "StoppableThread.h",
         "ThreadPool.h",
         "Utils.h",
+        "Atom.h",
+        "HandleDecoder.h",
+        "MettaMapping.h",
     ],
     includes = ["."],
     deps = [],

@@ -7,12 +7,10 @@ using namespace std;
 using namespace atomspace;
 using namespace commons;
 
-TEST(AtomTest, AtomTypeValidation) {
-    EXPECT_NO_THROW(Atom("Type"));
-    EXPECT_THROW(Atom(""), runtime_error);
-}
-
 TEST(NodeTest, NodeValidationAndToString) {
+    EXPECT_NO_THROW(Node("Type", "Name"));
+    EXPECT_THROW(Node("", "Name"), runtime_error);
+
     EXPECT_NO_THROW(Node("Type", "Name"));
     EXPECT_THROW(Node("Type", ""), runtime_error);
     EXPECT_THROW(Node("", "Name"), runtime_error);
@@ -40,17 +38,15 @@ TEST(LinkTest, LinkValidation) {
 TEST(LinkTest, LinkToString) {
     Node n1("Type1", "Name1");
     Node n2("Type2", "Name2");
-    Link l("LinkType", {&n1, &n2});
+    vector<const Atom*> targets = {&n1, &n2};
+    Link l("LinkType", targets);
     string s = l.to_string();
     // clang-format off
     EXPECT_EQ(
         s,
         "Link("
             "type: 'LinkType', "
-            "targets: ["
-                "Node(type: 'Type1', name: 'Name1', custom_attributes: {}), "
-                "Node(type: 'Type2', name: 'Name2', custom_attributes: {})"
-            "], "
+            "targets: [" + n1.handle() + ", " + n2.handle() + "], "
             "custom_attributes: {}"
         ")"
     );
@@ -61,8 +57,8 @@ TEST(LinkTest, LinkTargetsToHandles) {
     Node n1("Type1", "Name1");
     Node n2("Type2", "Name2");
     vector<const Atom*> targets = {&n1, &n2};
-    unique_ptr<char*[], TargetHandlesDeleter> handles(Link::targets_to_handles(targets),
-                                                      TargetHandlesDeleter(targets.size()));
+    unique_ptr<char*[], HandleArrayDeleter> handles(Link::targets_to_handles(targets),
+                                                      HandleArrayDeleter(targets.size()));
     ASSERT_NE(handles, nullptr);
     for (size_t i = 0; i < targets.size(); ++i) {
         ASSERT_NE(handles[i], nullptr);
@@ -118,10 +114,7 @@ TEST(LinkTest, LinkWithCustomAttributes) {
         s,
         "Link("
             "type: 'LinkType', "
-            "targets: ["
-                "Node(type: 'Type1', name: 'Name1', custom_attributes: {}), "
-                "Node(type: 'Type2', name: 'Name2', custom_attributes: {})"
-            "], "
+            "targets: [" + n1.handle() + ", " + n2.handle() + "], "
             "custom_attributes: {count: 10, flag: true}"
         ")"
     );

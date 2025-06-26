@@ -69,6 +69,8 @@ class MockAtomDB : public AtomDB {
     shared_ptr<HandleList> query_for_targets(shared_ptr<char>) override { return nullptr; }
     shared_ptr<HandleList> query_for_targets(char*) override { return nullptr; }
 
+    map<string, Atom*> atoms;
+
     shared_ptr<AtomDocument> get_atom_document(const char* handle) override {
         get_atom_calls.push_back(handle);
         auto it = docs.find(handle);
@@ -88,20 +90,20 @@ class MockAtomDB : public AtomDB {
 
     char* add_node(const atomspace::Node* node) override {
         add_node_calls.push_back({node->type, node->name, node->custom_attributes});
-        string handle = string("node_") + node->type + "_" + node->name;
-        return strdup(handle.c_str());
+        //string handle = string("node_") + node->type + "_" + node->name;
+        atoms[node->handle()] = (Atom*) node;
+        return strdup(node->handle().c_str());
     }
 
     char* add_link(const atomspace::Link* link) override {
-        size_t targets_size = link->targets.size();
-        unique_ptr<char*[], TargetHandlesDeleter> targets(
-            atomspace::Link::targets_to_handles(link->targets), TargetHandlesDeleter(targets_size));
-        vector<string> target_handles;
-        for (size_t i = 0; i < targets_size; i++) {
-            target_handles.push_back(targets[i]);
-        }
-        add_link_calls.push_back({link->type, target_handles, link->custom_attributes});
-        return strdup("link_handle");
+        add_link_calls.push_back({link->type, link->targets, link->custom_attributes});
+        atoms[link->handle()] = (Atom*) link;
+        return strdup(link->handle().c_str());
+        //return strdup("link_handle");
+    }
+
+    shared_ptr<Atom> get_atom(const string& handle) {
+        return shared_ptr<Atom>(this->atoms[handle]);
     }
 
     void attention_broker_setup() override {}
@@ -203,9 +205,9 @@ TEST_F(AtomSpaceTest, AddLink) {
     unique_ptr<char, HandleDeleter> node2_handle(space->add_node("ConceptNode", "node2"));
 
     // Create a vector of target atoms
-    vector<const Atom*> targets;
-    targets.push_back(space->get_atom(node1_handle.get(), AtomSpace::LOCAL_ONLY));
-    targets.push_back(space->get_atom(node2_handle.get(), AtomSpace::LOCAL_ONLY));
+    vector<string> targets;
+    targets.push_back(node1_handle.get());
+    targets.push_back(node2_handle.get());
 
     // Add a link connecting these nodes
     unique_ptr<char, HandleDeleter> link_handle(space->add_link("ListLink", targets));
@@ -277,9 +279,9 @@ TEST_F(AtomSpaceTest, CommitLinksLocalOnly) {
     unique_ptr<char, HandleDeleter> node1_handle(space->add_node("ConceptNode", "node1"));
     unique_ptr<char, HandleDeleter> node2_handle(space->add_node("ConceptNode", "node2"));
 
-    vector<const Atom*> targets;
-    targets.push_back(space->get_atom(node1_handle.get(), AtomSpace::LOCAL_ONLY));
-    targets.push_back(space->get_atom(node2_handle.get(), AtomSpace::LOCAL_ONLY));
+    vector<string> targets;
+    targets.push_back(node1_handle.get());
+    targets.push_back(node2_handle.get());
 
     unique_ptr<char, HandleDeleter> link_handle(space->add_link("ListLink", targets));
 
@@ -293,8 +295,8 @@ TEST_F(AtomSpaceTest, CommitLinksLocalOnly) {
 
 TEST_F(AtomSpaceTest, CommitNodesRemote) {
     // Add nodes to local trie
-    unique_ptr<char, HandleDeleter> handle1(space->add_node("ConceptNode", "node1"));
-    unique_ptr<char, HandleDeleter> handle2(space->add_node("ConceptNode", "node2"));
+    space->add_node("ConceptNode", "node1");
+    space->add_node("ConceptNode", "node2");
 
     // Commit changes to DB
     space->commit_changes(AtomSpace::REMOTE_ONLY);
@@ -318,11 +320,9 @@ TEST_F(AtomSpaceTest, CommitLinksRemote) {
     unique_ptr<char, HandleDeleter> node1_handle(space->add_node("ConceptNode", "node1"));
     unique_ptr<char, HandleDeleter> node2_handle(space->add_node("ConceptNode", "node2"));
 
-    vector<const Atom*> targets;
-    targets.push_back(space->get_atom(node1_handle.get(), AtomSpace::LOCAL_ONLY));
-    targets.push_back(space->get_atom(node2_handle.get(), AtomSpace::LOCAL_ONLY));
-    unique_ptr<char*[], TargetHandlesDeleter> targets_handles(Link::targets_to_handles(targets),
-                                                              TargetHandlesDeleter(targets.size()));
+    vector<string> targets;
+    targets.push_back(node1_handle.get());
+    targets.push_back(node2_handle.get());
 
     unique_ptr<char, HandleDeleter> link_handle(space->add_link("ListLink", targets));
 
@@ -333,7 +333,7 @@ TEST_F(AtomSpaceTest, CommitLinksRemote) {
     EXPECT_EQ(get<0>(mock_db->add_link_calls[0]), "ListLink");
     EXPECT_EQ(get<1>(mock_db->add_link_calls[0]).size(), targets.size());
     for (size_t i = 0; i < targets.size(); ++i) {
-        EXPECT_EQ(get<1>(mock_db->add_link_calls[0])[i], targets_handles[i]);
+        EXPECT_EQ(get<1>(mock_db->add_link_calls[0])[i], targets[i]);
     }
 }
 

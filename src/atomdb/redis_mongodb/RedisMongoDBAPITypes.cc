@@ -182,37 +182,25 @@ MongodbDocument::MongodbDocument(const atomspace::Node* node) {
     this->document = doc.extract();
 }
 
-MongodbDocument::MongodbDocument(const atomspace::Link* link) {
-    char* handle = atomspace::Link::compute_handle(link->type, link->targets);
-
-    const char* named_type_hash_elements[1] = {link->type.c_str()};
-    char* named_type_hash = composite_hash(const_cast<char**>(named_type_hash_elements), 1);
-
-    const char* elements[link->targets.size() + 1];
-    elements[0] = named_type_hash;
+MongodbDocument::MongodbDocument(const atomspace::Link* link, HandleDecoder& db) {
 
     bsoncxx::builder::basic::array composite_type;
-    composite_type.append(named_type_hash);
-    for (size_t i = 0; i < link->targets.size(); i++) {
-        const char* type_hash_elements[1] = {link->targets[i]->type.c_str()};
-        auto type_hash = composite_hash(const_cast<char**>(type_hash_elements), 1);
-        elements[i + 1] = type_hash;
-        composite_type.append(type_hash);
+    vector<string> link_composite_type = link->composite_type(db);
+    for (string handle: link_composite_type) {
+        composite_type.append(handle);
     }
 
     bsoncxx::builder::basic::array targets;
-    auto targets_hashes = atomspace::Link::targets_to_handles(link->targets);
-    for (size_t i = 0; i < link->targets.size(); i++) {
-        targets.append(targets_hashes[i]);
+    for (string handle: link->targets) {
+        targets.append(handle);
     }
 
     bsoncxx::builder::basic::document doc;
-    doc.append(bsoncxx::builder::basic::kvp("_id", handle));
-    doc.append(bsoncxx::builder::basic::kvp(
-        "composite_type_hash", composite_hash(const_cast<char**>(elements), link->targets.size() + 1)));
+    doc.append(bsoncxx::builder::basic::kvp("_id", link->handle()));
+    doc.append(bsoncxx::builder::basic::kvp("composite_type_hash", link->composite_type_hash(db)));
     doc.append(bsoncxx::builder::basic::kvp("composite_type", composite_type));
     doc.append(bsoncxx::builder::basic::kvp("named_type", link->type));
-    doc.append(bsoncxx::builder::basic::kvp("named_type_hash", named_type_hash));
+    doc.append(bsoncxx::builder::basic::kvp("named_type_hash", link->named_type_hash()));
     doc.append(bsoncxx::builder::basic::kvp("targets", targets));
     append_custom_attributes(doc, link->custom_attributes);
     this->document = doc.extract();

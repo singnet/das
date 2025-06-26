@@ -10,6 +10,7 @@
 #include <mongocxx/uri.hpp>
 #include <vector>
 
+#include "HandleDecoder.h"
 #include "AtomDBAPITypes.h"
 #include "Utils.h"
 
@@ -68,7 +69,7 @@ class MongodbDocument : public AtomDocument {
    public:
     MongodbDocument(bsoncxx::v_noabi::stdx::optional<bsoncxx::v_noabi::document::value>& document);
     MongodbDocument(const atomspace::Node* node);
-    MongodbDocument(const atomspace::Link* link);
+    MongodbDocument(const atomspace::Link* link, HandleDecoder& db);
     ~MongodbDocument();
 
     const char* get(const string& key);

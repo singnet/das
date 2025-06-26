@@ -12,11 +12,13 @@
 #include "AttentionBrokerServer.h"
 #include "Logger.h"
 #include "Utils.h"
+#include "AtomSpaceTypes.h"
 #include "attention_broker.grpc.pb.h"
 #include "attention_broker.pb.h"
 
 using namespace atomdb;
 using namespace commons;
+using namespace atomspace;
 
 string RedisMongoDB::REDIS_PATTERNS_PREFIX;
 string RedisMongoDB::REDIS_TARGETS_PREFIX;
@@ -121,6 +123,30 @@ void RedisMongoDB::mongodb_setup() {
         LOG_INFO("Connected to MongoDB at " << address);
     } catch (const std::exception& e) {
         Utils::error(e.what());
+    }
+}
+
+shared_ptr<Atom> RedisMongoDB::get_atom(const string& handle) {
+    shared_ptr<atomdb_api_types::AtomDocument> atom_document = get_atom_document(handle.c_str());
+    if (atom_document != NULL) {
+        if (atom_document->contains(MONGODB_FIELD_NAME[MONGODB_FIELD::TARGETS])) {
+            unsigned int arity = atom_document->get_size(MONGODB_FIELD_NAME[MONGODB_FIELD::TARGETS]);
+            vector<string> targets;
+            for (unsigned int i = 0; i < arity; i++) {
+                targets.push_back(string(atom_document->get(MONGODB_FIELD_NAME[MONGODB_FIELD::TARGETS], i)));
+            }
+            // NOTE TO REVIEWER
+            //     TODO We're missing custom_attributes here. I'm not sure how to deal with them.
+            //     I guess we should iterate through all the fields in atom_document and add anything
+            //     that's not an expected field (named_type, targets, composite_type, composite_type_hash, etc)
+            //     as a custom attribute. If this approach is OK, we should add methods in AtomDocument's
+            //     API to allow iterate through all the keys, which we currently don't have.
+            return make_shared<Link>(atom_document->get("named_type"), targets);
+        } else {
+            return make_shared<Node>(atom_document->get("named_type"), atom_document->get("name"));
+        }
+    } else {
+        return shared_ptr<Atom>(NULL);
     }
 }
 
@@ -366,10 +392,11 @@ vector<string> RedisMongoDB::add_nodes(const vector<atomspace::Node*>& nodes) {
 }
 
 char* RedisMongoDB::add_link(const atomspace::Link* link) {
+
     auto conn = this->mongodb_pool->acquire();
     auto mongodb_collection = (*conn)[MONGODB_DB_NAME][MONGODB_COLLECTION_NAME];
 
-    auto mongodb_doc = atomdb_api_types::MongodbDocument(link);
+    auto mongodb_doc = atomdb_api_types::MongodbDocument(link, *this);
     auto reply = mongodb_collection.insert_one(mongodb_doc.value());
 
     if (!reply) {
@@ -387,7 +414,7 @@ vector<string> RedisMongoDB::add_links(const vector<atomspace::Link*>& links) {
     vector<bsoncxx::v_noabi::document::value> docs;
     vector<string> handles;
     for (const auto& link : links) {
-        auto mongodb_doc = atomdb_api_types::MongodbDocument(link);
+        auto mongodb_doc = atomdb_api_types::MongodbDocument(link, *this);
         handles.push_back(atomspace::Link::compute_handle(link->type, link->targets));
         docs.push_back(mongodb_doc.value());
     }
