@@ -191,3 +191,81 @@ TEST(LinkTest, CompositeTypes) {
     EXPECT_TRUE(link2_composite == vector<string>({expression_hash, symbol_hash, link1_composite_hash}));
     EXPECT_TRUE(link3_composite == vector<string>({expression_hash, link2_composite_hash, symbol_hash}));
 }
+
+TEST(LinkTest, CopyAndComparisson) {
+    string symbol = MettaMapping::SYMBOL_NODE_TYPE;
+    string expression = MettaMapping::EXPRESSION_LINK_TYPE;
+
+    Node node1(symbol, "n1");
+    Node node2(symbol, "n2");
+    Node node3("blah", "n1");
+    Node node4("blah", "n1");
+    Node node5(node1);
+    Node node6 = node4;
+    Link link1(expression, {node1.handle(), node3.handle()});
+    Link link2(expression, {node3.handle(), node1.handle()});
+    Link link3("blah", {node1.handle(), node3.handle()});
+    Link link4(expression, {node1.handle(), node4.handle()});
+
+    EXPECT_TRUE(link1 == link1);
+    EXPECT_TRUE(link1 != link2);
+    EXPECT_TRUE(link1 != link3);
+    EXPECT_TRUE(link1 == link4);
+
+    EXPECT_TRUE(link2 != link1);
+    EXPECT_TRUE(link2 == link2);
+    EXPECT_TRUE(link2 != link3);
+    EXPECT_TRUE(link2 != link4);
+
+    EXPECT_TRUE(link3 != link1);
+    EXPECT_TRUE(link3 != link2);
+    EXPECT_TRUE(link3 == link3);
+    EXPECT_TRUE(link3 != link4);
+
+    EXPECT_TRUE(link4 == link1);
+    EXPECT_TRUE(link4 != link2);
+    EXPECT_TRUE(link4 != link3);
+    EXPECT_TRUE(link4 == link4);
+
+    EXPECT_TRUE(node1 == node1);
+    EXPECT_TRUE(node1 != node2);
+    EXPECT_TRUE(node1 != node3);
+    EXPECT_TRUE(node1 != node4);
+    EXPECT_TRUE(node1 == node5);
+    EXPECT_TRUE(node1 != node6);
+
+    EXPECT_TRUE(node2 != node1);
+    EXPECT_TRUE(node2 == node2);
+    EXPECT_TRUE(node2 != node3);
+    EXPECT_TRUE(node2 != node4);
+    EXPECT_TRUE(node2 != node5);
+    EXPECT_TRUE(node2 != node6);
+
+    EXPECT_TRUE(node3 != node1);
+    EXPECT_TRUE(node3 != node2);
+    EXPECT_TRUE(node3 == node3);
+    EXPECT_TRUE(node3 == node4);
+    EXPECT_TRUE(node3 != node5);
+    EXPECT_TRUE(node3 == node6);
+
+    EXPECT_TRUE(node4 != node1);
+    EXPECT_TRUE(node4 != node2);
+    EXPECT_TRUE(node4 == node3);
+    EXPECT_TRUE(node4 == node4);
+    EXPECT_TRUE(node4 != node5);
+    EXPECT_TRUE(node4 == node6);
+
+    EXPECT_TRUE(node5 == node1);
+    EXPECT_TRUE(node5 != node2);
+    EXPECT_TRUE(node5 != node3);
+    EXPECT_TRUE(node5 != node4);
+    EXPECT_TRUE(node5 == node5);
+    EXPECT_TRUE(node5 != node6);
+
+    EXPECT_TRUE(node6 != node1);
+    EXPECT_TRUE(node6 != node2);
+    EXPECT_TRUE(node6 == node3);
+    EXPECT_TRUE(node6 == node4);
+    EXPECT_TRUE(node6 != node5);
+    EXPECT_TRUE(node6 == node6);
+}
