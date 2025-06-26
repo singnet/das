@@ -23,7 +23,7 @@ shared_ptr<HandleSetIterator> HandleSetMork::get_iterator() {
 }
 // <--
 
-// --> HandleSetIterator
+// --> HandleSetMorkIterator
 HandleSetMorkIterator::HandleSetMorkIterator(HandleSetMork* handle_set) : handle_set(handle_set) {
     it = handle_set->handles.begin();
     end = handle_set->handles.end();
@@ -37,5 +37,19 @@ char* HandleSetMorkIterator::next() {
 }
 // <--
 
-// --> HandleList
+// --> HandleListMork
+HandleListMork::HandleListMork(vector<string> targets) : HandleList() {
+    this->handles_size = targets.size();
+    this->handles = targets;
+}
+HandleListMork::~HandleListMork() {}
+const char* HandleListMork::get_handle(unsigned int index) {
+    if (index > this->handles_size) {
+        Utils::error("Handle index out of bounds: " + to_string(index) +
+                     " Answer handles size: " + to_string(this->handles_size));
+    }
+    return handles[index].c_str();
+}
+
+unsigned int HandleListMork::size() { return this->handles_size; }
 // <--

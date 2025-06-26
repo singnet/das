@@ -25,7 +25,9 @@ void AtomDBSingleton::init(atomdb_api_types::ATOMDB_TYPE atomdb_type) {
             RedisMongoDB::initialize_statics();
             AtomDBSingleton::atom_db = shared_ptr<AtomDB>(new RedisMongoDB());
         } else {
-            Utils::error("Invalid AtomDB type. Choose either 'ATOMDB_TYPE::MORK_MONGODB' or 'ATOMDB_TYPE::REDIS_MONGODB'");
+            Utils::error(
+                "Invalid AtomDB type. Choose either 'ATOMDB_TYPE::MORK_MONGODB' or "
+                "'ATOMDB_TYPE::REDIS_MONGODB'");
         }
 
         AtomDBSingleton::initialized = true;

@@ -102,35 +102,7 @@ void MorkMongoDB::mork_setup() {
         Utils::error(e.what());
     }
 }
-void MorkMongoDB::attention_broker_setup() {
-    grpc::ClientContext context;
-    grpc::Status status;
-    dasproto::Empty empty;
-    dasproto::Ack ack;
-    string attention_broker_address = Utils::get_environment("DAS_ATTENTION_BROKER_ADDRESS");
-    string attention_broker_port = Utils::get_environment("DAS_ATTENTION_BROKER_PORT");
-
-    if (attention_broker_address.empty()) {
-        attention_broker_address = "localhost";
-    }
-    if (attention_broker_port.empty()) {
-        attention_broker_address += ":37007";
-    } else {
-        attention_broker_address += ":" + attention_broker_port;
-    }
-
-    auto stub = dasproto::AttentionBroker::NewStub(
-        grpc::CreateChannel(attention_broker_address, grpc::InsecureChannelCredentials()));
-    status = stub->ping(&context, empty, &ack);
-    if (status.ok()) {
-        cout << "Connected to AttentionBroker at " << attention_broker_address << endl;
-    } else {
-        Utils::error("Couldn't connect to AttentionBroker at " + attention_broker_address);
-    }
-    if (ack.msg() != "PING") {
-        Utils::error("Invalid AttentionBroker answer for PING");
-    }
-}
+void MorkMongoDB::attention_broker_setup() {}
 shared_ptr<atomdb_api_types::HandleSet> MorkMongoDB::query_for_pattern(
     const LinkTemplateInterface& link_template) {
     if (this->atomdb_cache != nullptr) {
@@ -190,7 +162,6 @@ MorkMongoDB::Node MorkMongoDB::parse_expression_tree(const string& expr) {
     size_t pos = 0;
     return parse_tokens_to_node(tokens, pos);
 }
-
 string MorkMongoDB::resolve_node_handle(Node& node) {
     auto conn = this->mongodb_pool->acquire();
     auto collection = (*conn)[RedisMongoDB::MONGODB_DB_NAME][RedisMongoDB::MONGODB_COLLECTION_NAME];
@@ -226,8 +197,45 @@ string MorkMongoDB::resolve_node_handle(Node& node) {
 shared_ptr<atomdb_api_types::HandleList> MorkMongoDB::query_for_targets(shared_ptr<char> link_handle) {
     return query_for_targets(link_handle.get());
 }
-// WIP
 shared_ptr<atomdb_api_types::HandleList> MorkMongoDB::query_for_targets(char* link_handle_ptr) {
-    return NULL;
+    if (this->atomdb_cache != nullptr) {
+        auto cache_result = this->atomdb_cache->query_for_targets(link_handle_ptr);
+        if (cache_result.is_cache_hit) return cache_result.result;
+    }
+
+    auto conn = this->mongodb_pool->acquire();
+    auto collection = (*conn)[RedisMongoDB::MONGODB_DB_NAME][RedisMongoDB::MONGODB_COLLECTION_NAME];
+
+    bsoncxx::builder::basic::document filter_builder;
+    string h(link_handle_ptr);
+    filter_builder.append(
+        bsoncxx::builder::basic::kvp(RedisMongoDB::MONGODB_FIELD_NAME[atomdb::MONGODB_FIELD::ID], h));
+
+    mongocxx::options::find find_opts;
+    bsoncxx::builder::basic::document proj_builder;
+    proj_builder.append(bsoncxx::builder::basic::kvp(
+        RedisMongoDB::MONGODB_FIELD_NAME[atomdb::MONGODB_FIELD::TARGETS], 1));
+    find_opts.projection(proj_builder.view());
+
+    auto result = collection.find_one(filter_builder.view(), find_opts);
+
+    if (!result) {
+        return {};
+    }
+
+    // Extract the "targets" and convert it to vector<string>
+    vector<string> targets;
+    auto targets_element = (*result)[RedisMongoDB::MONGODB_FIELD_NAME[atomdb::MONGODB_FIELD::TARGETS]];
+    if (targets_element && targets_element.type() == bsoncxx::type::k_array) {
+        for (auto& v : targets_element.get_array().value) {
+            targets.emplace_back(v.get_string().value.data());
+        }
+    }
+
+    auto handle_list = make_shared<atomdb_api_types::HandleListMork>(targets);
+
+    if (this->atomdb_cache != nullptr) this->atomdb_cache->add_handle_list(link_handle_ptr, handle_list);
+
+    return handle_list;
 }
 // <--

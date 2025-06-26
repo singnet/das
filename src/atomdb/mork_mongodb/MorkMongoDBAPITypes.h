@@ -47,14 +47,17 @@ class HandleSetMorkIterator : public HandleSetIterator {
     unordered_set<string>::iterator end;
 };
 
-// WIP
 class HandleListMork : public HandleList {
    public:
-    HandleListMork();
+    HandleListMork(vector<string> targets);
     ~HandleListMork();
 
     const char* get_handle(unsigned int index);
     unsigned int size();
+
+   private:
+    unsigned int handles_size;
+    vector<string> handles;
 };
 
 }  // namespace atomdb_api_types
