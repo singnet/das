@@ -89,6 +89,8 @@ MorkMongoDB::MorkMongoDB() {
     this->atomdb_cache = disable_cache ? nullptr : AtomDBCacheSingleton::get_instance();
 }
 MorkMongoDB::~MorkMongoDB() { delete this->mongodb_pool; }
+// MorkMongoDB::MorkMongoDB() : redis_mongodb() { mork_setup(); }
+// MorkMongoDB::~MorkMongoDB() {}
 void MorkMongoDB::mork_setup() {
     string host = Utils::get_environment("DAS_MORK_HOSTNAME");
     string port = Utils::get_environment("DAS_MORK_PORT");
@@ -176,6 +178,8 @@ shared_ptr<atomdb_api_types::HandleSet> MorkMongoDB::query_for_pattern(
     const LinkTemplateInterface& link_template) {
     if (this->atomdb_cache != nullptr) {
         auto cache_result = this->atomdb_cache->query_for_pattern(link_template);
+    // if (this->redis_mongodb->atomdb_cache != nullptr) {
+    //     auto cache_result = this->redis_mongodb->atomdb_cache->query_for_pattern(link_template);
         if (cache_result.is_cache_hit) return cache_result.result;
     }
     // WIP - This method will be implemented in the LinkTemplate
@@ -186,13 +190,17 @@ shared_ptr<atomdb_api_types::HandleSet> MorkMongoDB::query_for_pattern(
     auto handle_set = make_shared<atomdb_api_types::HandleSetMork>();
 
     for (const auto& raw_expr : raw_expressions) {
+        LOG_DEBUG("MorkMongoDB::query_for_pattern() [expr]: " << raw_expr);
         Node root_node = parse_expression_tree(raw_expr);
         auto handle = resolve_node_handle(root_node);
+        LOG_DEBUG("MorkMongoDB::query_for_pattern [handle]: " << handle);
         handle_set->append(make_shared<atomdb_api_types::HandleSetMork>(handle));
     }
 
     if (this->atomdb_cache != nullptr)
         this->atomdb_cache->add_pattern_matching(link_template.get_handle(), handle_set);
+    // if (this->redis_mongodb->atomdb_cache != nullptr)
+    //     this->redis_mongodb->atomdb_cache->add_pattern_matching(link_template.get_handle(), handle_set);
 
     return handle_set;
 }
@@ -232,6 +240,7 @@ MorkMongoDB::Node MorkMongoDB::parse_expression_tree(const string& expr) {
     return parse_tokens_to_node(tokens, pos);
 }
 string MorkMongoDB::resolve_node_handle(Node& node) {
+    LOG_INFO("R1");
     auto conn = this->mongodb_pool->acquire();
     auto collection = (*conn)[MONGODB_DB_NAME2][MONGODB_COLLECTION_NAME2];
 
@@ -239,30 +248,68 @@ string MorkMongoDB::resolve_node_handle(Node& node) {
     mongocxx::options::find find_opts;
 
     if (node.targets.empty()) {
+        LOG_INFO("R4");
         filter_builder.append(
             bsoncxx::builder::basic::kvp(MONGODB_FIELD_NAME2[MONGODB_FIELD2::NAME], node.name));
     } else {
+        LOG_INFO("R2");
         bsoncxx::builder::basic::array children_array;
         for (auto& child : node.targets) {
+            LOG_INFO("R3");
             children_array.append(resolve_node_handle(child));
         }
 
+        LOG_INFO("R5");
         filter_builder.append(bsoncxx::builder::basic::kvp(
-            MONGODB_FIELD_NAME2[MONGODB_FIELD2::ID2],
+            MONGODB_FIELD_NAME2[MONGODB_FIELD2::TARGETS2],
             bsoncxx::builder::basic::make_document(
                 bsoncxx::builder::basic::kvp("$all", children_array.view()))));
-
+        
         bsoncxx::builder::basic::document proj_builder;
         proj_builder.append(bsoncxx::builder::basic::kvp(MONGODB_FIELD_NAME2[MONGODB_FIELD2::ID2], 1));
         find_opts.projection(proj_builder.view());
+        LOG_INFO("R6");
     }
 
     auto result = collection.find_one(filter_builder.view(), find_opts);
     if (!result) return "";
 
     auto id_element = (*result)[MONGODB_FIELD_NAME2[MONGODB_FIELD2::ID2]];
+    LOG_INFO("ID: " << id_element.get_string().value.data());
     return id_element.get_string().value.data();
 }
+// string MorkMongoDB::resolve_node_handle(Node& node) {
+//     auto conn = this->redis_mongodb->mongodb_pool->acquire();
+//     auto collection = (*conn)[RedisMongoDB::MONGODB_DB_NAME][RedisMongoDB::MONGODB_COLLECTION_NAME];
+
+//     bsoncxx::builder::basic::document filter_builder;
+//     mongocxx::options::find find_opts;
+
+//     if (node.targets.empty()) {
+//         filter_builder.append(bsoncxx::builder::basic::kvp(
+//         RedisMongoDB::MONGODB_FIELD_NAME[atomdb::MONGODB_FIELD::NAME], node.name));
+//     } else {
+//         bsoncxx::builder::basic::array children_array;
+//         for (auto& child : node.targets) {
+//             children_array.append(resolve_node_handle(child));
+//         }
+//         filter_builder.append(bsoncxx::builder::basic::kvp(
+//         RedisMongoDB::MONGODB_FIELD_NAME[atomdb::MONGODB_FIELD::ID],
+//         bsoncxx::builder::basic::make_document(
+//             bsoncxx::builder::basic::kvp("$all", children_array.view()))));
+
+//         bsoncxx::builder::basic::document proj_builder;
+//         proj_builder.append(bsoncxx::builder::basic::kvp(
+//             RedisMongoDB::MONGODB_FIELD_NAME[atomdb::MONGODB_FIELD::ID], 1));
+//         find_opts.projection(proj_builder.view());
+//     }
+
+//     auto result = collection.find_one(filter_builder.view(), find_opts);
+//     if (!result) return "";
+
+//     auto id_element = (*result)[RedisMongoDB::MONGODB_FIELD_NAME[atomdb::MONGODB_FIELD::ID]];
+//     return id_element.get_string().value.data();
+// }
 shared_ptr<atomdb_api_types::HandleList> MorkMongoDB::query_for_targets(shared_ptr<char> link_handle) {
     return query_for_targets(link_handle.get());
 }
@@ -380,4 +427,20 @@ vector<shared_ptr<atomdb_api_types::AtomDocument>> MorkMongoDB::get_atom_documen
 }
 char* MorkMongoDB::add_node(const atomspace::Node* node) { return NULL; }
 char* MorkMongoDB::add_link(const atomspace::Link* link) { return NULL; }
+
+// // Delegates to RedisMongoDB
+// void MorkMongoDB::attention_broker_setup() { this->redis_mongodb->attention_broker_setup(); }
+// shared_ptr<atomdb_api_types::AtomDocument> MorkMongoDB::get_atom_document(const char* handle) {
+//     this->redis_mongodb->get_atom_document(handle);
+// }
+// bool MorkMongoDB::link_exists(const char* link_handle) { this->redis_mongodb->link_exists(link_handle); }
+// set<string> MorkMongoDB::links_exist(const vector<string>& link_handles) {
+//     this->redis_mongodb->links_exist(link_handles);
+// }
+// vector<shared_ptr<atomdb_api_types::AtomDocument>> MorkMongoDB::get_atom_documents(
+//     const vector<string>& handles, const vector<string>& fields) {
+//     return this->redis_mongodb->get_atom_documents(handles, fields);
+// }
+// char* MorkMongoDB::add_node(const atomspace::Node* node) { return this->redis_mongodb->add_node(node); }
+// char* MorkMongoDB::add_link(const atomspace::Link* link) { return this->redis_mongodb->add_link(link); }
 // <--

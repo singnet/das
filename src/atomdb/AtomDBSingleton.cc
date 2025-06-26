@@ -17,14 +17,19 @@ void AtomDBSingleton::init(atomdb_api_types::ATOMDB_TYPE atomdb_type) {
             "AtomDBSingleton already initialized. AtomDBSingleton::init() should be called only once.");
     } else {
         AtomDBCacheSingleton::init();
+        MorkMongoDB::initialize_statics();
+        AtomDBSingleton::atom_db = shared_ptr<AtomDB>(new MorkMongoDB());
 
-        if (atomdb_type == atomdb_api_types::ATOMDB_TYPE::MORK_MONGODB) {
-            MorkMongoDB::initialize_statics();
-            AtomDBSingleton::atom_db = shared_ptr<AtomDB>(new MorkMongoDB());
-        } else {
-            RedisMongoDB::initialize_statics();
-            AtomDBSingleton::atom_db = shared_ptr<AtomDB>(new RedisMongoDB());
-        }
+        // RedisMongoDB::initialize_statics();
+
+        // if (atomdb_type == atomdb_api_types::ATOMDB_TYPE::MORK_MONGODB) {
+        //     cout << "[AQUI]" << endl;
+        //     MorkMongoDB::initialize_statics();
+        //     AtomDBSingleton::atom_db = shared_ptr<AtomDB>(new MorkMongoDB());
+        // } else {
+        //     RedisMongoDB::initialize_statics();
+        //     AtomDBSingleton::atom_db = shared_ptr<AtomDB>(new RedisMongoDB());
+        // }
 
         AtomDBSingleton::initialized = true;
     }

@@ -16,6 +16,7 @@
 #include "AtomDB.h"
 #include "AtomDBCacheSingleton.h"
 #include "MorkMongoDBAPITypes.h"
+// #include "RedisMongoDB.h"
 
 namespace atomdb {
 
@@ -69,6 +70,7 @@ class MorkMongoDB : public AtomDB {
    private:
     shared_ptr<MorkClient> mork_client;
     mongocxx::pool* mongodb_pool;
+    // shared_ptr<RedisMongoDB> redis_mongodb;
     shared_ptr<AtomDBCache> atomdb_cache;
 
     void mork_setup();

@@ -26,6 +26,8 @@ namespace atomdb {
 enum MONGODB_FIELD { ID = 0, TARGETS, size };
 
 class RedisMongoDB : public AtomDB {
+    // friend class MorkMongoDB;
+
    public:
     RedisMongoDB();
     ~RedisMongoDB();
@@ -46,6 +48,7 @@ class RedisMongoDB : public AtomDB {
         MONGODB_COLLECTION_NAME = "atoms";
         MONGODB_FIELD_NAME[MONGODB_FIELD::ID] = "_id";
         MONGODB_FIELD_NAME[MONGODB_FIELD::TARGETS] = "targets";
+        // MONGODB_FIELD_NAME[MONGODB_FIELD::NAME] = "name";
         MONGODB_CHUNK_SIZE = 1000;
     }
 
