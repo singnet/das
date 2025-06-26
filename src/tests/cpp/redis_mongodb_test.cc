@@ -335,10 +335,9 @@ TEST_F(RedisMongoDBTest, AddAndDeleteLink) {
     auto test_1_node_handle = db->add_node(test_1_node);
     auto test_2_node_handle = db->add_node(test_2_node);
 
-    auto link = new Link("Expression", {
-        similarity_node.handle(), 
-        test_1_node_handle, 
-        test_2_node_handle}, custom_attributes);
+    auto link = new Link("Expression",
+                         {similarity_node.handle(), test_1_node_handle, test_2_node_handle},
+                         custom_attributes);
 
     auto link_handle = Link::compute_handle(link->type, link->targets);
 
@@ -381,7 +380,7 @@ TEST_F(RedisMongoDBTest, AddAndDeleteLinks) {
 
     auto links_exist_after_delete = db->links_exist(handles);
     EXPECT_EQ(links_exist_after_delete.size(), 0);
-    for (const char* handle: test_node_handles) {
+    for (const char* handle : test_node_handles) {
         EXPECT_TRUE(db->delete_atom(handle));
     }
 }

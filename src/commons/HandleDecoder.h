@@ -11,6 +11,7 @@ namespace commons {
 class HandleDecoder {
    protected:
     HandleDecoder() {}
+
    public:
     ~HandleDecoder() {}
     virtual shared_ptr<Atom> get_atom(const string& handle) = 0;

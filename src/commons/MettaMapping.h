@@ -12,6 +12,7 @@ namespace commons {
 class MettaMapping {
    private:
     MettaMapping();
+
    public:
     ~MettaMapping() {}
     static string EXPRESSION_LINK_TYPE;

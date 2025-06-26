@@ -58,7 +58,7 @@ TEST(LinkTest, LinkTargetsToHandles) {
     Node n2("Type2", "Name2");
     vector<const Atom*> targets = {&n1, &n2};
     unique_ptr<char*[], HandleArrayDeleter> handles(Link::targets_to_handles(targets),
-                                                      HandleArrayDeleter(targets.size()));
+                                                    HandleArrayDeleter(targets.size()));
     ASSERT_NE(handles, nullptr);
     for (size_t i = 0; i < targets.size(); ++i) {
         ASSERT_NE(handles[i], nullptr);

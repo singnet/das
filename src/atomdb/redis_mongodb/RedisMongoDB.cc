@@ -9,10 +9,10 @@
 #include <memory>
 #include <string>
 
+#include "AtomSpaceTypes.h"
 #include "AttentionBrokerServer.h"
 #include "Logger.h"
 #include "Utils.h"
-#include "AtomSpaceTypes.h"
 #include "attention_broker.grpc.pb.h"
 #include "attention_broker.pb.h"
 
@@ -133,14 +133,16 @@ shared_ptr<Atom> RedisMongoDB::get_atom(const string& handle) {
             unsigned int arity = atom_document->get_size(MONGODB_FIELD_NAME[MONGODB_FIELD::TARGETS]);
             vector<string> targets;
             for (unsigned int i = 0; i < arity; i++) {
-                targets.push_back(string(atom_document->get(MONGODB_FIELD_NAME[MONGODB_FIELD::TARGETS], i)));
+                targets.push_back(
+                    string(atom_document->get(MONGODB_FIELD_NAME[MONGODB_FIELD::TARGETS], i)));
             }
             // NOTE TO REVIEWER
             //     TODO We're missing custom_attributes here. I'm not sure how to deal with them.
             //     I guess we should iterate through all the fields in atom_document and add anything
-            //     that's not an expected field (named_type, targets, composite_type, composite_type_hash, etc)
-            //     as a custom attribute. If this approach is OK, we should add methods in AtomDocument's
-            //     API to allow iterate through all the keys, which we currently don't have.
+            //     that's not an expected field (named_type, targets, composite_type,
+            //     composite_type_hash, etc) as a custom attribute. If this approach is OK, we should add
+            //     methods in AtomDocument's API to allow iterate through all the keys, which we
+            //     currently don't have.
             return make_shared<Link>(atom_document->get("named_type"), targets);
         } else {
             return make_shared<Node>(atom_document->get("named_type"), atom_document->get("name"));
@@ -392,7 +394,6 @@ vector<string> RedisMongoDB::add_nodes(const vector<atomspace::Node*>& nodes) {
 }
 
 char* RedisMongoDB::add_link(const atomspace::Link* link) {
-
     auto conn = this->mongodb_pool->acquire();
     auto mongodb_collection = (*conn)[MONGODB_DB_NAME][MONGODB_COLLECTION_NAME];
 

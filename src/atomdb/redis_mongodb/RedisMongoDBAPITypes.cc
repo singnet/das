@@ -183,15 +183,14 @@ MongodbDocument::MongodbDocument(const atomspace::Node* node) {
 }
 
 MongodbDocument::MongodbDocument(const atomspace::Link* link, HandleDecoder& db) {
-
     bsoncxx::builder::basic::array composite_type;
     vector<string> link_composite_type = link->composite_type(db);
-    for (string handle: link_composite_type) {
+    for (string handle : link_composite_type) {
         composite_type.append(handle);
     }
 
     bsoncxx::builder::basic::array targets;
-    for (string handle: link->targets) {
+    for (string handle : link->targets) {
         targets.append(handle);
     }
 

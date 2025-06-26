@@ -1,10 +1,10 @@
 #pragma once
 
 #include <cstring>
+#include <iostream>
 #include <stdexcept>
 #include <string>
 #include <vector>
-#include <iostream>
 
 #include "Atom.h"
 #include "HandleDecoder.h"
@@ -108,9 +108,7 @@ class Node : public Atom {
      *
      * @param other Node to be copied.
      */
-    Node(const Node& other) : Atom(other) {
-        this->name = other.name;
-    }
+    Node(const Node& other) : Atom(other) { this->name = other.name; }
 
     /**
      * @brief Assignment operator.
@@ -140,9 +138,7 @@ class Node : public Atom {
      *
      * @param other Node to be compared to.
      */
-    virtual bool operator!=(const Node& other) {
-        return !(*this == other);
-    }
+    virtual bool operator!=(const Node& other) { return !(*this == other); }
 
     /**
      * @brief Validate the Node object.
@@ -182,7 +178,8 @@ class Node : public Atom {
      */
     virtual string metta_representation(HandleDecoder& decoder) const {
         if (this->type != MettaMapping::SYMBOL_NODE_TYPE) {
-            Utils::error("Can't compute metta expression of node whose type (" + this->type + ") is not " + MettaMapping::SYMBOL_NODE_TYPE);
+            Utils::error("Can't compute metta expression of node whose type (" + this->type +
+                         ") is not " + MettaMapping::SYMBOL_NODE_TYPE);
         }
         return this->name;
     }
@@ -222,9 +219,8 @@ class Link : public Atom {
          const vector<const Atom*>& targets,
          const Properties& custom_attributes = {})
         : Atom(type, custom_attributes) {
-
         this->targets.reserve(targets.size());
-        for (const Atom* atom: targets) {
+        for (const Atom* atom : targets) {
             this->targets.push_back(atom->handle());
         }
         this->validate();
@@ -237,9 +233,7 @@ class Link : public Atom {
      * @param custom_attributes Custom attributes for the atom.
      * @throws std::runtime_error if type is empty or targets.size() < MINIMUM_TARGETS_SIZE.
      */
-    Link(const string& type,
-         const vector<string>& targets,
-         const Properties& custom_attributes = {})
+    Link(const string& type, const vector<string>& targets, const Properties& custom_attributes = {})
         : Atom(type, custom_attributes), targets(targets) {
         this->validate();
     }
@@ -250,9 +244,7 @@ class Link : public Atom {
      *
      * @param other Link to be copied.
      */
-    Link(const Link& other) : Atom(other) {
-        this->targets = other.targets;
-    }
+    Link(const Link& other) : Atom(other) { this->targets = other.targets; }
 
     /**
      * @brief Assignment operator.
@@ -282,9 +274,7 @@ class Link : public Atom {
      *
      * @param other Link to be compared to.
      */
-    virtual bool operator!=(const Link& other) {
-        return !(*this == other);
-    }
+    virtual bool operator!=(const Link& other) { return !(*this == other); }
 
     /**
      * @brief Validate the Link object.
@@ -306,7 +296,7 @@ class Link : public Atom {
         string result = "Link(type: '" + this->type + "', targets: [";
         if (!this->targets.empty()) {
             for (const auto& target : this->targets) {
-                result +=target + ", ";
+                result += target + ", ";
             }
             result.erase(result.size() - 2);  // Remove the last comma and space
         }
@@ -332,13 +322,12 @@ class Link : public Atom {
      * @return A newly built composite type hash for this atom.
      */
     virtual string composite_type_hash(HandleDecoder& decoder) const {
-
         unsigned int arity = this->targets.size();
         unsigned int cursor = 0;
         char** handles = new char*[arity + 1];
         handles[cursor++] = ::named_type_hash((char*) type.c_str());
-        for (string handle: this->composite_type(decoder)) {
-            handles[cursor++] = (char *) handle.c_str();
+        for (string handle : this->composite_type(decoder)) {
+            handles[cursor++] = (char*) handle.c_str();
         }
         char* handle_cstr = composite_hash(handles, arity + 1);
 
@@ -355,7 +344,7 @@ class Link : public Atom {
      */
     virtual vector<string> composite_type(HandleDecoder& decoder) const {
         vector<string> composite_type;
-        for (string handle: this->targets) {
+        for (string handle : this->targets) {
             shared_ptr<Atom> atom = decoder.get_atom(handle);
             if (atom == NULL) {
                 Utils::error("Unkown atom with handle: " + handle);
@@ -374,7 +363,8 @@ class Link : public Atom {
      */
     virtual string metta_representation(HandleDecoder& decoder) const {
         if (this->type != MettaMapping::EXPRESSION_LINK_TYPE) {
-            Utils::error("Can't compute metta expression of link whose type (" + this->type + ") is not " + MettaMapping::EXPRESSION_LINK_TYPE);
+            Utils::error("Can't compute metta expression of link whose type (" + this->type +
+                         ") is not " + MettaMapping::EXPRESSION_LINK_TYPE);
         }
         string metta_string = "(";
         unsigned int size = this->targets.size();
@@ -392,9 +382,7 @@ class Link : public Atom {
      * @brief Return this Link's arity
      * @return this Link's arity.
      */
-    unsigned int arity() const {
-        return this->targets.size();
-    }
+    unsigned int arity() const { return this->targets.size(); }
 
     /**
      * @brief Convert a vector of Atom pointers to an array of handles.
@@ -435,7 +423,7 @@ class Link : public Atom {
      */
     static char* compute_handle(const string& type, const vector<const Atom*>& targets) {
         unique_ptr<char*[], HandleArrayDeleter> targets_handles(Link::targets_to_handles(targets),
-                                                                  HandleArrayDeleter(targets.size()));
+                                                                HandleArrayDeleter(targets.size()));
 
         return Link::compute_handle(type.c_str(), targets_handles.get(), targets.size());
     }

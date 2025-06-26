@@ -10,8 +10,8 @@
 #include <mongocxx/uri.hpp>
 #include <vector>
 
-#include "HandleDecoder.h"
 #include "AtomDBAPITypes.h"
+#include "HandleDecoder.h"
 #include "Utils.h"
 
 using namespace std;

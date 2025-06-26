@@ -90,7 +90,7 @@ class MockAtomDB : public AtomDB {
 
     char* add_node(const atomspace::Node* node) override {
         add_node_calls.push_back({node->type, node->name, node->custom_attributes});
-        //string handle = string("node_") + node->type + "_" + node->name;
+        // string handle = string("node_") + node->type + "_" + node->name;
         atoms[node->handle()] = (Atom*) node;
         return strdup(node->handle().c_str());
     }
@@ -99,12 +99,10 @@ class MockAtomDB : public AtomDB {
         add_link_calls.push_back({link->type, link->targets, link->custom_attributes});
         atoms[link->handle()] = (Atom*) link;
         return strdup(link->handle().c_str());
-        //return strdup("link_handle");
+        // return strdup("link_handle");
     }
 
-    shared_ptr<Atom> get_atom(const string& handle) {
-        return shared_ptr<Atom>(this->atoms[handle]);
-    }
+    shared_ptr<Atom> get_atom(const string& handle) { return shared_ptr<Atom>(this->atoms[handle]); }
 
     void attention_broker_setup() override {}
 };

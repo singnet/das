@@ -5,13 +5,16 @@ package(default_visibility = ["//visibility:public"])
 cc_library(
     name = "commons_lib",
     srcs = [
+        "MettaMapping.cc",
         "SharedQueue.cc",
         "StoppableThread.cc",
         "Utils.cc",
-        "MettaMapping.cc",
     ],
     hdrs = [
+        "Atom.h",
+        "HandleDecoder.h",
         "Logger.h",
+        "MettaMapping.h",
         "Properties.h",
         "RequestValidator.h",
         "SharedQueue.h",
@@ -19,9 +22,6 @@ cc_library(
         "StoppableThread.h",
         "ThreadPool.h",
         "Utils.h",
-        "Atom.h",
-        "HandleDecoder.h",
-        "MettaMapping.h",
     ],
     includes = ["."],
     deps = [],

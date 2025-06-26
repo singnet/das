@@ -1,13 +1,14 @@
 #pragma once
 
 #include <string>
-#include "Properties.h"
+
 #include "HandleTrie.h"
+#include "Properties.h"
 #include "expression_hasher.h"
 
 namespace commons {
 
-class HandleDecoder; // Forward declaration
+class HandleDecoder;  // Forward declaration
 
 class Atom : public HandleTrie::TrieValue {
    public:
@@ -64,9 +65,7 @@ class Atom : public HandleTrie::TrieValue {
      *
      * @param other Atom to be compared to.
      */
-    virtual bool operator!=(const Atom& other) {
-        return !(*this == other);
-    }
+    virtual bool operator!=(const Atom& other) { return !(*this == other); }
 
     virtual void validate() const {
         if (this->type.empty()) {
@@ -96,15 +95,13 @@ class Atom : public HandleTrie::TrieValue {
         return handle_string;
     }
 
-    /** 
+    /**
      * @brief Constructs and returns this Atom's composite type hash.
      *
      * @return A newly built composite type hash for this atom.
-     */     
-    virtual string composite_type_hash(HandleDecoder& decoder) const {
-        return named_type_hash();
-    }
-    
+     */
+    virtual string composite_type_hash(HandleDecoder& decoder) const { return named_type_hash(); }
+
     /**
      * @brief Constructs and returns this Atom's composite type hash.
      *
