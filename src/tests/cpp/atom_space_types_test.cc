@@ -202,30 +202,13 @@ TEST(LinkTest, CopyAndComparisson) {
     Node node4("blah", "n1");
     Node node5(node1);
     Node node6 = node4;
+
     Link link1(expression, {node1.handle(), node3.handle()});
     Link link2(expression, {node3.handle(), node1.handle()});
     Link link3("blah", {node1.handle(), node3.handle()});
     Link link4(expression, {node1.handle(), node4.handle()});
-
-    EXPECT_TRUE(link1 == link1);
-    EXPECT_TRUE(link1 != link2);
-    EXPECT_TRUE(link1 != link3);
-    EXPECT_TRUE(link1 == link4);
-
-    EXPECT_TRUE(link2 != link1);
-    EXPECT_TRUE(link2 == link2);
-    EXPECT_TRUE(link2 != link3);
-    EXPECT_TRUE(link2 != link4);
-
-    EXPECT_TRUE(link3 != link1);
-    EXPECT_TRUE(link3 != link2);
-    EXPECT_TRUE(link3 == link3);
-    EXPECT_TRUE(link3 != link4);
-
-    EXPECT_TRUE(link4 == link1);
-    EXPECT_TRUE(link4 != link2);
-    EXPECT_TRUE(link4 != link3);
-    EXPECT_TRUE(link4 == link4);
+    Link link5(link2);
+    Link link6 = link3;
 
     EXPECT_TRUE(node1 == node1);
     EXPECT_TRUE(node1 != node2);
@@ -268,4 +251,46 @@ TEST(LinkTest, CopyAndComparisson) {
     EXPECT_TRUE(node6 == node4);
     EXPECT_TRUE(node6 != node5);
     EXPECT_TRUE(node6 == node6);
+
+    EXPECT_TRUE(link1 == link1);
+    EXPECT_TRUE(link1 != link2);
+    EXPECT_TRUE(link1 != link3);
+    EXPECT_TRUE(link1 == link4);
+    EXPECT_TRUE(link1 != link5);
+    EXPECT_TRUE(link1 != link6);
+
+    EXPECT_TRUE(link2 != link1);
+    EXPECT_TRUE(link2 == link2);
+    EXPECT_TRUE(link2 != link3);
+    EXPECT_TRUE(link2 != link4);
+    EXPECT_TRUE(link2 == link5);
+    EXPECT_TRUE(link2 != link6);
+
+    EXPECT_TRUE(link3 != link1);
+    EXPECT_TRUE(link3 != link2);
+    EXPECT_TRUE(link3 == link3);
+    EXPECT_TRUE(link3 != link4);
+    EXPECT_TRUE(link3 != link5);
+    EXPECT_TRUE(link3 == link6);
+
+    EXPECT_TRUE(link4 == link1);
+    EXPECT_TRUE(link4 != link2);
+    EXPECT_TRUE(link4 != link3);
+    EXPECT_TRUE(link4 == link4);
+    EXPECT_TRUE(link4 != link5);
+    EXPECT_TRUE(link4 != link6);
+
+    EXPECT_TRUE(link5 != link1);
+    EXPECT_TRUE(link5 == link2);
+    EXPECT_TRUE(link5 != link3);
+    EXPECT_TRUE(link5 != link4);
+    EXPECT_TRUE(link5 == link5);
+    EXPECT_TRUE(link5 != link6);
+
+    EXPECT_TRUE(link6 != link1);
+    EXPECT_TRUE(link6 != link2);
+    EXPECT_TRUE(link6 == link3);
+    EXPECT_TRUE(link6 != link4);
+    EXPECT_TRUE(link6 != link5);
+    EXPECT_TRUE(link6 == link6);
 }
