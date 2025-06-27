@@ -1,9 +1,11 @@
 #pragma once
 
 #include <set>
+#include <string>
 #include <vector>
 
 #include "AtomDBAPITypes.h"
+#include "HandleDecoder.h"
 #include "Properties.h"
 
 using namespace std;
@@ -11,12 +13,14 @@ using namespace commons;
 
 namespace atomdb {
 
-class AtomDB {
+class AtomDB : public HandleDecoder {
    public:
     AtomDB() = default;
     virtual ~AtomDB() = default;
 
     static inline string WILDCARD = "*";
+
+    virtual shared_ptr<Atom> get_atom(const string& handle) = 0;  // HandleDecoder interface
 
     virtual shared_ptr<atomdb_api_types::HandleSet> query_for_pattern(
         const LinkTemplateInterface& link_template) = 0;

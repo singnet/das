@@ -114,7 +114,7 @@ char* AtomSpace::add_node(const string& type, const string& name, const Properti
 
 // -------------------------------------------------------------------------------------------------
 char* AtomSpace::add_link(const string& type,
-                          const vector<const Atom*>& targets,
+                          const vector<string>& targets,
                           const Properties& custom_attributes) {
     char* handle = Link::compute_handle(type, targets);
     this->handle_trie->insert(handle, new Link(type, targets, custom_attributes));
@@ -132,8 +132,6 @@ void AtomSpace::commit_changes(Scope scope) {
         if (const auto node = dynamic_cast<const Node*>(trie_node->value)) {
             db->add_node(node);
         } else if (const auto link = dynamic_cast<const Link*>(trie_node->value)) {
-            unique_ptr<char*[], TargetHandlesDeleter> targets_handles(
-                Link::targets_to_handles(link->targets), TargetHandlesDeleter(link->targets.size()));
             db->add_link(link);
         } else {
             Utils::error("Unsupported Atom type for commit: " + trie_node->to_string());

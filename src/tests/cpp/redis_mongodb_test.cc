@@ -328,11 +328,16 @@ TEST_F(RedisMongoDBTest, AddAndDeleteLink) {
     Properties custom_attributes;
     custom_attributes["is_toplevel"] = true;
 
-    auto similarity_node = new Node("Symbol", "Similarity");
+    auto similarity_node = Node("Symbol", "Similarity");
     auto test_1_node = new Node("Symbol", "\"test-1\"");
     auto test_2_node = new Node("Symbol", "\"test-2\"");
 
-    auto link = new Link("Expression", {similarity_node, test_1_node, test_2_node}, custom_attributes);
+    auto test_1_node_handle = db->add_node(test_1_node);
+    auto test_2_node_handle = db->add_node(test_2_node);
+
+    auto link = new Link("Expression",
+                         {similarity_node.handle(), test_1_node_handle, test_2_node_handle},
+                         custom_attributes);
 
     auto link_handle = Link::compute_handle(link->type, link->targets);
 
@@ -346,16 +351,21 @@ TEST_F(RedisMongoDBTest, AddAndDeleteLink) {
     auto handle = db->add_link(link);
     EXPECT_NE(handle, nullptr);
 
-    auto deleted = db->delete_atom(handle);
-    EXPECT_TRUE(deleted);
+    EXPECT_TRUE(db->delete_atom(handle));
+    EXPECT_TRUE(db->delete_atom(test_1_node_handle));
+    EXPECT_TRUE(db->delete_atom(test_2_node_handle));
 }
 
 TEST_F(RedisMongoDBTest, AddAndDeleteLinks) {
     vector<Link*> links;
+    vector<const char*> test_node_handles;
+
     for (int i = 0; i < 10; i++) {
         auto similarity_node = new Node("Symbol", "Similarity");
         auto test_1_node = new Node("Symbol", "add-links-1-" + to_string(i));
         auto test_2_node = new Node("Symbol", "add-links-2-" + to_string(i));
+        test_node_handles.push_back(db->add_node(test_1_node));
+        test_node_handles.push_back(db->add_node(test_2_node));
         links.push_back(new Link("Expression", {similarity_node, test_1_node, test_2_node}));
     }
 
@@ -370,6 +380,9 @@ TEST_F(RedisMongoDBTest, AddAndDeleteLinks) {
 
     auto links_exist_after_delete = db->links_exist(handles);
     EXPECT_EQ(links_exist_after_delete.size(), 0);
+    for (const char* handle : test_node_handles) {
+        EXPECT_TRUE(db->delete_atom(handle));
+    }
 }
 
 int main(int argc, char** argv) {
