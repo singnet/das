@@ -21,6 +21,7 @@ mkdir -p "$LOCAL_BIN_DIR" "$LOCAL_CACHE"
 # container paths
 CONTAINER_WORKDIR=/opt/das
 CONTAINER_WORKSPACE_DIR=/opt/das/src
+CONTAINER_LIB_DIR=$CONTAINER_WORKSPACE_DIR/lib
 CONTAINER_BIN_DIR=$CONTAINER_WORKSPACE_DIR/bin
 CONTAINER_CACHE=/home/"${CONTAINER_USER}"/.cache
 
@@ -28,6 +29,7 @@ docker run --rm \
   $([ "$ARCH" != "arm64" ] && echo "--user=$(id -u):$(id -g) --volume /etc/passwd:/etc/passwd:ro" || echo "--user=$CONTAINER_USER") \
   --privileged \
   -e BIN_DIR=$CONTAINER_BIN_DIR \
+  -e LIB_DIR=$CONTAINER_LIB_DIR \
   --name="${CONTAINER_NAME}" \
   --network=host \
   --volume "$LOCAL_CACHE":"$CONTAINER_CACHE" \
