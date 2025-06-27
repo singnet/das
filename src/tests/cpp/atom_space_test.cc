@@ -66,12 +66,11 @@ class MockAtomDB : public AtomDB {
 
     // AtomDB interface implementation
     shared_ptr<HandleSet> query_for_pattern(const LinkTemplateInterface&) override { return nullptr; }
-    shared_ptr<HandleList> query_for_targets(shared_ptr<char>) override { return nullptr; }
-    shared_ptr<HandleList> query_for_targets(char*) override { return nullptr; }
+    shared_ptr<HandleList> query_for_targets(const string&) override { return nullptr; }
 
     map<string, Atom*> atoms;
 
-    shared_ptr<AtomDocument> get_atom_document(const char* handle) override {
+    shared_ptr<AtomDocument> get_atom_document(const string& handle) override {
         get_atom_calls.push_back(handle);
         auto it = docs.find(handle);
         if (it != docs.end()) {
@@ -85,17 +84,17 @@ class MockAtomDB : public AtomDB {
         return {};  // Not implemented for this mock
     }
 
-    bool link_exists(const char*) override { return false; }
+    bool link_exists(const string&) override { return false; }
     set<string> links_exist(const vector<string>&) override { return {}; }
 
-    char* add_node(const atomspace::Node* node) override {
+    string add_node(const atomspace::Node* node) override {
         add_node_calls.push_back({node->type, node->name, node->custom_attributes});
         // string handle = string("node_") + node->type + "_" + node->name;
         atoms[node->handle()] = (Atom*) node;
         return strdup(node->handle().c_str());
     }
 
-    char* add_link(const atomspace::Link* link) override {
+    string add_link(const atomspace::Link* link) override {
         add_link_calls.push_back({link->type, link->targets, link->custom_attributes});
         atoms[link->handle()] = (Atom*) link;
         return strdup(link->handle().c_str());

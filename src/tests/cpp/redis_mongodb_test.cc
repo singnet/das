@@ -41,13 +41,6 @@ class RedisMongoDBTest : public ::testing::Test {
 
     void TearDown() override {}
 
-    shared_ptr<char> handle_ptr(string str) {
-        size_t len = str.length() + 1;
-        auto buffer = make_unique<char[]>(len);
-        strcpy(buffer.get(), str.c_str());
-        return shared_ptr<char>(buffer.release(), default_delete<char[]>());
-    }
-
     string exp_hash(vector<string> targets) {
         char* symbol = (char*) "Symbol";
         char** targets_handles = new char*[targets.size()];
@@ -113,7 +106,7 @@ TEST_F(RedisMongoDBTest, ConcurrentQueryForTargets) {
 
     auto worker = [&](int thread_id) {
         try {
-            auto targets = db->query_for_targets(handle_ptr("68ea071c32d4dbf0a7d8e8e00f2fb823"));
+            auto targets = db->query_for_targets("68ea071c32d4dbf0a7d8e8e00f2fb823");
             ASSERT_NE(targets, nullptr);
             ASSERT_EQ(targets->size(), 3);
             success_count++;
@@ -133,7 +126,7 @@ TEST_F(RedisMongoDBTest, ConcurrentQueryForTargets) {
     EXPECT_EQ(success_count, num_threads);
 
     // Test non-existing link
-    auto targets = db->query_for_targets(handle_ptr("00000000000000000000000000000000"));
+    auto targets = db->query_for_targets("00000000000000000000000000000000");
     EXPECT_EQ(targets, nullptr);
 }
 
@@ -142,12 +135,12 @@ TEST_F(RedisMongoDBTest, ConcurrentGetAtomDocument) {
     vector<thread> threads;
     atomic<int> success_count{0};
 
-    char* human_handle = terminal_hash((char*) "Symbol", (char*) "\"human\"");
-    char* monkey_handle = terminal_hash((char*) "Symbol", (char*) "\"monkey\"");
-    char* chimp_handle = terminal_hash((char*) "Symbol", (char*) "\"chimp\"");
-    char* ent_handle = terminal_hash((char*) "Symbol", (char*) "\"ent\"");
+    string human_handle = terminal_hash((char*) "Symbol", (char*) "\"human\"");
+    string monkey_handle = terminal_hash((char*) "Symbol", (char*) "\"monkey\"");
+    string chimp_handle = terminal_hash((char*) "Symbol", (char*) "\"chimp\"");
+    string ent_handle = terminal_hash((char*) "Symbol", (char*) "\"ent\"");
 
-    vector<char*> doc_handles;
+    vector<string> doc_handles;
     while (doc_handles.size() < num_threads) {
         doc_handles.push_back(human_handle);
         doc_handles.push_back(monkey_handle);
@@ -177,7 +170,7 @@ TEST_F(RedisMongoDBTest, ConcurrentGetAtomDocument) {
     EXPECT_EQ(success_count, num_threads);
 
     // Test non-existing handle
-    char* non_existing_handle = terminal_hash((char*) "Symbol", (char*) "\"non-existing\"");
+    string non_existing_handle = terminal_hash((char*) "Symbol", (char*) "\"non-existing\"");
     auto doc = db->get_atom_document(non_existing_handle);
     EXPECT_EQ(doc, nullptr);
 }
@@ -299,7 +292,7 @@ TEST_F(RedisMongoDBTest, AddAndDeleteNode) {
     }
 
     auto handle = db->add_node(node);
-    EXPECT_NE(handle, nullptr);
+    EXPECT_NE(handle, "");
 
     auto deleted = db->delete_atom(handle);
     EXPECT_TRUE(deleted);
@@ -349,7 +342,7 @@ TEST_F(RedisMongoDBTest, AddAndDeleteLink) {
     }
 
     auto handle = db->add_link(link);
-    EXPECT_NE(handle, nullptr);
+    EXPECT_NE(handle, "");
 
     EXPECT_TRUE(db->delete_atom(handle));
     EXPECT_TRUE(db->delete_atom(test_1_node_handle));
@@ -358,7 +351,7 @@ TEST_F(RedisMongoDBTest, AddAndDeleteLink) {
 
 TEST_F(RedisMongoDBTest, AddAndDeleteLinks) {
     vector<Link*> links;
-    vector<const char*> test_node_handles;
+    vector<string> test_node_handles;
 
     for (int i = 0; i < 10; i++) {
         auto similarity_node = new Node("Symbol", "Similarity");
@@ -380,7 +373,7 @@ TEST_F(RedisMongoDBTest, AddAndDeleteLinks) {
 
     auto links_exist_after_delete = db->links_exist(handles);
     EXPECT_EQ(links_exist_after_delete.size(), 0);
-    for (const char* handle : test_node_handles) {
+    for (const string& handle : test_node_handles) {
         EXPECT_TRUE(db->delete_atom(handle));
     }
 }
