@@ -16,6 +16,7 @@
 #include "attention_broker.pb.h"
 
 using namespace atomdb;
+using namespace atomspace;
 using namespace commons;
 
 // --> MorkClient
@@ -112,13 +113,19 @@ shared_ptr<atomdb_api_types::HandleSet> MorkMongoDB::query_for_pattern(
     // WIP - This method will be implemented in the LinkTemplate
     string pattern_metta = link_template.get_metta_expression();
     // template should equals to pattern_metta
+
     vector<string> raw_expressions = this->mork_client->get(pattern_metta, pattern_metta);
 
     auto handle_set = make_shared<atomdb_api_types::HandleSetMork>();
 
     for (const auto& raw_expr : raw_expressions) {
-        Node root_node = parse_expression_tree(raw_expr);
-        auto handle = resolve_node_handle(root_node);
+
+        auto tokens = tokenize_expression(raw_expr);
+        size_t pos = 0;
+        auto atom = parse_tokens_to_atom(tokens, pos);
+        auto link = static_cast<const atomspace::Link*>(atom);
+        auto handle = Link::compute_handle(link->type, link->targets);
+        LOG_INFO("expression: " << raw_expr << " | " << "handle: " << handle);       
         handle_set->append(make_shared<atomdb_api_types::HandleSetMork>(handle));
     }
 
@@ -137,62 +144,26 @@ vector<string> MorkMongoDB::tokenize_expression(const string& expr) {
     }
     return tokens;
 }
-MorkMongoDB::Node MorkMongoDB::parse_tokens_to_node(const vector<string>& tokens, size_t& pos) {
-    Node node;
+const atomspace::Atom* MorkMongoDB::parse_tokens_to_atom(const vector<string>& tokens, size_t& pos) {
+    vector<const atomspace::Atom*> children;
+
     if (tokens[pos] == "(") {
         ++pos;
         while (pos < tokens.size() && tokens[pos] != ")") {
             if (tokens[pos] == "(") {
-                node.targets.push_back(parse_tokens_to_node(tokens, pos));
+                children.push_back(parse_tokens_to_atom(tokens, pos));
             } else {
-                Node leaf{tokens[pos++], {}};
-                node.targets.push_back(move(leaf));
+                const Atom* leaf = new Node("Symbol", tokens[pos++]);
+                children.push_back(leaf);
             }
         }
-        if (pos < tokens.size() && tokens[pos] == ")") {
-            ++pos;
-        }
+        if (pos < tokens.size() && tokens[pos] == ")") ++pos;
+        const Atom* l = new Link("Expression", children);
+        return l;
     } else {
-        node.name = tokens[pos++];
+        const Atom* n = new Node("Symbol", tokens[pos++]);
+        return n;
     }
-    return node;
-}
-MorkMongoDB::Node MorkMongoDB::parse_expression_tree(const string& expr) {
-    auto tokens = tokenize_expression(expr);
-    size_t pos = 0;
-    return parse_tokens_to_node(tokens, pos);
-}
-string MorkMongoDB::resolve_node_handle(Node& node) {
-    auto conn = this->mongodb_pool->acquire();
-    auto collection = (*conn)[RedisMongoDB::MONGODB_DB_NAME][RedisMongoDB::MONGODB_COLLECTION_NAME];
-
-    bsoncxx::builder::basic::document filter_builder;
-    mongocxx::options::find find_opts;
-
-    if (node.targets.empty()) {
-        filter_builder.append(bsoncxx::builder::basic::kvp(
-            RedisMongoDB::MONGODB_FIELD_NAME[atomdb::MONGODB_FIELD::NAME], node.name));
-    } else {
-        bsoncxx::builder::basic::array children_array;
-        for (auto& child : node.targets) {
-            children_array.append(resolve_node_handle(child));
-        }
-        filter_builder.append(bsoncxx::builder::basic::kvp(
-            RedisMongoDB::MONGODB_FIELD_NAME[atomdb::MONGODB_FIELD::TARGETS],
-            bsoncxx::builder::basic::make_document(
-                bsoncxx::builder::basic::kvp("$all", children_array.view()))));
-
-        bsoncxx::builder::basic::document proj_builder;
-        proj_builder.append(bsoncxx::builder::basic::kvp(
-            RedisMongoDB::MONGODB_FIELD_NAME[atomdb::MONGODB_FIELD::ID], 1));
-        find_opts.projection(proj_builder.view());
-    }
-
-    auto result = collection.find_one(filter_builder.view(), find_opts);
-    if (!result) return "";
-
-    auto id_element = (*result)[RedisMongoDB::MONGODB_FIELD_NAME[atomdb::MONGODB_FIELD::ID]];
-    return id_element.get_string().value.data();
 }
 shared_ptr<atomdb_api_types::HandleList> MorkMongoDB::query_for_targets(shared_ptr<char> link_handle) {
     return query_for_targets(link_handle.get());

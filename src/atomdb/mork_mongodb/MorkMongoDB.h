@@ -16,6 +16,7 @@
 #include "AtomDB.h"
 #include "AtomDBCacheSingleton.h"
 #include "MorkMongoDBAPITypes.h"
+#include "AtomSpaceTypes.h"
 #include "RedisMongoDB.h"
 
 namespace atomdb {
@@ -70,14 +71,8 @@ class MorkMongoDB : public AtomDB {
     void mork_setup();
     void attention_broker_setup();
 
-    struct Node {
-        string name;
-        vector<Node> targets;
-    };
     vector<string> tokenize_expression(const string& expr);
-    Node parse_tokens_to_node(const vector<string>& tokens, size_t& pos);
-    Node parse_expression_tree(const string& expr);
-    string resolve_node_handle(Node& node);
+    const atomspace::Atom* parse_tokens_to_atom(const vector<string>& tokens, size_t& pos);
 };
 
 }  // namespace atomdb
