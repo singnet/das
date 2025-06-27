@@ -64,7 +64,7 @@ class AtomDBCache {
      * @param handle The handle of the atom document.
      * @return The atom document if it is cached, nullptr otherwise.
      */
-    GetAtomDocumentResult get_atom_document(const char* handle);
+    GetAtomDocumentResult get_atom_document(const string& handle);
 
     /**
      * @brief Add an atom document to the cache.
@@ -72,7 +72,7 @@ class AtomDBCache {
      * @param handle The handle of the atom document.
      * @param document The atom document to be cached.
      */
-    void add_atom_document(const char* handle, shared_ptr<atomdb_api_types::AtomDocument> document);
+    void add_atom_document(const string& handle, shared_ptr<atomdb_api_types::AtomDocument> document);
 
     /**
      * @brief Query for a pattern matching.
@@ -88,7 +88,7 @@ class AtomDBCache {
      * @param pattern_handle The handle of the pattern.
      * @param results The result of the query to be cached.
      */
-    void add_pattern_matching(const char* pattern_handle,
+    void add_pattern_matching(const string& pattern_handle,
                               shared_ptr<atomdb_api_types::HandleSet> results);
 
     /**
@@ -97,7 +97,7 @@ class AtomDBCache {
      * @param link_handle The handle of the link.
      * @return The list of targets if it is cached, nullptr otherwise.
      */
-    QueryForTargetsResult query_for_targets(const char* link_handle);
+    QueryForTargetsResult query_for_targets(const string& link_handle);
 
     /**
      * @brief Add a handle list to the cache.
@@ -105,7 +105,7 @@ class AtomDBCache {
      * @param link_handle The handle of the link.
      * @param results The result of the query to be cached.
      */
-    void add_handle_list(const char* link_handle, shared_ptr<atomdb_api_types::HandleList> results);
+    void add_handle_list(const string& link_handle, shared_ptr<atomdb_api_types::HandleList> results);
 
    private:
     /**
