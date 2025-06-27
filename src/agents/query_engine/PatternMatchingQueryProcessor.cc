@@ -73,7 +73,7 @@ void PatternMatchingQueryProcessor::update_attention_broker_single_answer(
         // Updates joint answer (stimulation)
         joint_answer.insert(handle);
         // Gets targets and stack them
-        auto query_result = db->query_for_targets(handle);
+        shared_ptr<atomdb_api_types::HandleList> query_result = db->query_for_targets(handle);
         if (query_result != NULL) {  // if handle is link
             unsigned int query_result_size = query_result->size();
             for (unsigned int i = 0; i < query_result_size; i++) {
