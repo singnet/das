@@ -372,7 +372,7 @@ class Link : public Atom {
         }
         string metta_string = "(";
         unsigned int size = this->targets.size();
-        for (unsigned int i = 1; i < size; i++) {
+        for (unsigned int i = 0; i < size; i++) {
             metta_string += decoder.get_atom(this->targets[i])->metta_representation(decoder);
             if (i != (size - 1)) {
                 metta_string += " ";

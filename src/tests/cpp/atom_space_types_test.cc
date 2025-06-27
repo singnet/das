@@ -8,6 +8,16 @@ using namespace std;
 using namespace atomspace;
 using namespace commons;
 
+class TestDecoder : public HandleDecoder {
+   public:
+    map<string, shared_ptr<Atom>> atoms;
+    shared_ptr<Atom> get_atom(const string& handle) { return this->atoms[handle]; }
+    shared_ptr<Atom> add_atom(shared_ptr<Atom> atom) {
+        this->atoms[atom->handle()] = atom;
+        return atom;
+    }
+};
+
 TEST(NodeTest, NodeValidationAndToString) {
     EXPECT_NO_THROW(Node("Type", "Name"));
     EXPECT_THROW(Node("", "Name"), runtime_error);
@@ -123,16 +133,6 @@ TEST(LinkTest, LinkWithCustomAttributes) {
 }
 
 TEST(LinkTest, CompositeTypes) {
-    class TestDecoder : public HandleDecoder {
-       public:
-        map<string, shared_ptr<Atom>> atoms;
-        shared_ptr<Atom> get_atom(const string& handle) { return this->atoms[handle]; }
-        shared_ptr<Atom> add_atom(shared_ptr<Atom> atom) {
-            this->atoms[atom->handle()] = atom;
-            return atom;
-        }
-    };
-
     TestDecoder db;
     string symbol = MettaMapping::SYMBOL_NODE_TYPE;
     string expression = MettaMapping::EXPRESSION_LINK_TYPE;
@@ -190,6 +190,42 @@ TEST(LinkTest, CompositeTypes) {
     EXPECT_TRUE(link1_composite == vector<string>({expression_hash, symbol_hash, symbol_hash}));
     EXPECT_TRUE(link2_composite == vector<string>({expression_hash, symbol_hash, link1_composite_hash}));
     EXPECT_TRUE(link3_composite == vector<string>({expression_hash, link2_composite_hash, symbol_hash}));
+}
+
+TEST(LinkTest, MettaStrings) {
+
+    TestDecoder db;
+    string symbol = MettaMapping::SYMBOL_NODE_TYPE;
+    string expression = MettaMapping::EXPRESSION_LINK_TYPE;
+    vector<string> v;
+
+    auto node1 = db.add_atom(make_shared<Node>(symbol, string("n1")));
+    auto node2 = db.add_atom(make_shared<Node>(symbol, string("n2")));
+    auto node3 = db.add_atom(make_shared<Node>(symbol, string("n3")));
+    auto node4 = db.add_atom(make_shared<Node>(symbol, string("n4")));
+    auto node5 = db.add_atom(make_shared<Node>("blah", string("n4")));
+
+    v = {node1->handle(), node2->handle()};
+    auto link1 = db.add_atom(make_shared<Link>(expression, v));
+    v = {node3->handle(), link1->handle()};
+    auto link2 = db.add_atom(make_shared<Link>(expression, v));
+    v = {link2->handle(), node4->handle()};
+    auto link3 = db.add_atom(make_shared<Link>(expression, v));
+    v = {node1->handle(), node5->handle()};
+    auto link4 = db.add_atom(make_shared<Link>(expression, v));
+    v = {node1->handle(), node2->handle()};
+    auto link5 = db.add_atom(make_shared<Link>("blah", v));
+
+    EXPECT_EQ(node1->metta_representation(db), string("n1"));
+    EXPECT_EQ(node2->metta_representation(db), string("n2"));
+    EXPECT_EQ(node3->metta_representation(db), string("n3"));
+    EXPECT_EQ(node4->metta_representation(db), string("n4"));
+    EXPECT_EQ(link1->metta_representation(db), string("(n1 n2)"));
+    EXPECT_EQ(link2->metta_representation(db), string("(n3 (n1 n2))"));
+    EXPECT_EQ(link3->metta_representation(db), string("((n3 (n1 n2)) n4)"));
+    EXPECT_THROW(node5->metta_representation(db), runtime_error);
+    EXPECT_THROW(link4->metta_representation(db), runtime_error);
+    EXPECT_THROW(link5->metta_representation(db), runtime_error);
 }
 
 TEST(LinkTest, CopyAndComparisson) {
