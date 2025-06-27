@@ -63,13 +63,16 @@ if [ "$BUILD_WHEELS" = true ]; then
 fi
 
 $BAZELISK_BUILD_CMD $BUILD_TARGETS
+
+mkdir -p $BIN_DIR $LIB_DIR
+
 mv $MOVE_BIN_TARGETS $BIN_DIR
 mv $MOVE_LIB_TARGETS $LIB_DIR
 
-find $LIB_DIR -type f -name "*.so" | while read -r sofile; do
-    ldd "$sofile" | awk '/=> \// { print $3 }' | while read -r dep; do
+find "$LIB_DIR" -type f -name "*.so" | while IFS= read -r sofile; do
+    ldd "$sofile" | awk '/=> \// { print $3 }' | while IFS= read -r dep; do
         if [ -f "$dep" ]; then
-            cp -v "$dep" .
+            cp -v "$dep" "$LIB_DIR"
         fi
     done
 done
