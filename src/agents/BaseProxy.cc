@@ -1,6 +1,7 @@
 #include "BaseProxy.h"
 
 #include "ServiceBus.h"
+#include "Utils.h"
 
 #define LOG_LEVEL INFO_LEVEL
 #include "Logger.h"
@@ -49,13 +50,17 @@ void BaseProxy::tokenize(vector<string>& output) {
 // Server-side API
 
 void BaseProxy::untokenize(vector<string>& tokens) {
-    unsigned int num_property_tokens = std::stoi(tokens[0]);
+    unsigned int num_property_tokens =
+        Utils::string_to_int(tokens[0]);  // safe conversion, should always be a number
     if (num_property_tokens > 0) {
         vector<string> properties_tokens;
         properties_tokens.insert(
             properties_tokens.begin(), tokens.begin() + 1, tokens.begin() + 1 + num_property_tokens);
         this->parameters.untokenize(properties_tokens);
         tokens.erase(tokens.begin(), tokens.begin() + 1 + num_property_tokens);
+    } else {
+        // If no parameters are provided, we still need to remove the first token
+        tokens.erase(tokens.begin());
     }
 }
 

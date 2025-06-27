@@ -40,6 +40,8 @@ LINK_CREATION_QUERY_TIMEOUT_SECONDS=${LINK_CREATION_QUERY_TIMEOUT_SECONDS:-18000
 LINK_CREATION_REQUESTS_INTERVAL_SECONDS=${LINK_CREATION_REQUESTS_INTERVAL_SECONDS:-18000}
 LINK_CREATION_REQUESTS_BUFFER_FILE=${LINK_CREATION_REQUESTS_BUFFER_FILE:-"buffer"}
 LINK_CREATION_AGENT_THREAD_COUNT=${LINK_CREATION_AGENT_THREAD_COUNT:-1}
+LINK_CREATION_METTA_FILE_PATH=${LINK_CREATION_METTA_FILE_PATH:-"/opt/das/src/bin"}
+SAVE_LINKS_TO_METTA=${SAVE_LINKS_TO_METTA:-"true"}
 
 ## Other Params
 DAS_REDIS_HOSTNAME=${DAS_REDIS_HOSTNAME:-"localhost"}
@@ -62,26 +64,7 @@ export DAS_DISABLE_ATOMDB_CACHE=$DISABLE_ATOMDB_CACHE
 
 # Link Creation Agent params
 mkdir -p src/bin
-LINK_CREATION_FILE_PATH=$PWD/src/bin/link_creation_server.cfg
-if [ -f "$LINK_CREATION_FILE_PATH" ]; then
-    echo "File $LINK_CREATION_FILE_PATH already exists. Skipping creation."
-else
-    echo "Creating file $LINK_CREATION_FILE_PATH."
-    touch $PWD/src/bin/link_creation_server.cfg
-    echo "link_creation_agent_thread_count = $LINK_CREATION_AGENT_THREAD_COUNT" >> $PWD/src/bin/link_creation_server.cfg
-    echo "link_creation_agent_server_id = $LINK_CREATION_AGENT_NODE_ID" >> $PWD/src/bin/link_creation_server.cfg
-    echo "query_agent_server_id = $QUERY_AGENT_NODE_ID" >> $PWD/src/bin/link_creation_server.cfg
-    echo "query_agent_client_id = $LINK_CREATION_QUERY_AGENT_ID" >> $PWD/src/bin/link_creation_server.cfg
-    echo "query_agent_client_start_port = $LINK_CREATION_QUERY_AGENT_START_PORT" >> $PWD/src/bin/link_creation_server.cfg
-    echo "query_agent_client_end_port = $LINK_CREATION_QUERY_AGENT_END_PORT" >> $PWD/src/bin/link_creation_server.cfg
-    echo "das_agent_client_id = $LINK_CREATION_DAS_AGENT_ID" >> $PWD/src/bin/link_creation_server.cfg
-    echo "das_agent_server_id = $DAS_AGENT_NODE_ID" >> $PWD/src/bin/link_creation_server.cfg
-    echo "query_timeout_seconds = $LINK_CREATION_QUERY_TIMEOUT_SECONDS" >> $PWD/src/bin/link_creation_server.cfg
-    echo "requests_interval_seconds = $LINK_CREATION_REQUESTS_INTERVAL_SECONDS" >> $PWD/src/bin/link_creation_server.cfg
-    echo "requests_buffer_file = $LINK_CREATION_REQUESTS_BUFFER_FILE" >> $PWD/src/bin/link_creation_server.cfg
-    echo "metta_file_path = /opt/das/src/bin" >> $PWD/src/bin/link_creation_server.cfg
-    echo "save_links_to_db = $SAVE_LINKS_TO_DB" >> $PWD/src/bin/link_creation_server.cfg
-fi
+
 
 # Inference Agent params
 INFERENCE_AGENT_FILE_PATH=$PWD/src/bin/inference_agent_server.cfg
@@ -111,7 +94,7 @@ DAS_AGENT_CONFIG=$(echo $DAS_AGENT_CONFIG_JSON)
 AGENTS=(
     "attention_broker_service $ATTENTION_BROKER_PORT;src/scripts/run.sh"
     "query_broker $QUERY_AGENT_PORT;src/scripts/run.sh"
-    "link_creation_server --config_file ./src/bin/link_creation_server.cfg;src/scripts/run.sh"
+    "link_creation_server $LINK_CREATION_AGENT_NODE_ID $QUERY_AGENT_NODE_ID $LINK_CREATION_QUERY_AGENT_START_PORT $LINK_CREATION_QUERY_AGENT_END_PORT $LINK_CREATION_REQUESTS_INTERVAL_SECONDS $LINK_CREATION_AGENT_THREAD_COUNT $LINK_CREATION_QUERY_TIMEOUT_SECONDS $LINK_CREATION_REQUESTS_BUFFER_FILE $LINK_CREATION_METTA_FILE_PATH $SAVE_LINKS_TO_METTA $SAVE_LINKS_TO_DB;src/scripts/run.sh"
     "inference_agent_server --config_file ./src/bin/inference_agent_server.cfg;src/scripts/run.sh"
 )
 
@@ -141,7 +124,6 @@ stop() {
         fi
         docker rm -f "$CONTAINER_NAME"
     done
-    rm -f $LINK_CREATION_FILE_PATH
     rm -f $INFERENCE_AGENT_FILE_PATH
 }
 
