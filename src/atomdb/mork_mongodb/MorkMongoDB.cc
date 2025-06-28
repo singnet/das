@@ -113,19 +113,19 @@ shared_ptr<atomdb_api_types::HandleSet> MorkMongoDB::query_for_pattern(
     // WIP - This method will be implemented in the LinkTemplate
     string pattern_metta = link_template.get_metta_expression();
     // template should equals to pattern_metta
-
+    LOG_INFO("Fetching data...");
     vector<string> raw_expressions = this->mork_client->get(pattern_metta, pattern_metta);
-
+    LOG_INFO("Fetching data...OK");
     auto handle_set = make_shared<atomdb_api_types::HandleSetMork>();
 
     for (const auto& raw_expr : raw_expressions) {
-
         auto tokens = tokenize_expression(raw_expr);
         size_t pos = 0;
         auto atom = parse_tokens_to_atom(tokens, pos);
         auto link = static_cast<const atomspace::Link*>(atom);
         auto handle = Link::compute_handle(link->type, link->targets);
-        LOG_INFO("expression: " << raw_expr << " | " << "handle: " << handle);       
+        // LOG_INFO("expression: " << raw_expr << " | "
+        //                         << "handle: " << handle);
         handle_set->append(make_shared<atomdb_api_types::HandleSetMork>(handle));
     }
 

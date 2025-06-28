@@ -570,3 +570,27 @@ cc_test(
         "@mbedtls",
     ],
 )
+
+cc_test(
+    name = "mork_mongodb_test",
+    size = "small",
+    srcs = ["mork_mongodb_test.cc"],
+    copts = [
+        "-Iexternal/gtest/googletest/include",
+        "-Iexternal/gtest/googletest",
+    ],
+    linkopts = [
+        "-L/usr/local/lib",
+        "-lhiredis_cluster",
+        "-lhiredis",
+        "-lmongocxx",
+        "-lbsoncxx",
+    ],
+    linkstatic = 1,
+    deps = [
+        "//atom_space:link_template_interface",
+        "//atomdb:atomdb_singleton",
+        "@com_github_google_googletest//:gtest_main",
+        "@mbedtls",
+    ],
+)

@@ -15,8 +15,8 @@
 
 #include "AtomDB.h"
 #include "AtomDBCacheSingleton.h"
-#include "MorkMongoDBAPITypes.h"
 #include "AtomSpaceTypes.h"
+#include "MorkMongoDBAPITypes.h"
 #include "RedisMongoDB.h"
 
 namespace atomdb {
@@ -61,6 +61,8 @@ class MorkMongoDB : public AtomDB {
     }
     char* add_node(const atomspace::Node* node) { return this->redis_mongodb->add_node(node); }
     char* add_link(const atomspace::Link* link) { return this->redis_mongodb->add_link(link); }
+
+    void set_mork_client_for_test(shared_ptr<MorkClient> mock_client) { mork_client = mock_client; }
 
    private:
     shared_ptr<RedisMongoDB> redis_mongodb;
