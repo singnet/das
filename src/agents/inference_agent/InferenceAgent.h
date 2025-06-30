@@ -76,7 +76,7 @@ class InferenceAgent {
      * @brief Send stop link creation request to the link creation agent.
      * @param inference_request The inference request to be sent to the link creation agent.
      */
-    void send_stop_link_creation_request(shared_ptr<InferenceRequest> inference_request);
+    void send_stop_link_creation_request(const string& request_id);
     /**
      * @brief Send stop link creation request to the link creation agent.
      * @param inference_request The inference request to be sent to the link creation agent.
@@ -126,7 +126,7 @@ class InferenceAgent {
     DistributedInferenceControlAgentNode* distributed_inference_control_client;
     unsigned long long inference_request_id = 0;
     Queue<shared_ptr<InferenceRequest>> inference_request_queue;
-    unordered_map<string, vector<shared_ptr<LinkCreationRequestProxy>>> inference_proxy_map;
+    unordered_map<string, vector<shared_ptr<LinkCreationRequestProxy>>> link_creation_proxy_map;
 
     static const std::string PROOF_OF_IMPLICATION_OR_EQUIVALENCE;
     static const std::string PROOF_OF_IMPLICATION;

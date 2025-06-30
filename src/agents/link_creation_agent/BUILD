@@ -5,6 +5,21 @@ package(default_visibility = ["//visibility:public"])
 cc_library(
     name = "link_creation_agent_lib",
     srcs = [
+        "LinkCreationRequestProcessor.cc",
+    ],
+    hdrs = [
+        "LinkCreationRequestProcessor.h",
+    ],
+    deps = [
+        "//service_bus:service_bus_lib",
+        "//agents:agents_lib",
+        ":link_creation_agent",
+    ],
+)
+
+cc_library(
+    name = "link_creation_agent",
+    srcs = [
         "LCALink.cc",
         "LinkCreationAgent.cc",
         "LinkCreationService.cc",
@@ -22,12 +37,11 @@ cc_library(
         ":link_creation_agent_node",
         ":link_creation_db_helper",
         ":processors",
-        ":request_processor",
         ":service",
+        ":request_proxy",
         "//agents/query_engine:query_engine_lib",
         "//distributed_algorithm_node:distributed_algorithm_node_lib",
         "//hasher:hasher_lib",
-        "//service_bus:service_bus_lib",
     ],
 )
 
@@ -128,31 +142,7 @@ cc_library(
     ],
 )
 
-cc_library(
-    name = "request_processor",
-    srcs = [
-        "LinkCreationAgent.cc",
-        "LinkCreationRequestProcessor.cc",
-    ],
-    hdrs = [
-        "LinkCreationAgent.h",
-        "LinkCreationRequestProcessor.h",
-    ],
-    deps = [
-        ":das_agent_node",
-        ":link",
-        ":link_create_template",
-        ":link_creation_agent_node",
-        ":link_creation_db_helper",
-        ":processors",
-        ":request_proxy",
-        ":service",
-        "//agents/query_engine:query_engine_lib",
-        "//distributed_algorithm_node:distributed_algorithm_node_lib",
-        "//hasher:hasher_lib",
-        "//service_bus:service_bus_lib",
-    ],
-)
+
 
 cc_library(
     name = "request_proxy",

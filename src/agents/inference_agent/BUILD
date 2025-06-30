@@ -2,8 +2,20 @@ load("@rules_cc//cc:cc_library.bzl", "cc_library")
 
 package(default_visibility = ["//visibility:public"])
 
+
+
 cc_library(
     name = "inference_agent_lib",
+    srcs = ["InferenceProcessor.cc"],
+    hdrs = ["InferenceProcessor.h"],
+    deps = [
+        "//service_bus:service_bus_lib",
+        ":inference_agent"
+    ],
+)
+
+cc_library(
+    name = "inference_agent",
     srcs = [
         "InferenceAgent.cc",
     ],
@@ -17,12 +29,12 @@ cc_library(
         ":distributed_inference_control_agent_node",
         ":inference_agent_node",
         ":inference_request",
+        ":inference_proxy",
         "//agents/link_creation_agent:link_creation_agent_lib",
         "//atomdb",
         "//atomdb:atomdb_api_types",
         "//atomdb:atomdb_singleton",
         "//commons:commons_lib",
-        ":inference_bus_processor",
 
     ],
 )
@@ -66,20 +78,3 @@ cc_library(
     ],
 )
 
-cc_library(
-    name = "inference_bus_processor",
-    srcs = ["InferenceProcessor.cc", "InferenceAgent.cc"],
-    hdrs = ["InferenceProcessor.h", "InferenceAgent.h"],
-    deps = [
-        "//service_bus:service_bus_lib",
-        ":inference_proxy",
-        ":distributed_inference_control_agent_node",
-        ":inference_agent_node",
-        ":inference_request",
-        "//agents/link_creation_agent:link_creation_agent_lib",
-        "//atomdb",
-        "//atomdb:atomdb_api_types",
-        "//atomdb:atomdb_singleton",
-        "//commons:commons_lib",
-    ],
-)
