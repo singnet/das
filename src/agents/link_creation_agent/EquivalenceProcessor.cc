@@ -1,5 +1,4 @@
 #include "EquivalenceProcessor.h"
-
 #include "LinkCreationDBHelper.h"
 #include "Logger.h"
 

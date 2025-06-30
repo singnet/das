@@ -10,7 +10,6 @@
  */
 
 #pragma once
-#include <map>
 #include <memory>
 #include <mutex>
 #include <string>
@@ -18,21 +17,16 @@
 #include <vector>
 #include <unordered_map>
 
-#include "DASAgentNode.h"
-#include "EvolutionAgentNode.h"
-#include "InferenceAgentNode.h"
-#include "InferenceIterator.h"
+
 #include "InferenceRequest.h"
 #include "InferenceRequestValidator.h"
-#include "LinkCreationAgentNode.h"
 #include "ThreadPool.h"
 #include "InferenceProxy.h"
 #include "LinkCreationRequestProxy.h"
+#include "LCAQueue.h"
 
 using namespace distributed_algorithm_node;
 using namespace link_creation_agent;
-using namespace das_agent;
-using namespace distributed_inference_control_agent;
 
 
 namespace inference_agent {
@@ -102,28 +96,12 @@ class InferenceAgent {
     // Private variables
     InferenceRequestValidator inference_request_validator;
     std::vector<std::string> get_link_creation_request();
-    std::string inference_node_id;
-    std::string das_client_id;
-    std::string das_server_id;
-    std::string distributed_inference_control_node_id;
-    std::string distributed_inference_control_node_server_id;
-    std::string link_creation_agent_server_id;
-    std::string link_creation_agent_client_id;
-    std::string inference_node_server_host;
-    std::string inference_node_server_port;
-    uint16_t current_iterator_id = 0;
-    int iterator_pool_size = 10;
     int max_proof_length_limit = 10;
     thread* agent_thread = nullptr;
     bool is_stoping = false;
     std::mutex agent_mutex;
     std::unordered_map<std::string, std::shared_ptr<InferenceRequest>>
         iterator_link_creation_request_map;  // iterator_id, link_creation_request
-    std::vector<shared_ptr<InferenceIterator<InferenceAgentNode>>> inference_iterators;
-    DasAgentNode* das_client;
-    InferenceAgentNode* inference_node_server;
-    LinkCreationAgentNode* link_creation_node_client;
-    DistributedInferenceControlAgentNode* distributed_inference_control_client;
     unsigned long long inference_request_id = 0;
     Queue<shared_ptr<InferenceRequest>> inference_request_queue;
     unordered_map<string, vector<shared_ptr<LinkCreationRequestProxy>>> link_creation_proxy_map;

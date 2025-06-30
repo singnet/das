@@ -31,10 +31,8 @@ cc_library(
     ],
     includes = ["."],
     deps = [
-        ":das_agent_node",
         ":link",
         ":link_create_template",
-        ":link_creation_agent_node",
         ":link_creation_db_helper",
         ":processors",
         ":service",
@@ -45,18 +43,7 @@ cc_library(
     ],
 )
 
-cc_library(
-    name = "das_agent_node",
-    srcs = ["DASAgentNode.cc"],
-    hdrs = [
-        "DASAgentNode.h",
-        "LCAQueue.h",
-    ],
-    deps = [
-        ":link_creation_db_helper",
-        "//distributed_algorithm_node:distributed_algorithm_node_lib",
-    ],
-)
+
 
 cc_library(
     name = "link",
@@ -79,18 +66,7 @@ cc_library(
     ],
 )
 
-cc_library(
-    name = "link_creation_agent_node",
-    srcs = ["LinkCreationAgentNode.cc"],
-    hdrs = [
-        "DummyMessage.h",
-        "LCAQueue.h",
-        "LinkCreationAgentNode.h",
-    ],
-    deps = [
-        "//distributed_algorithm_node:star_node",
-    ],
-)
+
 
 cc_library(
     name = "link_creation_db_helper",
@@ -112,7 +88,6 @@ cc_library(
         "ThreadPool.h",
     ],
     deps = [
-        ":das_agent_node",
         ":link",
         ":processors",
         "//agents/query_engine:query_engine_lib",

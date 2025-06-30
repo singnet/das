@@ -1,6 +1,4 @@
 #include "LinkCreationRequestProxy.h"
-
-#include "Logger.h"
 #include "ServiceBus.h"
 
 using namespace link_creation_agent;
