@@ -40,13 +40,6 @@ class MorkMongoDBTest : public ::testing::Test {
 
     void TearDown() override {}
 
-    shared_ptr<char> handle_ptr(string str) {
-        size_t len = str.length() + 1;
-        auto buffer = make_unique<char[]>(len);
-        strcpy(buffer.get(), str.c_str());
-        return shared_ptr<char>(buffer.release(), default_delete<char[]>());
-    }
-
     string exp_hash(vector<string> targets) {
         char* symbol = (char*) "Symbol";
         char** targets_handles = new char*[targets.size()];
@@ -102,9 +95,7 @@ TEST_F(MorkMongoDBTest, QueryForPattern) {
 TEST_F(MorkMongoDBTest, QueryForTargets) {
     string link_handle = exp_hash({"Inheritance", "\"human\"", "\"mammal\""});
 
-    auto handle_shared = handle_ptr(link_handle);
-
-    auto targets_list = db->query_for_targets(handle_shared.get());
+    auto targets_list = db->query_for_targets(link_handle);
     ASSERT_NE(targets_list, nullptr);
 
     unsigned int count = targets_list->size();
@@ -117,9 +108,9 @@ TEST_F(MorkMongoDBTest, QueryForTargets) {
         targets.push_back(raw);
     }
 
-    char* inheritance_handle = terminal_hash((char*) "Symbol", (char*) "Inheritance");
-    char* human_handle = terminal_hash((char*) "Symbol", (char*) "\"human\"");
-    char* mammal_handle = terminal_hash((char*) "Symbol", (char*) "\"mammal\"");
+    string inheritance_handle = terminal_hash((char*) "Symbol", (char*) "Inheritance");
+    string human_handle = terminal_hash((char*) "Symbol", (char*) "\"human\"");
+    string mammal_handle = terminal_hash((char*) "Symbol", (char*) "\"mammal\"");
 
     vector<string> expected = {inheritance_handle, human_handle, mammal_handle};
     std::sort(targets.begin(), targets.end());
