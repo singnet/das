@@ -15,6 +15,7 @@ using namespace std;
 using namespace query_engine;
 using namespace service_bus;
 using namespace atomspace;
+using namespace atomdb;
 
 void ctrl_c_handler(int) {
     std::cout << "Stopping query engine server..." << std::endl;
