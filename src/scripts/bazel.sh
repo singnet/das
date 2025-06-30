@@ -13,7 +13,8 @@ ENV_VARS=$(test -f .env && echo "--env-file=.env" || echo "")
 
 # local paths
 LOCAL_WORKDIR=$(pwd)
-LOCAL_BIN_DIR=$LOCAL_WORKDIR/src/bin
+LOCAL_BIN_DIR=$LOCAL_WORKDIR/bin
+LOCAL_LIB_DIR=$LOCAL_WORKDIR/lib
 LOCAL_CACHE="$HOME/.cache/das"
 
 mkdir -p "$LOCAL_BIN_DIR" "$LOCAL_CACHE"
@@ -28,12 +29,12 @@ CONTAINER_CACHE=/home/"${CONTAINER_USER}"/.cache
 docker run --rm \
   $([ "$ARCH" != "arm64" ] && echo "--user=$(id -u):$(id -g) --volume /etc/passwd:/etc/passwd:ro" || echo "--user=$CONTAINER_USER") \
   --privileged \
-  -e BIN_DIR=$CONTAINER_BIN_DIR \
-  -e LIB_DIR=$CONTAINER_LIB_DIR \
   --name="${CONTAINER_NAME}" \
   --network=host \
   --volume "$LOCAL_CACHE":"$CONTAINER_CACHE" \
   --volume "$LOCAL_WORKDIR":"$CONTAINER_WORKDIR" \
+  --volume "$LOCAL_BIN_DIR":"$CONTAINER_BIN_DIR" \
+  --volume "$LOCAL_LIB_DIR":"$CONTAINER_LIB_DIR" \
   --workdir "$CONTAINER_WORKSPACE_DIR" \
   --entrypoint "$BAZEL_CMD" \
   "${IMAGE_NAME}" \
