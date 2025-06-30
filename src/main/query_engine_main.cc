@@ -26,7 +26,7 @@ int main(int argc, char* argv[]) {
         exit(1);
     }
     string server_id = "0.0.0.0:" + string(argv[1]);
-    auto ports_range = Utils::ports_range(argv[2]);
+    auto ports_range = Utils::parse_ports_range(argv[2]);
     cout << "Starting query engine server with id: " << server_id << endl;
     signal(SIGINT, &ctrl_c_handler);
     signal(SIGTERM, &ctrl_c_handler);

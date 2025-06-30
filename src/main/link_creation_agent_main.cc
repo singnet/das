@@ -56,7 +56,7 @@ int main(int argc, char* argv[]) {
     }
     string server_address = argv[1];
     string peer_address = argv[2];
-    auto [start_port, end_port] = Utils::ports_range(argv[3]);
+    auto [start_port, end_port] = Utils::parse_ports_range(argv[3]);
     int request_interval = argc > 4 ? Utils::string_to_int(argv[4]) : 1;
     int thread_count = argc > 5 ? Utils::string_to_int(argv[5]) : 1;
     int default_timeout = argc > 6 ? Utils::string_to_int(argv[6]) : 10;

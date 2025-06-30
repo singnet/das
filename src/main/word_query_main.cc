@@ -194,7 +194,7 @@ int main(int argc, char* argv[]) {
     signal(SIGTERM, &ctrl_c_handler);
     string client_id = argv[1];
     string server_id = argv[2];
-    auto ports_range = Utils::ports_range(argv[3]);
+    auto ports_range = Utils::parse_ports_range(argv[3]);
     string context = argv[4];
     string word_tag = argv[5];
 

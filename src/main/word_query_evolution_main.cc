@@ -187,7 +187,7 @@ int main(int argc, char* argv[]) {
     }
     string client_id = argv[1];
     string server_id = argv[2];
-    auto ports_range = Utils::ports_range(argv[3]);
+    auto ports_range = Utils::parse_ports_range(argv[3]);
     string context = argv[4];
     string word_tag1 = argv[5];
     string word_tag2 = argv[6];

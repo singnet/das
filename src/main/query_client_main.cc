@@ -36,7 +36,7 @@ int main(int argc, char* argv[]) {
 
     string client_id = string(argv[1]);
     string server_id = string(argv[2]);
-    auto ports_range = Utils::ports_range(argv[3]);
+    auto ports_range = Utils::parse_ports_range(argv[3]);
     bool update_attention_broker = (string(argv[4]) == "true" || string(argv[4]) == "1");
     if (update_attention_broker) {
         cerr << "Enforcing update_attention_broker=false regardless the passed parameter" << endl;

@@ -36,7 +36,7 @@ int main(int argc, char* argv[]) {
 
     string client_id = string(argv[1]);
     string server_id = string(argv[2]);
-    auto ports_range = Utils::ports_range(argv[3]);
+    auto ports_range = Utils::parse_ports_range(argv[3]);
 
     vector<string> request;
     for (int i = 4; i < argc; i++) {
