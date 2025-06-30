@@ -18,6 +18,8 @@ jobs:
       DAS_MONGODB_PORT: 28000
       DAS_MONGODB_USERNAME: dbadmin
       DAS_MONGODB_PASSWORD: dassecret
+      DAS_MORK_HOSTNAME: localhost
+      DAS_MORK_PORT: 8000
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -60,6 +62,12 @@ jobs:
 
       - name: Starting Attention Broker
         run: make run-attention-broker &
+
+      - name: Starting MORK Server
+        run: make run-mork-server &
+      
+      - name: Load Knowledge Base to MORK
+        run: make mork-loader FILE="/tmp/animals.metta"
 
       - name: Execute Unit Test Suite
         run: make bazel 'test --noshow_progress //tests/...'
