@@ -56,7 +56,7 @@ run-inference-agent-client:
 run-das-agent:
 	@bash ./src/scripts/bazel.sh run //das_agent:main -- $(OPTIONS)
 
-run-mork-server:
+run-mork-server: build-mork-image
 	@bash -x src/scripts/mork_server.sh
 
 mork-loader:
