@@ -11,10 +11,10 @@
 using namespace query_engine;
 using namespace atomdb;
 
-string handle_to_atom(const char* handle) {
+string handle_to_atom(const string& handle) {
     shared_ptr<AtomDB> db = AtomDBSingleton::get_instance();
     shared_ptr<atomdb_api_types::AtomDocument> document = db->get_atom_document(handle);
-    shared_ptr<atomdb_api_types::HandleList> targets = db->query_for_targets((char*) handle);
+    shared_ptr<atomdb_api_types::HandleList> targets = db->query_for_targets(handle);
     string answer;
 
     if (targets != nullptr) {
@@ -41,7 +41,8 @@ string handle_to_atom(const char* handle) {
     return answer;
 }
 
-void check_query(const vector<string>& query,
+void check_query(const string& query_tag,
+                 const vector<string>& query,
                  unsigned int expected_count,
                  ServiceBus* client_bus,
                  const string& context,
@@ -53,6 +54,7 @@ void check_query(const vector<string>& query,
     proxy1->parameters[BaseQueryProxy::UNIQUE_ASSIGNMENT_FLAG] = unique_assignment;
     proxy1->parameters[BaseQueryProxy::ATTENTION_UPDATE_FLAG] = update_attention_broker;
     proxy1->parameters[PatternMatchingQueryProxy::POSITIVE_IMPORTANCE_FLAG] = positive_importance;
+    LOG_INFO("==================== Query tag: " + query_tag);
     LOG_INFO("proxy1: " + proxy1->to_string());
 
     shared_ptr<PatternMatchingQueryProxy> proxy2(new PatternMatchingQueryProxy(query, context));
@@ -186,19 +188,19 @@ TEST(PatternMatchingQuery, queries) {
     int q6_expected_count = 4;
 
     // Regular queries
-    check_query(q1, q1_expected_count, client_bus, "PatternMatchingQuery.queries", false, false, false, false);
-    check_query(q2, q2_expected_count, client_bus, "PatternMatchingQuery.queries", false, false, false, false);
-    check_query(q3, q3_expected_count, client_bus, "PatternMatchingQuery.queries", false, false, false, false);
-    check_query(q4, q4_expected_count, client_bus, "PatternMatchingQuery.queries", false, false, false, false);
-    check_query(q5, q5_expected_count, client_bus, "PatternMatchingQuery.queries", false, false, false, false);
-    check_query(q6, q6_expected_count, client_bus, "PatternMatchingQuery.queries", false, true, false, false);
+    check_query("q1", q1, q1_expected_count, client_bus, "PatternMatchingQuery.queries", false, false, false, false);
+    check_query("q2", q2, q2_expected_count, client_bus, "PatternMatchingQuery.queries", false, false, false, false);
+    check_query("q3", q3, q3_expected_count, client_bus, "PatternMatchingQuery.queries", false, false, false, false);
+    check_query("q4", q4, q4_expected_count, client_bus, "PatternMatchingQuery.queries", false, false, false, false);
+    check_query("q5", q5, q5_expected_count, client_bus, "PatternMatchingQuery.queries", false, false, false, false);
+    check_query("q6", q6, q6_expected_count, client_bus, "PatternMatchingQuery.queries", false, true, false, false);
 
     // Importance filtering
-    check_query(q2, q2_expected_count, client_bus, "PatternMatchingQuery.queries", true, false, false, false);
-    check_query(q1, 3, client_bus, "PatternMatchingQuery.queries", false, false, true, false);
+    check_query("filtered q2", q2, q2_expected_count, client_bus, "PatternMatchingQuery.queries", true, false, false, false);
+    check_query("filtered q1", q1, 3, client_bus, "PatternMatchingQuery.queries", false, false, true, false);
 
     // Remote exception
-    check_query({"BLAH"}, 0, client_bus, "PatternMatchingQuery.queries", false, false, false, true);
+    check_query("invalid", {"BLAH"}, 0, client_bus, "PatternMatchingQuery.queries", false, false, false, true);
 
     Utils::sleep(2000);
     // clang-format on

@@ -9,6 +9,7 @@
 #include <memory>
 #include <string>
 
+#include "AtomSpaceTypes.h"
 #include "AttentionBrokerServer.h"
 #include "Logger.h"
 #include "Utils.h"
@@ -17,6 +18,7 @@
 
 using namespace atomdb;
 using namespace commons;
+using namespace atomspace;
 
 string RedisMongoDB::REDIS_PATTERNS_PREFIX;
 string RedisMongoDB::REDIS_TARGETS_PREFIX;
@@ -124,6 +126,32 @@ void RedisMongoDB::mongodb_setup() {
     }
 }
 
+shared_ptr<Atom> RedisMongoDB::get_atom(const string& handle) {
+    shared_ptr<atomdb_api_types::AtomDocument> atom_document = get_atom_document(handle);
+    if (atom_document != NULL) {
+        if (atom_document->contains(MONGODB_FIELD_NAME[MONGODB_FIELD::TARGETS])) {
+            unsigned int arity = atom_document->get_size(MONGODB_FIELD_NAME[MONGODB_FIELD::TARGETS]);
+            vector<string> targets;
+            for (unsigned int i = 0; i < arity; i++) {
+                targets.push_back(
+                    string(atom_document->get(MONGODB_FIELD_NAME[MONGODB_FIELD::TARGETS], i)));
+            }
+            // NOTE TO REVIEWER
+            //     TODO We're missing custom_attributes here. I'm not sure how to deal with them.
+            //     I guess we should iterate through all the fields in atom_document and add anything
+            //     that's not an expected field (named_type, targets, composite_type,
+            //     composite_type_hash, etc) as a custom attribute. If this approach is OK, we should add
+            //     methods in AtomDocument's API to allow iterate through all the keys, which we
+            //     currently don't have.
+            return make_shared<Link>(atom_document->get("named_type"), targets);
+        } else {
+            return make_shared<Node>(atom_document->get("named_type"), atom_document->get("name"));
+        }
+    } else {
+        return shared_ptr<Atom>(NULL);
+    }
+}
+
 shared_ptr<atomdb_api_types::HandleSet> RedisMongoDB::query_for_pattern(
     const LinkTemplateInterface& link_template) {
     if (this->atomdb_cache != nullptr) {
@@ -172,20 +200,16 @@ shared_ptr<atomdb_api_types::HandleSet> RedisMongoDB::query_for_pattern(
     return handle_set;
 }
 
-shared_ptr<atomdb_api_types::HandleList> RedisMongoDB::query_for_targets(shared_ptr<char> link_handle) {
-    return query_for_targets(link_handle.get());
-}
-
-shared_ptr<atomdb_api_types::HandleList> RedisMongoDB::query_for_targets(char* link_handle_ptr) {
+shared_ptr<atomdb_api_types::HandleList> RedisMongoDB::query_for_targets(const string& handle) {
     if (this->atomdb_cache != nullptr) {
-        auto cache_result = this->atomdb_cache->query_for_targets(link_handle_ptr);
+        auto cache_result = this->atomdb_cache->query_for_targets(handle);
         if (cache_result.is_cache_hit) return cache_result.result;
     }
 
     redisReply* reply;
     try {
         auto ctx = this->redis_pool->acquire();
-        auto command = "GET " + REDIS_TARGETS_PREFIX + ":" + link_handle_ptr;
+        auto command = "GET " + REDIS_TARGETS_PREFIX + ":" + handle;
         reply = ctx->execute(command.c_str());
 
         if (reply == NULL) {
@@ -193,8 +217,7 @@ shared_ptr<atomdb_api_types::HandleList> RedisMongoDB::query_for_targets(char* l
         }
 
         if ((reply == NULL) || (reply->type == REDIS_REPLY_NIL)) {
-            if (this->atomdb_cache != nullptr)
-                this->atomdb_cache->add_handle_list(link_handle_ptr, nullptr);
+            if (this->atomdb_cache != nullptr) this->atomdb_cache->add_handle_list(handle, nullptr);
             return nullptr;
         }
 
@@ -211,11 +234,11 @@ shared_ptr<atomdb_api_types::HandleList> RedisMongoDB::query_for_targets(char* l
     // ~RedisSet().
     auto handle_list = make_shared<atomdb_api_types::RedisStringBundle>(reply);
 
-    if (this->atomdb_cache != nullptr) this->atomdb_cache->add_handle_list(link_handle_ptr, handle_list);
+    if (this->atomdb_cache != nullptr) this->atomdb_cache->add_handle_list(handle, handle_list);
     return handle_list;
 }
 
-shared_ptr<atomdb_api_types::AtomDocument> RedisMongoDB::get_atom_document(const char* handle) {
+shared_ptr<atomdb_api_types::AtomDocument> RedisMongoDB::get_atom_document(const string& handle) {
     if (this->atomdb_cache != nullptr) {
         auto cache_result = this->atomdb_cache->get_atom_document(handle);
         if (cache_result.is_cache_hit) return cache_result.result;
@@ -283,7 +306,7 @@ vector<shared_ptr<atomdb_api_types::AtomDocument>> RedisMongoDB::get_atom_docume
     return atom_documents;
 }
 
-bool RedisMongoDB::link_exists(const char* link_handle) {
+bool RedisMongoDB::link_exists(const string& link_handle) {
     auto conn = this->mongodb_pool->acquire();
     auto mongodb_collection = (*conn)[MONGODB_DB_NAME][MONGODB_COLLECTION_NAME];
     auto reply = mongodb_collection.find_one(bsoncxx::v_noabi::builder::basic::make_document(
@@ -329,7 +352,7 @@ set<string> RedisMongoDB::links_exist(const vector<string>& link_handles) {
     return existing_links;
 }
 
-char* RedisMongoDB::add_node(const atomspace::Node* node) {
+string RedisMongoDB::add_node(const atomspace::Node* node) {
     auto conn = this->mongodb_pool->acquire();
     auto mongodb_collection = (*conn)[MONGODB_DB_NAME][MONGODB_COLLECTION_NAME];
 
@@ -365,11 +388,11 @@ vector<string> RedisMongoDB::add_nodes(const vector<atomspace::Node*>& nodes) {
     return handles;
 }
 
-char* RedisMongoDB::add_link(const atomspace::Link* link) {
+string RedisMongoDB::add_link(const atomspace::Link* link) {
     auto conn = this->mongodb_pool->acquire();
     auto mongodb_collection = (*conn)[MONGODB_DB_NAME][MONGODB_COLLECTION_NAME];
 
-    auto mongodb_doc = atomdb_api_types::MongodbDocument(link);
+    auto mongodb_doc = atomdb_api_types::MongodbDocument(link, *this);
     auto reply = mongodb_collection.insert_one(mongodb_doc.value());
 
     if (!reply) {
@@ -387,7 +410,7 @@ vector<string> RedisMongoDB::add_links(const vector<atomspace::Link*>& links) {
     vector<bsoncxx::v_noabi::document::value> docs;
     vector<string> handles;
     for (const auto& link : links) {
-        auto mongodb_doc = atomdb_api_types::MongodbDocument(link);
+        auto mongodb_doc = atomdb_api_types::MongodbDocument(link, *this);
         handles.push_back(atomspace::Link::compute_handle(link->type, link->targets));
         docs.push_back(mongodb_doc.value());
     }
@@ -401,7 +424,7 @@ vector<string> RedisMongoDB::add_links(const vector<atomspace::Link*>& links) {
     return handles;
 }
 
-bool RedisMongoDB::delete_atom(const char* handle) {
+bool RedisMongoDB::delete_atom(const string& handle) {
     auto conn = this->mongodb_pool->acquire();
     auto mongodb_collection = (*conn)[MONGODB_DB_NAME][MONGODB_COLLECTION_NAME];
     auto reply = mongodb_collection.delete_one(bsoncxx::v_noabi::builder::basic::make_document(

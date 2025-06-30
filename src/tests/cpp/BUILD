@@ -520,6 +520,7 @@ cc_test(
     deps = [
         "//atom_space:atom_space_types",
         "//commons:commons_lib",
+        "//hasher:hasher_lib",
         "@com_github_google_googletest//:gtest_main",
     ],
 )

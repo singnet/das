@@ -7,6 +7,7 @@ using namespace service_bus;
 
 string ServiceBus::PATTERN_MATCHING_QUERY = "pattern_matching_query";
 string ServiceBus::QUERY_EVOLUTION = "query_evolution";
+string ServiceBus::LINK_CREATION = "link_creation";
 set<string> ServiceBus::SERVICE_LIST;
 
 // -------------------------------------------------------------------------------------------------
@@ -48,6 +49,7 @@ void ServiceBus::initialize_statics(const set<string>& commands,
     } else {
         SERVICE_LIST.insert(PATTERN_MATCHING_QUERY);
         SERVICE_LIST.insert(QUERY_EVOLUTION);
+        SERVICE_LIST.insert(LINK_CREATION);
     }
     for (string command : SERVICE_LIST) {
         LOG_INFO("BUS command: <" << command << ">");

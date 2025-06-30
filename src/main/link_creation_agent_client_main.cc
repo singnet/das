@@ -4,9 +4,13 @@
 #include <iostream>
 #include <string>
 
-#include "LinkCreationAgentNode.h"
+#include "AtomDBSingleton.h"
+#include "LinkCreationRequestProxy.h"
+#include "ServiceBusSingleton.h"
 using namespace link_creation_agent;
 using namespace std;
+using namespace service_bus;
+using namespace atomdb;
 
 void ctrl_c_handler(int) {
     std::cout << "Stopping client..." << std::endl;
@@ -36,9 +40,9 @@ int main(int argc, char* argv[]) {
     for (int i = 3; i < argc; i++) {
         request.push_back(argv[i]);
     }
-
-    auto client = new LinkCreationAgentNode(client_id, server_id);
-    client->send_message(request);
-
+    AtomDBSingleton::init();
+    ServiceBusSingleton::init(client_id, server_id, 54000, 54500);
+    auto proxy = make_shared<LinkCreationRequestProxy>(request);
+    ServiceBusSingleton::get_instance()->issue_bus_command(proxy);
     return 0;
 }

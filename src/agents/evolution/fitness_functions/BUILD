@@ -10,5 +10,6 @@ cc_library(
     includes = ["."],
     deps = [
         "//agents/query_engine:query_answer",
+        "//atomdb:atomdb_lib",
     ],
 )

@@ -128,7 +128,7 @@ void LinkCreationService::create_links() {
                     LOG_INFO("MeTTa Expression: " << meta_content);
                     add_to_file(metta_file_path, id + ".metta", meta_content);
                 }
-                if (this->save_links_to_db) {
+                if (this->save_links_to_db && das_client != nullptr) {
                     LOG_INFO("TOKENS: " << Utils::join(request, ' '));
                     das_client->create_link(request);
                 }

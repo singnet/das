@@ -151,7 +151,7 @@ class AtomSpace {
      * @return The handle of the new link (caller is responsible for freeing).
      */
     char* add_link(const string& type,
-                   const vector<const Atom*>& targets,
+                   const vector<string>& targets,
                    const Properties& custom_attributes = {});
 
     /**
