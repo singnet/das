@@ -9,10 +9,8 @@ cc_library(
         "SharedQueue.cc",
         "StoppableThread.cc",
         "Utils.cc",
-        "Atom.cc",
     ],
     hdrs = [
-        "Atom.h",
         "HandleDecoder.h",
         "Logger.h",
         "MettaMapping.h",

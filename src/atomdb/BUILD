@@ -31,6 +31,7 @@ cc_library(
     deps = [
         "//atom_space:link_template_interface",
         "//commons:commons_lib",
+        "//commons/atoms:atoms_lib",
         "//hasher:hasher_lib",
     ],
 )

@@ -26,6 +26,7 @@ cc_library(
     hdrs = ["AtomSpaceTypes.h"],
     includes = ["."],
     deps = [
+        "//commons/atoms:atoms_lib",
         "//commons:handle_trie",
         "//hasher:hasher_lib",
     ],
