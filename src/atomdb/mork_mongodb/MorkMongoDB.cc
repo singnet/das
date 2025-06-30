@@ -144,8 +144,8 @@ vector<string> MorkMongoDB::tokenize_expression(const string& expr) {
     }
     return tokens;
 }
-const atomspace::Atom* MorkMongoDB::parse_tokens_to_atom(const vector<string>& tokens, size_t& pos) {
-    vector<const atomspace::Atom*> children;
+const commons::Atom* MorkMongoDB::parse_tokens_to_atom(const vector<string>& tokens, size_t& pos) {
+    vector<const commons::Atom*> children;
 
     if (tokens[pos] == "(") {
         ++pos;
@@ -165,12 +165,9 @@ const atomspace::Atom* MorkMongoDB::parse_tokens_to_atom(const vector<string>& t
         return n;
     }
 }
-shared_ptr<atomdb_api_types::HandleList> MorkMongoDB::query_for_targets(shared_ptr<char> link_handle) {
-    return query_for_targets(link_handle.get());
-}
-shared_ptr<atomdb_api_types::HandleList> MorkMongoDB::query_for_targets(char* link_handle_ptr) {
+shared_ptr<atomdb_api_types::HandleList> MorkMongoDB::query_for_targets(const string& handle) {
     if (this->atomdb_cache != nullptr) {
-        auto cache_result = this->atomdb_cache->query_for_targets(link_handle_ptr);
+        auto cache_result = this->atomdb_cache->query_for_targets(handle);
         if (cache_result.is_cache_hit) return cache_result.result;
     }
 
@@ -178,9 +175,8 @@ shared_ptr<atomdb_api_types::HandleList> MorkMongoDB::query_for_targets(char* li
     auto collection = (*conn)[RedisMongoDB::MONGODB_DB_NAME][RedisMongoDB::MONGODB_COLLECTION_NAME];
 
     bsoncxx::builder::basic::document filter_builder;
-    string h(link_handle_ptr);
-    filter_builder.append(
-        bsoncxx::builder::basic::kvp(RedisMongoDB::MONGODB_FIELD_NAME[atomdb::MONGODB_FIELD::ID], h));
+    filter_builder.append(bsoncxx::builder::basic::kvp(
+        RedisMongoDB::MONGODB_FIELD_NAME[atomdb::MONGODB_FIELD::ID], handle));
 
     mongocxx::options::find find_opts;
     bsoncxx::builder::basic::document proj_builder;
@@ -205,7 +201,7 @@ shared_ptr<atomdb_api_types::HandleList> MorkMongoDB::query_for_targets(char* li
 
     auto handle_list = make_shared<atomdb_api_types::HandleListMork>(targets);
 
-    if (this->atomdb_cache != nullptr) this->atomdb_cache->add_handle_list(link_handle_ptr, handle_list);
+    if (this->atomdb_cache != nullptr) this->atomdb_cache->add_handle_list(handle, handle_list);
 
     return handle_list;
 }

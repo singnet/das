@@ -44,14 +44,13 @@ class MorkMongoDB : public AtomDB {
 
     shared_ptr<atomdb_api_types::HandleSet> query_for_pattern(
         const LinkTemplateInterface& link_template);
-    shared_ptr<atomdb_api_types::HandleList> query_for_targets(shared_ptr<char> link_handle);
-    shared_ptr<atomdb_api_types::HandleList> query_for_targets(char* link_handle_ptr);
+    shared_ptr<atomdb_api_types::HandleList> query_for_targets(const string& handle);
 
     // Delegates for RedisMongoDB
-    shared_ptr<atomdb_api_types::AtomDocument> get_atom_document(const char* handle) {
+    shared_ptr<atomdb_api_types::AtomDocument> get_atom_document(const string& handle) {
         return this->redis_mongodb->get_atom_document(handle);
     }
-    bool link_exists(const char* link_handle) { return this->redis_mongodb->link_exists(link_handle); }
+    bool link_exists(const string& link_handle) { return this->redis_mongodb->link_exists(link_handle); }
     set<string> links_exist(const vector<string>& link_handles) {
         return this->redis_mongodb->links_exist(link_handles);
     }
@@ -59,10 +58,9 @@ class MorkMongoDB : public AtomDB {
                                                                           const vector<string>& fields) {
         return this->redis_mongodb->get_atom_documents(handles, fields);
     }
-    char* add_node(const atomspace::Node* node) { return this->redis_mongodb->add_node(node); }
-    char* add_link(const atomspace::Link* link) { return this->redis_mongodb->add_link(link); }
-
-    void set_mork_client_for_test(shared_ptr<MorkClient> mock_client) { mork_client = mock_client; }
+    string add_node(const atomspace::Node* node) { return this->redis_mongodb->add_node(node); }
+    string add_link(const atomspace::Link* link) { return this->redis_mongodb->add_link(link); }
+    shared_ptr<Atom> get_atom(const string& handle) { return this->redis_mongodb->get_atom(handle); }
 
    private:
     shared_ptr<RedisMongoDB> redis_mongodb;
@@ -74,7 +72,7 @@ class MorkMongoDB : public AtomDB {
     void attention_broker_setup();
 
     vector<string> tokenize_expression(const string& expr);
-    const atomspace::Atom* parse_tokens_to_atom(const vector<string>& tokens, size_t& pos);
+    const commons::Atom* parse_tokens_to_atom(const vector<string>& tokens, size_t& pos);
 };
 
 }  // namespace atomdb

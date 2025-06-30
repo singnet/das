@@ -77,11 +77,11 @@ TEST_F(MorkMongoDBTest, QueryForPattern) {
     string handle_4 = exp_hash({"Inheritance", "\"rhino\"", "\"mammal\""});
 
     string metta = R"((Inheritance $x "mammal"))";
-    
+
     auto link_template = new LinkTemplateMetta(metta);
     auto result = db->query_for_pattern(*link_template);
     delete link_template;
-    
+
     ASSERT_EQ(result->size(), 4);
 
     auto it = result->get_iterator();
@@ -95,21 +95,21 @@ TEST_F(MorkMongoDBTest, QueryForPattern) {
 
     std::sort(handles.begin(), handles.end());
     std::sort(expected_handles.begin(), expected_handles.end());
-    
+
     ASSERT_EQ(handles, expected_handles);
 }
 
 TEST_F(MorkMongoDBTest, QueryForTargets) {
     string link_handle = exp_hash({"Inheritance", "\"human\"", "\"mammal\""});
-    
+
     auto handle_shared = handle_ptr(link_handle);
-    
+
     auto targets_list = db->query_for_targets(handle_shared.get());
     ASSERT_NE(targets_list, nullptr);
-    
+
     unsigned int count = targets_list->size();
     ASSERT_EQ(count, 3);
-    
+
     vector<string> targets;
     for (unsigned int i = 0; i < count; ++i) {
         const char* raw = targets_list->get_handle(i);
@@ -121,10 +121,10 @@ TEST_F(MorkMongoDBTest, QueryForTargets) {
     char* human_handle = terminal_hash((char*) "Symbol", (char*) "\"human\"");
     char* mammal_handle = terminal_hash((char*) "Symbol", (char*) "\"mammal\"");
 
-    vector<string> expected = { inheritance_handle, human_handle, mammal_handle };
+    vector<string> expected = {inheritance_handle, human_handle, mammal_handle};
     std::sort(targets.begin(), targets.end());
     std::sort(expected.begin(), expected.end());
-    
+
     ASSERT_EQ(targets, expected);
 }
 
