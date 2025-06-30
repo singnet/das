@@ -18,8 +18,6 @@ class AtomDB : public HandleDecoder {
     AtomDB() = default;
     virtual ~AtomDB() = default;
 
-    static inline string WILDCARD = "*";
-
     virtual shared_ptr<Atom> get_atom(const string& handle) = 0;  // HandleDecoder interface
 
     virtual shared_ptr<atomdb_api_types::HandleSet> query_for_pattern(

@@ -21,6 +21,7 @@ class TestDecoder : public HandleDecoder {
 TEST(NodeTest, NodeValidationAndToString) {
     EXPECT_NO_THROW(Node("Type", "Name"));
     EXPECT_THROW(Node("", "Name"), runtime_error);
+    EXPECT_THROW(Node("__UNDEFINED_TYPE__", "Name"), runtime_error);
 
     EXPECT_NO_THROW(Node("Type", "Name"));
     EXPECT_THROW(Node("Type", ""), runtime_error);
@@ -37,19 +38,22 @@ TEST(NodeTest, NodeComputeHandle) {
 }
 
 TEST(LinkTest, LinkValidation) {
-    Node n1("Type1", "Name1");
-    Node n2("Type2", "Name2");
-    vector<const Atom*> targets = {&n1, &n2};
+    TestDecoder db;
+    auto n1 = db.add_atom(make_shared<Node>("Type1", "Name1"));
+    auto n2 = db.add_atom(make_shared<Node>("Type2", "Name2"));
+    vector<string> targets = {n1->handle(), n2->handle()};
     EXPECT_NO_THROW(Link("LinkType", targets));
-    vector<const Atom*> empty_targets;
+    vector<string> empty_targets;
     EXPECT_THROW(Link("LinkType", empty_targets), runtime_error);
     EXPECT_THROW(Link("", targets), runtime_error);
+    EXPECT_THROW(Link("__UNDEFINED_TYPE__", targets), runtime_error);
 }
 
 TEST(LinkTest, LinkToString) {
-    Node n1("Type1", "Name1");
-    Node n2("Type2", "Name2");
-    vector<const Atom*> targets = {&n1, &n2};
+    TestDecoder db;
+    auto n1 = db.add_atom(make_shared<Node>("Type1", "Name1"));
+    auto n2 = db.add_atom(make_shared<Node>("Type2", "Name2"));
+    vector<string> targets = {n1->handle(), n2->handle()};
     Link l("LinkType", targets);
     string s = l.to_string();
     // clang-format off
@@ -57,7 +61,7 @@ TEST(LinkTest, LinkToString) {
         s,
         "Link("
             "type: 'LinkType', "
-            "targets: [" + n1.handle() + ", " + n2.handle() + "], "
+            "targets: [" + n1->handle() + ", " + n2->handle() + "], "
             "custom_attributes: {}"
         ")"
     );
@@ -114,9 +118,10 @@ TEST(NodeTest, NodeWithCustomAttributes) {
 }
 
 TEST(LinkTest, LinkWithCustomAttributes) {
-    Node n1("Type1", "Name1");
-    Node n2("Type2", "Name2");
-    std::vector<const Atom*> targets = {&n1, &n2};
+    TestDecoder db;
+    auto n1 = db.add_atom(make_shared<Node>("Type1", "Name1"));
+    auto n2 = db.add_atom(make_shared<Node>("Type2", "Name2"));
+    std::vector<string> targets = {n1->handle(), n2->handle()};
     Link l("LinkType", targets, {{"flag", true}, {"count", 10}});
     EXPECT_EQ(l.custom_attributes.get_ptr<bool>("flag") != nullptr, true);
     std::string s = l.to_string();
@@ -125,11 +130,30 @@ TEST(LinkTest, LinkWithCustomAttributes) {
         s,
         "Link("
             "type: 'LinkType', "
-            "targets: [" + n1.handle() + ", " + n2.handle() + "], "
+            "targets: [" + n1->handle() + ", " + n2->handle() + "], "
             "custom_attributes: {count: 10, flag: true}"
         ")"
     );
     // clang-format on
+}
+
+TEST(WildcardTest, Wildcards) {
+    TestDecoder db;
+    UntypedVariable v1("v1");
+    UntypedVariable v2("v2");
+    UntypedVariable v3 = v1;
+    UntypedVariable v4(v2);
+
+    EXPECT_TRUE(v1 == v3);
+    EXPECT_TRUE(v1 != v2);
+    EXPECT_TRUE(v2 == v4);
+    EXPECT_TRUE(v4 != v3);
+    EXPECT_EQ(v1.metta_representation(db), string("$v1"));
+    EXPECT_EQ(v4.metta_representation(db), string("$v2"));
+    EXPECT_TRUE(v1.handle() == v3.handle());
+    EXPECT_TRUE(v1.handle() != v2.handle());
+    EXPECT_TRUE(v2.handle() == v4.handle());
+    EXPECT_TRUE(v4.handle() != v3.handle());
 }
 
 TEST(LinkTest, CompositeTypes) {
@@ -166,6 +190,7 @@ TEST(LinkTest, CompositeTypes) {
     string link3_composite_hash = link3->composite_type_hash(db);
 
     // clang-format off
+    /*
     cout << "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX" << endl;
     cout << "node1: " << node1->handle() << endl;
     cout << "node2: " << node2->handle() << endl;
@@ -185,6 +210,7 @@ TEST(LinkTest, CompositeTypes) {
     cout << link3_composite.size() << " " << link3_composite[0] << " " << link3_composite[1] << " " << link3_composite[2] << endl;
     cout << link3_composite_hash << endl;
     cout << "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX" << endl;
+    */
     // clang-format on
 
     EXPECT_TRUE(link1_composite == vector<string>({expression_hash, symbol_hash, symbol_hash}));

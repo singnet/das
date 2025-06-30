@@ -6,12 +6,13 @@
 #include <stdexcept>
 #include <string>
 #include <vector>
+#include <stack>
 
 #include "Atom.h"
 #include "HandleDecoder.h"
 #include "MettaMapping.h"
 #include "Properties.h"
-#include "expression_hasher.h"
+#include "Hasher.h"
 
 #define HANDLE_SIZE ((unsigned int) 32)
 #define MINIMUM_TARGETS_SIZE ((unsigned int) 1)
@@ -149,9 +150,11 @@ class Node : public Atom {
      * @throws std::runtime_error if the name is empty.
      */
     virtual void validate() const override {
-        Atom::validate();  // Validate type
+        if (this->type == Atom::UNDEFINED_TYPE) {
+            Utils::error("Node type can't be '" + Atom::UNDEFINED_TYPE + "'");
+        }
         if (this->name.empty()) {
-            throw runtime_error("Node name must not be empty");
+            Utils::error("Node name must not be empty");
         }
     }
 
@@ -198,7 +201,7 @@ class Node : public Atom {
      */
     static char* compute_handle(const string& type, const string& name) {
         if (type.empty() || name.empty()) {
-            throw runtime_error("Node type and name must not be empty");
+            Utils::error("Node type and name must not be empty");
         }
         return terminal_hash((char*) type.c_str(), (char*) name.c_str());
     }
@@ -208,24 +211,6 @@ class Node : public Atom {
 class Link : public Atom {
    public:
     vector<string> targets;  ///< The handles of the target atoms of the link.
-
-    /**
-     * @brief Construct a Link.
-     * @param type The type of the link.
-     * @param targets The target atoms of the link.
-     * @param custom_attributes Custom attributes for the atom.
-     * @throws std::runtime_error if type is empty or targets.size() < MINIMUM_TARGETS_SIZE.
-     */
-    Link(const string& type,
-         const vector<const Atom*>& targets,
-         const Properties& custom_attributes = {})
-        : Atom(type, custom_attributes) {
-        this->targets.reserve(targets.size());
-        for (const Atom* atom : targets) {
-            this->targets.push_back(atom->handle());
-        }
-        this->validate();
-    }
 
     /**
      * @brief Construct a Link.
@@ -286,10 +271,11 @@ class Link : public Atom {
      * @throws std::runtime_error if the number of targets is less than MINIMUM_TARGETS_SIZE.
      */
     void validate() const {
-        Atom::validate();  // Validate type
+        if (this->type == Atom::UNDEFINED_TYPE) {
+            Utils::error("Link type can't be '" + Atom::UNDEFINED_TYPE + "'");
+        }
         if (this->targets.size() < MINIMUM_TARGETS_SIZE) {
-            throw runtime_error("Link must have at least " + std::to_string(MINIMUM_TARGETS_SIZE) +
-                                " targets");
+            Utils::error("Link must have at least " + std::to_string(MINIMUM_TARGETS_SIZE) + " targets");
         }
     }
 
@@ -407,7 +393,7 @@ class Link : public Atom {
             } else if (const Link* link = dynamic_cast<const Link*>(target)) {
                 handles[i++] = Link::compute_handle(link->type, link->targets);
             } else {
-                throw runtime_error("Unsupported target type in Link::targets_to_handles");
+                Utils::error("Unsupported target type in Link::targets_to_handles");
             }
         }
         return handles;
@@ -466,17 +452,423 @@ class Link : public Atom {
      */
     static char* compute_handle(const char* type, char** targets_handles, size_t targets_size) {
         if (type == nullptr || targets_handles == nullptr) {
-            throw runtime_error("Type and targets handles must not be null");
+            Utils::error("Type and targets handles must not be null");
         }
         if (strlen(type) == 0) {
-            throw runtime_error("Type size is too small");
+            Utils::error("Type size is too small");
         }
         if (targets_size < MINIMUM_TARGETS_SIZE) {
-            throw runtime_error("Link must have at least " + std::to_string(MINIMUM_TARGETS_SIZE) +
-                                " targets");
+            Utils::error("Link must have at least " + std::to_string(MINIMUM_TARGETS_SIZE) + " targets");
         }
         unique_ptr<char, HandleDeleter> type_hash(::named_type_hash((char*) type));
         return expression_hash(type_hash.get(), targets_handles, targets_size);
+    }
+};
+
+// -------------------------------------------------------------------------------------------------
+class Wildcard : public Atom {
+   public:
+
+    /**
+     * @brief Construct a Wildcard.
+     * @param type The type of the atom.
+     * @throws std::runtime_error if type is empty.
+     */
+    Wildcard(const string& type, const Properties& custom_attributes = {}) : Atom(type, custom_attributes) {
+        this->validate();
+    }
+
+    /**
+     * @brief Copy constructor.
+     *
+     * @param other Wildcard to be copied.
+     */
+    Wildcard(const Wildcard& other) : Atom(other) {}
+
+    /**
+     * @brief Assignment operator.
+     *
+     * @param other Wildcard to be copied.
+     */
+    virtual Wildcard& operator=(const Wildcard& other) {
+        Atom::operator=(other);
+        return *this;
+    }
+
+    /**
+     * @brief Comparisson operator.
+     *
+     * @param other Wildcard to be compared to.
+     */
+    virtual bool operator==(const Wildcard& other) {
+        return  Atom::operator==(other);
+    }
+
+    /**
+     * @brief Comparisson operator.
+     *
+     * @param other Wildcard to be compared to.
+     */
+    virtual bool operator!=(const Wildcard& other) { return !(*this == other); }
+
+    /**
+     * @brief Validate the Wildcard object.
+     */
+    virtual void validate() const override {
+        Atom::validate();  // Validate type
+    }
+
+    virtual string to_string() const {
+        return "Wildcard(type: '" + this->type + "')";
+    }
+
+    virtual string handle() const = 0;
+
+    /**
+     * @brief returns the handle this Atom use when inserted into a schema.
+     *
+     * @return schema handle for this atom.
+     */
+    virtual string schema_handle() const {
+        return Atom::WILDCARD_HANDLE;
+    }
+
+    virtual string metta_representation(HandleDecoder& decoder) const = 0;
+};
+
+// -------------------------------------------------------------------------------------------------
+class UntypedVariable : public Wildcard {
+   public:
+    string name;  ///< The name of the variable.
+
+    /**
+     * @brief Construct a UntypedVariable.
+     * @param name The name of the node.
+     * @throws std::runtime_error if name is empty.
+     */
+    UntypedVariable(const string& name) : Wildcard(Atom::UNDEFINED_TYPE), name(name) {
+        this->validate();
+    }
+
+    /**
+     * @brief Copy constructor.
+     * Deeply copies node type, name
+     *
+     * @param other UntypedVariable to be copied.
+     */
+    UntypedVariable(const UntypedVariable& other) : Wildcard(other) { this->name = other.name; }
+
+    /**
+     * @brief Assignment operator.
+     * Deeply copies node type, name
+     *
+     * @param other UntypedVariable to be copied.
+     */
+    virtual UntypedVariable& operator=(const UntypedVariable& other) {
+        Wildcard::operator=(other);
+        this->name = other.name;
+        return *this;
+    }
+
+    /**
+     * @brief Comparisson operator.
+     *
+     * @param other UntypedVariable to be compared to.
+     */
+    virtual bool operator==(const UntypedVariable& other) {
+        return (this->name == other.name) && Wildcard::operator==(other);
+    }
+
+    /**
+     * @brief Comparisson operator.
+     *
+     * @param other UntypedVariable to be compared to.
+     */
+    virtual bool operator!=(const UntypedVariable& other) { return !(*this == other); }
+
+    /**
+     * @brief Validate the UntypedVariable object.
+     *
+     * Checks that the type is valid (by calling Atom::validate()) and that the name is not empty.
+     *
+     * @throws std::runtime_error if the name is empty.
+     */
+    virtual void validate() const override {
+        if (this->type != Atom::UNDEFINED_TYPE) {
+            Utils::error("Invalid type for UntypedVariable: " + this->type + " (expected " + Atom::UNDEFINED_TYPE + ")");
+        }
+        if (this->name.empty()) {
+            Utils::error("Invalid empty name for UntypedVariable");
+        }
+    }
+
+    virtual string to_string() const {
+        return "UntypedVariable(name: '" + this->name + "')";
+    }
+
+    /**
+     * @brief Constructs and returns this Atom's handle.
+     *
+     * @return A newly built handle for this atom.
+     */
+    virtual string handle() const {
+        char* handle_cstr = Node::compute_handle(this->type, this->name);
+        string handle_string(handle_cstr);
+        free(handle_cstr);
+        return handle_string;
+    }
+
+    /**
+     * @brief Constructs and returns a MeTTa expression which represents this Atom.
+     *
+     * @return a MeTTa expression which represents this Atom.
+     */
+    virtual string metta_representation(HandleDecoder& decoder) const {
+        return "$" + this->name;
+    }
+};
+
+// -------------------------------------------------------------------------------------------------
+class LinkSchema : public Wildcard {
+   private:
+
+    bool _frozen;
+    unsigned int _arity;
+    vector<string> _schema;
+    vector<string> _composite_type;
+    string _composite_type_hash;
+    string _atom_handle;
+    string _metta_representation;
+    stack<tuple<string, string, string>> _atom_stack;
+
+   public:
+
+    /**
+     * @brief Construct a LinkSchema.
+     * @param type The type of the link.
+     * @param LinkSchema arity
+     * @param custom_attributes Custom attributes for the schema.
+     */
+    LinkSchema(const string& type, unsigned int arity, const Properties& custom_attributes = {}) : Wildcard(type, custom_attributes) {
+        this->_frozen = false;
+        this->_arity = arity;
+        this->_schema.reserve(arity);
+        this->_composite_type.reserve(arity + 1);
+        this->_composite_type.push_back(named_type_hash());
+        this->_metta_representation = "(";
+    }
+
+    void add_target(const string& schema_handle, const string& composite_type_hash, const string& metta_representation) {
+        if (! this->_frozen) {
+            this->_schema.push_back(schema_handle);
+            this->_composite_type.push_back(composite_type_hash);
+            this->_metta_representation += metta_representation;
+            if (this->_schema.size() == _arity) {
+                this->_frozen = true;
+                this->_metta_representation += ")";
+                this->_atom_handle = Link::compute_handle(type, this->_schema);
+                this->_composite_type_hash = Hasher::composite_handle(this->_composite_type);
+                this->validate();
+            } else {
+                this->_metta_representation += " ";
+            }
+        } else {
+            Utils::error("Attempt to add a new target beyond LinkSchema's arity. LinkSchema: " + this->to_string());
+        }
+    }
+
+    void stack_node(const string& type, const string& name) {
+        if (! check_not_frozen()) {
+            tuple<string, string, string> triplet(Hasher::node_handle(type, name), Hasher::type_handle(type), name);
+            this->_atom_stack.push(triplet);
+        }
+    }
+
+    void stack_untyped_variable(const string& name) {
+        if (! check_not_frozen()) {
+            UntypedVariable variable(name);
+            tuple<string, string, string> triplet(variable.schema_handle(), variable.named_type_hash(), "$" + name);
+            this->_atom_stack.push(triplet);
+        }
+    }
+
+    void stack_link(const string& type, unsigned int link_arity) {
+        if (check_not_frozen()) {
+            return;
+        }
+        if (this->_atom_stack.size() >= link_arity) {
+            vector<string> target_handles;
+            vector<string> composite_type;
+            string metta_expression = "(";
+            target_handles.reserve(link_arity);
+            composite_type.reserve(link_arity);
+            for (int i = link_arity - 1; i >= 0; i--) {
+                tuple<string, string, string> triplet = this->_atom_stack.top();
+                target_handles[i] = get<0>(triplet);
+                composite_type[i] = get<1>(triplet);
+                metta_expression += get<2>(triplet);
+                if (i != 0) {
+                    metta_expression += " ";
+                }
+                this->_atom_stack.pop();
+            }
+            metta_expression += ")";
+            tuple<string, string, string> triplet(Hasher::link_handle(type, target_handles), Hasher::composite_handle(composite_type), metta_expression);
+            this->_atom_stack.push(triplet);
+        } else {
+            Utils::error("Couldn't stack link. Link arity: " + std::to_string(link_arity) + " stack size: " + std::to_string(this->_atom_stack.size()));
+        }
+    }
+
+    void build() {
+        if (! check_not_frozen()) {
+            if (this->_atom_stack.size() == this->_arity) {
+               for (unsigned int i = 0; i < this->_arity; i++) {
+                   tuple<string, string, string> triplet = this->_atom_stack.top();
+                   add_target(get<0>(triplet), get<1>(triplet), get<2>(triplet));
+                   this->_atom_stack.pop();
+               }
+            } else {
+                Utils::error("Can't build LinkTemplate of arity " + std::to_string(this->_arity) + " out of a stack with " + std::to_string(this->_atom_stack.size()) + " atoms.");
+            }
+        }
+    }
+
+    /**
+     * @brief Copy constructor.
+     * Deeply copies link type, targets and all custom attributes.
+     *
+     * @param other LinkSchema to be copied.
+     */
+    LinkSchema(const LinkSchema& other) : Wildcard(other) {
+        *this = other;
+    }
+
+    /**
+     * @brief Assignment operator.
+     * Deeply copies link type, targets and all custom attributes.
+     *
+     * @param other LinkSchema to be copied.
+     */
+    virtual LinkSchema& operator=(const LinkSchema& other) {
+        if (! other._frozen) {
+            Utils::error("Can't clone an unfrozen LinkTemplate");
+        }
+        Wildcard::operator=(other);
+        this->_arity = other._arity;
+        this->_frozen = other._frozen;
+        this->_schema = other._schema;
+        this->_composite_type = other._composite_type;
+        this->_composite_type_hash = other._composite_type_hash;
+        this->_atom_handle = other._atom_handle;
+        this->_metta_representation = other._metta_representation;
+        return *this;
+    }
+
+    /**
+     * @brief Comparisson operator.
+     *
+     * @param other LinkSchema to be compared to.
+     */
+    virtual bool operator==(const LinkSchema& other) {
+        return this->_atom_handle == other._atom_handle;
+    }
+
+    /**
+     * @brief Comparisson operator.
+     *
+     * @param other LinkSchema to be compared to.
+     */
+    virtual bool operator!=(const LinkSchema& other) { return !(*this == other); }
+
+    /**
+     * @brief Validate the LinkSchema object.
+     *
+     * @throws std::runtime_error if the number of targets is less than MINIMUM_TARGETS_SIZE.
+     */
+    void validate() const {
+        if (this->type == Atom::UNDEFINED_TYPE) {
+            Utils::error("LinkSchema type can't be '" + Atom::UNDEFINED_TYPE + "'");
+        }
+        if (this->_schema.size() < MINIMUM_TARGETS_SIZE) {
+            Utils::error("LinkSchema must have at least " + std::to_string(MINIMUM_TARGETS_SIZE) + " targets");
+        }
+        bool flag = true;
+        for (string schema_handle: this->_schema) {
+            if (schema_handle == Atom::WILDCARD_HANDLE) {
+                flag = false;
+                break;
+            }
+        }
+        if (flag) {
+            Utils::error("Invalid LinkSchema with no variables and no nested link schemas");
+        }
+    }
+
+    virtual string to_string() const {
+        if (!this->_frozen) {
+            Utils::error("Can't call to_string() before finishing LinkTemplate by calling build()");
+        }
+        string result = "LinkSchema(type: '" + this->type + "', targets: [";
+        if (!this->_schema.empty()) {
+            for (const auto& target : this->_schema) {
+                result += target + ", ";
+            }
+            result.erase(result.size() - 2);  // Remove the last comma and space
+        }
+        result += "], custom_attributes: " + this->custom_attributes.to_string() + ")";
+        return result;
+    }
+
+    /**
+     * @brief Returns this Atom's handle.
+     *
+     * @return Handle for this atom.
+     */
+    virtual string handle() const {
+        return this->_atom_handle;
+    }
+
+    /**
+     * @brief Returns this Atom's composite type hash.
+     *
+     * @return composite type hash for this atom.
+     */
+    virtual string composite_type_hash(HandleDecoder& decoder) const {
+        return this->_composite_type_hash;
+    }
+
+    /**
+     * @brief Returns this Atom's composite type hash.
+     *
+     * @return composite type for this atom.
+     */
+    virtual vector<string> composite_type(HandleDecoder& decoder) const {
+        return this->_composite_type;
+    }
+
+    /**
+     * @brief Constructs and returns a MeTTa expression which represents this Atom.
+     *
+     * @return a MeTTa expression which represents this Atom.
+     */
+    virtual string metta_representation(HandleDecoder& decoder) const {
+        return this->_metta_representation;
+    }
+
+    /**
+     * @brief Return this LinkSchema's arity
+     * @return this LinkSchema's arity.
+     */
+    unsigned int arity() const { return this->_arity; }
+
+    bool check_not_frozen() {
+        if (this->_frozen) {
+            Utils::error("Can't change a LinkTemplate after calling build()");
+            return true;
+        } else {
+            return false;
+        }
     }
 };
 

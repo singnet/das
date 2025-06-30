@@ -2,6 +2,7 @@
 
 #include <string>
 
+#include "Utils.h"
 #include "HandleTrie.h"
 #include "Properties.h"
 #include "expression_hasher.h"
@@ -9,9 +10,15 @@
 namespace commons {
 
 class HandleDecoder;  // Forward declaration
+class DefaultDecoder;  // Forward declaration
 
 class Atom : public HandleTrie::TrieValue {
+   protected:
+    static string UNDEFINED_TYPE;
+
    public:
+    static string WILDCARD_STRING;
+    static string WILDCARD_HANDLE;
     string type;                   ///< The type of the atom.
     Properties custom_attributes;  ///< Custom attributes for the atom.
 
@@ -69,7 +76,7 @@ class Atom : public HandleTrie::TrieValue {
 
     virtual void validate() const {
         if (this->type.empty()) {
-            throw runtime_error("Atom type must not be empty");
+            Utils::error("Atom type must not be empty");
         }
     }
 
@@ -117,6 +124,15 @@ class Atom : public HandleTrie::TrieValue {
      * @return A newly built handle for this atom.
      */
     virtual string handle() const = 0;
+
+    /**
+     * @brief Constructs and returns the handle this Atom use when inserted into a schema.
+     *
+     * @return A newly built handle for this atom.
+     */
+    virtual string schema_handle() const {
+        return this->handle();
+    }
 
     /**
      * @brief Constructs and returns a MeTTa expression which represents this Atom.

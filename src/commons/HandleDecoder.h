@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Utils.h"
 #include "Atom.h"
 
 namespace commons {
@@ -13,7 +14,7 @@ class HandleDecoder {
     HandleDecoder() {}
 
    public:
-    ~HandleDecoder() {}
+    virtual ~HandleDecoder() {}
     virtual shared_ptr<Atom> get_atom(const string& handle) = 0;
 };
 

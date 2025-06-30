@@ -38,10 +38,10 @@ class LinkTemplate2 : public Source {
         this->type = type;
         this->target_template = move(targets);
         this->inner_templates_processor = NULL;
-        bool wildcard_flag = (type == AtomDB::WILDCARD);
+        bool wildcard_flag = (type == Atom::WILDCARD_STRING);
         this->db = AtomDBSingleton::get_instance();
         this->handle_keys[0] =
-            (wildcard_flag ? (char*) AtomDB::WILDCARD.c_str() : named_type_hash((char*) type.c_str()));
+            (wildcard_flag ? (char*) Atom::WILDCARD_STRING.c_str() : named_type_hash((char*) type.c_str()));
         this->keys_template[0] = this->handle_keys[0];  // to be used in the `get_link_handle` method
         for (unsigned int i = 1; i <= ARITY; i++) {
             this->keys_template[i] = NULL;
@@ -60,7 +60,7 @@ class LinkTemplate2 : public Source {
                 this->keys_template[i] =  // to be used in the `get_link_handle` method
                     this->handle_keys[i];
             } else {
-                this->handle_keys[i] = (char*) AtomDB::WILDCARD.c_str();
+                this->handle_keys[i] = (char*) Atom::WILDCARD_STRING.c_str();
                 this->inner_template.push_back(this->target_template[i - 1]);
                 this->inner_positions.push_back(i);  // to be used in the `get_link_handle` method
             }
@@ -139,7 +139,7 @@ class LinkTemplate2 : public Source {
      */
     virtual ~LinkTemplate2() {
         this->graceful_shutdown();
-        if (this->handle_keys[0] != (char*) AtomDB::WILDCARD.c_str()) {
+        if (this->handle_keys[0] != (char*) Atom::WILDCARD_STRING.c_str()) {
             free(this->handle_keys[0]);
         }
         this->inner_template.clear();

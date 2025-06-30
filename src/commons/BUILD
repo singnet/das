@@ -9,6 +9,7 @@ cc_library(
         "SharedQueue.cc",
         "StoppableThread.cc",
         "Utils.cc",
+        "Atom.cc",
     ],
     hdrs = [
         "Atom.h",
@@ -24,7 +25,9 @@ cc_library(
         "Utils.h",
     ],
     includes = ["."],
-    deps = [],
+    deps = [
+        "//hasher:hasher_lib",
+    ],
 )
 
 cc_library(
