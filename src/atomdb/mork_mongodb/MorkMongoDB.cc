@@ -83,7 +83,7 @@ MorkMongoDB::MorkMongoDB() {
     this->atomdb_cache = this->redis_mongodb->get_atomdb_cache();
     mork_setup();
 }
-MorkMongoDB::~MorkMongoDB() { delete this->mongodb_pool; }
+MorkMongoDB::~MorkMongoDB() {}
 
 void MorkMongoDB::mork_setup() {
     string host = Utils::get_environment("DAS_MORK_HOSTNAME");
