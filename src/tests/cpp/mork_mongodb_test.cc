@@ -1,4 +1,3 @@
-#include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
 #include <atomic>
@@ -13,7 +12,6 @@
 #include "MorkMongoDB.h"
 
 using namespace atomdb;
-using namespace atomspace;
 
 class MorkMongoDBTestEnvironment : public ::testing::Environment {
    public:
@@ -32,19 +30,11 @@ class MorkMongoDBTestEnvironment : public ::testing::Environment {
     }
 };
 
-class MockMorkClient : public MorkClient {
-   public:
-    MockMorkClient(const string& base_url = "localhost:8000") : MorkClient(base_url) {}
-    MOCK_METHOD(string, post, (const string& data, const string& pattern, const string& template_));
-    MOCK_METHOD(vector<string>, get, (const string& pattern, const string& template_));
-};
-
 class MorkMongoDBTest : public ::testing::Test {
    protected:
     void SetUp() override {
         auto atomdb = AtomDBSingleton::get_instance();
         db = dynamic_pointer_cast<MorkMongoDB>(atomdb);
-        db->set_mork_client_for_test(mock_client);
         ASSERT_NE(db, nullptr) << "Failed to cast AtomDB to MorkMongoDB";
     }
 
@@ -67,7 +57,6 @@ class MorkMongoDBTest : public ::testing::Test {
         return string(expression_hash(expression, targets_handles, targets.size()));
     }
 
-    shared_ptr<MockMorkClient> mock_client = make_shared<MockMorkClient>();
     shared_ptr<MorkMongoDB> db;
 };
 
@@ -82,31 +71,18 @@ class LinkTemplateMetta : public LinkTemplateInterface {
 };
 
 TEST_F(MorkMongoDBTest, QueryForPattern) {
-    auto node_evaluation = new atomspace::Node("Symbol", "EVALUATION");
-    auto node_predicate = new atomspace::Node("Symbol", "PREDICATE");
-    auto node_concept = new atomspace::Node("Symbol", "CONCEPT");
-    auto node_a = new atomspace::Node("Symbol", "A");
-    auto node_b = new atomspace::Node("Symbol", "B");
-    auto node_c = new atomspace::Node("Symbol", "C");
+    string handle_1 = exp_hash({"Inheritance", "\"human\"", "\"mammal\""});
+    string handle_2 = exp_hash({"Inheritance", "\"monkey\"", "\"mammal\""});
+    string handle_3 = exp_hash({"Inheritance", "\"chimp\"", "\"mammal\""});
+    string handle_4 = exp_hash({"Inheritance", "\"rhino\"", "\"mammal\""});
 
-    auto link_predicate = new atomspace::Link("Expression", {node_predicate, node_a});
-    auto link_concept1 = new atomspace::Link("Expression", {node_concept, node_b});
-    auto link_concept2 = new atomspace::Link("Expression", {node_concept, node_c});
-
-    auto link_evaluation1 =
-        new atomspace::Link("Expression", {node_evaluation, link_predicate, link_concept1});
-    auto link_evaluation2 =
-        new atomspace::Link("Expression", {node_evaluation, link_predicate, link_concept2});
-
-    string metta = R"(EVALUATION (PREDICATE A) $x)";
-    vector<string> fake_exprs = {R"((EVALUATION  (PREDICATE A)  (CONCEPT B)))",
-                                 R"((EVALUATION  (PREDICATE A)  (CONCEPT C)))"};
-    EXPECT_CALL(*mock_client, get(metta, metta)).Times(1).WillOnce(::testing::Return(fake_exprs));
-
+    string metta = R"((Inheritance $x "mammal"))";
+    
     auto link_template = new LinkTemplateMetta(metta);
     auto result = db->query_for_pattern(*link_template);
-
-    ASSERT_EQ(result->size(), 2);
+    delete link_template;
+    
+    ASSERT_EQ(result->size(), 4);
 
     auto it = result->get_iterator();
     char* handle;
@@ -115,10 +91,41 @@ TEST_F(MorkMongoDBTest, QueryForPattern) {
         handles.push_back(handle);
     }
 
-    auto h1 = atomspace::Link::compute_handle(link_evaluation1->type, link_evaluation1->targets);
-    auto h2 = atomspace::Link::compute_handle(link_evaluation2->type, link_evaluation2->targets);
+    vector<string> expected_handles = {handle_1, handle_2, handle_3, handle_4};
 
-    ASSERT_EQ(h1, h2);
+    std::sort(handles.begin(), handles.end());
+    std::sort(expected_handles.begin(), expected_handles.end());
+    
+    ASSERT_EQ(handles, expected_handles);
+}
+
+TEST_F(MorkMongoDBTest, QueryForTargets) {
+    string link_handle = exp_hash({"Inheritance", "\"human\"", "\"mammal\""});
+    
+    auto handle_shared = handle_ptr(link_handle);
+    
+    auto targets_list = db->query_for_targets(handle_shared.get());
+    ASSERT_NE(targets_list, nullptr);
+    
+    unsigned int count = targets_list->size();
+    ASSERT_EQ(count, 3);
+    
+    vector<string> targets;
+    for (unsigned int i = 0; i < count; ++i) {
+        const char* raw = targets_list->get_handle(i);
+        ASSERT_NE(raw, nullptr);
+        targets.push_back(raw);
+    }
+
+    char* inheritance_handle = terminal_hash((char*) "Symbol", (char*) "Inheritance");
+    char* human_handle = terminal_hash((char*) "Symbol", (char*) "\"human\"");
+    char* mammal_handle = terminal_hash((char*) "Symbol", (char*) "\"mammal\"");
+
+    vector<string> expected = { inheritance_handle, human_handle, mammal_handle };
+    std::sort(targets.begin(), targets.end());
+    std::sort(expected.begin(), expected.end());
+    
+    ASSERT_EQ(targets, expected);
 }
 
 int main(int argc, char** argv) {
