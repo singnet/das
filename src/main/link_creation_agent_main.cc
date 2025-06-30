@@ -47,7 +47,7 @@ int main(int argc, char* argv[]) {
     MAX_RESULTS and REPEAT are optional, the default value for MAX_RESULTS is 1000 and for REPEAT is 1
     )"""";
 
-    if ((argc < 3)) {
+    if (argc < 4) {
         cerr << help << endl;
         for (auto arg = 0; arg < argc; arg++) {
             cerr << "arg[" << arg << "] = " << argv[arg] << endl;
