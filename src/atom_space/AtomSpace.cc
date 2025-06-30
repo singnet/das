@@ -147,19 +147,14 @@ void AtomSpace::commit_changes(Scope scope) {
 Atom* AtomSpace::atom_from_document(const shared_ptr<AtomDocument>& document) {
     if (document->contains("targets")) {
         // If the document contains targets, it is a Link.
-        vector<const Atom*> targets;
+        vector<string> targets;
         const char* target_handle;
         size_t size = document->get_size("targets");
         for (size_t i = 0; i < size; i++) {
             target_handle = document->get("targets", i);
-            auto target_atom = this->get_atom(target_handle, LOCAL_AND_REMOTE);
-            if (target_atom) {
-                targets.push_back(target_atom);
-            } else {
-                throw runtime_error("Target document not found for handle: " + string(target_handle));
-            }
+            targets.push_back(target_handle);
         }
-        return new Link(document->get("type"), move(targets));
+        return new Link(document->get("type"), targets);
     } else if (document->contains("name")) {
         // If the document contains a name, it is a Node.
         return new Node(document->get("type"), document->get("name"));
