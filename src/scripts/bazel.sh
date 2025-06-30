@@ -6,7 +6,6 @@ ARCH=$(uname -m)
 
 IMAGE_NAME="das-builder"
 CONTAINER_USER=$([ "$ARCH" != "arm64" ] && echo "$USER" || echo "builder")
-BAZEL_CMD="/opt/bazel/bazelisk"
 CONTAINER_NAME="das-bazel-cmd-$(uuidgen | cut -d '-' -f 1)-$(date +%Y%m%d%H%M%S)"
 
 ENV_VARS=$(test -f .env && echo "--env-file=.env" || echo "")
@@ -17,7 +16,7 @@ LOCAL_BIN_DIR=$LOCAL_WORKDIR/bin
 LOCAL_LIB_DIR=$LOCAL_WORKDIR/lib
 LOCAL_CACHE="$HOME/.cache/das"
 
-mkdir -p "$LOCAL_BIN_DIR" "$LOCAL_CACHE"
+mkdir -p "$LOCAL_LIB_DIR" "$LOCAL_BIN_DIR" "$LOCAL_CACHE"
 
 # container paths
 CONTAINER_WORKDIR=/opt/das
@@ -30,15 +29,14 @@ docker run --rm \
   $([ "$ARCH" != "arm64" ] && echo "--user=$(id -u):$(id -g) --volume /etc/passwd:/etc/passwd:ro" || echo "--user=$CONTAINER_USER") \
   --privileged \
   --name="${CONTAINER_NAME}" \
+  -e BIN_DIR=$CONTAINER_BIN_DIR \
+  -e LIB_DIR=$CONTAINER_LIB_DIR \
   --network=host \
   --volume "$LOCAL_CACHE":"$CONTAINER_CACHE" \
   --volume "$LOCAL_WORKDIR":"$CONTAINER_WORKDIR" \
-  --volume "$LOCAL_BIN_DIR":"$CONTAINER_BIN_DIR" \
-  --volume "$LOCAL_LIB_DIR":"$CONTAINER_LIB_DIR" \
   --workdir "$CONTAINER_WORKSPACE_DIR" \
-  --entrypoint "$BAZEL_CMD" \
   "${IMAGE_NAME}" \
-  $([ ${BAZEL_JOBS:-x} != x ] && echo --jobs=${BAZEL_JOBS}) "$@"
+  ./scripts/bazel_exec.sh "$@"
 
 sleep 1
 
