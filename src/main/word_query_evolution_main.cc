@@ -80,13 +80,16 @@ string handle_to_atom(const string& handle) {
     return answer;
 }
 
-void run(const string& context, const string& word_tag1, const string& word_tag2) {
-    string server_id = "0.0.0.0:24001";
-    string client_id = "0.0.0.0:34001";
-
+void run(const string& client_id,
+         const string& server_id,
+         size_t start_port,
+         size_t end_port,
+         const string& context,
+         const string& word_tag1,
+         const string& word_tag2) {
     AtomDBSingleton::init();
     shared_ptr<AtomDB> db = AtomDBSingleton::get_instance();
-    ServiceBusSingleton::init(client_id, server_id, 63000, 63999);
+    ServiceBusSingleton::init(client_id, server_id, start_port, end_port);
     FitnessFunctionRegistry::initialize_statics();
 
     shared_ptr<ServiceBus> service_bus = ServiceBusSingleton::get_instance();
@@ -176,14 +179,19 @@ void run(const string& context, const string& word_tag1, const string& word_tag2
 }
 
 int main(int argc, char* argv[]) {
-    if (argc != 4) {
-        cerr << "Usage: " << argv[0] << " <context> <word tag 1> <word tag 2>" << endl;
+    if (argc != 7) {
+        cerr << "Usage: " << argv[0]
+             << " <client id> <server id> <start_port:end_port> <context> <word tag 1> <word tag 2>"
+             << endl;
         exit(1);
     }
-    string context = argv[1];
-    string word_tag1 = argv[2];
-    string word_tag2 = argv[3];
+    string client_id = argv[1];
+    string server_id = argv[2];
+    auto ports_range = Utils::ports_range(argv[3]);
+    string context = argv[4];
+    string word_tag1 = argv[5];
+    string word_tag2 = argv[6];
 
-    run(context, word_tag1, word_tag2);
+    run(client_id, server_id, ports_range.first, ports_range.second, context, word_tag1, word_tag2);
     return 0;
 }

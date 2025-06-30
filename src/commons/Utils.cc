@@ -131,6 +131,14 @@ vector<string> Utils::split(const string& s, char delimiter) {
     return tokens;
 }
 
+pair<size_t, size_t> Utils::ports_range(const string& str, char delimiter) {
+    vector<string> tokens = split(str, delimiter);
+    if (tokens.size() != 2 || !is_number(tokens[0]) || !is_number(tokens[1])) {
+        throw invalid_argument("Invalid port range format. Use <start_port:end_port>.");
+    }
+    return make_pair(string_to_int(tokens[0]), string_to_int(tokens[1]));
+}
+
 string Utils::join(const vector<string>& tokens, char delimiter) {
     string result;
     for (size_t i = 0; i < tokens.size(); i++) {

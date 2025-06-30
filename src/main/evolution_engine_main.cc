@@ -15,21 +15,21 @@ using namespace evolution;
 using namespace service_bus;
 
 void ctrl_c_handler(int) {
-    std::cout << "Stopping evolution engine server..." << std::endl;
-    std::cout << "Done." << std::endl;
+    cout << "Stopping evolution engine server..." << endl;
+    cout << "Done." << endl;
     exit(0);
 }
 
 int main(int argc, char* argv[]) {
-    if (argc != 3) {
-        cerr << "Usage: " << argv[0] << " <port> BUS_IP:PORT" << endl;
+    if (argc != 4) {
+        cerr << "Usage: " << argv[0] << " <port> <start_port:end_port> BUS_IP:PORT" << endl;
         exit(1);
     }
 
     string server_id = "0.0.0.0:" + string(argv[1]);
-
+    auto ports_range = Utils::ports_range(argv[2]);
     AtomDBSingleton::init();
-    ServiceBusSingleton::init(server_id, argv[2], 62000, 62999);
+    ServiceBusSingleton::init(server_id, argv[3], ports_range.first, ports_range.second);
 
     FitnessFunctionRegistry::initialize_statics();
 

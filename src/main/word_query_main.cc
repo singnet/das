@@ -83,13 +83,15 @@ string handle_to_atom(const string& handle) {
     return answer;
 }
 
-void run(const string& context, const string& word_tag) {
-    string server_id = "0.0.0.0:31700";
-    string client_id = "0.0.0.0:31701";
-
+void run(const string& client_id,
+         const string& server_id,
+         size_t start_port,
+         size_t end_port,
+         const string& context,
+         const string& word_tag) {
     AtomDBSingleton::init();
     shared_ptr<AtomDB> db = AtomDBSingleton::get_instance();
-    ServiceBusSingleton::init(client_id, server_id);
+    ServiceBusSingleton::init(client_id, server_id, start_port, end_port);
     shared_ptr<ServiceBus> service_bus = ServiceBusSingleton::get_instance();
 
     string and_operator = "AND";
@@ -183,15 +185,19 @@ void run(const string& context, const string& word_tag) {
 }
 
 int main(int argc, char* argv[]) {
-    if (argc < 3) {
-        cerr << "Usage: " << argv[0] << " <context> <word tag>" << endl;
+    if (argc < 6) {
+        cerr << "Usage: " << argv[0]
+             << " <client id> <server id> <start_port:end_port> <context> <word tag>" << endl;
         exit(1);
     }
     signal(SIGINT, &ctrl_c_handler);
     signal(SIGTERM, &ctrl_c_handler);
-    string context = argv[1];
-    string word_tag = argv[2];
+    string client_id = argv[1];
+    string server_id = argv[2];
+    auto ports_range = Utils::ports_range(argv[3]);
+    string context = argv[4];
+    string word_tag = argv[5];
 
-    run(context, word_tag);
+    run(client_id, server_id, ports_range.first, ports_range.second, context, word_tag);
     return 0;
 }

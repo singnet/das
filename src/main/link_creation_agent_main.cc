@@ -29,12 +29,11 @@ void ctrl_c_handler(int) {
  */
 int main(int argc, char* argv[]) {
     string help = R""""(
-    Usage: link_creation_agent server_address peer_address [start_port] [end_port] [request_interval] [thread_count] [default_timeout] [buffer_file] [metta_file_path] [save_links_to_metta_file] [save_links_to_db]
+    Usage: link_creation_agent server_address peer_address <start_port:end_port> [request_interval] [thread_count] [default_timeout] [buffer_file] [metta_file_path] [save_links_to_metta_file] [save_links_to_db]
     Suported args:
         server_address: The address of the server to connect to, in the form "host:port"
         peer_address: The address of the peer to connect to, in the form "host:port"
-        start_port: The lower bound for the port numbers to be used by the command proxy (default: 64000)
-        end_port: The upper bound for the port numbers to be used by the command proxy (default: 64999)
+        <start_port:end_port> The lower and upper bound for the port numbers to be used by the command proxy
         request_interval: The interval in seconds to send requests (default: 1)
         thread_count: The number of threads to process requests (default: 1)
         default_timeout: The timeout in seconds for query requests (default: 10)
@@ -48,7 +47,7 @@ int main(int argc, char* argv[]) {
     MAX_RESULTS and REPEAT are optional, the default value for MAX_RESULTS is 1000 and for REPEAT is 1
     )"""";
 
-    if ((argc < 2)) {
+    if ((argc < 3)) {
         cerr << help << endl;
         for (auto arg = 0; arg < argc; arg++) {
             cerr << "arg[" << arg << "] = " << argv[arg] << endl;
@@ -57,17 +56,16 @@ int main(int argc, char* argv[]) {
     }
     string server_address = argv[1];
     string peer_address = argv[2];
-    unsigned int start_port = argc > 3 ? Utils::string_to_int(argv[3]) : 64000;
-    unsigned int end_port = argc > 4 ? Utils::string_to_int(argv[4]) : 64999;
-    int request_interval = argc > 5 ? Utils::string_to_int(argv[5]) : 1;
-    int thread_count = argc > 6 ? Utils::string_to_int(argv[6]) : 1;
-    int default_timeout = argc > 7 ? Utils::string_to_int(argv[7]) : 10;
-    string buffer_file = argc > 8 ? argv[8] : "requests_buffer.bin";
-    string metta_file_path = argc > 9 ? argv[9] : "./";
-    bool save_links_to_metta_file = argc > 10 && (string(argv[10]) == string("true") ||
-                                                  string(argv[10]) == "1" || string(argv[10]) == "yes");
-    bool save_links_to_db = argc > 11 && (string(argv[11]) == string("true") ||
-                                          string(argv[11]) == "1" || string(argv[11]) == "yes");
+    auto [start_port, end_port] = Utils::ports_range(argv[3]);
+    int request_interval = argc > 4 ? Utils::string_to_int(argv[4]) : 1;
+    int thread_count = argc > 5 ? Utils::string_to_int(argv[5]) : 1;
+    int default_timeout = argc > 6 ? Utils::string_to_int(argv[6]) : 10;
+    string buffer_file = argc > 7 ? argv[7] : "requests_buffer.bin";
+    string metta_file_path = argc > 8 ? argv[8] : "./";
+    bool save_links_to_metta_file = argc > 9 && (string(argv[9]) == string("true") ||
+                                                 string(argv[9]) == "1" || string(argv[9]) == "yes");
+    bool save_links_to_db = argc > 10 && (string(argv[10]) == string("true") ||
+                                          string(argv[10]) == "1" || string(argv[10]) == "yes");
 
     signal(SIGINT, &ctrl_c_handler);
     signal(SIGTERM, &ctrl_c_handler);
