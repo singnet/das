@@ -177,7 +177,7 @@ MongodbDocument::MongodbDocument(const atoms::Node* node) {
     this->document = doc.extract();
 }
 
-MongodbDocument::MongodbDocument(const atomspace::Link* link, HandleDecoder& db) {
+MongodbDocument::MongodbDocument(const atoms::Link* link, HandleDecoder& db) {
     bsoncxx::builder::basic::array composite_type;
     vector<string> link_composite_type = link->composite_type(db);
     for (string handle : link_composite_type) {

@@ -365,8 +365,8 @@ TEST(Link, TestLinkTemplateProcessor) {
         "LINK Test3 2 1 HANDLE Value1 HANDLE Value2 CUSTOM_FIELD truth_value 2 CUSTOM_FIELD mean 2 "
         "count 10 avg 0.9 confidence 0.9",
         ' ');
-    Link ll;
-    Link l2 = ll.untokenize(tokens);
+    link_creation_agent::Link ll;
+    link_creation_agent::Link l2 = ll.untokenize(tokens);
     EXPECT_EQ(l2.get_type(), "Test3");
     EXPECT_EQ(l2.get_targets().size(), 2);
     EXPECT_EQ(get<string>(l2.get_targets()[0]), "Value1");

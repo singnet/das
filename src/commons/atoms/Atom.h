@@ -112,6 +112,13 @@ class Atom : public HandleTrie::TrieValue {
      */
     virtual string schema_handle() const;
 
+    /**
+     * @brief Return this Atom's arity
+     *
+     * @return this Atom's arity
+     */
+    virtual unsigned int arity() const;
+
     // ---------------------------------------------------------------------------------------------
     // Abstract (pure virtual) API
 

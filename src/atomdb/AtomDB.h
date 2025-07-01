@@ -10,6 +10,7 @@
 
 using namespace std;
 using namespace commons;
+using namespace atoms;
 
 namespace atomdb {
 
@@ -28,7 +29,7 @@ class AtomDB : public HandleDecoder {
     virtual bool link_exists(const char* link_handle) = 0;
     virtual set<string> links_exist(const vector<string>& link_handles) = 0;
     virtual char* add_node(const atoms::Node* node) = 0;
-    virtual char* add_link(const atomspace::Link* link) = 0;
+    virtual char* add_link(const atoms::Link* link) = 0;
     virtual vector<shared_ptr<atomdb_api_types::AtomDocument>> get_atom_documents(
         const vector<string>& handles, const vector<string>& fields) = 0;
 

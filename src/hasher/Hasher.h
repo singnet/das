@@ -4,6 +4,7 @@
 #include <vector>
 #include "expression_hasher.h"
 
+using namespace std;
 namespace commons {
 
 class Hasher {

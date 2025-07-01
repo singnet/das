@@ -1,12 +1,17 @@
 #include <gtest/gtest.h>
 
-#include "Properties.h"
-#include "atom_space/AtomSpaceTypes.h"
-#include "expression_hasher.h"
+#include "Atom.h"
+#include "Node.h"
+#include "Link.h"
+#include "UntypedVariable.h"
+#include "LinkSchema.h"
+#include "Hasher.h"
+#include "HandleDecoder.h"
+#include "MettaMapping.h"
 
 using namespace std;
-using namespace atomspace;
 using namespace commons;
+using namespace atoms;
 
 class TestDecoder : public HandleDecoder {
    public:
@@ -30,11 +35,6 @@ TEST(NodeTest, NodeValidationAndToString) {
     Node n("Type", "Name");
     string s = n.to_string();
     EXPECT_EQ(s, "Node(type: 'Type', name: 'Name', custom_attributes: {})");
-}
-
-TEST(NodeTest, NodeComputeHandle) {
-    unique_ptr<char, HandleDeleter> handle(::terminal_hash((char*) "Type", (char*) "Name"));
-    ASSERT_NE(handle.get(), nullptr);
 }
 
 TEST(LinkTest, LinkValidation) {

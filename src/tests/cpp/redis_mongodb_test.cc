@@ -10,10 +10,13 @@
 #include "AtomDBSingleton.h"
 #include "LinkTemplateInterface.h"
 #include "RedisMongoDB.h"
-#include "expression_hasher.h"
+#include "Hasher.h"
+#include "MettaMapping.h"
+#include "Node.h"
+#include "Link.h"
 
 using namespace atomdb;
-using namespace atomspace;
+using namespace atoms;
 using namespace std;
 
 class MockDecoder : public HandleDecoder {

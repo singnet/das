@@ -18,6 +18,7 @@
 
 using namespace std;
 using namespace commons;
+using namespace atoms;
 
 namespace atomdb {
 namespace atomdb_api_types {
@@ -71,7 +72,7 @@ class MongodbDocument : public AtomDocument {
    public:
     MongodbDocument(bsoncxx::v_noabi::stdx::optional<bsoncxx::v_noabi::document::value>& document);
     MongodbDocument(const atoms::Node* node);
-    MongodbDocument(const atomspace::Link* link, HandleDecoder& db);
+    MongodbDocument(const atoms::Link* link, HandleDecoder& db);
     ~MongodbDocument();
 
     const char* get(const string& key);

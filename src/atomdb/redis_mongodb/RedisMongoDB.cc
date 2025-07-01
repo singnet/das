@@ -9,7 +9,8 @@
 #include <memory>
 #include <string>
 
-#include "AtomSpaceTypes.h"
+#include "Node.h"
+#include "Link.h"
 #include "AttentionBrokerServer.h"
 #include "Logger.h"
 #include "Utils.h"
@@ -19,7 +20,6 @@
 
 using namespace atomdb;
 using namespace commons;
-using namespace atomspace;
 using namespace atoms;
 
 string RedisMongoDB::REDIS_PATTERNS_PREFIX;
@@ -394,7 +394,7 @@ vector<string> RedisMongoDB::add_nodes(const vector<atoms::Node*>& nodes) {
     return handles;
 }
 
-char* RedisMongoDB::add_link(const atomspace::Link* link) {
+char* RedisMongoDB::add_link(const atoms::Link* link) {
     auto conn = this->mongodb_pool->acquire();
     auto mongodb_collection = (*conn)[MONGODB_DB_NAME][MONGODB_COLLECTION_NAME];
 
@@ -408,7 +408,7 @@ char* RedisMongoDB::add_link(const atomspace::Link* link) {
     return strdup((char*) link->handle().c_str());
 }
 
-vector<string> RedisMongoDB::add_links(const vector<atomspace::Link*>& links) {
+vector<string> RedisMongoDB::add_links(const vector<atoms::Link*>& links) {
     auto conn = this->mongodb_pool->acquire();
     auto mongodb_collection = (*conn)[MONGODB_DB_NAME][MONGODB_COLLECTION_NAME];
 

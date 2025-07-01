@@ -13,7 +13,7 @@ namespace atomspace {
 AtomSpace::AtomSpace()
     : db(AtomDBSingleton::get_instance()),
       bus(ServiceBusSingleton::get_instance()),
-      handle_trie(make_unique<HandleTrie>(HANDLE_SIZE)) {}
+      handle_trie(make_unique<HandleTrie>(HANDLE_HASH_SIZE - 1)) {}
 
 // -------------------------------------------------------------------------------------------------
 const Atom* AtomSpace::get_atom(const char* handle, Scope scope) {
@@ -38,18 +38,20 @@ const Atom* AtomSpace::get_atom(const char* handle, Scope scope) {
 
 // -------------------------------------------------------------------------------------------------
 const Node* AtomSpace::get_node(const string& type, const string& name, Scope scope) {
-    unique_ptr<char, HandleDeleter> handle(::terminal_hash((char*) type.c_str(), (char*) name.c_str()));
-    auto node = this->get_atom(handle.get(), scope);
+    string handle = Hasher::node_handle(type, name).c_str();
+    auto node = this->get_atom(handle.c_str());
     if (node) {
         return dynamic_cast<const Node*>(node);
+    } else {
+        return nullptr;
     }
-    return nullptr;
 }
 
 // -------------------------------------------------------------------------------------------------
 const Link* AtomSpace::get_link(const string& type, const vector<const Atom*>& targets, Scope scope) {
     // TODO
     // This API needs to be rewritten
+    return nullptr;
 }
 
 // -------------------------------------------------------------------------------------------------

@@ -3,7 +3,8 @@
 #include <algorithm>
 #include <optional>
 
-#include "AtomSpaceTypes.h"
+#include "Node.h"
+#include "Link.h"
 #include "LinkTemplateInterface.h"
 #include "Utils.h"
 

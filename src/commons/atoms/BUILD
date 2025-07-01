@@ -7,10 +7,18 @@ cc_library(
     srcs = [
         "Atom.cc",
         "Node.cc",
+        "Link.cc",
+        "Wildcard.cc",
+        "UntypedVariable.cc",
+        "LinkSchema.cc",
     ],
     hdrs = [
         "Atom.h",
         "Node.h",
+        "Link.h",
+        "Wildcard.h",
+        "UntypedVariable.h",
+        "LinkSchema.h",
         "HandleDecoder.h",
     ],
     includes = ["."],

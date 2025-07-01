@@ -13,7 +13,6 @@ string Atom::WILDCARD_HANDLE = string(::compute_hash((char*) Atom::WILDCARD_STRI
 // -------------------------------------------------------------------------------------------------
 // Constructors, destructors , basic operators and initializers
 
-
 Atom::Atom(const string& type, const Properties& custom_attributes)
     : type(type), custom_attributes(custom_attributes) {
     this->validate();
@@ -62,4 +61,8 @@ string Atom::composite_type_hash(HandleDecoder& decoder) const { return named_ty
 
 string Atom::schema_handle() const {
     return this->handle();
+}
+
+unsigned int Atom::arity() const {
+    return 0;
 }

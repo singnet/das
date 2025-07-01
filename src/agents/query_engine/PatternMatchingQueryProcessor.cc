@@ -431,7 +431,7 @@ shared_ptr<QueryElement> PatternMatchingQueryProcessor::build_or(
             targets[i] = element_stack.top();                                 \
             element_stack.pop();                                              \
         }                                                                     \
-        return make_shared<Link<N>>(query_tokens[cursor + 1], move(targets)); \
+        return make_shared<query_element::Link<N>>(query_tokens[cursor + 1], move(targets)); \
     }
 
 shared_ptr<QueryElement> PatternMatchingQueryProcessor::build_link(
