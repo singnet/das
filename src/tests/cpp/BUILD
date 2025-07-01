@@ -537,8 +537,8 @@ cc_test(
     deps = [
         "//agents/query_engine:query_engine_lib",
         "//atom_space:atom_space_lib",
-        "//commons/atoms:atoms_lib",
         "//commons:commons_lib",
+        "//commons/atoms:atoms_lib",
         "//service_bus:service_bus_lib",
         "@com_github_google_googletest//:gtest_main",
     ],

@@ -1,8 +1,10 @@
-#include <string.h>
-#include "Hasher.h"
 #include "Link.h"
-#include "MettaMapping.h"
+
+#include <string.h>
+
 #include "HandleDecoder.h"
+#include "Hasher.h"
+#include "MettaMapping.h"
 
 using namespace atoms;
 
@@ -52,9 +54,7 @@ string Link::to_string() const {
     return result;
 }
 
-string Link::handle() const {
-    return Hasher::link_handle(this->type, this->targets);
-}
+string Link::handle() const { return Hasher::link_handle(this->type, this->targets); }
 
 string Link::composite_type_hash(HandleDecoder& decoder) const {
     unsigned int arity = this->targets.size();
@@ -91,8 +91,8 @@ vector<string> Link::composite_type(HandleDecoder& decoder) const {
 
 string Link::metta_representation(HandleDecoder& decoder) const {
     if (this->type != MettaMapping::EXPRESSION_LINK_TYPE) {
-        Utils::error("Can't compute metta expression of link whose type (" + this->type +
-                     ") is not " + MettaMapping::EXPRESSION_LINK_TYPE);
+        Utils::error("Can't compute metta expression of link whose type (" + this->type + ") is not " +
+                     MettaMapping::EXPRESSION_LINK_TYPE);
     }
     string metta_string = "(";
     unsigned int size = this->targets.size();

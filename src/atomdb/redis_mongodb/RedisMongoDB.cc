@@ -9,12 +9,12 @@
 #include <memory>
 #include <string>
 
-#include "Node.h"
-#include "Link.h"
 #include "AttentionBrokerServer.h"
-#include "Logger.h"
-#include "Utils.h"
 #include "Hasher.h"
+#include "Link.h"
+#include "Logger.h"
+#include "Node.h"
+#include "Utils.h"
 #include "attention_broker.grpc.pb.h"
 #include "attention_broker.pb.h"
 

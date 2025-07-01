@@ -1,4 +1,5 @@
 #include "Node.h"
+
 #include "Hasher.h"
 #include "MettaMapping.h"
 
@@ -7,7 +8,8 @@ using namespace atoms;
 // -------------------------------------------------------------------------------------------------
 // Constructors, destructors , basic operators and initializers
 
-Node::Node(const string& type, const string& name, const Properties& custom_attributes) : Atom(type, custom_attributes), name(name) {
+Node::Node(const string& type, const string& name, const Properties& custom_attributes)
+    : Atom(type, custom_attributes), name(name) {
     this->validate();
 }
 
@@ -42,14 +44,12 @@ string Node::to_string() const {
            "', custom_attributes: " + this->custom_attributes.to_string() + ")";
 }
 
-string Node::handle() const {
-    return Hasher::node_handle(this->type, this->name);
-}
+string Node::handle() const { return Hasher::node_handle(this->type, this->name); }
 
 string Node::metta_representation(HandleDecoder& decoder) const {
     if (this->type != MettaMapping::SYMBOL_NODE_TYPE) {
-        Utils::error("Can't compute metta expression of node whose type (" + this->type +
-                     ") is not " + MettaMapping::SYMBOL_NODE_TYPE);
+        Utils::error("Can't compute metta expression of node whose type (" + this->type + ") is not " +
+                     MettaMapping::SYMBOL_NODE_TYPE);
     }
     return this->name;
 }

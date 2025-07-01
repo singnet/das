@@ -1,13 +1,13 @@
 #include <gtest/gtest.h>
 
 #include "Atom.h"
-#include "Node.h"
-#include "Link.h"
-#include "UntypedVariable.h"
-#include "LinkSchema.h"
-#include "Hasher.h"
 #include "HandleDecoder.h"
+#include "Hasher.h"
+#include "Link.h"
+#include "LinkSchema.h"
 #include "MettaMapping.h"
+#include "Node.h"
+#include "UntypedVariable.h"
 
 using namespace std;
 using namespace commons;
@@ -181,7 +181,6 @@ TEST(LinkTest, CompositeTypes) {
 }
 
 TEST(LinkTest, MettaStrings) {
-
     TestDecoder db;
     string symbol = MettaMapping::SYMBOL_NODE_TYPE;
     string expression = MettaMapping::EXPRESSION_LINK_TYPE;

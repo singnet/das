@@ -3,10 +3,10 @@
 #include <array>
 #include <string>
 
+#include "Atom.h"
 #include "AtomDBSingleton.h"
 #include "QueryElement.h"
 #include "expression_hasher.h"
-#include "Atom.h"
 
 #define LOG_LEVEL INFO_LEVEL
 #include "Logger.h"

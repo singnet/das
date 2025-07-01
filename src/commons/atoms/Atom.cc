@@ -1,4 +1,5 @@
 #include "Atom.h"
+
 #include "Hasher.h"
 
 using namespace commons;
@@ -45,13 +46,11 @@ void Atom::validate() const {
 // Default implementation for virtual public API
 
 string Atom::to_string() const {
-    return "Atom(type: '" + this->type +
-           "', custom_attributes: " + this->custom_attributes.to_string() + ")";
+    return "Atom(type: '" + this->type + "', custom_attributes: " + this->custom_attributes.to_string() +
+           ")";
 }
 
-string Atom::named_type_hash() const {
-    return Hasher::type_handle(this->type);
-}
+string Atom::named_type_hash() const { return Hasher::type_handle(this->type); }
 
 vector<string> Atom::composite_type(HandleDecoder& decoder) const {
     return vector<string>({named_type_hash()});
@@ -59,10 +58,6 @@ vector<string> Atom::composite_type(HandleDecoder& decoder) const {
 
 string Atom::composite_type_hash(HandleDecoder& decoder) const { return named_type_hash(); }
 
-string Atom::schema_handle() const {
-    return this->handle();
-}
+string Atom::schema_handle() const { return this->handle(); }
 
-unsigned int Atom::arity() const {
-    return 0;
-}
+unsigned int Atom::arity() const { return 0; }

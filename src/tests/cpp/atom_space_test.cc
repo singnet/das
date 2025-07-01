@@ -5,10 +5,10 @@
 
 #include "AtomDBSingleton.h"
 #include "AtomSpace.h"
+#include "Link.h"
+#include "Node.h"
 #include "Properties.h"
 #include "ServiceBusSingleton.h"
-#include "Node.h"
-#include "Link.h"
 
 using namespace std;
 using namespace atomspace;

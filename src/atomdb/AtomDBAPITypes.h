@@ -3,9 +3,9 @@
 #include <algorithm>
 #include <optional>
 
-#include "Node.h"
 #include "Link.h"
 #include "LinkTemplateInterface.h"
+#include "Node.h"
 #include "Utils.h"
 
 using namespace std;

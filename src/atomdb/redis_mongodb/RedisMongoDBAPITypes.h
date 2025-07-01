@@ -11,9 +11,9 @@
 #include <vector>
 
 #include "Atom.h"
-#include "Node.h"
 #include "AtomDBAPITypes.h"
 #include "HandleDecoder.h"
+#include "Node.h"
 #include "Utils.h"
 
 using namespace std;

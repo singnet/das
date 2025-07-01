@@ -40,8 +40,8 @@ class LinkTemplate2 : public Source {
         this->inner_templates_processor = NULL;
         bool wildcard_flag = (type == Atom::WILDCARD_STRING);
         this->db = AtomDBSingleton::get_instance();
-        this->handle_keys[0] =
-            (wildcard_flag ? (char*) Atom::WILDCARD_STRING.c_str() : named_type_hash((char*) type.c_str()));
+        this->handle_keys[0] = (wildcard_flag ? (char*) Atom::WILDCARD_STRING.c_str()
+                                              : named_type_hash((char*) type.c_str()));
         this->keys_template[0] = this->handle_keys[0];  // to be used in the `get_link_handle` method
         for (unsigned int i = 1; i <= ARITY; i++) {
             this->keys_template[i] = NULL;

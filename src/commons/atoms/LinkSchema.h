@@ -1,13 +1,13 @@
 #pragma once
 
 #include <stack>
+
 #include "Wildcard.h"
 
 namespace atoms {
 
 class LinkSchema : public Wildcard {
    private:
-
     bool _frozen;
     unsigned int _arity;
     vector<string> _schema;
@@ -19,7 +19,6 @@ class LinkSchema : public Wildcard {
     bool check_not_frozen();
 
    public:
-
     // ---------------------------------------------------------------------------------------------
     // Constructors, destructors , basic operators and initializers
 
@@ -110,7 +109,9 @@ class LinkSchema : public Wildcard {
     // ---------------------------------------------------------------------------------------------
     // Public API to build LinkSchema objects
 
-    void add_target(const string& schema_handle, const string& composite_type_hash, const string& metta_representation);
+    void add_target(const string& schema_handle,
+                    const string& composite_type_hash,
+                    const string& metta_representation);
 
     void stack_node(const string& type, const string& name);
 

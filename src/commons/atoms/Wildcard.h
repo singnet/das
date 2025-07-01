@@ -8,7 +8,6 @@ namespace atoms {
 
 class Wildcard : public Atom {
    public:
-
     // ---------------------------------------------------------------------------------------------
     // Constructors, destructors , basic operators and initializers
 

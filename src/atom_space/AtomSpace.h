@@ -4,10 +4,10 @@
 
 #include "AtomDBAPITypes.h"
 #include "AtomDBSingleton.h"
+#include "Link.h"
+#include "Node.h"
 #include "PatternMatchingQueryProxy.h"
 #include "ServiceBusSingleton.h"
-#include "Node.h"
-#include "Link.h"
 
 #define IGNORE_ANSWER_COUNT 0
 
@@ -171,13 +171,13 @@ class AtomSpace {
      * @brief Returns truee iff the passed atom is a Node (or a Variable, which is a wildcard Node).
      * @return truee iff the passed atom is a Node (or a Variable, which is a wildcard Node).
      */
-    static bool is_node(const Atom& atom) {return atom.arity() == 0;}
+    static bool is_node(const Atom& atom) { return atom.arity() == 0; }
 
     /**
      * @brief Returns truee iff the passed atom is a Link (or a LinkSchema, which is a wildcard Link).
      * @return truee iff the passed atom is a Node (or a LinkSchema, which is a wildcard Link).
      */
-    static bool is_link(const Atom& atom) {return atom.arity() > 0;}
+    static bool is_link(const Atom& atom) { return atom.arity() > 0; }
 
    protected:
     shared_ptr<AtomDB> db;  // to allow mocking in tests

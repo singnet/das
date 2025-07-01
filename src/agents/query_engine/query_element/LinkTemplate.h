@@ -101,8 +101,8 @@ class LinkTemplate : public Source, public LinkTemplateInterface {
         this->positive_importance_flag = false;
         this->local_buffer_processor = NULL;
         bool wildcard_flag = (type == Atom::WILDCARD_STRING);
-        this->handle_keys[0] =
-            (wildcard_flag ? (char*) Atom::WILDCARD_STRING.c_str() : named_type_hash((char*) type.c_str()));
+        this->handle_keys[0] = (wildcard_flag ? (char*) Atom::WILDCARD_STRING.c_str()
+                                              : named_type_hash((char*) type.c_str()));
         for (unsigned int i = 1; i <= ARITY; i++) {
             // It's safe to get stored shared_ptr's raw pointer here because handle_keys[]
             // is used solely in this scope so it's guaranteed that handle will not be freed.

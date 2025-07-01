@@ -2,9 +2,9 @@
 
 #include <string>
 
-#include "Utils.h"
 #include "HandleTrie.h"
 #include "Properties.h"
+#include "Utils.h"
 #include "expression_hasher.h"
 
 using namespace commons;
@@ -135,10 +135,10 @@ class Atom : public HandleTrie::TrieValue {
      * @return a MeTTa expression which represents this Atom.
      */
     virtual string metta_representation(HandleDecoder& decoder) const = 0;
-    
+
     // ---------------------------------------------------------------------------------------------
     // HandleTrie::TrieValue virtual API
 
     virtual void merge(HandleTrie::TrieValue* other) override {}
 };
-}  // namespace commons
+}  // namespace atoms

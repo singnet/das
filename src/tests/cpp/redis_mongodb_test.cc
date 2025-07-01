@@ -8,12 +8,12 @@
 #include <vector>
 
 #include "AtomDBSingleton.h"
-#include "LinkTemplateInterface.h"
-#include "RedisMongoDB.h"
 #include "Hasher.h"
+#include "Link.h"
+#include "LinkTemplateInterface.h"
 #include "MettaMapping.h"
 #include "Node.h"
-#include "Link.h"
+#include "RedisMongoDB.h"
 
 using namespace atomdb;
 using namespace atoms;
@@ -385,7 +385,8 @@ TEST_F(RedisMongoDBTest, AddAndDeleteLinks) {
         auto test_2_node = decoder.add_atom(make_shared<Node>("Symbol", "add-links-2-" + to_string(i)));
         test_node_handles.push_back(db->add_node((Node*) test_1_node.get()));
         test_node_handles.push_back(db->add_node((Node*) test_2_node.get()));
-        links.push_back(new Link("Expression", {similarity_node->handle(), test_1_node->handle(), test_2_node->handle()}));
+        links.push_back(new Link(
+            "Expression", {similarity_node->handle(), test_1_node->handle(), test_2_node->handle()}));
     }
 
     auto handles = db->add_links(links);

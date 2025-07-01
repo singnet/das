@@ -170,7 +170,8 @@ void append_custom_attributes(bsoncxx::builder::basic::document& doc,
 MongodbDocument::MongodbDocument(const atoms::Node* node) {
     bsoncxx::builder::basic::document doc;
     doc.append(bsoncxx::builder::basic::kvp("_id", node->handle()));
-    doc.append(bsoncxx::builder::basic::kvp("composite_type_hash", node->named_type_hash())); // For nodes, composite type == named type
+    doc.append(bsoncxx::builder::basic::kvp(
+        "composite_type_hash", node->named_type_hash()));  // For nodes, composite type == named type
     doc.append(bsoncxx::builder::basic::kvp("name", node->name));
     doc.append(bsoncxx::builder::basic::kvp("named_type", node->type));
     append_custom_attributes(doc, node->custom_attributes);
