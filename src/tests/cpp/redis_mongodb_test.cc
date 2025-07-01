@@ -299,12 +299,12 @@ TEST_F(RedisMongoDBTest, AddAndDeleteNode) {
 
     auto node = new Node("Symbol", "\"test-1\"", custom_attributes);
 
-    auto node_handle = Node::compute_handle(node->type, node->name);
+    auto node_handle = node->handle();
 
     // Check if node exists, if so, delete it
-    auto node_document = db->get_atom_document(node_handle);
+    auto node_document = db->get_atom_document(node_handle.c_str());
     if (node_document != nullptr) {
-        auto deleted = db->delete_atom(node_handle);
+        auto deleted = db->delete_atom(node_handle.c_str());
         EXPECT_TRUE(deleted);
     }
 

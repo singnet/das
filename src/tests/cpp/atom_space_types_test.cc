@@ -33,7 +33,7 @@ TEST(NodeTest, NodeValidationAndToString) {
 }
 
 TEST(NodeTest, NodeComputeHandle) {
-    unique_ptr<char, HandleDeleter> handle(Node::compute_handle("Type", "Name"));
+    unique_ptr<char, HandleDeleter> handle(::terminal_hash((char*) "Type", (char*) "Name"));
     ASSERT_NE(handle.get(), nullptr);
 }
 
@@ -66,44 +66,6 @@ TEST(LinkTest, LinkToString) {
         ")"
     );
     // clang-format on
-}
-
-TEST(LinkTest, LinkTargetsToHandles) {
-    Node n1("Type1", "Name1");
-    Node n2("Type2", "Name2");
-    vector<const Atom*> targets = {&n1, &n2};
-    unique_ptr<char*[], HandleArrayDeleter> handles(Link::targets_to_handles(targets),
-                                                    HandleArrayDeleter(targets.size()));
-    ASSERT_NE(handles, nullptr);
-    for (size_t i = 0; i < targets.size(); ++i) {
-        ASSERT_NE(handles[i], nullptr);
-    }
-}
-
-TEST(LinkTest, LinkComputeHandleFromAtoms) {
-    Node n1("Type1", "Name1");
-    Node n2("Type2", "Name2");
-    vector<const Atom*> targets = {&n1, &n2};
-    unique_ptr<char, HandleDeleter> handle(Link::compute_handle("LinkType", targets));
-    ASSERT_NE(handle.get(), nullptr);
-}
-
-TEST(LinkTest, LinkComputeHandleFromStrings) {
-    vector<string> handles = {"handle1", "handle2"};
-    unique_ptr<char, HandleDeleter> handle(Link::compute_handle("LinkType", handles));
-    ASSERT_NE(handle.get(), nullptr);
-}
-
-TEST(LinkTest, LinkComputeHandleFromRaw) {
-    vector<string> handles = {"handle1", "handle2"};
-    char* type_hash = named_type_hash((char*) "LinkType");
-    char** targets_handles = new char*[handles.size()];
-    for (size_t i = 0; i < handles.size(); ++i) targets_handles[i] = (char*) handles[i].c_str();
-    unique_ptr<char, HandleDeleter> handle(
-        Link::compute_handle("LinkType", targets_handles, handles.size()));
-    ASSERT_NE(handle.get(), nullptr);
-    delete[] targets_handles;
-    free(type_hash);
 }
 
 TEST(NodeTest, NodeWithCustomAttributes) {

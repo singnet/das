@@ -3,7 +3,7 @@
 #include "Utils.h"
 #include "Atom.h"
 
-namespace commons {
+namespace atoms {
 
 /**
  * Abstract interface supposed to be implemented by classes that are capable of

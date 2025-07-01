@@ -2,6 +2,7 @@
 
 #include "QueryAnswer.h"
 #include "Utils.h"
+#include "Hasher.h"
 
 using namespace std;
 using namespace query_engine;
@@ -37,7 +38,7 @@ const Atom* AtomSpace::get_atom(const char* handle, Scope scope) {
 
 // -------------------------------------------------------------------------------------------------
 const Node* AtomSpace::get_node(const string& type, const string& name, Scope scope) {
-    unique_ptr<char, HandleDeleter> handle(Node::compute_handle(type, name));
+    unique_ptr<char, HandleDeleter> handle(::terminal_hash((char*) type.c_str(), (char*) name.c_str()));
     auto node = this->get_atom(handle.get(), scope);
     if (node) {
         return dynamic_cast<const Node*>(node);
@@ -47,12 +48,8 @@ const Node* AtomSpace::get_node(const string& type, const string& name, Scope sc
 
 // -------------------------------------------------------------------------------------------------
 const Link* AtomSpace::get_link(const string& type, const vector<const Atom*>& targets, Scope scope) {
-    unique_ptr<char, HandleDeleter> handle(Link::compute_handle(type, targets));
-    auto link = this->get_atom(handle.get(), scope);
-    if (link) {
-        return dynamic_cast<const Link*>(link);
-    }
-    return nullptr;
+    // TODO
+    // This API needs to be rewritten
 }
 
 // -------------------------------------------------------------------------------------------------
@@ -107,7 +104,7 @@ void AtomSpace::pattern_matching_fetch(const vector<string>& query, size_t answe
 
 // -------------------------------------------------------------------------------------------------
 char* AtomSpace::add_node(const string& type, const string& name, const Properties& custom_attributes) {
-    char* handle = Node::compute_handle(type, name);
+    char* handle = ::terminal_hash((char*) type.c_str(), (char*) name.c_str());
     this->handle_trie->insert(handle, new Node(type, name, custom_attributes));
     return handle;
 }
@@ -116,7 +113,7 @@ char* AtomSpace::add_node(const string& type, const string& name, const Properti
 char* AtomSpace::add_link(const string& type,
                           const vector<string>& targets,
                           const Properties& custom_attributes) {
-    char* handle = Link::compute_handle(type, targets);
+    char* handle = strdup(Hasher::link_handle(type, targets).c_str());
     this->handle_trie->insert(handle, new Link(type, targets, custom_attributes));
     return handle;
 }

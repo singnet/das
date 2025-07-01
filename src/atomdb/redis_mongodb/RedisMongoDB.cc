@@ -13,12 +13,14 @@
 #include "AttentionBrokerServer.h"
 #include "Logger.h"
 #include "Utils.h"
+#include "Hasher.h"
 #include "attention_broker.grpc.pb.h"
 #include "attention_broker.pb.h"
 
 using namespace atomdb;
 using namespace commons;
 using namespace atomspace;
+using namespace atoms;
 
 string RedisMongoDB::REDIS_PATTERNS_PREFIX;
 string RedisMongoDB::REDIS_TARGETS_PREFIX;
@@ -357,7 +359,7 @@ set<string> RedisMongoDB::links_exist(const vector<string>& link_handles) {
     return existing_links;
 }
 
-char* RedisMongoDB::add_node(const atomspace::Node* node) {
+char* RedisMongoDB::add_node(const atoms::Node* node) {
     auto conn = this->mongodb_pool->acquire();
     auto mongodb_collection = (*conn)[MONGODB_DB_NAME][MONGODB_COLLECTION_NAME];
 
@@ -368,11 +370,10 @@ char* RedisMongoDB::add_node(const atomspace::Node* node) {
         Utils::error("Failed to insert node into MongoDB");
     }
 
-    auto handle = atomspace::Node::compute_handle(node->type, node->name);
-    return handle;
+    return ::terminal_hash((char*) node->type.c_str(), (char*) node->name.c_str());
 }
 
-vector<string> RedisMongoDB::add_nodes(const vector<atomspace::Node*>& nodes) {
+vector<string> RedisMongoDB::add_nodes(const vector<atoms::Node*>& nodes) {
     auto conn = this->mongodb_pool->acquire();
     auto mongodb_collection = (*conn)[MONGODB_DB_NAME][MONGODB_COLLECTION_NAME];
 
@@ -380,7 +381,7 @@ vector<string> RedisMongoDB::add_nodes(const vector<atomspace::Node*>& nodes) {
     vector<string> handles;
     for (const auto& node : nodes) {
         auto mongodb_doc = atomdb_api_types::MongodbDocument(node);
-        handles.push_back(atomspace::Node::compute_handle(node->type, node->name));
+        handles.push_back(node->handle());
         docs.push_back(mongodb_doc.value());
     }
 
@@ -404,8 +405,7 @@ char* RedisMongoDB::add_link(const atomspace::Link* link) {
         Utils::error("Failed to insert link into MongoDB");
     }
 
-    auto handle = atomspace::Link::compute_handle(link->type, link->targets);
-    return handle;
+    return strdup((char*) link->handle().c_str());
 }
 
 vector<string> RedisMongoDB::add_links(const vector<atomspace::Link*>& links) {
@@ -416,7 +416,7 @@ vector<string> RedisMongoDB::add_links(const vector<atomspace::Link*>& links) {
     vector<string> handles;
     for (const auto& link : links) {
         auto mongodb_doc = atomdb_api_types::MongodbDocument(link, *this);
-        handles.push_back(atomspace::Link::compute_handle(link->type, link->targets));
+        handles.push_back(link->handle());
         docs.push_back(mongodb_doc.value());
     }
 

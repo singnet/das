@@ -11,6 +11,7 @@
 
 using namespace std;
 using namespace atomspace;
+using namespace atoms;
 using namespace commons;
 
 // Mock AtomDocument for testing
@@ -88,7 +89,7 @@ class MockAtomDB : public AtomDB {
     bool link_exists(const char*) override { return false; }
     set<string> links_exist(const vector<string>&) override { return {}; }
 
-    char* add_node(const atomspace::Node* node) override {
+    char* add_node(const atoms::Node* node) override {
         add_node_calls.push_back({node->type, node->name, node->custom_attributes});
         // string handle = string("node_") + node->type + "_" + node->name;
         atoms[node->handle()] = (Atom*) node;

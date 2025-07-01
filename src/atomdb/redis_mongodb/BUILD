@@ -40,6 +40,7 @@ cc_library(
     hdrs = ["RedisMongoDBAPITypes.h"],
     includes = ["."],
     deps = [
+        "//commons/atoms:atoms_lib",
         "//atomdb:atomdb_api_types",
     ],
 )

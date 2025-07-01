@@ -10,6 +10,8 @@
 #include <mongocxx/uri.hpp>
 #include <vector>
 
+#include "Atom.h"
+#include "Node.h"
 #include "AtomDBAPITypes.h"
 #include "HandleDecoder.h"
 #include "Utils.h"
@@ -68,7 +70,7 @@ class RedisStringBundle : public HandleList {
 class MongodbDocument : public AtomDocument {
    public:
     MongodbDocument(bsoncxx::v_noabi::stdx::optional<bsoncxx::v_noabi::document::value>& document);
-    MongodbDocument(const atomspace::Node* node);
+    MongodbDocument(const atoms::Node* node);
     MongodbDocument(const atomspace::Link* link, HandleDecoder& db);
     ~MongodbDocument();
 

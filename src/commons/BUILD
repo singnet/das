@@ -11,7 +11,6 @@ cc_library(
         "Utils.cc",
     ],
     hdrs = [
-        "HandleDecoder.h",
         "Logger.h",
         "MettaMapping.h",
         "Properties.h",

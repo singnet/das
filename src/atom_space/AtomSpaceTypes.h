@@ -9,6 +9,7 @@
 #include <stack>
 
 #include "Atom.h"
+#include "Node.h"
 #include "HandleDecoder.h"
 #include "MettaMapping.h"
 #include "Properties.h"
@@ -19,6 +20,7 @@
 
 using namespace std;
 using namespace commons;
+using namespace atoms;
 
 namespace atomspace {
 
@@ -88,125 +90,6 @@ struct HandleArrayDeleter {
 };
 
 // -------------------------------------------------------------------------------------------------
-class Node : public Atom {
-   public:
-    string name;  ///< The name of the node.
-
-    /**
-     * @brief Construct a Node.
-     * @param type The type of the node.
-     * @param name The name of the node.
-     * @param custom_attributes Custom attributes for the atom.
-     * @throws std::runtime_error if type or name is empty.
-     */
-    Node(const string& type, const string& name, const Properties& custom_attributes = {})
-        : Atom(type, custom_attributes), name(name) {
-        this->validate();
-    }
-
-    /**
-     * @brief Copy constructor.
-     * Deeply copies node type, name and all custom attributes.
-     *
-     * @param other Node to be copied.
-     */
-    Node(const Node& other) : Atom(other) { this->name = other.name; }
-
-    /**
-     * @brief Assignment operator.
-     * Deeply copies node type, name and all custom attributes.
-     *
-     * @param other Node to be copied.
-     */
-    virtual Node& operator=(const Node& other) {
-        Atom::operator=(other);
-        this->name = other.name;
-        return *this;
-    }
-
-    /**
-     * @brief Comparisson operator.
-     * Deeply compare all custom attribute values in addition to node type and name.
-     *
-     * @param other Node to be compared to.
-     */
-    virtual bool operator==(const Node& other) {
-        return (this->name == other.name) && Atom::operator==(other);
-    }
-
-    /**
-     * @brief Comparisson operator.
-     * Deeply compare all custom attribute values in addition to node type and name.
-     *
-     * @param other Node to be compared to.
-     */
-    virtual bool operator!=(const Node& other) { return !(*this == other); }
-
-    /**
-     * @brief Validate the Node object.
-     *
-     * Checks that the type is valid (by calling Atom::validate()) and that the name is not empty.
-     *
-     * @throws std::runtime_error if the name is empty.
-     */
-    virtual void validate() const override {
-        if (this->type == Atom::UNDEFINED_TYPE) {
-            Utils::error("Node type can't be '" + Atom::UNDEFINED_TYPE + "'");
-        }
-        if (this->name.empty()) {
-            Utils::error("Node name must not be empty");
-        }
-    }
-
-    virtual string to_string() const {
-        return "Node(type: '" + this->type + "', name: '" + this->name +
-               "', custom_attributes: " + this->custom_attributes.to_string() + ")";
-    }
-
-    /**
-     * @brief Constructs and returns this Atom's handle.
-     *
-     * @return A newly built handle for this atom.
-     */
-    virtual string handle() const {
-        char* handle_cstr = Node::compute_handle(this->type, this->name);
-        string handle_string(handle_cstr);
-        free(handle_cstr);
-        return handle_string;
-    }
-
-    /**
-     * @brief Constructs and returns a MeTTa expression which represents this Atom.
-     *
-     * @return a MeTTa expression which represents this Atom.
-     */
-    virtual string metta_representation(HandleDecoder& decoder) const {
-        if (this->type != MettaMapping::SYMBOL_NODE_TYPE) {
-            Utils::error("Can't compute metta expression of node whose type (" + this->type +
-                         ") is not " + MettaMapping::SYMBOL_NODE_TYPE);
-        }
-        return this->name;
-    }
-
-    /**
-     * @brief Compute the handle for a Node given its type and name.
-     *
-     * This static utility computes a handle for a Node using the provided type and name,
-     * without requiring an instantiated Node object.
-     *
-     * @param type The type of the node.
-     * @param name The name of the node.
-     * @return A newly allocated char array containing the handle (caller must free).
-     * @note Caller is responsible for freeing the returned handle.
-     */
-    static char* compute_handle(const string& type, const string& name) {
-        if (type.empty() || name.empty()) {
-            Utils::error("Node type and name must not be empty");
-        }
-        return terminal_hash((char*) type.c_str(), (char*) name.c_str());
-    }
-};
-
 // -------------------------------------------------------------------------------------------------
 class Link : public Atom {
    public:
@@ -297,10 +180,7 @@ class Link : public Atom {
      * @return A newly built handle for this atom.
      */
     virtual string handle() const {
-        char* handle_cstr = Link::compute_handle(this->type, this->targets);
-        string handle_string(handle_cstr);
-        free(handle_cstr);
-        return handle_string;
+        return Hasher::link_handle(this->type, this->targets);
     }
 
     /**
@@ -374,95 +254,34 @@ class Link : public Atom {
      */
     unsigned int arity() const { return this->targets.size(); }
 
-    /**
-     * @brief Convert a vector of Atom pointers to an array of handles.
-     *
-     * For each Atom in the input vector, computes its handle (allocating a new C-string for each).
-     *
-     * @param targets The vector of Atom pointers.
-     * @return A newly allocated array of C-string handles (char**). Caller is responsible for
-     * freeing each handle with free() and the array itself with delete[].
-     * @throws std::runtime_error if a target is not a Node or Link.
-     */
-    static char** targets_to_handles(const vector<const Atom*>& targets) {
-        char** handles = new char*[targets.size()];  // Will be freed later by the caller
-        size_t i = 0;
-        for (const auto& target : targets) {
-            if (const Node* node = dynamic_cast<const Node*>(target)) {
-                handles[i++] = Node::compute_handle(node->type, node->name);
-            } else if (const Link* link = dynamic_cast<const Link*>(target)) {
-                handles[i++] = Link::compute_handle(link->type, link->targets);
-            } else {
-                Utils::error("Unsupported target type in Link::targets_to_handles");
-            }
-        }
-        return handles;
-    }
+// XXXXX    /**
+// XXXXX     * @brief Convert a vector of Atom pointers to an array of handles.
+// XXXXX     *
+// XXXXX     * For each Atom in the input vector, computes its handle (allocating a new C-string for each).
+// XXXXX     *
+// XXXXX     * @param targets The vector of Atom pointers.
+// XXXXX     * @return A newly allocated array of C-string handles (char**). Caller is responsible for
+// XXXXX     * freeing each handle with free() and the array itself with delete[].
+// XXXXX     * @throws std::runtime_error if a target is not a Node or Link.
+// XXXXX     */
+// XXXXX    static char** targets_to_handles(const vector<const Atom*>& targets) {
+// XXXXX        //-------------------------
+// XXXXX        // TODO REMOVE THIS METHOD
+// XXXXX        //-------------------------
+// XXXXX        char** handles = new char*[targets.size()];  // Will be freed later by the caller
+// XXXXX        size_t i = 0;
+// XXXXX        for (const auto& target : targets) {
+// XXXXX            if (const Node* node = dynamic_cast<const Node*>(target)) {
+// XXXXX                handles[i++] = (char*) Hasher::node_handle(node->type, node->name).c_str();
+// XXXXX            } else if (const Link* link = dynamic_cast<const Link*>(target)) {
+// XXXXX                handles[i++] = Link::compute_handle(link->type, link->targets);
+// XXXXX            } else {
+// XXXXX                Utils::error("Unsupported target type in Link::targets_to_handles");
+// XXXXX            }
+// XXXXX        }
+// XXXXX        return handles;
+// XXXXX    }
 
-    /**
-     * @brief Compute the handle for a Link given its type and targets.
-     *
-     * This static utility computes a handle for a Link using the provided type and target atoms,
-     * without requiring an instantiated Link object.
-     *
-     * @param type The type of the link.
-     * @param targets The target atoms of the link.
-     * @return A newly allocated char array containing the handle (caller must free).
-     * @throws std::runtime_error if a target is not a Node or Link.
-     * @note Caller is responsible for freeing the returned handle.
-     */
-    static char* compute_handle(const string& type, const vector<const Atom*>& targets) {
-        unique_ptr<char*[], HandleArrayDeleter> targets_handles(Link::targets_to_handles(targets),
-                                                                HandleArrayDeleter(targets.size()));
-
-        return Link::compute_handle(type.c_str(), targets_handles.get(), targets.size());
-    }
-
-    /**
-     * @brief Compute the handle for a Link given its type and targets (string handles).
-     *
-     * This static utility computes a handle for a Link using the provided type and a vector of
-     * target handles (as strings), without requiring an instantiated Link object.
-     *
-     * @param type The type of the link.
-     * @param targets The handles of the target atoms as strings.
-     * @return A newly allocated char array containing the handle (caller must free).
-     * @note Caller is responsible for freeing the returned handle.
-     */
-    static char* compute_handle(const string& type, const vector<string>& targets) {
-        unique_ptr<char*[], HandleArrayDeleter> targets_handles(
-            new char*[targets.size()], HandleArrayDeleter(targets.size(), false));
-        size_t i = 0;
-        for (const auto& target : targets) targets_handles[i++] = (char*) target.c_str();
-        return Link::compute_handle(type.c_str(), targets_handles.get(), targets.size());
-    }
-
-    /**
-     * @brief Compute the handle for a Link given its type hash and target handles.
-     *
-     * This private static utility computes a handle for a Link using the provided type hash and an
-     * array of target handles. Used internally by the public compute_handle methods.
-     *
-     * @param type The link type.
-     * @param targets_handles Array of target atom handles (dynamically allocated, will be freed).
-     * @param targets_size Number of target atoms.
-     * @return A newly allocated char array containing the handle (caller must free).
-     * @throws std::runtime_error if type or targets_handles is null, if type size is too
-     *                            small, or if targets_size is less than MINIMUM_TARGETS_SIZE.
-     */
-    static char* compute_handle(const char* type, char** targets_handles, size_t targets_size) {
-        if (type == nullptr || targets_handles == nullptr) {
-            Utils::error("Type and targets handles must not be null");
-        }
-        if (strlen(type) == 0) {
-            Utils::error("Type size is too small");
-        }
-        if (targets_size < MINIMUM_TARGETS_SIZE) {
-            Utils::error("Link must have at least " + std::to_string(MINIMUM_TARGETS_SIZE) + " targets");
-        }
-        unique_ptr<char, HandleDeleter> type_hash(::named_type_hash((char*) type));
-        return expression_hash(type_hash.get(), targets_handles, targets_size);
-    }
 };
 
 // -------------------------------------------------------------------------------------------------
@@ -612,10 +431,7 @@ class UntypedVariable : public Wildcard {
      * @return A newly built handle for this atom.
      */
     virtual string handle() const {
-        char* handle_cstr = Node::compute_handle(this->type, this->name);
-        string handle_string(handle_cstr);
-        free(handle_cstr);
-        return handle_string;
+        return Hasher::node_handle(this->type, this->name);
     }
 
     /**
@@ -666,7 +482,7 @@ class LinkSchema : public Wildcard {
             if (this->_schema.size() == _arity) {
                 this->_frozen = true;
                 this->_metta_representation += ")";
-                this->_atom_handle = Link::compute_handle(type, this->_schema);
+                this->_atom_handle = Hasher::link_handle(type, this->_schema);
                 this->_composite_type_hash = Hasher::composite_handle(this->_composite_type);
                 this->validate();
             } else {

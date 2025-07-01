@@ -225,7 +225,7 @@ shared_ptr<QueryElement> PatternMatchingQueryProcessor::setup_query_tree(
     while (!execution_stack.empty()) {
         cursor = execution_stack.top();
         if (query_tokens[cursor] == "NODE") {
-            element_stack.push(make_shared<Node>(query_tokens[cursor + 1], query_tokens[cursor + 2]));
+            element_stack.push(make_shared<query_element::Node>(query_tokens[cursor + 1], query_tokens[cursor + 2]));
         } else if (query_tokens[cursor] == "VARIABLE") {
             element_stack.push(make_shared<Variable>(query_tokens[cursor + 1]));
         } else if (query_tokens[cursor] == "LINK") {

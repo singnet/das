@@ -65,8 +65,8 @@ class RedisMongoDB : public AtomDB {
     bool link_exists(const char* link_handle);
     set<string> links_exist(const vector<string>& link_handles);
 
-    char* add_node(const atomspace::Node* node);
-    vector<string> add_nodes(const vector<atomspace::Node*>& nodes);
+    char* add_node(const atoms::Node* node);
+    vector<string> add_nodes(const vector<atoms::Node*>& nodes);
 
     char* add_link(const atomspace::Link* link);
     vector<string> add_links(const vector<atomspace::Link*>& links);
