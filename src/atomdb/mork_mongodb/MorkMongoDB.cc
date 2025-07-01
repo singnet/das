@@ -188,7 +188,8 @@ shared_ptr<atomdb_api_types::HandleList> MorkMongoDB::query_for_targets(const st
     auto result = collection.find_one(filter_builder.view(), find_opts);
 
     if (!result) {
-        return {};
+        if (this->atomdb_cache != nullptr) this->atomdb_cache->add_handle_list(handle, nullptr);
+        return nullptr;
     }
 
     // Extract the "targets" and convert it to vector<string>

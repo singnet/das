@@ -119,6 +119,76 @@ TEST_F(MorkMongoDBTest, QueryForTargets) {
     ASSERT_EQ(targets, expected);
 }
 
+TEST_F(MorkMongoDBTest, ConcurrentQueryForPattern) {
+    const int num_threads = 200;
+    vector<thread> threads;
+    atomic<int> success_count{0};
+
+    auto worker = [&](int thread_id) {
+        try {
+            string metta = R"((Similarity $x $y))";
+
+            auto link_template = new LinkTemplateMetta(metta);
+            auto handle_set = db->query_for_pattern(*link_template);
+            ASSERT_NE(handle_set, nullptr);
+            ASSERT_EQ(handle_set->size(), 14);
+            success_count++;
+            delete link_template;
+        } catch (const exception& e) {
+            cout << "Thread " << thread_id << " failed with error: " << e.what() << endl;
+        }
+    };
+
+    for (int i = 0; i < num_threads; ++i) {
+        threads.emplace_back(worker, i);
+    }
+
+    for (auto& t : threads) {
+        t.join();
+    }
+
+    EXPECT_EQ(success_count, num_threads);
+
+    // // Test non-existing pattern
+    string metta = R"((Fake $x $y))";
+    auto link_template = new LinkTemplateMetta(metta);
+    auto handle_set = db->query_for_pattern(*link_template);
+    delete link_template;
+    EXPECT_EQ(handle_set->size(), 0);
+}
+
+TEST_F(MorkMongoDBTest, ConcurrentQueryForTargets) {
+    const int num_threads = 200;
+    vector<thread> threads;
+    atomic<int> success_count{0};
+    string link_handle = exp_hash({"Similarity", "\"human\"", "\"monkey\""});
+
+    auto worker = [&](int thread_id) {
+        try {
+            auto targets = db->query_for_targets(link_handle);
+            ASSERT_NE(targets, nullptr);
+            ASSERT_EQ(targets->size(), 3);
+            success_count++;
+        } catch (const exception& e) {
+            cout << "Thread " << thread_id << " failed with error: " << e.what() << endl;
+        }
+    };
+
+    for (int i = 0; i < num_threads; ++i) {
+        threads.emplace_back(worker, i);
+    }
+
+    for (auto& t : threads) {
+        t.join();
+    }
+
+    EXPECT_EQ(success_count, num_threads);
+
+    // Test non-existing link
+    auto targets = db->query_for_targets("10000000000000000000000000000000");
+    EXPECT_EQ(targets, nullptr);
+}
+
 int main(int argc, char** argv) {
     ::testing::InitGoogleTest(&argc, argv);
     ::testing::AddGlobalTestEnvironment(new MorkMongoDBTestEnvironment());
