@@ -6,7 +6,7 @@
 using namespace std;
 using namespace atomdb;
 
-AtomDBCache::GetAtomDocumentResult AtomDBCache::get_atom_document(const char* handle) {
+AtomDBCache::GetAtomDocumentResult AtomDBCache::get_atom_document(const string& handle) {
     lock_guard<mutex> lock(atom_doc_cache_mutex);
     if (atom_doc_cache.find(handle) != atom_doc_cache.end()) {
         LOG_DEBUG("cache hit " << handle);
@@ -16,7 +16,7 @@ AtomDBCache::GetAtomDocumentResult AtomDBCache::get_atom_document(const char* ha
     return {false, nullptr};
 }
 
-void AtomDBCache::add_atom_document(const char* handle,
+void AtomDBCache::add_atom_document(const string& handle,
                                     shared_ptr<atomdb_api_types::AtomDocument> document) {
     lock_guard<mutex> lock(atom_doc_cache_mutex);
     atom_doc_cache[handle] = document;
@@ -34,13 +34,13 @@ AtomDBCache::QueryForPatternResult AtomDBCache::query_for_pattern(
     return {false, nullptr};
 }
 
-void AtomDBCache::add_pattern_matching(const char* pattern_handle,
+void AtomDBCache::add_pattern_matching(const string& pattern_handle,
                                        shared_ptr<atomdb_api_types::HandleSet> results) {
     lock_guard<mutex> lock(pattern_matching_cache_mutex);
     pattern_matching_cache[pattern_handle] = results;
 }
 
-AtomDBCache::QueryForTargetsResult AtomDBCache::query_for_targets(const char* link_handle) {
+AtomDBCache::QueryForTargetsResult AtomDBCache::query_for_targets(const string& link_handle) {
     lock_guard<mutex> lock(handle_list_cache_mutex);
     if (handle_list_cache.find(link_handle) != handle_list_cache.end()) {
         LOG_DEBUG("cache hit " << link_handle);
@@ -50,7 +50,7 @@ AtomDBCache::QueryForTargetsResult AtomDBCache::query_for_targets(const char* li
     return {false, nullptr};
 }
 
-void AtomDBCache::add_handle_list(const char* link_handle,
+void AtomDBCache::add_handle_list(const string& link_handle,
                                   shared_ptr<atomdb_api_types::HandleList> results) {
     lock_guard<mutex> lock(handle_list_cache_mutex);
     handle_list_cache[link_handle] = results;

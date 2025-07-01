@@ -145,3 +145,31 @@ This will run all the tests for the project.
 * [Public board](https://github.com/orgs/singnet/projects/7) - GitHub project board used to track bug reports, feature requests, and major new features planning. Use this board to report bugs or request new features.
 * [Development board](https://github.com/orgs/singnet/projects/6/views/1) - Used internally by the DAS Team to track issues and tasks.
 * _Contribution guidelines_
+
+## **Integrations with third-party services**
+
+### **MORK**
+
+[WIP] - We are testing an integration with [MORK](https://github.com/trueagi-io/MORK/tree/main) as an AtomDB. So to be able to perform queries with MORK running in the backend it is necessary:
+
+1) Run the MORK server
+
+```bash
+make run-mork-server
+```
+
+2) Upload a .metta file
+   
+```bash
+make mork-loader FILE="path/to/metta_file.metta"
+```
+
+3) Adjust atomDB type for Query Agent
+
+in */src/main/query_engine_main.cc* change line 32 to
+
+```cpp
+AtomDBSingleton::init(atomdb_api_types::ATOMDB_TYPE::MORK_MONGODB);
+```
+
+Now you can load Attention Broker, Query Agent and run a query

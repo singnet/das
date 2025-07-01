@@ -129,7 +129,7 @@ void RedisMongoDB::mongodb_setup() {
 }
 
 shared_ptr<Atom> RedisMongoDB::get_atom(const string& handle) {
-    shared_ptr<atomdb_api_types::AtomDocument> atom_document = get_atom_document(handle.c_str());
+    shared_ptr<atomdb_api_types::AtomDocument> atom_document = get_atom_document(handle);
     if (atom_document != NULL) {
         if (atom_document->contains(MONGODB_FIELD_NAME[MONGODB_FIELD::TARGETS])) {
             unsigned int arity = atom_document->get_size(MONGODB_FIELD_NAME[MONGODB_FIELD::TARGETS]);
@@ -202,20 +202,16 @@ shared_ptr<atomdb_api_types::HandleSet> RedisMongoDB::query_for_pattern(
     return handle_set;
 }
 
-shared_ptr<atomdb_api_types::HandleList> RedisMongoDB::query_for_targets(shared_ptr<char> link_handle) {
-    return query_for_targets(link_handle.get());
-}
-
-shared_ptr<atomdb_api_types::HandleList> RedisMongoDB::query_for_targets(char* link_handle_ptr) {
+shared_ptr<atomdb_api_types::HandleList> RedisMongoDB::query_for_targets(const string& handle) {
     if (this->atomdb_cache != nullptr) {
-        auto cache_result = this->atomdb_cache->query_for_targets(link_handle_ptr);
+        auto cache_result = this->atomdb_cache->query_for_targets(handle);
         if (cache_result.is_cache_hit) return cache_result.result;
     }
 
     redisReply* reply;
     try {
         auto ctx = this->redis_pool->acquire();
-        auto command = "GET " + REDIS_TARGETS_PREFIX + ":" + link_handle_ptr;
+        auto command = "GET " + REDIS_TARGETS_PREFIX + ":" + handle;
         reply = ctx->execute(command.c_str());
 
         if (reply == NULL) {
@@ -223,8 +219,7 @@ shared_ptr<atomdb_api_types::HandleList> RedisMongoDB::query_for_targets(char* l
         }
 
         if ((reply == NULL) || (reply->type == REDIS_REPLY_NIL)) {
-            if (this->atomdb_cache != nullptr)
-                this->atomdb_cache->add_handle_list(link_handle_ptr, nullptr);
+            if (this->atomdb_cache != nullptr) this->atomdb_cache->add_handle_list(handle, nullptr);
             return nullptr;
         }
 
@@ -241,11 +236,11 @@ shared_ptr<atomdb_api_types::HandleList> RedisMongoDB::query_for_targets(char* l
     // ~RedisSet().
     auto handle_list = make_shared<atomdb_api_types::RedisStringBundle>(reply);
 
-    if (this->atomdb_cache != nullptr) this->atomdb_cache->add_handle_list(link_handle_ptr, handle_list);
+    if (this->atomdb_cache != nullptr) this->atomdb_cache->add_handle_list(handle, handle_list);
     return handle_list;
 }
 
-shared_ptr<atomdb_api_types::AtomDocument> RedisMongoDB::get_atom_document(const char* handle) {
+shared_ptr<atomdb_api_types::AtomDocument> RedisMongoDB::get_atom_document(const string& handle) {
     if (this->atomdb_cache != nullptr) {
         auto cache_result = this->atomdb_cache->get_atom_document(handle);
         if (cache_result.is_cache_hit) return cache_result.result;
@@ -313,7 +308,7 @@ vector<shared_ptr<atomdb_api_types::AtomDocument>> RedisMongoDB::get_atom_docume
     return atom_documents;
 }
 
-bool RedisMongoDB::link_exists(const char* link_handle) {
+bool RedisMongoDB::link_exists(const string& link_handle) {
     auto conn = this->mongodb_pool->acquire();
     auto mongodb_collection = (*conn)[MONGODB_DB_NAME][MONGODB_COLLECTION_NAME];
     auto reply = mongodb_collection.find_one(bsoncxx::v_noabi::builder::basic::make_document(
@@ -359,7 +354,7 @@ set<string> RedisMongoDB::links_exist(const vector<string>& link_handles) {
     return existing_links;
 }
 
-char* RedisMongoDB::add_node(const atoms::Node* node) {
+string RedisMongoDB::add_node(const atoms::Node* node) {
     auto conn = this->mongodb_pool->acquire();
     auto mongodb_collection = (*conn)[MONGODB_DB_NAME][MONGODB_COLLECTION_NAME];
 
@@ -370,7 +365,7 @@ char* RedisMongoDB::add_node(const atoms::Node* node) {
         Utils::error("Failed to insert node into MongoDB");
     }
 
-    return ::terminal_hash((char*) node->type.c_str(), (char*) node->name.c_str());
+    return node->handle();
 }
 
 vector<string> RedisMongoDB::add_nodes(const vector<atoms::Node*>& nodes) {
@@ -394,7 +389,7 @@ vector<string> RedisMongoDB::add_nodes(const vector<atoms::Node*>& nodes) {
     return handles;
 }
 
-char* RedisMongoDB::add_link(const atoms::Link* link) {
+string RedisMongoDB::add_link(const atoms::Link* link) {
     auto conn = this->mongodb_pool->acquire();
     auto mongodb_collection = (*conn)[MONGODB_DB_NAME][MONGODB_COLLECTION_NAME];
 
@@ -405,7 +400,7 @@ char* RedisMongoDB::add_link(const atoms::Link* link) {
         Utils::error("Failed to insert link into MongoDB");
     }
 
-    return strdup((char*) link->handle().c_str());
+    return link->handle();
 }
 
 vector<string> RedisMongoDB::add_links(const vector<atoms::Link*>& links) {
@@ -429,7 +424,7 @@ vector<string> RedisMongoDB::add_links(const vector<atoms::Link*>& links) {
     return handles;
 }
 
-bool RedisMongoDB::delete_atom(const char* handle) {
+bool RedisMongoDB::delete_atom(const string& handle) {
     auto conn = this->mongodb_pool->acquire();
     auto mongodb_collection = (*conn)[MONGODB_DB_NAME][MONGODB_COLLECTION_NAME];
     auto reply = mongodb_collection.delete_one(bsoncxx::v_noabi::builder::basic::make_document(
