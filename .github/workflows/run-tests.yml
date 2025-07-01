@@ -63,11 +63,16 @@ jobs:
       - name: Starting Attention Broker
         run: make run-attention-broker &
 
-      - name: Starting MORK Server
-        run: make run-mork-server &
-      
-      - name: Load Knowledge Base to MORK
-        run: make mork-loader FILE="/tmp/animals.metta"
+      - name: Starting MORK Server and Load Knowledge Base
+        run: |-
+          make run-mork-server > /dev/null 2>&1 &
+          
+          until curl --silent http://localhost:8000/status/-; do
+            echo "Waiting MORK…"
+            sleep 1
+          done
+          
+          make mork-loader FILE="/tmp/animals.metta"
 
       - name: Execute Unit Test Suite
         run: make bazel 'test --noshow_progress //tests/...'
