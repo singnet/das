@@ -2,8 +2,8 @@
 
 set -eoux pipefail
 
-IMAGE_NAME="das-builder-mork"
-CONTAINER_NAME="das-mork-$(uuidgen | cut -d '-' -f 1)-$(date +%Y%m%d%H%M%S)"
+IMAGE_NAME="das-mork-server"
+CONTAINER_NAME="das-mork-server$(uuidgen | cut -d '-' -f 1)-$(date +%Y%m%d%H%M%S)"
 
 docker run --rm \
     --name="${CONTAINER_NAME}" \
