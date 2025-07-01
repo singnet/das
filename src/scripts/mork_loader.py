@@ -22,7 +22,7 @@ class FileServer:
         thread.start()
         print(f"Serving {dir} at http://{bind}:{port}/")
 
-    def __enter__(self) -> 'FileServer':
+    def __enter__(self) -> "FileServer":
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb) -> None:
@@ -36,6 +36,7 @@ class MorkClient:
     """
     Simplified client for interacting with a MORK server.
     """
+
     base_url: str
     session: requests.Session = requests.Session()
 
@@ -58,7 +59,7 @@ class MorkClient:
             if status == "pathClear":
                 return info
             if status == "pathForbiddenTemporary":
-                time.sleep(initial_delay * (backoff ** attempt))
+                time.sleep(initial_delay * (backoff**attempt))
                 continue
 
             raise RuntimeError(f"Unexpected status '{status}': {info}")
@@ -76,8 +77,12 @@ class MorkClient:
 
 
 def get_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Serve directory and upload MeTTa file URI for MORK server")
-    parser.add_argument("--file", type=Path, required=True, help="Path to the MeTTa file to upload.")
+    parser = argparse.ArgumentParser(
+        description="Serve directory and upload MeTTa file URI for MORK server"
+    )
+    parser.add_argument(
+        "--file", type=Path, required=True, help="Path to the MeTTa file to upload."
+    )
     return parser.parse_args()
 
 
