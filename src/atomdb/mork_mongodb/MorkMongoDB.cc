@@ -80,7 +80,8 @@ string MorkClient::url_encode(const string& value) {
 MorkMongoDB::MorkMongoDB() {
     this->redis_mongodb = make_shared<RedisMongoDB>();
     this->mongodb_pool = this->redis_mongodb->get_mongo_pool();
-    this->atomdb_cache = this->redis_mongodb->get_atomdb_cache();
+    bool disable_cache = (Utils::get_environment("DAS_DISABLE_ATOMDB_CACHE") == "true");
+    this->atomdb_cache = disable_cache ? nullptr : AtomDBCacheSingleton::get_instance();
     mork_setup();
 }
 MorkMongoDB::~MorkMongoDB() {}

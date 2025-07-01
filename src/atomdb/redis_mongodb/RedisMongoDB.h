@@ -75,7 +75,6 @@ class RedisMongoDB : public AtomDB {
     uint delete_atoms(const vector<string>& handles);
 
     mongocxx::pool* get_mongo_pool() const { return mongodb_pool; }
-    shared_ptr<AtomDBCache> get_atomdb_cache() const { return atomdb_cache; }
 
    private:
     bool cluster_flag;
