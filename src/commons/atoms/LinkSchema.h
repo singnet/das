@@ -113,10 +113,15 @@ class LinkSchema : public Wildcard {
 
     void stack_node(const string& type, const string& name);
 
-    void stack_untyped_variable(const string& name);
-
     void stack_link(const string& type, unsigned int link_arity);
 
+    void stack_untyped_variable(const string& name);
+
+    void stack_link_schema(const string& type, unsigned int link_arity);
+
     void build();
+
+   private:
+    void _stack_link_schema(const string& type, unsigned int link_arity, bool check_no_wildcard);
 };
 }  // namespace atoms

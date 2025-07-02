@@ -143,7 +143,7 @@ void LinkSchema::stack_untyped_variable(const string& name) {
     }
 }
 
-void LinkSchema::stack_link(const string& type, unsigned int link_arity) {
+void LinkSchema::_stack_link_schema(const string& type, unsigned int link_arity, bool check_no_wildcard) {
     if (check_not_frozen()) {
         return;
     }
@@ -156,6 +156,9 @@ void LinkSchema::stack_link(const string& type, unsigned int link_arity) {
         bool first = true;
         for (int i = link_arity - 1; i >= 0; i--) {
             tuple<string, string, string> triplet = this->_atom_stack.back();
+            if (check_no_wildcard && (get<0>(triplet) == Atom::WILDCARD_HANDLE)) {
+                Utils::error("Invalid wildcard in Link");
+            }
             target_handles.insert(target_handles.begin(), get<0>(triplet));
             composite_type.insert(composite_type.begin(), get<1>(triplet));
             if (first) {
@@ -176,6 +179,14 @@ void LinkSchema::stack_link(const string& type, unsigned int link_arity) {
         Utils::error("Couldn't stack link. Link arity: " + std::to_string(link_arity) +
                      " stack size: " + std::to_string(this->_atom_stack.size()));
     }
+}
+
+void LinkSchema::stack_link(const string& type, unsigned int link_arity) {
+    _stack_link_schema(type, link_arity, true);
+}
+
+void LinkSchema::stack_link_schema(const string& type, unsigned int link_arity) {
+    _stack_link_schema(type, link_arity, false);
 }
 
 void LinkSchema::build() {
