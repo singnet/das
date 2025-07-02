@@ -15,7 +15,7 @@ ENV_VARS=$(test -f .env && echo "--env-file=.env" || echo "")
 
 # local paths
 LOCAL_WORKDIR=$(pwd)
-LOCAL_BIN_DIR=$LOCAL_WORKDIR/src/bin
+LOCAL_BIN_DIR=$LOCAL_WORKDIR/bin
 LOCAL_CACHE="$HOME/.cache/das"
 
 mkdir -p $LOCAL_BIN_DIR $LOCAL_CACHE
