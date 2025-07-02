@@ -1,3 +1,5 @@
+#include "MorkDB.h"
+
 #include <gtest/gtest.h>
 
 #include <atomic>
@@ -9,11 +11,12 @@
 
 #include "AtomDBSingleton.h"
 #include "LinkTemplateInterface.h"
-#include "MorkMongoDB.h"
 
 using namespace atomdb;
+using namespace atomspace;
+using namespace std;
 
-class MorkMongoDBTestEnvironment : public ::testing::Environment {
+class MorkDBTestEnvironment : public ::testing::Environment {
    public:
     void SetUp() override {
         setenv("DAS_REDIS_HOSTNAME", "localhost", 1);
@@ -26,16 +29,16 @@ class MorkMongoDBTestEnvironment : public ::testing::Environment {
         setenv("DAS_DISABLE_ATOMDB_CACHE", "true", 1);
         setenv("DAS_MORK_HOSTNAME", "localhost", 1);
         setenv("DAS_MORK_PORT", "8000", 1);
-        AtomDBSingleton::init(atomdb_api_types::ATOMDB_TYPE::MORK_MONGODB);
+        AtomDBSingleton::init(atomdb_api_types::ATOMDB_TYPE::MORKDB);
     }
 };
 
-class MorkMongoDBTest : public ::testing::Test {
+class MorkDBTest : public ::testing::Test {
    protected:
     void SetUp() override {
         auto atomdb = AtomDBSingleton::get_instance();
-        db = dynamic_pointer_cast<MorkMongoDB>(atomdb);
-        ASSERT_NE(db, nullptr) << "Failed to cast AtomDB to MorkMongoDB";
+        db = dynamic_pointer_cast<MorkDB>(atomdb);
+        ASSERT_NE(db, nullptr) << "Failed to cast AtomDB to MorkDB";
     }
 
     void TearDown() override {}
@@ -50,7 +53,7 @@ class MorkMongoDBTest : public ::testing::Test {
         return string(expression_hash(expression, targets_handles, targets.size()));
     }
 
-    shared_ptr<MorkMongoDB> db;
+    shared_ptr<MorkDB> db;
 };
 
 class LinkTemplateMetta : public LinkTemplateInterface {
@@ -63,7 +66,7 @@ class LinkTemplateMetta : public LinkTemplateInterface {
     const string metta_expr;
 };
 
-TEST_F(MorkMongoDBTest, QueryForPattern) {
+TEST_F(MorkDBTest, QueryForPattern) {
     string handle_1 = exp_hash({"Inheritance", "\"human\"", "\"mammal\""});
     string handle_2 = exp_hash({"Inheritance", "\"monkey\"", "\"mammal\""});
     string handle_3 = exp_hash({"Inheritance", "\"chimp\"", "\"mammal\""});
@@ -92,7 +95,7 @@ TEST_F(MorkMongoDBTest, QueryForPattern) {
     ASSERT_EQ(handles, expected_handles);
 }
 
-TEST_F(MorkMongoDBTest, QueryForTargets) {
+TEST_F(MorkDBTest, QueryForTargets) {
     string link_handle = exp_hash({"Inheritance", "\"human\"", "\"mammal\""});
 
     auto targets_list = db->query_for_targets(link_handle);
@@ -119,7 +122,7 @@ TEST_F(MorkMongoDBTest, QueryForTargets) {
     ASSERT_EQ(targets, expected);
 }
 
-TEST_F(MorkMongoDBTest, ConcurrentQueryForPattern) {
+TEST_F(MorkDBTest, ConcurrentQueryForPattern) {
     const int num_threads = 200;
     vector<thread> threads;
     atomic<int> success_count{0};
@@ -157,7 +160,7 @@ TEST_F(MorkMongoDBTest, ConcurrentQueryForPattern) {
     EXPECT_EQ(handle_set->size(), 0);
 }
 
-TEST_F(MorkMongoDBTest, ConcurrentQueryForTargets) {
+TEST_F(MorkDBTest, ConcurrentQueryForTargets) {
     const int num_threads = 200;
     vector<thread> threads;
     atomic<int> success_count{0};
@@ -191,6 +194,6 @@ TEST_F(MorkMongoDBTest, ConcurrentQueryForTargets) {
 
 int main(int argc, char** argv) {
     ::testing::InitGoogleTest(&argc, argv);
-    ::testing::AddGlobalTestEnvironment(new MorkMongoDBTestEnvironment());
+    ::testing::AddGlobalTestEnvironment(new MorkDBTestEnvironment());
     return RUN_ALL_TESTS();
 }

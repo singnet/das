@@ -29,7 +29,7 @@ int main(int argc, char* argv[]) {
     string server_id = "0.0.0.0:" + string(argv[1]);
     signal(SIGINT, &ctrl_c_handler);
     signal(SIGTERM, &ctrl_c_handler);
-    AtomDBSingleton::init(atomdb_api_types::ATOMDB_TYPE::MORK_MONGODB);
+    AtomDBSingleton::init();
     ServiceBusSingleton::init(server_id, "", 61000, 61999);
     shared_ptr<ServiceBus> service_bus = ServiceBusSingleton::get_instance();
     service_bus->register_processor(make_shared<PatternMatchingQueryProcessor>());

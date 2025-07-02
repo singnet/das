@@ -2,7 +2,7 @@
 
 #include <memory>
 
-#include "MorkMongoDB.h"
+#include "MorkDB.h"
 #include "RedisMongoDB.h"
 
 using namespace std;

@@ -1,4 +1,4 @@
-#include "MorkMongoDB.h"
+#include "MorkDB.h"
 
 #include <grpcpp/grpcpp.h>
 
@@ -80,17 +80,15 @@ string MorkClient::url_encode(const string& value) {
 }
 // <--
 
-// --> MorkMongoDB
-MorkMongoDB::MorkMongoDB() {
-    this->redis_mongodb = make_shared<RedisMongoDB>();
-    this->mongodb_pool = this->redis_mongodb->get_mongo_pool();
+// --> MorkDB
+MorkDB::MorkDB() {
     bool disable_cache = (Utils::get_environment("DAS_DISABLE_ATOMDB_CACHE") == "true");
     this->atomdb_cache = disable_cache ? nullptr : AtomDBCacheSingleton::get_instance();
     mork_setup();
 }
-MorkMongoDB::~MorkMongoDB() {}
+MorkDB::~MorkDB() {}
 
-void MorkMongoDB::mork_setup() {
+void MorkDB::mork_setup() {
     string host = Utils::get_environment("DAS_MORK_HOSTNAME");
     string port = Utils::get_environment("DAS_MORK_PORT");
     string address = host + ":" + port;
@@ -108,8 +106,8 @@ void MorkMongoDB::mork_setup() {
         Utils::error(e.what());
     }
 }
-void MorkMongoDB::attention_broker_setup() {}
-shared_ptr<atomdb_api_types::HandleSet> MorkMongoDB::query_for_pattern(
+// void MorkDB::attention_broker_setup() {}
+shared_ptr<atomdb_api_types::HandleSet> MorkDB::query_for_pattern(
     const LinkTemplateInterface& link_template) {
     if (this->atomdb_cache != nullptr) {
         auto cache_result = this->atomdb_cache->query_for_pattern(link_template);
@@ -139,7 +137,7 @@ shared_ptr<atomdb_api_types::HandleSet> MorkMongoDB::query_for_pattern(
 
     return handle_set;
 }
-vector<string> MorkMongoDB::tokenize_expression(const string& expr) {
+vector<string> MorkDB::tokenize_expression(const string& expr) {
     vector<string> tokens;
     size_t i = 0;
     size_t expr_size = expr.size();
@@ -181,7 +179,7 @@ vector<string> MorkMongoDB::tokenize_expression(const string& expr) {
 
     return tokens;
 }
-const commons::Atom* MorkMongoDB::parse_tokens_to_atom(const vector<string>& tokens, size_t& pos) {
+const commons::Atom* MorkDB::parse_tokens_to_atom(const vector<string>& tokens, size_t& pos) {
     vector<const commons::Atom*> children;
 
     if (tokens[pos] == "(") {
@@ -199,46 +197,5 @@ const commons::Atom* MorkMongoDB::parse_tokens_to_atom(const vector<string>& tok
     } else {
         return new Node("Symbol", tokens[pos++]);
     }
-}
-shared_ptr<atomdb_api_types::HandleList> MorkMongoDB::query_for_targets(const string& handle) {
-    if (this->atomdb_cache != nullptr) {
-        auto cache_result = this->atomdb_cache->query_for_targets(handle);
-        if (cache_result.is_cache_hit) return cache_result.result;
-    }
-
-    auto conn = this->mongodb_pool->acquire();
-    auto collection = (*conn)[RedisMongoDB::MONGODB_DB_NAME][RedisMongoDB::MONGODB_COLLECTION_NAME];
-
-    bsoncxx::builder::basic::document filter_builder;
-    filter_builder.append(bsoncxx::builder::basic::kvp(
-        RedisMongoDB::MONGODB_FIELD_NAME[atomdb::MONGODB_FIELD::ID], handle));
-
-    mongocxx::options::find find_opts;
-    bsoncxx::builder::basic::document proj_builder;
-    proj_builder.append(bsoncxx::builder::basic::kvp(
-        RedisMongoDB::MONGODB_FIELD_NAME[atomdb::MONGODB_FIELD::TARGETS], 1));
-    find_opts.projection(proj_builder.view());
-
-    auto result = collection.find_one(filter_builder.view(), find_opts);
-
-    if (!result) {
-        if (this->atomdb_cache != nullptr) this->atomdb_cache->add_handle_list(handle, nullptr);
-        return nullptr;
-    }
-
-    // Extract the "targets" and convert it to vector<string>
-    vector<string> targets;
-    auto targets_element = (*result)[RedisMongoDB::MONGODB_FIELD_NAME[atomdb::MONGODB_FIELD::TARGETS]];
-    if (targets_element && targets_element.type() == bsoncxx::type::k_array) {
-        for (auto& v : targets_element.get_array().value) {
-            targets.emplace_back(v.get_string().value.data());
-        }
-    }
-
-    auto handle_list = make_shared<atomdb_api_types::HandleListMork>(targets);
-
-    if (this->atomdb_cache != nullptr) this->atomdb_cache->add_handle_list(handle, handle_list);
-
-    return handle_list;
 }
 // <--

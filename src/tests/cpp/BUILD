@@ -573,9 +573,9 @@ cc_test(
 )
 
 cc_test(
-    name = "mork_mongodb_test",
+    name = "morkdb_test",
     size = "small",
-    srcs = ["mork_mongodb_test.cc"],
+    srcs = ["morkdb_test.cc"],
     copts = [
         "-Iexternal/gtest/googletest/include",
         "-Iexternal/gtest/googletest",
