@@ -1,16 +1,32 @@
 #include <gtest/gtest.h>
 
-#include "Properties.h"
-#include "atom_space/AtomSpaceTypes.h"
-#include "expression_hasher.h"
+#include "Atom.h"
+#include "HandleDecoder.h"
+#include "Hasher.h"
+#include "Link.h"
+#include "LinkSchema.h"
+#include "MettaMapping.h"
+#include "Node.h"
+#include "UntypedVariable.h"
 
 using namespace std;
-using namespace atomspace;
 using namespace commons;
+using namespace atoms;
+
+class TestDecoder : public HandleDecoder {
+   public:
+    map<string, shared_ptr<Atom>> atoms;
+    shared_ptr<Atom> get_atom(const string& handle) { return this->atoms[handle]; }
+    shared_ptr<Atom> add_atom(shared_ptr<Atom> atom) {
+        this->atoms[atom->handle()] = atom;
+        return atom;
+    }
+};
 
 TEST(NodeTest, NodeValidationAndToString) {
     EXPECT_NO_THROW(Node("Type", "Name"));
     EXPECT_THROW(Node("", "Name"), runtime_error);
+    EXPECT_THROW(Node("__UNDEFINED_TYPE__", "Name"), runtime_error);
 
     EXPECT_NO_THROW(Node("Type", "Name"));
     EXPECT_THROW(Node("Type", ""), runtime_error);
@@ -21,25 +37,23 @@ TEST(NodeTest, NodeValidationAndToString) {
     EXPECT_EQ(s, "Node(type: 'Type', name: 'Name', custom_attributes: {})");
 }
 
-TEST(NodeTest, NodeComputeHandle) {
-    unique_ptr<char, HandleDeleter> handle(Node::compute_handle("Type", "Name"));
-    ASSERT_NE(handle.get(), nullptr);
-}
-
 TEST(LinkTest, LinkValidation) {
-    Node n1("Type1", "Name1");
-    Node n2("Type2", "Name2");
-    vector<const Atom*> targets = {&n1, &n2};
+    TestDecoder db;
+    auto n1 = db.add_atom(make_shared<Node>("Type1", "Name1"));
+    auto n2 = db.add_atom(make_shared<Node>("Type2", "Name2"));
+    vector<string> targets = {n1->handle(), n2->handle()};
     EXPECT_NO_THROW(Link("LinkType", targets));
-    vector<const Atom*> empty_targets;
+    vector<string> empty_targets;
     EXPECT_THROW(Link("LinkType", empty_targets), runtime_error);
     EXPECT_THROW(Link("", targets), runtime_error);
+    EXPECT_THROW(Link("__UNDEFINED_TYPE__", targets), runtime_error);
 }
 
 TEST(LinkTest, LinkToString) {
-    Node n1("Type1", "Name1");
-    Node n2("Type2", "Name2");
-    vector<const Atom*> targets = {&n1, &n2};
+    TestDecoder db;
+    auto n1 = db.add_atom(make_shared<Node>("Type1", "Name1"));
+    auto n2 = db.add_atom(make_shared<Node>("Type2", "Name2"));
+    vector<string> targets = {n1->handle(), n2->handle()};
     Link l("LinkType", targets);
     string s = l.to_string();
     // clang-format off
@@ -47,49 +61,11 @@ TEST(LinkTest, LinkToString) {
         s,
         "Link("
             "type: 'LinkType', "
-            "targets: [" + n1.handle() + ", " + n2.handle() + "], "
+            "targets: [" + n1->handle() + ", " + n2->handle() + "], "
             "custom_attributes: {}"
         ")"
     );
     // clang-format on
-}
-
-TEST(LinkTest, LinkTargetsToHandles) {
-    Node n1("Type1", "Name1");
-    Node n2("Type2", "Name2");
-    vector<const Atom*> targets = {&n1, &n2};
-    unique_ptr<char*[], HandleArrayDeleter> handles(Link::targets_to_handles(targets),
-                                                    HandleArrayDeleter(targets.size()));
-    ASSERT_NE(handles, nullptr);
-    for (size_t i = 0; i < targets.size(); ++i) {
-        ASSERT_NE(handles[i], nullptr);
-    }
-}
-
-TEST(LinkTest, LinkComputeHandleFromAtoms) {
-    Node n1("Type1", "Name1");
-    Node n2("Type2", "Name2");
-    vector<const Atom*> targets = {&n1, &n2};
-    unique_ptr<char, HandleDeleter> handle(Link::compute_handle("LinkType", targets));
-    ASSERT_NE(handle.get(), nullptr);
-}
-
-TEST(LinkTest, LinkComputeHandleFromStrings) {
-    vector<string> handles = {"handle1", "handle2"};
-    unique_ptr<char, HandleDeleter> handle(Link::compute_handle("LinkType", handles));
-    ASSERT_NE(handle.get(), nullptr);
-}
-
-TEST(LinkTest, LinkComputeHandleFromRaw) {
-    vector<string> handles = {"handle1", "handle2"};
-    char* type_hash = named_type_hash((char*) "LinkType");
-    char** targets_handles = new char*[handles.size()];
-    for (size_t i = 0; i < handles.size(); ++i) targets_handles[i] = (char*) handles[i].c_str();
-    unique_ptr<char, HandleDeleter> handle(
-        Link::compute_handle("LinkType", targets_handles, handles.size()));
-    ASSERT_NE(handle.get(), nullptr);
-    delete[] targets_handles;
-    free(type_hash);
 }
 
 TEST(NodeTest, NodeWithCustomAttributes) {
@@ -104,9 +80,10 @@ TEST(NodeTest, NodeWithCustomAttributes) {
 }
 
 TEST(LinkTest, LinkWithCustomAttributes) {
-    Node n1("Type1", "Name1");
-    Node n2("Type2", "Name2");
-    std::vector<const Atom*> targets = {&n1, &n2};
+    TestDecoder db;
+    auto n1 = db.add_atom(make_shared<Node>("Type1", "Name1"));
+    auto n2 = db.add_atom(make_shared<Node>("Type2", "Name2"));
+    std::vector<string> targets = {n1->handle(), n2->handle()};
     Link l("LinkType", targets, {{"flag", true}, {"count", 10}});
     EXPECT_EQ(l.custom_attributes.get_ptr<bool>("flag") != nullptr, true);
     std::string s = l.to_string();
@@ -115,24 +92,123 @@ TEST(LinkTest, LinkWithCustomAttributes) {
         s,
         "Link("
             "type: 'LinkType', "
-            "targets: [" + n1.handle() + ", " + n2.handle() + "], "
+            "targets: [" + n1->handle() + ", " + n2->handle() + "], "
             "custom_attributes: {count: 10, flag: true}"
         ")"
     );
     // clang-format on
 }
 
-TEST(LinkTest, CompositeTypes) {
-    class TestDecoder : public HandleDecoder {
-       public:
-        map<string, shared_ptr<Atom>> atoms;
-        shared_ptr<Atom> get_atom(const string& handle) { return this->atoms[handle]; }
-        shared_ptr<Atom> add_atom(shared_ptr<Atom> atom) {
-            this->atoms[atom->handle()] = atom;
-            return atom;
-        }
-    };
+TEST(WildcardTest, Wildcards) {
+    TestDecoder db;
+    UntypedVariable v1("v1");
+    UntypedVariable v2("v2");
+    UntypedVariable v3 = v1;
+    UntypedVariable v4(v2);
 
+    EXPECT_TRUE(v1 == v3);
+    EXPECT_TRUE(v1 != v2);
+    EXPECT_TRUE(v2 == v4);
+    EXPECT_TRUE(v4 != v3);
+    EXPECT_EQ(v1.metta_representation(db), string("$v1"));
+    EXPECT_EQ(v4.metta_representation(db), string("$v2"));
+    EXPECT_TRUE(v1.handle() == v3.handle());
+    EXPECT_TRUE(v1.handle() != v2.handle());
+    EXPECT_TRUE(v2.handle() == v4.handle());
+    EXPECT_TRUE(v4.handle() != v3.handle());
+
+    EXPECT_NO_THROW(v1.to_string());
+    EXPECT_NO_THROW(v2.to_string());
+    EXPECT_NO_THROW(v3.to_string());
+    EXPECT_NO_THROW(v4.to_string());
+
+    EXPECT_EQ(v1.schema_handle(), Atom::WILDCARD_HANDLE);
+}
+
+TEST(WildcardTest, LinkSchema) {
+    TestDecoder db;
+    string symbol = MettaMapping::SYMBOL_NODE_TYPE;
+    string expression = MettaMapping::EXPRESSION_LINK_TYPE;
+
+    LinkSchema schema1(expression, 2);
+    schema1.stack_node(symbol, "n1");
+    schema1.stack_node(symbol, "n2");
+    EXPECT_THROW(schema1.build(), runtime_error);
+
+    // add metta_expression of mal-formed linkTemplate (type != expression
+
+    LinkSchema schema2(expression, 2);
+    schema2.stack_node(symbol, "n1");
+    schema2.stack_untyped_variable("v1");
+    schema2.build();
+    EXPECT_THROW(schema2.build(), runtime_error);
+    EXPECT_THROW(schema2.stack_node(symbol, "n2"), runtime_error);
+    EXPECT_EQ(schema2.metta_representation(db), "(n1 $v1)");
+
+    LinkSchema schema3(expression, 3);
+    schema3.stack_untyped_variable("v1");
+    EXPECT_THROW(schema3.stack_link_schema(expression, 2), runtime_error);
+    schema3.stack_node(symbol, "n1");
+    schema3.stack_link_schema(expression, 2);
+    schema3.stack_untyped_variable("v2");
+    EXPECT_THROW(schema3.build(), runtime_error);
+    schema3.stack_node(symbol, "n2");
+    schema3.build();
+    EXPECT_EQ(schema3.metta_representation(db), "(($v1 n1) $v2 n2)");
+
+    LinkSchema schema4(expression, 2);
+    schema4.stack_untyped_variable("v1");
+    schema4.stack_untyped_variable("v2");
+    schema4.stack_node(symbol, "n1");
+    schema4.stack_link_schema(expression, 2);
+    schema4.build();
+    EXPECT_EQ(schema4.metta_representation(db), "($v1 ($v2 n1))");
+
+    LinkSchema schema5(expression, 4);
+    schema5.stack_untyped_variable("v1");
+    schema5.stack_node(symbol, "n1");
+    schema5.stack_link_schema(expression, 2);
+    schema5.stack_untyped_variable("v2");
+    schema5.stack_node(symbol, "n1");
+    schema5.stack_node(symbol, "n2");
+    schema5.stack_node(symbol, "n3");
+    schema5.stack_node(symbol, "n6");
+    schema5.stack_untyped_variable("v3");
+    schema5.stack_link_schema(expression, 2);
+    schema5.stack_node(symbol, "n5");
+    schema5.stack_node(symbol, "n6");
+    schema5.stack_link(expression, 2);
+    schema5.stack_link_schema(expression, 3);
+    schema5.stack_link_schema(expression, 3);
+    schema5.stack_node(symbol, "n7");
+    schema5.stack_node(symbol, "n8");
+    schema5.stack_node(symbol, "n9");
+    schema5.stack_node(symbol, "n10");
+    schema5.stack_link(expression, 2);
+    schema5.stack_link(expression, 2);
+    schema5.stack_node(symbol, "n11");
+    schema5.stack_link(expression, 3);
+    schema5.build();
+    EXPECT_EQ(schema5.metta_representation(db),
+              "(($v1 n1) $v2 (n1 n2 (n3 (n6 $v3) (n5 n6))) (n7 (n8 (n9 n10)) n11))");
+
+    LinkSchema schema6(expression, 2);
+    schema6.stack_node(symbol, "n7");
+    schema6.stack_node(symbol, "n8");
+    schema6.stack_node(symbol, "n9");
+    schema6.stack_node(symbol, "n10");
+    schema6.stack_link(expression, 2);
+    schema6.stack_link(expression, 2);
+    schema6.stack_node(symbol, "n11");
+    EXPECT_THROW(schema6.build(), runtime_error);
+
+    LinkSchema schema7(expression, 2);
+    schema7.stack_node(symbol, "n1");
+    schema7.stack_untyped_variable("v1");
+    EXPECT_THROW(schema7.stack_link(expression, 2), runtime_error);
+}
+
+TEST(LinkTest, CompositeTypes) {
     TestDecoder db;
     string symbol = MettaMapping::SYMBOL_NODE_TYPE;
     string expression = MettaMapping::EXPRESSION_LINK_TYPE;
@@ -166,6 +242,7 @@ TEST(LinkTest, CompositeTypes) {
     string link3_composite_hash = link3->composite_type_hash(db);
 
     // clang-format off
+    /*
     cout << "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX" << endl;
     cout << "node1: " << node1->handle() << endl;
     cout << "node2: " << node2->handle() << endl;
@@ -185,11 +262,47 @@ TEST(LinkTest, CompositeTypes) {
     cout << link3_composite.size() << " " << link3_composite[0] << " " << link3_composite[1] << " " << link3_composite[2] << endl;
     cout << link3_composite_hash << endl;
     cout << "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX" << endl;
+    */
     // clang-format on
 
     EXPECT_TRUE(link1_composite == vector<string>({expression_hash, symbol_hash, symbol_hash}));
     EXPECT_TRUE(link2_composite == vector<string>({expression_hash, symbol_hash, link1_composite_hash}));
     EXPECT_TRUE(link3_composite == vector<string>({expression_hash, link2_composite_hash, symbol_hash}));
+}
+
+TEST(LinkTest, MettaStrings) {
+    TestDecoder db;
+    string symbol = MettaMapping::SYMBOL_NODE_TYPE;
+    string expression = MettaMapping::EXPRESSION_LINK_TYPE;
+    vector<string> v;
+
+    auto node1 = db.add_atom(make_shared<Node>(symbol, string("n1")));
+    auto node2 = db.add_atom(make_shared<Node>(symbol, string("n2")));
+    auto node3 = db.add_atom(make_shared<Node>(symbol, string("n3")));
+    auto node4 = db.add_atom(make_shared<Node>(symbol, string("n4")));
+    auto node5 = db.add_atom(make_shared<Node>("blah", string("n4")));
+
+    v = {node1->handle(), node2->handle()};
+    auto link1 = db.add_atom(make_shared<Link>(expression, v));
+    v = {node3->handle(), link1->handle()};
+    auto link2 = db.add_atom(make_shared<Link>(expression, v));
+    v = {link2->handle(), node4->handle()};
+    auto link3 = db.add_atom(make_shared<Link>(expression, v));
+    v = {node1->handle(), node5->handle()};
+    auto link4 = db.add_atom(make_shared<Link>(expression, v));
+    v = {node1->handle(), node2->handle()};
+    auto link5 = db.add_atom(make_shared<Link>("blah", v));
+
+    EXPECT_EQ(node1->metta_representation(db), string("n1"));
+    EXPECT_EQ(node2->metta_representation(db), string("n2"));
+    EXPECT_EQ(node3->metta_representation(db), string("n3"));
+    EXPECT_EQ(node4->metta_representation(db), string("n4"));
+    EXPECT_EQ(link1->metta_representation(db), string("(n1 n2)"));
+    EXPECT_EQ(link2->metta_representation(db), string("(n3 (n1 n2))"));
+    EXPECT_EQ(link3->metta_representation(db), string("((n3 (n1 n2)) n4)"));
+    EXPECT_THROW(node5->metta_representation(db), runtime_error);
+    EXPECT_THROW(link4->metta_representation(db), runtime_error);
+    EXPECT_THROW(link5->metta_representation(db), runtime_error);
 }
 
 TEST(LinkTest, CopyAndComparisson) {

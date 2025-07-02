@@ -1,5 +1,6 @@
 #include "AtomSpace.h"
 
+#include "Hasher.h"
 #include "QueryAnswer.h"
 #include "Utils.h"
 
@@ -12,7 +13,7 @@ namespace atomspace {
 AtomSpace::AtomSpace()
     : db(AtomDBSingleton::get_instance()),
       bus(ServiceBusSingleton::get_instance()),
-      handle_trie(make_unique<HandleTrie>(HANDLE_SIZE)) {}
+      handle_trie(make_unique<HandleTrie>(HANDLE_HASH_SIZE - 1)) {}
 
 // -------------------------------------------------------------------------------------------------
 const Atom* AtomSpace::get_atom(const char* handle, Scope scope) {
@@ -37,21 +38,19 @@ const Atom* AtomSpace::get_atom(const char* handle, Scope scope) {
 
 // -------------------------------------------------------------------------------------------------
 const Node* AtomSpace::get_node(const string& type, const string& name, Scope scope) {
-    unique_ptr<char, HandleDeleter> handle(Node::compute_handle(type, name));
-    auto node = this->get_atom(handle.get(), scope);
+    string handle = Hasher::node_handle(type, name).c_str();
+    auto node = this->get_atom(handle.c_str());
     if (node) {
         return dynamic_cast<const Node*>(node);
+    } else {
+        return nullptr;
     }
-    return nullptr;
 }
 
 // -------------------------------------------------------------------------------------------------
 const Link* AtomSpace::get_link(const string& type, const vector<const Atom*>& targets, Scope scope) {
-    unique_ptr<char, HandleDeleter> handle(Link::compute_handle(type, targets));
-    auto link = this->get_atom(handle.get(), scope);
-    if (link) {
-        return dynamic_cast<const Link*>(link);
-    }
+    // TODO
+    // This API needs to be rewritten
     return nullptr;
 }
 
@@ -107,7 +106,7 @@ void AtomSpace::pattern_matching_fetch(const vector<string>& query, size_t answe
 
 // -------------------------------------------------------------------------------------------------
 char* AtomSpace::add_node(const string& type, const string& name, const Properties& custom_attributes) {
-    char* handle = Node::compute_handle(type, name);
+    char* handle = ::terminal_hash((char*) type.c_str(), (char*) name.c_str());
     this->handle_trie->insert(handle, new Node(type, name, custom_attributes));
     return handle;
 }
@@ -116,7 +115,7 @@ char* AtomSpace::add_node(const string& type, const string& name, const Properti
 char* AtomSpace::add_link(const string& type,
                           const vector<string>& targets,
                           const Properties& custom_attributes) {
-    char* handle = Link::compute_handle(type, targets);
+    char* handle = strdup(Hasher::link_handle(type, targets).c_str());
     this->handle_trie->insert(handle, new Link(type, targets, custom_attributes));
     return handle;
 }
@@ -147,19 +146,14 @@ void AtomSpace::commit_changes(Scope scope) {
 Atom* AtomSpace::atom_from_document(const shared_ptr<AtomDocument>& document) {
     if (document->contains("targets")) {
         // If the document contains targets, it is a Link.
-        vector<const Atom*> targets;
+        vector<string> targets;
         const char* target_handle;
         size_t size = document->get_size("targets");
         for (size_t i = 0; i < size; i++) {
             target_handle = document->get("targets", i);
-            auto target_atom = this->get_atom(target_handle, LOCAL_AND_REMOTE);
-            if (target_atom) {
-                targets.push_back(target_atom);
-            } else {
-                throw runtime_error("Target document not found for handle: " + string(target_handle));
-            }
+            targets.push_back(target_handle);
         }
-        return new Link(document->get("type"), move(targets));
+        return new Link(document->get("type"), targets);
     } else if (document->contains("name")) {
         // If the document contains a name, it is a Node.
         return new Node(document->get("type"), document->get("name"));

@@ -26,8 +26,8 @@ TEST(LinkTemplate, basics) {
 
     auto v1 = make_shared<Variable>("v1");
     auto v2 = make_shared<Variable>("v2");
-    auto similarity = make_shared<Node>(symbol, "Similarity");
-    auto odd_link = make_shared<Node>(symbol, "OddLink");
+    auto similarity = make_shared<query_element::Node>(symbol, "Similarity");
+    auto odd_link = make_shared<query_element::Node>(symbol, "OddLink");
 
     auto inner_template = make_shared<LinkTemplate<3>>(
         expression, array<shared_ptr<QueryElement>, 3>({similarity, v1, v2}));
@@ -54,9 +54,9 @@ TEST(LinkTemplate, nested_variables) {
 
     auto v1 = make_shared<Variable>("v1");
     auto v2 = make_shared<Variable>("v2");
-    auto similarity = make_shared<Node>(symbol, "Similarity");
-    auto odd_link = make_shared<Node>(symbol, "OddLink");
-    auto human = make_shared<Node>(symbol, "\"human\"");
+    auto similarity = make_shared<query_element::Node>(symbol, "Similarity");
+    auto odd_link = make_shared<query_element::Node>(symbol, "OddLink");
+    auto human = make_shared<query_element::Node>(symbol, "\"human\"");
 
     auto inner_template = make_shared<LinkTemplate<3>>(
         expression, array<shared_ptr<QueryElement>, 3>({similarity, v1, v2}));
