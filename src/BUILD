@@ -24,7 +24,7 @@ cc_shared_library(
     ],
     dynamic_deps = [
     ],
-    shared_lib_name = "das.so",
+    shared_lib_name = "hyperon_das.so",
     user_link_flags = [
         "-L/usr/local/lib",
         "-lhiredis_cluster",
