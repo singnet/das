@@ -1,3 +1,4 @@
+#include <iostream> // XXX
 #include "LinkSchema.h"
 
 #include "Hasher.h"
@@ -99,6 +100,10 @@ string LinkSchema::metta_representation(HandleDecoder& decoder) const {
     return this->_metta_representation;
 }
 
+unsigned int LinkSchema::arity() const {
+    return this->_arity;
+}
+
 // -------------------------------------------------------------------------------------------------
 // Public API to build LinkSchema objects
 
@@ -128,7 +133,7 @@ void LinkSchema::stack_node(const string& type, const string& name) {
     if (!check_not_frozen()) {
         tuple<string, string, string> triplet(
             Hasher::node_handle(type, name), Hasher::type_handle(type), name);
-        this->_atom_stack.push(triplet);
+        this->_atom_stack.push_back(triplet);
     }
 }
 
@@ -137,7 +142,7 @@ void LinkSchema::stack_untyped_variable(const string& name) {
         UntypedVariable variable(name);
         tuple<string, string, string> triplet(
             variable.schema_handle(), variable.named_type_hash(), "$" + name);
-        this->_atom_stack.push(triplet);
+        this->_atom_stack.push_back(triplet);
     }
 }
 
@@ -148,24 +153,30 @@ void LinkSchema::stack_link(const string& type, unsigned int link_arity) {
     if (this->_atom_stack.size() >= link_arity) {
         vector<string> target_handles;
         vector<string> composite_type;
-        string metta_expression = "(";
+        string metta_expression = "";
         target_handles.reserve(link_arity);
         composite_type.reserve(link_arity);
+        bool first = true;
         for (int i = link_arity - 1; i >= 0; i--) {
-            tuple<string, string, string> triplet = this->_atom_stack.top();
-            target_handles[i] = get<0>(triplet);
-            composite_type[i] = get<1>(triplet);
-            metta_expression += get<2>(triplet);
-            if (i != 0) {
-                metta_expression += " ";
+            tuple<string, string, string> triplet = this->_atom_stack.back();
+            target_handles.insert(target_handles.begin(), get<0>(triplet));
+            composite_type.insert(composite_type.begin(), get<1>(triplet));
+            //target_handles.push_back(get<0>(triplet));
+            //composite_type.push_back(get<1>(triplet));
+            if (first) {
+                metta_expression = get<2>(triplet) + ")";
+                first = false;
+            } else {
+                metta_expression = get<2>(triplet) + " " + metta_expression;
             }
-            this->_atom_stack.pop();
+            this->_atom_stack.pop_back();
         }
-        metta_expression += ")";
+        metta_expression = "(" + metta_expression;
+        // TODO inval;id metta_expression with something not Expression/Symbol
         tuple<string, string, string> triplet(Hasher::link_handle(type, target_handles),
                                               Hasher::composite_handle(composite_type),
                                               metta_expression);
-        this->_atom_stack.push(triplet);
+        this->_atom_stack.push_back(triplet);
     } else {
         Utils::error("Couldn't stack link. Link arity: " + std::to_string(link_arity) +
                      " stack size: " + std::to_string(this->_atom_stack.size()));
@@ -175,11 +186,10 @@ void LinkSchema::stack_link(const string& type, unsigned int link_arity) {
 void LinkSchema::build() {
     if (!check_not_frozen()) {
         if (this->_atom_stack.size() == this->_arity) {
-            for (unsigned int i = 0; i < this->_arity; i++) {
-                tuple<string, string, string> triplet = this->_atom_stack.top();
+            for (auto triplet: this->_atom_stack) {
                 add_target(get<0>(triplet), get<1>(triplet), get<2>(triplet));
-                this->_atom_stack.pop();
             }
+            this->_atom_stack.clear();
         } else {
             Utils::error("Can't build LinkTemplate of arity " + std::to_string(this->_arity) +
                          " out of a stack with " + std::to_string(this->_atom_stack.size()) + " atoms.");

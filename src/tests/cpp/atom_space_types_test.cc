@@ -116,6 +116,86 @@ TEST(WildcardTest, Wildcards) {
     EXPECT_TRUE(v1.handle() != v2.handle());
     EXPECT_TRUE(v2.handle() == v4.handle());
     EXPECT_TRUE(v4.handle() != v3.handle());
+
+    EXPECT_NO_THROW(v1.to_string());
+    EXPECT_NO_THROW(v2.to_string());
+    EXPECT_NO_THROW(v3.to_string());
+    EXPECT_NO_THROW(v4.to_string());
+
+    EXPECT_EQ(v1.schema_handle(), Atom::WILDCARD_HANDLE);
+}
+
+TEST(WildcardTest, LinkSchema) {
+    TestDecoder db;
+    string symbol = MettaMapping::SYMBOL_NODE_TYPE;
+    string expression = MettaMapping::EXPRESSION_LINK_TYPE;
+
+    LinkSchema schema1(expression, 2);
+    schema1.stack_node(symbol, "n1");
+    schema1.stack_node(symbol, "n2");
+    EXPECT_THROW(schema1.build(), runtime_error);
+
+    // Add link with variables to throw
+    // add metta_expression of mal-formed linkTemplate (type != expression
+
+    LinkSchema schema2(expression, 2);
+    schema2.stack_node(symbol, "n1");
+    schema2.stack_untyped_variable("v1");
+    schema2.build();
+    EXPECT_THROW(schema2.build(), runtime_error);
+    EXPECT_THROW(schema2.stack_node(symbol, "n2"), runtime_error);
+    EXPECT_EQ(schema2.metta_representation(db), "(n1 $v1)");
+
+    LinkSchema schema3(expression, 3);
+    schema3.stack_untyped_variable("v1");
+    EXPECT_THROW(schema3.stack_link(expression, 2), runtime_error);
+    schema3.stack_node(symbol, "n1");
+    schema3.stack_link(expression, 2);
+    schema3.stack_untyped_variable("v2");
+    EXPECT_THROW(schema3.build(), runtime_error);
+    schema3.stack_node(symbol, "n2");
+    schema3.build();
+    EXPECT_EQ(schema3.metta_representation(db), "(($v1 n1) $v2 n2)");
+
+    /*
+    LinkSchema schema4(expression, 4);
+    schema4.stack_untyped_variable("v1");
+    schema4.stack_node(symbol, "n1");
+    schema4.stack_link_template(expression, 2);
+    schema4.stack_untyped_variable("v2");
+    schema4.stack_node(symbol, "n1");
+    schema4.stack_node(symbol, "n2");
+    schema4.stack_node(symbol, "n3");
+    schema4.stack_node(symbol, "n6");
+    schema4.stack_untyped_variable("v3");
+    schema4.stack_link_template(expression, 2);
+    schema4.stack_node(symbol, "n5");
+    schema4.stack_node(symbol, "n6");
+    schema4.stack_link(expression, 2);
+    schema4.stack_link_template(expression, 3);
+    schema4.stack_link_template(expression, 3);
+    schema4.stack_node(symbol, "n7");
+    schema4.stack_node(symbol, "n8");
+    schema4.stack_node(symbol, "n9");
+    schema4.stack_node(symbol, "n10");
+    schema4.stack_link(expression, 2);
+    schema4.stack_link(expression, 2);
+    schema4.stack_link(expression, 2);
+    schema4.stack_node(symbol, "n11");
+    schema4.stack_link(expression, 2);
+    schema4.stack_link_template(expression, 4);
+    // (
+    //     ($v1 n1) 
+    //     $v2 
+    //     (
+    //         n1 
+    //         n2 
+    //         (n3 (n6 $v3) (n5 n6))
+    //     ) 
+    //     (n7 (n8 (n9 n10)) n11)
+    // )
+    EXPECT_EQ(schema4.metta_representation(db), "(($v1 n1) $v2 (n1 n2 (n3 (n6 $v3) (n5 n6))) (n7 (n8 (n9 n10)) n11))");
+*/
 }
 
 TEST(LinkTest, CompositeTypes) {

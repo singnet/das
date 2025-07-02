@@ -298,7 +298,7 @@ TEST_F(RedisMongoDBTest, AddAndDeleteNode) {
     auto node_handle = node->handle();
 
     // Check if node exists, if so, delete it
-    auto node_document = db->get_atom_document(node_handle.c_str());
+    auto node_document = db->get_atom_document(node_handle);
     if (node_document != nullptr) {
         auto deleted = db->delete_atom(node_handle.c_str());
         EXPECT_TRUE(deleted);

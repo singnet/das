@@ -1,7 +1,5 @@
 #pragma once
 
-#include <stack>
-
 #include "Wildcard.h"
 
 namespace atoms {
@@ -15,7 +13,7 @@ class LinkSchema : public Wildcard {
     string _composite_type_hash;
     string _atom_handle;
     string _metta_representation;
-    stack<tuple<string, string, string>> _atom_stack;
+    vector<tuple<string, string, string>> _atom_stack;
     bool check_not_frozen();
 
    public:
