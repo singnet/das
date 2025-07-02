@@ -28,11 +28,15 @@ MorkClient::MorkClient(const string& base_url)
 MorkClient::~MorkClient() {}
 string MorkClient::post(const string& data, const string& pattern, const string& template_) {
     auto path = "/upload/" + url_encode(pattern) + "/" + url_encode(template_);
+    LOG_DEBUG("POST request sent to MORK: "
+              << " url=" << path << " data=" << data);
     auto res = send_request("POST", path, data);
     return res->body;
 }
 vector<string> MorkClient::get(const string& pattern, const string& template_) {
     auto path = "/export/" + url_encode(pattern) + "/" + url_encode(template_);
+    LOG_DEBUG("GET request sent to MORK: "
+              << " url=" << path);
     auto res = send_request("GET", path);
     return Utils::split(res->body, '\n');
 }
@@ -114,9 +118,9 @@ shared_ptr<atomdb_api_types::HandleSet> MorkMongoDB::query_for_pattern(
     // WIP - This method will be implemented in the LinkTemplate
     string pattern_metta = link_template.get_metta_expression();
     // template should equals to pattern_metta
-    LOG_INFO("Fetching data...");
+    LOG_DEBUG("Fetching data...");
     vector<string> raw_expressions = this->mork_client->get(pattern_metta, pattern_metta);
-    LOG_INFO("Fetching data...OK");
+    LOG_DEBUG("Fetching data...OK");
     auto handle_set = make_shared<atomdb_api_types::HandleSetMork>();
 
     for (const auto& raw_expr : raw_expressions) {
@@ -137,12 +141,44 @@ shared_ptr<atomdb_api_types::HandleSet> MorkMongoDB::query_for_pattern(
 }
 vector<string> MorkMongoDB::tokenize_expression(const string& expr) {
     vector<string> tokens;
-    regex re(R"(\(|\)|"[^"]*"|[^\s()]+)");
-    auto begin = sregex_iterator(expr.begin(), expr.end(), re);
-    auto end = sregex_iterator();
-    for (auto it = begin; it != end; ++it) {
-        tokens.push_back(it->str());
+    size_t i = 0;
+    size_t expr_size = expr.size();
+
+    while (i < expr_size) {
+        char c = expr[i];
+
+        if (isspace(static_cast<unsigned char>(c))) {
+            ++i;
+            continue;
+        }
+
+        if (c == '(' || c == ')') {
+            tokens.push_back(string(1, c));
+            ++i;
+            continue;
+        }
+
+        // Literal Nodes
+        if (c == '"') {
+            size_t start = i++;
+            // move forward until you find the next " that is not escaped
+            while (i < expr_size && (expr[i] != '"' || expr[i - 1] == '\\')) {
+                ++i;
+            }
+            tokens.push_back(expr.substr(start, i - start + 1));
+            ++i;
+            continue;
+        }
+
+        // Non-literal Nodes
+        size_t start = i;
+        while (i < expr_size && !isspace(static_cast<unsigned char>(expr[i])) && expr[i] != '(' &&
+               expr[i] != ')') {
+            ++i;
+        }
+        tokens.push_back(expr.substr(start, i - start));
     }
+
     return tokens;
 }
 const commons::Atom* MorkMongoDB::parse_tokens_to_atom(const vector<string>& tokens, size_t& pos) {
@@ -159,11 +195,9 @@ const commons::Atom* MorkMongoDB::parse_tokens_to_atom(const vector<string>& tok
             }
         }
         if (pos < tokens.size() && tokens[pos] == ")") ++pos;
-        const Atom* l = new Link("Expression", children);
-        return l;
+        return new Link("Expression", children);
     } else {
-        const Atom* n = new Node("Symbol", tokens[pos++]);
-        return n;
+        return new Node("Symbol", tokens[pos++]);
     }
 }
 shared_ptr<atomdb_api_types::HandleList> MorkMongoDB::query_for_targets(const string& handle) {
