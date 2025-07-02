@@ -26,11 +26,11 @@ TEST(LinkTemplate, basics) {
     string expression = "Expression";
     string symbol = "Symbol";
 
-    auto v1 = make_shared<Variable>("v1");
-    auto v2 = make_shared<Variable>("v2");
-    auto v3 = make_shared<Variable>("v3");
-    auto similarity = make_shared<query_element::Node>(symbol, "Similarity");
-    auto human = make_shared<query_element::Node>(symbol, "\"human\"");
+    auto v1 = make_shared<Terminal>("v1");
+    auto v2 = make_shared<Terminal>("v2");
+    auto v3 = make_shared<Terminal>("v3");
+    auto similarity = make_shared<Terminal>(symbol, "Similarity");
+    auto human = make_shared<Terminal>(symbol, "\"human\"");
 
     LinkTemplate<3> link_template1("Expression", {similarity, human, v1});
     link_template1.subsequent_id = server_node_id;

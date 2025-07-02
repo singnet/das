@@ -50,8 +50,11 @@ cc_library(
 cc_library(
     name = "terminal",
     hdrs = ["Terminal.h"],
+    srcs = ["Terminal.cc"],
     deps = [
+        ":query_element",
         "//atomdb:atomdb_singleton",
+        "//commons/atoms:atoms_lib",
         "//hasher:hasher_lib",
     ],
 )
@@ -100,6 +103,7 @@ cc_library(
         "//atomdb:atomdb_api_types",
         "//atomdb:atomdb_singleton",
         "//attention_broker:attention_broker_lib",
+        "//commons/atoms:atoms_lib",
         "//commons:commons_lib",
         "//hasher:hasher_lib",
     ],

@@ -122,7 +122,7 @@ TEST(WildcardTest, Wildcards) {
     EXPECT_NO_THROW(v3.to_string());
     EXPECT_NO_THROW(v4.to_string());
 
-    EXPECT_EQ(v1.schema_handle(), Atom::WILDCARD_HANDLE);
+    EXPECT_EQ(v1.schema_handle(), Atom::WILDCARD_STRING);
 }
 
 TEST(WildcardTest, LinkSchema) {

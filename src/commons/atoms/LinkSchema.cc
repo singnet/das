@@ -59,7 +59,7 @@ void LinkSchema::validate() const {
     }
     bool flag = true;
     for (string schema_handle : this->_schema) {
-        if (schema_handle == Atom::WILDCARD_HANDLE) {
+        if (schema_handle == Atom::WILDCARD_STRING) {
             flag = false;
             break;
         }
@@ -158,7 +158,7 @@ void LinkSchema::_stack_link_schema(const string& type,
         bool first = true;
         for (int i = link_arity - 1; i >= 0; i--) {
             tuple<string, string, string> triplet = this->_atom_stack.back();
-            if (check_no_wildcard && (get<0>(triplet) == Atom::WILDCARD_HANDLE)) {
+            if (check_no_wildcard && (get<0>(triplet) == Atom::WILDCARD_STRING)) {
                 Utils::error("Invalid wildcard in Link");
             }
             target_handles.insert(target_handles.begin(), get<0>(triplet));

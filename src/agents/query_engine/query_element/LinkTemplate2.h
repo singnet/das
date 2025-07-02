@@ -55,8 +55,7 @@ class LinkTemplate2 : public Source {
                 if (terminal->is_variable) {
                     Utils::error("LinkTemplate2 does not support variables.");
                 }
-                this->handle_keys[i] =
-                    dynamic_pointer_cast<Terminal>(this->target_template[i - 1])->handle.get();
+                this->handle_keys[i] = (char*) dynamic_pointer_cast<Terminal>(this->target_template[i - 1])->handle.c_str();
                 this->keys_template[i] =  // to be used in the `get_link_handle` method
                     this->handle_keys[i];
             } else {
@@ -236,7 +235,7 @@ class LinkTemplate2 : public Source {
             if (this->target_template[i]->is_terminal) {
                 auto terminal = dynamic_pointer_cast<Terminal>(this->target_template[i]);
                 if (terminal->is_variable) {
-                    variables.push_back({i, terminal->name});
+                    variables.push_back({i, dynamic_pointer_cast<UntypedVariable>(terminal->atom)->name});
                 }
             }
         }
