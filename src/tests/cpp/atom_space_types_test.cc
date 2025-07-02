@@ -189,9 +189,8 @@ TEST(WildcardTest, LinkSchema) {
     schema5.stack_node(symbol, "n11");
     schema5.stack_link(expression, 3);
     schema5.build();
-    EXPECT_EQ(
-        schema5.metta_representation(db), 
-        "(($v1 n1) $v2 (n1 n2 (n3 (n6 $v3) (n5 n6))) (n7 (n8 (n9 n10)) n11))");
+    EXPECT_EQ(schema5.metta_representation(db),
+              "(($v1 n1) $v2 (n1 n2 (n3 (n6 $v3) (n5 n6))) (n7 (n8 (n9 n10)) n11))");
 
     LinkSchema schema6(expression, 2);
     schema6.stack_node(symbol, "n7");

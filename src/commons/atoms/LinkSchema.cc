@@ -143,7 +143,9 @@ void LinkSchema::stack_untyped_variable(const string& name) {
     }
 }
 
-void LinkSchema::_stack_link_schema(const string& type, unsigned int link_arity, bool check_no_wildcard) {
+void LinkSchema::_stack_link_schema(const string& type,
+                                    unsigned int link_arity,
+                                    bool check_no_wildcard) {
     if (check_not_frozen()) {
         return;
     }
