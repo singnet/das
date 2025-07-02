@@ -1,4 +1,4 @@
-#!/bin/bash -x
+#!/bin/bash
 
 BAZEL_CMD="/opt/bazel/bazelisk"
 
