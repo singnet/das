@@ -44,15 +44,12 @@ void LinkCreationService::enqueue_link_creation_request(const string& request_id
 }
 
 void LinkCreationService::process_request(shared_ptr<PatternMatchingQueryProxy> proxy,
-                                          DasAgentNode* das_client,
                                           vector<string>& link_template,
                                           const string& context,
                                           const string& request_id,
                                           int max_query_answers) {
-    if (this->das_client == nullptr) {
-        this->das_client = das_client;
-    }
-    auto job = [this, proxy, das_client, link_template, max_query_answers, context, request_id]() {
+
+    auto job = [this, proxy, link_template, max_query_answers, context, request_id]() {
         shared_ptr<QueryAnswer> query_answer;
         int count = 0;
         long start = time(0);
@@ -127,10 +124,6 @@ void LinkCreationService::create_links() {
                 if (this->save_links_to_metta_file) {
                     LOG_INFO("MeTTa Expression: " << meta_content);
                     add_to_file(metta_file_path, id + ".metta", meta_content);
-                }
-                if (this->save_links_to_db && das_client != nullptr) {
-                    LOG_INFO("TOKENS: " << Utils::join(request, ' '));
-                    das_client->create_link(request);
                 }
                 metta_expression_set.insert(meta_content);
             } catch (const exception& e) {

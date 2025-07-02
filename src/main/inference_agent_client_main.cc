@@ -4,9 +4,11 @@
 #include <iostream>
 #include <string>
 
-#include "InferenceAgentNode.h"
+#include "InferenceProxy.h"
+#include "ServiceBusSingleton.h"
 
 using namespace inference_agent;
+using namespace service_bus;
 using namespace std;
 
 void ctrl_c_handler(int) {
@@ -39,9 +41,10 @@ int main(int argc, char* argv[]) {
     }
     signal(SIGINT, &ctrl_c_handler);
     signal(SIGTERM, &ctrl_c_handler);
-    string config_path = argv[2];
     cout << "Starting inference agent" << endl;
-    auto client = new InferenceAgentNode(client_id, server_id);
-    client->send_message(request);
+    ServiceBusSingleton::init(client_id, server_id);
+    auto proxy = make_shared<InferenceProxy>(request);
+    auto client = ServiceBusSingleton::get_instance();
+    client->issue_bus_command(proxy);
     return 0;
 }

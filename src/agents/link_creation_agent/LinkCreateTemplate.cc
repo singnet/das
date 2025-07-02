@@ -1,7 +1,6 @@
 #include "LinkCreateTemplate.h"
 
 #include <algorithm>
-#include <iostream>
 #include <sstream>
 #include <stdexcept>
 
@@ -11,7 +10,7 @@ using namespace link_creation_agent;
 using namespace commons;
 using namespace std;
 
-static string get_token(vector<string>& link_template, int cursor) {
+static string get_token(vector<string>& link_template, size_t cursor) {
     if (cursor >= link_template.size()) {
         throw invalid_argument("Can not get token: Invalid arguments");
     }
@@ -183,7 +182,7 @@ CustomField::CustomField(vector<string>& custom_fields) {
     if (get_token(custom_fields, 0) != "CUSTOM_FIELD")
         throw invalid_argument("Can not create Custom Field: Invalid arguments");
 
-    int cursor = 0;
+    size_t cursor = 0;
     string custom_field_name = get_token(custom_fields, 1);
     this->name = custom_field_name;
     cursor += 3;
@@ -271,11 +270,11 @@ string CustomField::to_metta_string() {
 }
 
 CustomField CustomField::untokenize(const vector<string>& tokens) {
-    int cursor = 0;
+    size_t cursor = 0;
     return untokenize(tokens, cursor);
 }
 
-CustomField CustomField::untokenize(const vector<string>& tokens, int& cursor) {
+CustomField CustomField::untokenize(const vector<string>& tokens, size_t& cursor) {
     // TODO implement untokenize
     return CustomField("");
 }
@@ -287,9 +286,9 @@ LinkCreateTemplateList::LinkCreateTemplateList(vector<string> link_template) {
         throw invalid_argument("Can not create Link Template List: Invalid arguments");
 
     size_t cursor = 0;
-    int link_template_size = Utils::string_to_int(get_token(link_template, 1));
+    size_t link_template_size = Utils::string_to_int(get_token(link_template, 1));
     cursor += 2;
-    for (int i = 0; i < link_template_size; i++) {
+    for (size_t i = 0; i < link_template_size; i++) {
         vector<string> sub_link_template = parse_sub_link_template(link_template, cursor);
         this->templates.push_back(LinkCreateTemplate(sub_link_template));
     }

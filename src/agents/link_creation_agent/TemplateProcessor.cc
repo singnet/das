@@ -1,7 +1,5 @@
 #include "TemplateProcessor.h"
 
-#include <iostream>
-
 using namespace std;
 using namespace query_engine;
 using namespace link_creation_agent;

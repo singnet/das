@@ -32,6 +32,8 @@ LINK_CREATION_DAS_AGENT_ID=${LINK_CREATION_DAS_AGENT_ID:-"localhost:7010"}
 INFERENCE_AGENT_DAS_AGENT_ID=${INFERENCE_AGENT_DAS_AGENT_ID:-"localhost:9090"}
 INFERENCE_AGENT_EVOLUTION_AGENT_ID=${INFERENCE_AGENT_EVOLUTION_AGENT_ID:-"localhost:9081"}
 INFERENCE_AGENT_LINK_CREATION_AGENT_ID=${INFERENCE_AGENT_LINK_CREATION_AGENT_ID:-"localhost:9081"}
+INFERENCE_AGENT_START_PORT=${INFERENCE_AGENT_START_PORT:-64000}
+INFERENCE_AGENT_END_PORT=${INFERENCE_AGENT_END_PORT:-64999}
 
 ## Link Creation Agent
 LINK_CREATION_QUERY_AGENT_START_PORT=${LINK_CREATION_QUERY_AGENT_START_PORT:-12000}
@@ -66,22 +68,6 @@ export DAS_DISABLE_ATOMDB_CACHE=$DISABLE_ATOMDB_CACHE
 mkdir -p src/bin
 
 
-# Inference Agent params
-INFERENCE_AGENT_FILE_PATH=$PWD/src/bin/inference_agent_server.cfg
-if [ -f "$INFERENCE_AGENT_FILE_PATH" ]; then
-    echo "File $INFERENCE_AGENT_FILE_PATH already exists. Skipping creation."
-else
-    echo "Creating file $INFERENCE_AGENT_FILE_PATH."
-    touch $PWD/src/bin/inference_agent_server.cfg
-    echo "inference_node_id=$INFERENCE_AGENT_NODE_ID" >> $PWD/src/bin/inference_agent_server.cfg
-    echo "das_client_id=$INFERENCE_AGENT_DAS_AGENT_ID" >> $PWD/src/bin/inference_agent_server.cfg
-    echo "das_server_id=$DAS_AGENT_NODE_ID" >> $PWD/src/bin/inference_agent_server.cfg
-    echo "distributed_inference_control_node_id=$INFERENCE_AGENT_EVOLUTION_AGENT_ID" >> $PWD/src/bin/inference_agent_server.cfg
-    echo "distributed_inference_control_node_server_id=$EVOLUTION_AGENT_NODE_ID" >> $PWD/src/bin/inference_agent_server.cfg
-    echo "link_creation_agent_server_id=$LINK_CREATION_AGENT_NODE_ID" >> $PWD/src/bin/inference_agent_server.cfg
-    echo "link_creation_agent_client_id=$INFERENCE_AGENT_LINK_CREATION_AGENT_ID" >> $PWD/src/bin/inference_agent_server.cfg
-fi
-
 # DAS Agent params
 DAS_AGENT_CONFIG_JSON=$(cat <<EOF
 \{\"node_id\":\"$DAS_AGENT_NODE_ID\",\"mongo_hostname\":\"$DAS_MONGODB_HOSTNAME\",\"mongo_port\":$DAS_MONGODB_PORT,\"mongo_username\":\"$DAS_MONGODB_USERNAME\",\"mongo_password\":\"$DAS_MONGODB_PASSWORD\",\"redis_hostname\":\"$DAS_REDIS_HOSTNAME\",\"redis_port\":$DAS_REDIS_PORT\}
@@ -95,7 +81,7 @@ AGENTS=(
     "attention_broker_service $ATTENTION_BROKER_PORT;src/scripts/run.sh"
     "query_broker $QUERY_AGENT_PORT;src/scripts/run.sh"
     "link_creation_server $LINK_CREATION_AGENT_NODE_ID $QUERY_AGENT_NODE_ID $LINK_CREATION_QUERY_AGENT_START_PORT $LINK_CREATION_QUERY_AGENT_END_PORT $LINK_CREATION_REQUESTS_INTERVAL_SECONDS $LINK_CREATION_AGENT_THREAD_COUNT $LINK_CREATION_QUERY_TIMEOUT_SECONDS $LINK_CREATION_REQUESTS_BUFFER_FILE $LINK_CREATION_METTA_FILE_PATH $SAVE_LINKS_TO_METTA $SAVE_LINKS_TO_DB;src/scripts/run.sh"
-    "inference_agent_server --config_file ./src/bin/inference_agent_server.cfg;src/scripts/run.sh"
+    "inference_agent_server $INFERENCE_AGENT_NODE_ID $QUERY_AGENT_NODE_ID $INFERENCE_AGENT_START_PORT $INFERENCE_AGENT_END_PORT;src/scripts/run.sh"
 )
 
 
@@ -124,7 +110,6 @@ stop() {
         fi
         docker rm -f "$CONTAINER_NAME"
     done
-    rm -f $INFERENCE_AGENT_FILE_PATH
 }
 
 trap stop SIGINT
