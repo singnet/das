@@ -185,16 +185,17 @@ TEST(WildcardTest, LinkSchema) {
     schema4.stack_link(expression, 2);
     schema4.stack_link_template(expression, 4);
     // (
-    //     ($v1 n1) 
-    //     $v2 
+    //     ($v1 n1)
+    //     $v2
     //     (
-    //         n1 
-    //         n2 
+    //         n1
+    //         n2
     //         (n3 (n6 $v3) (n5 n6))
-    //     ) 
+    //     )
     //     (n7 (n8 (n9 n10)) n11)
     // )
-    EXPECT_EQ(schema4.metta_representation(db), "(($v1 n1) $v2 (n1 n2 (n3 (n6 $v3) (n5 n6))) (n7 (n8 (n9 n10)) n11))");
+    EXPECT_EQ(schema4.metta_representation(db), "(($v1 n1) $v2 (n1 n2 (n3 (n6 $v3) (n5 n6))) (n7 (n8 (n9
+    n10)) n11))");
 */
 }
 

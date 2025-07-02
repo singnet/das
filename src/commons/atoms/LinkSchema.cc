@@ -1,4 +1,3 @@
-#include <iostream> // XXX
 #include "LinkSchema.h"
 
 #include "Hasher.h"
@@ -100,9 +99,7 @@ string LinkSchema::metta_representation(HandleDecoder& decoder) const {
     return this->_metta_representation;
 }
 
-unsigned int LinkSchema::arity() const {
-    return this->_arity;
-}
+unsigned int LinkSchema::arity() const { return this->_arity; }
 
 // -------------------------------------------------------------------------------------------------
 // Public API to build LinkSchema objects
@@ -161,8 +158,6 @@ void LinkSchema::stack_link(const string& type, unsigned int link_arity) {
             tuple<string, string, string> triplet = this->_atom_stack.back();
             target_handles.insert(target_handles.begin(), get<0>(triplet));
             composite_type.insert(composite_type.begin(), get<1>(triplet));
-            //target_handles.push_back(get<0>(triplet));
-            //composite_type.push_back(get<1>(triplet));
             if (first) {
                 metta_expression = get<2>(triplet) + ")";
                 first = false;
@@ -172,7 +167,7 @@ void LinkSchema::stack_link(const string& type, unsigned int link_arity) {
             this->_atom_stack.pop_back();
         }
         metta_expression = "(" + metta_expression;
-        // TODO inval;id metta_expression with something not Expression/Symbol
+        // TODO check for invalid MeTTa expressions (e.g. invalid node/link types)
         tuple<string, string, string> triplet(Hasher::link_handle(type, target_handles),
                                               Hasher::composite_handle(composite_type),
                                               metta_expression);
@@ -186,7 +181,7 @@ void LinkSchema::stack_link(const string& type, unsigned int link_arity) {
 void LinkSchema::build() {
     if (!check_not_frozen()) {
         if (this->_atom_stack.size() == this->_arity) {
-            for (auto triplet: this->_atom_stack) {
+            for (auto triplet : this->_atom_stack) {
                 add_target(get<0>(triplet), get<1>(triplet), get<2>(triplet));
             }
             this->_atom_stack.clear();
