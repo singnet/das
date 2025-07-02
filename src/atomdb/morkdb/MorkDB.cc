@@ -106,7 +106,7 @@ void MorkDB::mork_setup() {
         Utils::error(e.what());
     }
 }
-// void MorkDB::attention_broker_setup() {}
+
 shared_ptr<atomdb_api_types::HandleSet> MorkDB::query_for_pattern(
     const LinkTemplateInterface& link_template) {
     if (this->atomdb_cache != nullptr) {
