@@ -2,10 +2,6 @@ name: Run format check
 
 on:
   workflow_call:
-  pull_request:
-    branches:
-      - develop
-      - master
   workflow_dispatch:
 
 jobs:
