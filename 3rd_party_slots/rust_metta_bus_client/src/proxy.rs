@@ -1,7 +1,7 @@
 use std::collections::VecDeque;
 use std::net::{SocketAddr, ToSocketAddrs};
 use std::sync::{Arc, Mutex, RwLock};
-use std::{env, thread, vec};
+use std::{env, thread};
 
 use tokio::runtime::{Builder, Runtime};
 use tonic::{transport::Server, Request, Response, Status};
@@ -14,11 +14,11 @@ mod das_proto {
 }
 
 use crate::helpers::mongodb::MongoRepository;
-use crate::helpers::properties::{
+use crate::port_pool::PortPool;
+use crate::properties::{
 	Properties, PropertyValue, ATTENTION_UPDATE_FLAG, COUNT_FLAG, MAX_BUNDLE_SIZE,
 	POSITIVE_IMPORTANCE_FLAG, UNIQUE_ASSIGNMENT_FLAG,
 };
-use crate::port_pool::PortPool;
 use crate::{bus::PATTERN_MATCHING_QUERY, types::BoxError};
 
 static ABORT: &str = "abort"; // Abort current query
