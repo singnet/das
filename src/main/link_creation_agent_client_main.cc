@@ -20,8 +20,12 @@ void ctrl_c_handler(int) {
 
 int main(int argc, char* argv[]) {
     string help = R""""(
-    Usage: link_creation_agent CLIENT_HOST:CLIENT_PORT SERVER_HOST:SERVER_PORT <START_PORT:END_PORT> REQUEST+
-
+    Usage: link_creation_agent client_address server_address <start_port:end_port> REQUEST+
+    Supported args:
+        client_address: The address of the client to connect to, in the form "host:port"
+        server_address: The address of the server to connect to, in the form "host:port"
+        <start_port:end_port>: The lower and upper bound for the port numbers to be used by the command proxy
+        REQUEST+: A list of tokens to be sent to the server
     Requests must be in the following format:
     QUERY, LINK_TEMPLATE, MAX_RESULTS, REPEAT, CONTEXT, UPDATE_ATTENTION_BROKER
     MAX_RESULTS and REPEAT are optional, the default value for MAX_RESULTS is 1000 and for REPEAT is 1
