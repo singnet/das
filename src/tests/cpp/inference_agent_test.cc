@@ -54,7 +54,7 @@ using namespace distributed_algorithm_node;
 
 class InferenceAgentTest : public ::testing::Test {
    protected:
-   string server_id;
+    string server_id;
     // InferenceAgent* agent;
     // MockInferenceAgentNode* inference_node_server;
     // MockInferenceAgentNode* inference_node_client;
@@ -63,9 +63,7 @@ class InferenceAgentTest : public ::testing::Test {
     // MockDistributedInferenceControlAgentNode* distributed_inference_control_node_client;
 
     void SetUp() override {
-
         this->server_id = "localhost:1120";
-
 
         // string inference_node_client_id = Utils::get_environment("INFERENCE_CLIENT");
         // inference_node_client_id =
@@ -99,7 +97,7 @@ class InferenceAgentTest : public ::testing::Test {
         //     new MockDistributedInferenceControlAgentNode(dic_node_client_id, dic_node_server_id);
     }
 
-    void TearDown() override {  }
+    void TearDown() override {}
 
     void clear_mocks() {
         // delete inference_node_server;
@@ -170,9 +168,9 @@ TEST_F(InferenceAgentTest, TestConfig) {
 //         dynamic_cast<DasAgentNode*>(das_node_client),
 //         dynamic_cast<DistributedInferenceControlAgentNode*>(distributed_inference_control_node_client));
 
-//     inference_node_client->send_message({"PROOF_OF_IMPLICATION", "handle1", "handle2", "1", "context"});
-//     this_thread::sleep_for(chrono::milliseconds(200));  // Give some time for the agent to start
-//     InferenceAgentNode dic_client = InferenceAgentNode("localhost:1111", "localhost:1121");
+//     inference_node_client->send_message({"PROOF_OF_IMPLICATION", "handle1", "handle2", "1",
+//     "context"}); this_thread::sleep_for(chrono::milliseconds(200));  // Give some time for the agent
+//     to start InferenceAgentNode dic_client = InferenceAgentNode("localhost:1111", "localhost:1121");
 //     dic_client.send_message({"DISTRIBUTED_INFERENCE_FINISHED"});
 //     this_thread::sleep_for(chrono::milliseconds(200));  // Give some time for the agent
 //     agent.stop();
@@ -196,9 +194,9 @@ TEST_F(InferenceAgentTest, TestConfig) {
 //         dynamic_cast<DasAgentNode*>(das_node_client),
 //         dynamic_cast<DistributedInferenceControlAgentNode*>(distributed_inference_control_node_client));
 
-//     inference_node_client->send_message({"PROOF_OF_EQUIVALENCE", "handle1", "handle2", "1", "context"});
-//     this_thread::sleep_for(chrono::milliseconds(200));  // Give some time for the agent to start
-//     InferenceAgentNode dic_client = InferenceAgentNode("localhost:1111", "localhost:1121");
+//     inference_node_client->send_message({"PROOF_OF_EQUIVALENCE", "handle1", "handle2", "1",
+//     "context"}); this_thread::sleep_for(chrono::milliseconds(200));  // Give some time for the agent
+//     to start InferenceAgentNode dic_client = InferenceAgentNode("localhost:1111", "localhost:1121");
 //     dic_client.send_message({"DISTRIBUTED_INFERENCE_FINISHED"});
 //     this_thread::sleep_for(chrono::milliseconds(200));  // Give some time for the agent
 //     agent.stop();

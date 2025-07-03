@@ -1,4 +1,5 @@
 #include "InferenceProcessor.h"
+
 #include "Logger.h"
 #include "ServiceBus.h"
 
@@ -8,9 +9,7 @@ InferenceProcessor::InferenceProcessor() : BusCommandProcessor({ServiceBus::INFE
     this->inference_agent = new InferenceAgent();
 }
 
-InferenceProcessor::~InferenceProcessor() {
-    delete inference_agent;
-}
+InferenceProcessor::~InferenceProcessor() { delete inference_agent; }
 
 shared_ptr<BusCommandProxy> InferenceProcessor::factory_empty_proxy() {
     return make_shared<InferenceProxy>();
@@ -41,4 +40,3 @@ void InferenceProcessor::process_inference_request(shared_ptr<BusCommandProxy> p
         inference_proxy->raise_error_on_peer("Error processing inference request: " + string(e.what()));
     }
 }
-

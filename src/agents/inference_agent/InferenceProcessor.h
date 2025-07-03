@@ -3,7 +3,6 @@
 #include "BusCommandProcessor.h"
 #include "InferenceAgent.h"
 
-
 using namespace std;
 using namespace service_bus;
 
@@ -21,4 +20,4 @@ class InferenceProcessor : public BusCommandProcessor {
     void process_inference_request(shared_ptr<BusCommandProxy> proxy);
 };
 
-} // namespace inference_agent
+}  // namespace inference_agent
