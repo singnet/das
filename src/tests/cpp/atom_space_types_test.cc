@@ -135,7 +135,7 @@ TEST(WildcardTest, LinkSchema) {
     schema1.stack_node(symbol, "n2");
     EXPECT_THROW(schema1.build(), runtime_error);
 
-    // add metta_expression of mal-formed linkTemplate (type != expression
+    // add metta_expression of mal-formed linkTemplate (type != expression)
 
     LinkSchema schema2(expression, 2);
     schema2.stack_node(symbol, "n1");
@@ -144,6 +144,9 @@ TEST(WildcardTest, LinkSchema) {
     EXPECT_THROW(schema2.build(), runtime_error);
     EXPECT_THROW(schema2.stack_node(symbol, "n2"), runtime_error);
     EXPECT_EQ(schema2.metta_representation(db), "(n1 $v1)");
+    LinkSchema schema2_1(schema2.tokenize());
+    EXPECT_EQ(schema2.to_string(), schema2_1.to_string());
+    EXPECT_TRUE(schema2 == schema2_1);
 
     LinkSchema schema3(expression, 3);
     schema3.stack_untyped_variable("v1");
@@ -155,6 +158,9 @@ TEST(WildcardTest, LinkSchema) {
     schema3.stack_node(symbol, "n2");
     schema3.build();
     EXPECT_EQ(schema3.metta_representation(db), "(($v1 n1) $v2 n2)");
+    LinkSchema schema3_1(schema3.tokenize());
+    EXPECT_EQ(schema3.to_string(), schema3_1.to_string());
+    EXPECT_TRUE(schema3 == schema3_1);
 
     LinkSchema schema4(expression, 2);
     schema4.stack_untyped_variable("v1");
@@ -163,6 +169,9 @@ TEST(WildcardTest, LinkSchema) {
     schema4.stack_link_schema(expression, 2);
     schema4.build();
     EXPECT_EQ(schema4.metta_representation(db), "($v1 ($v2 n1))");
+    LinkSchema schema4_1(schema4.tokenize());
+    EXPECT_EQ(schema4.to_string(), schema4_1.to_string());
+    EXPECT_TRUE(schema4 == schema4_1);
 
     LinkSchema schema5(expression, 4);
     schema5.stack_untyped_variable("v1");
@@ -189,8 +198,41 @@ TEST(WildcardTest, LinkSchema) {
     schema5.stack_node(symbol, "n11");
     schema5.stack_link(expression, 3);
     schema5.build();
+    // clang-format off
     EXPECT_EQ(schema5.metta_representation(db),
               "(($v1 n1) $v2 (n1 n2 (n3 (n6 $v3) (n5 n6))) (n7 (n8 (n9 n10)) n11))");
+    // LINK_TEMPLATE Expression 4
+    //     LINK_TEMPLATE Expression 2
+    //         VARIABLE v1
+    //         NODE Symbol n1
+    //     VARIABLE v2
+    //     LINK_TEMPLATE Expression 3
+    //         NODE Symbol n1
+    //         NODE Symbol n2
+    //         LINK_TEMPLATE Expression 3
+    //             NODE Symbol n3
+    //             LINK_TEMPLATE Expression 2
+    //                 NODE Symbol n6
+    //                 VARIABLE v3
+    //             LINK Expression 2
+    //                 NODE Symbol n5
+    //                 NODE Symbol n6
+    //     LINK Expression 3
+    //         NODE Symbol n7
+    //         LINK Expression 2
+    //             NODE Symbol n8
+    //             LINK Expression 2
+    //                 NODE Symbol n9
+    //                 NODE Symbol n10
+    //         NODE Symbol n11
+    // clang-format on
+    LinkSchema schema5_1(schema5.tokenize());
+    EXPECT_EQ(schema5.to_string(), schema5_1.to_string());
+    LinkSchema schema5_2(schema5);
+    LinkSchema schema5_3 = schema5;
+    EXPECT_TRUE(schema5 == schema5_1);
+    EXPECT_TRUE(schema5 == schema5_2);
+    EXPECT_TRUE(schema5 == schema5_3);
 
     LinkSchema schema6(expression, 2);
     schema6.stack_node(symbol, "n7");

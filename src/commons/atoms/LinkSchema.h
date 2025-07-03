@@ -1,5 +1,6 @@
 #pragma once
 
+#include <stack>
 #include "Wildcard.h"
 
 namespace atoms {
@@ -13,8 +14,24 @@ class LinkSchema : public Wildcard {
     string _composite_type_hash;
     string _atom_handle;
     string _metta_representation;
+    vector<string> _tokens;
+    vector<vector<string>> _build_tokens;
     vector<tuple<string, string, string>> _atom_stack;
-    bool check_not_frozen();
+
+    void _init(unsigned int arity);
+    bool _check_frozen() const;
+    bool _check_not_frozen() const;
+    void _stack_link_schema(const string& type, unsigned int link_arity, bool is_link);
+    void _syntax_assert(bool flag, string token, unsigned int cursor);
+    unsigned int _push_stack_top(
+        stack<tuple<string, string, unsigned int, unsigned int>>& link_schema_stack,
+        string cursor_token,
+        unsigned int cursor);
+
+    string LINK_TEMPLATE;
+    string NODE;
+    string LINK;
+    string UNTYPED_VARIABLE;
 
    public:
     // ---------------------------------------------------------------------------------------------
@@ -35,6 +52,12 @@ class LinkSchema : public Wildcard {
      * @param other LinkSchema to be copied.
      */
     LinkSchema(const LinkSchema& other);
+
+    /**
+     * @brief Construct a LinkSchema using a vector of tokens.
+     * @param tokens Vector of tokens.
+     */
+    LinkSchema(const vector<string>& tokens, const Properties& custom_attributes = {});
 
     /**
      * @brief Assignment operator.
@@ -121,7 +144,9 @@ class LinkSchema : public Wildcard {
 
     void build();
 
-   private:
-    void _stack_link_schema(const string& type, unsigned int link_arity, bool check_no_wildcard);
+    const vector<string>& tokens();
+    vector<string> tokenize();
+    void tokenize(vector<string> output);
+    void untokenize(const vector<string>& tokens);
 };
 }  // namespace atoms
