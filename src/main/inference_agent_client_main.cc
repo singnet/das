@@ -46,5 +46,18 @@ int main(int argc, char* argv[]) {
     auto proxy = make_shared<InferenceProxy>(request);
     auto client = ServiceBusSingleton::get_instance();
     client->issue_bus_command(proxy);
+    int count = 1;
+    shared_ptr<QueryAnswer> query_answer;
+    while (!proxy->finished()) {
+        if ((query_answer = proxy->pop()) == NULL) {
+            Utils::sleep();
+        } else {
+            cout << count << ": " << query_answer->to_string() << endl;
+        }
+        count++;
+    }
+    if (count == 1) {
+        cout << "No match for query" << endl;
+    }
     return 0;
 }
