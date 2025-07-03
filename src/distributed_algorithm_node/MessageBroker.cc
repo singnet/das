@@ -17,7 +17,7 @@
 #include "atom_space_node.grpc.pb.h"
 #include "atom_space_node.pb.h"
 
-#define LOG_LEVEL INFO_LEVEL
+#define LOG_LEVEL DEBUG_LEVEL
 #include "Logger.h"
 
 using namespace distributed_algorithm_node;
@@ -202,14 +202,17 @@ void SynchronousGRPC::inbox_thread_method(shared_ptr<StoppableThread> monitor) {
             }
             string command = message_data->command();
             vector<string> args;
+            string args_string = "";
             int num_args = message_data->args_size();
             for (int i = 0; i < num_args; i++) {
                 args.push_back(message_data->args(i));
+                args_string += " " + message_data->args(i);
             }
             delete message_data;
             std::shared_ptr<Message> message = this->host_node->message_factory(command, args);
             if (message) {
-                LOG_DEBUG("Acting command: " << command << " at node " << this->node_id);
+
+                LOG_DEBUG("Acting command: " << command + args_string << " at node " << this->node_id);
                 message->act(this->host_node);
             } else {
                 Utils::error("Invalid NULL Message");

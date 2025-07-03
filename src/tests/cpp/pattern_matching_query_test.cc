@@ -189,6 +189,7 @@ TEST(PatternMatchingQuery, queries) {
 
     // Regular queries
     check_query("q1", q1, q1_expected_count, client_bus, "PatternMatchingQuery.queries", false, false, false, false);
+    FAIL();
     check_query("q2", q2, q2_expected_count, client_bus, "PatternMatchingQuery.queries", false, false, false, false);
     check_query("q3", q3, q3_expected_count, client_bus, "PatternMatchingQuery.queries", false, false, false, false);
     check_query("q4", q4, q4_expected_count, client_bus, "PatternMatchingQuery.queries", false, false, false, false);
