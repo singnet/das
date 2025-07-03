@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -e
+
 BAZEL_CMD="/opt/bazel/bazelisk"
 
 $BAZEL_CMD $([ ${BAZEL_JOBS:-x} != x ] && echo --jobs=${BAZEL_JOBS}) "$@"
