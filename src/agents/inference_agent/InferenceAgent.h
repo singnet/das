@@ -14,20 +14,18 @@
 #include <mutex>
 #include <string>
 #include <thread>
-#include <vector>
 #include <unordered_map>
+#include <vector>
 
-
+#include "InferenceProxy.h"
 #include "InferenceRequest.h"
 #include "InferenceRequestValidator.h"
-#include "ThreadPool.h"
-#include "InferenceProxy.h"
-#include "LinkCreationRequestProxy.h"
 #include "LCAQueue.h"
+#include "LinkCreationRequestProxy.h"
+#include "ThreadPool.h"
 
 using namespace distributed_algorithm_node;
 using namespace link_creation_agent;
-
 
 namespace inference_agent {
 class InferenceAgent {
