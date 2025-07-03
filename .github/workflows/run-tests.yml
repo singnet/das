@@ -9,15 +9,6 @@ on:
   workflow_dispatch:
 
 jobs:
-  lint:
-    runs-on: self-hosted
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Run lint
-        run: make format-all
-
   unit-tests:
     runs-on: self-hosted
     env:

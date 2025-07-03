@@ -88,7 +88,7 @@ lint-all:
 format-all:
 	@$(MAKE) bazel run format
 
-check-format:
+format-check:
 	@$(MAKE) bazel run //:format.check
 
 performance-tests:

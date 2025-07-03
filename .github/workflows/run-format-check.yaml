@@ -1,0 +1,19 @@
+name: Run format check
+
+on:
+  workflow_call:
+  pull_request:
+    branches:
+      - develop
+      - master
+  workflow_dispatch:
+
+jobs:
+  format-check:
+    runs-on: self-hosted
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Run format check
+        run: make format-check
