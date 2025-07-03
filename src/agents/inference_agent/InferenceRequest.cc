@@ -36,6 +36,12 @@ string InferenceRequest::get_type() { return "INFERENCE_REQUEST"; }
 
 string InferenceRequest::get_max_proof_length() { return to_string(max_proof_length); }
 
+void InferenceRequest::set_timeout(unsigned long long timeout) {
+    this->timeout = timeout;
+}
+unsigned long long InferenceRequest::get_timeout() { return timeout; }
+
+
 template <typename T>
 static vector<vector<T>> product(const vector<T>& iterable, size_t repeat) {
     vector<vector<T>> result;

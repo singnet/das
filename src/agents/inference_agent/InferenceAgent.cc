@@ -6,23 +6,18 @@
 #include <sstream>
 
 #include "Logger.h"
-#include "Utils.h"
 #include "ServiceBusSingleton.h"
-
+#include "Utils.h"
 
 using namespace std;
 using namespace inference_agent;
 using namespace link_creation_agent;
 
+const string InferenceAgent::PROOF_OF_IMPLICATION_OR_EQUIVALENCE = "PROOF_OF_IMPLICATION_OR_EQUIVALENCE";
+const string InferenceAgent::PROOF_OF_IMPLICATION = "PROOF_OF_IMPLICATION";
+const string InferenceAgent::PROOF_OF_EQUIVALENCE = "PROOF_OF_EQUIVALENCE";
 
-const std::string InferenceAgent::PROOF_OF_IMPLICATION_OR_EQUIVALENCE =
-    "PROOF_OF_IMPLICATION_OR_EQUIVALENCE";
-const std::string InferenceAgent::PROOF_OF_IMPLICATION = "PROOF_OF_IMPLICATION";
-const std::string InferenceAgent::PROOF_OF_EQUIVALENCE = "PROOF_OF_EQUIVALENCE";
-
-InferenceAgent::InferenceAgent() {
-    this->agent_thread = new thread(&InferenceAgent::run, this);
-}
+InferenceAgent::InferenceAgent() { this->agent_thread = new thread(&InferenceAgent::run, this); }
 
 InferenceAgent::~InferenceAgent() {
     stop();
@@ -61,6 +56,7 @@ shared_ptr<InferenceRequest> InferenceAgent::build_inference_request(const vecto
 
 void InferenceAgent::run() {
     LOG_DEBUG("Inference agent is running");
+    shared_ptr<QueryAnswer> query_answer;
     while (true) {
         if (is_stoping) break;
         if (!inference_request_queue.empty()) {
@@ -68,8 +64,21 @@ void InferenceAgent::run() {
                 auto inference_request = inference_request_queue.dequeue();
                 send_link_creation_request(inference_request);
                 send_distributed_inference_control_request(inference_request->get_id());
-            } catch (const std::exception& e) {
+                inference_timeout_map[inference_request->get_id()] =
+                    (Utils::get_current_time_millis() / 1000) + inference_request->get_timeout();
+            } catch (const exception& e) {
                 LOG_ERROR("Exception: " << e.what());
+            }
+        }
+        // Check if there are any evolution proxies to process
+        for (auto& [request_id, evolution_proxy] : evolution_proxy_map) {
+            if (evolution_proxy->finished() || inference_proxy_map[request_id]->is_aborting() ||
+                Utils::get_current_time_millis() / 1000 > inference_timeout_map[request_id]) {
+                process_inference_abort_request(request_id);
+            } else {
+                if ((query_answer = evolution_proxy->pop()) != NULL) {
+                    inference_proxy_map[request_id]->push(query_answer);
+                }
             }
         }
         Utils::sleep();
@@ -86,7 +95,8 @@ void InferenceAgent::stop() {
 
 void InferenceAgent::send_link_creation_request(shared_ptr<InferenceRequest> inference_request) {
     LOG_DEBUG("Sending link creation request for inference request ID: " << inference_request->get_id());
-    this->link_creation_proxy_map[inference_request->get_id()] = vector<shared_ptr<LinkCreationRequestProxy>>();
+    this->link_creation_proxy_map[inference_request->get_id()] =
+        vector<shared_ptr<LinkCreationRequestProxy>>();
     auto service_bus = ServiceBusSingleton::get_instance();
     for (auto& request_iterator : inference_request->get_requests()) {
         vector<string> request;
@@ -103,22 +113,20 @@ void InferenceAgent::send_link_creation_request(shared_ptr<InferenceRequest> inf
     }
 }
 
-void InferenceAgent::send_stop_link_creation_request(const string& request_id) {
-    for (auto& proxy : this->link_creation_proxy_map[request_id]) {
-        proxy->set_parameter(LinkCreationRequestProxy::Parameters::ABORT_FLAG, true);
-        ServiceBusSingleton::get_instance()->issue_bus_command(proxy);
-    }
-}
+// void InferenceAgent::send_stop_link_creation_request(const string& request_id) {
+//     for (auto& proxy : this->link_creation_proxy_map[request_id]) {
+//         proxy->set_parameter(LinkCreationRequestProxy::Parameters::ABORT_FLAG, true);
+//         ServiceBusSingleton::get_instance()->issue_bus_command(proxy);
+//     }
+// }
 
-void InferenceAgent::send_distributed_inference_control_request(const string& client_node_id) {
-    LOG_DEBUG("Sending distributed inference control request ID: " << client_node_id);
-    // TODO add evolution command
-    // auto evolution_proxy = make_shared<QueryEvolutionProxy>();
-    // ServiceBusSingleton::get_instance()->issue_bus_command(evolution_proxy);
-    // ...
+void InferenceAgent::send_distributed_inference_control_request(const string& request_id) {
+    LOG_DEBUG("Sending distributed inference control request ID: " << request_id);
+    auto evolution_proxy = make_shared<QueryEvolutionProxy>();
+    ServiceBusSingleton::get_instance()->issue_bus_command(evolution_proxy);
+    evolution_proxy_map[request_id] = evolution_proxy;
     LOG_DEBUG("Distributed inference control request sent");
 }
-
 
 void InferenceAgent::process_inference_request(const vector<string>& request, const string& request_id) {
     if (request.empty()) {
@@ -130,13 +138,33 @@ void InferenceAgent::process_inference_request(const vector<string>& request, co
     inference_request_queue.enqueue(inference_request);
 }
 
-void InferenceAgent::process_inference_abort_request(const string& request_id) {
-    LOG_DEBUG("Processing inference abort request: " << request_id);
-    if (link_creation_proxy_map.find(request_id) !=
-        link_creation_proxy_map.end()) {
-        send_stop_link_creation_request(request_id);
-        link_creation_proxy_map.erase(request_id);
-    } else {
-        LOG_ERROR("No inference request found for ID: " << request_id);
+void InferenceAgent::process_inference_request(shared_ptr<InferenceProxy> proxy) {
+    if (proxy == nullptr) {
+        Utils::error("Invalid inference proxy");
     }
+    LOG_DEBUG("Processing inference request: " << Utils::join(proxy->get_args(), ' '));
+    string request_id = proxy->peer_id() + to_string(proxy->get_serial());
+    inference_proxy_map[request_id] = proxy;
+    process_inference_request(proxy->get_args(), request_id);
+    LOG_DEBUG("Inference request processed for request ID: " << request_id);
+}
+
+void InferenceAgent::process_inference_abort_request(const string& request_id) {
+    LOG_DEBUG("Evolution proxy finished for request ID: " << request_id);
+    for (auto& link_creation_proxy : link_creation_proxy_map[request_id]) {
+        LOG_DEBUG("Aborting link creation proxy for request ID: " << request_id);
+        link_creation_proxy->abort();
+    }
+    link_creation_proxy_map.erase(request_id);
+    LOG_DEBUG("Link creation request aborted for request ID: " << request_id);
+    inference_proxy_map[request_id]->query_processing_finished();
+    LOG_DEBUG("Inference proxy query processing finished for request ID: " << request_id);
+    inference_proxy_map.erase(request_id);
+    if (!evolution_proxy_map[request_id]->finished()) {
+        LOG_DEBUG("Evolution proxy not finished for request ID: " << request_id);
+        evolution_proxy_map[request_id]->abort();
+        LOG_DEBUG("Evolution proxy aborted for request ID: " << request_id);
+    }
+    evolution_proxy_map.erase(request_id);
+    LOG_DEBUG("Inference request processed and cleaned up for request ID: " << request_id);
 }

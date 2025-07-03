@@ -176,3 +176,9 @@ int Utils::string_to_int(const string& s) {
     }
     return stoi(s);
 }
+
+unsigned long long Utils::get_current_time_millis() {
+    return chrono::duration_cast<chrono::milliseconds>(
+               chrono::steady_clock::now().time_since_epoch())
+        .count();
+}

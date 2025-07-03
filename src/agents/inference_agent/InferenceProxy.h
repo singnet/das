@@ -1,12 +1,12 @@
 #pragma once
 
-#include "BaseProxy.h"
+#include "BaseQueryProxy.h"
 
 using namespace std;
 using namespace agents;
 namespace inference_agent {
 
-class InferenceProxy : public BaseProxy {
+class InferenceProxy : public BaseQueryProxy {
    public:
 
     // struct Parameters {

@@ -78,6 +78,9 @@ class InferenceRequest {
      */
     string get_context();
 
+    void set_timeout(unsigned long long timeout);
+    unsigned long long get_timeout();
+
    protected:
     string first_handle;
     string second_handle;
@@ -86,6 +89,8 @@ class InferenceRequest {
     string inference_request_id;
     string max_answers;
     string update_attention_broker;
+    unsigned long long timeout = 10 * 60;  // Default timeout is 10 minutes
+
 };
 
 class ProofOfImplicationOrEquivalence : public InferenceRequest {
