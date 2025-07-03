@@ -37,7 +37,6 @@ impl Properties {
 			}
 		}
 		vec.insert(0, vec.len().to_string());
-		vec.push("".to_string());
 		vec
 	}
 	pub fn insert(&mut self, key: String, value: PropertyValue) {

@@ -71,6 +71,7 @@ impl PatternMatchingQueryProxy {
 
 		let mut args = vec![];
 		args.extend(properties.to_vec());
+		args.push(context.clone());
 		args.push(tokens.len().to_string());
 		args.extend(tokens);
 
