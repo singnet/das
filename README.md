@@ -7,10 +7,10 @@
 DAS consists of several components. Below is a list of these components, categorized by whether they are part of this repository or exist in external repositories.
 
 ### **Internal Components**
-The following components are included in this repository:  
+The following components are included in this repository:
 
 - **Attention Broker**
-  A DAS component that tracks atom importance values in different contexts and updates those values based on user queries using context-specific Hebbian networks.  
+  A DAS component that tracks atom importance values in different contexts and updates those values based on user queries using context-specific Hebbian networks.
 
   Documentation: [Read more](src/attention_broker/README.md)
 
@@ -21,7 +21,7 @@ The following components are included in this repository:
   Documentation: [Read more](src/query_engine/README.md)
 
 - **Link Creation Agent**
-  A C++ server that performs pattern-matching queries and creates new links in the Atomspace based on the results.  
+  A C++ server that performs pattern-matching queries and creates new links in the Atomspace based on the results.
 
   Documentation: [Read more](src/link_creation_agent/README.md)
 
@@ -30,24 +30,24 @@ The following components are included in this repository:
 
   Link creation engine searches the atom space for patterns and creates new links based on the results. Both the pattern and the layout of the new links to be created are specified by the caller.
 
-  Pattern matching results are not exhaustively used to create new links. DAS query engine return results considering importance values of atoms in each result so link creation engine iterates only through the first N results, which have a greater probability of having the most interesting atoms. 
+  Pattern matching results are not exhaustively used to create new links. DAS query engine return results considering importance values of atoms in each result so link creation engine iterates only through the first N results, which have a greater probability of having the most interesting atoms.
 
-  Documentation: *Coming Soon*  
+  Documentation: *Coming Soon*
 
 - **Query Engine**
-  A data manipulation API for Distributed Atomspace (DAS). It allows queries with pattern matching capabilities and traversal of the Atomspace hypergraph.  
+  A data manipulation API for Distributed Atomspace (DAS). It allows queries with pattern matching capabilities and traversal of the Atomspace hypergraph.
 
   Documentation: [Read more](src/hyperon_das/README.md)
 
 - **Atom DB**
-  A Python library required by Hyperon DAS to interface with DBMSs and other data storage structures.  
+  A Python library required by Hyperon DAS to interface with DBMSs and other data storage structures.
 
-  Documentation: [Read more](src/hyperon_das_atomdb/README.md)  
+  Documentation: [Read more](src/hyperon_das_atomdb/README.md)
 
 ---
 
 ### **External Components**
-The following components are part of external repositories and are not included in this repository. You can find them in their respective locations:  
+The following components are part of external repositories and are not included in this repository. You can find them in their respective locations:
 
 - **DAS Server**
 
@@ -56,7 +56,7 @@ The following components are part of external repositories and are not included 
   Documentation: [Read more](https://github.com/singnet/das-serverless-functions)
 
 - **DAS MeTTa Parser**
-  A simplified MeTTa parser used to feed knowledge bases into DAS.  
+  A simplified MeTTa parser used to feed knowledge bases into DAS.
 
   Documentation: [Read more](https://github.com/singnet/das-metta-parser)
 
@@ -68,12 +68,12 @@ The following components are part of external repositories and are not included 
 
 - **Infrastructure Setup**
 
-  Tools for provisioning and setting up servers on cloud providers.  
+  Tools for provisioning and setting up servers on cloud providers.
 
-  Documentation:  
-  - [Server provisioning in Vultr](infrastructure/vultr/provisioning/README.md)  
-  - [Server setup Vultr](infrastructure/vultr/setup/README.md)  
-  - [Server provisioning in AWS](infrastructure/aws/provisioning/README.md)  
+  Documentation:
+  - [Server provisioning in Vultr](infrastructure/vultr/provisioning/README.md)
+  - [Server setup Vultr](infrastructure/vultr/setup/README.md)
+  - [Server provisioning in AWS](infrastructure/aws/provisioning/README.md)
   - [Server setup AWS](infrastructure/aws/setup/README.md)
 
 ## **Getting Started**
@@ -92,21 +92,21 @@ To build the agents, run the command:
 make build-all
 ```
 
-This process will generate the binaries for all components in the `das/src/bin` directory.
+This process will generate the binaries for all components in the `das/bin` directory.
 
 ### **3. Initializing the Knowledge Base**
 
 Some of the components require an existing knowledge base and a properly configured environment with Redis and MongoDB. You can set up this environment using the `das-cli`. For detailed instructions, refer to the [das-toolbox documentation](https://github.com/singnet/das-toolbox).
 
-> For detailed information about each component, please refer to the documentation provided for each component in the [**Components**](#components) section above. 
+> For detailed information about each component, please refer to the documentation provided for each component in the [**Components**](#components) section above.
 
-## **Running the Unit Tests**  
+## **Running the Unit Tests**
 
-### **Prerequisites**  
+### **Prerequisites**
 
-Before running the tests, ensure that **Redis** and **MongoDB** are running. You can use the [DAS CLI](https://github.com/singnet/das-toolbox) to easily start these services.  
+Before running the tests, ensure that **Redis** and **MongoDB** are running. You can use the [DAS CLI](https://github.com/singnet/das-toolbox) to easily start these services.
 
-Once Redis and MongoDB are running, export the necessary environment variables with the values configured in [DAS CLI](https://github.com/singnet/das-toolbox):  
+Once Redis and MongoDB are running, export the necessary environment variables with the values configured in [DAS CLI](https://github.com/singnet/das-toolbox):
 
 ```bash
 export DAS_REDIS_HOSTNAME=localhost
@@ -115,21 +115,21 @@ export DAS_MONGODB_HOSTNAME=localhost
 export DAS_MONGODB_PORT=28000
 export DAS_MONGODB_USERNAME=dbadmin
 export DAS_MONGODB_PASSWORD=dassecret
-```  
+```
 
 Additionally, load the **animals** knowledge base using the [DAS CLI](https://github.com/singnet/das-toolbox).
 
 After setting up Redis and MongoDB, you need to run the [Attention Broker](src/attention_broker/README.md).
 
-### **Running the Tests**  
+### **Running the Tests**
 
-To execute the unit tests, simply run the following command from the project root:  
+To execute the unit tests, simply run the following command from the project root:
 
 ```bash
 make test-all
-```  
+```
 
-This will run all the tests for the project.  
+This will run all the tests for the project.
 
 ## **Conceptual and User's Documentation**
 
@@ -159,7 +159,7 @@ make run-mork-server
 ```
 
 2) Upload a .metta file
-   
+
 ```bash
 make mork-loader FILE="path/to/metta_file.metta"
 ```

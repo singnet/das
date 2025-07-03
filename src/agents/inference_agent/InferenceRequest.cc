@@ -64,9 +64,9 @@ static vector<vector<T>> product(const vector<T>& iterable, size_t repeat) {
 }
 
 static vector<string> inference_evolution_request_builder(string first_handle,
-                                                                    string second_handle,
-                                                                    int max_proof_length,
-                                                                    int& counter) {
+                                                          string second_handle,
+                                                          int max_proof_length,
+                                                          int& counter) {
     // clang-format off
     vector<string> query_template = {
         "LINK_TEMPLATE", "Expression",  "3",

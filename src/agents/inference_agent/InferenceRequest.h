@@ -109,10 +109,7 @@ class ProofOfImplicationOrEquivalence : public InferenceRequest {
 
 class ProofOfImplication : public InferenceRequest {
    public:
-    ProofOfImplication(string first_handle,
-                       string second_handle,
-                       int max_proof_length,
-                       string context);
+    ProofOfImplication(string first_handle, string second_handle, int max_proof_length, string context);
     ~ProofOfImplication();
 
     vector<string> query() override;
@@ -125,10 +122,7 @@ class ProofOfImplication : public InferenceRequest {
 
 class ProofOfEquivalence : public InferenceRequest {
    public:
-    ProofOfEquivalence(string first_handle,
-                       string second_handle,
-                       int max_proof_length,
-                       string context);
+    ProofOfEquivalence(string first_handle, string second_handle, int max_proof_length, string context);
     ~ProofOfEquivalence();
 
     vector<string> query() override;

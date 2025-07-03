@@ -29,8 +29,8 @@ TEST(LinkTemplate, basics) {
     auto v1 = make_shared<Variable>("v1");
     auto v2 = make_shared<Variable>("v2");
     auto v3 = make_shared<Variable>("v3");
-    auto similarity = make_shared<Node>(symbol, "Similarity");
-    auto human = make_shared<Node>(symbol, "\"human\"");
+    auto similarity = make_shared<query_element::Node>(symbol, "Similarity");
+    auto human = make_shared<query_element::Node>(symbol, "\"human\"");
 
     LinkTemplate<3> link_template1("Expression", {similarity, human, v1});
     link_template1.subsequent_id = server_node_id;

@@ -10,12 +10,15 @@
 #include <mongocxx/uri.hpp>
 #include <vector>
 
+#include "Atom.h"
 #include "AtomDBAPITypes.h"
 #include "HandleDecoder.h"
+#include "Node.h"
 #include "Utils.h"
 
 using namespace std;
 using namespace commons;
+using namespace atoms;
 
 namespace atomdb {
 namespace atomdb_api_types {
@@ -68,8 +71,8 @@ class RedisStringBundle : public HandleList {
 class MongodbDocument : public AtomDocument {
    public:
     MongodbDocument(bsoncxx::v_noabi::stdx::optional<bsoncxx::v_noabi::document::value>& document);
-    MongodbDocument(const atomspace::Node* node);
-    MongodbDocument(const atomspace::Link* link, HandleDecoder& db);
+    MongodbDocument(const atoms::Node* node);
+    MongodbDocument(const atoms::Link* link, HandleDecoder& db);
     ~MongodbDocument();
 
     const char* get(const string& key);

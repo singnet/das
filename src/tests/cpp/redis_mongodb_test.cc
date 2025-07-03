@@ -8,13 +8,26 @@
 #include <vector>
 
 #include "AtomDBSingleton.h"
+#include "Hasher.h"
+#include "Link.h"
 #include "LinkTemplateInterface.h"
+#include "MettaMapping.h"
+#include "Node.h"
 #include "RedisMongoDB.h"
-#include "expression_hasher.h"
 
 using namespace atomdb;
-using namespace atomspace;
+using namespace atoms;
 using namespace std;
+
+class MockDecoder : public HandleDecoder {
+   public:
+    map<string, shared_ptr<Atom>> atoms;
+    shared_ptr<Atom> get_atom(const string& handle) { return this->atoms[handle]; }
+    shared_ptr<Atom> add_atom(shared_ptr<Atom> atom) {
+        this->atoms[atom->handle()] = atom;
+        return atom;
+    }
+};
 
 class RedisMongoDBTestEnvironment : public ::testing::Environment {
    public:
@@ -282,12 +295,12 @@ TEST_F(RedisMongoDBTest, AddAndDeleteNode) {
 
     auto node = new Node("Symbol", "\"test-1\"", custom_attributes);
 
-    auto node_handle = Node::compute_handle(node->type, node->name);
+    auto node_handle = node->handle();
 
     // Check if node exists, if so, delete it
     auto node_document = db->get_atom_document(node_handle);
     if (node_document != nullptr) {
-        auto deleted = db->delete_atom(node_handle);
+        auto deleted = db->delete_atom(node_handle.c_str());
         EXPECT_TRUE(deleted);
     }
 
@@ -318,26 +331,31 @@ TEST_F(RedisMongoDBTest, AddAndDeleteNodes) {
 }
 
 TEST_F(RedisMongoDBTest, AddAndDeleteLink) {
+    MockDecoder decoder;
     Properties custom_attributes;
     custom_attributes["is_toplevel"] = true;
 
-    auto similarity_node = Node("Symbol", "Similarity");
-    auto test_1_node = new Node("Symbol", "\"test-1\"");
-    auto test_2_node = new Node("Symbol", "\"test-2\"");
+    string symbol = MettaMapping::SYMBOL_NODE_TYPE;
+    string expression = MettaMapping::EXPRESSION_LINK_TYPE;
+    vector<string> v;
 
-    auto test_1_node_handle = db->add_node(test_1_node);
-    auto test_2_node_handle = db->add_node(test_2_node);
+    auto similarity_node = decoder.add_atom(make_shared<Node>(symbol, "Similarity"));
+    auto test_1_node = decoder.add_atom(make_shared<Node>(symbol, "\"test-1\""));
+    auto test_2_node = decoder.add_atom(make_shared<Node>(symbol, "\"test-2\""));
+
+    auto test_1_node_handle = db->add_node((Node*) test_1_node.get());
+    auto test_2_node_handle = db->add_node((Node*) test_2_node.get());
 
     auto link = new Link("Expression",
-                         {similarity_node.handle(), test_1_node_handle, test_2_node_handle},
+                         {similarity_node->handle(), test_1_node->handle(), test_2_node->handle()},
                          custom_attributes);
 
-    auto link_handle = Link::compute_handle(link->type, link->targets);
+    auto link_handle = link->handle();
 
     // Check if link exists, if so, delete it
-    auto node_exists = db->link_exists(link_handle);
-    if (node_exists) {
-        auto deleted = db->delete_atom(link_handle);
+    auto link_exists = db->link_exists(link_handle.c_str());
+    if (link_exists) {
+        auto deleted = db->delete_atom(link_handle.c_str());
         EXPECT_TRUE(deleted);
     }
 
@@ -352,14 +370,16 @@ TEST_F(RedisMongoDBTest, AddAndDeleteLink) {
 TEST_F(RedisMongoDBTest, AddAndDeleteLinks) {
     vector<Link*> links;
     vector<string> test_node_handles;
+    MockDecoder decoder;
 
     for (int i = 0; i < 10; i++) {
-        auto similarity_node = new Node("Symbol", "Similarity");
-        auto test_1_node = new Node("Symbol", "add-links-1-" + to_string(i));
-        auto test_2_node = new Node("Symbol", "add-links-2-" + to_string(i));
-        test_node_handles.push_back(db->add_node(test_1_node));
-        test_node_handles.push_back(db->add_node(test_2_node));
-        links.push_back(new Link("Expression", {similarity_node, test_1_node, test_2_node}));
+        auto similarity_node = decoder.add_atom(make_shared<Node>("Symbol", "Similarity"));
+        auto test_1_node = decoder.add_atom(make_shared<Node>("Symbol", "add-links-1-" + to_string(i)));
+        auto test_2_node = decoder.add_atom(make_shared<Node>("Symbol", "add-links-2-" + to_string(i)));
+        test_node_handles.push_back(db->add_node((Node*) test_1_node.get()));
+        test_node_handles.push_back(db->add_node((Node*) test_2_node.get()));
+        links.push_back(new Link(
+            "Expression", {similarity_node->handle(), test_1_node->handle(), test_2_node->handle()}));
     }
 
     auto handles = db->add_links(links);

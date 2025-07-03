@@ -12,7 +12,7 @@ To build the Attention Broker Service, run the following command from the projec
 make build-all
 ```
 
-This will generate the binaries for all components in the `das/src/bin` directory.
+This will generate the binaries for all components in the `das/bin` directory.
 
 ## **Usage**
 

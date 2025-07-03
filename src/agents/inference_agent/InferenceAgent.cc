@@ -13,9 +13,10 @@ using namespace std;
 using namespace inference_agent;
 using namespace link_creation_agent;
 
-const string InferenceAgent::PROOF_OF_IMPLICATION_OR_EQUIVALENCE = "PROOF_OF_IMPLICATION_OR_EQUIVALENCE";
-const string InferenceAgent::PROOF_OF_IMPLICATION = "PROOF_OF_IMPLICATION";
-const string InferenceAgent::PROOF_OF_EQUIVALENCE = "PROOF_OF_EQUIVALENCE";
+const std::string InferenceAgent::PROOF_OF_IMPLICATION_OR_EQUIVALENCE =
+    "PROOF_OF_IMPLICATION_OR_EQUIVALENCE";
+const std::string InferenceAgent::PROOF_OF_IMPLICATION = "PROOF_OF_IMPLICATION";
+const std::string InferenceAgent::PROOF_OF_EQUIVALENCE = "PROOF_OF_EQUIVALENCE";
 
 InferenceAgent::InferenceAgent() { this->agent_thread = new thread(&InferenceAgent::run, this); }
 

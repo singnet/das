@@ -14,14 +14,13 @@
 #include <mutex>
 #include <string>
 #include <thread>
-#include <vector>
 #include <unordered_map>
+#include <vector>
 
-
+#include "InferenceProxy.h"
 #include "InferenceRequest.h"
 #include "InferenceRequestValidator.h"
-#include "ThreadPool.h"
-#include "InferenceProxy.h"
+#include "LCAQueue.h"
 #include "LinkCreationRequestProxy.h"
 #include "QueryEvolutionProxy.h"
 #include "LCAQueue.h"

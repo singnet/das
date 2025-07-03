@@ -88,6 +88,9 @@ lint-all:
 format-all:
 	@$(MAKE) bazel run format
 
+format-check:
+	@$(MAKE) bazel run //:format.check
+
 performance-tests:
 	@python3 src/tests/integration/performance/query_agent_metrics.py
 

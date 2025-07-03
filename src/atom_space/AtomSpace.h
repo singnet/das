@@ -4,7 +4,8 @@
 
 #include "AtomDBAPITypes.h"
 #include "AtomDBSingleton.h"
-#include "AtomSpaceTypes.h"
+#include "Link.h"
+#include "Node.h"
 #include "PatternMatchingQueryProxy.h"
 #include "ServiceBusSingleton.h"
 
@@ -165,6 +166,18 @@ class AtomSpace {
      * @param scope Where to commit changes (default: LOCAL_AND_REMOTE).
      */
     void commit_changes(Scope scope = LOCAL_AND_REMOTE);
+
+    /**
+     * @brief Returns truee iff the passed atom is a Node (or a Variable, which is a wildcard Node).
+     * @return truee iff the passed atom is a Node (or a Variable, which is a wildcard Node).
+     */
+    static bool is_node(const Atom& atom) { return atom.arity() == 0; }
+
+    /**
+     * @brief Returns truee iff the passed atom is a Link (or a LinkSchema, which is a wildcard Link).
+     * @return truee iff the passed atom is a Node (or a LinkSchema, which is a wildcard Link).
+     */
+    static bool is_link(const Atom& atom) { return atom.arity() > 0; }
 
    protected:
     shared_ptr<AtomDB> db;  // to allow mocking in tests

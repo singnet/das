@@ -11,8 +11,6 @@ cc_library(
         "Utils.cc",
     ],
     hdrs = [
-        "Atom.h",
-        "HandleDecoder.h",
         "Logger.h",
         "MettaMapping.h",
         "Properties.h",
@@ -24,7 +22,9 @@ cc_library(
         "Utils.h",
     ],
     includes = ["."],
-    deps = [],
+    deps = [
+        "//hasher:hasher_lib",
+    ],
 )
 
 cc_library(

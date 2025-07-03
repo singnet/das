@@ -3,6 +3,7 @@
 #include <array>
 #include <string>
 
+#include "Atom.h"
 #include "AtomDBSingleton.h"
 #include "QueryElement.h"
 #include "expression_hasher.h"
@@ -194,7 +195,7 @@ class Variable : public Terminal {
     Variable(const string& name) : Terminal() {
         this->name = name;
         this->handle =
-            shared_ptr<char>(strdup((char*) AtomDB::WILDCARD.c_str()), default_delete<char[]>());
+            shared_ptr<char>(strdup((char*) Atom::WILDCARD_STRING.c_str()), default_delete<char[]>());
         this->is_variable = true;
     }
 

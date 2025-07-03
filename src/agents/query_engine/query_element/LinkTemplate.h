@@ -10,6 +10,7 @@
 // clang-format on
 
 #include "And.h"
+#include "Atom.h"
 #include "AtomDBAPITypes.h"
 #include "AtomDBSingleton.h"
 #include "AttentionBrokerServer.h"
@@ -99,9 +100,9 @@ class LinkTemplate : public Source, public LinkTemplateInterface {
         this->local_answers_size = 0;
         this->positive_importance_flag = false;
         this->local_buffer_processor = NULL;
-        bool wildcard_flag = (type == AtomDB::WILDCARD);
-        this->handle_keys[0] =
-            (wildcard_flag ? (char*) AtomDB::WILDCARD.c_str() : named_type_hash((char*) type.c_str()));
+        bool wildcard_flag = (type == Atom::WILDCARD_STRING);
+        this->handle_keys[0] = (wildcard_flag ? (char*) Atom::WILDCARD_STRING.c_str()
+                                              : named_type_hash((char*) type.c_str()));
         for (unsigned int i = 1; i <= ARITY; i++) {
             // It's safe to get stored shared_ptr's raw pointer here because handle_keys[]
             // is used solely in this scope so it's guaranteed that handle will not be freed.
@@ -109,7 +110,7 @@ class LinkTemplate : public Source, public LinkTemplateInterface {
                 this->handle_keys[i] =
                     dynamic_pointer_cast<Terminal>(this->target_template[i - 1])->handle.get();
             } else {
-                this->handle_keys[i] = (char*) AtomDB::WILDCARD.c_str();
+                this->handle_keys[i] = (char*) Atom::WILDCARD_STRING.c_str();
                 this->inner_template.push_back(this->target_template[i - 1]);
             }
         }
@@ -412,7 +413,7 @@ class LinkTemplate : public Source, public LinkTemplateInterface {
                 unsigned int target_cursor = 0;
                 for (unsigned int i = 0; i < arity; i++) {
                     // Note to reviewer: pointer comparison is correct here
-                    if (this->handle_keys[i + 1] == (char*) AtomDB::WILDCARD.c_str()) {
+                    if (this->handle_keys[i + 1] == (char*) Atom::WILDCARD_STRING.c_str()) {
                         if (target_cursor > this->inner_answers[cursor]->handles_size) {
                             Utils::error("Invalid query answer in inner link template match");
                         }

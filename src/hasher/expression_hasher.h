@@ -1,5 +1,4 @@
-#ifndef EXPRESSIONHASHER_H
-#define EXPRESSIONHASHER_H
+#pragma once
 
 #define JOINING_CHAR ((char) ' ')
 #define MAX_LITERAL_OR_SYMBOL_SIZE ((size_t) 10000)
@@ -11,5 +10,3 @@ char* named_type_hash(char* name);
 char* terminal_hash(char* type, char* name);
 char* expression_hash(char* type_hash, char** elements, unsigned int nelements);
 char* composite_hash(char** elements, unsigned int nelements);
-
-#endif

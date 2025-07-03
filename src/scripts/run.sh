@@ -18,7 +18,7 @@ docker run --rm \
     --workdir /opt/das \
     $ENV_VARS \
     "${IMAGE_NAME}" \
-    "src/bin/${BINARY_NAME}" "$@"
+    "bin/${BINARY_NAME}" "$@"
 
 sleep 1
 

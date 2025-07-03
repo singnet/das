@@ -8,7 +8,6 @@ namespace inference_agent {
 
 class InferenceProxy : public BaseQueryProxy {
    public:
-
     // struct Parameters {
     //     static const string UPDATE_ATTENTION_BROKER_FLAG;  // Interval for inference requests
     //     static const string MAX_ANSWERS;   // Timeout for inference requests
@@ -33,8 +32,8 @@ class InferenceProxy : public BaseQueryProxy {
      */
     void set_parameter(const string& key, const PropertyValue& value);
 
-    private:
+   private:
     mutex api_mutex;
 };
 
-} // namespace inference_agent
+}  // namespace inference_agent
