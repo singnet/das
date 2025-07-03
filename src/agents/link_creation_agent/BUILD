@@ -11,9 +11,9 @@ cc_library(
         "LinkCreationRequestProcessor.h",
     ],
     deps = [
-        "//service_bus:service_bus_lib",
-        "//agents:agents_lib",
         ":link_creation_agent",
+        "//agents:agents_lib",
+        "//service_bus:service_bus_lib",
     ],
 )
 
@@ -35,15 +35,13 @@ cc_library(
         ":link_create_template",
         ":link_creation_db_helper",
         ":processors",
-        ":service",
         ":request_proxy",
+        ":service",
         "//agents/query_engine:query_engine_lib",
         "//distributed_algorithm_node:distributed_algorithm_node_lib",
         "//hasher:hasher_lib",
     ],
 )
-
-
 
 cc_library(
     name = "link",
@@ -65,8 +63,6 @@ cc_library(
         "//commons:commons_lib",
     ],
 )
-
-
 
 cc_library(
     name = "link_creation_db_helper",
@@ -116,8 +112,6 @@ cc_library(
         "//commons:commons_lib",
     ],
 )
-
-
 
 cc_library(
     name = "request_proxy",

@@ -6,23 +6,19 @@
 #include <sstream>
 
 #include "Logger.h"
-#include "Utils.h"
 #include "ServiceBusSingleton.h"
-
+#include "Utils.h"
 
 using namespace std;
 using namespace inference_agent;
 using namespace link_creation_agent;
-
 
 const std::string InferenceAgent::PROOF_OF_IMPLICATION_OR_EQUIVALENCE =
     "PROOF_OF_IMPLICATION_OR_EQUIVALENCE";
 const std::string InferenceAgent::PROOF_OF_IMPLICATION = "PROOF_OF_IMPLICATION";
 const std::string InferenceAgent::PROOF_OF_EQUIVALENCE = "PROOF_OF_EQUIVALENCE";
 
-InferenceAgent::InferenceAgent() {
-    this->agent_thread = new thread(&InferenceAgent::run, this);
-}
+InferenceAgent::InferenceAgent() { this->agent_thread = new thread(&InferenceAgent::run, this); }
 
 InferenceAgent::~InferenceAgent() {
     stop();
@@ -86,7 +82,8 @@ void InferenceAgent::stop() {
 
 void InferenceAgent::send_link_creation_request(shared_ptr<InferenceRequest> inference_request) {
     LOG_DEBUG("Sending link creation request for inference request ID: " << inference_request->get_id());
-    this->link_creation_proxy_map[inference_request->get_id()] = vector<shared_ptr<LinkCreationRequestProxy>>();
+    this->link_creation_proxy_map[inference_request->get_id()] =
+        vector<shared_ptr<LinkCreationRequestProxy>>();
     auto service_bus = ServiceBusSingleton::get_instance();
     for (auto& request_iterator : inference_request->get_requests()) {
         vector<string> request;
@@ -119,7 +116,6 @@ void InferenceAgent::send_distributed_inference_control_request(const string& cl
     LOG_DEBUG("Distributed inference control request sent");
 }
 
-
 void InferenceAgent::process_inference_request(const vector<string>& request, const string& request_id) {
     if (request.empty()) {
         Utils::error("Empty inference request");
@@ -132,8 +128,7 @@ void InferenceAgent::process_inference_request(const vector<string>& request, co
 
 void InferenceAgent::process_inference_abort_request(const string& request_id) {
     LOG_DEBUG("Processing inference abort request: " << request_id);
-    if (link_creation_proxy_map.find(request_id) !=
-        link_creation_proxy_map.end()) {
+    if (link_creation_proxy_map.find(request_id) != link_creation_proxy_map.end()) {
         send_stop_link_creation_request(request_id);
         link_creation_proxy_map.erase(request_id);
     } else {
