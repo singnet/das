@@ -48,7 +48,6 @@ void LinkCreationService::process_request(shared_ptr<PatternMatchingQueryProxy> 
                                           const string& context,
                                           const string& request_id,
                                           int max_query_answers) {
-
     auto job = [this, proxy, link_template, max_query_answers, context, request_id]() {
         shared_ptr<QueryAnswer> query_answer;
         int count = 0;

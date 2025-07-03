@@ -28,11 +28,10 @@ int main(int argc, char* argv[]) {
     signal(SIGINT, &ctrl_c_handler);
     signal(SIGTERM, &ctrl_c_handler);
     cout << "Starting inference agent server" << endl;
-    ServiceBusSingleton::init(
-        argv[1], // server_address
-        argv[2], // peer_address
-        argc > 3 ? Utils::string_to_int(argv[3]) : 64000, // start_port
-        argc > 4 ? Utils::string_to_int(argv[4]) : 64999 // end_port
+    ServiceBusSingleton::init(argv[1],                                           // server_address
+                              argv[2],                                           // peer_address
+                              argc > 3 ? Utils::string_to_int(argv[3]) : 64000,  // start_port
+                              argc > 4 ? Utils::string_to_int(argv[4]) : 64999   // end_port
     );
     auto service_bus = ServiceBusSingleton::get_instance();
     service_bus->register_processor(make_shared<InferenceProcessor>());

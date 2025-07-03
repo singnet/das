@@ -1,4 +1,5 @@
 #include "LCALink.h"
+
 #include "Logger.h"
 
 using namespace link_creation_agent;
