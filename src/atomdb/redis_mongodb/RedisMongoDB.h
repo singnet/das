@@ -23,7 +23,7 @@ using namespace std;
 
 namespace atomdb {
 
-enum MONGODB_FIELD { ID = 0, TARGETS, size };
+enum MONGODB_FIELD { ID = 0, NAME, TARGETS, size };
 
 class RedisMongoDB : public AtomDB {
    public:
@@ -46,14 +46,15 @@ class RedisMongoDB : public AtomDB {
         MONGODB_COLLECTION_NAME = "atoms";
         MONGODB_FIELD_NAME[MONGODB_FIELD::ID] = "_id";
         MONGODB_FIELD_NAME[MONGODB_FIELD::TARGETS] = "targets";
+        MONGODB_FIELD_NAME[MONGODB_FIELD::NAME] = "name";
         MONGODB_CHUNK_SIZE = 1000;
     }
 
     // HandleDecoder interface
     shared_ptr<Atom> get_atom(const string& handle);
 
-    shared_ptr<atomdb_api_types::HandleSet> query_for_pattern(
-        const LinkTemplateInterface& link_template);
+    virtual shared_ptr<atomdb_api_types::HandleSet> query_for_pattern(
+        const LinkTemplateInterface& link_template) override;
 
     shared_ptr<atomdb_api_types::HandleList> query_for_targets(const string& handle);
 
@@ -72,6 +73,8 @@ class RedisMongoDB : public AtomDB {
 
     bool delete_atom(const string& handle);
     uint delete_atoms(const vector<string>& handles);
+
+    mongocxx::pool* get_mongo_pool() const { return mongodb_pool; }
 
    private:
     bool cluster_flag;

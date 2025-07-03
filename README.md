@@ -169,7 +169,7 @@ make mork-loader FILE="path/to/metta_file.metta"
 in */src/main/query_engine_main.cc* change line 32 to
 
 ```cpp
-AtomDBSingleton::init(atomdb_api_types::ATOMDB_TYPE::MORK_MONGODB);
+AtomDBSingleton::init(atomdb_api_types::ATOMDB_TYPE::MORKDB);
 ```
 
 Now you can load Attention Broker, Query Agent and run a query

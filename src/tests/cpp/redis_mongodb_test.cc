@@ -72,6 +72,7 @@ class LinkTemplateHandle : public LinkTemplateInterface {
     LinkTemplateHandle(const char* handle) : handle(handle) {}
 
     const char* get_handle() const override { return this->handle; }
+    string get_metta_expression() const override { return ""; }
 
    private:
     const char* handle;
