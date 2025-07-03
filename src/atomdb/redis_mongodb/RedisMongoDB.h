@@ -64,14 +64,18 @@ class RedisMongoDB : public AtomDB {
     bool link_exists(const string& link_handle);
     set<string> links_exist(const vector<string>& link_handles);
 
-    string add_node(const atoms::Node* node);
-    vector<string> add_nodes(const vector<atoms::Node*>& nodes);
+   protected:
+    string add_node(const atoms::Node* node) override;
+    vector<string> add_nodes(const vector<atoms::Node*>& nodes) override;
 
-    string add_link(const atoms::Link* link);
-    vector<string> add_links(const vector<atoms::Link*>& links);
+    bool delete_node(const string& handle) override;
+    uint delete_nodes(const vector<string>& handles) override;
 
-    bool delete_atom(const string& handle);
-    uint delete_atoms(const vector<string>& handles);
+    string add_link(const atoms::Link* link) override;
+    vector<string> add_links(const vector<atoms::Link*>& links) override;
+
+    bool delete_link(const string& handle) override;
+    uint delete_links(const vector<string>& handles) override;
 
    private:
     bool cluster_flag;
@@ -82,6 +86,9 @@ class RedisMongoDB : public AtomDB {
     void redis_setup();
     void mongodb_setup();
     void attention_broker_setup();
+
+    bool delete_one(const string& handle, mongocxx::collection& mongodb_collection);
+    uint delete_many(const vector<string>& handles, mongocxx::collection& mongodb_collection);
 };
 
 }  // namespace atomdb

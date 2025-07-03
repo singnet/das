@@ -102,6 +102,15 @@ class MockAtomDB : public AtomDB {
         return link->handle();
     }
 
+    vector<string> add_nodes(const vector<atoms::Node*>& nodes) override { return {}; }
+    vector<string> add_links(const vector<atoms::Link*>& links) override { return {}; }
+
+    bool delete_node(const string& handle) override { return true; }
+    uint delete_nodes(const vector<string>& handles) override { return 0; }
+
+    bool delete_link(const string& handle) override { return true; }
+    uint delete_links(const vector<string>& handles) override { return 0; }
+
     shared_ptr<Atom> get_atom(const string& handle) { return shared_ptr<Atom>(this->atoms[handle]); }
 
     void attention_broker_setup() override {}

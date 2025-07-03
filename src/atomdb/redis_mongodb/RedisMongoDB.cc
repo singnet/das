@@ -424,18 +424,25 @@ vector<string> RedisMongoDB::add_links(const vector<atoms::Link*>& links) {
     return handles;
 }
 
-bool RedisMongoDB::delete_atom(const string& handle) {
-    auto conn = this->mongodb_pool->acquire();
-    auto mongodb_collection = (*conn)[MONGODB_DB_NAME][MONGODB_COLLECTION_NAME];
+bool RedisMongoDB::delete_one(const string& handle, mongocxx::collection& mongodb_collection) {
     auto reply = mongodb_collection.delete_one(bsoncxx::v_noabi::builder::basic::make_document(
         bsoncxx::v_noabi::builder::basic::kvp(MONGODB_FIELD_NAME[MONGODB_FIELD::ID], handle)));
     return reply->deleted_count() > 0;
 }
 
-uint RedisMongoDB::delete_atoms(const vector<string>& handles) {
+bool RedisMongoDB::delete_node(const string& handle) {
     auto conn = this->mongodb_pool->acquire();
     auto mongodb_collection = (*conn)[MONGODB_DB_NAME][MONGODB_COLLECTION_NAME];
+    return delete_one(handle, mongodb_collection);
+}
 
+bool RedisMongoDB::delete_link(const string& handle) {
+    auto conn = this->mongodb_pool->acquire();
+    auto mongodb_collection = (*conn)[MONGODB_DB_NAME][MONGODB_COLLECTION_NAME];
+    return delete_one(handle, mongodb_collection);
+}
+
+uint RedisMongoDB::delete_many(const vector<string>& handles, mongocxx::collection& mongodb_collection) {
     bsoncxx::builder::basic::array handle_ids;
     for (const auto& handle : handles) {
         handle_ids.append(handle);
@@ -449,4 +456,16 @@ uint RedisMongoDB::delete_atoms(const vector<string>& handles) {
     auto filter = filter_builder.extract();
     auto reply = mongodb_collection.delete_many(filter.view());
     return reply->deleted_count();
+}
+
+uint RedisMongoDB::delete_nodes(const vector<string>& handles) {
+    auto conn = this->mongodb_pool->acquire();
+    auto mongodb_collection = (*conn)[MONGODB_DB_NAME][MONGODB_COLLECTION_NAME];
+    return delete_many(handles, mongodb_collection);
+}
+
+uint RedisMongoDB::delete_links(const vector<string>& handles) {
+    auto conn = this->mongodb_pool->acquire();
+    auto mongodb_collection = (*conn)[MONGODB_DB_NAME][MONGODB_COLLECTION_NAME];
+    return delete_many(handles, mongodb_collection);
 }

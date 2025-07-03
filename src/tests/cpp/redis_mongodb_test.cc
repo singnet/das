@@ -300,14 +300,14 @@ TEST_F(RedisMongoDBTest, AddAndDeleteNode) {
     // Check if node exists, if so, delete it
     auto node_document = db->get_atom_document(node_handle);
     if (node_document != nullptr) {
-        auto deleted = db->delete_atom(node_handle.c_str());
+        auto deleted = db->delete_atom<Node>(node_handle);
         EXPECT_TRUE(deleted);
     }
 
-    auto handle = db->add_node(node);
+    auto handle = db->add_atom<Node>(node);
     EXPECT_NE(handle, "");
 
-    auto deleted = db->delete_atom(handle);
+    auto deleted = db->delete_atom<Node>(handle);
     EXPECT_TRUE(deleted);
 }
 
@@ -317,13 +317,13 @@ TEST_F(RedisMongoDBTest, AddAndDeleteNodes) {
         nodes.push_back(new Node("Symbol", "add-nodes-" + to_string(i)));
     }
 
-    auto handles = db->add_nodes(nodes);
+    auto handles = db->add_atoms<Node>(nodes);
     EXPECT_EQ(handles.size(), 10);
 
     auto nodes_documents = db->get_atom_documents(handles, {"_id"});
     EXPECT_EQ(nodes_documents.size(), 10);
 
-    auto deleted = db->delete_atoms(handles);
+    auto deleted = db->delete_atoms<Node>(handles);
     EXPECT_EQ(deleted, 10);
 
     auto nodes_documents_after_delete = db->get_atom_documents(handles, {"_id"});
@@ -343,8 +343,8 @@ TEST_F(RedisMongoDBTest, AddAndDeleteLink) {
     auto test_1_node = decoder.add_atom(make_shared<Node>(symbol, "\"test-1\""));
     auto test_2_node = decoder.add_atom(make_shared<Node>(symbol, "\"test-2\""));
 
-    auto test_1_node_handle = db->add_node((Node*) test_1_node.get());
-    auto test_2_node_handle = db->add_node((Node*) test_2_node.get());
+    auto test_1_node_handle = db->add_atom<Node>((Node*) test_1_node.get());
+    auto test_2_node_handle = db->add_atom<Node>((Node*) test_2_node.get());
 
     auto link = new Link("Expression",
                          {similarity_node->handle(), test_1_node->handle(), test_2_node->handle()},
@@ -353,18 +353,18 @@ TEST_F(RedisMongoDBTest, AddAndDeleteLink) {
     auto link_handle = link->handle();
 
     // Check if link exists, if so, delete it
-    auto link_exists = db->link_exists(link_handle.c_str());
+    auto link_exists = db->link_exists(link_handle);
     if (link_exists) {
-        auto deleted = db->delete_atom(link_handle.c_str());
+        auto deleted = db->delete_atom<Link>(link_handle);
         EXPECT_TRUE(deleted);
     }
 
-    auto handle = db->add_link(link);
+    auto handle = db->add_atom<Link>(link);
     EXPECT_NE(handle, "");
 
-    EXPECT_TRUE(db->delete_atom(handle));
-    EXPECT_TRUE(db->delete_atom(test_1_node_handle));
-    EXPECT_TRUE(db->delete_atom(test_2_node_handle));
+    EXPECT_TRUE(db->delete_atom<Link>(handle));
+    EXPECT_TRUE(db->delete_atom<Node>(test_1_node_handle));
+    EXPECT_TRUE(db->delete_atom<Node>(test_2_node_handle));
 }
 
 TEST_F(RedisMongoDBTest, AddAndDeleteLinks) {
@@ -376,25 +376,25 @@ TEST_F(RedisMongoDBTest, AddAndDeleteLinks) {
         auto similarity_node = decoder.add_atom(make_shared<Node>("Symbol", "Similarity"));
         auto test_1_node = decoder.add_atom(make_shared<Node>("Symbol", "add-links-1-" + to_string(i)));
         auto test_2_node = decoder.add_atom(make_shared<Node>("Symbol", "add-links-2-" + to_string(i)));
-        test_node_handles.push_back(db->add_node((Node*) test_1_node.get()));
-        test_node_handles.push_back(db->add_node((Node*) test_2_node.get()));
+        test_node_handles.push_back(db->add_atom<Node>((Node*) test_1_node.get()));
+        test_node_handles.push_back(db->add_atom<Node>((Node*) test_2_node.get()));
         links.push_back(new Link(
             "Expression", {similarity_node->handle(), test_1_node->handle(), test_2_node->handle()}));
     }
 
-    auto handles = db->add_links(links);
+    auto handles = db->add_atoms<Link>(links);
     EXPECT_EQ(handles.size(), 10);
 
     auto links_exist = db->links_exist(handles);
     EXPECT_EQ(links_exist.size(), 10);
 
-    auto deleted = db->delete_atoms(handles);
+    auto deleted = db->delete_atoms<Link>(handles);
     EXPECT_EQ(deleted, 10);
 
     auto links_exist_after_delete = db->links_exist(handles);
     EXPECT_EQ(links_exist_after_delete.size(), 0);
     for (const string& handle : test_node_handles) {
-        EXPECT_TRUE(db->delete_atom(handle));
+        EXPECT_TRUE(db->delete_atom<Node>(handle));
     }
 }
 

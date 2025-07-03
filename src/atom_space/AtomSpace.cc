@@ -129,9 +129,9 @@ void AtomSpace::commit_changes(Scope scope) {
     auto commit_changes_visit_lambda = [](HandleTrie::TrieNode* trie_node, void* user_data) -> bool {
         auto db = static_cast<AtomDB*>(user_data);
         if (const auto node = dynamic_cast<const Node*>(trie_node->value)) {
-            db->add_node(node);
+            db->add_atom<Node>(node);
         } else if (const auto link = dynamic_cast<const Link*>(trie_node->value)) {
-            db->add_link(link);
+            db->add_atom<Link>(link);
         } else {
             Utils::error("Unsupported Atom type for commit: " + trie_node->to_string());
             return true;  // Unsupported type, cannot commit
