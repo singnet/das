@@ -48,14 +48,14 @@ int main(int argc, char* argv[]) {
     // check if argv[4] is a number which is the max number of query answers
     // if not, set it to MAX_QUERY_ANSWERS
     int max_query_answers = 0;
-    size_t tokens_start_position = 4;
+    size_t tokens_start_position = 5;
     try {
-        max_query_answers = stol(argv[4]);
+        max_query_answers = stol(argv[5]);
         if (max_query_answers <= 0) {
             cout << "max_query_answers cannot be 0 or negative" << endl;
             exit(1);
         }
-        tokens_start_position = 5;
+        tokens_start_position = 6;
     } catch (const exception& e) {
         max_query_answers = MAX_QUERY_ANSWERS;
     }
