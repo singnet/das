@@ -8,6 +8,7 @@ cc_library(
         "MettaMapping.cc",
         "SharedQueue.cc",
         "StoppableThread.cc",
+        "Assignment.cc",
         "Utils.cc",
     ],
     hdrs = [
@@ -19,6 +20,7 @@ cc_library(
         "Stoppable.h",
         "StoppableThread.h",
         "ThreadPool.h",
+        "Assignment.h",
         "Utils.h",
     ],
     includes = ["."],

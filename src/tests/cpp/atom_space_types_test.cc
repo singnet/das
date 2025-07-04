@@ -101,6 +101,8 @@ TEST(LinkTest, LinkWithCustomAttributes) {
 
 TEST(WildcardTest, Wildcards) {
     TestDecoder db;
+    string symbol = MettaMapping::SYMBOL_NODE_TYPE;
+    string expression = MettaMapping::EXPRESSION_LINK_TYPE;
     UntypedVariable v1("v1");
     UntypedVariable v2("v2");
     UntypedVariable v3 = v1;
@@ -123,6 +125,15 @@ TEST(WildcardTest, Wildcards) {
     EXPECT_NO_THROW(v4.to_string());
 
     EXPECT_EQ(v1.schema_handle(), Atom::WILDCARD_STRING);
+
+    LinkSchema schema(expression, 3);
+    schema.stack_untyped_variable("v1");
+    schema.stack_node(symbol, "n1");
+    schema.stack_link_schema(expression, 2);
+    schema.stack_untyped_variable("v2");
+    schema.stack_node(symbol, "n2");
+    schema.build();
+    EXPECT_EQ(schema.metta_representation(db), "(($v1 n1) $v2 n2)");
 }
 
 TEST(WildcardTest, LinkSchema) {
@@ -130,6 +141,7 @@ TEST(WildcardTest, LinkSchema) {
     string symbol = MettaMapping::SYMBOL_NODE_TYPE;
     string expression = MettaMapping::EXPRESSION_LINK_TYPE;
 
+    cout << "1 ---------------------------------------------------------" << endl;
     LinkSchema schema1(expression, 2);
     schema1.stack_node(symbol, "n1");
     schema1.stack_node(symbol, "n2");
@@ -137,6 +149,7 @@ TEST(WildcardTest, LinkSchema) {
 
     // add metta_expression of mal-formed linkTemplate (type != expression)
 
+    cout << "2 ---------------------------------------------------------" << endl;
     LinkSchema schema2(expression, 2);
     schema2.stack_node(symbol, "n1");
     schema2.stack_untyped_variable("v1");
@@ -148,6 +161,7 @@ TEST(WildcardTest, LinkSchema) {
     EXPECT_EQ(schema2.to_string(), schema2_1.to_string());
     EXPECT_TRUE(schema2 == schema2_1);
 
+    cout << "3 ---------------------------------------------------------" << endl;
     LinkSchema schema3(expression, 3);
     schema3.stack_untyped_variable("v1");
     EXPECT_THROW(schema3.stack_link_schema(expression, 2), runtime_error);
@@ -162,6 +176,7 @@ TEST(WildcardTest, LinkSchema) {
     EXPECT_EQ(schema3.to_string(), schema3_1.to_string());
     EXPECT_TRUE(schema3 == schema3_1);
 
+    cout << "4 ---------------------------------------------------------" << endl;
     LinkSchema schema4(expression, 2);
     schema4.stack_untyped_variable("v1");
     schema4.stack_untyped_variable("v2");
@@ -173,6 +188,7 @@ TEST(WildcardTest, LinkSchema) {
     EXPECT_EQ(schema4.to_string(), schema4_1.to_string());
     EXPECT_TRUE(schema4 == schema4_1);
 
+    cout << "5 ---------------------------------------------------------" << endl;
     LinkSchema schema5(expression, 4);
     schema5.stack_untyped_variable("v1");
     schema5.stack_node(symbol, "n1");
@@ -234,6 +250,7 @@ TEST(WildcardTest, LinkSchema) {
     EXPECT_TRUE(schema5 == schema5_2);
     EXPECT_TRUE(schema5 == schema5_3);
 
+    cout << "6 ---------------------------------------------------------" << endl;
     LinkSchema schema6(expression, 2);
     schema6.stack_node(symbol, "n7");
     schema6.stack_node(symbol, "n8");
@@ -244,6 +261,7 @@ TEST(WildcardTest, LinkSchema) {
     schema6.stack_node(symbol, "n11");
     EXPECT_THROW(schema6.build(), runtime_error);
 
+    cout << "7 ---------------------------------------------------------" << endl;
     LinkSchema schema7(expression, 2);
     schema7.stack_node(symbol, "n1");
     schema7.stack_untyped_variable("v1");

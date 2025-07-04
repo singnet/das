@@ -5,8 +5,9 @@
 #include "Link.h"
 #include "Node.h"
 #include "UntypedVariable.h"
+#include "HandleDecoder.h"
 
-#define LOG_LEVEL INFO_LEVEL
+#define LOG_LEVEL DEBUG_LEVEL
 #include "Logger.h"
 
 using namespace atoms;
@@ -35,6 +36,7 @@ void LinkSchema::_init(unsigned int arity) {
     this->_composite_type.reserve(arity + 1);
     this->_composite_type.push_back(named_type_hash());
     this->_metta_representation = "(";
+    this->_schema_element.is_link = true;
 
     this->LINK_TEMPLATE = "LINK_TEMPLATE";
     this->NODE = "NODE";
@@ -134,6 +136,38 @@ string LinkSchema::metta_representation(HandleDecoder& decoder) const {
 
 unsigned int LinkSchema::arity() const { return this->_arity; }
 
+bool LinkSchema::SchemaElement::match(const string& handle, Assignment& assignment, HandleDecoder& decoder, Atom* atom_ptr) {
+    if (this->is_link) {
+        if (atom_ptr == NULL) {
+            atom_ptr = decoder.get_atom(handle).get();
+        }
+        if (Atom::is_link(*atom_ptr)) {
+            unsigned int cursor = 0;
+            for (string target_handle: ((Link*) atom_ptr)->targets) {
+                if (! this->targets[cursor++].match(target_handle, assignment, decoder, NULL)) {
+                    return false;
+                }
+            }
+            return true;
+        } else {
+            return false;
+        }
+    } else if (this->is_wildcard) {
+        return assignment.assign(this->name.c_str(), handle.c_str());
+    } else {
+        // is node
+        return (this->handle == handle);
+    }
+}
+
+bool LinkSchema::match(Link& link, Assignment& assignment, HandleDecoder& decoder) {
+    return this->_schema_element.match("", assignment, decoder, &link);
+}
+
+bool LinkSchema::match(const string& handle, Assignment& assignment, HandleDecoder& decoder) {
+    return this->_schema_element.match(handle, assignment, decoder, NULL);
+}
+
 // -------------------------------------------------------------------------------------------------
 // Public API to build LinkSchema objects
 
@@ -160,21 +194,30 @@ void LinkSchema::add_target(const string& schema_handle,
 }
 
 void LinkSchema::stack_node(const string& type, const string& name) {
+    LOG_DEBUG("            STACK NODE: " + type + " " + name);
     if (!_check_not_frozen()) {
-        tuple<string, string, string> triplet(
-            Hasher::node_handle(type, name), Hasher::type_handle(type), name);
+        string node_handle = Hasher::node_handle(type, name);
+        tuple<string, string, string> triplet(node_handle, Hasher::type_handle(type), name);
         this->_atom_stack.push_back(triplet);
         this->_build_tokens.push_back({NODE, type, name});
+        SchemaElement node_element;
+        node_element.handle = node_handle;
+        this->_schema_element_stack.push(node_element);
     }
 }
 
 void LinkSchema::stack_untyped_variable(const string& name) {
+    LOG_DEBUG("STACK UNTYPED_VARIABLE: " + name);
     if (!_check_not_frozen()) {
         UntypedVariable variable(name);
-        tuple<string, string, string> triplet(
-            variable.schema_handle(), variable.named_type_hash(), "$" + name);
+        string variable_handle = variable.schema_handle();
+        tuple<string, string, string> triplet(variable_handle, variable.named_type_hash(), "$" + name);
         this->_atom_stack.push_back(triplet);
         this->_build_tokens.push_back({UNTYPED_VARIABLE, name});
+        SchemaElement variable_element;
+        variable_element.is_wildcard = true;
+        variable_element.name = name;
+        this->_schema_element_stack.push(variable_element);
     }
 }
 
@@ -193,11 +236,13 @@ void LinkSchema::_stack_link_schema(const string& type,
         bool first = true;
         for (int i = link_arity - 1; i >= 0; i--) {
             tuple<string, string, string> triplet = this->_atom_stack.back();
+            SchemaElement schema_element = this->_schema_element_stack.top();
             if (is_link && (get<0>(triplet) == Atom::WILDCARD_STRING)) {
                 Utils::error("Invalid wildcard in Link");
             }
             target_handles.insert(target_handles.begin(), get<0>(triplet));
             composite_type.insert(composite_type.begin(), get<1>(triplet));
+            this->_schema_element.targets.insert(this->_schema_element.targets.begin(), schema_element);
             if (first) {
                 metta_expression = get<2>(triplet) + ")";
                 first = false;
@@ -205,6 +250,7 @@ void LinkSchema::_stack_link_schema(const string& type,
                 metta_expression = get<2>(triplet) + " " + metta_expression;
             }
             this->_atom_stack.pop_back();
+            this->_schema_element_stack.pop();
         }
         metta_expression = "(" + metta_expression;
         // TODO check for invalid MeTTa expressions (e.g. invalid node/link types)
@@ -220,6 +266,7 @@ void LinkSchema::_stack_link_schema(const string& type,
         }
         this->_build_tokens.erase(this->_build_tokens.end() - link_arity, this->_build_tokens.end());
         this->_build_tokens.push_back(new_element);
+        this->_schema_element_stack.push(this->_schema_element);
     } else {
         Utils::error("Couldn't stack link. Link arity: " + std::to_string(link_arity) +
                      " stack size: " + std::to_string(this->_atom_stack.size()));
@@ -227,10 +274,12 @@ void LinkSchema::_stack_link_schema(const string& type,
 }
 
 void LinkSchema::stack_link(const string& type, unsigned int link_arity) {
+    LOG_DEBUG("            STACK LINK: " + type + " " + std::to_string(link_arity));
     _stack_link_schema(type, link_arity, true);
 }
 
 void LinkSchema::stack_link_schema(const string& type, unsigned int link_arity) {
+    LOG_DEBUG("     STACK LINK_SCHEMA: " + type + " " + std::to_string(link_arity));
     _stack_link_schema(type, link_arity, false);
 }
 
@@ -248,6 +297,7 @@ void LinkSchema::build() {
         for (unsigned int i = 0; i < this->_build_tokens.size(); i++) {
             this->_tokens.insert(this->_tokens.end(), this->_build_tokens[i].begin(), this->_build_tokens[i].end());
         }
+        this->_build_tokens.clear();
     }
 }
 

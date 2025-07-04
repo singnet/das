@@ -1,12 +1,26 @@
 #pragma once
 
 #include <stack>
+#include "Node.h"
 #include "Wildcard.h"
+#include "Link.h"
+#include "Assignment.h"
 
 namespace atoms {
 
 class LinkSchema : public Wildcard {
    private:
+    class SchemaElement {
+       public:
+        string handle;
+        string name;
+        vector<SchemaElement> targets;
+        bool is_link;
+        bool is_wildcard;
+        SchemaElement() : is_link(false), is_wildcard(false) {}
+        bool match(const string& handle, Assignment& assignment, HandleDecoder& decoder, Atom* atom_ptr);
+
+    };
     bool _frozen;
     unsigned int _arity;
     vector<string> _schema;
@@ -17,6 +31,8 @@ class LinkSchema : public Wildcard {
     vector<string> _tokens;
     vector<vector<string>> _build_tokens;
     vector<tuple<string, string, string>> _atom_stack;
+    stack<SchemaElement> _schema_element_stack;
+    SchemaElement _schema_element;
 
     void _init(unsigned int arity);
     bool _check_frozen() const;
@@ -127,6 +143,9 @@ class LinkSchema : public Wildcard {
      */
     unsigned int arity() const;
 
+    bool match(Link& link, Assignment& assignment, HandleDecoder& decoder);
+    bool match(const string& handle, Assignment& assignment, HandleDecoder& decoder);
+
     // ---------------------------------------------------------------------------------------------
     // Public API to build LinkSchema objects
 
@@ -145,8 +164,11 @@ class LinkSchema : public Wildcard {
     void build();
 
     const vector<string>& tokens();
+
     vector<string> tokenize();
+
     void tokenize(vector<string> output);
+
     void untokenize(const vector<string>& tokens);
 };
 }  // namespace atoms
