@@ -2,7 +2,11 @@
 
 #include "InferenceProcessor.h"
 #include "ServiceBusSingleton.h"
+#include "FitnessFunctionRegistry.h"
+#include "AtomDBSingleton.h"
+
 using namespace inference_agent;
+using namespace atomdb;
 using namespace std;
 
 void ctrl_c_handler(int) {
@@ -27,6 +31,10 @@ int main(int argc, char* argv[]) {
     signal(SIGINT, &ctrl_c_handler);
     signal(SIGTERM, &ctrl_c_handler);
     cout << "Starting inference agent server" << endl;
+    // Initialize the AtomDB singleton
+    AtomDBSingleton::init();
+    // Initialize the FitnessFunctionRegistry
+    FitnessFunctionRegistry::initialize_statics();
     auto [start_port, end_port] = Utils::parse_ports_range(argv[3]);
     ServiceBusSingleton::init(argv[1],     // server_address
                               argv[2],     // peer_address

@@ -4,7 +4,7 @@
 
 #include <fstream>
 #include <sstream>
-
+#define LOG_LEVEL DEBUG_LEVEL
 #include "Logger.h"
 #include "ServiceBusSingleton.h"
 #include "Utils.h"
@@ -64,7 +64,7 @@ void InferenceAgent::run() {
             try {
                 auto inference_request = inference_request_queue.dequeue();
                 send_link_creation_request(inference_request);
-                send_distributed_inference_control_request(inference_request->get_id());
+                send_distributed_inference_control_request(inference_request);
                 inference_timeout_map[inference_request->get_id()] =
                     (Utils::get_current_time_millis() / 1000) + inference_request->get_timeout();
             } catch (const exception& e) {
@@ -121,9 +121,14 @@ void InferenceAgent::send_link_creation_request(shared_ptr<InferenceRequest> inf
 //     }
 // }
 
-void InferenceAgent::send_distributed_inference_control_request(const string& request_id) {
+void InferenceAgent::send_distributed_inference_control_request(shared_ptr<InferenceRequest> inference_request) {
+    string request_id = inference_request->get_id();
     LOG_DEBUG("Sending distributed inference control request ID: " << request_id);
-    auto evolution_proxy = make_shared<QueryEvolutionProxy>();
+    auto evolution_request = inference_request->get_distributed_inference_control_request();
+    LOG_DEBUG("Distributed inference control request: " << Utils::join(evolution_request, ' '));
+    auto evolution_proxy = make_shared<QueryEvolutionProxy>( evolution_request,
+                                                            "count_letter",
+                                                            inference_request->get_context());
     ServiceBusSingleton::get_instance()->issue_bus_command(evolution_proxy);
     evolution_proxy_map[request_id] = evolution_proxy;
     LOG_DEBUG("Distributed inference control request sent");

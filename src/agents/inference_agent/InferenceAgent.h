@@ -81,7 +81,7 @@ class InferenceAgent {
      * @brief Send stop link creation request to the link creation agent.
      * @param request_id The inference request to be sent to the link creation agent.
      */
-    void send_distributed_inference_control_request(const string& request_id);
+    void send_distributed_inference_control_request(shared_ptr<InferenceRequest> inference_request);
     // /**
     //  * @brief Send stop link creation request to the link creation agent.
     //  * @param inference_request The inference request to be sent to the link creation agent.

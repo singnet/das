@@ -3,6 +3,7 @@
 #include <memory>
 
 #include "LinkCreateTemplate.h"
+#include "LinkCreationDBHelper.h"
 #include "Utils.h"
 
 using namespace std;
@@ -137,13 +138,34 @@ static vector<string> inference_evolution_request_builder(string first_handle,
 vector<string> InferenceRequest::get_distributed_inference_control_request() {
     vector<string> tokens;
     int size = 0;
+
     vector<string> request =
         inference_evolution_request_builder(first_handle, second_handle, max_proof_length, size);
-    tokens.push_back(this->context);
+    // tokens.push_back(this->context);
     tokens.push_back("OR");
     tokens.push_back(to_string(size));
-    for (auto token : request) {
-        tokens.push_back(token);
+    // for (auto token : request) {
+    //     tokens.push_back(token);
+    // }
+    for(int i = 0; i < request.size(); i++) {
+        if (request[i] == "HANDLE") {
+            auto atom_tokens = LinkCreateDBSingleton::get_instance()->get_atom(request[i + 1]);
+            if (holds_alternative<shared_ptr<link_creation_agent::Link>>(atom_tokens)) {
+                for (auto token : get<shared_ptr<link_creation_agent::Link>>(atom_tokens)->tokenize()) {
+                    tokens.push_back(token);
+                }
+            } else if (holds_alternative<link_creation_agent::Node>(atom_tokens)) {
+                for (auto token : get<link_creation_agent::Node>(atom_tokens).tokenize()) {
+                    tokens.push_back(token);
+                }
+            } else {
+                Utils::error("Error parsing atom: " + request[i + 1]);
+            }
+
+            i++;
+        } else {
+            tokens.push_back(request[i]);
+        }
     }
     return tokens;
 }
@@ -180,7 +202,7 @@ vector<string> ProofOfImplicationOrEquivalence::patterns_link_template() {
     // SATISFYING_SET
     LinkCreateTemplate satisfying_set_link_template = LinkCreateTemplate("Expression");
     // Node("Symbol", "SATISFYING_SET");
-    Node evaluation_node;
+    link_creation_agent::Node evaluation_node;
     evaluation_node.type = "Symbol";
     evaluation_node.value = "SATISFYING_SET";
     // Variable("P");
@@ -196,7 +218,7 @@ vector<string> ProofOfImplicationOrEquivalence::patterns_link_template() {
     // PATTERNS
     LinkCreateTemplate patterns_link_template = LinkCreateTemplate("Expression");
     // Node("Symbol", "PATTERNS");
-    Node patterns_node;
+    link_creation_agent::Node patterns_node;
     patterns_node.type = "Symbol";
     patterns_node.value = "PATTERNS";
     // Variable("C");
