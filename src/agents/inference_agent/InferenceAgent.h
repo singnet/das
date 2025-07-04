@@ -22,10 +22,12 @@
 #include "InferenceRequestValidator.h"
 #include "LCAQueue.h"
 #include "LinkCreationRequestProxy.h"
-#include "ThreadPool.h"
+#include "QueryEvolutionProxy.h"
 
 using namespace distributed_algorithm_node;
 using namespace link_creation_agent;
+using namespace evolution;
+using namespace std;
 
 namespace inference_agent {
 class InferenceAgent {
@@ -50,7 +52,11 @@ class InferenceAgent {
      * @param inference_request The inference request to be processed.
      */
     void process_inference_request(const vector<string>& request, const string& request_id);
-
+    /**
+     * @brief Process inference request.
+     * @param proxy The inference proxy to be processed.
+     */
+    void process_inference_request(shared_ptr<InferenceProxy> proxy);
     /**
      * @brief Process inference abort request.
      * @param request_id The inference request to be processed.
@@ -64,16 +70,16 @@ class InferenceAgent {
      * @param is_stop_request Whether the request is a stop request.
      */
     void send_link_creation_request(shared_ptr<InferenceRequest> inference_request);
+    // /**
+    //  * @brief Send stop link creation request to the link creation agent.
+    //  * @param inference_request The inference request to be sent to the link creation agent.
+    //  */
+    // void send_stop_link_creation_request(const string& request_id);
     /**
      * @brief Send stop link creation request to the link creation agent.
-     * @param inference_request The inference request to be sent to the link creation agent.
+     * @param request_id The inference request to be sent to the link creation agent.
      */
-    void send_stop_link_creation_request(const string& request_id);
-    /**
-     * @brief Send stop link creation request to the link creation agent.
-     * @param inference_request The inference request to be sent to the link creation agent.
-     */
-    void send_distributed_inference_control_request(const std::string& client_node_id);
+    void send_distributed_inference_control_request(shared_ptr<InferenceRequest> inference_request);
     // /**
     //  * @brief Send stop link creation request to the link creation agent.
     //  * @param inference_request The inference request to be sent to the link creation agent.
@@ -93,19 +99,20 @@ class InferenceAgent {
     shared_ptr<InferenceRequest> build_inference_request(const vector<string>& request);
     // Private variables
     InferenceRequestValidator inference_request_validator;
-    std::vector<std::string> get_link_creation_request();
+    vector<string> get_link_creation_request();
     int max_proof_length_limit = 10;
     thread* agent_thread = nullptr;
     bool is_stoping = false;
-    std::mutex agent_mutex;
-    std::unordered_map<std::string, std::shared_ptr<InferenceRequest>>
-        iterator_link_creation_request_map;  // iterator_id, link_creation_request
+    mutex agent_mutex;
     unsigned long long inference_request_id = 0;
     Queue<shared_ptr<InferenceRequest>> inference_request_queue;
     unordered_map<string, vector<shared_ptr<LinkCreationRequestProxy>>> link_creation_proxy_map;
+    unordered_map<string, shared_ptr<QueryEvolutionProxy>> evolution_proxy_map;
+    unordered_map<string, shared_ptr<InferenceProxy>> inference_proxy_map;
+    unordered_map<string, unsigned long long> inference_timeout_map;
 
-    static const std::string PROOF_OF_IMPLICATION_OR_EQUIVALENCE;
-    static const std::string PROOF_OF_IMPLICATION;
-    static const std::string PROOF_OF_EQUIVALENCE;
+    static const string PROOF_OF_IMPLICATION_OR_EQUIVALENCE;
+    static const string PROOF_OF_IMPLICATION;
+    static const string PROOF_OF_EQUIVALENCE;
 };
 }  // namespace inference_agent

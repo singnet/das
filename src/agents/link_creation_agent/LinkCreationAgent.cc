@@ -92,6 +92,7 @@ void LinkCreationAgent::run() {
             LOG_DEBUG("Current size of request buffer: " << request_buffer.size());
             shared_ptr<PatternMatchingQueryProxy> proxy =
                 query(lca_request->query, lca_request->context, lca_request->update_attention_broker);
+            pattern_query_proxy_map[lca_request->id] = proxy;
 
             service->process_request(proxy,
                                      lca_request->link_template,
@@ -106,6 +107,12 @@ void LinkCreationAgent::run() {
             if (request_buffer.find(lca_request->id) != request_buffer.end()) {
                 LOG_DEBUG("Removing request ID: " << lca_request->id);
                 request_buffer.erase(lca_request->id);
+            }
+        }
+        for (auto& [request_id, proxy] : link_creation_proxy_map) {
+            if (proxy->is_aborting()) {
+                abort_request(request_id);
+                link_creation_proxy_map.erase(request_id);
             }
         }
     }
@@ -206,6 +213,19 @@ void LinkCreationAgent::process_request(vector<string> request) {
     this->requests_queue.enqueue(create_request(request));
 }
 
+void LinkCreationAgent::process_request(shared_ptr<LinkCreationRequestProxy> proxy) {
+    if (proxy == nullptr) {
+        Utils::error("Invalid link creation request proxy");
+    }
+    LOG_DEBUG("Processing link creation request: " << Utils::join(proxy->get_args(), ' '));
+    string request_id = proxy->peer_id() + to_string(proxy->get_serial());
+    auto request = proxy->get_args();
+    request.push_back(request_id);
+    process_request(request);
+    link_creation_proxy_map[request_id] = proxy;
+    LOG_DEBUG("Link creation request processed for request ID: " << request_id);
+}
+
 void LinkCreationAgent::abort_request(const string& request_id) {
     lock_guard<mutex> lock(agent_mutex);
     string request_id_hash = compute_hash((char*) request_id.c_str());
@@ -215,4 +235,6 @@ void LinkCreationAgent::abort_request(const string& request_id) {
     } else {
         LOG_DEBUG("Request ID: " << request_id_hash << " not found in buffer");
     }
+    pattern_query_proxy_map[request_id_hash]->abort();
+    pattern_query_proxy_map.erase(request_id_hash);
 }

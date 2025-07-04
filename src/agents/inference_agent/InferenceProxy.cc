@@ -3,9 +3,9 @@
 #include "ServiceBus.h"
 
 using namespace inference_agent;
-InferenceProxy::InferenceProxy() : BaseProxy() {}
+InferenceProxy::InferenceProxy() : BaseQueryProxy() {}
 
-InferenceProxy::InferenceProxy(const vector<string>& tokens) : BaseProxy() {
+InferenceProxy::InferenceProxy(const vector<string>& tokens) : BaseQueryProxy() {
     lock_guard<mutex> semaphore(this->api_mutex);
     this->command = ServiceBus::INFERENCE;
     this->args.insert(this->args.end(), tokens.begin(), tokens.end());
