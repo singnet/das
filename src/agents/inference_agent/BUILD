@@ -26,8 +26,8 @@ cc_library(
     deps = [
         ":inference_proxy",
         ":inference_request",
-        "//agents/link_creation_agent:link_creation_agent_lib",
         "//agents/evolution:evolution_lib",
+        "//agents/link_creation_agent:link_creation_agent_lib",
         "//atomdb",
         "//atomdb:atomdb_api_types",
         "//atomdb:atomdb_singleton",

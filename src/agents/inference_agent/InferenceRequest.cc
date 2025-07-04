@@ -37,11 +37,8 @@ string InferenceRequest::get_type() { return "INFERENCE_REQUEST"; }
 
 string InferenceRequest::get_max_proof_length() { return to_string(max_proof_length); }
 
-void InferenceRequest::set_timeout(unsigned long long timeout) {
-    this->timeout = timeout;
-}
+void InferenceRequest::set_timeout(unsigned long long timeout) { this->timeout = timeout; }
 unsigned long long InferenceRequest::get_timeout() { return timeout; }
-
 
 template <typename T>
 static vector<vector<T>> product(const vector<T>& iterable, size_t repeat) {
@@ -147,7 +144,7 @@ vector<string> InferenceRequest::get_distributed_inference_control_request() {
     // for (auto token : request) {
     //     tokens.push_back(token);
     // }
-    for(int i = 0; i < request.size(); i++) {
+    for (int i = 0; i < request.size(); i++) {
         if (request[i] == "HANDLE") {
             auto atom_tokens = LinkCreateDBSingleton::get_instance()->get_atom(request[i + 1]);
             if (holds_alternative<shared_ptr<link_creation_agent::Link>>(atom_tokens)) {

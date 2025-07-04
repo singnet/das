@@ -90,7 +90,6 @@ class InferenceRequest {
     string max_answers;
     string update_attention_broker;
     unsigned long long timeout = 10 * 60;  // Default timeout is 10 minutes
-
 };
 
 class ProofOfImplicationOrEquivalence : public InferenceRequest {

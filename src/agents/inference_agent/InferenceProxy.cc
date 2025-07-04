@@ -3,8 +3,7 @@
 #include "ServiceBus.h"
 
 using namespace inference_agent;
-InferenceProxy::InferenceProxy() : BaseQueryProxy() {
-}
+InferenceProxy::InferenceProxy() : BaseQueryProxy() {}
 
 InferenceProxy::InferenceProxy(const vector<string>& tokens) : BaseQueryProxy() {
     lock_guard<mutex> semaphore(this->api_mutex);

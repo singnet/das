@@ -1,9 +1,9 @@
 #include <signal.h>
 
+#include "AtomDBSingleton.h"
+#include "FitnessFunctionRegistry.h"
 #include "InferenceProcessor.h"
 #include "ServiceBusSingleton.h"
-#include "FitnessFunctionRegistry.h"
-#include "AtomDBSingleton.h"
 
 using namespace inference_agent;
 using namespace atomdb;

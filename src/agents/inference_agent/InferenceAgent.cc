@@ -121,14 +121,14 @@ void InferenceAgent::send_link_creation_request(shared_ptr<InferenceRequest> inf
 //     }
 // }
 
-void InferenceAgent::send_distributed_inference_control_request(shared_ptr<InferenceRequest> inference_request) {
+void InferenceAgent::send_distributed_inference_control_request(
+    shared_ptr<InferenceRequest> inference_request) {
     string request_id = inference_request->get_id();
     LOG_DEBUG("Sending distributed inference control request ID: " << request_id);
     auto evolution_request = inference_request->get_distributed_inference_control_request();
     LOG_DEBUG("Distributed inference control request: " << Utils::join(evolution_request, ' '));
-    auto evolution_proxy = make_shared<QueryEvolutionProxy>( evolution_request,
-                                                            "count_letter",
-                                                            inference_request->get_context());
+    auto evolution_proxy = make_shared<QueryEvolutionProxy>(
+        evolution_request, "count_letter", inference_request->get_context());
     ServiceBusSingleton::get_instance()->issue_bus_command(evolution_proxy);
     evolution_proxy_map[request_id] = evolution_proxy;
     LOG_DEBUG("Distributed inference control request sent");

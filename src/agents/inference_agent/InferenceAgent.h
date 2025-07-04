@@ -23,13 +23,11 @@
 #include "LCAQueue.h"
 #include "LinkCreationRequestProxy.h"
 #include "QueryEvolutionProxy.h"
-#include "LCAQueue.h"
 
 using namespace distributed_algorithm_node;
 using namespace link_creation_agent;
 using namespace evolution;
 using namespace std;
-
 
 namespace inference_agent {
 class InferenceAgent {
