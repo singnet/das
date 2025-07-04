@@ -22,7 +22,8 @@ shared_ptr<LinkCreateDBSingleton> LinkCreateDBSingleton::get_instance() {
 
 LinkTargetTypes LinkCreateDBSingleton::get_atom(string handle) {
     shared_ptr<AtomDB> atom_db = AtomDBSingleton::get_instance();
-    auto atom = atom_db->get_atom_document(handle.c_str());
+    // TODO(arturgontijo): Must cover Link case too.
+    auto atom = atom_db->get_atom_document<atoms::Node>(handle);
     if (atom->contains("name")) {
         Node node;
         node.type = atom->get("named_type");

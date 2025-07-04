@@ -19,9 +19,9 @@ float CountLetterFunction::eval(shared_ptr<QueryAnswer> query_answer) {
         shared_ptr<atomdb_api_types::AtomDocument> sentence_name_document;
         const char* handle;
         handle = query_answer->assignment.get(VARIABLE_NAME);
-        sentence_document = db->get_atom_document(handle);
+        sentence_document = db->get_atom_document<atoms::Link>(handle);
         handle = sentence_document->get("targets", 1);
-        sentence_name_document = db->get_atom_document(handle);
+        sentence_name_document = db->get_atom_document<atoms::Node>(handle);
         const char* sentence_name = sentence_name_document->get("name");
         unsigned int count = 0;
         unsigned int sentence_length = 0;

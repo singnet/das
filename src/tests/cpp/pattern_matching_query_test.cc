@@ -13,7 +13,8 @@ using namespace atomdb;
 
 string handle_to_atom(const string& handle) {
     shared_ptr<AtomDB> db = AtomDBSingleton::get_instance();
-    shared_ptr<atomdb_api_types::AtomDocument> document = db->get_atom_document(handle);
+    // TODO(arturgontijo): Must cover Node case too (?).
+    shared_ptr<atomdb_api_types::AtomDocument> document = db->get_atom_document<atoms::Link>(handle);
     shared_ptr<atomdb_api_types::HandleList> targets = db->query_for_targets(handle);
     string answer;
 

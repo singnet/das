@@ -52,7 +52,7 @@ string highlight(const string& s, const set<string>& highlighted) {
 
 string handle_to_atom(const string& handle) {
     shared_ptr<AtomDB> db = AtomDBSingleton::get_instance();
-    shared_ptr<atomdb_api_types::AtomDocument> document = db->get_atom_document(handle);
+    shared_ptr<atomdb_api_types::AtomDocument> document = db->get_atom_document<atoms::Link>(handle);
     shared_ptr<atomdb_api_types::HandleList> targets = db->query_for_targets(handle);
     string answer;
 
@@ -154,11 +154,11 @@ void run(const string& client_id,
             float fitness = query_answer->strength;
             // cout << string(handle) << endl;
             // cout << handle_to_atom(handle) << endl;
-            sentence_document = db->get_atom_document(handle);
+            sentence_document = db->get_atom_document<atoms::Link>(handle);
             handle = sentence_document->get("targets", 1);
             // cout << string(handle) << endl;
             // cout << handle_to_atom(handle) << endl;
-            sentence_name_document = db->get_atom_document(handle);
+            sentence_name_document = db->get_atom_document<atoms::Node>(handle);
             // cout << string(sentence_name_document->get("name")) << endl;
             set<string> to_highlight = {word_tag1, word_tag2};
             string sentence_name = string(sentence_name_document->get("name"));

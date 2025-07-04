@@ -163,7 +163,7 @@ TEST_F(RedisMongoDBTest, ConcurrentGetAtomDocument) {
 
     auto worker = [&](int thread_id) {
         try {
-            auto doc = db->get_atom_document(doc_handles[thread_id]);
+            auto doc = db->get_atom_document<Node>(doc_handles[thread_id]);
             if (doc != nullptr) {
                 success_count++;
             }
@@ -184,7 +184,7 @@ TEST_F(RedisMongoDBTest, ConcurrentGetAtomDocument) {
 
     // Test non-existing handle
     string non_existing_handle = terminal_hash((char*) "Symbol", (char*) "\"non-existing\"");
-    auto doc = db->get_atom_document(non_existing_handle);
+    auto doc = db->get_atom_document<Node>(non_existing_handle);
     EXPECT_EQ(doc, nullptr);
 }
 
@@ -200,7 +200,8 @@ TEST_F(RedisMongoDBTest, ConcurrentGetAtomDocuments) {
 
     auto worker = [&](int thread_id) {
         try {
-            auto docs = db->get_atom_documents({handle_1, handle_2, handle_3, handle_4}, {"targets"});
+            auto docs =
+                db->get_atom_documents<Link>({handle_1, handle_2, handle_3, handle_4}, {"targets"});
             if (docs.size() == 4) {
                 success_count++;
             }
@@ -221,7 +222,7 @@ TEST_F(RedisMongoDBTest, ConcurrentGetAtomDocuments) {
 
     // Test non-existing handle
     string non_existing_handle = exp_hash({"Similarity", "\"non\"", "\"existing\""});
-    auto docs = db->get_atom_documents({non_existing_handle}, {"targets"});
+    auto docs = db->get_atom_documents<Link>({non_existing_handle}, {"targets"});
     EXPECT_EQ(docs.size(), 0);
 }
 
@@ -232,7 +233,7 @@ TEST_F(RedisMongoDBTest, ConcurrentLinkExists) {
 
     auto worker = [&](int thread_id) {
         try {
-            auto link_exists = db->link_exists("68ea071c32d4dbf0a7d8e8e00f2fb823");
+            auto link_exists = db->atom_exists<Link>("68ea071c32d4dbf0a7d8e8e00f2fb823");
             ASSERT_TRUE(link_exists);
             success_count++;
         } catch (const exception& e) {
@@ -251,7 +252,7 @@ TEST_F(RedisMongoDBTest, ConcurrentLinkExists) {
     EXPECT_EQ(success_count, num_threads);
 
     // Test non-existing link
-    auto link_exists = db->link_exists("00000000000000000000000000000000");
+    auto link_exists = db->atom_exists<Link>("00000000000000000000000000000000");
     EXPECT_FALSE(link_exists);
 }
 
@@ -262,9 +263,9 @@ TEST_F(RedisMongoDBTest, ConcurrentLinksExist) {
 
     auto worker = [&](int thread_id) {
         try {
-            auto links_exist = db->links_exist({"68ea071c32d4dbf0a7d8e8e00f2fb823",
-                                                "00000000000000000000000000000000",
-                                                "7ec8526b8c8f15a6ac55273fedbf694f"});
+            auto links_exist = db->atoms_exist<Link>({"68ea071c32d4dbf0a7d8e8e00f2fb823",
+                                                      "00000000000000000000000000000000",
+                                                      "7ec8526b8c8f15a6ac55273fedbf694f"});
             ASSERT_EQ(links_exist.size(), 2);
             success_count++;
         } catch (const exception& e) {
@@ -283,9 +284,9 @@ TEST_F(RedisMongoDBTest, ConcurrentLinksExist) {
     EXPECT_EQ(success_count, num_threads);
 
     // Test non-existing link
-    auto links_exist = db->links_exist({"00000000000000000000000000000000",
-                                        "00000000000000000000000000000001",
-                                        "00000000000000000000000000000002"});
+    auto links_exist = db->atoms_exist<Link>({"00000000000000000000000000000000",
+                                              "00000000000000000000000000000001",
+                                              "00000000000000000000000000000002"});
     EXPECT_EQ(links_exist.size(), 0);
 }
 
@@ -298,9 +299,9 @@ TEST_F(RedisMongoDBTest, AddAndDeleteNode) {
     auto node_handle = node->handle();
 
     // Check if node exists, if so, delete it
-    auto node_document = db->get_atom_document(node_handle);
+    auto node_document = db->get_atom_document<Node>(node_handle);
     if (node_document != nullptr) {
-        auto deleted = db->delete_atom<Node>(node_handle);
+        auto deleted = db->delete_atoms<Node>({node_handle});
         EXPECT_TRUE(deleted);
     }
 
@@ -320,13 +321,13 @@ TEST_F(RedisMongoDBTest, AddAndDeleteNodes) {
     auto handles = db->add_atoms<Node>(nodes);
     EXPECT_EQ(handles.size(), 10);
 
-    auto nodes_documents = db->get_atom_documents(handles, {"_id"});
+    auto nodes_documents = db->get_atom_documents<Node>(handles, {"_id"});
     EXPECT_EQ(nodes_documents.size(), 10);
 
     auto deleted = db->delete_atoms<Node>(handles);
     EXPECT_EQ(deleted, 10);
 
-    auto nodes_documents_after_delete = db->get_atom_documents(handles, {"_id"});
+    auto nodes_documents_after_delete = db->get_atom_documents<Node>(handles, {"_id"});
     EXPECT_EQ(nodes_documents_after_delete.size(), 0);
 }
 
@@ -353,7 +354,7 @@ TEST_F(RedisMongoDBTest, AddAndDeleteLink) {
     auto link_handle = link->handle();
 
     // Check if link exists, if so, delete it
-    auto link_exists = db->link_exists(link_handle);
+    auto link_exists = db->atom_exists<Link>(link_handle);
     if (link_exists) {
         auto deleted = db->delete_atom<Link>(link_handle);
         EXPECT_TRUE(deleted);
@@ -385,13 +386,13 @@ TEST_F(RedisMongoDBTest, AddAndDeleteLinks) {
     auto handles = db->add_atoms<Link>(links);
     EXPECT_EQ(handles.size(), 10);
 
-    auto links_exist = db->links_exist(handles);
+    auto links_exist = db->atoms_exist<Link>(handles);
     EXPECT_EQ(links_exist.size(), 10);
 
     auto deleted = db->delete_atoms<Link>(handles);
     EXPECT_EQ(deleted, 10);
 
-    auto links_exist_after_delete = db->links_exist(handles);
+    auto links_exist_after_delete = db->atoms_exist<Link>(handles);
     EXPECT_EQ(links_exist_after_delete.size(), 0);
     for (const string& handle : test_node_handles) {
         EXPECT_TRUE(db->delete_atom<Node>(handle));

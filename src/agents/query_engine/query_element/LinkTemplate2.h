@@ -274,7 +274,7 @@ class LinkTemplate2 : public Source {
             ) {
                 // clang-format on
                 auto qa_handle = query_answer->handles[qa_handles_index];
-                atom = this->db->get_atom_document(qa_handle);
+                atom = this->db->get_atom_document<atoms::Link>(qa_handle);
                 if (!atom->contains("targets")) continue;
                 for (auto& [index, name] : this->inner_template_variables[i]) {
                     auto target_handle = atom->get("targets", index);
@@ -319,7 +319,7 @@ class LinkTemplate2 : public Source {
                 if (this->link_handles.size() >= DB_LINK_HANDLES_BATCH_SIZE) break;
             }
             if (this->link_handles.size() == 0) continue;
-            auto existing_handles = this->db->links_exist(this->link_handles);
+            auto existing_handles = this->db->atoms_exist<atoms::Link>(this->link_handles);
             for (auto& link_handle : existing_handles) {
                 query_answer = this->link_handles_to_query_answers[link_handle];
                 query_answer->handles[0] = strdup(link_handle.c_str());

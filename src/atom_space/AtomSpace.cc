@@ -25,7 +25,8 @@ const Atom* AtomSpace::get_atom(const char* handle, Scope scope) {
             return nullptr;  // If LOCAL_ONLY, return nullptr if not found locally.
         }
     }
-    auto atom_document = this->db->get_atom_document(handle);
+    // TODO(arturgontijo): Must cover Link case too.
+    auto atom_document = this->db->get_atom_document<Node>(handle);
     if (atom_document) {
         auto atom = this->atom_from_document(atom_document);
         if (atom) {

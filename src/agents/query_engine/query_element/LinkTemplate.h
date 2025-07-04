@@ -356,7 +356,7 @@ class LinkTemplate : public Source, public LinkTemplateInterface {
                 }
                 LOG_INFO("Considering " << answer_count << " links after importance filtering");
             }
-            this->atom_documents = db->get_atom_documents(handles, {"targets"});
+            this->atom_documents = db->get_atom_documents<atoms::Link>(handles, {"targets"});
             this->local_answers = new QueryAnswer*[answer_count];
             this->next_inner_answer = new unsigned int[answer_count];
             it = this->fetch_result->get_iterator();

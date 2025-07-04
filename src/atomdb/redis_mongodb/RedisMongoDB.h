@@ -57,23 +57,26 @@ class RedisMongoDB : public AtomDB {
 
     shared_ptr<atomdb_api_types::HandleList> query_for_targets(const string& handle);
 
-    shared_ptr<atomdb_api_types::AtomDocument> get_atom_document(const string& handle);
-    vector<shared_ptr<atomdb_api_types::AtomDocument>> get_atom_documents(const vector<string>& handles,
-                                                                          const vector<string>& fields);
-
-    bool link_exists(const string& link_handle);
-    set<string> links_exist(const vector<string>& link_handles);
-
    protected:
+    // Node methods
+    shared_ptr<atomdb_api_types::AtomDocument> get_node_document(const string& handle) override;
+    vector<shared_ptr<atomdb_api_types::AtomDocument>> get_node_documents(
+        const vector<string>& handles, const vector<string>& fields) override;
+    bool node_exists(const string& handle) override;
+    set<string> nodes_exist(const vector<string>& handles) override;
     string add_node(const atoms::Node* node) override;
     vector<string> add_nodes(const vector<atoms::Node*>& nodes) override;
-
     bool delete_node(const string& handle) override;
     uint delete_nodes(const vector<string>& handles) override;
 
+    // Link methods
+    shared_ptr<atomdb_api_types::AtomDocument> get_link_document(const string& handle) override;
+    vector<shared_ptr<atomdb_api_types::AtomDocument>> get_link_documents(
+        const vector<string>& handles, const vector<string>& fields) override;
+    bool link_exists(const string& handle) override;
+    set<string> links_exist(const vector<string>& handles) override;
     string add_link(const atoms::Link* link) override;
     vector<string> add_links(const vector<atoms::Link*>& links) override;
-
     bool delete_link(const string& handle) override;
     uint delete_links(const vector<string>& handles) override;
 
@@ -87,8 +90,17 @@ class RedisMongoDB : public AtomDB {
     void mongodb_setup();
     void attention_broker_setup();
 
-    bool delete_one(const string& handle, mongocxx::collection& mongodb_collection);
-    uint delete_many(const vector<string>& handles, mongocxx::collection& mongodb_collection);
+    shared_ptr<atomdb_api_types::AtomDocument> get_one_document(const string& handle,
+                                                                const string& mongodb_collection_name);
+    vector<shared_ptr<atomdb_api_types::AtomDocument>> get_many_documents(
+        const vector<string>& handles,
+        const vector<string>& fields,
+        const string& mongodb_collection_name);
+
+    set<string> documents_exist(const vector<string>& handles, const string& mongodb_collection_name);
+
+    bool delete_one(const string& handle, const string& mongodb_collection_name);
+    uint delete_many(const vector<string>& handles, const string& mongodb_collection_name);
 };
 
 }  // namespace atomdb

@@ -72,7 +72,7 @@ class MockAtomDB : public AtomDB {
 
     map<string, Atom*> atoms;
 
-    shared_ptr<AtomDocument> get_atom_document(const string& handle) override {
+    shared_ptr<AtomDocument> get_one_document(const string& handle) {
         get_atom_calls.push_back(handle);
         auto it = docs.find(handle);
         if (it != docs.end()) {
@@ -81,13 +81,28 @@ class MockAtomDB : public AtomDB {
         return nullptr;
     }
 
-    vector<shared_ptr<AtomDocument>> get_atom_documents(const vector<string>& handles,
-                                                        const vector<string>& fields) override {
+    shared_ptr<AtomDocument> get_node_document(const string& handle) override {
+        return get_one_document(handle);
+    }
+
+    shared_ptr<AtomDocument> get_link_document(const string& handle) override {
+        return get_one_document(handle);
+    }
+
+    vector<shared_ptr<AtomDocument>> get_many_documents(const vector<string>& handles,
+                                                        const vector<string>& fields) {
         return {};  // Not implemented for this mock
     }
 
-    bool link_exists(const string&) override { return false; }
-    set<string> links_exist(const vector<string>&) override { return {}; }
+    vector<shared_ptr<AtomDocument>> get_node_documents(const vector<string>& handles,
+                                                        const vector<string>& fields) override {
+        return get_many_documents(handles, fields);
+    }
+
+    vector<shared_ptr<AtomDocument>> get_link_documents(const vector<string>& handles,
+                                                        const vector<string>& fields) override {
+        return get_many_documents(handles, fields);
+    }
 
     string add_node(const atoms::Node* node) override {
         add_node_calls.push_back({node->type, node->name, node->custom_attributes});
@@ -110,6 +125,12 @@ class MockAtomDB : public AtomDB {
 
     bool delete_link(const string& handle) override { return true; }
     uint delete_links(const vector<string>& handles) override { return 0; }
+
+    bool node_exists(const string& handle) override { return false; }
+    bool link_exists(const string& handle) override { return false; }
+
+    set<string> nodes_exist(const vector<string>& handles) override { return {}; }
+    set<string> links_exist(const vector<string>& handles) override { return {}; }
 
     shared_ptr<Atom> get_atom(const string& handle) { return shared_ptr<Atom>(this->atoms[handle]); }
 
