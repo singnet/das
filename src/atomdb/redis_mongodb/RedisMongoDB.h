@@ -34,7 +34,8 @@ class RedisMongoDB : public AtomDB {
     static string REDIS_TARGETS_PREFIX;
     static uint REDIS_CHUNK_SIZE;
     static string MONGODB_DB_NAME;
-    static string MONGODB_COLLECTION_NAME;
+    static string MONGODB_NODES_COLLECTION_NAME;
+    static string MONGODB_LINKS_COLLECTION_NAME;
     static string MONGODB_FIELD_NAME[MONGODB_FIELD::size];
     static uint MONGODB_CHUNK_SIZE;
 
@@ -43,7 +44,9 @@ class RedisMongoDB : public AtomDB {
         REDIS_TARGETS_PREFIX = "outgoing_set";
         REDIS_CHUNK_SIZE = 10000;
         MONGODB_DB_NAME = "das";
-        MONGODB_COLLECTION_NAME = "atoms";
+        // TODO(arturgontijo): change to "nodes" and "links" once das-metta-parser is updated
+        MONGODB_NODES_COLLECTION_NAME = "atoms";
+        MONGODB_LINKS_COLLECTION_NAME = "atoms";
         MONGODB_FIELD_NAME[MONGODB_FIELD::ID] = "_id";
         MONGODB_FIELD_NAME[MONGODB_FIELD::TARGETS] = "targets";
         MONGODB_CHUNK_SIZE = 1000;
@@ -58,26 +61,57 @@ class RedisMongoDB : public AtomDB {
     shared_ptr<atomdb_api_types::HandleList> query_for_targets(const string& handle);
 
     shared_ptr<atomdb_api_types::AtomDocument> get_atom_document(const string& handle);
+    shared_ptr<atomdb_api_types::AtomDocument> get_node_document(const string& handle);
+    shared_ptr<atomdb_api_types::AtomDocument> get_link_document(const string& handle);
+
     vector<shared_ptr<atomdb_api_types::AtomDocument>> get_atom_documents(const vector<string>& handles,
                                                                           const vector<string>& fields);
+    vector<shared_ptr<atomdb_api_types::AtomDocument>> get_node_documents(const vector<string>& handles,
+                                                                          const vector<string>& fields);
+    vector<shared_ptr<atomdb_api_types::AtomDocument>> get_link_documents(const vector<string>& handles,
+                                                                          const vector<string>& fields);
 
-    bool link_exists(const string& link_handle);
-    set<string> links_exist(const vector<string>& link_handles);
+    bool atom_exists(const string& handle);
+    bool node_exists(const string& handle);
+    bool link_exists(const string& handle);
 
+    set<string> atoms_exist(const vector<string>& handles);
+    set<string> nodes_exist(const vector<string>& handles);
+    set<string> links_exist(const vector<string>& handles);
+
+    string add_atom(const atoms::Atom* atom);
     string add_node(const atoms::Node* node);
-    vector<string> add_nodes(const vector<atoms::Node*>& nodes);
-
     string add_link(const atoms::Link* link);
+
+    vector<string> add_atoms(const vector<atoms::Atom*>& atoms);
+    vector<string> add_nodes(const vector<atoms::Node*>& nodes);
     vector<string> add_links(const vector<atoms::Link*>& links);
 
     bool delete_atom(const string& handle);
+    bool delete_node(const string& handle);
+    bool delete_link(const string& handle);
+
     uint delete_atoms(const vector<string>& handles);
+    uint delete_nodes(const vector<string>& handles);
+    uint delete_links(const vector<string>& handles);
 
    private:
     bool cluster_flag;
     RedisContextPool* redis_pool;
     mongocxx::pool* mongodb_pool;
     shared_ptr<AtomDBCache> atomdb_cache;
+
+    shared_ptr<atomdb_api_types::AtomDocument> get_document(const string& handle,
+                                                            const string& collection_name);
+    vector<shared_ptr<atomdb_api_types::AtomDocument>> get_documents(const vector<string>& handles,
+                                                                     const vector<string>& fields,
+                                                                     const string& collection_name);
+
+    bool document_exists(const string& handle, const string& collection_name);
+    set<string> documents_exist(const vector<string>& handles, const string& collection_name);
+
+    bool delete_document(const string& handle, const string& collection_name);
+    uint delete_documents(const vector<string>& handles, const string& collection_name);
 
     void redis_setup();
     void mongodb_setup();
