@@ -23,6 +23,10 @@ COPY ./bin/link_creation_server /usr/local/bin
 
 RUN chmod +x /usr/local/bin/link_creation_server
 
+COPY ./lib /usr/local/lib
+
+RUN ldconfig
+
 ENTRYPOINT [ "link_creation_server" ]
 
 # Build Link Creation Agent
