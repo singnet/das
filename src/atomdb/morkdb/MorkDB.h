@@ -15,7 +15,6 @@
 
 #include "AtomDB.h"
 #include "AtomDBCacheSingleton.h"
-#include "AtomSpaceTypes.h"
 #include "MorkDBAPITypes.h"
 #include "RedisMongoDB.h"
 
@@ -49,7 +48,7 @@ class MorkDB : public RedisMongoDB {
 
     void mork_setup();
     vector<string> tokenize_expression(const string& expr);
-    const commons::Atom* parse_tokens_to_atom(const vector<string>& tokens, size_t& pos);
+    const atoms::Atom* parse_tokens_to_atom(const vector<string>& tokens, size_t& pos);
 };
 
 }  // namespace atomdb

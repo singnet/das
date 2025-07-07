@@ -1,7 +1,5 @@
 #include "MorkDB.h"
 
-#include <grpcpp/grpcpp.h>
-
 #include <algorithm>
 #include <bsoncxx/builder/stream/document.hpp>
 #include <bsoncxx/builder/stream/helpers.hpp>
@@ -9,14 +7,12 @@
 #include <memory>
 #include <string>
 
-#include "AttentionBrokerServer.h"
 #include "Logger.h"
 #include "Utils.h"
-#include "attention_broker.grpc.pb.h"
-#include "attention_broker.pb.h"
+
 
 using namespace atomdb;
-using namespace atomspace;
+using namespace atoms;
 using namespace commons;
 
 // --> MorkClient
@@ -125,8 +121,8 @@ shared_ptr<atomdb_api_types::HandleSet> MorkDB::query_for_pattern(
         auto tokens = tokenize_expression(raw_expr);
         size_t pos = 0;
         auto atom = parse_tokens_to_atom(tokens, pos);
-        auto link = static_cast<const atomspace::Link*>(atom);
-        auto handle = Link::compute_handle(link->type, link->targets);
+        auto link = static_cast<const atoms::Link*>(atom);
+        auto handle = link->handle();
         // LOG_INFO("expression: " << raw_expr << " | "
         //                         << "handle: " << handle);
         handle_set->append(make_shared<atomdb_api_types::HandleSetMork>(handle));
@@ -179,23 +175,29 @@ vector<string> MorkDB::tokenize_expression(const string& expr) {
 
     return tokens;
 }
-const commons::Atom* MorkDB::parse_tokens_to_atom(const vector<string>& tokens, size_t& pos) {
-    vector<const commons::Atom*> children;
+const atoms::Atom* MorkDB::parse_tokens_to_atom(const vector<string>& tokens, size_t& pos) {
+    vector<string> children;
+    string symbol = MettaMapping::SYMBOL_NODE_TYPE;
+    string expression = MettaMapping::EXPRESSION_LINK_TYPE;
 
     if (tokens[pos] == "(") {
         ++pos;
         while (pos < tokens.size() && tokens[pos] != ")") {
+            const atoms::Atom* leaf = nullptr;
             if (tokens[pos] == "(") {
-                children.push_back(parse_tokens_to_atom(tokens, pos));
+                leaf = parse_tokens_to_atom(tokens, pos);
             } else {
-                const Atom* leaf = new Node("Symbol", tokens[pos++]);
-                children.push_back(leaf);
+                leaf = new atoms::Node(symbol, tokens[pos++]);
             }
+            if (leaf == nullptr) {
+                Utils::error("Failed to parse token: " + tokens[pos]);
+            }
+            children.push_back(leaf->handle());
         }
         if (pos < tokens.size() && tokens[pos] == ")") ++pos;
-        return new Link("Expression", children);
+        return new atoms::Link(expression, children);
     } else {
-        return new Node("Symbol", tokens[pos++]);
+        return new atoms::Node(symbol, tokens[pos++]);
     }
 }
 // <--

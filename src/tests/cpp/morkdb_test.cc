@@ -13,7 +13,7 @@
 #include "LinkTemplateInterface.h"
 
 using namespace atomdb;
-using namespace atomspace;
+using namespace atoms;
 using namespace std;
 
 class MorkDBTestEnvironment : public ::testing::Environment {
