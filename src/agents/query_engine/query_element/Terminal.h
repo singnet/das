@@ -1,7 +1,7 @@
 #pragma once
 
-#include <vector>
 #include <string>
+#include <vector>
 
 #include "Atom.h"
 #include "QueryElement.h"
@@ -22,9 +22,9 @@ class Terminal : public QueryElement {
     shared_ptr<Atom> atom;
 
     ~Terminal(){};
-    Terminal(const string& type, const string& name); // Node
-    Terminal(const string& type, const vector<shared_ptr<QueryElement>>& targets); // Link
-    Terminal(const string& name); // Variable
+    Terminal(const string& type, const string& name);                               // Node
+    Terminal(const string& type, const vector<shared_ptr<QueryElement>>& targets);  // Link
+    Terminal(const string& name);                                                   // Variable
     string to_string();
 
     // QueryElement virtual API
@@ -38,6 +38,7 @@ class Terminal : public QueryElement {
      * Empty implementation. There are no QueryNode element or local thread to shut down.
      */
     void graceful_shutdown() {}
+
    private:
     void init();
 };

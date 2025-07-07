@@ -268,20 +268,18 @@ TEST(WildcardTest, LinkSchema) {
     EXPECT_THROW(schema7.stack_link(expression, 2), runtime_error);
 }
 
-void check_match(
-    const string& test_tag, 
-    LinkSchema &link_schema,
-    const vector<shared_ptr<Atom>>& targets,
-    TestDecoder &db, 
-    bool test_flag) {
-
+void check_match(const string& test_tag,
+                 LinkSchema& link_schema,
+                 const vector<shared_ptr<Atom>>& targets,
+                 TestDecoder& db,
+                 bool test_flag) {
     cout << "XXX " << test_tag << endl;
     string symbol = MettaMapping::SYMBOL_NODE_TYPE;
     string expression = MettaMapping::EXPRESSION_LINK_TYPE;
     vector<string> v;
     Assignment assignment;
 
-    for (auto target: targets) {
+    for (auto target : targets) {
         v.push_back(target->handle());
     }
     auto link = db.add_atom(make_shared<Link>(expression, v));
@@ -358,7 +356,6 @@ TEST(LinkTest, Match) {
     check_match("test case 4.1", schema4, {link4, node2, link2}, db, true);
 
     // clang-format on
-
 }
 
 TEST(LinkTest, CompositeTypes) {

@@ -2,19 +2,19 @@
 
 #include "And.h"
 #include "AtomDBSingleton.h"
+#include "Link.h"
+#include "LinkSchema.h"
 #include "LinkTemplate.h"
 #include "LinkTemplate2.h"
+#include "Node.h"
 #include "Or.h"
 #include "PatternMatchingQueryProxy.h"
 #include "ServiceBus.h"
 #include "Sink.h"
 #include "StoppableThread.h"
 #include "Terminal.h"
-#include "Node.h"
-#include "Link.h"
-#include "LinkSchema.h"
-#include "UntypedVariable.h"
 #include "UniqueAssignmentFilter.h"
+#include "UntypedVariable.h"
 
 #define LOG_LEVEL INFO_LEVEL
 #include "Logger.h"
@@ -432,7 +432,6 @@ shared_ptr<QueryElement> PatternMatchingQueryProcessor::build_link(
     shared_ptr<PatternMatchingQueryProxy> proxy,
     unsigned int cursor,
     stack<shared_ptr<QueryElement>>& element_stack) {
-
     const vector<string> query_tokens = proxy->get_query_tokens();
     unsigned int arity = std::stoi(query_tokens[cursor + 2]);
     if (element_stack.size() < arity) {

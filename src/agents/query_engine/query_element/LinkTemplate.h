@@ -16,20 +16,20 @@
 #include "AttentionBrokerServer.h"
 #include "ImportanceList.h"
 #include "Iterator.h"
+#include "Link.h"
+#include "LinkSchema.h"
 #include "LinkTemplateInterface.h"
+#include "Node.h"
 #include "QueryAnswer.h"
 #include "QueryElementRegistry.h"
 #include "QueryNode.h"
 #include "SharedQueue.h"
 #include "Source.h"
 #include "Terminal.h"
+#include "UntypedVariable.h"
 #include "attention_broker.grpc.pb.h"
 #include "attention_broker.pb.h"
 #include "expression_hasher.h"
-#include "Node.h"
-#include "Link.h"
-#include "UntypedVariable.h"
-#include "LinkSchema.h"
 
 #define MAX_GET_IMPORTANCE_BUNDLE_SIZE ((unsigned int) 100000)
 
@@ -239,7 +239,8 @@ class LinkTemplate : public Source, public LinkTemplateInterface {
             if (this->target_template[i]->is_terminal) {
                 auto terminal = dynamic_pointer_cast<Terminal>(this->target_template[i]);
                 if (terminal->is_variable) {
-                    variables.push_back({i, dynamic_pointer_cast<UntypedVariable>(terminal->atom)->name});
+                    variables.push_back(
+                        {i, dynamic_pointer_cast<UntypedVariable>(terminal->atom)->name});
                 }
             }
         }
@@ -374,13 +375,15 @@ class LinkTemplate : public Source, public LinkTemplateInterface {
                             auto terminal = dynamic_pointer_cast<Terminal>(this->target_template[j]);
                             if (terminal->is_variable) {
                                 if (!query_answer->assignment.assign(
-                                        dynamic_pointer_cast<UntypedVariable>(terminal->atom)->name.c_str(),
+                                        dynamic_pointer_cast<UntypedVariable>(terminal->atom)
+                                            ->name.c_str(),
                                         this->atom_documents[document_cursor]->get("targets", j))) {
-                                    Utils::error("Error assigning variable: " + 
-                                                 dynamic_pointer_cast<UntypedVariable>(terminal->atom)->name +
-                                                 " a value: " +
-                                                 string(this->atom_documents[document_cursor]->get(
-                                                     "targets", j)));
+                                    Utils::error(
+                                        "Error assigning variable: " +
+                                        dynamic_pointer_cast<UntypedVariable>(terminal->atom)->name +
+                                        " a value: " +
+                                        string(
+                                            this->atom_documents[document_cursor]->get("targets", j)));
                                 }
                             }
                         }

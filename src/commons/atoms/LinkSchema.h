@@ -1,10 +1,11 @@
 #pragma once
 
 #include <stack>
+
+#include "Assignment.h"
+#include "Link.h"
 #include "Node.h"
 #include "Wildcard.h"
-#include "Link.h"
-#include "Assignment.h"
 
 namespace atoms {
 
@@ -20,7 +21,6 @@ class LinkSchema : public Wildcard {
         bool is_wildcard;
         SchemaElement() : is_link(false), is_wildcard(false) {}
         bool match(const string& handle, Assignment& assignment, HandleDecoder& decoder, Atom* atom_ptr);
-
     };
     bool _frozen;
     unsigned int _arity;

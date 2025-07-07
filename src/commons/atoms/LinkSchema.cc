@@ -1,10 +1,10 @@
 #include "LinkSchema.h"
 
+#include "HandleDecoder.h"
 #include "Hasher.h"
 #include "Link.h"
 #include "Node.h"
 #include "UntypedVariable.h"
-#include "HandleDecoder.h"
 
 #define LOG_LEVEL DEBUG_LEVEL
 #include "Logger.h"
@@ -16,13 +16,11 @@ using namespace atoms;
 
 LinkSchema::LinkSchema(const string& type, unsigned int arity, const Properties& custom_attributes)
     : Wildcard(type, custom_attributes) {
-
     _init(arity);
 }
 
 LinkSchema::LinkSchema(const vector<string>& tokens, const Properties& custom_attributes)
     : Wildcard(tokens[1], custom_attributes) {
-
     _syntax_assert(tokens.size() > 3, tokens[0], 0);
     _init((unsigned int) Utils::string_to_int(tokens[2]));
     untokenize(tokens);
@@ -54,7 +52,7 @@ bool LinkSchema::_check_not_frozen() const {
 }
 
 bool LinkSchema::_check_frozen() const {
-    if (! this->_frozen) {
+    if (!this->_frozen) {
         Utils::error("Can't access LinkTemplate state before calling build()");
         return true;
     } else {
@@ -108,7 +106,7 @@ void LinkSchema::validate() const {
 
 string LinkSchema::to_string() const {
     string result = "";
-    if (! _check_frozen()) {
+    if (!_check_frozen()) {
         result = "LinkSchema(type: '" + this->type + "', targets: [";
         if (!this->_schema.empty()) {
             for (const auto& target : this->_schema) {
@@ -135,15 +133,18 @@ string LinkSchema::metta_representation(HandleDecoder& decoder) const {
 
 unsigned int LinkSchema::arity() const { return this->_arity; }
 
-bool LinkSchema::SchemaElement::match(const string& handle, Assignment& assignment, HandleDecoder& decoder, Atom* atom_ptr) {
+bool LinkSchema::SchemaElement::match(const string& handle,
+                                      Assignment& assignment,
+                                      HandleDecoder& decoder,
+                                      Atom* atom_ptr) {
     if (this->is_link) {
         if (atom_ptr == NULL) {
             atom_ptr = decoder.get_atom(handle).get();
         }
         if (Atom::is_link(*atom_ptr) && (atom_ptr->arity() == this->targets.size())) {
             unsigned int cursor = 0;
-            for (string target_handle: ((Link*) atom_ptr)->targets) {
-                if (! this->targets[cursor++].match(target_handle, assignment, decoder, NULL)) {
+            for (string target_handle : ((Link*) atom_ptr)->targets) {
+                if (!this->targets[cursor++].match(target_handle, assignment, decoder, NULL)) {
                     return false;
                 }
             }
@@ -222,9 +223,7 @@ void LinkSchema::stack_untyped_variable(const string& name) {
     }
 }
 
-void LinkSchema::_stack_link_schema(const string& type,
-                                    unsigned int link_arity,
-                                    bool is_link) {
+void LinkSchema::_stack_link_schema(const string& type, unsigned int link_arity, bool is_link) {
     if (_check_not_frozen()) {
         return;
     }
@@ -256,15 +255,18 @@ void LinkSchema::_stack_link_schema(const string& type,
         }
         metta_expression = "(" + metta_expression;
         // TODO check for invalid MeTTa expressions (e.g. invalid node/link types)
-        string schema_handle = (is_link ? Hasher::link_handle(type, target_handles) : Atom::WILDCARD_STRING);
-        tuple<string, string, string> triplet(schema_handle,
-                                              Hasher::composite_handle(composite_type),
-                                              metta_expression);
+        string schema_handle =
+            (is_link ? Hasher::link_handle(type, target_handles) : Atom::WILDCARD_STRING);
+        tuple<string, string, string> triplet(
+            schema_handle, Hasher::composite_handle(composite_type), metta_expression);
         this->_atom_stack.push_back(triplet);
-        vector<string> new_element = {(is_link ? LINK : LINK_TEMPLATE), type, std::to_string(link_arity)};
+        vector<string> new_element = {
+            (is_link ? LINK : LINK_TEMPLATE), type, std::to_string(link_arity)};
         unsigned int back_cursor = this->_build_tokens.size() - link_arity;
         for (unsigned int i = 0; i < link_arity; i++) {
-            new_element.insert(new_element.end(), this->_build_tokens[back_cursor].begin(), this->_build_tokens[back_cursor].end());
+            new_element.insert(new_element.end(),
+                               this->_build_tokens[back_cursor].begin(),
+                               this->_build_tokens[back_cursor].end());
             back_cursor++;
         }
         this->_build_tokens.erase(this->_build_tokens.end() - link_arity, this->_build_tokens.end());
@@ -300,10 +302,12 @@ void LinkSchema::build() {
                          " out of a stack with " + std::to_string(this->_atom_stack.size()) + " atoms.");
         }
         for (unsigned int i = 0; i < this->_build_tokens.size(); i++) {
-            this->_tokens.insert(this->_tokens.end(), this->_build_tokens[i].begin(), this->_build_tokens[i].end());
+            this->_tokens.insert(
+                this->_tokens.end(), this->_build_tokens[i].begin(), this->_build_tokens[i].end());
         }
-        while (! this->_schema_element_stack.empty()) {
-            this->_schema_element.targets.insert(this->_schema_element.targets.begin(), this->_schema_element_stack.top());
+        while (!this->_schema_element_stack.empty()) {
+            this->_schema_element.targets.insert(this->_schema_element.targets.begin(),
+                                                 this->_schema_element_stack.top());
             this->_schema_element_stack.pop();
         }
         this->_build_tokens.clear();
@@ -322,17 +326,18 @@ vector<string> LinkSchema::tokenize() {
 
 void LinkSchema::tokenize(vector<string> output) {
     _check_frozen();
-    for (string token: this->_tokens) {
+    for (string token : this->_tokens) {
         output.push_back(token);
     }
 }
 
 void LinkSchema::_syntax_assert(bool flag, string token, unsigned int cursor) {
-    if (! flag) {
+    if (!flag) {
         if (cursor == 0) {
             cursor = 1;
         }
-        Utils::error("Syntax error in LinkSchema untokenization near symbol `" + token + "` near position " + std::to_string(cursor - 1));
+        Utils::error("Syntax error in LinkSchema untokenization near symbol `" + token +
+                     "` near position " + std::to_string(cursor - 1));
     }
 }
 
@@ -340,7 +345,6 @@ unsigned int LinkSchema::_push_stack_top(
     stack<tuple<string, string, unsigned int, unsigned int>>& link_schema_stack,
     string cursor_token,
     unsigned int cursor) {
-
     _syntax_assert(link_schema_stack.size() > 0, cursor_token, cursor);
     if (link_schema_stack.size() == 1) {
         return 0;
@@ -350,7 +354,8 @@ unsigned int LinkSchema::_push_stack_top(
     string type = get<1>(record);
     unsigned int arity = get<2>(record);
     unsigned int pending = get<3>(record);
-    LOG_DEBUG("POP schema: " + token + " " + type + " " + std::to_string(arity) + " " + std::to_string(pending));
+    LOG_DEBUG("POP schema: " + token + " " + type + " " + std::to_string(arity) + " " +
+              std::to_string(pending));
     if (token == LINK) {
         stack_link(type, arity);
     } else if (token == LINK_TEMPLATE) {
@@ -368,8 +373,7 @@ unsigned int LinkSchema::_push_stack_top(
 }
 
 void LinkSchema::untokenize(const vector<string>& tokens) {
-
-    if ( _check_not_frozen()) {
+    if (_check_not_frozen()) {
         return;
     }
 
@@ -383,7 +387,8 @@ void LinkSchema::untokenize(const vector<string>& tokens) {
     type = tokens[cursor++];
     arity = (unsigned int) Utils::string_to_int(tokens[cursor++]);
     current_pending_elements = arity;
-    LOG_DEBUG("PUSH schema: " << token << " " << type << " " << arity << " " << current_pending_elements);
+    LOG_DEBUG("PUSH schema: " << token << " " << type << " " << arity << " "
+                              << current_pending_elements);
     link_schema_stack.push(make_tuple(token, type, arity, current_pending_elements));
     while (current_pending_elements > 0) {
         _syntax_assert((cursor + current_pending_elements) <= tokens.size(), token, cursor);
@@ -412,18 +417,19 @@ void LinkSchema::untokenize(const vector<string>& tokens) {
             type = tokens[cursor++];
             arity = (unsigned int) Utils::string_to_int(tokens[cursor++]);
             LOG_DEBUG("STACK " << token << ": " << type << " " << arity);
-            LOG_DEBUG("PUSH schema: " << token << " " << type << " " << arity << " " << current_pending_elements);
+            LOG_DEBUG("PUSH schema: " << token << " " << type << " " << arity << " "
+                                      << current_pending_elements);
             link_schema_stack.push(make_tuple(token, type, arity, current_pending_elements));
             current_pending_elements = arity;
         } else {
             _syntax_assert(false, token, cursor);
         }
-        LOG_DEBUG(std::to_string(this->_arity) << " " << std::to_string(this->_atom_stack.size()) << " " << std::to_string(link_schema_stack.size()));
+        LOG_DEBUG(std::to_string(this->_arity) << " " << std::to_string(this->_atom_stack.size()) << " "
+                                               << std::to_string(link_schema_stack.size()));
         LOG_DEBUG("pending: " << current_pending_elements);
-        if ((current_pending_elements == 0)  && (link_schema_stack.size() == 1)) {
+        if ((current_pending_elements == 0) && (link_schema_stack.size() == 1)) {
             LOG_DEBUG("BUILD");
             build();
         }
     }
 }
-

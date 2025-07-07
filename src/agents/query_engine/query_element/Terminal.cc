@@ -1,9 +1,9 @@
 #include "Terminal.h"
 
 #define LOG_LEVEL INFO_LEVEL
+#include "Link.h"
 #include "Logger.h"
 #include "Node.h"
-#include "Link.h"
 #include "UntypedVariable.h"
 
 using namespace query_element;
@@ -15,11 +15,12 @@ Terminal::Terminal(const string& type, const string& name) : QueryElement() {
     this->handle = this->atom->handle();
 }
 
-Terminal::Terminal(const string& type, const vector<shared_ptr<QueryElement>>& targets) : QueryElement() {
+Terminal::Terminal(const string& type, const vector<shared_ptr<QueryElement>>& targets)
+    : QueryElement() {
     // Link
     init();
     vector<string> target_handle;
-    for (auto target: targets) {
+    for (auto target : targets) {
         if (target->is_terminal && !dynamic_pointer_cast<Terminal>(target)->is_variable) {
             target_handle.push_back(dynamic_pointer_cast<Terminal>(target)->handle);
         } else {
@@ -45,6 +46,4 @@ void Terminal::init() {
     this->is_terminal = true;
 }
 
-string Terminal::to_string() {
-    return atom->to_string();
-}
+string Terminal::to_string() { return atom->to_string(); }

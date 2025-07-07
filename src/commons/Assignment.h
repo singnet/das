@@ -121,5 +121,4 @@ class Assignment {
     unsigned int size;
 };
 
-
-} // namespace commons
+}  // namespace commons

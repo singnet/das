@@ -2,8 +2,8 @@
 
 #include <string>
 
-#include "QueryAnswer.h"
 #include "Assignment.h"
+#include "QueryAnswer.h"
 #include "expression_hasher.h"
 
 using namespace std;

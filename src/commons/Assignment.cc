@@ -1,10 +1,11 @@
-#include <cstring>
 #include "Assignment.h"
-#include "Utils.h"
+
+#include <cstring>
+
 #include "Hasher.h"
+#include "Utils.h"
 
 using namespace commons;
-
 
 Assignment::Assignment() { this->size = 0; }
 
