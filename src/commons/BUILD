@@ -5,12 +5,14 @@ package(default_visibility = ["//visibility:public"])
 cc_library(
     name = "commons_lib",
     srcs = [
+        "Assignment.cc",
         "MettaMapping.cc",
         "SharedQueue.cc",
         "StoppableThread.cc",
         "Utils.cc",
     ],
     hdrs = [
+        "Assignment.h",
         "Logger.h",
         "MettaMapping.h",
         "Properties.h",

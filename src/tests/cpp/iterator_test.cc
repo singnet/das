@@ -81,11 +81,11 @@ TEST(Iterator, link_template_integration) {
     string expression = "Expression";
     string symbol = "Symbol";
 
-    auto v1 = make_shared<Variable>("v1");
-    auto v2 = make_shared<Variable>("v2");
-    auto v3 = make_shared<Variable>("v3");
-    auto similarity = make_shared<query_element::Node>(symbol, "Similarity");
-    auto human = make_shared<query_element::Node>(symbol, "\"human\"");
+    auto v1 = make_shared<Terminal>("v1");
+    auto v2 = make_shared<Terminal>("v2");
+    auto v3 = make_shared<Terminal>("v3");
+    auto similarity = make_shared<Terminal>(symbol, "Similarity");
+    auto human = make_shared<Terminal>(symbol, "\"human\"");
 
     auto link_template = make_shared<LinkTemplate<3>>(
         "Expression", array<shared_ptr<QueryElement>, 3>({similarity, human, v1}));
