@@ -33,6 +33,15 @@ TEST(LinkTemplate, basics) {
     auto human = make_shared<Terminal>(symbol, "\"human\"");
 
     LinkTemplate<3> link_template1("Expression", {similarity, human, v1});
+
+    // Compare LinkTemplate and LinkSchema handles
+    LinkSchema schema(expression, 3);
+    schema.stack_node(symbol, "Similarity");
+    schema.stack_node(symbol, "\"human\"");
+    schema.stack_untyped_variable("v1");
+    schema.build();
+    EXPECT_EQ(schema.handle(), link_template1.get_handle());
+
     link_template1.subsequent_id = server_node_id;
     link_template1.setup_buffers();
     // link_template1.fetch_links();
