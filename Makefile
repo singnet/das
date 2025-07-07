@@ -36,7 +36,7 @@ build-all: build-image
 
 run-query-agent:
 	@PORT=$$(bash src/scripts/gkctl_auto_join_and_reserve.sh | tail -n 1); \
-	bash -x src/scripts/run.sh query_broker $$PORT
+	bash -x src/scripts/run.sh query_broker $$PORT 61000:61999
 
 run-attention-broker:
 	@bash -x src/scripts/run.sh attention_broker_service 37007
@@ -87,6 +87,9 @@ lint-all:
 
 format-all:
 	@$(MAKE) bazel run format
+
+format-check:
+	@$(MAKE) bazel run //:format.check
 
 performance-tests:
 	@python3 src/tests/integration/performance/query_agent_metrics.py

@@ -35,14 +35,22 @@ make build-all
 ## Run Server
 
 ```
-make run-inference-agent OPTIONS="path_to_config_file"
+make run-inference-agent OPTIONS="server_address peer_address <start_port:end_port>"
 ```
+#### Args:
+1. **server_address**: The address of the server to connect to, in the form "host:port"
+2. **peer_address**: The address of the peer to connect to, in the form "host:port"
+3. **\<start_port:end_port\>**: The lower and upper bound for the port numbers to be used by the command proxy
 
 ## Run Client
 ```
-make run-inference-agent-client OPTIONS="CLIENT_HOST:CLIENT_PORT SERVER_HOST:SERVER_PORT REQUEST+"
+make run-inference-agent-client OPTIONS="server_address peer_address <start_port:end_port> REQUEST+"
 ```
-
+#### Args:
+1. **client_address:** The address of the client to connect to, in the form "host:port"
+2. **server_address:** The address of the server to connect to, in the form "host:port"
+3. **\<start_port:end_port\>:** The lower and upper bound for the port numbers to be used by the command proxy
+4. **REQUEST+:** A list of tokens to be sent to the server
 
 ## Tests
 
@@ -50,32 +58,3 @@ Run **only** Inference Agent tests
 ```
  make bazel test //tests/cpp:inference_agent_test
 ```
-
-
-## Config
-
-The config file is a text file that contains the following:
-
-```
-inference_node_id = <inference_node_id>
-link_creation_agent_client_id = <link_creation_agent_client_id>
-link_creation_agent_server_id = <link_creation_agent_server_id>
-das_client_id = <das_client_id>
-das_server_id = <das_server_id>
-distributed_inference_control_node_id = <distributed_inference_control_node_id>
-distributed_inference_control_node_server_id = <distributed_inference_control_node_server_id>
-```
-
-Example:
-
-```
-inference_node_id = "localhost:8080"
-link_creation_agent_client_id = "localhost:8081"
-link_creation_agent_server_id = "localhost:8082"
-das_client_id = "localhost:8083"
-das_server_id = "localhost:8084"
-distributed_inference_control_node_id = "localhost:8085"
-distributed_inference_control_node_server_id = "localhost:8086"
-```
-
-

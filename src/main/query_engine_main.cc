@@ -14,23 +14,24 @@ using namespace query_engine;
 using namespace service_bus;
 
 void ctrl_c_handler(int) {
-    // std::cout << "Stopping query engine server..." << std::endl;
-    std::cout << "Cleaning GRPC buffers..." << std::endl;
-    std::cout << "Done." << std::endl;
+    // cout << "Stopping query engine server..." << endl;
+    cout << "Cleaning GRPC buffers..." << endl;
+    cout << "Done." << endl;
     exit(0);
 }
 
 int main(int argc, char* argv[]) {
-    if (argc != 2) {
-        cerr << "Usage: " << argv[0] << " <port>" << endl;
+    if (argc != 3) {
+        cerr << "Usage: " << argv[0] << " <port> <start_port:end_port>" << endl;
         exit(1);
     }
-
     string server_id = "0.0.0.0:" + string(argv[1]);
+    auto ports_range = Utils::parse_ports_range(argv[2]);
+    cout << "Starting query engine server with id: " << server_id << endl;
     signal(SIGINT, &ctrl_c_handler);
     signal(SIGTERM, &ctrl_c_handler);
     AtomDBSingleton::init();
-    ServiceBusSingleton::init(server_id, "", 61000, 61999);
+    ServiceBusSingleton::init(server_id, "", ports_range.first, ports_range.second);
     shared_ptr<ServiceBus> service_bus = ServiceBusSingleton::get_instance();
     service_bus->register_processor(make_shared<PatternMatchingQueryProcessor>());
 
