@@ -51,8 +51,8 @@ vector<string> EquivalenceProcessor::get_tokenized_atom(const string& handle) {
         auto atom = LinkCreateDBSingleton::get_instance()->get_atom(handle);
         if (holds_alternative<Node>(atom)) {
             return get<Node>(atom).tokenize();
-        } else if (holds_alternative<shared_ptr<Link>>(atom)) {
-            return get<shared_ptr<Link>>(atom)->tokenize(false);
+        } else if (holds_alternative<shared_ptr<link_creation_agent::Link>>(atom)) {
+            return get<shared_ptr<link_creation_agent::Link>>(atom)->tokenize(false);
         }
     } catch (const exception& e) {
         LOG_ERROR("Failed to get handle: " << handle);
@@ -62,10 +62,10 @@ vector<string> EquivalenceProcessor::get_tokenized_atom(const string& handle) {
     return {};
 }
 
-Link EquivalenceProcessor::build_link(const string& link_type,
-                                      vector<LinkTargetTypes> targets,
-                                      vector<CustomField> custom_fields) {
-    Link link;
+link_creation_agent::Link EquivalenceProcessor::build_link(const string& link_type,
+                                                           vector<LinkTargetTypes> targets,
+                                                           vector<CustomField> custom_fields) {
+    link_creation_agent::Link link;
     link.set_type(link_type);
     for (const auto& target : targets) {
         link.add_target(target);
@@ -129,8 +129,10 @@ vector<vector<string>> EquivalenceProcessor::process(shared_ptr<QueryAnswer> que
     auto custom_field = CustomField("truth_value");
     custom_field.add_field("strength", to_string(strength));
     custom_field.add_field("confidence", to_string(1));
-    Link link_c1_c2 = build_link("Expression", {equivalence_node, c1_handle, c2_handle}, {custom_field});
-    Link link_c2_c1 = build_link("Expression", {equivalence_node, c2_handle, c1_handle}, {custom_field});
+    link_creation_agent::Link link_c1_c2 =
+        build_link("Expression", {equivalence_node, c1_handle, c2_handle}, {custom_field});
+    link_creation_agent::Link link_c2_c1 =
+        build_link("Expression", {equivalence_node, c2_handle, c1_handle}, {custom_field});
     result.push_back(link_c1_c2.tokenize());
     result.push_back(link_c2_c1.tokenize());
     return result;

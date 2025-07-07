@@ -1,4 +1,4 @@
-name: Run Unit & Integration tests
+name: Code Quality & Tests
 
 on:
   workflow_call:
@@ -9,8 +9,12 @@ on:
   workflow_dispatch:
 
 jobs:
+  format-check:
+    uses: ./.github/workflows/run-format-check.yaml
+
   unit-tests:
     runs-on: self-hosted
+    needs: format-check
     env:
       DAS_REDIS_HOSTNAME: localhost
       DAS_REDIS_PORT: 29000

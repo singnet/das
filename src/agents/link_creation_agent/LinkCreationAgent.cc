@@ -1,7 +1,6 @@
 #include "LinkCreationAgent.h"
 
 #include <fstream>
-#include <sstream>
 
 #include "LinkCreateTemplate.h"
 #define LOG_LEVEL DEBUG_LEVEL
@@ -36,14 +35,12 @@ LinkCreationAgent::LinkCreationAgent(int request_interval,
     }
     service->set_save_links_to_metta_file(save_links_to_metta_file);
     service->set_save_links_to_db(save_links_to_db);
-    das_client = nullptr;
     this->agent_thread = new thread(&LinkCreationAgent::run, this);
 }
 
 LinkCreationAgent::~LinkCreationAgent() {
     stop();
     delete service;
-    // delete das_client;
 }
 
 void LinkCreationAgent::stop() {
@@ -53,7 +50,6 @@ void LinkCreationAgent::stop() {
         save_buffer();
     }
     agent_mutex.unlock();
-    // das_client->graceful_shutdown();
     if (agent_thread != NULL && agent_thread->joinable()) {
         agent_thread->join();
         agent_thread = NULL;
@@ -98,7 +94,6 @@ void LinkCreationAgent::run() {
                 query(lca_request->query, lca_request->context, lca_request->update_attention_broker);
 
             service->process_request(proxy,
-                                     das_client,
                                      lca_request->link_template,
                                      lca_request->context,
                                      lca_request->id,

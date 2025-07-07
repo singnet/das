@@ -65,11 +65,11 @@ class RedisMongoDB : public AtomDB {
     bool link_exists(const string& link_handle);
     set<string> links_exist(const vector<string>& link_handles);
 
-    string add_node(const atomspace::Node* node);
-    vector<string> add_nodes(const vector<atomspace::Node*>& nodes);
+    string add_node(const atoms::Node* node);
+    vector<string> add_nodes(const vector<atoms::Node*>& nodes);
 
-    string add_link(const atomspace::Link* link);
-    vector<string> add_links(const vector<atomspace::Link*>& links);
+    string add_link(const atoms::Link* link);
+    vector<string> add_links(const vector<atoms::Link*>& links);
 
     bool delete_atom(const string& handle);
     uint delete_atoms(const vector<string>& handles);

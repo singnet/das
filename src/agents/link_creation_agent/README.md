@@ -12,7 +12,7 @@ The request must have 6 elements:
 2. Link Create Template (string): A valid link create template (see Link Create Template Example)
 3. Max number of query response (int)
 4. Repeat (int): 0 to run once, -1 to run infinitely, 1 or higher to run this number of times.
-5. Context (string): Query context for Attention Broker requests 
+5. Context (string): Query context for Attention Broker requests
 6. Update Attention Broker flag (bool): true or false to update or not the Attention Broker
 7. Optional Request ID
 
@@ -24,13 +24,13 @@ LINK_TEMPLATE", "Expression", "3", "NODE", "Symbol", "Similarity","VARIABLE", "V
 #### Query Example
 
 ```
-LINK_TEMPLATE Expression 3 
-    NODE Symbol feature_id 
-    LINK_TEMPLATE Expression 2 
-        NODE Symbol member 
-        VARIABLE V1 
-        LINK_TEMPLATE Expression 2 
-            NODE Symbol feature 
+LINK_TEMPLATE Expression 3
+    NODE Symbol feature_id
+    LINK_TEMPLATE Expression 2
+        NODE Symbol member
+        VARIABLE V1
+        LINK_TEMPLATE Expression 2
+            NODE Symbol feature
             VARIABLE V2
 ```
 
@@ -38,7 +38,7 @@ LINK_TEMPLATE Expression 3
 
 ```
 LINK_CREATE Similarity 2 1
-    VARIABLE V1 
+    VARIABLE V1
     VARIABLE V2
     CUSTOM_FIELD truth_value 2
         CUSTOM_FIELD mean 2
@@ -68,7 +68,7 @@ To build the Link Creation Agent, run the following command from the project roo
 make build-all
 ```
 
-This will generate the binaries for all components in the `das/src/bin` directory.
+This will generate the binaries for all components in the `das/bin` directory.
 
 ## How to run
 
@@ -77,7 +77,7 @@ This will generate the binaries for all components in the `das/src/bin` director
 You might not be able to execute the binary directly from your machine. To simplify this process, we provide a command to run the service inside a container, the parameters inside the square brackets are optional:
 
 ```
-make run-link-creation-agent OPTIONS="link_creation_agent server_address peer_address [start_port] [end_port] [request_interval] [thread_count] [default_timeout] [buffer_file] [metta_file_path] [save_links_to_metta_file] [save_links_to_db]"
+make run-link-creation-agent OPTIONS="link_creation_agent server_address peer_address <start_port:end_port> [request_interval] [thread_count] [default_timeout] [buffer_file] [metta_file_path] [save_links_to_metta_file] [save_links_to_db]"
 ```
 
 
@@ -86,8 +86,7 @@ make run-link-creation-agent OPTIONS="link_creation_agent server_address peer_ad
 
 * server_address: The address of the server to connect to, in the form "host:port"
 * peer_address: The address of the peer to connect to, in the form "host:port"
-* start_port: The lower bound for the port numbers to be used by the command proxy (default: 64000)
-* end_port: The upper bound for the port numbers to be used by the command proxy (default: 64999)
+* \<start_port:end_port\> The lower and upper bound for the port numbers to be used by the command proxy
 * request_interval: The interval in seconds to send requests (default: 1)
 * thread_count: The number of threads to process requests (default: 1)
 * default_timeout: The timeout in seconds for query requests (default: 10)
@@ -101,11 +100,12 @@ make run-link-creation-agent OPTIONS="link_creation_agent server_address peer_ad
 #### Running client
 
 ```
-make run-link-creation-client OPTIONS="localhost:1010 localhost:9080 LINK_TEMPLATE Expression 3 NODE Symbol Similarity VARIABLE V1 VARIABLE V2 LINK_CREATE Similarity 2 1 VARIABLE V1 VARIABLE V2 CUSTOM_FIELD truth_value 2 CUSTOM_FIELD mean 2 count 10 avg 0.9 confidence 0.9 10 1 test false"
+make run-link-creation-client OPTIONS="localhost:1010 localhost:9080 <start_port:end_port> LINK_TEMPLATE Expression 3 NODE Symbol Similarity VARIABLE V1 VARIABLE V2 LINK_CREATE Similarity 2 1 VARIABLE V1 VARIABLE V2 CUSTOM_FIELD truth_value 2 CUSTOM_FIELD mean 2 count 10 avg 0.9 confidence 0.9 10 1 test false"
 ```
-##### OPTIONS parameters are: 
+##### OPTIONS parameters are:
 * client_host: The address of the client (localhost:1010)
 * server_host: The address of the server (localhost:9080)
+* \<start_port:end_port\> The lower and upper bound for the port numbers to be used by the command proxy
 * query: Base query to create links (LINK_TEMPLATE Expression 3 NODE Symbol Similarity VARIABLE V1 VARIABLE V2)
 * create_template: Template to create the new links (LINK_CREATE Similarity 2 1 VARIABLE V1 VARIABLE V2 CUSTOM_FIELD truth_value 2 CUSTOM_FIELD mean 2 count 10 avg 0.9 confidence 0.9)
 * max_result: Max number of responses of the query to process (10)

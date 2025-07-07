@@ -1,8 +1,9 @@
 #pragma once
 
 #include "Atom.h"
+#include "Utils.h"
 
-namespace commons {
+namespace atoms {
 
 /**
  * Abstract interface supposed to be implemented by classes that are capable of
@@ -13,8 +14,8 @@ class HandleDecoder {
     HandleDecoder() {}
 
    public:
-    ~HandleDecoder() {}
+    virtual ~HandleDecoder() {}
     virtual shared_ptr<Atom> get_atom(const string& handle) = 0;
 };
 
-}  // namespace commons
+}  // namespace atoms

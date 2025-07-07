@@ -224,7 +224,8 @@ shared_ptr<QueryElement> PatternMatchingQueryProcessor::setup_query_tree(
     while (!execution_stack.empty()) {
         cursor = execution_stack.top();
         if (query_tokens[cursor] == "NODE") {
-            element_stack.push(make_shared<Node>(query_tokens[cursor + 1], query_tokens[cursor + 2]));
+            element_stack.push(
+                make_shared<query_element::Node>(query_tokens[cursor + 1], query_tokens[cursor + 2]));
         } else if (query_tokens[cursor] == "VARIABLE") {
             element_stack.push(make_shared<Variable>(query_tokens[cursor + 1]));
         } else if (query_tokens[cursor] == "LINK") {
@@ -423,14 +424,14 @@ shared_ptr<QueryElement> PatternMatchingQueryProcessor::build_or(
     return NULL;  // Just to avoid warnings. This is not actually reachable.
 }
 
-#define BUILD_LINK(N)                                                         \
-    {                                                                         \
-        array<shared_ptr<QueryElement>, N> targets;                           \
-        for (unsigned int i = 0; i < N; i++) {                                \
-            targets[i] = element_stack.top();                                 \
-            element_stack.pop();                                              \
-        }                                                                     \
-        return make_shared<Link<N>>(query_tokens[cursor + 1], move(targets)); \
+#define BUILD_LINK(N)                                                                        \
+    {                                                                                        \
+        array<shared_ptr<QueryElement>, N> targets;                                          \
+        for (unsigned int i = 0; i < N; i++) {                                               \
+            targets[i] = element_stack.top();                                                \
+            element_stack.pop();                                                             \
+        }                                                                                    \
+        return make_shared<query_element::Link<N>>(query_tokens[cursor + 1], move(targets)); \
     }
 
 shared_ptr<QueryElement> PatternMatchingQueryProcessor::build_link(

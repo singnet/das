@@ -4,9 +4,11 @@
 #include <iostream>
 #include <string>
 
-#include "InferenceAgentNode.h"
+#include "InferenceProxy.h"
+#include "ServiceBusSingleton.h"
 
 using namespace inference_agent;
+using namespace service_bus;
 using namespace std;
 
 void ctrl_c_handler(int) {
@@ -17,7 +19,12 @@ void ctrl_c_handler(int) {
 
 int main(int argc, char* argv[]) {
     string help = R""""(
-    Usage: inference_agent CLIENT_HOST:CLIENT_PORT SERVER_HOST:SERVER_PORT REQUEST+
+    Usage: inference_agent client_address server_address <start_port:end_port> REQUEST+
+    Supported args:
+        client_address: The address of the client to connect to, in the form "host:port"
+        server_address: The address of the server to connect to, in the form "host:port"
+        <start_port:end_port>: The lower and upper bound for the port numbers to be used by the command proxy
+        REQUEST+: A list of tokens to be sent to the server
     Requests must be in the following format:
         PROOF_OF_IMPLICATION_OR_EQUIVALENCE <handle1> <handle2> <max proof length>
         PROOF_OF_IMPLICATION <handle1> <handle2> <max proof length>
@@ -32,16 +39,18 @@ int main(int argc, char* argv[]) {
 
     string client_id = string(argv[1]);
     string server_id = string(argv[2]);
+    auto [start_port, end_port] = Utils::parse_ports_range(argv[3]);
 
     vector<string> request;
-    for (int i = 3; i < argc; i++) {
+    for (int i = 4; i < argc; i++) {
         request.push_back(argv[i]);
     }
     signal(SIGINT, &ctrl_c_handler);
     signal(SIGTERM, &ctrl_c_handler);
-    string config_path = argv[2];
     cout << "Starting inference agent" << endl;
-    auto client = new InferenceAgentNode(client_id, server_id);
-    client->send_message(request);
+    ServiceBusSingleton::init(client_id, server_id, start_port, end_port);
+    auto proxy = make_shared<InferenceProxy>(request);
+    auto client = ServiceBusSingleton::get_instance();
+    client->issue_bus_command(proxy);
     return 0;
 }

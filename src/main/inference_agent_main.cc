@@ -1,6 +1,7 @@
 #include <signal.h>
 
-#include "InferenceAgent.h"
+#include "InferenceProcessor.h"
+#include "ServiceBusSingleton.h"
 using namespace inference_agent;
 using namespace std;
 
@@ -12,21 +13,32 @@ void ctrl_c_handler(int) {
 
 int main(int argc, char* argv[]) {
     string help = R""""(
-    Usage: inference_agent --config_file <path>
+    Usage: inference_agent server_address peer_address <start_port:end_port>
     Suported args:
-    --config_file   path to config file
-    --help          print this message
+        server_address: The address of the server to connect to, in the form "host:port"
+        peer_address: The address of the peer to connect to, in the form "host:port"
+        <start_port:end_port>: The lower and upper bound for the port numbers to be used by the command proxy
     )"""";
 
-    if (argc < 2) {
+    if (argc < 3) {
         cerr << help << endl;
         exit(1);
     }
     signal(SIGINT, &ctrl_c_handler);
     signal(SIGTERM, &ctrl_c_handler);
-    string config_path = argv[2];
     cout << "Starting inference agent server" << endl;
-    auto server = new InferenceAgent(config_path);
-    server->run();
+    auto [start_port, end_port] = Utils::parse_ports_range(argv[3]);
+    ServiceBusSingleton::init(argv[1],     // server_address
+                              argv[2],     // peer_address
+                              start_port,  // start_port
+                              end_port     // end_port
+    );
+    auto service_bus = ServiceBusSingleton::get_instance();
+    service_bus->register_processor(make_shared<InferenceProcessor>());
+
+    do {
+        Utils::sleep(1000);
+    } while (true);
+
     return 0;
 }

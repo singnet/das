@@ -4,14 +4,12 @@
 
 #pragma once
 
-#include <memory>
 #include <string>
 
 #include "AtomDB.h"
 #include "AtomDBAPITypes.h"
 #include "AtomDBSingleton.h"
 #include "LCALink.h"
-#include "variant"
 
 using namespace atomdb;
 using namespace std;

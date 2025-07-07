@@ -3,8 +3,9 @@
 #include <algorithm>
 #include <optional>
 
-#include "AtomSpaceTypes.h"
+#include "Link.h"
 #include "LinkTemplateInterface.h"
+#include "Node.h"
 #include "Utils.h"
 
 using namespace std;

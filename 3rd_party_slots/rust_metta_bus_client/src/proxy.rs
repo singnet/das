@@ -15,6 +15,10 @@ mod das_proto {
 
 use crate::helpers::mongodb::MongoRepository;
 use crate::port_pool::PortPool;
+use crate::properties::{
+	Properties, PropertyValue, ATTENTION_UPDATE_FLAG, COUNT_FLAG, MAX_BUNDLE_SIZE,
+	POSITIVE_IMPORTANCE_FLAG, UNIQUE_ASSIGNMENT_FLAG,
+};
 use crate::{bus::PATTERN_MATCHING_QUERY, types::BoxError};
 
 static ABORT: &str = "abort"; // Abort current query
@@ -31,12 +35,12 @@ pub struct PatternMatchingQueryProxy {
 	count_flag: bool,
 	abort_flag: Arc<Mutex<bool>>,
 
-	// context: String,
-	// update_attention_broker: bool,
 	pub query_tokens: Vec<String>,
 
 	// BusCommandProxy
 	pub command: String,
+	pub context: String,
+	pub properties: Properties,
 	pub args: Vec<String>,
 	pub requestor_id: String,
 	pub serial: u64,
@@ -53,13 +57,22 @@ impl PatternMatchingQueryProxy {
 		tokens: Vec<String>, context: String, unique_assignment: bool, positive_importance: bool,
 		update_attention_broker: bool, count_only: bool,
 	) -> Result<Self, BoxError> {
-		let mut args = vec![
-			context.clone(),
-			unique_assignment.to_string(),
-			positive_importance.to_string(),
-			update_attention_broker.to_string(),
-			count_only.to_string(),
-		];
+		let mut properties = Properties::new();
+		properties
+			.insert(UNIQUE_ASSIGNMENT_FLAG.to_string(), PropertyValue::Bool(unique_assignment));
+		properties
+			.insert(POSITIVE_IMPORTANCE_FLAG.to_string(), PropertyValue::Bool(positive_importance));
+		properties.insert(
+			ATTENTION_UPDATE_FLAG.to_string(),
+			PropertyValue::Bool(update_attention_broker),
+		);
+		properties.insert(COUNT_FLAG.to_string(), PropertyValue::Bool(count_only));
+		properties.insert(MAX_BUNDLE_SIZE.to_string(), PropertyValue::UnsignedInt(1000));
+
+		let mut args = vec![];
+		args.extend(properties.to_vec());
+		args.push(context.clone());
+		args.push(tokens.len().to_string());
 		args.extend(tokens);
 
 		let runtime = Arc::new(Builder::new_multi_thread().enable_all().build().unwrap());
@@ -79,8 +92,9 @@ impl PatternMatchingQueryProxy {
 			count_flag: count_only,
 			abort_flag: Arc::new(Mutex::new(false)),
 
-			// context,
-			// update_attention_broker,
+			context,
+			properties,
+
 			query_tokens: vec![],
 
 			command: PATTERN_MATCHING_QUERY.to_string(),

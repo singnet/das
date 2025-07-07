@@ -9,20 +9,16 @@
  * It also handles loading and saving configurations and request buffers.
  */
 #pragma once
-#include <memory>
 #include <mutex>
 #include <string>
 #include <thread>
 #include <vector>
 
-#include "DASAgentNode.h"
-#include "LinkCreationAgentNode.h"
 #include "LinkCreationService.h"
 #include "PatternMatchingQueryProxy.h"
 #include "ServiceBusSingleton.h"
 
 using namespace std;
-using namespace das_agent;
 using namespace query_engine;
 namespace link_creation_agent {
 struct LinkCreationAgentRequest {
@@ -114,9 +110,7 @@ class LinkCreationAgent {
     // Other attributes
     LinkCreationService* service;
     map<string, shared_ptr<LinkCreationAgentRequest>> request_buffer;
-    LinkCreationAgentNode* link_creation_node_server;
     Queue<shared_ptr<LinkCreationAgentRequest>> requests_queue;  // Queue to hold requests
-    DasAgentNode* das_client;
     thread* agent_thread;
     mutex agent_mutex;
     bool is_stoping = false;

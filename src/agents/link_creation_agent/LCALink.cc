@@ -1,7 +1,5 @@
 #include "LCALink.h"
 
-#include <iostream>
-
 #include "Logger.h"
 
 using namespace link_creation_agent;

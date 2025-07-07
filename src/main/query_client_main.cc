@@ -18,15 +18,16 @@ using namespace atomspace;
 using namespace atomdb;
 
 void ctrl_c_handler(int) {
-    std::cout << "Stopping query engine server..." << std::endl;
-    std::cout << "Done." << std::endl;
+    cout << "Stopping query engine server..." << endl;
+    cout << "Done." << endl;
     exit(0);
 }
 
 int main(int argc, char* argv[]) {
-    if (argc < 5) {
+    if (argc < 6) {
         cerr << "Usage: " << argv[0]
-             << " CLIENT_HOST:CLIENT_PORT SERVER_HOST:SERVER_PORT UPDATE_ATTENTION_BROKER QUERY_TOKEN+ "
+             << " CLIENT_HOST:CLIENT_PORT SERVER_HOST:SERVER_PORT <START_PORT:END_PORT> "
+                "UPDATE_ATTENTION_BROKER QUERY_TOKEN+ "
                 "(hosts are supposed to be public IPs or known hostnames)"
              << endl;
         exit(1);
@@ -36,26 +37,27 @@ int main(int argc, char* argv[]) {
 
     string client_id = string(argv[1]);
     string server_id = string(argv[2]);
-    bool update_attention_broker = (string(argv[3]) == "true" || string(argv[3]) == "1");
+    auto ports_range = Utils::parse_ports_range(argv[3]);
+    bool update_attention_broker = (string(argv[4]) == "true" || string(argv[4]) == "1");
     if (update_attention_broker) {
         cerr << "Enforcing update_attention_broker=false regardless the passed parameter" << endl;
     }
     update_attention_broker = false;
 
-    ServiceBusSingleton::init(client_id, server_id, 54000, 54500);
+    ServiceBusSingleton::init(client_id, server_id, ports_range.first, ports_range.second);
 
     // check if argv[4] is a number which is the max number of query answers
     // if not, set it to MAX_QUERY_ANSWERS
     int max_query_answers = 0;
-    size_t tokens_start_position = 4;
+    size_t tokens_start_position = 5;
     try {
-        max_query_answers = stol(argv[4]);
+        max_query_answers = stol(argv[5]);
         if (max_query_answers <= 0) {
             cout << "max_query_answers cannot be 0 or negative" << endl;
             exit(1);
         }
-        tokens_start_position = 5;
-    } catch (const std::exception& e) {
+        tokens_start_position = 6;
+    } catch (const exception& e) {
         max_query_answers = MAX_QUERY_ANSWERS;
     }
     cout << "Using max_query_answers: " << max_query_answers << endl;

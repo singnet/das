@@ -3,15 +3,11 @@
  * @brief Link Creation Service class
  */
 #pragma once
-#include <atomic>
-#include <condition_variable>
-#include <functional>
-#include <map>
+
 #include <mutex>
 #include <set>
 #include <shared_mutex>
 
-#include "DASAgentNode.h"
 #include "EquivalenceProcessor.h"
 #include "ImplicationProcessor.h"
 #include "LCALink.h"
@@ -23,7 +19,6 @@
 #include "TemplateProcessor.h"
 #include "ThreadPool.h"
 
-using namespace das_agent;
 using namespace query_engine;
 using namespace std;
 namespace link_creation_agent {
@@ -50,7 +45,6 @@ class LinkCreationService
      * @param das_client DAS Node client
      */
     void process_request(shared_ptr<PatternMatchingQueryProxy> proxy,
-                         DasAgentNode* das_client,
                          vector<string>& link_template,
                          const string& context,
                          const string& request_id,
@@ -73,13 +67,11 @@ class LinkCreationService
     set<string> processed_link_handles;
     string metta_file_path;
     shared_mutex m_mutex;
-    condition_variable m_cond;
     shared_ptr<LinkTemplateProcessor> link_template_processor;
     shared_ptr<ImplicationProcessor> implication_processor;
     shared_ptr<EquivalenceProcessor> equivalence_processor;
     shared_ptr<mutex> query_agent_mutex;
     Queue<tuple<string, vector<string>>> link_creation_queue;
-    DasAgentNode* das_client = nullptr;
     bool is_stoping = false;
     thread create_link_thread;
     set<string> metta_expression_set;

@@ -110,7 +110,7 @@ class CustomField {
    private:
     string name;
     vector<tuple<string, CustomFieldTypes>> values;
-    CustomField untokenize(const vector<string>& tokens, int& cursor);
+    CustomField untokenize(const vector<string>& tokens, size_t& cursor);
 };
 
 /**

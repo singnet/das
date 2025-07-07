@@ -19,7 +19,7 @@ namespace commons {
 class RequestValidator {
    public:
     RequestValidator() {}
-    bool validate(vector<string>& request) {
+    bool validate(const vector<string>& request) {
         if (request.size() != count_tokens(validator_regex)) {
             return false;
         }

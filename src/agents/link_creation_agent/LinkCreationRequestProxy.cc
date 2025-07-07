@@ -1,6 +1,5 @@
 #include "LinkCreationRequestProxy.h"
 
-#include "Logger.h"
 #include "ServiceBus.h"
 
 using namespace link_creation_agent;
@@ -8,6 +7,8 @@ using namespace link_creation_agent;
 const string LinkCreationRequestProxy::Parameters::QUERY_INTERVAL =
     "link_creation_agent.requests_interval";
 const string LinkCreationRequestProxy::Parameters::QUERY_TIMEOUT = "link_creation_agent.query_timeout";
+
+const string LinkCreationRequestProxy::Parameters::ABORT_FLAG = "link_creation_agent.abort_flag";
 
 LinkCreationRequestProxy::LinkCreationRequestProxy() : BaseProxy() {}
 
