@@ -1,4 +1,3 @@
-#include <iostream> // XXXXX
 #include "LinkSchema.h"
 
 #include "Hasher.h"
@@ -141,7 +140,7 @@ bool LinkSchema::SchemaElement::match(const string& handle, Assignment& assignme
         if (atom_ptr == NULL) {
             atom_ptr = decoder.get_atom(handle).get();
         }
-        if (Atom::is_link(*atom_ptr)) {
+        if (Atom::is_link(*atom_ptr) && (atom_ptr->arity() == this->targets.size())) {
             unsigned int cursor = 0;
             for (string target_handle: ((Link*) atom_ptr)->targets) {
                 if (! this->targets[cursor++].match(target_handle, assignment, decoder, NULL)) {
@@ -201,6 +200,8 @@ void LinkSchema::stack_node(const string& type, const string& name) {
         this->_atom_stack.push_back(triplet);
         this->_build_tokens.push_back({NODE, type, name});
         SchemaElement node_element;
+        node_element.name = name;
+        node_element.type = type;
         node_element.handle = node_handle;
         this->_schema_element_stack.push(node_element);
     }
@@ -234,15 +235,16 @@ void LinkSchema::_stack_link_schema(const string& type,
         target_handles.reserve(link_arity);
         composite_type.reserve(link_arity);
         bool first = true;
+        SchemaElement new_schema_element;
         for (int i = link_arity - 1; i >= 0; i--) {
             tuple<string, string, string> triplet = this->_atom_stack.back();
-            SchemaElement schema_element = this->_schema_element_stack.top();
+            SchemaElement popped_schema_element = this->_schema_element_stack.top();
             if (is_link && (get<0>(triplet) == Atom::WILDCARD_STRING)) {
                 Utils::error("Invalid wildcard in Link");
             }
             target_handles.insert(target_handles.begin(), get<0>(triplet));
             composite_type.insert(composite_type.begin(), get<1>(triplet));
-            this->_schema_element.targets.insert(this->_schema_element.targets.begin(), schema_element);
+            new_schema_element.targets.insert(new_schema_element.targets.begin(), popped_schema_element);
             if (first) {
                 metta_expression = get<2>(triplet) + ")";
                 first = false;
@@ -254,7 +256,8 @@ void LinkSchema::_stack_link_schema(const string& type,
         }
         metta_expression = "(" + metta_expression;
         // TODO check for invalid MeTTa expressions (e.g. invalid node/link types)
-        tuple<string, string, string> triplet(Hasher::link_handle(type, target_handles),
+        string schema_handle = (is_link ? Hasher::link_handle(type, target_handles) : Atom::WILDCARD_STRING);
+        tuple<string, string, string> triplet(schema_handle,
                                               Hasher::composite_handle(composite_type),
                                               metta_expression);
         this->_atom_stack.push_back(triplet);
@@ -266,7 +269,9 @@ void LinkSchema::_stack_link_schema(const string& type,
         }
         this->_build_tokens.erase(this->_build_tokens.end() - link_arity, this->_build_tokens.end());
         this->_build_tokens.push_back(new_element);
-        this->_schema_element_stack.push(this->_schema_element);
+        new_schema_element.is_link = true;
+        new_schema_element.type = type;
+        this->_schema_element_stack.push(new_schema_element);
     } else {
         Utils::error("Couldn't stack link. Link arity: " + std::to_string(link_arity) +
                      " stack size: " + std::to_string(this->_atom_stack.size()));
@@ -296,6 +301,10 @@ void LinkSchema::build() {
         }
         for (unsigned int i = 0; i < this->_build_tokens.size(); i++) {
             this->_tokens.insert(this->_tokens.end(), this->_build_tokens[i].begin(), this->_build_tokens[i].end());
+        }
+        while (! this->_schema_element_stack.empty()) {
+            this->_schema_element.targets.insert(this->_schema_element.targets.begin(), this->_schema_element_stack.top());
+            this->_schema_element_stack.pop();
         }
         this->_build_tokens.clear();
     }

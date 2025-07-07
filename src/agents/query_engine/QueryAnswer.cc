@@ -163,7 +163,7 @@ void QueryAnswer::untokenize(const string& tokens) {
     read_token(token_string, cursor, number, 4);
     this->assignment.size = (unsigned int) std::stoi(number);
 
-    if (this->assignment.size > MAX_NUMBER_OF_VARIABLES) {
+    if (this->assignment.size > MAX_NUMBER_OF_VARIABLES_IN_QUERY) {
         Utils::error("Invalid number of assignments: " + std::to_string(this->assignment.size) +
                      " untokenizing QueryAnswer");
     }

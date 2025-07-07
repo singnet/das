@@ -14,6 +14,7 @@ class LinkSchema : public Wildcard {
        public:
         string handle;
         string name;
+        string type;
         vector<SchemaElement> targets;
         bool is_link;
         bool is_wildcard;
