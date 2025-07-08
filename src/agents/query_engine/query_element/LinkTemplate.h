@@ -18,7 +18,6 @@
 #include "Iterator.h"
 #include "Link.h"
 #include "LinkSchema.h"
-#include "LinkTemplateInterface.h"
 #include "Node.h"
 #include "QueryAnswer.h"
 #include "QueryElementRegistry.h"
@@ -77,7 +76,7 @@ namespace query_element {
  * Returned links are guaranteed to satisfy all variable settings properly.
  */
 template <unsigned int ARITY>
-class LinkTemplate : public Source, public LinkTemplateInterface {
+class LinkTemplate : public Source {
    public:
     // --------------------------------------------------------------------------------------------
     // Constructors and destructors
@@ -249,7 +248,7 @@ class LinkTemplate : public Source, public LinkTemplateInterface {
 
     void set_positive_importance_flag(bool flag) { this->positive_importance_flag = flag; }
 
-    const char* get_handle() const override { return this->handle.get(); }
+    const char* get_handle() const { return this->handle.get(); }
 
    private:
     // --------------------------------------------------------------------------------------------

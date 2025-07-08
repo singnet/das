@@ -53,7 +53,7 @@ class RedisMongoDB : public AtomDB {
     shared_ptr<Atom> get_atom(const string& handle);
 
     shared_ptr<atomdb_api_types::HandleSet> query_for_pattern(
-        const LinkTemplateInterface& link_template);
+        const LinkSchema& link_schema);
 
     shared_ptr<atomdb_api_types::HandleList> query_for_targets(const string& handle);
 

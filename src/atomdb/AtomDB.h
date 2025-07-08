@@ -7,6 +7,7 @@
 #include "AtomDBAPITypes.h"
 #include "HandleDecoder.h"
 #include "Properties.h"
+#include "LinkSchema.h"
 
 using namespace std;
 using namespace commons;
@@ -22,7 +23,7 @@ class AtomDB : public HandleDecoder {
     virtual shared_ptr<Atom> get_atom(const string& handle) = 0;  // HandleDecoder interface
 
     virtual shared_ptr<atomdb_api_types::HandleSet> query_for_pattern(
-        const LinkTemplateInterface& link_template) = 0;
+        const LinkSchema& link_schema) = 0;
     virtual shared_ptr<atomdb_api_types::HandleList> query_for_targets(const string& handle) = 0;
     virtual shared_ptr<atomdb_api_types::AtomDocument> get_atom_document(const string& handle) = 0;
     virtual bool link_exists(const string& link_handle) = 0;

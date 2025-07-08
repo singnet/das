@@ -155,9 +155,9 @@ shared_ptr<Atom> RedisMongoDB::get_atom(const string& handle) {
 }
 
 shared_ptr<atomdb_api_types::HandleSet> RedisMongoDB::query_for_pattern(
-    const LinkTemplateInterface& link_template) {
+    const LinkSchema& link_schema) {
     if (this->atomdb_cache != nullptr) {
-        auto cache_result = this->atomdb_cache->query_for_pattern(link_template);
+        auto cache_result = this->atomdb_cache->query_for_pattern(link_schema);
         if (cache_result.is_cache_hit) return cache_result.result;
     }
 
@@ -168,7 +168,7 @@ shared_ptr<atomdb_api_types::HandleSet> RedisMongoDB::query_for_pattern(
 
     auto ctx = this->redis_pool->acquire();
 
-    auto pattern_handle = link_template.get_handle();
+    auto pattern_handle = link_schema.handle();
     auto handle_set = make_shared<atomdb_api_types::HandleSetRedis>();
 
     while (redis_has_more) {

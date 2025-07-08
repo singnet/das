@@ -10,7 +10,6 @@
 #include "AtomDBSingleton.h"
 #include "Hasher.h"
 #include "Link.h"
-#include "LinkTemplateInterface.h"
 #include "MettaMapping.h"
 #include "Node.h"
 #include "RedisMongoDB.h"
@@ -67,14 +66,14 @@ class RedisMongoDBTest : public ::testing::Test {
     shared_ptr<RedisMongoDB> db;
 };
 
-class LinkTemplateHandle : public LinkTemplateInterface {
+class LinkSchemaHandle : public LinkSchema {
    public:
-    LinkTemplateHandle(const char* handle) : handle(handle) {}
+    LinkSchemaHandle(const char* handle) : LinkSchema("blah", 2), fixed_handle(handle) {}
 
-    const char* get_handle() const override { return this->handle; }
+    string handle() const override { return this->fixed_handle; }
 
    private:
-    const char* handle;
+    string fixed_handle;
 };
 
 TEST_F(RedisMongoDBTest, ConcurrentQueryForPattern) {
@@ -84,12 +83,12 @@ TEST_F(RedisMongoDBTest, ConcurrentQueryForPattern) {
 
     auto worker = [&](int thread_id) {
         try {
-            auto link_template = new LinkTemplateHandle("e8ca47108af6d35664f8813e1f96c5fa");
-            auto handle_set = db->query_for_pattern(*link_template);
+            auto link_schema = new LinkSchemaHandle("e8ca47108af6d35664f8813e1f96c5fa");
+            auto handle_set = db->query_for_pattern(*link_schema);
             ASSERT_NE(handle_set, nullptr);
             ASSERT_EQ(handle_set->size(), 3);
             success_count++;
-            delete link_template;
+            delete link_schema;
         } catch (const exception& e) {
             cout << "Thread " << thread_id << " failed with error: " << e.what() << endl;
         }
@@ -106,9 +105,9 @@ TEST_F(RedisMongoDBTest, ConcurrentQueryForPattern) {
     EXPECT_EQ(success_count, num_threads);
 
     // Test non-existing pattern
-    auto link_template = new LinkTemplateHandle("00000000000000000000000000000000");
-    auto handle_set = db->query_for_pattern(*link_template);
-    delete link_template;
+    auto link_schema = new LinkSchemaHandle("00000000000000000000000000000000");
+    auto handle_set = db->query_for_pattern(*link_schema);
+    delete link_schema;
     EXPECT_EQ(handle_set->size(), 0);
 }
 
