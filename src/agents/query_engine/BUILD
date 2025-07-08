@@ -72,6 +72,7 @@ cc_library(
     deps = [
         ":pattern_matching_query_proxy",
         "//agents/query_engine/query_element:query_element_lib",
+        "//commons/atoms:atoms_lib",
         "//service_bus:bus_command_processor",
     ],
 )

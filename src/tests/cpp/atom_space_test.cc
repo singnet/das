@@ -194,8 +194,8 @@ TEST_F(AtomSpaceTest, AddNode) {
     ASSERT_NE(atom, nullptr);
     EXPECT_EQ(atom->type, "ConceptNode");
     EXPECT_EQ(dynamic_cast<const Node*>(atom)->name, "test_node");
-    EXPECT_TRUE(AtomSpace::is_node(*atom));
-    EXPECT_FALSE(AtomSpace::is_link(*atom));
+    EXPECT_TRUE(Atom::is_node(*atom));
+    EXPECT_FALSE(Atom::is_link(*atom));
 }
 
 // Test add_link functionality
@@ -221,8 +221,8 @@ TEST_F(AtomSpaceTest, AddLink) {
     const Link* link = dynamic_cast<const Link*>(link_atom);
     ASSERT_NE(link, nullptr);
     ASSERT_EQ(link->targets.size(), 2);
-    EXPECT_FALSE(AtomSpace::is_node(*link_atom));
-    EXPECT_TRUE(AtomSpace::is_link(*link_atom));
+    EXPECT_FALSE(Atom::is_node(*link_atom));
+    EXPECT_TRUE(Atom::is_link(*link_atom));
 }
 
 // Test atom_from_document with node document
