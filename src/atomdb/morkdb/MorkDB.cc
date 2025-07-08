@@ -10,7 +10,6 @@
 #include "Logger.h"
 #include "Utils.h"
 
-
 using namespace atomdb;
 using namespace atoms;
 using namespace commons;
