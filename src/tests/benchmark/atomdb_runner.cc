@@ -1,3 +1,5 @@
+#include <gtest/gtest.h>
+
 #include <iostream>
 #include <string>
 #include <vector>
@@ -9,52 +11,55 @@
 #include "RedisMongoDB.h"
 #include "AtomDBCache.h"
 
-
 using namespace std;
 
 
-void set_envs(bool enabled) {
-    setenv("DAS_REDIS_HOSTNAME", "localhost", 1);
-    setenv("DAS_REDIS_PORT", "29000", 1);
-    setenv("DAS_USE_REDIS_CLUSTER", "false", 1);
-    setenv("DAS_MONGODB_HOSTNAME", "localhost", 1);
-    setenv("DAS_MONGODB_PORT", "28000", 1);
-    setenv("DAS_MONGODB_USERNAME", "dbadmin", 1);
-    setenv("DAS_MONGODB_PASSWORD", "dassecret", 1);
-    setenv("DAS_DISABLE_ATOMDB_CACHE", "true", 1);
-    setenv("DAS_MORK_HOSTNAME", "localhost", 1);
-    setenv("DAS_MORK_PORT", "8000", 1);
-    AtomDBSingleton::init();
+class AtomDBTestEnvironment : public ::testing::Environment {
+   public:
+    void SetUp() override {
+        setenv("DAS_REDIS_HOSTNAME", "localhost", 1);
+        setenv("DAS_REDIS_PORT", "29000", 1);
+        setenv("DAS_USE_REDIS_CLUSTER", "false", 1);
+        setenv("DAS_MONGODB_HOSTNAME", "localhost", 1);
+        setenv("DAS_MONGODB_PORT", "28000", 1);
+        setenv("DAS_MONGODB_USERNAME", "dbadmin", 1);
+        setenv("DAS_MONGODB_PASSWORD", "dassecret", 1);
+        setenv("DAS_DISABLE_ATOMDB_CACHE", "true", 1);
+        setenv("DAS_MORK_HOSTNAME", "localhost", 1);
+        setenv("DAS_MORK_PORT", "8000", 1);
+        AtomDBSingleton::init();
+    }
+};
+
+class AtomDBTest : public ::testing::Test {
+   protected:
+    void SetUp() override {
+        auto atomdb = AtomDBSingleton::get_instance();
+        db = dynamic_pointer_cast<RedisMongoDB>(atomdb);
+        ASSERT_NE(db, nullptr) << "Failed to cast AtomDB to RedisMongoDB";
+    }
+
+    void TearDown() override {}
+
+    string exp_hash(vector<string> targets) {
+        char* symbol = (char*) "Symbol";
+        char** targets_handles = new char*[targets.size()];
+        for (size_t i = 0; i < targets.size(); i++) {
+            targets_handles[i] = terminal_hash(symbol, (char*) targets[i].c_str());
+        }
+        char* expression = named_type_hash((char*) "Expression");
+        return string(expression_hash(expression, targets_handles, targets.size()));
+    }
+
+    shared_ptr<RedisMongoDB> db;
+};
+
+TEST_F(AtomDBTest, AddAtom) {
+    // WIP
 }
 
-bool add_atom(atomdb_api_types::ATOMDB_TYPE atomdb_type) {
-    // TODO
-    return true;
-}
-
-bool add_atoms(int id) {
-    // TODO
-    return true;
-}
-
-bool get_atom(int id, bool very_connected) {
-    // TODO
-    return true;
-}
-
-bool get_atoms(int id, bool very_connected) {
-    // TODO
-    return true;
-}
-
-bool delete_atom(int id) {
-    // TODO
-    return true;
-}
-
-bool delete_atoms(int id) {
-    // TODO
-    return true;
+TEST_F(AtomDBTest, AddAtoms) {
+    // WIP
 }
 
 struct Stats {
@@ -64,30 +69,23 @@ struct Stats {
 };
 
 // -----------------------------------------------------
-void worker_thread(const string& action, int iterations, bool very_connected, Stats& stats) {
-    for (int i = 0; i < iterations; ++i) {
-        auto start = chrono::high_resolution_clock::now();
-        bool ok = false;
-
-        if (action == "add_atom") {
-            ok = add_atom(i);
-        } else if (action == "get_atom") {
-            ok = get_atom(i, very_connected);
-        } else if (action == "delete_atom") {
-            ok = delete_atom(i);
-        } else {
-            cerr << "Unknown action: " << action << endl;
-            continue;
-        }
-
-        auto end = chrono::high_resolution_clock::now();
-        double ms = chrono::duration<double, milli>(end - start).count();
-
-        // stats.total_latency_ms += ms;
-        if (!ok) stats.errors++;
-        stats.total_ops++;
+int main(const string& action, int iterations, bool very_connected, Stats& stats) {
+    if (argc < 5) {
+        "/src/scripts/run.sh benchmark "$CONCURRENCY" "$CACHE" "$action" "$METRICS""
+        cerr << "Usage: " << argv[0]
+             << " <concurrency> <cache> <action> <metrics> "
+             << endl;
+        exit(1);
     }
-}
 
-// -----------
-int main(){};
+    string concurrency = string(argv[1]);
+    string cache = string(argv[2]) == "enabled" ? "true" : "false";;
+    string action = string(argv[3]);
+    string metrics = string(argv[4]);
+
+
+    signal(SIGINT, &ctrl_c_handler);
+    signal(SIGTERM, &ctrl_c_handler);
+   
+    return 0;
+}
