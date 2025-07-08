@@ -5,14 +5,29 @@
 #include <atomic>
 #include <chrono>
 
+#include "AtomDB.h"
+#include "RedisMongoDB.h"
+#include "AtomDBCache.h"
+
+
 using namespace std;
 
 
-void set_cache(bool enabled) {
-    // TODO
+void set_envs(bool enabled) {
+    setenv("DAS_REDIS_HOSTNAME", "localhost", 1);
+    setenv("DAS_REDIS_PORT", "29000", 1);
+    setenv("DAS_USE_REDIS_CLUSTER", "false", 1);
+    setenv("DAS_MONGODB_HOSTNAME", "localhost", 1);
+    setenv("DAS_MONGODB_PORT", "28000", 1);
+    setenv("DAS_MONGODB_USERNAME", "dbadmin", 1);
+    setenv("DAS_MONGODB_PASSWORD", "dassecret", 1);
+    setenv("DAS_DISABLE_ATOMDB_CACHE", "true", 1);
+    setenv("DAS_MORK_HOSTNAME", "localhost", 1);
+    setenv("DAS_MORK_PORT", "8000", 1);
+    AtomDBSingleton::init();
 }
 
-bool add_atom(int id) {
+bool add_atom(atomdb_api_types::ATOMDB_TYPE atomdb_type) {
     // TODO
     return true;
 }
