@@ -251,6 +251,9 @@ class LinkTemplate : public Source, public LinkTemplateInterface {
 
     const char* get_handle() const override { return this->handle.get(); }
 
+    // TODO: This method should be implemented
+    string get_metta_expression() const override { return "(EVALUATION $x $y)"; }
+
    private:
     // --------------------------------------------------------------------------------------------
     // Private methods and attributes
