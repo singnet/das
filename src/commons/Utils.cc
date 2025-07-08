@@ -185,6 +185,7 @@ string Utils::trim(const string& s) {
     }
     size_t end = s.find_last_not_of(whitespace);
     return s.substr(start, end - start + 1);
+}
 
 unsigned long long Utils::get_current_time_millis() {
     return chrono::duration_cast<chrono::milliseconds>(chrono::steady_clock::now().time_since_epoch())
