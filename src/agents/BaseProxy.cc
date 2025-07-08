@@ -33,7 +33,7 @@ bool BaseProxy::finished() {
 
 void BaseProxy::abort() {
     lock_guard<mutex> semaphore(this->api_mutex);
-    Utils::error("Method not implemented");
+    // Utils::error("Method not implemented");
     if (!this->command_finished_flag) {
         to_remote_peer(ABORT, {});
     }
