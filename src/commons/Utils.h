@@ -44,6 +44,7 @@ class Utils {
     static bool is_number(const string& s);
     static int string_to_int(const string& s);
     static string trim(const string& s);
+    static unsigned long long get_current_time_millis();
 };
 
 }  // namespace commons

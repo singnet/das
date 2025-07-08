@@ -14,6 +14,7 @@
 #include <thread>
 #include <vector>
 
+#include "LinkCreationRequestProxy.h"
 #include "LinkCreationService.h"
 #include "PatternMatchingQueryProxy.h"
 #include "ServiceBusSingleton.h"
@@ -66,6 +67,7 @@ class LinkCreationAgent {
     static shared_ptr<LinkCreationAgentRequest> create_request(vector<string> request);
 
     void process_request(vector<string> request);
+    void process_request(shared_ptr<LinkCreationRequestProxy> proxy);
 
     void abort_request(const string& request_id);
 
@@ -110,6 +112,9 @@ class LinkCreationAgent {
     // Other attributes
     LinkCreationService* service;
     map<string, shared_ptr<LinkCreationAgentRequest>> request_buffer;
+    unordered_map<string, shared_ptr<LinkCreationRequestProxy>> link_creation_proxy_map;
+    unordered_map<string, shared_ptr<PatternMatchingQueryProxy>>
+        pattern_query_proxy_map;                                 // Map of query proxies
     Queue<shared_ptr<LinkCreationAgentRequest>> requests_queue;  // Queue to hold requests
     thread* agent_thread;
     mutex agent_mutex;

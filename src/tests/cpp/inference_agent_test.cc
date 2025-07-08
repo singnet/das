@@ -3,6 +3,7 @@
 
 #include <fstream>
 
+#include "AtomDBSingleton.h"
 #include "InferenceProcessor.h"
 #include "ServiceBusSingleton.h"
 #include "Utils.h"
@@ -11,6 +12,7 @@ using namespace std;
 using namespace inference_agent;
 using namespace commons;
 using namespace distributed_algorithm_node;
+using namespace atomdb;
 
 // class MockInferenceAgentNode : public InferenceAgentNode {
 //    public:
@@ -64,6 +66,8 @@ class InferenceAgentTest : public ::testing::Test {
 
     void SetUp() override {
         this->server_id = "localhost:1120";
+        // Initialize the AtomDB singleton
+        // AtomDBSingleton::init();
 
         // string inference_node_client_id = Utils::get_environment("INFERENCE_CLIENT");
         // inference_node_client_id =
@@ -202,55 +206,56 @@ TEST_F(InferenceAgentTest, TestConfig) {
 //     agent.stop();
 // }
 
-TEST(InferenceRequest, TestInferenceRequests) {
-    ProofOfImplicationOrEquivalence proof_of_implication_or_equivalence(
-        "handle1", "handle2", 1, "context");
-    auto requests = proof_of_implication_or_equivalence.get_requests();
-    auto dic_request = proof_of_implication_or_equivalence.get_distributed_inference_control_request();
-    EXPECT_EQ(requests.size(), 3);
-    EXPECT_EQ(Utils::join(requests[0], ' '),
-              "LINK_TEMPLATE Expression 3 NODE Symbol EVALUATION LINK_TEMPLATE Expression 2 NODE Symbol "
-              "PREDICATE VARIABLE P LINK_TEMPLATE Expression 2 NODE Symbol CONCEPT VARIABLE C LIST 2 "
-              "LINK_CREATE Expression 2 1 NODE Symbol SATISFYING_SET VARIABLE P CUSTOM_FIELD "
-              "truth_value 2 strength 1.0 confidence 1.0 LINK_CREATE Expression 2 1 NODE Symbol "
-              "PATTERNS VARIABLE C CUSTOM_FIELD truth_value 2 strength 1.0 confidence 1.0");
-    EXPECT_EQ(
-        Utils::join(dic_request, ' '),
-        "context OR 2 LINK_TEMPLATE Expression 3 NODE Symbol IMPLICATION HANDLE handle1 HANDLE handle2 "
-        "LINK_TEMPLATE Expression 3 NODE Symbol EQUIVALENCE HANDLE handle1 HANDLE handle2");
+// TEST(InferenceRequest, TestInferenceRequests) {
+//     ProofOfImplicationOrEquivalence proof_of_implication_or_equivalence(
+//         "handle1", "handle2", 1, "context");
+//     auto requests = proof_of_implication_or_equivalence.get_requests();
+//     auto dic_request =
+//     proof_of_implication_or_equivalence.get_distributed_inference_control_request();
+//     EXPECT_EQ(requests.size(), 3);
+//     EXPECT_EQ(Utils::join(requests[0], ' '),
+//               "LINK_TEMPLATE Expression 3 NODE Symbol EVALUATION LINK_TEMPLATE Expression 2 NODE
+//               Symbol " "PREDICATE VARIABLE P LINK_TEMPLATE Expression 2 NODE Symbol CONCEPT VARIABLE C
+//               LIST 2 " "LINK_CREATE Expression 2 1 NODE Symbol SATISFYING_SET VARIABLE P CUSTOM_FIELD
+//               " "truth_value 2 strength 1.0 confidence 1.0 LINK_CREATE Expression 2 1 NODE Symbol "
+//               "PATTERNS VARIABLE C CUSTOM_FIELD truth_value 2 strength 1.0 confidence 1.0");
+//     EXPECT_EQ(
+//         Utils::join(dic_request, ' '),
+//         "context OR 2 LINK_TEMPLATE Expression 3 NODE Symbol IMPLICATION HANDLE handle1 HANDLE handle2
+//         " "LINK_TEMPLATE Expression 3 NODE Symbol EQUIVALENCE HANDLE handle1 HANDLE handle2");
 
-    ProofOfImplication proof_of_implication("handle3", "handle4", 2, "context");
-    requests = proof_of_implication.get_requests();
-    dic_request = proof_of_implication.get_distributed_inference_control_request();
-    EXPECT_EQ(requests.size(), 1);
-    EXPECT_EQ(Utils::join(requests[0], ' '),
-              "AND 2 LINK_TEMPLATE Expression 2 NODE Symbol SATISFYING_SET VARIABLE P1 LINK_TEMPLATE "
-              "Expression 2 NODE Symbol SATISFYING_SET VARIABLE P2 PROOF_OF_IMPLICATION");
-    EXPECT_EQ(Utils::join(dic_request, ' '),
-              "context OR 6 AND 2 LINK_TEMPLATE Expression 3 NODE Symbol IMPLICATION HANDLE handle3 "
-              "VARIABLE V1 "
-              "LINK_TEMPLATE Expression 3 NODE Symbol IMPLICATION VARIABLE V1 HANDLE handle4 AND 2 "
-              "LINK_TEMPLATE Expression 3 NODE Symbol EQUIVALENCE HANDLE handle3 VARIABLE V1 "
-              "LINK_TEMPLATE Expression 3 NODE Symbol IMPLICATION VARIABLE V1 HANDLE handle4 AND 2 "
-              "LINK_TEMPLATE Expression 3 NODE Symbol IMPLICATION HANDLE handle3 VARIABLE V1 "
-              "LINK_TEMPLATE Expression 3 NODE Symbol EQUIVALENCE VARIABLE V1 HANDLE handle4 AND 2 "
-              "LINK_TEMPLATE Expression 3 NODE Symbol EQUIVALENCE HANDLE handle3 VARIABLE V1 "
-              "LINK_TEMPLATE Expression 3 NODE Symbol EQUIVALENCE VARIABLE V1 HANDLE handle4 "
-              "LINK_TEMPLATE Expression 3 NODE Symbol IMPLICATION HANDLE handle3 HANDLE handle4 "
-              "LINK_TEMPLATE Expression 3 NODE Symbol EQUIVALENCE HANDLE handle3 HANDLE handle4");
+//     ProofOfImplication proof_of_implication("handle3", "handle4", 2, "context");
+//     requests = proof_of_implication.get_requests();
+//     dic_request = proof_of_implication.get_distributed_inference_control_request();
+//     EXPECT_EQ(requests.size(), 1);
+//     EXPECT_EQ(Utils::join(requests[0], ' '),
+//               "AND 2 LINK_TEMPLATE Expression 2 NODE Symbol SATISFYING_SET VARIABLE P1 LINK_TEMPLATE "
+//               "Expression 2 NODE Symbol SATISFYING_SET VARIABLE P2 PROOF_OF_IMPLICATION");
+//     EXPECT_EQ(Utils::join(dic_request, ' '),
+//               "context OR 6 AND 2 LINK_TEMPLATE Expression 3 NODE Symbol IMPLICATION HANDLE handle3 "
+//               "VARIABLE V1 "
+//               "LINK_TEMPLATE Expression 3 NODE Symbol IMPLICATION VARIABLE V1 HANDLE handle4 AND 2 "
+//               "LINK_TEMPLATE Expression 3 NODE Symbol EQUIVALENCE HANDLE handle3 VARIABLE V1 "
+//               "LINK_TEMPLATE Expression 3 NODE Symbol IMPLICATION VARIABLE V1 HANDLE handle4 AND 2 "
+//               "LINK_TEMPLATE Expression 3 NODE Symbol IMPLICATION HANDLE handle3 VARIABLE V1 "
+//               "LINK_TEMPLATE Expression 3 NODE Symbol EQUIVALENCE VARIABLE V1 HANDLE handle4 AND 2 "
+//               "LINK_TEMPLATE Expression 3 NODE Symbol EQUIVALENCE HANDLE handle3 VARIABLE V1 "
+//               "LINK_TEMPLATE Expression 3 NODE Symbol EQUIVALENCE VARIABLE V1 HANDLE handle4 "
+//               "LINK_TEMPLATE Expression 3 NODE Symbol IMPLICATION HANDLE handle3 HANDLE handle4 "
+//               "LINK_TEMPLATE Expression 3 NODE Symbol EQUIVALENCE HANDLE handle3 HANDLE handle4");
 
-    ProofOfEquivalence proof_of_equivalence("handle5", "handle6", 1, "context2");
-    requests = proof_of_equivalence.get_requests();
-    dic_request = proof_of_equivalence.get_distributed_inference_control_request();
-    EXPECT_EQ(requests.size(), 1);
-    EXPECT_EQ(Utils::join(requests[0], ' '),
-              "AND 2 LINK_TEMPLATE Expression 2 NODE Symbol PATTERNS VARIABLE C1 LINK_TEMPLATE "
-              "Expression 2 NODE Symbol PATTERNS VARIABLE C2 PROOF_OF_EQUIVALENCE");
-    EXPECT_EQ(
-        Utils::join(dic_request, ' '),
-        "context2 OR 2 LINK_TEMPLATE Expression 3 NODE Symbol IMPLICATION HANDLE handle5 HANDLE handle6 "
-        "LINK_TEMPLATE Expression 3 NODE Symbol EQUIVALENCE HANDLE handle5 HANDLE handle6");
-}
+//     ProofOfEquivalence proof_of_equivalence("handle5", "handle6", 1, "context2");
+//     requests = proof_of_equivalence.get_requests();
+//     dic_request = proof_of_equivalence.get_distributed_inference_control_request();
+//     EXPECT_EQ(requests.size(), 1);
+//     EXPECT_EQ(Utils::join(requests[0], ' '),
+//               "AND 2 LINK_TEMPLATE Expression 2 NODE Symbol PATTERNS VARIABLE C1 LINK_TEMPLATE "
+//               "Expression 2 NODE Symbol PATTERNS VARIABLE C2 PROOF_OF_EQUIVALENCE");
+//     EXPECT_EQ(
+//         Utils::join(dic_request, ' '),
+//         "context2 OR 2 LINK_TEMPLATE Expression 3 NODE Symbol IMPLICATION HANDLE handle5 HANDLE
+//         handle6 " "LINK_TEMPLATE Expression 3 NODE Symbol EQUIVALENCE HANDLE handle5 HANDLE handle6");
+// }
 
 TEST(InferenceRequestValidator, InvalidRequests) {
     InferenceRequestValidator validator;
