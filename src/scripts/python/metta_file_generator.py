@@ -25,13 +25,11 @@ class NodeLinkGenerator:
         writer.close()
 
     def print_results(self):
-        print()
         print('Sentence Nodes: ' + str(self.sentence_node_count))
         print('Word Count:', self.word_count)
         print('Word Length:', self.word_length)
         print('Alphabet Range: ' + ' to '.join((chr(97 + k) for k in self.alphabet_range)))
         print('Word Nodes: ' + str(self.word_node_count))
-        print()
 
     def _generate_sentence_structure(self, writer: 'NodeLinkWriter') -> None:
         for _ in range(self.sentence_node_count):

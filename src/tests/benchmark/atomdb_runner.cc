@@ -8,15 +8,6 @@
 using namespace std;
 
 
-void init_database(const string& size) {
-    // TODO
-    // Chamar o codigo python para gerar o banco de dados
-    cout << "Initializing database with size: " << size << endl;
-    // Example: system("python3 generate_database.py " + size); 
-    das-cli db start
-    das-cli metta load /tmp/output.metta
-}
-
 void set_cache(bool enabled) {
     // TODO
 }
@@ -26,12 +17,27 @@ bool add_atom(int id) {
     return true;
 }
 
+bool add_atoms(int id) {
+    // TODO
+    return true;
+}
+
 bool get_atom(int id, bool very_connected) {
     // TODO
     return true;
 }
 
+bool get_atoms(int id, bool very_connected) {
+    // TODO
+    return true;
+}
+
 bool delete_atom(int id) {
+    // TODO
+    return true;
+}
+
+bool delete_atoms(int id) {
     // TODO
     return true;
 }

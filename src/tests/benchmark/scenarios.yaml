@@ -1,0 +1,180 @@
+scenarios:
+  - name: S01
+    db: small
+    rel: "-"
+    concurrency: 1
+    cache: disabled
+    actions:
+      - name: Add Atom
+        metrics:
+          - Latency
+      - name: Add Atoms
+        metrics:
+          - Latency_batch
+          - Latency_per_item
+          - Throughout
+          - RAM
+      - name: Delete Atom
+        metrics:
+          - Latency
+      - name: Delete Atoms
+        metrics:
+          - Latency_batch
+          - Latency_per_item
+          - Throughout
+          - RAM
+
+  - name: S02
+    db: small
+    rel: loosely
+    concurrency: 1
+    cache: enabled
+    actions:
+      - name: Get Atom
+        metrics:
+          - Latency
+      - name: Get Atoms
+        metrics:
+          - Latency_batch
+          - Latency_per_item
+          - Throughout
+          - RAM
+
+  - name: S03
+    db: small
+    rel: loosely
+    concurrency: 1
+    cache: disabled
+    actions:
+      - name: Get Atom
+        metrics:
+          - Latency
+      - name: Get Atoms
+        metrics:
+          - Latency_batch
+          - Latency_per_item
+          - Throughout
+          - RAM
+
+  - name: S04
+    db: small
+    rel: tightly
+    concurrency: 1
+    cache: enabled
+    actions:
+      - name: Get Atom
+        metrics:
+          - Latency
+      - name: Get Atoms
+        metrics:
+          - Latency_batch
+          - Latency_per_item
+          - Throughout
+          - RAM
+
+  - name: S05
+    db: small
+    rel: tightly
+    concurrency: 1
+    cache: disabled
+    actions:
+      - name: Get Atom
+        metrics:
+          - Latency
+      - name: Get Atoms
+        metrics:
+          - Latency_batch
+          - Latency_per_item
+          - Throughout
+          - RAM
+
+  - name: S06
+    db: medium
+    rel: "-"
+    concurrency: 1
+    cache: disabled
+    actions:
+      - name: Add Atom
+        metrics:
+          - Latency
+      - name: Add Atoms
+        metrics:
+          - Latency_batch
+          - Latency_per_item
+          - Throughout
+          - RAM
+      - name: Delete Atom
+        metrics:
+          - Latency
+      - name: Delete Atoms
+        metrics:
+          - Latency_batch
+          - Latency_per_item
+          - Throughout
+          - RAM
+
+  - name: S07
+    db: medium
+    rel: loosely
+    concurrency: 1
+    cache: enabled
+    actions:
+      - name: Get Atom
+        metrics:
+          - Latency
+      - name: Get Atoms
+        metrics:
+          - Latency_batch
+          - Latency_per_item
+          - Throughout
+          - RAM
+
+  - name: S08
+    db: medium
+    rel: loosely
+    concurrency: 1
+    cache: disabled
+    actions:
+      - name: Get Atom
+        metrics:
+          - Latency
+      - name: Get Atoms
+        metrics:
+          - Latency_batch
+          - Latency_per_item
+          - Throughout
+          - RAM
+
+  - name: S09
+    db: medium
+    rel: tightly
+    concurrency: 1
+    cache: enabled
+    actions:
+      - name: Get Atom
+        metrics:
+          - Latency
+      - name: Get Atoms
+        metrics:
+          - Latency_batch
+          - Latency_per_item
+          - Throughout
+          - RAM
+
+  - name: S10
+    db: medium
+    rel: tightly
+    concurrency: 1
+    cache: disabled
+    actions:
+      - name: Get Atom
+        metrics:
+          - Latency
+      - name: Get Atoms
+        metrics:
+          - Latency_batch
+          - Latency_per_item
+          - Throughout
+          - RAM
+
+
