@@ -74,6 +74,21 @@ class Atom : public HandleTrie::TrieValue {
     virtual bool operator!=(const Atom& other);
 
     // ---------------------------------------------------------------------------------------------
+    // Public static methods
+
+    /**
+     * @brief Returns true iff the passed atom is a Node (or a Variable, which is a wildcard Node).
+     * @return truee iff the passed atom is a Node (or a Variable, which is a wildcard Node).
+     */
+    static bool is_node(const Atom& atom) { return atom.arity() == 0; }
+
+    /**
+     * @brief Returns truee iff the passed atom is a Link (or a LinkSchema, which is a wildcard Link).
+     * @return truee iff the passed atom is a Node (or a LinkSchema, which is a wildcard Link).
+     */
+    static bool is_link(const Atom& atom) { return atom.arity() > 0; }
+
+    // ---------------------------------------------------------------------------------------------
     // Default implementation for virtual public API
 
     virtual string to_string() const;
