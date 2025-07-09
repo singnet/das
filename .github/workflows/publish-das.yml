@@ -24,6 +24,13 @@ jobs:
           path: bin
           if-no-files-found: "error"
 
+      - name: Upload libs Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: libs
+          path: lib
+          if-no-files-found: "error"
+
       - name: Extract DAS_VERSION from .bazelrc
         id: get_version
         run: |
@@ -60,93 +67,6 @@ jobs:
       deliverable: Tagged branch (${{ github.ref_name }}) in the repository
     secrets: inherit
 
-  publish-query-engine-doc:
-    runs-on: self-hosted
-    needs: build
-    if: needs.build.outputs.version_exists != 'true'
-    steps:
-      - name: Checkout Query Engine Repo
-        uses: actions/checkout@v4
-        with:
-          repository: singnet/das-query-engine
-          token: ${{ secrets.GH_TOKEN }}
-          ref: master
-
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          path: das
-
-      - name: Merge 'docs' from DAS to Query Engine Repo
-        run: |
-          rsync -a das/docs/ ./docs/
-          rsync -a das/mkdocs.yml ./
-
-      - name: Set up Python
-        uses: actions/setup-python@v2
-        with:
-          python-version: ^3.10
-
-      - name: Install Poetry
-        run: pip install poetry==1.4.2
-
-      - name: Update Documentation
-        run: |
-          poetry lock --no-update
-          poetry export --with doc -f requirements.txt | pip install -r /dev/stdin
-          mkdocs gh-deploy --force
-
-
-  publish_wheels:
-    runs-on: self-hosted
-    if: needs.build.outputs.version_exists != 'true'
-    needs: build
-    strategy:
-      matrix:
-        target:
-          [
-            hyperon_das_atomdb_cpp,
-            hyperon_das_atomdb,
-            hyperon_das_node,
-            hyperon_das,
-          ]
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Download Binaries Artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: binaries
-          path: bin
-
-      - name: Install twine
-        run: pip3 install twine==6.1.0
-
-      - name: Publish to PyPI
-        env:
-          TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
-        run: |
-          WHEEL_FILE=$(find . -name "${{ matrix.target }}-*.whl" | head -n 1)
-          if [ -z "$WHEEL_FILE" ]; then
-            echo "No wheel file found for target ${{ matrix.target }}"
-            exit 1
-          fi
-          echo "Publishing $WHEEL_FILE..."
-
-          python3 -m twine upload "$WHEEL_FILE" 2>&1 | tee /tmp/upload.log || {
-            if grep -q "File already exists" /tmp/upload.log; then
-              echo "Version already exists on PyPI. Skipping upload."
-              exit 0
-            else
-              echo "Failed to upload $WHEEL_FILE"
-              echo "Upload log:"
-              cat /tmp/upload.log
-              exit 1
-            fi
-          }
-
   build_and_publish_images:
     runs-on: self-hosted
     if: needs.build.outputs.version_exists != 'true'
@@ -171,6 +91,12 @@ jobs:
         with:
           name: binaries
           path: bin
+
+      - name: Download lib Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: libs
+          path: lib
 
       - name: Log in to Docker Hub
         uses: docker/login-action@v2
