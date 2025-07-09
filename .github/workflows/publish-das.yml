@@ -67,43 +67,6 @@ jobs:
       deliverable: Tagged branch (${{ github.ref_name }}) in the repository
     secrets: inherit
 
-  publish-query-engine-doc:
-    runs-on: self-hosted
-    needs: build
-    if: needs.build.outputs.version_exists != 'true'
-    steps:
-      - name: Checkout Query Engine Repo
-        uses: actions/checkout@v4
-        with:
-          repository: singnet/das-query-engine
-          token: ${{ secrets.GH_TOKEN }}
-          ref: master
-
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          path: das
-
-      - name: Merge 'docs' from DAS to Query Engine Repo
-        run: |
-          rsync -a das/docs/ ./docs/
-          rsync -a das/mkdocs.yml ./
-
-      - name: Set up Python
-        uses: actions/setup-python@v2
-        with:
-          python-version: ^3.10
-
-      - name: Install Poetry
-        run: pip install poetry==1.4.2
-
-      - name: Update Documentation
-        run: |
-          poetry lock --no-update
-          poetry export --with doc -f requirements.txt | pip install -r /dev/stdin
-          mkdocs gh-deploy --force
-
-
   build_and_publish_images:
     runs-on: self-hosted
     if: needs.build.outputs.version_exists != 'true'
