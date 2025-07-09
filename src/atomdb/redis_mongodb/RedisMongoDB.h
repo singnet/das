@@ -32,6 +32,7 @@ class RedisMongoDB : public AtomDB {
 
     static string REDIS_PATTERNS_PREFIX;
     static string REDIS_TARGETS_PREFIX;
+    static string REDIS_INCOMING_PREFIX;
     static uint REDIS_CHUNK_SIZE;
     static string MONGODB_DB_NAME;
     static string MONGODB_NODES_COLLECTION_NAME;
@@ -42,11 +43,11 @@ class RedisMongoDB : public AtomDB {
     static void initialize_statics() {
         REDIS_PATTERNS_PREFIX = "patterns";
         REDIS_TARGETS_PREFIX = "outgoing_set";
+        REDIS_INCOMING_PREFIX = "incoming_set";
         REDIS_CHUNK_SIZE = 10000;
         MONGODB_DB_NAME = "das";
-        // TODO(arturgontijo): change to "nodes" and "links" once das-metta-parser is updated
-        MONGODB_NODES_COLLECTION_NAME = "atoms";
-        MONGODB_LINKS_COLLECTION_NAME = "atoms";
+        MONGODB_NODES_COLLECTION_NAME = "nodes";
+        MONGODB_LINKS_COLLECTION_NAME = "links";
         MONGODB_FIELD_NAME[MONGODB_FIELD::ID] = "_id";
         MONGODB_FIELD_NAME[MONGODB_FIELD::TARGETS] = "targets";
         MONGODB_FIELD_NAME[MONGODB_FIELD::NAME] = "name";
@@ -60,6 +61,8 @@ class RedisMongoDB : public AtomDB {
         const LinkTemplateInterface& link_template) override;
 
     shared_ptr<atomdb_api_types::HandleList> query_for_targets(const string& handle);
+
+    shared_ptr<atomdb_api_types::HandleSet> query_for_incoming(const string& handle);
 
     shared_ptr<atomdb_api_types::AtomDocument> get_atom_document(const string& handle);
     shared_ptr<atomdb_api_types::AtomDocument> get_node_document(const string& handle);
@@ -88,13 +91,13 @@ class RedisMongoDB : public AtomDB {
     vector<string> add_nodes(const vector<atoms::Node*>& nodes);
     vector<string> add_links(const vector<atoms::Link*>& links);
 
-    bool delete_atom(const string& handle);
-    bool delete_node(const string& handle);
-    bool delete_link(const string& handle);
+    bool delete_atom(const string& handle, bool delete_targets = false);
+    bool delete_node(const string& handle, bool delete_targets = false);
+    bool delete_link(const string& handle, bool delete_targets = false);
 
-    uint delete_atoms(const vector<string>& handles);
-    uint delete_nodes(const vector<string>& handles);
-    uint delete_links(const vector<string>& handles);
+    uint delete_atoms(const vector<string>& handles, bool delete_targets = false);
+    uint delete_nodes(const vector<string>& handles, bool delete_targets = false);
+    uint delete_links(const vector<string>& handles, bool delete_targets = false);
 
     mongocxx::pool* get_mongo_pool() const { return mongodb_pool; }
 
@@ -113,8 +116,19 @@ class RedisMongoDB : public AtomDB {
     bool document_exists(const string& handle, const string& collection_name);
     set<string> documents_exist(const vector<string>& handles, const string& collection_name);
 
-    bool delete_document(const string& handle, const string& collection_name);
-    uint delete_documents(const vector<string>& handles, const string& collection_name);
+    bool delete_document(const string& handle,
+                         const string& collection_name,
+                         bool delete_targets = false);
+    uint delete_documents(const vector<string>& handles,
+                          const string& collection_name,
+                          bool delete_targets = false);
+
+    uint get_next_score(const string& key);
+    void set_next_score(const string& key, uint score);
+
+    void add_incoming(const string& handle, const string& incoming_handle);
+    void delete_incoming(const string& handle);
+    void update_incoming(const string& key, const string& value);
 
     void redis_setup();
     void mongodb_setup();

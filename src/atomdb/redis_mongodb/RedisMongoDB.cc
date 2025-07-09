@@ -24,6 +24,7 @@ using namespace atoms;
 
 string RedisMongoDB::REDIS_PATTERNS_PREFIX;
 string RedisMongoDB::REDIS_TARGETS_PREFIX;
+string RedisMongoDB::REDIS_INCOMING_PREFIX;
 uint RedisMongoDB::REDIS_CHUNK_SIZE;
 string RedisMongoDB::MONGODB_DB_NAME;
 string RedisMongoDB::MONGODB_NODES_COLLECTION_NAME;
@@ -185,7 +186,7 @@ shared_ptr<atomdb_api_types::HandleSet> RedisMongoDB::query_for_pattern(
         if (reply->type != REDIS_REPLY_SET && reply->type != REDIS_REPLY_ARRAY) {
             auto error_type = std::to_string(reply->type);
             freeReplyObject(reply);
-            Utils::error("Invalid Redis response: " + error_type);
+            Utils::error("Invalid Redis response0: " + error_type);
         }
 
         redis_cursor += REDIS_CHUNK_SIZE;
@@ -239,6 +240,123 @@ shared_ptr<atomdb_api_types::HandleList> RedisMongoDB::query_for_targets(const s
 
     if (this->atomdb_cache != nullptr) this->atomdb_cache->add_handle_list(handle, handle_list);
     return handle_list;
+}
+
+shared_ptr<atomdb_api_types::HandleSet> RedisMongoDB::query_for_incoming(const string& handle) {
+    // if (this->atomdb_cache != nullptr) {
+    //     auto cache_result = this->atomdb_cache->query_for_incoming(handle);
+    //     if (cache_result.is_cache_hit) return cache_result.result;
+    // }
+
+    unsigned int redis_cursor = 0;
+    bool redis_has_more = true;
+    string command;
+    redisReply* reply;
+
+    auto ctx = this->redis_pool->acquire();
+
+    auto handle_set = make_shared<atomdb_api_types::HandleSetRedis>();
+
+    while (redis_has_more) {
+        command = ("ZRANGE " + REDIS_INCOMING_PREFIX + ":" + handle + " " + to_string(redis_cursor) +
+                   " " + to_string(redis_cursor + REDIS_CHUNK_SIZE - 1));
+
+        reply = ctx->execute(command.c_str());
+
+        if (reply == NULL) {
+            Utils::error("Redis error");
+        }
+
+        if (reply->type != REDIS_REPLY_SET && reply->type != REDIS_REPLY_ARRAY) {
+            auto error_type = std::to_string(reply->type);
+            freeReplyObject(reply);
+            Utils::error("Invalid Redis response: " + error_type);
+        }
+
+        redis_cursor += REDIS_CHUNK_SIZE;
+        redis_has_more = (reply->elements == REDIS_CHUNK_SIZE);
+
+        if (reply->elements == 0) {
+            freeReplyObject(reply);
+            break;
+        }
+        handle_set->append(make_shared<atomdb_api_types::HandleSetRedis>(reply, false));
+    }
+
+    // if (this->atomdb_cache != nullptr) this->atomdb_cache->add_incoming(handle, handle_set);
+
+    return handle_set;
+}
+
+uint RedisMongoDB::get_next_score(const string& key) {
+    auto ctx = this->redis_pool->acquire();
+    string command = "GET " + key;
+    redisReply* reply = ctx->execute(command.c_str());
+    if (reply == NULL) {
+        Utils::error("Redis error");
+    }
+    if (reply->type != REDIS_REPLY_STRING) {
+        Utils::error("Invalid Redis response1: " + std::to_string(reply->type));
+    }
+    return std::stoi(reply->str);
+}
+
+void RedisMongoDB::set_next_score(const string& key, uint score) {
+    auto ctx = this->redis_pool->acquire();
+    string command = "SET " + key + " " + to_string(score);
+    redisReply* reply = ctx->execute(command.c_str());
+    if (reply == NULL) {
+        Utils::error("Redis error");
+    }
+    if (reply->type != REDIS_REPLY_STATUS) {
+        Utils::error("Invalid Redis response2: " + std::to_string(reply->type));
+    }
+}
+
+void RedisMongoDB::add_incoming(const string& handle, const string& incoming_handle) {
+    auto ctx = this->redis_pool->acquire();
+
+    uint score = get_next_score(REDIS_INCOMING_PREFIX + ":next_score");
+
+    string command =
+        "ZADD " + REDIS_INCOMING_PREFIX + ":" + handle + " " + to_string(score) + " " + incoming_handle;
+    redisReply* reply = ctx->execute(command.c_str());
+    if (reply == NULL) {
+        Utils::error("Redis error");
+    }
+    if (reply->type != REDIS_REPLY_INTEGER) {
+        Utils::error("Invalid Redis response3: " + std::to_string(reply->type));
+    }
+
+    set_next_score(REDIS_INCOMING_PREFIX + ":next_score", score + 1);
+}
+
+void RedisMongoDB::delete_incoming(const string& handle) {
+    auto ctx = this->redis_pool->acquire();
+
+    string command = "DEL " + REDIS_INCOMING_PREFIX + ":" + handle;
+    redisReply* reply = ctx->execute(command.c_str());
+
+    if (reply == NULL) {
+        Utils::error("Redis error");
+    }
+    if (reply->type != REDIS_REPLY_INTEGER) {
+        Utils::error("Invalid Redis response4: " + std::to_string(reply->type));
+    }
+}
+
+void RedisMongoDB::update_incoming(const string& key, const string& value) {
+    auto ctx = this->redis_pool->acquire();
+
+    string command = "ZREM " + REDIS_INCOMING_PREFIX + ":" + key + " " + value;
+    redisReply* reply = ctx->execute(command.c_str());
+
+    if (reply == NULL) {
+        Utils::error("Redis error");
+    }
+    if (reply->type != REDIS_REPLY_INTEGER) {
+        Utils::error("Invalid Redis response5: " + std::to_string(reply->type));
+    }
 }
 
 shared_ptr<atomdb_api_types::AtomDocument> RedisMongoDB::get_document(const string& handle,
@@ -445,16 +563,19 @@ string RedisMongoDB::add_node(const atoms::Node* node) {
 }
 
 string RedisMongoDB::add_link(const atoms::Link* link) {
-    auto conn = this->mongodb_pool->acquire();
-    auto mongodb_collection = (*conn)[MONGODB_DB_NAME][MONGODB_LINKS_COLLECTION_NAME];
-
-    auto existing_targets_count =
-        get_atom_documents(link->targets, {MONGODB_FIELD_NAME[MONGODB_FIELD::ID]}).size();
-    if (existing_targets_count != link->targets.size()) {
+    auto existing_targets = get_atom_documents(link->targets, {MONGODB_FIELD_NAME[MONGODB_FIELD::ID]});
+    if (existing_targets.size() != link->targets.size()) {
         Utils::error("Failed to insert link: " + link->handle() + " has " +
-                     to_string(link->targets.size() - existing_targets_count) + " missing targets");
+                     to_string(link->targets.size() - existing_targets.size()) + " missing targets");
         return "";
     }
+
+    for (const auto& target : existing_targets) {
+        add_incoming(target->get(MONGODB_FIELD_NAME[MONGODB_FIELD::ID]), link->handle());
+    }
+
+    auto conn = this->mongodb_pool->acquire();
+    auto mongodb_collection = (*conn)[MONGODB_DB_NAME][MONGODB_LINKS_COLLECTION_NAME];
 
     auto mongodb_doc = atomdb_api_types::MongodbDocument(link, *this);
     auto reply = mongodb_collection.insert_one(mongodb_doc.value());
@@ -537,78 +658,90 @@ vector<string> RedisMongoDB::add_links(const vector<atoms::Link*>& links) {
     return handles;
 }
 
-// TODO(arturgontijo): We need to delete handle's incoming_set values and update Redis.
-bool RedisMongoDB::delete_document(const string& handle, const string& collection_name) {
+// TODO(arturgontijo): Need to delete handle from patterns set.
+bool RedisMongoDB::delete_document(const string& handle,
+                                   const string& collection_name,
+                                   bool delete_targets) {
     auto conn = this->mongodb_pool->acquire();
     auto mongodb_collection = (*conn)[MONGODB_DB_NAME][collection_name];
     auto reply = mongodb_collection.delete_one(bsoncxx::v_noabi::builder::basic::make_document(
         bsoncxx::v_noabi::builder::basic::kvp(MONGODB_FIELD_NAME[MONGODB_FIELD::ID], handle)));
-    return reply->deleted_count() > 0;
-}
 
-bool RedisMongoDB::delete_atom(const string& handle) {
-    return delete_node(handle) || delete_link(handle);
-}
-
-bool RedisMongoDB::delete_node(const string& handle) {
-    return delete_document(handle, MONGODB_NODES_COLLECTION_NAME);
-}
-
-bool RedisMongoDB::delete_link(const string& handle) {
-    auto link_document = get_link_document(handle);
-    if (link_document == nullptr) {
-        return false;
+    auto incoming_set = query_for_incoming(handle);
+    auto it = incoming_set->get_iterator();
+    char* incoming_handle;
+    while ((incoming_handle = it->next()) != nullptr) {
+        delete_atom(incoming_handle, delete_targets);
     }
+    delete_incoming(handle);
+
+    // NOTE: the initial handle might be already deleted due the recursive delete_atom() calls.
+    return reply->deleted_count() > 0 || !document_exists(handle, collection_name);
+}
+
+bool RedisMongoDB::delete_atom(const string& handle, bool delete_targets) {
+    bool node_deleted = delete_node(handle, delete_targets);
+    if (node_deleted) return true;
+    bool link_deleted = delete_link(handle, delete_targets);
+    return link_deleted;
+}
+
+bool RedisMongoDB::delete_node(const string& handle, bool delete_targets) {
+    auto node_document = get_node_document(handle);
+    if (node_document == nullptr) return false;
+    return delete_document(handle, MONGODB_NODES_COLLECTION_NAME, delete_targets);
+}
+
+bool RedisMongoDB::delete_link(const string& handle, bool delete_targets) {
+    auto link_document = get_link_document(handle);
+    if (link_document == nullptr) return false;
 
     auto targets_size = link_document->get_size(MONGODB_FIELD_NAME[MONGODB_FIELD::TARGETS]);
     for (uint i = 0; i < targets_size; i++) {
-        auto handle = link_document->get(MONGODB_FIELD_NAME[MONGODB_FIELD::TARGETS], i);
-        // TODO(arturgontijo): Use delete_atom() once we have split atoms collection into nodes
-        // and links (or another way to infer if handle is a node or a link, eg. using HandleTrie).
-        try {
-            delete_link(handle);
-        } catch (const exception& e) {
-            delete_node(handle);
+        auto target_handle = link_document->get(MONGODB_FIELD_NAME[MONGODB_FIELD::TARGETS], i);
+        // If target is referenced more than once, we need to update incoming_set or delete target
+        // otherwise
+        if (query_for_incoming(target_handle)->size() > 1) {
+            update_incoming(target_handle, handle);
+        } else if (delete_targets) {
+            delete_atom(target_handle, delete_targets);
         }
     }
 
-    return delete_document(handle, MONGODB_LINKS_COLLECTION_NAME);
+    return delete_document(handle, MONGODB_LINKS_COLLECTION_NAME, delete_targets);
 }
 
 // TODO(arturgontijo): We need to delete handle's incoming_set values and update Redis.
-uint RedisMongoDB::delete_documents(const vector<string>& handles, const string& collection_name) {
-    auto conn = this->mongodb_pool->acquire();
-    auto mongodb_collection = (*conn)[MONGODB_DB_NAME][collection_name];
-
-    bsoncxx::builder::basic::array handle_ids;
-    for (const auto& handle : handles) {
-        handle_ids.append(handle);
-    }
-
-    bsoncxx::builder::basic::document filter_builder;
-    filter_builder.append(bsoncxx::builder::basic::kvp(
-        MONGODB_FIELD_NAME[MONGODB_FIELD::ID],
-        bsoncxx::builder::basic::make_document(bsoncxx::builder::basic::kvp("$in", handle_ids))));
-
-    auto filter = filter_builder.extract();
-    auto reply = mongodb_collection.delete_many(filter.view());
-    return reply->deleted_count();
-}
-
-uint RedisMongoDB::delete_atoms(const vector<string>& handles) {
-    auto nodes = delete_nodes(handles);
-    auto links = delete_links(handles);
-    return nodes + links;
-}
-
-uint RedisMongoDB::delete_nodes(const vector<string>& handles) {
-    return delete_documents(handles, MONGODB_NODES_COLLECTION_NAME);
-}
-
-uint RedisMongoDB::delete_links(const vector<string>& handles) {
+uint RedisMongoDB::delete_documents(const vector<string>& handles,
+                                    const string& collection_name,
+                                    bool delete_targets) {
     uint deleted_count = 0;
     for (const auto& handle : handles) {
-        if (delete_link(handle)) {
+        if (delete_document(handle, collection_name, delete_targets)) {
+            deleted_count++;
+        }
+    }
+    return deleted_count;
+}
+
+uint RedisMongoDB::delete_atoms(const vector<string>& handles, bool delete_targets) {
+    uint deleted_count = 0;
+    for (const auto& handle : handles) {
+        if (delete_atom(handle, delete_targets)) {
+            deleted_count++;
+        }
+    }
+    return deleted_count;
+}
+
+uint RedisMongoDB::delete_nodes(const vector<string>& handles, bool delete_targets) {
+    return delete_documents(handles, MONGODB_NODES_COLLECTION_NAME, delete_targets);
+}
+
+uint RedisMongoDB::delete_links(const vector<string>& handles, bool delete_targets) {
+    uint deleted_count = 0;
+    for (const auto& handle : handles) {
+        if (delete_link(handle, delete_targets)) {
             deleted_count++;
         }
     }

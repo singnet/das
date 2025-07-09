@@ -52,13 +52,13 @@ class AtomDB : public HandleDecoder {
     virtual vector<string> add_nodes(const vector<atoms::Node*>& nodes) = 0;
     virtual vector<string> add_links(const vector<atoms::Link*>& links) = 0;
 
-    virtual bool delete_atom(const string& handle) = 0;
-    virtual bool delete_node(const string& handle) = 0;
-    virtual bool delete_link(const string& handle) = 0;
+    virtual bool delete_atom(const string& handle, bool delete_targets = false) = 0;
+    virtual bool delete_node(const string& handle, bool delete_targets = false) = 0;
+    virtual bool delete_link(const string& handle, bool delete_targets = false) = 0;
 
-    virtual uint delete_atoms(const vector<string>& handles) = 0;
-    virtual uint delete_nodes(const vector<string>& handles) = 0;
-    virtual uint delete_links(const vector<string>& handles) = 0;
+    virtual uint delete_atoms(const vector<string>& handles, bool delete_targets = false) = 0;
+    virtual uint delete_nodes(const vector<string>& handles, bool delete_targets = false) = 0;
+    virtual uint delete_links(const vector<string>& handles, bool delete_targets = false) = 0;
 
    private:
     virtual void attention_broker_setup() = 0;
