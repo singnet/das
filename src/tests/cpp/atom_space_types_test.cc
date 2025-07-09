@@ -101,6 +101,8 @@ TEST(LinkTest, LinkWithCustomAttributes) {
 
 TEST(WildcardTest, Wildcards) {
     TestDecoder db;
+    string symbol = MettaMapping::SYMBOL_NODE_TYPE;
+    string expression = MettaMapping::EXPRESSION_LINK_TYPE;
     UntypedVariable v1("v1");
     UntypedVariable v2("v2");
     UntypedVariable v3 = v1;
@@ -122,7 +124,16 @@ TEST(WildcardTest, Wildcards) {
     EXPECT_NO_THROW(v3.to_string());
     EXPECT_NO_THROW(v4.to_string());
 
-    EXPECT_EQ(v1.schema_handle(), Atom::WILDCARD_HANDLE);
+    EXPECT_EQ(v1.schema_handle(), Atom::WILDCARD_STRING);
+
+    LinkSchema schema(expression, 3);
+    schema.stack_untyped_variable("v1");
+    schema.stack_node(symbol, "n1");
+    schema.stack_link_schema(expression, 2);
+    schema.stack_untyped_variable("v2");
+    schema.stack_node(symbol, "n2");
+    schema.build();
+    EXPECT_EQ(schema.metta_representation(db), "(($v1 n1) $v2 n2)");
 }
 
 TEST(WildcardTest, LinkSchema) {
@@ -130,13 +141,15 @@ TEST(WildcardTest, LinkSchema) {
     string symbol = MettaMapping::SYMBOL_NODE_TYPE;
     string expression = MettaMapping::EXPRESSION_LINK_TYPE;
 
+    cout << "1 ---------------------------------------------------------" << endl;
     LinkSchema schema1(expression, 2);
     schema1.stack_node(symbol, "n1");
     schema1.stack_node(symbol, "n2");
     EXPECT_THROW(schema1.build(), runtime_error);
 
-    // add metta_expression of mal-formed linkTemplate (type != expression
+    // add metta_expression of mal-formed linkTemplate (type != expression)
 
+    cout << "2 ---------------------------------------------------------" << endl;
     LinkSchema schema2(expression, 2);
     schema2.stack_node(symbol, "n1");
     schema2.stack_untyped_variable("v1");
@@ -144,7 +157,11 @@ TEST(WildcardTest, LinkSchema) {
     EXPECT_THROW(schema2.build(), runtime_error);
     EXPECT_THROW(schema2.stack_node(symbol, "n2"), runtime_error);
     EXPECT_EQ(schema2.metta_representation(db), "(n1 $v1)");
+    LinkSchema schema2_1(schema2.tokenize());
+    EXPECT_EQ(schema2.to_string(), schema2_1.to_string());
+    EXPECT_TRUE(schema2 == schema2_1);
 
+    cout << "3 ---------------------------------------------------------" << endl;
     LinkSchema schema3(expression, 3);
     schema3.stack_untyped_variable("v1");
     EXPECT_THROW(schema3.stack_link_schema(expression, 2), runtime_error);
@@ -155,7 +172,11 @@ TEST(WildcardTest, LinkSchema) {
     schema3.stack_node(symbol, "n2");
     schema3.build();
     EXPECT_EQ(schema3.metta_representation(db), "(($v1 n1) $v2 n2)");
+    LinkSchema schema3_1(schema3.tokenize());
+    EXPECT_EQ(schema3.to_string(), schema3_1.to_string());
+    EXPECT_TRUE(schema3 == schema3_1);
 
+    cout << "4 ---------------------------------------------------------" << endl;
     LinkSchema schema4(expression, 2);
     schema4.stack_untyped_variable("v1");
     schema4.stack_untyped_variable("v2");
@@ -163,7 +184,11 @@ TEST(WildcardTest, LinkSchema) {
     schema4.stack_link_schema(expression, 2);
     schema4.build();
     EXPECT_EQ(schema4.metta_representation(db), "($v1 ($v2 n1))");
+    LinkSchema schema4_1(schema4.tokenize());
+    EXPECT_EQ(schema4.to_string(), schema4_1.to_string());
+    EXPECT_TRUE(schema4 == schema4_1);
 
+    cout << "5 ---------------------------------------------------------" << endl;
     LinkSchema schema5(expression, 4);
     schema5.stack_untyped_variable("v1");
     schema5.stack_node(symbol, "n1");
@@ -189,9 +214,43 @@ TEST(WildcardTest, LinkSchema) {
     schema5.stack_node(symbol, "n11");
     schema5.stack_link(expression, 3);
     schema5.build();
+    // clang-format off
     EXPECT_EQ(schema5.metta_representation(db),
               "(($v1 n1) $v2 (n1 n2 (n3 (n6 $v3) (n5 n6))) (n7 (n8 (n9 n10)) n11))");
+    // LINK_TEMPLATE Expression 4
+    //     LINK_TEMPLATE Expression 2
+    //         VARIABLE v1
+    //         NODE Symbol n1
+    //     VARIABLE v2
+    //     LINK_TEMPLATE Expression 3
+    //         NODE Symbol n1
+    //         NODE Symbol n2
+    //         LINK_TEMPLATE Expression 3
+    //             NODE Symbol n3
+    //             LINK_TEMPLATE Expression 2
+    //                 NODE Symbol n6
+    //                 VARIABLE v3
+    //             LINK Expression 2
+    //                 NODE Symbol n5
+    //                 NODE Symbol n6
+    //     LINK Expression 3
+    //         NODE Symbol n7
+    //         LINK Expression 2
+    //             NODE Symbol n8
+    //             LINK Expression 2
+    //                 NODE Symbol n9
+    //                 NODE Symbol n10
+    //         NODE Symbol n11
+    // clang-format on
+    LinkSchema schema5_1(schema5.tokenize());
+    EXPECT_EQ(schema5.to_string(), schema5_1.to_string());
+    LinkSchema schema5_2(schema5);
+    LinkSchema schema5_3 = schema5;
+    EXPECT_TRUE(schema5 == schema5_1);
+    EXPECT_TRUE(schema5 == schema5_2);
+    EXPECT_TRUE(schema5 == schema5_3);
 
+    cout << "6 ---------------------------------------------------------" << endl;
     LinkSchema schema6(expression, 2);
     schema6.stack_node(symbol, "n7");
     schema6.stack_node(symbol, "n8");
@@ -202,10 +261,101 @@ TEST(WildcardTest, LinkSchema) {
     schema6.stack_node(symbol, "n11");
     EXPECT_THROW(schema6.build(), runtime_error);
 
+    cout << "7 ---------------------------------------------------------" << endl;
     LinkSchema schema7(expression, 2);
     schema7.stack_node(symbol, "n1");
     schema7.stack_untyped_variable("v1");
     EXPECT_THROW(schema7.stack_link(expression, 2), runtime_error);
+}
+
+void check_match(const string& test_tag,
+                 LinkSchema& link_schema,
+                 const vector<shared_ptr<Atom>>& targets,
+                 TestDecoder& db,
+                 bool test_flag) {
+    cout << "XXX " << test_tag << endl;
+    string symbol = MettaMapping::SYMBOL_NODE_TYPE;
+    string expression = MettaMapping::EXPRESSION_LINK_TYPE;
+    vector<string> v;
+    Assignment assignment;
+
+    for (auto target : targets) {
+        v.push_back(target->handle());
+    }
+    auto link = db.add_atom(make_shared<Link>(expression, v));
+    EXPECT_EQ(link_schema.match(*((Link*) (link.get())), assignment, db), test_flag);
+}
+
+TEST(LinkTest, Match) {
+    TestDecoder db;
+    string symbol = MettaMapping::SYMBOL_NODE_TYPE;
+    string expression = MettaMapping::EXPRESSION_LINK_TYPE;
+    vector<string> v;
+
+    auto node1 = db.add_atom(make_shared<Node>(symbol, string("n1")));
+    auto node2 = db.add_atom(make_shared<Node>(symbol, string("n2")));
+    auto node3 = db.add_atom(make_shared<Node>(symbol, string("n3")));
+    auto node4 = db.add_atom(make_shared<Node>(symbol, string("n4")));
+    v = {node2->handle(), node1->handle()};
+    auto link1 = db.add_atom(make_shared<Link>(expression, v));
+    v = {node1->handle(), node2->handle()};
+    auto link2 = db.add_atom(make_shared<Link>(expression, v));
+    v = {node2->handle(), node3->handle(), node3->handle()};
+    auto link3 = db.add_atom(make_shared<Link>(expression, v));
+    v = {node1->handle(), link3->handle()};
+    auto link4 = db.add_atom(make_shared<Link>(expression, v));
+
+    // clang-format off
+    LinkSchema schema1({
+    "LINK_TEMPLATE", "Expression", "2",
+        "VARIABLE", "v2",
+        "NODE", "Symbol", "n2"});
+    check_match("test case 1.1", schema1, {node1, node2}, db, true);
+    check_match("test case 1.2", schema1, {node2, node1}, db, false);
+
+    LinkSchema schema2({
+    "LINK_TEMPLATE", "Expression", "3",
+        "LINK_TEMPLATE", "Expression", "2",
+            "VARIABLE", "v1",
+            "NODE", "Symbol", "n1",
+        "VARIABLE", "v2",
+        "NODE", "Symbol", "n2"});
+    check_match("test case 2.1", schema2, {node3, node1, node2}, db, false);
+    check_match("test case 2.2", schema2, {node2, node2, node2}, db, false);
+    check_match("test case 2.3", schema2, {node1, node1}, db, false);
+    check_match("test case 2.4", schema2, {node1, node2}, db, false);
+    check_match("test case 2.5", schema2, {link1, node1, node2}, db, true);
+    check_match("test case 2.6", schema2, {link1, node4, node2}, db, true);
+    check_match("test case 2.7", schema2, {link1, node1, node1}, db, false);
+    check_match("test case 2.5", schema2, {link2, node1, node2}, db, false);
+
+    LinkSchema schema3({
+    "LINK_TEMPLATE", "Expression", "3",
+        "VARIABLE", "v2",
+        "NODE", "Symbol", "n2",
+        "LINK_TEMPLATE", "Expression", "2",
+            "NODE", "Symbol", "n1",
+            "VARIABLE", "v1"});
+    check_match("test case 3.1", schema3, {node1, node2, node3}, db, false);
+    check_match("test case 3.2", schema3, {node1, node2, link1}, db, false);
+    check_match("test case 3.3", schema3, {node1, node2, link2}, db, true);
+
+    LinkSchema schema4({
+    "LINK_TEMPLATE", "Expression", "3",
+        "LINK_TEMPLATE", "Expression", "2",
+            "NODE", "Symbol", "n1",
+            "LINK_TEMPLATE", "Expression", "3",
+                "NODE", "Symbol", "n2",
+                "NODE", "Symbol", "n3",
+                "VARIABLE", "v1",
+        "NODE", "Symbol", "n2",
+        "LINK_TEMPLATE", "Expression", "2",
+            "NODE", "Symbol", "n1",
+            "VARIABLE", "v2",
+            });
+    check_match("test case 4.1", schema4, {link4, node2, link2}, db, true);
+
+    // clang-format on
 }
 
 TEST(LinkTest, CompositeTypes) {
@@ -242,27 +392,25 @@ TEST(LinkTest, CompositeTypes) {
     string link3_composite_hash = link3->composite_type_hash(db);
 
     // clang-format off
-    /*
-    cout << "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX" << endl;
-    cout << "node1: " << node1->handle() << endl;
-    cout << "node2: " << node2->handle() << endl;
-    cout << "node3: " << node3->handle() << endl;
-    cout << "node4: " << node4->handle() << endl;
-    cout << "Expression: " << expression_hash << " Symbol: " << symbol_hash << endl;
-    cout << "----------------------------------------------" << endl;
-    cout << "link1: " << link1->handle() << " " << link1->to_string() << endl;
-    cout << link1_composite.size() << " " << link1_composite[0] << " " << link1_composite[1] << " " << link1_composite[2] << endl;
-    cout << link1_composite_hash << endl;
-    cout << "----------------------------------------------" << endl;
-    cout << "link2: " << link2->handle() << " " << link2->to_string() << endl;
-    cout << link2_composite.size() << " " << link2_composite[0] << " " << link2_composite[1] << " " << link2_composite[2] << endl;
-    cout << link2_composite_hash << endl;
-    cout << "----------------------------------------------" << endl;
-    cout << "link3: " << link3->handle() << " " << link3->to_string() << endl;
-    cout << link3_composite.size() << " " << link3_composite[0] << " " << link3_composite[1] << " " << link3_composite[2] << endl;
-    cout << link3_composite_hash << endl;
-    cout << "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX" << endl;
-    */
+    //cout << "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX" << endl;
+    //cout << "node1: " << node1->handle() << endl;
+    //cout << "node2: " << node2->handle() << endl;
+    //cout << "node3: " << node3->handle() << endl;
+    //cout << "node4: " << node4->handle() << endl;
+    //cout << "Expression: " << expression_hash << " Symbol: " << symbol_hash << endl;
+    //cout << "----------------------------------------------" << endl;
+    //cout << "link1: " << link1->handle() << " " << link1->to_string() << endl;
+    //cout << link1_composite.size() << " " << link1_composite[0] << " " << link1_composite[1] << " " << link1_composite[2] << endl;
+    //cout << link1_composite_hash << endl;
+    //cout << "----------------------------------------------" << endl;
+    //cout << "link2: " << link2->handle() << " " << link2->to_string() << endl;
+    //cout << link2_composite.size() << " " << link2_composite[0] << " " << link2_composite[1] << " " << link2_composite[2] << endl;
+    //cout << link2_composite_hash << endl;
+    //cout << "----------------------------------------------" << endl;
+    //cout << "link3: " << link3->handle() << " " << link3->to_string() << endl;
+    //cout << link3_composite.size() << " " << link3_composite[0] << " " << link3_composite[1] << " " << link3_composite[2] << endl;
+    //cout << link3_composite_hash << endl;
+    //cout << "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX" << endl;
     // clang-format on
 
     EXPECT_TRUE(link1_composite == vector<string>({expression_hash, symbol_hash, symbol_hash}));

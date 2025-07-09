@@ -2,8 +2,11 @@
 
 #include "And.h"
 #include "AtomDBSingleton.h"
+#include "Link.h"
+#include "LinkSchema.h"
 #include "LinkTemplate.h"
 #include "LinkTemplate2.h"
+#include "Node.h"
 #include "Or.h"
 #include "PatternMatchingQueryProxy.h"
 #include "ServiceBus.h"
@@ -11,6 +14,7 @@
 #include "StoppableThread.h"
 #include "Terminal.h"
 #include "UniqueAssignmentFilter.h"
+#include "UntypedVariable.h"
 
 #define LOG_LEVEL INFO_LEVEL
 #include "Logger.h"
@@ -225,9 +229,9 @@ shared_ptr<QueryElement> PatternMatchingQueryProcessor::setup_query_tree(
         cursor = execution_stack.top();
         if (query_tokens[cursor] == "NODE") {
             element_stack.push(
-                make_shared<query_element::Node>(query_tokens[cursor + 1], query_tokens[cursor + 2]));
+                make_shared<Terminal>(query_tokens[cursor + 1], query_tokens[cursor + 2]));
         } else if (query_tokens[cursor] == "VARIABLE") {
-            element_stack.push(make_shared<Variable>(query_tokens[cursor + 1]));
+            element_stack.push(make_shared<Terminal>(query_tokens[cursor + 1]));
         } else if (query_tokens[cursor] == "LINK") {
             element_stack.push(build_link(proxy, cursor, element_stack));
         } else if (query_tokens[cursor] == "LINK_TEMPLATE") {
@@ -424,16 +428,6 @@ shared_ptr<QueryElement> PatternMatchingQueryProcessor::build_or(
     return NULL;  // Just to avoid warnings. This is not actually reachable.
 }
 
-#define BUILD_LINK(N)                                                                        \
-    {                                                                                        \
-        array<shared_ptr<QueryElement>, N> targets;                                          \
-        for (unsigned int i = 0; i < N; i++) {                                               \
-            targets[i] = element_stack.top();                                                \
-            element_stack.pop();                                                             \
-        }                                                                                    \
-        return make_shared<query_element::Link<N>>(query_tokens[cursor + 1], move(targets)); \
-    }
-
 shared_ptr<QueryElement> PatternMatchingQueryProcessor::build_link(
     shared_ptr<PatternMatchingQueryProxy> proxy,
     unsigned int cursor,
@@ -444,24 +438,12 @@ shared_ptr<QueryElement> PatternMatchingQueryProcessor::build_link(
         Utils::error(
             "PATTERN_MATCHING_QUERY message: parse error in tokens - too few arguments for LINK");
     }
-    // clang-format off
-    switch (arity) {
-        case  1: BUILD_LINK(1)
-        case  2: BUILD_LINK(2)
-        case  3: BUILD_LINK(3)
-        case  4: BUILD_LINK(4)
-        case  5: BUILD_LINK(5)
-        case  6: BUILD_LINK(6)
-        case  7: BUILD_LINK(7)
-        case  8: BUILD_LINK(8)
-        case  9: BUILD_LINK(9)
-        case 10: BUILD_LINK(10)
-        // clang-format on
-        default: {
-            Utils::error("PATTERN_MATCHING_QUERY message: max supported arity for LINK: 10");
-        }
+    vector<shared_ptr<QueryElement>> targets;
+    for (unsigned int i = 0; i < arity; i++) {
+        targets.push_back(element_stack.top());
+        element_stack.pop();
     }
-    return NULL;  // Just to avoid warnings. This is not actually reachable.
+    return make_shared<Terminal>(query_tokens[cursor + 1], targets);
 }
 
 shared_ptr<QueryElement> PatternMatchingQueryProcessor::build_unique_assignment_filter(
