@@ -433,6 +433,66 @@ TEST_F(RedisMongoDBTest, DocumentsExist) {
     EXPECT_EQ(links_exist_after_delete.size(), 0);
 }
 
+TEST_F(RedisMongoDBTest, DeleteLinkWithTargets) {
+    vector<string> nodes_handles;
+
+    auto link_name_node = new Node("Symbol", "TestLinkName");
+    nodes_handles.push_back(db->add_node(link_name_node));
+
+    auto test_1_node = new Node("Symbol", "del-links-1");
+    nodes_handles.push_back(db->add_node(test_1_node));
+    auto test_2_node = new Node("Symbol", "del-links-2");
+    nodes_handles.push_back(db->add_node(test_2_node));
+
+    auto link =
+        new Link("Expression", {link_name_node->handle(), test_1_node->handle(), test_2_node->handle()});
+    auto link_handle = db->add_link(link);
+
+    EXPECT_TRUE(db->delete_link(link_handle));
+    EXPECT_FALSE(db->link_exists(link_handle));
+
+    auto nodes_exist = db->nodes_exist(nodes_handles);
+    EXPECT_EQ(nodes_exist.size(), 0);
+}
+
+TEST_F(RedisMongoDBTest, DeleteLinkWithNestedLink) {
+    // Delete a link with a nested links
+    // (TestLinkName (TestNestedLinkName1 (TestNestedLinkName2 N1 N2) N3) N4)
+    vector<string> nodes_handles;
+
+    auto link_node = new Node("Symbol", "TestLink");
+    nodes_handles.push_back(db->add_node(link_node));
+
+    auto nested_link_node_1 = new Node("Symbol", "TestNestedLink1");
+    nodes_handles.push_back(db->add_node(nested_link_node_1));
+    auto nested_link_node_2 = new Node("Symbol", "TestNestedLink2");
+    nodes_handles.push_back(db->add_node(nested_link_node_2));
+
+    auto n1_node = new Node("Symbol", "N1");
+    nodes_handles.push_back(db->add_node(n1_node));
+    auto n2_node = new Node("Symbol", "N2");
+    nodes_handles.push_back(db->add_node(n2_node));
+    auto n3_node = new Node("Symbol", "N3");
+    nodes_handles.push_back(db->add_node(n3_node));
+    auto n4_node = new Node("Symbol", "N4");
+    nodes_handles.push_back(db->add_node(n4_node));
+
+    auto nested_link_2 = new Link("Expression", {nested_link_node_2->handle(), n1_node->handle(), n2_node->handle()});
+    nodes_handles.push_back(db->add_link(nested_link_2));
+
+    auto nested_link_1 = new Link("Expression", {nested_link_node_1->handle(), nested_link_2->handle(), n3_node->handle()});
+    nodes_handles.push_back(db->add_link(nested_link_1));
+
+    auto link = new Link("Expression", {link_node->handle(), nested_link_1->handle(), n4_node->handle()});
+    nodes_handles.push_back(db->add_link(link));
+
+    EXPECT_TRUE(db->delete_links({link->handle(), nested_link_1->handle(), nested_link_2->handle()}));
+    EXPECT_EQ(db->links_exist({link->handle(), nested_link_1->handle(), nested_link_2->handle()}).size(), 0);
+
+    auto nodes_exist = db->nodes_exist(nodes_handles);
+    EXPECT_EQ(nodes_exist.size(), 0);
+}
+
 int main(int argc, char** argv) {
     ::testing::InitGoogleTest(&argc, argv);
     ::testing::AddGlobalTestEnvironment(new RedisMongoDBTestEnvironment());

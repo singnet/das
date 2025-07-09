@@ -537,6 +537,7 @@ vector<string> RedisMongoDB::add_links(const vector<atoms::Link*>& links) {
     return handles;
 }
 
+// TODO(arturgontijo): We need to delete handle's incoming_set values and update Redis.
 bool RedisMongoDB::delete_document(const string& handle, const string& collection_name) {
     auto conn = this->mongodb_pool->acquire();
     auto mongodb_collection = (*conn)[MONGODB_DB_NAME][collection_name];
@@ -546,8 +547,7 @@ bool RedisMongoDB::delete_document(const string& handle, const string& collectio
 }
 
 bool RedisMongoDB::delete_atom(const string& handle) {
-    return delete_document(handle, MONGODB_NODES_COLLECTION_NAME) ||
-           delete_document(handle, MONGODB_LINKS_COLLECTION_NAME);
+    return delete_node(handle) || delete_link(handle);
 }
 
 bool RedisMongoDB::delete_node(const string& handle) {
@@ -555,9 +555,27 @@ bool RedisMongoDB::delete_node(const string& handle) {
 }
 
 bool RedisMongoDB::delete_link(const string& handle) {
+    auto link_document = get_link_document(handle);
+    if (link_document == nullptr) {
+        return false;
+    }
+
+    auto targets_size = link_document->get_size(MONGODB_FIELD_NAME[MONGODB_FIELD::TARGETS]);
+    for (uint i = 0; i < targets_size; i++) {
+        auto handle = link_document->get(MONGODB_FIELD_NAME[MONGODB_FIELD::TARGETS], i);
+        // TODO(arturgontijo): Use delete_atom() once we have split atoms collection into nodes
+        // and links (or another way to infer if handle is a node or a link, eg. using HandleTrie).
+        try {
+            delete_link(handle);
+        } catch (const exception& e) {
+            delete_node(handle);
+        }
+    }
+
     return delete_document(handle, MONGODB_LINKS_COLLECTION_NAME);
 }
 
+// TODO(arturgontijo): We need to delete handle's incoming_set values and update Redis.
 uint RedisMongoDB::delete_documents(const vector<string>& handles, const string& collection_name) {
     auto conn = this->mongodb_pool->acquire();
     auto mongodb_collection = (*conn)[MONGODB_DB_NAME][collection_name];
@@ -588,5 +606,11 @@ uint RedisMongoDB::delete_nodes(const vector<string>& handles) {
 }
 
 uint RedisMongoDB::delete_links(const vector<string>& handles) {
-    return delete_documents(handles, MONGODB_LINKS_COLLECTION_NAME);
+    uint deleted_count = 0;
+    for (const auto& handle : handles) {
+        if (delete_link(handle)) {
+            deleted_count++;
+        }
+    }
+    return deleted_count;
 }
