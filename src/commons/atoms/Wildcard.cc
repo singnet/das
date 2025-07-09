@@ -24,4 +24,4 @@ void Wildcard::validate() const {
 
 string Wildcard::to_string() const { return "Wildcard(type: '" + this->type + "')"; }
 
-string Wildcard::schema_handle() const { return Atom::WILDCARD_HANDLE; }
+string Wildcard::schema_handle() const { return Atom::WILDCARD_STRING; }

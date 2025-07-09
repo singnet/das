@@ -16,13 +16,17 @@
 #include "AttentionBrokerServer.h"
 #include "ImportanceList.h"
 #include "Iterator.h"
+#include "Link.h"
+#include "LinkSchema.h"
 #include "LinkTemplateInterface.h"
+#include "Node.h"
 #include "QueryAnswer.h"
 #include "QueryElementRegistry.h"
 #include "QueryNode.h"
 #include "SharedQueue.h"
 #include "Source.h"
 #include "Terminal.h"
+#include "UntypedVariable.h"
 #include "attention_broker.grpc.pb.h"
 #include "attention_broker.pb.h"
 #include "expression_hasher.h"
@@ -108,7 +112,7 @@ class LinkTemplate : public Source, public LinkTemplateInterface {
             // is used solely in this scope so it's guaranteed that handle will not be freed.
             if (this->target_template[i - 1]->is_terminal) {
                 this->handle_keys[i] =
-                    dynamic_pointer_cast<Terminal>(this->target_template[i - 1])->handle.get();
+                    (char*) dynamic_pointer_cast<Terminal>(this->target_template[i - 1])->handle.c_str();
             } else {
                 this->handle_keys[i] = (char*) Atom::WILDCARD_STRING.c_str();
                 this->inner_template.push_back(this->target_template[i - 1]);
@@ -235,7 +239,8 @@ class LinkTemplate : public Source, public LinkTemplateInterface {
             if (this->target_template[i]->is_terminal) {
                 auto terminal = dynamic_pointer_cast<Terminal>(this->target_template[i]);
                 if (terminal->is_variable) {
-                    variables.push_back({i, terminal->name});
+                    variables.push_back(
+                        {i, dynamic_pointer_cast<UntypedVariable>(terminal->atom)->name});
                 }
             }
         }
@@ -245,6 +250,9 @@ class LinkTemplate : public Source, public LinkTemplateInterface {
     void set_positive_importance_flag(bool flag) { this->positive_importance_flag = flag; }
 
     const char* get_handle() const override { return this->handle.get(); }
+
+    // TODO: This method should be implemented
+    string get_metta_expression() const override { return "(EVALUATION $x $y)"; }
 
    private:
     // --------------------------------------------------------------------------------------------
@@ -370,12 +378,15 @@ class LinkTemplate : public Source, public LinkTemplateInterface {
                             auto terminal = dynamic_pointer_cast<Terminal>(this->target_template[j]);
                             if (terminal->is_variable) {
                                 if (!query_answer->assignment.assign(
-                                        terminal->name.c_str(),
+                                        dynamic_pointer_cast<UntypedVariable>(terminal->atom)
+                                            ->name.c_str(),
                                         this->atom_documents[document_cursor]->get("targets", j))) {
-                                    Utils::error("Error assigning variable: " + terminal->name +
-                                                 " a value: " +
-                                                 string(this->atom_documents[document_cursor]->get(
-                                                     "targets", j)));
+                                    Utils::error(
+                                        "Error assigning variable: " +
+                                        dynamic_pointer_cast<UntypedVariable>(terminal->atom)->name +
+                                        " a value: " +
+                                        string(
+                                            this->atom_documents[document_cursor]->get("targets", j)));
                                 }
                             }
                         }
