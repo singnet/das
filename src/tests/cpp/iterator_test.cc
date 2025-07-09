@@ -8,6 +8,7 @@
 #include "QueryNode.h"
 #include "gtest/gtest.h"
 #include "test_utils.h"
+#include "TestConfig.h"
 
 using namespace query_engine;
 using namespace query_element;
@@ -69,13 +70,7 @@ TEST(Iterator, basics) {
 }
 
 TEST(Iterator, link_template_integration) {
-    setenv("DAS_REDIS_HOSTNAME", "localhost", 1);
-    setenv("DAS_REDIS_PORT", "29000", 1);
-    setenv("DAS_USE_REDIS_CLUSTER", "false", 1);
-    setenv("DAS_MONGODB_HOSTNAME", "localhost", 1);
-    setenv("DAS_MONGODB_PORT", "28000", 1);
-    setenv("DAS_MONGODB_USERNAME", "dbadmin", 1);
-    setenv("DAS_MONGODB_PASSWORD", "dassecret", 1);
+    TestConfig::load_environment();
 
     AtomDBSingleton::init();
     string expression = "Expression";

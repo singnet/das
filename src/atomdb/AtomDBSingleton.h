@@ -21,7 +21,7 @@ class AtomDBSingleton {
     ~AtomDBSingleton() {}
     static void init();
     static shared_ptr<AtomDB> get_instance();
-
+    static void provide(shared_ptr<AtomDB> atom_db);
    private:
     AtomDBSingleton() {}
     static bool initialized;
