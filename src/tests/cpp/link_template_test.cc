@@ -4,9 +4,9 @@
 #include "LinkTemplate.h"
 #include "QueryAnswer.h"
 #include "QueryNode.h"
+#include "TestConfig.h"
 #include "gtest/gtest.h"
 #include "test_utils.h"
-#include "TestConfig.h"
 
 using namespace query_engine;
 using namespace query_element;

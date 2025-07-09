@@ -6,9 +6,9 @@
 #include "QueryEvolutionProxy.h"
 #include "ServiceBus.h"
 #include "ServiceBusSingleton.h"
+#include "TestConfig.h"
 #include "Utils.h"
 #include "gtest/gtest.h"
-#include "TestConfig.h"
 
 // #define LOG_LEVEL DEBUG_LEVEL
 // #include "Logger.h"

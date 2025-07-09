@@ -37,7 +37,7 @@ class ServiceBusSingleton {
                      const string& known_peer = "",
                      unsigned int port_lower = 64000,
                      unsigned int port_upper = 64999);
-    
+
     /**
      * Initializes static state of the singleton object.
      * This method is supposed to be called once before any calls to get_instance().

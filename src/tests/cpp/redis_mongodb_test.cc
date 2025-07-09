@@ -34,7 +34,7 @@ class RedisMongoDBTestEnvironment : public ::testing::Environment {
    public:
     void SetUp() override {
         TestConfig::load_environment();
-	    TestConfig::disable_atomdb_cache();
+        TestConfig::disable_atomdb_cache();
         AtomDBSingleton::init();
     }
 };

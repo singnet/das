@@ -2,9 +2,9 @@
 #include "PatternMatchingQueryProcessor.h"
 #include "PatternMatchingQueryProxy.h"
 #include "ServiceBus.h"
+#include "TestConfig.h"
 #include "Utils.h"
 #include "gtest/gtest.h"
-#include "TestConfig.h"
 
 #define LOG_LEVEL INFO_LEVEL
 #include "Logger.h"
