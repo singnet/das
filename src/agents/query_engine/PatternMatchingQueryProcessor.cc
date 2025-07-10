@@ -147,34 +147,27 @@ void PatternMatchingQueryProcessor::thread_process_one_query(
         proxy->untokenize(proxy->args);
         LOG_DEBUG("proxy: " + proxy->to_string());
         LOG_DEBUG("Setting up query tree");
-LOG_DEBUG("XXXXXXXXXXXXXXXX 0");
         shared_ptr<QueryElement> root_query_element = setup_query_tree(proxy);
-LOG_DEBUG("XXXXXXXXXXXXXXXX 1");
         set<string> joint_answer;  // used to stimulate attention broker
         string command = proxy->get_command();
         unsigned int sink_port_number;
         if (root_query_element == NULL) {
             Utils::error("Invalid empty query tree.");
         } else {
-LOG_DEBUG("XXXXXXXXXXXXXXXX 2");
             if (command == ServiceBus::PATTERN_MATCHING_QUERY) {
-LOG_DEBUG("XXXXXXXXXXXXXXXX 3");
                 sink_port_number = PortPool::get_port();
                 LinkTemplate* root_link_template = dynamic_cast<LinkTemplate*>(root_query_element.get());
                 shared_ptr<Sink> query_sink;
                 if (root_link_template != NULL) {
-LOG_DEBUG("XXXXXXXXXXXXXXXX 4");
                     root_link_template->build();
                     query_sink = make_shared<Sink>(
                         root_link_template->get_source_element(),
                         "Sink_" + proxy->peer_id() + "_" + std::to_string(proxy->get_serial()));
                 } else {
-LOG_DEBUG("XXXXXXXXXXXXXXXX 5");
                     query_sink = make_shared<Sink>(
                         root_query_element,
                         "Sink_" + proxy->peer_id() + "_" + std::to_string(proxy->get_serial()));
                 }
-LOG_DEBUG("XXXXXXXXXXXXXXXX 6");
                 unsigned int answer_count = 0;
                 LOG_DEBUG("Processing QueryAnswer objects");
                 while (!(query_sink->finished() || proxy->is_aborting())) {
@@ -308,14 +301,12 @@ shared_ptr<QueryElement> PatternMatchingQueryProcessor::build_link_template(
             LinkTemplate* link_template = dynamic_cast<LinkTemplate*>(element_stack.top().get()); \
             if (link_template != NULL) {                                                          \
                 link_template->build();                                                           \
-                cout << "XXXXXXXXXX SAIU" << endl;                                                \
                 clauses[i] = link_template->get_source_element();                                 \
             } else {                                                                              \
                 clauses[i] = element_stack.top();                                                 \
             }                                                                                     \
             element_stack.pop();                                                                  \
         }                                                                                         \
-        cout << "XXXXXXXXXX SAIU 2" << endl;                                                      \
         return make_shared<And<N>>(clauses);                                                      \
     }
 
