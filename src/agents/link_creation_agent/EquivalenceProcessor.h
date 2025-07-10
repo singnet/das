@@ -23,7 +23,7 @@ class EquivalenceProcessor : public LinkProcessor {
     static vector<string> count_query_template_1;
     static vector<string> count_query_template_2;
     static LCALink build_link(const string& link_type,
-                           vector<LinkTargetTypes> targets,
-                           vector<CustomField> custom_fields);
+                              vector<LinkTargetTypes> targets,
+                              vector<CustomField> custom_fields);
 };
 }  // namespace link_creation_agent

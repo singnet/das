@@ -19,6 +19,6 @@ class LinkTemplateProcessor : public LinkProcessor {
 
    private:
     shared_ptr<LCALink> process_template_request(shared_ptr<QueryAnswer> query_answer,
-                                              LinkCreateTemplate& link_template);
+                                                 LinkCreateTemplate& link_template);
 };
 }  // namespace link_creation_agent

@@ -67,7 +67,7 @@ class LCALink {
     vector<LinkTargetTypes> targets = {};
     vector<CustomField> custom_fields = {};
     static LCALink untokenize_link(const vector<string>& tokens,
-                                size_t& cursor,
-                                bool include_custom_field_size);
+                                   size_t& cursor,
+                                   bool include_custom_field_size);
 };
 }  // namespace link_creation_agent

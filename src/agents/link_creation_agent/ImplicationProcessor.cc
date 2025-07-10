@@ -91,8 +91,8 @@ vector<string> ImplicationProcessor::get_tokenized_atom(const string& handle) {
 }
 
 link_creation_agent::LCALink ImplicationProcessor::build_link(const string& link_type,
-                                                           vector<LinkTargetTypes> targets,
-                                                           vector<CustomField> custom_fields) {
+                                                              vector<LinkTargetTypes> targets,
+                                                              vector<CustomField> custom_fields) {
     link_creation_agent::LCALink link;
     link.set_type(link_type);
     for (const auto& target : targets) {

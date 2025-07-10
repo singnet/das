@@ -30,7 +30,7 @@ vector<vector<string>> LinkTemplateProcessor::process(shared_ptr<QueryAnswer> qu
 }
 
 shared_ptr<LCALink> LinkTemplateProcessor::process_template_request(shared_ptr<QueryAnswer> query_answer,
-                                                                 LinkCreateTemplate& link_template) {
+                                                                    LinkCreateTemplate& link_template) {
     LinkCreateTemplate link_create_template(link_template);
     // HandlesAnswer* handles_answer = dynamic_cast<HandlesAnswer*>(query_answer);
     shared_ptr<LCALink> link = make_shared<LCALink>();

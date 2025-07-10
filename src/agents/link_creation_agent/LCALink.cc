@@ -53,7 +53,9 @@ vector<string> LCALink::tokenize(bool include_custom_field_size) {
 
 vector<CustomField> LCALink::get_custom_fields() { return this->custom_fields; }
 
-void LCALink::set_custom_fields(vector<CustomField> custom_fields) { this->custom_fields = custom_fields; }
+void LCALink::set_custom_fields(vector<CustomField> custom_fields) {
+    this->custom_fields = custom_fields;
+}
 
 void LCALink::add_custom_field(CustomField custom_field) { this->custom_fields.push_back(custom_field); }
 
@@ -100,8 +102,8 @@ LCALink LCALink::untokenize(const vector<string>& tokens, bool include_custom_fi
 }
 
 LCALink LCALink::untokenize_link(const vector<string>& tokens,
-                           size_t& cursor,
-                           bool include_custom_field_size) {
+                                 size_t& cursor,
+                                 bool include_custom_field_size) {
     LCALink link;
     if (tokens[cursor] != "LINK") {
         throw runtime_error("Invalid token: " + tokens[cursor]);

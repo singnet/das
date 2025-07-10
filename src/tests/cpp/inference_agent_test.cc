@@ -3,8 +3,8 @@
 
 #include <fstream>
 
-#include "AtomDBSingleton.h"
 #include "AtomDB.h"
+#include "AtomDBSingleton.h"
 #include "BusCommandProcessor.h"
 #include "BusCommandProxy.h"
 #include "FitnessFunctionRegistry.h"
@@ -37,6 +37,7 @@ class MockInferenceProxy : public InferenceProxy {
    public:
     MockInferenceProxy(const vector<string>& tokens) : InferenceProxy(tokens) {}
     MOCK_METHOD(unsigned int, get_serial, (), (override));
+    MOCK_METHOD(string, peer_id, (), (override));
 };
 
 class MockAtomDocument : public atomdb_api_types::AtomDocument {
@@ -98,7 +99,7 @@ class AtomDBMock : public AtomDB {
     MOCK_METHOD(set<string>, atoms_exist, (const vector<string>& handles), (override));
     MOCK_METHOD(set<string>, nodes_exist, (const vector<string>& handles), (override));
     MOCK_METHOD(set<string>, links_exist, (const vector<string>& link_handles), (override));
-   
+
     MOCK_METHOD(string, add_node, (const Node* node), (override));
     MOCK_METHOD(string, add_link, (const Link* link), (override));
     MOCK_METHOD(string, add_atom, (const Atom* atom), (override));
@@ -110,13 +111,10 @@ class AtomDBMock : public AtomDB {
     MOCK_METHOD(bool, delete_atom, (const string& handle), (override));
     MOCK_METHOD(bool, delete_node, (const string& handle), (override));
     MOCK_METHOD(bool, delete_link, (const string& handle), (override));
-    
+
     MOCK_METHOD(uint, delete_atoms, (const vector<string>& handles), (override));
     MOCK_METHOD(uint, delete_nodes, (const vector<string>& handles), (override));
     MOCK_METHOD(uint, delete_links, (const vector<string>& handles), (override));
-
-
-
 
     AtomDBMock() {
         ON_CALL(*this, get_atom_document(testing::_))
