@@ -23,7 +23,6 @@ class LinkCreationRequestProcessor : public BusCommandProcessor {
    private:
     LinkCreationAgent* link_creation_agent;
     void process_link_create_request(shared_ptr<BusCommandProxy> proxy);
-    void abort_link_create_request(shared_ptr<BusCommandProxy> proxy);
 };
 
 }  // namespace link_creation_agent

@@ -81,13 +81,28 @@ class MockAtomDB : public AtomDB {
         return nullptr;
     }
 
+    shared_ptr<AtomDocument> get_node_document(const string& handle) override {
+        return get_atom_document(handle);
+    }
+    shared_ptr<AtomDocument> get_link_document(const string& handle) override {
+        return get_atom_document(handle);
+    }
+
     vector<shared_ptr<AtomDocument>> get_atom_documents(const vector<string>& handles,
                                                         const vector<string>& fields) override {
         return {};  // Not implemented for this mock
     }
 
-    bool link_exists(const string&) override { return false; }
-    set<string> links_exist(const vector<string>&) override { return {}; }
+    vector<shared_ptr<AtomDocument>> get_node_documents(const vector<string>& handles,
+                                                        const vector<string>& fields) override {
+        return get_atom_documents(handles, fields);
+    }
+    vector<shared_ptr<AtomDocument>> get_link_documents(const vector<string>& handles,
+                                                        const vector<string>& fields) override {
+        return get_atom_documents(handles, fields);
+    }
+
+    string add_atom(const atoms::Atom* atom) override { return ""; }
 
     string add_node(const atoms::Node* node) override {
         add_node_calls.push_back({node->type, node->name, node->custom_attributes});
@@ -101,6 +116,26 @@ class MockAtomDB : public AtomDB {
         atoms[link->handle()] = (Atom*) link;
         return link->handle();
     }
+
+    vector<string> add_atoms(const vector<atoms::Atom*>& atoms) override { return {}; }
+    vector<string> add_nodes(const vector<atoms::Node*>& nodes) override { return {}; }
+    vector<string> add_links(const vector<atoms::Link*>& links) override { return {}; }
+
+    bool atom_exists(const string& handle) override { return false; }
+    bool node_exists(const string& handle) override { return false; }
+    bool link_exists(const string& handle) override { return false; }
+
+    set<string> atoms_exist(const vector<string>& handles) override { return {}; }
+    set<string> nodes_exist(const vector<string>& handles) override { return {}; }
+    set<string> links_exist(const vector<string>& handles) override { return {}; }
+
+    bool delete_atom(const string& handle) override { return false; }
+    bool delete_node(const string& handle) override { return false; }
+    bool delete_link(const string& handle) override { return false; }
+
+    uint delete_atoms(const vector<string>& handles) override { return 0; }
+    uint delete_nodes(const vector<string>& handles) override { return 0; }
+    uint delete_links(const vector<string>& handles) override { return 0; }
 
     shared_ptr<Atom> get_atom(const string& handle) { return shared_ptr<Atom>(this->atoms[handle]); }
 
@@ -194,8 +229,8 @@ TEST_F(AtomSpaceTest, AddNode) {
     ASSERT_NE(atom, nullptr);
     EXPECT_EQ(atom->type, "ConceptNode");
     EXPECT_EQ(dynamic_cast<const Node*>(atom)->name, "test_node");
-    EXPECT_TRUE(AtomSpace::is_node(*atom));
-    EXPECT_FALSE(AtomSpace::is_link(*atom));
+    EXPECT_TRUE(Atom::is_node(*atom));
+    EXPECT_FALSE(Atom::is_link(*atom));
 }
 
 // Test add_link functionality
@@ -221,8 +256,8 @@ TEST_F(AtomSpaceTest, AddLink) {
     const Link* link = dynamic_cast<const Link*>(link_atom);
     ASSERT_NE(link, nullptr);
     ASSERT_EQ(link->targets.size(), 2);
-    EXPECT_FALSE(AtomSpace::is_node(*link_atom));
-    EXPECT_TRUE(AtomSpace::is_link(*link_atom));
+    EXPECT_FALSE(Atom::is_node(*link_atom));
+    EXPECT_TRUE(Atom::is_link(*link_atom));
 }
 
 // Test atom_from_document with node document
