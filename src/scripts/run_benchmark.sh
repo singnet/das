@@ -3,15 +3,17 @@
 set -eou pipefail
 
 DB=""
-REL=""
+REL="none"
 CONCURRENCY="1"
 CACHE="disabled"
 ITERATIONS=10
+
 SENTENCES=""
 WORD_COUNT=""
 WORD_LENGTH=""
 ALPHABET_RANGE=""
 METTA_PATH="/tmp/${RANDOM}_$(date +%Y%m%d%H%M%S).metta"
+
 RESET='\033[0m'
 RED='\033[0;31m'
 YELLOW='\033[0;33m'
@@ -22,13 +24,13 @@ usage() {
     echo "Usage: $0 [OPTIONS]"
     echo
     echo "  --db           Database size: empty | small | medium | large | xlarge"
-    echo "  --rel          Atoms relationships: loosely | tightly"
+    echo "  --rel          Atoms relationships: loosely | tightly (default: none)"
     echo "  --concurrency  Concurrent access: 1 | 10 | 100 | 1000 (default: 1)"
     echo "  --cache        Cache: enabled | disabled (default: disabled)"
     echo "  --iterations   Number of iterations for each action (default: 100)"
     echo "  --help         Show this help"
     echo
-    echo "Example: $0 --db medium --rel tightly --concurrency 10 --cache enabled"
+    echo "Example: $0 --db medium --rel tightly --concurrency 10 --cache enabled --iterations 100"
     exit 1
 }
 
@@ -45,7 +47,7 @@ parse_args()  {
     esac
     done
 
-    if [[ -z "$DB" || -z "$REL" ]]; then
+    if [[ -z "$DB" ]]; then
     echo "Missing required parameters."
     usage
     fi
@@ -95,7 +97,7 @@ map_metta_params() {
         ALPHABET_RANGE="0-25"
         ;;
     none)
-        ALPHABET_RANGE="0-5"
+        ALPHABET_RANGE="0-2"
         ;;
     *)
         echo "Invalid --rel value: $rel" >&2
@@ -137,18 +139,19 @@ init_environment() {
     DAS_MONGODB_USERNAME="dbadmin"
     DAS_MONGODB_PASSWORD="dassecret"
     echo -e "$DAS_REDIS_PORT\nN\n$DAS_MONGODB_PORT\n$DAS_MONGODB_USERNAME\n$DAS_MONGODB_PASSWORD\nN\n8888\n\n\n\n\n" | das-cli config set > /dev/null
-    # das-cli db stop > /dev/null
-    # das-cli db start
-    # das-cli metta load "$METTA_PATH"
-    # das-cli attention-broker start
+    das-cli db stop > /dev/null
+    das-cli attention-broker start
+    das-cli db start
+    das-cli metta load "$METTA_PATH"
+    das-cli attention-broker start
 
-    # # MORK
-    # make run-mork-server > /dev/null 2>&1 &  
-    # until curl --silent http://localhost:8000/status/-; do
-    #     echo "Waiting MORK..."
-    #     sleep 5
-    # done
-    # make mork-loader FILE="$METTA_PATH"
+    # MORK
+    make run-mork-server > /dev/null 2>&1 &  
+    until curl --silent http://localhost:8000/status/-; do
+        echo "Waiting MORK..."
+        sleep 5
+    done
+    make mork-loader FILE="$METTA_PATH"
 }
 
 load_scenario_definition() {
@@ -164,7 +167,7 @@ load_scenario_definition() {
 
     SCENARIO_NAME=$(echo "$SCENARIO_YAML" | yq eval '.name' -)
 
-    mapfile -t ACTIONS < <(printf '%s' "$SCENARIO_YAML" | yq eval '.actions[].name' -)
+    mapfile -t ACTIONS < <(printf '%s' "$SCENARIO_YAML" | yq eval '.actions[]' -)
 }
 
 print_scenario() {
@@ -175,21 +178,10 @@ print_scenario() {
 
 run_tests() {
     for action in "${ACTIONS[@]}"; do
-        echo "--- Running: $action ---"
-
-        filter_metrics=".actions[] | select(.name == \"$action\") | .metrics[]"
-
-        METRICS=$(
-            printf '%s' "$SCENARIO_YAML" \
-            | yq eval "$filter_metrics" - \
-            | paste -sd',' -
-        )
-
-        echo "Running benchmark for action: $action"
-        echo "metrics: $METRICS"
         # ./src/scripts/bazel.sh clean --expunge
         sleep 1
-        ./src/scripts/bazel.sh run //tests/benchmark:atomdb_benchmark -- "$action" "$CACHE" "$CONCURRENCY" "$ITERATIONS" "$METRICS"
+        # ./src/scripts/docker_image_build.sh
+        ./src/scripts/bazel.sh run //tests/benchmark:atomdb_benchmark -- "${ACTIONS[@]}" "$CACHE" "$CONCURRENCY" "$ITERATIONS"
 
         # output=$(make bazel run //tests/benchmark:atomdb_benchmark -- "$action" "$CACHE" "$CONCURRENCY" "$ITERATIONS" "$METRICS")
         # ret=$?
@@ -247,7 +239,7 @@ mainBeautiful() {
     fi
 
     echo -en "${YELLOW}Running benchmark tests...${RESET}"
-    run_benchmark
+    # run_benchmark
     ret=$?
     echo "return_CMD $ret"
     if [[ $ret -eq 0 ]]; then
@@ -268,8 +260,8 @@ main() {
     load_scenario_definition
     print_scenario
     generate_metta_file "$SENTENCES" "$WORD_COUNT" "$WORD_LENGTH" "$ALPHABET_RANGE"
-    init_environment
-    run_tests
+    init_environment > /dev/null
+    ./src/scripts/bazel.sh run //tests/benchmark:atomdb_benchmark -- "${ACTIONS[*]}" "$CACHE" "$CONCURRENCY" "$ITERATIONS"
 }
 
 main "$@"

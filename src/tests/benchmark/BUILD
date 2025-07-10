@@ -22,7 +22,6 @@ cc_binary(
     name = "atomdb_benchmark",
     srcs = ["atomdb_benchmark.cc"],
     defines = ["BAZEL_BUILD"],
-    linkstatic = 1,
     linkopts = [
         "-L/usr/local/lib",
         "-lhiredis_cluster",
@@ -30,9 +29,10 @@ cc_binary(
         "-lmongocxx",
         "-lbsoncxx",
     ],
+    linkstatic = 1,
     deps = [
-        "//commons:commons_lib",
         "//atomdb:atomdb_singleton",
+        "//commons:commons_lib",
         "@mbedtls",
-    ]
+    ],
 )

@@ -5,24 +5,10 @@ scenarios:
     concurrency: 1
     cache: disabled
     actions:
-      - name: Add Atom
-        metrics:
-          - Latency
-      - name: Add Atoms
-        metrics:
-          - Latency_batch
-          - Latency_per_item
-          - Throughout
-          - RAM
-      - name: Delete Atom
-        metrics:
-          - Latency
-      - name: Delete Atoms
-        metrics:
-          - Latency_batch
-          - Latency_per_item
-          - Throughout
-          - RAM
+      - AddAtom
+      - AddAtoms
+      - DeleteAtom
+      - DeleteAtoms
 
   - name: S02
     db: small
@@ -30,15 +16,8 @@ scenarios:
     concurrency: 1
     cache: enabled
     actions:
-      - name: Get Atom
-        metrics:
-          - Latency
-      - name: Get Atoms
-        metrics:
-          - Latency_batch
-          - Latency_per_item
-          - Throughout
-          - RAM
+      - GetAtom
+      - GetAtoms
 
   - name: S03
     db: small
@@ -46,15 +25,8 @@ scenarios:
     concurrency: 1
     cache: disabled
     actions:
-      - name: Get Atom
-        metrics:
-          - Latency
-      - name: Get Atoms
-        metrics:
-          - Latency_batch
-          - Latency_per_item
-          - Throughout
-          - RAM
+      - GetAtom
+      - GetAtoms
 
   - name: S04
     db: small
@@ -62,15 +34,8 @@ scenarios:
     concurrency: 1
     cache: enabled
     actions:
-      - name: Get Atom
-        metrics:
-          - Latency
-      - name: Get Atoms
-        metrics:
-          - Latency_batch
-          - Latency_per_item
-          - Throughout
-          - RAM
+      - GetAtom
+      - GetAtoms
 
   - name: S05
     db: small
@@ -78,15 +43,8 @@ scenarios:
     concurrency: 1
     cache: disabled
     actions:
-      - name: Get Atom
-        metrics:
-          - Latency
-      - name: Get Atoms
-        metrics:
-          - Latency_batch
-          - Latency_per_item
-          - Throughout
-          - RAM
+      - GetAtom
+      - GetAtoms
 
   - name: S06
     db: medium
@@ -94,24 +52,10 @@ scenarios:
     concurrency: 1
     cache: disabled
     actions:
-      - name: Add Atom
-        metrics:
-          - Latency
-      - name: Add Atoms
-        metrics:
-          - Latency_batch
-          - Latency_per_item
-          - Throughout
-          - RAM
-      - name: Delete Atom
-        metrics:
-          - Latency
-      - name: Delete Atoms
-        metrics:
-          - Latency_batch
-          - Latency_per_item
-          - Throughout
-          - RAM
+      - AddAtom
+      - AddAtoms
+      - DeleteAtom
+      - DeleteAtoms
 
   - name: S07
     db: medium
@@ -119,15 +63,8 @@ scenarios:
     concurrency: 1
     cache: enabled
     actions:
-      - name: Get Atom
-        metrics:
-          - Latency
-      - name: Get Atoms
-        metrics:
-          - Latency_batch
-          - Latency_per_item
-          - Throughout
-          - RAM
+      - GetAtom
+      - GetAtoms
 
   - name: S08
     db: medium
@@ -135,15 +72,8 @@ scenarios:
     concurrency: 1
     cache: disabled
     actions:
-      - name: Get Atom
-        metrics:
-          - Latency
-      - name: Get Atoms
-        metrics:
-          - Latency_batch
-          - Latency_per_item
-          - Throughout
-          - RAM
+      - GetAtom
+      - GetAtoms
 
   - name: S09
     db: medium
@@ -151,15 +81,8 @@ scenarios:
     concurrency: 1
     cache: enabled
     actions:
-      - name: Get Atom
-        metrics:
-          - Latency
-      - name: Get Atoms
-        metrics:
-          - Latency_batch
-          - Latency_per_item
-          - Throughout
-          - RAM
+      - GetAtom
+      - GetAtoms
 
   - name: S10
     db: medium
@@ -167,14 +90,18 @@ scenarios:
     concurrency: 1
     cache: disabled
     actions:
-      - name: Get Atom
-        metrics:
-          - Latency
-      - name: Get Atoms
-        metrics:
-          - Latency_batch
-          - Latency_per_item
-          - Throughout
-          - RAM
+      - GetAtom
+      - GetAtoms
+
+  - name: S11
+    db: small
+    rel: none
+    concurrency: 10
+    cache: disabled
+    actions:
+      - AddAtom
+      - AddAtoms
+      - DeleteAtom
+      - DeleteAtoms
 
 
