@@ -1,6 +1,6 @@
 /**
  * @file LCALink.h
- * @brief Link definition
+ * @brief LCALink definition
  */
 #pragma once
 #include <string>
@@ -15,14 +15,14 @@ using namespace query_engine;
 
 namespace link_creation_agent {
 
-class Link;  // forward declaration
+class LCALink;  // forward declaration
 
-using LinkTargetTypes = variant<string, shared_ptr<Link>, Node>;
+using LinkTargetTypes = variant<string, shared_ptr<LCALink>, LCANode>;
 
-class Link {
+class LCALink {
    public:
-    Link();
-    ~Link();
+    LCALink();
+    ~LCALink();
     /**
      * @brief Get the type of the link
      * @returns Returns the type of the link
@@ -50,7 +50,7 @@ class Link {
 
     string to_metta_string();
 
-    static Link untokenize(const vector<string>& tokens, bool include_custom_field_size = true);
+    static LCALink untokenize(const vector<string>& tokens, bool include_custom_field_size = true);
 
     /**
      * @brief Get the custom fields of the link
@@ -66,7 +66,7 @@ class Link {
     string type;
     vector<LinkTargetTypes> targets = {};
     vector<CustomField> custom_fields = {};
-    static Link untokenize_link(const vector<string>& tokens,
+    static LCALink untokenize_link(const vector<string>& tokens,
                                 size_t& cursor,
                                 bool include_custom_field_size);
 };

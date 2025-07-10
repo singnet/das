@@ -4,6 +4,7 @@
 #include <fstream>
 
 #include "AtomDBSingleton.h"
+#include "AtomDB.h"
 #include "BusCommandProcessor.h"
 #include "BusCommandProxy.h"
 #include "FitnessFunctionRegistry.h"
@@ -20,6 +21,7 @@ using namespace distributed_algorithm_node;
 using namespace atomdb;
 using namespace evolution;
 using namespace link_creation_agent;
+using namespace atoms;
 // Mock service bus
 
 class MockServiceBus : public ServiceBus {
@@ -62,18 +64,59 @@ class AtomDBMock : public AtomDB {
                 query_for_targets,
                 (const string& handle),
                 (override));
+
     MOCK_METHOD(shared_ptr<atomdb_api_types::AtomDocument>,
                 get_atom_document,
                 (const string& handle),
                 (override));
-    MOCK_METHOD(bool, link_exists, (const string& link_handle), (override));
-    MOCK_METHOD(set<string>, links_exist, (const vector<string>& link_handles), (override));
-    MOCK_METHOD(string, add_node, (const atoms::Node* node), (override));
-    MOCK_METHOD(string, add_link, (const atoms::Link* link), (override));
+    MOCK_METHOD(shared_ptr<atomdb_api_types::AtomDocument>,
+                get_node_document,
+                (const string& handle),
+                (override));
+    MOCK_METHOD(shared_ptr<atomdb_api_types::AtomDocument>,
+                get_link_document,
+                (const string& handle),
+                (override));
+
     MOCK_METHOD(vector<shared_ptr<atomdb_api_types::AtomDocument>>,
                 get_atom_documents,
                 (const vector<string>& handles, const vector<string>& fields),
                 (override));
+    MOCK_METHOD(vector<shared_ptr<atomdb_api_types::AtomDocument>>,
+                get_node_documents,
+                (const vector<string>& handles, const vector<string>& fields),
+                (override));
+    MOCK_METHOD(vector<shared_ptr<atomdb_api_types::AtomDocument>>,
+                get_link_documents,
+                (const vector<string>& handles, const vector<string>& fields),
+                (override));
+
+    MOCK_METHOD(bool, atom_exists, (const string& handle), (override));
+    MOCK_METHOD(bool, node_exists, (const string& handle), (override));
+    MOCK_METHOD(bool, link_exists, (const string& handle), (override));
+
+    MOCK_METHOD(set<string>, atoms_exist, (const vector<string>& handles), (override));
+    MOCK_METHOD(set<string>, nodes_exist, (const vector<string>& handles), (override));
+    MOCK_METHOD(set<string>, links_exist, (const vector<string>& link_handles), (override));
+   
+    MOCK_METHOD(string, add_node, (const Node* node), (override));
+    MOCK_METHOD(string, add_link, (const Link* link), (override));
+    MOCK_METHOD(string, add_atom, (const Atom* atom), (override));
+
+    MOCK_METHOD(vector<string>, add_atoms, (const vector<Atom*>& atoms), (override));
+    MOCK_METHOD(vector<string>, add_nodes, (const vector<Node*>& nodes), (override));
+    MOCK_METHOD(vector<string>, add_links, (const vector<Link*>& links), (override));
+
+    MOCK_METHOD(bool, delete_atom, (const string& handle), (override));
+    MOCK_METHOD(bool, delete_node, (const string& handle), (override));
+    MOCK_METHOD(bool, delete_link, (const string& handle), (override));
+    
+    MOCK_METHOD(uint, delete_atoms, (const vector<string>& handles), (override));
+    MOCK_METHOD(uint, delete_nodes, (const vector<string>& handles), (override));
+    MOCK_METHOD(uint, delete_links, (const vector<string>& handles), (override));
+
+
+
 
     AtomDBMock() {
         ON_CALL(*this, get_atom_document(testing::_))

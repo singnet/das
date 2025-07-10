@@ -1,15 +1,15 @@
-# DAS Link Creation Agent
+# DAS LCALink Creation Agent
 
 
 <!-- ![alt](doc/assets/das_link_creation_diagram.png.png) -->
 
-DAS Link Creation Agent (DAS LCA), process a query and create links using the result of the query and a custom template. The service can execute n times a request to update the database with relevant links over the time.
+DAS LCALink Creation Agent (DAS LCA), process a query and create links using the result of the query and a custom template. The service can execute n times a request to update the database with relevant links over the time.
 
 ### Request
 
 The request must have 6 elements:
 1. Query (string): A valid Query Agent query (see Query Example)
-2. Link Create Template (string): A valid link create template (see Link Create Template Example)
+2. LCALink Create Template (string): A valid link create template (see LCALink Create Template Example)
 3. Max number of query response (int)
 4. Repeat (int): 0 to run once, -1 to run infinitely, 1 or higher to run this number of times.
 5. Context (string): Query context for Attention Broker requests
@@ -34,7 +34,7 @@ LINK_TEMPLATE Expression 3
             VARIABLE V2
 ```
 
-#### Link Create Template Example:
+#### LCALink Create Template Example:
 
 ```
 LINK_CREATE Similarity 2 1
@@ -48,8 +48,8 @@ LINK_CREATE Similarity 2 1
 ```
 A link creation request is expected to have 4 elements:
 1. LINK_CREATE: required keyword
-2. Link type: the type of links that this request will create
-3. Link targets count: the count of link targets
+2. LCALink type: the type of links that this request will create
+3. LCALink targets count: the count of link targets
 4. Custom field count: the count of custom fields
 
 CUSTOM FIELDS
@@ -62,7 +62,7 @@ A custom field must have 3 elements:
 
 ## How to build
 
-To build the Link Creation Agent, run the following command from the project root:
+To build the LCALink Creation Agent, run the following command from the project root:
 
 ```bash
 make build-all
@@ -72,7 +72,7 @@ This will generate the binaries for all components in the `das/bin` directory.
 
 ## How to run
 
-> Before running the Link Creation Agent, you need to start the Query Agent. For more information on how to set up and run the Query Agent, refer to [query-agent.md](../query_engine/README.md).
+> Before running the LCALink Creation Agent, you need to start the Query Agent. For more information on how to set up and run the Query Agent, refer to [query-agent.md](../query_engine/README.md).
 
 You might not be able to execute the binary directly from your machine. To simplify this process, we provide a command to run the service inside a container, the parameters inside the square brackets are optional:
 

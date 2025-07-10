@@ -6,19 +6,19 @@ using namespace link_creation_agent;
 using namespace std;
 using namespace query_engine;
 
-Link::Link() {}
+LCALink::LCALink() {}
 
-Link::~Link() {}
+LCALink::~LCALink() {}
 
-string Link::get_type() { return this->type; }
+string LCALink::get_type() { return this->type; }
 
-vector<LinkTargetTypes> Link::get_targets() { return this->targets; }
+vector<LinkTargetTypes> LCALink::get_targets() { return this->targets; }
 
-void Link::set_type(string type) { this->type = type; }
+void LCALink::set_type(string type) { this->type = type; }
 
-void Link::add_target(LinkTargetTypes target) { this->targets.push_back(target); }
+void LCALink::add_target(LinkTargetTypes target) { this->targets.push_back(target); }
 
-vector<string> Link::tokenize(bool include_custom_field_size) {
+vector<string> LCALink::tokenize(bool include_custom_field_size) {
     vector<string> tokens;
     tokens.push_back("LINK");
     tokens.push_back(this->type);
@@ -31,13 +31,13 @@ vector<string> Link::tokenize(bool include_custom_field_size) {
             tokens.push_back("HANDLE");
             tokens.push_back(get<string>(target));
         }
-        if (holds_alternative<shared_ptr<Link>>(target)) {
-            for (string token : get<shared_ptr<Link>>(target)->tokenize(include_custom_field_size)) {
+        if (holds_alternative<shared_ptr<LCALink>>(target)) {
+            for (string token : get<shared_ptr<LCALink>>(target)->tokenize(include_custom_field_size)) {
                 tokens.push_back(token);
             }
         }
-        if (holds_alternative<Node>(target)) {
-            Node node = get<Node>(target);
+        if (holds_alternative<LCANode>(target)) {
+            LCANode node = get<LCANode>(target);
             tokens.push_back("NODE");
             tokens.push_back(node.type);
             tokens.push_back(node.value);
@@ -51,13 +51,13 @@ vector<string> Link::tokenize(bool include_custom_field_size) {
     return tokens;
 }
 
-vector<CustomField> Link::get_custom_fields() { return this->custom_fields; }
+vector<CustomField> LCALink::get_custom_fields() { return this->custom_fields; }
 
-void Link::set_custom_fields(vector<CustomField> custom_fields) { this->custom_fields = custom_fields; }
+void LCALink::set_custom_fields(vector<CustomField> custom_fields) { this->custom_fields = custom_fields; }
 
-void Link::add_custom_field(CustomField custom_field) { this->custom_fields.push_back(custom_field); }
+void LCALink::add_custom_field(CustomField custom_field) { this->custom_fields.push_back(custom_field); }
 
-string Link::to_metta_string() {
+string LCALink::to_metta_string() {
     // LOG_DEBUG("MMM 0");
     string metta_string = "(";
     bool is_custom_fields_added = false;
@@ -67,13 +67,13 @@ string Link::to_metta_string() {
             // LOG_DEBUG("MMM 2");
             metta_string += get<string>(target) + " ";
         }
-        if (holds_alternative<shared_ptr<Link>>(target)) {
+        if (holds_alternative<shared_ptr<LCALink>>(target)) {
             // LOG_DEBUG("MMM 3");
-            metta_string += get<shared_ptr<Link>>(target)->to_metta_string() + " ";
+            metta_string += get<shared_ptr<LCALink>>(target)->to_metta_string() + " ";
         }
-        if (holds_alternative<Node>(target)) {
+        if (holds_alternative<LCANode>(target)) {
             // LOG_DEBUG("MMM 4");
-            Node node = get<Node>(target);
+            LCANode node = get<LCANode>(target);
             metta_string += node.value + " ";
         }
         if (!is_custom_fields_added) {
@@ -94,15 +94,15 @@ string Link::to_metta_string() {
     return metta_string;
 }
 
-Link Link::untokenize(const vector<string>& tokens, bool include_custom_field_size) {
+LCALink LCALink::untokenize(const vector<string>& tokens, bool include_custom_field_size) {
     size_t cursor = 0;
     return untokenize_link(tokens, cursor, include_custom_field_size);
 }
 
-Link Link::untokenize_link(const vector<string>& tokens,
+LCALink LCALink::untokenize_link(const vector<string>& tokens,
                            size_t& cursor,
                            bool include_custom_field_size) {
-    Link link;
+    LCALink link;
     if (tokens[cursor] != "LINK") {
         throw runtime_error("Invalid token: " + tokens[cursor]);
     }
@@ -128,14 +128,14 @@ Link Link::untokenize_link(const vector<string>& tokens,
             string node_type = tokens[cursor];
             cursor++;
             string node_value = tokens[cursor];
-            Node node;
+            LCANode node;
             node.type = node_type;
             node.value = node_value;
             link.targets.push_back(node);
             cursor++;
         } else if (tokens[cursor] == "LINK") {
-            shared_ptr<Link> sub_link =
-                make_shared<Link>(untokenize_link(tokens, cursor, include_custom_field_size));
+            shared_ptr<LCALink> sub_link =
+                make_shared<LCALink>(untokenize_link(tokens, cursor, include_custom_field_size));
             link.targets.push_back(sub_link);
         } else {
             throw runtime_error("Invalid token: " + tokens[cursor]);

@@ -24,13 +24,13 @@ LinkTargetTypes LinkCreateDBSingleton::get_atom(string handle) {
     shared_ptr<AtomDB> atom_db = AtomDBSingleton::get_instance();
     auto atom = atom_db->get_atom_document(handle.c_str());
     if (atom->contains("name")) {
-        Node node;
+        LCANode node;
         node.type = atom->get("named_type");
         node.value = atom->get("name");
         return node;
     }
     if (atom->contains("targets")) {
-        shared_ptr<Link> link = make_shared<Link>();
+        shared_ptr<LCALink> link = make_shared<LCALink>();
         link->set_type(atom->get("named_type"));
         auto array_size = atom->get_size("targets");
         for (uint i = 0; i < array_size; i++) {
@@ -51,13 +51,13 @@ string LinkCreateDBSingleton::tokens_to_metta_string(vector<string> tokens, bool
                 if (tokens[i] == "HANDLE") {
                     i++;
                     auto atom = get_atom(tokens[i]);
-                    if (holds_alternative<shared_ptr<Link>>(atom)) {
-                        for (auto token : get<shared_ptr<Link>>(atom)->tokenize()) {
+                    if (holds_alternative<shared_ptr<LCALink>>(atom)) {
+                        for (auto token : get<shared_ptr<LCALink>>(atom)->tokenize()) {
                             link_tokens.push_back(token);
                         }
                     }
-                    if (holds_alternative<Node>(atom)) {
-                        for (auto token : get<Node>(atom).tokenize()) {
+                    if (holds_alternative<LCANode>(atom)) {
+                        for (auto token : get<LCANode>(atom).tokenize()) {
                             link_tokens.push_back(token);
                         }
                     }
@@ -65,7 +65,7 @@ string LinkCreateDBSingleton::tokens_to_metta_string(vector<string> tokens, bool
                     link_tokens.push_back(tokens[i]);
                 }
             }
-            Link link = Link::untokenize(link_tokens, has_custom_field_size);
+            LCALink link = LCALink::untokenize(link_tokens, has_custom_field_size);
             string metta_string = link.to_metta_string();
             return metta_string;
         }
