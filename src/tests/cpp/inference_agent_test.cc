@@ -130,7 +130,6 @@ class InferenceAgentTest : public ::testing::Test {
     static void SetUpTestSuite() {
         AtomDBSingleton::provide(nullptr);
         FitnessFunctionRegistry::initialize_statics();
-
     }
 
     void SetUp() override {
