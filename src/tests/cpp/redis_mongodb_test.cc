@@ -543,6 +543,33 @@ TEST_F(RedisMongoDBTest, DeleteLinkWithNestedLinkAndDeleteTargets) {
     EXPECT_EQ(db->atoms_exist(handles).size(), 0);
 }
 
+TEST_F(RedisMongoDBTest, DeleteLinkWithTargetsUsedByOtherLinks) {
+    vector<string> handles;
+
+    // This node is referenced by other links.
+    auto similarity_node = new Node("Symbol", "Similarity");
+    auto handle_set = db->query_for_incoming(similarity_node->handle());
+    EXPECT_EQ(handle_set->size(), 15);
+
+    auto test_1_node = new Node("Symbol", "Test1");
+    auto test_2_node = new Node("Symbol", "Test2");
+    handles.push_back(db->add_node(test_1_node));
+    handles.push_back(db->add_node(test_2_node));
+
+    auto link = new Link("Expression",
+                         {similarity_node->handle(), test_1_node->handle(), test_2_node->handle()});
+    handles.push_back(db->add_link(link));
+
+    handle_set = db->query_for_incoming(similarity_node->handle());
+    EXPECT_EQ(handle_set->size(), 16);
+
+    EXPECT_TRUE(db->delete_link(link->handle(), true));
+    handle_set = db->query_for_incoming(similarity_node->handle());
+    EXPECT_EQ(handle_set->size(), 15);
+
+    EXPECT_EQ(db->atoms_exist(handles).size(), 0);
+}
+
 TEST_F(RedisMongoDBTest, QueryForIncoming) {
     vector<string> handles;
 
