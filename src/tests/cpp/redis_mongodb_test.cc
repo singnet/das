@@ -290,6 +290,56 @@ TEST_F(RedisMongoDBTest, ConcurrentLinksExist) {
     EXPECT_EQ(links_exist.size(), 0);
 }
 
+TEST_F(RedisMongoDBTest, ConcurrentAddNodesAndLinks) {
+    const int num_threads = 100;
+    vector<thread> threads;
+    atomic<int> success_count{0};
+
+    auto worker = [&](int thread_id) {
+        try {
+            auto n1 = new Node("Symbol", "n1-" + to_string(thread_id));
+            auto n2 = new Node("Symbol", "n2-" + to_string(thread_id));
+            auto link_node = new Node("Symbol", "link-" + to_string(thread_id));
+            auto link = new Link("Expression", {link_node->handle(), n1->handle(), n2->handle()});
+
+            db->add_node(n1);
+            db->add_node(n2);
+            db->add_node(link_node);
+
+            db->add_link(link);
+
+            ASSERT_TRUE(db->node_exists(n1->handle()));
+            ASSERT_TRUE(db->node_exists(n2->handle()));
+            ASSERT_TRUE(db->node_exists(link_node->handle()));
+            ASSERT_TRUE(db->link_exists(link->handle()));
+
+            EXPECT_TRUE(db->delete_atom(n1->handle()));
+            EXPECT_TRUE(db->delete_atom(n2->handle()));
+            EXPECT_TRUE(db->delete_atom(link_node->handle()));
+            EXPECT_TRUE(db->delete_atom(link->handle()));
+
+            ASSERT_FALSE(db->node_exists(n1->handle()));
+            ASSERT_FALSE(db->node_exists(n2->handle()));
+            ASSERT_FALSE(db->node_exists(link_node->handle()));
+            ASSERT_FALSE(db->link_exists(link->handle()));
+
+            success_count++;
+        } catch (const exception& e) {
+            cout << "Thread " << thread_id << " failed with error: " << e.what() << endl;
+        }
+    };
+
+    for (int i = 0; i < num_threads; ++i) {
+        threads.emplace_back(worker, i);
+    }
+
+    for (auto& t : threads) {
+        t.join();
+    }
+
+    EXPECT_EQ(success_count, num_threads);
+}
+
 TEST_F(RedisMongoDBTest, AddAndDeleteNode) {
     Properties custom_attributes;
     custom_attributes["is_literal"] = true;

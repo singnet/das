@@ -6,11 +6,10 @@
 
 #include "mbedtls/md5.h"
 
-static unsigned char MD5_BUFFER[16];
-static char HASH[HANDLE_HASH_SIZE];
-static char HASHABLE_STRING[MAX_HASHABLE_STRING_SIZE];
-
 char* compute_hash(char* input) {
+    unsigned char MD5_BUFFER[16];
+    char HASH[HANDLE_HASH_SIZE];
+
     mbedtls_md5_context context;
     mbedtls_md5_init(&context);
     mbedtls_md5_starts(&context);
@@ -27,6 +26,8 @@ char* compute_hash(char* input) {
 char* named_type_hash(char* name) { return compute_hash(name); }
 
 char* terminal_hash(char* type, char* name) {
+    char HASHABLE_STRING[MAX_HASHABLE_STRING_SIZE];
+
     if (strlen(type) + strlen(name) >= MAX_HASHABLE_STRING_SIZE) {
         fprintf(stderr, "Invalid (too large) terminal name");
         exit(1);
@@ -36,6 +37,7 @@ char* terminal_hash(char* type, char* name) {
 }
 
 char* composite_hash(char** elements, unsigned int nelements) {
+    char HASHABLE_STRING[MAX_HASHABLE_STRING_SIZE];
     unsigned int total_size = 0;
     unsigned int element_size[nelements];
 
