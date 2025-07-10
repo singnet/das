@@ -1,7 +1,7 @@
 scenarios:
   - name: S01
     db: small
-    rel: "-"
+    rel: none
     concurrency: 1
     cache: disabled
     actions:
@@ -90,7 +90,7 @@ scenarios:
 
   - name: S06
     db: medium
-    rel: "-"
+    rel: none
     concurrency: 1
     cache: disabled
     actions:
