@@ -1,11 +1,11 @@
-#include "PatternMatchingQueryProcessor.h"
+#include <grpcpp/grpcpp.h>
 
+#include "PatternMatchingQueryProcessor.h"
 #include "And.h"
 #include "AtomDBSingleton.h"
 #include "Link.h"
 #include "LinkSchema.h"
 #include "LinkTemplate.h"
-#include "LinkTemplate2.h"
 #include "Node.h"
 #include "Or.h"
 #include "PatternMatchingQueryProxy.h"
@@ -15,6 +15,8 @@
 #include "Terminal.h"
 #include "UniqueAssignmentFilter.h"
 #include "UntypedVariable.h"
+#include "attention_broker.grpc.pb.h"
+#include "attention_broker.pb.h"
 
 #define LOG_LEVEL INFO_LEVEL
 #include "Logger.h"
@@ -145,9 +147,7 @@ void PatternMatchingQueryProcessor::thread_process_one_query(
         proxy->untokenize(proxy->args);
         LOG_DEBUG("proxy: " + proxy->to_string());
         LOG_DEBUG("Setting up query tree");
-        auto query_element_registry = make_unique<QueryElementRegistry>();
-        shared_ptr<QueryElement> root_query_element =
-            setup_query_tree(proxy, query_element_registry.get());
+        shared_ptr<QueryElement> root_query_element = setup_query_tree(proxy);
         set<string> joint_answer;  // used to stimulate attention broker
         string command = proxy->get_command();
         unsigned int sink_port_number;
@@ -156,9 +156,12 @@ void PatternMatchingQueryProcessor::thread_process_one_query(
         } else {
             if (command == ServiceBus::PATTERN_MATCHING_QUERY) {
                 sink_port_number = PortPool::get_port();
+                LinkTemplate* root_link_template = dynamic_cast<LinkTemplate*>(root_query_element.get());
+                root_link_template->build();
                 shared_ptr<Sink> query_sink = make_shared<Sink>(
-                    root_query_element,
+                    root_link_template->get_source_element(),
                     "Sink_" + proxy->peer_id() + "_" + std::to_string(proxy->get_serial()));
+                root_link_template->start_thread();
                 unsigned int answer_count = 0;
                 LOG_DEBUG("Processing QueryAnswer objects");
                 while (!(query_sink->finished() || proxy->is_aborting())) {
@@ -202,8 +205,7 @@ void PatternMatchingQueryProcessor::remove_query_thread(const string& stoppable_
 // -------------------------------------------------------------------------------------------------
 // Private methods - query tree building
 
-shared_ptr<QueryElement> PatternMatchingQueryProcessor::setup_query_tree(
-    shared_ptr<PatternMatchingQueryProxy> proxy, QueryElementRegistry* query_element_registry) {
+shared_ptr<QueryElement> PatternMatchingQueryProcessor::setup_query_tree(shared_ptr<PatternMatchingQueryProxy> proxy) {
     stack<unsigned int> execution_stack;
     stack<shared_ptr<QueryElement>> element_stack;
     unsigned int cursor = 0;
@@ -236,9 +238,7 @@ shared_ptr<QueryElement> PatternMatchingQueryProcessor::setup_query_tree(
             element_stack.push(build_link(proxy, cursor, element_stack));
         } else if (query_tokens[cursor] == "LINK_TEMPLATE") {
             element_stack.push(
-                build_link_template(proxy, cursor, element_stack, query_element_registry));
-        } else if (query_tokens[cursor] == "LINK_TEMPLATE2") {
-            element_stack.push(build_link_template2(proxy, cursor, element_stack));
+                build_link_template(proxy, cursor, element_stack));
         } else if (query_tokens[cursor] == "AND") {
             element_stack.push(build_and(proxy, cursor, element_stack));
             if (proxy->parameters.get<bool>(BaseQueryProxy::UNIQUE_ASSIGNMENT_FLAG)) {
@@ -262,25 +262,11 @@ shared_ptr<QueryElement> PatternMatchingQueryProcessor::setup_query_tree(
     return element_stack.top();
 }
 
-#define BUILD_LINK_TEMPLATE(N)                                                                      \
-    {                                                                                               \
-        array<shared_ptr<QueryElement>, N> targets;                                                 \
-        for (unsigned int i = 0; i < N; i++) {                                                      \
-            targets[i] = element_stack.top();                                                       \
-            element_stack.pop();                                                                    \
-        }                                                                                           \
-        auto link_template = make_shared<LinkTemplate<N>>(                                          \
-            query_tokens[cursor + 1], move(targets), proxy->get_context(), query_element_registry); \
-        link_template->set_positive_importance_flag(                                                \
-            proxy->parameters.get<bool>(PatternMatchingQueryProxy::POSITIVE_IMPORTANCE_FLAG));      \
-        return link_template;                                                                       \
-    }
-
 shared_ptr<QueryElement> PatternMatchingQueryProcessor::build_link_template(
     shared_ptr<PatternMatchingQueryProxy> proxy,
     unsigned int cursor,
-    stack<shared_ptr<QueryElement>>& element_stack,
-    QueryElementRegistry* query_element_registry) {
+    stack<shared_ptr<QueryElement>>& element_stack) {
+
     const vector<string> query_tokens = proxy->get_query_tokens();
     unsigned int arity = std::stoi(query_tokens[cursor + 2]);
     if (element_stack.size() < arity) {
@@ -288,65 +274,18 @@ shared_ptr<QueryElement> PatternMatchingQueryProcessor::build_link_template(
             "PATTERN_MATCHING_QUERY message: parse error in tokens - too few arguments for "
             "LINK_TEMPLATE");
     }
-    // clang-format off
-    switch (arity) {
-        case  1: BUILD_LINK_TEMPLATE(1);
-        case  2: BUILD_LINK_TEMPLATE(2);
-        case  3: BUILD_LINK_TEMPLATE(3);
-        case  4: BUILD_LINK_TEMPLATE(4);
-        case  5: BUILD_LINK_TEMPLATE(5);
-        case  6: BUILD_LINK_TEMPLATE(6);
-        case  7: BUILD_LINK_TEMPLATE(7);
-        case  8: BUILD_LINK_TEMPLATE(8);
-        case  9: BUILD_LINK_TEMPLATE(9);
-        case 10: BUILD_LINK_TEMPLATE(10);
-        // clang-format on
-        default: {
-            Utils::error("PATTERN_MATCHING_QUERY message: max supported arity for LINK_TEMPLATE: 10");
-        }
+    vector<shared_ptr<QueryElement>> targets;
+    for (unsigned int i = 0; i < arity; i++) {
+        targets.push_back(element_stack.top());
+        element_stack.pop();
     }
-    return NULL;  // Just to avoid warnings. This is not actually reachable.
-}
-
-#define BUILD_LINK_TEMPLATE2(N)                                                        \
-    {                                                                                  \
-        array<shared_ptr<QueryElement>, N> targets;                                    \
-        for (unsigned int i = 0; i < N; i++) {                                         \
-            targets[i] = element_stack.top();                                          \
-            element_stack.pop();                                                       \
-        }                                                                              \
-        return make_shared<LinkTemplate2<N>>(query_tokens[cursor + 1], move(targets)); \
-    }
-
-shared_ptr<QueryElement> PatternMatchingQueryProcessor::build_link_template2(
-    shared_ptr<PatternMatchingQueryProxy> proxy,
-    unsigned int cursor,
-    stack<shared_ptr<QueryElement>>& element_stack) {
-    const vector<string> query_tokens = proxy->get_query_tokens();
-    unsigned int arity = std::stoi(query_tokens[cursor + 2]);
-    if (element_stack.size() < arity) {
-        Utils::error(
-            "PATTERN_MATCHING_QUERY message: parse error in tokens - too few arguments for "
-            "LINK_TEMPLATE2");
-    }
-    // clang-format off
-    switch (arity) {
-        case  1: BUILD_LINK_TEMPLATE2(1);
-        case  2: BUILD_LINK_TEMPLATE2(2);
-        case  3: BUILD_LINK_TEMPLATE2(3);
-        case  4: BUILD_LINK_TEMPLATE2(4);
-        case  5: BUILD_LINK_TEMPLATE2(5);
-        case  6: BUILD_LINK_TEMPLATE2(6);
-        case  7: BUILD_LINK_TEMPLATE2(7);
-        case  8: BUILD_LINK_TEMPLATE2(8);
-        case  9: BUILD_LINK_TEMPLATE2(9);
-        case 10: BUILD_LINK_TEMPLATE2(10);
-        // clang-format on
-        default: {
-            Utils::error("PATTERN_MATCHING_QUERY message: max supported arity for LINK_TEMPLATE2: 10");
-        }
-    }
-    return NULL;  // Just to avoid warnings. This is not actually reachable.
+    auto link_template = make_shared<LinkTemplate>(
+        query_tokens[cursor + 1], 
+        targets, 
+        proxy->get_context(), 
+        proxy->parameters.get<bool>(PatternMatchingQueryProxy::POSITIVE_IMPORTANCE_FLAG));
+    LOG_INFO("LinkTemplate: " + link_template->to_string());
+    return link_template;
 }
 
 #define BUILD_AND(N)                                \

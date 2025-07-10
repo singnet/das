@@ -2,6 +2,7 @@
 
 #include "AtomDBSingleton.h"
 #include "LinkTemplate.h"
+#include "Terminal.h"
 #include "QueryAnswer.h"
 #include "QueryNode.h"
 #include "gtest/gtest.h"
@@ -32,7 +33,12 @@ TEST(LinkTemplate, basics) {
     auto similarity = make_shared<Terminal>(symbol, "Similarity");
     auto human = make_shared<Terminal>(symbol, "\"human\"");
 
-    LinkTemplate<3> link_template1("Expression", {similarity, human, v1});
+    LinkTemplate link_template1("Expression", {similarity, human, v1}, "", false);
+    link_template1.build();
+    link_template1.get_source_element()->subsequent_id = server_node_id;
+    link_template1.get_source_element()->setup_buffers();
+    link_template1.start_thread();
+    Utils::sleep(2000);
 
     // Compare LinkTemplate and LinkSchema handles
     LinkSchema schema(expression, 3);
@@ -41,11 +47,6 @@ TEST(LinkTemplate, basics) {
     schema.stack_untyped_variable("v1");
     schema.build();
     EXPECT_EQ(schema.handle(), link_template1.get_handle());
-
-    link_template1.subsequent_id = server_node_id;
-    link_template1.setup_buffers();
-    // link_template1.fetch_links();
-    Utils::sleep(1000);
 
     string monkey_handle = string(terminal_hash((char*) symbol.c_str(), (char*) "\"monkey\""));
     string chimp_handle = string(terminal_hash((char*) symbol.c_str(), (char*) "\"chimp\""));

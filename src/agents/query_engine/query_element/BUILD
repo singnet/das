@@ -10,11 +10,9 @@ cc_library(
         ":importance_list",
         ":iterator",
         ":link_template",
-        ":link_template2",
         ":operator",
         ":or",
         ":query_element",
-        ":query_element_registry",
         ":sink",
         ":source",
         ":terminal",
@@ -91,39 +89,20 @@ cc_library(
 cc_library(
     name = "link_template",
     hdrs = ["LinkTemplate.h"],
+    srcs = ["LinkTemplate.cc"],
     deps = [
         ":and",
         ":importance_list",
         ":iterator",
         ":or",
-        ":query_element_registry",
         ":source",
         ":terminal",
         "//agents/query_engine:query_node",
-        "//atomdb:atomdb_api_types",
-        "//atomdb:atomdb_singleton",
+        "//atomdb:atomdb_lib",
         "//attention_broker:attention_broker_lib",
         "//commons:commons_lib",
         "//commons/atoms:atoms_lib",
         "//hasher:hasher_lib",
-    ],
-)
-
-cc_library(
-    name = "link_template2",
-    hdrs = ["LinkTemplate2.h"],
-    deps = [
-        ":link_template",
-    ],
-)
-
-cc_library(
-    name = "query_element_registry",
-    srcs = ["QueryElementRegistry.cc"],
-    hdrs = ["QueryElementRegistry.h"],
-    deps = [
-        ":query_element",
-        "//commons:commons_lib",
     ],
 )
 
