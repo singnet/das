@@ -429,7 +429,7 @@ cc_test(
 
 cc_test(
     name = "pattern_matching_query_test",
-    size = "medium",  # due to the 3 seconds sleep in the test
+    size = "small",  # due to the 3 seconds sleep in the test
     srcs = ["pattern_matching_query_test.cc"],
     copts = [
         "-Iexternal/gtest/googletest/include",

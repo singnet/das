@@ -46,7 +46,7 @@ void LinkTemplate::recursive_build(shared_ptr<QueryElement> element, LinkSchema&
             link_schema.stack_link(terminal->type, terminal->targets.size());
         }
     } else {
-        // is a inner LinkTemplate
+        // is an inner LinkTemplate
         LinkTemplate* link_template = dynamic_cast<LinkTemplate*>(element.get());
         if (link_template == NULL) {
             Utils::error("Invalid NULL element");
@@ -60,14 +60,25 @@ void LinkTemplate::recursive_build(shared_ptr<QueryElement> element, LinkSchema&
 }
 
 void LinkTemplate::build() {
-    this->inner_flag = false;
-    for (auto target: this->targets) {
-        recursive_build(target, this->link_schema);
+cout << "XXXXXXXXXXXX BUILDING 1" << endl;
+    if (this->inner_flag) {
+cout << "XXXXXXXXXXXX BUILDING 2" << endl;
+        this->inner_flag = false;
+        for (auto target: this->targets) {
+            recursive_build(target, this->link_schema);
+        }
+cout << "XXXXXXXXXXXX BUILDING 3" << endl;
+        this->link_schema.build();
+        this->id = get_handle() + string("_") + std::to_string(LinkTemplate::next_instance_count());
+        this->source_element = make_shared<SourceElement>();
+        this->source_element->id = this->id;
+cout << "XXXXXXXXXXXX BUILDING 4" << endl;
+        start_thread();
+cout << "XXXXXXXXXXXX BUILDING 5" << endl;
+    } else {
+        Utils::error("LinkTemplate already built");
     }
-    this->link_schema.build();
-    this->id = get_handle() + string("_") + std::to_string(LinkTemplate::next_instance_count());
-    this->source_element = make_shared<SourceElement>();
-    this->source_element->id = this->id;
+cout << "XXXXXXXXXXXX BUILDING 6" << endl;
 }
 
 void LinkTemplate::compute_importance(vector<pair<char*, float>>& handles) {
@@ -107,6 +118,9 @@ void LinkTemplate::compute_importance(vector<pair<char*, float>>& handles) {
 }
 
 void LinkTemplate::processor_method(shared_ptr<StoppableThread> monitor) {
+    while (! this->source_element->buffers_set_up()) {
+        Utils::sleep();
+    }
     auto db = AtomDBSingleton::get_instance();
     string link_schema_handle = this->link_schema.handle();
     shared_ptr<atomdb_api_types::HandleSet> handles;

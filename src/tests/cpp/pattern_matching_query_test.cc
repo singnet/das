@@ -57,12 +57,12 @@ void check_query(const string& query_tag,
     LOG_INFO("==================== Query tag: " + query_tag);
     LOG_INFO("proxy1: " + proxy1->to_string());
 
-    //shared_ptr<PatternMatchingQueryProxy> proxy2(new PatternMatchingQueryProxy(query, context));
-    //proxy2->parameters[BaseQueryProxy::UNIQUE_ASSIGNMENT_FLAG] = unique_assignment;
-    //proxy2->parameters[BaseQueryProxy::ATTENTION_UPDATE_FLAG] = update_attention_broker;
-    //proxy2->parameters[PatternMatchingQueryProxy::COUNT_FLAG] = true;
-    //proxy2->parameters[PatternMatchingQueryProxy::POSITIVE_IMPORTANCE_FLAG] = positive_importance;
-    //LOG_INFO("proxy2: " + proxy2->to_string());
+    shared_ptr<PatternMatchingQueryProxy> proxy2(new PatternMatchingQueryProxy(query, context));
+    proxy2->parameters[BaseQueryProxy::UNIQUE_ASSIGNMENT_FLAG] = unique_assignment;
+    proxy2->parameters[BaseQueryProxy::ATTENTION_UPDATE_FLAG] = update_attention_broker;
+    proxy2->parameters[PatternMatchingQueryProxy::COUNT_FLAG] = true;
+    proxy2->parameters[PatternMatchingQueryProxy::POSITIVE_IMPORTANCE_FLAG] = positive_importance;
+    LOG_INFO("proxy2: " + proxy2->to_string());
 
     client_bus->issue_bus_command(proxy1);
     unsigned int count = 0;
@@ -88,12 +88,12 @@ void check_query(const string& query_tag,
     // otherwise the test fails with "Node ID already in the network"
     Utils::sleep(3000);
 
-    //client_bus->issue_bus_command(proxy2);
-    //while (!proxy2->finished()) {
-    //    Utils::sleep();
-    //}
-    //EXPECT_EQ(proxy2->get_count(), expected_count);
-    //EXPECT_EQ(proxy2->error_flag, error_flag);
+    client_bus->issue_bus_command(proxy2);
+    while (!proxy2->finished()) {
+        Utils::sleep();
+    }
+    EXPECT_EQ(proxy2->get_count(), expected_count);
+    EXPECT_EQ(proxy2->error_flag, error_flag);
 }
 
 TEST(PatternMatchingQuery, queries) {
@@ -188,9 +188,9 @@ TEST(PatternMatchingQuery, queries) {
     int q6_expected_count = 4;
 
     // Regular queries
-    check_query("q1", q1, q1_expected_count, client_bus, "PatternMatchingQuery.queries", false, false, false, false);
+    //check_query("q1", q1, q1_expected_count, client_bus, "PatternMatchingQuery.queries", false, false, false, false);
     //check_query("q2", q2, q2_expected_count, client_bus, "PatternMatchingQuery.queries", false, false, false, false);
-    //check_query("q3", q3, q3_expected_count, client_bus, "PatternMatchingQuery.queries", false, false, false, false);
+    check_query("q3", q3, q3_expected_count, client_bus, "PatternMatchingQuery.queries", false, false, false, false);
     //check_query("q4", q4, q4_expected_count, client_bus, "PatternMatchingQuery.queries", false, false, false, false);
     //check_query("q5", q5, q5_expected_count, client_bus, "PatternMatchingQuery.queries", false, false, false, false);
     //check_query("q6", q6, q6_expected_count, client_bus, "PatternMatchingQuery.queries", false, true, false, false);
@@ -202,6 +202,6 @@ TEST(PatternMatchingQuery, queries) {
     // Remote exception
     //check_query("invalid", {"BLAH"}, 0, client_bus, "PatternMatchingQuery.queries", false, false, false, true);
 
-    //Utils::sleep(2000);
+    Utils::sleep(2000);
     // clang-format on
 }

@@ -2,6 +2,7 @@
 
 #include <string>
 #include <vector>
+#include <mutex>
 
 #include "LinkSchema.h"
 #include "Assignment.h"
@@ -30,6 +31,9 @@ class LinkTemplate : public QueryElement {
 
     class SourceElement: public Source {
        public:
+        bool buffers_set_up_flag;
+        mutex api_mutex;
+        SourceElement() { buffers_set_up_flag = false; }
         string get_attention_broker_address() {return this->attention_broker_address; }
         void add_handle(char* handle, float importance, Assignment& assignment) {
             QueryAnswer* answer = new QueryAnswer(strdup(handle), importance);
@@ -38,6 +42,15 @@ class LinkTemplate : public QueryElement {
         }
         void query_answers_finished() {
             this->output_buffer->query_answers_finished();
+        }
+        void setup_buffers() override {
+            lock_guard<mutex> semaphore(this->api_mutex);
+            Source::setup_buffers();
+            this->buffers_set_up_flag = true;
+        }
+        bool buffers_set_up() {
+            lock_guard<mutex> semaphore(this->api_mutex);
+            return this->buffers_set_up_flag;
         }
     };
 
@@ -53,6 +66,7 @@ class LinkTemplate : public QueryElement {
     void recursive_build(shared_ptr<QueryElement> element, LinkSchema& link_schema);
     void compute_importance(vector<pair<char*, float>>& handles);
     void processor_method(shared_ptr<StoppableThread> monitor);
+    void start_thread();
 
    public:
 
@@ -82,7 +96,6 @@ class LinkTemplate : public QueryElement {
         return cache;
     }
 
-    void start_thread();
     const string& get_type();
 
     // QueryElement virtual API
