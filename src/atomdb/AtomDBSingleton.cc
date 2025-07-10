@@ -44,3 +44,9 @@ shared_ptr<AtomDB> AtomDBSingleton::get_instance() {
         return AtomDBSingleton::atom_db;
     }
 }
+
+void AtomDBSingleton::reset() {
+    // Utils::warning("Resetting AtomDBSingleton...");
+    AtomDBSingleton::atom_db.reset();
+    AtomDBSingleton::initialized = false;
+}

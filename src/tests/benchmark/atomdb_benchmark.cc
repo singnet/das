@@ -16,33 +16,38 @@ using namespace std;
 using namespace atomdb;
 
 using Clock = chrono::high_resolution_clock;
+static atomic<uint64_t> global_id_counter{0};
 
 
 template <typename DB>
-void add_atom(atomdb_api_types::ATOMDB_TYPE type, const string& db_name, int iterations) {
-    AtomDBSingleton::reset();
-    AtomDBCacheSingleton::reset();
-    AtomDBSingleton::init(type);
-
-    auto base = AtomDBSingleton::get_instance();
-    auto db = dynamic_pointer_cast<DB>(base);
-
+void add_atom(shared_ptr<DB> db, const string& db_name, int iterations) {
     vector<double> latencies;
     latencies.reserve(iterations);
 
     auto t_add_atom_start = Clock::now();
     for (int i = 0; i < iterations; ++i) {
+        uint64_t unique_id = global_id_counter.fetch_add(1, memory_order_relaxed);
+
         auto t0 = Clock::now();
-        auto equivalence = new Node("Symbol", string("EQUIVALENCE") + to_string(i));
-        auto equivalence_handle = equivalence->handle();
-        db->add_node(equivalence);
-        auto node_a = new Node("Symbol", string("\"add node a") + to_string(i) + "\"");
-        auto node_a_handle = node_a->handle();
+
+        string node_equivalence_name = string("EQUIVALENCE") + "_i" + to_string(i) + "_u" + to_string(unique_id);
+        cout << "node_equivalence_name: " << node_equivalence_name << endl;
+        auto node_equivalence = new Node("Symbol", node_equivalence_name);
+        db->add_node(node_equivalence);
+        
+        string node_a_name = string("\"add_node_a") + "_i" + to_string(i) + "_u" + to_string(unique_id) + "\"";
+        cout << "node_a_name: " << node_a_name << endl;
+        auto node_a = new Node("Symbol", node_a_name);
         db->add_node(node_a);
-        auto node_b = new Node("Symbol", string("\"add node b") + to_string(i) + "\"");
-        auto node_b_handle = node_b->handle();
+        
+        string node_b_name = string("\"add_node_b") + "_i" + to_string(i) + "_u" + to_string(unique_id) + "\"";
+        cout << "node_b_name: " << node_b_name << endl;
+        auto node_b = new Node("Symbol", node_b_name);
         db->add_node(node_b);
-        auto link = new Link("Expression", {equivalence_handle, node_a_handle, node_b_handle});
+        
+        auto link = new Link("Expression", {node_equivalence->handle(), node_a->handle(), node_b->handle()});
+        cout << "link_handle: " << link->handle() << endl;
+        
         db->add_link(link);
         auto t1 = Clock::now();
 
@@ -54,10 +59,9 @@ void add_atom(atomdb_api_types::ATOMDB_TYPE type, const string& db_name, int ite
     double sum = accumulate(latencies.begin(), latencies.end(), 0.0);
     double mean = sum / latencies.size();
 
-    std::sort(latencies.begin(), latencies.end());
+    sort(latencies.begin(), latencies.end());
 
-    // Calculates the percentile (0.0 to 1.0) of the sorted vector of latencies
-    // using linear interpolation (Hyndman–Fan Type 7 method).
+    // Calculates the percentile (0.0 to 1.0) of the sorted vector of latencies using linear interpolation.
     // Errors out if p is outside the [0,1] range.
     auto percentile = [&](double percentile_fraction) {
         if (percentile_fraction < 0.0 || percentile_fraction > 1.0) {
@@ -66,7 +70,7 @@ void add_atom(atomdb_api_types::ATOMDB_TYPE type, const string& db_name, int ite
 
         size_t latencies_size = latencies.size();
         double exact_position = percentile_fraction * (latencies_size - 1);
-        size_t lower_index = static_cast<size_t>(std::floor(exact_position));
+        size_t lower_index = static_cast<size_t>(floor(exact_position));
         double interpolation_weight = exact_position - lower_index;
 
         // If a next element exists, interpolate between the two surrounding values
@@ -149,11 +153,21 @@ int main(int argc, char** argv) {
 
     setup(cache_enable);
 
+    // AtomDBSingleton::reset();
+    // AtomDBCacheSingleton::reset();
+    AtomDBSingleton::init(atomdb_api_types::ATOMDB_TYPE::REDIS_MONGODB);
+    auto base = AtomDBSingleton::get_instance();
+    auto db = dynamic_pointer_cast<RedisMongoDB>(base);
+
+    std::mutex mtx;
+    
+
     atomic<size_t> counter{0};
     for (const auto& action : actions) {
-        auto worker = [&](int tid) {
+        auto worker = [&](int tid, shared_ptr<RedisMongoDB> db_ptr) {
             if (action == "AddAtom") {
-                add_atom<RedisMongoDB>(atomdb_api_types::ATOMDB_TYPE::REDIS_MONGODB, "RedisMongoDB", iterations);
+                // std::lock_guard<std::mutex> lock(mtx);
+                add_atom<RedisMongoDB>(db_ptr, "RedisMongoDB", iterations);
             } else if (action == "AddAtoms") {
                 add_atoms<RedisMongoDB>(atomdb_api_types::ATOMDB_TYPE::REDIS_MONGODB, "RedisMongoDB", iterations);
             } else if (action == "GetAtom") {
@@ -177,12 +191,14 @@ int main(int argc, char** argv) {
 
         auto t_start = Clock::now();
         for (int t = 0; t < concurrency; ++t) {
-            threads.emplace_back(worker, t);
+            threads.emplace_back(worker, t, db);
         }
         for (auto& th : threads) th.join();
         auto t_end = Clock::now();
 
         ++counter;
     }
+
+    
     return 0;
 }

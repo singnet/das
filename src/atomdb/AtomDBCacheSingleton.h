@@ -29,6 +29,8 @@ class AtomDBCacheSingleton {
      */
     static shared_ptr<AtomDBCache> get_instance();
 
+    static void reset();
+
    private:
     AtomDBCacheSingleton() {}
 

@@ -30,6 +30,7 @@ string RedisMongoDB::MONGODB_NODES_COLLECTION_NAME;
 string RedisMongoDB::MONGODB_LINKS_COLLECTION_NAME;
 string RedisMongoDB::MONGODB_FIELD_NAME[MONGODB_FIELD::size];
 uint RedisMongoDB::MONGODB_CHUNK_SIZE;
+once_flag RedisMongoDB::MONGODB_INIT_FLAG;
 
 RedisMongoDB::RedisMongoDB() {
     redis_setup();
@@ -114,7 +115,7 @@ void RedisMongoDB::mongodb_setup() {
     string url = "mongodb://" + user + ":" + password + "@" + address;
 
     try {
-        mongocxx::instance instance;
+        // mongocxx::instance instance;
         auto uri = mongocxx::uri{url};
         this->mongodb_pool = new mongocxx::pool(uri);
         // Health check using ping command
@@ -450,6 +451,10 @@ string RedisMongoDB::add_link(const atoms::Link* link) {
 
     auto existing_targets_count =
         get_atom_documents(link->targets, {MONGODB_FIELD_NAME[MONGODB_FIELD::ID]}).size();
+
+    cout << "existing_targets_count: " << to_string(existing_targets_count) << endl;
+    cout << "link->targets.size(): " << to_string(link->targets.size()) << endl;
+        
     if (existing_targets_count != link->targets.size()) {
         Utils::error("Failed to insert link: " + link->handle() + " has " +
                      to_string(link->targets.size() - existing_targets_count) + " missing targets");
