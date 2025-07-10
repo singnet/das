@@ -143,7 +143,6 @@ void InferenceAgent::process_inference_request(shared_ptr<InferenceProxy> proxy)
     }
     LOG_DEBUG("Processing inference request: " << Utils::join(proxy->get_args(), ' '));
     string request_id = proxy->peer_id() + to_string(proxy->get_serial());
-    LOG_DEBUG("AAAAAAA");
     inference_proxy_map[request_id] = proxy;
     process_inference_request(proxy->get_args(), request_id);
     LOG_DEBUG("Inference request processed for request ID: " << request_id);

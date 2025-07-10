@@ -129,7 +129,7 @@ class AtomDBMock : public AtomDB {
 class InferenceAgentTest : public ::testing::Test {
    protected:
     static void SetUpTestSuite() {
-        GTEST_SKIP() << "Skipping";
+        // GTEST_SKIP() << "Skipping";
         ServiceBusSingleton::provide(
             move(make_shared<MockServiceBus>("localhost:1111", "localhost:1121")));
         AtomDBSingleton::provide(move(make_shared<AtomDBMock>()));
@@ -215,7 +215,7 @@ TEST_F(InferenceAgentTest, TestProofOfEquivalence) {
     delete inference_agent;
 }
 
-TEST(InferenceAgentTest, TestInferenceRequests) {
+TEST_F(InferenceAgentTest, TestInferenceRequests) {
     ProofOfImplicationOrEquivalence proof_of_implication_or_equivalence(
         "handle1", "handle2", 1, "context");
     auto requests = proof_of_implication_or_equivalence.get_requests();
