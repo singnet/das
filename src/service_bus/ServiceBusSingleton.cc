@@ -46,12 +46,6 @@ shared_ptr<ServiceBus> ServiceBusSingleton::get_instance() {
 
 void ServiceBusSingleton::provide(shared_ptr<ServiceBus> service_bus) {
     lock_guard<mutex> semaphore(API_MUTEX);
-    if (INITIALIZED) {
-        Utils::error(
-            "ServiceBusSingleton already initialized. "
-            "ServiceBusSingleton::provide() should be called only once before initialization.");
-    } else {
-        SERVICE_BUS = move(service_bus);
-        INITIALIZED = true;
-    }
+    SERVICE_BUS = service_bus;
+    INITIALIZED = true;
 }

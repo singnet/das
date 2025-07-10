@@ -119,7 +119,6 @@ class AtomDBMock : public AtomDB {
     AtomDBMock() {
         ON_CALL(*this, get_atom_document(testing::_))
             .WillByDefault(::testing::Return(make_shared<MockAtomDocument>()));
-        // testing::Mock::AllowLeak(this);
     }
 
    private:
@@ -129,11 +128,20 @@ class AtomDBMock : public AtomDB {
 class InferenceAgentTest : public ::testing::Test {
    protected:
     static void SetUpTestSuite() {
-        // GTEST_SKIP() << "Skipping";
+        AtomDBSingleton::provide(nullptr);
+        FitnessFunctionRegistry::initialize_statics();
+
+    }
+
+    void SetUp() override {
         ServiceBusSingleton::provide(
             move(make_shared<MockServiceBus>("localhost:1111", "localhost:1121")));
         AtomDBSingleton::provide(move(make_shared<AtomDBMock>()));
-        FitnessFunctionRegistry::initialize_statics();
+    }
+
+    void TearDown() override {
+        ServiceBusSingleton::provide(nullptr);
+        AtomDBSingleton::provide(nullptr);
     }
 };
 
@@ -146,7 +154,6 @@ TEST_F(InferenceAgentTest, TestProofOfImplicationOrEquivalence) {
     vector<string> calls_list = {"link_creation", "link_creation", "link_creation", "query_evolution"};
     int count = 0;
     auto mock_service_bus = dynamic_cast<MockServiceBus*>(ServiceBusSingleton::get_instance().get());
-    // testing::Mock::AllowLeak(mock_service_bus);
     EXPECT_CALL(*mock_service_bus, issue_bus_command(testing::_))
         .Times(4)
         .WillRepeatedly(
@@ -172,7 +179,6 @@ TEST_F(InferenceAgentTest, TestProofOfImplication) {
     int count = 0;
     int expected_calls = calls_list.size();
     auto mock_service_bus = dynamic_cast<MockServiceBus*>(ServiceBusSingleton::get_instance().get());
-    // testing::Mock::AllowLeak(mock_service_bus);
     EXPECT_CALL(*mock_service_bus, issue_bus_command(testing::_))
         .Times(expected_calls)
         .WillRepeatedly(
@@ -198,7 +204,6 @@ TEST_F(InferenceAgentTest, TestProofOfEquivalence) {
     int count = 0;
     int expected_calls = calls_list.size();
     auto mock_service_bus = dynamic_cast<MockServiceBus*>(ServiceBusSingleton::get_instance().get());
-    // testing::Mock::AllowLeak(mock_service_bus);
     EXPECT_CALL(*mock_service_bus, issue_bus_command(testing::_))
         .Times(expected_calls)
         .WillRepeatedly(
