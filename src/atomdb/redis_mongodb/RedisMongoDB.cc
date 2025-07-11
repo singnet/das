@@ -190,7 +190,7 @@ shared_ptr<atomdb_api_types::HandleSet> RedisMongoDB::query_for_pattern(
         if (reply->type != REDIS_REPLY_SET && reply->type != REDIS_REPLY_ARRAY) {
             auto error_type = std::to_string(reply->type);
             freeReplyObject(reply);
-            Utils::error("Invalid Redis response0: " + error_type);
+            Utils::error("Invalid Redis response: " + error_type);
         }
 
         redis_cursor += REDIS_CHUNK_SIZE;
@@ -300,7 +300,7 @@ uint RedisMongoDB::get_next_score(const string& key) {
         Utils::error("Redis error");
     }
     if (reply->type != REDIS_REPLY_STRING) {
-        Utils::error("Invalid Redis response1: " + std::to_string(reply->type));
+        Utils::error("Invalid Redis response: " + std::to_string(reply->type));
     }
     return std::stoi(reply->str);
 }
@@ -313,7 +313,7 @@ void RedisMongoDB::set_next_score(const string& key, uint score) {
         Utils::error("Redis error");
     }
     if (reply->type != REDIS_REPLY_STATUS) {
-        Utils::error("Invalid Redis response2: " + std::to_string(reply->type));
+        Utils::error("Invalid Redis response: " + std::to_string(reply->type));
     }
 }
 
@@ -326,7 +326,7 @@ void RedisMongoDB::add_incoming(const string& handle, const string& incoming_han
         Utils::error("Redis error");
     }
     if (reply->type != REDIS_REPLY_INTEGER) {
-        Utils::error("Invalid Redis response3: " + std::to_string(reply->type));
+        Utils::error("Invalid Redis response: " + std::to_string(reply->type));
     }
     this->incoming_set_next_score.fetch_add(1);
 
@@ -343,7 +343,7 @@ void RedisMongoDB::delete_incoming(const string& handle) {
         Utils::error("Redis error");
     }
     if (reply->type != REDIS_REPLY_INTEGER) {
-        Utils::error("Invalid Redis response4: " + std::to_string(reply->type));
+        Utils::error("Invalid Redis response: " + std::to_string(reply->type));
     }
 }
 
@@ -357,7 +357,7 @@ void RedisMongoDB::update_incoming(const string& key, const string& value) {
         Utils::error("Redis error");
     }
     if (reply->type != REDIS_REPLY_INTEGER) {
-        Utils::error("Invalid Redis response5: " + std::to_string(reply->type));
+        Utils::error("Invalid Redis response: " + std::to_string(reply->type));
     }
 }
 
@@ -456,7 +456,14 @@ vector<shared_ptr<atomdb_api_types::AtomDocument>> RedisMongoDB::get_atom_docume
     if (documents.size() == handles.size()) {
         return documents;
     }
-    auto link_documents = get_link_documents(handles, fields);
+    vector<string> missing_handles;
+    for (const auto& document : documents) {
+        auto handle = document->get(MONGODB_FIELD_NAME[MONGODB_FIELD::ID]);
+        if (find(handles.begin(), handles.end(), handle) == handles.end())
+            missing_handles.push_back(handle);
+    }
+    if (missing_handles.empty()) return documents;
+    auto link_documents = get_link_documents(missing_handles, fields);
     documents.insert(documents.end(), link_documents.begin(), link_documents.end());
     return documents;
 }
