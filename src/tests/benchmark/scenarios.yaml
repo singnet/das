@@ -6,9 +6,9 @@ scenarios:
     cache: disabled
     actions:
       - AddAtom
-      - AddAtoms
-      - DeleteAtom
-      - DeleteAtoms
+      # - AddAtoms
+      # - DeleteAtom
+      # - DeleteAtoms
 
   - name: S02
     db: small

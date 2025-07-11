@@ -260,8 +260,10 @@ main() {
     load_scenario_definition
     print_scenario
     generate_metta_file "$SENTENCES" "$WORD_COUNT" "$WORD_LENGTH" "$ALPHABET_RANGE"
-    init_environment
-    ./src/scripts/bazel.sh run //tests/benchmark:atomdb_benchmark -- "${ACTIONS[*]}" "$CACHE" "$CONCURRENCY" "$ITERATIONS"
+    for action in "${ACTIONS[@]}"; do
+        init_environment
+        ./src/scripts/bazel.sh run //tests/benchmark:atomdb_benchmark -- "$action" "$CACHE" "$CONCURRENCY" "$ITERATIONS"
+    done
 }
 
 main "$@"

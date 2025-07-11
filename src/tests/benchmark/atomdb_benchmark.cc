@@ -119,7 +119,7 @@ void delete_atoms(int tid, shared_ptr<DB> db, const string& db_name, int iterati
     // WIP
 }
 
-void setup(bool cache_enable) {
+void setup_environments(bool cache_enable) {
     setenv("DAS_REDIS_HOSTNAME", "localhost", 1);
     setenv("DAS_REDIS_PORT", "29000", 1);
     setenv("DAS_USE_REDIS_CLUSTER", "false", 1);
@@ -136,6 +136,12 @@ void setup(bool cache_enable) {
     }
 }
 
+void init() {
+    AtomDBCacheSingleton::init();
+    RedisMongoDB::initialize_statics();
+}
+
+
 int main(int argc, char** argv) {
     if (argc < 2) {
         cerr << "Usage: " << argv[0]
@@ -143,54 +149,47 @@ int main(int argc, char** argv) {
         exit(1);
     }
 
-    vector<string> actions = Utils::split(argv[1], ' ');
+    string action = argv[1];
     bool cache_enable = ((string(argv[2]) == "enabled") ? true : false);
     int concurrency = stoi(argv[3]);
     int iterations = stoi(argv[4]);
 
-    setup(cache_enable);
+    setup_environments(cache_enable);
+    init();
 
-    // AtomDBSingleton::reset();
-    // AtomDBCacheSingleton::reset();
-    AtomDBSingleton::init(atomdb_api_types::ATOMDB_TYPE::REDIS_MONGODB);
-    auto base = AtomDBSingleton::get_instance();
-    auto db = dynamic_pointer_cast<RedisMongoDB>(base);
+    auto atomdb_redis_mongo = make_shared<RedisMongoDB>();
+    auto atomdb_mork = make_shared<MorkDB>();
 
-    // atomic<size_t> counter{0};
-    for (const auto& action : actions) {
-        auto worker = [&](int tid, shared_ptr<AtomDB> db_ptr) {
-            if (action == "AddAtom") {
-                add_atom<RedisMongoDB>(tid, db_ptr, "RedisMongoDB", iterations);
-            } else if (action == "AddAtoms") {
-                add_atoms<RedisMongoDB>(tid, db_ptr, "RedisMongoDB", iterations);
-            } else if (action == "GetAtom") {
-                get_atom<RedisMongoDB>(tid, db_ptr, "RedisMongoDB", iterations);
-                get_atom<MorkDB>(atid, db_ptr, "MorkDB", iterations);
-            } else if (action == "GetAtoms") {
-                get_atoms<RedisMongoDB>(tid, db_ptr, "RedisMongoDB", iterations);
-                get_atoms<MorkDB>(tid, db_ptr, "MorkDB", iterations);
-            } else if (action == "DeleteAtom") {
-                delete_atom<RedisMongoDB>(tid, db_ptr, "RedisMongoDB", iterations);
-            } else if (action == "DeleteAtoms") {
-                delete_atoms<RedisMongoDB>(tid, db_ptr, "RedisMongoDB", iterations);
-            } else {
-                Utils::error(
-                    "Invalid action. Choose either 'AddAtom' or 'AddAtoms' or 'GetAtom' or 'GetAtoms' "
-                    "or 'DeleteAtom' or 'DeleteAtoms'");
-            }
-        };
-
-        vector<thread> threads;
-
-        auto t_start = Clock::now();
-        for (int t = 0; t < concurrency; t++) {
-            threads.emplace_back(worker, t, db);
+    auto worker = [&](int tid, shared_ptr<RedisMongoDB> atomdb_redis_mongo, shared_ptr<MorkDB> atomdb_mork) {
+        if (action == "AddAtom") {
+            add_atom<RedisMongoDB>(tid, atomdb_redis_mongo, "RedisMongoDB", iterations);
+        } else if (action == "AddAtoms") {
+            add_atoms<RedisMongoDB>(tid, atomdb_redis_mongo, "RedisMongoDB", iterations);
+        } else if (action == "GetAtom") {
+            get_atom<RedisMongoDB>(tid, atomdb_redis_mongo, "RedisMongoDB", iterations);
+            get_atom<MorkDB>(tid, atomdb_mork, "MorkDB", iterations);
+        } else if (action == "GetAtoms") {
+            get_atoms<RedisMongoDB>(tid, atomdb_redis_mongo, "RedisMongoDB", iterations);
+            get_atoms<MorkDB>(tid, atomdb_mork, "MorkDB", iterations);
+        } else if (action == "DeleteAtom") {
+            delete_atom<RedisMongoDB>(tid, atomdb_redis_mongo, "RedisMongoDB", iterations);
+        } else if (action == "DeleteAtoms") {
+            delete_atoms<RedisMongoDB>(tid, atomdb_redis_mongo, "RedisMongoDB", iterations);
+        } else {
+            Utils::error(
+                "Invalid action. Choose either 'AddAtom' or 'AddAtoms' or 'GetAtom' or 'GetAtoms' "
+                "or 'DeleteAtom' or 'DeleteAtoms'");
         }
-        for (auto& th : threads) th.join();
-        auto t_end = Clock::now();
+    };
 
-        // ++counter;
+    vector<thread> threads;
+
+    auto t_start = Clock::now();
+    for (int t = 0; t < concurrency; t++) {
+        threads.emplace_back(worker, t, atomdb_redis_mongo, atomdb_mork);
     }
+    for (auto& th : threads) th.join();
+    auto t_end = Clock::now();
 
     return 0;
 }
