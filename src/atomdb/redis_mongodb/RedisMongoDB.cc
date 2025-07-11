@@ -285,6 +285,40 @@ shared_ptr<atomdb_api_types::HandleSet> RedisMongoDB::query_for_incoming(const s
     return handle_set;
 }
 
+void RedisMongoDB::add_pattern(const string& pattern_handle, const string& handle) {
+    auto ctx = this->redis_pool->acquire();
+    string command = "ZADD " + REDIS_PATTERNS_PREFIX + ":" + pattern_handle + " " +
+                     to_string(this->patterns_next_score.load()) + " " + handle;
+    redisReply* reply = ctx->execute(command.c_str());
+    if (reply == NULL) Utils::error("Redis error at add_pattern");
+
+    if (reply->type != REDIS_REPLY_INTEGER) {
+        Utils::error("Invalid Redis response at add_pattern: " + std::to_string(reply->type));
+    }
+    this->patterns_next_score.fetch_add(1);
+
+    if (this->atomdb_cache != nullptr) this->atomdb_cache->erase_pattern_matching_cache(pattern_handle);
+}
+
+void RedisMongoDB::delete_pattern(const string& handle) {
+    auto ctx = this->redis_pool->acquire();
+
+    string command = "DEL " + REDIS_PATTERNS_PREFIX + ":" + handle;
+    redisReply* reply = ctx->execute(command.c_str());
+
+    if (reply == NULL) Utils::error("Redis error at delete_pattern");
+    if (reply->type != REDIS_REPLY_INTEGER) {
+        Utils::error("Invalid Redis response at delete_pattern: " + std::to_string(reply->type));
+    }
+}
+
+void RedisMongoDB::update_pattern(const string& key, const string& value) {
+    auto ctx = this->redis_pool->acquire();
+    string command = "ZREM " + REDIS_PATTERNS_PREFIX + ":" + key + " " + value;
+    redisReply* reply = ctx->execute(command.c_str());
+    if (reply == NULL) Utils::error("Redis error at update_pattern");
+}
+
 uint RedisMongoDB::get_next_score(const string& key) {
     auto ctx = this->redis_pool->acquire();
     string command = "GET " + key;
@@ -319,7 +353,7 @@ void RedisMongoDB::add_incoming(const string& handle, const string& incoming_han
     if (reply == NULL) Utils::error("Redis error at add_incoming");
 
     if (reply->type != REDIS_REPLY_INTEGER) {
-        Utils::error("Invalid Redis response at delete_incoming: " + std::to_string(reply->type));
+        Utils::error("Invalid Redis response at add_incoming: " + std::to_string(reply->type));
     }
     this->incoming_set_next_score.fetch_add(1);
 
@@ -334,7 +368,7 @@ void RedisMongoDB::delete_incoming(const string& handle) {
 
     if (reply == NULL) Utils::error("Redis error at delete_incoming");
     if (reply->type != REDIS_REPLY_INTEGER) {
-        Utils::error("Invalid Redis response at update_incoming: " + std::to_string(reply->type));
+        Utils::error("Invalid Redis response at delete_incoming: " + std::to_string(reply->type));
     }
 }
 
@@ -346,7 +380,7 @@ void RedisMongoDB::update_incoming(const string& key, const string& value) {
 
     if (reply == NULL) Utils::error("Redis error at update_incoming");
     if (reply->type != REDIS_REPLY_INTEGER) {
-        Utils::error("Invalid Redis response at get_document: " + std::to_string(reply->type));
+        Utils::error("Invalid Redis response at update_incoming: " + std::to_string(reply->type));
     }
 }
 
@@ -567,6 +601,20 @@ string RedisMongoDB::add_link(const atoms::Link* link) {
         return "";
     }
 
+    // TODO(arturgontijo): Fetch LTs from MongoDB.
+    if (link->arity() == 3) {
+        vector<string> lt_tokens = {
+            "LINK_TEMPLATE", "Expression", "3",
+            "VARIABLE", "v1",
+            "VARIABLE", "v2",
+            "VARIABLE", "v3",
+        };
+        LinkSchema link_schema(lt_tokens);
+        Assignment assignment;
+        bool match = link_schema.match(*((Link*) link), assignment, *this);
+        if (match) add_pattern(link_schema.handle(), link->handle());
+    }
+
     for (const auto& target : existing_targets) {
         add_incoming(target->get(MONGODB_FIELD_NAME[MONGODB_FIELD::ID]), link->handle());
     }
@@ -665,6 +713,7 @@ bool RedisMongoDB::delete_link(const string& handle, bool delete_targets) {
     auto link_document = get_link_document(handle);
     if (link_document == nullptr) return false;
 
+    vector<string> targets;
     auto targets_size = link_document->get_size(MONGODB_FIELD_NAME[MONGODB_FIELD::TARGETS]);
     for (uint i = 0; i < targets_size; i++) {
         auto target_handle = link_document->get(MONGODB_FIELD_NAME[MONGODB_FIELD::TARGETS], i);
@@ -675,6 +724,22 @@ bool RedisMongoDB::delete_link(const string& handle, bool delete_targets) {
         } else if (delete_targets) {
             delete_atom(target_handle, delete_targets);
         }
+        targets.push_back(target_handle);
+    }
+
+    // TODO(arturgontijo): Fetch LTs from MongoDB.
+    if (targets.size() == 3) {
+        auto link = new Link(link_document->get(MONGODB_FIELD_NAME[MONGODB_FIELD::NAMED_TYPE]), targets);
+        vector<string> lt_tokens = {
+            "LINK_TEMPLATE", "Expression", "3",
+            "VARIABLE", "v1",
+            "VARIABLE", "v2",
+            "VARIABLE", "v3",
+        };
+        LinkSchema link_schema(lt_tokens);
+        Assignment assignment;
+        bool match = link_schema.match(*((Link*) link), assignment, *this);
+        if (match) update_pattern(link_schema.handle(), handle);
     }
 
     return delete_document(handle, MONGODB_LINKS_COLLECTION_NAME, delete_targets);

@@ -23,7 +23,7 @@ using namespace std;
 
 namespace atomdb {
 
-enum MONGODB_FIELD { ID = 0, NAME, TARGETS, size };
+enum MONGODB_FIELD { ID = 0, NAME, TARGETS, NAMED_TYPE, size };
 
 class RedisMongoDB : public AtomDB {
    public:
@@ -51,6 +51,7 @@ class RedisMongoDB : public AtomDB {
         MONGODB_FIELD_NAME[MONGODB_FIELD::ID] = "_id";
         MONGODB_FIELD_NAME[MONGODB_FIELD::TARGETS] = "targets";
         MONGODB_FIELD_NAME[MONGODB_FIELD::NAME] = "name";
+        MONGODB_FIELD_NAME[MONGODB_FIELD::NAMED_TYPE] = "named_type";
         MONGODB_CHUNK_SIZE = 1000;
     }
 
@@ -126,6 +127,10 @@ class RedisMongoDB : public AtomDB {
 
     uint get_next_score(const string& key);
     void set_next_score(const string& key, uint score);
+
+    void add_pattern(const string& handle, const string& pattern_handle);
+    void delete_pattern(const string& handle);
+    void update_pattern(const string& key, const string& value);
 
     void add_incoming(const string& handle, const string& incoming_handle);
     void delete_incoming(const string& handle);

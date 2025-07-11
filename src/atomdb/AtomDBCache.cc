@@ -39,6 +39,11 @@ void AtomDBCache::add_pattern_matching(const string& pattern_handle,
     pattern_matching_cache[pattern_handle] = results;
 }
 
+void AtomDBCache::erase_pattern_matching_cache(const string& pattern_handle) {
+    lock_guard<mutex> lock(pattern_matching_cache_mutex);
+    pattern_matching_cache.erase(pattern_handle);
+}
+
 AtomDBCache::QueryForTargetsResult AtomDBCache::query_for_targets(const string& link_handle) {
     lock_guard<mutex> lock(handle_list_cache_mutex);
     if (handle_list_cache.find(link_handle) != handle_list_cache.end()) {

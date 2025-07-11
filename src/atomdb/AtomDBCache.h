@@ -102,6 +102,13 @@ class AtomDBCache {
                               shared_ptr<atomdb_api_types::HandleSet> results);
 
     /**
+     * @brief Invalidate the pattern matching cache for a handle.
+     *
+     * @param pattern_handle The handle of the pattern.
+     */
+    void erase_pattern_matching_cache(const string& pattern_handle);
+
+    /**
      * @brief Query for targets.
      *
      * @param link_handle The handle of the link.
