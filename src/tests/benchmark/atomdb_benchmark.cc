@@ -1,6 +1,7 @@
 #include <atomic>
 #include <chrono>
 #include <iostream>
+#include <random>
 #include <string>
 #include <thread>
 #include <vector>
@@ -16,39 +17,55 @@ using namespace std;
 using namespace atomdb;
 
 using Clock = chrono::high_resolution_clock;
-static atomic<uint64_t> global_id_counter{0};
+
+// Calculates the percentile (0.0 to 1.0) of the sorted vector of latencies using linear
+// interpolation. Errors out if p is outside the [0,1] range.
+double compute_percentile(const vector<double>& vec, double percentile_fraction) {
+    if (vec.empty()) {
+        Utils::error("vector is empty");
+    }
+    if (percentile_fraction < 0.0 || percentile_fraction > 1.0) {
+        Utils::error("percentile fraction out of range");
+    }
+
+    size_t vec_size = vec.size();
+    double exact_position = percentile_fraction * (vec_size - 1);
+    size_t lower_index = static_cast<size_t>(floor(exact_position));
+    double interpolation_weight = exact_position - lower_index;
+
+    // If a next element exists, interpolate between the two surrounding values
+    if (lower_index + 1 < vec_size)
+        return vec[lower_index] +
+                interpolation_weight * (vec[lower_index + 1] - vec[lower_index]);
+    else
+        return vec[lower_index];  // Edge case
+};
 
 
 template <typename DB>
-void add_atom(shared_ptr<DB> db, const string& db_name, int iterations) {
+void add_atom(int tid, shared_ptr<DB> db, const string& db_name, int iterations) {
     vector<double> latencies;
     latencies.reserve(iterations);
 
     auto t_add_atom_start = Clock::now();
     for (int i = 0; i < iterations; ++i) {
-        uint64_t unique_id = global_id_counter.fetch_add(1, memory_order_relaxed);
-
         auto t0 = Clock::now();
 
-        string node_equivalence_name = string("EQUIVALENCE") + "_i" + to_string(i) + "_u" + to_string(unique_id);
-        cout << "node_equivalence_name: " << node_equivalence_name << endl;
-        auto node_equivalence = new Node("Symbol", node_equivalence_name);
-        db->add_node(node_equivalence);
-        
-        string node_a_name = string("\"add_node_a") + "_i" + to_string(i) + "_u" + to_string(unique_id) + "\"";
-        cout << "node_a_name: " << node_a_name << endl;
-        auto node_a = new Node("Symbol", node_a_name);
-        db->add_node(node_a);
-        
-        string node_b_name = string("\"add_node_b") + "_i" + to_string(i) + "_u" + to_string(unique_id) + "\"";
-        cout << "node_b_name: " << node_b_name << endl;
-        auto node_b = new Node("Symbol", node_b_name);
-        db->add_node(node_b);
-        
-        auto link = new Link("Expression", {node_equivalence->handle(), node_a->handle(), node_b->handle()});
-        cout << "link_handle: " << link->handle() << endl;
-        
-        db->add_link(link);
+        auto node_equivalence =
+            new Node("Symbol", string("EQUIVALENCE") + "_t" + to_string(tid) + "_i" + to_string(i));
+        auto node_equivalence_handle = db->add_node(node_equivalence);
+
+        auto node_a = new Node(
+            "Symbol", string("\"add_node_a") + "_t" + to_string(tid) + "_i" + to_string(i) + "\"");
+        auto node_a_handle = db->add_node(node_a);
+
+        auto node_b = new Node(
+            "Symbol", string("\"add_node_b") + "_t" + to_string(tid) + "_i" + to_string(i) + "\"");
+        auto node_b_handle = db->add_node(node_b);
+
+        // auto link = new Link("Expression", {node_equivalence_handle, node_a_handle, node_b_handle});
+        // db->add_link(link);
+
         auto t1 = Clock::now();
 
         double ms = chrono::duration<double, milli>(t1 - t0).count();
@@ -61,29 +78,9 @@ void add_atom(shared_ptr<DB> db, const string& db_name, int iterations) {
 
     sort(latencies.begin(), latencies.end());
 
-    // Calculates the percentile (0.0 to 1.0) of the sorted vector of latencies using linear interpolation.
-    // Errors out if p is outside the [0,1] range.
-    auto percentile = [&](double percentile_fraction) {
-        if (percentile_fraction < 0.0 || percentile_fraction > 1.0) {
-            Utils::error("p out of range");
-        }
-
-        size_t latencies_size = latencies.size();
-        double exact_position = percentile_fraction * (latencies_size - 1);
-        size_t lower_index = static_cast<size_t>(floor(exact_position));
-        double interpolation_weight = exact_position - lower_index;
-
-        // If a next element exists, interpolate between the two surrounding values
-        if (lower_index + 1 < latencies_size)
-            return latencies[lower_index] +
-                   interpolation_weight * (latencies[lower_index + 1] - latencies[lower_index]);
-        else
-            return latencies[lower_index];  // Edge case
-    };
-
-    double p50 = percentile(0.50);
-    double p90 = percentile(0.90);
-    double p99 = percentile(0.99);
+    double p50 = compute_percentile(latencies, 0.50);
+    double p90 = compute_percentile(latencies, 0.90);
+    double p99 = compute_percentile(latencies, 0.99);
 
     double min_ms = latencies.front();
     double max_ms = latencies.back();
@@ -98,27 +95,27 @@ void add_atom(shared_ptr<DB> db, const string& db_name, int iterations) {
 }
 
 template <typename DB>
-void add_atoms(atomdb_api_types::ATOMDB_TYPE type, const string& db_name, int iterations) {
+void add_atoms(int tid, shared_ptr<DB> db, const string& db_name, int iterations) {
     // WIP
 }
 
 template <typename DB>
-void get_atom(atomdb_api_types::ATOMDB_TYPE type, const string& db_name, int iterations) {
+void get_atom(int tid, shared_ptr<DB> db, const string& db_name, int iterations) {
     // WIP
 }
 
 template <typename DB>
-void get_atoms(atomdb_api_types::ATOMDB_TYPE type, const string& db_name, int iterations) {
+void get_atoms(int tid, shared_ptr<DB> db, const string& db_name, int iterations) {
     // WIP
 }
 
 template <typename DB>
-void delete_atom(atomdb_api_types::ATOMDB_TYPE type, const string& db_name, int iterations) {
+void delete_atom(int tid, shared_ptr<DB> db, const string& db_name, int iterations) {
     // WIP
 }
 
 template <typename DB>
-void delete_atoms(atomdb_api_types::ATOMDB_TYPE type, const string& db_name, int iterations) {
+void delete_atoms(int tid, shared_ptr<DB> db, const string& db_name, int iterations) {
     // WIP
 }
 
@@ -159,27 +156,23 @@ int main(int argc, char** argv) {
     auto base = AtomDBSingleton::get_instance();
     auto db = dynamic_pointer_cast<RedisMongoDB>(base);
 
-    std::mutex mtx;
-    
-
-    atomic<size_t> counter{0};
+    // atomic<size_t> counter{0};
     for (const auto& action : actions) {
-        auto worker = [&](int tid, shared_ptr<RedisMongoDB> db_ptr) {
+        auto worker = [&](int tid, shared_ptr<AtomDB> db_ptr) {
             if (action == "AddAtom") {
-                // std::lock_guard<std::mutex> lock(mtx);
-                add_atom<RedisMongoDB>(db_ptr, "RedisMongoDB", iterations);
+                add_atom<RedisMongoDB>(tid, db_ptr, "RedisMongoDB", iterations);
             } else if (action == "AddAtoms") {
-                add_atoms<RedisMongoDB>(atomdb_api_types::ATOMDB_TYPE::REDIS_MONGODB, "RedisMongoDB", iterations);
+                add_atoms<RedisMongoDB>(tid, db_ptr, "RedisMongoDB", iterations);
             } else if (action == "GetAtom") {
-                get_atom<RedisMongoDB>(atomdb_api_types::ATOMDB_TYPE::REDIS_MONGODB, "RedisMongoDB", iterations);
-                get_atom<MorkDB>(atomdb_api_types::ATOMDB_TYPE::MORKDB, "MorkDB", iterations);
+                get_atom<RedisMongoDB>(tid, db_ptr, "RedisMongoDB", iterations);
+                get_atom<MorkDB>(atid, db_ptr, "MorkDB", iterations);
             } else if (action == "GetAtoms") {
-                get_atoms<RedisMongoDB>(atomdb_api_types::ATOMDB_TYPE::REDIS_MONGODB, "RedisMongoDB", iterations);
-                get_atoms<MorkDB>(atomdb_api_types::ATOMDB_TYPE::MORKDB, "MorkDB", iterations);
+                get_atoms<RedisMongoDB>(tid, db_ptr, "RedisMongoDB", iterations);
+                get_atoms<MorkDB>(tid, db_ptr, "MorkDB", iterations);
             } else if (action == "DeleteAtom") {
-                delete_atom<RedisMongoDB>(atomdb_api_types::ATOMDB_TYPE::REDIS_MONGODB, "RedisMongoDB", iterations);
+                delete_atom<RedisMongoDB>(tid, db_ptr, "RedisMongoDB", iterations);
             } else if (action == "DeleteAtoms") {
-                delete_atoms<RedisMongoDB>(atomdb_api_types::ATOMDB_TYPE::REDIS_MONGODB, "RedisMongoDB", iterations);
+                delete_atoms<RedisMongoDB>(tid, db_ptr, "RedisMongoDB", iterations);
             } else {
                 Utils::error(
                     "Invalid action. Choose either 'AddAtom' or 'AddAtoms' or 'GetAtom' or 'GetAtoms' "
@@ -190,15 +183,14 @@ int main(int argc, char** argv) {
         vector<thread> threads;
 
         auto t_start = Clock::now();
-        for (int t = 0; t < concurrency; ++t) {
+        for (int t = 0; t < concurrency; t++) {
             threads.emplace_back(worker, t, db);
         }
         for (auto& th : threads) th.join();
         auto t_end = Clock::now();
 
-        ++counter;
+        // ++counter;
     }
 
-    
     return 0;
 }
