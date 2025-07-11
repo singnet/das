@@ -1,4 +1,15 @@
 scenarios:
+  - name: S00
+    db: empty
+    rel: none
+    concurrency: 1
+    cache: disabled
+    actions:
+      - AddAtom
+      # - AddAtoms
+      # - DeleteAtom
+      # - DeleteAtoms
+  
   - name: S01
     db: small
     rel: none

@@ -2,11 +2,13 @@
 
 set -eou pipefail
 
+ATOMDB_TYPES=("redis_mongo" "mork")
+
 DB=""
 REL="none"
 CONCURRENCY="1"
 CACHE="disabled"
-ITERATIONS=10
+ITERATIONS=100
 
 SENTENCES=""
 WORD_COUNT=""
@@ -64,22 +66,22 @@ map_metta_params() {
         WORD_LENGTH=2
         ;;
     small)
-        SENTENCES=10000
+        SENTENCES=100000
         WORD_COUNT=5
         WORD_LENGTH=5
         ;;
     medium)
-        SENTENCES=100000
+        SENTENCES=1000000
         WORD_COUNT=10
         WORD_LENGTH=10
         ;;
     large)
-        SENTENCES=1000000
+        SENTENCES=10000000
         WORD_COUNT=15
         WORD_LENGTH=15
         ;;
     xlarge)
-        SENTENCES=10000000
+        SENTENCES=100000000
         WORD_COUNT=20
         WORD_LENGTH=20
         ;;
@@ -140,18 +142,20 @@ init_environment() {
     DAS_MONGODB_PASSWORD="dassecret"
     echo -e "$DAS_REDIS_PORT\nN\n$DAS_MONGODB_PORT\n$DAS_MONGODB_USERNAME\n$DAS_MONGODB_PASSWORD\nN\n8888\n\n\n\n\n" | das-cli config set > /dev/null
     das-cli db stop > /dev/null
-    das-cli attention-broker start
+    das-cli attention-broker stop > /dev/null
     das-cli db start
     das-cli metta load "$METTA_PATH"
-    das-cli attention-broker start
-
+    das-cli attention-broker start 
+    echo -e "\r\033[K${GREEN}Redis, MongoDB and Attention Broker initialization completed!${RESET}"
     # MORK
-    make run-mork-server > /dev/null 2>&1 &  
+    ./src/scripts/docker_image_build_mork.sh > /dev/null  2> >(grep -v '^+')
+    ./src/scripts/mork_server.sh > /dev/null 2>&1 &  
     until curl --silent http://localhost:8000/status/-; do
         echo "Waiting MORK..."
         sleep 5
     done
-    make mork-loader FILE="$METTA_PATH"
+    src/scripts/mork_loader.sh "$METTA_PATH" 2> >(grep -v '^+')
+    echo -e "\r\033[K${GREEN}MORK initialization completed!${RESET}"
 }
 
 load_scenario_definition() {
@@ -176,83 +180,62 @@ print_scenario() {
     echo "actions=${ACTIONS[*]}"
 }
 
-run_tests() {
-    for action in "${ACTIONS[@]}"; do
-        # ./src/scripts/bazel.sh clean --expunge
-        sleep 1
-        # ./src/scripts/docker_image_build.sh
-        ./src/scripts/bazel.sh run //tests/benchmark:atomdb_benchmark -- "${ACTIONS[@]}" "$CACHE" "$CONCURRENCY" "$ITERATIONS"
 
-        # output=$(make bazel run //tests/benchmark:atomdb_benchmark -- "$action" "$CACHE" "$CONCURRENCY" "$ITERATIONS" "$METRICS")
-        # ret=$?
-        # echo "return_INNER" $ret
-        # if [[ $ret -ne 0 ]]; then
-        #     echo "Error running benchmark for action: $action" >&2
-        #     echo "$output" >&2
-        #     exit $ret
-        # else
-        #     echo "Benchmark for action: $action completed successfully."
-        #     echo "$output"
-        #     return 0
-        # fi
-    done
-}
+# mainBeautiful() {
+#     parse_args "$@"
 
-mainBeautiful() {
-    parse_args "$@"
+#     map_metta_params "$DB" "$REL"
 
-    map_metta_params "$DB" "$REL"
+#     echo -en "${YELLOW}Setting the the test scenario...${RESET}"
+#     load_scenario_definition
+#     ret=$?
+#     if [[ $ret -eq 0 ]]; then
+#         echo -e "\r\033[K${GREEN}Setting the the test scenario...OK${RESET}"
+#         print_scenario
+#     else
+#         echo -e "\r\033[K${RED}Setting the the test scenario...FAILED (exit code $ret)${RESET}"
+#         exit $ret
+#     fi
 
-    echo -en "${YELLOW}Setting the the test scenario...${RESET}"
-    load_scenario_definition
-    ret=$?
-    if [[ $ret -eq 0 ]]; then
-        echo -e "\r\033[K${GREEN}Setting the the test scenario...OK${RESET}"
-        print_scenario
-    else
-        echo -e "\r\033[K${RED}Setting the the test scenario...FAILED (exit code $ret)${RESET}"
-        exit $ret
-    fi
+#     echo -en "${YELLOW}Generating MeTTa file...${RESET}"
+#     output=$(generate_metta_file "$SENTENCES" "$WORD_COUNT" "$WORD_LENGTH" "$ALPHABET_RANGE" 2>&1)
+#     ret=$?
+#     if [[ $ret -eq 0 ]]; then
+#         echo -e "\r\033[K${GREEN}Generating MeTTa file...OK${RESET}"
+#         echo "$output"
+#     else
+#         echo "\r\033[K${RED}Generating MeTTa file...FAILED (exit code $ret)${RESET}"
+#         echo "$output" >&2
+#         exit $ret
+#     fi
 
-    echo -en "${YELLOW}Generating MeTTa file...${RESET}"
-    output=$(generate_metta_file "$SENTENCES" "$WORD_COUNT" "$WORD_LENGTH" "$ALPHABET_RANGE" 2>&1)
-    ret=$?
-    if [[ $ret -eq 0 ]]; then
-        echo -e "\r\033[K${GREEN}Generating MeTTa file...OK${RESET}"
-        echo "$output"
-    else
-        echo "\r\033[K${RED}Generating MeTTa file...FAILED (exit code $ret)${RESET}"
-        echo "$output" >&2
-        exit $ret
-    fi
+#     echo -en "${YELLOW}Initializing the environment...${RESET}"
+#     output=$(init_environment 2>&1)
+#     ret=$?
+#     if [[ $ret -eq 0 ]]; then
+#         echo -e "\r\033[K${GREEN}Initializing the environment...OK${RESET}"
+#         echo "$output"
+#     else
+#         echo -e "\r\033[K${RED}Initializing the environment...FAILED (exit code $ret)${RESET}"
+#         echo "$output" >&2
+#         exit $ret
+#     fi
 
-    echo -en "${YELLOW}Initializing the environment...${RESET}"
-    output=$(init_environment 2>&1)
-    ret=$?
-    if [[ $ret -eq 0 ]]; then
-        echo -e "\r\033[K${GREEN}Initializing the environment...OK${RESET}"
-        echo "$output"
-    else
-        echo -e "\r\033[K${RED}Initializing the environment...FAILED (exit code $ret)${RESET}"
-        echo "$output" >&2
-        exit $ret
-    fi
+#     echo -en "${YELLOW}Running benchmark tests...${RESET}"
+#     # run_benchmark
+#     ret=$?
+#     echo "return_CMD $ret"
+#     if [[ $ret -eq 0 ]]; then
+#         echo -e "\r\033[K${GREEN}Running benchmark tests...OK${RESET}"
+#         echo "$output"
+#         echo $ret
+#     else
+#         echo -e "\r\033[K${RED}Running benchmark tests...FAILED (exit code $ret)${RESET}"
+#         echo "$output" >&2
+#         echo $ret
+#     fi
 
-    echo -en "${YELLOW}Running benchmark tests...${RESET}"
-    # run_benchmark
-    ret=$?
-    echo "return_CMD $ret"
-    if [[ $ret -eq 0 ]]; then
-        echo -e "\r\033[K${GREEN}Running benchmark tests...OK${RESET}"
-        echo "$output"
-        echo $ret
-    else
-        echo -e "\r\033[K${RED}Running benchmark tests...FAILED (exit code $ret)${RESET}"
-        echo "$output" >&2
-        echo $ret
-    fi
-
-}
+# }
 
 main() {
     parse_args "$@"
@@ -260,9 +243,15 @@ main() {
     load_scenario_definition
     print_scenario
     generate_metta_file "$SENTENCES" "$WORD_COUNT" "$WORD_LENGTH" "$ALPHABET_RANGE"
-    for action in "${ACTIONS[@]}"; do
-        init_environment
-        ./src/scripts/bazel.sh run //tests/benchmark:atomdb_benchmark -- "$action" "$CACHE" "$CONCURRENCY" "$ITERATIONS"
+    
+    for type in "${ATOMDB_TYPES[@]}"; do
+        echo -e "\n== Running benchmarks for AtomDB type: $type =="      
+        for action in "${ACTIONS[@]}"; do
+            echo -e "Running action: $action"
+            init_environment
+            ./src/scripts/bazel.sh run //tests/benchmark:atomdb_benchmark -- "$type" "$action" "$CACHE" "$CONCURRENCY" "$ITERATIONS" 2> >(grep -v '^+')
+        done
+        echo -e "\r\033[K${GREEN}Benchmark for AtomDB $type completed!${RESET}"
     done
 }
 

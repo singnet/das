@@ -452,9 +452,6 @@ string RedisMongoDB::add_link(const atoms::Link* link) {
     auto existing_targets_count =
         get_atom_documents(link->targets, {MONGODB_FIELD_NAME[MONGODB_FIELD::ID]}).size();
 
-    cout << "existing_targets_count: " << to_string(existing_targets_count) << endl;
-    cout << "link->targets.size(): " << to_string(link->targets.size()) << endl;
-
     if (existing_targets_count != link->targets.size()) {
         Utils::error("Failed to insert link: " + link->handle() + " has " +
                      to_string(link->targets.size() - existing_targets_count) + " missing targets");
