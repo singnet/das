@@ -182,14 +182,12 @@ shared_ptr<atomdb_api_types::HandleSet> RedisMongoDB::query_for_pattern(const Li
 
         reply = ctx->execute(command.c_str());
 
-        if (reply == NULL) {
-            Utils::error("Redis error");
-        }
+        if (reply == NULL) Utils::error("Redis error at query_for_pattern");
 
         if (reply->type != REDIS_REPLY_SET && reply->type != REDIS_REPLY_ARRAY) {
             auto error_type = std::to_string(reply->type);
             freeReplyObject(reply);
-            Utils::error("Invalid Redis response: " + error_type);
+            Utils::error("Invalid Redis response at query_for_pattern: " + error_type);
         }
 
         redis_cursor += REDIS_CHUNK_SIZE;
@@ -219,9 +217,7 @@ shared_ptr<atomdb_api_types::HandleList> RedisMongoDB::query_for_targets(const s
         auto command = "GET " + REDIS_TARGETS_PREFIX + ":" + handle;
         reply = ctx->execute(command.c_str());
 
-        if (reply == NULL) {
-            Utils::error("Redis error");
-        }
+        if (reply == NULL) Utils::error("Redis error at query_for_targets");
 
         if ((reply == NULL) || (reply->type == REDIS_REPLY_NIL)) {
             if (this->atomdb_cache != nullptr) this->atomdb_cache->add_handle_list(handle, nullptr);
@@ -229,7 +225,7 @@ shared_ptr<atomdb_api_types::HandleList> RedisMongoDB::query_for_targets(const s
         }
 
         if (reply->type != REDIS_REPLY_STRING) {
-            Utils::error("Invalid Redis response: " + std::to_string(reply->type) +
+            Utils::error("Invalid Redis response at query_for_targets: " + std::to_string(reply->type) +
                          " != " + std::to_string(REDIS_REPLY_STRING));
         }
 
@@ -266,14 +262,12 @@ shared_ptr<atomdb_api_types::HandleSet> RedisMongoDB::query_for_incoming(const s
 
         reply = ctx->execute(command.c_str());
 
-        if (reply == NULL) {
-            Utils::error("Redis error");
-        }
+        if (reply == NULL) Utils::error("Redis error at query_for_incoming");
 
         if (reply->type != REDIS_REPLY_SET && reply->type != REDIS_REPLY_ARRAY) {
             auto error_type = std::to_string(reply->type);
             freeReplyObject(reply);
-            Utils::error("Invalid Redis response: " + error_type);
+            Utils::error("Invalid Redis response at query_for_incoming: " + error_type);
         }
 
         redis_cursor += REDIS_CHUNK_SIZE;
@@ -295,12 +289,14 @@ uint RedisMongoDB::get_next_score(const string& key) {
     auto ctx = this->redis_pool->acquire();
     string command = "GET " + key;
     redisReply* reply = ctx->execute(command.c_str());
-    if (reply == NULL) {
-        Utils::error("Redis error");
-    }
+    if (reply == NULL) Utils::error("Redis error at get_next_score");
+
+    if (reply->type == REDIS_REPLY_NIL) return 0;
+
     if (reply->type != REDIS_REPLY_STRING) {
-        Utils::error("Invalid Redis response: " + std::to_string(reply->type));
+        Utils::error("Invalid Redis response at get_next_score: " + std::to_string(reply->type));
     }
+
     return std::stoi(reply->str);
 }
 
@@ -308,11 +304,10 @@ void RedisMongoDB::set_next_score(const string& key, uint score) {
     auto ctx = this->redis_pool->acquire();
     string command = "SET " + key + " " + to_string(score);
     redisReply* reply = ctx->execute(command.c_str());
-    if (reply == NULL) {
-        Utils::error("Redis error");
-    }
+    if (reply == NULL) Utils::error("Redis error at set_next_score");
+
     if (reply->type != REDIS_REPLY_STATUS) {
-        Utils::error("Invalid Redis response: " + std::to_string(reply->type));
+        Utils::error("Invalid Redis response at set_next_score: " + std::to_string(reply->type));
     }
 }
 
@@ -321,11 +316,10 @@ void RedisMongoDB::add_incoming(const string& handle, const string& incoming_han
     string command = "ZADD " + REDIS_INCOMING_PREFIX + ":" + handle + " " +
                      to_string(this->incoming_set_next_score.load()) + " " + incoming_handle;
     redisReply* reply = ctx->execute(command.c_str());
-    if (reply == NULL) {
-        Utils::error("Redis error");
-    }
+    if (reply == NULL) Utils::error("Redis error at add_incoming");
+
     if (reply->type != REDIS_REPLY_INTEGER) {
-        Utils::error("Invalid Redis response: " + std::to_string(reply->type));
+        Utils::error("Invalid Redis response at delete_incoming: " + std::to_string(reply->type));
     }
     this->incoming_set_next_score.fetch_add(1);
 
@@ -338,11 +332,9 @@ void RedisMongoDB::delete_incoming(const string& handle) {
     string command = "DEL " + REDIS_INCOMING_PREFIX + ":" + handle;
     redisReply* reply = ctx->execute(command.c_str());
 
-    if (reply == NULL) {
-        Utils::error("Redis error");
-    }
+    if (reply == NULL) Utils::error("Redis error at delete_incoming");
     if (reply->type != REDIS_REPLY_INTEGER) {
-        Utils::error("Invalid Redis response: " + std::to_string(reply->type));
+        Utils::error("Invalid Redis response at update_incoming: " + std::to_string(reply->type));
     }
 }
 
@@ -352,11 +344,9 @@ void RedisMongoDB::update_incoming(const string& key, const string& value) {
     string command = "ZREM " + REDIS_INCOMING_PREFIX + ":" + key + " " + value;
     redisReply* reply = ctx->execute(command.c_str());
 
-    if (reply == NULL) {
-        Utils::error("Redis error");
-    }
+    if (reply == NULL) Utils::error("Redis error at update_incoming");
     if (reply->type != REDIS_REPLY_INTEGER) {
-        Utils::error("Invalid Redis response: " + std::to_string(reply->type));
+        Utils::error("Invalid Redis response at get_document: " + std::to_string(reply->type));
     }
 }
 
