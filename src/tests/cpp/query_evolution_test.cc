@@ -6,6 +6,7 @@
 #include "QueryEvolutionProxy.h"
 #include "ServiceBus.h"
 #include "ServiceBusSingleton.h"
+#include "TestConfig.h"
 #include "Utils.h"
 #include "gtest/gtest.h"
 
@@ -27,13 +28,7 @@ class TestProcessor : public QueryEvolutionProcessor {
 };
 
 TEST(QueryEvolution, protected_methods) {
-    setenv("DAS_REDIS_HOSTNAME", "localhost", 1);
-    setenv("DAS_REDIS_PORT", "29000", 1);
-    setenv("DAS_USE_REDIS_CLUSTER", "false", 1);
-    setenv("DAS_MONGODB_HOSTNAME", "localhost", 1);
-    setenv("DAS_MONGODB_PORT", "28000", 1);
-    setenv("DAS_MONGODB_USERNAME", "dbadmin", 1);
-    setenv("DAS_MONGODB_PASSWORD", "dassecret", 1);
+    TestConfig::load_environment();
     AtomDBSingleton::init();
 
     string peer1_id = "localhost:33801";

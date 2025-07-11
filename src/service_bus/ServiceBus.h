@@ -112,7 +112,7 @@ class ServiceBus {
      *
      * @param processor The BusCommandProcessor taking ownership of bus command(s).
      */
-    void register_processor(shared_ptr<BusCommandProcessor> processor);
+    virtual void register_processor(shared_ptr<BusCommandProcessor> processor);
 
     /**
      * Issues a command in the bus.
@@ -122,7 +122,7 @@ class ServiceBus {
      *
      * @param bus_command A BusCommandProxy with the command and its arguments.
      */
-    void issue_bus_command(shared_ptr<BusCommandProxy> bus_command);
+    virtual void issue_bus_command(shared_ptr<BusCommandProxy> bus_command);
 
     // ---------------------------------------------------------------------------------------------
     // Used by ServiceBusSingleton

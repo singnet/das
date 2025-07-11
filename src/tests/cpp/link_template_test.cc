@@ -4,6 +4,7 @@
 #include "LinkTemplate.h"
 #include "QueryAnswer.h"
 #include "QueryNode.h"
+#include "TestConfig.h"
 #include "gtest/gtest.h"
 #include "test_utils.h"
 
@@ -11,13 +12,7 @@ using namespace query_engine;
 using namespace query_element;
 
 TEST(LinkTemplate, basics) {
-    setenv("DAS_REDIS_HOSTNAME", "localhost", 1);
-    setenv("DAS_REDIS_PORT", "29000", 1);
-    setenv("DAS_USE_REDIS_CLUSTER", "false", 1);
-    setenv("DAS_MONGODB_HOSTNAME", "localhost", 1);
-    setenv("DAS_MONGODB_PORT", "28000", 1);
-    setenv("DAS_MONGODB_USERNAME", "dbadmin", 1);
-    setenv("DAS_MONGODB_PASSWORD", "dassecret", 1);
+    TestConfig::load_environment();
 
     string server_node_id = "SERVER";
     QueryNodeServer server_node(server_node_id);

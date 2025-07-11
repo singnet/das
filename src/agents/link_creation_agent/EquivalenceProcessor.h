@@ -22,8 +22,8 @@ class EquivalenceProcessor : public LinkProcessor {
     static vector<string> get_tokenized_atom(const string& handle);
     static vector<string> count_query_template_1;
     static vector<string> count_query_template_2;
-    static Link build_link(const string& link_type,
-                           vector<LinkTargetTypes> targets,
-                           vector<CustomField> custom_fields);
+    static LCALink build_link(const string& link_type,
+                              vector<LinkTargetTypes> targets,
+                              vector<CustomField> custom_fields);
 };
 }  // namespace link_creation_agent

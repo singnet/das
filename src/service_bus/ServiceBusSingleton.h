@@ -39,6 +39,15 @@ class ServiceBusSingleton {
                      unsigned int port_upper = 64999);
 
     /**
+     * Initializes static state of the singleton object.
+     * This method is supposed to be called once before any calls to get_instance().
+     * @param service_bus A shared pointer to a ServiceBus instance.
+     * This method is used to provide a pre-initialized ServiceBus instance, which can be useful for
+     * testing or when the ServiceBus instance is already created and configured.
+     */
+    static void provide(shared_ptr<ServiceBus> service_bus);
+
+    /**
      * Returns the ServiceBus singleton instance.
      *
      * init() need to be called before calling this method.

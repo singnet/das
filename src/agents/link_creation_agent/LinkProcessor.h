@@ -1,6 +1,6 @@
 /**
  * @file LinkProcessor.h
- * @brief Link Processor class
+ * @brief LCALink Processor class
  */
 
 #pragma once

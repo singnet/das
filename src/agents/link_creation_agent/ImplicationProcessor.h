@@ -25,8 +25,8 @@ class ImplicationProcessor : public LinkProcessor {
     static vector<string> get_pattern_query(const vector<string>& p);
     static vector<string> get_satisfying_set_query(const vector<string>& p1, const vector<string>& p2);
     static vector<string> get_tokenized_atom(const string& handle);
-    static Link build_link(const string& link_type,
-                           vector<LinkTargetTypes> targets,
-                           vector<CustomField> custom_fields);
+    static LCALink build_link(const string& link_type,
+                              vector<LinkTargetTypes> targets,
+                              vector<CustomField> custom_fields);
 };
 }  // namespace link_creation_agent

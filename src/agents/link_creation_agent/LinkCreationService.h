@@ -1,6 +1,6 @@
 /**
  * @file LinkCreationService.h
- * @brief Link Creation Service class
+ * @brief LCALink Creation Service class
  */
 #pragma once
 
@@ -42,7 +42,7 @@ class LinkCreationService
     /**
      * @brief Add an iterator to process in thread pool
      * @param proxy PatternMatchingQueryProxy object
-     * @param das_client DAS Node client
+     * @param das_client DAS LCANode client
      */
     void process_request(shared_ptr<PatternMatchingQueryProxy> proxy,
                          vector<string>& link_template,
@@ -82,8 +82,8 @@ class LinkCreationService
 
     /**
      * @brief Create a link, blocking the client until the link is created
-     * @param link Link object
-     * @param das_client DAS Node client
+     * @param link LCALink object
+     * @param das_client DAS LCANode client
      */
     void create_links();
     vector<vector<string>> process_query_answer(shared_ptr<QueryAnswer> query_answer,

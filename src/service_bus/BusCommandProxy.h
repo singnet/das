@@ -129,7 +129,7 @@ class BusCommandProxy {
      *
      * @return The request serial number.
      */
-    unsigned int get_serial();
+    virtual unsigned int get_serial();
 
     /**
      * Returns the node id of this proxy.
@@ -143,7 +143,7 @@ class BusCommandProxy {
      *
      * @return The node id of the remote proxy linked to this one.
      */
-    string peer_id();
+    virtual string peer_id();
 
     /**
      * Piggyback method called when raise_error_on_peer() is called in peer's side.

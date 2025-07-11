@@ -114,13 +114,6 @@ void InferenceAgent::send_link_creation_request(shared_ptr<InferenceRequest> inf
     }
 }
 
-// void InferenceAgent::send_stop_link_creation_request(const string& request_id) {
-//     for (auto& proxy : this->link_creation_proxy_map[request_id]) {
-//         proxy->set_parameter(LinkCreationRequestProxy::Parameters::ABORT_FLAG, true);
-//         ServiceBusSingleton::get_instance()->issue_bus_command(proxy);
-//     }
-// }
-
 void InferenceAgent::send_distributed_inference_control_request(
     shared_ptr<InferenceRequest> inference_request) {
     string request_id = inference_request->get_id();

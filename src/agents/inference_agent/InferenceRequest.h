@@ -78,8 +78,8 @@ class InferenceRequest {
      */
     string get_context();
 
-    void set_timeout(unsigned long long timeout);
-    unsigned long long get_timeout();
+    void set_timeout(unsigned int timeout);
+    unsigned int get_timeout();
 
    protected:
     string first_handle;
