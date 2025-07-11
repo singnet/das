@@ -46,7 +46,7 @@ string Terminal::to_string() {
         return this->name;
     } else if (this->is_link) {
         string answer = this->type + "[";
-        for (auto target: this->targets) {
+        for (auto target : this->targets) {
             answer += target->to_string();
             answer += ", ";
         }

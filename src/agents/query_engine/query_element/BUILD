@@ -88,8 +88,8 @@ cc_library(
 
 cc_library(
     name = "link_template",
-    hdrs = ["LinkTemplate.h"],
     srcs = ["LinkTemplate.cc"],
+    hdrs = ["LinkTemplate.h"],
     deps = [
         ":and",
         ":importance_list",

@@ -103,8 +103,7 @@ void MorkDB::mork_setup() {
     }
 }
 
-shared_ptr<atomdb_api_types::HandleSet> MorkDB::query_for_pattern(
-    const LinkSchema& link_schema) {
+shared_ptr<atomdb_api_types::HandleSet> MorkDB::query_for_pattern(const LinkSchema& link_schema) {
     if (this->atomdb_cache != nullptr) {
         auto cache_result = this->atomdb_cache->query_for_pattern(link_schema);
         if (cache_result.is_cache_hit) return cache_result.result;

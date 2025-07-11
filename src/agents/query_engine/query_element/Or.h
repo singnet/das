@@ -32,8 +32,10 @@ class Or : public Operator<N> {
      * objects. This is stored in the Or object just to make shure they don't get released before
      * the Or operation ends.
      */
-    Or(const array<shared_ptr<QueryElement>, N>& clauses, vector<shared_ptr<QueryElement>>& link_templates = {}) : Operator<N>(clauses) { 
-        initialize(clauses); 
+    Or(const array<shared_ptr<QueryElement>, N>& clauses,
+       vector<shared_ptr<QueryElement>>& link_templates = {})
+        : Operator<N>(clauses) {
+        initialize(clauses);
         this->link_templates = link_templates;
     }
 

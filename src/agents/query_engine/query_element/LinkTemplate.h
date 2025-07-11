@@ -1,14 +1,14 @@
 #pragma once
 
+#include <mutex>
 #include <string>
 #include <vector>
-#include <mutex>
 
-#include "LinkSchema.h"
 #include "Assignment.h"
 #include "AtomDB.h"
-#include "Source.h"
+#include "LinkSchema.h"
 #include "QueryElement.h"
+#include "Source.h"
 #include "StoppableThread.h"
 #include "ThreadSafeHashmap.h"
 
@@ -26,23 +26,19 @@ namespace query_element {
  * A QueryElement which represents terminals (i.e. Nodes, Links and Variables) in the query tree.
  */
 class LinkTemplate : public QueryElement {
-
    private:
-
-    class SourceElement: public Source {
+    class SourceElement : public Source {
        public:
         bool buffers_set_up_flag;
         mutex api_mutex;
         SourceElement() { buffers_set_up_flag = false; }
-        string get_attention_broker_address() {return this->attention_broker_address; }
+        string get_attention_broker_address() { return this->attention_broker_address; }
         void add_handle(char* handle, float importance, Assignment& assignment) {
             QueryAnswer* answer = new QueryAnswer(strdup(handle), importance);
             answer->assignment.copy_from(assignment);
             this->output_buffer->add_query_answer(answer);
         }
-        void query_answers_finished() {
-            this->output_buffer->query_answers_finished();
-        }
+        void query_answers_finished() { this->output_buffer->query_answers_finished(); }
         void setup_buffers() override {
             lock_guard<mutex> semaphore(this->api_mutex);
             Source::setup_buffers();
@@ -69,14 +65,11 @@ class LinkTemplate : public QueryElement {
     void start_thread();
 
    public:
-
     ~LinkTemplate();
-    LinkTemplate(
-        const string& type,
-        const vector<shared_ptr<QueryElement>>& targets,
-        const string& context,
-        bool positive_importance_flag);
-
+    LinkTemplate(const string& type,
+                 const vector<shared_ptr<QueryElement>>& targets,
+                 const string& context,
+                 bool positive_importance_flag);
 
     void build();
     string to_string();
@@ -88,9 +81,7 @@ class LinkTemplate : public QueryElement {
         return instance_count++;
     }
 
-    static void clear_cache() {
-        cache.clear();
-    }
+    static void clear_cache() { cache.clear(); }
 
     static ThreadSafeHashmap<string, shared_ptr<atomdb_api_types::HandleSet>>& fetched_links_cache() {
         return cache;

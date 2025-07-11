@@ -32,7 +32,9 @@ class And : public Operator<N> {
      * objects. This is stored in the And object just to make shure they don't get released before
      * the And operation ends.
      */
-    And(const array<shared_ptr<QueryElement>, N>& clauses, const vector<shared_ptr<QueryElement>>& link_templates = {}) : Operator<N>(clauses) {
+    And(const array<shared_ptr<QueryElement>, N>& clauses,
+        const vector<shared_ptr<QueryElement>>& link_templates = {})
+        : Operator<N>(clauses) {
         this->link_templates = link_templates;
         initialize(clauses);
     }

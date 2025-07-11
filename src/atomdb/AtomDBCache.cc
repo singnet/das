@@ -22,8 +22,7 @@ void AtomDBCache::add_atom_document(const string& handle,
     atom_doc_cache[handle] = document;
 }
 
-AtomDBCache::QueryForPatternResult AtomDBCache::query_for_pattern(
-    const LinkSchema& link_schema) {
+AtomDBCache::QueryForPatternResult AtomDBCache::query_for_pattern(const LinkSchema& link_schema) {
     auto pattern_handle = link_schema.handle();
     lock_guard<mutex> lock(pattern_matching_cache_mutex);
     if (pattern_matching_cache.find(pattern_handle) != pattern_matching_cache.end()) {

@@ -4,9 +4,9 @@
 
 #include "AtomDBSingleton.h"
 #include "LinkTemplate.h"
-#include "Terminal.h"
 #include "QueryAnswer.h"
 #include "QueryNode.h"
+#include "Terminal.h"
 #include "gtest/gtest.h"
 #include "test_utils.h"
 

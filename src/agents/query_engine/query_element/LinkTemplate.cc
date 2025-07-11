@@ -1,8 +1,9 @@
+#include "LinkTemplate.h"
+
 #include <grpcpp/grpcpp.h>
 
-#include "LinkTemplate.h"
-#include "Terminal.h"
 #include "AtomDBSingleton.h"
+#include "Terminal.h"
 #include "attention_broker.grpc.pb.h"
 #include "attention_broker.pb.h"
 
@@ -14,12 +15,11 @@ using namespace atomdb;
 
 ThreadSafeHashmap<string, shared_ptr<atomdb_api_types::HandleSet>> LinkTemplate::cache;
 
-LinkTemplate::LinkTemplate(
-    const string& type, 
-    const vector<shared_ptr<QueryElement>>& targets, 
-    const string& context, 
-    bool positive_importance_flag) : link_schema(type, targets.size()) {
-
+LinkTemplate::LinkTemplate(const string& type,
+                           const vector<shared_ptr<QueryElement>>& targets,
+                           const string& context,
+                           bool positive_importance_flag)
+    : link_schema(type, targets.size()) {
     this->targets = targets;
     this->context = context;
     this->positive_importance_flag = positive_importance_flag;
@@ -27,9 +27,7 @@ LinkTemplate::LinkTemplate(
     this->arity = targets.size();
 }
 
-LinkTemplate::~LinkTemplate() {
-    this->processor->stop();
-}
+LinkTemplate::~LinkTemplate() { this->processor->stop(); }
 
 void LinkTemplate::recursive_build(shared_ptr<QueryElement> element, LinkSchema& link_schema) {
     Terminal* terminal = dynamic_cast<Terminal*>(element.get());
@@ -40,7 +38,7 @@ void LinkTemplate::recursive_build(shared_ptr<QueryElement> element, LinkSchema&
         } else if (terminal->is_node) {
             link_schema.stack_node(terminal->type, terminal->name);
         } else if (terminal->is_link) {
-            for (auto target: terminal->targets) {
+            for (auto target : terminal->targets) {
                 recursive_build(target, link_schema);
             }
             link_schema.stack_link(terminal->type, terminal->targets.size());
@@ -51,10 +49,11 @@ void LinkTemplate::recursive_build(shared_ptr<QueryElement> element, LinkSchema&
         if (link_template == NULL) {
             Utils::error("Invalid NULL element");
         } else {
-            for (auto target: link_template->targets) {
+            for (auto target : link_template->targets) {
                 recursive_build(target, link_schema);
             }
-            link_schema.stack_link_schema(link_template->link_schema.type, link_template->targets.size());
+            link_schema.stack_link_schema(link_template->link_schema.type,
+                                          link_template->targets.size());
         }
     }
 }
@@ -62,7 +61,7 @@ void LinkTemplate::recursive_build(shared_ptr<QueryElement> element, LinkSchema&
 void LinkTemplate::build() {
     if (this->inner_flag) {
         this->inner_flag = false;
-        for (auto target: this->targets) {
+        for (auto target : this->targets) {
             recursive_build(target, this->link_schema);
         }
         this->link_schema.build();
@@ -76,7 +75,6 @@ void LinkTemplate::build() {
 }
 
 void LinkTemplate::compute_importance(vector<pair<char*, float>>& handles) {
-
     unsigned int pending_count = handles.size();
     unsigned int cursor = 0;
     unsigned int bundle_count = 0;
@@ -90,8 +88,8 @@ void LinkTemplate::compute_importance(vector<pair<char*, float>>& handles) {
             pending_count--;
             bundle_count++;
         }
-        auto stub = dasproto::AttentionBroker::NewStub(
-            grpc::CreateChannel(this->source_element->get_attention_broker_address(), grpc::InsecureChannelCredentials()));
+        auto stub = dasproto::AttentionBroker::NewStub(grpc::CreateChannel(
+            this->source_element->get_attention_broker_address(), grpc::InsecureChannelCredentials()));
         LOG_INFO("Querying AttentionBroker for importance of " << bundle_count << " atoms.");
         stub->get_importance(new grpc::ClientContext(), handle_list, &importance_list);
         for (unsigned int i = 0; i < bundle_count; i++) {
@@ -102,17 +100,15 @@ void LinkTemplate::compute_importance(vector<pair<char*, float>>& handles) {
         importance_list.clear_list();
     }
     // Sort decreasing by importance value
-    std::sort(
-        handles.begin(),
-        handles.end(),
-        [](const std::pair<char*, float>& left,
-           const std::pair<char*, float>& right) {
-            return left.second > right.second;
-    });
+    std::sort(handles.begin(),
+              handles.end(),
+              [](const std::pair<char*, float>& left, const std::pair<char*, float>& right) {
+                  return left.second > right.second;
+              });
 }
 
 void LinkTemplate::processor_method(shared_ptr<StoppableThread> monitor) {
-    while (! this->source_element->buffers_set_up() && ! monitor->stopped()) {
+    while (!this->source_element->buffers_set_up() && !monitor->stopped()) {
         Utils::sleep();
     }
     if (monitor->stopped()) {
@@ -137,12 +133,12 @@ void LinkTemplate::processor_method(shared_ptr<StoppableThread> monitor) {
     unsigned int pending = tagged_handles.size();
     unsigned int cursor = 0;
     Assignment assignment;
-    while ((pending > 0) && ! monitor->stopped()) {
+    while ((pending > 0) && !monitor->stopped()) {
         pair<char*, float> tagged_handle = tagged_handles[cursor++];
         if (this->positive_importance_flag && tagged_handle.second <= 0) {
             pending = 0;
         } else {
-            if ((tagged_handle.second > 0 || ! this->positive_importance_flag) && 
+            if ((tagged_handle.second > 0 || !this->positive_importance_flag) &&
                 this->link_schema.match(string(tagged_handle.first), assignment, *db.get())) {
                 this->source_element->add_handle(tagged_handle.first, tagged_handle.second, assignment);
                 assignment.clear();
@@ -152,7 +148,7 @@ void LinkTemplate::processor_method(shared_ptr<StoppableThread> monitor) {
     }
     Utils::sleep();
     this->source_element->query_answers_finished();
-    while (! monitor->stopped()) {
+    while (!monitor->stopped()) {
         // Keep stack variables (e.g. the handles which are passed as QueryAnswers
         // to source_element)
         Utils::sleep();
@@ -186,11 +182,9 @@ string LinkTemplate::get_handle() {
     }
 }
 
-const string& LinkTemplate::get_type() {
-    return this->link_schema.type;
-}
+const string& LinkTemplate::get_type() { return this->link_schema.type; }
 
-string LinkTemplate::to_string() { 
+string LinkTemplate::to_string() {
     if (this->inner_flag) {
         return "<Inner LinkTemplate>";
     } else {

@@ -1,12 +1,12 @@
 #include <cstdlib>
 
-#include "AtomDBSingleton.h"
-#include "Terminal.h"
-#include "Iterator.h"
 #include "And.h"
+#include "AtomDBSingleton.h"
+#include "Iterator.h"
 #include "LinkTemplate.h"
 #include "QueryAnswer.h"
 #include "QueryNode.h"
+#include "Terminal.h"
 #include "gtest/gtest.h"
 #include "test_utils.h"
 
@@ -34,7 +34,8 @@ TEST(LinkTemplate, basics) {
 
     LinkTemplate* inner_template_ptr = new LinkTemplate(expression, {similarity, v1, v2}, "", false);
     shared_ptr<LinkTemplate> inner_template(inner_template_ptr);
-    LinkTemplate* outter_template_ptr = new LinkTemplate(expression, {odd_link, inner_template}, "", false);
+    LinkTemplate* outter_template_ptr =
+        new LinkTemplate(expression, {odd_link, inner_template}, "", false);
     outter_template_ptr->build();
     Iterator iterator(outter_template_ptr->get_source_element());
 
@@ -67,8 +68,8 @@ TEST(LinkTemplate, nested_variables) {
     outter_template->build();
     LinkTemplate* human_template = new LinkTemplate(expression, {similarity, v1, human}, "", false);
     human_template->build();
-    auto and_operator =
-        make_shared<And<2>>(array<shared_ptr<QueryElement>, 2>({human_template->get_source_element(), outter_template->get_source_element()}));
+    auto and_operator = make_shared<And<2>>(array<shared_ptr<QueryElement>, 2>(
+        {human_template->get_source_element(), outter_template->get_source_element()}));
     Iterator iterator(and_operator);
 
     QueryAnswer* query_answer;

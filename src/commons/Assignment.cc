@@ -89,9 +89,7 @@ string Assignment::to_string() {
     return answer;
 }
 
-void Assignment::clear() {
-    this->size = 0;
-}
+void Assignment::clear() { this->size = 0; }
 
 bool Assignment::operator==(const Assignment& other) const {
     if (this->size != other.size) {

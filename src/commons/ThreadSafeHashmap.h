@@ -2,25 +2,21 @@
 
 #include <mutex>
 #include <unordered_map>
+
 #include "Utils.h"
 
 namespace commons {
 
 template <typename KEY_TYPE, typename VALUE_TYPE>
 class ThreadSafeHashmap {
-
    private:
     unordered_map<KEY_TYPE, VALUE_TYPE> table;
     mutex api_mutex;
 
    public:
-    ThreadSafeHashmap() {
-        lock_guard<mutex> semaphore(this->api_mutex);
-    }
+    ThreadSafeHashmap() { lock_guard<mutex> semaphore(this->api_mutex); }
 
-    ~ThreadSafeHashmap() {
-        lock_guard<mutex> semaphore(this->api_mutex);
-    }
+    ~ThreadSafeHashmap() { lock_guard<mutex> semaphore(this->api_mutex); }
 
     void set(const KEY_TYPE& key, const VALUE_TYPE& value) {
         lock_guard<mutex> semaphore(this->api_mutex);
@@ -46,4 +42,4 @@ class ThreadSafeHashmap {
         this->table.clear();
     }
 };
-}
+}  // namespace commons

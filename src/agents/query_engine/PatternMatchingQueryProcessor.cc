@@ -1,6 +1,7 @@
+#include "PatternMatchingQueryProcessor.h"
+
 #include <grpcpp/grpcpp.h>
 
-#include "PatternMatchingQueryProcessor.h"
 #include "And.h"
 #include "AtomDBSingleton.h"
 #include "Link.h"
@@ -211,7 +212,8 @@ void PatternMatchingQueryProcessor::remove_query_thread(const string& stoppable_
 // -------------------------------------------------------------------------------------------------
 // Private methods - query tree building
 
-shared_ptr<QueryElement> PatternMatchingQueryProcessor::setup_query_tree(shared_ptr<PatternMatchingQueryProxy> proxy) {
+shared_ptr<QueryElement> PatternMatchingQueryProcessor::setup_query_tree(
+    shared_ptr<PatternMatchingQueryProxy> proxy) {
     stack<unsigned int> execution_stack;
     stack<shared_ptr<QueryElement>> element_stack;
     unsigned int cursor = 0;
@@ -243,8 +245,7 @@ shared_ptr<QueryElement> PatternMatchingQueryProcessor::setup_query_tree(shared_
         } else if (query_tokens[cursor] == "LINK") {
             element_stack.push(build_link(proxy, cursor, element_stack));
         } else if (query_tokens[cursor] == "LINK_TEMPLATE") {
-            element_stack.push(
-                build_link_template(proxy, cursor, element_stack));
+            element_stack.push(build_link_template(proxy, cursor, element_stack));
         } else if (query_tokens[cursor] == "AND") {
             element_stack.push(build_and(proxy, cursor, element_stack));
             if (proxy->parameters.get<bool>(BaseQueryProxy::UNIQUE_ASSIGNMENT_FLAG)) {
@@ -272,7 +273,6 @@ shared_ptr<QueryElement> PatternMatchingQueryProcessor::build_link_template(
     shared_ptr<PatternMatchingQueryProxy> proxy,
     unsigned int cursor,
     stack<shared_ptr<QueryElement>>& element_stack) {
-
     const vector<string> query_tokens = proxy->get_query_tokens();
     unsigned int arity = std::stoi(query_tokens[cursor + 2]);
     if (element_stack.size() < arity) {
@@ -286,9 +286,9 @@ shared_ptr<QueryElement> PatternMatchingQueryProcessor::build_link_template(
         element_stack.pop();
     }
     auto link_template = make_shared<LinkTemplate>(
-        query_tokens[cursor + 1], 
-        targets, 
-        proxy->get_context(), 
+        query_tokens[cursor + 1],
+        targets,
+        proxy->get_context(),
         proxy->parameters.get<bool>(PatternMatchingQueryProxy::POSITIVE_IMPORTANCE_FLAG));
     LOG_INFO("LinkTemplate: " + link_template->to_string());
     return link_template;
@@ -316,7 +316,6 @@ shared_ptr<QueryElement> PatternMatchingQueryProcessor::build_and(
     shared_ptr<PatternMatchingQueryProxy> proxy,
     unsigned int cursor,
     stack<shared_ptr<QueryElement>>& element_stack) {
-
     const vector<string> query_tokens = proxy->get_query_tokens();
     unsigned int num_clauses = std::stoi(query_tokens[cursor + 1]);
     if (element_stack.size() < num_clauses) {
