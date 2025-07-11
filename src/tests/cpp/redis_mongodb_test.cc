@@ -313,15 +313,15 @@ TEST_F(RedisMongoDBTest, ConcurrentAddNodesAndLinks) {
             ASSERT_TRUE(db->node_exists(link_node->handle()));
             ASSERT_TRUE(db->link_exists(link->handle()));
 
+            EXPECT_TRUE(db->delete_atom(link->handle()));
+            EXPECT_TRUE(db->delete_atom(link_node->handle()));
             EXPECT_TRUE(db->delete_atom(n1->handle()));
             EXPECT_TRUE(db->delete_atom(n2->handle()));
-            EXPECT_TRUE(db->delete_atom(link_node->handle()));
-            EXPECT_TRUE(db->delete_atom(link->handle()));
 
+            ASSERT_FALSE(db->link_exists(link->handle()));
+            ASSERT_FALSE(db->link_exists(link_node->handle()));
             ASSERT_FALSE(db->node_exists(n1->handle()));
             ASSERT_FALSE(db->node_exists(n2->handle()));
-            ASSERT_FALSE(db->node_exists(link_node->handle()));
-            ASSERT_FALSE(db->link_exists(link->handle()));
 
             success_count++;
         } catch (const exception& e) {
@@ -475,7 +475,8 @@ TEST_F(RedisMongoDBTest, DeleteNodesAndLinks) {
     EXPECT_EQ(links_exist.size(), links.size());
 
     EXPECT_EQ(db->delete_links(links_handles), links.size());
-    // Deleting nodes first will delete the links (via incoming set deletion, as nodes are referenced by links).
+    // Deleting nodes first will delete the links (via incoming set deletion, as nodes are referenced by
+    // links).
     EXPECT_EQ(db->delete_nodes(nodes_handles), nodes.size());
 
     auto nodes_exist_after_delete = db->nodes_exist(nodes_handles);

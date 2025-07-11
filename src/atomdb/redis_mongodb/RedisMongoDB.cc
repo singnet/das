@@ -453,16 +453,14 @@ vector<shared_ptr<atomdb_api_types::AtomDocument>> RedisMongoDB::get_documents(
 vector<shared_ptr<atomdb_api_types::AtomDocument>> RedisMongoDB::get_atom_documents(
     const vector<string>& handles, const vector<string>& fields) {
     auto documents = get_node_documents(handles, fields);
-    if (documents.size() == handles.size()) {
-        return documents;
-    }
-    vector<string> missing_handles;
+    if (documents.size() == handles.size()) return documents;
+
+    vector<string> missing_handles = handles;
     for (const auto& document : documents) {
         auto handle = document->get(MONGODB_FIELD_NAME[MONGODB_FIELD::ID]);
-        if (find(handles.begin(), handles.end(), handle) == handles.end())
-            missing_handles.push_back(handle);
+        missing_handles.erase(find(missing_handles.begin(), missing_handles.end(), handle));
     }
-    if (missing_handles.empty()) return documents;
+
     auto link_documents = get_link_documents(missing_handles, fields);
     documents.insert(documents.end(), link_documents.begin(), link_documents.end());
     return documents;
@@ -536,6 +534,7 @@ set<string> RedisMongoDB::documents_exist(const vector<string>& handles, const s
 
 set<string> RedisMongoDB::atoms_exist(const vector<string>& handles) {
     auto nodes = nodes_exist(handles);
+    if (nodes.size() == handles.size()) return nodes;
     auto links = links_exist(handles);
     nodes.insert(links.begin(), links.end());
     return nodes;
