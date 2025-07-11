@@ -188,19 +188,19 @@ TEST(PatternMatchingQuery, queries) {
     int q6_expected_count = 4;
 
     // Regular queries
-    //check_query("q1", q1, q1_expected_count, client_bus, "PatternMatchingQuery.queries", false, false, false, false);
-    //check_query("q2", q2, q2_expected_count, client_bus, "PatternMatchingQuery.queries", false, false, false, false);
+    check_query("q1", q1, q1_expected_count, client_bus, "PatternMatchingQuery.queries", false, false, false, false);
+    check_query("q2", q2, q2_expected_count, client_bus, "PatternMatchingQuery.queries", false, false, false, false);
     check_query("q3", q3, q3_expected_count, client_bus, "PatternMatchingQuery.queries", false, false, false, false);
-    //check_query("q4", q4, q4_expected_count, client_bus, "PatternMatchingQuery.queries", false, false, false, false);
-    //check_query("q5", q5, q5_expected_count, client_bus, "PatternMatchingQuery.queries", false, false, false, false);
-    //check_query("q6", q6, q6_expected_count, client_bus, "PatternMatchingQuery.queries", false, true, false, false);
+    check_query("q4", q4, q4_expected_count, client_bus, "PatternMatchingQuery.queries", false, false, false, false);
+    check_query("q5", q5, q5_expected_count, client_bus, "PatternMatchingQuery.queries", false, false, false, false);
+    check_query("q6", q6, q6_expected_count, client_bus, "PatternMatchingQuery.queries", false, true, false, false);
 
     // Importance filtering
-    //check_query("filtered q2", q2, q2_expected_count, client_bus, "PatternMatchingQuery.queries", true, false, false, false);
-    //check_query("filtered q1", q1, 3, client_bus, "PatternMatchingQuery.queries", false, false, true, false);
+    check_query("filtered q2", q2, q2_expected_count, client_bus, "PatternMatchingQuery.queries", true, false, false, false);
+    check_query("filtered q1", q1, 3, client_bus, "PatternMatchingQuery.queries", false, false, true, false);
 
     // Remote exception
-    //check_query("invalid", {"BLAH"}, 0, client_bus, "PatternMatchingQuery.queries", false, false, false, true);
+    check_query("invalid", {"BLAH"}, 0, client_bus, "PatternMatchingQuery.queries", false, false, false, true);
 
     Utils::sleep(2000);
     // clang-format on

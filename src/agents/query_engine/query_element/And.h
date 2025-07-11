@@ -28,8 +28,12 @@ class And : public Operator<N> {
      * Constructor.
      *
      * @param clauses Array with N clauses (each clause is supposed to be a Source or an Operator).
+     * @param link_templates Vector with all the query elements in clauses which are LinkTemplate
+     * objects. This is stored in the And object just to make shure they don't get released before
+     * the And operation ends.
      */
-    And(const array<shared_ptr<QueryElement>, N>& clauses) : Operator<N>(clauses) {
+    And(const array<shared_ptr<QueryElement>, N>& clauses, const vector<shared_ptr<QueryElement>>& link_templates = {}) : Operator<N>(clauses) {
+        this->link_templates = link_templates;
         initialize(clauses);
     }
 
@@ -119,6 +123,7 @@ class And : public Operator<N> {
     bool no_more_answers_to_arrive;
     thread* operator_thread;
     unsigned int query_answer_count;
+    vector<shared_ptr<QueryElement>> link_templates;
 
     void initialize(const array<shared_ptr<QueryElement>, N>& clauses) {
         this->operator_thread = NULL;

@@ -37,7 +37,6 @@ TEST(LinkTemplate, basics) {
     link_template1.build();
     link_template1.get_source_element()->subsequent_id = server_node_id;
     link_template1.get_source_element()->setup_buffers();
-    link_template1.start_thread();
     Utils::sleep(2000);
 
     // Compare LinkTemplate and LinkSchema handles

@@ -296,10 +296,12 @@ shared_ptr<QueryElement> PatternMatchingQueryProcessor::build_link_template(
 
 #define BUILD_AND(N)                                                                              \
     {                                                                                             \
+        vector<shared_ptr<QueryElement>> link_templates;                                          \
         array<shared_ptr<QueryElement>, N> clauses;                                               \
         for (unsigned int i = 0; i < N; i++) {                                                    \
             LinkTemplate* link_template = dynamic_cast<LinkTemplate*>(element_stack.top().get()); \
             if (link_template != NULL) {                                                          \
+                link_templates.push_back(element_stack.top());                                    \
                 link_template->build();                                                           \
                 clauses[i] = link_template->get_source_element();                                 \
             } else {                                                                              \
@@ -307,7 +309,7 @@ shared_ptr<QueryElement> PatternMatchingQueryProcessor::build_link_template(
             }                                                                                     \
             element_stack.pop();                                                                  \
         }                                                                                         \
-        return make_shared<And<N>>(clauses);                                                      \
+        return make_shared<And<N>>(clauses, link_templates);                                      \
     }
 
 shared_ptr<QueryElement> PatternMatchingQueryProcessor::build_and(
@@ -341,14 +343,22 @@ shared_ptr<QueryElement> PatternMatchingQueryProcessor::build_and(
     return NULL;  // Just to avoid warnings. This is not actually reachable.
 }
 
-#define BUILD_OR(N)                                 \
-    {                                               \
-        array<shared_ptr<QueryElement>, N> clauses; \
-        for (unsigned int i = 0; i < N; i++) {      \
-            clauses[i] = element_stack.top();       \
-            element_stack.pop();                    \
-        }                                           \
-        return make_shared<Or<N>>(clauses);         \
+#define BUILD_OR(N)                                                                               \
+    {                                                                                             \
+        vector<shared_ptr<QueryElement>> link_templates;                                          \
+        array<shared_ptr<QueryElement>, N> clauses;                                               \
+        for (unsigned int i = 0; i < N; i++) {                                                    \
+            LinkTemplate* link_template = dynamic_cast<LinkTemplate*>(element_stack.top().get()); \
+            if (link_template != NULL) {                                                          \
+                link_templates.push_back(element_stack.top());                                    \
+                link_template->build();                                                           \
+                clauses[i] = link_template->get_source_element();                                 \
+            } else {                                                                              \
+                clauses[i] = element_stack.top();                                                 \
+            }                                                                                     \
+            element_stack.pop();                                                                  \
+        }                                                                                         \
+        return make_shared<Or<N>>(clauses, link_templates);                                       \
     }
 
 shared_ptr<QueryElement> PatternMatchingQueryProcessor::build_or(

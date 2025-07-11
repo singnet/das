@@ -37,7 +37,6 @@ TEST(LinkTemplate, basics) {
     LinkTemplate* outter_template_ptr = new LinkTemplate(expression, {odd_link, inner_template}, "", false);
     outter_template_ptr->build();
     Iterator iterator(outter_template_ptr->get_source_element());
-    outter_template_ptr->start_thread();
 
     QueryAnswer* query_answer;
     unsigned int count = 0;
@@ -71,8 +70,6 @@ TEST(LinkTemplate, nested_variables) {
     auto and_operator =
         make_shared<And<2>>(array<shared_ptr<QueryElement>, 2>({human_template->get_source_element(), outter_template->get_source_element()}));
     Iterator iterator(and_operator);
-    outter_template->start_thread();
-    human_template->start_thread();
 
     QueryAnswer* query_answer;
     unsigned int count = 0;

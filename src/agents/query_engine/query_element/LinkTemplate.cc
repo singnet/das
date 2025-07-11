@@ -112,8 +112,11 @@ void LinkTemplate::compute_importance(vector<pair<char*, float>>& handles) {
 }
 
 void LinkTemplate::processor_method(shared_ptr<StoppableThread> monitor) {
-    while (! this->source_element->buffers_set_up()) {
+    while (! this->source_element->buffers_set_up() && ! monitor->stopped()) {
         Utils::sleep();
+    }
+    if (monitor->stopped()) {
+        return;
     }
     auto db = AtomDBSingleton::get_instance();
     string link_schema_handle = this->link_schema.handle();
