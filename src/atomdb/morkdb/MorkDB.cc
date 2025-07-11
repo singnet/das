@@ -103,14 +103,12 @@ void MorkDB::mork_setup() {
     }
 }
 
-shared_ptr<atomdb_api_types::HandleSet> MorkDB::query_for_pattern(
-    const LinkTemplateInterface& link_template) {
+shared_ptr<atomdb_api_types::HandleSet> MorkDB::query_for_pattern(const LinkSchema& link_schema) {
     if (this->atomdb_cache != nullptr) {
-        auto cache_result = this->atomdb_cache->query_for_pattern(link_template);
+        auto cache_result = this->atomdb_cache->query_for_pattern(link_schema);
         if (cache_result.is_cache_hit) return cache_result.result;
     }
-    // WIP - This method will be implemented in the LinkTemplate
-    string pattern_metta = link_template.get_metta_expression();
+    string pattern_metta = link_schema.metta_representation(*this);
     // template should equals to pattern_metta
     LOG_DEBUG("Fetching data...");
     vector<string> raw_expressions = this->mork_client->get(pattern_metta, pattern_metta);
@@ -129,7 +127,7 @@ shared_ptr<atomdb_api_types::HandleSet> MorkDB::query_for_pattern(
     }
 
     if (this->atomdb_cache != nullptr)
-        this->atomdb_cache->add_pattern_matching(link_template.get_handle(), handle_set);
+        this->atomdb_cache->add_pattern_matching(link_schema.handle(), handle_set);
 
     return handle_set;
 }

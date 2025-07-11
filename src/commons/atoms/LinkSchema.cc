@@ -6,7 +6,7 @@
 #include "Node.h"
 #include "UntypedVariable.h"
 
-#define LOG_LEVEL DEBUG_LEVEL
+#define LOG_LEVEL INFO_LEVEL
 #include "Logger.h"
 
 using namespace atoms;
@@ -137,9 +137,11 @@ bool LinkSchema::SchemaElement::match(const string& handle,
                                       Assignment& assignment,
                                       HandleDecoder& decoder,
                                       Atom* atom_ptr) {
+    shared_ptr<Atom> atom;
     if (this->is_link) {
         if (atom_ptr == NULL) {
-            atom_ptr = decoder.get_atom(handle).get();
+            atom = decoder.get_atom(handle);
+            atom_ptr = (Link*) atom.get();
         }
         if (Atom::is_link(*atom_ptr) && (atom_ptr->arity() == this->targets.size())) {
             unsigned int cursor = 0;
@@ -153,7 +155,8 @@ bool LinkSchema::SchemaElement::match(const string& handle,
             return false;
         }
     } else if (this->is_wildcard) {
-        return assignment.assign(this->name.c_str(), handle.c_str());
+        // TODO: remove memory leak
+        return assignment.assign(strdup(this->name.c_str()), strdup(handle.c_str()));
     } else {
         // is node
         return (this->handle == handle);

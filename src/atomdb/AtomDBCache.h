@@ -7,8 +7,10 @@
 #include <vector>
 
 #include "AtomDBAPITypes.h"
+#include "LinkSchema.h"
 
 using namespace std;
+using namespace atoms;
 
 namespace atomdb {
 
@@ -77,10 +79,10 @@ class AtomDBCache {
     /**
      * @brief Query for a pattern matching.
      *
-     * @param link_template A LinkTemplateInterface.
+     * @param link_schema A LinkSchema.
      * @return The result of the query if it is cached, nullptr otherwise.
      */
-    QueryForPatternResult query_for_pattern(const LinkTemplateInterface& link_template);
+    QueryForPatternResult query_for_pattern(const LinkSchema& link_schema);
 
     /**
      * @brief Add a pattern matching to the cache.

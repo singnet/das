@@ -88,6 +88,8 @@ class QueryElement {
      */
     bool is_operator;
 
+    virtual string to_string();
+
    protected:
     /**
      * Return true iff this QueryElement have finished its work in the flow of links up through

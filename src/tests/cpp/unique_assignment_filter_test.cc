@@ -15,7 +15,7 @@ using namespace query_element;
 
 class TestSource : public Source {
    public:
-    TestSource(unsigned int count) { this->id = "TestSource_" + to_string(count); }
+    TestSource(unsigned int count) { this->id = "TestSource_" + std::to_string(count); }
 
     ~TestSource() {}
 
