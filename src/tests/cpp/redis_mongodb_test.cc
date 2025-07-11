@@ -371,8 +371,8 @@ TEST_F(RedisMongoDBTest, AddAndDeleteLinks) {
     vector<string> test_node_handles;
     MockDecoder decoder;
 
+    auto similarity_node = new Node("Symbol", "Similarity");
     for (int i = 0; i < 10; i++) {
-        auto similarity_node = decoder.add_atom(make_shared<Node>("Symbol", "Similarity"));
         auto test_1_node = decoder.add_atom(make_shared<Node>("Symbol", "add-links-1-" + to_string(i)));
         auto test_2_node = decoder.add_atom(make_shared<Node>("Symbol", "add-links-2-" + to_string(i)));
         test_node_handles.push_back(db->add_node((Node*) test_1_node.get()));
@@ -387,14 +387,49 @@ TEST_F(RedisMongoDBTest, AddAndDeleteLinks) {
     auto links_exist = db->links_exist(handles);
     EXPECT_EQ(links_exist.size(), 10);
 
-    auto deleted = db->delete_atoms(handles);
-    EXPECT_EQ(deleted, 10);
+    EXPECT_EQ(db->delete_atoms(handles), 10);
 
     auto links_exist_after_delete = db->links_exist(handles);
     EXPECT_EQ(links_exist_after_delete.size(), 0);
-    for (const string& handle : test_node_handles) {
-        EXPECT_TRUE(db->delete_atom(handle));
+
+    EXPECT_EQ(db->delete_nodes(test_node_handles), test_node_handles.size());
+}
+
+TEST_F(RedisMongoDBTest, DocumentsExist) {
+    vector<atoms::Node*> nodes;
+    vector<atoms::Link*> links;
+    MockDecoder decoder;
+
+    auto similarity_node = new Node("Symbol", "Similarity");
+    for (int i = 0; i < 5555; i++) {
+        auto test_1_node = new Node("Symbol", "add-links-1-" + to_string(i));
+        auto test_2_node = new Node("Symbol", "add-links-2-" + to_string(i));
+        nodes.push_back(test_1_node);
+        nodes.push_back(test_2_node);
+        links.push_back(new Link(
+            "Expression", {similarity_node->handle(), test_1_node->handle(), test_2_node->handle()}));
     }
+
+    auto nodes_handles = db->add_nodes(nodes);
+    EXPECT_EQ(nodes_handles.size(), nodes.size());
+
+    auto nodes_exist = db->nodes_exist(nodes_handles);
+    EXPECT_EQ(nodes_exist.size(), nodes.size());
+
+    auto links_handles = db->add_links(links);
+    EXPECT_EQ(links_handles.size(), links.size());
+
+    auto links_exist = db->links_exist(links_handles);
+    EXPECT_EQ(links_exist.size(), links.size());
+
+    EXPECT_EQ(db->delete_nodes(nodes_handles), nodes.size());
+    EXPECT_EQ(db->delete_links(links_handles), links.size());
+
+    auto nodes_exist_after_delete = db->nodes_exist(nodes_handles);
+    EXPECT_EQ(nodes_exist_after_delete.size(), 0);
+
+    auto links_exist_after_delete = db->links_exist(links_handles);
+    EXPECT_EQ(links_exist_after_delete.size(), 0);
 }
 
 int main(int argc, char** argv) {

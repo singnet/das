@@ -26,7 +26,8 @@ string RedisMongoDB::REDIS_PATTERNS_PREFIX;
 string RedisMongoDB::REDIS_TARGETS_PREFIX;
 uint RedisMongoDB::REDIS_CHUNK_SIZE;
 string RedisMongoDB::MONGODB_DB_NAME;
-string RedisMongoDB::MONGODB_COLLECTION_NAME;
+string RedisMongoDB::MONGODB_NODES_COLLECTION_NAME;
+string RedisMongoDB::MONGODB_LINKS_COLLECTION_NAME;
 string RedisMongoDB::MONGODB_FIELD_NAME[MONGODB_FIELD::size];
 uint RedisMongoDB::MONGODB_CHUNK_SIZE;
 
@@ -240,14 +241,15 @@ shared_ptr<atomdb_api_types::HandleList> RedisMongoDB::query_for_targets(const s
     return handle_list;
 }
 
-shared_ptr<atomdb_api_types::AtomDocument> RedisMongoDB::get_atom_document(const string& handle) {
+shared_ptr<atomdb_api_types::AtomDocument> RedisMongoDB::get_document(const string& handle,
+                                                                      const string& collection_name) {
     if (this->atomdb_cache != nullptr) {
         auto cache_result = this->atomdb_cache->get_atom_document(handle);
         if (cache_result.is_cache_hit) return cache_result.result;
     }
 
     auto conn = this->mongodb_pool->acquire();
-    auto mongodb_collection = (*conn)[MONGODB_DB_NAME][MONGODB_COLLECTION_NAME];
+    auto mongodb_collection = (*conn)[MONGODB_DB_NAME][collection_name];
     auto reply = mongodb_collection.find_one(bsoncxx::v_noabi::builder::basic::make_document(
         bsoncxx::v_noabi::builder::basic::kvp(MONGODB_FIELD_NAME[MONGODB_FIELD::ID], handle)));
 
@@ -258,8 +260,28 @@ shared_ptr<atomdb_api_types::AtomDocument> RedisMongoDB::get_atom_document(const
     return atom_document;
 }
 
-vector<shared_ptr<atomdb_api_types::AtomDocument>> RedisMongoDB::get_atom_documents(
-    const vector<string>& handles, const vector<string>& fields) {
+shared_ptr<atomdb_api_types::AtomDocument> RedisMongoDB::get_atom_document(const string& handle) {
+    auto node_document = get_node_document(handle);
+    if (node_document != nullptr) {
+        return node_document;
+    }
+    auto link_document = get_link_document(handle);
+    if (link_document != nullptr) {
+        return link_document;
+    }
+    return nullptr;
+}
+
+shared_ptr<atomdb_api_types::AtomDocument> RedisMongoDB::get_node_document(const string& handle) {
+    return get_document(handle, MONGODB_NODES_COLLECTION_NAME);
+}
+
+shared_ptr<atomdb_api_types::AtomDocument> RedisMongoDB::get_link_document(const string& handle) {
+    return get_document(handle, MONGODB_LINKS_COLLECTION_NAME);
+}
+
+vector<shared_ptr<atomdb_api_types::AtomDocument>> RedisMongoDB::get_documents(
+    const vector<string>& handles, const vector<string>& fields, const string& collection_name) {
     // TODO Add cache support for this method
     vector<shared_ptr<atomdb_api_types::AtomDocument>> atom_documents;
 
@@ -268,7 +290,7 @@ vector<shared_ptr<atomdb_api_types::AtomDocument>> RedisMongoDB::get_atom_docume
     }
 
     auto conn = this->mongodb_pool->acquire();
-    auto mongodb_collection = (*conn)[MONGODB_DB_NAME][MONGODB_COLLECTION_NAME];
+    auto mongodb_collection = (*conn)[MONGODB_DB_NAME][collection_name];
 
     try {
         // Process handles in batches
@@ -308,55 +330,109 @@ vector<shared_ptr<atomdb_api_types::AtomDocument>> RedisMongoDB::get_atom_docume
     return atom_documents;
 }
 
-bool RedisMongoDB::link_exists(const string& link_handle) {
+vector<shared_ptr<atomdb_api_types::AtomDocument>> RedisMongoDB::get_atom_documents(
+    const vector<string>& handles, const vector<string>& fields) {
+    auto documents = get_node_documents(handles, fields);
+    if (documents.size() == handles.size()) {
+        return documents;
+    }
+    auto link_documents = get_link_documents(handles, fields);
+    documents.insert(documents.end(), link_documents.begin(), link_documents.end());
+    return documents;
+}
+
+vector<shared_ptr<atomdb_api_types::AtomDocument>> RedisMongoDB::get_node_documents(
+    const vector<string>& handles, const vector<string>& fields) {
+    return get_documents(handles, fields, MONGODB_NODES_COLLECTION_NAME);
+}
+
+vector<shared_ptr<atomdb_api_types::AtomDocument>> RedisMongoDB::get_link_documents(
+    const vector<string>& handles, const vector<string>& fields) {
+    return get_documents(handles, fields, MONGODB_LINKS_COLLECTION_NAME);
+}
+
+bool RedisMongoDB::document_exists(const string& handle, const string& collection_name) {
     auto conn = this->mongodb_pool->acquire();
-    auto mongodb_collection = (*conn)[MONGODB_DB_NAME][MONGODB_COLLECTION_NAME];
+    auto mongodb_collection = (*conn)[MONGODB_DB_NAME][collection_name];
     auto reply = mongodb_collection.find_one(bsoncxx::v_noabi::builder::basic::make_document(
-        bsoncxx::v_noabi::builder::basic::kvp(MONGODB_FIELD_NAME[MONGODB_FIELD::ID], link_handle)));
-    return (reply != bsoncxx::v_noabi::stdx::nullopt &&
-            reply->view().find(MONGODB_FIELD_NAME[MONGODB_FIELD::TARGETS]) != reply->view().end());
+        bsoncxx::v_noabi::builder::basic::kvp(MONGODB_FIELD_NAME[MONGODB_FIELD::ID], handle)));
+    return reply != bsoncxx::v_noabi::stdx::nullopt;
+}
+
+bool RedisMongoDB::atom_exists(const string& atom_handle) {
+    return node_exists(atom_handle) || link_exists(atom_handle);
+}
+
+bool RedisMongoDB::node_exists(const string& node_handle) {
+    return document_exists(node_handle, MONGODB_NODES_COLLECTION_NAME);
+}
+
+bool RedisMongoDB::link_exists(const string& link_handle) {
+    return document_exists(link_handle, MONGODB_LINKS_COLLECTION_NAME);
+}
+
+set<string> RedisMongoDB::documents_exist(const vector<string>& handles, const string& collection_name) {
+    if (handles.empty()) return {};
+
+    auto conn = this->mongodb_pool->acquire();
+    auto mongodb_collection = (*conn)[MONGODB_DB_NAME][collection_name];
+
+    set<string> existing_handles;
+    try {
+        // Process handles in batches
+        uint handle_count = handles.size();
+        for (size_t i = 0; i < handles.size(); i += MONGODB_CHUNK_SIZE) {
+            size_t batch_size = min(MONGODB_CHUNK_SIZE, uint(handle_count - i));
+            // Build filter
+            bsoncxx::builder::stream::document filter_builder;
+            auto array = filter_builder << MONGODB_FIELD_NAME[MONGODB_FIELD::ID]
+                                        << bsoncxx::builder::stream::open_document << "$in"
+                                        << bsoncxx::builder::stream::open_array;
+            for (size_t j = i; j < (i + batch_size); j++) {
+                array << handles[j];
+            }
+            array << bsoncxx::builder::stream::close_array << bsoncxx::builder::stream::close_document;
+
+            auto cursor = mongodb_collection.find(filter_builder.view());
+
+            for (const auto& view : cursor) {
+                existing_handles.insert(
+                    view[MONGODB_FIELD_NAME[MONGODB_FIELD::ID]].get_string().value.data());
+            }
+        }
+    } catch (const exception& e) {
+        Utils::error("MongoDB error: " + string(e.what()));
+    }
+
+    return existing_handles;
+}
+
+set<string> RedisMongoDB::atoms_exist(const vector<string>& handles) {
+    auto nodes = nodes_exist(handles);
+    auto links = links_exist(handles);
+    nodes.insert(links.begin(), links.end());
+    return nodes;
+}
+
+set<string> RedisMongoDB::nodes_exist(const vector<string>& node_handles) {
+    return documents_exist(node_handles, MONGODB_NODES_COLLECTION_NAME);
 }
 
 set<string> RedisMongoDB::links_exist(const vector<string>& link_handles) {
-    if (link_handles.empty()) return {};
+    return documents_exist(link_handles, MONGODB_LINKS_COLLECTION_NAME);
+}
 
-    auto conn = this->mongodb_pool->acquire();
-    auto mongodb_collection = (*conn)[MONGODB_DB_NAME][MONGODB_COLLECTION_NAME];
-
-    bsoncxx::builder::basic::array handle_ids;
-    for (const auto& handle : link_handles) {
-        handle_ids.append(handle);
+string RedisMongoDB::add_atom(const atoms::Atom* atom) {
+    if (atom->arity() == 0) {
+        return add_node(dynamic_cast<const atoms::Node*>(atom));
+    } else {
+        return add_link(dynamic_cast<const atoms::Link*>(atom));
     }
-
-    bsoncxx::builder::basic::document filter_builder;
-    filter_builder.append(bsoncxx::builder::basic::kvp(
-        MONGODB_FIELD_NAME[MONGODB_FIELD::ID],
-        bsoncxx::builder::basic::make_document(bsoncxx::builder::basic::kvp("$in", handle_ids))));
-
-    // Only project _id and targets
-    bsoncxx::builder::basic::document projection_builder;
-    projection_builder.append(bsoncxx::builder::basic::kvp(MONGODB_FIELD_NAME[MONGODB_FIELD::ID], 1));
-    projection_builder.append(
-        bsoncxx::builder::basic::kvp(MONGODB_FIELD_NAME[MONGODB_FIELD::TARGETS], 1));
-
-    auto cursor = mongodb_collection.find(
-        filter_builder.view(), mongocxx::options::find{}.projection(projection_builder.view()));
-
-    set<string> existing_links;
-    for (const auto& view : cursor) {
-        auto it = view.find(MONGODB_FIELD_NAME[MONGODB_FIELD::TARGETS]);
-        if (it != view.end() && it->type() == bsoncxx::type::k_array) {
-            auto doc_id = view.find(MONGODB_FIELD_NAME[MONGODB_FIELD::ID]);
-            existing_links.insert(doc_id->get_string().value.data());
-        }
-    }
-
-    return existing_links;
 }
 
 string RedisMongoDB::add_node(const atoms::Node* node) {
     auto conn = this->mongodb_pool->acquire();
-    auto mongodb_collection = (*conn)[MONGODB_DB_NAME][MONGODB_COLLECTION_NAME];
+    auto mongodb_collection = (*conn)[MONGODB_DB_NAME][MONGODB_NODES_COLLECTION_NAME];
 
     auto mongodb_doc = atomdb_api_types::MongodbDocument(node);
     auto reply = mongodb_collection.insert_one(mongodb_doc.value());
@@ -368,9 +444,47 @@ string RedisMongoDB::add_node(const atoms::Node* node) {
     return node->handle();
 }
 
+string RedisMongoDB::add_link(const atoms::Link* link) {
+    auto conn = this->mongodb_pool->acquire();
+    auto mongodb_collection = (*conn)[MONGODB_DB_NAME][MONGODB_LINKS_COLLECTION_NAME];
+
+    auto existing_targets_count =
+        get_atom_documents(link->targets, {MONGODB_FIELD_NAME[MONGODB_FIELD::ID]}).size();
+    if (existing_targets_count != link->targets.size()) {
+        Utils::error("Failed to insert link: " + link->handle() + " has " +
+                     to_string(link->targets.size() - existing_targets_count) + " missing targets");
+        return "";
+    }
+
+    auto mongodb_doc = atomdb_api_types::MongodbDocument(link, *this);
+    auto reply = mongodb_collection.insert_one(mongodb_doc.value());
+
+    if (!reply) {
+        Utils::error("Failed to insert link into MongoDB");
+    }
+
+    return link->handle();
+}
+
+vector<string> RedisMongoDB::add_atoms(const vector<atoms::Atom*>& atoms) {
+    vector<Node*> nodes;
+    vector<Link*> links;
+    for (const auto& atom : atoms) {
+        if (atom->arity() == 0) {
+            nodes.push_back(dynamic_cast<atoms::Node*>(atom));
+        } else {
+            links.push_back(dynamic_cast<atoms::Link*>(atom));
+        }
+    }
+    auto node_handles = add_nodes(nodes);
+    auto link_handles = add_links(links);
+    node_handles.insert(node_handles.end(), link_handles.begin(), link_handles.end());
+    return node_handles;
+}
+
 vector<string> RedisMongoDB::add_nodes(const vector<atoms::Node*>& nodes) {
     auto conn = this->mongodb_pool->acquire();
-    auto mongodb_collection = (*conn)[MONGODB_DB_NAME][MONGODB_COLLECTION_NAME];
+    auto mongodb_collection = (*conn)[MONGODB_DB_NAME][MONGODB_NODES_COLLECTION_NAME];
 
     vector<bsoncxx::v_noabi::document::value> docs;
     vector<string> handles;
@@ -389,27 +503,26 @@ vector<string> RedisMongoDB::add_nodes(const vector<atoms::Node*>& nodes) {
     return handles;
 }
 
-string RedisMongoDB::add_link(const atoms::Link* link) {
-    auto conn = this->mongodb_pool->acquire();
-    auto mongodb_collection = (*conn)[MONGODB_DB_NAME][MONGODB_COLLECTION_NAME];
-
-    auto mongodb_doc = atomdb_api_types::MongodbDocument(link, *this);
-    auto reply = mongodb_collection.insert_one(mongodb_doc.value());
-
-    if (!reply) {
-        Utils::error("Failed to insert link into MongoDB");
+vector<string> RedisMongoDB::add_links(const vector<atoms::Link*>& links) {
+    vector<Link*> links_to_insert;
+    for (const auto& link : links) {
+        if (get_atom_documents(link->targets, {MONGODB_FIELD_NAME[MONGODB_FIELD::ID]}).size() !=
+            link->targets.size()) {
+            continue;
+        }
+        links_to_insert.push_back(link);
     }
 
-    return link->handle();
-}
+    if (links_to_insert.empty()) {
+        return {};
+    }
 
-vector<string> RedisMongoDB::add_links(const vector<atoms::Link*>& links) {
     auto conn = this->mongodb_pool->acquire();
-    auto mongodb_collection = (*conn)[MONGODB_DB_NAME][MONGODB_COLLECTION_NAME];
+    auto mongodb_collection = (*conn)[MONGODB_DB_NAME][MONGODB_LINKS_COLLECTION_NAME];
 
     vector<bsoncxx::v_noabi::document::value> docs;
     vector<string> handles;
-    for (const auto& link : links) {
+    for (const auto& link : links_to_insert) {
         auto mongodb_doc = atomdb_api_types::MongodbDocument(link, *this);
         handles.push_back(link->handle());
         docs.push_back(mongodb_doc.value());
@@ -424,17 +537,30 @@ vector<string> RedisMongoDB::add_links(const vector<atoms::Link*>& links) {
     return handles;
 }
 
-bool RedisMongoDB::delete_atom(const string& handle) {
+bool RedisMongoDB::delete_document(const string& handle, const string& collection_name) {
     auto conn = this->mongodb_pool->acquire();
-    auto mongodb_collection = (*conn)[MONGODB_DB_NAME][MONGODB_COLLECTION_NAME];
+    auto mongodb_collection = (*conn)[MONGODB_DB_NAME][collection_name];
     auto reply = mongodb_collection.delete_one(bsoncxx::v_noabi::builder::basic::make_document(
         bsoncxx::v_noabi::builder::basic::kvp(MONGODB_FIELD_NAME[MONGODB_FIELD::ID], handle)));
     return reply->deleted_count() > 0;
 }
 
-uint RedisMongoDB::delete_atoms(const vector<string>& handles) {
+bool RedisMongoDB::delete_atom(const string& handle) {
+    return delete_document(handle, MONGODB_NODES_COLLECTION_NAME) ||
+           delete_document(handle, MONGODB_LINKS_COLLECTION_NAME);
+}
+
+bool RedisMongoDB::delete_node(const string& handle) {
+    return delete_document(handle, MONGODB_NODES_COLLECTION_NAME);
+}
+
+bool RedisMongoDB::delete_link(const string& handle) {
+    return delete_document(handle, MONGODB_LINKS_COLLECTION_NAME);
+}
+
+uint RedisMongoDB::delete_documents(const vector<string>& handles, const string& collection_name) {
     auto conn = this->mongodb_pool->acquire();
-    auto mongodb_collection = (*conn)[MONGODB_DB_NAME][MONGODB_COLLECTION_NAME];
+    auto mongodb_collection = (*conn)[MONGODB_DB_NAME][collection_name];
 
     bsoncxx::builder::basic::array handle_ids;
     for (const auto& handle : handles) {
@@ -449,4 +575,18 @@ uint RedisMongoDB::delete_atoms(const vector<string>& handles) {
     auto filter = filter_builder.extract();
     auto reply = mongodb_collection.delete_many(filter.view());
     return reply->deleted_count();
+}
+
+uint RedisMongoDB::delete_atoms(const vector<string>& handles) {
+    auto nodes = delete_nodes(handles);
+    auto links = delete_links(handles);
+    return nodes + links;
+}
+
+uint RedisMongoDB::delete_nodes(const vector<string>& handles) {
+    return delete_documents(handles, MONGODB_NODES_COLLECTION_NAME);
+}
+
+uint RedisMongoDB::delete_links(const vector<string>& handles) {
+    return delete_documents(handles, MONGODB_LINKS_COLLECTION_NAME);
 }
