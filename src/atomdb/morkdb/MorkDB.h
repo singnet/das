@@ -40,7 +40,7 @@ class MorkDB : public RedisMongoDB {
     ~MorkDB();
 
     shared_ptr<atomdb_api_types::HandleSet> query_for_pattern(
-        const LinkTemplateInterface& link_template) override;
+        const LinkSchema& link_schema) override;
 
    private:
     shared_ptr<AtomDBCache> atomdb_cache;

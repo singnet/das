@@ -27,9 +27,6 @@ namespace query_element {
  */
 class LinkTemplate : public QueryElement {
 
-    // TODO: This method should be implemented
-    string get_metta_expression() const override { return "(EVALUATION $x $y)"; }
-
    private:
 
     class SourceElement: public Source {
