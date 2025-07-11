@@ -337,7 +337,14 @@ vector<shared_ptr<atomdb_api_types::AtomDocument>> RedisMongoDB::get_atom_docume
     if (documents.size() == handles.size()) {
         return documents;
     }
-    auto link_documents = get_link_documents(handles, fields);
+    vector<string> missing_handles;
+    for (const auto& document : documents) {
+        auto handle = document->get(MONGODB_FIELD_NAME[MONGODB_FIELD::ID]);
+        if (find(handles.begin(), handles.end(), handle) == handles.end())
+            missing_handles.push_back(handle);
+    }
+    if (missing_handles.empty()) return documents;
+    auto link_documents = get_link_documents(missing_handles, fields);
     documents.insert(documents.end(), link_documents.begin(), link_documents.end());
     return documents;
 }
@@ -446,9 +453,6 @@ string RedisMongoDB::add_node(const atoms::Node* node) {
 }
 
 string RedisMongoDB::add_link(const atoms::Link* link) {
-    auto conn = this->mongodb_pool->acquire();
-    auto mongodb_collection = (*conn)[MONGODB_DB_NAME][MONGODB_LINKS_COLLECTION_NAME];
-
     auto existing_targets_count =
         get_atom_documents(link->targets, {MONGODB_FIELD_NAME[MONGODB_FIELD::ID]}).size();
 
@@ -458,6 +462,8 @@ string RedisMongoDB::add_link(const atoms::Link* link) {
         return "";
     }
 
+    auto conn = this->mongodb_pool->acquire();
+    auto mongodb_collection = (*conn)[MONGODB_DB_NAME][MONGODB_LINKS_COLLECTION_NAME];
     auto mongodb_doc = atomdb_api_types::MongodbDocument(link, *this);
     auto reply = mongodb_collection.insert_one(mongodb_doc.value());
 
