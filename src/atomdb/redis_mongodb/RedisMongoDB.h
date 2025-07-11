@@ -106,6 +106,8 @@ class RedisMongoDB : public AtomDB {
     RedisContextPool* redis_pool;
     mongocxx::pool* mongodb_pool;
     shared_ptr<AtomDBCache> atomdb_cache;
+    atomic<uint> patterns_next_score{0};
+    atomic<uint> incoming_set_next_score{0};
 
     shared_ptr<atomdb_api_types::AtomDocument> get_document(const string& handle,
                                                             const string& collection_name);

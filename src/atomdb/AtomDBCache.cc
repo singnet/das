@@ -55,3 +55,23 @@ void AtomDBCache::add_handle_list(const string& link_handle,
     lock_guard<mutex> lock(handle_list_cache_mutex);
     handle_list_cache[link_handle] = results;
 }
+
+AtomDBCache::QueryForIncomingResult AtomDBCache::query_for_incoming(const string& handle) {
+    lock_guard<mutex> lock(incoming_cache_mutex);
+    if (incoming_cache.find(handle) != incoming_cache.end()) {
+        LOG_DEBUG("cache hit " << handle);
+        return {true, incoming_cache[handle]};
+    }
+    LOG_DEBUG("cache miss " << handle);
+    return {false, nullptr};
+}
+
+void AtomDBCache::add_incoming(const string& handle, shared_ptr<atomdb_api_types::HandleSet> results) {
+    lock_guard<mutex> lock(incoming_cache_mutex);
+    incoming_cache[handle] = results;
+}
+
+void AtomDBCache::erase_incoming_cache(const string& handle) {
+    lock_guard<mutex> lock(incoming_cache_mutex);
+    incoming_cache.erase(handle);
+}

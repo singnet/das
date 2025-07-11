@@ -424,8 +424,9 @@ TEST_F(RedisMongoDBTest, DeleteNodesAndLinks) {
     auto links_exist = db->links_exist(links_handles);
     EXPECT_EQ(links_exist.size(), links.size());
 
-    EXPECT_EQ(db->delete_nodes(nodes_handles), nodes.size());
     EXPECT_EQ(db->delete_links(links_handles), links.size());
+    // Deleting nodes first will delete the links (via incoming set deletion, as nodes are referenced by links).
+    EXPECT_EQ(db->delete_nodes(nodes_handles), nodes.size());
 
     auto nodes_exist_after_delete = db->nodes_exist(nodes_handles);
     EXPECT_EQ(nodes_exist_after_delete.size(), 0);
