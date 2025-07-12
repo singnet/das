@@ -253,6 +253,10 @@ main() {
         done
         echo -e "\r\033[K${GREEN}Benchmark for AtomDB $type completed!${RESET}"
     done
+
+    # process_reports
+
+    echo -e "\r\033[K${GREEN}See the Benchmark consolidated report: /tmp/benchmarck_scenario_${SCENARIO_NAME}_$(date +%Y%m%d%H%M%S) ${RESET}"
 }
 
 main "$@"

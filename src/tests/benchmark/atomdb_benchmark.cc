@@ -70,10 +70,10 @@ map<string, double> latency_statistics(vector<double>& latencies) {
     return {{"mean", mean}, {"min", min_ms}, {"max", max_ms}, {"p50", p50}, {"p90", p90}, {"p99", p99}};
 }
 
-void create_latency_report(map<string, double>& node_stats,
-                           map<string, double>& link_stats,
-                           string& db_name,
-                           int tid) {
+void create_report(const string& db_name,
+                   const string& action,
+                   int tid,
+                   vector<pair<string, map<string, double>>>& stats) {
     stringstream table;
     table << fixed << setprecision(5);
     table << left;
@@ -98,19 +98,14 @@ void create_latency_report(map<string, double>& node_stats,
     }
     table << "\n";
 
-    table << setw(col1) << "add_node"
-          << "| " << setw(colN) << node_stats["mean"] << "| " << setw(colN) << node_stats["min"] << "| "
-          << setw(colN) << node_stats["max"] << "| " << setw(colN) << node_stats["p50"] << "| "
-          << setw(colN) << node_stats["p90"] << "| " << setw(colN) << node_stats["p99"] << "| "
-          << "\n";
-
-    table << setw(col1) << "add_link"
-          << "| " << setw(colN) << link_stats["mean"] << "| " << setw(colN) << link_stats["min"] << "| "
-          << setw(colN) << link_stats["max"] << "| " << setw(colN) << link_stats["p50"] << "| "
-          << setw(colN) << link_stats["p90"] << "| " << setw(colN) << link_stats["p99"] << "| "
-          << "\n";
-
-    string filename = "/tmp/benchmark_add_atom_" + db_name + "_thread_" + to_string(tid) + ".txt";
+    for (const auto& [operation, inner_map] : stats) {
+        table << setw(col1) << operation << "| " << setw(colN) << inner_map.at("mean") << "| "
+              << setw(colN) << inner_map.at("min") << "| " << setw(colN) << inner_map.at("max") << "| "
+              << setw(colN) << inner_map.at("p50") << "| " << setw(colN) << inner_map.at("p90") << "| "
+              << setw(colN) << inner_map.at("p99") << "| "
+              << "\n";
+    }
+    string filename = "/tmp/benchmark_" + action + "_" + db_name + "_thread_" + to_string(tid) + ".txt";
 
     ofstream outfile(filename);
     if (outfile.is_open()) {
@@ -144,6 +139,7 @@ string get_type_name(const T& obj) {
 void add_atom(int tid, shared_ptr<AtomDB> db, int iterations) {
     vector<double> latencies;
     latencies.reserve(iterations);
+    vector<pair<string, map<string, double>>> stats;
 
     for (int i = 0; i < iterations; ++i) {
         auto node_a = new Node(
@@ -157,6 +153,7 @@ void add_atom(int tid, shared_ptr<AtomDB> db, int iterations) {
         latencies.push_back(ms);
     }
     auto node_stats = latency_statistics(latencies);
+    stats.push_back({"add_node", node_stats});
 
     latencies.clear();
     latencies.reserve(iterations);
@@ -182,10 +179,11 @@ void add_atom(int tid, shared_ptr<AtomDB> db, int iterations) {
         latencies.push_back(ms);
     }
     auto link_stats = latency_statistics(latencies);
+    stats.push_back({"add_link", link_stats});
 
     string db_name = get_type_name(*db);
 
-    create_latency_report(node_stats, link_stats, db_name, tid);
+    create_report(db_name, "add_atom", tid, stats);
 }
 
 void add_atoms(int tid, shared_ptr<AtomDB> db, int iterations) {
@@ -278,11 +276,9 @@ int main(int argc, char** argv) {
     for (int t = 0; t < concurrency; t++) {
         threads.emplace_back(worker, t, atomdb);
     }
-    // auto t_start = Clock::now();
     for (auto& th : threads) {
         th.join();
     }
-    // auto t_end = Clock::now();
 
     return 0;
 }
