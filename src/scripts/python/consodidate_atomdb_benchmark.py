@@ -3,7 +3,14 @@ import re
 from collections import defaultdict
 
 DEFAULT_COL_ORDER = [
-    "Backend", "Operation", "Mean (ms)", "Min (ms)", "Max (ms)", "P50 (ms)", "P90 (ms)", "P99 (ms)"
+    "Backend",
+    "Operation",
+    "Mean (ms)",
+    "Min (ms)",
+    "Max (ms)",
+    "P50 (ms)",
+    "P90 (ms)",
+    "P99 (ms)",
 ]
 
 
@@ -91,6 +98,7 @@ def write_report(results, output_file):
 
 if __name__ == "__main__":
     import argparse
+
     parser = argparse.ArgumentParser(description="Consolidate benchmarks.")
     parser.add_argument("directory", help="Directory with benchmark files")
     parser.add_argument("-o", "--output", default="consolidated_report.txt", help="Output file")
