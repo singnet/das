@@ -114,7 +114,7 @@ void create_report(const string& db_name, const string& action, map<string, vect
               << setw(colN) << inner_map.at("p99") << "| "
               << "\n";
     }
-    string filename = "/tmp/benchmark_" + db_name + "_" + action + ".txt";
+    string filename = "/tmp/atomdb_benchmark/" + db_name + "_" + action + ".txt";
 
     ofstream outfile(filename);
     if (outfile.is_open()) {

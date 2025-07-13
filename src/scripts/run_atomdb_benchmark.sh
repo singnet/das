@@ -180,69 +180,8 @@ print_scenario() {
     echo "actions=${ACTIONS[*]}"
 }
 
-
-# mainBeautiful() {
-#     parse_args "$@"
-
-#     map_metta_params "$DB" "$REL"
-
-#     echo -en "${YELLOW}Setting the the test scenario...${RESET}"
-#     load_scenario_definition
-#     ret=$?
-#     if [[ $ret -eq 0 ]]; then
-#         echo -e "\r\033[K${GREEN}Setting the the test scenario...OK${RESET}"
-#         print_scenario
-#     else
-#         echo -e "\r\033[K${RED}Setting the the test scenario...FAILED (exit code $ret)${RESET}"
-#         exit $ret
-#     fi
-
-#     echo -en "${YELLOW}Generating MeTTa file...${RESET}"
-#     output=$(generate_metta_file "$SENTENCES" "$WORD_COUNT" "$WORD_LENGTH" "$ALPHABET_RANGE" 2>&1)
-#     ret=$?
-#     if [[ $ret -eq 0 ]]; then
-#         echo -e "\r\033[K${GREEN}Generating MeTTa file...OK${RESET}"
-#         echo "$output"
-#     else
-#         echo "\r\033[K${RED}Generating MeTTa file...FAILED (exit code $ret)${RESET}"
-#         echo "$output" >&2
-#         exit $ret
-#     fi
-
-#     echo -en "${YELLOW}Initializing the environment...${RESET}"
-#     output=$(init_environment 2>&1)
-#     ret=$?
-#     if [[ $ret -eq 0 ]]; then
-#         echo -e "\r\033[K${GREEN}Initializing the environment...OK${RESET}"
-#         echo "$output"
-#     else
-#         echo -e "\r\033[K${RED}Initializing the environment...FAILED (exit code $ret)${RESET}"
-#         echo "$output" >&2
-#         exit $ret
-#     fi
-
-#     echo -en "${YELLOW}Running benchmark tests...${RESET}"
-#     # run_benchmark
-#     ret=$?
-#     echo "return_CMD $ret"
-#     if [[ $ret -eq 0 ]]; then
-#         echo -e "\r\033[K${GREEN}Running benchmark tests...OK${RESET}"
-#         echo "$output"
-#         echo $ret
-#     else
-#         echo -e "\r\033[K${RED}Running benchmark tests...FAILED (exit code $ret)${RESET}"
-#         echo "$output" >&2
-#         echo $ret
-#     fi
-
-# }
-
-main() {
-    parse_args "$@"
-    map_metta_params "$DB" "$REL"
-    load_scenario_definition
-    print_scenario
-    generate_metta_file "$SENTENCES" "$WORD_COUNT" "$WORD_LENGTH" "$ALPHABET_RANGE"
+run_benchmark() {
+    mkdir -p /tmp/atomdb_benchmark
     
     for type in "${ATOMDB_TYPES[@]}"; do
         echo -e "\n== Running benchmarks for AtomDB type: $type =="      
@@ -253,10 +192,23 @@ main() {
         done
         echo -e "\r\033[K${GREEN}Benchmark for AtomDB $type completed!${RESET}"
     done
+}
 
-    # process_reports
 
-    echo -e "\r\033[K${GREEN}See the Benchmark consolidated report: /tmp/benchmarck_scenario_${SCENARIO_NAME}_$(date +%Y%m%d%H%M%S) ${RESET}"
+consolidate_reports() {
+    OUTPUT_DIR="/tmp/atomdb_benchmark/scenario_${SCENARIO_NAME}_$(date +%Y%m%d%H%M%S)"
+    python3 ./src/scripts/python/consodidate_atomdb_benchmark.py /tmp/atomdb_benchmark -o "$OUTPUT_DIR"
+    echo -e "\r\033[K${GREEN}Consolidated reports saved to: $OUTPUT_DIR${RESET}"
+}
+
+main() {
+    parse_args "$@"
+    map_metta_params "$DB" "$REL"
+    load_scenario_definition
+    print_scenario
+    generate_metta_file "$SENTENCES" "$WORD_COUNT" "$WORD_LENGTH" "$ALPHABET_RANGE"
+    run_benchmark
+    consolidate_reports
 }
 
 main "$@"
