@@ -9,6 +9,7 @@
 #include <iostream>
 #include <map>
 #include <memory>
+#include <mutex>
 #include <numeric>
 #include <random>
 #include <sstream>
@@ -31,6 +32,9 @@ using namespace atomdb;
 
 using Clock = chrono::steady_clock;
 
+mutex global_mutex;
+map<string, vector<double>> global_latencies;
+
 // Calculates the percentile (0.0 to 1.0) of the sorted vector using linear interpolation.
 double compute_percentile(const vector<double>& vec, double percentile_fraction) {
     if (vec.empty()) {
@@ -52,28 +56,31 @@ double compute_percentile(const vector<double>& vec, double percentile_fraction)
         return vec[lower_index];  // Edge case
 };
 
-map<string, double> latency_statistics(vector<double>& latencies) {
-    if (latencies.empty()) {
-        Utils::error("latencies vector is empty");
+map<string, map<string, double>> latency_statistics(map<string, vector<double>>& latencies) {
+    map<string, map<string, double>> stats;
+    for (auto& [operation, vec] : latencies) {
+        if (vec.empty()) {
+            Utils::error("latencies for operation '" + operation + "' are empty");
+        }
+
+        double sum = accumulate(vec.begin(), vec.end(), 0.0);
+        double mean = sum / vec.size();
+
+        sort(vec.begin(), vec.end());
+
+        double min_ms = vec.front();
+        double max_ms = vec.back();
+        double p50 = compute_percentile(vec, 0.50);
+        double p90 = compute_percentile(vec, 0.90);
+        double p99 = compute_percentile(vec, 0.99);
+
+        stats[operation] = {
+            {"mean", mean}, {"min", min_ms}, {"max", max_ms}, {"p50", p50}, {"p90", p90}, {"p99", p99}};
     }
-    double sum = accumulate(latencies.begin(), latencies.end(), 0.0);
-    double mean = sum / latencies.size();
-
-    sort(latencies.begin(), latencies.end());
-
-    double min_ms = latencies.front();
-    double max_ms = latencies.back();
-    double p50 = compute_percentile(latencies, 0.50);
-    double p90 = compute_percentile(latencies, 0.90);
-    double p99 = compute_percentile(latencies, 0.99);
-
-    return {{"mean", mean}, {"min", min_ms}, {"max", max_ms}, {"p50", p50}, {"p90", p90}, {"p99", p99}};
+    return stats;
 }
 
-void create_report(const string& db_name,
-                   const string& action,
-                   int tid,
-                   vector<pair<string, map<string, double>>>& stats) {
+void create_report(const string& db_name, const string& action, map<string, vector<double>>& latencies) {
     stringstream table;
     table << fixed << setprecision(5);
     table << left;
@@ -98,6 +105,8 @@ void create_report(const string& db_name,
     }
     table << "\n";
 
+    map<string, map<string, double>> stats = latency_statistics(latencies);
+
     for (const auto& [operation, inner_map] : stats) {
         table << setw(col1) << operation << "| " << setw(colN) << inner_map.at("mean") << "| "
               << setw(colN) << inner_map.at("min") << "| " << setw(colN) << inner_map.at("max") << "| "
@@ -105,7 +114,7 @@ void create_report(const string& db_name,
               << setw(colN) << inner_map.at("p99") << "| "
               << "\n";
     }
-    string filename = "/tmp/benchmark_" + action + "_" + db_name + "_thread_" + to_string(tid) + ".txt";
+    string filename = "/tmp/benchmark_" + db_name + "_" + action + ".txt";
 
     ofstream outfile(filename);
     if (outfile.is_open()) {
@@ -137,9 +146,11 @@ string get_type_name(const T& obj) {
 }
 
 void add_atom(int tid, shared_ptr<AtomDB> db, int iterations) {
-    vector<double> latencies;
-    latencies.reserve(iterations);
-    vector<pair<string, map<string, double>>> stats;
+    vector<double> local_add_node_latencies;
+    vector<double> local_add_link_latencies;
+
+    local_add_node_latencies.reserve(iterations);
+    local_add_link_latencies.reserve(iterations);
 
     for (int i = 0; i < iterations; ++i) {
         auto node_a = new Node(
@@ -150,13 +161,8 @@ void add_atom(int tid, shared_ptr<AtomDB> db, int iterations) {
         auto t1 = Clock::now();
 
         double ms = chrono::duration<double, milli>(t1 - t0).count();
-        latencies.push_back(ms);
+        local_add_node_latencies.push_back(ms);
     }
-    auto node_stats = latency_statistics(latencies);
-    stats.push_back({"add_node", node_stats});
-
-    latencies.clear();
-    latencies.reserve(iterations);
 
     for (int i = 0; i < iterations; i++) {
         auto node_equivalence =
@@ -176,14 +182,16 @@ void add_atom(int tid, shared_ptr<AtomDB> db, int iterations) {
         auto t1 = Clock::now();
 
         double ms = chrono::duration<double, milli>(t1 - t0).count();
-        latencies.push_back(ms);
+        local_add_link_latencies.push_back(ms);
     }
-    auto link_stats = latency_statistics(latencies);
-    stats.push_back({"add_link", link_stats});
 
-    string db_name = get_type_name(*db);
-
-    create_report(db_name, "add_atom", tid, stats);
+    lock_guard<mutex> lock(global_mutex);
+    global_latencies["add_node"].insert(global_latencies["add_node"].end(),
+                                        local_add_node_latencies.begin(),
+                                        local_add_node_latencies.end());
+    global_latencies["add_link"].insert(global_latencies["add_link"].end(),
+                                        local_add_link_latencies.begin(),
+                                        local_add_link_latencies.end());
 }
 
 void add_atoms(int tid, shared_ptr<AtomDB> db, int iterations) {
@@ -279,6 +287,8 @@ int main(int argc, char** argv) {
     for (auto& th : threads) {
         th.join();
     }
+
+    create_report(get_type_name(*atomdb), action, global_latencies);
 
     return 0;
 }
