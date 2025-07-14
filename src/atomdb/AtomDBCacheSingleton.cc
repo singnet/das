@@ -25,9 +25,3 @@ shared_ptr<AtomDBCache> AtomDBCacheSingleton::get_instance() {
     }
     return AtomDBCacheSingleton::atom_db_cache;
 }
-
-void AtomDBCacheSingleton::reset() {
-    // Utils::warning("Resetting AtomDBCacheSingleton...");
-    AtomDBCacheSingleton::atom_db_cache.reset();
-    AtomDBCacheSingleton::initialized = false;
-}
