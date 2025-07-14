@@ -10,7 +10,7 @@
 #include <vector>
 
 #include "AtomDBSingleton.h"
-#include "LinkTemplateInterface.h"
+#include "LinkSchema.h"
 
 using namespace atomdb;
 using namespace atoms;
@@ -56,27 +56,34 @@ class MorkDBTest : public ::testing::Test {
     shared_ptr<MorkDB> db;
 };
 
-class LinkTemplateMetta : public LinkTemplateInterface {
-   public:
-    LinkTemplateMetta(const string metta_expr) : metta_expr(metta_expr) {}
-    const char* get_handle() const override { return ""; }
-    string get_metta_expression() const override { return metta_expr; }
-
-   private:
-    const string metta_expr;
-};
+static string expression = "Expression";
+static string symbol = "Symbol";
+static string link_template = "LINK_TEMPLATE";
+static string node = "NODE";
+static string variable = "VARIABLE";
+static string inheritance = "Inheritance";
+static string similarity = "Similarity";
+static string human = "\"human\"";
+static string monkey = "\"monkey\"";
+static string chimp = "\"chimp\"";
+static string rhino = "\"rhino\"";
+static string mammal = "\"mammal\"";
 
 TEST_F(MorkDBTest, QueryForPattern) {
-    string handle_1 = exp_hash({"Inheritance", "\"human\"", "\"mammal\""});
-    string handle_2 = exp_hash({"Inheritance", "\"monkey\"", "\"mammal\""});
-    string handle_3 = exp_hash({"Inheritance", "\"chimp\"", "\"mammal\""});
-    string handle_4 = exp_hash({"Inheritance", "\"rhino\"", "\"mammal\""});
+    string handle_1 = exp_hash({inheritance, human, mammal});
+    string handle_2 = exp_hash({inheritance, monkey, mammal});
+    string handle_3 = exp_hash({inheritance, chimp, mammal});
+    string handle_4 = exp_hash({inheritance, rhino, mammal});
 
-    string metta = R"((Inheritance $x "mammal"))";
+    // clang-format off
+    LinkSchema link_schema({
+        link_template, expression, "3", 
+            node, symbol, inheritance, 
+            variable, "$x",
+            node, symbol, mammal});
+    // clang-format on
 
-    auto link_template = new LinkTemplateMetta(metta);
-    auto result = db->query_for_pattern(*link_template);
-    delete link_template;
+    auto result = db->query_for_pattern(link_schema);
 
     ASSERT_EQ(result->size(), 4);
 
@@ -129,14 +136,17 @@ TEST_F(MorkDBTest, ConcurrentQueryForPattern) {
 
     auto worker = [&](int thread_id) {
         try {
-            string metta = R"((Similarity $x $y))";
-
-            auto link_template = new LinkTemplateMetta(metta);
-            auto handle_set = db->query_for_pattern(*link_template);
+            // clang-format off
+            LinkSchema link_schema({
+                link_template, expression, "3", 
+                    node, symbol, similarity, 
+                    variable, "$x",
+                    variable, "$y"});
+            // clang-format on
+            auto handle_set = db->query_for_pattern(link_schema);
             ASSERT_NE(handle_set, nullptr);
             ASSERT_EQ(handle_set->size(), 14);
             success_count++;
-            delete link_template;
         } catch (const exception& e) {
             cout << "Thread " << thread_id << " failed with error: " << e.what() << endl;
         }
@@ -153,10 +163,14 @@ TEST_F(MorkDBTest, ConcurrentQueryForPattern) {
     EXPECT_EQ(success_count, num_threads);
 
     // // Test non-existing pattern
-    string metta = R"((Fake $x $y))";
-    auto link_template = new LinkTemplateMetta(metta);
-    auto handle_set = db->query_for_pattern(*link_template);
-    delete link_template;
+    // clang-format off
+    LinkSchema link_schema({
+        link_template, expression, "3", 
+            node, symbol, "Fake", 
+            variable, "$x",
+            variable, "$y"});
+    // clang-format on
+    auto handle_set = db->query_for_pattern(link_schema);
     EXPECT_EQ(handle_set->size(), 0);
 }
 

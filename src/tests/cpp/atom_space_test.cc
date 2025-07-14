@@ -67,7 +67,7 @@ class MockAtomDB : public AtomDB {
     map<string, shared_ptr<AtomDocument>> docs;
 
     // AtomDB interface implementation
-    shared_ptr<HandleSet> query_for_pattern(const LinkTemplateInterface&) override { return nullptr; }
+    shared_ptr<HandleSet> query_for_pattern(const LinkSchema&) override { return nullptr; }
     shared_ptr<HandleList> query_for_targets(const string&) override { return nullptr; }
 
     map<string, Atom*> atoms;

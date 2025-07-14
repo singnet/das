@@ -6,6 +6,7 @@
 #include "LinkTemplate.h"
 #include "QueryAnswer.h"
 #include "QueryNode.h"
+#include "Terminal.h"
 #include "gtest/gtest.h"
 #include "test_utils.h"
 
@@ -87,9 +88,9 @@ TEST(Iterator, link_template_integration) {
     auto similarity = make_shared<Terminal>(symbol, "Similarity");
     auto human = make_shared<Terminal>(symbol, "\"human\"");
 
-    auto link_template = make_shared<LinkTemplate<3>>(
-        "Expression", array<shared_ptr<QueryElement>, 3>({similarity, human, v1}));
-    Iterator query_answer_iterator(link_template);
+    LinkTemplate* link_template = new LinkTemplate("Expression", {similarity, human, v1}, "", false);
+    link_template->build();
+    Iterator query_answer_iterator(link_template->get_source_element());
 
     string monkey_handle = string(terminal_hash((char*) symbol.c_str(), (char*) "\"monkey\""));
     string chimp_handle = string(terminal_hash((char*) symbol.c_str(), (char*) "\"chimp\""));
