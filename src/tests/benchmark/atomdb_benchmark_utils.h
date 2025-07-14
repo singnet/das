@@ -20,7 +20,7 @@ double compute_percentile(const vector<double>& vec, double percentile_fraction)
 // Compute latency statistics for each operation
 map<string, map<string, double>> latency_statistics(map<string, vector<double>>& latencies);
 
-// Create a report for the given latencies (may need to adjust types for your usage)
+// Create a report for the given latencies
 void create_report(const string& db_name, const string& action, map<string, vector<double>>& latencies);
 
 // Get demangled type name of an object
