@@ -4,6 +4,7 @@
 #include "LinkTemplate.h"
 #include "QueryAnswer.h"
 #include "QueryNode.h"
+#include "Hasher.h"
 #include "Terminal.h"
 #include "gtest/gtest.h"
 #include "test_utils.h"
@@ -30,7 +31,8 @@ TEST(LinkTemplate, basics) {
     auto v1 = make_shared<Terminal>("v1");
     auto v2 = make_shared<Terminal>("v2");
     auto v3 = make_shared<Terminal>("v3");
-    auto similarity = make_shared<Terminal>(symbol, "Similarity");
+    auto similarity = make_shared<Terminal>();
+    similarity->handle = Hasher::node_handle(symbol, "Similarity");
     auto human = make_shared<Terminal>(symbol, "\"human\"");
 
     LinkTemplate link_template1("Expression", {similarity, human, v1}, "", false);
