@@ -37,11 +37,15 @@ void LinkTemplate::recursive_build(shared_ptr<QueryElement> element, LinkSchema&
             link_schema.stack_untyped_variable(terminal->name);
         } else if (terminal->is_node) {
             link_schema.stack_node(terminal->type, terminal->name);
+        } else if (terminal->is_atom) {
+            link_schema.stack_atom(terminal->handle);
         } else if (terminal->is_link) {
             for (auto target : terminal->targets) {
                 recursive_build(target, link_schema);
             }
             link_schema.stack_link(terminal->type, terminal->targets.size());
+        } else {
+            Utils::error("Invalid terminal");
         }
     } else {
         // is an inner LinkTemplate
