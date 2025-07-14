@@ -134,9 +134,15 @@ class MockAtomDB : public AtomDB {
     bool delete_node(const string& handle, bool delete_link_targets = false) override { return false; }
     bool delete_link(const string& handle, bool delete_link_targets = false) override { return false; }
 
-    uint delete_atoms(const vector<string>& handles, bool delete_link_targets = false) override { return 0; }
-    uint delete_nodes(const vector<string>& handles, bool delete_link_targets = false) override { return 0; }
-    uint delete_links(const vector<string>& handles, bool delete_link_targets = false) override { return 0; }
+    uint delete_atoms(const vector<string>& handles, bool delete_link_targets = false) override {
+        return 0;
+    }
+    uint delete_nodes(const vector<string>& handles, bool delete_link_targets = false) override {
+        return 0;
+    }
+    uint delete_links(const vector<string>& handles, bool delete_link_targets = false) override {
+        return 0;
+    }
 
     shared_ptr<Atom> get_atom(const string& handle) { return shared_ptr<Atom>(this->atoms[handle]); }
 
