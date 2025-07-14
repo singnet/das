@@ -1,9 +1,9 @@
 #include "AtomDBSingleton.h"
+#include "Hasher.h"
 #include "PatternMatchingQueryProcessor.h"
 #include "PatternMatchingQueryProxy.h"
 #include "ServiceBus.h"
 #include "Utils.h"
-#include "Hasher.h"
 #include "gtest/gtest.h"
 
 #define LOG_LEVEL INFO_LEVEL

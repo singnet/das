@@ -27,7 +27,6 @@ using namespace atomdb;
 string PatternMatchingQueryProcessor::AND = "AND";
 string PatternMatchingQueryProcessor::OR = "OR";
 
-
 // -------------------------------------------------------------------------------------------------
 // Constructors and destructors
 
@@ -231,8 +230,7 @@ shared_ptr<QueryElement> PatternMatchingQueryProcessor::setup_query_tree(
             (query_tokens[cursor] == LinkSchema::NODE)) {
             cursor += 3;
         } else if ((query_tokens[cursor] == LinkSchema::UNTYPED_VARIABLE) ||
-                   (query_tokens[cursor] == LinkSchema::ATOM) ||
-                   (query_tokens[cursor] == AND) ||
+                   (query_tokens[cursor] == LinkSchema::ATOM) || (query_tokens[cursor] == AND) ||
                    (query_tokens[cursor] == OR)) {
             cursor += 2;
         } else {

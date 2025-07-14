@@ -1,10 +1,10 @@
 #include <cstdlib>
 
 #include "AtomDBSingleton.h"
+#include "Hasher.h"
 #include "LinkTemplate.h"
 #include "QueryAnswer.h"
 #include "QueryNode.h"
-#include "Hasher.h"
 #include "Terminal.h"
 #include "gtest/gtest.h"
 #include "test_utils.h"

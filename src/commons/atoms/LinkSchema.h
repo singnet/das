@@ -46,7 +46,6 @@ class LinkSchema : public Wildcard {
         unsigned int cursor);
 
    public:
-
     static string LINK_TEMPLATE;
     static string ATOM;
     static string NODE;
