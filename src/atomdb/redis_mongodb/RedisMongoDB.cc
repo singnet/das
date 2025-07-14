@@ -43,8 +43,6 @@ RedisMongoDB::RedisMongoDB() {
 }
 
 RedisMongoDB::~RedisMongoDB() {
-    set_next_score(REDIS_PATTERNS_PREFIX + ":next_score", this->patterns_next_score.load());
-    set_next_score(REDIS_INCOMING_PREFIX + ":next_score", this->incoming_set_next_score.load());
     delete this->mongodb_pool;
     delete this->redis_pool;
 }
@@ -295,7 +293,8 @@ void RedisMongoDB::add_pattern(const string& pattern_handle, const string& handl
     if (reply->type != REDIS_REPLY_INTEGER) {
         Utils::error("Invalid Redis response at add_pattern: " + std::to_string(reply->type));
     }
-    this->patterns_next_score.fetch_add(1);
+
+    set_next_score(REDIS_PATTERNS_PREFIX + ":next_score", this->patterns_next_score.fetch_add(1));
 
     if (this->atomdb_cache != nullptr) this->atomdb_cache->erase_pattern_matching_cache(pattern_handle);
 }
@@ -355,7 +354,8 @@ void RedisMongoDB::add_incoming(const string& handle, const string& incoming_han
     if (reply->type != REDIS_REPLY_INTEGER) {
         Utils::error("Invalid Redis response at add_incoming: " + std::to_string(reply->type));
     }
-    this->incoming_set_next_score.fetch_add(1);
+
+    set_next_score(REDIS_INCOMING_PREFIX + ":next_score", this->incoming_set_next_score.fetch_add(1));
 
     if (this->atomdb_cache != nullptr) this->atomdb_cache->erase_incoming_cache(handle);
 }
@@ -399,7 +399,8 @@ shared_ptr<atomdb_api_types::AtomDocument> RedisMongoDB::get_document(const stri
     auto atom_document = reply != bsoncxx::v_noabi::stdx::nullopt
                              ? make_shared<atomdb_api_types::MongodbDocument>(reply)
                              : nullptr;
-    if (this->atomdb_cache != nullptr) this->atomdb_cache->add_atom_document(handle, atom_document);
+    if (this->atomdb_cache != nullptr && atom_document != nullptr)
+        this->atomdb_cache->add_atom_document(handle, atom_document);
     return atom_document;
 }
 
@@ -601,19 +602,7 @@ string RedisMongoDB::add_link(const atoms::Link* link) {
         return "";
     }
 
-    // TODO(arturgontijo): Fetch LTs from MongoDB.
-    if (link->arity() == 3) {
-        vector<string> lt_tokens = {
-            "LINK_TEMPLATE", "Expression", "3",
-            "VARIABLE", "v1",
-            "VARIABLE", "v2",
-            "VARIABLE", "v3",
-        };
-        LinkSchema link_schema(lt_tokens);
-        Assignment assignment;
-        bool match = link_schema.match(*((Link*) link), assignment, *this);
-        if (match) add_pattern(link_schema.handle(), link->handle());
-    }
+    // TODO(arturgontijo): Fetch LTs from MongoDB to update patterns.
 
     for (const auto& target : existing_targets) {
         add_incoming(target->get(MONGODB_FIELD_NAME[MONGODB_FIELD::ID]), link->handle());
@@ -727,20 +716,7 @@ bool RedisMongoDB::delete_link(const string& handle, bool delete_targets) {
         targets.push_back(target_handle);
     }
 
-    // TODO(arturgontijo): Fetch LTs from MongoDB.
-    if (targets.size() == 3) {
-        auto link = new Link(link_document->get(MONGODB_FIELD_NAME[MONGODB_FIELD::NAMED_TYPE]), targets);
-        vector<string> lt_tokens = {
-            "LINK_TEMPLATE", "Expression", "3",
-            "VARIABLE", "v1",
-            "VARIABLE", "v2",
-            "VARIABLE", "v3",
-        };
-        LinkSchema link_schema(lt_tokens);
-        Assignment assignment;
-        bool match = link_schema.match(*((Link*) link), assignment, *this);
-        if (match) update_pattern(link_schema.handle(), handle);
-    }
+    // TODO(arturgontijo): Fetch LTs from MongoDB to update patterns.
 
     return delete_document(handle, MONGODB_LINKS_COLLECTION_NAME, delete_targets);
 }
