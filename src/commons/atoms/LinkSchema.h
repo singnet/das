@@ -45,12 +45,14 @@ class LinkSchema : public Wildcard {
         string cursor_token,
         unsigned int cursor);
 
-    string LINK_TEMPLATE;
-    string NODE;
-    string LINK;
-    string UNTYPED_VARIABLE;
-
    public:
+
+    static string LINK_TEMPLATE;
+    static string ATOM;
+    static string NODE;
+    static string LINK;
+    static string UNTYPED_VARIABLE;
+
     // ---------------------------------------------------------------------------------------------
     // Constructors, destructors , basic operators and initializers
 
@@ -153,6 +155,8 @@ class LinkSchema : public Wildcard {
     void add_target(const string& schema_handle,
                     const string& composite_type_hash,
                     const string& metta_representation);
+
+    void stack_atom(const string& handle);
 
     void stack_node(const string& type, const string& name);
 

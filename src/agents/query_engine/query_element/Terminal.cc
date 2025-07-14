@@ -8,6 +8,13 @@
 
 using namespace query_element;
 
+Terminal::Terminal() : QueryElement() {
+    // Atom
+    init();
+    this->is_atom = true;
+    this->handle = "UNINITIALIZED";
+}
+
 Terminal::Terminal(const string& type, const string& name) : QueryElement() {
     // Node
     init();
@@ -36,11 +43,14 @@ void Terminal::init() {
     this->is_variable = false;
     this->is_node = false;
     this->is_link = false;
+    this->is_atom = false;
     this->is_terminal = true;
 }
 
 string Terminal::to_string() {
-    if (this->is_node) {
+    if (this->is_atom) {
+        return this->handle;
+    } else if (this->is_node) {
         return "<" + this->type + ", " + this->name + ">";
     } else if (this->is_variable) {
         return this->name;

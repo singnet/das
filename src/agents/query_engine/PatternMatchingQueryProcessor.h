@@ -86,6 +86,8 @@ class PatternMatchingQueryProcessor : public BusCommandProcessor {
     map<string, shared_ptr<StoppableThread>> query_threads;
     mutex query_threads_mutex;
     shared_ptr<PatternMatchingQueryProxy> proxy;
+    static string AND;
+    static string OR;
 };
 
 }  // namespace atomdb

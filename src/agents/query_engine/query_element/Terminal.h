@@ -20,11 +20,14 @@ class Terminal : public QueryElement {
     bool is_variable;
     bool is_link;
     bool is_node;
+    bool is_atom;
     string type;
     string name;
+    string handle;
     vector<shared_ptr<QueryElement>> targets;
 
     ~Terminal(){};
+    Terminal();                                                                     // Atom
     Terminal(const string& type, const string& name);                               // Node
     Terminal(const string& type, const vector<shared_ptr<QueryElement>>& targets);  // Link
     Terminal(const string& name);                                                   // Variable
