@@ -598,7 +598,7 @@ TEST_F(RedisMongoDBTest, DeleteLinkWithTargetsUsedByOtherLinks) {
 
     // This node is referenced by other links.
     auto similarity_node = new Node("Symbol", "Similarity");
-    auto handle_set = db->query_for_incoming(similarity_node->handle());
+    auto handle_set = db->query_for_incoming_set(similarity_node->handle());
     EXPECT_EQ(handle_set->size(), 15);
 
     auto test_1_node = new Node("Symbol", "Test1");
@@ -610,17 +610,17 @@ TEST_F(RedisMongoDBTest, DeleteLinkWithTargetsUsedByOtherLinks) {
                          {similarity_node->handle(), test_1_node->handle(), test_2_node->handle()});
     handles.push_back(db->add_link(link));
 
-    handle_set = db->query_for_incoming(similarity_node->handle());
+    handle_set = db->query_for_incoming_set(similarity_node->handle());
     EXPECT_EQ(handle_set->size(), 16);
 
     EXPECT_TRUE(db->delete_link(link->handle(), true));
-    handle_set = db->query_for_incoming(similarity_node->handle());
+    handle_set = db->query_for_incoming_set(similarity_node->handle());
     EXPECT_EQ(handle_set->size(), 15);
 
     EXPECT_EQ(db->atoms_exist(handles).size(), 0);
 }
 
-TEST_F(RedisMongoDBTest, QueryForIncoming) {
+TEST_F(RedisMongoDBTest, QueryForIncomingSet) {
     vector<string> handles;
 
     auto symbol = new Node("Symbol", "S");
@@ -636,15 +636,15 @@ TEST_F(RedisMongoDBTest, QueryForIncoming) {
     handles.push_back(db->add_link(link_1));
     handles.push_back(db->add_link(link_2));
 
-    auto handle_set = db->query_for_incoming(symbol->handle());
+    auto handle_set = db->query_for_incoming_set(symbol->handle());
     EXPECT_EQ(handle_set->size(), 2);
 
     EXPECT_TRUE(db->delete_link(link_1->handle()));
-    handle_set = db->query_for_incoming(symbol->handle());
+    handle_set = db->query_for_incoming_set(symbol->handle());
     EXPECT_EQ(handle_set->size(), 1);
 
     EXPECT_TRUE(db->delete_link(link_2->handle(), true));
-    handle_set = db->query_for_incoming(symbol->handle());
+    handle_set = db->query_for_incoming_set(symbol->handle());
     EXPECT_EQ(handle_set->size(), 0);
 
     EXPECT_EQ(db->atoms_exist(handles).size(), 0);

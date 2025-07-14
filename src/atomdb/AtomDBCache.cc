@@ -60,22 +60,23 @@ void AtomDBCache::add_handle_list(const string& link_handle,
     handle_list_cache[link_handle] = results;
 }
 
-AtomDBCache::QueryForIncomingResult AtomDBCache::query_for_incoming(const string& handle) {
-    lock_guard<mutex> lock(incoming_cache_mutex);
-    if (incoming_cache.find(handle) != incoming_cache.end()) {
+AtomDBCache::QueryForIncomingResult AtomDBCache::query_for_incoming_set(const string& handle) {
+    lock_guard<mutex> lock(incoming_set_cache_mutex);
+    if (incoming_set_cache.find(handle) != incoming_set_cache.end()) {
         LOG_DEBUG("cache hit " << handle);
-        return {true, incoming_cache[handle]};
+        return {true, incoming_set_cache[handle]};
     }
     LOG_DEBUG("cache miss " << handle);
     return {false, nullptr};
 }
 
-void AtomDBCache::add_incoming(const string& handle, shared_ptr<atomdb_api_types::HandleSet> results) {
-    lock_guard<mutex> lock(incoming_cache_mutex);
-    incoming_cache[handle] = results;
+void AtomDBCache::add_incoming_set(const string& handle,
+                                   shared_ptr<atomdb_api_types::HandleSet> results) {
+    lock_guard<mutex> lock(incoming_set_cache_mutex);
+    incoming_set_cache[handle] = results;
 }
 
-void AtomDBCache::erase_incoming_cache(const string& handle) {
-    lock_guard<mutex> lock(incoming_cache_mutex);
-    incoming_cache.erase(handle);
+void AtomDBCache::erase_incoming_set_cache(const string& handle) {
+    lock_guard<mutex> lock(incoming_set_cache_mutex);
+    incoming_set_cache.erase(handle);
 }

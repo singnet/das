@@ -239,9 +239,9 @@ shared_ptr<atomdb_api_types::HandleList> RedisMongoDB::query_for_targets(const s
     return handle_list;
 }
 
-shared_ptr<atomdb_api_types::HandleSet> RedisMongoDB::query_for_incoming(const string& handle) {
+shared_ptr<atomdb_api_types::HandleSet> RedisMongoDB::query_for_incoming_set(const string& handle) {
     if (this->atomdb_cache != nullptr) {
-        auto cache_result = this->atomdb_cache->query_for_incoming(handle);
+        auto cache_result = this->atomdb_cache->query_for_incoming_set(handle);
         if (cache_result.is_cache_hit) return cache_result.result;
     }
 
@@ -260,12 +260,12 @@ shared_ptr<atomdb_api_types::HandleSet> RedisMongoDB::query_for_incoming(const s
 
         reply = ctx->execute(command.c_str());
 
-        if (reply == NULL) Utils::error("Redis error at query_for_incoming");
+        if (reply == NULL) Utils::error("Redis error at query_for_incoming_set");
 
         if (reply->type != REDIS_REPLY_SET && reply->type != REDIS_REPLY_ARRAY) {
             auto error_type = std::to_string(reply->type);
             freeReplyObject(reply);
-            Utils::error("Invalid Redis response at query_for_incoming: " + error_type);
+            Utils::error("Invalid Redis response at query_for_incoming_set: " + error_type);
         }
 
         redis_cursor += REDIS_CHUNK_SIZE;
@@ -278,7 +278,7 @@ shared_ptr<atomdb_api_types::HandleSet> RedisMongoDB::query_for_incoming(const s
         handle_set->append(make_shared<atomdb_api_types::HandleSetRedis>(reply, false));
     }
 
-    if (this->atomdb_cache != nullptr) this->atomdb_cache->add_incoming(handle, handle_set);
+    if (this->atomdb_cache != nullptr) this->atomdb_cache->add_incoming_set(handle, handle_set);
 
     return handle_set;
 }
@@ -348,48 +348,48 @@ void RedisMongoDB::set_next_score(const string& key, uint score) {
     }
 }
 
-void RedisMongoDB::add_incoming(const string& handle, const string& incoming_handle) {
+void RedisMongoDB::add_incoming_set(const string& handle, const string& incoming_handle) {
     auto ctx = this->redis_pool->acquire();
     string command = "ZADD " + REDIS_INCOMING_PREFIX + ":" + handle + " " +
                      to_string(this->incoming_set_next_score.load()) + " " + incoming_handle;
     redisReply* reply = ctx->execute(command.c_str());
-    if (reply == NULL) Utils::error("Redis error at add_incoming");
+    if (reply == NULL) Utils::error("Redis error at add_incoming_set");
 
     if (reply->type != REDIS_REPLY_INTEGER) {
-        Utils::error("Invalid Redis response at add_incoming: " + std::to_string(reply->type));
+        Utils::error("Invalid Redis response at add_incoming_set: " + std::to_string(reply->type));
     }
 
     set_next_score(REDIS_INCOMING_PREFIX + ":next_score", this->incoming_set_next_score.fetch_add(1));
 
-    if (this->atomdb_cache != nullptr) this->atomdb_cache->erase_incoming_cache(handle);
+    if (this->atomdb_cache != nullptr) this->atomdb_cache->erase_incoming_set_cache(handle);
 }
 
-void RedisMongoDB::delete_incoming(const string& handle) {
+void RedisMongoDB::delete_incoming_set(const string& handle) {
     auto ctx = this->redis_pool->acquire();
 
     string command = "DEL " + REDIS_INCOMING_PREFIX + ":" + handle;
     redisReply* reply = ctx->execute(command.c_str());
 
-    if (reply == NULL) Utils::error("Redis error at delete_incoming");
+    if (reply == NULL) Utils::error("Redis error at delete_incoming_set");
     if (reply->type != REDIS_REPLY_INTEGER) {
-        Utils::error("Invalid Redis response at delete_incoming: " + std::to_string(reply->type));
+        Utils::error("Invalid Redis response at delete_incoming_set: " + std::to_string(reply->type));
     }
 
-    if (this->atomdb_cache != nullptr) this->atomdb_cache->erase_incoming_cache(handle);
+    if (this->atomdb_cache != nullptr) this->atomdb_cache->erase_incoming_set_cache(handle);
 }
 
-void RedisMongoDB::update_incoming(const string& key, const string& value) {
+void RedisMongoDB::update_incoming_set(const string& key, const string& value) {
     auto ctx = this->redis_pool->acquire();
 
     string command = "ZREM " + REDIS_INCOMING_PREFIX + ":" + key + " " + value;
     redisReply* reply = ctx->execute(command.c_str());
 
-    if (reply == NULL) Utils::error("Redis error at update_incoming");
+    if (reply == NULL) Utils::error("Redis error at update_incoming_set");
     if (reply->type != REDIS_REPLY_INTEGER) {
-        Utils::error("Invalid Redis response at update_incoming: " + std::to_string(reply->type));
+        Utils::error("Invalid Redis response at update_incoming_set: " + std::to_string(reply->type));
     }
 
-    if (this->atomdb_cache != nullptr) this->atomdb_cache->erase_incoming_cache(key);
+    if (this->atomdb_cache != nullptr) this->atomdb_cache->erase_incoming_set_cache(key);
 }
 
 shared_ptr<atomdb_api_types::AtomDocument> RedisMongoDB::get_document(const string& handle,
@@ -613,7 +613,7 @@ string RedisMongoDB::add_link(const atoms::Link* link) {
     // TODO(arturgontijo): Fetch LTs from MongoDB to update patterns.
 
     for (const auto& target : existing_targets) {
-        add_incoming(target->get(MONGODB_FIELD_NAME[MONGODB_FIELD::ID]), link->handle());
+        add_incoming_set(target->get(MONGODB_FIELD_NAME[MONGODB_FIELD::ID]), link->handle());
     }
 
     auto conn = this->mongodb_pool->acquire();
@@ -683,13 +683,13 @@ bool RedisMongoDB::delete_document(const string& handle,
     auto reply = mongodb_collection.delete_one(bsoncxx::v_noabi::builder::basic::make_document(
         bsoncxx::v_noabi::builder::basic::kvp(MONGODB_FIELD_NAME[MONGODB_FIELD::ID], handle)));
 
-    auto incoming_set = query_for_incoming(handle);
+    auto incoming_set = query_for_incoming_set(handle);
     auto it = incoming_set->get_iterator();
     char* incoming_handle;
     while ((incoming_handle = it->next()) != nullptr) {
         delete_atom(incoming_handle, delete_targets);
     }
-    delete_incoming(handle);
+    delete_incoming_set(handle);
 
     // NOTE: the initial handle might be already deleted due the recursive delete_atom() calls.
     return reply->deleted_count() > 0 || !document_exists(handle, collection_name);
@@ -716,8 +716,8 @@ bool RedisMongoDB::delete_link(const string& handle, bool delete_targets) {
         auto target_handle = link_document->get(MONGODB_FIELD_NAME[MONGODB_FIELD::TARGETS], i);
         // If target is referenced more than once, we need to update incoming_set or delete target
         // otherwise
-        if (query_for_incoming(target_handle)->size() > 1) {
-            update_incoming(target_handle, handle);
+        if (query_for_incoming_set(target_handle)->size() > 1) {
+            update_incoming_set(target_handle, handle);
         } else if (delete_targets) {
             delete_atom(target_handle, delete_targets);
         }

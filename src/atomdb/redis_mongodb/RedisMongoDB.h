@@ -62,7 +62,7 @@ class RedisMongoDB : public AtomDB {
 
     shared_ptr<atomdb_api_types::HandleList> query_for_targets(const string& handle);
 
-    shared_ptr<atomdb_api_types::HandleSet> query_for_incoming(const string& handle);
+    shared_ptr<atomdb_api_types::HandleSet> query_for_incoming_set(const string& handle);
 
     shared_ptr<atomdb_api_types::AtomDocument> get_atom_document(const string& handle);
     shared_ptr<atomdb_api_types::AtomDocument> get_node_document(const string& handle);
@@ -91,13 +91,13 @@ class RedisMongoDB : public AtomDB {
     vector<string> add_nodes(const vector<atoms::Node*>& nodes);
     vector<string> add_links(const vector<atoms::Link*>& links);
 
-    bool delete_atom(const string& handle, bool delete_targets = false);
-    bool delete_node(const string& handle, bool delete_targets = false);
-    bool delete_link(const string& handle, bool delete_targets = false);
+    bool delete_atom(const string& handle, bool delete_link_targets = false);
+    bool delete_node(const string& handle, bool delete_link_targets = false);
+    bool delete_link(const string& handle, bool delete_link_targets = false);
 
-    uint delete_atoms(const vector<string>& handles, bool delete_targets = false);
-    uint delete_nodes(const vector<string>& handles, bool delete_targets = false);
-    uint delete_links(const vector<string>& handles, bool delete_targets = false);
+    uint delete_atoms(const vector<string>& handles, bool delete_link_targets = false);
+    uint delete_nodes(const vector<string>& handles, bool delete_link_targets = false);
+    uint delete_links(const vector<string>& handles, bool delete_link_targets = false);
 
     mongocxx::pool* get_mongo_pool() const { return mongodb_pool; }
 
@@ -132,9 +132,9 @@ class RedisMongoDB : public AtomDB {
     void delete_pattern(const string& handle);
     void update_pattern(const string& key, const string& value);
 
-    void add_incoming(const string& handle, const string& incoming_handle);
-    void delete_incoming(const string& handle);
-    void update_incoming(const string& key, const string& value);
+    void add_incoming_set(const string& handle, const string& incoming_handle);
+    void delete_incoming_set(const string& handle);
+    void update_incoming_set(const string& key, const string& value);
 
     void redis_setup();
     void mongodb_setup();

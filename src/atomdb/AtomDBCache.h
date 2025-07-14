@@ -130,7 +130,7 @@ class AtomDBCache {
      * @param handle The handle of the atom.
      * @return The list of incoming handles if it is cached, nullptr otherwise.
      */
-    QueryForIncomingResult query_for_incoming(const string& handle);
+    QueryForIncomingResult query_for_incoming_set(const string& handle);
 
     /**
      * @brief Add an incoming set to the cache.
@@ -138,14 +138,14 @@ class AtomDBCache {
      * @param handle The handle of the atom.
      * @param results The result of the query to be cached.
      */
-    void add_incoming(const string& handle, shared_ptr<atomdb_api_types::HandleSet> results);
+    void add_incoming_set(const string& handle, shared_ptr<atomdb_api_types::HandleSet> results);
 
     /**
      * @brief Invalidate the incoming set cache for a handle.
      *
      * @param handle The handle of the atom.
      */
-    void erase_incoming_cache(const string& handle);
+    void erase_incoming_set_cache(const string& handle);
 
    private:
     /**
@@ -169,11 +169,11 @@ class AtomDBCache {
     /**
      * @brief The cache for incoming set values.
      */
-    unordered_map<string, shared_ptr<atomdb_api_types::HandleSet>> incoming_cache;
+    unordered_map<string, shared_ptr<atomdb_api_types::HandleSet>> incoming_set_cache;
     /**
      * @brief The mutex for the incoming set cache.
      */
-    mutex incoming_cache_mutex;
+    mutex incoming_set_cache_mutex;
 
     /**
      * @brief The cache for target handle lists.
