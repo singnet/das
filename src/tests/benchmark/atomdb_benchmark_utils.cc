@@ -18,7 +18,6 @@
 using namespace std;
 using namespace commons;
 
-// Calculates the percentile (0.0 to 1.0) of the sorted vector using linear interpolation.
 double compute_percentile(const vector<double>& vec, double percentile_fraction) {
     if (vec.empty()) {
         Utils::error("vector is empty");
