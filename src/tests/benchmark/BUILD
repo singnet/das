@@ -18,6 +18,15 @@ alias(
     actual = "//tools/format",
 )
 
+cc_library(
+    name = "atomdb_benchmark_utils",
+    srcs = ["atomdb_benchmark_utils.cc"],
+    hdrs = ["atomdb_benchmark_utils.h"],
+    deps = [
+        "//commons:commons_lib",
+    ],
+)
+
 cc_binary(
     name = "atomdb_benchmark",
     srcs = ["atomdb_benchmark.cc"],
@@ -31,7 +40,8 @@ cc_binary(
     ],
     linkstatic = 1,
     deps = [
-        "//atomdb:atomdb_singleton",
+        ":atomdb_benchmark_utils",
+        "//atomdb:atomdb_lib",
         "//commons:commons_lib",
         "@mbedtls",
     ],

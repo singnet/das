@@ -153,7 +153,7 @@ generate_metta_file() {
         return 1
     fi
 
-    echo "MeTTa file generated at: $filename"
+    echo "The MeTTa file was generated at: $filename"
 }
 
 init_environment() {
