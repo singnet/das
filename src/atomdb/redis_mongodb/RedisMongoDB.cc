@@ -309,6 +309,8 @@ void RedisMongoDB::delete_pattern(const string& handle) {
     if (reply->type != REDIS_REPLY_INTEGER) {
         Utils::error("Invalid Redis response at delete_pattern: " + std::to_string(reply->type));
     }
+
+    if (this->atomdb_cache != nullptr) this->atomdb_cache->erase_pattern_matching_cache(handle);
 }
 
 void RedisMongoDB::update_pattern(const string& key, const string& value) {
@@ -316,6 +318,8 @@ void RedisMongoDB::update_pattern(const string& key, const string& value) {
     string command = "ZREM " + REDIS_PATTERNS_PREFIX + ":" + key + " " + value;
     redisReply* reply = ctx->execute(command.c_str());
     if (reply == NULL) Utils::error("Redis error at update_pattern");
+
+    if (this->atomdb_cache != nullptr) this->atomdb_cache->erase_pattern_matching_cache(key);
 }
 
 uint RedisMongoDB::get_next_score(const string& key) {
@@ -370,6 +374,8 @@ void RedisMongoDB::delete_incoming(const string& handle) {
     if (reply->type != REDIS_REPLY_INTEGER) {
         Utils::error("Invalid Redis response at delete_incoming: " + std::to_string(reply->type));
     }
+
+    if (this->atomdb_cache != nullptr) this->atomdb_cache->erase_incoming_cache(handle);
 }
 
 void RedisMongoDB::update_incoming(const string& key, const string& value) {
@@ -382,6 +388,8 @@ void RedisMongoDB::update_incoming(const string& key, const string& value) {
     if (reply->type != REDIS_REPLY_INTEGER) {
         Utils::error("Invalid Redis response at update_incoming: " + std::to_string(reply->type));
     }
+
+    if (this->atomdb_cache != nullptr) this->atomdb_cache->erase_incoming_cache(key);
 }
 
 shared_ptr<atomdb_api_types::AtomDocument> RedisMongoDB::get_document(const string& handle,
