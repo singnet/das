@@ -115,7 +115,6 @@ void RedisMongoDB::mongodb_setup() {
     string url = "mongodb://" + user + ":" + password + "@" + address;
 
     try {
-        // mongocxx::instance instance;
         auto uri = mongocxx::uri{url};
         this->mongodb_pool = new mongocxx::pool(uri);
         // Health check using ping command
