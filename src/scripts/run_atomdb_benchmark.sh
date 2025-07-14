@@ -36,6 +36,31 @@ usage() {
     exit 1
 }
 
+check_dependencies() {
+    local missing=0
+
+    # Check das-cli
+    if ! command -v das-cli &>/dev/null; then
+        echo "Error: 'das-cli' is not installed or not found in your PATH."
+        missing=1
+    fi
+
+    # Check Python 3
+    if command -v python3 &>/dev/null; then
+        PYTHON_CMD="python3"
+    elif command -v python &>/dev/null && python --version 2>&1 | grep -q "Python 3"; then
+        PYTHON_CMD="python"
+    else
+        echo "Error: Python 3 is not installed or not found in your PATH."
+        missing=1
+    fi
+
+    if [[ $missing -eq 1 ]]; then
+        echo "Please install the missing dependencies and try again."
+        exit 1
+    fi
+}
+
 parse_args()  {
     while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -159,19 +184,45 @@ init_environment() {
 }
 
 load_scenario_definition() {
-    filter=".scenarios[] | select(.db == \"$DB\" and .rel == \"$REL\" and .concurrency == $CONCURRENCY and .cache == \"$CACHE\")"
+    local ini_file="./src/tests/benchmark/scenarios.ini"
+    local section=""
+    local found_db="" found_rel="" found_conc="" found_cache="" found_actions=""
 
-    SCENARIO_YAML=$(yq eval -- "$filter" ./src/tests/benchmark/scenarios.yaml)
+    while IFS= read -r line; do
+        if [[ $line =~ ^\[(.+)\]$ ]]; then
+            section="${BASH_REMATCH[1]}"
+            found_db=""
+            found_rel=""
+            found_conc=""
+            found_cache=""
+            found_actions=""
+        elif [[ $line =~ ^db=(.*) ]]; then
+            found_db="${BASH_REMATCH[1]}"
+        elif [[ $line =~ ^rel=(.*) ]]; then
+            found_rel="${BASH_REMATCH[1]}"
+        elif [[ $line =~ ^concurrency=(.*) ]]; then
+            found_conc="${BASH_REMATCH[1]}"
+        elif [[ $line =~ ^cache=(.*) ]]; then
+            found_cache="${BASH_REMATCH[1]}"
+        elif [[ $line =~ ^actions=(.*) ]]; then
+            found_actions="${BASH_REMATCH[1]}"
+        fi
 
-    if [[ -z "$SCENARIO_YAML" ]]; then
-        echo "Scenario not found for:"
-        echo "  db=$DB, rel=$REL, concurrency=$CONCURRENCY, cache=$CACHE"
-        exit 1
-    fi
+        if [[ -n "$section" && \
+              "$found_db" == "$DB" && \
+              "$found_rel" == "$REL" && \
+              "$found_conc" == "$CONCURRENCY" && \
+              "$found_cache" == "$CACHE" && \
+              -n "$found_actions" ]]; then
+            SCENARIO_NAME="$section"
+            IFS=',' read -ra ACTIONS <<< "$found_actions"
+            return 0
+        fi
+    done < "$ini_file"
 
-    SCENARIO_NAME=$(echo "$SCENARIO_YAML" | yq eval '.name' -)
-
-    mapfile -t ACTIONS < <(printf '%s' "$SCENARIO_YAML" | yq eval '.actions[]' -)
+    echo "Scenario not found for:"
+    echo "  db=$DB, rel=$REL, concurrency=$CONCURRENCY, cache=$CACHE"
+    exit 1
 }
 
 print_scenario() {
@@ -203,6 +254,7 @@ consolidate_reports() {
 
 main() {
     parse_args "$@"
+    check_dependencies
     map_metta_params "$DB" "$REL"
     load_scenario_definition
     print_scenario
