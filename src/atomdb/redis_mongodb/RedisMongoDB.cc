@@ -30,7 +30,7 @@ string RedisMongoDB::MONGODB_NODES_COLLECTION_NAME;
 string RedisMongoDB::MONGODB_LINKS_COLLECTION_NAME;
 string RedisMongoDB::MONGODB_FIELD_NAME[MONGODB_FIELD::size];
 uint RedisMongoDB::MONGODB_CHUNK_SIZE;
-once_flag RedisMongoDB::MONGODB_INIT_FLAG;
+mongocxx::instance RedisMongoDB::MONGODB_INSTANCE;
 
 RedisMongoDB::RedisMongoDB() {
     redis_setup();

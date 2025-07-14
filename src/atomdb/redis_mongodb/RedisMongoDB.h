@@ -38,7 +38,7 @@ class RedisMongoDB : public AtomDB {
     static string MONGODB_LINKS_COLLECTION_NAME;
     static string MONGODB_FIELD_NAME[MONGODB_FIELD::size];
     static uint MONGODB_CHUNK_SIZE;
-    static once_flag MONGODB_INIT_FLAG;
+    static mongocxx::instance MONGODB_INSTANCE;
 
     static void initialize_statics() {
         REDIS_PATTERNS_PREFIX = "patterns";
@@ -52,7 +52,6 @@ class RedisMongoDB : public AtomDB {
         MONGODB_FIELD_NAME[MONGODB_FIELD::TARGETS] = "targets";
         MONGODB_FIELD_NAME[MONGODB_FIELD::NAME] = "name";
         MONGODB_CHUNK_SIZE = 1000;
-        call_once(MONGODB_INIT_FLAG, []() { static mongocxx::instance instance; });
     }
 
     // HandleDecoder interface
