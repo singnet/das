@@ -51,7 +51,6 @@ void QueryEvolutionProcessor::thread_process_one_query(shared_ptr<StoppableThrea
             Utils::error("Syntax error in query command. Missing implicit parameters.");
         }
         proxy->untokenize(proxy->args);
-        LOG_DEBUG("proxy: " + proxy->to_string());
         string command = proxy->get_command();
         if (command == ServiceBus::QUERY_EVOLUTION) {
             LOG_DEBUG("QUERY_EVOLUTION proxy: " << proxy->to_string());

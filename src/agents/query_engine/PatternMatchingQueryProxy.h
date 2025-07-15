@@ -75,7 +75,7 @@ class PatternMatchingQueryProxy : public BaseQueryProxy {
     /**
      * Builds the args vector to be passed in the RPC
      */
-    void pack_command_line_args();
+    virtual void pack_command_line_args();
 
     // ---------------------------------------------------------------------------------------------
     // Virtual superclass API and the piggyback methods called by it

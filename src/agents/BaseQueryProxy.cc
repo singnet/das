@@ -65,7 +65,7 @@ void BaseQueryProxy::set_count(unsigned int count) {
 
 void BaseQueryProxy::tokenize(vector<string>& output) {
     output.insert(output.begin(), this->query_tokens.begin(), this->query_tokens.end());
-    output.insert(output.begin(), std::to_string(this->get_query_tokens().size()));
+    output.insert(output.begin(), std::to_string(this->query_tokens.size()));
     output.insert(output.begin(), this->get_context());
     BaseProxy::tokenize(output);
 }
@@ -117,7 +117,14 @@ const vector<string>& BaseQueryProxy::get_query_tokens() {
 string BaseQueryProxy::to_string() {
     string answer = "{";
     answer += "context: " + this->get_context();
-    answer += " " + BaseProxy::to_string();
+    answer += ", tokens: [";
+    for (auto token: this->query_tokens) {
+        answer += token + ", ";
+    }
+    answer.pop_back();
+    answer.pop_back();
+    answer += "], BaseProxy: ";
+    answer += BaseProxy::to_string();
     answer += "}";
     return answer;
 }

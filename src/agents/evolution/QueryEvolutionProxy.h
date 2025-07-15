@@ -46,6 +46,8 @@ class QueryEvolutionProxy : public BaseQueryProxy {
      * @param context AttentionBroker context
      */
     QueryEvolutionProxy(const vector<string>& tokens,
+                        const vector<string>& correlation_tokens,
+                        const vector<string>& correlation_variables,
                         const string& fitness_function,
                         const string& context);
 
@@ -60,7 +62,7 @@ class QueryEvolutionProxy : public BaseQueryProxy {
     /**
      * Builds the args vector to be passed in the RPC
      */
-    void pack_command_line_args();
+    virtual void pack_command_line_args();
 
     /**
      * Write a tokenized representation of this proxy in the passed `output` vector.
@@ -130,6 +132,8 @@ class QueryEvolutionProxy : public BaseQueryProxy {
     string fitness_function_tag;
     float best_reported_fitness;
     unsigned int num_generations;
+    vector<string> correlation_tokens;
+    vector<string> correlation_variables;
 };
 
 }  // namespace evolution

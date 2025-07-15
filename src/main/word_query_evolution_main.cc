@@ -107,8 +107,8 @@ void run(const string& client_id,
     string contains = "Contains";
     string sentence1 = "sentence1";
     string sentence2 = "sentence2";
+    string sentence3 = "sentence3";
     string word1 = "word1";
-    string word2 = "word2";
 
     // clang-format off
     vector<string> or_two_words = {
@@ -126,16 +126,37 @@ void run(const string& client_id,
                     node, symbol, word,
                     node, symbol, "\"" + word_tag2 + "\""
     };
+    vector<string> activation_spreading = {
+        and_operator, "2",
+            link_template, expression, "3",
+                node, symbol, contains,
+                variable, sentence1,
+                variable, word1,
+            link_template, expression, "3",
+                node, symbol, contains,
+                variable, sentence3,
+                variable, word1,
+    };
     // clang-format on
 
-    shared_ptr<QueryEvolutionProxy> proxy =
-        make_shared<QueryEvolutionProxy>(or_two_words, "count_letter", context);
+    // ---------------------------------------------------------------------------------------------
+    // Query evolution request
+
+    QueryEvolutionProxy* proxy_ptr = new QueryEvolutionProxy(
+            or_two_words,
+            activation_spreading,
+            {sentence3},
+            "count_letter",
+            context);
+    shared_ptr<QueryEvolutionProxy> proxy(proxy_ptr);
     proxy->parameters[QueryEvolutionProxy::POPULATION_SIZE] = (unsigned int) 100;
     proxy->parameters[QueryEvolutionProxy::MAX_GENERATIONS] = (unsigned int) 1;
     proxy->parameters[QueryEvolutionProxy::ELITISM_RATE] = (double) 0.01;
     proxy->parameters[QueryEvolutionProxy::SELECTION_RATE] = (double) 0.1;
     proxy->parameters[BaseQueryProxy::MAX_BUNDLE_SIZE] = (unsigned int) 1;
     service_bus->issue_bus_command(proxy);
+
+    // ---------------------------------------------------------------------------------------------
 
     shared_ptr<QueryAnswer> query_answer;
     unsigned int count = 0;
@@ -181,7 +202,7 @@ void run(const string& client_id,
 int main(int argc, char* argv[]) {
     if (argc != 7) {
         cerr << "Usage: " << argv[0]
-             << " <client id> <server id> <start_port:end_port> <context> <word tag 1> <word tag 2>"
+             << "    <client id> <server id> <start_port:end_port> <context> <word tag 1> <word tag 2>"
              << endl;
         exit(1);
     }

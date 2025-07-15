@@ -164,6 +164,8 @@ class BaseQueryProxy : public BaseProxy {
      */
     void query_answers_finished(const vector<string>& args);
 
+    virtual void pack_command_line_args() = 0;
+
    private:
     void init();
     mutex api_mutex;
