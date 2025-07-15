@@ -94,12 +94,13 @@ void LinkTemplate::compute_importance(vector<pair<char*, float>>& handles) {
         }
         auto stub = dasproto::AttentionBroker::NewStub(grpc::CreateChannel(
             this->source_element->get_attention_broker_address(), grpc::InsecureChannelCredentials()));
-        LOG_INFO("Querying AttentionBroker for importance of " << bundle_count << " atoms.");
+        LOG_INFO("Querying AttentionBroker for importance of " << handle_list.list_size() << " atoms.");
         stub->get_importance(new grpc::ClientContext(), handle_list, &importance_list);
         for (unsigned int i = 0; i < bundle_count; i++) {
             handles[bundle_start + i].second = importance_list.list(i);
         }
         bundle_start = cursor;
+        bundle_count = 0;
         handle_list.clear_list();
         importance_list.clear_list();
     }
@@ -122,11 +123,14 @@ void LinkTemplate::processor_method(shared_ptr<StoppableThread> monitor) {
     string link_schema_handle = this->link_schema.handle();
     shared_ptr<atomdb_api_types::HandleSet> handles;
     if (LinkTemplate::fetched_links_cache().contains(link_schema_handle)) {
+        LOG_INFO("Fetching " + link_schema_handle + " from cache");
         handles = LinkTemplate::fetched_links_cache().get(link_schema_handle);
     } else {
+        LOG_INFO("Fetching " + link_schema_handle + " from AtomDB");
         handles = db->query_for_pattern(this->link_schema);
         LinkTemplate::fetched_links_cache().set(link_schema_handle, handles);
     }
+    LOG_INFO("Fetched " + std::to_string(handles->size()) + " atoms in " + link_schema_handle);
     vector<pair<char*, float>> tagged_handles;
     auto iterator = handles->get_iterator();
     char* handle;

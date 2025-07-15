@@ -110,6 +110,9 @@ class QueryEvolutionProxy : public BaseQueryProxy {
      */
     virtual string to_string();
 
+    const vector<string>& get_correlation_tokens();
+    const vector<string>& get_correlation_variables();
+
     // ---------------------------------------------------------------------------------------------
     // Virtual superclass API and the piggyback methods called by it
 
@@ -126,6 +129,7 @@ class QueryEvolutionProxy : public BaseQueryProxy {
    private:
     void set_default_query_parameters();
     void set_fitness_function_tag(const string& tag);
+    void init();
 
     mutex api_mutex;
     shared_ptr<FitnessFunction> fitness_function_object;

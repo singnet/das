@@ -134,6 +134,7 @@ void PatternMatchingQueryProcessor::process_query_answers(
     set<string>& joint_answer,  // used to stimulate attention broker
     unsigned int& answer_count) {
     QueryAnswer* answer;
+    unsigned int max_answers = proxy->parameters.get<unsigned int>(BaseQueryProxy::MAX_ANSWERS);
     while ((answer = query_sink->input_buffer->pop_query_answer()) != NULL) {
         answer_count++;
         if (proxy->parameters.get<bool>(BaseQueryProxy::ATTENTION_UPDATE_FLAG)) {
@@ -141,6 +142,12 @@ void PatternMatchingQueryProcessor::process_query_answers(
         }
         if (!proxy->parameters.get<bool>(PatternMatchingQueryProxy::COUNT_FLAG)) {
             proxy->push(shared_ptr<QueryAnswer>(answer));
+        }
+        if (answer_count == max_answers) {
+            LOG_INFO("Limit number of answers reached: " << max_answers);
+            proxy->flush_answer_bundle();
+            proxy->abort({});
+            return;
         }
     }
 }
@@ -178,6 +185,7 @@ void PatternMatchingQueryProcessor::thread_process_one_query(
                     process_query_answers(proxy, query_sink, joint_answer, answer_count);
                     Utils::sleep();
                 }
+                proxy->flush_answer_bundle();
                 if (proxy->parameters.get<bool>(PatternMatchingQueryProxy::COUNT_FLAG) &&
                     (!proxy->is_aborting())) {
                     LOG_DEBUG("Answering count_only query");

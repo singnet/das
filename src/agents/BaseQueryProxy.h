@@ -48,6 +48,8 @@ class BaseQueryProxy : public BaseProxy {
     static string MAX_BUNDLE_SIZE;  // Max number of answers buffered before flushing them to the peer
                                     // client proxy.
 
+    static string MAX_ANSWERS; // Limits the number of returned answers
+
     /**
      * Destructor.
      */

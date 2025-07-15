@@ -168,19 +168,12 @@ void run(const string& client_id,
         if ((query_answer = proxy->pop()) == NULL) {
             Utils::sleep();
         } else {
-            // cout << "------------------------------------------" << endl;
-            // cout << query_answer->to_string() << endl;
             const char* handle;
             handle = query_answer->assignment.get(sentence1.c_str());
             float fitness = query_answer->strength;
-            // cout << string(handle) << endl;
-            // cout << handle_to_atom(handle) << endl;
             sentence_document = db->get_atom_document(handle);
             handle = sentence_document->get("targets", 1);
-            // cout << string(handle) << endl;
-            // cout << handle_to_atom(handle) << endl;
             sentence_name_document = db->get_atom_document(handle);
-            // cout << string(sentence_name_document->get("name")) << endl;
             set<string> to_highlight = {word_tag1, word_tag2};
             string sentence_name = string(sentence_name_document->get("name"));
             string highlighted_sentence_name = highlight(sentence_name, to_highlight);

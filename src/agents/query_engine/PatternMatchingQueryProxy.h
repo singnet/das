@@ -38,6 +38,7 @@ class PatternMatchingQueryProxy : public BaseQueryProxy {
     static string COUNT_FLAG;  // indicates that this query is supposed to count the results and not
                                // actually provide the query answers (i.e. no QueryAnswer is sent
                                // from the command executor and the caller of the query).
+
     /**
      * Empty constructor typically used on server side.
      */

@@ -19,6 +19,7 @@ string QueryEvolutionProxy::SELECTION_RATE = "selection_rate";
 QueryEvolutionProxy::QueryEvolutionProxy() {
     // constructor typically used in processor
     lock_guard<mutex> semaphore(this->api_mutex);
+    init();
     set_default_query_parameters();
 }
 
@@ -29,13 +30,17 @@ QueryEvolutionProxy::QueryEvolutionProxy(const vector<string>& tokens,
                                          const string& context)
     : BaseQueryProxy(tokens, context) {
     // constructor typically used in requestor
+    init();
     set_default_query_parameters();
     set_fitness_function_tag(fitness_function);
+    this->correlation_tokens = correlation_tokens;
+    this->correlation_variables = correlation_variables;
+}
+
+void QueryEvolutionProxy::init() {
     this->command = ServiceBus::QUERY_EVOLUTION;
     this->best_reported_fitness = -1;
     this->num_generations = 0;
-    this->correlation_tokens = correlation_tokens;
-    this->correlation_variables = correlation_variables;
 }
 
 void QueryEvolutionProxy::set_default_query_parameters() {
@@ -141,6 +146,16 @@ void QueryEvolutionProxy::set_fitness_function_tag(const string& tag) {
         this->fitness_function_tag = tag;
         this->fitness_function_object = FitnessFunctionRegistry::function(tag);
     }
+}
+
+const vector<string>& QueryEvolutionProxy::get_correlation_tokens() {
+    lock_guard<mutex> semaphore(this->api_mutex);
+    return this->correlation_tokens;
+}
+
+const vector<string>& QueryEvolutionProxy::get_correlation_variables() {
+    lock_guard<mutex> semaphore(this->api_mutex);
+    return this->correlation_variables;
 }
 
 // ---------------------------------------------------------------------------------------------
