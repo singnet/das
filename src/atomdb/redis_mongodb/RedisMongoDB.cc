@@ -106,7 +106,7 @@ void RedisMongoDB::mongodb_setup() {
             MONGODB_CHUNK_SIZE = chunk_size;
         }
     } catch (const std::exception& e) {
-        Utils::warning("Error reading MongoDB chunk size, using default value");
+        LOG_INFO("Using default MongoDB chunk size: " + to_string(MONGODB_CHUNK_SIZE));
     }
     if (host == "" || port == "" || user == "" || password == "") {
         Utils::error(
