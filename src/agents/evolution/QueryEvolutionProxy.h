@@ -33,6 +33,7 @@ class QueryEvolutionProxy : public BaseQueryProxy {
     static string MAX_GENERATIONS;
     static string ELITISM_RATE;    // Rate on POPULATION_SIZE
     static string SELECTION_RATE;  // Rate on POPULATION_SIZE
+    static string TOTAL_ATTENTION_TOKENS;  // Used in attention allocation update
 
     /**
      * Empty constructor typically used on server side.

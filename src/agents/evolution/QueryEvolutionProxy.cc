@@ -15,6 +15,7 @@ string QueryEvolutionProxy::POPULATION_SIZE = "population_size";
 string QueryEvolutionProxy::MAX_GENERATIONS = "max_generations";
 string QueryEvolutionProxy::ELITISM_RATE = "elitism_rate";
 string QueryEvolutionProxy::SELECTION_RATE = "selection_rate";
+string QueryEvolutionProxy::TOTAL_ATTENTION_TOKENS = "total_attention_tokens";
 
 QueryEvolutionProxy::QueryEvolutionProxy() {
     // constructor typically used in processor
@@ -48,6 +49,7 @@ void QueryEvolutionProxy::set_default_query_parameters() {
     this->parameters[MAX_GENERATIONS] = (unsigned int) 100;
     this->parameters[ELITISM_RATE] = (double) 0.01;
     this->parameters[SELECTION_RATE] = (double) 0.1;
+    this->parameters[TOTAL_ATTENTION_TOKENS] = (unsigned int) 100;
 }
 
 string QueryEvolutionProxy::to_string() {
