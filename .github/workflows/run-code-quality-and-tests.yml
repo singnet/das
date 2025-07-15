@@ -53,6 +53,13 @@ jobs:
           37007
           35500
           9070
+          /tmp/requests_buffer.bin
+          1
+          1
+          10
+          n
+          n
+          8080
           EOF
 
       - name: Starting Redis and MongoDB
@@ -65,7 +72,7 @@ jobs:
         run: make build-all
 
       - name: Starting Attention Broker
-        run: make run-attention-broker &
+        run: das-cli attention-broker start
 
       - name: Starting MORK Server and Load Knowledge Base
         run: |-
