@@ -110,7 +110,7 @@ void SynchronousGRPC::grpc_thread_method(shared_ptr<StoppableThread> monitor) {
     grpc::ServerBuilder builder;
     builder.AddListeningPort(this->node_id, grpc::InsecureServerCredentials());
     builder.RegisterService(this);
-    std::cout << "SynchronousGRPC listening on " << this->node_id << std::endl;
+    LOG_INFO("SynchronousGRPC listening on " + this->node_id);
     this->grpc_server = builder.BuildAndStart();
     set_grpc_server_started();
     this->grpc_server->Wait();
