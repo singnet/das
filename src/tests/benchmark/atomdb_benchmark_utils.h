@@ -32,7 +32,7 @@ void create_report(const string& db_name,
                    const string& action,
                    map<string, Metrics>& metrics,
                    const string& base_directory,
-                   const int& write_batch_size);
+                   const int& batch_size);
 
 // Get demangled type name of an object
 template <typename T>

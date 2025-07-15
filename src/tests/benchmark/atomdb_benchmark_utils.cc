@@ -74,7 +74,7 @@ void create_report(const string& db_name,
                    const string& action,
                    map<string, Metrics>& metrics,
                    const string& base_directory,
-                   const int& write_batch_size) {
+                   const int& batch_size) {
     stringstream table;
     table << fixed << setprecision(5);
     table << left;
@@ -114,7 +114,8 @@ void create_report(const string& db_name,
               << inner_map.at("throughput") << "| "
               << "\n";
     }
-    string filename = base_directory + "/" + db_name + "_" + action + ".txt";
+    string filename =
+        base_directory + "/" + db_name + "_" + action + "_" + to_string(batch_size) + ".txt";
 
     ofstream outfile(filename);
     if (outfile.is_open()) {

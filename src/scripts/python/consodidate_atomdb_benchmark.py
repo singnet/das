@@ -40,22 +40,25 @@ def parse_benchmark_file(filepath):
     return results
 
 
-def extract_backend_and_op(filename):
-    m = re.match(r"atomdb_([A-Za-z0-9]+)_([A-Za-z0-9]+)\.txt", filename)
+def extract_backend_operation_type_and_batch_size(filename):
+    m = re.match(r"atomdb_([A-Za-z0-9]+)_([A-Za-z0-9]+)_([0-9]+)\.txt", filename)
     if m:
-        backend, op_type = m.group(1), m.group(2)
-        return backend, op_type
-    return None, None
+        backend, op_type, batch_size = m.group(1), m.group(2), m.group(3)
+        return backend, op_type, batch_size
+    return None, None, None
 
 
 def consolidate_results(directory):
     results = defaultdict(list)
     for fname in sorted(os.listdir(directory)):
         if fname.startswith("atomdb_") and fname.endswith(".txt"):
-            backend, op_type = extract_backend_and_op(fname)
+            backend, op_type, batch_size = extract_backend_operation_type_and_batch_size(fname)
             if backend and op_type:
                 filepath = os.path.join(directory, fname)
                 data = parse_benchmark_file(filepath)
+                if data:
+                    if batch_size not in results[op_type]:
+                        results[op_type].append(batch_size)
                 for entry in data:
                     entry["Backend"] = backend
                     results[op_type].append(entry)
@@ -97,7 +100,8 @@ def write_report(header, results, output_file):
         f.write(header + "\n\n" if header else "")
 
         for op_type, entries in results.items():
-            f.write(f"[{op_type}]\n\n")
+            batch_size = entries.pop(0)
+            f.write(f"[{op_type}] - Batch Size: {batch_size}\n\n")
             columns = get_columns(entries)
             col_widths = calc_col_widths(entries, columns)
 
