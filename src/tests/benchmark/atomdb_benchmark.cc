@@ -3,6 +3,7 @@
 #include <map>
 #include <memory>
 #include <mutex>
+#include <numeric>
 #include <string>
 #include <thread>
 #include <vector>
@@ -21,7 +22,7 @@ using namespace std;
 using namespace atomdb;
 
 using Clock = chrono::steady_clock;
-const int BATCH_SIZE = 10;  // Number of atoms in a single batch
+const int BATCH_SIZE = 100;  // Number of atoms in a single batch
 
 mutex global_mutex;
 map<string, Metrics> global_metrics;
@@ -35,10 +36,7 @@ void add_atom(int tid, shared_ptr<AtomDB> db, int iterations) {
     local_add_link_operation_time.reserve(iterations);
     local_add_atom_operation_time.reserve(iterations);
 
-    vector<string> atom_handles;
-
     // add_nodes
-    auto t_nodes_start = Clock::now();
     for (int i = 0; i < iterations; ++i) {
         auto node_a = new Node(
             "Symbol", string("\"add_node_a") + "_t" + to_string(tid) + "_i" + to_string(i) + "\"");
@@ -49,17 +47,14 @@ void add_atom(int tid, shared_ptr<AtomDB> db, int iterations) {
 
         double ms = chrono::duration<double, milli>(t1 - t0).count();
         local_add_node_operation_time.push_back(ms);
-
-        atom_handles.push_back(node_a_handle);
     }
-    auto t_nodes_end = Clock::now();
-    double nodes_total_time = chrono::duration<double, milli>(t_nodes_end - t_nodes_start).count();
+    double nodes_total_time =
+        std::accumulate(local_add_node_operation_time.begin(), local_add_node_operation_time.end(), 0.0);
 
     // add_links
-    auto t_links_start = Clock::now();
     for (int i = 0; i < iterations; i++) {
         auto node_equivalence =
-            new Node("Symbol", string("EQUIVALENCE") + "_t" + to_string(tid) + "_i" + to_string(i));
+            new Node("Symbol", string("EQUIVALENCE_A") + "_t" + to_string(tid) + "_i" + to_string(i));
         auto node_equivalence_handle = db->add_node(node_equivalence);
         auto node_a = new Node(
             "Symbol", string("\"add_node_b") + "_t" + to_string(tid) + "_i" + to_string(i) + "\"");
@@ -75,17 +70,11 @@ void add_atom(int tid, shared_ptr<AtomDB> db, int iterations) {
 
         double ms = chrono::duration<double, milli>(t1 - t0).count();
         local_add_link_operation_time.push_back(ms);
-
-        atom_handles.push_back(node_equivalence_handle);
-        atom_handles.push_back(node_a_handle);
-        atom_handles.push_back(node_b_handle);
-        atom_handles.push_back(link_handle);
     }
-    auto t_links_end = Clock::now();
-    double links_total_time = chrono::duration<double, milli>(t_links_end - t_links_start).count();
+    double links_total_time =
+        std::accumulate(local_add_link_operation_time.begin(), local_add_link_operation_time.end(), 0.0);
 
     // add_atoms
-    auto t_atoms_start = Clock::now();
     for (int i = 0; i < iterations; ++i) {
         auto node_d = new Node(
             "Symbol", string("\"add_node_d") + "_t" + to_string(tid) + "_i" + to_string(i) + "\"");
@@ -96,13 +85,9 @@ void add_atom(int tid, shared_ptr<AtomDB> db, int iterations) {
 
         double ms = chrono::duration<double, milli>(t1 - t0).count();
         local_add_atom_operation_time.push_back(ms);
-
-        atom_handles.push_back(node_d_handle);
     }
-    auto t_atoms_end = Clock::now();
-    double atoms_total_time = chrono::duration<double, milli>(t_atoms_end - t_atoms_start).count();
-
-    db->delete_atoms(atom_handles);
+    double atoms_total_time =
+        std::accumulate(local_add_atom_operation_time.begin(), local_add_atom_operation_time.end(), 0.0);
 
     lock_guard<mutex> lock(global_mutex);
     global_metrics["add_node"] = Metrics{local_add_node_operation_time,
@@ -128,12 +113,11 @@ void add_atoms(int tid, shared_ptr<AtomDB> db, int iterations) {
     local_add_links_operation_time.reserve(iterations);
     local_add_atoms_operation_time.reserve(iterations);
 
-    vector<string> atom_handles;
-
     // Add nodes
-    auto t_nodes_start = Clock::now();
     for (int i = 0; i < iterations; ++i) {
         vector<Node*> nodes;
+
+        // LOG_DEBUG("Thread_ID: " + to_string(tid) + " - Iteration: " + to_string(i));
 
         for (int j = 0; j < BATCH_SIZE; j++) {
             nodes.push_back(new Node("Symbol",
@@ -142,43 +126,33 @@ void add_atoms(int tid, shared_ptr<AtomDB> db, int iterations) {
         }
 
         auto t0 = Clock::now();
+        // LOG_DEBUG("Adding nodes in batch of " + to_string(BATCH_SIZE) + " for thread " +
+        // to_string(tid));
         db->add_nodes(nodes);
         auto t1 = Clock::now();
 
         double ms = chrono::duration<double, milli>(t1 - t0).count();
         local_add_nodes_operation_time.push_back(ms);
-
-        for (auto& node : nodes) {
-            atom_handles.push_back(node->handle());
-        }
     }
-    auto t_nodes_end = Clock::now();
-    double nodes_total_time = chrono::duration<double, milli>(t_nodes_end - t_nodes_start).count();
+    double nodes_total_time = std::accumulate(
+        local_add_nodes_operation_time.begin(), local_add_nodes_operation_time.end(), 0.0);
+
+    // LOG_DEBUG("Finished adding nodes in " + to_string(nodes_total_time) + " ms");
 
     // Add links
-    auto t_links_start = Clock::now();
     for (int i = 0; i < iterations; i++) {
         vector<Link*> links;
 
         for (int j = 0; j < BATCH_SIZE; j++) {
-            auto node_equivalence = new Node(
-                "Symbol",
-                string("EQUIVALENCE") + "_t" + to_string(tid) + "_i" + to_string(i) + to_string(j));
+            string suffix = "_t" + to_string(tid) + "_i" + to_string(i) + to_string(j);
+            auto node_equivalence = new Node("Symbol", string("EQUIVALENCE_B") + suffix);
             auto node_equivalence_handle = db->add_node(node_equivalence);
-            auto node_a = new Node("Symbol",
-                                   string("\"add_nodes_b") + "_t" + to_string(tid) + "_i" +
-                                       to_string(i) + to_string(j) + "\"");
+            auto node_a = new Node("Symbol", string("\"add_nodes_b") + suffix + "\"");
             auto node_a_handle = db->add_node(node_a);
-            auto node_b = new Node("Symbol",
-                                   string("\"add_nodes_c") + "_t" + to_string(tid) + "_i" +
-                                       to_string(i) + to_string(j) + "\"");
+            auto node_b = new Node("Symbol", string("\"add_nodes_c") + suffix + "\"");
             auto node_b_handle = db->add_node(node_b);
             links.push_back(
                 new Link("Expression", {node_equivalence_handle, node_a_handle, node_b_handle}));
-
-            atom_handles.push_back(node_equivalence_handle);
-            atom_handles.push_back(node_a_handle);
-            atom_handles.push_back(node_b_handle);
         }
 
         auto t0 = Clock::now();
@@ -187,16 +161,13 @@ void add_atoms(int tid, shared_ptr<AtomDB> db, int iterations) {
 
         double ms = chrono::duration<double, milli>(t1 - t0).count();
         local_add_links_operation_time.push_back(ms);
-
-        for (auto& link : links) {
-            atom_handles.push_back(link->handle());
-        }
     }
-    auto t_links_end = Clock::now();
-    double links_total_time = chrono::duration<double, milli>(t_links_end - t_links_start).count();
+    double links_total_time = std::accumulate(
+        local_add_links_operation_time.begin(), local_add_links_operation_time.end(), 0.0);
+
+    // LOG_DEBUG("Finished adding links in " + to_string(links_total_time) + " ms");
 
     // Add atoms
-    auto t_atoms_start = Clock::now();
     for (int i = 0; i < iterations; ++i) {
         vector<Atom*> atoms;
 
@@ -212,15 +183,11 @@ void add_atoms(int tid, shared_ptr<AtomDB> db, int iterations) {
 
         double ms = chrono::duration<double, milli>(t1 - t0).count();
         local_add_atoms_operation_time.push_back(ms);
-
-        for (auto& atom : atoms) {
-            atom_handles.push_back(atom->handle());
-        }
     }
-    auto t_atoms_end = Clock::now();
-    double atoms_total_time = chrono::duration<double, milli>(t_atoms_end - t_atoms_start).count();
+    double atoms_total_time = std::accumulate(
+        local_add_atoms_operation_time.begin(), local_add_atoms_operation_time.end(), 0.0);
 
-    db->delete_atoms(atom_handles);
+    // LOG_DEBUG("Finished adding atoms in " + to_string(atoms_total_time) + " ms");
 
     lock_guard<mutex> lock(global_mutex);
     global_metrics["add_nodes"] = Metrics{local_add_nodes_operation_time,
@@ -238,18 +205,17 @@ void add_atoms(int tid, shared_ptr<AtomDB> db, int iterations) {
 }
 
 void get_atom(int tid, shared_ptr<AtomDB> db, int iterations) {
-    vector<double> local_get_node_documents_operation_time;
-    vector<double> local_get_link_documents_operation_time;
-    vector<double> local_get_atom_documents_operation_time;
+    vector<double> local_get_node_document_operation_time;
+    vector<double> local_get_link_document_operation_time;
+    vector<double> local_get_atom_document_operation_time;
+    vector<double> local_get_atom_operation_time;
 
-    local_get_node_documents_operation_time.reserve(iterations);
-    local_get_link_documents_operation_time.reserve(iterations);
-    local_get_atom_documents_operation_time.reserve(iterations);
-
-    vector<string> atom_handles;
+    local_get_node_document_operation_time.reserve(iterations);
+    local_get_link_document_operation_time.reserve(iterations);
+    local_get_atom_document_operation_time.reserve(iterations);
+    local_get_atom_operation_time.reserve(iterations);
 
     // get_node_document
-    auto t_get_node_start = Clock::now();
     for (int i = 0; i < iterations; ++i) {
         auto node_a = new Node(
             "Symbol", string("\"get_atom_a") + "_t" + to_string(tid) + "_i" + to_string(i) + "\"");
@@ -260,49 +226,40 @@ void get_atom(int tid, shared_ptr<AtomDB> db, int iterations) {
         auto t1 = Clock::now();
 
         double ms = chrono::duration<double, milli>(t1 - t0).count();
-        local_get_node_documents_operation_time.push_back(ms);
-
-        atom_handles.push_back(node_a_handle);
+        local_get_node_document_operation_time.push_back(ms);
     }
-    auto t_get_node_end = Clock::now();
-    double get_node_total_time =
-        chrono::duration<double, milli>(t_get_node_end - t_get_node_start).count();
+    double get_node_document_total_time = std::accumulate(local_get_node_document_operation_time.begin(),
+                                                          local_get_node_document_operation_time.end(),
+                                                          0.0);
 
     // get_link_document
-    auto t_get_link_start = Clock::now();
     for (int i = 0; i < iterations; ++i) {
         auto node_equivalence =
-            new Node("Symbol", string("EQUIVALENCE") + "_t" + to_string(tid) + "_i" + to_string(i));
+            new Node("Symbol", string("EQUIVALENCE_C") + "_t" + to_string(tid) + "_i" + to_string(i));
         auto node_equivalence_handle = db->add_node(node_equivalence);
-        auto node_a = new Node(
-            "Symbol", string("\"get_atom_b") + "_t" + to_string(tid) + "_i" + to_string(i) + "\"");
-        auto node_a_handle = db->add_node(node_a);
         auto node_b = new Node(
-            "Symbol", string("\"get_atom_c") + "_t" + to_string(tid) + "_i" + to_string(i) + "\"");
+            "Symbol", string("\"get_atom_b") + "_t" + to_string(tid) + "_i" + to_string(i) + "\"");
         auto node_b_handle = db->add_node(node_b);
+        auto node_c = new Node(
+            "Symbol", string("\"get_atom_c") + "_t" + to_string(tid) + "_i" + to_string(i) + "\"");
+        auto node_c_handle = db->add_node(node_c);
 
-        auto link = new Link("Expression", {node_equivalence_handle, node_a_handle, node_b_handle});
+        auto link = new Link("Expression", {node_equivalence_handle, node_b_handle, node_c_handle});
 
-        auto link_a_handle = db->add_link(link);
+        auto link_handle = db->add_link(link);
 
         auto t0 = Clock::now();
-        db->get_link_document(link_a_handle);
+        db->get_link_document(link_handle);
         auto t1 = Clock::now();
 
         double ms = chrono::duration<double, milli>(t1 - t0).count();
-        local_get_link_documents_operation_time.push_back(ms);
-
-        atom_handles.push_back(node_equivalence_handle);
-        atom_handles.push_back(node_a_handle);
-        atom_handles.push_back(node_b_handle);
-        atom_handles.push_back(link_a_handle);
+        local_get_link_document_operation_time.push_back(ms);
     }
-    auto t_get_link_end = Clock::now();
-    double get_link_total_time =
-        chrono::duration<double, milli>(t_get_link_end - t_get_link_start).count();
+    double get_link_document_total_time = std::accumulate(local_get_link_document_operation_time.begin(),
+                                                          local_get_link_document_operation_time.end(),
+                                                          0.0);
 
     // get_atom_document
-    auto t_get_atom_start = Clock::now();
     for (int i = 0; i < iterations; ++i) {
         auto node_d = new Node(
             "Symbol", string("\"get_atom_d") + "_t" + to_string(tid) + "_i" + to_string(i) + "\"");
@@ -313,29 +270,45 @@ void get_atom(int tid, shared_ptr<AtomDB> db, int iterations) {
         auto t1 = Clock::now();
 
         double ms = chrono::duration<double, milli>(t1 - t0).count();
-        local_get_atom_documents_operation_time.push_back(ms);
-
-        atom_handles.push_back(node_d_handle);
+        local_get_atom_document_operation_time.push_back(ms);
     }
-    auto t_get_atom_end = Clock::now();
-    double get_atom_total_time =
-        chrono::duration<double, milli>(t_get_atom_end - t_get_atom_start).count();
+    double get_atom_document_total_time = std::accumulate(local_get_atom_document_operation_time.begin(),
+                                                          local_get_atom_document_operation_time.end(),
+                                                          0.0);
 
-    db->delete_atoms(atom_handles);
+    // get_atom
+    for (int i = 0; i < iterations; ++i) {
+        auto node_e = new Node(
+            "Symbol", string("\"get_atom_e") + "_t" + to_string(tid) + "_i" + to_string(i) + "\"");
+        auto node_e_handle = db->add_atom(node_e);
+
+        auto t0 = Clock::now();
+        db->get_atom(node_e_handle);
+        auto t1 = Clock::now();
+
+        double ms = chrono::duration<double, milli>(t1 - t0).count();
+        local_get_atom_operation_time.push_back(ms);
+    }
+    double get_atom_total_time =
+        std::accumulate(local_get_atom_operation_time.begin(), local_get_atom_operation_time.end(), 0.0);
 
     lock_guard<mutex> lock(global_mutex);
-    global_metrics["get_node_document"] = Metrics{local_get_node_documents_operation_time,
-                                                  get_node_total_time,
-                                                  get_node_total_time / iterations,
-                                                  iterations / (get_node_total_time / 1000.0)};
-    global_metrics["get_link_document"] = Metrics{local_get_link_documents_operation_time,
-                                                  get_link_total_time,
-                                                  get_link_total_time / iterations,
-                                                  iterations / (get_link_total_time / 1000.0)};
-    global_metrics["get_atom_document"] = Metrics{local_get_atom_documents_operation_time,
-                                                  get_atom_total_time,
-                                                  get_atom_total_time / iterations,
-                                                  iterations / (get_atom_total_time / 1000.0)};
+    global_metrics["get_node_document"] = Metrics{local_get_node_document_operation_time,
+                                                  get_node_document_total_time,
+                                                  get_node_document_total_time / iterations,
+                                                  iterations / (get_node_document_total_time / 1000.0)};
+    global_metrics["get_link_document"] = Metrics{local_get_link_document_operation_time,
+                                                  get_link_document_total_time,
+                                                  get_link_document_total_time / iterations,
+                                                  iterations / (get_link_document_total_time / 1000.0)};
+    global_metrics["get_atom_document"] = Metrics{local_get_atom_document_operation_time,
+                                                  get_atom_document_total_time,
+                                                  get_atom_document_total_time / iterations,
+                                                  iterations / (get_atom_document_total_time / 1000.0)};
+    global_metrics["get_atom"] = Metrics{local_get_atom_operation_time,
+                                         get_atom_total_time,
+                                         get_atom_total_time / iterations,
+                                         iterations / (get_atom_total_time / 1000.0)};
 }
 
 void get_atoms(int tid, shared_ptr<AtomDB> db, int iterations) { /* WIP */

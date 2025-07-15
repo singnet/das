@@ -238,7 +238,8 @@ run_benchmark() {
     mkdir -p "/tmp/atomdb_benchmark/${TIMESTAMP}"
 
     for type in "${ATOMDB_TYPES[@]}"; do
-        echo -e "\n== Running benchmarks for AtomDB type: $type =="      
+        echo -e "\n== Running benchmarks for AtomDB type: $type =="
+        init_environment    
         for action in "${ACTIONS[@]}"; do
             echo -e "${YELLOW}>> Running action: $action <<${RESET}"
             ./src/scripts/bazel.sh run //tests/benchmark:atomdb_benchmark -- "$type" "$action" "$CACHE" "$CONCURRENCY" "$ITERATIONS" "$TIMESTAMP" 2> >(grep -v '^+')
@@ -260,7 +261,7 @@ Total Atoms in database: $(das-cli db count-atoms)
 }
 
 consolidate_reports() {
-    OUTPUT_DIR="/tmp/atomdb_benchmark/${TIMESTAMP}/consolidated_report_scenario_${SCENARIO_NAME}"
+    OUTPUT_DIR="/tmp/atomdb_benchmark/${TIMESTAMP}/consolidated_report_scenario_${SCENARIO_NAME}.txt"
     python3 ./src/scripts/python/consodidate_atomdb_benchmark.py "/tmp/atomdb_benchmark/${TIMESTAMP}" --output "$OUTPUT_DIR" --header "$(header_to_report)"
     echo ""
     echo -e "\r\033[K${GREEN}Consolidated reports saved to: $OUTPUT_DIR${RESET}"
@@ -273,7 +274,6 @@ main() {
     load_scenario_definition
     print_scenario
     generate_metta_file "$SENTENCES" "$WORD_COUNT" "$WORD_LENGTH" "$ALPHABET_RANGE"
-    init_environment
     run_benchmark
     consolidate_reports
 }
