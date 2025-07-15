@@ -14,14 +14,25 @@
 
 using namespace std;
 
+struct Metrics {
+    vector<double> operation_time;
+    double total_time;
+    double time_per_atom;
+    double throughput;
+};
+
 // Compute percentile (0.0 to 1.0) of the sorted vector using linear interpolation
 double compute_percentile(const vector<double>& vec, double percentile_fraction);
 
-// Compute latency statistics for each operation
-map<string, map<string, double>> latency_statistics(map<string, vector<double>>& latencies);
+// Compute metric statistics for each operation
+map<string, map<string, double>> calculate_metric_statistics(map<string, Metrics>& metrics);
 
-// Create a report for the given latencies
-void create_report(const string& db_name, const string& action, map<string, vector<double>>& latencies);
+// Create a report for the given metrics
+void create_report(const string& db_name,
+                   const string& action,
+                   map<string, Metrics>& metrics,
+                   const string& base_directory,
+                   const int& write_batch_size);
 
 // Get demangled type name of an object
 template <typename T>

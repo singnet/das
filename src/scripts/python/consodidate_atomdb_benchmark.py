@@ -5,12 +5,15 @@ from collections import defaultdict
 DEFAULT_COL_ORDER = [
     "Backend",
     "Operation",
-    "Mean (ms)",
-    "Min (ms)",
-    "Max (ms)",
-    "P50 (ms)",
-    "P90 (ms)",
-    "P99 (ms)",
+    "AVG",
+    "MIN",
+    "MAX",
+    "P50",
+    "P90",
+    "P99",
+    "TT",
+    "TPA",
+    "TP",
 ]
 
 
@@ -77,10 +80,24 @@ def calc_col_widths(entries, columns):
     return widths
 
 
-def write_report(results, output_file):
+def write_report(header, results, output_file):
     with open(output_file, "w") as f:
+        f.write("Consolidated AtomDB Benchmark Report\n")
+        f.write("=" * 40 + "\n\n")
+        f.write("Legend:\n")
+        f.write("AVG  = Average Operation Time (ms)\n")
+        f.write("MIN  = Minimum Operation Time (ms)\n")
+        f.write("MAX  = Maximum Operation Time (ms)\n")
+        f.write("P50  = 50th Percentile Time (ms)\n")
+        f.write("P90  = 90th Percentile Time (ms)\n")
+        f.write("P99  = 99th Percentile Time (ms)\n")
+        f.write("TT   = Total Time (ms)\n")
+        f.write("TPA  = Time per Atom (ms)\n")
+        f.write("TP   = Throughput (atoms/sec)\n\n")
+        f.write(header + "\n\n" if header else "")
+
         for op_type, entries in results.items():
-            f.write(f"{op_type}\n\n")
+            f.write(f"[{op_type}]\n\n")
             columns = get_columns(entries)
             col_widths = calc_col_widths(entries, columns)
 
@@ -102,7 +119,8 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Consolidate benchmarks.")
     parser.add_argument("directory", help="Directory with benchmark files")
     parser.add_argument("-o", "--output", default="consolidated_report.txt", help="Output file")
+    parser.add_argument("--header", default="", help="Header to include in the report")
     args = parser.parse_args()
 
     results = consolidate_results(args.directory)
-    write_report(results, args.output)
+    write_report(args.header, results, args.output)

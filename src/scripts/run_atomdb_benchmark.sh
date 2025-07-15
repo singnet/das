@@ -4,6 +4,8 @@ set -eou pipefail
 
 ATOMDB_TYPES=("redis_mongo" "mork")
 
+TIMESTAMP=$(date +%Y%m%d%H%M%S)
+
 DB=""
 REL="none"
 CONCURRENCY="1"
@@ -14,7 +16,7 @@ SENTENCES=""
 WORD_COUNT=""
 WORD_LENGTH=""
 ALPHABET_RANGE=""
-METTA_PATH="/tmp/${RANDOM}_$(date +%Y%m%d%H%M%S).metta"
+METTA_PATH="/tmp/${RANDOM}_${TIMESTAMP}.metta"
 
 RESET='\033[0m'
 RED='\033[0;31m'
@@ -227,28 +229,40 @@ load_scenario_definition() {
 
 print_scenario() {
     echo "=== Scenario: $SCENARIO_NAME ==="
-    echo "db=$DB, rel=$REL, concurrency=$CONCURRENCY, cache=$CACHE"
+    echo "db=$DB, rel=$REL, concurrency=$CONCURRENCY, cache=$CACHE, iterations=$ITERATIONS"
     echo "actions=${ACTIONS[*]}"
+    echo ""
 }
 
 run_benchmark() {
-    mkdir -p /tmp/atomdb_benchmark
-    
+    mkdir -p "/tmp/atomdb_benchmark/${TIMESTAMP}"
+
     for type in "${ATOMDB_TYPES[@]}"; do
         echo -e "\n== Running benchmarks for AtomDB type: $type =="      
         for action in "${ACTIONS[@]}"; do
-            echo -e "Running action: $action"
-            init_environment
-            ./src/scripts/bazel.sh run //tests/benchmark:atomdb_benchmark -- "$type" "$action" "$CACHE" "$CONCURRENCY" "$ITERATIONS" 2> >(grep -v '^+')
+            echo -e "${YELLOW}>> Running action: $action <<${RESET}"
+            ./src/scripts/bazel.sh run //tests/benchmark:atomdb_benchmark -- "$type" "$action" "$CACHE" "$CONCURRENCY" "$ITERATIONS" "$TIMESTAMP" 2> >(grep -v '^+')
         done
         echo -e "\r\033[K${GREEN}Benchmark for AtomDB $type completed!${RESET}"
     done
 }
 
+header_to_report() {
+    local header="*** Scenario: $SCENARIO_NAME ***
+Database = $DB
+Atoms relationships = $REL
+Concurrent access = $CONCURRENCY
+Cache = $CACHE
+iterations = $ITERATIONS
+Total Atoms in database: $(das-cli db count-atoms)
+"
+    echo "$header"
+}
 
 consolidate_reports() {
-    OUTPUT_DIR="/tmp/atomdb_benchmark/scenario_${SCENARIO_NAME}_$(date +%Y%m%d%H%M%S)"
-    python3 ./src/scripts/python/consodidate_atomdb_benchmark.py /tmp/atomdb_benchmark -o "$OUTPUT_DIR"
+    OUTPUT_DIR="/tmp/atomdb_benchmark/${TIMESTAMP}/consolidated_report_scenario_${SCENARIO_NAME}"
+    python3 ./src/scripts/python/consodidate_atomdb_benchmark.py "/tmp/atomdb_benchmark/${TIMESTAMP}" --output "$OUTPUT_DIR" --header "$(header_to_report)"
+    echo ""
     echo -e "\r\033[K${GREEN}Consolidated reports saved to: $OUTPUT_DIR${RESET}"
 }
 
@@ -259,6 +273,7 @@ main() {
     load_scenario_definition
     print_scenario
     generate_metta_file "$SENTENCES" "$WORD_COUNT" "$WORD_LENGTH" "$ALPHABET_RANGE"
+    init_environment
     run_benchmark
     consolidate_reports
 }
