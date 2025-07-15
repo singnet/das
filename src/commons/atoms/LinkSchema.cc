@@ -11,6 +11,12 @@
 
 using namespace atoms;
 
+string LinkSchema::ATOM = "ATOM";
+string LinkSchema::NODE = "NODE";
+string LinkSchema::LINK = "LINK";
+string LinkSchema::UNTYPED_VARIABLE = "VARIABLE";
+string LinkSchema::LINK_TEMPLATE = "LINK_TEMPLATE";
+
 // -------------------------------------------------------------------------------------------------
 // Constructors, destructors , basic operators and initializers
 
@@ -35,10 +41,6 @@ void LinkSchema::_init(unsigned int arity) {
     this->_metta_representation = "(";
     this->_schema_element.is_link = true;
 
-    this->LINK_TEMPLATE = "LINK_TEMPLATE";
-    this->NODE = "NODE";
-    this->LINK = "LINK";
-    this->UNTYPED_VARIABLE = "VARIABLE";
     this->_build_tokens.push_back({LINK_TEMPLATE, this->type, std::to_string(arity)});
 }
 
@@ -193,6 +195,18 @@ void LinkSchema::add_target(const string& schema_handle,
     } else {
         Utils::error("Attempt to add a new target beyond LinkSchema's arity. LinkSchema: " +
                      this->to_string());
+    }
+}
+
+void LinkSchema::stack_atom(const string& handle) {
+    LOG_DEBUG("            STACK ATOM: " + handle);
+    if (!_check_not_frozen()) {
+        tuple<string, string, string> triplet(handle, handle, handle);
+        this->_atom_stack.push_back(triplet);
+        this->_build_tokens.push_back({ATOM, handle});
+        SchemaElement atom_element;
+        atom_element.handle = handle;
+        this->_schema_element_stack.push(atom_element);
     }
 }
 
@@ -381,7 +395,7 @@ void LinkSchema::untokenize(const vector<string>& tokens) {
     }
 
     stack<tuple<string, string, unsigned int, unsigned int>> link_schema_stack;
-    string token, type, name;
+    string token, type, name, handle;
     unsigned int arity, current_pending_elements;
     unsigned int cursor = 0;
     token = tokens[cursor++];
@@ -396,7 +410,16 @@ void LinkSchema::untokenize(const vector<string>& tokens) {
     while (current_pending_elements > 0) {
         _syntax_assert((cursor + current_pending_elements) <= tokens.size(), token, cursor);
         token = tokens[cursor++];
-        if (token == NODE) {
+        if (token == ATOM) {
+            _syntax_assert((cursor + 1) <= tokens.size(), token, cursor);
+            handle = tokens[cursor++];
+            LOG_DEBUG("STACK ATOM: " << handle);
+            stack_atom(handle);
+            current_pending_elements--;
+            if (current_pending_elements == 0) {
+                current_pending_elements = _push_stack_top(link_schema_stack, token, cursor);
+            }
+        } else if (token == NODE) {
             _syntax_assert((cursor + 2) <= tokens.size(), token, cursor);
             type = tokens[cursor++];
             name = tokens[cursor++];

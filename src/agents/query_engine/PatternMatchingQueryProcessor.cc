@@ -24,6 +24,9 @@
 
 using namespace atomdb;
 
+string PatternMatchingQueryProcessor::AND = "AND";
+string PatternMatchingQueryProcessor::OR = "OR";
+
 // -------------------------------------------------------------------------------------------------
 // Constructors and destructors
 
@@ -222,11 +225,16 @@ shared_ptr<QueryElement> PatternMatchingQueryProcessor::setup_query_tree(
 
     while (cursor < tokens_count) {
         execution_stack.push(cursor);
-        if ((query_tokens[cursor] == "VARIABLE") || (query_tokens[cursor] == "AND") ||
-            ((query_tokens[cursor] == "OR"))) {
+        if ((query_tokens[cursor] == LinkSchema::LINK) ||
+            (query_tokens[cursor] == LinkSchema::LINK_TEMPLATE) ||
+            (query_tokens[cursor] == LinkSchema::NODE)) {
+            cursor += 3;
+        } else if ((query_tokens[cursor] == LinkSchema::UNTYPED_VARIABLE) ||
+                   (query_tokens[cursor] == LinkSchema::ATOM) || (query_tokens[cursor] == AND) ||
+                   (query_tokens[cursor] == OR)) {
             cursor += 2;
         } else {
-            cursor += 3;
+            Utils::error("Invalid token in query: " + query_tokens[cursor]);
         }
     }
 
@@ -237,21 +245,25 @@ shared_ptr<QueryElement> PatternMatchingQueryProcessor::setup_query_tree(
 
     while (!execution_stack.empty()) {
         cursor = execution_stack.top();
-        if (query_tokens[cursor] == "NODE") {
+        if (query_tokens[cursor] == LinkSchema::ATOM) {
+            shared_ptr<Terminal> atom = make_shared<Terminal>();
+            atom->handle = query_tokens[cursor + 1];
+            element_stack.push(atom);
+        } else if (query_tokens[cursor] == LinkSchema::NODE) {
             element_stack.push(
                 make_shared<Terminal>(query_tokens[cursor + 1], query_tokens[cursor + 2]));
-        } else if (query_tokens[cursor] == "VARIABLE") {
+        } else if (query_tokens[cursor] == LinkSchema::UNTYPED_VARIABLE) {
             element_stack.push(make_shared<Terminal>(query_tokens[cursor + 1]));
-        } else if (query_tokens[cursor] == "LINK") {
+        } else if (query_tokens[cursor] == LinkSchema::LINK) {
             element_stack.push(build_link(proxy, cursor, element_stack));
-        } else if (query_tokens[cursor] == "LINK_TEMPLATE") {
+        } else if (query_tokens[cursor] == LinkSchema::LINK_TEMPLATE) {
             element_stack.push(build_link_template(proxy, cursor, element_stack));
-        } else if (query_tokens[cursor] == "AND") {
+        } else if (query_tokens[cursor] == AND) {
             element_stack.push(build_and(proxy, cursor, element_stack));
             if (proxy->parameters.get<bool>(BaseQueryProxy::UNIQUE_ASSIGNMENT_FLAG)) {
                 element_stack.push(build_unique_assignment_filter(proxy, cursor, element_stack));
             }
-        } else if (query_tokens[cursor] == "OR") {
+        } else if (query_tokens[cursor] == OR) {
             element_stack.push(build_or(proxy, cursor, element_stack));
             if (proxy->parameters.get<bool>(BaseQueryProxy::UNIQUE_ASSIGNMENT_FLAG)) {
                 element_stack.push(build_unique_assignment_filter(proxy, cursor, element_stack));
