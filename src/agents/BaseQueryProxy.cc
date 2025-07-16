@@ -39,7 +39,7 @@ void BaseQueryProxy::init() {
     this->parameters[UNIQUE_ASSIGNMENT_FLAG] = false;
     this->parameters[ATTENTION_UPDATE_FLAG] = false;
     this->parameters[MAX_BUNDLE_SIZE] = (unsigned int) 1000;
-    this->parameters[MAX_ANSWERS] = (unsigned int) 0; // No limit
+    this->parameters[MAX_ANSWERS] = (unsigned int) 0;  // No limit
     this->parameters[USE_LINK_TEMPLATE_CACHE] = false;
 }
 
@@ -122,7 +122,7 @@ string BaseQueryProxy::to_string() {
     string answer = "{";
     answer += "context: " + this->get_context();
     answer += ", tokens: [";
-    for (auto token: this->query_tokens) {
+    for (auto token : this->query_tokens) {
         answer += token + ", ";
     }
     answer.pop_back();

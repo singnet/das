@@ -58,14 +58,14 @@ string QueryEvolutionProxy::to_string() {
     answer += BaseQueryProxy::to_string();
     answer += ", fitness_function: " + this->fitness_function_tag;
     answer += ", correlation_tokens: [";
-    for (auto token: this->correlation_tokens) {
+    for (auto token : this->correlation_tokens) {
         answer += token + ", ";
     }
     answer.pop_back();
     answer.pop_back();
     answer += "], ";
     answer += "correlation_variables: [";
-    for (auto token: this->correlation_variables) {
+    for (auto token : this->correlation_variables) {
         answer += token + ", ";
     }
     answer.pop_back();
@@ -84,7 +84,8 @@ void QueryEvolutionProxy::pack_command_line_args() { tokenize(this->args); }
 
 void QueryEvolutionProxy::tokenize(vector<string>& output) {
     lock_guard<mutex> semaphore(this->api_mutex);
-    output.insert(output.begin(), this->correlation_variables.begin(), this->correlation_variables.end());
+    output.insert(
+        output.begin(), this->correlation_variables.begin(), this->correlation_variables.end());
     output.insert(output.begin(), std::to_string(this->correlation_variables.size()));
     output.insert(output.begin(), this->correlation_tokens.begin(), this->correlation_tokens.end());
     output.insert(output.begin(), std::to_string(this->correlation_tokens.size()));
@@ -101,13 +102,15 @@ void QueryEvolutionProxy::untokenize(vector<string>& tokens) {
     tokens.erase(tokens.begin(), tokens.begin() + 1);
 
     unsigned int num_correlation_tokens = std::stoi(tokens[0]);
-    this->correlation_tokens.insert(
-        this->correlation_tokens.begin(), tokens.begin() + 1, tokens.begin() + 1 + num_correlation_tokens);
+    this->correlation_tokens.insert(this->correlation_tokens.begin(),
+                                    tokens.begin() + 1,
+                                    tokens.begin() + 1 + num_correlation_tokens);
     tokens.erase(tokens.begin(), tokens.begin() + 1 + num_correlation_tokens);
 
     unsigned int num_correlation_variables = std::stoi(tokens[0]);
-    this->correlation_variables.insert(
-        this->correlation_variables.begin(), tokens.begin() + 1, tokens.begin() + 1 + num_correlation_variables);
+    this->correlation_variables.insert(this->correlation_variables.begin(),
+                                       tokens.begin() + 1,
+                                       tokens.begin() + 1 + num_correlation_variables);
     tokens.erase(tokens.begin(), tokens.begin() + 1 + num_correlation_variables);
 }
 

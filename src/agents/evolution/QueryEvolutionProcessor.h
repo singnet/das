@@ -64,8 +64,10 @@ class QueryEvolutionProcessor : public BusCommandProcessor {
                                      vector<std::pair<shared_ptr<QueryAnswer>, float>>& selected);
 
    private:
-    void correlate_similar(shared_ptr<QueryEvolutionProxy> proxy, shared_ptr<QueryAnswer> correlation_query_answer);
-    void stimulate(shared_ptr<QueryEvolutionProxy> proxy, vector<std::pair<shared_ptr<QueryAnswer>, float>>& selected);
+    void correlate_similar(shared_ptr<QueryEvolutionProxy> proxy,
+                           shared_ptr<QueryAnswer> correlation_query_answer);
+    void stimulate(shared_ptr<QueryEvolutionProxy> proxy,
+                   vector<std::pair<shared_ptr<QueryAnswer>, float>>& selected);
     void thread_process_one_query(shared_ptr<StoppableThread>, shared_ptr<QueryEvolutionProxy> proxy);
     void remove_query_thread(const string& stoppable_thread_id);
 

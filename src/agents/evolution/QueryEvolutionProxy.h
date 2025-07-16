@@ -31,8 +31,8 @@ class QueryEvolutionProxy : public BaseQueryProxy {
     // Query command's optional parameters
     static string POPULATION_SIZE;
     static string MAX_GENERATIONS;
-    static string ELITISM_RATE;    // Rate on POPULATION_SIZE
-    static string SELECTION_RATE;  // Rate on POPULATION_SIZE
+    static string ELITISM_RATE;            // Rate on POPULATION_SIZE
+    static string SELECTION_RATE;          // Rate on POPULATION_SIZE
     static string TOTAL_ATTENTION_TOKENS;  // Used in attention allocation update
 
     /**

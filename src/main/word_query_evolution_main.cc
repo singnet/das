@@ -143,11 +143,7 @@ void run(const string& client_id,
     // Query evolution request
 
     QueryEvolutionProxy* proxy_ptr = new QueryEvolutionProxy(
-            or_two_words,
-            activation_spreading,
-            {sentence3},
-            "count_letter",
-            context);
+        or_two_words, activation_spreading, {sentence3}, "count_letter", context);
     shared_ptr<QueryEvolutionProxy> proxy(proxy_ptr);
     proxy->parameters[QueryEvolutionProxy::POPULATION_SIZE] = (unsigned int) 100;
     proxy->parameters[QueryEvolutionProxy::MAX_GENERATIONS] = (unsigned int) 1;
