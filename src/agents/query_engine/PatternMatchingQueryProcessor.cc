@@ -309,7 +309,8 @@ shared_ptr<QueryElement> PatternMatchingQueryProcessor::build_link_template(
         query_tokens[cursor + 1],
         targets,
         proxy->get_context(),
-        proxy->parameters.get<bool>(PatternMatchingQueryProxy::POSITIVE_IMPORTANCE_FLAG));
+        proxy->parameters.get<bool>(PatternMatchingQueryProxy::POSITIVE_IMPORTANCE_FLAG),
+        proxy->parameters.get<bool>(BaseQueryProxy::USE_LINK_TEMPLATE_CACHE));
     LOG_INFO("LinkTemplate: " + link_template->to_string());
     return link_template;
 }

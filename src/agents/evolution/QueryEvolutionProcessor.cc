@@ -82,7 +82,7 @@ void QueryEvolutionProcessor::sample_population(
     unsigned int population_size =
         proxy->parameters.get<unsigned int>(QueryEvolutionProxy::POPULATION_SIZE);
     auto pm = atom_space.pattern_matching_query(
-        proxy->get_query_tokens(), population_size, proxy->get_context());
+        proxy->get_query_tokens(), population_size, proxy->get_context(), true);
     while ((!pm->finished()) && (!monitor->stopped()) && (population.size() < population_size)) {
         shared_ptr<QueryAnswer> answer = pm->pop();
         if (answer != NULL) {
@@ -211,7 +211,8 @@ void QueryEvolutionProcessor::correlate_similar(shared_ptr<QueryEvolutionProxy> 
     auto pm = atom_space.pattern_matching_query(
         query_tokens, 
         proxy->parameters.get<unsigned int>(QueryEvolutionProxy::POPULATION_SIZE), 
-        proxy->get_context());
+        proxy->get_context(),
+        false);
     while (!pm->finished()) {
         shared_ptr<QueryAnswer> answer = pm->pop();
         if (answer != NULL) {
@@ -289,6 +290,7 @@ void QueryEvolutionProcessor::evolve_query(shared_ptr<StoppableThread> monitor,
         update_attention_allocation(proxy, selected);
         population.clear();
         selected.clear();
+        proxy->flush_answer_bundle();
     }
     Utils::sleep(1000);
     proxy->query_processing_finished();

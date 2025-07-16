@@ -18,11 +18,13 @@ ThreadSafeHashmap<string, shared_ptr<atomdb_api_types::HandleSet>> LinkTemplate:
 LinkTemplate::LinkTemplate(const string& type,
                            const vector<shared_ptr<QueryElement>>& targets,
                            const string& context,
-                           bool positive_importance_flag)
+                           bool positive_importance_flag,
+                           bool use_cache)
     : link_schema(type, targets.size()) {
     this->targets = targets;
     this->context = context;
     this->positive_importance_flag = positive_importance_flag;
+    this->use_cache = use_cache;
     this->inner_flag = true;
     this->arity = targets.size();
 }
@@ -122,7 +124,7 @@ void LinkTemplate::processor_method(shared_ptr<StoppableThread> monitor) {
     auto db = AtomDBSingleton::get_instance();
     string link_schema_handle = this->link_schema.handle();
     shared_ptr<atomdb_api_types::HandleSet> handles;
-    if (LinkTemplate::fetched_links_cache().contains(link_schema_handle)) {
+    if (this->use_cache && LinkTemplate::fetched_links_cache().contains(link_schema_handle)) {
         LOG_INFO("Fetching " + link_schema_handle + " from cache");
         handles = LinkTemplate::fetched_links_cache().get(link_schema_handle);
     } else {

@@ -53,6 +53,7 @@ class LinkTemplate : public QueryElement {
     vector<shared_ptr<QueryElement>> targets;
     string context;
     bool positive_importance_flag;
+    bool use_cache;
     bool inner_flag;
     LinkSchema link_schema;
     shared_ptr<SourceElement> source_element;
@@ -69,7 +70,8 @@ class LinkTemplate : public QueryElement {
     LinkTemplate(const string& type,
                  const vector<shared_ptr<QueryElement>>& targets,
                  const string& context,
-                 bool positive_importance_flag);
+                 bool positive_importance_flag,
+                 bool use_cache);
 
     void build();
     string to_string();

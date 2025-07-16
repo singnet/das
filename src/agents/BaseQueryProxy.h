@@ -50,6 +50,8 @@ class BaseQueryProxy : public BaseProxy {
 
     static string MAX_ANSWERS; // Limits the number of returned answers
 
+    static string USE_LINK_TEMPLATE_CACHE; // When true, a cache for fetched handles is used in LinkTemplate.
+
     /**
      * Destructor.
      */

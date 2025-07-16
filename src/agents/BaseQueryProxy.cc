@@ -18,6 +18,7 @@ string BaseQueryProxy::UNIQUE_ASSIGNMENT_FLAG = "unique_assignment_flag";
 string BaseQueryProxy::ATTENTION_UPDATE_FLAG = "attention_update_flag";
 string BaseQueryProxy::MAX_BUNDLE_SIZE = "max_bundle_size";
 string BaseQueryProxy::MAX_ANSWERS = "max_answers";
+string BaseQueryProxy::USE_LINK_TEMPLATE_CACHE = "use_link_template_cache";
 
 BaseQueryProxy::BaseQueryProxy() {
     // constructor typically used in processor
@@ -39,7 +40,7 @@ void BaseQueryProxy::init() {
     this->parameters[ATTENTION_UPDATE_FLAG] = false;
     this->parameters[MAX_BUNDLE_SIZE] = (unsigned int) 1000;
     this->parameters[MAX_ANSWERS] = (unsigned int) 0; // No limit
-
+    this->parameters[USE_LINK_TEMPLATE_CACHE] = false;
 }
 
 BaseQueryProxy::~BaseQueryProxy() {}
