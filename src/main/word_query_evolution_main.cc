@@ -150,7 +150,7 @@ void run(const string& client_id,
             context);
     shared_ptr<QueryEvolutionProxy> proxy(proxy_ptr);
     proxy->parameters[QueryEvolutionProxy::POPULATION_SIZE] = (unsigned int) 100;
-    proxy->parameters[QueryEvolutionProxy::MAX_GENERATIONS] = (unsigned int) 10;
+    proxy->parameters[QueryEvolutionProxy::MAX_GENERATIONS] = (unsigned int) 1;
     proxy->parameters[QueryEvolutionProxy::ELITISM_RATE] = (double) 0.01;
     proxy->parameters[QueryEvolutionProxy::SELECTION_RATE] = (double) 0.1;
     proxy->parameters[BaseQueryProxy::MAX_BUNDLE_SIZE] = (unsigned int) 1;
