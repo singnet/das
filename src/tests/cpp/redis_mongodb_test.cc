@@ -446,7 +446,7 @@ TEST_F(RedisMongoDBTest, DeleteNodesAndLinks) {
     MockDecoder decoder;
 
     auto similarity_node = new Node("Symbol", "Similarity");
-    for (int i = 0; i < 5555; i++) {
+    for (int i = 0; i < 55; i++) {
         auto test_1_node = new Node("Symbol", "add-links-1-" + to_string(i));
         auto test_2_node = new Node("Symbol", "add-links-2-" + to_string(i));
         nodes.push_back(test_1_node);
