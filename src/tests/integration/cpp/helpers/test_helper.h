@@ -12,7 +12,7 @@ class LogHandle {
    public:
     explicit LogHandle(const std::string& log_path) : logPath(log_path) {}
 
-    std::string getOutput() const {
+    std::string get_output() const {
         std::ifstream file(logPath);
         if (!file) return "";
 
@@ -29,10 +29,10 @@ class FileWatcher {
    public:
     explicit FileWatcher(const std::string& watchDir, float timeout_sec = 20.0) : watchDir_(watchDir) {
         start();
-        waitForRunningFile(timeout_sec);
+        wait_for_running_file(timeout_sec);
     }
 
-    LogHandle* createLogHandle(const std::string& logPath) const { return new LogHandle(logPath); }
+    LogHandle* create_log_handle(const std::string& logPath) const { return new LogHandle(logPath); }
 
     void start() {
         // Write a start file to initiate the process
@@ -62,7 +62,7 @@ class FileWatcher {
    private:
     std::string watchDir_;
 
-    void waitForRunningFile(float timeout_sec) const {
+    void wait_for_running_file(float timeout_sec) const {
         const std::string runningFile = watchDir_ + "/running";
 
         std::cout << "Waiting for file: " << runningFile << std::endl;

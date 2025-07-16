@@ -88,7 +88,7 @@ class Process {
         }
     }
 
-    bool waitForExit(int timeout_ms = 1000) {
+    bool wait(int timeout_ms = 1000) {
         if (pid_ <= 0) return true;
 
         int status;
@@ -109,7 +109,7 @@ class Process {
         return false;
     }
 
-    std::string getOutput() const { return accumulated_output_.str(); }
+    std::string get_output() const { return accumulated_output_.str(); }
 
     pid_t pid() const { return pid_; }
 

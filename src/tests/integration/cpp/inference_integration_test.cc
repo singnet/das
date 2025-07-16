@@ -24,23 +24,23 @@ class IntegrationTest : public ::testing::Test {
         // Create a file watcher to monitor the agents' logs
         this->file_watcher = new FileWatcher("/opt/das/bin", 60.0f);
         this->attention_broker =
-            this->file_watcher->createLogHandle("/opt/das/logs/attention_broker_service.log");
-        this->query_agent = this->file_watcher->createLogHandle("/opt/das/logs/query_broker.log");
+            this->file_watcher->create_log_handle("/opt/das/logs/attention_broker_service.log");
+        this->query_agent = this->file_watcher->create_log_handle("/opt/das/logs/query_broker.log");
         this->link_creation_agent =
-            this->file_watcher->createLogHandle("/opt/das/logs/link_creation_server.log");
+            this->file_watcher->create_log_handle("/opt/das/logs/link_creation_server.log");
         this->inference_agent =
-            this->file_watcher->createLogHandle("/opt/das/logs/inference_agent_server.log");
+            this->file_watcher->create_log_handle("/opt/das/logs/inference_agent_server.log");
         this->evolution_agent =
-            this->file_watcher->createLogHandle("/opt/das/logs/evolution_broker.log");
+            this->file_watcher->create_log_handle("/opt/das/logs/evolution_broker.log");
     }
 
     void TearDown() override {
         // Check the output of all agents
-        cout << "Attention Broker Output: \n" << this->attention_broker->getOutput() << endl;
-        cout << "Query Agent Output: \n" << this->query_agent->getOutput() << endl;
-        cout << "Link Creation Agent Output: \n" << this->link_creation_agent->getOutput() << endl;
-        cout << "Evolution Agent Output: \n" << this->evolution_agent->getOutput() << endl;
-        cout << "Inference Agent Output: \n" << this->inference_agent->getOutput() << endl;
+        cout << "Attention Broker Output: \n" << this->attention_broker->get_output() << endl;
+        cout << "Query Agent Output: \n" << this->query_agent->get_output() << endl;
+        cout << "Link Creation Agent Output: \n" << this->link_creation_agent->get_output() << endl;
+        cout << "Evolution Agent Output: \n" << this->evolution_agent->get_output() << endl;
+        cout << "Inference Agent Output: \n" << this->inference_agent->get_output() << endl;
         // Stop the file watcher and delete log handles
         this->file_watcher->stop();
         delete this->file_watcher;
@@ -65,17 +65,17 @@ TEST_F(IntegrationTest, TestProofOfImplicationOrEquivalence) {
                               "POC"});
 
     ASSERT_TRUE(inference_client.start());
-    inference_client.waitForExit(20 * 1000);
-    string output = inference_client.getOutput();
+    inference_client.wait(20 * 1000);
+    string output = inference_client.get_output();
     cout << "Inference Client Output: \n" << output << endl;
 
     ASSERT_TRUE(output.find("Error") == string::npos);
-    ASSERT_TRUE(this->inference_agent->getOutput().find("Inference request processed") != string::npos);
-    ASSERT_TRUE(this->evolution_agent->getOutput().find("Command finished: <query_evolution>") !=
+    ASSERT_TRUE(this->inference_agent->get_output().find("Inference request processed") != string::npos);
+    ASSERT_TRUE(this->evolution_agent->get_output().find("Command finished: <query_evolution>") !=
                 string::npos);
-    ASSERT_TRUE(this->link_creation_agent->getOutput().find("PROOF_OF_IMPLICATION") != string::npos);
-    ASSERT_TRUE(this->link_creation_agent->getOutput().find("PROOF_OF_EQUIVALENCE") != string::npos);
-    ASSERT_TRUE(this->query_agent->getOutput().find(
+    ASSERT_TRUE(this->link_creation_agent->get_output().find("PROOF_OF_IMPLICATION") != string::npos);
+    ASSERT_TRUE(this->link_creation_agent->get_output().find("PROOF_OF_EQUIVALENCE") != string::npos);
+    ASSERT_TRUE(this->query_agent->get_output().find(
                     "Fetched 9 links for link template ec86337bea4bcc2b8fcf7c4d401aa6cc") !=
                 string::npos);
 }
@@ -93,17 +93,17 @@ TEST_F(IntegrationTest, TestProofOfImplication) {
                               "POC"});
 
     ASSERT_TRUE(inference_client.start());
-    inference_client.waitForExit(20 * 1000);
+    inference_client.wait(20 * 1000);
 
-    string output = inference_client.getOutput();
+    string output = inference_client.get_output();
     cout << "Inference Client Output: \n" << output << endl;
 
     ASSERT_TRUE(output.find("Error") == string::npos);
-    ASSERT_TRUE(this->inference_agent->getOutput().find("Inference request processed") != string::npos);
-    ASSERT_TRUE(this->evolution_agent->getOutput().find("Command finished: <query_evolution>") !=
+    ASSERT_TRUE(this->inference_agent->get_output().find("Inference request processed") != string::npos);
+    ASSERT_TRUE(this->evolution_agent->get_output().find("Command finished: <query_evolution>") !=
                 string::npos);
-    ASSERT_TRUE(this->link_creation_agent->getOutput().find("PROOF_OF_IMPLICATION") != string::npos);
-    ASSERT_TRUE(this->link_creation_agent->getOutput().find("PROOF_OF_EQUIVALENCE") == string::npos);
+    ASSERT_TRUE(this->link_creation_agent->get_output().find("PROOF_OF_IMPLICATION") != string::npos);
+    ASSERT_TRUE(this->link_creation_agent->get_output().find("PROOF_OF_EQUIVALENCE") == string::npos);
 }
 
 TEST_F(IntegrationTest, TestProofOfEquivalence) {
@@ -119,14 +119,14 @@ TEST_F(IntegrationTest, TestProofOfEquivalence) {
                               "POC"});
 
     ASSERT_TRUE(inference_client.start());
-    inference_client.waitForExit(20 * 1000);
-    string output = inference_client.getOutput();
+    inference_client.wait(20 * 1000);
+    string output = inference_client.get_output();
     cout << "Inference Client Output: \n" << output << endl;
 
     ASSERT_TRUE(output.find("Error") == string::npos);
-    ASSERT_TRUE(this->inference_agent->getOutput().find("Inference request processed") != string::npos);
-    ASSERT_TRUE(this->evolution_agent->getOutput().find("Command finished: <query_evolution>") !=
+    ASSERT_TRUE(this->inference_agent->get_output().find("Inference request processed") != string::npos);
+    ASSERT_TRUE(this->evolution_agent->get_output().find("Command finished: <query_evolution>") !=
                 string::npos);
-    ASSERT_TRUE(this->link_creation_agent->getOutput().find("PROOF_OF_IMPLICATION") == string::npos);
-    ASSERT_TRUE(this->link_creation_agent->getOutput().find("PROOF_OF_EQUIVALENCE") != string::npos);
+    ASSERT_TRUE(this->link_creation_agent->get_output().find("PROOF_OF_IMPLICATION") == string::npos);
+    ASSERT_TRUE(this->link_creation_agent->get_output().find("PROOF_OF_EQUIVALENCE") != string::npos);
 }
