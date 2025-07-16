@@ -30,6 +30,7 @@ map<string, map<string, double>> calculate_metric_statistics(map<string, Metrics
 // Create a report for the given metrics
 void create_report(const string& db_name,
                    const string& action,
+                   const string& method,
                    map<string, Metrics>& metrics,
                    const string& base_directory,
                    const int& batch_size);

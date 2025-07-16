@@ -167,7 +167,7 @@ init_environment() {
     DAS_MONGODB_PORT="28000"
     DAS_MONGODB_USERNAME="dbadmin"
     DAS_MONGODB_PASSWORD="dassecret"
-    echo -e "$DAS_REDIS_PORT\nN\n$DAS_MONGODB_PORT\n$DAS_MONGODB_USERNAME\n$DAS_MONGODB_PASSWORD\nN\n8888\n\n\n\n\n" | das-cli config set > /dev/null
+    echo -e "$DAS_REDIS_PORT\nN\n$DAS_MONGODB_PORT\n$DAS_MONGODB_USERNAME\n$DAS_MONGODB_PASSWORD\nN\n8888\n\n\n\n\n\n\n\n\n\n" | das-cli config set > /dev/null
     das-cli db stop > /dev/null
     das-cli attention-broker stop > /dev/null
     das-cli db start
@@ -238,15 +238,35 @@ print_scenario() {
 run_benchmark() {
     mkdir -p "/tmp/atomdb_benchmark/${TIMESTAMP}"
 
+    # --- Set environment for each method of each action of each atomdb
+    AddAtom=("add_node" "add_link" "add_atom_node" "add_atom_link")
+    AddAtoms=("add_nodes" "add_links" "add_atoms_node" "add_atoms_link")
+    GetAtom=("get_node_document" "get_link_document" "get_atom_document_node" "get_atom_document_link" "get_atom_node" "get_atom_link")
+    GetAtoms=("get_node_documents" "get_link_documents" "get_atom_documents_node" "get_atom_documents_link" "query_for_pattern" "query_for_targets")
+    DeleteAtom=("delete_node" "delete_link" "delete_atom_node" "delete_atom_link")
+    DeleteAtoms=("delete_nodes" "delete_links" "delete_atoms_node" "delete_atoms_link")
+
     for type in "${ATOMDB_TYPES[@]}"; do
-        echo -e "\n== Running benchmarks for AtomDB type: $type =="
-        init_environment    
         for action in "${ACTIONS[@]}"; do
-            echo -e "${YELLOW}>> Running action: $action <<${RESET}"
-            ./src/scripts/bazel.sh run //tests/benchmark:atomdb_benchmark -- "$type" "$action" "$CACHE" "$CONCURRENCY" "$ITERATIONS" "$TIMESTAMP" 2> >(grep -v '^+')
+            declare -n methods="$action"
+            for method in "${methods[@]}"; do
+                echo -e "\n== Running benchmarks for AtomDB: $type | Action: $action | Method: $method ==" 
+                init_environment
+                ./src/scripts/bazel.sh run //tests/benchmark:atomdb_benchmark -- "$type" "$action" "$method" "$CACHE" "$CONCURRENCY" "$ITERATIONS" "$TIMESTAMP" 2> >(grep -v '^+')
+            done
         done
-        echo -e "\r\033[K${GREEN}Benchmark for AtomDB $type completed!${RESET}"
     done
+    # ----
+
+    # for type in "${ATOMDB_TYPES[@]}"; do
+    #     echo -e "\n== Running benchmarks for AtomDB type: $type =="  
+    #     for action in "${ACTIONS[@]}"; do
+    #         echo -e "${YELLOW}>> Running action: $action <<${RESET}"
+    #         init_environment
+    #         ./src/scripts/bazel.sh run //tests/benchmark:atomdb_benchmark -- "$type" "$action" "$CACHE" "$CONCURRENCY" "$ITERATIONS" "$TIMESTAMP" 2> >(grep -v '^+')
+    #     done
+    #     echo -e "\r\033[K${GREEN}Benchmark for AtomDB $type completed!${RESET}"
+    # done
 }
 
 header_to_report() {
@@ -257,7 +277,7 @@ header_to_report() {
  -CPU = $(lscpu | grep 'Model name' | sed 's/Model name:[ \t]*//') ($(lscpu | awk '/^CPU\(s\):/ {print $2}' | head -1) Cores)
  -Free Memory = $(free -g | awk '/^Mem:/ {print $2 " GB"}')
  -Disk = $(df -h --output=size / | tail -1 | tr -d ' G') GB
- -SO = $(lsb_release -a | grep Description | sed 's/Description:[ \t]*//')
+ -OS = $(lsb_release -a | grep Description | sed 's/Description:[ \t]*//')
 
 ## Test components
  -Database = $DB
@@ -279,10 +299,13 @@ header_to_report() {
  -TP   = Throughput (atoms/sec)
 
 =========================================================
+
 "
     echo "$header"
 }
 
+# NOTE: For operations involving Atom like 'add_atom', 'add_atoms', 'delete_atom', 'delete_atoms', 'get_atom_document', 'get_atom_documents' and 'get_atom',
+#       the test is split evenly. 50% of the iterations use Nodes, and the remaining 50% use Links.
 
 consolidate_reports() {
     OUTPUT_DIR="/tmp/atomdb_benchmark/${TIMESTAMP}/consolidated_report_scenario_${SCENARIO_NAME}.txt"

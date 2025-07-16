@@ -41,18 +41,20 @@ def parse_benchmark_file(filepath):
 
 
 def extract_backend_operation_type_and_batch_size(filename):
-    m = re.match(r"atomdb_([A-Za-z0-9]+)_([A-Za-z0-9]+)_([0-9]+)\.txt", filename)
+    m = re.match(r"atomdb_([A-Za-z0-9]+)_([A-Za-z0-9]+)_([A-Za-z0-9_]+)_([0-9]+)\.txt", filename)
     if m:
-        backend, op_type, batch_size = m.group(1), m.group(2), m.group(3)
-        return backend, op_type, batch_size
-    return None, None, None
+        backend, op_type, method, batch_size = m.group(1), m.group(2), m.group(3), m.group(4)
+        return backend, op_type, method, batch_size
+    return None, None, None, None
 
 
 def consolidate_results(directory):
     results = defaultdict(list)
     for fname in sorted(os.listdir(directory)):
         if fname.startswith("atomdb_") and fname.endswith(".txt"):
-            backend, op_type, batch_size = extract_backend_operation_type_and_batch_size(fname)
+            backend, op_type, method, batch_size = extract_backend_operation_type_and_batch_size(
+                fname
+            )
             if backend and op_type:
                 filepath = os.path.join(directory, fname)
                 data = parse_benchmark_file(filepath)

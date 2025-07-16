@@ -72,6 +72,7 @@ map<string, map<string, double>> calculate_metric_statistics(map<string, Metrics
 
 void create_report(const string& db_name,
                    const string& action,
+                   const string& method,
                    map<string, Metrics>& metrics,
                    const string& base_directory,
                    const int& batch_size) {
@@ -114,14 +115,14 @@ void create_report(const string& db_name,
               << inner_map.at("throughput") << "| "
               << "\n";
     }
-    string filename =
-        base_directory + "/" + db_name + "_" + action + "_" + to_string(batch_size) + ".txt";
+    string filename = base_directory + "/" + db_name + "_" + action + "_" + method + "_" +
+                      to_string(batch_size) + ".txt";
 
     ofstream outfile(filename);
     if (outfile.is_open()) {
         outfile << table.str();
         outfile.close();
-        LOG_DEBUG("Done. Check the report file for more details: " + filename);
+        LOG_INFO("Done. Check the report file for more details: " + filename);
     } else {
         cerr << "error: " << filename << endl;
     }
