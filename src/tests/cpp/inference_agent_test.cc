@@ -59,10 +59,15 @@ class AtomDBMock : public AtomDB {
     MOCK_METHOD(shared_ptr<Atom>, get_atom, (const string& handle), (override));
     MOCK_METHOD(shared_ptr<atomdb_api_types::HandleSet>,
                 query_for_pattern,
-                (const LinkTemplateInterface& link_template),
+                (const LinkSchema& link_template),
                 (override));
     MOCK_METHOD(shared_ptr<atomdb_api_types::HandleList>,
                 query_for_targets,
+                (const string& handle),
+                (override));
+
+    MOCK_METHOD(shared_ptr<atomdb_api_types::HandleSet>,
+                query_for_incoming_set,
                 (const string& handle),
                 (override));
 
@@ -108,13 +113,22 @@ class AtomDBMock : public AtomDB {
     MOCK_METHOD(vector<string>, add_nodes, (const vector<Node*>& nodes), (override));
     MOCK_METHOD(vector<string>, add_links, (const vector<Link*>& links), (override));
 
-    MOCK_METHOD(bool, delete_atom, (const string& handle), (override));
-    MOCK_METHOD(bool, delete_node, (const string& handle), (override));
-    MOCK_METHOD(bool, delete_link, (const string& handle), (override));
+    MOCK_METHOD(bool, delete_atom, (const string& handle, bool delete_link_targets), (override));
+    MOCK_METHOD(bool, delete_node, (const string& handle, bool delete_link_targets), (override));
+    MOCK_METHOD(bool, delete_link, (const string& handle, bool delete_link_targets), (override));
 
-    MOCK_METHOD(uint, delete_atoms, (const vector<string>& handles), (override));
-    MOCK_METHOD(uint, delete_nodes, (const vector<string>& handles), (override));
-    MOCK_METHOD(uint, delete_links, (const vector<string>& handles), (override));
+    MOCK_METHOD(uint,
+                delete_atoms,
+                (const vector<string>& handles, bool delete_link_targets),
+                (override));
+    MOCK_METHOD(uint,
+                delete_nodes,
+                (const vector<string>& handles, bool delete_link_targets),
+                (override));
+    MOCK_METHOD(uint,
+                delete_links,
+                (const vector<string>& handles, bool delete_link_targets),
+                (override));
 
     AtomDBMock() {
         ON_CALL(*this, get_atom_document(testing::_))
