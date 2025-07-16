@@ -1,22 +1,23 @@
 #pragma once
 
-#include <string>
-#include <vector>
-#include <map>
-#include <sstream>
-#include <unistd.h>
-#include <sys/wait.h>
 #include <fcntl.h>
 #include <poll.h>
 #include <signal.h>
-#include <thread>
-#include <atomic>
-#include <stdexcept>
 #include <sys/stat.h>
+#include <sys/wait.h>
+#include <unistd.h>
+
+#include <atomic>
 #include <iostream>
+#include <map>
+#include <sstream>
+#include <stdexcept>
+#include <string>
+#include <thread>
+#include <vector>
 
 class Process {
-public:
+   public:
     Process(const std::string& path,
             const std::vector<std::string>& args = {},
             const std::map<std::string, std::string>& envs = {})
@@ -74,10 +75,16 @@ public:
         if (pid_ <= 0) return;
 
         kill(pid_, SIGTERM);
-        try { wait(timeout_ms); } catch (...) {}
+        try {
+            wait(timeout_ms);
+        } catch (...) {
+        }
         if (pid_ > 0) {
             kill(pid_, SIGKILL);
-            try { wait(1000); } catch (...) {}
+            try {
+                wait(1000);
+            } catch (...) {
+            }
         }
     }
 
@@ -102,9 +109,7 @@ public:
         return false;
     }
 
-    std::string getOutput() const {
-        return accumulated_output_.str();
-    }
+    std::string getOutput() const { return accumulated_output_.str(); }
 
     pid_t pid() const { return pid_; }
 
@@ -114,10 +119,10 @@ public:
         if (stdout_pipe_ >= 0) close(stdout_pipe_);
     }
 
-private:
+   private:
     void captureOutput() {
         char buffer[1024];
-        struct pollfd pfd = { stdout_pipe_, POLLIN, 0 };
+        struct pollfd pfd = {stdout_pipe_, POLLIN, 0};
 
         while (running_) {
             int ret = poll(&pfd, 1, 100);

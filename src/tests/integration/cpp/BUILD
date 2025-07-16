@@ -12,7 +12,7 @@ cc_test(
     ],
     linkstatic = 1,
     deps = [
-        "@com_github_google_googletest//:gtest_main",
         "//tests/integration/cpp/helpers:process_helper",
+        "@com_github_google_googletest//:gtest_main",
     ],
 )

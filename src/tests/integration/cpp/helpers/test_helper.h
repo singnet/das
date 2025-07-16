@@ -1,17 +1,16 @@
 #pragma once
 
-#include <iostream>
+#include <chrono>
+#include <filesystem>
 #include <fstream>
+#include <iostream>
 #include <sstream>
 #include <string>
-#include <filesystem>
-#include <chrono>
 #include <thread>
 
 class LogHandle {
-public:
-    explicit LogHandle(const std::string& log_path)
-        : logPath(log_path) {}
+   public:
+    explicit LogHandle(const std::string& log_path) : logPath(log_path) {}
 
     std::string getOutput() const {
         std::ifstream file(logPath);
@@ -22,21 +21,18 @@ public:
         return ss.str();
     }
 
-private:
+   private:
     std::string logPath;
 };
 
 class FileWatcher {
-public:
-    explicit FileWatcher(const std::string& watchDir, float timeout_sec = 20.0)
-        : watchDir_(watchDir) {
+   public:
+    explicit FileWatcher(const std::string& watchDir, float timeout_sec = 20.0) : watchDir_(watchDir) {
         start();
         waitForRunningFile(timeout_sec);
     }
 
-    LogHandle* createLogHandle(const std::string& logPath) const {
-        return new LogHandle(logPath);
-    }
+    LogHandle* createLogHandle(const std::string& logPath) const { return new LogHandle(logPath); }
 
     void start() {
         // Write a start file to initiate the process
@@ -63,7 +59,7 @@ public:
         }
     }
 
-private:
+   private:
     std::string watchDir_;
 
     void waitForRunningFile(float timeout_sec) const {
@@ -77,7 +73,7 @@ private:
                 std::cerr << "Timeout waiting for file: " << runningFile << std::endl;
                 return;
             }
-            timeout_sec -= 0.5f; // Decrease timeout by 0.5 seconds
+            timeout_sec -= 0.5f;  // Decrease timeout by 0.5 seconds
         }
 
         std::cout << "Detected file: " << runningFile << std::endl;
