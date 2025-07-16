@@ -253,24 +253,31 @@ header_to_report() {
     local header="Consolidated AtomDB Benchmark Report
 =========================================================
 
-Legend:
-AVG  = Average Operation Time (ms)
-MIN  = Minimum Operation Time (ms)
-MAX  = Maximum Operation Time (ms)
-P50  = 50th Percentile Time (ms)
-P90  = 90th Percentile Time (ms)
-P99  = 99th Percentile Time (ms)
-TT   = Total Time (ms)
-TPA  = Time per Atom (ms)
-TP   = Throughput (atoms/sec)
+## Test environment
+ -CPU = $(lscpu | grep 'Model name' | sed 's/Model name:[ \t]*//') ($(lscpu | awk '/^CPU\(s\):/ {print $2}' | head -1) Cores)
+ -Free Memory = $(free -g | awk '/^Mem:/ {print $2 " GB"}')
+ -Disk = $(df -h --output=size / | tail -1 | tr -d ' G') GB
+ -SO = $(lsb_release -a | grep Description | sed 's/Description:[ \t]*//')
 
-*** Scenario: $SCENARIO_NAME ***
-Database = $DB
-Atoms relationships = $REL
-Concurrent access = $CONCURRENCY
-Cache = $CACHE
-iterations = $ITERATIONS
-Total Atoms in database: $TOTAL_ATOMS
+## Test components
+ -Database = $DB
+ -Atoms relationships = $REL
+ -Concurrent access = $CONCURRENCY
+ -Cache = $CACHE
+ -iterations = $ITERATIONS
+ -Total Atoms in database: $TOTAL_ATOMS
+
+## Legend
+ -AVG  = Average Operation Time (ms)
+ -MIN  = Minimum Operation Time (ms)
+ -MAX  = Maximum Operation Time (ms)
+ -P50  = 50th Percentile Time (ms)
+ -P90  = 90th Percentile Time (ms)
+ -P99  = 99th Percentile Time (ms)
+ -TT   = Total Time (ms)
+ -TPA  = Time per Atom (ms)
+ -TP   = Throughput (atoms/sec)
+
 =========================================================
 "
     echo "$header"
