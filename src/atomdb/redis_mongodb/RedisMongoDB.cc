@@ -646,16 +646,21 @@ vector<string> RedisMongoDB::add_atoms(const vector<atoms::Atom*>& atoms) {
 }
 
 vector<string> RedisMongoDB::add_nodes(const vector<atoms::Node*>& nodes) {
-    auto conn = this->mongodb_pool->acquire();
-    auto mongodb_collection = (*conn)[MONGODB_DB_NAME][MONGODB_NODES_COLLECTION_NAME];
-
     vector<bsoncxx::v_noabi::document::value> docs;
     vector<string> handles;
+
     for (const auto& node : nodes) {
         auto mongodb_doc = atomdb_api_types::MongodbDocument(node);
         handles.push_back(node->handle());
         docs.push_back(mongodb_doc.value());
     }
+
+    if (handles.empty()) {
+        return {};
+    }
+
+    auto conn = this->mongodb_pool->acquire();
+    auto mongodb_collection = (*conn)[MONGODB_DB_NAME][MONGODB_NODES_COLLECTION_NAME];
 
     auto reply = mongodb_collection.insert_many(docs);
 
