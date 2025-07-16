@@ -145,6 +145,13 @@ class LinkSchema : public Wildcard {
      */
     unsigned int arity() const;
 
+    /**
+     * @brief Returns this LinkSchema's targets.
+     *
+     * @return targets for this LinkSchema.
+     */
+    const vector<string>& targets() const;
+
     bool match(Link& link, Assignment& assignment, HandleDecoder& decoder);
     bool match(const string& handle, Assignment& assignment, HandleDecoder& decoder);
 

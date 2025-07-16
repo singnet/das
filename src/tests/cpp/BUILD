@@ -1,6 +1,24 @@
+load("@rules_cc//cc:cc_library.bzl", "cc_library")
 load("@rules_cc//cc:cc_test.bzl", "cc_test")
 
 package(default_visibility = ["//visibility:public"])
+
+# Test environment library
+cc_library(
+    name = "test_environment_lib",
+    srcs = [
+        "test_environment.cc",
+        "test_environment.h",
+    ],
+    hdrs = ["test_environment.h"],
+    deps = [
+        "//atomdb:atomdb_singleton",
+        "//commons:commons_lib",
+        "//commons/atoms:atoms_lib",
+        "//service_bus:service_bus_lib",
+        "@com_github_google_googletest//:gtest",
+    ],
+)
 
 cc_test(
     name = "shared_queue_test",

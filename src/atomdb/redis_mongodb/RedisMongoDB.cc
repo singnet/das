@@ -29,12 +29,14 @@ uint RedisMongoDB::REDIS_CHUNK_SIZE;
 string RedisMongoDB::MONGODB_DB_NAME;
 string RedisMongoDB::MONGODB_NODES_COLLECTION_NAME;
 string RedisMongoDB::MONGODB_LINKS_COLLECTION_NAME;
+string RedisMongoDB::MONGODB_PATTERN_INDEX_SCHEMA_COLLECTION_NAME;
 string RedisMongoDB::MONGODB_FIELD_NAME[MONGODB_FIELD::size];
 uint RedisMongoDB::MONGODB_CHUNK_SIZE;
 
 RedisMongoDB::RedisMongoDB() {
     redis_setup();
     mongodb_setup();
+    load_pattern_index_schema();
     attention_broker_setup();
     bool disable_cache = (Utils::get_environment("DAS_DISABLE_ATOMDB_CACHE") == "true");
     this->atomdb_cache = disable_cache ? nullptr : AtomDBCacheSingleton::get_instance();
@@ -610,7 +612,10 @@ string RedisMongoDB::add_link(const atoms::Link* link) {
         return "";
     }
 
-    // TODO(arturgontijo): Fetch LTs from MongoDB to update patterns.
+    auto pattern_handles = match_pattern_index_schema(link);
+    for (const auto& pattern_handle : pattern_handles) {
+        add_pattern(pattern_handle, link->handle());
+    }
 
     for (const auto& target : existing_targets) {
         add_incoming_set(target->get(MONGODB_FIELD_NAME[MONGODB_FIELD::ID]), link->handle());
@@ -674,7 +679,6 @@ vector<string> RedisMongoDB::add_links(const vector<atoms::Link*>& links) {
     return handles;
 }
 
-// TODO(arturgontijo): Need to delete handle from patterns set.
 bool RedisMongoDB::delete_document(const string& handle,
                                    const string& collection_name,
                                    bool delete_targets) {
@@ -724,7 +728,11 @@ bool RedisMongoDB::delete_link(const string& handle, bool delete_targets) {
         targets.push_back(target_handle);
     }
 
-    // TODO(arturgontijo): Fetch LTs from MongoDB to update patterns.
+    auto link = new Link(link_document->get(MONGODB_FIELD_NAME[MONGODB_FIELD::NAMED_TYPE]), targets);
+    auto pattern_handles = match_pattern_index_schema(link);
+    for (const auto& pattern_handle : pattern_handles) {
+        update_pattern(pattern_handle, link->handle());
+    }
 
     return delete_document(handle, MONGODB_LINKS_COLLECTION_NAME, delete_targets);
 }
@@ -763,4 +771,63 @@ uint RedisMongoDB::delete_links(const vector<string>& handles, bool delete_targe
         }
     }
     return deleted_count;
+}
+
+void RedisMongoDB::load_pattern_index_schema() {
+    auto conn = this->mongodb_pool->acquire();
+    auto mongodb_collection = (*conn)[MONGODB_DB_NAME][MONGODB_PATTERN_INDEX_SCHEMA_COLLECTION_NAME];
+    auto cursor = mongodb_collection.find({});
+    for (const auto& view : cursor) {
+        // Extract _id
+        string id = view["_id"].get_string().value.data();
+        // Extract LinkSchema tokens
+        vector<string> tokens;
+        for (const auto& elem : view["tokens"].get_array().value) {
+            tokens.push_back(elem.get_string().value.data());
+        }
+        // Extract index_entries
+        vector<vector<string>> index_entries;
+        for (const auto& arr : view["index_entries"].get_array().value) {
+            vector<string> entry;
+            for (const auto& elem : arr.get_array().value) {
+                entry.push_back(elem.get_string().value.data());
+            }
+            index_entries.push_back(entry);
+        }
+
+        this->pattern_index_schema_map[id] = make_tuple(move(tokens), move(index_entries));
+    }
+}
+
+vector<string> RedisMongoDB::match_pattern_index_schema(const Link* link) {
+    vector<string> pattern_handles;
+    for (const auto& [key, value] : this->pattern_index_schema_map) {
+        auto link_schema = LinkSchema(get<0>(value));
+        auto index_entries = get<1>(value);
+        Assignment assignment;
+        bool match = link_schema.match(*(Link*) link, assignment, *this);
+        if (match) {
+            for (const auto& index_entry : index_entries) {
+                size_t index = 0;
+                vector<string> hash_entries;
+                for (const auto& token : index_entry) {
+                    if (token == "_") {
+                        hash_entries.push_back(link_schema.targets()[index]);
+                    } else if (token == "*") {
+                        hash_entries.push_back(Atom::WILDCARD_STRING);
+                    } else {
+                        const char* value = assignment.get(token.c_str());
+                        if (value == NULL) {
+                            Utils::error("LinkSchema assignments don't have variable: " + token);
+                        }
+                        hash_entries.push_back(value);
+                    }
+                    index++;
+                }
+                string hash = Hasher::link_handle(link->type, hash_entries);
+                pattern_handles.push_back(hash);
+            }
+        }
+    }
+    return pattern_handles;
 }

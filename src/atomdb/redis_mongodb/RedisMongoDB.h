@@ -37,6 +37,7 @@ class RedisMongoDB : public AtomDB {
     static string MONGODB_DB_NAME;
     static string MONGODB_NODES_COLLECTION_NAME;
     static string MONGODB_LINKS_COLLECTION_NAME;
+    static string MONGODB_PATTERN_INDEX_SCHEMA_COLLECTION_NAME;
     static string MONGODB_FIELD_NAME[MONGODB_FIELD::size];
     static uint MONGODB_CHUNK_SIZE;
 
@@ -48,6 +49,7 @@ class RedisMongoDB : public AtomDB {
         MONGODB_DB_NAME = "das";
         MONGODB_NODES_COLLECTION_NAME = "nodes";
         MONGODB_LINKS_COLLECTION_NAME = "links";
+        MONGODB_PATTERN_INDEX_SCHEMA_COLLECTION_NAME = "pattern_index_schema";
         MONGODB_FIELD_NAME[MONGODB_FIELD::ID] = "_id";
         MONGODB_FIELD_NAME[MONGODB_FIELD::TARGETS] = "targets";
         MONGODB_FIELD_NAME[MONGODB_FIELD::NAME] = "name";
@@ -109,6 +111,8 @@ class RedisMongoDB : public AtomDB {
     atomic<uint> patterns_next_score{0};
     atomic<uint> incoming_set_next_score{0};
 
+    map<string, tuple<vector<string>, vector<vector<string>>>> pattern_index_schema_map;
+
     shared_ptr<atomdb_api_types::AtomDocument> get_document(const string& handle,
                                                             const string& collection_name);
     vector<shared_ptr<atomdb_api_types::AtomDocument>> get_documents(const vector<string>& handles,
@@ -135,6 +139,9 @@ class RedisMongoDB : public AtomDB {
     void add_incoming_set(const string& handle, const string& incoming_handle);
     void delete_incoming_set(const string& handle);
     void update_incoming_set(const string& key, const string& value);
+
+    void load_pattern_index_schema();
+    vector<string> match_pattern_index_schema(const Link* link);
 
     void redis_setup();
     void mongodb_setup();

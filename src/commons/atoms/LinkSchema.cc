@@ -123,6 +123,8 @@ string LinkSchema::to_string() const {
 
 string LinkSchema::handle() const { return this->_atom_handle; }
 
+const vector<string>& LinkSchema::targets() const { return this->_schema; }
+
 string LinkSchema::composite_type_hash(HandleDecoder& decoder) const {
     return this->_composite_type_hash;
 }
