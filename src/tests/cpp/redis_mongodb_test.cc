@@ -423,9 +423,9 @@ class LinkSchemaHandle : public LinkSchema {
 
 //     auto similarity_node = new Node("Symbol", "Similarity");
 //     for (int i = 0; i < 10; i++) {
-//         auto test_1_node = decoder.add_atom(make_shared<Node>("Symbol", "add-links-1-" + to_string(i)));
-//         auto test_2_node = decoder.add_atom(make_shared<Node>("Symbol", "add-links-2-" + to_string(i)));
-//         test_node_handles.push_back(db->add_node((Node*) test_1_node.get()));
+//         auto test_1_node = decoder.add_atom(make_shared<Node>("Symbol", "add-links-1-" +
+//         to_string(i))); auto test_2_node = decoder.add_atom(make_shared<Node>("Symbol", "add-links-2-"
+//         + to_string(i))); test_node_handles.push_back(db->add_node((Node*) test_1_node.get()));
 //         test_node_handles.push_back(db->add_node((Node*) test_2_node.get()));
 //         links.push_back(new Link(
 //             "Expression", {similarity_node->handle(), test_1_node->handle(), test_2_node->handle()}));
@@ -496,7 +496,8 @@ TEST_F(RedisMongoDBTest, DeleteNodesAndLinks) {
 //     nodes_handles.push_back(db->add_node(test_2_node));
 
 //     auto link =
-//         new Link("Expression", {link_name_node->handle(), test_1_node->handle(), test_2_node->handle()});
+//         new Link("Expression", {link_name_node->handle(), test_1_node->handle(),
+//         test_2_node->handle()});
 //     auto link_handle = db->add_link(link);
 
 //     EXPECT_TRUE(db->delete_link(link_handle));
