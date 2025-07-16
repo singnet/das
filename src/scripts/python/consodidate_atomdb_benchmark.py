@@ -69,8 +69,7 @@ def get_columns(entries):
     cols = set()
     for entry in entries:
         cols.update(entry.keys())
-    ordered = [col for col in DEFAULT_COL_ORDER if col in cols]
-    return ordered
+    return [col for col in DEFAULT_COL_ORDER if col in cols]
 
 
 def calc_col_widths(entries, columns):
@@ -85,18 +84,6 @@ def calc_col_widths(entries, columns):
 
 def write_report(header, results, output_file):
     with open(output_file, "w") as f:
-        f.write("Consolidated AtomDB Benchmark Report\n")
-        f.write("=" * 40 + "\n\n")
-        f.write("Legend:\n")
-        f.write("AVG  = Average Operation Time (ms)\n")
-        f.write("MIN  = Minimum Operation Time (ms)\n")
-        f.write("MAX  = Maximum Operation Time (ms)\n")
-        f.write("P50  = 50th Percentile Time (ms)\n")
-        f.write("P90  = 90th Percentile Time (ms)\n")
-        f.write("P99  = 99th Percentile Time (ms)\n")
-        f.write("TT   = Total Time (ms)\n")
-        f.write("TPA  = Time per Atom (ms)\n")
-        f.write("TP   = Throughput (atoms/sec)\n\n")
         f.write(header + "\n\n" if header else "")
 
         for op_type, entries in results.items():

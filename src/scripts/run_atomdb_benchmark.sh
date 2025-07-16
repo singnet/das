@@ -172,6 +172,7 @@ init_environment() {
     das-cli attention-broker stop > /dev/null
     das-cli db start
     das-cli metta load "$METTA_PATH"
+    TOTAL_ATOMS=$(das-cli db count-atoms) > /dev/null 2>&1
     das-cli attention-broker start 
     echo -e "\r\033[K${GREEN}Redis, MongoDB and Attention Broker initialization completed!${RESET}"
     # MORK
@@ -249,16 +250,32 @@ run_benchmark() {
 }
 
 header_to_report() {
-    local header="*** Scenario: $SCENARIO_NAME ***
+    local header="Consolidated AtomDB Benchmark Report
+=========================================================
+
+Legend:
+AVG  = Average Operation Time (ms)
+MIN  = Minimum Operation Time (ms)
+MAX  = Maximum Operation Time (ms)
+P50  = 50th Percentile Time (ms)
+P90  = 90th Percentile Time (ms)
+P99  = 99th Percentile Time (ms)
+TT   = Total Time (ms)
+TPA  = Time per Atom (ms)
+TP   = Throughput (atoms/sec)
+
+*** Scenario: $SCENARIO_NAME ***
 Database = $DB
 Atoms relationships = $REL
 Concurrent access = $CONCURRENCY
 Cache = $CACHE
 iterations = $ITERATIONS
-Total Atoms in database: $(das-cli db count-atoms)
+Total Atoms in database: $TOTAL_ATOMS
+=========================================================
 "
     echo "$header"
 }
+
 
 consolidate_reports() {
     OUTPUT_DIR="/tmp/atomdb_benchmark/${TIMESTAMP}/consolidated_report_scenario_${SCENARIO_NAME}.txt"
