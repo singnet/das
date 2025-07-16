@@ -546,7 +546,7 @@ cc_test(
 
 cc_test(
     name = "redis_mongodb_test",
-    size = "small",
+    size = "medium",
     srcs = [
         "redis_mongodb_test.cc",
         "test_utils.cc",
