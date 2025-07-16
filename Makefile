@@ -81,6 +81,11 @@ test-all-no-cache:
 test-all: build-image
 	@$(MAKE) bazel 'test --show_progress //tests/...'
 
+test-agents-integration:
+	@bash  ./src/scripts/integration_test_setup.sh &
+	@$(MAKE) bazel 'test --show_progress --cache_test_results=no //tests/integration/...' || true; \
+	touch ./bin/kill
+
 lint-all:
 	@$(MAKE) bazel lint \
 		"//... --fix --report --diff" \
