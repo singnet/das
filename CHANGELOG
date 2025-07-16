@@ -5,3 +5,6 @@
 [#505] Add a strength value to QueryAnswer
 [#511] Create a Properties class in commons by moving and renaming CustomAttributesMap from AtomDB package
 [#499] Refactor proxy classes to use commons:Properties
+[#521] Creates atom classes in common and refactors query elements to use them
+[#499] Allow ATOM elements in query tokens allowing the use of handles as LINK targets
+[#524] Using MongoDB split collections (nodes and links)

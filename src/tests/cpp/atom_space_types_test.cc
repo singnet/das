@@ -266,6 +266,16 @@ TEST(WildcardTest, LinkSchema) {
     schema7.stack_node(symbol, "n1");
     schema7.stack_untyped_variable("v1");
     EXPECT_THROW(schema7.stack_link(expression, 2), runtime_error);
+
+    cout << "8 ---------------------------------------------------------" << endl;
+    LinkSchema schema8(expression, 2);
+    schema8.stack_atom("h1");
+    schema8.stack_untyped_variable("v1");
+    schema8.build();
+    EXPECT_EQ(schema8.metta_representation(db), "(h1 $v1)");
+    LinkSchema schema8_1(schema8.tokenize());
+    EXPECT_EQ(schema8.to_string(), schema8_1.to_string());
+    EXPECT_TRUE(schema8 == schema8_1);
 }
 
 void check_match(const string& test_tag,
@@ -354,6 +364,21 @@ TEST(LinkTest, Match) {
             "VARIABLE", "v2",
             });
     check_match("test case 4.1", schema4, {link4, node2, link2}, db, true);
+
+    LinkSchema schema5({
+    "LINK_TEMPLATE", "Expression", "3",
+        "LINK_TEMPLATE", "Expression", "2",
+            "NODE", "Symbol", "n1",
+            "LINK_TEMPLATE", "Expression", "3",
+                "ATOM", Hasher::node_handle("Symbol", "n2"),
+                "ATOM", Hasher::node_handle("Symbol", "n3"),
+                "VARIABLE", "v1",
+        "ATOM", Hasher::node_handle("Symbol", "n2"),
+        "LINK_TEMPLATE", "Expression", "2",
+            "NODE", "Symbol", "n1",
+            "VARIABLE", "v2",
+            });
+    check_match("test case 5.1", schema5, {link4, node2, link2}, db, true);
 
     // clang-format on
 }

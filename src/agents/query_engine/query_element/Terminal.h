@@ -17,11 +17,17 @@ namespace query_element {
  */
 class Terminal : public QueryElement {
    public:
-    string handle;
     bool is_variable;
-    shared_ptr<Atom> atom;
+    bool is_link;
+    bool is_node;
+    bool is_atom;
+    string type;
+    string name;
+    string handle;
+    vector<shared_ptr<QueryElement>> targets;
 
     ~Terminal(){};
+    Terminal();                                                                     // Atom
     Terminal(const string& type, const string& name);                               // Node
     Terminal(const string& type, const vector<shared_ptr<QueryElement>>& targets);  // Link
     Terminal(const string& name);                                                   // Variable

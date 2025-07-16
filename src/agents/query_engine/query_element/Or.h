@@ -28,8 +28,16 @@ class Or : public Operator<N> {
      * Constructor.
      *
      * @param clauses Array with N clauses (each clause is supposed to be a Source or an Operator).
+     * @param link_templates Vector with all the query elements in clauses which are LinkTemplate
+     * objects. This is stored in the Or object just to make shure they don't get released before
+     * the Or operation ends.
      */
-    Or(const array<shared_ptr<QueryElement>, N>& clauses) : Operator<N>(clauses) { initialize(clauses); }
+    Or(const array<shared_ptr<QueryElement>, N>& clauses,
+       vector<shared_ptr<QueryElement>>& link_templates = {})
+        : Operator<N>(clauses) {
+        initialize(clauses);
+        this->link_templates = link_templates;
+    }
 
     /**
      * Destructor.
@@ -63,6 +71,7 @@ class Or : public Operator<N> {
     bool no_more_answers_to_arrive;
     thread* operator_thread;
     unsigned int answer_count;
+    vector<shared_ptr<QueryElement>> link_templates;
 
     void initialize(const array<shared_ptr<QueryElement>, N>& clauses) {
         this->operator_thread = NULL;

@@ -1,4 +1,5 @@
 #include "AtomDBSingleton.h"
+#include "Hasher.h"
 #include "PatternMatchingQueryProcessor.h"
 #include "PatternMatchingQueryProxy.h"
 #include "ServiceBus.h"
@@ -186,6 +187,19 @@ TEST(PatternMatchingQuery, queries) {
                 "NODE", "Symbol", "\"chimp\""
     };
     int q6_expected_count = 4;
+    
+    vector<string> q7 = {
+        "OR", "2",
+            "LINK_TEMPLATE", "Expression", "3",
+                "NODE", "Symbol", "Similarity",
+                "VARIABLE", "v1",
+                "NODE", "Symbol", "\"human\"",
+            "LINK_TEMPLATE", "Expression", "3",
+                "NODE", "Symbol", "Similarity",
+                "VARIABLE", "v1",
+                "ATOM", Hasher::node_handle("Symbol", "\"chimp\"")
+    };
+    int q7_expected_count = 4;
 
     // Regular queries
     check_query("q1", q1, q1_expected_count, client_bus, "PatternMatchingQuery.queries", false, false, false, false);
@@ -194,6 +208,7 @@ TEST(PatternMatchingQuery, queries) {
     check_query("q4", q4, q4_expected_count, client_bus, "PatternMatchingQuery.queries", false, false, false, false);
     check_query("q5", q5, q5_expected_count, client_bus, "PatternMatchingQuery.queries", false, false, false, false);
     check_query("q6", q6, q6_expected_count, client_bus, "PatternMatchingQuery.queries", false, true, false, false);
+    check_query("q7", q7, q7_expected_count, client_bus, "PatternMatchingQuery.queries", false, true, false, false);
 
     // Importance filtering
     check_query("filtered q2", q2, q2_expected_count, client_bus, "PatternMatchingQuery.queries", true, false, false, false);
