@@ -1,11 +1,12 @@
 #include "PatternMatchingQueryProcessor.h"
 
+#include <grpcpp/grpcpp.h>
+
 #include "And.h"
 #include "AtomDBSingleton.h"
 #include "Link.h"
 #include "LinkSchema.h"
 #include "LinkTemplate.h"
-#include "LinkTemplate2.h"
 #include "Node.h"
 #include "Or.h"
 #include "PatternMatchingQueryProxy.h"
@@ -15,11 +16,16 @@
 #include "Terminal.h"
 #include "UniqueAssignmentFilter.h"
 #include "UntypedVariable.h"
+#include "attention_broker.grpc.pb.h"
+#include "attention_broker.pb.h"
 
 #define LOG_LEVEL INFO_LEVEL
 #include "Logger.h"
 
 using namespace atomdb;
+
+string PatternMatchingQueryProcessor::AND = "AND";
+string PatternMatchingQueryProcessor::OR = "OR";
 
 // -------------------------------------------------------------------------------------------------
 // Constructors and destructors
@@ -145,9 +151,7 @@ void PatternMatchingQueryProcessor::thread_process_one_query(
         proxy->untokenize(proxy->args);
         LOG_DEBUG("proxy: " + proxy->to_string());
         LOG_DEBUG("Setting up query tree");
-        auto query_element_registry = make_unique<QueryElementRegistry>();
-        shared_ptr<QueryElement> root_query_element =
-            setup_query_tree(proxy, query_element_registry.get());
+        shared_ptr<QueryElement> root_query_element = setup_query_tree(proxy);
         set<string> joint_answer;  // used to stimulate attention broker
         string command = proxy->get_command();
         unsigned int sink_port_number;
@@ -156,9 +160,18 @@ void PatternMatchingQueryProcessor::thread_process_one_query(
         } else {
             if (command == ServiceBus::PATTERN_MATCHING_QUERY) {
                 sink_port_number = PortPool::get_port();
-                shared_ptr<Sink> query_sink = make_shared<Sink>(
-                    root_query_element,
-                    "Sink_" + proxy->peer_id() + "_" + std::to_string(proxy->get_serial()));
+                LinkTemplate* root_link_template = dynamic_cast<LinkTemplate*>(root_query_element.get());
+                shared_ptr<Sink> query_sink;
+                if (root_link_template != NULL) {
+                    root_link_template->build();
+                    query_sink = make_shared<Sink>(
+                        root_link_template->get_source_element(),
+                        "Sink_" + proxy->peer_id() + "_" + std::to_string(proxy->get_serial()));
+                } else {
+                    query_sink = make_shared<Sink>(
+                        root_query_element,
+                        "Sink_" + proxy->peer_id() + "_" + std::to_string(proxy->get_serial()));
+                }
                 unsigned int answer_count = 0;
                 LOG_DEBUG("Processing QueryAnswer objects");
                 while (!(query_sink->finished() || proxy->is_aborting())) {
@@ -203,7 +216,7 @@ void PatternMatchingQueryProcessor::remove_query_thread(const string& stoppable_
 // Private methods - query tree building
 
 shared_ptr<QueryElement> PatternMatchingQueryProcessor::setup_query_tree(
-    shared_ptr<PatternMatchingQueryProxy> proxy, QueryElementRegistry* query_element_registry) {
+    shared_ptr<PatternMatchingQueryProxy> proxy) {
     stack<unsigned int> execution_stack;
     stack<shared_ptr<QueryElement>> element_stack;
     unsigned int cursor = 0;
@@ -212,11 +225,16 @@ shared_ptr<QueryElement> PatternMatchingQueryProcessor::setup_query_tree(
 
     while (cursor < tokens_count) {
         execution_stack.push(cursor);
-        if ((query_tokens[cursor] == "VARIABLE") || (query_tokens[cursor] == "AND") ||
-            ((query_tokens[cursor] == "OR"))) {
+        if ((query_tokens[cursor] == LinkSchema::LINK) ||
+            (query_tokens[cursor] == LinkSchema::LINK_TEMPLATE) ||
+            (query_tokens[cursor] == LinkSchema::NODE)) {
+            cursor += 3;
+        } else if ((query_tokens[cursor] == LinkSchema::UNTYPED_VARIABLE) ||
+                   (query_tokens[cursor] == LinkSchema::ATOM) || (query_tokens[cursor] == AND) ||
+                   (query_tokens[cursor] == OR)) {
             cursor += 2;
         } else {
-            cursor += 3;
+            Utils::error("Invalid token in query: " + query_tokens[cursor]);
         }
     }
 
@@ -227,24 +245,25 @@ shared_ptr<QueryElement> PatternMatchingQueryProcessor::setup_query_tree(
 
     while (!execution_stack.empty()) {
         cursor = execution_stack.top();
-        if (query_tokens[cursor] == "NODE") {
+        if (query_tokens[cursor] == LinkSchema::ATOM) {
+            shared_ptr<Terminal> atom = make_shared<Terminal>();
+            atom->handle = query_tokens[cursor + 1];
+            element_stack.push(atom);
+        } else if (query_tokens[cursor] == LinkSchema::NODE) {
             element_stack.push(
                 make_shared<Terminal>(query_tokens[cursor + 1], query_tokens[cursor + 2]));
-        } else if (query_tokens[cursor] == "VARIABLE") {
+        } else if (query_tokens[cursor] == LinkSchema::UNTYPED_VARIABLE) {
             element_stack.push(make_shared<Terminal>(query_tokens[cursor + 1]));
-        } else if (query_tokens[cursor] == "LINK") {
+        } else if (query_tokens[cursor] == LinkSchema::LINK) {
             element_stack.push(build_link(proxy, cursor, element_stack));
-        } else if (query_tokens[cursor] == "LINK_TEMPLATE") {
-            element_stack.push(
-                build_link_template(proxy, cursor, element_stack, query_element_registry));
-        } else if (query_tokens[cursor] == "LINK_TEMPLATE2") {
-            element_stack.push(build_link_template2(proxy, cursor, element_stack));
-        } else if (query_tokens[cursor] == "AND") {
+        } else if (query_tokens[cursor] == LinkSchema::LINK_TEMPLATE) {
+            element_stack.push(build_link_template(proxy, cursor, element_stack));
+        } else if (query_tokens[cursor] == AND) {
             element_stack.push(build_and(proxy, cursor, element_stack));
             if (proxy->parameters.get<bool>(BaseQueryProxy::UNIQUE_ASSIGNMENT_FLAG)) {
                 element_stack.push(build_unique_assignment_filter(proxy, cursor, element_stack));
             }
-        } else if (query_tokens[cursor] == "OR") {
+        } else if (query_tokens[cursor] == OR) {
             element_stack.push(build_or(proxy, cursor, element_stack));
             if (proxy->parameters.get<bool>(BaseQueryProxy::UNIQUE_ASSIGNMENT_FLAG)) {
                 element_stack.push(build_unique_assignment_filter(proxy, cursor, element_stack));
@@ -262,63 +281,7 @@ shared_ptr<QueryElement> PatternMatchingQueryProcessor::setup_query_tree(
     return element_stack.top();
 }
 
-#define BUILD_LINK_TEMPLATE(N)                                                                      \
-    {                                                                                               \
-        array<shared_ptr<QueryElement>, N> targets;                                                 \
-        for (unsigned int i = 0; i < N; i++) {                                                      \
-            targets[i] = element_stack.top();                                                       \
-            element_stack.pop();                                                                    \
-        }                                                                                           \
-        auto link_template = make_shared<LinkTemplate<N>>(                                          \
-            query_tokens[cursor + 1], move(targets), proxy->get_context(), query_element_registry); \
-        link_template->set_positive_importance_flag(                                                \
-            proxy->parameters.get<bool>(PatternMatchingQueryProxy::POSITIVE_IMPORTANCE_FLAG));      \
-        return link_template;                                                                       \
-    }
-
 shared_ptr<QueryElement> PatternMatchingQueryProcessor::build_link_template(
-    shared_ptr<PatternMatchingQueryProxy> proxy,
-    unsigned int cursor,
-    stack<shared_ptr<QueryElement>>& element_stack,
-    QueryElementRegistry* query_element_registry) {
-    const vector<string> query_tokens = proxy->get_query_tokens();
-    unsigned int arity = std::stoi(query_tokens[cursor + 2]);
-    if (element_stack.size() < arity) {
-        Utils::error(
-            "PATTERN_MATCHING_QUERY message: parse error in tokens - too few arguments for "
-            "LINK_TEMPLATE");
-    }
-    // clang-format off
-    switch (arity) {
-        case  1: BUILD_LINK_TEMPLATE(1);
-        case  2: BUILD_LINK_TEMPLATE(2);
-        case  3: BUILD_LINK_TEMPLATE(3);
-        case  4: BUILD_LINK_TEMPLATE(4);
-        case  5: BUILD_LINK_TEMPLATE(5);
-        case  6: BUILD_LINK_TEMPLATE(6);
-        case  7: BUILD_LINK_TEMPLATE(7);
-        case  8: BUILD_LINK_TEMPLATE(8);
-        case  9: BUILD_LINK_TEMPLATE(9);
-        case 10: BUILD_LINK_TEMPLATE(10);
-        // clang-format on
-        default: {
-            Utils::error("PATTERN_MATCHING_QUERY message: max supported arity for LINK_TEMPLATE: 10");
-        }
-    }
-    return NULL;  // Just to avoid warnings. This is not actually reachable.
-}
-
-#define BUILD_LINK_TEMPLATE2(N)                                                        \
-    {                                                                                  \
-        array<shared_ptr<QueryElement>, N> targets;                                    \
-        for (unsigned int i = 0; i < N; i++) {                                         \
-            targets[i] = element_stack.top();                                          \
-            element_stack.pop();                                                       \
-        }                                                                              \
-        return make_shared<LinkTemplate2<N>>(query_tokens[cursor + 1], move(targets)); \
-    }
-
-shared_ptr<QueryElement> PatternMatchingQueryProcessor::build_link_template2(
     shared_ptr<PatternMatchingQueryProxy> proxy,
     unsigned int cursor,
     stack<shared_ptr<QueryElement>>& element_stack) {
@@ -327,36 +290,38 @@ shared_ptr<QueryElement> PatternMatchingQueryProcessor::build_link_template2(
     if (element_stack.size() < arity) {
         Utils::error(
             "PATTERN_MATCHING_QUERY message: parse error in tokens - too few arguments for "
-            "LINK_TEMPLATE2");
+            "LINK_TEMPLATE");
     }
-    // clang-format off
-    switch (arity) {
-        case  1: BUILD_LINK_TEMPLATE2(1);
-        case  2: BUILD_LINK_TEMPLATE2(2);
-        case  3: BUILD_LINK_TEMPLATE2(3);
-        case  4: BUILD_LINK_TEMPLATE2(4);
-        case  5: BUILD_LINK_TEMPLATE2(5);
-        case  6: BUILD_LINK_TEMPLATE2(6);
-        case  7: BUILD_LINK_TEMPLATE2(7);
-        case  8: BUILD_LINK_TEMPLATE2(8);
-        case  9: BUILD_LINK_TEMPLATE2(9);
-        case 10: BUILD_LINK_TEMPLATE2(10);
-        // clang-format on
-        default: {
-            Utils::error("PATTERN_MATCHING_QUERY message: max supported arity for LINK_TEMPLATE2: 10");
-        }
+    vector<shared_ptr<QueryElement>> targets;
+    for (unsigned int i = 0; i < arity; i++) {
+        targets.push_back(element_stack.top());
+        element_stack.pop();
     }
-    return NULL;  // Just to avoid warnings. This is not actually reachable.
+    auto link_template = make_shared<LinkTemplate>(
+        query_tokens[cursor + 1],
+        targets,
+        proxy->get_context(),
+        proxy->parameters.get<bool>(PatternMatchingQueryProxy::POSITIVE_IMPORTANCE_FLAG));
+    LOG_INFO("LinkTemplate: " + link_template->to_string());
+    return link_template;
 }
 
-#define BUILD_AND(N)                                \
-    {                                               \
-        array<shared_ptr<QueryElement>, N> clauses; \
-        for (unsigned int i = 0; i < N; i++) {      \
-            clauses[i] = element_stack.top();       \
-            element_stack.pop();                    \
-        }                                           \
-        return make_shared<And<N>>(clauses);        \
+#define BUILD_AND(N)                                                                              \
+    {                                                                                             \
+        vector<shared_ptr<QueryElement>> link_templates;                                          \
+        array<shared_ptr<QueryElement>, N> clauses;                                               \
+        for (unsigned int i = 0; i < N; i++) {                                                    \
+            LinkTemplate* link_template = dynamic_cast<LinkTemplate*>(element_stack.top().get()); \
+            if (link_template != NULL) {                                                          \
+                link_templates.push_back(element_stack.top());                                    \
+                link_template->build();                                                           \
+                clauses[i] = link_template->get_source_element();                                 \
+            } else {                                                                              \
+                clauses[i] = element_stack.top();                                                 \
+            }                                                                                     \
+            element_stack.pop();                                                                  \
+        }                                                                                         \
+        return make_shared<And<N>>(clauses, link_templates);                                      \
     }
 
 shared_ptr<QueryElement> PatternMatchingQueryProcessor::build_and(
@@ -389,14 +354,22 @@ shared_ptr<QueryElement> PatternMatchingQueryProcessor::build_and(
     return NULL;  // Just to avoid warnings. This is not actually reachable.
 }
 
-#define BUILD_OR(N)                                 \
-    {                                               \
-        array<shared_ptr<QueryElement>, N> clauses; \
-        for (unsigned int i = 0; i < N; i++) {      \
-            clauses[i] = element_stack.top();       \
-            element_stack.pop();                    \
-        }                                           \
-        return make_shared<Or<N>>(clauses);         \
+#define BUILD_OR(N)                                                                               \
+    {                                                                                             \
+        vector<shared_ptr<QueryElement>> link_templates;                                          \
+        array<shared_ptr<QueryElement>, N> clauses;                                               \
+        for (unsigned int i = 0; i < N; i++) {                                                    \
+            LinkTemplate* link_template = dynamic_cast<LinkTemplate*>(element_stack.top().get()); \
+            if (link_template != NULL) {                                                          \
+                link_templates.push_back(element_stack.top());                                    \
+                link_template->build();                                                           \
+                clauses[i] = link_template->get_source_element();                                 \
+            } else {                                                                              \
+                clauses[i] = element_stack.top();                                                 \
+            }                                                                                     \
+            element_stack.pop();                                                                  \
+        }                                                                                         \
+        return make_shared<Or<N>>(clauses, link_templates);                                       \
     }
 
 shared_ptr<QueryElement> PatternMatchingQueryProcessor::build_or(

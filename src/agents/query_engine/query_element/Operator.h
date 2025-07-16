@@ -63,7 +63,7 @@ class Operator : public QueryElement {
         this->output_buffer = make_shared<QueryNodeClient>(this->id, this->subsequent_id);
         string server_node_id;
         for (unsigned int i = 0; i < N; i++) {
-            server_node_id = this->id + "_" + to_string(i);
+            server_node_id = this->id + "_" + std::to_string(i);
             this->input_buffer[i] = make_shared<QueryNodeServer>(server_node_id);
             this->precedent[i]->subsequent_id = server_node_id;
             this->precedent[i]->setup_buffers();
@@ -96,7 +96,7 @@ class Operator : public QueryElement {
    private:
     void initialize(const array<shared_ptr<QueryElement>, N>& clauses) {
         if (N > MAX_NUMBER_OF_OPERATION_CLAUSES) {
-            Utils::error("Operation exceeds max number of clauses: " + to_string(N));
+            Utils::error("Operation exceeds max number of clauses: " + std::to_string(N));
         }
         for (unsigned int i = 0; i < N; i++) {
             precedent[i] = clauses[i];

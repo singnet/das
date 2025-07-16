@@ -432,7 +432,7 @@ cc_test(
 
 cc_test(
     name = "pattern_matching_query_test",
-    size = "medium",  # due to the 3 seconds sleep in the test
+    size = "medium",
     srcs = ["pattern_matching_query_test.cc"],
     copts = [
         "-Iexternal/gtest/googletest/include",
@@ -552,7 +552,7 @@ cc_test(
 
 cc_test(
     name = "redis_mongodb_test",
-    size = "small",
+    size = "medium",
     srcs = [
         "redis_mongodb_test.cc",
         "test_utils.cc",
@@ -571,7 +571,6 @@ cc_test(
     ],
     linkstatic = 1,
     deps = [
-        "//atom_space:link_template_interface",
         "//atomdb:atomdb_singleton",
         "//tests/cpp/test_commons",
         "@com_github_google_googletest//:gtest_main",
@@ -596,7 +595,6 @@ cc_test(
     ],
     linkstatic = 1,
     deps = [
-        "//atom_space:link_template_interface",
         "//atomdb:atomdb_singleton",
         "@com_github_google_googletest//:gtest_main",
         "@mbedtls",

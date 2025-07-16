@@ -116,6 +116,11 @@ class Assignment {
      */
     bool operator==(const Assignment& other) const;
 
+    /**
+     * Clear all assignments.
+     */
+    void clear();
+
     const char* labels[MAX_NUMBER_OF_VARIABLES_IN_QUERY];
     const char* values[MAX_NUMBER_OF_VARIABLES_IN_QUERY];
     unsigned int size;
