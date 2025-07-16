@@ -11,25 +11,25 @@
 #include "attention_broker.pb.h"
 #include "common.pb.h"
 
+#define LOG_LEVEL INFO_LEVEL
+#include "Logger.h"
+
 attention_broker_server::AttentionBrokerServer service;
 
 void ctrl_c_handler(int) {
-    std::cout << "Stopping AttentionBrokerServer..." << std::endl;
+    LOG_INFO("Stopping AttentionBrokerServer...");
     service.graceful_shutdown();
-    std::cout << "Done." << std::endl;
+    LOG_INFO("Done.");
     exit(0);
 }
 
 void run_server(unsigned int port) {
-    // attention_broker_server::AttentionBrokerServer service;
     std::string server_address = "0.0.0.0:" + to_string(port);
-    // grpc::EnableDefaultHealthCheckService(true);
-    // grpc::reflection::InitProtoReflectionServerBuilderPlugin();
     ServerBuilder builder;
     builder.AddListeningPort(server_address, grpc::InsecureServerCredentials());
     builder.RegisterService(&service);
     std::unique_ptr<Server> server(builder.BuildAndStart());
-    std::cout << "AttentionBroker server listening on " << server_address << std::endl;
+    LOG_INFO("AttentionBroker server listening on " + server_address);
     server->Wait();
 }
 

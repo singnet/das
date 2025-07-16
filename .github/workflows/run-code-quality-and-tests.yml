@@ -33,7 +33,7 @@ jobs:
           sudo apt -y update
           sudo apt -y install build-essential wget
           sudo bash -c "wget -O - http://45.77.4.33/apt-repo/setup.sh | bash"
-          sudo apt install das-cli
+          sudo apt install das-toolbox
           sudo das-cli update-version --version ${{ vars.DAS_CLI_VERSION }}
           das-cli --version
 
@@ -53,6 +53,13 @@ jobs:
           37007
           35500
           9070
+          /tmp/requests_buffer.bin
+          1
+          1
+          10
+          n
+          n
+          8080
           EOF
 
       - name: Starting Redis and MongoDB
@@ -65,7 +72,7 @@ jobs:
         run: make build-all
 
       - name: Starting Attention Broker
-        run: make run-attention-broker &
+        run: das-cli attention-broker start
 
       - name: Starting MORK Server and Load Knowledge Base
         run: |-

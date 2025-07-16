@@ -49,6 +49,14 @@ class AtomDBCache {
     } QueryForTargetsResult;
 
     /**
+     * @brief The result type for cached incoming set values.
+     */
+    typedef struct {
+        bool is_cache_hit;
+        shared_ptr<atomdb_api_types::HandleSet> result;
+    } QueryForIncomingResult;
+
+    /**
      * @brief Constructor.
      *
      * The constructor is private to ensure that the correct instance is created.
@@ -94,6 +102,13 @@ class AtomDBCache {
                               shared_ptr<atomdb_api_types::HandleSet> results);
 
     /**
+     * @brief Invalidate the pattern matching cache for a handle.
+     *
+     * @param pattern_handle The handle of the pattern.
+     */
+    void erase_pattern_matching_cache(const string& pattern_handle);
+
+    /**
      * @brief Query for targets.
      *
      * @param link_handle The handle of the link.
@@ -108,6 +123,29 @@ class AtomDBCache {
      * @param results The result of the query to be cached.
      */
     void add_handle_list(const string& link_handle, shared_ptr<atomdb_api_types::HandleList> results);
+
+    /**
+     * @brief Query for incoming set values.
+     *
+     * @param handle The handle of the atom.
+     * @return The list of incoming handles if it is cached, nullptr otherwise.
+     */
+    QueryForIncomingResult query_for_incoming_set(const string& handle);
+
+    /**
+     * @brief Add an incoming set to the cache.
+     *
+     * @param handle The handle of the atom.
+     * @param results The result of the query to be cached.
+     */
+    void add_incoming_set(const string& handle, shared_ptr<atomdb_api_types::HandleSet> results);
+
+    /**
+     * @brief Invalidate the incoming set cache for a handle.
+     *
+     * @param handle The handle of the atom.
+     */
+    void erase_incoming_set_cache(const string& handle);
 
    private:
     /**
@@ -127,6 +165,15 @@ class AtomDBCache {
      * @brief The mutex for the pattern matching cache.
      */
     mutex pattern_matching_cache_mutex;
+
+    /**
+     * @brief The cache for incoming set values.
+     */
+    unordered_map<string, shared_ptr<atomdb_api_types::HandleSet>> incoming_set_cache;
+    /**
+     * @brief The mutex for the incoming set cache.
+     */
+    mutex incoming_set_cache_mutex;
 
     /**
      * @brief The cache for target handle lists.
