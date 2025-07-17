@@ -31,7 +31,7 @@ class RedisMongoDB : public AtomDB {
     ~RedisMongoDB();
 
     static string REDIS_PATTERNS_PREFIX;
-    static string REDIS_TARGETS_PREFIX;
+    static string REDIS_OUTGOING_PREFIX;
     static string REDIS_INCOMING_PREFIX;
     static uint REDIS_CHUNK_SIZE;
     static string MONGODB_DB_NAME;
@@ -43,7 +43,7 @@ class RedisMongoDB : public AtomDB {
 
     static void initialize_statics() {
         REDIS_PATTERNS_PREFIX = "patterns";
-        REDIS_TARGETS_PREFIX = "outgoing_set";
+        REDIS_OUTGOING_PREFIX = "outgoing_set";
         REDIS_INCOMING_PREFIX = "incoming_set";
         REDIS_CHUNK_SIZE = 10000;
         MONGODB_DB_NAME = "das";
@@ -101,6 +101,10 @@ class RedisMongoDB : public AtomDB {
     uint delete_nodes(const vector<string>& handles, bool delete_link_targets = false);
     uint delete_links(const vector<string>& handles, bool delete_link_targets = false);
 
+    void add_pattern_index_schema(const string& tokens, const vector<vector<string>>& index_entries);
+
+    void drop_all();
+
     mongocxx::pool* get_mongo_pool() const { return mongodb_pool; }
 
    private:
@@ -135,6 +139,9 @@ class RedisMongoDB : public AtomDB {
     void add_pattern(const string& handle, const string& pattern_handle);
     void delete_pattern(const string& handle);
     void update_pattern(const string& key, const string& value);
+
+    void add_outgoing_set(const string& handle, const vector<string>& outgoing_handles);
+    void delete_outgoing_set(const string& handle);
 
     void add_incoming_set(const string& handle, const string& incoming_handle);
     void delete_incoming_set(const string& handle);

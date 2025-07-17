@@ -63,6 +63,25 @@ cc_binary(
 )
 
 cc_binary(
+    name = "tests_db_loader",
+    srcs = [],
+    defines = ["BAZEL_BUILD"],
+    linkopts = [
+        "-L/usr/local/lib",
+        "-lhiredis_cluster",
+        "-lhiredis",
+        "-lmongocxx",
+        "-lbsoncxx",
+    ],
+    linkstatic = 1,
+    deps = [
+        "//atomdb:atomdb_lib",
+        "//commons:commons_lib",
+        "//main:tests_db_loader_main_lib",
+    ],
+)
+
+cc_binary(
     name = "query_broker",
     srcs = [],
     defines = ["BAZEL_BUILD"],

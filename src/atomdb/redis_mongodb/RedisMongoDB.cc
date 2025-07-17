@@ -23,7 +23,7 @@ using namespace commons;
 using namespace atoms;
 
 string RedisMongoDB::REDIS_PATTERNS_PREFIX;
-string RedisMongoDB::REDIS_TARGETS_PREFIX;
+string RedisMongoDB::REDIS_OUTGOING_PREFIX;
 string RedisMongoDB::REDIS_INCOMING_PREFIX;
 uint RedisMongoDB::REDIS_CHUNK_SIZE;
 string RedisMongoDB::MONGODB_DB_NAME;
@@ -214,7 +214,7 @@ shared_ptr<atomdb_api_types::HandleList> RedisMongoDB::query_for_targets(const s
     redisReply* reply;
     try {
         auto ctx = this->redis_pool->acquire();
-        auto command = "GET " + REDIS_TARGETS_PREFIX + ":" + handle;
+        auto command = "GET " + REDIS_OUTGOING_PREFIX + ":" + handle;
         reply = ctx->execute(command.c_str());
 
         if (reply == NULL) Utils::error("Redis error at query_for_targets");
@@ -348,6 +348,27 @@ void RedisMongoDB::set_next_score(const string& key, uint score) {
     if (reply->type != REDIS_REPLY_STATUS) {
         Utils::error("Invalid Redis response at set_next_score: " + std::to_string(reply->type));
     }
+}
+
+void RedisMongoDB::add_outgoing_set(const string& handle, const vector<string>& outgoing_handles) {
+    auto ctx = this->redis_pool->acquire();
+    string command = "SET " + REDIS_OUTGOING_PREFIX + ":" + handle + " ";
+    for (const auto& outgoing_handle : outgoing_handles) {
+        command += outgoing_handle;
+    }
+    redisReply* reply = ctx->execute(command.c_str());
+    if (reply == NULL) Utils::error("Redis error at add_outgoing_set");
+
+    if (reply->type != REDIS_REPLY_STATUS) {
+        Utils::error("Invalid Redis response at add_outgoing_set: " + std::to_string(reply->type));
+    }
+}
+
+void RedisMongoDB::delete_outgoing_set(const string& handle) {
+    auto ctx = this->redis_pool->acquire();
+    string command = "DEL " + REDIS_OUTGOING_PREFIX + ":" + handle;
+    redisReply* reply = ctx->execute(command.c_str());
+    if (reply == NULL) Utils::error("Redis error at delete_outgoing_set");
 }
 
 void RedisMongoDB::add_incoming_set(const string& handle, const string& incoming_handle) {
@@ -621,6 +642,8 @@ string RedisMongoDB::add_link(const atoms::Link* link) {
         add_incoming_set(target->get(MONGODB_FIELD_NAME[MONGODB_FIELD::ID]), link->handle());
     }
 
+    add_outgoing_set(link->handle(), link->targets);
+
     auto conn = this->mongodb_pool->acquire();
     auto mongodb_collection = (*conn)[MONGODB_DB_NAME][MONGODB_LINKS_COLLECTION_NAME];
 
@@ -693,7 +716,10 @@ bool RedisMongoDB::delete_document(const string& handle,
     while ((incoming_handle = it->next()) != nullptr) {
         delete_atom(incoming_handle, delete_targets);
     }
+
     delete_incoming_set(handle);
+
+    delete_outgoing_set(handle);
 
     // NOTE: the initial handle might be already deleted due the recursive delete_atom() calls.
     return reply->deleted_count() > 0 || !document_exists(handle, collection_name);
@@ -773,6 +799,29 @@ uint RedisMongoDB::delete_links(const vector<string>& handles, bool delete_targe
     return deleted_count;
 }
 
+void RedisMongoDB::add_pattern_index_schema(const string& tokens,
+                                            const vector<vector<string>>& index_entries) {
+    LinkSchema link_schema(Utils::split(tokens, ' '));
+    auto id = link_schema.handle();
+
+    auto index_entries_array = bsoncxx::builder::basic::array{};
+    for (const auto& index_entry : index_entries) {
+        auto index_entry_array = bsoncxx::builder::basic::array{};
+        for (const auto& index_entry_item : index_entry) {
+            index_entry_array.append(index_entry_item);
+        }
+        index_entries_array.append(index_entry_array);
+    }
+
+    auto conn = this->mongodb_pool->acquire();
+    auto mongodb_collection = (*conn)[MONGODB_DB_NAME][MONGODB_PATTERN_INDEX_SCHEMA_COLLECTION_NAME];
+
+    auto reply = mongodb_collection.insert_one(bsoncxx::v_noabi::builder::basic::make_document(
+        bsoncxx::v_noabi::builder::basic::kvp(MONGODB_FIELD_NAME[MONGODB_FIELD::ID], id),
+        bsoncxx::v_noabi::builder::basic::kvp("tokens", tokens),
+        bsoncxx::v_noabi::builder::basic::kvp("index_entries", index_entries_array)));
+}
+
 void RedisMongoDB::load_pattern_index_schema() {
     auto conn = this->mongodb_pool->acquire();
     auto mongodb_collection = (*conn)[MONGODB_DB_NAME][MONGODB_PATTERN_INDEX_SCHEMA_COLLECTION_NAME];
@@ -781,10 +830,7 @@ void RedisMongoDB::load_pattern_index_schema() {
         // Extract _id
         string id = view["_id"].get_string().value.data();
         // Extract LinkSchema tokens
-        vector<string> tokens;
-        for (const auto& elem : view["tokens"].get_array().value) {
-            tokens.push_back(elem.get_string().value.data());
-        }
+        vector<string> tokens = Utils::split(view["tokens"].get_string().value.data(), ' ');
         // Extract index_entries
         vector<vector<string>> index_entries;
         for (const auto& arr : view["index_entries"].get_array().value) {
@@ -830,4 +876,16 @@ vector<string> RedisMongoDB::match_pattern_index_schema(const Link* link) {
         }
     }
     return pattern_handles;
+}
+
+void RedisMongoDB::drop_all() {
+    // Drop MongoDB database
+    auto conn = this->mongodb_pool->acquire();
+    (*conn)[MONGODB_DB_NAME].drop();
+    // Drop Redis database
+    auto ctx = this->redis_pool->acquire();
+    auto reply = ctx->execute("FLUSHALL");
+    if (reply->type != REDIS_REPLY_STATUS) {
+        Utils::error("Failed to flush Redis database");
+    }
 }
