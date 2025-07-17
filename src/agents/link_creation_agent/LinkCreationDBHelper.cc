@@ -12,10 +12,6 @@ shared_ptr<LinkCreateDBSingleton> LinkCreateDBSingleton::instance = nullptr;
 shared_ptr<LinkCreateDBSingleton> LinkCreateDBSingleton::get_instance() {
     if (instance == nullptr) {
         instance = shared_ptr<LinkCreateDBSingleton>(new LinkCreateDBSingleton());
-        try {
-            AtomDBSingleton::init();
-        } catch (const exception& e) {
-        }
     }
     return instance;
 }

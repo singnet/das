@@ -65,5 +65,6 @@ int main(int argc, char* argv[]) {
     if (count == 1) {
         cout << "No match for query" << endl;
     }
+    cout << "Inference agent finished" << endl;
     return 0;
 }
