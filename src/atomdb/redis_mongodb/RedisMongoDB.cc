@@ -630,6 +630,10 @@ string RedisMongoDB::add_link(const atoms::Link* link) {
 }
 
 vector<string> RedisMongoDB::add_atoms(const vector<atoms::Atom*>& atoms) {
+    if (atoms.empty()) {
+        return {};
+    }
+
     vector<Node*> nodes;
     vector<Link*> links;
     for (const auto& atom : atoms) {
@@ -646,6 +650,10 @@ vector<string> RedisMongoDB::add_atoms(const vector<atoms::Atom*>& atoms) {
 }
 
 vector<string> RedisMongoDB::add_nodes(const vector<atoms::Node*>& nodes) {
+    if (nodes.empty()) {
+        return {};
+    }
+
     vector<bsoncxx::v_noabi::document::value> docs;
     vector<string> handles;
 
@@ -653,10 +661,6 @@ vector<string> RedisMongoDB::add_nodes(const vector<atoms::Node*>& nodes) {
         auto mongodb_doc = atomdb_api_types::MongodbDocument(node);
         handles.push_back(node->handle());
         docs.push_back(mongodb_doc.value());
-    }
-
-    if (handles.empty()) {
-        return {};
     }
 
     auto conn = this->mongodb_pool->acquire();
@@ -672,6 +676,9 @@ vector<string> RedisMongoDB::add_nodes(const vector<atoms::Node*>& nodes) {
 }
 
 vector<string> RedisMongoDB::add_links(const vector<atoms::Link*>& links) {
+    if (links.empty()) {
+        return {};
+    }
     vector<string> handles;
     for (const auto& link : links) {
         handles.push_back(add_link(link));
