@@ -448,6 +448,27 @@ class GetAtoms {
     GetAtoms(int tid, shared_ptr<AtomDB> db, int iterations)
         : tid_(tid), db_(db), iterations_(iterations) {}
 
+        void get_node_documents() {}
+
+        void get_link_documents() {}
+
+        void get_atom_documents_node() {}
+
+        void get_atom_documents_link() {}
+
+        void query_for_pattern() {
+            for (int i = 0; i < iterations_; ++i) {
+                // db_->query_for_pattern....
+            }
+        }
+
+        void query_for_targets() {
+            for (int i = 0; i < iterations_; ++i) {
+                // Query for targets
+            }
+            
+        }
+
    private:
     int tid_;
     shared_ptr<AtomDB> db_;
@@ -582,7 +603,26 @@ int main(int argc, char** argv) {
                     "'get_atom_document_node', "
                     "'get_atom_document_link', 'get_atom_node' or 'get_atom_link'");
             }
-            // } else if (action == "GetAtoms") {
+        } else if (action == "GetAtoms") {
+            GetAtoms benchmark_get_atoms(tid, atomdb, iterations);
+            if (method == "get_node_documents") {
+                benchmark_get_atoms.get_node_documents();
+            } else if (method == "get_link_documents") {
+                benchmark_get_atoms.get_link_documents();
+            } else if (method == "get_atom_documents_node") {
+                benchmark_get_atoms.get_atom_documents_node();
+            } else if (method == "get_atom_documents_link") {
+                benchmark_get_atoms.get_atom_documents_link();
+            } else if (method == "query_for_pattern") {
+                benchmark_get_atoms.query_for_pattern();
+            } else if (method == "query_for_targets") {
+                benchmark_get_atoms.query_for_targets();
+            } else {
+                Utils::error(
+                    "Invalid method. Choose either 'get_node_documents', 'get_link_documents', "
+                    "'get_atom_documents_node', 'get_atom_documents_link', 'query_for_pattern' or "
+                    "'query_for_targets'");
+            }
             //     get_atoms(tid, atomdb, iterations);
             // } else if (action == "DeleteAtom") {
             //     delete_atom(tid, atomdb, iterations);
