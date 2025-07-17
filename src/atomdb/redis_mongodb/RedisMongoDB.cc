@@ -808,7 +808,8 @@ uint RedisMongoDB::delete_links(const vector<string>& handles, bool delete_targe
 
 void RedisMongoDB::add_pattern_index_schema(const string& tokens,
                                             const vector<vector<string>>& index_entries) {
-    LinkSchema link_schema(Utils::split(tokens, ' '));
+    auto tokens_vector = Utils::split(tokens, ' ');
+    LinkSchema link_schema(tokens_vector);
     auto id = link_schema.handle();
 
     auto index_entries_array = bsoncxx::builder::basic::array{};
@@ -827,6 +828,12 @@ void RedisMongoDB::add_pattern_index_schema(const string& tokens,
         bsoncxx::v_noabi::builder::basic::kvp(MONGODB_FIELD_NAME[MONGODB_FIELD::ID], id),
         bsoncxx::v_noabi::builder::basic::kvp("tokens", tokens),
         bsoncxx::v_noabi::builder::basic::kvp("index_entries", index_entries_array)));
+
+    if (!reply) {
+        Utils::error("Failed to insert pattern index schema into MongoDB");
+    }
+
+    this->pattern_index_schema_map[id] = make_tuple(move(tokens_vector), index_entries);
 }
 
 void RedisMongoDB::load_pattern_index_schema() {
@@ -899,4 +906,8 @@ void RedisMongoDB::drop_all() {
     // We need to reset next scores to 0 to avoid remainings from previous runs
     // as they were initialized on RedisMongoDB construction
     this->reset_scores();
+
+    // We need to clear the pattern index schema map and reload it
+    this->pattern_index_schema_map.clear();
+    this->load_pattern_index_schema();
 }
