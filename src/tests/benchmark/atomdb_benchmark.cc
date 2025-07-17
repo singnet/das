@@ -16,7 +16,7 @@
 #include "Utils.h"
 #include "atomdb_benchmark_utils.h"
 
-#define LOG_LEVEL DEBUG_LEVEL
+#define LOG_LEVEL INFO_LEVEL
 
 using namespace std;
 using namespace atomdb;
@@ -448,26 +448,50 @@ class GetAtoms {
     GetAtoms(int tid, shared_ptr<AtomDB> db, int iterations)
         : tid_(tid), db_(db), iterations_(iterations) {}
 
-        void get_node_documents() {}
+    void get_node_documents() {}
 
-        void get_link_documents() {}
+    void get_link_documents() {}
 
-        void get_atom_documents_node() {}
+    void get_atom_documents_node() {}
 
-        void get_atom_documents_link() {}
+    void get_atom_documents_link() {}
 
-        void query_for_pattern() {
-            for (int i = 0; i < iterations_; ++i) {
-                // db_->query_for_pattern....
-            }
+    void query_for_pattern() {
+        LinkSchema link_schema({"LINK_TEMPLATE",
+                                "Expression",
+                                "3",
+                                "NODE",
+                                "Symbol",
+                                "Contains",
+                                "VARIABLE",
+                                "$sentence",
+                                "VARIABLE",
+                                "$word"});
+        vector<double> query_for_pattern_operation_time;
+        for (int i = 0; i < iterations_; ++i) {
+            auto t0 = Clock::now();
+            auto handles_set = db_->query_for_pattern(link_schema);
+            auto iterator = handles_set->get_iterator();
+            auto first_handle = iterator->next();
+            auto t1 = Clock::now();
+            double ms = chrono::duration<double, milli>(t1 - t0).count();
+            query_for_pattern_operation_time.push_back(ms);
         }
+        double query_for_pattern_total_time = accumulate(
+            query_for_pattern_operation_time.begin(), query_for_pattern_operation_time.end(), 0.0);
+        lock_guard<mutex> lock(global_mutex);
+        global_metrics["query_for_pattern[first_result]"] =
+            Metrics{query_for_pattern_operation_time,
+                    query_for_pattern_total_time,
+                    query_for_pattern_total_time / iterations_,
+                    iterations_ / (query_for_pattern_total_time / 1000.0)};
+    }
 
-        void query_for_targets() {
-            for (int i = 0; i < iterations_; ++i) {
-                // Query for targets
-            }
-            
+    void query_for_targets() {
+        for (int i = 0; i < iterations_; ++i) {
+            // Query for targets
         }
+    }
 
    private:
     int tid_;
