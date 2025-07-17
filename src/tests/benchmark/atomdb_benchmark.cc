@@ -517,6 +517,14 @@ class DeleteAtom {
     DeleteAtom(int tid, shared_ptr<AtomDB> db, int iterations)
         : tid_(tid), db_(db), iterations_(iterations) {}
 
+    void delete_node() {}
+
+    void delete_link() {}
+
+    void delete_atom_node() {}
+
+    void delete_atom_link() {}
+
    private:
     int tid_;
     shared_ptr<AtomDB> db_;
@@ -527,6 +535,14 @@ class DeleteAtoms {
    public:
     DeleteAtoms(int tid, shared_ptr<AtomDB> db, int iterations)
         : tid_(tid), db_(db), iterations_(iterations) {}
+
+    void delete_nodes() {}
+
+    void delete_links() {}
+
+    void delete_atoms_node() {}
+
+    void delete_atoms_link() {}
 
    private:
     int tid_;
@@ -660,11 +676,36 @@ int main(int argc, char** argv) {
                     "'get_atom_documents_node', 'get_atom_documents_link', 'query_for_pattern' or "
                     "'query_for_targets'");
             }
-            //     get_atoms(tid, atomdb, iterations);
-            // } else if (action == "DeleteAtom") {
-            //     delete_atom(tid, atomdb, iterations);
-            // } else if (action == "DeleteAtoms") {
-            //     delete_atoms(tid, atomdb, iterations);
+        } else if (action == "DeleteAtom") {
+            DeleteAtom benchmark_delete_atom(tid, atomdb, iterations);
+            if (method == "delete_node") {
+                benchmark_delete_atom.delete_node();
+            } else if (method == "delete_link") {
+                benchmark_delete_atom.delete_link();
+            } else if (method == "delete_atom_node") {
+                benchmark_delete_atom.delete_atom_node();
+            } else if (method == "delete_atom_link") {
+                benchmark_delete_atom.delete_atom_link();
+            } else {
+                Utils::error(
+                    "Invalid method. Choose either 'delete_node', 'delete_link', "
+                    "'delete_atom_node' or 'delete_atom_link'");
+            }
+        } else if (action == "DeleteAtoms") {
+            DeleteAtoms benchmark_delete_atoms(tid, atomdb, iterations);
+            if (method == "delete_nodes") {
+                benchmark_delete_atoms.delete_nodes();
+            } else if (method == "delete_links") {
+                benchmark_delete_atoms.delete_links();
+            } else if (method == "delete_atoms_node") {
+                benchmark_delete_atoms.delete_atoms_node();
+            } else if (method == "delete_atoms_link") {
+                benchmark_delete_atoms.delete_atoms_link();
+            } else {
+                Utils::error(
+                    "Invalid method. Choose either 'delete_nodes', 'delete_links', "
+                    "'delete_atoms_node' or 'delete_atoms_link'");
+            }
         } else {
             Utils::error(
                 "Invalid action. Choose either 'AddAtom' or 'AddAtoms' or 'GetAtom' or 'GetAtoms' "
