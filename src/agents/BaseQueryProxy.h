@@ -48,6 +48,11 @@ class BaseQueryProxy : public BaseProxy {
     static string MAX_BUNDLE_SIZE;  // Max number of answers buffered before flushing them to the peer
                                     // client proxy.
 
+    static string MAX_ANSWERS;      // Limits the number of returned answers
+
+    static string
+        USE_LINK_TEMPLATE_CACHE;  // When true, a cache for fetched handles is used in LinkTemplate.
+
     /**
      * Destructor.
      */
@@ -163,6 +168,8 @@ class BaseQueryProxy : public BaseProxy {
      * @param args Command arguments (empty for FINISHED command)
      */
     void query_answers_finished(const vector<string>& args);
+
+    virtual void pack_command_line_args() = 0;
 
    private:
     void init();

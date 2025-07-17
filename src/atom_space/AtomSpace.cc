@@ -55,18 +55,20 @@ const Link* AtomSpace::get_link(const string& type, const vector<const Atom*>& t
 }
 
 // -------------------------------------------------------------------------------------------------
+// TODO: change API to use a Properties object instead of many parameters
 shared_ptr<PatternMatchingQueryProxy> AtomSpace::pattern_matching_query(const vector<string>& query,
                                                                         size_t answers_count,
                                                                         const string& context,
+                                                                        bool use_link_template_cache,
                                                                         bool unique_assignment,
                                                                         bool update_attention_broker,
                                                                         bool count_only) {
-    // TODO: Use `answers_count` parameter to limit the number of answers once the functionality is
-    // implemented on the server side.
     auto proxy = make_shared<PatternMatchingQueryProxy>(query, context);
     proxy->parameters[BaseQueryProxy::UNIQUE_ASSIGNMENT_FLAG] = unique_assignment;
     proxy->parameters[BaseQueryProxy::ATTENTION_UPDATE_FLAG] = update_attention_broker;
+    proxy->parameters[BaseQueryProxy::USE_LINK_TEMPLATE_CACHE] = use_link_template_cache;
     proxy->parameters[PatternMatchingQueryProxy::COUNT_FLAG] = count_only;
+    proxy->parameters[PatternMatchingQueryProxy::MAX_ANSWERS] = (unsigned int) answers_count;
 
     this->bus->issue_bus_command(proxy);
     return proxy;

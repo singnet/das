@@ -100,6 +100,7 @@ class AtomSpace {
         const vector<string>& query,
         size_t answers_count = IGNORE_ANSWER_COUNT,
         const string& context = "",
+        bool use_link_template_cache = false,
         bool unique_assignment = true,
         bool update_attention_broker = false,
         bool count_only = false);

@@ -38,6 +38,7 @@ class PatternMatchingQueryProxy : public BaseQueryProxy {
     static string COUNT_FLAG;  // indicates that this query is supposed to count the results and not
                                // actually provide the query answers (i.e. no QueryAnswer is sent
                                // from the command executor and the caller of the query).
+
     /**
      * Empty constructor typically used on server side.
      */
@@ -75,7 +76,7 @@ class PatternMatchingQueryProxy : public BaseQueryProxy {
     /**
      * Builds the args vector to be passed in the RPC
      */
-    void pack_command_line_args();
+    virtual void pack_command_line_args();
 
     // ---------------------------------------------------------------------------------------------
     // Virtual superclass API and the piggyback methods called by it

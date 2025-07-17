@@ -8,3 +8,4 @@
 [#521] Creates atom classes in common and refactors query elements to use them
 [#499] Allow ATOM elements in query tokens allowing the use of handles as LINK targets
 [#524] Using MongoDB split collections (nodes and links)
+[#499] Implemented Evolution agent to process QUERY_EVOLUTION commands in the service bus

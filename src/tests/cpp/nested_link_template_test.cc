@@ -32,10 +32,11 @@ TEST(LinkTemplate, basics) {
     auto similarity = make_shared<Terminal>(symbol, "Similarity");
     auto odd_link = make_shared<Terminal>(symbol, "OddLink");
 
-    LinkTemplate* inner_template_ptr = new LinkTemplate(expression, {similarity, v1, v2}, "", false);
+    LinkTemplate* inner_template_ptr =
+        new LinkTemplate(expression, {similarity, v1, v2}, "", false, false);
     shared_ptr<LinkTemplate> inner_template(inner_template_ptr);
     LinkTemplate* outter_template_ptr =
-        new LinkTemplate(expression, {odd_link, inner_template}, "", false);
+        new LinkTemplate(expression, {odd_link, inner_template}, "", false, false);
     outter_template_ptr->build();
     Iterator iterator(outter_template_ptr->get_source_element());
 
@@ -62,11 +63,14 @@ TEST(LinkTemplate, nested_variables) {
     auto odd_link = make_shared<Terminal>(symbol, "OddLink");
     auto human = make_shared<Terminal>(symbol, "\"human\"");
 
-    LinkTemplate* inner_template_ptr = new LinkTemplate(expression, {similarity, v1, v2}, "", false);
+    LinkTemplate* inner_template_ptr =
+        new LinkTemplate(expression, {similarity, v1, v2}, "", false, false);
     shared_ptr<LinkTemplate> inner_template(inner_template_ptr);
-    LinkTemplate* outter_template = new LinkTemplate(expression, {odd_link, inner_template}, "", false);
+    LinkTemplate* outter_template =
+        new LinkTemplate(expression, {odd_link, inner_template}, "", false, false);
     outter_template->build();
-    LinkTemplate* human_template = new LinkTemplate(expression, {similarity, v1, human}, "", false);
+    LinkTemplate* human_template =
+        new LinkTemplate(expression, {similarity, v1, human}, "", false, false);
     human_template->build();
     auto and_operator = make_shared<And<2>>(array<shared_ptr<QueryElement>, 2>(
         {human_template->get_source_element(), outter_template->get_source_element()}));
