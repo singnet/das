@@ -183,6 +183,7 @@ init_environment() {
     TOTAL_ATOMS=$(das-cli db count-atoms) > /dev/null 2>&1
     das-cli attention-broker start 
     echo -e "\r\033[K${GREEN}Redis, MongoDB and Attention Broker initialization completed!${RESET}"
+    
     # MORK
     mork_server_containers=$(docker ps -a --filter "name=das-mork-server" --format "{{.ID}}")
     if [[ -n "$mork_server_containers" ]]; then
@@ -196,6 +197,8 @@ init_environment() {
     done
     src/scripts/mork_loader.sh "$METTA_PATH" 2> >(grep -v '^+')
     echo -e "\r\033[K${GREEN}MORK initialization completed!${RESET}"
+
+    # Bazel
 }
 
 load_scenario_definition() {
@@ -264,6 +267,7 @@ run_benchmark() {
             for method in "${methods[@]}"; do
                 echo -e "\n== Running benchmarks for AtomDB: $type | Action: $action | Method: $method ==" 
                 init_environment
+                ./src/scripts/docker_image_build.sh  > /dev/null 2>&1
                 ./src/scripts/bazel.sh run //tests/benchmark:atomdb_benchmark -- "$type" "$action" "$method" "$CACHE" "$CONCURRENCY" "$ITERATIONS" "$TIMESTAMP" 2> >(grep -v '^+')
             done
         done
