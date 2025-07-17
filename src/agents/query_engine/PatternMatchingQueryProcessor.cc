@@ -19,7 +19,7 @@
 #include "attention_broker.grpc.pb.h"
 #include "attention_broker.pb.h"
 
-#define LOG_LEVEL INFO_LEVEL
+#define LOG_LEVEL DEBUG_LEVEL
 #include "Logger.h"
 
 using namespace atomdb;
@@ -155,6 +155,7 @@ void PatternMatchingQueryProcessor::process_query_answers(
 void PatternMatchingQueryProcessor::thread_process_one_query(
     shared_ptr<StoppableThread> monitor, shared_ptr<PatternMatchingQueryProxy> proxy) {
     try {
+        STOP_WATCH_START(query_thread);
         proxy->untokenize(proxy->args);
         LOG_DEBUG("proxy: " + proxy->to_string());
         LOG_DEBUG("Setting up query tree");
@@ -206,6 +207,7 @@ void PatternMatchingQueryProcessor::thread_process_one_query(
                 Utils::error("Invalid command " + command + " in PatternMatchingQueryProcessor");
             }
         }
+        STOP_WATCH_FINISH(query_thread, "PatternMatchingQuery");
     } catch (const std::runtime_error& exception) {
         proxy->raise_error_on_peer(exception.what());
     } catch (const std::exception& exception) {

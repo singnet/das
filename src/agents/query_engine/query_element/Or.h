@@ -6,7 +6,7 @@
 #include "Operator.h"
 #include "QueryAnswer.h"
 
-#define LOG_LEVEL INFO_LEVEL
+#define LOG_LEVEL DEBUG_LEVEL
 #include "Logger.h"
 
 using namespace std;
@@ -182,7 +182,7 @@ class Or : public Operator<N> {
                     // processed_all_input() is double-checked on purpose to avoid race condition
                     processed_all_input()) {
                     this->output_buffer->query_answers_finished();
-                    LOG_INFO(this->id << " processed " << this->answer_count << " answers." << endl);
+                    LOG_INFO(this->id << " processed " << this->answer_count << " answers.");
                 }
                 Utils::sleep();
                 continue;
