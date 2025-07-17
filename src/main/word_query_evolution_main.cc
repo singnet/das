@@ -148,7 +148,7 @@ void run(const string& client_id,
     proxy->parameters[QueryEvolutionProxy::POPULATION_SIZE] = (unsigned int) 100;
     proxy->parameters[QueryEvolutionProxy::MAX_GENERATIONS] = (unsigned int) 1;
     proxy->parameters[QueryEvolutionProxy::ELITISM_RATE] = (double) 0.01;
-    proxy->parameters[QueryEvolutionProxy::SELECTION_RATE] = (double) 0.1;
+    proxy->parameters[QueryEvolutionProxy::SELECTION_RATE] = (double) 0.02;
     proxy->parameters[BaseQueryProxy::MAX_BUNDLE_SIZE] = (unsigned int) 1;
     service_bus->issue_bus_command(proxy);
 

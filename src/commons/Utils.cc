@@ -78,26 +78,26 @@ string StopWatch::str_time() {
     unsigned long millis = milliseconds();
 
     unsigned long seconds = millis / 1000;
-    millis = millis % 60;
+    if (seconds > 0) {
+        millis = millis % 1000;
+    }
 
     unsigned long minutes = seconds / 60;
-    seconds = seconds % 60;
+    if (minutes > 0) {
+        seconds = seconds % 60;
+    }
 
     unsigned long hours = minutes / 60;
-    minutes = minutes % 60;
+    if (hours > 0) {
+        minutes = minutes % 60;
+    }
 
     if (hours > 0) {
         return to_string(hours) + " hours " + to_string(minutes) + " mins";
     } else if (minutes > 0) {
         return to_string(minutes) + " mins " + to_string(seconds) + " secs";
-    } else if (seconds > 0) {
-        // double s = ((double) ((seconds * 1000) + millis)) / 1000.0;
-        // stringstream stream;
-        // stream << fixed << setprecision(3) << s;
-        // return stream.str() + " secs";
-        return to_string(seconds) + " secs " + to_string(millis) + " millis";
     } else {
-        return to_string(millis) + " millis";
+        return to_string(seconds) + " secs " + to_string(millis) + " millis";
     }
 }
 

@@ -137,9 +137,11 @@ void PatternMatchingQueryProcessor::process_query_answers(
     unsigned int max_answers = proxy->parameters.get<unsigned int>(BaseQueryProxy::MAX_ANSWERS);
     while ((answer = query_sink->input_buffer->pop_query_answer()) != NULL) {
         answer_count++;
+        /*
         if (proxy->parameters.get<bool>(BaseQueryProxy::ATTENTION_UPDATE_FLAG)) {
             update_attention_broker_single_answer(proxy, answer, joint_answer);
         }
+        */
         if (!proxy->parameters.get<bool>(PatternMatchingQueryProxy::COUNT_FLAG)) {
             proxy->push(shared_ptr<QueryAnswer>(answer));
         }
@@ -154,8 +156,8 @@ void PatternMatchingQueryProcessor::process_query_answers(
 
 void PatternMatchingQueryProcessor::thread_process_one_query(
     shared_ptr<StoppableThread> monitor, shared_ptr<PatternMatchingQueryProxy> proxy) {
+    STOP_WATCH_START(query_thread);
     try {
-        STOP_WATCH_START(query_thread);
         proxy->untokenize(proxy->args);
         LOG_DEBUG("proxy: " + proxy->to_string());
         LOG_DEBUG("Setting up query tree");
@@ -187,6 +189,7 @@ void PatternMatchingQueryProcessor::thread_process_one_query(
                     Utils::sleep();
                 }
                 proxy->flush_answer_bundle();
+                STOP_WATCH_FINISH(query_thread, "PatternMatchingQuery");
                 if (proxy->parameters.get<bool>(PatternMatchingQueryProxy::COUNT_FLAG) &&
                     (!proxy->is_aborting())) {
                     LOG_DEBUG("Answering count_only query");
@@ -194,20 +197,21 @@ void PatternMatchingQueryProcessor::thread_process_one_query(
                                           {std::to_string(answer_count)});
                 }
                 Utils::sleep(500);
-                proxy->query_processing_finished();
+                /*
                 if (proxy->parameters.get<bool>(BaseQueryProxy::ATTENTION_UPDATE_FLAG)) {
                     LOG_DEBUG("Updating AttentionBroker (stimulate)");
                     update_attention_broker_joint_answer(proxy, joint_answer);
                 }
                 Utils::sleep(500);
+                */
                 LOG_INFO("Total processed answers: " << answer_count);
+                proxy->query_processing_finished();
                 query_sink->graceful_shutdown();
                 PortPool::return_port(sink_port_number);
             } else {
                 Utils::error("Invalid command " + command + " in PatternMatchingQueryProcessor");
             }
         }
-        STOP_WATCH_FINISH(query_thread, "PatternMatchingQuery");
     } catch (const std::runtime_error& exception) {
         proxy->raise_error_on_peer(exception.what());
     } catch (const std::exception& exception) {
