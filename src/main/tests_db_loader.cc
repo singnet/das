@@ -44,14 +44,17 @@ int main(int argc, char* argv[]) {
 
     string tokens = "LINK_TEMPLATE Expression 3 NODE Symbol Similarity VARIABLE v1 VARIABLE v2";
     vector<vector<string>> index_entries = {{"_", "*", "*"}, {"_", "v1", "*"}, {"_", "*", "v2"}};
+    LOG_INFO("Adding pattern index schema for: " + tokens + "...");
     db->add_pattern_index_schema(tokens, index_entries);
 
     tokens = "LINK_TEMPLATE Expression 3 NODE Symbol Inheritance VARIABLE v1 VARIABLE v2";
     index_entries = {{"_", "*", "*"}, {"_", "v1", "*"}, {"_", "*", "v2"}};
+    LOG_INFO("Adding pattern index schema for: " + tokens + "...");
     db->add_pattern_index_schema(tokens, index_entries);
 
     tokens = "LINK_TEMPLATE Expression 2 NODE Symbol OddLink VARIABLE v1";
     index_entries = {{"_", "*"}, {"_", "v1"}};
+    LOG_INFO("Adding pattern index schema for: " + tokens + "...");
     db->add_pattern_index_schema(tokens, index_entries);
 
     // Nodes

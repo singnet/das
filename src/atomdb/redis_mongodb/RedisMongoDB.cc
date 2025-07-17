@@ -350,6 +350,13 @@ void RedisMongoDB::set_next_score(const string& key, uint score) {
     }
 }
 
+void RedisMongoDB::reset_scores() {
+    this->patterns_next_score.store(0);
+    this->incoming_set_next_score.store(0);
+    this->set_next_score(REDIS_PATTERNS_PREFIX + ":next_score", this->patterns_next_score.load());
+    this->set_next_score(REDIS_INCOMING_PREFIX + ":next_score", this->incoming_set_next_score.load());
+}
+
 void RedisMongoDB::add_outgoing_set(const string& handle, const vector<string>& outgoing_handles) {
     auto ctx = this->redis_pool->acquire();
     string command = "SET " + REDIS_OUTGOING_PREFIX + ":" + handle + " ";
@@ -888,4 +895,8 @@ void RedisMongoDB::drop_all() {
     if (reply->type != REDIS_REPLY_STATUS) {
         Utils::error("Failed to flush Redis database");
     }
+
+    // We need to reset next scores to 0 to avoid remainings from previous runs
+    // as they were initialized on RedisMongoDB construction
+    this->reset_scores();
 }
