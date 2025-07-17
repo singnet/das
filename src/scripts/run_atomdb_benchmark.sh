@@ -57,17 +57,18 @@ check_dependencies() {
         missing=1
     fi
 
-    if [[ $missing -eq 1 ]]; then
-        echo "Please install the missing dependencies and try again."
-        exit 1
-    fi
-
     # Docker with buildx
     if ! command -v docker buildx &>/dev/null; then
         echo "Error: 'docker buildx' is not installed or not found in your PATH."
         echo "Please install Docker with buildx and ensure it is running."
         exit 1
     fi
+
+    if [[ $missing -eq 1 ]]; then
+        echo "Please install the missing dependencies and try again."
+        exit 1
+    fi
+
 }
 
 parse_args()  {
