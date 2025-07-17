@@ -60,7 +60,5 @@ TEST(QueryEvolution, protected_methods) {
                             "VARIABLE",
                             "v2"};
 
-    auto proxy = make_shared<QueryEvolutionProxy>(query, "unit_test", "query_evolution_test");
-    vector<std::pair<shared_ptr<QueryAnswer>, float>> population;
-    // processor->sample_population(proxy, population);
+    QueryEvolutionProxy proxy(query, {}, {}, "unit_test", "query_evolution_test");
 }

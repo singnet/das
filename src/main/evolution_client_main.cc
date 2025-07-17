@@ -42,6 +42,7 @@ int main(int argc, char* argv[]) {
         query.push_back(argv[i]);
     }
 
+    /*
     auto proxy = make_shared<QueryEvolutionProxy>(query, "unit_test", "evolution_client");
     auto bus = ServiceBusSingleton::get_instance();
     shared_ptr<QueryAnswer> query_answer;
@@ -59,6 +60,7 @@ int main(int argc, char* argv[]) {
     if (count == 1) {
         cout << "No match for query" << endl;
     }
+    */
 
     return 0;
 }
