@@ -8,7 +8,6 @@
 #include "BusCommandProcessor.h"
 #include "PatternMatchingQueryProxy.h"
 #include "QueryElement.h"
-#include "QueryElementRegistry.h"
 #include "Sink.h"
 #include "StoppableThread.h"
 
@@ -54,14 +53,12 @@ class PatternMatchingQueryProcessor : public BusCommandProcessor {
                                shared_ptr<Sink> query_sink,
                                set<string>& joint_answer,
                                unsigned int& answer_count);
-    shared_ptr<QueryElement> setup_query_tree(shared_ptr<PatternMatchingQueryProxy> proxy,
-                                              QueryElementRegistry* query_element_registry);
+    shared_ptr<QueryElement> setup_query_tree(shared_ptr<PatternMatchingQueryProxy> proxy);
     void thread_process_one_query(shared_ptr<StoppableThread>,
                                   shared_ptr<PatternMatchingQueryProxy> proxy);
     shared_ptr<QueryElement> build_link_template(shared_ptr<PatternMatchingQueryProxy> proxy,
                                                  unsigned int cursor,
-                                                 stack<shared_ptr<QueryElement>>& element_stack,
-                                                 QueryElementRegistry* query_element_registry);
+                                                 stack<shared_ptr<QueryElement>>& element_stack);
 
     shared_ptr<QueryElement> build_link_template2(shared_ptr<PatternMatchingQueryProxy> proxy,
                                                   unsigned int cursor,
@@ -89,6 +86,8 @@ class PatternMatchingQueryProcessor : public BusCommandProcessor {
     map<string, shared_ptr<StoppableThread>> query_threads;
     mutex query_threads_mutex;
     shared_ptr<PatternMatchingQueryProxy> proxy;
+    static string AND;
+    static string OR;
 };
 
 }  // namespace atomdb

@@ -6,6 +6,7 @@
 
 #include "AtomDBAPITypes.h"
 #include "HandleDecoder.h"
+#include "LinkSchema.h"
 #include "Properties.h"
 
 using namespace std;
@@ -21,9 +22,9 @@ class AtomDB : public HandleDecoder {
 
     virtual shared_ptr<Atom> get_atom(const string& handle) = 0;  // HandleDecoder interface
 
-    virtual shared_ptr<atomdb_api_types::HandleSet> query_for_pattern(
-        const LinkTemplateInterface& link_template) = 0;
+    virtual shared_ptr<atomdb_api_types::HandleSet> query_for_pattern(const LinkSchema& link_schema) = 0;
     virtual shared_ptr<atomdb_api_types::HandleList> query_for_targets(const string& handle) = 0;
+    virtual shared_ptr<atomdb_api_types::HandleSet> query_for_incoming_set(const string& handle) = 0;
 
     virtual shared_ptr<atomdb_api_types::AtomDocument> get_atom_document(const string& handle) = 0;
     virtual shared_ptr<atomdb_api_types::AtomDocument> get_node_document(const string& handle) = 0;
@@ -52,13 +53,13 @@ class AtomDB : public HandleDecoder {
     virtual vector<string> add_nodes(const vector<atoms::Node*>& nodes) = 0;
     virtual vector<string> add_links(const vector<atoms::Link*>& links) = 0;
 
-    virtual bool delete_atom(const string& handle) = 0;
-    virtual bool delete_node(const string& handle) = 0;
-    virtual bool delete_link(const string& handle) = 0;
+    virtual bool delete_atom(const string& handle, bool delete_link_targets = false) = 0;
+    virtual bool delete_node(const string& handle, bool delete_link_targets = false) = 0;
+    virtual bool delete_link(const string& handle, bool delete_link_targets = false) = 0;
 
-    virtual uint delete_atoms(const vector<string>& handles) = 0;
-    virtual uint delete_nodes(const vector<string>& handles) = 0;
-    virtual uint delete_links(const vector<string>& handles) = 0;
+    virtual uint delete_atoms(const vector<string>& handles, bool delete_link_targets = false) = 0;
+    virtual uint delete_nodes(const vector<string>& handles, bool delete_link_targets = false) = 0;
+    virtual uint delete_links(const vector<string>& handles, bool delete_link_targets = false) = 0;
 
    private:
     virtual void attention_broker_setup() = 0;

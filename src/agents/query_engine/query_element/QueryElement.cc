@@ -15,6 +15,11 @@ QueryElement::QueryElement() {
 QueryElement::~QueryElement() {}
 
 // ------------------------------------------------------------------------------------------------
+// Public methods
+
+string QueryElement::to_string() { return ""; }
+
+// ------------------------------------------------------------------------------------------------
 // Protected methods
 
 void QueryElement::set_flow_finished() {
