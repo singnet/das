@@ -45,11 +45,12 @@ class AddAtom {
         }
         double nodes_total_time =
             accumulate(add_node_operation_time.begin(), add_node_operation_time.end(), 0.0);
-        lock_guard<mutex> lock(global_mutex);
+        global_mutex.lock();
         global_metrics["add_node"] = Metrics{add_node_operation_time,
                                              nodes_total_time,
                                              nodes_total_time / iterations_,
                                              iterations_ / (nodes_total_time / 1000.0)};
+        global_mutex.unlock();
     };
 
     void add_link() {
@@ -74,11 +75,12 @@ class AddAtom {
         }
         double links_total_time =
             accumulate(add_link_operation_time.begin(), add_link_operation_time.end(), 0.0);
-        lock_guard<mutex> lock(global_mutex);
+        global_mutex.lock();
         global_metrics["add_link"] = Metrics{add_link_operation_time,
                                              links_total_time,
                                              links_total_time / iterations_,
                                              iterations_ / (links_total_time / 1000.0)};
+        global_mutex.unlock();
     };
 
     void add_atom_node() {
@@ -96,11 +98,12 @@ class AddAtom {
         }
         double atoms_node_total_time =
             accumulate(add_atom_node_operation_time.begin(), add_atom_node_operation_time.end(), 0.0);
-        lock_guard<mutex> lock(global_mutex);
+        global_mutex.lock();
         global_metrics["add_atom[node]"] = Metrics{add_atom_node_operation_time,
                                                    atoms_node_total_time,
                                                    atoms_node_total_time / iterations_,
                                                    iterations_ / (atoms_node_total_time / 1000.0)};
+        global_mutex.unlock();
     };
 
     void add_atom_link() {
@@ -125,11 +128,12 @@ class AddAtom {
         }
         double atoms_link_total_time =
             accumulate(add_atom_link_operation_time.begin(), add_atom_link_operation_time.end(), 0.0);
-        lock_guard<mutex> lock(global_mutex);
+        global_mutex.lock();
         global_metrics["add_atom[link]"] = Metrics{add_atom_link_operation_time,
                                                    atoms_link_total_time,
                                                    atoms_link_total_time / iterations_,
                                                    iterations_ / (atoms_link_total_time / 1000.0)};
+        global_mutex.unlock();
     };
 
    private:
@@ -160,11 +164,12 @@ class AddAtoms {
         }
         double nodes_total_time =
             accumulate(add_nodes_operation_time.begin(), add_nodes_operation_time.end(), 0.0);
-        lock_guard<mutex> lock(global_mutex);
+        global_mutex.lock();
         global_metrics["add_nodes"] = Metrics{add_nodes_operation_time,
                                               nodes_total_time,
                                               nodes_total_time / (iterations_ * BATCH_SIZE),
                                               (iterations_ * BATCH_SIZE) / (nodes_total_time / 1000.0)};
+        global_mutex.unlock();
     }
 
     void add_links() {
@@ -192,11 +197,12 @@ class AddAtoms {
         }
         double links_total_time =
             accumulate(add_links_operation_time.begin(), add_links_operation_time.end(), 0.0);
-        lock_guard<mutex> lock(global_mutex);
+        global_mutex.lock();
         global_metrics["add_links"] = Metrics{add_links_operation_time,
                                               links_total_time,
                                               links_total_time / (iterations_ * BATCH_SIZE),
                                               (iterations_ * BATCH_SIZE) / (links_total_time / 1000.0)};
+        global_mutex.unlock();
     }
 
     void add_atoms_node() {
@@ -284,12 +290,13 @@ class GetAtom {
         }
         double get_node_document_total_time = accumulate(
             get_node_document_operation_time.begin(), get_node_document_operation_time.end(), 0.0);
-        lock_guard<mutex> lock(global_mutex);
+        global_mutex.lock();
         global_metrics["get_node_document"] =
             Metrics{get_node_document_operation_time,
                     get_node_document_total_time,
                     get_node_document_total_time / iterations_,
                     iterations_ / (get_node_document_total_time / 1000.0)};
+        global_mutex.unlock();
     }
 
     void get_link_document() {
@@ -315,12 +322,13 @@ class GetAtom {
         }
         double get_link_document_total_time = accumulate(
             get_link_document_operation_time.begin(), get_link_document_operation_time.end(), 0.0);
-        lock_guard<mutex> lock(global_mutex);
+        global_mutex.lock();
         global_metrics["get_link_document"] =
             Metrics{get_link_document_operation_time,
                     get_link_document_total_time,
                     get_link_document_total_time / iterations_,
                     iterations_ / (get_link_document_total_time / 1000.0)};
+        global_mutex.unlock();
     }
 
     void get_atom_document_node() {
@@ -341,12 +349,13 @@ class GetAtom {
             accumulate(get_atom_document_node_operation_time.begin(),
                        get_atom_document_node_operation_time.end(),
                        0.0);
-        lock_guard<mutex> lock(global_mutex);
+        global_mutex.lock();
         global_metrics["get_atom_document[node]"] =
             Metrics{get_atom_document_node_operation_time,
                     get_atom_document_node_total_time,
                     get_atom_document_node_total_time / iterations_,
                     iterations_ / (get_atom_document_node_total_time / 1000.0)};
+        global_mutex.unlock();
     }
 
     void get_atom_document_link() {
@@ -375,12 +384,13 @@ class GetAtom {
             accumulate(get_atom_document_link_operation_time.begin(),
                        get_atom_document_link_operation_time.end(),
                        0.0);
-        lock_guard<mutex> lock(global_mutex);
+        global_mutex.lock();
         global_metrics["get_atom_document[link]"] =
             Metrics{get_atom_document_link_operation_time,
                     get_atom_document_link_total_time,
                     get_atom_document_link_total_time / iterations_,
                     iterations_ / (get_atom_document_link_total_time / 1000.0)};
+        global_mutex.unlock();
     }
 
     void get_atom_node() {
@@ -399,11 +409,12 @@ class GetAtom {
         }
         double get_atom_node_total_time =
             accumulate(get_atom_node_operation_time.begin(), get_atom_node_operation_time.end(), 0.0);
-        lock_guard<mutex> lock(global_mutex);
+        global_mutex.lock();
         global_metrics["get_atom[node]"] = Metrics{get_atom_node_operation_time,
                                                    get_atom_node_total_time,
                                                    get_atom_node_total_time / iterations_,
                                                    iterations_ / (get_atom_node_total_time / 1000.0)};
+        global_mutex.unlock();
     }
 
     void get_atom_link() {
@@ -430,11 +441,12 @@ class GetAtom {
         }
         double get_atom_link_total_time =
             accumulate(get_atom_link_operation_time.begin(), get_atom_link_operation_time.end(), 0.0);
-        lock_guard<mutex> lock(global_mutex);
+        global_mutex.lock();
         global_metrics["get_atom[link]"] = Metrics{get_atom_link_operation_time,
                                                    get_atom_link_total_time,
                                                    get_atom_link_total_time / iterations_,
                                                    iterations_ / (get_atom_link_total_time / 1000.0)};
+        global_mutex.unlock();
     }
 
    private:
@@ -479,12 +491,13 @@ class GetAtoms {
         }
         double query_for_pattern_total_time = accumulate(
             query_for_pattern_operation_time.begin(), query_for_pattern_operation_time.end(), 0.0);
-        lock_guard<mutex> lock(global_mutex);
+        global_mutex.lock();
         global_metrics["query_for_pattern[first_result]"] =
             Metrics{query_for_pattern_operation_time,
                     query_for_pattern_total_time,
                     query_for_pattern_total_time / iterations_,
                     iterations_ / (query_for_pattern_total_time / 1000.0)};
+        global_mutex.unlock();
     }
 
     void query_for_targets() {
