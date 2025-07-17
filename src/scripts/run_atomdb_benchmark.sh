@@ -176,6 +176,10 @@ init_environment() {
     das-cli attention-broker start 
     echo -e "\r\033[K${GREEN}Redis, MongoDB and Attention Broker initialization completed!${RESET}"
     # MORK
+    mork_server_containers=$(docker ps -a --filter "name=das-mork-server" --format "{{.ID}}")
+    if [[ -n "$mork_server_containers" ]]; then
+        docker rm -f $mork_server_containers > /dev/null 2>&1
+    fi
     ./src/scripts/docker_image_build_mork.sh > /dev/null  2> >(grep -v '^+')
     ./src/scripts/mork_server.sh > /dev/null 2>&1 &  
     until curl --silent http://localhost:8000/status/-; do
