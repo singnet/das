@@ -105,6 +105,8 @@ class BaseProxy : public BusCommandProxy {
      */
     void command_finished(const vector<string>& args);
 
+    virtual void pack_command_line_args() = 0;
+
     Properties parameters;
     bool error_flag;
     unsigned int error_code;

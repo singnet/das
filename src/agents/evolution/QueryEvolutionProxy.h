@@ -31,8 +31,9 @@ class QueryEvolutionProxy : public BaseQueryProxy {
     // Query command's optional parameters
     static string POPULATION_SIZE;
     static string MAX_GENERATIONS;
-    static string ELITISM_RATE;    // Rate on POPULATION_SIZE
-    static string SELECTION_RATE;  // Rate on POPULATION_SIZE
+    static string ELITISM_RATE;            // Rate on POPULATION_SIZE
+    static string SELECTION_RATE;          // Rate on POPULATION_SIZE
+    static string TOTAL_ATTENTION_TOKENS;  // Used in attention allocation update
 
     /**
      * Empty constructor typically used on server side.
@@ -46,6 +47,8 @@ class QueryEvolutionProxy : public BaseQueryProxy {
      * @param context AttentionBroker context
      */
     QueryEvolutionProxy(const vector<string>& tokens,
+                        const vector<string>& correlation_tokens,
+                        const vector<string>& correlation_variables,
                         const string& fitness_function,
                         const string& context);
 
@@ -60,7 +63,7 @@ class QueryEvolutionProxy : public BaseQueryProxy {
     /**
      * Builds the args vector to be passed in the RPC
      */
-    void pack_command_line_args();
+    virtual void pack_command_line_args();
 
     /**
      * Write a tokenized representation of this proxy in the passed `output` vector.
@@ -108,6 +111,9 @@ class QueryEvolutionProxy : public BaseQueryProxy {
      */
     virtual string to_string();
 
+    const vector<string>& get_correlation_tokens();
+    const vector<string>& get_correlation_variables();
+
     // ---------------------------------------------------------------------------------------------
     // Virtual superclass API and the piggyback methods called by it
 
@@ -124,12 +130,15 @@ class QueryEvolutionProxy : public BaseQueryProxy {
    private:
     void set_default_query_parameters();
     void set_fitness_function_tag(const string& tag);
+    void init();
 
     mutex api_mutex;
     shared_ptr<FitnessFunction> fitness_function_object;
     string fitness_function_tag;
     float best_reported_fitness;
     unsigned int num_generations;
+    vector<string> correlation_tokens;
+    vector<string> correlation_variables;
 };
 
 }  // namespace evolution

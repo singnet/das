@@ -49,10 +49,10 @@ vector<string> EquivalenceProcessor::get_tokenized_atom(const string& handle) {
     vector<string> tokens;
     try {
         auto atom = LinkCreateDBSingleton::get_instance()->get_atom(handle);
-        if (holds_alternative<Node>(atom)) {
-            return get<Node>(atom).tokenize();
-        } else if (holds_alternative<shared_ptr<link_creation_agent::Link>>(atom)) {
-            return get<shared_ptr<link_creation_agent::Link>>(atom)->tokenize(false);
+        if (holds_alternative<LCANode>(atom)) {
+            return get<LCANode>(atom).tokenize();
+        } else if (holds_alternative<shared_ptr<link_creation_agent::LCALink>>(atom)) {
+            return get<shared_ptr<link_creation_agent::LCALink>>(atom)->tokenize(false);
         }
     } catch (const exception& e) {
         LOG_ERROR("Failed to get handle: " << handle);
@@ -62,10 +62,10 @@ vector<string> EquivalenceProcessor::get_tokenized_atom(const string& handle) {
     return {};
 }
 
-link_creation_agent::Link EquivalenceProcessor::build_link(const string& link_type,
-                                                           vector<LinkTargetTypes> targets,
-                                                           vector<CustomField> custom_fields) {
-    link_creation_agent::Link link;
+link_creation_agent::LCALink EquivalenceProcessor::build_link(const string& link_type,
+                                                              vector<LinkTargetTypes> targets,
+                                                              vector<CustomField> custom_fields) {
+    link_creation_agent::LCALink link;
     link.set_type(link_type);
     for (const auto& target : targets) {
         link.add_target(target);
@@ -123,15 +123,15 @@ vector<vector<string>> EquivalenceProcessor::process(shared_ptr<QueryAnswer> que
                  << "Strength: " << strength);
     vector<vector<string>> result;
     // create the link
-    Node equivalence_node;
+    LCANode equivalence_node;
     equivalence_node.type = "Symbol";
     equivalence_node.value = "EQUIVALENCE";
     auto custom_field = CustomField("truth_value");
     custom_field.add_field("strength", to_string(strength));
     custom_field.add_field("confidence", to_string(1));
-    link_creation_agent::Link link_c1_c2 =
+    link_creation_agent::LCALink link_c1_c2 =
         build_link("Expression", {equivalence_node, c1_handle, c2_handle}, {custom_field});
-    link_creation_agent::Link link_c2_c1 =
+    link_creation_agent::LCALink link_c2_c1 =
         build_link("Expression", {equivalence_node, c2_handle, c1_handle}, {custom_field});
     result.push_back(link_c1_c2.tokenize());
     result.push_back(link_c2_c1.tokenize());

@@ -220,6 +220,7 @@ cc_test(
     linkstatic = 1,
     deps = [
         "//agents/query_engine:query_engine_lib",
+        "//tests/cpp/test_commons",
         "@com_github_google_googletest//:gtest_main",
         "@mbedtls",
     ],
@@ -248,6 +249,7 @@ cc_test(
     deps = [
         "//agents/query_engine:query_engine_lib",
         "//atomdb:atomdb_singleton",
+        "//tests/cpp/test_commons",
         "@com_github_google_googletest//:gtest_main",
         "@mbedtls",
     ],
@@ -350,6 +352,7 @@ cc_test(
     linkstatic = 1,
     deps = [
         "//agents/query_engine:query_engine_lib",
+        "//tests/cpp/test_commons",
         "@com_github_google_googletest//:gtest_main",
         "@mbedtls",
     ],
@@ -458,6 +461,7 @@ cc_test(
         "//agents/query_engine:query_engine_lib",
         "//atomdb:atomdb_singleton",
         "//service_bus:service_bus_lib",
+        "//tests/cpp/test_commons",
         "@com_github_google_googletest//:gtest_main",
     ],
 )
@@ -473,6 +477,7 @@ cc_test(
     linkstatic = 1,
     deps = [
         "//agents/evolution:evolution_lib",
+        "//tests/cpp/test_commons",
         "@com_github_google_googletest//:gtest_main",
     ],
 )
@@ -558,6 +563,7 @@ cc_test(
         "//commons:commons_lib",
         "//commons/atoms:atoms_lib",
         "//service_bus:service_bus_lib",
+        "//tests/cpp/test_commons",
         "@com_github_google_googletest//:gtest_main",
     ],
 )
@@ -584,6 +590,7 @@ cc_test(
     linkstatic = 1,
     deps = [
         "//atomdb:atomdb_singleton",
+        "//tests/cpp/test_commons",
         "@com_github_google_googletest//:gtest_main",
         "@mbedtls",
     ],

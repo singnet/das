@@ -9,7 +9,7 @@
 #include "ServiceBusSingleton.h"
 #include "Utils.h"
 
-#define MAX_QUERY_ANSWERS ((unsigned int) 1)
+#define MAX_QUERY_ANSWERS ((unsigned int) 1000)
 
 using namespace std;
 using namespace query_engine;
