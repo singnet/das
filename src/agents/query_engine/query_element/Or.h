@@ -6,7 +6,7 @@
 #include "Operator.h"
 #include "QueryAnswer.h"
 
-#define LOG_LEVEL INFO_LEVEL
+#define LOG_LEVEL DEBUG_LEVEL
 #include "Logger.h"
 
 using namespace std;
@@ -158,13 +158,16 @@ class Or : public Operator<N> {
     }
 
     void or_operator_method() {
+        STOP_WATCH_START(or_operator);
         do {
             if (QueryElement::is_flow_finished() || this->output_buffer->is_query_answers_finished()) {
+                STOP_WATCH_FINISH(or_operator, "OR");
                 return;
             }
 
             do {
                 if (QueryElement::is_flow_finished()) {
+                    STOP_WATCH_FINISH(or_operator, "OR");
                     return;
                 }
                 ingest_newly_arrived_answers();
@@ -182,7 +185,7 @@ class Or : public Operator<N> {
                     // processed_all_input() is double-checked on purpose to avoid race condition
                     processed_all_input()) {
                     this->output_buffer->query_answers_finished();
-                    LOG_INFO(this->id << " processed " << this->answer_count << " answers." << endl);
+                    LOG_INFO(this->id << " processed " << this->answer_count << " answers.");
                 }
                 Utils::sleep();
                 continue;
@@ -194,6 +197,7 @@ class Or : public Operator<N> {
             this->output_buffer->add_query_answer(selected_query_answer);
             this->answer_count++;
         } while (true);
+        STOP_WATCH_FINISH(or_operator, "OR");
     }
 };
 

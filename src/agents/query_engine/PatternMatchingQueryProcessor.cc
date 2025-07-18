@@ -19,7 +19,7 @@
 #include "attention_broker.grpc.pb.h"
 #include "attention_broker.pb.h"
 
-#define LOG_LEVEL INFO_LEVEL
+#define LOG_LEVEL DEBUG_LEVEL
 #include "Logger.h"
 
 using namespace atomdb;
@@ -154,6 +154,7 @@ void PatternMatchingQueryProcessor::process_query_answers(
 
 void PatternMatchingQueryProcessor::thread_process_one_query(
     shared_ptr<StoppableThread> monitor, shared_ptr<PatternMatchingQueryProxy> proxy) {
+    STOP_WATCH_START(query_thread);
     try {
         proxy->untokenize(proxy->args);
         LOG_DEBUG("proxy: " + proxy->to_string());
@@ -186,6 +187,7 @@ void PatternMatchingQueryProcessor::thread_process_one_query(
                     Utils::sleep();
                 }
                 proxy->flush_answer_bundle();
+                STOP_WATCH_FINISH(query_thread, "PatternMatchingQuery");
                 if (proxy->parameters.get<bool>(PatternMatchingQueryProxy::COUNT_FLAG) &&
                     (!proxy->is_aborting())) {
                     LOG_DEBUG("Answering count_only query");

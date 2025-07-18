@@ -6,7 +6,7 @@
 #include "Operator.h"
 #include "QueryAnswer.h"
 
-#define LOG_LEVEL INFO_LEVEL
+#define LOG_LEVEL DEBUG_LEVEL
 #include "Logger.h"
 
 using namespace std;
@@ -249,13 +249,16 @@ class And : public Operator<N> {
     }
 
     void and_operator_method() {
+        STOP_WATCH_START(and_operator);
         do {
             if (QueryElement::is_flow_finished() || this->output_buffer->is_query_answers_finished()) {
+                STOP_WATCH_FINISH(and_operator, "AND");
                 return;
             }
 
             do {
                 if (QueryElement::is_flow_finished()) {
+                    STOP_WATCH_FINISH(and_operator, "AND");
                     return;
                 }
                 ingest_newly_arrived_answers();
@@ -275,7 +278,9 @@ class And : public Operator<N> {
                     this->output_buffer->query_answers_finished();
                     LOG_INFO(this->id << " processed " << this->query_answer_count << " answers.");
                 }
+                STOP_WATCH_STOP(and_operator);
                 Utils::sleep();
+                STOP_WATCH_RESTART(and_operator);
                 continue;
             }
 
@@ -300,6 +305,7 @@ class And : public Operator<N> {
             expand_border(candidate);
             this->border.pop();
         } while (true);
+        STOP_WATCH_FINISH(and_operator, "AND");
     }
 };
 

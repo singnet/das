@@ -41,7 +41,7 @@ static inline char* timenow();
 #define DEBUG_LEVEL 0x03
 
 #ifndef LOG_LEVEL
-#define LOG_LEVEL DEBUG_LEVEL
+#define LOG_LEVEL INFO_LEVEL
 #endif
 
 #if LOG_LEVEL >= DEBUG_LEVEL
@@ -82,3 +82,5 @@ static inline char* timenow() {
 
     return buffer;
 }
+
+#include "Profiler.h"

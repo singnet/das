@@ -159,16 +159,18 @@ void QueryEvolutionProcessor::select_best_individuals(
     unsigned int count = (unsigned int) std::lround(selection_rate * population.size());
     unsigned int population_size = population.size();
 
-    if (count > population_size) {
-        Utils::error("Invalid evolution parameters. Selection count: " + std::to_string(count) +
-                     " population size: " + std::to_string(population_size));
-    } else if (count == population_size) {
-        selected.insert(selected.begin(), population.begin(), population.end());
-        population.clear();
-    }
-    apply_elitism(proxy, population, selected);
-    while (selected.size() < count) {
-        select_one_by_tournament(proxy, population, selected);
+    if (count > 0) {
+        if (count > population_size) {
+            Utils::error("Invalid evolution parameters. Selection count: " + std::to_string(count) +
+                         " population size: " + std::to_string(population_size));
+        } else if (count == population_size) {
+            selected.insert(selected.begin(), population.begin(), population.end());
+            population.clear();
+        }
+        apply_elitism(proxy, population, selected);
+        while (selected.size() < count) {
+            select_one_by_tournament(proxy, population, selected);
+        }
     }
 }
 
@@ -281,19 +283,31 @@ void QueryEvolutionProcessor::evolve_query(shared_ptr<StoppableThread> monitor,
     vector<std::pair<shared_ptr<QueryAnswer>, float>> population;
     vector<std::pair<shared_ptr<QueryAnswer>, float>> selected;
     unsigned int count_generations = 1;
+    STOP_WATCH_START(evolution);
     while (!monitor->stopped() && !proxy->stop_criteria_met()) {
+        STOP_WATCH_START(sample_population);
         sample_population(monitor, proxy, population);
+        STOP_WATCH_FINISH(sample_population, "EvolutionPopulationSampling");
         LOG_INFO("Generation: " + std::to_string(count_generations++) +
                  ". Sampled: " + std::to_string(population.size()) + " individuals.");
         proxy->new_population_sampled(population);
-        select_best_individuals(proxy, population, selected);
-        LOG_INFO("Selected " + std::to_string(selected.size()) +
-                 " individuals to update attention allocation.");
-        update_attention_allocation(proxy, selected);
-        population.clear();
-        selected.clear();
-        proxy->flush_answer_bundle();
+        if (population.size() > 0) {
+            STOP_WATCH_START(selection);
+            select_best_individuals(proxy, population, selected);
+            STOP_WATCH_FINISH(selection, "EvolutionIndividualSelection");
+            LOG_INFO("Selected " + std::to_string(selected.size()) +
+                     " individuals to update attention allocation.");
+            if (selected.size() > 0) {
+                STOP_WATCH_START(attention_broker);
+                update_attention_allocation(proxy, selected);
+                STOP_WATCH_FINISH(attention_broker, "EvolutionAttentionUpdate");
+            }
+            population.clear();
+            selected.clear();
+            proxy->flush_answer_bundle();
+        }
     }
+    STOP_WATCH_FINISH(evolution, "QueryEvolution");
     Utils::sleep(1000);
     proxy->query_processing_finished();
 }

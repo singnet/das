@@ -7,12 +7,10 @@
 #include <string>
 
 #include "AttentionBrokerServer.h"
+#include "Logger.h"
 #include "attention_broker.grpc.pb.h"
 #include "attention_broker.pb.h"
 #include "common.pb.h"
-
-#define LOG_LEVEL INFO_LEVEL
-#include "Logger.h"
 
 attention_broker_server::AttentionBrokerServer service;
 
