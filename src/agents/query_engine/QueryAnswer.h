@@ -1,7 +1,7 @@
 #pragma once
 
 #include <string>
-#include <vector>
+#include <set>
 
 #include "Assignment.h"
 #include "QueryAnswer.h"
@@ -49,12 +49,7 @@ class QueryAnswer {
     /**
      * Handles which are the constituents of this QueryAnswer.
      */
-    const char* handles[MAX_NUMBER_OF_OPERATION_CLAUSES];
-
-    /**
-     * Number of handles in this QueryAnswer.
-     */
-    unsigned int handles_size;
+    set<string> handles;
 
     /**
      * Estimated importance of this QueryAnswer based on the importance of its constituents.
@@ -78,7 +73,7 @@ class QueryAnswer {
      * @param handle First handle in this QueryAnswer.
      * @param importance Estimated importance of this QueryAnswer.
      */
-    QueryAnswer(const char* handle, double importance);
+    QueryAnswer(const string& handle, double importance);
 
     /**
      * Constructor.
@@ -102,7 +97,7 @@ class QueryAnswer {
      *
      * @param handles Handle to be added to this QueryAnswer.
      */
-    void add_handle(const char* handle);
+    void add_handle(const string& handle);
 
     /**
      * Merges this QueryAnswer with the passed one.
