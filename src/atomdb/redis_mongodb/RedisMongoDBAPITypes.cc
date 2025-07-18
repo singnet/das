@@ -189,7 +189,6 @@ Properties MongodbDocument::extract_custom_attributes(const bsoncxx::v_noabi::do
                 custom_attributes[key] = value.get_string().value.data();
                 break;
             case bsoncxx::v_noabi::type::k_int64:
-                // Handle both signed and unsigned integers stored as int64
                 custom_attributes[key] = value.get_int64().value;
                 break;
             case bsoncxx::v_noabi::type::k_double:
