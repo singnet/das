@@ -213,8 +213,8 @@ TEST(LinkCreateTemplate, TestLinkCreateTemplate) {
               "LINK_CREATE TestLink 4 1 NODE NodeType1 Value1 VARIABLE Var1 NODE NodeType2 Value2 "
               "VARIABLE Var2 CUSTOM_FIELD Field1 2 valuename1 Value1 valuename2 Value2");
     EXPECT_EQ(lct5.get_targets().size(), 4);
-    EXPECT_EQ(get<link_creation_agent::Node>(lct5.get_targets()[0]).type, "NodeType1");
-    EXPECT_EQ(get<link_creation_agent::Node>(lct5.get_targets()[0]).value, "Value1");
+    EXPECT_EQ(get<LCANode>(lct5.get_targets()[0]).type, "NodeType1");
+    EXPECT_EQ(get<LCANode>(lct5.get_targets()[0]).value, "Value1");
     EXPECT_EQ(get<Variable>(lct5.get_targets()[1]).name, "Var1");
     link_template.clear();
     link_template_str.clear();
@@ -228,8 +228,8 @@ TEST(LinkCreateTemplate, TestLinkCreateTemplate) {
     EXPECT_EQ(lct6.to_string(), link_template_str);
     EXPECT_EQ(lct6.get_targets().size(), 2);
     EXPECT_EQ(get<Variable>(lct6.get_targets()[0]).name, "VarA");
-    EXPECT_EQ(get<link_creation_agent::Node>(lct6.get_targets()[1]).type, "NodeTypeA");
-    EXPECT_EQ(get<link_creation_agent::Node>(lct6.get_targets()[1]).value, "ValueA");
+    EXPECT_EQ(get<LCANode>(lct6.get_targets()[1]).type, "NodeTypeA");
+    EXPECT_EQ(get<LCANode>(lct6.get_targets()[1]).value, "ValueA");
     EXPECT_EQ(lct6.get_custom_fields().size(), 1);
     EXPECT_EQ(lct6.get_custom_fields()[0].get_name(), "FieldA");
     EXPECT_EQ(lct6.get_custom_fields()[0].get_values().size(), 1);
@@ -249,11 +249,11 @@ TEST(LinkCreateTemplate, TestLinkCreateTemplate) {
               "LINK_CREATE ComplexLink 4 2 NODE Type1 Val1 VARIABLE Var1 NODE Type2 Val2 VARIABLE Var2 "
               "CUSTOM_FIELD Field1 2 N1 Val1 N2 Val2 CUSTOM_FIELD Field2 1 N3 Val3");
     EXPECT_EQ(lct7.get_targets().size(), 4);
-    EXPECT_EQ(get<link_creation_agent::Node>(lct7.get_targets()[0]).type, "Type1");
-    EXPECT_EQ(get<link_creation_agent::Node>(lct7.get_targets()[0]).value, "Val1");
+    EXPECT_EQ(get<LCANode>(lct7.get_targets()[0]).type, "Type1");
+    EXPECT_EQ(get<LCANode>(lct7.get_targets()[0]).value, "Val1");
     EXPECT_EQ(get<Variable>(lct7.get_targets()[1]).name, "Var1");
-    EXPECT_EQ(get<link_creation_agent::Node>(lct7.get_targets()[2]).type, "Type2");
-    EXPECT_EQ(get<link_creation_agent::Node>(lct7.get_targets()[2]).value, "Val2");
+    EXPECT_EQ(get<LCANode>(lct7.get_targets()[2]).type, "Type2");
+    EXPECT_EQ(get<LCANode>(lct7.get_targets()[2]).value, "Val2");
     EXPECT_EQ(get<Variable>(lct7.get_targets()[3]).name, "Var2");
     EXPECT_EQ(lct7.get_custom_fields()[0].get_name(), "Field1");
     EXPECT_EQ(lct7.get_custom_fields()[0].get_values().size(), 2);
@@ -275,8 +275,8 @@ TEST(LinkCreateTemplate, TestLinkCreateTemplate) {
     EXPECT_EQ(lct8.to_string(), link_template_str);
     EXPECT_EQ(lct8.get_targets().size(), 2);
     EXPECT_EQ(get<Variable>(lct8.get_targets()[0]).name, "SimpleVar");
-    EXPECT_EQ(get<link_creation_agent::Node>(lct8.get_targets()[1]).type, "SimpleNode");
-    EXPECT_EQ(get<link_creation_agent::Node>(lct8.get_targets()[1]).value, "SimpleValue");
+    EXPECT_EQ(get<LCANode>(lct8.get_targets()[1]).type, "SimpleNode");
+    EXPECT_EQ(get<LCANode>(lct8.get_targets()[1]).value, "SimpleValue");
     link_template.clear();
     link_template_str.clear();
 }
@@ -365,8 +365,8 @@ TEST(Link, TestLinkTemplateProcessor) {
         "LINK Test3 2 1 HANDLE Value1 HANDLE Value2 CUSTOM_FIELD truth_value 2 CUSTOM_FIELD mean 2 "
         "count 10 avg 0.9 confidence 0.9",
         ' ');
-    link_creation_agent::Link ll;
-    link_creation_agent::Link l2 = ll.untokenize(tokens);
+    LCALink ll;
+    LCALink l2 = ll.untokenize(tokens);
     EXPECT_EQ(l2.get_type(), "Test3");
     EXPECT_EQ(l2.get_targets().size(), 2);
     EXPECT_EQ(get<string>(l2.get_targets()[0]), "Value1");
@@ -393,7 +393,7 @@ TEST(Link, TestLinkTemplateProcessor) {
     l2 = ll.untokenize(tokens);
     EXPECT_EQ(l2.get_type(), "Test3");
     EXPECT_EQ(l2.get_targets().size(), 3);
-    // EXPECT_EQ(get<link_creation_agent::Node>(l2.get_targets()[0]), "EQUIVALENCE");
+    // EXPECT_EQ(get<LCANode>(l2.get_targets()[0]), "EQUIVALENCE");
     EXPECT_EQ(get<string>(l2.get_targets()[1]), "Value1");
     EXPECT_EQ(get<string>(l2.get_targets()[2]), "Value2");
     EXPECT_EQ(l2.get_custom_fields().size(), 1);

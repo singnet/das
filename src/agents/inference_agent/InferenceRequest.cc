@@ -37,8 +37,8 @@ string InferenceRequest::get_type() { return "INFERENCE_REQUEST"; }
 
 string InferenceRequest::get_max_proof_length() { return to_string(max_proof_length); }
 
-void InferenceRequest::set_timeout(unsigned long long timeout) { this->timeout = timeout; }
-unsigned long long InferenceRequest::get_timeout() { return timeout; }
+void InferenceRequest::set_timeout(unsigned int timeout) { this->timeout = timeout; }
+unsigned int InferenceRequest::get_timeout() { return timeout; }
 
 template <typename T>
 static vector<vector<T>> product(const vector<T>& iterable, size_t repeat) {
@@ -147,12 +147,13 @@ vector<string> InferenceRequest::get_distributed_inference_control_request() {
     for (size_t i = 0; i < request.size(); i++) {
         if (request[i] == "HANDLE") {
             auto atom_tokens = LinkCreateDBSingleton::get_instance()->get_atom(request[i + 1]);
-            if (holds_alternative<shared_ptr<link_creation_agent::Link>>(atom_tokens)) {
-                for (auto token : get<shared_ptr<link_creation_agent::Link>>(atom_tokens)->tokenize()) {
+            if (holds_alternative<shared_ptr<link_creation_agent::LCALink>>(atom_tokens)) {
+                for (auto token :
+                     get<shared_ptr<link_creation_agent::LCALink>>(atom_tokens)->tokenize()) {
                     tokens.push_back(token);
                 }
-            } else if (holds_alternative<link_creation_agent::Node>(atom_tokens)) {
-                for (auto token : get<link_creation_agent::Node>(atom_tokens).tokenize()) {
+            } else if (holds_alternative<LCANode>(atom_tokens)) {
+                for (auto token : get<LCANode>(atom_tokens).tokenize()) {
                     tokens.push_back(token);
                 }
             } else {
@@ -199,7 +200,7 @@ vector<string> ProofOfImplicationOrEquivalence::patterns_link_template() {
     // SATISFYING_SET
     LinkCreateTemplate satisfying_set_link_template = LinkCreateTemplate("Expression");
     // Node("Symbol", "SATISFYING_SET");
-    link_creation_agent::Node evaluation_node;
+    LCANode evaluation_node;
     evaluation_node.type = "Symbol";
     evaluation_node.value = "SATISFYING_SET";
     // Variable("P");
@@ -215,7 +216,7 @@ vector<string> ProofOfImplicationOrEquivalence::patterns_link_template() {
     // PATTERNS
     LinkCreateTemplate patterns_link_template = LinkCreateTemplate("Expression");
     // Node("Symbol", "PATTERNS");
-    link_creation_agent::Node patterns_node;
+    LCANode patterns_node;
     patterns_node.type = "Symbol";
     patterns_node.value = "PATTERNS";
     // Variable("C");

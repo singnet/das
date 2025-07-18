@@ -44,3 +44,8 @@ shared_ptr<AtomDB> AtomDBSingleton::get_instance() {
         return AtomDBSingleton::atom_db;
     }
 }
+
+void AtomDBSingleton::provide(shared_ptr<AtomDB> atom_db) {
+    AtomDBSingleton::atom_db = atom_db;
+    AtomDBSingleton::initialized = true;
+}

@@ -194,7 +194,7 @@ shared_ptr<LinkCreationAgentRequest> LinkCreationAgent::create_request(vector<st
         lca_request->id = compute_hash((char*) lca_request->id.c_str());
         LOG_DEBUG("Creating request ID: " << lca_request->id);
         LOG_DEBUG("Query: " << Utils::join(lca_request->query, ' '));
-        LOG_DEBUG("Link Template: " << Utils::join(lca_request->link_template, ' '));
+        LOG_DEBUG("LCALink Template: " << Utils::join(lca_request->link_template, ' '));
         LOG_DEBUG("Max Results: " << to_string(lca_request->max_results));
         LOG_DEBUG("Repeat: " << to_string(lca_request->repeat));
         LOG_DEBUG("Context: " << lca_request->context);
@@ -223,7 +223,7 @@ void LinkCreationAgent::process_request(shared_ptr<LinkCreationRequestProxy> pro
     request.push_back(request_id);
     process_request(request);
     link_creation_proxy_map[request_id] = proxy;
-    LOG_DEBUG("Link creation request processed for request ID: " << request_id);
+    LOG_DEBUG("LCALink creation request processed for request ID: " << request_id);
 }
 
 void LinkCreationAgent::abort_request(const string& request_id) {

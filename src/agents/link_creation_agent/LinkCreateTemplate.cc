@@ -54,7 +54,7 @@ static vector<string> parse_sub_custom_field(vector<string>& link_template, size
 
 static vector<string> parse_sub_link_template(vector<string>& link_template, size_t& cursor) {
     if (get_token(link_template, cursor) != "LINK_CREATE" || link_template.size() < cursor + 4)
-        throw invalid_argument("Can not create Link Template: Invalid arguments");
+        throw invalid_argument("Can not create LCALink Template: Invalid arguments");
     int sub_link_template_size = Utils::string_to_int(get_token(link_template, cursor + 2));
     int sub_link_custom_field_size = Utils::string_to_int(get_token(link_template, cursor + 3));
     int custom_field_value_size = 0;
@@ -109,7 +109,7 @@ LinkCreateTemplate::LinkCreateTemplate(vector<string>& link_template) {
     size_t custom_field_size = Utils::string_to_int(get_token(link_template, starting_pos + 2));
     while (cursor < link_template.size()) {
         if (get_token(link_template, cursor) == "NODE") {
-            Node node;
+            LCANode node;
             node.type = get_token(link_template, cursor + 1);
             node.value = get_token(link_template, cursor + 2);
             this->targets.push_back(node);
@@ -132,7 +132,7 @@ LinkCreateTemplate::LinkCreateTemplate(vector<string>& link_template) {
         }
     }
     if (this->targets.size() != link_template_size || this->custom_fields.size() != custom_field_size) {
-        throw invalid_argument("Can not create Link Template: Invalid arguments");
+        throw invalid_argument("Can not create LCALink Template: Invalid arguments");
     }
 }
 
@@ -149,8 +149,8 @@ string LinkCreateTemplate::to_string() {
                            std::to_string(this->targets.size()) + " " +
                            std::to_string(this->custom_fields.size()) + " ";
     for (auto target : this->targets) {
-        if (holds_alternative<Node>(target)) {
-            Node node = get<Node>(target);
+        if (holds_alternative<LCANode>(target)) {
+            LCANode node = get<LCANode>(target);
             link_template += "NODE " + node.type + " " + node.value;
         } else if (holds_alternative<Variable>(target)) {
             Variable var = get<Variable>(target);
@@ -283,7 +283,7 @@ vector<string> CustomField::tokenize() { return Utils::split(this->to_string(), 
 
 LinkCreateTemplateList::LinkCreateTemplateList(vector<string> link_template) {
     if (get_token(link_template, 0) != "LIST")
-        throw invalid_argument("Can not create Link Template List: Invalid arguments");
+        throw invalid_argument("Can not create LCALink Template List: Invalid arguments");
 
     size_t cursor = 0;
     size_t link_template_size = Utils::string_to_int(get_token(link_template, 1));
@@ -293,7 +293,7 @@ LinkCreateTemplateList::LinkCreateTemplateList(vector<string> link_template) {
         this->templates.push_back(LinkCreateTemplate(sub_link_template));
     }
     if (this->templates.size() != link_template_size) {
-        throw invalid_argument("Can not create Link Template List: Invalid arguments");
+        throw invalid_argument("Can not create LCALink Template List: Invalid arguments");
     }
 }
 

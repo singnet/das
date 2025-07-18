@@ -43,3 +43,9 @@ shared_ptr<ServiceBus> ServiceBusSingleton::get_instance() {
         return SERVICE_BUS;
     }
 }
+
+void ServiceBusSingleton::provide(shared_ptr<ServiceBus> service_bus) {
+    lock_guard<mutex> semaphore(API_MUTEX);
+    SERVICE_BUS = service_bus;
+    INITIALIZED = true;
+}
