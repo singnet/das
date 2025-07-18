@@ -31,24 +31,26 @@ class RedisMongoDB : public AtomDB {
     ~RedisMongoDB();
 
     static string REDIS_PATTERNS_PREFIX;
-    static string REDIS_TARGETS_PREFIX;
+    static string REDIS_OUTGOING_PREFIX;
     static string REDIS_INCOMING_PREFIX;
     static uint REDIS_CHUNK_SIZE;
     static string MONGODB_DB_NAME;
     static string MONGODB_NODES_COLLECTION_NAME;
     static string MONGODB_LINKS_COLLECTION_NAME;
+    static string MONGODB_PATTERN_INDEX_SCHEMA_COLLECTION_NAME;
     static string MONGODB_FIELD_NAME[MONGODB_FIELD::size];
     static uint MONGODB_CHUNK_SIZE;
     static mongocxx::instance MONGODB_INSTANCE;
 
     static void initialize_statics() {
         REDIS_PATTERNS_PREFIX = "patterns";
-        REDIS_TARGETS_PREFIX = "outgoing_set";
+        REDIS_OUTGOING_PREFIX = "outgoing_set";
         REDIS_INCOMING_PREFIX = "incoming_set";
         REDIS_CHUNK_SIZE = 10000;
         MONGODB_DB_NAME = "das";
         MONGODB_NODES_COLLECTION_NAME = "nodes";
         MONGODB_LINKS_COLLECTION_NAME = "links";
+        MONGODB_PATTERN_INDEX_SCHEMA_COLLECTION_NAME = "pattern_index_schema";
         MONGODB_FIELD_NAME[MONGODB_FIELD::ID] = "_id";
         MONGODB_FIELD_NAME[MONGODB_FIELD::TARGETS] = "targets";
         MONGODB_FIELD_NAME[MONGODB_FIELD::NAME] = "name";
@@ -100,6 +102,10 @@ class RedisMongoDB : public AtomDB {
     uint delete_nodes(const vector<string>& handles, bool delete_link_targets = false);
     uint delete_links(const vector<string>& handles, bool delete_link_targets = false);
 
+    void add_pattern_index_schema(const string& tokens, const vector<vector<string>>& index_entries);
+
+    void drop_all();
+
     mongocxx::pool* get_mongo_pool() const { return mongodb_pool; }
 
    private:
@@ -109,6 +115,8 @@ class RedisMongoDB : public AtomDB {
     shared_ptr<AtomDBCache> atomdb_cache;
     atomic<uint> patterns_next_score{0};
     atomic<uint> incoming_set_next_score{0};
+
+    map<string, tuple<vector<string>, vector<vector<string>>>> pattern_index_schema_map;
 
     shared_ptr<atomdb_api_types::AtomDocument> get_document(const string& handle,
                                                             const string& collection_name);
@@ -128,14 +136,21 @@ class RedisMongoDB : public AtomDB {
 
     uint get_next_score(const string& key);
     void set_next_score(const string& key, uint score);
+    void reset_scores();
 
     void add_pattern(const string& handle, const string& pattern_handle);
     void delete_pattern(const string& handle);
     void update_pattern(const string& key, const string& value);
 
+    void add_outgoing_set(const string& handle, const vector<string>& outgoing_handles);
+    void delete_outgoing_set(const string& handle);
+
     void add_incoming_set(const string& handle, const string& incoming_handle);
     void delete_incoming_set(const string& handle);
     void update_incoming_set(const string& key, const string& value);
+
+    void load_pattern_index_schema();
+    vector<string> match_pattern_index_schema(const Link* link);
 
     void redis_setup();
     void mongodb_setup();
