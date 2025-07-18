@@ -5,7 +5,7 @@
  * This file contains the definition of the LinkCreationAgent class and the
  * LinkCreationAgentRequest struct. The LinkCreationAgent class is responsible
  * for managing link creation requests, including retrieving requests from a
- * DAS Node server, sending query requests, and creating links.
+ * DAS LCANode server, sending query requests, and creating links.
  * It also handles loading and saving configurations and request buffers.
  */
 #pragma once
@@ -37,7 +37,7 @@ struct LinkCreationAgentRequest {
 
 /**
  * @class LinkCreationAgent
- * @brief Manages the creation of links by processing requests from the DAS Node server or buffer.
+ * @brief Manages the creation of links by processing requests from the DAS LCANode server or buffer.
  *
  * This class is responsible for retrieving requests, sending query requests, processing iterators,
  * and creating links using the LCAService. It also handles loading and saving configurations and
@@ -55,8 +55,8 @@ class LinkCreationAgent {
     ~LinkCreationAgent();
 
     /**
-     * @brief Retrieve a request from DAS Node server or get a request from the requests buffer,
-     * send a query request using DAS Node client, retrieve remote iterator and
+     * @brief Retrieve a request from DAS LCANode server or get a request from the requests buffer,
+     * send a query request using DAS LCANode client, retrieve remote iterator and
      * send to LCAService to process the iterator and create links.
      */
     void run();
