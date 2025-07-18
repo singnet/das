@@ -17,6 +17,8 @@ string BaseQueryProxy::FINISHED = "finished";
 string BaseQueryProxy::UNIQUE_ASSIGNMENT_FLAG = "unique_assignment_flag";
 string BaseQueryProxy::ATTENTION_UPDATE_FLAG = "attention_update_flag";
 string BaseQueryProxy::MAX_BUNDLE_SIZE = "max_bundle_size";
+string BaseQueryProxy::MAX_ANSWERS = "max_answers";
+string BaseQueryProxy::USE_LINK_TEMPLATE_CACHE = "use_link_template_cache";
 
 BaseQueryProxy::BaseQueryProxy() {
     // constructor typically used in processor
@@ -37,6 +39,8 @@ void BaseQueryProxy::init() {
     this->parameters[UNIQUE_ASSIGNMENT_FLAG] = false;
     this->parameters[ATTENTION_UPDATE_FLAG] = false;
     this->parameters[MAX_BUNDLE_SIZE] = (unsigned int) 1000;
+    this->parameters[MAX_ANSWERS] = (unsigned int) 0;  // No limit
+    this->parameters[USE_LINK_TEMPLATE_CACHE] = false;
 }
 
 BaseQueryProxy::~BaseQueryProxy() {}
@@ -65,7 +69,7 @@ void BaseQueryProxy::set_count(unsigned int count) {
 
 void BaseQueryProxy::tokenize(vector<string>& output) {
     output.insert(output.begin(), this->query_tokens.begin(), this->query_tokens.end());
-    output.insert(output.begin(), std::to_string(this->get_query_tokens().size()));
+    output.insert(output.begin(), std::to_string(this->query_tokens.size()));
     output.insert(output.begin(), this->get_context());
     BaseProxy::tokenize(output);
 }
@@ -117,7 +121,14 @@ const vector<string>& BaseQueryProxy::get_query_tokens() {
 string BaseQueryProxy::to_string() {
     string answer = "{";
     answer += "context: " + this->get_context();
-    answer += " " + BaseProxy::to_string();
+    answer += ", tokens: [";
+    for (auto token : this->query_tokens) {
+        answer += token + ", ";
+    }
+    answer.pop_back();
+    answer.pop_back();
+    answer += "], BaseProxy: ";
+    answer += BaseProxy::to_string();
     answer += "}";
     return answer;
 }

@@ -9,6 +9,7 @@
 #include "Node.h"
 #include "Properties.h"
 #include "ServiceBusSingleton.h"
+#include "TestConfig.h"
 
 using namespace std;
 using namespace atomspace;
@@ -386,14 +387,7 @@ class AtomDBEnvironment : public ::testing::Environment {
    public:
     void SetUp() override {
         // Set environment variables needed for initialization
-        setenv("DAS_REDIS_HOSTNAME", "localhost", 1);
-        setenv("DAS_REDIS_PORT", "29000", 1);
-        setenv("DAS_USE_REDIS_CLUSTER", "false", 1);
-        setenv("DAS_MONGODB_HOSTNAME", "localhost", 1);
-        setenv("DAS_MONGODB_PORT", "28000", 1);
-        setenv("DAS_MONGODB_USERNAME", "dbadmin", 1);
-        setenv("DAS_MONGODB_PASSWORD", "dassecret", 1);
-
+        TestConfig::load_environment();
         // Initialize the singleton once
         AtomDBSingleton::init();
         ServiceBusSingleton::init("localhost:31701", "localhost:31702", 31700, 31799);

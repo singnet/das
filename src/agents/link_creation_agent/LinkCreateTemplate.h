@@ -17,16 +17,16 @@ class CustomField;         // Forward declaration
 class LinkCreateTemplate;  // Forward declaration
 
 /**
- * @struct Node
+ * @struct LCANode
  * @brief Represents a node with a type and value.
  *
- * @var Node::type
+ * @var LCANode::type
  * Type of the node.
  *
- * @var Node::value
+ * @var LCANode::value
  * Value of the node.
  */
-struct Node {
+struct LCANode {
     string type;
     string value;
     vector<string> tokenize() {
@@ -56,10 +56,10 @@ struct Variable {
 using CustomFieldTypes = variant<string, shared_ptr<CustomField>>;
 /**
  * @typedef LinkCreateTemplateTypes
- * @brief A variant type that can hold either a Variable, Node, or a shared_ptr to a
+ * @brief A variant type that can hold either a Variable, LCANode, or a shared_ptr to a
  * LinkCreateTemplate.
  */
-using LinkCreateTemplateTypes = variant<Variable, Node, shared_ptr<LinkCreateTemplate>>;
+using LinkCreateTemplateTypes = variant<Variable, LCANode, shared_ptr<LinkCreateTemplate>>;
 
 /**
  * @class CustomField

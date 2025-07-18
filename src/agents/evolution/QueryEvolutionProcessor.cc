@@ -1,13 +1,21 @@
 #include "QueryEvolutionProcessor.h"
 
+#include <grpcpp/grpcpp.h>
+
+#include "LinkSchema.h"
 #include "QueryEvolutionProxy.h"
 #include "ServiceBus.h"
+#include "attention_broker.grpc.pb.h"
+#include "attention_broker.pb.h"
 
 #define LOG_LEVEL DEBUG_LEVEL
 #include "Logger.h"
 
+#define ATTENTION_BROKER_ADDRESS "localhost:37007"
+
 using namespace evolution;
 using namespace query_engine;
+using namespace atoms;
 
 // -------------------------------------------------------------------------------------------------
 // Constructors and destructors
@@ -51,7 +59,6 @@ void QueryEvolutionProcessor::thread_process_one_query(shared_ptr<StoppableThrea
             Utils::error("Syntax error in query command. Missing implicit parameters.");
         }
         proxy->untokenize(proxy->args);
-        LOG_DEBUG("proxy: " + proxy->to_string());
         string command = proxy->get_command();
         if (command == ServiceBus::QUERY_EVOLUTION) {
             LOG_DEBUG("QUERY_EVOLUTION proxy: " << proxy->to_string());
@@ -75,7 +82,7 @@ void QueryEvolutionProcessor::sample_population(
     unsigned int population_size =
         proxy->parameters.get<unsigned int>(QueryEvolutionProxy::POPULATION_SIZE);
     auto pm = atom_space.pattern_matching_query(
-        proxy->get_query_tokens(), population_size, proxy->get_context());
+        proxy->get_query_tokens(), population_size, proxy->get_context(), true);
     while ((!pm->finished()) && (!monitor->stopped()) && (population.size() < population_size)) {
         shared_ptr<QueryAnswer> answer = pm->pop();
         if (answer != NULL) {
@@ -165,6 +172,110 @@ void QueryEvolutionProcessor::select_best_individuals(
     }
 }
 
+void QueryEvolutionProcessor::correlate_similar(shared_ptr<QueryEvolutionProxy> proxy,
+                                                shared_ptr<QueryAnswer> correlation_query_answer) {
+    LOG_INFO("Correlating QueryAnswer: " + correlation_query_answer->to_string());
+    vector<string> query_tokens;
+    unsigned int cursor = 0;
+    vector<string> original_tokens = proxy->get_correlation_tokens();
+    ;
+    unsigned int size = original_tokens.size();
+
+    // Apply QueryAnswer's assignment to original tokens
+    while (cursor < size) {
+        string token = original_tokens[cursor++];
+        if (token == LinkSchema::UNTYPED_VARIABLE) {
+            if (cursor == size) {
+                Utils::error("Invalid correlation_tokens");
+                return;
+            }
+            token = original_tokens[cursor++];
+            const char* value = correlation_query_answer->assignment.get((char*) token.c_str());
+            if (value != NULL) {
+                query_tokens.push_back(LinkSchema::ATOM);
+                query_tokens.push_back(string(value));
+            } else {
+                query_tokens.push_back(LinkSchema::UNTYPED_VARIABLE);
+                query_tokens.push_back(token);
+            }
+        } else {
+            query_tokens.push_back(token);
+        }
+    }
+
+    // Update AttentionBroker
+    auto stub = dasproto::AttentionBroker::NewStub(
+        grpc::CreateChannel(ATTENTION_BROKER_ADDRESS, grpc::InsecureChannelCredentials()));
+    dasproto::HandleList handle_list;  // GRPC command parameter
+    dasproto::Ack ack;                 // GRPC command return
+    handle_list.set_context(proxy->get_context());
+    auto pm = atom_space.pattern_matching_query(
+        query_tokens,
+        proxy->parameters.get<unsigned int>(QueryEvolutionProxy::POPULATION_SIZE),
+        proxy->get_context(),
+        false);
+    while (!pm->finished()) {
+        shared_ptr<QueryAnswer> answer = pm->pop();
+        if (answer != NULL) {
+            for (unsigned int i = 0; i < answer->handles_size; i++) {
+                handle_list.add_list(answer->handles[i]);
+            }
+        } else {
+            Utils::sleep();
+        }
+    }
+    LOG_DEBUG("Calling AttentionBroker GRPC. Correlating " << handle_list.list_size() << " handles");
+    stub->correlate(new grpc::ClientContext(), handle_list, &ack);
+    if (ack.msg() != "CORRELATE") {
+        Utils::error("Failed GRPC command: AttentionBroker::correlate()");
+    }
+}
+
+void QueryEvolutionProcessor::stimulate(shared_ptr<QueryEvolutionProxy> proxy,
+                                        vector<std::pair<shared_ptr<QueryAnswer>, float>>& selected) {
+    LOG_INFO("Stimulating " + std::to_string(selected.size()) + " selected QueryAnswers: ");
+    unsigned int importance_tokens =
+        proxy->parameters.get<unsigned int>(QueryEvolutionProxy::TOTAL_ATTENTION_TOKENS);
+    auto stub = dasproto::AttentionBroker::NewStub(
+        grpc::CreateChannel(ATTENTION_BROKER_ADDRESS, grpc::InsecureChannelCredentials()));
+
+    dasproto::HandleCount handle_count;  // GRPC command parameter
+    dasproto::Ack ack;                   // GRPC command return
+    handle_count.set_context(proxy->get_context());
+    unsigned int sum;
+    for (auto pair : selected) {
+        for (unsigned int i = 0; i < pair.first->handles_size; i++) {
+            unsigned int value = (unsigned int) std::lround(pair.second * importance_tokens);
+            const char* handle = pair.first->handles[i];
+            if (handle_count.mutable_map()->find(handle) == handle_count.mutable_map()->end()) {
+                (*handle_count.mutable_map())[handle] = value;
+                sum += value;
+            } else {
+                if (value > (*handle_count.mutable_map())[handle]) {
+                    sum -= (*handle_count.mutable_map())[handle];
+                    (*handle_count.mutable_map())[handle] = value;
+                    sum += value;
+                }
+            }
+        }
+    }
+    (*handle_count.mutable_map())["SUM"] = sum;
+    LOG_DEBUG("Calling AttentionBroker GRPC. Stimulating " << handle_count.mutable_map()->size()
+                                                           << " handles");
+    stub->stimulate(new grpc::ClientContext(), handle_count, &ack);
+    if (ack.msg() != "STIMULATE") {
+        Utils::error("Failed GRPC command: AttentionBroker::stimulate()");
+    }
+}
+
+void QueryEvolutionProcessor::update_attention_allocation(
+    shared_ptr<QueryEvolutionProxy> proxy, vector<std::pair<shared_ptr<QueryAnswer>, float>>& selected) {
+    for (auto pair : selected) {
+        correlate_similar(proxy, pair.first);
+    }
+    stimulate(proxy, selected);
+}
+
 void QueryEvolutionProcessor::evolve_query(shared_ptr<StoppableThread> monitor,
                                            shared_ptr<QueryEvolutionProxy> proxy) {
     vector<std::pair<shared_ptr<QueryAnswer>, float>> population;
@@ -176,8 +287,12 @@ void QueryEvolutionProcessor::evolve_query(shared_ptr<StoppableThread> monitor,
                  ". Sampled: " + std::to_string(population.size()) + " individuals.");
         proxy->new_population_sampled(population);
         select_best_individuals(proxy, population, selected);
+        LOG_INFO("Selected " + std::to_string(selected.size()) +
+                 " individuals to update attention allocation.");
+        update_attention_allocation(proxy, selected);
         population.clear();
         selected.clear();
+        proxy->flush_answer_bundle();
     }
     Utils::sleep(1000);
     proxy->query_processing_finished();

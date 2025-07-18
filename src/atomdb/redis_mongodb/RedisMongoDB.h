@@ -40,6 +40,7 @@ class RedisMongoDB : public AtomDB {
     static string MONGODB_PATTERN_INDEX_SCHEMA_COLLECTION_NAME;
     static string MONGODB_FIELD_NAME[MONGODB_FIELD::size];
     static uint MONGODB_CHUNK_SIZE;
+    static mongocxx::instance MONGODB_INSTANCE;
 
     static void initialize_statics() {
         REDIS_PATTERNS_PREFIX = "patterns";

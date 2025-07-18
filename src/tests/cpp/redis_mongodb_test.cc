@@ -13,6 +13,7 @@
 #include "MettaMapping.h"
 #include "Node.h"
 #include "RedisMongoDB.h"
+#include "TestConfig.h"
 
 using namespace atomdb;
 using namespace atoms;
@@ -31,14 +32,8 @@ class MockDecoder : public HandleDecoder {
 class RedisMongoDBTestEnvironment : public ::testing::Environment {
    public:
     void SetUp() override {
-        setenv("DAS_REDIS_HOSTNAME", "localhost", 1);
-        setenv("DAS_REDIS_PORT", "29000", 1);
-        setenv("DAS_USE_REDIS_CLUSTER", "false", 1);
-        setenv("DAS_MONGODB_HOSTNAME", "localhost", 1);
-        setenv("DAS_MONGODB_PORT", "28000", 1);
-        setenv("DAS_MONGODB_USERNAME", "dbadmin", 1);
-        setenv("DAS_MONGODB_PASSWORD", "dassecret", 1);
-        setenv("DAS_DISABLE_ATOMDB_CACHE", "true", 1);
+        TestConfig::load_environment();
+        TestConfig::disable_atomdb_cache();
         AtomDBSingleton::init();
     }
 };

@@ -32,6 +32,7 @@ string RedisMongoDB::MONGODB_LINKS_COLLECTION_NAME;
 string RedisMongoDB::MONGODB_PATTERN_INDEX_SCHEMA_COLLECTION_NAME;
 string RedisMongoDB::MONGODB_FIELD_NAME[MONGODB_FIELD::size];
 uint RedisMongoDB::MONGODB_CHUNK_SIZE;
+mongocxx::instance RedisMongoDB::MONGODB_INSTANCE;
 
 RedisMongoDB::RedisMongoDB() {
     redis_setup();
@@ -119,7 +120,6 @@ void RedisMongoDB::mongodb_setup() {
     string url = "mongodb://" + user + ":" + password + "@" + address;
 
     try {
-        mongocxx::instance instance;
         auto uri = mongocxx::uri{url};
         this->mongodb_pool = new mongocxx::pool(uri);
         // Health check using ping command
@@ -665,6 +665,10 @@ string RedisMongoDB::add_link(const atoms::Link* link) {
 }
 
 vector<string> RedisMongoDB::add_atoms(const vector<atoms::Atom*>& atoms) {
+    if (atoms.empty()) {
+        return {};
+    }
+
     vector<Node*> nodes;
     vector<Link*> links;
     for (const auto& atom : atoms) {
@@ -681,16 +685,21 @@ vector<string> RedisMongoDB::add_atoms(const vector<atoms::Atom*>& atoms) {
 }
 
 vector<string> RedisMongoDB::add_nodes(const vector<atoms::Node*>& nodes) {
-    auto conn = this->mongodb_pool->acquire();
-    auto mongodb_collection = (*conn)[MONGODB_DB_NAME][MONGODB_NODES_COLLECTION_NAME];
+    if (nodes.empty()) {
+        return {};
+    }
 
     vector<bsoncxx::v_noabi::document::value> docs;
     vector<string> handles;
+
     for (const auto& node : nodes) {
         auto mongodb_doc = atomdb_api_types::MongodbDocument(node);
         handles.push_back(node->handle());
         docs.push_back(mongodb_doc.value());
     }
+
+    auto conn = this->mongodb_pool->acquire();
+    auto mongodb_collection = (*conn)[MONGODB_DB_NAME][MONGODB_NODES_COLLECTION_NAME];
 
     auto reply = mongodb_collection.insert_many(docs);
 
@@ -702,6 +711,9 @@ vector<string> RedisMongoDB::add_nodes(const vector<atoms::Node*>& nodes) {
 }
 
 vector<string> RedisMongoDB::add_links(const vector<atoms::Link*>& links) {
+    if (links.empty()) {
+        return {};
+    }
     vector<string> handles;
     for (const auto& link : links) {
         handles.push_back(add_link(link));

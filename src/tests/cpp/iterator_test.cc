@@ -7,6 +7,7 @@
 #include "QueryAnswer.h"
 #include "QueryNode.h"
 #include "Terminal.h"
+#include "TestConfig.h"
 #include "gtest/gtest.h"
 #include "test_utils.h"
 
@@ -70,13 +71,7 @@ TEST(Iterator, basics) {
 }
 
 TEST(Iterator, link_template_integration) {
-    setenv("DAS_REDIS_HOSTNAME", "localhost", 1);
-    setenv("DAS_REDIS_PORT", "29000", 1);
-    setenv("DAS_USE_REDIS_CLUSTER", "false", 1);
-    setenv("DAS_MONGODB_HOSTNAME", "localhost", 1);
-    setenv("DAS_MONGODB_PORT", "28000", 1);
-    setenv("DAS_MONGODB_USERNAME", "dbadmin", 1);
-    setenv("DAS_MONGODB_PASSWORD", "dassecret", 1);
+    TestConfig::load_environment();
 
     AtomDBSingleton::init();
     string expression = "Expression";
@@ -88,7 +83,8 @@ TEST(Iterator, link_template_integration) {
     auto similarity = make_shared<Terminal>(symbol, "Similarity");
     auto human = make_shared<Terminal>(symbol, "\"human\"");
 
-    LinkTemplate* link_template = new LinkTemplate("Expression", {similarity, human, v1}, "", false);
+    LinkTemplate* link_template =
+        new LinkTemplate("Expression", {similarity, human, v1}, "", false, false);
     link_template->build();
     Iterator query_answer_iterator(link_template->get_source_element());
 
