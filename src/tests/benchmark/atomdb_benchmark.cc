@@ -37,9 +37,11 @@ class AddAtom {
         for (int i = 0; i < iterations_; ++i) {
             auto node_a = new Node(
                 "Symbol", string("\"NODE_A") + "_t" + to_string(tid_) + "_i" + to_string(i) + "\"");
+
             auto t0 = Clock::now();
-            auto handle = db_->add_node(node_a);
+            db_->add_node(node_a);
             auto t1 = Clock::now();
+
             double ms = chrono::duration<double, milli>(t1 - t0).count();
             add_node_operation_time.push_back(ms);
         }
@@ -156,9 +158,11 @@ class AddAtoms {
                                          string("\"NODES_A") + "_t" + to_string(tid_) + "_i" +
                                              to_string(i) + "_j" + to_string(j) + "\""));
             }
+
             auto t0 = Clock::now();
             db_->add_nodes(nodes);
             auto t1 = Clock::now();
+
             double ms = chrono::duration<double, milli>(t1 - t0).count();
             add_nodes_operation_time.push_back(ms);
         }
@@ -214,9 +218,11 @@ class AddAtoms {
                                               string("\"NODES_D") + "_t" + to_string(tid_) + "_i" +
                                                   to_string(i) + "_j" + to_string(j) + "\""));
             }
+
             auto t0 = Clock::now();
             db_->add_atoms(atoms_node);
             auto t1 = Clock::now();
+
             double ms = chrono::duration<double, milli>(t1 - t0).count();
             add_atoms_node_operation_time.push_back(ms);
         }
@@ -234,7 +240,6 @@ class AddAtoms {
 
         for (int i = 0; i < iterations_; i++) {
             vector<Atom*> atoms_link;
-
             for (int j = 0; j < BATCH_SIZE; j++) {
                 string suffix = "_t" + to_string(tid_) + "_i" + to_string(i) + "_j" + to_string(j);
                 auto node_equivalence = new Node("Symbol", string("EQUIVALENCE_B") + suffix);
@@ -486,6 +491,7 @@ class GetAtoms {
             auto iterator = handles_set->get_iterator();
             auto first_handle = iterator->next();
             auto t1 = Clock::now();
+
             double ms = chrono::duration<double, milli>(t1 - t0).count();
             query_for_pattern_operation_time.push_back(ms);
         }
@@ -523,9 +529,11 @@ class DeleteAtom {
             auto node_a = new Node(
                 "Symbol", string("\"NODE_A") + "_t" + to_string(tid_) + "_i" + to_string(i) + "\"");
             auto handle = db_->add_atom(node_a);
+
             auto t0 = Clock::now();
             db_->delete_node(handle);
             auto t1 = Clock::now();
+
             double ms = chrono::duration<double, milli>(t1 - t0).count();
             delete_node_operation_time.push_back(ms);
         }
@@ -639,27 +647,128 @@ class DeleteAtoms {
         : tid_(tid), db_(db), iterations_(iterations) {}
 
     void delete_nodes() {
+        vector<double> delete_nodes_operation_time;
         for (int i = 0; i < iterations_; ++i) {
-            // Delete nodes
+            vector<Node*> nodes;
+            for (int j = 0; j < BATCH_SIZE; j++) {
+                nodes.push_back(new Node("Symbol",
+                                         string("\"NODES_A") + "_t" + to_string(tid_) + "_i" +
+                                             to_string(i) + "_j" + to_string(j) + "\""));
+            }
+            auto handles = db_->add_nodes(nodes);
+
+            auto t0 = Clock::now();
+            db_->delete_nodes(handles);
+            auto t1 = Clock::now();
+
+            double ms = chrono::duration<double, milli>(t1 - t0).count();
+            delete_nodes_operation_time.push_back(ms);
         }
+        double delete_nodes_total_time =
+            accumulate(delete_nodes_operation_time.begin(), delete_nodes_operation_time.end(), 0.0);
+        global_mutex.lock();
+        global_metrics["delete_nodes"] =
+            Metrics{delete_nodes_operation_time,
+                    delete_nodes_total_time,
+                    delete_nodes_total_time / (iterations_ * BATCH_SIZE),
+                    (iterations_ * BATCH_SIZE) / (delete_nodes_total_time / 1000.0)};
+        global_mutex.unlock();
     }
 
     void delete_links() {
-        for (int i = 0; i < iterations_; ++i) {
-            // Delete links
+        vector<double> delete_links_operation_time;
+        for (int i = 0; i < iterations_; i++) {
+            vector<Link*> links;
+            for (int j = 0; j < BATCH_SIZE; j++) {
+                string suffix = "_t" + to_string(tid_) + "_i" + to_string(i) + "_j" + to_string(j);
+                auto node_equivalence = new Node("Symbol", string("EQUIVALENCE_A") + suffix);
+                auto node_equivalence_handle = db_->add_node(node_equivalence);
+                auto node_b = new Node("Symbol", string("\"NODES_B") + suffix + "\"");
+                auto node_b_handle = db_->add_node(node_b);
+                auto node_c = new Node("Symbol", string("\"NODES_C") + suffix + "\"");
+                auto node_c_handle = db_->add_node(node_c);
+                links.push_back(
+                    new Link("Expression", {node_equivalence_handle, node_b_handle, node_c_handle}));
+            }
+            auto handles = db_->add_links(links);
+
+            auto t0 = Clock::now();
+            db_->delete_links(handles);
+            auto t1 = Clock::now();
+
+            double ms = chrono::duration<double, milli>(t1 - t0).count();
+            delete_links_operation_time.push_back(ms);
         }
+        double delete_links_total_time =
+            accumulate(delete_links_operation_time.begin(), delete_links_operation_time.end(), 0.0);
+        global_mutex.lock();
+        global_metrics["delete_links"] =
+            Metrics{delete_links_operation_time,
+                    delete_links_total_time,
+                    delete_links_total_time / (iterations_ * BATCH_SIZE),
+                    (iterations_ * BATCH_SIZE) / (delete_links_total_time / 1000.0)};
+        global_mutex.unlock();
     }
 
     void delete_atoms_node() {
+        vector<double> delete_atoms_node_operation_time;
         for (int i = 0; i < iterations_; ++i) {
-            // Delete atom nodes
+            vector<Atom*> atoms_node;
+            for (int j = 0; j < BATCH_SIZE; j++) {
+                atoms_node.push_back(new Node("Symbol",
+                                              string("\"NODES_D") + "_t" + to_string(tid_) + "_i" +
+                                                  to_string(i) + "_j" + to_string(j) + "\""));
+            }
+            auto handles = db_->add_atoms(atoms_node);
+
+            auto t0 = Clock::now();
+            db_->delete_atoms(handles);
+            auto t1 = Clock::now();
+
+            double ms = chrono::duration<double, milli>(t1 - t0).count();
+            delete_atoms_node_operation_time.push_back(ms);
         }
+        double delete_atoms_node_total_time = accumulate(
+            delete_atoms_node_operation_time.begin(), delete_atoms_node_operation_time.end(), 0.0);
+        global_metrics["delete_atoms[node]"] =
+            Metrics{delete_atoms_node_operation_time,
+                    delete_atoms_node_total_time,
+                    delete_atoms_node_total_time / (iterations_ * BATCH_SIZE),
+                    (iterations_ * BATCH_SIZE) / (delete_atoms_node_total_time / 1000.0)};
     }
 
     void delete_atoms_link() {
-        for (int i = 0; i < iterations_; ++i) {
-            // Delete atom links
+        vector<double> delete_atoms_link_operation_time;
+
+        for (int i = 0; i < iterations_; i++) {
+            vector<Atom*> atoms_link;
+            for (int j = 0; j < BATCH_SIZE; j++) {
+                string suffix = "_t" + to_string(tid_) + "_i" + to_string(i) + "_j" + to_string(j);
+                auto node_equivalence = new Node("Symbol", string("EQUIVALENCE_B") + suffix);
+                auto node_equivalence_handle = db_->add_node(node_equivalence);
+                auto node_e = new Node("Symbol", string("\"NODES_E") + suffix + "\"");
+                auto node_e_handle = db_->add_node(node_e);
+                auto node_f = new Node("Symbol", string("\"NODES_F") + suffix + "\"");
+                auto node_f_handle = db_->add_node(node_f);
+                atoms_link.push_back(
+                    new Link("Expression", {node_equivalence_handle, node_e_handle, node_f_handle}));
+            }
+            auto handles = db_->add_atoms(atoms_link);
+
+            auto t0 = Clock::now();
+            db_->delete_atoms(handles);
+            auto t1 = Clock::now();
+
+            double ms = chrono::duration<double, milli>(t1 - t0).count();
+            delete_atoms_link_operation_time.push_back(ms);
         }
+        double delete_atoms_link_total_time = accumulate(
+            delete_atoms_link_operation_time.begin(), delete_atoms_link_operation_time.end(), 0.0);
+        global_metrics["delete_atoms[link]"] =
+            Metrics{delete_atoms_link_operation_time,
+                    delete_atoms_link_total_time,
+                    delete_atoms_link_total_time / (iterations_ * BATCH_SIZE),
+                    (iterations_ * BATCH_SIZE) / (delete_atoms_link_total_time / 1000.0)};
     }
 
    private:
