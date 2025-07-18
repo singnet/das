@@ -7,9 +7,11 @@
 #include <memory>
 #include <string>
 
-#include "Logger.h"
 #include "MettaMapping.h"
 #include "Utils.h"
+
+#define LOG_LEVEL INFO_LEVEL
+#include "Logger.h"
 
 using namespace atomdb;
 using namespace atoms;

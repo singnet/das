@@ -34,6 +34,7 @@ docker run --rm \
   --network=host \
   --volume "$LOCAL_CACHE":"$CONTAINER_CACHE" \
   --volume "$LOCAL_WORKDIR":"$CONTAINER_WORKDIR" \
+  --volume "/tmp:/tmp" \
   --workdir "$CONTAINER_WORKSPACE_DIR" \
   "${IMAGE_NAME}" \
   ./scripts/bazel_exec.sh "$@"

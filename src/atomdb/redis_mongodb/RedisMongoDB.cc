@@ -31,6 +31,7 @@ string RedisMongoDB::MONGODB_NODES_COLLECTION_NAME;
 string RedisMongoDB::MONGODB_LINKS_COLLECTION_NAME;
 string RedisMongoDB::MONGODB_FIELD_NAME[MONGODB_FIELD::size];
 uint RedisMongoDB::MONGODB_CHUNK_SIZE;
+mongocxx::instance RedisMongoDB::MONGODB_INSTANCE;
 
 RedisMongoDB::RedisMongoDB() {
     redis_setup();
@@ -117,7 +118,6 @@ void RedisMongoDB::mongodb_setup() {
     string url = "mongodb://" + user + ":" + password + "@" + address;
 
     try {
-        mongocxx::instance instance;
         auto uri = mongocxx::uri{url};
         this->mongodb_pool = new mongocxx::pool(uri);
         // Health check using ping command
