@@ -162,7 +162,7 @@ void QueryEvolutionProcessor::select_best_individuals(
     if (count > 0) {
         if (count > population_size) {
             Utils::error("Invalid evolution parameters. Selection count: " + std::to_string(count) +
-                        " population size: " + std::to_string(population_size));
+                         " population size: " + std::to_string(population_size));
         } else if (count == population_size) {
             selected.insert(selected.begin(), population.begin(), population.end());
             population.clear();
@@ -291,12 +291,12 @@ void QueryEvolutionProcessor::evolve_query(shared_ptr<StoppableThread> monitor,
         LOG_INFO("Generation: " + std::to_string(count_generations++) +
                  ". Sampled: " + std::to_string(population.size()) + " individuals.");
         proxy->new_population_sampled(population);
-        if (population.size() > 0)  {
+        if (population.size() > 0) {
             STOP_WATCH_START(selection);
             select_best_individuals(proxy, population, selected);
             STOP_WATCH_FINISH(selection, "EvolutionIndividualSelection");
             LOG_INFO("Selected " + std::to_string(selected.size()) +
-                    " individuals to update attention allocation.");
+                     " individuals to update attention allocation.");
             if (selected.size() > 0) {
                 STOP_WATCH_START(attention_broker);
                 update_attention_allocation(proxy, selected);

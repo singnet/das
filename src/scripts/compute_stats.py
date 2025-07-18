@@ -19,4 +19,14 @@ print(",".join(["Tag", "N", "Min", "Median", "Max"]))
 for key in elements:
     elements[key].sort()
     n = len(elements[key])
-    print(",".join([key, str(n), str(min(elements[key])), str(elements[key][n // 2]), str(max(elements[key]))]));
+    print(
+        ",".join(
+            [
+                key,
+                str(n),
+                str(min(elements[key])),
+                str(elements[key][n // 2]),
+                str(max(elements[key])),
+            ]
+        )
+    )
