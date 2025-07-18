@@ -713,11 +713,8 @@ TEST_F(RedisMongoDBTest, GetAtomWithCustomAttributes) {
     EXPECT_EQ(atom_with_no_custom_attributes->custom_attributes.empty(), true);
     EXPECT_EQ(db->delete_atom(node_with_no_custom_attributes->handle()), true);
 
-    Properties custom_attributes({{"key_string", "string"},
-                                  {"key_unsigned_int", 1U},
-                                  {"key_long", 1},
-                                  {"key_double", 1.55},
-                                  {"key_bool", true}});
+    Properties custom_attributes(
+        {{"key_string", "string"}, {"key_long", 1}, {"key_double", 1.55}, {"key_bool", true}});
     auto node_with_custom_attributes = new Node("Symbol", "NodeWithCustomAttributes", custom_attributes);
     db->add_node(node_with_custom_attributes);
 
@@ -734,13 +731,17 @@ TEST_F(RedisMongoDBTest, GetAtomWithCustomAttributes) {
     const bool* bool_value = atom_with_custom_attributes->custom_attributes.get_ptr<bool>("key_bool");
     EXPECT_EQ(*bool_value, true);
 
-    // TODO(arturgontijo): MongoDB stores unsigned int as int64, so we need to convert it to unsigned
-    // int. Maybe we should store types as strings in the future.
-    const long* unsigned_int_value =
-        atom_with_custom_attributes->custom_attributes.get_ptr<long>("key_unsigned_int");
-    EXPECT_EQ(*(unsigned int*) unsigned_int_value, 1U);
-
     EXPECT_EQ(db->delete_atom(node_with_custom_attributes->handle()), true);
+
+    // MongoDB does not support unsigned int.
+    Properties custom_attributes_2({{"key_unsigned_int", 1U}});
+    auto node_with_custom_attributes_2 =
+        new Node("Symbol", "NodeWithCustomAttributes2", custom_attributes_2);
+    try {
+        db->add_node(node_with_custom_attributes_2);
+    } catch (const exception& e) {
+        EXPECT_EQ(db->node_exists(node_with_custom_attributes_2->handle()), false);
+    }
 }
 
 int main(int argc, char** argv) {

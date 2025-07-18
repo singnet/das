@@ -160,9 +160,6 @@ void add_custom_attributes(bsoncxx::builder::basic::document& doc, const Propert
                     using T = decay_t<decltype(arg)>;
                     if constexpr (is_same_v<T, string>) {
                         custom_attributes_doc.append(bsoncxx::builder::basic::kvp(key, arg));
-                    } else if constexpr (is_same_v<T, unsigned int>) {
-                        custom_attributes_doc.append(
-                            bsoncxx::builder::basic::kvp(key, static_cast<int64_t>(arg)));
                     } else if constexpr (is_same_v<T, long>) {
                         custom_attributes_doc.append(
                             bsoncxx::builder::basic::kvp(key, static_cast<int64_t>(arg)));
@@ -170,6 +167,10 @@ void add_custom_attributes(bsoncxx::builder::basic::document& doc, const Propert
                         custom_attributes_doc.append(bsoncxx::builder::basic::kvp(key, arg));
                     } else if constexpr (is_same_v<T, bool>) {
                         custom_attributes_doc.append(bsoncxx::builder::basic::kvp(key, arg));
+                    } else {
+                        // MongoDB does not support unsigned int.
+                        Utils::error("MongoDB does not support custom attribute '" + key +
+                                     "' with type: " + typeid(T).name());
                     }
                 },
                 value);
