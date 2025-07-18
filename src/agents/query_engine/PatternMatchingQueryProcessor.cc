@@ -154,6 +154,7 @@ void PatternMatchingQueryProcessor::process_query_answers(
 
 void PatternMatchingQueryProcessor::thread_process_one_query(
     shared_ptr<StoppableThread> monitor, shared_ptr<PatternMatchingQueryProxy> proxy) {
+    LOG_DEBUG("RAM usage before query: " << Utils::get_current_ram_usage());
     STOP_WATCH_START(query_thread);
     try {
         proxy->untokenize(proxy->args);
@@ -188,6 +189,7 @@ void PatternMatchingQueryProcessor::thread_process_one_query(
                 }
                 proxy->flush_answer_bundle();
                 STOP_WATCH_FINISH(query_thread, "PatternMatchingQuery");
+                LOG_DEBUG("RAM usage after query: " << Utils::get_current_ram_usage());
                 if (proxy->parameters.get<bool>(PatternMatchingQueryProxy::COUNT_FLAG) &&
                     (!proxy->is_aborting())) {
                     LOG_DEBUG("Answering count_only query");

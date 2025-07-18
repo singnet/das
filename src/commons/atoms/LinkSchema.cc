@@ -158,7 +158,7 @@ bool LinkSchema::SchemaElement::match(const string& handle,
         }
     } else if (this->is_wildcard) {
         // TODO: remove memory leak
-        return assignment.assign(strdup(this->name.c_str()), strdup(handle.c_str()));
+        return assignment.assign(this->name, handle);
     } else {
         // is node
         return (this->handle == handle);

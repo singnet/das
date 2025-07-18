@@ -192,8 +192,8 @@ void QueryEvolutionProcessor::correlate_similar(shared_ptr<QueryEvolutionProxy> 
                 return;
             }
             token = original_tokens[cursor++];
-            const char* value = correlation_query_answer->assignment.get((char*) token.c_str());
-            if (value != NULL) {
+            string value = correlation_query_answer->assignment.get(token);
+            if (value != "") {
                 query_tokens.push_back(LinkSchema::ATOM);
                 query_tokens.push_back(string(value));
             } else {
@@ -285,6 +285,8 @@ void QueryEvolutionProcessor::evolve_query(shared_ptr<StoppableThread> monitor,
     unsigned int count_generations = 1;
     STOP_WATCH_START(evolution);
     while (!monitor->stopped() && !proxy->stop_criteria_met()) {
+        LOG_DEBUG("Free RAM: " << Utils::get_current_free_ram());
+        LOG_DEBUG("RAM Usage: " << Utils::get_current_ram_usage());
         STOP_WATCH_START(sample_population);
         sample_population(monitor, proxy, population);
         STOP_WATCH_FINISH(sample_population, "EvolutionPopulationSampling");

@@ -7,33 +7,36 @@
 
 using namespace commons;
 
-Assignment::Assignment() { this->size = 0; }
+string Assignment::EMPTY_VALUE = "";
+
+Assignment::Assignment() {}
 
 Assignment::~Assignment() {}
 
-bool Assignment::assign(const char* label, const char* value) {
-    for (unsigned int i = 0; i < this->size; i++) {
-        // if label is already present, return true iff its value is the same
-        if (strncmp(label, this->labels[i], MAX_VARIABLE_NAME_SIZE) == 0) {
-            return (strncmp(value, this->values[i], HANDLE_HASH_SIZE) == 0);
+bool Assignment::assign(const string& label, const string& value) {
+    auto iterator = this->table.find(label);
+    if (iterator == this->table.end()) {
+        // label is not present, so makes the assignment and return true
+        if (label.size() > MAX_VARIABLE_NAME_SIZE) {
+            Utils::error("Invalid assignment. Label size (" + std::to_string(label.size()) + ") is too large (> " + std::to_string(MAX_VARIABLE_NAME_SIZE) + ").");
         }
+        this->table[label] = value;
+        if (this->table.size() > MAX_NUMBER_OF_VARIABLES_IN_QUERY) {
+            Utils::error("Assignment size exceeds the maximal number of allowed variables in a query: " +
+                         std::to_string(MAX_NUMBER_OF_VARIABLES_IN_QUERY));
+        }
+        return true;
+    } else {
+        // if label is already present, return true iff its value is the same
+        return (iterator->second == value);
     }
-    // label is not present, so makes the assignment and return true
-    labels[this->size] = label;
-    values[this->size] = value;
-    this->size++;
-    if (this->size == MAX_NUMBER_OF_VARIABLES_IN_QUERY) {
-        Utils::error("Assignment size exceeds the maximal number of allowed variables in a query: " +
-                     std::to_string(MAX_NUMBER_OF_VARIABLES_IN_QUERY));
-    }
-    return true;
 }
 
 bool Assignment::is_compatible(const Assignment& other) {
-    for (unsigned int i = 0; i < this->size; i++) {
-        for (unsigned int j = 0; j < other.size; j++) {
-            if ((strncmp(this->labels[i], other.labels[j], MAX_VARIABLE_NAME_SIZE) == 0) &&
-                (strncmp(this->values[i], other.values[j], HANDLE_HASH_SIZE) != 0)) {
+    for (auto pair: this->table) {
+        auto iterator = other.table.find(pair.first);
+        if (iterator != other.table.end()) {
+            if (iterator->second != pair.second) {
                 return false;
             }
         }
@@ -42,72 +45,42 @@ bool Assignment::is_compatible(const Assignment& other) {
 }
 
 void Assignment::copy_from(const Assignment& other) {
-    this->size = other.size;
-    unsigned int num_bytes = this->size * sizeof(char*);
-    memcpy((void*) this->labels, (const void*) other.labels, num_bytes);
-    memcpy((void*) this->values, (const void*) other.values, num_bytes);
+    this->table = other.table;
 }
 
 void Assignment::add_assignments(const Assignment& other) {
-    bool already_contains;
-    for (unsigned int j = 0; j < other.size; j++) {
-        already_contains = false;
-        for (unsigned int i = 0; i < this->size; i++) {
-            if (strncmp(this->labels[i], other.labels[j], MAX_VARIABLE_NAME_SIZE) == 0) {
-                already_contains = true;
-                break;
-            }
-        }
-        if (!already_contains) {
-            this->labels[this->size] = other.labels[j];
-            this->values[this->size] = other.values[j];
-            this->size++;
+    for (auto pair: other.table) {
+        if (this->table.find(pair.first) == this->table.end()) {
+            this->table[pair.first] = pair.second;
         }
     }
 }
 
-const char* Assignment::get(const char* label) {
-    for (unsigned int i = 0; i < this->size; i++) {
-        if (strncmp(label, this->labels[i], MAX_VARIABLE_NAME_SIZE) == 0) {
-            return this->values[i];
-        }
+const string& Assignment::get(const string& label) {
+    auto iterator = this->table.find(label);
+    if (iterator != this->table.end()) {
+        return iterator->second;
+    } else {
+        return EMPTY_VALUE;
     }
-    return NULL;
 }
 
-unsigned int Assignment::variable_count() { return this->size; }
+unsigned int Assignment::variable_count() { return this->table.size(); }
 
 string Assignment::to_string() {
     string answer = "{";
-    for (unsigned int i = 0; i < this->size; i++) {
-        answer += "(" + string(this->labels[i]) + ": " + string(this->values[i]) + ")";
-        if (i != (this->size - 1)) {
-            answer += ", ";
-        }
+    for (auto pair: this->table) {
+        answer += "(" + pair.first + ": " + pair.second + ")";
+        answer += ", ";
     }
+    answer.pop_back();
+    answer.pop_back();
     answer += "}";
     return answer;
 }
 
-void Assignment::clear() { this->size = 0; }
+void Assignment::clear() { this->table.clear(); }
 
 bool Assignment::operator==(const Assignment& other) const {
-    if (this->size != other.size) {
-        return false;
-    }
-    unsigned int n = this->size;
-    for (unsigned int i = 0; i < n; i++) {
-        unsigned int j = 0;
-        while ((j != n) && strncmp(this->labels[i], other.labels[j], MAX_VARIABLE_NAME_SIZE)) {
-            j++;
-        }
-        if (j == n) {
-            // There's a variable in "this" which doesn't exist in "other"
-            return false;
-        } else if (strncmp(this->values[i], other.values[j], HANDLE_HASH_SIZE)) {
-            // There same variable have different values in "this" and "other"
-            return false;
-        }
-    }
-    return true;
+    return (this->table == other.table);
 }

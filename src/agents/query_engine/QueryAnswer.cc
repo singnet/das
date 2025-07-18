@@ -89,8 +89,7 @@ const string& QueryAnswer::tokenize() {
                               + 4   // (up to 3 digits) to represent this->handles_size + space
                               + this->handles_size * (HANDLE_HASH_SIZE + 1)  // handles + spaces
                               + 4  // (up to 3 digits) to represent this->assignment.size + space
-                              + this->assignment.size * (MAX_VARIABLE_NAME_SIZE + HANDLE_HASH_SIZE +
-                                                         2);  // label<space>handle<space>
+                              + this->assignment.table.size() * (MAX_VARIABLE_NAME_SIZE + HANDLE_HASH_SIZE + 2);  // label<space>handle<space>
 
     this->token_representation.clear();
     this->token_representation.reserve(char_count);
@@ -105,12 +104,12 @@ const string& QueryAnswer::tokenize() {
         this->token_representation += handles[i];
         this->token_representation += space;
     }
-    this->token_representation += std::to_string(this->assignment.size);
+    this->token_representation += std::to_string(this->assignment.table.size());
     this->token_representation += space;
-    for (unsigned int i = 0; i < this->assignment.size; i++) {
-        this->token_representation += this->assignment.labels[i];
+    for (auto pair: this->assignment.table) {
+        this->token_representation += pair.first;
         this->token_representation += space;
-        this->token_representation += this->assignment.values[i];
+        this->token_representation += pair.second;
         this->token_representation += space;
     }
 
@@ -161,18 +160,17 @@ void QueryAnswer::untokenize(const string& tokens) {
     }
 
     read_token(token_string, cursor, number, 4);
-    this->assignment.size = (unsigned int) std::stoi(number);
+    unsigned int assignment_size = (unsigned int) std::stoi(number);
 
-    if (this->assignment.size > MAX_NUMBER_OF_VARIABLES_IN_QUERY) {
-        Utils::error("Invalid number of assignments: " + std::to_string(this->assignment.size) +
+    if (assignment_size > MAX_NUMBER_OF_VARIABLES_IN_QUERY) {
+        Utils::error("Invalid number of assignments: " + std::to_string(assignment_size) +
                      " untokenizing QueryAnswer");
     }
 
-    for (unsigned int i = 0; i < this->assignment.size; i++) {
+    for (unsigned int i = 0; i < assignment_size; i++) {
         read_token(token_string, cursor, label, MAX_VARIABLE_NAME_SIZE);
         read_token(token_string, cursor, handle, HANDLE_HASH_SIZE);
-        this->assignment.labels[i] = strdup(label);
-        this->assignment.values[i] = strdup(handle);
+        this->assignment.assign(string(label), string(handle));
     }
 
     if (token_string[cursor] != '\0') {

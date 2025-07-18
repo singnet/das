@@ -10,6 +10,9 @@ namespace fitness_functions {
 
 class CountLetterFunction : public FitnessFunction {
    public:
+    static string VARIABLE_NAME;
+    static char LETTER_TO_COUNT;
+
     CountLetterFunction();
     ~CountLetterFunction() {}
 

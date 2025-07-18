@@ -9,6 +9,9 @@
 #include <sstream>
 #include <stdexcept>
 #include <thread>
+#include <unistd.h>
+#include <ios>
+#include <string>
 
 #include "Logger.h"
 
@@ -190,4 +193,61 @@ string Utils::trim(const string& s) {
 unsigned long long Utils::get_current_time_millis() {
     return chrono::duration_cast<chrono::milliseconds>(chrono::steady_clock::now().time_since_epoch())
         .count();
+}
+
+string Utils::linux_command_line(const char* cmd) {
+    std::array<char, 128> buffer;
+    std::string answer;
+    FILE* pipe = popen(cmd, "r");
+    if (!pipe) {
+        Utils::error("Command line failed");
+        return "";
+    }
+    try {
+        while (fgets(buffer.data(), buffer.size(), pipe) != nullptr) {
+            answer += buffer.data();
+        }
+    } catch (...) {
+        pclose(pipe);
+        throw;
+    }
+    pclose(pipe);
+    return answer;
+}
+
+unsigned long Utils::get_current_free_ram() {
+    return std::stol(Utils::linux_command_line("cat /proc/meminfo | grep MemAvailable | rev | cut -d\" \" -f2 | rev"));
+}
+
+unsigned long Utils::get_current_ram_usage() {
+   using std::ios_base;
+   using std::ifstream;
+   using std::string;
+
+   //double vm_usage = 0.0;
+   double resident_set = 0.0;
+
+   ifstream stat_stream("/proc/self/stat", ios_base::in);
+
+   // Not actually used
+   string pid, comm, state, ppid, pgrp, session, tty_nr;
+   string tpgid, flags, minflt, cminflt, majflt, cmajflt;
+   string utime, stime, cutime, cstime, priority, nice;
+   string O, itrealvalue, starttime;
+
+   unsigned long vsize;
+   long rss;
+
+   stat_stream >> pid >> comm >> state >> ppid >> pgrp >> session >> tty_nr
+               >> tpgid >> flags >> minflt >> cminflt >> majflt >> cmajflt
+               >> utime >> stime >> cutime >> cstime >> priority >> nice
+               >> O >> itrealvalue >> starttime >> vsize >> rss;
+
+   stat_stream.close();
+
+   long page_size_kb = sysconf(_SC_PAGE_SIZE) / 1024;
+   //vm_usage = vsize / 1024.0;
+   resident_set = rss * page_size_kb;
+
+   return (unsigned long) resident_set;
 }
