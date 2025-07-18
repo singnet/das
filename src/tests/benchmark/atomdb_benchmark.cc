@@ -10,13 +10,13 @@
 
 #include "AtomDB.h"
 #include "AtomDBCacheSingleton.h"
-#include "Logger.h"
 #include "MorkDB.h"
 #include "RedisMongoDB.h"
 #include "Utils.h"
 #include "atomdb_benchmark_utils.h"
 
 #define LOG_LEVEL INFO_LEVEL
+#include "Logger.h"
 
 using namespace std;
 using namespace atomdb;
