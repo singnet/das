@@ -137,11 +137,9 @@ void PatternMatchingQueryProcessor::process_query_answers(
     unsigned int max_answers = proxy->parameters.get<unsigned int>(BaseQueryProxy::MAX_ANSWERS);
     while ((answer = query_sink->input_buffer->pop_query_answer()) != NULL) {
         answer_count++;
-        /*
         if (proxy->parameters.get<bool>(BaseQueryProxy::ATTENTION_UPDATE_FLAG)) {
             update_attention_broker_single_answer(proxy, answer, joint_answer);
         }
-        */
         if (!proxy->parameters.get<bool>(PatternMatchingQueryProxy::COUNT_FLAG)) {
             proxy->push(shared_ptr<QueryAnswer>(answer));
         }
@@ -197,15 +195,13 @@ void PatternMatchingQueryProcessor::thread_process_one_query(
                                           {std::to_string(answer_count)});
                 }
                 Utils::sleep(500);
-                /*
+                proxy->query_processing_finished();
                 if (proxy->parameters.get<bool>(BaseQueryProxy::ATTENTION_UPDATE_FLAG)) {
                     LOG_DEBUG("Updating AttentionBroker (stimulate)");
                     update_attention_broker_joint_answer(proxy, joint_answer);
                 }
                 Utils::sleep(500);
-                */
                 LOG_INFO("Total processed answers: " << answer_count);
-                proxy->query_processing_finished();
                 query_sink->graceful_shutdown();
                 PortPool::return_port(sink_port_number);
             } else {
