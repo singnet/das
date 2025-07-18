@@ -517,13 +517,115 @@ class DeleteAtom {
     DeleteAtom(int tid, shared_ptr<AtomDB> db, int iterations)
         : tid_(tid), db_(db), iterations_(iterations) {}
 
-    void delete_node() {}
+    void delete_node() {
+        vector<double> delete_node_operation_time;
+        for (int i = 0; i < iterations_; ++i) {
+            auto node_a = new Node(
+                "Symbol", string("\"NODE_A") + "_t" + to_string(tid_) + "_i" + to_string(i) + "\"");
+            auto handle = db_->add_atom(node_a);
+            auto t0 = Clock::now();
+            db_->delete_node(handle);
+            auto t1 = Clock::now();
+            double ms = chrono::duration<double, milli>(t1 - t0).count();
+            delete_node_operation_time.push_back(ms);
+        }
+        double delete_node_total_time =
+            accumulate(delete_node_operation_time.begin(), delete_node_operation_time.end(), 0.0);
+        global_mutex.lock();
+        global_metrics["delete_node"] = Metrics{delete_node_operation_time,
+                                                delete_node_total_time,
+                                                delete_node_total_time / iterations_,
+                                                iterations_ / (delete_node_total_time / 1000.0)};
+        global_mutex.unlock();
+    }
 
-    void delete_link() {}
+    void delete_link() {
+        vector<double> delete_link_operation_time;
+        for (int i = 0; i < iterations_; i++) {
+            string suffix = "_t" + to_string(tid_) + "_i" + to_string(i);
+            auto node_equivalence = new Node("Symbol", string("EQUIVALENCE_A") + suffix);
+            auto node_equivalence_handle = db_->add_node(node_equivalence);
+            auto node_b = new Node("Symbol", string("NODE_B") + suffix);
+            auto node_b_handle = db_->add_node(node_b);
+            auto node_c = new Node("Symbol", string("NODE_C") + suffix);
+            auto node_c_handle = db_->add_node(node_c);
+            auto link_a =
+                new Link("Expression", {node_equivalence_handle, node_b_handle, node_c_handle});
+            auto link_handle = db_->add_link(link_a);
 
-    void delete_atom_node() {}
+            auto t0 = Clock::now();
+            db_->delete_link(link_handle);
+            auto t1 = Clock::now();
 
-    void delete_atom_link() {}
+            double ms = chrono::duration<double, milli>(t1 - t0).count();
+            delete_link_operation_time.push_back(ms);
+        }
+        double delete_link_total_time =
+            accumulate(delete_link_operation_time.begin(), delete_link_operation_time.end(), 0.0);
+        global_mutex.lock();
+        global_metrics["delete_link"] = Metrics{delete_link_operation_time,
+                                                delete_link_total_time,
+                                                delete_link_total_time / iterations_,
+                                                iterations_ / (delete_link_total_time / 1000.0)};
+        global_mutex.unlock();
+    }
+
+    void delete_atom_node() {
+        vector<double> delete_atom_node_operation_time;
+        for (int i = 0; i < iterations_; ++i) {
+            auto node_d = new Node(
+                "Symbol", string("\"NODE_D") + "_t" + to_string(tid_) + "_i" + to_string(i) + "\"");
+            auto node_d_handle = db_->add_atom(node_d);
+
+            auto t0 = Clock::now();
+            db_->delete_atom(node_d_handle);
+            auto t1 = Clock::now();
+
+            double ms = chrono::duration<double, milli>(t1 - t0).count();
+            delete_atom_node_operation_time.push_back(ms);
+        }
+        double delete_atom_node_total_time = accumulate(
+            delete_atom_node_operation_time.begin(), delete_atom_node_operation_time.end(), 0.0);
+        global_mutex.lock();
+        global_metrics["delete_atom[node]"] =
+            Metrics{delete_atom_node_operation_time,
+                    delete_atom_node_total_time,
+                    delete_atom_node_total_time / iterations_,
+                    iterations_ / (delete_atom_node_total_time / 1000.0)};
+        global_mutex.unlock();
+    }
+
+    void delete_atom_link() {
+        vector<double> delete_atom_link_operation_time;
+        for (int i = 0; i < iterations_; i++) {
+            string suffix = "_t" + to_string(tid_) + "_i" + to_string(i);
+            auto node_equivalence = new Node("Symbol", string("EQUIVALENCE_B") + suffix);
+            auto node_equivalence_handle = db_->add_node(node_equivalence);
+            auto node_e = new Node("Symbol", string("\"NODE_E") + suffix + "\"");
+            auto node_e_handle = db_->add_node(node_e);
+            auto node_f = new Node("Symbol", string("\"NODE_F") + suffix + "\"");
+            auto node_f_handle = db_->add_node(node_f);
+            auto link_b =
+                new Link("Expression", {node_equivalence_handle, node_e_handle, node_f_handle});
+            auto link_b_handle = db_->add_link(link_b);
+
+            auto t0 = Clock::now();
+            db_->delete_link(link_b_handle);
+            auto t1 = Clock::now();
+
+            double ms = chrono::duration<double, milli>(t1 - t0).count();
+            delete_atom_link_operation_time.push_back(ms);
+        }
+        double delete_atom_link_total_time = accumulate(
+            delete_atom_link_operation_time.begin(), delete_atom_link_operation_time.end(), 0.0);
+        global_mutex.lock();
+        global_metrics["delete_atom[link]"] =
+            Metrics{delete_atom_link_operation_time,
+                    delete_atom_link_total_time,
+                    delete_atom_link_total_time / iterations_,
+                    iterations_ / (delete_atom_link_total_time / 1000.0)};
+        global_mutex.unlock();
+    }
 
    private:
     int tid_;
@@ -536,13 +638,29 @@ class DeleteAtoms {
     DeleteAtoms(int tid, shared_ptr<AtomDB> db, int iterations)
         : tid_(tid), db_(db), iterations_(iterations) {}
 
-    void delete_nodes() {}
+    void delete_nodes() {
+        for (int i = 0; i < iterations_; ++i) {
+            // Delete nodes
+        }
+    }
 
-    void delete_links() {}
+    void delete_links() {
+        for (int i = 0; i < iterations_; ++i) {
+            // Delete links
+        }
+    }
 
-    void delete_atoms_node() {}
+    void delete_atoms_node() {
+        for (int i = 0; i < iterations_; ++i) {
+            // Delete atom nodes
+        }
+    }
 
-    void delete_atoms_link() {}
+    void delete_atoms_link() {
+        for (int i = 0; i < iterations_; ++i) {
+            // Delete atom links
+        }
+    }
 
    private:
     int tid_;
