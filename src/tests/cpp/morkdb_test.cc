@@ -79,9 +79,13 @@ TEST_F(MorkDBTest, QueryForPattern) {
     LinkSchema link_schema({
         link_template, expression, "3", 
             node, symbol, inheritance, 
-            variable, "$x",
+            variable, "x",
             node, symbol, mammal});
     // clang-format on
+
+    auto metta = link_schema.metta_representation(*db);
+
+    ASSERT_EQ(metta, "(Inheritance $x \"mammal\")");
 
     auto result = db->query_for_pattern(link_schema);
 

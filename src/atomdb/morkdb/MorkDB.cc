@@ -6,7 +6,7 @@
 #include <iostream>
 #include <memory>
 #include <string>
-
+#define LOG_LEVEL INFO_LEVEL
 #include "Logger.h"
 #include "MettaMapping.h"
 #include "Utils.h"
