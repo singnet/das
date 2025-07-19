@@ -37,6 +37,9 @@ jobs:
           sudo das-cli update-version --version ${{ vars.DAS_CLI_VERSION }}
           das-cli --version
 
+      - name: Download Knowledge Base
+        run: curl https://raw.githubusercontent.com/singnet/das-toolbox/refs/heads/master/das-cli/src/examples/data/animals.metta -o /tmp/animals.metta
+
       - name: Setting das-cli configuration
         run: |-
           das-cli config set <<EOF
