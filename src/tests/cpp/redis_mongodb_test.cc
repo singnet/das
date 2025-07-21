@@ -11,6 +11,7 @@
 #include "Hasher.h"
 #include "Link.h"
 #include "MettaMapping.h"
+#include "MockAnimalsData.h"
 #include "Node.h"
 #include "RedisMongoDB.h"
 #include "TestConfig.h"
@@ -34,7 +35,15 @@ class RedisMongoDBTestEnvironment : public ::testing::Environment {
     void SetUp() override {
         TestConfig::load_environment();
         TestConfig::disable_atomdb_cache();
-        AtomDBSingleton::init();
+        auto atomdb = new RedisMongoDB("test_");
+        AtomDBSingleton::provide(shared_ptr<AtomDB>(atomdb));
+        load_animals_data();
+    }
+
+    void TearDown() override {
+        auto atomdb = AtomDBSingleton::get_instance();
+        auto db = dynamic_pointer_cast<RedisMongoDB>(atomdb);
+        db->drop_all();
     }
 };
 
@@ -742,6 +751,43 @@ TEST_F(RedisMongoDBTest, GetAtomWithCustomAttributes) {
     } catch (const exception& e) {
         EXPECT_EQ(db->node_exists(node_with_custom_attributes_2->handle()), false);
     }
+}
+
+TEST_F(RedisMongoDBTest, ReIndexPatterns) {
+    // (Similarity * *)
+    auto similarity_node = new Node("Symbol", "Similarity");
+    auto similarity_pattern = new Link(
+        "Expression", {similarity_node->handle(), Atom::WILDCARD_STRING, Atom::WILDCARD_STRING});
+    auto similarity_link_schema = new LinkSchemaHandle(similarity_pattern->handle().c_str());
+    auto handle_set = db->query_for_pattern(*similarity_link_schema);
+    EXPECT_EQ(handle_set->size(), 14);
+
+    // (Inheritance * *)
+    auto inheritance_node = new Node("Symbol", "Inheritance");
+    auto inheritance_pattern = new Link(
+        "Expression", {inheritance_node->handle(), Atom::WILDCARD_STRING, Atom::WILDCARD_STRING});
+    auto inheritance_link_schema = new LinkSchemaHandle(inheritance_pattern->handle().c_str());
+    handle_set = db->query_for_pattern(*inheritance_link_schema);
+    EXPECT_EQ(handle_set->size(), 12);
+
+    // (OddLink * *)
+    auto odd_link_node = new Node("Symbol", "OddLink");
+    auto odd_link_pattern = new Link("Expression", {odd_link_node->handle(), Atom::WILDCARD_STRING});
+    auto odd_link_schema = new LinkSchemaHandle(odd_link_pattern->handle().c_str());
+    handle_set = db->query_for_pattern(*odd_link_schema);
+    EXPECT_EQ(handle_set->size(), 9);
+
+    // Clear Redis patterns indexes and re-index them
+    db->re_index_patterns();
+
+    handle_set = db->query_for_pattern(*similarity_link_schema);
+    EXPECT_EQ(handle_set->size(), 14);
+
+    handle_set = db->query_for_pattern(*inheritance_link_schema);
+    EXPECT_EQ(handle_set->size(), 12);
+
+    handle_set = db->query_for_pattern(*odd_link_schema);
+    EXPECT_EQ(handle_set->size(), 9);
 }
 
 int main(int argc, char** argv) {

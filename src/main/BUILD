@@ -18,6 +18,8 @@ cc_library(
     srcs = ["tests_db_loader.cc"],
     deps = [
         "//atomdb:atomdb_singleton",
+        "//tests/cpp/test_commons",
+        "//tests/cpp/test_commons:mock_animals_data_lib",
     ],
 )
 
