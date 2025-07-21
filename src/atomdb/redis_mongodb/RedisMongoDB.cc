@@ -969,13 +969,9 @@ void RedisMongoDB::drop_all() {
     (*conn)[MONGODB_DB_NAME].drop();
     // Drop Redis database (by prefixes)
     auto ctx = this->redis_pool->acquire();
-    vector<string> keys = {
-        REDIS_PATTERNS_PREFIX + ":*", REDIS_OUTGOING_PREFIX + ":*", REDIS_INCOMING_PREFIX + ":*"};
+    vector<string> keys = {REDIS_PATTERNS_PREFIX, REDIS_OUTGOING_PREFIX, REDIS_INCOMING_PREFIX};
     for (const auto& key : keys) {
-        auto reply = ctx->execute(("DEL " + key).c_str());
-        if (reply->type != REDIS_REPLY_INTEGER) {
-            Utils::error("Failed to delete Redis key: " + key);
-        }
+        flush_redis_by_prefix(key);
     }
 
     // We need to reset next scores to 0 to avoid remainings from previous runs
