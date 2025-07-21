@@ -777,6 +777,18 @@ TEST_F(RedisMongoDBTest, ReIndexPatterns) {
     handle_set = db->query_for_pattern(*odd_link_schema);
     EXPECT_EQ(handle_set->size(), 9);
 
+    // Flush Redis patterns indexes
+    db->flush_redis_by_prefix("test_patterns");
+
+    handle_set = db->query_for_pattern(*similarity_link_schema);
+    EXPECT_EQ(handle_set->size(), 0);
+
+    handle_set = db->query_for_pattern(*inheritance_link_schema);
+    EXPECT_EQ(handle_set->size(), 0);
+
+    handle_set = db->query_for_pattern(*odd_link_schema);
+    EXPECT_EQ(handle_set->size(), 0);
+
     // Clear Redis patterns indexes and re-index them
     db->re_index_patterns();
 
