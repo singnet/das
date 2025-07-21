@@ -5,7 +5,7 @@ RUN yes | apt update -y \
     && yes | apt clean -y \
     && rm -rf /var/lib/apt/lists/*
 
-ENV COMMIT_ID="de01a1f88a7fd6f2c93829da80fa012697f2b97f"
+ENV COMMIT_ID="578a759d2c4962de7b4a2cd17f695c89f5e53bb4"
 
 WORKDIR /opt
 
