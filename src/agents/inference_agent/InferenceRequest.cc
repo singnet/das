@@ -146,7 +146,7 @@ vector<string> InferenceRequest::get_distributed_inference_control_request() {
     // }
     for (size_t i = 0; i < request.size(); i++) {
         if (request[i] == "HANDLE") {
-            auto atom_tokens = LinkCreateDBSingleton::get_instance()->get_atom(request[i + 1]);
+            auto atom_tokens = LinkCreationDBWrapper::get_atom(request[i + 1]);
             if (holds_alternative<shared_ptr<link_creation_agent::LCALink>>(atom_tokens)) {
                 for (auto token :
                      get<shared_ptr<link_creation_agent::LCALink>>(atom_tokens)->tokenize()) {

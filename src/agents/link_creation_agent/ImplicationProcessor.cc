@@ -76,7 +76,7 @@ vector<string> ImplicationProcessor::get_satisfying_set_query(const vector<strin
 vector<string> ImplicationProcessor::get_tokenized_atom(const string& handle) {
     vector<string> tokens;
     try {
-        auto atom = LinkCreateDBSingleton::get_instance()->get_atom(handle);
+        auto atom = LinkCreationDBWrapper::get_atom(handle);
         if (holds_alternative<LCANode>(atom)) {
             return get<LCANode>(atom).tokenize();
         } else if (holds_alternative<shared_ptr<link_creation_agent::LCALink>>(atom)) {
@@ -119,8 +119,8 @@ vector<vector<string>> ImplicationProcessor::process(shared_ptr<QueryAnswer> que
     }
     vector<string> p1_name = get_tokenized_atom(p1_handle);
     vector<string> p2_name = get_tokenized_atom(p2_handle);
-    string p1_metta = LinkCreateDBSingleton::get_instance()->tokens_to_metta_string(p1_name, false);
-    string p2_metta = LinkCreateDBSingleton::get_instance()->tokens_to_metta_string(p2_name, false);
+    string p1_metta = LinkCreationDBWrapper::tokens_to_metta_string(p1_name, false);
+    string p2_metta = LinkCreationDBWrapper::tokens_to_metta_string(p2_name, false);
 
     auto pattern_query_1 = get_pattern_query(p1_name);
     auto pattern_query_2 = get_pattern_query(p2_name);

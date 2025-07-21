@@ -7,16 +7,8 @@ using namespace link_creation_agent;
 using namespace std;
 using namespace atomdb;
 
-shared_ptr<LinkCreateDBSingleton> LinkCreateDBSingleton::instance = nullptr;
 
-shared_ptr<LinkCreateDBSingleton> LinkCreateDBSingleton::get_instance() {
-    if (instance == nullptr) {
-        instance = shared_ptr<LinkCreateDBSingleton>(new LinkCreateDBSingleton());
-    }
-    return instance;
-}
-
-LinkTargetTypes LinkCreateDBSingleton::get_atom(string handle) {
+LinkTargetTypes LinkCreationDBWrapper::get_atom(string handle) {
     shared_ptr<AtomDB> atom_db = AtomDBSingleton::get_instance();
     auto atom = atom_db->get_atom_document(handle.c_str());
     if (atom->contains("name")) {
@@ -39,7 +31,7 @@ LinkTargetTypes LinkCreateDBSingleton::get_atom(string handle) {
     return "";
 }
 
-string LinkCreateDBSingleton::tokens_to_metta_string(vector<string> tokens, bool has_custom_field_size) {
+string LinkCreationDBWrapper::tokens_to_metta_string(vector<string> tokens, bool has_custom_field_size) {
     try {
         if (tokens.front() == "LINK") {
             vector<string> link_tokens;
@@ -78,6 +70,6 @@ string LinkCreateDBSingleton::tokens_to_metta_string(vector<string> tokens, bool
     }
 }
 
-void LinkCreateDBSingleton::print_metta(vector<string> tokens, bool has_custom_field_size) {
+void LinkCreationDBWrapper::print_metta(vector<string> tokens, bool has_custom_field_size) {
     LOG_INFO("MeTTa Expression: " << tokens_to_metta_string(tokens, has_custom_field_size));
 }

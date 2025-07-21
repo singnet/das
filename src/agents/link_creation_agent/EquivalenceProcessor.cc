@@ -48,7 +48,7 @@ vector<string> EquivalenceProcessor::get_pattern_query(const vector<string>& c1,
 vector<string> EquivalenceProcessor::get_tokenized_atom(const string& handle) {
     vector<string> tokens;
     try {
-        auto atom = LinkCreateDBSingleton::get_instance()->get_atom(handle);
+        auto atom = LinkCreationDBWrapper::get_atom(handle);
         if (holds_alternative<LCANode>(atom)) {
             return get<LCANode>(atom).tokenize();
         } else if (holds_alternative<shared_ptr<link_creation_agent::LCALink>>(atom)) {
@@ -91,8 +91,8 @@ vector<vector<string>> EquivalenceProcessor::process(shared_ptr<QueryAnswer> que
     }
     vector<string> c1_name = get_tokenized_atom(c1_handle);
     vector<string> c2_name = get_tokenized_atom(c2_handle);
-    string c1_metta = LinkCreateDBSingleton::get_instance()->tokens_to_metta_string(c1_name, false);
-    string c2_metta = LinkCreateDBSingleton::get_instance()->tokens_to_metta_string(c2_name, false);
+    string c1_metta = LinkCreationDBWrapper::tokens_to_metta_string(c1_name, false);
+    string c2_metta = LinkCreationDBWrapper::tokens_to_metta_string(c2_name, false);
     auto pattern_query = get_pattern_query(c1_name, c2_name);
     int count = 0;
     try {
