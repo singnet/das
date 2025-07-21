@@ -93,14 +93,12 @@ void AtomSpace::pattern_matching_fetch(const vector<string>& query, size_t answe
     auto proxy = this->pattern_matching_query(query, answers_count);
     this->bus->issue_bus_command(proxy);
     shared_ptr<QueryAnswer> query_answer;
-    const char* handle;
     while (!proxy->finished()) {
         if ((query_answer = proxy->pop()) == nullptr) {
             Utils::sleep();
         } else {
-            for (size_t i = 0; i < query_answer->handles_size; i++) {
-                handle = query_answer->handles[i];
-                this->get_atom(handle, LOCAL_AND_REMOTE);  // Ensure the atom is loaded into the trie
+            for (string handle: query_answer->handles) {
+                this->get_atom(handle.c_str(), LOCAL_AND_REMOTE);  // Ensure the atom is loaded into the trie
             }
         }
     }

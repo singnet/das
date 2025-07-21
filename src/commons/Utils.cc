@@ -47,6 +47,9 @@ string Utils::get_environment(string const& key) {
     return answer;
 }
 
+// --------------------------------------------------------------------------------
+// StopWatch
+
 StopWatch::StopWatch() { reset(); }
 
 StopWatch::~StopWatch() {}
@@ -103,6 +106,87 @@ string StopWatch::str_time() {
         return to_string(seconds) + " secs " + to_string(millis) + " millis";
     }
 }
+
+// --------------------------------------------------------------------------------
+// MemoryFootprint
+
+MemoryFootprint::MemoryFootprint() {
+    this->running = false;
+    this->start_snapshot = 0L;
+    this->last_snapshot = 0L;
+    this->final_snapshot = 0L;
+}
+
+MemoryFootprint::~MemoryFootprint() {}
+
+void MemoryFootprint::start() {
+    this->running = true;
+    this->delta_ram.clear();
+    this->start_snapshot = Utils::get_current_ram_usage();
+    this->last_snapshot = this->start_snapshot;
+}
+
+void MemoryFootprint::check(const string& tag) {
+    if (this->running) {
+        unsigned long snapshot = Utils::get_current_ram_usage();
+        delta_ram.push_back(make_pair(snapshot - this->last_snapshot, tag));
+        this->last_snapshot = snapshot;
+    } else {
+        Utils::error("MemoryFootprint is not running");
+    }
+}
+
+void MemoryFootprint::stop(const string& tag) {
+    if (this->running) {
+        if (tag != "") {
+            check(tag);
+        }
+        this->final_snapshot = Utils::get_current_ram_usage();
+        this->running = false;
+    } else {
+        Utils::error("MemoryFootprint is not running");
+    }
+}
+
+long MemoryFootprint::delta_usage(bool since_last_check) {
+    unsigned long baseline;
+    unsigned long reference;
+    if (since_last_check) {
+        baseline = this->last_snapshot;
+    } else {
+        baseline = this->start_snapshot;
+    }
+    if (this->running) {
+        reference = Utils::get_current_ram_usage();
+    } else {
+        reference = this->final_snapshot;
+    }
+    return reference - baseline;
+}
+
+string MemoryFootprint::to_string() {
+    string answer = "{Begin: " + std::to_string(this->start_snapshot) + ", End: ";
+    if (this->running) {
+        answer += std::to_string(this->final_snapshot);
+    } else {
+        answer += std::to_string(this->last_snapshot);
+    }
+    answer += ", Delta: " + std::to_string(delta_usage()) + ", Checkpoints: [";
+    bool empty_flag = true;
+    for (auto pair: this->delta_ram) {
+        answer += "(\"" + pair.second + "\", " + std::to_string(pair.first) + ")";
+        answer += ", ";
+        empty_flag = false;
+    }
+    if (! empty_flag) {
+        answer.pop_back();
+        answer.pop_back();
+    }
+    answer += "]}";
+    return answer;
+}
+
+// --------------------------------------------------------------------------------
 
 map<string, string> Utils::parse_config(string const& config_path) {
     map<string, string> config;

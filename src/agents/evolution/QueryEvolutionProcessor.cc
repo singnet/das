@@ -219,8 +219,8 @@ void QueryEvolutionProcessor::correlate_similar(shared_ptr<QueryEvolutionProxy> 
     while (!pm->finished()) {
         shared_ptr<QueryAnswer> answer = pm->pop();
         if (answer != NULL) {
-            for (unsigned int i = 0; i < answer->handles_size; i++) {
-                handle_list.add_list(answer->handles[i]);
+            for (string handle: answer->handles) {
+                handle_list.add_list(handle);
             }
         } else {
             Utils::sleep();
@@ -246,9 +246,8 @@ void QueryEvolutionProcessor::stimulate(shared_ptr<QueryEvolutionProxy> proxy,
     handle_count.set_context(proxy->get_context());
     unsigned int sum;
     for (auto pair : selected) {
-        for (unsigned int i = 0; i < pair.first->handles_size; i++) {
+        for (string handle: pair.first->handles) {
             unsigned int value = (unsigned int) std::lround(pair.second * importance_tokens);
-            const char* handle = pair.first->handles[i];
             if (handle_count.mutable_map()->find(handle) == handle_count.mutable_map()->end()) {
                 (*handle_count.mutable_map())[handle] = value;
                 sum += value;
@@ -283,14 +282,15 @@ void QueryEvolutionProcessor::evolve_query(shared_ptr<StoppableThread> monitor,
     vector<std::pair<shared_ptr<QueryAnswer>, float>> population;
     vector<std::pair<shared_ptr<QueryAnswer>, float>> selected;
     unsigned int count_generations = 1;
+    RAM_FOOTPRINT_START(evolution);
     STOP_WATCH_START(evolution);
     while (!monitor->stopped() && !proxy->stop_criteria_met()) {
-        LOG_DEBUG("Free RAM: " << Utils::get_current_free_ram());
+        RAM_CHECKPOINT("Generation " + std::to_string(count_generations));
         LOG_DEBUG("RAM Usage: " << Utils::get_current_ram_usage());
         STOP_WATCH_START(sample_population);
         sample_population(monitor, proxy, population);
         STOP_WATCH_FINISH(sample_population, "EvolutionPopulationSampling");
-        LOG_INFO("Generation: " + std::to_string(count_generations++) +
+        LOG_INFO("Generation: " + std::to_string(count_generations) +
                  ". Sampled: " + std::to_string(population.size()) + " individuals.");
         proxy->new_population_sampled(population);
         if (population.size() > 0) {
@@ -308,8 +308,11 @@ void QueryEvolutionProcessor::evolve_query(shared_ptr<StoppableThread> monitor,
             selected.clear();
             proxy->flush_answer_bundle();
         }
+        RAM_FOOTPRINT_CHECK(evolution, "Generation " + std::to_string(count_generations));
+        count_generations++;
     }
     STOP_WATCH_FINISH(evolution, "QueryEvolution");
+    RAM_FOOTPRINT_FINISH(evolution, "");
     Utils::sleep(1000);
     proxy->query_processing_finished();
 }

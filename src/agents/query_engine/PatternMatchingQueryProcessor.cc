@@ -70,9 +70,8 @@ void PatternMatchingQueryProcessor::update_attention_broker_single_answer(
     set<string> single_answer;
     stack<string> execution_stack;
 
-    for (unsigned int i = 0; i < answer->handles_size; i++) {
-        string handle = string(answer->handles[i]);
-        execution_stack.push(string(answer->handles[i]));
+    for (string handle: answer->handles) {
+        execution_stack.push(handle);
     }
 
     while (!execution_stack.empty()) {
@@ -154,7 +153,7 @@ void PatternMatchingQueryProcessor::process_query_answers(
 
 void PatternMatchingQueryProcessor::thread_process_one_query(
     shared_ptr<StoppableThread> monitor, shared_ptr<PatternMatchingQueryProxy> proxy) {
-    LOG_DEBUG("RAM usage before query: " << Utils::get_current_ram_usage());
+    RAM_CHECKPOINT("Before query");
     STOP_WATCH_START(query_thread);
     try {
         proxy->untokenize(proxy->args);
@@ -189,7 +188,7 @@ void PatternMatchingQueryProcessor::thread_process_one_query(
                 }
                 proxy->flush_answer_bundle();
                 STOP_WATCH_FINISH(query_thread, "PatternMatchingQuery");
-                LOG_DEBUG("RAM usage after query: " << Utils::get_current_ram_usage());
+                RAM_CHECKPOINT("After query");
                 if (proxy->parameters.get<bool>(PatternMatchingQueryProxy::COUNT_FLAG) &&
                     (!proxy->is_aborting())) {
                     LOG_DEBUG("Answering count_only query");

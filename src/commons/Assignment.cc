@@ -69,12 +69,16 @@ unsigned int Assignment::variable_count() { return this->table.size(); }
 
 string Assignment::to_string() {
     string answer = "{";
+    bool empty_flag = true;
     for (auto pair: this->table) {
         answer += "(" + pair.first + ": " + pair.second + ")";
         answer += ", ";
+        empty_flag = false;
     }
-    answer.pop_back();
-    answer.pop_back();
+    if (! empty_flag) {
+        answer.pop_back();
+        answer.pop_back();
+    }
     answer += "}";
     return answer;
 }

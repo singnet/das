@@ -37,11 +37,10 @@ QueryAnswer* QueryAnswer::copy(QueryAnswer* other) {  // Static method
 bool QueryAnswer::merge(QueryAnswer* other, bool merge_handles) {
     if (this->assignment.is_compatible(other->assignment)) {
         this->assignment.add_assignments(other->assignment);
-        bool already_exist;
         if (merge_handles) {
             this->importance = fmax(this->importance, other->importance);
             this->strength = this->strength * other->strength;
-            this->handles.insert(other.handles.begin(), other.handles.end());
+            this->handles.insert(other->handles.begin(), other->handles.end());
         }
         return true;
     } else {
@@ -52,12 +51,16 @@ bool QueryAnswer::merge(QueryAnswer* other, bool merge_handles) {
 string QueryAnswer::to_string() {
     string answer = "QueryAnswer<" + std::to_string(this->handles.size()) + ",";
     answer += std::to_string(this->assignment.variable_count()) + "> [";
+    bool empty_flag = true;
     for (string handle: this->handles) {
         answer += handle;
         answer += ", ";
+        empty_flag = false;
     }
-    answer.pop_back();
-    answer.pop_back();
+    if (! empty_flag) {
+        answer.pop_back();
+        answer.pop_back();
+    }
     answer += "] " + this->assignment.to_string();
     answer += " (" + std::to_string(this->strength) + ", " + std::to_string(this->importance) + ")";
     return answer;
@@ -73,7 +76,7 @@ const string& QueryAnswer::tokenize() {
     unsigned int char_count = 13    // strength with 10 decimals + space
                               + 13  // importance with 10 decimals + space
                               + 4   // (up to 3 digits) to represent this->handles.size() + space
-                              + this->handles_size * (HANDLE_HASH_SIZE + 1)  // handles + spaces
+                              + this->handles.size() * (HANDLE_HASH_SIZE + 1)  // handles + spaces
                               + 4  // (up to 3 digits) to represent this->assignment.size + space
                               + this->assignment.table.size() * (MAX_VARIABLE_NAME_SIZE + HANDLE_HASH_SIZE + 2);  // label<space>handle<space>
 

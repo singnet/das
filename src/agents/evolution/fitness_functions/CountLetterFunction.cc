@@ -11,7 +11,7 @@ char CountLetterFunction::LETTER_TO_COUNT = 'c';
 CountLetterFunction::CountLetterFunction() { this->db = AtomDBSingleton::get_instance(); }
 
 float CountLetterFunction::eval(shared_ptr<QueryAnswer> query_answer) {
-    if (query_answer->handles_size != 1) {
+    if (query_answer->handles.size() != 1) {
         Utils::error("Invalid answer in CountLetterFunction");
         return 0;
     } else {

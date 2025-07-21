@@ -42,12 +42,12 @@ TEST(Iterator, basics) {
 
     EXPECT_FALSE(query_answer_iterator.finished());
     qa = dynamic_cast<QueryAnswer*>(query_answer_iterator.pop());
-    EXPECT_TRUE(strcmp(qa->handles[0], "h0") == 0);
+    EXPECT_TRUE(*(qa->handles.begin()) == "h0");
     EXPECT_TRUE(double_equals(qa->importance, 0.0));
 
     EXPECT_FALSE(query_answer_iterator.finished());
     qa = dynamic_cast<QueryAnswer*>(query_answer_iterator.pop());
-    EXPECT_TRUE(strcmp(qa->handles[0], "h1") == 0);
+    EXPECT_TRUE(*(qa->handles.begin()) == "h1");
     EXPECT_TRUE(double_equals(qa->importance, 0.1));
 
     qa = dynamic_cast<QueryAnswer*>(query_answer_iterator.pop());
@@ -64,7 +64,7 @@ TEST(Iterator, basics) {
 
     EXPECT_FALSE(query_answer_iterator.finished());
     qa = dynamic_cast<QueryAnswer*>(query_answer_iterator.pop());
-    EXPECT_TRUE(strcmp(qa->handles[0], "h2") == 0);
+    EXPECT_TRUE(*(qa->handles.begin()) == "h2");
     EXPECT_TRUE(double_equals(qa->importance, 0.2));
     EXPECT_TRUE(query_answer_iterator.finished());
 }

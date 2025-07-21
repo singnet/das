@@ -96,6 +96,7 @@ class Properties : public unordered_map<string, PropertyValue> {
         }
         std::sort(keys.begin(), keys.end());
 
+        bool empty_flag = true;
         for (const auto& key : keys) {
             const auto& value = this->at(key);
             result += key + ": ";
@@ -111,11 +112,14 @@ class Properties : public unordered_map<string, PropertyValue> {
                 result += *boolean ? "true" : "false";
             }
             result += ", ";
+            empty_flag = false;
         }
 
         // Remove the last comma and space
-        result.pop_back();
-        result.pop_back();
+        if (! empty_flag) {
+            result.pop_back();
+            result.pop_back();
+        }
 
         return result + "}";
     }

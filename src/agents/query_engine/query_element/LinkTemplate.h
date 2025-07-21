@@ -34,8 +34,8 @@ class LinkTemplate : public QueryElement {
         SourceElement() { buffers_set_up_flag = false; }
         string get_attention_broker_address() { return this->attention_broker_address; }
         void add_handle(char* handle, float importance, Assignment& assignment) {
-            QueryAnswer* answer = new QueryAnswer(strdup(handle), importance);
-            answer->assignment.copy_from(assignment);
+            QueryAnswer* answer = new QueryAnswer(string(handle), importance);
+            answer->assignment = assignment;
             this->output_buffer->add_query_answer(answer);
         }
         void query_answers_finished() { this->output_buffer->query_answers_finished(); }

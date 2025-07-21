@@ -26,6 +26,24 @@ class StopWatch {
     chrono::steady_clock::duration accumulator;
 };
 
+class MemoryFootprint {
+   public:
+    MemoryFootprint();
+    ~MemoryFootprint();
+    void start();
+    void check(const string& tag = "");
+    void stop(const string& tag = "");
+    long delta_usage(bool since_last_check = false);
+    string to_string();
+
+   private:
+    bool running;
+    unsigned long start_snapshot;
+    unsigned long last_snapshot;
+    unsigned long final_snapshot;
+    vector<pair<long, string>> delta_ram;
+};
+
 class Utils {
    public:
     Utils();
