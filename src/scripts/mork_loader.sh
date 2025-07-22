@@ -16,6 +16,7 @@ CONTAINER_NAME="das-mork-loader"
 docker run --rm \
     --name="${CONTAINER_NAME}" \
     --network host \
+    -p 9000:9000 \
     --volume "${FILE}":/app/file.metta \
     --workdir /app \
     "${IMAGE_NAME}" \
