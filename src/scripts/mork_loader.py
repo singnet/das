@@ -116,7 +116,8 @@ def main():
             file_uri = f"http://{file_server.server.server_address[0]}:{file_server.server.server_address[1]}/{dest.name}"
             load_s_expressions(file_uri)
             print("Done!")
-    except Exception:
+    except Exception as e:
+        print(f"Error: {e}")
         raise RuntimeError("Failed to load the MeTTa file. Please check the file and try again.")
 
 
