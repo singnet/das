@@ -11,7 +11,7 @@ fi
 
 IMAGE_NAME="trueagi/das:mork-loader-0.10.2"
 
-CONTAINER_NAME="das-mork-loader-$(uuidgen | cut -d '-' -f 1)-$(date +%Y%m%d%H%M%S)"
+CONTAINER_NAME="das-mork-loader"
 
 docker run --rm \
     --name="${CONTAINER_NAME}" \
