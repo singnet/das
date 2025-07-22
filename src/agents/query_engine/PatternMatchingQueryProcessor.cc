@@ -153,11 +153,9 @@ void PatternMatchingQueryProcessor::process_query_answers(
 
 void PatternMatchingQueryProcessor::thread_process_one_query(
     shared_ptr<StoppableThread> monitor, shared_ptr<PatternMatchingQueryProxy> proxy) {
-    RAM_CHECKPOINT("Before query");
     STOP_WATCH_START(query_thread);
     try {
         proxy->untokenize(proxy->args);
-        LOG_DEBUG("proxy: " + proxy->to_string());
         LOG_DEBUG("Setting up query tree");
         shared_ptr<QueryElement> root_query_element = setup_query_tree(proxy);
         set<string> joint_answer;  // used to stimulate attention broker
@@ -188,7 +186,6 @@ void PatternMatchingQueryProcessor::thread_process_one_query(
                 }
                 proxy->flush_answer_bundle();
                 STOP_WATCH_FINISH(query_thread, "PatternMatchingQuery");
-                RAM_CHECKPOINT("After query");
                 if (proxy->parameters.get<bool>(PatternMatchingQueryProxy::COUNT_FLAG) &&
                     (!proxy->is_aborting())) {
                     LOG_DEBUG("Answering count_only query");
@@ -314,7 +311,6 @@ shared_ptr<QueryElement> PatternMatchingQueryProcessor::build_link_template(
         proxy->get_context(),
         proxy->parameters.get<bool>(PatternMatchingQueryProxy::POSITIVE_IMPORTANCE_FLAG),
         proxy->parameters.get<bool>(BaseQueryProxy::USE_LINK_TEMPLATE_CACHE));
-    LOG_INFO("LinkTemplate: " + link_template->to_string());
     return link_template;
 }
 

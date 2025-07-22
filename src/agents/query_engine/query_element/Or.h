@@ -33,7 +33,7 @@ class Or : public Operator<N> {
      * the Or operation ends.
      */
     Or(const array<shared_ptr<QueryElement>, N>& clauses,
-       vector<shared_ptr<QueryElement>>& link_templates = {})
+       const vector<shared_ptr<QueryElement>>& link_templates = {})
         : Operator<N>(clauses) {
         initialize(clauses);
         this->link_templates = link_templates;

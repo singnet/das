@@ -4,6 +4,7 @@ import csv
 csv_reader = csv.reader(sys.stdin)
 
 print("--------------------------------------------------------------------------------")
+print("Raw time data\n")
 elements = {}
 for row in csv_reader:
     print(",".join(row))
@@ -15,6 +16,7 @@ for row in csv_reader:
         elements[tag] = [int(time)]
 
 print("--------------------------------------------------------------------------------")
+print("Joint time data\n")
 print(",".join(["Tag", "N", "Min", "Median", "Max"]))
 for key in elements:
     elements[key].sort()

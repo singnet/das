@@ -42,4 +42,9 @@ void Source::setup_buffers() {
     this->output_buffer = make_shared<QueryNodeClient>(this->id, this->subsequent_id);
 }
 
-void Source::graceful_shutdown() { this->output_buffer->graceful_shutdown(); }
+void Source::graceful_shutdown() { 
+    if (is_flow_finished()) {
+        return;
+    }
+    this->output_buffer->graceful_shutdown(); 
+}
