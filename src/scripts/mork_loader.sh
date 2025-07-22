@@ -18,6 +18,7 @@ docker run --rm \
     --network host \
     -p 9000:9000 \
     --volume "${FILE}":/app/file.metta \
+    --volume src/scripts/mork_loader.py:/app/mork_loader.py \
     --workdir /app \
     "${IMAGE_NAME}" \
     --file /app/file.metta

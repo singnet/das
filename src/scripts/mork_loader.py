@@ -105,6 +105,7 @@ def load_s_expressions(
     Loads S-expressions from the given URI via the MORK server.
     """
     client = MorkClient(base_url=mork_server_address)
+    print(f"Loading S-expressions from {uri} via {mork_server_address}")
     return client.import_uri(pattern="$x", template="$x", uri=uri)
 
 
