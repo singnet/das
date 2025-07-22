@@ -35,7 +35,8 @@ string RedisMongoDB::MONGODB_FIELD_NAME[MONGODB_FIELD::size];
 uint RedisMongoDB::MONGODB_CHUNK_SIZE;
 mongocxx::instance RedisMongoDB::MONGODB_INSTANCE;
 
-RedisMongoDB::RedisMongoDB() {
+RedisMongoDB::RedisMongoDB(const string& context) {
+    initialize_statics(context);
     redis_setup();
     mongodb_setup();
     load_pattern_index_schema();
@@ -850,6 +851,7 @@ void RedisMongoDB::add_pattern_index_schema(const string& tokens,
 }
 
 void RedisMongoDB::load_pattern_index_schema() {
+    this->pattern_index_schema_map.clear();
     auto conn = this->mongodb_pool->acquire();
     auto mongodb_collection = (*conn)[MONGODB_DB_NAME][MONGODB_PATTERN_INDEX_SCHEMA_COLLECTION_NAME];
     auto cursor = mongodb_collection.find({});
@@ -905,15 +907,71 @@ vector<string> RedisMongoDB::match_pattern_index_schema(const Link* link) {
     return pattern_handles;
 }
 
+void RedisMongoDB::re_index_patterns() {
+    vector<Link*> links;
+    auto conn = this->mongodb_pool->acquire();
+    auto mongodb_collection = (*conn)[MONGODB_DB_NAME][MONGODB_LINKS_COLLECTION_NAME];
+    auto cursor = mongodb_collection.find({});
+    for (const auto& view : cursor) {
+        vector<string> targets;
+        for (const auto& target : view["targets"].get_array().value) {
+            targets.push_back(target.get_string().value.data());
+        }
+        links.push_back(new Link(view["named_type"].get_string().value.data(), targets));
+    }
+
+    // Load pattern index schema
+    load_pattern_index_schema();
+
+    // Flush Redis patterns indexes
+    flush_redis_by_prefix(REDIS_PATTERNS_PREFIX);
+
+    // Re-index patterns
+    for (const auto& link : links) {
+        auto pattern_handles = match_pattern_index_schema(link);
+        for (const auto& pattern_handle : pattern_handles) {
+            add_pattern(pattern_handle, link->handle());
+        }
+    }
+}
+
+void RedisMongoDB::flush_redis_by_prefix(const string& prefix) {
+    auto ctx = this->redis_pool->acquire();
+    std::string cursor = "0";
+    do {
+        std::string scan_cmd =
+            "SCAN " + cursor + " MATCH " + prefix + ":* COUNT " + to_string(REDIS_CHUNK_SIZE);
+        redisReply* reply = ctx->execute(scan_cmd.c_str());
+        if (reply == NULL || reply->type != REDIS_REPLY_ARRAY || reply->elements < 2) {
+            Utils::error("Redis error at flush_redis_by_prefix");
+        }
+        cursor = reply->element[0]->str;
+        redisReply* keys = reply->element[1];
+        if (keys->type == REDIS_REPLY_ARRAY && keys->elements > 0) {
+            std::string del_cmd = "DEL";
+            for (size_t i = 0; i < keys->elements; ++i) {
+                del_cmd += " ";
+                del_cmd += keys->element[i]->str;
+            }
+            redisReply* del_reply = ctx->execute(del_cmd.c_str());
+            if (del_reply == NULL) {
+                Utils::error("Redis error at flush_redis_by_prefix");
+            }
+            freeReplyObject(del_reply);
+        }
+        freeReplyObject(reply);
+    } while (cursor != "0");
+}
+
 void RedisMongoDB::drop_all() {
     // Drop MongoDB database
     auto conn = this->mongodb_pool->acquire();
     (*conn)[MONGODB_DB_NAME].drop();
-    // Drop Redis database
+    // Drop Redis database (by prefixes)
     auto ctx = this->redis_pool->acquire();
-    auto reply = ctx->execute("FLUSHALL");
-    if (reply->type != REDIS_REPLY_STATUS) {
-        Utils::error("Failed to flush Redis database");
+    vector<string> keys = {REDIS_PATTERNS_PREFIX, REDIS_OUTGOING_PREFIX, REDIS_INCOMING_PREFIX};
+    for (const auto& key : keys) {
+        flush_redis_by_prefix(key);
     }
 
     // We need to reset next scores to 0 to avoid remainings from previous runs

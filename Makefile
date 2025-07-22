@@ -67,7 +67,7 @@ agents:
 	@bash -x src/scripts/run_agents.sh $(filter-out $@, $(MAKECMDGOALS))
 
 run-tests-db-loader:
-	@bash -x src/scripts/run.sh tests_db_loader
+	@bash -x src/scripts/run.sh tests_db_loader $(CONTEXT)
 
 setup-nunet-dms:
 	@bash -x src/scripts/setup-nunet-dms.sh
