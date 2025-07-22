@@ -10,7 +10,6 @@ else
 fi
 
 IMAGE_NAME="trueagi/das:mork-loader-0.10.2"
-
 CONTAINER_NAME="das-mork-loader"
 
 docker run --rm \
@@ -18,8 +17,6 @@ docker run --rm \
     --network host \
     -p 9000:9000 \
     --volume "${FILE}":/app/file.metta \
-    --volume `pwd`/src/scripts/mork_loader.py:/app/mork_loader.py \
-    --privileged \
     --workdir /app \
     "${IMAGE_NAME}" \
     --file /app/file.metta
