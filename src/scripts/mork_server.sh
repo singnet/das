@@ -8,4 +8,5 @@ CONTAINER_NAME="das-mork-server"
 docker run --rm \
     --name="${CONTAINER_NAME}" \
     --network host \
+    --privileged \
     "${IMAGE_NAME}" "$@"
