@@ -118,6 +118,11 @@ def main():
             load_s_expressions(file_uri)
             print("Done!")
     except Exception as e:
+        # check if /tmp/file.metta exists by printing its content
+        if Path("/tmp/file.metta").exists():
+            print(Path("/tmp/file.metta").read_text())
+        else:
+            print("File not found")
         raise RuntimeError(f"Failed to load the MeTTa file: {e}")
 
 
