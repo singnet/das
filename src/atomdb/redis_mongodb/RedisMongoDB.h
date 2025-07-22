@@ -27,7 +27,7 @@ enum MONGODB_FIELD { ID = 0, NAME, TARGETS, NAMED_TYPE, size };
 
 class RedisMongoDB : public AtomDB {
    public:
-    RedisMongoDB();
+    RedisMongoDB(const string& context = "");
     ~RedisMongoDB();
 
     static string REDIS_PATTERNS_PREFIX;
@@ -42,15 +42,15 @@ class RedisMongoDB : public AtomDB {
     static uint MONGODB_CHUNK_SIZE;
     static mongocxx::instance MONGODB_INSTANCE;
 
-    static void initialize_statics() {
-        REDIS_PATTERNS_PREFIX = "patterns";
-        REDIS_OUTGOING_PREFIX = "outgoing_set";
-        REDIS_INCOMING_PREFIX = "incoming_set";
+    static void initialize_statics(const string& context = "") {
+        REDIS_PATTERNS_PREFIX = context + "patterns";
+        REDIS_OUTGOING_PREFIX = context + "outgoing_set";
+        REDIS_INCOMING_PREFIX = context + "incoming_set";
         REDIS_CHUNK_SIZE = 10000;
-        MONGODB_DB_NAME = "das";
-        MONGODB_NODES_COLLECTION_NAME = "nodes";
-        MONGODB_LINKS_COLLECTION_NAME = "links";
-        MONGODB_PATTERN_INDEX_SCHEMA_COLLECTION_NAME = "pattern_index_schema";
+        MONGODB_DB_NAME = context + "das";
+        MONGODB_NODES_COLLECTION_NAME = context + "nodes";
+        MONGODB_LINKS_COLLECTION_NAME = context + "links";
+        MONGODB_PATTERN_INDEX_SCHEMA_COLLECTION_NAME = context + "pattern_index_schema";
         MONGODB_FIELD_NAME[MONGODB_FIELD::ID] = "_id";
         MONGODB_FIELD_NAME[MONGODB_FIELD::TARGETS] = "targets";
         MONGODB_FIELD_NAME[MONGODB_FIELD::NAME] = "name";
@@ -103,12 +103,15 @@ class RedisMongoDB : public AtomDB {
     uint delete_links(const vector<string>& handles, bool delete_link_targets = false);
 
     void add_pattern_index_schema(const string& tokens, const vector<vector<string>>& index_entries);
+    void re_index_patterns();
+    void flush_redis_by_prefix(const string& prefix);
 
     void drop_all();
 
     mongocxx::pool* get_mongo_pool() const { return mongodb_pool; }
 
    private:
+    string context;
     bool cluster_flag;
     RedisContextPool* redis_pool;
     mongocxx::pool* mongodb_pool;

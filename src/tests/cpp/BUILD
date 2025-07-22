@@ -591,6 +591,7 @@ cc_test(
     deps = [
         "//atomdb:atomdb_singleton",
         "//tests/cpp/test_commons",
+        "//tests/cpp/test_commons:mock_animals_data_lib",
         "@com_github_google_googletest//:gtest_main",
         "@mbedtls",
     ],
