@@ -2,7 +2,7 @@
 
 set -eoux pipefail
 
-IMAGE_NAME="das-mork-server"
+IMAGE_NAME="trueagi/das:mork-server-0.10.2"
 CONTAINER_NAME="das-mork-server-$(uuidgen | cut -d '-' -f 1)-$(date +%Y%m%d%H%M%S)"
 
 docker run --rm \
