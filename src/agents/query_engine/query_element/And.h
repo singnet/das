@@ -45,7 +45,7 @@ class And : public Operator<N> {
     ~And() {
         graceful_shutdown();
         for (size_t i = 0; i < N; i++) {
-            for (auto answer: this->query_answer[i]) {
+            for (auto answer : this->query_answer[i]) {
                 delete answer;
             }
             this->query_answer[i].clear();

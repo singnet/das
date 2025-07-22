@@ -49,7 +49,7 @@ void UniqueAssignmentFilter::thread_filter() {
 
     while (true) {
         if ((this->input_buffer[0]->is_query_answers_finished() &&
-            this->input_buffer[0]->is_query_answers_empty()) || 
+             this->input_buffer[0]->is_query_answers_empty()) ||
             Operator<1>::is_flow_finished()) {
             this->output_buffer->query_answers_finished();
             break;
