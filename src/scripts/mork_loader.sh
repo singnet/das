@@ -19,6 +19,7 @@ docker run --rm \
     -p 9000:9000 \
     --volume "${FILE}":/app/file.metta \
     --volume `pwd`/src/scripts/mork_loader.py:/app/mork_loader.py \
+    --privileged \
     --workdir /app \
     "${IMAGE_NAME}" \
     --file /app/file.metta
