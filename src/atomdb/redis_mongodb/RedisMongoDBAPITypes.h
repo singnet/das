@@ -14,6 +14,7 @@
 #include "AtomDBAPITypes.h"
 #include "HandleDecoder.h"
 #include "Node.h"
+#include "Properties.h"
 #include "Utils.h"
 
 using namespace std;
@@ -79,7 +80,10 @@ class MongodbDocument : public AtomDocument {
     virtual const char* get(const string& array_key, unsigned int index);
     virtual unsigned int get_size(const string& array_key);
     virtual bool contains(const string& key);
+
     bsoncxx::v_noabi::document::value value();
+    bsoncxx::v_noabi::document::view get_object(const string& key);
+    Properties extract_custom_attributes(const bsoncxx::v_noabi::document::view& doc);
 
    private:
     bsoncxx::v_noabi::stdx::optional<bsoncxx::v_noabi::document::value> document;

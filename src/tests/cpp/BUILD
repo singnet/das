@@ -1,6 +1,24 @@
+load("@rules_cc//cc:cc_library.bzl", "cc_library")
 load("@rules_cc//cc:cc_test.bzl", "cc_test")
 
 package(default_visibility = ["//visibility:public"])
+
+# Test environment library
+cc_library(
+    name = "test_environment_lib",
+    srcs = [
+        "test_environment.cc",
+        "test_environment.h",
+    ],
+    hdrs = ["test_environment.h"],
+    deps = [
+        "//atomdb:atomdb_singleton",
+        "//commons:commons_lib",
+        "//commons/atoms:atoms_lib",
+        "//service_bus:service_bus_lib",
+        "@com_github_google_googletest//:gtest",
+    ],
+)
 
 cc_test(
     name = "shared_queue_test",
@@ -202,6 +220,7 @@ cc_test(
     linkstatic = 1,
     deps = [
         "//agents/query_engine:query_engine_lib",
+        "//tests/cpp/test_commons",
         "@com_github_google_googletest//:gtest_main",
         "@mbedtls",
     ],
@@ -230,6 +249,7 @@ cc_test(
     deps = [
         "//agents/query_engine:query_engine_lib",
         "//atomdb:atomdb_singleton",
+        "//tests/cpp/test_commons",
         "@com_github_google_googletest//:gtest_main",
         "@mbedtls",
     ],
@@ -332,6 +352,7 @@ cc_test(
     linkstatic = 1,
     deps = [
         "//agents/query_engine:query_engine_lib",
+        "//tests/cpp/test_commons",
         "@com_github_google_googletest//:gtest_main",
         "@mbedtls",
     ],
@@ -440,6 +461,7 @@ cc_test(
         "//agents/query_engine:query_engine_lib",
         "//atomdb:atomdb_singleton",
         "//service_bus:service_bus_lib",
+        "//tests/cpp/test_commons",
         "@com_github_google_googletest//:gtest_main",
     ],
 )
@@ -455,6 +477,7 @@ cc_test(
     linkstatic = 1,
     deps = [
         "//agents/evolution:evolution_lib",
+        "//tests/cpp/test_commons",
         "@com_github_google_googletest//:gtest_main",
     ],
 )
@@ -540,6 +563,7 @@ cc_test(
         "//commons:commons_lib",
         "//commons/atoms:atoms_lib",
         "//service_bus:service_bus_lib",
+        "//tests/cpp/test_commons",
         "@com_github_google_googletest//:gtest_main",
     ],
 )
@@ -566,6 +590,7 @@ cc_test(
     linkstatic = 1,
     deps = [
         "//atomdb:atomdb_singleton",
+        "//tests/cpp/test_commons",
         "@com_github_google_googletest//:gtest_main",
         "@mbedtls",
     ],

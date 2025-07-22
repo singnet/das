@@ -42,6 +42,7 @@ if [ "$BUILD_BINARIES" = true ]; then
     BUILD_TARGETS+=" //:evolution_client"
     BUILD_TARGETS+=" //:query"
     BUILD_TARGETS+=" //:das"
+    BUILD_TARGETS+=" //:tests_db_loader"
 
     MOVE_BIN_TARGETS+=" bazel-bin/inference_agent_server"
     MOVE_BIN_TARGETS+=" bazel-bin/inference_agent_client"
@@ -54,6 +55,7 @@ if [ "$BUILD_BINARIES" = true ]; then
     MOVE_BIN_TARGETS+=" bazel-bin/evolution_broker"
     MOVE_BIN_TARGETS+=" bazel-bin/evolution_client"
     MOVE_BIN_TARGETS+=" bazel-bin/query"
+    MOVE_BIN_TARGETS+=" bazel-bin/tests_db_loader"
 
     MOVE_LIB_TARGETS+=" bazel-bin/hyperon_das.so"
 fi

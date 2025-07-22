@@ -13,6 +13,7 @@
 #include "MettaMapping.h"
 #include "Node.h"
 #include "RedisMongoDB.h"
+#include "TestConfig.h"
 
 using namespace atomdb;
 using namespace atoms;
@@ -31,14 +32,8 @@ class MockDecoder : public HandleDecoder {
 class RedisMongoDBTestEnvironment : public ::testing::Environment {
    public:
     void SetUp() override {
-        setenv("DAS_REDIS_HOSTNAME", "localhost", 1);
-        setenv("DAS_REDIS_PORT", "29000", 1);
-        setenv("DAS_USE_REDIS_CLUSTER", "false", 1);
-        setenv("DAS_MONGODB_HOSTNAME", "localhost", 1);
-        setenv("DAS_MONGODB_PORT", "28000", 1);
-        setenv("DAS_MONGODB_USERNAME", "dbadmin", 1);
-        setenv("DAS_MONGODB_PASSWORD", "dassecret", 1);
-        setenv("DAS_DISABLE_ATOMDB_CACHE", "true", 1);
+        TestConfig::load_environment();
+        TestConfig::disable_atomdb_cache();
         AtomDBSingleton::init();
     }
 };
@@ -648,6 +643,105 @@ TEST_F(RedisMongoDBTest, QueryForIncomingSet) {
     EXPECT_EQ(handle_set->size(), 0);
 
     EXPECT_EQ(db->atoms_exist(handles).size(), 0);
+}
+
+TEST_F(RedisMongoDBTest, QueryForSimilarityIncomingSet) {
+    vector<string> handles;
+
+    // This node is referenced by other links.
+    auto similarity = new Node("Symbol", "Similarity");
+    auto handle_set = db->query_for_incoming_set(similarity->handle());
+    EXPECT_EQ(handle_set->size(), 15);
+
+    auto n1 = new Node("Symbol", "N1");
+    auto n2 = new Node("Symbol", "N2");
+    handles.push_back(db->add_node(n1));
+    handles.push_back(db->add_node(n2));
+
+    auto link = new Link("Expression", {similarity->handle(), n1->handle(), n2->handle()});
+    handles.push_back(db->add_link(link));
+
+    handle_set = db->query_for_incoming_set(similarity->handle());
+    EXPECT_EQ(handle_set->size(), 16);
+
+    EXPECT_TRUE(db->delete_link(link->handle(), true));
+    handle_set = db->query_for_incoming_set(similarity->handle());
+    EXPECT_EQ(handle_set->size(), 15);
+
+    EXPECT_EQ(db->atoms_exist(handles).size(), 0);
+}
+
+TEST_F(RedisMongoDBTest, AddLinkAndQueryForSimilarityPattern) {
+    vector<string> handles;
+
+    // (Similarity * *)
+    auto similarity_link_schema = new LinkSchemaHandle("dabd1f087cf4a9739911c0385fae0819");
+    auto handle_set = db->query_for_pattern(*similarity_link_schema);
+    EXPECT_EQ(handle_set->size(), 14);
+
+    auto symbol = new Node("Symbol", "Similarity");
+    auto n1 = new Node("Symbol", "N1");
+    auto n2 = new Node("Symbol", "N2");
+
+    handles.push_back(db->add_node(n1));
+    handles.push_back(db->add_node(n2));
+
+    auto link_1 = new Link("Expression", {symbol->handle(), n1->handle(), n2->handle()});
+    auto link_2 = new Link("Expression", {symbol->handle(), n2->handle(), n1->handle()});
+    handles.push_back(db->add_link(link_1));
+    handles.push_back(db->add_link(link_2));
+
+    // (Similarity * *) must have 2 more links
+    handle_set = db->query_for_pattern(*similarity_link_schema);
+    EXPECT_EQ(handle_set->size(), 16);
+
+    EXPECT_TRUE(db->delete_link(link_1->handle()));
+    handle_set = db->query_for_pattern(*similarity_link_schema);
+    EXPECT_EQ(handle_set->size(), 15);
+
+    EXPECT_TRUE(db->delete_link(link_2->handle(), true));
+    handle_set = db->query_for_pattern(*similarity_link_schema);
+    EXPECT_EQ(handle_set->size(), 14);
+
+    EXPECT_EQ(db->atoms_exist(handles).size(), 0);
+}
+
+TEST_F(RedisMongoDBTest, GetAtomWithCustomAttributes) {
+    auto node_with_no_custom_attributes = new Node("Symbol", "NodeWithNoCustomAttributes");
+    db->add_node(node_with_no_custom_attributes);
+    auto atom_with_no_custom_attributes = db->get_atom(node_with_no_custom_attributes->handle());
+    EXPECT_EQ(atom_with_no_custom_attributes->custom_attributes.empty(), true);
+    EXPECT_EQ(db->delete_atom(node_with_no_custom_attributes->handle()), true);
+
+    Properties custom_attributes(
+        {{"key_string", "string"}, {"key_long", 1}, {"key_double", 1.55}, {"key_bool", true}});
+    auto node_with_custom_attributes = new Node("Symbol", "NodeWithCustomAttributes", custom_attributes);
+    db->add_node(node_with_custom_attributes);
+
+    auto atom_with_custom_attributes = db->get_atom(node_with_custom_attributes->handle());
+
+    const string* string_value =
+        atom_with_custom_attributes->custom_attributes.get_ptr<string>("key_string");
+    EXPECT_EQ(*string_value, "string");
+    const long* long_value = atom_with_custom_attributes->custom_attributes.get_ptr<long>("key_long");
+    EXPECT_EQ(*long_value, 1L);
+    const double* double_value =
+        atom_with_custom_attributes->custom_attributes.get_ptr<double>("key_double");
+    EXPECT_EQ(*double_value, 1.55);
+    const bool* bool_value = atom_with_custom_attributes->custom_attributes.get_ptr<bool>("key_bool");
+    EXPECT_EQ(*bool_value, true);
+
+    EXPECT_EQ(db->delete_atom(node_with_custom_attributes->handle()), true);
+
+    // MongoDB does not support unsigned int.
+    Properties custom_attributes_2({{"key_unsigned_int", 1U}});
+    auto node_with_custom_attributes_2 =
+        new Node("Symbol", "NodeWithCustomAttributes2", custom_attributes_2);
+    try {
+        db->add_node(node_with_custom_attributes_2);
+    } catch (const exception& e) {
+        EXPECT_EQ(db->node_exists(node_with_custom_attributes_2->handle()), false);
+    }
 }
 
 int main(int argc, char** argv) {

@@ -145,26 +145,64 @@ unsigned int MongodbDocument::get_size(const string& array_key) {
     return ((*this->document)[array_key]).get_array().value.length() / HANDLE_HASH_SIZE;
 }
 
+bsoncxx::v_noabi::document::view MongodbDocument::get_object(const string& key) {
+    return ((*this->document)[key]).get_document().value;
+}
+
 bsoncxx::v_noabi::document::value MongodbDocument::value() { return this->document.value(); }
 
-void append_custom_attributes(bsoncxx::builder::basic::document& doc,
-                              const Properties& custom_attributes) {
-    for (const auto& [key, value] : custom_attributes) {
-        visit(
-            [&](auto&& arg) {
-                using T = decay_t<decltype(arg)>;
-                if constexpr (is_same_v<T, string>) {
-                    doc.append(bsoncxx::builder::basic::kvp(key, arg));
-                } else if constexpr (is_same_v<T, long>) {
-                    doc.append(bsoncxx::builder::basic::kvp(key, static_cast<int64_t>(arg)));
-                } else if constexpr (is_same_v<T, double>) {
-                    doc.append(bsoncxx::builder::basic::kvp(key, arg));
-                } else if constexpr (is_same_v<T, bool>) {
-                    doc.append(bsoncxx::builder::basic::kvp(key, arg));
-                }
-            },
-            value);
+void add_custom_attributes(bsoncxx::builder::basic::document& doc, const Properties& custom_attributes) {
+    if (!custom_attributes.empty()) {
+        bsoncxx::builder::basic::document custom_attributes_doc;
+        for (const auto& [key, value] : custom_attributes) {
+            visit(
+                [&](auto&& arg) {
+                    using T = decay_t<decltype(arg)>;
+                    if constexpr (is_same_v<T, string>) {
+                        custom_attributes_doc.append(bsoncxx::builder::basic::kvp(key, arg));
+                    } else if constexpr (is_same_v<T, long>) {
+                        custom_attributes_doc.append(
+                            bsoncxx::builder::basic::kvp(key, static_cast<int64_t>(arg)));
+                    } else if constexpr (is_same_v<T, double>) {
+                        custom_attributes_doc.append(bsoncxx::builder::basic::kvp(key, arg));
+                    } else if constexpr (is_same_v<T, bool>) {
+                        custom_attributes_doc.append(bsoncxx::builder::basic::kvp(key, arg));
+                    } else {
+                        // MongoDB does not support unsigned int.
+                        Utils::error("MongoDB does not support custom attribute '" + key +
+                                     "' with type: " + typeid(T).name());
+                    }
+                },
+                value);
+        }
+        doc.append(bsoncxx::builder::basic::kvp("custom_attributes", custom_attributes_doc));
     }
+}
+
+Properties MongodbDocument::extract_custom_attributes(const bsoncxx::v_noabi::document::view& doc) {
+    unordered_map<string, PropertyValue> custom_attributes;
+    for (auto it = doc.begin(); it != doc.end(); ++it) {
+        string key = it->key().data();
+        auto value = it->get_value();
+        switch (value.type()) {
+            case bsoncxx::v_noabi::type::k_string:
+                custom_attributes[key] = value.get_string().value.data();
+                break;
+            case bsoncxx::v_noabi::type::k_int64:
+                custom_attributes[key] = value.get_int64().value;
+                break;
+            case bsoncxx::v_noabi::type::k_double:
+                custom_attributes[key] = value.get_double().value;
+                break;
+            case bsoncxx::v_noabi::type::k_bool:
+                custom_attributes[key] = value.get_bool().value;
+                break;
+            default:
+                Utils::error("Unknown custom attribute type: " + key +
+                             " type: " + to_string(value.type()));
+        }
+    }
+    return Properties(custom_attributes.begin(), custom_attributes.end());
 }
 
 MongodbDocument::MongodbDocument(const atoms::Node* node) {
@@ -174,7 +212,7 @@ MongodbDocument::MongodbDocument(const atoms::Node* node) {
         "composite_type_hash", node->named_type_hash()));  // For nodes, composite type == named type
     doc.append(bsoncxx::builder::basic::kvp("name", node->name));
     doc.append(bsoncxx::builder::basic::kvp("named_type", node->type));
-    append_custom_attributes(doc, node->custom_attributes);
+    add_custom_attributes(doc, node->custom_attributes);
     this->document = doc.extract();
 }
 
@@ -197,6 +235,6 @@ MongodbDocument::MongodbDocument(const atoms::Link* link, HandleDecoder& db) {
     doc.append(bsoncxx::builder::basic::kvp("named_type", link->type));
     doc.append(bsoncxx::builder::basic::kvp("named_type_hash", link->named_type_hash()));
     doc.append(bsoncxx::builder::basic::kvp("targets", targets));
-    append_custom_attributes(doc, link->custom_attributes);
+    add_custom_attributes(doc, link->custom_attributes);
     this->document = doc.extract();
 }

@@ -14,6 +14,7 @@
 #include "Link.h"
 #include "Logger.h"
 #include "Node.h"
+#include "Properties.h"
 #include "Utils.h"
 #include "attention_broker.grpc.pb.h"
 #include "attention_broker.pb.h"
@@ -23,18 +24,21 @@ using namespace commons;
 using namespace atoms;
 
 string RedisMongoDB::REDIS_PATTERNS_PREFIX;
-string RedisMongoDB::REDIS_TARGETS_PREFIX;
+string RedisMongoDB::REDIS_OUTGOING_PREFIX;
 string RedisMongoDB::REDIS_INCOMING_PREFIX;
 uint RedisMongoDB::REDIS_CHUNK_SIZE;
 string RedisMongoDB::MONGODB_DB_NAME;
 string RedisMongoDB::MONGODB_NODES_COLLECTION_NAME;
 string RedisMongoDB::MONGODB_LINKS_COLLECTION_NAME;
+string RedisMongoDB::MONGODB_PATTERN_INDEX_SCHEMA_COLLECTION_NAME;
 string RedisMongoDB::MONGODB_FIELD_NAME[MONGODB_FIELD::size];
 uint RedisMongoDB::MONGODB_CHUNK_SIZE;
+mongocxx::instance RedisMongoDB::MONGODB_INSTANCE;
 
 RedisMongoDB::RedisMongoDB() {
     redis_setup();
     mongodb_setup();
+    load_pattern_index_schema();
     attention_broker_setup();
     bool disable_cache = (Utils::get_environment("DAS_DISABLE_ATOMDB_CACHE") == "true");
     this->atomdb_cache = disable_cache ? nullptr : AtomDBCacheSingleton::get_instance();
@@ -117,7 +121,6 @@ void RedisMongoDB::mongodb_setup() {
     string url = "mongodb://" + user + ":" + password + "@" + address;
 
     try {
-        mongocxx::instance instance;
         auto uri = mongocxx::uri{url};
         this->mongodb_pool = new mongocxx::pool(uri);
         // Health check using ping command
@@ -133,8 +136,14 @@ void RedisMongoDB::mongodb_setup() {
 }
 
 shared_ptr<Atom> RedisMongoDB::get_atom(const string& handle) {
-    shared_ptr<atomdb_api_types::AtomDocument> atom_document = get_atom_document(handle);
+    auto atom_document =
+        dynamic_pointer_cast<atomdb_api_types::MongodbDocument>(get_atom_document(handle));
     if (atom_document != NULL) {
+        Properties custom_attributes;
+        if (atom_document->contains("custom_attributes")) {
+            custom_attributes =
+                atom_document->extract_custom_attributes(atom_document->get_object("custom_attributes"));
+        }
         if (atom_document->contains(MONGODB_FIELD_NAME[MONGODB_FIELD::TARGETS])) {
             unsigned int arity = atom_document->get_size(MONGODB_FIELD_NAME[MONGODB_FIELD::TARGETS]);
             vector<string> targets;
@@ -142,16 +151,10 @@ shared_ptr<Atom> RedisMongoDB::get_atom(const string& handle) {
                 targets.push_back(
                     string(atom_document->get(MONGODB_FIELD_NAME[MONGODB_FIELD::TARGETS], i)));
             }
-            // NOTE TO REVIEWER
-            //     TODO We're missing custom_attributes here. I'm not sure how to deal with them.
-            //     I guess we should iterate through all the fields in atom_document and add anything
-            //     that's not an expected field (named_type, targets, composite_type,
-            //     composite_type_hash, etc) as a custom attribute. If this approach is OK, we should add
-            //     methods in AtomDocument's API to allow iterate through all the keys, which we
-            //     currently don't have.
-            return make_shared<Link>(atom_document->get("named_type"), targets);
+            return make_shared<Link>(atom_document->get("named_type"), targets, custom_attributes);
         } else {
-            return make_shared<Node>(atom_document->get("named_type"), atom_document->get("name"));
+            return make_shared<Node>(
+                atom_document->get("named_type"), atom_document->get("name"), custom_attributes);
         }
     } else {
         return shared_ptr<Atom>(NULL);
@@ -212,7 +215,7 @@ shared_ptr<atomdb_api_types::HandleList> RedisMongoDB::query_for_targets(const s
     redisReply* reply;
     try {
         auto ctx = this->redis_pool->acquire();
-        auto command = "GET " + REDIS_TARGETS_PREFIX + ":" + handle;
+        auto command = "GET " + REDIS_OUTGOING_PREFIX + ":" + handle;
         reply = ctx->execute(command.c_str());
 
         if (reply == NULL) Utils::error("Redis error at query_for_targets");
@@ -346,6 +349,34 @@ void RedisMongoDB::set_next_score(const string& key, uint score) {
     if (reply->type != REDIS_REPLY_STATUS) {
         Utils::error("Invalid Redis response at set_next_score: " + std::to_string(reply->type));
     }
+}
+
+void RedisMongoDB::reset_scores() {
+    this->patterns_next_score.store(0);
+    this->incoming_set_next_score.store(0);
+    this->set_next_score(REDIS_PATTERNS_PREFIX + ":next_score", this->patterns_next_score.load());
+    this->set_next_score(REDIS_INCOMING_PREFIX + ":next_score", this->incoming_set_next_score.load());
+}
+
+void RedisMongoDB::add_outgoing_set(const string& handle, const vector<string>& outgoing_handles) {
+    auto ctx = this->redis_pool->acquire();
+    string command = "SET " + REDIS_OUTGOING_PREFIX + ":" + handle + " ";
+    for (const auto& outgoing_handle : outgoing_handles) {
+        command += outgoing_handle;
+    }
+    redisReply* reply = ctx->execute(command.c_str());
+    if (reply == NULL) Utils::error("Redis error at add_outgoing_set");
+
+    if (reply->type != REDIS_REPLY_STATUS) {
+        Utils::error("Invalid Redis response at add_outgoing_set: " + std::to_string(reply->type));
+    }
+}
+
+void RedisMongoDB::delete_outgoing_set(const string& handle) {
+    auto ctx = this->redis_pool->acquire();
+    string command = "DEL " + REDIS_OUTGOING_PREFIX + ":" + handle;
+    redisReply* reply = ctx->execute(command.c_str());
+    if (reply == NULL) Utils::error("Redis error at delete_outgoing_set");
 }
 
 void RedisMongoDB::add_incoming_set(const string& handle, const string& incoming_handle) {
@@ -610,11 +641,16 @@ string RedisMongoDB::add_link(const atoms::Link* link) {
         return "";
     }
 
-    // TODO(arturgontijo): Fetch LTs from MongoDB to update patterns.
+    auto pattern_handles = match_pattern_index_schema(link);
+    for (const auto& pattern_handle : pattern_handles) {
+        add_pattern(pattern_handle, link->handle());
+    }
 
     for (const auto& target : existing_targets) {
         add_incoming_set(target->get(MONGODB_FIELD_NAME[MONGODB_FIELD::ID]), link->handle());
     }
+
+    add_outgoing_set(link->handle(), link->targets);
 
     auto conn = this->mongodb_pool->acquire();
     auto mongodb_collection = (*conn)[MONGODB_DB_NAME][MONGODB_LINKS_COLLECTION_NAME];
@@ -630,6 +666,10 @@ string RedisMongoDB::add_link(const atoms::Link* link) {
 }
 
 vector<string> RedisMongoDB::add_atoms(const vector<atoms::Atom*>& atoms) {
+    if (atoms.empty()) {
+        return {};
+    }
+
     vector<Node*> nodes;
     vector<Link*> links;
     for (const auto& atom : atoms) {
@@ -646,16 +686,21 @@ vector<string> RedisMongoDB::add_atoms(const vector<atoms::Atom*>& atoms) {
 }
 
 vector<string> RedisMongoDB::add_nodes(const vector<atoms::Node*>& nodes) {
-    auto conn = this->mongodb_pool->acquire();
-    auto mongodb_collection = (*conn)[MONGODB_DB_NAME][MONGODB_NODES_COLLECTION_NAME];
+    if (nodes.empty()) {
+        return {};
+    }
 
     vector<bsoncxx::v_noabi::document::value> docs;
     vector<string> handles;
+
     for (const auto& node : nodes) {
         auto mongodb_doc = atomdb_api_types::MongodbDocument(node);
         handles.push_back(node->handle());
         docs.push_back(mongodb_doc.value());
     }
+
+    auto conn = this->mongodb_pool->acquire();
+    auto mongodb_collection = (*conn)[MONGODB_DB_NAME][MONGODB_NODES_COLLECTION_NAME];
 
     auto reply = mongodb_collection.insert_many(docs);
 
@@ -667,6 +712,9 @@ vector<string> RedisMongoDB::add_nodes(const vector<atoms::Node*>& nodes) {
 }
 
 vector<string> RedisMongoDB::add_links(const vector<atoms::Link*>& links) {
+    if (links.empty()) {
+        return {};
+    }
     vector<string> handles;
     for (const auto& link : links) {
         handles.push_back(add_link(link));
@@ -674,7 +722,6 @@ vector<string> RedisMongoDB::add_links(const vector<atoms::Link*>& links) {
     return handles;
 }
 
-// TODO(arturgontijo): Need to delete handle from patterns set.
 bool RedisMongoDB::delete_document(const string& handle,
                                    const string& collection_name,
                                    bool delete_targets) {
@@ -689,7 +736,10 @@ bool RedisMongoDB::delete_document(const string& handle,
     while ((incoming_handle = it->next()) != nullptr) {
         delete_atom(incoming_handle, delete_targets);
     }
+
     delete_incoming_set(handle);
+
+    delete_outgoing_set(handle);
 
     // NOTE: the initial handle might be already deleted due the recursive delete_atom() calls.
     return reply->deleted_count() > 0 || !document_exists(handle, collection_name);
@@ -724,7 +774,11 @@ bool RedisMongoDB::delete_link(const string& handle, bool delete_targets) {
         targets.push_back(target_handle);
     }
 
-    // TODO(arturgontijo): Fetch LTs from MongoDB to update patterns.
+    auto link = new Link(link_document->get(MONGODB_FIELD_NAME[MONGODB_FIELD::NAMED_TYPE]), targets);
+    auto pattern_handles = match_pattern_index_schema(link);
+    for (const auto& pattern_handle : pattern_handles) {
+        update_pattern(pattern_handle, link->handle());
+    }
 
     return delete_document(handle, MONGODB_LINKS_COLLECTION_NAME, delete_targets);
 }
@@ -763,4 +817,110 @@ uint RedisMongoDB::delete_links(const vector<string>& handles, bool delete_targe
         }
     }
     return deleted_count;
+}
+
+void RedisMongoDB::add_pattern_index_schema(const string& tokens,
+                                            const vector<vector<string>>& index_entries) {
+    auto tokens_vector = Utils::split(tokens, ' ');
+    LinkSchema link_schema(tokens_vector);
+    auto id = link_schema.handle();
+
+    auto index_entries_array = bsoncxx::builder::basic::array{};
+    for (const auto& index_entry : index_entries) {
+        auto index_entry_array = bsoncxx::builder::basic::array{};
+        for (const auto& index_entry_item : index_entry) {
+            index_entry_array.append(index_entry_item);
+        }
+        index_entries_array.append(index_entry_array);
+    }
+
+    auto conn = this->mongodb_pool->acquire();
+    auto mongodb_collection = (*conn)[MONGODB_DB_NAME][MONGODB_PATTERN_INDEX_SCHEMA_COLLECTION_NAME];
+
+    auto reply = mongodb_collection.insert_one(bsoncxx::v_noabi::builder::basic::make_document(
+        bsoncxx::v_noabi::builder::basic::kvp(MONGODB_FIELD_NAME[MONGODB_FIELD::ID], id),
+        bsoncxx::v_noabi::builder::basic::kvp("tokens", tokens),
+        bsoncxx::v_noabi::builder::basic::kvp("index_entries", index_entries_array)));
+
+    if (!reply) {
+        Utils::error("Failed to insert pattern index schema into MongoDB");
+    }
+
+    this->pattern_index_schema_map[id] = make_tuple(move(tokens_vector), index_entries);
+}
+
+void RedisMongoDB::load_pattern_index_schema() {
+    auto conn = this->mongodb_pool->acquire();
+    auto mongodb_collection = (*conn)[MONGODB_DB_NAME][MONGODB_PATTERN_INDEX_SCHEMA_COLLECTION_NAME];
+    auto cursor = mongodb_collection.find({});
+    for (const auto& view : cursor) {
+        // Extract _id
+        string id = view["_id"].get_string().value.data();
+        // Extract LinkSchema tokens
+        vector<string> tokens = Utils::split(view["tokens"].get_string().value.data(), ' ');
+        // Extract index_entries
+        vector<vector<string>> index_entries;
+        for (const auto& arr : view["index_entries"].get_array().value) {
+            vector<string> entry;
+            for (const auto& elem : arr.get_array().value) {
+                entry.push_back(elem.get_string().value.data());
+            }
+            index_entries.push_back(entry);
+        }
+
+        this->pattern_index_schema_map[id] = make_tuple(move(tokens), move(index_entries));
+    }
+}
+
+vector<string> RedisMongoDB::match_pattern_index_schema(const Link* link) {
+    vector<string> pattern_handles;
+    for (const auto& [key, value] : this->pattern_index_schema_map) {
+        auto link_schema = LinkSchema(get<0>(value));
+        auto index_entries = get<1>(value);
+        Assignment assignment;
+        bool match = link_schema.match(*(Link*) link, assignment, *this);
+        if (match) {
+            for (const auto& index_entry : index_entries) {
+                size_t index = 0;
+                vector<string> hash_entries;
+                for (const auto& token : index_entry) {
+                    if (token == "_") {
+                        hash_entries.push_back(link_schema.targets()[index]);
+                    } else if (token == "*") {
+                        hash_entries.push_back(Atom::WILDCARD_STRING);
+                    } else {
+                        const char* value = assignment.get(token.c_str());
+                        if (value == NULL) {
+                            Utils::error("LinkSchema assignments don't have variable: " + token);
+                        }
+                        hash_entries.push_back(value);
+                    }
+                    index++;
+                }
+                string hash = Hasher::link_handle(link->type, hash_entries);
+                pattern_handles.push_back(hash);
+            }
+        }
+    }
+    return pattern_handles;
+}
+
+void RedisMongoDB::drop_all() {
+    // Drop MongoDB database
+    auto conn = this->mongodb_pool->acquire();
+    (*conn)[MONGODB_DB_NAME].drop();
+    // Drop Redis database
+    auto ctx = this->redis_pool->acquire();
+    auto reply = ctx->execute("FLUSHALL");
+    if (reply->type != REDIS_REPLY_STATUS) {
+        Utils::error("Failed to flush Redis database");
+    }
+
+    // We need to reset next scores to 0 to avoid remainings from previous runs
+    // as they were initialized on RedisMongoDB construction
+    this->reset_scores();
+
+    // We need to clear the pattern index schema map and reload it
+    this->pattern_index_schema_map.clear();
+    this->load_pattern_index_schema();
 }

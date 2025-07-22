@@ -10,3 +10,4 @@
 [#524] Using MongoDB split collections (nodes and links)
 [#499] Implemented Evolution agent to process QUERY_EVOLUTION commands in the service bus
 [#568] Added simple profiling primitives in Logger
+[#544] Add benchmark tests for AtomDB

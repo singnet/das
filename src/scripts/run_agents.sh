@@ -20,10 +20,9 @@ colors=("$GREEN" "$PURPLE" "$YELLOW" "$LIGHT_CYAN" "$PINK" "$GRAY")
 ## Agents
 ATTENTION_BROKER_PORT=${ATTENTION_BROKER_PORT:-37007}
 LINK_CREATION_AGENT_NODE_ID=${LINK_CREATION_AGENT_NODE_ID:-"localhost:9080"}
-QUERY_AGENT_NODE_ID=${QUERY_AGENT_SERVER_ID:-"localhost:31700"}
 QUERY_AGENT_PORT=${QUERY_AGENT_PORT:-"31700"}
+QUERY_AGENT_NODE_ID=${QUERY_AGENT_SERVER_ID:-"localhost:$QUERY_AGENT_PORT"}
 INFERENCE_AGENT_NODE_ID=${INFERENCE_AGENT_NODE_ID:-"localhost:4000"}
-EVOLUTION_AGENT_NODE_ID=${EVOLUTION_AGENT_NODE_ID:-"localhost:7080"}
 EVOLUTION_PORT=${EVOLUTION_PORT:-"7080"}
 QUERY_AGENT_START_END_PORT=${QUERY_AGENT_START_END_PORT:-"32700:33700"}
 INFERENCE_AGENT_START_END_PORT=${INFERENCE_AGENT_START_END_PORT:-"34700:35700"}
@@ -78,6 +77,15 @@ AGENTS=(
     "evolution_broker $EVOLUTION_PORT $EVOLUTION_START_END_PORT $QUERY_AGENT_NODE_ID;src/scripts/run.sh"
 )
 
+WAIT_FOR_AGENTS=true
+if [ "$2" == "no-wait" ]; then
+    WAIT_FOR_AGENTS=false
+fi
+
+SHOW_LOGS=true
+if [ "$3" == "no-logs" ]; then
+    SHOW_LOGS=false
+fi
 
 # stop function
 stop() {
@@ -130,12 +138,21 @@ if [ "$PARAM" == "start" ]; then
         {
             echo -e "${colors[i % ${#colors[@]}]}Starting: $AGENT_NAME ${commands[i]}${NC}"
             bash -c "$PWD/$AGENT_PATH $AGENT_NAME" 2>&1 | while IFS= read -r line; do
-                echo -e "${colors[i % ${#colors[@]}]}[$TEMP_NAME] $line${NC}"
+                # show log
+                if [ "$SHOW_LOGS" = true ]; then
+                    echo -e "${colors[i % ${#colors[@]}]}[$TEMP_NAME] $line${NC}"
+                fi
                 echo "$line" >> $LOG_FILE
             done
         } &
         sleep 5
         i=$((i + 1))
     done
-    wait
+    if [ "$WAIT_FOR_AGENTS" = true ]; then
+        echo -e "${GREEN}All agents started successfully!${NC}"
+        echo "Waiting for agents to finish..."
+        wait
+    else
+        echo -e "${GREEN}All agents started in the background!${NC}"
+    fi
 fi

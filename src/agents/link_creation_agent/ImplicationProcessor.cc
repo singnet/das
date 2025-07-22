@@ -77,10 +77,10 @@ vector<string> ImplicationProcessor::get_tokenized_atom(const string& handle) {
     vector<string> tokens;
     try {
         auto atom = LinkCreateDBSingleton::get_instance()->get_atom(handle);
-        if (holds_alternative<Node>(atom)) {
-            return get<Node>(atom).tokenize();
-        } else if (holds_alternative<shared_ptr<link_creation_agent::Link>>(atom)) {
-            return get<shared_ptr<link_creation_agent::Link>>(atom)->tokenize(false);
+        if (holds_alternative<LCANode>(atom)) {
+            return get<LCANode>(atom).tokenize();
+        } else if (holds_alternative<shared_ptr<link_creation_agent::LCALink>>(atom)) {
+            return get<shared_ptr<link_creation_agent::LCALink>>(atom)->tokenize(false);
         }
     } catch (const exception& e) {
         LOG_ERROR("Failed to get handle: " << handle);
@@ -90,10 +90,10 @@ vector<string> ImplicationProcessor::get_tokenized_atom(const string& handle) {
     return {};
 }
 
-link_creation_agent::Link ImplicationProcessor::build_link(const string& link_type,
-                                                           vector<LinkTargetTypes> targets,
-                                                           vector<CustomField> custom_fields) {
-    link_creation_agent::Link link;
+link_creation_agent::LCALink ImplicationProcessor::build_link(const string& link_type,
+                                                              vector<LinkTargetTypes> targets,
+                                                              vector<CustomField> custom_fields) {
+    link_creation_agent::LCALink link;
     link.set_type(link_type);
     for (const auto& target : targets) {
         link.add_target(target);
@@ -141,19 +141,19 @@ vector<vector<string>> ImplicationProcessor::process(shared_ptr<QueryAnswer> que
     double p2_p1_strength = double(p1_p2_set_size) / double(p2_set_size);
 
     vector<vector<string>> result;
-    Node implication_node;
+    LCANode implication_node;
     implication_node.type = "Symbol";
     implication_node.value = "IMPLICATION";
     auto custom_field_p1_p2 = CustomField("truth_value");
     custom_field_p1_p2.add_field("strength", to_string(p1_p2_strength));
     custom_field_p1_p2.add_field("confidence", to_string(1));
-    link_creation_agent::Link link_p1_p2 =
+    link_creation_agent::LCALink link_p1_p2 =
         build_link("Expression", {implication_node, p1_handle, p2_handle}, {custom_field_p1_p2});
 
     auto custom_field_p2_p1 = CustomField("truth_value");
     custom_field_p2_p1.add_field("strength", to_string(p2_p1_strength));
     custom_field_p2_p1.add_field("confidence", to_string(1));
-    link_creation_agent::Link link_p2_p1 =
+    link_creation_agent::LCALink link_p2_p1 =
         build_link("Expression", {implication_node, p2_handle, p1_handle}, {custom_field_p2_p1});
 
     result.push_back(link_p1_p2.tokenize());

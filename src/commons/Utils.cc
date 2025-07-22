@@ -259,7 +259,7 @@ bool Utils::is_number(const string& s) {
 
 int Utils::string_to_int(const string& s) {
     if (!is_number(s)) {
-        throw invalid_argument("Can not convert string to int: Invalid arguments");
+        throw invalid_argument("Can not convert string to int: Invalid arguments (" + s + ")");
     }
     return stoi(s);
 }
