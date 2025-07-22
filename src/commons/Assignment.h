@@ -1,12 +1,12 @@
 #pragma once
 
+#include <map>
 #include <string>
 
 // If any of these constants are set to numbers greater than 999, we need
 // to fix QueryAnswer.tokenize() properly
 #define MAX_VARIABLE_NAME_SIZE ((unsigned int) 100)
 #define MAX_NUMBER_OF_VARIABLES_IN_QUERY ((unsigned int) 100)
-#define MAX_NUMBER_OF_OPERATION_CLAUSES ((unsigned int) 100)
 
 using namespace std;
 
@@ -45,15 +45,15 @@ class Assignment {
      * @return true iff the label have no value assigned to it or if the passed value is
      *         the same as the currently assigned value.
      */
-    bool assign(const char* label, const char* value);
+    bool assign(const string& label, const string& value);
 
     /**
-     * Returns the value assigned to a given label or NULL if no value is assigned to it.
+     * Returns the value assigned to a given label or "" if no value is assigned to it.
      *
      * @param label Label to be search for.
-     * @return The value assigned to a given label or NULL if no value is assigned to it.
+     * @return The value assigned to a given label or "" if no value is assigned to it.
      */
-    const char* get(const char* label);
+    const string& get(const string& label);
 
     /**
      * Returns true if the passed Assignment is compatible with this one or false otherwise.
@@ -67,14 +67,14 @@ class Assignment {
     bool is_compatible(const Assignment& other);
 
     /**
-     * Shallow copy operation. No allocation of labels or values are performed.
+     * Deep copy operation.
      *
      * @param other Assignment to be copied from.
      */
     void copy_from(const Assignment& other);
 
     /**
-     * Adds assignments from other Assignment by making a shallow copy of labels and values.
+     * Adds assignments from other Assignment.
      *
      * Labels present in both Assignments are disregarded. So, for instance, if 'this' has:
      *
@@ -121,9 +121,10 @@ class Assignment {
      */
     void clear();
 
-    const char* labels[MAX_NUMBER_OF_VARIABLES_IN_QUERY];
-    const char* values[MAX_NUMBER_OF_VARIABLES_IN_QUERY];
-    unsigned int size;
+    map<string, string> table;
+
+   private:
+    static string EMPTY_VALUE;
 };
 
 }  // namespace commons

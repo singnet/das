@@ -102,7 +102,7 @@ TEST(PatternMatchingQuery, queries) {
     TestConfig::load_environment();
 
     AtomDBSingleton::init();
-    ServiceBus::initialize_statics({}, 54000, 54500);
+    ServiceBus::initialize_statics({}, 57000, 57500);
 
     string peer1_id = "localhost:33701";
     string peer2_id = "localhost:33702";

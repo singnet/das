@@ -191,15 +191,19 @@ bool BusNode::Bus::contains(const string& command) {
 string BusNode::Bus::to_string() {
     string answer = "{";
     if (this->command_owner.size() > 0) {
+        bool empty_flag = true;
         for (auto pair : this->command_owner) {
             if (pair.second == "") {
                 answer += pair.first + ", ";
             } else {
                 answer += pair.first + ":" + pair.second + ", ";
             }
+            empty_flag = false;
         }
-        answer.pop_back();
-        answer.pop_back();
+        if (!empty_flag) {
+            answer.pop_back();
+            answer.pop_back();
+        }
     }
     answer += "}";
     return answer;

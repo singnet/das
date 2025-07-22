@@ -164,11 +164,10 @@ void run(const string& client_id,
         if ((query_answer = proxy->pop()) == NULL) {
             Utils::sleep();
         } else {
-            const char* handle;
-            handle = query_answer->assignment.get(sentence1.c_str());
+            string handle = query_answer->assignment.get(sentence1.c_str());
             float fitness = query_answer->strength;
             sentence_document = db->get_atom_document(handle);
-            handle = sentence_document->get("targets", 1);
+            handle = string(sentence_document->get("targets", 1));
             sentence_name_document = db->get_atom_document(handle);
             set<string> to_highlight = {word_tag1, word_tag2};
             string sentence_name = string(sentence_name_document->get("name"));

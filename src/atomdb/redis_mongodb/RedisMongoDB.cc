@@ -889,11 +889,11 @@ vector<string> RedisMongoDB::match_pattern_index_schema(const Link* link) {
                     } else if (token == "*") {
                         hash_entries.push_back(Atom::WILDCARD_STRING);
                     } else {
-                        const char* value = assignment.get(token.c_str());
-                        if (value == NULL) {
+                        string assignment_value = assignment.get(token);
+                        if (assignment_value == "") {
                             Utils::error("LinkSchema assignments don't have variable: " + token);
                         }
-                        hash_entries.push_back(value);
+                        hash_entries.push_back(assignment_value);
                     }
                     index++;
                 }
