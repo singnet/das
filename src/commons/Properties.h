@@ -116,7 +116,7 @@ class Properties : public unordered_map<string, PropertyValue> {
         }
 
         // Remove the last comma and space
-        if (! empty_flag) {
+        if (!empty_flag) {
             result.pop_back();
             result.pop_back();
         }

@@ -1,7 +1,7 @@
 #pragma once
 
-#include <string>
 #include <map>
+#include <string>
 
 // If any of these constants are set to numbers greater than 999, we need
 // to fix QueryAnswer.tokenize() properly
@@ -123,7 +123,7 @@ class Assignment {
 
     map<string, string> table;
 
-  private:
+   private:
     static string EMPTY_VALUE;
 };
 

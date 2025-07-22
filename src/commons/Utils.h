@@ -64,8 +64,8 @@ class Utils {
     static string trim(const string& s);
     static unsigned long long get_current_time_millis();
     static string linux_command_line(const char* cmd);
-    static unsigned long get_current_free_ram(); // Kbytes
-    static unsigned long get_current_ram_usage(); // Kbytes
+    static unsigned long get_current_free_ram();   // Kbytes
+    static unsigned long get_current_ram_usage();  // Kbytes
 };
 
 }  // namespace commons

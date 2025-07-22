@@ -1,7 +1,7 @@
 #pragma once
 
-#include <string>
 #include <set>
+#include <string>
 
 #include "Assignment.h"
 #include "QueryAnswer.h"
@@ -165,10 +165,10 @@ struct std::hash<Assignment> {
         }
 
         std::size_t hash_value = 1;
-        for (auto pair: k.table) {
-            hash_value = hash_value ^ ((std::hash<string>()(pair.first) ^
-                                        (std::hash<string>()(pair.second) << 1)) >>
-                                       1);
+        for (auto pair : k.table) {
+            hash_value =
+                hash_value ^
+                ((std::hash<string>()(pair.first) ^ (std::hash<string>()(pair.second) << 1)) >> 1);
         }
 
         return hash_value;

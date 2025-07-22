@@ -63,7 +63,7 @@ string QueryEvolutionProxy::to_string() {
         answer += token + ", ";
         empty_flag = false;
     }
-    if (! empty_flag) {
+    if (!empty_flag) {
         answer.pop_back();
         answer.pop_back();
     }
@@ -74,7 +74,7 @@ string QueryEvolutionProxy::to_string() {
         answer += token + ", ";
         empty_flag = false;
     }
-    if (! empty_flag) {
+    if (!empty_flag) {
         answer.pop_back();
         answer.pop_back();
     }

@@ -70,7 +70,7 @@ void PatternMatchingQueryProcessor::update_attention_broker_single_answer(
     set<string> single_answer;
     stack<string> execution_stack;
 
-    for (string handle: answer->handles) {
+    for (string handle : answer->handles) {
         execution_stack.push(handle);
     }
 

@@ -48,8 +48,7 @@
 #endif
 
 #if LOG_LEVEL >= DEBUG_LEVEL
-#define RAM_FOOTPRINT_CHECK(var_prefix, tag)       \
-    var_prefix##MemoryFootprintProfiler.check(tag);
+#define RAM_FOOTPRINT_CHECK(var_prefix, tag) var_prefix##MemoryFootprintProfiler.check(tag);
 #else
 #define RAM_FOOTPRINT_CHECK(var_prefix, tag)
 #endif

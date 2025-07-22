@@ -125,9 +125,9 @@ string BaseQueryProxy::to_string() {
     bool empty_flag = true;
     for (auto token : this->query_tokens) {
         answer += token + ", ";
-        empty_flag =- false;
+        empty_flag = -false;
     }
-    if (! empty_flag) {
+    if (!empty_flag) {
         answer.pop_back();
         answer.pop_back();
     }

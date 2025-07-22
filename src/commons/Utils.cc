@@ -1,17 +1,18 @@
 #include "Utils.h"
 
+#include <unistd.h>
+
 #include <algorithm>
 #include <cmath>
 #include <cstdlib>
 #include <fstream>
 #include <iomanip>
+#include <ios>
 #include <iostream>
 #include <sstream>
 #include <stdexcept>
-#include <thread>
-#include <unistd.h>
-#include <ios>
 #include <string>
+#include <thread>
 
 #include "Logger.h"
 
@@ -173,12 +174,12 @@ string MemoryFootprint::to_string() {
     }
     answer += ", Delta: " + std::to_string(delta_usage()) + ", Checkpoints: [";
     bool empty_flag = true;
-    for (auto pair: this->delta_ram) {
+    for (auto pair : this->delta_ram) {
         answer += "(\"" + pair.second + "\", " + std::to_string(pair.first) + ")";
         answer += ", ";
         empty_flag = false;
     }
-    if (! empty_flag) {
+    if (!empty_flag) {
         answer.pop_back();
         answer.pop_back();
     }
@@ -300,38 +301,38 @@ string Utils::linux_command_line(const char* cmd) {
 }
 
 unsigned long Utils::get_current_free_ram() {
-    return std::stol(Utils::linux_command_line("cat /proc/meminfo | grep MemAvailable | rev | cut -d\" \" -f2 | rev"));
+    return std::stol(Utils::linux_command_line(
+        "cat /proc/meminfo | grep MemAvailable | rev | cut -d\" \" -f2 | rev"));
 }
 
 unsigned long Utils::get_current_ram_usage() {
-   using std::ios_base;
-   using std::ifstream;
-   using std::string;
+    using std::ifstream;
+    using std::ios_base;
+    using std::string;
 
-   //double vm_usage = 0.0;
-   double resident_set = 0.0;
+    // double vm_usage = 0.0;
+    double resident_set = 0.0;
 
-   ifstream stat_stream("/proc/self/stat", ios_base::in);
+    ifstream stat_stream("/proc/self/stat", ios_base::in);
 
-   // Not actually used
-   string pid, comm, state, ppid, pgrp, session, tty_nr;
-   string tpgid, flags, minflt, cminflt, majflt, cmajflt;
-   string utime, stime, cutime, cstime, priority, nice;
-   string O, itrealvalue, starttime;
+    // Not actually used
+    string pid, comm, state, ppid, pgrp, session, tty_nr;
+    string tpgid, flags, minflt, cminflt, majflt, cmajflt;
+    string utime, stime, cutime, cstime, priority, nice;
+    string O, itrealvalue, starttime;
 
-   unsigned long vsize;
-   long rss;
+    unsigned long vsize;
+    long rss;
 
-   stat_stream >> pid >> comm >> state >> ppid >> pgrp >> session >> tty_nr
-               >> tpgid >> flags >> minflt >> cminflt >> majflt >> cmajflt
-               >> utime >> stime >> cutime >> cstime >> priority >> nice
-               >> O >> itrealvalue >> starttime >> vsize >> rss;
+    stat_stream >> pid >> comm >> state >> ppid >> pgrp >> session >> tty_nr >> tpgid >> flags >>
+        minflt >> cminflt >> majflt >> cmajflt >> utime >> stime >> cutime >> cstime >> priority >>
+        nice >> O >> itrealvalue >> starttime >> vsize >> rss;
 
-   stat_stream.close();
+    stat_stream.close();
 
-   long page_size_kb = sysconf(_SC_PAGE_SIZE) / 1024;
-   //vm_usage = vsize / 1024.0;
-   resident_set = rss * page_size_kb;
+    long page_size_kb = sysconf(_SC_PAGE_SIZE) / 1024;
+    // vm_usage = vsize / 1024.0;
+    resident_set = rss * page_size_kb;
 
-   return (unsigned long) resident_set;
+    return (unsigned long) resident_set;
 }

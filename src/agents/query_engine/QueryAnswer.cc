@@ -52,12 +52,12 @@ string QueryAnswer::to_string() {
     string answer = "QueryAnswer<" + std::to_string(this->handles.size()) + ",";
     answer += std::to_string(this->assignment.variable_count()) + "> [";
     bool empty_flag = true;
-    for (string handle: this->handles) {
+    for (string handle : this->handles) {
         answer += handle;
         answer += ", ";
         empty_flag = false;
     }
-    if (! empty_flag) {
+    if (!empty_flag) {
         answer.pop_back();
         answer.pop_back();
     }
@@ -73,12 +73,14 @@ const string& QueryAnswer::tokenize() {
     char importance_buffer[13];
     sprintf(strength_buffer, "%.10f", this->strength);
     sprintf(importance_buffer, "%.10f", this->importance);
-    unsigned int char_count = 13    // strength with 10 decimals + space
-                              + 13  // importance with 10 decimals + space
-                              + 4   // (up to 3 digits) to represent this->handles.size() + space
-                              + this->handles.size() * (HANDLE_HASH_SIZE + 1)  // handles + spaces
-                              + 4  // (up to 3 digits) to represent this->assignment.size + space
-                              + this->assignment.table.size() * (MAX_VARIABLE_NAME_SIZE + HANDLE_HASH_SIZE + 2);  // label<space>handle<space>
+    unsigned int char_count =
+        13    // strength with 10 decimals + space
+        + 13  // importance with 10 decimals + space
+        + 4   // (up to 3 digits) to represent this->handles.size() + space
+        + this->handles.size() * (HANDLE_HASH_SIZE + 1)  // handles + spaces
+        + 4  // (up to 3 digits) to represent this->assignment.size + space
+        + this->assignment.table.size() *
+              (MAX_VARIABLE_NAME_SIZE + HANDLE_HASH_SIZE + 2);  // label<space>handle<space>
 
     this->token_representation.clear();
     this->token_representation.reserve(char_count);
@@ -89,13 +91,13 @@ const string& QueryAnswer::tokenize() {
     this->token_representation += space;
     this->token_representation += std::to_string(this->handles.size());
     this->token_representation += space;
-    for (string handle: this->handles) {
+    for (string handle : this->handles) {
         this->token_representation += handle;
         this->token_representation += space;
     }
     this->token_representation += std::to_string(this->assignment.table.size());
     this->token_representation += space;
-    for (auto pair: this->assignment.table) {
+    for (auto pair : this->assignment.table) {
         this->token_representation += pair.first;
         this->token_representation += space;
         this->token_representation += pair.second;

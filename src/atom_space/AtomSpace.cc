@@ -97,8 +97,9 @@ void AtomSpace::pattern_matching_fetch(const vector<string>& query, size_t answe
         if ((query_answer = proxy->pop()) == nullptr) {
             Utils::sleep();
         } else {
-            for (string handle: query_answer->handles) {
-                this->get_atom(handle.c_str(), LOCAL_AND_REMOTE);  // Ensure the atom is loaded into the trie
+            for (string handle : query_answer->handles) {
+                this->get_atom(handle.c_str(),
+                               LOCAL_AND_REMOTE);  // Ensure the atom is loaded into the trie
             }
         }
     }

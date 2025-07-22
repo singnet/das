@@ -18,7 +18,8 @@ bool Assignment::assign(const string& label, const string& value) {
     if (iterator == this->table.end()) {
         // label is not present, so makes the assignment and return true
         if (label.size() > MAX_VARIABLE_NAME_SIZE) {
-            Utils::error("Invalid assignment. Label size (" + std::to_string(label.size()) + ") is too large (> " + std::to_string(MAX_VARIABLE_NAME_SIZE) + ").");
+            Utils::error("Invalid assignment. Label size (" + std::to_string(label.size()) +
+                         ") is too large (> " + std::to_string(MAX_VARIABLE_NAME_SIZE) + ").");
         }
         this->table[label] = value;
         if (this->table.size() > MAX_NUMBER_OF_VARIABLES_IN_QUERY) {
@@ -33,7 +34,7 @@ bool Assignment::assign(const string& label, const string& value) {
 }
 
 bool Assignment::is_compatible(const Assignment& other) {
-    for (auto pair: this->table) {
+    for (auto pair : this->table) {
         auto iterator = other.table.find(pair.first);
         if (iterator != other.table.end()) {
             if (iterator->second != pair.second) {
@@ -44,12 +45,10 @@ bool Assignment::is_compatible(const Assignment& other) {
     return true;
 }
 
-void Assignment::copy_from(const Assignment& other) {
-    this->table = other.table;
-}
+void Assignment::copy_from(const Assignment& other) { this->table = other.table; }
 
 void Assignment::add_assignments(const Assignment& other) {
-    for (auto pair: other.table) {
+    for (auto pair : other.table) {
         if (this->table.find(pair.first) == this->table.end()) {
             this->table[pair.first] = pair.second;
         }
@@ -70,12 +69,12 @@ unsigned int Assignment::variable_count() { return this->table.size(); }
 string Assignment::to_string() {
     string answer = "{";
     bool empty_flag = true;
-    for (auto pair: this->table) {
+    for (auto pair : this->table) {
         answer += "(" + pair.first + ": " + pair.second + ")";
         answer += ", ";
         empty_flag = false;
     }
-    if (! empty_flag) {
+    if (!empty_flag) {
         answer.pop_back();
         answer.pop_back();
     }
@@ -85,6 +84,4 @@ string Assignment::to_string() {
 
 void Assignment::clear() { this->table.clear(); }
 
-bool Assignment::operator==(const Assignment& other) const {
-    return (this->table == other.table);
-}
+bool Assignment::operator==(const Assignment& other) const { return (this->table == other.table); }

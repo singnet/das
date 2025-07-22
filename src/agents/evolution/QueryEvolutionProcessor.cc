@@ -219,7 +219,7 @@ void QueryEvolutionProcessor::correlate_similar(shared_ptr<QueryEvolutionProxy> 
     while (!pm->finished()) {
         shared_ptr<QueryAnswer> answer = pm->pop();
         if (answer != NULL) {
-            for (string handle: answer->handles) {
+            for (string handle : answer->handles) {
                 handle_list.add_list(handle);
             }
         } else {
@@ -246,7 +246,7 @@ void QueryEvolutionProcessor::stimulate(shared_ptr<QueryEvolutionProxy> proxy,
     handle_count.set_context(proxy->get_context());
     unsigned int sum;
     for (auto pair : selected) {
-        for (string handle: pair.first->handles) {
+        for (string handle : pair.first->handles) {
             unsigned int value = (unsigned int) std::lround(pair.second * importance_tokens);
             if (handle_count.mutable_map()->find(handle) == handle_count.mutable_map()->end()) {
                 (*handle_count.mutable_map())[handle] = value;

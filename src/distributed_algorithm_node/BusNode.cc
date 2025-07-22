@@ -200,7 +200,7 @@ string BusNode::Bus::to_string() {
             }
             empty_flag = false;
         }
-        if (! empty_flag) {
+        if (!empty_flag) {
             answer.pop_back();
             answer.pop_back();
         }
