@@ -99,7 +99,7 @@ def copy_to_temp(args: argparse.Namespace) -> Path:
 
 def load_s_expressions(
     uri: str,
-    mork_server_address: str = "http://127.0.0.1:8000",
+    mork_server_address: str = "http://0.0.0.0:8000",
 ) -> dict:
     """
     Loads S-expressions from the given URI via the MORK server.
@@ -118,8 +118,7 @@ def main():
             load_s_expressions(file_uri)
             print("Done!")
     except Exception as e:
-        print(f"Error: {e}")
-        raise RuntimeError("Failed to load the MeTTa file. Please check the file and try again.")
+        raise RuntimeError(f"Failed to load the MeTTa file: {e}")
 
 
 if __name__ == "__main__":
