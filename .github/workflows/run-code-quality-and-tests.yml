@@ -73,7 +73,7 @@ jobs:
 
       - name: Starting MORK Server and Load Knowledge Base
         run: |-
-          make run-mork-server > /dev/null 2>&1 &
+          make run-mork-server &
           
           until curl --silent http://localhost:8000/status/-; do
             echo "Waiting MORK…"
