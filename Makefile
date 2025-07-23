@@ -29,7 +29,7 @@ build-image:
 	@bash -x src/scripts/docker_image_build.sh
 
 build-mork-image:
-	@bash -x src/scripts/docker_image_build_mork.sh
+	@bash -x src/scripts/docker_image_build_mork.sh $(VERSION)
 
 build-all: build-image
 	@bash -x src/scripts/build.sh
@@ -57,7 +57,7 @@ run-inference-agent-client:
 run-das-agent:
 	@bash ./src/scripts/bazel.sh run //das_agent:main -- $(OPTIONS)
 
-run-mork-server: build-mork-image
+run-mork-server:
 	@bash -x src/scripts/mork_server.sh
 
 mork-loader:
