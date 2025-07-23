@@ -28,6 +28,9 @@ github-runner:
 build-image:
 	@bash -x src/scripts/docker_image_build.sh
 
+build-mork-image:
+	@bash -x src/scripts/docker_image_build_mork.sh $(VERSION)
+
 build-all: build-image
 	@bash -x src/scripts/build.sh
 
