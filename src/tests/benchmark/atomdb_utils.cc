@@ -1,19 +1,16 @@
-#include "atomdb_benchmark_utils.h"
+#include "atomdb_utils.h"
 
-#include <algorithm>
 #include <cmath>
 #include <fstream>
 #include <iomanip>
 #include <iostream>
-#include <map>
 #include <numeric>
 #include <sstream>
-#include <string>
 
-#include "Logger.h"
 #include "Utils.h"
 
 #define LOG_LEVEL DEBUG_LEVEL
+#include "Logger.h"
 
 using namespace std;
 using namespace commons;
