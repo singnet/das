@@ -1,7 +1,7 @@
 #pragma once
 
-#include "gmock/gmock.h"
 #include "ServiceBus.h"
+#include "gmock/gmock.h"
 
 using namespace std;
 using namespace service_bus;

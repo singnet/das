@@ -1,7 +1,7 @@
 #pragma once
-#include "gmock/gmock.h"
 #include "AtomDB.h"
 #include "AtomDBAPITypes.h"
+#include "gmock/gmock.h"
 
 using namespace std;
 using namespace atomdb;
@@ -99,8 +99,6 @@ class AtomDBMock : public AtomDB {
     AtomDBMock() {
         ON_CALL(*this, get_atom_document(testing::_))
             .WillByDefault(::testing::Return(make_shared<MockAtomDocument>()));
-
-       
     }
 
    private:

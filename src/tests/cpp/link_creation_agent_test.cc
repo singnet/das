@@ -180,7 +180,7 @@ TEST(LinkCreateTemplate, TestLinkCreateTemplate) {
     link_template_str.clear();
 
     link_template_str =
-        "LINK_CREATE I 3 0 VARIABLE V1 LINK_CREATE Test 3 0 NODE Symbol A VARIABLE V2 LINK_CREATE Test2 " 
+        "LINK_CREATE I 3 0 VARIABLE V1 LINK_CREATE Test 3 0 NODE Symbol A VARIABLE V2 LINK_CREATE Test2 "
         "1 0 NODE Symbol C NODE Symbol B";
     link_template = split(link_template_str, ' ');
     LinkCreateTemplate lct2(link_template);
@@ -211,7 +211,7 @@ TEST(LinkCreateTemplate, TestLinkCreateTemplate) {
     link_template_str.clear();
 
     link_template_str =
-        "LINK_CREATE TestLink 4 1 NODE NodeType1 Value1 VARIABLE Var1 CUSTOM_FIELD Field1 2 valuename1 " 
+        "LINK_CREATE TestLink 4 1 NODE NodeType1 Value1 VARIABLE Var1 CUSTOM_FIELD Field1 2 valuename1 "
         "Value1 valuename2 Value2 NODE NodeType2 Value2 VARIABLE Var2";
     link_template = split(link_template_str, ' ');
     LinkCreateTemplate lct5(link_template);
@@ -252,7 +252,7 @@ TEST(LinkCreateTemplate, TestLinkCreateTemplate) {
     LinkCreateTemplate lct7(link_template);
     EXPECT_EQ(lct7.get_link_type(), "ComplexLink");
     EXPECT_EQ(lct7.to_string(),
-              "LINK_CREATE ComplexLink 4 2 NODE Type1 Val1 VARIABLE Var1 NODE Type2 Val2 VARIABLE Var2 " 
+              "LINK_CREATE ComplexLink 4 2 NODE Type1 Val1 VARIABLE Var1 NODE Type2 Val2 VARIABLE Var2 "
               "CUSTOM_FIELD Field1 2 N1 Val1 N2 Val2 CUSTOM_FIELD Field2 1 N3 Val3");
     EXPECT_EQ(lct7.get_targets().size(), 4);
     EXPECT_EQ(get<shared_ptr<Node>>(lct7.get_targets()[0])->type, "Type1");
@@ -349,7 +349,9 @@ TEST_F(LinkCreationAgentTest, TestLinkTemplateProcessor) {
     link_template = split("LINK_CREATE Expression 3 0 NODE Symbol A VARIABLE V1 NODE Symbol B", ' ');
     query_answer->assignment.assign("V1", "Value1");
     links = ltp.process_query(query_answer, link_template);
-    EXPECT_EQ(links[0]->to_string(), "Link(type: 'Expression', targets: [11944827f32b09c425b6136a6b5b4224, Value1, d4891853e7729b52d422daa93ccecacb], custom_attributes: {})");
+    EXPECT_EQ(links[0]->to_string(),
+              "Link(type: 'Expression', targets: [11944827f32b09c425b6136a6b5b4224, Value1, "
+              "d4891853e7729b52d422daa93ccecacb], custom_attributes: {})");
     EXPECT_EQ(links[0]->metta_representation(*AtomDBSingleton::get_instance().get()), "(A Value1 B)");
     links.clear();
     link_template.clear();
