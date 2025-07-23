@@ -5,10 +5,11 @@
 #include <thread>
 
 #include "AtomDBSingleton.h"
+#include "ImplicationProcessor.h"
 #include "LinkCreateTemplate.h"
 #include "LinkCreationAgent.h"
 #include "LinkCreationRequestProcessor.h"
-#include "ImplicationProcessor.h"
+#include "MockAtomDB.h"
 #include "TemplateProcessor.h"
 #include "Utils.h"
 
@@ -38,9 +39,13 @@ class LinkCreationAgentTest : public ::testing::Test {
         this->save_links_to_metta_file = true;
         this->save_links_to_db = false;
         this->server_id = "localhost:7003";
+        AtomDBSingleton::provide(move(make_shared<AtomDBMock>()));
     }
 
-    void TearDown() override { remove("test_buffer.bin"); }
+    void TearDown() override {
+        remove("test_buffer.bin");
+        AtomDBSingleton::provide(nullptr);
+    }
 };
 
 TEST_F(LinkCreationAgentTest, TestRequest) {
@@ -159,14 +164,15 @@ vector<string> split(const string& s, char delimiter) {
 }
 
 TEST(LinkCreateTemplate, TestLinkCreateTemplate) {
-    /**  #NOTE Different from the original string test, the to_string() method is not returning the same
+    /**  #NOTE Different from the original string test, the to_string() method is not returning the
+    same
        order as the input string. to_string is placing the custom fields after the targets
     */
     string link_template_str =
         "LINK_CREATE Similarity 3 1 VARIABLE V1 LINK_CREATE Test 3 0 NODE Symbol A VARIABLE V2 "
         "LINK_CREATE Test2 1 1 NODE Symbol C CUSTOM_FIELD inter 1 inter_name inter_value NODE Symbol B "
         "CUSTOM_FIELD truth_value 2 CUSTOM_FIELD mean 2 count 10 avg 0.9 confidence 0.9";
-    auto link_template = split(link_template_str, ' ');
+    auto link_template = Utils::split(link_template_str, ' ');
     LinkCreateTemplate lct(link_template);
     EXPECT_EQ(lct.get_link_type(), "Similarity");
     EXPECT_EQ(lct.to_string(), link_template_str);
@@ -174,14 +180,14 @@ TEST(LinkCreateTemplate, TestLinkCreateTemplate) {
     link_template_str.clear();
 
     link_template_str =
-        "LINK_CREATE I 3 0 VARIABLE V1 LINK_CREATE Test 3 0 NODE Symbol A VARIABLE V2 LINK_CREATE Test2 "
+        "LINK_CREATE I 3 0 VARIABLE V1 LINK_CREATE Test 3 0 NODE Symbol A VARIABLE V2 LINK_CREATE Test2 " 
         "1 0 NODE Symbol C NODE Symbol B";
     link_template = split(link_template_str, ' ');
     LinkCreateTemplate lct2(link_template);
     EXPECT_EQ(lct2.get_link_type(), "I");
     EXPECT_EQ(lct2.to_string(), link_template_str);
     EXPECT_EQ(lct2.get_targets().size(), 3);
-    EXPECT_EQ(get<Variable>(lct.get_targets()[0]).name, "V1");
+    EXPECT_EQ(get<shared_ptr<UntypedVariable>>(lct.get_targets()[0])->name, "V1");
     link_template.clear();
     link_template_str.clear();
 
@@ -205,7 +211,7 @@ TEST(LinkCreateTemplate, TestLinkCreateTemplate) {
     link_template_str.clear();
 
     link_template_str =
-        "LINK_CREATE TestLink 4 1 NODE NodeType1 Value1 VARIABLE Var1 CUSTOM_FIELD Field1 2 valuename1 "
+        "LINK_CREATE TestLink 4 1 NODE NodeType1 Value1 VARIABLE Var1 CUSTOM_FIELD Field1 2 valuename1 " 
         "Value1 valuename2 Value2 NODE NodeType2 Value2 VARIABLE Var2";
     link_template = split(link_template_str, ' ');
     LinkCreateTemplate lct5(link_template);
@@ -214,9 +220,9 @@ TEST(LinkCreateTemplate, TestLinkCreateTemplate) {
               "LINK_CREATE TestLink 4 1 NODE NodeType1 Value1 VARIABLE Var1 NODE NodeType2 Value2 "
               "VARIABLE Var2 CUSTOM_FIELD Field1 2 valuename1 Value1 valuename2 Value2");
     EXPECT_EQ(lct5.get_targets().size(), 4);
-    EXPECT_EQ(get<LCANode>(lct5.get_targets()[0]).type, "NodeType1");
-    EXPECT_EQ(get<LCANode>(lct5.get_targets()[0]).value, "Value1");
-    EXPECT_EQ(get<Variable>(lct5.get_targets()[1]).name, "Var1");
+    EXPECT_EQ(get<shared_ptr<Node>>(lct5.get_targets()[0])->type, "NodeType1");
+    EXPECT_EQ(get<shared_ptr<Node>>(lct5.get_targets()[0])->name, "Value1");
+    EXPECT_EQ(get<shared_ptr<UntypedVariable>>(lct5.get_targets()[1])->name, "Var1");
     link_template.clear();
     link_template_str.clear();
 
@@ -228,15 +234,14 @@ TEST(LinkCreateTemplate, TestLinkCreateTemplate) {
     EXPECT_EQ(lct6.get_link_type(), "AnotherLink");
     EXPECT_EQ(lct6.to_string(), link_template_str);
     EXPECT_EQ(lct6.get_targets().size(), 2);
-    EXPECT_EQ(get<Variable>(lct6.get_targets()[0]).name, "VarA");
-    EXPECT_EQ(get<LCANode>(lct6.get_targets()[1]).type, "NodeTypeA");
-    EXPECT_EQ(get<LCANode>(lct6.get_targets()[1]).value, "ValueA");
+    EXPECT_EQ(get<shared_ptr<UntypedVariable>>(lct6.get_targets()[0])->name, "VarA");
+    EXPECT_EQ(get<shared_ptr<Node>>(lct6.get_targets()[1])->type, "NodeTypeA");
+    EXPECT_EQ(get<shared_ptr<Node>>(lct6.get_targets()[1])->name, "ValueA");
     EXPECT_EQ(lct6.get_custom_fields().size(), 1);
     EXPECT_EQ(lct6.get_custom_fields()[0].get_name(), "FieldA");
     EXPECT_EQ(lct6.get_custom_fields()[0].get_values().size(), 1);
     EXPECT_EQ(get<0>(lct6.get_custom_fields()[0].get_values()[0]), "NameA");
     EXPECT_EQ(get<string>(get<1>(lct6.get_custom_fields()[0].get_values()[0])), "ValueA");
-
     link_template.clear();
     link_template_str.clear();
 
@@ -247,15 +252,15 @@ TEST(LinkCreateTemplate, TestLinkCreateTemplate) {
     LinkCreateTemplate lct7(link_template);
     EXPECT_EQ(lct7.get_link_type(), "ComplexLink");
     EXPECT_EQ(lct7.to_string(),
-              "LINK_CREATE ComplexLink 4 2 NODE Type1 Val1 VARIABLE Var1 NODE Type2 Val2 VARIABLE Var2 "
+              "LINK_CREATE ComplexLink 4 2 NODE Type1 Val1 VARIABLE Var1 NODE Type2 Val2 VARIABLE Var2 " 
               "CUSTOM_FIELD Field1 2 N1 Val1 N2 Val2 CUSTOM_FIELD Field2 1 N3 Val3");
     EXPECT_EQ(lct7.get_targets().size(), 4);
-    EXPECT_EQ(get<LCANode>(lct7.get_targets()[0]).type, "Type1");
-    EXPECT_EQ(get<LCANode>(lct7.get_targets()[0]).value, "Val1");
-    EXPECT_EQ(get<Variable>(lct7.get_targets()[1]).name, "Var1");
-    EXPECT_EQ(get<LCANode>(lct7.get_targets()[2]).type, "Type2");
-    EXPECT_EQ(get<LCANode>(lct7.get_targets()[2]).value, "Val2");
-    EXPECT_EQ(get<Variable>(lct7.get_targets()[3]).name, "Var2");
+    EXPECT_EQ(get<shared_ptr<Node>>(lct7.get_targets()[0])->type, "Type1");
+    EXPECT_EQ(get<shared_ptr<Node>>(lct7.get_targets()[0])->name, "Val1");
+    EXPECT_EQ(get<shared_ptr<UntypedVariable>>(lct7.get_targets()[1])->name, "Var1");
+    EXPECT_EQ(get<shared_ptr<Node>>(lct7.get_targets()[2])->type, "Type2");
+    EXPECT_EQ(get<shared_ptr<Node>>(lct7.get_targets()[2])->name, "Val2");
+    EXPECT_EQ(get<shared_ptr<UntypedVariable>>(lct7.get_targets()[3])->name, "Var2");
     EXPECT_EQ(lct7.get_custom_fields()[0].get_name(), "Field1");
     EXPECT_EQ(lct7.get_custom_fields()[0].get_values().size(), 2);
     EXPECT_EQ(get<0>(lct7.get_custom_fields()[0].get_values()[0]), "N1");
@@ -275,9 +280,9 @@ TEST(LinkCreateTemplate, TestLinkCreateTemplate) {
     EXPECT_EQ(lct8.get_link_type(), "SimpleLink");
     EXPECT_EQ(lct8.to_string(), link_template_str);
     EXPECT_EQ(lct8.get_targets().size(), 2);
-    EXPECT_EQ(get<Variable>(lct8.get_targets()[0]).name, "SimpleVar");
-    EXPECT_EQ(get<LCANode>(lct8.get_targets()[1]).type, "SimpleNode");
-    EXPECT_EQ(get<LCANode>(lct8.get_targets()[1]).value, "SimpleValue");
+    EXPECT_EQ(get<shared_ptr<UntypedVariable>>(lct8.get_targets()[0])->name, "SimpleVar");
+    EXPECT_EQ(get<shared_ptr<Node>>(lct8.get_targets()[1])->type, "SimpleNode");
+    EXPECT_EQ(get<shared_ptr<Node>>(lct8.get_targets()[1])->name, "SimpleValue");
     link_template.clear();
     link_template_str.clear();
 }
@@ -291,66 +296,76 @@ TEST(LinkCreateTemplate, TestInvalidLinkType) {
 TEST(LinkCreateTemplate, TestInvalidTargetCount) {
     string link_template_str = "LINK_CREATE Similarity 3 1 VARIABLE V1 NODE Symbol A";
     auto link_template = split(link_template_str, ' ');
-    EXPECT_THROW(LinkCreateTemplate lct(link_template), invalid_argument);
+    EXPECT_THROW(LinkCreateTemplate lct(link_template), runtime_error);
 }
 
 TEST(LinkCreateTemplate, TestInvalidCustomField) {
     string link_template_str =
         "LINK_CREATE Similarity 2 1 VARIABLE V1 NODE Symbol A CUSTOM_FIELD field1";
     auto link_template = split(link_template_str, ' ');
-    EXPECT_THROW(LinkCreateTemplate lct(link_template), invalid_argument);
+    EXPECT_THROW(LinkCreateTemplate lct(link_template), runtime_error);
 }
 
 TEST(LinkCreateTemplate, TestInvalidVariable) {
     string link_template_str = "LINK_CREATE Similarity 2 1 VARIABLE NODE Symbol A";
     auto link_template = split(link_template_str, ' ');
-    EXPECT_THROW(LinkCreateTemplate lct(link_template), invalid_argument);
+    EXPECT_THROW(LinkCreateTemplate lct(link_template), runtime_error);
 }
 
 TEST(LinkCreateTemplate, TestInvalidNode) {
     string link_template_str = "LINK_CREATE Similarity 2 1 VARIABLE V1 NODE Symbol";
     auto link_template = split(link_template_str, ' ');
-    EXPECT_THROW(LinkCreateTemplate lct(link_template), invalid_argument);
+    EXPECT_THROW(LinkCreateTemplate lct(link_template), runtime_error);
 }
 
-TEST(Link, TestLinkTemplateProcessor) {
-    vector<string> link_template = split("LINK_CREATE Similarity 2 0 VARIABLE V1 VARIABLE V2", ' ');
+TEST_F(LinkCreationAgentTest, TestLinkTemplateProcessor) {
+    vector<string> link_template = split("LINK_CREATE Expression 2 0 VARIABLE V1 VARIABLE V2", ' ');
     shared_ptr<QueryAnswer> query_answer = make_shared<QueryAnswer>();
     query_answer->assignment.assign("V1", "Value1");
     query_answer->assignment.assign("V2", "Value2");
 
     LinkTemplateProcessor ltp;
-    auto links = ltp.process(query_answer, link_template);
+    auto links = ltp.process_query(query_answer, link_template);
     auto link2 = LinkCreateTemplate(link_template).process_query_answer(query_answer);
     cout << link2->to_string() << endl;
-    EXPECT_EQ(link2->to_string(), "Link(type: 'Similarity', targets: [Value1, Value2], custom_attributes: {})");
-    EXPECT_EQ(Utils::join(links[0], ' '), "LINK Similarity 2 0 HANDLE Value1 HANDLE Value2");
-    // EXPECT_EQ(link.to_metta_string(), "(Value1 Value2)");
+    EXPECT_EQ(link2->to_string(),
+              "Link(type: 'Expression', targets: [Value1, Value2], custom_attributes: {})");
+    EXPECT_EQ(links[0]->to_string(),
+              "Link(type: 'Expression', targets: [Value1, Value2], custom_attributes: {})");
+    auto mock_atom = dynamic_cast<AtomDBMock*>(AtomDBSingleton::get_instance().get());
+    vector<string> targets_node = {"Value1", "Value2", "A", "Value1", "B", "C", "B"};
+    EXPECT_CALL(*mock_atom, get_atom(testing::_))
+        .Times(targets_node.size())
+        .WillRepeatedly(::testing::Invoke([&targets_node](const string& handle) {
+            auto node = make_shared<Node>("Symbol", targets_node.front());
+            targets_node.erase(targets_node.begin());
+            return node;
+        }));
+    EXPECT_EQ(links[0]->metta_representation(*AtomDBSingleton::get_instance().get()), "(Value1 Value2)");
     link_template.clear();
+    links.clear();
 
     query_answer = make_shared<QueryAnswer>();
-    link_template = split("LINK_CREATE Test 3 0 NODE Symbol A VARIABLE V1 NODE Symbol B", ' ');
+    link_template = split("LINK_CREATE Expression 3 0 NODE Symbol A VARIABLE V1 NODE Symbol B", ' ');
     query_answer->assignment.assign("V1", "Value1");
-    links = ltp.process(query_answer, link_template);
-    EXPECT_EQ(Utils::join(links[0], ' '), "LINK Test 3 0 NODE Symbol A HANDLE Value1 NODE Symbol B");
-    // EXPECT_EQ(link.to_metta_string(), "(A Value1 B)");
-
+    links = ltp.process_query(query_answer, link_template);
+    EXPECT_EQ(links[0]->to_string(), "Link(type: 'Expression', targets: [11944827f32b09c425b6136a6b5b4224, Value1, d4891853e7729b52d422daa93ccecacb], custom_attributes: {})");
+    EXPECT_EQ(links[0]->metta_representation(*AtomDBSingleton::get_instance().get()), "(A Value1 B)");
+    links.clear();
     link_template.clear();
 
     query_answer = make_shared<QueryAnswer>();
     link_template = split(
-        "LINK_CREATE Test2 2 1 NODE Symbol C NODE Symbol B "
+        "LINK_CREATE Expression 2 1 NODE Symbol C NODE Symbol B "
         "CUSTOM_FIELD truth_value 2 CUSTOM_FIELD mean 2 count 10 avg 0.9 confidence 0.9",
         ' ');
-    links = ltp.process(query_answer, link_template);
-    link2 = LinkCreateTemplate(link_template).process_query_answer(query_answer);
-    cout << link2->to_string() << endl;
-    EXPECT_EQ(link2->to_string(), "Link(type: 'Test2', targets: [9908489fa1968f547004d4d56dc700bb, d4891853e7729b52d422daa93ccecacb], custom_attributes: {confidence: '0.9', mean.avg: '0.9', mean.count: '10'})");
-    EXPECT_EQ(
-        Utils::join(links[0], ' '),
-        "LINK Test2 2 1 NODE Symbol C NODE Symbol B CUSTOM_FIELD truth_value 2 CUSTOM_FIELD mean 2 "
-        "count 10 avg 0.9 confidence 0.9");
-
+    links = ltp.process_query(query_answer, link_template);
+    EXPECT_EQ(links[0]->to_string(),
+              "Link(type: 'Expression', targets: [9908489fa1968f547004d4d56dc700bb, "
+              "d4891853e7729b52d422daa93ccecacb], custom_attributes: {confidence: '0.9', mean.avg: "
+              "'0.9', mean.count: '10'})");
+    EXPECT_EQ(links[0]->metta_representation(*AtomDBSingleton::get_instance().get()), "(C B)");
+    links.clear();
     link_template.clear();
 
     query_answer = make_shared<QueryAnswer>();
@@ -360,77 +375,39 @@ TEST(Link, TestLinkTemplateProcessor) {
         ' ');
     query_answer->assignment.assign("V1", "Value1");
     query_answer->assignment.assign("V2", "Value2");
-    links = ltp.process(query_answer, link_template);
-    EXPECT_EQ(
-        Utils::join(links[0], ' '),
-        "LINK Test3 2 1 HANDLE Value1 HANDLE Value2 CUSTOM_FIELD truth_value 2 CUSTOM_FIELD mean 2 "
-        "count 10 avg 0.9 confidence 0.9");
+    links = ltp.process_query(query_answer, link_template);
+    EXPECT_EQ(links[0]->to_string(),
+              "Link(type: 'Test3', targets: [Value1, Value2], custom_attributes: {confidence: '0.9', "
+              "mean.avg: '0.9', mean.count: '10'})");
     link_template.clear();
-
-    // Test the Link class
-    vector<string> tokens = Utils::split(
-        "LINK Test3 2 1 HANDLE Value1 HANDLE Value2 CUSTOM_FIELD truth_value 2 CUSTOM_FIELD mean 2 "
-        "count 10 avg 0.9 confidence 0.9",
-        ' ');
-    LCALink ll;
-    LCALink l2 = ll.untokenize(tokens);
-    EXPECT_EQ(l2.get_type(), "Test3");
-    EXPECT_EQ(l2.get_targets().size(), 2);
-    EXPECT_EQ(get<string>(l2.get_targets()[0]), "Value1");
-    EXPECT_EQ(get<string>(l2.get_targets()[1]), "Value2");
-    EXPECT_EQ(l2.get_custom_fields().size(), 1);
-    CustomField truth_value = l2.get_custom_fields()[0];
-    EXPECT_EQ(truth_value.get_name(), "truth_value");
-    EXPECT_EQ(truth_value.get_values().size(), 2);
-    shared_ptr<CustomField> mean = get<shared_ptr<CustomField>>(get<1>(truth_value.get_values()[0]));
-    EXPECT_EQ(mean->get_values().size(), 2);
-    EXPECT_EQ(get<0>(mean->get_values()[0]), "count");
-    EXPECT_EQ(get<string>(get<1>(mean->get_values()[0])), "10");
-    EXPECT_EQ(get<0>(mean->get_values()[1]), "avg");
-    EXPECT_EQ(get<string>(get<1>(mean->get_values()[1])), "0.9");
-    EXPECT_EQ(get<0>(l2.get_custom_fields()[0].get_values()[1]), "confidence");
-    EXPECT_EQ(get<string>(get<1>(l2.get_custom_fields()[0].get_values()[1])), "0.9");
-    EXPECT_EQ(l2.to_metta_string(), "(Value1 [[count 10 avg 0.9] confidence 0.9] Value2)");
-    tokens.clear();
-
-    tokens = Utils::split(
-        "LINK Test3 3 1 NODE Symbol EQUIVALENCE HANDLE Value1 HANDLE Value2 CUSTOM_FIELD truth_value 2 "
-        "strength 0.9 confidence 1",
-        ' ');
-    l2 = ll.untokenize(tokens);
-    EXPECT_EQ(l2.get_type(), "Test3");
-    EXPECT_EQ(l2.get_targets().size(), 3);
-    // EXPECT_EQ(get<LCANode>(l2.get_targets()[0]), "EQUIVALENCE");
-    EXPECT_EQ(get<string>(l2.get_targets()[1]), "Value1");
-    EXPECT_EQ(get<string>(l2.get_targets()[2]), "Value2");
-    EXPECT_EQ(l2.get_custom_fields().size(), 1);
-    truth_value = l2.get_custom_fields()[0];
-    EXPECT_EQ(truth_value.get_name(), "truth_value");
-    EXPECT_EQ(truth_value.get_values().size(), 2);
-    EXPECT_EQ(get<0>(l2.get_custom_fields()[0].get_values()[0]), "strength");
-    EXPECT_EQ(get<string>(get<1>(l2.get_custom_fields()[0].get_values()[0])), "0.9");
-    EXPECT_EQ(get<0>(l2.get_custom_fields()[0].get_values()[1]), "confidence");
-    EXPECT_EQ(get<string>(get<1>(l2.get_custom_fields()[0].get_values()[1])), "1");
-    EXPECT_EQ(l2.to_metta_string(), "(EQUIVALENCE [strength 0.9 confidence 1] Value1 Value2)");
+    links.clear();
+    ASSERT_TRUE(targets_node.empty());
 }
 
-TEST(ImplicationProcessor, TestEquivalenceProcessor) {
+TEST(ImplicationProcessor, TestImplicationProcessor) {
     LinkSchema ls = ImplicationProcessor::build_pattern_query("HANDLE Value1");
     vector<string> output;
     ls.tokenize(output);
-    EXPECT_EQ(Utils::join(output, ' '), "LINK_TEMPLATE Expression 3 NODE Symbol EVALUATION LINK Expression 2 NODE Symbol PREDICATE ATOM HANDLE Value1 LINK_TEMPLATE Expression 2 NODE Symbol CONCEPT VARIABLE PX");
+    EXPECT_EQ(Utils::join(output, ' '),
+              "LINK_TEMPLATE Expression 3 NODE Symbol EVALUATION LINK Expression 2 NODE Symbol "
+              "PREDICATE ATOM HANDLE Value1 LINK_TEMPLATE Expression 2 NODE Symbol CONCEPT VARIABLE PX");
     output.clear();
     ls = ImplicationProcessor::build_satisfying_set_query("h1", "h2");
     ls.tokenize(output);
-    EXPECT_EQ(Utils::join(output, ' '), "A");
-    
-    // vector<string> link_template = split("LINK_CREATE Equivalence 2 0 VARIABLE V1 VARIABLE V2", ' ');
-    // shared_ptr<QueryAnswer> query_answer = make_shared<QueryAnswer>();
-    // query_answer->assignment.assign("V1", "Value1");
-    // query_answer->assignment.assign("V2", "Value2");
+    EXPECT_EQ(Utils::join(output, ' '),
+              "LINK_TEMPLATE AND 2 LINK_TEMPLATE Expression 3 NODE Symbol EVALUATION LINK Expression 2 "
+              "NODE Symbol PREDICATE ATOM h1 LINK_TEMPLATE Expression 2 NODE Symbol CONCEPT VARIABLE C "
+              "LINK_TEMPLATE Expression 3 NODE Symbol EVALUATION LINK Expression 2 NODE Symbol "
+              "PREDICATE ATOM h2 LINK_TEMPLATE Expression 2 NODE Symbol CONCEPT VARIABLE C");
+}
 
-    // LinkTemplateProcessor ltp;
-    // auto links = ltp.process(query_answer, link_template);
-    // EXPECT_EQ(Utils::join(links[0], ' '), "LINK Equivalence 2 0 HANDLE Value1 HANDLE Value2");
-    // EXPECT_EQ(link.to_metta_string(), "(Value1 Value2)");
+TEST(EquivalenceProcessor, TestEquivalenceProcessor) {
+    LinkSchema ls = EquivalenceProcessor::build_pattern_query("h1", "h2");
+    vector<string> output;
+    ls.tokenize(output);
+    EXPECT_EQ(Utils::join(output, ' '),
+              "LINK_TEMPLATE OR 2 LINK_TEMPLATE Expression 3 NODE Symbol EVALUATION LINK_TEMPLATE "
+              "Expression 2 NODE Symbol PREDICATE VARIABLE P LINK Expression 2 NODE Symbol CONCEPT ATOM "
+              "h1 LINK_TEMPLATE Expression 3 NODE Symbol EVALUATION LINK_TEMPLATE Expression 2 NODE "
+              "Symbol PREDICATE VARIABLE P LINK Expression 2 NODE Symbol CONCEPT ATOM h2");
 }

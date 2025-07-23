@@ -2,14 +2,17 @@
 
 #include <memory>
 
+#include "Link.h"
 #include "LinkCreateTemplate.h"
-// #include "LinkCreationDBHelper.h"
+#include "Node.h"
+#include "UntypedVariable.h"
 #include "Utils.h"
 
 using namespace std;
 using namespace inference_agent;
 using namespace link_creation_agent;
 using namespace commons;
+using namespace atoms;
 
 InferenceRequest::InferenceRequest(string first_handle,
                                    string second_handle,
@@ -113,9 +116,8 @@ static vector<string> inference_evolution_request_builder(string first_handle,
                                               : "VARIABLE");
                         request.push_back(vars[i - 1]);
                     } else if (token == "_SECOND_") {
-                        request.push_back((vars[i] == first_handle || vars[i] == second_handle)
-                                              ? "ATOM"
-                                              : "VARIABLE");
+                        request.push_back(
+                            (vars[i] == first_handle || vars[i] == second_handle) ? "ATOM" : "VARIABLE");
                         request.push_back(vars[i]);
                     } else {
                         request.push_back(token);
@@ -144,27 +146,6 @@ vector<string> InferenceRequest::get_distributed_inference_control_request() {
     for (auto token : request) {
         tokens.push_back(token);
     }
-    // for (size_t i = 0; i < request.size(); i++) {
-    //     if (request[i] == "ATOM") {
-    //         auto atom_tokens = LinkCreationDBWrapper::get_atom(request[i + 1]);
-    //         if (holds_alternative<shared_ptr<link_creation_agent::LCALink>>(atom_tokens)) {
-    //             for (auto token :
-    //                  get<shared_ptr<link_creation_agent::LCALink>>(atom_tokens)->tokenize()) {
-    //                 tokens.push_back(token);
-    //             }
-    //         } else if (holds_alternative<LCANode>(atom_tokens)) {
-    //             for (auto token : get<LCANode>(atom_tokens).tokenize()) {
-    //                 tokens.push_back(token);
-    //             }
-    //         } else {
-    //             Utils::error("Error parsing atom: " + request[i + 1]);
-    //         }
-
-    //         i++;
-    //     } else {
-    //         tokens.push_back(request[i]);
-    //     }
-    // }
     return tokens;
 }
 
@@ -199,13 +180,9 @@ vector<string> ProofOfImplicationOrEquivalence::query() {
 vector<string> ProofOfImplicationOrEquivalence::patterns_link_template() {
     // SATISFYING_SET
     LinkCreateTemplate satisfying_set_link_template = LinkCreateTemplate("Expression");
-    // Node("Symbol", "SATISFYING_SET");
-    LCANode evaluation_node;
-    evaluation_node.type = "Symbol";
-    evaluation_node.value = "SATISFYING_SET";
-    // Variable("P");
-    Variable evaluation_variable;
-    evaluation_variable.name = "P";
+
+    shared_ptr<Node> evaluation_node = make_shared<Node>("Symbol", "SATISFYING_SET");
+    shared_ptr<UntypedVariable> evaluation_variable = make_shared<UntypedVariable>("P");
     satisfying_set_link_template.add_target(evaluation_node);
     satisfying_set_link_template.add_target(evaluation_variable);
     auto custom_field = CustomField("truth_value");
@@ -215,13 +192,9 @@ vector<string> ProofOfImplicationOrEquivalence::patterns_link_template() {
 
     // PATTERNS
     LinkCreateTemplate patterns_link_template = LinkCreateTemplate("Expression");
-    // Node("Symbol", "PATTERNS");
-    LCANode patterns_node;
-    patterns_node.type = "Symbol";
-    patterns_node.value = "PATTERNS";
-    // Variable("C");
-    Variable patterns_variable;
-    patterns_variable.name = "C";
+
+    shared_ptr<Node> patterns_node = make_shared<Node>("Symbol", "PATTERNS");
+    shared_ptr<UntypedVariable> patterns_variable = make_shared<UntypedVariable>("C");
     patterns_link_template.add_target(patterns_node);
     patterns_link_template.add_target(patterns_variable);
     auto patterns_custom_field = CustomField("truth_value");
@@ -251,17 +224,17 @@ vector<vector<string>> ProofOfImplicationOrEquivalence::get_requests() {
         query_and_link_creation_template.push_back(token);
     }
     requests.push_back(query_and_link_creation_template);
-    // //  Not supported yet
-    // //  proof of implication
-    // ProofOfImplication proof_of_implication(first_handle, second_handle, max_proof_length, context);
-    // for (auto request : proof_of_implication.get_requests()) {
-    //     requests.push_back(request);
-    // }
-    // // proof of equivalence
-    // ProofOfEquivalence proof_of_equivalence(first_handle, second_handle, max_proof_length, context);
-    // for (auto request : proof_of_equivalence.get_requests()) {
-    //     requests.push_back(request);
-    // }
+    //  Not supported yet
+    //  proof of implication
+    ProofOfImplication proof_of_implication(first_handle, second_handle, max_proof_length, context);
+    for (auto request : proof_of_implication.get_requests()) {
+        requests.push_back(request);
+    }
+    // proof of equivalence
+    ProofOfEquivalence proof_of_equivalence(first_handle, second_handle, max_proof_length, context);
+    for (auto request : proof_of_equivalence.get_requests()) {
+        requests.push_back(request);
+    }
 
     return requests;
 }

@@ -9,11 +9,12 @@
 #include <tuple>
 #include <variant>
 #include <vector>
+
 #include "Link.h"
-#include "Node.h"
-#include "UntypedVariable.h"
 #include "LinkSchema.h"
+#include "Node.h"
 #include "QueryAnswer.h"
+#include "UntypedVariable.h"
 
 using namespace std;
 using namespace atoms;
@@ -24,50 +25,20 @@ class CustomField;         // Forward declaration
 class LinkCreateTemplate;  // Forward declaration
 
 /**
- * @struct LCANode
- * @brief Represents a node with a type and value.
- *
- * @var LCANode::type
- * Type of the node.
- *
- * @var LCANode::value
- * Value of the node.
- */
-struct LCANode {
-    string type;
-    string value;
-    vector<string> tokenize() {
-        vector<string> tokens;
-        tokens.push_back("NODE");
-        tokens.push_back(type);
-        tokens.push_back(value);
-        return tokens;
-    }
-};
-
-/**
- * @struct Variable
- * @brief Represents a variable with a name.
- *
- * @var Variable::name
- * Name of the variable.
- */
-struct Variable {
-    string name;
-};
-
-/**
  * @typedef CustomFieldTypes
  * @brief A variant type that can hold either a string or a shared_ptr to a CustomField.
  */
 using CustomFieldTypes = variant<string, shared_ptr<CustomField>>;
 /**
  * @typedef LinkCreateTemplateTypes
- * @brief A variant type that can hold either a Variable, LCANode, or a shared_ptr to a
- * LinkCreateTemplate.
+ * @brief A variant type that can hold either a LinkCreateTemplate, Node, UntypedVariable, Link or
+ * LinkSchema.
  */
-using LinkCreateTemplateTypes = variant<Variable, LCANode, shared_ptr<LinkCreateTemplate>>;
-using LinkTemplateTarget = variant<shared_ptr<Link>, shared_ptr<LinkSchema>, shared_ptr<Node>, shared_ptr<UntypedVariable>, shared_ptr<LinkCreateTemplate>>;
+using LinkCreateTemplateTypes = variant<shared_ptr<LinkCreateTemplate>,
+                                        shared_ptr<Node>,
+                                        shared_ptr<UntypedVariable>,
+                                        shared_ptr<Link>,
+                                        shared_ptr<LinkSchema>>;
 
 /**
  * @class CustomField
@@ -175,16 +146,11 @@ class LinkCreateTemplate {
      */
     void add_custom_field(CustomField custom_field);
 
-
     shared_ptr<Link> process_query_answer(shared_ptr<QueryAnswer> query_answer);
-
-    
 
    private:
     string link_type;
     vector<LinkCreateTemplateTypes> targets;
-    vector<string> handle_targets;
-    vector<LinkTemplateTarget> link_template_targets;
     vector<CustomField> custom_fields = {};
 };
 

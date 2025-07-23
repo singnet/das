@@ -477,6 +477,7 @@ cc_test(
         "//agents/link_creation_agent:link_creation_agent_lib",
         "//commons:commons_lib",
         "//service_bus:service_bus_lib",
+        "//tests/cpp/test_commons/mocks:mock_atom_db_lib",
         "@com_github_google_googletest//:gtest_main",
     ],
 )
@@ -493,6 +494,8 @@ cc_test(
     deps = [
         "//agents/inference_agent:inference_agent_lib",
         "//commons:commons_lib",
+        "//tests/cpp/test_commons/mocks:mock_service_bus_lib",
+        "//tests/cpp/test_commons/mocks:mock_atom_db_lib",
         "@com_github_google_googletest//:gtest_main",
     ],
 )

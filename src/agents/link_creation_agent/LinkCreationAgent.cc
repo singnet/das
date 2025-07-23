@@ -84,7 +84,7 @@ void LinkCreationAgent::run() {
             continue;
         }
 
-        LOG_DEBUG("LCArequest ID: " << (lca_request ? lca_request->id : "NULL"));
+        LOG_DEBUG("Request ID: " << (lca_request ? lca_request->id : "NULL"));
 
         if (lca_request->infinite || lca_request->repeat > 0) {
             LOG_DEBUG("Request IDX: " << current_buffer_position);
@@ -194,7 +194,7 @@ shared_ptr<LinkCreationAgentRequest> LinkCreationAgent::create_request(vector<st
         lca_request->id = compute_hash((char*) lca_request->id.c_str());
         LOG_DEBUG("Creating request ID: " << lca_request->id);
         LOG_DEBUG("Query: " << Utils::join(lca_request->query, ' '));
-        LOG_DEBUG("LCALink Template: " << Utils::join(lca_request->link_template, ' '));
+        LOG_DEBUG("Link Template: " << Utils::join(lca_request->link_template, ' '));
         LOG_DEBUG("Max Results: " << to_string(lca_request->max_results));
         LOG_DEBUG("Repeat: " << to_string(lca_request->repeat));
         LOG_DEBUG("Context: " << lca_request->context);
@@ -204,7 +204,7 @@ shared_ptr<LinkCreationAgentRequest> LinkCreationAgent::create_request(vector<st
         return shared_ptr<LinkCreationAgentRequest>(lca_request);
     } catch (exception& e) {
         LOG_ERROR("Error parsing request: " << string(e.what()));
-        throw invalid_argument("Invalid request format: " + string(e.what()));
+        Utils::error("Invalid request format: " + string(e.what()));
     }
     return nullptr;
 }
@@ -223,7 +223,7 @@ void LinkCreationAgent::process_request(shared_ptr<LinkCreationRequestProxy> pro
     request.push_back(request_id);
     process_request(request);
     link_creation_proxy_map[request_id] = proxy;
-    LOG_DEBUG("LCALink creation request processed for request ID: " << request_id);
+    LOG_DEBUG("Link creation request processed for request ID: " << request_id);
 }
 
 void LinkCreationAgent::abort_request(const string& request_id) {

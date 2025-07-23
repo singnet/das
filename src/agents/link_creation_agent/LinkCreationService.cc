@@ -2,13 +2,14 @@
 
 #include <fstream>
 
-#include "LinkCreationDBHelper.h"
+#include "AtomDBSingleton.h"
 #include "Logger.h"
 #include "Utils.h"
 
 using namespace link_creation_agent;
 using namespace std;
 using namespace query_engine;
+using namespace atomdb;
 
 static void add_to_file(string file_path, string file_name, string content) {
     LOG_INFO("Saving to file: " << file_path << "/" << file_name);
@@ -36,13 +37,6 @@ LinkCreationService::~LinkCreationService() {
     }
 }
 
-void LinkCreationService::enqueue_link_creation_request(const string& request_id,
-                                                        const vector<vector<string>>& link_tokens) {
-    // for (const auto& link : link_tokens) {
-    //     link_creation_queue.enqueue(make_tuple(request_id, link));
-    // }
-}
-
 void LinkCreationService::process_request(shared_ptr<PatternMatchingQueryProxy> proxy,
                                           vector<string>& link_template,
                                           const string& context,
@@ -67,7 +61,7 @@ void LinkCreationService::process_request(shared_ptr<PatternMatchingQueryProxy> 
                     extra_params.push_back(context);
                     shared_lock lock(m_mutex);
                     LOG_INFO("[" << request_id << "]"
-                             << " - Processing query answer for iterator ID: " << proxy->my_id());
+                                 << " - Processing query answer for iterator ID: " << proxy->my_id());
                     auto links = process_query_answer(query_answer, extra_params, link_template);
                     for (const auto& link : links) {
                         link_creation_queue.enqueue(make_tuple(request_id, link));
@@ -91,23 +85,9 @@ void LinkCreationService::process_request(shared_ptr<PatternMatchingQueryProxy> 
     thread_pool.enqueue(job);
 }
 
-// vector<vector<string>> LinkCreationService::process_query_answer(shared_ptr<QueryAnswer> query_answer,
-//                                                                  vector<string> params,
-//                                                                  vector<string> link_template) {
-//     if (LinkCreationProcessor::get_processor_type(link_template.front()) ==
-//         ProcessorType::PROOF_OF_IMPLICATION) {
-//         return implication_processor->process(query_answer, params);
-//     } else if (LinkCreationProcessor::get_processor_type(link_template.front()) ==
-//                ProcessorType::PROOF_OF_EQUIVALENCE) {
-//         return equivalence_processor->process(query_answer, params);
-//     } else {
-//         return link_template_processor->process(query_answer, link_template);
-//     }
-// }
-
 vector<shared_ptr<Link>> LinkCreationService::process_query_answer(shared_ptr<QueryAnswer> query_answer,
-                                                                 vector<string> params,
-                                                                 vector<string> link_template) {
+                                                                   vector<string> params,
+                                                                   vector<string> link_template) {
     if (LinkCreationProcessor::get_processor_type(link_template.front()) ==
         ProcessorType::PROOF_OF_IMPLICATION) {
         return implication_processor->process_query(query_answer, params);
@@ -126,7 +106,6 @@ void LinkCreationService::create_links() {
         if (!link_creation_queue.empty()) {
             auto request_map = link_creation_queue.dequeue();
             string id = get<0>(request_map);
-            // vector<string> request = get<1>(request_map);
             shared_ptr<Link> link = get<1>(request_map);
             try {
                 LOG_INFO("Processing link: " << link->to_string());
