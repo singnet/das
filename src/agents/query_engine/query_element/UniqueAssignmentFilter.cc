@@ -30,6 +30,9 @@ void UniqueAssignmentFilter::setup_buffers() {
 }
 
 void UniqueAssignmentFilter::graceful_shutdown() {
+    if (Operator<1>::is_flow_finished()) {
+        return;
+    }
     Operator<1>::graceful_shutdown();
     if (this->operator_thread != NULL) {
         this->operator_thread->join();
@@ -45,8 +48,9 @@ void UniqueAssignmentFilter::thread_filter() {
     unordered_set<Assignment> already_used;
 
     while (true) {
-        if (this->input_buffer[0]->is_query_answers_finished() &&
-            this->input_buffer[0]->is_query_answers_empty()) {
+        if ((this->input_buffer[0]->is_query_answers_finished() &&
+             this->input_buffer[0]->is_query_answers_empty()) ||
+            Operator<1>::is_flow_finished()) {
             this->output_buffer->query_answers_finished();
             break;
         }

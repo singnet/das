@@ -82,6 +82,7 @@ class Operator : public QueryElement {
             this->precedent[i]->graceful_shutdown();
         }
         set_flow_finished();
+        Utils::sleep(500);
         this->output_buffer->graceful_shutdown();
         for (unsigned int i = 0; i < N; i++) {
             this->input_buffer[i]->graceful_shutdown();

@@ -82,7 +82,7 @@ void QueryEvolutionProcessor::sample_population(
     unsigned int population_size =
         proxy->parameters.get<unsigned int>(QueryEvolutionProxy::POPULATION_SIZE);
     auto pm = atom_space.pattern_matching_query(
-        proxy->get_query_tokens(), population_size, proxy->get_context(), true);
+        proxy->get_query_tokens(), population_size, proxy->get_context(), false);
     while ((!pm->finished()) && (!monitor->stopped()) && (population.size() < population_size)) {
         shared_ptr<QueryAnswer> answer = pm->pop();
         if (answer != NULL) {
@@ -290,7 +290,7 @@ void QueryEvolutionProcessor::evolve_query(shared_ptr<StoppableThread> monitor,
         STOP_WATCH_START(sample_population);
         sample_population(monitor, proxy, population);
         STOP_WATCH_FINISH(sample_population, "EvolutionPopulationSampling");
-        LOG_INFO("Generation: " + std::to_string(count_generations) +
+        LOG_INFO("==== Generation: " + std::to_string(count_generations) +
                  ". Sampled: " + std::to_string(population.size()) + " individuals.");
         proxy->new_population_sampled(population);
         if (population.size() > 0) {

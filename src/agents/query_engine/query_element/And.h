@@ -35,8 +35,8 @@ class And : public Operator<N> {
     And(const array<shared_ptr<QueryElement>, N>& clauses,
         const vector<shared_ptr<QueryElement>>& link_templates = {})
         : Operator<N>(clauses) {
-        this->link_templates = link_templates;
         initialize(clauses);
+        this->link_templates = link_templates;
     }
 
     /**
@@ -45,11 +45,8 @@ class And : public Operator<N> {
     ~And() {
         graceful_shutdown();
         for (size_t i = 0; i < N; i++) {
-            for (auto* answer : this->query_answer[i]) {
-                if (answer) {
-                    delete answer;
-                    answer = nullptr;
-                }
+            for (auto answer : this->query_answer[i]) {
+                delete answer;
             }
             this->query_answer[i].clear();
         }
@@ -64,6 +61,9 @@ class And : public Operator<N> {
     }
 
     virtual void graceful_shutdown() {
+        if (Operator<N>::is_flow_finished()) {
+            return;
+        }
         Operator<N>::graceful_shutdown();
         if (this->operator_thread != NULL) {
             this->operator_thread->join();

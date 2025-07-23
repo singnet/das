@@ -32,8 +32,11 @@ void Sink::setup_buffers() {
 }
 
 void Sink::graceful_shutdown() {
-    this->input_buffer->graceful_shutdown();
+    if (is_flow_finished()) {
+        return;
+    }
     this->precedent->graceful_shutdown();
+    this->input_buffer->graceful_shutdown();
 }
 
 bool Sink::finished() {
