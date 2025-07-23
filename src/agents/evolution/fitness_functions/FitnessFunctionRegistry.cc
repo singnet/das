@@ -12,6 +12,7 @@
 using namespace fitness_functions;
 using namespace commons;
 bool FitnessFunctionRegistry::INITIALIZED = false;
+string FitnessFunctionRegistry::REMOTE_FUNCTION = "remote_fitness_function";
 map<string, shared_ptr<FitnessFunction>> FitnessFunctionRegistry::FUNCTION;
 
 void FitnessFunctionRegistry::initialize_statics() {
@@ -25,6 +26,7 @@ void FitnessFunctionRegistry::initialize_statics() {
         // -----------------------------------------------------------------------------------------
         // Add your function here using a unique string key
         // FUNCTION["my_function_tag"] = make_shared<MyFunction>();
+        // NOTE: "remote_fitness_function" is reserved and CAN'T be used here.
         // -----------------------------------------------------------------------------------------
         FUNCTION["count_letter"] = make_shared<CountLetterFunction>();
     }
@@ -32,6 +34,9 @@ void FitnessFunctionRegistry::initialize_statics() {
 
 shared_ptr<FitnessFunction> FitnessFunctionRegistry::function(const string& tag) {
     if (INITIALIZED) {
+        if (tag == REMOTE_FUNCTION) {
+            Utils::error("Invalid use of reserved fitness function tag: " + tag);
+        }
         if (FUNCTION.find(tag) != FUNCTION.end()) {
             return FUNCTION[tag];
         } else {

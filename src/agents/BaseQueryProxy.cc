@@ -159,7 +159,7 @@ void BaseQueryProxy::answer_bundle(const vector<string>& args) {
     lock_guard<mutex> semaphore(this->api_mutex);
     if (!this->is_aborting()) {
         if (args.size() == 0) {
-            Utils::error("Invalid empty query answer");
+            Utils::error("Invalid empty query answer bundle");
         } else {
             for (auto tokens : args) {
                 QueryAnswer* query_answer = new QueryAnswer();

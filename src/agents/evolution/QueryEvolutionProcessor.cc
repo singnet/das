@@ -79,6 +79,9 @@ void QueryEvolutionProcessor::sample_population(
     shared_ptr<StoppableThread> monitor,
     shared_ptr<QueryEvolutionProxy> proxy,
     vector<std::pair<shared_ptr<QueryAnswer>, float>>& population) {
+
+    bool remote_fitness = proxy->is_fitness_function_remote();
+    vector<string> answer_bundle_vector;
     unsigned int population_size =
         proxy->parameters.get<unsigned int>(QueryEvolutionProxy::POPULATION_SIZE);
     auto pm = atom_space.pattern_matching_query(
@@ -86,7 +89,13 @@ void QueryEvolutionProcessor::sample_population(
     while ((!pm->finished()) && (!monitor->stopped()) && (population.size() < population_size)) {
         shared_ptr<QueryAnswer> answer = pm->pop();
         if (answer != NULL) {
-            float fitness = proxy->compute_fitness(answer);
+            float fitness;
+            if (remote_fitness) {
+                fitness = 0;
+                answer_bundle_vector.push_back(answer->tokenize());
+            } else {
+                fitness = (remote_fitness ? 0 : proxy->compute_fitness(answer));
+            }
             answer->strength = fitness;
             population.push_back(make_pair(answer, fitness));
         } else {
@@ -107,6 +116,26 @@ void QueryEvolutionProcessor::sample_population(
             }
         }
         LOG_ERROR("Discarding " << count << " answers");
+    }
+    if (remote_fitness) {
+        if (answer_bundle_vector.size() > proxy->parameters.get<unsigned int>(BaseQueryProxy::MAX_BUNDLE_SIZE)) {
+            Utils::error("Expected POPULATION_SIZE <= MAX_BUNDLE_SIZE in order to use remote fitness evaluation");
+            return;
+        }
+        proxy->remote_fitness_evaluation(answer_bundle_vector);
+        while (! proxy->remote_fitness_evaluation_finished()) {
+            Utils::sleep();
+        }
+        vector<float> fitness_bundle = proxy->get_remotely_evaluated_fitness();
+        if (fitness_bundle.size() != population_size) {
+            Utils::error("Invalid fitness bundle of size: " + std::to_string(fitness_bundle.size())); 
+            return;
+        }
+        for (unsigned int i = 0; i < population_size; i++) {
+            float fitness = fitness_bundle[i];
+            population[i].first->strength = fitness;
+            population[i].second = fitness;
+        }
     }
     // Sort decreasing by fitness value
     std::sort(population.begin(),

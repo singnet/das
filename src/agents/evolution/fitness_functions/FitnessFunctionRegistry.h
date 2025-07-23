@@ -17,6 +17,8 @@ namespace fitness_functions {
  */
 class FitnessFunctionRegistry {
    public:
+    static string REMOTE_FUNCTION;
+
     ~FitnessFunctionRegistry() {}
     static shared_ptr<FitnessFunction> function(const string& tag);
     static void initialize_statics();

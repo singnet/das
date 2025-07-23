@@ -12,7 +12,6 @@
 #include "StoppableThread.h"
 
 #define ATTENTION_BROKER_ADDRESS "localhost:37007"
-#define MAX_BUNDLE_SIZE ((unsigned int) 10000)
 
 using namespace std;
 using namespace service_bus;

@@ -258,6 +258,22 @@ bool Utils::is_number(const string& s) {
            find_if(s.begin(), s.end(), [](unsigned char c) { return !isdigit(c); }) == s.end();
 }
 
+float Utils::string_to_float(const string& s) {
+    if (s.empty()) {
+        Utils::error("Can't convert empty string to float");
+        return 0;
+    } else {
+        char* end_ptr;
+        float value = strtof(s.c_str(), &end_ptr);
+        if ((*end_ptr == '\0') && (end_ptr != s.c_str())) {
+            return value;
+        } else {
+            Utils::error("Can't convert string \"" + s + "\" to float");
+            return 0;
+        }
+    }
+}
+
 int Utils::string_to_int(const string& s) {
     if (!is_number(s)) {
         throw invalid_argument("Can not convert string to int: Invalid arguments (" + s + ")");

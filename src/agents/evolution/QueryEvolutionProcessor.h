@@ -9,8 +9,6 @@
 #include "QueryEvolutionProxy.h"
 #include "StoppableThread.h"
 
-#define MAX_BUNDLE_SIZE ((unsigned int) 10000)
-
 using namespace std;
 using namespace service_bus;
 using namespace atomspace;

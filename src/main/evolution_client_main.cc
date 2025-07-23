@@ -43,7 +43,7 @@ int main(int argc, char* argv[]) {
     }
 
     /*
-    auto proxy = make_shared<QueryEvolutionProxy>(query, "unit_test", "evolution_client");
+    auto proxy = make_shared<QueryEvolutionProxy>(query, "evolution_client", "unit_test");
     auto bus = ServiceBusSingleton::get_instance();
     shared_ptr<QueryAnswer> query_answer;
     bus->issue_bus_command(proxy);
