@@ -591,6 +591,7 @@ cc_test(
     deps = [
         "//atomdb:atomdb_singleton",
         "//tests/cpp/test_commons",
+        "//tests/cpp/test_commons:mock_animals_data_lib",
         "@com_github_google_googletest//:gtest_main",
         "@mbedtls",
     ],
@@ -616,5 +617,25 @@ cc_test(
         "//atomdb:atomdb_singleton",
         "@com_github_google_googletest//:gtest_main",
         "@mbedtls",
+    ],
+)
+
+cc_test(
+    name = "profiling_test",
+    size = "small",
+    srcs = [
+        "profiling_test.cc",
+    ],
+    copts = [
+        "-Iexternal/gtest/googletest/include",
+        "-Iexternal/gtest/googletest",
+    ],
+    linkstatic = 1,
+    deps = [
+        "//commons:commons_lib",
+        "@com_github_google_googletest//:gtest_main",
+        "@com_github_grpc_grpc//:grpc++",
+        "@com_github_grpc_grpc//:grpc++_reflection",
+        "@com_github_singnet_das_proto//:attention_broker_cc_grpc",
     ],
 )

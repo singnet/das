@@ -1,5 +1,6 @@
 #pragma once
 
+#include <set>
 #include <string>
 
 #include "Assignment.h"
@@ -8,6 +9,10 @@
 
 using namespace std;
 using namespace commons;
+
+// If this constant is set to numbers greater than 999, we need
+// to fix QueryAnswer.tokenize() properly
+#define MAX_NUMBER_OF_OPERATION_CLAUSES ((unsigned int) 100)
 
 namespace query_engine {
 
@@ -44,12 +49,7 @@ class QueryAnswer {
     /**
      * Handles which are the constituents of this QueryAnswer.
      */
-    const char* handles[MAX_NUMBER_OF_OPERATION_CLAUSES];
-
-    /**
-     * Number of handles in this QueryAnswer.
-     */
-    unsigned int handles_size;
+    set<string> handles;
 
     /**
      * Estimated importance of this QueryAnswer based on the importance of its constituents.
@@ -73,7 +73,7 @@ class QueryAnswer {
      * @param handle First handle in this QueryAnswer.
      * @param importance Estimated importance of this QueryAnswer.
      */
-    QueryAnswer(const char* handle, double importance);
+    QueryAnswer(const string& handle, double importance);
 
     /**
      * Constructor.
@@ -97,7 +97,7 @@ class QueryAnswer {
      *
      * @param handles Handle to be added to this QueryAnswer.
      */
-    void add_handle(const char* handle);
+    void add_handle(const string& handle);
 
     /**
      * Merges this QueryAnswer with the passed one.
@@ -160,15 +160,15 @@ class QueryAnswer {
 template <>
 struct std::hash<Assignment> {
     std::size_t operator()(const Assignment& k) const {
-        if (k.size == 0) {
+        if (k.table.size() == 0) {
             return 0;
         }
 
         std::size_t hash_value = 1;
-        for (unsigned int i = 0; i < k.size; i++) {
-            hash_value = hash_value ^ ((std::hash<string>()(string(k.labels[i])) ^
-                                        (std::hash<string>()(string(k.values[i])) << 1)) >>
-                                       1);
+        for (auto pair : k.table) {
+            hash_value =
+                hash_value ^
+                ((std::hash<string>()(pair.first) ^ (std::hash<string>()(pair.second) << 1)) >> 1);
         }
 
         return hash_value;

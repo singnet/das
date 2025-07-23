@@ -122,11 +122,15 @@ string BaseQueryProxy::to_string() {
     string answer = "{";
     answer += "context: " + this->get_context();
     answer += ", tokens: [";
+    bool empty_flag = true;
     for (auto token : this->query_tokens) {
         answer += token + ", ";
+        empty_flag = -false;
     }
-    answer.pop_back();
-    answer.pop_back();
+    if (!empty_flag) {
+        answer.pop_back();
+        answer.pop_back();
+    }
     answer += "], BaseProxy: ";
     answer += BaseProxy::to_string();
     answer += "}";

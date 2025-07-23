@@ -58,18 +58,26 @@ string QueryEvolutionProxy::to_string() {
     answer += BaseQueryProxy::to_string();
     answer += ", fitness_function: " + this->fitness_function_tag;
     answer += ", correlation_tokens: [";
+    bool empty_flag = true;
     for (auto token : this->correlation_tokens) {
         answer += token + ", ";
+        empty_flag = false;
     }
-    answer.pop_back();
-    answer.pop_back();
+    if (!empty_flag) {
+        answer.pop_back();
+        answer.pop_back();
+    }
     answer += "], ";
     answer += "correlation_variables: [";
+    empty_flag = true;
     for (auto token : this->correlation_variables) {
         answer += token + ", ";
+        empty_flag = false;
     }
-    answer.pop_back();
-    answer.pop_back();
+    if (!empty_flag) {
+        answer.pop_back();
+        answer.pop_back();
+    }
     answer += "]";
     answer += "}";
     return answer;

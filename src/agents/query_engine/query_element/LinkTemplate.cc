@@ -74,6 +74,7 @@ void LinkTemplate::build() {
         this->id = get_handle() + string("_") + std::to_string(LinkTemplate::next_instance_count());
         this->source_element = make_shared<SourceElement>();
         this->source_element->id = this->id;
+        LOG_INFO("LinkTemplate: " + to_string());
         start_thread();
     } else {
         Utils::error("LinkTemplate already built");

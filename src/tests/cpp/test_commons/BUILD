@@ -8,3 +8,14 @@ cc_library(
     hdrs = ["TestConfig.h"],
     includes = ["."],
 )
+
+cc_library(
+    name = "mock_animals_data_lib",
+    srcs = ["MockAnimalsData.cc"],
+    hdrs = ["MockAnimalsData.h"],
+    includes = ["."],
+    deps = [
+        "//atomdb:atomdb_singleton",
+        "//commons:commons_lib",
+    ],
+)

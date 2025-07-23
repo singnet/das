@@ -56,12 +56,16 @@ string Terminal::to_string() {
         return this->name;
     } else if (this->is_link) {
         string answer = this->type + "[";
+        bool empty_flag = true;
         for (auto target : this->targets) {
             answer += target->to_string();
             answer += ", ";
+            empty_flag = false;
         }
-        answer.pop_back();
-        answer.pop_back();
+        if (!empty_flag) {
+            answer.pop_back();
+            answer.pop_back();
+        }
         return answer;
     } else {
         Utils::error("Invalid terminal");

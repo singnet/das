@@ -146,7 +146,7 @@ void run(const string& client_id,
         or_two_words, activation_spreading, {sentence3}, "count_letter", context);
     shared_ptr<QueryEvolutionProxy> proxy(proxy_ptr);
     proxy->parameters[QueryEvolutionProxy::POPULATION_SIZE] = (unsigned int) 100;
-    proxy->parameters[QueryEvolutionProxy::MAX_GENERATIONS] = (unsigned int) 1;
+    proxy->parameters[QueryEvolutionProxy::MAX_GENERATIONS] = (unsigned int) 10;
     proxy->parameters[QueryEvolutionProxy::ELITISM_RATE] = (double) 0.01;
     proxy->parameters[QueryEvolutionProxy::SELECTION_RATE] = (double) 0.02;
     proxy->parameters[BaseQueryProxy::MAX_BUNDLE_SIZE] = (unsigned int) 1;
@@ -164,11 +164,10 @@ void run(const string& client_id,
         if ((query_answer = proxy->pop()) == NULL) {
             Utils::sleep();
         } else {
-            const char* handle;
-            handle = query_answer->assignment.get(sentence1.c_str());
+            string handle = query_answer->assignment.get(sentence1.c_str());
             float fitness = query_answer->strength;
             sentence_document = db->get_atom_document(handle);
-            handle = sentence_document->get("targets", 1);
+            handle = string(sentence_document->get("targets", 1));
             sentence_name_document = db->get_atom_document(handle);
             set<string> to_highlight = {word_tag1, word_tag2};
             string sentence_name = string(sentence_name_document->get("name"));

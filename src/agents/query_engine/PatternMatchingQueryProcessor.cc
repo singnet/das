@@ -70,9 +70,8 @@ void PatternMatchingQueryProcessor::update_attention_broker_single_answer(
     set<string> single_answer;
     stack<string> execution_stack;
 
-    for (unsigned int i = 0; i < answer->handles_size; i++) {
-        string handle = string(answer->handles[i]);
-        execution_stack.push(string(answer->handles[i]));
+    for (string handle : answer->handles) {
+        execution_stack.push(handle);
     }
 
     while (!execution_stack.empty()) {
@@ -157,7 +156,6 @@ void PatternMatchingQueryProcessor::thread_process_one_query(
     STOP_WATCH_START(query_thread);
     try {
         proxy->untokenize(proxy->args);
-        LOG_DEBUG("proxy: " + proxy->to_string());
         LOG_DEBUG("Setting up query tree");
         shared_ptr<QueryElement> root_query_element = setup_query_tree(proxy);
         set<string> joint_answer;  // used to stimulate attention broker
@@ -313,7 +311,6 @@ shared_ptr<QueryElement> PatternMatchingQueryProcessor::build_link_template(
         proxy->get_context(),
         proxy->parameters.get<bool>(PatternMatchingQueryProxy::POSITIVE_IMPORTANCE_FLAG),
         proxy->parameters.get<bool>(BaseQueryProxy::USE_LINK_TEMPLATE_CACHE));
-    LOG_INFO("LinkTemplate: " + link_template->to_string());
     return link_template;
 }
 
