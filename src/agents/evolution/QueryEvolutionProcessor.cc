@@ -315,6 +315,7 @@ void QueryEvolutionProcessor::evolve_query(shared_ptr<StoppableThread> monitor,
     STOP_WATCH_START(evolution);
     while (!monitor->stopped() && !proxy->stop_criteria_met()) {
         RAM_CHECKPOINT("Generation " + std::to_string(count_generations));
+        STOP_WATCH_START(generation);
         LOG_DEBUG("RAM Usage: " << Utils::get_current_ram_usage());
         STOP_WATCH_START(sample_population);
         sample_population(monitor, proxy, population);
@@ -338,6 +339,7 @@ void QueryEvolutionProcessor::evolve_query(shared_ptr<StoppableThread> monitor,
             proxy->flush_answer_bundle();
         }
         RAM_FOOTPRINT_CHECK(evolution, "Generation " + std::to_string(count_generations));
+        STOP_WATCH_FINISH(generation, "OneGeneration");
         count_generations++;
     }
     STOP_WATCH_FINISH(evolution, "QueryEvolution");
