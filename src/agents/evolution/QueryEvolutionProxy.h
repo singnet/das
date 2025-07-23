@@ -50,12 +50,13 @@ class QueryEvolutionProxy : public BaseQueryProxy {
      * @param tokens Query tokens.
      * @param context AttentionBroker context
      */
-    QueryEvolutionProxy(const vector<string>& tokens,
-                        const vector<string>& correlation_tokens,
-                        const vector<string>& correlation_variables,
-                        const string& context,
-                        const string& fitness_function_tag,
-                        const shared_ptr<FitnessFunction> fitness_function = shared_ptr<FitnessFunction>(nullptr));
+    QueryEvolutionProxy(
+        const vector<string>& tokens,
+        const vector<string>& correlation_tokens,
+        const vector<string>& correlation_variables,
+        const string& context,
+        const string& fitness_function_tag,
+        const shared_ptr<FitnessFunction> fitness_function = shared_ptr<FitnessFunction>(nullptr));
 
     /**
      * Destructor.
@@ -172,7 +173,6 @@ class QueryEvolutionProxy : public BaseQueryProxy {
      * @param args a bundle of fitness values.
      */
     void eval_fitness_response(const vector<string>& args);
-
 
    private:
     void set_default_query_parameters();

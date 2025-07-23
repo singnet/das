@@ -29,9 +29,7 @@ class TestProcessor : public QueryEvolutionProcessor {
 
 class TestFitnessFunction : public FitnessFunction {
    public:
-    float eval(shared_ptr<QueryAnswer> query_answer) override {
-        return 1;
-    }
+    float eval(shared_ptr<QueryAnswer> query_answer) override { return 1; }
 };
 
 TEST(QueryEvolution, protected_methods) {
@@ -66,7 +64,12 @@ TEST(QueryEvolution, protected_methods) {
     EXPECT_EQ(proxy1.compute_fitness(make_shared<QueryAnswer>("blah", 0.0)), 0.0);
     EXPECT_EQ(proxy1.compute_fitness(make_shared<QueryAnswer>("blah", 0.5)), 0.5);
     EXPECT_EQ(proxy1.compute_fitness(make_shared<QueryAnswer>("blah", 1.0)), 1.0);
-    QueryEvolutionProxy proxy2(query, {}, {}, "query_evolution_test", FitnessFunctionRegistry::REMOTE_FUNCTION, make_shared<TestFitnessFunction>());
+    QueryEvolutionProxy proxy2(query,
+                               {},
+                               {},
+                               "query_evolution_test",
+                               FitnessFunctionRegistry::REMOTE_FUNCTION,
+                               make_shared<TestFitnessFunction>());
     EXPECT_EQ(proxy2.compute_fitness(make_shared<QueryAnswer>("blah", 0.0)), 1.0);
     EXPECT_EQ(proxy2.compute_fitness(make_shared<QueryAnswer>("blah", 0.5)), 1.0);
     EXPECT_EQ(proxy2.compute_fitness(make_shared<QueryAnswer>("blah", 1.0)), 1.0);

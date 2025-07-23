@@ -79,7 +79,6 @@ void QueryEvolutionProcessor::sample_population(
     shared_ptr<StoppableThread> monitor,
     shared_ptr<QueryEvolutionProxy> proxy,
     vector<std::pair<shared_ptr<QueryAnswer>, float>>& population) {
-
     bool remote_fitness = proxy->is_fitness_function_remote();
     vector<string> answer_bundle_vector;
     unsigned int population_size =
@@ -118,17 +117,19 @@ void QueryEvolutionProcessor::sample_population(
         LOG_ERROR("Discarding " << count << " answers");
     }
     if (remote_fitness) {
-        if (answer_bundle_vector.size() > proxy->parameters.get<unsigned int>(BaseQueryProxy::MAX_BUNDLE_SIZE)) {
-            Utils::error("Expected POPULATION_SIZE <= MAX_BUNDLE_SIZE in order to use remote fitness evaluation");
+        if (answer_bundle_vector.size() >
+            proxy->parameters.get<unsigned int>(BaseQueryProxy::MAX_BUNDLE_SIZE)) {
+            Utils::error(
+                "Expected POPULATION_SIZE <= MAX_BUNDLE_SIZE in order to use remote fitness evaluation");
             return;
         }
         proxy->remote_fitness_evaluation(answer_bundle_vector);
-        while (! proxy->remote_fitness_evaluation_finished()) {
+        while (!proxy->remote_fitness_evaluation_finished()) {
             Utils::sleep();
         }
         vector<float> fitness_bundle = proxy->get_remotely_evaluated_fitness();
         if (fitness_bundle.size() != population_size) {
-            Utils::error("Invalid fitness bundle of size: " + std::to_string(fitness_bundle.size())); 
+            Utils::error("Invalid fitness bundle of size: " + std::to_string(fitness_bundle.size()));
             return;
         }
         for (unsigned int i = 0; i < population_size; i++) {

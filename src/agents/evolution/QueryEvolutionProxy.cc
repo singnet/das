@@ -191,7 +191,8 @@ const vector<string>& QueryEvolutionProxy::get_correlation_variables() {
 
 bool QueryEvolutionProxy::is_fitness_function_remote() {
     lock_guard<mutex> semaphore(this->api_mutex);
-    return (this->fitness_function_object == nullptr) && (this->fitness_function_tag == FitnessFunctionRegistry::REMOTE_FUNCTION);
+    return (this->fitness_function_object == nullptr) &&
+           (this->fitness_function_tag == FitnessFunctionRegistry::REMOTE_FUNCTION);
 }
 
 void QueryEvolutionProxy::remote_fitness_evaluation(const vector<string>& answer_bundle) {
@@ -203,7 +204,7 @@ void QueryEvolutionProxy::remote_fitness_evaluation(const vector<string>& answer
 
 bool QueryEvolutionProxy::remote_fitness_evaluation_finished() {
     lock_guard<mutex> semaphore(this->api_mutex);
-    return ! this->ongoing_remote_fitness_evaluation;
+    return !this->ongoing_remote_fitness_evaluation;
 }
 
 vector<float> QueryEvolutionProxy::get_remotely_evaluated_fitness() {
