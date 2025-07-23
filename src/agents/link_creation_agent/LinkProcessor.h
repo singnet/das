@@ -12,11 +12,13 @@
 #include <vector>
 
 #include "Logger.h"
+#include "Link.h"
 #include "PatternMatchingQueryProxy.h"
 #include "QueryAnswer.h"
 #include "ServiceBusSingleton.h"
 #include "Utils.h"
 
+using namespace atoms;
 using namespace query_engine;
 using namespace commons;
 using namespace std;
@@ -27,6 +29,8 @@ class LinkProcessor {
     LinkProcessor() = default;
     virtual vector<vector<string>> process(shared_ptr<QueryAnswer> query_answer,
                                            optional<vector<string>> extra_params = nullopt) = 0;
+    virtual vector<shared_ptr<Link>> process_query(shared_ptr<QueryAnswer> query_answer,
+                         optional<vector<string>> extra_params = nullopt) = 0;
     virtual ~LinkProcessor() = default;
     static int count_query(vector<string>& query, string& context, bool is_unique_assignment = true) {
         int count = _count_query(query, context, is_unique_assignment);

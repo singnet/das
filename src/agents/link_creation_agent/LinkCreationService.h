@@ -71,7 +71,7 @@ class LinkCreationService
     shared_ptr<ImplicationProcessor> implication_processor;
     shared_ptr<EquivalenceProcessor> equivalence_processor;
     shared_ptr<mutex> query_agent_mutex;
-    Queue<tuple<string, vector<string>>> link_creation_queue;
+    Queue<tuple<string, shared_ptr<Link>>> link_creation_queue;
     bool is_stoping = false;
     thread create_link_thread;
     set<string> metta_expression_set;
@@ -86,9 +86,13 @@ class LinkCreationService
      * @param das_client DAS LCANode client
      */
     void create_links();
-    vector<vector<string>> process_query_answer(shared_ptr<QueryAnswer> query_answer,
-                                                vector<string> params,
-                                                vector<string> link_template);
+    // vector<vector<string>> process_query_answer(shared_ptr<QueryAnswer> query_answer,
+    //                                             vector<string> params,
+    //                                             vector<string> link_template);
+
+    vector<shared_ptr<Link>> process_query_answer(shared_ptr<QueryAnswer> query_answer,
+                                                  vector<string> params,
+                                                  vector<string> link_template);
     void enqueue_link_creation_request(const string& request_id,
                                        const vector<vector<string>>& link_tokens);
 };

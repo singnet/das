@@ -9,8 +9,15 @@
 #include <tuple>
 #include <variant>
 #include <vector>
+#include "Link.h"
+#include "Node.h"
+#include "UntypedVariable.h"
+#include "LinkSchema.h"
+#include "QueryAnswer.h"
 
 using namespace std;
+using namespace atoms;
+using namespace query_engine;
 namespace link_creation_agent {
 
 class CustomField;         // Forward declaration
@@ -60,6 +67,7 @@ using CustomFieldTypes = variant<string, shared_ptr<CustomField>>;
  * LinkCreateTemplate.
  */
 using LinkCreateTemplateTypes = variant<Variable, LCANode, shared_ptr<LinkCreateTemplate>>;
+using LinkTemplateTarget = variant<shared_ptr<Link>, shared_ptr<LinkSchema>, shared_ptr<Node>, shared_ptr<UntypedVariable>, shared_ptr<LinkCreateTemplate>>;
 
 /**
  * @class CustomField
@@ -102,6 +110,8 @@ class CustomField {
      * @param value The value of the field.
      */
     void add_field(const string& name, const CustomFieldTypes& value);
+
+    Properties to_properties();
 
     CustomField untokenize(const vector<string>& tokens);
 
@@ -165,9 +175,16 @@ class LinkCreateTemplate {
      */
     void add_custom_field(CustomField custom_field);
 
+
+    shared_ptr<Link> process_query_answer(shared_ptr<QueryAnswer> query_answer);
+
+    
+
    private:
     string link_type;
     vector<LinkCreateTemplateTypes> targets;
+    vector<string> handle_targets;
+    vector<LinkTemplateTarget> link_template_targets;
     vector<CustomField> custom_fields = {};
 };
 

@@ -61,6 +61,9 @@ cc_library(
     hdrs = ["LinkCreateTemplate.h"],
     deps = [
         "//commons:commons_lib",
+        "//commons/atoms:atoms_lib",
+        "//agents/query_engine:query_engine_lib",
+
     ],
 )
 

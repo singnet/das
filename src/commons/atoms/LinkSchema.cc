@@ -341,7 +341,7 @@ vector<string> LinkSchema::tokenize() {
     return this->_tokens;
 }
 
-void LinkSchema::tokenize(vector<string> output) {
+void LinkSchema::tokenize(vector<string>& output) {
     _check_frozen();
     for (string token : this->_tokens) {
         output.push_back(token);

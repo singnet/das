@@ -3,7 +3,7 @@
 #include <memory>
 
 #include "LinkCreateTemplate.h"
-#include "LinkCreationDBHelper.h"
+// #include "LinkCreationDBHelper.h"
 #include "Utils.h"
 
 using namespace std;
@@ -81,10 +81,10 @@ static vector<string> inference_evolution_request_builder(string first_handle,
                 if (token == "_TYPE_") {
                     request.push_back(ttype);
                 } else if (token == "_FIRST_") {
-                    request.push_back("HANDLE");
+                    request.push_back("ATOM");
                     request.push_back(first_handle);
                 } else if (token == "_SECOND_") {
-                    request.push_back("HANDLE");
+                    request.push_back("ATOM");
                     request.push_back(second_handle);
                 } else {
                     request.push_back(token);
@@ -109,12 +109,12 @@ static vector<string> inference_evolution_request_builder(string first_handle,
                         request.push_back(cp[i - 1]);
                     } else if (token == "_FIRST_") {
                         request.push_back((vars[i - 1] == first_handle || vars[i - 1] == second_handle)
-                                              ? "HANDLE"
+                                              ? "ATOM"
                                               : "VARIABLE");
                         request.push_back(vars[i - 1]);
                     } else if (token == "_SECOND_") {
                         request.push_back((vars[i] == first_handle || vars[i] == second_handle)
-                                              ? "HANDLE"
+                                              ? "ATOM"
                                               : "VARIABLE");
                         request.push_back(vars[i]);
                     } else {
@@ -141,30 +141,30 @@ vector<string> InferenceRequest::get_distributed_inference_control_request() {
     // tokens.push_back(this->context);
     tokens.push_back("OR");
     tokens.push_back(to_string(size));
-    // for (auto token : request) {
-    //     tokens.push_back(token);
-    // }
-    for (size_t i = 0; i < request.size(); i++) {
-        if (request[i] == "HANDLE") {
-            auto atom_tokens = LinkCreationDBWrapper::get_atom(request[i + 1]);
-            if (holds_alternative<shared_ptr<link_creation_agent::LCALink>>(atom_tokens)) {
-                for (auto token :
-                     get<shared_ptr<link_creation_agent::LCALink>>(atom_tokens)->tokenize()) {
-                    tokens.push_back(token);
-                }
-            } else if (holds_alternative<LCANode>(atom_tokens)) {
-                for (auto token : get<LCANode>(atom_tokens).tokenize()) {
-                    tokens.push_back(token);
-                }
-            } else {
-                Utils::error("Error parsing atom: " + request[i + 1]);
-            }
-
-            i++;
-        } else {
-            tokens.push_back(request[i]);
-        }
+    for (auto token : request) {
+        tokens.push_back(token);
     }
+    // for (size_t i = 0; i < request.size(); i++) {
+    //     if (request[i] == "ATOM") {
+    //         auto atom_tokens = LinkCreationDBWrapper::get_atom(request[i + 1]);
+    //         if (holds_alternative<shared_ptr<link_creation_agent::LCALink>>(atom_tokens)) {
+    //             for (auto token :
+    //                  get<shared_ptr<link_creation_agent::LCALink>>(atom_tokens)->tokenize()) {
+    //                 tokens.push_back(token);
+    //             }
+    //         } else if (holds_alternative<LCANode>(atom_tokens)) {
+    //             for (auto token : get<LCANode>(atom_tokens).tokenize()) {
+    //                 tokens.push_back(token);
+    //             }
+    //         } else {
+    //             Utils::error("Error parsing atom: " + request[i + 1]);
+    //         }
+
+    //         i++;
+    //     } else {
+    //         tokens.push_back(request[i]);
+    //     }
+    // }
     return tokens;
 }
 
@@ -251,17 +251,17 @@ vector<vector<string>> ProofOfImplicationOrEquivalence::get_requests() {
         query_and_link_creation_template.push_back(token);
     }
     requests.push_back(query_and_link_creation_template);
-    //  Not supported yet
-    //  proof of implication
-    ProofOfImplication proof_of_implication(first_handle, second_handle, max_proof_length, context);
-    for (auto request : proof_of_implication.get_requests()) {
-        requests.push_back(request);
-    }
-    // proof of equivalence
-    ProofOfEquivalence proof_of_equivalence(first_handle, second_handle, max_proof_length, context);
-    for (auto request : proof_of_equivalence.get_requests()) {
-        requests.push_back(request);
-    }
+    // //  Not supported yet
+    // //  proof of implication
+    // ProofOfImplication proof_of_implication(first_handle, second_handle, max_proof_length, context);
+    // for (auto request : proof_of_implication.get_requests()) {
+    //     requests.push_back(request);
+    // }
+    // // proof of equivalence
+    // ProofOfEquivalence proof_of_equivalence(first_handle, second_handle, max_proof_length, context);
+    // for (auto request : proof_of_equivalence.get_requests()) {
+    //     requests.push_back(request);
+    // }
 
     return requests;
 }

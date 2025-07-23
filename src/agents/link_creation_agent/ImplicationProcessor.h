@@ -3,10 +3,12 @@
  */
 
 #pragma once
+#include "Link.h"
 #include "LCALink.h"
 #include "LinkProcessor.h"
 
 using namespace query_engine;
+using namespace atoms;
 using namespace std;
 
 namespace link_creation_agent {
@@ -15,6 +17,12 @@ class ImplicationProcessor : public LinkProcessor {
     ImplicationProcessor();
     vector<vector<string>> process(shared_ptr<QueryAnswer> query_answer,
                                    optional<vector<string>> extra_params = nullopt) override;
+    vector<shared_ptr<Link>> process_query(shared_ptr<QueryAnswer> query_answer,
+                         optional<vector<string>> extra_params = nullopt) override;
+   
+   static LinkSchema build_pattern_query(const string& handle);
+   static LinkSchema build_satisfying_set_query(const string& p1_handle,
+                                                const string& p2_handle);
 
    private:
     static vector<string> pattern_template_1;

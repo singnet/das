@@ -3,6 +3,9 @@
 #include <algorithm>
 #include <sstream>
 #include <stdexcept>
+#include <Node.h>
+#include <LinkSchema.h>
+#include <UntypedVariable.h>
 
 #include "Utils.h"
 
@@ -113,15 +116,18 @@ LinkCreateTemplate::LinkCreateTemplate(vector<string>& link_template) {
             node.type = get_token(link_template, cursor + 1);
             node.value = get_token(link_template, cursor + 2);
             this->targets.push_back(node);
+            this->link_template_targets.push_back(make_shared<Node>(node.type, node.value));
             cursor += 2;
         } else if (get_token(link_template, cursor) == "VARIABLE") {
             Variable var;
             var.name = get_token(link_template, cursor + 1);
             this->targets.push_back(var);
+            this->link_template_targets.push_back(make_shared<UntypedVariable>(var.name));
             cursor += 1;
         } else if (get_token(link_template, cursor) == "LINK_CREATE") {
             vector<string> sub_link_template = parse_sub_link_template(link_template, cursor);
             LinkCreateTemplateTypes sub_link = make_shared<LinkCreateTemplate>(sub_link_template);
+            this->link_template_targets.push_back(make_shared<LinkCreateTemplate>(sub_link_template));
             this->targets.push_back(sub_link);
         } else if (get_token(link_template, cursor) == "CUSTOM_FIELD") {
             vector<string> sub_custom_field = parse_sub_custom_field(link_template, cursor);
@@ -279,6 +285,22 @@ CustomField CustomField::untokenize(const vector<string>& tokens, size_t& cursor
     return CustomField("");
 }
 
+Properties CustomField::to_properties() {
+    Properties properties;
+    for (auto value : this->values) {
+        CustomFieldTypes field_value = get<1>(value);
+        if (holds_alternative<string>(field_value)) {
+            properties[get<0>(value)] = get<string>(field_value);
+        } else {
+            auto sub_custom_field = get<shared_ptr<CustomField>>(field_value)->to_properties();
+            for (const auto& sub_value : sub_custom_field) {
+                properties[get<0>(value) + "." + sub_value.first] = sub_value.second;
+            }
+        }
+    }
+    return properties;
+}
+
 vector<string> CustomField::tokenize() { return Utils::split(this->to_string(), ' '); }
 
 LinkCreateTemplateList::LinkCreateTemplateList(vector<string> link_template) {
@@ -300,3 +322,33 @@ LinkCreateTemplateList::LinkCreateTemplateList(vector<string> link_template) {
 LinkCreateTemplateList::~LinkCreateTemplateList() {}
 
 vector<LinkCreateTemplate> LinkCreateTemplateList::get_templates() { return this->templates; }
+
+
+shared_ptr<Link> LinkCreateTemplate::process_query_answer(shared_ptr<QueryAnswer> query_answer) {
+    vector<string> targets;
+    for(auto target: this->link_template_targets){
+        if (holds_alternative<shared_ptr<LinkCreateTemplate>>(target)) {
+            shared_ptr<LinkCreateTemplate> sub_template = get<shared_ptr<LinkCreateTemplate>>(target);
+            targets.push_back(sub_template->process_query_answer(query_answer)->handle());
+        }else if (holds_alternative<shared_ptr<Link>>(target)) {
+            shared_ptr<Link> link = get<shared_ptr<Link>>(target);
+            targets.push_back(link->handle());
+        } else if (holds_alternative<shared_ptr<LinkSchema>>(target)) {
+            shared_ptr<LinkSchema> link_schema = get<shared_ptr<LinkSchema>>(target);
+            targets.push_back(link_schema->handle());
+        } else if (holds_alternative<shared_ptr<Node>>(target)) {
+            shared_ptr<Node> node = get<shared_ptr<Node>>(target);
+            targets.push_back(node->handle());
+        } else if (holds_alternative<shared_ptr<UntypedVariable>>(target)) {
+            shared_ptr<UntypedVariable> variable = get<shared_ptr<UntypedVariable>>(target);
+            targets.push_back(query_answer->assignment.get(variable->name.c_str()));
+        }
+    }
+    Properties custom_attributes;
+    for (auto& custom_field : this->custom_fields) {
+        for (auto& value : custom_field.to_properties()) {
+            custom_attributes[value.first] = value.second;
+        }
+    }
+    return make_shared<Link>(this->link_type, targets, custom_attributes);
+}

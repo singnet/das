@@ -1,4 +1,6 @@
 #include "TemplateProcessor.h"
+#include "LinkCreateTemplate.h"
+#include "LCALink.h"
 
 using namespace std;
 using namespace query_engine;
@@ -53,4 +55,23 @@ shared_ptr<LCALink> LinkTemplateProcessor::process_template_request(shared_ptr<Q
         }
     }
     return link;
+}
+
+vector<shared_ptr<Link>> LinkTemplateProcessor::process_query(shared_ptr<QueryAnswer> query_answer,
+                                                  optional<vector<string>> extra_params) {
+    vector<shared_ptr<Link>> links;
+    if (extra_params == nullopt) {
+        throw runtime_error("Invalid link template");
+    }
+    if (extra_params.value().front() == "LIST") {
+        LinkCreateTemplateList link_create_template_list(extra_params.value());
+        for (auto link_template : link_create_template_list.get_templates()) {
+            LinkCreateTemplate link_create_template(link_template);
+            links.push_back(link_create_template.process_query_answer(query_answer));
+        }
+    } else {
+        LinkCreateTemplate link_template(extra_params.value());
+        links.push_back(link_template.process_query_answer(query_answer));
+    }
+    return links;
 }

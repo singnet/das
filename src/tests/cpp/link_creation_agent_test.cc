@@ -8,6 +8,7 @@
 #include "LinkCreateTemplate.h"
 #include "LinkCreationAgent.h"
 #include "LinkCreationRequestProcessor.h"
+#include "ImplicationProcessor.h"
 #include "TemplateProcessor.h"
 #include "Utils.h"
 
@@ -320,6 +321,9 @@ TEST(Link, TestLinkTemplateProcessor) {
 
     LinkTemplateProcessor ltp;
     auto links = ltp.process(query_answer, link_template);
+    auto link2 = LinkCreateTemplate(link_template).process_query_answer(query_answer);
+    cout << link2->to_string() << endl;
+    EXPECT_EQ(link2->to_string(), "Link(type: 'Similarity', targets: [Value1, Value2], custom_attributes: {})");
     EXPECT_EQ(Utils::join(links[0], ' '), "LINK Similarity 2 0 HANDLE Value1 HANDLE Value2");
     // EXPECT_EQ(link.to_metta_string(), "(Value1 Value2)");
     link_template.clear();
@@ -339,6 +343,9 @@ TEST(Link, TestLinkTemplateProcessor) {
         "CUSTOM_FIELD truth_value 2 CUSTOM_FIELD mean 2 count 10 avg 0.9 confidence 0.9",
         ' ');
     links = ltp.process(query_answer, link_template);
+    link2 = LinkCreateTemplate(link_template).process_query_answer(query_answer);
+    cout << link2->to_string() << endl;
+    EXPECT_EQ(link2->to_string(), "Link(type: 'Test2', targets: [9908489fa1968f547004d4d56dc700bb, d4891853e7729b52d422daa93ccecacb], custom_attributes: {confidence: '0.9', mean.avg: '0.9', mean.count: '10'})");
     EXPECT_EQ(
         Utils::join(links[0], ' '),
         "LINK Test2 2 1 NODE Symbol C NODE Symbol B CUSTOM_FIELD truth_value 2 CUSTOM_FIELD mean 2 "
@@ -405,4 +412,25 @@ TEST(Link, TestLinkTemplateProcessor) {
     EXPECT_EQ(get<0>(l2.get_custom_fields()[0].get_values()[1]), "confidence");
     EXPECT_EQ(get<string>(get<1>(l2.get_custom_fields()[0].get_values()[1])), "1");
     EXPECT_EQ(l2.to_metta_string(), "(EQUIVALENCE [strength 0.9 confidence 1] Value1 Value2)");
+}
+
+TEST(ImplicationProcessor, TestEquivalenceProcessor) {
+    LinkSchema ls = ImplicationProcessor::build_pattern_query("HANDLE Value1");
+    vector<string> output;
+    ls.tokenize(output);
+    EXPECT_EQ(Utils::join(output, ' '), "LINK_TEMPLATE Expression 3 NODE Symbol EVALUATION LINK Expression 2 NODE Symbol PREDICATE ATOM HANDLE Value1 LINK_TEMPLATE Expression 2 NODE Symbol CONCEPT VARIABLE PX");
+    output.clear();
+    ls = ImplicationProcessor::build_satisfying_set_query("h1", "h2");
+    ls.tokenize(output);
+    EXPECT_EQ(Utils::join(output, ' '), "A");
+    
+    // vector<string> link_template = split("LINK_CREATE Equivalence 2 0 VARIABLE V1 VARIABLE V2", ' ');
+    // shared_ptr<QueryAnswer> query_answer = make_shared<QueryAnswer>();
+    // query_answer->assignment.assign("V1", "Value1");
+    // query_answer->assignment.assign("V2", "Value2");
+
+    // LinkTemplateProcessor ltp;
+    // auto links = ltp.process(query_answer, link_template);
+    // EXPECT_EQ(Utils::join(links[0], ' '), "LINK Equivalence 2 0 HANDLE Value1 HANDLE Value2");
+    // EXPECT_EQ(link.to_metta_string(), "(Value1 Value2)");
 }
