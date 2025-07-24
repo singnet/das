@@ -8,10 +8,10 @@ using namespace query_element;
 Sink::Sink(shared_ptr<QueryElement> precedent, const string& id, bool setup_buffers_flag) {
     this->precedent = precedent;
     this->id = id;
+    this->query_answer_count = 0;
     if (setup_buffers_flag) {
         setup_buffers();
     }
-    this->query_answer_count = 0;
 }
 
 Sink::~Sink() { this->input_buffer->graceful_shutdown(); }

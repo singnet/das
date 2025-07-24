@@ -3,7 +3,6 @@
 #include <grpcpp/grpcpp.h>
 
 #include "And.h"
-#include "AtomDBSingleton.h"
 #include "Link.h"
 #include "LinkSchema.h"
 #include "LinkTemplate.h"
@@ -31,7 +30,9 @@ string PatternMatchingQueryProcessor::OR = "OR";
 // Constructors and destructors
 
 PatternMatchingQueryProcessor::PatternMatchingQueryProcessor()
-    : BusCommandProcessor({ServiceBus::PATTERN_MATCHING_QUERY}) {}
+    : BusCommandProcessor({ServiceBus::PATTERN_MATCHING_QUERY}) {
+    this->atomdb = AtomDBSingleton::get_instance();
+}
 
 PatternMatchingQueryProcessor::~PatternMatchingQueryProcessor() {}
 
@@ -66,7 +67,6 @@ void PatternMatchingQueryProcessor::run_command(shared_ptr<BusCommandProxy> prox
 
 void PatternMatchingQueryProcessor::update_attention_broker_single_answer(
     shared_ptr<PatternMatchingQueryProxy> proxy, QueryAnswer* answer, set<string>& joint_answer) {
-    shared_ptr<AtomDB> db = AtomDBSingleton::get_instance();
     set<string> single_answer;
     stack<string> execution_stack;
 
@@ -82,7 +82,7 @@ void PatternMatchingQueryProcessor::update_attention_broker_single_answer(
         // Updates joint answer (stimulation)
         joint_answer.insert(handle);
         // Gets targets and stack them
-        shared_ptr<atomdb_api_types::HandleList> query_result = db->query_for_targets(handle);
+        shared_ptr<atomdb_api_types::HandleList> query_result = this->atomdb->query_for_targets(handle);
         if (query_result != NULL) {  // if handle is link
             unsigned int query_result_size = query_result->size();
             for (unsigned int i = 0; i < query_result_size; i++) {
@@ -127,6 +127,50 @@ void PatternMatchingQueryProcessor::update_attention_broker_joint_answer(
     }
 }
 
+void PatternMatchingQueryProcessor::recursive_metta_mapping(string handle, map<string, string>& table) {
+    if (table.find(handle) == table.end()) {
+        auto document = this->atomdb->get_atom_document(handle);
+        if (document->contains("targets")) {
+            // is link
+            if (strcmp(document->get("named_type"), "Expression")) {
+                Utils::error("Link type \"" + string(document->get("named_type")) + "\" can't be mapped to MeTTa");
+                table[handle] = "";
+                return;
+            }
+            unsigned int arity = document->get_size("targets");
+            for (unsigned int i = 0; i < arity; i++) {
+                recursive_metta_mapping(string(document->get("targets", i)), table);
+            }
+            string expression = "(";
+            bool empty_flag = true;
+            for (unsigned int i = 0; i < arity; i++) {
+                expression += table[string(document->get("targets", i))];
+                expression += " ";
+                empty_flag = false;
+            }
+            if (! empty_flag) {
+                expression.pop_back();
+            }
+            expression += ")";
+            table[handle] = expression;
+        } else {
+            // is node
+            if (strcmp(document->get("named_type"), "Symbol")) {
+                Utils::error("Node type \"" + string(document->get("named_type")) + "\" can't be mapped to MeTTa");
+                table[handle] = "";
+                return;
+            }
+            table[handle] = document->get("name");
+        }
+    }
+}
+
+void PatternMatchingQueryProcessor::populate_metta_mapping(QueryAnswer* answer) {
+    for (string handle: answer->handles) {
+        recursive_metta_mapping(handle, answer->metta_expression);
+    }
+}
+
 void PatternMatchingQueryProcessor::process_query_answers(
     shared_ptr<PatternMatchingQueryProxy> proxy,
     shared_ptr<Sink> query_sink,
@@ -134,12 +178,16 @@ void PatternMatchingQueryProcessor::process_query_answers(
     unsigned int& answer_count) {
     QueryAnswer* answer;
     unsigned int max_answers = proxy->parameters.get<unsigned int>(BaseQueryProxy::MAX_ANSWERS);
+    bool populate_metta = proxy->parameters.get<bool>(BaseQueryProxy::POPULATE_METTA_MAPPING);
     while ((answer = query_sink->input_buffer->pop_query_answer()) != NULL) {
         answer_count++;
         if (proxy->parameters.get<bool>(BaseQueryProxy::ATTENTION_UPDATE_FLAG)) {
             update_attention_broker_single_answer(proxy, answer, joint_answer);
         }
         if (!proxy->parameters.get<bool>(PatternMatchingQueryProxy::COUNT_FLAG)) {
+            if (populate_metta) {
+                populate_metta_mapping(answer);
+            }
             proxy->push(shared_ptr<QueryAnswer>(answer));
         }
         if (answer_count == max_answers) {

@@ -5,6 +5,7 @@
 #include "ServiceBus.h"
 #include "TestConfig.h"
 #include "Utils.h"
+#include "Hasher.h"
 #include "gtest/gtest.h"
 
 #define LOG_LEVEL INFO_LEVEL
@@ -55,6 +56,7 @@ void check_query(const string& query_tag,
     shared_ptr<PatternMatchingQueryProxy> proxy1(new PatternMatchingQueryProxy(query, context));
     proxy1->parameters[BaseQueryProxy::UNIQUE_ASSIGNMENT_FLAG] = unique_assignment;
     proxy1->parameters[BaseQueryProxy::ATTENTION_UPDATE_FLAG] = update_attention_broker;
+    proxy1->parameters[BaseQueryProxy::POPULATE_METTA_MAPPING] = false;
     proxy1->parameters[PatternMatchingQueryProxy::POSITIVE_IMPORTANCE_FLAG] = positive_importance;
     LOG_INFO("==================== Query tag: " + query_tag);
     LOG_INFO("proxy1: " + proxy1->to_string());
@@ -211,6 +213,29 @@ TEST(PatternMatchingQuery, queries) {
 
     // Remote exception
     check_query("invalid", {"BLAH"}, 0, client_bus, "PatternMatchingQuery.queries", false, false, false, true);
+
+    // Metta Expression
+    shared_ptr<PatternMatchingQueryProxy> proxy(new PatternMatchingQueryProxy(q3, "PatternMatchingQuery.queries"));
+    proxy->parameters[BaseQueryProxy::POPULATE_METTA_MAPPING] = true;
+    client_bus->issue_bus_command(proxy);
+    unsigned int count = 0;
+    shared_ptr<QueryAnswer> answer;
+    while (!proxy->finished()) {
+        while (!(answer = proxy->pop())) {
+            if (proxy->finished()) {
+                break;
+            } else {
+                Utils::sleep();
+            }
+        }
+        if (answer) {
+            count++;
+            EXPECT_EQ(answer->metta_expression["434d4303c556d94d2774ff70a5140b23"], "(Inheritance \"ent\" \"plant\")");
+            EXPECT_EQ(answer->metta_expression["d610ca5aa289bf532010cb6fe79f754e"], "(Similarity \"ent\" \"human\")");
+            EXPECT_EQ(answer->metta_expression[answer->assignment.get("v1")], "\"ent\"");
+        }
+    }
+    EXPECT_EQ(count, 1);
 
     Utils::sleep(2000);
     // clang-format on

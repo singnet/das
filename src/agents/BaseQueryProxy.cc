@@ -19,6 +19,7 @@ string BaseQueryProxy::ATTENTION_UPDATE_FLAG = "attention_update_flag";
 string BaseQueryProxy::MAX_BUNDLE_SIZE = "max_bundle_size";
 string BaseQueryProxy::MAX_ANSWERS = "max_answers";
 string BaseQueryProxy::USE_LINK_TEMPLATE_CACHE = "use_link_template_cache";
+string BaseQueryProxy::POPULATE_METTA_MAPPING = "populate_metta_mapping";
 
 BaseQueryProxy::BaseQueryProxy() {
     // constructor typically used in processor
@@ -41,6 +42,7 @@ void BaseQueryProxy::init() {
     this->parameters[MAX_BUNDLE_SIZE] = (unsigned int) 1000;
     this->parameters[MAX_ANSWERS] = (unsigned int) 0;  // No limit
     this->parameters[USE_LINK_TEMPLATE_CACHE] = false;
+    this->parameters[POPULATE_METTA_MAPPING] = false;
 }
 
 BaseQueryProxy::~BaseQueryProxy() {}

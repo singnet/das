@@ -68,6 +68,14 @@ class QueryAnswer {
     Assignment assignment;
 
     /**
+     * Optional map from handle -> MeTTa expression. Optional because it's set only
+     * if a specific parameter is set in the query request and, even so, this map is
+     * filled only in the last stage of the query tree, i.e. when the QueryAnswer is
+     * just to leave a Sink element.
+     */
+    map<string, string> metta_expression;
+
+    /**
      * Constructor.
      *
      * @param handle First handle in this QueryAnswer.

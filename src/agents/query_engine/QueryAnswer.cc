@@ -80,7 +80,8 @@ const string& QueryAnswer::tokenize() {
         + this->handles.size() * (HANDLE_HASH_SIZE + 1)  // handles + spaces
         + 4  // (up to 3 digits) to represent this->assignment.size + space
         + this->assignment.table.size() *
-              (MAX_VARIABLE_NAME_SIZE + HANDLE_HASH_SIZE + 2);  // label<space>handle<space>
+              (MAX_VARIABLE_NAME_SIZE + HANDLE_HASH_SIZE + 2)  // label<space>handle<space>
+        + 4;  // (up to 3 digits) to represent this->metta_expression.size + space
 
     this->token_representation.clear();
     this->token_representation.reserve(char_count);
@@ -103,6 +104,14 @@ const string& QueryAnswer::tokenize() {
         this->token_representation += pair.second;
         this->token_representation += space;
     }
+    this->token_representation += std::to_string(this->metta_expression.size());
+    this->token_representation += space;
+    for (auto pair : this->metta_expression) {
+        this->token_representation += pair.first;
+        this->token_representation += space;
+        this->token_representation += pair.second;
+        this->token_representation += space;
+    }
 
     return this->token_representation;
 }
@@ -120,6 +129,39 @@ static inline void read_token(const char* token_string,
     }
     token[cursor_token] = '\0';
     cursor++;
+}
+
+static inline string read_metta_expression(const char* token_string, unsigned int& cursor) {
+    unsigned int start = cursor;
+    unsigned int unmatched = 1;
+    char open_char;
+    char close_char;
+    if (token_string[start] == '(') {
+        open_char = '(';
+        close_char = ')';
+    } else if (token_string[start] == '\"') {
+        open_char = '\"';
+        close_char = '\"';
+    } else {
+        open_char = ' ';
+        close_char = ' ';
+    }
+    do {
+        cursor++;
+        if (token_string[cursor] == '\0') {
+            Utils::error("Invalid metta expression string");
+        } else if ((token_string[cursor] == close_char) && (token_string[cursor - 1] != '\\')) {
+            unmatched--;
+        } else if ((token_string[cursor] == open_char) && (token_string[cursor - 1] != '\\')) {
+            unmatched++;
+        }
+    } while (unmatched > 0);
+    if (close_char != ' ') {
+        cursor++;
+    }
+    unsigned int end = cursor++;
+    string answer(token_string + start, token_string + end);
+    return answer;
 }
 
 void QueryAnswer::untokenize(const string& tokens) {
@@ -162,6 +204,17 @@ void QueryAnswer::untokenize(const string& tokens) {
         read_token(token_string, cursor, label, MAX_VARIABLE_NAME_SIZE);
         read_token(token_string, cursor, handle, HANDLE_HASH_SIZE);
         this->assignment.assign(string(label), string(handle));
+    }
+
+    read_token(token_string, cursor, number, 4);
+    unsigned int metta_mapping_size = (unsigned int) std::stoi(number);
+    string metta_expression;
+    if (metta_mapping_size > 0) {
+        for (unsigned int i = 0; i < metta_mapping_size; i++) {
+            read_token(token_string, cursor, handle, HANDLE_HASH_SIZE);
+            metta_expression = read_metta_expression(token_string, cursor);
+            this->metta_expression[string(handle)] = metta_expression;
+        }
     }
 
     if (token_string[cursor] != '\0') {
