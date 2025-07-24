@@ -5,6 +5,7 @@
 #include <stack>
 #include <thread>
 
+#include "AtomDBSingleton.h"
 #include "BusCommandProcessor.h"
 #include "PatternMatchingQueryProxy.h"
 #include "QueryElement.h"
@@ -48,6 +49,8 @@ class PatternMatchingQueryProcessor : public BusCommandProcessor {
                                                set<string>& joint_answer);
     void update_attention_broker_joint_answer(shared_ptr<PatternMatchingQueryProxy> proxy,
                                               set<string>& joint_answer);
+    void recursive_metta_mapping(string handle, map<string, string>& table);
+    void populate_metta_mapping(QueryAnswer* answer);
     void process_query_answers(shared_ptr<PatternMatchingQueryProxy> proxy,
                                shared_ptr<Sink> query_sink,
                                set<string>& joint_answer,
@@ -85,6 +88,7 @@ class PatternMatchingQueryProcessor : public BusCommandProcessor {
     map<string, shared_ptr<StoppableThread>> query_threads;
     mutex query_threads_mutex;
     shared_ptr<PatternMatchingQueryProxy> proxy;
+    shared_ptr<AtomDB> atomdb;
     static string AND;
     static string OR;
 };
