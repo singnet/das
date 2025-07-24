@@ -116,7 +116,8 @@ void QueryEvolutionProcessor::sample_population(
         }
         LOG_ERROR("Discarding " << count << " answers");
     }
-    if (remote_fitness) {
+    if (remote_fitness && (answer_bundle_vector.size() > 0)) {
+        LOG_INFO("Evaluating fitness remotelly");
         if (answer_bundle_vector.size() >
             proxy->parameters.get<unsigned int>(BaseQueryProxy::MAX_BUNDLE_SIZE)) {
             Utils::error(
@@ -246,6 +247,9 @@ void QueryEvolutionProcessor::correlate_similar(shared_ptr<QueryEvolutionProxy> 
         proxy->parameters.get<unsigned int>(QueryEvolutionProxy::POPULATION_SIZE),
         proxy->get_context(),
         false);
+    for (string handle : correlation_query_answer->handles) {
+        handle_list.add_list(handle);
+    }
     while (!pm->finished()) {
         shared_ptr<QueryAnswer> answer = pm->pop();
         if (answer != NULL) {
