@@ -53,9 +53,8 @@ class BaseQueryProxy : public BaseProxy {
     static string
         USE_LINK_TEMPLATE_CACHE;  // When true, a cache for fetched handles is used in LinkTemplate.
 
-    static string
-        POPULATE_METTA_MAPPING;  // When true, a mapping from handle -> MeTTa expression is added in
-                                 // QueryAnswers leaving Sink elements.
+    static string POPULATE_METTA_MAPPING;  // When true, a mapping from handle -> MeTTa expression is
+                                           // added in QueryAnswers leaving Sink elements.
 
     /**
      * Destructor.

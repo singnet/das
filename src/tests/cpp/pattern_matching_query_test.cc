@@ -5,7 +5,6 @@
 #include "ServiceBus.h"
 #include "TestConfig.h"
 #include "Utils.h"
-#include "Hasher.h"
 #include "gtest/gtest.h"
 
 #define LOG_LEVEL INFO_LEVEL

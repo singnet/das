@@ -133,7 +133,8 @@ void PatternMatchingQueryProcessor::recursive_metta_mapping(string handle, map<s
         if (document->contains("targets")) {
             // is link
             if (strcmp(document->get("named_type"), "Expression")) {
-                Utils::error("Link type \"" + string(document->get("named_type")) + "\" can't be mapped to MeTTa");
+                Utils::error("Link type \"" + string(document->get("named_type")) +
+                             "\" can't be mapped to MeTTa");
                 table[handle] = "";
                 return;
             }
@@ -148,7 +149,7 @@ void PatternMatchingQueryProcessor::recursive_metta_mapping(string handle, map<s
                 expression += " ";
                 empty_flag = false;
             }
-            if (! empty_flag) {
+            if (!empty_flag) {
                 expression.pop_back();
             }
             expression += ")";
@@ -156,7 +157,8 @@ void PatternMatchingQueryProcessor::recursive_metta_mapping(string handle, map<s
         } else {
             // is node
             if (strcmp(document->get("named_type"), "Symbol")) {
-                Utils::error("Node type \"" + string(document->get("named_type")) + "\" can't be mapped to MeTTa");
+                Utils::error("Node type \"" + string(document->get("named_type")) +
+                             "\" can't be mapped to MeTTa");
                 table[handle] = "";
                 return;
             }
@@ -166,7 +168,7 @@ void PatternMatchingQueryProcessor::recursive_metta_mapping(string handle, map<s
 }
 
 void PatternMatchingQueryProcessor::populate_metta_mapping(QueryAnswer* answer) {
-    for (string handle: answer->handles) {
+    for (string handle : answer->handles) {
         recursive_metta_mapping(handle, answer->metta_expression);
     }
 }

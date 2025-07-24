@@ -5,8 +5,8 @@
 #include <stack>
 #include <thread>
 
-#include "BusCommandProcessor.h"
 #include "AtomDBSingleton.h"
+#include "BusCommandProcessor.h"
 #include "PatternMatchingQueryProxy.h"
 #include "QueryElement.h"
 #include "Sink.h"
