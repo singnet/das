@@ -9,26 +9,29 @@ using namespace link_creation_agent;
 EquivalenceProcessor::EquivalenceProcessor() {}
 
 LinkSchema EquivalenceProcessor::build_pattern_query(const string& handle1, const string& handle2) {
-    LinkSchema pattern_query("OR", 2);  // TODO use OR operator
-    pattern_query.stack_node("Symbol", "EVALUATION");
-    pattern_query.stack_node("Symbol", "PREDICATE");
-    pattern_query.stack_untyped_variable("P");
-    pattern_query.stack_link_schema("Expression", 2);
-    pattern_query.stack_node("Symbol", "CONCEPT");
-    pattern_query.stack_atom(handle1);
-    pattern_query.stack_link("Expression", 2);
-    pattern_query.stack_link_schema("Expression", 3);
-    pattern_query.stack_node("Symbol", "EVALUATION");
-    pattern_query.stack_node("Symbol", "PREDICATE");
-    pattern_query.stack_untyped_variable("P");
-    pattern_query.stack_link_schema("Expression", 2);
-    pattern_query.stack_node("Symbol", "CONCEPT");
-    pattern_query.stack_atom(handle2);
-    pattern_query.stack_link("Expression", 2);
-    pattern_query.stack_link_schema("Expression", 3);
-    pattern_query.build();
-
-    return pattern_query;
+    // clang-format off
+    vector<string> tokens = {
+        "LINK_TEMPLATE", "OR", "2",
+            "LINK_TEMPLATE", "Expression", "3",
+                "NODE", "Symbol", "EVALUATION",
+                "LINK_TEMPLATE", "Expression", "2",
+                    "NODE", "Symbol", "PREDICATE",
+                    "VARIABLE", "P",
+                "LINK", "Expression", "2",
+                    "NODE", "Symbol", "CONCEPT",
+                    "ATOM", handle1,
+            "LINK_TEMPLATE", "Expression", "3",
+                "NODE", "Symbol", "EVALUATION",
+                "LINK_TEMPLATE", "Expression", "2",
+                    "NODE", "Symbol", "PREDICATE",
+                    "VARIABLE", "P",
+                "LINK", "Expression", "2",
+                    "NODE", "Symbol", "CONCEPT",
+                    "ATOM", handle2
+                    
+    };
+    // clang-format on
+    return LinkSchema(tokens);
 }
 
 vector<shared_ptr<Link>> EquivalenceProcessor::process_query(shared_ptr<QueryAnswer> query_answer,

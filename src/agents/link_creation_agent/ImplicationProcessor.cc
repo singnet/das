@@ -9,39 +9,44 @@ using namespace link_creation_agent;
 ImplicationProcessor::ImplicationProcessor() {}
 
 LinkSchema ImplicationProcessor::build_pattern_query(const string& handle) {
-    LinkSchema pattern_query("Expression", 3);
-    pattern_query.stack_node("Symbol", "EVALUATION");
-    pattern_query.stack_node("Symbol", "PREDICATE");
-    pattern_query.stack_atom(handle);
-    pattern_query.stack_link("Expression", 2);
-    pattern_query.stack_node("Symbol", "CONCEPT");
-    pattern_query.stack_untyped_variable("PX");
-    pattern_query.stack_link_schema("Expression", 2);
-    pattern_query.build();
-    return pattern_query;
+    // clang-format off
+    vector<string> tokens = {
+        "LINK_TEMPLATE", "Expression", "3",
+            "NODE", "Symbol", "EVALUATION",
+            "LINK", "Expression", "2",
+                "NODE", "Symbol", "PREDICATE",
+                "ATOM", handle,
+            "LINK_TEMPLATE", "Expression", "2",
+                "NODE", "Symbol", "CONCEPT",
+                "VARIABLE", "PX"};
+    // clang-format on
+   return LinkSchema(tokens);
 }
 
 LinkSchema ImplicationProcessor::build_satisfying_set_query(const string& p1_handle,
                                                             const string& p2_handle) {
-    LinkSchema ss_query("AND", 2);  // TODO use AND operator
-    ss_query.stack_node("Symbol", "EVALUATION");
-    ss_query.stack_node("Symbol", "PREDICATE");
-    ss_query.stack_atom(p1_handle);
-    ss_query.stack_link("Expression", 2);
-    ss_query.stack_node("Symbol", "CONCEPT");
-    ss_query.stack_untyped_variable("C");
-    ss_query.stack_link_schema("Expression", 2);
-    ss_query.stack_link_schema("Expression", 3);
-    ss_query.stack_node("Symbol", "EVALUATION");
-    ss_query.stack_node("Symbol", "PREDICATE");
-    ss_query.stack_atom(p2_handle);
-    ss_query.stack_link("Expression", 2);
-    ss_query.stack_node("Symbol", "CONCEPT");
-    ss_query.stack_untyped_variable("C");
-    ss_query.stack_link_schema("Expression", 2);
-    ss_query.stack_link_schema("Expression", 3);
-    ss_query.build();
-    return ss_query;
+    // clang-format off
+    vector<string> tokens = {
+        "LINK_TEMPLATE", "AND", "2", 
+            "LINK_TEMPLATE", "Expression", "3", 
+                "NODE", "Symbol","EVALUATION", 
+                "LINK", "Expression", "2", 
+                    "NODE", "Symbol", "PREDICATE",
+                    "ATOM", p1_handle, 
+                "LINK_TEMPLATE", "Expression", "2",
+                    "NODE", "Symbol", "CONCEPT",
+                    "VARIABLE", "C",
+            "LINK_TEMPLATE", "Expression", "3",
+                "NODE", "Symbol", "EVALUATION",
+                "LINK", "Expression", "2",
+                    "NODE", "Symbol", "PREDICATE",
+                    "ATOM", p2_handle,
+                "LINK_TEMPLATE", "Expression", "2",
+                    "NODE", "Symbol", "CONCEPT",
+                    "VARIABLE", "C"
+    };
+    // clang-format on
+    return LinkSchema(tokens);
 }
 
 vector<shared_ptr<Link>> ImplicationProcessor::process_query(shared_ptr<QueryAnswer> query_answer,
