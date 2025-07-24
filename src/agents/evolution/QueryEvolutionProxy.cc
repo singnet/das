@@ -11,6 +11,9 @@ using namespace evolution;
 // -------------------------------------------------------------------------------------------------
 // Constructors, destructors and initialization
 
+string QueryEvolutionProxy::EVAL_FITNESS = "eval_fitness";
+string QueryEvolutionProxy::EVAL_FITNESS_RESPONSE = "eval_fitness_response";
+
 string QueryEvolutionProxy::POPULATION_SIZE = "population_size";
 string QueryEvolutionProxy::MAX_GENERATIONS = "max_generations";
 string QueryEvolutionProxy::ELITISM_RATE = "elitism_rate";
@@ -27,13 +30,15 @@ QueryEvolutionProxy::QueryEvolutionProxy() {
 QueryEvolutionProxy::QueryEvolutionProxy(const vector<string>& tokens,
                                          const vector<string>& correlation_tokens,
                                          const vector<string>& correlation_variables,
-                                         const string& fitness_function,
-                                         const string& context)
+                                         const string& context,
+                                         const string& fitness_function_tag,
+                                         shared_ptr<FitnessFunction> fitness_function)
     : BaseQueryProxy(tokens, context) {
     // constructor typically used in requestor
     init();
     set_default_query_parameters();
-    set_fitness_function_tag(fitness_function);
+    this->fitness_function_object = fitness_function;
+    set_fitness_function_tag(fitness_function_tag);
     this->correlation_tokens = correlation_tokens;
     this->correlation_variables = correlation_variables;
 }
@@ -42,6 +47,8 @@ void QueryEvolutionProxy::init() {
     this->command = ServiceBus::QUERY_EVOLUTION;
     this->best_reported_fitness = -1;
     this->num_generations = 0;
+    this->fitness_function_object = shared_ptr<FitnessFunction>(nullptr);
+    this->ongoing_remote_fitness_evaluation = false;
 }
 
 void QueryEvolutionProxy::set_default_query_parameters() {
@@ -126,6 +133,13 @@ float QueryEvolutionProxy::compute_fitness(shared_ptr<QueryAnswer> answer) {
     if (this->fitness_function_tag == "") {
         Utils::error("Invalid empty fitness function tag");
         return 0;
+    } else if (this->fitness_function_object == nullptr) {
+        if (this->fitness_function_tag == FitnessFunctionRegistry::REMOTE_FUNCTION) {
+            Utils::error("Invalid call to remote function");
+        } else {
+            Utils::error("Fitness function is not set up");
+        }
+        return 0;
     } else {
         return this->fitness_function_object->eval(answer);
     }
@@ -159,7 +173,9 @@ void QueryEvolutionProxy::set_fitness_function_tag(const string& tag) {
             Utils::error("Invalid empty fitness function tag");
         }
         this->fitness_function_tag = tag;
-        this->fitness_function_object = FitnessFunctionRegistry::function(tag);
+        if (tag != FitnessFunctionRegistry::REMOTE_FUNCTION) {
+            this->fitness_function_object = FitnessFunctionRegistry::function(tag);
+        }
     }
 }
 
@@ -173,6 +189,30 @@ const vector<string>& QueryEvolutionProxy::get_correlation_variables() {
     return this->correlation_variables;
 }
 
+bool QueryEvolutionProxy::is_fitness_function_remote() {
+    lock_guard<mutex> semaphore(this->api_mutex);
+    return (this->fitness_function_object == nullptr) &&
+           (this->fitness_function_tag == FitnessFunctionRegistry::REMOTE_FUNCTION);
+}
+
+void QueryEvolutionProxy::remote_fitness_evaluation(const vector<string>& answer_bundle) {
+    lock_guard<mutex> semaphore(this->api_mutex);
+    this->ongoing_remote_fitness_evaluation = true;
+    this->remote_fitness_evaluation_result.clear();
+    to_remote_peer(EVAL_FITNESS, answer_bundle);
+}
+
+bool QueryEvolutionProxy::remote_fitness_evaluation_finished() {
+    lock_guard<mutex> semaphore(this->api_mutex);
+    return !this->ongoing_remote_fitness_evaluation;
+}
+
+vector<float> QueryEvolutionProxy::get_remotely_evaluated_fitness() {
+    lock_guard<mutex> semaphore(this->api_mutex);
+    // This method doesn't return a reference to avoid concurrency hazard
+    return this->remote_fitness_evaluation_result;
+}
+
 // ---------------------------------------------------------------------------------------------
 // Virtual superclass API and the piggyback methods called by it
 
@@ -181,8 +221,47 @@ bool QueryEvolutionProxy::from_remote_peer(const string& command, const vector<s
                                  << this->my_id());
     if (BaseQueryProxy::from_remote_peer(command, args)) {
         return true;
+    } else if (command == EVAL_FITNESS) {
+        eval_fitness(args);
+        return true;
+    } else if (command == EVAL_FITNESS_RESPONSE) {
+        eval_fitness_response(args);
+        return true;
     } else {
         Utils::error("Invalid QueryEvolutionProxy command: <" + command + ">");
         return false;
+    }
+}
+
+void QueryEvolutionProxy::eval_fitness(const vector<string>& args) {
+    lock_guard<mutex> semaphore(this->api_mutex);
+    if (!this->is_aborting()) {
+        if (args.size() == 0) {
+            Utils::error("Invalid empty query answer bundle");
+        } else {
+            vector<string> fitness_bundle;
+            for (auto tokens : args) {
+                shared_ptr<QueryAnswer> query_answer = make_shared<QueryAnswer>();
+                query_answer->untokenize(tokens);
+                float fitness = compute_fitness(query_answer);
+                fitness_bundle.push_back(std::to_string(fitness));
+            }
+            to_remote_peer(EVAL_FITNESS_RESPONSE, fitness_bundle);
+        }
+    }
+}
+
+void QueryEvolutionProxy::eval_fitness_response(const vector<string>& args) {
+    lock_guard<mutex> semaphore(this->api_mutex);
+    if (!this->is_aborting()) {
+        if (args.size() == 0) {
+            Utils::error("Invalid empty fitness value bundle");
+        } else {
+            for (auto value_str : args) {
+                float fitness = Utils::string_to_float(value_str);
+                this->remote_fitness_evaluation_result.push_back(fitness);
+            }
+            this->ongoing_remote_fitness_evaluation = false;
+        }
     }
 }

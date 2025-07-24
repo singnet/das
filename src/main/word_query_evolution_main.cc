@@ -5,6 +5,7 @@
 #include <string>
 
 #include "AtomDBSingleton.h"
+#include "CountLetterFunction.h"
 #include "FitnessFunctionRegistry.h"
 #include "QueryAnswer.h"
 #include "QueryEvolutionProxy.h"
@@ -142,14 +143,20 @@ void run(const string& client_id,
     // ---------------------------------------------------------------------------------------------
     // Query evolution request
 
-    QueryEvolutionProxy* proxy_ptr = new QueryEvolutionProxy(
-        or_two_words, activation_spreading, {sentence3}, "count_letter", context);
+    // QueryEvolutionProxy* proxy_ptr = new QueryEvolutionProxy(
+    //     or_two_words, activation_spreading, {sentence3}, context, "count_letter");
+    QueryEvolutionProxy* proxy_ptr = new QueryEvolutionProxy(or_two_words,
+                                                             activation_spreading,
+                                                             {sentence3},
+                                                             context,
+                                                             FitnessFunctionRegistry::REMOTE_FUNCTION,
+                                                             make_shared<CountLetterFunction>());
     shared_ptr<QueryEvolutionProxy> proxy(proxy_ptr);
     proxy->parameters[QueryEvolutionProxy::POPULATION_SIZE] = (unsigned int) 100;
     proxy->parameters[QueryEvolutionProxy::MAX_GENERATIONS] = (unsigned int) 10;
     proxy->parameters[QueryEvolutionProxy::ELITISM_RATE] = (double) 0.01;
     proxy->parameters[QueryEvolutionProxy::SELECTION_RATE] = (double) 0.02;
-    proxy->parameters[BaseQueryProxy::MAX_BUNDLE_SIZE] = (unsigned int) 1;
+    proxy->parameters[BaseQueryProxy::MAX_BUNDLE_SIZE] = (unsigned int) 10000;
     service_bus->issue_bus_command(proxy);
 
     // ---------------------------------------------------------------------------------------------

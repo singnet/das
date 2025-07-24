@@ -28,6 +28,10 @@ class QueryEvolutionProxy : public BaseQueryProxy {
     // ---------------------------------------------------------------------------------------------
     // Constructors, destructors and static state
 
+    // Commands allowed at the proxy level (caller <--> processor)
+    static string EVAL_FITNESS;  // Delivery of a bundle with QueryAnswer objects to evaluate fitness
+    static string EVAL_FITNESS_RESPONSE;  // Delivery of the answer of a EVAL_FITNESS command
+
     // Query command's optional parameters
     static string POPULATION_SIZE;
     static string MAX_GENERATIONS;
@@ -46,11 +50,13 @@ class QueryEvolutionProxy : public BaseQueryProxy {
      * @param tokens Query tokens.
      * @param context AttentionBroker context
      */
-    QueryEvolutionProxy(const vector<string>& tokens,
-                        const vector<string>& correlation_tokens,
-                        const vector<string>& correlation_variables,
-                        const string& fitness_function,
-                        const string& context);
+    QueryEvolutionProxy(
+        const vector<string>& tokens,
+        const vector<string>& correlation_tokens,
+        const vector<string>& correlation_variables,
+        const string& context,
+        const string& fitness_function_tag,
+        const shared_ptr<FitnessFunction> fitness_function = shared_ptr<FitnessFunction>(nullptr));
 
     /**
      * Destructor.
@@ -111,6 +117,33 @@ class QueryEvolutionProxy : public BaseQueryProxy {
      */
     virtual string to_string();
 
+    /**
+     * Returns true iff the fitness function is supposed to be evaluated remotely.
+     *
+     * @return true iff the fitness function is supposed to be evaluated remotely.
+     */
+    bool is_fitness_function_remote();
+
+    /**
+     * Send a request to peer in order to evaluate fitness function of the passed
+     * aswer bundle
+     */
+    void remote_fitness_evaluation(const vector<string>& answer_bundle);
+
+    /**
+     * Returns a vector of fitness values which have been evaliuated on the remote proxy.
+     *
+     * @return a vector of fitness values which have been evaliuated on the remote proxy.
+     */
+    vector<float> get_remotely_evaluated_fitness();
+
+    /**
+     * Returns true iff there's no remote fitness evaluation going on.
+     *
+     * @return true iff there's no remote fitness evaluation going on.
+     */
+    bool remote_fitness_evaluation_finished();
+
     const vector<string>& get_correlation_tokens();
     const vector<string>& get_correlation_variables();
 
@@ -127,6 +160,20 @@ class QueryEvolutionProxy : public BaseQueryProxy {
      */
     virtual bool from_remote_peer(const string& command, const vector<string>& args) override;
 
+    /**
+     * Remotelly evaluate the fitness function of QueryAnswers
+     *
+     * @param args a bundle of tokenized QueryAnswers.
+     */
+    void eval_fitness(const vector<string>& args);
+
+    /**
+     * Response of a eval_fitness() command
+     *
+     * @param args a bundle of fitness values.
+     */
+    void eval_fitness_response(const vector<string>& args);
+
    private:
     void set_default_query_parameters();
     void set_fitness_function_tag(const string& tag);
@@ -139,6 +186,8 @@ class QueryEvolutionProxy : public BaseQueryProxy {
     unsigned int num_generations;
     vector<string> correlation_tokens;
     vector<string> correlation_variables;
+    bool ongoing_remote_fitness_evaluation;
+    vector<float> remote_fitness_evaluation_result;
 };
 
 }  // namespace evolution

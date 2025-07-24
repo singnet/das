@@ -11,3 +11,4 @@
 [#499] Implemented Evolution agent to process QUERY_EVOLUTION commands in the service bus
 [#568] Added simple profiling primitives in Logger
 [#544] Add benchmark tests for AtomDB
+[#581] Implementation of remote fitness evaluation in Query Evolution

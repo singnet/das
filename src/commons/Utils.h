@@ -61,6 +61,7 @@ class Utils {
     static string random_string(size_t length);
     static bool is_number(const string& s);
     static int string_to_int(const string& s);
+    static float string_to_float(const string& s);
     static string trim(const string& s);
     static unsigned long long get_current_time_millis();
     static string linux_command_line(const char* cmd);
