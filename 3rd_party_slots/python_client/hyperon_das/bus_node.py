@@ -26,6 +26,7 @@ class BusNode:
     def send(self, command: str, args: list[str], target_id: str) -> None:
         with grpc.insecure_channel(target_id) as channel:
             stub = AtomSpaceNodeStub(channel)
+            log.debug(f"Sending command: {command} with args: {args} to target: {target_id}")
             message = atom_space_node_pb2.MessageData(
                 command=command,
                 args=args,
@@ -36,4 +37,4 @@ class BusNode:
             try:
                 stub.execute_message(message)
             except grpc.RpcError as e:
-                log.error(f"Error: {e}")
+                log.error(f"Failed to send message: {e}")

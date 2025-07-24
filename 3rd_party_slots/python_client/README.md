@@ -27,9 +27,9 @@ Additionally, ensure you have grpcio-tools installed in your Poetry environment 
 This creates a Docker image tagged as python-client and generates a wheel file in the dist/ directory.
 
 ```bash
-make build-all
+make build
 
-pip install $(pwd)dist/python_client-0.1.0*.whl
+pip install dist/python_client-0.1.0*.whl
 ```
 
 ### Building locally
@@ -68,18 +68,9 @@ After installing the wheel, you can import the pattern_matching_query function f
 from hyperon_das.main import pattern_matching_query
 
 pattern_matching_query(
-    client_id="localhost:54000",
-    server_id="localhost:54001",
-    query_tokens=[
-        "LINK_TEMPLATE", "Expression", "3", "NODE", "Symbol", "EVALUATION",
-        "LINK", "Expression", "2", "NODE", "Symbol", "PREDICATE",
-        "LINK", "Expression", "3", "NODE", "Symbol", "public.cvterm",
-        "NODE", "Symbol", "public.cvterm.name",
-        "NODE", "Symbol", '"Alzheimer\'s disease"',
-        "LINK_TEMPLATE2", "Expression", "2", "NODE", "Symbol", "CONCEPT",
-        "LINK_TEMPLATE", "Expression", "2", "NODE", "Symbol", "public.cvterm",
-        "VARIABLE", "ID"
-    ],
+    client_id="localhost:8000",
+    server_id="localhost:35700",
+    query_tokens=["LINK_TEMPLATE", "Expression", "3", "NODE", "Symbol", "Similarity", "VARIABLE", "X", "VARIABLE", "Y"],
     update_attention_broker=False,
     max_query_answers=1
 )
@@ -91,9 +82,9 @@ You can also run the client directly from the command line after installation. T
 
 ```bash
 python -m hyperon_das.main \
-    --client-id localhost:54000 \
-    --server-id localhost:31700 \
-    --query-tokens "LINK_TEMPLATE Expression 3 NODE Symbol EVALUATION LINK Expression 2 NODE Symbol PREDICATE LINK Expression 3 NODE Symbol public.cvterm NODE Symbol public.cvterm.name NODE Symbol "\"Alzheimer's disease\"" LINK_TEMPLATE2 Expression 2 NODE Symbol CONCEPT LINK_TEMPLATE Expression 2 NODE Symbol public.cvterm VARIABLE ID" \
+    --client-id localhost:8000 \
+    --server-id localhost:35700 \
+    --query-tokens "LINK_TEMPLATE Expression 3 NODE Symbol Similarity NODE Symbol "\"human\"" VARIABLE X" \
     --max-query-answers 1 \
     --update-attention-broker 0
 ```
