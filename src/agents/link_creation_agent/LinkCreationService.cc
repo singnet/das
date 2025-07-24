@@ -2,13 +2,14 @@
 
 #include <fstream>
 
-#include "LinkCreationDBHelper.h"
+#include "AtomDBSingleton.h"
 #include "Logger.h"
 #include "Utils.h"
 
 using namespace link_creation_agent;
 using namespace std;
 using namespace query_engine;
+using namespace atomdb;
 
 static void add_to_file(string file_path, string file_name, string content) {
     LOG_INFO("Saving to file: " << file_path << "/" << file_name);
@@ -36,13 +37,6 @@ LinkCreationService::~LinkCreationService() {
     }
 }
 
-void LinkCreationService::enqueue_link_creation_request(const string& request_id,
-                                                        const vector<vector<string>>& link_tokens) {
-    for (const auto& link : link_tokens) {
-        link_creation_queue.enqueue(make_tuple(request_id, link));
-    }
-}
-
 void LinkCreationService::process_request(shared_ptr<PatternMatchingQueryProxy> proxy,
                                           vector<string>& link_template,
                                           const string& context,
@@ -66,8 +60,13 @@ void LinkCreationService::process_request(shared_ptr<PatternMatchingQueryProxy> 
                     vector<string> extra_params;
                     extra_params.push_back(context);
                     shared_lock lock(m_mutex);
-                    link_tokens = process_query_answer(query_answer, extra_params, link_template);
-                    enqueue_link_creation_request(request_id, link_tokens);
+                    LOG_INFO("[" << request_id << "]"
+                                 << " - Processing query answer for iterator ID: " << proxy->my_id());
+                    auto links = process_query_answer(query_answer, extra_params, link_template);
+                    for (const auto& link : links) {
+                        link_creation_queue.enqueue(make_tuple(request_id, link));
+                    }
+                    // enqueue_link_creation_request(request_id, link_tokens);
                 } catch (const exception& e) {
                     LOG_ERROR("[" << request_id << "]"
                                   << " Exception: " << e.what());
@@ -86,17 +85,17 @@ void LinkCreationService::process_request(shared_ptr<PatternMatchingQueryProxy> 
     thread_pool.enqueue(job);
 }
 
-vector<vector<string>> LinkCreationService::process_query_answer(shared_ptr<QueryAnswer> query_answer,
-                                                                 vector<string> params,
-                                                                 vector<string> link_template) {
+vector<shared_ptr<Link>> LinkCreationService::process_query_answer(shared_ptr<QueryAnswer> query_answer,
+                                                                   vector<string> params,
+                                                                   vector<string> link_template) {
     if (LinkCreationProcessor::get_processor_type(link_template.front()) ==
         ProcessorType::PROOF_OF_IMPLICATION) {
-        return implication_processor->process(query_answer, params);
+        return implication_processor->process_query(query_answer, params);
     } else if (LinkCreationProcessor::get_processor_type(link_template.front()) ==
                ProcessorType::PROOF_OF_EQUIVALENCE) {
-        return equivalence_processor->process(query_answer, params);
+        return equivalence_processor->process_query(query_answer, params);
     } else {
-        return link_template_processor->process(query_answer, link_template);
+        return link_template_processor->process_query(query_answer, link_template);
     }
 }
 
@@ -107,13 +106,12 @@ void LinkCreationService::create_links() {
         if (!link_creation_queue.empty()) {
             auto request_map = link_creation_queue.dequeue();
             string id = get<0>(request_map);
-            vector<string> request = get<1>(request_map);
+            shared_ptr<Link> link = get<1>(request_map);
             try {
-                string meta_content =
-                    link_creation_agent::LinkCreateDBSingleton::get_instance()->tokens_to_metta_string(
-                        request);
+                LOG_INFO("Processing link: " << link->to_string());
+                string meta_content = link->metta_representation(*AtomDBSingleton::get_instance());
                 if (meta_content.empty()) {
-                    LOG_ERROR("Failed to create MeTTa expression for " << Utils::join(request, ' '));
+                    LOG_ERROR("Failed to create MeTTa expression for " << link->to_string());
                     continue;
                 }
                 if (metta_expression_set.find(meta_content) != metta_expression_set.end()) {
@@ -123,6 +121,10 @@ void LinkCreationService::create_links() {
                 if (this->save_links_to_metta_file) {
                     LOG_INFO("MeTTa Expression: " << meta_content);
                     add_to_file(metta_file_path, id + ".metta", meta_content);
+                }
+                if (this->save_links_to_db) {
+                    LOG_INFO("Saving link to database: " << link->to_string());
+                    AtomDBSingleton::get_instance()->add_link(link.get());
                 }
                 metta_expression_set.insert(meta_content);
             } catch (const exception& e) {

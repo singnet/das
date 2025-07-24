@@ -1,16 +1,14 @@
+#pragma once
+
 #include <cxxabi.h>
 
 #include <algorithm>
 #include <cctype>
-#include <cstddef>
-#include <cstdlib>
+#include <chrono>
 #include <map>
 #include <string>
 #include <typeinfo>
 #include <vector>
-
-#include "Logger.h"
-#include "Utils.h"
 
 using namespace std;
 
@@ -53,4 +51,12 @@ string get_type_name(const T& obj) {
     transform(result.begin(), result.end(), result.begin(), ::tolower);
 
     return result;
+}
+
+template <typename Func>
+double measure_execution_time(Func&& func) {
+    auto start = chrono::steady_clock::now();
+    func();
+    auto end = chrono::steady_clock::now();
+    return chrono::duration<double, milli>(end - start).count();
 }

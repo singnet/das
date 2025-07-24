@@ -2,14 +2,17 @@
 
 #include <memory>
 
+#include "Link.h"
 #include "LinkCreateTemplate.h"
-#include "LinkCreationDBHelper.h"
+#include "Node.h"
+#include "UntypedVariable.h"
 #include "Utils.h"
 
 using namespace std;
 using namespace inference_agent;
 using namespace link_creation_agent;
 using namespace commons;
+using namespace atoms;
 
 InferenceRequest::InferenceRequest(string first_handle,
                                    string second_handle,
@@ -81,10 +84,10 @@ static vector<string> inference_evolution_request_builder(string first_handle,
                 if (token == "_TYPE_") {
                     request.push_back(ttype);
                 } else if (token == "_FIRST_") {
-                    request.push_back("HANDLE");
+                    request.push_back("ATOM");
                     request.push_back(first_handle);
                 } else if (token == "_SECOND_") {
-                    request.push_back("HANDLE");
+                    request.push_back("ATOM");
                     request.push_back(second_handle);
                 } else {
                     request.push_back(token);
@@ -109,13 +112,12 @@ static vector<string> inference_evolution_request_builder(string first_handle,
                         request.push_back(cp[i - 1]);
                     } else if (token == "_FIRST_") {
                         request.push_back((vars[i - 1] == first_handle || vars[i - 1] == second_handle)
-                                              ? "HANDLE"
+                                              ? "ATOM"
                                               : "VARIABLE");
                         request.push_back(vars[i - 1]);
                     } else if (token == "_SECOND_") {
-                        request.push_back((vars[i] == first_handle || vars[i] == second_handle)
-                                              ? "HANDLE"
-                                              : "VARIABLE");
+                        request.push_back(
+                            (vars[i] == first_handle || vars[i] == second_handle) ? "ATOM" : "VARIABLE");
                         request.push_back(vars[i]);
                     } else {
                         request.push_back(token);
@@ -141,29 +143,8 @@ vector<string> InferenceRequest::get_distributed_inference_control_request() {
     // tokens.push_back(this->context);
     tokens.push_back("OR");
     tokens.push_back(to_string(size));
-    // for (auto token : request) {
-    //     tokens.push_back(token);
-    // }
-    for (size_t i = 0; i < request.size(); i++) {
-        if (request[i] == "HANDLE") {
-            auto atom_tokens = LinkCreateDBSingleton::get_instance()->get_atom(request[i + 1]);
-            if (holds_alternative<shared_ptr<link_creation_agent::LCALink>>(atom_tokens)) {
-                for (auto token :
-                     get<shared_ptr<link_creation_agent::LCALink>>(atom_tokens)->tokenize()) {
-                    tokens.push_back(token);
-                }
-            } else if (holds_alternative<LCANode>(atom_tokens)) {
-                for (auto token : get<LCANode>(atom_tokens).tokenize()) {
-                    tokens.push_back(token);
-                }
-            } else {
-                Utils::error("Error parsing atom: " + request[i + 1]);
-            }
-
-            i++;
-        } else {
-            tokens.push_back(request[i]);
-        }
+    for (auto token : request) {
+        tokens.push_back(token);
     }
     return tokens;
 }
@@ -199,13 +180,9 @@ vector<string> ProofOfImplicationOrEquivalence::query() {
 vector<string> ProofOfImplicationOrEquivalence::patterns_link_template() {
     // SATISFYING_SET
     LinkCreateTemplate satisfying_set_link_template = LinkCreateTemplate("Expression");
-    // Node("Symbol", "SATISFYING_SET");
-    LCANode evaluation_node;
-    evaluation_node.type = "Symbol";
-    evaluation_node.value = "SATISFYING_SET";
-    // Variable("P");
-    Variable evaluation_variable;
-    evaluation_variable.name = "P";
+
+    shared_ptr<Node> evaluation_node = make_shared<Node>("Symbol", "SATISFYING_SET");
+    shared_ptr<UntypedVariable> evaluation_variable = make_shared<UntypedVariable>("P");
     satisfying_set_link_template.add_target(evaluation_node);
     satisfying_set_link_template.add_target(evaluation_variable);
     auto custom_field = CustomField("truth_value");
@@ -215,13 +192,9 @@ vector<string> ProofOfImplicationOrEquivalence::patterns_link_template() {
 
     // PATTERNS
     LinkCreateTemplate patterns_link_template = LinkCreateTemplate("Expression");
-    // Node("Symbol", "PATTERNS");
-    LCANode patterns_node;
-    patterns_node.type = "Symbol";
-    patterns_node.value = "PATTERNS";
-    // Variable("C");
-    Variable patterns_variable;
-    patterns_variable.name = "C";
+
+    shared_ptr<Node> patterns_node = make_shared<Node>("Symbol", "PATTERNS");
+    shared_ptr<UntypedVariable> patterns_variable = make_shared<UntypedVariable>("C");
     patterns_link_template.add_target(patterns_node);
     patterns_link_template.add_target(patterns_variable);
     auto patterns_custom_field = CustomField("truth_value");

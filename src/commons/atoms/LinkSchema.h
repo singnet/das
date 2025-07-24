@@ -178,7 +178,7 @@ class LinkSchema : public Wildcard {
 
     vector<string> tokenize();
 
-    void tokenize(vector<string> output);
+    void tokenize(vector<string>& output);
 
     void untokenize(const vector<string>& tokens);
 };

@@ -96,9 +96,9 @@ map_metta_params() {
 
     case "$db_size" in
     empty)
-        SENTENCES=2
-        WORD_COUNT=2
-        WORD_LENGTH=2
+        SENTENCES=100
+        WORD_COUNT=3
+        WORD_LENGTH=3
         ;;
     small)
         SENTENCES=100000
@@ -197,8 +197,6 @@ init_environment() {
     done
     src/scripts/mork_loader.sh "$METTA_PATH" 2> >(grep -v '^+')
     echo -e "\r\033[K${GREEN}MORK initialization completed!${RESET}"
-
-    # Bazel
 }
 
 load_scenario_definition() {
@@ -268,7 +266,7 @@ run_benchmark() {
                 echo -e "\n== Running benchmarks for AtomDB: $type | Action: $action | Method: $method ==" 
                 init_environment
                 ./src/scripts/docker_image_build.sh  > /dev/null 2>&1
-                ./src/scripts/bazel.sh run //tests/benchmark:atomdb_benchmark -- "$type" "$action" "$method" "$CACHE" "$CONCURRENCY" "$ITERATIONS" "$TIMESTAMP" 2> >(grep -v '^+')
+                ./src/scripts/bazel.sh run //tests/benchmark:atomdb_main -- "$type" "$action" "$method" "$CACHE" "$CONCURRENCY" "$ITERATIONS" "$TIMESTAMP" 2> >(grep -v '^+')
             done
         done
     done
@@ -320,8 +318,6 @@ header_to_report() {
     echo "$header"
 }
 
-# NOTE: For operations involving Atom like 'add_atom', 'add_atoms', 'delete_atom', 'delete_atoms', 'get_atom_document', 'get_atom_documents' and 'get_atom',
-#       the test is split evenly. 50% of the iterations use Nodes, and the remaining 50% use Links.
 
 consolidate_reports() {
     OUTPUT_DIR="/tmp/atomdb_benchmark/${TIMESTAMP}/consolidated_report_scenario_${SCENARIO_NAME}.txt"
