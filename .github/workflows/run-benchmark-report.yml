@@ -8,8 +8,7 @@ on:
 
 jobs:
   benchmark:
-    runs-on: ubuntu-latest
-
+    runs-on: self-hosted
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -27,8 +26,9 @@ jobs:
 
   notify-mattermost:
     runs-on: self-hosted
+    needs: benchmark
     steps:
-      - name: Checkout
+      - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Download benchmark report artifact
