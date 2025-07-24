@@ -20,7 +20,7 @@ LinkSchema ImplicationProcessor::build_pattern_query(const string& handle) {
                 "NODE", "Symbol", "CONCEPT",
                 "VARIABLE", "PX"};
     // clang-format on
-   return LinkSchema(tokens);
+    return LinkSchema(tokens);
 }
 
 LinkSchema ImplicationProcessor::build_satisfying_set_query(const string& p1_handle,
