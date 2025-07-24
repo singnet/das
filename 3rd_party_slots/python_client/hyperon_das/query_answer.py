@@ -208,72 +208,49 @@ class QueryAnswer:
         """
         log.debug(f"Untokenizing QueryAnswer from: {token_str}")
         tokens = token_str.strip().split()
-        idx = 0
-        total = len(tokens)
+        cursor = 0
 
-        def require(n: int):
-            if idx + n > total:
-                log.error(f"Expected {n} more tokens, but got only {total - idx}")
-                raise ValueError("Invalid token string: insufficient tokens")
+        def next_token():
+            nonlocal cursor
+            if cursor >= len(tokens):
+                raise ValueError("Invalid token string: unexpected end of tokens")
+            token = tokens[cursor]
+            cursor += 1
+            return token
 
-        require(1)
         try:
-            self.strength = float(tokens[idx])
-        except ValueError as e:
-            log.error(f"Invalid strength value: {tokens[idx]}")
-            raise ValueError(f"Invalid strength value: {tokens[idx]}") from e
-        idx += 1
+            self.strength = float(next_token())
+            self.importance = float(next_token())
 
-        require(1)
-        try:
-            self.importance = float(tokens[idx])
-        except ValueError as e:
-            log.error(f"Invalid importance value: {tokens[idx]}")
-            raise ValueError(f"Invalid importance value: {tokens[idx]}") from e
-        idx += 1
+            handles_size = int(next_token())
+            if handles_size < 0:
+                raise ValueError(f"Handles size cannot be negative: {handles_size}")
 
-        require(1)
-        try:
-            handles_size = int(tokens[idx])
-        except ValueError as e:
-            log.error(f"Invalid handles size: {tokens[idx]}")
-            raise ValueError(f"Invalid handles size: {tokens[idx]}") from e
-        idx += 1
+            self.handles = [next_token() for _ in range(handles_size)]
 
-        if handles_size < 0:
-            log.error(f"Handles size cannot be negative: {handles_size}")
-            raise ValueError(f"Handles size cannot be negative: {handles_size}")
+            assignment_size = int(next_token())
+            if assignment_size < 0:
+                raise ValueError(f"Assignment size cannot be negative: {assignment_size}")
 
-        self.handles = []
-        for _ in range(handles_size):
-            require(1)
-            self.handles.append(tokens[idx])
-            idx += 1
+            self.assignment = Assignment()
+            for _ in range(assignment_size):
+                label = next_token()
+                value = next_token()
+                self.assignment.assign(label, value)
+                log.debug(f"Parsed assignment: ({label}: {value})")
 
-        require(1)
-        try:
-            assignment_size = int(tokens[idx])
-        except ValueError as e:
-            log.error(f"Invalid assignment size: {tokens[idx]}")
-            raise ValueError(f"Invalid assignment size: {tokens[idx]}") from e
-        idx += 1
+            # skip Metta expression
+            if cursor < len(tokens):
+                cursor += 1
 
-        if assignment_size < 0:
-            log.error(f"Assignment size cannot be negative: {assignment_size}")
-            raise ValueError(f"Assignment size cannot be negative: {assignment_size}")
+            if cursor != len(tokens):
+                raise ValueError("Invalid token string: extra data after parsing")
 
-        self.assignment = Assignment()
-        for _ in range(assignment_size):
-            require(2)
-            label = tokens[idx]
-            value = tokens[idx + 1]
-            self.assignment.assign(label, value)
-            idx += 2
+            log.debug(f"QueryAnswer untokenized successfully: {self.to_string()}")
 
-        if idx != total:
-            raise ValueError("Invalid token string: extra data after parsing")
-
-        log.debug(f"QueryAnswer untokenized successfully: {self.to_string()}")
+        except (ValueError, IndexError) as e:
+            log.error(str(e))
+            raise
 
     def to_string(self) -> str:
         """
@@ -283,5 +260,5 @@ class QueryAnswer:
             QueryAnswer<handles_count,assignment_count> [handles...] {assignments...} importance
         """
         handles_str = ", ".join(self.handles)
-        
+
         return f"QueryAnswer<{len(self.handles)},{self.assignment.variable_count()}> [{handles_str}] {self.assignment.to_string()} ({self.strength:.6f}, {self.importance:.6f})"
