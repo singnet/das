@@ -1,6 +1,6 @@
 /**
  * @file LinkCreationService.h
- * @brief LCALink Creation Service class
+ * @brief Link Creation Service class
  */
 #pragma once
 
@@ -10,7 +10,6 @@
 
 #include "EquivalenceProcessor.h"
 #include "ImplicationProcessor.h"
-#include "LCALink.h"
 #include "LCAQueue.h"
 #include "LinkProcessor.h"
 #include "PatternMatchingQueryProxy.h"
@@ -42,7 +41,10 @@ class LinkCreationService
     /**
      * @brief Add an iterator to process in thread pool
      * @param proxy PatternMatchingQueryProxy object
-     * @param das_client DAS LCANode client
+     * @param link_template Link creation template
+     * @param context Context for the link creation
+     * @param request_id Request ID for the link creation
+     * @param max_query_answers Maximum number of query answers to process
      */
     void process_request(shared_ptr<PatternMatchingQueryProxy> proxy,
                          vector<string>& link_template,
@@ -71,7 +73,7 @@ class LinkCreationService
     shared_ptr<ImplicationProcessor> implication_processor;
     shared_ptr<EquivalenceProcessor> equivalence_processor;
     shared_ptr<mutex> query_agent_mutex;
-    Queue<tuple<string, vector<string>>> link_creation_queue;
+    Queue<tuple<string, shared_ptr<Link>>> link_creation_queue;
     bool is_stoping = false;
     thread create_link_thread;
     set<string> metta_expression_set;
@@ -81,16 +83,12 @@ class LinkCreationService
     int timeout = 300 * 1000;
 
     /**
-     * @brief Create a link, blocking the client until the link is created
-     * @param link LCALink object
-     * @param das_client DAS LCANode client
+     * @brief Create a link, this will be called by the thread pool
      */
     void create_links();
-    vector<vector<string>> process_query_answer(shared_ptr<QueryAnswer> query_answer,
-                                                vector<string> params,
-                                                vector<string> link_template);
-    void enqueue_link_creation_request(const string& request_id,
-                                       const vector<vector<string>>& link_tokens);
+    vector<shared_ptr<Link>> process_query_answer(shared_ptr<QueryAnswer> query_answer,
+                                                  vector<string> params,
+                                                  vector<string> link_template);
 };
 
 }  // namespace link_creation_agent

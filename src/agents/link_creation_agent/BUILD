@@ -20,20 +20,16 @@ cc_library(
 cc_library(
     name = "link_creation_agent",
     srcs = [
-        "LCALink.cc",
         "LinkCreationAgent.cc",
         "LinkCreationService.cc",
     ],
     hdrs = [
-        "LCALink.h",
         "LinkCreationAgent.h",
         "LinkCreationService.h",
     ],
     includes = ["."],
     deps = [
-        ":link",
         ":link_create_template",
-        ":link_creation_db_helper",
         ":processors",
         ":request_proxy",
         ":service",
@@ -44,35 +40,13 @@ cc_library(
 )
 
 cc_library(
-    name = "link",
-    srcs = ["LCALink.cc"],
-    hdrs = [
-        "LCALink.h",
-        "LinkCreateTemplate.h",
-    ],
-    deps = [
-        "//agents/query_engine:query_engine_lib",
-    ],
-)
-
-cc_library(
     name = "link_create_template",
     srcs = ["LinkCreateTemplate.cc"],
     hdrs = ["LinkCreateTemplate.h"],
     deps = [
+        "//agents/query_engine:query_engine_lib",
         "//commons:commons_lib",
-    ],
-)
-
-cc_library(
-    name = "link_creation_db_helper",
-    srcs = ["LinkCreationDBHelper.cc"],
-    hdrs = ["LinkCreationDBHelper.h"],
-    deps = [
-        ":link",
-        "//atomdb",
-        "//atomdb:atomdb_api_types",
-        "//atomdb:atomdb_singleton",
+        "//commons/atoms:atoms_lib",
     ],
 )
 
@@ -84,7 +58,6 @@ cc_library(
         "ThreadPool.h",
     ],
     deps = [
-        ":link",
         ":processors",
         "//agents/query_engine:query_engine_lib",
         "//commons:commons_lib",
@@ -105,9 +78,7 @@ cc_library(
         "TemplateProcessor.h",
     ],
     deps = [
-        ":link",
         ":link_create_template",
-        ":link_creation_db_helper",
         "//agents/query_engine:query_engine_lib",
         "//commons:commons_lib",
     ],

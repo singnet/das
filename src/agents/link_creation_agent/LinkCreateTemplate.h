@@ -10,44 +10,19 @@
 #include <variant>
 #include <vector>
 
+#include "Link.h"
+#include "LinkSchema.h"
+#include "Node.h"
+#include "QueryAnswer.h"
+#include "UntypedVariable.h"
+
 using namespace std;
+using namespace atoms;
+using namespace query_engine;
 namespace link_creation_agent {
 
 class CustomField;         // Forward declaration
 class LinkCreateTemplate;  // Forward declaration
-
-/**
- * @struct LCANode
- * @brief Represents a node with a type and value.
- *
- * @var LCANode::type
- * Type of the node.
- *
- * @var LCANode::value
- * Value of the node.
- */
-struct LCANode {
-    string type;
-    string value;
-    vector<string> tokenize() {
-        vector<string> tokens;
-        tokens.push_back("NODE");
-        tokens.push_back(type);
-        tokens.push_back(value);
-        return tokens;
-    }
-};
-
-/**
- * @struct Variable
- * @brief Represents a variable with a name.
- *
- * @var Variable::name
- * Name of the variable.
- */
-struct Variable {
-    string name;
-};
 
 /**
  * @typedef CustomFieldTypes
@@ -56,10 +31,14 @@ struct Variable {
 using CustomFieldTypes = variant<string, shared_ptr<CustomField>>;
 /**
  * @typedef LinkCreateTemplateTypes
- * @brief A variant type that can hold either a Variable, LCANode, or a shared_ptr to a
- * LinkCreateTemplate.
+ * @brief A variant type that can hold either a LinkCreateTemplate, Node, UntypedVariable, Link or
+ * LinkSchema.
  */
-using LinkCreateTemplateTypes = variant<Variable, LCANode, shared_ptr<LinkCreateTemplate>>;
+using LinkCreateTemplateTypes = variant<shared_ptr<LinkCreateTemplate>,
+                                        shared_ptr<Node>,
+                                        shared_ptr<UntypedVariable>,
+                                        shared_ptr<Link>,
+                                        shared_ptr<LinkSchema>>;
 
 /**
  * @class CustomField
@@ -102,6 +81,8 @@ class CustomField {
      * @param value The value of the field.
      */
     void add_field(const string& name, const CustomFieldTypes& value);
+
+    Properties to_properties();
 
     CustomField untokenize(const vector<string>& tokens);
 
@@ -164,6 +145,8 @@ class LinkCreateTemplate {
      * @param custom_field The custom field to add to the link creation template.
      */
     void add_custom_field(CustomField custom_field);
+
+    shared_ptr<Link> process_query_answer(shared_ptr<QueryAnswer> query_answer);
 
    private:
     string link_type;
