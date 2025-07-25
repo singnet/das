@@ -36,6 +36,7 @@ BaseQueryProxy::BaseQueryProxy(const vector<string>& tokens, const string& conte
 }
 
 void BaseQueryProxy::init() {
+    this->atomdb = AtomDBSingleton::get_instance();
     this->answer_count = 0;
     this->parameters[UNIQUE_ASSIGNMENT_FLAG] = false;
     this->parameters[ATTENTION_UPDATE_FLAG] = false;
@@ -137,6 +138,52 @@ string BaseQueryProxy::to_string() {
     answer += BaseProxy::to_string();
     answer += "}";
     return answer;
+}
+
+void BaseQueryProxy::recursive_metta_mapping(string handle, map<string, string>& table) {
+    if (table.find(handle) == table.end()) {
+        auto document = this->atomdb->get_atom_document(handle);
+        if (document->contains("targets")) {
+            // is link
+            if (strcmp(document->get("named_type"), "Expression")) {
+                Utils::error("Link type \"" + string(document->get("named_type")) +
+                             "\" can't be mapped to MeTTa");
+                table[handle] = "";
+                return;
+            }
+            unsigned int arity = document->get_size("targets");
+            for (unsigned int i = 0; i < arity; i++) {
+                recursive_metta_mapping(string(document->get("targets", i)), table);
+            }
+            string expression = "(";
+            bool empty_flag = true;
+            for (unsigned int i = 0; i < arity; i++) {
+                expression += table[string(document->get("targets", i))];
+                expression += " ";
+                empty_flag = false;
+            }
+            if (!empty_flag) {
+                expression.pop_back();
+            }
+            expression += ")";
+            table[handle] = expression;
+        } else {
+            // is node
+            if (strcmp(document->get("named_type"), "Symbol")) {
+                Utils::error("Node type \"" + string(document->get("named_type")) +
+                             "\" can't be mapped to MeTTa");
+                table[handle] = "";
+                return;
+            }
+            table[handle] = document->get("name");
+        }
+    }
+}
+
+void BaseQueryProxy::populate_metta_mapping(QueryAnswer* answer) {
+    for (string handle : answer->handles) {
+        recursive_metta_mapping(handle, answer->metta_expression);
+    }
 }
 
 // ---------------------------------------------------------------------------------------------

@@ -2,6 +2,7 @@
 
 #include <mutex>
 
+#include "AtomDBSingleton.h"
 #include "BaseProxy.h"
 #include "Message.h"
 #include "QueryAnswer.h"
@@ -11,6 +12,7 @@ using namespace std;
 using namespace service_bus;
 using namespace query_engine;
 using namespace agents;
+using namespace atomdb;
 
 namespace agents {
 
@@ -145,6 +147,11 @@ class BaseQueryProxy : public BaseProxy {
      */
     virtual string to_string();
 
+    /**
+     * Populates QueryAnswer's table top map from handle --> MeTTa expressions.
+     */
+    void populate_metta_mapping(QueryAnswer* answer);
+
     // ---------------------------------------------------------------------------------------------
     // Virtual superclass API and the piggyback methods called by it
 
@@ -175,13 +182,17 @@ class BaseQueryProxy : public BaseProxy {
     virtual void pack_command_line_args() = 0;
 
    private:
+
     void init();
+    void recursive_metta_mapping(string handle, map<string, string>& table);
+
     mutex api_mutex;
     SharedQueue answer_queue;
     unsigned int answer_count;
     string context;
     vector<string> query_tokens;
     vector<string> answer_bundle_vector;
+    shared_ptr<AtomDB> atomdb;
 };
 
 }  // namespace agents

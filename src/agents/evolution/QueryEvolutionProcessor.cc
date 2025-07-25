@@ -96,6 +96,7 @@ void QueryEvolutionProcessor::sample_population(
             float fitness;
             if (remote_fitness) {
                 fitness = 0;
+                proxy->populate_metta_mapping(answer.get());
                 answer_bundle_vector.push_back(answer->tokenize());
             } else {
                 fitness = (remote_fitness ? 0 : proxy->compute_fitness(answer));
