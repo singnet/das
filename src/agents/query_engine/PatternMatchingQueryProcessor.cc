@@ -18,7 +18,7 @@
 #include "attention_broker.grpc.pb.h"
 #include "attention_broker.pb.h"
 
-#define LOG_LEVEL DEBUG_LEVEL
+#define LOG_LEVEL INFO_LEVEL
 #include "Logger.h"
 
 using namespace atomdb;
