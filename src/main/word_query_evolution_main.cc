@@ -131,7 +131,10 @@ void run(const string& client_id,
                     node, symbol, "\"" + word_tag2 + "\""
     };
 
-    (Contains (Sentence "ede ebe cbe dca cbd fae bbb fce add eae") (Word "bbb"))
+    // (Contains (Sentence "ede ebe cbe dca cbd fae bbb fce add eae") (Word "bbb"))
+    // (Contains (Sentence "???") (Word "bbb"))
+    // (Contains (Sentence "ede ebe cbe dca cbd fae bbb fce add eae") (Word "???"))
+    // (Contains (Sentence "???") (Word "???"))
 
     vector<string> activation_spreading = {
         and_operator, "3",
@@ -150,11 +153,11 @@ void run(const string& client_id,
                         node, symbol, "\"" + word_tag2 + "\"",
             link_template, expression, "3",
                 node, symbol, contains,
-                variable, sentence1,
+                variable, sentence3,
                 variable, word1,
             link_template, expression, "3",
                 node, symbol, contains,
-                variable, sentence3,
+                variable, sentence1,
                 variable, word1,
     };
     // clang-format on
