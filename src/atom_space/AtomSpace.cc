@@ -62,6 +62,7 @@ shared_ptr<PatternMatchingQueryProxy> AtomSpace::pattern_matching_query(const ve
                                                                         bool use_link_template_cache,
                                                                         bool unique_assignment,
                                                                         bool update_attention_broker,
+                                                                        bool positive_importance_only,
                                                                         bool count_only) {
     auto proxy = make_shared<PatternMatchingQueryProxy>(query, context);
     proxy->parameters[BaseQueryProxy::UNIQUE_ASSIGNMENT_FLAG] = unique_assignment;
@@ -69,6 +70,7 @@ shared_ptr<PatternMatchingQueryProxy> AtomSpace::pattern_matching_query(const ve
     proxy->parameters[BaseQueryProxy::USE_LINK_TEMPLATE_CACHE] = use_link_template_cache;
     proxy->parameters[PatternMatchingQueryProxy::COUNT_FLAG] = count_only;
     proxy->parameters[PatternMatchingQueryProxy::MAX_ANSWERS] = (unsigned int) answers_count;
+    proxy->parameters[PatternMatchingQueryProxy::POSITIVE_IMPORTANCE_FLAG] = positive_importance_only;
 
     this->bus->issue_bus_command(proxy);
     return proxy;

@@ -95,6 +95,7 @@ void run(const string& client_id,
 
     shared_ptr<ServiceBus> service_bus = ServiceBusSingleton::get_instance();
 
+    // Symbols
     string and_operator = "AND";
     string or_operator = "OR";
     string link_template = "LINK_TEMPLATE";
@@ -106,6 +107,8 @@ void run(const string& client_id,
     string sentence = "Sentence";
     string word = "Word";
     string contains = "Contains";
+
+    // Variables
     string sentence1 = "sentence1";
     string sentence2 = "sentence2";
     string sentence3 = "sentence3";
@@ -127,8 +130,24 @@ void run(const string& client_id,
                     node, symbol, word,
                     node, symbol, "\"" + word_tag2 + "\""
     };
+
+    (Contains (Sentence "ede ebe cbe dca cbd fae bbb fce add eae") (Word "bbb"))
+
     vector<string> activation_spreading = {
-        and_operator, "2",
+        and_operator, "3",
+            or_operator, "2",
+                link_template, expression, "3",
+                    node, symbol, contains,
+                    variable, sentence1,
+                    link, expression, "2",
+                        node, symbol, word,
+                        node, symbol, "\"" + word_tag1 + "\"",
+                link_template, expression, "3",
+                    node, symbol, contains,
+                    variable, sentence1,
+                    link, expression, "2",
+                        node, symbol, word,
+                        node, symbol, "\"" + word_tag2 + "\"",
             link_template, expression, "3",
                 node, symbol, contains,
                 variable, sentence1,

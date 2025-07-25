@@ -103,6 +103,7 @@ class AtomSpace {
         bool use_link_template_cache = false,
         bool unique_assignment = true,
         bool update_attention_broker = false,
+        bool positive_importance_only = false,
         bool count_only = false);
 
     /**
