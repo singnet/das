@@ -167,12 +167,12 @@ void run(const string& client_id,
 
     QueryEvolutionProxy* proxy_ptr = new QueryEvolutionProxy(
         or_two_words, activation_spreading, {sentence3}, context, "count_letter");
-    //QueryEvolutionProxy* proxy_ptr = new QueryEvolutionProxy(or_two_words,
-    //                                                         activation_spreading,
-    //                                                         {sentence3},
-    //                                                         context,
-    //                                                         FitnessFunctionRegistry::REMOTE_FUNCTION,
-    //                                                         make_shared<CountLetterFunction>());
+    // QueryEvolutionProxy* proxy_ptr = new QueryEvolutionProxy(or_two_words,
+    //                                                          activation_spreading,
+    //                                                          {sentence3},
+    //                                                          context,
+    //                                                          FitnessFunctionRegistry::REMOTE_FUNCTION,
+    //                                                          make_shared<CountLetterFunction>());
     shared_ptr<QueryEvolutionProxy> proxy(proxy_ptr);
     proxy->parameters[QueryEvolutionProxy::POPULATION_SIZE] = (unsigned int) 100;
     proxy->parameters[QueryEvolutionProxy::MAX_GENERATIONS] = (unsigned int) 10;

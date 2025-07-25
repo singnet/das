@@ -83,14 +83,13 @@ void QueryEvolutionProcessor::sample_population(
     vector<string> answer_bundle_vector;
     unsigned int population_size =
         proxy->parameters.get<unsigned int>(QueryEvolutionProxy::POPULATION_SIZE);
-    auto pm = atom_space.pattern_matching_query(
-        proxy->get_query_tokens(),
-        population_size,
-        proxy->get_context(),
-        false,  // use_link_template_cache
-        true,   // unique_assignment
-        true,   // update_attention_broker
-        false); // positive_importance_only
+    auto pm = atom_space.pattern_matching_query(proxy->get_query_tokens(),
+                                                population_size,
+                                                proxy->get_context(),
+                                                false,   // use_link_template_cache
+                                                true,    // unique_assignment
+                                                true,    // update_attention_broker
+                                                false);  // positive_importance_only
     while ((!pm->finished()) && (!monitor->stopped()) && (population.size() < population_size)) {
         shared_ptr<QueryAnswer> answer = pm->pop();
         if (answer != NULL) {
@@ -264,7 +263,7 @@ void QueryEvolutionProcessor::correlate_similar(shared_ptr<QueryEvolutionProxy> 
         false,  // use_link_template_cache
         true,   // unique_assignment
         false,  // update_attention_broker
-        true); // positive_importance_only
+        true);  // positive_importance_only
     for (string handle : correlation_query_answer->handles) {
         handle_list.add_list(handle);
     }
