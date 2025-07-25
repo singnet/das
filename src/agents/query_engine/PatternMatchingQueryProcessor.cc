@@ -207,6 +207,7 @@ void PatternMatchingQueryProcessor::thread_process_one_query(
     try {
         proxy->untokenize(proxy->args);
         LOG_DEBUG("Setting up query tree");
+        LOG_DEBUG("Proxy: " << proxy->to_string());
         shared_ptr<QueryElement> root_query_element = setup_query_tree(proxy);
         set<string> joint_answer;  // used to stimulate attention broker
         string command = proxy->get_command();

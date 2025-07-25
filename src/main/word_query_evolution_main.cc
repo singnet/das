@@ -95,6 +95,7 @@ void run(const string& client_id,
 
     shared_ptr<ServiceBus> service_bus = ServiceBusSingleton::get_instance();
 
+    // Symbols
     string and_operator = "AND";
     string or_operator = "OR";
     string link_template = "LINK_TEMPLATE";
@@ -106,6 +107,8 @@ void run(const string& client_id,
     string sentence = "Sentence";
     string word = "Word";
     string contains = "Contains";
+
+    // Variables
     string sentence1 = "sentence1";
     string sentence2 = "sentence2";
     string sentence3 = "sentence3";
@@ -127,15 +130,34 @@ void run(const string& client_id,
                     node, symbol, word,
                     node, symbol, "\"" + word_tag2 + "\""
     };
+
+    // (Contains (Sentence "ede ebe cbe dca cbd fae bbb fce add eae") (Word "bbb"))
+    // (Contains (Sentence "???") (Word "bbb"))
+    // (Contains (Sentence "ede ebe cbe dca cbd fae bbb fce add eae") (Word "???"))
+    // (Contains (Sentence "???") (Word "???"))
+
     vector<string> activation_spreading = {
-        and_operator, "2",
-            link_template, expression, "3",
-                node, symbol, contains,
-                variable, sentence1,
-                variable, word1,
+        and_operator, "3",
+            or_operator, "2",
+                link_template, expression, "3",
+                    node, symbol, contains,
+                    variable, sentence1,
+                    link, expression, "2",
+                        node, symbol, word,
+                        node, symbol, "\"" + word_tag1 + "\"",
+                link_template, expression, "3",
+                    node, symbol, contains,
+                    variable, sentence1,
+                    link, expression, "2",
+                        node, symbol, word,
+                        node, symbol, "\"" + word_tag2 + "\"",
             link_template, expression, "3",
                 node, symbol, contains,
                 variable, sentence3,
+                variable, word1,
+            link_template, expression, "3",
+                node, symbol, contains,
+                variable, sentence1,
                 variable, word1,
     };
     // clang-format on
@@ -143,19 +165,19 @@ void run(const string& client_id,
     // ---------------------------------------------------------------------------------------------
     // Query evolution request
 
-    // QueryEvolutionProxy* proxy_ptr = new QueryEvolutionProxy(
-    //     or_two_words, activation_spreading, {sentence3}, context, "count_letter");
-    QueryEvolutionProxy* proxy_ptr = new QueryEvolutionProxy(or_two_words,
-                                                             activation_spreading,
-                                                             {sentence3},
-                                                             context,
-                                                             FitnessFunctionRegistry::REMOTE_FUNCTION,
-                                                             make_shared<CountLetterFunction>());
+    QueryEvolutionProxy* proxy_ptr = new QueryEvolutionProxy(
+        or_two_words, activation_spreading, {sentence3}, context, "count_letter");
+    // QueryEvolutionProxy* proxy_ptr = new QueryEvolutionProxy(or_two_words,
+    //                                                          activation_spreading,
+    //                                                          {sentence3},
+    //                                                          context,
+    //                                                          FitnessFunctionRegistry::REMOTE_FUNCTION,
+    //                                                          make_shared<CountLetterFunction>());
     shared_ptr<QueryEvolutionProxy> proxy(proxy_ptr);
     proxy->parameters[QueryEvolutionProxy::POPULATION_SIZE] = (unsigned int) 100;
     proxy->parameters[QueryEvolutionProxy::MAX_GENERATIONS] = (unsigned int) 10;
     proxy->parameters[QueryEvolutionProxy::ELITISM_RATE] = (double) 0.01;
-    proxy->parameters[QueryEvolutionProxy::SELECTION_RATE] = (double) 0.02;
+    proxy->parameters[QueryEvolutionProxy::SELECTION_RATE] = (double) 0.10;
     proxy->parameters[BaseQueryProxy::MAX_BUNDLE_SIZE] = (unsigned int) 10000;
     service_bus->issue_bus_command(proxy);
 

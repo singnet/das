@@ -17,7 +17,7 @@ using namespace query_engine;
 using namespace service_bus;
 
 void ctrl_c_handler(int) {
-    LOG_INFO("Cleaning GRPC buffers...");
+    LOG_INFO("Stopping query engine server...");
     LOG_INFO("Done.");
     exit(0);
 }
