@@ -182,7 +182,6 @@ class BaseQueryProxy : public BaseProxy {
     virtual void pack_command_line_args() = 0;
 
    private:
-
     void init();
     void recursive_metta_mapping(string handle, map<string, string>& table);
 

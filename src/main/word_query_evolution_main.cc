@@ -57,12 +57,11 @@ string highlight(const string& s, const set<string>& highlighted) {
 class RemoteFitnessFunction : public FitnessFunction {
    public:
     shared_ptr<AtomDB> db;
-    RemoteFitnessFunction() {
-        this->db = AtomDBSingleton::get_instance();
-    }
+    RemoteFitnessFunction() { this->db = AtomDBSingleton::get_instance(); }
     float eval(shared_ptr<QueryAnswer> answer) override {
         string variable_name = "sentence1";
-        LOG_DEBUG(variable_name + ": " + answer->metta_expression[answer->assignment.get(variable_name)]);
+        LOG_DEBUG(variable_name + ": " +
+                  answer->metta_expression[answer->assignment.get(variable_name)]);
         return 1;
     }
 };
@@ -188,8 +187,8 @@ void run(const string& client_id,
                                                              FitnessFunctionRegistry::REMOTE_FUNCTION,
                                                              make_shared<RemoteFitnessFunction>());
 
-    //QueryEvolutionProxy* proxy_ptr = new QueryEvolutionProxy(
-    //    or_two_words, activation_spreading, {sentence3}, context, "count_letter");
+    // QueryEvolutionProxy* proxy_ptr = new QueryEvolutionProxy(
+    //     or_two_words, activation_spreading, {sentence3}, context, "count_letter");
 
     shared_ptr<QueryEvolutionProxy> proxy(proxy_ptr);
     proxy->parameters[QueryEvolutionProxy::POPULATION_SIZE] = (unsigned int) 100;
@@ -198,7 +197,6 @@ void run(const string& client_id,
     proxy->parameters[QueryEvolutionProxy::SELECTION_RATE] = (double) 0.10;
     proxy->parameters[BaseQueryProxy::MAX_BUNDLE_SIZE] = (unsigned int) 10000;
     service_bus->issue_bus_command(proxy);
-
 
     // ---------------------------------------------------------------------------------------------
 
