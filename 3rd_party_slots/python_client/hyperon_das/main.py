@@ -13,6 +13,7 @@ def parse_arguments():
     parser.add_argument("--client-id", required=True, help="<IP:PORT>")
     parser.add_argument("--server-id", required=True, help="<IP:PORT>")
     parser.add_argument("--update-attention-broker", required=False, help="True/1 or False/0", default=False)
+    parser.add_argument("--positive-importance", required=False, help="True/1 or False/0", default=False)
     parser.add_argument("--max-query-answers", required=False, default=1)
     parser.add_argument("--query-tokens", required=True, type=str)
 
@@ -23,10 +24,11 @@ def pattern_matching_query(
     client_id: str = None,
     server_id: str = None,
     update_attention_broker: bool = None,
+    positive_importance: bool = None,
     max_query_answers: int = None,
     query_tokens: list[str] | str = None
 ):
-    if any([client_id, server_id, update_attention_broker, max_query_answers, query_tokens]):
+    if any([client_id, server_id, update_attention_broker, positive_importance, max_query_answers, query_tokens]):
         if not client_id:
             raise ValueError("client_id is required")
 
@@ -49,12 +51,14 @@ def pattern_matching_query(
         client_id = args.client_id
         server_id = args.server_id
         update_attention_broker = args.update_attention_broker
+        positive_importance = args.positive_importance
         max_query_answers = args.max_query_answers
         query_tokens = tokenize_preserve_quotes(args.query_tokens)
 
     proxy = PatternMatchingQueryHandler(
         tokens=query_tokens,
-        update_attention_broker=bool(update_attention_broker)
+        update_attention_broker=bool(update_attention_broker),
+        positive_importance=bool(positive_importance)
     )
 
     service_bus = ServiceBusSingleton(
