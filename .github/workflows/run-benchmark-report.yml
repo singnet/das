@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - master
-      - das-591
 
 jobs:
   benchmark:
@@ -12,6 +11,9 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+
+      - name: Clear benchmark output files
+        run: rm -rf /tmp/atomdb_benchmark || true
 
       - name: Run benchmark
         run: ./src/scripts/run_atomdb_benchmark.sh --db empty --rel none --cache disabled --concurrency 1 --iterations 100 || true
