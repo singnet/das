@@ -20,7 +20,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: benchmark-report
-          path: /tmp/atomdb_benchmark/*.txt
+          path: /tmp/atomdb_benchmark/**/*.txt
           if-no-file-found: error
 
   notify-mattermost:
