@@ -80,6 +80,7 @@ jobs:
             link-creation-agent,
             link-creation-client,
             inference-agent,
+            evolution-broker,
           ]
 
     steps:
