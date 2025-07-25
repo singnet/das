@@ -39,7 +39,7 @@ def pattern_matching_query(
             raise ValueError("query_tokens is required")
 
         max_query_answers = max_query_answers or 1
-    
+
         if isinstance(query_tokens, str):
             query_tokens = tokenize_preserve_quotes(query_tokens)
     else:
@@ -55,10 +55,20 @@ def pattern_matching_query(
         max_query_answers = args.max_query_answers
         query_tokens = tokenize_preserve_quotes(args.query_tokens)
 
+    if update_attention_broker.isnumeric():
+        update_attention_broker = bool(int(update_attention_broker))
+    else:
+        update_attention_broker = bool(update_attention_broker)
+
+    if positive_importance.isnumeric():
+        positive_importance = bool(int(positive_importance))
+    else:
+        positive_importance = bool(positive_importance)
+
     proxy = PatternMatchingQueryHandler(
         tokens=query_tokens,
-        update_attention_broker=bool(update_attention_broker),
-        positive_importance=bool(positive_importance)
+        update_attention_broker=update_attention_broker,
+        positive_importance=positive_importance
     )
 
     service_bus = ServiceBusSingleton(
