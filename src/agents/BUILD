@@ -32,6 +32,7 @@ cc_library(
     deps = [
         ":base_proxy",
         "//agents/query_engine:query_answer",
+        "//atomdb:atomdb_lib",
         "//commons:commons_lib",
         "//service_bus:service_bus_lib",
     ],

@@ -14,8 +14,6 @@ string QueryNode::QUERY_ANSWER_TOKENS_FLOW_COMMAND = "query_answer_tokens_flow";
 string QueryNode::QUERY_ANSWER_FLOW_COMMAND = "query_answer_flow";
 string QueryNode::QUERY_ANSWERS_FINISHED_COMMAND = "query_answers_finished";
 
-#define DEBUG
-
 // --------------------------------------------------------------------------------
 // Public methods
 

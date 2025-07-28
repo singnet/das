@@ -8,7 +8,7 @@
 #include "attention_broker.grpc.pb.h"
 #include "attention_broker.pb.h"
 
-#define LOG_LEVEL DEBUG_LEVEL
+#define LOG_LEVEL INFO_LEVEL
 #include "Logger.h"
 
 #define ATTENTION_BROKER_ADDRESS "localhost:37007"
@@ -96,6 +96,7 @@ void QueryEvolutionProcessor::sample_population(
             float fitness;
             if (remote_fitness) {
                 fitness = 0;
+                proxy->populate_metta_mapping(answer.get());
                 answer_bundle_vector.push_back(answer->tokenize());
             } else {
                 fitness = (remote_fitness ? 0 : proxy->compute_fitness(answer));

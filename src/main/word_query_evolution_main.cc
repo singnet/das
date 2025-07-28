@@ -12,6 +12,9 @@
 #include "ServiceBusSingleton.h"
 #include "Utils.h"
 
+#define LOG_LEVEL INFO_LEVEL
+#include "Logger.h"
+
 #define MAX_QUERY_ANSWERS ((unsigned int) 100000)
 
 using namespace std;
@@ -50,6 +53,18 @@ string highlight(const string& s, const set<string>& highlighted) {
     }
     return answer;
 }
+
+class RemoteFitnessFunction : public FitnessFunction {
+   public:
+    shared_ptr<AtomDB> db;
+    RemoteFitnessFunction() { this->db = AtomDBSingleton::get_instance(); }
+    float eval(shared_ptr<QueryAnswer> answer) override {
+        string variable_name = "sentence1";
+        LOG_DEBUG(variable_name + ": " +
+                  answer->metta_expression[answer->assignment.get(variable_name)]);
+        return 1;
+    }
+};
 
 string handle_to_atom(const string& handle) {
     shared_ptr<AtomDB> db = AtomDBSingleton::get_instance();
@@ -165,14 +180,16 @@ void run(const string& client_id,
     // ---------------------------------------------------------------------------------------------
     // Query evolution request
 
-    QueryEvolutionProxy* proxy_ptr = new QueryEvolutionProxy(
-        or_two_words, activation_spreading, {sentence3}, context, "count_letter");
-    // QueryEvolutionProxy* proxy_ptr = new QueryEvolutionProxy(or_two_words,
-    //                                                          activation_spreading,
-    //                                                          {sentence3},
-    //                                                          context,
-    //                                                          FitnessFunctionRegistry::REMOTE_FUNCTION,
-    //                                                          make_shared<CountLetterFunction>());
+    QueryEvolutionProxy* proxy_ptr = new QueryEvolutionProxy(or_two_words,
+                                                             activation_spreading,
+                                                             {sentence3},
+                                                             context,
+                                                             FitnessFunctionRegistry::REMOTE_FUNCTION,
+                                                             make_shared<RemoteFitnessFunction>());
+
+    // QueryEvolutionProxy* proxy_ptr = new QueryEvolutionProxy(
+    //     or_two_words, activation_spreading, {sentence3}, context, "count_letter");
+
     shared_ptr<QueryEvolutionProxy> proxy(proxy_ptr);
     proxy->parameters[QueryEvolutionProxy::POPULATION_SIZE] = (unsigned int) 100;
     proxy->parameters[QueryEvolutionProxy::MAX_GENERATIONS] = (unsigned int) 10;

@@ -18,7 +18,7 @@
 #include "attention_broker.grpc.pb.h"
 #include "attention_broker.pb.h"
 
-#define LOG_LEVEL DEBUG_LEVEL
+#define LOG_LEVEL INFO_LEVEL
 #include "Logger.h"
 
 using namespace atomdb;
@@ -127,52 +127,6 @@ void PatternMatchingQueryProcessor::update_attention_broker_joint_answer(
     }
 }
 
-void PatternMatchingQueryProcessor::recursive_metta_mapping(string handle, map<string, string>& table) {
-    if (table.find(handle) == table.end()) {
-        auto document = this->atomdb->get_atom_document(handle);
-        if (document->contains("targets")) {
-            // is link
-            if (strcmp(document->get("named_type"), "Expression")) {
-                Utils::error("Link type \"" + string(document->get("named_type")) +
-                             "\" can't be mapped to MeTTa");
-                table[handle] = "";
-                return;
-            }
-            unsigned int arity = document->get_size("targets");
-            for (unsigned int i = 0; i < arity; i++) {
-                recursive_metta_mapping(string(document->get("targets", i)), table);
-            }
-            string expression = "(";
-            bool empty_flag = true;
-            for (unsigned int i = 0; i < arity; i++) {
-                expression += table[string(document->get("targets", i))];
-                expression += " ";
-                empty_flag = false;
-            }
-            if (!empty_flag) {
-                expression.pop_back();
-            }
-            expression += ")";
-            table[handle] = expression;
-        } else {
-            // is node
-            if (strcmp(document->get("named_type"), "Symbol")) {
-                Utils::error("Node type \"" + string(document->get("named_type")) +
-                             "\" can't be mapped to MeTTa");
-                table[handle] = "";
-                return;
-            }
-            table[handle] = document->get("name");
-        }
-    }
-}
-
-void PatternMatchingQueryProcessor::populate_metta_mapping(QueryAnswer* answer) {
-    for (string handle : answer->handles) {
-        recursive_metta_mapping(handle, answer->metta_expression);
-    }
-}
-
 void PatternMatchingQueryProcessor::process_query_answers(
     shared_ptr<PatternMatchingQueryProxy> proxy,
     shared_ptr<Sink> query_sink,
@@ -188,7 +142,7 @@ void PatternMatchingQueryProcessor::process_query_answers(
         }
         if (!proxy->parameters.get<bool>(PatternMatchingQueryProxy::COUNT_FLAG)) {
             if (populate_metta) {
-                populate_metta_mapping(answer);
+                proxy->populate_metta_mapping(answer);
             }
             proxy->push(shared_ptr<QueryAnswer>(answer));
         }
