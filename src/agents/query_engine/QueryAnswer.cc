@@ -40,7 +40,17 @@ bool QueryAnswer::merge(QueryAnswer* other, bool merge_handles) {
         if (merge_handles) {
             this->importance = fmax(this->importance, other->importance);
             this->strength = this->strength * other->strength;
-            this->handles.insert(this->handles.end(), other->handles.begin(), other->handles.end());
+            for (string handle1: other->handles) {
+                bool flag = true;
+                for (string handle2: this->handles) {
+                    if (handle1 == handle2) {
+                        flag = false;
+                    }
+                }
+                if (flag) {
+                    this->handles.push_back(handle1);
+                }
+            }
         }
         return true;
     } else {
