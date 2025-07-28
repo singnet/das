@@ -3,28 +3,39 @@ use std::{
 	sync::{Arc, Mutex},
 };
 
-use hyperon_common::FlexRef;
-
 use hyperon_atom::{matcher::BindingsSet, Atom};
-
-use crate::{query_with_das, service_bus::ServiceBus};
-
+use hyperon_common::FlexRef;
 use hyperon_space::{Space, SpaceCommon, SpaceMut, SpaceVisitor};
+
+use crate::{init_service_bus, query_with_das, service_bus::ServiceBus, types::MeTTaRunner};
 
 #[derive(Clone)]
 pub struct DistributedAtomSpace {
 	common: SpaceCommon,
 	service_bus: Arc<Mutex<ServiceBus>>,
 	name: Option<String>,
+	metta_runner: MeTTaRunner,
 }
 
 impl DistributedAtomSpace {
-	pub fn new(service_bus: Arc<Mutex<ServiceBus>>, name: Option<String>) -> Self {
-		Self { common: SpaceCommon::default(), service_bus, name }
+	pub fn new(
+		name: Option<String>, host_id: String, known_peer: String, port_lower: u16,
+		port_upper: u16, metta_runner: MeTTaRunner,
+	) -> Self {
+		let service_bus = Arc::new(Mutex::new(
+			init_service_bus(host_id, known_peer, port_lower, port_upper).unwrap(),
+		));
+		Self { common: SpaceCommon::default(), service_bus, name, metta_runner }
 	}
 
 	pub fn query(&self, query: &Atom) -> BindingsSet {
-		query_with_das(self.name.clone(), self.service_bus.clone(), query).unwrap()
+		query_with_das(
+			self.name.clone(),
+			self.service_bus.clone(),
+			query,
+			Some(self.metta_runner.clone()),
+		)
+		.unwrap()
 	}
 
 	pub fn add(&mut self, _atom: Atom) {
@@ -41,7 +52,7 @@ impl DistributedAtomSpace {
 }
 
 impl Space for DistributedAtomSpace {
-	fn common(&self) -> FlexRef<SpaceCommon> {
+	fn common(&self) -> FlexRef<'_, SpaceCommon> {
 		FlexRef::from_simple(&self.common)
 	}
 	fn query(&self, query: &Atom) -> BindingsSet {
