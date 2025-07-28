@@ -151,24 +151,36 @@ void run(const string& client_id,
     // (Contains (Sentence "ede ebe cbe dca cbd fae bbb fce add eae") (Word "???"))
     // (Contains (Sentence "???") (Word "???"))
 
-    vector<string> activation_spreading = {
+    vector<string> activation_spreading1 = {
+        and_operator, "2",
+            link_template, expression, "3",
+                node, symbol, contains,
+                variable, sentence2,
+                variable, word1,
+            link_template, expression, "3",
+                node, symbol, contains,
+                variable, sentence1,
+                variable, word1,
+    };
+
+    vector<string> activation_spreading2 = {
         and_operator, "3",
             or_operator, "2",
                 link_template, expression, "3",
                     node, symbol, contains,
-                    variable, sentence1,
+                    variable, sentence2,
                     link, expression, "2",
                         node, symbol, word,
                         node, symbol, "\"" + word_tag1 + "\"",
                 link_template, expression, "3",
                     node, symbol, contains,
-                    variable, sentence1,
+                    variable, sentence2,
                     link, expression, "2",
                         node, symbol, word,
                         node, symbol, "\"" + word_tag2 + "\"",
             link_template, expression, "3",
                 node, symbol, contains,
-                variable, sentence3,
+                variable, sentence2,
                 variable, word1,
             link_template, expression, "3",
                 node, symbol, contains,
@@ -180,20 +192,20 @@ void run(const string& client_id,
     // ---------------------------------------------------------------------------------------------
     // Query evolution request
 
-    QueryEvolutionProxy* proxy_ptr = new QueryEvolutionProxy(or_two_words,
-                                                             activation_spreading,
-                                                             {sentence3},
-                                                             context,
-                                                             FitnessFunctionRegistry::REMOTE_FUNCTION,
-                                                             make_shared<RemoteFitnessFunction>());
+    //QueryEvolutionProxy* proxy_ptr = new QueryEvolutionProxy(or_two_words,
+    //                                                         activation_spreading,
+    //                                                         {sentence3},
+    //                                                         context,
+    //                                                         FitnessFunctionRegistry::REMOTE_FUNCTION,
+    //                                                         make_shared<RemoteFitnessFunction>());
 
-    // QueryEvolutionProxy* proxy_ptr = new QueryEvolutionProxy(
-    //     or_two_words, activation_spreading, {sentence3}, context, "count_letter");
+    QueryEvolutionProxy* proxy_ptr = new QueryEvolutionProxy(
+        or_two_words, activation_spreading2, {sentence1}, context, "count_letter");
 
     shared_ptr<QueryEvolutionProxy> proxy(proxy_ptr);
-    proxy->parameters[QueryEvolutionProxy::POPULATION_SIZE] = (unsigned int) 100;
+    proxy->parameters[QueryEvolutionProxy::POPULATION_SIZE] = (unsigned int) 500;
     proxy->parameters[QueryEvolutionProxy::MAX_GENERATIONS] = (unsigned int) 10;
-    proxy->parameters[QueryEvolutionProxy::ELITISM_RATE] = (double) 0.01;
+    proxy->parameters[QueryEvolutionProxy::ELITISM_RATE] = (double) 0.05;
     proxy->parameters[QueryEvolutionProxy::SELECTION_RATE] = (double) 0.10;
     proxy->parameters[BaseQueryProxy::MAX_BUNDLE_SIZE] = (unsigned int) 10000;
     service_bus->issue_bus_command(proxy);

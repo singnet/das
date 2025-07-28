@@ -18,13 +18,13 @@ QueryAnswer::QueryAnswer(double importance) {
 
 QueryAnswer::QueryAnswer(const string& handle, double importance) {
     this->importance = importance;
-    this->handles.insert(handle);
+    this->handles.push_back(handle);
     this->strength = 0;
 }
 
 QueryAnswer::~QueryAnswer() {}
 
-void QueryAnswer::add_handle(const string& handle) { this->handles.insert(handle); }
+void QueryAnswer::add_handle(const string& handle) { this->handles.push_back(handle); }
 
 QueryAnswer* QueryAnswer::copy(QueryAnswer* other) {  // Static method
     QueryAnswer* copy = new QueryAnswer(other->importance);
@@ -40,7 +40,7 @@ bool QueryAnswer::merge(QueryAnswer* other, bool merge_handles) {
         if (merge_handles) {
             this->importance = fmax(this->importance, other->importance);
             this->strength = this->strength * other->strength;
-            this->handles.insert(other->handles.begin(), other->handles.end());
+            this->handles.insert(this->handles.end(), other->handles.begin(), other->handles.end());
         }
         return true;
     } else {
@@ -189,7 +189,7 @@ void QueryAnswer::untokenize(const string& tokens) {
 
     for (unsigned int i = 0; i < handles_size; i++) {
         read_token(token_string, cursor, handle, HANDLE_HASH_SIZE);
-        this->handles.insert(string(handle));
+        this->handles.push_back(string(handle));
     }
 
     read_token(token_string, cursor, number, 4);
