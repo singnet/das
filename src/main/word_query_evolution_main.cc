@@ -192,12 +192,12 @@ void run(const string& client_id,
     // ---------------------------------------------------------------------------------------------
     // Query evolution request
 
-    //QueryEvolutionProxy* proxy_ptr = new QueryEvolutionProxy(or_two_words,
-    //                                                         activation_spreading,
-    //                                                         {sentence3},
-    //                                                         context,
-    //                                                         FitnessFunctionRegistry::REMOTE_FUNCTION,
-    //                                                         make_shared<RemoteFitnessFunction>());
+    // QueryEvolutionProxy* proxy_ptr = new QueryEvolutionProxy(or_two_words,
+    //                                                          activation_spreading,
+    //                                                          {sentence3},
+    //                                                          context,
+    //                                                          FitnessFunctionRegistry::REMOTE_FUNCTION,
+    //                                                          make_shared<RemoteFitnessFunction>());
 
     QueryEvolutionProxy* proxy_ptr = new QueryEvolutionProxy(
         or_two_words, activation_spreading2, {sentence1}, context, "count_letter");

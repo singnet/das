@@ -1,8 +1,8 @@
 #pragma once
 
 #include <mutex>
-#include <vector>
 #include <set>
+#include <vector>
 
 #include "BaseQueryProxy.h"
 #include "FitnessFunction.h"

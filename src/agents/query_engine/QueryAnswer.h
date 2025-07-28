@@ -1,7 +1,7 @@
 #pragma once
 
-#include <vector>
 #include <string>
+#include <vector>
 
 #include "Assignment.h"
 #include "QueryAnswer.h"

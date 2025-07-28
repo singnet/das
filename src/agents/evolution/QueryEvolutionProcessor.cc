@@ -81,16 +81,16 @@ void QueryEvolutionProcessor::sample_population(
     vector<std::pair<shared_ptr<QueryAnswer>, float>>& population) {
     bool remote_fitness = proxy->is_fitness_function_remote();
     vector<string> answer_bundle_vector;
-    static bool attention_flag = true; // update attention values only in the first generation
+    static bool attention_flag = true;  // update attention values only in the first generation
     unsigned int population_size =
         proxy->parameters.get<unsigned int>(QueryEvolutionProxy::POPULATION_SIZE);
     auto pm = atom_space.pattern_matching_query(proxy->get_query_tokens(),
                                                 population_size,
                                                 proxy->get_context(),
-                                                false,          // use_link_template_cache
-                                                true,           // unique_assignment
-                                                attention_flag, // update_attention_broker
-                                                false);         // positive_importance_only
+                                                false,           // use_link_template_cache
+                                                true,            // unique_assignment
+                                                attention_flag,  // update_attention_broker
+                                                false);          // positive_importance_only
     attention_flag = false;
     while ((!pm->finished()) && (!monitor->stopped()) && (population.size() < population_size)) {
         shared_ptr<QueryAnswer> answer = pm->pop();
@@ -271,7 +271,7 @@ void QueryEvolutionProcessor::correlate_similar(shared_ptr<QueryEvolutionProxy> 
             Utils::sleep();
         }
     }
-    for (string handle: handle_set) {
+    for (string handle : handle_set) {
         handle_list.add_list(handle);
     }
     LOG_DEBUG("Calling AttentionBroker GRPC. Correlating " << handle_list.list_size() << " handles");

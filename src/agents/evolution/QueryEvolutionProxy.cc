@@ -40,7 +40,8 @@ QueryEvolutionProxy::QueryEvolutionProxy(const vector<string>& tokens,
     this->fitness_function_object = fitness_function;
     set_fitness_function_tag(fitness_function_tag);
     this->correlation_tokens = correlation_tokens;
-    this->correlation_variables = set<string>(correlation_variables.begin(), correlation_variables.end());
+    this->correlation_variables =
+        set<string>(correlation_variables.begin(), correlation_variables.end());
 }
 
 void QueryEvolutionProxy::init() {
