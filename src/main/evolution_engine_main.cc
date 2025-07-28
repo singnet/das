@@ -9,14 +9,17 @@
 #include "ServiceBusSingleton.h"
 #include "Utils.h"
 
+#define LOG_LEVEL INFO_LEVEL
+#include "Logger.h"
+
 using namespace std;
 using namespace atomdb;
 using namespace evolution;
 using namespace service_bus;
 
 void ctrl_c_handler(int) {
-    cout << "Stopping evolution engine server..." << endl;
-    cout << "Done." << endl;
+    LOG_INFO("Stopping evolution engine server...");
+    LOG_INFO("Done.");
     exit(0);
 }
 
@@ -36,12 +39,12 @@ int main(int argc, char* argv[]) {
     signal(SIGINT, &ctrl_c_handler);
     signal(SIGTERM, &ctrl_c_handler);
 
+    LOG_INFO("Starting evolution engine server with id: " + server_id);
     shared_ptr<ServiceBus> service_bus = ServiceBusSingleton::get_instance();
     service_bus->register_processor(make_shared<QueryEvolutionProcessor>());
 
-    cout
-        << "#############################     REQUEST QUEUE EMPTY     ##################################"
-        << endl;
+    LOG_INFO(
+        "#############################     REQUEST QUEUE EMPTY     ##################################");
     do {
         Utils::sleep(1000);
     } while (true);

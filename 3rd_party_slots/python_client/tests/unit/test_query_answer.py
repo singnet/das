@@ -174,12 +174,13 @@ class TestQueryAnswer:
 
     @pytest.mark.parametrize("token_str", [
         "",  # empty
-        "badfloat 1 h1 0",  # invalid importance
-        "1.0 badint h1 0",  # invalid handles size
-        "1.0 -1",  # negative handles size
-        "1.0 1 h1 bad",  # invalid assignment size
-        "1.0 1 h1 -1",  # negative assignment size
-        "1.0 0 1 extra",  # extra token
+        "badfloat 0.0 1 h1 0",  # invalid strength
+        "1.2 badfloat 1 h1 0",  # invalid importance
+        "1.1 1.0 badint h1 0",  # invalid handles size
+        "1.0 1.0 -1",  # negative handles size
+        "1.0 1.0 1 h1 bad",  # invalid assignment size
+        "1.0 1.0 1 h1 -1",  # negative assignment size
+        "1.0 1.0 0 1 extra",  # extra token
     ])
     def test_untokenize_errors(self, token_str):
         with pytest.raises(ValueError):
@@ -187,5 +188,5 @@ class TestQueryAnswer:
 
     def test_to_string_format(self):
         s = self.q.to_string()
-        assert s == "QueryAnswer<1,1> [h1] {(a: 1)} 0.5"
+        assert s == "QueryAnswer<1,1> [h1] {(a: 1)} (0.000000, 0.500000)"
         assert self.q.assignment.to_string() in s

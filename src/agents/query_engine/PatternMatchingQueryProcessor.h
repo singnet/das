@@ -5,6 +5,7 @@
 #include <stack>
 #include <thread>
 
+#include "AtomDBSingleton.h"
 #include "BusCommandProcessor.h"
 #include "PatternMatchingQueryProxy.h"
 #include "QueryElement.h"
@@ -85,6 +86,7 @@ class PatternMatchingQueryProcessor : public BusCommandProcessor {
     map<string, shared_ptr<StoppableThread>> query_threads;
     mutex query_threads_mutex;
     shared_ptr<PatternMatchingQueryProxy> proxy;
+    shared_ptr<AtomDB> atomdb;
     static string AND;
     static string OR;
 };

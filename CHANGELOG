@@ -12,3 +12,4 @@
 [#568] Added simple profiling primitives in Logger
 [#544] Add benchmark tests for AtomDB
 [#581] Implementation of remote fitness evaluation in Query Evolution
+[#589] Added optional parameter in PM queries to adda a mapping handle-->metta in QAs delivered to caller

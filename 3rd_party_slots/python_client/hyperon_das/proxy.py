@@ -11,6 +11,7 @@ from hyperon_das.bus import BusCommand
 from hyperon_das.port_pool import PortPool
 from hyperon_das.logger import log
 from hyperon_das.query_answer import QueryAnswer
+from hyperon_das.properties import Properties, ATTENTION_UPDATE_FLAG, MAX_BUNDLE_SIZE, UNIQUE_ASSIGNMENT_FLAG, POSITIVE_IMPORTANCE_FLAG, COUNT_FLAG, POPULATE_METTA_MAPPING
 
 
 class BaseCommandProxy(abc.ABC):
@@ -65,24 +66,35 @@ class PatternMatchingQueryHandler(BaseCommandProxy):
         self,
         tokens: list[str],
         context: str = "",
-        unique_assignment: bool = False,
         update_attention_broker: bool = False,
+        positive_importance: bool = False,
+        populate_metta_mapping: bool = False,
+        unique_assignment: bool = False,
         count_only: bool = False
     ) -> None:
-        super().__init__(command=BusCommand.PATTERN_MATCHING_QUERY, args=[
-            context,
-            str(unique_assignment),
-            str(update_attention_broker),
-            str(count_only),
-        ] + tokens)
+        properties = Properties()
+        properties.insert(ATTENTION_UPDATE_FLAG, update_attention_broker)
+        properties.insert(POSITIVE_IMPORTANCE_FLAG, positive_importance)
+        properties.insert(POPULATE_METTA_MAPPING, populate_metta_mapping)
+        properties.insert(UNIQUE_ASSIGNMENT_FLAG, unique_assignment)
+        properties.insert(COUNT_FLAG, count_only)
+        properties.insert(MAX_BUNDLE_SIZE, 1000)
+
+        args = properties.tokenize()
+        args.append(context)
+        args.append(str(len(tokens)))
+        args.extend(tokens)
+
+        log.debug(f"Creating PatternMatchingQueryHandler with args: {args}")
+
+        super().__init__(command=BusCommand.PATTERN_MATCHING_QUERY, args=args)
+
         self.answer_queue = Queue()
         self._lock = threading.Lock()
         self.answer_flow_finished = False
         self.abort_flag = False
-        self.update_attention_broker = update_attention_broker
         self.answer_count = 0
         self.count_flag = count_only
-        self.unique_assignment_flag = unique_assignment
 
     def finished(self) -> bool:
         """Checks if the answers is finished or aborted."""
@@ -109,21 +121,25 @@ class PatternMatchingQueryHandler(BaseCommandProxy):
 
     def process_message(self, msg: list[str]) -> None:
         """Processes received messages, updating the answer queue or flags."""
+        log.debug(f"Processing message: {msg}")
+        log.debug(f"Message length: {len(msg)}")
         with self._lock:
-            for tokens in msg:
-                if tokens == self.FINISHED:
+            for token in msg:
+                log.debug(f"Processing token: {token}")
+                if token == self.FINISHED:
                     if not self.abort_flag:
                         self.answer_flow_finished = True
                     break
-                elif tokens == self.ABORT:
+                elif token == self.ABORT:
                     self.abort_flag = True
                     break
-                elif tokens in [self.ANSWER_BUNDLE, self.COUNT]:
+                elif token in [self.ANSWER_BUNDLE, self.COUNT]:
                     continue
                 else:
+                    log.debug(f"Adding token to answer queue: {token}")
                     self.answer_count += 1
                     query_answer = QueryAnswer()
-                    query_answer.untokenize(tokens)                    
+                    query_answer.untokenize(token)
                     self.answer_queue.put(query_answer)
 
 
@@ -161,6 +177,7 @@ class AtomSpaceNodeServicer(atom__space__node__pb2__grpc.AtomSpaceNodeServicer):
 
     def execute_message(self, request: atom__space__node__pb2.MessageData, context=None):
         log.info(f"Remote command: <{request.command}> arrived at AtomSpaceNodeServicer {self.handler.proxy_node.node_id}")
+        log.debug(f"Request command: {request.command}, args: {request.args}, sender: {request.sender}, is_broadcast: {request.is_broadcast}, visited_recipients: {request.visited_recipients}")
         if request.command in ["query_answer_tokens_flow", "bus_command_proxy"]:
             self.handler.process_message(request.args)
         return common__pb2.Empty()

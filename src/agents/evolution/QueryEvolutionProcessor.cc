@@ -8,7 +8,7 @@
 #include "attention_broker.grpc.pb.h"
 #include "attention_broker.pb.h"
 
-#define LOG_LEVEL DEBUG_LEVEL
+#define LOG_LEVEL INFO_LEVEL
 #include "Logger.h"
 
 #define ATTENTION_BROKER_ADDRESS "localhost:37007"
@@ -83,14 +83,20 @@ void QueryEvolutionProcessor::sample_population(
     vector<string> answer_bundle_vector;
     unsigned int population_size =
         proxy->parameters.get<unsigned int>(QueryEvolutionProxy::POPULATION_SIZE);
-    auto pm = atom_space.pattern_matching_query(
-        proxy->get_query_tokens(), population_size, proxy->get_context(), false);
+    auto pm = atom_space.pattern_matching_query(proxy->get_query_tokens(),
+                                                population_size,
+                                                proxy->get_context(),
+                                                false,   // use_link_template_cache
+                                                true,    // unique_assignment
+                                                true,    // update_attention_broker
+                                                false);  // positive_importance_only
     while ((!pm->finished()) && (!monitor->stopped()) && (population.size() < population_size)) {
         shared_ptr<QueryAnswer> answer = pm->pop();
         if (answer != NULL) {
             float fitness;
             if (remote_fitness) {
                 fitness = 0;
+                proxy->populate_metta_mapping(answer.get());
                 answer_bundle_vector.push_back(answer->tokenize());
             } else {
                 fitness = (remote_fitness ? 0 : proxy->compute_fitness(answer));
@@ -116,7 +122,8 @@ void QueryEvolutionProcessor::sample_population(
         }
         LOG_ERROR("Discarding " << count << " answers");
     }
-    if (remote_fitness) {
+    if (remote_fitness && (answer_bundle_vector.size() > 0)) {
+        LOG_INFO("Evaluating fitness remotelly");
         if (answer_bundle_vector.size() >
             proxy->parameters.get<unsigned int>(BaseQueryProxy::MAX_BUNDLE_SIZE)) {
             Utils::error(
@@ -222,14 +229,23 @@ void QueryEvolutionProcessor::correlate_similar(shared_ptr<QueryEvolutionProxy> 
                 return;
             }
             token = original_tokens[cursor++];
-            string value = correlation_query_answer->assignment.get(token);
-            if (value != "") {
+            if (token == "sentence3") {
+                string value = correlation_query_answer->assignment.get("sentence1");
                 query_tokens.push_back(LinkSchema::ATOM);
-                query_tokens.push_back(string(value));
+                query_tokens.push_back(value);
             } else {
                 query_tokens.push_back(LinkSchema::UNTYPED_VARIABLE);
                 query_tokens.push_back(token);
             }
+            /*
+            if (value != "") {
+                query_tokens.push_back(LinkSchema::ATOM);
+                query_tokens.push_back(value);
+            } else {
+                query_tokens.push_back(LinkSchema::UNTYPED_VARIABLE);
+                query_tokens.push_back(token);
+            }
+            */
         } else {
             query_tokens.push_back(token);
         }
@@ -245,7 +261,13 @@ void QueryEvolutionProcessor::correlate_similar(shared_ptr<QueryEvolutionProxy> 
         query_tokens,
         proxy->parameters.get<unsigned int>(QueryEvolutionProxy::POPULATION_SIZE),
         proxy->get_context(),
-        false);
+        false,  // use_link_template_cache
+        true,   // unique_assignment
+        false,  // update_attention_broker
+        true);  // positive_importance_only
+    for (string handle : correlation_query_answer->handles) {
+        handle_list.add_list(handle);
+    }
     while (!pm->finished()) {
         shared_ptr<QueryAnswer> answer = pm->pop();
         if (answer != NULL) {
@@ -321,8 +343,8 @@ void QueryEvolutionProcessor::evolve_query(shared_ptr<StoppableThread> monitor,
         STOP_WATCH_START(sample_population);
         sample_population(monitor, proxy, population);
         STOP_WATCH_FINISH(sample_population, "EvolutionPopulationSampling");
-        LOG_INFO("==== Generation: " + std::to_string(count_generations) +
-                 ". Sampled: " + std::to_string(population.size()) + " individuals.");
+        LOG_INFO("========== Generation: " + std::to_string(count_generations) +
+                 ". Sampled: " + std::to_string(population.size()) + " individuals. ==========");
         proxy->new_population_sampled(population);
         if (population.size() > 0) {
             STOP_WATCH_START(selection);

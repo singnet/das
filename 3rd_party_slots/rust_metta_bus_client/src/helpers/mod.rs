@@ -1,4 +1,4 @@
-pub mod mongodb;
+pub mod query_answer;
 
 use std::collections::VecDeque;
 
@@ -164,11 +164,7 @@ fn generate_output(node: &Node) -> String {
 		Node::Expression(nodes) => {
 			let count = nodes.len();
 			let mut parts = Vec::new();
-			let has_direct_link_template = has_direct_link_template(nodes);
-			// Top-level uses LINK_TEMPLATE2 for direct LINK_TEMPLATE, LINK_TEMPLATE otherwise
-			let link_type =
-				if has_direct_link_template { "LINK_TEMPLATE2" } else { "LINK_TEMPLATE" };
-			parts.push(format!("{} Expression {}", link_type, count));
+			parts.push(format!("{} Expression {}", "LINK_TEMPLATE", count));
 			for node in nodes {
 				parts.push(generate_output_inner(node));
 			}
@@ -192,22 +188,16 @@ fn is_template_like(node: &Node) -> bool {
 // Helper function to generate output for nested nodes
 fn generate_output_inner(node: &Node) -> String {
 	match node {
-		Node::Symbol(s) => format!("NODE Symbol {}", s),
-		Node::Variable(v) => format!("VARIABLE {}", v),
+		Node::Symbol(s) => format!("NODE Symbol {s}"),
+		Node::Variable(v) => format!("VARIABLE {v}"),
 		Node::Expression(nodes) => {
 			let count = nodes.len();
 			let mut parts = Vec::new();
 			let has_direct_link_template = has_direct_link_template(nodes);
-			// LINK_TEMPLATE2 only for direct LINK_TEMPLATE child, LINK_TEMPLATE for VARIABLE, LINK otherwise
 			let is_template = is_template_like(&Node::Expression(nodes.clone()));
-			let link_type = if has_direct_link_template {
-				"LINK_TEMPLATE2"
-			} else if is_template {
-				"LINK_TEMPLATE"
-			} else {
-				"LINK"
-			};
-			parts.push(format!("{} Expression {}", link_type, count));
+			let link_type =
+				if has_direct_link_template || is_template { "LINK_TEMPLATE" } else { "LINK" };
+			parts.push(format!("{link_type} Expression {count}"));
 			for node in nodes {
 				parts.push(generate_output_inner(node));
 			}

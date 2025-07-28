@@ -37,7 +37,8 @@ class ServiceBus:
             try:
                 self.bus_node.send_bus_command(proxy.command, args)
             except Exception:
-                pass
+                proxy.abort_flag = False
+                log.error(f"Failed to issue BUS command <{proxy.command}> with args {args}")
 
 
 class ServiceBusSingletonMeta(type):

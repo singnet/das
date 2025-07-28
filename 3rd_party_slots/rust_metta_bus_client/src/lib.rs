@@ -5,15 +5,12 @@ use std::{
 	time::Duration,
 };
 
-use helpers::{split_ignore_quoted, translate};
-use hyperon_atom::{
-	matcher::{Bindings, BindingsSet},
-	Atom, ExecError, VariableAtom,
-};
+use helpers::{query_answer::parse_query_answer, split_ignore_quoted, translate};
+use hyperon_atom::{matcher::BindingsSet, Atom, ExecError};
 use proxy::PatternMatchingQueryProxy;
 use service_bus::ServiceBus;
 use service_bus_singleton::ServiceBusSingleton;
-use types::BoxError;
+use types::{BoxError, MeTTaRunner};
 
 pub mod space;
 
@@ -29,11 +26,13 @@ pub mod types;
 
 pub fn query_with_das(
 	space_name: Option<String>, service_bus: Arc<Mutex<ServiceBus>>, atom: &Atom,
+	maybe_metta_runner: Option<MeTTaRunner>,
 ) -> Result<BindingsSet, BoxError> {
 	let unique_assignment = true;
 	let positive_importance = false;
 	let update_attention_broker = false;
 	let count_only = false;
+	let populate_metta_mapping = true;
 	query(
 		space_name,
 		service_bus,
@@ -42,13 +41,15 @@ pub fn query_with_das(
 		positive_importance,
 		update_attention_broker,
 		count_only,
+		populate_metta_mapping,
+		maybe_metta_runner,
 	)
 }
 
 pub fn query(
 	space_name: Option<String>, service_bus: Arc<Mutex<ServiceBus>>, atom: &Atom,
 	unique_assignment: bool, positive_importance: bool, update_attention_broker: bool,
-	count_only: bool,
+	count_only: bool, populate_metta_mapping: bool, _maybe_metta_runner: Option<MeTTaRunner>,
 ) -> Result<BindingsSet, BoxError> {
 	let mut bindings_set = BindingsSet::empty();
 	// Parsing possible parameters: ((max_query_answers) (query))
@@ -100,7 +101,7 @@ pub fn query(
 		}
 		let first = innet_tokens[0].replace("(", "");
 		match first.trim() {
-			"LINK_TEMPLATE" | "LINK_TEMPLATE2" | "AND" | "OR" => {
+			"LINK_TEMPLATE" | "AND" | "OR" => {
 				let _tokens = innet_tokens.join(" ").replace("(", "").replace(")", "");
 				tokens.extend(split_ignore_quoted(&_tokens))
 			},
@@ -128,45 +129,17 @@ pub fn query(
 		positive_importance,
 		update_attention_broker,
 		count_only,
+		populate_metta_mapping,
 	)?;
 
 	let mut service_bus = service_bus.lock().unwrap();
 	service_bus.issue_bus_command(&mut proxy)?;
 
-	let max_mongodb_fetch = 500;
-	let mut mongodb_fetch_count = 0;
-
 	while !proxy.finished() {
 		if let Some(query_answer) = proxy.pop() {
-			log::trace!(target: "das", "{}", query_answer);
+			log::trace!(target: "das", "{query_answer}");
 
-			let splitted: Vec<String> = query_answer.split_whitespace().map(String::from).collect();
-			for (idx, word) in splitted.clone().iter().enumerate() {
-				if let Some(value) = variables.get_mut(word) {
-					let handle = splitted[idx + 1].clone();
-					if mongodb_fetch_count < max_mongodb_fetch {
-						let v = if let Some(ref mongodb_repo) = proxy.maybe_mongodb_repo {
-							match mongodb_repo.fetch_handle_name(&handle) {
-								Ok(name) => name,
-								Err(_) => handle.to_string(),
-							}
-						} else {
-							handle.to_string()
-						};
-						*value = v;
-					} else {
-						*value = handle.to_string();
-					}
-				}
-			}
-
-			mongodb_fetch_count += 1;
-
-			let mut bindings = Bindings::new();
-			for (key, value) in &variables {
-				bindings =
-					bindings.add_var_binding(VariableAtom::new(key), Atom::sym(value)).unwrap();
-			}
+			let bindings = parse_query_answer(&query_answer, populate_metta_mapping);
 			bindings_set.push(bindings);
 
 			if max_query_answers > 0 && bindings_set.len() >= max_query_answers {
@@ -191,12 +164,17 @@ pub fn init_service_bus(
 	Ok(ServiceBusSingleton::get_instance())
 }
 
-pub fn host_id_from_atom(atom: &Atom) -> Result<String, ExecError> {
-	let endpoint = atom.to_string().replace("(", "").replace(")", "");
-	if let Some((_, port_str)) = endpoint.split_once(':') {
-		if port_str.parse::<u16>().is_ok() {
-			return Ok(endpoint);
+pub fn host_id_from_atom(atom: &Atom) -> Result<(String, u16, u16), ExecError> {
+	let host_id = atom.to_string().replace("(", "").replace(")", "");
+	if let Some((host, port_range_str)) = host_id.split_once(':') {
+		if let Some((port_lower_str, port_upper_str)) = port_range_str.split_once('-') {
+			let port_lower = port_lower_str.parse::<u16>().unwrap();
+			let port_upper = port_upper_str.parse::<u16>().unwrap();
+			return Ok((host.to_string(), port_lower, port_upper));
+		} else {
+			let port = port_range_str.parse::<u16>().unwrap();
+			return Ok((host_id, port, port));
 		}
 	}
-	Err(ExecError::from("new-das arguments must be a valid endpoint (eg. 0.0.0.0:8080)"))
+	Err(ExecError::from("new-das arguments must be a valid endpoint (eg. 0.0.0.0:42000-42999)"))
 }

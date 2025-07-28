@@ -1,0 +1,71 @@
+name: Benchmark Report
+
+on:
+  schedule:
+    - cron: "0 8 * * *"
+
+  push:
+    branches:
+      - master
+
+jobs:
+  benchmark:
+    runs-on: self-hosted
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Clear benchmark output files
+        run: rm -rf /tmp/atomdb_benchmark || true
+
+      - name: Run benchmark
+        run: ./src/scripts/run_atomdb_benchmark.sh --db empty --rel none --cache disabled --concurrency 1 --iterations 100 || true
+
+      - name: Upload benchmark report artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: benchmark-report
+          path: /tmp/atomdb_benchmark/**/*.txt
+          if-no-file-found: error
+
+  notify-mattermost:
+    runs-on: self-hosted
+    needs: benchmark
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download benchmark report artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: benchmark-report
+          path: atomdb_benchmark
+
+      - name: Create mattermost message
+        run: |
+          #!/bin/bash
+          set -e
+
+          REPORT_DIR="atomdb_benchmark"
+          TITLE="AtomDB Benchmark Report - Redis + MongoDB (Single Thread, 100 iterations)"
+
+          files=$(find "$REPORT_DIR" -type f -name '*.txt' | sort)
+
+          header=$(head -n 2 $(echo "$files" | head -n1))
+
+          body=""
+          for f in $files; do
+            data=$(tail -n +3 "$f")
+            body+="$data"$'\n'
+          done
+
+          message="$TITLE"$'\n\n'"$header"$'\n'"$body"
+
+          escaped=$(jq -Rs . <<< "$message")
+          echo "$message"
+          echo "{\"text\": $escaped}" > mattermost.json
+
+      - name: Notify Mattermost
+        uses: singnet/integration-github-mattermost@master
+        with:
+          webhook-url: ${{ secrets.SCHEDULED_REPOS_MATTERMOST_WEBHOOK_URL }}

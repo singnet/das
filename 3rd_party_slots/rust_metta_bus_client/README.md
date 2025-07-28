@@ -43,12 +43,6 @@ To control log's level use `RUST_LOG=das=<LEVEL>`:
 RUST_LOG=das=debug ./target/release/metta-bus-client localhost:8080 localhost:35700 0 0 'LINK_TEMPLATE Expression 3 NODE Symbol Similarity NODE Symbol "human" VARIABLE S'
 ```
 
-_Temporary_: You can set `MONGODB_URI` (DAS MongoDB endpoint) to tell the client to translate the handles (hex) into text:
-
-```sh
-export MONGODB_URI=mongodb://root:root@localhost:27017/
-```
-
 ## Setup DAS locally
 
 You can use [das-cli](https://github.com/singnet/das-toolbox/tree/master/das-cli) to spawn all necessary services to test DAS locally:

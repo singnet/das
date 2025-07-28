@@ -1,3 +1,6 @@
+from hyperon_das.logger import log
+
+
 class Assignment:
     """
     Represents a set of variable assignments (label -> value).
@@ -119,9 +122,11 @@ class QueryAnswer:
 
     def __init__(self, handle: str | None = None, importance: float = 0.0) -> None:
         self.handles = []
+        self.metta_expression = {}
         if handle is not None:
             self.handles.append(handle)
         self.importance = importance
+        self.strength = 0.0
         self.assignment = Assignment()
 
     @classmethod
@@ -136,7 +141,8 @@ class QueryAnswer:
             QueryAnswer: A new instance with duplicated data.
         """
         q = cls(importance=other.importance)
-        q.handles = list(other.handles)
+        q.strength = other.strength
+        q.handles = other.handles
         q.assignment.copy_from(other.assignment)
         return q
 
@@ -164,6 +170,7 @@ class QueryAnswer:
 
         if merge_handles:
             self.importance = max(self.importance, other.importance)
+            self.strength = self.strength * other.strength
             existing = set(self.handles)
             for handle in other.handles:
                 if handle not in existing:
@@ -181,7 +188,7 @@ class QueryAnswer:
         Returns:
             str: Tokenized string encoding this QueryAnswer.
         """
-        tokens = [f"{self.importance:.10f}"]
+        tokens = [f"{self.strength:.10f} {self.importance:.10f}"]
         tokens.append(str(len(self.handles)))
         tokens.extend(self.handles)
         tokens.append(str(self.assignment.variable_count()))
@@ -200,57 +207,56 @@ class QueryAnswer:
         Raises:
             ValueError: If the token string format is invalid.
         """
+        log.debug(f"Untokenizing QueryAnswer from: {token_str}")
         tokens = token_str.strip().split()
-        idx = 0
-        total = len(tokens)
+        cursor = 0
 
-        def require(n: int):
-            if idx + n > total:
-                raise ValueError("Invalid token string: insufficient tokens")
+        def next_token():
+            nonlocal cursor
+            if cursor >= len(tokens):
+                raise ValueError("Invalid token string: unexpected end of tokens")
+            token = tokens[cursor]
+            cursor += 1
+            return token
 
-        require(1)
         try:
-            self.importance = float(tokens[idx])
-        except ValueError as e:
-            raise ValueError(f"Invalid importance value: {tokens[idx]}") from e
-        idx += 1
+            self.strength = float(next_token())
+            self.importance = float(next_token())
 
-        require(1)
-        try:
-            handles_size = int(tokens[idx])
-        except ValueError as e:
-            raise ValueError(f"Invalid handles size: {tokens[idx]}") from e
-        idx += 1
+            handles_size = int(next_token())
+            if handles_size < 0:
+                raise ValueError(f"Handles size cannot be negative: {handles_size}")
 
-        if handles_size < 0:
-            raise ValueError(f"Handles size cannot be negative: {handles_size}")
+            self.handles = [next_token() for _ in range(handles_size)]
 
-        self.handles = []
-        for _ in range(handles_size):
-            require(1)
-            self.handles.append(tokens[idx])
-            idx += 1
+            assignment_size = int(next_token())
+            if assignment_size < 0:
+                raise ValueError(f"Assignment size cannot be negative: {assignment_size}")
 
-        require(1)
-        try:
-            assignment_size = int(tokens[idx])
-        except ValueError as e:
-            raise ValueError(f"Invalid assignment size: {tokens[idx]}") from e
-        idx += 1
+            self.assignment = Assignment()
+            for _ in range(assignment_size):
+                label = next_token()
+                value = next_token()
+                self.assignment.assign(label, value)
+                log.debug(f"Parsed assignment: ({label}: {value})")
 
-        if assignment_size < 0:
-            raise ValueError(f"Assignment size cannot be negative: {assignment_size}")
+            metta_expression_size = int(next_token())
 
-        self.assignment = Assignment()
-        for _ in range(assignment_size):
-            require(2)
-            label = tokens[idx]
-            value = tokens[idx + 1]
-            self.assignment.assign(label, value)
-            idx += 2
+            for _ in range(metta_expression_size + 1):
+                key = next_token()
+                self.metta_expression[key] = next_token()
 
-        if idx != total:
-            raise ValueError("Invalid token string: extra data after parsing")
+            log.debug(f"Metta expression: {self.metta_expression}")
+
+            if cursor != len(tokens):
+                log.error(f"cursor: {cursor}, tokens: {tokens}")
+                raise ValueError("Invalid token string: extra data after parsing")
+
+            log.debug(f"QueryAnswer untokenized successfully: {self.to_string()}")
+
+        except (ValueError, IndexError) as e:
+            log.error(str(e))
+            raise
 
     def to_string(self) -> str:
         """
@@ -260,4 +266,5 @@ class QueryAnswer:
             QueryAnswer<handles_count,assignment_count> [handles...] {assignments...} importance
         """
         handles_str = ", ".join(self.handles)
-        return f"QueryAnswer<{len(self.handles)},{self.assignment.variable_count()}> [{handles_str}] {self.assignment.to_string()} {self.importance}"
+
+        return f"QueryAnswer<{len(self.handles)},{self.assignment.variable_count()}> [{handles_str}] {self.assignment.to_string()} ({self.strength:.6f}, {self.importance:.6f})"
