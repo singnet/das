@@ -15,10 +15,9 @@ StrengthFunction::StrengthFunction() {
 }
 
 float StrengthFunction::eval(shared_ptr<QueryAnswer> query_answer) {
-    float strength = 0.0;
+    float strength = 1.0;
     if (query_answer->handles.size() != 1) {
         Utils::error("Invalid answer in StrengthFunction");
-        return strength;
     } else {
         for (const auto& handle : query_answer->handles) {
             auto atom = db->get_atom(handle);
