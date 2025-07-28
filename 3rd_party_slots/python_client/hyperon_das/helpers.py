@@ -41,3 +41,14 @@ def tokenize_preserve_quotes(s: str) -> list[str]:
         tokens.append(''.join(current))
 
     return tokens
+
+
+def str_2_bool(v):
+    if isinstance(v, bool):
+        return v
+    if v.lower() in ('yes', 'true', '1'):
+        return True
+    elif v.lower() in ('no', 'false', '0'):
+        return False
+    else:
+        raise ValueError('Boolean value expected.')

@@ -101,7 +101,7 @@ class TestPatternMatchingQueryHandler:
         assert handler.pop() is qa
 
     def test_process_message_and_counters(self, handler):
-        base = QueryAnswer(handle="h0", importance=0)
+        base = QueryAnswer(handle="h0", importance=0.0)
         tokens = base.tokenize()
         msgs = [PatternMatchingQueryHandler.ANSWER_BUNDLE, tokens, PatternMatchingQueryHandler.COUNT]
         handler.process_message(msgs)
