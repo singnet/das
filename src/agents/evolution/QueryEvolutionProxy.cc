@@ -40,7 +40,8 @@ QueryEvolutionProxy::QueryEvolutionProxy(const vector<string>& tokens,
     this->fitness_function_object = fitness_function;
     set_fitness_function_tag(fitness_function_tag);
     this->correlation_tokens = correlation_tokens;
-    this->correlation_variables = correlation_variables;
+    this->correlation_variables =
+        set<string>(correlation_variables.begin(), correlation_variables.end());
 }
 
 void QueryEvolutionProxy::init() {
@@ -75,7 +76,7 @@ string QueryEvolutionProxy::to_string() {
         answer.pop_back();
     }
     answer += "], ";
-    answer += "correlation_variables: [";
+    answer += "correlation_variables: {";
     empty_flag = true;
     for (auto token : this->correlation_variables) {
         answer += token + ", ";
@@ -85,7 +86,7 @@ string QueryEvolutionProxy::to_string() {
         answer.pop_back();
         answer.pop_back();
     }
-    answer += "]";
+    answer += "}";
     answer += "}";
     return answer;
 }
@@ -123,8 +124,7 @@ void QueryEvolutionProxy::untokenize(vector<string>& tokens) {
     tokens.erase(tokens.begin(), tokens.begin() + 1 + num_correlation_tokens);
 
     unsigned int num_correlation_variables = std::stoi(tokens[0]);
-    this->correlation_variables.insert(this->correlation_variables.begin(),
-                                       tokens.begin() + 1,
+    this->correlation_variables.insert(tokens.begin() + 1,
                                        tokens.begin() + 1 + num_correlation_variables);
     tokens.erase(tokens.begin(), tokens.begin() + 1 + num_correlation_variables);
 }
@@ -154,7 +154,7 @@ void QueryEvolutionProxy::new_population_sampled(
     if (population.size() > 0) {
         if (population[0].second > best_reported_fitness) {
             for (int i = population.size() - 1; i >= 0; i--) {
-                if (population[i].second > this->best_reported_fitness) {
+                if (population[i].second >= this->best_reported_fitness) {
                     push(population[i].first);
                     this->best_reported_fitness = population[i].second;
                 }
@@ -184,7 +184,7 @@ const vector<string>& QueryEvolutionProxy::get_correlation_tokens() {
     return this->correlation_tokens;
 }
 
-const vector<string>& QueryEvolutionProxy::get_correlation_variables() {
+const set<string>& QueryEvolutionProxy::get_correlation_variables() {
     lock_guard<mutex> semaphore(this->api_mutex);
     return this->correlation_variables;
 }

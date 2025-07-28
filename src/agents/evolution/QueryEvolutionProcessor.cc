@@ -81,15 +81,17 @@ void QueryEvolutionProcessor::sample_population(
     vector<std::pair<shared_ptr<QueryAnswer>, float>>& population) {
     bool remote_fitness = proxy->is_fitness_function_remote();
     vector<string> answer_bundle_vector;
+    static bool attention_flag = true;  // update attention values only in the first generation
     unsigned int population_size =
         proxy->parameters.get<unsigned int>(QueryEvolutionProxy::POPULATION_SIZE);
     auto pm = atom_space.pattern_matching_query(proxy->get_query_tokens(),
                                                 population_size,
                                                 proxy->get_context(),
-                                                false,   // use_link_template_cache
-                                                true,    // unique_assignment
-                                                true,    // update_attention_broker
-                                                false);  // positive_importance_only
+                                                false,           // use_link_template_cache
+                                                true,            // unique_assignment
+                                                attention_flag,  // update_attention_broker
+                                                false);          // positive_importance_only
+    attention_flag = false;
     while ((!pm->finished()) && (!monitor->stopped()) && (population.size() < population_size)) {
         shared_ptr<QueryAnswer> answer = pm->pop();
         if (answer != NULL) {
@@ -102,6 +104,7 @@ void QueryEvolutionProcessor::sample_population(
                 fitness = (remote_fitness ? 0 : proxy->compute_fitness(answer));
             }
             answer->strength = fitness;
+            LOG_DEBUG("Sampling: " + answer->to_string());
             population.push_back(make_pair(answer, fitness));
         } else {
             Utils::sleep();
@@ -217,7 +220,7 @@ void QueryEvolutionProcessor::correlate_similar(shared_ptr<QueryEvolutionProxy> 
     vector<string> query_tokens;
     unsigned int cursor = 0;
     vector<string> original_tokens = proxy->get_correlation_tokens();
-    ;
+    set<string> variables = proxy->get_correlation_variables();
     unsigned int size = original_tokens.size();
 
     // Apply QueryAnswer's assignment to original tokens
@@ -229,23 +232,14 @@ void QueryEvolutionProcessor::correlate_similar(shared_ptr<QueryEvolutionProxy> 
                 return;
             }
             token = original_tokens[cursor++];
-            if (token == "sentence3") {
-                string value = correlation_query_answer->assignment.get("sentence1");
+            if (variables.find(token) != variables.end()) {
+                string value = correlation_query_answer->assignment.get(token);
                 query_tokens.push_back(LinkSchema::ATOM);
                 query_tokens.push_back(value);
             } else {
                 query_tokens.push_back(LinkSchema::UNTYPED_VARIABLE);
                 query_tokens.push_back(token);
             }
-            /*
-            if (value != "") {
-                query_tokens.push_back(LinkSchema::ATOM);
-                query_tokens.push_back(value);
-            } else {
-                query_tokens.push_back(LinkSchema::UNTYPED_VARIABLE);
-                query_tokens.push_back(token);
-            }
-            */
         } else {
             query_tokens.push_back(token);
         }
@@ -254,6 +248,7 @@ void QueryEvolutionProcessor::correlate_similar(shared_ptr<QueryEvolutionProxy> 
     // Update AttentionBroker
     auto stub = dasproto::AttentionBroker::NewStub(
         grpc::CreateChannel(ATTENTION_BROKER_ADDRESS, grpc::InsecureChannelCredentials()));
+    set<string> handle_set;
     dasproto::HandleList handle_list;  // GRPC command parameter
     dasproto::Ack ack;                 // GRPC command return
     handle_list.set_context(proxy->get_context());
@@ -266,17 +261,18 @@ void QueryEvolutionProcessor::correlate_similar(shared_ptr<QueryEvolutionProxy> 
         false,  // update_attention_broker
         true);  // positive_importance_only
     for (string handle : correlation_query_answer->handles) {
-        handle_list.add_list(handle);
+        handle_set.insert(handle);
     }
     while (!pm->finished()) {
         shared_ptr<QueryAnswer> answer = pm->pop();
         if (answer != NULL) {
-            for (string handle : answer->handles) {
-                handle_list.add_list(handle);
-            }
+            handle_set.insert(answer->handles[0]);
         } else {
             Utils::sleep();
         }
+    }
+    for (string handle : handle_set) {
+        handle_list.add_list(handle);
     }
     LOG_DEBUG("Calling AttentionBroker GRPC. Correlating " << handle_list.list_size() << " handles");
     stub->correlate(new grpc::ClientContext(), handle_list, &ack);
@@ -323,8 +319,11 @@ void QueryEvolutionProcessor::stimulate(shared_ptr<QueryEvolutionProxy> proxy,
 
 void QueryEvolutionProcessor::update_attention_allocation(
     shared_ptr<QueryEvolutionProxy> proxy, vector<std::pair<shared_ptr<QueryAnswer>, float>>& selected) {
+    unsigned int count = 1;
     for (auto pair : selected) {
+        LOG_DEBUG("Correlation " + std::to_string(count) + "/" + std::to_string(selected.size()));
         correlate_similar(proxy, pair.first);
+        count++;
     }
     stimulate(proxy, selected);
 }
@@ -339,7 +338,6 @@ void QueryEvolutionProcessor::evolve_query(shared_ptr<StoppableThread> monitor,
     while (!monitor->stopped() && !proxy->stop_criteria_met()) {
         RAM_CHECKPOINT("Generation " + std::to_string(count_generations));
         STOP_WATCH_START(generation);
-        LOG_DEBUG("RAM Usage: " << Utils::get_current_ram_usage());
         STOP_WATCH_START(sample_population);
         sample_population(monitor, proxy, population);
         STOP_WATCH_FINISH(sample_population, "EvolutionPopulationSampling");
