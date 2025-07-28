@@ -3,6 +3,7 @@ MAX_BUNDLE_SIZE: str = "max_bundle_size"
 UNIQUE_ASSIGNMENT_FLAG: str = "unique_assignment_flag"
 POSITIVE_IMPORTANCE_FLAG: str = "positive_importance_flag"
 COUNT_FLAG: str = "count_flag"
+POPULATE_METTA_MAPPING: str = "populate_metta_mapping"
 
 
 class Properties:

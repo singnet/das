@@ -11,7 +11,7 @@ from hyperon_das.bus import BusCommand
 from hyperon_das.port_pool import PortPool
 from hyperon_das.logger import log
 from hyperon_das.query_answer import QueryAnswer
-from hyperon_das.properties import Properties, ATTENTION_UPDATE_FLAG, MAX_BUNDLE_SIZE, UNIQUE_ASSIGNMENT_FLAG, POSITIVE_IMPORTANCE_FLAG, COUNT_FLAG
+from hyperon_das.properties import Properties, ATTENTION_UPDATE_FLAG, MAX_BUNDLE_SIZE, UNIQUE_ASSIGNMENT_FLAG, POSITIVE_IMPORTANCE_FLAG, COUNT_FLAG, POPULATE_METTA_MAPPING
 
 
 class BaseCommandProxy(abc.ABC):
@@ -66,15 +66,17 @@ class PatternMatchingQueryHandler(BaseCommandProxy):
         self,
         tokens: list[str],
         context: str = "",
-        unique_assignment: bool = False,
-        positive_importance: bool = False,
         update_attention_broker: bool = False,
+        positive_importance: bool = False,
+        populate_metta_mapping: bool = False,
+        unique_assignment: bool = False,
         count_only: bool = False
     ) -> None:
         properties = Properties()
-        properties.insert(UNIQUE_ASSIGNMENT_FLAG, unique_assignment)
         properties.insert(ATTENTION_UPDATE_FLAG, update_attention_broker)
         properties.insert(POSITIVE_IMPORTANCE_FLAG, positive_importance)
+        properties.insert(POPULATE_METTA_MAPPING, populate_metta_mapping)
+        properties.insert(UNIQUE_ASSIGNMENT_FLAG, unique_assignment)
         properties.insert(COUNT_FLAG, count_only)
         properties.insert(MAX_BUNDLE_SIZE, 1000)
 
