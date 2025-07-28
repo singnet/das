@@ -1,7 +1,7 @@
 use std::collections::VecDeque;
 use std::net::{SocketAddr, ToSocketAddrs};
 use std::sync::{Arc, Mutex, RwLock};
-use std::{env, thread};
+use std::thread;
 
 use tokio::runtime::{Builder, Runtime};
 use tonic::{transport::Server, Request, Response, Status};
@@ -13,11 +13,10 @@ mod das_proto {
 	tonic::include_proto!("dasproto");
 }
 
-use crate::helpers::mongodb::MongoRepository;
 use crate::port_pool::PortPool;
 use crate::properties::{
 	Properties, PropertyValue, ATTENTION_UPDATE_FLAG, COUNT_FLAG, MAX_BUNDLE_SIZE,
-	POSITIVE_IMPORTANCE_FLAG, UNIQUE_ASSIGNMENT_FLAG,
+	POPULATE_METTA_MAPPING_FLAG, POSITIVE_IMPORTANCE_FLAG, UNIQUE_ASSIGNMENT_FLAG,
 };
 use crate::{bus::PATTERN_MATCHING_QUERY, types::BoxError};
 
@@ -47,15 +46,13 @@ pub struct PatternMatchingQueryProxy {
 	pub proxy_port: u16,
 	pub proxy_node: ProxyNode,
 
-	pub maybe_mongodb_repo: Option<MongoRepository>,
-
 	runtime: Arc<RwLock<Option<Arc<Runtime>>>>,
 }
 
 impl PatternMatchingQueryProxy {
 	pub fn new(
 		tokens: Vec<String>, context: String, unique_assignment: bool, positive_importance: bool,
-		update_attention_broker: bool, count_only: bool,
+		update_attention_broker: bool, count_only: bool, populate_metta_mapping: bool,
 	) -> Result<Self, BoxError> {
 		let mut properties = Properties::new();
 		properties
@@ -68,6 +65,10 @@ impl PatternMatchingQueryProxy {
 		);
 		properties.insert(COUNT_FLAG.to_string(), PropertyValue::Bool(count_only));
 		properties.insert(MAX_BUNDLE_SIZE.to_string(), PropertyValue::UnsignedInt(1000));
+		properties.insert(
+			POPULATE_METTA_MAPPING_FLAG.to_string(),
+			PropertyValue::Bool(populate_metta_mapping),
+		);
 
 		let mut args = vec![];
 		args.extend(properties.to_vec());
@@ -77,12 +78,6 @@ impl PatternMatchingQueryProxy {
 
 		let runtime = Arc::new(Builder::new_multi_thread().enable_all().build().unwrap());
 		let runtime = Arc::new(RwLock::new(Some(runtime)));
-
-		// POC (fetching handle's data from MongoDB, directly)
-		let maybe_mongodb_repo = match env::var("MONGODB_URI") {
-			Ok(uri) => Some(MongoRepository::new(uri.to_string(), runtime.clone())?),
-			Err(_) => None,
-		};
 
 		Ok(Self {
 			answer_queue: Arc::new(Mutex::new(VecDeque::new())),
@@ -99,8 +94,6 @@ impl PatternMatchingQueryProxy {
 
 			command: PATTERN_MATCHING_QUERY.to_string(),
 			args,
-
-			maybe_mongodb_repo,
 
 			runtime,
 
@@ -226,7 +219,7 @@ impl StarNode {
 	fn check_host_id(host_id: String) -> SocketAddr {
 		match host_id.to_socket_addrs() {
 			Ok(mut iter) => iter.next().unwrap(),
-			Err(err) => panic!("Can not use '{}' as socket address: {}", host_id, err),
+			Err(err) => panic!("Can not use '{host_id}' as socket address: {err}"),
 		}
 	}
 

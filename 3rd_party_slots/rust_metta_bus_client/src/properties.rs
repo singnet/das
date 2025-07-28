@@ -5,6 +5,7 @@ pub static COUNT_FLAG: &str = "count_flag";
 pub static MAX_BUNDLE_SIZE: &str = "max_bundle_size";
 pub static POSITIVE_IMPORTANCE_FLAG: &str = "positive_importance_flag";
 pub static UNIQUE_ASSIGNMENT_FLAG: &str = "unique_assignment_flag";
+pub static POPULATE_METTA_MAPPING_FLAG: &str = "populate_metta_mapping";
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum PropertyValue {
@@ -28,12 +29,12 @@ impl Properties {
 			vec.push(k.clone());
 			match v {
 				PropertyValue::String(s) => vec.extend(["string".to_string(), s.clone()]),
-				PropertyValue::Long(l) => vec.extend(["long".to_string(), format!("{}", l)]),
+				PropertyValue::Long(l) => vec.extend(["long".to_string(), format!("{l}")]),
 				PropertyValue::UnsignedInt(u) => {
-					vec.extend(["unsigned_int".to_string(), format!("{}", u)])
+					vec.extend(["unsigned_int".to_string(), format!("{u}")]);
 				},
-				PropertyValue::Double(d) => vec.extend(["double".to_string(), format!("{}", d)]),
-				PropertyValue::Bool(b) => vec.extend(["bool".to_string(), format!("{}", b)]),
+				PropertyValue::Double(d) => vec.extend(["double".to_string(), format!("{d}")]),
+				PropertyValue::Bool(b) => vec.extend(["bool".to_string(), format!("{b}")]),
 			}
 		}
 		vec.insert(0, vec.len().to_string());

@@ -39,6 +39,7 @@ fn main() -> Result<(), BoxError> {
 
 	let unique_assignment = true;
 	let count_only = false;
+	let populate_metta_mapping = true;
 
 	let mut tokens_start_position = 5;
 	let max_query_answers = match (args[5]).parse::<u32>() {
@@ -49,7 +50,7 @@ fn main() -> Result<(), BoxError> {
 		Err(_) => MAX_QUERY_ANSWERS,
 	};
 
-	log::info!("Using max_query_answers: {}", max_query_answers);
+	log::info!("Using max_query_answers: {max_query_answers}");
 
 	let mut atoms = vec![];
 	for arg in args.iter().skip(tokens_start_position) {
@@ -71,11 +72,13 @@ fn main() -> Result<(), BoxError> {
 		positive_importance,
 		update_attention_broker,
 		count_only,
+		populate_metta_mapping,
+		None,
 	)?;
 
 	println!("{} answers:", bindings_set.len());
 	for bs in bindings_set {
-		println!("{}", bs);
+		println!("{bs}");
 	}
 
 	Ok(())

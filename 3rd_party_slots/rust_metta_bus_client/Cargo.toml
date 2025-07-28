@@ -15,9 +15,5 @@ hyperon-common = { git = "https://github.com/trueagi-io/hyperon-experimental.git
 hyperon-atom = { git = "https://github.com/trueagi-io/hyperon-experimental.git", version = "0.2.5" }
 hyperon-space = { git = "https://github.com/trueagi-io/hyperon-experimental.git", version = "0.2.5" }
 
-mongodb = "3.2.3"
-bson = "2.14.0"
-serde = { version = "1.0", features = ["derive"] }
-
 [build-dependencies]
 tonic-build = "0.12.3"
