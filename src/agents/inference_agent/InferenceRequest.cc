@@ -8,7 +8,7 @@
 #include "Node.h"
 #include "UntypedVariable.h"
 #include "Utils.h"
-#include "AtomDBSingleton.h"
+// #include "AtomDBSingleton.h"
 
 using namespace std;
 using namespace inference_agent;
@@ -79,37 +79,40 @@ static vector<string> inference_evolution_request_builder(string first_handle,
         "_SECOND_", };
     // clang-format on
     vector<string> commands = {"IMPLICATION", "EQUIVALENCE"};
-    vector<string> request;
-    if (max_proof_length == 1) {
-        counter += commands.size();
-        for (auto ttype : commands) {
-            for (auto token : query_template) {
-                if (token == "_TYPE_") {
-                    request.push_back(ttype);
-                } else if (token == "_FIRST_") {
-                    request.push_back("ATOM");
-                    request.push_back(first_handle);
-                } else if (token == "_SECOND_") {
-                    request.push_back("ATOM");
-                    request.push_back(second_handle);
-                } else if (token == "LINK_TEMPLATE"){
-                    request.push_back("LINK");
-                } else {
-                    request.push_back(token);
-                }
-            }
-        }
-    } else {
+    vector<string> request {};
+    if (max_proof_length == 0) {
+        return request;
+    }
+    // if (max_proof_length == 1) {
+    //     counter += commands.size();
+    //     for (auto ttype : commands) {
+    //         for (auto token : query_template) {
+    //             if (token == "_TYPE_") {
+    //                 request.push_back(ttype);
+    //             } else if (token == "_FIRST_") {
+    //                 request.push_back("ATOM");
+    //                 request.push_back(first_handle);
+    //             } else if (token == "_SECOND_") {
+    //                 request.push_back("ATOM");
+    //                 request.push_back(second_handle);
+    //             } else if (token == "LINK_TEMPLATE"){
+    //                 request.push_back("LINK");
+    //             } else {
+    //                 request.push_back(token);
+    //             }
+    //         }
+    //     }
+    // } else {
         vector<string> vars;
         vars.push_back(first_handle);
-        for (int i = 1; i < max_proof_length; i++) {
+        for (int i = 0; i < max_proof_length; i++) {
             vars.push_back("V" + to_string(i));
         }
         vars.push_back(second_handle);
         auto commands_product = product<string>({commands}, vars.size() - 1);
         for (auto cp : commands_product) {
             counter++;
-            request.push_back("OR");
+            request.push_back("AND");
             request.push_back(to_string(vars.size() - 1));
             for (long unsigned int i = 1; i < vars.size(); i++) {
                 for (auto token : query_template) {
@@ -135,33 +138,33 @@ static vector<string> inference_evolution_request_builder(string first_handle,
                  first_handle, second_handle, max_proof_length - 1, counter)) {
             request.push_back(tkn);
         }
-    }
+    // }
     return request;
 }
 
-static vector<string> tokenize_atom(const string& handle) {
-    vector<string> tokens;
-    shared_ptr<Atom> atom = atomdb::AtomDBSingleton::get_instance()->get_atom(handle);
-    if (Atom::is_node(*atom)) {
-        shared_ptr<Node> node = dynamic_pointer_cast<Node>(atom);
-        tokens.push_back("NODE");
-        tokens.push_back(node->type);
-        tokens.push_back(node->name);
-    } else if (Atom::is_link(*atom)) {
-        shared_ptr<Link> link = dynamic_pointer_cast<Link>(atom);
-        tokens.push_back("LINK");
-        tokens.push_back(link->type);
-        tokens.push_back(to_string(link->targets.size()));
-        for (const auto& target : link->targets) {
-            for (auto token : tokenize_atom(target)) {
-                tokens.push_back(token);
-            }
-        }
-    } else {
-        Utils::error("Unknown atom type: " + atom->type);
-    }
-    return tokens;
-}
+// static vector<string> tokenize_atom(const string& handle) {
+//     vector<string> tokens;
+//     shared_ptr<Atom> atom = atomdb::AtomDBSingleton::get_instance()->get_atom(handle);
+//     if (Atom::is_node(*atom)) {
+//         shared_ptr<Node> node = dynamic_pointer_cast<Node>(atom);
+//         tokens.push_back("NODE");
+//         tokens.push_back(node->type);
+//         tokens.push_back(node->name);
+//     } else if (Atom::is_link(*atom)) {
+//         shared_ptr<Link> link = dynamic_pointer_cast<Link>(atom);
+//         tokens.push_back("LINK");
+//         tokens.push_back(link->type);
+//         tokens.push_back(to_string(link->targets.size()));
+//         for (const auto& target : link->targets) {
+//             for (auto token : tokenize_atom(target)) {
+//                 tokens.push_back(token);
+//             }
+//         }
+//     } else {
+//         Utils::error("Unknown atom type: " + atom->type);
+//     }
+//     return tokens;
+// }
 
 
 vector<string> InferenceRequest::get_distributed_inference_control_request() {

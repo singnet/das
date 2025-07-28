@@ -6,9 +6,11 @@
 
 #include "InferenceProxy.h"
 #include "ServiceBusSingleton.h"
+#include "AtomDBSingleton.h"
 
 using namespace inference_agent;
 using namespace service_bus;
+using namespace atomdb;
 using namespace std;
 
 void ctrl_c_handler(int) {
@@ -47,7 +49,9 @@ int main(int argc, char* argv[]) {
     }
     signal(SIGINT, &ctrl_c_handler);
     signal(SIGTERM, &ctrl_c_handler);
-    cout << "Starting inference agent" << endl;
+    cout << ":: ::Starting inference agent:: ::" << endl;
+    // Initialize the AtomDB singleton
+    AtomDBSingleton::init();
     ServiceBusSingleton::init(client_id, server_id, start_port, end_port);
     auto proxy = make_shared<InferenceProxy>(request);
     auto client = ServiceBusSingleton::get_instance();
