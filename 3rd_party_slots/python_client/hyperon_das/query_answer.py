@@ -122,6 +122,7 @@ class QueryAnswer:
 
     def __init__(self, handle: str | None = None, importance: float = 0.0) -> None:
         self.handles = []
+        self.metta_expression = {}
         if handle is not None:
             self.handles.append(handle)
         self.importance = importance
@@ -239,11 +240,16 @@ class QueryAnswer:
                 self.assignment.assign(label, value)
                 log.debug(f"Parsed assignment: ({label}: {value})")
 
-            # skip Metta expression
-            if cursor < len(tokens):
-                cursor += 1
+            metta_expression_size = int(next_token())
+
+            for _ in range(metta_expression_size + 1):
+                key = next_token()
+                self.metta_expression[key] = next_token()
+
+            log.debug(f"Metta expression: {self.metta_expression}")
 
             if cursor != len(tokens):
+                log.error(f"cursor: {cursor}, tokens: {tokens}")
                 raise ValueError("Invalid token string: extra data after parsing")
 
             log.debug(f"QueryAnswer untokenized successfully: {self.to_string()}")
