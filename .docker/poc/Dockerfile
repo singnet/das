@@ -65,7 +65,7 @@ RUN ldconfig
 ENTRYPOINT [ "inference_agent_server" ]
 
 # Build evolution broker
-FROM trueagi/das:22.04-builder AS evolution-broker
+FROM trueagi/das:22.04-builder AS evolution-agent
 
 COPY  ./bin/evolution_broker /usr/local/bin
 
