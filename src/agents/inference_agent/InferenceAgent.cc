@@ -63,7 +63,7 @@ void InferenceAgent::run() {
         if (!inference_request_queue.empty()) {
             try {
                 auto inference_request = inference_request_queue.dequeue();
-                send_link_creation_request(inference_request);
+                // send_link_creation_request(inference_request);
                 send_distributed_inference_control_request(inference_request);
                 inference_timeout_map[inference_request->get_id()] =
                     (Utils::get_current_time_millis() / 1000) + inference_request->get_timeout();
@@ -121,7 +121,7 @@ void InferenceAgent::send_distributed_inference_control_request(
     auto evolution_request = inference_request->get_distributed_inference_control_request();
     LOG_DEBUG("Distributed inference control request: " << Utils::join(evolution_request, ' '));
     QueryEvolutionProxy* evolution_proxy_ptr = new QueryEvolutionProxy(
-        evolution_request, {}, {}, inference_request->get_context(), "count_letter");
+        evolution_request, {}, {}, inference_request->get_context(), "strength");
     shared_ptr<QueryEvolutionProxy> evolution_proxy(evolution_proxy_ptr);
     ServiceBusSingleton::get_instance()->issue_bus_command(evolution_proxy);
     evolution_proxy_map[request_id] = evolution_proxy;

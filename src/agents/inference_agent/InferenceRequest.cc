@@ -3,16 +3,19 @@
 #include <memory>
 
 #include "Link.h"
+#include "Atom.h"
 #include "LinkCreateTemplate.h"
 #include "Node.h"
 #include "UntypedVariable.h"
 #include "Utils.h"
+#include "AtomDBSingleton.h"
 
 using namespace std;
 using namespace inference_agent;
 using namespace link_creation_agent;
 using namespace commons;
 using namespace atoms;
+
 
 InferenceRequest::InferenceRequest(string first_handle,
                                    string second_handle,
@@ -89,6 +92,8 @@ static vector<string> inference_evolution_request_builder(string first_handle,
                 } else if (token == "_SECOND_") {
                     request.push_back("ATOM");
                     request.push_back(second_handle);
+                } else if (token == "LINK_TEMPLATE"){
+                    request.push_back("LINK");
                 } else {
                     request.push_back(token);
                 }
@@ -104,7 +109,7 @@ static vector<string> inference_evolution_request_builder(string first_handle,
         auto commands_product = product<string>({commands}, vars.size() - 1);
         for (auto cp : commands_product) {
             counter++;
-            request.push_back("AND");
+            request.push_back("OR");
             request.push_back(to_string(vars.size() - 1));
             for (long unsigned int i = 1; i < vars.size(); i++) {
                 for (auto token : query_template) {
@@ -134,6 +139,31 @@ static vector<string> inference_evolution_request_builder(string first_handle,
     return request;
 }
 
+static vector<string> tokenize_atom(const string& handle) {
+    vector<string> tokens;
+    shared_ptr<Atom> atom = atomdb::AtomDBSingleton::get_instance()->get_atom(handle);
+    if (Atom::is_node(*atom)) {
+        shared_ptr<Node> node = dynamic_pointer_cast<Node>(atom);
+        tokens.push_back("NODE");
+        tokens.push_back(node->type);
+        tokens.push_back(node->name);
+    } else if (Atom::is_link(*atom)) {
+        shared_ptr<Link> link = dynamic_pointer_cast<Link>(atom);
+        tokens.push_back("LINK");
+        tokens.push_back(link->type);
+        tokens.push_back(to_string(link->targets.size()));
+        for (const auto& target : link->targets) {
+            for (auto token : tokenize_atom(target)) {
+                tokens.push_back(token);
+            }
+        }
+    } else {
+        Utils::error("Unknown atom type: " + atom->type);
+    }
+    return tokens;
+}
+
+
 vector<string> InferenceRequest::get_distributed_inference_control_request() {
     vector<string> tokens;
     int size = 0;
@@ -146,6 +176,16 @@ vector<string> InferenceRequest::get_distributed_inference_control_request() {
     for (auto token : request) {
         tokens.push_back(token);
     }
+    // for (size_t i = 0; i < request.size(); i++) {
+    //     if (request[i] == "ATOM") {
+    //         for(auto token : tokenize_atom(request[i + 1])) {
+    //             tokens.push_back(token);
+    //         }
+    //         i++;
+    //     } else {
+    //         tokens.push_back(request[i]);
+    //     }
+    // }
     return tokens;
 }
 

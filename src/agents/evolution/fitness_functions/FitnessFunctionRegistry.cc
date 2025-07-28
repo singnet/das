@@ -7,6 +7,7 @@
 // Add your header here
 #include "CountLetterFunction.h"
 #include "UnitTestFunction.h"
+#include "StrengthFunction.h"
 // -------------------------------------------------------------------------------------------------
 
 using namespace fitness_functions;
@@ -29,6 +30,7 @@ void FitnessFunctionRegistry::initialize_statics() {
         // NOTE: "remote_fitness_function" is reserved and CAN'T be used here.
         // -----------------------------------------------------------------------------------------
         FUNCTION["count_letter"] = make_shared<CountLetterFunction>();
+        FUNCTION["strength"] = make_shared<StrengthFunction>();
     }
 }
 
