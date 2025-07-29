@@ -161,13 +161,13 @@ void LinkTemplate::processor_method(shared_ptr<StoppableThread> monitor) {
     }
     Utils::sleep();
     this->source_element->query_answers_finished();
-    LOG_INFO("LinkTemplate " + link_schema_handle + " finished processing. It's going to sleep.");
+    LOG_DEBUG("LinkTemplate " + link_schema_handle + " finished processing. It's going to sleep.");
     while (!monitor->stopped()) {
         // Keep stack variables (e.g. the handles which are passed as QueryAnswers
         // to source_element)
         Utils::sleep();
     }
-    LOG_INFO("LinkTemplate " + link_schema_handle + " woke up and is returning from processing thread.");
+    LOG_DEBUG("LinkTemplate " + link_schema_handle + " woke up and is returning from processing thread.");
 }
 
 void LinkTemplate::start_thread() {
