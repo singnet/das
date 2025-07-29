@@ -872,11 +872,32 @@ void RedisMongoDB::load_pattern_index_schema() {
 
         this->pattern_index_schema_map[id] = make_tuple(move(tokens), move(index_entries));
     }
+
+    if (this->pattern_index_schema_map.size() == 0) {
+        LOG_INFO(
+            "WARNING: No pattern_index_schema found, all possible patterns will be created during link "
+            "insertion!");
+    }
 }
 
 vector<string> RedisMongoDB::match_pattern_index_schema(const Link* link) {
     vector<string> pattern_handles;
-    for (const auto& [key, value] : this->pattern_index_schema_map) {
+    auto local_map = this->pattern_index_schema_map;
+
+    if (local_map.size() == 0) {
+        vector<string> tokens = {"LINK_TEMPLATE", "Expression", to_string(link->arity())};
+        for (unsigned int i = 0; i < link->arity(); i++) {
+            tokens.push_back("VARIABLE");
+            tokens.push_back("v" + to_string(i + 1));
+        }
+
+        auto link_schema = LinkSchema(tokens);
+        auto index_entries = index_entries_combinations(link->arity());
+
+        local_map[link_schema.handle()] = make_tuple(move(tokens), move(index_entries));
+    }
+
+    for (const auto& [key, value] : local_map) {
         auto link_schema = LinkSchema(get<0>(value));
         auto index_entries = get<1>(value);
         Assignment assignment;
@@ -887,7 +908,7 @@ vector<string> RedisMongoDB::match_pattern_index_schema(const Link* link) {
                 vector<string> hash_entries;
                 for (const auto& token : index_entry) {
                     if (token == "_") {
-                        hash_entries.push_back(link_schema.targets()[index]);
+                        hash_entries.push_back(link->targets[index]);
                     } else if (token == "*") {
                         hash_entries.push_back(Atom::WILDCARD_STRING);
                     } else {
@@ -905,6 +926,25 @@ vector<string> RedisMongoDB::match_pattern_index_schema(const Link* link) {
         }
     }
     return pattern_handles;
+}
+
+// Combination of "_" and "*" for a given arity
+vector<vector<string>> RedisMongoDB::index_entries_combinations(unsigned int arity) {
+    vector<vector<string>> index_entries;
+    unsigned int total = 1 << arity;  // 2^arity
+
+    for (unsigned int mask = 0; mask < total; ++mask) {
+        vector<string> index_entry;
+        for (unsigned int i = 0; i < arity; ++i) {
+            if (mask & (1 << i))
+                index_entry.push_back("*");
+            else
+                index_entry.push_back("_");
+        }
+        index_entries.push_back(index_entry);
+    }
+
+    return index_entries;
 }
 
 void RedisMongoDB::re_index_patterns() {
