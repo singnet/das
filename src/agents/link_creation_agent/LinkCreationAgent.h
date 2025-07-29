@@ -92,6 +92,10 @@ class LinkCreationAgent {
      */
     void stop();
 
+    
+    // TODO remove when default index is implemented
+    void load_db_patterns();
+
     // Attributes loaded from config file
     string config_path;                    // Path to the configuration file
     int requests_interval_seconds;         // Default interval to send requests

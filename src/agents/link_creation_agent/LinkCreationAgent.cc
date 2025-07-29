@@ -35,6 +35,7 @@ LinkCreationAgent::LinkCreationAgent(int request_interval,
     }
     service->set_save_links_to_metta_file(save_links_to_metta_file);
     service->set_save_links_to_db(save_links_to_db);
+    load_db_patterns();
     this->agent_thread = new thread(&LinkCreationAgent::run, this);
 }
 
@@ -192,12 +193,12 @@ shared_ptr<LinkCreationAgentRequest> LinkCreationAgent::create_request(vector<st
         }
         lca_request->infinite = (lca_request->repeat == -1);
         lca_request->id = compute_hash((char*) lca_request->id.c_str());
-        LOG_DEBUG("Creating request ID: " << lca_request->id);
-        LOG_DEBUG("Query: " << Utils::join(lca_request->query, ' '));
-        LOG_DEBUG("Link Template: " << Utils::join(lca_request->link_template, ' '));
-        LOG_DEBUG("Max Results: " << to_string(lca_request->max_results));
-        LOG_DEBUG("Repeat: " << to_string(lca_request->repeat));
-        LOG_DEBUG("Context: " << lca_request->context);
+        LOG_INFO("Creating request ID: " << lca_request->id);
+        LOG_INFO("Query: " << Utils::join(lca_request->query, ' '));
+        LOG_INFO("Link Template: " << Utils::join(lca_request->link_template, ' '));
+        LOG_INFO("Max Results: " << to_string(lca_request->max_results));
+        LOG_INFO("Repeat: " << to_string(lca_request->repeat));
+        LOG_INFO("Context: " << lca_request->context);
         LOG_DEBUG("Update Attention Broker: " << to_string(lca_request->update_attention_broker));
         LOG_DEBUG("Infinite: " << to_string(lca_request->infinite));
 
@@ -237,4 +238,44 @@ void LinkCreationAgent::abort_request(const string& request_id) {
     }
     pattern_query_proxy_map[request_id_hash]->abort();
     pattern_query_proxy_map.erase(request_id_hash);
+}
+
+void LinkCreationAgent::load_db_patterns() {
+    auto db = dynamic_pointer_cast<RedisMongoDB>(AtomDBSingleton::get_instance());
+
+    try {
+        string tokens = "LINK_TEMPLATE Expression 3 NODE Symbol EVALUATION VARIABLE v1 VARIABLE v2";
+        vector<vector<string>> index_entries = {{"_", "*", "*"}, {"_", "v1", "*"}, {"_", "*", "v2"}};
+        LOG_INFO("Adding pattern index schema for: " + tokens + "...");
+        db->add_pattern_index_schema(tokens, index_entries);
+
+        tokens = "LINK_TEMPLATE Expression 2 NODE Symbol PREDICATE VARIABLE v1";
+        index_entries = {{"_", "*"}, {"_", "v1"}};
+        LOG_INFO("Adding pattern index schema for: " + tokens + "...");
+        db->add_pattern_index_schema(tokens, index_entries);
+
+        tokens = "LINK_TEMPLATE Expression 2 NODE Symbol PATTERNS VARIABLE v1";
+        index_entries = {{"_", "*"}, {"_", "v1"}};
+        LOG_INFO("Adding pattern index schema for: " + tokens + "...");
+        db->add_pattern_index_schema(tokens, index_entries);
+
+        tokens = "LINK_TEMPLATE Expression 2 NODE Symbol SATISFYING_SET VARIABLE v1";
+        index_entries = {{"_", "*"}, {"_", "v1"}};
+        LOG_INFO("Adding pattern index schema for: " + tokens + "...");
+        db->add_pattern_index_schema(tokens, index_entries);
+
+        tokens = "LINK_TEMPLATE Expression 3 NODE Symbol IMPLICATION VARIABLE v1 VARIABLE v2";
+        index_entries = {{"_", "*", "*"}, {"_", "v1", "*"}, {"_", "*", "v2"}};
+        LOG_INFO("Adding pattern index schema for: " + tokens + "...");
+        db->add_pattern_index_schema(tokens, index_entries);
+
+        tokens = "LINK_TEMPLATE Expression 3 NODE Symbol EQUIVALENCE VARIABLE v1 VARIABLE v2";
+        index_entries = {{"_", "*", "*"}, {"_", "v1", "*"}, {"_", "*", "v2"}};
+        LOG_INFO("Adding pattern index schema for: " + tokens + "...");
+        db->add_pattern_index_schema(tokens, index_entries);
+
+        db->re_index_patterns();
+    } catch (const std::exception& e) {
+        LOG_ERROR("Error loading DB patterns: " << e.what());
+    }
 }
