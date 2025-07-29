@@ -16,17 +16,18 @@ StrengthFunction::StrengthFunction() {
 
 float StrengthFunction::eval(shared_ptr<QueryAnswer> query_answer) {
     float strength = 1.0;
-    if (query_answer->handles.size() != 1) {
-        Utils::error("Invalid answer in StrengthFunction");
-    } else {
+
+    LOG_INFO("Evaluating strength for " << query_answer->to_string());
+    LOG_INFO("Evaluating strength for " << query_answer->handles.size() << " handles.");
+
         for (const auto& handle : query_answer->handles) {
             auto atom = db->get_atom(handle);
-            LOG_INFO("Evaluating strength for handle: " << handle);
-            LOG_INFO("MeTTa expression: " << atom->metta_representation(*db.get()));
-            LOG_INFO("Atom document: " << atom->to_string());
+            DEBUG_LEVEL("Evaluating strength for handle: " << handle);
+            DEBUG_LEVEL("MeTTa expression: " << atom->metta_representation(*db.get()));
+            DEBUG_LEVEL("Atom document: " << atom->to_string());
             strength *= atom->custom_attributes.get<double>(VARIABLE_NAME);
         }
-    }
+    LOG_INFO("Computed strength: " << strength);
     return strength;
 }
 
