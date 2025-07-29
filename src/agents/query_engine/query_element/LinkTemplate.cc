@@ -135,12 +135,14 @@ void LinkTemplate::processor_method(shared_ptr<StoppableThread> monitor) {
     }
     LOG_INFO("Fetched " + std::to_string(handles->size()) + " atoms in " + link_schema_handle);
     vector<pair<char*, float>> tagged_handles;
-    auto iterator = handles->get_iterator();
-    char* handle;
-    while ((handle = iterator->next()) != nullptr) {
-        tagged_handles.push_back(make_pair<char*, float>((char*) handle, 0));
+    if (handles->size() > 0) {
+        auto iterator = handles->get_iterator();
+        char* handle;
+        while ((handle = iterator->next()) != nullptr) {
+            tagged_handles.push_back(make_pair<char*, float>((char*) handle, 0));
+        }
+        compute_importance(tagged_handles);
     }
-    compute_importance(tagged_handles);
     unsigned int pending = tagged_handles.size();
     unsigned int cursor = 0;
     Assignment assignment;
@@ -159,11 +161,13 @@ void LinkTemplate::processor_method(shared_ptr<StoppableThread> monitor) {
     }
     Utils::sleep();
     this->source_element->query_answers_finished();
+    LOG_INFO("LinkTemplate " + link_schema_handle + " finished processing. It's going to sleep.");
     while (!monitor->stopped()) {
         // Keep stack variables (e.g. the handles which are passed as QueryAnswers
         // to source_element)
         Utils::sleep();
     }
+    LOG_INFO("LinkTemplate " + link_schema_handle + " woke up and is returning from processing thread.");
 }
 
 void LinkTemplate::start_thread() {
