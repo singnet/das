@@ -6,8 +6,8 @@
 // -------------------------------------------------------------------------------------------------
 // Add your header here
 #include "CountLetterFunction.h"
-#include "UnitTestFunction.h"
 #include "StrengthFunction.h"
+#include "UnitTestFunction.h"
 // -------------------------------------------------------------------------------------------------
 
 using namespace fitness_functions;

@@ -92,7 +92,6 @@ class LinkCreationAgent {
      */
     void stop();
 
-    
     // TODO remove when default index is implemented
     void load_db_patterns();
 

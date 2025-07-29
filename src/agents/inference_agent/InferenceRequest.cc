@@ -2,8 +2,8 @@
 
 #include <memory>
 
-#include "Link.h"
 #include "Atom.h"
+#include "Link.h"
 #include "LinkCreateTemplate.h"
 #include "Node.h"
 #include "UntypedVariable.h"
@@ -15,7 +15,6 @@ using namespace inference_agent;
 using namespace link_creation_agent;
 using namespace commons;
 using namespace atoms;
-
 
 InferenceRequest::InferenceRequest(string first_handle,
                                    string second_handle,
@@ -79,7 +78,7 @@ static vector<string> inference_evolution_request_builder(string first_handle,
         "_SECOND_", };
     // clang-format on
     vector<string> commands = {"IMPLICATION", "EQUIVALENCE"};
-    vector<string> request {};
+    vector<string> request{};
     if (max_proof_length == 0) {
         return request;
     }
@@ -103,41 +102,41 @@ static vector<string> inference_evolution_request_builder(string first_handle,
     //         }
     //     }
     // } else {
-        vector<string> vars;
-        vars.push_back(first_handle);
-        for (int i = 0; i < max_proof_length; i++) {
-            vars.push_back("V" + to_string(i));
-        }
-        vars.push_back(second_handle);
-        auto commands_product = product<string>({commands}, vars.size() - 1);
-        for (auto cp : commands_product) {
-            counter++;
-            request.push_back("AND");
-            request.push_back(to_string(vars.size() - 1));
-            for (long unsigned int i = 1; i < vars.size(); i++) {
-                for (auto token : query_template) {
-                    if (token == "_TYPE_") {
-                        request.push_back(cp[i - 1]);
-                    } else if (token == "_FIRST_") {
-                        request.push_back((vars[i - 1] == first_handle || vars[i - 1] == second_handle)
-                                              ? "ATOM"
-                                              : "VARIABLE");
-                        request.push_back(vars[i - 1]);
-                    } else if (token == "_SECOND_") {
-                        request.push_back(
-                            (vars[i] == first_handle || vars[i] == second_handle) ? "ATOM" : "VARIABLE");
-                        request.push_back(vars[i]);
-                    } else {
-                        request.push_back(token);
-                    }
+    vector<string> vars;
+    vars.push_back(first_handle);
+    for (int i = 0; i < max_proof_length; i++) {
+        vars.push_back("V" + to_string(i));
+    }
+    vars.push_back(second_handle);
+    auto commands_product = product<string>({commands}, vars.size() - 1);
+    for (auto cp : commands_product) {
+        counter++;
+        request.push_back("AND");
+        request.push_back(to_string(vars.size() - 1));
+        for (long unsigned int i = 1; i < vars.size(); i++) {
+            for (auto token : query_template) {
+                if (token == "_TYPE_") {
+                    request.push_back(cp[i - 1]);
+                } else if (token == "_FIRST_") {
+                    request.push_back((vars[i - 1] == first_handle || vars[i - 1] == second_handle)
+                                          ? "ATOM"
+                                          : "VARIABLE");
+                    request.push_back(vars[i - 1]);
+                } else if (token == "_SECOND_") {
+                    request.push_back(
+                        (vars[i] == first_handle || vars[i] == second_handle) ? "ATOM" : "VARIABLE");
+                    request.push_back(vars[i]);
+                } else {
+                    request.push_back(token);
                 }
             }
         }
+    }
 
-        for (auto tkn : inference_evolution_request_builder(
-                 first_handle, second_handle, max_proof_length - 1, counter)) {
-            request.push_back(tkn);
-        }
+    for (auto tkn : inference_evolution_request_builder(
+             first_handle, second_handle, max_proof_length - 1, counter)) {
+        request.push_back(tkn);
+    }
     // }
     return request;
 }
@@ -165,7 +164,6 @@ static vector<string> inference_evolution_request_builder(string first_handle,
 //     }
 //     return tokens;
 // }
-
 
 vector<string> InferenceRequest::get_distributed_inference_control_request() {
     vector<string> tokens;

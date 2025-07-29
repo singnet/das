@@ -4,9 +4,9 @@
 #include <iostream>
 #include <string>
 
+#include "AtomDBSingleton.h"
 #include "InferenceProxy.h"
 #include "ServiceBusSingleton.h"
-#include "AtomDBSingleton.h"
 
 using namespace inference_agent;
 using namespace service_bus;

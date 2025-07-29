@@ -120,8 +120,8 @@ void InferenceAgent::send_distributed_inference_control_request(
     LOG_DEBUG("Sending distributed inference control request ID: " << request_id);
     auto evolution_request = inference_request->get_distributed_inference_control_request();
     LOG_DEBUG("Distributed inference control request: " << Utils::join(evolution_request, ' '));
-    QueryEvolutionProxy* evolution_proxy_ptr = new QueryEvolutionProxy(
-        evolution_request, {}, {}, inference_request->get_context(), "strength");
+    QueryEvolutionProxy* evolution_proxy_ptr =
+        new QueryEvolutionProxy(evolution_request, {}, {}, inference_request->get_context(), "strength");
     shared_ptr<QueryEvolutionProxy> evolution_proxy(evolution_proxy_ptr);
     ServiceBusSingleton::get_instance()->issue_bus_command(evolution_proxy);
     evolution_proxy_map[request_id] = evolution_proxy;
