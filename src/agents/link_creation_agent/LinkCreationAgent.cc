@@ -15,8 +15,9 @@ LinkCreationAgent::LinkCreationAgent(int request_interval,
                                      int default_timeout,
                                      string buffer_file_path,
                                      string metta_file_path,
-                                     bool save_links_to_metta_file = true,
-                                     bool save_links_to_db = false) {
+                                     bool save_links_to_metta_file,
+                                     bool save_links_to_db,
+                                     bool reindex) {
     this->requests_interval_seconds = request_interval;
     this->link_creation_agent_thread_count = thread_count;
     this->query_timeout_seconds = default_timeout;
@@ -35,7 +36,10 @@ LinkCreationAgent::LinkCreationAgent(int request_interval,
     }
     service->set_save_links_to_metta_file(save_links_to_metta_file);
     service->set_save_links_to_db(save_links_to_db);
-    load_db_patterns();
+    if (reindex) {
+        LOG_DEBUG("Reindexing patterns in DB");
+        load_db_patterns();
+    }
     this->agent_thread = new thread(&LinkCreationAgent::run, this);
 }
 
