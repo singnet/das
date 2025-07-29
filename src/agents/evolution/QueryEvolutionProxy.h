@@ -1,6 +1,8 @@
 #pragma once
 
 #include <mutex>
+#include <set>
+#include <vector>
 
 #include "BaseQueryProxy.h"
 #include "FitnessFunction.h"
@@ -145,7 +147,7 @@ class QueryEvolutionProxy : public BaseQueryProxy {
     bool remote_fitness_evaluation_finished();
 
     const vector<string>& get_correlation_tokens();
-    const vector<string>& get_correlation_variables();
+    const set<string>& get_correlation_variables();
 
     // ---------------------------------------------------------------------------------------------
     // Virtual superclass API and the piggyback methods called by it
@@ -185,7 +187,7 @@ class QueryEvolutionProxy : public BaseQueryProxy {
     float best_reported_fitness;
     unsigned int num_generations;
     vector<string> correlation_tokens;
-    vector<string> correlation_variables;
+    set<string> correlation_variables;
     bool ongoing_remote_fitness_evaluation;
     vector<float> remote_fitness_evaluation_result;
 };

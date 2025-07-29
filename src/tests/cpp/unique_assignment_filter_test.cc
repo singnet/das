@@ -58,7 +58,7 @@ void check_query_answer(string tag,
     for (unsigned int i = 0; i < handles_size; i++) {
         set_handles.insert(handles[i]);
     }
-    EXPECT_TRUE(query_answer->handles == set_handles);
+    EXPECT_TRUE(set<string>(query_answer->handles.begin(), query_answer->handles.end()) == set_handles);
 }
 
 TEST(UniqueAssignmentFilter, basics) {

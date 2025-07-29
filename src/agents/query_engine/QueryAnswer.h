@@ -1,7 +1,7 @@
 #pragma once
 
-#include <set>
 #include <string>
+#include <vector>
 
 #include "Assignment.h"
 #include "QueryAnswer.h"
@@ -20,11 +20,11 @@ namespace query_engine {
  * This is a candidate answer for a query.
  *
  * Objects of this class are moved through the flow of answers in the query tree.
- * They have a set of handles, an Assignment and an attached importance value which
+ * They have a vector of handles, an Assignment and an attached importance value which
  * is calculated using the importance of the elements which have been operated to
  * make the answer.
  *
- * The set of handles represents Links that, together, represent a candidate answer
+ * The vector of handles represents Links that, together, represent a candidate answer
  * to the query, under the constraints of the attached assignment of variables. For instance,
  * suppose we have a query like:
  *
@@ -49,7 +49,7 @@ class QueryAnswer {
     /**
      * Handles which are the constituents of this QueryAnswer.
      */
-    set<string> handles;
+    vector<string> handles;
 
     /**
      * Estimated importance of this QueryAnswer based on the importance of its constituents.
