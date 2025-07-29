@@ -63,7 +63,7 @@ void InferenceAgent::run() {
         if (!inference_request_queue.empty()) {
             try {
                 auto inference_request = inference_request_queue.dequeue();
-                // send_link_creation_request(inference_request);
+                send_link_creation_request(inference_request);
                 send_distributed_inference_control_request(inference_request);
                 inference_timeout_map[inference_request->get_id()] =
                     (Utils::get_current_time_millis() / 1000) + inference_request->get_timeout();

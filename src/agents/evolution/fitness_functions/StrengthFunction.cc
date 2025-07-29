@@ -22,9 +22,9 @@ float StrengthFunction::eval(shared_ptr<QueryAnswer> query_answer) {
 
         for (const auto& handle : query_answer->handles) {
             auto atom = db->get_atom(handle);
-            DEBUG_LEVEL("Evaluating strength for handle: " << handle);
-            DEBUG_LEVEL("MeTTa expression: " << atom->metta_representation(*db.get()));
-            DEBUG_LEVEL("Atom document: " << atom->to_string());
+            LOG_DEBUG("Evaluating strength for handle: " << handle);
+            LOG_DEBUG("MeTTa expression: " << atom->metta_representation(*db.get()));
+            LOG_DEBUG("Atom document: " << atom->to_string());
             strength *= atom->custom_attributes.get<double>(VARIABLE_NAME);
         }
     LOG_INFO("Computed strength: " << strength);
