@@ -330,7 +330,7 @@ shared_ptr<QueryElement> PatternMatchingQueryProcessor::build_link_template(
                 link_template->build();                                                           \
                 clauses[i] = link_template->get_source_element();                                 \
             } else {                                                                              \
-                clauses[i] = element_stack.top();                                                 \
+                Utils::error("All AND clauses are supposed to be LinkTemplate");                  \
             }                                                                                     \
             element_stack.pop();                                                                  \
         }                                                                                         \
@@ -378,7 +378,7 @@ shared_ptr<QueryElement> PatternMatchingQueryProcessor::build_and(
                 link_template->build();                                                           \
                 clauses[i] = link_template->get_source_element();                                 \
             } else {                                                                              \
-                clauses[i] = element_stack.top();                                                 \
+                Utils::error("All OR clauses are supposed to be LinkTemplate");                   \
             }                                                                                     \
             element_stack.pop();                                                                  \
         }                                                                                         \
