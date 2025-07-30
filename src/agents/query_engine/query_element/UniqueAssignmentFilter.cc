@@ -14,9 +14,7 @@ UniqueAssignmentFilter::UniqueAssignmentFilter(const shared_ptr<QueryElement>& i
     initialize(input);
 }
 
-UniqueAssignmentFilter::~UniqueAssignmentFilter() {
-    graceful_shutdown();
-}
+UniqueAssignmentFilter::~UniqueAssignmentFilter() { graceful_shutdown(); }
 
 void UniqueAssignmentFilter::initialize(const shared_ptr<QueryElement>& input) {
     this->id = "UniqueAssignmentFilter(" + input->id + ")";

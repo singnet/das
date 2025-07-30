@@ -26,7 +26,7 @@ class Terminal : public QueryElement {
     string handle;
     vector<shared_ptr<QueryElement>> targets;
 
-    virtual ~Terminal() {};
+    virtual ~Terminal(){};
     Terminal();                                                                     // Atom
     Terminal(const string& type, const string& name);                               // Node
     Terminal(const string& type, const vector<shared_ptr<QueryElement>>& targets);  // Link

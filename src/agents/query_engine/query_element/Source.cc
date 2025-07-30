@@ -14,9 +14,7 @@ Source::Source(const string& attention_broker_address) {
 
 Source::Source() : Source(Source::get_attention_broker_address()) {}
 
-Source::~Source() { 
-    this->graceful_shutdown(); 
-}
+Source::~Source() { this->graceful_shutdown(); }
 
 // ------------------------------------------------------------------------------------------------
 // Public methods
@@ -46,7 +44,6 @@ void Source::setup_buffers() {
 }
 
 void Source::graceful_shutdown() {
-
     if (is_flow_finished()) {
         return;
     }
