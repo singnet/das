@@ -926,7 +926,7 @@ vector<string> RedisMongoDB::match_pattern_index_schema(const Link* link) {
     return pattern_handles;
 }
 
-// Combination of "_" and "*" for a given arity
+// Combination of "vX" and "*" for a given arity
 vector<vector<string>> RedisMongoDB::index_entries_combinations(unsigned int arity) {
     vector<vector<string>> index_entries;
     unsigned int total = 1 << arity;  // 2^arity
@@ -937,7 +937,7 @@ vector<vector<string>> RedisMongoDB::index_entries_combinations(unsigned int ari
             if (mask & (1 << i))
                 index_entry.push_back("*");
             else
-                index_entry.push_back("_");
+                index_entry.push_back("v" + to_string(i + 1));
         }
         index_entries.push_back(index_entry);
     }
