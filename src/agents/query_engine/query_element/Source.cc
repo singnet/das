@@ -9,6 +9,7 @@ string Source::DEFAULT_ATTENTION_BROKER_PORT = "37007";
 
 Source::Source(const string& attention_broker_address) {
     this->attention_broker_address = attention_broker_address;
+    this->output_buffer = nullptr;
 }
 
 Source::Source() : Source(Source::get_attention_broker_address()) {}
@@ -46,5 +47,7 @@ void Source::graceful_shutdown() {
     if (is_flow_finished()) {
         return;
     }
-    this->output_buffer->graceful_shutdown();
+    if (this->output_buffer != nullptr) {
+        this->output_buffer->graceful_shutdown();
+    }
 }

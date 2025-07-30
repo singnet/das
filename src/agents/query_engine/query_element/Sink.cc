@@ -9,6 +9,7 @@ Sink::Sink(shared_ptr<QueryElement> precedent, const string& id, bool setup_buff
     this->precedent = precedent;
     this->id = id;
     this->query_answer_count = 0;
+    this->input_buffer = nullptr;
     if (setup_buffers_flag) {
         setup_buffers();
     }
@@ -36,7 +37,9 @@ void Sink::graceful_shutdown() {
         return;
     }
     this->precedent->graceful_shutdown();
-    this->input_buffer->graceful_shutdown();
+    if (this->input_buffer != nullptr) {
+        this->input_buffer->graceful_shutdown();
+    }
 }
 
 bool Sink::finished() {
