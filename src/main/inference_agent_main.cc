@@ -30,7 +30,7 @@ int main(int argc, char* argv[]) {
     }
     signal(SIGINT, &ctrl_c_handler);
     signal(SIGTERM, &ctrl_c_handler);
-    cout << "Starting inference agent server" << endl;
+    cout << ":: ::Starting inference agent server:: ::" << endl;
     // Initialize the AtomDB singleton
     AtomDBSingleton::init();
     // Initialize the FitnessFunctionRegistry

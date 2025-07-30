@@ -15,7 +15,8 @@ class LinkCreationRequestProcessor : public BusCommandProcessor {
                                  string buffer_file_path,
                                  string metta_file_path,
                                  bool save_links_to_metta_file = true,
-                                 bool save_links_to_db = false);
+                                 bool save_links_to_db = false,
+                                 bool reindex = true);
     ~LinkCreationRequestProcessor();
     virtual shared_ptr<BusCommandProxy> factory_empty_proxy() override;
     virtual void run_command(shared_ptr<BusCommandProxy> proxy) override;
