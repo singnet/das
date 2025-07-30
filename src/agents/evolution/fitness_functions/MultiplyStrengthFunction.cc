@@ -1,4 +1,5 @@
 #include "MultiplyStrengthFunction.h"
+
 #include "AtomDBSingleton.h"
 #include "Logger.h"
 #include "Utils.h"
