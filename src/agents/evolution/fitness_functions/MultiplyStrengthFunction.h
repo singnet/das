@@ -7,12 +7,12 @@ using namespace std;
 using namespace atomdb;
 
 namespace fitness_functions {
-class StrengthFunction : public FitnessFunction {
+class MultiplyStrengthFunction : public FitnessFunction {
    public:
     static string VARIABLE_NAME;
 
-    StrengthFunction();
-    ~StrengthFunction() {}
+    MultiplyStrengthFunction();
+    ~MultiplyStrengthFunction() {}
 
     float eval(shared_ptr<QueryAnswer> query_answer) override;
 

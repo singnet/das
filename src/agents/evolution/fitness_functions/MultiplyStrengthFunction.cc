@@ -1,5 +1,4 @@
-#include "StrengthFunction.h"
-
+#include "MultiplyStrengthFunction.h"
 #include "AtomDBSingleton.h"
 #include "Logger.h"
 #include "Utils.h"
@@ -8,15 +7,14 @@ using namespace std;
 using namespace atomdb;
 using namespace fitness_functions;
 
-string StrengthFunction::VARIABLE_NAME = "strength";
+string MultiplyStrengthFunction::VARIABLE_NAME = "strength";
 
-StrengthFunction::StrengthFunction() { db = AtomDBSingleton::get_instance(); }
+MultiplyStrengthFunction::MultiplyStrengthFunction() { db = AtomDBSingleton::get_instance(); }
 
-float StrengthFunction::eval(shared_ptr<QueryAnswer> query_answer) {
+float MultiplyStrengthFunction::eval(shared_ptr<QueryAnswer> query_answer) {
     float strength = 1.0;
 
     LOG_INFO("Evaluating strength for " << query_answer->to_string());
-    LOG_INFO("Evaluating strength for " << query_answer->handles.size() << " handles.");
 
     for (const auto& handle : query_answer->handles) {
         auto atom = db->get_atom(handle);
