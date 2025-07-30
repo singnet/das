@@ -1,0 +1,1 @@
+[#618] atom::Link and atom::LinkSchema are crashing after decoding a handle to NULL
