@@ -79,7 +79,7 @@ vector<string> Link::composite_type(HandleDecoder& decoder) const {
     composite_type.push_back(named_type_hash());
     for (string handle : this->targets) {
         shared_ptr<Atom> atom = decoder.get_atom(handle);
-        if (atom == NULL) {
+        if (atom == nullptr) {
             Utils::error("Unkown atom with handle: " + handle);
             return {};
         } else {
@@ -97,7 +97,12 @@ string Link::metta_representation(HandleDecoder& decoder) const {
     string metta_string = "(";
     unsigned int size = this->targets.size();
     for (unsigned int i = 0; i < size; i++) {
-        metta_string += decoder.get_atom(this->targets[i])->metta_representation(decoder);
+        shared_ptr<Atom> atom = decoder.get_atom(this->targets[i]);
+        if (atom == nullptr) {
+            Utils::error("Couldn't decode handle: " + this->targets[i]);
+            return "";
+        }
+        metta_string += atom->metta_representation(decoder);
         if (i != (size - 1)) {
             metta_string += " ";
         }
