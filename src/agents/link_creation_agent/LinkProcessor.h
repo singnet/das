@@ -12,6 +12,7 @@
 #include <vector>
 
 #include "Link.h"
+#define LOG_LEVEL DEBUG_LEVEL
 #include "Logger.h"
 #include "PatternMatchingQueryProxy.h"
 #include "QueryAnswer.h"
