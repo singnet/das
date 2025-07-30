@@ -601,6 +601,34 @@ cc_test(
 )
 
 cc_test(
+    name = "redis_mongodb_test_2",
+    size = "small",
+    srcs = [
+        "redis_mongodb_test_2.cc",
+        "test_utils.cc",
+        "test_utils.h",
+    ],
+    copts = [
+        "-Iexternal/gtest/googletest/include",
+        "-Iexternal/gtest/googletest",
+    ],
+    linkopts = [
+        "-L/usr/local/lib",
+        "-lhiredis_cluster",
+        "-lhiredis",
+        "-lmongocxx",
+        "-lbsoncxx",
+    ],
+    linkstatic = 1,
+    deps = [
+        "//atomdb:atomdb_singleton",
+        "//tests/cpp/test_commons",
+        "@com_github_google_googletest//:gtest_main",
+        "@mbedtls",
+    ],
+)
+
+cc_test(
     name = "morkdb_test",
     size = "small",
     srcs = ["morkdb_test.cc"],

@@ -353,10 +353,8 @@ void RedisMongoDB::set_next_score(const string& key, uint score) {
 }
 
 void RedisMongoDB::reset_scores() {
-    this->patterns_next_score.store(0);
-    this->incoming_set_next_score.store(0);
-    this->set_next_score(REDIS_PATTERNS_PREFIX + ":next_score", this->patterns_next_score.load());
-    this->set_next_score(REDIS_INCOMING_PREFIX + ":next_score", this->incoming_set_next_score.load());
+    this->patterns_next_score.store(get_next_score(REDIS_PATTERNS_PREFIX + ":next_score"));
+    this->incoming_set_next_score.store(get_next_score(REDIS_INCOMING_PREFIX + ":next_score"));
 }
 
 void RedisMongoDB::add_outgoing_set(const string& handle, const vector<string>& outgoing_handles) {
@@ -1014,9 +1012,12 @@ void RedisMongoDB::drop_all() {
         flush_redis_by_prefix(key);
     }
 
-    // We need to reset next scores to 0 to avoid remainings from previous runs
-    // as they were initialized on RedisMongoDB construction
-    this->reset_scores();
+    // Flushing next_scores from Redis and reseting them
+    keys = {REDIS_PATTERNS_PREFIX, REDIS_INCOMING_PREFIX};
+    for (const auto& key : keys) {
+        flush_redis_by_prefix(key + ":next_score");
+    }
+    reset_scores();
 
     // We need to clear the pattern index schema map and reload it
     this->pattern_index_schema_map.clear();
