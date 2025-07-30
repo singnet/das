@@ -145,6 +145,9 @@ bool LinkSchema::SchemaElement::match(const string& handle,
     if (this->is_link) {
         if (atom_ptr == NULL) {
             atom = decoder.get_atom(handle);
+            if (atom == nullptr) {
+                return false;
+            }
             atom_ptr = (Link*) atom.get();
         }
         if (Atom::is_link(*atom_ptr) && (atom_ptr->arity() == this->targets.size())) {
