@@ -33,12 +33,16 @@ class Operator : public QueryElement {
     Operator(const array<shared_ptr<QueryElement>, N>& clauses) {
         initialize(clauses);
         this->is_operator = true;
+        for (unsigned int i = 0; i < N; i++) {
+            this->input_buffer[i] = nullptr;
+        }
+        this->output_buffer = nullptr;
     }
 
     /**
      * Destructor.
      */
-    ~Operator() {
+    virtual ~Operator() {
         this->graceful_shutdown();
         for (size_t i = 0; i < N; i++) this->precedent[i] = nullptr;
     }
@@ -83,9 +87,13 @@ class Operator : public QueryElement {
         }
         set_flow_finished();
         Utils::sleep(500);
-        this->output_buffer->graceful_shutdown();
+        if (this->output_buffer != nullptr) {
+            this->output_buffer->graceful_shutdown();
+        }
         for (unsigned int i = 0; i < N; i++) {
-            this->input_buffer[i]->graceful_shutdown();
+            if (this->input_buffer[i] != nullptr) {
+                this->input_buffer[i]->graceful_shutdown();
+            }
         }
     }
 

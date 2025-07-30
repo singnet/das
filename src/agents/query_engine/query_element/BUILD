@@ -7,7 +7,6 @@ cc_library(
     includes = ["."],
     deps = [
         ":and",
-        ":importance_list",
         ":iterator",
         ":link_template",
         ":operator",
@@ -92,7 +91,6 @@ cc_library(
     hdrs = ["LinkTemplate.h"],
     deps = [
         ":and",
-        ":importance_list",
         ":iterator",
         ":or",
         ":source",
@@ -103,15 +101,6 @@ cc_library(
         "//commons:commons_lib",
         "//commons/atoms:atoms_lib",
         "//hasher:hasher_lib",
-    ],
-)
-
-cc_library(
-    name = "importance_list",
-    hdrs = ["ImportanceList.h"],
-    deps = [
-        ":query_element",
-        "//attention_broker:attention_broker_lib",
     ],
 )
 
