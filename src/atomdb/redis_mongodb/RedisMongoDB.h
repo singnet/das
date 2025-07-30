@@ -154,6 +154,7 @@ class RedisMongoDB : public AtomDB {
 
     void load_pattern_index_schema();
     vector<string> match_pattern_index_schema(const Link* link);
+    vector<vector<string>> index_entries_combinations(unsigned int arity);
 
     void redis_setup();
     void mongodb_setup();
