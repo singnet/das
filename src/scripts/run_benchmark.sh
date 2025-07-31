@@ -119,24 +119,19 @@ set_metta_file_params() {
 
     case "$db_size" in
     empty)
-        SENTENCES=10
-        WORD_COUNT=1
+        SENTENCES=100
         ;;
     small)
-        SENTENCES=100
-        WORD_COUNT=10
+        SENTENCES=10000
         ;;
     medium)
-        SENTENCES=1000
-        WORD_COUNT=100
+        SENTENCES=1000000
         ;;
     large)
-        SENTENCES=10000
-        WORD_COUNT=1000
+        SENTENCES=10000000
         ;;
     xlarge)
-        SENTENCES=100000
-        WORD_COUNT=10000
+        SENTENCES=100000000
         ;;
     *)
         echo "Invalid --db value: $db_size" >&2
@@ -148,11 +143,13 @@ set_metta_file_params() {
     case "$rel" in
     loosely)
         ALPHABET_RANGE="0-25"
-        WORD_LENGTH=10
+        WORD_LENGTH=3
+        WORD_COUNT=5
         ;;
     tightly)
         ALPHABET_RANGE="0-5"
-        WORD_LENGTH=5
+        WORD_LENGTH=3
+        WORD_COUNT=10
         ;;
     *)
         echo "Invalid --rel value: $rel" >&2
@@ -321,7 +318,7 @@ header_to_report() {
  -iterations = $ITERATIONS
 
 ## Legend
- -AVG  = Average Operation Time (ms)
+ -MED  = Median Operation Time (ms)
  -MIN  = Minimum Operation Time (ms)
  -MAX  = Maximum Operation Time (ms)
  -P50  = 50th Percentile Time (ms)
