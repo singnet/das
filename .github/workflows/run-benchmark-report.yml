@@ -43,7 +43,7 @@ jobs:
           path: atomdb_benchmark
 
       - name: Create mattermost message
-        run: bash .github/scripts/send-benchmark-report.sh
+        run: bash .github/scripts/mattermost-benchmark-report.sh
 
       # - name: Notify Mattermost
       #   uses: singnet/integration-github-mattermost@master
