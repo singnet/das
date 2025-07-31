@@ -101,7 +101,6 @@ void create_report(const string& db_name,
     map<string, map<string, double>> stats = calculate_metric_statistics(metrics);
 
     for (const auto& [operation, inner_map] : stats) {
-        table << fixed << setprecision(2);
         table << setw(col1) << operation << "| " << setw(colN) << inner_map.at("median_operation_time")
               << "| " << setw(colN) << inner_map.at("min_operation_time") << "| " << setw(colN)
               << inner_map.at("max_operation_time") << "| " << setw(colN)

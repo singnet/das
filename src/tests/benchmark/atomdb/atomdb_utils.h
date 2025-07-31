@@ -60,5 +60,5 @@ double measure_execution_time(Func&& func) {
     func();
     auto end = chrono::steady_clock::now();
     double duration_millis = chrono::duration<double, milli>(end - start).count();
-    return round(duration_millis * 100.0) / 100.0;  // Round to 2 decimal places
+    return duration_millis;
 }
