@@ -17,9 +17,9 @@ Source::Source(const string& attention_broker_address) {
 
 Source::Source() : Source(Source::get_attention_broker_address()) {}
 
-Source::~Source() { 
+Source::~Source() {
     LOG_LOCAL_DEBUG("Deleting Source: " + std::to_string((unsigned long) this) + "...");
-    this->graceful_shutdown(); 
+    this->graceful_shutdown();
     LOG_LOCAL_DEBUG("Deleting Source: " + std::to_string((unsigned long) this) + "... Done");
 }
 
@@ -49,7 +49,8 @@ void Source::setup_buffers() {
         Utils::error("Invalid empty id");
     }
     this->output_buffer = make_shared<QueryNodeClient>(this->id, this->subsequent_id);
-    LOG_LOCAL_DEBUG("Setting up buffers for Source: " + std::to_string((unsigned long) this) + "... Done");
+    LOG_LOCAL_DEBUG("Setting up buffers for Source: " + std::to_string((unsigned long) this) +
+                    "... Done");
 }
 
 void Source::graceful_shutdown() {
@@ -58,9 +59,12 @@ void Source::graceful_shutdown() {
         return;
     }
     if (this->output_buffer != nullptr) {
-        LOG_LOCAL_DEBUG("Gracefully shutting down output buffer of Source: " + std::to_string((unsigned long) this) + "...");
+        LOG_LOCAL_DEBUG("Gracefully shutting down output buffer of Source: " +
+                        std::to_string((unsigned long) this) + "...");
         this->output_buffer->graceful_shutdown();
-        LOG_LOCAL_DEBUG("Gracefully shutting down output buffer of Source: " + std::to_string((unsigned long) this) + "... Done");
+        LOG_LOCAL_DEBUG("Gracefully shutting down output buffer of Source: " +
+                        std::to_string((unsigned long) this) + "... Done");
     }
-    LOG_LOCAL_DEBUG("Gracefully shutting down Source: " + std::to_string((unsigned long) this) + "... Done");
+    LOG_LOCAL_DEBUG("Gracefully shutting down Source: " + std::to_string((unsigned long) this) +
+                    "... Done");
 }

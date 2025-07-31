@@ -16,13 +16,14 @@ Sink::Sink(shared_ptr<QueryElement> precedent, const string& id, bool setup_buff
     if (setup_buffers_flag) {
         LOG_LOCAL_DEBUG("Sink " + std::to_string((unsigned long) this) + " is setting up buffers...");
         setup_buffers();
-        LOG_LOCAL_DEBUG("Sink " + std::to_string((unsigned long) this) + " is setting up buffers... Done");
+        LOG_LOCAL_DEBUG("Sink " + std::to_string((unsigned long) this) +
+                        " is setting up buffers... Done");
     }
 }
 
-Sink::~Sink() { 
+Sink::~Sink() {
     LOG_LOCAL_DEBUG("Deleting Sink: " + std::to_string((unsigned long) this) + "...");
-    this->input_buffer->graceful_shutdown(); 
+    this->input_buffer->graceful_shutdown();
     LOG_LOCAL_DEBUG("Deleting Sink: " + std::to_string((unsigned long) this) + "... Done");
 }
 
@@ -39,26 +40,34 @@ void Sink::setup_buffers() {
     }
     this->input_buffer = make_shared<QueryNodeServer>(this->id);
     this->precedent->subsequent_id = this->id;
-    LOG_LOCAL_DEBUG("Setting up precedent buffers for Sink: " + std::to_string((unsigned long) this) + "...");
+    LOG_LOCAL_DEBUG("Setting up precedent buffers for Sink: " + std::to_string((unsigned long) this) +
+                    "...");
     this->precedent->setup_buffers();
-    LOG_LOCAL_DEBUG("Setting up precedent buffers for Sink: " + std::to_string((unsigned long) this) + "... Done");
+    LOG_LOCAL_DEBUG("Setting up precedent buffers for Sink: " + std::to_string((unsigned long) this) +
+                    "... Done");
 }
 
 void Sink::graceful_shutdown() {
     LOG_LOCAL_DEBUG("Gracefully shutting down Sink: " + std::to_string((unsigned long) this) + "...");
     if (is_flow_finished()) {
-        LOG_LOCAL_DEBUG("Gracefully shutting down Sink: " + std::to_string((unsigned long) this) + "... Done");
+        LOG_LOCAL_DEBUG("Gracefully shutting down Sink: " + std::to_string((unsigned long) this) +
+                        "... Done");
         return;
     }
-    LOG_LOCAL_DEBUG("Gracefully shutting down precedent of Sink: " + std::to_string((unsigned long) this) + "...");
+    LOG_LOCAL_DEBUG(
+        "Gracefully shutting down precedent of Sink: " + std::to_string((unsigned long) this) + "...");
     this->precedent->graceful_shutdown();
-    LOG_LOCAL_DEBUG("Gracefully shutting down precedent of Sink: " + std::to_string((unsigned long) this) + "... Done");
+    LOG_LOCAL_DEBUG("Gracefully shutting down precedent of Sink: " +
+                    std::to_string((unsigned long) this) + "... Done");
     if (this->input_buffer != nullptr) {
-        LOG_LOCAL_DEBUG("Gracefully shutting down input buffer of Sink: " + std::to_string((unsigned long) this) + "...");
+        LOG_LOCAL_DEBUG("Gracefully shutting down input buffer of Sink: " +
+                        std::to_string((unsigned long) this) + "...");
         this->input_buffer->graceful_shutdown();
-        LOG_LOCAL_DEBUG("Gracefully shutting down input buffer of Sink: " + std::to_string((unsigned long) this) + "... Done");
+        LOG_LOCAL_DEBUG("Gracefully shutting down input buffer of Sink: " +
+                        std::to_string((unsigned long) this) + "... Done");
     }
-    LOG_LOCAL_DEBUG("Gracefully shutting down Sink: " + std::to_string((unsigned long) this) + "... Done");
+    LOG_LOCAL_DEBUG("Gracefully shutting down Sink: " + std::to_string((unsigned long) this) +
+                    "... Done");
 }
 
 bool Sink::finished() {

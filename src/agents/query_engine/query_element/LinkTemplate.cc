@@ -30,10 +30,10 @@ LinkTemplate::LinkTemplate(const string& type,
     this->processor = nullptr;
 }
 
-LinkTemplate::~LinkTemplate() { 
+LinkTemplate::~LinkTemplate() {
     LOG_LOCAL_DEBUG("Deleting LinkTemplate: " + std::to_string((unsigned long) this) + "...");
     if (this->processor != nullptr) {
-        this->processor->stop(); 
+        this->processor->stop();
     }
     LOG_LOCAL_DEBUG("Deleting LinkTemplate: " + std::to_string((unsigned long) this) + "... Done");
 }

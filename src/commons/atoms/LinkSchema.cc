@@ -175,7 +175,8 @@ bool LinkSchema::SchemaElement::match(const string& handle,
         return assignment.assign(this->name, handle);
     } else {
         // is node
-        LOG_DEBUG(("Schema is node. Schema handle: " + this->handle + (this->handle == handle ? " MATCH." : " NO MATCH")));
+        LOG_DEBUG(("Schema is node. Schema handle: " + this->handle +
+                   (this->handle == handle ? " MATCH." : " NO MATCH")));
         return (this->handle == handle);
     }
 }

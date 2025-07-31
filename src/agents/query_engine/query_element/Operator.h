@@ -49,7 +49,8 @@ class Operator : public QueryElement {
     virtual ~Operator() {
         LOG_LOCAL_DEBUG("Deleting Operator: " + std::to_string((unsigned long) this) + "...");
         this->graceful_shutdown();
-        LOG_LOCAL_DEBUG("Operator " + std::to_string((unsigned long) this) + " is nullifying precedents.");
+        LOG_LOCAL_DEBUG("Operator " + std::to_string((unsigned long) this) +
+                        " is nullifying precedents.");
         for (size_t i = 0; i < N; i++) this->precedent[i] = nullptr;
         LOG_LOCAL_DEBUG("Deleting Operator: " + std::to_string((unsigned long) this) + "... Done");
     }
@@ -78,9 +79,11 @@ class Operator : public QueryElement {
             server_node_id = this->id + "_" + std::to_string(i);
             this->input_buffer[i] = make_shared<QueryNodeServer>(server_node_id);
             this->precedent[i]->subsequent_id = server_node_id;
-            LOG_LOCAL_DEBUG("Setting up precedent[" + std::to_string(i) + "] buffers for Operator: " + std::to_string((unsigned long) this) + "...");
+            LOG_LOCAL_DEBUG("Setting up precedent[" + std::to_string(i) +
+                            "] buffers for Operator: " + std::to_string((unsigned long) this) + "...");
             this->precedent[i]->setup_buffers();
-            LOG_LOCAL_DEBUG("Setting up precedent[" + std::to_string(i) + "] buffers for Operator: " + std::to_string((unsigned long) this) + "... Done");
+            LOG_LOCAL_DEBUG("Setting up precedent[" + std::to_string(i) + "] buffers for Operator: " +
+                            std::to_string((unsigned long) this) + "... Done");
         }
     }
 
@@ -89,28 +92,36 @@ class Operator : public QueryElement {
      * in the query tree.
      */
     virtual void graceful_shutdown() {
-        LOG_LOCAL_DEBUG("Gracefully shutting down Operator: " + std::to_string((unsigned long) this) + "...");
+        LOG_LOCAL_DEBUG("Gracefully shutting down Operator: " + std::to_string((unsigned long) this) +
+                        "...");
         if (is_flow_finished()) {
-            LOG_LOCAL_DEBUG("Gracefully shutting down Operator: " + std::to_string((unsigned long) this) + "... Done");
+            LOG_LOCAL_DEBUG("Gracefully shutting down Operator: " +
+                            std::to_string((unsigned long) this) + "... Done");
             return;
         }
         for (unsigned int i = 0; i < N; i++) {
-            LOG_LOCAL_DEBUG("Gracefully shutting down precedent[" + std::to_string(i) + "] of Operator: " + std::to_string((unsigned long) this) + "...");
+            LOG_LOCAL_DEBUG("Gracefully shutting down precedent[" + std::to_string(i) +
+                            "] of Operator: " + std::to_string((unsigned long) this) + "...");
             this->precedent[i]->graceful_shutdown();
-            LOG_LOCAL_DEBUG("Gracefully shutting down precedent[" + std::to_string(i) + "] of Operator: " + std::to_string((unsigned long) this) + "... Done");
+            LOG_LOCAL_DEBUG("Gracefully shutting down precedent[" + std::to_string(i) +
+                            "] of Operator: " + std::to_string((unsigned long) this) + "... Done");
         }
         set_flow_finished();
         Utils::sleep(500);
         if (this->output_buffer != nullptr) {
-            LOG_LOCAL_DEBUG("Gracefully shutting down output buffer of Operator: " + std::to_string((unsigned long) this) + "...");
+            LOG_LOCAL_DEBUG("Gracefully shutting down output buffer of Operator: " +
+                            std::to_string((unsigned long) this) + "...");
             this->output_buffer->graceful_shutdown();
-            LOG_LOCAL_DEBUG("Gracefully shutting down output buffer of Operator: " + std::to_string((unsigned long) this) + "... Done");
+            LOG_LOCAL_DEBUG("Gracefully shutting down output buffer of Operator: " +
+                            std::to_string((unsigned long) this) + "... Done");
         }
         for (unsigned int i = 0; i < N; i++) {
             if (this->input_buffer[i] != nullptr) {
-                LOG_LOCAL_DEBUG("Gracefully shutting down input_buffer[" + std::to_string(i) + "] in Operator: " + std::to_string((unsigned long) this) + "...");
+                LOG_LOCAL_DEBUG("Gracefully shutting down input_buffer[" + std::to_string(i) +
+                                "] in Operator: " + std::to_string((unsigned long) this) + "...");
                 this->input_buffer[i]->graceful_shutdown();
-                LOG_LOCAL_DEBUG("Gracefully shutting down input_buffer[" + std::to_string(i) + "] in Operator: " + std::to_string((unsigned long) this) + "... Done");
+                LOG_LOCAL_DEBUG("Gracefully shutting down input_buffer[" + std::to_string(i) +
+                                "] in Operator: " + std::to_string((unsigned long) this) + "... Done");
             }
         }
     }
