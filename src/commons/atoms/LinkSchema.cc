@@ -6,7 +6,7 @@
 #include "Node.h"
 #include "UntypedVariable.h"
 
-#define LOG_LEVEL DEBUG_LEVEL
+#define LOG_LEVEL INFO_LEVEL
 #include "Logger.h"
 
 using namespace atoms;
@@ -163,7 +163,7 @@ bool LinkSchema::SchemaElement::match(const string& handle,
                     return false;
                 }
             }
-            LOG_DEBUG("MATCH.");
+            LOG_DEBUG("All targets matched. MATCH.");
             return true;
         } else {
             LOG_DEBUG("Atom isn't a link or has wrong arity. NO MATCH.");
@@ -175,8 +175,7 @@ bool LinkSchema::SchemaElement::match(const string& handle,
         return assignment.assign(this->name, handle);
     } else {
         // is node
-        LOG_DEBUG("Schema is node. Schema handle: " + this->handle);
-        LOG_DEBUG((this->handle == handle ? "MATCH." : "NO MATCH"));
+        LOG_DEBUG(("Schema is node. Schema handle: " + this->handle + (this->handle == handle ? " MATCH." : " NO MATCH")));
         return (this->handle == handle);
     }
 }
