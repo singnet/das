@@ -40,6 +40,15 @@ def pattern_matching_query(
         if not query_tokens:
             raise ValueError("query_tokens is required")
 
+        if not update_attention_broker:
+            update_attention_broker = False
+
+        if not positive_importance:
+            positive_importance = False
+
+        if not populate_metta_mapping:
+            populate_metta_mapping = False
+
         max_query_answers = max_query_answers or 1
 
         if isinstance(query_tokens, str):

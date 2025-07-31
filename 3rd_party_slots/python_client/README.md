@@ -60,7 +60,7 @@ The client can be used in two ways: programmatically as a Python package or via 
 
 ### Programmatic Usage
 
-**Note:** For it to work you need a server Query Agent listening on port 54001
+**Note:** For it to work you need a server Query Agent listening on port 35700
 
 After installing the wheel, you can import the pattern_matching_query function from the hyperon_das.main module. Below is an example of querying:
 
@@ -71,8 +71,6 @@ pattern_matching_query(
     client_id="localhost:8000",
     server_id="localhost:35700",
     query_tokens=["LINK_TEMPLATE", "Expression", "3", "NODE", "Symbol", "Similarity", "VARIABLE", "X", "VARIABLE", "Y"],
-    update_attention_broker=False,
-    max_query_answers=1
 )
 ```
 
@@ -85,8 +83,6 @@ python -m hyperon_das.main \
     --client-id localhost:8000 \
     --server-id localhost:35700 \
     --query-tokens "LINK_TEMPLATE Expression 3 NODE Symbol Similarity NODE Symbol "\"human\"" VARIABLE X" \
-    --max-query-answers 1 \
-    --update-attention-broker 0
 ```
 
 The --query-tokens argument accepts a space-separated string, which is tokenized internally while preserving quoted strings (e.g., "Alzheimer's disease").
