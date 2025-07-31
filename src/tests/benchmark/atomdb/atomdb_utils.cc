@@ -73,7 +73,7 @@ void create_report(const string& db_name,
                    const string& base_directory,
                    const int& batch_size) {
     stringstream table;
-    table << fixed << setprecision(5);
+    table << fixed << setprecision(2);
     table << left;
 
     const int col1 = 15;
