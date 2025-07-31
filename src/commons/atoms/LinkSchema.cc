@@ -141,31 +141,42 @@ bool LinkSchema::SchemaElement::match(const string& handle,
                                       Assignment& assignment,
                                       HandleDecoder& decoder,
                                       Atom* atom_ptr) {
+    LOG_DEBUG((handle != "" ? "Matching handle: " + handle : "Matching atom " + atom_ptr->to_string()));
     shared_ptr<Atom> atom;
     if (this->is_link) {
+        LOG_DEBUG("Schema is link");
         if (atom_ptr == NULL) {
+            LOG_DEBUG("Decoding handle...");
             atom = decoder.get_atom(handle);
             if (atom == nullptr) {
+                LOG_DEBUG("Decoding handle... Done. But atom is nullptr.");
                 return false;
             }
+            LOG_DEBUG("Decoding handle... Done. Atom: " + atom->to_string());
             atom_ptr = (Link*) atom.get();
         }
         if (Atom::is_link(*atom_ptr) && (atom_ptr->arity() == this->targets.size())) {
             unsigned int cursor = 0;
             for (string target_handle : ((Link*) atom_ptr)->targets) {
                 if (!this->targets[cursor++].match(target_handle, assignment, decoder, NULL)) {
+                    LOG_DEBUG("Target[" + std::to_string(cursor - 1) + "] mismatches. NO MATCH.");
                     return false;
                 }
             }
+            LOG_DEBUG("All targets matched. MATCH.");
             return true;
         } else {
+            LOG_DEBUG("Atom isn't a link or has wrong arity. NO MATCH.");
             return false;
         }
     } else if (this->is_wildcard) {
         // TODO: remove memory leak
+        LOG_DEBUG("Schema is wildcard. MATCH.");
         return assignment.assign(this->name, handle);
     } else {
         // is node
+        LOG_DEBUG(("Schema is node. Schema handle: " + this->handle +
+                   (this->handle == handle ? " MATCH." : " NO MATCH")));
         return (this->handle == handle);
     }
 }

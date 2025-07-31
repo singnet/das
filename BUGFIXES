@@ -1,3 +1,4 @@
 [#595] OR query doesn't process QueryAnswer objects
 [#609] Inference/Evolution Query causing Query Agent crash
 [#618] atom::Link and atom::LinkSchema are crashing after decoding a handle to NULL
+[#613] Query Agent is crashing after returning answers
