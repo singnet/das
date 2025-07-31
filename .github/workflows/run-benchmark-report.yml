@@ -45,7 +45,7 @@ jobs:
       - name: Create mattermost message
         run: bash .github/scripts/send-benchmark-report.sh
 
-      - name: Notify Mattermost
-        uses: singnet/integration-github-mattermost@master
-        with:
-          webhook-url: ${{ secrets.SCHEDULED_REPOS_MATTERMOST_WEBHOOK_URL }}
+      # - name: Notify Mattermost
+      #   uses: singnet/integration-github-mattermost@master
+      #   with:
+      #     webhook-url: ${{ secrets.SCHEDULED_REPOS_MATTERMOST_WEBHOOK_URL }}
