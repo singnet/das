@@ -54,8 +54,12 @@ function build_metadata_section() {
     echo "**Source:** [#$pr_number - $pr_title]($pr_url)"
   fi
   echo "**Date:** $commit_date_fmt"
-  echo "**Commit:** \`$commit_sha_short\` ($pr_base_branch)"
-  echo
+
+    if [[ -n "$pr_base_branch" ]]; then
+        echo "**Commit:** \`$commit_sha_short\`"
+    else
+        echo "**Commit:** \`$commit_sha_short\` ($pr_base_branch)"
+    fi
 }
 
 function build_table_for_prefix() {
@@ -63,7 +67,7 @@ function build_table_for_prefix() {
   local title sample_file header
 
   title=$(format_title "$prefix")
-  echo "### $title"$'\n'
+  echo $'\n\n'"### $title"$'\n'
 
   sample_file=$(find "$REPORT_DIR" -type f -name "${prefix}_*.txt" | head -n1)
   header=$(head -n 2 "$sample_file")
