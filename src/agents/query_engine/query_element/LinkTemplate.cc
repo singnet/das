@@ -7,7 +7,7 @@
 #include "attention_broker.grpc.pb.h"
 #include "attention_broker.pb.h"
 
-#define LOG_LEVEL INFO_LEVEL
+#define LOG_LEVEL DEBUG_LEVEL
 #include "Logger.h"
 
 using namespace query_element;
@@ -27,9 +27,16 @@ LinkTemplate::LinkTemplate(const string& type,
     this->use_cache = use_cache;
     this->inner_flag = true;
     this->arity = targets.size();
+    this->processor = nullptr;
 }
 
-LinkTemplate::~LinkTemplate() { this->processor->stop(); }
+LinkTemplate::~LinkTemplate() { 
+    LOG_LOCAL_DEBUG("Deleting LinkTemplate: " + std::to_string((unsigned long) this) + "...");
+    if (this->processor != nullptr) {
+        this->processor->stop(); 
+    }
+    LOG_LOCAL_DEBUG("Deleting LinkTemplate: " + std::to_string((unsigned long) this) + "... Done");
+}
 
 void LinkTemplate::recursive_build(shared_ptr<QueryElement> element, LinkSchema& link_schema) {
     Terminal* terminal = dynamic_cast<Terminal*>(element.get());

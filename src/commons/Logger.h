@@ -39,9 +39,19 @@ static inline char* timenow();
 #define ERROR_LEVEL 0x01
 #define INFO_LEVEL 0x02
 #define DEBUG_LEVEL 0x03
+#define LOCAL_DEBUG_LEVEL 0x04
 
 #ifndef LOG_LEVEL
 #define LOG_LEVEL INFO_LEVEL
+#endif
+
+#if LOG_LEVEL >= LOCAL_DEBUG_LEVEL
+#define LOG_LOCAL_DEBUG(msg)                                                                            \
+    (std::cout << timenow() << " | "                                                                    \
+               << "[LOCAL_DEBUG] | " << __FILE__ << " | " << __FUNCTION__ << " : " << __LINE__ << " | " \
+               << msg << std::endl)
+#else
+#define LOG_LOCAL_DEBUG(msg)
 #endif
 
 #if LOG_LEVEL >= DEBUG_LEVEL
