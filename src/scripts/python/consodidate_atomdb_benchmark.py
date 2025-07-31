@@ -1,6 +1,8 @@
 import os
 import re
 from collections import defaultdict
+import sqlite3
+
 
 DEFAULT_COL_ORDER = [
     "Backend",
@@ -52,9 +54,7 @@ def consolidate_results(directory):
     results = defaultdict(list)
     for fname in sorted(os.listdir(directory)):
         if fname.startswith("atomdb_") and fname.endswith(".txt"):
-            backend, op_type, method, batch_size = extract_backend_operation_type_and_batch_size(
-                fname
-            )
+            backend, op_type, _, batch_size = extract_backend_operation_type_and_batch_size(fname)
             if backend and op_type:
                 filepath = os.path.join(directory, fname)
                 data = parse_benchmark_file(filepath)
@@ -67,6 +67,7 @@ def consolidate_results(directory):
     return results
 
 
+# ---> Write report in a file
 def get_columns(entries):
     cols = set()
     for entry in entries:
@@ -104,6 +105,146 @@ def write_report(header, results, output_file):
                 row = "  ".join(str(entry.get(col, "")).ljust(col_widths[col]) for col in columns)
                 f.write(row + "\n")
             f.write("\n")
+# <---
+
+
+# ---> Save report in a database
+def create_tables(database):
+    conn = sqlite3.connect(database)
+    cursor = conn.cursor()
+
+    table_name = "benchmark_type"
+    cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name=?", (table_name,))
+    if not cursor.fetchone():
+        cursor.execute("""
+            CREATE TABLE benchmark_type (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL);
+        """)
+        conn.commit()
+
+    table_name = "benchmark_scenario"
+    cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name=?", (table_name,))
+    if not cursor.fetchone():
+        cursor.execute("""
+            CREATE TABLE benchmark_scenario (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                scenario_name TEXT,
+                database_size TEXT,
+                atoms_relationships TEXT,
+                concurrent_access INTEGER,
+                cache_enabled BOOLEAN,
+                iterations INTEGER);
+        """)
+        conn.commit()
+
+    table_name = "benchmark_result"
+    cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name=?", (table_name,))
+    if not cursor.fetchone():
+        cursor.execute("""
+            CREATE TABLE benchmark_result (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                benchmark_scenario_id INTEGER NOT NULL,
+                backend TEXT NOT NULL,
+                operation TEXT NOT NULL,
+                batch_size INTEGER NOT NULL,
+                median_operation_time_ms REAL NOT NULL,
+                min_operation_time_ms REAL NOT NULL,
+                max_operation_time_ms REAL NOT NULL,
+                p50_operation_time_ms REAL NOT NULL,
+                p90_operation_time_ms REAL NOT NULL,
+                p99_operation_time_ms REAL NOT NULL,
+                total_time_ms REAL NOT NULL,
+                time_per_atom_ms REAL NOT NULL,
+                throughput REAL NOT NULL,
+                FOREIGN KEY (benchmark_scenario_id) REFERENCES benchmark_scenario(id));
+        """)
+        conn.commit()
+
+    table_name = "benchmark_execution"
+    cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name=?", (table_name,))
+    if not cursor.fetchone():
+        cursor.execute("""
+            CREATE TABLE benchmark_execution (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                benchmark_type_id INTEGER NOT NULL,
+                benchmark_scenario_id INTEGER NOT NULL,
+                execution_timestamp TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                execution_type TEXT NOT NULL CHECK (execution_type IN ('PR', 'SCHEDULED')),
+                pr_link TEXT,
+                pr_title TEXT,
+                FOREIGN KEY (benchmark_type_id) REFERENCES benchmark_type(id),
+                FOREIGN KEY (benchmark_scenario_id) REFERENCES benchmark_scenario(id));
+        """)
+        conn.commit()
+
+    conn.close()
+
+
+def parse_benchmark_scenario(scenario_str: str) -> tuple:
+    scenario_parts = scenario_str.split()
+    if len(scenario_parts) != 6:
+        raise ValueError("Scenario must contain exactly 6 parts: name, database, relationships, concurrency, cache, iterations.")
+
+    name, db, rel, concurrency, cache, iterations = scenario_parts
+
+    return (name, db, rel, int(concurrency), cache.lower() == "enabled", int(iterations))
+
+
+def insert_test_scenario_data(type: str, scenario: tuple[str]) -> int:
+    conn = sqlite3.connect("atomdb_benchmark.db")
+    cursor = conn.cursor()
+
+    cursor.execute("SELECT 1 FROM benchmark_type WHERE name = ?", (type[0],))
+    exists = cursor.fetchone()
+
+    if not exists:
+        cursor.execute(
+            """
+            INSERT INTO benchmark_type (name)
+            VALUES (?);
+        """,
+            (type,),
+        )
+        conn.commit()
+
+    cursor.execute("SELECT id FROM benchmark_scenario WHERE scenario_name = ?", (scenario[0],))
+    exists = cursor.fetchone()
+
+    if not exists:
+        cursor.execute(
+            """
+            INSERT INTO benchmark_scenario (scenario_name, database_size, atoms_relationships, concurrent_access, cache_enabled, iterations)
+            VALUES (?, ?, ?, ?, ?, ?);
+        """,
+            (scenario[0], scenario[1], scenario[2], scenario[3], scenario[4], scenario[5]),
+        )
+        conn.commit()
+        last_row_id = cursor.lastrowid
+    else:
+        last_row_id = exists[0]
+
+    conn.close()
+
+    return last_row_id
+
+
+def insert_results_data(scenario_id: int, results_data: list[tuple[str]]):
+    conn = sqlite3.connect("atomdb_benchmark.db")
+    cursor = conn.cursor()
+    for result in results_data:
+        if len(result) != 12:
+            raise ValueError("Each result must contain exactly 12 fields.")
+        cursor.execute(
+            """
+            INSERT INTO benchmark_result (benchmark_scenario_id, backend, operation, batch_size, median_operation_time_ms, min_operation_time_ms, max_operation_time_ms, p50_operation_time_ms, p90_operation_time_ms, p99_operation_time_ms, total_time_ms, time_per_atom_ms, throughput)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+        """,
+            (scenario_id, *result),
+        )
+    conn.commit()
+    conn.close()
+# <---
 
 
 if __name__ == "__main__":
@@ -111,9 +252,47 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description="Consolidate benchmarks.")
     parser.add_argument("directory", help="Directory with benchmark files")
-    parser.add_argument("-o", "--output", default="consolidated_report.txt", help="Output file")
-    parser.add_argument("--header", default="", help="Header to include in the report")
+    parser.add_argument("--scenario", help="Test scenario data")
+    parser.add_argument("--type", help="Benchmark type")
     args = parser.parse_args()
 
-    results = consolidate_results(args.directory)
-    write_report(args.header, results, args.output)
+    results = consolidate_results("/tmp/atomdb_benchmark/20250731085453/")
+
+    create_tables(database="atomdb_benchmark.db")
+
+    scenario = parse_benchmark_scenario(args.scenario)
+    scenario_id = insert_test_scenario_data(args.type, scenario)
+
+    results_data: list[tuple[str]] = []
+    for op_type, entries in results.items():
+        batch_size = entries.pop(0)
+        for entry in entries:
+            backend = entry["Backend"]
+            operation = entry["Operation"]
+            median_operation_time_ms = entry["MED"]
+            min_operation_time_ms = entry["MIN"]
+            max_operation_time_ms = entry["MAX"]
+            p50_operation_time_ms = entry["P50"]
+            p90_operation_time_ms = entry["P90"]
+            p99_operation_time_ms = entry["P99"]
+            total_time_ms = entry["TT"]
+            time_per_atom_ms = entry["TPA"]
+            throughput = entry["TP"]
+            results_data.append(
+                (
+                    backend,
+                    operation,
+                    batch_size,
+                    median_operation_time_ms,
+                    min_operation_time_ms,
+                    max_operation_time_ms,
+                    p50_operation_time_ms,
+                    p90_operation_time_ms,
+                    p99_operation_time_ms,
+                    total_time_ms,
+                    time_per_atom_ms,
+                    throughput,
+                )
+            )
+
+    insert_results_data(scenario_id=scenario_id, results_data=results_data)

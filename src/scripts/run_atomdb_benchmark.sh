@@ -299,7 +299,6 @@ header_to_report() {
  -Concurrent access = $CONCURRENCY
  -Cache = $CACHE
  -iterations = $ITERATIONS
- -Total Atoms in database: $TOTAL_ATOMS
 
 ## Legend
  -AVG  = Average Operation Time (ms)
@@ -318,12 +317,15 @@ header_to_report() {
     echo "$header"
 }
 
+scenario_data() {
+    echo "$SCENARIO_NAME $DB $REL $CONCURRENCY $CACHE $ITERATIONS"
+}
+
 
 consolidate_reports() {
-    OUTPUT_DIR="/tmp/atomdb_benchmark/${TIMESTAMP}/consolidated_report_scenario_${SCENARIO_NAME}.txt"
-    python3 ./src/scripts/python/consodidate_atomdb_benchmark.py "/tmp/atomdb_benchmark/${TIMESTAMP}" --output "$OUTPUT_DIR" --header "$(header_to_report)"
+    python3 ./src/scripts/python/consodidate_atomdb_benchmark.py "/tmp/atomdb_benchmark/${TIMESTAMP}" --scenario "$(scenario_data)" --type "$BENCHMARK"
     echo ""
-    echo -e "\r\033[K${GREEN}Consolidated reports saved to: $OUTPUT_DIR${RESET}"
+    echo -e "\r\033[K${GREEN}Consolidated reports saved to database${RESET}"
 }
 
 main() {
