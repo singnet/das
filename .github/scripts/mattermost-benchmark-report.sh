@@ -55,11 +55,11 @@ function build_metadata_section() {
   fi
   echo "**Date:** $commit_date_fmt"
 
-    if [[ -n "$pr_base_branch" ]]; then
-        echo "**Commit:** \`$commit_sha_short\`"
-    else
-        echo "**Commit:** \`$commit_sha_short\` ($pr_base_branch)"
-    fi
+  if [[ -n "$pr_url" ]]; then
+    echo "**Commit:** \`$commit_sha_short\`"
+  else
+    echo "**Commit:** \`$commit_sha_short\` ($pr_base_branch)"
+  fi
 }
 
 function build_table_for_prefix() {
