@@ -4,6 +4,8 @@
 
 #include "QueryAnswer.h"
 #include "QueryElement.h"
+#define LOG_LEVEL INFO_LEVEL
+#include "Logger.h"
 
 using namespace std;
 
@@ -16,7 +18,7 @@ namespace query_element {
  * Operator adds the required QueryNode elements to connect either with:
  *
  *     - one or more QueryElement downstream in the query tree (each of them can be either
- *       Operator or SOurce).
+ *       Operator or Source).
  *     - one QueryElement upstream in the query tree which can be another Operator or a Sink.
  */
 template <unsigned int N>
@@ -31,7 +33,9 @@ class Operator : public QueryElement {
      * @param clauses Array of QueryElement, each of them a clause in the operation.
      */
     Operator(const array<shared_ptr<QueryElement>, N>& clauses) {
+        LOG_LOCAL_DEBUG("Creating Operator: " + std::to_string((unsigned long) this));
         initialize(clauses);
+        LOG_LOCAL_DEBUG("Operator " + std::to_string((unsigned long) this) + " initialized.");
         this->is_operator = true;
         for (unsigned int i = 0; i < N; i++) {
             this->input_buffer[i] = nullptr;
@@ -43,8 +47,12 @@ class Operator : public QueryElement {
      * Destructor.
      */
     virtual ~Operator() {
+        LOG_LOCAL_DEBUG("Deleting Operator: " + std::to_string((unsigned long) this) + "...");
         this->graceful_shutdown();
+        LOG_LOCAL_DEBUG("Operator " + std::to_string((unsigned long) this) +
+                        " is nullifying precedents.");
         for (size_t i = 0; i < N; i++) this->precedent[i] = nullptr;
+        LOG_LOCAL_DEBUG("Deleting Operator: " + std::to_string((unsigned long) this) + "... Done");
     }
 
     // --------------------------------------------------------------------------------------------
@@ -57,6 +65,7 @@ class Operator : public QueryElement {
      * in the operation.
      */
     virtual void setup_buffers() {
+        LOG_LOCAL_DEBUG("Setting up buffers for Operator: " + std::to_string((unsigned long) this));
         if (this->subsequent_id == "") {
             Utils::error("Invalid empty parent id");
         }
@@ -70,7 +79,11 @@ class Operator : public QueryElement {
             server_node_id = this->id + "_" + std::to_string(i);
             this->input_buffer[i] = make_shared<QueryNodeServer>(server_node_id);
             this->precedent[i]->subsequent_id = server_node_id;
+            LOG_LOCAL_DEBUG("Setting up precedent[" + std::to_string(i) +
+                            "] buffers for Operator: " + std::to_string((unsigned long) this) + "...");
             this->precedent[i]->setup_buffers();
+            LOG_LOCAL_DEBUG("Setting up precedent[" + std::to_string(i) + "] buffers for Operator: " +
+                            std::to_string((unsigned long) this) + "... Done");
         }
     }
 
@@ -79,20 +92,36 @@ class Operator : public QueryElement {
      * in the query tree.
      */
     virtual void graceful_shutdown() {
+        LOG_LOCAL_DEBUG("Gracefully shutting down Operator: " + std::to_string((unsigned long) this) +
+                        "...");
         if (is_flow_finished()) {
+            LOG_LOCAL_DEBUG("Gracefully shutting down Operator: " +
+                            std::to_string((unsigned long) this) + "... Done");
             return;
         }
         for (unsigned int i = 0; i < N; i++) {
+            LOG_LOCAL_DEBUG("Gracefully shutting down precedent[" + std::to_string(i) +
+                            "] of Operator: " + std::to_string((unsigned long) this) + "...");
             this->precedent[i]->graceful_shutdown();
+            LOG_LOCAL_DEBUG("Gracefully shutting down precedent[" + std::to_string(i) +
+                            "] of Operator: " + std::to_string((unsigned long) this) + "... Done");
         }
         set_flow_finished();
         Utils::sleep(500);
         if (this->output_buffer != nullptr) {
+            LOG_LOCAL_DEBUG("Gracefully shutting down output buffer of Operator: " +
+                            std::to_string((unsigned long) this) + "...");
             this->output_buffer->graceful_shutdown();
+            LOG_LOCAL_DEBUG("Gracefully shutting down output buffer of Operator: " +
+                            std::to_string((unsigned long) this) + "... Done");
         }
         for (unsigned int i = 0; i < N; i++) {
             if (this->input_buffer[i] != nullptr) {
+                LOG_LOCAL_DEBUG("Gracefully shutting down input_buffer[" + std::to_string(i) +
+                                "] in Operator: " + std::to_string((unsigned long) this) + "...");
                 this->input_buffer[i]->graceful_shutdown();
+                LOG_LOCAL_DEBUG("Gracefully shutting down input_buffer[" + std::to_string(i) +
+                                "] in Operator: " + std::to_string((unsigned long) this) + "... Done");
             }
         }
     }
