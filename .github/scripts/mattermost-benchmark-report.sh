@@ -50,6 +50,7 @@ function build_metadata_section() {
   commit_sha_short=$(echo "$GITHUB_SHA" | cut -c1-7)
 
   echo "## $TITLE"$'\n'
+  echo "**Repository:** $GITHUB_REPOSITORY"
   if [[ -n "$pr_url" ]]; then
     echo "**Source:** [#$pr_number - $pr_title]($pr_url)"
   fi
