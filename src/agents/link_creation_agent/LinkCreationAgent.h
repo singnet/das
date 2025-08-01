@@ -14,11 +14,11 @@
 #include <thread>
 #include <vector>
 
+#include "LinkCreationAgentRequest.h"
 #include "LinkCreationRequestProxy.h"
 #include "LinkCreationService.h"
 #include "PatternMatchingQueryProxy.h"
 #include "ServiceBusSingleton.h"
-#include "LinkCreationAgentRequest.h"
 
 using namespace std;
 using namespace query_engine;

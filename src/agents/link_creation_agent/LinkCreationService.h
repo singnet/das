@@ -11,13 +11,13 @@
 #include "EquivalenceProcessor.h"
 #include "ImplicationProcessor.h"
 #include "LCAQueue.h"
+#include "LinkCreationAgentRequest.h"
 #include "LinkProcessor.h"
 #include "PatternMatchingQueryProxy.h"
 #include "QueryAnswer.h"
 #include "ServiceBusSingleton.h"
 #include "TemplateProcessor.h"
 #include "ThreadPool.h"
-#include "LinkCreationAgentRequest.h"
 
 using namespace query_engine;
 using namespace std;

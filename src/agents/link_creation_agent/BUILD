@@ -59,8 +59,8 @@ cc_library(
         "ThreadPool.h",
     ],
     deps = [
-        ":processors",
         ":link_creation_agent_request",
+        ":processors",
         "//agents/query_engine:query_engine_lib",
         "//commons:commons_lib",
     ],

@@ -61,7 +61,7 @@ void LinkCreationService::process_request(shared_ptr<PatternMatchingQueryProxy> 
                     vector<vector<string>> link_tokens;
                     vector<string> extra_params;
                     extra_params.push_back(context);
-                    // shared_lock lock(m_mutex);
+                    shared_lock lock(m_mutex);
                     LOG_INFO("[" << request_id << "]"
                                  << " - Processing query answer for iterator ID: " << proxy->my_id());
                     auto links = process_query_answer(query_answer, extra_params, link_template);
@@ -89,7 +89,6 @@ void LinkCreationService::process_request(shared_ptr<PatternMatchingQueryProxy> 
 
     thread_pool.enqueue(job);
     request->is_running = true;
-
 }
 
 vector<shared_ptr<Link>> LinkCreationService::process_query_answer(shared_ptr<QueryAnswer> query_answer,
