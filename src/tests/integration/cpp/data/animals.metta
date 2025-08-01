@@ -77,6 +77,8 @@
 
 (IMPLICATION "is_reptile" "is_animal")
 (IMPLICATION "is_animal" "is_reptile")
+(IMPLICATION "is_reptile" "is_dinosaur")
+(IMPLICATION "is_dinosaur" "is_reptile")
 
 (EQUIVALENCE "earthworm" "chimp")
 (EQUIVALENCE "chimp" "earthworm")

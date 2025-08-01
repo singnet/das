@@ -101,7 +101,8 @@ TEST_F(LinkCreationAgentTest, TestConfig) {
                                                   this->buffer_file_path,
                                                   this->metta_file_path,
                                                   this->save_links_to_metta_file,
-                                                  this->save_links_to_db));
+                                                  this->save_links_to_db,
+                                                  false));
 }
 
 TEST(LinkCreateTemplate, TestCustomField) {

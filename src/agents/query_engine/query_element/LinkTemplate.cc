@@ -27,9 +27,16 @@ LinkTemplate::LinkTemplate(const string& type,
     this->use_cache = use_cache;
     this->inner_flag = true;
     this->arity = targets.size();
+    this->processor = nullptr;
 }
 
-LinkTemplate::~LinkTemplate() { this->processor->stop(); }
+LinkTemplate::~LinkTemplate() {
+    LOG_LOCAL_DEBUG("Deleting LinkTemplate: " + std::to_string((unsigned long) this) + "...");
+    if (this->processor != nullptr) {
+        this->processor->stop();
+    }
+    LOG_LOCAL_DEBUG("Deleting LinkTemplate: " + std::to_string((unsigned long) this) + "... Done");
+}
 
 void LinkTemplate::recursive_build(shared_ptr<QueryElement> element, LinkSchema& link_schema) {
     Terminal* terminal = dynamic_cast<Terminal*>(element.get());
@@ -135,12 +142,14 @@ void LinkTemplate::processor_method(shared_ptr<StoppableThread> monitor) {
     }
     LOG_INFO("Fetched " + std::to_string(handles->size()) + " atoms in " + link_schema_handle);
     vector<pair<char*, float>> tagged_handles;
-    auto iterator = handles->get_iterator();
-    char* handle;
-    while ((handle = iterator->next()) != nullptr) {
-        tagged_handles.push_back(make_pair<char*, float>((char*) handle, 0));
+    if (handles->size() > 0) {
+        auto iterator = handles->get_iterator();
+        char* handle;
+        while ((handle = iterator->next()) != nullptr) {
+            tagged_handles.push_back(make_pair<char*, float>((char*) handle, 0));
+        }
+        compute_importance(tagged_handles);
     }
-    compute_importance(tagged_handles);
     unsigned int pending = tagged_handles.size();
     unsigned int cursor = 0;
     Assignment assignment;
@@ -159,11 +168,14 @@ void LinkTemplate::processor_method(shared_ptr<StoppableThread> monitor) {
     }
     Utils::sleep();
     this->source_element->query_answers_finished();
+    LOG_DEBUG("LinkTemplate " + link_schema_handle + " finished processing. It's going to sleep.");
     while (!monitor->stopped()) {
         // Keep stack variables (e.g. the handles which are passed as QueryAnswers
         // to source_element)
         Utils::sleep();
     }
+    LOG_DEBUG("LinkTemplate " + link_schema_handle +
+              " woke up and is returning from processing thread.");
 }
 
 void LinkTemplate::start_thread() {

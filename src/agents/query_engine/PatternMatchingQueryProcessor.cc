@@ -330,7 +330,11 @@ shared_ptr<QueryElement> PatternMatchingQueryProcessor::build_link_template(
                 link_template->build();                                                           \
                 clauses[i] = link_template->get_source_element();                                 \
             } else {                                                                              \
-                clauses[i] = element_stack.top();                                                 \
+                if (element_stack.top()->is_operator) {                                           \
+                    clauses[i] = element_stack.top();                                             \
+                } else {                                                                          \
+                    Utils::error("All AND clauses are supposed to be LinkTemplate or Operator");  \
+                }                                                                                 \
             }                                                                                     \
             element_stack.pop();                                                                  \
         }                                                                                         \
@@ -378,7 +382,11 @@ shared_ptr<QueryElement> PatternMatchingQueryProcessor::build_and(
                 link_template->build();                                                           \
                 clauses[i] = link_template->get_source_element();                                 \
             } else {                                                                              \
-                clauses[i] = element_stack.top();                                                 \
+                if (element_stack.top()->is_operator) {                                           \
+                    clauses[i] = element_stack.top();                                             \
+                } else {                                                                          \
+                    Utils::error("All OR clauses are supposed to be LinkTemplate or Operator");   \
+                }                                                                                 \
             }                                                                                     \
             element_stack.pop();                                                                  \
         }                                                                                         \
