@@ -102,7 +102,7 @@ SynchronousGRPC::~SynchronousGRPC() {
 // Methods used to start threads
 
 void SynchronousGRPC::grpc_thread_teardown(shared_ptr<StoppableThread> monitor) {
-    while (! monitor->stopped()) {
+    while (!monitor->stopped()) {
         Utils::sleep();
     }
     this->grpc_server->Shutdown();

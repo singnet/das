@@ -1,5 +1,7 @@
 #include "Utils.h"
 
+#include <netinet/in.h>
+#include <sys/socket.h>
 #include <unistd.h>
 
 #include <algorithm>
@@ -13,8 +15,6 @@
 #include <stdexcept>
 #include <string>
 #include <thread>
-#include <sys/socket.h>
-#include <netinet/in.h>
 
 #include "Logger.h"
 
@@ -209,7 +209,6 @@ unsigned long Utils::get_current_ram_usage() {
 }
 
 bool Utils::is_port_available(unsigned int port) {
-
     int socket_descriptor;
     struct sockaddr_in my_addr;
 
@@ -223,7 +222,7 @@ bool Utils::is_port_available(unsigned int port) {
     my_addr.sin_addr.s_addr = INADDR_ANY;
     bzero(&(my_addr.sin_zero), 8);
 
-    if (bind(socket_descriptor, (struct sockaddr *)&my_addr, sizeof(struct sockaddr)) == -1) {
+    if (bind(socket_descriptor, (struct sockaddr*) &my_addr, sizeof(struct sockaddr)) == -1) {
         return false;
     }
 
@@ -371,4 +370,3 @@ string MemoryFootprint::to_string() {
 }
 
 // --------------------------------------------------------------------------------
-

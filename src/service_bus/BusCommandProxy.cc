@@ -126,9 +126,7 @@ void ProxyNode::node_joined_network(const string& node_id) {
     this->peer_id = node_id;
 }
 
-bool ProxyNode::is_server() {
-    return StarNode::is_server;
-}
+bool ProxyNode::is_server() { return StarNode::is_server; }
 
 // -------------------------------------------------------------------------------------------------
 // Messages
