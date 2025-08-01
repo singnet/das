@@ -20,6 +20,10 @@ jobs:
 
       - name: Run benchmark
         run: ./src/scripts/run_atomdb_benchmark.sh --db empty --rel none --cache disabled --concurrency 1 --iterations 100 || true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_SHA: ${{ github.sha }}
 
       - name: Upload benchmark report artifact
         uses: actions/upload-artifact@v4
