@@ -17,6 +17,7 @@
 #include "ServiceBusSingleton.h"
 #include "TemplateProcessor.h"
 #include "ThreadPool.h"
+#include "LinkCreationAgentRequest.h"
 
 using namespace query_engine;
 using namespace std;
@@ -47,10 +48,7 @@ class LinkCreationService
      * @param max_query_answers Maximum number of query answers to process
      */
     void process_request(shared_ptr<PatternMatchingQueryProxy> proxy,
-                         vector<string>& link_template,
-                         const string& context,
-                         const string& request_id,
-                         int max_query_answers);
+                         shared_ptr<LinkCreationAgentRequest> request);
 
     void set_timeout(int timeout);
     void set_metta_file_path(string metta_file_path);

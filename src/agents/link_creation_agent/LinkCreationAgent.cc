@@ -19,8 +19,12 @@ LinkCreationAgent::LinkCreationAgent(int request_interval,
                                      bool save_links_to_db,
                                      bool reindex) {
     this->requests_interval_seconds = request_interval;
+    LOG_INFO("LinkCreationAgent initialized with request interval: " << request_interval
+                                                                    << " seconds");
     this->link_creation_agent_thread_count = thread_count;
     this->query_timeout_seconds = default_timeout;
+    LOG_INFO("LinkCreationAgent initialized with Query timeout: " << default_timeout
+                                                                    << " seconds");
     this->requests_buffer_file = buffer_file_path;
     this->metta_file_path = metta_file_path;
     this->save_links_to_metta_file = save_links_to_metta_file;
@@ -84,7 +88,9 @@ void LinkCreationAgent::run() {
             }
         }
         if (lca_request == nullptr ||
-            lca_request->last_execution + lca_request->current_interval > time(0)) {
+            (lca_request->last_execution + lca_request->current_interval > time(0)) ||
+            lca_request->is_running) {
+            // LOG_INFO("No request to process or request is still running, waiting...");
             Utils::sleep(loop_interval);
             continue;
         }
@@ -99,11 +105,7 @@ void LinkCreationAgent::run() {
                 query(lca_request->query, lca_request->context, lca_request->update_attention_broker);
             pattern_query_proxy_map[lca_request->id] = proxy;
 
-            service->process_request(proxy,
-                                     lca_request->link_template,
-                                     lca_request->context,
-                                     lca_request->id,
-                                     lca_request->max_results);
+            service->process_request(proxy,lca_request);
             lca_request->last_execution = time(0);
             if (lca_request->infinite) continue;
             if (lca_request->repeat >= 1) lca_request->repeat--;
@@ -197,6 +199,7 @@ shared_ptr<LinkCreationAgentRequest> LinkCreationAgent::create_request(vector<st
         }
         lca_request->infinite = (lca_request->repeat == -1);
         lca_request->id = compute_hash((char*) lca_request->id.c_str());
+        lca_request->is_running = false;
         LOG_INFO("Creating request ID: " << lca_request->id);
         LOG_INFO("Query: " << Utils::join(lca_request->query, ' '));
         LOG_INFO("Link Template: " << Utils::join(lca_request->link_template, ' '));

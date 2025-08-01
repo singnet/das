@@ -30,6 +30,7 @@ cc_library(
     includes = ["."],
     deps = [
         ":link_create_template",
+        ":link_creation_agent_request",
         ":processors",
         ":request_proxy",
         ":service",
@@ -59,6 +60,7 @@ cc_library(
     ],
     deps = [
         ":processors",
+        ":link_creation_agent_request",
         "//agents/query_engine:query_engine_lib",
         "//commons:commons_lib",
     ],
@@ -94,4 +96,9 @@ cc_library(
         "//hasher:hasher_lib",
         "//service_bus:service_bus_lib",
     ],
+)
+
+cc_library(
+    name = "link_creation_agent_request",
+    hdrs = ["LinkCreationAgentRequest.h"],
 )
