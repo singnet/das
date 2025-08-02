@@ -1,4 +1,5 @@
-#!/bin/bash
+#!/bin/bash -x
+
 set -euo pipefail
 
 declare -A TITLE_ALIAS_MAP=(
@@ -43,7 +44,7 @@ function build_metadata_section() {
   pr_url=$(echo "$pr_info" | jq -r '.[0].html_url // empty')
   pr_number=$(echo "$pr_info" | jq -r '.[0].number // empty')
   pr_title=$(echo "$pr_info" | jq -r '.[0].title // empty')
-  pr_base_branch=$(echo "$pr_info" | jq -r '.[0].base.ref // "main"')
+  pr_base_branch=$(echo "$pr_info" | jq -r '.[0].base.ref // "master"')
 
   commit_date=$(echo "$commit_info" | jq -r '.commit.author.date')
   commit_date_fmt=$(date -u -d "$commit_date" +"%Y-%m-%d %H:%M UTC")
@@ -51,15 +52,15 @@ function build_metadata_section() {
 
   echo "## $TITLE"$'\n'
   echo "**Repository:** $GITHUB_REPOSITORY"
-  if [[ -n "$pr_url" ]]; then
+  if [[ "$pr_url" != "" ]]; then
     echo "**Source:** [#$pr_number - $pr_title]($pr_url)"
   fi
   echo "**Date:** $commit_date_fmt"
 
-  if [[ -n "$pr_url" ]]; then
-    echo "**Commit:** \`$commit_sha_short\`"
-  else
+  if [[ "$pr_url" != "" ]]; then
     echo "**Commit:** \`$commit_sha_short\` ($pr_base_branch)"
+  else
+    echo "**Commit:** \`$commit_sha_short\`"
   fi
 }
 
