@@ -38,23 +38,22 @@ LinkCreationService::~LinkCreationService() {
 }
 
 void LinkCreationService::process_request(shared_ptr<PatternMatchingQueryProxy> proxy,
-                                          vector<string>& link_template,
-                                          const string& context,
-                                          const string& request_id,
-                                          int max_query_answers) {
-    auto job = [this, proxy, link_template, max_query_answers, context, request_id]() {
+                                          shared_ptr<LinkCreationAgentRequest> request) {
+    auto link_template = request->link_template;
+    auto context = request->context;
+    auto request_id = request->id;
+    auto max_query_answers = request->max_results;
+    auto job = [this, proxy, link_template, max_query_answers, context, request_id, request]() {
         shared_ptr<QueryAnswer> query_answer;
         int count = 0;
         long start = time(0);
-        while (!proxy->finished()) {
+        while (true) {
             if (time(0) - start > this->timeout) {
                 LOG_INFO("[" << request_id << "]"
                              << " - Timeout for iterator ID: " << proxy->my_id());
                 return;
             }
-            if ((query_answer = proxy->pop()) == NULL) {
-                Utils::sleep();
-            } else {
+            while ((query_answer = proxy->pop()) != NULL) {
                 try {
                     vector<vector<string>> link_tokens;
                     vector<string> extra_params;
@@ -75,14 +74,18 @@ void LinkCreationService::process_request(shared_ptr<PatternMatchingQueryProxy> 
                 if (++count == max_query_answers) break;
             }
             if (count == max_query_answers) break;
+            if (proxy->finished()) break;
+            Utils::sleep();
         }
-        Utils::sleep(1000);
+        Utils::sleep(500);
         LOG_INFO("[" << request_id << "]"
                      << " - Finished processing iterator ID: " + proxy->my_id()
                      << " with count: " << count);
+        request->is_running = false;
     };
 
     thread_pool.enqueue(job);
+    request->is_running = true;
 }
 
 vector<shared_ptr<Link>> LinkCreationService::process_query_answer(shared_ptr<QueryAnswer> query_answer,
@@ -124,7 +127,11 @@ void LinkCreationService::create_links() {
                 }
                 if (this->save_links_to_db) {
                     LOG_INFO("Saving link to database: " << link->to_string());
-                    AtomDBSingleton::get_instance()->add_link(link.get());
+                    auto db_instance = AtomDBSingleton::get_instance();
+                    if (!db_instance->link_exists(link->handle())) {
+                        LOG_INFO("Adding link to AtomDB: " << link->to_string());
+                        db_instance->add_link(link.get());
+                    }
                 }
                 metta_expression_set.insert(meta_content);
             } catch (const exception& e) {
