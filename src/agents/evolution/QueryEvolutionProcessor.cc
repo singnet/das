@@ -111,9 +111,7 @@ void QueryEvolutionProcessor::sample_population(
         }
     }
     if (!pm->finished()) {
-        // TODO Uncomment this when abort() is implemented
-        // pm->abort();
-        LOG_ERROR("Couldn't abort pattern matching query because abort() is not implemented");
+        pm->abort();
         unsigned int count = 0;
         while (!pm->finished()) {
             shared_ptr<QueryAnswer> query_answer;
@@ -123,7 +121,9 @@ void QueryEvolutionProcessor::sample_population(
                 count++;
             }
         }
-        LOG_ERROR("Discarding " << count << " answers");
+        if (count > 0) {
+            LOG_DEBUG("Discarding " << count << " answers");
+        }
     }
     if (remote_fitness && (answer_bundle_vector.size() > 0)) {
         LOG_INFO("Evaluating fitness remotelly");

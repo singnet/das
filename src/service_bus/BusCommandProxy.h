@@ -48,6 +48,7 @@ class ProxyNode : public StarNode {
     void node_joined_network(const string& node_id);
 
     void remote_call(const string& command, const vector<string>& args);
+    bool is_server();
 
    private:
     BusCommandProxy* proxy;

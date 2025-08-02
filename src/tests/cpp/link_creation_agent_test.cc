@@ -38,7 +38,7 @@ class LinkCreationAgentTest : public ::testing::Test {
         this->metta_file_path = ".";
         this->save_links_to_metta_file = true;
         this->save_links_to_db = false;
-        this->server_id = "localhost:7003";
+        this->server_id = "localhost:40040";
         AtomDBSingleton::provide(move(make_shared<AtomDBMock>()));
     }
 
@@ -92,7 +92,7 @@ TEST_F(LinkCreationAgentTest, TestRequest) {
 }
 
 TEST_F(LinkCreationAgentTest, TestConfig) {
-    ServiceBusSingleton::init(this->server_id);
+    ServiceBusSingleton::init(this->server_id, "", 40500, 40599);
     shared_ptr<ServiceBus> service_bus = ServiceBusSingleton::get_instance();
     service_bus->register_processor(
         make_shared<LinkCreationRequestProcessor>(this->request_interval,

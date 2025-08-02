@@ -336,6 +336,7 @@ class SynchronousGRPC : public MessageBroker, public dasproto::AtomSpaceNode::Se
 
    private:
     static unsigned int MESSAGE_THREAD_COUNT;
+    static mutex GRPC_BUILDER_MUTEX;
     unique_ptr<grpc::Server> grpc_server;
     shared_ptr<StoppableThread> grpc_thread;
     vector<shared_ptr<StoppableThread>> inbox_threads;
@@ -352,6 +353,7 @@ class SynchronousGRPC : public MessageBroker, public dasproto::AtomSpaceNode::Se
     bool inbox_setup_finished();
 
     // Methods used to start threads
+    void grpc_thread_teardown(shared_ptr<StoppableThread> monitor);
     void grpc_thread_method(shared_ptr<StoppableThread> monitor);
     void inbox_thread_method(shared_ptr<StoppableThread> monitor);
 };

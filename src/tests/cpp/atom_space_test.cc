@@ -390,7 +390,7 @@ class AtomDBEnvironment : public ::testing::Environment {
         TestConfig::load_environment();
         // Initialize the singleton once
         AtomDBSingleton::init();
-        ServiceBusSingleton::init("localhost:31701", "localhost:31702", 31700, 31799);
+        ServiceBusSingleton::init("localhost:40030", "localhost:40031", 40100, 40199);
     }
 
     void TearDown() override {

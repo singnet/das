@@ -13,15 +13,15 @@ namespace service_bus {
  */
 class PortPool {
    public:
-    static void initialize_statics(unsigned long port_lower, unsigned long port_upper);
-    static unsigned long get_port();
-    static void return_port(unsigned long port);
+    static void initialize_statics(unsigned int port_lower, unsigned int port_upper);
+    static unsigned int get_port();
+    static void return_port(unsigned int port);
 
    private:
     PortPool();
     static SharedQueue* POOL;
-    static unsigned long PORT_LOWER;
-    static unsigned long PORT_UPPER;
+    static unsigned int PORT_LOWER;
+    static unsigned int PORT_UPPER;
 };
 
 }  // namespace service_bus

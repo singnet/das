@@ -17,12 +17,13 @@
 #include "atom_space_node.grpc.pb.h"
 #include "atom_space_node.pb.h"
 
-#define LOG_LEVEL INFO_LEVEL
+#define LOG_LEVEL DEBUG_LEVEL
 #include "Logger.h"
 
 using namespace distributed_algorithm_node;
 
 unsigned int SynchronousGRPC::MESSAGE_THREAD_COUNT = 10;
+mutex SynchronousGRPC::GRPC_BUILDER_MUTEX;
 unsigned int SynchronousSharedRAM::MESSAGE_THREAD_COUNT = 1;
 unordered_map<string, SharedQueue*> SynchronousSharedRAM::NODE_QUEUE;
 mutex SynchronousSharedRAM::NODE_QUEUE_MUTEX;
@@ -93,27 +94,44 @@ SynchronousGRPC::~SynchronousGRPC() {
     if (this->joined_network) {
         this->stop();
         this->inbox_threads.clear();
-
-        this->grpc_server->Shutdown();
-        this->grpc_server.reset();
-
-        this->grpc_thread->stop();
+        this->grpc_thread->stop(true);
     }
 }
 
 // -------------------------------------------------------------------------------------------------
 // Methods used to start threads
 
+void SynchronousGRPC::grpc_thread_teardown(shared_ptr<StoppableThread> monitor) {
+    while (!monitor->stopped()) {
+        Utils::sleep();
+    }
+    this->grpc_server->Shutdown();
+    this->grpc_server->Wait();
+    Utils::sleep();
+}
+
 void SynchronousGRPC::grpc_thread_method(shared_ptr<StoppableThread> monitor) {
-    grpc::EnableDefaultHealthCheckService(false);
-    grpc::reflection::InitProtoReflectionServerBuilderPlugin();
+    thread* grpc_teardown = new thread(&SynchronousGRPC::grpc_thread_teardown, this, monitor);
+    GRPC_BUILDER_MUTEX.lock();
     grpc::ServerBuilder builder;
     builder.AddListeningPort(this->node_id, grpc::InsecureServerCredentials());
+    builder.AddChannelArgument(GRPC_ARG_ALLOW_REUSEPORT, 1);
     builder.RegisterService(this);
-    LOG_INFO("SynchronousGRPC listening on " + this->node_id);
+    LOG_DEBUG("Building GRPC server on " + this->node_id);
     this->grpc_server = builder.BuildAndStart();
+    if (this->grpc_server == nullptr) {
+        GRPC_BUILDER_MUTEX.unlock();
+        Utils::error("Couldn't start GRPC server on " + this->node_id);
+        return;
+    }
+    LOG_INFO("SynchronousGRPC listening on " + this->node_id);
     set_grpc_server_started();
+    GRPC_BUILDER_MUTEX.unlock();
     this->grpc_server->Wait();
+    grpc_teardown->join();
+    this->grpc_server.reset();
+    delete grpc_teardown;
+    LOG_DEBUG("GRPC thread finished " + this->node_id);
 }
 
 void SynchronousSharedRAM::inbox_thread_method(shared_ptr<StoppableThread> monitor) {
@@ -425,7 +443,7 @@ void SynchronousGRPC::stop() {
     for (auto thread : this->inbox_threads) {
         thread->stop();
     }
-    grpc_thread->stop(false);
+    grpc_thread->stop(true);
 }
 
 // -------------------------------------------------------------------------------------------------

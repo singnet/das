@@ -165,12 +165,10 @@ void PatternMatchingQueryProcessor::thread_process_one_query(
         shared_ptr<QueryElement> root_query_element = setup_query_tree(proxy);
         set<string> joint_answer;  // used to stimulate attention broker
         string command = proxy->get_command();
-        unsigned int sink_port_number;
         if (root_query_element == NULL) {
             Utils::error("Invalid empty query tree.");
         } else {
             if (command == ServiceBus::PATTERN_MATCHING_QUERY) {
-                sink_port_number = PortPool::get_port();
                 LinkTemplate* root_link_template = dynamic_cast<LinkTemplate*>(root_query_element.get());
                 shared_ptr<Sink> query_sink;
                 if (root_link_template != NULL) {
@@ -206,7 +204,6 @@ void PatternMatchingQueryProcessor::thread_process_one_query(
                 Utils::sleep(500);
                 LOG_INFO("Total processed answers: " << answer_count);
                 query_sink->graceful_shutdown();
-                PortPool::return_port(sink_port_number);
             } else {
                 Utils::error("Invalid command " + command + " in PatternMatchingQueryProcessor");
             }

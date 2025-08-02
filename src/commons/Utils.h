@@ -46,11 +46,10 @@ class MemoryFootprint {
 
 class Utils {
    public:
-    Utils();
-    ~Utils();
+    Utils() {}
+    ~Utils() {}
 
     static void error(string msg);
-    static void warning(string msg);
     static bool flip_coin(double true_probability = 0.5);
     static void sleep(unsigned int milliseconds = 100);
     static string get_environment(string const& key);
@@ -67,6 +66,7 @@ class Utils {
     static string linux_command_line(const char* cmd);
     static unsigned long get_current_free_ram();   // Kbytes
     static unsigned long get_current_ram_usage();  // Kbytes
+    static bool is_port_available(unsigned int port);
 };
 
 }  // namespace commons

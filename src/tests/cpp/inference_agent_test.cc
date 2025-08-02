@@ -41,7 +41,7 @@ class InferenceAgentTest : public ::testing::Test {
 
     void SetUp() override {
         ServiceBusSingleton::provide(
-            move(make_shared<MockServiceBus>("localhost:1111", "localhost:1121")));
+            move(make_shared<MockServiceBus>("localhost:40038", "localhost:40039")));
         AtomDBSingleton::provide(move(make_shared<AtomDBMock>()));
     }
 
