@@ -7,6 +7,7 @@ on:
   push:
     branches:
       - master
+      - das-622
 
 jobs:
   benchmark:
@@ -45,10 +46,19 @@ jobs:
           name: benchmark-report
           path: atomdb_benchmark
 
+      - name: Install requirements 
+        run: sudo apt -y update && sudo apt -y install zip
+
+      - name: Zip benchmark report
+        run: zip -r benchmark-report.zip atomdb_benchmark
+
       - name: Create mattermost message
         run: bash .github/scripts/mattermost-benchmark-report.sh
 
       - name: Notify Mattermost
-        uses: singnet/integration-github-mattermost@master
+        uses: singnet/integration-github-mattermost@v0.3.0
         with:
-          webhook-url: ${{ secrets.SCHEDULED_REPOS_MATTERMOST_WEBHOOK_URL }}
+          server-url: ${{ vars.MATTERMOST_SERVER_URL }}
+          token: ${{ secrets.MATTERMOST_TOKEN }}
+          channel-id: ${{ vars.MATTERMOST_CICD_CHANNEL_ID }}
+          attachments-path: ./benchmark-report.zip
