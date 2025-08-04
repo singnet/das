@@ -283,7 +283,7 @@ run_benchmark() {
         DeleteAtom=("delete_node" "delete_link" "delete_atom_node" "delete_atom_link")
         DeleteAtoms=("delete_nodes" "delete_links" "delete_atoms_node" "delete_atoms_link")
 
-        ATOMDB_TYPES=("redis_mongo")
+        ATOMDB_TYPES=("redis_mongo" "mork")
 
         for type in "${ATOMDB_TYPES[@]}"; do
             for action in "${ACTIONS[@]}"; do
