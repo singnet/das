@@ -43,18 +43,17 @@ map<string, map<string, double>> calculate_metric_statistics(map<string, Metrics
             Utils::error("metrics for operation '" + operation + "' are empty");
         }
 
-        double sum = accumulate(metric.operation_time.begin(), metric.operation_time.end(), 0.0);
-        double mean = sum / metric.operation_time.size();
-
         sort(metric.operation_time.begin(), metric.operation_time.end());
 
+        double sum = accumulate(metric.operation_time.begin(), metric.operation_time.end(), 0.0);
+        double mean = sum / metric.operation_time.size();
         double min_ms = metric.operation_time.front();
         double max_ms = metric.operation_time.back();
         double p50 = compute_percentile(metric.operation_time, 0.50);
         double p90 = compute_percentile(metric.operation_time, 0.90);
         double p99 = compute_percentile(metric.operation_time, 0.99);
 
-        stats[operation] = {{"mean_operation_time", mean},
+        stats[operation] = {{"median_operation_time", p50},
                             {"min_operation_time", min_ms},
                             {"max_operation_time", max_ms},
                             {"p50_operation_time", p50},
@@ -74,13 +73,13 @@ void create_report(const string& db_name,
                    const string& base_directory,
                    const int& batch_size) {
     stringstream table;
-    table << fixed << setprecision(5);
+    table << fixed << setprecision(2);
     table << left;
 
     const int col1 = 15;
     const int colN = 13;
     table << setw(col1) << "Operation"
-          << "| " << setw(colN) << "AVG"
+          << "| " << setw(colN) << "MED"
           << "| " << setw(colN) << "MIN"
           << "| " << setw(colN) << "MAX"
           << "| " << setw(colN) << "P50"
@@ -102,7 +101,7 @@ void create_report(const string& db_name,
     map<string, map<string, double>> stats = calculate_metric_statistics(metrics);
 
     for (const auto& [operation, inner_map] : stats) {
-        table << setw(col1) << operation << "| " << setw(colN) << inner_map.at("mean_operation_time")
+        table << setw(col1) << operation << "| " << setw(colN) << inner_map.at("median_operation_time")
               << "| " << setw(colN) << inner_map.at("min_operation_time") << "| " << setw(colN)
               << inner_map.at("max_operation_time") << "| " << setw(colN)
               << inner_map.at("p50_operation_time") << "| " << setw(colN)

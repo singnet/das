@@ -5,7 +5,7 @@ from collections import defaultdict
 DEFAULT_COL_ORDER = [
     "Backend",
     "Operation",
-    "AVG",
+    "MED",
     "MIN",
     "MAX",
     "P50",
