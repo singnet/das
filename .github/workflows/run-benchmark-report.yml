@@ -56,7 +56,7 @@ jobs:
         run: bash .github/scripts/mattermost-benchmark-report.sh
 
       - name: Notify Mattermost
-        uses: singnet/integration-github-mattermost@das-622
+        uses: singnet/integration-github-mattermost@0.3.0
         with:
           server-url: ${{ vars.MATTERMOST_SERVER_URL }}
           token: ${{ secrets.MATTERMOST_TOKEN }}

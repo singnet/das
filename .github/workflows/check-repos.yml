@@ -26,7 +26,7 @@ jobs:
 
       - name: Send success notification
         if: steps.running-workflow.outputs.conclusion == 'success'
-        uses: singnet/integration-github-mattermost@master
+        uses: singnet/integration-github-mattermost@0.2.0
         with:
           webhook-url: ${{ secrets.SCHEDULED_REPOS_MATTERMOST_WEBHOOK_URL }}
           message: |
@@ -36,7 +36,7 @@ jobs:
 
       - name: Send failure notification
         if: steps.running-workflow.outputs.conclusion != 'success'
-        uses: singnet/integration-github-mattermost@master
+        uses: singnet/integration-github-mattermost@0.2.0
         with:
           webhook-url: ${{ secrets.SCHEDULED_REPOS_MATTERMOST_WEBHOOK_URL }}
           message: |
