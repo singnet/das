@@ -24,6 +24,12 @@ BusCommandProxy::~BusCommandProxy() {
         // Return the port to the pool of available ports
         PortPool::return_port(this->proxy_port);
         this->proxy_node->graceful_shutdown();
+        if (this->proxy_node->is_server()) {
+            // Force BUS command caller to wait for the client while it shuts down.  This
+            // reduces the probability of having PORTs in TIME_WAIT mode which would make
+            // them unusable for a period of time.
+            Utils::sleep(500);
+        }
         delete this->proxy_node;
     }
 }
@@ -119,6 +125,8 @@ void ProxyNode::node_joined_network(const string& node_id) {
     StarNode::node_joined_network(node_id);
     this->peer_id = node_id;
 }
+
+bool ProxyNode::is_server() { return StarNode::is_server; }
 
 // -------------------------------------------------------------------------------------------------
 // Messages

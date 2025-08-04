@@ -36,9 +36,9 @@ TEST(QueryEvolution, protected_methods) {
     TestConfig::load_environment();
     AtomDBSingleton::init();
 
-    string peer1_id = "localhost:33801";
-    string peer2_id = "localhost:33802";
-    ServiceBusSingleton::init(peer1_id, "", 64000, 64999);
+    string peer1_id = "localhost:40043";
+    string peer2_id = "localhost:40044";
+    ServiceBusSingleton::init(peer1_id, "", 40300, 40399);
     FitnessFunctionRegistry::initialize_statics();
     shared_ptr<ServiceBus> query_bus = ServiceBusSingleton::get_instance();
     query_bus->register_processor(make_shared<PatternMatchingQueryProcessor>());
