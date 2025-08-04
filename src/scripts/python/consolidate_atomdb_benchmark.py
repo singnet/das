@@ -7,7 +7,7 @@ import sqlite3
 DEFAULT_COL_ORDER = [
     "Backend",
     "Operation",
-    "AVG",
+    "MED",
     "MIN",
     "MAX",
     "P50",

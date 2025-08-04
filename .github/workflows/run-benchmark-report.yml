@@ -19,7 +19,11 @@ jobs:
         run: rm -rf /tmp/atomdb_benchmark || true
 
       - name: Run benchmark
-        run: ./src/scripts/run_atomdb_benchmark.sh --db empty --rel none --cache disabled --concurrency 1 --iterations 100 || true
+        run: ./src/scripts/run_benchmark.sh atomdb --db small --rel tightly --cache disabled --concurrency 1 --iterations 100 || true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_SHA: ${{ github.sha }}
 
       - name: Upload benchmark report artifact
         uses: actions/upload-artifact@v4
@@ -42,28 +46,7 @@ jobs:
           path: atomdb_benchmark
 
       - name: Create mattermost message
-        run: |
-          #!/bin/bash
-          set -e
-
-          REPORT_DIR="atomdb_benchmark"
-          TITLE="AtomDB Benchmark Report - Redis + MongoDB (Single Thread, 100 iterations)"
-
-          files=$(find "$REPORT_DIR" -type f -name '*.txt' | sort)
-
-          header=$(head -n 2 $(echo "$files" | head -n1))
-
-          body=""
-          for f in $files; do
-            data=$(tail -n +3 "$f")
-            body+="$data"$'\n'
-          done
-
-          message="$TITLE"$'\n\n'"$header"$'\n'"$body"
-
-          escaped=$(jq -Rs . <<< "$message")
-          echo "$message"
-          echo "{\"text\": $escaped}" > mattermost.json
+        run: bash .github/scripts/mattermost-benchmark-report.sh
 
       - name: Notify Mattermost
         uses: singnet/integration-github-mattermost@master

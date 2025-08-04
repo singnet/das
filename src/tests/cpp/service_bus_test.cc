@@ -60,13 +60,13 @@ void check_command(ServiceBus& source, shared_ptr<TestProcessor> target, const s
 
 TEST(ServiceBus, basics) {
     set<string> commands = {"c1", "c2", "c3", "c4", "c5"};
-    ServiceBus::initialize_statics(commands, 72400, 73400);
+    ServiceBus::initialize_statics(commands, 40400, 40499);
     shared_ptr<TestProcessor> processor1(new TestProcessor({"c1", "c4"}));
     shared_ptr<TestProcessor> processor2(new TestProcessor({"c2"}));
     shared_ptr<TestProcessor> processor3(new TestProcessor({"c3"}));
-    string peer1_id = "localhost:32701";
-    string peer2_id = "localhost:32702";
-    string peer3_id = "localhost:32703";
+    string peer1_id = "localhost:40045";
+    string peer2_id = "localhost:40046";
+    string peer3_id = "localhost:40047";
 
     ServiceBus service_bus1(peer1_id);
     Utils::sleep(1000);

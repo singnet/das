@@ -173,10 +173,6 @@ void GetAtom::get_atom_document_node() {
         [&](string handle) { db_->get_atom_document(handle); });
 }
 void GetAtom::get_atom_document_link() {
-    auto link_schema = LinkSchema(contains_links_query);
-    auto handle_set = db_->query_for_pattern(link_schema);
-    vector<string> random_link_handles = get_random_link_handle(handle_set);
-
     run_benchmark(
         "get_atom_document[link]",
         [&](int i) -> string {
@@ -300,12 +296,12 @@ void DeleteAtom::delete_node() {
     run_benchmark(
         "delete_node",
         [&](int i) -> string {
-            auto link_schema = LinkSchema(contains_links_query);
+            auto link_schema = LinkSchema(sentence_links_query);
             auto handle_set = db_->query_for_pattern(link_schema);
             vector<string> random_link_handles = get_random_link_handle(handle_set);
             auto link_document = db_->get_link_document(random_link_handles[0]);
-            auto contains_node_handle = link_document->get("targets", 1);
-            return contains_node_handle;
+            auto node_handle = link_document->get("targets", 1);
+            return node_handle;
         },
         [&](string handle) { db_->delete_node(handle); });
 }
@@ -324,12 +320,12 @@ void DeleteAtom::delete_atom_node() {
     run_benchmark(
         "delete_atom[node]",
         [&](int i) -> string {
-            auto link_schema = LinkSchema(contains_links_query);
+            auto link_schema = LinkSchema(sentence_links_query);
             auto handle_set = db_->query_for_pattern(link_schema);
             vector<string> random_link_handles = get_random_link_handle(handle_set);
             auto link_document = db_->get_link_document(random_link_handles[0]);
-            auto contains_node_handle = link_document->get("targets", 1);
-            return contains_node_handle;
+            auto node_handle = link_document->get("targets", 1);
+            return node_handle;
         },
         [&](string handle) { db_->delete_atom(handle); });
 }
@@ -370,7 +366,7 @@ void DeleteAtoms::delete_links() {
     run_benchmark(
         "delete_links",
         [&](int i) -> vector<string> {
-            auto link_schema = LinkSchema(sentence_links_query);
+            auto link_schema = LinkSchema(contains_links_query);
             auto handle_set = db_->query_for_pattern(link_schema);
             size_t max_count = max<size_t>(BATCH_SIZE, MAX_COUNT);
             return get_random_link_handle(handle_set, max_count, BATCH_SIZE);
@@ -403,7 +399,7 @@ void DeleteAtoms::delete_atoms_link() {
     run_benchmark(
         "delete_atoms[link]",
         [&](int i) -> vector<string> {
-            auto link_schema = LinkSchema(sentence_links_query);
+            auto link_schema = LinkSchema(contains_links_query);
             auto handle_set = db_->query_for_pattern(link_schema);
             size_t max_count = max<size_t>(BATCH_SIZE, MAX_COUNT);
             return get_random_link_handle(handle_set, max_count, BATCH_SIZE);

@@ -242,9 +242,10 @@ class QueryAnswer:
 
             metta_expression_size = int(next_token())
 
-            for _ in range(metta_expression_size + 1):
-                key = next_token()
-                self.metta_expression[key] = next_token()
+            if metta_expression_size > 0:
+                for _ in range(metta_expression_size + 1):
+                    key = next_token()
+                    self.metta_expression[key] = next_token()
 
             log.debug(f"Metta expression: {self.metta_expression}")
 
