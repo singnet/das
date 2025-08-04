@@ -46,6 +46,9 @@ jobs:
           name: benchmark-report
           path: atomdb_benchmark
 
+      - name: Install requirements 
+        run: sudo apt -y update && sudo apt -y install zip
+
       - name: Zip benchmark report
         run: zip -r benchmark-report.zip atomdb_benchmark
 
