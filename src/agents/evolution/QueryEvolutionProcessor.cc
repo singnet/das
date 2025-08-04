@@ -212,11 +212,15 @@ void QueryEvolutionProcessor::select_best_individuals(
             select_one_by_tournament(proxy, population, selected);
         }
     }
+    float sum = 0;
+    for (unsigned int i = 0; i < count; i++) {
+        LOG_INFO((proxy->populate_metta_mapping(selected[i].first.get()), sum += selected[i].second, selected[i].first->metta_expression[selected[i].first->handles[0]] + " " + std::to_string(selected[i].first->strength)));
+    }
+    LOG_INFO("Generation: " + std::to_string(this->count_generations) + " - Average fitness in selected group: " + std::to_string(sum / count));
 }
 
 void QueryEvolutionProcessor::correlate_similar(shared_ptr<QueryEvolutionProxy> proxy,
                                                 shared_ptr<QueryAnswer> correlation_query_answer) {
-    LOG_INFO("Correlating QueryAnswer: " + correlation_query_answer->to_string());
     vector<string> query_tokens;
     unsigned int cursor = 0;
     vector<string> original_tokens = proxy->get_correlation_tokens();
@@ -321,7 +325,7 @@ void QueryEvolutionProcessor::update_attention_allocation(
     shared_ptr<QueryEvolutionProxy> proxy, vector<std::pair<shared_ptr<QueryAnswer>, float>>& selected) {
     unsigned int count = 1;
     for (auto pair : selected) {
-        LOG_DEBUG("Correlation " + std::to_string(count) + "/" + std::to_string(selected.size()));
+        LOG_INFO("Correlating QueryAnswer (" + std::to_string(count) + "/" + std::to_string(selected.size()) + "): " + pair.first->to_string());
         correlate_similar(proxy, pair.first);
         count++;
     }
@@ -332,16 +336,16 @@ void QueryEvolutionProcessor::evolve_query(shared_ptr<StoppableThread> monitor,
                                            shared_ptr<QueryEvolutionProxy> proxy) {
     vector<std::pair<shared_ptr<QueryAnswer>, float>> population;
     vector<std::pair<shared_ptr<QueryAnswer>, float>> selected;
-    unsigned int count_generations = 1;
+    this->count_generations = 1;
     RAM_FOOTPRINT_START(evolution);
     STOP_WATCH_START(evolution);
     while (!monitor->stopped() && !proxy->stop_criteria_met()) {
-        RAM_CHECKPOINT("Generation " + std::to_string(count_generations));
+        RAM_CHECKPOINT("Generation " + std::to_string(this->count_generations));
         STOP_WATCH_START(generation);
         STOP_WATCH_START(sample_population);
         sample_population(monitor, proxy, population);
         STOP_WATCH_FINISH(sample_population, "EvolutionPopulationSampling");
-        LOG_INFO("========== Generation: " + std::to_string(count_generations) +
+        LOG_INFO("========== Generation: " + std::to_string(this->count_generations) +
                  ". Sampled: " + std::to_string(population.size()) + " individuals. ==========");
         proxy->new_population_sampled(population);
         if (population.size() > 0) {
@@ -359,9 +363,9 @@ void QueryEvolutionProcessor::evolve_query(shared_ptr<StoppableThread> monitor,
             selected.clear();
             proxy->flush_answer_bundle();
         }
-        RAM_FOOTPRINT_CHECK(evolution, "Generation " + std::to_string(count_generations));
+        RAM_FOOTPRINT_CHECK(evolution, "Generation " + std::to_string(this->count_generations));
         STOP_WATCH_FINISH(generation, "OneGeneration");
-        count_generations++;
+        this->count_generations++;
     }
     STOP_WATCH_FINISH(evolution, "QueryEvolution");
     RAM_FOOTPRINT_FINISH(evolution, "");

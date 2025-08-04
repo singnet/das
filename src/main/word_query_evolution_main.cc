@@ -203,9 +203,9 @@ void run(const string& client_id,
         or_two_words, activation_spreading2, {sentence1}, context, "count_letter");
 
     shared_ptr<QueryEvolutionProxy> proxy(proxy_ptr);
-    proxy->parameters[QueryEvolutionProxy::POPULATION_SIZE] = (unsigned int) 500;
+    proxy->parameters[QueryEvolutionProxy::POPULATION_SIZE] = (unsigned int) 100;
     proxy->parameters[QueryEvolutionProxy::MAX_GENERATIONS] = (unsigned int) 10;
-    proxy->parameters[QueryEvolutionProxy::ELITISM_RATE] = (double) 0.05;
+    proxy->parameters[QueryEvolutionProxy::ELITISM_RATE] = (double) 0.10;
     proxy->parameters[QueryEvolutionProxy::SELECTION_RATE] = (double) 0.10;
     proxy->parameters[BaseQueryProxy::MAX_BUNDLE_SIZE] = (unsigned int) 10000;
     service_bus->issue_bus_command(proxy);

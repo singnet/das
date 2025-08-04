@@ -73,6 +73,7 @@ class QueryEvolutionProcessor : public BusCommandProcessor {
     mutex query_threads_mutex;
     shared_ptr<QueryEvolutionProxy> proxy;
     AtomSpace atom_space;
+    unsigned int count_generations;
 };
 
 }  // namespace evolution
