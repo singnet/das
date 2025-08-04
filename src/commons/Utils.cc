@@ -1,5 +1,7 @@
 #include "Utils.h"
 
+#include <netinet/in.h>
+#include <sys/socket.h>
 #include <unistd.h>
 
 #include <algorithm>
@@ -22,16 +24,10 @@ using namespace std;
 // --------------------------------------------------------------------------------
 // Public methods
 
-Utils::Utils() {}
-
-Utils::~Utils() {}
-
 void Utils::error(string msg) {
     LOG_ERROR(msg);
     throw runtime_error(msg);
 }
-
-void Utils::warning(string msg) { cerr << msg << endl; }
 
 bool Utils::flip_coin(double true_probability) {
     long f = 1000;
@@ -47,147 +43,6 @@ string Utils::get_environment(string const& key) {
     string answer = (value == NULL ? "" : value);
     return answer;
 }
-
-// --------------------------------------------------------------------------------
-// StopWatch
-
-StopWatch::StopWatch() { reset(); }
-
-StopWatch::~StopWatch() {}
-
-void StopWatch::start() {
-    if (running) {
-        stop();
-    }
-    start_time = chrono::steady_clock::now();
-    running = true;
-}
-
-void StopWatch::stop() {
-    if (running) {
-        chrono::steady_clock::time_point check = chrono::steady_clock::now();
-        accumulator = accumulator + (check - start_time);
-        start_time = check;
-        running = false;
-    }
-}
-
-void StopWatch::reset() {
-    running = false;
-    accumulator = chrono::steady_clock::duration::zero();
-}
-
-unsigned long StopWatch::milliseconds() {
-    return chrono::duration_cast<chrono::milliseconds>(accumulator).count();
-}
-
-string StopWatch::str_time() {
-    unsigned long millis = milliseconds();
-
-    unsigned long seconds = millis / 1000;
-    if (seconds > 0) {
-        millis = millis % 1000;
-    }
-
-    unsigned long minutes = seconds / 60;
-    if (minutes > 0) {
-        seconds = seconds % 60;
-    }
-
-    unsigned long hours = minutes / 60;
-    if (hours > 0) {
-        minutes = minutes % 60;
-    }
-
-    if (hours > 0) {
-        return to_string(hours) + " hours " + to_string(minutes) + " mins";
-    } else if (minutes > 0) {
-        return to_string(minutes) + " mins " + to_string(seconds) + " secs";
-    } else {
-        return to_string(seconds) + " secs " + to_string(millis) + " millis";
-    }
-}
-
-// --------------------------------------------------------------------------------
-// MemoryFootprint
-
-MemoryFootprint::MemoryFootprint() {
-    this->running = false;
-    this->start_snapshot = 0L;
-    this->last_snapshot = 0L;
-    this->final_snapshot = 0L;
-}
-
-MemoryFootprint::~MemoryFootprint() {}
-
-void MemoryFootprint::start() {
-    this->running = true;
-    this->delta_ram.clear();
-    this->start_snapshot = Utils::get_current_ram_usage();
-    this->last_snapshot = this->start_snapshot;
-}
-
-void MemoryFootprint::check(const string& tag) {
-    if (this->running) {
-        unsigned long snapshot = Utils::get_current_ram_usage();
-        delta_ram.push_back(make_pair(snapshot - this->last_snapshot, tag));
-        this->last_snapshot = snapshot;
-    } else {
-        Utils::error("MemoryFootprint is not running");
-    }
-}
-
-void MemoryFootprint::stop(const string& tag) {
-    if (this->running) {
-        if (tag != "") {
-            check(tag);
-        }
-        this->final_snapshot = Utils::get_current_ram_usage();
-        this->running = false;
-    } else {
-        Utils::error("MemoryFootprint is not running");
-    }
-}
-
-long MemoryFootprint::delta_usage(bool since_last_check) {
-    unsigned long baseline;
-    unsigned long reference;
-    if (since_last_check) {
-        baseline = this->last_snapshot;
-    } else {
-        baseline = this->start_snapshot;
-    }
-    if (this->running) {
-        reference = Utils::get_current_ram_usage();
-    } else {
-        reference = this->final_snapshot;
-    }
-    return reference - baseline;
-}
-
-string MemoryFootprint::to_string() {
-    string answer = "{Begin: " + std::to_string(this->start_snapshot) + ", End: ";
-    if (this->running) {
-        answer += std::to_string(this->final_snapshot);
-    } else {
-        answer += std::to_string(this->last_snapshot);
-    }
-    answer += ", Delta: " + std::to_string(delta_usage()) + ", Checkpoints: [";
-    bool empty_flag = true;
-    for (auto pair : this->delta_ram) {
-        answer += "(\"" + pair.second + "\", " + std::to_string(pair.first) + ")";
-        answer += ", ";
-        empty_flag = false;
-    }
-    if (!empty_flag) {
-        answer.pop_back();
-        answer.pop_back();
-    }
-    answer += "]}";
-    return answer;
-}
-
-// --------------------------------------------------------------------------------
 
 map<string, string> Utils::parse_config(string const& config_path) {
     map<string, string> config;
@@ -352,3 +207,166 @@ unsigned long Utils::get_current_ram_usage() {
 
     return (unsigned long) resident_set;
 }
+
+bool Utils::is_port_available(unsigned int port) {
+    int socket_descriptor;
+    struct sockaddr_in my_addr;
+
+    socket_descriptor = socket(AF_INET, SOCK_STREAM, 0);
+    if (socket_descriptor == -1) {
+        return false;
+    }
+
+    my_addr.sin_family = AF_INET;
+    my_addr.sin_port = htons(port);
+    my_addr.sin_addr.s_addr = INADDR_ANY;
+    bzero(&(my_addr.sin_zero), 8);
+
+    if (bind(socket_descriptor, (struct sockaddr*) &my_addr, sizeof(struct sockaddr)) == -1) {
+        return false;
+    }
+
+    close(socket_descriptor);
+    return true;
+}
+
+// --------------------------------------------------------------------------------
+// StopWatch
+
+StopWatch::StopWatch() { reset(); }
+
+StopWatch::~StopWatch() {}
+
+void StopWatch::start() {
+    if (running) {
+        stop();
+    }
+    start_time = chrono::steady_clock::now();
+    running = true;
+}
+
+void StopWatch::stop() {
+    if (running) {
+        chrono::steady_clock::time_point check = chrono::steady_clock::now();
+        accumulator = accumulator + (check - start_time);
+        start_time = check;
+        running = false;
+    }
+}
+
+void StopWatch::reset() {
+    running = false;
+    accumulator = chrono::steady_clock::duration::zero();
+}
+
+unsigned long StopWatch::milliseconds() {
+    return chrono::duration_cast<chrono::milliseconds>(accumulator).count();
+}
+
+string StopWatch::str_time() {
+    unsigned long millis = milliseconds();
+
+    unsigned long seconds = millis / 1000;
+    if (seconds > 0) {
+        millis = millis % 1000;
+    }
+
+    unsigned long minutes = seconds / 60;
+    if (minutes > 0) {
+        seconds = seconds % 60;
+    }
+
+    unsigned long hours = minutes / 60;
+    if (hours > 0) {
+        minutes = minutes % 60;
+    }
+
+    if (hours > 0) {
+        return to_string(hours) + " hours " + to_string(minutes) + " mins";
+    } else if (minutes > 0) {
+        return to_string(minutes) + " mins " + to_string(seconds) + " secs";
+    } else {
+        return to_string(seconds) + " secs " + to_string(millis) + " millis";
+    }
+}
+
+// --------------------------------------------------------------------------------
+// MemoryFootprint
+
+MemoryFootprint::MemoryFootprint() {
+    this->running = false;
+    this->start_snapshot = 0L;
+    this->last_snapshot = 0L;
+    this->final_snapshot = 0L;
+}
+
+MemoryFootprint::~MemoryFootprint() {}
+
+void MemoryFootprint::start() {
+    this->running = true;
+    this->delta_ram.clear();
+    this->start_snapshot = Utils::get_current_ram_usage();
+    this->last_snapshot = this->start_snapshot;
+}
+
+void MemoryFootprint::check(const string& tag) {
+    if (this->running) {
+        unsigned long snapshot = Utils::get_current_ram_usage();
+        delta_ram.push_back(make_pair(snapshot - this->last_snapshot, tag));
+        this->last_snapshot = snapshot;
+    } else {
+        Utils::error("MemoryFootprint is not running");
+    }
+}
+
+void MemoryFootprint::stop(const string& tag) {
+    if (this->running) {
+        if (tag != "") {
+            check(tag);
+        }
+        this->final_snapshot = Utils::get_current_ram_usage();
+        this->running = false;
+    } else {
+        Utils::error("MemoryFootprint is not running");
+    }
+}
+
+long MemoryFootprint::delta_usage(bool since_last_check) {
+    unsigned long baseline;
+    unsigned long reference;
+    if (since_last_check) {
+        baseline = this->last_snapshot;
+    } else {
+        baseline = this->start_snapshot;
+    }
+    if (this->running) {
+        reference = Utils::get_current_ram_usage();
+    } else {
+        reference = this->final_snapshot;
+    }
+    return reference - baseline;
+}
+
+string MemoryFootprint::to_string() {
+    string answer = "{Begin: " + std::to_string(this->start_snapshot) + ", End: ";
+    if (this->running) {
+        answer += std::to_string(this->final_snapshot);
+    } else {
+        answer += std::to_string(this->last_snapshot);
+    }
+    answer += ", Delta: " + std::to_string(delta_usage()) + ", Checkpoints: [";
+    bool empty_flag = true;
+    for (auto pair : this->delta_ram) {
+        answer += "(\"" + pair.second + "\", " + std::to_string(pair.first) + ")";
+        answer += ", ";
+        empty_flag = false;
+    }
+    if (!empty_flag) {
+        answer.pop_back();
+        answer.pop_back();
+    }
+    answer += "]}";
+    return answer;
+}
+
+// --------------------------------------------------------------------------------

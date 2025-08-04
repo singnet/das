@@ -82,9 +82,9 @@ void TestMessage::act(shared_ptr<MessageFactory> node) {
 // Test cases
 
 TEST(DistributedAlgorithmNode, basics) {
-    string server_id = "localhost:30700";
-    string client1_id = "localhost:30701";
-    string client2_id = "localhost:30702";
+    string server_id = "localhost:40032";
+    string client1_id = "localhost:40033";
+    string client2_id = "localhost:40034";
     TestNode* server;
     TestNode* client1;
     TestNode* client2;
@@ -135,9 +135,9 @@ TEST(DistributedAlgorithmNode, basics) {
 }
 
 TEST(DistributedAlgorithmNode, communication) {
-    string server_id = "localhost:30700";
-    string client1_id = "localhost:30701";
-    string client2_id = "localhost:30702";
+    string server_id = "localhost:40035";
+    string client1_id = "localhost:40036";
+    string client2_id = "localhost:40037";
     TestNode* server;
     TestNode* client1;
     TestNode* client2;
