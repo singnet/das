@@ -181,7 +181,6 @@ class DatabaseManager:
             A database cursor object.
         """
         conn = sqlite3.connect(self.db_name)
-        conn.execute("PRAGMA foreign_keys = ON;")  # Enforce foreign key constraints
         try:
             cursor = conn.cursor()
             yield cursor
@@ -189,7 +188,7 @@ class DatabaseManager:
         except sqlite3.Error as e:
             print(f"SQLite error: {e}")
             conn.rollback()
-            raise  # Re-raise the exception after rollback
+            raise
         finally:
             conn.close()
 
