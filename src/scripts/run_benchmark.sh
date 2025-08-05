@@ -334,12 +334,16 @@ header_to_report() {
     echo "$header"
 }
 
+scenario_data() {
+    echo "$SCENARIO_NAME $DB $REL $CONCURRENCY $CACHE $ITERATIONS"
+}
+
+
 consolidate_reports() {
     local benchmark=$1
-    OUTPUT_DIR="/tmp/${benchmark}_benchmark/${TIMESTAMP}/consolidated_report_scenario_${SCENARIO_NAME}.txt"
-    python3 ./src/scripts/python/consolidate_${benchmark}_benchmark.py "/tmp/${benchmark}_benchmark/${TIMESTAMP}" --output "$OUTPUT_DIR" --header "$(header_to_report)"
+    python3 ./src/scripts/python/consolidate_benchmark.py "/tmp/${benchmark}_benchmark/${TIMESTAMP}" --scenario "$(scenario_data)" --type "$benchmark"
     echo ""
-    echo -e "\r\033[K${GREEN}Consolidated reports saved to: $OUTPUT_DIR${RESET}"
+    echo -e "\r\033[K${GREEN}Consolidated reports saved to database${RESET}"
 }
 
 main() {
