@@ -131,19 +131,19 @@ int main(int argc, char** argv) {
         } else if (action == "DeleteAtom") {
             DeleteAtom benchmark(tid, atomdb, iterations);
             map<string, function<void()>> benchmark_handlers{
-                {"delete_node", [&]() { benchmark.delete_node(); }},
-                {"delete_link", [&]() { benchmark.delete_link(); }},
-                {"delete_atom_node", [&]() { benchmark.delete_atom_node(); }},
-                {"delete_atom_link", [&]() { benchmark.delete_atom_link(); }},
+                {"delete_node", [&]() { benchmark.delete_node(atomdb_type); }},
+                {"delete_link", [&]() { benchmark.delete_link(atomdb_type); }},
+                {"delete_atom_node", [&]() { benchmark.delete_atom_node(atomdb_type); }},
+                {"delete_atom_link", [&]() { benchmark.delete_atom_link(atomdb_type); }},
             };
             dispatch_handler(benchmark, benchmark_handlers, method);
         } else if (action == "DeleteAtoms") {
             DeleteAtoms benchmark(tid, atomdb, iterations);
             map<string, function<void()>> benchmark_handlers{
-                {"delete_nodes", [&]() { benchmark.delete_nodes(); }},
-                {"delete_links", [&]() { benchmark.delete_links(); }},
-                {"delete_atoms_node", [&]() { benchmark.delete_atoms_node(); }},
-                {"delete_atoms_link", [&]() { benchmark.delete_atoms_link(); }},
+                {"delete_nodes", [&]() { benchmark.delete_nodes(atomdb_type); }},
+                {"delete_links", [&]() { benchmark.delete_links(atomdb_type); }},
+                {"delete_atoms_node", [&]() { benchmark.delete_atoms_node(atomdb_type); }},
+                {"delete_atoms_link", [&]() { benchmark.delete_atoms_link(atomdb_type); }},
             };
             dispatch_handler(benchmark, benchmark_handlers, method);
         } else {
