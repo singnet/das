@@ -11,6 +11,7 @@
 #include <vector>
 
 #include "AtomDB.h"
+#include "MorkDB.h"
 #include "atomdb_utils.h"
 
 using namespace std;

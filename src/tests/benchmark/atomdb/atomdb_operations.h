@@ -65,18 +65,18 @@ class DeleteAtom : public AtomDBRunner<DeleteAtom> {
    public:
     using AtomDBRunner::AtomDBRunner;
 
-    void delete_node();
-    void delete_link();
-    void delete_atom_node();
-    void delete_atom_link();
+    void delete_node(string type);
+    void delete_link(string type);
+    void delete_atom_node(string type);
+    void delete_atom_link(string type);
 };
 
 class DeleteAtoms : public AtomDBRunner<DeleteAtoms> {
    public:
     using AtomDBRunner::AtomDBRunner;
 
-    void delete_nodes();
-    void delete_links();
-    void delete_atoms_node();
-    void delete_atoms_link();
+    void delete_nodes(string type);
+    void delete_links(string type);
+    void delete_atoms_node(string type);
+    void delete_atoms_link(string type);
 };
