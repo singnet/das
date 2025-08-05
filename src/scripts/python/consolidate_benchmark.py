@@ -389,30 +389,30 @@ def parse_benchmark_file(filepath: str) -> BenchmarkData:
     return results
 
 
-def extract_metadata_from_filename(filename: str) -> Optional[tuple[str, str, str, str]]:
+def extract_metadata_from_filename(filename: str) -> Optional[tuple[str, str, str, str, str]]:
     """
     Extracts metadata from the benchmark filename using a regular expression.
 
     The filename is expected to follow the pattern:
-    'atomdb_{backend}_{op_type}_{method}_{batch_size}.txt'
+    '{benchmark_type}_{backend}_{op_type}_{method}_{batch_size}.txt'
 
     Args:
         filename: The name of the benchmark file.
 
     Returns:
-        A tuple containing (backend, op_type, method, batch_size) if the
+        A tuple containing (benchmark_type, backend, op_type, method, batch_size) if the
         pattern matches, otherwise None.
     """
-    # Regex to capture the parts of the filename.
-    pattern = r"atomdb_([A-Za-z0-9]+)_([A-Za-z0-9]+)_([A-Za-z0-9_]+)_([0-9]+)\.txt"
+    # This regex captures everything before _morkdb_ or _redismongodb_ as benchmark_type
+    pattern = r"^(.*?)_(morkdb|redismongodb)_([A-Za-z0-9]+)_([A-Za-z0-9_]+)_([0-9]+)\.txt$"
     match = re.match(pattern, filename)
     if match:
-        backend, op_type, method, batch_size = match.groups()
-        return backend, op_type, method, batch_size
+        benchmark_type, backend, op_type, method, batch_size = match.groups()
+        return benchmark_type, backend, op_type, method, batch_size
     return None
 
 
-def consolidate_results_from_directory(directory: str) -> ConsolidatedResults:
+def consolidate_results_from_directory(benchmark_type: str, directory: str) -> ConsolidatedResults:
     """
     Scans a directory for benchmark files, parses them, and consolidates the results.
 
@@ -425,7 +425,7 @@ def consolidate_results_from_directory(directory: str) -> ConsolidatedResults:
     results: ConsolidatedResults = defaultdict(lambda: {"entries": [], "batch_size": "N/A"})
 
     for filename in sorted(os.listdir(directory)):
-        if not (filename.startswith("atomdb_") and filename.endswith(".txt")):
+        if not (filename.startswith(f"{benchmark_type}_") and filename.endswith(".txt")):
             continue
 
         metadata = extract_metadata_from_filename(filename)
@@ -433,7 +433,7 @@ def consolidate_results_from_directory(directory: str) -> ConsolidatedResults:
             print(f"Warning: Could not parse metadata from filename: {filename}", file=sys.stderr)
             continue
 
-        backend, op_type, _, batch_size = metadata
+        _, backend, op_type, _, batch_size = metadata
 
         filepath = os.path.join(directory, filename)
         parsed_data = parse_benchmark_file(filepath)
@@ -455,7 +455,7 @@ def parse_scenario_string(scenario_str: str) -> Scenario:
 
     Args:
         scenario_str: A string with 6 parts: name, database, relationships,
-                      concurrency, cache status, iterations.
+                      concurrency, cache enabled, iterations.
 
     Returns:
         A Scenario data object.
@@ -520,18 +520,25 @@ def main():
     parser = argparse.ArgumentParser(description="Consolidate and store benchmark results.")
     parser.add_argument("directory", help="Directory with benchmark files.")
     parser.add_argument("--scenario", required=True, help="Test scenario data string.")
-    parser.add_argument("--type", required=True, help="Benchmark type (e.g., 'load', 'query').")
+    parser.add_argument("--type", required=True, help="Benchmark type (e.g., 'atomdb').")
+    parser.add_argument(
+        "--output-dir", required=False, default=".", help="Directory to save database file."
+    )
     args = parser.parse_args()
 
     # Consolidate benchmark results from files
     print(f"Consolidating results from: {args.directory}")
-    results = consolidate_results_from_directory(args.directory)
+    results = consolidate_results_from_directory(args.type, args.directory)
     if not results:
         print("No valid benchmark data found. Exiting.")
         return
 
     # Prepare database and scenario data
-    db_name = f"{args.type}_benchmark.db"
+    base_dir = os.path.abspath(args.output_dir)
+    if not os.path.exists(base_dir):
+        print(f"Creating output directory: {base_dir}")
+        os.makedirs(base_dir)
+    db_name = f"{base_dir}/{args.type}_benchmark.db"
     print(f"Using database: {db_name}")
     db = DatabaseManager(db_name)
     db.create_tables()
