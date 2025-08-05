@@ -151,7 +151,7 @@ void InferenceAgent::process_inference_request(shared_ptr<InferenceProxy> proxy)
     LOG_DEBUG("Inference request processed for request ID: " << request_id);
 }
 
-void InferenceAgent::process_inference_abort_request(string request_id) {
+void InferenceAgent::process_inference_abort_request(const string& request_id) {
     LOG_DEBUG("Evolution proxy finished for request ID: " << request_id);
     for (auto& link_creation_proxy : link_creation_proxy_map[request_id]) {
         LOG_DEBUG("Aborting link creation proxy for request ID: " << request_id);
