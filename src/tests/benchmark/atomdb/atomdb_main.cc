@@ -18,7 +18,7 @@
 #include "Utils.h"
 #include "atomdb_operations.h"
 #include "atomdb_runner.h"
-#include "atomdb_utils.h"
+#include "benchmark_utils.h"
 
 #define LOG_LEVEL INFO_LEVEL
 #include "Logger.h"

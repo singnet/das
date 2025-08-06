@@ -1,4 +1,4 @@
-#include "atomdb_utils.h"
+#include "benchmark_utils.h"
 
 #include <cmath>
 #include <fstream>

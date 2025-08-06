@@ -17,7 +17,7 @@
 
 extern const size_t BATCH_SIZE;
 
-class AddAtom : public AtomDBRunner<AddAtom> {
+class AddAtom : public AtomDBRunner {
    public:
     using AtomDBRunner::AtomDBRunner;
 
@@ -27,7 +27,7 @@ class AddAtom : public AtomDBRunner<AddAtom> {
     void add_atom_link();
 };
 
-class AddAtoms : public AtomDBRunner<AddAtoms> {
+class AddAtoms : public AtomDBRunner {
    public:
     using AtomDBRunner::AtomDBRunner;
 
@@ -37,7 +37,7 @@ class AddAtoms : public AtomDBRunner<AddAtoms> {
     void add_atoms_link();
 };
 
-class GetAtom : public AtomDBRunner<GetAtom> {
+class GetAtom : public AtomDBRunner {
    public:
     using AtomDBRunner::AtomDBRunner;
 
@@ -49,7 +49,7 @@ class GetAtom : public AtomDBRunner<GetAtom> {
     void get_atom_link();
 };
 
-class GetAtoms : public AtomDBRunner<GetAtoms> {
+class GetAtoms : public AtomDBRunner {
    public:
     using AtomDBRunner::AtomDBRunner;
 
@@ -61,7 +61,7 @@ class GetAtoms : public AtomDBRunner<GetAtoms> {
     void query_for_targets();
 };
 
-class DeleteAtom : public AtomDBRunner<DeleteAtom> {
+class DeleteAtom : public AtomDBRunner {
    public:
     using AtomDBRunner::AtomDBRunner;
 
@@ -71,7 +71,7 @@ class DeleteAtom : public AtomDBRunner<DeleteAtom> {
     void delete_atom_link(string type);
 };
 
-class DeleteAtoms : public AtomDBRunner<DeleteAtoms> {
+class DeleteAtoms : public AtomDBRunner {
    public:
     using AtomDBRunner::AtomDBRunner;
 
