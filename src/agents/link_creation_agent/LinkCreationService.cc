@@ -53,8 +53,18 @@ void LinkCreationService::process_request(shared_ptr<PatternMatchingQueryProxy> 
                              << " - Timeout for iterator ID: " << proxy->my_id());
                 return;
             }
+            if (request->aborting) {
+                LOG_INFO("[" << request_id << "]"
+                             << " - Aborting processing for iterator ID: " << proxy->my_id());
+                return;
+            }
             while ((query_answer = proxy->pop()) != NULL) {
                 try {
+                    if (request->aborting) {
+                        LOG_INFO("[" << request_id << "]"
+                                     << " - Aborting processing for iterator ID: " << proxy->my_id());
+                        return;
+                    }
                     vector<vector<string>> link_tokens;
                     vector<string> extra_params;
                     extra_params.push_back(context);

@@ -49,8 +49,18 @@ class LinkCreationAgentTest : public ::testing::Test {
 };
 
 TEST_F(LinkCreationAgentTest, TestRequest) {
-    vector<string> request = {
-        "query1", "LINK_CREATE", "test", "1", "0", "VARIABLE", "V1", "10", "5", "test_context", "true"};
+    vector<string> request = {"query1",
+                              "LINK_CREATE",
+                              "test",
+                              "1",
+                              "0",
+                              "VARIABLE",
+                              "V1",
+                              "10",
+                              "5",
+                              "test_context",
+                              "true",
+                              "id1"};
     shared_ptr<LinkCreationAgentRequest> lca_request = LinkCreationAgent::create_request(request);
     EXPECT_EQ(lca_request->query, vector<string>({"query1"}));
     EXPECT_EQ(lca_request->link_template,

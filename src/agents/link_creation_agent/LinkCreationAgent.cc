@@ -70,6 +70,15 @@ void LinkCreationAgent::run() {
     while (true) {
         if (is_stoping) break;
         shared_ptr<LinkCreationAgentRequest> lca_request = nullptr;
+        for (auto it = link_creation_proxy_map.begin(); it != link_creation_proxy_map.end();) {
+            if (it->second->is_aborting()) {
+                LOG_INFO("Aborting link creation request ID: " << it->first);
+                abort_request(it->first);
+                it = link_creation_proxy_map.erase(it);
+            } else {
+                it++;
+            }
+        }
         if (!requests_queue.empty()) {
             lca_request = requests_queue.dequeue();
             lca_request->current_interval = requests_interval_seconds;
@@ -112,12 +121,6 @@ void LinkCreationAgent::run() {
             if (request_buffer.find(lca_request->id) != request_buffer.end()) {
                 LOG_DEBUG("Removing request ID: " << lca_request->id);
                 request_buffer.erase(lca_request->id);
-            }
-        }
-        for (auto& [request_id, proxy] : link_creation_proxy_map) {
-            if (proxy->is_aborting()) {
-                abort_request(request_id);
-                link_creation_proxy_map.erase(request_id);
             }
         }
     }
@@ -196,6 +199,10 @@ shared_ptr<LinkCreationAgentRequest> LinkCreationAgent::create_request(vector<st
             }
         }
         lca_request->infinite = (lca_request->repeat == -1);
+        LOG_INFO("Request original ID: " << lca_request->id);
+        if (lca_request->id.empty()) {
+            Utils::error("Request ID cannot be empty");
+        }
         lca_request->id = compute_hash((char*) lca_request->id.c_str());
         lca_request->is_running = false;
         LOG_INFO("Creating request ID: " << lca_request->id);
@@ -236,12 +243,13 @@ void LinkCreationAgent::abort_request(const string& request_id) {
     lock_guard<mutex> lock(agent_mutex);
     string request_id_hash = compute_hash((char*) request_id.c_str());
     if (request_buffer.find(request_id_hash) != request_buffer.end()) {
+        request_buffer[request_id_hash]->aborting = true;
         request_buffer.erase(request_id_hash);
         LOG_DEBUG("Aborted request ID: " << request_id_hash);
     } else {
         LOG_DEBUG("Request ID: " << request_id_hash << " not found in buffer");
     }
-    pattern_query_proxy_map[request_id_hash]->abort();
+    // pattern_query_proxy_map[request_id_hash]->abort();
     pattern_query_proxy_map.erase(request_id_hash);
 }
 
