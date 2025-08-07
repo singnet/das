@@ -131,7 +131,7 @@ string LinkSchema::composite_type_hash(HandleDecoder& decoder) const {
 
 vector<string> LinkSchema::composite_type(HandleDecoder& decoder) const { return this->_composite_type; }
 
-string LinkSchema::metta_representation(HandleDecoder& decoder) const {
+string LinkSchema::metta_representation() const {
     return this->_metta_representation;
 }
 

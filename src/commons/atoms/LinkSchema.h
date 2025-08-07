@@ -133,11 +133,11 @@ class LinkSchema : public Wildcard {
     virtual vector<string> composite_type(HandleDecoder& decoder) const;
 
     /**
-     * @brief Constructs and returns a MeTTa expression which represents this Atom.
+     * @brief Returns a MeTTa expression which represents this Atom.
      *
      * @return a MeTTa expression which represents this Atom.
      */
-    virtual string metta_representation(HandleDecoder& decoder) const;
+    virtual string metta_representation() const;
 
     /**
      * @brief Return this LinkSchema's arity

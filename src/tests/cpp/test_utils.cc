@@ -69,3 +69,10 @@ string* build_handle_space(unsigned int size, bool sort) {
 }
 
 bool double_equals(double v1, double v2) { return fabs(v2 - v1) < 0.001; }
+
+void make_tmp_file(const string& fname, const string& contents) {
+    FILE* file = fopen(("/tmp/" + fname).c_str(), "w");
+    fputs(contents.c_str(), file);
+    fclose(file);
+}
+
