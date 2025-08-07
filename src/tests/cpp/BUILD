@@ -670,3 +670,22 @@ cc_test(
         "@com_github_singnet_das_proto//:attention_broker_cc_grpc",
     ],
 )
+
+cc_test(
+    name = "metta_parser_test",
+    size = "small",
+    srcs = [
+        "metta_parser_test.cc",
+        "test_utils.cc",
+        "test_utils.h",
+    ],
+    copts = [
+        "-Iexternal/gtest/googletest/include",
+        "-Iexternal/gtest/googletest",
+    ],
+    linkstatic = 1,
+    deps = [
+        "//metta:metta_lib",
+        "@com_github_google_googletest//:gtest_main",
+    ],
+)
