@@ -1,220 +1,10 @@
 pub mod query_answer;
 
-use std::collections::VecDeque;
+use std::collections::HashMap;
 
-// Enum to represent the parsed S-expression tokens
-#[derive(Debug, Clone)]
-enum Token {
-	Symbol(String),
-	Variable(String),
-	OpenParen,
-	CloseParen,
-}
+use hyperon_atom::Atom;
 
-// Enum to represent the AST nodes
-#[derive(Debug, Clone)]
-enum Node {
-	Symbol(String),
-	Variable(String),
-	Expression(Vec<Node>),
-}
-
-// Struct to hold the parser state
-struct Parser {
-	tokens: VecDeque<Token>,
-}
-
-impl Parser {
-	fn new(input: &str) -> Self {
-		let tokens = tokenize(input);
-		Parser { tokens: VecDeque::from(tokens) }
-	}
-
-	fn parse(&mut self) -> Vec<Node> {
-		let mut nodes = Vec::new();
-		while let Some(node) = self.parse_expression() {
-			nodes.push(node);
-		}
-		nodes
-	}
-
-	fn parse_expression(&mut self) -> Option<Node> {
-		if let Some(token) = self.tokens.pop_front() {
-			match token {
-				Token::OpenParen => {
-					let mut nodes = Vec::new();
-					while let Some(next_token) = self.tokens.front() {
-						match next_token {
-							Token::CloseParen => {
-								self.tokens.pop_front(); // Consume closing parenthesis
-								return Some(Node::Expression(nodes));
-							},
-							_ => {
-								if let Some(node) = self.parse_expression() {
-									nodes.push(node);
-								} else {
-									return None;
-								}
-							},
-						}
-					}
-					None // Unmatched parenthesis
-				},
-				Token::Symbol(s) => Some(Node::Symbol(s)),
-				Token::Variable(v) => Some(Node::Variable(v)),
-				Token::CloseParen => None, // Unexpected closing parenthesis
-			}
-		} else {
-			None
-		}
-	}
-}
-
-fn tokenize(input: &str) -> Vec<Token> {
-	let mut tokens = Vec::new();
-	let chars = input.chars().peekable();
-	let mut current = String::new();
-	let mut in_quotes = false;
-
-	for c in chars {
-		match c {
-			'"' if !in_quotes => {
-				if !current.is_empty() {
-					tokens.push(classify_token(&current));
-					current.clear();
-				}
-				in_quotes = true;
-				current.push(c);
-			},
-			'"' if in_quotes => {
-				current.push(c);
-				tokens.push(Token::Symbol(current.clone()));
-				current.clear();
-				in_quotes = false;
-			},
-			'(' if !in_quotes => {
-				if !current.is_empty() {
-					tokens.push(classify_token(&current));
-					current.clear();
-				}
-				tokens.push(Token::OpenParen);
-			},
-			')' if !in_quotes => {
-				if !current.is_empty() {
-					tokens.push(classify_token(&current));
-					current.clear();
-				}
-				tokens.push(Token::CloseParen);
-			},
-			' ' | '\n' | '\t' if !in_quotes => {
-				if !current.is_empty() {
-					tokens.push(classify_token(&current));
-					current.clear();
-				}
-			},
-			_ => {
-				current.push(c);
-			},
-		}
-	}
-
-	if !current.is_empty() {
-		tokens.push(classify_token(&current));
-	}
-
-	tokens
-}
-
-// Classify a string as a Symbol or Variable
-fn classify_token(s: &str) -> Token {
-	if let Some(s) = s.strip_prefix('$') {
-		Token::Variable(s.to_string())
-	} else {
-		Token::Symbol(s.to_string())
-	}
-}
-
-// Determine if an expression would be LINK_TEMPLATE (contains a VARIABLE)
-fn needs_link_template(nodes: &[Node]) -> bool {
-	nodes.iter().any(|node| matches!(node, Node::Variable(_)))
-}
-
-// Determine if an expression has a direct child that is a LINK_TEMPLATE
-fn has_direct_link_template(nodes: &[Node]) -> bool {
-	nodes.iter().any(|node| {
-		if let Node::Expression(sub_nodes) = node {
-			// Child is LINK_TEMPLATE if it contains a VARIABLE and has no inner expressions with variables
-			needs_link_template(sub_nodes)
-				&& !sub_nodes.iter().any(|sub_node| {
-					if let Node::Expression(inner_nodes) = sub_node {
-						needs_link_template(inner_nodes)
-					} else {
-						false
-					}
-				})
-		} else {
-			false
-		}
-	})
-}
-
-// Generate the output string from the AST as a single line
-fn generate_output(node: &Node) -> String {
-	match node {
-		Node::Expression(nodes) => {
-			let count = nodes.len();
-			let mut parts = Vec::new();
-			parts.push(format!("{} Expression {}", "LINK_TEMPLATE", count));
-			for node in nodes {
-				parts.push(generate_output_inner(node));
-			}
-			parts.join(" ")
-		},
-		_ => generate_output_inner(node),
-	}
-}
-
-fn is_template_like(node: &Node) -> bool {
-	match node {
-		Node::Variable(_) => true,
-		Node::Expression(nodes) => {
-			// If this node contains any VARIABLE or has child expressions that are template-like
-			needs_link_template(nodes) || nodes.iter().any(is_template_like)
-		},
-		_ => false,
-	}
-}
-
-// Helper function to generate output for nested nodes
-fn generate_output_inner(node: &Node) -> String {
-	match node {
-		Node::Symbol(s) => format!("NODE Symbol {s}"),
-		Node::Variable(v) => format!("VARIABLE {v}"),
-		Node::Expression(nodes) => {
-			let count = nodes.len();
-			let mut parts = Vec::new();
-			let has_direct_link_template = has_direct_link_template(nodes);
-			let is_template = is_template_like(&Node::Expression(nodes.clone()));
-			let link_type =
-				if has_direct_link_template || is_template { "LINK_TEMPLATE" } else { "LINK" };
-			parts.push(format!("{link_type} Expression {count}"));
-			for node in nodes {
-				parts.push(generate_output_inner(node));
-			}
-			parts.join(" ")
-		},
-	}
-}
-
-pub fn translate(input: &str) -> String {
-	let mut parser = Parser::new(input);
-	let ast = parser.parse();
-	if ast.is_empty() {
-		"Parse error".to_string()
-	} else {
-		ast.iter().map(generate_output).collect::<Vec<String>>().join(" ")
-	}
-}
+use crate::types::{BoxError, MeTTaRunner};
 
 pub fn split_ignore_quoted(s: &str) -> Vec<String> {
 	let mut result = Vec::new();
@@ -262,4 +52,164 @@ pub fn split_ignore_quoted(s: &str) -> Vec<String> {
 	}
 
 	result
+}
+
+pub fn output_variable_clean_up(atom: &Atom) -> Atom {
+	match atom {
+		Atom::Variable(v) => {
+			if v.name().contains("#") {
+				let cleaned_name = v.name().split("#").next().unwrap().to_string();
+				Atom::var(cleaned_name)
+			} else {
+				atom.clone()
+			}
+		},
+		Atom::Expression(exp_atom) => {
+			let mut atoms = vec![];
+			for atom in exp_atom.children() {
+				atoms.push(output_variable_clean_up(atom));
+			}
+			Atom::expr(atoms)
+		},
+		_ => atom.clone(),
+	}
+}
+
+pub fn run_metta_runner(atom: &Atom, metta_runner: &MeTTaRunner) -> Result<Atom, BoxError> {
+	match atom {
+		Atom::Expression(exp_atom) => {
+			let mut atoms = vec![];
+			for child in exp_atom.children() {
+				let child_str = child.to_string();
+				if child_str.contains('!') {
+					let result = metta_runner(format!("!{child_str}"))?;
+					let mut final_atom = child.clone();
+					for inner_atoms in result.iter() {
+						for expanded_atom in inner_atoms {
+							final_atom = match expanded_atom {
+								Atom::Expression(exp_atom) => {
+									let mut atoms = vec![];
+									for atom in exp_atom.children() {
+										match atom {
+											Atom::Symbol(s) if s.name() == "!" => {},
+											_ => atoms.push(output_variable_clean_up(atom)),
+										}
+									}
+									Atom::expr(atoms)
+								},
+								_ => expanded_atom.clone(),
+							}
+						}
+					}
+					atoms.push(final_atom);
+				} else {
+					atoms.push(child.clone());
+				}
+			}
+			Ok(Atom::expr(atoms))
+		},
+		_ => Ok(atom.clone()),
+	}
+}
+
+pub fn translate_atom(atom: &Atom, variables: &mut HashMap<String, String>) -> Vec<String> {
+	match atom {
+		Atom::Expression(exp_atom) => {
+			let children = exp_atom.children();
+			if children.is_empty() {
+				return vec!["LINK_TEMPLATE Expression 0".to_string()];
+			}
+
+			// Check for AND/OR operators at any level - both Symbol and Grounded
+			if let Some(first_child) = children.first() {
+				let operator_name = match first_child {
+					Atom::Symbol(symbol) => symbol.name().to_string(),
+					Atom::Grounded(grounded) => grounded.to_string(),
+					_ => "".to_string(),
+				};
+
+				if operator_name == "," || operator_name == "and" {
+					let mut result = vec![];
+					result.push(format!("AND {}", children.len() - 1));
+
+					for child in children.iter().skip(1) {
+						let child_tokens = translate_atom(child, variables);
+						// Add each child's tokens without indentation
+						for token in child_tokens {
+							result.push(token);
+						}
+					}
+					result
+				} else if operator_name == "or" {
+					let mut result = vec![];
+					result.push(format!("OR {}", children.len() - 1));
+
+					for child in children.iter().skip(1) {
+						let child_tokens = translate_atom(child, variables);
+						// Add each child's tokens without indentation
+						for token in child_tokens {
+							result.push(token);
+						}
+					}
+					result
+				} else {
+					// Regular expression processing
+					let mut result = vec![];
+
+					// Determine if this expression should be LINK or LINK_TEMPLATE
+					let mut has_variables = false;
+					let mut has_link_template = false;
+
+					// Check all children for variables or LINK_TEMPLATE
+					for child in children.iter() {
+						let child_tokens = translate_atom(child, variables);
+						for token in child_tokens {
+							if token.starts_with("VARIABLE") {
+								has_variables = true;
+							} else if token.starts_with("LINK_TEMPLATE") {
+								has_link_template = true;
+							}
+						}
+					}
+
+					let link_type =
+						if has_variables || has_link_template { "LINK_TEMPLATE" } else { "LINK" };
+					result.push(format!("{} Expression {}", link_type, children.len()));
+
+					for child in children {
+						let child_tokens = translate_atom(child, variables);
+						// Add each child's tokens without indentation
+						for token in child_tokens {
+							result.push(token);
+						}
+					}
+					result
+				}
+			} else {
+				// Fallback for expressions without a symbol as first child
+				let mut result = vec![];
+				result.push(format!("LINK_TEMPLATE Expression {}", children.len()));
+
+				for child in children {
+					let child_tokens = translate_atom(child, variables);
+					// Add each child's tokens without indentation
+					for token in child_tokens {
+						result.push(token);
+					}
+				}
+				result
+			}
+		},
+		Atom::Symbol(symbol) => {
+			vec![format!("NODE Symbol {}", symbol.name())]
+		},
+		Atom::Variable(variable) => {
+			variables.insert(variable.name().to_string(), "".to_string());
+			vec![format!("VARIABLE {}", variable.name())]
+		},
+		Atom::Grounded(grounded) => {
+			// For grounded atoms, represent them as symbols
+			vec![format!("NODE Symbol {}", grounded.to_string())]
+		},
+	}
 }

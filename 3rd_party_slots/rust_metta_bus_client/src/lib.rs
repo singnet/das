@@ -5,144 +5,188 @@ use std::{
 	time::Duration,
 };
 
-use helpers::{query_answer::parse_query_answer, split_ignore_quoted, translate};
+use helpers::{query_answer::parse_query_answer, split_ignore_quoted, translate_atom};
 use hyperon_atom::{matcher::BindingsSet, Atom, ExecError};
-use proxy::PatternMatchingQueryProxy;
+use pattern_matching_proxy::PatternMatchingQueryProxy;
 use service_bus::ServiceBus;
 use service_bus_singleton::ServiceBusSingleton;
-use types::{BoxError, MeTTaRunner};
+use types::BoxError;
+
+use crate::{
+	base_proxy_query::BaseQueryProxyT,
+	helpers::run_metta_runner,
+	query_evolution_proxy::{
+		parse_evolution_parameters, QueryEvolutionParams, QueryEvolutionProxy,
+	},
+	types::MeTTaRunner,
+};
 
 pub mod space;
 
 pub mod bus;
 pub mod bus_node;
 pub mod helpers;
+pub mod pattern_matching_proxy;
 pub mod port_pool;
 pub mod properties;
 pub mod proxy;
+pub mod query_evolution_proxy;
 pub mod service_bus;
 pub mod service_bus_singleton;
 pub mod types;
+
+pub mod base_proxy_query;
+
+#[derive(Clone, Default)]
+pub struct QueryParams {
+	tokens: Vec<String>,
+	max_query_answers: u32,
+	variables: HashMap<String, String>,
+	context: String,
+	unique_assignment: bool,
+	positive_importance: bool,
+	update_attention_broker: bool,
+	count_only: bool,
+	populate_metta_mapping: bool,
+	max_bundle_size: u64,
+}
 
 pub fn query_with_das(
 	space_name: Option<String>, service_bus: Arc<Mutex<ServiceBus>>, atom: &Atom,
 	maybe_metta_runner: Option<MeTTaRunner>,
 ) -> Result<BindingsSet, BoxError> {
+	let max_query_answers = 100;
 	let unique_assignment = true;
 	let positive_importance = false;
 	let update_attention_broker = false;
 	let count_only = false;
 	let populate_metta_mapping = true;
-	query(
+	let max_bundle_size = 10_000;
+
+	let mut atom = atom.clone();
+	if let Some(metta_runner) = maybe_metta_runner.clone() {
+		atom = run_metta_runner(&atom, &metta_runner)?;
+	}
+
+	let maybe_evolution_params = match parse_evolution_parameters(&atom, &maybe_metta_runner) {
+		Ok(maybe_evolution_params) => {
+			if let Some(evolution_params) = maybe_evolution_params.clone() {
+				atom = evolution_params.query_atom;
+			}
+			maybe_evolution_params
+		},
+		Err(e) => {
+			log::error!(target: "das", "{e}");
+			return Ok(BindingsSet::empty());
+		},
+	};
+
+	let params = match extract_query_params(
 		space_name,
-		service_bus,
-		atom,
+		&atom,
+		max_query_answers,
 		unique_assignment,
 		positive_importance,
 		update_attention_broker,
 		count_only,
 		populate_metta_mapping,
-		maybe_metta_runner,
-	)
-}
-
-pub fn query(
-	space_name: Option<String>, service_bus: Arc<Mutex<ServiceBus>>, atom: &Atom,
-	unique_assignment: bool, positive_importance: bool, update_attention_broker: bool,
-	count_only: bool, populate_metta_mapping: bool, _maybe_metta_runner: Option<MeTTaRunner>,
-) -> Result<BindingsSet, BoxError> {
-	let mut bindings_set = BindingsSet::empty();
-	// Parsing possible parameters: ((max_query_answers) (query))
-	let (max_query_answers, multi_tokens) = match atom {
-		Atom::Expression(exp_atom) => {
-			let children = exp_atom.children();
-
-			let is_exp = match children.first().unwrap() {
-				Atom::Symbol(s) => s.name() == ",",
-				Atom::Expression(_) => true,
-				_ => return Ok(bindings_set),
-			};
-
-			let max_query_answers = 0;
-
-			let mut multi_tokens: Vec<Vec<String>> = vec![];
-			if is_exp {
-				for atom in children.iter() {
-					if atom.to_string() == "," {
-						continue;
-					}
-					multi_tokens
-						.push(atom.to_string().split_whitespace().map(String::from).collect());
-				}
-			} else {
-				multi_tokens.push(atom.to_string().split_whitespace().map(String::from).collect());
-			}
-
-			(max_query_answers, multi_tokens)
-		},
-		_ => return Ok(bindings_set),
+		max_bundle_size,
+	) {
+		Ok(params) => params,
+		Err(bindings_set) => return Ok(bindings_set),
 	};
 
+	match maybe_evolution_params {
+		Some(evolution_params) => evolution_query(service_bus, &params, &evolution_params),
+		_ => pattern_matching_query(service_bus, &params),
+	}
+}
+
+#[allow(clippy::too_many_arguments)]
+pub fn extract_query_params(
+	space_name: Option<String>, query_atom: &Atom, max_query_answers: u32, unique_assignment: bool,
+	positive_importance: bool, update_attention_broker: bool, count_only: bool,
+	populate_metta_mapping: bool, max_bundle_size: u64,
+) -> Result<QueryParams, BindingsSet> {
+	let mut params = QueryParams::default();
+
 	// Translating to LT and setting the VARIABLES
-	let mut tokens = vec![];
-	if multi_tokens.len() > 1 {
-		tokens.extend(["AND".to_string(), format!("{}", multi_tokens.len())]);
-	}
 	let mut variables = HashMap::new();
-	for innet_tokens in &multi_tokens {
-		for (idx, word) in innet_tokens.clone().iter().enumerate() {
-			let _word = word.replace("(", "").replace(")", "");
-			if _word.starts_with("$") {
-				variables.insert(_word.replace("$", ""), "".to_string());
-			} else if _word == "VARIABLE" {
-				let var_name = innet_tokens[idx + 1].replace("(", "").replace(")", "");
-				variables.insert(var_name, "".to_string());
-			}
-		}
-		let first = innet_tokens[0].replace("(", "");
-		match first.trim() {
-			"LINK_TEMPLATE" | "AND" | "OR" => {
-				let _tokens = innet_tokens.join(" ").replace("(", "").replace(")", "");
-				tokens.extend(split_ignore_quoted(&_tokens))
-			},
-			_ => {
-				// Translate MeTTa to LINK_TEMPLATE
-				let translation = split_ignore_quoted(&translate(&innet_tokens.join(" ")));
-				log::debug!(target: "das", "LT: <{}>", translation.join(" "));
-				tokens.extend(translation);
-			},
-		}
-	}
+	let tokens = split_ignore_quoted(&translate_atom(query_atom, &mut variables).join(" "));
 
-	log::debug!(target: "das", "Query: <{}>", tokens.join(" "));
+	log::debug!(target: "das", "Query: <{}>", tokens.join(","));
+	log::debug!(target: "das", "Vars : <{}>", variables.keys().cloned().collect::<Vec<String>>().join(","));
 
-	// Query's params:
-	let context = match space_name {
+	params.context = match space_name {
 		Some(name) => name.clone(),
 		None => "context".to_string(),
 	};
 
-	let mut proxy = PatternMatchingQueryProxy::new(
-		tokens,
-		context,
-		unique_assignment,
-		positive_importance,
-		update_attention_broker,
-		count_only,
-		populate_metta_mapping,
-	)?;
+	params.tokens = tokens;
+	params.variables = variables;
+	params.max_query_answers = max_query_answers;
+	params.unique_assignment = unique_assignment;
+	params.positive_importance = positive_importance;
+	params.update_attention_broker = update_attention_broker;
+	params.count_only = count_only;
+	params.populate_metta_mapping = populate_metta_mapping;
+	params.max_bundle_size = max_bundle_size;
+
+	Ok(params)
+}
+
+pub fn pattern_matching_query(
+	service_bus: Arc<Mutex<ServiceBus>>, params: &QueryParams,
+) -> Result<BindingsSet, BoxError> {
+	let mut bindings_set = BindingsSet::empty();
+
+	let mut proxy = PatternMatchingQueryProxy::new(params)?;
 
 	let mut service_bus = service_bus.lock().unwrap();
-	service_bus.issue_bus_command(&mut proxy)?;
+	service_bus.issue_bus_command(proxy.base.clone())?;
 
 	while !proxy.finished() {
 		if let Some(query_answer) = proxy.pop() {
-			log::trace!(target: "das", "{query_answer}");
-
-			let bindings = parse_query_answer(&query_answer, populate_metta_mapping);
+			let bindings = parse_query_answer(&query_answer, params.populate_metta_mapping);
 			bindings_set.push(bindings);
+			if params.max_query_answers > 0
+				&& bindings_set.len() >= params.max_query_answers as usize
+			{
+				break;
+			}
+		} else {
+			sleep(Duration::from_millis(100));
+		}
+	}
 
-			if max_query_answers > 0 && bindings_set.len() >= max_query_answers {
+	log::trace!(target: "das", "BindingsSet: {:?} (len={})", bindings_set, bindings_set.len());
+
+	proxy.drop_runtime();
+
+	Ok(bindings_set)
+}
+
+pub fn evolution_query(
+	service_bus: Arc<Mutex<ServiceBus>>, params: &QueryParams,
+	evolution_params: &QueryEvolutionParams,
+) -> Result<BindingsSet, BoxError> {
+	let mut bindings_set = BindingsSet::empty();
+
+	let mut proxy = QueryEvolutionProxy::new(params, evolution_params)?;
+
+	let mut service_bus = service_bus.lock().unwrap();
+	service_bus.issue_bus_command(proxy.base.clone())?;
+
+	while !proxy.finished() {
+		// QueryEvolution
+		proxy.eval_fitness()?;
+		// PatternMatchingQuery
+		if let Some(query_answer) = proxy.pop() {
+			let bindings = parse_query_answer(&query_answer, params.populate_metta_mapping);
+			bindings_set.push(bindings);
+			if params.max_query_answers > 0
+				&& bindings_set.len() >= params.max_query_answers as usize
+			{
 				break;
 			}
 		} else {

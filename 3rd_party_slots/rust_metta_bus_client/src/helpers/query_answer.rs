@@ -121,7 +121,7 @@ pub fn parse_query_answer(query_answer_str: &str, populate_metta_mapping: bool) 
 	let mut query_answer = QueryAnswer::default();
 	query_answer.untokenize(query_answer_str);
 
-	log::trace!(target: "das", "QueryAnswer: {query_answer:?}");
+	log::trace!(target: "das", "{query_answer:?}");
 
 	let mut bindings = Bindings::new();
 	for (key, value) in query_answer.assignment.iter() {
