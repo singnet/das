@@ -69,6 +69,8 @@ class MettaLexer {
      */
     unique_ptr<Token> next();
 
+    unsigned int line_number;
+
    private:
     void _init(unsigned int input_buffer_size);
     void _attach_string(const string& metta_string);
@@ -86,7 +88,6 @@ class MettaLexer {
     bool file_input_flag;
     unsigned int reading_cursor;
     unsigned int writing_cursor;
-    unsigned int line_number;
     queue<string> attached_strings;
     queue<string> attached_file_names;
     map<string, long> current_offset;

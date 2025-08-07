@@ -28,8 +28,8 @@ static void check_tokens(const string& tag,
     if (expected_tokens.size() == tokens->size()) {
         for (unsigned int i = 0; i < tokens->size(); i++) {
             LOG_INFO(token_name[expected_tokens[i].first] + "<" + expected_tokens[i].second + "> " +
-                     token_name[(*tokens)[i]->value] + " <" + (*tokens)[i]->text + ">");
-            EXPECT_EQ(expected_tokens[i].first, (*tokens)[i]->value);
+                     token_name[(*tokens)[i]->type] + " <" + (*tokens)[i]->text + ">");
+            EXPECT_EQ(expected_tokens[i].first, (*tokens)[i]->type);
             EXPECT_EQ(expected_tokens[i].second, (*tokens)[i]->text);
         }
     }
