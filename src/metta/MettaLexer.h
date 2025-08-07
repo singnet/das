@@ -1,22 +1,17 @@
 #pragma once
 
-#include "Token.h"
-
-#include <string>
+#include <map>
 #include <memory>
 #include <queue>
-#include <map>
+#include <string>
+
+#include "Token.h"
 
 using namespace std;
 
 namespace metta {
 
-enum LexerState {
-    START,
-    READING_LITERAL_STRING,
-    READING_NUMBER,
-    READING_SYMBOL_OR_VARIABLE
-};
+enum LexerState { START, READING_LITERAL_STRING, READING_NUMBER, READING_SYMBOL_OR_VARIABLE };
 
 /**
  * This is a lexer for simple MeTTa expressions used in the context of DAS. This is not an "official"
@@ -33,9 +28,7 @@ enum LexerState {
  * multiple files.
  */
 class MettaLexer {
-
-public:
-
+   public:
     /**
      * Constructor.
      *
@@ -76,8 +69,7 @@ public:
      */
     unique_ptr<Token> next();
 
-private:
-
+   private:
     void _init(unsigned int input_buffer_size);
     void _attach_string(const string& metta_string);
     inline char _read_next_char();
@@ -88,7 +80,7 @@ private:
 
     static unsigned int DEFAULT_INPUT_BUFFER_SIZE;
 
-    char *input_buffer;
+    char* input_buffer;
     unsigned int input_buffer_size;
     bool single_string_flag;
     bool file_input_flag;
@@ -100,4 +92,4 @@ private:
     map<string, long> current_offset;
 };
 
-} // namespace metta
+}  // namespace metta

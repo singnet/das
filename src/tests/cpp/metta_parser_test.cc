@@ -1,19 +1,17 @@
-#include "MettaTokens.h"
 #include "MettaLexer.h"
+#include "MettaTokens.h"
 #include "Utils.h"
-#include "test_utils.h"
 #include "gtest/gtest.h"
+#include "test_utils.h"
 
 #define LOG_LEVEL INFO_LEVEL
 #include "Logger.h"
 
 using namespace metta;
 
-static void check_tokens(
-    const string& tag, 
-    vector<unique_ptr<Token>>* tokens,
-    const vector<pair<unsigned char, string>>& expected_tokens) {
-
+static void check_tokens(const string& tag,
+                         vector<unique_ptr<Token>>* tokens,
+                         const vector<pair<unsigned char, string>>& expected_tokens) {
     LOG_INFO("--------------------------------------------------------------------------------");
     LOG_INFO("Test case " + tag);
 
@@ -29,18 +27,17 @@ static void check_tokens(
     EXPECT_EQ(expected_tokens.size(), tokens->size());
     if (expected_tokens.size() == tokens->size()) {
         for (unsigned int i = 0; i < tokens->size(); i++) {
-            LOG_INFO(token_name[expected_tokens[i].first] + "<" + expected_tokens[i].second + "> " + token_name[(*tokens)[i]->value] + " <" + (*tokens)[i]->text + ">");
+            LOG_INFO(token_name[expected_tokens[i].first] + "<" + expected_tokens[i].second + "> " +
+                     token_name[(*tokens)[i]->value] + " <" + (*tokens)[i]->text + ">");
             EXPECT_EQ(expected_tokens[i].first, (*tokens)[i]->value);
             EXPECT_EQ(expected_tokens[i].second, (*tokens)[i]->text);
         }
     }
 }
 
-static void check_string(
-    const string& tag, 
-    const string& metta_string, 
-    const vector<pair<unsigned char, string>>& expected_tokens) {
-
+static void check_string(const string& tag,
+                         const string& metta_string,
+                         const vector<pair<unsigned char, string>>& expected_tokens) {
     MettaLexer lexer(metta_string);
     vector<unique_ptr<Token>> tokens;
     unique_ptr<Token> token;
@@ -105,28 +102,34 @@ TEST(MettaLexer, string_input) {
     check_string("04", "1.0", {make_pair(MettaTokens::FLOAT_LITERAL, "1.0")});
     check_string("05", "-1.0", {make_pair(MettaTokens::FLOAT_LITERAL, "-1.0")});
     check_string("06", "$a", {make_pair(MettaTokens::VARIABLE, "a")});
-    check_string("07", "($a 1)", {
-        make_pair(MettaTokens::OPEN_PARENTHESIS,  "("),
-        make_pair(MettaTokens::VARIABLE,          "a"),
-        make_pair(MettaTokens::INTEGER_LITERAL,   "1"),
-        make_pair(MettaTokens::CLOSE_PARENTHESIS, ")"),
-    });
-    check_string("08", "(($v1 n1) $v2 n2)", {
-        make_pair(MettaTokens::OPEN_PARENTHESIS,  "("),
-        make_pair(MettaTokens::OPEN_PARENTHESIS,  "("),
-        make_pair(MettaTokens::VARIABLE,          "v1"),
-        make_pair(MettaTokens::SYMBOL,            "n1"),
-        make_pair(MettaTokens::CLOSE_PARENTHESIS, ")"),
-        make_pair(MettaTokens::VARIABLE,          "v2"),
-        make_pair(MettaTokens::SYMBOL,            "n2"),
-        make_pair(MettaTokens::CLOSE_PARENTHESIS, ")"),
-    });
-    check_string("09", "($a \"blah\\\"bleh\\\"blih\\\"\")", {
-        make_pair(MettaTokens::OPEN_PARENTHESIS,  "("),
-        make_pair(MettaTokens::VARIABLE,          "a"),
-        make_pair(MettaTokens::STRING_LITERAL,   "\"blah\\\"bleh\\\"blih\\\"\""),
-        make_pair(MettaTokens::CLOSE_PARENTHESIS, ")"),
-    });
+    check_string("07",
+                 "($a 1)",
+                 {
+                     make_pair(MettaTokens::OPEN_PARENTHESIS, "("),
+                     make_pair(MettaTokens::VARIABLE, "a"),
+                     make_pair(MettaTokens::INTEGER_LITERAL, "1"),
+                     make_pair(MettaTokens::CLOSE_PARENTHESIS, ")"),
+                 });
+    check_string("08",
+                 "(($v1 n1) $v2 n2)",
+                 {
+                     make_pair(MettaTokens::OPEN_PARENTHESIS, "("),
+                     make_pair(MettaTokens::OPEN_PARENTHESIS, "("),
+                     make_pair(MettaTokens::VARIABLE, "v1"),
+                     make_pair(MettaTokens::SYMBOL, "n1"),
+                     make_pair(MettaTokens::CLOSE_PARENTHESIS, ")"),
+                     make_pair(MettaTokens::VARIABLE, "v2"),
+                     make_pair(MettaTokens::SYMBOL, "n2"),
+                     make_pair(MettaTokens::CLOSE_PARENTHESIS, ")"),
+                 });
+    check_string("09",
+                 "($a \"blah\\\"bleh\\\"blih\\\"\")",
+                 {
+                     make_pair(MettaTokens::OPEN_PARENTHESIS, "("),
+                     make_pair(MettaTokens::VARIABLE, "a"),
+                     make_pair(MettaTokens::STRING_LITERAL, "\"blah\\\"bleh\\\"blih\\\"\""),
+                     make_pair(MettaTokens::CLOSE_PARENTHESIS, ")"),
+                 });
 }
 
 TEST(MettaLexer, multiple_strings) {
@@ -147,17 +150,19 @@ TEST(MettaLexer, multiple_strings) {
     while ((token = lexer.next()) != nullptr) {
         tokens.push_back(move(token));
     }
-    check_tokens("multiple_strings", &tokens, {
-        make_pair(MettaTokens::OPEN_PARENTHESIS,  "("),
-        make_pair(MettaTokens::SYMBOL,            "s1"),
-        make_pair(MettaTokens::SYMBOL,            "s11"),
-        make_pair(MettaTokens::OPEN_PARENTHESIS,  "("),
-        make_pair(MettaTokens::FLOAT_LITERAL,     "-4.0"),
-        make_pair(MettaTokens::VARIABLE,          "v1"),
-        make_pair(MettaTokens::VARIABLE,          "v2"),
-        make_pair(MettaTokens::CLOSE_PARENTHESIS, ")"),
-        make_pair(MettaTokens::CLOSE_PARENTHESIS, ")"),
-    });
+    check_tokens("multiple_strings",
+                 &tokens,
+                 {
+                     make_pair(MettaTokens::OPEN_PARENTHESIS, "("),
+                     make_pair(MettaTokens::SYMBOL, "s1"),
+                     make_pair(MettaTokens::SYMBOL, "s11"),
+                     make_pair(MettaTokens::OPEN_PARENTHESIS, "("),
+                     make_pair(MettaTokens::FLOAT_LITERAL, "-4.0"),
+                     make_pair(MettaTokens::VARIABLE, "v1"),
+                     make_pair(MettaTokens::VARIABLE, "v2"),
+                     make_pair(MettaTokens::CLOSE_PARENTHESIS, ")"),
+                     make_pair(MettaTokens::CLOSE_PARENTHESIS, ")"),
+                 });
 }
 
 TEST(MettaLexer, file_input) {
@@ -178,17 +183,19 @@ TEST(MettaLexer, file_input) {
     while ((token = lexer.next()) != nullptr) {
         tokens.push_back(move(token));
     }
-    check_tokens("file_input", &tokens, {
-        make_pair(MettaTokens::OPEN_PARENTHESIS,  "("),
-        make_pair(MettaTokens::SYMBOL,            "s1"),
-        make_pair(MettaTokens::SYMBOL,            "s11"),
-        make_pair(MettaTokens::OPEN_PARENTHESIS,  "("),
-        make_pair(MettaTokens::FLOAT_LITERAL,     "-4.0"),
-        make_pair(MettaTokens::VARIABLE,          "v1"),
-        make_pair(MettaTokens::VARIABLE,          "v2"),
-        make_pair(MettaTokens::CLOSE_PARENTHESIS, ")"),
-        make_pair(MettaTokens::CLOSE_PARENTHESIS, ")"),
-    });
+    check_tokens("file_input",
+                 &tokens,
+                 {
+                     make_pair(MettaTokens::OPEN_PARENTHESIS, "("),
+                     make_pair(MettaTokens::SYMBOL, "s1"),
+                     make_pair(MettaTokens::SYMBOL, "s11"),
+                     make_pair(MettaTokens::OPEN_PARENTHESIS, "("),
+                     make_pair(MettaTokens::FLOAT_LITERAL, "-4.0"),
+                     make_pair(MettaTokens::VARIABLE, "v1"),
+                     make_pair(MettaTokens::VARIABLE, "v2"),
+                     make_pair(MettaTokens::CLOSE_PARENTHESIS, ")"),
+                     make_pair(MettaTokens::CLOSE_PARENTHESIS, ")"),
+                 });
 }
 
 TEST(MettaLexer, file_large) {
@@ -200,15 +207,17 @@ TEST(MettaLexer, file_large) {
     while ((token = lexer.next()) != nullptr) {
         tokens.push_back(move(token));
     }
-    check_tokens("file_input", &tokens, {
-        make_pair(MettaTokens::OPEN_PARENTHESIS,  "("),
-        make_pair(MettaTokens::SYMBOL,            "s1"),
-        make_pair(MettaTokens::SYMBOL,            "s11"),
-        make_pair(MettaTokens::OPEN_PARENTHESIS,  "("),
-        make_pair(MettaTokens::FLOAT_LITERAL,     "-4.0"),
-        make_pair(MettaTokens::VARIABLE,          "v1"),
-        make_pair(MettaTokens::VARIABLE,          "v2"),
-        make_pair(MettaTokens::CLOSE_PARENTHESIS, ")"),
-        make_pair(MettaTokens::CLOSE_PARENTHESIS, ")"),
-    });
+    check_tokens("file_input",
+                 &tokens,
+                 {
+                     make_pair(MettaTokens::OPEN_PARENTHESIS, "("),
+                     make_pair(MettaTokens::SYMBOL, "s1"),
+                     make_pair(MettaTokens::SYMBOL, "s11"),
+                     make_pair(MettaTokens::OPEN_PARENTHESIS, "("),
+                     make_pair(MettaTokens::FLOAT_LITERAL, "-4.0"),
+                     make_pair(MettaTokens::VARIABLE, "v1"),
+                     make_pair(MettaTokens::VARIABLE, "v2"),
+                     make_pair(MettaTokens::CLOSE_PARENTHESIS, ")"),
+                     make_pair(MettaTokens::CLOSE_PARENTHESIS, ")"),
+                 });
 }

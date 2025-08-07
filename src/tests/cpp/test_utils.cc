@@ -75,4 +75,3 @@ void make_tmp_file(const string& fname, const string& contents) {
     fputs(contents.c_str(), file);
     fclose(file);
 }
-

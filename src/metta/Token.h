@@ -10,9 +10,7 @@ namespace metta {
  *
  */
 class Token {
-
-public:
-
+   public:
     Token();
     Token(unsigned char value);
     Token(unsigned char value, const string& text);
@@ -26,8 +24,7 @@ public:
     unsigned char value;
     string text;
 
-private:
-
+   private:
 };
 
-} // namespace metta
+}  // namespace metta

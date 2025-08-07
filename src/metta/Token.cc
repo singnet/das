@@ -25,8 +25,7 @@ Token::Token(unsigned char value, const string& text) {
     this->text = text;
 }
 
-Token::~Token() {
-}
+Token::~Token() {}
 
 Token& Token::operator=(const Token& other) {
     this->value = other.value;
@@ -38,6 +37,4 @@ bool Token::operator==(const Token& other) {
     return (this->value == other.value) && (this->text == other.text);
 }
 
-bool Token::operator!=(const Token& other) {
-    return !(*this == other);
-}
+bool Token::operator!=(const Token& other) { return !(*this == other); }

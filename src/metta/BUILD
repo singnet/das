@@ -14,8 +14,16 @@ cc_library(
 
 cc_library(
     name = "metta_lexer",
-    srcs = ["MettaLexer.cc", "Token.cc", "MettaTokens.cc"],
-    hdrs = ["MettaLexer.h", "Token.h", "MettaTokens.h"],
+    srcs = [
+        "MettaLexer.cc",
+        "MettaTokens.cc",
+        "Token.cc",
+    ],
+    hdrs = [
+        "MettaLexer.h",
+        "MettaTokens.h",
+        "Token.h",
+    ],
     includes = ["."],
     deps = [
         "//commons:commons_lib",

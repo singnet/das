@@ -8,9 +8,7 @@ namespace metta {
  *
  */
 class MettaTokens {
-
-public:
-
+   public:
     static const unsigned char OPEN_PARENTHESIS;
     static const unsigned char CLOSE_PARENTHESIS;
     static const unsigned char SYMBOL;
@@ -26,9 +24,8 @@ public:
 
     ~MettaTokens();
 
-private:
+   private:
     MettaTokens() {}
-
 };
 
-} // namespace metta
+}  // namespace metta

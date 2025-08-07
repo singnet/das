@@ -1,4 +1,5 @@
 #include "MettaLexer.h"
+
 #include "MettaTokens.h"
 #include "Utils.h"
 
@@ -8,14 +9,12 @@
 using namespace metta;
 using namespace commons;
 
-unsigned int MettaLexer::DEFAULT_INPUT_BUFFER_SIZE = (unsigned int) 100000000; // 100M
+unsigned int MettaLexer::DEFAULT_INPUT_BUFFER_SIZE = (unsigned int) 100000000;  // 100M
 
 // -------------------------------------------------------------------------------------------------
 // Constructors, destructors and initializers
 
-MettaLexer::MettaLexer(unsigned int input_buffer_size) {
-    _init(input_buffer_size);
-}
+MettaLexer::MettaLexer(unsigned int input_buffer_size) { _init(input_buffer_size); }
 
 MettaLexer::MettaLexer(const string& metta_string) {
     _init(metta_string.size());
@@ -35,9 +34,7 @@ void MettaLexer::_init(unsigned int input_buffer_size) {
     this->file_input_flag = true;
 }
 
-MettaLexer::~MettaLexer() {
-    free(this->input_buffer);
-}
+MettaLexer::~MettaLexer() { free(this->input_buffer); }
 
 // -------------------------------------------------------------------------------------------------
 // Public methods
@@ -81,16 +78,33 @@ unique_ptr<Token> MettaLexer::next() {
             case START: {
                 LOG_DEBUG("START");
                 switch (c) {
-                    case '\0': return nullptr;
-                    case '(': return make_unique<Token>(MettaTokens::OPEN_PARENTHESIS, "(");
-                    case ')': return make_unique<Token>(MettaTokens::CLOSE_PARENTHESIS, ")");
-                    case ' ': case '\n': case '\r': case '\t': break;
+                    case '\0':
+                        return nullptr;
+                    case '(':
+                        return make_unique<Token>(MettaTokens::OPEN_PARENTHESIS, "(");
+                    case ')':
+                        return make_unique<Token>(MettaTokens::CLOSE_PARENTHESIS, ")");
+                    case ' ':
+                    case '\n':
+                    case '\r':
+                    case '\t':
+                        break;
                     case '\"': {
                         state = READING_LITERAL_STRING;
                         current_token = make_unique<Token>(MettaTokens::STRING_LITERAL, "\"");
                         break;
                     }
-                    case '-': case '0': case '1': case '2': case '3': case '4': case '5': case '6': case '7': case '8': case '9': {
+                    case '-':
+                    case '0':
+                    case '1':
+                    case '2':
+                    case '3':
+                    case '4':
+                    case '5':
+                    case '6':
+                    case '7':
+                    case '8':
+                    case '9': {
                         state = READING_NUMBER;
                         number_string.push_back(c);
                         break;
@@ -116,7 +130,7 @@ unique_ptr<Token> MettaLexer::next() {
                         return current_token;
                     }
                     case '\"': {
-                        if (! escape_flag) {
+                        if (!escape_flag) {
                             state = START;
                             return current_token;
                         }
@@ -136,8 +150,14 @@ unique_ptr<Token> MettaLexer::next() {
             case READING_NUMBER: {
                 LOG_DEBUG("READING_NUMBER");
                 switch (c) {
-                    case '(': case ')': _rewind_input_buffer(1);
-                    case ' ': case '\n': case '\r': case '\t': case '\0': {
+                    case '(':
+                    case ')':
+                        _rewind_input_buffer(1);
+                    case ' ':
+                    case '\n':
+                    case '\r':
+                    case '\t':
+                    case '\0': {
                         state = START;
                         if (number_is_integer) {
                             return make_unique<Token>(MettaTokens::INTEGER_LITERAL, number_string);
@@ -146,8 +166,18 @@ unique_ptr<Token> MettaLexer::next() {
                         }
                         break;
                     }
-                    case '.': number_is_integer = false;
-                    case '0': case '1': case '2': case '3': case '4': case '5': case '6': case '7': case '8': case '9': {
+                    case '.':
+                        number_is_integer = false;
+                    case '0':
+                    case '1':
+                    case '2':
+                    case '3':
+                    case '4':
+                    case '5':
+                    case '6':
+                    case '7':
+                    case '8':
+                    case '9': {
                         number_string.push_back(c);
                         break;
                     }
@@ -161,12 +191,19 @@ unique_ptr<Token> MettaLexer::next() {
             case READING_SYMBOL_OR_VARIABLE: {
                 LOG_DEBUG("READING_SYMBOL_OR_VARIABLE");
                 switch (c) {
-                    case '(': case ')': _rewind_input_buffer(1);
-                    case ' ': case '\n': case '\r': case '\t': case '\0': {
+                    case '(':
+                    case ')':
+                        _rewind_input_buffer(1);
+                    case ' ':
+                    case '\n':
+                    case '\r':
+                    case '\t':
+                    case '\0': {
                         state = START;
                         return current_token;
                     }
-                    default: current_token->text.push_back(c);
+                    default:
+                        current_token->text.push_back(c);
                 }
                 break;
             }
@@ -184,7 +221,9 @@ unique_ptr<Token> MettaLexer::next() {
 
 void MettaLexer::_attach_string(const string& metta_string) {
     if (metta_string.size() > this->input_buffer_size) {
-        Utils::error("Can't attach strings larger than input buffer size (" + std::to_string(metta_string.size()) + " > " + std::to_string(this->input_buffer_size) + ")");
+        Utils::error("Can't attach strings larger than input buffer size (" +
+                     std::to_string(metta_string.size()) + " > " +
+                     std::to_string(this->input_buffer_size) + ")");
     } else {
         this->attached_strings.push(metta_string);
     }
@@ -231,7 +270,7 @@ void MettaLexer::_feed_from_file() {
         c = fgetc(file);
     }
     fclose(file);
-    this->input_buffer[this->writing_cursor] = '\0'; // there's extra room for this '\0'
+    this->input_buffer[this->writing_cursor] = '\0';  // there's extra room for this '\0'
     if (c == EOF) {
         this->current_offset[filename] = -1;
         this->attached_file_names.pop();
@@ -244,17 +283,19 @@ bool MettaLexer::_feed_input_buffer() {
     this->writing_cursor = 0;
     this->input_buffer[this->reading_cursor] = '\0';
     if (this->file_input_flag) {
-        while ((this->writing_cursor < this->input_buffer_size) && (this->attached_file_names.size() > 0)) {
+        while ((this->writing_cursor < this->input_buffer_size) &&
+               (this->attached_file_names.size() > 0)) {
             _feed_from_file();
         }
     } else {
         if (this->attached_strings.size() > 0) {
-            while (this->attached_strings.front().size() <= (this->input_buffer_size - this->writing_cursor)) {
-                for (char c: this->attached_strings.front()) {
+            while (this->attached_strings.front().size() <=
+                   (this->input_buffer_size - this->writing_cursor)) {
+                for (char c : this->attached_strings.front()) {
                     this->input_buffer[this->writing_cursor++] = c;
                 }
                 this->attached_strings.pop();
-                this->input_buffer[this->writing_cursor] = '\0'; // there's extra room for this '\0'
+                this->input_buffer[this->writing_cursor] = '\0';  // there's extra room for this '\0'
             }
         }
     }
@@ -268,7 +309,8 @@ void MettaLexer::_error(LexerState state, const string& error_message, char c) {
     } else {
         c_str = string(1, c);
     }
-    string prefix = "MettaLexer error in line " + std::to_string(this->line_number) + " - near character '" + c_str + " - ";
+    string prefix = "MettaLexer error in line " + std::to_string(this->line_number) +
+                    " - near character '" + c_str + " - ";
     if (state == START) {
         prefix += "Unexpected character";
     } else if (state == READING_LITERAL_STRING) {
