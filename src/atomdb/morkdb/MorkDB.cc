@@ -200,4 +200,9 @@ const atoms::Atom* MorkDB::parse_tokens_to_atom(const vector<string>& tokens, si
         return new atoms::Node(symbol, tokens[pos++]);
     }
 }
+
+shared_ptr<atomdb_api_types::HandleSet> MorkDB::query_for_pattern_base(const LinkSchema& link_schema) {
+    return RedisMongoDB::query_for_pattern(link_schema);
+}
+
 // <--

@@ -41,6 +41,9 @@ class MorkDB : public RedisMongoDB {
 
     shared_ptr<atomdb_api_types::HandleSet> query_for_pattern(const LinkSchema& link_schema) override;
 
+    // Used for testing purposes
+    shared_ptr<atomdb_api_types::HandleSet> query_for_pattern_base(const LinkSchema& link_schema);
+
    private:
     shared_ptr<AtomDBCache> atomdb_cache;
     shared_ptr<MorkClient> mork_client;
