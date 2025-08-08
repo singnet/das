@@ -9,6 +9,8 @@ cc_library(
     includes = ["."],
     deps = [
         ":metta_lexer",
+        ":metta_parser",
+        ":parser_actions",
     ],
 )
 
@@ -23,6 +25,34 @@ cc_library(
         "MettaLexer.h",
         "MettaTokens.h",
         "Token.h",
+    ],
+    includes = ["."],
+    deps = [
+        "//commons:commons_lib",
+    ],
+)
+
+cc_library(
+    name = "metta_parser",
+    srcs = [
+        "MettaParser.cc",
+    ],
+    hdrs = [
+        "MettaParser.h",
+    ],
+    includes = ["."],
+    deps = [
+        "//commons:commons_lib",
+    ],
+)
+
+cc_library(
+    name = "parser_actions",
+    srcs = [
+        "ParserActions.cc",
+    ],
+    hdrs = [
+        "ParserActions.h",
     ],
     includes = ["."],
     deps = [
