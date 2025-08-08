@@ -11,7 +11,7 @@
 using namespace metta;
 
 class TestActions : public ParserActions {
-    public:
+   public:
     vector<string> actions;
     TestActions() {}
     ~TestActions() {}
@@ -80,11 +80,15 @@ static void check_string(const string& tag,
     check_tokens(tag, &tokens, expected_tokens);
 }
 
-static void check_parse(const string& tag, const string& metta_str, bool syntax_ok, const vector<string>& expected) {
+static void check_parse(const string& tag,
+                        const string& metta_str,
+                        bool syntax_ok,
+                        const vector<string>& expected) {
     LOG_INFO("--------------------------------------------------------------------------------");
     LOG_INFO("Test case " + tag);
 
-    shared_ptr<TestActions> broker = make_shared<TestActions>();;
+    shared_ptr<TestActions> broker = make_shared<TestActions>();
+    ;
     MettaParser parser(metta_str, broker);
     if (syntax_ok) {
         EXPECT_FALSE(parser.parse(false));
@@ -94,7 +98,7 @@ static void check_parse(const string& tag, const string& metta_str, bool syntax_
     if (expected.size() > 0) {
         EXPECT_EQ(expected.size(), broker->actions.size());
         for (unsigned int i = 0; i < expected.size(); i++) {
-            LOG_INFO(expected[i] + " - " +  broker->actions[i]);
+            LOG_INFO(expected[i] + " - " + broker->actions[i]);
             EXPECT_EQ(expected[i], broker->actions[i]);
         }
     }
@@ -283,59 +287,41 @@ TEST(MettaParser, basics) {
     check_parse("06", "-1.0", true, {"FLOAT_LITERAL " + std::to_string(-1.0)});
     check_parse("07", "$a", true, {"VARIABLE a"});
     check_parse("08",
-                 "($a 1)",
-                 true,
-                 {
-                     "VARIABLE a",
-                     "INTEGER_LITERAL 1",
-                     "TOPLEVEL_EXPRESSION",
-                 });
+                "($a 1)",
+                true,
+                {
+                    "VARIABLE a",
+                    "INTEGER_LITERAL 1",
+                    "TOPLEVEL_EXPRESSION",
+                });
     check_parse("09",
-                 "(($v1 n1) $v2 n2)",
-                 true,
-                 {
-                     "VARIABLE v1",
-                     "SYMBOL n1",
-                     "EXPRESSION",
-                     "VARIABLE v2",
-                     "SYMBOL n2",
-                     "TOPLEVEL_EXPRESSION",
-                 });
+                "(($v1 n1) $v2 n2)",
+                true,
+                {
+                    "VARIABLE v1",
+                    "SYMBOL n1",
+                    "EXPRESSION",
+                    "VARIABLE v2",
+                    "SYMBOL n2",
+                    "TOPLEVEL_EXPRESSION",
+                });
     check_parse("10",
-                 "($a \"blah\\\"bleh\\\"blih\\\"\")",
-                 true,
-                 {
-                     "VARIABLE a",
-                     "STRING_LITERAL \"blah\\\"bleh\\\"blih\\\"\"",
-                     "TOPLEVEL_EXPRESSION",
-                 });
-    check_parse("11",
-                 "(($v1 n1) (2) $v2 (n8) ($v4) 1 n2 (n4 n5 (n6 (n7 $v3)))) (n10 n11)",
-                 true,
-                 {
-                     "VARIABLE v1",
-                     "SYMBOL n1",
-                     "EXPRESSION",
-                     "INTEGER_LITERAL 2",
-                     "EXPRESSION",
-                     "VARIABLE v2",
-                     "SYMBOL n8",
-                     "EXPRESSION",
-                     "VARIABLE v4",
-                     "EXPRESSION",
-                     "INTEGER_LITERAL 1",
-                     "SYMBOL n2",
-                     "SYMBOL n4",
-                     "SYMBOL n5",
-                     "SYMBOL n6",
-                     "SYMBOL n7",
-                     "VARIABLE v3",
-                     "EXPRESSION",
-                     "EXPRESSION",
-                     "EXPRESSION",
-                     "TOPLEVEL_EXPRESSION",
-                     "SYMBOL n10",
-                     "SYMBOL n11",
-                     "TOPLEVEL_EXPRESSION",
-                 });
+                "($a \"blah\\\"bleh\\\"blih\\\"\")",
+                true,
+                {
+                    "VARIABLE a",
+                    "STRING_LITERAL \"blah\\\"bleh\\\"blih\\\"\"",
+                    "TOPLEVEL_EXPRESSION",
+                });
+    check_parse(
+        "11",
+        "(($v1 n1) (2) $v2 (n8) ($v4) 1 n2 (n4 n5 (n6 (n7 $v3)))) (n10 n11)",
+        true,
+        {
+            "VARIABLE v1",         "SYMBOL n1",   "EXPRESSION", "INTEGER_LITERAL 2",   "EXPRESSION",
+            "VARIABLE v2",         "SYMBOL n8",   "EXPRESSION", "VARIABLE v4",         "EXPRESSION",
+            "INTEGER_LITERAL 1",   "SYMBOL n2",   "SYMBOL n4",  "SYMBOL n5",           "SYMBOL n6",
+            "SYMBOL n7",           "VARIABLE v3", "EXPRESSION", "EXPRESSION",          "EXPRESSION",
+            "TOPLEVEL_EXPRESSION", "SYMBOL n10",  "SYMBOL n11", "TOPLEVEL_EXPRESSION",
+        });
 }

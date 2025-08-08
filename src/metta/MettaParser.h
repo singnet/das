@@ -1,6 +1,7 @@
 #pragma once
 
 #include <memory>
+
 #include "MettaLexer.h"
 #include "ParserActions.h"
 
@@ -19,9 +20,7 @@ namespace metta {
  * use the constructor that expects a MettaLexer instead.
  */
 class MettaParser {
-
-public:
-
+   public:
     /**
      * Basic constructor which expects a single MeTTa string to be parsed.
      *
@@ -55,13 +54,15 @@ public:
      */
     bool parse(bool throw_on_parse_error = true);
 
-private:
-
+   private:
     void _init(shared_ptr<ParserActions> parser_actions);
-    void _error(bool throw_flag, const string& error_message, const string& token_text, unsigned char token_type);
+    void _error(bool throw_flag,
+                const string& error_message,
+                const string& token_text,
+                unsigned char token_type);
 
     shared_ptr<MettaLexer> lexer;
     shared_ptr<ParserActions> actions;
 };
 
-} // namespace metta
+}  // namespace metta

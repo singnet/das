@@ -1,6 +1,7 @@
+#include "MettaParser.h"
+
 #include <stack>
 
-#include "MettaParser.h"
 #include "MettaTokens.h"
 #include "Utils.h"
 
@@ -20,12 +21,9 @@ MettaParser::MettaParser(const string& metta_string, shared_ptr<ParserActions> p
     _init(parser_actions);
 }
 
-void MettaParser::_init(shared_ptr<ParserActions> parser_actions) {
-    this->actions = parser_actions;
-}
+void MettaParser::_init(shared_ptr<ParserActions> parser_actions) { this->actions = parser_actions; }
 
-MettaParser::~MettaParser() {
-}
+MettaParser::~MettaParser() {}
 
 // -------------------------------------------------------------------------------------------------
 // Public methods
@@ -37,7 +35,8 @@ bool MettaParser::parse(bool throw_on_parse_error) {
         if (token->type == MettaTokens::OPEN_PARENTHESIS) {
             token_stack.push(move(token));
         } else if (token->type == MettaTokens::CLOSE_PARENTHESIS) {
-            while ((token_stack.size() > 0) && (token_stack.top()->type != MettaTokens::OPEN_PARENTHESIS)) {
+            while ((token_stack.size() > 0) &&
+                   (token_stack.top()->type != MettaTokens::OPEN_PARENTHESIS)) {
                 token_stack.pop();
             }
             if (token_stack.size() == 0) {
@@ -68,8 +67,12 @@ bool MettaParser::parse(bool throw_on_parse_error) {
     while (token_stack.size() > 0) {
         token = move(token_stack.top());
         token_stack.pop();
-        if ((token->type == MettaTokens::OPEN_PARENTHESIS) || (token->type == MettaTokens::CLOSE_PARENTHESIS)) {
-            _error(throw_on_parse_error, "Invalid remaining '(' or ')' tokens after matching ()'s", token->text, token->type);
+        if ((token->type == MettaTokens::OPEN_PARENTHESIS) ||
+            (token->type == MettaTokens::CLOSE_PARENTHESIS)) {
+            _error(throw_on_parse_error,
+                   "Invalid remaining '(' or ')' tokens after matching ()'s",
+                   token->text,
+                   token->type);
             return true;
         }
     }
@@ -79,8 +82,10 @@ bool MettaParser::parse(bool throw_on_parse_error) {
 // -------------------------------------------------------------------------------------------------
 // Private methods
 
-void MettaParser::_error(bool throw_flag, const string& error_message, const string& token_text, unsigned char token_type) {
-
+void MettaParser::_error(bool throw_flag,
+                         const string& error_message,
+                         const string& token_text,
+                         unsigned char token_type) {
     static map<unsigned char, string> token_name;
     token_name[1] = "OPEN_PARENTHESIS";
     token_name[2] = "CLOSE_PARENTHESIS";
@@ -90,8 +95,7 @@ void MettaParser::_error(bool throw_flag, const string& error_message, const str
     token_name[131] = "FLOAT_LITERAL";
     token_name[192] = "VARIABLE";
 
-    string prefix = "MettaParser error in line " + std::to_string(this->lexer->line_number) +
-                    " near <" + token_text + "> (" + token_name[token_type] + ")";
+    string prefix = "MettaParser error in line " + std::to_string(this->lexer->line_number) + " near <" +
+                    token_text + "> (" + token_name[token_type] + ")";
     Utils::error(prefix + " - " + error_message, throw_flag);
 }
-
