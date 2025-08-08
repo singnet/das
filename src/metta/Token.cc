@@ -6,35 +6,35 @@ using namespace metta;
 // Public methods
 
 Token::Token() {
-    this->value = 0;
+    this->type = 0;
     this->text = "";
 }
 
-Token::Token(unsigned char value) {
-    this->value = value;
+Token::Token(unsigned char type) {
+    this->type = type;
     this->text = "";
 }
 
 Token::Token(const Token& other) {
-    this->value = other.value;
+    this->type = other.type;
     this->text = other.text;
 }
 
-Token::Token(unsigned char value, const string& text) {
-    this->value = value;
+Token::Token(unsigned char type, const string& text) {
+    this->type = type;
     this->text = text;
 }
 
 Token::~Token() {}
 
 Token& Token::operator=(const Token& other) {
-    this->value = other.value;
+    this->type = other.type;
     this->text = other.text;
     return *this;
 }
 
 bool Token::operator==(const Token& other) {
-    return (this->value == other.value) && (this->text == other.text);
+    return (this->type == other.type) && (this->text == other.text);
 }
 
 bool Token::operator!=(const Token& other) { return !(*this == other); }

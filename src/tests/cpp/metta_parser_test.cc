@@ -1,4 +1,5 @@
 #include "MettaLexer.h"
+#include "MettaParser.h"
 #include "MettaTokens.h"
 #include "Utils.h"
 #include "gtest/gtest.h"
@@ -8,6 +9,37 @@
 #include "Logger.h"
 
 using namespace metta;
+
+class TestActions : public ParserActions {
+   public:
+    vector<string> actions;
+    TestActions() {}
+    ~TestActions() {}
+    void symbol(const string& name) override {
+        ParserActions::symbol(name);
+        actions.push_back("SYMBOL " + name);
+    }
+    void variable(const string& value) override {
+        ParserActions::variable(value);
+        actions.push_back("VARIABLE " + value);
+    }
+    void literal(const string& value) override {
+        ParserActions::literal(value);
+        actions.push_back("STRING_LITERAL " + value);
+    }
+    void literal(int value) override {
+        ParserActions::literal(value);
+        actions.push_back("INTEGER_LITERAL " + std::to_string(value));
+    }
+    void literal(float value) override {
+        ParserActions::literal(value);
+        actions.push_back("FLOAT_LITERAL " + std::to_string(value));
+    }
+    void expression(bool toplevel) override {
+        ParserActions::expression(toplevel);
+        actions.push_back((toplevel ? "TOPLEVEL_" : "") + string("EXPRESSION"));
+    }
+};
 
 static void check_tokens(const string& tag,
                          vector<unique_ptr<Token>>* tokens,
@@ -28,8 +60,8 @@ static void check_tokens(const string& tag,
     if (expected_tokens.size() == tokens->size()) {
         for (unsigned int i = 0; i < tokens->size(); i++) {
             LOG_INFO(token_name[expected_tokens[i].first] + "<" + expected_tokens[i].second + "> " +
-                     token_name[(*tokens)[i]->value] + " <" + (*tokens)[i]->text + ">");
-            EXPECT_EQ(expected_tokens[i].first, (*tokens)[i]->value);
+                     token_name[(*tokens)[i]->type] + " <" + (*tokens)[i]->text + ">");
+            EXPECT_EQ(expected_tokens[i].first, (*tokens)[i]->type);
             EXPECT_EQ(expected_tokens[i].second, (*tokens)[i]->text);
         }
     }
@@ -46,6 +78,30 @@ static void check_string(const string& tag,
     }
 
     check_tokens(tag, &tokens, expected_tokens);
+}
+
+static void check_parse(const string& tag,
+                        const string& metta_str,
+                        bool syntax_ok,
+                        const vector<string>& expected) {
+    LOG_INFO("--------------------------------------------------------------------------------");
+    LOG_INFO("Test case " + tag);
+
+    shared_ptr<TestActions> broker = make_shared<TestActions>();
+    ;
+    MettaParser parser(metta_str, broker);
+    if (syntax_ok) {
+        EXPECT_FALSE(parser.parse(false));
+    } else {
+        EXPECT_TRUE(parser.parse(false));
+    }
+    if (expected.size() > 0) {
+        EXPECT_EQ(expected.size(), broker->actions.size());
+        for (unsigned int i = 0; i < expected.size(); i++) {
+            LOG_INFO(expected[i] + " - " + broker->actions[i]);
+            EXPECT_EQ(expected[i], broker->actions[i]);
+        }
+    }
 }
 
 TEST(MettaTokens, basics) {
@@ -99,10 +155,10 @@ TEST(MettaLexer, string_input) {
     check_string("02", "a", {make_pair(MettaTokens::SYMBOL, "a")});
     check_string("03", "\"a\"", {make_pair(MettaTokens::STRING_LITERAL, "\"a\"")});
     check_string("04", "1", {make_pair(MettaTokens::INTEGER_LITERAL, "1")});
-    check_string("04", "1.0", {make_pair(MettaTokens::FLOAT_LITERAL, "1.0")});
-    check_string("05", "-1.0", {make_pair(MettaTokens::FLOAT_LITERAL, "-1.0")});
-    check_string("06", "$a", {make_pair(MettaTokens::VARIABLE, "a")});
-    check_string("07",
+    check_string("05", "1.0", {make_pair(MettaTokens::FLOAT_LITERAL, "1.0")});
+    check_string("06", "-1.0", {make_pair(MettaTokens::FLOAT_LITERAL, "-1.0")});
+    check_string("07", "$a", {make_pair(MettaTokens::VARIABLE, "a")});
+    check_string("08",
                  "($a 1)",
                  {
                      make_pair(MettaTokens::OPEN_PARENTHESIS, "("),
@@ -110,7 +166,7 @@ TEST(MettaLexer, string_input) {
                      make_pair(MettaTokens::INTEGER_LITERAL, "1"),
                      make_pair(MettaTokens::CLOSE_PARENTHESIS, ")"),
                  });
-    check_string("08",
+    check_string("09",
                  "(($v1 n1) $v2 n2)",
                  {
                      make_pair(MettaTokens::OPEN_PARENTHESIS, "("),
@@ -122,7 +178,7 @@ TEST(MettaLexer, string_input) {
                      make_pair(MettaTokens::SYMBOL, "n2"),
                      make_pair(MettaTokens::CLOSE_PARENTHESIS, ")"),
                  });
-    check_string("09",
+    check_string("10",
                  "($a \"blah\\\"bleh\\\"blih\\\"\")",
                  {
                      make_pair(MettaTokens::OPEN_PARENTHESIS, "("),
@@ -220,4 +276,52 @@ TEST(MettaLexer, file_large) {
                      make_pair(MettaTokens::CLOSE_PARENTHESIS, ")"),
                      make_pair(MettaTokens::CLOSE_PARENTHESIS, ")"),
                  });
+}
+
+TEST(MettaParser, basics) {
+    check_parse("01", "", true, {});
+    check_parse("02", "a", true, {"SYMBOL a"});
+    check_parse("03", "\"a\"", true, {"STRING_LITERAL \"a\""});
+    check_parse("04", "1", true, {"INTEGER_LITERAL 1"});
+    check_parse("05", "1.0", true, {"FLOAT_LITERAL " + std::to_string(1.0)});
+    check_parse("06", "-1.0", true, {"FLOAT_LITERAL " + std::to_string(-1.0)});
+    check_parse("07", "$a", true, {"VARIABLE a"});
+    check_parse("08",
+                "($a 1)",
+                true,
+                {
+                    "VARIABLE a",
+                    "INTEGER_LITERAL 1",
+                    "TOPLEVEL_EXPRESSION",
+                });
+    check_parse("09",
+                "(($v1 n1) $v2 n2)",
+                true,
+                {
+                    "VARIABLE v1",
+                    "SYMBOL n1",
+                    "EXPRESSION",
+                    "VARIABLE v2",
+                    "SYMBOL n2",
+                    "TOPLEVEL_EXPRESSION",
+                });
+    check_parse("10",
+                "($a \"blah\\\"bleh\\\"blih\\\"\")",
+                true,
+                {
+                    "VARIABLE a",
+                    "STRING_LITERAL \"blah\\\"bleh\\\"blih\\\"\"",
+                    "TOPLEVEL_EXPRESSION",
+                });
+    check_parse(
+        "11",
+        "(($v1 n1) (2) $v2 (n8) ($v4) 1 n2 (n4 n5 (n6 (n7 $v3)))) (n10 n11)",
+        true,
+        {
+            "VARIABLE v1",         "SYMBOL n1",   "EXPRESSION", "INTEGER_LITERAL 2",   "EXPRESSION",
+            "VARIABLE v2",         "SYMBOL n8",   "EXPRESSION", "VARIABLE v4",         "EXPRESSION",
+            "INTEGER_LITERAL 1",   "SYMBOL n2",   "SYMBOL n4",  "SYMBOL n5",           "SYMBOL n6",
+            "SYMBOL n7",           "VARIABLE v3", "EXPRESSION", "EXPRESSION",          "EXPRESSION",
+            "TOPLEVEL_EXPRESSION", "SYMBOL n10",  "SYMBOL n11", "TOPLEVEL_EXPRESSION",
+        });
 }
