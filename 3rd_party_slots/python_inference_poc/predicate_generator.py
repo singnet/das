@@ -40,8 +40,6 @@ def letter_predicate(sentences, token=None, letter=None, letter_percent=0.6, ran
     print(f"### Running letter predicate with token: {token}, letter: {letter}, letter_percent: {letter_percent}, randomness: {randomness}, sentences: {len(sentences)}")
     predicates = []
     for sentence in sentences:
-        if time.time() % 2 == 0:  # Simulate some processing delay
-            print(f"Processing sentence: {sentence}")
         parsed_sentence = ''.join(sentence.replace(' ', '').split('"')[1:-1])
         count_letter = parsed_sentence.count(letter)
         if count_letter > 0 and count_letter / len(parsed_sentence) >= letter_percent:
