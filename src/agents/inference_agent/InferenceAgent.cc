@@ -72,14 +72,16 @@ void InferenceAgent::run() {
             }
         }
         // Check if there are any evolution proxies to process
-        for (auto& [request_id, evolution_proxy] : evolution_proxy_map) {
-            if (evolution_proxy->finished() || inference_proxy_map[request_id]->is_aborting() ||
-                Utils::get_current_time_millis() / 1000 > inference_timeout_map[request_id]) {
-                process_inference_abort_request(request_id);
+        for (auto it = evolution_proxy_map.begin(); it != evolution_proxy_map.end();) {
+            if (it->second->finished() || inference_proxy_map[it->first]->is_aborting() ||
+                Utils::get_current_time_millis() / 1000 > inference_timeout_map[it->first]) {
+                process_inference_abort_request(it->first);
+                it = evolution_proxy_map.erase(it);
             } else {
-                if ((query_answer = evolution_proxy->pop()) != NULL) {
-                    inference_proxy_map[request_id]->push(query_answer);
+                if ((query_answer = it->second->pop()) != NULL) {
+                    inference_proxy_map[it->first]->push(query_answer);
                 }
+                it++;
             }
         }
         Utils::sleep();
@@ -165,6 +167,5 @@ void InferenceAgent::process_inference_abort_request(const string& request_id) {
         evolution_proxy_map[request_id]->abort();
         LOG_DEBUG("Evolution proxy aborted for request ID: " << request_id);
     }
-    evolution_proxy_map.erase(request_id);
     LOG_DEBUG("Inference request processed and cleaned up for request ID: " << request_id);
 }
