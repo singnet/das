@@ -3,7 +3,7 @@
 if [ -z "$1" ]
 then
     echo "Usage: run_benchmark.sh BENCHMARK"
-    echo "Available benchmarks: atomdb, pattern_matching_query"
+    echo "Available benchmarks: atomdb, query_agent"
     exit 1
 else
     BENCHMARK="${1}"
@@ -17,8 +17,12 @@ TIMESTAMP=$(date +%Y%m%d%H%M%S)
 DB="empty"
 REL="loosely"
 CONCURRENCY="1"
-CACHE="disabled"
+CACHE_ENABLED="false"
 ITERATIONS=100
+UPDATE_ATTENTION_BROKER="false"
+POSITIVE_IMPORTANCE="false"
+UNIQUE_ASSIGNMENT="false"
+COUNT="false"
 
 SENTENCES=""
 WORD_COUNT=""
@@ -33,25 +37,35 @@ GREEN='\033[0;32m'
 
 case "$BENCHMARK" in
     atomdb) ;;
-    pattern_matching_query) ;;
-    *) echo -e "${RED}Unknown benchmark: $BENCHMARK. Choose either atomdb or pattern_matching_query${RESET}"; exit 1 ;;
+    query_agent) ;;
+    *) echo -e "${RED}Unknown benchmark: $BENCHMARK. Choose either atomdb or query_agent${RESET}"; exit 1 ;;
 esac
 
 echo ""
 echo -e "${GREEN}** Running benchmark: $BENCHMARK **${RESET}"
 echo ""
 
+
+update_attention_broker=false
+positive_importance=false
+unique_assignment=false
+count=false
+
 usage() {
     echo "Usage: $0 <benchmark> [OPTIONS]"
     echo
-    echo "  --db           Database size: empty | small | medium | large | xlarge (defalut: empty)"
-    echo "  --rel          Atoms relationships: loosely | tightly (default: loosely)"
-    echo "  --concurrency  Concurrent access: 1 | 10 | 100 | 1000 (default: 1)"
-    echo "  --cache        Cache: enabled | disabled (default: disabled)"
-    echo "  --iterations   Number of iterations for each action (default: 100)"
-    echo "  --help         Show this help"
+    echo "  --db                        Database size: empty | small | medium | large | xlarge (defalut: empty)"
+    echo "  --rel                       Atoms relationships: loosely | tightly (default: loosely)"
+    echo "  --concurrency               Concurrent access: 1 | 10 | 100 | 1000 (default: 1)"
+    echo "  --cache_enabled             Cache enabled: true | false (default: false)"
+    echo "  --iterations                Number of iterations for each action (default: 100)"
+    # echo "  --update_attention_broker   Update attention broker: true | false (default: false)"
+    # echo "  --positive_importance       Positive importance: true | false (default: false)"
+    # echo "  --unique_assignment         Unique assignment: true | false (default: false)"
+    # echo "  --count                     Count: true | false (default: false)"
+    echo "  --help                      Show this help"
     echo
-    echo "Example: $0 atomdb --db medium --rel tightly --concurrency 10 --cache enabled --iterations 100"
+    echo "Example: $0 atomdb --db medium --rel tightly --concurrency 1 --cache_enabled true --iterations 100 --update_attention_broker true --positive_importance false --unique_assignment true --count false"
     exit 1
 }
 
@@ -100,8 +114,12 @@ parse_args()  {
         --db)          DB="$2"; shift 2 ;;
         --rel)         REL="$2"; shift 2 ;;
         --concurrency) CONCURRENCY="$2"; shift 2 ;;
-        --cache)       CACHE="$2"; shift 2 ;;
+        --cache_enabled) CACHE_ENABLED="$2"; shift 2 ;;
         --iterations)  ITERATIONS="$2"; shift 2 ;;
+        # --update_attention_broker) UPDATE_ATTENTION_BROKER="$2"; shift 2 ;;
+        # --positive_importance) POSITIVE_IMPORTANCE="$2"; shift 2 ;;
+        # --unique_assignment) UNIQUE_ASSIGNMENT="$2"; shift 2 ;;
+        # --count)       COUNT="$2"; shift 2 ;;
         --help)        usage ;;
         *) echo "Unknown option: $1"; usage ;;
     esac
@@ -122,7 +140,7 @@ set_metta_file_params() {
         SENTENCES=100
         ;;
     small)
-        SENTENCES=10000
+        SENTENCES=100
         ;;
     medium)
         SENTENCES=1000000
@@ -192,13 +210,26 @@ init_environment() {
     DAS_MONGODB_PASSWORD="dassecret"
     echo -e "$DAS_REDIS_PORT\nN\n$DAS_MONGODB_PORT\n$DAS_MONGODB_USERNAME\n$DAS_MONGODB_PASSWORD\nN\n8888\n\n\n\n\n\n\n\n\n\n\n\n" | das-cli config set > /dev/null
     das-cli db stop > /dev/null
-    das-cli attention-broker stop > /dev/null
     das-cli db start
     das-cli metta load "$METTA_PATH"
-    TOTAL_ATOMS=$(das-cli db count-atoms) > /dev/null 2>&1
+    
+    # Attention Broker
+    das-cli attention-broker stop > /dev/null
     das-cli attention-broker start 
     echo -e "\r\033[K${GREEN}Redis, MongoDB and Attention Broker initialization completed!${RESET}"
     
+    # Query Agent
+    if [[ "$BENCHMARK" == "query_agent" ]]; then
+        # das-cli query-agent stop > /dev/null
+        # echo -e "3000:3100" | das-cli query-agent start
+        docker stop $(docker ps -q --filter "name=^das-query_broker-")
+        ./src/scripts/run.sh query_broker 35700 3000:3100 | stdbuf -oL grep "Benchmark::" > "/tmp/${BENCHMARK}_benchmark/${TIMESTAMP}/log.txt" || true &
+        echo -e "\r\033[K${GREEN}Query Agent initialization completed!${RESET}"
+    fi
+    
+
+    echo "Query Broker started on port 35700"
+
     # MORK
     mork_server_containers=$(docker ps -a --filter "name=das-mork-server" --format "{{.ID}}")
     if [[ -n "$mork_server_containers" ]]; then
@@ -219,7 +250,8 @@ load_scenario_definition() {
 
     local ini_file="./src/tests/benchmark/$benchmark/scenarios.ini"
     local section=""
-    local found_db="" found_rel="" found_conc="" found_cache="" found_actions=""
+    local found_db="" found_rel="" found_conc="" found_cache_enabled="" found_actions=""
+    #  found_update_attention_broker="" found_positive_importance="" found_unique_assignment="" found_count=""
 
     while IFS= read -r line; do
         if [[ $line =~ ^\[(.+)\]$ ]]; then
@@ -227,7 +259,7 @@ load_scenario_definition() {
             found_db=""
             found_rel=""
             found_conc=""
-            found_cache=""
+            found_cache_enabled=""
             found_actions=""
         elif [[ $line =~ ^db=(.*) ]]; then
             found_db="${BASH_REMATCH[1]}"
@@ -235,45 +267,138 @@ load_scenario_definition() {
             found_rel="${BASH_REMATCH[1]}"
         elif [[ $line =~ ^concurrency=(.*) ]]; then
             found_conc="${BASH_REMATCH[1]}"
-        elif [[ $line =~ ^cache=(.*) ]]; then
-            found_cache="${BASH_REMATCH[1]}"
+        elif [[ $line =~ ^cache_enabled=(.*) ]]; then
+            found_cache_enabled="${BASH_REMATCH[1]}"
         elif [[ $line =~ ^actions=(.*) ]]; then
             found_actions="${BASH_REMATCH[1]}"
         fi
 
         if [[ -n "$section" && \
-              "$found_db" == "$DB" && \
-              "$found_rel" == "$REL" && \
-              "$found_conc" == "$CONCURRENCY" && \
-              "$found_cache" == "$CACHE" && \
-              -n "$found_actions" ]]; then
+            "$found_db" == "$DB" && \
+            "$found_rel" == "$REL" && \
+            "$found_conc" == "$CONCURRENCY" && \
+            "$found_cache_enabled" == "$CACHE_ENABLED" && \
+            -n "$found_actions" ]]; then
             SCENARIO_NAME="$section"
             IFS=',' read -ra ACTIONS <<< "$found_actions"
             return 0
         fi
     done < "$ini_file"
 
+
+    # if [[ "$benchmark" == "atomdb" ]]; then
+    #     while IFS= read -r line; do
+    #         if [[ $line =~ ^\[(.+)\]$ ]]; then
+    #             section="${BASH_REMATCH[1]}"
+    #             found_db=""
+    #             found_rel=""
+    #             found_conc=""
+    #             found_cache_enabled=""
+    #             found_actions=""
+    #         elif [[ $line =~ ^db=(.*) ]]; then
+    #             found_db="${BASH_REMATCH[1]}"
+    #         elif [[ $line =~ ^rel=(.*) ]]; then
+    #             found_rel="${BASH_REMATCH[1]}"
+    #         elif [[ $line =~ ^concurrency=(.*) ]]; then
+    #             found_conc="${BASH_REMATCH[1]}"
+    #         elif [[ $line =~ ^cache_enabled=(.*) ]]; then
+    #             found_cache_enabled="${BASH_REMATCH[1]}"
+    #         elif [[ $line =~ ^actions=(.*) ]]; then
+    #             found_actions="${BASH_REMATCH[1]}"
+    #         fi
+
+    #         if [[ -n "$section" && \
+    #             "$found_db" == "$DB" && \
+    #             "$found_rel" == "$REL" && \
+    #             "$found_conc" == "$CONCURRENCY" && \
+    #             "$found_cache_enabled" == "$CACHE_ENABLED" && \
+    #             -n "$found_actions" ]]; then
+    #             SCENARIO_NAME="$section"
+    #             IFS=',' read -ra ACTIONS <<< "$found_actions"
+    #             return 0
+    #         fi
+    #     done < "$ini_file"
+    # elif [[ "$benchmark" == "query_agent" ]]; then
+    #     while IFS= read -r line; do
+    #         if [[ $line =~ ^\[(.+)\]$ ]]; then
+    #             section="${BASH_REMATCH[1]}"
+    #             found_db=""
+    #             found_rel=""
+    #             found_conc=""
+    #             found_cache_enabled=""
+    #             found_update_attention_broker=""
+    #             found_positive_importance=""
+    #             found_unique_assignment=""
+    #             found_count=""
+    #             found_actions=""
+    #         elif [[ $line =~ ^db=(.*) ]]; then
+    #             found_db="${BASH_REMATCH[1]}"
+    #         elif [[ $line =~ ^rel=(.*) ]]; then
+    #             found_rel="${BASH_REMATCH[1]}"
+    #         elif [[ $line =~ ^concurrency=(.*) ]]; then
+    #             found_conc="${BASH_REMATCH[1]}"
+    #         elif [[ $line =~ ^cache_enabled=(.*) ]]; then
+    #             found_cache_enabled="${BASH_REMATCH[1]}"
+    #         elif [[ $line =~ ^update_attention_broker=(.*) ]]; then
+    #             found_update_attention_broker="${BASH_REMATCH[1]}"
+    #         elif [[ $line =~ ^positive_importance=(.*) ]]; then
+    #             found_positive_importance="${BASH_REMATCH[1]}"
+    #         elif [[ $line =~ ^unique_assignment=(.*) ]]; then
+    #             found_unique_assignment="${BASH_REMATCH[1]}"
+    #         elif [[ $line =~ ^count=(.*) ]]; then
+    #             found_count="${BASH_REMATCH[1]}"
+    #         elif [[ $line =~ ^actions=(.*) ]]; then
+    #             found_actions="${BASH_REMATCH[1]}"
+    #         fi
+
+    #         if [[ -n "$section" && \
+    #             "$found_db" == "$DB" && \
+    #             "$found_rel" == "$REL" && \
+    #             "$found_conc" == "$CONCURRENCY" && \
+    #             "$found_cache_enabled" == "$CACHE_ENABLED" && \
+    #             "$found_update_attention_broker" == "$UPDATE_ATTENTION_BROKER" && \
+    #             "$found_positive_importance" == "$POSITIVE_IMPORTANCE" && \
+    #             "$found_unique_assignment" == "$UNIQUE_ASSIGNMENT" && \
+    #             "$found_count" == "$COUNT" && \
+    #             -n "$found_actions" ]]; then
+    #             SCENARIO_NAME="$section"
+    #             IFS=',' read -ra ACTIONS <<< "$found_actions"
+    #             return 0
+    #         fi
+    #     done < "$ini_file"
+    # fi
+
+    echo ""
     echo "Scenario not found for:"
-    echo "  db=$DB, rel=$REL, concurrency=$CONCURRENCY, cache=$CACHE"
+    echo "  db=$DB, rel=$REL, concurrency=$CONCURRENCY, cache_enabled=$CACHE_ENABLED"
     exit 1
 }
 
 print_scenario() {
     echo ""
     echo "=== Scenario: $SCENARIO_NAME ==="
-    echo "db=$DB, rel=$REL, concurrency=$CONCURRENCY, cache=$CACHE, iterations=$ITERATIONS"
+    echo "db=$DB, rel=$REL, concurrency=$CONCURRENCY, cache_enabled=$CACHE_ENABLED"
     echo "actions=${ACTIONS[*]}"
     echo ""
 }
 
 run_benchmark() {
     local benchmark=$1
+    local report_base_directory="/tmp/${benchmark}_benchmark/${TIMESTAMP}"
 
-    mkdir -p "/tmp/${benchmark}_benchmark/${TIMESTAMP}"
+    mkdir -p "$report_base_directory"
 
-    if [[ "$benchmark" == "pattern_matching_query" ]]; then
-        echo -e "\r\033[K${YELLOW}Pattern Matching Query benchmark is not implemented yet.${RESET}"
-        return 0
+    ATOMDB_TYPES=("redismongodb")
+
+    if [[ "$benchmark" == "query_agent" ]]; then
+        for type in "${ATOMDB_TYPES[@]}"; do   
+            for action in "${ACTIONS[@]}"; do
+                echo -e "\n== Running benchmarks for Query Agent | Action: $action ==" 
+                init_environment
+                ./src/scripts/docker_image_build.sh  > /dev/null 2>&1
+                ./src/scripts/bazel.sh run //tests/benchmark/query_agent:query_agent_main -- "$report_base_directory" "$type" "$action" "$CACHE_ENABLED" "$ITERATIONS" 2> >(grep -v '^+')
+            done
+        done
     elif [[ "$benchmark" == "atomdb" ]]; then
         # --- Set environment for each method of each action of each atomdb
         AddAtom=("add_node" "add_link" "add_atom_node" "add_atom_link")
@@ -283,8 +408,6 @@ run_benchmark() {
         DeleteAtom=("delete_node" "delete_link" "delete_atom_node" "delete_atom_link")
         DeleteAtoms=("delete_nodes" "delete_links" "delete_atoms_node" "delete_atoms_link")
 
-        ATOMDB_TYPES=("redis_mongo" "mork")
-
         for type in "${ATOMDB_TYPES[@]}"; do
             for action in "${ACTIONS[@]}"; do
                 declare -n methods="$action"
@@ -292,7 +415,7 @@ run_benchmark() {
                     echo -e "\n== Running benchmarks for AtomDB: $type | Action: $action | Method: $method ==" 
                     init_environment
                     ./src/scripts/docker_image_build.sh  > /dev/null 2>&1
-                    ./src/scripts/bazel.sh run //tests/benchmark/atomdb:atomdb_main -- "$type" "$action" "$method" "$CACHE" "$CONCURRENCY" "$ITERATIONS" "$TIMESTAMP" 2> >(grep -v '^+')
+                    ./src/scripts/bazel.sh run //tests/benchmark/atomdb:atomdb_main -- "$type" "$action" "$method" "$CACHE_ENABLED" "$CONCURRENCY" "$ITERATIONS" "$TIMESTAMP" 2> >(grep -v '^+')
                 done
             done
         done
@@ -314,7 +437,7 @@ header_to_report() {
  -Database = $DB
  -Atoms relationships = $REL
  -Concurrent access = $CONCURRENCY
- -Cache = $CACHE
+ -cache_enabled = $CACHE_ENABLED
  -iterations = $ITERATIONS
 
 ## Legend
@@ -335,7 +458,7 @@ header_to_report() {
 }
 
 scenario_data() {
-    echo "$SCENARIO_NAME $DB $REL $CONCURRENCY $CACHE $ITERATIONS"
+    echo "$SCENARIO_NAME $DB $REL $CONCURRENCY $CACHE_ENABLED $ITERATIONS"
 }
 
 

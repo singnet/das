@@ -139,7 +139,7 @@ void GetAtom::get_node_document() {
     run_benchmark(
         "get_node_document",
         [&](int i) -> string {
-            auto link_schema = LinkSchema(contains_links_query);
+            auto link_schema = LinkSchema(Runner::contains_links_query);
             auto handle_set = db_->query_for_pattern(link_schema);
             vector<string> random_link_handles = get_random_link_handle(handle_set);
             auto link_document = db_->get_link_document(random_link_handles[0]);
@@ -152,7 +152,7 @@ void GetAtom::get_link_document() {
     run_benchmark(
         "get_link_document",
         [&](int i) -> string {
-            auto link_schema = LinkSchema(contains_links_query);
+            auto link_schema = LinkSchema(Runner::contains_links_query);
             auto handle_set = db_->query_for_pattern(link_schema);
             vector<string> random_link_handles = get_random_link_handle(handle_set);
             return random_link_handles[0];
@@ -163,7 +163,7 @@ void GetAtom::get_atom_document_node() {
     run_benchmark(
         "get_atom_document[node]",
         [&](int i) -> string {
-            auto link_schema = LinkSchema(contains_links_query);
+            auto link_schema = LinkSchema(Runner::contains_links_query);
             auto handle_set = db_->query_for_pattern(link_schema);
             vector<string> random_link_handles = get_random_link_handle(handle_set);
             auto link_document = db_->get_link_document(random_link_handles[0]);
@@ -176,7 +176,7 @@ void GetAtom::get_atom_document_link() {
     run_benchmark(
         "get_atom_document[link]",
         [&](int i) -> string {
-            auto link_schema = LinkSchema(contains_links_query);
+            auto link_schema = LinkSchema(Runner::contains_links_query);
             auto handle_set = db_->query_for_pattern(link_schema);
             vector<string> random_link_handles = get_random_link_handle(handle_set);
             return random_link_handles[0];
@@ -187,7 +187,7 @@ void GetAtom::get_atom_node() {
     run_benchmark(
         "get_atom[node]",
         [&](int i) -> string {
-            auto link_schema = LinkSchema(contains_links_query);
+            auto link_schema = LinkSchema(Runner::contains_links_query);
             auto handle_set = db_->query_for_pattern(link_schema);
             vector<string> random_link_handles = get_random_link_handle(handle_set);
             auto link_document = db_->get_link_document(random_link_handles[0]);
@@ -200,7 +200,7 @@ void GetAtom::get_atom_link() {
     run_benchmark(
         "get_atom[link]",
         [&](int i) -> string {
-            auto link_schema = LinkSchema(contains_links_query);
+            auto link_schema = LinkSchema(Runner::contains_links_query);
             auto handle_set = db_->query_for_pattern(link_schema);
             vector<string> random_link_handles = get_random_link_handle(handle_set);
             return random_link_handles[0];
@@ -212,7 +212,7 @@ void GetAtoms::get_node_documents() {
     run_benchmark(
         "get_node_documents",
         [&](int i) -> vector<string> {
-            auto link_schema = LinkSchema(sentence_links_query);
+            auto link_schema = LinkSchema(Runner::sentence_links_query);
             auto handle_set = db_->query_for_pattern(link_schema);
             size_t max_count = max<size_t>(BATCH_SIZE, MAX_COUNT);
             vector<string> random_link_handles =
@@ -232,7 +232,7 @@ void GetAtoms::get_link_documents() {
     run_benchmark(
         "get_link_documents",
         [&](int i) -> vector<string> {
-            auto link_schema = LinkSchema(sentence_links_query);
+            auto link_schema = LinkSchema(Runner::sentence_links_query);
             auto handle_set = db_->query_for_pattern(link_schema);
             size_t max_count = max<size_t>(BATCH_SIZE, MAX_COUNT);
             return get_random_link_handle(handle_set, max_count, BATCH_SIZE);
@@ -243,7 +243,7 @@ void GetAtoms::get_atom_documents_node() {
     run_benchmark(
         "get_atom_documents[node]",
         [&](int i) -> vector<string> {
-            auto link_schema = LinkSchema(sentence_links_query);
+            auto link_schema = LinkSchema(Runner::sentence_links_query);
             auto handle_set = db_->query_for_pattern(link_schema);
             size_t max_count = max<size_t>(BATCH_SIZE, MAX_COUNT);
             vector<string> random_link_handles =
@@ -263,7 +263,7 @@ void GetAtoms::get_atom_documents_link() {
     run_benchmark(
         "get_atom_documents[link]",
         [&](int i) -> vector<string> {
-            auto link_schema = LinkSchema(sentence_links_query);
+            auto link_schema = LinkSchema(Runner::sentence_links_query);
             auto handle_set = db_->query_for_pattern(link_schema);
             size_t max_count = max<size_t>(BATCH_SIZE, MAX_COUNT);
             return get_random_link_handle(handle_set, max_count, BATCH_SIZE);
@@ -273,7 +273,7 @@ void GetAtoms::get_atom_documents_link() {
 void GetAtoms::query_for_pattern() {
     run_benchmark(
         "query_for_pattern[first_result]",
-        [&](int i) -> vector<string> { return contains_links_query; },
+        [&](int i) -> vector<string> { return Runner::contains_links_query; },
         [&](vector<string> pattern) {
             auto handles_set = db_->query_for_pattern(pattern);
             auto iterator = handles_set->get_iterator();
@@ -284,7 +284,7 @@ void GetAtoms::query_for_targets() {
     run_benchmark(
         "query_for_targets",
         [&](int i) -> string {
-            auto link_schema = LinkSchema(sentence_links_query);
+            auto link_schema = LinkSchema(Runner::sentence_links_query);
             auto handle_set = db_->query_for_pattern(link_schema);
             vector<string> random_link_handles = get_random_link_handle(handle_set);
             return random_link_handles[0];
@@ -296,7 +296,7 @@ void DeleteAtom::delete_node(string type) {
     run_benchmark(
         "delete_node",
         [&](int i) -> string {
-            auto link_schema = LinkSchema(sentence_links_query);
+            auto link_schema = LinkSchema(Runner::sentence_links_query);
             shared_ptr<atomdb_api_types::HandleSet> handle_set;
             if (type == "mork") {
                 handle_set = dynamic_pointer_cast<MorkDB>(db_)->query_for_pattern_base(link_schema);
@@ -314,7 +314,7 @@ void DeleteAtom::delete_link(string type) {
     run_benchmark(
         "delete_link",
         [&](int i) -> string {
-            auto link_schema = LinkSchema(contains_links_query);
+            auto link_schema = LinkSchema(Runner::contains_links_query);
             shared_ptr<atomdb_api_types::HandleSet> handle_set;
             if (type == "mork") {
                 handle_set = dynamic_pointer_cast<MorkDB>(db_)->query_for_pattern_base(link_schema);
@@ -330,7 +330,7 @@ void DeleteAtom::delete_atom_node(string type) {
     run_benchmark(
         "delete_atom[node]",
         [&](int i) -> string {
-            auto link_schema = LinkSchema(sentence_links_query);
+            auto link_schema = LinkSchema(Runner::sentence_links_query);
             shared_ptr<atomdb_api_types::HandleSet> handle_set;
             if (type == "mork") {
                 handle_set = dynamic_pointer_cast<MorkDB>(db_)->query_for_pattern_base(link_schema);
@@ -348,7 +348,7 @@ void DeleteAtom::delete_atom_link(string type) {
     run_benchmark(
         "delete_atom[link]",
         [&](int i) -> string {
-            auto link_schema = LinkSchema(contains_links_query);
+            auto link_schema = LinkSchema(Runner::contains_links_query);
             shared_ptr<atomdb_api_types::HandleSet> handle_set;
             if (type == "mork") {
                 handle_set = dynamic_pointer_cast<MorkDB>(db_)->query_for_pattern_base(link_schema);
@@ -365,7 +365,7 @@ void DeleteAtoms::delete_nodes(string type) {
     run_benchmark(
         "delete_nodes",
         [&](int i) -> vector<string> {
-            auto link_schema = LinkSchema(sentence_links_query);
+            auto link_schema = LinkSchema(Runner::sentence_links_query);
             shared_ptr<atomdb_api_types::HandleSet> handle_set;
             if (type == "mork") {
                 handle_set = dynamic_pointer_cast<MorkDB>(db_)->query_for_pattern_base(link_schema);
@@ -391,7 +391,7 @@ void DeleteAtoms::delete_links(string type) {
     run_benchmark(
         "delete_links",
         [&](int i) -> vector<string> {
-            auto link_schema = LinkSchema(contains_links_query);
+            auto link_schema = LinkSchema(Runner::contains_links_query);
             shared_ptr<atomdb_api_types::HandleSet> handle_set;
             if (type == "mork") {
                 handle_set = dynamic_pointer_cast<MorkDB>(db_)->query_for_pattern_base(link_schema);
@@ -408,7 +408,7 @@ void DeleteAtoms::delete_atoms_node(string type) {
     run_benchmark(
         "delete_atoms[node]",
         [&](int i) -> vector<string> {
-            auto link_schema = LinkSchema(sentence_links_query);
+            auto link_schema = LinkSchema(Runner::sentence_links_query);
             shared_ptr<atomdb_api_types::HandleSet> handle_set;
             if (type == "mork") {
                 handle_set = dynamic_pointer_cast<MorkDB>(db_)->query_for_pattern_base(link_schema);
@@ -434,7 +434,7 @@ void DeleteAtoms::delete_atoms_link(string type) {
     run_benchmark(
         "delete_atoms[link]",
         [&](int i) -> vector<string> {
-            auto link_schema = LinkSchema(contains_links_query);
+            auto link_schema = LinkSchema(Runner::contains_links_query);
             shared_ptr<atomdb_api_types::HandleSet> handle_set;
             if (type == "mork") {
                 handle_set = dynamic_pointer_cast<MorkDB>(db_)->query_for_pattern_base(link_schema);

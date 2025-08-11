@@ -1,38 +1,17 @@
+load("@rules_cc//cc:cc_library.bzl", "cc_library")
+
 package(default_visibility = ["//visibility:public"])
-
-exports_files(
-    [
-        ".ruff.toml",
-        ".clang-format",
-    ],
-    visibility = ["//visibility:public"],
-)
-
-alias(
-    name = "format.check",
-    actual = "//tools/format:format.check",
-)
-
-alias(
-    name = "format",
-    actual = "//tools/format",
-)
-
-cc_library(
-    name = "query_agent_utils",
-    srcs = ["query_agent_utils.cc"],
-    hdrs = ["query_agent_utils.h"],
-    deps = [
-        "//commons:commons_lib",
-    ],
-)
 
 cc_library(
     name = "query_agent_runner",
+    srcs = ["query_agent_runner.cc"],
     hdrs = ["query_agent_runner.h"],
     deps = [
-        ":query_agent_utils",
-        "//atomdb:query_agent_lib",
+        "//agents/query_engine:query_engine_lib",
+        "//atom_space:atom_space_lib",
+        "//atomdb:atomdb_lib",
+        "//atomdb:atomdb_singleton",
+        "//tests/benchmark:benchmark_lib",
     ],
 )
 
@@ -42,8 +21,8 @@ cc_library(
     hdrs = ["query_agent_operations.h"],
     deps = [
         ":query_agent_runner",
-        ":query_agent_utils",
-        "//atomdb:query_agent_lib",
+        "//atomdb:atomdb_lib",
+        "//tests/benchmark:benchmark_lib",
     ],
 )
 
@@ -62,9 +41,13 @@ cc_binary(
     deps = [
         ":query_agent_operations",
         ":query_agent_runner",
-        ":query_agent_utils",
-        "//atomdb:query_agent_lib",
+        "//agents/query_engine:query_engine_lib",
+        "//atom_space:atom_space_lib",
+        "//atomdb:atomdb_lib",
+        "//atomdb:atomdb_singleton",
         "//commons:commons_lib",
+        "//service_bus:service_bus_lib",
+        "//tests/benchmark:benchmark_lib",
         "@mbedtls",
     ],
 )
