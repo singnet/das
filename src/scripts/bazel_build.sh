@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -eoux pipefail
+set -eou pipefail
 
 BAZELISK_CMD=/opt/bazel/bazelisk
 BAZELISK_BUILD_CMD="${BAZELISK_CMD} build --noshow_progress"
@@ -73,9 +73,14 @@ mv $MOVE_LIB_TARGETS $LIB_DIR
 
 find "$LIB_DIR" -type f -name "*.so" | while IFS= read -r sofile; do
     ldd "$sofile" | awk '/=> \// { print $3 }' | while IFS= read -r dep; do
-        if [ -f "$dep" ]; then
-            cp -v "$dep" "$LIB_DIR"
-        fi
+        dep_base=$(basename "$dep")
+        case "$dep_base" in
+            "libmongoc2.so.2"|"libmongocxx.so._noabi"|"libhiredis.so.1.1.0"|"libhiredis_cluster.so.0.12"|"libbson2.so.2"|"libbsoncxx.so._noabi")
+                if [ -f "$dep" ]; then
+                    cp "$dep" "$LIB_DIR"
+                fi
+                ;;
+        esac
     done
 done
 
