@@ -7,7 +7,6 @@ on:
   push:
     branches:
       - master
-      - das-622
 
 jobs:
   benchmark:
@@ -15,6 +14,12 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+
+      - name: Install requirements 
+        run: |
+          sudo apt -y update && \
+          sudo apt -y install das-toolbox && \
+          sudo das-cli update-version --version 0.4.14
 
       - name: Clear benchmark output files
         run: rm -rf /tmp/atomdb_benchmark || true

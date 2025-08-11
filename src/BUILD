@@ -43,6 +43,7 @@ cc_shared_library(
         "//commons:commons_lib",
         "//distributed_algorithm_node:distributed_algorithm_node_lib",
         "//hasher:hasher_lib",
+        "//metta:metta_lib",
         "//service_bus:service_bus_lib",
     ],
 )

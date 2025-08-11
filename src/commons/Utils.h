@@ -49,7 +49,7 @@ class Utils {
     Utils() {}
     ~Utils() {}
 
-    static void error(string msg);
+    static void error(string msg, bool throw_flag = true);
     static bool flip_coin(double true_probability = 0.5);
     static void sleep(unsigned int milliseconds = 100);
     static string get_environment(string const& key);

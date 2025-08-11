@@ -48,10 +48,7 @@ void LinkCreationRequestProcessor::process_link_create_request(shared_ptr<BusCom
     }
     try {
         LOG_DEBUG("Processing link creation request: " << Utils::join(request_proxy->get_args(), ' '));
-        auto request = request_proxy->get_args();
-        request.push_back(proxy->peer_id() +
-                          to_string(proxy->get_serial()));  // Add request ID to the end of the request
-        this->link_creation_agent->process_request(request_proxy->get_args());
+        this->link_creation_agent->process_request(request_proxy);
     } catch (const std::exception& e) {
         LOG_ERROR("Error processing link creation request: " << e.what());
         request_proxy->raise_error_on_peer("Error processing link creation request: " +
