@@ -35,8 +35,12 @@ class TestActions : public ParserActions {
         ParserActions::literal(value);
         actions.push_back("FLOAT_LITERAL " + std::to_string(value));
     }
-    void expression(bool toplevel) override {
-        ParserActions::expression(toplevel);
+    void expression_begin() override {
+        ParserActions::expression_begin();
+        actions.push_back("BEGIN_EXPRESSION");
+    }
+    void expression_end(bool toplevel) override {
+        ParserActions::expression_end(toplevel);
         actions.push_back((toplevel ? "TOPLEVEL_" : "") + string("EXPRESSION"));
     }
 };
@@ -88,7 +92,6 @@ static void check_parse(const string& tag,
     LOG_INFO("Test case " + tag);
 
     shared_ptr<TestActions> broker = make_shared<TestActions>();
-    ;
     MettaParser parser(metta_str, broker);
     if (syntax_ok) {
         EXPECT_FALSE(parser.parse(false));
@@ -290,6 +293,7 @@ TEST(MettaParser, basics) {
                 "($a 1)",
                 true,
                 {
+                    "BEGIN_EXPRESSION",
                     "VARIABLE a",
                     "INTEGER_LITERAL 1",
                     "TOPLEVEL_EXPRESSION",
@@ -298,6 +302,8 @@ TEST(MettaParser, basics) {
                 "(($v1 n1) $v2 n2)",
                 true,
                 {
+                    "BEGIN_EXPRESSION",
+                    "BEGIN_EXPRESSION",
                     "VARIABLE v1",
                     "SYMBOL n1",
                     "EXPRESSION",
@@ -309,19 +315,50 @@ TEST(MettaParser, basics) {
                 "($a \"blah\\\"bleh\\\"blih\\\"\")",
                 true,
                 {
+                    "BEGIN_EXPRESSION",
                     "VARIABLE a",
                     "STRING_LITERAL \"blah\\\"bleh\\\"blih\\\"\"",
                     "TOPLEVEL_EXPRESSION",
                 });
+    // clang-format off
     check_parse(
         "11",
         "(($v1 n1) (2) $v2 (n8) ($v4) 1 n2 (n4 n5 (n6 (n7 $v3)))) (n10 n11)",
         true,
         {
-            "VARIABLE v1",         "SYMBOL n1",   "EXPRESSION", "INTEGER_LITERAL 2",   "EXPRESSION",
-            "VARIABLE v2",         "SYMBOL n8",   "EXPRESSION", "VARIABLE v4",         "EXPRESSION",
-            "INTEGER_LITERAL 1",   "SYMBOL n2",   "SYMBOL n4",  "SYMBOL n5",           "SYMBOL n6",
-            "SYMBOL n7",           "VARIABLE v3", "EXPRESSION", "EXPRESSION",          "EXPRESSION",
-            "TOPLEVEL_EXPRESSION", "SYMBOL n10",  "SYMBOL n11", "TOPLEVEL_EXPRESSION",
+            "BEGIN_EXPRESSION",
+            "BEGIN_EXPRESSION",
+            "VARIABLE v1",
+            "SYMBOL n1",
+            "EXPRESSION",
+            "BEGIN_EXPRESSION",
+            "INTEGER_LITERAL 2",
+            "EXPRESSION",
+            "VARIABLE v2",
+            "BEGIN_EXPRESSION",
+            "SYMBOL n8",
+            "EXPRESSION",
+            "BEGIN_EXPRESSION",
+            "VARIABLE v4",
+            "EXPRESSION",
+            "INTEGER_LITERAL 1",
+            "SYMBOL n2",
+            "BEGIN_EXPRESSION",
+            "SYMBOL n4",
+            "SYMBOL n5",
+            "BEGIN_EXPRESSION",
+            "SYMBOL n6",
+            "BEGIN_EXPRESSION",
+            "SYMBOL n7",
+            "VARIABLE v3",
+            "EXPRESSION",
+            "EXPRESSION",
+            "EXPRESSION",
+            "TOPLEVEL_EXPRESSION",
+            "BEGIN_EXPRESSION",
+            "SYMBOL n10",
+            "SYMBOL n11",
+            "TOPLEVEL_EXPRESSION",
         });
+    // clang-format on
 }

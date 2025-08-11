@@ -53,6 +53,7 @@ class PatternMatchingQueryProcessor : public BusCommandProcessor {
                                shared_ptr<Sink> query_sink,
                                set<string>& joint_answer,
                                unsigned int& answer_count);
+    shared_ptr<QueryElement> parse_metta_query(shared_ptr<PatternMatchingQueryProxy> proxy);
     shared_ptr<QueryElement> setup_query_tree(shared_ptr<PatternMatchingQueryProxy> proxy);
     void thread_process_one_query(shared_ptr<StoppableThread>,
                                   shared_ptr<PatternMatchingQueryProxy> proxy);

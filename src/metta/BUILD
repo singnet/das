@@ -11,6 +11,7 @@ cc_library(
         ":metta_lexer",
         ":metta_parser",
         ":parser_actions",
+        ":metta_mapping",
     ],
 )
 
@@ -42,6 +43,7 @@ cc_library(
     ],
     includes = ["."],
     deps = [
+        ":metta_lexer",
         "//commons:commons_lib",
     ],
 )
@@ -57,5 +59,18 @@ cc_library(
     includes = ["."],
     deps = [
         "//commons:commons_lib",
+    ],
+)
+
+cc_library(
+    name = "metta_mapping",
+    srcs = [
+        "MettaMapping.cc",
+    ],
+    hdrs = [
+        "MettaMapping.h",
+    ],
+    includes = ["."],
+    deps = [
     ],
 )

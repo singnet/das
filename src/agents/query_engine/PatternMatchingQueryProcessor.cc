@@ -1,6 +1,8 @@
 #include "PatternMatchingQueryProcessor.h"
-
 #include <grpcpp/grpcpp.h>
+
+#define LOG_LEVEL INFO_LEVEL
+#include "Logger.h"
 
 #include "And.h"
 #include "Link.h"
@@ -15,13 +17,13 @@
 #include "Terminal.h"
 #include "UniqueAssignmentFilter.h"
 #include "UntypedVariable.h"
+#include "MettaParser.h"
+#include "MettaParserActions.h"
 #include "attention_broker.grpc.pb.h"
 #include "attention_broker.pb.h"
 
-#define LOG_LEVEL INFO_LEVEL
-#include "Logger.h"
-
 using namespace atomdb;
+using namespace metta;
 
 string PatternMatchingQueryProcessor::AND = "AND";
 string PatternMatchingQueryProcessor::OR = "OR";
@@ -162,7 +164,12 @@ void PatternMatchingQueryProcessor::thread_process_one_query(
         proxy->untokenize(proxy->args);
         LOG_DEBUG("Setting up query tree");
         LOG_DEBUG("Proxy: " << proxy->to_string());
-        shared_ptr<QueryElement> root_query_element = setup_query_tree(proxy);
+        shared_ptr<QueryElement> root_query_element;
+        if (proxy->parameters.get<bool>(BaseQueryProxy::USE_METTA_AS_QUERY_TOKENS)) {
+            root_query_element = parse_metta_query(proxy);
+        } else {
+            root_query_element = setup_query_tree(proxy);
+        }
         set<string> joint_answer;  // used to stimulate attention broker
         string command = proxy->get_command();
         if (root_query_element == NULL) {
@@ -225,8 +232,30 @@ void PatternMatchingQueryProcessor::remove_query_thread(const string& stoppable_
 // -------------------------------------------------------------------------------------------------
 // Private methods - query tree building
 
+shared_ptr<QueryElement> PatternMatchingQueryProcessor::parse_metta_query(
+    shared_ptr<PatternMatchingQueryProxy> proxy) {
+
+    if (proxy->get_query_tokens().size() > 1) {
+        Utils::error("Only one string with the whole MeTTa expression is expected when issuing MeTTa queries");
+        return nullptr;
+    }
+    shared_ptr<MettaParserActions> parser_actions = make_shared<MettaParserActions>(proxy);
+    MettaParser parser(proxy->get_query_tokens()[0], parser_actions);
+    parser.parse(true);
+    if (parser_actions->element_stack.size() == 0) {
+        Utils::error("Invalid MeTTa query. Parser returned an empty stack.");
+        return nullptr;
+    } else if (parser_actions->element_stack.size() > 1) {
+        Utils::error("Invalid MeTTa query with more than 1 toplevel expressions");
+        return nullptr;
+    } else {
+        return parser_actions->element_stack.top();
+    }
+}
+
 shared_ptr<QueryElement> PatternMatchingQueryProcessor::setup_query_tree(
     shared_ptr<PatternMatchingQueryProxy> proxy) {
+
     stack<unsigned int> execution_stack;
     stack<shared_ptr<QueryElement>> element_stack;
     unsigned int cursor = 0;

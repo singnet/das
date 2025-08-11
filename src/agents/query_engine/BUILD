@@ -71,8 +71,22 @@ cc_library(
     hdrs = ["PatternMatchingQueryProcessor.h"],
     deps = [
         ":pattern_matching_query_proxy",
+        ":metta_parser_actions",
         "//agents/query_engine/query_element:query_element_lib",
         "//commons/atoms:atoms_lib",
+        "//metta:metta_parser",
         "//service_bus:bus_command_processor",
+    ],
+)
+
+cc_library(
+    name = "metta_parser_actions",
+    srcs = ["MettaParserActions.cc"],
+    hdrs = ["MettaParserActions.h"],
+    deps = [
+        ":pattern_matching_query_proxy",
+        "//agents/query_engine/query_element:query_element_lib",
+        "//commons/atoms:atoms_lib",
+        "//metta:parser_actions",
     ],
 )
