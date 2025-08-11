@@ -288,8 +288,9 @@ bool MettaLexer::_feed_input_buffer() {
         }
     } else {
         if (this->attached_strings.size() > 0) {
-            while ((this->attached_strings.size() > 0) && (this->attached_strings.front().size() <=
-                   (this->input_buffer_size - this->writing_cursor))) {
+            while ((this->attached_strings.size() > 0) &&
+                   (this->attached_strings.front().size() <=
+                    (this->input_buffer_size - this->writing_cursor))) {
                 for (char c : this->attached_strings.front()) {
                     this->input_buffer[this->writing_cursor++] = c;
                 }

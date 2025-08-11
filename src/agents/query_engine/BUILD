@@ -70,8 +70,8 @@ cc_library(
     srcs = ["PatternMatchingQueryProcessor.cc"],
     hdrs = ["PatternMatchingQueryProcessor.h"],
     deps = [
-        ":pattern_matching_query_proxy",
         ":metta_parser_actions",
+        ":pattern_matching_query_proxy",
         "//agents/query_engine/query_element:query_element_lib",
         "//commons/atoms:atoms_lib",
         "//metta:metta_parser",

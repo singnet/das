@@ -1,13 +1,15 @@
 #include "PatternMatchingQueryProcessor.h"
+
 #include <grpcpp/grpcpp.h>
 
 #define LOG_LEVEL INFO_LEVEL
-#include "Logger.h"
-
 #include "And.h"
 #include "Link.h"
 #include "LinkSchema.h"
 #include "LinkTemplate.h"
+#include "Logger.h"
+#include "MettaParser.h"
+#include "MettaParserActions.h"
 #include "Node.h"
 #include "Or.h"
 #include "PatternMatchingQueryProxy.h"
@@ -17,8 +19,6 @@
 #include "Terminal.h"
 #include "UniqueAssignmentFilter.h"
 #include "UntypedVariable.h"
-#include "MettaParser.h"
-#include "MettaParserActions.h"
 #include "attention_broker.grpc.pb.h"
 #include "attention_broker.pb.h"
 
@@ -234,9 +234,9 @@ void PatternMatchingQueryProcessor::remove_query_thread(const string& stoppable_
 
 shared_ptr<QueryElement> PatternMatchingQueryProcessor::parse_metta_query(
     shared_ptr<PatternMatchingQueryProxy> proxy) {
-
     if (proxy->get_query_tokens().size() > 1) {
-        Utils::error("Only one string with the whole MeTTa expression is expected when issuing MeTTa queries");
+        Utils::error(
+            "Only one string with the whole MeTTa expression is expected when issuing MeTTa queries");
         return nullptr;
     }
     shared_ptr<MettaParserActions> parser_actions = make_shared<MettaParserActions>(proxy);
@@ -255,7 +255,6 @@ shared_ptr<QueryElement> PatternMatchingQueryProcessor::parse_metta_query(
 
 shared_ptr<QueryElement> PatternMatchingQueryProcessor::setup_query_tree(
     shared_ptr<PatternMatchingQueryProxy> proxy) {
-
     stack<unsigned int> execution_stack;
     stack<shared_ptr<QueryElement>> element_stack;
     unsigned int cursor = 0;

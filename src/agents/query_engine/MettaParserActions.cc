@@ -1,16 +1,15 @@
-#include <vector>
-#include <array>
 #include <algorithm>
+#include <array>
+#include <vector>
 
 #define LOG_LEVEL INFO_LEVEL
-#include "Logger.h"
-
-#include "MettaParserActions.h"
-#include "MettaMapping.h"
-#include "Terminal.h"
-#include "LinkTemplate.h"
 #include "And.h"
+#include "LinkTemplate.h"
+#include "Logger.h"
+#include "MettaMapping.h"
+#include "MettaParserActions.h"
 #include "Or.h"
+#include "Terminal.h"
 #include "UniqueAssignmentFilter.h"
 
 using namespace query_engine;
@@ -24,8 +23,7 @@ MettaParserActions::MettaParserActions(shared_ptr<PatternMatchingQueryProxy> pro
     this->current_expression_type = LINK;
 }
 
-MettaParserActions::~MettaParserActions() {
-}
+MettaParserActions::~MettaParserActions() {}
 
 void MettaParserActions::symbol(const string& name) {
     ParserActions::symbol(name);
@@ -73,7 +71,8 @@ void MettaParserActions::literal(int value) {
         return;
     }
     this->current_expression_size++;
-    this->element_stack.push(make_shared<Terminal>(MettaMapping::SYMBOL_NODE_TYPE, std::to_string(value)));
+    this->element_stack.push(
+        make_shared<Terminal>(MettaMapping::SYMBOL_NODE_TYPE, std::to_string(value)));
 }
 
 void MettaParserActions::literal(float value) {
@@ -83,7 +82,8 @@ void MettaParserActions::literal(float value) {
         return;
     }
     this->current_expression_size++;
-    this->element_stack.push(make_shared<Terminal>(MettaMapping::SYMBOL_NODE_TYPE, std::to_string(value)));
+    this->element_stack.push(
+        make_shared<Terminal>(MettaMapping::SYMBOL_NODE_TYPE, std::to_string(value)));
 }
 
 void MettaParserActions::expression_begin() {
@@ -98,7 +98,8 @@ void MettaParserActions::expression_end(bool toplevel) {
     ParserActions::expression_end(toplevel);
     unsigned int arity = this->current_expression_size;
     if (element_stack.size() < arity) {
-        Utils::error("Invalid query expression: too few arguments for expression. Expected: " + std::to_string(arity) + " Stack size: " + std::to_string(element_stack.size()));
+        Utils::error("Invalid query expression: too few arguments for expression. Expected: " +
+                     std::to_string(arity) + " Stack size: " + std::to_string(element_stack.size()));
         return;
     }
     LOG_DEBUG("Arity: " + std::to_string(arity));
@@ -171,7 +172,8 @@ void MettaParserActions::expression_end(bool toplevel) {
     this->current_expression_size = this->expression_size_stack.top() + 1;
     this->expression_size_stack.pop();
 
-    if ((this->current_expression_type == LINK_TEMPLATE) && (this->expression_type_stack.top() == LINK)) {
+    if ((this->current_expression_type == LINK_TEMPLATE) &&
+        (this->expression_type_stack.top() == LINK)) {
         LOG_DEBUG("Turning LINK into LINK_TEMPLATE");
         this->current_expression_type = LINK_TEMPLATE;
     } else {

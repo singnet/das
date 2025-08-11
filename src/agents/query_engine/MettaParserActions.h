@@ -3,8 +3,8 @@
 #include <stack>
 
 #include "ParserActions.h"
-#include "QueryElement.h"
 #include "PatternMatchingQueryProxy.h"
+#include "QueryElement.h"
 
 using namespace std;
 using namespace metta;
@@ -18,9 +18,7 @@ enum ExpressionType { LINK, LINK_TEMPLATE, AND, OR };
  *
  */
 class MettaParserActions : public ParserActions {
-
-public:
-
+   public:
     MettaParserActions(shared_ptr<PatternMatchingQueryProxy> proxy);
     ~MettaParserActions();
 
@@ -64,8 +62,7 @@ public:
 
     stack<shared_ptr<QueryElement>> element_stack;
 
-private:
-
+   private:
     shared_ptr<PatternMatchingQueryProxy> proxy;
     unsigned int current_expression_size;
     ExpressionType current_expression_type;
@@ -73,4 +70,4 @@ private:
     stack<ExpressionType> expression_type_stack;
 };
 
-} // namespace query_engine
+}  // namespace query_engine

@@ -9,9 +9,9 @@ cc_library(
     includes = ["."],
     deps = [
         ":metta_lexer",
+        ":metta_mapping",
         ":metta_parser",
         ":parser_actions",
-        ":metta_mapping",
     ],
 )
 

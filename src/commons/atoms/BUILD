@@ -25,7 +25,7 @@ cc_library(
     deps = [
         "//commons:commons_lib",
         "//commons:handle_trie",
-        "//metta:metta_mapping",
         "//hasher:hasher_lib",
+        "//metta:metta_mapping",
     ],
 )
