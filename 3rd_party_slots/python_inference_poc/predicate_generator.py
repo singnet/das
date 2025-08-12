@@ -5,6 +5,35 @@ import time
 import json
 from metta_file_generator import NodeLinkGenerator, NodeLinkWriter, WriterBuffer
 
+def parse_args():
+    parser = argparse.ArgumentParser(description="Process some sentences.")
+    parser.add_argument("file", type=str, help="The file to process")
+    parser.add_argument("--seed", type=int, default=42, help="Random seed for reproducibility")
+    parser.add_argument("--config-file", type=str, default=None, help="Path to the configuration file")
+    parser.add_argument("--letter-predicate-token", type=str, default='feature_a', help="Token for letter predicate")
+    parser.add_argument("--letter-predicate-letter", type=str, default='a', help="Letter for letter predicate")
+    parser.add_argument("--letter-predicate-percent", type=float, default=0.6, help="Percentage of letters for letter predicate")
+    parser.add_argument("--letter-predicate-letter-percent", type=float, default=0.6, help="Percentage of letters for letter predicate")
+    parser.add_argument("--letter-predicate-randomness", type=float, default=0.8, help="Randomness for letter predicate")
+    parser.add_argument("--wildcard-predicate-token", type=str, default='feature_b', help="Token for wildcard predicate")
+    parser.add_argument("--wildcard-predicate-wildcards", type=str, nargs='+', default=['*ac', 'cb*'], help="Wildcards for wildcard predicate")
+    parser.add_argument("--wildcard-predicate-randomness", type=float, default=0.8, help="Randomness for wildcard predicate")
+    parser.add_argument("--start-end-predicate-token", type=str, default='feature_c', help="Token for start-end predicate")
+    parser.add_argument("--start-end-predicate-start-letter", type=str, default='c', help="Start letter for start-end predicate")
+    parser.add_argument("--start-end-predicate-end-letter", type=str, default='d', help="End letter for start-end predicate")
+    parser.add_argument("--start-end-predicate-randomness", type=float, default=0.8, help="Randomness for start-end predicate")
+    parser.add_argument("--low-diversity-predicate-token", type=str, default='feature_d', help="Token for low-diversity predicate")
+    parser.add_argument("--low-diversity-predicate-letters", type=str, nargs='+', default=['a', 'b', 'c', 'd', 'e'], help="Letters for low-diversity predicate")
+    parser.add_argument("--low-diversity-predicate-randomness", type=float, default=0.8, help="Randomness for low-diversity predicate")
+    parser.add_argument("--bias-predicates", type=str, nargs='+', default=['letter-predicate', 'low-diversity-predicate'], help="Predicates to bias")
+    parser.add_argument("--bias-strength", type=float, default=0.5, help="Strength of the bias")
+    parser.add_argument("--bias-filename", type=str, default='bias.metta', help="Filename for biased predicates")
+    parser.add_argument("--metta-filename", type=str, default='ooo.metta', help="Output MeTTa filename")
+    parser.add_argument("--sentence-node-count", type=int, default=3, help="Number of Sentence nodes to be generated")
+    parser.add_argument("--word-count", type=int, default=3, help="How many words make up the node")
+    parser.add_argument("--word-length", type=int, default=3, help="Number of characters in the word")
+    parser.add_argument("--alphabet-range", type=str, default="0-3", help="Alphabet range, eg: 2-5")
+    return parser.parse_args()
 
 def read_sentences(file_path):
     with open(file_path, 'r') as file:
@@ -140,7 +169,6 @@ def write_predicates(filename, biased_predicates, write_words_and_sentences=True
         for predicate in biased_predicates:
             f.write(predicate + '\n')
 
-
 def generate_biased_predicates(args, predicate_lengths):
     print(f"### Generating biased predicates based on the provided arguments, predicates: {args.bias_predicates}, strength: {args.bias_strength}")
     biased_predicates = []
@@ -163,34 +191,7 @@ def generate_biased_predicates(args, predicate_lengths):
     return biased_predicates
 
 def main():
-    parser = argparse.ArgumentParser(description="Process some sentences.")
-    parser.add_argument("file", type=str, help="The file to process")
-    parser.add_argument("--seed", type=int, default=42, help="Random seed for reproducibility")
-    parser.add_argument("--config-file", type=str, default=None, help="Path to the configuration file")
-    parser.add_argument("--letter-predicate-token", type=str, default='feature_a', help="Token for letter predicate")
-    parser.add_argument("--letter-predicate-letter", type=str, default='a', help="Letter for letter predicate")
-    parser.add_argument("--letter-predicate-percent", type=float, default=0.6, help="Percentage of letters for letter predicate")
-    parser.add_argument("--letter-predicate-letter-percent", type=float, default=0.6, help="Percentage of letters for letter predicate")
-    parser.add_argument("--letter-predicate-randomness", type=float, default=0.8, help="Randomness for letter predicate")
-    parser.add_argument("--wildcard-predicate-token", type=str, default='feature_b', help="Token for wildcard predicate")
-    parser.add_argument("--wildcard-predicate-wildcards", type=str, nargs='+', default=['*ac', 'cb*'], help="Wildcards for wildcard predicate")
-    parser.add_argument("--wildcard-predicate-randomness", type=float, default=0.8, help="Randomness for wildcard predicate")
-    parser.add_argument("--start-end-predicate-token", type=str, default='feature_c', help="Token for start-end predicate")
-    parser.add_argument("--start-end-predicate-start-letter", type=str, default='c', help="Start letter for start-end predicate")
-    parser.add_argument("--start-end-predicate-end-letter", type=str, default='d', help="End letter for start-end predicate")
-    parser.add_argument("--start-end-predicate-randomness", type=float, default=0.8, help="Randomness for start-end predicate")
-    parser.add_argument("--low-diversity-predicate-token", type=str, default='feature_d', help="Token for low-diversity predicate")
-    parser.add_argument("--low-diversity-predicate-letters", type=str, nargs='+', default=['a', 'b', 'c', 'd', 'e'], help="Letters for low-diversity predicate")
-    parser.add_argument("--low-diversity-predicate-randomness", type=float, default=0.8, help="Randomness for low-diversity predicate")
-    parser.add_argument("--bias-predicates", type=str, nargs='+', default=['letter-predicate', 'low-diversity-predicate'], help="Predicates to bias")
-    parser.add_argument("--bias-strength", type=float, default=0.5, help="Strength of the bias")
-    parser.add_argument("--bias-filename", type=str, default='bias.metta', help="Filename for biased predicates")
-    parser.add_argument("--metta-filename", type=str, default='ooo.metta', help="Output MeTTa filename")
-    parser.add_argument("--sentence-node-count", type=int, default=3, help="Number of Sentence nodes to be generated")
-    parser.add_argument("--word-count", type=int, default=3, help="How many words make up the node")
-    parser.add_argument("--word-length", type=int, default=3, help="Number of characters in the word")
-    parser.add_argument("--alphabet-range", type=str, default="0-3", help="Alphabet range, eg: 2-5")
-    args = parser.parse_args()
+    args = parse_args()
     if args.config_file:
         args = parse_config_file(args.config_file, args)
     # initialize seed
@@ -235,7 +236,7 @@ def main():
         # predicates.extend(biased_predicates)
     biased_predicates_duration = time.time() - biased_predicates_time
 
-    write_predicates(args.metta_filename, predicates, False, True)
+    write_predicates(args.metta_filename, predicates, write_words_and_sentences=False, append=True)
 
     # Report
     print("######################### Summary #########################")
