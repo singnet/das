@@ -5,6 +5,9 @@
 #include "MettaTokens.h"
 #include "Utils.h"
 
+#define LOG_LEVEL INFO_LEVEL
+#include "Logger.h"
+
 using namespace metta;
 using namespace commons;
 
@@ -32,7 +35,9 @@ bool MettaParser::parse(bool throw_on_parse_error) {
     stack<unique_ptr<Token>> token_stack;
     unique_ptr<Token> token;
     while ((token = this->lexer->next()) != nullptr) {
+        LOG_DEBUG("New token: " + token->to_string());
         if (token->type == MettaTokens::OPEN_PARENTHESIS) {
+            this->actions->expression_begin();
             token_stack.push(move(token));
         } else if (token->type == MettaTokens::CLOSE_PARENTHESIS) {
             while ((token_stack.size() > 0) &&
@@ -44,7 +49,7 @@ bool MettaParser::parse(bool throw_on_parse_error) {
                 return true;
             }
             token_stack.pop();
-            this->actions->expression(token_stack.size() == 0);
+            this->actions->expression_end(token_stack.size() == 0);
         } else if (token->type == MettaTokens::SYMBOL) {
             this->actions->symbol(token->text);
             token_stack.push(move(token));

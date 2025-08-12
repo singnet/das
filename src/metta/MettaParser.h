@@ -49,7 +49,8 @@ class MettaParser {
      *
      * @param throw_on_parse_error When true, syntax or lexer errors will throw an exception. If
      * this flag is false, errors will still be logged using LOG_ERROR but no exceptions will be thrown.
-     * The success of the parse can only be determined by the method's return value.
+     * The success of the parse can only be determined by the method's return value. NOTE: this
+     * parameter is NOT passed to ParserActions so it can throw exceptions by itself.
      * @return False if parsing completed whitout any errors. True otherwise.
      */
     bool parse(bool throw_on_parse_error = true);
