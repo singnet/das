@@ -28,7 +28,6 @@ using namespace atomspace;
 class QueryAgentRunner : public Runner {
    public:
     QueryAgentRunner(int tid, shared_ptr<AtomSpace> atom_space, int iterations);
-    void run();
 
    protected:
     shared_ptr<AtomSpace> atom_space_;  // Shared pointer to the AtomSpace instance
