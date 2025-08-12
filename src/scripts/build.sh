@@ -16,9 +16,10 @@ ENV_VARS=$(test -f .env && echo "--env-file=.env" || echo "")
 # local paths
 LOCAL_WORKDIR=$(pwd)
 LOCAL_BIN_DIR=$LOCAL_WORKDIR/bin
+LOCAL_LIB_DIR=$LOCAL_WORKDIR/lib
 LOCAL_CACHE="$HOME/.cache/das"
 
-mkdir -p $LOCAL_BIN_DIR $LOCAL_CACHE
+mkdir -p $LOCAL_BIN_DIR $LOCAL_LIB_DIR $LOCAL_CACHE
 
 # container paths
 CONTAINER_WORKDIR=/opt/das
