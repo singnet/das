@@ -2,15 +2,20 @@
 #include <array>
 #include <vector>
 
+// clang-format off
+
 #define LOG_LEVEL INFO_LEVEL
+#include "Logger.h"
+
 #include "And.h"
 #include "LinkTemplate.h"
-#include "Logger.h"
 #include "MettaMapping.h"
 #include "MettaParserActions.h"
 #include "Or.h"
 #include "Terminal.h"
 #include "UniqueAssignmentFilter.h"
+
+// clang-format on
 
 using namespace query_engine;
 

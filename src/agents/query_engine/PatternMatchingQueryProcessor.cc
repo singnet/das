@@ -1,13 +1,15 @@
 #include "PatternMatchingQueryProcessor.h"
+// clang-format off
+
+#define LOG_LEVEL INFO_LEVEL
+#include "Logger.h"
 
 #include <grpcpp/grpcpp.h>
 
-#define LOG_LEVEL INFO_LEVEL
 #include "And.h"
 #include "Link.h"
 #include "LinkSchema.h"
 #include "LinkTemplate.h"
-#include "Logger.h"
 #include "MettaParser.h"
 #include "MettaParserActions.h"
 #include "Node.h"
@@ -21,6 +23,8 @@
 #include "UntypedVariable.h"
 #include "attention_broker.grpc.pb.h"
 #include "attention_broker.pb.h"
+
+// clang-format on
 
 using namespace atomdb;
 using namespace metta;
@@ -163,7 +167,7 @@ void PatternMatchingQueryProcessor::thread_process_one_query(
     try {
         proxy->untokenize(proxy->args);
         LOG_DEBUG("Setting up query tree");
-        LOG_DEBUG("Proxy: " << proxy->to_string());
+        LOG_INFO("Proxy: " << proxy->to_string());
         shared_ptr<QueryElement> root_query_element;
         if (proxy->parameters.get<bool>(BaseQueryProxy::USE_METTA_AS_QUERY_TOKENS)) {
             root_query_element = parse_metta_query(proxy);
