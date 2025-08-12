@@ -4,13 +4,16 @@ use std::thread;
 
 use tokio::runtime::{Builder, Runtime};
 
-use crate::properties::{Properties, PropertyValue};
-use crate::properties::{
-	ATTENTION_UPDATE_FLAG, COUNT_FLAG, MAX_BUNDLE_SIZE, POPULATE_METTA_MAPPING,
-	POSITIVE_IMPORTANCE_FLAG, UNIQUE_ASSIGNMENT_FLAG,
+use crate::{
+	properties::{
+		Properties, PropertyValue, ATTENTION_UPDATE_FLAG, COUNT_FLAG, MAX_BUNDLE_SIZE,
+		POPULATE_METTA_MAPPING, POSITIVE_IMPORTANCE_FLAG, UNIQUE_ASSIGNMENT_FLAG,
+		USE_METTA_AS_QUERY_TOKENS,
+	},
+	proxy::ProxyNode,
+	types::BoxError,
+	QueryParams,
 };
-use crate::proxy::ProxyNode;
-use crate::types::BoxError;
 
 pub trait BaseQueryProxyT {
 	fn finished(&self) -> bool;
@@ -58,25 +61,32 @@ pub struct BaseQueryProxy {
 
 impl BaseQueryProxy {
 	#[allow(clippy::too_many_arguments)]
-	pub fn new(
-		command: String, query_tokens: Vec<String>, context: String, unique_assignment: bool,
-		positive_importance: bool, update_attention_broker: bool, count_only: bool,
-		populate_metta_mapping: bool, max_bundle_size: u64,
-	) -> Result<Self, BoxError> {
+	pub fn new(command: String, params: QueryParams) -> Result<Self, BoxError> {
 		let mut properties = Properties::new();
-		properties
-			.insert(UNIQUE_ASSIGNMENT_FLAG.to_string(), PropertyValue::Bool(unique_assignment));
-		properties
-			.insert(POSITIVE_IMPORTANCE_FLAG.to_string(), PropertyValue::Bool(positive_importance));
+		properties.insert(
+			UNIQUE_ASSIGNMENT_FLAG.to_string(),
+			PropertyValue::Bool(params.unique_assignment),
+		);
+		properties.insert(
+			POSITIVE_IMPORTANCE_FLAG.to_string(),
+			PropertyValue::Bool(params.positive_importance),
+		);
 		properties.insert(
 			ATTENTION_UPDATE_FLAG.to_string(),
-			PropertyValue::Bool(update_attention_broker),
+			PropertyValue::Bool(params.update_attention_broker),
 		);
-		properties.insert(COUNT_FLAG.to_string(), PropertyValue::Bool(count_only));
-		properties.insert(MAX_BUNDLE_SIZE.to_string(), PropertyValue::UnsignedInt(max_bundle_size));
+		properties.insert(COUNT_FLAG.to_string(), PropertyValue::Bool(params.count_only));
+		properties.insert(
+			MAX_BUNDLE_SIZE.to_string(),
+			PropertyValue::UnsignedInt(params.max_bundle_size),
+		);
 		properties.insert(
 			POPULATE_METTA_MAPPING.to_string(),
-			PropertyValue::Bool(populate_metta_mapping),
+			PropertyValue::Bool(params.populate_metta_mapping),
+		);
+		properties.insert(
+			USE_METTA_AS_QUERY_TOKENS.to_string(),
+			PropertyValue::Bool(params.use_metta_as_query_tokens),
 		);
 
 		let runtime = Arc::new(RwLock::new(Some(Arc::new(
@@ -88,13 +98,13 @@ impl BaseQueryProxy {
 			answer_count: 0,
 
 			answer_flow_finished: false,
-			count_flag: count_only,
+			count_flag: params.count_only,
 			abort_flag: false,
 
-			context,
+			context: params.context,
 			properties,
 
-			query_tokens,
+			query_tokens: params.tokens,
 
 			command,
 			args: vec![],

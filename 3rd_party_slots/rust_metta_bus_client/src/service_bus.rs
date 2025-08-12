@@ -1,9 +1,11 @@
 use std::sync::{Arc, Mutex};
 
-use crate::base_proxy_query::{BaseQueryProxy, BaseQueryProxyT};
-use crate::bus_node::BusNode;
-use crate::port_pool::PortPool;
-use crate::types::BoxError;
+use crate::{
+	base_proxy_query::{BaseQueryProxy, BaseQueryProxyT},
+	bus_node::BusNode,
+	port_pool::PortPool,
+	types::BoxError,
+};
 
 #[derive(Debug, Default, Clone)]
 pub struct ServiceBus {

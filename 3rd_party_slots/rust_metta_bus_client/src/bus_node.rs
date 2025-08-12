@@ -1,12 +1,13 @@
-use std::sync::{Arc, Mutex, RwLock};
-use std::thread::sleep;
-use std::time::Duration;
+use std::{
+	sync::{Arc, Mutex, RwLock},
+	thread::sleep,
+	time::Duration,
+};
 
 use tokio::runtime::Builder;
 use tonic::{Request, Status};
 
-use das_proto::atom_space_node_client::AtomSpaceNodeClient;
-use das_proto::MessageData;
+use das_proto::{atom_space_node_client::AtomSpaceNodeClient, MessageData};
 
 mod das_proto {
 	tonic::include_proto!("dasproto");

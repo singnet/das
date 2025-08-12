@@ -6,6 +6,7 @@ pub static MAX_BUNDLE_SIZE: &str = "max_bundle_size";
 pub static POSITIVE_IMPORTANCE_FLAG: &str = "positive_importance_flag";
 pub static UNIQUE_ASSIGNMENT_FLAG: &str = "unique_assignment_flag";
 pub static POPULATE_METTA_MAPPING: &str = "populate_metta_mapping";
+pub static USE_METTA_AS_QUERY_TOKENS: &str = "use_metta_as_query_tokens";
 // Evolution
 pub static POPULATION_SIZE: &str = "population_size";
 pub static MAX_GENERATIONS: &str = "max_generations";

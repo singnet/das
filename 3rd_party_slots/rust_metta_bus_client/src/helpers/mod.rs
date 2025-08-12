@@ -112,104 +112,17 @@ pub fn run_metta_runner(atom: &Atom, metta_runner: &MeTTaRunner) -> Result<Atom,
 	}
 }
 
-pub fn translate_atom(atom: &Atom, variables: &mut HashMap<String, String>) -> Vec<String> {
-	match atom {
-		Atom::Expression(exp_atom) => {
-			let children = exp_atom.children();
-			if children.is_empty() {
-				return vec!["LINK_TEMPLATE Expression 0".to_string()];
-			}
+pub fn map_variables(atom_str: &str) -> HashMap<String, String> {
+	let mut variables = HashMap::new();
 
-			// Check for AND/OR operators at any level - both Symbol and Grounded
-			if let Some(first_child) = children.first() {
-				let operator_name = match first_child {
-					Atom::Symbol(symbol) => symbol.name().to_string(),
-					Atom::Grounded(grounded) => grounded.to_string(),
-					_ => "".to_string(),
-				};
-
-				if operator_name == "," || operator_name == "and" {
-					let mut result = vec![];
-					result.push(format!("AND {}", children.len() - 1));
-
-					for child in children.iter().skip(1) {
-						let child_tokens = translate_atom(child, variables);
-						// Add each child's tokens without indentation
-						for token in child_tokens {
-							result.push(token);
-						}
-					}
-					result
-				} else if operator_name == "or" {
-					let mut result = vec![];
-					result.push(format!("OR {}", children.len() - 1));
-
-					for child in children.iter().skip(1) {
-						let child_tokens = translate_atom(child, variables);
-						// Add each child's tokens without indentation
-						for token in child_tokens {
-							result.push(token);
-						}
-					}
-					result
-				} else {
-					// Regular expression processing
-					let mut result = vec![];
-
-					// Determine if this expression should be LINK or LINK_TEMPLATE
-					let mut has_variables = false;
-					let mut has_link_template = false;
-
-					// Check all children for variables or LINK_TEMPLATE
-					for child in children.iter() {
-						let child_tokens = translate_atom(child, variables);
-						for token in child_tokens {
-							if token.starts_with("VARIABLE") {
-								has_variables = true;
-							} else if token.starts_with("LINK_TEMPLATE") {
-								has_link_template = true;
-							}
-						}
-					}
-
-					let link_type =
-						if has_variables || has_link_template { "LINK_TEMPLATE" } else { "LINK" };
-					result.push(format!("{} Expression {}", link_type, children.len()));
-
-					for child in children {
-						let child_tokens = translate_atom(child, variables);
-						// Add each child's tokens without indentation
-						for token in child_tokens {
-							result.push(token);
-						}
-					}
-					result
-				}
-			} else {
-				// Fallback for expressions without a symbol as first child
-				let mut result = vec![];
-				result.push(format!("LINK_TEMPLATE Expression {}", children.len()));
-
-				for child in children {
-					let child_tokens = translate_atom(child, variables);
-					// Add each child's tokens without indentation
-					for token in child_tokens {
-						result.push(token);
-					}
-				}
-				result
-			}
-		},
-		Atom::Symbol(symbol) => {
-			vec![format!("NODE Symbol {}", symbol.name())]
-		},
-		Atom::Variable(variable) => {
-			variables.insert(variable.name().to_string(), "".to_string());
-			vec![format!("VARIABLE {}", variable.name())]
-		},
-		Atom::Grounded(grounded) => {
-			// For grounded atoms, represent them as symbols
-			vec![format!("NODE Symbol {}", grounded.to_string())]
-		},
+	let tokens = split_ignore_quoted(atom_str);
+	for (idx, token) in tokens.iter().enumerate() {
+		if token.starts_with("$") {
+			variables.insert(token.replace("$", ""), "".to_string());
+		} else if token == "VARIABLE" && idx + 1 < tokens.len() {
+			variables.insert(tokens[idx + 1].clone(), "".to_string());
+		}
 	}
+
+	variables
 }

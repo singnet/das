@@ -1,18 +1,18 @@
-use hyperon_atom::matcher::Bindings;
-use hyperon_atom::Atom;
-use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 
-use crate::base_proxy_query::{BaseQueryProxy, BaseQueryProxyT};
-use crate::helpers::query_answer::parse_query_answer;
-use crate::helpers::{split_ignore_quoted, translate_atom};
-use crate::properties::{
-	PropertyValue, ELITISM_RATE, MAX_GENERATIONS, POPULATION_SIZE, SELECTION_RATE,
-	TOTAL_ATTENTION_TOKENS,
+use hyperon_atom::{matcher::Bindings, Atom};
+
+use crate::{
+	base_proxy_query::{BaseQueryProxy, BaseQueryProxyT},
+	bus::QUERY_EVOLUTION,
+	helpers::query_answer::parse_query_answer,
+	properties::{
+		PropertyValue, ELITISM_RATE, MAX_GENERATIONS, POPULATION_SIZE, SELECTION_RATE,
+		TOTAL_ATTENTION_TOKENS,
+	},
+	types::{BoxError, MeTTaRunner},
+	QueryParams,
 };
-use crate::types::MeTTaRunner;
-use crate::QueryParams;
-use crate::{bus::QUERY_EVOLUTION, types::BoxError};
 
 pub static REMOTE_FUNCTION: &str = "remote_fitness_function";
 pub static EVAL_FITNESS: &str = "eval_fitness";
@@ -20,7 +20,7 @@ pub static EVAL_FITNESS_RESPONSE: &str = "eval_fitness_response";
 
 pub static EVOLUTION_PARSER_ERROR_MESSAGE: &str = "EVOLUTION query must have (parameters) (fitness function) ((query) (correlation tokens) (correlation variables)) eg:
 (
-	EVOLUTION 
+	EVOLUTION
 	(population_size max_generations elitism_rate selection_rate total_attention_tokens)
 	((my-func \"monkey\" $S))
 	((Similarity \"human\" $S) (Similarity \"monkey\" $V) ($S $V))
@@ -58,17 +58,7 @@ impl QueryEvolutionProxy {
 	pub fn new(
 		params: &QueryParams, evolution_params: &QueryEvolutionParams,
 	) -> Result<Self, BoxError> {
-		let mut base = BaseQueryProxy::new(
-			QUERY_EVOLUTION.to_string(),
-			params.tokens.clone(),
-			params.context.clone(),
-			params.unique_assignment,
-			params.positive_importance,
-			params.update_attention_broker,
-			params.count_only,
-			params.populate_metta_mapping,
-			params.max_bundle_size,
-		)?;
+		let mut base = BaseQueryProxy::new(QUERY_EVOLUTION.to_string(), params.clone())?;
 
 		base.properties.insert(
 			POPULATION_SIZE.to_string(),
@@ -107,9 +97,9 @@ impl QueryEvolutionProxy {
 		log::debug!(target: "das", "Elitism rate          : <{}>", evolution_params.elitism_rate);
 		log::debug!(target: "das", "Selection rate        : <{}>", evolution_params.selection_rate);
 		log::debug!(target: "das", "Total attention tokens: <{}>", evolution_params.total_attention_tokens);
-		log::debug!(target: "das", "Fitness function      : <{}>", evolution_params.fitness_function);
 		log::debug!(target: "das", "Correlation tokens    : <{}>", evolution_params.correlation_tokens.join(","));
 		log::debug!(target: "das", "Correlation variables : <{}>", evolution_params.correlation_variables.join(","));
+		log::debug!(target: "das", "Fitness function      : <{}>", evolution_params.fitness_function);
 
 		base.args = args;
 
@@ -289,17 +279,15 @@ pub fn parse_evolution_parameters(
 				}
 
 				let mut query_atom = Atom::expr([]);
-				let mut fitness_function = children[2].to_string();
-				fitness_function = fitness_function[1..fitness_function.len() - 1].to_string();
-				let mut correlation_tokens_atom = Atom::expr([]);
+				let mut correlation_tokens = vec![];
 				let mut correlation_variables = vec![];
-				if let Atom::Expression(exp_atom) = children[3].clone() {
+				if let Atom::Expression(exp_atom) = children[2].clone() {
 					let children = exp_atom.children();
 					if children.len() != 3 {
 						return Err(EVOLUTION_PARSER_ERROR_MESSAGE.to_string().into());
 					}
 					query_atom = children[0].clone();
-					correlation_tokens_atom = children[1].clone();
+					correlation_tokens = vec![children[1].to_string()];
 					correlation_variables = match &children[2] {
 						Atom::Expression(exp_atom) => exp_atom
 							.children()
@@ -312,9 +300,9 @@ pub fn parse_evolution_parameters(
 						_ => vec![],
 					};
 				}
-				let correlation_tokens = split_ignore_quoted(
-					&translate_atom(&correlation_tokens_atom, &mut HashMap::new()).join(" "),
-				);
+				let mut fitness_function = children[3].to_string();
+				fitness_function = fitness_function[1..fitness_function.len() - 1].to_string();
+
 				return Ok(Some(QueryEvolutionParams {
 					query_atom,
 					population_size,

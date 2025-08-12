@@ -5,7 +5,7 @@ use std::{
 	time::Duration,
 };
 
-use helpers::{query_answer::parse_query_answer, split_ignore_quoted, translate_atom};
+use helpers::{map_variables, query_answer::parse_query_answer};
 use hyperon_atom::{matcher::BindingsSet, Atom, ExecError};
 use pattern_matching_proxy::PatternMatchingQueryProxy;
 use service_bus::ServiceBus;
@@ -14,7 +14,7 @@ use types::BoxError;
 
 use crate::{
 	base_proxy_query::BaseQueryProxyT,
-	helpers::run_metta_runner,
+	helpers::{run_metta_runner, split_ignore_quoted},
 	query_evolution_proxy::{
 		parse_evolution_parameters, QueryEvolutionParams, QueryEvolutionProxy,
 	},
@@ -48,6 +48,7 @@ pub struct QueryParams {
 	update_attention_broker: bool,
 	count_only: bool,
 	populate_metta_mapping: bool,
+	use_metta_as_query_tokens: bool,
 	max_bundle_size: u64,
 }
 
@@ -61,6 +62,7 @@ pub fn query_with_das(
 	let update_attention_broker = false;
 	let count_only = false;
 	let populate_metta_mapping = true;
+	let use_metta_as_query_tokens = true;
 	let max_bundle_size = 10_000;
 
 	let mut atom = atom.clone();
@@ -83,13 +85,14 @@ pub fn query_with_das(
 
 	let params = match extract_query_params(
 		space_name,
-		&atom,
+		atom.to_string(),
 		max_query_answers,
 		unique_assignment,
 		positive_importance,
 		update_attention_broker,
 		count_only,
 		populate_metta_mapping,
+		use_metta_as_query_tokens,
 		max_bundle_size,
 	) {
 		Ok(params) => params,
@@ -104,25 +107,32 @@ pub fn query_with_das(
 
 #[allow(clippy::too_many_arguments)]
 pub fn extract_query_params(
-	space_name: Option<String>, query_atom: &Atom, max_query_answers: u32, unique_assignment: bool,
-	positive_importance: bool, update_attention_broker: bool, count_only: bool,
-	populate_metta_mapping: bool, max_bundle_size: u64,
+	space_name: Option<String>, query_tokens_str: String, max_query_answers: u32,
+	unique_assignment: bool, positive_importance: bool, update_attention_broker: bool,
+	count_only: bool, populate_metta_mapping: bool, use_metta_as_query_tokens: bool,
+	max_bundle_size: u64,
 ) -> Result<QueryParams, BindingsSet> {
 	let mut params = QueryParams::default();
 
-	// Translating to LT and setting the VARIABLES
-	let mut variables = HashMap::new();
-	let tokens = split_ignore_quoted(&translate_atom(query_atom, &mut variables).join(" "));
-
-	log::debug!(target: "das", "Query: <{}>", tokens.join(","));
-	log::debug!(target: "das", "Vars : <{}>", variables.keys().cloned().collect::<Vec<String>>().join(","));
+	// Getting variables from query_tokens_str
+	let variables = map_variables(&query_tokens_str);
 
 	params.context = match space_name {
 		Some(name) => name.clone(),
 		None => "context".to_string(),
 	};
 
-	params.tokens = tokens;
+	let mut use_metta_as_query_tokens = use_metta_as_query_tokens;
+	params.tokens = if query_tokens_str.starts_with("LINK_TEMPLATE") {
+		use_metta_as_query_tokens = false;
+		split_ignore_quoted(&query_tokens_str)
+	} else {
+		vec![query_tokens_str]
+	};
+
+	log::debug!(target: "das", "Query: <{:?}>", params.tokens);
+	log::debug!(target: "das", "Vars : <{}>", variables.keys().cloned().collect::<Vec<String>>().join(","));
+
 	params.variables = variables;
 	params.max_query_answers = max_query_answers;
 	params.unique_assignment = unique_assignment;
@@ -130,6 +140,7 @@ pub fn extract_query_params(
 	params.update_attention_broker = update_attention_broker;
 	params.count_only = count_only;
 	params.populate_metta_mapping = populate_metta_mapping;
+	params.use_metta_as_query_tokens = use_metta_as_query_tokens;
 	params.max_bundle_size = max_bundle_size;
 
 	Ok(params)

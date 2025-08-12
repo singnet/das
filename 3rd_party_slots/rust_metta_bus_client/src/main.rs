@@ -10,8 +10,6 @@ use metta_bus_client::{
 	service_bus_singleton::ServiceBusSingleton, types::BoxError,
 };
 
-use hyperon::metta::text::{SExprParser, Tokenizer};
-
 const MAX_QUERY_ANSWERS: u32 = 100;
 
 fn main() -> Result<(), BoxError> {
@@ -48,6 +46,7 @@ fn main() -> Result<(), BoxError> {
 	let unique_assignment = true;
 	let count_only = false;
 	let populate_metta_mapping = true;
+	let use_metta_as_query_tokens = true;
 	let max_bundle_size = 10_000;
 
 	let mut tokens_start_position = 5;
@@ -61,8 +60,6 @@ fn main() -> Result<(), BoxError> {
 
 	log::info!("Using max_query_answers: {max_query_answers}");
 
-	let mut atoms = vec![];
-
 	let tokens = args
 		.iter()
 		.skip(tokens_start_position)
@@ -70,38 +67,19 @@ fn main() -> Result<(), BoxError> {
 		.collect::<Vec<String>>()
 		.join(" ");
 
-	let tokenizer = Tokenizer::new();
-	let mut parser = SExprParser::new(tokens);
-	loop {
-		match parser.parse(&tokenizer) {
-			Ok(atom) => {
-				if let Some(atom) = atom {
-					atoms.push(atom);
-				} else {
-					break;
-				}
-			},
-			Err(e) => {
-				println!("Error parsing tokens: {e}");
-				return Err("Error parsing tokens".into());
-			},
-		}
-	}
-
-	let query_atom = if atoms.len() == 1 { atoms[0].clone() } else { Atom::expr(atoms) };
-
 	ServiceBusSingleton::init(host_id, known_peer, port_lower, port_upper)?;
 	let service_bus = Arc::new(Mutex::new(ServiceBusSingleton::get_instance()));
 
 	let params = match extract_query_params(
 		Some(context.to_string()),
-		&query_atom,
+		tokens,
 		max_query_answers,
 		unique_assignment,
 		positive_importance,
 		update_attention_broker,
 		count_only,
 		populate_metta_mapping,
+		use_metta_as_query_tokens,
 		max_bundle_size,
 	) {
 		Ok(params) => params,

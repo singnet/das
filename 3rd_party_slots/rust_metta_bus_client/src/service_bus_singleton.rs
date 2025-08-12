@@ -1,8 +1,10 @@
 use std::sync::OnceLock;
 
-use crate::bus::{PATTERN_MATCHING_QUERY, QUERY_EVOLUTION};
-use crate::service_bus::ServiceBus;
-use crate::types::BoxError;
+use crate::{
+	bus::{PATTERN_MATCHING_QUERY, QUERY_EVOLUTION},
+	service_bus::ServiceBus,
+	types::BoxError,
+};
 
 static INITIALIZED: OnceLock<bool> = OnceLock::new();
 static SERVICE_BUS: OnceLock<ServiceBus> = OnceLock::new();

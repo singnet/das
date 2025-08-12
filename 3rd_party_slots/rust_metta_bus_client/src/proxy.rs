@@ -1,21 +1,27 @@
-use std::net::{SocketAddr, ToSocketAddrs};
-use std::sync::{Arc, Mutex, RwLock};
+use std::{
+	net::{SocketAddr, ToSocketAddrs},
+	sync::{Arc, Mutex, RwLock},
+};
 
 use tokio::runtime::Runtime;
 use tonic::{transport::Server, Request, Response, Status};
 
-use das_proto::atom_space_node_client::AtomSpaceNodeClient;
-use das_proto::atom_space_node_server::{AtomSpaceNode, AtomSpaceNodeServer};
-use das_proto::{Ack, Empty, MessageData};
+use das_proto::{
+	atom_space_node_client::AtomSpaceNodeClient,
+	atom_space_node_server::{AtomSpaceNode, AtomSpaceNodeServer},
+	Ack, Empty, MessageData,
+};
 
 mod das_proto {
 	tonic::include_proto!("dasproto");
 }
 
-use crate::base_proxy_query::{BaseQueryProxy, BaseQueryProxyT};
-use crate::port_pool::PortPool;
-use crate::query_evolution_proxy::EVAL_FITNESS;
-use crate::types::BoxError;
+use crate::{
+	base_proxy_query::{BaseQueryProxy, BaseQueryProxyT},
+	port_pool::PortPool,
+	query_evolution_proxy::EVAL_FITNESS,
+	types::BoxError,
+};
 
 static ABORT: &str = "abort"; // Abort current query
 static ANSWER_BUNDLE: &str = "answer_bundle"; // Delivery of a bundle with QueryAnswer objects
