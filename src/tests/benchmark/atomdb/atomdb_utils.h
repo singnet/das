@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <cctype>
 #include <chrono>
+#include <cmath>
 #include <map>
 #include <string>
 #include <typeinfo>
@@ -58,5 +59,6 @@ double measure_execution_time(Func&& func) {
     auto start = chrono::steady_clock::now();
     func();
     auto end = chrono::steady_clock::now();
-    return chrono::duration<double, milli>(end - start).count();
+    double duration_millis = chrono::duration<double, milli>(end - start).count();
+    return duration_millis;
 }

@@ -1,11 +1,7 @@
-name: Code Quality & Tests
+name: Code Quality & Tests Without Cache
 
 on:
   workflow_call:
-  pull_request:
-    branches:
-      - develop
-      - master
   workflow_dispatch:
 
 jobs:
@@ -16,4 +12,4 @@ jobs:
     needs: format-check
     uses: ./.github/workflows/run-unit-tests.yml
     with:
-      runner: self-hosted
+      runner: self-hosted-nocache

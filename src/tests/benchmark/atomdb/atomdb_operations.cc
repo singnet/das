@@ -143,7 +143,7 @@ void GetAtom::get_node_document() {
             auto handle_set = db_->query_for_pattern(link_schema);
             vector<string> random_link_handles = get_random_link_handle(handle_set);
             auto link_document = db_->get_link_document(random_link_handles[0]);
-            auto contains_node_handle = link_document->get("targets", 0);
+            auto contains_node_handle = string(link_document->get("targets", 0));
             return contains_node_handle;
         },
         [&](string handle) { db_->get_node_document(handle); });
@@ -167,16 +167,12 @@ void GetAtom::get_atom_document_node() {
             auto handle_set = db_->query_for_pattern(link_schema);
             vector<string> random_link_handles = get_random_link_handle(handle_set);
             auto link_document = db_->get_link_document(random_link_handles[0]);
-            auto contains_node_handle = link_document->get("targets", 0);
+            auto contains_node_handle = string(link_document->get("targets", 0));
             return contains_node_handle;
         },
         [&](string handle) { db_->get_atom_document(handle); });
 }
 void GetAtom::get_atom_document_link() {
-    auto link_schema = LinkSchema(contains_links_query);
-    auto handle_set = db_->query_for_pattern(link_schema);
-    vector<string> random_link_handles = get_random_link_handle(handle_set);
-
     run_benchmark(
         "get_atom_document[link]",
         [&](int i) -> string {
@@ -195,7 +191,7 @@ void GetAtom::get_atom_node() {
             auto handle_set = db_->query_for_pattern(link_schema);
             vector<string> random_link_handles = get_random_link_handle(handle_set);
             auto link_document = db_->get_link_document(random_link_handles[0]);
-            auto contains_node_handle = link_document->get("targets", 0);
+            auto contains_node_handle = string(link_document->get("targets", 0));
             return contains_node_handle;
         },
         [&](string handle) { db_->get_atom(handle); });
@@ -225,7 +221,7 @@ void GetAtoms::get_node_documents() {
             vector<string> handles;
             for (const auto& link_handle : random_link_handles) {
                 auto link_document = db_->get_link_document(link_handle);
-                auto node_handle = link_document->get("targets", 1);
+                auto node_handle = string(link_document->get("targets", 1));
                 handles.push_back(node_handle);
             }
             return handles;
@@ -256,7 +252,7 @@ void GetAtoms::get_atom_documents_node() {
             vector<string> handles;
             for (const auto& link_handle : random_link_handles) {
                 auto link_document = db_->get_link_document(link_handle);
-                auto node_handle = link_document->get("targets", 1);
+                auto node_handle = string(link_document->get("targets", 1));
                 handles.push_back(node_handle);
             }
             return handles;
@@ -296,61 +292,86 @@ void GetAtoms::query_for_targets() {
         [&](string handle) { db_->query_for_targets(handle); });
 }
 
-void DeleteAtom::delete_node() {
+void DeleteAtom::delete_node(string type) {
     run_benchmark(
         "delete_node",
         [&](int i) -> string {
-            auto link_schema = LinkSchema(contains_links_query);
-            auto handle_set = db_->query_for_pattern(link_schema);
+            auto link_schema = LinkSchema(sentence_links_query);
+            shared_ptr<atomdb_api_types::HandleSet> handle_set;
+            if (type == "mork") {
+                handle_set = dynamic_pointer_cast<MorkDB>(db_)->query_for_pattern_base(link_schema);
+            } else {
+                handle_set = db_->query_for_pattern(link_schema);
+            }
             vector<string> random_link_handles = get_random_link_handle(handle_set);
             auto link_document = db_->get_link_document(random_link_handles[0]);
-            auto contains_node_handle = link_document->get("targets", 1);
-            return contains_node_handle;
+            auto node_handle = string(link_document->get("targets", 1));
+            return node_handle;
         },
         [&](string handle) { db_->delete_node(handle); });
 }
-void DeleteAtom::delete_link() {
+void DeleteAtom::delete_link(string type) {
     run_benchmark(
         "delete_link",
         [&](int i) -> string {
             auto link_schema = LinkSchema(contains_links_query);
-            auto handle_set = db_->query_for_pattern(link_schema);
+            shared_ptr<atomdb_api_types::HandleSet> handle_set;
+            if (type == "mork") {
+                handle_set = dynamic_pointer_cast<MorkDB>(db_)->query_for_pattern_base(link_schema);
+            } else {
+                handle_set = db_->query_for_pattern(link_schema);
+            }
             vector<string> random_link_handles = get_random_link_handle(handle_set);
             return random_link_handles[0];
         },
         [&](string handle) { db_->delete_link(handle); });
 }
-void DeleteAtom::delete_atom_node() {
+void DeleteAtom::delete_atom_node(string type) {
     run_benchmark(
         "delete_atom[node]",
         [&](int i) -> string {
-            auto link_schema = LinkSchema(contains_links_query);
-            auto handle_set = db_->query_for_pattern(link_schema);
+            auto link_schema = LinkSchema(sentence_links_query);
+            shared_ptr<atomdb_api_types::HandleSet> handle_set;
+            if (type == "mork") {
+                handle_set = dynamic_pointer_cast<MorkDB>(db_)->query_for_pattern_base(link_schema);
+            } else {
+                handle_set = db_->query_for_pattern(link_schema);
+            }
             vector<string> random_link_handles = get_random_link_handle(handle_set);
             auto link_document = db_->get_link_document(random_link_handles[0]);
-            auto contains_node_handle = link_document->get("targets", 1);
-            return contains_node_handle;
+            auto node_handle = string(link_document->get("targets", 1));
+            return node_handle;
         },
         [&](string handle) { db_->delete_atom(handle); });
 }
-void DeleteAtom::delete_atom_link() {
+void DeleteAtom::delete_atom_link(string type) {
     run_benchmark(
         "delete_atom[link]",
         [&](int i) -> string {
             auto link_schema = LinkSchema(contains_links_query);
-            auto handle_set = db_->query_for_pattern(link_schema);
+            shared_ptr<atomdb_api_types::HandleSet> handle_set;
+            if (type == "mork") {
+                handle_set = dynamic_pointer_cast<MorkDB>(db_)->query_for_pattern_base(link_schema);
+            } else {
+                handle_set = db_->query_for_pattern(link_schema);
+            }
             vector<string> random_link_handles = get_random_link_handle(handle_set);
             return random_link_handles[0];
         },
         [&](string handle) { db_->delete_atom(handle); });
 }
 
-void DeleteAtoms::delete_nodes() {
+void DeleteAtoms::delete_nodes(string type) {
     run_benchmark(
         "delete_nodes",
         [&](int i) -> vector<string> {
             auto link_schema = LinkSchema(sentence_links_query);
-            auto handle_set = db_->query_for_pattern(link_schema);
+            shared_ptr<atomdb_api_types::HandleSet> handle_set;
+            if (type == "mork") {
+                handle_set = dynamic_pointer_cast<MorkDB>(db_)->query_for_pattern_base(link_schema);
+            } else {
+                handle_set = db_->query_for_pattern(link_schema);
+            }
             size_t max_count = max<size_t>(BATCH_SIZE, MAX_COUNT);
             vector<string> random_link_handles =
                 get_random_link_handle(handle_set, max_count, BATCH_SIZE);
@@ -358,7 +379,7 @@ void DeleteAtoms::delete_nodes() {
             vector<string> handles;
             for (const auto& link_handle : random_link_handles) {
                 auto link_document = db_->get_link_document(link_handle);
-                auto node_handle = link_document->get("targets", 1);
+                auto node_handle = string(link_document->get("targets", 1));
                 handles.push_back(node_handle);
             }
             return handles;
@@ -366,24 +387,34 @@ void DeleteAtoms::delete_nodes() {
         [&](vector<string> handles) { db_->delete_nodes(handles); },
         BATCH_SIZE);
 }
-void DeleteAtoms::delete_links() {
+void DeleteAtoms::delete_links(string type) {
     run_benchmark(
         "delete_links",
         [&](int i) -> vector<string> {
-            auto link_schema = LinkSchema(sentence_links_query);
-            auto handle_set = db_->query_for_pattern(link_schema);
+            auto link_schema = LinkSchema(contains_links_query);
+            shared_ptr<atomdb_api_types::HandleSet> handle_set;
+            if (type == "mork") {
+                handle_set = dynamic_pointer_cast<MorkDB>(db_)->query_for_pattern_base(link_schema);
+            } else {
+                handle_set = db_->query_for_pattern(link_schema);
+            }
             size_t max_count = max<size_t>(BATCH_SIZE, MAX_COUNT);
             return get_random_link_handle(handle_set, max_count, BATCH_SIZE);
         },
         [&](vector<string> handles) { db_->delete_links(handles); },
         BATCH_SIZE);
 }
-void DeleteAtoms::delete_atoms_node() {
+void DeleteAtoms::delete_atoms_node(string type) {
     run_benchmark(
         "delete_atoms[node]",
         [&](int i) -> vector<string> {
             auto link_schema = LinkSchema(sentence_links_query);
-            auto handle_set = db_->query_for_pattern(link_schema);
+            shared_ptr<atomdb_api_types::HandleSet> handle_set;
+            if (type == "mork") {
+                handle_set = dynamic_pointer_cast<MorkDB>(db_)->query_for_pattern_base(link_schema);
+            } else {
+                handle_set = db_->query_for_pattern(link_schema);
+            }
             size_t max_count = max<size_t>(BATCH_SIZE, MAX_COUNT);
             vector<string> random_link_handles =
                 get_random_link_handle(handle_set, max_count, BATCH_SIZE);
@@ -391,7 +422,7 @@ void DeleteAtoms::delete_atoms_node() {
             vector<string> handles;
             for (const auto& link_handle : random_link_handles) {
                 auto link_document = db_->get_link_document(link_handle);
-                auto node_handle = link_document->get("targets", 1);
+                auto node_handle = string(link_document->get("targets", 1));
                 handles.push_back(node_handle);
             }
             return handles;
@@ -399,12 +430,17 @@ void DeleteAtoms::delete_atoms_node() {
         [&](vector<string> handles) { db_->delete_atoms(handles); },
         BATCH_SIZE);
 }
-void DeleteAtoms::delete_atoms_link() {
+void DeleteAtoms::delete_atoms_link(string type) {
     run_benchmark(
         "delete_atoms[link]",
         [&](int i) -> vector<string> {
-            auto link_schema = LinkSchema(sentence_links_query);
-            auto handle_set = db_->query_for_pattern(link_schema);
+            auto link_schema = LinkSchema(contains_links_query);
+            shared_ptr<atomdb_api_types::HandleSet> handle_set;
+            if (type == "mork") {
+                handle_set = dynamic_pointer_cast<MorkDB>(db_)->query_for_pattern_base(link_schema);
+            } else {
+                handle_set = db_->query_for_pattern(link_schema);
+            }
             size_t max_count = max<size_t>(BATCH_SIZE, MAX_COUNT);
             return get_random_link_handle(handle_set, max_count, BATCH_SIZE);
         },
