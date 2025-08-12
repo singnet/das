@@ -547,6 +547,7 @@ cc_test(
         "//commons:commons_lib",
         "//commons/atoms:atoms_lib",
         "//hasher:hasher_lib",
+        "//metta:metta_mapping",
         "@com_github_google_googletest//:gtest_main",
     ],
 )
@@ -668,5 +669,24 @@ cc_test(
         "@com_github_grpc_grpc//:grpc++",
         "@com_github_grpc_grpc//:grpc++_reflection",
         "@com_github_singnet_das_proto//:attention_broker_cc_grpc",
+    ],
+)
+
+cc_test(
+    name = "metta_parser_test",
+    size = "small",
+    srcs = [
+        "metta_parser_test.cc",
+        "test_utils.cc",
+        "test_utils.h",
+    ],
+    copts = [
+        "-Iexternal/gtest/googletest/include",
+        "-Iexternal/gtest/googletest",
+    ],
+    linkstatic = 1,
+    deps = [
+        "//metta:metta_lib",
+        "@com_github_google_googletest//:gtest_main",
     ],
 )
