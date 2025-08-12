@@ -9,7 +9,7 @@ ARCH=$(uname -m)
 
 IMAGE_NAME="das-builder"
 CONTAINER_NAME="das-builder-$(uuidgen | cut -d '-' -f 1)-$(date +%Y%m%d%H%M%S)"
-CONTAINER_USER=$([ "$ARCH" != "arm64" ] && echo "$USER" || echo "builder")
+CONTAINER_USER=$([ "$ARCH" != "arm64" ] && [ "$ARCH" != "amd64" ] && echo "$USER" || echo "builder")
 
 ENV_VARS=$(test -f .env && echo "--env-file=.env" || echo "")
 
@@ -29,7 +29,9 @@ CONTAINER_LIB_DIR=$CONTAINER_WORKDIR/lib
 CONTAINER_CACHE=/home/${CONTAINER_USER}/.cache
 
 docker run --rm \
-  $([ "$ARCH" != "arm64" ] && echo "--user=$(id -u):$(id -g) --volume /etc/passwd:/etc/passwd:ro" || echo "--user=$CONTAINER_USER") \
+  $([ "$ARCH" = "arm64" ] || [ "$ARCH" = "amd64" ] \
+    && echo "--user=$CONTAINER_USER" \
+    || echo "--user=$(id -u):$(id -g) --volume /etc/passwd:/etc/passwd:ro") \
   --privileged \
   --name=$CONTAINER_NAME \
   -e BIN_DIR=$CONTAINER_BIN_DIR \
