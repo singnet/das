@@ -3,6 +3,7 @@
 #include <grpcpp/grpcpp.h>
 
 #include "LinkSchema.h"
+#include "ServiceBusSingleton.h"
 #include "QueryEvolutionProxy.h"
 #include "ServiceBus.h"
 #include "attention_broker.grpc.pb.h"
@@ -16,6 +17,7 @@
 using namespace evolution;
 using namespace query_engine;
 using namespace atoms;
+using namespace service_bus;
 
 // -------------------------------------------------------------------------------------------------
 // Constructors and destructors
@@ -75,25 +77,54 @@ void QueryEvolutionProcessor::thread_process_one_query(shared_ptr<StoppableThrea
     // TODO add a call to remove_query_thread(monitor->get_id());
 }
 
+shared_ptr<PatternMatchingQueryProxy> QueryEvolutionProcessor::issue_sampling_query(shared_ptr<QueryEvolutionProxy> proxy, bool attention_flag) {
+
+    auto pm_proxy = make_shared<PatternMatchingQueryProxy>(proxy->get_query_tokens(), 
+                                                           proxy->get_context());
+    pm_proxy->parameters[BaseQueryProxy::UNIQUE_ASSIGNMENT_FLAG] = true;
+    pm_proxy->parameters[BaseQueryProxy::ATTENTION_UPDATE_FLAG] = attention_flag;
+    pm_proxy->parameters[BaseQueryProxy::USE_LINK_TEMPLATE_CACHE] = false;
+    pm_proxy->parameters[PatternMatchingQueryProxy::POSITIVE_IMPORTANCE_FLAG] = false;
+    pm_proxy->parameters[BaseQueryProxy::USE_METTA_AS_QUERY_TOKENS] =
+        proxy->parameters[BaseQueryProxy::USE_METTA_AS_QUERY_TOKENS];
+    pm_proxy->parameters[PatternMatchingQueryProxy::MAX_ANSWERS] = 
+        proxy->parameters.get<unsigned int>(QueryEvolutionProxy::POPULATION_SIZE);
+    ServiceBusSingleton::get_instance()->issue_bus_command(proxy);
+    return pm_proxy;
+}
+
+shared_ptr<PatternMatchingQueryProxy> QueryEvolutionProcessor::issue_correlation_query(shared_ptr<QueryEvolutionProxy> proxy, vector<string> query_tokens) {
+
+    auto pm_proxy = make_shared<PatternMatchingQueryProxy>(query_tokens,
+                                                           proxy->get_context());
+    pm_proxy->parameters[BaseQueryProxy::UNIQUE_ASSIGNMENT_FLAG] = true;
+    pm_proxy->parameters[BaseQueryProxy::ATTENTION_UPDATE_FLAG] = false;
+    pm_proxy->parameters[BaseQueryProxy::USE_LINK_TEMPLATE_CACHE] = false;
+    pm_proxy->parameters[PatternMatchingQueryProxy::POSITIVE_IMPORTANCE_FLAG] = true;
+    pm_proxy->parameters[BaseQueryProxy::USE_METTA_AS_QUERY_TOKENS] =
+        proxy->parameters[BaseQueryProxy::USE_METTA_AS_QUERY_TOKENS];
+    pm_proxy->parameters[PatternMatchingQueryProxy::MAX_ANSWERS] = 
+        proxy->parameters.get<unsigned int>(QueryEvolutionProxy::POPULATION_SIZE);
+
+    ServiceBusSingleton::get_instance()->issue_bus_command(proxy);
+    return pm_proxy;
+}
+
 void QueryEvolutionProcessor::sample_population(
     shared_ptr<StoppableThread> monitor,
     shared_ptr<QueryEvolutionProxy> proxy,
     vector<std::pair<shared_ptr<QueryAnswer>, float>>& population) {
     bool remote_fitness = proxy->is_fitness_function_remote();
     vector<string> answer_bundle_vector;
-    static bool attention_flag = true;  // update attention values only in the first generation
     unsigned int population_size =
         proxy->parameters.get<unsigned int>(QueryEvolutionProxy::POPULATION_SIZE);
-    auto pm = atom_space.pattern_matching_query(proxy->get_query_tokens(),
-                                                population_size,
-                                                proxy->get_context(),
-                                                false,           // use_link_template_cache
-                                                true,            // unique_assignment
-                                                attention_flag,  // update_attention_broker
-                                                false);          // positive_importance_only
+
+    static bool attention_flag = true;  // update attention values only in the first generation
+    auto pm_query = issue_sampling_query(proxy, attention_flag);
     attention_flag = false;
-    while ((!pm->finished()) && (!monitor->stopped()) && (population.size() < population_size)) {
-        shared_ptr<QueryAnswer> answer = pm->pop();
+
+    while ((!pm_query->finished()) && (!monitor->stopped()) && (population.size() < population_size)) {
+        shared_ptr<QueryAnswer> answer = pm_query->pop();
         if (answer != NULL) {
             float fitness;
             if (remote_fitness) {
@@ -110,12 +141,12 @@ void QueryEvolutionProcessor::sample_population(
             Utils::sleep();
         }
     }
-    if (!pm->finished()) {
-        pm->abort();
+    if (!pm_query->finished()) {
+        pm_query->abort();
         unsigned int count = 0;
-        while (!pm->finished()) {
+        while (!pm_query->finished()) {
             shared_ptr<QueryAnswer> query_answer;
-            if ((query_answer = pm->pop()) == NULL) {
+            if ((query_answer = pm_query->pop()) == NULL) {
                 Utils::sleep();
             } else {
                 count++;
@@ -252,19 +283,12 @@ void QueryEvolutionProcessor::correlate_similar(shared_ptr<QueryEvolutionProxy> 
     dasproto::HandleList handle_list;  // GRPC command parameter
     dasproto::Ack ack;                 // GRPC command return
     handle_list.set_context(proxy->get_context());
-    auto pm = atom_space.pattern_matching_query(
-        query_tokens,
-        proxy->parameters.get<unsigned int>(QueryEvolutionProxy::POPULATION_SIZE),
-        proxy->get_context(),
-        false,  // use_link_template_cache
-        true,   // unique_assignment
-        false,  // update_attention_broker
-        true);  // positive_importance_only
+    auto pm_query = issue_correlation_query(proxy, query_tokens);
     for (string handle : correlation_query_answer->handles) {
         handle_set.insert(handle);
     }
-    while (!pm->finished()) {
-        shared_ptr<QueryAnswer> answer = pm->pop();
+    while (!pm_query->finished()) {
+        shared_ptr<QueryAnswer> answer = pm_query->pop();
         if (answer != NULL) {
             handle_set.insert(answer->handles[0]);
         } else {

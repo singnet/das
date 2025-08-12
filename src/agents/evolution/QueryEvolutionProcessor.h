@@ -6,6 +6,7 @@
 
 #include "AtomSpace.h"
 #include "BusCommandProcessor.h"
+#include "PatternMatchingQueryProxy.h"
 #include "QueryEvolutionProxy.h"
 #include "StoppableThread.h"
 
@@ -62,6 +63,8 @@ class QueryEvolutionProcessor : public BusCommandProcessor {
                                      vector<std::pair<shared_ptr<QueryAnswer>, float>>& selected);
 
    private:
+    shared_ptr<PatternMatchingQueryProxy> issue_sampling_query(shared_ptr<QueryEvolutionProxy> proxy, bool attention_flag);
+    shared_ptr<PatternMatchingQueryProxy> issue_correlation_query(shared_ptr<QueryEvolutionProxy> proxy, vector<string> query_tokens);
     void correlate_similar(shared_ptr<QueryEvolutionProxy> proxy,
                            shared_ptr<QueryAnswer> correlation_query_answer);
     void stimulate(shared_ptr<QueryEvolutionProxy> proxy,
