@@ -110,7 +110,7 @@ void run(const string& client_id,
 
     shared_ptr<ServiceBus> service_bus = ServiceBusSingleton::get_instance();
 
-    bool USE_METTA_QUERY = true;
+    bool USE_METTA_QUERY = false;
 
     // Symbols
     string and_operator = "AND";
@@ -165,6 +165,7 @@ void run(const string& client_id,
                 variable, sentence1,
                 variable, word1,
     };
+    string activation_spreading1_metta = "(and (Contains $sentence2 $word1) (Contains $sentence1 $word1))";
 
     vector<string> activation_spreading2 = {
         and_operator, "3",
@@ -205,7 +206,7 @@ void run(const string& client_id,
     QueryEvolutionProxy* proxy_ptr;
     if (USE_METTA_QUERY) {
         proxy_ptr = new QueryEvolutionProxy(
-            {or_two_words_metta}, activation_spreading2, {sentence1}, context, "count_letter");
+            {or_two_words_metta}, {activation_spreading1_metta}, {sentence1}, context, "count_letter");
     } else {
         proxy_ptr = new QueryEvolutionProxy(
             or_two_words, activation_spreading2, {sentence1}, context, "count_letter");
