@@ -89,7 +89,7 @@ shared_ptr<PatternMatchingQueryProxy> QueryEvolutionProcessor::issue_sampling_qu
         proxy->parameters[BaseQueryProxy::USE_METTA_AS_QUERY_TOKENS];
     pm_proxy->parameters[PatternMatchingQueryProxy::MAX_ANSWERS] =
         proxy->parameters.get<unsigned int>(QueryEvolutionProxy::POPULATION_SIZE);
-    ServiceBusSingleton::get_instance()->issue_bus_command(proxy);
+    ServiceBusSingleton::get_instance()->issue_bus_command(pm_proxy);
     return pm_proxy;
 }
 
@@ -100,12 +100,11 @@ shared_ptr<PatternMatchingQueryProxy> QueryEvolutionProcessor::issue_correlation
     pm_proxy->parameters[BaseQueryProxy::ATTENTION_UPDATE_FLAG] = false;
     pm_proxy->parameters[BaseQueryProxy::USE_LINK_TEMPLATE_CACHE] = false;
     pm_proxy->parameters[PatternMatchingQueryProxy::POSITIVE_IMPORTANCE_FLAG] = true;
-    pm_proxy->parameters[BaseQueryProxy::USE_METTA_AS_QUERY_TOKENS] =
-        proxy->parameters[BaseQueryProxy::USE_METTA_AS_QUERY_TOKENS];
+    pm_proxy->parameters[BaseQueryProxy::USE_METTA_AS_QUERY_TOKENS] = false;
     pm_proxy->parameters[PatternMatchingQueryProxy::MAX_ANSWERS] =
         proxy->parameters.get<unsigned int>(QueryEvolutionProxy::POPULATION_SIZE);
 
-    ServiceBusSingleton::get_instance()->issue_bus_command(proxy);
+    ServiceBusSingleton::get_instance()->issue_bus_command(pm_proxy);
     return pm_proxy;
 }
 

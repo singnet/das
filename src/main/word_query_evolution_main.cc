@@ -110,6 +110,8 @@ void run(const string& client_id,
 
     shared_ptr<ServiceBus> service_bus = ServiceBusSingleton::get_instance();
 
+    bool USE_METTA_QUERY = true;
+
     // Symbols
     string and_operator = "AND";
     string or_operator = "OR";
@@ -145,6 +147,7 @@ void run(const string& client_id,
                     node, symbol, word,
                     node, symbol, "\"" + word_tag2 + "\""
     };
+    string or_two_words_metta = "(or (Contains $sentence1 (Word \"" + word_tag1 + "\")) (Contains $sentence1 (Word \"" + word_tag2 + "\")))";
 
     // (Contains (Sentence "ede ebe cbe dca cbd fae bbb fce add eae") (Word "bbb"))
     // (Contains (Sentence "???") (Word "bbb"))
@@ -199,12 +202,17 @@ void run(const string& client_id,
     //                                                          FitnessFunctionRegistry::REMOTE_FUNCTION,
     //                                                          make_shared<RemoteFitnessFunction>());
 
-    QueryEvolutionProxy* proxy_ptr = new QueryEvolutionProxy(
-        or_two_words, activation_spreading2, {sentence1}, context, "count_letter");
+    QueryEvolutionProxy* proxy_ptr;
+    if (USE_METTA_QUERY) {
+        proxy_ptr = new QueryEvolutionProxy({or_two_words_metta}, activation_spreading2, {sentence1}, context, "count_letter");
+    } else {
+        proxy_ptr = new QueryEvolutionProxy(or_two_words, activation_spreading2, {sentence1}, context, "count_letter");
+    }
 
     shared_ptr<QueryEvolutionProxy> proxy(proxy_ptr);
-    proxy->parameters[QueryEvolutionProxy::POPULATION_SIZE] = (unsigned int) 500;
-    proxy->parameters[QueryEvolutionProxy::MAX_GENERATIONS] = (unsigned int) 10;
+    proxy->parameters[BaseQueryProxy::USE_METTA_AS_QUERY_TOKENS] = USE_METTA_QUERY;
+    proxy->parameters[QueryEvolutionProxy::POPULATION_SIZE] = (unsigned int) 100;
+    proxy->parameters[QueryEvolutionProxy::MAX_GENERATIONS] = (unsigned int) 5;
     proxy->parameters[QueryEvolutionProxy::ELITISM_RATE] = (double) 0.05;
     proxy->parameters[QueryEvolutionProxy::SELECTION_RATE] = (double) 0.10;
     proxy->parameters[BaseQueryProxy::MAX_BUNDLE_SIZE] = (unsigned int) 10000;
