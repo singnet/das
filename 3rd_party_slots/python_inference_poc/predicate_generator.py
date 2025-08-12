@@ -144,7 +144,7 @@ def create_predicates(args, predicate_func, predicate_count):
             args_cp[k] = 0
     count = 0
     while len(predicates) < predicate_count:
-        generator.generate_metta_file(writer=NodeLinkWriter(None, writer_buffer))
+        generator.generate_metta_file(writer=NodeLinkWriter(filename=None, writer_buffer=writer_buffer))
         for p in predicate_func(writer_buffer.output_buffer, **vars(args)):
             predicates.append(p)
         count += len(predicates)
@@ -204,22 +204,36 @@ def main():
     read_sentences_duration = time.time() - read_sentences_time
     # Create predicates based on the sentences
     letter_predicates_time = time.time()
-    letter_predicates = letter_predicate(sentences, args.letter_predicate_token, args.letter_predicate_letter, args.letter_predicate_letter_percent, args.letter_predicate_randomness)
+    letter_predicates = letter_predicate(sentences, 
+                                         args.letter_predicate_token, 
+                                         args.letter_predicate_letter, 
+                                         args.letter_predicate_letter_percent, 
+                                         args.letter_predicate_randomness)
     letter_predicates_duration = time.time() - letter_predicates_time
     predicates.extend(letter_predicates)
     # Wildcard predicates
     wildcard_predicates_time = time.time()
-    wildcard_predicates = wildcard_predicate(sentences, args.wildcard_predicate_token, args.wildcard_predicate_wildcards, args.wildcard_predicate_randomness)
+    wildcard_predicates = wildcard_predicate(sentences, 
+                                             args.wildcard_predicate_token, 
+                                             args.wildcard_predicate_wildcards, 
+                                             args.wildcard_predicate_randomness)
     wildcard_predicates_duration = time.time() - wildcard_predicates_time
     predicates.extend(wildcard_predicates)
     # Start-end predicates
     start_end_predicates_time = time.time()
-    start_end_predicates = start_end_predicate(sentences, args.start_end_predicate_token, args.start_end_predicate_start_letter, args.start_end_predicate_end_letter, args.start_end_predicate_randomness)
+    start_end_predicates = start_end_predicate(sentences, 
+                                                args.start_end_predicate_token, 
+                                                args.start_end_predicate_start_letter, 
+                                                args.start_end_predicate_end_letter, 
+                                                args.start_end_predicate_randomness)
     start_end_predicates_duration = time.time() - start_end_predicates_time
     predicates.extend(start_end_predicates)
     # Low-diversity predicates
     low_diversity_predicates_time = time.time()
-    low_diversity_predicates = low_diversity_predicate(sentences, args.low_diversity_predicate_token, args.low_diversity_predicate_letters, args.low_diversity_predicate_randomness)
+    low_diversity_predicates = low_diversity_predicate(sentences, 
+                                                       args.low_diversity_predicate_token, 
+                                                       args.low_diversity_predicate_letters, 
+                                                       args.low_diversity_predicate_randomness)
     low_diversity_predicates_duration = time.time() - low_diversity_predicates_time
     predicates.extend(low_diversity_predicates)
     total_time = time.time() - total_time
@@ -236,7 +250,8 @@ def main():
         # predicates.extend(biased_predicates)
     biased_predicates_duration = time.time() - biased_predicates_time
 
-    write_predicates(args.metta_filename, predicates, write_words_and_sentences=False, append=True)
+    write_predicates(args.metta_filename, predicates, 
+                     write_words_and_sentences=False, append=True)
 
     # Report
     print("######################### Summary #########################")
