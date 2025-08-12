@@ -204,9 +204,11 @@ void run(const string& client_id,
 
     QueryEvolutionProxy* proxy_ptr;
     if (USE_METTA_QUERY) {
-        proxy_ptr = new QueryEvolutionProxy({or_two_words_metta}, activation_spreading2, {sentence1}, context, "count_letter");
+        proxy_ptr = new QueryEvolutionProxy(
+            {or_two_words_metta}, activation_spreading2, {sentence1}, context, "count_letter");
     } else {
-        proxy_ptr = new QueryEvolutionProxy(or_two_words, activation_spreading2, {sentence1}, context, "count_letter");
+        proxy_ptr = new QueryEvolutionProxy(
+            or_two_words, activation_spreading2, {sentence1}, context, "count_letter");
     }
 
     shared_ptr<QueryEvolutionProxy> proxy(proxy_ptr);
