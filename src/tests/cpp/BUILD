@@ -547,6 +547,7 @@ cc_test(
         "//commons:commons_lib",
         "//commons/atoms:atoms_lib",
         "//hasher:hasher_lib",
+        "//metta:metta_mapping",
         "@com_github_google_googletest//:gtest_main",
     ],
 )

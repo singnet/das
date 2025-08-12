@@ -49,11 +49,17 @@ class ParserActions {
     virtual void literal(float value);
 
     /**
+     * Action called when the beggining of an expression is parsed (i.e. after the
+     * corresponding '(' token).
+     */
+    virtual void expression_begin();
+
+    /**
      * Action called when an expression is fully parsed (i.e. after the corresponding ')' token).
      *
      * @param toplevel A flag to indicate whether the expression is a toplevel onr or not.
      */
-    virtual void expression(bool toplevel);
+    virtual void expression_end(bool toplevel);
 };
 
 }  // namespace metta

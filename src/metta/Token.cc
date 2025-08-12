@@ -1,5 +1,7 @@
 #include "Token.h"
 
+#include "MettaTokens.h"
+
 using namespace metta;
 
 // -------------------------------------------------------------------------------------------------
@@ -38,3 +40,5 @@ bool Token::operator==(const Token& other) {
 }
 
 bool Token::operator!=(const Token& other) { return !(*this == other); }
+
+string Token::to_string() { return "<" + MettaTokens::to_string(this->type) + ", " + this->text + ">"; }

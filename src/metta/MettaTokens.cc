@@ -1,6 +1,9 @@
 #include "MettaTokens.h"
 
+#include "Utils.h"
+
 using namespace metta;
+using namespace commons;
 
 // Tokens can be used just as plain unsigned integers (actually unsigned char) with a different
 // value assigned to each token. We use a bit-schema just to select those numbers in a way which
@@ -39,4 +42,25 @@ bool MettaTokens::is_literal(unsigned char token) {
 
 bool MettaTokens::is_variable(unsigned char token) {
     return ((token & TOKEN_TYPE_MASK) >> 6) == VARIABLE_ID;
+}
+
+string MettaTokens::to_string(unsigned char token) {
+    if (token == OPEN_PARENTHESIS) {
+        return "OPEN_PARENTHESIS";
+    } else if (token == CLOSE_PARENTHESIS) {
+        return "CLOSE_PARENTHESIS";
+    } else if (token == SYMBOL) {
+        return "SYMBOL";
+    } else if (token == STRING_LITERAL) {
+        return "STRING_LITERAL";
+    } else if (token == INTEGER_LITERAL) {
+        return "INTEGER_LITERAL";
+    } else if (token == FLOAT_LITERAL) {
+        return "FLOAT_LITERAL";
+    } else if (token == VARIABLE) {
+        return "VARIABLE";
+    } else {
+        Utils::error("Unknown token: " + std::to_string(token));
+        return "";
+    }
 }

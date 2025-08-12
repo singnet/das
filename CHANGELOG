@@ -14,3 +14,4 @@
 [#581] Implementation of remote fitness evaluation in Query Evolution
 [#589] Added optional parameter in PM queries to adda a mapping handle-->metta in QAs delivered to caller
 [#649] Implemented a lexer and a parser for metta input
+[#649] Add an optioonal PM query parameter to use MeTTa instead of LT tokens
