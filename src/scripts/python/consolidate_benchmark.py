@@ -523,6 +523,12 @@ def main():
     parser.add_argument(
         "--output-dir", required=False, default=".", help="Directory to save database file."
     )
+    parser.add_argument(
+        "--report-file", required=False, default=None, help="File to save consolidated report."
+    )
+    parser.add_argument(
+        "--header-text", required=False, default="", help="Header text for the report."
+    )
     args = parser.parse_args()
 
     # Consolidate benchmark results from files
@@ -531,6 +537,14 @@ def main():
     if not results:
         print("No valid benchmark data found. Exiting.")
         return
+
+    if bool(args.report_file):
+        # Write consolidated results to a report file
+        filename = os.path.join(args.directory, "consolidated_report.txt")
+        with open(filename, "w") as report_file:
+            FileManager.write_report(results, report_file, header_text=args.header_text)
+
+        print(f"Consolidated report saved to: {filename}")
 
     # Prepare database and scenario data
     base_dir = os.path.abspath(args.output_dir)
