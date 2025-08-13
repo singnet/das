@@ -67,7 +67,9 @@ def letter_predicate(sentences, token=None, letter=None, letter_percent=0.6, per
         letter = kwargs.get('letter_predicate_letter', letter)
         letter_percent = kwargs.get('letter_predicate_letter_percent', letter_percent)
         percentage = kwargs.get('letter_predicate_percentage', percentage)
-    # print(f"### Running letter predicate with token: {token}, letter: {letter}, letter_percent: {letter_percent}, percentage: {percentage}, sentences: {len(sentences)}")
+    show_log = kwargs.get('show_log', True)
+    if show_log:
+        print(f"### Running letter predicate with token: {token}, letter: {letter}, letter_percent: {letter_percent}, percentage: {percentage}, sentences: {len(sentences)}")
     predicates = []
     for sentence in sentences:
         parsed_sentence = ''.join(sentence.replace(' ', '').split('"')[1:-1])
@@ -82,7 +84,9 @@ def wildcard_predicate(sentences, token=None, wildcards=None, percentage=0.8, **
         token = kwargs.get('wildcard_predicate_token', token)
         wildcards = kwargs.get('wildcard_predicate_wildcards', wildcards)
         percentage = kwargs.get('wildcard_predicate_percentage', percentage)
-    print(f"### Running wildcard predicate with token: {token}, wildcards: {wildcards}, percentage: {percentage}")
+    show_log = kwargs.get('show_log', True)
+    if show_log:
+        print(f"### Running wildcard predicate with token: {token}, wildcards: {wildcards}, percentage: {percentage}")
     predicates = []
     for sentence in sentences:
         split_sentence = sentence[:-1].replace('"', '').split(' ')[1:]
@@ -100,7 +104,9 @@ def start_end_predicate(sentences, token=None, start_letter=None, end_letter=Non
         start_letter = kwargs.get('start_end_predicate_start_letter', start_letter)
         end_letter = kwargs.get('start_end_predicate_end_letter', end_letter)
         percentage = kwargs.get('start_end_predicate_percentage', percentage)
-    print(f"### Running start-end predicate with token: {token}, start_letter: {start_letter}, end_letter: {end_letter}, percentage: {percentage}")
+    show_log = kwargs.get('show_log', True)
+    if show_log:
+        print(f"### Running start-end predicate with token: {token}, start_letter: {start_letter}, end_letter: {end_letter}, percentage: {percentage}")
     predicates = []
     for sentence in sentences:
         split_sentence = sentence[:-1].replace('"', '').split(' ')[1:]
@@ -116,7 +122,9 @@ def low_diversity_predicate(sentences, token=None, letters=None, percentage=0.8,
         token = kwargs.get('low_diversity_predicate_token', token)
         letters = kwargs.get('low_diversity_predicate_letters', letters)
         percentage = kwargs.get('low_diversity_predicate_percentage', percentage)
-    # print(f"### Running low-diversity predicate with token: {token}, letters: {letters}, percentage: {percentage}")
+    show_log = kwargs.get('show_log', True)
+    if show_log:
+        print(f"### Running low-diversity predicate with token: {token}, letters: {letters}, percentage: {percentage}")
     predicates = []
     for sentence in sentences:
         parsed_sentence = ''.join(sentence.replace(' ', '').split('"')[1:-1])
@@ -148,6 +156,7 @@ def create_predicates(args, predicate_funcs, sentence_count):
     for k in args_cp.keys():
         if 'percentage' in k:
             args_cp[k] = 1
+    args_cp['show_log'] = False
     count = 0
     while count < sentence_count:
         sentence = generator.generate_sentence()
@@ -201,20 +210,6 @@ def generate_biased_predicates(args, predicate_lengths):
                 biased_predicates.extend(create_predicates(args, [predicate_funcs[predicate]], bias_count))
             else:
                 print(f"Warning: Predicate '{predicate}' not found in predicate functions. Skipping bias generation for this predicate.")
-    # for predicate in args.bias_predicates:
-    #     if predicate in predicate_lengths:
-    #         bias_count = int(args.sentence_node_count * args.bias_strength)
-    #         if predicate == 'letter-predicate':
-    #             biased_predicates.extend(create_predicates(args, letter_predicate, bias_count))
-    #         elif predicate == 'wildcard-predicate':
-    #             biased_predicates.extend(create_predicates(args, wildcard_predicate, bias_count))
-    #         elif predicate == 'start-end-predicate':
-    #             biased_predicates.extend(create_predicates(args, start_end_predicate, bias_count))
-    #         elif predicate == 'low-diversity-predicate':
-    #             biased_predicates.extend(create_predicates(args, low_diversity_predicate, bias_count))
-    #     else:
-    #         print(f"Warning: Predicate '{predicate}' not found in predicate lengths. Skipping bias generation for this predicate.")
-    #         continue
     write_predicates(args.bias_filename, biased_predicates, write_words_and_sentences=False, append=True)
     return biased_predicates
 
