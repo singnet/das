@@ -1,38 +1,14 @@
+load("@rules_cc//cc:cc_library.bzl", "cc_library")
+
 package(default_visibility = ["//visibility:public"])
-
-exports_files(
-    [
-        ".ruff.toml",
-        ".clang-format",
-    ],
-    visibility = ["//visibility:public"],
-)
-
-alias(
-    name = "format.check",
-    actual = "//tools/format:format.check",
-)
-
-alias(
-    name = "format",
-    actual = "//tools/format",
-)
-
-cc_library(
-    name = "atomdb_utils",
-    srcs = ["atomdb_utils.cc"],
-    hdrs = ["atomdb_utils.h"],
-    deps = [
-        "//commons:commons_lib",
-    ],
-)
 
 cc_library(
     name = "atomdb_runner",
+    srcs = ["atomdb_runner.cc"],
     hdrs = ["atomdb_runner.h"],
     deps = [
-        ":atomdb_utils",
         "//atomdb:atomdb_lib",
+        "//tests/benchmark:benchmark_lib",
     ],
 )
 
@@ -42,8 +18,8 @@ cc_library(
     hdrs = ["atomdb_operations.h"],
     deps = [
         ":atomdb_runner",
-        ":atomdb_utils",
         "//atomdb:atomdb_lib",
+        "//tests/benchmark:benchmark_lib",
     ],
 )
 
@@ -62,9 +38,9 @@ cc_binary(
     deps = [
         ":atomdb_operations",
         ":atomdb_runner",
-        ":atomdb_utils",
         "//atomdb:atomdb_lib",
         "//commons:commons_lib",
+        "//tests/benchmark:benchmark_lib",
         "@mbedtls",
     ],
 )

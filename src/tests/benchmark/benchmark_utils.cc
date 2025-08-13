@@ -1,4 +1,6 @@
-#include "atomdb_utils.h"
+#include "benchmark_utils.h"
+
+#include <sys/stat.h>
 
 #include <cmath>
 #include <fstream>
@@ -46,7 +48,7 @@ map<string, map<string, double>> calculate_metric_statistics(map<string, Metrics
         sort(metric.operation_time.begin(), metric.operation_time.end());
 
         double sum = accumulate(metric.operation_time.begin(), metric.operation_time.end(), 0.0);
-        double mean = sum / metric.operation_time.size();
+        // double mean = sum / metric.operation_time.size();
         double min_ms = metric.operation_time.front();
         double max_ms = metric.operation_time.back();
         double p50 = compute_percentile(metric.operation_time, 0.50);
@@ -66,12 +68,7 @@ map<string, map<string, double>> calculate_metric_statistics(map<string, Metrics
     return stats;
 }
 
-void create_report(const string& db_name,
-                   const string& action,
-                   const string& method,
-                   map<string, Metrics>& metrics,
-                   const string& base_directory,
-                   const int& batch_size) {
+void create_report(string filename, map<string, Metrics>& metrics) {
     stringstream table;
     table << fixed << setprecision(2);
     table << left;
@@ -111,8 +108,6 @@ void create_report(const string& db_name,
               << inner_map.at("throughput") << "| "
               << "\n";
     }
-    string filename = base_directory + "/" + db_name + "_" + action + "_" + method + "_" +
-                      to_string(batch_size) + ".txt";
 
     ofstream outfile(filename);
     if (outfile.is_open()) {
@@ -122,4 +117,32 @@ void create_report(const string& db_name,
     } else {
         cerr << "error: " << filename << endl;
     }
+}
+
+void dispatch_handler(const map<string, function<void()>>& handlers, const string& method) {
+    auto it = handlers.find(method);
+    if (it != handlers.end()) {
+        it->second();
+    } else {
+        Utils::error("Invalid method: " + method);
+    }
+}
+
+bool is_log_file(const string& directory) {
+    if (directory.empty()) return false;
+
+    char sep = '/';
+    if (directory.find('\\') != string::npos) sep = '\\';
+
+    string path = directory;
+
+    if (path.back() == '/' || path.back() == '\\') {
+        path.pop_back();
+    }
+
+    path += sep;
+    path += ".benchmark.log";
+
+    struct stat file_stat;
+    return stat(path.c_str(), &file_stat) == 0 && S_ISREG(file_stat.st_mode);
 }
