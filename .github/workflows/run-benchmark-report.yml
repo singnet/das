@@ -11,6 +11,10 @@ on:
 jobs:
   benchmark:
     runs-on: self-hosted
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      GITHUB_REPOSITORY: ${{ github.repository }}
+      GITHUB_SHA: ${{ github.sha }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -25,11 +29,14 @@ jobs:
         run: rm -rf /tmp/atomdb_benchmark || true
 
       - name: Run benchmark
-        run: ./src/scripts/run_benchmark.sh atomdb --db small --rel tightly --cache disabled --concurrency 1 --iterations 100 || true
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GITHUB_REPOSITORY: ${{ github.repository }}
-          GITHUB_SHA: ${{ github.sha }}
+        id: run_benchmark
+        run: |
+          OUTPUT=$(./src/scripts/run_benchmark.sh atomdb)
+          echo "$OUTPUT"
+
+          EXECUTION_ID=$(echo "$OUTPUT" | grep "New execution ID:" | awk '{print $4}')
+
+          echo "execution_id=$EXECUTION_ID" >> $GITHUB_OUTPUT
 
       - name: Upload benchmark report artifact
         uses: actions/upload-artifact@v4
@@ -38,9 +45,16 @@ jobs:
           path: /tmp/atomdb_benchmark/**/*.txt
           if-no-file-found: error
 
+    outputs:
+      benchmark_id: ${{ steps.run_benchmark.outputs.execution_id }}
+
   notify-mattermost:
     runs-on: self-hosted
     needs: benchmark
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      GITHUB_REPOSITORY: ${{ github.repository }}
+      GITHUB_SHA: ${{ github.sha }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -52,7 +66,7 @@ jobs:
           path: atomdb_benchmark
 
       - name: Install requirements 
-        run: sudo apt -y update && sudo apt -y install zip
+        run: sudo apt -y update && sudo apt -y install zip miller
 
       - name: Zip benchmark report
         run: zip -r benchmark-report.zip atomdb_benchmark
