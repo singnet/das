@@ -521,10 +521,16 @@ def main():
     parser.add_argument("--scenario", required=True, help="Test scenario data string.")
     parser.add_argument("--type", required=True, help="Benchmark type (e.g., 'atomdb').")
     parser.add_argument(
-        "--db-path", required=False, default="./benchmark.db", help="Path where the benchmark database will be saved."
+        "--db-path",
+        required=False,
+        default="./benchmark.db",
+        help="Path where the benchmark database will be saved.",
     )
     parser.add_argument(
-        "--output-file", required=False, default=None, help="Path to save the consolidated report (if not specified, no report will be generated)"
+        "--output-file",
+        required=False,
+        default=None,
+        help="Path to save the consolidated report (if not specified, no report will be generated)",
     )
     parser.add_argument(
         "--header-text", required=False, default="", help="Header text for the report."
