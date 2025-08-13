@@ -41,34 +41,46 @@ class NodeLinkGenerator:
             # print('Links Letter: ' + str(self.link_letter_count))
             print()
 
+    def generate_sentence(self):
+        return [self._create_word() for _ in range(self.word_count)]
+    
+
+    def write_atoms(self, sentence, writer: 'NodeLinkWriter'):
+        sentence_nodes = []
+        words_nodes = []
+        # all_sentences = []
+        sentence_name = '" "'.join(sentence)
+        sentence_node = {'type': 'Sentence', 'name': sentence_name}
+        writer.add_node(sentence_node)
+        sentence_nodes.append(sentence_node)
+        sentence_link = {'type': 'Sentence', 'targets': [sentence_node]}
+        writer.add_link(sentence_link)
+        # all_sentences.append(tuple([sentence_name, sentence_link]))
+
+        for word in sentence:
+            words_node = {'type': 'Word', 'name': word}
+            writer.add_node(words_node)
+            words_nodes.append(words_node)
+
+            words_link = {'type': 'Word', 'targets': [words_node]}
+            writer.add_link(words_link)
+
+            contains_link = {'type': 'Contains', 'targets': [sentence_link, words_link]}
+            writer.add_link(contains_link)
+        return sentence_nodes, words_nodes
 
 
     def generate_sentence_structure(self, writer: 'NodeLinkWriter') -> list[dict]:
         sentence_nodes = []
         words_nodes = []
-        all_sentences = []
+        # all_sentences = []
 
         for _ in range(self.sentence_node_count):
-            word_list = [self._create_word() for _ in range(self.word_count)]
-            sentence_name = '" "'.join(word_list)
-            sentence_node = {'type': 'Sentence', 'name': sentence_name}
-            # writer.add_node(sentence_node)
-            sentence_nodes.append(sentence_node)
-            sentence_link = {'type': 'Sentence', 'targets': [sentence_node]}
-            writer.add_link(sentence_link)
-            all_sentences.append(tuple([sentence_name, sentence_link]))
-
-            for word in word_list:
-                words_node = {'type': 'Word', 'name': word}
-                writer.add_node(words_node)
-                words_nodes.append(words_node)
-
-            #     words_link = {'type': 'Word', 'targets': [words_node]}
-                # writer.add_link(words_link)
-
-                # contains_link = {'type': 'Contains', 'targets': [sentence_link, words_link]}
-                # writer.add_link(contains_link)
-
+            word_list = self.generate_sentence()
+            s_nodes, w_nodes = self.write_atoms(word_list, writer)
+            sentence_nodes.extend(s_nodes)
+            words_nodes.extend(w_nodes)
+            
         self.word_node_count = len(words_nodes)
 
                     
@@ -152,29 +164,16 @@ class NodeLinkGenerator:
     def _create_word(self) -> str:
         return ''.join([chr(97 + randint(*self.alphabet_range)) for _ in range(self.word_length)])
 
-class WriterBuffer:
-    def __init__(self):
-        self.output_buffer = []
-
-    def write(self, data: str) -> None:
-        data = data.strip()
-        if not data:
-            return
-        if ':' in data:
-            return
-        self.output_buffer.extend(data.split('\n'))
-
 
 class NodeLinkWriter:
 
     base_path = Path(__file__).resolve().parent
 
-    def __init__(self, filename, output_buffer: WriterBuffer = None) -> None:
+    def __init__(self, filename) -> None:
         self.buffer_nodes = []
         self.buffer_links = []
         self.types = set()
-        self.filename = self.base_path / filename if filename else None
-        self.output_buffer = output_buffer
+        self.filename = self.base_path / filename
 
     def add_node(self, node: dict) -> None:
         self.types.add(node.get('type'))
@@ -203,21 +202,14 @@ class NodeLinkWriter:
                 f.write('\n')
 
             return result.strip()
-        if self.filename:
-            with open(self.filename, 'a+', encoding='utf8') as f:
-                for t in self.types:
-                    f.write(f'(: {t} Type)\n')
-                for v in self.buffer_nodes:
-                    f.write(f"(: \"{v['name']}\" {v['type']})\n")
+        
+        with open(self.filename, 'a+', encoding='utf8') as f:
+            for t in self.types:
+                f.write(f'(: {t} Type)\n')
+            for v in self.buffer_nodes:
+                f.write(f"(: \"{v['name']}\" {v['type']})\n")
 
-                write_expression(f, self.buffer_links)
-        if self.output_buffer:
-            # for t in self.types:
-            #     self.output_buffer.write(f'(: {t} Type)\n')
-            # for v in self.buffer_nodes:
-            #     self.output_buffer.write(f"(: \"{v['name']}\" {v['type']})\n")
-
-            write_expression(self.output_buffer, self.buffer_links)
+            write_expression(f, self.buffer_links)
 
         self.types.clear()
         self.buffer_nodes.clear()
