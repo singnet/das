@@ -1,13 +1,17 @@
-use crate::bus_node::BusNode;
-use crate::port_pool::PortPool;
-use crate::proxy::PatternMatchingQueryProxy;
-use crate::types::BoxError;
+use std::sync::{Arc, Mutex};
+
+use crate::{
+	base_proxy_query::{BaseQueryProxy, BaseQueryProxyT},
+	bus_node::BusNode,
+	port_pool::PortPool,
+	types::BoxError,
+};
 
 #[derive(Debug, Default, Clone)]
 pub struct ServiceBus {
-	service_list: Vec<String>,
-	bus_node: BusNode,
-	next_request_serial: u64,
+	pub service_list: Vec<String>,
+	pub bus_node: BusNode,
+	pub next_request_serial: u64,
 }
 
 impl ServiceBus {
@@ -15,14 +19,16 @@ impl ServiceBus {
 		host_id: String, known_peer: String, commands: Vec<String>, port_lower: u16,
 		port_upper: u16,
 	) -> Result<Self, BoxError> {
-		let bus_node = BusNode::new(host_id, commands.clone(), known_peer)?;
 		PortPool::initialize_statics(port_lower, port_upper)?;
+		let mut bus_node = BusNode::new(host_id, commands.clone(), known_peer)?;
+		bus_node.join_network()?;
 		Ok(Self { service_list: commands, bus_node, next_request_serial: 0 })
 	}
 
 	pub fn issue_bus_command(
-		&mut self, proxy: &mut PatternMatchingQueryProxy,
+		&mut self, proxy_arc: Arc<Mutex<BaseQueryProxy>>,
 	) -> Result<(), BoxError> {
+		let mut proxy = proxy_arc.lock().unwrap();
 		log::debug!(target: "das", "{} is issuing BUS command <{}>", self.bus_node.node_id(), proxy.command);
 		proxy.requestor_id = self.bus_node.node_id();
 		self.next_request_serial += 1;
@@ -31,7 +37,7 @@ impl ServiceBus {
 		if proxy.proxy_port == 0 {
 			panic!("No port is available to start bus command proxy");
 		} else {
-			proxy.setup_proxy_node(None, None);
+			proxy.setup_proxy_node(proxy_arc.clone(), None, None);
 			let mut args = Vec::new();
 			args.push(proxy.requestor_id.clone());
 			args.push(proxy.serial.to_string());
@@ -41,10 +47,7 @@ impl ServiceBus {
 			}
 			match self.bus_node.send_bus_command(proxy.command.clone(), args) {
 				Ok(_) => (),
-				Err(_) => {
-					let mut answer_flow_finished = proxy.answer_flow_finished.lock().unwrap();
-					*answer_flow_finished = true;
-				},
+				Err(_) => proxy.answer_flow_finished = true,
 			}
 		}
 		Ok(())

@@ -1,8 +1,10 @@
 use std::sync::OnceLock;
 
-use crate::bus::PATTERN_MATCHING_QUERY;
-use crate::service_bus::ServiceBus;
-use crate::types::BoxError;
+use crate::{
+	bus::{PATTERN_MATCHING_QUERY, QUERY_EVOLUTION},
+	service_bus::ServiceBus,
+	types::BoxError,
+};
 
 static INITIALIZED: OnceLock<bool> = OnceLock::new();
 static SERVICE_BUS: OnceLock<ServiceBus> = OnceLock::new();
@@ -18,7 +20,7 @@ impl ServiceBusSingleton {
 		let service_bus = ServiceBus::new(
 			host_id,
 			known_peer,
-			vec![PATTERN_MATCHING_QUERY.to_string()],
+			vec![PATTERN_MATCHING_QUERY.to_string(), QUERY_EVOLUTION.to_string()],
 			port_lower,
 			port_upper,
 		)?;

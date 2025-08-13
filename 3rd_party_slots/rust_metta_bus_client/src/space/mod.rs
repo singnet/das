@@ -6,6 +6,7 @@ use std::{
 use hyperon_atom::{matcher::BindingsSet, Atom};
 use hyperon_common::FlexRef;
 use hyperon_space::{Space, SpaceCommon, SpaceMut, SpaceVisitor};
+use log;
 
 use crate::{init_service_bus, query_with_das, service_bus::ServiceBus, types::MeTTaRunner};
 
@@ -23,7 +24,13 @@ impl DistributedAtomSpace {
 		port_upper: u16, metta_runner: MeTTaRunner,
 	) -> Self {
 		let service_bus = Arc::new(Mutex::new(
-			init_service_bus(host_id, known_peer, port_lower, port_upper).unwrap(),
+			match init_service_bus(host_id, known_peer, port_lower, port_upper) {
+				Ok(bus) => bus,
+				Err(e) => {
+					log::error!(target: "das", "Error initializing service bus: {e}");
+					ServiceBus::default()
+				},
+			},
 		));
 		Self { common: SpaceCommon::default(), service_bus, name, metta_runner }
 	}
