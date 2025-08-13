@@ -3,12 +3,12 @@
 set -euo pipefail
 
 declare -A TITLE_ALIAS_MAP=(
-  ["atomdb_morkdb"]="MorkDB"
-  ["atomdb_redismongodb"]="Redis + MongoDB"
+  ["morkdb"]="MorkDB"
+  ["redismongodb"]="Redis + MongoDB"
 )
 
-REPORT_DIR="atomdb_benchmark"
 TITLE="AtomDB Benchmark Report - Single Thread, 100 iterations"
+BENCHMARK_DATABASE_PATH="/home/$USER/.cache/das/atomdb_benchmark.db"
 
 function get_pr_info() {
   curl -s -H "Authorization: token $GITHUB_TOKEN" \
@@ -31,8 +31,7 @@ function format_title() {
 }
 
 function get_prefixes() {
-  find "$REPORT_DIR" -type f -name '*.txt' \
-    | sed -E 's|.*/([^_]+_[^_]+)_.*|\1|' | sort -u
+  echo "$1" | jq -r '.[].backend' | sort -u
 }
 
 function build_metadata_section() {
@@ -65,30 +64,78 @@ function build_metadata_section() {
 }
 
 function build_table_for_prefix() {
-  local prefix="$1"
-  local title sample_file header
+  local benchmark_result="$1"
+  local prefix="$2"
+  local title 
 
   title=$(format_title "$prefix")
   echo $'\n\n'"### $title"$'\n'
 
-  sample_file=$(find "$REPORT_DIR" -type f -name "${prefix}_*.txt" | head -n1)
-  header=$(head -n 2 "$sample_file")
-  echo "$header"
+  echo "$benchmark_result" | jq --arg prefix "$prefix" '[.[] | select(.backend == $prefix)]' | \
+    mlr --ijson --opprint --barred \
+    cut -f median_operation_time_ms,time_per_atom_ms,throughput \
+    then rename median_operation_time_ms,Median,time_per_atom_ms,"Time Per Atom",throughput,Throughput
 
-  find "$REPORT_DIR" -type f -name "${prefix}_*.txt" | sort \
-    | while read -r f; do
-        tail -n +3 "$f"
-      done | grep -v '^$'
-  echo
+}
+
+function get_benchmark_result_by_id() {
+  local benchmark_id="$1"
+
+  sqlite3 $BENCHMARK_DATABASE_PATH "SELECT
+    '[' || GROUP_CONCAT(
+        json_object(
+            'id', id,
+            'benchmark_execution_id', benchmark_execution_id,
+            'backend', backend,
+            'operation', operation,
+            'batch_size', batch_size,
+            'median_operation_time_ms', median_operation_time_ms,
+            'min_operation_time_ms', min_operation_time_ms,
+            'max_operation_time_ms', max_operation_time_ms,
+            'p50_operation_time_ms', p50_operation_time_ms,
+            'p90_operation_time_ms', p90_operation_time_ms,
+            'p99_operation_time_ms', p99_operation_time_ms,
+            'total_time_ms', total_time_ms,
+            'time_per_atom_ms', time_per_atom_ms,
+            'throughput', throughput
+        ), 
+        ','
+    ) || ']'
+  AS results
+  FROM benchmark_result
+  WHERE benchmark_execution_id = $benchmark_id;" | head -n 1
 }
 
 function generate_message() {
+  local benchmark_result="$1"
   local message
   message="$(build_metadata_section)"
-  for prefix in $(get_prefixes); do
-    message+=$(build_table_for_prefix "$prefix")
+  for prefix in $(get_prefixes "$benchmark_result"); do
+    message+=$(build_table_for_prefix "$benchmark_result" "$prefix")
   done
   echo "$message"
+}
+
+function update_benchmark_execution() {
+  local benchmark_id = "$1"
+  local completed_at=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+
+  local pr_info pr_url pr_title 
+
+  pr_info=$(get_pr_info)
+  commit_info=$(get_commit_info)
+
+  pr_link=$(echo "$pr_info" | jq -r '.[0].html_url // empty')
+  pr_title=$(echo "$pr_info" | jq -r '.[0].title // empty')
+
+  sqlite3 "$BENCHMARK_DATABASE_PATH" <<EOF
+UPDATE benchmark_execution
+SET status = 'COMPLETED',
+    pr_link = '$pr_link',
+    pr_title = '$pr_title',
+    completed_at = '$completed_at'
+WHERE id = $benchmark_id;
+EOF
 }
 
 function save_message_as_json() {
@@ -99,10 +146,21 @@ function save_message_as_json() {
 }
 
 function main() {
-  local message
-  message=$(generate_message)
+  local message benchmark_result
+  local benchmark_id="$1"
+
+  benchmark_result=$(get_benchmark_result_by_id)
+
+  if [ -n "$benchmark_result" ]; then
+    echo "Benchmark result could not be found in the database"
+    exit 1
+  fi
+
+  message=$(generate_message "$benchmark_result")
   echo "$message"
   save_message_as_json "$message"
+
+  update_benchmark_execution "$benchmark_id"
 }
 
 main "$@"
