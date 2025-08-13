@@ -21,6 +21,7 @@ class Token {
     bool operator==(const Token& other);
     bool operator!=(const Token& other);
 
+    string to_string();
     unsigned char type;
     string text;
 

@@ -1,10 +1,11 @@
 use std::collections::HashMap;
 
 pub static PATTERN_MATCHING_QUERY: &str = "pattern_matching_query";
+pub static QUERY_EVOLUTION: &str = "query_evolution";
 
 #[derive(Debug, Default, Clone)]
 pub struct Bus {
-	command_owner: HashMap<String, String>,
+	pub command_owner: HashMap<String, String>,
 }
 
 impl Bus {

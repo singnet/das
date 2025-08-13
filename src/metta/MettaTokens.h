@@ -1,5 +1,7 @@
 #pragma once
 
+#include <string>
+
 using namespace std;
 
 namespace metta {
@@ -21,6 +23,7 @@ class MettaTokens {
     static bool is_symbol(unsigned char);
     static bool is_literal(unsigned char);
     static bool is_variable(unsigned char);
+    static string to_string(unsigned char token);
 
     ~MettaTokens();
 

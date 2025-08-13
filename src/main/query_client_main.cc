@@ -46,6 +46,8 @@ int main(int argc, char* argv[]) {
 
     ServiceBusSingleton::init(client_id, server_id, ports_range.first, ports_range.second);
 
+    bool USE_METTA_QUERY = false;
+
     // check if argv[4] is a number which is the max number of query answers
     // if not, set it to MAX_QUERY_ANSWERS
     int max_query_answers = 0;
@@ -69,7 +71,17 @@ int main(int argc, char* argv[]) {
         query.push_back(argv[i]);
     }
 
-    auto proxy = AtomSpace().pattern_matching_query(query);
+    auto proxy = make_shared<PatternMatchingQueryProxy>(query, "");
+    proxy->parameters[BaseQueryProxy::UNIQUE_ASSIGNMENT_FLAG] = true;
+    proxy->parameters[BaseQueryProxy::ATTENTION_UPDATE_FLAG] = update_attention_broker;
+    proxy->parameters[BaseQueryProxy::USE_LINK_TEMPLATE_CACHE] = false;
+    proxy->parameters[PatternMatchingQueryProxy::MAX_ANSWERS] = (unsigned int) max_query_answers;
+    proxy->parameters[PatternMatchingQueryProxy::POSITIVE_IMPORTANCE_FLAG] = false;
+    proxy->parameters[BaseQueryProxy::USE_LINK_TEMPLATE_CACHE] = false;
+    proxy->parameters[BaseQueryProxy::USE_METTA_AS_QUERY_TOKENS] = USE_METTA_QUERY;
+
+    ServiceBusSingleton::get_instance()->issue_bus_command(proxy);
+
     shared_ptr<QueryAnswer> query_answer;
     int count = 0;
     while (!proxy->finished()) {

@@ -1,191 +1,86 @@
-use std::collections::VecDeque;
-use std::net::{SocketAddr, ToSocketAddrs};
-use std::sync::{Arc, Mutex, RwLock};
-use std::thread;
+use std::{
+	net::{SocketAddr, ToSocketAddrs},
+	sync::{Arc, Mutex, RwLock},
+};
 
-use tokio::runtime::{Builder, Runtime};
+use tokio::runtime::Runtime;
 use tonic::{transport::Server, Request, Response, Status};
 
-use das_proto::atom_space_node_server::{AtomSpaceNode, AtomSpaceNodeServer};
-use das_proto::{Ack, Empty, MessageData};
+use das_proto::{
+	atom_space_node_client::AtomSpaceNodeClient,
+	atom_space_node_server::{AtomSpaceNode, AtomSpaceNodeServer},
+	Ack, Empty, MessageData,
+};
 
 mod das_proto {
 	tonic::include_proto!("dasproto");
 }
 
-use crate::port_pool::PortPool;
-use crate::properties::{
-	Properties, PropertyValue, ATTENTION_UPDATE_FLAG, COUNT_FLAG, MAX_BUNDLE_SIZE,
-	POPULATE_METTA_MAPPING_FLAG, POSITIVE_IMPORTANCE_FLAG, UNIQUE_ASSIGNMENT_FLAG,
+use crate::{
+	base_proxy_query::{BaseQueryProxy, BaseQueryProxyT},
+	port_pool::PortPool,
+	query_evolution_proxy::EVAL_FITNESS,
+	types::BoxError,
 };
-use crate::{bus::PATTERN_MATCHING_QUERY, types::BoxError};
 
 static ABORT: &str = "abort"; // Abort current query
 static ANSWER_BUNDLE: &str = "answer_bundle"; // Delivery of a bundle with QueryAnswer objects
 static COUNT: &str = "count"; // Delivery of the final result of a count_only query
 static FINISHED: &str = "finished"; // Notification that all query results have alkready been delivered
-
-#[derive(Default, Clone)]
-pub struct PatternMatchingQueryProxy {
-	answer_queue: Arc<Mutex<VecDeque<String>>>,
-	answer_count: Arc<Mutex<u64>>,
-
-	pub answer_flow_finished: Arc<Mutex<bool>>,
-	count_flag: bool,
-	abort_flag: Arc<Mutex<bool>>,
-
-	pub query_tokens: Vec<String>,
-
-	// BusCommandProxy
-	pub command: String,
-	pub context: String,
-	pub properties: Properties,
-	pub args: Vec<String>,
-	pub requestor_id: String,
-	pub serial: u64,
-	pub proxy_port: u16,
-	pub proxy_node: ProxyNode,
-
-	runtime: Arc<RwLock<Option<Arc<Runtime>>>>,
-}
-
-impl PatternMatchingQueryProxy {
-	pub fn new(
-		tokens: Vec<String>, context: String, unique_assignment: bool, positive_importance: bool,
-		update_attention_broker: bool, count_only: bool, populate_metta_mapping: bool,
-	) -> Result<Self, BoxError> {
-		let mut properties = Properties::new();
-		properties
-			.insert(UNIQUE_ASSIGNMENT_FLAG.to_string(), PropertyValue::Bool(unique_assignment));
-		properties
-			.insert(POSITIVE_IMPORTANCE_FLAG.to_string(), PropertyValue::Bool(positive_importance));
-		properties.insert(
-			ATTENTION_UPDATE_FLAG.to_string(),
-			PropertyValue::Bool(update_attention_broker),
-		);
-		properties.insert(COUNT_FLAG.to_string(), PropertyValue::Bool(count_only));
-		properties.insert(MAX_BUNDLE_SIZE.to_string(), PropertyValue::UnsignedInt(1000));
-		properties.insert(
-			POPULATE_METTA_MAPPING_FLAG.to_string(),
-			PropertyValue::Bool(populate_metta_mapping),
-		);
-
-		let mut args = vec![];
-		args.extend(properties.to_vec());
-		args.push(context.clone());
-		args.push(tokens.len().to_string());
-		args.extend(tokens);
-
-		let runtime = Arc::new(Builder::new_multi_thread().enable_all().build().unwrap());
-		let runtime = Arc::new(RwLock::new(Some(runtime)));
-
-		Ok(Self {
-			answer_queue: Arc::new(Mutex::new(VecDeque::new())),
-			answer_count: Arc::new(Mutex::new(0)),
-
-			answer_flow_finished: Arc::new(Mutex::new(false)),
-			count_flag: count_only,
-			abort_flag: Arc::new(Mutex::new(false)),
-
-			context,
-			properties,
-
-			query_tokens: vec![],
-
-			command: PATTERN_MATCHING_QUERY.to_string(),
-			args,
-
-			runtime,
-
-			..Default::default()
-		})
-	}
-
-	pub fn finished(&self) -> bool {
-		let aq = self.answer_queue.lock().unwrap();
-		let answer_flow_finished = self.answer_flow_finished.lock().unwrap();
-		let abort_flag = self.abort_flag.lock().unwrap();
-		*abort_flag || (*answer_flow_finished && (self.count_flag || aq.is_empty()))
-	}
-
-	pub fn pop(&mut self) -> Option<String> {
-		let mut aq = self.answer_queue.lock().unwrap();
-		let abort_flag = self.abort_flag.lock().unwrap();
-		if self.count_flag {
-			log::error!(target: "das", "Can't pop QueryAnswers from count_only queries.");
-			return None;
-		}
-		if *abort_flag {
-			return None;
-		}
-		aq.pop_front()
-	}
-
-	pub fn get_count(&self) -> u64 {
-		let answer_count = self.answer_count.lock().unwrap();
-		*answer_count
-	}
-
-	pub fn abort() {
-		todo!()
-	}
-
-	pub fn setup_proxy_node(&mut self, client_id: Option<String>, server_id: Option<String>) {
-		if self.proxy_port == 0 {
-			panic!("Proxy node can't be set up");
-		} else if let Some(client_id) = client_id {
-			// This proxy is running in the processor
-			let server_id = server_id.unwrap_or_default();
-			self.proxy_node = ProxyNode::new(self, client_id, server_id.clone());
-			self.proxy_node.peer_id = server_id;
-		} else {
-			// This proxy is running in the requestor
-			let id = self.requestor_id.clone();
-			let requestor_host = id.split(":").collect::<Vec<_>>()[0];
-			let requestor_id = requestor_host.to_string() + ":" + &self.proxy_port.to_string();
-			self.proxy_node = ProxyNode::new(self, requestor_id, "".to_string());
-		}
-	}
-
-	pub fn drop_runtime(&mut self) {
-		log::trace!(target: "das", "Dropping PatternMatchingQueryProxy...");
-		// Releasing Runtime
-		let mut runtime_lock = self.runtime.write().unwrap();
-		if let Some(runtime) = runtime_lock.take() {
-			thread::spawn(move || drop(runtime));
-		}
-	}
-}
+static PEER_ERROR: &str = "peer_error"; // Notification that a peer error has occurred
 
 #[derive(Clone, Default)]
 pub struct ProxyNode {
-	node_id: String,
-	server_id: String,
-	peer_id: String,
+	pub node_id: String,
+	pub peer_id: String,
+	pub runtime: Arc<RwLock<Option<Arc<Runtime>>>>,
 }
 
 impl ProxyNode {
-	pub fn new(proxy: &mut PatternMatchingQueryProxy, node_id: String, server_id: String) -> Self {
-		let star_node = StarNode::new(node_id.clone(), Arc::new(proxy.clone()));
-
-		let runtime_lock = proxy.runtime.read().unwrap();
-		let runtime = runtime_lock.clone().unwrap();
-
-		// Start gRPC server (runs indefinitely)
-		let node_clone = star_node.clone();
-		runtime.spawn(async move {
-			node_clone.start_server().await.unwrap();
-		});
-
-		Self { node_id, server_id, peer_id: "".to_string() }
+	pub fn new(
+		proxy: Arc<Mutex<BaseQueryProxy>>, node_id: String, server_id: String,
+		runtime: Arc<RwLock<Option<Arc<Runtime>>>>,
+	) -> Self {
+		StarNode::serve(node_id.clone(), proxy, runtime.clone()).unwrap();
+		Self { node_id, peer_id: server_id, runtime: runtime.clone() }
 	}
 
 	pub fn node_id(&self) -> String {
 		self.node_id.clone()
 	}
 
-	pub fn server_id(&self) -> String {
-		self.server_id.clone()
+	pub fn to_remote_peer(&self, command: String, args: Vec<String>) -> Result<(), BoxError> {
+		let proxy_command = "bus_command_proxy".to_string();
+
+		let mut new_args = args;
+		new_args.push(command);
+
+		log::trace!(target: "das", "ProxyNode::to_remote_peer(): Sending {proxy_command} to {} with args.len={}", self.peer_id, new_args.len());
+
+		let request = Request::new(MessageData {
+			command: proxy_command,
+			args: new_args,
+			sender: self.node_id.clone(),
+			is_broadcast: false,
+			visited_recipients: vec![],
+		});
+
+		let runtime = self.runtime.read().unwrap();
+		let runtime = runtime.clone().unwrap();
+
+		let peer_id = self.peer_id.clone();
+		runtime.spawn(async move {
+			let target_addr = format!("http://{peer_id}");
+			match AtomSpaceNodeClient::connect(target_addr).await {
+				Ok(mut client) => client.execute_message(request).await,
+				Err(err) => {
+					log::error!(target: "das", "ProxyNode::to_remote_peer(ERROR): {err:?}");
+					Err(Status::internal("Client failed to connect with remote!"))
+				},
+			}
+		});
+
+		Ok(())
 	}
 }
 
@@ -208,12 +103,24 @@ impl Drop for ProxyNode {
 #[derive(Clone)]
 pub struct StarNode {
 	address: SocketAddr,
-	proxy: Arc<PatternMatchingQueryProxy>,
+	proxy: Arc<Mutex<BaseQueryProxy>>,
 }
 
 impl StarNode {
-	pub fn new(node_id: String, proxy: Arc<PatternMatchingQueryProxy>) -> Self {
-		Self { address: StarNode::check_host_id(node_id), proxy }
+	pub fn serve(
+		node_id: String, proxy: Arc<Mutex<BaseQueryProxy>>,
+		runtime: Arc<RwLock<Option<Arc<Runtime>>>>,
+	) -> Result<(), BoxError> {
+		let runtime = runtime.read().unwrap();
+		let runtime = runtime.clone().unwrap();
+
+		// Start gRPC server (runs indefinitely)
+		let node = StarNode { address: StarNode::check_host_id(node_id), proxy };
+		runtime.spawn(async move {
+			node.start_server().await.unwrap();
+		});
+
+		Ok(())
 	}
 
 	fn check_host_id(host_id: String) -> SocketAddr {
@@ -223,40 +130,71 @@ impl StarNode {
 		}
 	}
 
-	fn process_message(&self, msg: MessageData) {
+	fn process_message(&self, msg: MessageData) -> Result<(), BoxError> {
 		log::debug!(
 			target: "das",
-			"StarNode::process_message()[{}]: MessageData -> len={:?}",
-			self.address,
-			msg.args.len()
+			"StarNode::process_message()[{}]: MessageData -> command={} | last_arg={:?} | len={} | sender={}",
+			self.address, msg.command, msg.args.last(), msg.args.len(), msg.sender
 		);
+
+		let mut proxy = self.proxy.lock().unwrap();
+
 		let args = match msg.command.as_str() {
-			"node_joined_network" => vec![],
+			"node_joined_network" => return Ok(()),
 			"query_answer_tokens_flow" => msg.args,
-			"query_answer_flow" => vec![],
-			"pattern_matching_query" => vec![],
-			"query_answers_finished" => vec![],
+			"query_answer_flow" => return Ok(()),
+			"pattern_matching_query" => return Ok(()),
+			"query_answers_finished" => return Ok(()),
 			"bus_command_proxy" => msg.args,
-			_ => vec![],
+			"set_command_ownership" => {
+				// [command, owner]
+				proxy.service_list.insert(msg.args[1].clone(), msg.args[0].clone());
+				return Ok(());
+			},
+			_ => return Ok(()),
 		};
 
-		let mut aq = self.proxy.answer_queue.lock().unwrap();
-		let mut answer_count = self.proxy.answer_count.lock().unwrap();
-		let mut answer_flow_finished = self.proxy.answer_flow_finished.lock().unwrap();
-		let mut abort_flag = self.proxy.abort_flag.lock().unwrap();
+		// First, check for early returns and set flags
+		let mut eval_fitness_flag = false;
+		let mut should_abort = false;
+
+		match args.last() {
+			// Peer Error
+			Some(last_arg) if last_arg == &PEER_ERROR.to_string() => {
+				should_abort = true;
+			},
+			// Evolution
+			Some(last_arg) if last_arg == &EVAL_FITNESS.to_string() => {
+				eval_fitness_flag = true;
+			},
+			_ => {},
+		}
+
+		if should_abort {
+			proxy.abort_flag = true;
+			return Ok(());
+		}
+
+		if eval_fitness_flag {
+			proxy.proxy_node.peer_id = msg.sender;
+			proxy.eval_fitness_queue.extend(args);
+			return Ok(());
+		}
+
 		for arg in args {
 			if arg == FINISHED {
-				*answer_flow_finished = true;
+				proxy.answer_flow_finished = true;
 				break;
 			} else if arg == ABORT {
-				*abort_flag = true;
+				proxy.abort_flag = true;
 				break;
-			} else if arg == ANSWER_BUNDLE || arg == COUNT {
+			} else if arg == ANSWER_BUNDLE || arg == COUNT || arg == EVAL_FITNESS {
 				continue;
 			}
-			*answer_count += 1;
-			aq.push_back(arg);
+			proxy.push(arg)?;
 		}
+
+		Ok(())
 	}
 }
 
@@ -266,7 +204,7 @@ impl AtomSpaceNode for StarNode {
 		&self, request: Request<MessageData>,
 	) -> Result<Response<Empty>, Status> {
 		log::trace!(target: "das", "StarNode::execute_message(): Got MessageData {:?}", request);
-		self.process_message(request.into_inner());
+		self.process_message(request.into_inner()).map_err(|e| Status::internal(e.to_string()))?;
 		Ok(Response::new(Empty {}))
 	}
 
