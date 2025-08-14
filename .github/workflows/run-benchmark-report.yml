@@ -67,7 +67,7 @@ jobs:
           path: atomdb_benchmark
 
       - name: Install requirements 
-        run: sudo apt -y update && sudo apt -y install miller
+        run: sudo apt -y update && sudo apt -y install miller sqlite3
 
       - name: Create mattermost message
         run: bash .github/scripts/mattermost-benchmark-report.sh "${{ needs.benchmark.outputs.benchmark_id }}"
