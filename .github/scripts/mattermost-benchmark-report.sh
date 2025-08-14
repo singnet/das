@@ -151,7 +151,7 @@ function main() {
 
   benchmark_result=$(get_benchmark_result_by_id "$benchmark_id")
 
-  if [ -n "$benchmark_result" ]; then
+  if [ -z "$benchmark_result" ]; then
     echo "Benchmark result could not be found in the database"
     exit 1
   fi
