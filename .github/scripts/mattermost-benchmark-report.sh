@@ -149,7 +149,7 @@ function main() {
   local message benchmark_result
   local benchmark_id="$1"
 
-  benchmark_result=$(get_benchmark_result_by_id)
+  benchmark_result=$(get_benchmark_result_by_id "$benchmark_id")
 
   if [ -n "$benchmark_result" ]; then
     echo "Benchmark result could not be found in the database"
