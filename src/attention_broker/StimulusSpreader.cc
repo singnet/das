@@ -1,7 +1,9 @@
 #include "StimulusSpreader.h"
 
+// clang-format off
 #define LOG_LEVEL INFO_LEVEL
 #include "Logger.h"
+// clang-format on
 
 #include <forward_list>
 #include <string>
@@ -63,12 +65,14 @@ static bool consolidate_rent_and_wages(HandleTrie::TrieNode* node, void* data) {
 
     // Compute amount to be spread
     ImportanceType largest_arity = ((DATA*) data)->largest_arity;
-    ImportanceType arity_ratio = (largest_arity == 0 ? 1.0 : (double) value->arity / ((DATA*) data)->largest_arity);
+    ImportanceType arity_ratio =
+        (largest_arity == 0 ? 1.0 : (double) value->arity / ((DATA*) data)->largest_arity);
     ImportanceType spreading_rate = ((DATA*) data)->spreading_rate_lowerbound +
                                     (((DATA*) data)->spreading_rate_range_size * arity_ratio);
     ImportanceType to_spread = value->importance * spreading_rate;
     value->importance -= to_spread;
     value->stimuli_to_spread = to_spread;
+    // clang-format off
     LOG_LOCAL_DEBUG(\
         "Update " + node->suffix + ":" + \
         " " + std::to_string(original_importance) + \
@@ -76,6 +80,7 @@ static bool consolidate_rent_and_wages(HandleTrie::TrieNode* node, void* data) {
         " + " + std::to_string(changes->wages) + " (wages)" + \
         " - " + std::to_string(to_spread) + " (spread) " + \
         " = " + std::to_string(value->importance));
+    // clang-format on
     return false;
 }
 
@@ -119,7 +124,8 @@ void TokenSpreader::distribute_wages(const dasproto::HandleCount* handle_count,
     for (auto pair : handle_count->map()) {
         if (pair.first != "SUM") {
             double normalized_amount = (((double) pair.second) * total_to_spread) / total_wages;
-            LOG_LOCAL_DEBUG("Normalized wage to handle " + pair.first + ": " + std::to_string(normalized_amount));
+            LOG_LOCAL_DEBUG("Normalized wage to handle " + pair.first + ": " +
+                            std::to_string(normalized_amount));
             data->importance_changes->insert(
                 pair.first, new TokenSpreader::ImportanceChanges(0.0, normalized_amount));
         }
@@ -144,10 +150,12 @@ void TokenSpreader::spread_stimuli(const dasproto::HandleCount* request) {
     data.spreading_rate_range_size = AttentionBrokerServer::SPREADING_RATE_UPPERBOUND -
                                      AttentionBrokerServer::SPREADING_RATE_LOWERBOUND;
     data.largest_arity = network->largest_arity;
+    // clang-format off
     LOG_DEBUG(\
         "Rent rate: " + std::to_string(data.rent_rate) + \
         " Spreadinmg rate: [" + std::to_string(AttentionBrokerServer::SPREADING_RATE_LOWERBOUND) + ", " + std::to_string(AttentionBrokerServer::SPREADING_RATE_UPPERBOUND) + "]" + \
         " Largest arity: " + std::to_string(data.largest_arity));
+    // clang-format on
     data.total_rent = 0.0;
 
     // Collect rent

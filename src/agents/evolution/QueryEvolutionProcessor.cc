@@ -99,7 +99,8 @@ shared_ptr<PatternMatchingQueryProxy> QueryEvolutionProcessor::issue_correlation
     pm_proxy->parameters[BaseQueryProxy::UNIQUE_ASSIGNMENT_FLAG] = true;
     pm_proxy->parameters[BaseQueryProxy::ATTENTION_UPDATE_FLAG] = false;
     pm_proxy->parameters[BaseQueryProxy::USE_LINK_TEMPLATE_CACHE] = false;
-    pm_proxy->parameters[PatternMatchingQueryProxy::POSITIVE_IMPORTANCE_FLAG] = (this->generation_count > 1);
+    pm_proxy->parameters[PatternMatchingQueryProxy::POSITIVE_IMPORTANCE_FLAG] =
+        (this->generation_count > 1);
     pm_proxy->parameters[BaseQueryProxy::USE_METTA_AS_QUERY_TOKENS] =
         proxy->parameters.get<bool>(BaseQueryProxy::USE_METTA_AS_QUERY_TOKENS);
     pm_proxy->parameters[PatternMatchingQueryProxy::MAX_ANSWERS] =
@@ -242,9 +243,13 @@ void QueryEvolutionProcessor::select_best_individuals(
     }
     float sum = 0;
     for (unsigned int i = 0; i < count; i++) {
-        LOG_INFO("Selected: " + (proxy->populate_metta_mapping(selected[i].first.get()), sum += selected[i].second, selected[i].first->metta_expression[selected[i].first->handles[0]] + " " + std::to_string(selected[i].first->strength)));
+        LOG_INFO("Selected: " + (proxy->populate_metta_mapping(selected[i].first.get()),
+                                 sum += selected[i].second,
+                                 selected[i].first->metta_expression[selected[i].first->handles[0]] +
+                                     " " + std::to_string(selected[i].first->strength)));
     }
-    LOG_INFO("Generation: " + std::to_string(this->generation_count) + " - Average fitness in selected group: " + std::to_string(sum / count));
+    LOG_INFO("Generation: " + std::to_string(this->generation_count) +
+             " - Average fitness in selected group: " + std::to_string(sum / count));
 }
 
 void QueryEvolutionProcessor::correlate_similar(shared_ptr<QueryEvolutionProxy> proxy,
@@ -355,7 +360,8 @@ void QueryEvolutionProcessor::update_attention_allocation(
     }
     unsigned int count = 1;
     for (auto pair : selected) {
-        LOG_INFO("Correlating QueryAnswer (" + std::to_string(count) + "/" + std::to_string(selected.size()) + "): " + pair.first->to_string());
+        LOG_INFO("Correlating QueryAnswer (" + std::to_string(count) + "/" +
+                 std::to_string(selected.size()) + "): " + pair.first->to_string());
         correlate_similar(proxy, pair.first);
         count++;
     }
@@ -375,8 +381,8 @@ void QueryEvolutionProcessor::evolve_query(shared_ptr<StoppableThread> monitor,
         STOP_WATCH_START(sample_population);
         sample_population(monitor, proxy, population);
         STOP_WATCH_FINISH(sample_population, "EvolutionPopulationSampling");
-        LOG_INFO("========== Generation: " + std::to_string(this->generation_count) +
-                 ". Sampled " + std::to_string(population.size()) + " individuals. ==========");
+        LOG_INFO("========== Generation: " + std::to_string(this->generation_count) + ". Sampled " +
+                 std::to_string(population.size()) + " individuals. ==========");
         proxy->new_population_sampled(population);
         if (population.size() > 0) {
             STOP_WATCH_START(selection);

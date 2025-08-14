@@ -58,7 +58,8 @@ Status AttentionBrokerServer::ping(ServerContext* grpc_context,
 Status AttentionBrokerServer::stimulate(ServerContext* grpc_context,
                                         const dasproto::HandleCount* request,
                                         dasproto::Ack* reply) {
-    LOG_INFO("Stimulating " << (request->map_size() - 1) << " handles in context: '" + request->context() + "'");
+    LOG_INFO("Stimulating " << (request->map_size() - 1)
+                            << " handles in context: '" + request->context() + "'");
     if (request->map_size() > 1) {
         HebbianNetwork* network = select_hebbian_network(request->context());
         ((dasproto::HandleCount*) request)->set_hebbian_network((long) network);
@@ -70,7 +71,8 @@ Status AttentionBrokerServer::stimulate(ServerContext* grpc_context,
     HebbianNetwork* hebbian_network = select_hebbian_network(request->context());
     for (auto pair : request->map()) {
         if (pair.first != "SUM") {
-            LOG_DEBUG(pair.first + ": " + std::to_string(pair.second) + " -> " + std::to_string(hebbian_network->get_node_importance(pair.first)));
+            LOG_DEBUG(pair.first + ": " + std::to_string(pair.second) + " -> " +
+                      std::to_string(hebbian_network->get_node_importance(pair.first)));
         }
     }
     auto iterator = request->map().find("SUM");
@@ -88,7 +90,8 @@ Status AttentionBrokerServer::stimulate(ServerContext* grpc_context,
 Status AttentionBrokerServer::correlate(ServerContext* grpc_context,
                                         const dasproto::HandleList* request,
                                         dasproto::Ack* reply) {
-    LOG_INFO("Correlating " << request->list_size() << " handles in context: '" + request->context() + "'");
+    LOG_INFO("Correlating " << request->list_size()
+                            << " handles in context: '" + request->context() + "'");
     if (request->list_size() > 1) {
         HebbianNetwork* network = select_hebbian_network(request->context());
         ((dasproto::HandleList*) request)->set_hebbian_network((long) network);
@@ -109,7 +112,8 @@ Status AttentionBrokerServer::correlate(ServerContext* grpc_context,
 Status AttentionBrokerServer::get_importance(ServerContext* grpc_context,
                                              const dasproto::HandleList* request,
                                              dasproto::ImportanceList* reply) {
-    LOG_INFO("Getting importance of " << request->list_size() << " handles in context: '" + request->context() + "'");
+    LOG_INFO("Getting importance of " << request->list_size()
+                                      << " handles in context: '" + request->context() + "'");
     unsigned int count_positive = 0;
     if (this->rpc_api_enabled) {
         int num_handles = request->list_size();

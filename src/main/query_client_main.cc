@@ -90,7 +90,7 @@ int main(int argc, char* argv[]) {
             Utils::sleep();
         } else {
             cout << query_answer->to_string() << endl;
-            for (string handle: query_answer->handles) {
+            for (string handle : query_answer->handles) {
                 cout << query_answer->metta_expression[handle] << endl;
             }
             if (++count == max_query_answers) {
