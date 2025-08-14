@@ -79,6 +79,7 @@ int main(int argc, char* argv[]) {
     proxy->parameters[PatternMatchingQueryProxy::POSITIVE_IMPORTANCE_FLAG] = false;
     proxy->parameters[BaseQueryProxy::USE_LINK_TEMPLATE_CACHE] = false;
     proxy->parameters[BaseQueryProxy::USE_METTA_AS_QUERY_TOKENS] = USE_METTA_QUERY;
+    proxy->parameters[BaseQueryProxy::POPULATE_METTA_MAPPING] = true;
 
     ServiceBusSingleton::get_instance()->issue_bus_command(proxy);
 
@@ -89,6 +90,9 @@ int main(int argc, char* argv[]) {
             Utils::sleep();
         } else {
             cout << query_answer->to_string() << endl;
+            for (string handle : query_answer->handles) {
+                cout << query_answer->metta_expression[handle] << endl;
+            }
             if (++count == max_query_answers) {
                 break;
             }

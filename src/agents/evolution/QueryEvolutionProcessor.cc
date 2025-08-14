@@ -78,11 +78,11 @@ void QueryEvolutionProcessor::thread_process_one_query(shared_ptr<StoppableThrea
 }
 
 shared_ptr<PatternMatchingQueryProxy> QueryEvolutionProcessor::issue_sampling_query(
-    shared_ptr<QueryEvolutionProxy> proxy, bool attention_flag) {
+    shared_ptr<QueryEvolutionProxy> proxy) {
     auto pm_proxy =
         make_shared<PatternMatchingQueryProxy>(proxy->get_query_tokens(), proxy->get_context());
     pm_proxy->parameters[BaseQueryProxy::UNIQUE_ASSIGNMENT_FLAG] = true;
-    pm_proxy->parameters[BaseQueryProxy::ATTENTION_UPDATE_FLAG] = attention_flag;
+    pm_proxy->parameters[BaseQueryProxy::ATTENTION_UPDATE_FLAG] = (this->generation_count == 1);
     pm_proxy->parameters[BaseQueryProxy::USE_LINK_TEMPLATE_CACHE] = false;
     pm_proxy->parameters[PatternMatchingQueryProxy::POSITIVE_IMPORTANCE_FLAG] = false;
     pm_proxy->parameters[BaseQueryProxy::USE_METTA_AS_QUERY_TOKENS] =
@@ -99,11 +99,12 @@ shared_ptr<PatternMatchingQueryProxy> QueryEvolutionProcessor::issue_correlation
     pm_proxy->parameters[BaseQueryProxy::UNIQUE_ASSIGNMENT_FLAG] = true;
     pm_proxy->parameters[BaseQueryProxy::ATTENTION_UPDATE_FLAG] = false;
     pm_proxy->parameters[BaseQueryProxy::USE_LINK_TEMPLATE_CACHE] = false;
-    pm_proxy->parameters[PatternMatchingQueryProxy::POSITIVE_IMPORTANCE_FLAG] = true;
+    pm_proxy->parameters[PatternMatchingQueryProxy::POSITIVE_IMPORTANCE_FLAG] =
+        (this->generation_count > 1);
     pm_proxy->parameters[BaseQueryProxy::USE_METTA_AS_QUERY_TOKENS] =
         proxy->parameters.get<bool>(BaseQueryProxy::USE_METTA_AS_QUERY_TOKENS);
     pm_proxy->parameters[PatternMatchingQueryProxy::MAX_ANSWERS] =
-        proxy->parameters.get<unsigned int>(QueryEvolutionProxy::POPULATION_SIZE);
+        proxy->parameters.get<unsigned int>(QueryEvolutionProxy::POPULATION_SIZE) * 5;
 
     ServiceBusSingleton::get_instance()->issue_bus_command(pm_proxy);
     return pm_proxy;
@@ -118,9 +119,7 @@ void QueryEvolutionProcessor::sample_population(
     unsigned int population_size =
         proxy->parameters.get<unsigned int>(QueryEvolutionProxy::POPULATION_SIZE);
 
-    static bool attention_flag = true;  // update attention values only in the first generation
-    auto pm_query = issue_sampling_query(proxy, attention_flag);
-    attention_flag = false;
+    auto pm_query = issue_sampling_query(proxy);
 
     while ((!pm_query->finished()) && (!monitor->stopped()) && (population.size() < population_size)) {
         shared_ptr<QueryAnswer> answer = pm_query->pop();
@@ -242,11 +241,19 @@ void QueryEvolutionProcessor::select_best_individuals(
             select_one_by_tournament(proxy, population, selected);
         }
     }
+    float sum = 0;
+    for (unsigned int i = 0; i < count; i++) {
+        LOG_INFO("Selected: " + (proxy->populate_metta_mapping(selected[i].first.get()),
+                                 sum += selected[i].second,
+                                 selected[i].first->metta_expression[selected[i].first->handles[0]] +
+                                     " " + std::to_string(selected[i].first->strength)));
+    }
+    LOG_INFO("Generation: " + std::to_string(this->generation_count) +
+             " - Average fitness in selected group: " + std::to_string(sum / count));
 }
 
 void QueryEvolutionProcessor::correlate_similar(shared_ptr<QueryEvolutionProxy> proxy,
                                                 shared_ptr<QueryAnswer> correlation_query_answer) {
-    LOG_INFO("Correlating QueryAnswer: " + correlation_query_answer->to_string());
     vector<string> query_tokens;
     unsigned int cursor = 0;
     vector<string> original_tokens = proxy->get_correlation_tokens();
@@ -289,7 +296,9 @@ void QueryEvolutionProcessor::correlate_similar(shared_ptr<QueryEvolutionProxy> 
     while (!pm_query->finished()) {
         shared_ptr<QueryAnswer> answer = pm_query->pop();
         if (answer != NULL) {
-            handle_set.insert(answer->handles[0]);
+            for (string handle : answer->handles) {
+                handle_set.insert(handle);
+            }
         } else {
             Utils::sleep();
         }
@@ -297,10 +306,14 @@ void QueryEvolutionProcessor::correlate_similar(shared_ptr<QueryEvolutionProxy> 
     for (string handle : handle_set) {
         handle_list.add_list(handle);
     }
-    LOG_DEBUG("Calling AttentionBroker GRPC. Correlating " << handle_list.list_size() << " handles");
-    stub->correlate(new grpc::ClientContext(), handle_list, &ack);
-    if (ack.msg() != "CORRELATE") {
-        Utils::error("Failed GRPC command: AttentionBroker::correlate()");
+    if (handle_list.list_size() > 0) {
+        LOG_DEBUG("Calling AttentionBroker GRPC. Correlating " << handle_list.list_size() << " handles");
+        stub->correlate(new grpc::ClientContext(), handle_list, &ack);
+        if (ack.msg() != "CORRELATE") {
+            Utils::error("Failed GRPC command: AttentionBroker::correlate()");
+        }
+    } else {
+        LOG_INFO("No handles to correlate");
     }
 }
 
@@ -347,7 +360,8 @@ void QueryEvolutionProcessor::update_attention_allocation(
     }
     unsigned int count = 1;
     for (auto pair : selected) {
-        LOG_DEBUG("Correlation " + std::to_string(count) + "/" + std::to_string(selected.size()));
+        LOG_INFO("Correlating QueryAnswer (" + std::to_string(count) + "/" +
+                 std::to_string(selected.size()) + "): " + pair.first->to_string());
         correlate_similar(proxy, pair.first);
         count++;
     }
@@ -358,17 +372,17 @@ void QueryEvolutionProcessor::evolve_query(shared_ptr<StoppableThread> monitor,
                                            shared_ptr<QueryEvolutionProxy> proxy) {
     vector<std::pair<shared_ptr<QueryAnswer>, float>> population;
     vector<std::pair<shared_ptr<QueryAnswer>, float>> selected;
-    unsigned int count_generations = 1;
+    this->generation_count = 1;
     RAM_FOOTPRINT_START(evolution);
     STOP_WATCH_START(evolution);
     while (!monitor->stopped() && !proxy->stop_criteria_met()) {
-        RAM_CHECKPOINT("Generation " + std::to_string(count_generations));
+        RAM_CHECKPOINT("Generation " + std::to_string(this->generation_count));
         STOP_WATCH_START(generation);
         STOP_WATCH_START(sample_population);
         sample_population(monitor, proxy, population);
         STOP_WATCH_FINISH(sample_population, "EvolutionPopulationSampling");
-        LOG_INFO("========== Generation: " + std::to_string(count_generations) +
-                 ". Sampled: " + std::to_string(population.size()) + " individuals. ==========");
+        LOG_INFO("========== Generation: " + std::to_string(this->generation_count) + ". Sampled " +
+                 std::to_string(population.size()) + " individuals. ==========");
         proxy->new_population_sampled(population);
         if (population.size() > 0) {
             STOP_WATCH_START(selection);
@@ -385,9 +399,9 @@ void QueryEvolutionProcessor::evolve_query(shared_ptr<StoppableThread> monitor,
             selected.clear();
             proxy->flush_answer_bundle();
         }
-        RAM_FOOTPRINT_CHECK(evolution, "Generation " + std::to_string(count_generations));
+        RAM_FOOTPRINT_CHECK(evolution, "Generation " + std::to_string(this->generation_count));
         STOP_WATCH_FINISH(generation, "OneGeneration");
-        count_generations++;
+        this->generation_count++;
     }
     STOP_WATCH_FINISH(evolution, "QueryEvolution");
     RAM_FOOTPRINT_FINISH(evolution, "");

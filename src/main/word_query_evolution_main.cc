@@ -169,6 +169,14 @@ void run(const string& client_id,
 
     vector<string> activation_spreading2 = {
         and_operator, "3",
+            link_template, expression, "3",
+                node, symbol, contains,
+                variable, sentence2,
+                variable, word1,
+            link_template, expression, "3",
+                node, symbol, contains,
+                variable, sentence1,
+                variable, word1,
             or_operator, "2",
                 link_template, expression, "3",
                     node, symbol, contains,
@@ -182,14 +190,6 @@ void run(const string& client_id,
                     link, expression, "2",
                         node, symbol, word,
                         node, symbol, "\"" + word_tag2 + "\"",
-            link_template, expression, "3",
-                node, symbol, contains,
-                variable, sentence2,
-                variable, word1,
-            link_template, expression, "3",
-                node, symbol, contains,
-                variable, sentence1,
-                variable, word1,
     };
     // clang-format on
 
@@ -209,14 +209,14 @@ void run(const string& client_id,
             {or_two_words_metta}, {activation_spreading1_metta}, {sentence1}, context, "count_letter");
     } else {
         proxy_ptr = new QueryEvolutionProxy(
-            or_two_words, activation_spreading2, {sentence1}, context, "count_letter");
+            or_two_words, activation_spreading1, {sentence1}, context, "count_letter");
     }
 
     shared_ptr<QueryEvolutionProxy> proxy(proxy_ptr);
     proxy->parameters[BaseQueryProxy::USE_METTA_AS_QUERY_TOKENS] = USE_METTA_QUERY;
     proxy->parameters[QueryEvolutionProxy::POPULATION_SIZE] = (unsigned int) 100;
     proxy->parameters[QueryEvolutionProxy::MAX_GENERATIONS] = (unsigned int) 5;
-    proxy->parameters[QueryEvolutionProxy::ELITISM_RATE] = (double) 0.05;
+    proxy->parameters[QueryEvolutionProxy::ELITISM_RATE] = (double) 0.08;
     proxy->parameters[QueryEvolutionProxy::SELECTION_RATE] = (double) 0.10;
     proxy->parameters[BaseQueryProxy::MAX_BUNDLE_SIZE] = (unsigned int) 10000;
     service_bus->issue_bus_command(proxy);
