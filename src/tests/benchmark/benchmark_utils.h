@@ -6,6 +6,7 @@
 #include <cctype>
 #include <chrono>
 #include <cmath>
+#include <functional>
 #include <map>
 #include <string>
 #include <typeinfo>
@@ -27,12 +28,7 @@ double compute_percentile(const vector<double>& vec, double percentile_fraction)
 map<string, map<string, double>> calculate_metric_statistics(map<string, Metrics>& metrics);
 
 // Create a report for the given metrics
-void create_report(const string& db_name,
-                   const string& action,
-                   const string& method,
-                   map<string, Metrics>& metrics,
-                   const string& base_directory,
-                   const int& batch_size);
+void create_report(string filename, map<string, Metrics>& metrics);
 
 // Get demangled type name of an object
 template <typename T>
@@ -62,3 +58,8 @@ double measure_execution_time(Func&& func) {
     double duration_millis = chrono::duration<double, milli>(end - start).count();
     return duration_millis;
 }
+
+void dispatch_handler(const map<string, function<void()>>& handlers, const string& method);
+
+// Check if the given directory has a log file
+bool is_log_file(const string& directory);

@@ -463,7 +463,7 @@ dependencies = [
 [[package]]
 name = "hyperon-atom"
 version = "0.2.6"
-source = "git+https://github.com/trueagi-io/hyperon-experimental.git#5c3c951c372a92898b7534eca8aa2e4eff6426c8"
+source = "git+https://github.com/trueagi-io/hyperon-experimental.git#ec8b7c65d6edad28058f90c6be71708f5e910148"
 dependencies = [
  "bitset",
  "hyperon-common",
@@ -474,7 +474,7 @@ dependencies = [
 [[package]]
 name = "hyperon-common"
 version = "0.2.6"
-source = "git+https://github.com/trueagi-io/hyperon-experimental.git#5c3c951c372a92898b7534eca8aa2e4eff6426c8"
+source = "git+https://github.com/trueagi-io/hyperon-experimental.git#ec8b7c65d6edad28058f90c6be71708f5e910148"
 dependencies = [
  "itertools 0.13.0",
  "log",
@@ -483,7 +483,7 @@ dependencies = [
 [[package]]
 name = "hyperon-space"
 version = "0.2.6"
-source = "git+https://github.com/trueagi-io/hyperon-experimental.git#5c3c951c372a92898b7534eca8aa2e4eff6426c8"
+source = "git+https://github.com/trueagi-io/hyperon-experimental.git#ec8b7c65d6edad28058f90c6be71708f5e910148"
 dependencies = [
  "bimap",
  "hyperon-atom",
@@ -578,7 +578,7 @@ checksum = "78ca9ab1a0babb1e7d5695e3530886289c18cf2f87ec19a575a0abdce112e3a3"
 
 [[package]]
 name = "metta-bus-client"
-version = "0.1.1"
+version = "0.2.0"
 dependencies = [
  "env_logger",
  "hyperon-atom",
