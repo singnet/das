@@ -42,7 +42,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: benchmark-report
-          path: /tmp/atomdb_benchmark/**/*.txt
+          path: /tmp/atomdb_benchmark/**/consolidated_report.txt
           if-no-file-found: error
 
     outputs:
@@ -66,10 +66,7 @@ jobs:
           path: atomdb_benchmark
 
       - name: Install requirements 
-        run: sudo apt -y update && sudo apt -y install zip miller
-
-      - name: Zip benchmark report
-        run: zip -r benchmark-report.zip atomdb_benchmark
+        run: sudo apt -y update && sudo apt -y install miller
 
       - name: Create mattermost message
         run: bash .github/scripts/mattermost-benchmark-report.sh
@@ -80,4 +77,4 @@ jobs:
           server-url: ${{ vars.MATTERMOST_SERVER_URL }}
           token: ${{ secrets.MATTERMOST_TOKEN }}
           channel-id: ${{ vars.MATTERMOST_CICD_CHANNEL_ID }}
-          attachments-path: ./benchmark-report.zip
+          attachments-path: ./atomdb_benchmark/consolidated_report.txt
