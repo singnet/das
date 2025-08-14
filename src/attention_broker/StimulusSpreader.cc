@@ -52,7 +52,9 @@ static bool collect_rent(HandleTrie::TrieNode* node, void* data) {
 
 static bool consolidate_rent_and_wages(HandleTrie::TrieNode* node, void* data) {
     HebbianNetwork::Node* value = (HebbianNetwork::Node*) node->value;
+#if LOG_LEVEL >= LOCAL_DEBUG_LEVEL
     ImportanceType original_importance = value->importance;
+#endif
 
     TokenSpreader::ImportanceChanges* changes =
         (TokenSpreader::ImportanceChanges*) ((DATA*) data)->importance_changes->lookup(node->suffix);
