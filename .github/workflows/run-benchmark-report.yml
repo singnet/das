@@ -11,7 +11,7 @@ on:
 
 jobs:
   benchmark:
-    runs-on: self-hosted
+    runs-on: self-hosted-withcache
     env:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       GITHUB_REPOSITORY: ${{ github.repository }}
@@ -50,7 +50,7 @@ jobs:
       benchmark_id: ${{ steps.run_benchmark.outputs.execution_id }}
 
   notify-mattermost:
-    runs-on: self-hosted
+    runs-on: self-hosted-withcache
     needs: benchmark
     env:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -8,7 +8,7 @@ declare -A TITLE_ALIAS_MAP=(
 )
 
 TITLE="AtomDB Benchmark Report - Single Thread, 100 iterations"
-BENCHMARK_DATABASE_PATH="/home/$USER/.cache/das/atomdb_benchmark.db"
+BENCHMARK_DATABASE_PATH="/home/$USER/.cache/das/benchmark.db"
 
 function get_pr_info() {
   curl -s -H "Authorization: token $GITHUB_TOKEN" \
