@@ -63,8 +63,7 @@ class QueryEvolutionProcessor : public BusCommandProcessor {
                                      vector<std::pair<shared_ptr<QueryAnswer>, float>>& selected);
 
    private:
-    shared_ptr<PatternMatchingQueryProxy> issue_sampling_query(shared_ptr<QueryEvolutionProxy> proxy,
-                                                               bool attention_flag);
+    shared_ptr<PatternMatchingQueryProxy> issue_sampling_query(shared_ptr<QueryEvolutionProxy> proxy);
     shared_ptr<PatternMatchingQueryProxy> issue_correlation_query(shared_ptr<QueryEvolutionProxy> proxy,
                                                                   vector<string> query_tokens);
     void correlate_similar(shared_ptr<QueryEvolutionProxy> proxy,
@@ -78,7 +77,7 @@ class QueryEvolutionProcessor : public BusCommandProcessor {
     mutex query_threads_mutex;
     shared_ptr<QueryEvolutionProxy> proxy;
     AtomSpace atom_space;
-    unsigned int count_generations;
+    unsigned int generation_count;
 };
 
 }  // namespace evolution
