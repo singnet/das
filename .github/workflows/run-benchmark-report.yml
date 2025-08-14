@@ -70,7 +70,7 @@ jobs:
         run: sudo apt -y update && sudo apt -y install miller
 
       - name: Create mattermost message
-        run: bash .github/scripts/mattermost-benchmark-report.sh
+        run: bash .github/scripts/mattermost-benchmark-report.sh "${{ needs.benchmark.outputs.benchmark_id }}"
 
       - name: Notify Mattermost
         uses: singnet/integration-github-mattermost@v0.3.0
