@@ -42,7 +42,7 @@ docker run --rm \
   --volume $LOCAL_WORKDIR:$CONTAINER_WORKDIR \
   --workdir $CONTAINER_WORKSPACE_DIR \
   ${IMAGE_NAME} \
-  ./scripts/bazel_build.sh
+  ./scripts/bazel_build.sh "$@"
 
 sleep 1
 

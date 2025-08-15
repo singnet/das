@@ -15,12 +15,58 @@
 
 #include "query_agent_runner.h"
 
+void PatternMatchingQuery::minimal_query(string log_file) {
+    vector<double> operation_time_minimal_query_client_side;
+
+    for (int i = 0; i < iterations_; ++i) {
+        // ----- No warm-up -----
+        // ----- benchmark code -----
+
+        vector<string> q1 = {
+            "LINK_TEMPLATE", "Expression", "2", "NODE", "Symbol", "Sentence", "VARIABLE", "S"};
+
+        operation_time_minimal_query_client_side.push_back(measure_execution_time([&]() {
+            auto proxy = atom_space_->pattern_matching_query(
+                q1, IGNORE_ANSWER_COUNT, "", false, true, false, false, false);
+            int count = 0;
+            while (!proxy->finished()) {
+                if (proxy->pop() == NULL) {
+                    Utils::sleep();
+                } else {
+                    if (count++ > 1000) {
+                        break;
+                    }
+                }
+            }
+        }));
+    }
+
+    double total_time = accumulate(operation_time_minimal_query_client_side.begin(),
+                                   operation_time_minimal_query_client_side.end(),
+                                   0.0);
+    double avg_time = total_time / iterations_;
+    double ops_per_sec = iterations_ / (total_time / 1000.0);
+    global_metrics["minimal_query_client_side"] =
+        Metrics{operation_time_minimal_query_client_side, total_time, avg_time, ops_per_sec};
+
+    vector<double> operation_time_minimal_query_server_side =
+        parse_server_side_benchmark_times(log_file);
+
+    double total_time2 = accumulate(operation_time_minimal_query_server_side.begin(),
+                                    operation_time_minimal_query_server_side.end(),
+                                    0.0);
+    double avg_time2 = total_time2 / iterations_;
+    double ops_per_sec2 = iterations_ / (total_time2 / 1000.0);
+    global_metrics["minimal_query_server_side"] =
+        Metrics{operation_time_minimal_query_server_side, total_time2, avg_time2, ops_per_sec2};
+}
+
 void PatternMatchingQuery::positive_importance() {
     vector<double> operation_time_positive_importance_false;
     vector<double> operation_time_positive_importance_true;
 
     for (int i = 0; i < iterations_; ++i) {
-        // ----- setup code -----
+        // ----- warm-up -----
 
         vector<string> q1 = {
             "LINK_TEMPLATE", "Expression", "2", "NODE", "Symbol", "Word", "VARIABLE", "W"};
@@ -114,4 +160,33 @@ void PatternMatchingQuery::positive_importance() {
     global_mutex.lock();
     global_metrics["positive_importance_true_client_side"] = Metrics{operation_time_positive_importance_true, total_time1, avg_time1, ops_per_sec1};
     global_mutex.unlock();
+}
+
+void PatternMatchingQuery::complex_query() {
+    // ----- benchmark code -----
+
+    // clang-format off
+    vector<string> q1 = {
+        "LINK_TEMPLATE", "Expression", "3",
+            "NODE", "Symbol", "Contains",
+            "VARIABLE", "S",
+            "AND", "2",
+                "LINK", "Expression", "2",
+                    "NODE", "Symbol", "Word",
+                    "NODE", "Symbol", R"("uom")",
+                "LINK", "Expression", "2",
+                    "NODE", "Symbol", "Word",
+                    "NODE", "Symbol", R"("zwl")"
+    };
+    // clang-format on
+
+    auto proxy = atom_space_->pattern_matching_query(q1);
+}
+
+void PatternMatchingQuery::update_attention_broker() {
+    // WIP
+}
+
+void PatternMatchingQuery::link_template_cache() {
+    // WIP
 }
