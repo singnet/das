@@ -521,7 +521,19 @@ def main():
     parser.add_argument("--scenario", required=True, help="Test scenario data string.")
     parser.add_argument("--type", required=True, help="Benchmark type (e.g., 'atomdb').")
     parser.add_argument(
-        "--output-dir", required=False, default=".", help="Directory to save database file."
+        "--db-path",
+        required=False,
+        default="./benchmark.db",
+        help="Path where the benchmark database will be saved.",
+    )
+    parser.add_argument(
+        "--output-file",
+        required=False,
+        default=None,
+        help="Path to save the consolidated report (if not specified, no report will be generated)",
+    )
+    parser.add_argument(
+        "--header-text", required=False, default="", help="Header text for the report."
     )
     args = parser.parse_args()
 
@@ -532,12 +544,19 @@ def main():
         print("No valid benchmark data found. Exiting.")
         return
 
+    if args.output_file:
+        # Write consolidated results to a report file
+        with open(args.output_file, "w") as report_file:
+            FileManager.write_report(results, report_file, header_text=args.header_text)
+
+        print(f"Consolidated report saved to: {args.output_file}")
+
     # Prepare database and scenario data
-    base_dir = os.path.abspath(args.output_dir)
-    if not os.path.exists(base_dir):
-        print(f"Creating output directory: {base_dir}")
-        os.makedirs(base_dir)
-    db_name = f"{base_dir}/{args.type}_benchmark.db"
+    db_name = os.path.abspath(args.db_path)
+    dir_name = os.path.dirname(db_name)
+    if not os.path.exists(dir_name):
+        print(f"Creating output directory: {dir_name}")
+        os.makedirs(dir_name, exist_ok=True)
     print(f"Using database: {db_name}")
     db = DatabaseManager(db_name)
     db.create_tables()

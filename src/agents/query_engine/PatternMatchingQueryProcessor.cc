@@ -90,48 +90,56 @@ void PatternMatchingQueryProcessor::update_attention_broker_single_answer(
         // Updates joint answer (stimulation)
         joint_answer.insert(handle);
         // Gets targets and stack them
-        shared_ptr<atomdb_api_types::HandleList> query_result = this->atomdb->query_for_targets(handle);
-        if (query_result != NULL) {  // if handle is link
-            unsigned int query_result_size = query_result->size();
-            for (unsigned int i = 0; i < query_result_size; i++) {
-                execution_stack.push(string(query_result->get_handle(i)));
-            }
-        } else {
+        // ------------- Targets are disabled
+        // shared_ptr<atomdb_api_types::HandleList> query_result =
+        // this->atomdb->query_for_targets(handle); if (query_result != NULL) {  // if handle is link
+        //    unsigned int query_result_size = query_result->size();
+        //    for (unsigned int i = 0; i < query_result_size; i++) {
+        //        execution_stack.push(string(query_result->get_handle(i)));
+        //    }
+        //}
+        // -------------
+    }
+    if (single_answer.size() > 1) {
+        auto stub = dasproto::AttentionBroker::NewStub(
+            grpc::CreateChannel(ATTENTION_BROKER_ADDRESS, grpc::InsecureChannelCredentials()));
+
+        dasproto::HandleList handle_list;  // GRPC command parameter
+        dasproto::Ack ack;                 // GRPC command return
+        handle_list.set_context(proxy->get_context());
+        for (auto handle : single_answer) {
+            handle_list.add_list(handle);
         }
-    }
-
-    auto stub = dasproto::AttentionBroker::NewStub(
-        grpc::CreateChannel(ATTENTION_BROKER_ADDRESS, grpc::InsecureChannelCredentials()));
-
-    dasproto::HandleList handle_list;  // GRPC command parameter
-    dasproto::Ack ack;                 // GRPC command return
-    handle_list.set_context(proxy->get_context());
-    for (auto handle : single_answer) {
-        handle_list.add_list(handle);
-    }
-    LOG_DEBUG("Calling AttentionBroker GRPC. Correlating " << single_answer.size() << " handles");
-    stub->correlate(new grpc::ClientContext(), handle_list, &ack);
-    if (ack.msg() != "CORRELATE") {
-        Utils::error("Failed GRPC command: AttentionBroker::correlate()");
+        LOG_DEBUG("Calling AttentionBroker GRPC. Correlating " << single_answer.size() << " handles");
+        stub->correlate(new grpc::ClientContext(), handle_list, &ack);
+        if (ack.msg() != "CORRELATE") {
+            Utils::error("Failed GRPC command: AttentionBroker::correlate()");
+        }
+    } else {
+        LOG_DEBUG("Too few handles (" + std::to_string(single_answer.size()) + ") to stimulate");
     }
 }
 
 void PatternMatchingQueryProcessor::update_attention_broker_joint_answer(
     shared_ptr<PatternMatchingQueryProxy> proxy, set<string>& joint_answer) {
-    auto stub = dasproto::AttentionBroker::NewStub(
-        grpc::CreateChannel(ATTENTION_BROKER_ADDRESS, grpc::InsecureChannelCredentials()));
+    if (joint_answer.size() > 0) {
+        auto stub = dasproto::AttentionBroker::NewStub(
+            grpc::CreateChannel(ATTENTION_BROKER_ADDRESS, grpc::InsecureChannelCredentials()));
 
-    dasproto::HandleCount handle_count;  // GRPC command parameter
-    dasproto::Ack ack;                   // GRPC command return
-    handle_count.set_context(proxy->get_context());
-    for (auto handle : joint_answer) {
-        (*handle_count.mutable_map())[handle] = 1;
-    }
-    (*handle_count.mutable_map())["SUM"] = joint_answer.size();
-    LOG_DEBUG("Calling AttentionBroker GRPC. Stimulating " << joint_answer.size() << " handles");
-    stub->stimulate(new grpc::ClientContext(), handle_count, &ack);
-    if (ack.msg() != "STIMULATE") {
-        Utils::error("Failed GRPC command: AttentionBroker::stimulate()");
+        dasproto::HandleCount handle_count;  // GRPC command parameter
+        dasproto::Ack ack;                   // GRPC command return
+        handle_count.set_context(proxy->get_context());
+        for (auto handle : joint_answer) {
+            (*handle_count.mutable_map())[handle] = 1;
+        }
+        (*handle_count.mutable_map())["SUM"] = joint_answer.size();
+        LOG_DEBUG("Calling AttentionBroker GRPC. Stimulating " << joint_answer.size() << " handles");
+        stub->stimulate(new grpc::ClientContext(), handle_count, &ack);
+        if (ack.msg() != "STIMULATE") {
+            Utils::error("Failed GRPC command: AttentionBroker::stimulate()");
+        }
+    } else {
+        LOG_DEBUG("No handles to stimulate");
     }
 }
 
