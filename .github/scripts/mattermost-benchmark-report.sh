@@ -74,8 +74,8 @@ function build_table_for_prefix() {
   echo "$benchmark_result" \
     | jq --arg prefix "$prefix" '[.[] | select(.backend == $prefix)]' \
     | mlr --ijson --ocsv \
-      cut -f median_operation_time_ms,time_per_atom_ms,throughput \
-      then rename median_operation_time_ms,Median,time_per_atom_ms,"Time Per Atom",throughput,Throughput \
+      cut -f operation,median_operation_time_ms,time_per_atom_ms,throughput \
+      then rename operation,Operation,median_operation_time_ms,Median,time_per_atom_ms,"Time Per Atom",throughput,Throughput \
     | mlr --icsv --omd cat
 }
 
