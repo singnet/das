@@ -71,10 +71,13 @@ function build_table_for_prefix() {
   title=$(format_title "$prefix")
   echo $'\n\n'"### $title"$'\n'
 
-  echo "$benchmark_result" | jq --arg prefix "$prefix" '[.[] | select(.backend == $prefix)]' | \
-    mlr --ijson --opprint --barred \
-    cut -f median_operation_time_ms,time_per_atom_ms,throughput \
-    then rename median_operation_time_ms,Median,time_per_atom_ms,"Time Per Atom",throughput,Throughput
+  echo "$benchmark_result" \
+    | jq --arg prefix "$prefix" '[.[] | select(.backend == $prefix)]' \
+    | mlr --ijson --ocsv \
+      cut -f median_operation_time_ms,time_per_atom_ms,throughput \
+      then rename median_operation_time_ms,median,time_per_atom_ms,"time per atom",throughput,throughput \
+    | mlr --icsv --omd cat
+
 
 }
 
