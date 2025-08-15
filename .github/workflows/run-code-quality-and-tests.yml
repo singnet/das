@@ -16,4 +16,4 @@ jobs:
     needs: format-check
     uses: ./.github/workflows/run-unit-tests.yml
     with:
-      runner: self-hosted
+      runner: self-hosted-withcache
