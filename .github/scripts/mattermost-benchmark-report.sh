@@ -117,8 +117,8 @@ function generate_message() {
 }
 
 function update_benchmark_execution() {
-  local benchmark_id = "$1"
-  local completed_at=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+  local benchmark_id="$1"
+  local completed_at="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
 
   local pr_info pr_url pr_title 
 
