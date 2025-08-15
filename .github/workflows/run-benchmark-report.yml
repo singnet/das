@@ -33,7 +33,7 @@ jobs:
       - name: Run benchmark
         id: run_benchmark
         run: |
-          OUTPUT=$(./src/scripts/run_benchmark.sh atomdb)
+          OUTPUT=$(./src/scripts/run_benchmark.sh atomdb --db small --rel tightly)
           echo "$OUTPUT"
 
           EXECUTION_ID=$(echo "$OUTPUT" | grep "New execution ID:" | awk '{print $4}')

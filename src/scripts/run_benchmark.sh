@@ -132,7 +132,7 @@ set_metta_file_params() {
         SENTENCES=100
         ;;
     small)
-        SENTENCES=100
+        SENTENCES=10000
         ;;
     medium)
         SENTENCES=1000000
@@ -296,7 +296,7 @@ run_benchmark() {
 
     mkdir -p "$report_base_directory"
 
-    ATOMDB_TYPES=("redismongodb" "mork")
+    ATOMDB_TYPES=("redismongodb" "morkdb")
 
     if [[ "$benchmark" == "query_agent" ]]; then
         for type in "${ATOMDB_TYPES[@]}"; do   
