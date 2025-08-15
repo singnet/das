@@ -49,7 +49,7 @@ void setup(bool cache_enable) {
 shared_ptr<AtomDB> factory_create_atomdb(string type) {
     if (type == "redismongodb") {
         return make_shared<RedisMongoDB>();
-    } else if (type == "mork") {
+    } else if (type == "morkdb") {
         return make_shared<MorkDB>();
     } else {
         Utils::error("Unknown AtomDB type: " + type);
