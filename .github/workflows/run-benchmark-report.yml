@@ -40,11 +40,16 @@ jobs:
 
           echo "execution_id=$EXECUTION_ID" >> $GITHUB_OUTPUT
 
+      - name: Prepare reports for upload
+        run: |
+          mkdir -p /tmp/reports
+          find /tmp/atomdb_benchmark -type f -name "*.txt" -exec cp {} /tmp/reports/ \;
+
       - name: Upload benchmark report artifact
         uses: actions/upload-artifact@v4
         with:
           name: benchmark-report
-          path: /tmp/atomdb_benchmark/**/consolidated_report.txt
+          path: /tmp/reports
           if-no-file-found: error
 
     outputs:
