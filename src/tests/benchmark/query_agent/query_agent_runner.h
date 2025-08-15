@@ -2,11 +2,13 @@
 
 #include <algorithm>
 #include <chrono>
+#include <fstream>
 #include <map>
 #include <memory>
 #include <mutex>
 #include <numeric>
 #include <random>
+#include <regex>
 #include <string>
 #include <vector>
 
@@ -28,6 +30,14 @@ using namespace atomspace;
 class QueryAgentRunner : public Runner {
    public:
     QueryAgentRunner(int tid, shared_ptr<AtomSpace> atom_space, int iterations);
+
+    /**
+     * @brief Parse server-side benchmark log file and extract timing values
+     *
+     * @param log_file Path to the log file
+     * @return Vector containing extracted timing values as doubles
+     */
+    vector<double> parse_server_side_benchmark_times(const string& log_file);
 
    protected:
     shared_ptr<AtomSpace> atom_space_;  // Shared pointer to the AtomSpace instance

@@ -132,7 +132,7 @@ set_metta_file_params() {
         SENTENCES=100
         ;;
     small)
-        SENTENCES=100
+        SENTENCES=10000
         ;;
     medium)
         SENTENCES=1000000
@@ -214,18 +214,18 @@ init_environment() {
     if [[ "$BENCHMARK" == "query_agent" ]]; then
         # das-cli query-agent stop > /dev/null
         # echo -e "3000:3100" | das-cli query-agent start
-        docker stop $(docker ps -q --filter "name=^das-query_broker-")
+        if [[ $(docker ps -q --filter "name=^das-query_broker-") ]]; then
+            docker stop $(docker ps -q --filter "name=^das-query_broker-")
+        fi
+        ./src/scripts/build.sh --copt=-DLOG_LEVEL=DEBUG_LEVEL
+        # ./src/scripts/run.sh query_broker 35700 3000:3100 | stdbuf -oL grep "Benchmark::" > "./log.txt" || true &
         ./src/scripts/run.sh query_broker 35700 3000:3100 | stdbuf -oL grep "Benchmark::" > "/tmp/${BENCHMARK}_benchmark/${TIMESTAMP}/log.txt" || true &
         echo -e "\r\033[K${GREEN}Query Agent initialization completed!${RESET}"
     fi
-    
-
-    echo "Query Broker started on port 35700"
 
     # MORK
-    mork_server_containers=$(docker ps -a --filter "name=das-mork-server" --format "{{.ID}}")
-    if [[ -n "$mork_server_containers" ]]; then
-        docker rm -f $mork_server_containers > /dev/null 2>&1
+    if [[ $(docker ps -q --filter "name=^das-mork-server-") ]]; then
+        docker rm -f $(docker ps -q --filter "name=^das-mork-server-")
     fi
     ./src/scripts/docker_image_build_mork.sh > /dev/null  2> >(grep -v '^+')
     ./src/scripts/mork_server.sh > /dev/null 2>&1 &  
@@ -296,15 +296,15 @@ run_benchmark() {
 
     mkdir -p "$report_base_directory"
 
-    ATOMDB_TYPES=("redismongodb" "mork")
+    ATOMDB_TYPES=("redismongodb")
 
     if [[ "$benchmark" == "query_agent" ]]; then
         for type in "${ATOMDB_TYPES[@]}"; do   
             for action in "${ACTIONS[@]}"; do
                 echo -e "\n== Running benchmarks for Query Agent | Action: $action ==" 
-                init_environment
                 ./src/scripts/docker_image_build.sh  > /dev/null 2>&1
-                ./src/scripts/bazel.sh run //tests/benchmark/query_agent:query_agent_main -- "$report_base_directory" "$type" "$action" "$CACHE_ENABLED" "$ITERATIONS" 2> >(grep -v '^+')
+                init_environment
+                ./src/scripts/bazel.sh run //tests/benchmark/query_agent:query_agent_main --copt=-DLOG_LEVEL=DEBUG_LEVEL -- "$report_base_directory" "$type" "$action" "$CACHE_ENABLED" "$ITERATIONS" "/tmp/${BENCHMARK}_benchmark/${TIMESTAMP}/log.txt" 2> >(grep -v '^+')
             done
         done
     elif [[ "$benchmark" == "atomdb" ]]; then
@@ -321,9 +321,9 @@ run_benchmark() {
                 declare -n methods="$action"
                 for method in "${methods[@]}"; do
                     echo -e "\n== Running benchmarks for AtomDB: $type | Action: $action | Method: $method ==" 
-                    init_environment
                     ./src/scripts/docker_image_build.sh  > /dev/null 2>&1
-                    ./src/scripts/bazel.sh run //tests/benchmark/atomdb:atomdb_main -- "$type" "$action" "$method" "$CACHE_ENABLED" "$CONCURRENCY" "$ITERATIONS" "$TIMESTAMP" 2> >(grep -v '^+')
+                    init_environment
+                    ./src/scripts/bazel.sh run //tests/benchmark/atomdb:atomdb_main --copt=-DLOG_LEVEL=DEBUG_LEVEL -- "$type" "$action" "$method" "$CACHE_ENABLED" "$CONCURRENCY" "$ITERATIONS" "$TIMESTAMP" 2> >(grep -v '^+')
                 done
             done
         done

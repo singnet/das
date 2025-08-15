@@ -1,7 +1,9 @@
 #include "PatternMatchingQueryProcessor.h"
 // clang-format off
 
+#ifndef LOG_LEVEL
 #define LOG_LEVEL INFO_LEVEL
+#endif
 #include "Logger.h"
 
 #include <grpcpp/grpcpp.h>
@@ -164,6 +166,7 @@ void PatternMatchingQueryProcessor::process_query_answers(
 void PatternMatchingQueryProcessor::thread_process_one_query(
     shared_ptr<StoppableThread> monitor, shared_ptr<PatternMatchingQueryProxy> proxy) {
     STOP_WATCH_START(query_thread);
+    STOP_WATCH_START(benchmark_query_thread);
     try {
         proxy->untokenize(proxy->args);
         LOG_DEBUG("Setting up query tree");
@@ -224,6 +227,7 @@ void PatternMatchingQueryProcessor::thread_process_one_query(
     } catch (const std::exception& exception) {
         proxy->raise_error_on_peer(exception.what());
     }
+    STOP_WATCH_FINISH(benchmark_query_thread, "Benchmark::PatternMatchingQuery");
     LOG_DEBUG("Command finished: <" << proxy->get_command() << ">");
     // TODO add a call to remove_query_thread(monitor->get_id());
 }
