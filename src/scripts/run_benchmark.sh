@@ -192,6 +192,9 @@ generate_metta_file() {
 }
 
 init_environment() {
+    local type="$1"
+    local action="$2"
+
     # Redis and MongoDB
     DAS_REDIS_HOSTNAME="localhost"
     DAS_REDIS_PORT="29000"
@@ -219,7 +222,7 @@ init_environment() {
         fi
         ./src/scripts/build.sh --copt=-DLOG_LEVEL=DEBUG_LEVEL
         # ./src/scripts/run.sh query_broker 35700 3000:3100 | stdbuf -oL grep "Benchmark::" > "./log.txt" || true &
-        ./src/scripts/run.sh query_broker 35700 3000:3100 | stdbuf -oL grep "Benchmark::" > "/tmp/${BENCHMARK}_benchmark/${TIMESTAMP}/log.txt" || true &
+        ./src/scripts/run.sh query_broker 35700 3000:3100 | stdbuf -oL grep "Benchmark::" > "/tmp/${BENCHMARK}_benchmark/${TIMESTAMP}/${type}_${action}_log.txt" || true &
         echo -e "\r\033[K${GREEN}Query Agent initialization completed!${RESET}"
     fi
 
@@ -301,10 +304,10 @@ run_benchmark() {
     if [[ "$benchmark" == "query_agent" ]]; then
         for type in "${ATOMDB_TYPES[@]}"; do   
             for action in "${ACTIONS[@]}"; do
-                echo -e "\n== Running benchmarks for Query Agent | Action: $action ==" 
+                echo -e "\n== Running benchmarks for Query Agent: $type | Action: $action ==" 
                 ./src/scripts/docker_image_build.sh  > /dev/null 2>&1
-                init_environment
-                ./src/scripts/bazel.sh run //tests/benchmark/query_agent:query_agent_main --copt=-DLOG_LEVEL=DEBUG_LEVEL -- "$report_base_directory" "$type" "$action" "$CACHE_ENABLED" "$ITERATIONS" "/tmp/${BENCHMARK}_benchmark/${TIMESTAMP}/log.txt" 2> >(grep -v '^+')
+                init_environment "$type" "$action"
+                ./src/scripts/bazel.sh run //tests/benchmark/query_agent:query_agent_main --copt=-DLOG_LEVEL=DEBUG_LEVEL -- "$report_base_directory" "$type" "$action" "$CACHE_ENABLED" "$ITERATIONS" "/tmp/${BENCHMARK}_benchmark/${TIMESTAMP}/${type}_${action}_log.txt" 2> >(grep -v '^+')
             done
         done
     elif [[ "$benchmark" == "atomdb" ]]; then

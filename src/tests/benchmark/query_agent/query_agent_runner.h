@@ -41,4 +41,7 @@ class QueryAgentRunner : public Runner {
 
    protected:
     shared_ptr<AtomSpace> atom_space_;  // Shared pointer to the AtomSpace instance
+
+   private:
+    static const regex BENCHMARK_PATTERN;
 };

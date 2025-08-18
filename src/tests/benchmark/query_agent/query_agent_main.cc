@@ -48,7 +48,7 @@ void setup(bool cache_enable, string atomdb_type) {
     setenv("DAS_DISABLE_ATOMDB_CACHE", cache_enable ? "false" : "true", 1);
     if (atomdb_type == "redismongodb") {
         AtomDBSingleton::init(atomdb_api_types::ATOMDB_TYPE::REDIS_MONGODB);
-    } else if (atomdb_type == "mork") {
+    } else if (atomdb_type == "morkdb") {
         AtomDBSingleton::init(atomdb_api_types::ATOMDB_TYPE::MORKDB);
     }
     string client_id = "0.0.0.0:9000";
@@ -80,6 +80,8 @@ int main(int argc, char** argv) {
         benchmark.minimal_query(log_file);
     } else if (action == "PositiveImportance") {
         benchmark.positive_importance();
+    } else if (action == "ComplexQuery") {
+        benchmark.complex_query(log_file);
     } else {
         Utils::error("...");
     }

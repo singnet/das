@@ -1,5 +1,8 @@
 #include "query_agent_runner.h"
 
+const regex QueryAgentRunner::BENCHMARK_PATTERN(
+    ".*STOP_WATCH \"Benchmark::PatternMatchingQuery\" (\\d+).*");
+
 QueryAgentRunner::QueryAgentRunner(int tid, shared_ptr<AtomSpace> atom_space, int iterations)
     : Runner(tid, iterations), atom_space_(atom_space) {}
 
@@ -10,7 +13,7 @@ vector<double> QueryAgentRunner::parse_server_side_benchmark_times(const string&
     ifstream check_file(log_file);
     if (!check_file.good()) {
         cerr << "ERROR: File not found or cannot be opened: " << log_file << endl;
-        return result;  // Return empty vector
+        return result;
     }
     check_file.close();
 
@@ -18,14 +21,12 @@ vector<double> QueryAgentRunner::parse_server_side_benchmark_times(const string&
     ifstream file(log_file);
     if (file.is_open()) {
         string line;
-        regex pattern(".*STOP_WATCH \"Benchmark::PatternMatchingQuery\" (\\d+).*");
         smatch matches;
 
         while (getline(file, line)) {
             // Quick pre-check to avoid regex on every line
-            if (line.find("STOP_WATCH") != string::npos &&
-                line.find("Benchmark::PatternMatchingQuery") != string::npos) {
-                if (regex_search(line, matches, pattern)) {
+            if (line.find("Benchmark::PatternMatchingQuery") != string::npos) {
+                if (regex_search(line, matches, BENCHMARK_PATTERN)) {
                     try {
                         double value = stod(matches[1].str());
                         result.push_back(value);
