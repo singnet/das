@@ -66,17 +66,37 @@ function build_metadata_section() {
 function build_table_for_prefix() {
   local benchmark_result="$1"
   local prefix="$2"
-  local title 
+  local window="${3:-10}"
+  local threshold="${4:-10}"
+  local title
 
   title=$(format_title "$prefix")
   echo $'\n\n'"### $title"$'\n'
 
   echo "$benchmark_result" \
     | jq --arg prefix "$prefix" '[.[] | select(.backend == $prefix)]' \
-    | mlr --ijson --ocsv \
-      cut -f operation,median_operation_time_ms,time_per_atom_ms,throughput \
-      then rename operation,Operation,median_operation_time_ms,Median,time_per_atom_ms,"Time Per Atom",throughput,Throughput \
-    | mlr --icsv --omd cat
+    | jq -c '.[]' | while read -r row; do
+        op=$(echo "$row" | jq -r '.operation')
+        median=$(echo "$row" | jq -r '.median_operation_time_ms')
+        throughput=$(echo "$row" | jq -r '.throughput')
+
+        history=$(get_history_for_operation "$op" "$prefix" "$window")
+
+        hist_median_avg=$(echo "$history" | awk '{sum+=$1} END {if(NR>0) print sum/NR; else print 0}')
+        hist_throughput_avg=$(echo "$history" | awk '{sum+=$2} END {if(NR>0) print sum/NR; else print 0}')
+
+        if [ "$hist_median_avg" != "0" ] && (( $(echo "$median > $hist_median_avg * (1 + $threshold/100)" | bc -l) )); then
+            median=":red_circle: $median"
+        fi
+
+        if [ "$hist_throughput_avg" != "0" ] && (( $(echo "$throughput < $hist_throughput_avg * (1 - $threshold/100)" | bc -l) )); then
+            throughput="**:red_circle: $throughput**"
+        fi
+
+        echo "$op,$median,$throughput"
+    done \
+    | mlr --ocsv cat \
+    | mlr --icsv --omd rename 1,Operation,2,Median,3,Throughput
 }
 
 function get_benchmark_result_by_id() {
@@ -105,6 +125,21 @@ function get_benchmark_result_by_id() {
   AS results
   FROM benchmark_result
   WHERE benchmark_execution_id = $benchmark_id;" | head -n 1
+}
+
+function get_history_for_operation() {
+  local operation="$1"
+  local backend="$2"
+  local limit="${3:-10}"
+
+  sqlite3 $BENCHMARK_DATABASE_PATH "SELECT
+    median_operation_time_ms,
+    throughput
+  FROM benchmark_result
+  WHERE backend = '$backend'
+    AND operation = '$operation'
+  ORDER BY id DESC
+  LIMIT $limit;"
 }
 
 function generate_message() {
