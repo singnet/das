@@ -54,8 +54,8 @@ run-inference-agent:
 run-inference-agent-client:
 	@bash -x src/scripts/run.sh inference_agent_client $(OPTIONS)
 
-run-das-agent:
-	@bash ./src/scripts/bazel.sh run //das_agent:main -- $(OPTIONS)
+run-inference-toy-problem:
+	@bash ./src/scripts/setup_inference_toy_problem.sh $(filter-out $@, $(MAKECMDGOALS))
 
 run-mork-server:
 	@bash -x src/scripts/mork_server.sh
