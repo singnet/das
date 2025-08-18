@@ -67,8 +67,6 @@ void PatternMatchingQuery::positive_importance() {
     vector<double> operation_time_positive_importance_true;
 
     for (int i = 0; i < iterations_; ++i) {
-        // ----- warm-up -----
-
         vector<string> q1 = {
             "LINK_TEMPLATE", "Expression", "2", "NODE", "Symbol", "Word", "VARIABLE", "W"};
 
