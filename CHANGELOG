@@ -1,17 +1,22 @@
 [#386] Limits answer bundle size in query command processor
+[#418] Implement remote error handling across peers in the ServiceBus
 [#421] Use an optional proxy parameter to filter QueryAnswers with zeroed importance
 [#433] Build a dynamic lib with all the libs from all the packages and add it to lib/das.os
-[#418] Implement remote error handling across peers in the ServiceBus
+[#435] Build debian package with all DAS libraries and static dependencies
+[#499] Allow ATOM elements in query tokens allowing the use of handles as LINK targets
+[#499] Implemented Evolution agent to process QUERY_EVOLUTION commands in the service bus
+[#499] Refactor proxy classes to use commons:Properties
 [#505] Add a strength value to QueryAnswer
 [#511] Create a Properties class in commons by moving and renaming CustomAttributesMap from AtomDB package
-[#499] Refactor proxy classes to use commons:Properties
 [#521] Creates atom classes in common and refactors query elements to use them
-[#499] Allow ATOM elements in query tokens allowing the use of handles as LINK targets
 [#524] Using MongoDB split collections (nodes and links)
-[#499] Implemented Evolution agent to process QUERY_EVOLUTION commands in the service bus
-[#568] Added simple profiling primitives in Logger
 [#544] Add benchmark tests for AtomDB
+[#568] Added simple profiling primitives in Logger
 [#581] Implementation of remote fitness evaluation in Query Evolution
+[#582] [HE client] Add support for query evolution commands
 [#589] Added optional parameter in PM queries to adda a mapping handle-->metta in QAs delivered to caller
-[#649] Implemented a lexer and a parser for metta input
+[#608] Support for user-defined fitness functions in the Inference Agent
+[#612] Use LinkSchema that matches all when there is no pattern_index_schema
+[#622] Include PR link in automatic benchmark report (pos PR merge)
 [#649] Add an optioonal PM query parameter to use MeTTa instead of LT tokens
+[#649] Implemented a lexer and a parser for metta input
