@@ -6,7 +6,7 @@ on:
 
 jobs:
   format-check:
-    runs-on: self-hosted
+    runs-on: self-hosted-withcache
     steps:
       - name: Checkout
         uses: actions/checkout@v4

@@ -298,7 +298,7 @@ void DeleteAtom::delete_node(string type) {
         [&](int i) -> string {
             auto link_schema = LinkSchema(Runner::sentence_links_query);
             shared_ptr<atomdb_api_types::HandleSet> handle_set;
-            if (type == "mork") {
+            if (type == "morkdb") {
                 handle_set = dynamic_pointer_cast<MorkDB>(db_)->query_for_pattern_base(link_schema);
             } else {
                 handle_set = db_->query_for_pattern(link_schema);
@@ -316,7 +316,7 @@ void DeleteAtom::delete_link(string type) {
         [&](int i) -> string {
             auto link_schema = LinkSchema(Runner::contains_links_query);
             shared_ptr<atomdb_api_types::HandleSet> handle_set;
-            if (type == "mork") {
+            if (type == "morkdb") {
                 handle_set = dynamic_pointer_cast<MorkDB>(db_)->query_for_pattern_base(link_schema);
             } else {
                 handle_set = db_->query_for_pattern(link_schema);
@@ -332,7 +332,7 @@ void DeleteAtom::delete_atom_node(string type) {
         [&](int i) -> string {
             auto link_schema = LinkSchema(Runner::sentence_links_query);
             shared_ptr<atomdb_api_types::HandleSet> handle_set;
-            if (type == "mork") {
+            if (type == "morkdb") {
                 handle_set = dynamic_pointer_cast<MorkDB>(db_)->query_for_pattern_base(link_schema);
             } else {
                 handle_set = db_->query_for_pattern(link_schema);
@@ -350,7 +350,7 @@ void DeleteAtom::delete_atom_link(string type) {
         [&](int i) -> string {
             auto link_schema = LinkSchema(Runner::contains_links_query);
             shared_ptr<atomdb_api_types::HandleSet> handle_set;
-            if (type == "mork") {
+            if (type == "morkdb") {
                 handle_set = dynamic_pointer_cast<MorkDB>(db_)->query_for_pattern_base(link_schema);
             } else {
                 handle_set = db_->query_for_pattern(link_schema);
@@ -367,7 +367,7 @@ void DeleteAtoms::delete_nodes(string type) {
         [&](int i) -> vector<string> {
             auto link_schema = LinkSchema(Runner::sentence_links_query);
             shared_ptr<atomdb_api_types::HandleSet> handle_set;
-            if (type == "mork") {
+            if (type == "morkdb") {
                 handle_set = dynamic_pointer_cast<MorkDB>(db_)->query_for_pattern_base(link_schema);
             } else {
                 handle_set = db_->query_for_pattern(link_schema);
@@ -393,7 +393,7 @@ void DeleteAtoms::delete_links(string type) {
         [&](int i) -> vector<string> {
             auto link_schema = LinkSchema(Runner::contains_links_query);
             shared_ptr<atomdb_api_types::HandleSet> handle_set;
-            if (type == "mork") {
+            if (type == "morkdb") {
                 handle_set = dynamic_pointer_cast<MorkDB>(db_)->query_for_pattern_base(link_schema);
             } else {
                 handle_set = db_->query_for_pattern(link_schema);
@@ -410,7 +410,7 @@ void DeleteAtoms::delete_atoms_node(string type) {
         [&](int i) -> vector<string> {
             auto link_schema = LinkSchema(Runner::sentence_links_query);
             shared_ptr<atomdb_api_types::HandleSet> handle_set;
-            if (type == "mork") {
+            if (type == "morkdb") {
                 handle_set = dynamic_pointer_cast<MorkDB>(db_)->query_for_pattern_base(link_schema);
             } else {
                 handle_set = db_->query_for_pattern(link_schema);
@@ -436,7 +436,7 @@ void DeleteAtoms::delete_atoms_link(string type) {
         [&](int i) -> vector<string> {
             auto link_schema = LinkSchema(Runner::contains_links_query);
             shared_ptr<atomdb_api_types::HandleSet> handle_set;
-            if (type == "mork") {
+            if (type == "morkdb") {
                 handle_set = dynamic_pointer_cast<MorkDB>(db_)->query_for_pattern_base(link_schema);
             } else {
                 handle_set = db_->query_for_pattern(link_schema);
