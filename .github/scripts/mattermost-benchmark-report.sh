@@ -79,24 +79,30 @@ function build_table_for_prefix() {
         op=$(echo "$row" | jq -r '.operation')
         median=$(echo "$row" | jq -r '.median_operation_time_ms')
         throughput=$(echo "$row" | jq -r '.throughput')
+        tpa=$(echo "$row" | jq -r '.time_per_atom_ms')
 
         history=$(get_history_for_operation "$op" "$prefix" "$window")
 
         hist_median_avg=$(echo "$history" | awk '{sum+=$1} END {if(NR>0) print sum/NR; else print 0}')
+        hist_tpa_avg=$(echo "$history" | awk '{sum+=$2} END {if(NR>0) print sum/NR; else print 0}')
         hist_throughput_avg=$(echo "$history" | awk '{sum+=$2} END {if(NR>0) print sum/NR; else print 0}')
 
         if [ "$hist_median_avg" != "0" ] && (( $(echo "$median > $hist_median_avg * (1 + $threshold/100)" | bc -l) )); then
-            median=":red_circle: $median"
+          median=":red_circle: $median"
+        fi
+
+        if [ "$hist_tpa_avg" != "0" ] && (( $(echo "$tpa > $hist_tpa_avg * (1 + $threshold/100)" | bc -l) )); then
+          tpa=":red_circle: $tpa"
         fi
 
         if [ "$hist_throughput_avg" != "0" ] && (( $(echo "$throughput < $hist_throughput_avg * (1 - $threshold/100)" | bc -l) )); then
-            throughput="**:red_circle: $throughput**"
+          throughput=":red_circle: $throughput"
         fi
 
-        echo "$op,$median,$throughput"
+        echo "$op,$median,$tpa,$throughput"
     done \
     | mlr --ocsv cat \
-    | mlr --icsv --omd rename 1,Operation,2,Median,3,Throughput
+    | mlr --icsv --omd rename 1,Operation,2,Median,3,"Time Per Atom",4,Throughput
 }
 
 function get_benchmark_result_by_id() {
