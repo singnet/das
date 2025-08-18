@@ -2,7 +2,7 @@ use std::sync::{Arc, Mutex};
 
 use crate::{
 	base_proxy_query::{BaseQueryProxy, BaseQueryProxyT},
-	bus::PATTERN_MATCHING_QUERY,
+	bus::PATTERN_MATCHING_QUERY_CMD,
 	types::BoxError,
 	QueryParams,
 };
@@ -14,7 +14,7 @@ pub struct PatternMatchingQueryProxy {
 
 impl PatternMatchingQueryProxy {
 	pub fn new(params: &QueryParams) -> Result<Self, BoxError> {
-		let mut base = BaseQueryProxy::new(PATTERN_MATCHING_QUERY.to_string(), params.clone())?;
+		let mut base = BaseQueryProxy::new(PATTERN_MATCHING_QUERY_CMD.to_string(), params.clone())?;
 
 		let mut args = vec![];
 		args.extend(base.properties.to_vec());

@@ -8,7 +8,9 @@ use hyperon_common::FlexRef;
 use hyperon_space::{Space, SpaceCommon, SpaceMut, SpaceVisitor};
 use log;
 
-use crate::{init_service_bus, query_with_das, service_bus::ServiceBus, types::MeTTaRunner};
+use crate::{
+	init_service_bus, query_with_das, service_bus::ServiceBus, types::MeTTaRunner, QueryType,
+};
 
 #[derive(Clone)]
 pub struct DistributedAtomSpace {
@@ -36,13 +38,18 @@ impl DistributedAtomSpace {
 	}
 
 	pub fn query(&self, query: &Atom) -> BindingsSet {
-		query_with_das(
+		match query_with_das(
 			self.name.clone(),
 			self.service_bus.clone(),
-			query,
+			&QueryType::Atom(query.clone()),
 			Some(self.metta_runner.clone()),
-		)
-		.unwrap()
+		) {
+			Ok(bindings) => bindings,
+			Err(e) => {
+				log::error!(target: "das", "Error querying with DAS: {e}");
+				BindingsSet::empty()
+			},
+		}
 	}
 
 	pub fn add(&mut self, _atom: Atom) {

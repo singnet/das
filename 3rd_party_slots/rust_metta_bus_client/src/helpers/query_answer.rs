@@ -126,9 +126,8 @@ pub fn parse_query_answer(query_answer_str: &str, populate_metta_mapping: bool) 
 	for (key, value) in query_answer.assignment.iter() {
 		if populate_metta_mapping {
 			if let Some(metta_expression) = query_answer.metta_expression.get(value) {
-				bindings = bindings
-					.add_var_binding(VariableAtom::new(key), Atom::sym(metta_expression.clone()))
-					.unwrap();
+				let atom_value = Atom::sym(metta_expression.trim().to_string());
+				bindings = bindings.add_var_binding(VariableAtom::new(key), atom_value).unwrap();
 			}
 		} else {
 			bindings =

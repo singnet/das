@@ -1,7 +1,9 @@
 use std::collections::HashMap;
 
-pub static PATTERN_MATCHING_QUERY: &str = "pattern_matching_query";
-pub static QUERY_EVOLUTION: &str = "query_evolution";
+pub static PATTERN_MATCHING_QUERY_CMD: &str = "pattern_matching_query";
+pub static QUERY_EVOLUTION_CMD: &str = "query_evolution";
+pub static LINK_CREATION_CMD: &str = "link_creation";
+pub static INFERENCE_CMD: &str = "inference";
 
 #[derive(Debug, Default, Clone)]
 pub struct Bus {
