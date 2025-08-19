@@ -142,12 +142,22 @@ schema_name.table_name -[columns_to_exclude] <CLAUSE_1> <CLAUSE_2> ...
 - Each `<CLAUSE>`: A SQL WHERE clause (without `WHERE` keyword).
 - Clauses are combined with `AND` operator.
 
+**Note:** If you don't want to exclude any columns, you must pass `-[]`.
+
 **Example:**
 ```txt
 public.feature -[residues,md5checksum] <name IN ('Abd-B', 'Var')> <is_obsolete=false>
 ```
 
 This extracts all rows from `public.feature` where `name` is `'Abd-B'` or `'Var'` and `is_obsolete` is `false`, while skipping the `residues` and `md5checksum` columns.
+
+
+**Example (without exclusions):**
+```txt
+public.feature -[] <name IN ('Abd-B', 'Var')> <is_obsolete=false>
+```
+
+This extracts all rows from `public.feature` where `name` is `'Abd-B'` or `'Var'` and `is_obsolete` is `false`.
 
 #### **Structure 2: Subquery Table (Unstable)**
 
