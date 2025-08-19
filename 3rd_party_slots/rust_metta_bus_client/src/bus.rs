@@ -29,6 +29,7 @@ impl Bus {
 		if !self.command_owner.contains_key(&command) {
 			panic!("Bus: command <{command}> is not defined");
 		} else if self.command_owner[&command].is_empty() {
+			log::trace!(target: "das", "Bus::set_ownership(): Adding {command} to bus, owner: {node_id}");
 			self.command_owner.insert(command.to_string(), node_id.to_string());
 		} else if self.command_owner[&command] != node_id {
 			panic!(

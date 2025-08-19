@@ -79,7 +79,6 @@ impl BusNode {
 			}
 
 			for (command, owner) in proxy.service_list.iter() {
-				log::trace!(target: "das", "BusNode::join_network(): Adding {command} to bus, owner: {owner}");
 				self.bus.set_ownership(command.clone(), owner);
 			}
 
