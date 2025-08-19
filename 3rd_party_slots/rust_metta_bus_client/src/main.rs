@@ -7,7 +7,7 @@ use std::{
 use hyperon_atom::Atom;
 use metta_bus_client::{
 	extract_query_params, host_id_from_atom, pattern_matching_query,
-	service_bus_singleton::ServiceBusSingleton, types::BoxError,
+	service_bus_singleton::ServiceBusSingleton, types::BoxError, QueryType,
 };
 
 const MAX_QUERY_ANSWERS: u32 = 100;
@@ -72,7 +72,7 @@ fn main() -> Result<(), BoxError> {
 
 	let params = match extract_query_params(
 		Some(context.to_string()),
-		tokens,
+		&QueryType::String(tokens),
 		max_query_answers,
 		unique_assignment,
 		positive_importance,
