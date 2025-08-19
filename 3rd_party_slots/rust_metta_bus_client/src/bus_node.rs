@@ -61,8 +61,9 @@ impl BusNode {
 
 		let mut count = 0;
 		loop {
-			let proxy = proxy_arc.lock().unwrap();
 			sleep(Duration::from_millis(100));
+
+			let proxy = proxy_arc.lock().unwrap();
 
 			count += 1;
 			if count > 200 {
@@ -73,6 +74,7 @@ impl BusNode {
 					self.bus.command_owner.len(),
 					self.peer_id,
 				);
+				drop(proxy);
 				break;
 			}
 
@@ -82,6 +84,7 @@ impl BusNode {
 			}
 
 			if proxy.service_list.len() == self.bus.command_owner.len() {
+				drop(proxy);
 				break;
 			}
 			drop(proxy);
