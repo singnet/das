@@ -118,7 +118,8 @@ pub fn map_variables(atom_str: &str) -> HashSet<VariableAtom> {
 	let tokens = split_ignore_quoted(atom_str);
 	for (idx, token) in tokens.iter().enumerate() {
 		if token.starts_with("$") {
-			variables.insert(VariableAtom::parse_name(token).unwrap());
+			let var_name = token.replace("$", "").replace(")", "");
+			variables.insert(VariableAtom::parse_name(&var_name).unwrap());
 		} else if token == "VARIABLE" && idx + 1 < tokens.len() {
 			variables.insert(VariableAtom::new(&tokens[idx + 1]));
 		}
