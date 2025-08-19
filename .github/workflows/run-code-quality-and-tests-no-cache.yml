@@ -8,6 +8,16 @@ jobs:
   format-check:
     uses: ./.github/workflows/run-format-check.yaml
 
+  coverage-check:
+    needs: format-check
+    runs-on: self-hosted-nocache
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Test coverage check
+        run: make test-coverage-check
+
   unit-tests:
     needs: format-check
     uses: ./.github/workflows/run-unit-tests.yml
