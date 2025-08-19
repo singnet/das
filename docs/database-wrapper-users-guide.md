@@ -18,21 +18,24 @@ This guide will show you what DatabaseWrapper is, how it works, and walk you thr
     - [1. Clone the Repository](#1-clone-the-repository)
     - [2. Prepare Secrets and Context](#2-prepare-secrets-and-context)
     - [3. Build and Run](#3-build-and-run)
-    - [4. Check and Output](#4-check-and-output)
-  - [Step-by-Step Usage](#step-by-step-usage)
+    - [4. Reviewing the Generated Files](#4-reviewing-the-generated-files)
   - [Understanding the Context File](#understanding-the-context-file)
     - [Context Structures](#context-structures)
       - [**Structure 1: Table Filter (Recommended)**](#structure-1-table-filter-recommended)
-      - [**Structure 2: Subquery Table (Unstable)**](#structure-2-subquery-table-unstable)
-    - [Writing Your Own Context](#writing-your-own-context)
+      - [**Structure 2: Subquery Table (WIP)**](#structure-2-subquery-table-wip)
+    - [Writing Your Own Context File](#writing-your-own-context-file)
   - [Load the mapped data into the DAS](#load-the-mapped-data-into-the-das)
+    - [das-cli installation](#das-cli-installation)
+    - [Running the database container and loading data](#running-the-database-container-and-loading-data)
+      - [das-cli settings](#das-cli-settings)
+      - [To load the data into DAS](#to-load-the-data-into-das)
   - [Troubleshooting and Tips](#troubleshooting-and-tips)
 
 ---
 
 ## Introduction
 
-The DAS Database Adapter is a high-performance modular system designed to map data from SQL databases into Atoms (MeTTa expressions).
+The DAS Database Adapter is a modular system designed to map data from SQL databases into Atoms (MeTTa symbols and expressions).
 The primary workflow involves cloning the [repository](https://github.com/singnet/das-database-adapter), configuring a context file to define the data mapping, and running the adapter to generate `.metta` files.
 
 These `.metta` files can then be loaded into the Distributed AtomSpace (DAS) using the [`das-cli`](https://github.com/singnet/das-toolbox), the command-line tool for interacting with the DAS ecosystem.
@@ -44,7 +47,7 @@ These `.metta` files can then be loaded into the Distributed AtomSpace (DAS) usi
 Before you begin, ensure you have the following tools installed and running:
 
 - **Docker** Essential for building and running the adapter in a containerized environment.
-- **das-cli** The DAS command-line interface. While not used to *generate* MeTTa files with this adapter, it is **required for the next step**: loading the data into DAS. ([See das-toolbox](https://github.com/singnet/das-toolbox) for installation).
+- **das-cli** The DAS command-line interface. While not used to *generate* MeTTa files with this adapter, it is **required for the next step**: loading the data into DAS. ([See das-toolbox](https://github.com/singnet/das-toolbox) for installation guidelines).
 
 ---
 
@@ -63,17 +66,19 @@ cd das-database-adapter
 
 - **secrets.ini**: Use the provided example at. `./examples/secrets.ini`. It contains the database credentials:
 
-    ```ini
-    [postgres]
-    username=flybase
-    password=
-    ```
+  ```ini
+  [postgres]
+  username=flybase
+  password=
+  ```
 
 - **context.txt**: Use the provided example at `./examples/context.txt`. It defines what data to extract:
 
-    ```txt
-    public.feature -[residues,seqlen,md5checksum] <uniquename LIKE 'FBgn%'><is_obsolete=false>
-    ```
+  ```txt
+  public.feature -[residues,seqlen,md5checksum] <uniquename LIKE 'FBgn%'><is_obsolete=false>
+  ```
+
+  **NOTE :** The context files are better explained in the [Understanding the Context File](#understanding-the-context-file) section.
 
 ### 3. Build and Run
 
@@ -93,9 +98,11 @@ If everything is configured correctly, the adapter will connect to the remote da
 <img src="../docs/assets/mapping_output.png" width="400"/>
 </p>
 
-### 4. Check and Output
+**After these steps, you will have your Postgres database properly translated into MeTTa files.**
 
-After execution, several directories will be created, where each directory represents a table that was mapped according to the passed context and each directory will contain one or more `.metta` files. This files contains your SQL data translated into the MeTTa format. Each record in the table becomes a MeTTa expression, as shown in the [image](#databasewrapper---users-guide). See an example of a generated .metta file bellow:
+### 4. Reviewing the Generated Files
+
+After execution, several directories will be created, where each directory represents a table that was mapped according to the passed context and each directory will contain one or more `.metta` files. This files contains your SQL data translated into the MeTTa format. Each record in the table becomes a MeTTa expression, as shown in the [image](#databasewrapper---users-guide). See an example of a generated `.metta` file bellow:
 
 
 ```metta
@@ -110,16 +117,6 @@ After execution, several directories will be created, where each directory repre
 (EVALUATION (PREDICATE (public.feature public.feature.is_analysis "False")) (CONCEPT (public.feature "101601526")))
 (EVALUATION (PREDICATE (public.feature public.feature.is_analysis "False")) (CONCEPT (public.feature "101601527")))
 ```
----
-
-## Step-by-Step Usage
-
-The main workflow will always follow the Quickstart steps:
-
-1.  **Clone the Repository**: Get the adapter's code.
-2.  **Configure the Environment**: Ensure Docker is running.
-3.  **Prepare Files**: Create or edit your `secrets.ini` with your database credentials and your `context.txt` to define the data extraction.
-4.  **Build and Run**: Use `make build` and `make run` with the correct parameters for your database and files.
 
 ---
 
@@ -145,23 +142,22 @@ schema_name.table_name -[columns_to_exclude] <CLAUSE_1> <CLAUSE_2> ...
 **Note:** If you don't want to exclude any columns, you must pass `-[]`.
 
 **Example:**
+
 ```txt
-public.feature -[residues,md5checksum] <name IN ('Abd-B', 'Var')> <is_obsolete=false>
+public.feature -[residues,seqlen,md5checksum] <is_obsolete=false><uniquename LIKE 'FBgn%'>
+public.feature -[residues,seqlen,md5checksum] <is_obsolete=false><type_id IN (1179)>
+public.cvterm -[definition] <is_obsolete=0>
+public.feature_cvterm -[] <is_not=false><feature_id not IN ('11382573','11387545')>
 ```
 
-This extracts all rows from `public.feature` where `name` is `'Abd-B'` or `'Var'` and `is_obsolete` is `false`, while skipping the `residues` and `md5checksum` columns.
+This extracts:
+- All rows from `public.feature` where `uniquename` starts with `'FBgn'` and `is_obsolete` is `false` plus all the rows where `type_id` is `1179` and `is_obsolete` is `false`, while skipping the `residues`, `seqlen`, and `md5checksum` columns
+- All rows from `public.cvterm` where `is_obsolete` is `0`, while skipping the `definition` column.
+- All rows from `public.feature_cvterm` where `is_not` is `false` and `feature_id` is not in the specified list, *without skipping any columns*.
 
+#### **Structure 2: Subquery Table (WIP)**
 
-**Example (without exclusions):**
-```txt
-public.feature -[] <name IN ('Abd-B', 'Var')> <is_obsolete=false>
-```
-
-This extracts all rows from `public.feature` where `name` is `'Abd-B'` or `'Var'` and `is_obsolete` is `false`.
-
-#### **Structure 2: Subquery Table (Unstable)**
-
-**Warning:** This feature is experimental and may not work as expected. For reliable mappings, please prefer **Structure 1**.
+**Warning:** This feature is [WIP](https://github.com/singnet/das/issues/684). For reliable mappings use **Structure 1**.
 
 ```txt
 SQL custom_table_name <SQL_QUERY>
@@ -170,7 +166,9 @@ SQL custom_table_name <SQL_QUERY>
 - `custom_table_name`: Any identifier you assign to this data set.
 - `<SQL_QUERY>`: An SQL query enclosed in `<>`. Each column **must** use an alias in the form `schema_table__column`.
 
-**Example:**
+**Note:** The `schema_table__column` alias convention is mandatory for the adapter to track the origin of each data field.
+
+**Example 1:**
 ```txt
 SQL table_experiment_1 <SELECT grp.uniquename as public_grp__uniquename, grp.name as public_grp__name
 FROM grp
@@ -179,27 +177,93 @@ JOIN feature_grpmember ON feature_grpmember.grpmember_id = grpmember.grpmember_i
 JOIN feature ON feature.feature_id = feature_grpmember.feature_id
 WHERE feature.name = 'Abd-B' AND feature.is_obsolete = 'f';>
 ```
-**Note:** The `schema_table__column` alias convention is mandatory for the adapter to track the origin of each data field.
+
+**Example 2:**
+```txt
+SQL gene_expr_1 <select distinct
+    feature.name as public_feature__name,
+    feature.uniquename as public_feature__uniquename,
+    library.uniquename as public_library__uniquename,
+    library_featureprop.value as public_library_featureprop__value
+from feature
+join library_feature on library_feature.feature_id = feature.feature_id
+join library on library.library_id = library_feature.library_id
+left join library_featureprop on library_featureprop.library_feature_id = library_feature.library_feature_id
+where library_featureprop.type_id = '151505' and
+library.uniquename in (
+'FBlc0003850', 'FBlc0003851', 'FBlc0003852', 'FBlc0003853', 'FBlc0003854', 
+'FBlc0003855', 'FBlc0003856', 'FBlc0003857', 'FBlc0003858', 'FBlc0003859', 
+'FBlc0003860', 'FBlc0003861', 'FBlc0003862', 'FBlc0003863', 'FBlc0003864', 
+'FBlc0003865', 'FBlc0003866', 'FBlc0003867', 'FBlc0003868', 'FBlc0003869', 
+'FBlc0003870', 'FBlc0003871', 'FBlc0003872', 'FBlc0003873', 'FBlc0003874');>
+```
 
 ---
 
-### Writing Your Own Context
+### Writing Your Own Context File
 
 1.  **Identify** the tables and data you want to extract.
 2.  **Decide** if a simple filter (Structure 1) is sufficient or if a custom query (Structure 2) is needed, remembering that Structure 1 is recommended.
 3.  **Write** one context line per dataset you want to extract.
-4.  **Always use** correct schema and table names and valid SQL syntax.
+4.  **Always use** complete schema and table names and valid SQL syntax.
 
 ---
 
 ## Load the mapped data into the DAS
 
-Once the data mapping is complete and the `.metta` files have been generated, you can load them into DAS using the `das-cli`, which you should already have installed as a prerequisite.
+Once the data mapping is complete and the `.metta` files have been generated, you can load them into DAS using the `das-cli`.
 
-1.  **`das-cli db start`**: This command starts the DAS internal database, which will store your data.
-2.  **`das-cli metta load /absolute/path/to/your/file.metta`**: This command reads the specified `.metta` file and inserts the data into the AtomSpace, making it available for querying and processing within the DAS ecosystem.
+### das-cli installation
+
+Installation via APT package is recommended.
+
+- Set up the repository:
+```bash
+sudo bash -c "wget -O - http://45.77.4.33/apt-repo/setup.sh | bash"
+```
+- Install the package:
+```bash
+sudo apt install das-cli
+```
+- Check installation:
+```bash
+das-cli --version
+```
+
+- **NOTE :** For more details on installing `das-cli`, see the official [documentation](https://github.com/singnet/das-toolbox/blob/master/das-cli/README.md#installation).
+
+### Running the database container and loading data
+
+#### das-cli settings
+
+```bash
+das-cli config set
+```
+
+To load MeTTa files into the database, only the first few configurations are required. You can accept the default port number or specify your own. See below:
+
+```bash
+Enter Redis port [40020]:
+Is it a Redis cluster? [y/N]: N
+Enter MongoDB port [40021]:
+Enter MongoDB username [admin]:
+Enter MongoDB password [admin]:
+Is it a MongoDB cluster? [y/N]: N
+```
+
+**NOTE:** Other settings after the ones above you can ignore them, just press enter.
+
+#### To load the data into DAS
+
+You need to start the DAS internal database and then load the `.metta` files generated by the DatabaseWrapper. Use the following commands:
+
+```bash
+das-cli db start
+das-cli metta load /absolute/path/to/your/file.metta
+```
 
 ---
+
 ## Troubleshooting and Tips
 
 -   **Connection errors?** Double-check your `secrets.ini` and the database host/port parameters in the `make run` command.
