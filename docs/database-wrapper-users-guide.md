@@ -28,6 +28,7 @@ This guide will show you what DatabaseWrapper is, how it works, and walk you thr
       - [**Structure 1: Table Filter**](#structure-1-table-filter)
       - [**Structure 2: Subquery Table \[Unstable\]**](#structure-2-subquery-table-unstable)
     - [Writing Your Own Context](#writing-your-own-context)
+  - [Load the mapped data into the DAS](#load-the-mapped-data-into-the-das)
   - [Troubleshooting and Tips](#troubleshooting-and-tips)
 
 ---
@@ -78,7 +79,7 @@ cd das-database-adapter
 
 ```bash
 make build
-make run host=chado.flybase.org port=5432 db=flybase secrets=$(pwd)/examples/secrets.ini context=/$(pwd)/examples/context.txt output=$(pwd)/
+make run host=chado.flybase.org port=5432 db=flybase secrets=$(pwd)/examples/secrets.ini context=$(pwd)/examples/context.txt output=$(pwd)/
 ```
 
 If everything is configured correctly, the adapter will connect to the remote database, map the data as described in the context, and process it into MeTTa files. You should see the generated output files in the current directory and terminal output similar to the one below:
@@ -169,6 +170,15 @@ WHERE feature.name = 'Abd-B' AND feature.is_obsolete = 'f';>
 
 ---
 
+## Load the mapped data into the DAS
+
+Once the data mapping is complete, you can load it into DAS using the `das-cli metta load` command.
+Make sure das-cli is configured correctly, then run:
+
+1. **das-cli db start**: This will start the database in your environment.
+2. **das-cli metta load /absolute/path/to/metta_file.metta**: This will load the specified MeTTa file into DAS.
+
+---
 ## Troubleshooting and Tips
 
 - **Connection errors?** Double-check your `secrets.ini` and database host/port.
