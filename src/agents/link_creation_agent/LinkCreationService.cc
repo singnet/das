@@ -71,6 +71,8 @@ void LinkCreationService::process_request(shared_ptr<PatternMatchingQueryProxy> 
                     shared_lock lock(m_mutex);
                     LOG_INFO("[" << request_id << "]"
                                  << " - Processing query answer for iterator ID: " << proxy->my_id());
+                    LOG_INFO("[" << request_id << "]"
+                                 << " - Query answer: " << query_answer->to_string());
                     auto links = process_query_answer(query_answer, extra_params, link_template);
                     for (const auto& link : links) {
                         link_creation_queue.enqueue(make_tuple(request_id, link));

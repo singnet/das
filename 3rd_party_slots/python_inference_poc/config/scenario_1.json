@@ -1,10 +1,10 @@
 {
     "seed": 42,
-    "metta-filename": "output.metta",
-    "sentence-node-count": 1000,
+    "metta-filename": "/opt/das/3rd_party_slots/python_inference_poc/output.metta",
+    "sentence-node-count": 10000,
     "word-count": 3,
     "word-length": 3,
-    "alphabet-range": "0-3",
+    "alphabet-range": "0-4",
     "letter-predicate": {
         "token": "feature_a",
         "letter": "a",
@@ -30,7 +30,7 @@
     "bias":{
         "predicates": ["letter-predicate", "low-diversity-predicate"],
         "strength": 0.3,
-        "filename": "biased_predicates.metta",
+        "filename": "/opt/das/3rd_party_slots/python_inference_poc/biased_predicates.metta",
         "operator": "and"
     }
 }
