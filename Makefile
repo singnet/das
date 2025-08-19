@@ -123,7 +123,7 @@ format-check:
 performance-tests:
 	@python3 src/tests/integration/performance/query_agent_metrics.py
 
-test-covarege-check:
+test-coverage-check:
 	@bash src/scripts/bazel_coverage_check.sh
 
 # Catch-all pattern to prevent make from complaining about unknown targets

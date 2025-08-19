@@ -12,8 +12,18 @@ jobs:
   format-check:
     uses: ./.github/workflows/run-format-check.yaml
 
-  unit-tests:
+  coverage-check:
     needs: format-check
+    runs-on: self-hosted-withcache
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Test coverage check
+        run: make test-coverage-check
+
+  unit-tests:
+    needs: coverage-check
     uses: ./.github/workflows/run-unit-tests.yml
     with:
       runner: self-hosted-withcache
