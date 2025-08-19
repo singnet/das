@@ -33,7 +33,7 @@ This guide will show you what DatabaseWrapper is, how it works, and walk you thr
 ## Introduction
 
 The DAS Database Adapter is a high-performance modular system designed to map data from SQL databases into Atoms (MeTTa expressions).
-The primary workflow involves cloning this repository, configuring a context file to define the data mapping, and running the adapter to generate `.metta` files.
+The primary workflow involves cloning the [repository](https://github.com/singnet/das-database-adapter), configuring a context file to define the data mapping, and running the adapter to generate `.metta` files.
 
 These `.metta` files can then be loaded into the Distributed AtomSpace (DAS) using the [`das-cli`](https://github.com/singnet/das-toolbox), the command-line tool for interacting with the DAS ecosystem.
 
