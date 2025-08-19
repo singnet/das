@@ -1,3 +1,6 @@
+TEST_TARGET = //...
+COVERAGE_REPORT = coverage_html
+
 # release: build-deployment
 # 	@docker run --rm -it -v ${HOME}/.ssh:/root/.ssh:ro -v $(CURDIR)/scripts:/opt/scripts das-deployment:latest /opt/scripts/deployment/release.sh
 
@@ -119,6 +122,9 @@ format-check:
 
 performance-tests:
 	@python3 src/tests/integration/performance/query_agent_metrics.py
+
+test-covarege-check:
+	@bash src/scripts/bazel_coverage_check.sh
 
 # Catch-all pattern to prevent make from complaining about unknown targets
 %:
