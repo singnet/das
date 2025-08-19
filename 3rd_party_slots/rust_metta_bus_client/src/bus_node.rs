@@ -69,9 +69,9 @@ impl BusNode {
 				log::warn!(
 					target: "das",
 					"BusNode::join_network(): Unable to get all services ({}/{}) from peer {}",
-					self.peer_id,
-					self.bus.command_owner.len(),
 					proxy.service_list.len(),
+					self.bus.command_owner.len(),
+					self.peer_id,
 				);
 				break;
 			}
