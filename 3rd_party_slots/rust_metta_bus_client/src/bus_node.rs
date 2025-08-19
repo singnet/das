@@ -61,15 +61,21 @@ impl BusNode {
 
 		let mut count = 0;
 		loop {
+			let proxy = proxy_arc.lock().unwrap();
 			sleep(Duration::from_millis(100));
 
 			count += 1;
 			if count > 200 {
-				log::error!(target: "das", "BusNode::join_network(): Unable to get service list from peer {}", self.peer_id);
+				log::warn!(
+					target: "das",
+					"BusNode::join_network(): Unable to get all services ({}/{}) from peer {}",
+					self.peer_id,
+					self.bus.command_owner.len(),
+					proxy.service_list.len(),
+				);
 				break;
 			}
 
-			let proxy = proxy_arc.lock().unwrap();
 			for (command, owner) in proxy.service_list.iter() {
 				log::trace!(target: "das", "BusNode::join_network(): Adding {command} to bus, owner: {owner}");
 				self.bus.set_ownership(command.clone(), owner);
