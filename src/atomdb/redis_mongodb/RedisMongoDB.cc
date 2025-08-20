@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <bsoncxx/builder/stream/document.hpp>
 #include <bsoncxx/builder/stream/helpers.hpp>
+#include <cmath>
 #include <iostream>
 #include <memory>
 #include <string>
@@ -839,13 +840,16 @@ void RedisMongoDB::add_pattern_index_schema(const string& tokens,
     auto reply = mongodb_collection.insert_one(bsoncxx::v_noabi::builder::basic::make_document(
         bsoncxx::v_noabi::builder::basic::kvp(MONGODB_FIELD_NAME[MONGODB_FIELD::ID], id),
         bsoncxx::v_noabi::builder::basic::kvp("tokens", tokens),
+        bsoncxx::v_noabi::builder::basic::kvp("priority", this->pattern_index_schema_next_priority),
         bsoncxx::v_noabi::builder::basic::kvp("index_entries", index_entries_array)));
 
     if (!reply) {
         Utils::error("Failed to insert pattern index schema into MongoDB");
     }
 
-    this->pattern_index_schema_map[id] = make_tuple(move(tokens_vector), index_entries);
+    this->pattern_index_schema_map[this->pattern_index_schema_next_priority] =
+        make_tuple(move(tokens_vector), index_entries);
+    this->pattern_index_schema_next_priority++;
 }
 
 void RedisMongoDB::load_pattern_index_schema() {
@@ -868,7 +872,10 @@ void RedisMongoDB::load_pattern_index_schema() {
             index_entries.push_back(entry);
         }
 
-        this->pattern_index_schema_map[id] = make_tuple(move(tokens), move(index_entries));
+        auto priority = view["priority"].get_int32().value;
+        this->pattern_index_schema_map[priority] = make_tuple(move(tokens), move(index_entries));
+        this->pattern_index_schema_next_priority =
+            fmax(this->pattern_index_schema_next_priority, priority + 1);
     }
 
     if (this->pattern_index_schema_map.size() == 0) {
@@ -892,10 +899,17 @@ vector<string> RedisMongoDB::match_pattern_index_schema(const Link* link) {
         auto link_schema = LinkSchema(tokens);
         auto index_entries = index_entries_combinations(link->arity());
 
-        local_map[link_schema.handle()] = make_tuple(move(tokens), move(index_entries));
+        local_map[1] = make_tuple(move(tokens), move(index_entries));
     }
 
-    for (const auto& [key, value] : local_map) {
+    vector<int> sorted_keys;
+    for (const auto& pair : local_map) {
+        sorted_keys.push_back(pair.first);
+    }
+    std::sort(sorted_keys.begin(), sorted_keys.end(), std::greater<int>());
+
+    for (const auto& priority : sorted_keys) {
+        auto value = local_map[priority];
         auto link_schema = LinkSchema(get<0>(value));
         auto index_entries = get<1>(value);
         Assignment assignment;
@@ -921,6 +935,8 @@ vector<string> RedisMongoDB::match_pattern_index_schema(const Link* link) {
                 string hash = Hasher::link_handle(link->type, hash_entries);
                 pattern_handles.push_back(hash);
             }
+            // We only need to find the first match
+            break;
         }
     }
     return pattern_handles;
@@ -1018,6 +1034,9 @@ void RedisMongoDB::drop_all() {
         flush_redis_by_prefix(key + ":next_score");
     }
     reset_scores();
+
+    // Reset next_priority
+    this->pattern_index_schema_next_priority = 1;
 
     // We need to clear the pattern index schema map and reload it
     this->pattern_index_schema_map.clear();
