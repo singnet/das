@@ -138,7 +138,7 @@ def low_diversity_predicate(sentences, token=None, letters=None, percentage=0.8,
     return predicates
 
 def word_list_to_sentence(word_list):
-    sentence = '" "'.join(word_list)
+    sentence = ' '.join(word_list)
     return f'(Sentence "{ sentence }")'
 
 def create_predicates(args, predicate_funcs, sentence_count):
@@ -158,18 +158,22 @@ def create_predicates(args, predicate_funcs, sentence_count):
             args_cp[k] = 1
     args_cp['show_log'] = False
     count = 0
+    sentence_counting = 0
     while count < sentence_count:
         sentence = generator.generate_sentence()
+        sentence_counting += 1
         predicates_list = []
         for predicate_func in predicate_funcs:
-            for p in predicate_func([word_list_to_sentence(sentence)], **vars(args)):
-                predicates_list.append(p)
+            preds = list(predicate_func([word_list_to_sentence(sentence)], **vars(args)))
+            if not preds:
+                break
+            predicates_list.extend(preds)
         if len(predicates_list) == len(predicate_funcs):
             count += 1
             generator.write_atoms(sentence, writer)
             for p in predicates_list:
                 predicates.append(p)
-
+    print(f"### Generated {sentence_counting} sentences to create {count} biased sentences.")
     writer.commit_changes()
 
     return predicates
@@ -222,9 +226,11 @@ def main():
     total_time = time.time()
     predicates = []
     # Read sentences from the file
+    print(f"Reading sentences from {args.file}...")
     read_sentences_time = time.time()
     sentences = read_sentences(args.file)
     read_sentences_duration = time.time() - read_sentences_time
+    print(f"Read {len(sentences)} sentences from the file.")
     # Create predicates based on the sentences
     letter_predicates_time = time.time()
     letter_predicates = letter_predicate(sentences, 
@@ -259,8 +265,8 @@ def main():
                                                        args.low_diversity_predicate_percentage)
     low_diversity_predicates_duration = time.time() - low_diversity_predicates_time
     predicates.extend(low_diversity_predicates)
-    total_time = time.time() - total_time
-
+    write_predicates(args.metta_filename, predicates, 
+                     write_words_and_sentences=False, append=True)
     biased_predicates_time = time.time()
     if args.bias_strength > 0:
         predicate_lengths = {
@@ -272,9 +278,9 @@ def main():
         biased_predicates = generate_biased_predicates(args, predicate_lengths)
         # predicates.extend(biased_predicates)
     biased_predicates_duration = time.time() - biased_predicates_time
+    
+    total_time = time.time() - total_time
 
-    write_predicates(args.metta_filename, predicates, 
-                     write_words_and_sentences=False, append=True)
 
     # Report
     print("######################### Summary #########################")

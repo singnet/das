@@ -291,4 +291,17 @@ void LinkCreationAgent::load_db_patterns() {
     } catch (const std::exception& e) {
         LOG_ERROR("Error loading DB patterns: " << e.what());
     }
+
+    try {
+        auto atoms = {make_pair<string, string>("Symbol", "EQUIVALENCE"),
+                      make_pair<string, string>("Symbol", "IMPLICATION"),
+                      make_pair<string, string>("Symbol", "PATTERNS"),
+                      make_pair<string, string>("Symbol", "SATISFYING_SET")};
+        for (auto& atom : atoms) {
+            shared_ptr<Node> node = make_shared<Node>(atom.first, atom.second);
+            db->add_atom(node.get());
+        }
+    } catch (const std::exception& e) {
+        LOG_ERROR("Error loading LCA Nodes: " << e.what());
+    }
 }

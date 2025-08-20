@@ -4,7 +4,7 @@ use hyperon_atom::{matcher::Bindings, Atom};
 
 use crate::{
 	base_proxy_query::{BaseQueryProxy, BaseQueryProxyT},
-	bus::QUERY_EVOLUTION,
+	bus::QUERY_EVOLUTION_CMD,
 	helpers::query_answer::parse_query_answer,
 	properties::{
 		PropertyValue, ELITISM_RATE, MAX_GENERATIONS, POPULATION_SIZE, SELECTION_RATE,
@@ -58,7 +58,7 @@ impl QueryEvolutionProxy {
 	pub fn new(
 		params: &QueryParams, evolution_params: &QueryEvolutionParams,
 	) -> Result<Self, BoxError> {
-		let mut base = BaseQueryProxy::new(QUERY_EVOLUTION.to_string(), params.clone())?;
+		let mut base = BaseQueryProxy::new(QUERY_EVOLUTION_CMD.to_string(), params.clone())?;
 
 		base.properties.insert(
 			POPULATION_SIZE.to_string(),

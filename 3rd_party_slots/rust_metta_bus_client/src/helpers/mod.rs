@@ -1,8 +1,8 @@
 pub mod query_answer;
 
-use std::collections::HashMap;
+use std::collections::HashSet;
 
-use hyperon_atom::Atom;
+use hyperon_atom::{Atom, VariableAtom};
 
 use crate::types::{BoxError, MeTTaRunner};
 
@@ -112,15 +112,16 @@ pub fn run_metta_runner(atom: &Atom, metta_runner: &MeTTaRunner) -> Result<Atom,
 	}
 }
 
-pub fn map_variables(atom_str: &str) -> HashMap<String, String> {
-	let mut variables = HashMap::new();
+pub fn map_variables(atom_str: &str) -> HashSet<VariableAtom> {
+	let mut variables = HashSet::new();
 
 	let tokens = split_ignore_quoted(atom_str);
 	for (idx, token) in tokens.iter().enumerate() {
 		if token.starts_with("$") {
-			variables.insert(token.replace("$", ""), "".to_string());
+			let var_name = token.replace("$", "").replace(")", "");
+			variables.insert(VariableAtom::parse_name(&var_name).unwrap());
 		} else if token == "VARIABLE" && idx + 1 < tokens.len() {
-			variables.insert(tokens[idx + 1].clone(), "".to_string());
+			variables.insert(VariableAtom::new(&tokens[idx + 1]));
 		}
 	}
 

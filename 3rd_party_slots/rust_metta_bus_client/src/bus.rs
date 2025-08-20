@@ -1,7 +1,9 @@
 use std::collections::HashMap;
 
-pub static PATTERN_MATCHING_QUERY: &str = "pattern_matching_query";
-pub static QUERY_EVOLUTION: &str = "query_evolution";
+pub static PATTERN_MATCHING_QUERY_CMD: &str = "pattern_matching_query";
+pub static QUERY_EVOLUTION_CMD: &str = "query_evolution";
+pub static LINK_CREATION_CMD: &str = "link_creation";
+pub static INFERENCE_CMD: &str = "inference";
 
 #[derive(Debug, Default, Clone)]
 pub struct Bus {
@@ -27,6 +29,7 @@ impl Bus {
 		if !self.command_owner.contains_key(&command) {
 			panic!("Bus: command <{command}> is not defined");
 		} else if self.command_owner[&command].is_empty() {
+			log::trace!(target: "das", "Bus::set_ownership(): Adding {command} to bus, owner: {node_id}");
 			self.command_owner.insert(command.to_string(), node_id.to_string());
 		} else if self.command_owner[&command] != node_id {
 			panic!(

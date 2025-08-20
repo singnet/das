@@ -49,7 +49,7 @@ class NodeLinkGenerator:
         sentence_nodes = []
         words_nodes = []
         # all_sentences = []
-        sentence_name = '" "'.join(sentence)
+        sentence_name = ' '.join(sentence)
         sentence_node = {'type': 'Sentence', 'name': sentence_name}
         writer.add_node(sentence_node)
         sentence_nodes.append(sentence_node)

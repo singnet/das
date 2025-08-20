@@ -1,4 +1,7 @@
 [#595] OR query doesn't process QueryAnswer objects
+[#595] Issues an error msg when any AND/OR clause is not LT or Operator 
 [#609] Inference/Evolution Query causing Query Agent crash
 [#618] atom::Link and atom::LinkSchema are crashing after decoding a handle to NULL
 [#613] Query Agent is crashing after returning answers
+[#648] 'abort' command in LinkCreationAgent
+[#620] Miscellaneous changes in order to diminish probability of PORT conflict error 

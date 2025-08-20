@@ -1,7 +1,7 @@
 use std::sync::OnceLock;
 
 use crate::{
-	bus::{PATTERN_MATCHING_QUERY, QUERY_EVOLUTION},
+	bus::{INFERENCE_CMD, LINK_CREATION_CMD, PATTERN_MATCHING_QUERY_CMD, QUERY_EVOLUTION_CMD},
 	service_bus::ServiceBus,
 	types::BoxError,
 };
@@ -20,7 +20,12 @@ impl ServiceBusSingleton {
 		let service_bus = ServiceBus::new(
 			host_id,
 			known_peer,
-			vec![PATTERN_MATCHING_QUERY.to_string(), QUERY_EVOLUTION.to_string()],
+			vec![
+				PATTERN_MATCHING_QUERY_CMD.to_string(),
+				QUERY_EVOLUTION_CMD.to_string(),
+				LINK_CREATION_CMD.to_string(),
+				INFERENCE_CMD.to_string(),
+			],
 			port_lower,
 			port_upper,
 		)?;
