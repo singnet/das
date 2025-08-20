@@ -80,23 +80,25 @@ class InferenceAgent {
      * @param request_id The inference request to be sent to the link creation agent.
      */
     void send_distributed_inference_control_request(shared_ptr<InferenceRequest> inference_request);
-    // /**
-    //  * @brief Send stop link creation request to the link creation agent.
-    //  * @param inference_request The inference request to be sent to the link creation agent.
-    //  */
-    // void parse_config(const string& config_path);
-    // /**
-    //  * @brief Get the next iterator id.
-    //  * @return The next iterator id.
-    //  */
-    // const string get_next_iterator_id();
-    // const string get_next_inference_request_id();
     /**
      * @brief Build inference request from the given inference request.
      * @param request The inference request to be built.
      * @return The built inference request.
      */
     shared_ptr<InferenceRequest> build_inference_request(const vector<string>& request);
+    /**
+     * @brief Check if all link creation requests are finished.
+     * @param inference_request The inference request to check.
+     * @return True if all link creation requests are finished, false otherwise.
+     */
+    bool is_lca_requests_finished(shared_ptr<InferenceRequest> inference_request);
+    /**
+     * @brief Get the inference request by ID.
+     * @param request_id The ID of the inference request.
+     * @return The inference request if found, nullptr otherwise.
+     */
+    shared_ptr<InferenceRequest> get_inference_request(const string& request_id);
+
     // Private variables
     InferenceRequestValidator inference_request_validator;
     vector<string> get_link_creation_request();
@@ -106,6 +108,7 @@ class InferenceAgent {
     mutex agent_mutex;
     unsigned long long inference_request_id = 0;
     Queue<shared_ptr<InferenceRequest>> inference_request_queue;
+    vector<shared_ptr<InferenceRequest>> inference_requests;
     unordered_map<string, vector<shared_ptr<LinkCreationRequestProxy>>> link_creation_proxy_map;
     unordered_map<string, shared_ptr<QueryEvolutionProxy>> evolution_proxy_map;
     unordered_map<string, shared_ptr<InferenceProxy>> inference_proxy_map;

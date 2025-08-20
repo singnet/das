@@ -115,7 +115,17 @@ void LinkCreationAgent::run() {
             service->process_request(proxy, lca_request);
             lca_request->last_execution = time(0);
             if (lca_request->infinite) continue;
-            if (lca_request->repeat >= 1) lca_request->repeat--;
+            if (lca_request->repeat >= 1) --lca_request->repeat;
+            if (lca_request->repeat == 0 && lca_request->processed > 0) {
+                LOG_DEBUG("Finishing request ID: " << lca_request->id);
+                auto proxy = link_creation_proxy_map[lca_request->original_id];
+                proxy->to_remote_peer(BaseProxy::FINISHED, {});
+                LOG_DEBUG("Request finished with processed items: " << lca_request->processed);
+
+            }else{
+                LOG_DEBUG("Request not finished with processed items, try again: " << lca_request->id);
+                lca_request->repeat = 1;
+            }
 
         } else {
             if (request_buffer.find(lca_request->id) != request_buffer.end()) {
@@ -199,7 +209,8 @@ shared_ptr<LinkCreationAgentRequest> LinkCreationAgent::create_request(vector<st
             }
         }
         lca_request->infinite = (lca_request->repeat == -1);
-        LOG_INFO("Request original ID: " << lca_request->id);
+        lca_request->original_id = lca_request->id;
+        LOG_INFO("Request original ID: " << lca_request->original_id);
         if (lca_request->id.empty()) {
             Utils::error("Request ID cannot be empty");
         }

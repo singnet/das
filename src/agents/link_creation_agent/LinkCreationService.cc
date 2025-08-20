@@ -94,6 +94,7 @@ void LinkCreationService::process_request(shared_ptr<PatternMatchingQueryProxy> 
                      << " - Finished processing iterator ID: " + proxy->my_id()
                      << " with count: " << count);
         request->is_running = false;
+        request->processed += count;
     };
 
     thread_pool.enqueue(job);

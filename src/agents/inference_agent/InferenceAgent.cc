@@ -64,7 +64,7 @@ void InferenceAgent::run() {
             try {
                 auto inference_request = inference_request_queue.dequeue();
                 send_link_creation_request(inference_request);
-                send_distributed_inference_control_request(inference_request);
+                this->inference_requests.push_back(inference_request);
                 inference_timeout_map[inference_request->get_id()] =
                     (Utils::get_current_time_millis() / 1000) + inference_request->get_timeout();
             } catch (const exception& e) {
@@ -84,6 +84,13 @@ void InferenceAgent::run() {
                 it++;
             }
         }
+
+        for (auto& inference_request : this->inference_requests) {
+            if (is_lca_requests_finished(inference_request)) {
+                send_distributed_inference_control_request(inference_request);
+                inference_request->set_repeat(inference_request->get_repeat() - 1);
+            }
+        }
         Utils::sleep();
     }
 }
@@ -96,6 +103,32 @@ void InferenceAgent::stop() {
     agent_mutex.unlock();
 }
 
+bool InferenceAgent::is_lca_requests_finished(shared_ptr<InferenceRequest> inference_request) {
+    auto it = link_creation_proxy_map.find(inference_request->get_id());
+    if (it == link_creation_proxy_map.end()) {
+        Utils::error("No link creation requests found for inference request ID: " +
+                    inference_request->get_id());
+    }
+    for (const auto& proxy : it->second) {
+        if (!proxy->finished()) {
+            return false;
+        }
+    }
+    return true;
+}
+
+
+shared_ptr<InferenceRequest> InferenceAgent::get_inference_request(const string& request_id) {
+    auto it = find_if(inference_requests.begin(), inference_requests.end(),
+                      [&request_id](const shared_ptr<InferenceRequest>& req) {
+                          return req->get_id() == request_id;
+                      });
+    if (it != inference_requests.end()) {
+        return *it;
+    }
+    return nullptr;
+}
+
 void InferenceAgent::send_link_creation_request(shared_ptr<InferenceRequest> inference_request) {
     LOG_DEBUG("Sending link creation request for inference request ID: " << inference_request->get_id());
     this->link_creation_proxy_map[inference_request->get_id()] =
@@ -106,10 +139,10 @@ void InferenceAgent::send_link_creation_request(shared_ptr<InferenceRequest> inf
         for (auto& token : request_iterator) {
             request.push_back(token);
         }
-        request.push_back("1000000");                         // TODO check max results value
-        request.push_back("-1");                              // repeat
+        request.push_back(to_string(inference_request->get_lca_max_results()));  // TODO check max results value
+        request.push_back(to_string(inference_request->get_lca_max_repeats()));  // repeat
         request.push_back(inference_request->get_context());  // context
-        request.push_back("false");                           // update_attention_broker
+        request.push_back(inference_request->get_lca_update_attention_broker() ? "true" : "false");                           // update_attention_broker
         auto link_creation_proxy = make_shared<LinkCreationRequestProxy>(request);
         this->link_creation_proxy_map[inference_request->get_id()].push_back(link_creation_proxy);
         service_bus->issue_bus_command(link_creation_proxy);
