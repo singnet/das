@@ -34,6 +34,16 @@ LinkSchema EquivalenceProcessor::build_pattern_query(const string& handle1, cons
     return LinkSchema(tokens);
 }
 
+bool EquivalenceProcessor::link_exists(const string& handle1, const string& handle2) {
+    Node equivalence_node("Symbol", "EQUIVALENCE");
+    vector<string> targets_c1_c2 = {equivalence_node.handle(), handle1, handle2};
+    vector<string> targets_c2_c1 = {equivalence_node.handle(), handle2, handle1};
+    shared_ptr<Link> link_c1_c2 = make_shared<Link>("Expression", targets_c1_c2);
+    shared_ptr<Link> link_c2_c1 = make_shared<Link>("Expression", targets_c2_c1);
+    return AtomDBSingleton::get_instance()->link_exists(link_c1_c2->handle()) &&
+           AtomDBSingleton::get_instance()->link_exists(link_c2_c1->handle());
+}
+
 vector<shared_ptr<Link>> EquivalenceProcessor::process_query(shared_ptr<QueryAnswer> query_answer,
                                                              optional<vector<string>> extra_params) {
     string c1_handle = query_answer->assignment.get("C1");
@@ -47,6 +57,12 @@ vector<shared_ptr<Link>> EquivalenceProcessor::process_query(shared_ptr<QueryAns
         LOG_INFO("C1 and C2 are the same, skipping equivalence processing.");
         return {};
     }
+    if (link_exists(c1_handle, c2_handle)) {
+        LOG_INFO("Link already exists for " << c1_handle << " and " << c2_handle
+                                            << ", skipping equivalence processing.");
+        return {};
+    }
+
     LinkSchema pattern_query_schema = build_pattern_query(c1_handle, c2_handle);
     auto pattern_query = pattern_query_schema.tokenize();
     // remove the first element (LINK_TEMPLATE)

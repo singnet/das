@@ -82,7 +82,7 @@ void LinkCreationAgent::run() {
         if (!requests_queue.empty()) {
             lca_request = requests_queue.dequeue();
             lca_request->current_interval = requests_interval_seconds;
-            if (lca_request != NULL && (lca_request->infinite || lca_request->repeat > 0)) {
+            if (lca_request != nullptr && (lca_request->infinite || lca_request->repeat > 0)) {
                 request_buffer[lca_request->id] = lca_request;
             }
         } else {
@@ -94,6 +94,18 @@ void LinkCreationAgent::run() {
                 current_buffer_position++;
             }
         }
+
+        if (lca_request != nullptr) {
+            if (!lca_request->is_running && lca_request->repeat == 0 && lca_request->processed > 0 &&
+                !lca_request->completed) {
+                LOG_DEBUG("Finishing request ID: " << lca_request->id);
+                auto proxy = link_creation_proxy_map[lca_request->original_id];
+                proxy->to_remote_peer(BaseProxy::FINISHED, {});
+                LOG_DEBUG("Request finished with processed items: " << lca_request->processed);
+                lca_request->completed = true;
+            }
+        }
+
         if (lca_request == nullptr ||
             (lca_request->last_execution + lca_request->current_interval > time(0)) ||
             lca_request->is_running) {
@@ -103,6 +115,10 @@ void LinkCreationAgent::run() {
         }
 
         LOG_DEBUG("Request ID: " << (lca_request ? lca_request->id : "NULL"));
+
+        if (lca_request->repeat == 0 && lca_request->processed == 0) {
+            lca_request->repeat = 1;
+        }
 
         if (lca_request->infinite || lca_request->repeat > 0) {
             LOG_DEBUG("Request IDX: " << current_buffer_position);
@@ -116,16 +132,6 @@ void LinkCreationAgent::run() {
             lca_request->last_execution = time(0);
             if (lca_request->infinite) continue;
             if (lca_request->repeat >= 1) --lca_request->repeat;
-            if (lca_request->repeat == 0 && lca_request->processed > 0) {
-                LOG_DEBUG("Finishing request ID: " << lca_request->id);
-                auto proxy = link_creation_proxy_map[lca_request->original_id];
-                proxy->to_remote_peer(BaseProxy::FINISHED, {});
-                LOG_DEBUG("Request finished with processed items: " << lca_request->processed);
-
-            }else{
-                LOG_DEBUG("Request not finished with processed items, try again: " << lca_request->id);
-                lca_request->repeat = 1;
-            }
 
         } else {
             if (request_buffer.find(lca_request->id) != request_buffer.end()) {

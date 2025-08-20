@@ -32,9 +32,7 @@ InferenceRequest::~InferenceRequest() {}
 
 vector<string> InferenceRequest::query() { return {}; }
 
-void InferenceRequest::set_repeat(unsigned int repeat) {
-    this->repeat = repeat;
-}
+void InferenceRequest::set_repeat(unsigned int repeat) { this->repeat = repeat; }
 
 unsigned int InferenceRequest::get_repeat() { return repeat; }
 
@@ -60,6 +58,12 @@ string InferenceRequest::get_id() { return inference_request_id; }
 
 void InferenceRequest::set_id(string inference_request_id) {
     this->inference_request_id = inference_request_id;
+}
+
+bool InferenceRequest::get_sent_evolution_request() { return sent_evolution_request; }
+
+void InferenceRequest::set_sent_evolution_request(bool sent_evolution_request) {
+    this->sent_evolution_request = sent_evolution_request;
 }
 
 string InferenceRequest::get_type() { return "INFERENCE_REQUEST"; }

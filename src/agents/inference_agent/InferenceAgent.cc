@@ -76,7 +76,24 @@ void InferenceAgent::run() {
             if (it->second->finished() || inference_proxy_map[it->first]->is_aborting() ||
                 Utils::get_current_time_millis() / 1000 > inference_timeout_map[it->first]) {
                 process_inference_abort_request(it->first);
+
+                auto inference_request = get_inference_request(it->first);
+                // // Repeat evolution process (not tested)
+                // if(inference_request != nullptr && inference_request->get_repeat() > 0) {
+                //     send_link_creation_request(inference_request);
+                //     inference_request->set_sent_evolution_request(false);
+                // }else{
+                if (inference_request != nullptr) {
+                    this->inference_requests.erase(remove(this->inference_requests.begin(),
+                                                          this->inference_requests.end(),
+                                                          inference_request),
+                                                   this->inference_requests.end());
+                    LOG_DEBUG("Inference request removed for request ID: " << it->first);
+                }
+
+                // }
                 it = evolution_proxy_map.erase(it);
+
             } else {
                 if ((query_answer = it->second->pop()) != NULL) {
                     inference_proxy_map[it->first]->push(query_answer);
@@ -86,8 +103,12 @@ void InferenceAgent::run() {
         }
 
         for (auto& inference_request : this->inference_requests) {
-            if (is_lca_requests_finished(inference_request)) {
+            if (is_lca_requests_finished(inference_request) &&
+                !inference_request->get_sent_evolution_request()) {
+                LOG_DEBUG(
+                    "LCA requests finished for inference request ID: " << inference_request->get_id());
                 send_distributed_inference_control_request(inference_request);
+                inference_request->set_sent_evolution_request(true);
                 inference_request->set_repeat(inference_request->get_repeat() - 1);
             }
         }
@@ -107,7 +128,7 @@ bool InferenceAgent::is_lca_requests_finished(shared_ptr<InferenceRequest> infer
     auto it = link_creation_proxy_map.find(inference_request->get_id());
     if (it == link_creation_proxy_map.end()) {
         Utils::error("No link creation requests found for inference request ID: " +
-                    inference_request->get_id());
+                     inference_request->get_id());
     }
     for (const auto& proxy : it->second) {
         if (!proxy->finished()) {
@@ -117,12 +138,11 @@ bool InferenceAgent::is_lca_requests_finished(shared_ptr<InferenceRequest> infer
     return true;
 }
 
-
 shared_ptr<InferenceRequest> InferenceAgent::get_inference_request(const string& request_id) {
-    auto it = find_if(inference_requests.begin(), inference_requests.end(),
-                      [&request_id](const shared_ptr<InferenceRequest>& req) {
-                          return req->get_id() == request_id;
-                      });
+    auto it = find_if(
+        inference_requests.begin(),
+        inference_requests.end(),
+        [&request_id](const shared_ptr<InferenceRequest>& req) { return req->get_id() == request_id; });
     if (it != inference_requests.end()) {
         return *it;
     }
@@ -139,10 +159,13 @@ void InferenceAgent::send_link_creation_request(shared_ptr<InferenceRequest> inf
         for (auto& token : request_iterator) {
             request.push_back(token);
         }
-        request.push_back(to_string(inference_request->get_lca_max_results()));  // TODO check max results value
+        request.push_back(
+            to_string(inference_request->get_lca_max_results()));  // TODO check max results value
         request.push_back(to_string(inference_request->get_lca_max_repeats()));  // repeat
-        request.push_back(inference_request->get_context());  // context
-        request.push_back(inference_request->get_lca_update_attention_broker() ? "true" : "false");                           // update_attention_broker
+        request.push_back(inference_request->get_context());                     // context
+        request.push_back(inference_request->get_lca_update_attention_broker()
+                              ? "true"
+                              : "false");  // update_attention_broker
         auto link_creation_proxy = make_shared<LinkCreationRequestProxy>(request);
         this->link_creation_proxy_map[inference_request->get_id()].push_back(link_creation_proxy);
         service_bus->issue_bus_command(link_creation_proxy);

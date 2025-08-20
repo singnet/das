@@ -137,6 +137,10 @@ class InferenceRequest {
      */
     void set_lca_update_attention_broker(bool lca_update_attention_broker);
 
+    bool get_sent_evolution_request();
+
+    void set_sent_evolution_request(bool sent_evolution_request);
+
    protected:
     string first_handle;
     string second_handle;
@@ -147,9 +151,10 @@ class InferenceRequest {
     string update_attention_broker;
     unsigned long long timeout = 24 * 60 * 60;  // Default timeout is 24 hours
     unsigned int repeat = 5;
-    unsigned long lca_max_results = 100;  // Default max results for LCA
-    unsigned int lca_max_repeats = 1;      // Default max repeats for LCA
-    bool lca_update_attention_broker = false;  // Default update attention broker for LCA
+    unsigned long lca_max_results = 100;        // Default max results for LCA
+    unsigned int lca_max_repeats = 1;           // Default max repeats for LCA
+    bool lca_update_attention_broker = false;   // Default update attention broker for LCA
+    bool sent_evolution_request = false;
 };
 
 class ProofOfImplicationOrEquivalence : public InferenceRequest {
