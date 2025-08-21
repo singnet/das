@@ -1,7 +1,7 @@
 {
     "seed": 42,
     "metta-filename": "/opt/das/3rd_party_slots/python_inference_poc/output.metta",
-    "sentence-node-count": 10000,
+    "sentence-node-count": 100000,
     "word-count": 3,
     "word-length": 3,
     "alphabet-range": "0-4",
