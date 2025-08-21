@@ -297,7 +297,7 @@ run_benchmark() {
 
     mkdir -p "$report_base_directory"
 
-    ATOMDB_TYPES=("redismongodb")
+    ATOMDB_TYPES=("redismongodb" "morkdb")
 
     if [[ "$benchmark" == "query_agent" ]]; then
         for type in "${ATOMDB_TYPES[@]}"; do   
@@ -307,7 +307,8 @@ run_benchmark() {
                 local client_log_file="/tmp/${BENCHMARK}_benchmark/${TIMESTAMP}/${type}_${action}_client_log.txt"
                 init_environment "$log_file"
                 echo -e "\r\033[K${GREEN}Running test START${RESET}"
-                ./src/scripts/bazel.sh run //tests/benchmark/query_agent:query_agent_main --copt=-DLOG_LEVEL=DEBUG_LEVEL -- "$report_base_directory" "$type" "$action" "$CACHE_ENABLED" "$ITERATIONS" "/tmp/${BENCHMARK}_benchmark/${TIMESTAMP}/${type}_${action}_" | tee >(grep "Benchmark::" > "$client_log_file")
+                echo -e "\r\033[K${GREEN}Partial results in /tmp/${BENCHMARK}_benchmark/${TIMESTAMP}/${RESET}"
+                ./src/scripts/bazel.sh run //tests/benchmark/query_agent:query_agent_main --copt=-DLOG_LEVEL=DEBUG_LEVEL -- "$report_base_directory" "$type" "$action" "$CACHE_ENABLED" "$ITERATIONS" "/tmp/${BENCHMARK}_benchmark/${TIMESTAMP}/${type}_${action}_" | stdbuf -oL grep "|" > "$client_log_file"
                 echo -e "\r\033[K${GREEN}Running test END${RESET}"
             done
         done

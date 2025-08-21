@@ -21,9 +21,7 @@ class PatternMatchingQuery : public QueryAgentRunner {
    public:
     using QueryAgentRunner::QueryAgentRunner;
 
-    void minimal_query(string log_file);
-    void positive_importance();
-    void update_attention_broker();
-    void link_template_cache();
+    void simple_query(string log_file);
     void complex_query(string log_file);
+    void positive_importance();
 };

@@ -50,7 +50,7 @@ bool QueryAgentRunner::parse_ms_from_line(const string& line, double& value) {
     if (pos != string::npos) {
         string sub = line.substr(pos + pattern.length());
         stringstream ss(sub);
-        ss >> value;        
+        ss >> value;
         return !ss.fail();
     }
     return false;
