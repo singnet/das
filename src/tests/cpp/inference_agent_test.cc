@@ -52,7 +52,8 @@ class InferenceAgentTest : public ::testing::Test {
 };
 
 TEST_F(InferenceAgentTest, TestProofOfImplicationOrEquivalence) {
-    GTEST_SKIP() << "Skipping test, due to modifications on InferenceAgent logic, it needs to be rewritten";
+    GTEST_SKIP()
+        << "Skipping test, due to modifications on InferenceAgent logic, it needs to be rewritten";
     auto inference_agent = new InferenceAgent();
     vector<string> tokens = {
         "PROOF_OF_IMPLICATION_OR_EQUIVALENCE", "handle1", "handle2", "1", "context"};
@@ -78,7 +79,8 @@ TEST_F(InferenceAgentTest, TestProofOfImplicationOrEquivalence) {
 }
 
 TEST_F(InferenceAgentTest, TestProofOfImplication) {
-    GTEST_SKIP() << "Skipping test, due to modifications on InferenceAgent logic, it needs to be rewritten";
+    GTEST_SKIP()
+        << "Skipping test, due to modifications on InferenceAgent logic, it needs to be rewritten";
     auto inference_agent = new InferenceAgent();
     vector<string> tokens = {"PROOF_OF_IMPLICATION", "handle1", "handle2", "1", "context"};
     auto inference_proxy = make_shared<MockInferenceProxy>(tokens);
@@ -104,7 +106,8 @@ TEST_F(InferenceAgentTest, TestProofOfImplication) {
 }
 
 TEST_F(InferenceAgentTest, TestProofOfEquivalence) {
-    GTEST_SKIP() << "Skipping test, due to modifications on InferenceAgent logic, it needs to be rewritten";
+    GTEST_SKIP()
+        << "Skipping test, due to modifications on InferenceAgent logic, it needs to be rewritten";
     auto inference_agent = new InferenceAgent();
     vector<string> tokens = {"PROOF_OF_EQUIVALENCE", "handle1", "handle2", "1", "context"};
     auto inference_proxy = make_shared<MockInferenceProxy>(tokens);
