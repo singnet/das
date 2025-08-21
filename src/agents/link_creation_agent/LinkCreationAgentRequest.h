@@ -17,7 +17,10 @@ struct LinkCreationAgentRequest {
     string context = "";
     bool update_attention_broker = false;
     string id = "";
+    string original_id = "";
     bool is_running = false;  ///< Indicates if the request is currently being processed
     bool aborting = false;    ///< Indicates if the request is being aborted
+    int processed = 0;        ///< Number of processed items
+    bool completed = false;   ///< Indicates if the request has been completed
 };
 }  // namespace link_creation_agent

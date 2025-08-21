@@ -1,5 +1,6 @@
 #include "ImplicationProcessor.h"
 
+#include "AtomDBSingleton.h"
 #include "Logger.h"
 
 using namespace std;
@@ -49,6 +50,16 @@ LinkSchema ImplicationProcessor::build_satisfying_set_query(const string& p1_han
     return LinkSchema(tokens);
 }
 
+bool ImplicationProcessor::link_exists(const string& handle1, const string& handle2) {
+    Node implication_node("Symbol", "IMPLICATION");
+    vector<string> targets_p1_p2 = {implication_node.handle(), handle1, handle2};
+    vector<string> targets_p2_p1 = {implication_node.handle(), handle2, handle1};
+    shared_ptr<Link> p1_link = make_shared<Link>("Expression", targets_p1_p2);
+    shared_ptr<Link> p2_link = make_shared<Link>("Expression", targets_p2_p1);
+    return AtomDBSingleton::get_instance()->link_exists(p1_link->handle()) &&
+           AtomDBSingleton::get_instance()->link_exists(p2_link->handle());
+}
+
 vector<shared_ptr<Link>> ImplicationProcessor::process_query(shared_ptr<QueryAnswer> query_answer,
                                                              optional<vector<string>> extra_params) {
     // P1 P2
@@ -62,6 +73,14 @@ vector<shared_ptr<Link>> ImplicationProcessor::process_query(shared_ptr<QueryAns
         LOG_INFO("P1 and P2 are the same, skipping implication processing.");
         return {};
     }
+
+    // Check if links is already in DB
+    if (link_exists(p1_handle, p2_handle)) {
+        LOG_INFO("Link already exists for " << p1_handle << " and " << p2_handle
+                                            << ", skipping implication processing.");
+        return {};
+    }
+
     LinkSchema p1_schema = build_pattern_query(p1_handle);
     LinkSchema p2_schema = build_pattern_query(p2_handle);
 
