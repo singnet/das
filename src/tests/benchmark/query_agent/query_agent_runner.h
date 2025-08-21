@@ -31,12 +31,6 @@ class QueryAgentRunner : public Runner {
    public:
     QueryAgentRunner(int tid, shared_ptr<AtomSpace> atom_space, int iterations);
 
-    /**
-     * @brief Parse server-side benchmark log file and extract timing values
-     *
-     * @param log_file Path to the log file
-     * @return Vector containing extracted timing values as doubles
-     */
     vector<double> parse_server_side_benchmark_times(const string& log_file);
     bool parse_ms_from_line(const string& line, double& value);
 
