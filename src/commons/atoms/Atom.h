@@ -3,6 +3,7 @@
 #include <string>
 
 #include "HandleTrie.h"
+#include "Assignment.h"
 #include "Properties.h"
 #include "Utils.h"
 #include "expression_hasher.h"
@@ -150,6 +151,21 @@ class Atom : public HandleTrie::TrieValue {
      * @return a MeTTa expression which represents this Atom.
      */
     virtual string metta_representation(HandleDecoder& decoder) const = 0;
+
+    /**
+     * @brief Match atoms against the passed handle and return true iff there's a match.
+     *
+     * If a variable assignment is required in order to make the match (e.g. for variables and
+     * link_schemas), this assigment is returned by side-effect.
+     *
+     * @return true iff this atom matches with the one whose handle has been passed.
+     * @param handle Handle of the Atom being matched against this one.
+     * @param assignment Modified by side-effect when a variable assignment is required in order do
+     * do the match.
+     * @param decoder A Decoder which may be required in order to convert handles -> actual atoms
+     * during the match algorithm.
+     */
+    virtual bool match(const string& handle, Assignment& assignment, HandleDecoder& decoder) = 0;
 
     // ---------------------------------------------------------------------------------------------
     // HandleTrie::TrieValue virtual API

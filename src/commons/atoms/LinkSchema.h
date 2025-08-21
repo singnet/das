@@ -153,7 +153,7 @@ class LinkSchema : public Wildcard {
     const vector<string>& targets() const;
 
     bool match(Link& link, Assignment& assignment, HandleDecoder& decoder);
-    bool match(const string& handle, Assignment& assignment, HandleDecoder& decoder);
+    bool match(const string& handle, Assignment& assignment, HandleDecoder& decoder) override;
 
     // ---------------------------------------------------------------------------------------------
     // Public API to build LinkSchema objects

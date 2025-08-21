@@ -53,3 +53,7 @@ string Node::metta_representation(HandleDecoder& decoder) const {
     }
     return this->name;
 }
+
+bool Node::match(const string& handle, Assignment& assignment, HandleDecoder& decoder) {
+    return this->handle() == handle;
+}
