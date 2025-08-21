@@ -2,8 +2,8 @@
 
 #include <string>
 
-#include "HandleTrie.h"
 #include "Assignment.h"
+#include "HandleTrie.h"
 #include "Properties.h"
 #include "Utils.h"
 #include "expression_hasher.h"
