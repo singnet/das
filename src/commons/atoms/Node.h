@@ -81,5 +81,15 @@ class Node : public Atom {
      * @return a MeTTa expression which represents this Atom.
      */
     virtual string metta_representation(HandleDecoder& decoder) const override;
+
+    /**
+     * @brief Return true iff the passed handle equals this Node's handle.
+     *
+     * @return true iff the passed handle equals this Node's handle.
+     * @param handle Handle of the Atom being matched against this one.
+     * @param assignment disregarded
+     * @param decoder disregarded
+     */
+    virtual bool match(const string& handle, Assignment& assignment, HandleDecoder& decoder) override;
 };
 }  // namespace atoms
