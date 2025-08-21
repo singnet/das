@@ -210,6 +210,7 @@ void PatternMatchingQueryProcessor::thread_process_one_query(
                     Utils::sleep();
                 }
                 proxy->flush_answer_bundle();
+                STOP_WATCH_FINISH(benchmark_query_thread, "Benchmark::PatternMatchingQuery");
                 STOP_WATCH_FINISH(query_thread, "PatternMatchingQuery");
                 if (proxy->parameters.get<bool>(PatternMatchingQueryProxy::COUNT_FLAG) &&
                     (!proxy->is_aborting())) {
@@ -235,7 +236,6 @@ void PatternMatchingQueryProcessor::thread_process_one_query(
     } catch (const std::exception& exception) {
         proxy->raise_error_on_peer(exception.what());
     }
-    STOP_WATCH_FINISH(benchmark_query_thread, "Benchmark::PatternMatchingQuery");
     LOG_DEBUG("Command finished: <" << proxy->get_command() << ">");
     // TODO add a call to remove_query_thread(monitor->get_id());
 }

@@ -22,9 +22,7 @@ vector<double> QueryAgentRunner::parse_server_side_benchmark_times(const string&
     if (file.is_open()) {
         string line;
         smatch matches;
-
         while (getline(file, line)) {
-            // Quick pre-check to avoid regex on every line
             if (line.find("Benchmark::PatternMatchingQuery") != string::npos) {
                 if (regex_search(line, matches, BENCHMARK_PATTERN)) {
                     try {
@@ -44,4 +42,16 @@ vector<double> QueryAgentRunner::parse_server_side_benchmark_times(const string&
     }
 
     return result;
+}
+
+bool QueryAgentRunner::parse_ms_from_line(const string& line, double& value) {
+    const string pattern = "#PROFILER# STOP_WATCH \"Benchmark::PatternMatchingQuery\"";
+    size_t pos = line.find(pattern);
+    if (pos != string::npos) {
+        string sub = line.substr(pos + pattern.length());
+        stringstream ss(sub);
+        ss >> value;        
+        return !ss.fail();
+    }
+    return false;
 }

@@ -69,7 +69,7 @@ int main(int argc, char** argv) {
     string action = argv[3];
     bool cache_enable = (string(argv[4]) == "true" || string(argv[4]) == "1");
     int iterations = stoi(argv[5]);
-    string log_file = argv[6];
+    string base_log_file = argv[6];
 
     setup(cache_enable, atomdb_type);
 
@@ -77,11 +77,11 @@ int main(int argc, char** argv) {
     PatternMatchingQuery benchmark(1, atom_space, iterations);
 
     if (action == "MinimalQuery") {
-        benchmark.minimal_query(log_file);
+        benchmark.minimal_query(base_log_file);
     } else if (action == "PositiveImportance") {
         benchmark.positive_importance();
     } else if (action == "ComplexQuery") {
-        benchmark.complex_query(log_file);
+        benchmark.complex_query(base_log_file);
     } else {
         Utils::error("...");
     }

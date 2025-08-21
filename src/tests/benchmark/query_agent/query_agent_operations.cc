@@ -12,6 +12,10 @@
 #include <string>
 #include <thread>
 #include <vector>
+#include <cstdlib>
+
+#define LOG_LEVEL DEBUG_LEVEL
+#include "Logger.h"
 
 #include "query_agent_runner.h"
 
@@ -22,9 +26,11 @@ void PatternMatchingQuery::minimal_query(string log_file) {
         vector<string> q1 = {
             "LINK_TEMPLATE", "Expression", "2", "NODE", "Symbol", "Sentence", "VARIABLE", "S"};
 
+        shared_ptr<PatternMatchingQueryProxy> proxy;
+
+        // Client: time for 1000 first responses
         operation_time_minimal_query_client_side.push_back(measure_execution_time([&]() {
-            auto proxy = atom_space_->pattern_matching_query(
-                q1, IGNORE_ANSWER_COUNT, "", false, true, false, false, false);
+            proxy = atom_space_->pattern_matching_query(q1, IGNORE_ANSWER_COUNT, "", false, true, false, false, false);
             int count = 0;
             while (!proxy->finished()) {
                 if (proxy->pop() == NULL) {
@@ -36,6 +42,11 @@ void PatternMatchingQuery::minimal_query(string log_file) {
                 }
             }
         }));
+
+        // Wait for the proxy to finish
+        while(!proxy->finished()) {
+            Utils::sleep();
+        }
     }
 
     double total_time_client_side = accumulate(operation_time_minimal_query_client_side.begin(),
@@ -43,13 +54,14 @@ void PatternMatchingQuery::minimal_query(string log_file) {
                                                0.0);
     double avg_time_client_side = total_time_client_side / iterations_;
     double ops_per_sec_client_side = iterations_ / (total_time_client_side / 1000.0);
-    global_metrics["minimal_query_client_side"] = Metrics{operation_time_minimal_query_client_side,
+    global_metrics["minimal_query_client_side_1000_first_responses"] = Metrics{operation_time_minimal_query_client_side,
                                                           total_time_client_side,
                                                           avg_time_client_side,
                                                           ops_per_sec_client_side};
 
-    vector<double> operation_time_minimal_query_server_side =
-        parse_server_side_benchmark_times(log_file);
+    string server_log_file = log_file + "server_log.txt";
+
+    vector<double> operation_time_minimal_query_server_side = parse_server_side_benchmark_times(server_log_file);
 
     double total_time_server_side = accumulate(operation_time_minimal_query_server_side.begin(),
                                                operation_time_minimal_query_server_side.end(),
@@ -165,6 +177,7 @@ void PatternMatchingQuery::positive_importance() {
 void PatternMatchingQuery::complex_query(string log_file) {
 
     vector<double> operation_time_complex_query_client_side;
+    vector<double> operation_time_complex_query_server_side;
 
     for (int i = 0; i < iterations_; ++i) {
         vector<string> q1 = {"LINK_TEMPLATE", "Expression", "2", "NODE", "Symbol", "Word", "VARIABLE", "W"};
@@ -238,12 +251,14 @@ void PatternMatchingQuery::complex_query(string log_file) {
         };
         // clang-format on
 
+        shared_ptr<PatternMatchingQueryProxy> proxy2;
+
         operation_time_complex_query_client_side.push_back(measure_execution_time([&]() {
-            auto proxy = atom_space_->pattern_matching_query(
+            proxy2 = atom_space_->pattern_matching_query(
                 q2, IGNORE_ANSWER_COUNT, "", false, true, false, false, false);
             int count = 0;
-            while (!proxy->finished()) {
-                if (proxy->pop() == NULL) {
+            while (!proxy2->finished()) {
+                if (proxy2->pop() == NULL) {
                     Utils::sleep();
                 } else {
                     if (count++ > 1000) {
@@ -252,24 +267,63 @@ void PatternMatchingQuery::complex_query(string log_file) {
                 }
             }
         }));
+
+        while (!proxy2->finished()) {
+            Utils::sleep();
+        }
+
+        LOG_DEBUG("Benchmark::complex_query - END");
     }
 
-    double total_time_client_side = accumulate(operation_time_complex_query_client_side.begin(),
-                                               operation_time_complex_query_client_side.end(),
-                                               0.0);
+    string server_log_file = log_file + "server_log.txt";
+    string client_log_file = log_file + "client_log.txt";
+    string merged_log_file = log_file + "merged_log.txt";
+
+    string command = "cat " + client_log_file + " " + server_log_file + " | sort > " + merged_log_file;
+    system(command.c_str());
+
+    // parse the merged_file
+    string previous_line;
+    string current_line;
+    const string end_marker = "Benchmark::complex_query - END";
+
+    ifstream merged_file(merged_log_file);
+
+    if (!merged_file.is_open()) {
+        cerr << "Error: Could not open file " << merged_log_file << endl;
+    }
+
+    if (getline(merged_file, previous_line)) {
+        while (getline(merged_file, current_line)) {
+            if (current_line.find(end_marker) != string::npos) {
+                double value;
+                if (parse_ms_from_line(previous_line, value)) {
+                    operation_time_complex_query_server_side.push_back(value);
+                }
+            }
+            previous_line = current_line;
+        }
+    }
+
+    vector<double> operation_time_complex_query_server_side2 = parse_server_side_benchmark_times(server_log_file);
+
+    for (const auto& time : operation_time_complex_query_server_side) {
+        cout << "------> Server-side time1: " << time << " ms" << endl;
+    }
+
+    for (const auto& time : operation_time_complex_query_server_side2) {
+        cout << "------> Server-side time2: " << time << " ms" << endl;
+    }
+
+    double total_time_client_side = accumulate(operation_time_complex_query_client_side.begin(), operation_time_complex_query_client_side.end(),0.0);
     double avg_time_client_side = total_time_client_side / iterations_;
     double ops_per_sec_client_side = iterations_ / (total_time_client_side / 1000.0);
-    global_metrics["complex_query_client_side"] = Metrics{operation_time_complex_query_client_side,
-                                                          total_time_client_side,
-                                                          avg_time_client_side,
-                                                          ops_per_sec_client_side};
+    global_metrics["complex_query_client_side_1000_first_responses"] = Metrics{operation_time_complex_query_client_side, total_time_client_side, avg_time_client_side, ops_per_sec_client_side};
 
-    // double total_time_server_side = accumulate(operation_time_complex_query_server_side.begin(),
-    // operation_time_complex_query_server_side.end(), 0.0); double avg_time_server_side =
-    // total_time_server_side / iterations_; double ops_per_sec_server_side = iterations_ /
-    // (total_time_server_side / 1000.0); global_metrics["complex_query_server_side"] =
-    // Metrics{operation_time_complex_query_server_side, total_time_server_side, avg_time_server_side,
-    // ops_per_sec_server_side};
+    double total_time_server_side = accumulate(operation_time_complex_query_server_side2.begin(), operation_time_complex_query_server_side2.end(), 0.0);
+    double avg_time_server_side = total_time_server_side / iterations_;
+    double ops_per_sec_server_side = iterations_ / (total_time_server_side / 1000.0);
+    global_metrics["complex_query_server_side_all_responses"] = Metrics{operation_time_complex_query_server_side2, total_time_server_side, avg_time_server_side, ops_per_sec_server_side};
 }
 
 void PatternMatchingQuery::update_attention_broker() {

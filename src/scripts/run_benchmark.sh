@@ -192,8 +192,9 @@ generate_metta_file() {
 }
 
 init_environment() {
-    local type="$1"
-    local action="$2"
+    local log_file="$1"
+
+    ./src/scripts/docker_image_build.sh  > /dev/null 2>&1
 
     # Redis and MongoDB
     DAS_REDIS_HOSTNAME="localhost"
@@ -215,14 +216,11 @@ init_environment() {
     
     # Query Agent
     if [[ "$BENCHMARK" == "query_agent" ]]; then
-        # das-cli query-agent stop > /dev/null
-        # echo -e "3000:3100" | das-cli query-agent start
         if [[ $(docker ps -q --filter "name=^das-query_broker-") ]]; then
             docker stop $(docker ps -q --filter "name=^das-query_broker-")
         fi
         ./src/scripts/build.sh --copt=-DLOG_LEVEL=DEBUG_LEVEL
-        # ./src/scripts/run.sh query_broker 35700 3000:3100 | stdbuf -oL grep "Benchmark::" > "./log.txt" || true &
-        ./src/scripts/run.sh query_broker 35700 3000:3100 | stdbuf -oL grep "Benchmark::" > "/tmp/${BENCHMARK}_benchmark/${TIMESTAMP}/${type}_${action}_log.txt" || true &
+        ./src/scripts/run.sh query_broker 35700 3000:3100 | stdbuf -oL grep "Benchmark::" > "$log_file" || true &
         echo -e "\r\033[K${GREEN}Query Agent initialization completed!${RESET}"
     fi
 
@@ -299,15 +297,18 @@ run_benchmark() {
 
     mkdir -p "$report_base_directory"
 
-    ATOMDB_TYPES=("redismongodb" "morkdb")
+    ATOMDB_TYPES=("redismongodb")
 
     if [[ "$benchmark" == "query_agent" ]]; then
         for type in "${ATOMDB_TYPES[@]}"; do   
             for action in "${ACTIONS[@]}"; do
-                echo -e "\n== Running benchmarks for Query Agent: $type | Action: $action ==" 
-                ./src/scripts/docker_image_build.sh  > /dev/null 2>&1
-                init_environment "$type" "$action"
-                ./src/scripts/bazel.sh run //tests/benchmark/query_agent:query_agent_main --copt=-DLOG_LEVEL=DEBUG_LEVEL -- "$report_base_directory" "$type" "$action" "$CACHE_ENABLED" "$ITERATIONS" "/tmp/${BENCHMARK}_benchmark/${TIMESTAMP}/${type}_${action}_log.txt" 2> >(grep -v '^+')
+                echo -e "\n== Running benchmarks for Query Agent: $type | Action: $action =="
+                local log_file="/tmp/${BENCHMARK}_benchmark/${TIMESTAMP}/${type}_${action}_server_log.txt"
+                local client_log_file="/tmp/${BENCHMARK}_benchmark/${TIMESTAMP}/${type}_${action}_client_log.txt"
+                init_environment "$log_file"
+                echo -e "\r\033[K${GREEN}Running test START${RESET}"
+                ./src/scripts/bazel.sh run //tests/benchmark/query_agent:query_agent_main --copt=-DLOG_LEVEL=DEBUG_LEVEL -- "$report_base_directory" "$type" "$action" "$CACHE_ENABLED" "$ITERATIONS" "/tmp/${BENCHMARK}_benchmark/${TIMESTAMP}/${type}_${action}_" | tee >(grep "Benchmark::" > "$client_log_file")
+                echo -e "\r\033[K${GREEN}Running test END${RESET}"
             done
         done
     elif [[ "$benchmark" == "atomdb" ]]; then
@@ -323,10 +324,9 @@ run_benchmark() {
             for action in "${ACTIONS[@]}"; do
                 declare -n methods="$action"
                 for method in "${methods[@]}"; do
-                    echo -e "\n== Running benchmarks for AtomDB: $type | Action: $action | Method: $method ==" 
-                    ./src/scripts/docker_image_build.sh  > /dev/null 2>&1
-                    init_environment
-                    ./src/scripts/bazel.sh run //tests/benchmark/atomdb:atomdb_main --copt=-DLOG_LEVEL=DEBUG_LEVEL -- "$type" "$action" "$method" "$CACHE_ENABLED" "$CONCURRENCY" "$ITERATIONS" "$TIMESTAMP" 2> >(grep -v '^+')
+                    echo -e "\n== Running benchmarks for AtomDB: $type | Action: $action | Method: $method =="
+                    init_environment "$type"
+                    ./src/scripts/bazel.sh run //tests/benchmark/atomdb:atomdb_main --copt=-DLOG_LEVEL=DEBUG_LEVEL -- "$type" "$action" "$method" "$CACHE_ENABLED" "$CONCURRENCY" "$ITERATIONS" "$TIMESTAMP"
                 done
             done
         done
