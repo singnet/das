@@ -39,3 +39,7 @@ string UntypedVariable::to_string() const { return "UntypedVariable(name: '" + t
 string UntypedVariable::handle() const { return Hasher::node_handle(this->type, this->name); }
 
 string UntypedVariable::metta_representation(HandleDecoder& decoder) const { return "$" + this->name; }
+
+bool UntypedVariable::match(const string& handle, Assignment& assignment, HandleDecoder& decoder) {
+    return assignment.assign(this->name, handle);
+}

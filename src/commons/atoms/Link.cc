@@ -112,3 +112,7 @@ string Link::metta_representation(HandleDecoder& decoder) const {
 }
 
 unsigned int Link::arity() const { return this->targets.size(); }
+
+bool Link::match(const string& handle, Assignment& assignment, HandleDecoder& decoder) {
+    return this->handle() == handle;
+}

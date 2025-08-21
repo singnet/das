@@ -119,7 +119,8 @@ class RedisMongoDB : public AtomDB {
     atomic<uint> patterns_next_score{0};
     atomic<uint> incoming_set_next_score{0};
 
-    map<string, tuple<vector<string>, vector<vector<string>>>> pattern_index_schema_map;
+    map<int, tuple<vector<string>, vector<vector<string>>>> pattern_index_schema_map;
+    int pattern_index_schema_next_priority{1};
 
     shared_ptr<atomdb_api_types::AtomDocument> get_document(const string& handle,
                                                             const string& collection_name);

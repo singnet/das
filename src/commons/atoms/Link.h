@@ -103,6 +103,16 @@ class Link : public Atom {
      * @return this Link's arity.
      */
     virtual unsigned int arity() const;
+
+    /**
+     * @brief Return true iff the passed handle equals this Link's handle.
+     *
+     * @return true iff the passed handle equals this Link's handle.
+     * @param handle Handle of the Atom being matched against this one.
+     * @param assignment disregarded
+     * @param decoder disregarded
+     */
+    virtual bool match(const string& handle, Assignment& assignment, HandleDecoder& decoder) override;
 };
 
 }  // namespace atoms
