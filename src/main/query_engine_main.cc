@@ -4,9 +4,9 @@
 #include <string>
 
 #include "AtomDBSingleton.h"
+#include "AttentionBrokerClient.h"
 #include "PatternMatchingQueryProcessor.h"
 #include "ServiceBusSingleton.h"
-#include "AttentionBrokerClient.h"
 #include "Utils.h"
 
 #define LOG_LEVEL INFO_LEVEL

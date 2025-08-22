@@ -1,4 +1,5 @@
 #include "LinkTemplate.h"
+
 #include "AtomDBSingleton.h"
 #include "AttentionBrokerClient.h"
 #include "Terminal.h"
@@ -90,7 +91,7 @@ void LinkTemplate::compute_importance(vector<pair<char*, float>>& handles) {
     vector<float> importance_list;
     handle_list.reserve(handles.size());
     importance_list.reserve(handles.size());
-    for (auto pair: handles) {
+    for (auto pair : handles) {
         handle_list.push_back(string(pair.first));
     }
     AttentionBrokerClient::get_importance(handle_list, this->context, importance_list);

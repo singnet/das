@@ -1,5 +1,6 @@
-#include "AttentionBrokerClient.h"
 #include "QueryEvolutionProcessor.h"
+
+#include "AttentionBrokerClient.h"
 #include "LinkSchema.h"
 #include "QueryEvolutionProxy.h"
 #include "ServiceBus.h"

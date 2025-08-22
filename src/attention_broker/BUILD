@@ -17,10 +17,10 @@ cc_library(
     ],
     includes = ["."],
     deps = [
+        ":attention_broker_client",
         ":hebbian_network",
         ":hebbian_network_updater",
         ":request_selector",
-        ":attention_broker_client",
         "//commons:commons_lib",
         "//commons:handle_trie",
         "//hasher:hasher_lib",

@@ -1,9 +1,9 @@
 #pragma once
 
-#include <mutex>
-#include <string>
-#include <set>
 #include <map>
+#include <mutex>
+#include <set>
+#include <string>
 #include <vector>
 
 using namespace std;
@@ -16,22 +16,21 @@ namespace attention_broker {
  *
  */
 class AttentionBrokerClient {
-
-public:
-
+   public:
     ~AttentionBrokerClient() {}
 
     static void set_server_address(const string& ip_port);
     static void correlate(const set<string>& handles, const string& context);
     static void stimulate(const map<string, unsigned int>& handle_count, const string& context);
-    static void get_importance(const vector<string>& handles, const string& context, vector<float>& importances);
+    static void get_importance(const vector<string>& handles,
+                               const string& context,
+                               vector<float>& importances);
 
-private:
-
+   private:
     static mutex api_mutex;
     static string SERVER_ADDRESS;
     static unsigned int MAX_GET_IMPORTANCE_BUNDLE_SIZE;
     AttentionBrokerClient() {}
 };
 
-} // namespace attention_broker
+}  // namespace attention_broker

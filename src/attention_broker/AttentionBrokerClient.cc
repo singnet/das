@@ -1,11 +1,11 @@
+#include "AttentionBrokerClient.h"
+
 #include <grpcpp/grpcpp.h>
 
-#include "AttentionBrokerClient.h"
 #include "Utils.h"
 
 #define LOG_LEVEL INFO_LEVEL
 #include "Logger.h"
-
 #include "attention_broker.grpc.pb.h"
 #include "attention_broker.pb.h"
 
@@ -19,15 +19,13 @@ unsigned int AttentionBrokerClient::MAX_GET_IMPORTANCE_BUNDLE_SIZE = 100000;
 // -------------------------------------------------------------------------------------------------
 // Public methods
 
-void AttentionBrokerClient::set_server_address(const string& ip_port) {
-    SERVER_ADDRESS = ip_port;
-}
+void AttentionBrokerClient::set_server_address(const string& ip_port) { SERVER_ADDRESS = ip_port; }
 
 void AttentionBrokerClient::correlate(const set<string>& handles, const string& context) {
-
     dasproto::HandleList handle_list;  // GRPC command parameter
     dasproto::Ack ack;                 // GRPC command return
-    auto stub = dasproto::AttentionBroker::NewStub(grpc::CreateChannel(SERVER_ADDRESS, grpc::InsecureChannelCredentials()));
+    auto stub = dasproto::AttentionBroker::NewStub(
+        grpc::CreateChannel(SERVER_ADDRESS, grpc::InsecureChannelCredentials()));
 
     handle_list.set_context(context);
     for (string handle : handles) {
@@ -44,11 +42,12 @@ void AttentionBrokerClient::correlate(const set<string>& handles, const string& 
     }
 }
 
-void AttentionBrokerClient::stimulate(const map<string, unsigned int>& handle_map, const string& context) {
-
+void AttentionBrokerClient::stimulate(const map<string, unsigned int>& handle_map,
+                                      const string& context) {
     dasproto::HandleCount handle_count;  // GRPC command parameter
     dasproto::Ack ack;                   // GRPC command return
-    auto stub = dasproto::AttentionBroker::NewStub(grpc::CreateChannel(SERVER_ADDRESS, grpc::InsecureChannelCredentials()));
+    auto stub = dasproto::AttentionBroker::NewStub(
+        grpc::CreateChannel(SERVER_ADDRESS, grpc::InsecureChannelCredentials()));
 
     handle_count.set_context(context);
     unsigned int sum;
@@ -57,14 +56,17 @@ void AttentionBrokerClient::stimulate(const map<string, unsigned int>& handle_ma
         sum += pair.second;
     }
     (*handle_count.mutable_map())["SUM"] = sum;
-    LOG_INFO("Calling AttentionBroker GRPC. Stimulating " << handle_count.mutable_map()->size() << " handles");
+    LOG_INFO("Calling AttentionBroker GRPC. Stimulating " << handle_count.mutable_map()->size()
+                                                          << " handles");
     stub->stimulate(new grpc::ClientContext(), handle_count, &ack);
     if (ack.msg() != "STIMULATE") {
         Utils::error("Failed GRPC command: AttentionBroker::stimulate()");
     }
 }
 
-void AttentionBrokerClient::get_importance(const vector<string>& handles, const string& context, vector<float>& importances) {
+void AttentionBrokerClient::get_importance(const vector<string>& handles,
+                                           const string& context,
+                                           vector<float>& importances) {
     unsigned int pending_count = handles.size();
     unsigned int cursor = 0;
     unsigned int bundle_count = 0;
@@ -77,7 +79,8 @@ void AttentionBrokerClient::get_importance(const vector<string>& handles, const 
             pending_count--;
             bundle_count++;
         }
-        auto stub = dasproto::AttentionBroker::NewStub(grpc::CreateChannel(SERVER_ADDRESS, grpc::InsecureChannelCredentials()));
+        auto stub = dasproto::AttentionBroker::NewStub(
+            grpc::CreateChannel(SERVER_ADDRESS, grpc::InsecureChannelCredentials()));
         LOG_INFO("Querying AttentionBroker for importance of " << handle_list.list_size() << " atoms.");
         stub->get_importance(new grpc::ClientContext(), handle_list, &importance_list);
         for (unsigned int i = 0; i < bundle_count; i++) {
