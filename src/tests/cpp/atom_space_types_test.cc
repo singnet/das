@@ -134,6 +134,14 @@ TEST(WildcardTest, Wildcards) {
     schema.stack_node(symbol, "n2");
     schema.build();
     EXPECT_EQ(schema.metta_representation(db), "(($v1 n1) $v2 n2)");
+
+    UntypedVariable v5("v5");
+    Assignment assignment;
+    EXPECT_TRUE(v5.match("h1", assignment, db));
+    EXPECT_TRUE(v5.match("h1", assignment, db));
+    EXPECT_FALSE(v5.match("h2", assignment, db));
+    UntypedVariable v6("v6");
+    EXPECT_TRUE(v6.match("h1", assignment, db));
 }
 
 TEST(WildcardTest, LinkSchema) {
@@ -314,6 +322,12 @@ TEST(LinkTest, Match) {
     auto link3 = db.add_atom(make_shared<Link>(expression, v));
     v = {node1->handle(), link3->handle()};
     auto link4 = db.add_atom(make_shared<Link>(expression, v));
+
+    Assignment assignment;
+    EXPECT_TRUE(node1->match(node1->handle(), assignment, db));
+    EXPECT_FALSE(node1->match(node2->handle(), assignment, db));
+    EXPECT_TRUE(link1->match(link1->handle(), assignment, db));
+    EXPECT_FALSE(link1->match(node1->handle(), assignment, db));
 
     // clang-format off
     LinkSchema schema1({

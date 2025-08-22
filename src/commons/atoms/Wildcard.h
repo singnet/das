@@ -58,5 +58,6 @@ class Wildcard : public Atom {
 
     virtual string handle() const = 0;
     virtual string metta_representation(HandleDecoder& decoder) const = 0;
+    virtual bool match(const string& handle, Assignment& assignment, HandleDecoder& decoder) = 0;
 };
 }  // namespace atoms

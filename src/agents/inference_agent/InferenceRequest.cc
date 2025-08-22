@@ -32,10 +32,38 @@ InferenceRequest::~InferenceRequest() {}
 
 vector<string> InferenceRequest::query() { return {}; }
 
+void InferenceRequest::set_repeat(unsigned int repeat) { this->repeat = repeat; }
+
+unsigned int InferenceRequest::get_repeat() { return repeat; }
+
+unsigned long InferenceRequest::get_lca_max_results() { return lca_max_results; }
+
+void InferenceRequest::set_lca_max_results(unsigned long lca_max_results) {
+    this->lca_max_results = lca_max_results;
+}
+
+unsigned int InferenceRequest::get_lca_max_repeats() { return lca_max_repeats; }
+
+void InferenceRequest::set_lca_max_repeats(unsigned int lca_max_repeats) {
+    this->lca_max_repeats = lca_max_repeats;
+}
+
+bool InferenceRequest::get_lca_update_attention_broker() { return lca_update_attention_broker; }
+
+void InferenceRequest::set_lca_update_attention_broker(bool lca_update_attention_broker) {
+    this->lca_update_attention_broker = lca_update_attention_broker;
+}
+
 string InferenceRequest::get_id() { return inference_request_id; }
 
 void InferenceRequest::set_id(string inference_request_id) {
     this->inference_request_id = inference_request_id;
+}
+
+bool InferenceRequest::get_sent_evolution_request() { return sent_evolution_request; }
+
+void InferenceRequest::set_sent_evolution_request(bool sent_evolution_request) {
+    this->sent_evolution_request = sent_evolution_request;
 }
 
 string InferenceRequest::get_type() { return "INFERENCE_REQUEST"; }

@@ -77,6 +77,19 @@ class UntypedVariable : public Wildcard {
      * @return a MeTTa expression which represents this Atom.
      */
     virtual string metta_representation(HandleDecoder& decoder) const;
+
+    /**
+     * @brief Return true iff the passed handle can be assigned to this variable (i.e. if assigning
+     * this variable to the passed handle is not inconsistent with the passed assignment).
+     *
+     * @return true iff the passed handle can be assigned to this variable (i.e. if assigning
+     * this variable to the passed handle is not inconsistent with the passed assignment).
+     * @param handle Handle of the Atom being matched against this one.
+     * @param assignment Assignment object which will be used to validade the assigment of this
+     * variable to the passed handle. THIS OBJECT IS MODIFIED BY SIDE-EFFECT.
+     * @param decoder disregarded
+     */
+    virtual bool match(const string& handle, Assignment& assignment, HandleDecoder& decoder) override;
 };
 
 }  // namespace atoms
