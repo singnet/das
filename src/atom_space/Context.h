@@ -10,19 +10,17 @@ namespace atom_space {
  *
  */
 class Context {
-friend class AtomSpace;
+    friend class AtomSpace;
 
-public:
-
+   public:
     ~Context();
     const string& get_key();
     const string& get_name();
 
-private:
-    
+   private:
     Context(const string& name);
     string name;
     string key;
 };
 
-} // namespace atom_space
+}  // namespace atom_space

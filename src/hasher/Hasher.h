@@ -17,13 +17,9 @@ class Hasher {
         return handle;
     }
 
-    static inline string context_handle(const string& name) {
-        return plain_string_hash(name);
-    }
+    static inline string context_handle(const string& name) { return plain_string_hash(name); }
 
-    static inline string type_handle(const string& type) {
-        return plain_string_hash(type);
-    }
+    static inline string type_handle(const string& type) { return plain_string_hash(type); }
 
     static inline string node_handle(const string& type, const string& name) {
         char* h = terminal_hash((char*) type.c_str(), (char*) name.c_str());

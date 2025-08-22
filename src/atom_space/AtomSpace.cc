@@ -146,7 +146,7 @@ void AtomSpace::commit_changes(Scope scope) {
 
 // -------------------------------------------------------------------------------------------------
 shared_ptr<Context> AtomSpace::create_context(const string& context_name) {
-    Context *context = new Context(context_name);
+    Context* context = new Context(context_name);
     return shared_ptr<Context>(context);
 }
 

@@ -4,11 +4,11 @@
 
 #include "AtomDBAPITypes.h"
 #include "AtomDBSingleton.h"
+#include "Context.h"
 #include "Link.h"
 #include "Node.h"
 #include "PatternMatchingQueryProxy.h"
 #include "ServiceBusSingleton.h"
-#include "Context.h"
 
 #define IGNORE_ANSWER_COUNT 0
 
