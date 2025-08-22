@@ -1,17 +1,14 @@
 #include "LinkTemplate.h"
-
-#include <grpcpp/grpcpp.h>
-
 #include "AtomDBSingleton.h"
+#include "AttentionBrokerClient.h"
 #include "Terminal.h"
-#include "attention_broker.grpc.pb.h"
-#include "attention_broker.pb.h"
 
 #define LOG_LEVEL INFO_LEVEL
 #include "Logger.h"
 
 using namespace query_element;
 using namespace atomdb;
+using namespace attention_broker;
 
 ThreadSafeHashmap<string, shared_ptr<atomdb_api_types::HandleSet>> LinkTemplate::cache;
 
@@ -89,30 +86,16 @@ void LinkTemplate::build() {
 }
 
 void LinkTemplate::compute_importance(vector<pair<char*, float>>& handles) {
-    unsigned int pending_count = handles.size();
-    unsigned int cursor = 0;
-    unsigned int bundle_count = 0;
-    unsigned int bundle_start = 0;
-    dasproto::HandleList handle_list;
-    dasproto::ImportanceList importance_list;
-    while (pending_count > 0) {
-        handle_list.set_context(this->context);
-        while ((pending_count > 0) && (bundle_count < MAX_GET_IMPORTANCE_BUNDLE_SIZE)) {
-            handle_list.add_list(handles[cursor++].first);
-            pending_count--;
-            bundle_count++;
-        }
-        auto stub = dasproto::AttentionBroker::NewStub(grpc::CreateChannel(
-            this->source_element->get_attention_broker_address(), grpc::InsecureChannelCredentials()));
-        LOG_INFO("Querying AttentionBroker for importance of " << handle_list.list_size() << " atoms.");
-        stub->get_importance(new grpc::ClientContext(), handle_list, &importance_list);
-        for (unsigned int i = 0; i < bundle_count; i++) {
-            handles[bundle_start + i].second = importance_list.list(i);
-        }
-        bundle_start = cursor;
-        bundle_count = 0;
-        handle_list.clear_list();
-        importance_list.clear_list();
+    vector<string> handle_list;
+    vector<float> importance_list;
+    handle_list.reserve(handles.size());
+    importance_list.reserve(handles.size());
+    for (auto pair: handles) {
+        handle_list.push_back(string(pair.first));
+    }
+    AttentionBrokerClient::get_importance(handle_list, this->context, importance_list);
+    for (unsigned int i = 0; i < importance_list.size(); i++) {
+        handles[i].second = importance_list[i];
     }
     // Sort decreasing by importance value
     std::sort(handles.begin(),

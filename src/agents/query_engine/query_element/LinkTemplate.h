@@ -18,8 +18,6 @@ using namespace query_element;
 using namespace atoms;
 using namespace atomdb;
 
-#define MAX_GET_IMPORTANCE_BUNDLE_SIZE ((unsigned int) 100000)
-
 namespace query_element {
 
 /**
@@ -32,7 +30,6 @@ class LinkTemplate : public QueryElement {
         bool buffers_set_up_flag;
         mutex api_mutex;
         SourceElement() { buffers_set_up_flag = false; }
-        string get_attention_broker_address() { return this->attention_broker_address; }
         void add_handle(char* handle, float importance, Assignment& assignment) {
             QueryAnswer* answer = new QueryAnswer(string(handle), importance);
             answer->assignment = assignment;

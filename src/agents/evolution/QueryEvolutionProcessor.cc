@@ -1,23 +1,18 @@
+#include "AttentionBrokerClient.h"
 #include "QueryEvolutionProcessor.h"
-
-#include <grpcpp/grpcpp.h>
-
 #include "LinkSchema.h"
 #include "QueryEvolutionProxy.h"
 #include "ServiceBus.h"
 #include "ServiceBusSingleton.h"
-#include "attention_broker.grpc.pb.h"
-#include "attention_broker.pb.h"
 
 #define LOG_LEVEL INFO_LEVEL
 #include "Logger.h"
-
-#define ATTENTION_BROKER_ADDRESS "localhost:37007"
 
 using namespace evolution;
 using namespace query_engine;
 using namespace atoms;
 using namespace service_bus;
+using namespace attention_broker;
 
 // -------------------------------------------------------------------------------------------------
 // Constructors and destructors
@@ -283,12 +278,7 @@ void QueryEvolutionProcessor::correlate_similar(shared_ptr<QueryEvolutionProxy> 
     }
 
     // Update AttentionBroker
-    auto stub = dasproto::AttentionBroker::NewStub(
-        grpc::CreateChannel(ATTENTION_BROKER_ADDRESS, grpc::InsecureChannelCredentials()));
     set<string> handle_set;
-    dasproto::HandleList handle_list;  // GRPC command parameter
-    dasproto::Ack ack;                 // GRPC command return
-    handle_list.set_context(proxy->get_context());
     auto pm_query = issue_correlation_query(proxy, query_tokens);
     for (string handle : correlation_query_answer->handles) {
         handle_set.insert(handle);
@@ -303,18 +293,7 @@ void QueryEvolutionProcessor::correlate_similar(shared_ptr<QueryEvolutionProxy> 
             Utils::sleep();
         }
     }
-    for (string handle : handle_set) {
-        handle_list.add_list(handle);
-    }
-    if (handle_list.list_size() > 0) {
-        LOG_DEBUG("Calling AttentionBroker GRPC. Correlating " << handle_list.list_size() << " handles");
-        stub->correlate(new grpc::ClientContext(), handle_list, &ack);
-        if (ack.msg() != "CORRELATE") {
-            Utils::error("Failed GRPC command: AttentionBroker::correlate()");
-        }
-    } else {
-        LOG_INFO("No handles to correlate");
-    }
+    AttentionBrokerClient::correlate(handle_set, proxy->get_context());
 }
 
 void QueryEvolutionProcessor::stimulate(shared_ptr<QueryEvolutionProxy> proxy,
@@ -322,35 +301,21 @@ void QueryEvolutionProcessor::stimulate(shared_ptr<QueryEvolutionProxy> proxy,
     LOG_INFO("Stimulating " + std::to_string(selected.size()) + " selected QueryAnswers: ");
     unsigned int importance_tokens =
         proxy->parameters.get<unsigned int>(QueryEvolutionProxy::TOTAL_ATTENTION_TOKENS);
-    auto stub = dasproto::AttentionBroker::NewStub(
-        grpc::CreateChannel(ATTENTION_BROKER_ADDRESS, grpc::InsecureChannelCredentials()));
 
-    dasproto::HandleCount handle_count;  // GRPC command parameter
-    dasproto::Ack ack;                   // GRPC command return
-    handle_count.set_context(proxy->get_context());
-    unsigned int sum;
+    map<string, unsigned int> handle_count;
     for (auto pair : selected) {
         for (string handle : pair.first->handles) {
             unsigned int value = (unsigned int) std::lround(pair.second * importance_tokens);
-            if (handle_count.mutable_map()->find(handle) == handle_count.mutable_map()->end()) {
-                (*handle_count.mutable_map())[handle] = value;
-                sum += value;
+            if (handle_count.find(handle) == handle_count.end()) {
+                handle_count[handle] = value;
             } else {
-                if (value > (*handle_count.mutable_map())[handle]) {
-                    sum -= (*handle_count.mutable_map())[handle];
-                    (*handle_count.mutable_map())[handle] = value;
-                    sum += value;
+                if (value > handle_count[handle]) {
+                    handle_count[handle] = value;
                 }
             }
         }
     }
-    (*handle_count.mutable_map())["SUM"] = sum;
-    LOG_DEBUG("Calling AttentionBroker GRPC. Stimulating " << handle_count.mutable_map()->size()
-                                                           << " handles");
-    stub->stimulate(new grpc::ClientContext(), handle_count, &ack);
-    if (ack.msg() != "STIMULATE") {
-        Utils::error("Failed GRPC command: AttentionBroker::stimulate()");
-    }
+    AttentionBrokerClient::stimulate(handle_count, proxy->get_context());
 }
 
 void QueryEvolutionProcessor::update_attention_allocation(

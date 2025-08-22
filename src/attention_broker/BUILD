@@ -20,9 +20,22 @@ cc_library(
         ":hebbian_network",
         ":hebbian_network_updater",
         ":request_selector",
+        ":attention_broker_client",
         "//commons:commons_lib",
         "//commons:handle_trie",
         "//hasher:hasher_lib",
+        "@com_github_grpc_grpc//:grpc++",
+        "@com_github_grpc_grpc//:grpc++_reflection",
+        "@com_github_singnet_das_proto//:attention_broker_cc_grpc",
+    ],
+)
+
+cc_library(
+    name = "attention_broker_client",
+    srcs = ["AttentionBrokerClient.cc"],
+    hdrs = ["AttentionBrokerClient.h"],
+    deps = [
+        "//commons:commons_lib",
         "@com_github_grpc_grpc//:grpc++",
         "@com_github_grpc_grpc//:grpc++_reflection",
         "@com_github_singnet_das_proto//:attention_broker_cc_grpc",
