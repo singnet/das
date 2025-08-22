@@ -12,7 +12,7 @@
 #define LOG_LEVEL INFO_LEVEL
 #include "Logger.h"
 
-#define ATTENTION_BROKER_ADDRESS "das-attention-broker:37007"
+#define ATTENTION_BROKER_ADDRESS "localhost:37007"
 
 using namespace evolution;
 using namespace query_engine;
