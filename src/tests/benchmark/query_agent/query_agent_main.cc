@@ -29,7 +29,7 @@
 using namespace std;
 using namespace query_engine;
 using namespace service_bus;
-using namespace atomspace;
+using namespace atom_space;
 using namespace atomdb;
 
 mutex global_mutex;

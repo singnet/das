@@ -4,6 +4,7 @@
 
 #include "AtomDBAPITypes.h"
 #include "AtomDBSingleton.h"
+#include "Context.h"
 #include "Link.h"
 #include "Node.h"
 #include "PatternMatchingQueryProxy.h"
@@ -18,7 +19,7 @@ using namespace commons;
 using namespace service_bus;
 using namespace query_engine;
 
-namespace atomspace {
+namespace atom_space {
 
 // -------------------------------------------------------------------------------------------------
 /**
@@ -169,6 +170,16 @@ class AtomSpace {
      */
     void commit_changes(Scope scope = LOCAL_AND_REMOTE);
 
+    /**
+     * Create and return a context object.
+     *
+     * Context objects are used to make queries in the atom space.
+     *
+     * @param name Context name.
+     * @return A newly created Context object.
+     */
+    shared_ptr<Context> create_context(const string& context_name);
+
    protected:
     shared_ptr<AtomDB> db;  // to allow mocking in tests
 
@@ -187,4 +198,4 @@ class AtomSpace {
     unique_ptr<HandleTrie> handle_trie;
 };
 
-}  // namespace atomspace
+}  // namespace atom_space
