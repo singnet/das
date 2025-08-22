@@ -24,10 +24,10 @@ void ctrl_c_handler(int) {
 
 int main(int argc, char* argv[]) {
     if (argc != 3) {
-        cerr << "Usage: " << argv[0] << " <port> <start_port:end_port>" << endl;
+        cerr << "Usage: " << argv[0] << " <ip:port> <start_port:end_port>" << endl;
         exit(1);
     }
-    string server_id = "0.0.0.0:" + string(argv[1]);
+    string server_id = string(argv[1]);
     auto ports_range = Utils::parse_ports_range(argv[2]);
     LOG_INFO("Starting query engine server with id: " + server_id);
     signal(SIGINT, &ctrl_c_handler);

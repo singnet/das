@@ -14,24 +14,27 @@ string Atom::WILDCARD_HANDLE = string(::compute_hash((char*) Atom::WILDCARD_STRI
 // -------------------------------------------------------------------------------------------------
 // Constructors, destructors , basic operators and initializers
 
-Atom::Atom(const string& type, const Properties& custom_attributes)
-    : type(type), custom_attributes(custom_attributes) {
+Atom::Atom(const string& type, bool is_toplevel, const Properties& custom_attributes)
+    : type(type), is_toplevel(is_toplevel), custom_attributes(custom_attributes) {
     this->validate();
 }
 
 Atom::Atom(const Atom& other) {
     this->type = other.type;
+    this->is_toplevel = other.is_toplevel;
     this->custom_attributes = other.custom_attributes;
 }
 
 Atom& Atom::operator=(const Atom& other) {
     this->type = other.type;
+    this->is_toplevel = other.is_toplevel;
     this->custom_attributes = other.custom_attributes;
     return *this;
 }
 
 bool Atom::operator==(const Atom& other) {
-    return (this->type == other.type) && (this->custom_attributes == other.custom_attributes);
+    return (this->type == other.type) && (this->is_toplevel == other.is_toplevel) &&
+           (this->custom_attributes == other.custom_attributes);
 }
 
 bool Atom::operator!=(const Atom& other) { return !(*this == other); }
@@ -46,8 +49,9 @@ void Atom::validate() const {
 // Default implementation for virtual public API
 
 string Atom::to_string() const {
-    return "Atom(type: '" + this->type + "', custom_attributes: " + this->custom_attributes.to_string() +
-           ")";
+    return "Atom(type: '" + this->type +
+           "', is_toplevel: " + string(this->is_toplevel ? "true" : "false") +
+           ", custom_attributes: " + this->custom_attributes.to_string() + ")";
 }
 
 string Atom::named_type_hash() const { return Hasher::type_handle(this->type); }

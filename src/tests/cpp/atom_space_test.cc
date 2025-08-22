@@ -43,6 +43,14 @@ class MockAtomDocument : public AtomDocument {
         return nullptr;
     }
 
+    bool get_bool(const string& key) override {
+        auto it = values.find(key);
+        if (it != values.end()) {
+            return it->second == "true";
+        }
+        return false;
+    }
+
     unsigned int get_size(const string& key) override {
         auto it = arrays.find(key);
         if (it != arrays.end()) {
@@ -102,6 +110,10 @@ class MockAtomDB : public AtomDB {
     vector<shared_ptr<AtomDocument>> get_link_documents(const vector<string>& handles,
                                                         const vector<string>& fields) override {
         return get_atom_documents(handles, fields);
+    }
+
+    vector<shared_ptr<AtomDocument>> get_matching_atoms(bool is_toplevel, Atom& key) override {
+        return {};
     }
 
     string add_atom(const atoms::Atom* atom) override { return ""; }

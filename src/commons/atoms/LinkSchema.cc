@@ -20,13 +20,23 @@ string LinkSchema::LINK_TEMPLATE = "LINK_TEMPLATE";
 // -------------------------------------------------------------------------------------------------
 // Constructors, destructors , basic operators and initializers
 
-LinkSchema::LinkSchema(const string& type, unsigned int arity, const Properties& custom_attributes)
-    : Wildcard(type, custom_attributes) {
+LinkSchema::LinkSchema(const string& type,
+                       unsigned int arity,
+                       bool is_toplevel,
+                       const Properties& custom_attributes)
+    : Wildcard(type, is_toplevel, custom_attributes) {
     _init(arity);
 }
 
-LinkSchema::LinkSchema(const vector<string>& tokens, const Properties& custom_attributes)
-    : Wildcard(tokens[1], custom_attributes) {
+LinkSchema::LinkSchema(const string& type, unsigned int arity, const Properties& custom_attributes)
+    : Wildcard(type, false, custom_attributes) {
+    _init(arity);
+}
+
+LinkSchema::LinkSchema(const vector<string>& tokens,
+                       bool is_toplevel,
+                       const Properties& custom_attributes)
+    : Wildcard(tokens[1], is_toplevel, custom_attributes) {
     _syntax_assert(tokens.size() > 3, tokens[0], 0);
     _init((unsigned int) Utils::string_to_int(tokens[2]));
     untokenize(tokens);

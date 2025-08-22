@@ -22,6 +22,7 @@ class Atom : public HandleTrie::TrieValue {
     static string WILDCARD_STRING;
     static string WILDCARD_HANDLE;
     string type;                   ///< The type of the atom.
+    bool is_toplevel;              ///< Whether the atom is a toplevel.
     Properties custom_attributes;  ///< Custom attributes for the atom.
 
     // ---------------------------------------------------------------------------------------------
@@ -33,7 +34,7 @@ class Atom : public HandleTrie::TrieValue {
      * @param custom_attributes Custom attributes for the atom.
      * @throws std::runtime_error if type is empty.
      */
-    Atom(const string& type, const Properties& custom_attributes = {});
+    Atom(const string& type, bool is_toplevel = false, const Properties& custom_attributes = {});
 
     /**
      * @brief Copy constructor.

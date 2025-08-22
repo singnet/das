@@ -78,6 +78,7 @@ class MongodbDocument : public AtomDocument {
 
     const char* get(const string& key);
     virtual const char* get(const string& array_key, unsigned int index);
+    virtual bool get_bool(const string& key);
     virtual unsigned int get_size(const string& array_key);
     virtual bool contains(const string& key);
 

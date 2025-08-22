@@ -59,6 +59,7 @@ class AtomDocument {
 
     virtual const char* get(const string& key) = 0;
     virtual const char* get(const string& array_key, unsigned int index) = 0;
+    virtual bool get_bool(const string& key) = 0;
     virtual unsigned int get_size(const string& array_key) = 0;
     virtual bool contains(const string& key) = 0;
 };

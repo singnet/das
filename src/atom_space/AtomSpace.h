@@ -138,10 +138,14 @@ class AtomSpace {
      *
      * @param type Node type.
      * @param name Node name.
+     * @param is_toplevel Whether the node is a toplevel.
      * @param custom_attributes Custom attributes for the node (optional).
      * @return The handle of the new node (caller is responsible for freeing).
      */
-    char* add_node(const string& type, const string& nam, const Properties& custom_attributes = {});
+    char* add_node(const string& type,
+                   const string& name,
+                   bool is_toplevel = false,
+                   const Properties& custom_attributes = {});
 
     /**
      * @brief Add a link to the AtomSpace.
@@ -151,11 +155,13 @@ class AtomSpace {
      *
      * @param type Link type.
      * @param targets List of target atoms.
+     * @param is_toplevel Whether the link is a toplevel.
      * @param custom_attributes Custom attributes for the link (optional).
      * @return The handle of the new link (caller is responsible for freeing).
      */
     char* add_link(const string& type,
                    const vector<string>& targets,
+                   bool is_toplevel = false,
                    const Properties& custom_attributes = {});
 
     /**

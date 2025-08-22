@@ -54,7 +54,7 @@ TEST(LinkTest, LinkToString) {
     auto n1 = db.add_atom(make_shared<Node>("Type1", "Name1"));
     auto n2 = db.add_atom(make_shared<Node>("Type2", "Name2"));
     vector<string> targets = {n1->handle(), n2->handle()};
-    Link l("LinkType", targets);
+    Link l("LinkType", targets, true);
     string s = l.to_string();
     // clang-format off
     EXPECT_EQ(
@@ -62,6 +62,7 @@ TEST(LinkTest, LinkToString) {
         "Link("
             "type: 'LinkType', "
             "targets: [" + n1->handle() + ", " + n2->handle() + "], "
+            "is_toplevel: true, "
             "custom_attributes: {}"
         ")"
     );
@@ -93,6 +94,7 @@ TEST(LinkTest, LinkWithCustomAttributes) {
         "Link("
             "type: 'LinkType', "
             "targets: [" + n1->handle() + ", " + n2->handle() + "], "
+            "is_toplevel: false, "
             "custom_attributes: {count: 10, flag: true}"
         ")"
     );

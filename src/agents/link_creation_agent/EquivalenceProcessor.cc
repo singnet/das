@@ -100,8 +100,11 @@ vector<shared_ptr<Link>> EquivalenceProcessor::process_query(shared_ptr<QueryAns
     custom_attributes["confidence"] = 1;
     vector<string> targets_c1_c2 = {equivalence_node.handle(), c1_handle, c2_handle};
     vector<string> targets_c2_c1 = {equivalence_node.handle(), c2_handle, c1_handle};
-    shared_ptr<Link> link_c1_c2 = make_shared<Link>("Expression", targets_c1_c2, custom_attributes);
-    shared_ptr<Link> link_c2_c1 = make_shared<Link>("Expression", targets_c2_c1, custom_attributes);
+    bool is_toplevel = false;
+    shared_ptr<Link> link_c1_c2 =
+        make_shared<Link>("Expression", targets_c1_c2, is_toplevel, custom_attributes);
+    shared_ptr<Link> link_c2_c1 =
+        make_shared<Link>("Expression", targets_c2_c1, is_toplevel, custom_attributes);
     result.push_back(link_c1_c2);
     result.push_back(link_c2_c1);
     return result;

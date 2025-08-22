@@ -340,9 +340,11 @@ TEST_F(LinkCreationAgentTest, TestLinkTemplateProcessor) {
     auto link2 = LinkCreateTemplate(link_template).process_query_answer(query_answer);
     cout << link2->to_string() << endl;
     EXPECT_EQ(link2->to_string(),
-              "Link(type: 'Expression', targets: [Value1, Value2], custom_attributes: {})");
+              "Link(type: 'Expression', targets: [Value1, Value2], is_toplevel: false, "
+              "custom_attributes: {})");
     EXPECT_EQ(links[0]->to_string(),
-              "Link(type: 'Expression', targets: [Value1, Value2], custom_attributes: {})");
+              "Link(type: 'Expression', targets: [Value1, Value2], is_toplevel: false, "
+              "custom_attributes: {})");
     auto mock_atom = dynamic_cast<AtomDBMock*>(AtomDBSingleton::get_instance().get());
     vector<string> targets_node = {"Value1", "Value2", "A", "Value1", "B", "C", "B"};
     EXPECT_CALL(*mock_atom, get_atom(testing::_))
@@ -362,7 +364,7 @@ TEST_F(LinkCreationAgentTest, TestLinkTemplateProcessor) {
     links = ltp.process_query(query_answer, link_template);
     EXPECT_EQ(links[0]->to_string(),
               "Link(type: 'Expression', targets: [11944827f32b09c425b6136a6b5b4224, Value1, "
-              "d4891853e7729b52d422daa93ccecacb], custom_attributes: {})");
+              "d4891853e7729b52d422daa93ccecacb], is_toplevel: false, custom_attributes: {})");
     EXPECT_EQ(links[0]->metta_representation(*AtomDBSingleton::get_instance().get()), "(A Value1 B)");
     links.clear();
     link_template.clear();
@@ -375,7 +377,8 @@ TEST_F(LinkCreationAgentTest, TestLinkTemplateProcessor) {
     links = ltp.process_query(query_answer, link_template);
     EXPECT_EQ(links[0]->to_string(),
               "Link(type: 'Expression', targets: [9908489fa1968f547004d4d56dc700bb, "
-              "d4891853e7729b52d422daa93ccecacb], custom_attributes: {confidence: '0.9', mean.avg: "
+              "d4891853e7729b52d422daa93ccecacb], is_toplevel: false, custom_attributes: {confidence: "
+              "'0.9', mean.avg: "
               "'0.9', mean.count: '10'})");
     EXPECT_EQ(links[0]->metta_representation(*AtomDBSingleton::get_instance().get()), "(C B)");
     links.clear();
@@ -390,7 +393,8 @@ TEST_F(LinkCreationAgentTest, TestLinkTemplateProcessor) {
     query_answer->assignment.assign("V2", "Value2");
     links = ltp.process_query(query_answer, link_template);
     EXPECT_EQ(links[0]->to_string(),
-              "Link(type: 'Test3', targets: [Value1, Value2], custom_attributes: {confidence: '0.9', "
+              "Link(type: 'Test3', targets: [Value1, Value2], is_toplevel: false, custom_attributes: "
+              "{confidence: '0.9', "
               "mean.avg: '0.9', mean.count: '10'})");
     link_template.clear();
     links.clear();
