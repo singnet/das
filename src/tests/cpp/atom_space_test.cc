@@ -12,7 +12,7 @@
 #include "TestConfig.h"
 
 using namespace std;
-using namespace atomspace;
+using namespace atom_space;
 using namespace atoms;
 using namespace commons;
 

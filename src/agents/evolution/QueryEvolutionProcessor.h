@@ -12,7 +12,7 @@
 
 using namespace std;
 using namespace service_bus;
-using namespace atomspace;
+using namespace atom_space;
 
 namespace evolution {
 

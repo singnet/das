@@ -8,6 +8,7 @@ cc_library(
     hdrs = ["AtomSpace.h"],
     includes = ["."],
     deps = [
+        ":context",
         "//agents/query_engine:query_engine_lib",
         "//atomdb:atomdb_api_types",
         "//atomdb:atomdb_singleton",
@@ -16,5 +17,15 @@ cc_library(
         "//commons/atoms:atoms_lib",
         "//hasher:hasher_lib",
         "//service_bus:service_bus_singleton",
+    ],
+)
+
+cc_library(
+    name = "context",
+    srcs = ["Context.cc"],
+    hdrs = ["Context.h"],
+    includes = ["."],
+    deps = [
+        "//hasher:hasher_lib",
     ],
 )

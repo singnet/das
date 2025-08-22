@@ -10,21 +10,29 @@ namespace commons {
 
 class Hasher {
    public:
-    static string type_handle(const string& type) {
-        char* h = named_type_hash((char*) type.c_str());
+    static inline string plain_string_hash(const string& str) {
+        char* h = named_type_hash((char*) str.c_str());
         string handle(h);
         free(h);
         return handle;
     }
 
-    static string node_handle(const string& type, const string& name) {
+    static inline string context_handle(const string& name) {
+        return plain_string_hash(name);
+    }
+
+    static inline string type_handle(const string& type) {
+        return plain_string_hash(type);
+    }
+
+    static inline string node_handle(const string& type, const string& name) {
         char* h = terminal_hash((char*) type.c_str(), (char*) name.c_str());
         string handle(h);
         free(h);
         return handle;
     }
 
-    static string link_handle(const string& type, const vector<string>& targets) {
+    static inline string link_handle(const string& type, const vector<string>& targets) {
         unsigned int arity = targets.size();
         char* type_hash = named_type_hash((char*) type.c_str());
         char** t = new char*[arity];
@@ -39,7 +47,7 @@ class Hasher {
         return handle;
     }
 
-    static string composite_handle(const vector<string>& elements) {
+    static inline string composite_handle(const vector<string>& elements) {
         unsigned int n = elements.size();
         char** t = new char*[n];
         for (unsigned int i = 0; i < n; i++) {

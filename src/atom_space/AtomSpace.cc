@@ -7,7 +7,7 @@
 using namespace std;
 using namespace query_engine;
 
-namespace atomspace {
+using namespace atom_space;
 
 // -------------------------------------------------------------------------------------------------
 AtomSpace::AtomSpace()
@@ -144,6 +144,12 @@ void AtomSpace::commit_changes(Scope scope) {
     this->handle_trie->traverse(true, commit_changes_visit_lambda, this->db.get());
 }
 
+// -------------------------------------------------------------------------------------------------
+shared_ptr<Context> AtomSpace::create_context(const string& context_name) {
+    Context *context = new Context(context_name);
+    return shared_ptr<Context>(context);
+}
+
 // PRIVATE METHODS /////////////////////////////////////////////////////////////////////////////////
 
 Atom* AtomSpace::atom_from_document(const shared_ptr<AtomDocument>& document) {
@@ -166,5 +172,3 @@ Atom* AtomSpace::atom_from_document(const shared_ptr<AtomDocument>& document) {
     }
     return nullptr;  // Should never reach here
 }
-
-}  // namespace atomspace
