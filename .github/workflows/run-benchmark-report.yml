@@ -81,8 +81,15 @@ jobs:
 
       - name: Create mattermost message
         run: |
+          if [ "${{ matrix.target }}" = "atomdb" ]; then
+            TITLE="AtomDB Benchmark Report - Single Thread, 100 iterations"
+          else
+            TITLE="Query Agent Benchmark Report - Single Thread, 100 iterations"
+          fi
+
           bash .github/scripts/mattermost-benchmark-report.sh \
-            "${{ needs.benchmark.outputs[format('{0}', matrix.target)].benchmark_id }}"
+            "${{ needs.benchmark.outputs[format('{0}', matrix.target)].benchmark_id }}" \
+            "$TITLE"
 
       - name: Notify Mattermost
         uses: singnet/integration-github-mattermost@v0.3.0
