@@ -69,15 +69,21 @@ int main(int argc, char** argv) {
     string action = argv[3];
     bool cache_enable = (string(argv[4]) == "true" || string(argv[4]) == "1");
     int iterations = stoi(argv[5]);
+    string base_log_file = argv[6];
 
     setup(cache_enable, atomdb_type);
 
-    if (action == "PositiveImportance") {
-        auto atom_space = make_shared<AtomSpace>();
-        PatternMatchingQuery benchmark(1, atom_space, iterations);
+    auto atom_space = make_shared<AtomSpace>();
+    PatternMatchingQuery benchmark(1, atom_space, iterations);
+
+    if (action == "SimpleQuery") {
+        benchmark.simple_query(base_log_file);
+    } else if (action == "PositiveImportance") {
         benchmark.positive_importance();
+    } else if (action == "ComplexQuery") {
+        benchmark.complex_query(base_log_file);
     } else {
-        Utils::error("...");
+        Utils::error("Invalid action. Choose either SimpleQuery, PositiveImportance, or ComplexQuery.");
     }
 
     string filename = report_base_directory + "/" + "query_agent_" + atomdb_type + "_" + action + "_" +

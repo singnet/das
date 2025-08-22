@@ -13,15 +13,229 @@
 #include <thread>
 #include <vector>
 
+#define LOG_LEVEL DEBUG_LEVEL
+#include "Logger.h"
 #include "query_agent_runner.h"
+
+void PatternMatchingQuery::simple_query(string log_file) {
+    vector<double> operation_time_simple_query_client_side;
+
+    for (int i = 0; i < iterations_; ++i) {
+        vector<string> q1 = {
+            "LINK_TEMPLATE", "Expression", "2", "NODE", "Symbol", "Sentence", "VARIABLE", "S"};
+
+        shared_ptr<PatternMatchingQueryProxy> proxy;
+
+        // Client: time for 1000 first responses
+        operation_time_simple_query_client_side.push_back(measure_execution_time([&]() {
+            proxy = atom_space_->pattern_matching_query(
+                q1, IGNORE_ANSWER_COUNT, "", false, true, false, false, false);
+            int count = 0;
+            while (!proxy->finished()) {
+                if (proxy->pop() == NULL) {
+                    Utils::sleep();
+                } else {
+                    if (count++ > 1000) {
+                        break;
+                    }
+                }
+            }
+        }));
+
+        // Wait for the proxy to finish
+        while (!proxy->finished()) {
+            Utils::sleep();
+        }
+    }
+
+    double total_time_client_side = accumulate(operation_time_simple_query_client_side.begin(),
+                                               operation_time_simple_query_client_side.end(),
+                                               0.0);
+    double avg_time_client_side = total_time_client_side / iterations_;
+    double ops_per_sec_client_side = iterations_ / (total_time_client_side / 1000.0);
+    global_metrics["simple_query_client_side_first_1000_responses"] =
+        Metrics{operation_time_simple_query_client_side,
+                total_time_client_side,
+                avg_time_client_side,
+                ops_per_sec_client_side};
+
+    string server_log_file = log_file + "server_log.txt";
+
+    vector<double> operation_time_simple_query_server_side =
+        parse_server_side_benchmark_times(server_log_file);
+
+    double total_time_server_side = accumulate(operation_time_simple_query_server_side.begin(),
+                                               operation_time_simple_query_server_side.end(),
+                                               0.0);
+    double avg_time_server_side = total_time_server_side / iterations_;
+    double ops_per_sec_server_side = iterations_ / (total_time_server_side / 1000.0);
+    global_metrics["simple_query_server_side"] = Metrics{operation_time_simple_query_server_side,
+                                                         total_time_server_side,
+                                                         avg_time_server_side,
+                                                         ops_per_sec_server_side};
+}
+
+void PatternMatchingQuery::complex_query(string log_file) {
+    vector<double> operation_time_complex_query_client_side;
+    vector<double> operation_time_complex_query_server_side;
+
+    for (int i = 0; i < iterations_; ++i) {
+        vector<string> q1 = {
+            "LINK_TEMPLATE", "Expression", "2", "NODE", "Symbol", "Word", "VARIABLE", "W"};
+
+        auto proxy = atom_space_->pattern_matching_query(q1);
+        shared_ptr<QueryAnswer> query_answer;
+        vector<string> node_names;
+
+        while (!proxy->finished()) {
+            if ((query_answer = proxy->pop()) == NULL) {
+                Utils::sleep();
+            } else {
+                if (node_names.size() >= 10) {
+                    break;
+                }
+                auto word_node_handle = query_answer->assignment.get("W");
+                shared_ptr<AtomDB> atomdb = AtomDBSingleton::get_instance();
+                auto atom_document = atomdb->get_atom_document(word_node_handle);
+                auto node_name = atom_document->get("name");
+                if (find(node_names.begin(), node_names.end(), string(node_name)) == node_names.end()) {
+                    node_names.push_back(string(node_name));
+                }
+            }
+        }
+
+        // clang-format off
+        vector<string> q2 = {
+            "OR", "2",
+                "AND", "5", 
+                    "LINK_TEMPLATE", "Expression", "3",
+                        "NODE", "Symbol", "Contains",
+                        "LINK_TEMPLATE", "Expression", "2", "NODE", "Symbol", "Sentence", "VARIABLE", "S",
+                        "LINK", "Expression", "2", "NODE", "Symbol", "Word", "NODE", "Symbol", node_names[0],
+                    "LINK_TEMPLATE", "Expression", "3",
+                        "NODE", "Symbol", "Contains",
+                        "LINK_TEMPLATE", "Expression", "2", "NODE", "Symbol", "Sentence", "VARIABLE", "S",
+                        "LINK", "Expression", "2", "NODE", "Symbol", "Word", "NODE", "Symbol", node_names[1],
+                    "LINK_TEMPLATE", "Expression", "3",
+                        "NODE", "Symbol", "Contains",
+                        "LINK_TEMPLATE", "Expression", "2", "NODE", "Symbol", "Sentence", "VARIABLE", "S",
+                        "LINK", "Expression", "2", "NODE", "Symbol", "Word", "NODE", "Symbol", node_names[2],
+                    "LINK_TEMPLATE", "Expression", "3",
+                        "NODE", "Symbol", "Contains",
+                        "LINK_TEMPLATE", "Expression", "2", "NODE", "Symbol", "Sentence", "VARIABLE", "S",
+                        "LINK", "Expression", "2", "NODE", "Symbol", "Word", "NODE", "Symbol", node_names[3],
+                    "LINK_TEMPLATE", "Expression", "3",
+                        "NODE", "Symbol", "Contains",
+                        "LINK_TEMPLATE", "Expression", "2", "NODE", "Symbol", "Sentence", "VARIABLE", "S",
+                        "LINK", "Expression", "2", "NODE", "Symbol", "Word", "NODE", "Symbol", node_names[4],
+                "AND", "5", 
+                    "LINK_TEMPLATE", "Expression", "3",
+                        "NODE", "Symbol", "Contains",
+                        "LINK_TEMPLATE", "Expression", "2", "NODE", "Symbol", "Sentence", "VARIABLE", "S",
+                        "LINK", "Expression", "2", "NODE", "Symbol", "Word", "NODE", "Symbol", node_names[5],
+                    "LINK_TEMPLATE", "Expression", "3",
+                        "NODE", "Symbol", "Contains",
+                        "LINK_TEMPLATE", "Expression", "2", "NODE", "Symbol", "Sentence", "VARIABLE", "S",
+                        "LINK", "Expression", "2", "NODE", "Symbol", "Word", "NODE", "Symbol", node_names[6],
+                    "LINK_TEMPLATE", "Expression", "3",
+                        "NODE", "Symbol", "Contains",
+                        "LINK_TEMPLATE", "Expression", "2", "NODE", "Symbol", "Sentence", "VARIABLE", "S",
+                        "LINK", "Expression", "2", "NODE", "Symbol", "Word", "NODE", "Symbol", node_names[7],
+                    "LINK_TEMPLATE", "Expression", "3",
+                        "NODE", "Symbol", "Contains",
+                        "LINK_TEMPLATE", "Expression", "2", "NODE", "Symbol", "Sentence", "VARIABLE", "S",
+                        "LINK", "Expression", "2", "NODE", "Symbol", "Word", "NODE", "Symbol", node_names[8],
+                    "LINK_TEMPLATE", "Expression", "3",
+                        "NODE", "Symbol", "Contains",
+                        "LINK_TEMPLATE", "Expression", "2", "NODE", "Symbol", "Sentence", "VARIABLE", "S",
+                        "LINK", "Expression", "2", "NODE", "Symbol", "Word", "NODE", "Symbol", node_names[9],
+        };
+        // clang-format on
+
+        shared_ptr<PatternMatchingQueryProxy> proxy2;
+
+        // Client: time for 1000 first responses
+        operation_time_complex_query_client_side.push_back(measure_execution_time([&]() {
+            proxy2 = atom_space_->pattern_matching_query(
+                q2, IGNORE_ANSWER_COUNT, "", false, true, false, false, false);
+            int count = 0;
+            while (!proxy2->finished()) {
+                if (proxy2->pop() == NULL) {
+                    Utils::sleep();
+                } else {
+                    if (count++ > 1000) {
+                        break;
+                    }
+                }
+            }
+        }));
+
+        // Wait for the proxy to finish
+        while (!proxy2->finished()) {
+            Utils::sleep();
+        }
+
+        LOG_DEBUG("Benchmark::complex_query - END");
+    }
+
+    string server_log_file = log_file + "server_log.txt";
+    string client_log_file = log_file + "client_log.txt";
+    string merged_log_file = log_file + "merged_log.txt";
+
+    string command = "cat " + client_log_file + " " + server_log_file + " | sort > " + merged_log_file;
+    system(command.c_str());
+
+    // parse the merged_file
+    string previous_line;
+    string current_line;
+    const string end_marker = "Benchmark::complex_query - END";
+
+    ifstream merged_file(merged_log_file);
+
+    if (!merged_file.is_open()) {
+        cerr << "Error: Could not open file " << merged_log_file << endl;
+    }
+
+    if (getline(merged_file, previous_line)) {
+        while (getline(merged_file, current_line)) {
+            if (current_line.find(end_marker) != string::npos) {
+                double value;
+                if (parse_ms_from_line(previous_line, value)) {
+                    operation_time_complex_query_server_side.push_back(value);
+                }
+            }
+            previous_line = current_line;
+        }
+    }
+
+    double total_time_client_side = accumulate(operation_time_complex_query_client_side.begin(),
+                                               operation_time_complex_query_client_side.end(),
+                                               0.0);
+    double avg_time_client_side = total_time_client_side / iterations_;
+    double ops_per_sec_client_side = iterations_ / (total_time_client_side / 1000.0);
+    global_metrics["complex_query_client_side_first_1000_responses"] =
+        Metrics{operation_time_complex_query_client_side,
+                total_time_client_side,
+                avg_time_client_side,
+                ops_per_sec_client_side};
+
+    double total_time_server_side = accumulate(operation_time_complex_query_server_side.begin(),
+                                               operation_time_complex_query_server_side.end(),
+                                               0.0);
+    double avg_time_server_side = total_time_server_side / iterations_;
+    double ops_per_sec_server_side = iterations_ / (total_time_server_side / 1000.0);
+    global_metrics["complex_query_server_side_all_responses"] =
+        Metrics{operation_time_complex_query_server_side,
+                total_time_server_side,
+                avg_time_server_side,
+                ops_per_sec_server_side};
+}
 
 void PatternMatchingQuery::positive_importance() {
     vector<double> operation_time_positive_importance_false;
     vector<double> operation_time_positive_importance_true;
 
     for (int i = 0; i < iterations_; ++i) {
-        // ----- setup code -----
-
         vector<string> q1 = {
             "LINK_TEMPLATE", "Expression", "2", "NODE", "Symbol", "Word", "VARIABLE", "W"};
 
@@ -44,6 +258,7 @@ void PatternMatchingQuery::positive_importance() {
                 node_names.push_back(string(node_name));
             }
         }
+
         // clang-format off
         vector<string> q2 = {
             "AND", "2",

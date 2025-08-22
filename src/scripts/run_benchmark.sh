@@ -192,6 +192,10 @@ generate_metta_file() {
 }
 
 init_environment() {
+    local log_file="$1"
+
+    ./src/scripts/docker_image_build.sh  > /dev/null 2>&1
+
     # Redis and MongoDB
     DAS_REDIS_HOSTNAME="localhost"
     DAS_REDIS_PORT="29000"
@@ -212,20 +216,17 @@ init_environment() {
     
     # Query Agent
     if [[ "$BENCHMARK" == "query_agent" ]]; then
-        # das-cli query-agent stop > /dev/null
-        # echo -e "3000:3100" | das-cli query-agent start
-        docker stop $(docker ps -q --filter "name=^das-query_broker-")
-        ./src/scripts/run.sh query_broker 35700 3000:3100 | stdbuf -oL grep "Benchmark::" > "/tmp/${BENCHMARK}_benchmark/${TIMESTAMP}/log.txt" || true &
+        if [[ $(docker ps -q --filter "name=^das-query_broker-") ]]; then
+            docker stop $(docker ps -q --filter "name=^das-query_broker-")
+        fi
+        ./src/scripts/build.sh --copt=-DLOG_LEVEL=DEBUG_LEVEL
+        ./src/scripts/run.sh query_broker 35700 3000:3100 | stdbuf -oL grep "Benchmark::" > "$log_file" || true &
         echo -e "\r\033[K${GREEN}Query Agent initialization completed!${RESET}"
     fi
-    
-
-    echo "Query Broker started on port 35700"
 
     # MORK
-    mork_server_containers=$(docker ps -a --filter "name=das-mork-server" --format "{{.ID}}")
-    if [[ -n "$mork_server_containers" ]]; then
-        docker rm -f $mork_server_containers > /dev/null 2>&1
+    if [[ $(docker ps -q --filter "name=^das-mork-server-") ]]; then
+        docker rm -f $(docker ps -q --filter "name=^das-mork-server-")
     fi
     ./src/scripts/docker_image_build_mork.sh > /dev/null  2> >(grep -v '^+')
     ./src/scripts/mork_server.sh > /dev/null 2>&1 &  
@@ -301,10 +302,14 @@ run_benchmark() {
     if [[ "$benchmark" == "query_agent" ]]; then
         for type in "${ATOMDB_TYPES[@]}"; do   
             for action in "${ACTIONS[@]}"; do
-                echo -e "\n== Running benchmarks for Query Agent | Action: $action ==" 
-                init_environment
-                ./src/scripts/docker_image_build.sh  > /dev/null 2>&1
-                ./src/scripts/bazel.sh run //tests/benchmark/query_agent:query_agent_main -- "$report_base_directory" "$type" "$action" "$CACHE_ENABLED" "$ITERATIONS" 2> >(grep -v '^+')
+                echo -e "\n== Running benchmarks for Query Agent: $type | Action: $action =="
+                local log_file="/tmp/${BENCHMARK}_benchmark/${TIMESTAMP}/${type}_${action}_server_log.txt"
+                local client_log_file="/tmp/${BENCHMARK}_benchmark/${TIMESTAMP}/${type}_${action}_client_log.txt"
+                init_environment "$log_file"
+                echo -e "\r\033[K${GREEN}Running test START${RESET}"
+                echo -e "\r\033[K${GREEN}Partial results in /tmp/${BENCHMARK}_benchmark/${TIMESTAMP}/${RESET}"
+                ./src/scripts/bazel.sh run //tests/benchmark/query_agent:query_agent_main --copt=-DLOG_LEVEL=DEBUG_LEVEL -- "$report_base_directory" "$type" "$action" "$CACHE_ENABLED" "$ITERATIONS" "/tmp/${BENCHMARK}_benchmark/${TIMESTAMP}/${type}_${action}_" | stdbuf -oL grep "|" > "$client_log_file"
+                echo -e "\r\033[K${GREEN}Running test END${RESET}"
             done
         done
     elif [[ "$benchmark" == "atomdb" ]]; then
@@ -320,10 +325,9 @@ run_benchmark() {
             for action in "${ACTIONS[@]}"; do
                 declare -n methods="$action"
                 for method in "${methods[@]}"; do
-                    echo -e "\n== Running benchmarks for AtomDB: $type | Action: $action | Method: $method ==" 
-                    init_environment
-                    ./src/scripts/docker_image_build.sh  > /dev/null 2>&1
-                    ./src/scripts/bazel.sh run //tests/benchmark/atomdb:atomdb_main -- "$type" "$action" "$method" "$CACHE_ENABLED" "$CONCURRENCY" "$ITERATIONS" "$TIMESTAMP" 2> >(grep -v '^+')
+                    echo -e "\n== Running benchmarks for AtomDB: $type | Action: $action | Method: $method =="
+                    init_environment "$type"
+                    ./src/scripts/bazel.sh run //tests/benchmark/atomdb:atomdb_main --copt=-DLOG_LEVEL=DEBUG_LEVEL -- "$type" "$action" "$method" "$CACHE_ENABLED" "$CONCURRENCY" "$ITERATIONS" "$TIMESTAMP"
                 done
             done
         done
