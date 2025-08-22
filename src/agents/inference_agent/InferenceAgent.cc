@@ -76,7 +76,7 @@ void InferenceAgent::run() {
             if (it->second->finished() || inference_proxy_map[it->first]->is_aborting() ||
                 Utils::get_current_time_millis() / 1000 > inference_timeout_map[it->first]) {
                 LOG_DEBUG("Processing inference abort request for request ID: " << it->first);
-                
+
                 auto inference_request = get_inference_request(it->first);
                 if (inference_request != nullptr) {
                     if (inference_request->get_repeat() > 0) {
