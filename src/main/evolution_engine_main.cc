@@ -4,6 +4,7 @@
 #include <string>
 
 #include "AtomDBSingleton.h"
+#include "AttentionBrokerClient.h"
 #include "FitnessFunctionRegistry.h"
 #include "QueryEvolutionProcessor.h"
 #include "ServiceBusSingleton.h"
@@ -16,6 +17,7 @@ using namespace std;
 using namespace atomdb;
 using namespace evolution;
 using namespace service_bus;
+using namespace attention_broker;
 
 void ctrl_c_handler(int) {
     LOG_INFO("Stopping evolution engine server...");
@@ -24,9 +26,13 @@ void ctrl_c_handler(int) {
 }
 
 int main(int argc, char* argv[]) {
-    if (argc != 4) {
-        cerr << "Usage: " << argv[0] << " <port> <start_port:end_port> BUS_IP:PORT" << endl;
+    if (argc < 4) {
+        cerr << "Usage: " << argv[0] << " <port> <start_port:end_port> BUS_IP:PORT [AB_ip:AB_port]"
+             << endl;
         exit(1);
+    }
+    if (argc == 5) {
+        AttentionBrokerClient::set_server_address(string(argv[4]));
     }
 
     string server_id = "0.0.0.0:" + string(argv[1]);

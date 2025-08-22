@@ -37,6 +37,7 @@ cc_library(
         ":query_evolution_proxy",
         "//agents/query_engine:query_answer",
         "//atom_space:atom_space_lib",
+        "//attention_broker:attention_broker_client",
         "//commons:commons_lib",
         "//service_bus:service_bus_lib",
     ],

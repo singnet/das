@@ -18,19 +18,6 @@ namespace query_element {
 class Source : public QueryElement {
    public:
     /**
-     * Sources tipically need to communicate with the AttentionBroker in order to sort links
-     * by importance. AttentionBroker is supposed to be running in the same machine as all
-     * Source elements so only a port number is required. Here we provide a default value
-     * in the case none is passed in constructor.
-     */
-    static string DEFAULT_ATTENTION_BROKER_PORT;
-
-    /**
-     * Constructor which also sets a value for AttentionBroker address
-     */
-    Source(const string& attention_broker_address);
-
-    /**
      * Basic empty constructor.
      */
     Source();
@@ -39,11 +26,6 @@ class Source : public QueryElement {
      * Destructor.
      */
     virtual ~Source();
-
-    /**
-     * Helper to get AttentionBroker address from env vars or default values.
-     */
-    static string get_attention_broker_address();
 
     // --------------------------------------------------------------------------------------------
     // QueryElement API
@@ -59,7 +41,6 @@ class Source : public QueryElement {
     virtual void setup_buffers();
 
    protected:
-    string attention_broker_address;
     shared_ptr<QueryNode> output_buffer;
     shared_ptr<QueryElement> subsequent;
 };

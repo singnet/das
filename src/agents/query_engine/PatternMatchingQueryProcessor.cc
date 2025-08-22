@@ -6,9 +6,10 @@
 #endif
 #include "Logger.h"
 
-#include <grpcpp/grpcpp.h>
+#include <map>
 
 #include "And.h"
+#include "AttentionBrokerClient.h"
 #include "Link.h"
 #include "LinkSchema.h"
 #include "LinkTemplate.h"
@@ -23,13 +24,12 @@
 #include "Terminal.h"
 #include "UniqueAssignmentFilter.h"
 #include "UntypedVariable.h"
-#include "attention_broker.grpc.pb.h"
-#include "attention_broker.pb.h"
 
 // clang-format on
 
 using namespace atomdb;
 using namespace metta;
+using namespace attention_broker;
 
 string PatternMatchingQueryProcessor::AND = "AND";
 string PatternMatchingQueryProcessor::OR = "OR";
@@ -101,20 +101,7 @@ void PatternMatchingQueryProcessor::update_attention_broker_single_answer(
         // -------------
     }
     if (single_answer.size() > 1) {
-        auto stub = dasproto::AttentionBroker::NewStub(
-            grpc::CreateChannel(ATTENTION_BROKER_ADDRESS, grpc::InsecureChannelCredentials()));
-
-        dasproto::HandleList handle_list;  // GRPC command parameter
-        dasproto::Ack ack;                 // GRPC command return
-        handle_list.set_context(proxy->get_context());
-        for (auto handle : single_answer) {
-            handle_list.add_list(handle);
-        }
-        LOG_DEBUG("Calling AttentionBroker GRPC. Correlating " << single_answer.size() << " handles");
-        stub->correlate(new grpc::ClientContext(), handle_list, &ack);
-        if (ack.msg() != "CORRELATE") {
-            Utils::error("Failed GRPC command: AttentionBroker::correlate()");
-        }
+        AttentionBrokerClient::correlate(single_answer, proxy->get_context());
     } else {
         LOG_DEBUG("Too few handles (" + std::to_string(single_answer.size()) + ") to stimulate");
     }
@@ -123,21 +110,11 @@ void PatternMatchingQueryProcessor::update_attention_broker_single_answer(
 void PatternMatchingQueryProcessor::update_attention_broker_joint_answer(
     shared_ptr<PatternMatchingQueryProxy> proxy, set<string>& joint_answer) {
     if (joint_answer.size() > 0) {
-        auto stub = dasproto::AttentionBroker::NewStub(
-            grpc::CreateChannel(ATTENTION_BROKER_ADDRESS, grpc::InsecureChannelCredentials()));
-
-        dasproto::HandleCount handle_count;  // GRPC command parameter
-        dasproto::Ack ack;                   // GRPC command return
-        handle_count.set_context(proxy->get_context());
+        map<string, unsigned int> handle_count;
         for (auto handle : joint_answer) {
-            (*handle_count.mutable_map())[handle] = 1;
+            handle_count[handle] = 1;
         }
-        (*handle_count.mutable_map())["SUM"] = joint_answer.size();
-        LOG_DEBUG("Calling AttentionBroker GRPC. Stimulating " << joint_answer.size() << " handles");
-        stub->stimulate(new grpc::ClientContext(), handle_count, &ack);
-        if (ack.msg() != "STIMULATE") {
-            Utils::error("Failed GRPC command: AttentionBroker::stimulate()");
-        }
+        AttentionBrokerClient::stimulate(handle_count, proxy->get_context());
     } else {
         LOG_DEBUG("No handles to stimulate");
     }
