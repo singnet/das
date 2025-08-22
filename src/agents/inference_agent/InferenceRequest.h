@@ -78,8 +78,68 @@ class InferenceRequest {
      */
     string get_context();
 
+    /**
+     * @brief Set the timeout
+     * @param timeout Timeout in seconds
+     */
     void set_timeout(unsigned int timeout);
+
+    /**
+     * @brief Get the timeout
+     * @return unsigned int
+     */
     unsigned int get_timeout();
+
+    /**
+     * @brief Get the repeat count
+     * @return unsigned int
+     */
+    unsigned int get_repeat();
+
+    /**
+     * @brief Set the repeat count
+     * @param repeat Repeat count
+     */
+    void set_repeat(unsigned int repeat);
+    /**
+     * @brief Set the max results for link creation agent
+     * @param lca_max_results Max results for link creation agent
+     */
+    void set_lca_max_results(unsigned long lca_max_results);
+
+    /**
+     * @brief Get the max results for link creation agent
+     * @return unsigned long
+     */
+    unsigned long get_lca_max_results();
+
+    /**
+     * @brief Get the max repeats for link creation agent
+     * @return unsigned int
+     */
+    unsigned int get_lca_max_repeats();
+
+    /**
+     * @brief Set the max repeats for link creation agent
+     * @param lca_max_repeats Max repeats for link creation agent
+     */
+    void set_lca_max_repeats(unsigned int lca_max_repeats);
+
+    /**
+     * @brief Get the update attention broker flag for link creation agent
+     * @return bool
+     */
+    bool get_lca_update_attention_broker();
+
+    /**
+     * @brief Set the update attention broker flag for link creation agent
+     * @param lca_update_attention_broker Update attention broker flag for link creation agent
+     */
+    void set_lca_update_attention_broker(bool lca_update_attention_broker);
+
+    bool get_sent_evolution_request();
+
+    void set_sent_evolution_request(bool sent_evolution_request);
 
    protected:
     string first_handle;
@@ -89,7 +149,12 @@ class InferenceRequest {
     string inference_request_id;
     string max_answers;
     string update_attention_broker;
-    unsigned long long timeout = 10 * 60;  // Default timeout is 10 minutes
+    unsigned long long timeout = 24 * 60 * 60;  // Default timeout is 24 hours
+    unsigned int repeat = 5;
+    unsigned long lca_max_results = 100;        // Default max results for LCA
+    unsigned int lca_max_repeats = 1;           // Default max repeats for LCA
+    bool lca_update_attention_broker = false;   // Default update attention broker for LCA
+    bool sent_evolution_request = false;
 };
 
 class ProofOfImplicationOrEquivalence : public InferenceRequest {

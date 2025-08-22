@@ -2,12 +2,11 @@ name: Benchmark Report
 
 on:
   schedule:
-    - cron: "0 8 * * *"
+    - cron: "0 4 * * *"
 
   push:
     branches:
       - master
-      - das-644
 
 jobs:
   benchmark:

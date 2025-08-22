@@ -25,7 +25,7 @@ using namespace std;
 using namespace atomdb;
 using namespace query_engine;
 using namespace service_bus;
-using namespace atomspace;
+using namespace atom_space;
 
 class QueryAgentRunner : public Runner {
    public:
