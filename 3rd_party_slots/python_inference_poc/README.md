@@ -14,7 +14,10 @@ To run the setup and agents, `cd` to das root folder and run:
 ``` 
 make run-inference-toy-problem 3rd_party_slots/python_inference_poc/config/scenario_1.json
 ```
-
+To use other MeTTa files (already generated), add the path of the base and bias after the scenario, the script will skip the generation process and load the given files:
+```
+make run-inference-toy-problem 3rd_party_slots/python_inference_poc/config/scenario_1.json /tmp/mybase.metta /tmp/mybias.metta
+```
 To run the problem `feature_a -> feature_d`, `cd` to das root folder and run:
 
 ```
