@@ -26,7 +26,8 @@ HebbianNetworkUpdater* HebbianNetworkUpdater::factory(HebbianNetworkUpdaterType 
     }
 }
 
-void HebbianNetworkUpdater::determiners(const dasproto::HandleList& sub_request, HebbianNetwork* network) {
+void HebbianNetworkUpdater::determiners(const dasproto::HandleList& sub_request,
+                                        HebbianNetwork* network) {
     unsigned int num_handles = sub_request.list_size();
     if (network != NULL && (num_handles > 1)) {
         HebbianNetwork::Node* node1 = network->lookup_node(sub_request.list(0));
@@ -68,4 +69,3 @@ void ExactCountHebbianUpdater::correlation(const dasproto::HandleList* request) 
         }
     }
 }
-

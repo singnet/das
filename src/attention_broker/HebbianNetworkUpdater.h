@@ -1,7 +1,7 @@
 #pragma once
 
-#include "attention_broker.grpc.pb.h"
 #include "HebbianNetwork.h"
+#include "attention_broker.grpc.pb.h"
 
 using namespace std;
 

@@ -77,7 +77,7 @@ ImportanceType HebbianNetwork::get_node_importance(string handle) {
     ImportanceType answer = 0;
     if (node != NULL) {
         answer = node->importance;
-        for (auto determiner: node->determiners) {
+        for (auto determiner : node->determiners) {
             if (determiner->importance > answer) {
                 answer = determiner->importance;
             }
