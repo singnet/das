@@ -81,17 +81,19 @@ bazel: build-image
 clean:
 	@echo "Cleaning Bazel build outputs..."
 	@docker run --rm \
-		$([ "$(uname -m)" != "arm64" ] && echo "--user=$(id -u):$(id -g) --volume /etc/passwd:/etc/passwd:ro" || echo "--user=builder") \
+		--user="$$(id -u):$$(id -g)" \
+		--volume /etc/passwd:/etc/passwd:ro \
 		--privileged \
-		--name="das-bazel-clean-$(shell date +%s)" \
+		--name="das-bazel-clean-$$(date +%s)" \
 		--network=host \
-		--volume "$(HOME)/.cache/das:/home/builder/.cache" \
+		--volume "$(HOME)/.cache/das:$(HOME)/.cache" \
 		--volume "$(PWD):/opt/das" \
 		--volume "/tmp:/tmp" \
 		--workdir "/opt/das/src" \
 		das-builder \
-		bash -c 'rm -rf bazel-out bazel-src bazel-testlogs bazel-bin'
+		bash -c 'find ~/.cache/ -name "*.o" -not -path "*/external/*" -delete'
 	@echo "Done."
+
 
 test-all-no-cache:
 	@$(MAKE) bazel 'test --show_progress --cache_test_results=no //tests/...'
