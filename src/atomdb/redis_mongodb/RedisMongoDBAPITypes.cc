@@ -127,6 +127,8 @@ const char* MongodbDocument::get(const string& array_key, unsigned int index) {
     return ((*this->document)[array_key]).get_array().value[index].get_string().value.data();
 }
 
+bool MongodbDocument::get_bool(const string& key) { return ((*this->document)[key]).get_bool().value; }
+
 bool MongodbDocument::contains(const string& key) {
     return ((*this->document).view()).find(key) != ((*this->document).view()).end();
 }
@@ -230,6 +232,7 @@ MongodbDocument::MongodbDocument(const atoms::Link* link, HandleDecoder& db) {
 
     bsoncxx::builder::basic::document doc;
     doc.append(bsoncxx::builder::basic::kvp("_id", link->handle()));
+    doc.append(bsoncxx::builder::basic::kvp("is_toplevel", link->is_toplevel));
     doc.append(bsoncxx::builder::basic::kvp("composite_type_hash", link->composite_type_hash(db)));
     doc.append(bsoncxx::builder::basic::kvp("composite_type", composite_type));
     doc.append(bsoncxx::builder::basic::kvp("named_type", link->type));

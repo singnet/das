@@ -4,7 +4,8 @@
 
 using namespace atoms;
 
-UntypedVariable::UntypedVariable(const string& name) : Wildcard(Atom::UNDEFINED_TYPE), name(name) {
+UntypedVariable::UntypedVariable(const string& name, bool is_toplevel)
+    : Wildcard(Atom::UNDEFINED_TYPE, is_toplevel), name(name) {
     this->validate();
 }
 

@@ -37,6 +37,9 @@ class AtomDB : public HandleDecoder {
     virtual vector<shared_ptr<atomdb_api_types::AtomDocument>> get_link_documents(
         const vector<string>& handles, const vector<string>& fields) = 0;
 
+    virtual vector<shared_ptr<atomdb_api_types::AtomDocument>> get_matching_atoms(bool is_toplevel,
+                                                                                  Atom& key) = 0;
+
     virtual bool atom_exists(const string& handle) = 0;
     virtual bool node_exists(const string& handle) = 0;
     virtual bool link_exists(const string& handle) = 0;

@@ -347,5 +347,6 @@ shared_ptr<Link> LinkCreateTemplate::process_query_answer(shared_ptr<QueryAnswer
             custom_attributes[value.first] = value.second;
         }
     }
-    return make_shared<Link>(this->link_type, targets, custom_attributes);
+    bool is_toplevel = false;
+    return make_shared<Link>(this->link_type, targets, is_toplevel, custom_attributes);
 }

@@ -18,10 +18,16 @@ class Link : public Atom {
      * @brief Construct a Link.
      * @param type The type of the link.
      * @param targets The target handles of the link.
+     * @param is_toplevel Whether the link is a toplevel.
      * @param custom_attributes Custom attributes for the atom.
      * @throws std::runtime_error if type is empty or targets.size() < MINIMUM_TARGETS_SIZE.
      */
-    Link(const string& type, const vector<string>& targets, const Properties& custom_attributes = {});
+    Link(const string& type,
+         const vector<string>& targets,
+         bool is_toplevel = false,
+         const Properties& custom_attributes = {});
+
+    Link(const string& type, const vector<string>& targets, const Properties& custom_attributes);
 
     /**
      * @brief Copy constructor.
