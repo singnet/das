@@ -1,8 +1,8 @@
 #pragma once
 
 #include <mutex>
-#include <string>
 #include <set>
+#include <string>
 
 #include "HandleTrie.h"
 #include "expression_hasher.h"

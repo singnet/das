@@ -129,7 +129,7 @@ class AttentionBrokerServer final : public AttentionBroker::Service {
     /**
      * Set determiners according to the lists passed in the request.
      *
-     * The request is supposed to contain a list of lists of handles like 
+     * The request is supposed to contain a list of lists of handles like
      * [[h1, hx1, hx2, ...], [h2, hy1, hy2, ...], ...] . Each inner list is used to set importance
      * determiners for the first handle in such list. In this example, for instance, hx1, hx2, ...
      * will be set as determiners of h1 and hy1, hy2, ... will be set as determiners of h2.

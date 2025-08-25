@@ -57,4 +57,3 @@ class WorkerThreads {
 };
 
 }  // namespace attention_broker_server
-

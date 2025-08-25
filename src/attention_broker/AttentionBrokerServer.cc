@@ -136,10 +136,10 @@ Status AttentionBrokerServer::get_importance(ServerContext* grpc_context,
 }
 
 Status AttentionBrokerServer::set_determiners(ServerContext* grpc_context,
-                       const dasproto::HandleListList* request,
-                                      dasproto::Ack* reply) {
+                                              const dasproto::HandleListList* request,
+                                              dasproto::Ack* reply) {
     LOG_INFO("Setting determiners for " << request->list_size()
-                            << " handles in context: '" + request->context() + "'");
+                                        << " handles in context: '" + request->context() + "'");
     if (request->list_size() > 0) {
         HebbianNetwork* network = select_hebbian_network(request->context());
         for (int i = 0; i < request->list_size(); i++) {
