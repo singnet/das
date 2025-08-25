@@ -1,1 +1,2 @@
 [#637][HE Client] Add InferenceProxy
+[#691] Add Atom::is_toplevel and AtomDB::get_matching_atoms(is_toplevel, Atom)

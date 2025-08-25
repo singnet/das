@@ -59,9 +59,15 @@ class LinkSchema : public Wildcard {
      * @brief Construct a LinkSchema.
      * @param type The type of the link.
      * @param LinkSchema arity
+     * @param is_toplevel Whether the link is a toplevel.
      * @param custom_attributes Custom attributes for the schema.
      */
-    LinkSchema(const string& type, unsigned int arity, const Properties& custom_attributes = {});
+    LinkSchema(const string& type,
+               unsigned int arity,
+               bool is_toplevel = false,
+               const Properties& custom_attributes = {});
+
+    LinkSchema(const string& type, unsigned int arity, const Properties& custom_attributes);
 
     /**
      * @brief Copy constructor.
@@ -74,8 +80,12 @@ class LinkSchema : public Wildcard {
     /**
      * @brief Construct a LinkSchema using a vector of tokens.
      * @param tokens Vector of tokens.
+     * @param is_toplevel Whether the link is a toplevel.
+     * @param custom_attributes Custom attributes for the schema.
      */
-    LinkSchema(const vector<string>& tokens, const Properties& custom_attributes = {});
+    LinkSchema(const vector<string>& tokens,
+               bool is_toplevel = false,
+               const Properties& custom_attributes = {});
 
     /**
      * @brief Assignment operator.

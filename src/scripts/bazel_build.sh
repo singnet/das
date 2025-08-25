@@ -64,7 +64,7 @@ if [ "$BUILD_WHEELS" = true ]; then
     $BAZELISK_RUN_CMD //deps:requirements_python_client.update
 fi
 
-$BAZELISK_BUILD_CMD $BUILD_TARGETS
+$BAZELISK_BUILD_CMD $BUILD_TARGETS "$@"
 
 mkdir -p $BIN_DIR $LIB_DIR
 

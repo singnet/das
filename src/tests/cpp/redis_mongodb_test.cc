@@ -7,6 +7,7 @@
 #include <thread>
 #include <vector>
 
+#include "Atom.h"
 #include "AtomDBSingleton.h"
 #include "Hasher.h"
 #include "Link.h"
@@ -15,6 +16,8 @@
 #include "Node.h"
 #include "RedisMongoDB.h"
 #include "TestConfig.h"
+#include "UntypedVariable.h"
+#include "Wildcard.h"
 
 using namespace atomdb;
 using namespace atoms;
@@ -385,8 +388,6 @@ TEST_F(RedisMongoDBTest, AddAndDeleteNodes) {
 
 TEST_F(RedisMongoDBTest, AddAndDeleteLink) {
     MockDecoder decoder;
-    Properties custom_attributes;
-    custom_attributes["is_toplevel"] = true;
 
     string symbol = MettaMapping::SYMBOL_NODE_TYPE;
     string expression = MettaMapping::EXPRESSION_LINK_TYPE;
@@ -399,9 +400,11 @@ TEST_F(RedisMongoDBTest, AddAndDeleteLink) {
     auto test_1_node_handle = db->add_node((Node*) test_1_node.get());
     auto test_2_node_handle = db->add_node((Node*) test_2_node.get());
 
+    bool is_toplevel = true;
+
     auto link = new Link("Expression",
                          {similarity_node->handle(), test_1_node->handle(), test_2_node->handle()},
-                         custom_attributes);
+                         is_toplevel);
 
     auto link_handle = link->handle();
 
@@ -414,6 +417,8 @@ TEST_F(RedisMongoDBTest, AddAndDeleteLink) {
 
     auto handle = db->add_link(link);
     EXPECT_NE(handle, "");
+
+    auto link_document = db->get_atom_document(handle);
 
     EXPECT_TRUE(db->delete_atom(handle));
     EXPECT_TRUE(db->delete_atom(test_1_node_handle));
@@ -800,6 +805,57 @@ TEST_F(RedisMongoDBTest, ReIndexPatterns) {
 
     handle_set = db->query_for_pattern(*odd_link_schema);
     EXPECT_EQ(handle_set->size(), 9);
+}
+
+TEST_F(RedisMongoDBTest, GetMatchingAtoms) {
+    auto similarity_node = new Node("Symbol", "Similarity");
+    auto human_node = new Node("Symbol", "\"human\"");
+    auto monkey_node = new Node("Symbol", "\"monkey\"");
+
+    auto matching_atoms = db->get_matching_atoms(false, *similarity_node);
+    EXPECT_EQ(matching_atoms.size(), 1);
+    matching_atoms = db->get_matching_atoms(true, *similarity_node);
+    EXPECT_EQ(matching_atoms.size(), 0);
+
+    auto link =
+        new Link("Expression", {similarity_node->handle(), human_node->handle(), monkey_node->handle()});
+    matching_atoms = db->get_matching_atoms(true, *link);
+    EXPECT_EQ(matching_atoms.size(), 1);
+
+    matching_atoms = db->get_matching_atoms(false, *link);
+    EXPECT_EQ(matching_atoms.size(), 0);
+
+    auto link_document = db->get_atom_document(link->handle());
+    EXPECT_EQ(link_document->get_bool("is_toplevel"), true);
+
+    auto all_nodes = db->get_filtered_documents(RedisMongoDB::MONGODB_NODES_COLLECTION_NAME, {}, {});
+    auto all_links = db->get_filtered_documents(RedisMongoDB::MONGODB_LINKS_COLLECTION_NAME, {}, {});
+
+    auto untyped_variable = new UntypedVariable("V1", true);
+    matching_atoms = db->get_matching_atoms(false, *untyped_variable);
+    // Nodes are is_toplevel = false
+    EXPECT_EQ(matching_atoms.size(), all_nodes.size());
+    matching_atoms = db->get_matching_atoms(true, *untyped_variable);
+    // Links are is_toplevel = true
+    EXPECT_EQ(matching_atoms.size(), all_links.size());
+
+    auto test_node = new Node("Symbol", "\"test\"");
+    db->add_node(test_node);
+
+    bool is_toplevel = true;
+    auto top_level_link =
+        new Link("Expression",
+                 {similarity_node->handle(), human_node->handle(), test_node->handle()},
+                 is_toplevel);
+    db->add_link(top_level_link);
+
+    matching_atoms = db->get_matching_atoms(is_toplevel, *top_level_link);
+    EXPECT_EQ(matching_atoms.size(), 1);
+
+    auto top_level_link_document = db->get_atom_document(top_level_link->handle());
+    EXPECT_EQ(top_level_link_document->get_bool("is_toplevel"), is_toplevel);
+
+    EXPECT_EQ(db->delete_atom(test_node->handle()), true);
 }
 
 int main(int argc, char** argv) {

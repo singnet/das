@@ -108,18 +108,22 @@ void AtomSpace::pattern_matching_fetch(const vector<string>& query, size_t answe
 }
 
 // -------------------------------------------------------------------------------------------------
-char* AtomSpace::add_node(const string& type, const string& name, const Properties& custom_attributes) {
+char* AtomSpace::add_node(const string& type,
+                          const string& name,
+                          bool is_toplevel,
+                          const Properties& custom_attributes) {
     char* handle = ::terminal_hash((char*) type.c_str(), (char*) name.c_str());
-    this->handle_trie->insert(handle, new Node(type, name, custom_attributes));
+    this->handle_trie->insert(handle, new Node(type, name, is_toplevel, custom_attributes));
     return handle;
 }
 
 // -------------------------------------------------------------------------------------------------
 char* AtomSpace::add_link(const string& type,
                           const vector<string>& targets,
+                          bool is_toplevel,
                           const Properties& custom_attributes) {
     char* handle = strdup(Hasher::link_handle(type, targets).c_str());
-    this->handle_trie->insert(handle, new Link(type, targets, custom_attributes));
+    this->handle_trie->insert(handle, new Link(type, targets, is_toplevel, custom_attributes));
     return handle;
 }
 
