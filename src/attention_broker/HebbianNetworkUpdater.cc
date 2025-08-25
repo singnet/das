@@ -2,7 +2,6 @@
 
 #include <string>
 
-#include "HebbianNetwork.h"
 #include "Utils.h"
 
 using namespace attention_broker_server;
@@ -23,6 +22,25 @@ HebbianNetworkUpdater* HebbianNetworkUpdater::factory(HebbianNetworkUpdaterType 
         default: {
             Utils::error("Invalid HebbianNetworkUpdaterType: " + to_string((int) instance_type));
             return NULL;  // to avoid warnings
+        }
+    }
+}
+
+void HebbianNetworkUpdater::determiners(const dasproto::HandleList& sub_request, HebbianNetwork* network) {
+    unsigned int num_handles = sub_request.list_size();
+    if (network != NULL && (num_handles > 1)) {
+        HebbianNetwork::Node* node1 = network->lookup_node(sub_request.list(0));
+        if (node1 == NULL) {
+            node1 = network->add_node(sub_request.list(0));
+            node1->count = 0;
+        }
+        for (unsigned int i = 1; i < num_handles; i++) {
+            HebbianNetwork::Node* node2 = network->lookup_node(sub_request.list(i));
+            if (node2 == NULL) {
+                node2 = network->add_node(sub_request.list(i));
+                node2->count = 0;
+            }
+            node1->determiners.insert(node2);
         }
     }
 }
@@ -50,3 +68,4 @@ void ExactCountHebbianUpdater::correlation(const dasproto::HandleList* request) 
         }
     }
 }
+
