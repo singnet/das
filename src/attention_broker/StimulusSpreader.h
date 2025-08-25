@@ -1,5 +1,4 @@
-#ifndef _ATTENTION_BROKER_SERVER_STIMULUSSPREADER_H
-#define _ATTENTION_BROKER_SERVER_STIMULUSSPREADER_H
+#pragma once
 
 #include "HebbianNetwork.h"
 #include "Utils.h"
@@ -135,5 +134,3 @@ class TokenSpreader : public StimulusSpreader {
 };
 
 }  // namespace attention_broker_server
-
-#endif  // _ATTENTION_BROKER_SERVER_STIMULUSSPREADER_H

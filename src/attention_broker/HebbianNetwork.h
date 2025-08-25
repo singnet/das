@@ -1,8 +1,7 @@
-#ifndef _ATTENTION_BROKER_SERVER_HEBBIANNETWORK_H
-#define _ATTENTION_BROKER_SERVER_HEBBIANNETWORK_H
+#pragma once
 
-#include <forward_list>
 #include <mutex>
+#include <set>
 #include <string>
 
 #include "HandleTrie.h"
@@ -59,7 +58,8 @@ class HebbianNetwork {
         ImportanceType importance;         /// Importance of this Node.
         ImportanceType stimuli_to_spread;  /// Amount of importance this node will spread in the next
                                            /// stimuli spreading cycle.
-        HandleTrie* neighbors;             // Neighbors of this Node.
+        HandleTrie* neighbors;             /// Neighbors of this Node.
+        set<Node*> determiners;            /// Other Nodes that co-determine the importance of this Node
         Node() {
             arity = 0;
             count = 1;
@@ -180,5 +180,3 @@ class HebbianNetwork {
 };
 
 }  // namespace attention_broker_server
-
-#endif  // _ATTENTION_BROKER_SERVER_HEBBIANNETWORK_H

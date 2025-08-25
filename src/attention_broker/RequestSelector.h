@@ -1,5 +1,4 @@
-#ifndef _ATTENTION_BROKER_SERVER_REQUESTSELECTOR_H
-#define _ATTENTION_BROKER_SERVER_REQUESTSELECTOR_H
+#pragma once
 
 #include "HebbianNetwork.h"
 #include "SharedQueue.h"
@@ -82,5 +81,3 @@ class EvenThreadCount : public RequestSelector {
 };
 
 }  // namespace attention_broker_server
-
-#endif  // _ATTENTION_BROKER_SERVER_REQUESTSELECTOR_H
