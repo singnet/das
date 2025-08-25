@@ -219,6 +219,17 @@ init_environment() {
         if [[ $(docker ps -q --filter "name=^das-query_broker-") ]]; then
             docker stop $(docker ps -q --filter "name=^das-query_broker-")
         fi
+        cat > .env <<EOF
+DAS_MONGODB_HOSTNAME=localhost
+DAS_MONGODB_PORT=28000
+DAS_MONGODB_USERNAME=dbadmin
+DAS_MONGODB_PASSWORD=dassecret
+DAS_REDIS_HOSTNAME=localhost
+DAS_REDIS_PORT=29000
+DAS_USE_REDIS_CLUSTER=false
+DAS_ATTENTION_BROKER_ADDRESS=localhost
+DAS_ATTENTION_BROKER_PORT=37007
+EOF
         ./src/scripts/build.sh --copt=-DLOG_LEVEL=DEBUG_LEVEL
         ./src/scripts/run.sh query_broker 35700 3000:3100 | stdbuf -oL grep "Benchmark::" > "$log_file" || true &
         echo -e "\r\033[K${GREEN}Query Agent initialization completed!${RESET}"
@@ -334,11 +345,9 @@ run_benchmark() {
     fi
 }
 
-
 scenario_data() {
     echo "$SCENARIO_NAME $DB $REL $CONCURRENCY $CACHE_ENABLED $ITERATIONS"
 }
-
 
 consolidate_reports() {
     local benchmark=$1
