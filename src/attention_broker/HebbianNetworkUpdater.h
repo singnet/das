@@ -1,7 +1,7 @@
-#ifndef _ATTENTION_BROKER_SERVER_HEBBIANNETWORKUPDATER_H
-#define _ATTENTION_BROKER_SERVER_HEBBIANNETWORKUPDATER_H
+#pragma once
 
 #include "attention_broker.grpc.pb.h"
+#include "HebbianNetwork.h"
 
 using namespace std;
 
@@ -51,6 +51,18 @@ class HebbianNetworkUpdater {
      */
     virtual void correlation(const dasproto::HandleList* request) = 0;
 
+    /**
+     * Process a definition of importance determiners for a given handle.
+     *
+     * The first handle in the passed list is the one who will have determiners (all the other handles
+     * in the list) to its list of determiners. Determiners are other handles which co-determine the
+     * importance value of the reference handle.
+     *
+     * @param request A list of handles of attoms which are supposed to be tied up as co-determiners.
+     * @param network Hebbian network (related to the proper context) to be used.
+     */
+    void determiners(const dasproto::HandleList& sub_request, HebbianNetwork* network);
+
    protected:
     HebbianNetworkUpdater();  /// Basic empty constructor.
 
@@ -91,5 +103,3 @@ class ExactCountHebbianUpdater : public HebbianNetworkUpdater {
 };
 
 }  // namespace attention_broker_server
-
-#endif  // _ATTENTION_BROKER_SERVER_HEBBIANNETWORKUPDATER_H

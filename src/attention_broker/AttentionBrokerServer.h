@@ -126,6 +126,27 @@ class AttentionBrokerServer final : public AttentionBroker::Service {
                           const dasproto::HandleList* request,
                           dasproto::ImportanceList* reply) override;
 
+    /**
+     * Set determiners according to the lists passed in the request.
+     *
+     * The request is supposed to contain a list of lists of handles like 
+     * [[h1, hx1, hx2, ...], [h2, hy1, hy2, ...], ...] . Each inner list is used to set importance
+     * determiners for the first handle in such list. In this example, for instance, hx1, hx2, ...
+     * will be set as determiners of h1 and hy1, hy2, ... will be set as determiners of h2.
+     *
+     * Determiners are handles that interfeer in the computation of the importance of a handle.
+     * The exact way they interfeer is up to the concrete implementation of HebbianNetworkUpdater.
+     *
+     * @param request The request contains a list of list of handles of the atoms which should be
+     * used to set determiners.
+     * @param reply The message which will be send back to the caller with a simple ACK.
+     *
+     * @return GRPC status OK if request were properly processed or CANCELLED otherwise.
+     */
+    Status set_determiners(ServerContext* grpc_context,
+                           const dasproto::HandleListList* request,
+                           dasproto::Ack* reply) override;
+
     // Other public methods
 
     /**

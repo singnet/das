@@ -1,5 +1,4 @@
-#ifndef _ATTENTION_BROKER_SERVER_WORKERTHREADS_H
-#define _ATTENTION_BROKER_SERVER_WORKERTHREADS_H
+#pragma once
 
 #include <chrono>
 #include <iostream>
@@ -59,4 +58,3 @@ class WorkerThreads {
 
 }  // namespace attention_broker_server
 
-#endif  // _ATTENTION_BROKER_SERVER_WORKERTHREADS_H
