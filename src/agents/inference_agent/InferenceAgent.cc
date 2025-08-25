@@ -75,23 +75,26 @@ void InferenceAgent::run() {
         for (auto it = evolution_proxy_map.begin(); it != evolution_proxy_map.end();) {
             if (it->second->finished() || inference_proxy_map[it->first]->is_aborting() ||
                 Utils::get_current_time_millis() / 1000 > inference_timeout_map[it->first]) {
-                process_inference_abort_request(it->first);
+                LOG_DEBUG("Processing inference abort request for request ID: " << it->first);
 
                 auto inference_request = get_inference_request(it->first);
-                // // Repeat evolution process (not tested)
-                // if(inference_request != nullptr && inference_request->get_repeat() > 0) {
-                //     send_link_creation_request(inference_request);
-                //     inference_request->set_sent_evolution_request(false);
-                // }else{
                 if (inference_request != nullptr) {
-                    this->inference_requests.erase(remove(this->inference_requests.begin(),
-                                                          this->inference_requests.end(),
-                                                          inference_request),
-                                                   this->inference_requests.end());
-                    LOG_DEBUG("Inference request removed for request ID: " << it->first);
+                    if (inference_request->get_repeat() > 0) {
+                        LOG_DEBUG("Sending link creation request for request ID: "
+                                  << inference_request->get_id());
+                        LOG_DEBUG("Request repeat count: " << inference_request->get_repeat());
+                        send_link_creation_request(inference_request);
+                        inference_request->set_sent_evolution_request(false);
+                    } else {
+                        this->inference_requests.erase(remove(this->inference_requests.begin(),
+                                                              this->inference_requests.end(),
+                                                              inference_request),
+                                                       this->inference_requests.end());
+                        LOG_DEBUG("Inference request removed for request ID: " << it->first);
+                        process_inference_abort_request(it->first);
+                    }
                 }
 
-                // }
                 it = evolution_proxy_map.erase(it);
 
             } else {
