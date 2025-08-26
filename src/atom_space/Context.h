@@ -17,8 +17,11 @@ class Context {
     const string& get_key();
     const string& get_name();
 
-   private:
+   protected:
     Context(const string& name);
+
+   private:
+    void set_determiners();
     string name;
     string key;
 };

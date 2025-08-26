@@ -34,6 +34,7 @@ cc_library(
     name = "attention_broker_client",
     srcs = ["AttentionBrokerClient.cc"],
     hdrs = ["AttentionBrokerClient.h"],
+    includes = ["."],
     deps = [
         "//commons:commons_lib",
         "@com_github_grpc_grpc//:grpc++",
@@ -46,6 +47,7 @@ cc_library(
     name = "hebbian_network",
     srcs = ["HebbianNetwork.cc"],
     hdrs = ["HebbianNetwork.h"],
+    includes = ["."],
     deps = [
         "//commons:commons_lib",
         "//commons:handle_trie",
@@ -57,6 +59,7 @@ cc_library(
     name = "hebbian_network_updater",
     srcs = ["HebbianNetworkUpdater.cc"],
     hdrs = ["HebbianNetworkUpdater.h"],
+    includes = ["."],
     deps = [
         ":hebbian_network",
         "//commons:commons_lib",
@@ -72,6 +75,7 @@ cc_library(
     name = "request_selector",
     srcs = ["RequestSelector.cc"],
     hdrs = ["RequestSelector.h"],
+    includes = ["."],
     deps = [
         ":hebbian_network",
         "//commons:commons_lib",
