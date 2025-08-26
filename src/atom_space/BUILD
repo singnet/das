@@ -16,7 +16,7 @@ cc_library(
         "//commons:handle_trie",
         "//commons/atoms:atoms_lib",
         "//hasher:hasher_lib",
-        "//service_bus:service_bus_singleton",
+        "//service_bus:service_bus_lib",
     ],
 )
 
@@ -26,6 +26,9 @@ cc_library(
     hdrs = ["Context.h"],
     includes = ["."],
     deps = [
+        "//atomdb:atomdb_singleton",
+        "//attention_broker:attention_broker_client",
+        "//commons/atoms:atoms_lib",
         "//hasher:hasher_lib",
     ],
 )

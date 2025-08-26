@@ -25,6 +25,7 @@ class AttentionBrokerClient {
     static void get_importance(const vector<string>& handles,
                                const string& context,
                                vector<float>& importances);
+    static void set_determiners(const vector<vector<string>>& handle_lists, const string& context);
 
    private:
     static mutex api_mutex;

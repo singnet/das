@@ -7,6 +7,7 @@
 
 using namespace std;
 
+void random_init();
 double random_importance();
 string random_handle();
 string sequential_label(unsigned int& count, string prefix = "v");

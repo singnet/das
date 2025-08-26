@@ -594,7 +594,7 @@ vector<shared_ptr<atomdb_api_types::AtomDocument>> RedisMongoDB::get_link_docume
 
 vector<shared_ptr<atomdb_api_types::AtomDocument>> RedisMongoDB::get_matching_atoms(bool is_toplevel,
                                                                                     Atom& key) {
-    auto matching_atoms = vector<shared_ptr<atomdb_api_types::AtomDocument>>();
+    vector<shared_ptr<atomdb_api_types::AtomDocument>> matching_atoms;
 
     vector<string> collection_names = {MONGODB_NODES_COLLECTION_NAME, MONGODB_LINKS_COLLECTION_NAME};
     bool add_id_filter = false;
@@ -618,8 +618,7 @@ vector<shared_ptr<atomdb_api_types::AtomDocument>> RedisMongoDB::get_matching_at
             filter_builder << "is_toplevel" << is_toplevel;
         }
 
-        auto documents = get_filtered_documents(
-            collection_name, filter_builder, {MONGODB_FIELD_NAME[MONGODB_FIELD::ID]});
+        auto documents = get_filtered_documents(collection_name, filter_builder, {});
         for (const auto& document : documents) {
             Assignment assignment;
             if (key.match(document->get(MONGODB_FIELD_NAME[MONGODB_FIELD::ID]), assignment, *this)) {

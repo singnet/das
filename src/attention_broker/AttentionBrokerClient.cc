@@ -64,6 +64,30 @@ void AttentionBrokerClient::stimulate(const map<string, unsigned int>& handle_ma
     }
 }
 
+void AttentionBrokerClient::set_determiners(const vector<vector<string>>& handle_lists,
+                                            const string& context) {
+    dasproto::HandleListList request;  // GRPC command parameter
+    dasproto::Ack ack;                 // GRPC command return
+    auto stub = dasproto::AttentionBroker::NewStub(
+        grpc::CreateChannel(SERVER_ADDRESS, grpc::InsecureChannelCredentials()));
+
+    request.set_context(context);
+    unsigned int cursor = 0;
+    for (auto handle_list : handle_lists) {
+        request.add_list();
+        for (auto handle : handle_list) {
+            request.mutable_list(cursor)->add_list(handle);
+        }
+        cursor++;
+    }
+    LOG_INFO("Calling AttentionBroker GRPC. Setting determiners for " << request.list_size()
+                                                                      << " handles");
+    stub->set_determiners(new grpc::ClientContext(), request, &ack);
+    if (ack.msg() != "SET_DETERMINERS") {
+        Utils::error("Failed GRPC command: AttentionBroker::set_determiners()");
+    }
+}
+
 void AttentionBrokerClient::get_importance(const vector<string>& handles,
                                            const string& context,
                                            vector<float>& importances) {

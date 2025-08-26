@@ -515,6 +515,41 @@ TEST_F(RedisMongoDBTest, DeleteLinkAndDeleteItsTargets) {
     EXPECT_EQ(db->nodes_exist(nodes_handles).size(), 0);
 }
 
+TEST_F(RedisMongoDBTest, DeleteNestedLink) {
+    // (outter (intermediate (inner a) b) c)
+    string node1 = db->add_node(new Node("Symbol", "outter"));
+    string node2 = db->add_node(new Node("Symbol", "intermediate"));
+    string node3 = db->add_node(new Node("Symbol", "inner"));
+    string node4 = db->add_node(new Node("Symbol", "a"));
+    string node5 = db->add_node(new Node("Symbol", "b"));
+    string node6 = db->add_node(new Node("Symbol", "c"));
+    string link1 = db->add_link(new Link("Expression", {node3, node4}));
+    string link2 = db->add_link(new Link("Expression", {node2, link1, node5}));
+    string link3 = db->add_link(new Link("Expression", {node1, link2, node6}, true));
+
+    cout << "XXX node1: " << node1 << endl;
+    cout << "XXX node2: " << node2 << endl;
+    cout << "XXX node3: " << node3 << endl;
+    cout << "XXX node4: " << node4 << endl;
+    cout << "XXX node5: " << node5 << endl;
+    cout << "XXX node6: " << node6 << endl;
+    cout << "XXX link1: " << link1 << endl;
+    cout << "XXX link2: " << link2 << endl;
+    cout << "XXX link3: " << link3 << endl;
+
+    db->delete_link(link3, true);
+
+    EXPECT_FALSE(db->link_exists(node1));
+    EXPECT_FALSE(db->link_exists(node2));
+    EXPECT_FALSE(db->link_exists(node3));
+    EXPECT_FALSE(db->link_exists(node4));
+    EXPECT_FALSE(db->link_exists(node5));
+    EXPECT_FALSE(db->link_exists(node6));
+    EXPECT_FALSE(db->link_exists(link1));
+    EXPECT_FALSE(db->link_exists(link2));
+    EXPECT_FALSE(db->link_exists(link3));
+}
+
 TEST_F(RedisMongoDBTest, DeleteLinkWithNestedLink) {
     // Delete a link with a nested links
     // (TestLinkName (TestNestedLinkName1 (TestNestedLinkName2 N1 N2) N3) N4)
@@ -814,6 +849,8 @@ TEST_F(RedisMongoDBTest, GetMatchingAtoms) {
 
     auto matching_atoms = db->get_matching_atoms(false, *similarity_node);
     EXPECT_EQ(matching_atoms.size(), 1);
+    string named_type = matching_atoms[0]->get("named_type");
+    EXPECT_EQ(named_type, string("Symbol"));
     matching_atoms = db->get_matching_atoms(true, *similarity_node);
     EXPECT_EQ(matching_atoms.size(), 0);
 
