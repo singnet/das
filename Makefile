@@ -78,6 +78,23 @@ reset-nunet-dms:
 bazel: build-image
 	@bash ./src/scripts/bazel.sh $(filter-out $@, $(MAKECMDGOALS))
 
+clean:
+	@echo "Cleaning Bazel build outputs..."
+	@docker run --rm \
+		--user="$$(id -u):$$(id -g)" \
+		--volume /etc/passwd:/etc/passwd:ro \
+		--privileged \
+		--name="das-bazel-clean-$$(date +%s)" \
+		--network=host \
+		--volume "$(HOME)/.cache/das:$(HOME)/.cache" \
+		--volume "$(PWD):/opt/das" \
+		--volume "/tmp:/tmp" \
+		--workdir "/opt/das/src" \
+		das-builder \
+		bash -c 'find ~/.cache/ -name "*.o" -not -path "*/external/*" -delete'
+	@echo "Done."
+
+
 test-all-no-cache:
 	@$(MAKE) bazel 'test --show_progress --cache_test_results=no //tests/...'
 
