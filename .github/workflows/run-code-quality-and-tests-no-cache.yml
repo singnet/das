@@ -10,13 +10,9 @@ jobs:
 
   coverage-check:
     needs: format-check
-    runs-on: self-hosted-nocache
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Test coverage check
-        run: make test-coverage-check
+    uses: ./.github/workflows/run-coverage-check.yml
+    with:
+      runner: self-hosted-nocache
 
   unit-tests:
     needs: format-check
