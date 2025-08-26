@@ -2,7 +2,7 @@
 
 #include "RequestSelector.h"
 
-#define LOG_LEVEL INFO_LEVEL
+#define LOG_LEVEL DEBUG_LEVEL
 #include "Logger.h"
 
 using namespace attention_broker_server;
@@ -122,7 +122,10 @@ Status AttentionBrokerServer::get_importance(ServerContext* grpc_context,
             for (int i = 0; i < num_handles; i++) {
                 float importance = network->get_node_importance(request->list(i));
                 if (importance > 0) {
+                    LOG_DEBUG("P " + request->list(i) + ": " + std::to_string(importance));
                     count_positive++;
+                } else {
+                    LOG_DEBUG("Z " + request->list(i) + ": " + std::to_string(importance));
                 }
                 reply->add_list(importance);
             }

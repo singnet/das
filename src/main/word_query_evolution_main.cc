@@ -158,11 +158,11 @@ void run(const string& client_id,
         and_operator, "2",
             link_template, expression, "3",
                 node, symbol, contains,
-                variable, sentence2,
+                variable, sentence1,
                 variable, word1,
             link_template, expression, "3",
                 node, symbol, contains,
-                variable, sentence1,
+                variable, sentence2,
                 variable, word1,
     };
     string activation_spreading1_metta = "(and (Contains $sentence2 $word1) (Contains $sentence1 $word1))";
@@ -171,11 +171,11 @@ void run(const string& client_id,
         and_operator, "3",
             link_template, expression, "3",
                 node, symbol, contains,
-                variable, sentence2,
+                variable, sentence1,
                 variable, word1,
             link_template, expression, "3",
                 node, symbol, contains,
-                variable, sentence1,
+                variable, sentence2,
                 variable, word1,
             or_operator, "2",
                 link_template, expression, "3",
@@ -215,9 +215,10 @@ void run(const string& client_id,
     shared_ptr<QueryEvolutionProxy> proxy(proxy_ptr);
     proxy->parameters[BaseQueryProxy::USE_METTA_AS_QUERY_TOKENS] = USE_METTA_QUERY;
     proxy->parameters[QueryEvolutionProxy::POPULATION_SIZE] = (unsigned int) 100;
-    proxy->parameters[QueryEvolutionProxy::MAX_GENERATIONS] = (unsigned int) 5;
+    proxy->parameters[QueryEvolutionProxy::MAX_GENERATIONS] = (unsigned int) 50;
     proxy->parameters[QueryEvolutionProxy::ELITISM_RATE] = (double) 0.08;
     proxy->parameters[QueryEvolutionProxy::SELECTION_RATE] = (double) 0.10;
+    proxy->parameters[QueryEvolutionProxy::TOTAL_ATTENTION_TOKENS] = (unsigned int) 100000;
     proxy->parameters[BaseQueryProxy::MAX_BUNDLE_SIZE] = (unsigned int) 10000;
     service_bus->issue_bus_command(proxy);
 

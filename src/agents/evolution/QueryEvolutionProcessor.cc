@@ -6,7 +6,7 @@
 #include "ServiceBus.h"
 #include "ServiceBusSingleton.h"
 
-#define LOG_LEVEL INFO_LEVEL
+#define LOG_LEVEL DEBUG_LEVEL
 #include "Logger.h"
 
 using namespace evolution;
@@ -78,7 +78,7 @@ shared_ptr<PatternMatchingQueryProxy> QueryEvolutionProcessor::issue_sampling_qu
     auto pm_proxy =
         make_shared<PatternMatchingQueryProxy>(proxy->get_query_tokens(), proxy->get_context());
     pm_proxy->parameters[BaseQueryProxy::UNIQUE_ASSIGNMENT_FLAG] = true;
-    pm_proxy->parameters[BaseQueryProxy::ATTENTION_UPDATE_FLAG] = (this->generation_count == 1);
+    pm_proxy->parameters[BaseQueryProxy::ATTENTION_UPDATE_FLAG] = false; // (this->generation_count == 1);
     pm_proxy->parameters[BaseQueryProxy::USE_LINK_TEMPLATE_CACHE] = false;
     pm_proxy->parameters[PatternMatchingQueryProxy::POSITIVE_IMPORTANCE_FLAG] = false;
     pm_proxy->parameters[BaseQueryProxy::USE_METTA_AS_QUERY_TOKENS] =
@@ -95,8 +95,7 @@ shared_ptr<PatternMatchingQueryProxy> QueryEvolutionProcessor::issue_correlation
     pm_proxy->parameters[BaseQueryProxy::UNIQUE_ASSIGNMENT_FLAG] = true;
     pm_proxy->parameters[BaseQueryProxy::ATTENTION_UPDATE_FLAG] = false;
     pm_proxy->parameters[BaseQueryProxy::USE_LINK_TEMPLATE_CACHE] = false;
-    pm_proxy->parameters[PatternMatchingQueryProxy::POSITIVE_IMPORTANCE_FLAG] =
-        (this->generation_count > 1);
+    pm_proxy->parameters[PatternMatchingQueryProxy::POSITIVE_IMPORTANCE_FLAG] = false; // (this->generation_count > 1);
     pm_proxy->parameters[BaseQueryProxy::USE_METTA_AS_QUERY_TOKENS] =
         proxy->parameters.get<bool>(BaseQueryProxy::USE_METTA_AS_QUERY_TOKENS);
     pm_proxy->parameters[PatternMatchingQueryProxy::MAX_ANSWERS] =
@@ -117,6 +116,7 @@ void QueryEvolutionProcessor::sample_population(
 
     auto pm_query = issue_sampling_query(proxy);
 
+    unsigned int positive_importance_count = 0;
     while ((!pm_query->finished()) && (!monitor->stopped()) && (population.size() < population_size)) {
         shared_ptr<QueryAnswer> answer = pm_query->pop();
         if (answer != NULL) {
@@ -129,12 +129,16 @@ void QueryEvolutionProcessor::sample_population(
                 fitness = (remote_fitness ? 0 : proxy->compute_fitness(answer));
             }
             answer->strength = fitness;
+            if (answer->importance > 0) {
+                positive_importance_count++;
+            }
             LOG_DEBUG("Sampling: " + answer->to_string());
             population.push_back(make_pair(answer, fitness));
         } else {
             Utils::sleep();
         }
     }
+    LOG_DEBUG("Generation: " + std::to_string(this->generation_count) + " - Individuals with non-zero importance: " + std::to_string(positive_importance_count));
     if (!pm_query->finished()) {
         pm_query->abort();
         unsigned int count = 0;
@@ -248,8 +252,36 @@ void QueryEvolutionProcessor::select_best_individuals(
              " - Average fitness in selected group: " + std::to_string(sum / count));
 }
 
+float eval_word(const string& handle, string& word) {
+
+    auto db = AtomDBSingleton::get_instance();
+    shared_ptr<atomdb_api_types::AtomDocument> word_document;
+    shared_ptr<atomdb_api_types::AtomDocument> word_name_document;
+    word_document = db->get_atom_document(handle);
+    string symbol_handle = string(word_document->get("targets", 1));
+    word_name_document = db->get_atom_document(symbol_handle);
+    const char* word_name = word_name_document->get("name");
+    word = string(word_name);
+    unsigned int count = 0;
+    unsigned int sentence_length = 0;
+    for (unsigned int i = 0; word_name[i] != '\0'; i++) {
+        if ((word_name[i] != ' ') && (word_name[i] != '"')) {
+            sentence_length++;
+        }
+        if (word_name[i] == 'c') {
+            count++;
+        }
+    }
+    if (sentence_length == 0) {
+        return 0;
+    } else {
+        return ((float) count) / ((float) sentence_length);
+    }
+}
+
 void QueryEvolutionProcessor::correlate_similar(shared_ptr<QueryEvolutionProxy> proxy,
                                                 shared_ptr<QueryAnswer> correlation_query_answer) {
+
     vector<string> query_tokens;
     unsigned int cursor = 0;
     vector<string> original_tokens = proxy->get_correlation_tokens();
@@ -286,9 +318,12 @@ void QueryEvolutionProcessor::correlate_similar(shared_ptr<QueryEvolutionProxy> 
     }
     while (!pm_query->finished()) {
         shared_ptr<QueryAnswer> answer = pm_query->pop();
+        string word;
         if (answer != NULL) {
-            for (string handle : answer->handles) {
-                handle_set.insert(handle);
+            if (eval_word(answer->assignment.get("word1"), word) >= correlation_query_answer->strength) { // XXX
+                for (string handle : answer->handles) {
+                    handle_set.insert(handle);
+                }
             }
         } else {
             Utils::sleep();
@@ -350,7 +385,9 @@ void QueryEvolutionProcessor::evolve_query(shared_ptr<StoppableThread> monitor,
         LOG_INFO("========== Generation: " + std::to_string(this->generation_count) + ". Sampled " +
                  std::to_string(population.size()) + " individuals. ==========");
         proxy->new_population_sampled(population);
-        if (population.size() > 0) {
+        if (this->generation_count == 2) break; // XXX
+        if ((population.size() > 0) && !proxy->stop_criteria_met()) {
+            proxy->flush_answer_bundle();
             STOP_WATCH_START(selection);
             select_best_individuals(proxy, population, selected);
             STOP_WATCH_FINISH(selection, "EvolutionIndividualSelection");
@@ -363,12 +400,12 @@ void QueryEvolutionProcessor::evolve_query(shared_ptr<StoppableThread> monitor,
             }
             population.clear();
             selected.clear();
-            proxy->flush_answer_bundle();
         }
         RAM_FOOTPRINT_CHECK(evolution, "Generation " + std::to_string(this->generation_count));
         STOP_WATCH_FINISH(generation, "OneGeneration");
         this->generation_count++;
     }
+    proxy->flush_answer_bundle();
     STOP_WATCH_FINISH(evolution, "QueryEvolution");
     RAM_FOOTPRINT_FINISH(evolution, "");
     Utils::sleep(1000);

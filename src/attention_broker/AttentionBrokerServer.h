@@ -61,9 +61,9 @@ class AttentionBrokerServer final : public AttentionBroker::Service {
 
     // Stimuli spreading parameters
     string global_context;
-    constexpr const static double RENT_RATE = 0.50;                  /// double in [0..1] range.
-    constexpr const static double SPREADING_RATE_LOWERBOUND = 0.01;  /// double in [0..1] range.
-    constexpr const static double SPREADING_RATE_UPPERBOUND = 0.10;  /// double in [0..1] range.
+    constexpr const static double RENT_RATE = 0.000001;                 /// double in [0..1] range.
+    constexpr const static double SPREADING_RATE_LOWERBOUND = 0.9999999;  /// double in [0..1] range.
+    constexpr const static double SPREADING_RATE_UPPERBOUND = 0.9999999;  /// double in [0..1] range.
 
     // RPC API
 

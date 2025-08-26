@@ -1,7 +1,7 @@
 #include "StimulusSpreader.h"
 
 // clang-format off
-#define LOG_LEVEL INFO_LEVEL
+#define LOG_LEVEL LOCAL_DEBUG_LEVEL
 #include "Logger.h"
 // clang-format on
 
@@ -42,6 +42,12 @@ TokenSpreader::~TokenSpreader() {}
 // "visit" functions used to traverse network
 
 typedef TokenSpreader::StimuliData DATA;
+
+static bool print_importance(HandleTrie::TrieNode* node, void* data) {
+    HebbianNetwork::Node* value = (HebbianNetwork::Node*) node->value;
+    LOG_INFO("Importance of " + node->suffix + " :" + std::to_string(value->importance));
+    return false;
+}
 
 static bool collect_rent(HandleTrie::TrieNode* node, void* data) {
     ImportanceType rent = ((DATA*) data)->rent_rate * ((HebbianNetwork::Node*) node->value)->importance;
@@ -93,9 +99,20 @@ static bool sum_weights(HandleTrie::TrieNode* node, void* data) {
 
 static bool deliver_stimulus(HandleTrie::TrieNode* node, void* data) {
     HebbianNetwork::Edge* edge = (HebbianNetwork::Edge*) node->value;
+#if LOG_LEVEL >= LOCAL_DEBUG_LEVEL
+    ImportanceType original_importance = edge->node2->importance;
+#endif
     double w = (double) edge->count / edge->node1->count;
     ImportanceType stimulus = (w / ((DATA*) data)->sum_weights) * ((DATA*) data)->to_spread;
     edge->node2->importance += stimulus;
+    // clang-format off
+    LOG_LOCAL_DEBUG(\
+        "Update " + node->suffix + ":" + \
+        " " + std::to_string(original_importance) + \
+        " + ((" + std::to_string(edge->count) + " / "  + std::to_string(edge->node1->count) + ")" + \
+        " / " + std::to_string(((DATA*) data)->sum_weights) + ") * " + std::to_string(((DATA*) data)->to_spread) + \
+        " = " + std::to_string(edge->node2->importance));
+    // clang-format on
     return false;
 }
 
@@ -104,6 +121,12 @@ static bool consolidate_stimulus(HandleTrie::TrieNode* node, void* data) {
     ((DATA*) data)->to_spread = value->stimuli_to_spread;
     ((DATA*) data)->sum_weights = 0.0;
     value->neighbors->traverse(true, &sum_weights, data);
+    // clang-format off
+    LOG_LOCAL_DEBUG(\
+        "Consolidating stimulus for " + node->suffix + ":" + \
+        " To spread: " + std::to_string(((DATA*) data)->to_spread) + \
+        " Summed weights: " + std::to_string(((DATA*) data)->sum_weights));
+    // clang-format on
     value->neighbors->traverse(true, &deliver_stimulus, data);
     value->stimuli_to_spread = 0.0;
     return false;
@@ -138,11 +161,11 @@ void TokenSpreader::spread_stimuli(const dasproto::HandleCount* request) {
         return;
     }
 
-    for (auto pair : request->map()) {
-        if (pair.first != "SUM") {
-            network->add_node(pair.first);
-        }
-    }
+    for (auto pair : request->map()) {     // XXXXXXXXXXXXXXXXXXXXXXXXXX
+        if (pair.first != "SUM") {         // XXXXXXXXXXXXXXXXXXXXXXXXXX
+            network->add_node(pair.first); // XXXXXXXXXXXXXXXXXXXXXXXXXX
+        }                                  // XXXXXXXXXXXXXXXXXXXXXXXXXX
+    }                                      // XXXXXXXXXXXXXXXXXXXXXXXXXX
     DATA data;
     data.importance_changes = new HandleTrie(HANDLE_HASH_SIZE - 1);
     data.rent_rate = AttentionBrokerServer::RENT_RATE;
@@ -170,8 +193,11 @@ void TokenSpreader::spread_stimuli(const dasproto::HandleCount* request) {
     distribute_wages(request, total_to_spread, &data);
 
     // Consolidate changes
+    network->visit_nodes(true, &print_importance, (void*) &data); // XXX
     network->visit_nodes(true, &consolidate_rent_and_wages, (void*) &data);
+    network->visit_nodes(true, &print_importance, (void*) &data); // XXX
 
     // Spread activation (1 cycle)
     network->visit_nodes(true, &consolidate_stimulus, &data);
+    network->visit_nodes(true, &print_importance, (void*) &data); // XXX
 }
