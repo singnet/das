@@ -1,7 +1,7 @@
 #include "Context.h"
 
-#include "AttentionBrokerClient.h"
 #include "AtomDBSingleton.h"
+#include "AttentionBrokerClient.h"
 #include "Hasher.h"
 
 using namespace atom_space;
@@ -32,7 +32,7 @@ void Context::set_determiners(Atom& atom_key) {
     vector<string> determiners;
     vector<vector<string>> determiner_request;
     for (const auto& document : documents) {
-        if (document->contains(TARGETS)) { // if is link
+        if (document->contains(TARGETS)) {  // if is link
             determiners.clear();
             string handle = string(document->get(ID));
             determiners.push_back(handle);

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string>
+
 #include "Atom.h"
 
 using namespace std;
