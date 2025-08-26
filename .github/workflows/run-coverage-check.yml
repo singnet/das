@@ -1,0 +1,81 @@
+name: Coverage Check
+
+on:
+  workflow_call:
+    inputs:
+      runner:
+        required: true
+        type: string
+
+jobs:
+  coverage-check:
+    runs-on: ${{ inputs.runner }}
+    env:
+      DAS_REDIS_HOSTNAME: localhost
+      DAS_REDIS_PORT: 29000
+      DAS_MONGODB_HOSTNAME: localhost
+      DAS_MONGODB_PORT: 28000
+      DAS_MONGODB_USERNAME: dbadmin
+      DAS_MONGODB_PASSWORD: dassecret
+      DAS_MORK_HOSTNAME: localhost
+      DAS_MORK_PORT: 8000
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |-
+          sudo apt -y update
+          sudo apt -y install build-essential wget
+          sudo bash -c "wget -O - http://45.77.4.33/apt-repo/setup.sh | bash"
+          sudo apt -y install das-toolbox
+          sudo das-cli update-version --version ${{ vars.DAS_CLI_VERSION }}
+          das-cli --version
+
+      - name: Download Knowledge Base
+        run: curl https://raw.githubusercontent.com/singnet/das-toolbox/refs/heads/master/das-cli/src/examples/data/animals.metta -o /tmp/animals.metta
+
+      - name: Setting das-cli configuration
+        run: |-
+          das-cli config set <<EOF
+          $DAS_REDIS_PORT
+          n
+          $DAS_MONGODB_PORT
+          $DAS_MONGODB_USERNAME
+          $DAS_MONGODB_PASSWORD
+          n
+          8888
+          37007
+          35500
+          9070
+          /tmp/requests_buffer.bin
+          1
+          1
+          10
+          n
+          n
+          8080
+          EOF
+
+      - name: Starting Redis and MongoDB
+        run: das-cli db start
+
+      - name: Build source code
+        run: make build-all
+
+      - name: Starting Attention Broker
+        run: das-cli attention-broker start
+
+      - name: Starting MORK Server and Load Knowledge Base
+        run: |-
+          make run-mork-server > /dev/null 2>&1 &
+          
+          until curl --silent http://localhost:8000/status/-; do
+            echo "Waiting MORK…"
+            sleep 1
+          done
+          
+          make mork-loader FILE="/tmp/animals.metta"
+
+      - name: Execute Unit Test Suite
+        run: make test-coverage-check
