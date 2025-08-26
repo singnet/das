@@ -16,7 +16,7 @@ cc_library(
         "//commons:handle_trie",
         "//commons/atoms:atoms_lib",
         "//hasher:hasher_lib",
-        "//service_bus:service_bus_singleton",
+        "//service_bus:service_bus_lib",
     ],
 )
 
@@ -27,5 +27,8 @@ cc_library(
     includes = ["."],
     deps = [
         "//hasher:hasher_lib",
+        "//attention_broker:attention_broker_client",
+        "//atomdb:atomdb_singleton",
+        "//commons/atoms:atoms_lib",
     ],
 )
