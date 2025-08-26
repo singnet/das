@@ -16,7 +16,7 @@ bash "$SCRIPT_DIR/bazel_exec.sh" coverage --keep_going --show_progress //tests/.
 if [[ -f "$REPORT_PATH" ]]; then
   echo "Coverage report generated at: $REPORT_PATH"
 
-  gcovr --coveralls "$REPORT_PATH" --markdown "$MARKDOWN_REPORT"
+  gcovr --coveralls "$REPORT_PATH" --markdown "$MARKDOWN_REPORT" --fail-under-line 70
 
   echo "Markdown report generated at: $MARKDOWN_REPORT"
 else
