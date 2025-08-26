@@ -469,7 +469,11 @@ cc_test(
 cc_test(
     name = "context_test",
     size = "small",
-    srcs = ["context_test.cc"],
+    srcs = [
+        "context_test.cc",
+        "test_utils.cc",
+        "test_utils.h",
+    ],
     copts = [
         "-Iexternal/gtest/googletest/include",
         "-Iexternal/gtest/googletest",

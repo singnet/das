@@ -182,6 +182,17 @@ class AtomSpace {
      * Context objects are used to make queries in the atom space.
      *
      * @param name Context name.
+     * @param atom_key Key used to match toplevel atoms; only matching toplevel atoms will be considered.
+     * @return A newly created Context object.
+     */
+    shared_ptr<Context> create_context(const string& context_name, Atom& atom_key);
+
+    /**
+     * Create and return a context object passing UntypedVariable (which matches everything) as atom key.
+     *
+     * Context objects are used to make queries in the atom space.
+     *
+     * @param name Context name.
      * @return A newly created Context object.
      */
     shared_ptr<Context> create_context(const string& context_name);
