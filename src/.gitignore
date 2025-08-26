@@ -4,3 +4,4 @@ bazel-cpp
 bazel-python
 bazel-testlogs
 docker/volumes
+coverage-report
