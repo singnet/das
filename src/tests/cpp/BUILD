@@ -487,8 +487,8 @@ cc_test(
     ],
     linkstatic = 1,
     deps = [
-        "//atomdb:atomdb",
         "//atom_space:context",
+        "//atomdb",
         "//attention_broker:attention_broker_lib",
         "//tests/cpp/test_commons",
         "@com_github_google_googletest//:gtest_main",

@@ -2,8 +2,8 @@
 
 #include "Hasher.h"
 #include "QueryAnswer.h"
-#include "Utils.h"
 #include "UntypedVariable.h"
+#include "Utils.h"
 
 using namespace std;
 using namespace query_engine;

@@ -1,13 +1,13 @@
+#include "Context.h"
+
 #include "AtomDBSingleton.h"
 #include "AttentionBrokerClient.h"
-#include "Context.h"
 #include "Hasher.h"
 #include "TestConfig.h"
-#include "test_utils.h"
+#include "UntypedVariable.h"
 #include "Utils.h"
 #include "gtest/gtest.h"
-
-#include "UntypedVariable.h"
+#include "test_utils.h"
 
 #define LOG_LEVEL INFO_LEVEL
 #include "Logger.h"
@@ -77,12 +77,17 @@ TEST(Context, basics) {
     string link2 = Hasher::link_handle("Expression", {node5, node1, node3});
     string link3 = Hasher::link_handle("Expression", {node5, node1, node4});
 
-    vector<string> tokens = {
-        "LINK_TEMPLATE", "Expression", "3",
-            "NODE", "Symbol", "Similarity",
-            "NODE", "Symbol", "\"human\"",
-            "VARIABLE", "v1"
-    };
+    vector<string> tokens = {"LINK_TEMPLATE",
+                             "Expression",
+                             "3",
+                             "NODE",
+                             "Symbol",
+                             "Similarity",
+                             "NODE",
+                             "Symbol",
+                             "\"human\"",
+                             "VARIABLE",
+                             "v1"};
     LinkSchema atom_key(tokens);
     TestContext* context = new TestContext(random_handle(), atom_key);
 
