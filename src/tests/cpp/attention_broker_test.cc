@@ -26,6 +26,7 @@ TEST(AttentionBrokerTest, basics) {
     dasproto::Empty empty;
     dasproto::HandleCount handle_count;
     dasproto::HandleList handle_list;
+    dasproto::HandleListList handle_list_list;
     dasproto::Ack ack;
     dasproto::ImportanceList importance_list;
     ServerContext* context = NULL;
@@ -36,6 +37,8 @@ TEST(AttentionBrokerTest, basics) {
     EXPECT_EQ(ack.msg(), "STIMULATE");
     service.correlate(context, &handle_list, &ack);
     EXPECT_EQ(ack.msg(), "CORRELATE");
+    service.set_determiners(context, &handle_list_list, &ack);
+    EXPECT_EQ(ack.msg(), "SET_DETERMINERS");
     service.get_importance(context, &handle_list, &importance_list);
     EXPECT_EQ(importance_list.list_size(), 0);
 }
@@ -77,4 +80,19 @@ TEST(AttentionBrokerTest, get_importance) {
     EXPECT_TRUE(importance_list1.list(1) > 0.4);
     EXPECT_TRUE(importance_list2.list(0) < 0.1);
     EXPECT_TRUE(importance_list2.list(1) < 0.1);
+
+    dasproto::HandleListList handle_list_list;
+    handle_list_list.add_list();
+    handle_list_list.mutable_list(0)->add_list(handles[3]);
+    handle_list_list.mutable_list(0)->add_list(handles[0]);
+    dasproto::ImportanceList importance_list3;
+    dasproto::ImportanceList importance_list4;
+    service.set_determiners(context, &handle_list_list, &ack);
+    service.get_importance(context, &handle_list1, &importance_list3);
+    service.get_importance(context, &handle_list2, &importance_list4);
+
+    EXPECT_TRUE(importance_list3.list(0) > 0.4);
+    EXPECT_TRUE(importance_list3.list(1) > 0.4);
+    EXPECT_TRUE(importance_list4.list(0) < 0.1);
+    EXPECT_TRUE(importance_list4.list(1) > 0.4);
 }
