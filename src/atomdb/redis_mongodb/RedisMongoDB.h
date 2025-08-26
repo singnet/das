@@ -78,6 +78,8 @@ class RedisMongoDB : public AtomDB {
     vector<shared_ptr<atomdb_api_types::AtomDocument>> get_link_documents(const vector<string>& handles,
                                                                           const vector<string>& fields);
 
+    vector<shared_ptr<atomdb_api_types::AtomDocument>> get_matching_atoms(bool is_toplevel, Atom& key);
+
     bool atom_exists(const string& handle);
     bool node_exists(const string& handle);
     bool link_exists(const string& handle);
@@ -101,6 +103,11 @@ class RedisMongoDB : public AtomDB {
     uint delete_atoms(const vector<string>& handles, bool delete_link_targets = false);
     uint delete_nodes(const vector<string>& handles, bool delete_link_targets = false);
     uint delete_links(const vector<string>& handles, bool delete_link_targets = false);
+
+    vector<shared_ptr<atomdb_api_types::AtomDocument>> get_filtered_documents(
+        const string& collection_name,
+        const bsoncxx::builder::stream::document& filter_builder,
+        const vector<string>& fields);
 
     void add_pattern_index_schema(const string& tokens, const vector<vector<string>>& index_entries);
     void re_index_patterns();

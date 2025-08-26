@@ -10,6 +10,7 @@ class MockAtomDocument : public atomdb_api_types::AtomDocument {
    public:
     MOCK_METHOD(const char*, get, (const string& key), (override));
     MOCK_METHOD(const char*, get, (const string& array_key, unsigned int index), (override));
+    MOCK_METHOD(bool, get_bool, (const string& key), (override));
     MOCK_METHOD(unsigned int, get_size, (const string& array_key), (override));
     MOCK_METHOD(bool, contains, (const string& key), (override));
     MockAtomDocument() {
@@ -61,6 +62,11 @@ class AtomDBMock : public AtomDB {
     MOCK_METHOD(vector<shared_ptr<atomdb_api_types::AtomDocument>>,
                 get_link_documents,
                 (const vector<string>& handles, const vector<string>& fields),
+                (override));
+
+    MOCK_METHOD(vector<shared_ptr<atomdb_api_types::AtomDocument>>,
+                get_matching_atoms,
+                (bool is_toplevel, Atom& key),
                 (override));
 
     MOCK_METHOD(bool, atom_exists, (const string& handle), (override));

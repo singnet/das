@@ -16,9 +16,10 @@ class UntypedVariable : public Wildcard {
     /**
      * @brief Construct a UntypedVariable.
      * @param name The name of the node.
+     * @param is_toplevel Whether the variable is a toplevel.
      * @throws std::runtime_error if name is empty.
      */
-    UntypedVariable(const string& name);
+    UntypedVariable(const string& name, bool is_toplevel = false);
 
     /**
      * @brief Copy constructor.

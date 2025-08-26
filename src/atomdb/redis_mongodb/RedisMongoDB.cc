@@ -146,6 +146,10 @@ shared_ptr<Atom> RedisMongoDB::get_atom(const string& handle) {
             custom_attributes =
                 atom_document->extract_custom_attributes(atom_document->get_object("custom_attributes"));
         }
+        bool is_toplevel = false;
+        if (atom_document->contains("is_toplevel")) {
+            is_toplevel = atom_document->get_bool("is_toplevel");
+        }
         if (atom_document->contains(MONGODB_FIELD_NAME[MONGODB_FIELD::TARGETS])) {
             unsigned int arity = atom_document->get_size(MONGODB_FIELD_NAME[MONGODB_FIELD::TARGETS]);
             vector<string> targets;
@@ -153,10 +157,13 @@ shared_ptr<Atom> RedisMongoDB::get_atom(const string& handle) {
                 targets.push_back(
                     string(atom_document->get(MONGODB_FIELD_NAME[MONGODB_FIELD::TARGETS], i)));
             }
-            return make_shared<Link>(atom_document->get("named_type"), targets, custom_attributes);
+            return make_shared<Link>(
+                atom_document->get("named_type"), targets, is_toplevel, custom_attributes);
         } else {
-            return make_shared<Node>(
-                atom_document->get("named_type"), atom_document->get("name"), custom_attributes);
+            return make_shared<Node>(atom_document->get("named_type"),
+                                     atom_document->get("name"),
+                                     is_toplevel,
+                                     custom_attributes);
         }
     } else {
         return shared_ptr<Atom>(NULL);
@@ -463,6 +470,52 @@ shared_ptr<atomdb_api_types::AtomDocument> RedisMongoDB::get_link_document(const
     return get_document(handle, MONGODB_LINKS_COLLECTION_NAME);
 }
 
+vector<shared_ptr<atomdb_api_types::AtomDocument>> RedisMongoDB::get_filtered_documents(
+    const string& collection_name,
+    const bsoncxx::builder::stream::document& filter_builder,
+    const vector<string>& fields) {
+    vector<shared_ptr<atomdb_api_types::AtomDocument>> atom_documents;
+
+    auto conn = this->mongodb_pool->acquire();
+    auto mongodb_collection = (*conn)[MONGODB_DB_NAME][collection_name];
+
+    try {
+        // Fetch documents in batches
+        uint skip = 0;
+        bool has_more = true;
+        while (has_more) {
+            // Build projection
+            bsoncxx::builder::stream::document projection_builder;
+            for (const auto& field : fields) {
+                projection_builder << field << 1;
+            }
+
+            auto cursor = mongodb_collection.find(filter_builder.view(),
+                                                  mongocxx::options::find{}
+                                                      .projection(projection_builder.view())
+                                                      .skip(skip)
+                                                      .limit(MONGODB_CHUNK_SIZE));
+
+            uint documents_count = 0;
+            for (const auto& view : cursor) {
+                bsoncxx::v_noabi::stdx::optional<bsoncxx::v_noabi::document::value> opt_val =
+                    bsoncxx::v_noabi::document::value(view);
+                auto atom_document = make_shared<atomdb_api_types::MongodbDocument>(opt_val);
+                atom_documents.push_back(atom_document);
+                documents_count++;
+            }
+
+            has_more = documents_count == MONGODB_CHUNK_SIZE;
+
+            skip += MONGODB_CHUNK_SIZE;
+        }
+    } catch (const exception& e) {
+        Utils::error("MongoDB error at get_filtered_documents(): " + string(e.what()));
+    }
+
+    return atom_documents;
+}
+
 vector<shared_ptr<atomdb_api_types::AtomDocument>> RedisMongoDB::get_documents(
     const vector<string>& handles, const vector<string>& fields, const string& collection_name) {
     // TODO Add cache support for this method
@@ -537,6 +590,45 @@ vector<shared_ptr<atomdb_api_types::AtomDocument>> RedisMongoDB::get_node_docume
 vector<shared_ptr<atomdb_api_types::AtomDocument>> RedisMongoDB::get_link_documents(
     const vector<string>& handles, const vector<string>& fields) {
     return get_documents(handles, fields, MONGODB_LINKS_COLLECTION_NAME);
+}
+
+vector<shared_ptr<atomdb_api_types::AtomDocument>> RedisMongoDB::get_matching_atoms(bool is_toplevel,
+                                                                                    Atom& key) {
+    auto matching_atoms = vector<shared_ptr<atomdb_api_types::AtomDocument>>();
+
+    vector<string> collection_names = {MONGODB_NODES_COLLECTION_NAME, MONGODB_LINKS_COLLECTION_NAME};
+    bool add_id_filter = false;
+    if (dynamic_cast<atoms::Link*>(&key)) {
+        collection_names = {MONGODB_LINKS_COLLECTION_NAME};
+        add_id_filter = true;
+    } else if (dynamic_cast<atoms::Node*>(&key)) {
+        collection_names = {MONGODB_NODES_COLLECTION_NAME};
+        add_id_filter = true;
+    }
+
+    for (const auto& collection_name : collection_names) {
+        bsoncxx::builder::stream::document filter_builder;
+
+        if (add_id_filter) {
+            filter_builder << MONGODB_FIELD_NAME[MONGODB_FIELD::ID] << key.handle();
+        }
+
+        // TODO(arturgontijo): Properly add support for Node's is_toplevel filter
+        if (collection_name == MONGODB_LINKS_COLLECTION_NAME || is_toplevel) {
+            filter_builder << "is_toplevel" << is_toplevel;
+        }
+
+        auto documents = get_filtered_documents(
+            collection_name, filter_builder, {MONGODB_FIELD_NAME[MONGODB_FIELD::ID]});
+        for (const auto& document : documents) {
+            Assignment assignment;
+            if (key.match(document->get(MONGODB_FIELD_NAME[MONGODB_FIELD::ID]), assignment, *this)) {
+                matching_atoms.push_back(document);
+            }
+        }
+    }
+
+    return matching_atoms;
 }
 
 bool RedisMongoDB::document_exists(const string& handle, const string& collection_name) {

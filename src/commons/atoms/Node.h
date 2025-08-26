@@ -17,10 +17,16 @@ class Node : public Atom {
      * @brief Construct a Node.
      * @param type The type of the node.
      * @param name The name of the node.
+     * @param is_toplevel Whether the node is a toplevel.
      * @param custom_attributes Custom attributes for the atom.
      * @throws std::runtime_error if type or name is empty.
      */
-    Node(const string& type, const string& name, const Properties& custom_attributes = {});
+    Node(const string& type,
+         const string& name,
+         bool is_toplevel = false,
+         const Properties& custom_attributes = {});
+
+    Node(const string& type, const string& name, const Properties& custom_attributes);
 
     /**
      * @brief Copy constructor.

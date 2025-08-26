@@ -16,7 +16,9 @@ class Wildcard : public Atom {
      * @param type The type of the atom.
      * @throws std::runtime_error if type is empty.
      */
-    Wildcard(const string& type, const Properties& custom_attributes = {});
+    Wildcard(const string& type, bool is_toplevel = false, const Properties& custom_attributes = {});
+
+    Wildcard(const string& type, const Properties& custom_attributes);
 
     /**
      * @brief Copy constructor.

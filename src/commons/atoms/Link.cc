@@ -11,8 +11,16 @@ using namespace atoms;
 // -------------------------------------------------------------------------------------------------
 // Constructors, destructors , basic operators and initializers
 
+Link::Link(const string& type,
+           const vector<string>& targets,
+           bool is_toplevel,
+           const Properties& custom_attributes)
+    : Atom(type, is_toplevel, custom_attributes), targets(targets) {
+    this->validate();
+}
+
 Link::Link(const string& type, const vector<string>& targets, const Properties& custom_attributes)
-    : Atom(type, custom_attributes), targets(targets) {
+    : Atom(type, false, custom_attributes), targets(targets) {
     this->validate();
 }
 
@@ -50,7 +58,8 @@ string Link::to_string() const {
         }
         result.erase(result.size() - 2);  // Remove the last comma and space
     }
-    result += "], custom_attributes: " + this->custom_attributes.to_string() + ")";
+    result += "], is_toplevel: " + string(this->is_toplevel ? "true" : "false") +
+              ", custom_attributes: " + this->custom_attributes.to_string() + ")";
     return result;
 }
 

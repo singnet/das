@@ -8,8 +8,13 @@ using namespace atoms;
 // -------------------------------------------------------------------------------------------------
 // Constructors, destructors , basic operators and initializers
 
+Node::Node(const string& type, const string& name, bool is_toplevel, const Properties& custom_attributes)
+    : Atom(type, is_toplevel, custom_attributes), name(name) {
+    this->validate();
+}
+
 Node::Node(const string& type, const string& name, const Properties& custom_attributes)
-    : Atom(type, custom_attributes), name(name) {
+    : Atom(type, false, custom_attributes), name(name) {
     this->validate();
 }
 

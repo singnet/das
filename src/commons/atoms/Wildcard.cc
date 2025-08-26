@@ -2,8 +2,13 @@
 
 using namespace atoms;
 
+Wildcard::Wildcard(const string& type, bool is_toplevel, const Properties& custom_attributes)
+    : Atom(type, is_toplevel, custom_attributes) {
+    this->validate();
+}
+
 Wildcard::Wildcard(const string& type, const Properties& custom_attributes)
-    : Atom(type, custom_attributes) {
+    : Atom(type, false, custom_attributes) {
     this->validate();
 }
 

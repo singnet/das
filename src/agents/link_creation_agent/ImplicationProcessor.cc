@@ -119,8 +119,12 @@ vector<shared_ptr<Link>> ImplicationProcessor::process_query(shared_ptr<QueryAns
     custom_attributes_p2["confidence"] = 1;
     vector<string> targets_p1_p2 = {implication_node.handle(), p1_handle, p2_handle};
     vector<string> targets_p2_p1 = {implication_node.handle(), p2_handle, p1_handle};
-    shared_ptr<Link> p1_link = make_shared<Link>("Expression", targets_p1_p2, custom_attributes_p1);
-    shared_ptr<Link> p2_link = make_shared<Link>("Expression", targets_p2_p1, custom_attributes_p2);
+    bool is_toplevel = false;
+    shared_ptr<Link> p1_link =
+        make_shared<Link>("Expression", targets_p1_p2, is_toplevel, custom_attributes_p1);
+    shared_ptr<Link> p2_link =
+        make_shared<Link>("Expression", targets_p2_p1, is_toplevel, custom_attributes_p2);
+
     result.push_back(p1_link);
     result.push_back(p2_link);
 
