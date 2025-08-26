@@ -60,6 +60,9 @@ jobs:
       - name: Starting Redis and MongoDB
         run: das-cli db start
 
+      - name: Load Knowledge Base
+        run: das-cli metta load /tmp/animals.metta
+
       - name: Starting Attention Broker
         run: das-cli attention-broker start
 
