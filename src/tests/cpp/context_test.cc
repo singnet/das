@@ -22,7 +22,7 @@ class TestContext : public Context {
 };
 
 /*
-TEST(Context, basics) {
+TEST(Context, link_delete) {
     TestConfig::load_environment();
     AtomDBSingleton::init();
     shared_ptr<AtomDB> db = AtomDBSingleton::get_instance();
