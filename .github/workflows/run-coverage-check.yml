@@ -60,9 +60,6 @@ jobs:
       - name: Starting Redis and MongoDB
         run: das-cli db start
 
-      - name: Build source code
-        run: make build-all
-
       - name: Starting Attention Broker
         run: das-cli attention-broker start
 
@@ -77,5 +74,5 @@ jobs:
           
           make mork-loader FILE="/tmp/animals.metta"
 
-      - name: Execute Unit Test Suite
+      - name: Execute Coverage check
         run: make test-coverage-check
