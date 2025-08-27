@@ -132,7 +132,7 @@ set_metta_file_params() {
         SENTENCES=100
         ;;
     small)
-        SENTENCES=10000
+        SENTENCES=1000
         ;;
     medium)
         SENTENCES=1000000
