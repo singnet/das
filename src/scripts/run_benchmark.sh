@@ -319,7 +319,7 @@ run_benchmark() {
                 init_environment "$log_file"
                 echo -e "\r\033[K${GREEN}Running test START${RESET}"
                 echo -e "\r\033[K${GREEN}Partial results in /tmp/${BENCHMARK}_benchmark/${TIMESTAMP}/${RESET}"
-                ./src/scripts/bazel.sh run //tests/benchmark/query_agent:query_agent_main --copt=-DLOG_LEVEL=DEBUG_LEVEL -- "$report_base_directory" "$type" "$action" "$CACHE_ENABLED" "$ITERATIONS" "/tmp/${BENCHMARK}_benchmark/${TIMESTAMP}/${type}_${action}_" | stdbuf -oL grep "|" > "$client_log_file"
+                stdbuf -oL ./src/scripts/bazel.sh run //tests/benchmark/query_agent:query_agent_main --copt=-DLOG_LEVEL=DEBUG_LEVEL -- "$report_base_directory" "$type" "$action" "$CACHE_ENABLED" "$ITERATIONS" "/tmp/${BENCHMARK}_benchmark/${TIMESTAMP}/${type}_${action}_" | tee "$client_log_file"
                 echo -e "\r\033[K${GREEN}Running test END${RESET}"
             done
         done

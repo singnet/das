@@ -175,6 +175,7 @@ void PatternMatchingQuery::complex_query(string log_file) {
             Utils::sleep();
         }
 
+        Utils::sleep(1000);
         LOG_DEBUG("Benchmark::complex_query - END");
     }
 

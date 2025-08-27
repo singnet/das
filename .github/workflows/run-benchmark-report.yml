@@ -37,7 +37,7 @@ jobs:
       - name: Run benchmark
         id: run_benchmark
         run: |
-          OUTPUT=$(./src/scripts/run_benchmark.sh ${{ matrix.target }} --db small --rel tightly)
+          OUTPUT=$(./src/scripts/run_benchmark.sh ${{ matrix.target }} --db small --rel tightly --iterations 2)
           echo "$OUTPUT"
 
           EXECUTION_ID=$(echo "$OUTPUT" | grep "New execution ID:" | awk '{print $4}')
