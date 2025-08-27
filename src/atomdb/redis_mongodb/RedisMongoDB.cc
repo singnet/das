@@ -171,8 +171,10 @@ shared_ptr<Atom> RedisMongoDB::get_atom(const string& handle) {
 }
 
 shared_ptr<atomdb_api_types::HandleSet> RedisMongoDB::query_for_pattern(const LinkSchema& link_schema) {
+    auto pattern_handle = link_schema.handle();
+
     if (this->atomdb_cache != nullptr) {
-        auto cache_result = this->atomdb_cache->query_for_pattern(link_schema);
+        auto cache_result = this->atomdb_cache->query_for_pattern(pattern_handle);
         if (cache_result.is_cache_hit) return cache_result.result;
     }
 
@@ -183,7 +185,6 @@ shared_ptr<atomdb_api_types::HandleSet> RedisMongoDB::query_for_pattern(const Li
 
     auto ctx = this->redis_pool->acquire();
 
-    auto pattern_handle = link_schema.handle();
     auto handle_set = make_shared<atomdb_api_types::HandleSetRedis>();
 
     while (redis_has_more) {
@@ -230,7 +231,7 @@ shared_ptr<atomdb_api_types::HandleList> RedisMongoDB::query_for_targets(const s
         if (reply == NULL) Utils::error("Redis error at query_for_targets");
 
         if ((reply == NULL) || (reply->type == REDIS_REPLY_NIL)) {
-            if (this->atomdb_cache != nullptr) this->atomdb_cache->add_handle_list(handle, nullptr);
+            if (this->atomdb_cache != nullptr) this->atomdb_cache->add_handle_targets(handle, nullptr);
             return nullptr;
         }
 
@@ -247,7 +248,7 @@ shared_ptr<atomdb_api_types::HandleList> RedisMongoDB::query_for_targets(const s
     // ~RedisSet().
     auto handle_list = make_shared<atomdb_api_types::RedisStringBundle>(reply);
 
-    if (this->atomdb_cache != nullptr) this->atomdb_cache->add_handle_list(handle, handle_list);
+    if (this->atomdb_cache != nullptr) this->atomdb_cache->add_handle_targets(handle, handle_list);
     return handle_list;
 }
 
@@ -384,6 +385,7 @@ void RedisMongoDB::delete_outgoing_set(const string& handle) {
     string command = "DEL " + REDIS_OUTGOING_PREFIX + ":" + handle;
     redisReply* reply = ctx->execute(command.c_str());
     if (reply == NULL) Utils::error("Redis error at delete_outgoing_set");
+    if (this->atomdb_cache != nullptr) this->atomdb_cache->erase_handle_targets_cache(handle);
 }
 
 void RedisMongoDB::add_incoming_set(const string& handle, const string& incoming_handle) {
@@ -433,8 +435,13 @@ void RedisMongoDB::update_incoming_set(const string& key, const string& value) {
 shared_ptr<atomdb_api_types::AtomDocument> RedisMongoDB::get_document(const string& handle,
                                                                       const string& collection_name) {
     if (this->atomdb_cache != nullptr) {
-        auto cache_result = this->atomdb_cache->get_atom_document(handle);
-        if (cache_result.is_cache_hit) return cache_result.result;
+        if (collection_name == MONGODB_NODES_COLLECTION_NAME) {
+            auto cache_result = this->atomdb_cache->get_node_document(handle);
+            if (cache_result.is_cache_hit) return cache_result.result;
+        } else if (collection_name == MONGODB_LINKS_COLLECTION_NAME) {
+            auto cache_result = this->atomdb_cache->get_link_document(handle);
+            if (cache_result.is_cache_hit) return cache_result.result;
+        }
     }
 
     auto conn = this->mongodb_pool->acquire();
@@ -445,8 +452,15 @@ shared_ptr<atomdb_api_types::AtomDocument> RedisMongoDB::get_document(const stri
     auto atom_document = reply != bsoncxx::v_noabi::stdx::nullopt
                              ? make_shared<atomdb_api_types::MongodbDocument>(reply)
                              : nullptr;
-    if (this->atomdb_cache != nullptr && atom_document != nullptr)
-        this->atomdb_cache->add_atom_document(handle, atom_document);
+
+    if (this->atomdb_cache != nullptr && atom_document != nullptr) {
+        if (collection_name == MONGODB_NODES_COLLECTION_NAME) {
+            this->atomdb_cache->add_node_document(handle, atom_document);
+        } else if (collection_name == MONGODB_LINKS_COLLECTION_NAME) {
+            this->atomdb_cache->add_link_document(handle, atom_document);
+        }
+    }
+
     return atom_document;
 }
 
@@ -822,6 +836,14 @@ bool RedisMongoDB::delete_document(const string& handle,
     auto reply = mongodb_collection.delete_one(bsoncxx::v_noabi::builder::basic::make_document(
         bsoncxx::v_noabi::builder::basic::kvp(MONGODB_FIELD_NAME[MONGODB_FIELD::ID], handle)));
 
+    if (this->atomdb_cache != nullptr) {
+        if (collection_name == MONGODB_NODES_COLLECTION_NAME) {
+            this->atomdb_cache->erase_node_document_cache(handle);
+        } else if (collection_name == MONGODB_LINKS_COLLECTION_NAME) {
+            this->atomdb_cache->erase_link_document_cache(handle);
+        }
+    }
+
     auto incoming_set = query_for_incoming_set(handle);
     auto it = incoming_set->get_iterator();
     char* incoming_handle;
@@ -1107,6 +1129,16 @@ void RedisMongoDB::flush_redis_by_prefix(const string& prefix) {
         }
         freeReplyObject(reply);
     } while (cursor != "0");
+
+    if (this->atomdb_cache != nullptr) {
+        if (prefix == REDIS_PATTERNS_PREFIX) {
+            this->atomdb_cache->clear_all_pattern_handles();
+        } else if (prefix == REDIS_OUTGOING_PREFIX) {
+            this->atomdb_cache->clear_all_targets_handles();
+        } else if (prefix == REDIS_INCOMING_PREFIX) {
+            this->atomdb_cache->clear_all_incoming_handles();
+        }
+    }
 }
 
 void RedisMongoDB::drop_all() {
