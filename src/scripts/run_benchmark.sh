@@ -245,7 +245,7 @@ EOF
         echo "Waiting MORK..."
         sleep 5
     done
-    src/scripts/mork_loader.sh "$METTA_PATH" 2> >(grep -v '^+')
+    ./src/scripts/mork_loader.sh "$METTA_PATH"
     echo -e "\r\033[K${GREEN}MORK initialization completed!${RESET}"
 }
 
