@@ -74,11 +74,11 @@ check_dependencies() {
         missing=1
     fi
 
-    if ! das-cli --version | grep -q "0.4.14"; then
-        echo -e "\r\033[K${YELLOW}Warning: das-cli version 0.4.14 is required for this script.${RESET}"
-        echo "Please install das-cli version 0.4.14."
-        missing=1
-    fi
+    # if ! das-cli --version | grep -q "0.4.14"; then
+    #     echo -e "\r\033[K${YELLOW}Warning: das-cli version 0.4.14 is required for this script.${RESET}"
+    #     echo "Please install das-cli version 0.4.14."
+    #     missing=1
+    # fi
 
     # Check Python 3
     if command -v python3 &>/dev/null; then
@@ -219,6 +219,17 @@ init_environment() {
         if [[ $(docker ps -q --filter "name=^das-query_broker-") ]]; then
             docker stop $(docker ps -q --filter "name=^das-query_broker-")
         fi
+        cat > .env <<EOF
+DAS_MONGODB_HOSTNAME=localhost
+DAS_MONGODB_PORT=28000
+DAS_MONGODB_USERNAME=dbadmin
+DAS_MONGODB_PASSWORD=dassecret
+DAS_REDIS_HOSTNAME=localhost
+DAS_REDIS_PORT=29000
+DAS_USE_REDIS_CLUSTER=false
+DAS_ATTENTION_BROKER_ADDRESS=localhost
+DAS_ATTENTION_BROKER_PORT=37007
+EOF
         ./src/scripts/build.sh --copt=-DLOG_LEVEL=DEBUG_LEVEL
         ./src/scripts/run.sh query_broker 35700 3000:3100 | stdbuf -oL grep "Benchmark::" > "$log_file" || true &
         echo -e "\r\033[K${GREEN}Query Agent initialization completed!${RESET}"
@@ -308,7 +319,7 @@ run_benchmark() {
                 init_environment "$log_file"
                 echo -e "\r\033[K${GREEN}Running test START${RESET}"
                 echo -e "\r\033[K${GREEN}Partial results in /tmp/${BENCHMARK}_benchmark/${TIMESTAMP}/${RESET}"
-                ./src/scripts/bazel.sh run //tests/benchmark/query_agent:query_agent_main --copt=-DLOG_LEVEL=DEBUG_LEVEL -- "$report_base_directory" "$type" "$action" "$CACHE_ENABLED" "$ITERATIONS" "/tmp/${BENCHMARK}_benchmark/${TIMESTAMP}/${type}_${action}_" | stdbuf -oL grep "|" > "$client_log_file"
+                stdbuf -oL ./src/scripts/bazel.sh run //tests/benchmark/query_agent:query_agent_main --copt=-DLOG_LEVEL=DEBUG_LEVEL -- "$report_base_directory" "$type" "$action" "$CACHE_ENABLED" "$ITERATIONS" "/tmp/${BENCHMARK}_benchmark/${TIMESTAMP}/${type}_${action}_" | tee "$client_log_file"
                 echo -e "\r\033[K${GREEN}Running test END${RESET}"
             done
         done

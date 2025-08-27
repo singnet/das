@@ -7,10 +7,15 @@ on:
   push:
     branches:
       - master
+      - das-644
 
 jobs:
   benchmark:
     runs-on: self-hosted-withcache
+    strategy:
+      max-parallel: 1
+      matrix:
+        target: [atomdb, query_agent]
     env:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       GITHUB_REPOSITORY: ${{ github.repository }}
@@ -27,12 +32,12 @@ jobs:
           sudo das-cli update-version --version 0.4.14
 
       - name: Clear benchmark output files
-        run: rm -rf /tmp/atomdb_benchmark || true
+        run: rm -rf /tmp/${{ matrix.target }}_benchmark || true
 
       - name: Run benchmark
         id: run_benchmark
         run: |
-          OUTPUT=$(./src/scripts/run_benchmark.sh atomdb --db small --rel tightly)
+          OUTPUT=$(./src/scripts/run_benchmark.sh ${{ matrix.target }} --db small --rel tightly)
           echo "$OUTPUT"
 
           EXECUTION_ID=$(echo "$OUTPUT" | grep "New execution ID:" | awk '{print $4}')
@@ -41,22 +46,23 @@ jobs:
 
       - name: Prepare reports for upload
         run: |
-          mkdir -p /tmp/reports
-          find /tmp/atomdb_benchmark -type f -name "*.txt" -exec cp {} /tmp/reports/ \;
+          mkdir -p /tmp/reports/${{ matrix.target }}
+          find /tmp/${{ matrix.target }}_benchmark -type f -name "*.txt" -exec cp {} /tmp/reports/${{ matrix.target }}/ \;
 
       - name: Upload benchmark report artifact
         uses: actions/upload-artifact@v4
         with:
-          name: benchmark-report
-          path: /tmp/reports
+          name: benchmark-report-${{ matrix.target }}
+          path: /tmp/reports/${{ matrix.target }}
           if-no-file-found: error
 
-    outputs:
-      benchmark_id: ${{ steps.run_benchmark.outputs.execution_id }}
 
   notify-mattermost:
     runs-on: self-hosted-withcache
     needs: benchmark
+    strategy:
+      matrix:
+        target: [atomdb, query_agent]
     env:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       GITHUB_REPOSITORY: ${{ github.repository }}
@@ -65,17 +71,26 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Download benchmark report artifact
+      - name: Download benchmark artifact
         uses: actions/download-artifact@v4
         with:
-          name: benchmark-report
-          path: atomdb_benchmark
+          name: benchmark-report-${{ matrix.target }}
+          path: benchmarks_reports/${{ matrix.target }}
 
       - name: Install requirements 
         run: sudo apt -y update && sudo apt -y install miller sqlite3
 
       - name: Create mattermost message
-        run: bash .github/scripts/mattermost-benchmark-report.sh "${{ needs.benchmark.outputs.benchmark_id }}"
+        run: |
+          if [ "${{ matrix.target }}" = "atomdb" ]; then
+            TITLE="AtomDB Benchmark Report - Single Thread, 100 iterations"
+          else
+            TITLE="Query Agent Benchmark Report - Single Thread, 100 iterations"
+          fi
+
+          bash .github/scripts/mattermost-benchmark-report.sh \
+            "${{ needs.benchmark.outputs[format('{0}', matrix.target)].benchmark_id }}" \
+            "$TITLE"
 
       - name: Notify Mattermost
         uses: singnet/integration-github-mattermost@v0.3.0
@@ -83,4 +98,4 @@ jobs:
           server-url: ${{ vars.MATTERMOST_SERVER_URL }}
           token: ${{ secrets.MATTERMOST_TOKEN }}
           channel-id: ${{ vars.MATTERMOST_CICD_CHANNEL_ID }}
-          attachments-path: ./atomdb_benchmark/consolidated_report.txt
+          attachments-path: benchmarks_reports/${{ matrix.target }}/consolidated_report.txt
