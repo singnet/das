@@ -89,16 +89,18 @@ jobs:
 
       - name: Create Mattermost message for AtomDB
         if: matrix.target == 'atomdb'
+        env:
+          BENCHMARK_ID: "${{ needs.benchmark.outputs.atomdb_benchmark_id }}"
         run: |
           TITLE="AtomDB Benchmark Report - Single Thread, 100 iterations"
-          BENCHMARK_ID="${{ needs.benchmark.outputs.atomdb_benchmark_id }}"
           bash .github/scripts/mattermost-benchmark-report.sh "$BENCHMARK_ID" "$TITLE"
 
       - name: Create Mattermost message for Query Agent
         if: matrix.target == 'query_agent'
+        env:
+          BENCHMARK_ID: "${{ needs.benchmark.outputs.query_agent_benchmark_id }}"
         run: |
           TITLE="Query Agent Benchmark Report - Single Thread, 10 iterations"
-          BENCHMARK_ID="${{ needs.benchmark.outputs.query_agent_benchmark_id }}"
           bash .github/scripts/mattermost-benchmark-report.sh "$BENCHMARK_ID" "$TITLE"
 
       - name: Notify Mattermost
