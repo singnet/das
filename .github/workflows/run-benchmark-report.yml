@@ -84,6 +84,10 @@ jobs:
   notify_query_agent:
     runs-on: self-hosted-withcache
     needs: benchmark_query_agent
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      GITHUB_REPOSITORY: ${{ github.repository }}
+      GITHUB_SHA: ${{ github.sha }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -104,6 +108,10 @@ jobs:
   # notify_atomdb:
   #   runs-on: self-hosted-withcache
   #   needs: benchmark_atomdb
+  #   env:
+  #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  #     GITHUB_REPOSITORY: ${{ github.repository }}
+  #     GITHUB_SHA: ${{ github.sha }}
   #   steps:
   #     - name: Checkout repository
   #       uses: actions/checkout@v4
