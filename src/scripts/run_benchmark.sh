@@ -129,10 +129,10 @@ set_metta_file_params() {
 
     case "$db_size" in
     empty)
-        SENTENCES=100
+        SENTENCES=1000
         ;;
     small)
-        SENTENCES=1000
+        SENTENCES=10000
         ;;
     medium)
         SENTENCES=1000000
