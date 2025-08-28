@@ -38,7 +38,7 @@ jobs:
         id: run_benchmark
         run: |
           if [ "${{ matrix.target }}" = "query_agent" ]; then
-            ./src/scripts/run_benchmark.sh query_agent --db empty --rel tightly --iterations 2 > benchmark_output.txt
+            ./src/scripts/run_benchmark.sh query_agent --db empty --rel tightly --iterations 10 > benchmark_output.txt
           else
             ./src/scripts/run_benchmark.sh ${{ matrix.target }} --db small --rel tightly > benchmark_output.txt
           fi
