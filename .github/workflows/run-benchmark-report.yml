@@ -92,6 +92,9 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Install requirements
+        run: apt -y update && apt -y install bc
+
       - name: Download benchmark artifact
         uses: actions/download-artifact@v4
         with:
@@ -105,6 +108,15 @@ jobs:
           TITLE="Query Agent Benchmark Report - Single Thread, 10 iterations"
           bash .github/scripts/mattermost-benchmark-report.sh "$BENCHMARK_ID" "$TITLE"
 
+      - name: Notify Mattermost
+        uses: singnet/integration-github-mattermost@v0.3.0
+        with:
+          server-url: ${{ vars.MATTERMOST_SERVER_URL }}
+          token: ${{ secrets.MATTERMOST_TOKEN }}
+          channel-id: ${{ vars.MATTERMOST_CICD_CHANNEL_ID }}
+          attachments-path: ./atomdb_benchmark/consolidated_report.txt
+
+
   # notify_atomdb:
   #   runs-on: self-hosted-withcache
   #   needs: benchmark_atomdb
@@ -115,6 +127,9 @@ jobs:
   #   steps:
   #     - name: Checkout repository
   #       uses: actions/checkout@v4
+
+  #     - name: Install requirements
+  #       run: apt -y update && apt -y install bc
 
   #     - name: Download benchmark artifact
   #       uses: actions/download-artifact@v4
@@ -128,3 +143,11 @@ jobs:
   #         [ -z "$BENCHMARK_ID" ] && BENCHMARK_ID="UNKNOWN"
   #         TITLE="AtomDB Benchmark Report - Single Thread, 100 iterations"
   #         bash .github/scripts/mattermost-benchmark-report.sh "$BENCHMARK_ID" "$TITLE"
+
+  #     - name: Notify Mattermost
+  #       uses: singnet/integration-github-mattermost@v0.3.0
+  #       with:
+  #         server-url: ${{ vars.MATTERMOST_SERVER_URL }}
+  #         token: ${{ secrets.MATTERMOST_TOKEN }}
+  #         channel-id: ${{ vars.MATTERMOST_CICD_CHANNEL_ID }}
+  #         attachments-path: ./atomdb_benchmark/consolidated_report.txt
