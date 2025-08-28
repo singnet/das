@@ -33,17 +33,22 @@ jobs:
       - name: Clear benchmark output files
         run: rm -rf /tmp/${{ matrix.target }}_benchmark || true
 
-      - name: Run benchmark
-        id: run_benchmark
+      - name: Run benchmark for Query Agent
+        if: matrix.target == 'query_agent'
+        id: run_benchmark_query_agent
         run: |
-          if [ "${{ matrix.target }}" = "query_agent" ]; then
-            ./src/scripts/run_benchmark.sh query_agent --db empty --rel tightly --iterations 10 > benchmark_output.txt
-          else
-            ./src/scripts/run_benchmark.sh ${{ matrix.target }} --db small --rel tightly > benchmark_output.txt
-          fi
-
+          ./src/scripts/run_benchmark.sh query_agent --db empty --rel tightly --iterations 10 > benchmark_output.txt
           EXECUTION_ID=$(grep "New execution ID:" benchmark_output.txt | awk '{print $4}' | tail -n 1)
-          echo "execution_id=$EXECUTION_ID" >> $GITHUB_OUTPUT
+          echo "query_agent_benchmark_id=$EXECUTION_ID" >> $GITHUB_OUTPUT
+
+      - name: Run benchmark for AtomDB
+        if: matrix.target == 'atomdb'
+        id: run_benchmark_other
+        run: |
+          ./src/scripts/run_benchmark.sh ${{ matrix.target }} --db small --rel tightly > benchmark_output.txt
+          EXECUTION_ID=$(grep "New execution ID:" benchmark_output.txt | awk '{print $4}' | tail -n 1)
+          echo "${{ matrix.target }}_benchmark_id=$EXECUTION_ID" >> $GITHUB_OUTPUT
+
 
       - name: Prepare reports for upload
         run: |
@@ -81,17 +86,19 @@ jobs:
       - name: Install requirements 
         run: sudo apt -y update && sudo apt -y install miller sqlite3
 
-      - name: Create mattermost message
+      - name: Create Mattermost message for AtomDB
+        if: matrix.target == 'atomdb'
         run: |
-          if [ "${{ matrix.target }}" = "atomdb" ]; then
-            TITLE="AtomDB Benchmark Report - Single Thread, 100 iterations"
-          else
-            TITLE="Query Agent Benchmark Report - Single Thread, 10 iterations"
-          fi
+          TITLE="AtomDB Benchmark Report - Single Thread, 100 iterations"
+          BENCHMARK_ID="${{ needs.benchmark.outputs.atomdb_benchmark_id }}"
+          bash .github/scripts/mattermost-benchmark-report.sh "$BENCHMARK_ID" "$TITLE"
 
-          bash .github/scripts/mattermost-benchmark-report.sh \
-            "${{ needs.benchmark.outputs[format('{0}', matrix.target)].benchmark_id }}" \
-            "$TITLE"
+      - name: Create Mattermost message for Query Agent
+        if: matrix.target == 'query_agent'
+        run: |
+          TITLE="Query Agent Benchmark Report - Single Thread, 10 iterations"
+          BENCHMARK_ID="${{ needs.benchmark.outputs.query_agent_benchmark_id }}"
+          bash .github/scripts/mattermost-benchmark-report.sh "$BENCHMARK_ID" "$TITLE"
 
       - name: Notify Mattermost
         uses: singnet/integration-github-mattermost@v0.3.0
