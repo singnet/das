@@ -2,6 +2,7 @@
 
 #include "Hasher.h"
 #include "QueryAnswer.h"
+#include "UntypedVariable.h"
 #include "Utils.h"
 
 using namespace std;
@@ -149,8 +150,14 @@ void AtomSpace::commit_changes(Scope scope) {
 }
 
 // -------------------------------------------------------------------------------------------------
+shared_ptr<Context> AtomSpace::create_context(const string& context_name, Atom& atom_key) {
+    Context* context = new Context(context_name, atom_key);
+    return shared_ptr<Context>(context);
+}
+
 shared_ptr<Context> AtomSpace::create_context(const string& context_name) {
-    Context* context = new Context(context_name);
+    UntypedVariable v1("v1");
+    Context* context = new Context(context_name, v1);
     return shared_ptr<Context>(context);
 }
 
