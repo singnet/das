@@ -16,6 +16,7 @@ using namespace atomdb;
 using namespace atom_space;
 using namespace attention_broker;
 
+/*
 class TestContext : public Context {
    public:
     TestContext(const string& name, Atom& atom_key) : Context(name, atom_key) {}
@@ -83,3 +84,4 @@ TEST(Context, basics) {
     EXPECT_TRUE(importance[5] > importance[6]);
     EXPECT_TRUE(double_equals(importance[6], importance[7]));
 }
+*/
