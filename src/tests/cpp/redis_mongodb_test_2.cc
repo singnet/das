@@ -24,7 +24,7 @@ class RedisMongoDBTestEnvironment : public ::testing::Environment {
    public:
     void SetUp() override {
         TestConfig::load_environment();
-        TestConfig::disable_atomdb_cache();
+        AtomDBCacheSingleton::init();
         auto atomdb = new RedisMongoDB("test2_");
         atomdb->drop_all();
         AtomDBSingleton::provide(shared_ptr<AtomDB>(atomdb));
@@ -143,6 +143,45 @@ TEST_F(RedisMongoDBTest, AddLinksWithNoPatternIndexSchema) {
 
     db2->delete_atoms(handles);
     EXPECT_EQ(db2->atoms_exist(handles).size(), 0);
+}
+
+TEST_F(RedisMongoDBTest, DeleteNestedLink) {
+    // (outter (intermediate (inner a) b) c)
+    string node1 = db2->add_node(new Node("Symbol", "outter"));
+    string node2 = db2->add_node(new Node("Symbol", "intermediate"));
+    string node3 = db2->add_node(new Node("Symbol", "inner"));
+    string node4 = db2->add_node(new Node("Symbol", "a"));
+    string node5 = db2->add_node(new Node("Symbol", "b"));
+    string node6 = db2->add_node(new Node("Symbol", "c"));
+    string link1 = db2->add_link(new Link("Expression", {node3, node4}));
+    string link2 = db2->add_link(new Link("Expression", {node2, link1, node5}));
+    string link3 = db2->add_link(new Link("Expression", {node1, link2, node6}, true));
+
+    auto link_pattern = new Link("Expression", {node1, Atom::WILDCARD_STRING, Atom::WILDCARD_STRING});
+    auto link_schema = new LinkSchemaHandle(link_pattern->handle().c_str());
+    auto handle_set = db2->query_for_pattern(*link_schema);
+    EXPECT_EQ(handle_set->size(), 1);
+
+    auto link3_targets = db2->query_for_targets(link3);
+    EXPECT_EQ(link3_targets->size(), 3);
+
+    db2->delete_link(link3, true);
+
+    handle_set = db2->query_for_pattern(*link_schema);
+    EXPECT_EQ(handle_set->size(), 0);
+
+    link3_targets = db2->query_for_targets(link3);
+    EXPECT_EQ(link3_targets, nullptr);
+
+    EXPECT_FALSE(db2->node_exists(node1));
+    EXPECT_FALSE(db2->node_exists(node2));
+    EXPECT_FALSE(db2->node_exists(node3));
+    EXPECT_FALSE(db2->node_exists(node4));
+    EXPECT_FALSE(db2->node_exists(node5));
+    EXPECT_FALSE(db2->node_exists(node6));
+    EXPECT_FALSE(db2->link_exists(link1));
+    EXPECT_FALSE(db2->link_exists(link2));
+    EXPECT_FALSE(db2->link_exists(link3));
 }
 
 int main(int argc, char** argv) {
