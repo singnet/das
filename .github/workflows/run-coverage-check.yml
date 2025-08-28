@@ -46,15 +46,16 @@ jobs:
           n
           8888
           37007
-          35500
-          9070
+          40002
+          40003
           /tmp/requests_buffer.bin
           1
           1
           10
           n
           n
-          8080
+          40004
+          40005
           EOF
 
       - name: Starting Redis and MongoDB
