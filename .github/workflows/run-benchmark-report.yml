@@ -7,7 +7,6 @@ on:
   push:
     branches:
       - master
-      - das-644
 
 jobs:
   benchmark:
@@ -43,7 +42,7 @@ jobs:
             ./src/scripts/run_benchmark.sh ${{ matrix.target }} --db small --rel tightly > benchmark_output.txt
           fi
 
-          EXECUTION_ID=$(grep "New execution ID:" benchmark_output.txt | awk '{print $4}')
+          EXECUTION_ID=$(grep "New execution ID:" benchmark_output.txt | awk '{print $4}' | tail -n 1)
           echo "execution_id=$EXECUTION_ID" >> $GITHUB_OUTPUT
 
       - name: Prepare reports for upload
@@ -87,7 +86,7 @@ jobs:
           if [ "${{ matrix.target }}" = "atomdb" ]; then
             TITLE="AtomDB Benchmark Report - Single Thread, 100 iterations"
           else
-            TITLE="Query Agent Benchmark Report - Single Thread, 100 iterations"
+            TITLE="Query Agent Benchmark Report - Single Thread, 10 iterations"
           fi
 
           bash .github/scripts/mattermost-benchmark-report.sh \
