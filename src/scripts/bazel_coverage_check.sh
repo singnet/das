@@ -3,23 +3,19 @@ set -euo pipefail
 set -x
 
 SCRIPT_DIR="$(dirname "$0")"
-REPORT_PATH="bazel-out/_coverage/_coverage_report.dat"
-MARKDOWN_REPORT="coverage-report.md"
+REPORT="bazel-out/_coverage/_coverage_report.dat"
+THRESHOLD=70
 
-if [ -f "$REPORT_PATH" ]; then
-  echo "Removing $REPORT_PATH"
-  rm "$REPORT_PATH"
-fi
 
 bash "$SCRIPT_DIR/bazel_exec.sh" coverage --keep_going --show_progress //tests/...
 
-if [[ -f "$REPORT_PATH" ]]; then
-  echo "Coverage report generated at: $REPORT_PATH"
+COVERAGE=$(lcov --summary "$REPORT" | grep "lines......" | awk '{print $2}' | sed 's/%//')
 
-  gcovr --coveralls "$REPORT_PATH" --markdown "$MARKDOWN_REPORT" --fail-under-line 70
+echo "Line coverage: $COVERAGE%"
 
-  echo "Markdown report generated at: $MARKDOWN_REPORT"
-else
-  echo "Coverage report not found"
-  exit 1
+if (( $(echo "$COVERAGE < $THRESHOLD" | bc -l) )); then
+    echo "Error: line coverage $COVERAGE% is below threshold of $THRESHOLD%"
+    exit 1
 fi
+
+echo "Coverage OK"

@@ -19,11 +19,10 @@ RUN mkdir -p \
     ${THIRD_PARTY}
 
 RUN yes | apt update -y \
-    && yes | apt install -y git build-essential curl protobuf-compiler python3 python3-pip cmake unzip uuid-runtime \
+    && yes | apt install -y git build-essential curl protobuf-compiler python3 python3-pip cmake unzip uuid-runtime lcov bc \
     libevent-dev libssl-dev pkg-config libncurses5 \
     && yes | apt clean -y \
-    && rm -rf /var/lib/apt/lists/* && \
-    pip install gcovr
+    && rm -rf /var/lib/apt/lists/*
 
 COPY src/assets/3rd-party.tgz /tmp
 RUN ARCH=$([ "$(uname -m)" = "aarch64" ] && echo "arm64" || echo "amd64") \
