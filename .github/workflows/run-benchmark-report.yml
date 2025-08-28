@@ -6,7 +6,6 @@ on:
   push:
     branches:
       - master
-      - das-644
 
 jobs:
   benchmark_query_agent:
@@ -45,41 +44,41 @@ jobs:
           name: benchmark-report-query_agent
           path: /tmp/reports/query_agent
 
-  # benchmark_atomdb:
-  #   runs-on: self-hosted-withcache
-  #   outputs:
-  #     benchmark_id: ${{ steps.run_benchmark.outputs.benchmark_id }}
-  #   steps:
-  #     - name: Checkout repository
-  #       uses: actions/checkout@v4
+  benchmark_atomdb:
+    runs-on: self-hosted-withcache
+    outputs:
+      benchmark_id: ${{ steps.run_benchmark.outputs.benchmark_id }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-  #     - name: Install requirements
-  #       run: |
-  #         sudo bash -c "wget -O - http://45.77.4.33/apt-repo/setup.sh | bash"
-  #         sudo apt -y update
-  #         sudo apt -y install das-toolbox
-  #         sudo das-cli update-version --version 0.4.14
+      - name: Install requirements
+        run: |
+          sudo bash -c "wget -O - http://45.77.4.33/apt-repo/setup.sh | bash"
+          sudo apt -y update
+          sudo apt -y install das-toolbox
+          sudo das-cli update-version --version 0.4.14
 
-  #     - name: Clear benchmark output files
-  #       run: rm -rf /tmp/atomdb_benchmark || true
+      - name: Clear benchmark output files
+        run: rm -rf /tmp/atomdb_benchmark || true
 
-  #     - name: Run benchmark
-  #       id: run_benchmark
-  #       run: |
-  #         ./src/scripts/run_benchmark.sh atomdb --db small --rel tightly > benchmark_output.txt
-  #         EXECUTION_ID=$(grep "New execution ID:" benchmark_output.txt | awk '{print $4}' | tail -n 1)
-  #         echo "benchmark_id=$EXECUTION_ID" >> $GITHUB_OUTPUT
+      - name: Run benchmark
+        id: run_benchmark
+        run: |
+          ./src/scripts/run_benchmark.sh atomdb --db small --rel tightly > benchmark_output.txt
+          EXECUTION_ID=$(grep "New execution ID:" benchmark_output.txt | awk '{print $4}' | tail -n 1)
+          echo "benchmark_id=$EXECUTION_ID" >> $GITHUB_OUTPUT
 
-  #     - name: Prepare report
-  #       run: |
-  #         mkdir -p /tmp/reports/atomdb
-  #         cp benchmark_output.txt /tmp/reports/atomdb/
+      - name: Prepare report
+        run: |
+          mkdir -p /tmp/reports/atomdb
+          cp benchmark_output.txt /tmp/reports/atomdb/
 
-  #     - name: Upload artifact
-  #       uses: actions/upload-artifact@v4
-  #       with:
-  #         name: benchmark-report-atomdb
-  #         path: /tmp/reports/atomdb
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: benchmark-report-atomdb
+          path: /tmp/reports/atomdb
 
   notify_query_agent:
     runs-on: self-hosted-withcache
@@ -117,37 +116,37 @@ jobs:
           attachments-path: ./atomdb_benchmark/consolidated_report.txt
 
 
-  # notify_atomdb:
-  #   runs-on: self-hosted-withcache
-  #   needs: benchmark_atomdb
-  #   env:
-  #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-  #     GITHUB_REPOSITORY: ${{ github.repository }}
-  #     GITHUB_SHA: ${{ github.sha }}
-  #   steps:
-  #     - name: Checkout repository
-  #       uses: actions/checkout@v4
+  notify_atomdb:
+    runs-on: self-hosted-withcache
+    needs: benchmark_atomdb
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      GITHUB_REPOSITORY: ${{ github.repository }}
+      GITHUB_SHA: ${{ github.sha }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-  #     - name: Install requirements
-  #       run: sudo apt -y update && sudo apt -y install bc
+      - name: Install requirements
+        run: sudo apt -y update && sudo apt -y install bc
 
-  #     - name: Download benchmark artifact
-  #       uses: actions/download-artifact@v4
-  #       with:
-  #         name: benchmark-report-atomdb
-  #         path: /tmp/reports/atomdb
+      - name: Download benchmark artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: benchmark-report-atomdb
+          path: /tmp/reports/atomdb
 
-  #     - name: Send Mattermost message
-  #       run: |
-  #         BENCHMARK_ID="${{ needs.benchmark_atomdb.outputs.benchmark_id }}"
-  #         [ -z "$BENCHMARK_ID" ] && BENCHMARK_ID="UNKNOWN"
-  #         TITLE="AtomDB Benchmark Report - Single Thread, 100 iterations"
-  #         bash .github/scripts/mattermost-benchmark-report.sh "$BENCHMARK_ID" "$TITLE"
+      - name: Send Mattermost message
+        run: |
+          BENCHMARK_ID="${{ needs.benchmark_atomdb.outputs.benchmark_id }}"
+          [ -z "$BENCHMARK_ID" ] && BENCHMARK_ID="UNKNOWN"
+          TITLE="AtomDB Benchmark Report - Single Thread, 100 iterations"
+          bash .github/scripts/mattermost-benchmark-report.sh "$BENCHMARK_ID" "$TITLE"
 
-  #     - name: Notify Mattermost
-  #       uses: singnet/integration-github-mattermost@v0.3.0
-  #       with:
-  #         server-url: ${{ vars.MATTERMOST_SERVER_URL }}
-  #         token: ${{ secrets.MATTERMOST_TOKEN }}
-  #         channel-id: ${{ vars.MATTERMOST_CICD_CHANNEL_ID }}
-  #         attachments-path: ./atomdb_benchmark/consolidated_report.txt
+      - name: Notify Mattermost
+        uses: singnet/integration-github-mattermost@v0.3.0
+        with:
+          server-url: ${{ vars.MATTERMOST_SERVER_URL }}
+          token: ${{ secrets.MATTERMOST_TOKEN }}
+          channel-id: ${{ vars.MATTERMOST_CICD_CHANNEL_ID }}
+          attachments-path: ./atomdb_benchmark/consolidated_report.txt
