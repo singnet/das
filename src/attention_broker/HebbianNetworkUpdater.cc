@@ -1,7 +1,9 @@
 #include "HebbianNetworkUpdater.h"
 
+#define LOG_LEVEL INFO_LEVEL
 #include <string>
 
+#include "Logger.h"
 #include "Utils.h"
 
 using namespace attention_broker_server;
@@ -42,6 +44,8 @@ void HebbianNetworkUpdater::determiners(const dasproto::HandleList& sub_request,
                 node2->count = 0;
             }
             node1->determiners.insert(node2);
+            LOG_DEBUG("Adding importance determiner: " + sub_request.list(0) + " -> " +
+                      sub_request.list(i));
         }
     }
 }
