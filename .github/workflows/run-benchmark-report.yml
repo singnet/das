@@ -3,77 +3,87 @@ name: Benchmark Report
 on:
   schedule:
     - cron: "0 4 * * *"
-
   push:
     branches:
       - master
       - das-644
 
 jobs:
-  benchmark:
+  benchmark_query_agent:
     runs-on: self-hosted-withcache
-    strategy:
-      max-parallel: 1
-      matrix:
-        target: [query_agent]
-    env:
-      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      GITHUB_REPOSITORY: ${{ github.repository }}
-      GITHUB_SHA: ${{ github.sha }}
+    outputs:
+      benchmark_id: ${{ steps.run_benchmark.outputs.benchmark_id }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Install requirements 
+      - name: Install requirements
         run: |
-          sudo bash -c "wget -O - http://45.77.4.33/apt-repo/setup.sh | bash" && \
-          sudo apt -y update && \
-          sudo apt -y install das-toolbox && \
+          sudo bash -c "wget -O - http://45.77.4.33/apt-repo/setup.sh | bash"
+          sudo apt -y update
+          sudo apt -y install das-toolbox
           sudo das-cli update-version --version 0.4.14
 
       - name: Clear benchmark output files
-        run: rm -rf /tmp/${{ matrix.target }}_benchmark || true
+        run: rm -rf /tmp/query_agent_benchmark || true
 
-      - name: Run benchmark for Query Agent
-        if: matrix.target == 'query_agent'
-        id: run_benchmark_query_agent
+      - name: Run benchmark
+        id: run_benchmark
         run: |
           ./src/scripts/run_benchmark.sh query_agent --db empty --rel tightly --iterations 10 > benchmark_output.txt
           EXECUTION_ID=$(grep "New execution ID:" benchmark_output.txt | awk '{print $4}' | tail -n 1)
-          echo "query_agent_benchmark_id=$EXECUTION_ID" >> $GITHUB_OUTPUT
+          echo "benchmark_id=$EXECUTION_ID" >> $GITHUB_OUTPUT
 
-      - name: Run benchmark for AtomDB
-        if: matrix.target == 'atomdb'
-        id: run_benchmark_other
+      - name: Prepare report
         run: |
-          ./src/scripts/run_benchmark.sh ${{ matrix.target }} --db small --rel tightly > benchmark_output.txt
-          EXECUTION_ID=$(grep "New execution ID:" benchmark_output.txt | awk '{print $4}' | tail -n 1)
-          echo "${{ matrix.target }}_benchmark_id=$EXECUTION_ID" >> $GITHUB_OUTPUT
+          mkdir -p /tmp/reports/query_agent
+          cp benchmark_output.txt /tmp/reports/query_agent/
 
-
-      - name: Prepare reports for upload
-        run: |
-          mkdir -p /tmp/reports/${{ matrix.target }}
-          find /tmp/${{ matrix.target }}_benchmark -type f -name "*.txt" -exec cp {} /tmp/reports/${{ matrix.target }}/ \;
-
-      - name: Upload benchmark report artifact
+      - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: benchmark-report-${{ matrix.target }}
-          path: /tmp/reports/${{ matrix.target }}
-          if-no-file-found: error
+          name: benchmark-report-query_agent
+          path: /tmp/reports/query_agent
 
-
-  notify-mattermost:
+  benchmark_atomdb:
     runs-on: self-hosted-withcache
-    needs: benchmark
-    strategy:
-      matrix:
-        target: [query_agent]
-    env:
-      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      GITHUB_REPOSITORY: ${{ github.repository }}
-      GITHUB_SHA: ${{ github.sha }}
+    outputs:
+      benchmark_id: ${{ steps.run_benchmark.outputs.benchmark_id }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install requirements
+        run: |
+          sudo bash -c "wget -O - http://45.77.4.33/apt-repo/setup.sh | bash"
+          sudo apt -y update
+          sudo apt -y install das-toolbox
+          sudo das-cli update-version --version 0.4.14
+
+      - name: Clear benchmark output files
+        run: rm -rf /tmp/atomdb_benchmark || true
+
+      - name: Run benchmark
+        id: run_benchmark
+        run: |
+          ./src/scripts/run_benchmark.sh atomdb --db small --rel tightly > benchmark_output.txt
+          EXECUTION_ID=$(grep "New execution ID:" benchmark_output.txt | awk '{print $4}' | tail -n 1)
+          echo "benchmark_id=$EXECUTION_ID" >> $GITHUB_OUTPUT
+
+      - name: Prepare report
+        run: |
+          mkdir -p /tmp/reports/atomdb
+          cp benchmark_output.txt /tmp/reports/atomdb/
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: benchmark-report-atomdb
+          path: /tmp/reports/atomdb
+
+  notify_query_agent:
+    runs-on: self-hosted-withcache
+    needs: benchmark_query_agent
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -81,32 +91,32 @@ jobs:
       - name: Download benchmark artifact
         uses: actions/download-artifact@v4
         with:
-          name: benchmark-report-${{ matrix.target }}
-          path: benchmarks_reports/${{ matrix.target }}
+          name: benchmark-report-query_agent
+          path: /tmp/reports/query_agent
 
-      - name: Install requirements 
-        run: sudo apt -y update && sudo apt -y install miller sqlite3
-
-      - name: Create Mattermost message for AtomDB
-        if: matrix.target == 'atomdb'
-        env:
-          BENCHMARK_ID: "${{ needs.benchmark.outputs.atomdb_benchmark_id }}"
+      - name: Send Mattermost message
         run: |
-          TITLE="AtomDB Benchmark Report - Single Thread, 100 iterations"
-          bash .github/scripts/mattermost-benchmark-report.sh "$BENCHMARK_ID" "$TITLE"
-
-      - name: Create Mattermost message for Query Agent
-        if: matrix.target == 'query_agent'
-        env:
-          BENCHMARK_ID: "${{ needs.benchmark.outputs.query_agent_benchmark_id }}"
-        run: |
+          BENCHMARK_ID="${{ needs.benchmark_query_agent.outputs.benchmark_id }}"
+          [ -z "$BENCHMARK_ID" ] && BENCHMARK_ID="UNKNOWN"
           TITLE="Query Agent Benchmark Report - Single Thread, 10 iterations"
           bash .github/scripts/mattermost-benchmark-report.sh "$BENCHMARK_ID" "$TITLE"
 
-      - name: Notify Mattermost
-        uses: singnet/integration-github-mattermost@v0.3.0
+  notify_atomdb:
+    runs-on: self-hosted-withcache
+    needs: benchmark_atomdb
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download benchmark artifact
+        uses: actions/download-artifact@v4
         with:
-          server-url: ${{ vars.MATTERMOST_SERVER_URL }}
-          token: ${{ secrets.MATTERMOST_TOKEN }}
-          channel-id: ${{ vars.MATTERMOST_CICD_CHANNEL_ID }}
-          attachments-path: benchmarks_reports/${{ matrix.target }}/consolidated_report.txt
+          name: benchmark-report-atomdb
+          path: /tmp/reports/atomdb
+
+      - name: Send Mattermost message
+        run: |
+          BENCHMARK_ID="${{ needs.benchmark_atomdb.outputs.benchmark_id }}"
+          [ -z "$BENCHMARK_ID" ] && BENCHMARK_ID="UNKNOWN"
+          TITLE="AtomDB Benchmark Report - Single Thread, 100 iterations"
+          bash .github/scripts/mattermost-benchmark-report.sh "$BENCHMARK_ID" "$TITLE"
