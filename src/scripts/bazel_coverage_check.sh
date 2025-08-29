@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+set -euo pipefail
+set -x
+
+SCRIPT_DIR="$(dirname "$0")"
+REPORT="bazel-out/_coverage/_coverage_report.dat"
+THRESHOLD=70
+
+
+bash "$SCRIPT_DIR/bazel_exec.sh" coverage --keep_going --show_progress //tests/...
+
+COVERAGE=$(lcov --summary "$REPORT" | grep "lines......" | awk '{print $2}' | sed 's/%//')
+
+echo "Line coverage: $COVERAGE%"
+
+if (( $(echo "$COVERAGE < $THRESHOLD" | bc -l) )); then
+    echo "Error: line coverage $COVERAGE% is below threshold of $THRESHOLD%"
+    exit 1
+fi
+
+echo "Coverage OK"
