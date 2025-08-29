@@ -5,9 +5,10 @@ set -euo pipefail
 declare -A TITLE_ALIAS_MAP=(
   ["morkdb"]="MorkDB"
   ["redismongodb"]="Redis + MongoDB"
+  ["queryagent"]="Query Agent"
 )
 
-TITLE="AtomDB Benchmark Report - Single Thread, 100 iterations"
+TITLE="$2"
 BENCHMARK_DATABASE_PATH="/home/$USER/.cache/das/benchmark.db"
 
 function get_pr_info() {

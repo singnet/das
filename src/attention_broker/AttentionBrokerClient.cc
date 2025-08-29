@@ -57,7 +57,7 @@ void AttentionBrokerClient::stimulate(const map<string, unsigned int>& handle_ma
         sum += pair.second;
     }
     (*handle_count.mutable_map())["SUM"] = sum;
-    LOG_INFO("Calling AttentionBroker GRPC. Stimulating " << handle_count.mutable_map()->size()
+    LOG_INFO("Calling AttentionBroker GRPC. Stimulating " << handle_count.mutable_map()->size() - 1
                                                           << " handles");
     stub->stimulate(new grpc::ClientContext(), handle_count, &ack);
     if (ack.msg() != "STIMULATE") {

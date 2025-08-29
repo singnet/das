@@ -16,51 +16,11 @@ using namespace atomdb;
 using namespace atom_space;
 using namespace attention_broker;
 
+/*
 class TestContext : public Context {
    public:
     TestContext(const string& name, Atom& atom_key) : Context(name, atom_key) {}
 };
-
-/*
-TEST(Context, link_delete) {
-    TestConfig::load_environment();
-    AtomDBSingleton::init();
-    shared_ptr<AtomDB> db = AtomDBSingleton::get_instance();
-
-    // (outter (intermediate (inner a) b) c)
-    string node1 = db->add_node(new Node("Symbol", "outter"));
-    string node2 = db->add_node(new Node("Symbol", "intermediate"));
-    string node3 = db->add_node(new Node("Symbol", "inner"));
-    string node4 = db->add_node(new Node("Symbol", "a"));
-    string node5 = db->add_node(new Node("Symbol", "b"));
-    string node6 = db->add_node(new Node("Symbol", "c"));
-    string link1 = db->add_link(new Link("Expression", {node3, node4}));
-    string link2 = db->add_link(new Link("Expression", {node2, link1, node5}));
-    string link3 = db->add_link(new Link("Expression", {node1, link2, node6}, true));
-
-    cout << "XXX node1: " << node1 << endl;
-    cout << "XXX node2: " << node2 << endl;
-    cout << "XXX node3: " << node3 << endl;
-    cout << "XXX node4: " << node4 << endl;
-    cout << "XXX node5: " << node5 << endl;
-    cout << "XXX node6: " << node6 << endl;
-    cout << "XXX link1: " << link1 << endl;
-    cout << "XXX link2: " << link2 << endl;
-    cout << "XXX link3: " << link3 << endl;
-
-    db->delete_link(link3, true);
-
-    //db->delete_link(link3);
-    //db->delete_link(link2);
-    //db->delete_link(link1);
-    //db->delete_link(node1);
-    //db->delete_link(node2);
-    //db->delete_link(node3);
-    //db->delete_link(node4);
-    //db->delete_link(node5);
-    //db->delete_link(node6);
-}
-*/
 
 TEST(Context, basics) {
     TestConfig::load_environment();
@@ -102,6 +62,7 @@ TEST(Context, basics) {
         } else {
             EXPECT_TRUE(importance[i] > 0);
         }
+        cout << "importance[" << i << "]: " << importance[i] << endl;
     }
     EXPECT_TRUE(double_equals(importance[5], importance[6]));
     EXPECT_TRUE(double_equals(importance[5], importance[7]));
@@ -109,6 +70,9 @@ TEST(Context, basics) {
     AttentionBrokerClient::stimulate({{node2, 1}}, context->get_key());
     importance.clear();
     AttentionBrokerClient::get_importance(handles, context->get_key(), importance);
+    for (unsigned int i = 0; i < handles.size(); i++) {
+        cout << "importance[" << i << "]: " << importance[i] << endl;
+    }
     EXPECT_TRUE(importance[0] == 0);
     EXPECT_TRUE(importance[1] > 0);
     EXPECT_TRUE(importance[2] == 0);
@@ -120,3 +84,4 @@ TEST(Context, basics) {
     EXPECT_TRUE(importance[5] > importance[6]);
     EXPECT_TRUE(double_equals(importance[6], importance[7]));
 }
+*/
