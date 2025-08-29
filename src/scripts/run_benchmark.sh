@@ -129,7 +129,7 @@ set_metta_file_params() {
 
     case "$db_size" in
     empty)
-        SENTENCES=100
+        SENTENCES=1000
         ;;
     small)
         SENTENCES=10000
@@ -219,6 +219,17 @@ init_environment() {
         if [[ $(docker ps -q --filter "name=^das-query_broker-") ]]; then
             docker stop $(docker ps -q --filter "name=^das-query_broker-")
         fi
+        cat > .env <<EOF
+DAS_MONGODB_HOSTNAME=localhost
+DAS_MONGODB_PORT=28000
+DAS_MONGODB_USERNAME=dbadmin
+DAS_MONGODB_PASSWORD=dassecret
+DAS_REDIS_HOSTNAME=localhost
+DAS_REDIS_PORT=29000
+DAS_USE_REDIS_CLUSTER=false
+DAS_ATTENTION_BROKER_ADDRESS=localhost
+DAS_ATTENTION_BROKER_PORT=37007
+EOF
         ./src/scripts/build.sh --copt=-DLOG_LEVEL=DEBUG_LEVEL
         ./src/scripts/run.sh query_broker 35700 3000:3100 | stdbuf -oL grep "Benchmark::" > "$log_file" || true &
         echo -e "\r\033[K${GREEN}Query Agent initialization completed!${RESET}"
@@ -234,7 +245,7 @@ init_environment() {
         echo "Waiting MORK..."
         sleep 5
     done
-    src/scripts/mork_loader.sh "$METTA_PATH" 2> >(grep -v '^+')
+    ./src/scripts/mork_loader.sh "$METTA_PATH"
     echo -e "\r\033[K${GREEN}MORK initialization completed!${RESET}"
 }
 
@@ -308,7 +319,7 @@ run_benchmark() {
                 init_environment "$log_file"
                 echo -e "\r\033[K${GREEN}Running test START${RESET}"
                 echo -e "\r\033[K${GREEN}Partial results in /tmp/${BENCHMARK}_benchmark/${TIMESTAMP}/${RESET}"
-                ./src/scripts/bazel.sh run //tests/benchmark/query_agent:query_agent_main --copt=-DLOG_LEVEL=DEBUG_LEVEL -- "$report_base_directory" "$type" "$action" "$CACHE_ENABLED" "$ITERATIONS" "/tmp/${BENCHMARK}_benchmark/${TIMESTAMP}/${type}_${action}_" | stdbuf -oL grep "|" > "$client_log_file"
+                stdbuf -oL ./src/scripts/bazel.sh run //tests/benchmark/query_agent:query_agent_main --copt=-DLOG_LEVEL=DEBUG_LEVEL -- "$report_base_directory" "$type" "$action" "$CACHE_ENABLED" "$ITERATIONS" "/tmp/${BENCHMARK}_benchmark/${TIMESTAMP}/${type}_${action}_" | tee "$client_log_file"
                 echo -e "\r\033[K${GREEN}Running test END${RESET}"
             done
         done
@@ -334,11 +345,9 @@ run_benchmark() {
     fi
 }
 
-
 scenario_data() {
     echo "$SCENARIO_NAME $DB $REL $CONCURRENCY $CACHE_ENABLED $ITERATIONS"
 }
-
 
 consolidate_reports() {
     local benchmark=$1

@@ -19,7 +19,6 @@ class ImplicationProcessor : public LinkProcessor {
                                            optional<vector<string>> extra_params = nullopt) override;
 
     static LinkSchema build_pattern_query(const string& handle);
-    static LinkSchema build_satisfying_set_query(const string& p1_handle, const string& p2_handle);
     static bool link_exists(const string& handle1, const string& handle2);
 };
 }  // namespace link_creation_agent
