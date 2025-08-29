@@ -1,7 +1,7 @@
 #include "StimulusSpreader.h"
 
 // clang-format off
-#define LOG_LEVEL LOCAL_DEBUG_LEVEL
+#define LOG_LEVEL INFO_LEVEL
 #include "Logger.h"
 // clang-format on
 
@@ -13,7 +13,7 @@
 #include "Utils.h"
 #include "expression_hasher.h"
 
-using namespace attention_broker_server;
+using namespace attention_broker;
 
 // --------------------------------------------------------------------------------
 // Public constructors and destructors
@@ -43,11 +43,13 @@ TokenSpreader::~TokenSpreader() {}
 
 typedef TokenSpreader::StimuliData DATA;
 
+#if LOG_LEVEL >= LOCAL_DEBUG_LEVEL
 static bool print_importance(HandleTrie::TrieNode* node, void* data) {
     HebbianNetwork::Node* value = (HebbianNetwork::Node*) node->value;
     LOG_INFO("Importance of " + node->suffix + " :" + std::to_string(value->importance));
     return false;
 }
+#endif
 
 static bool collect_rent(HandleTrie::TrieNode* node, void* data) {
     ImportanceType rent = ((DATA*) data)->rent_rate * ((HebbianNetwork::Node*) node->value)->importance;
@@ -161,11 +163,11 @@ void TokenSpreader::spread_stimuli(const dasproto::HandleCount* request) {
         return;
     }
 
-    for (auto pair : request->map()) {     // XXXXXXXXXXXXXXXXXXXXXXXXXX
-        if (pair.first != "SUM") {         // XXXXXXXXXXXXXXXXXXXXXXXXXX
-            network->add_node(pair.first); // XXXXXXXXXXXXXXXXXXXXXXXXXX
-        }                                  // XXXXXXXXXXXXXXXXXXXXXXXXXX
-    }                                      // XXXXXXXXXXXXXXXXXXXXXXXXXX
+    //for (auto pair : request->map()) {     // XXXXXXXXXXXXXXXXXXXXXXXXXX
+    //    if (pair.first != "SUM") {         // XXXXXXXXXXXXXXXXXXXXXXXXXX
+    //        network->add_node(pair.first); // XXXXXXXXXXXXXXXXXXXXXXXXXX
+    //    }                                  // XXXXXXXXXXXXXXXXXXXXXXXXXX
+    //}                                      // XXXXXXXXXXXXXXXXXXXXXXXXXX
     DATA data;
     data.importance_changes = new HandleTrie(HANDLE_HASH_SIZE - 1);
     data.rent_rate = AttentionBrokerServer::RENT_RATE;
@@ -193,11 +195,14 @@ void TokenSpreader::spread_stimuli(const dasproto::HandleCount* request) {
     distribute_wages(request, total_to_spread, &data);
 
     // Consolidate changes
-    network->visit_nodes(true, &print_importance, (void*) &data); // XXX
+    //network->visit_nodes(true, &print_importance, (void*) &data); // XXX
+    //cout << "XXXXXXXXXXXXXXXXXXXXXXX >>> before consolidate_rent_and_wages()" << endl;
     network->visit_nodes(true, &consolidate_rent_and_wages, (void*) &data);
-    network->visit_nodes(true, &print_importance, (void*) &data); // XXX
+    //cout << "XXXXXXXXXXXXXXXXXXXXXXX >>> after consolidate_rent_and_wages()" << endl;
+    //network->visit_nodes(true, &print_importance, (void*) &data); // XXX
 
     // Spread activation (1 cycle)
     network->visit_nodes(true, &consolidate_stimulus, &data);
-    network->visit_nodes(true, &print_importance, (void*) &data); // XXX
+    //cout << "XXXXXXXXXXXXXXXXXXXXXXX >>> after consolidate_stimulus()" << endl;
+    //network->visit_nodes(true, &print_importance, (void*) &data); // XXX
 }

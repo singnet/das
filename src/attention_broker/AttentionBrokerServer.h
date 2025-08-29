@@ -18,7 +18,7 @@ using grpc::ServerBuilder;
 using grpc::ServerContext;
 using grpc::Status;
 
-namespace attention_broker_server {
+namespace attention_broker {
 
 /**
  * GRPC server which actually listens to a PORT.
@@ -61,9 +61,9 @@ class AttentionBrokerServer final : public AttentionBroker::Service {
 
     // Stimuli spreading parameters
     string global_context;
-    constexpr const static double RENT_RATE = 0.000001;                 /// double in [0..1] range.
-    constexpr const static double SPREADING_RATE_LOWERBOUND = 0.9999999;  /// double in [0..1] range.
-    constexpr const static double SPREADING_RATE_UPPERBOUND = 0.9999999;  /// double in [0..1] range.
+    static double RENT_RATE;                  /// double in [0..1] range.
+    static double SPREADING_RATE_LOWERBOUND;  /// double in [0..1] range.
+    static double SPREADING_RATE_UPPERBOUND;  /// double in [0..1] range.
 
     // RPC API
 
@@ -147,6 +147,18 @@ class AttentionBrokerServer final : public AttentionBroker::Service {
                            const dasproto::HandleListList* request,
                            dasproto::Ack* reply) override;
 
+    /**
+     * Set dynamics parameters.
+     *
+     * @param request Parameters values to be used.
+     * @param reply The message which will be send back to the caller with a simple ACK.
+     *
+     * @return GRPC status OK if request were properly processed or CANCELLED otherwise.
+     */
+    Status set_parameters(ServerContext* grpc_context,
+                          const dasproto::Parameters* request,
+                          dasproto::Ack* reply) override;
+
     // Other public methods
 
     /**
@@ -170,4 +182,4 @@ class AttentionBrokerServer final : public AttentionBroker::Service {
     HebbianNetwork* select_hebbian_network(const string& context);
 };
 
-}  // namespace attention_broker_server
+}  // namespace attention_broker

@@ -5,7 +5,7 @@
 
 using namespace std;
 
-namespace attention_broker_server {
+namespace attention_broker {
 
 /**
  * Algorithm used to update HebbianNetwork weights in "correlate" requests.
@@ -102,4 +102,4 @@ class ExactCountHebbianUpdater : public HebbianNetworkUpdater {
     void correlation(const dasproto::HandleList* request);  /// Process a correlation evidence.
 };
 
-}  // namespace attention_broker_server
+}  // namespace attention_broker

@@ -12,7 +12,7 @@
 #include "gtest/gtest.h"
 #include "test_utils.h"
 
-using namespace attention_broker_server;
+using namespace attention_broker;
 
 bool importance_equals(ImportanceType importance, double v2) {
     double v1 = (double) importance;

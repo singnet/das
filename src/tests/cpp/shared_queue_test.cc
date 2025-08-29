@@ -1,7 +1,7 @@
 #include "AttentionBrokerServer.h"
 #include "gtest/gtest.h"
 
-using namespace attention_broker_server;
+using namespace attention_broker;
 
 class TestSharedQueue : public SharedQueue {
    public:

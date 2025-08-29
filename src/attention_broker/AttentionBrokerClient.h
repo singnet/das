@@ -26,11 +26,13 @@ class AttentionBrokerClient {
                                const string& context,
                                vector<float>& importances);
     static void set_determiners(const vector<vector<string>>& handle_lists, const string& context);
+    static void set_parameters(float rent_rate, float spreading_rate_lowerbound, float spreading_rate_upperbound);
 
    private:
     static mutex api_mutex;
     static string SERVER_ADDRESS;
     static unsigned int MAX_GET_IMPORTANCE_BUNDLE_SIZE;
+    static unsigned int MAX_SET_DETERMINERS_HANDLE_COUNT;
     AttentionBrokerClient() {}
 };
 

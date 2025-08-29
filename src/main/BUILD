@@ -91,6 +91,7 @@ cc_library(
     deps = [
         "//agents/query_engine:query_engine_lib",
         "//atomdb:atomdb_singleton",
+        "//atom_space:atom_space_lib",
         "//service_bus:service_bus_lib",
     ],
 )

@@ -138,7 +138,7 @@ void QueryEvolutionProcessor::sample_population(
             Utils::sleep();
         }
     }
-    LOG_DEBUG("Generation: " + std::to_string(this->generation_count) + " - Individuals with non-zero importance: " + std::to_string(positive_importance_count));
+    LOG_INFO("Generation: " + std::to_string(this->generation_count) + " - Individuals with non-zero importance: " + std::to_string(positive_importance_count));
     if (!pm_query->finished()) {
         pm_query->abort();
         unsigned int count = 0;
@@ -312,18 +312,21 @@ void QueryEvolutionProcessor::correlate_similar(shared_ptr<QueryEvolutionProxy> 
 
     // Update AttentionBroker
     set<string> handle_set;
+    handle_set.insert(correlation_query_answer->assignment.get("sentence1"));
+    //for (string handle : correlation_query_answer->handles) {
+    //    handle_set.insert(handle);
+    //}
     auto pm_query = issue_correlation_query(proxy, query_tokens);
-    for (string handle : correlation_query_answer->handles) {
-        handle_set.insert(handle);
-    }
     while (!pm_query->finished()) {
         shared_ptr<QueryAnswer> answer = pm_query->pop();
         string word;
         if (answer != NULL) {
             if (eval_word(answer->assignment.get("word1"), word) >= correlation_query_answer->strength) { // XXX
-                for (string handle : answer->handles) {
-                    handle_set.insert(handle);
-                }
+            //if (true) { // XXX
+                handle_set.insert(answer->assignment.get("sentence2"));
+                //for (string handle : answer->handles) {
+                //    handle_set.insert(handle);
+                //}
             }
         } else {
             Utils::sleep();
@@ -340,6 +343,18 @@ void QueryEvolutionProcessor::stimulate(shared_ptr<QueryEvolutionProxy> proxy,
 
     map<string, unsigned int> handle_count;
     for (auto pair : selected) {
+        unsigned int value = (unsigned int) std::lround(pair.second * importance_tokens);
+        string handle = pair.first->assignment.get("sentence1");
+        if (handle_count.find(handle) == handle_count.end()) {
+            handle_count[handle] = value;
+        } else {
+            if (value > handle_count[handle]) {
+                handle_count[handle] = value;
+            }
+        }
+    }
+    /*
+    for (auto pair : selected) {
         for (string handle : pair.first->handles) {
             unsigned int value = (unsigned int) std::lround(pair.second * importance_tokens);
             if (handle_count.find(handle) == handle_count.end()) {
@@ -351,6 +366,7 @@ void QueryEvolutionProcessor::stimulate(shared_ptr<QueryEvolutionProxy> proxy,
             }
         }
     }
+    */
     AttentionBrokerClient::stimulate(handle_count, proxy->get_context());
 }
 
@@ -385,7 +401,7 @@ void QueryEvolutionProcessor::evolve_query(shared_ptr<StoppableThread> monitor,
         LOG_INFO("========== Generation: " + std::to_string(this->generation_count) + ". Sampled " +
                  std::to_string(population.size()) + " individuals. ==========");
         proxy->new_population_sampled(population);
-        if (this->generation_count == 2) break; // XXX
+        //if (this->generation_count == 2) break; // XXX
         if ((population.size() > 0) && !proxy->stop_criteria_met()) {
             proxy->flush_answer_bundle();
             STOP_WATCH_START(selection);

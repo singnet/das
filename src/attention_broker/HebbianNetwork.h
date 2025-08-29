@@ -10,7 +10,7 @@
 using namespace std;
 using namespace commons;
 
-namespace attention_broker_server {
+namespace attention_broker {
 
 typedef double ImportanceType;
 
@@ -179,4 +179,4 @@ class HebbianNetwork {
     mutex tokens_mutex;
 };
 
-}  // namespace attention_broker_server
+}  // namespace attention_broker
