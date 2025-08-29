@@ -93,12 +93,10 @@ class And : public Operator<N> {
             memcpy((void*) this->answer, (const void*) other.answer, N * sizeof(QueryAnswer*));
             return *this;
         }
-        bool operator<(const CandidateRecord& other) const { 
-            //return ((this->fitness < other.fitness) || ((this->fitness == other.fitness) && Utils::flip_coin())); // XXX
+        bool operator<(const CandidateRecord& other) const {
             return (this->fitness < other.fitness);
         }
-        bool operator>(const CandidateRecord& other) const { 
-            //return ((this->fitness > other.fitness) || ((this->fitness == other.fitness) && Utils::flip_coin())); // XXX
+        bool operator>(const CandidateRecord& other) const {
             return (this->fitness > other.fitness);
         }
         bool operator==(const CandidateRecord& other) const {

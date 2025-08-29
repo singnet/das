@@ -176,12 +176,12 @@ class QueryEvolutionProxy : public BaseQueryProxy {
      */
     void eval_fitness_response(const vector<string>& args);
 
-    shared_ptr<FitnessFunction> fitness_function_object; // XXX
    private:
     void set_default_query_parameters();
     void set_fitness_function_tag(const string& tag);
     void init();
 
+    shared_ptr<FitnessFunction> fitness_function_object;
     mutex api_mutex;
     string fitness_function_tag;
     float best_reported_fitness;

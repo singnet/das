@@ -8,7 +8,7 @@
 #include "AttentionBrokerClient.h"
 #include "Terminal.h"
 
-#define LOG_LEVEL DEBUG_LEVEL
+#define LOG_LEVEL INFO_LEVEL
 #include "Logger.h"
 
 using namespace query_element;
@@ -106,7 +106,7 @@ void LinkTemplate::compute_importance(vector<pair<char*, float>>& handles) {
     }
     // Sort decreasing by importance value
 
-    std::shuffle(handles.begin(), handles.end(), *this->random_generator); // XXX
+    std::shuffle(handles.begin(), handles.end(), *this->random_generator);
     std::sort(handles.begin(),
               handles.end(),
               [](const std::pair<char*, float>& left, const std::pair<char*, float>& right) {

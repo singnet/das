@@ -6,7 +6,7 @@
 #include "ServiceBus.h"
 #include "ServiceBusSingleton.h"
 
-#define LOG_LEVEL DEBUG_LEVEL
+#define LOG_LEVEL INFO_LEVEL
 #include "Logger.h"
 
 using namespace evolution;
@@ -313,20 +313,13 @@ void QueryEvolutionProcessor::correlate_similar(shared_ptr<QueryEvolutionProxy> 
     // Update AttentionBroker
     set<string> handle_set;
     handle_set.insert(correlation_query_answer->assignment.get("sentence1"));
-    //for (string handle : correlation_query_answer->handles) {
-    //    handle_set.insert(handle);
-    //}
     auto pm_query = issue_correlation_query(proxy, query_tokens);
     while (!pm_query->finished()) {
         shared_ptr<QueryAnswer> answer = pm_query->pop();
         string word;
         if (answer != NULL) {
-            if (eval_word(answer->assignment.get("word1"), word) >= correlation_query_answer->strength) { // XXX
-            //if (true) { // XXX
+            if (eval_word(answer->assignment.get("word1"), word) >= correlation_query_answer->strength) {
                 handle_set.insert(answer->assignment.get("sentence2"));
-                //for (string handle : answer->handles) {
-                //    handle_set.insert(handle);
-                //}
             }
         } else {
             Utils::sleep();
@@ -401,7 +394,6 @@ void QueryEvolutionProcessor::evolve_query(shared_ptr<StoppableThread> monitor,
         LOG_INFO("========== Generation: " + std::to_string(this->generation_count) + ". Sampled " +
                  std::to_string(population.size()) + " individuals. ==========");
         proxy->new_population_sampled(population);
-        //if (this->generation_count == 2) break; // XXX
         if ((population.size() > 0) && !proxy->stop_criteria_met()) {
             proxy->flush_answer_bundle();
             STOP_WATCH_START(selection);

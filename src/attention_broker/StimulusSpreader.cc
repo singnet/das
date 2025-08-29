@@ -162,12 +162,6 @@ void TokenSpreader::spread_stimuli(const dasproto::HandleCount* request) {
     if (network == NULL) {
         return;
     }
-
-    //for (auto pair : request->map()) {     // XXXXXXXXXXXXXXXXXXXXXXXXXX
-    //    if (pair.first != "SUM") {         // XXXXXXXXXXXXXXXXXXXXXXXXXX
-    //        network->add_node(pair.first); // XXXXXXXXXXXXXXXXXXXXXXXXXX
-    //    }                                  // XXXXXXXXXXXXXXXXXXXXXXXXXX
-    //}                                      // XXXXXXXXXXXXXXXXXXXXXXXXXX
     DATA data;
     data.importance_changes = new HandleTrie(HANDLE_HASH_SIZE - 1);
     data.rent_rate = AttentionBrokerServer::RENT_RATE;
@@ -195,14 +189,20 @@ void TokenSpreader::spread_stimuli(const dasproto::HandleCount* request) {
     distribute_wages(request, total_to_spread, &data);
 
     // Consolidate changes
-    //network->visit_nodes(true, &print_importance, (void*) &data); // XXX
-    //cout << "XXXXXXXXXXXXXXXXXXXXXXX >>> before consolidate_rent_and_wages()" << endl;
+#if LOG_LEVEL >= LOCAL_DEBUG_LEVEL
+    LOG_LOCAL_DEBUG("Importances before consolidate_rent_and_wages()");
+    network->visit_nodes(true, &print_importance, (void*) &data);
+#endif
     network->visit_nodes(true, &consolidate_rent_and_wages, (void*) &data);
-    //cout << "XXXXXXXXXXXXXXXXXXXXXXX >>> after consolidate_rent_and_wages()" << endl;
-    //network->visit_nodes(true, &print_importance, (void*) &data); // XXX
+#if LOG_LEVEL >= LOCAL_DEBUG_LEVEL
+    LOG_LOCAL_DEBUG("Importances after consolidate_rent_and_wages()");
+    network->visit_nodes(true, &print_importance, (void*) &data);
+#endif
 
     // Spread activation (1 cycle)
     network->visit_nodes(true, &consolidate_stimulus, &data);
-    //cout << "XXXXXXXXXXXXXXXXXXXXXXX >>> after consolidate_stimulus()" << endl;
-    //network->visit_nodes(true, &print_importance, (void*) &data); // XXX
+#if LOG_LEVEL >= LOCAL_DEBUG_LEVEL
+    LOG_LOCAL_DEBUG("Importances after consolidate_stimulus()");
+    network->visit_nodes(true, &print_importance, (void*) &data);
+#endif
 }
