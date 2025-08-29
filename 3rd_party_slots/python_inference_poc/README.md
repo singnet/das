@@ -21,7 +21,7 @@ make run-inference-toy-problem 3rd_party_slots/python_inference_poc/config/scena
 To run the problem `feature_a -> feature_d`, `cd` to das root folder and run:
 
 ```
-make run-inference-agent-client OPTIONS="localhost:5030 localhost:4000 19000:20000 PROOF_OF_IMPLICATION_OR_EQUIVALENCE 27670bc9a72fb87d431388ac75fa7fb6 3265822e4ee269dee41074547cd00f3d 1 TOY"
+make run-inference-agent-client OPTIONS="localhost:5030 localhost:4000 19000:20000 PROOF_OF_IMPLICATION 27670bc9a72fb87d431388ac75fa7fb6 3265822e4ee269dee41074547cd00f3d 1 TOY"
 ```
 
 
@@ -72,5 +72,5 @@ make agents start
 To run the problem `feature_a -> feature_d`, `cd` to das root folder and run:
 
 ```
-make run-inference-agent-client OPTIONS="localhost:5030 localhost:4000 19000:20000 PROOF_OF_IMPLICATION_OR_EQUIVALENCE 27670bc9a72fb87d431388ac75fa7fb6 3265822e4ee269dee41074547cd00f3d 1 TOY"
+make run-inference-agent-client OPTIONS="localhost:5030 localhost:4000 19000:20000 PROOF_OF_IMPLICATION 27670bc9a72fb87d431388ac75fa7fb6 3265822e4ee269dee41074547cd00f3d 1 TOY"
 ```

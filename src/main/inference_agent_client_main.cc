@@ -45,7 +45,6 @@ int main(int argc, char* argv[]) {
         <start_port:end_port>: The lower and upper bound for the port numbers to be used by the command proxy
         REQUEST+: A list of tokens to be sent to the server
     Requests must be in the following format:
-        PROOF_OF_IMPLICATION_OR_EQUIVALENCE <handle1> <handle2> <max proof length>
         PROOF_OF_IMPLICATION <handle1> <handle2> <max proof length>
         PROOF_OF_EQUIVALENCE <handle1> <handle2> <max proof length>
 

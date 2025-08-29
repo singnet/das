@@ -13,8 +13,6 @@ using namespace std;
 using namespace inference_agent;
 using namespace link_creation_agent;
 
-const std::string InferenceAgent::PROOF_OF_IMPLICATION_OR_EQUIVALENCE =
-    "PROOF_OF_IMPLICATION_OR_EQUIVALENCE";
 const std::string InferenceAgent::PROOF_OF_IMPLICATION = "PROOF_OF_IMPLICATION";
 const std::string InferenceAgent::PROOF_OF_EQUIVALENCE = "PROOF_OF_EQUIVALENCE";
 
@@ -39,11 +37,7 @@ shared_ptr<InferenceRequest> InferenceAgent::build_inference_request(const vecto
         Utils::error("Max proof length exceeded");
     }
     string context = request[4];
-    if (inference_command == PROOF_OF_IMPLICATION_OR_EQUIVALENCE) {
-        LOG_DEBUG("Received proof of implication or equivalence");
-        inference_request = make_shared<ProofOfImplicationOrEquivalence>(
-            first_handle, second_handle, max_proof_length, context);
-    } else if (inference_command == PROOF_OF_IMPLICATION) {
+    if (inference_command == PROOF_OF_IMPLICATION) {
         LOG_DEBUG("Received proof of implication");
         inference_request =
             make_shared<ProofOfImplication>(first_handle, second_handle, max_proof_length, context);
@@ -51,6 +45,8 @@ shared_ptr<InferenceRequest> InferenceAgent::build_inference_request(const vecto
         LOG_DEBUG("Received proof of equivalence");
         inference_request =
             make_shared<ProofOfEquivalence>(first_handle, second_handle, max_proof_length, context);
+    }else{
+        Utils::error("Invalid inference command");
     }
     return inference_request;
 }
