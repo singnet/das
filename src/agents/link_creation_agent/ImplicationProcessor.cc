@@ -24,31 +24,6 @@ LinkSchema ImplicationProcessor::build_pattern_query(const string& handle) {
     return LinkSchema(tokens);
 }
 
-LinkSchema ImplicationProcessor::build_satisfying_set_query(const string& p1_handle,
-                                                            const string& p2_handle) {
-    // clang-format off
-    vector<string> tokens = {
-        "LINK_TEMPLATE", "AND", "2", 
-            "LINK_TEMPLATE", "Expression", "3", 
-                "NODE", "Symbol","EVALUATION", 
-                "LINK", "Expression", "2", 
-                    "NODE", "Symbol", "PREDICATE",
-                    "ATOM", p1_handle, 
-                "LINK_TEMPLATE", "Expression", "2",
-                    "NODE", "Symbol", "CONCEPT",
-                    "VARIABLE", "C",
-            "LINK_TEMPLATE", "Expression", "3",
-                "NODE", "Symbol", "EVALUATION",
-                "LINK", "Expression", "2",
-                    "NODE", "Symbol", "PREDICATE",
-                    "ATOM", p2_handle,
-                "LINK_TEMPLATE", "Expression", "2",
-                    "NODE", "Symbol", "CONCEPT",
-                    "VARIABLE", "C"
-    };
-    // clang-format on
-    return LinkSchema(tokens);
-}
 
 bool ImplicationProcessor::link_exists(const string& handle1, const string& handle2) {
     Node implication_node("Symbol", "IMPLICATION");

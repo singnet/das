@@ -8,32 +8,6 @@ using namespace link_creation_agent;
 
 EquivalenceProcessor::EquivalenceProcessor() {}
 
-LinkSchema EquivalenceProcessor::build_pattern_query(const string& handle1, const string& handle2) {
-    // clang-format off
-    vector<string> tokens = {
-        "LINK_TEMPLATE", "OR", "2",
-            "LINK_TEMPLATE", "Expression", "3",
-                "NODE", "Symbol", "EVALUATION",
-                "LINK_TEMPLATE", "Expression", "2",
-                    "NODE", "Symbol", "PREDICATE",
-                    "VARIABLE", "P",
-                "LINK", "Expression", "2",
-                    "NODE", "Symbol", "CONCEPT",
-                    "ATOM", handle1,
-            "LINK_TEMPLATE", "Expression", "3",
-                "NODE", "Symbol", "EVALUATION",
-                "LINK_TEMPLATE", "Expression", "2",
-                    "NODE", "Symbol", "PREDICATE",
-                    "VARIABLE", "P",
-                "LINK", "Expression", "2",
-                    "NODE", "Symbol", "CONCEPT",
-                    "ATOM", handle2
-                    
-    };
-    // clang-format on
-    return LinkSchema(tokens);
-}
-
 bool EquivalenceProcessor::link_exists(const string& handle1, const string& handle2) {
     Node equivalence_node("Symbol", "EQUIVALENCE");
     vector<string> targets_c1_c2 = {equivalence_node.handle(), handle1, handle2};
@@ -63,36 +37,35 @@ vector<shared_ptr<Link>> EquivalenceProcessor::process_query(shared_ptr<QueryAns
         return {};
     }
 
-    LinkSchema pattern_query_schema = build_pattern_query(c1_handle, c2_handle);
+    LinkSchema pattern_query_schema = build_pattern_set_query(c1_handle, c2_handle);
+    LinkSchema satisfying_query_schema = build_satisfying_set_query(c1_handle, c2_handle);
     auto pattern_query = pattern_query_schema.tokenize();
+    auto satisfying_query = satisfying_query_schema.tokenize();
     // remove the first element (LINK_TEMPLATE)
     pattern_query.erase(pattern_query.begin());  // TODO remove when add operators support
-    int count = 0;
+    satisfying_query.erase(satisfying_query.begin()); // TODO remove when add operators support
+    int pattern_count = 0;
+    int satisfying_count = 0;
     try {
         LOG_INFO("Pattern query: " << Utils::join(pattern_query, ' '));
-        count = count_query(pattern_query, context);
-        if (count <= 0) {
+        pattern_count = count_query(pattern_query, context);
+        if (pattern_count <= 0) {
             LOG_DEBUG("No pattern found for " << c1_handle << " and " << c2_handle
                                               << ", skipping equivalence processing.");
             return {};
         }
-        // check if there is only one pattern
-        if (count == 1) {
-            LOG_DEBUG("Found one pattern for " << c1_handle << " and " << c2_handle
-                                               << ", checking if it is correct...");
-            count = count_query(pattern_query, context, false);
-            if (count <= 1) {
-                LOG_DEBUG("Found one pattern for " << c1_handle << " and " << c2_handle
-                                                   << ", skipping equivalence processing.");
-                return {};
-            }
+        LOG_INFO("Satisfying query: " << Utils::join(satisfying_query, ' '));
+        satisfying_count = count_query(satisfying_query, context);
+        if (satisfying_count <= 0) {
+            LOG_DEBUG("No satisfying set found for " << c1_handle << " and " << c2_handle
+                                                          << ", skipping equivalence processing.");
+            return {};
         }
     } catch (const exception& e) {
         LOG_ERROR("Failed to process equivalence query: " << e.what());
         return {};
     }
-    // two elements per query answer
-    double strength = double(2) / count;
+    double strength = double(satisfying_count) / double(pattern_count);
     vector<shared_ptr<Link>> result;
     Node equivalence_node("Symbol", "EQUIVALENCE");
     Properties custom_attributes;
