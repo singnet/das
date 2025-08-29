@@ -155,6 +155,7 @@ class InferenceRequest {
     unsigned int lca_max_repeats = 1;           // Default max repeats for LCA
     bool lca_update_attention_broker = false;   // Default update attention broker for LCA
     bool sent_evolution_request = false;
+    string command = "";
 };
 
 class ProofOfImplicationOrEquivalence : public InferenceRequest {

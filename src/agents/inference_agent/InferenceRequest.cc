@@ -96,6 +96,7 @@ static vector<vector<T>> product(const vector<T>& iterable, size_t repeat) {
 
 static vector<string> inference_evolution_request_builder(string first_handle,
                                                           string second_handle,
+                                                          string command,
                                                           int max_proof_length,
                                                           int& counter) {
     // clang-format off
@@ -105,7 +106,8 @@ static vector<string> inference_evolution_request_builder(string first_handle,
         "_FIRST_",
         "_SECOND_", };
     // clang-format on
-    vector<string> commands = {"IMPLICATION", "EQUIVALENCE"};
+    vector<string> commands = {command};
+    
     vector<string> request{};
     if (max_proof_length == 0) {
         return request;
@@ -162,7 +164,7 @@ static vector<string> inference_evolution_request_builder(string first_handle,
     }
 
     for (auto tkn : inference_evolution_request_builder(
-             first_handle, second_handle, max_proof_length - 1, counter)) {
+             first_handle, second_handle, command, max_proof_length - 1, counter)) {
         request.push_back(tkn);
     }
     // }
@@ -198,7 +200,7 @@ vector<string> InferenceRequest::get_distributed_inference_control_request() {
     int size = 0;
 
     vector<string> request =
-        inference_evolution_request_builder(first_handle, second_handle, max_proof_length, size);
+        inference_evolution_request_builder(first_handle, second_handle, command, max_proof_length, size);
     // tokens.push_back(this->context);
     tokens.push_back("OR");
     tokens.push_back(to_string(size));
@@ -233,14 +235,14 @@ ProofOfImplicationOrEquivalence::~ProofOfImplicationOrEquivalence() {}
 vector<string> ProofOfImplicationOrEquivalence::query() {
     // clang-format off
     vector<string> tokens = {
-        "LINK_TEMPLATE", "Expression", "3",
-        "NODE", "Symbol", "EVALUATION",
+        // "LINK_TEMPLATE", "Expression", "2",
+        // "NODE", "Symbol", "EVALUATION",
         "LINK_TEMPLATE", "Expression", "2",
             "NODE", "Symbol", "PREDICATE",
-            "VARIABLE", "P",
-        "LINK_TEMPLATE", "Expression", "2",
-            "NODE", "Symbol", "CONCEPT",
-            "VARIABLE", "C"
+            "VARIABLE", "P"
+        // "LINK_TEMPLATE", "Expression", "2",
+        //     "NODE", "Symbol", "CONCEPT",
+        //     "VARIABLE", "C"
     };
     // clang-format on
     return tokens;
@@ -272,14 +274,14 @@ vector<string> ProofOfImplicationOrEquivalence::patterns_link_template() {
     patterns_link_template.add_custom_field(patterns_custom_field);
 
     vector<string> tokens;
-    tokens.push_back("LIST");
-    tokens.push_back("2");
+    // tokens.push_back("LIST");
+    // tokens.push_back("2");
     for (auto token : satisfying_set_link_template.tokenize()) {
         tokens.push_back(token);
     }
-    for (auto token : patterns_link_template.tokenize()) {
-        tokens.push_back(token);
-    }
+    // for (auto token : patterns_link_template.tokenize()) {
+    //     tokens.push_back(token);
+    // }
     return tokens;
 }
 
@@ -295,15 +297,15 @@ vector<vector<string>> ProofOfImplicationOrEquivalence::get_requests() {
     requests.push_back(query_and_link_creation_template);
     //  Not supported yet
     //  proof of implication
-    ProofOfImplication proof_of_implication(first_handle, second_handle, max_proof_length, context);
-    for (auto request : proof_of_implication.get_requests()) {
-        requests.push_back(request);
-    }
-    // proof of equivalence
-    ProofOfEquivalence proof_of_equivalence(first_handle, second_handle, max_proof_length, context);
-    for (auto request : proof_of_equivalence.get_requests()) {
-        requests.push_back(request);
-    }
+    // ProofOfImplication proof_of_implication(first_handle, second_handle, max_proof_length, context);
+    // for (auto request : proof_of_implication.get_requests()) {
+    //     requests.push_back(request);
+    // }
+    // // proof of equivalence
+    // ProofOfEquivalence proof_of_equivalence(first_handle, second_handle, max_proof_length, context);
+    // for (auto request : proof_of_equivalence.get_requests()) {
+    //     requests.push_back(request);
+    // }
 
     return requests;
 }
@@ -314,7 +316,9 @@ ProofOfImplication::ProofOfImplication(string first_handle,
                                        string context)
     : InferenceRequest(first_handle, second_handle, max_proof_length, context) {}
 
-ProofOfImplication::~ProofOfImplication() {}
+ProofOfImplication::~ProofOfImplication() {
+    this->command = "IMPLICATION";
+}
 
 vector<string> ProofOfImplication::query() {
     // clang-format off
@@ -357,6 +361,10 @@ string ProofOfImplication::get_type() { return "PROOF_OF_IMPLICATION"; }
 
 vector<vector<string>> ProofOfImplication::get_requests() {
     vector<vector<string>> requests;
+    ProofOfImplicationOrEquivalence proof_of_implication_or_equivalence(first_handle, second_handle, max_proof_length, context);
+    for (auto request : proof_of_implication_or_equivalence.get_requests()) {
+        requests.push_back(request);
+    }
     auto query = this->query();
     query.push_back(this->get_type());  // processor
     requests.push_back(query);
@@ -369,7 +377,9 @@ ProofOfEquivalence::ProofOfEquivalence(string first_handle,
                                        string context)
     : InferenceRequest(first_handle, second_handle, max_proof_length, context) {}
 
-ProofOfEquivalence::~ProofOfEquivalence() {}
+ProofOfEquivalence::~ProofOfEquivalence() {
+    this->command = "EQUIVALENCE";
+}
 
 vector<string> ProofOfEquivalence::query() {
     // clang-format off
@@ -412,6 +422,10 @@ string ProofOfEquivalence::get_type() { return "PROOF_OF_EQUIVALENCE"; }
 
 vector<vector<string>> ProofOfEquivalence::get_requests() {
     vector<vector<string>> requests;
+    ProofOfImplicationOrEquivalence proof_of_implication_or_equivalence(first_handle, second_handle, max_proof_length, context);
+    for (auto request : proof_of_implication_or_equivalence.get_requests()) {
+        requests.push_back(request);
+    }
     auto query = this->query();
     query.push_back(this->get_type());  // processor
     requests.push_back(query);

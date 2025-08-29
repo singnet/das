@@ -18,6 +18,23 @@ void ctrl_c_handler(int) {
     std::cout << "Done." << std::endl;
     exit(0);
 }
+string query_answer_report(shared_ptr<QueryAnswer> answer, bool show_metta=false) {
+    auto db = AtomDBSingleton::get_instance();
+    string report = "QueryAnswer: ";
+    report += to_string(answer->handles.size()) + " handles, ";
+    report += to_string(answer->assignment.table.size()) + " assignments, ";
+    report += "importance: " + to_string(answer->importance) + ", strength: " + to_string(answer->strength);
+    report += "\n\tHandles: ";
+    for (const auto& handle : answer->handles) {
+        report += "\t\t" + (show_metta ? db->get_atom(handle)->metta_representation(*db.get()) : handle) + ", ";
+    }
+    report += "\n\tAssignments: ";
+    for (const auto& [key, value] : answer->assignment.table) {
+        report += "\t\t" + key + " -> " + (show_metta ? db->get_atom(value)->metta_representation(*db.get()) : value) + ", ";
+    }
+    return report;
+}
+
 
 int main(int argc, char* argv[]) {
     string help = R""""(
@@ -62,7 +79,8 @@ int main(int argc, char* argv[]) {
         if ((query_answer = proxy->pop()) == NULL) {
             Utils::sleep();
         } else {
-            cout << count << ": " << query_answer->to_string() << endl;
+            // cout << count << ": " << query_answer->to_string() << endl;
+            cout << query_answer_report(query_answer, true) << endl;
         }
         count++;
     }

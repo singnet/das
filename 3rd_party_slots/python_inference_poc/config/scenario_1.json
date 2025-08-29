@@ -1,5 +1,6 @@
 {
     "seed": 42,
+    "gen_seed": 11,
     "metta-filename": "/opt/das/3rd_party_slots/python_inference_poc/output.metta",
     "sentence-node-count": 100000,
     "word-count": 3,
@@ -16,6 +17,12 @@
         "wildcards": ["*ac", "cb*"],
         "percentage": 0.1
     },
+    "word-predicate": {
+        "token": "feature_contains_*",
+        "word-count": 1,
+        "alphabet-range": "0-4",
+        "percentage": 0.1
+    },
     "start-end-predicate": {
         "token": "feature_c",
         "start_letter": "c",
@@ -24,11 +31,11 @@
     },
     "low-diversity-predicate": {
         "token": "feature_d",
-        "letters": ["a", "b", "c", "d", "e"],
+        "letters": ["a", "b", "c", "d"],
         "percentage": 1
     },
     "bias":{
-        "predicates": ["letter-predicate", "low-diversity-predicate"],
+        "predicates": ["letter-predicate", "wildcard-predicate", "low-diversity-predicate"],
         "strength": 0.3,
         "filename": "/opt/das/3rd_party_slots/python_inference_poc/biased_predicates.metta",
         "operator": "and"

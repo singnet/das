@@ -228,8 +228,10 @@ def main():
     parser.add_argument("--word-count", default=3, help="How many words make up the node, eg: 10")
     parser.add_argument("--word-length", default=3, help="Number of characters in the world, eg: 5")
     parser.add_argument("--alphabet-range", default="0-3", help="Alphabet range, eg: 2-5")
-
+    parser.add_argument("--seed", default=11, help="Random seed")
     args = parser.parse_args()
+    random.seed(args.seed)
+
 
     generator = NodeLinkGenerator(
         int(args.sentence_node_count),
