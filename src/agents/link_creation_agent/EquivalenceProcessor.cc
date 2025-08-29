@@ -42,8 +42,8 @@ vector<shared_ptr<Link>> EquivalenceProcessor::process_query(shared_ptr<QueryAns
     auto pattern_query = pattern_query_schema.tokenize();
     auto satisfying_query = satisfying_query_schema.tokenize();
     // remove the first element (LINK_TEMPLATE)
-    pattern_query.erase(pattern_query.begin());  // TODO remove when add operators support
-    satisfying_query.erase(satisfying_query.begin()); // TODO remove when add operators support
+    pattern_query.erase(pattern_query.begin());        // TODO remove when add operators support
+    satisfying_query.erase(satisfying_query.begin());  // TODO remove when add operators support
     int pattern_count = 0;
     int satisfying_count = 0;
     try {
@@ -58,7 +58,7 @@ vector<shared_ptr<Link>> EquivalenceProcessor::process_query(shared_ptr<QueryAns
         satisfying_count = count_query(satisfying_query, context);
         if (satisfying_count <= 0) {
             LOG_DEBUG("No satisfying set found for " << c1_handle << " and " << c2_handle
-                                                          << ", skipping equivalence processing.");
+                                                     << ", skipping equivalence processing.");
             return {};
         }
     } catch (const exception& e) {

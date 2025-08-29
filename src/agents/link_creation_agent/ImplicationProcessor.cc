@@ -24,7 +24,6 @@ LinkSchema ImplicationProcessor::build_pattern_query(const string& handle) {
     return LinkSchema(tokens);
 }
 
-
 bool ImplicationProcessor::link_exists(const string& handle1, const string& handle2) {
     Node implication_node("Symbol", "IMPLICATION");
     vector<string> targets_p1_p2 = {implication_node.handle(), handle1, handle2};
