@@ -51,7 +51,6 @@ class InferenceAgentTest : public ::testing::Test {
     }
 };
 
-
 TEST_F(InferenceAgentTest, TestProofOfImplication) {
     GTEST_SKIP()
         << "Skipping test, due to modifications on InferenceAgent logic, it needs to be rewritten";
@@ -110,7 +109,8 @@ TEST_F(InferenceAgentTest, TestProofOfEquivalence) {
 //     ProofOfImplicationOrEquivalence proof_of_implication_or_equivalence(
 //         "handle1", "handle2", 1, "context");
 //     auto requests = proof_of_implication_or_equivalence.get_requests();
-//     auto dic_request = proof_of_implication_or_equivalence.get_distributed_inference_control_request();
+//     auto dic_request =
+//     proof_of_implication_or_equivalence.get_distributed_inference_control_request();
 //     EXPECT_EQ(requests.size(), 3);
 //     EXPECT_EQ(Utils::join(requests[0], ' '),
 //               "LINK_TEMPLATE Expression 3 NODE Symbol EVALUATION LINK_TEMPLATE Expression 2 NODE "
@@ -120,8 +120,8 @@ TEST_F(InferenceAgentTest, TestProofOfEquivalence) {
 //               "truth_value 2 strength 1.0 confidence 1.0 LINK_CREATE Expression 2 1 NODE Symbol "
 //               "PATTERNS VARIABLE C CUSTOM_FIELD truth_value 2 strength 1.0 confidence 1.0");
 //     EXPECT_EQ(Utils::join(dic_request, ' '),
-//               "OR 4 AND 2 LINK_TEMPLATE Expression 3 NODE Symbol IMPLICATION ATOM handle1 VARIABLE V0 "
-//               "LINK_TEMPLATE Expression 3 NODE Symbol IMPLICATION VARIABLE V0 ATOM handle2 AND 2 "
+//               "OR 4 AND 2 LINK_TEMPLATE Expression 3 NODE Symbol IMPLICATION ATOM handle1 VARIABLE V0
+//               " "LINK_TEMPLATE Expression 3 NODE Symbol IMPLICATION VARIABLE V0 ATOM handle2 AND 2 "
 //               "LINK_TEMPLATE Expression 3 NODE Symbol EQUIVALENCE ATOM handle1 VARIABLE V0 "
 //               "LINK_TEMPLATE Expression 3 NODE Symbol IMPLICATION VARIABLE V0 ATOM handle2 AND 2 "
 //               "LINK_TEMPLATE Expression 3 NODE Symbol IMPLICATION ATOM handle1 VARIABLE V0 "
@@ -140,32 +140,32 @@ TEST_F(InferenceAgentTest, TestProofOfEquivalence) {
 //         Utils::join(dic_request, ' '),
 //         "OR 12 AND 3 LINK_TEMPLATE Expression 3 NODE Symbol IMPLICATION ATOM handle3 VARIABLE V0 "
 //         "LINK_TEMPLATE Expression 3 NODE Symbol IMPLICATION VARIABLE V0 VARIABLE V1 LINK_TEMPLATE "
-//         "Expression 3 NODE Symbol IMPLICATION VARIABLE V1 ATOM handle4 AND 3 LINK_TEMPLATE Expression 3 "
-//         "NODE Symbol EQUIVALENCE ATOM handle3 VARIABLE V0 LINK_TEMPLATE Expression 3 NODE Symbol "
+//         "Expression 3 NODE Symbol IMPLICATION VARIABLE V1 ATOM handle4 AND 3 LINK_TEMPLATE Expression
+//         3 " "NODE Symbol EQUIVALENCE ATOM handle3 VARIABLE V0 LINK_TEMPLATE Expression 3 NODE Symbol "
 //         "IMPLICATION VARIABLE V0 VARIABLE V1 LINK_TEMPLATE Expression 3 NODE Symbol IMPLICATION "
-//         "VARIABLE V1 ATOM handle4 AND 3 LINK_TEMPLATE Expression 3 NODE Symbol IMPLICATION ATOM handle3 "
-//         "VARIABLE V0 LINK_TEMPLATE Expression 3 NODE Symbol EQUIVALENCE VARIABLE V0 VARIABLE V1 "
-//         "LINK_TEMPLATE Expression 3 NODE Symbol IMPLICATION VARIABLE V1 ATOM handle4 AND 3 "
+//         "VARIABLE V1 ATOM handle4 AND 3 LINK_TEMPLATE Expression 3 NODE Symbol IMPLICATION ATOM
+//         handle3 " "VARIABLE V0 LINK_TEMPLATE Expression 3 NODE Symbol EQUIVALENCE VARIABLE V0 VARIABLE
+//         V1 " "LINK_TEMPLATE Expression 3 NODE Symbol IMPLICATION VARIABLE V1 ATOM handle4 AND 3 "
 //         "LINK_TEMPLATE Expression 3 NODE Symbol EQUIVALENCE ATOM handle3 VARIABLE V0 LINK_TEMPLATE "
-//         "Expression 3 NODE Symbol EQUIVALENCE VARIABLE V0 VARIABLE V1 LINK_TEMPLATE Expression 3 NODE "
-//         "Symbol IMPLICATION VARIABLE V1 ATOM handle4 AND 3 LINK_TEMPLATE Expression 3 NODE Symbol "
+//         "Expression 3 NODE Symbol EQUIVALENCE VARIABLE V0 VARIABLE V1 LINK_TEMPLATE Expression 3 NODE
+//         " "Symbol IMPLICATION VARIABLE V1 ATOM handle4 AND 3 LINK_TEMPLATE Expression 3 NODE Symbol "
 //         "IMPLICATION ATOM handle3 VARIABLE V0 LINK_TEMPLATE Expression 3 NODE Symbol IMPLICATION "
 //         "VARIABLE V0 VARIABLE V1 LINK_TEMPLATE Expression 3 NODE Symbol EQUIVALENCE VARIABLE V1 ATOM "
 //         "handle4 AND 3 LINK_TEMPLATE Expression 3 NODE Symbol EQUIVALENCE ATOM handle3 VARIABLE V0 "
 //         "LINK_TEMPLATE Expression 3 NODE Symbol IMPLICATION VARIABLE V0 VARIABLE V1 LINK_TEMPLATE "
-//         "Expression 3 NODE Symbol EQUIVALENCE VARIABLE V1 ATOM handle4 AND 3 LINK_TEMPLATE Expression 3 "
-//         "NODE Symbol IMPLICATION ATOM handle3 VARIABLE V0 LINK_TEMPLATE Expression 3 NODE Symbol "
+//         "Expression 3 NODE Symbol EQUIVALENCE VARIABLE V1 ATOM handle4 AND 3 LINK_TEMPLATE Expression
+//         3 " "NODE Symbol IMPLICATION ATOM handle3 VARIABLE V0 LINK_TEMPLATE Expression 3 NODE Symbol "
 //         "EQUIVALENCE VARIABLE V0 VARIABLE V1 LINK_TEMPLATE Expression 3 NODE Symbol EQUIVALENCE "
-//         "VARIABLE V1 ATOM handle4 AND 3 LINK_TEMPLATE Expression 3 NODE Symbol EQUIVALENCE ATOM handle3 "
-//         "VARIABLE V0 LINK_TEMPLATE Expression 3 NODE Symbol EQUIVALENCE VARIABLE V0 VARIABLE V1 "
-//         "LINK_TEMPLATE Expression 3 NODE Symbol EQUIVALENCE VARIABLE V1 ATOM handle4 AND 2 "
+//         "VARIABLE V1 ATOM handle4 AND 3 LINK_TEMPLATE Expression 3 NODE Symbol EQUIVALENCE ATOM
+//         handle3 " "VARIABLE V0 LINK_TEMPLATE Expression 3 NODE Symbol EQUIVALENCE VARIABLE V0 VARIABLE
+//         V1 " "LINK_TEMPLATE Expression 3 NODE Symbol EQUIVALENCE VARIABLE V1 ATOM handle4 AND 2 "
 //         "LINK_TEMPLATE Expression 3 NODE Symbol IMPLICATION ATOM handle3 VARIABLE V0 LINK_TEMPLATE "
-//         "Expression 3 NODE Symbol IMPLICATION VARIABLE V0 ATOM handle4 AND 2 LINK_TEMPLATE Expression 3 "
-//         "NODE Symbol EQUIVALENCE ATOM handle3 VARIABLE V0 LINK_TEMPLATE Expression 3 NODE Symbol "
-//         "IMPLICATION VARIABLE V0 ATOM handle4 AND 2 LINK_TEMPLATE Expression 3 NODE Symbol IMPLICATION "
-//         "ATOM handle3 VARIABLE V0 LINK_TEMPLATE Expression 3 NODE Symbol EQUIVALENCE VARIABLE V0 ATOM "
-//         "handle4 AND 2 LINK_TEMPLATE Expression 3 NODE Symbol EQUIVALENCE ATOM handle3 VARIABLE V0 "
-//         "LINK_TEMPLATE Expression 3 NODE Symbol EQUIVALENCE VARIABLE V0 ATOM handle4");
+//         "Expression 3 NODE Symbol IMPLICATION VARIABLE V0 ATOM handle4 AND 2 LINK_TEMPLATE Expression
+//         3 " "NODE Symbol EQUIVALENCE ATOM handle3 VARIABLE V0 LINK_TEMPLATE Expression 3 NODE Symbol "
+//         "IMPLICATION VARIABLE V0 ATOM handle4 AND 2 LINK_TEMPLATE Expression 3 NODE Symbol IMPLICATION
+//         " "ATOM handle3 VARIABLE V0 LINK_TEMPLATE Expression 3 NODE Symbol EQUIVALENCE VARIABLE V0
+//         ATOM " "handle4 AND 2 LINK_TEMPLATE Expression 3 NODE Symbol EQUIVALENCE ATOM handle3 VARIABLE
+//         V0 " "LINK_TEMPLATE Expression 3 NODE Symbol EQUIVALENCE VARIABLE V0 ATOM handle4");
 
 //     ProofOfEquivalence proof_of_equivalence("handle5", "handle6", 1, "context2");
 //     requests = proof_of_equivalence.get_requests();
@@ -175,8 +175,8 @@ TEST_F(InferenceAgentTest, TestProofOfEquivalence) {
 //               "AND 2 LINK_TEMPLATE Expression 2 NODE Symbol PATTERNS VARIABLE C1 LINK_TEMPLATE "
 //               "Expression 2 NODE Symbol PATTERNS VARIABLE C2 PROOF_OF_EQUIVALENCE");
 //     EXPECT_EQ(Utils::join(dic_request, ' '),
-//               "OR 4 AND 2 LINK_TEMPLATE Expression 3 NODE Symbol IMPLICATION ATOM handle5 VARIABLE V0 "
-//               "LINK_TEMPLATE Expression 3 NODE Symbol IMPLICATION VARIABLE V0 ATOM handle6 AND 2 "
+//               "OR 4 AND 2 LINK_TEMPLATE Expression 3 NODE Symbol IMPLICATION ATOM handle5 VARIABLE V0
+//               " "LINK_TEMPLATE Expression 3 NODE Symbol IMPLICATION VARIABLE V0 ATOM handle6 AND 2 "
 //               "LINK_TEMPLATE Expression 3 NODE Symbol EQUIVALENCE ATOM handle5 VARIABLE V0 "
 //               "LINK_TEMPLATE Expression 3 NODE Symbol IMPLICATION VARIABLE V0 ATOM handle6 AND 2 "
 //               "LINK_TEMPLATE Expression 3 NODE Symbol IMPLICATION ATOM handle5 VARIABLE V0 "

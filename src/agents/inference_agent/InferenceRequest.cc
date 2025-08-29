@@ -136,6 +136,12 @@ string InferenceRequest::get_max_proof_length() { return to_string(max_proof_len
 void InferenceRequest::set_timeout(unsigned int timeout) { this->timeout = timeout; }
 unsigned int InferenceRequest::get_timeout() { return timeout; }
 
+void InferenceRequest::set_full_evaluation(bool full_evaluation) {
+    this->is_full_evaluation = full_evaluation;
+}
+
+bool InferenceRequest::get_full_evaluation() { return this->is_full_evaluation; }
+
 template <typename T>
 static vector<vector<T>> product(const vector<T>& iterable, size_t repeat) {
     vector<vector<T>> result;

@@ -141,6 +141,10 @@ class InferenceRequest {
 
     void set_sent_evolution_request(bool sent_evolution_request);
 
+    bool get_full_evaluation();
+
+    void set_full_evaluation(bool full_evaluation);
+
    protected:
     string first_handle;
     string second_handle;

@@ -45,7 +45,7 @@ shared_ptr<InferenceRequest> InferenceAgent::build_inference_request(const vecto
         LOG_DEBUG("Received proof of equivalence");
         inference_request =
             make_shared<ProofOfEquivalence>(first_handle, second_handle, max_proof_length, context);
-    }else{
+    } else {
         Utils::error("Invalid inference command");
     }
     return inference_request;
@@ -202,7 +202,18 @@ void InferenceAgent::process_inference_request(shared_ptr<InferenceProxy> proxy)
     LOG_DEBUG("Processing inference request: " << Utils::join(proxy->get_args(), ' '));
     string request_id = proxy->peer_id() + to_string(proxy->get_serial());
     inference_proxy_map[request_id] = proxy;
-    process_inference_request(proxy->get_args(), request_id);
+    if (proxy->get_args().empty()) {
+        Utils::error("Empty inference request");
+    }
+    auto inference_request = build_inference_request(proxy->get_args());
+    inference_request->set_id(request_id);
+    inference_request->set_timeout(
+        proxy->parameters.get<unsigned int>(InferenceProxy::INFERENCE_REQUEST_TIMEOUT));
+    inference_request->set_lca_max_results(
+        proxy->parameters.get<unsigned int>(InferenceProxy::MAX_QUERY_ANSWERS_TO_PROCESS));
+    inference_request->set_full_evaluation(
+        proxy->parameters.get<bool>(InferenceProxy::RUN_FULL_EVALUATION_QUERY));
+    inference_request_queue.enqueue(inference_request);
     LOG_DEBUG("Inference request processed for request ID: " << request_id);
 }
 
