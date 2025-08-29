@@ -1,5 +1,9 @@
 #include "LinkTemplate.h"
 
+#include <algorithm>
+#include <chrono>
+#include <random>
+
 #include "AtomDBSingleton.h"
 #include "AttentionBrokerClient.h"
 #include "Terminal.h"
@@ -26,6 +30,8 @@ LinkTemplate::LinkTemplate(const string& type,
     this->inner_flag = true;
     this->arity = targets.size();
     this->processor = nullptr;
+    this->random_generator =
+        new std::mt19937(std::chrono::system_clock::now().time_since_epoch().count());
 }
 
 LinkTemplate::~LinkTemplate() {
@@ -33,6 +39,7 @@ LinkTemplate::~LinkTemplate() {
     if (this->processor != nullptr) {
         this->processor->stop();
     }
+    delete this->random_generator;
     LOG_LOCAL_DEBUG("Deleting LinkTemplate: " + std::to_string((unsigned long) this) + "... Done");
 }
 
@@ -99,6 +106,8 @@ void LinkTemplate::compute_importance(vector<pair<char*, float>>& handles) {
         handles[i].second = importance_list[i];
     }
     // Sort decreasing by importance value
+
+    std::shuffle(handles.begin(), handles.end(), *this->random_generator);
     std::sort(handles.begin(),
               handles.end(),
               [](const std::pair<char*, float>& left, const std::pair<char*, float>& right) {
@@ -124,6 +133,7 @@ void LinkTemplate::processor_method(shared_ptr<StoppableThread> monitor) {
         handles = db->query_for_pattern(this->link_schema);
         LinkTemplate::fetched_links_cache().set(link_schema_handle, handles);
     }
+    LOG_DEBUG("Positive importance flag: " + string(this->positive_importance_flag ? "true" : "false"));
     LOG_INFO("Fetched " + std::to_string(handles->size()) + " atoms in " + link_schema_handle);
     vector<pair<char*, float>> tagged_handles;
     if (handles->size() > 0) {
@@ -137,6 +147,7 @@ void LinkTemplate::processor_method(shared_ptr<StoppableThread> monitor) {
     unsigned int pending = tagged_handles.size();
     unsigned int cursor = 0;
     Assignment assignment;
+    unsigned int count_matched = 0;
     while ((pending > 0) && !monitor->stopped()) {
         pair<char*, float> tagged_handle = tagged_handles[cursor++];
         if (this->positive_importance_flag && tagged_handle.second <= 0) {
@@ -146,10 +157,12 @@ void LinkTemplate::processor_method(shared_ptr<StoppableThread> monitor) {
                 this->link_schema.match(string(tagged_handle.first), assignment, *db.get())) {
                 this->source_element->add_handle(tagged_handle.first, tagged_handle.second, assignment);
                 assignment.clear();
+                count_matched++;
             }
             pending--;
         }
     }
+    LOG_INFO("Matched " + std::to_string(count_matched) + " atoms in " + link_schema_handle);
     Utils::sleep();
     this->source_element->query_answers_finished();
     LOG_DEBUG("LinkTemplate " + link_schema_handle + " finished processing. It's going to sleep.");

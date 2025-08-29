@@ -55,6 +55,7 @@ class LinkTemplate : public QueryElement {
     LinkSchema link_schema;
     shared_ptr<SourceElement> source_element;
     shared_ptr<StoppableThread> processor;
+    std::mt19937* random_generator;
     static ThreadSafeHashmap<string, shared_ptr<atomdb_api_types::HandleSet>> cache;
 
     void recursive_build(shared_ptr<QueryElement> element, LinkSchema& link_schema);

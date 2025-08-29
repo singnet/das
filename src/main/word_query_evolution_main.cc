@@ -5,6 +5,9 @@
 #include <string>
 
 #include "AtomDBSingleton.h"
+#include "AtomSpace.h"
+#include "AttentionBrokerClient.h"
+#include "Context.h"
 #include "CountLetterFunction.h"
 #include "FitnessFunctionRegistry.h"
 #include "QueryAnswer.h"
@@ -19,9 +22,11 @@
 
 using namespace std;
 using namespace atomdb;
+using namespace atom_space;
 using namespace query_engine;
 using namespace evolution;
 using namespace service_bus;
+using namespace attention_broker;
 
 std::vector<std::string> split(string s, string delimiter) {
     std::vector<std::string> tokens;
@@ -100,9 +105,10 @@ void run(const string& client_id,
          const string& server_id,
          size_t start_port,
          size_t end_port,
-         const string& context,
+         const string& context_tag,
          const string& word_tag1,
-         const string& word_tag2) {
+         const string& word_tag2,
+         double ELITISM_RATE) {
     AtomDBSingleton::init();
     shared_ptr<AtomDB> db = AtomDBSingleton::get_instance();
     ServiceBusSingleton::init(client_id, server_id, start_port, end_port);
@@ -158,11 +164,11 @@ void run(const string& client_id,
         and_operator, "2",
             link_template, expression, "3",
                 node, symbol, contains,
-                variable, sentence2,
+                variable, sentence1,
                 variable, word1,
             link_template, expression, "3",
                 node, symbol, contains,
-                variable, sentence1,
+                variable, sentence2,
                 variable, word1,
     };
     string activation_spreading1_metta = "(and (Contains $sentence2 $word1) (Contains $sentence1 $word1))";
@@ -171,11 +177,11 @@ void run(const string& client_id,
         and_operator, "3",
             link_template, expression, "3",
                 node, symbol, contains,
-                variable, sentence2,
+                variable, sentence1,
                 variable, word1,
             link_template, expression, "3",
                 node, symbol, contains,
-                variable, sentence1,
+                variable, sentence2,
                 variable, word1,
             or_operator, "2",
                 link_template, expression, "3",
@@ -191,33 +197,43 @@ void run(const string& client_id,
                         node, symbol, word,
                         node, symbol, "\"" + word_tag2 + "\"",
     };
+
+    vector<string> context1 = {
+        link_template, expression, "3",
+            node, symbol, contains,
+            variable, sentence1,
+            variable, word1,
+    };
     // clang-format on
 
     // ---------------------------------------------------------------------------------------------
     // Query evolution request
 
-    // QueryEvolutionProxy* proxy_ptr = new QueryEvolutionProxy(or_two_words,
-    //                                                          activation_spreading,
-    //                                                          {sentence3},
-    //                                                          context,
-    //                                                          FitnessFunctionRegistry::REMOTE_FUNCTION,
-    //                                                          make_shared<RemoteFitnessFunction>());
-
+    LOG_INFO("Setting up context");
+    AtomSpace atom_space;
+    LinkSchema context_key(context1);
+    auto context = atom_space.create_context(context_tag, context_key);
+    string context_str = context->get_key();
+    LOG_INFO("Context " + context_str + " is ready");
     QueryEvolutionProxy* proxy_ptr;
     if (USE_METTA_QUERY) {
-        proxy_ptr = new QueryEvolutionProxy(
-            {or_two_words_metta}, {activation_spreading1_metta}, {sentence1}, context, "count_letter");
+        proxy_ptr = new QueryEvolutionProxy({or_two_words_metta},
+                                            {activation_spreading1_metta},
+                                            {sentence1},
+                                            context_str,
+                                            "count_letter");
     } else {
         proxy_ptr = new QueryEvolutionProxy(
-            or_two_words, activation_spreading1, {sentence1}, context, "count_letter");
+            or_two_words, activation_spreading1, {sentence1}, context_str, "count_letter");
     }
 
     shared_ptr<QueryEvolutionProxy> proxy(proxy_ptr);
     proxy->parameters[BaseQueryProxy::USE_METTA_AS_QUERY_TOKENS] = USE_METTA_QUERY;
     proxy->parameters[QueryEvolutionProxy::POPULATION_SIZE] = (unsigned int) 100;
-    proxy->parameters[QueryEvolutionProxy::MAX_GENERATIONS] = (unsigned int) 5;
-    proxy->parameters[QueryEvolutionProxy::ELITISM_RATE] = (double) 0.08;
+    proxy->parameters[QueryEvolutionProxy::MAX_GENERATIONS] = (unsigned int) 20;
+    proxy->parameters[QueryEvolutionProxy::ELITISM_RATE] = (double) ELITISM_RATE;
     proxy->parameters[QueryEvolutionProxy::SELECTION_RATE] = (double) 0.10;
+    proxy->parameters[QueryEvolutionProxy::TOTAL_ATTENTION_TOKENS] = (unsigned int) 100000;
     proxy->parameters[BaseQueryProxy::MAX_BUNDLE_SIZE] = (unsigned int) 10000;
     service_bus->issue_bus_command(proxy);
 
@@ -257,19 +273,39 @@ void run(const string& client_id,
 }
 
 int main(int argc, char* argv[]) {
-    if (argc != 7) {
+    if (argc < 7) {
         cerr << "Usage: " << argv[0]
-             << "    <client id> <server id> <start_port:end_port> <context> <word tag 1> <word tag 2>"
+             << "    <client id> <server id> <start_port:end_port> <context_tag> <word tag 1> <word tag "
+                "2> [RENT_RATE] [SPREADING_RATE_LOWERBOUND] [SPREADING_RATE_UPPERBOUND]"
              << endl;
         exit(1);
     }
+    float RENT_RATE = 0.25;
+    float SPREADING_RATE_LOWERBOUND = 0.10;
+    float SPREADING_RATE_UPPERBOUND = 0.10;
+    double ELITISM_RATE = 0.08;
     string client_id = argv[1];
     string server_id = argv[2];
     auto ports_range = Utils::parse_ports_range(argv[3]);
-    string context = argv[4];
+    string context_tag = argv[4];
     string word_tag1 = argv[5];
     string word_tag2 = argv[6];
-
-    run(client_id, server_id, ports_range.first, ports_range.second, context, word_tag1, word_tag2);
+    if (argc > 7) {
+        RENT_RATE = Utils::string_to_float(string(argv[7]));
+        SPREADING_RATE_LOWERBOUND = Utils::string_to_float(string(argv[8]));
+        SPREADING_RATE_UPPERBOUND = Utils::string_to_float(string(argv[9]));
+        ELITISM_RATE = (double) Utils::string_to_float(string(argv[10]));
+    }
+    AttentionBrokerClient::set_parameters(
+        RENT_RATE, SPREADING_RATE_LOWERBOUND, SPREADING_RATE_UPPERBOUND);
+    LOG_INFO("ELITISM_RATE: " << ELITISM_RATE);
+    run(client_id,
+        server_id,
+        ports_range.first,
+        ports_range.second,
+        context_tag,
+        word_tag1,
+        word_tag2,
+        ELITISM_RATE);
     return 0;
 }

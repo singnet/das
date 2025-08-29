@@ -15,6 +15,7 @@ using namespace commons;
 mutex AttentionBrokerClient::api_mutex;
 string AttentionBrokerClient::SERVER_ADDRESS = DEFAULT_ATTENTION_BROKER_ADDRESS;
 unsigned int AttentionBrokerClient::MAX_GET_IMPORTANCE_BUNDLE_SIZE = 100000;
+unsigned int AttentionBrokerClient::MAX_SET_DETERMINERS_HANDLE_COUNT = 100000;
 
 // -------------------------------------------------------------------------------------------------
 // Public methods
@@ -71,20 +72,31 @@ void AttentionBrokerClient::set_determiners(const vector<vector<string>>& handle
     auto stub = dasproto::AttentionBroker::NewStub(
         grpc::CreateChannel(SERVER_ADDRESS, grpc::InsecureChannelCredentials()));
 
-    request.set_context(context);
+    unsigned int pending_count = handle_lists.size();
     unsigned int cursor = 0;
-    for (auto handle_list : handle_lists) {
-        request.add_list();
-        for (auto handle : handle_list) {
-            request.mutable_list(cursor)->add_list(handle);
+    unsigned int handle_count = 0;
+
+    while (pending_count > 0) {
+        request.set_context(context);
+        unsigned int inner_cursor = 0;
+        while ((pending_count > 0) && (handle_count < MAX_SET_DETERMINERS_HANDLE_COUNT)) {
+            request.add_list();
+            for (auto handle : handle_lists[cursor]) {
+                request.mutable_list(inner_cursor)->add_list(handle);
+            }
+            inner_cursor++;
+            pending_count--;
+            handle_count += handle_lists[cursor].size();
+            cursor++;
         }
-        cursor++;
-    }
-    LOG_INFO("Calling AttentionBroker GRPC. Setting determiners for " << request.list_size()
-                                                                      << " handles");
-    stub->set_determiners(new grpc::ClientContext(), request, &ack);
-    if (ack.msg() != "SET_DETERMINERS") {
-        Utils::error("Failed GRPC command: AttentionBroker::set_determiners()");
+        LOG_INFO("Calling AttentionBroker GRPC. Setting determiners for " << request.list_size()
+                                                                          << " handles");
+        stub->set_determiners(new grpc::ClientContext(), request, &ack);
+        if (ack.msg() != "SET_DETERMINERS") {
+            Utils::error("Failed GRPC command: AttentionBroker::set_determiners()");
+        }
+        request.clear_list();
+        handle_count = 0;
     }
 }
 
@@ -113,5 +125,28 @@ void AttentionBrokerClient::get_importance(const vector<string>& handles,
         bundle_count = 0;
         handle_list.clear_list();
         importance_list.clear_list();
+    }
+}
+
+void AttentionBrokerClient::set_parameters(float rent_rate,
+                                           float spreading_rate_lowerbound,
+                                           float spreading_rate_upperbound) {
+    dasproto::Parameters request;  // GRPC command parameter
+    dasproto::Ack ack;             // GRPC command return
+
+    request.set_rent_rate(rent_rate);
+    request.set_spreading_rate_lowerbound(spreading_rate_lowerbound);
+    request.set_spreading_rate_upperbound(spreading_rate_upperbound);
+
+    auto stub = dasproto::AttentionBroker::NewStub(
+        grpc::CreateChannel(SERVER_ADDRESS, grpc::InsecureChannelCredentials()));
+
+    LOG_INFO("Calling AttentionBroker GRPC. Setting dynamics parameters. RENT_RATE: "
+             << request.rent_rate()
+             << " SPREADING_RATE_LOWERBOUND: " << request.spreading_rate_lowerbound()
+             << " SPREADING_RATE_UPPERBOUND: " << request.spreading_rate_upperbound());
+    stub->set_parameters(new grpc::ClientContext(), request, &ack);
+    if (ack.msg() != "SET_PARAMETERS") {
+        Utils::error("Failed GRPC command: AttentionBroker::set_parameters()");
     }
 }

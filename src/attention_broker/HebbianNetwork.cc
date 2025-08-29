@@ -6,7 +6,7 @@
 #include "Utils.h"
 #include "expression_hasher.h"
 
-using namespace attention_broker_server;
+using namespace attention_broker;
 
 // --------------------------------------------------------------------------------
 // Public methods

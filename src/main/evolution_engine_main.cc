@@ -38,7 +38,7 @@ int main(int argc, char* argv[]) {
     string server_id = "0.0.0.0:" + string(argv[1]);
     auto ports_range = Utils::parse_ports_range(argv[2]);
     AtomDBSingleton::init();
-    ServiceBusSingleton::init(server_id, argv[3], ports_range.first, ports_range.second);
+    ServiceBusSingleton::init(server_id, "localhost:40002", ports_range.first, ports_range.second);
 
     FitnessFunctionRegistry::initialize_statics();
 
