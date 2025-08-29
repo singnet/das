@@ -128,10 +128,11 @@ void AttentionBrokerClient::get_importance(const vector<string>& handles,
     }
 }
 
-void AttentionBrokerClient::set_parameters(float rent_rate, float spreading_rate_lowerbound, float spreading_rate_upperbound) {
-
-    dasproto::Parameters request; // GRPC command parameter
-    dasproto::Ack ack;            // GRPC command return
+void AttentionBrokerClient::set_parameters(float rent_rate,
+                                           float spreading_rate_lowerbound,
+                                           float spreading_rate_upperbound) {
+    dasproto::Parameters request;  // GRPC command parameter
+    dasproto::Ack ack;             // GRPC command return
 
     request.set_rent_rate(rent_rate);
     request.set_spreading_rate_lowerbound(spreading_rate_lowerbound);
@@ -140,7 +141,10 @@ void AttentionBrokerClient::set_parameters(float rent_rate, float spreading_rate
     auto stub = dasproto::AttentionBroker::NewStub(
         grpc::CreateChannel(SERVER_ADDRESS, grpc::InsecureChannelCredentials()));
 
-    LOG_INFO("Calling AttentionBroker GRPC. Setting dynamics parameters. RENT_RATE: " << request.rent_rate() << " SPREADING_RATE_LOWERBOUND: " << request.spreading_rate_lowerbound() << " SPREADING_RATE_UPPERBOUND: " << request.spreading_rate_upperbound());
+    LOG_INFO("Calling AttentionBroker GRPC. Setting dynamics parameters. RENT_RATE: "
+             << request.rent_rate()
+             << " SPREADING_RATE_LOWERBOUND: " << request.spreading_rate_lowerbound()
+             << " SPREADING_RATE_UPPERBOUND: " << request.spreading_rate_upperbound());
     stub->set_parameters(new grpc::ClientContext(), request, &ack);
     if (ack.msg() != "SET_PARAMETERS") {
         Utils::error("Failed GRPC command: AttentionBroker::set_parameters()");

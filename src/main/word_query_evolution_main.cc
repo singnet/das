@@ -6,10 +6,10 @@
 
 #include "AtomDBSingleton.h"
 #include "AtomSpace.h"
+#include "AttentionBrokerClient.h"
 #include "Context.h"
 #include "CountLetterFunction.h"
 #include "FitnessFunctionRegistry.h"
-#include "AttentionBrokerClient.h"
 #include "QueryAnswer.h"
 #include "QueryEvolutionProxy.h"
 #include "ServiceBusSingleton.h"
@@ -217,8 +217,11 @@ void run(const string& client_id,
     LOG_INFO("Context " + context_str + " is ready");
     QueryEvolutionProxy* proxy_ptr;
     if (USE_METTA_QUERY) {
-        proxy_ptr = new QueryEvolutionProxy(
-            {or_two_words_metta}, {activation_spreading1_metta}, {sentence1}, context_str, "count_letter");
+        proxy_ptr = new QueryEvolutionProxy({or_two_words_metta},
+                                            {activation_spreading1_metta},
+                                            {sentence1},
+                                            context_str,
+                                            "count_letter");
     } else {
         proxy_ptr = new QueryEvolutionProxy(
             or_two_words, activation_spreading1, {sentence1}, context_str, "count_letter");
@@ -272,7 +275,8 @@ void run(const string& client_id,
 int main(int argc, char* argv[]) {
     if (argc < 7) {
         cerr << "Usage: " << argv[0]
-             << "    <client id> <server id> <start_port:end_port> <context_tag> <word tag 1> <word tag 2> [RENT_RATE] [SPREADING_RATE_LOWERBOUND] [SPREADING_RATE_UPPERBOUND]"
+             << "    <client id> <server id> <start_port:end_port> <context_tag> <word tag 1> <word tag "
+                "2> [RENT_RATE] [SPREADING_RATE_LOWERBOUND] [SPREADING_RATE_UPPERBOUND]"
              << endl;
         exit(1);
     }
@@ -292,8 +296,16 @@ int main(int argc, char* argv[]) {
         SPREADING_RATE_UPPERBOUND = Utils::string_to_float(string(argv[9]));
         ELITISM_RATE = (double) Utils::string_to_float(string(argv[10]));
     }
-    AttentionBrokerClient::set_parameters(RENT_RATE, SPREADING_RATE_LOWERBOUND, SPREADING_RATE_UPPERBOUND);
+    AttentionBrokerClient::set_parameters(
+        RENT_RATE, SPREADING_RATE_LOWERBOUND, SPREADING_RATE_UPPERBOUND);
     LOG_INFO("ELITISM_RATE: " << ELITISM_RATE);
-    run(client_id, server_id, ports_range.first, ports_range.second, context_tag, word_tag1, word_tag2, ELITISM_RATE);
+    run(client_id,
+        server_id,
+        ports_range.first,
+        ports_range.second,
+        context_tag,
+        word_tag1,
+        word_tag2,
+        ELITISM_RATE);
     return 0;
 }

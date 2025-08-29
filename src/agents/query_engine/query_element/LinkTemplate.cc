@@ -1,8 +1,8 @@
 #include "LinkTemplate.h"
 
 #include <algorithm>
-#include <random>
 #include <chrono>
+#include <random>
 
 #include "AtomDBSingleton.h"
 #include "AttentionBrokerClient.h"
@@ -30,7 +30,8 @@ LinkTemplate::LinkTemplate(const string& type,
     this->inner_flag = true;
     this->arity = targets.size();
     this->processor = nullptr;
-    this->random_generator = new std::mt19937(std::chrono::system_clock::now().time_since_epoch().count());
+    this->random_generator =
+        new std::mt19937(std::chrono::system_clock::now().time_since_epoch().count());
 }
 
 LinkTemplate::~LinkTemplate() {

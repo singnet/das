@@ -17,8 +17,8 @@ cc_library(
     name = "attention_broker_client_main_lib",
     srcs = ["attention_broker_client_main.cc"],
     deps = [
-        "//attention_broker:attention_broker_lib",
         "//atomdb:atomdb_singleton",
+        "//attention_broker:attention_broker_lib",
         "@com_github_grpc_grpc//:grpc++",
         "@com_github_grpc_grpc//:grpc++_reflection",
         "@com_github_singnet_das_proto//:attention_broker_cc_grpc",
@@ -90,8 +90,8 @@ cc_library(
     srcs = ["word_query_main.cc"],
     deps = [
         "//agents/query_engine:query_engine_lib",
-        "//atomdb:atomdb_singleton",
         "//atom_space:atom_space_lib",
+        "//atomdb:atomdb_singleton",
         "//service_bus:service_bus_lib",
     ],
 )

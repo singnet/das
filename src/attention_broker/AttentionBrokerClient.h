@@ -26,7 +26,9 @@ class AttentionBrokerClient {
                                const string& context,
                                vector<float>& importances);
     static void set_determiners(const vector<vector<string>>& handle_lists, const string& context);
-    static void set_parameters(float rent_rate, float spreading_rate_lowerbound, float spreading_rate_upperbound);
+    static void set_parameters(float rent_rate,
+                               float spreading_rate_lowerbound,
+                               float spreading_rate_upperbound);
 
    private:
     static mutex api_mutex;

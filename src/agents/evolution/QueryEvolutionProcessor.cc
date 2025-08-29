@@ -78,7 +78,8 @@ shared_ptr<PatternMatchingQueryProxy> QueryEvolutionProcessor::issue_sampling_qu
     auto pm_proxy =
         make_shared<PatternMatchingQueryProxy>(proxy->get_query_tokens(), proxy->get_context());
     pm_proxy->parameters[BaseQueryProxy::UNIQUE_ASSIGNMENT_FLAG] = true;
-    pm_proxy->parameters[BaseQueryProxy::ATTENTION_UPDATE_FLAG] = false; // (this->generation_count == 1);
+    pm_proxy->parameters[BaseQueryProxy::ATTENTION_UPDATE_FLAG] =
+        false;  // (this->generation_count == 1);
     pm_proxy->parameters[BaseQueryProxy::USE_LINK_TEMPLATE_CACHE] = false;
     pm_proxy->parameters[PatternMatchingQueryProxy::POSITIVE_IMPORTANCE_FLAG] = false;
     pm_proxy->parameters[BaseQueryProxy::USE_METTA_AS_QUERY_TOKENS] =
@@ -95,7 +96,8 @@ shared_ptr<PatternMatchingQueryProxy> QueryEvolutionProcessor::issue_correlation
     pm_proxy->parameters[BaseQueryProxy::UNIQUE_ASSIGNMENT_FLAG] = true;
     pm_proxy->parameters[BaseQueryProxy::ATTENTION_UPDATE_FLAG] = false;
     pm_proxy->parameters[BaseQueryProxy::USE_LINK_TEMPLATE_CACHE] = false;
-    pm_proxy->parameters[PatternMatchingQueryProxy::POSITIVE_IMPORTANCE_FLAG] = false; // (this->generation_count > 1);
+    pm_proxy->parameters[PatternMatchingQueryProxy::POSITIVE_IMPORTANCE_FLAG] =
+        false;  // (this->generation_count > 1);
     pm_proxy->parameters[BaseQueryProxy::USE_METTA_AS_QUERY_TOKENS] =
         proxy->parameters.get<bool>(BaseQueryProxy::USE_METTA_AS_QUERY_TOKENS);
     pm_proxy->parameters[PatternMatchingQueryProxy::MAX_ANSWERS] =
@@ -138,7 +140,8 @@ void QueryEvolutionProcessor::sample_population(
             Utils::sleep();
         }
     }
-    LOG_INFO("Generation: " + std::to_string(this->generation_count) + " - Individuals with non-zero importance: " + std::to_string(positive_importance_count));
+    LOG_INFO("Generation: " + std::to_string(this->generation_count) +
+             " - Individuals with non-zero importance: " + std::to_string(positive_importance_count));
     if (!pm_query->finished()) {
         pm_query->abort();
         unsigned int count = 0;
@@ -253,7 +256,6 @@ void QueryEvolutionProcessor::select_best_individuals(
 }
 
 float eval_word(const string& handle, string& word) {
-
     auto db = AtomDBSingleton::get_instance();
     shared_ptr<atomdb_api_types::AtomDocument> word_document;
     shared_ptr<atomdb_api_types::AtomDocument> word_name_document;
@@ -281,7 +283,6 @@ float eval_word(const string& handle, string& word) {
 
 void QueryEvolutionProcessor::correlate_similar(shared_ptr<QueryEvolutionProxy> proxy,
                                                 shared_ptr<QueryAnswer> correlation_query_answer) {
-
     vector<string> query_tokens;
     unsigned int cursor = 0;
     vector<string> original_tokens = proxy->get_correlation_tokens();

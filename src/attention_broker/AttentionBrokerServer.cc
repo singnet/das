@@ -165,7 +165,10 @@ Status AttentionBrokerServer::set_determiners(ServerContext* grpc_context,
 Status AttentionBrokerServer::set_parameters(ServerContext* grpc_context,
                                              const dasproto::Parameters* request,
                                              dasproto::Ack* reply) {
-    LOG_INFO("Setting dynamics parameters in all contexts. RENT_RATE: " << request->rent_rate() << " SPREADING_RATE_LOWERBOUND: " << request->spreading_rate_lowerbound() << " SPREADING_RATE_UPPERBOUND: " << request->spreading_rate_upperbound());
+    LOG_INFO("Setting dynamics parameters in all contexts. RENT_RATE: "
+             << request->rent_rate()
+             << " SPREADING_RATE_LOWERBOUND: " << request->spreading_rate_lowerbound()
+             << " SPREADING_RATE_UPPERBOUND: " << request->spreading_rate_upperbound());
     RENT_RATE = request->rent_rate();
     SPREADING_RATE_LOWERBOUND = request->spreading_rate_lowerbound();
     SPREADING_RATE_UPPERBOUND = request->spreading_rate_upperbound();

@@ -67,7 +67,6 @@ cc_binary(
     name = "attention_broker_client",
     srcs = [],
     defines = ["BAZEL_BUILD"],
-    linkstatic = 1,
     linkopts = [
         "-L/usr/local/lib",
         "-lhiredis_cluster",
@@ -75,6 +74,7 @@ cc_binary(
         "-lmongocxx",
         "-lbsoncxx",
     ],
+    linkstatic = 1,
     deps = [
         "//commons:commons_lib",
         "//main:attention_broker_client_main_lib",
