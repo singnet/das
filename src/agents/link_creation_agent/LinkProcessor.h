@@ -52,6 +52,57 @@ class LinkProcessor {
             return 0;
         }
     }
+
+    static LinkSchema build_pattern_set_query(const string& handle1, const string& handle2) {
+        // clang-format off
+    vector<string> tokens = {
+        "LINK_TEMPLATE", "OR", "2",
+            "LINK_TEMPLATE", "Expression", "3",
+                "NODE", "Symbol", "EVALUATION",
+                "LINK_TEMPLATE", "Expression", "2",
+                    "NODE", "Symbol", "PREDICATE",
+                    "VARIABLE", "P",
+                "LINK", "Expression", "2",
+                    "NODE", "Symbol", "CONCEPT",
+                    "ATOM", handle1,
+            "LINK_TEMPLATE", "Expression", "3",
+                "NODE", "Symbol", "EVALUATION",
+                "LINK_TEMPLATE", "Expression", "2",
+                    "NODE", "Symbol", "PREDICATE",
+                    "VARIABLE", "P",
+                "LINK", "Expression", "2",
+                    "NODE", "Symbol", "CONCEPT",
+                    "ATOM", handle2
+                    
+    };
+        // clang-format on
+        return LinkSchema(tokens);
+    }
+
+    static LinkSchema build_satisfying_set_query(const string& handle1, const string& handle2) {
+        // clang-format off
+    vector<string> tokens = {
+        "LINK_TEMPLATE", "AND", "2", 
+            "LINK_TEMPLATE", "Expression", "3", 
+                "NODE", "Symbol","EVALUATION", 
+                "LINK", "Expression", "2", 
+                    "NODE", "Symbol", "PREDICATE",
+                    "ATOM", handle1, 
+                "LINK_TEMPLATE", "Expression", "2",
+                    "NODE", "Symbol", "CONCEPT",
+                    "VARIABLE", "C",
+            "LINK_TEMPLATE", "Expression", "3",
+                "NODE", "Symbol", "EVALUATION",
+                "LINK", "Expression", "2",
+                    "NODE", "Symbol", "PREDICATE",
+                    "ATOM", handle2,
+                "LINK_TEMPLATE", "Expression", "2",
+                    "NODE", "Symbol", "CONCEPT",
+                    "VARIABLE", "C"
+    };
+        // clang-format on
+        return LinkSchema(tokens);
+    }
 };
 
 enum class ProcessorType { PROOF_OF_IMPLICATION, PROOF_OF_EQUIVALENCE, INVALID };

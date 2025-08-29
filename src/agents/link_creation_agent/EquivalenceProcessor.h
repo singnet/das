@@ -17,7 +17,6 @@ class EquivalenceProcessor : public LinkProcessor {
     vector<shared_ptr<Link>> process_query(shared_ptr<QueryAnswer> query_answer,
                                            optional<vector<string>> extra_params = nullopt);
 
-    static LinkSchema build_pattern_query(const string& handle1, const string& handle2);
     static bool link_exists(const string& handle1, const string& handle2);
 
     ~EquivalenceProcessor() = default;
