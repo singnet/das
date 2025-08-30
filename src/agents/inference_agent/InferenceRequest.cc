@@ -16,6 +16,69 @@ using namespace link_creation_agent;
 using namespace commons;
 using namespace atoms;
 
+static vector<string> evaluation_query(bool include_predicate, bool include_concept) {
+    vector<string> query;
+    if (include_predicate) {
+        vector<string> predicate_query = {
+            "LINK_TEMPLATE", "Expression", "2", "NODE", "Symbol", "PREDICATE", "VARIABLE", "P"};
+        query.insert(query.end(), predicate_query.begin(), predicate_query.end());
+    }
+    if (include_concept) {
+        vector<string> concept_query = {
+            "LINK_TEMPLATE", "Expression", "2", "NODE", "Symbol", "CONCEPT", "VARIABLE", "C"};
+        query.insert(query.end(), concept_query.begin(), concept_query.end());
+    }
+    if (include_predicate && include_concept) {
+        vector<string> evaluation_header = {
+            "LINK_TEMPLATE",
+            "Expression",
+            "3",
+            "NODE",
+            "Symbol",
+            "EVALUATION",
+        };
+        query.insert(query.begin(), evaluation_header.begin(), evaluation_header.end());
+    }
+    return query;
+}
+
+static vector<string> evaluation_link_template(bool include_satisfying_set, bool include_patterns) {
+    vector<string> tokens;
+    if (include_patterns && include_satisfying_set) {
+        tokens.push_back("AND");
+        tokens.push_back("2");
+    }
+    if (include_satisfying_set) {
+        LinkCreateTemplate satisfying_set_link_template = LinkCreateTemplate("Expression");
+        shared_ptr<Node> evaluation_node = make_shared<Node>("Symbol", "SATISFYING_SET");
+        shared_ptr<UntypedVariable> evaluation_variable = make_shared<UntypedVariable>("P");
+        satisfying_set_link_template.add_target(evaluation_node);
+        satisfying_set_link_template.add_target(evaluation_variable);
+        auto custom_field = CustomField("truth_value");
+        custom_field.add_field("strength", "1.0");
+        custom_field.add_field("confidence", "1.0");
+        satisfying_set_link_template.add_custom_field(custom_field);
+        for (auto token : satisfying_set_link_template.tokenize()) {
+            tokens.push_back(token);
+        }
+    }
+    if (include_patterns) {
+        LinkCreateTemplate patterns_link_template = LinkCreateTemplate("Expression");
+        shared_ptr<Node> patterns_node = make_shared<Node>("Symbol", "PATTERNS");
+        shared_ptr<UntypedVariable> patterns_variable = make_shared<UntypedVariable>("C");
+        patterns_link_template.add_target(patterns_node);
+        patterns_link_template.add_target(patterns_variable);
+        auto patterns_custom_field = CustomField("truth_value");
+        patterns_custom_field.add_field("strength", "1.0");
+        patterns_custom_field.add_field("confidence", "1.0");
+        patterns_link_template.add_custom_field(patterns_custom_field);
+        for (auto token : patterns_link_template.tokenize()) {
+            tokens.push_back(token);
+        }
+    }
+    return tokens;
+}
+
 InferenceRequest::InferenceRequest(string first_handle,
                                    string second_handle,
                                    int max_proof_length,
@@ -73,6 +136,12 @@ string InferenceRequest::get_max_proof_length() { return to_string(max_proof_len
 void InferenceRequest::set_timeout(unsigned int timeout) { this->timeout = timeout; }
 unsigned int InferenceRequest::get_timeout() { return timeout; }
 
+void InferenceRequest::set_full_evaluation(bool full_evaluation) {
+    this->is_full_evaluation = full_evaluation;
+}
+
+bool InferenceRequest::get_full_evaluation() { return this->is_full_evaluation; }
+
 template <typename T>
 static vector<vector<T>> product(const vector<T>& iterable, size_t repeat) {
     vector<vector<T>> result;
@@ -94,10 +163,8 @@ static vector<vector<T>> product(const vector<T>& iterable, size_t repeat) {
     return result;
 }
 
-static vector<string> inference_evolution_request_builder(string first_handle,
-                                                          string second_handle,
-                                                          int max_proof_length,
-                                                          int& counter) {
+static vector<string> inference_evolution_request_builder(
+    string first_handle, string second_handle, string command, int max_proof_length, int& counter) {
     // clang-format off
     vector<string> query_template = {
         "LINK_TEMPLATE", "Expression",  "3",
@@ -105,7 +172,8 @@ static vector<string> inference_evolution_request_builder(string first_handle,
         "_FIRST_",
         "_SECOND_", };
     // clang-format on
-    vector<string> commands = {"IMPLICATION", "EQUIVALENCE"};
+    vector<string> commands = {command};
+
     vector<string> request{};
     if (max_proof_length == 0) {
         return request;
@@ -162,7 +230,7 @@ static vector<string> inference_evolution_request_builder(string first_handle,
     }
 
     for (auto tkn : inference_evolution_request_builder(
-             first_handle, second_handle, max_proof_length - 1, counter)) {
+             first_handle, second_handle, command, max_proof_length - 1, counter)) {
         request.push_back(tkn);
     }
     // }
@@ -197,8 +265,8 @@ vector<string> InferenceRequest::get_distributed_inference_control_request() {
     vector<string> tokens;
     int size = 0;
 
-    vector<string> request =
-        inference_evolution_request_builder(first_handle, second_handle, max_proof_length, size);
+    vector<string> request = inference_evolution_request_builder(
+        first_handle, second_handle, command, max_proof_length, size);
     // tokens.push_back(this->context);
     tokens.push_back("OR");
     tokens.push_back(to_string(size));
@@ -222,99 +290,13 @@ vector<vector<string>> InferenceRequest::get_requests() { return {}; }
 
 string InferenceRequest::get_context() { return context; }
 
-ProofOfImplicationOrEquivalence::ProofOfImplicationOrEquivalence(string first_handle,
-                                                                 string second_handle,
-                                                                 int max_proof_length,
-                                                                 string context)
-    : InferenceRequest(first_handle, second_handle, max_proof_length, context) {}
-
-ProofOfImplicationOrEquivalence::~ProofOfImplicationOrEquivalence() {}
-
-vector<string> ProofOfImplicationOrEquivalence::query() {
-    // clang-format off
-    vector<string> tokens = {
-        "LINK_TEMPLATE", "Expression", "3",
-        "NODE", "Symbol", "EVALUATION",
-        "LINK_TEMPLATE", "Expression", "2",
-            "NODE", "Symbol", "PREDICATE",
-            "VARIABLE", "P",
-        "LINK_TEMPLATE", "Expression", "2",
-            "NODE", "Symbol", "CONCEPT",
-            "VARIABLE", "C"
-    };
-    // clang-format on
-    return tokens;
-}
-
-vector<string> ProofOfImplicationOrEquivalence::patterns_link_template() {
-    // SATISFYING_SET
-    LinkCreateTemplate satisfying_set_link_template = LinkCreateTemplate("Expression");
-
-    shared_ptr<Node> evaluation_node = make_shared<Node>("Symbol", "SATISFYING_SET");
-    shared_ptr<UntypedVariable> evaluation_variable = make_shared<UntypedVariable>("P");
-    satisfying_set_link_template.add_target(evaluation_node);
-    satisfying_set_link_template.add_target(evaluation_variable);
-    auto custom_field = CustomField("truth_value");
-    custom_field.add_field("strength", "1.0");
-    custom_field.add_field("confidence", "1.0");
-    satisfying_set_link_template.add_custom_field(custom_field);
-
-    // PATTERNS
-    LinkCreateTemplate patterns_link_template = LinkCreateTemplate("Expression");
-
-    shared_ptr<Node> patterns_node = make_shared<Node>("Symbol", "PATTERNS");
-    shared_ptr<UntypedVariable> patterns_variable = make_shared<UntypedVariable>("C");
-    patterns_link_template.add_target(patterns_node);
-    patterns_link_template.add_target(patterns_variable);
-    auto patterns_custom_field = CustomField("truth_value");
-    patterns_custom_field.add_field("strength", "1.0");
-    patterns_custom_field.add_field("confidence", "1.0");
-    patterns_link_template.add_custom_field(patterns_custom_field);
-
-    vector<string> tokens;
-    tokens.push_back("LIST");
-    tokens.push_back("2");
-    for (auto token : satisfying_set_link_template.tokenize()) {
-        tokens.push_back(token);
-    }
-    for (auto token : patterns_link_template.tokenize()) {
-        tokens.push_back(token);
-    }
-    return tokens;
-}
-
-string ProofOfImplicationOrEquivalence::get_type() { return "PROOF_OF_IMPLICATION_OR_EQUIVALENCE"; }
-
-vector<vector<string>> ProofOfImplicationOrEquivalence::get_requests() {
-    vector<vector<string>> requests;
-    // query + link creation template
-    vector<string> query_and_link_creation_template(this->query());
-    for (auto token : this->patterns_link_template()) {
-        query_and_link_creation_template.push_back(token);
-    }
-    requests.push_back(query_and_link_creation_template);
-    //  Not supported yet
-    //  proof of implication
-    ProofOfImplication proof_of_implication(first_handle, second_handle, max_proof_length, context);
-    for (auto request : proof_of_implication.get_requests()) {
-        requests.push_back(request);
-    }
-    // proof of equivalence
-    ProofOfEquivalence proof_of_equivalence(first_handle, second_handle, max_proof_length, context);
-    for (auto request : proof_of_equivalence.get_requests()) {
-        requests.push_back(request);
-    }
-
-    return requests;
-}
-
 ProofOfImplication::ProofOfImplication(string first_handle,
                                        string second_handle,
                                        int max_proof_length,
                                        string context)
     : InferenceRequest(first_handle, second_handle, max_proof_length, context) {}
 
-ProofOfImplication::~ProofOfImplication() {}
+ProofOfImplication::~ProofOfImplication() { this->command = "IMPLICATION"; }
 
 vector<string> ProofOfImplication::query() {
     // clang-format off
@@ -357,6 +339,11 @@ string ProofOfImplication::get_type() { return "PROOF_OF_IMPLICATION"; }
 
 vector<vector<string>> ProofOfImplication::get_requests() {
     vector<vector<string>> requests;
+    auto satisfying_set_query = evaluation_query(true, this->is_full_evaluation);
+    auto evaluation_template = evaluation_link_template(true, this->is_full_evaluation);
+    satisfying_set_query.insert(
+        satisfying_set_query.end(), evaluation_template.begin(), evaluation_template.end());
+    requests.push_back(satisfying_set_query);
     auto query = this->query();
     query.push_back(this->get_type());  // processor
     requests.push_back(query);
@@ -369,7 +356,7 @@ ProofOfEquivalence::ProofOfEquivalence(string first_handle,
                                        string context)
     : InferenceRequest(first_handle, second_handle, max_proof_length, context) {}
 
-ProofOfEquivalence::~ProofOfEquivalence() {}
+ProofOfEquivalence::~ProofOfEquivalence() { this->command = "EQUIVALENCE"; }
 
 vector<string> ProofOfEquivalence::query() {
     // clang-format off
@@ -412,6 +399,10 @@ string ProofOfEquivalence::get_type() { return "PROOF_OF_EQUIVALENCE"; }
 
 vector<vector<string>> ProofOfEquivalence::get_requests() {
     vector<vector<string>> requests;
+    auto patterns_query = evaluation_query(this->is_full_evaluation, true);
+    auto evaluation_template = evaluation_link_template(this->is_full_evaluation, true);
+    patterns_query.insert(patterns_query.end(), evaluation_template.begin(), evaluation_template.end());
+    requests.push_back(patterns_query);
     auto query = this->query();
     query.push_back(this->get_type());  // processor
     requests.push_back(query);

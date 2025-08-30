@@ -141,6 +141,10 @@ class InferenceRequest {
 
     void set_sent_evolution_request(bool sent_evolution_request);
 
+    bool get_full_evaluation();
+
+    void set_full_evaluation(bool full_evaluation);
+
    protected:
     string first_handle;
     string second_handle;
@@ -155,21 +159,23 @@ class InferenceRequest {
     unsigned int lca_max_repeats = 1;           // Default max repeats for LCA
     bool lca_update_attention_broker = false;   // Default update attention broker for LCA
     bool sent_evolution_request = false;
+    string command = "";
+    bool is_full_evaluation = false;
 };
 
-class ProofOfImplicationOrEquivalence : public InferenceRequest {
-   public:
-    ProofOfImplicationOrEquivalence(string first_handle,
-                                    string second_handle,
-                                    int max_proof_length,
-                                    string context);
-    ~ProofOfImplicationOrEquivalence();
+// class ProofOfImplicationOrEquivalence : public InferenceRequest {
+//    public:
+//     ProofOfImplicationOrEquivalence(string first_handle,
+//                                     string second_handle,
+//                                     int max_proof_length,
+//                                     string context);
+//     ~ProofOfImplicationOrEquivalence();
 
-    vector<string> query() override;
-    vector<string> patterns_link_template();
-    string get_type() override;
-    vector<vector<string>> get_requests() override;
-};
+//     vector<string> query() override;
+//     vector<string> patterns_link_template();
+//     string get_type() override;
+//     vector<vector<string>> get_requests() override;
+// };
 
 class ProofOfImplication : public InferenceRequest {
    public:

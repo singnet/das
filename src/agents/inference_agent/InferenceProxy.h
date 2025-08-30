@@ -12,6 +12,11 @@ class InferenceProxy : public BaseQueryProxy {
     //     static const string UPDATE_ATTENTION_BROKER_FLAG;  // Interval for inference requests
     //     static const string MAX_ANSWERS;   // Timeout for inference requests
     // };
+    static string INFERENCE_REQUEST_TIMEOUT;
+    static string UPDATE_ATTENTION_BROKER_FLAG;  // Interval for inference requests
+    static string REPEAT_REQUEST_NUMBER;         // Whether to repeat the request
+    static string MAX_QUERY_ANSWERS_TO_PROCESS;  // Max number of query answers to process
+    static string RUN_FULL_EVALUATION_QUERY;
 
     InferenceProxy();
     InferenceProxy(const vector<string>& tokens);
