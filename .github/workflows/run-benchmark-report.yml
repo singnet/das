@@ -33,10 +33,10 @@ jobs:
           EXECUTION_ID=$(grep "New execution ID:" benchmark_output.txt | awk '{print $4}' | tail -n 1)
           echo "benchmark_id=$EXECUTION_ID" >> $GITHUB_OUTPUT
 
-      - name: Prepare report
+      - name: Prepare reports for upload
         run: |
-          mkdir -p /tmp/reports/query_agent
-          cp benchmark_output.txt /tmp/reports/query_agent/
+          mkdir -p /tmp/reports/query-agent
+          find /tmp/query_agent_benchmark -type f -name "*.txt" -exec cp {} /tmp/reports/query_agent \;
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
@@ -72,13 +72,13 @@ jobs:
       - name: Prepare report
         run: |
           mkdir -p /tmp/reports/atomdb
-          cp benchmark_output.txt /tmp/reports/atomdb/
+          find /tmp/atomdb_benchmark -type f -name "*.txt" -exec cp {} /tmp/reports/atomdb \;
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: benchmark-report-atomdb
-          path: /tmp/reports/atomdb
+          path: atomdb_benchmark
 
   notify_query_agent:
     runs-on: self-hosted-withcache
@@ -97,8 +97,8 @@ jobs:
       - name: Download benchmark artifact
         uses: actions/download-artifact@v4
         with:
-          name: benchmark-report-query_agent
-          path: /tmp/reports/query_agent
+          name: benchmark-report-query-agent
+          path: query_agent_benchmark
 
       - name: Send Mattermost message
         run: |
@@ -113,7 +113,7 @@ jobs:
           server-url: ${{ vars.MATTERMOST_SERVER_URL }}
           token: ${{ secrets.MATTERMOST_TOKEN }}
           channel-id: ${{ vars.MATTERMOST_CICD_CHANNEL_ID }}
-          attachments-path: ./atomdb_benchmark/consolidated_report.txt
+          attachments-path: ./query_agent_benchmark/consolidated_report.txt
 
 
   notify_atomdb:
@@ -134,7 +134,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: benchmark-report-atomdb
-          path: /tmp/reports/atomdb
+          path: atomdb_benchmark
 
       - name: Send Mattermost message
         run: |
