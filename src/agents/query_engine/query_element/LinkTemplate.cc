@@ -125,6 +125,17 @@ void LinkTemplate::processor_method(shared_ptr<StoppableThread> monitor) {
         LinkTemplate::fetched_links_cache().set(link_schema_handle, handles);
     }
     LOG_INFO("Fetched " + std::to_string(handles->size()) + " atoms in " + link_schema_handle);
+
+    // TODO(arturgontijo): MORKDB pre process.
+    map<string, map<string, string>> metta_expressions_by_handle;
+    map<string, Assignment> assignments_by_handle;
+    if (auto handle_set_mork = dynamic_cast<atomdb_api_types::HandleSetMork*>(handles.get())) {
+        for (auto handle : handle_set_mork->handles) {
+            metta_expressions_by_handle[handle] = handle_set_mork->metta_expressions_by_handle[handle];
+            assignments_by_handle[handle] = handle_set_mork->assignments_by_handle[handle];
+        }
+    }
+
     vector<pair<char*, float>> tagged_handles;
     if (handles->size() > 0) {
         auto iterator = handles->get_iterator();
@@ -142,10 +153,18 @@ void LinkTemplate::processor_method(shared_ptr<StoppableThread> monitor) {
         if (this->positive_importance_flag && tagged_handle.second <= 0) {
             pending = 0;
         } else {
-            if ((tagged_handle.second > 0 || !this->positive_importance_flag) &&
-                this->link_schema.match(string(tagged_handle.first), assignment, *db.get())) {
-                this->source_element->add_handle(tagged_handle.first, tagged_handle.second, assignment);
-                assignment.clear();
+            if ((tagged_handle.second > 0 || !this->positive_importance_flag)) {
+                // TODO(arturgontijo): MORKDB post process.
+                if (metta_expressions_by_handle.find(tagged_handle.first) != metta_expressions_by_handle.end()) {
+                    this->source_element->add_handle(
+                        tagged_handle.first,
+                        tagged_handle.second,
+                        assignments_by_handle[tagged_handle.first],
+                        metta_expressions_by_handle[tagged_handle.first]);
+                } else if (this->link_schema.match(string(tagged_handle.first), assignment, *db.get())) {
+                    this->source_element->add_handle(tagged_handle.first, tagged_handle.second, assignment);
+                    assignment.clear();
+                }
             }
             pending--;
         }

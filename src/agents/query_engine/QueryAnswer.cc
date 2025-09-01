@@ -31,6 +31,7 @@ QueryAnswer* QueryAnswer::copy(QueryAnswer* other) {  // Static method
     copy->strength = other->strength;
     copy->assignment = other->assignment;
     copy->handles = other->handles;
+    copy->metta_expression = other->metta_expression;
     return copy;
 }
 
@@ -49,6 +50,7 @@ bool QueryAnswer::merge(QueryAnswer* other, bool merge_handles) {
                 }
                 if (flag) {
                     this->handles.push_back(handle1);
+                    this->metta_expression[handle1] = other->metta_expression[handle1];
                 }
             }
         }

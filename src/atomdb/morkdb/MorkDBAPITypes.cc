@@ -4,9 +4,19 @@ using namespace atomdb;
 using namespace atomdb_api_types;
 
 // --> HandlSetMork
-HandleSetMork::HandleSetMork() : HandleSet(), handles_size(0) {}
+HandleSetMork::HandleSetMork() : HandleSet(), handles_size(0) {
+    this->handles = unordered_set<string>();
+    this->metta_expressions_by_handle = map<string, map<string, string>>();
+    this->assignments_by_handle = map<string, Assignment>();
+}
 HandleSetMork::HandleSetMork(string handle) : HandleSet() {
     this->handles.insert(handle);
+    this->handles_size += 1;
+}
+HandleSetMork::HandleSetMork(string handle, map<string, string> metta_expressions, Assignment assignments) : HandleSet() {
+    this->handles.insert(handle);
+    this->metta_expressions_by_handle[handle] = metta_expressions;
+    this->assignments_by_handle[handle] = assignments;
     this->handles_size += 1;
 }
 HandleSetMork::~HandleSetMork() {}
@@ -15,6 +25,8 @@ void HandleSetMork::append(shared_ptr<HandleSet> other) {
     auto handle_set_mork = dynamic_pointer_cast<HandleSetMork>(other);
     for (auto handle : handle_set_mork->handles) {
         this->handles.insert(handle);
+        this->metta_expressions_by_handle[handle] = handle_set_mork->metta_expressions_by_handle[handle];
+        this->assignments_by_handle[handle] = handle_set_mork->assignments_by_handle[handle];
         this->handles_size += 1;
     }
 }

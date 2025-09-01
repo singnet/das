@@ -135,7 +135,10 @@ void PatternMatchingQueryProcessor::process_query_answers(
         }
         if (!proxy->parameters.get<bool>(PatternMatchingQueryProxy::COUNT_FLAG)) {
             if (populate_metta) {
-                proxy->populate_metta_mapping(answer);
+                // We can skip this if using MORKDB as atomdb.
+                if (answer->metta_expression.size() == 0) {
+                    proxy->populate_metta_mapping(answer);
+                }
             }
             proxy->push(shared_ptr<QueryAnswer>(answer));
         }

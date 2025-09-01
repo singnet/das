@@ -3,9 +3,13 @@
 #include <algorithm>
 #include <bsoncxx/builder/stream/document.hpp>
 #include <bsoncxx/builder/stream/helpers.hpp>
-#include <iostream>
 #include <memory>
 #include <string>
+#include <iostream>
+#include <cctype>
+#include <map>
+#include <sstream>
+#include <vector>
 
 #include "MettaMapping.h"
 #include "Utils.h"
@@ -105,6 +109,97 @@ void MorkDB::mork_setup() {
     }
 }
 
+// ---------------- AST ----------------
+struct ParsedNode {
+    std::string atom;
+    std::vector<ParsedNode> children;
+    bool isAtom() const { return children.empty(); }
+};
+
+string toString(const ParsedNode &n) {
+    if (n.isAtom()) return n.atom;
+    std::string out = "(";
+    for (size_t i = 0; i < n.children.size(); i++) {
+        if (i) out += " ";
+        out += toString(n.children[i]);
+    }
+    out += ")";
+    return out;
+}
+
+// ---------------- Tokenizer ----------------
+vector<string> tokenize(const string &input) {
+    vector<string> tokens;
+    string cur;
+    for (size_t i = 0; i < input.size(); i++) {
+        char c = input[i];
+        if (isspace(c)) {
+            if (!cur.empty()) { tokens.push_back(cur); cur.clear(); }
+        } else if (c == '(' || c == ')') {
+            if (!cur.empty()) { tokens.push_back(cur); cur.clear(); }
+            tokens.push_back(string(1, c));
+        } else if (c == '"') {
+            if (!cur.empty()) { tokens.push_back(cur); cur.clear(); }
+            string str = "\"";
+            i++;
+            while (i < input.size() && input[i] != '"') str.push_back(input[i++]);
+            str.push_back('"');
+            tokens.push_back(str);
+        } else {
+            cur.push_back(c);
+        }
+    }
+    if (!cur.empty()) tokens.push_back(cur);
+    return tokens;
+}
+
+// ---------------- Parser ----------------
+ParsedNode parseExpr(vector<string> &tokens, size_t &pos) {
+    if (tokens[pos] == "(") {
+        pos++;
+        ParsedNode node;
+        while (pos < tokens.size() && tokens[pos] != ")") {
+            node.children.push_back(parseExpr(tokens, pos));
+        }
+        pos++; // skip ")"
+        return node;
+    } else {
+        ParsedNode node;
+        node.atom = tokens[pos++];
+        return node;
+    }
+}
+
+ParsedNode parse(const string &s) {
+    auto tokens = tokenize(s);
+    size_t pos = 0;
+    return parseExpr(tokens, pos);
+}
+
+// ---------------- Matcher ----------------
+bool match(const ParsedNode &templ, const ParsedNode &input,
+           map<string, string> &assignments) {
+    if (templ.isAtom()) {
+        if (!templ.atom.empty() && templ.atom[0] == '$') {
+            // Variable → bind
+            string varName = templ.atom.substr(1); // drop $
+            assignments[varName] = toString(input);
+            return true;
+        } else {
+            // Must match literal atom
+            return templ.atom == input.atom;
+        }
+    } else {
+        if (input.isAtom()) return false;
+        if (templ.children.size() != input.children.size()) return false;
+        for (size_t i = 0; i < templ.children.size(); i++) {
+            if (!match(templ.children[i], input.children[i], assignments))
+                return false;
+        }
+        return true;
+    }
+}
+
 shared_ptr<atomdb_api_types::HandleSet> MorkDB::query_for_pattern(const LinkSchema& link_schema) {
     if (this->atomdb_cache != nullptr) {
         auto cache_result = this->atomdb_cache->query_for_pattern(link_schema.handle());
@@ -117,6 +212,9 @@ shared_ptr<atomdb_api_types::HandleSet> MorkDB::query_for_pattern(const LinkSche
     LOG_DEBUG("Fetching data...OK");
     auto handle_set = make_shared<atomdb_api_types::HandleSetMork>();
 
+    Assignment assignments;
+    ParsedNode templ = parse(pattern_metta);
+
     for (const auto& raw_expr : raw_expressions) {
         auto tokens = tokenize_expression(raw_expr);
         size_t pos = 0;
@@ -125,7 +223,33 @@ shared_ptr<atomdb_api_types::HandleSet> MorkDB::query_for_pattern(const LinkSche
         auto handle = link->handle();
         // LOG_INFO("expression: " << raw_expr << " | "
         //                         << "handle: " << handle);
-        handle_set->append(make_shared<atomdb_api_types::HandleSetMork>(handle));
+
+        ParsedNode in = parse(raw_expr);
+
+        map<string, string> metta_expressions;
+        metta_expressions[handle] = raw_expr;
+
+        map<string, string> assigns;
+        if (match(templ, in, assigns)) {
+            cout << "{ ";
+            for (auto &kv : assigns) {
+                cout << kv.first << ": " << kv.second << ", ";
+                auto tokens2 = tokenize_expression(kv.second);
+                size_t pos2 = 0;
+                auto atom2 = parse_tokens_to_atom(tokens2, pos2);
+                auto assignment_link =  static_cast<const atoms::Link*>(atom2);
+                assignments.assign(kv.first, assignment_link->handle());
+                metta_expressions[assignment_link->handle()] = kv.second;
+            }
+            cout << "}\n";
+        } else {
+            cout << "No match!\n";
+        }
+
+        cout << "----> assignments[" << handle << "]: " << assignments.to_string() << endl;
+
+        handle_set->append(make_shared<atomdb_api_types::HandleSetMork>(handle, metta_expressions, assignments));
+        assignments.clear();
     }
 
     if (this->atomdb_cache != nullptr)

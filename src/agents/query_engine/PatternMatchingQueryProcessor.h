@@ -12,7 +12,7 @@
 #include "Sink.h"
 #include "StoppableThread.h"
 
-#define ATTENTION_BROKER_ADDRESS "localhost:37007"
+#define ATTENTION_BROKER_ADDRESS "das-attention-broker:37007"
 
 using namespace std;
 using namespace service_bus;
