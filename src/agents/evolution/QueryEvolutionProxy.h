@@ -181,8 +181,8 @@ class QueryEvolutionProxy : public BaseQueryProxy {
     void set_fitness_function_tag(const string& tag);
     void init();
 
-    mutex api_mutex;
     shared_ptr<FitnessFunction> fitness_function_object;
+    mutex api_mutex;
     string fitness_function_tag;
     float best_reported_fitness;
     unsigned int num_generations;

@@ -11,7 +11,7 @@
 using namespace std;
 using namespace commons;
 
-namespace attention_broker_server {
+namespace attention_broker {
 
 /**
  * Used in AttentionBrokerServer to keep track of worker threads.
@@ -56,4 +56,4 @@ class WorkerThreads {
                        SharedQueue* correlation_requests);
 };
 
-}  // namespace attention_broker_server
+}  // namespace attention_broker

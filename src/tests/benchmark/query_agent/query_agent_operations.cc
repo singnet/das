@@ -295,15 +295,187 @@ void PatternMatchingQuery::positive_importance() {
     double avg_time = total_time / iterations_;
     double ops_per_sec = iterations_ / (total_time / 1000.0);
 
-    global_mutex.lock();
+
     global_metrics["positive_importance_false_client_side"] = Metrics{operation_time_positive_importance_false, total_time, avg_time, ops_per_sec};
-    global_mutex.unlock();
+
 
     double total_time1 = accumulate(operation_time_positive_importance_true.begin(), operation_time_positive_importance_true.end(), 0.0);
     double avg_time1 = total_time1 / iterations_;
     double ops_per_sec1 = iterations_ / (total_time1 / 1000.0);
 
-    global_mutex.lock();
+
     global_metrics["positive_importance_true_client_side"] = Metrics{operation_time_positive_importance_true, total_time1, avg_time1, ops_per_sec1};
-    global_mutex.unlock();
+
+}
+
+void PatternMatchingQuery::update_attention_broker() {
+    vector<double> operation_time_update_attention_broker_false;
+    vector<double> operation_time_update_attention_broker_true;
+
+    for (int i = 0; i < iterations_; ++i) {
+        vector<string> q1 = {
+            "LINK_TEMPLATE", "Expression", "2", "NODE", "Symbol", "Word", "VARIABLE", "W"};
+
+        auto proxy = atom_space_->pattern_matching_query(q1);
+        shared_ptr<QueryAnswer> query_answer;
+        vector<string> node_names;
+
+        int count = 0;
+        while (!proxy->finished()) {
+            if ((query_answer = proxy->pop()) == NULL) {
+                Utils::sleep();
+            } else {
+                if (count++ == 2) {
+                    break;
+                }
+                auto word_node_handle = query_answer->assignment.get("W");
+                shared_ptr<AtomDB> atomdb = AtomDBSingleton::get_instance();
+                auto atom_document = atomdb->get_atom_document(word_node_handle);
+                auto node_name = atom_document->get("name");
+                node_names.push_back(string(node_name));
+            }
+        }
+
+        // clang-format off
+        vector<string> q2 = {
+            "AND", "2",
+                "LINK_TEMPLATE", "Expression", "3",
+                    "NODE", "Symbol", "Contains",
+                    "VARIABLE", "S1",
+                    "LINK", "Expression", "2",
+                        "NODE", "Symbol", "Word",
+                        "NODE", "Symbol", node_names[0],
+                "LINK_TEMPLATE", "Expression", "3",
+                    "NODE", "Symbol", "Contains",
+                    "VARIABLE", "S2",
+                    "LINK", "Expression", "2",
+                        "NODE", "Symbol", "Word",
+                        "NODE", "Symbol", node_names[1]
+        };
+        // clang-format on
+
+        operation_time_update_attention_broker_false.push_back(measure_execution_time([&]() {
+            auto proxy = atom_space_->pattern_matching_query(
+                q2, IGNORE_ANSWER_COUNT, "", false, true, false, false, false);
+            while (!proxy->finished()) {
+                if (proxy->pop() == NULL) {
+                    Utils::sleep();
+                }
+            }
+        }));
+
+        operation_time_update_attention_broker_true.push_back(measure_execution_time([&]() {
+            auto proxy = atom_space_->pattern_matching_query(
+                q2, IGNORE_ANSWER_COUNT, "", false, true, true, false, false);
+            while (!proxy->finished()) {
+                if (proxy->pop() == NULL) {
+                    Utils::sleep();
+                }
+            }
+        }));
+    }
+
+    double total_time = accumulate(operation_time_update_attention_broker_false.begin(),
+                                   operation_time_update_attention_broker_false.end(),
+                                   0.0);
+    double avg_time = total_time / iterations_;
+    double ops_per_sec = iterations_ / (total_time / 1000.0);
+
+    global_metrics["update_attention_broker_false_client_side"] =
+        Metrics{operation_time_update_attention_broker_false, total_time, avg_time, ops_per_sec};
+
+    double total_time1 = accumulate(operation_time_update_attention_broker_true.begin(),
+                                    operation_time_update_attention_broker_true.end(),
+                                    0.0);
+    double avg_time1 = total_time1 / iterations_;
+    double ops_per_sec1 = iterations_ / (total_time1 / 1000.0);
+
+    global_metrics["update_attention_broker_true_client_side"] =
+        Metrics{operation_time_update_attention_broker_true, total_time1, avg_time1, ops_per_sec1};
+}
+
+void PatternMatchingQuery::link_template_cache() {
+    vector<double> operation_time_link_template_cache_false;
+    vector<double> operation_time_link_template_cache_true;
+
+    for (int i = 0; i < iterations_; ++i) {
+        vector<string> q1 = {
+            "LINK_TEMPLATE", "Expression", "2", "NODE", "Symbol", "Word", "VARIABLE", "W"};
+
+        auto proxy = atom_space_->pattern_matching_query(q1);
+        shared_ptr<QueryAnswer> query_answer;
+        vector<string> node_names;
+
+        int count = 0;
+        while (!proxy->finished()) {
+            if ((query_answer = proxy->pop()) == NULL) {
+                Utils::sleep();
+            } else {
+                if (count++ == 2) {
+                    break;
+                }
+                auto word_node_handle = query_answer->assignment.get("W");
+                shared_ptr<AtomDB> atomdb = AtomDBSingleton::get_instance();
+                auto atom_document = atomdb->get_atom_document(word_node_handle);
+                auto node_name = atom_document->get("name");
+                node_names.push_back(string(node_name));
+            }
+        }
+
+        // clang-format off
+        vector<string> q2 = {
+            "AND", "2",
+                "LINK_TEMPLATE", "Expression", "3",
+                    "NODE", "Symbol", "Contains",
+                    "VARIABLE", "S1",
+                    "LINK", "Expression", "2",
+                        "NODE", "Symbol", "Word",
+                        "NODE", "Symbol", node_names[0],
+                "LINK_TEMPLATE", "Expression", "3",
+                    "NODE", "Symbol", "Contains",
+                    "VARIABLE", "S2",
+                    "LINK", "Expression", "2",
+                        "NODE", "Symbol", "Word",
+                        "NODE", "Symbol", node_names[1]
+        };
+        // clang-format on
+
+        operation_time_link_template_cache_false.push_back(measure_execution_time([&]() {
+            auto proxy = atom_space_->pattern_matching_query(
+                q2, IGNORE_ANSWER_COUNT, "", false, true, false, false, false);
+            while (!proxy->finished()) {
+                if (proxy->pop() == NULL) {
+                    Utils::sleep();
+                }
+            }
+        }));
+
+        operation_time_link_template_cache_true.push_back(measure_execution_time([&]() {
+            auto proxy = atom_space_->pattern_matching_query(
+                q2, IGNORE_ANSWER_COUNT, "", true, true, false, false, false);
+            while (!proxy->finished()) {
+                if (proxy->pop() == NULL) {
+                    Utils::sleep();
+                }
+            }
+        }));
+    }
+
+    double total_time = accumulate(operation_time_link_template_cache_false.begin(),
+                                   operation_time_link_template_cache_false.end(),
+                                   0.0);
+    double avg_time = total_time / iterations_;
+    double ops_per_sec = iterations_ / (total_time / 1000.0);
+
+    global_metrics["link_template_cache_false_client_side"] =
+        Metrics{operation_time_link_template_cache_false, total_time, avg_time, ops_per_sec};
+
+    double total_time1 = accumulate(operation_time_link_template_cache_true.begin(),
+                                    operation_time_link_template_cache_true.end(),
+                                    0.0);
+    double avg_time1 = total_time1 / iterations_;
+    double ops_per_sec1 = iterations_ / (total_time1 / 1000.0);
+
+    global_metrics["link_template_cache_true_client_side"] =
+        Metrics{operation_time_link_template_cache_true, total_time1, avg_time1, ops_per_sec1};
 }

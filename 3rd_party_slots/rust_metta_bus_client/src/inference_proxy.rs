@@ -10,14 +10,13 @@ use crate::{
 	QueryParams,
 };
 
-pub const PROOF_OF_IMPLICATION_OR_EQUIVALENCE: &str = "PROOF_OF_IMPLICATION_OR_EQUIVALENCE";
 pub const PROOF_OF_IMPLICATION: &str = "PROOF_OF_IMPLICATION";
 pub const PROOF_OF_EQUIVALENCE: &str = "PROOF_OF_EQUIVALENCE";
 
 pub static INFERENCE_PARSER_ERROR_MESSAGE: &str = "INFERENCE query must have (request_type handle1 handle2 max_proof_length) eg:
 (
 	INFERENCE
-	(PROOF_OF_IMPLICATION_OR_EQUIVALENCE cf07db895a5656bfd3652ba565727554 c4d0ef92e7265f9298f8dd6d3ae1e014 1)
+	(PROOF_OF_IMPLICATION cf07db895a5656bfd3652ba565727554 c4d0ef92e7265f9298f8dd6d3ae1e014 1)
 )";
 
 #[derive(Clone)]
@@ -55,7 +54,6 @@ impl InferenceProxy {
 
 	pub fn request_types() -> Vec<String> {
 		vec![
-			PROOF_OF_IMPLICATION_OR_EQUIVALENCE.to_string(),
 			PROOF_OF_IMPLICATION.to_string(),
 			PROOF_OF_EQUIVALENCE.to_string(),
 		]

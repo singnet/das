@@ -5,11 +5,11 @@
 #define LOG_LEVEL INFO_LEVEL
 #include "Logger.h"
 
-using namespace attention_broker_server;
+using namespace attention_broker;
 
-const double AttentionBrokerServer::RENT_RATE;
-const double AttentionBrokerServer::SPREADING_RATE_LOWERBOUND;
-const double AttentionBrokerServer::SPREADING_RATE_UPPERBOUND;
+double AttentionBrokerServer::RENT_RATE = 0.75;
+double AttentionBrokerServer::SPREADING_RATE_LOWERBOUND = 0.10;
+double AttentionBrokerServer::SPREADING_RATE_UPPERBOUND = 0.10;
 
 // --------------------------------------------------------------------------------
 // Public methods
@@ -122,7 +122,10 @@ Status AttentionBrokerServer::get_importance(ServerContext* grpc_context,
             for (int i = 0; i < num_handles; i++) {
                 float importance = network->get_node_importance(request->list(i));
                 if (importance > 0) {
+                    LOG_DEBUG("P " + request->list(i) + ": " + std::to_string(importance));
                     count_positive++;
+                } else {
+                    LOG_DEBUG("Z " + request->list(i) + ": " + std::to_string(importance));
                 }
                 reply->add_list(importance);
             }
@@ -155,6 +158,25 @@ Status AttentionBrokerServer::set_determiners(ServerContext* grpc_context,
         return Status::OK;
     } else {
         LOG_ERROR("AttentionBrokerServer::set_determiners() failed");
+        return Status::CANCELLED;
+    }
+}
+
+Status AttentionBrokerServer::set_parameters(ServerContext* grpc_context,
+                                             const dasproto::Parameters* request,
+                                             dasproto::Ack* reply) {
+    LOG_INFO("Setting dynamics parameters in all contexts. RENT_RATE: "
+             << request->rent_rate()
+             << " SPREADING_RATE_LOWERBOUND: " << request->spreading_rate_lowerbound()
+             << " SPREADING_RATE_UPPERBOUND: " << request->spreading_rate_upperbound());
+    RENT_RATE = request->rent_rate();
+    SPREADING_RATE_LOWERBOUND = request->spreading_rate_lowerbound();
+    SPREADING_RATE_UPPERBOUND = request->spreading_rate_upperbound();
+    reply->set_msg("SET_PARAMETERS");
+    if (rpc_api_enabled) {
+        return Status::OK;
+    } else {
+        LOG_ERROR("AttentionBrokerServer::set_parameters() failed");
         return Status::CANCELLED;
     }
 }

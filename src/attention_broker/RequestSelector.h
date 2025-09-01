@@ -3,7 +3,7 @@
 #include "HebbianNetwork.h"
 #include "SharedQueue.h"
 
-namespace attention_broker_server {
+namespace attention_broker {
 using namespace std;
 using namespace commons;
 
@@ -80,4 +80,4 @@ class EvenThreadCount : public RequestSelector {
     bool even_thread_id;
 };
 
-}  // namespace attention_broker_server
+}  // namespace attention_broker

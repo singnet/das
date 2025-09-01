@@ -6,7 +6,7 @@
 #include "Logger.h"
 #include "Utils.h"
 
-using namespace attention_broker_server;
+using namespace attention_broker;
 using namespace commons;
 
 HebbianNetworkUpdater::HebbianNetworkUpdater() {}

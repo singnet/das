@@ -6,7 +6,6 @@ The DAS Inference Agent is a component that orchestrates the distributed inferen
 
 Inference Agent processes inference requests. There will be several different types of inferences requests the following are the types of requests that can be processed:
 
-    PROOF_OF_IMPLICATION_OR_EQUIVALENCE
     PROOF_OF_IMPLICATION
     PROOF_OF_EQUIVALENCE
 
@@ -15,7 +14,6 @@ Each request consists of a command and a list of parameters. The first parameter
 The following are the commands and their corresponding parameters:
 
 ```
-PROOF_OF_IMPLICATION_OR_EQUIVALENCE <handle1> <handle2> <max proof length> <context>
 PROOF_OF_IMPLICATION <handle1> <handle2> <max proof length> <context>
 PROOF_OF_EQUIVALENCE <handle1> <handle2> <max proof length> <context>
 ```
@@ -23,7 +21,7 @@ PROOF_OF_EQUIVALENCE <handle1> <handle2> <max proof length> <context>
 ### Example
 
 ```
-PROOF_OF_IMPLICATION_OR_EQUIVALENCE "handle1" "handle2" "10" "inference_context"
+PROOF_OF_IMPLICATION "handle1" "handle2" "10" "inference_context"
 ```
 
 ## Build

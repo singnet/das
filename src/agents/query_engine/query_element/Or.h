@@ -144,8 +144,11 @@ class Or : public Operator<N> {
         double best_importance = -1;
         for (unsigned int i = 0; i < N; i++) {
             if (this->next_input_to_process[i] < this->query_answer[i].size()) {
-                if (this->query_answer[i][this->next_input_to_process[i]]->importance >
-                    best_importance) {
+                if ((this->query_answer[i][this->next_input_to_process[i]]->importance >
+                     best_importance) ||
+                    ((this->query_answer[i][this->next_input_to_process[i]]->importance ==
+                      best_importance) &&
+                     Utils::flip_coin())) {
                     best_importance = this->query_answer[i][this->next_input_to_process[i]]->importance;
                     best_index = i;
                 }

@@ -114,7 +114,6 @@ class InferenceAgent {
     unordered_map<string, shared_ptr<InferenceProxy>> inference_proxy_map;
     unordered_map<string, unsigned long long> inference_timeout_map;
 
-    static const string PROOF_OF_IMPLICATION_OR_EQUIVALENCE;
     static const string PROOF_OF_IMPLICATION;
     static const string PROOF_OF_EQUIVALENCE;
 };
