@@ -41,7 +41,7 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: benchmark-report-query_agent
+          name: benchmark-report-query-agent
           path: /tmp/reports/query_agent
 
   benchmark_atomdb:
