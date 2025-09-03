@@ -267,7 +267,7 @@ vector<string> InferenceRequest::get_distributed_inference_control_request() {
     vector<string> request = inference_evolution_request_builder(
         first_handle, second_handle, this->command, max_proof_length, size);
     // tokens.push_back(this->context);
-    if (size > 1){
+    if (size > 1) {
         tokens.push_back("OR");
         tokens.push_back(to_string(size));
     }
@@ -296,8 +296,8 @@ ProofOfImplication::ProofOfImplication(string first_handle,
                                        int max_proof_length,
                                        string context)
     : InferenceRequest(first_handle, second_handle, max_proof_length, context) {
-        this->command = "IMPLICATION";
-    }
+    this->command = "IMPLICATION";
+}
 
 vector<string> ProofOfImplication::query() {
     // clang-format off
@@ -356,9 +356,8 @@ ProofOfEquivalence::ProofOfEquivalence(string first_handle,
                                        int max_proof_length,
                                        string context)
     : InferenceRequest(first_handle, second_handle, max_proof_length, context) {
-        this->command = "EQUIVALENCE"; 
-    }
-
+    this->command = "EQUIVALENCE";
+}
 
 vector<string> ProofOfEquivalence::query() {
     // clang-format off
