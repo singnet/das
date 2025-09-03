@@ -43,7 +43,9 @@ LinkCreationService::~LinkCreationService() {
 void LinkCreationService::save_cache() {
     ofstream file(metta_file_path + "/" + "cache");
     if (file.is_open()) {
-        // for (unsigned long long i = 0; i < answer_cache_size; i++) {
+        // NOTE to Reviewer: leaving this code commented out for now, not sure if it's a bug or 
+        // I'm not using correctly, but this approach only saves one key and not all the keys.
+        //
         // answer_cache->traverse(
         //     false,
         //     [](HandleTrie::TrieNode* node, void* data) {
@@ -60,7 +62,6 @@ void LinkCreationService::save_cache() {
         //         return true;
         //     },
         //     &file);
-        // }
         for (const auto& key : answer_cache_keys) {
             file << key << ": ";
             ProcessorTypeValue* types = dynamic_cast<ProcessorTypeValue*>(answer_cache->lookup(key));
