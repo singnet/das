@@ -43,7 +43,7 @@ LinkCreationService::~LinkCreationService() {
 void LinkCreationService::save_cache() {
     ofstream file(metta_file_path + "/" + "cache");
     if (file.is_open()) {
-        // NOTE to Reviewer: leaving this code commented out for now, not sure if it's a bug or 
+        // NOTE to Reviewer: leaving this code commented out for now, not sure if it's a bug or
         // I'm not using correctly, but this approach only saves one key and not all the keys.
         //
         // answer_cache->traverse(
