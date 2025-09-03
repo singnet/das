@@ -124,6 +124,7 @@ performance-tests:
 	@python3 src/tests/integration/performance/query_agent_metrics.py
 
 test-coverage-check: build-image
+	@mkdir -p ./bin
 	@docker run --rm \
 		--user="$$(id -u):$$(id -g)" \
 		--volume /etc/passwd:/etc/passwd:ro \
