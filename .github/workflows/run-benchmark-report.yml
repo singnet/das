@@ -20,7 +20,7 @@ jobs:
         run: |
           sudo bash -c "wget -O - http://45.77.4.33/apt-repo/setup.sh | bash"
           sudo apt -y update
-          sudo apt -y install das-toolbox
+          sudo apt -y install das-toolbox sqlite3
           sudo das-cli update-version --version 0.4.14
 
       - name: Clear benchmark output files
@@ -48,6 +48,7 @@ jobs:
     runs-on: self-hosted-withcache
     outputs:
       benchmark_id: ${{ steps.run_benchmark.outputs.benchmark_id }}
+    needs: benchmark_query_agent
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -56,7 +57,7 @@ jobs:
         run: |
           sudo bash -c "wget -O - http://45.77.4.33/apt-repo/setup.sh | bash"
           sudo apt -y update
-          sudo apt -y install das-toolbox
+          sudo apt -y install das-toolbox sqlite3
           sudo das-cli update-version --version 0.4.14
 
       - name: Clear benchmark output files
@@ -78,7 +79,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: benchmark-report-atomdb
-          path: atomdb_benchmark
+          path: /tmp/reports/atomdb
 
   notify_query_agent:
     runs-on: self-hosted-withcache
