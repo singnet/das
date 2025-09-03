@@ -112,6 +112,19 @@ class AttentionBrokerServer final : public AttentionBroker::Service {
                      dasproto::Ack* reply) override;
 
     /**
+     * Correlates atoms passed in the request. The first atom is correlated to all the others.
+     *
+     * @param grpc_context GRPC context object.
+     * @param request The request contains a list of handles of the atoms which should be correlated.
+     * @param reply The message which will be send back to the caller with a simple ACK.
+     *
+     * @return GRPC status OK if request were properly processed or CANCELLED otherwise.
+     */
+    Status asymmetric_correlate(ServerContext* grpc_context,
+                                const dasproto::HandleList* request,
+                                dasproto::Ack* reply) override;
+
+    /**
      * Return importance of atoms passed in the request.
      *
      *

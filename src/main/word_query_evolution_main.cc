@@ -198,6 +198,13 @@ void run(const string& client_id,
                         node, symbol, "\"" + word_tag2 + "\"",
     };
 
+    vector<string> activation_spreading3 = {
+        link_template, expression, "3",
+            node, symbol, contains,
+            variable, sentence1,
+            variable, word1,
+    };
+
     vector<string> context1 = {
         link_template, expression, "3",
             node, symbol, contains,
@@ -224,7 +231,7 @@ void run(const string& client_id,
                                             "count_letter");
     } else {
         proxy_ptr = new QueryEvolutionProxy(
-            or_two_words, activation_spreading1, {sentence1}, context_str, "count_letter");
+            or_two_words, activation_spreading3, {sentence1}, context_str, "count_letter");
     }
 
     shared_ptr<QueryEvolutionProxy> proxy(proxy_ptr);

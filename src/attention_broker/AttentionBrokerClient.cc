@@ -43,6 +43,28 @@ void AttentionBrokerClient::correlate(const set<string>& handles, const string& 
     }
 }
 
+
+void AttentionBrokerClient::asymmetric_correlate(const vector<string>& handles, const string& context) {
+    dasproto::HandleList handle_list;  // GRPC command parameter
+    dasproto::Ack ack;                 // GRPC command return
+    auto stub = dasproto::AttentionBroker::NewStub(
+        grpc::CreateChannel(SERVER_ADDRESS, grpc::InsecureChannelCredentials()));
+
+    handle_list.set_context(context);
+    for (string handle : handles) {
+        handle_list.add_list(handle);
+    }
+    if (handle_list.list_size() > 0) {
+        LOG_INFO("Calling AttentionBroker GRPC. Correlating (asymmetric) " << handle_list.list_size() << " handles");
+        stub->asymmetric_correlate(new grpc::ClientContext(), handle_list, &ack);
+        if (ack.msg() != "ASYMMETRIC_CORRELATE") {
+            Utils::error("Failed GRPC command: AttentionBroker::asymmetric_correlate()");
+        }
+    } else {
+        LOG_INFO("No handles to correlate (asymmetric)");
+    }
+}
+
 void AttentionBrokerClient::stimulate(const map<string, unsigned int>& handle_map,
                                       const string& context) {
     dasproto::HandleCount handle_count;  // GRPC command parameter

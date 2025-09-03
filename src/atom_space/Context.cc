@@ -42,11 +42,10 @@ void Context::set_determiners(Atom& atom_key) {
                 determiners.push_back(string(document->get(TARGETS, i)));
             }
             determiner_request.push_back(determiners);
-        } else {
         }
     }
     AttentionBrokerClient::set_determiners(determiner_request, this->key);
-    AttentionBrokerClient::stimulate(to_stimulate, this->key);
+    //AttentionBrokerClient::stimulate(to_stimulate, this->key); // XXXXXXXXXXXXXXXXX
 }
 
 const string& Context::get_name() { return this->name; }
