@@ -176,7 +176,7 @@ First, you must configure the connection details for the services `das-cli` will
     das-cli config set --remote --host 192.168.0.10 --user ubuntu --password my_p@ssword
     ```
 
-The tool will prompt you for connection details. For a standard local setup, you can press **Enter** to accept the defaults for most settings.
+The tool will prompt you for connection details. Unless you have reasons to customize parameters (e.g. to avoid clashes with other already running tools), you can just press **Enter** to accept the defaults.
 
 ```text
 Enter Redis port [40020]: 
