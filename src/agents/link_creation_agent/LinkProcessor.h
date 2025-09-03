@@ -105,7 +105,7 @@ class LinkProcessor {
     }
 };
 
-enum class ProcessorType { PROOF_OF_IMPLICATION, PROOF_OF_EQUIVALENCE, INVALID };
+enum class ProcessorType { PROOF_OF_IMPLICATION, PROOF_OF_EQUIVALENCE, INVALID, TEMPLATE};
 
 class LinkCreationProcessor {
    public:
