@@ -351,7 +351,7 @@ scenario_data() {
 
 consolidate_reports() {
     local benchmark=$1
-    python3 ./src/scripts/python/consolidate_benchmark.py "/tmp/${benchmark}_benchmark/${TIMESTAMP}" --scenario "$(scenario_data)" --type "$benchmark" --output-file "/tmp/${benchmark}_benchmark/${TIMESTAMP}/consolidated_report.txt" --header-text "$(header_to_report)" --db-path "/home/$USER/.cache/das/benchmark.db"
+    python3 ./src/scripts/python/consolidate_benchmark.py "/tmp/${benchmark}_benchmark/${TIMESTAMP}" --scenario "$(scenario_data)" --type "$benchmark" --output-file "/tmp/${benchmark}_benchmark/${TIMESTAMP}/consolidated_report.txt" --header-text "$(header_to_report)" --db-path "/home/$USER/.cache/shared/benchmark.db"
     echo ""
     echo -e "\r\033[K${GREEN}Consolidated reports saved to database${RESET}"
 }

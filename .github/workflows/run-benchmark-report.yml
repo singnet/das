@@ -20,7 +20,7 @@ jobs:
         run: |
           sudo bash -c "wget -O - http://45.77.4.33/apt-repo/setup.sh | bash"
           sudo apt -y update
-          sudo apt -y install das-toolbox
+          sudo apt -y install das-toolbox sqlite3
           sudo das-cli update-version --version 0.4.14
 
       - name: Clear benchmark output files
@@ -33,21 +33,22 @@ jobs:
           EXECUTION_ID=$(grep "New execution ID:" benchmark_output.txt | awk '{print $4}' | tail -n 1)
           echo "benchmark_id=$EXECUTION_ID" >> $GITHUB_OUTPUT
 
-      - name: Prepare report
+      - name: Prepare reports for upload
         run: |
-          mkdir -p /tmp/reports/query_agent
-          cp benchmark_output.txt /tmp/reports/query_agent/
+          mkdir -p /tmp/reports/query-agent
+          find /tmp/query_agent_benchmark -type f -name "*.txt" -exec cp {} /tmp/reports/query_agent \;
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: benchmark-report-query_agent
+          name: benchmark-report-query-agent
           path: /tmp/reports/query_agent
 
   benchmark_atomdb:
     runs-on: self-hosted-withcache
     outputs:
       benchmark_id: ${{ steps.run_benchmark.outputs.benchmark_id }}
+    needs: benchmark_query_agent
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -56,7 +57,7 @@ jobs:
         run: |
           sudo bash -c "wget -O - http://45.77.4.33/apt-repo/setup.sh | bash"
           sudo apt -y update
-          sudo apt -y install das-toolbox
+          sudo apt -y install das-toolbox sqlite3
           sudo das-cli update-version --version 0.4.14
 
       - name: Clear benchmark output files
@@ -72,7 +73,7 @@ jobs:
       - name: Prepare report
         run: |
           mkdir -p /tmp/reports/atomdb
-          cp benchmark_output.txt /tmp/reports/atomdb/
+          find /tmp/atomdb_benchmark -type f -name "*.txt" -exec cp {} /tmp/reports/atomdb \;
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
@@ -92,13 +93,13 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Install requirements
-        run: sudo apt -y update && sudo apt -y install bc
+        run: sudo apt -y update && sudo apt -y install bc sqlite3
 
       - name: Download benchmark artifact
         uses: actions/download-artifact@v4
         with:
-          name: benchmark-report-query_agent
-          path: /tmp/reports/query_agent
+          name: benchmark-report-query-agent
+          path: query_agent_benchmark
 
       - name: Send Mattermost message
         run: |
@@ -113,7 +114,7 @@ jobs:
           server-url: ${{ vars.MATTERMOST_SERVER_URL }}
           token: ${{ secrets.MATTERMOST_TOKEN }}
           channel-id: ${{ vars.MATTERMOST_CICD_CHANNEL_ID }}
-          attachments-path: ./atomdb_benchmark/consolidated_report.txt
+          attachments-path: ./query_agent_benchmark/consolidated_report.txt
 
 
   notify_atomdb:
@@ -128,13 +129,13 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Install requirements
-        run: sudo apt -y update && sudo apt -y install bc
+        run: sudo apt -y update && sudo apt -y install bc sqlite3
 
       - name: Download benchmark artifact
         uses: actions/download-artifact@v4
         with:
           name: benchmark-report-atomdb
-          path: /tmp/reports/atomdb
+          path: atomdb_benchmark
 
       - name: Send Mattermost message
         run: |
