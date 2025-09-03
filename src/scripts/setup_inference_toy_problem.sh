@@ -9,10 +9,10 @@ METTA_BIAS_FILE=""
 
 # fi
 # check if optional parameter is present
-if [ $# -gt 2 ]; then
+if [ $# -gt 1 ]; then
   METTA_FILE=$2
 fi
-if [ $# -gt 3 ]; then
+if [ $# -gt 2 ]; then
   METTA_BIAS_FILE=$3
 fi
 echo "Using JSON file: $JSON_FILE"
