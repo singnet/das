@@ -44,22 +44,22 @@ void LinkCreationService::save_cache() {
     ofstream file(metta_file_path + "/" + "cache");
     if (file.is_open()) {
         // for (unsigned long long i = 0; i < answer_cache_size; i++) {
-            // answer_cache->traverse(
-            //     false,
-            //     [](HandleTrie::TrieNode* node, void* data) {
-            //         ofstream* file = static_cast<ofstream*>(data);
-            //         if (node->value != NULL) {
-            //             *file << node->suffix << ": ";
-            //             LOG_DEBUG("Saving cache entry: " << node->suffix);
-            //             ProcessorTypeValue* types = static_cast<ProcessorTypeValue*>(node->value);
-            //             for (const auto& type : types->processor_types) {
-            //                 *file << static_cast<int>(type) << " ";
-            //             }
-            //             *file << endl;
-            //         }
-            //         return true;
-            //     },
-            //     &file);
+        // answer_cache->traverse(
+        //     false,
+        //     [](HandleTrie::TrieNode* node, void* data) {
+        //         ofstream* file = static_cast<ofstream*>(data);
+        //         if (node->value != NULL) {
+        //             *file << node->suffix << ": ";
+        //             LOG_DEBUG("Saving cache entry: " << node->suffix);
+        //             ProcessorTypeValue* types = static_cast<ProcessorTypeValue*>(node->value);
+        //             for (const auto& type : types->processor_types) {
+        //                 *file << static_cast<int>(type) << " ";
+        //             }
+        //             *file << endl;
+        //         }
+        //         return true;
+        //     },
+        //     &file);
         // }
         for (const auto& key : answer_cache_keys) {
             file << key << ": ";
@@ -146,60 +146,61 @@ void LinkCreationService::process_request(shared_ptr<PatternMatchingQueryProxy> 
     auto request_id = request->id;
     auto max_query_answers = request->max_results;
 
+    auto job = [this, proxy, link_template, max_query_answers, context, request_id, request]() {
+        shared_ptr<QueryAnswer> query_answer;
+        long start = time(0);
+        int cached_count = 0;
+        int count = 0;
 
-    auto job =
-        [this, proxy, link_template, max_query_answers, context, request_id, request]() {
-            shared_ptr<QueryAnswer> query_answer;
-            long start = time(0);
-            int cached_count = 0;
-            int count = 0;
-
-            while (true) {
-                if (time(0) - start > this->timeout) {
-                    LOG_INFO("[" << request_id << "]"
-                                 << " - Timeout for iterator ID: " << proxy->my_id());
-                    return;
-                }
-                if (request->aborting) {
-                    LOG_INFO("[" << request_id << "]"
-                                 << " - Aborting processing for iterator ID: " << proxy->my_id());
-                    return;
-                }
-                while ((query_answer = proxy->pop()) != NULL) {
-                    try {
-                        if (request->aborting) {
-                            LOG_INFO("["
-                                     << request_id << "]"
-                                     << " - Aborting processing for iterator ID: " << proxy->my_id());
-                            return;
-                        }
-                        vector<vector<string>> link_tokens;
-                        vector<string> extra_params;
-                        extra_params.push_back(context);
-                        shared_lock lock(m_mutex);
-                        auto links = process_query_answer(query_answer, extra_params, link_template, cached_count);
-                        save_cache();
-                        for (const auto& link : links) {
-                            link_creation_queue.enqueue(make_tuple(request_id, link));
-                        }
-                        // enqueue_link_creation_request(request_id, link_tokens);
-                    } catch (const exception& e) {
-                        LOG_ERROR("[" << request_id << "]" << " Exception: " << e.what());
-                        continue;
-                    }
-                    LOG_DEBUG("Processed " << count << " of max: " << max_query_answers << " cached: " << cached_count);
-                    if ((++count - cached_count) >= max_query_answers) break;
-                }
-                if (count >= max_query_answers) break;
-                if (proxy->finished()) break;
-                Utils::sleep();
+        while (true) {
+            if (time(0) - start > this->timeout) {
+                LOG_INFO("[" << request_id << "]"
+                             << " - Timeout for iterator ID: " << proxy->my_id());
+                return;
             }
-            // Utils::sleep(500);
-            LOG_INFO("[" << request_id << "]" << " - Finished processing iterator ID: " + proxy->my_id()
-                         << " with count: " << count);
-            request->is_running = false;
-            request->processed += (count);
-        };
+            if (request->aborting) {
+                LOG_INFO("[" << request_id << "]"
+                             << " - Aborting processing for iterator ID: " << proxy->my_id());
+                return;
+            }
+            while ((query_answer = proxy->pop()) != NULL) {
+                try {
+                    if (request->aborting) {
+                        LOG_INFO("[" << request_id << "]"
+                                     << " - Aborting processing for iterator ID: " << proxy->my_id());
+                        return;
+                    }
+                    vector<vector<string>> link_tokens;
+                    vector<string> extra_params;
+                    extra_params.push_back(context);
+                    shared_lock lock(m_mutex);
+                    auto links =
+                        process_query_answer(query_answer, extra_params, link_template, cached_count);
+                    save_cache();
+                    for (const auto& link : links) {
+                        link_creation_queue.enqueue(make_tuple(request_id, link));
+                    }
+                    // enqueue_link_creation_request(request_id, link_tokens);
+                } catch (const exception& e) {
+                    LOG_ERROR("[" << request_id << "]"
+                                  << " Exception: " << e.what());
+                    continue;
+                }
+                LOG_DEBUG("Processed " << count << " of max: " << max_query_answers
+                                       << " cached: " << cached_count);
+                if ((++count - cached_count) >= max_query_answers) break;
+            }
+            if (count >= max_query_answers) break;
+            if (proxy->finished()) break;
+            Utils::sleep();
+        }
+        // Utils::sleep(500);
+        LOG_INFO("[" << request_id << "]"
+                     << " - Finished processing iterator ID: " + proxy->my_id()
+                     << " with count: " << count);
+        request->is_running = false;
+        request->processed += (count);
+    };
 
     thread_pool.enqueue(job);
     request->is_running = true;

@@ -9,6 +9,7 @@
 #include <shared_mutex>
 
 #include "EquivalenceProcessor.h"
+#include "HandleTrie.h"
 #include "ImplicationProcessor.h"
 #include "LCAQueue.h"
 #include "LinkCreationAgentRequest.h"
@@ -18,7 +19,6 @@
 #include "ServiceBusSingleton.h"
 #include "TemplateProcessor.h"
 #include "ThreadPool.h"
-#include "HandleTrie.h"
 
 #define ANSWER_CACHE_KEY_SIZE ((unsigned int) 32)
 
@@ -76,7 +76,7 @@ class LinkCreationService
     shared_ptr<mutex> query_agent_mutex;
     Queue<tuple<string, shared_ptr<Link>>> link_creation_queue;
     // std::map<string, vector<ProcessorType>> answer_cache;
-    HandleTrie *answer_cache;
+    HandleTrie* answer_cache;
     vector<string> answer_cache_keys;
     unsigned long long answer_cache_size = 0;
     bool is_stoping = false;
@@ -89,7 +89,7 @@ class LinkCreationService
     class ProcessorTypeValue : public HandleTrie::TrieValue {
        public:
         set<ProcessorType> processor_types;
-        ProcessorTypeValue() { }
+        ProcessorTypeValue() {}
         void merge(TrieValue* other) {}
     };
 
