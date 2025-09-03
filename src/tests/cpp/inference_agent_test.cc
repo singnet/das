@@ -105,85 +105,114 @@ TEST_F(InferenceAgentTest, TestProofOfEquivalence) {
     delete inference_agent;
 }
 
-// TEST_F(InferenceAgentTest, TestInferenceRequests) {
-//     ProofOfImplicationOrEquivalence proof_of_implication_or_equivalence(
-//         "handle1", "handle2", 1, "context");
-//     auto requests = proof_of_implication_or_equivalence.get_requests();
-//     auto dic_request =
-//     proof_of_implication_or_equivalence.get_distributed_inference_control_request();
-//     EXPECT_EQ(requests.size(), 3);
-//     EXPECT_EQ(Utils::join(requests[0], ' '),
-//               "LINK_TEMPLATE Expression 3 NODE Symbol EVALUATION LINK_TEMPLATE Expression 2 NODE "
-//               "Symbol "
-//               "PREDICATE VARIABLE P LINK_TEMPLATE Expression 2 NODE Symbol CONCEPT VARIABLE C "
-//               "LIST 2 LINK_CREATE Expression 2 1 NODE Symbol SATISFYING_SET VARIABLE P CUSTOM_FIELD "
-//               "truth_value 2 strength 1.0 confidence 1.0 LINK_CREATE Expression 2 1 NODE Symbol "
-//               "PATTERNS VARIABLE C CUSTOM_FIELD truth_value 2 strength 1.0 confidence 1.0");
-//     EXPECT_EQ(Utils::join(dic_request, ' '),
-//               "OR 4 AND 2 LINK_TEMPLATE Expression 3 NODE Symbol IMPLICATION ATOM handle1 VARIABLE V0
-//               " "LINK_TEMPLATE Expression 3 NODE Symbol IMPLICATION VARIABLE V0 ATOM handle2 AND 2 "
-//               "LINK_TEMPLATE Expression 3 NODE Symbol EQUIVALENCE ATOM handle1 VARIABLE V0 "
-//               "LINK_TEMPLATE Expression 3 NODE Symbol IMPLICATION VARIABLE V0 ATOM handle2 AND 2 "
-//               "LINK_TEMPLATE Expression 3 NODE Symbol IMPLICATION ATOM handle1 VARIABLE V0 "
-//               "LINK_TEMPLATE Expression 3 NODE Symbol EQUIVALENCE VARIABLE V0 ATOM handle2 AND 2 "
-//               "LINK_TEMPLATE Expression 3 NODE Symbol EQUIVALENCE ATOM handle1 VARIABLE V0 "
-//               "LINK_TEMPLATE Expression 3 NODE Symbol EQUIVALENCE VARIABLE V0 ATOM handle2");
+TEST_F(InferenceAgentTest, TestInferenceRequests) {
+    ProofOfImplication proof_of_implication(
+        "handle1", "handle2", 1, "context");
+    auto requests = proof_of_implication.get_requests();
+    auto dic_request =
+    proof_of_implication.get_distributed_inference_control_request();
+    EXPECT_EQ(requests.size(), 2);
+    EXPECT_EQ(Utils::join(requests[0], ' '),
+              "LINK_TEMPLATE Expression 2 NODE Symbol PREDICATE VARIABLE P LINK_CREATE Expression 2 1 NODE Symbol SATISFYING_SET VARIABLE P CUSTOM_FIELD truth_value 2 strength 1.0 confidence 1.0");
+    EXPECT_EQ(Utils::join(dic_request, ' '),
+              "AND 2 LINK_TEMPLATE Expression 3 NODE Symbol IMPLICATION ATOM handle1 VARIABLE V0 LINK_TEMPLATE Expression 3 NODE Symbol IMPLICATION VARIABLE V0 ATOM handle2");
 
-//     ProofOfImplication proof_of_implication("handle3", "handle4", 2, "context");
-//     requests = proof_of_implication.get_requests();
-//     dic_request = proof_of_implication.get_distributed_inference_control_request();
-//     EXPECT_EQ(requests.size(), 1);
-//     EXPECT_EQ(Utils::join(requests[0], ' '),
-//               "AND 2 LINK_TEMPLATE Expression 2 NODE Symbol SATISFYING_SET VARIABLE P1 LINK_TEMPLATE "
-//               "Expression 2 NODE Symbol SATISFYING_SET VARIABLE P2 PROOF_OF_IMPLICATION");
-//     EXPECT_EQ(
-//         Utils::join(dic_request, ' '),
-//         "OR 12 AND 3 LINK_TEMPLATE Expression 3 NODE Symbol IMPLICATION ATOM handle3 VARIABLE V0 "
-//         "LINK_TEMPLATE Expression 3 NODE Symbol IMPLICATION VARIABLE V0 VARIABLE V1 LINK_TEMPLATE "
-//         "Expression 3 NODE Symbol IMPLICATION VARIABLE V1 ATOM handle4 AND 3 LINK_TEMPLATE Expression
-//         3 " "NODE Symbol EQUIVALENCE ATOM handle3 VARIABLE V0 LINK_TEMPLATE Expression 3 NODE Symbol "
-//         "IMPLICATION VARIABLE V0 VARIABLE V1 LINK_TEMPLATE Expression 3 NODE Symbol IMPLICATION "
-//         "VARIABLE V1 ATOM handle4 AND 3 LINK_TEMPLATE Expression 3 NODE Symbol IMPLICATION ATOM
-//         handle3 " "VARIABLE V0 LINK_TEMPLATE Expression 3 NODE Symbol EQUIVALENCE VARIABLE V0 VARIABLE
-//         V1 " "LINK_TEMPLATE Expression 3 NODE Symbol IMPLICATION VARIABLE V1 ATOM handle4 AND 3 "
-//         "LINK_TEMPLATE Expression 3 NODE Symbol EQUIVALENCE ATOM handle3 VARIABLE V0 LINK_TEMPLATE "
-//         "Expression 3 NODE Symbol EQUIVALENCE VARIABLE V0 VARIABLE V1 LINK_TEMPLATE Expression 3 NODE
-//         " "Symbol IMPLICATION VARIABLE V1 ATOM handle4 AND 3 LINK_TEMPLATE Expression 3 NODE Symbol "
-//         "IMPLICATION ATOM handle3 VARIABLE V0 LINK_TEMPLATE Expression 3 NODE Symbol IMPLICATION "
-//         "VARIABLE V0 VARIABLE V1 LINK_TEMPLATE Expression 3 NODE Symbol EQUIVALENCE VARIABLE V1 ATOM "
-//         "handle4 AND 3 LINK_TEMPLATE Expression 3 NODE Symbol EQUIVALENCE ATOM handle3 VARIABLE V0 "
-//         "LINK_TEMPLATE Expression 3 NODE Symbol IMPLICATION VARIABLE V0 VARIABLE V1 LINK_TEMPLATE "
-//         "Expression 3 NODE Symbol EQUIVALENCE VARIABLE V1 ATOM handle4 AND 3 LINK_TEMPLATE Expression
-//         3 " "NODE Symbol IMPLICATION ATOM handle3 VARIABLE V0 LINK_TEMPLATE Expression 3 NODE Symbol "
-//         "EQUIVALENCE VARIABLE V0 VARIABLE V1 LINK_TEMPLATE Expression 3 NODE Symbol EQUIVALENCE "
-//         "VARIABLE V1 ATOM handle4 AND 3 LINK_TEMPLATE Expression 3 NODE Symbol EQUIVALENCE ATOM
-//         handle3 " "VARIABLE V0 LINK_TEMPLATE Expression 3 NODE Symbol EQUIVALENCE VARIABLE V0 VARIABLE
-//         V1 " "LINK_TEMPLATE Expression 3 NODE Symbol EQUIVALENCE VARIABLE V1 ATOM handle4 AND 2 "
-//         "LINK_TEMPLATE Expression 3 NODE Symbol IMPLICATION ATOM handle3 VARIABLE V0 LINK_TEMPLATE "
-//         "Expression 3 NODE Symbol IMPLICATION VARIABLE V0 ATOM handle4 AND 2 LINK_TEMPLATE Expression
-//         3 " "NODE Symbol EQUIVALENCE ATOM handle3 VARIABLE V0 LINK_TEMPLATE Expression 3 NODE Symbol "
-//         "IMPLICATION VARIABLE V0 ATOM handle4 AND 2 LINK_TEMPLATE Expression 3 NODE Symbol IMPLICATION
-//         " "ATOM handle3 VARIABLE V0 LINK_TEMPLATE Expression 3 NODE Symbol EQUIVALENCE VARIABLE V0
-//         ATOM " "handle4 AND 2 LINK_TEMPLATE Expression 3 NODE Symbol EQUIVALENCE ATOM handle3 VARIABLE
-//         V0 " "LINK_TEMPLATE Expression 3 NODE Symbol EQUIVALENCE VARIABLE V0 ATOM handle4");
 
-//     ProofOfEquivalence proof_of_equivalence("handle5", "handle6", 1, "context2");
-//     requests = proof_of_equivalence.get_requests();
-//     dic_request = proof_of_equivalence.get_distributed_inference_control_request();
-//     EXPECT_EQ(requests.size(), 1);
-//     EXPECT_EQ(Utils::join(requests[0], ' '),
-//               "AND 2 LINK_TEMPLATE Expression 2 NODE Symbol PATTERNS VARIABLE C1 LINK_TEMPLATE "
-//               "Expression 2 NODE Symbol PATTERNS VARIABLE C2 PROOF_OF_EQUIVALENCE");
-//     EXPECT_EQ(Utils::join(dic_request, ' '),
-//               "OR 4 AND 2 LINK_TEMPLATE Expression 3 NODE Symbol IMPLICATION ATOM handle5 VARIABLE V0
-//               " "LINK_TEMPLATE Expression 3 NODE Symbol IMPLICATION VARIABLE V0 ATOM handle6 AND 2 "
-//               "LINK_TEMPLATE Expression 3 NODE Symbol EQUIVALENCE ATOM handle5 VARIABLE V0 "
-//               "LINK_TEMPLATE Expression 3 NODE Symbol IMPLICATION VARIABLE V0 ATOM handle6 AND 2 "
-//               "LINK_TEMPLATE Expression 3 NODE Symbol IMPLICATION ATOM handle5 VARIABLE V0 "
-//               "LINK_TEMPLATE Expression 3 NODE Symbol EQUIVALENCE VARIABLE V0 ATOM handle6 AND 2 "
-//               "LINK_TEMPLATE Expression 3 NODE Symbol EQUIVALENCE ATOM handle5 VARIABLE V0 "
-//               "LINK_TEMPLATE Expression 3 NODE Symbol EQUIVALENCE VARIABLE V0 ATOM handle6");
-// }
+    ProofOfImplication proof_of_implication2(
+        "handle1", "handle2", 2, "context");
+    requests = proof_of_implication2.get_requests();
+    dic_request =
+    proof_of_implication2.get_distributed_inference_control_request();
+    EXPECT_EQ(requests.size(), 2);
+    EXPECT_EQ(Utils::join(requests[0], ' '),
+              "LINK_TEMPLATE Expression 2 NODE Symbol PREDICATE VARIABLE P LINK_CREATE Expression 2 1 NODE Symbol SATISFYING_SET VARIABLE P CUSTOM_FIELD truth_value 2 strength 1.0 confidence 1.0");
+    // clang-format off
+    EXPECT_EQ(Utils::join(dic_request, ' '),
+              "OR 2 "
+                "AND 3 "
+                    "LINK_TEMPLATE Expression 3 "
+                        "NODE Symbol IMPLICATION "
+                        "ATOM handle1 "
+                        "VARIABLE V0 "
+                    "LINK_TEMPLATE Expression 3 "
+                        "NODE Symbol IMPLICATION "
+                        "VARIABLE V0 "
+                        "VARIABLE V1 "
+                    "LINK_TEMPLATE Expression 3 "
+                        "NODE Symbol IMPLICATION "
+                        "VARIABLE V1 "
+                        "ATOM handle2 "
+                "AND 2 "
+                    "LINK_TEMPLATE Expression 3 "
+                        "NODE Symbol IMPLICATION "
+                        "ATOM handle1 "
+                        "VARIABLE V0 "
+                    "LINK_TEMPLATE Expression 3 "
+                        "NODE Symbol IMPLICATION "
+                        "VARIABLE V0 "
+                        "ATOM handle2");
+    // clang-format on
+    ProofOfEquivalence proof_of_equivalence(
+        "handle1", "handle2", 1, "context");
+    requests = proof_of_equivalence.get_requests();
+    dic_request =
+    proof_of_equivalence.get_distributed_inference_control_request();
+    EXPECT_EQ(requests.size(), 2);
+    EXPECT_EQ(Utils::join(requests[0], ' '),
+              "LINK_TEMPLATE Expression 2 NODE Symbol CONCEPT VARIABLE C LINK_CREATE Expression 2 1 NODE Symbol PATTERNS VARIABLE C CUSTOM_FIELD truth_value 2 strength 1.0 confidence 1.0");
+    EXPECT_EQ(Utils::join(dic_request, ' '),
+              "AND 2 LINK_TEMPLATE Expression 3 NODE Symbol EQUIVALENCE ATOM handle1 VARIABLE V0 LINK_TEMPLATE Expression 3 NODE Symbol EQUIVALENCE VARIABLE V0 ATOM handle2");
+
+    ProofOfEquivalence poe2("handle1", "handle2", 3, "context");
+    requests = poe2.get_requests();
+    dic_request = poe2.get_distributed_inference_control_request();
+    EXPECT_EQ(requests.size(), 2);
+    EXPECT_EQ(Utils::join(requests[0], ' '),
+              "LINK_TEMPLATE Expression 2 NODE Symbol CONCEPT VARIABLE C LINK_CREATE Expression 2 1 NODE Symbol PATTERNS VARIABLE C CUSTOM_FIELD truth_value 2 strength 1.0 confidence 1.0");
+    // clang-format off
+    EXPECT_EQ(Utils::join(dic_request, ' '),
+              "OR 3 "
+                "AND 4 "
+                    "LINK_TEMPLATE Expression 3 "
+                        "NODE Symbol EQUIVALENCE "
+                        "ATOM handle1 "
+                        "VARIABLE V0 "
+                    "LINK_TEMPLATE Expression 3 "
+                        "NODE Symbol EQUIVALENCE "
+                        "VARIABLE V0 "
+                        "VARIABLE V1 "
+                    "LINK_TEMPLATE Expression 3 "
+                        "NODE Symbol EQUIVALENCE "
+                        "VARIABLE V1 "
+                        "VARIABLE V2 "
+                    "LINK_TEMPLATE Expression 3 "
+                        "NODE Symbol EQUIVALENCE "
+                        "VARIABLE V2 "
+                        "ATOM handle2 "
+                "AND 3 "
+                    "LINK_TEMPLATE Expression 3 "
+                        "NODE Symbol EQUIVALENCE "
+                        "ATOM handle1 "
+                        "VARIABLE V0 "
+                    "LINK_TEMPLATE Expression 3 "
+                        "NODE Symbol EQUIVALENCE "
+                        "VARIABLE V0 "
+                        "VARIABLE V1 "
+                    "LINK_TEMPLATE Expression 3 "
+                        "NODE Symbol EQUIVALENCE "
+                        "VARIABLE V1 "
+                        "ATOM handle2 "
+                "AND 2 "
+                    "LINK_TEMPLATE Expression 3 "
+                        "NODE Symbol EQUIVALENCE "
+                        "ATOM handle1 "
+                        "VARIABLE V0 "
+                    "LINK_TEMPLATE Expression 3 "
+                        "NODE Symbol EQUIVALENCE "
+                        "VARIABLE V0 "
+                        "ATOM handle2");
+    // clang-format on
+}
 
 TEST(InferenceRequestValidator, InvalidRequests) {
     InferenceRequestValidator validator;
