@@ -3,6 +3,7 @@
 #include <fstream>
 
 #include "AtomDBSingleton.h"
+#include "Hasher.h"
 #include "Logger.h"
 #include "Utils.h"
 
@@ -26,6 +27,7 @@ LinkCreationService::LinkCreationService(int thread_count) : thread_pool(thread_
     this->link_template_processor = make_shared<LinkTemplateProcessor>();
     this->equivalence_processor = make_shared<EquivalenceProcessor>();
     this->implication_processor = make_shared<ImplicationProcessor>();
+    this->answer_cache = new HandleTrie(ANSWER_CACHE_KEY_SIZE);
     // run create_link in a separate thread
     this->create_link_thread = thread(&LinkCreationService::create_links, this);
 }
@@ -35,6 +37,86 @@ LinkCreationService::~LinkCreationService() {
     if (create_link_thread.joinable()) {
         create_link_thread.join();
     }
+    delete answer_cache;
+}
+
+void LinkCreationService::save_cache() {
+    ofstream file(metta_file_path + "/" + "cache");
+    if (file.is_open()) {
+        answer_cache->traverse(
+            false,
+            [](HandleTrie::TrieNode* node, void* data) {
+                ofstream* file = static_cast<ofstream*>(data);
+                if (node->value != NULL) {
+                    *file << node->suffix << ": ";
+                    LOG_DEBUG("Saving cache entry: " << node->suffix);
+                    ProcessorTypeValue* types = static_cast<ProcessorTypeValue*>(node->value);
+                    for (const auto& type : types->processor_types) {
+                        *file << static_cast<int>(type) << " ";
+                    }
+                    *file << endl;
+                }
+                return false;
+            },
+            &file);
+        file.close();
+    } else {
+        LOG_ERROR("Error opening file: " << metta_file_path + "/" + "cache");
+    }
+}
+
+void LinkCreationService::load_cache() {
+    ifstream file(this->metta_file_path + "/" + "cache");
+    if (file.is_open()) {
+        string line;
+        while (getline(file, line)) {
+            istringstream iss(line);
+            string key;
+            if (!(std::getline(iss, key, ':'))) {
+                break;
+            }
+            ProcessorTypeValue* types = new ProcessorTypeValue();
+            int type;
+            while (iss >> type) {
+                types->processor_types.insert(static_cast<ProcessorType>(type));
+            }
+            answer_cache->insert(key, types);
+            LOG_DEBUG("Cache entry added: " << key << ": ");
+            for (auto& type : types->processor_types) {
+                LOG_DEBUG(" - " << static_cast<int>(type));
+            }
+        }
+        file.close();
+    } else {
+        LOG_ERROR("Error opening file: " << this->metta_file_path + "/" + "cache");
+    }
+}
+
+string LinkCreationService::query_answer_hash(shared_ptr<QueryAnswer> query_answer) {
+    return Hasher::composite_handle(query_answer->handles);
+}
+
+bool LinkCreationService::is_cached(shared_ptr<QueryAnswer> query_answer, ProcessorType type) {
+    std::string key = query_answer_hash(query_answer);
+    auto it = dynamic_cast<ProcessorTypeValue*>(this->answer_cache->lookup(key));
+    if (it == NULL) {
+        return false;
+    }
+    return find(it->processor_types.begin(), it->processor_types.end(), type) !=
+           it->processor_types.end();
+}
+
+void LinkCreationService::set_cache(shared_ptr<QueryAnswer> query_answer, ProcessorType type) {
+    std::string key = query_answer_hash(query_answer);
+    auto it = dynamic_cast<ProcessorTypeValue*>(this->answer_cache->lookup(key));
+    if (it == NULL) {
+        LOG_DEBUG("Cache miss: " << key);
+        auto p_value = new ProcessorTypeValue();
+        p_value->processor_types.insert(type);
+        this->answer_cache->insert(key, p_value);
+    } else {
+        it->processor_types.insert(type);
+    }
 }
 
 void LinkCreationService::process_request(shared_ptr<PatternMatchingQueryProxy> proxy,
@@ -43,10 +125,13 @@ void LinkCreationService::process_request(shared_ptr<PatternMatchingQueryProxy> 
     auto context = request->context;
     auto request_id = request->id;
     auto max_query_answers = request->max_results;
+
     auto job = [this, proxy, link_template, max_query_answers, context, request_id, request]() {
         shared_ptr<QueryAnswer> query_answer;
-        int count = 0;
         long start = time(0);
+        int cached_count = 0;
+        int count = 0;
+
         while (true) {
             if (time(0) - start > this->timeout) {
                 LOG_INFO("[" << request_id << "]"
@@ -69,7 +154,9 @@ void LinkCreationService::process_request(shared_ptr<PatternMatchingQueryProxy> 
                     vector<string> extra_params;
                     extra_params.push_back(context);
                     shared_lock lock(m_mutex);
-                    auto links = process_query_answer(query_answer, extra_params, link_template);
+                    auto links =
+                        process_query_answer(query_answer, extra_params, link_template, cached_count);
+                    save_cache();
                     for (const auto& link : links) {
                         link_creation_queue.enqueue(make_tuple(request_id, link));
                     }
@@ -79,9 +166,11 @@ void LinkCreationService::process_request(shared_ptr<PatternMatchingQueryProxy> 
                                   << " Exception: " << e.what());
                     continue;
                 }
-                if (++count == max_query_answers) break;
+                LOG_DEBUG("Processed " << count << " of max: " << max_query_answers
+                                       << " cached: " << cached_count);
+                if ((++count - cached_count) >= max_query_answers) break;
             }
-            if (count == max_query_answers) break;
+            if (count >= max_query_answers) break;
             if (proxy->finished()) break;
             Utils::sleep();
         }
@@ -90,7 +179,7 @@ void LinkCreationService::process_request(shared_ptr<PatternMatchingQueryProxy> 
                      << " - Finished processing iterator ID: " + proxy->my_id()
                      << " with count: " << count);
         request->is_running = false;
-        request->processed += count;
+        request->processed += (count);
     };
 
     thread_pool.enqueue(job);
@@ -99,14 +188,33 @@ void LinkCreationService::process_request(shared_ptr<PatternMatchingQueryProxy> 
 
 vector<shared_ptr<Link>> LinkCreationService::process_query_answer(shared_ptr<QueryAnswer> query_answer,
                                                                    vector<string> params,
-                                                                   vector<string> link_template) {
+                                                                   vector<string> link_template,
+                                                                   int& cached_count) {
     if (LinkCreationProcessor::get_processor_type(link_template.front()) ==
         ProcessorType::PROOF_OF_IMPLICATION) {
+        if (is_cached(query_answer, ProcessorType::PROOF_OF_IMPLICATION)) {
+            LOG_DEBUG("Skipping cached query answer: " << query_answer->tokenize());
+            cached_count++;
+            return {};
+        }
+        set_cache(query_answer, ProcessorType::PROOF_OF_IMPLICATION);
         return implication_processor->process_query(query_answer, params);
     } else if (LinkCreationProcessor::get_processor_type(link_template.front()) ==
                ProcessorType::PROOF_OF_EQUIVALENCE) {
+        if (is_cached(query_answer, ProcessorType::PROOF_OF_EQUIVALENCE)) {
+            LOG_DEBUG("Skipping cached query answer: " << query_answer->tokenize());
+            cached_count++;
+            return {};
+        }
+        set_cache(query_answer, ProcessorType::PROOF_OF_EQUIVALENCE);
         return equivalence_processor->process_query(query_answer, params);
     } else {
+        if (is_cached(query_answer, ProcessorType::TEMPLATE)) {
+            LOG_DEBUG("Skipping cached query answer: " << query_answer->tokenize());
+            cached_count++;
+            return {};
+        }
+        set_cache(query_answer, ProcessorType::TEMPLATE);
         return link_template_processor->process_query(query_answer, link_template);
     }
 }
@@ -154,4 +262,5 @@ void LinkCreationService::create_links() {
 
 void LinkCreationService::set_metta_file_path(string metta_file_path) {
     this->metta_file_path = metta_file_path;
+    load_cache();
 }
