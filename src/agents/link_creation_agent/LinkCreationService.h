@@ -75,10 +75,7 @@ class LinkCreationService
     shared_ptr<EquivalenceProcessor> equivalence_processor;
     shared_ptr<mutex> query_agent_mutex;
     Queue<tuple<string, shared_ptr<Link>>> link_creation_queue;
-    // std::map<string, vector<ProcessorType>> answer_cache;
     HandleTrie* answer_cache;
-    vector<string> answer_cache_keys;
-    unsigned long long answer_cache_size = 0;
     bool is_stoping = false;
     thread create_link_thread;
     set<string> metta_expression_set;

@@ -56,6 +56,7 @@ void LinkCreationService::save_cache() {
                     }
                     *file << endl;
                 }
+                return false;
             },
             &file);
         file.close();
@@ -80,7 +81,6 @@ void LinkCreationService::load_cache() {
                 types->processor_types.insert(static_cast<ProcessorType>(type));
             }
             answer_cache->insert(key, types);
-            answer_cache_keys.push_back(key);
             LOG_DEBUG("Cache entry added: " << key << ": ");
             for (auto& type : types->processor_types) {
                 LOG_DEBUG(" - " << static_cast<int>(type));
@@ -94,12 +94,6 @@ void LinkCreationService::load_cache() {
 
 string LinkCreationService::query_answer_hash(shared_ptr<QueryAnswer> query_answer) {
     return Hasher::composite_handle(query_answer->handles);
-    // vector<string> variables;
-    // for (auto& var : query_answer->assignment.table) {
-    //     variables.push_back(var.second);
-    // }
-    // auto key = Utils::join(variables, ',');
-    // return compute_hash((char*) key.c_str());
 }
 
 bool LinkCreationService::is_cached(shared_ptr<QueryAnswer> query_answer, ProcessorType type) {
@@ -120,8 +114,6 @@ void LinkCreationService::set_cache(shared_ptr<QueryAnswer> query_answer, Proces
         auto p_value = new ProcessorTypeValue();
         p_value->processor_types.insert(type);
         this->answer_cache->insert(key, p_value);
-        answer_cache_keys.push_back(key);
-        answer_cache_size++;
     } else {
         it->processor_types.insert(type);
     }
