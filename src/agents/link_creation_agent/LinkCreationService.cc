@@ -3,9 +3,9 @@
 #include <fstream>
 
 #include "AtomDBSingleton.h"
+#include "Hasher.h"
 #include "Logger.h"
 #include "Utils.h"
-#include "Hasher.h"
 
 using namespace link_creation_agent;
 using namespace std;
