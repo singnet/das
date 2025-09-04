@@ -264,12 +264,13 @@ static vector<string> inference_evolution_request_builder(
 vector<string> InferenceRequest::get_distributed_inference_control_request() {
     vector<string> tokens;
     int size = 0;
-
     vector<string> request = inference_evolution_request_builder(
-        first_handle, second_handle, command, max_proof_length, size);
+        first_handle, second_handle, this->command, max_proof_length, size);
     // tokens.push_back(this->context);
-    tokens.push_back("OR");
-    tokens.push_back(to_string(size));
+    if (size > 1) {
+        tokens.push_back("OR");
+        tokens.push_back(to_string(size));
+    }
     for (auto token : request) {
         tokens.push_back(token);
     }
@@ -294,9 +295,9 @@ ProofOfImplication::ProofOfImplication(string first_handle,
                                        string second_handle,
                                        int max_proof_length,
                                        string context)
-    : InferenceRequest(first_handle, second_handle, max_proof_length, context) {}
-
-ProofOfImplication::~ProofOfImplication() { this->command = "IMPLICATION"; }
+    : InferenceRequest(first_handle, second_handle, max_proof_length, context) {
+    this->command = "IMPLICATION";
+}
 
 vector<string> ProofOfImplication::query() {
     // clang-format off
@@ -354,9 +355,9 @@ ProofOfEquivalence::ProofOfEquivalence(string first_handle,
                                        string second_handle,
                                        int max_proof_length,
                                        string context)
-    : InferenceRequest(first_handle, second_handle, max_proof_length, context) {}
-
-ProofOfEquivalence::~ProofOfEquivalence() { this->command = "EQUIVALENCE"; }
+    : InferenceRequest(first_handle, second_handle, max_proof_length, context) {
+    this->command = "EQUIVALENCE";
+}
 
 vector<string> ProofOfEquivalence::query() {
     // clang-format off
