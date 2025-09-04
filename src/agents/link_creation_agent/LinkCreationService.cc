@@ -5,7 +5,7 @@
 #include "AtomDBSingleton.h"
 #include "Logger.h"
 #include "Utils.h"
-#include "expression_hasher.h"
+#include "Hasher.h"
 
 using namespace link_creation_agent;
 using namespace std;
@@ -43,35 +43,21 @@ LinkCreationService::~LinkCreationService() {
 void LinkCreationService::save_cache() {
     ofstream file(metta_file_path + "/" + "cache");
     if (file.is_open()) {
-        // NOTE to Reviewer: leaving this code commented out for now, not sure if it's a bug or
-        // I'm not using correctly, but this approach only saves one key and not all the keys.
-        //
-        // answer_cache->traverse(
-        //     false,
-        //     [](HandleTrie::TrieNode* node, void* data) {
-        //         ofstream* file = static_cast<ofstream*>(data);
-        //         if (node->value != NULL) {
-        //             *file << node->suffix << ": ";
-        //             LOG_DEBUG("Saving cache entry: " << node->suffix);
-        //             ProcessorTypeValue* types = static_cast<ProcessorTypeValue*>(node->value);
-        //             for (const auto& type : types->processor_types) {
-        //                 *file << static_cast<int>(type) << " ";
-        //             }
-        //             *file << endl;
-        //         }
-        //         return true;
-        //     },
-        //     &file);
-        for (const auto& key : answer_cache_keys) {
-            file << key << ": ";
-            ProcessorTypeValue* types = dynamic_cast<ProcessorTypeValue*>(answer_cache->lookup(key));
-            if (types) {
-                for (const auto& type : types->processor_types) {
-                    file << static_cast<int>(type) << " ";
+        answer_cache->traverse(
+            false,
+            [](HandleTrie::TrieNode* node, void* data) {
+                ofstream* file = static_cast<ofstream*>(data);
+                if (node->value != NULL) {
+                    *file << node->suffix << ": ";
+                    LOG_DEBUG("Saving cache entry: " << node->suffix);
+                    ProcessorTypeValue* types = static_cast<ProcessorTypeValue*>(node->value);
+                    for (const auto& type : types->processor_types) {
+                        *file << static_cast<int>(type) << " ";
+                    }
+                    *file << endl;
                 }
-            }
-            file << endl;
-        }
+            },
+            &file);
         file.close();
     } else {
         LOG_ERROR("Error opening file: " << metta_file_path + "/" + "cache");
@@ -107,12 +93,13 @@ void LinkCreationService::load_cache() {
 }
 
 string LinkCreationService::query_answer_hash(shared_ptr<QueryAnswer> query_answer) {
-    vector<string> variables;
-    for (auto& var : query_answer->assignment.table) {
-        variables.push_back(var.second);
-    }
-    auto key = Utils::join(variables, ',');
-    return compute_hash((char*) key.c_str());
+    return Hasher::composite_handle(query_answer->handles);
+    // vector<string> variables;
+    // for (auto& var : query_answer->assignment.table) {
+    //     variables.push_back(var.second);
+    // }
+    // auto key = Utils::join(variables, ',');
+    // return compute_hash((char*) key.c_str());
 }
 
 bool LinkCreationService::is_cached(shared_ptr<QueryAnswer> query_answer, ProcessorType type) {
