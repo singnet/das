@@ -12,8 +12,14 @@ jobs:
   format-check:
     uses: ./.github/workflows/run-format-check.yaml
 
-  unit-tests:
+  coverage-check:
     needs: format-check
+    uses: ./.github/workflows/run-coverage-check.yml
+    with:
+      runner: self-hosted-withcache
+
+  unit-tests:
+    needs: coverage-check
     uses: ./.github/workflows/run-unit-tests.yml
     with:
       runner: self-hosted-withcache

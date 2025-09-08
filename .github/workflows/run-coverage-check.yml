@@ -1,4 +1,4 @@
-name: Unit Tests
+name: Coverage Check
 
 on:
   workflow_call:
@@ -8,7 +8,7 @@ on:
         type: string
 
 jobs:
-  unit-tests:
+  coverage-check:
     runs-on: ${{ inputs.runner }}
     env:
       DAS_REDIS_HOSTNAME: localhost
@@ -61,8 +61,8 @@ jobs:
       - name: Starting Redis and MongoDB
         run: das-cli db start
 
-      - name: Build source code
-        run: make build-all
+      - name: Load Knowledge Base
+        run: das-cli metta load /tmp/animals.metta
 
       - name: Starting Attention Broker
         run: das-cli attention-broker start
@@ -78,5 +78,5 @@ jobs:
           
           make mork-loader FILE="/tmp/animals.metta"
 
-      - name: Execute Unit Test Suite
-        run: make test-all
+      - name: Execute Coverage check
+        run: make test-coverage-check

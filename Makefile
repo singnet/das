@@ -1,3 +1,6 @@
+TEST_TARGET = //...
+COVERAGE_REPORT = coverage_html
+
 # release: build-deployment
 # 	@docker run --rm -it -v ${HOME}/.ssh:/root/.ssh:ro -v $(CURDIR)/scripts:/opt/scripts das-deployment:latest /opt/scripts/deployment/release.sh
 
@@ -119,6 +122,21 @@ format-check:
 
 performance-tests:
 	@python3 src/tests/integration/performance/query_agent_metrics.py
+
+test-coverage-check: build-image
+	@mkdir -p ./bin
+	@docker run --rm \
+		--user="$$(id -u):$$(id -g)" \
+		--volume /etc/passwd:/etc/passwd:ro \
+		--privileged \
+		--name="das-bazel-coverage-$$(date +%s)" \
+		--network=host \
+		--volume "$(HOME)/.cache/das:$(HOME)/.cache" \
+		--volume "$(PWD):/opt/das" \
+		--volume "/tmp:/tmp" \
+		--workdir "/opt/das/src" \
+		das-builder \
+		./scripts/bazel_coverage_check.sh
 
 # Catch-all pattern to prevent make from complaining about unknown targets
 %:

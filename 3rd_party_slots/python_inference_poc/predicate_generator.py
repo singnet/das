@@ -75,13 +75,14 @@ def letter_predicate(sentences, token=None, letter=None, letter_percent=0.6, per
     show_log = kwargs.get('show_log', True)
     if show_log:
         print(f"### Running letter predicate with token: {token}, letter: {letter}, letter_percent: {letter_percent}, percentage: {percentage}, sentences: {len(sentences)}")
+    predicate_name = str(token).format(letter=letter, letter_percent=letter_percent)
     predicates = []
     for sentence in sentences:
         parsed_sentence = ''.join(sentence.replace(' ', '').split('"')[1:-1])
         count_letter = parsed_sentence.count(letter)
         if count_letter > 0 and count_letter / len(parsed_sentence) >= letter_percent:
             if random.random() < percentage:
-                predicates.append(f'(EVALUATION (PREDICATE "{token}") (CONCEPT {sentence}))')
+                predicates.append(f'(EVALUATION (PREDICATE "{predicate_name}") (CONCEPT {sentence}))')
     return predicates
 
 def wildcard_predicate(sentences, token=None, wildcards=None, percentage=0.8, **kwargs):
@@ -93,13 +94,14 @@ def wildcard_predicate(sentences, token=None, wildcards=None, percentage=0.8, **
     if show_log:
         print(f"### Running wildcard predicate with token: {token}, wildcards: {wildcards}, percentage: {percentage}")
     predicates = []
+    predicate_name = str(token).replace('*', '_'.join([w.replace('*', '') for w in wildcards]))
     for sentence in sentences:
         split_sentence = sentence[:-1].replace('"', '').split(' ')[1:]
         for s in split_sentence:
             for wildcard in wildcards:
                 if re.match(wildcard.replace('*', '.'), s):
                     if random.random() < percentage:
-                        predicates.append(f'(EVALUATION (PREDICATE "{token}") (CONCEPT {sentence}))')
+                        predicates.append(f'(EVALUATION (PREDICATE "{predicate_name}") (CONCEPT {sentence}))')
                     break
     return predicates
 
@@ -113,12 +115,13 @@ def start_end_predicate(sentences, token=None, start_letter=None, end_letter=Non
     if show_log:
         print(f"### Running start-end predicate with token: {token}, start_letter: {start_letter}, end_letter: {end_letter}, percentage: {percentage}")
     predicates = []
+    predicate_name = str(token).format(start_letter=start_letter, end_letter=end_letter)
     for sentence in sentences:
         split_sentence = sentence[:-1].replace('"', '').split(' ')[1:]
         for s in split_sentence:
             if s.startswith(start_letter) and s.endswith(end_letter):
                 if random.random() < percentage:
-                    predicates.append(f'(EVALUATION (PREDICATE "{token}") (CONCEPT {sentence}))')
+                    predicates.append(f'(EVALUATION (PREDICATE "{predicate_name}") (CONCEPT {sentence}))')
                     break
     return predicates
 
@@ -131,6 +134,7 @@ def low_diversity_predicate(sentences, token=None, letters=None, percentage=0.8,
     if show_log:
         print(f"### Running low-diversity predicate with token: {token}, letters: {letters}, percentage: {percentage}")
     predicates = []
+    predicate_name = str(token).format(letters='_'.join(letters))
     for sentence in sentences:
         parsed_sentence = ''.join(sentence.replace(' ', '').split('"')[1:-1])
         letter_count = 0
@@ -138,7 +142,7 @@ def low_diversity_predicate(sentences, token=None, letters=None, percentage=0.8,
             if parsed_sentence.count(letter) > 0:
                 letter_count += 1
         if letter_count <= len(letters) / 2 and random.random() < percentage:
-            predicates.append(f'(EVALUATION (PREDICATE "{token}") (CONCEPT {sentence}))')
+            predicates.append(f'(EVALUATION (PREDICATE "{predicate_name}") (CONCEPT {sentence}))')
 
     return predicates
 
@@ -205,9 +209,11 @@ def create_predicates(args, predicate_funcs, sentence_count):
         sentence = generator.generate_sentence()
         sentence_counting += 1
         predicates_list = []
+        metta_sentence = word_list_to_sentence(sentence)
         for predicate_func in predicate_funcs:
-            preds = list(predicate_func([word_list_to_sentence(sentence)], **vars(args)))
+            preds = list(predicate_func([metta_sentence], **vars(args)))
             if not preds:
+                predicates_list = []
                 break
             predicates_list.extend(preds)
         if len(predicates_list) == len(predicate_funcs):
