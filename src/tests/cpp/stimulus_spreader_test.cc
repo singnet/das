@@ -205,7 +205,7 @@ TEST(TokenSpreader, spread_stimuli) {
                 LOG_DEBUG("weight[" + std::to_string(i) + "][" + std::to_string(j) + "]: " + std::to_string(weight[i][j]));
             }
         }
-        LOG_DEBUG("sum_weight[" + std::to_string(i + "]: " + std::to_string(sum_weight[i]));
+        LOG_DEBUG("sum_weight[" + std::to_string(i) + "]: " + std::to_string(sum_weight[i]));
     }
 
     double received[6] = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
