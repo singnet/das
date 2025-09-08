@@ -1,10 +1,10 @@
 #include "QueryEvolutionProcessor.h"
 
 #include "AttentionBrokerClient.h"
+#include "Hasher.h"
 #include "LinkSchema.h"
 #include "QueryEvolutionProxy.h"
 #include "ServiceBus.h"
-#include "Hasher.h"
 #include "ServiceBusSingleton.h"
 
 #define LOG_LEVEL INFO_LEVEL
@@ -79,7 +79,8 @@ shared_ptr<PatternMatchingQueryProxy> QueryEvolutionProcessor::issue_sampling_qu
     auto pm_proxy =
         make_shared<PatternMatchingQueryProxy>(proxy->get_query_tokens(), proxy->get_context());
     pm_proxy->parameters[BaseQueryProxy::UNIQUE_ASSIGNMENT_FLAG] = true;
-    pm_proxy->parameters[BaseQueryProxy::ATTENTION_UPDATE_FLAG] = false;  // (this->generation_count == 1);
+    pm_proxy->parameters[BaseQueryProxy::ATTENTION_UPDATE_FLAG] =
+        false;  // (this->generation_count == 1);
     pm_proxy->parameters[BaseQueryProxy::USE_LINK_TEMPLATE_CACHE] = false;
     pm_proxy->parameters[PatternMatchingQueryProxy::POSITIVE_IMPORTANCE_FLAG] = false;
     pm_proxy->parameters[BaseQueryProxy::USE_METTA_AS_QUERY_TOKENS] =
@@ -96,7 +97,8 @@ shared_ptr<PatternMatchingQueryProxy> QueryEvolutionProcessor::issue_correlation
     pm_proxy->parameters[BaseQueryProxy::UNIQUE_ASSIGNMENT_FLAG] = true;
     pm_proxy->parameters[BaseQueryProxy::ATTENTION_UPDATE_FLAG] = false;
     pm_proxy->parameters[BaseQueryProxy::USE_LINK_TEMPLATE_CACHE] = false;
-    pm_proxy->parameters[PatternMatchingQueryProxy::POSITIVE_IMPORTANCE_FLAG] = false; //(this->generation_count > 1);
+    pm_proxy->parameters[PatternMatchingQueryProxy::POSITIVE_IMPORTANCE_FLAG] =
+        false;  //(this->generation_count > 1);
     pm_proxy->parameters[BaseQueryProxy::USE_METTA_AS_QUERY_TOKENS] =
         proxy->parameters.get<bool>(BaseQueryProxy::USE_METTA_AS_QUERY_TOKENS);
     pm_proxy->parameters[PatternMatchingQueryProxy::MAX_ANSWERS] =
@@ -287,7 +289,6 @@ float eval_word(const string& handle, string& word) {
 
 void QueryEvolutionProcessor::correlate_similar(shared_ptr<QueryEvolutionProxy> proxy,
                                                 shared_ptr<QueryAnswer> correlation_query_answer) {
-
     vector<string> query_tokens;
     unsigned int cursor = 0;
     vector<string> original_tokens = proxy->get_correlation_tokens();
@@ -422,7 +423,11 @@ void QueryEvolutionProcessor::evolve_query(shared_ptr<StoppableThread> monitor,
     }
     proxy->flush_answer_bundle();
     LOG_INFO("Total number of visited individuals: " + std::to_string(this->visited_individuals.size()));
-    LOG_INFO("Average renew rate per generation: " + std::to_string((double) this->visited_individuals.size() / ((double) proxy->parameters.get<unsigned int>(QueryEvolutionProxy::POPULATION_SIZE) * (this->generation_count - 1))));
+    LOG_INFO("Average renew rate per generation: " +
+             std::to_string(
+                 (double) this->visited_individuals.size() /
+                 ((double) proxy->parameters.get<unsigned int>(QueryEvolutionProxy::POPULATION_SIZE) *
+                  (this->generation_count - 1))));
     STOP_WATCH_FINISH(evolution, "QueryEvolution");
     RAM_FOOTPRINT_FINISH(evolution, "");
     Utils::sleep(1000);

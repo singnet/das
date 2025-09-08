@@ -113,7 +113,7 @@ Status AttentionBrokerServer::asymmetric_correlate(ServerContext* grpc_context,
                                                    const dasproto::HandleList* request,
                                                    dasproto::Ack* reply) {
     LOG_INFO("Correlating (asymmetric) " << request->list_size()
-                            << " handles in context: '" + request->context() + "'");
+                                         << " handles in context: '" + request->context() + "'");
     if (request->list_size() > 1) {
         HebbianNetwork* network = select_hebbian_network(request->context());
         ((dasproto::HandleList*) request)->set_hebbian_network((long) network);

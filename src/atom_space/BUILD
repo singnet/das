@@ -26,9 +26,9 @@ cc_library(
     hdrs = ["Context.h"],
     includes = ["."],
     deps = [
+        "//agents/query_engine:pattern_matching_query_proxy",
         "//atomdb:atomdb_singleton",
         "//attention_broker:attention_broker_client",
-        "//agents/query_engine:pattern_matching_query_proxy",
         "//commons/atoms:atoms_lib",
         "//hasher:hasher_lib",
         "//service_bus:service_bus_lib",

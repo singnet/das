@@ -161,10 +161,11 @@ shared_ptr<Context> AtomSpace::create_context(const string& context_name) {
     return shared_ptr<Context>(context);
 }
 
-shared_ptr<Context> AtomSpace::create_context(const string& context_name,
-                                              const vector<string>& query,
-                                              const vector<pair<QueryAnswerElement, QueryAnswerElement>> determiner_schema,
-                                              vector<QueryAnswerElement> stimulus_schema) {
+shared_ptr<Context> AtomSpace::create_context(
+    const string& context_name,
+    const vector<string>& query,
+    const vector<pair<QueryAnswerElement, QueryAnswerElement>> determiner_schema,
+    vector<QueryAnswerElement> stimulus_schema) {
     Context* context = new Context(context_name, query, determiner_schema, stimulus_schema);
     return shared_ptr<Context>(context);
 }

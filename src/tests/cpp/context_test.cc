@@ -28,14 +28,14 @@ TEST(Context, basics) {
     shared_ptr<AtomDB> db = AtomDBSingleton::get_instance();
     random_init();
 
-    string node1 = Hasher::node_handle("Symbol", "\"human\"");               // 0
-    string node2 = Hasher::node_handle("Symbol", "\"monkey\"");              // 1
-    string node3 = Hasher::node_handle("Symbol", "\"chimp\"");               // 2
-    string node4 = Hasher::node_handle("Symbol", "\"ent\"");                 // 3
-    string node5 = Hasher::node_handle("Symbol", "Similarity");              // 4
-    string link1 = Hasher::link_handle("Expression", {node5, node1, node2}); // 5
-    string link2 = Hasher::link_handle("Expression", {node5, node1, node3}); // 6
-    string link3 = Hasher::link_handle("Expression", {node5, node1, node4}); // 7
+    string node1 = Hasher::node_handle("Symbol", "\"human\"");                // 0
+    string node2 = Hasher::node_handle("Symbol", "\"monkey\"");               // 1
+    string node3 = Hasher::node_handle("Symbol", "\"chimp\"");                // 2
+    string node4 = Hasher::node_handle("Symbol", "\"ent\"");                  // 3
+    string node5 = Hasher::node_handle("Symbol", "Similarity");               // 4
+    string link1 = Hasher::link_handle("Expression", {node5, node1, node2});  // 5
+    string link2 = Hasher::link_handle("Expression", {node5, node1, node3});  // 6
+    string link3 = Hasher::link_handle("Expression", {node5, node1, node4});  // 7
 
     vector<string> tokens = {"LINK_TEMPLATE",
                              "Expression",

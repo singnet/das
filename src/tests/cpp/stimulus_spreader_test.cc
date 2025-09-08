@@ -4,10 +4,10 @@
 #include "AttentionBrokerServer.h"
 #include "HebbianNetwork.h"
 #include "HebbianNetworkUpdater.h"
+#include "Logger.h"
 #include "StimulusSpreader.h"
 #include "attention_broker.grpc.pb.h"
 #include "attention_broker.pb.h"
-#include "Logger.h"
 #include "common.pb.h"
 #include "expression_hasher.h"
 #include "gtest/gtest.h"
@@ -202,7 +202,8 @@ TEST(TokenSpreader, spread_stimuli) {
     for (unsigned int i = 0; i < 6; i++) {
         for (unsigned int j = 0; j < 6; j++) {
             if (i != j) {
-                LOG_DEBUG("weight[" + std::to_string(i) + "][" + std::to_string(j) + "]: " + std::to_string(weight[i][j]));
+                LOG_DEBUG("weight[" + std::to_string(i) + "][" + std::to_string(j) +
+                          "]: " + std::to_string(weight[i][j]));
             }
         }
         LOG_DEBUG("sum_weight[" + std::to_string(i) + "]: " + std::to_string(sum_weight[i]));
@@ -214,7 +215,8 @@ TEST(TokenSpreader, spread_stimuli) {
             if (i != j) {
                 double weight_ratio = weight[i][j] / sum_weight[i];
                 double stimulus = weight_ratio * to_spread[i];
-                LOG_DEBUG("stimulus[" + std::to_string(i) + "][" + std::to_string(j) + "]: " + std::to_string(stimulus));
+                LOG_DEBUG("stimulus[" + std::to_string(i) + "][" + std::to_string(j) +
+                          "]: " + std::to_string(stimulus));
                 received[j] += stimulus;
             }
         }

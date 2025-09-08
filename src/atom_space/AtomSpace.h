@@ -187,10 +187,11 @@ class AtomSpace {
      */
     shared_ptr<Context> create_context(const string& context_name, Atom& atom_key);
 
-    shared_ptr<Context> create_context(const string& context_name, 
-                                       const vector<string>& query,
-                                       const vector<pair<QueryAnswerElement, QueryAnswerElement>> determiner_schema,
-                                       vector<QueryAnswerElement> stimulus_schema);
+    shared_ptr<Context> create_context(
+        const string& context_name,
+        const vector<string>& query,
+        const vector<pair<QueryAnswerElement, QueryAnswerElement>> determiner_schema,
+        vector<QueryAnswerElement> stimulus_schema);
 
     /**
      * Create and return a context object passing UntypedVariable (which matches everything) as atom key.

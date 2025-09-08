@@ -1,15 +1,15 @@
 #include "Context.h"
 
 #define LOG_LEVEL INFO_LEVEL
-#include "Logger.h"
-#include "AtomDBSingleton.h"
-#include "AttentionBrokerClient.h"
-#include "ServiceBusSingleton.h"
-#include "PatternMatchingQueryProxy.h"
-#include "Hasher.h"
-
 #include <fstream>
 #include <iostream>
+
+#include "AtomDBSingleton.h"
+#include "AttentionBrokerClient.h"
+#include "Hasher.h"
+#include "Logger.h"
+#include "PatternMatchingQueryProxy.h"
+#include "ServiceBusSingleton.h"
 
 using namespace atom_space;
 using namespace atoms;
@@ -25,7 +25,7 @@ using namespace commons;
 Context::Context(const string& name, Atom& atom_key) {
     // Toplevel Atom
     init(name);
-    if (! this->cached) {
+    if (!this->cached) {
         string ID = RedisMongoDB::MONGODB_FIELD_NAME[MONGODB_FIELD::ID];
         string TARGETS = RedisMongoDB::MONGODB_FIELD_NAME[MONGODB_FIELD::TARGETS];
         string TYPE = RedisMongoDB::MONGODB_FIELD_NAME[MONGODB_FIELD::NAMED_TYPE];
@@ -48,10 +48,13 @@ Context::Context(const string& name, Atom& atom_key) {
     update_attention_broker();
 }
 
-Context::Context(const string& name, const vector<string>& query, const vector<pair<QueryAnswerElement, QueryAnswerElement>> determiner_schema, vector<QueryAnswerElement> stimulus_schema) {
+Context::Context(const string& name,
+                 const vector<string>& query,
+                 const vector<pair<QueryAnswerElement, QueryAnswerElement>> determiner_schema,
+                 vector<QueryAnswerElement> stimulus_schema) {
     // Query
     init(name);
-    if (! this->cached) {
+    if (!this->cached) {
         auto proxy = make_shared<PatternMatchingQueryProxy>(query, this->key);
         proxy->parameters[BaseQueryProxy::UNIQUE_ASSIGNMENT_FLAG] = true;
         proxy->parameters[BaseQueryProxy::ATTENTION_UPDATE_FLAG] = false;
@@ -67,14 +70,16 @@ Context::Context(const string& name, const vector<string>& query, const vector<p
             shared_ptr<QueryAnswer> answer = proxy->pop();
             if (answer != NULL) {
                 for (auto pair : determiner_schema) {
-                    this->determiner_request.push_back({answer->get(pair.first), answer->get(pair.second)});
+                    this->determiner_request.push_back(
+                        {answer->get(pair.first), answer->get(pair.second)});
                 }
                 for (auto element : stimulus_schema) {
                     this->to_stimulate[answer->get(element)] = 1;
                 }
 #if LOG_LEVEL >= DEBUG_LEVEL
-                if (! (++count_query_answer % 100000)) {
-                    LOG_DEBUG("Number of QueryAnswer objects processed so far: " + std::to_string(count_query_answer));
+                if (!(++count_query_answer % 100000)) {
+                    LOG_DEBUG("Number of QueryAnswer objects processed so far: " +
+                              std::to_string(count_query_answer));
                 }
 #endif
             } else {
@@ -109,13 +114,13 @@ void Context::cache_write() {
     }
 
     file << this->to_stimulate.size() << endl;
-    for (auto pair: this->to_stimulate) {
+    for (auto pair : this->to_stimulate) {
         file << pair.first << endl;
     }
     file << this->determiner_request.size() << endl;
-    for (auto sub_vector: this->determiner_request) {
+    for (auto sub_vector : this->determiner_request) {
         file << sub_vector.size() << endl;
-        for (string handle: sub_vector) {
+        for (string handle : sub_vector) {
             file << handle << endl;
         }
     }
@@ -124,13 +129,12 @@ void Context::cache_write() {
 }
 
 static inline void read_line(ifstream& file, string& line) {
-    if (! getline(file, line)) {
+    if (!getline(file, line)) {
         Utils::error("Error reading a line from cache file");
     }
 }
 
 bool Context::cache_read() {
-
     ifstream file(this->cache_file_name);
     if (file.is_open()) {
         LOG_INFO("Reading Context info from cache file: " + this->cache_file_name);

@@ -18,10 +18,7 @@ namespace query_engine {
 
 class QueryAnswerElement {
    public:
-    enum ElementType {
-        HANDLE,
-        VARIABLE
-    };
+    enum ElementType { HANDLE, VARIABLE };
     ElementType type;
     unsigned int index;
     string name;

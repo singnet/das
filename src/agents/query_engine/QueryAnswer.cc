@@ -234,7 +234,7 @@ void QueryAnswer::untokenize(const string& tokens) {
 
 string QueryAnswer::get(const QueryAnswerElement& element_key) {
     string answer = "";
-    switch(element_key.type) {
+    switch (element_key.type) {
         case QueryAnswerElement::HANDLE: {
             if (element_key.index < this->handles.size()) {
                 answer = this->handles[element_key.index];
@@ -250,8 +250,8 @@ string QueryAnswer::get(const QueryAnswerElement& element_key) {
             }
             break;
         }
-        default: Utils::error("Invalid QueryAnswerElement type: " + std::to_string(element_key.type));
+        default:
+            Utils::error("Invalid QueryAnswerElement type: " + std::to_string(element_key.type));
     }
     return answer;
 }
-

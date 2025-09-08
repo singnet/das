@@ -122,7 +122,8 @@ class ExactCountHebbianUpdater : public HebbianNetworkUpdater {
      *
      * @param request A list of handles of atoms which appeared in the same query answer.
      */
-    void asymmetric_correlation(const dasproto::HandleList* request); /// Process a correlation evidence.
+    void asymmetric_correlation(
+        const dasproto::HandleList* request);  /// Process a correlation evidence.
 };
 
 }  // namespace attention_broker

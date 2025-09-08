@@ -243,16 +243,13 @@ void run(const string& client_id,
 
     LOG_INFO("Setting up context");
     AtomSpace atom_space;
-    //LinkSchema context_key(context1);
-    //auto context = atom_space.create_context(context_tag, context_key);
+    // LinkSchema context_key(context1);
+    // auto context = atom_space.create_context(context_tag, context_key);
     QueryAnswerElement sentence_link("sentence1");
     QueryAnswerElement word_link("word1");
     QueryAnswerElement contains_link(0);
     auto context = atom_space.create_context(
-        context_tag,
-        context1,
-        {{contains_link, sentence_link}, {sentence_link, word_link}},
-        {});
+        context_tag, context1, {{contains_link, sentence_link}, {sentence_link, word_link}}, {});
     string context_str = context->get_key();
     LOG_INFO("Context " + context_str + " is ready");
 
