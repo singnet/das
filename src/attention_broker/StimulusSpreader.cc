@@ -205,4 +205,5 @@ void TokenSpreader::spread_stimuli(const dasproto::HandleCount* request) {
     LOG_LOCAL_DEBUG("Importances after consolidate_stimulus()");
     network->visit_nodes(true, &print_importance, (void*) &data);
 #endif
+    delete data.importance_changes;
 }
