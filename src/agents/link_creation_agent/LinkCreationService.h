@@ -9,6 +9,7 @@
 #include <shared_mutex>
 
 #include "EquivalenceProcessor.h"
+#include "HandleTrie.h"
 #include "ImplicationProcessor.h"
 #include "LCAQueue.h"
 #include "LinkCreationAgentRequest.h"
@@ -18,6 +19,8 @@
 #include "ServiceBusSingleton.h"
 #include "TemplateProcessor.h"
 #include "ThreadPool.h"
+
+#define ANSWER_CACHE_KEY_SIZE ((unsigned int) 32)
 
 using namespace query_engine;
 using namespace std;
@@ -72,13 +75,20 @@ class LinkCreationService
     shared_ptr<EquivalenceProcessor> equivalence_processor;
     shared_ptr<mutex> query_agent_mutex;
     Queue<tuple<string, shared_ptr<Link>>> link_creation_queue;
+    HandleTrie* answer_cache;
     bool is_stoping = false;
     thread create_link_thread;
     set<string> metta_expression_set;
     bool save_links_to_metta_file = false;
     bool save_links_to_db = false;
-
     int timeout = 300 * 1000;
+
+    class ProcessorTypeValue : public HandleTrie::TrieValue {
+       public:
+        set<ProcessorType> processor_types;
+        ProcessorTypeValue() {}
+        void merge(TrieValue* other) {}
+    };
 
     /**
      * @brief Create a link, this will be called by the thread pool
@@ -86,7 +96,13 @@ class LinkCreationService
     void create_links();
     vector<shared_ptr<Link>> process_query_answer(shared_ptr<QueryAnswer> query_answer,
                                                   vector<string> params,
-                                                  vector<string> link_template);
+                                                  vector<string> link_template,
+                                                  int& cached_count);
+    void save_cache();
+    void load_cache();
+    bool is_cached(shared_ptr<QueryAnswer> query_answer, ProcessorType type);
+    void set_cache(shared_ptr<QueryAnswer> query_answer, ProcessorType type);
+    string query_answer_hash(shared_ptr<QueryAnswer> query_answer);
 };
 
 }  // namespace link_creation_agent
