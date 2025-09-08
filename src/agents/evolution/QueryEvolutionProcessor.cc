@@ -7,7 +7,7 @@
 #include "Hasher.h"
 #include "ServiceBusSingleton.h"
 
-#define LOG_LEVEL DEBUG_LEVEL
+#define LOG_LEVEL INFO_LEVEL
 #include "Logger.h"
 
 using namespace evolution;
@@ -79,8 +79,7 @@ shared_ptr<PatternMatchingQueryProxy> QueryEvolutionProcessor::issue_sampling_qu
     auto pm_proxy =
         make_shared<PatternMatchingQueryProxy>(proxy->get_query_tokens(), proxy->get_context());
     pm_proxy->parameters[BaseQueryProxy::UNIQUE_ASSIGNMENT_FLAG] = true;
-    pm_proxy->parameters[BaseQueryProxy::ATTENTION_UPDATE_FLAG] =
-        false;  // (this->generation_count == 1);
+    pm_proxy->parameters[BaseQueryProxy::ATTENTION_UPDATE_FLAG] = false;  // (this->generation_count == 1);
     pm_proxy->parameters[BaseQueryProxy::USE_LINK_TEMPLATE_CACHE] = false;
     pm_proxy->parameters[PatternMatchingQueryProxy::POSITIVE_IMPORTANCE_FLAG] = false;
     pm_proxy->parameters[BaseQueryProxy::USE_METTA_AS_QUERY_TOKENS] =
@@ -97,8 +96,7 @@ shared_ptr<PatternMatchingQueryProxy> QueryEvolutionProcessor::issue_correlation
     pm_proxy->parameters[BaseQueryProxy::UNIQUE_ASSIGNMENT_FLAG] = true;
     pm_proxy->parameters[BaseQueryProxy::ATTENTION_UPDATE_FLAG] = false;
     pm_proxy->parameters[BaseQueryProxy::USE_LINK_TEMPLATE_CACHE] = false;
-    pm_proxy->parameters[PatternMatchingQueryProxy::POSITIVE_IMPORTANCE_FLAG] =
-        (this->generation_count > 1);
+    pm_proxy->parameters[PatternMatchingQueryProxy::POSITIVE_IMPORTANCE_FLAG] = false; //(this->generation_count > 1);
     pm_proxy->parameters[BaseQueryProxy::USE_METTA_AS_QUERY_TOKENS] =
         proxy->parameters.get<bool>(BaseQueryProxy::USE_METTA_AS_QUERY_TOKENS);
     pm_proxy->parameters[PatternMatchingQueryProxy::MAX_ANSWERS] =
@@ -287,56 +285,6 @@ float eval_word(const string& handle, string& word) {
     }
 }
 
-/*
-void QueryEvolutionProcessor::correlate_similar(shared_ptr<QueryEvolutionProxy> proxy,
-                                                shared_ptr<QueryAnswer> correlation_query_answer) {
-    vector<string> query_tokens;
-    unsigned int cursor = 0;
-    vector<string> original_tokens = proxy->get_correlation_tokens();
-    set<string> variables = proxy->get_correlation_variables();
-    unsigned int size = original_tokens.size();
-
-    // Apply QueryAnswer's assignment to original tokens
-    while (cursor < size) {
-        string token = original_tokens[cursor++];
-        if (token == LinkSchema::UNTYPED_VARIABLE) {
-            if (cursor == size) {
-                Utils::error("Invalid correlation_tokens");
-                return;
-            }
-            token = original_tokens[cursor++];
-            if (variables.find(token) != variables.end()) {
-                string value = correlation_query_answer->assignment.get(token);
-                query_tokens.push_back(LinkSchema::ATOM);
-                query_tokens.push_back(value);
-            } else {
-                query_tokens.push_back(LinkSchema::UNTYPED_VARIABLE);
-                query_tokens.push_back(token);
-            }
-        } else {
-            query_tokens.push_back(token);
-        }
-    }
-
-    // Update AttentionBroker
-    set<string> handle_set;
-    handle_set.insert(correlation_query_answer->assignment.get("sentence1"));
-    auto pm_query = issue_correlation_query(proxy, query_tokens);
-    while (!pm_query->finished()) {
-        shared_ptr<QueryAnswer> answer = pm_query->pop();
-        string word;
-        if (answer != NULL) {
-            if (eval_word(answer->assignment.get("word1"), word) >= correlation_query_answer->strength) {
-                handle_set.insert(answer->assignment.get("sentence2"));
-            }
-        } else {
-            Utils::sleep();
-        }
-    }
-    AttentionBrokerClient::correlate(handle_set, proxy->get_context());
-}
-*/
-
 void QueryEvolutionProcessor::correlate_similar(shared_ptr<QueryEvolutionProxy> proxy,
                                                 shared_ptr<QueryAnswer> correlation_query_answer) {
 
@@ -377,7 +325,6 @@ void QueryEvolutionProcessor::correlate_similar(shared_ptr<QueryEvolutionProxy> 
         string word;
         if (answer != NULL) {
             if (eval_word(answer->assignment.get("word1"), word) >= correlation_query_answer->strength) {
-                LOG_DEBUG("Valid word: " + word);
                 handle_list.push_back(answer->assignment.get("word1"));
             }
         } else {
@@ -385,48 +332,6 @@ void QueryEvolutionProcessor::correlate_similar(shared_ptr<QueryEvolutionProxy> 
         }
     }
     AttentionBrokerClient::asymmetric_correlate(handle_list, proxy->get_context());
-
-    /*
-    auto db = AtomDBSingleton::get_instance();
-    vector<string> handle_list;
-    bool error_flag = false;
-    for (string handle : query_answer->handles) {
-        shared_ptr<Atom> atom = db->get_atom(handle);
-        handle_list.push_back(handle);
-        if (atom->arity() == 3) { // XXX
-            shared_ptr<Link> link = dynamic_pointer_cast<Link>(atom);
-            string word_handle = link->targets[2];
-            string word = link->targets[2];
-            if (eval_word(word_handle, word) >= query_answer->strength) {
-                handle_list.push_back(word_handle);
-            }
-        } else {
-            error_flag = true;
-            break;
-        }
-        AttentionBrokerClient::asymmetric_correlate(handle_list, proxy->get_context());
-        handle_list.clear();
-    }
-    if (error_flag) {
-        Utils::error("Invalid query answer: " query_answer->to_string());
-    }
-
-    // Update AttentionBroker
-    handle_set.insert(correlation_query_answer->assignment.get("sentence1"));
-    auto pm_query = issue_correlation_query(proxy, query_tokens);
-    while (!pm_query->finished()) {
-        shared_ptr<QueryAnswer> answer = pm_query->pop();
-        string word;
-        if (answer != NULL) {
-            if (eval_word(answer->assignment.get("word1"), word) >= correlation_query_answer->strength) {
-                handle_set.insert(answer->assignment.get("sentence2"));
-            }
-        } else {
-            Utils::sleep();
-        }
-    }
-    AttentionBrokerClient::correlate(handle_set, proxy->get_context());
-    */
 }
 
 void QueryEvolutionProcessor::stimulate(shared_ptr<QueryEvolutionProxy> proxy,
@@ -484,6 +389,7 @@ void QueryEvolutionProcessor::evolve_query(shared_ptr<StoppableThread> monitor,
     vector<std::pair<shared_ptr<QueryAnswer>, float>> population;
     vector<std::pair<shared_ptr<QueryAnswer>, float>> selected;
     this->generation_count = 1;
+    this->visited_individuals.clear();
     RAM_FOOTPRINT_START(evolution);
     STOP_WATCH_START(evolution);
     while (!monitor->stopped() && !proxy->stop_criteria_met()) {

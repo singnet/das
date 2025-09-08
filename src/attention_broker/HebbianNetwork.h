@@ -71,6 +71,16 @@ class HebbianNetwork {
             count += ((Node*) other)->count;
             importance += ((Node*) other)->importance;
         }
+        inline ImportanceType get_importance() {
+            ImportanceType answer = this->importance;
+            for (auto determiner : this->determiners) {
+                ImportanceType determiner_importance = determiner->get_importance();
+                if (determiner_importance > answer) {
+                    answer = determiner_importance;
+                }
+            }
+            return answer;
+        }
         string to_string();  /// String representation of this Node.
     };
 

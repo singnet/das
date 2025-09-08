@@ -67,6 +67,7 @@ void ExactCountHebbianUpdater::correlation(const dasproto::HandleList* request) 
             for (const string& s2 : ((dasproto::HandleList*) request)->list()) {
                 if (s1.compare(s2) < 0) {
                     node2 = network->lookup_node(s2);
+                    LOG_DEBUG("Adding symmetric correlation: " + s1 + " <--> " + s2);
                     network->add_symmetric_edge(s1, s2, node1, node2);
                 }
             }
@@ -85,8 +86,9 @@ void ExactCountHebbianUpdater::asymmetric_correlation(const dasproto::HandleList
         string s1 = ((dasproto::HandleList*) request)->list(0);
         node1 = network->lookup_node(s1);
         for (const string& s2 : ((dasproto::HandleList*) request)->list()) {
-            if (s1.compare(s2) < 0) {
+            if (s1.compare(s2)) {
                 node2 = network->lookup_node(s2);
+                LOG_DEBUG("Adding asymmetric correlation: " + s1 + " --> " + s2);
                 network->add_asymmetric_edge(s1, s2, node1, node2);
             }
         }

@@ -16,6 +16,19 @@ using namespace commons;
 
 namespace query_engine {
 
+class QueryAnswerElement {
+   public:
+    enum ElementType {
+        HANDLE,
+        VARIABLE
+    };
+    ElementType type;
+    unsigned int index;
+    string name;
+    QueryAnswerElement(unsigned int key) : type(HANDLE), index(key) {}
+    QueryAnswerElement(const string& key) : type(VARIABLE), name(key) {}
+};
+
 /**
  * This is a candidate answer for a query.
  *
@@ -158,6 +171,17 @@ class QueryAnswer {
      * production environment).
      */
     string to_string();
+
+    /**
+     * Returns the element indicated by the passed QueryAnswerElement key, it can be either one
+     * of the handles in the "handles" vector or the value assigned to one of the variables in
+     * "assignment". In the former, the key is the index of the handle in the vector and in the i
+     * later, the key is the name of the variable.
+     *
+     * @param element_key A key indicating which elem,ent is to be returned.
+     * $return The element indicated by the passed QueryAnswerElement key.
+     */
+    string get(const QueryAnswerElement& element_key);
 
    private:
     string token_representation;

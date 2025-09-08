@@ -5,6 +5,7 @@
 #include "Hasher.h"
 #include "Link.h"
 #include "LinkSchema.h"
+#include "Logger.h"
 #include "MettaMapping.h"
 #include "Node.h"
 #include "UntypedVariable.h"
@@ -293,7 +294,7 @@ void check_match(const string& test_tag,
                  const vector<shared_ptr<Atom>>& targets,
                  TestDecoder& db,
                  bool test_flag) {
-    cout << "XXX " << test_tag << endl;
+    LOG_INFO(test_tag);
     string symbol = MettaMapping::SYMBOL_NODE_TYPE;
     string expression = MettaMapping::EXPRESSION_LINK_TYPE;
     vector<string> v;

@@ -7,6 +7,7 @@
 #include "StimulusSpreader.h"
 #include "attention_broker.grpc.pb.h"
 #include "attention_broker.pb.h"
+#include "Logger.h"
 #include "common.pb.h"
 #include "expression_hasher.h"
 #include "gtest/gtest.h"
@@ -166,9 +167,8 @@ TEST(TokenSpreader, spread_stimuli) {
     double total_rent = rent * 6;
     double total_wages = total_rent;
 
-    cout << "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX" << endl;
-    cout << "XXX Expected total rent: " << total_rent << endl;
-    cout << "XXX Expected rent rate: " << AttentionBrokerServer::RENT_RATE << endl;
+    LOG_DEBUG("Expected total rent: " + std::to_string(total_rent));
+    LOG_DEBUG("Expected rent rate: " + std::to_string(AttentionBrokerServer::RENT_RATE));
 
     double wages[6];
     for (unsigned int i = 0; i < 6; i++) {
@@ -187,7 +187,7 @@ TEST(TokenSpreader, spread_stimuli) {
         double ub = AttentionBrokerServer::SPREADING_RATE_UPPERBOUND;
         double spreading_rate = lb + (arity_ratio * (ub - lb));
         to_spread[i] = updated[i] * spreading_rate;
-        cout << "XXX Total to spread: " << to_spread[i] << endl;
+        LOG_DEBUG("Total to spread: " + std::to_string(to_spread[i]));
     }
 
     double sum_weight[6] = {3.0, 3.0, 3.0, 3.0, 3.0, 3.0};
@@ -202,10 +202,10 @@ TEST(TokenSpreader, spread_stimuli) {
     for (unsigned int i = 0; i < 6; i++) {
         for (unsigned int j = 0; j < 6; j++) {
             if (i != j) {
-                cout << "XXX weight[" << i << "][" << j << "]: " << weight[i][j] << endl;
+                LOG_DEBUG("weight[" + std::to_string(i) + "][" + std::to_string(j) + "]: " + std::to_string(weight[i][j]));
             }
         }
-        cout << "XXX sum_weight[" << i << "]: " << sum_weight[i] << endl;
+        LOG_DEBUG("sum_weight[" + std::to_string(i + "]: " + std::to_string(sum_weight[i]));
     }
 
     double received[6] = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
@@ -214,7 +214,7 @@ TEST(TokenSpreader, spread_stimuli) {
             if (i != j) {
                 double weight_ratio = weight[i][j] / sum_weight[i];
                 double stimulus = weight_ratio * to_spread[i];
-                cout << "XXX stimulus[" << i << "][" << j << "]: " << stimulus << endl;
+                LOG_DEBUG("stimulus[" + std::to_string(i) + "][" + std::to_string(j) + "]: " + std::to_string(stimulus));
                 received[j] += stimulus;
             }
         }
@@ -224,7 +224,6 @@ TEST(TokenSpreader, spread_stimuli) {
     for (unsigned int i = 0; i < 6; i++) {
         expected_importance[i] = updated[i] - to_spread[i] + received[i];
     }
-    cout << "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX" << endl;
 
     // ----------------------------------------------------------
     // Compare result with expected result
