@@ -196,12 +196,10 @@ TEST_F(RedisMongoDBTest, MongodbDocumentGetSize) {
     string node9 = db2->add_node(new Node("Symbol", "9"));
     string node10 = db2->add_node(new Node("Symbol", "10"));
 
-    string link1 = db2->add_link(
-        new Link("Expression", {node1, node2, node3, node4, node5}));
-    string link2 = db2->add_link(
-        new Link("Expression", {node1, node2, node3, node4, node5, node6}));
-    string link3 = db2->add_link(
-        new Link("Expression", {node1, node2, node3, node4, node5, node6, node7, node8}));
+    string link1 = db2->add_link(new Link("Expression", {node1, node2, node3, node4, node5}));
+    string link2 = db2->add_link(new Link("Expression", {node1, node2, node3, node4, node5, node6}));
+    string link3 =
+        db2->add_link(new Link("Expression", {node1, node2, node3, node4, node5, node6, node7, node8}));
     string link4 = db2->add_link(
         new Link("Expression", {node1, node2, node3, node4, node5, node6, node7, node8, node9, node10}));
 
