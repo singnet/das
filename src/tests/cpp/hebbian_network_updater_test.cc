@@ -115,7 +115,7 @@ TEST(HebbianNetworkUpdater, determiners) {
     network->lookup_node(handles[3])->importance = 0.15;
     network->lookup_node(handles[4])->importance = 0.05;
 
-    EXPECT_TRUE(double_equals(network->get_node_importance(handles[0]), 0.2));
+    EXPECT_TRUE(double_equals(network->get_node_importance(handles[0]), 0.3));
     EXPECT_TRUE(double_equals(network->get_node_importance(handles[1]), 0.3));
     EXPECT_TRUE(double_equals(network->get_node_importance(handles[2]), 0.3));
     EXPECT_TRUE(double_equals(network->get_node_importance(handles[3]), 0.15));

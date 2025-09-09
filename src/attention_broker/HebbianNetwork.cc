@@ -74,16 +74,11 @@ unsigned int HebbianNetwork::get_node_count(string handle) {
 
 ImportanceType HebbianNetwork::get_node_importance(string handle) {
     Node* node = (Node*) nodes->lookup(handle);
-    ImportanceType answer = 0;
-    if (node != NULL) {
-        answer = node->importance;
-        for (auto determiner : node->determiners) {
-            if (determiner->importance > answer) {
-                answer = determiner->importance;
-            }
-        }
+    if (node == NULL) {
+        return 0;
+    } else {
+        return node->get_importance();
     }
-    return answer;
 }
 
 unsigned int HebbianNetwork::get_asymmetric_edge_count(string handle1, string handle2) {
