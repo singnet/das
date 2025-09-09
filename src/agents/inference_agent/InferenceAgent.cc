@@ -205,6 +205,15 @@ void InferenceAgent::process_inference_request(shared_ptr<InferenceProxy> proxy)
     if (proxy->get_args().empty()) {
         Utils::error("Empty inference request");
     }
+    LOG_DEBUG("Inference Request:");
+    LOG_DEBUG("  Request ID: " << request_id);
+    LOG_DEBUG("  Tokens: " << Utils::join(proxy->get_args(), ' '));
+    LOG_DEBUG(
+        "  Timeout: " << proxy->parameters.get<unsigned int>(InferenceProxy::INFERENCE_REQUEST_TIMEOUT));
+    LOG_DEBUG("  Max Results: " << proxy->parameters.get<unsigned int>(
+                  InferenceProxy::MAX_QUERY_ANSWERS_TO_PROCESS));
+    LOG_DEBUG(
+        "  Full Evaluation: " << proxy->parameters.get<bool>(InferenceProxy::RUN_FULL_EVALUATION_QUERY));
     auto inference_request = build_inference_request(proxy->get_args());
     inference_request->set_id(request_id);
     inference_request->set_timeout(
@@ -213,6 +222,8 @@ void InferenceAgent::process_inference_request(shared_ptr<InferenceProxy> proxy)
         proxy->parameters.get<unsigned int>(InferenceProxy::MAX_QUERY_ANSWERS_TO_PROCESS));
     inference_request->set_full_evaluation(
         proxy->parameters.get<bool>(InferenceProxy::RUN_FULL_EVALUATION_QUERY));
+    inference_request->set_lca_update_attention_broker(
+        proxy->parameters.get<bool>(InferenceProxy::UPDATE_ATTENTION_BROKER_FLAG));
     inference_request_queue.enqueue(inference_request);
     LOG_DEBUG("Inference request processed for request ID: " << request_id);
 }
