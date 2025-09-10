@@ -49,7 +49,6 @@ void LinkCreationService::save_cache() {
                 ofstream* file = static_cast<ofstream*>(data);
                 if (node->value != NULL) {
                     *file << node->suffix << ": ";
-                    LOG_DEBUG("Saving cache entry: " << node->suffix);
                     ProcessorTypeValue* types = static_cast<ProcessorTypeValue*>(node->value);
                     for (const auto& type : types->processor_types) {
                         *file << static_cast<int>(type) << " ";
