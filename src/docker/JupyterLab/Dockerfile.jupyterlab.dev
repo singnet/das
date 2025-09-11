@@ -1,0 +1,58 @@
+FROM python:3.10-slim-bookworm as os
+
+FROM os AS build
+
+RUN apt-get update && \
+    DEBIAN_FRONTEND=noninteractive \
+    TZ=UTC \
+    apt-get install -y sudo git curl cmake build-essential \
+        python3 python3-pip python3-venv \
+        pkg-config libssl-dev zlib1g-dev protobuf-compiler && \
+    rm -rf /var/lib/apt/lists/*
+
+RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs > /tmp/rustup.sh
+RUN sh /tmp/rustup.sh -y && rm /tmp/rustup.sh
+
+ENV PATH="/root/.cargo/bin:${PATH}"
+
+RUN cargo install cbindgen
+
+RUN python3 -m pip install --break-system-packages conan==2.16.1
+RUN conan profile detect --force
+
+ENV COMMIT_ID="714a06111367b264ca4b3c4ce71988548d3d5daf"
+
+WORKDIR /opt
+
+RUN git clone https://github.com/trueagi-io/hyperon-experimental.git \
+    && cd hyperon-experimental \
+    && git checkout ${COMMIT_ID}
+
+WORKDIR /opt/hyperon-experimental
+RUN cargo build --features python,git --release
+
+ENV BUILD=/opt/hyperon-experimental/build
+RUN mkdir ${BUILD}
+WORKDIR ${BUILD}
+RUN cmake -DCMAKE_BUILD_TYPE=Release ..
+RUN make
+RUN make check
+
+ENV HYPERONPY=${BUILD}/hyperonpy-install
+RUN mkdir ${HYPERONPY}
+RUN python3 -m pip install --prefix ${HYPERONPY} ../python
+
+FROM os
+
+ARG PORT=8888
+ENV PORT=${PORT}
+
+ENV BUILD=/opt/hyperon-experimental/build
+COPY --from=build ${BUILD}/hyperonpy-install /usr/local
+COPY --from=build ${BUILD}/../python/VERSION /root/version
+
+RUN pip install --break-system-packages jupyterlab
+
+EXPOSE ${PORT}
+
+CMD jupyter lab --ip=0.0.0.0 --port=${PORT} --no-browser --allow-root --NotebookApp.token='' --NotebookApp.password=''
