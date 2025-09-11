@@ -20,7 +20,8 @@ RUN cargo install cbindgen
 RUN python3 -m pip install --break-system-packages conan==2.16.1
 RUN conan profile detect --force
 
-ENV COMMIT_ID="714a06111367b264ca4b3c4ce71988548d3d5daf"
+ARG COMMIT_ID="714a06111367b264ca4b3c4ce71988548d3d5daf"
+ENV COMMIT_ID=${COMMIT_ID}
 
 WORKDIR /opt
 
