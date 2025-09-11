@@ -3,6 +3,7 @@ import random
 import re
 import time
 import json
+import itertools
 from metta_file_generator import NodeLinkGenerator, NodeLinkWriter
 
 def parse_args():
@@ -25,6 +26,10 @@ def parse_args():
     parser.add_argument("--low-diversity-predicate-token", type=str, default='feature_d', help="Token for low-diversity predicate")
     parser.add_argument("--low-diversity-predicate-letters", type=str, nargs='+', default=['a', 'b', 'c', 'd', 'e'], help="Letters for low-diversity predicate")
     parser.add_argument("--low-diversity-predicate-percentage", type=float, default=0.8, help="Randomness for low-diversity predicate")
+    parser.add_argument("--word-predicate-token", type=str, default='word_*', help="Token for word predicate, use * for numbering")
+    parser.add_argument("--word-predicate-percentage", type=float, default=0.8, help="Randomness for word predicate")
+    parser.add_argument("--word-predicate-alphabet-range", type=str, default="0-4", help="Alphabet range for word predicate, eg: 0-4")
+    parser.add_argument("--word-predicate-word-count", type=int, default=3, help="Number of words to match for word predicate")
     parser.add_argument("--bias-predicates", type=str, nargs='+', default=['letter-predicate', 'low-diversity-predicate'], help="Predicates to bias")
     parser.add_argument("--bias-strength", type=float, default=0.5, help="Strength of the bias")
     parser.add_argument("--bias-filename", type=str, default='bias.metta', help="Filename for biased predicates")
@@ -70,13 +75,14 @@ def letter_predicate(sentences, token=None, letter=None, letter_percent=0.6, per
     show_log = kwargs.get('show_log', True)
     if show_log:
         print(f"### Running letter predicate with token: {token}, letter: {letter}, letter_percent: {letter_percent}, percentage: {percentage}, sentences: {len(sentences)}")
+    predicate_name = str(token).format(letter=letter, letter_percent=letter_percent)
     predicates = []
     for sentence in sentences:
         parsed_sentence = ''.join(sentence.replace(' ', '').split('"')[1:-1])
         count_letter = parsed_sentence.count(letter)
         if count_letter > 0 and count_letter / len(parsed_sentence) >= letter_percent:
             if random.random() < percentage:
-                predicates.append(f'(EVALUATION (PREDICATE "{token}") (CONCEPT {sentence}))')
+                predicates.append(f'(EVALUATION (PREDICATE "{predicate_name}") (CONCEPT {sentence}))')
     return predicates
 
 def wildcard_predicate(sentences, token=None, wildcards=None, percentage=0.8, **kwargs):
@@ -88,13 +94,14 @@ def wildcard_predicate(sentences, token=None, wildcards=None, percentage=0.8, **
     if show_log:
         print(f"### Running wildcard predicate with token: {token}, wildcards: {wildcards}, percentage: {percentage}")
     predicates = []
+    predicate_name = str(token).replace('*', '_'.join([w.replace('*', '') for w in wildcards]))
     for sentence in sentences:
         split_sentence = sentence[:-1].replace('"', '').split(' ')[1:]
         for s in split_sentence:
             for wildcard in wildcards:
                 if re.match(wildcard.replace('*', '.'), s):
                     if random.random() < percentage:
-                        predicates.append(f'(EVALUATION (PREDICATE "{token}") (CONCEPT {sentence}))')
+                        predicates.append(f'(EVALUATION (PREDICATE "{predicate_name}") (CONCEPT {sentence}))')
                     break
     return predicates
 
@@ -108,12 +115,13 @@ def start_end_predicate(sentences, token=None, start_letter=None, end_letter=Non
     if show_log:
         print(f"### Running start-end predicate with token: {token}, start_letter: {start_letter}, end_letter: {end_letter}, percentage: {percentage}")
     predicates = []
+    predicate_name = str(token).format(start_letter=start_letter, end_letter=end_letter)
     for sentence in sentences:
         split_sentence = sentence[:-1].replace('"', '').split(' ')[1:]
         for s in split_sentence:
             if s.startswith(start_letter) and s.endswith(end_letter):
                 if random.random() < percentage:
-                    predicates.append(f'(EVALUATION (PREDICATE "{token}") (CONCEPT {sentence}))')
+                    predicates.append(f'(EVALUATION (PREDICATE "{predicate_name}") (CONCEPT {sentence}))')
                     break
     return predicates
 
@@ -126,6 +134,7 @@ def low_diversity_predicate(sentences, token=None, letters=None, percentage=0.8,
     if show_log:
         print(f"### Running low-diversity predicate with token: {token}, letters: {letters}, percentage: {percentage}")
     predicates = []
+    predicate_name = str(token).format(letters='_'.join(letters))
     for sentence in sentences:
         parsed_sentence = ''.join(sentence.replace(' ', '').split('"')[1:-1])
         letter_count = 0
@@ -133,9 +142,46 @@ def low_diversity_predicate(sentences, token=None, letters=None, percentage=0.8,
             if parsed_sentence.count(letter) > 0:
                 letter_count += 1
         if letter_count <= len(letters) / 2 and random.random() < percentage:
-            predicates.append(f'(EVALUATION (PREDICATE "{token}") (CONCEPT {sentence}))')
+            predicates.append(f'(EVALUATION (PREDICATE "{predicate_name}") (CONCEPT {sentence}))')
 
     return predicates
+
+WORDS = []
+
+def generate_words(word_length, alphabet_range):
+    global WORDS
+    if WORDS:
+        return WORDS
+    alphabet = [chr(97 + i) for i in range(int(alphabet_range.split('-')[0]), int(alphabet_range.split('-')[1]))]
+    WORDS = [''.join(p) for p in list(itertools.product(*[''.join(alphabet)]*word_length))]
+    return WORDS
+                
+
+def word_predicate(sentences, token=None, word_count=1, alphabet_range="0-4", percentage=0.1, **kwargs):
+    if kwargs:
+        token = kwargs.get('word_predicate_token', token)
+        word_count = kwargs.get('word_predicate_word_count', word_count)
+        alphabet_range = kwargs.get('word_predicate_alphabet_range', alphabet_range)
+        percentage = kwargs.get('word_predicate_percentage', percentage)
+        word_length = kwargs.get('word_length', 1)
+    show_log = kwargs.get('show_log', True)
+    if show_log:
+        print(f"### Running word predicate with token: {token}, word_count: {word_count}, alphabet_range: {alphabet_range}, percentage: {percentage}")
+    words = generate_words(word_length, alphabet_range)
+    predicates = []
+    for sentence in sentences:
+        split_sentence = sentence[:-1].replace('"', '').split(' ')[1:]
+        found_words = filter( lambda x: x in split_sentence, words)
+        if not found_words:
+            continue
+        found_words = list(found_words)
+        if len(found_words) ==  word_count:
+            if random.random() < percentage:
+                predicate_n = '_'.join(sorted(found_words))
+                predicate_token = token.replace('*', predicate_n)
+                predicates.append(f'(EVALUATION (PREDICATE "{predicate_token}") (CONCEPT {sentence}))')
+    return predicates
+        
 
 def word_list_to_sentence(word_list):
     sentence = ' '.join(word_list)
@@ -163,9 +209,11 @@ def create_predicates(args, predicate_funcs, sentence_count):
         sentence = generator.generate_sentence()
         sentence_counting += 1
         predicates_list = []
+        metta_sentence = word_list_to_sentence(sentence)
         for predicate_func in predicate_funcs:
-            preds = list(predicate_func([word_list_to_sentence(sentence)], **vars(args)))
+            preds = list(predicate_func([metta_sentence], **vars(args)))
             if not preds:
+                predicates_list = []
                 break
             predicates_list.extend(preds)
         if len(predicates_list) == len(predicate_funcs):
@@ -203,7 +251,8 @@ def generate_biased_predicates(args, predicate_lengths):
         'letter-predicate': letter_predicate,
         'wildcard-predicate': wildcard_predicate,
         'start-end-predicate': start_end_predicate,
-        'low-diversity-predicate': low_diversity_predicate
+        'low-diversity-predicate': low_diversity_predicate,
+        'word-predicate': word_predicate
     }
     bias_count = int(args.sentence_node_count * args.bias_strength)
     if args.bias_operator == 'and':
@@ -265,6 +314,17 @@ def main():
                                                        args.low_diversity_predicate_percentage)
     low_diversity_predicates_duration = time.time() - low_diversity_predicates_time
     predicates.extend(low_diversity_predicates)
+
+
+    word_predicates_time = time.time()
+    word_predicates = word_predicate(sentences,
+                                     args.word_predicate_token,
+                                     args.word_predicate_word_count,
+                                     args.word_predicate_alphabet_range,
+                                     args.word_predicate_percentage,
+                                     word_length=args.word_length)
+    word_predicates_duration = time.time() - word_predicates_time
+    predicates.extend(word_predicates)
     write_predicates(args.metta_filename, predicates, 
                      write_words_and_sentences=False, append=True)
     biased_predicates_time = time.time()
@@ -273,7 +333,8 @@ def main():
             'letter-predicate': len(letter_predicates),
             'wildcard-predicate': len(wildcard_predicates),
             'start-end-predicate': len(start_end_predicates),
-            'low-diversity-predicate': len(low_diversity_predicates)
+            'low-diversity-predicate': len(low_diversity_predicates),
+            'word-predicate': len(word_predicates)
         }
         biased_predicates = generate_biased_predicates(args, predicate_lengths)
         # predicates.extend(biased_predicates)
@@ -289,6 +350,7 @@ def main():
     print(f"Wildcard predicates: {len(wildcard_predicates)}")
     print(f"Start-end predicates: {len(start_end_predicates)}")
     print(f"Low-diversity predicates: {len(low_diversity_predicates)}")
+    print(f"Word predicates: {len(word_predicates)}")
     print(f"Biased predicates: {len(biased_predicates) if args.bias_strength > 0 else 0}")
     print("######################### Duration #########################")
     print(f"Read sentences duration: {read_sentences_duration:.2f} seconds")

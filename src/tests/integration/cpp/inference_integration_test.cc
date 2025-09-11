@@ -58,7 +58,7 @@ TEST_F(IntegrationTest, TestProofOfImplicationOrEquivalence) {
                              {"localhost:2500",
                               "localhost:" + this->query_agent_port,
                               "25000:26000",
-                              "PROOF_OF_IMPLICATION_OR_EQUIVALENCE",
+                              "PROOF_OF_IMPLICATION",
                               "8860480382d0ddf62623abf5c860e51d",
                               "8321bf987d14e3ccbf9aaa6dad1e4755",
                               "1",

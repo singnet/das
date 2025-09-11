@@ -134,17 +134,8 @@ bool MongodbDocument::contains(const string& key) {
 }
 
 unsigned int MongodbDocument::get_size(const string& array_key) {
-    // NOTE TO REVIEWER
-    // TODO: this implementation is wrong and need to be fixed before integration in das-atom-db
-    // I couldn't figure out a way to discover the number of elements in a BSON array.
-    // cout << "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX" << endl;
-    // cout << "XXXXXXXXXXXXXXXXXXX MongodbDocument::get_size()" << endl;
-    // cout << "XXXXXXXXXXXXXXXXXXX MongodbDocument::get_size() length: " <<
-    // ((*this->document)[array_key]).get_array().value.length() << endl; cout << "XXXXXXXXXXXXXXXXXXX
-    // MongodbDocument::get_size() HASH: " << HANDLE_HASH_SIZE << endl; cout << "XXXXXXXXXXXXXXXXXXX
-    // MongodbDocument::get_size() size: " << ((*this->document)[array_key]).get_array().value.length() /
-    // HANDLE_HASH_SIZE << endl;
-    return ((*this->document)[array_key]).get_array().value.length() / HANDLE_HASH_SIZE;
+    auto array = ((*this->document)[array_key]).get_array().value;
+    return std::distance(array.begin(), array.end());
 }
 
 bsoncxx::v_noabi::document::view MongodbDocument::get_object(const string& key) {

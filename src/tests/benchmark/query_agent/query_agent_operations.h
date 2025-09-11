@@ -24,4 +24,6 @@ class PatternMatchingQuery : public QueryAgentRunner {
     void simple_query(string log_file);
     void complex_query(string log_file);
     void positive_importance();
+    void update_attention_broker();
+    void link_template_cache();
 };

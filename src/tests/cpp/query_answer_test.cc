@@ -244,3 +244,23 @@ TEST(QueryAnswer, tokenization) {
         query_answers_equal(&input, &output);
     }
 }
+
+TEST(QueryAnswer, get_query_answer_element) {
+    QueryAnswer answer;
+    answer.handles.push_back("h1");
+    answer.handles.push_back("h2");
+    answer.assignment.assign("v1", "h3");
+    answer.assignment.assign("v2", "h4");
+    QueryAnswerElement element1(0);
+    QueryAnswerElement element2(1);
+    QueryAnswerElement element3("v1");
+    QueryAnswerElement element4("v2");
+    QueryAnswerElement element5(2);
+    QueryAnswerElement element6("v3");
+    EXPECT_EQ(answer.get(element1), "h1");
+    EXPECT_EQ(answer.get(element2), "h2");
+    EXPECT_EQ(answer.get(element3), "h3");
+    EXPECT_EQ(answer.get(element4), "h4");
+    EXPECT_THROW(answer.get(element5), runtime_error);
+    EXPECT_THROW(answer.get(element6), runtime_error);
+}

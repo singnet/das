@@ -39,6 +39,7 @@ cc_library(
         "//atom_space:atom_space_lib",
         "//attention_broker:attention_broker_client",
         "//commons:commons_lib",
+        "//hasher:hasher_lib",
         "//service_bus:service_bus_lib",
     ],
 )

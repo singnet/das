@@ -25,6 +25,8 @@ static char REVERSE_TLB[16] = {
     'f',
 };
 
+void random_init() { std::srand(static_cast<unsigned int>(std::time(0))); }
+
 double random_importance() { return ((double) rand()) / RAND_MAX; }
 
 string random_handle() {

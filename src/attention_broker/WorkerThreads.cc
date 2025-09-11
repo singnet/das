@@ -9,7 +9,7 @@
 #include "Utils.h"
 #include "attention_broker.grpc.pb.h"
 
-using namespace attention_broker_server;
+using namespace attention_broker;
 using namespace std;
 
 // --------------------------------------------------------------------------------

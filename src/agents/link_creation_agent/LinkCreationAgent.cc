@@ -173,7 +173,6 @@ void LinkCreationAgent::load_buffer() {
 static bool is_link_template_arg(string arg) {
     if (arg == "LIST") return true;
     if (arg == "LINK_CREATE") return true;
-    if (arg == "PROOF_OF_IMPLICATION_OR_EQUIVALENCE") return true;
     if (arg == "PROOF_OF_IMPLICATION") return true;
     if (arg == "PROOF_OF_EQUIVALENCE") return true;
     return false;
@@ -230,6 +229,9 @@ shared_ptr<LinkCreationAgentRequest> LinkCreationAgent::create_request(vector<st
         LOG_INFO("Context: " << lca_request->context);
         LOG_DEBUG("Update Attention Broker: " << to_string(lca_request->update_attention_broker));
         LOG_DEBUG("Infinite: " << to_string(lca_request->infinite));
+        if (lca_request->link_template.size() == 0) {
+            Utils::error("Link template cannot be empty");
+        }
 
         return shared_ptr<LinkCreationAgentRequest>(lca_request);
     } catch (exception& e) {

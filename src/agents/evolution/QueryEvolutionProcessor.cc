@@ -1,6 +1,7 @@
 #include "QueryEvolutionProcessor.h"
 
 #include "AttentionBrokerClient.h"
+#include "Hasher.h"
 #include "LinkSchema.h"
 #include "QueryEvolutionProxy.h"
 #include "ServiceBus.h"
@@ -78,7 +79,8 @@ shared_ptr<PatternMatchingQueryProxy> QueryEvolutionProcessor::issue_sampling_qu
     auto pm_proxy =
         make_shared<PatternMatchingQueryProxy>(proxy->get_query_tokens(), proxy->get_context());
     pm_proxy->parameters[BaseQueryProxy::UNIQUE_ASSIGNMENT_FLAG] = true;
-    pm_proxy->parameters[BaseQueryProxy::ATTENTION_UPDATE_FLAG] = (this->generation_count == 1);
+    pm_proxy->parameters[BaseQueryProxy::ATTENTION_UPDATE_FLAG] =
+        false;  // (this->generation_count == 1);
     pm_proxy->parameters[BaseQueryProxy::USE_LINK_TEMPLATE_CACHE] = false;
     pm_proxy->parameters[PatternMatchingQueryProxy::POSITIVE_IMPORTANCE_FLAG] = false;
     pm_proxy->parameters[BaseQueryProxy::USE_METTA_AS_QUERY_TOKENS] =
@@ -96,7 +98,7 @@ shared_ptr<PatternMatchingQueryProxy> QueryEvolutionProcessor::issue_correlation
     pm_proxy->parameters[BaseQueryProxy::ATTENTION_UPDATE_FLAG] = false;
     pm_proxy->parameters[BaseQueryProxy::USE_LINK_TEMPLATE_CACHE] = false;
     pm_proxy->parameters[PatternMatchingQueryProxy::POSITIVE_IMPORTANCE_FLAG] =
-        (this->generation_count > 1);
+        false;  //(this->generation_count > 1);
     pm_proxy->parameters[BaseQueryProxy::USE_METTA_AS_QUERY_TOKENS] =
         proxy->parameters.get<bool>(BaseQueryProxy::USE_METTA_AS_QUERY_TOKENS);
     pm_proxy->parameters[PatternMatchingQueryProxy::MAX_ANSWERS] =
@@ -117,6 +119,8 @@ void QueryEvolutionProcessor::sample_population(
 
     auto pm_query = issue_sampling_query(proxy);
 
+    unsigned int positive_importance_count = 0;
+    unsigned int visited_count = this->visited_individuals.size();
     while ((!pm_query->finished()) && (!monitor->stopped()) && (population.size() < population_size)) {
         shared_ptr<QueryAnswer> answer = pm_query->pop();
         if (answer != NULL) {
@@ -129,12 +133,21 @@ void QueryEvolutionProcessor::sample_population(
                 fitness = (remote_fitness ? 0 : proxy->compute_fitness(answer));
             }
             answer->strength = fitness;
+            if (answer->importance > 0) {
+                positive_importance_count++;
+            }
             LOG_DEBUG("Sampling: " + answer->to_string());
             population.push_back(make_pair(answer, fitness));
+            this->visited_individuals.insert(Hasher::composite_handle(answer->handles));
         } else {
             Utils::sleep();
         }
     }
+    double renew_rate = ((double) this->visited_individuals.size() - visited_count) / population_size;
+    LOG_INFO("Generation: " + std::to_string(this->generation_count) +
+             " - Individuals with non-zero importance: " + std::to_string(positive_importance_count));
+    LOG_INFO("Generation: " + std::to_string(this->generation_count) +
+             " - Renew rate: " + std::to_string(renew_rate));
     if (!pm_query->finished()) {
         pm_query->abort();
         unsigned int count = 0;
@@ -248,6 +261,32 @@ void QueryEvolutionProcessor::select_best_individuals(
              " - Average fitness in selected group: " + std::to_string(sum / count));
 }
 
+float eval_word(const string& handle, string& word) {
+    auto db = AtomDBSingleton::get_instance();
+    shared_ptr<atomdb_api_types::AtomDocument> word_document;
+    shared_ptr<atomdb_api_types::AtomDocument> word_name_document;
+    word_document = db->get_atom_document(handle);
+    string symbol_handle = string(word_document->get("targets", 1));
+    word_name_document = db->get_atom_document(symbol_handle);
+    const char* word_name = word_name_document->get("name");
+    word = string(word_name);
+    unsigned int count = 0;
+    unsigned int sentence_length = 0;
+    for (unsigned int i = 0; word_name[i] != '\0'; i++) {
+        if ((word_name[i] != ' ') && (word_name[i] != '"')) {
+            sentence_length++;
+        }
+        if (word_name[i] == 'c') {
+            count++;
+        }
+    }
+    if (sentence_length == 0) {
+        return 0;
+    } else {
+        return ((float) count) / ((float) sentence_length);
+    }
+}
+
 void QueryEvolutionProcessor::correlate_similar(shared_ptr<QueryEvolutionProxy> proxy,
                                                 shared_ptr<QueryAnswer> correlation_query_answer) {
     vector<string> query_tokens;
@@ -279,22 +318,21 @@ void QueryEvolutionProcessor::correlate_similar(shared_ptr<QueryEvolutionProxy> 
     }
 
     // Update AttentionBroker
-    set<string> handle_set;
+    vector<string> handle_list;
+    handle_list.push_back(correlation_query_answer->assignment.get("sentence1"));
     auto pm_query = issue_correlation_query(proxy, query_tokens);
-    for (string handle : correlation_query_answer->handles) {
-        handle_set.insert(handle);
-    }
     while (!pm_query->finished()) {
         shared_ptr<QueryAnswer> answer = pm_query->pop();
+        string word;
         if (answer != NULL) {
-            for (string handle : answer->handles) {
-                handle_set.insert(handle);
+            if (eval_word(answer->assignment.get("word1"), word) >= correlation_query_answer->strength) {
+                handle_list.push_back(answer->assignment.get("word1"));
             }
         } else {
             Utils::sleep();
         }
     }
-    AttentionBrokerClient::correlate(handle_set, proxy->get_context());
+    AttentionBrokerClient::asymmetric_correlate(handle_list, proxy->get_context());
 }
 
 void QueryEvolutionProcessor::stimulate(shared_ptr<QueryEvolutionProxy> proxy,
@@ -304,6 +342,18 @@ void QueryEvolutionProcessor::stimulate(shared_ptr<QueryEvolutionProxy> proxy,
         proxy->parameters.get<unsigned int>(QueryEvolutionProxy::TOTAL_ATTENTION_TOKENS);
 
     map<string, unsigned int> handle_count;
+    for (auto pair : selected) {
+        unsigned int value = (unsigned int) std::lround(pair.second * importance_tokens);
+        string handle = pair.first->assignment.get("sentence1");
+        if (handle_count.find(handle) == handle_count.end()) {
+            handle_count[handle] = value;
+        } else {
+            if (value > handle_count[handle]) {
+                handle_count[handle] = value;
+            }
+        }
+    }
+    /*
     for (auto pair : selected) {
         for (string handle : pair.first->handles) {
             unsigned int value = (unsigned int) std::lround(pair.second * importance_tokens);
@@ -316,6 +366,7 @@ void QueryEvolutionProcessor::stimulate(shared_ptr<QueryEvolutionProxy> proxy,
             }
         }
     }
+    */
     AttentionBrokerClient::stimulate(handle_count, proxy->get_context());
 }
 
@@ -339,6 +390,7 @@ void QueryEvolutionProcessor::evolve_query(shared_ptr<StoppableThread> monitor,
     vector<std::pair<shared_ptr<QueryAnswer>, float>> population;
     vector<std::pair<shared_ptr<QueryAnswer>, float>> selected;
     this->generation_count = 1;
+    this->visited_individuals.clear();
     RAM_FOOTPRINT_START(evolution);
     STOP_WATCH_START(evolution);
     while (!monitor->stopped() && !proxy->stop_criteria_met()) {
@@ -350,7 +402,8 @@ void QueryEvolutionProcessor::evolve_query(shared_ptr<StoppableThread> monitor,
         LOG_INFO("========== Generation: " + std::to_string(this->generation_count) + ". Sampled " +
                  std::to_string(population.size()) + " individuals. ==========");
         proxy->new_population_sampled(population);
-        if (population.size() > 0) {
+        if ((population.size() > 0) && !proxy->stop_criteria_met()) {
+            proxy->flush_answer_bundle();
             STOP_WATCH_START(selection);
             select_best_individuals(proxy, population, selected);
             STOP_WATCH_FINISH(selection, "EvolutionIndividualSelection");
@@ -363,12 +416,18 @@ void QueryEvolutionProcessor::evolve_query(shared_ptr<StoppableThread> monitor,
             }
             population.clear();
             selected.clear();
-            proxy->flush_answer_bundle();
         }
         RAM_FOOTPRINT_CHECK(evolution, "Generation " + std::to_string(this->generation_count));
         STOP_WATCH_FINISH(generation, "OneGeneration");
         this->generation_count++;
     }
+    proxy->flush_answer_bundle();
+    LOG_INFO("Total number of visited individuals: " + std::to_string(this->visited_individuals.size()));
+    LOG_INFO("Average renew rate per generation: " +
+             std::to_string(
+                 (double) this->visited_individuals.size() /
+                 ((double) proxy->parameters.get<unsigned int>(QueryEvolutionProxy::POPULATION_SIZE) *
+                  (this->generation_count - 1))));
     STOP_WATCH_FINISH(evolution, "QueryEvolution");
     RAM_FOOTPRINT_FINISH(evolution, "");
     Utils::sleep(1000);

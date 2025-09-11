@@ -14,13 +14,26 @@ import requests
 class FileServer:
     """Start a simple HTTP server in a background thread to serve a directory."""
 
-    def __init__(self, dir: str = "/tmp", bind: str = "0.0.0.0", port: int = 9000):
+    def __init__(self, dir: str = "/tmp", bind: str = "0.0.0.0", port_range=(38800, 38900)):
         os.chdir(dir)
         handler = SimpleHTTPRequestHandler
-        self.server = ThreadingHTTPServer((bind, port), handler)
+        self.port = None
+        self.server = None
+        for port in range(port_range[0], port_range[1] + 1):
+            try:
+                self.server = ThreadingHTTPServer((bind, port), handler)
+                self.port = port
+                break
+            except OSError as e:
+                if e.errno == 98:  # Address already in use
+                    continue
+                else:
+                    raise
+        if self.server is None:
+            raise RuntimeError(f"No free port found in range {port_range[0]}-{port_range[1]}")
         thread = threading.Thread(target=self.server.serve_forever, daemon=True)
         thread.start()
-        print(f"Serving {dir} at http://{bind}:{port}/")
+        print(f"Serving {dir} at http://{bind}:{self.port}/")
 
     def __enter__(self) -> "FileServer":
         return self
@@ -29,6 +42,9 @@ class FileServer:
         self.server.shutdown()
         self.server.server_close()
         print("Static server stop.")
+
+    def get_port(self):
+        return self.port
 
 
 @dataclass
@@ -113,6 +129,7 @@ def main():
     dest = copy_to_temp(args)
     try:
         with FileServer() as file_server:
+            print("Using port: ", file_server.get_port())
             file_uri = f"http://{file_server.server.server_address[0]}:{file_server.server.server_address[1]}/{dest.name}"
             load_s_expressions(file_uri)
             print("Done!")

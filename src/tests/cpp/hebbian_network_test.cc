@@ -10,7 +10,7 @@
 #include "gtest/gtest.h"
 #include "test_utils.h"
 
-using namespace attention_broker_server;
+using namespace attention_broker;
 using namespace commons;
 
 TEST(HebbianNetwork, basics) {

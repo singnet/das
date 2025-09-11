@@ -76,6 +76,7 @@ class QueryEvolutionProcessor : public BusCommandProcessor {
     map<string, shared_ptr<StoppableThread>> query_threads;
     mutex query_threads_mutex;
     shared_ptr<QueryEvolutionProxy> proxy;
+    set<string> visited_individuals;
     AtomSpace atom_space;
     unsigned int generation_count;
 };

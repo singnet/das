@@ -1,10 +1,12 @@
 #include "HebbianNetworkUpdater.h"
 
+#define LOG_LEVEL INFO_LEVEL
 #include <string>
 
+#include "Logger.h"
 #include "Utils.h"
 
-using namespace attention_broker_server;
+using namespace attention_broker;
 using namespace commons;
 
 HebbianNetworkUpdater::HebbianNetworkUpdater() {}
@@ -42,6 +44,8 @@ void HebbianNetworkUpdater::determiners(const dasproto::HandleList& sub_request,
                 node2->count = 0;
             }
             node1->determiners.insert(node2);
+            LOG_DEBUG("Adding importance determiner: " + sub_request.list(0) + " -> " +
+                      sub_request.list(i));
         }
     }
 }
@@ -63,8 +67,29 @@ void ExactCountHebbianUpdater::correlation(const dasproto::HandleList* request) 
             for (const string& s2 : ((dasproto::HandleList*) request)->list()) {
                 if (s1.compare(s2) < 0) {
                     node2 = network->lookup_node(s2);
+                    LOG_DEBUG("Adding symmetric correlation: " + s1 + " <--> " + s2);
                     network->add_symmetric_edge(s1, s2, node1, node2);
                 }
+            }
+        }
+    }
+}
+
+void ExactCountHebbianUpdater::asymmetric_correlation(const dasproto::HandleList* request) {
+    HebbianNetwork* network = (HebbianNetwork*) request->hebbian_network();
+    if (network != NULL) {
+        for (const string& s : ((dasproto::HandleList*) request)->list()) {
+            network->add_node(s);
+        }
+        HebbianNetwork::Node* node1;
+        HebbianNetwork::Node* node2;
+        string s1 = ((dasproto::HandleList*) request)->list(0);
+        node1 = network->lookup_node(s1);
+        for (const string& s2 : ((dasproto::HandleList*) request)->list()) {
+            if (s1.compare(s2)) {
+                node2 = network->lookup_node(s2);
+                LOG_DEBUG("Adding asymmetric correlation: " + s1 + " --> " + s2);
+                network->add_asymmetric_edge(s1, s2, node1, node2);
             }
         }
     }

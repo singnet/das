@@ -814,6 +814,8 @@ TEST_F(RedisMongoDBTest, GetMatchingAtoms) {
 
     auto matching_atoms = db->get_matching_atoms(false, *similarity_node);
     EXPECT_EQ(matching_atoms.size(), 1);
+    string named_type = matching_atoms[0]->get("named_type");
+    EXPECT_EQ(named_type, string("Symbol"));
     matching_atoms = db->get_matching_atoms(true, *similarity_node);
     EXPECT_EQ(matching_atoms.size(), 0);
 

@@ -5,10 +5,11 @@ set -euo pipefail
 declare -A TITLE_ALIAS_MAP=(
   ["morkdb"]="MorkDB"
   ["redismongodb"]="Redis + MongoDB"
+  ["queryagent"]="Query Agent"
 )
 
-TITLE="AtomDB Benchmark Report - Single Thread, 100 iterations"
-BENCHMARK_DATABASE_PATH="/home/$USER/.cache/das/benchmark.db"
+TITLE="$2"
+BENCHMARK_DATABASE_PATH="/home/$USER/.cache/shared/benchmark.db"
 
 function get_pr_info() {
   curl -s -H "Authorization: token $GITHUB_TOKEN" \

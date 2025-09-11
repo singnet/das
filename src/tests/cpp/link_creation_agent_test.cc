@@ -419,7 +419,7 @@ TEST(ImplicationProcessor, TestImplicationProcessor) {
 }
 
 TEST(EquivalenceProcessor, TestEquivalenceProcessor) {
-    LinkSchema ls = EquivalenceProcessor::build_pattern_query("h1", "h2");
+    LinkSchema ls = LinkProcessor::build_pattern_set_query("h1", "h2");
     vector<string> output;
     ls.tokenize(output);
     EXPECT_EQ(Utils::join(output, ' '),

@@ -10,7 +10,7 @@
 using namespace std;
 using namespace commons;
 
-namespace attention_broker_server {
+namespace attention_broker {
 
 typedef double ImportanceType;
 
@@ -70,6 +70,16 @@ class HebbianNetwork {
         inline void merge(HandleTrie::TrieValue* other) {
             count += ((Node*) other)->count;
             importance += ((Node*) other)->importance;
+        }
+        inline ImportanceType get_importance() {
+            ImportanceType answer = this->importance;
+            for (auto determiner : this->determiners) {
+                ImportanceType determiner_importance = determiner->get_importance();
+                if (determiner_importance > answer) {
+                    answer = determiner_importance;
+                }
+            }
+            return answer;
         }
         string to_string();  /// String representation of this Node.
     };
@@ -179,4 +189,4 @@ class HebbianNetwork {
     mutex tokens_mutex;
 };
 
-}  // namespace attention_broker_server
+}  // namespace attention_broker

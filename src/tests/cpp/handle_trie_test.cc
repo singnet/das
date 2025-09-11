@@ -11,7 +11,7 @@
 
 #define HANDLE_SPACE_SIZE ((unsigned int) 100)
 
-using namespace attention_broker_server;
+using namespace attention_broker;
 using namespace std;
 
 class TestValue : public HandleTrie::TrieValue {

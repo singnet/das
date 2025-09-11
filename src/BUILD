@@ -64,6 +64,28 @@ cc_binary(
 )
 
 cc_binary(
+    name = "attention_broker_client",
+    srcs = [],
+    defines = ["BAZEL_BUILD"],
+    linkopts = [
+        "-L/usr/local/lib",
+        "-lhiredis_cluster",
+        "-lhiredis",
+        "-lmongocxx",
+        "-lbsoncxx",
+    ],
+    linkstatic = 1,
+    deps = [
+        "//commons:commons_lib",
+        "//main:attention_broker_client_main_lib",
+        "@com_github_grpc_grpc//:grpc++",
+        "@com_github_grpc_grpc//:grpc++_reflection",
+        "@com_github_singnet_das_proto//:attention_broker_cc_grpc",
+        "@mbedtls",
+    ],
+)
+
+cc_binary(
     name = "tests_db_loader",
     srcs = [],
     defines = ["BAZEL_BUILD"],

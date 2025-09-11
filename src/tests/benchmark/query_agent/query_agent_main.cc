@@ -82,8 +82,14 @@ int main(int argc, char** argv) {
         benchmark.positive_importance();
     } else if (action == "ComplexQuery") {
         benchmark.complex_query(base_log_file);
+    } else if (action == "UpdateAttentionBroker") {
+        benchmark.update_attention_broker();
+    } else if (action == "LinkTemplateCache") {
+        benchmark.link_template_cache();
     } else {
-        Utils::error("Invalid action. Choose either SimpleQuery, PositiveImportance, or ComplexQuery.");
+        Utils::error(
+            "Invalid action. Choose either SimpleQuery, PositiveImportance, ComplexQuery, "
+            "UpdateAttentionBroker, or LinkTemplateCache.");
     }
 
     string filename = report_base_directory + "/" + "query_agent_" + atomdb_type + "_" + action + "_" +

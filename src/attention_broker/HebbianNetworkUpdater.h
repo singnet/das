@@ -5,7 +5,7 @@
 
 using namespace std;
 
-namespace attention_broker_server {
+namespace attention_broker {
 
 /**
  * Algorithm used to update HebbianNetwork weights in "correlate" requests.
@@ -50,6 +50,16 @@ class HebbianNetworkUpdater {
      * @param request A list of handles of atoms which appeared in the same query answer.
      */
     virtual void correlation(const dasproto::HandleList* request) = 0;
+
+    /**
+     * Process a correlation evidence. The first passed handle will be correlated with all the others.
+     *
+     * The evidence is used to update the weights in the HebbianNetwork. The actual way these
+     * weights are updated depends on the type of the concrete subclass that implements this method.
+     *
+     * @param request A list of handles of atoms which appeared in the same query answer.
+     */
+    virtual void asymmetric_correlation(const dasproto::HandleList* request) = 0;
 
     /**
      * Process a definition of importance determiners for a given handle.
@@ -100,6 +110,20 @@ class ExactCountHebbianUpdater : public HebbianNetworkUpdater {
      * @param request A list of handles of atoms which appeared in the same query answer.
      */
     void correlation(const dasproto::HandleList* request);  /// Process a correlation evidence.
+
+    /**
+     * Process a correlation evidence. The first passed handle will be correlated with all the others.
+     *
+     * The evidence is used to update the weights in the HebbianNetwork.
+     *
+     * This HebbianNetworkUpdater keeps track of actual counts of atoms and symmetric hebbian
+     * links between them as they appear in correlation evidence (requests). Actual hebbian weights
+     * between A -> B are calculated on demand by dividing count(A->B) / count(A).
+     *
+     * @param request A list of handles of atoms which appeared in the same query answer.
+     */
+    void asymmetric_correlation(
+        const dasproto::HandleList* request);  /// Process a correlation evidence.
 };
 
-}  // namespace attention_broker_server
+}  // namespace attention_broker

@@ -6,7 +6,7 @@
 
 using namespace std;
 
-namespace attention_broker_server {
+namespace attention_broker {
 
 /**
  * Algorithm used to update HebbianNetwork weights in "stimulate" requests.
@@ -133,4 +133,4 @@ class TokenSpreader : public StimulusSpreader {
                           StimuliData* data);
 };
 
-}  // namespace attention_broker_server
+}  // namespace attention_broker

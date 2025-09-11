@@ -12,7 +12,7 @@
 #include "attention_broker.pb.h"
 #include "common.pb.h"
 
-attention_broker_server::AttentionBrokerServer service;
+attention_broker::AttentionBrokerServer service;
 
 void ctrl_c_handler(int) {
     LOG_INFO("Stopping AttentionBrokerServer...");

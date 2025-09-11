@@ -92,7 +92,6 @@ void AtomDBCache::add_handle_targets(const string& link_handle,
 
 void AtomDBCache::erase_handle_targets_cache(const string& link_handle) {
     lock_guard<mutex> lock(handle_list_cache_mutex);
-    cout << "XXX erase_handle_targets_cache " << link_handle << endl;
     handle_list_cache.erase(link_handle);
 }
 

@@ -150,6 +150,7 @@ class RedisMongoDB : public AtomDB {
     void reset_scores();
 
     void add_pattern(const string& handle, const string& pattern_handle);
+    void add_patterns(const vector<pair<string, string>>& pattern_handles);
     void delete_pattern(const string& handle);
     void update_pattern(const string& key, const string& value);
 
