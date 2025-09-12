@@ -142,11 +142,46 @@ def parse_config_file(config_file, args):
         config = config_copy
     for key, value in config.items():
         key = key.replace('-', '_') 
-        if hasattr(args, key):
-            setattr(args, key, value)
-        else:
-            print(f"Warning: Config key '{key}' does not match any argument in the script. Skipping.")
+        if not hasattr(args, key):
+            print(f"Warning: Config key '{key}' does not match any argument in the script.")
+        setattr(args, key, value)
     return args
+
+def sentence2list(sentence):
+    return sentence.split('"')[1].split(" ")
+
+def list2sentence(list_sentence):
+    return f'(Sentence "{" ".join(list_sentence)}")'
+
+def sorting_predicate(sentences, token=None, percentage=1, **kwargs):
+    if kwargs:
+        token = kwargs.get('sorting_predicate_token', token)
+        percentage = kwargs.get('sorting_predicate_percentage', percentage)
+    show_log = kwargs.get('show_log', True)
+    if show_log:
+        print(f"### Running sorting predicate with token: {token}, percentage: {percentage}, sentences: {len(sentences)}")
+    predicate_name = str(token)
+    predicates = []
+    for sentence in sentences:
+        parsed_sentence = sentence.split('"')[1].split(" ")
+        if sorted(parsed_sentence) == parsed_sentence and random.random() < percentage:
+            predicates.append(f'(EVALUATION (PREDICATE "{predicate_name}") (CONCEPT {sentence}))')
+    return predicates
+
+def sorting_bias(sentences, count_rate, probability):
+    answer = []
+    count = 0
+    target_count = len(sentences) * count_rate
+    for sentence in sentences:
+        sentence_list = sentence2list(sentence)
+        if count < target_count:
+            count += 1
+            sentence_list[0:3] = ["ddd", "ccc", "bbb"]
+            if random.random() < probability:
+                sentence_list.sort()
+            sentence = list2sentence(sentence_list)
+        answer.append(sentence)
+    return answer
 
 def letter_predicate(sentences, token=None, letter=None, letter_percent=0.6, percentage=0.8, **kwargs):
     if kwargs:
@@ -234,7 +269,7 @@ def generate_words(word_length, alphabet_range):
     global WORDS
     if WORDS:
         return WORDS
-    alphabet = [chr(97 + i) for i in range(int(alphabet_range.split('-')[0]), int(alphabet_range.split('-')[1]))]
+    alphabet = [chr(97 + i) for i in range(int(alphabet_range.split('-')[0]), int(alphabet_range.split('-')[1]) + 1)]
     WORDS = [''.join(p) for p in list(itertools.product(*[''.join(alphabet)]*word_length))]
     return WORDS
                 
@@ -248,19 +283,29 @@ def word_predicate(sentences, token=None, word_count=1, alphabet_range="0-4", pe
     show_log = kwargs.get('show_log', True)
     if show_log:
         print(f"### Running word predicate with token: {token}, word_count: {word_count}, alphabet_range: {alphabet_range}, percentage: {percentage}")
-    words = generate_words(word_length, alphabet_range)
+    words = words_to_find or generate_words(word_length, alphabet_range)
+    word_count = len(words_to_find) if words_to_find else word_count
     predicates = []
     for sentence in sentences:
         split_sentence = sentence[:-1].replace('"', '').split(' ')[1:]
-        found_words = filter( lambda x: x in split_sentence, words_to_find or words)
-        if not found_words:
-            continue
-        found_words = list(found_words)
-        if len(found_words) ==  word_count:
-            if random.random() < percentage:
-                predicate_n = '_'.join(sorted(found_words))
-                predicate_token = token.replace('*', predicate_n)
-                predicates.append(f'(EVALUATION (PREDICATE "{predicate_token}") (CONCEPT {sentence}))')
+        if word_count == 1:
+            for word1 in words:
+                if word1 in split_sentence:
+                    if random.random() < percentage:
+                        predicate_n = word1
+                        predicate_token = token.replace('*', predicate_n)
+                        predicates.append(f'(EVALUATION (PREDICATE "{predicate_token}") (CONCEPT {sentence}))')
+        elif word_count == 2:
+            for word1 in words:
+                for word2 in words:
+                    if word1 != word2 and word1 in split_sentence and word2 in split_sentence:
+                        if random.random() < percentage:
+                            predicate_n = '_'.join([word1, word2])
+                            predicate_token = token.replace('*', predicate_n)
+                            predicates.append(f'(EVALUATION (PREDICATE "{predicate_token}") (CONCEPT {sentence}))')
+        else:
+            print(f"### ERROR: invalid word_count: {word_count}")
+
     return predicates
         
 def word_list_to_sentence(word_list):
@@ -301,6 +346,14 @@ def create_predicates(args, predicate_funcs, sentence_count, predicate_names):
     while count < sentence_count:
         # Commenting random generator
         # sentence = generator.generate_sentence()
+        # Log the percentage of sentences generated once every 5 seconds
+        if time.time() - start_time > 5:
+            start_time = time.time()
+            if sentence_counting > 0:
+                print(f"### Generated {(count / sentence_count * 100):.2f}% sentences so far to create {count}/{sentence_count} biased sentences.")
+            else:
+                print(f"### Generated 0.00% sentences so far to create {count}/{sentence_count} biased sentences.")
+
         sentence = generate_sentence(sentence_length, transition)
         sentence = [sentence[i:i + args.get('word_length', 3)] for i in range(0, len(sentence), args.get('word_length', 3))]
         sentence_counting += 1
@@ -378,9 +431,23 @@ def main():
     # Read sentences from the file
     print(f"Reading sentences from {args.file}...")
     read_sentences_time = time.time()
-    sentences = read_sentences(args.file)
+    non_biased_sentences = read_sentences(args.file)
     read_sentences_duration = time.time() - read_sentences_time
-    print(f"Read {len(sentences)} sentences from the file.")
+    print(f"Read {len(non_biased_sentences)} sentences from the file.")
+    sentences = sorting_bias(non_biased_sentences, 0.1, 0.9)
+
+    
+    # NOTE TO REVIEWER:
+    # We're not supposed to create these links. This code is here just to help debuging
+    #
+    # Create predicates based on the order of words in the sentences
+    #sorting_predicate_time = time.time()
+    #sorting_predicates = sorting_predicate(sentences, 
+    #                                       args.sorting_predicate_token, 
+    #                                       args.sorting_predicate_percentage)
+    #sorting_predicate_duration = time.time() - sorting_predicate_time
+    #predicates.extend(sorting_predicates)
+
     # Create predicates based on the sentences
     letter_predicates_time = time.time()
     letter_predicates = []
@@ -444,6 +511,7 @@ def main():
     write_predicates(config_json.get('metta-filename'), predicates, 
                      write_words_and_sentences=False, append=True)
     biased_predicates_time = time.time()
+    biased_predicates = []
     if config_json.get('bias', {}).get('strength', 0) > 0:
         biased_predicates = generate_biased_predicates(config_json)
         predicates.extend(biased_predicates)
