@@ -6,39 +6,121 @@ import json
 import itertools
 from metta_file_generator import NodeLinkGenerator, NodeLinkWriter
 
+def build_transitions(alphabet, dist, rep=0.0, words=None, bonus=0.0):
+    if words is None:
+        words = []
+    
+    states = ["".join(p) for p in itertools.product(alphabet, repeat=2)]
+    transitions = {}
+    
+    for state in states:
+        probs = {ch: 0.0 for ch in alphabet}
+        
+        last = state[-1]
+        probs[last] += rep
+        
+        for word in words:
+            for i in range(len(word) - 2):
+                prefix = word[i:i+2]
+                nxt = word[i+2]
+                if state == prefix:
+                    probs[nxt] += bonus
+        
+        remaining = 1 - sum(probs.values())
+
+        if remaining < 0:
+            raise ValueError(f"Probability overflow in state '{state}', adjust rep/bonus.")
+        
+        sum_target = sum(dist[ch] for ch in alphabet if probs[ch] == 0)
+        for ch in alphabet:
+            if probs[ch] == 0:
+                probs[ch] = dist[ch] / sum_target * remaining
+        
+        total = sum(probs.values())
+        for ch in probs:
+            probs[ch] /= total
+        
+        transitions[state] = [(ch, probs[ch]) for ch in alphabet]
+    
+    return transitions
+
+def generate_sentence(length, transitions, initial=None, word_size=None, start_letter=None, end_letter=None):
+    states = list(transitions.keys())
+    if initial is None:
+        initial = random.choice(states)
+    
+    current = initial
+    result = list(current)
+    
+    for _ in range(length - 2):
+        next_chars, probs = zip(*transitions[current])
+        nxt = random.choices(next_chars, probs)[0]
+        result.append(nxt)
+        current = current[1] + nxt  # shift context
+
+    # if word_size and start_letter and end_letter:
+    #     # find all the indexes of start_letter and end_letter
+    #     start_indexes = [i for i in range(len(result)) if result[i] == start_letter]
+    #     end_indexes = [i for i in range(len(result)) if result[i] == end_letter]
+    #     # check if there is a valid position to insert start_letter and end_letter
+    #     valid_positions = [i for i in start_indexes if i + word_size - 1 < len(result) and result[i + word_size - 1] == end_letter]
+    #     if valid_positions:
+    #         insert_position = random.choice(valid_positions)
+    #         result[insert_position] = start_letter
+    #         result[insert_position + word_size - 1] = end_letter
+
+    return "".join(result)
+
+def process_config_file(config_json):
+    alphabet_range = config_json.get('alphabet-range')
+    alphabet = [chr(97 + i) for i in range(int(alphabet_range.split('-')[0]), int(alphabet_range.split('-')[1]) + 1)]
+    default_prob = 1 / len(alphabet)
+    default_dist = dict(((l, default_prob) for l in alphabet))
+    config_json['default_dist'] = default_dist
+    for predicate_group in config_json.get('letter-predicates', []):
+        predicate_group_name = str(predicate_group.get('token')).format(letter=predicate_group.get('letter', ''), letter_percent=predicate_group.get('letter_percent', 0))
+        prob = (1.0 - predicate_group.get('letter_percent', 0)) / (len(alphabet) - 1)
+        dist = dict(((l, prob) for l in alphabet))
+        dist[predicate_group['letter']] = predicate_group.get('letter_percent', 0)
+        predicate_group['predicate_group_name'] = 'letter-predicates'
+        predicate_group['transition'] = build_transitions(alphabet, dist)
+        predicate_group['transition_args'] =  {'alphabet': alphabet, 'dist': dist}
+        config_json[predicate_group_name] = predicate_group
+    for predicate_group in config_json.get('wildcard-predicates', []):
+        wildcards = [w.replace('*', '') for w in predicate_group.get('wildcards', [])]
+        predicate_group_name = str(predicate_group.get('token')).replace('*', '_'.join(wildcards))
+        predicate_group['predicate_group_name'] = 'wildcard-predicates'
+        predicate_group['transition'] = build_transitions(alphabet, default_dist, words=wildcards, bonus=0.3)
+        predicate_group['transition_args'] =  {'alphabet': alphabet, 'dist': default_dist, 'words': wildcards, 'bonus': 0.3}
+        config_json[predicate_group_name] = predicate_group
+    for predicate_group in config_json.get('start-end-predicates', []):
+        predicate_group_name = str(predicate_group.get('token')).format(start_letter=predicate_group.get('start_letter', ''), end_letter=predicate_group.get('end_letter', ''))
+        predicate_group['predicate_group_name'] = 'start-end-predicates'
+        predicate_group['transition_args'] =  {'alphabet': alphabet, 'dist': default_dist}
+        config_json[predicate_group_name] = predicate_group
+    for predicate_group in config_json.get('low-diversity-predicates', []):
+        predicate_group_name = str(predicate_group.get('token')).format(letters='_'.join(predicate_group.get('letters', [])))
+        predicate_group['predicate_group_name'] = 'low-diversity-predicates'
+        predicate_group['transition'] = build_transitions(alphabet, default_dist, rep=0.5)
+        predicate_group['transition_args'] =  {'alphabet': alphabet, 'dist': default_dist, 'rep':0.5}
+        config_json[predicate_group_name] = predicate_group
+    for p in config_json.get('bias', {}).get('predicates', []):
+        if p in config_json:
+            continue
+        key = config_json.get('word-predicate', {}).get('token').replace('*', '')
+        if p.startswith(key):
+            words = p.replace(key, '').split('_')
+            config_json[p] = config_json.get('word-predicate', {}).copy()
+            config_json[p]['words_to_find'] = words
+            config_json[p]['predicate_group_name'] = 'word-predicate'
+            config_json[p]['transition'] = build_transitions(alphabet, default_dist, words=words, bonus=0.3)
+            config_json[p]['transition_args'] =  {'alphabet': alphabet, 'dist': default_dist, 'words': words, 'bonus': 0.3}
+
+
 def parse_args():
     parser = argparse.ArgumentParser(description="Process some sentences.")
     parser.add_argument("file", type=str, help="The file to process")
-    parser.add_argument("--seed", type=int, default=42, help="Random seed for reproducibility")
-    parser.add_argument("--config-file", type=str, default=None, help="Path to the configuration file")
-    parser.add_argument("--letter-predicate-token", type=str, default='feature_a', help="Token for letter predicate")
-    parser.add_argument("--letter-predicate-letter", type=str, default='a', help="Letter for letter predicate")
-    parser.add_argument("--letter-predicate-percent", type=float, default=0.6, help="Percentage of letters for letter predicate")
-    parser.add_argument("--letter-predicate-letter-percent", type=float, default=0.6, help="Percentage of letters for letter predicate")
-    parser.add_argument("--letter-predicate-percentage", type=float, default=0.8, help="Randomness for letter predicate")
-    parser.add_argument("--wildcard-predicate-token", type=str, default='feature_b', help="Token for wildcard predicate")
-    parser.add_argument("--wildcard-predicate-wildcards", type=str, nargs='+', default=['*ac', 'cb*'], help="Wildcards for wildcard predicate")
-    parser.add_argument("--wildcard-predicate-percentage", type=float, default=0.8, help="Randomness for wildcard predicate")
-    parser.add_argument("--start-end-predicate-token", type=str, default='feature_c', help="Token for start-end predicate")
-    parser.add_argument("--start-end-predicate-start-letter", type=str, default='c', help="Start letter for start-end predicate")
-    parser.add_argument("--start-end-predicate-end-letter", type=str, default='d', help="End letter for start-end predicate")
-    parser.add_argument("--start-end-predicate-percentage", type=float, default=0.8, help="Randomness for start-end predicate")
-    parser.add_argument("--low-diversity-predicate-token", type=str, default='feature_d', help="Token for low-diversity predicate")
-    parser.add_argument("--low-diversity-predicate-letters", type=str, nargs='+', default=['a', 'b', 'c', 'd', 'e'], help="Letters for low-diversity predicate")
-    parser.add_argument("--low-diversity-predicate-percentage", type=float, default=0.8, help="Randomness for low-diversity predicate")
-    parser.add_argument("--word-predicate-token", type=str, default='word_*', help="Token for word predicate, use * for numbering")
-    parser.add_argument("--word-predicate-percentage", type=float, default=0.8, help="Randomness for word predicate")
-    parser.add_argument("--word-predicate-alphabet-range", type=str, default="0-4", help="Alphabet range for word predicate, eg: 0-4")
-    parser.add_argument("--word-predicate-word-count", type=int, default=3, help="Number of words to match for word predicate")
-    parser.add_argument("--bias-predicates", type=str, nargs='+', default=['letter-predicate', 'low-diversity-predicate'], help="Predicates to bias")
-    parser.add_argument("--bias-strength", type=float, default=0.5, help="Strength of the bias")
-    parser.add_argument("--bias-filename", type=str, default='bias.metta', help="Filename for biased predicates")
-    parser.add_argument("--metta-filename", type=str, default='ooo.metta', help="Output MeTTa filename")
-    parser.add_argument("--sentence-node-count", type=int, default=3, help="Number of Sentence nodes to be generated")
-    parser.add_argument("--word-count", type=int, default=3, help="How many words make up the node")
-    parser.add_argument("--word-length", type=int, default=3, help="Number of characters in the word")
-    parser.add_argument("--alphabet-range", type=str, default="0-3", help="Alphabet range, eg: 2-5")
-    parser.add_argument("--bias-operator", type=str, default='and', choices=['and', 'or'], help="Operator for combining biased predicates")
+    parser.add_argument("--config-file", type=str, help="Path to the configuration file")
     return parser.parse_args()
 
 def read_sentences(file_path):
@@ -156,8 +238,7 @@ def generate_words(word_length, alphabet_range):
     WORDS = [''.join(p) for p in list(itertools.product(*[''.join(alphabet)]*word_length))]
     return WORDS
                 
-
-def word_predicate(sentences, token=None, word_count=1, alphabet_range="0-4", percentage=0.1, **kwargs):
+def word_predicate(sentences, token=None, word_count=1, alphabet_range="0-4", percentage=0.1, words_to_find=[], **kwargs):
     if kwargs:
         token = kwargs.get('word_predicate_token', token)
         word_count = kwargs.get('word_predicate_word_count', word_count)
@@ -171,7 +252,7 @@ def word_predicate(sentences, token=None, word_count=1, alphabet_range="0-4", pe
     predicates = []
     for sentence in sentences:
         split_sentence = sentence[:-1].replace('"', '').split(' ')[1:]
-        found_words = filter( lambda x: x in split_sentence, words)
+        found_words = filter( lambda x: x in split_sentence, words_to_find or words)
         if not found_words:
             continue
         found_words = list(found_words)
@@ -182,36 +263,54 @@ def word_predicate(sentences, token=None, word_count=1, alphabet_range="0-4", pe
                 predicates.append(f'(EVALUATION (PREDICATE "{predicate_token}") (CONCEPT {sentence}))')
     return predicates
         
-
 def word_list_to_sentence(word_list):
     sentence = ' '.join(word_list)
     return f'(Sentence "{ sentence }")'
 
-def create_predicates(args, predicate_funcs, sentence_count):
+def merge_and_build_transition_args(transition_args):
+    out = {}
+    for transition in transition_args:
+        dist = transition.get('dist')
+        if 'dist' in out:
+            if dist is not None and any((v == 1.0 / len(dist) for v in dist.values())):
+                del transition['dist']
+        out.update(transition)
+    out['rep'] = max((transition.get('rep', 0) for transition in transition_args if transition.get('rep', 0) is not None), default=0)
+    out['bonus'] = max((transition.get('bonus', 0) for transition in transition_args if transition.get('bonus', 0) is not None), default=0)
+    out['words'] = list(set(itertools.chain.from_iterable((transition.get('words', []) for transition in transition_args if transition.get('words', []) is not None))))
+    return build_transitions(**out)
+
+def create_predicates(args, predicate_funcs, sentence_count, predicate_names):
     sentences = []
     predicates = []
     generator = NodeLinkGenerator(
         int(1),
-        int(args.word_count),
-        int(args.word_length),
-        args.alphabet_range,
+        int(args.get('word_count', 3)),
+        int(args.get('word_length', 3)),
+        args.get('alphabet_range', '0-4'),
         debug=True,
     )
-    writer = NodeLinkWriter(filename=args.bias_filename)
-    args_cp = vars(args)
-    for k in args_cp.keys():
-        if 'percentage' in k:
-            args_cp[k] = 1
-    args_cp['show_log'] = False
+    writer = NodeLinkWriter(filename=args.get('bias', {}).get('filename', 'test_biased_predicates.metta'))
+    args_cp = args.copy()
     count = 0
     sentence_counting = 0
+
+    sentence_length = args.get('word_count', 3) * args.get('word_length', 3)
+    transition = merge_and_build_transition_args([args.get(n).get('transition_args') for n in predicate_names])
+    start_time = time.time()
     while count < sentence_count:
-        sentence = generator.generate_sentence()
+        # Commenting random generator
+        # sentence = generator.generate_sentence()
+        sentence = generate_sentence(sentence_length, transition)
+        sentence = [sentence[i:i + args.get('word_length', 3)] for i in range(0, len(sentence), args.get('word_length', 3))]
         sentence_counting += 1
         predicates_list = []
         metta_sentence = word_list_to_sentence(sentence)
-        for predicate_func in predicate_funcs:
-            preds = list(predicate_func([metta_sentence], **vars(args)))
+        for i, predicate_func in enumerate(predicate_funcs):
+            pred_args = args.get(predicate_names[i]).copy()
+            pred_args['show_log'] = False
+            pred_args['percentage'] = 1
+            preds = list(predicate_func([metta_sentence], **pred_args))
             if not preds:
                 predicates_list = []
                 break
@@ -244,34 +343,36 @@ def write_predicates(filename, biased_predicates, write_words_and_sentences=True
         for predicate in biased_predicates:
             f.write(predicate + '\n')
 
-def generate_biased_predicates(args, predicate_lengths):
-    print(f"### Generating biased predicates based on the provided arguments, predicates: {args.bias_predicates}, strength: {args.bias_strength}")
+def generate_biased_predicates(args):
+    print(f"### Generating biased predicates based on the provided arguments, predicates: {args.get('bias', {}).get('predicates', [])}, strength: {args.get('bias', {}).get('strength', 0)}")
     biased_predicates = []
     predicate_funcs = {
-        'letter-predicate': letter_predicate,
-        'wildcard-predicate': wildcard_predicate,
-        'start-end-predicate': start_end_predicate,
-        'low-diversity-predicate': low_diversity_predicate,
+        'letter-predicates': letter_predicate,
+        'wildcard-predicates': wildcard_predicate,
+        'start-end-predicates': start_end_predicate,
+        'low-diversity-predicates': low_diversity_predicate,
         'word-predicate': word_predicate
     }
-    bias_count = int(args.sentence_node_count * args.bias_strength)
-    if args.bias_operator == 'and':
-        biased_predicates.extend(create_predicates(args, [predicate_funcs[p] for p in args.bias_predicates], bias_count))
-    elif args.bias_operator == 'or':
-        for predicate in args.bias_predicates:
-            if predicate in predicate_funcs:
-                biased_predicates.extend(create_predicates(args, [predicate_funcs[predicate]], bias_count))
-            else:
-                print(f"Warning: Predicate '{predicate}' not found in predicate functions. Skipping bias generation for this predicate.")
-    write_predicates(args.bias_filename, biased_predicates, write_words_and_sentences=False, append=True)
+    bias_count = int(args.get('sentence-node-count') * args.get('bias', {}).get('strength', 0))
+
+
+    if bias_count <= 0:
+        print("### Bias strength is too low, no biased predicates will be generated.")
+        return biased_predicates
+    if args.get('bias', {}).get('operator', '') == 'and':
+        biased_predicates.extend(create_predicates(args, [predicate_funcs[args.get(p).get('predicate_group_name')] for p in args.get('bias', {}).get('predicates', [])], bias_count, [p for p in args.get('bias', {}).get('predicates', [])]))
+    elif args.get('bias', {}).get('operator', '') == 'or':
+        for i, predicate in enumerate(args.get('bias', {}).get('predicates', [])):
+            biased_predicates.extend(create_predicates(args, [predicate_funcs[args.get(predicate).get('predicate_group_name')]], bias_count / (i + 1), [predicate]))
+    write_predicates(args.get('bias').get('filename'), biased_predicates, write_words_and_sentences=False, append=True)
     return biased_predicates
 
 def main():
     args = parse_args()
-    if args.config_file:
-        args = parse_config_file(args.config_file, args)
+    config_json = json.load(open(args.config_file))
+    process_config_file(config_json)
     # initialize seed
-    random.seed(args.seed)
+    random.seed(config_json.get('seed', 42))
     total_time = time.time()
     predicates = []
     # Read sentences from the file
@@ -282,62 +383,70 @@ def main():
     print(f"Read {len(sentences)} sentences from the file.")
     # Create predicates based on the sentences
     letter_predicates_time = time.time()
-    letter_predicates = letter_predicate(sentences, 
-                                         args.letter_predicate_token, 
-                                         args.letter_predicate_letter, 
-                                         args.letter_predicate_letter_percent, 
-                                         args.letter_predicate_percentage)
+    letter_predicates = []
+    for predicate in config_json.get('letter-predicates', []):
+        lp = letter_predicate(sentences, 
+                              predicate.get('token', None), 
+                              predicate.get('letter', None), 
+                              predicate.get('letter_percent', None), 
+                              predicate.get('percentage', None),)
+        letter_predicates.extend(lp)
     letter_predicates_duration = time.time() - letter_predicates_time
     predicates.extend(letter_predicates)
     # Wildcard predicates
     wildcard_predicates_time = time.time()
-    wildcard_predicates = wildcard_predicate(sentences, 
-                                             args.wildcard_predicate_token, 
-                                             args.wildcard_predicate_wildcards, 
-                                             args.wildcard_predicate_percentage)
+    wildcard_predicates = []
+    for predicate in config_json.get('wildcard-predicates', []):
+        wp = wildcard_predicate(sentences, 
+                                predicate.get('token', None), 
+                                predicate.get('wildcards', None), 
+                                predicate.get('percentage', None))
+        wildcard_predicates.extend(wp)
     wildcard_predicates_duration = time.time() - wildcard_predicates_time
     predicates.extend(wildcard_predicates)
     # Start-end predicates
+    start_end_predicates = []
     start_end_predicates_time = time.time()
-    start_end_predicates = start_end_predicate(sentences, 
-                                                args.start_end_predicate_token, 
-                                                args.start_end_predicate_start_letter, 
-                                                args.start_end_predicate_end_letter, 
-                                                args.start_end_predicate_percentage)
+    for predicate in config_json.get('start-end-predicates', []):
+        sep = start_end_predicate(sentences, 
+                                 predicate.get('token', None), 
+                                 predicate.get('start_letter', None), 
+                                 predicate.get('end_letter', None), 
+                                 predicate.get('percentage', None))
+        start_end_predicates.extend(sep)
     start_end_predicates_duration = time.time() - start_end_predicates_time
     predicates.extend(start_end_predicates)
     # Low-diversity predicates
+    low_diversity_predicates = []
     low_diversity_predicates_time = time.time()
-    low_diversity_predicates = low_diversity_predicate(sentences, 
-                                                       args.low_diversity_predicate_token, 
-                                                       args.low_diversity_predicate_letters, 
-                                                       args.low_diversity_predicate_percentage)
+    for predicate in config_json.get('low-diversity-predicates', []):
+        ldp = low_diversity_predicate(sentences, 
+                                     predicate.get('token', None), 
+                                     predicate.get('letters', None), 
+                                     predicate.get('percentage', None))
+        low_diversity_predicates.extend(ldp)
     low_diversity_predicates_duration = time.time() - low_diversity_predicates_time
     predicates.extend(low_diversity_predicates)
 
-
+    # Word predicates
     word_predicates_time = time.time()
-    word_predicates = word_predicate(sentences,
-                                     args.word_predicate_token,
-                                     args.word_predicate_word_count,
-                                     args.word_predicate_alphabet_range,
-                                     args.word_predicate_percentage,
-                                     word_length=args.word_length)
-    word_predicates_duration = time.time() - word_predicates_time
-    predicates.extend(word_predicates)
-    write_predicates(args.metta_filename, predicates, 
+    predicate = config_json.get('word-predicate', {})
+    if predicate:
+        word_predicates = word_predicate(sentences, 
+                            predicate.get('token', None), 
+                            predicate.get('word-count', None), 
+                            predicate.get('alphabet-range', None), 
+                            predicate.get('percentage', None),
+                            word_length=config_json.get('word-length'))
+
+        word_predicates_duration = time.time() - word_predicates_time
+        predicates.extend(word_predicates)
+    write_predicates(config_json.get('metta-filename'), predicates, 
                      write_words_and_sentences=False, append=True)
     biased_predicates_time = time.time()
-    if args.bias_strength > 0:
-        predicate_lengths = {
-            'letter-predicate': len(letter_predicates),
-            'wildcard-predicate': len(wildcard_predicates),
-            'start-end-predicate': len(start_end_predicates),
-            'low-diversity-predicate': len(low_diversity_predicates),
-            'word-predicate': len(word_predicates)
-        }
-        biased_predicates = generate_biased_predicates(args, predicate_lengths)
-        # predicates.extend(biased_predicates)
+    if config_json.get('bias', {}).get('strength', 0) > 0:
+        biased_predicates = generate_biased_predicates(config_json)
+        predicates.extend(biased_predicates)
     biased_predicates_duration = time.time() - biased_predicates_time
     
     total_time = time.time() - total_time
@@ -347,15 +456,15 @@ def main():
     print("######################### Summary #########################")
     print(f"Generated {len(predicates)} predicates based on the sentences in {args.file}.")
     print(f"Letter predicates: {len(letter_predicates)}")
-    print(f"Wildcard predicates: {len(wildcard_predicates)}")
+    print(f"Wildcard predicates: {len(letter_predicates)}")
     print(f"Start-end predicates: {len(start_end_predicates)}")
     print(f"Low-diversity predicates: {len(low_diversity_predicates)}")
     print(f"Word predicates: {len(word_predicates)}")
-    print(f"Biased predicates: {len(biased_predicates) if args.bias_strength > 0 else 0}")
+    print(f"Biased predicates: {len(biased_predicates)}")
     print("######################### Duration #########################")
     print(f"Read sentences duration: {read_sentences_duration:.2f} seconds")
     print(f"Letter predicates duration: {letter_predicates_duration:.2f} seconds")
-    print(f"Wildcard predicates duration: {wildcard_predicates_duration:.2f} seconds")
+    print(f"Wildcard predicates duration: {letter_predicates_duration:.2f} seconds")
     print(f"Start-end predicates duration: {start_end_predicates_duration:.2f} seconds")
     print(f"Low-diversity predicates duration: {low_diversity_predicates_duration:.2f} seconds")
     print(f"Biased predicates duration: {biased_predicates_duration:.2f} seconds")
