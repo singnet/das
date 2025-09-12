@@ -109,6 +109,28 @@ Status AttentionBrokerServer::correlate(ServerContext* grpc_context,
     }
 }
 
+Status AttentionBrokerServer::asymmetric_correlate(ServerContext* grpc_context,
+                                                   const dasproto::HandleList* request,
+                                                   dasproto::Ack* reply) {
+    LOG_INFO("Correlating (asymmetric) " << request->list_size()
+                                         << " handles in context: '" + request->context() + "'");
+    if (request->list_size() > 1) {
+        HebbianNetwork* network = select_hebbian_network(request->context());
+        ((dasproto::HandleList*) request)->set_hebbian_network((long) network);
+        // this->correlation_requests->enqueue((void *) request);
+        this->updater->asymmetric_correlation(request);
+    } else {
+        LOG_INFO("Discarding invalid correlation (asymmetric) request with too few arguments.");
+    }
+    reply->set_msg("ASYMMETRIC_CORRELATE");
+    if (rpc_api_enabled) {
+        return Status::OK;
+    } else {
+        LOG_ERROR("AttentionBrokerServer::asymmetric_correlate() failed");
+        return Status::CANCELLED;
+    }
+}
+
 Status AttentionBrokerServer::get_importance(ServerContext* grpc_context,
                                              const dasproto::HandleList* request,
                                              dasproto::ImportanceList* reply) {

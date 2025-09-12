@@ -184,6 +184,36 @@ TEST_F(RedisMongoDBTest, DeleteNestedLink) {
     EXPECT_FALSE(db2->link_exists(link3));
 }
 
+TEST_F(RedisMongoDBTest, MongodbDocumentGetSize) {
+    string node1 = db2->add_node(new Node("Symbol", "1"));
+    string node2 = db2->add_node(new Node("Symbol", "2"));
+    string node3 = db2->add_node(new Node("Symbol", "3"));
+    string node4 = db2->add_node(new Node("Symbol", "4"));
+    string node5 = db2->add_node(new Node("Symbol", "5"));
+    string node6 = db2->add_node(new Node("Symbol", "6"));
+    string node7 = db2->add_node(new Node("Symbol", "7"));
+    string node8 = db2->add_node(new Node("Symbol", "8"));
+    string node9 = db2->add_node(new Node("Symbol", "9"));
+    string node10 = db2->add_node(new Node("Symbol", "10"));
+
+    string link1 = db2->add_link(new Link("Expression", {node1, node2, node3, node4, node5}));
+    string link2 = db2->add_link(new Link("Expression", {node1, node2, node3, node4, node5, node6}));
+    string link3 =
+        db2->add_link(new Link("Expression", {node1, node2, node3, node4, node5, node6, node7, node8}));
+    string link4 = db2->add_link(
+        new Link("Expression", {node1, node2, node3, node4, node5, node6, node7, node8, node9, node10}));
+
+    auto link1_document = db2->get_atom_document(link1);
+    auto link2_document = db2->get_atom_document(link2);
+    auto link3_document = db2->get_atom_document(link3);
+    auto link4_document = db2->get_atom_document(link4);
+
+    EXPECT_EQ(link1_document->get_size("targets"), 5);
+    EXPECT_EQ(link2_document->get_size("targets"), 6);
+    EXPECT_EQ(link3_document->get_size("targets"), 8);
+    EXPECT_EQ(link4_document->get_size("targets"), 10);
+}
+
 int main(int argc, char** argv) {
     ::testing::InitGoogleTest(&argc, argv);
     ::testing::AddGlobalTestEnvironment(new RedisMongoDBTestEnvironment());

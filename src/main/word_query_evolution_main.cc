@@ -198,11 +198,43 @@ void run(const string& client_id,
                         node, symbol, "\"" + word_tag2 + "\"",
     };
 
+    vector<string> activation_spreading3 = {
+        link_template, expression, "3",
+            node, symbol, contains,
+            variable, sentence1,
+            variable, word1,
+    };
+
     vector<string> context1 = {
         link_template, expression, "3",
             node, symbol, contains,
             variable, sentence1,
             variable, word1,
+    };
+
+    vector<string> context2 = {
+        and_operator, "3",
+            link_template, expression, "3",
+                node, symbol, contains,
+                variable, sentence1,
+                variable, word1,
+            link_template, expression, "3",
+                node, symbol, contains,
+                variable, sentence2,
+                variable, word1,
+            or_operator, "2",
+                link_template, expression, "3",
+                    node, symbol, contains,
+                    variable, sentence2,
+                    link, expression, "2",
+                        node, symbol, word,
+                        node, symbol, "\"" + word_tag1 + "\"",
+                link_template, expression, "3",
+                    node, symbol, contains,
+                    variable, sentence2,
+                    link, expression, "2",
+                        node, symbol, word,
+                        node, symbol, "\"" + word_tag2 + "\"",
     };
     // clang-format on
 
@@ -211,10 +243,16 @@ void run(const string& client_id,
 
     LOG_INFO("Setting up context");
     AtomSpace atom_space;
-    LinkSchema context_key(context1);
-    auto context = atom_space.create_context(context_tag, context_key);
+    // LinkSchema context_key(context1);
+    // auto context = atom_space.create_context(context_tag, context_key);
+    QueryAnswerElement sentence_link("sentence1");
+    QueryAnswerElement word_link("word1");
+    QueryAnswerElement contains_link(0);
+    auto context = atom_space.create_context(
+        context_tag, context1, {{contains_link, sentence_link}, {sentence_link, word_link}}, {});
     string context_str = context->get_key();
     LOG_INFO("Context " + context_str + " is ready");
+
     QueryEvolutionProxy* proxy_ptr;
     if (USE_METTA_QUERY) {
         proxy_ptr = new QueryEvolutionProxy({or_two_words_metta},
@@ -224,13 +262,13 @@ void run(const string& client_id,
                                             "count_letter");
     } else {
         proxy_ptr = new QueryEvolutionProxy(
-            or_two_words, activation_spreading1, {sentence1}, context_str, "count_letter");
+            or_two_words, activation_spreading3, {sentence1}, context_str, "count_letter");
     }
 
     shared_ptr<QueryEvolutionProxy> proxy(proxy_ptr);
     proxy->parameters[BaseQueryProxy::USE_METTA_AS_QUERY_TOKENS] = USE_METTA_QUERY;
     proxy->parameters[QueryEvolutionProxy::POPULATION_SIZE] = (unsigned int) 100;
-    proxy->parameters[QueryEvolutionProxy::MAX_GENERATIONS] = (unsigned int) 20;
+    proxy->parameters[QueryEvolutionProxy::MAX_GENERATIONS] = (unsigned int) 50;
     proxy->parameters[QueryEvolutionProxy::ELITISM_RATE] = (double) ELITISM_RATE;
     proxy->parameters[QueryEvolutionProxy::SELECTION_RATE] = (double) 0.10;
     proxy->parameters[QueryEvolutionProxy::TOTAL_ATTENTION_TOKENS] = (unsigned int) 100000;
@@ -281,8 +319,8 @@ int main(int argc, char* argv[]) {
         exit(1);
     }
     float RENT_RATE = 0.25;
-    float SPREADING_RATE_LOWERBOUND = 0.10;
-    float SPREADING_RATE_UPPERBOUND = 0.10;
+    float SPREADING_RATE_LOWERBOUND = 0.50;
+    float SPREADING_RATE_UPPERBOUND = 0.70;
     double ELITISM_RATE = 0.08;
     string client_id = argv[1];
     string server_id = argv[2];

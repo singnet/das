@@ -312,6 +312,44 @@ void RedisMongoDB::add_pattern(const string& pattern_handle, const string& handl
     if (this->atomdb_cache != nullptr) this->atomdb_cache->erase_pattern_matching_cache(pattern_handle);
 }
 
+void RedisMongoDB::add_patterns(const vector<pair<string, string>>& pattern_handles) {
+    if (pattern_handles.empty()) return;
+
+    auto ctx = this->redis_pool->acquire();
+
+    // Group patterns by pattern_handle for efficient batching
+    map<string, vector<string>> patterns_by_handle;
+    for (const auto& pair : pattern_handles) {
+        patterns_by_handle[pair.first].push_back(pair.second);
+    }
+
+    // Use Redis pipeline for batch operations
+    for (const auto& pattern_group : patterns_by_handle) {
+        const string& pattern_handle = pattern_group.first;
+        const vector<string>& handles = pattern_group.second;
+
+        // Build ZADD command with multiple score-member pairs
+        string command = "ZADD " + REDIS_PATTERNS_PREFIX + ":" + pattern_handle;
+        for (const auto& handle : handles) {
+            command += " " + to_string(this->patterns_next_score.load()) + " " + handle;
+            this->patterns_next_score.fetch_add(1);
+        }
+
+        redisReply* reply = ctx->execute(command.c_str());
+        if (reply == NULL) Utils::error("Redis error at add_patterns");
+
+        if (reply->type != REDIS_REPLY_INTEGER) {
+            Utils::error("Invalid Redis response at add_patterns: " + std::to_string(reply->type));
+        }
+
+        // Clear cache for this pattern
+        if (this->atomdb_cache != nullptr) {
+            this->atomdb_cache->erase_pattern_matching_cache(pattern_handle);
+        }
+    }
+    set_next_score(REDIS_PATTERNS_PREFIX + ":next_score", this->patterns_next_score.load());
+}
+
 void RedisMongoDB::delete_pattern(const string& handle) {
     auto ctx = this->redis_pool->acquire();
 
@@ -1093,12 +1131,31 @@ void RedisMongoDB::re_index_patterns() {
     // Flush Redis patterns indexes
     flush_redis_by_prefix(REDIS_PATTERNS_PREFIX);
 
-    // Re-index patterns
+    // Reset patterns next score
+    this->patterns_next_score.store(1);
+    set_next_score(REDIS_PATTERNS_PREFIX + ":next_score", this->patterns_next_score.load());
+
+    // Re-index patterns using batch insertion
+    unsigned int count = 0;
+    vector<pair<string, string>> all_pattern_pairs;
     for (const auto& link : links) {
         auto pattern_handles = match_pattern_index_schema(link);
+        count++;
         for (const auto& pattern_handle : pattern_handles) {
-            add_pattern(pattern_handle, link->handle());
+            all_pattern_pairs.push_back({pattern_handle, link->handle()});
+            if (all_pattern_pairs.size() >= REDIS_CHUNK_SIZE * 5) {
+                LOG_INFO("Adding " + to_string(count) + "/" + to_string(links.size()) +
+                         " links to patterns in Redis");
+                add_patterns(all_pattern_pairs);
+                all_pattern_pairs.clear();
+            }
         }
+    }
+
+    if (!all_pattern_pairs.empty()) {
+        LOG_INFO("Adding " + to_string(count) + "/" + to_string(links.size()) +
+                 " links to patterns in Redis");
+        add_patterns(all_pattern_pairs);
     }
 }
 
