@@ -231,9 +231,8 @@ shared_ptr<atomdb_api_types::HandleSet> MorkDB::query_for_pattern(const LinkSche
 
         map<string, string> assigns;
         if (match(templ, in, assigns)) {
-            cout << "{ ";
             for (auto &kv : assigns) {
-                cout << kv.first << ": " << kv.second << ", ";
+                LOG_DEBUG("[MORKDB] " << kv.first << ": " << kv.second);
                 auto tokens2 = tokenize_expression(kv.second);
                 size_t pos2 = 0;
                 auto atom2 = parse_tokens_to_atom(tokens2, pos2);
@@ -241,12 +240,11 @@ shared_ptr<atomdb_api_types::HandleSet> MorkDB::query_for_pattern(const LinkSche
                 assignments.assign(kv.first, assignment_link->handle());
                 metta_expressions[assignment_link->handle()] = kv.second;
             }
-            cout << "}\n";
         } else {
-            cout << "No match!\n";
+            LOG_DEBUG("[MORKDB] No match!");
         }
 
-        cout << "----> assignments[" << handle << "]: " << assignments.to_string() << endl;
+        LOG_DEBUG("[MORKDB] assignments[" << handle << "]: " << assignments.to_string());
 
         handle_set->append(make_shared<atomdb_api_types::HandleSetMork>(handle, metta_expressions, assignments));
         assignments.clear();
