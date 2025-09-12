@@ -1,0 +1,47 @@
+{
+    "seed": 42,
+    "gen_seed": 11,
+    "metta-filename": "/opt/das/3rd_party_slots/python_inference_poc/output.metta",
+    "sentence-node-count": 100000,
+    "word-count": 5,
+    "word-length": 3,
+    "alphabet-range": "0-4",
+    "sorting-predicate": {
+        "token": "is_sorted",
+        "percentage": 1
+    },
+    "letter-predicate": {
+        "token": "feature_is_{letter_percent}_letter_{letter}",
+        "letter": "a",
+        "letter_percent": 0.5,
+        "percentage": 1
+    },
+    "wildcard-predicate": {
+        "token": "feature_contains_*",
+        "wildcards": ["*ac", "cb*"],
+        "percentage": 1
+    },
+    "word-predicate": {
+        "token": "feature_contains_*",
+        "word-count": 2,
+        "alphabet-range": "0-3",
+        "percentage": 0.70
+    },
+    "start-end-predicate": {
+        "token": "feature_word_stating_{start_letter}_finishing_{end_letter}",
+        "start_letter": "c",
+        "end_letter": "d",
+        "percentage": 1
+    },
+    "low-diversity-predicate": {
+        "token": "feature_low_diversity_of_{letters}",
+        "letters": ["a", "b", "c", "d"],
+        "percentage": 1
+    },
+    "bias":{
+        "predicates": ["letter-predicate", "wildcard-predicate", "low-diversity-predicate"],
+        "strength": 0,
+        "filename": "/opt/das/3rd_party_slots/python_inference_poc/biased_predicates.metta",
+        "operator": "and"
+    }
+}

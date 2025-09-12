@@ -106,12 +106,12 @@ class And : public Operator<N> {
     };
 
     struct hash_function {
-        size_t operator()(const CandidateRecord& record) const {
-            size_t hash = record.index[0];
-            size_t power = 1;
-            for (unsigned int i = 1; i < N; i++) {
-                power *= N;
-                hash += record.index[i] * power;
+        size_t operator()(const CandidateRecord& record) const noexcept {
+            size_t hash = 0;
+            for (unsigned int i = 0; i < N; i++) {
+                size_t k = std::hash<unsigned int>{}(record.index[i]);
+                // Use golden ratio (from boost/absl) and bit shifting and XOR
+                hash ^= k + 0x9e3779b97f4a7c15ULL + (hash << 6) + (hash >> 2);
             }
             return hash;
         }
