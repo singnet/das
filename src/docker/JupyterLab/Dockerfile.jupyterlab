@@ -1,0 +1,10 @@
+FROM --platform=linux/amd64 trueagi/hyperon:v0.2.7
+
+ARG PORT=8888
+ENV PORT=${PORT}
+
+RUN pip install jupyterlab
+
+EXPOSE ${PORT}
+
+CMD jupyter lab --ip=0.0.0.0 --port=${PORT} --no-browser --allow-root --NotebookApp.token='' --NotebookApp.password=''
