@@ -38,11 +38,6 @@
         "letters": ["a", "b", "c", "d"],
         "percentage": 1
     },
-    "conjunction-2": {
-        "token": "conjunction_{predicate1}#{predicate2}",
-        "clauses": 2,
-        "percentage": 1
-    },
     "bias":{
         "predicates": ["letter-predicate", "wildcard-predicate", "low-diversity-predicate"],
         "strength": 0,
