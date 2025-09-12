@@ -14,6 +14,8 @@ sudo apt -y install das-toolbox
 das-cli --version
 ```
 
+Stay tuned to [this channel](https://chat.singularitynet.io/snet/channels/hyperon-das-library-updates) for new versions of das-cli. We recommend always using the latest available.
+
 You can also run `das-cli` from source, using python3 (other OS):
 ```
 git clone https://github.com/singnet/das-toolbox.git
