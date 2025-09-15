@@ -24,7 +24,6 @@ Bug fixes:
 [#632] [TOY PROBLEM] Change the way bias is added and fix word predicates [PR: #741]
 [#632] Toy problem DB gen improvements [PR: #743]
 
-
 General changes:
 [#695] Creates a class AttentionBrokerClient which shaw be used as a hub to all AB requests [PR: #697]
 [#662] Benchmark median tracking with alerts [PR: #673] 
