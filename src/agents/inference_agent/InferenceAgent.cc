@@ -214,7 +214,8 @@ void InferenceAgent::process_inference_request(shared_ptr<InferenceProxy> proxy)
                   InferenceProxy::MAX_QUERY_ANSWERS_TO_PROCESS));
     LOG_DEBUG(
         "  Full Evaluation: " << proxy->parameters.get<bool>(InferenceProxy::RUN_FULL_EVALUATION_QUERY));
-    LOG_DEBUG("Inference process repeat: " << proxy->parameters.get<unsigned int>(InferenceProxy::REPEAT_REQUEST_NUMBER));
+    LOG_DEBUG("Inference process repeat: "
+              << proxy->parameters.get<unsigned int>(InferenceProxy::REPEAT_REQUEST_NUMBER));
     auto inference_request = build_inference_request(proxy->get_args());
     inference_request->set_id(request_id);
     inference_request->set_timeout(
