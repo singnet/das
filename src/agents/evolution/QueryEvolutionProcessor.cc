@@ -85,6 +85,8 @@ shared_ptr<PatternMatchingQueryProxy> QueryEvolutionProcessor::issue_sampling_qu
     pm_proxy->parameters[PatternMatchingQueryProxy::POSITIVE_IMPORTANCE_FLAG] = false;
     pm_proxy->parameters[BaseQueryProxy::USE_METTA_AS_QUERY_TOKENS] =
         proxy->parameters.get<bool>(BaseQueryProxy::USE_METTA_AS_QUERY_TOKENS);
+    pm_proxy->parameters[BaseQueryProxy::POPULATE_METTA_MAPPING] =
+        proxy->parameters.get<bool>(BaseQueryProxy::USE_METTA_AS_QUERY_TOKENS); // enforced when MeTTa queries are being used
     pm_proxy->parameters[PatternMatchingQueryProxy::MAX_ANSWERS] =
         proxy->parameters.get<unsigned int>(QueryEvolutionProxy::POPULATION_SIZE);
     ServiceBusSingleton::get_instance()->issue_bus_command(pm_proxy);
@@ -290,30 +292,44 @@ float eval_word(const string& handle, string& word) {
 void QueryEvolutionProcessor::correlate_similar(shared_ptr<QueryEvolutionProxy> proxy,
                                                 shared_ptr<QueryAnswer> correlation_query_answer) {
     vector<string> query_tokens;
-    unsigned int cursor = 0;
     vector<string> original_tokens = proxy->get_correlation_tokens();
     set<string> variables = proxy->get_correlation_variables();
-    unsigned int size = original_tokens.size();
 
-    // Apply QueryAnswer's assignment to original tokens
-    while (cursor < size) {
-        string token = original_tokens[cursor++];
-        if (token == LinkSchema::UNTYPED_VARIABLE) {
-            if (cursor == size) {
-                Utils::error("Invalid correlation_tokens");
-                return;
-            }
-            token = original_tokens[cursor++];
-            if (variables.find(token) != variables.end()) {
-                string value = correlation_query_answer->assignment.get(token);
-                query_tokens.push_back(LinkSchema::ATOM);
-                query_tokens.push_back(value);
+    if (proxy->parameters.get<bool>(BaseQueryProxy::USE_METTA_AS_QUERY_TOKENS)) {
+        if (original_tokens.size() != 1) {
+            Utils::error("Invalid MeTTa expression as correlation query");
+            return;
+        }
+        string expression = original_tokens[0];
+        for (string variable_name : variables) {
+            string atom_handle = correlation_query_answer->assignment.get(variable_name);
+            Utils::replace_all(expression, "$" + variable_name, correlation_query_answer->metta_expression[atom_handle]);
+        }
+        query_tokens = {expression};
+    } else {
+        unsigned int cursor = 0;
+        unsigned int size = original_tokens.size();
+
+        // Apply QueryAnswer's assignment to original tokens
+        while (cursor < size) {
+            string token = original_tokens[cursor++];
+            if (token == LinkSchema::UNTYPED_VARIABLE) {
+                if (cursor == size) {
+                    Utils::error("Invalid correlation_tokens");
+                    return;
+                }
+                token = original_tokens[cursor++];
+                if (variables.find(token) != variables.end()) {
+                    string value = correlation_query_answer->assignment.get(token);
+                    query_tokens.push_back(LinkSchema::ATOM);
+                    query_tokens.push_back(value);
+                } else {
+                    query_tokens.push_back(LinkSchema::UNTYPED_VARIABLE);
+                    query_tokens.push_back(token);
+                }
             } else {
-                query_tokens.push_back(LinkSchema::UNTYPED_VARIABLE);
                 query_tokens.push_back(token);
             }
-        } else {
-            query_tokens.push_back(token);
         }
     }
 
@@ -372,9 +388,6 @@ void QueryEvolutionProcessor::stimulate(shared_ptr<QueryEvolutionProxy> proxy,
 
 void QueryEvolutionProcessor::update_attention_allocation(
     shared_ptr<QueryEvolutionProxy> proxy, vector<std::pair<shared_ptr<QueryAnswer>, float>>& selected) {
-    if (proxy->parameters.get<bool>(BaseQueryProxy::USE_METTA_AS_QUERY_TOKENS)) {
-        return;
-    }
     unsigned int count = 1;
     for (auto pair : selected) {
         LOG_INFO("Correlating QueryAnswer (" + std::to_string(count) + "/" +
