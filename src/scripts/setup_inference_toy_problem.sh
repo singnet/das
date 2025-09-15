@@ -48,8 +48,6 @@ else
 
 fi
 das-cli db start
-$PWD/run_agents.sh start no-wait
-$PWD/run_agents.sh stop
 das-cli metta load /tmp/output.metta
 das-cli metta load /tmp/biased_predicates.metta
 export LINK_CREATION_REQUESTS_INTERVAL_SECONDS=5
