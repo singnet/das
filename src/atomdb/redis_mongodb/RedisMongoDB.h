@@ -167,7 +167,6 @@ class RedisMongoDB : public AtomDB {
 
     void redis_setup();
     void mongodb_setup();
-    void attention_broker_setup();
 };
 
 }  // namespace atomdb

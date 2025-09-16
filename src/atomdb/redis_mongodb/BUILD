@@ -55,7 +55,6 @@ cc_library(
         ":redis_mongodb_api_types",
         "//atomdb",
         "//atomdb:atomdb_cache_singleton",
-        "//attention_broker:attention_broker_lib",
         "//commons:commons_lib",
     ],
 )
