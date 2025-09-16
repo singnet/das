@@ -106,7 +106,4 @@ class AtomDBMock : public AtomDB {
         ON_CALL(*this, get_atom_document(testing::_))
             .WillByDefault(::testing::Return(make_shared<MockAtomDocument>()));
     }
-
-   private:
-    MOCK_METHOD(void, attention_broker_setup, (), (override));
 };

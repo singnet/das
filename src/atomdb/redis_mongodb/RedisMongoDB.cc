@@ -1,7 +1,5 @@
 #include "RedisMongoDB.h"
 
-#include <grpcpp/grpcpp.h>
-
 #include <algorithm>
 #include <bsoncxx/builder/stream/document.hpp>
 #include <bsoncxx/builder/stream/helpers.hpp>
@@ -10,15 +8,12 @@
 #include <memory>
 #include <string>
 
-#include "AttentionBrokerServer.h"
 #include "Hasher.h"
 #include "Link.h"
 #include "Logger.h"
 #include "Node.h"
 #include "Properties.h"
 #include "Utils.h"
-#include "attention_broker.grpc.pb.h"
-#include "attention_broker.pb.h"
 
 using namespace atomdb;
 using namespace commons;
@@ -41,7 +36,6 @@ RedisMongoDB::RedisMongoDB(const string& context) {
     redis_setup();
     mongodb_setup();
     load_pattern_index_schema();
-    attention_broker_setup();
     bool disable_cache = (Utils::get_environment("DAS_DISABLE_ATOMDB_CACHE") == "true");
     this->atomdb_cache = disable_cache ? nullptr : AtomDBCacheSingleton::get_instance();
     this->patterns_next_score.store(get_next_score(REDIS_PATTERNS_PREFIX + ":next_score"));
@@ -51,36 +45,6 @@ RedisMongoDB::RedisMongoDB(const string& context) {
 RedisMongoDB::~RedisMongoDB() {
     delete this->mongodb_pool;
     delete this->redis_pool;
-}
-
-void RedisMongoDB::attention_broker_setup() {
-    grpc::ClientContext context;
-    grpc::Status status;
-    dasproto::Empty empty;
-    dasproto::Ack ack;
-    string attention_broker_address = Utils::get_environment("DAS_ATTENTION_BROKER_ADDRESS");
-    string attention_broker_port = Utils::get_environment("DAS_ATTENTION_BROKER_PORT");
-
-    if (attention_broker_address.empty()) {
-        attention_broker_address = "localhost";
-    }
-    if (attention_broker_port.empty()) {
-        attention_broker_address += ":37007";
-    } else {
-        attention_broker_address += ":" + attention_broker_port;
-    }
-
-    auto stub = dasproto::AttentionBroker::NewStub(
-        grpc::CreateChannel(attention_broker_address, grpc::InsecureChannelCredentials()));
-    status = stub->ping(&context, empty, &ack);
-    if (status.ok()) {
-        LOG_INFO("Connected to AttentionBroker at " << attention_broker_address);
-    } else {
-        Utils::error("Couldn't connect to AttentionBroker at " + attention_broker_address);
-    }
-    if (ack.msg() != "PING") {
-        Utils::error("Invalid AttentionBroker answer for PING");
-    }
 }
 
 void RedisMongoDB::redis_setup() {
