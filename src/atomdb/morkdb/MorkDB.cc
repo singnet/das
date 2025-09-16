@@ -110,15 +110,15 @@ void MorkDB::mork_setup() {
 }
 
 // ---------------- AST ----------------
-struct ParsedNode {
-    std::string atom;
-    std::vector<ParsedNode> children;
-    bool isAtom() const { return children.empty(); }
+struct ParsedAtom {
+    string value;
+    vector<ParsedAtom> children;
+    bool is_atom() const { return children.empty(); }
 };
 
-string toString(const ParsedNode &n) {
-    if (n.isAtom()) return n.atom;
-    std::string out = "(";
+string toString(const ParsedAtom &n) {
+    if (n.is_atom()) return n.value;
+    string out = "(";
     for (size_t i = 0; i < n.children.size(); i++) {
         if (i) out += " ";
         out += toString(n.children[i]);
@@ -154,43 +154,43 @@ vector<string> tokenize(const string &input) {
 }
 
 // ---------------- Parser ----------------
-ParsedNode parseExpr(vector<string> &tokens, size_t &pos) {
+ParsedAtom parse_expr(vector<string> &tokens, size_t &pos) {
     if (tokens[pos] == "(") {
         pos++;
-        ParsedNode node;
+        ParsedAtom atom;
         while (pos < tokens.size() && tokens[pos] != ")") {
-            node.children.push_back(parseExpr(tokens, pos));
+            atom.children.push_back(parse_expr(tokens, pos));
         }
         pos++; // skip ")"
-        return node;
+        return atom;
     } else {
-        ParsedNode node;
-        node.atom = tokens[pos++];
-        return node;
+        ParsedAtom atom;
+        atom.value = tokens[pos++];
+        return atom;
     }
 }
 
-ParsedNode parse(const string &s) {
+ParsedAtom parse_atom(const string &s) {
     auto tokens = tokenize(s);
     size_t pos = 0;
-    return parseExpr(tokens, pos);
+    return parse_expr(tokens, pos);
 }
 
 // ---------------- Matcher ----------------
-bool match(const ParsedNode &templ, const ParsedNode &input,
+bool match(const ParsedAtom &templ, const ParsedAtom &input,
            map<string, string> &assignments) {
-    if (templ.isAtom()) {
-        if (!templ.atom.empty() && templ.atom[0] == '$') {
+    if (templ.is_atom()) {
+        if (!templ.value.empty() && templ.value[0] == '$') {
             // Variable → bind
-            string varName = templ.atom.substr(1); // drop $
+            string varName = templ.value.substr(1); // drop $
             assignments[varName] = toString(input);
             return true;
         } else {
             // Must match literal atom
-            return templ.atom == input.atom;
+            return templ.value == input.value;
         }
     } else {
-        if (input.isAtom()) return false;
+        if (input.is_atom()) return false;
         if (templ.children.size() != input.children.size()) return false;
         for (size_t i = 0; i < templ.children.size(); i++) {
             if (!match(templ.children[i], input.children[i], assignments))
@@ -213,7 +213,7 @@ shared_ptr<atomdb_api_types::HandleSet> MorkDB::query_for_pattern(const LinkSche
     auto handle_set = make_shared<atomdb_api_types::HandleSetMork>();
 
     Assignment assignments;
-    ParsedNode templ = parse(pattern_metta);
+    ParsedAtom templ = parse_atom(pattern_metta);
 
     for (const auto& raw_expr : raw_expressions) {
         auto tokens = tokenize_expression(raw_expr);
@@ -221,10 +221,8 @@ shared_ptr<atomdb_api_types::HandleSet> MorkDB::query_for_pattern(const LinkSche
         auto atom = parse_tokens_to_atom(tokens, pos);
         auto link = static_cast<const atoms::Link*>(atom);
         auto handle = link->handle();
-        // LOG_INFO("expression: " << raw_expr << " | "
-        //                         << "handle: " << handle);
 
-        ParsedNode in = parse(raw_expr);
+        ParsedAtom in = parse_atom(raw_expr);
 
         map<string, string> metta_expressions;
         metta_expressions[handle] = raw_expr;
@@ -255,6 +253,7 @@ shared_ptr<atomdb_api_types::HandleSet> MorkDB::query_for_pattern(const LinkSche
 
     return handle_set;
 }
+
 vector<string> MorkDB::tokenize_expression(const string& expr) {
     vector<string> tokens;
     size_t i = 0;
@@ -297,6 +296,7 @@ vector<string> MorkDB::tokenize_expression(const string& expr) {
 
     return tokens;
 }
+
 const atoms::Atom* MorkDB::parse_tokens_to_atom(const vector<string>& tokens, size_t& pos) {
     vector<string> children;
     string symbol = MettaMapping::SYMBOL_NODE_TYPE;

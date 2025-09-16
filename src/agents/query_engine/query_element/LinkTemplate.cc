@@ -139,11 +139,13 @@ void LinkTemplate::processor_method(shared_ptr<StoppableThread> monitor) {
     // TODO(arturgontijo): MORKDB pre process.
     map<string, map<string, string>> metta_expressions_by_handle;
     map<string, Assignment> assignments_by_handle;
+    bool from_morkdb = false;
     if (auto handle_set_mork = dynamic_cast<atomdb_api_types::HandleSetMork*>(handles.get())) {
         for (auto handle : handle_set_mork->handles) {
             metta_expressions_by_handle[handle] = handle_set_mork->metta_expressions_by_handle[handle];
             assignments_by_handle[handle] = handle_set_mork->assignments_by_handle[handle];
         }
+        from_morkdb = true;
     }
 
     vector<pair<char*, float>> tagged_handles;
@@ -165,8 +167,7 @@ void LinkTemplate::processor_method(shared_ptr<StoppableThread> monitor) {
             pending = 0;
         } else {
             if ((tagged_handle.second > 0 || !this->positive_importance_flag)) {
-                // TODO(arturgontijo): MORKDB post process.
-                if (metta_expressions_by_handle.find(tagged_handle.first) != metta_expressions_by_handle.end()) {
+                if (from_morkdb) {
                     this->source_element->add_handle(
                         tagged_handle.first,
                         tagged_handle.second,

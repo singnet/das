@@ -18,7 +18,6 @@ AtomSpace::AtomSpace()
 
 // -------------------------------------------------------------------------------------------------
 const Atom* AtomSpace::get_atom(const char* handle, Scope scope) {
-    cout << "----> get_atom: " << handle << endl;
     if (scope == LOCAL_ONLY || scope == LOCAL_AND_REMOTE) {
         auto atom = this->handle_trie->lookup(handle);
         if (atom) {
@@ -40,7 +39,6 @@ const Atom* AtomSpace::get_atom(const char* handle, Scope scope) {
 
 // -------------------------------------------------------------------------------------------------
 const Node* AtomSpace::get_node(const string& type, const string& name, Scope scope) {
-    cout << "----> get_node: " << type << " " << name << endl;
     string handle = Hasher::node_handle(type, name).c_str();
     auto node = this->get_atom(handle.c_str());
     if (node) {
@@ -95,7 +93,6 @@ size_t AtomSpace::pattern_matching_count(const vector<string>& query,
 
 // -------------------------------------------------------------------------------------------------
 void AtomSpace::pattern_matching_fetch(const vector<string>& query, size_t answers_count) {
-    cout << "----> pattern_matching_fetch: " << query.size() << endl;
     auto proxy = this->pattern_matching_query(query, answers_count);
     this->bus->issue_bus_command(proxy);
     shared_ptr<QueryAnswer> query_answer;
