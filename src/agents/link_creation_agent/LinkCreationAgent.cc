@@ -306,7 +306,6 @@ void LinkCreationAgent::load_db_patterns() {
         LOG_INFO("Adding pattern index schema for: " + tokens + "...");
         db->add_pattern_index_schema(tokens, index_entries);
 
-        db->re_index_patterns();
     } catch (const std::exception& e) {
         LOG_ERROR("Error loading DB patterns: " << e.what());
     }

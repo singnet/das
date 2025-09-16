@@ -16,6 +16,7 @@ docker run --rm \
     --network host \
     --volume .:/opt/das \
     --workdir /opt/das \
+    -e PYTHONUNBUFFERED=1 \
     $ENV_VARS \
     "${IMAGE_NAME}" \
     "${BINARY_NAME}" "$@"

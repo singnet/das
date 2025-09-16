@@ -36,16 +36,18 @@ fi
 if [ -z "$METTA_BIAS_FILE" ]; then
   rm -f 3rd_party_slots/python_inference_poc/biased_predicates.metta
   $PWD/run_script.sh python3 $ITPPATH/predicate_generator.py  $ITPPATHD/output.metta --config-file $ITPPATHD/config/$SCENARIO.json
-  cp -f $ITPPATH/biased_predicates.metta /tmp/
+  if [ -f $ITPPATH/biased_predicates.metta ]; then
+    cp -f $ITPPATH/biased_predicates.metta /tmp/
+  fi
   cp -f $ITPPATH/output.metta /tmp/
 else
-  cp -f "$METTA_BIAS_FILE" /tmp/biased_predicates.metta
+  if [ -f "$METTA_BIAS_FILE" ]; then
+    cp -f "$METTA_BIAS_FILE" /tmp/biased_predicates.metta
+  fi
   cp -f "$METTA_FILE" /tmp/output.metta
 
 fi
 das-cli db start
-$PWD/run_agents.sh start no-wait
-$PWD/run_agents.sh stop
 das-cli metta load /tmp/output.metta
 das-cli metta load /tmp/biased_predicates.metta
 export LINK_CREATION_REQUESTS_INTERVAL_SECONDS=5
