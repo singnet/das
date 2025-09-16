@@ -73,6 +73,8 @@ class InferenceRequest {
      */
     virtual vector<vector<string>> get_requests();
 
+    virtual string get_direct_inference_hash() = 0;
+
     /**
      * @brief Get the context
      */
@@ -184,6 +186,7 @@ class ProofOfImplication : public InferenceRequest {
     vector<string> query() override;
     string get_type() override;
     vector<vector<string>> get_requests() override;
+    string get_direct_inference_hash() override;
 
    private:
     const string IMPLICATION_DEDUCTION_PROCESSOR = "IMPLICATION_DEDUCTION";
@@ -196,6 +199,7 @@ class ProofOfEquivalence : public InferenceRequest {
     vector<string> query() override;
     string get_type() override;
     vector<vector<string>> get_requests() override;
+    string get_direct_inference_hash() override;
 
    private:
     const string EQUIVALENCE_DEDUCTION_PROCESSOR = "EQUIVALENCE_DEDUCTION";

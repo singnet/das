@@ -3,6 +3,7 @@
 #include <memory>
 
 #include "Atom.h"
+#include "Hasher.h"
 #include "Link.h"
 #include "LinkCreateTemplate.h"
 #include "Node.h"
@@ -291,6 +292,8 @@ vector<vector<string>> InferenceRequest::get_requests() { return {}; }
 
 string InferenceRequest::get_context() { return context; }
 
+////////////////////////////// IMPLICATION ///////////////////////////////////
+
 ProofOfImplication::ProofOfImplication(string first_handle,
                                        string second_handle,
                                        int max_proof_length,
@@ -351,6 +354,14 @@ vector<vector<string>> ProofOfImplication::get_requests() {
     return requests;
 }
 
+string ProofOfImplication::get_direct_inference_hash() {
+    Link implication("Expression",
+                     {Hasher::node_handle("Symbol", "IMPLICATION"), first_handle, second_handle});
+    return implication.handle();
+}
+
+////////////////////////////// EQUIVALENCE ///////////////////////////////////
+
 ProofOfEquivalence::ProofOfEquivalence(string first_handle,
                                        string second_handle,
                                        int max_proof_length,
@@ -408,4 +419,10 @@ vector<vector<string>> ProofOfEquivalence::get_requests() {
     query.push_back(this->get_type());  // processor
     requests.push_back(query);
     return requests;
+}
+
+string ProofOfEquivalence::get_direct_inference_hash() {
+    Link equivalence("Expression",
+                     {Hasher::node_handle("Symbol", "EQUIVALENCE"), first_handle, second_handle});
+    return equivalence.handle();
 }

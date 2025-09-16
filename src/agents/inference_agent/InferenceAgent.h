@@ -99,6 +99,12 @@ class InferenceAgent {
      */
     shared_ptr<InferenceRequest> get_inference_request(const string& request_id);
 
+    void process_evolution_requests();
+
+    void process_lca_requests();
+
+    void process_direct_link_inference(shared_ptr<InferenceRequest> inference_request);
+
     // Private variables
     InferenceRequestValidator inference_request_validator;
     vector<string> get_link_creation_request();

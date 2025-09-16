@@ -5,6 +5,7 @@
 #include <fstream>
 #include <sstream>
 #define LOG_LEVEL DEBUG_LEVEL
+#include "AtomDBSingleton.h"
 #include "Logger.h"
 #include "ServiceBusSingleton.h"
 #include "Utils.h"
@@ -51,9 +52,84 @@ shared_ptr<InferenceRequest> InferenceAgent::build_inference_request(const vecto
     return inference_request;
 }
 
+void InferenceAgent::process_evolution_requests() {
+    shared_ptr<QueryAnswer> query_answer;
+    // Check if there are any evolution proxies to process
+    for (auto it = evolution_proxy_map.begin(); it != evolution_proxy_map.end();) {
+        if (it->second->finished() || inference_proxy_map[it->first]->is_aborting() ||
+            Utils::get_current_time_millis() / 1000 > inference_timeout_map[it->first]) {
+            LOG_DEBUG("Processing inference abort request for request ID: " << it->first);
+
+            auto inference_request = get_inference_request(it->first);
+            if (inference_request != nullptr) {
+                if (inference_request->get_repeat() > 0) {
+                    LOG_DEBUG(
+                        "Sending link creation request for request ID: " << inference_request->get_id());
+                    LOG_DEBUG("Request repeat count: " << inference_request->get_repeat());
+                    send_link_creation_request(inference_request);
+                    inference_request->set_sent_evolution_request(false);
+                } else {
+                    this->inference_requests.erase(remove(this->inference_requests.begin(),
+                                                          this->inference_requests.end(),
+                                                          inference_request),
+                                                   this->inference_requests.end());
+                    LOG_DEBUG("Inference request removed for request ID: " << it->first);
+                    process_inference_abort_request(it->first);
+                }
+            }
+
+            it = evolution_proxy_map.erase(it);
+
+        } else {
+            if ((query_answer = it->second->pop()) != NULL) {
+                inference_proxy_map[it->first]->push(query_answer);
+            }
+            it++;
+        }
+    }
+}
+
+void InferenceAgent::process_direct_link_inference(shared_ptr<InferenceRequest> inference_request) {
+    auto inference_hash = inference_request->get_direct_inference_hash();
+    LOG_DEBUG("Checking for direct link inference with hash: " << inference_hash);
+    shared_ptr<Atom> atom = atomdb::AtomDBSingleton::get_instance()->get_atom(inference_hash);
+    if (atom != nullptr || inference_request->get_repeat() == 0) {
+        LOG_DEBUG("Direct link inference found for request ID: " << inference_request->get_id());
+        if (atom != nullptr) {
+            shared_ptr<QueryAnswer> query_answer = make_shared<QueryAnswer>(atom->handle(), 0);
+            query_answer->strength = atom->custom_attributes.get<double>("strength");
+            inference_proxy_map[inference_request->get_id()]->push(query_answer);
+        }
+        inference_requests.erase(
+            remove(inference_requests.begin(), inference_requests.end(), inference_request),
+            inference_requests.end());
+        LOG_DEBUG("Inference request removed for request ID: " << inference_request->get_id());
+        process_inference_abort_request(inference_request->get_id());
+    } else {
+        LOG_DEBUG("No direct link inference found for request ID: " << inference_request->get_id());
+        inference_request->set_sent_evolution_request(false);
+        send_link_creation_request(inference_request);
+    }
+}
+
+void InferenceAgent::process_lca_requests() {
+    for (auto& inference_request : this->inference_requests) {
+        if (is_lca_requests_finished(inference_request) &&
+            !inference_request->get_sent_evolution_request()) {
+            LOG_DEBUG("LCA requests finished for inference request ID: " << inference_request->get_id());
+            if (stoi(inference_request->get_max_proof_length()) > 1) {
+                send_distributed_inference_control_request(inference_request);
+            } else {
+                process_direct_link_inference(inference_request);
+            }
+            inference_request->set_sent_evolution_request(true);
+            inference_request->set_repeat(inference_request->get_repeat() - 1);
+        }
+    }
+}
+
 void InferenceAgent::run() {
     LOG_DEBUG("Inference agent is running");
-    shared_ptr<QueryAnswer> query_answer;
     while (true) {
         if (is_stoping) break;
         if (!inference_request_queue.empty()) {
@@ -67,50 +143,9 @@ void InferenceAgent::run() {
                 LOG_ERROR("Exception: " << e.what());
             }
         }
-        // Check if there are any evolution proxies to process
-        for (auto it = evolution_proxy_map.begin(); it != evolution_proxy_map.end();) {
-            if (it->second->finished() || inference_proxy_map[it->first]->is_aborting() ||
-                Utils::get_current_time_millis() / 1000 > inference_timeout_map[it->first]) {
-                LOG_DEBUG("Processing inference abort request for request ID: " << it->first);
+        process_evolution_requests();
+        process_lca_requests();
 
-                auto inference_request = get_inference_request(it->first);
-                if (inference_request != nullptr) {
-                    if (inference_request->get_repeat() > 0) {
-                        LOG_DEBUG("Sending link creation request for request ID: "
-                                  << inference_request->get_id());
-                        LOG_DEBUG("Request repeat count: " << inference_request->get_repeat());
-                        send_link_creation_request(inference_request);
-                        inference_request->set_sent_evolution_request(false);
-                    } else {
-                        this->inference_requests.erase(remove(this->inference_requests.begin(),
-                                                              this->inference_requests.end(),
-                                                              inference_request),
-                                                       this->inference_requests.end());
-                        LOG_DEBUG("Inference request removed for request ID: " << it->first);
-                        process_inference_abort_request(it->first);
-                    }
-                }
-
-                it = evolution_proxy_map.erase(it);
-
-            } else {
-                if ((query_answer = it->second->pop()) != NULL) {
-                    inference_proxy_map[it->first]->push(query_answer);
-                }
-                it++;
-            }
-        }
-
-        for (auto& inference_request : this->inference_requests) {
-            if (is_lca_requests_finished(inference_request) &&
-                !inference_request->get_sent_evolution_request()) {
-                LOG_DEBUG(
-                    "LCA requests finished for inference request ID: " << inference_request->get_id());
-                send_distributed_inference_control_request(inference_request);
-                inference_request->set_sent_evolution_request(true);
-                inference_request->set_repeat(inference_request->get_repeat() - 1);
-            }
-        }
         Utils::sleep();
     }
 }
