@@ -158,8 +158,6 @@ class MockAtomDB : public AtomDB {
     }
 
     shared_ptr<Atom> get_atom(const string& handle) { return shared_ptr<Atom>(this->atoms[handle]); }
-
-    void attention_broker_setup() override {}
 };
 
 class MockAtomSpace : public AtomSpace {
