@@ -113,19 +113,18 @@ void MorkDB::mork_setup() {
 struct ParsedAtom {
     string value;
     vector<ParsedAtom> children;
-    bool is_atom() const { return children.empty(); }
-};
-
-string toString(const ParsedAtom &n) {
-    if (n.is_atom()) return n.value;
-    string out = "(";
-    for (size_t i = 0; i < n.children.size(); i++) {
-        if (i) out += " ";
-        out += toString(n.children[i]);
+    bool is_node() const { return children.empty(); }
+    string metta_representation() const {
+        if (is_node()) return value;
+        string out = "(";
+        for (size_t i = 0; i < children.size(); i++) {
+            if (i) out += " ";
+            out += children[i].metta_representation();
+        }
+        out += ")";
+        return out;
     }
-    out += ")";
-    return out;
-}
+};
 
 // ---------------- Tokenizer ----------------
 vector<string> tokenize(const string &input) {
@@ -179,18 +178,18 @@ ParsedAtom parse_atom(const string &s) {
 // ---------------- Matcher ----------------
 bool match(const ParsedAtom &templ, const ParsedAtom &input,
            map<string, string> &assignments) {
-    if (templ.is_atom()) {
+    if (templ.is_node()) {
         if (!templ.value.empty() && templ.value[0] == '$') {
             // Variable → bind
             string varName = templ.value.substr(1); // drop $
-            assignments[varName] = toString(input);
+            assignments[varName] = input.metta_representation();
             return true;
         } else {
             // Must match literal atom
             return templ.value == input.value;
         }
     } else {
-        if (input.is_atom()) return false;
+        if (input.is_node()) return false;
         if (templ.children.size() != input.children.size()) return false;
         for (size_t i = 0; i < templ.children.size(); i++) {
             if (!match(templ.children[i], input.children[i], assignments))
