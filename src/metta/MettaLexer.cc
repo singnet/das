@@ -32,7 +32,7 @@ void MettaLexer::_init(unsigned int input_buffer_size) {
     this->input_buffer_size = input_buffer_size;
     this->single_string_flag = false;
     this->file_input_flag = true;
-    this->current_metta_string.reserve(1000); // any small number is OK
+    this->current_metta_string.reserve(1000);  // any small number is OK
 }
 
 MettaLexer::~MettaLexer() { free(this->input_buffer); }
@@ -218,7 +218,6 @@ unique_ptr<Token> MettaLexer::next() {
 }
 
 void MettaLexer::stack_metta_string() {
-
     this->current_metta_string.pop_back();
     this->metta_string_stack.push(this->current_metta_string);
     this->current_metta_string = "(";
