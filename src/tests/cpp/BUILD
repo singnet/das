@@ -715,6 +715,7 @@ cc_test(
     ],
     linkstatic = 1,
     deps = [
+        "//commons/atoms:atoms_lib",
         "//metta:metta_lib",
         "@com_github_google_googletest//:gtest_main",
     ],

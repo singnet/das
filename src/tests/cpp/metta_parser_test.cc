@@ -1,6 +1,10 @@
+#include "Link.h"
 #include "MettaLexer.h"
+#include "MettaMapping.h"
 #include "MettaParser.h"
+#include "MettaParserActions.h"
 #include "MettaTokens.h"
+#include "Node.h"
 #include "Utils.h"
 #include "gtest/gtest.h"
 #include "test_utils.h"
@@ -8,6 +12,8 @@
 #define LOG_LEVEL INFO_LEVEL
 #include "Logger.h"
 
+using namespace std;
+using namespace atoms;
 using namespace metta;
 
 class TestActions : public ParserActions {
@@ -361,4 +367,114 @@ TEST(MettaParser, basics) {
             "TOPLEVEL_EXPRESSION (n10 n11)",
         });
     // clang-format on
+}
+
+TEST(MettaParser, Atoms_MettaParserActions) {
+    shared_ptr<MettaParserActions> pa = make_shared<MettaParserActions>();
+    MettaParser parser = MettaParser("(s1 s11 (-4.0 \"literal\" 7))", pa);
+    EXPECT_FALSE(parser.parse(true));
+    EXPECT_EQ(pa->handle_to_atom.size(), 7);
+
+    pa = make_shared<MettaParserActions>();
+    parser = MettaParser("(s1 s11 (-4.0 $v1 $v2) (8 9))", pa);
+    EXPECT_FALSE(parser.parse(true));
+    EXPECT_EQ(pa->handle_to_atom.size(), 10);
+
+    pa = make_shared<MettaParserActions>();
+    parser = MettaParser("(($v1 n1) (2) $v2 (n8) ($v4) 1 n2 (n4 n5 (n6 (n7 $v3)))) (n10 n11)", pa);
+    EXPECT_FALSE(parser.parse(true));
+    EXPECT_EQ(pa->handle_to_atom.size(), 24);
+
+    pa = make_shared<MettaParserActions>();
+    parser = MettaParser("(1) (2) (3)", pa);
+    EXPECT_FALSE(parser.parse(true));
+    EXPECT_EQ(pa->handle_to_atom.size(), 6);
+
+    pa = make_shared<MettaParserActions>();
+    parser = MettaParser("((1) (2)) (3)", pa);
+    EXPECT_FALSE(parser.parse(true));
+    EXPECT_EQ(pa->handle_to_atom.size(), 7);
+
+    pa = make_shared<MettaParserActions>();
+    parser = MettaParser("(and (a) (b))", pa);
+    EXPECT_THROW(parser.parse(true), runtime_error);
+
+    pa = make_shared<MettaParserActions>();
+    parser = MettaParser("(or (a) (b))", pa);
+    EXPECT_THROW(parser.parse(true), runtime_error);
+
+    pa = make_shared<MettaParserActions>();
+    parser = MettaParser("(and (or (a) (b)) (and (c) (d)))", pa);
+    EXPECT_THROW(parser.parse(true), runtime_error);
+
+    // Similarity (simple expression)
+    pa = make_shared<MettaParserActions>();
+    parser = MettaParser("(Similarity \"human\" \"monkey\")", pa);
+    EXPECT_FALSE(parser.parse(true));
+    EXPECT_EQ(pa->handle_to_atom.size(), 4);
+
+    auto similarty_node = new Node(MettaMapping::SYMBOL_NODE_TYPE, "Similarity");
+    auto human_node = new Node(MettaMapping::SYMBOL_NODE_TYPE, "\"human\"");
+    auto monkey_node = new Node(MettaMapping::SYMBOL_NODE_TYPE, "\"monkey\"");
+
+    auto similarity_link =
+        new Link(MettaMapping::EXPRESSION_LINK_TYPE,
+                 {similarty_node->handle(), human_node->handle(), monkey_node->handle()});
+    auto invalid_similarity_link =
+        new Link(MettaMapping::EXPRESSION_LINK_TYPE,
+                 {similarty_node->handle(), monkey_node->handle(), human_node->handle()});
+
+    // Check handle_to_atom
+    EXPECT_EQ(pa->handle_to_atom[similarty_node->handle()]->handle(), similarty_node->handle());
+    EXPECT_EQ(pa->handle_to_atom[human_node->handle()]->handle(), human_node->handle());
+    EXPECT_EQ(pa->handle_to_atom[monkey_node->handle()]->handle(), monkey_node->handle());
+    EXPECT_EQ(pa->handle_to_atom[similarity_link->handle()]->handle(), similarity_link->handle());
+    EXPECT_EQ(pa->handle_to_atom[invalid_similarity_link->handle()], nullptr);
+    // Check handle_to_metta_expression
+    EXPECT_EQ(pa->handle_to_metta_expression[similarty_node->handle()], "Similarity");
+    EXPECT_EQ(pa->handle_to_metta_expression[human_node->handle()], "\"human\"");
+    EXPECT_EQ(pa->handle_to_metta_expression[monkey_node->handle()], "\"monkey\"");
+    EXPECT_EQ(pa->handle_to_metta_expression[similarity_link->handle()],
+              "(Similarity \"human\" \"monkey\")");
+    EXPECT_EQ(pa->handle_to_metta_expression[invalid_similarity_link->handle()], "");
+
+    // EVALUATION (nested expression)
+    pa = make_shared<MettaParserActions>();
+    parser = MettaParser("(EVALUATION (PREDICATE \"is_animal\") (CONCEPT \"human\"))", pa);
+    EXPECT_FALSE(parser.parse(true));
+    EXPECT_EQ(pa->handle_to_atom.size(), 8);
+
+    auto evaluation_node = new Node(MettaMapping::SYMBOL_NODE_TYPE, "EVALUATION");
+    auto predicate_node = new Node(MettaMapping::SYMBOL_NODE_TYPE, "PREDICATE");
+    auto is_animal_node = new Node(MettaMapping::SYMBOL_NODE_TYPE, "\"is_animal\"");
+    auto concept_node = new Node(MettaMapping::SYMBOL_NODE_TYPE, "CONCEPT");
+
+    auto predicate_link = new Link(MettaMapping::EXPRESSION_LINK_TYPE,
+                                   {predicate_node->handle(), is_animal_node->handle()});
+    auto concept_link =
+        new Link(MettaMapping::EXPRESSION_LINK_TYPE, {concept_node->handle(), human_node->handle()});
+
+    auto evaluation_link =
+        new Link(MettaMapping::EXPRESSION_LINK_TYPE,
+                 {evaluation_node->handle(), predicate_link->handle(), concept_link->handle()});
+
+    // Check handle_to_atom
+    EXPECT_EQ(pa->handle_to_atom[evaluation_node->handle()]->handle(), evaluation_node->handle());
+    EXPECT_EQ(pa->handle_to_atom[predicate_node->handle()]->handle(), predicate_node->handle());
+    EXPECT_EQ(pa->handle_to_atom[is_animal_node->handle()]->handle(), is_animal_node->handle());
+    EXPECT_EQ(pa->handle_to_atom[concept_node->handle()]->handle(), concept_node->handle());
+    EXPECT_EQ(pa->handle_to_atom[human_node->handle()]->handle(), human_node->handle());
+    EXPECT_EQ(pa->handle_to_atom[evaluation_link->handle()]->handle(), evaluation_link->handle());
+    EXPECT_EQ(pa->handle_to_atom[predicate_link->handle()]->handle(), predicate_link->handle());
+    EXPECT_EQ(pa->handle_to_atom[concept_link->handle()]->handle(), concept_link->handle());
+    // Check handle_to_metta_expression
+    EXPECT_EQ(pa->handle_to_metta_expression[evaluation_node->handle()], "EVALUATION");
+    EXPECT_EQ(pa->handle_to_metta_expression[predicate_node->handle()], "PREDICATE");
+    EXPECT_EQ(pa->handle_to_metta_expression[concept_node->handle()], "CONCEPT");
+    EXPECT_EQ(pa->handle_to_metta_expression[is_animal_node->handle()], "\"is_animal\"");
+    EXPECT_EQ(pa->handle_to_metta_expression[human_node->handle()], "\"human\"");
+    EXPECT_EQ(pa->handle_to_metta_expression[evaluation_link->handle()],
+              "(EVALUATION (PREDICATE \"is_animal\") (CONCEPT \"human\"))");
+    EXPECT_EQ(pa->handle_to_metta_expression[predicate_link->handle()], "(PREDICATE \"is_animal\")");
+    EXPECT_EQ(pa->handle_to_metta_expression[concept_link->handle()], "(CONCEPT \"human\")");
 }
