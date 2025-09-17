@@ -7,7 +7,10 @@
 #include <memory>
 #include <string>
 
+#include "HandleDecoder.h"
 #include "MettaMapping.h"
+#include "MettaParser.h"
+#include "MettaParserActions.h"
 #include "Utils.h"
 
 #define LOG_LEVEL INFO_LEVEL
@@ -16,6 +19,7 @@
 using namespace atomdb;
 using namespace atoms;
 using namespace commons;
+using namespace metta;
 
 // --> MorkClient
 MorkClient::MorkClient(const string& base_url)
@@ -23,7 +27,9 @@ MorkClient::MorkClient(const string& base_url)
       cli(httplib::Client(base_url)) {
     send_request("GET", "/status/-");
 }
+
 MorkClient::~MorkClient() {}
+
 string MorkClient::post(const string& data, const string& pattern, const string& template_) {
     auto path = "/upload/" + url_encode(pattern) + "/" + url_encode(template_);
     LOG_DEBUG("POST request sent to MORK: "
@@ -31,6 +37,7 @@ string MorkClient::post(const string& data, const string& pattern, const string&
     auto res = send_request("POST", path, data);
     return res->body;
 }
+
 vector<string> MorkClient::get(const string& pattern, const string& template_) {
     auto path = "/export/" + url_encode(pattern) + "/" + url_encode(template_);
     LOG_DEBUG("GET request sent to MORK: "
@@ -38,6 +45,7 @@ vector<string> MorkClient::get(const string& pattern, const string& template_) {
     auto res = send_request("GET", path);
     return Utils::split(res->body, '\n');
 }
+
 httplib::Result MorkClient::send_request(const string& method, const string& path, const string& data) {
     httplib::Result res;
 
@@ -61,6 +69,7 @@ httplib::Result MorkClient::send_request(const string& method, const string& pat
     }
     return res;
 }
+
 string MorkClient::url_encode(const string& value) {
     ostringstream escaped;
     escaped.fill('0');
@@ -84,6 +93,7 @@ MorkDB::MorkDB() {
     this->atomdb_cache = disable_cache ? nullptr : AtomDBCacheSingleton::get_instance();
     mork_setup();
 }
+
 MorkDB::~MorkDB() {}
 
 void MorkDB::mork_setup() {
@@ -105,6 +115,29 @@ void MorkDB::mork_setup() {
     }
 }
 
+class MorkDBDecoder : public HandleDecoder {
+   public:
+    MorkDBDecoder(const string& raw_expr) {
+        this->parser_actions = make_shared<MettaParserActions>();
+        MettaParser parser(raw_expr, this->parser_actions);
+        parser.parse(true);
+    }
+
+    ~MorkDBDecoder() {}
+
+    shared_ptr<Atom> get_atom(const string& handle) override {
+        return this->parser_actions->handle_to_atom[handle];
+    }
+
+    string get_metta_expression_handle() { return this->parser_actions->metta_expression_handle; }
+
+    map<string, string> get_metta_expressions() {
+        return this->parser_actions->handle_to_metta_expression;
+    }
+
+    shared_ptr<MettaParserActions> parser_actions;
+};
+
 shared_ptr<atomdb_api_types::HandleSet> MorkDB::query_for_pattern(const LinkSchema& link_schema) {
     if (this->atomdb_cache != nullptr) {
         auto cache_result = this->atomdb_cache->query_for_pattern(link_schema.handle());
@@ -117,88 +150,31 @@ shared_ptr<atomdb_api_types::HandleSet> MorkDB::query_for_pattern(const LinkSche
     LOG_DEBUG("Fetching data...OK");
     auto handle_set = make_shared<atomdb_api_types::HandleSetMork>();
 
+    Assignment assignments;
+    LinkSchema local_schema(link_schema);
+
     for (const auto& raw_expr : raw_expressions) {
-        auto tokens = tokenize_expression(raw_expr);
-        size_t pos = 0;
-        auto atom = parse_tokens_to_atom(tokens, pos);
-        auto link = static_cast<const atoms::Link*>(atom);
-        auto handle = link->handle();
-        // LOG_INFO("expression: " << raw_expr << " | "
-        //                         << "handle: " << handle);
-        handle_set->append(make_shared<atomdb_api_types::HandleSetMork>(handle));
+        MorkDBDecoder morkdb_decoder(raw_expr);
+
+        string handle = morkdb_decoder.get_metta_expression_handle();
+        auto metta_expressions = morkdb_decoder.get_metta_expressions();
+
+        if (!local_schema.match(handle, assignments, morkdb_decoder)) {
+            LOG_ERROR("[MORKDB] No match!");
+            continue;
+        }
+
+        LOG_DEBUG("[MORKDB] assignments[" << handle << "]: " << assignments.to_string());
+
+        handle_set->append(
+            make_shared<atomdb_api_types::HandleSetMork>(handle, metta_expressions, assignments));
+        assignments.clear();
     }
 
     if (this->atomdb_cache != nullptr)
         this->atomdb_cache->add_pattern_matching(link_schema.handle(), handle_set);
 
     return handle_set;
-}
-vector<string> MorkDB::tokenize_expression(const string& expr) {
-    vector<string> tokens;
-    size_t i = 0;
-    size_t expr_size = expr.size();
-
-    while (i < expr_size) {
-        char c = expr[i];
-
-        if (isspace(static_cast<unsigned char>(c))) {
-            ++i;
-            continue;
-        }
-
-        if (c == '(' || c == ')') {
-            tokens.push_back(string(1, c));
-            ++i;
-            continue;
-        }
-
-        // Literal Nodes
-        if (c == '"') {
-            size_t start = i++;
-            // move forward until you find the next " that is not escaped
-            while (i < expr_size && (expr[i] != '"' || expr[i - 1] == '\\')) {
-                ++i;
-            }
-            tokens.push_back(expr.substr(start, i - start + 1));
-            ++i;
-            continue;
-        }
-
-        // Non-literal Nodes
-        size_t start = i;
-        while (i < expr_size && !isspace(static_cast<unsigned char>(expr[i])) && expr[i] != '(' &&
-               expr[i] != ')') {
-            ++i;
-        }
-        tokens.push_back(expr.substr(start, i - start));
-    }
-
-    return tokens;
-}
-const atoms::Atom* MorkDB::parse_tokens_to_atom(const vector<string>& tokens, size_t& pos) {
-    vector<string> children;
-    string symbol = MettaMapping::SYMBOL_NODE_TYPE;
-    string expression = MettaMapping::EXPRESSION_LINK_TYPE;
-
-    if (tokens[pos] == "(") {
-        ++pos;
-        while (pos < tokens.size() && tokens[pos] != ")") {
-            const atoms::Atom* leaf = nullptr;
-            if (tokens[pos] == "(") {
-                leaf = parse_tokens_to_atom(tokens, pos);
-            } else {
-                leaf = new atoms::Node(symbol, tokens[pos++]);
-            }
-            if (leaf == nullptr) {
-                Utils::error("Failed to parse token: " + tokens[pos]);
-            }
-            children.push_back(leaf->handle());
-        }
-        if (pos < tokens.size() && tokens[pos] == ")") ++pos;
-        return new atoms::Link(expression, children);
-    } else {
-        return new atoms::Node(symbol, tokens[pos++]);
-    }
 }
 
 shared_ptr<atomdb_api_types::HandleSet> MorkDB::query_for_pattern_base(const LinkSchema& link_schema) {

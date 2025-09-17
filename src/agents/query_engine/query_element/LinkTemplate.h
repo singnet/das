@@ -35,6 +35,15 @@ class LinkTemplate : public QueryElement {
             answer->assignment = assignment;
             this->output_buffer->add_query_answer(answer);
         }
+        void add_handle(char* handle,
+                        float importance,
+                        Assignment& assignment,
+                        map<string, string> metta_expression) {
+            QueryAnswer* answer = new QueryAnswer(string(handle), importance);
+            answer->assignment = assignment;
+            answer->metta_expression = metta_expression;
+            this->output_buffer->add_query_answer(answer);
+        }
         void query_answers_finished() { this->output_buffer->query_answers_finished(); }
         void setup_buffers() override {
             lock_guard<mutex> semaphore(this->api_mutex);

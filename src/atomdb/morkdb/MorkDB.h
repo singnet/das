@@ -49,8 +49,6 @@ class MorkDB : public RedisMongoDB {
     shared_ptr<MorkClient> mork_client;
 
     void mork_setup();
-    vector<string> tokenize_expression(const string& expr);
-    const atoms::Atom* parse_tokens_to_atom(const vector<string>& tokens, size_t& pos);
 };
 
 }  // namespace atomdb

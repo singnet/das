@@ -23,15 +23,17 @@ class HandleSetMork : public HandleSet {
    public:
     HandleSetMork();
     HandleSetMork(string handle);
+    HandleSetMork(string handle, map<string, string> metta_expressions, Assignment assignments);
     ~HandleSetMork();
 
     unsigned int size();
     void append(shared_ptr<HandleSet> other);
     shared_ptr<HandleSetIterator> get_iterator();
 
-   private:
     unsigned int handles_size;
     unordered_set<string> handles;
+    map<string, map<string, string>> metta_expressions_by_handle;
+    map<string, Assignment> assignments_by_handle;
 };
 
 class HandleSetMorkIterator : public HandleSetIterator {
