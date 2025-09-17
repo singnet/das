@@ -58,7 +58,7 @@ class MettaParserActions : public ParserActions {
      *
      * @param toplevel A flag to indicate whether the expression is a toplevel onr or not.
      */
-    void expression_end(bool toplevel);
+    void expression_end(bool toplevel, const string& metta_expression);
 
     stack<shared_ptr<QueryElement>> element_stack;
 

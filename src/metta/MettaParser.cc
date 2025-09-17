@@ -39,6 +39,7 @@ bool MettaParser::parse(bool throw_on_parse_error) {
         if (token->type == MettaTokens::OPEN_PARENTHESIS) {
             this->actions->expression_begin();
             token_stack.push(move(token));
+            this->lexer->stack_metta_string();
         } else if (token->type == MettaTokens::CLOSE_PARENTHESIS) {
             while ((token_stack.size() > 0) &&
                    (token_stack.top()->type != MettaTokens::OPEN_PARENTHESIS)) {
@@ -49,7 +50,8 @@ bool MettaParser::parse(bool throw_on_parse_error) {
                 return true;
             }
             token_stack.pop();
-            this->actions->expression_end(token_stack.size() == 0);
+            this->actions->expression_end(token_stack.size() == 0, this->lexer->current_metta_string);
+            this->lexer->pop_metta_string();
         } else if (token->type == MettaTokens::SYMBOL) {
             this->actions->symbol(token->text);
             token_stack.push(move(token));

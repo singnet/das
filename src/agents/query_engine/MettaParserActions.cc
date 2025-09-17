@@ -99,8 +99,8 @@ void MettaParserActions::expression_begin() {
     this->current_expression_type = LINK;
 }
 
-void MettaParserActions::expression_end(bool toplevel) {
-    ParserActions::expression_end(toplevel);
+void MettaParserActions::expression_end(bool toplevel, const string& metta_expression) {
+    ParserActions::expression_end(toplevel, metta_expression);
     unsigned int arity = this->current_expression_size;
     if (element_stack.size() < arity) {
         Utils::error("Invalid query expression: too few arguments for expression. Expected: " +
