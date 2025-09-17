@@ -43,7 +43,7 @@ run-query-agent:
 	bash -x src/scripts/run.sh query_broker $$PORT $$PORT_RANGE
 
 run-attention-broker:
-	@bash -x src/scripts/run.sh attention_broker_service 37007
+	@bash -x src/scripts/run.sh attention_broker_service 40001
 
 run-link-creation-agent:
 	@bash -x src/scripts/run.sh link_creation_server $(OPTIONS)
