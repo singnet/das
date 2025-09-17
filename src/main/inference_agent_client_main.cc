@@ -65,8 +65,8 @@ int main(int argc, char* argv[]) {
     string server_id = string(argv[2]);
     auto [start_port, end_port] = Utils::parse_ports_range(argv[3]);
     string timeout_str = string(argv[4]);
-    string number_of_iterations_str = string(argv[5]);
-    string max_query_answers_str = string(argv[6]);
+    string max_query_answers_str = string(argv[5]);
+    string number_of_iterations_str = string(argv[6]);
     string update_attention_broker_str = string(argv[7]);
     string run_full_evaluation_str = string(argv[8]);
 

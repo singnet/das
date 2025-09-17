@@ -32,7 +32,6 @@ cc_library(
         "//atomdb",
         "//atomdb:atomdb_cache_singleton",
         "//atomdb/redis_mongodb:redis_mongodb_lib",
-        "//attention_broker:attention_broker_lib",
         "//commons:commons_lib",
         "//commons/atoms:atoms_lib",
     ],
