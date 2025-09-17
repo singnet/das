@@ -14,7 +14,7 @@ import requests
 class FileServer:
     """Start a simple HTTP server in a background thread to serve a directory."""
 
-    def __init__(self, dir: str = "/tmp", bind: str = "172.18.0.1", port_range=(38800, 38900)):
+    def __init__(self, dir: str = "/tmp", bind: str = "0.0.0.0", port_range=(38800, 38900)):
         os.chdir(dir)
         handler = SimpleHTTPRequestHandler
         self.port = None

@@ -172,12 +172,13 @@ void LinkTemplate::processor_method(shared_ptr<StoppableThread> monitor) {
                                                      tagged_handle.second,
                                                      assignments_by_handle[tagged_handle.first],
                                                      metta_expressions_by_handle[tagged_handle.first]);
+                    count_matched++;
                 } else if (this->link_schema.match(string(tagged_handle.first), assignment, *db.get())) {
                     this->source_element->add_handle(
                         tagged_handle.first, tagged_handle.second, assignment);
                     assignment.clear();
+                    count_matched++;
                 }
-                count_matched++;
             }
             pending--;
         }
