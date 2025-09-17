@@ -6,6 +6,7 @@
 
 #include "AtomDBSingleton.h"
 #include "LinkCreationRequestProcessor.h"
+#include "AttentionBrokerClient.h"
 #include "ServiceBusSingleton.h"
 #include "Utils.h"
 
@@ -13,6 +14,7 @@ using namespace std;
 using namespace link_creation_agent;
 using namespace atomdb;
 using namespace service_bus;
+using namespace attention_broker;
 
 void ctrl_c_handler(int) {
     std::cout << "Stopping server..." << std::endl;
@@ -29,7 +31,7 @@ void ctrl_c_handler(int) {
  */
 int main(int argc, char* argv[]) {
     string help = R""""(
-    Usage: link_creation_agent server_address peer_address <start_port:end_port> [request_interval] [thread_count] [default_timeout] [buffer_file] [metta_file_path] [save_links_to_metta_file] [save_links_to_db]
+    Usage: link_creation_agent server_address peer_address <start_port:end_port> [request_interval] [thread_count] [default_timeout] [buffer_file] [metta_file_path] [save_links_to_metta_file] [save_links_to_db] [AB_ip:AB_port]
     Suported args:
         server_address: The address of the server to connect to, in the form "host:port"
         peer_address: The address of the peer to connect to, in the form "host:port"
@@ -41,6 +43,7 @@ int main(int argc, char* argv[]) {
         metta_file_path: The path to the metta file (default: "./")
         save_links_to_metta_file: Whether to save links to the metta file (default: true)
         save_links_to_db: Whether to save links to the database (default: false)
+        [AB_ip:AB_port] The address of the Attention Broker to connect to, in the form "host:port". 
 
     Requests must be in the following format:
     QUERY, LINK_TEMPLATE, MAX_RESULTS, REPEAT
@@ -66,6 +69,10 @@ int main(int argc, char* argv[]) {
                                                  string(argv[9]) == "1" || string(argv[9]) == "yes");
     bool save_links_to_db = argc > 10 && (string(argv[10]) == string("true") ||
                                           string(argv[10]) == "1" || string(argv[10]) == "yes");
+                                          
+    if (argc == 12) {
+        attention_broker::AttentionBrokerClient::set_server_address(argv[11]);
+    }
 
     signal(SIGINT, &ctrl_c_handler);
     signal(SIGTERM, &ctrl_c_handler);

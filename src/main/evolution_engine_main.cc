@@ -27,7 +27,7 @@ void ctrl_c_handler(int) {
 
 int main(int argc, char* argv[]) {
     if (argc < 4) {
-        cerr << "Usage: " << argv[0] << " <port> <start_port:end_port> BUS_IP:PORT [AB_ip:AB_port]"
+        cerr << "Usage: " << argv[0] << " <hostname>:<port> <start_port:end_port> BUS_IP:PORT [AB_ip:AB_port]"
              << endl;
         exit(1);
     }
@@ -35,7 +35,7 @@ int main(int argc, char* argv[]) {
         AttentionBrokerClient::set_server_address(string(argv[4]));
     }
 
-    string server_id = "0.0.0.0:" + string(argv[1]);
+    string server_id = string(argv[1]);
     auto ports_range = Utils::parse_ports_range(argv[2]);
     AtomDBSingleton::init();
     ServiceBusSingleton::init(server_id, argv[3], ports_range.first, ports_range.second);

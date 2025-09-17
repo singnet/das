@@ -4,10 +4,12 @@
 #include "FitnessFunctionRegistry.h"
 #include "InferenceProcessor.h"
 #include "ServiceBusSingleton.h"
+#include "AttentionBrokerClient.h"
 
 using namespace inference_agent;
 using namespace atomdb;
 using namespace std;
+using namespace attention_broker;
 
 void ctrl_c_handler(int) {
     std::cout << "Stopping server..." << std::endl;
@@ -17,17 +19,23 @@ void ctrl_c_handler(int) {
 
 int main(int argc, char* argv[]) {
     string help = R""""(
-    Usage: inference_agent server_address peer_address <start_port:end_port>
+    Usage: inference_agent server_address peer_address <start_port:end_port> [AB_ip:AB_port]
     Suported args:
         server_address: The address of the server to connect to, in the form "host:port"
         peer_address: The address of the peer to connect to, in the form "host:port"
         <start_port:end_port>: The lower and upper bound for the port numbers to be used by the command proxy
+        [AB_ip:AB_port] The address of the Attention Broker to connect to, in the form "host:port". 
     )"""";
 
     if (argc < 3) {
         cerr << help << endl;
         exit(1);
     }
+
+    if (argc == 5) {
+        AttentionBrokerClient::set_server_address(string(argv[4]));
+    }
+
     signal(SIGINT, &ctrl_c_handler);
     signal(SIGTERM, &ctrl_c_handler);
     cout << ":: ::Starting inference agent server:: ::" << endl;
