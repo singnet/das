@@ -395,6 +395,18 @@ TEST(MettaParser, Atoms_MettaParserActions) {
     EXPECT_FALSE(parser.parse(true));
     EXPECT_EQ(pa->handle_to_atom.size(), 7);
 
+    pa = make_shared<MettaParserActions>();
+    parser = MettaParser("(and (a) (b))", pa);
+    EXPECT_THROW(parser.parse(true), runtime_error);
+
+    pa = make_shared<MettaParserActions>();
+    parser = MettaParser("(or (a) (b))", pa);
+    EXPECT_THROW(parser.parse(true), runtime_error);
+
+    pa = make_shared<MettaParserActions>();
+    parser = MettaParser("(and (or (a) (b)) (and (c) (d)))", pa);
+    EXPECT_THROW(parser.parse(true), runtime_error);
+
     // Similarity (simple expression)
     pa = make_shared<MettaParserActions>();
     parser = MettaParser("(Similarity \"human\" \"monkey\")", pa);
