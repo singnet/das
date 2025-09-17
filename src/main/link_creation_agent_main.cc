@@ -5,8 +5,8 @@
 #include <string>
 
 #include "AtomDBSingleton.h"
-#include "LinkCreationRequestProcessor.h"
 #include "AttentionBrokerClient.h"
+#include "LinkCreationRequestProcessor.h"
 #include "ServiceBusSingleton.h"
 #include "Utils.h"
 
@@ -69,7 +69,7 @@ int main(int argc, char* argv[]) {
                                                  string(argv[9]) == "1" || string(argv[9]) == "yes");
     bool save_links_to_db = argc > 10 && (string(argv[10]) == string("true") ||
                                           string(argv[10]) == "1" || string(argv[10]) == "yes");
-                                          
+
     if (argc == 12) {
         attention_broker::AttentionBrokerClient::set_server_address(argv[11]);
     }

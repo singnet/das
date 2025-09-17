@@ -1,10 +1,10 @@
 #include <signal.h>
 
 #include "AtomDBSingleton.h"
+#include "AttentionBrokerClient.h"
 #include "FitnessFunctionRegistry.h"
 #include "InferenceProcessor.h"
 #include "ServiceBusSingleton.h"
-#include "AttentionBrokerClient.h"
 
 using namespace inference_agent;
 using namespace atomdb;

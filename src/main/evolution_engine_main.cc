@@ -27,8 +27,8 @@ void ctrl_c_handler(int) {
 
 int main(int argc, char* argv[]) {
     if (argc < 4) {
-        cerr << "Usage: " << argv[0] << " <hostname>:<port> <start_port:end_port> BUS_IP:PORT [AB_ip:AB_port]"
-             << endl;
+        cerr << "Usage: " << argv[0]
+             << " <hostname>:<port> <start_port:end_port> BUS_IP:PORT [AB_ip:AB_port]" << endl;
         exit(1);
     }
     if (argc == 5) {
