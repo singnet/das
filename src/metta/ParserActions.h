@@ -59,7 +59,7 @@ class ParserActions {
      *
      * @param toplevel A flag to indicate whether the expression is a toplevel onr or not.
      */
-    virtual void expression_end(bool toplevel);
+    virtual void expression_end(bool toplevel, const string& metta_string);
 };
 
 }  // namespace metta

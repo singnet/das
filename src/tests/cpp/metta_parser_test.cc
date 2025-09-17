@@ -39,9 +39,9 @@ class TestActions : public ParserActions {
         ParserActions::expression_begin();
         actions.push_back("BEGIN_EXPRESSION");
     }
-    void expression_end(bool toplevel) override {
-        ParserActions::expression_end(toplevel);
-        actions.push_back((toplevel ? "TOPLEVEL_" : "") + string("EXPRESSION"));
+    void expression_end(bool toplevel, const string& metta_expression) override {
+        ParserActions::expression_end(toplevel, metta_expression);
+        actions.push_back((toplevel ? "TOPLEVEL_" : "") + string("EXPRESSION ") + metta_expression);
     }
 };
 
@@ -296,7 +296,7 @@ TEST(MettaParser, basics) {
                     "BEGIN_EXPRESSION",
                     "VARIABLE a",
                     "INTEGER_LITERAL 1",
-                    "TOPLEVEL_EXPRESSION",
+                    "TOPLEVEL_EXPRESSION ($a 1)",
                 });
     check_parse("09",
                 "(($v1 n1) $v2 n2)",
@@ -306,10 +306,10 @@ TEST(MettaParser, basics) {
                     "BEGIN_EXPRESSION",
                     "VARIABLE v1",
                     "SYMBOL n1",
-                    "EXPRESSION",
+                    "EXPRESSION ($v1 n1)",
                     "VARIABLE v2",
                     "SYMBOL n2",
-                    "TOPLEVEL_EXPRESSION",
+                    "TOPLEVEL_EXPRESSION (($v1 n1) $v2 n2)",
                 });
     check_parse("10",
                 "($a \"blah\\\"bleh\\\"blih\\\"\")",
@@ -318,7 +318,7 @@ TEST(MettaParser, basics) {
                     "BEGIN_EXPRESSION",
                     "VARIABLE a",
                     "STRING_LITERAL \"blah\\\"bleh\\\"blih\\\"\"",
-                    "TOPLEVEL_EXPRESSION",
+                    "TOPLEVEL_EXPRESSION ($a \"blah\\\"bleh\\\"blih\\\"\")",
                 });
     // clang-format off
     check_parse(
@@ -330,17 +330,17 @@ TEST(MettaParser, basics) {
             "BEGIN_EXPRESSION",
             "VARIABLE v1",
             "SYMBOL n1",
-            "EXPRESSION",
+            "EXPRESSION ($v1 n1)",
             "BEGIN_EXPRESSION",
             "INTEGER_LITERAL 2",
-            "EXPRESSION",
+            "EXPRESSION (2)",
             "VARIABLE v2",
             "BEGIN_EXPRESSION",
             "SYMBOL n8",
-            "EXPRESSION",
+            "EXPRESSION (n8)",
             "BEGIN_EXPRESSION",
             "VARIABLE v4",
-            "EXPRESSION",
+            "EXPRESSION ($v4)",
             "INTEGER_LITERAL 1",
             "SYMBOL n2",
             "BEGIN_EXPRESSION",
@@ -351,14 +351,14 @@ TEST(MettaParser, basics) {
             "BEGIN_EXPRESSION",
             "SYMBOL n7",
             "VARIABLE v3",
-            "EXPRESSION",
-            "EXPRESSION",
-            "EXPRESSION",
-            "TOPLEVEL_EXPRESSION",
+            "EXPRESSION (n7 $v3)",
+            "EXPRESSION (n6 (n7 $v3))",
+            "EXPRESSION (n4 n5 (n6 (n7 $v3)))",
+            "TOPLEVEL_EXPRESSION (($v1 n1) (2) $v2 (n8) ($v4) 1 n2 (n4 n5 (n6 (n7 $v3))))",
             "BEGIN_EXPRESSION",
             "SYMBOL n10",
             "SYMBOL n11",
-            "TOPLEVEL_EXPRESSION",
+            "TOPLEVEL_EXPRESSION (n10 n11)",
         });
     // clang-format on
 }
