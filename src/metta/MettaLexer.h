@@ -3,6 +3,7 @@
 #include <map>
 #include <memory>
 #include <queue>
+#include <stack>
 #include <string>
 
 #include "Token.h"
@@ -69,7 +70,11 @@ class MettaLexer {
      */
     unique_ptr<Token> next();
 
+    void stack_metta_string();
+    void pop_metta_string();
+
     unsigned int line_number;
+    string current_metta_string;
 
    private:
     void _init(unsigned int input_buffer_size);
@@ -91,6 +96,7 @@ class MettaLexer {
     queue<string> attached_strings;
     queue<string> attached_file_names;
     map<string, long> current_offset;
+    stack<string> metta_string_stack;
 };
 
 }  // namespace metta

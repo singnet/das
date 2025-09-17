@@ -24,6 +24,6 @@ void ParserActions::literal(float value) { LOG_DEBUG("FLOAT_LITERAL: <" + std::t
 
 void ParserActions::expression_begin() { LOG_DEBUG("BEGIN_EXPRESSION"); }
 
-void ParserActions::expression_end(bool toplevel) {
-    LOG_DEBUG(((toplevel ? "TOPLEVEL_" : "") + string("EXPRESSION")));
+void ParserActions::expression_end(bool toplevel, const string& metta_string) {
+    LOG_DEBUG(((toplevel ? "TOPLEVEL_" : "") + string("EXPRESSION: ") + metta_string));
 }

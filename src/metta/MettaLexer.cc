@@ -32,6 +32,7 @@ void MettaLexer::_init(unsigned int input_buffer_size) {
     this->input_buffer_size = input_buffer_size;
     this->single_string_flag = false;
     this->file_input_flag = true;
+    this->current_metta_string.reserve(1000); // any small number is OK
 }
 
 MettaLexer::~MettaLexer() { free(this->input_buffer); }
@@ -216,6 +217,18 @@ unique_ptr<Token> MettaLexer::next() {
     }
 }
 
+void MettaLexer::stack_metta_string() {
+
+    this->current_metta_string.pop_back();
+    this->metta_string_stack.push(this->current_metta_string);
+    this->current_metta_string = "(";
+}
+
+void MettaLexer::pop_metta_string() {
+    this->current_metta_string = metta_string_stack.top() + this->current_metta_string;
+    this->metta_string_stack.pop();
+}
+
 // -------------------------------------------------------------------------------------------------
 // Private methods
 
@@ -241,12 +254,16 @@ char MettaLexer::_read_next_char() {
     if (c == '\n') {
         this->line_number++;
     }
+    this->current_metta_string.push_back(c);
     return c;
 }
 
 void MettaLexer::_rewind_input_buffer(unsigned int n) {
     if (this->reading_cursor >= n) {
         this->reading_cursor -= n;
+        for (unsigned int i = 0; i < n; i++) {
+            this->current_metta_string.pop_back();
+        }
     } else {
         Utils::error("Trying to rewind input buffer beyond its start");
     }
