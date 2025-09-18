@@ -307,10 +307,10 @@ vector<string> ProofOfImplication::query() {
     vector<string> tokens = {
         "AND", "2",
             "LINK_TEMPLATE", "Expression", "2",
-                "NODE", "Symbol", "SATISFYING_SET",
+                "NODE", "Symbol", "PREDICATE",
                 "VARIABLE", "P1",
             "LINK_TEMPLATE", "Expression", "2",
-                "NODE", "Symbol", "SATISFYING_SET",
+                "NODE", "Symbol", "PREDICATE",
                 "VARIABLE", "P2",
             // "NOT",
             //     "OR",
@@ -343,11 +343,11 @@ string ProofOfImplication::get_type() { return "PROOF_OF_IMPLICATION"; }
 
 vector<vector<string>> ProofOfImplication::get_requests() {
     vector<vector<string>> requests;
-    auto satisfying_set_query = evaluation_query(true, this->is_full_evaluation);
-    auto evaluation_template = evaluation_link_template(true, this->is_full_evaluation);
-    satisfying_set_query.insert(
-        satisfying_set_query.end(), evaluation_template.begin(), evaluation_template.end());
-    requests.push_back(satisfying_set_query);
+    // auto satisfying_set_query = evaluation_query(true, this->is_full_evaluation);
+    // auto evaluation_template = evaluation_link_template(true, this->is_full_evaluation);
+    // satisfying_set_query.insert(
+    //     satisfying_set_query.end(), evaluation_template.begin(), evaluation_template.end());
+    // requests.push_back(satisfying_set_query);
     auto query = this->query();
     query.push_back(this->get_type());  // processor
     requests.push_back(query);
@@ -375,10 +375,10 @@ vector<string> ProofOfEquivalence::query() {
     vector<string> tokens = {
         "AND", "2",
         "LINK_TEMPLATE", "Expression", "2",
-            "NODE", "Symbol", "PATTERNS",
+            "NODE", "Symbol", "CONCEPT",
             "VARIABLE", "C1",
         "LINK_TEMPLATE", "Expression", "2",
-            "NODE", "Symbol", "PATTERNS",
+            "NODE", "Symbol", "CONCEPT",
             "VARIABLE", "C2",
         // "NOT",
         //     "OR",
@@ -411,10 +411,10 @@ string ProofOfEquivalence::get_type() { return "PROOF_OF_EQUIVALENCE"; }
 
 vector<vector<string>> ProofOfEquivalence::get_requests() {
     vector<vector<string>> requests;
-    auto patterns_query = evaluation_query(this->is_full_evaluation, true);
-    auto evaluation_template = evaluation_link_template(this->is_full_evaluation, true);
-    patterns_query.insert(patterns_query.end(), evaluation_template.begin(), evaluation_template.end());
-    requests.push_back(patterns_query);
+    // auto patterns_query = evaluation_query(this->is_full_evaluation, true);
+    // auto evaluation_template = evaluation_link_template(this->is_full_evaluation, true);
+    // patterns_query.insert(patterns_query.end(), evaluation_template.begin(), evaluation_template.end());
+    // requests.push_back(patterns_query);
     auto query = this->query();
     query.push_back(this->get_type());  // processor
     requests.push_back(query);
