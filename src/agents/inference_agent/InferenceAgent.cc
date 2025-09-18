@@ -253,6 +253,8 @@ void InferenceAgent::process_inference_request(shared_ptr<InferenceProxy> proxy)
         proxy->parameters.get<bool>(InferenceProxy::RUN_FULL_EVALUATION_QUERY));
     inference_request->set_lca_update_attention_broker(
         proxy->parameters.get<bool>(InferenceProxy::UPDATE_ATTENTION_BROKER_FLAG));
+    inference_request->set_repeat(
+        proxy->parameters.get<unsigned int>(InferenceProxy::REPEAT_REQUEST_NUMBER));
     inference_request_queue.enqueue(inference_request);
     LOG_DEBUG("Inference request processed for request ID: " << request_id);
 }
@@ -277,8 +279,9 @@ void InferenceAgent::process_inference_abort_request(shared_ptr<InferenceRequest
         evolution_proxy_map[request_id]->abort();
         LOG_DEBUG("Evolution proxy aborted for request ID: " << request_id);
     }
+
+    LOG_DEBUG("Inference request processed and cleaned up for request ID: " << request_id);
     this->inference_requests.erase(
         remove(this->inference_requests.begin(), this->inference_requests.end(), inference_request),
         this->inference_requests.end());
-    LOG_DEBUG("Inference request processed and cleaned up for request ID: " << request_id);
 }
