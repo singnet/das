@@ -274,31 +274,19 @@ TEST(QueryAnswer, rewrite_query) {
     QueryAnswerElement element1("v2");
     QueryAnswerElement element2(1);
     vector<string> original_query = {
-        "AND", "2",
-            "LINK_TEMPLATE", "Expression", "2",
-                "NODE", "Symbol", "p1",
-                "VARIABLE", "v1",
-            "LINK_TEMPLATE", "Expression", "2",
-                "NODE", "Symbol", "p2",
-                "VARIABLE", "v2",
-            "LINK_TEMPLATE", "Expression", "2",
-                "NODE", "Symbol", "p3",
-                "VARIABLE", "v3",
+        "AND",      "2",  "LINK_TEMPLATE", "Expression", "2", "NODE", "Symbol", "p1",
+        "VARIABLE", "v1", "LINK_TEMPLATE", "Expression", "2", "NODE", "Symbol", "p2",
+        "VARIABLE", "v2", "LINK_TEMPLATE", "Expression", "2", "NODE", "Symbol", "p3",
+        "VARIABLE", "v3",
     };
     vector<string> expected = {
-        "AND", "2",
-            "LINK_TEMPLATE", "Expression", "2",
-                "NODE", "Symbol", "p1",
-                "ATOM", "h4",
-            "LINK_TEMPLATE", "Expression", "2",
-                "NODE", "Symbol", "p2",
-                "VARIABLE", "v2",
-            "LINK_TEMPLATE", "Expression", "2",
-                "NODE", "Symbol", "p3",
-                "ATOM", "h2",
+        "AND",      "2",  "LINK_TEMPLATE", "Expression", "2", "NODE", "Symbol", "p1",
+        "ATOM",     "h4", "LINK_TEMPLATE", "Expression", "2", "NODE", "Symbol", "p2",
+        "VARIABLE", "v2", "LINK_TEMPLATE", "Expression", "2", "NODE", "Symbol", "p3",
+        "ATOM",     "h2",
     };
     vector<string> new_query = {"blah"};
-    map<string, QueryAnswerElement> replacements = {{"v1", element1} , {"v3", element2}};
+    map<string, QueryAnswerElement> replacements = {{"v1", element1}, {"v3", element2}};
     answer.rewrite_query(original_query, replacements, new_query);
     EXPECT_EQ(expected, new_query);
 }

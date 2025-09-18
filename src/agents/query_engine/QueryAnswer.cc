@@ -1,10 +1,10 @@
 #include "QueryAnswer.h"
-#include "LinkSchema.h"
 
 #include <cmath>
 #include <cstring>
 #include <iostream>
 
+#include "LinkSchema.h"
 #include "Utils.h"
 
 using namespace query_engine;
@@ -258,7 +258,9 @@ string QueryAnswer::get(const QueryAnswerElement& element_key) {
     return answer;
 }
 
-void QueryAnswer::rewrite_query(const vector<string>& original_query, map<string, QueryAnswerElement>& replacements, vector<string>& new_query) {
+void QueryAnswer::rewrite_query(const vector<string>& original_query,
+                                map<string, QueryAnswerElement>& replacements,
+                                vector<string>& new_query) {
     new_query.clear();
     unsigned int cursor = 0;
     unsigned int size = original_query.size();

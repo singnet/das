@@ -1,8 +1,8 @@
 #pragma once
 
+#include <map>
 #include <string>
 #include <vector>
-#include <map>
 
 #include "Assignment.h"
 #include "QueryAnswer.h"
@@ -189,9 +189,12 @@ class QueryAnswer {
      * @param A vector with pairs (variable name --> QueryAnswerElement) which specifies
      * which variables in Original_query are supposed to be replaced by the corresponding
      * QueryAnswerElement.
-     * @parem new_query A new query with the the proper variables replaced by concrete QueryAnswer elements.
+     * @parem new_query A new query with the the proper variables replaced by concrete QueryAnswer
+     * elements.
      */
-    void rewrite_query(const vector<string>& original_query, map<string, QueryAnswerElement>& replacements, vector<string>& new_query);
+    void rewrite_query(const vector<string>& original_query,
+                       map<string, QueryAnswerElement>& replacements,
+                       vector<string>& new_query);
 
    private:
     string token_representation;
