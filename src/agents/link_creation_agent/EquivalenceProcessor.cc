@@ -37,8 +37,8 @@ vector<shared_ptr<Link>> EquivalenceProcessor::process_query(shared_ptr<QueryAns
         return {};
     }
 
-    LinkSchema pattern_query_schema = build_pattern_set_query(c1_handle, c2_handle);
-    LinkSchema satisfying_query_schema = build_satisfying_set_query(c1_handle, c2_handle);
+    LinkSchema pattern_query_schema = build_pattern_union_query(c1_handle, c2_handle);
+    LinkSchema satisfying_query_schema = build_pattern_set_query(c1_handle, c2_handle);
     auto pattern_query = pattern_query_schema.tokenize();
     auto satisfying_query = satisfying_query_schema.tokenize();
     // remove the first element (LINK_TEMPLATE)

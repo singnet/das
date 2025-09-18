@@ -109,13 +109,13 @@ void InferenceAgent::process_lca_requests() {
         if (is_lca_requests_finished(inference_request) &&
             !inference_request->get_sent_evolution_request()) {
             LOG_DEBUG("LCA requests finished for inference request ID: " << inference_request->get_id());
+            inference_request->set_repeat(inference_request->get_repeat() - 1);
             if (stoi(inference_request->get_max_proof_length()) > 1) {
                 send_distributed_inference_control_request(inference_request);
+                inference_request->set_sent_evolution_request(true);
             } else {
                 process_direct_link_inference(inference_request);
             }
-            inference_request->set_sent_evolution_request(true);
-            inference_request->set_repeat(inference_request->get_repeat() - 1);
         }
     }
 }
@@ -274,12 +274,13 @@ void InferenceAgent::process_inference_abort_request(shared_ptr<InferenceRequest
     inference_proxy_map[request_id]->query_processing_finished();
     LOG_DEBUG("Inference proxy query processing finished for request ID: " << request_id);
     inference_proxy_map.erase(request_id);
-    if (!evolution_proxy_map[request_id]->finished()) {
-        LOG_DEBUG("Evolution proxy not finished for request ID: " << request_id);
-        evolution_proxy_map[request_id]->abort();
-        LOG_DEBUG("Evolution proxy aborted for request ID: " << request_id);
+    if(evolution_proxy_map.find(request_id) != evolution_proxy_map.end()){
+        if (!evolution_proxy_map[request_id]->finished()) {
+            LOG_DEBUG("Evolution proxy not finished for request ID: " << request_id);
+            evolution_proxy_map[request_id]->abort();
+            LOG_DEBUG("Evolution proxy aborted for request ID: " << request_id);
+        }
     }
-
     LOG_DEBUG("Inference request processed and cleaned up for request ID: " << request_id);
     this->inference_requests.erase(
         remove(this->inference_requests.begin(), this->inference_requests.end(), inference_request),
