@@ -69,12 +69,8 @@ void InferenceAgent::process_evolution_requests() {
                     send_link_creation_request(inference_request);
                     inference_request->set_sent_evolution_request(false);
                 } else {
-                    this->inference_requests.erase(remove(this->inference_requests.begin(),
-                                                          this->inference_requests.end(),
-                                                          inference_request),
-                                                   this->inference_requests.end());
                     LOG_DEBUG("Inference request removed for request ID: " << it->first);
-                    process_inference_abort_request(it->first);
+                    process_inference_abort_request(inference_request);
                 }
             }
 
@@ -100,14 +96,10 @@ void InferenceAgent::process_direct_link_inference(shared_ptr<InferenceRequest> 
             query_answer->strength = atom->custom_attributes.get<double>("strength");
             inference_proxy_map[inference_request->get_id()]->push(query_answer);
         }
-        inference_requests.erase(
-            remove(inference_requests.begin(), inference_requests.end(), inference_request),
-            inference_requests.end());
         LOG_DEBUG("Inference request removed for request ID: " << inference_request->get_id());
-        process_inference_abort_request(inference_request->get_id());
+        process_inference_abort_request(inference_request);
     } else {
         LOG_DEBUG("No direct link inference found for request ID: " << inference_request->get_id());
-        inference_request->set_sent_evolution_request(false);
         send_link_creation_request(inference_request);
     }
 }
@@ -265,7 +257,11 @@ void InferenceAgent::process_inference_request(shared_ptr<InferenceProxy> proxy)
     LOG_DEBUG("Inference request processed for request ID: " << request_id);
 }
 
-void InferenceAgent::process_inference_abort_request(const string& request_id) {
+void InferenceAgent::process_inference_abort_request(shared_ptr<InferenceRequest> inference_request) {
+    if (inference_request == nullptr) {
+        Utils::error("Invalid inference request");
+    }
+    auto request_id = inference_request->get_id();
     LOG_DEBUG("Evolution proxy finished for request ID: " << request_id);
     for (auto& link_creation_proxy : link_creation_proxy_map[request_id]) {
         LOG_DEBUG("Aborting link creation proxy for request ID: " << request_id);
@@ -281,5 +277,8 @@ void InferenceAgent::process_inference_abort_request(const string& request_id) {
         evolution_proxy_map[request_id]->abort();
         LOG_DEBUG("Evolution proxy aborted for request ID: " << request_id);
     }
+    this->inference_requests.erase(
+        remove(this->inference_requests.begin(), this->inference_requests.end(), inference_request),
+        this->inference_requests.end());
     LOG_DEBUG("Inference request processed and cleaned up for request ID: " << request_id);
 }
