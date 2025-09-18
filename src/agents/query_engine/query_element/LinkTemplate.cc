@@ -136,17 +136,8 @@ void LinkTemplate::processor_method(shared_ptr<StoppableThread> monitor) {
     LOG_DEBUG("Positive importance flag: " + string(this->positive_importance_flag ? "true" : "false"));
     LOG_INFO("Fetched " + std::to_string(handles->size()) + " atoms in " + link_schema_handle);
 
-    // TODO(arturgontijo): MORKDB pre process.
-    map<string, map<string, string>> metta_expressions_by_handle;
-    map<string, Assignment> assignments_by_handle;
-    bool from_morkdb = false;
-    if (auto handle_set_mork = dynamic_cast<atomdb_api_types::HandleSetMork*>(handles.get())) {
-        for (auto handle : handle_set_mork->handles) {
-            metta_expressions_by_handle[handle] = handle_set_mork->metta_expressions_by_handle[handle];
-            assignments_by_handle[handle] = handle_set_mork->assignments_by_handle[handle];
-        }
-        from_morkdb = true;
-    }
+    auto handle_set_mork = dynamic_cast<atomdb_api_types::HandleSetMork*>(handles.get());
+    bool from_morkdb = (handle_set_mork != nullptr);
 
     vector<pair<char*, float>> tagged_handles;
     if (handles->size() > 0) {
@@ -168,10 +159,11 @@ void LinkTemplate::processor_method(shared_ptr<StoppableThread> monitor) {
         } else {
             if ((tagged_handle.second > 0 || !this->positive_importance_flag)) {
                 if (from_morkdb) {
-                    this->source_element->add_handle(tagged_handle.first,
-                                                     tagged_handle.second,
-                                                     assignments_by_handle[tagged_handle.first],
-                                                     metta_expressions_by_handle[tagged_handle.first]);
+                    this->source_element->add_handle(
+                        tagged_handle.first,
+                        tagged_handle.second,
+                        handle_set_mork->assignments_by_handle[tagged_handle.first],
+                        handle_set_mork->metta_expressions_by_handle[tagged_handle.first]);
                     count_matched++;
                 } else if (this->link_schema.match(string(tagged_handle.first), assignment, *db.get())) {
                     this->source_element->add_handle(
