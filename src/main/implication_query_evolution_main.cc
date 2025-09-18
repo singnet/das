@@ -42,6 +42,7 @@
 // Variables
 #define V1 "v1"
 #define V2 "v2"
+#define V3 "v3"
 #define PREDICATE1 "predicate1"
 #define PREDICATE2 "predicate2"
 #define CONCEPT1 "concept1"
@@ -73,6 +74,7 @@ using namespace attention_broker;
 
 static shared_ptr<AtomDB> db;
 static shared_ptr<ServiceBus> service_bus;
+static vector<vector<string>> buffer_determiners;
 
 static string get_predicate_name(string handle) {
     shared_ptr<Link> predicate_link = dynamic_pointer_cast<Link>(db->get_atom(handle));
@@ -218,6 +220,7 @@ static add_or_update_link(const string& type_handle,
         }
     } else {
         db->add_link(&new_link);
+        buffer_determiners.push_back({handle, target1, target2});
     }
 }
 
@@ -319,7 +322,10 @@ static void build_links(const string& query,
     }
 }
 
-static void evolve_chain_query(const vector<string>& chain_query, const string& context) {
+static void evolve_chain_query(const vector<string>& chain_query, 
+                               const vector<vector<string>>& correlation_query_template,
+                               const vector<vector<string>>& correlation_query_constants,
+                               const string& context) {
 
     QueryEvolutionProxy* proxy_ptr = new QueryEvolutionProxy(
         chain_query,
@@ -358,7 +364,7 @@ static void evolve_chain_query(const vector<string>& chain_query, const string& 
     cout << "Total answers in iteration " << count_iterations++ << ": " << count_answers << endl;
 }
 
-static void run(string& context) {
+static void run(string& context_tag) {
 
     // clang-format off
     vector<string> implication_query = {
@@ -423,11 +429,108 @@ static void run(string& context) {
                     VARIABLE, PREDICATE3,
                     VARIABLE, predicate_target,
     };
-    /*
+
+    vector<string> context_query = {
+        link_template, expression, "3",
+            variable, V1,
+            variable, V2,
+            variable, V3,
+    };
+
+    vector<string> correlation_query_template = {{
+        OR_OPERATOR, "3"
+            LINK_TEMPLATE, EXPRESSION, "3",
+                NODE, SYMBOL, EVALUATION,
+                VARIABLE, PREDICATE1,
+                VARIABLE, V1,
+            LINK_TEMPLATE, EXPRESSION, "3",
+                NODE, SYMBOL, IMPLICATION,
+                VARIABLE, PREDICATE1,
+                VARIABLE, V1,
+            LINK_TEMPLATE, EXPRESSION, "3",
+                NODE, SYMBOL, IMPLICATION,
+                VARIABLE, V1,
+                VARIABLE, PREDICATE1,
+    } , {
+        OR_OPERATOR, "6"
+            LINK_TEMPLATE, EXPRESSION, "3",
+                NODE, SYMBOL, EVALUATION,
+                VARIABLE, PREDICATE1,
+                VARIABLE, V1,
+            LINK_TEMPLATE, EXPRESSION, "3",
+                NODE, SYMBOL, IMPLICATION,
+                VARIABLE, PREDICATE1,
+                VARIABLE, V1,
+            LINK_TEMPLATE, EXPRESSION, "3",
+                NODE, SYMBOL, IMPLICATION,
+                VARIABLE, V1,
+                VARIABLE, PREDICATE1,
+            LINK_TEMPLATE, EXPRESSION, "3",
+                NODE, SYMBOL, EVALUATION,
+                VARIABLE, PREDICATE2,
+                VARIABLE, V1,
+            LINK_TEMPLATE, EXPRESSION, "3",
+                NODE, SYMBOL, IMPLICATION,
+                VARIABLE, PREDICATE2,
+                VARIABLE, V1,
+            LINK_TEMPLATE, EXPRESSION, "3",
+                NODE, SYMBOL, IMPLICATION,
+                VARIABLE, V1,
+                VARIABLE, PREDICATE2,
+    } , {
+        OR_OPERATOR, "9"
+            LINK_TEMPLATE, EXPRESSION, "3",
+                NODE, SYMBOL, EVALUATION,
+                VARIABLE, PREDICATE1,
+                VARIABLE, V1,
+            LINK_TEMPLATE, EXPRESSION, "3",
+                NODE, SYMBOL, IMPLICATION,
+                VARIABLE, PREDICATE1,
+                VARIABLE, V1,
+            LINK_TEMPLATE, EXPRESSION, "3",
+                NODE, SYMBOL, IMPLICATION,
+                VARIABLE, V1,
+                VARIABLE, PREDICATE1,
+            LINK_TEMPLATE, EXPRESSION, "3",
+                NODE, SYMBOL, EVALUATION,
+                VARIABLE, PREDICATE2,
+                VARIABLE, V1,
+            LINK_TEMPLATE, EXPRESSION, "3",
+                NODE, SYMBOL, IMPLICATION,
+                VARIABLE, PREDICATE2,
+                VARIABLE, V1,
+            LINK_TEMPLATE, EXPRESSION, "3",
+                NODE, SYMBOL, IMPLICATION,
+                VARIABLE, V1,
+                VARIABLE, PREDICATE2,
+            LINK_TEMPLATE, EXPRESSION, "3",
+                NODE, SYMBOL, EVALUATION,
+                VARIABLE, PREDICATE3,
+                VARIABLE, V1,
+            LINK_TEMPLATE, EXPRESSION, "3",
+                NODE, SYMBOL, IMPLICATION,
+                VARIABLE, PREDICATE3,
+                VARIABLE, V1,
+            LINK_TEMPLATE, EXPRESSION, "3",
+                NODE, SYMBOL, IMPLICATION,
+                VARIABLE, V1,
+                VARIABLE, PREDICATE3,
+    }};
+
+    QueryAnswerElement predicate1(PREDICATE1);
+    QueryAnswerElement predicate2(PREDICATE2);
+    QueryAnswerElement predicate3(PREDICATE3);
+    map<string, QueryAnswerElement> correlation_query_constants = {
+        {{PREDICATE1, predicate1}}, 
+        {{PREDICATE1, predicate1}, {PREDICATE2, predicate2}}, 
+        {{PREDICATE1, predicate1}, {PREDICATE2, predicate2}, {PREDICATE3, predicate3}}, 
+    }
+
+    /*******************************************************************
     // NOTE TO REVISOR: I left these queries in comments below just to keep
     // all queries in the same place to ease reference. They can't be pre-defined
     // like the other ones because they both contain a dynamic component.
-    //
+
     build_implication = {
         OR_OPERATOR, "2"
         LINK_TEMPLATE, EXPRESSION, "3",
@@ -444,6 +547,7 @@ static void run(string& context) {
                 VARIABLE, CONCEPT2,
                 VARIABLE, CONCEPT1,
     };
+
     build_equivalence = {
         OR_OPERATOR, "2"
         LINK_TEMPLATE, EXPRESSION, "3",
@@ -461,29 +565,41 @@ static void run(string& context) {
                 VARIABLE, PREDICATE1,
     };
 
-    Toplevel expressions:
+    Toplevel expressions (-> created -- knowledge base):
 
-        (IMPLICATION (PREDICATE "feature_contains_adc_cbc") (PREDICATE "feature_contains_ccc_cac"))
-        (EQUIVALENCE (CONCEPT (Sentence "dca cbc bde aaa adc") (CONCEPT (Sentence "aaa cac acc baa dad")))
-        (EVALUATION (PREDICATE "feature_contains_adc_cbc") (CONCEPT (Sentence "dca cbc bde aaa adc")))
-        (Contains (Sentence "cdb bce dad cec aae") (Word "bce"))
+    ->  (IMPLICATION (PREDICATE "feature_contains_adc_cbc") (PREDICATE "feature_contains_ccc_cac"))
+    ->  (EQUIVALENCE (CONCEPT (Sentence "dca cbc bde aaa adc") (CONCEPT (Sentence "aaa cac acc baa dad")))
+    --  (EVALUATION (PREDICATE "feature_contains_adc_cbc") (CONCEPT (Sentence "dca cbc bde aaa adc")))
+    --  (Contains (Sentence "cdb bce dad cec aae") (Word "bce"))
 
-    Target elements:
+    Target elements (-> independent):
 
     ->  (PREDICATE "feature_contains_ccc_cac")
     ->  (CONCEPT (Sentence "dca cbc bde aaa adc"))
         (IMPLICATION (PREDICATE "feature_contains_adc_cbc") (PREDICATE "feature_contains_ccc_cac"))
         (EQUIVALENCE (CONCEPT (Sentence "dca cbc bde aaa adc") (CONCEPT (Sentence "aaa cac acc baa dad")))
         (EVALUATION (PREDICATE "feature_contains_adc_cbc") (CONCEPT (Sentence "dca cbc bde aaa adc")))
-    */
+    ********************************************************************/
+
     // clang-format on
+
+    LOG_INFO("Setting up context");
+    AtomSpace atom_space;
+    QueryAnswerElement target2(V2);
+    QueryAnswerElement target3(V3);
+    QueryAnswerElement toplevel_link(0);
+    auto context_obj = atom_space.create_context(
+        context_tag, context_query, {{toplevel_link, target2}, {toplevel_link, target3}}, {});
+    string context = context_obj->get_key();
+    LOG_INFO("Context " + context + " is ready");
 
     for (unsigned int i = 0; i < NUM_ITERATIONS; i++) {
         build_links(implication_query, context, build_implication_link);
         build_links(equivalence_query, context, build_equivalence_link);
-        evolve_chain_query(chain_query, context);
+        AttentionBrokerClient::set_determiners(buffer_determiners, context);
+        buffer_determiners.clear();
+        evolve_chain_query(chain_query, correlation_query_template, correlation_query_constants, context);
     }
-
 }
 
 int main(int argc, char* argv[]) {
@@ -540,16 +656,6 @@ int main(int argc, char* argv[]) {
     LOG_INFO("POPULATION_SIZE: " + to_string(POPULATION_SIZE);
     LOG_INFO("MAX_GENERATIONS: " + to_string(MAX_GENERATIONS);
     LOG_INFO("NUM_ITERATIONS: " + to_string(NUM_ITERATIONS);
-
-    LOG_INFO("Setting up context");
-    AtomSpace atom_space;
-    QueryAnswerElement sentence_link("sentence1");
-    QueryAnswerElement word_link("word1");
-    QueryAnswerElement contains_link(0);
-    auto context = atom_space.create_context(
-        context_tag, context1, {{contains_link, sentence_link}, {sentence_link, word_link}}, {});
-    string context_str = context->get_key();
-    LOG_INFO("Context " + context_str + " is ready");
 
     run(context_tag);
     return 0;

@@ -255,3 +255,30 @@ string QueryAnswer::get(const QueryAnswerElement& element_key) {
     }
     return answer;
 }
+
+void rewrite_query(const vector<string>& original_query, map<string, QueryAnswerElement>& replacements, vector<string>& new_query) {
+    new_query.clear();
+    unsigned int cursor = 0;
+    unsigned int size = original_query.size();
+    while (cursor < size) {
+        string token = original_query[cursor++];
+        if (token == LinkSchema::UNTYPED_VARIABLE) {
+            if (cursor == size) {
+                Utils::error("Invalid correlation_tokens");
+                return {};
+            }
+            token = original_query[cursor++];
+            auto iterator = replacements.find(token);
+            if (iterator != replacements.end()) {
+                string value = this->get(*iterator);
+                new_query.push_back(LinkSchema::ATOM);
+                new_query.push_back(value);
+            } else {
+                new_query.push_back(LinkSchema::UNTYPED_VARIABLE);
+                new_query.push_back(token);
+            }
+        } else {
+            new_query.push_back(token);
+        }
+    }   
+}

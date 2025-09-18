@@ -2,6 +2,7 @@
 
 #include <string>
 #include <vector>
+#include <map>
 
 #include "Assignment.h"
 #include "QueryAnswer.h"
@@ -179,6 +180,18 @@ class QueryAnswer {
      * $return The element indicated by the passed QueryAnswerElement key.
      */
     string get(const QueryAnswerElement& element_key);
+
+    /**
+     * Rewrites the passed query (tokens only, no MeTTa expression allowed) replacing variables
+     * by concrete QueryAnswer elements.
+     *
+     * @param original_query Query to be rewritten.
+     * @param A vector with pairs (variable name --> QueryAnswerElement) which specifies
+     * which variables in Original_query are supposed to be replaced by the corresponding
+     * QueryAnswerElement.
+     * @parem new_query A new query with the the proper variables replaced by concrete QueryAnswer elements.
+     */
+    void rewrite_query(vector<string>& original_query, map<string, QueryAnswerElement>& replacements, vector<string>& new_query);
 
    private:
     string token_representation;

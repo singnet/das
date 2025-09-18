@@ -50,43 +50,55 @@ Context::Context(const string& name, Atom& atom_key) {
 
 Context::Context(const string& name,
                  const vector<string>& query,
-                 const vector<pair<QueryAnswerElement, QueryAnswerElement>> determiner_schema,
-                 vector<QueryAnswerElement> stimulus_schema) {
+                 const vector<pair<QueryAnswerElement, QueryAnswerElement>>& determiner_schema,
+                 vector<QueryAnswerElement>& stimulus_schema) {
     // Query
     init(name);
     if (!this->cached) {
-        auto proxy = make_shared<PatternMatchingQueryProxy>(query, this->key);
-        proxy->parameters[BaseQueryProxy::UNIQUE_ASSIGNMENT_FLAG] = true;
-        proxy->parameters[BaseQueryProxy::ATTENTION_UPDATE_FLAG] = false;
-        proxy->parameters[BaseQueryProxy::USE_LINK_TEMPLATE_CACHE] = false;
-        proxy->parameters[PatternMatchingQueryProxy::POSITIVE_IMPORTANCE_FLAG] = false;
-        proxy->parameters[BaseQueryProxy::USE_METTA_AS_QUERY_TOKENS] = false;
-
-        ServiceBusSingleton::get_instance()->issue_bus_command(proxy);
-#if LOG_LEVEL >= DEBUG_LEVEL
-        unsigned int count_query_answer = 0;
-#endif
-        while (!proxy->finished()) {
-            shared_ptr<QueryAnswer> answer = proxy->pop();
-            if (answer != NULL) {
-                for (auto pair : determiner_schema) {
-                    this->determiner_request.push_back(
-                        {answer->get(pair.first), answer->get(pair.second)});
-                }
-                for (auto element : stimulus_schema) {
-                    this->to_stimulate[answer->get(element)] = 1;
-                }
-#if LOG_LEVEL >= DEBUG_LEVEL
-                if (!(++count_query_answer % 100000)) {
-                    LOG_DEBUG("Number of QueryAnswer objects processed so far: " +
-                              std::to_string(count_query_answer));
-                }
-#endif
-            } else {
-                Utils::sleep();
-            }
-        }
+        add_determiners(query, determiner_schema, stimulus_schema);
         cache_write();
+    }
+    update_attention_broker();
+}
+
+Context::add_determiners(const vector<string>& query,
+                         const vector<pair<QueryAnswerElement, QueryAnswerElement>>& determiner_schema,
+                         vector<QueryAnswerElement>& stimulus_schema) {
+
+    this->determiner_request.clear();
+    this->to_stimulate.clear();
+
+    // Query
+    auto proxy = make_shared<PatternMatchingQueryProxy>(query, this->key);
+    proxy->parameters[BaseQueryProxy::UNIQUE_ASSIGNMENT_FLAG] = true;
+    proxy->parameters[BaseQueryProxy::ATTENTION_UPDATE_FLAG] = false;
+    proxy->parameters[BaseQueryProxy::USE_LINK_TEMPLATE_CACHE] = false;
+    proxy->parameters[PatternMatchingQueryProxy::POSITIVE_IMPORTANCE_FLAG] = false;
+    proxy->parameters[BaseQueryProxy::USE_METTA_AS_QUERY_TOKENS] = false;
+
+    ServiceBusSingleton::get_instance()->issue_bus_command(proxy);
+#if LOG_LEVEL >= DEBUG_LEVEL
+    unsigned int count_query_answer = 0;
+#endif
+    while (!proxy->finished()) {
+        shared_ptr<QueryAnswer> answer = proxy->pop();
+        if (answer != NULL) {
+            for (auto pair : determiner_schema) {
+                this->determiner_request.push_back(
+                    {answer->get(pair.first), answer->get(pair.second)});
+            }
+            for (auto element : stimulus_schema) {
+                this->to_stimulate[answer->get(element)] = 1;
+            }
+#if LOG_LEVEL >= DEBUG_LEVEL
+            if (!(++count_query_answer % 100000)) {
+                LOG_DEBUG("Number of QueryAnswer objects processed so far: " +
+                          std::to_string(count_query_answer));
+            }
+#endif
+        } else {
+            Utils::sleep();
+        }
     }
     update_attention_broker();
 }
