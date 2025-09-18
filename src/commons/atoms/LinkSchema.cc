@@ -87,6 +87,10 @@ LinkSchema& LinkSchema::operator=(const LinkSchema& other) {
     this->_atom_handle = other._atom_handle;
     this->_metta_representation = other._metta_representation;
     this->_tokens = other._tokens;
+    this->_build_tokens = other._build_tokens;
+    this->_atom_stack = other._atom_stack;
+    this->_schema_element_stack = other._schema_element_stack;
+    this->_schema_element = other._schema_element;
     return *this;
 }
 
