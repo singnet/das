@@ -6,6 +6,7 @@ on:
   push:
     branches:
       - master
+      - das-758
 
 jobs:
   benchmark_query_agent:
