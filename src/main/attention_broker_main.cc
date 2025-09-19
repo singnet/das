@@ -6,6 +6,7 @@
 #include <iostream>
 #include <string>
 
+#include "AttentionBrokerClient.h"
 #include "AttentionBrokerServer.h"
 #include "Logger.h"
 #include "attention_broker.grpc.pb.h"
@@ -21,8 +22,7 @@ void ctrl_c_handler(int) {
     exit(0);
 }
 
-void run_server(unsigned int port) {
-    std::string server_address = "0.0.0.0:" + to_string(port);
+void run_server(std::string server_address) {
     ServerBuilder builder;
     builder.AddListeningPort(server_address, grpc::InsecureServerCredentials());
     builder.RegisterService(&service);
@@ -34,12 +34,16 @@ void run_server(unsigned int port) {
 int main(int argc, char* argv[]) {
     if (argc != 2) {
         cerr << "Attention broker" << endl;
-        cerr << "Usage: " << argv[0] << " PORT" << endl;
+        cerr << "Usage: " << argv[0] << " <HOSTNAME>:<PORT>" << endl;
         exit(1);
     }
-    unsigned int port = stoi(argv[1]);
+
+    std::string server_address = string(argv[1]);
+
+    attention_broker::AttentionBrokerClient::set_server_address(server_address);
+
     signal(SIGINT, &ctrl_c_handler);
     signal(SIGTERM, &ctrl_c_handler);
-    run_server(port);
+    run_server(server_address);
     return 0;
 }

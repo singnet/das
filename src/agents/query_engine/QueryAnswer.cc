@@ -4,10 +4,12 @@
 #include <cstring>
 #include <iostream>
 
+#include "LinkSchema.h"
 #include "Utils.h"
 
 using namespace query_engine;
 using namespace commons;
+using namespace atoms;
 
 QueryAnswer::QueryAnswer() : QueryAnswer(0.0) {}
 
@@ -259,4 +261,33 @@ string QueryAnswer::get(const QueryAnswerElement& element_key) {
             Utils::error("Invalid QueryAnswerElement type: " + std::to_string(element_key.type));
     }
     return answer;
+}
+
+void QueryAnswer::rewrite_query(const vector<string>& original_query,
+                                map<string, QueryAnswerElement>& replacements,
+                                vector<string>& new_query) {
+    new_query.clear();
+    unsigned int cursor = 0;
+    unsigned int size = original_query.size();
+    while (cursor < size) {
+        string token = original_query[cursor++];
+        if (token == LinkSchema::UNTYPED_VARIABLE) {
+            if (cursor == size) {
+                Utils::error("Invalid query");
+                return;
+            }
+            token = original_query[cursor++];
+            auto iterator = replacements.find(token);
+            if (iterator != replacements.end()) {
+                string value = this->get(iterator->second);
+                new_query.push_back(LinkSchema::ATOM);
+                new_query.push_back(value);
+            } else {
+                new_query.push_back(LinkSchema::UNTYPED_VARIABLE);
+                new_query.push_back(token);
+            }
+        } else {
+            new_query.push_back(token);
+        }
+    }
 }
