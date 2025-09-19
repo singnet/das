@@ -8,7 +8,7 @@
 
 using namespace std;
 
-#define DEFAULT_ATTENTION_BROKER_ADDRESS "localhost:37007"
+#define DEFAULT_ATTENTION_BROKER_ADDRESS "localhost:40001"
 
 namespace attention_broker {
 

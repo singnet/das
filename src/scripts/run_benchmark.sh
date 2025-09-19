@@ -228,7 +228,7 @@ DAS_REDIS_HOSTNAME=localhost
 DAS_REDIS_PORT=29000
 DAS_USE_REDIS_CLUSTER=false
 DAS_ATTENTION_BROKER_ADDRESS=localhost
-DAS_ATTENTION_BROKER_PORT=37007
+DAS_ATTENTION_BROKER_PORT=40001
 EOF
         ./src/scripts/build.sh --copt=-DLOG_LEVEL=DEBUG_LEVEL
         ./src/scripts/run.sh query_broker 35700 3000:3100 | stdbuf -oL grep "Benchmark::" > "$log_file" || true &
