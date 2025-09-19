@@ -109,11 +109,7 @@ TEST_F(InferenceAgentTest, TestInferenceRequests) {
     ProofOfImplication proof_of_implication("handle1", "handle2", 1, "context");
     auto requests = proof_of_implication.get_requests();
     auto dic_request = proof_of_implication.get_distributed_inference_control_request();
-    EXPECT_EQ(requests.size(), 2);
-    EXPECT_EQ(
-        Utils::join(requests[0], ' '),
-        "LINK_TEMPLATE Expression 2 NODE Symbol PREDICATE VARIABLE P LINK_CREATE Expression 2 1 NODE "
-        "Symbol SATISFYING_SET VARIABLE P CUSTOM_FIELD truth_value 2 strength 1.0 confidence 1.0");
+    EXPECT_EQ(requests.size(), 1);
     EXPECT_EQ(Utils::join(dic_request, ' '),
               "AND 2 LINK_TEMPLATE Expression 3 NODE Symbol IMPLICATION ATOM handle1 VARIABLE V0 "
               "LINK_TEMPLATE Expression 3 NODE Symbol IMPLICATION VARIABLE V0 ATOM handle2");
@@ -121,11 +117,7 @@ TEST_F(InferenceAgentTest, TestInferenceRequests) {
     ProofOfImplication proof_of_implication2("handle1", "handle2", 2, "context");
     requests = proof_of_implication2.get_requests();
     dic_request = proof_of_implication2.get_distributed_inference_control_request();
-    EXPECT_EQ(requests.size(), 2);
-    EXPECT_EQ(
-        Utils::join(requests[0], ' '),
-        "LINK_TEMPLATE Expression 2 NODE Symbol PREDICATE VARIABLE P LINK_CREATE Expression 2 1 NODE "
-        "Symbol SATISFYING_SET VARIABLE P CUSTOM_FIELD truth_value 2 strength 1.0 confidence 1.0");
+    EXPECT_EQ(requests.size(), 1);
     // clang-format off
     EXPECT_EQ(Utils::join(dic_request, ' '),
               "OR 2 "
@@ -155,10 +147,7 @@ TEST_F(InferenceAgentTest, TestInferenceRequests) {
     ProofOfEquivalence proof_of_equivalence("handle1", "handle2", 1, "context");
     requests = proof_of_equivalence.get_requests();
     dic_request = proof_of_equivalence.get_distributed_inference_control_request();
-    EXPECT_EQ(requests.size(), 2);
-    EXPECT_EQ(Utils::join(requests[0], ' '),
-              "LINK_TEMPLATE Expression 2 NODE Symbol CONCEPT VARIABLE C LINK_CREATE Expression 2 1 "
-              "NODE Symbol PATTERNS VARIABLE C CUSTOM_FIELD truth_value 2 strength 1.0 confidence 1.0");
+    EXPECT_EQ(requests.size(), 1);
     EXPECT_EQ(Utils::join(dic_request, ' '),
               "AND 2 LINK_TEMPLATE Expression 3 NODE Symbol EQUIVALENCE ATOM handle1 VARIABLE V0 "
               "LINK_TEMPLATE Expression 3 NODE Symbol EQUIVALENCE VARIABLE V0 ATOM handle2");
@@ -166,10 +155,7 @@ TEST_F(InferenceAgentTest, TestInferenceRequests) {
     ProofOfEquivalence poe2("handle1", "handle2", 3, "context");
     requests = poe2.get_requests();
     dic_request = poe2.get_distributed_inference_control_request();
-    EXPECT_EQ(requests.size(), 2);
-    EXPECT_EQ(Utils::join(requests[0], ' '),
-              "LINK_TEMPLATE Expression 2 NODE Symbol CONCEPT VARIABLE C LINK_CREATE Expression 2 1 "
-              "NODE Symbol PATTERNS VARIABLE C CUSTOM_FIELD truth_value 2 strength 1.0 confidence 1.0");
+    EXPECT_EQ(requests.size(), 1);
     // clang-format off
     EXPECT_EQ(Utils::join(dic_request, ' '),
               "OR 3 "

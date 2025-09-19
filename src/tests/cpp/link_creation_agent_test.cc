@@ -423,6 +423,15 @@ TEST(EquivalenceProcessor, TestEquivalenceProcessor) {
     vector<string> output;
     ls.tokenize(output);
     EXPECT_EQ(Utils::join(output, ' '),
+              "LINK_TEMPLATE AND 2 LINK_TEMPLATE Expression 3 NODE Symbol EVALUATION LINK_TEMPLATE "
+              "Expression 2 NODE Symbol PREDICATE VARIABLE P LINK Expression 2 NODE Symbol CONCEPT ATOM "
+              "h1 LINK_TEMPLATE Expression 3 NODE Symbol EVALUATION LINK_TEMPLATE Expression 2 NODE "
+              "Symbol PREDICATE VARIABLE P LINK Expression 2 NODE Symbol CONCEPT ATOM h2");
+
+    ls = LinkProcessor::build_pattern_union_query("h1", "h2");
+    output.clear();
+    ls.tokenize(output);
+    EXPECT_EQ(Utils::join(output, ' '),
               "LINK_TEMPLATE OR 2 LINK_TEMPLATE Expression 3 NODE Symbol EVALUATION LINK_TEMPLATE "
               "Expression 2 NODE Symbol PREDICATE VARIABLE P LINK Expression 2 NODE Symbol CONCEPT ATOM "
               "h1 LINK_TEMPLATE Expression 3 NODE Symbol EVALUATION LINK_TEMPLATE Expression 2 NODE "

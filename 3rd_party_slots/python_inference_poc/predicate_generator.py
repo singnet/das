@@ -6,6 +6,17 @@ import json
 import itertools
 from metta_file_generator import NodeLinkGenerator, NodeLinkWriter
 
+
+PREDICATES = {}
+
+def set_predicate_name(key, name):
+    global PREDICATES
+    if key in PREDICATES:
+        PREDICATES[key].add(name)
+    else:
+        PREDICATES[key] = set()
+        PREDICATES[key].add(name)
+
 def build_transitions(alphabet, dist, rep=0.0, words=None, bonus=0.0):
     if words is None:
         words = []
@@ -161,6 +172,7 @@ def sorting_predicate(sentences, token=None, percentage=1, **kwargs):
     if show_log:
         print(f"### Running sorting predicate with token: {token}, percentage: {percentage}, sentences: {len(sentences)}")
     predicate_name = str(token)
+    set_predicate_name('sorting_predicate', predicate_name)
     predicates = []
     for sentence in sentences:
         parsed_sentence = sentence.split('"')[1].split(" ")
@@ -193,6 +205,7 @@ def letter_predicate(sentences, token=None, letter=None, letter_percent=0.6, per
     if show_log:
         print(f"### Running letter predicate with token: {token}, letter: {letter}, letter_percent: {letter_percent}, percentage: {percentage}, sentences: {len(sentences)}")
     predicate_name = str(token).format(letter=letter, letter_percent=letter_percent)
+    set_predicate_name('letter_predicate', predicate_name)
     predicates = []
     for sentence in sentences:
         parsed_sentence = ''.join(sentence.replace(' ', '').split('"')[1:-1])
@@ -212,6 +225,7 @@ def wildcard_predicate(sentences, token=None, wildcards=None, percentage=0.8, **
         print(f"### Running wildcard predicate with token: {token}, wildcards: {wildcards}, percentage: {percentage}")
     predicates = []
     predicate_name = str(token).replace('*', '_'.join([w.replace('*', '') for w in wildcards]))
+    set_predicate_name('wildcard_predicate', predicate_name)
     for sentence in sentences:
         split_sentence = sentence[:-1].replace('"', '').split(' ')[1:]
         for s in split_sentence:
@@ -233,6 +247,7 @@ def start_end_predicate(sentences, token=None, start_letter=None, end_letter=Non
         print(f"### Running start-end predicate with token: {token}, start_letter: {start_letter}, end_letter: {end_letter}, percentage: {percentage}")
     predicates = []
     predicate_name = str(token).format(start_letter=start_letter, end_letter=end_letter)
+    set_predicate_name('start_end_predicate', predicate_name)
     for sentence in sentences:
         split_sentence = sentence[:-1].replace('"', '').split(' ')[1:]
         for s in split_sentence:
@@ -252,6 +267,7 @@ def low_diversity_predicate(sentences, token=None, letters=None, percentage=0.8,
         print(f"### Running low-diversity predicate with token: {token}, letters: {letters}, percentage: {percentage}")
     predicates = []
     predicate_name = str(token).format(letters='_'.join(letters))
+    set_predicate_name('low_diversity_predicate', predicate_name)
     for sentence in sentences:
         parsed_sentence = ''.join(sentence.replace(' ', '').split('"')[1:-1])
         letter_count = 0
@@ -294,6 +310,7 @@ def word_predicate(sentences, token=None, word_count=1, alphabet_range="0-4", pe
                     if random.random() < percentage:
                         predicate_n = word1
                         predicate_token = token.replace('*', predicate_n)
+                        set_predicate_name('word_predicate', predicate_token)
                         predicates.append(f'(EVALUATION (PREDICATE "{predicate_token}") (CONCEPT {sentence}))')
         elif word_count == 2:
             for word1 in words:
@@ -302,6 +319,7 @@ def word_predicate(sentences, token=None, word_count=1, alphabet_range="0-4", pe
                         if random.random() < percentage:
                             predicate_n = '_'.join([word1, word2])
                             predicate_token = token.replace('*', predicate_n)
+                            set_predicate_name('word_predicate', predicate_token)
                             predicates.append(f'(EVALUATION (PREDICATE "{predicate_token}") (CONCEPT {sentence}))')
         else:
             print(f"### ERROR: invalid word_count: {word_count}")
@@ -523,16 +541,16 @@ def main():
     # Report
     print("######################### Summary #########################")
     print(f"Generated {len(predicates)} predicates based on the sentences in {args.file}.")
-    print(f"Letter predicates: {len(letter_predicates)}")
-    print(f"Wildcard predicates: {len(letter_predicates)}")
-    print(f"Start-end predicates: {len(start_end_predicates)}")
-    print(f"Low-diversity predicates: {len(low_diversity_predicates)}")
-    print(f"Word predicates: {len(word_predicates)}")
+    print(f"Letter predicates: {len(letter_predicates)}, predicates number: {len(PREDICATES.get('letter_predicate', set()))}")
+    print(f"Wildcard predicates: {len(wildcard_predicates)}, predicates number: {len(PREDICATES.get('wildcard_predicate', set()))}")
+    print(f"Start-end predicates: {len(start_end_predicates)}, predicates number: {len(PREDICATES.get('start_end_predicate', set()))}")
+    print(f"Low-diversity predicates: {len(low_diversity_predicates)}, predicates number: {len(PREDICATES.get('low_diversity_predicate', set()))}")
+    print(f"Word predicates: {len(word_predicates)}, predicates number: {len(PREDICATES.get('word_predicate', set()))}")
     print(f"Biased predicates: {len(biased_predicates)}")
     print("######################### Duration #########################")
     print(f"Read sentences duration: {read_sentences_duration:.2f} seconds")
     print(f"Letter predicates duration: {letter_predicates_duration:.2f} seconds")
-    print(f"Wildcard predicates duration: {letter_predicates_duration:.2f} seconds")
+    print(f"Wildcard predicates duration: {wildcard_predicates_duration:.2f} seconds")
     print(f"Start-end predicates duration: {start_end_predicates_duration:.2f} seconds")
     print(f"Low-diversity predicates duration: {low_diversity_predicates_duration:.2f} seconds")
     print(f"Biased predicates duration: {biased_predicates_duration:.2f} seconds")
