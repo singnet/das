@@ -413,8 +413,8 @@ vector<vector<string>> ProofOfEquivalence::get_requests() {
     vector<vector<string>> requests;
     // auto patterns_query = evaluation_query(this->is_full_evaluation, true);
     // auto evaluation_template = evaluation_link_template(this->is_full_evaluation, true);
-    // patterns_query.insert(patterns_query.end(), evaluation_template.begin(), evaluation_template.end());
-    // requests.push_back(patterns_query);
+    // patterns_query.insert(patterns_query.end(), evaluation_template.begin(),
+    // evaluation_template.end()); requests.push_back(patterns_query);
     auto query = this->query();
     query.push_back(this->get_type());  // processor
     requests.push_back(query);

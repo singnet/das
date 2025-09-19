@@ -274,7 +274,7 @@ void InferenceAgent::process_inference_abort_request(shared_ptr<InferenceRequest
     inference_proxy_map[request_id]->query_processing_finished();
     LOG_DEBUG("Inference proxy query processing finished for request ID: " << request_id);
     inference_proxy_map.erase(request_id);
-    if(evolution_proxy_map.find(request_id) != evolution_proxy_map.end()){
+    if (evolution_proxy_map.find(request_id) != evolution_proxy_map.end()) {
         if (!evolution_proxy_map[request_id]->finished()) {
             LOG_DEBUG("Evolution proxy not finished for request ID: " << request_id);
             evolution_proxy_map[request_id]->abort();
