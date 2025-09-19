@@ -29,5 +29,6 @@ cc_library(
         "//commons:handle_trie",
         "//hasher:hasher_lib",
         "//metta:metta_mapping",
+        "//metta:parser_actions",
     ],
 )

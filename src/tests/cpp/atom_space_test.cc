@@ -76,6 +76,7 @@ class MockAtomDB : public AtomDB {
     map<string, shared_ptr<AtomDocument>> docs;
 
     // AtomDB interface implementation
+    bool allow_nested_indexing() override { return false; }
     shared_ptr<HandleSet> query_for_pattern(const LinkSchema&) override { return nullptr; }
     shared_ptr<HandleList> query_for_targets(const string&) override { return nullptr; }
     shared_ptr<HandleSet> query_for_incoming_set(const string&) override { return nullptr; }

@@ -23,6 +23,7 @@ class MockAtomDocument : public atomdb_api_types::AtomDocument {
 
 class AtomDBMock : public AtomDB {
    public:
+    MOCK_METHOD(bool, allow_nested_indexing, (), (override));
     MOCK_METHOD(shared_ptr<Atom>, get_atom, (const string& handle), (override));
     MOCK_METHOD(shared_ptr<atomdb_api_types::HandleSet>,
                 query_for_pattern,

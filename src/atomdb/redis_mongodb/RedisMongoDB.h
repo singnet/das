@@ -30,6 +30,8 @@ class RedisMongoDB : public AtomDB {
     RedisMongoDB(const string& context = "");
     ~RedisMongoDB();
 
+    bool allow_nested_indexing() override;
+
     static string REDIS_PATTERNS_PREFIX;
     static string REDIS_OUTGOING_PREFIX;
     static string REDIS_INCOMING_PREFIX;
