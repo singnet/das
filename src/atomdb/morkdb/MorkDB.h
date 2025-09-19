@@ -39,6 +39,8 @@ class MorkDB : public RedisMongoDB {
     MorkDB();
     ~MorkDB();
 
+    bool allow_nested_indexing() override;
+
     shared_ptr<atomdb_api_types::HandleSet> query_for_pattern(const LinkSchema& link_schema) override;
 
     // Used for testing purposes

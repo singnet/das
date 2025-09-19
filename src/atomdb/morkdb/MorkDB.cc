@@ -96,6 +96,8 @@ MorkDB::MorkDB() {
 
 MorkDB::~MorkDB() {}
 
+bool MorkDB::allow_nested_indexing() { return true; }
+
 void MorkDB::mork_setup() {
     string host = Utils::get_environment("DAS_MORK_HOSTNAME");
     string port = Utils::get_environment("DAS_MORK_PORT");

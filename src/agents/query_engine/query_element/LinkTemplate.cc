@@ -136,9 +136,6 @@ void LinkTemplate::processor_method(shared_ptr<StoppableThread> monitor) {
     LOG_DEBUG("Positive importance flag: " + string(this->positive_importance_flag ? "true" : "false"));
     LOG_INFO("Fetched " + std::to_string(handles->size()) + " atoms in " + link_schema_handle);
 
-    auto handle_set_mork = dynamic_cast<atomdb_api_types::HandleSetMork*>(handles.get());
-    bool from_morkdb = (handle_set_mork != nullptr);
-
     vector<pair<char*, float>> tagged_handles;
     if (handles->size() > 0) {
         auto iterator = handles->get_iterator();
@@ -158,12 +155,12 @@ void LinkTemplate::processor_method(shared_ptr<StoppableThread> monitor) {
             pending = 0;
         } else {
             if ((tagged_handle.second > 0 || !this->positive_importance_flag)) {
-                if (from_morkdb) {
+                if (db->allow_nested_indexing()) {
                     this->source_element->add_handle(
                         tagged_handle.first,
                         tagged_handle.second,
-                        handle_set_mork->assignments_by_handle[tagged_handle.first],
-                        handle_set_mork->metta_expressions_by_handle[tagged_handle.first]);
+                        handles->get_assignments_by_handle(tagged_handle.first),
+                        handles->get_metta_expressions_by_handle(tagged_handle.first));
                     count_matched++;
                 } else if (this->link_schema.match(string(tagged_handle.first), assignment, *db.get())) {
                     this->source_element->add_handle(

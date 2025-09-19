@@ -30,6 +30,10 @@ class HandleSetMork : public HandleSet {
     void append(shared_ptr<HandleSet> other);
     shared_ptr<HandleSetIterator> get_iterator();
 
+    map<string, string> get_metta_expressions_by_handle(const string& handle);
+    Assignment get_assignments_by_handle(const string& handle);
+
+   private:
     unsigned int handles_size;
     unordered_set<string> handles;
     map<string, map<string, string>> metta_expressions_by_handle;

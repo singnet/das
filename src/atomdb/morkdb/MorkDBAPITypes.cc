@@ -54,6 +54,15 @@ char* HandleSetMorkIterator::next() {
     ++it;
     return const_cast<char*>(s.c_str());
 }
+
+map<string, string> HandleSetMork::get_metta_expressions_by_handle(const string& handle) {
+    return this->metta_expressions_by_handle[handle];
+}
+
+Assignment HandleSetMork::get_assignments_by_handle(const string& handle) {
+    return this->assignments_by_handle[handle];
+}
+
 // <--
 
 // --> HandleListMork
