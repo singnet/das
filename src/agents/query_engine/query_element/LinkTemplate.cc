@@ -135,6 +135,7 @@ void LinkTemplate::processor_method(shared_ptr<StoppableThread> monitor) {
     }
     LOG_DEBUG("Positive importance flag: " + string(this->positive_importance_flag ? "true" : "false"));
     LOG_INFO("Fetched " + std::to_string(handles->size()) + " atoms in " + link_schema_handle);
+
     vector<pair<char*, float>> tagged_handles;
     if (handles->size() > 0) {
         auto iterator = handles->get_iterator();
@@ -153,11 +154,20 @@ void LinkTemplate::processor_method(shared_ptr<StoppableThread> monitor) {
         if (this->positive_importance_flag && tagged_handle.second <= 0) {
             pending = 0;
         } else {
-            if ((tagged_handle.second > 0 || !this->positive_importance_flag) &&
-                this->link_schema.match(string(tagged_handle.first), assignment, *db.get())) {
-                this->source_element->add_handle(tagged_handle.first, tagged_handle.second, assignment);
-                assignment.clear();
-                count_matched++;
+            if (tagged_handle.second > 0 || !this->positive_importance_flag) {
+                if (db->allow_nested_indexing()) {
+                    this->source_element->add_handle(
+                        tagged_handle.first,
+                        tagged_handle.second,
+                        handles->get_assignments_by_handle(tagged_handle.first),
+                        handles->get_metta_expressions_by_handle(tagged_handle.first));
+                    count_matched++;
+                } else if (this->link_schema.match(string(tagged_handle.first), assignment, *db.get())) {
+                    this->source_element->add_handle(
+                        tagged_handle.first, tagged_handle.second, assignment);
+                    assignment.clear();
+                    count_matched++;
+                }
             }
             pending--;
         }

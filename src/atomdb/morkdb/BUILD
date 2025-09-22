@@ -34,5 +34,6 @@ cc_library(
         "//atomdb/redis_mongodb:redis_mongodb_lib",
         "//commons:commons_lib",
         "//commons/atoms:atoms_lib",
+        "//metta:metta_lib",
     ],
 )
