@@ -58,8 +58,7 @@ int main(int argc, char** argv) {
     if (argc < 6) {
         cerr << "Usage: " << argv[0]
              << " <report_base_directory> <atomdb_type> <action> <cache_enabled> <num_iterations> "
-             << "[server_host:port] [client_host:port]"
-             << endl;
+             << "[server_host:port] [client_host:port]" << endl;
         exit(1);
     }
 
