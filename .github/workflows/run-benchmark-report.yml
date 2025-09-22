@@ -35,7 +35,7 @@ jobs:
 
       - name: Prepare reports for upload
         run: |
-          mkdir -p /tmp/reports/query-agent
+          mkdir -p /tmp/reports/query_agent
           find /tmp/query_agent_benchmark -type f -name "*.txt" -exec cp {} /tmp/reports/query_agent \;
 
       - name: Upload artifact

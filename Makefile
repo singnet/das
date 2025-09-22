@@ -40,10 +40,10 @@ build-all: build-image
 run-query-agent:
 	@PORT=$$(bash src/scripts/gkctl_auto_join_and_reserve.sh | tail -n 1); \
 	PORT_RANGE=$$(bash src/scripts/gkctl_auto_join_and_reserve.sh --range=999 | tail -n 1); \
-	bash -x src/scripts/run.sh query_broker $$PORT $$PORT_RANGE
+	bash -x src/scripts/run.sh query_broker 0.0.0.0:$$PORT $$PORT_RANGE
 
 run-attention-broker:
-	@bash -x src/scripts/run.sh attention_broker_service 37007
+	@bash -x src/scripts/run.sh attention_broker_service 0.0.0.0:40001
 
 run-link-creation-agent:
 	@bash -x src/scripts/run.sh link_creation_server $(OPTIONS)
