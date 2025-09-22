@@ -32,6 +32,18 @@ class TestFitnessFunction : public FitnessFunction {
     float eval(shared_ptr<QueryAnswer> query_answer) override { return 1; }
 };
 
+TEST(QueryEvolution, proxy_object) {
+    QueryEvolutionProxy proxy(
+        {"t0", "t1"} ,
+        {{"tc00"}, {}, {"tc10", "tc11"}},
+        {{{1, 0}}, {}, {{1, 1}, {2, "v1"}}}, 
+        "query_evolution_test", "unit_test");
+
+    cout << "XXXXXXXXX " << proxy.to_string() << " XXXXXXXXXXXXXXXXXXXXXX" << endl;
+    FAIL();
+    //EXPECT_EQ(proxy.to_string(), "
+}
+
 TEST(QueryEvolution, protected_methods) {
     TestConfig::load_environment();
     AtomDBSingleton::init();

@@ -54,8 +54,8 @@ class QueryEvolutionProxy : public BaseQueryProxy {
      */
     QueryEvolutionProxy(
         const vector<string>& tokens,
-        const vector<string>& correlation_tokens,
-        const vector<string>& correlation_variables,
+        const vector<vector<string>>& correlation_queries,
+        const vector<map<string, QueryAnswerElement>>& correlation_replacements,
         const string& context,
         const string& fitness_function_tag,
         const shared_ptr<FitnessFunction> fitness_function = shared_ptr<FitnessFunction>(nullptr));
@@ -146,8 +146,8 @@ class QueryEvolutionProxy : public BaseQueryProxy {
      */
     bool remote_fitness_evaluation_finished();
 
-    const vector<string>& get_correlation_tokens();
-    const set<string>& get_correlation_variables();
+    const vector<vector<string>>& get_correlation_queries();
+    const vector<map<string, QueryAnswerElement>>& get_correlation_replacements();
 
     // ---------------------------------------------------------------------------------------------
     // Virtual superclass API and the piggyback methods called by it
@@ -186,8 +186,8 @@ class QueryEvolutionProxy : public BaseQueryProxy {
     string fitness_function_tag;
     float best_reported_fitness;
     unsigned int num_generations;
-    vector<string> correlation_tokens;
-    set<string> correlation_variables;
+    vector<vector<string>> correlation_queries;
+    vector<map<string, QueryAnswerElement>> correlation_replacements;
     bool ongoing_remote_fitness_evaluation;
     vector<float> remote_fitness_evaluation_result;
 };

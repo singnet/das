@@ -19,12 +19,20 @@ namespace query_engine {
 
 class QueryAnswerElement {
    public:
-    enum ElementType { HANDLE, VARIABLE };
+    enum ElementType { UNDEFINED = 0, HANDLE, VARIABLE };
     ElementType type;
     unsigned int index;
     string name;
+    QueryAnswerElement() : type(UNDEFINED) {}
     QueryAnswerElement(unsigned int key) : type(HANDLE), index(key) {}
     QueryAnswerElement(const string& key) : type(VARIABLE), name(key) {}
+    string to_string() {
+        if (this->type == HANDLE) {
+            return "_" + std::to_string(this->index);
+        } else {
+            return "$" + this->name;
+        }
+    }
 };
 
 /**

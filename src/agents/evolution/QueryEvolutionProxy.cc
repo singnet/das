@@ -28,8 +28,8 @@ QueryEvolutionProxy::QueryEvolutionProxy() {
 }
 
 QueryEvolutionProxy::QueryEvolutionProxy(const vector<string>& tokens,
-                                         const vector<string>& correlation_tokens,
-                                         const vector<string>& correlation_variables,
+                                         const vector<vector<string>>& correlation_queries,
+                                         const vector<map<string, QueryAnswerElement>>& correlation_replacements,
                                          const string& context,
                                          const string& fitness_function_tag,
                                          shared_ptr<FitnessFunction> fitness_function)
@@ -39,9 +39,8 @@ QueryEvolutionProxy::QueryEvolutionProxy(const vector<string>& tokens,
     set_default_query_parameters();
     this->fitness_function_object = fitness_function;
     set_fitness_function_tag(fitness_function_tag);
-    this->correlation_tokens = correlation_tokens;
-    this->correlation_variables =
-        set<string>(correlation_variables.begin(), correlation_variables.end());
+    this->correlation_queries = correlation_queries;
+    this->correlation_replacements = correlation_replacements;
 }
 
 void QueryEvolutionProxy::init() {
@@ -65,28 +64,39 @@ string QueryEvolutionProxy::to_string() {
     string answer = "{BaseQueryProxy: ";
     answer += BaseQueryProxy::to_string();
     answer += ", fitness_function: " + this->fitness_function_tag;
-    answer += ", correlation_tokens: [";
-    bool empty_flag = true;
-    for (auto token : this->correlation_tokens) {
-        answer += token + ", ";
-        empty_flag = false;
+    answer += ", correlation_queries: [";
+    for (auto query : this->correlation_queries) {
+        answer += "[";
+        for (string token : query) {
+            answer += token + ", ";
+        }
+        if (query.size() > 0) {
+            answer.pop_back();
+            answer.pop_back();
+        }
+        answer += "], ";
     }
-    if (!empty_flag) {
+    if (this->correlation_queries.size() > 0) {
         answer.pop_back();
         answer.pop_back();
     }
-    answer += "], ";
-    answer += "correlation_variables: {";
-    empty_flag = true;
-    for (auto token : this->correlation_variables) {
-        answer += token + ", ";
-        empty_flag = false;
+    answer += "], correlation_replacements: [";
+    for (auto mapping : this->correlation_replacements) {
+        answer += "{";
+        for (auto pair : mapping) {
+            answer += pair.first + ": " + pair.second.to_string() + ", ";
+        }
+        if (mapping.size() > 0) {
+            answer.pop_back();
+            answer.pop_back();
+        }
+        answer += "}, ";
     }
-    if (!empty_flag) {
+    if (this->correlation_replacements.size() > 0) {
         answer.pop_back();
         answer.pop_back();
     }
-    answer += "}";
+    answer += "]";
     answer += "}";
     return answer;
 }
@@ -100,11 +110,19 @@ void QueryEvolutionProxy::pack_command_line_args() { tokenize(this->args); }
 
 void QueryEvolutionProxy::tokenize(vector<string>& output) {
     lock_guard<mutex> semaphore(this->api_mutex);
-    output.insert(
-        output.begin(), this->correlation_variables.begin(), this->correlation_variables.end());
-    output.insert(output.begin(), std::to_string(this->correlation_variables.size()));
-    output.insert(output.begin(), this->correlation_tokens.begin(), this->correlation_tokens.end());
-    output.insert(output.begin(), std::to_string(this->correlation_tokens.size()));
+    for (auto mapping : this->correlation_replacements) {
+        for (auto pair : mapping) {
+            output.insert(output.begin(), pair.second.to_string());
+            output.insert(output.begin(), pair.first);
+        }
+        output.insert(output.begin(), std::to_string(mapping.size()));
+    }
+    output.insert(output.begin(), std::to_string(this->correlation_replacements.size()));
+    for (auto query : this->correlation_queries) {
+        output.insert(output.begin(), query.begin(), query.end());
+        output.insert(output.begin(), std::to_string(query.size()));
+    }
+    output.insert(output.begin(), std::to_string(this->correlation_queries.size()));
     output.insert(output.begin(), this->fitness_function_tag);
     BaseQueryProxy::tokenize(output);
 }
@@ -117,16 +135,38 @@ void QueryEvolutionProxy::untokenize(vector<string>& tokens) {
     set_fitness_function_tag(tokens[0]);
     tokens.erase(tokens.begin(), tokens.begin() + 1);
 
-    unsigned int num_correlation_tokens = std::stoi(tokens[0]);
-    this->correlation_tokens.insert(this->correlation_tokens.begin(),
-                                    tokens.begin() + 1,
-                                    tokens.begin() + 1 + num_correlation_tokens);
-    tokens.erase(tokens.begin(), tokens.begin() + 1 + num_correlation_tokens);
+    unsigned int num_correlation_queries = std::stoi(tokens[0]);
+    tokens.erase(tokens.begin(), tokens.begin() + 1);
+    vector<string> query;
+    for (unsigned int i = 0; i < num_correlation_queries; i++) {
+        unsigned int query_size = std::stoi(tokens[0]);
+        query.clear();
+        query.insert(query.begin(),
+                     tokens.begin() + 1,
+                     tokens.begin() + 1 + query_size);
+        this->correlation_queries.push_back(query);
+        tokens.erase(tokens.begin(), tokens.begin() + 1 + query_size);
+    }
 
-    unsigned int num_correlation_variables = std::stoi(tokens[0]);
-    this->correlation_variables.insert(tokens.begin() + 1,
-                                       tokens.begin() + 1 + num_correlation_variables);
-    tokens.erase(tokens.begin(), tokens.begin() + 1 + num_correlation_variables);
+    unsigned int num_correlation_replacements = std::stoi(tokens[0]);
+    tokens.erase(tokens.begin(), tokens.begin() + 1);
+    map<string, QueryAnswerElement> mapping;
+    for (unsigned int i = 0; i < num_correlation_replacements; i++) {
+        unsigned int mapping_size = std::stoi(tokens[0]);
+        for (unsigned int j = 0; j < mapping_size; j++) {
+            string key = tokens[2 * j + 1];
+            string value = tokens[2 * j + 2];
+            if (value[0] == '_') {
+                QueryAnswerElement element((unsigned int) Utils::string_to_int(value.substr(1, value.size() - 1)));
+                mapping[key] = element;
+            } else {
+                QueryAnswerElement element(value.substr(1, value.size() - 1));
+                mapping[key] = element;
+            }
+        }
+        this->correlation_replacements.push_back(mapping);
+        tokens.erase(tokens.begin(), tokens.begin() + 1 + (2 * mapping_size));
+    }
 }
 
 float QueryEvolutionProxy::compute_fitness(shared_ptr<QueryAnswer> answer) {
@@ -179,14 +219,14 @@ void QueryEvolutionProxy::set_fitness_function_tag(const string& tag) {
     }
 }
 
-const vector<string>& QueryEvolutionProxy::get_correlation_tokens() {
+const vector<vector<string>>& QueryEvolutionProxy::get_correlation_queries() {
     lock_guard<mutex> semaphore(this->api_mutex);
-    return this->correlation_tokens;
+    return this->correlation_queries;
 }
 
-const set<string>& QueryEvolutionProxy::get_correlation_variables() {
+const vector<map<string, QueryAnswerElement>>& QueryEvolutionProxy::get_correlation_replacements() {
     lock_guard<mutex> semaphore(this->api_mutex);
-    return this->correlation_variables;
+    return this->correlation_replacements;
 }
 
 bool QueryEvolutionProxy::is_fitness_function_remote() {
