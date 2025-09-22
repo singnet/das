@@ -116,7 +116,7 @@ void run(const string& client_id,
 
     shared_ptr<ServiceBus> service_bus = ServiceBusSingleton::get_instance();
 
-    bool USE_METTA_QUERY = false;
+    bool USE_METTA_QUERY = true;
 
     // Symbols
     string and_operator = "AND";
@@ -204,6 +204,7 @@ void run(const string& client_id,
             variable, sentence1,
             variable, word1,
     };
+    string activation_spreading3_metta = "(Contains $sentence1 $word1)";
 
     vector<string> context1 = {
         link_template, expression, "3",
@@ -256,19 +257,23 @@ void run(const string& client_id,
     QueryEvolutionProxy* proxy_ptr;
     if (USE_METTA_QUERY) {
         proxy_ptr = new QueryEvolutionProxy({or_two_words_metta},
-                                            {activation_spreading1_metta},
+                                            {activation_spreading3_metta},
                                             {sentence1},
                                             context_str,
                                             "count_letter");
     } else {
-        proxy_ptr = new QueryEvolutionProxy(
-            or_two_words, activation_spreading3, {sentence1}, context_str, "count_letter");
+        proxy_ptr = new QueryEvolutionProxy(or_two_words,
+                                            activation_spreading3,
+                                            {sentence1},
+                                            context_str,
+                                            "count_letter");
     }
 
     shared_ptr<QueryEvolutionProxy> proxy(proxy_ptr);
     proxy->parameters[BaseQueryProxy::USE_METTA_AS_QUERY_TOKENS] = USE_METTA_QUERY;
-    proxy->parameters[QueryEvolutionProxy::POPULATION_SIZE] = (unsigned int) 100;
-    proxy->parameters[QueryEvolutionProxy::MAX_GENERATIONS] = (unsigned int) 50;
+    proxy->parameters[BaseQueryProxy::POPULATE_METTA_MAPPING] = USE_METTA_QUERY;
+    proxy->parameters[QueryEvolutionProxy::POPULATION_SIZE] = (unsigned int) 50;
+    proxy->parameters[QueryEvolutionProxy::MAX_GENERATIONS] = (unsigned int) 20;
     proxy->parameters[QueryEvolutionProxy::ELITISM_RATE] = (double) ELITISM_RATE;
     proxy->parameters[QueryEvolutionProxy::SELECTION_RATE] = (double) 0.10;
     proxy->parameters[QueryEvolutionProxy::TOTAL_ATTENTION_TOKENS] = (unsigned int) 100000;
