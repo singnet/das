@@ -154,7 +154,7 @@ void LinkTemplate::processor_method(shared_ptr<StoppableThread> monitor) {
         if (this->positive_importance_flag && tagged_handle.second <= 0) {
             pending = 0;
         } else {
-            if ((tagged_handle.second > 0 || !this->positive_importance_flag)) {
+            if (tagged_handle.second > 0 || !this->positive_importance_flag) {
                 if (db->allow_nested_indexing()) {
                     this->source_element->add_handle(
                         tagged_handle.first,
