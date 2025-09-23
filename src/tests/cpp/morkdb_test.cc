@@ -104,7 +104,7 @@ TEST_F(MorkDBTest, QueryForPattern) {
 
 TEST_F(MorkDBTest, QueryForTargets) {
     string link_handle = exp_hash({"Inheritance", "\"human\"", "\"mammal\""});
-    EXPECT_THROW(db->query_for_targets(link_handle), runtime_error);
+    EXPECT_EQ(db->query_for_targets(link_handle), nullptr);
 }
 
 TEST_F(MorkDBTest, ConcurrentQueryForPattern) {
