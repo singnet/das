@@ -85,8 +85,8 @@ shared_ptr<PatternMatchingQueryProxy> QueryEvolutionProcessor::issue_sampling_qu
     pm_proxy->parameters[PatternMatchingQueryProxy::POSITIVE_IMPORTANCE_FLAG] = false;
     pm_proxy->parameters[BaseQueryProxy::USE_METTA_AS_QUERY_TOKENS] =
         proxy->parameters.get<bool>(BaseQueryProxy::USE_METTA_AS_QUERY_TOKENS);
-    pm_proxy->parameters[BaseQueryProxy::POPULATE_METTA_MAPPING] =
-        proxy->parameters.get<bool>(BaseQueryProxy::USE_METTA_AS_QUERY_TOKENS); // enforced when MeTTa queries are being used
+    pm_proxy->parameters[BaseQueryProxy::POPULATE_METTA_MAPPING] = proxy->parameters.get<bool>(
+        BaseQueryProxy::USE_METTA_AS_QUERY_TOKENS);  // enforced when MeTTa queries are being used
     pm_proxy->parameters[PatternMatchingQueryProxy::MAX_ANSWERS] =
         proxy->parameters.get<unsigned int>(QueryEvolutionProxy::POPULATION_SIZE);
     ServiceBusSingleton::get_instance()->issue_bus_command(pm_proxy);
@@ -294,9 +294,12 @@ void QueryEvolutionProcessor::correlate_similar(shared_ptr<QueryEvolutionProxy> 
     vector<string> query_tokens;
     vector<string> handle_list;
     vector<vector<string>> correlation_queries = proxy->get_correlation_queries();
-    vector<map<string, QueryAnswerElement>> correlation_replacements = proxy->get_correlation_replacements();
-    vector<pair<QueryAnswerElement, QueryAnswerElement>> correlation_mappings = proxy->get_correlation_mappings();
-    if ((correlation_queries.size() != correlation_replacements.size()) || (correlation_queries.size() != correlation_mappings.size())) {
+    vector<map<string, QueryAnswerElement>> correlation_replacements =
+        proxy->get_correlation_replacements();
+    vector<pair<QueryAnswerElement, QueryAnswerElement>> correlation_mappings =
+        proxy->get_correlation_mappings();
+    if ((correlation_queries.size() != correlation_replacements.size()) ||
+        (correlation_queries.size() != correlation_mappings.size())) {
         Utils::error("Invalid correlation queries/replacements/mappings. Proxy: " + proxy->to_string());
     }
 
@@ -310,7 +313,9 @@ void QueryEvolutionProcessor::correlate_similar(shared_ptr<QueryEvolutionProxy> 
             string expression = correlation_queries[i][0];
             for (auto pair : correlation_replacements[i]) {
                 string atom_handle = correlation_query_answer->get(pair.second);
-                Utils::replace_all(expression, "$" + pair.first, correlation_query_answer->metta_expression[atom_handle]);
+                Utils::replace_all(expression,
+                                   "$" + pair.first,
+                                   correlation_query_answer->metta_expression[atom_handle]);
             }
             query_tokens = {expression};
         } else {

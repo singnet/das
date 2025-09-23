@@ -27,13 +27,14 @@ QueryEvolutionProxy::QueryEvolutionProxy() {
     set_default_query_parameters();
 }
 
-QueryEvolutionProxy::QueryEvolutionProxy(const vector<string>& tokens,
-                                         const vector<vector<string>>& correlation_queries,
-                                         const vector<map<string, QueryAnswerElement>>& correlation_replacements,
-                                         const vector<pair<QueryAnswerElement, QueryAnswerElement>>& correlation_mappings,
-                                         const string& context,
-                                         const string& fitness_function_tag,
-                                         shared_ptr<FitnessFunction> fitness_function)
+QueryEvolutionProxy::QueryEvolutionProxy(
+    const vector<string>& tokens,
+    const vector<vector<string>>& correlation_queries,
+    const vector<map<string, QueryAnswerElement>>& correlation_replacements,
+    const vector<pair<QueryAnswerElement, QueryAnswerElement>>& correlation_mappings,
+    const string& context,
+    const string& fitness_function_tag,
+    shared_ptr<FitnessFunction> fitness_function)
     : BaseQueryProxy(tokens, context) {
     // constructor typically used in requestor
     init();
@@ -120,12 +121,12 @@ void QueryEvolutionProxy::pack_command_line_args() { tokenize(this->args); }
 
 void QueryEvolutionProxy::tokenize(vector<string>& output) {
     lock_guard<mutex> semaphore(this->api_mutex);
-    for (int i = this->correlation_mappings.size() - 1; i >=0; i--) {
+    for (int i = this->correlation_mappings.size() - 1; i >= 0; i--) {
         output.insert(output.begin(), this->correlation_mappings[i].second.to_string());
         output.insert(output.begin(), this->correlation_mappings[i].first.to_string());
     }
     output.insert(output.begin(), std::to_string(this->correlation_mappings.size()));
-    for (int i = this->correlation_replacements.size() - 1; i >=0; i--) {
+    for (int i = this->correlation_replacements.size() - 1; i >= 0; i--) {
         for (auto pair : this->correlation_replacements[i]) {
             output.insert(output.begin(), pair.second.to_string());
             output.insert(output.begin(), pair.first);
@@ -133,8 +134,9 @@ void QueryEvolutionProxy::tokenize(vector<string>& output) {
         output.insert(output.begin(), std::to_string(this->correlation_replacements[i].size()));
     }
     output.insert(output.begin(), std::to_string(this->correlation_replacements.size()));
-    for (int i = this->correlation_queries.size() - 1; i >=0; i--) {
-        output.insert(output.begin(), this->correlation_queries[i].begin(), this->correlation_queries[i].end());
+    for (int i = this->correlation_queries.size() - 1; i >= 0; i--) {
+        output.insert(
+            output.begin(), this->correlation_queries[i].begin(), this->correlation_queries[i].end());
         output.insert(output.begin(), std::to_string(this->correlation_queries[i].size()));
     }
     output.insert(output.begin(), std::to_string(this->correlation_queries.size()));
@@ -156,9 +158,7 @@ void QueryEvolutionProxy::untokenize(vector<string>& tokens) {
     for (unsigned int i = 0; i < num_correlation_queries; i++) {
         unsigned int query_size = std::stoi(tokens[0]);
         query.clear();
-        query.insert(query.begin(),
-                     tokens.begin() + 1,
-                     tokens.begin() + 1 + query_size);
+        query.insert(query.begin(), tokens.begin() + 1, tokens.begin() + 1 + query_size);
         this->correlation_queries.push_back(query);
         tokens.erase(tokens.begin(), tokens.begin() + 1 + query_size);
     }
@@ -173,7 +173,8 @@ void QueryEvolutionProxy::untokenize(vector<string>& tokens) {
             string key = tokens[2 * j + 1];
             string value = tokens[2 * j + 2];
             if (value[0] == '_') {
-                QueryAnswerElement element((unsigned int) Utils::string_to_int(value.substr(1, value.size() - 1)));
+                QueryAnswerElement element(
+                    (unsigned int) Utils::string_to_int(value.substr(1, value.size() - 1)));
                 mapping[key] = element;
             } else {
                 QueryAnswerElement element(value.substr(1, value.size() - 1));
@@ -191,14 +192,16 @@ void QueryEvolutionProxy::untokenize(vector<string>& tokens) {
         QueryAnswerElement source_element;
         QueryAnswerElement target_element;
         if (source[0] == '_') {
-            QueryAnswerElement element((unsigned int) Utils::string_to_int(source.substr(1, source.size() - 1)));
+            QueryAnswerElement element(
+                (unsigned int) Utils::string_to_int(source.substr(1, source.size() - 1)));
             source_element = element;
         } else {
             QueryAnswerElement element(source.substr(1, source.size() - 1));
             source_element = element;
         }
         if (target[0] == '_') {
-            QueryAnswerElement element((unsigned int) Utils::string_to_int(target.substr(1, target.size() - 1)));
+            QueryAnswerElement element(
+                (unsigned int) Utils::string_to_int(target.substr(1, target.size() - 1)));
             target_element = element;
         } else {
             QueryAnswerElement element(target.substr(1, target.size() - 1));
@@ -269,7 +272,8 @@ const vector<map<string, QueryAnswerElement>>& QueryEvolutionProxy::get_correlat
     return this->correlation_replacements;
 }
 
-const vector<pair<QueryAnswerElement, QueryAnswerElement>>& QueryEvolutionProxy::get_correlation_mappings() {
+const vector<pair<QueryAnswerElement, QueryAnswerElement>>&
+QueryEvolutionProxy::get_correlation_mappings() {
     lock_guard<mutex> semaphore(this->api_mutex);
     return this->correlation_mappings;
 }
