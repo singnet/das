@@ -204,7 +204,11 @@ init_environment() {
     DAS_MONGODB_PORT="28000"
     DAS_MONGODB_USERNAME="dbadmin"
     DAS_MONGODB_PASSWORD="dassecret"
-    echo -e "$DAS_REDIS_PORT\nN\n$DAS_MONGODB_PORT\n$DAS_MONGODB_USERNAME\n$DAS_MONGODB_PASSWORD\nN\n8888\n\n\n\n\n\n\n\n\n\n\n\n" | das-cli config set > /dev/null
+    JUPYTER_NOTEBOOK_PORT="8888"
+    ATTENTION_BROKER_PORT="40001"
+    QUERY_AGENT_PORT="40002"
+    LINK_CREATION_PORT="40003"
+    echo -e "$DAS_REDIS_PORT\nN\n$DAS_MONGODB_PORT\n$DAS_MONGODB_USERNAME\n$DAS_MONGODB_PASSWORD\nN\n$JUPYTER_NOTEBOOK_PORT\n$ATTENTION_BROKER_PORT\n$QUERY_AGENT_PORT\n$LINK_CREATION_PORT\n\n\n\n\n\n\n\n\n" | das-cli config set > /dev/null
     das-cli db stop > /dev/null
     das-cli db start
     das-cli metta load "$METTA_PATH"
@@ -228,10 +232,10 @@ DAS_REDIS_HOSTNAME=localhost
 DAS_REDIS_PORT=29000
 DAS_USE_REDIS_CLUSTER=false
 DAS_ATTENTION_BROKER_ADDRESS=localhost
-DAS_ATTENTION_BROKER_PORT=37007
+DAS_ATTENTION_BROKER_PORT=40001
 EOF
         ./src/scripts/build.sh --copt=-DLOG_LEVEL=DEBUG_LEVEL
-        ./src/scripts/run.sh query_broker 35700 3000:3100 | stdbuf -oL grep "Benchmark::" > "$log_file" || true &
+        ./src/scripts/run.sh query_broker localhost:35700 3000:3100 | stdbuf -oL grep "Benchmark::" > "$log_file" || true &
         echo -e "\r\033[K${GREEN}Query Agent initialization completed!${RESET}"
     fi
 
@@ -316,10 +320,12 @@ run_benchmark() {
                 echo -e "\n== Running benchmarks for Query Agent: $type | Action: $action =="
                 local log_file="/tmp/${BENCHMARK}_benchmark/${TIMESTAMP}/${type}_${action}_server_log.txt"
                 local client_log_file="/tmp/${BENCHMARK}_benchmark/${TIMESTAMP}/${type}_${action}_client_log.txt"
+                local server_id="localhost:35700"
+                local client_id="localhost:9000"
                 init_environment "$log_file"
                 echo -e "\r\033[K${GREEN}Running test START${RESET}"
                 echo -e "\r\033[K${GREEN}Partial results in /tmp/${BENCHMARK}_benchmark/${TIMESTAMP}/${RESET}"
-                stdbuf -oL ./src/scripts/bazel.sh run //tests/benchmark/query_agent:query_agent_main --copt=-DLOG_LEVEL=DEBUG_LEVEL -- "$report_base_directory" "$type" "$action" "$CACHE_ENABLED" "$ITERATIONS" "/tmp/${BENCHMARK}_benchmark/${TIMESTAMP}/${type}_${action}_" | tee "$client_log_file"
+                stdbuf -oL ./src/scripts/bazel.sh run //tests/benchmark/query_agent:query_agent_main --copt=-DLOG_LEVEL=DEBUG_LEVEL -- "$report_base_directory" "$type" "$action" "$CACHE_ENABLED" "$ITERATIONS" "/tmp/${BENCHMARK}_benchmark/${TIMESTAMP}/${type}_${action}_" "$server_id" "$client_id" | tee "$client_log_file"
                 echo -e "\r\033[K${GREEN}Running test END${RESET}"
             done
         done

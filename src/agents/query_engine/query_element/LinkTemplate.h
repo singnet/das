@@ -30,9 +30,13 @@ class LinkTemplate : public QueryElement {
         bool buffers_set_up_flag;
         mutex api_mutex;
         SourceElement() { buffers_set_up_flag = false; }
-        void add_handle(char* handle, float importance, Assignment& assignment) {
+        void add_handle(char* handle,
+                        float importance,
+                        const Assignment& assignment,
+                        map<string, string> metta_expression = {}) {
             QueryAnswer* answer = new QueryAnswer(string(handle), importance);
             answer->assignment = assignment;
+            answer->metta_expression = metta_expression;
             this->output_buffer->add_query_answer(answer);
         }
         void query_answers_finished() { this->output_buffer->query_answers_finished(); }

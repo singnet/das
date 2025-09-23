@@ -53,7 +53,7 @@ class LinkProcessor {
         }
     }
 
-    static LinkSchema build_pattern_set_query(const string& handle1, const string& handle2) {
+    static LinkSchema build_pattern_union_query(const string& handle1, const string& handle2) {
         // clang-format off
     vector<string> tokens = {
         "LINK_TEMPLATE", "OR", "2",
@@ -99,6 +99,31 @@ class LinkProcessor {
                 "LINK_TEMPLATE", "Expression", "2",
                     "NODE", "Symbol", "CONCEPT",
                     "VARIABLE", "C"
+    };
+        // clang-format on
+        return LinkSchema(tokens);
+    }
+
+    static LinkSchema build_pattern_set_query(const string& handle1, const string& handle2) {
+        // clang-format off
+    vector<string> tokens = {
+        "LINK_TEMPLATE", "AND", "2", 
+            "LINK_TEMPLATE", "Expression", "3", 
+                "NODE", "Symbol","EVALUATION", 
+                "LINK_TEMPLATE", "Expression", "2", 
+                    "NODE", "Symbol", "PREDICATE",
+                    "VARIABLE", "P",   
+                "LINK", "Expression", "2",
+                    "NODE", "Symbol", "CONCEPT",
+                    "ATOM", handle1,
+            "LINK_TEMPLATE", "Expression", "3",
+                "NODE", "Symbol", "EVALUATION",
+                "LINK_TEMPLATE", "Expression", "2",
+                    "NODE", "Symbol", "PREDICATE",
+                    "VARIABLE", "P",  
+                "LINK", "Expression", "2",
+                    "NODE", "Symbol", "CONCEPT",
+                    "ATOM", handle2
     };
         // clang-format on
         return LinkSchema(tokens);

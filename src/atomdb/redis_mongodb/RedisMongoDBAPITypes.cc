@@ -44,6 +44,16 @@ shared_ptr<HandleSetIterator> HandleSetRedis::get_iterator() {
     return it;
 }
 
+map<string, string> HandleSetRedis::get_metta_expressions_by_handle(const string& handle) {
+    Utils::error("HandleSetRedis does not support get_metta_expressions_by_handle");
+    return {};
+}
+
+Assignment HandleSetRedis::get_assignments_by_handle(const string& handle) {
+    Utils::error("HandleSetRedis does not support get_assignments_by_handle");
+    return {};
+}
+
 HandleSetRedisIterator::HandleSetRedisIterator(HandleSetRedis* handle_set) {
     this->handle_set = handle_set;
     this->outer_idx = 0;

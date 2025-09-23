@@ -39,6 +39,8 @@ class MorkDB : public RedisMongoDB {
     MorkDB();
     ~MorkDB();
 
+    bool allow_nested_indexing() override;
+
     shared_ptr<atomdb_api_types::HandleSet> query_for_pattern(const LinkSchema& link_schema) override;
 
     // Used for testing purposes
@@ -49,8 +51,6 @@ class MorkDB : public RedisMongoDB {
     shared_ptr<MorkClient> mork_client;
 
     void mork_setup();
-    vector<string> tokenize_expression(const string& expr);
-    const atoms::Atom* parse_tokens_to_atom(const vector<string>& tokens, size_t& pos);
 };
 
 }  // namespace atomdb

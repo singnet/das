@@ -1,5 +1,6 @@
 #pragma once
 
+#include <map>
 #include <string>
 #include <vector>
 #include <map>
@@ -19,12 +20,28 @@ namespace query_engine {
 
 class QueryAnswerElement {
    public:
-    enum ElementType { HANDLE, VARIABLE };
+    enum ElementType { UNDEFINED = 0, HANDLE, VARIABLE };
     ElementType type;
     unsigned int index;
     string name;
+    QueryAnswerElement() : type(UNDEFINED) {}
     QueryAnswerElement(unsigned int key) : type(HANDLE), index(key) {}
     QueryAnswerElement(const string& key) : type(VARIABLE), name(key) {}
+    QueryAnswerElement(const QueryAnswerElement& other)
+        : type(other.type), index(other.index), name(other.name) {}
+    QueryAnswerElement& operator=(const QueryAnswerElement& other) {
+        this->type = other.type;
+        this->index = other.index;
+        this->name = other.name;
+        return *this;
+    }
+    string to_string() {
+        if (this->type == HANDLE) {
+            return "_" + std::to_string(this->index);
+        } else {
+            return "$" + this->name;
+        }
+    }
 };
 
 /**
@@ -189,9 +206,12 @@ class QueryAnswer {
      * @param A vector with pairs (variable name --> QueryAnswerElement) which specifies
      * which variables in Original_query are supposed to be replaced by the corresponding
      * QueryAnswerElement.
-     * @parem new_query A new query with the the proper variables replaced by concrete QueryAnswer elements.
+     * @parem new_query A new query with the the proper variables replaced by concrete QueryAnswer
+     * elements.
      */
-    void rewrite_query(vector<string>& original_query, map<string, QueryAnswerElement>& replacements, vector<string>& new_query);
+    void rewrite_query(const vector<string>& original_query,
+                       map<string, QueryAnswerElement>& replacements,
+                       vector<string>& new_query);
 
    private:
     string token_representation;

@@ -36,6 +36,7 @@ cc_library(
     includes = ["."],
     deps = [
         "//commons:commons_lib",
+        "//commons/atoms:atoms_lib",
         "//hasher:hasher_lib",
     ],
 )

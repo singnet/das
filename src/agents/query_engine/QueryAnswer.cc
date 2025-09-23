@@ -4,10 +4,12 @@
 #include <cstring>
 #include <iostream>
 
+#include "LinkSchema.h"
 #include "Utils.h"
 
 using namespace query_engine;
 using namespace commons;
+using namespace atoms;
 
 QueryAnswer::QueryAnswer() : QueryAnswer(0.0) {}
 
@@ -31,6 +33,7 @@ QueryAnswer* QueryAnswer::copy(QueryAnswer* other) {  // Static method
     copy->strength = other->strength;
     copy->assignment = other->assignment;
     copy->handles = other->handles;
+    copy->metta_expression = other->metta_expression;
     return copy;
 }
 
@@ -49,6 +52,10 @@ bool QueryAnswer::merge(QueryAnswer* other, bool merge_handles) {
                 }
                 if (flag) {
                     this->handles.push_back(handle1);
+                }
+                // Only merge if the other has a non-empty metta expression
+                if (!other->metta_expression[handle1].empty()) {
+                    this->metta_expression[handle1] = other->metta_expression[handle1];
                 }
             }
         }
@@ -256,7 +263,9 @@ string QueryAnswer::get(const QueryAnswerElement& element_key) {
     return answer;
 }
 
-void rewrite_query(const vector<string>& original_query, map<string, QueryAnswerElement>& replacements, vector<string>& new_query) {
+void QueryAnswer::rewrite_query(const vector<string>& original_query,
+                                map<string, QueryAnswerElement>& replacements,
+                                vector<string>& new_query) {
     new_query.clear();
     unsigned int cursor = 0;
     unsigned int size = original_query.size();
@@ -264,13 +273,13 @@ void rewrite_query(const vector<string>& original_query, map<string, QueryAnswer
         string token = original_query[cursor++];
         if (token == LinkSchema::UNTYPED_VARIABLE) {
             if (cursor == size) {
-                Utils::error("Invalid correlation_tokens");
-                return {};
+                Utils::error("Invalid query");
+                return;
             }
             token = original_query[cursor++];
             auto iterator = replacements.find(token);
             if (iterator != replacements.end()) {
-                string value = this->get(*iterator);
+                string value = this->get(iterator->second);
                 new_query.push_back(LinkSchema::ATOM);
                 new_query.push_back(value);
             } else {
@@ -280,5 +289,5 @@ void rewrite_query(const vector<string>& original_query, map<string, QueryAnswer
         } else {
             new_query.push_back(token);
         }
-    }   
+    }
 }

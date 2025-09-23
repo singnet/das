@@ -21,8 +21,8 @@ This will generate the binaries for all components in the `das/bin` directory.
 ```bash
 make run-attention-broker
 ```
-- The default port for the Attention Broker is `37007`.
+- The default port for the Attention Broker is `40001`.
 - If successful, you should see a message like this:
 ```bash
-AttentionBroker server listening on localhost:37007
+AttentionBroker server listening on localhost:40001
 ```

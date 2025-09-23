@@ -8,7 +8,7 @@
 
 using namespace std;
 
-#define DEFAULT_ATTENTION_BROKER_ADDRESS "localhost:37007"
+#define DEFAULT_ATTENTION_BROKER_ADDRESS "localhost:40001"
 
 namespace attention_broker {
 
@@ -30,6 +30,7 @@ class AttentionBrokerClient {
     static void set_parameters(float rent_rate,
                                float spreading_rate_lowerbound,
                                float spreading_rate_upperbound);
+    static bool health_check(bool throw_on_error = false);
 
    private:
     static mutex api_mutex;
