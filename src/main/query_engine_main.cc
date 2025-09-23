@@ -40,7 +40,7 @@ int main(int argc, char* argv[]) {
     LOG_INFO("Starting query engine server with id: " + server_id);
     signal(SIGINT, &ctrl_c_handler);
     signal(SIGTERM, &ctrl_c_handler);
-    AtomDBSingleton::init(atomdb_api_types::ATOMDB_TYPE::MORKDB);
+    AtomDBSingleton::init();
     ServiceBusSingleton::init(server_id, "", ports_range.first, ports_range.second);
     shared_ptr<ServiceBus> service_bus = ServiceBusSingleton::get_instance();
     service_bus->register_processor(make_shared<PatternMatchingQueryProcessor>());
