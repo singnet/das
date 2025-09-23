@@ -40,6 +40,7 @@ string PatternMatchingQueryProcessor::OR = "OR";
 PatternMatchingQueryProcessor::PatternMatchingQueryProcessor()
     : BusCommandProcessor({ServiceBus::PATTERN_MATCHING_QUERY}) {
     this->atomdb = AtomDBSingleton::get_instance();
+    AttentionBrokerClient::health_check(true);
 }
 
 PatternMatchingQueryProcessor::~PatternMatchingQueryProcessor() {}

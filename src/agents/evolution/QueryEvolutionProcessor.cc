@@ -20,7 +20,9 @@ using namespace attention_broker;
 // Constructors and destructors
 
 QueryEvolutionProcessor::QueryEvolutionProcessor()
-    : BusCommandProcessor({ServiceBus::QUERY_EVOLUTION}) {}
+    : BusCommandProcessor({ServiceBus::QUERY_EVOLUTION}) {
+    AttentionBrokerClient::health_check(true);
+}
 
 QueryEvolutionProcessor::~QueryEvolutionProcessor() {}
 

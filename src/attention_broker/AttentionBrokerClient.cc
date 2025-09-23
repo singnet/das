@@ -172,3 +172,21 @@ void AttentionBrokerClient::set_parameters(float rent_rate,
         Utils::error("Failed GRPC command: AttentionBroker::set_parameters()");
     }
 }
+
+bool AttentionBrokerClient::health_check(bool throw_on_error) {
+
+    dasproto::Empty request;  // GRPC command parameter
+    dasproto::Ack ack;        // GRPC command return
+
+    auto stub = dasproto::AttentionBroker::NewStub(
+        grpc::CreateChannel(SERVER_ADDRESS, grpc::InsecureChannelCredentials()));
+
+    LOG_INFO("Calling AttentionBroker GRPC. Ping");
+    stub->ping(new grpc::ClientContext(), request, &ack);
+    if (ack.msg() == "PING") {
+        return true;
+    } else {
+        Utils::error("Attention broker is not responding on " + SERVER_ADDRESS, throw_on_error);
+        return false;
+    }
+}
