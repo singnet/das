@@ -174,7 +174,6 @@ void AttentionBrokerClient::set_parameters(float rent_rate,
 }
 
 bool AttentionBrokerClient::health_check(bool throw_on_error) {
-
     dasproto::Empty request;  // GRPC command parameter
     dasproto::Ack ack;        // GRPC command return
 
