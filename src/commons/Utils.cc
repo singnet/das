@@ -232,6 +232,18 @@ bool Utils::is_port_available(unsigned int port) {
     return true;
 }
 
+void Utils::replace_all(string& base_string, const string& from, const string& to) {
+    if (from.empty()) {
+        return;
+    } else {
+        size_t cursor = 0;
+        while ((cursor = base_string.find(from, cursor)) != string::npos) {
+            base_string.replace(cursor, from.length(), to);
+            cursor += to.length();
+        }
+    }
+}
+
 // --------------------------------------------------------------------------------
 // StopWatch
 
