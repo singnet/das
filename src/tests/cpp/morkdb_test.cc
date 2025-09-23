@@ -104,29 +104,7 @@ TEST_F(MorkDBTest, QueryForPattern) {
 
 TEST_F(MorkDBTest, QueryForTargets) {
     string link_handle = exp_hash({"Inheritance", "\"human\"", "\"mammal\""});
-
-    auto targets_list = db->query_for_targets(link_handle);
-    ASSERT_NE(targets_list, nullptr);
-
-    unsigned int count = targets_list->size();
-    ASSERT_EQ(count, 3);
-
-    vector<string> targets;
-    for (unsigned int i = 0; i < count; ++i) {
-        const char* raw = targets_list->get_handle(i);
-        ASSERT_NE(raw, nullptr);
-        targets.push_back(raw);
-    }
-
-    string inheritance_handle = terminal_hash((char*) "Symbol", (char*) "Inheritance");
-    string human_handle = terminal_hash((char*) "Symbol", (char*) "\"human\"");
-    string mammal_handle = terminal_hash((char*) "Symbol", (char*) "\"mammal\"");
-
-    vector<string> expected = {inheritance_handle, human_handle, mammal_handle};
-    std::sort(targets.begin(), targets.end());
-    std::sort(expected.begin(), expected.end());
-
-    ASSERT_EQ(targets, expected);
+    EXPECT_THROW(db->query_for_targets(link_handle), runtime_error);
 }
 
 TEST_F(MorkDBTest, ConcurrentQueryForPattern) {
@@ -172,38 +150,6 @@ TEST_F(MorkDBTest, ConcurrentQueryForPattern) {
     // clang-format on
     auto handle_set = db->query_for_pattern(link_schema);
     EXPECT_EQ(handle_set->size(), 0);
-}
-
-TEST_F(MorkDBTest, ConcurrentQueryForTargets) {
-    const int num_threads = 200;
-    vector<thread> threads;
-    atomic<int> success_count{0};
-    string link_handle = exp_hash({"Similarity", "\"human\"", "\"monkey\""});
-
-    auto worker = [&](int thread_id) {
-        try {
-            auto targets = db->query_for_targets(link_handle);
-            ASSERT_NE(targets, nullptr);
-            ASSERT_EQ(targets->size(), 3);
-            success_count++;
-        } catch (const exception& e) {
-            cout << "Thread " << thread_id << " failed with error: " << e.what() << endl;
-        }
-    };
-
-    for (int i = 0; i < num_threads; ++i) {
-        threads.emplace_back(worker, i);
-    }
-
-    for (auto& t : threads) {
-        t.join();
-    }
-
-    EXPECT_EQ(success_count, num_threads);
-
-    // Test non-existing link
-    auto targets = db->query_for_targets("10000000000000000000000000000000");
-    EXPECT_EQ(targets, nullptr);
 }
 
 int main(int argc, char** argv) {

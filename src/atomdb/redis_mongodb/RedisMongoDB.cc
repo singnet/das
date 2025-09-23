@@ -19,6 +19,7 @@ using namespace atomdb;
 using namespace commons;
 using namespace atoms;
 
+bool RedisMongoDB::SKIP_REDIS;
 string RedisMongoDB::REDIS_PATTERNS_PREFIX;
 string RedisMongoDB::REDIS_OUTGOING_PREFIX;
 string RedisMongoDB::REDIS_INCOMING_PREFIX;
@@ -31,20 +32,23 @@ string RedisMongoDB::MONGODB_FIELD_NAME[MONGODB_FIELD::size];
 uint RedisMongoDB::MONGODB_CHUNK_SIZE;
 mongocxx::instance RedisMongoDB::MONGODB_INSTANCE;
 
-RedisMongoDB::RedisMongoDB(const string& context) {
-    initialize_statics(context);
-    redis_setup();
+RedisMongoDB::RedisMongoDB(const string& context, bool skip_redis) {
+    initialize_statics(context, skip_redis);
     mongodb_setup();
     load_pattern_index_schema();
     bool disable_cache = (Utils::get_environment("DAS_DISABLE_ATOMDB_CACHE") == "true");
     this->atomdb_cache = disable_cache ? nullptr : AtomDBCacheSingleton::get_instance();
+
+    if (SKIP_REDIS) return;
+
+    redis_setup();
     this->patterns_next_score.store(get_next_score(REDIS_PATTERNS_PREFIX + ":next_score"));
     this->incoming_set_next_score.store(get_next_score(REDIS_INCOMING_PREFIX + ":next_score"));
 }
 
 RedisMongoDB::~RedisMongoDB() {
     delete this->mongodb_pool;
-    delete this->redis_pool;
+    if (!SKIP_REDIS) delete this->redis_pool;
 }
 
 bool RedisMongoDB::allow_nested_indexing() { return false; }

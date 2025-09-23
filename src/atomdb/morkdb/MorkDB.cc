@@ -5,6 +5,7 @@
 #include <bsoncxx/builder/stream/helpers.hpp>
 #include <iostream>
 #include <memory>
+#include <stdexcept>
 #include <string>
 
 #include "HandleDecoder.h"
@@ -88,7 +89,8 @@ string MorkClient::url_encode(const string& value) {
 // <--
 
 // --> MorkDB
-MorkDB::MorkDB() {
+MorkDB::MorkDB(const string& context) {
+    this->mongodb = make_shared<RedisMongoDB>(context, true);
     bool disable_cache = (Utils::get_environment("DAS_DISABLE_ATOMDB_CACHE") == "true");
     this->atomdb_cache = disable_cache ? nullptr : AtomDBCacheSingleton::get_instance();
     mork_setup();
@@ -97,6 +99,114 @@ MorkDB::MorkDB() {
 MorkDB::~MorkDB() {}
 
 bool MorkDB::allow_nested_indexing() { return true; }
+
+shared_ptr<Atom> MorkDB::get_atom(const string& handle) { return this->mongodb->get_atom(handle); }
+
+shared_ptr<atomdb_api_types::HandleList> MorkDB::query_for_targets(const string& handle) {
+    throw runtime_error("MorkDB::query_for_targets is not implemented");
+}
+
+shared_ptr<atomdb_api_types::HandleSet> MorkDB::query_for_incoming_set(const string& handle) {
+    throw runtime_error("MorkDB::query_for_incoming_set is not implemented");
+}
+
+shared_ptr<atomdb_api_types::AtomDocument> MorkDB::get_atom_document(const string& handle) {
+    return this->mongodb->get_atom_document(handle);
+}
+
+shared_ptr<atomdb_api_types::AtomDocument> MorkDB::get_node_document(const string& handle) {
+    return this->mongodb->get_node_document(handle);
+}
+
+shared_ptr<atomdb_api_types::AtomDocument> MorkDB::get_link_document(const string& handle) {
+    return this->mongodb->get_link_document(handle);
+}
+
+vector<shared_ptr<atomdb_api_types::AtomDocument>> MorkDB::get_atom_documents(
+    const vector<string>& handles, const vector<string>& fields) {
+    return this->mongodb->get_atom_documents(handles, fields);
+}
+
+vector<shared_ptr<atomdb_api_types::AtomDocument>> MorkDB::get_node_documents(
+    const vector<string>& handles, const vector<string>& fields) {
+    return this->mongodb->get_node_documents(handles, fields);
+}
+
+vector<shared_ptr<atomdb_api_types::AtomDocument>> MorkDB::get_link_documents(
+    const vector<string>& handles, const vector<string>& fields) {
+    return this->mongodb->get_link_documents(handles, fields);
+}
+
+vector<shared_ptr<atomdb_api_types::AtomDocument>> MorkDB::get_matching_atoms(bool is_toplevel,
+                                                                              Atom& key) {
+    return this->mongodb->get_matching_atoms(is_toplevel, key);
+}
+
+bool MorkDB::atom_exists(const string& handle) { return this->mongodb->atom_exists(handle); }
+
+bool MorkDB::node_exists(const string& handle) { return this->mongodb->node_exists(handle); }
+
+bool MorkDB::link_exists(const string& handle) { return this->mongodb->link_exists(handle); }
+
+set<string> MorkDB::atoms_exist(const vector<string>& handles) {
+    return this->mongodb->atoms_exist(handles);
+}
+
+set<string> MorkDB::nodes_exist(const vector<string>& handles) {
+    return this->mongodb->nodes_exist(handles);
+}
+
+set<string> MorkDB::links_exist(const vector<string>& handles) {
+    return this->mongodb->links_exist(handles);
+}
+
+string MorkDB::add_atom(const atoms::Atom* atom) {
+    throw runtime_error("MorkDB::add_atom is not implemented");
+}
+
+string MorkDB::add_node(const atoms::Node* node) {
+    throw runtime_error("MorkDB::add_node is not implemented");
+}
+
+string MorkDB::add_link(const atoms::Link* link) {
+    throw runtime_error("MorkDB::add_link is not implemented");
+}
+
+vector<string> MorkDB::add_atoms(const vector<atoms::Atom*>& atoms) {
+    throw runtime_error("MorkDB::add_atoms is not implemented");
+}
+
+vector<string> MorkDB::add_nodes(const vector<atoms::Node*>& nodes) {
+    throw runtime_error("MorkDB::add_nodes is not implemented");
+}
+
+vector<string> MorkDB::add_links(const vector<atoms::Link*>& links) {
+    throw runtime_error("MorkDB::add_links is not implemented");
+}
+
+bool MorkDB::delete_atom(const string& handle, bool delete_link_targets) {
+    throw runtime_error("MorkDB::delete_atom is not implemented");
+}
+
+bool MorkDB::delete_node(const string& handle, bool delete_link_targets) {
+    throw runtime_error("MorkDB::delete_node is not implemented");
+}
+
+bool MorkDB::delete_link(const string& handle, bool delete_link_targets) {
+    throw runtime_error("MorkDB::delete_link is not implemented");
+}
+
+uint MorkDB::delete_atoms(const vector<string>& handles, bool delete_link_targets) {
+    throw runtime_error("MorkDB::delete_atoms is not implemented");
+}
+
+uint MorkDB::delete_nodes(const vector<string>& handles, bool delete_link_targets) {
+    throw runtime_error("MorkDB::delete_nodes is not implemented");
+}
+
+uint MorkDB::delete_links(const vector<string>& handles, bool delete_link_targets) {
+    throw runtime_error("MorkDB::delete_links is not implemented");
+}
 
 void MorkDB::mork_setup() {
     string host = Utils::get_environment("DAS_MORK_HOSTNAME");
@@ -180,7 +290,7 @@ shared_ptr<atomdb_api_types::HandleSet> MorkDB::query_for_pattern(const LinkSche
 }
 
 shared_ptr<atomdb_api_types::HandleSet> MorkDB::query_for_pattern_base(const LinkSchema& link_schema) {
-    return RedisMongoDB::query_for_pattern(link_schema);
+    return this->mongodb->query_for_pattern(link_schema);
 }
 
 // <--

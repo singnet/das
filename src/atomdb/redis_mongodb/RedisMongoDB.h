@@ -27,11 +27,12 @@ enum MONGODB_FIELD { ID = 0, NAME, TARGETS, NAMED_TYPE, size };
 
 class RedisMongoDB : public AtomDB {
    public:
-    RedisMongoDB(const string& context = "");
+    RedisMongoDB(const string& context = "", bool skip_redis = false);
     ~RedisMongoDB();
 
     bool allow_nested_indexing() override;
 
+    static bool SKIP_REDIS;
     static string REDIS_PATTERNS_PREFIX;
     static string REDIS_OUTGOING_PREFIX;
     static string REDIS_INCOMING_PREFIX;
@@ -44,7 +45,8 @@ class RedisMongoDB : public AtomDB {
     static uint MONGODB_CHUNK_SIZE;
     static mongocxx::instance MONGODB_INSTANCE;
 
-    static void initialize_statics(const string& context = "") {
+    static void initialize_statics(const string& context = "", bool skip_redis = false) {
+        SKIP_REDIS = skip_redis;
         REDIS_PATTERNS_PREFIX = context + "patterns";
         REDIS_OUTGOING_PREFIX = context + "outgoing_set";
         REDIS_INCOMING_PREFIX = context + "incoming_set";
