@@ -292,63 +292,69 @@ float eval_word(const string& handle, string& word) {
 void QueryEvolutionProcessor::correlate_similar(shared_ptr<QueryEvolutionProxy> proxy,
                                                 shared_ptr<QueryAnswer> correlation_query_answer) {
     vector<string> query_tokens;
-    vector<string> original_tokens = proxy->get_correlation_tokens();
-    set<string> variables = proxy->get_correlation_variables();
+    vector<string> handle_list;
+    vector<vector<string>> correlation_queries = proxy->get_correlation_queries();
+    vector<map<string, QueryAnswerElement>> correlation_replacements = proxy->get_correlation_replacements();
+    vector<pair<QueryAnswerElement, QueryAnswerElement>> correlation_mappings = proxy->get_correlation_mappings();
+    if ((correlation_queries.size() != correlation_replacements.size()) || (correlation_queries.size() != correlation_mappings.size())) {
+        Utils::error("Invalid correlation queries/replacements/mappings. Proxy: " + proxy->to_string());
+    }
 
-    if (proxy->parameters.get<bool>(BaseQueryProxy::USE_METTA_AS_QUERY_TOKENS)) {
-        if (original_tokens.size() != 1) {
-            Utils::error("Invalid MeTTa expression as correlation query");
-            return;
-        }
-        string expression = original_tokens[0];
-        for (string variable_name : variables) {
-            string atom_handle = correlation_query_answer->assignment.get(variable_name);
-            Utils::replace_all(expression, "$" + variable_name, correlation_query_answer->metta_expression[atom_handle]);
-        }
-        query_tokens = {expression};
-    } else {
-        unsigned int cursor = 0;
-        unsigned int size = original_tokens.size();
+    for (unsigned int i = 0; i < correlation_queries.size(); i++) {
+        query_tokens.clear();
+        if (proxy->parameters.get<bool>(BaseQueryProxy::USE_METTA_AS_QUERY_TOKENS)) {
+            if (correlation_queries[i].size() != 1) {
+                Utils::error("Invalid MeTTa expression as correlation query");
+                return;
+            }
+            string expression = correlation_queries[i][0];
+            for (auto pair : correlation_replacements[i]) {
+                string atom_handle = correlation_query_answer->get(pair.second);
+                Utils::replace_all(expression, "$" + pair.first, correlation_query_answer->metta_expression[atom_handle]);
+            }
+            query_tokens = {expression};
+        } else {
+            unsigned int cursor = 0;
+            unsigned int size = correlation_queries[i].size();
 
-        // Apply QueryAnswer's assignment to original tokens
-        while (cursor < size) {
-            string token = original_tokens[cursor++];
-            if (token == LinkSchema::UNTYPED_VARIABLE) {
-                if (cursor == size) {
-                    Utils::error("Invalid correlation_tokens");
-                    return;
-                }
-                token = original_tokens[cursor++];
-                if (variables.find(token) != variables.end()) {
-                    string value = correlation_query_answer->assignment.get(token);
-                    query_tokens.push_back(LinkSchema::ATOM);
-                    query_tokens.push_back(value);
+            // Apply QueryAnswer's assignment to original tokens
+            while (cursor < size) {
+                string token = correlation_queries[i][cursor++];
+                if (token == LinkSchema::UNTYPED_VARIABLE) {
+                    if (cursor == size) {
+                        Utils::error("Invalid correlation_tokens");
+                        return;
+                    }
+                    token = correlation_queries[i][cursor++];
+                    if (correlation_replacements[i].find(token) != correlation_replacements[i].end()) {
+                        string value = correlation_query_answer->get(correlation_replacements[i][token]);
+                        query_tokens.push_back(LinkSchema::ATOM);
+                        query_tokens.push_back(value);
+                    } else {
+                        query_tokens.push_back(LinkSchema::UNTYPED_VARIABLE);
+                        query_tokens.push_back(token);
+                    }
                 } else {
-                    query_tokens.push_back(LinkSchema::UNTYPED_VARIABLE);
                     query_tokens.push_back(token);
                 }
-            } else {
-                query_tokens.push_back(token);
             }
         }
-    }
 
-    // Update AttentionBroker
-    vector<string> handle_list;
-    handle_list.push_back(correlation_query_answer->assignment.get("sentence1"));
-    auto pm_query = issue_correlation_query(proxy, query_tokens);
-    while (!pm_query->finished()) {
-        shared_ptr<QueryAnswer> answer = pm_query->pop();
-        string word;
-        if (answer != NULL) {
-            if (eval_word(answer->assignment.get("word1"), word) >= correlation_query_answer->strength) {
-                handle_list.push_back(answer->assignment.get("word1"));
+        // Update AttentionBroker
+        handle_list.clear();
+        handle_list.push_back(correlation_query_answer->get(correlation_mappings[i].first));
+        auto pm_query = issue_correlation_query(proxy, query_tokens);
+        while (!pm_query->finished()) {
+            shared_ptr<QueryAnswer> answer = pm_query->pop();
+            string word;
+            if (answer != NULL) {
+                handle_list.push_back(answer->get(correlation_mappings[i].second));
+            } else {
+                Utils::sleep();
             }
-        } else {
-            Utils::sleep();
         }
+        AttentionBrokerClient::asymmetric_correlate(handle_list, proxy->get_context());
     }
-    AttentionBrokerClient::asymmetric_correlate(handle_list, proxy->get_context());
 }
 
 void QueryEvolutionProcessor::stimulate(shared_ptr<QueryEvolutionProxy> proxy,

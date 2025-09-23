@@ -26,6 +26,13 @@ class QueryAnswerElement {
     QueryAnswerElement() : type(UNDEFINED) {}
     QueryAnswerElement(unsigned int key) : type(HANDLE), index(key) {}
     QueryAnswerElement(const string& key) : type(VARIABLE), name(key) {}
+    QueryAnswerElement(const QueryAnswerElement& other) : type(other.type), index(other.index), name(other.name) {}
+    QueryAnswerElement& operator=(const QueryAnswerElement& other) {
+        this->type = other.type;
+        this->index = other.index;
+        this->name = other.name;
+        return *this;
+    }
     string to_string() {
         if (this->type == HANDLE) {
             return "_" + std::to_string(this->index);

@@ -246,8 +246,8 @@ void run(const string& client_id,
     AtomSpace atom_space;
     // LinkSchema context_key(context1);
     // auto context = atom_space.create_context(context_tag, context_key);
-    QueryAnswerElement sentence_link("sentence1");
-    QueryAnswerElement word_link("word1");
+    QueryAnswerElement sentence_link(sentence1);
+    QueryAnswerElement word_link(word1);
     QueryAnswerElement contains_link(0);
     auto context = atom_space.create_context(
         context_tag, context1, {{contains_link, sentence_link}, {sentence_link, word_link}}, {});
@@ -257,14 +257,16 @@ void run(const string& client_id,
     QueryEvolutionProxy* proxy_ptr;
     if (USE_METTA_QUERY) {
         proxy_ptr = new QueryEvolutionProxy({or_two_words_metta},
-                                            {activation_spreading3_metta},
-                                            {sentence1},
+                                            {{activation_spreading3_metta}},
+                                            {{sentence1, sentence_link}},
+                                            {{sentence1, word_link}},
                                             context_str,
                                             "count_letter");
     } else {
         proxy_ptr = new QueryEvolutionProxy(or_two_words,
-                                            activation_spreading3,
-                                            {sentence1},
+                                            {activation_spreading3},
+                                            {{sentence1, sentence_link}},
+                                            {{sentence1, word_link}},
                                             context_str,
                                             "count_letter");
     }
