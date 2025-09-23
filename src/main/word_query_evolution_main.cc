@@ -258,14 +258,14 @@ void run(const string& client_id,
     if (USE_METTA_QUERY) {
         proxy_ptr = new QueryEvolutionProxy({or_two_words_metta},
                                             {{activation_spreading3_metta}},
-                                            {{sentence1, sentence_link}},
+                                            {{{sentence1, sentence_link}}},
                                             {{sentence1, word_link}},
                                             context_str,
                                             "count_letter");
     } else {
         proxy_ptr = new QueryEvolutionProxy(or_two_words,
                                             {activation_spreading3},
-                                            {{sentence1, sentence_link}},
+                                            {{{sentence1, sentence_link}}},
                                             {{sentence1, word_link}},
                                             context_str,
                                             "count_letter");
