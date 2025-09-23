@@ -47,6 +47,8 @@ RedisMongoDB::~RedisMongoDB() {
     delete this->redis_pool;
 }
 
+bool RedisMongoDB::allow_nested_indexing() { return false; }
+
 void RedisMongoDB::redis_setup() {
     string host = Utils::get_environment("DAS_REDIS_HOSTNAME");
     string port = Utils::get_environment("DAS_REDIS_PORT");

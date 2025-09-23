@@ -59,9 +59,9 @@ class InferenceAgent {
     void process_inference_request(shared_ptr<InferenceProxy> proxy);
     /**
      * @brief Process inference abort request.
-     * @param request_id The inference request to be processed.
+     * @param inference_request The inference request to be processed.
      */
-    void process_inference_abort_request(const string& request_id);
+    void process_inference_abort_request(shared_ptr<InferenceRequest> inference_request);
 
    private:
     /**

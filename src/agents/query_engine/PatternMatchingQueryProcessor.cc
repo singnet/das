@@ -40,6 +40,7 @@ string PatternMatchingQueryProcessor::OR = "OR";
 PatternMatchingQueryProcessor::PatternMatchingQueryProcessor()
     : BusCommandProcessor({ServiceBus::PATTERN_MATCHING_QUERY}) {
     this->atomdb = AtomDBSingleton::get_instance();
+    AttentionBrokerClient::health_check(true);
 }
 
 PatternMatchingQueryProcessor::~PatternMatchingQueryProcessor() {}
@@ -134,7 +135,7 @@ void PatternMatchingQueryProcessor::process_query_answers(
             update_attention_broker_single_answer(proxy, answer, joint_answer);
         }
         if (!proxy->parameters.get<bool>(PatternMatchingQueryProxy::COUNT_FLAG)) {
-            if (populate_metta) {
+            if (populate_metta && answer->metta_expression.size() == 0) {
                 proxy->populate_metta_mapping(answer);
             }
             proxy->push(shared_ptr<QueryAnswer>(answer));
