@@ -87,8 +87,8 @@ string MorkClient::url_encode(const string& value) {
 }
 // <--
 
-// --> MorkDB
-MorkDB::MorkDB() {
+// --> MorkDB : RedisMongoDB(context, skip_redis = true)
+MorkDB::MorkDB(const string& context) : RedisMongoDB(context, true) {
     bool disable_cache = (Utils::get_environment("DAS_DISABLE_ATOMDB_CACHE") == "true");
     this->atomdb_cache = disable_cache ? nullptr : AtomDBCacheSingleton::get_instance();
     mork_setup();
@@ -177,10 +177,6 @@ shared_ptr<atomdb_api_types::HandleSet> MorkDB::query_for_pattern(const LinkSche
         this->atomdb_cache->add_pattern_matching(link_schema.handle(), handle_set);
 
     return handle_set;
-}
-
-shared_ptr<atomdb_api_types::HandleSet> MorkDB::query_for_pattern_base(const LinkSchema& link_schema) {
-    return RedisMongoDB::query_for_pattern(link_schema);
 }
 
 // <--
