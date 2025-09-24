@@ -61,7 +61,7 @@ Context::Context(const string& name,
     update_attention_broker();
 }
 
-Context::add_determiners(const vector<string>& query,
+void Context::add_determiners(const vector<string>& query,
                          const vector<pair<QueryAnswerElement, QueryAnswerElement>>& determiner_schema,
                          vector<QueryAnswerElement>& stimulus_schema) {
 

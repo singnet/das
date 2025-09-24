@@ -274,7 +274,7 @@ void run(const string& client_id,
     shared_ptr<QueryEvolutionProxy> proxy(proxy_ptr);
     proxy->parameters[BaseQueryProxy::USE_METTA_AS_QUERY_TOKENS] = USE_METTA_QUERY;
     proxy->parameters[BaseQueryProxy::POPULATE_METTA_MAPPING] = USE_METTA_QUERY;
-    proxy->parameters[QueryEvolutionProxy::POPULATION_SIZE] = (unsigned int) 50;
+    proxy->parameters[QueryEvolutionProxy::POPULATION_SIZE] = (unsigned int) 100;
     proxy->parameters[QueryEvolutionProxy::MAX_GENERATIONS] = (unsigned int) 20;
     proxy->parameters[QueryEvolutionProxy::ELITISM_RATE] = (double) ELITISM_RATE;
     proxy->parameters[QueryEvolutionProxy::SELECTION_RATE] = (double) 0.10;
