@@ -6,6 +6,8 @@ on:
   push:
     branches:
       - master
+  workflow_call:
+  workflow_dispatch:
 
 jobs:
   benchmark_query_agent:
