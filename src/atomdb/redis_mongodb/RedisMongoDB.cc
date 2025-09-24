@@ -878,16 +878,18 @@ bool RedisMongoDB::delete_document(const string& handle,
         }
     }
 
-    auto incoming_set = query_for_incoming_set(handle);
-    auto it = incoming_set->get_iterator();
-    char* incoming_handle;
-    while ((incoming_handle = it->next()) != nullptr) {
-        delete_atom(incoming_handle, delete_targets);
+    if (!SKIP_REDIS) {
+        auto incoming_set = query_for_incoming_set(handle);
+        auto it = incoming_set->get_iterator();
+        char* incoming_handle;
+        while ((incoming_handle = it->next()) != nullptr) {
+            delete_atom(incoming_handle, delete_targets);
+        }
+
+        delete_incoming_set(handle);
+
+        delete_outgoing_set(handle);
     }
-
-    delete_incoming_set(handle);
-
-    delete_outgoing_set(handle);
 
     // NOTE: the initial handle might be already deleted due the recursive delete_atom() calls.
     return reply->deleted_count() > 0 || !document_exists(handle, collection_name);
@@ -914,7 +916,7 @@ bool RedisMongoDB::delete_link(const string& handle, bool delete_targets) {
         auto target_handle = link_document->get(MONGODB_FIELD_NAME[MONGODB_FIELD::TARGETS], i);
         // If target is referenced more than once, we need to update incoming_set or delete target
         // otherwise
-        if (query_for_incoming_set(target_handle)->size() > 1) {
+        if (!SKIP_REDIS && query_for_incoming_set(target_handle)->size() > 1) {
             update_incoming_set(target_handle, handle);
         } else if (delete_targets) {
             delete_atom(target_handle, delete_targets);
