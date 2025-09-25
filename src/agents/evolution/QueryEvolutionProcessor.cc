@@ -299,11 +299,14 @@ void QueryEvolutionProcessor::correlate_similar(shared_ptr<QueryEvolutionProxy> 
         proxy->get_correlation_replacements();
     vector<pair<QueryAnswerElement, QueryAnswerElement>> correlation_mappings =
         proxy->get_correlation_mappings();
-    if ((correlation_queries.size() != correlation_replacements.size()) ||
-        (correlation_queries.size() != correlation_mappings.size())) {
-        Utils::error("Invalid correlation queries/replacements/mappings. Proxy: " + proxy->to_string());
+    if (correlation_queries.size() != correlation_replacements.size()) {
+        Utils::error("Invalid correlation queries/replacements. Proxy: " + proxy->to_string());
+    }
+    if (correlation_mappings.size() == 0) {
+        Utils::error("Invalid correlation mappings. Proxy: " + proxy->to_string());
     }
 
+    // Rewrite correlation query using handles from original query answer
     for (unsigned int i = 0; i < correlation_queries.size(); i++) {
         query_tokens.clear();
         if (proxy->parameters.get<bool>(BaseQueryProxy::USE_METTA_AS_QUERY_TOKENS)) {
@@ -348,13 +351,18 @@ void QueryEvolutionProcessor::correlate_similar(shared_ptr<QueryEvolutionProxy> 
 
         // Update AttentionBroker
         handle_list.clear();
-        handle_list.push_back(correlation_query_answer->get(correlation_mappings[i].first));
+        handle_list.push_back(correlation_query_answer->get(correlation_mappings[0].first));
         auto pm_query = issue_correlation_query(proxy, query_tokens);
         while (!pm_query->finished()) {
             shared_ptr<QueryAnswer> answer = pm_query->pop();
             string word;
             if (answer != NULL) {
-                handle_list.push_back(answer->get(correlation_mappings[i].second));
+                for (auto pair : correlation_mappings) {
+                    string handle = answer->get(pair.second);
+                    if (handle != "") {
+                        handle_list.push_back(handle);
+                    }
+                }
             } else {
                 Utils::sleep();
             }
@@ -366,13 +374,18 @@ void QueryEvolutionProcessor::correlate_similar(shared_ptr<QueryEvolutionProxy> 
 void QueryEvolutionProcessor::stimulate(shared_ptr<QueryEvolutionProxy> proxy,
                                         vector<std::pair<shared_ptr<QueryAnswer>, float>>& selected) {
     LOG_INFO("Stimulating " + std::to_string(selected.size()) + " selected QueryAnswers: ");
+    vector<pair<QueryAnswerElement, QueryAnswerElement>> correlation_mappings =
+        proxy->get_correlation_mappings();
+    if (correlation_mappings.size() == 0) {
+        Utils::error("Invalid correlation mappings. Proxy: " + proxy->to_string());
+    }
     unsigned int importance_tokens =
         proxy->parameters.get<unsigned int>(QueryEvolutionProxy::TOTAL_ATTENTION_TOKENS);
 
     map<string, unsigned int> handle_count;
     for (auto pair : selected) {
         unsigned int value = (unsigned int) std::lround(pair.second * importance_tokens);
-        string handle = pair.first->assignment.get("sentence1");
+        string handle = pair.first->get(correlation_mappings[0].first);
         if (handle_count.find(handle) == handle_count.end()) {
             handle_count[handle] = value;
         } else {

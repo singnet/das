@@ -439,10 +439,23 @@ static void run(string& context_tag) {
 
     vector<string> correlation_query_template = {{
         OR_OPERATOR, "3"
-            LINK_TEMPLATE, EXPRESSION, "3",
-                NODE, SYMBOL, EVALUATION,
-                VARIABLE, PREDICATE1,
-                VARIABLE, V1,
+            AND, 4
+                LINK_TEMPLATE, EXPRESSION, "3",
+                    NODE, SYMBOL, EVALUATION,
+                    VARIABLE, PREDICATE1,
+                    VARIABLE, sentence1,
+                LINK_TEMPLATE, EXPRESSION, "3",
+                    NODE, SYMBOL, CONTAINS,
+                    VARIABLE, sentence1,
+                    VARIABLE, word1,
+                LINK_TEMPLATE, EXPRESSION, "3",
+                    NODE, SYMBOL, CONTAINS,
+                    VARIABLE, sentence2,
+                    VARIABLE, word1,
+                LINK_TEMPLATE, EXPRESSION, "3",
+                    NODE, SYMBOL, EVALUATION,
+                    VARIABLE, V1,
+                    VARIABLE, sentence2,
             LINK_TEMPLATE, EXPRESSION, "3",
                 NODE, SYMBOL, IMPLICATION,
                 VARIABLE, PREDICATE1,
@@ -451,7 +464,7 @@ static void run(string& context_tag) {
                 NODE, SYMBOL, IMPLICATION,
                 VARIABLE, V1,
                 VARIABLE, PREDICATE1,
-    } , {
+    } /*, {
         OR_OPERATOR, "6"
             LINK_TEMPLATE, EXPRESSION, "3",
                 NODE, SYMBOL, EVALUATION,
@@ -515,15 +528,23 @@ static void run(string& context_tag) {
                 NODE, SYMBOL, IMPLICATION,
                 VARIABLE, V1,
                 VARIABLE, PREDICATE3,
-    }};
+    }*/};
 
     QueryAnswerElement predicate1(PREDICATE1);
     QueryAnswerElement predicate2(PREDICATE2);
     QueryAnswerElement predicate3(PREDICATE3);
+    QueryAnswerElement v1(V1);
+
     map<string, QueryAnswerElement> correlation_query_constants = {
-        {{PREDICATE1, predicate1}}, 
+        {{PREDICATE1, predicate1}}, /*
         {{PREDICATE1, predicate1}, {PREDICATE2, predicate2}}, 
-        {{PREDICATE1, predicate1}, {PREDICATE2, predicate2}, {PREDICATE3, predicate3}}, 
+        {{PREDICATE1, predicate1}, {PREDICATE2, predicate2}, {PREDICATE3, predicate3}*/}, 
+    }
+
+    map<string, QueryAnswerElement> correlation_mapping = {
+        {{predicate1, v1}},/*
+        {{predicate1, v1}, {predicate2, v1}},
+        {{predicate1, v1}, {predicate2, v1}, {predicate3, v1}*/},
     }
 
     /*******************************************************************
@@ -598,7 +619,7 @@ static void run(string& context_tag) {
         build_links(equivalence_query, context, build_equivalence_link);
         AttentionBrokerClient::set_determiners(buffer_determiners, context);
         buffer_determiners.clear();
-        evolve_chain_query(chain_query, correlation_query_template, correlation_query_constants, context);
+        evolve_chain_query(chain_query, correlation_query_template, correlation_query_constants, correlation_mapping[0], context);
     }
 }
 

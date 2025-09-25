@@ -239,20 +239,22 @@ void QueryAnswer::untokenize(const string& tokens) {
     }
 }
 
-string QueryAnswer::get(const QueryAnswerElement& element_key) {
+string QueryAnswer::get(const QueryAnswerElement& element_key, bool return_empty_when_not_found) {
     string answer = "";
     switch (element_key.type) {
         case QueryAnswerElement::HANDLE: {
             if (element_key.index < this->handles.size()) {
                 answer = this->handles[element_key.index];
             } else {
-                Utils::error("Invalid handle index: " + std::to_string(element_key.index));
+                if (! return_empty_when_not_found) {
+                    Utils::error("Invalid handle index: " + std::to_string(element_key.index));
+                }
             }
             break;
         }
         case QueryAnswerElement::VARIABLE: {
             answer = this->assignment.get(element_key.name);
-            if (answer == "") {
+            if ((answer == "") && (! return_empty_when_not_found)) {
                 Utils::error("Invalid variable name: " + element_key.name);
             }
             break;
