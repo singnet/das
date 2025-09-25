@@ -1,5 +1,7 @@
 #include <signal.h>
 
+#define LOG_LEVEL INFO_LEVEL
+
 #include <iomanip>
 #include <iostream>
 #include <string>
@@ -14,8 +16,7 @@
 #include "QueryEvolutionProxy.h"
 #include "ServiceBusSingleton.h"
 #include "Utils.h"
-
-#define LOG_LEVEL INFO_LEVEL
+#include "Hasher.h"
 #include "Logger.h"
 
 #define MAX_QUERY_ANSWERS ((unsigned int) 100000)
@@ -45,8 +46,12 @@
 #define V3 "v3"
 #define PREDICATE1 "predicate1"
 #define PREDICATE2 "predicate2"
+#define PREDICATE3 "predicate3"
 #define CONCEPT1 "concept1"
 #define CONCEPT2 "concept2"
+#define SENTENCE1 "sentence1"
+#define SENTENCE2 "sentence2"
+#define WORD1 "word1"
 
 // Misc
 #define STRENGTH "strength"
@@ -73,20 +78,20 @@ using namespace service_bus;
 using namespace attention_broker;
 
 static shared_ptr<AtomDB> db;
-static shared_ptr<ServiceBus> service_bus;
+static shared_ptr<ServiceBus> bus;
 static vector<vector<string>> buffer_determiners;
 
 static string get_predicate_name(string handle) {
     shared_ptr<Link> predicate_link = dynamic_pointer_cast<Link>(db->get_atom(handle));
     shared_ptr<Node> predicate_symbol =
         dynamic_pointer_cast<Node>(db->get_atom(predicate_link->targets[1]));
-    return predicate_symbol.name;
+    return predicate_symbol->name;
 }
 
 static void print_answer(shared_ptr<QueryAnswer> query_answer) {
-    unsigned int chain_size = query_answer.handles.size();
+    unsigned int chain_size = query_answer->handles.size();
     cout << fixed << setw(6) << setprecision(4) << setfill('0');
-    cout << fitness << " [" << to_string(chain_size) << "]: ";
+    cout << query_answer->strength << " [" << to_string(chain_size) << "]: ";
     bool first_flag = true;
     string source_predicate, target_predicate, last_predicate;
     for (string implication_handle : query_answer->handles) {
@@ -127,21 +132,22 @@ static void insert_or_update(map<string, double>& count_map, const string& key, 
     if (iterator == count_map.end()) {
         count_map[key] = value;
     } else {
-        if (value > *iterator) {
+        if (value > iterator->second) {
             count_map[key] = value;
         }
     }
 }
 
-static void compute_counts(const vector<string>& query_tokens,
+static void compute_counts(const vector<vector<string>>& query_tokens,
                            const string& context,
                            double& count_0,
                            double& count_1,
                            double& count_intersection,
                            double& count_union) {
     shared_ptr<PatternMatchingQueryProxy> proxy[2];
-    fort(unsigned int i = 0; i < 2; i++) {
-        proxy[i] = make_shared<PatternMatchingQueryProxy>(query_tokens, context);
+
+    for (unsigned int i = 0; i < 2; i++) {
+        proxy[i] = make_shared<PatternMatchingQueryProxy>(query_tokens[i], context);
         proxy[i]->parameters[PatternMatchingQueryProxy::POSITIVE_IMPORTANCE_FLAG] = false;
         proxy[i]->parameters[BaseQueryProxy::UNIQUE_ASSIGNMENT_FLAG] = true;
         proxy[i]->parameters[BaseQueryProxy::ATTENTION_UPDATE_FLAG] = false;
@@ -161,6 +167,7 @@ static void compute_counts(const vector<string>& query_tokens,
 
     double d;
     string handle;
+    shared_ptr<QueryAnswer> query_answer;
     for (unsigned int i = 0; i < 2; i++) {
         ServiceBusSingleton::get_instance()->issue_bus_command(proxy[i]);
         while (!proxy[i]->finished()) {
@@ -204,15 +211,15 @@ static void compute_counts(const vector<string>& query_tokens,
     }
 }
 
-static add_or_update_link(const string& type_handle,
-                          const string& target1,
-                          const string& target2,
-                          double strength) {
-    Link new_link(EXPRESSION, {type_handle, target1, target}, true, {{STRENGTH, strength}});
+static void add_or_update_link(const string& type_handle,
+                               const string& target1,
+                               const string& target2,
+                               double strength) {
+    Link new_link(EXPRESSION, {type_handle, target1, target2}, true, {{STRENGTH, strength}});
     string handle = new_link.handle();
     if (db->link_exists(handle)) {
         auto old_link = db->get_atom(handle);
-        if (strength > old_link->custom_atributes.get<double>(STRENGTH)) {
+        if (strength > old_link->custom_attributes.get<double>(STRENGTH)) {
             db->delete_link(handle, false);
             db->add_link(&new_link);
         }
@@ -222,13 +229,13 @@ static add_or_update_link(const string& type_handle,
     }
 }
 
-static void build_implication_link(shared_ptr_<QueryAnswer> query_answer, const string& context) {
+static void build_implication_link(shared_ptr<QueryAnswer> query_answer, const string& context) {
     if (query_answer->handles[0] == query_answer->handles[1]) {
         return;
     }
 
     string predicate[2] = {query_answer->handles[0], query_answer->handles[1]};
-    string query[2];
+    vector<vector<string>> query;
 
     for (unsigned int i = 0; i < 2; i++) {
         // clang-format off
@@ -262,13 +269,13 @@ static void build_implication_link(shared_ptr_<QueryAnswer> query_answer, const 
     }
 }
 
-static void build_equivalence_link(shared_ptr_<QueryAnswer> query_answer, const string& context) {
+static void build_equivalence_link(shared_ptr<QueryAnswer> query_answer, const string& context) {
     if (query_answer->handles[0] == query_answer->handles[1]) {
         return;
     }
 
     string concept_[2] = {query_answer->handles[0], query_answer->handles[1]};
-    string query[2];
+    vector<vector<string>> query;
     for (unsigned int i = 0; i < 2; i++) {
         // clang-format off
         query[i] = {
@@ -298,17 +305,18 @@ static void build_equivalence_link(shared_ptr_<QueryAnswer> query_answer, const 
     }
 }
 
-static void build_links(const string& query,
+static void build_links(const vector<string>& query,
                         const string& context,
-                        void (*build_link)(shared_ptr_<QueryAnswer> query_answer)) {
+                        void (*build_link)(shared_ptr<QueryAnswer> query_answer, const string& context)) {
     auto proxy = issue_query(query, context, LINK_BUILDING_QUERY_SIZE);
     unsigned int count = 0;
+    shared_ptr<QueryAnswer> query_answer;
     while (!proxy->finished()) {
         if ((query_answer = proxy->pop()) == NULL) {
             Utils::sleep();
         } else {
             if (++count <= LINK_BUILDING_QUERY_SIZE) {
-                build_link(query_answer);
+                build_link(query_answer, context);
             } else {
                 proxy->abort();
                 break;
@@ -317,15 +325,21 @@ static void build_links(const string& query,
     }
 }
 
-static void evolve_chain_query(const vector<string>& chain_query,
-                               const vector<vector<string>>& correlation_query_template,
-                               const vector<vector<string>>& correlation_query_constants,
-                               const string& context) {
-    QueryEvolutionProxy* proxy_ptr = new QueryEvolutionProxy(chain_query,
-                                                             activation_spreading_query,
-                                                             activation_spreading_variables,
-                                                             context,
-                                                             FITNESS_FUNCTION);
+// clang-format off
+static void evolve_chain_query(
+    const vector<string>& chain_query,
+    const vector<vector<string>>& correlation_query_template,
+    const vector<map<string, QueryAnswerElement>>& correlation_query_constants,
+    const vector<pair<QueryAnswerElement, QueryAnswerElement>>& correlation_mapping,
+    const string& context) {
+
+    QueryEvolutionProxy* proxy_ptr = new QueryEvolutionProxy(
+        chain_query,
+        correlation_query_template,
+        correlation_query_constants,
+        correlation_mapping,
+        context,
+        FITNESS_FUNCTION);
 
     shared_ptr<QueryEvolutionProxy> proxy(proxy_ptr);
     proxy->parameters[BaseQueryProxy::USE_METTA_AS_QUERY_TOKENS] = false;
@@ -336,7 +350,7 @@ static void evolve_chain_query(const vector<string>& chain_query,
     proxy->parameters[QueryEvolutionProxy::SELECTION_RATE] = (double) SELECTION_RATE;
     proxy->parameters[QueryEvolutionProxy::TOTAL_ATTENTION_TOKENS] = (unsigned int) 100000;
     proxy->parameters[BaseQueryProxy::MAX_BUNDLE_SIZE] = (unsigned int) 1000;
-    service_bus->issue_bus_command(proxy);
+    bus->issue_bus_command(proxy);
 
     shared_ptr<QueryAnswer> query_answer;
     unsigned int count_answers = 0;
@@ -356,9 +370,11 @@ static void evolve_chain_query(const vector<string>& chain_query,
     }
     cout << "Total answers in iteration " << count_iterations++ << ": " << count_answers << endl;
 }
+// clang-format on
 
-static void run(string& context_tag) {
+static void run(const string& predicate_source, const string& predicate_target, const string& context_tag) {
     // clang-format off
+
     vector<string> implication_query = {
         AND_OPERATOR, "2",
             LINK_TEMPLATE, EXPRESSION, "2",
@@ -384,16 +400,16 @@ static void run(string& context_tag) {
             AND_OPERATOR, "2",
                 LINK_TEMPLATE, EXPRESSION, "2",
                     NODE, SYMBOL, IMPLICATION,
-                    VARIABLE, predicate_source,
+                    ATOM, predicate_source,
                     VARIABLE, PREDICATE1,
                 LINK_TEMPLATE, EXPRESSION, "2",
                     NODE, SYMBOL, IMPLICATION,
                     VARIABLE, PREDICATE1,
-                    VARIABLE, predicate_target,
+                    ATOM, predicate_target,
             AND_OPERATOR, "3",
                 LINK_TEMPLATE, EXPRESSION, "2",
                     NODE, SYMBOL, IMPLICATION,
-                    VARIABLE, predicate_source,
+                    ATOM, predicate_source,
                     VARIABLE, PREDICATE1,
                 LINK_TEMPLATE, EXPRESSION, "2",
                     NODE, SYMBOL, IMPLICATION,
@@ -402,11 +418,11 @@ static void run(string& context_tag) {
                 LINK_TEMPLATE, EXPRESSION, "2",
                     NODE, SYMBOL, IMPLICATION,
                     VARIABLE, PREDICATE2,
-                    VARIABLE, predicate_target,
+                    ATOM, predicate_target,
             AND_OPERATOR, "4",
                 LINK_TEMPLATE, EXPRESSION, "2",
                     NODE, SYMBOL, IMPLICATION,
-                    VARIABLE, predicate_source,
+                    ATOM, predicate_source,
                     VARIABLE, PREDICATE1,
                 LINK_TEMPLATE, EXPRESSION, "2",
                     NODE, SYMBOL, IMPLICATION,
@@ -419,35 +435,35 @@ static void run(string& context_tag) {
                 LINK_TEMPLATE, EXPRESSION, "2",
                     NODE, SYMBOL, IMPLICATION,
                     VARIABLE, PREDICATE3,
-                    VARIABLE, predicate_target,
+                    ATOM, predicate_target,
     };
 
     vector<string> context_query = {
-        link_template, expression, "3",
-            variable, V1,
-            variable, V2,
-            variable, V3,
+        LINK_TEMPLATE, EXPRESSION, "3",
+            VARIABLE, V1,
+            VARIABLE, V2,
+            VARIABLE, V3,
     };
 
-    vector<string> correlation_query_template = {{
-        OR_OPERATOR, "3"
-            AND, 4
+    vector<vector<string>> correlation_query_template = {{
+        OR_OPERATOR, "3",
+            AND_OPERATOR, "4",
                 LINK_TEMPLATE, EXPRESSION, "3",
                     NODE, SYMBOL, EVALUATION,
                     VARIABLE, PREDICATE1,
-                    VARIABLE, sentence1,
+                    VARIABLE, SENTENCE1,
                 LINK_TEMPLATE, EXPRESSION, "3",
                     NODE, SYMBOL, CONTAINS,
-                    VARIABLE, sentence1,
-                    VARIABLE, word1,
+                    VARIABLE, SENTENCE1,
+                    VARIABLE, WORD1,
                 LINK_TEMPLATE, EXPRESSION, "3",
                     NODE, SYMBOL, CONTAINS,
-                    VARIABLE, sentence2,
-                    VARIABLE, word1,
+                    VARIABLE, SENTENCE2,
+                    VARIABLE, WORD1,
                 LINK_TEMPLATE, EXPRESSION, "3",
                     NODE, SYMBOL, EVALUATION,
                     VARIABLE, V1,
-                    VARIABLE, sentence2,
+                    VARIABLE, SENTENCE2,
             LINK_TEMPLATE, EXPRESSION, "3",
                 NODE, SYMBOL, IMPLICATION,
                 VARIABLE, PREDICATE1,
@@ -456,7 +472,7 @@ static void run(string& context_tag) {
                 NODE, SYMBOL, IMPLICATION,
                 VARIABLE, V1,
                 VARIABLE, PREDICATE1,
-    } /*, {
+    } /*, { TODO: requires revision to consider the AND as in the query above.
         OR_OPERATOR, "6"
             LINK_TEMPLATE, EXPRESSION, "3",
                 NODE, SYMBOL, EVALUATION,
@@ -527,17 +543,17 @@ static void run(string& context_tag) {
     QueryAnswerElement predicate3(PREDICATE3);
     QueryAnswerElement v1(V1);
 
-    map<string, QueryAnswerElement> correlation_query_constants = {
-        {{PREDICATE1, predicate1}}, /*
-        {{PREDICATE1, predicate1}, {PREDICATE2, predicate2}}, 
-        {{PREDICATE1, predicate1}, {PREDICATE2, predicate2}, {PREDICATE3, predicate3}*/}, 
-    }
+    vector<map<string, QueryAnswerElement>> correlation_query_constants = {
+        {{PREDICATE1, predicate1}}/*,
+        {{PREDICATE1, predicate1}, {PREDICATE2, predicate2}},
+        {{PREDICATE1, predicate1}, {PREDICATE2, predicate2}, {PREDICATE3, predicate3}},*/
+    };
 
-    map<string, QueryAnswerElement> correlation_mapping = {
-        {{predicate1, v1}},/*
+    vector<vector<pair<QueryAnswerElement, QueryAnswerElement>>> correlation_mapping = {
+        {{predicate1, v1}}/*,
         {{predicate1, v1}, {predicate2, v1}},
-        {{predicate1, v1}, {predicate2, v1}, {predicate3, v1}*/},
-    }
+        {{predicate1, v1}, {predicate2, v1}, {predicate3, v1}},*/
+    };
 
     /*******************************************************************
     // NOTE TO REVISOR: I left these queries in comments below just to keep
@@ -593,41 +609,40 @@ static void run(string& context_tag) {
         (EQUIVALENCE (CONCEPT (Sentence "dca cbc bde aaa adc") (CONCEPT (Sentence "aaa cac acc baa dad")))
         (EVALUATION (PREDICATE "feature_contains_adc_cbc") (CONCEPT (Sentence "dca cbc bde aaa adc")))
     ********************************************************************/
+    // clang-format on
 
-// clang-format on
+    LOG_INFO("Setting up context");
+    AtomSpace atom_space;
+    QueryAnswerElement target2(V2);
+    QueryAnswerElement target3(V3);
+    QueryAnswerElement toplevel_link(0);
+    auto context_obj = atom_space.create_context(
+        context_tag, context_query, {{toplevel_link, target2}, {toplevel_link, target3}}, {});
+    string context = context_obj->get_key();
+    LOG_INFO("Context " + context + " is ready");
 
-LOG_INFO("Setting up context");
-AtomSpace atom_space;
-QueryAnswerElement target2(V2);
-QueryAnswerElement target3(V3);
-QueryAnswerElement toplevel_link(0);
-auto context_obj = atom_space.create_context(
-    context_tag, context_query, {{toplevel_link, target2}, {toplevel_link, target3}}, {});
-string context = context_obj->get_key();
-LOG_INFO("Context " + context + " is ready");
-
-for (unsigned int i = 0; i < NUM_ITERATIONS; i++) {
-    build_links(implication_query, context, build_implication_link);
-    build_links(equivalence_query, context, build_equivalence_link);
-    AttentionBrokerClient::set_determiners(buffer_determiners, context);
-    buffer_determiners.clear();
-    evolve_chain_query(chain_query,
-                       correlation_query_template,
-                       correlation_query_constants,
-                       correlation_mapping[0],
-                       context);
-}
+    for (unsigned int i = 0; i < NUM_ITERATIONS; i++) {
+        build_links(implication_query, context, build_implication_link);
+        build_links(equivalence_query, context, build_equivalence_link);
+        AttentionBrokerClient::set_determiners(buffer_determiners, context);
+        buffer_determiners.clear();
+        evolve_chain_query(chain_query,
+                           correlation_query_template,
+                           correlation_query_constants,
+                           correlation_mapping[0],
+                           context);
+    }
 }
 
 int main(int argc, char* argv[]) {
-    if (argc != 15) {
+    // clang-format off
+    if (argc != 17) {
         cerr << "Usage: " << argv[0]
              << " <client id> <server id> <start_port:end_port> <context_tag>"
                 " <source_predicate> <target_predicate>"
                 " <RENT_RATE> <SPREADING_RATE_LOWERBOUND> <SPREADING_RATE_UPPERBOUND>"
                 " <ELITISM_RATE> <SELECTION_RATE>"
-                " <POPULATION_SIZE> <MAX_GENERATIONS> <NUM_ITERATIONS>" cerr
-             << endl;
+                " <POPULATION_SIZE> <MAX_GENERATIONS> <NUM_ITERATIONS>" << endl;
         cerr << endl;
         cerr << "Suggested safe parameters:" << endl;
         cerr << "    RENT_RATE: 0.25" << endl;
@@ -640,6 +655,7 @@ int main(int argc, char* argv[]) {
         cerr << "    NUM_ITERATIONS: 10" << endl;
         exit(1);
     }
+    // clang-format on
 
     string client_id = argv[1];
     string server_id = argv[2];
@@ -652,28 +668,34 @@ int main(int argc, char* argv[]) {
     SPREADING_RATE_UPPERBOUND = Utils::string_to_float(string(argv[9]));
     ELITISM_RATE = (double) Utils::string_to_float(string(argv[10]));
     SELECTION_RATE = (double) Utils::string_to_float(string(argv[11]));
-    POPULATION_SIZE = (unsigned int) Utils::string_to_int(string(argv[12])) MAX_GENERATIONS =
-        (unsigned int) Utils::string_to_int(string(argv[13])) NUM_ITERATIONS =
-            (unsigned int) Utils::string_to_int(string(argv[14]))
+    POPULATION_SIZE = (unsigned int) Utils::string_to_int(string(argv[12]));
+    MAX_GENERATIONS = (unsigned int) Utils::string_to_int(string(argv[13]));
+    NUM_ITERATIONS = (unsigned int) Utils::string_to_int(string(argv[14]));
 
-                AtomDBSingleton::init();
+    AtomDBSingleton::init();
     db = AtomDBSingleton::get_instance();
-    ServiceBusSingleton::init(client_id, server_id, start_port, end_port);
+    ServiceBusSingleton::init(client_id, server_id, ports_range.first, ports_range.second);
     FitnessFunctionRegistry::initialize_statics();
-    service_bus = ServiceBusSingleton::get_instance();
+    bus = ServiceBusSingleton::get_instance();
     AttentionBrokerClient::set_parameters(
         RENT_RATE, SPREADING_RATE_LOWERBOUND, SPREADING_RATE_UPPERBOUND);
 
-    LOG_INFO("ELITISM_RATE: " + to_string(ELITISM_RATE);
-    LOG_INFO("RENT_RATE: " + to_string(RENT_RATE);
-    LOG_INFO("SPREADING_RATE_LOWERBOUND: " + to_string(SPREADING_RATE_LOWERBOUND);
-    LOG_INFO("SPREADING_RATE_UPPERBOUND: " + to_string(SPREADING_RATE_UPPERBOUND);
-    LOG_INFO("ELITISM_RATE: " + to_string(ELITISM_RATE);
-    LOG_INFO("SELECTION_RATE: " + to_string(SELECTION_RATE);
-    LOG_INFO("POPULATION_SIZE: " + to_string(POPULATION_SIZE);
-    LOG_INFO("MAX_GENERATIONS: " + to_string(MAX_GENERATIONS);
-    LOG_INFO("NUM_ITERATIONS: " + to_string(NUM_ITERATIONS);
+    LOG_INFO("ELITISM_RATE: " + to_string(ELITISM_RATE));
+    LOG_INFO("RENT_RATE: " + to_string(RENT_RATE));
+    LOG_INFO("SPREADING_RATE_LOWERBOUND: " + to_string(SPREADING_RATE_LOWERBOUND));
+    LOG_INFO("SPREADING_RATE_UPPERBOUND: " + to_string(SPREADING_RATE_UPPERBOUND));
+    LOG_INFO("ELITISM_RATE: " + to_string(ELITISM_RATE));
+    LOG_INFO("SELECTION_RATE: " + to_string(SELECTION_RATE));
+    LOG_INFO("POPULATION_SIZE: " + to_string(POPULATION_SIZE));
+    LOG_INFO("MAX_GENERATIONS: " + to_string(MAX_GENERATIONS));
+    LOG_INFO("NUM_ITERATIONS: " + to_string(NUM_ITERATIONS));
 
-    run(context_tag);
+    Node predicate_symbol(SYMBOL, PREDICATE);
+    Node source_predicate_symbol(SYMBOL, source_predicate);
+    Node target_predicate_symbol(SYMBOL, target_predicate);
+    Link source(EXPRESSION, {predicate_symbol.handle(), source_predicate_symbol.handle()});
+    Link target(EXPRESSION, {predicate_symbol.handle(), target_predicate_symbol.handle()});
+    run(source.handle(), target.handle(), context_tag);
+
     return 0;
 }
