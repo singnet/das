@@ -108,7 +108,8 @@ jobs:
           BENCHMARK_ID="${{ needs.benchmark_query_agent.outputs.benchmark_id }}"
           [ -z "$BENCHMARK_ID" ] && BENCHMARK_ID="UNKNOWN"
           TITLE="Query Agent Benchmark Report - Single Thread, 10 iterations"
-          bash .github/scripts/mattermost-benchmark-report.sh "$BENCHMARK_ID" "$TITLE"
+          IS_PR="${{ github.event_name == 'pull_request' }}"
+          bash .github/scripts/mattermost-benchmark-report.sh "$BENCHMARK_ID" "$TITLE" "$IS_PR"
 
       - name: Notify Mattermost
         uses: singnet/integration-github-mattermost@v0.3.0
@@ -144,7 +145,8 @@ jobs:
           BENCHMARK_ID="${{ needs.benchmark_atomdb.outputs.benchmark_id }}"
           [ -z "$BENCHMARK_ID" ] && BENCHMARK_ID="UNKNOWN"
           TITLE="AtomDB Benchmark Report - Single Thread, 100 iterations"
-          bash .github/scripts/mattermost-benchmark-report.sh "$BENCHMARK_ID" "$TITLE"
+          IS_PR="${{ github.event_name == 'pull_request' }}"
+          bash .github/scripts/mattermost-benchmark-report.sh "$BENCHMARK_ID" "$TITLE" "$IS_PR"
 
       - name: Notify Mattermost
         uses: singnet/integration-github-mattermost@v0.3.0
