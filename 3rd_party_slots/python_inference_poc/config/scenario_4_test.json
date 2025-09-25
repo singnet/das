@@ -1,0 +1,26 @@
+{
+    "seed": 42,
+    "gen_seed": 11,
+    "metta-filename": "output.metta",
+    "sentence-node-count": 1000,
+    "word-count": 5,
+    "word-length": 3,
+    "alphabet-range": "0-4",
+    "sorting-predicate": {
+        "token": "is_sorted",
+        "percentage": 1
+    },
+    "wildcard-predicates": [{
+        "token": "feature_contains_*",
+        "wildcards":  ["bbb", "ccc", "ddd"],
+        "percentage": 1,
+        "operator": "and"
+    }],
+        "sorting-bias":{
+        "count_rate": 0.5,
+        "probability": 0.5,
+        "predicate_token": "feature_contains_",
+        "predicate": "feature_contains_ddd_ccc_bbb",
+        "filename": "biased_sorting_3.metta"
+    }
+}

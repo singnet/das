@@ -17,68 +17,6 @@ using namespace link_creation_agent;
 using namespace commons;
 using namespace atoms;
 
-static vector<string> evaluation_query(bool include_predicate, bool include_concept) {
-    vector<string> query;
-    if (include_predicate) {
-        vector<string> predicate_query = {
-            "LINK_TEMPLATE", "Expression", "2", "NODE", "Symbol", "PREDICATE", "VARIABLE", "P"};
-        query.insert(query.end(), predicate_query.begin(), predicate_query.end());
-    }
-    if (include_concept) {
-        vector<string> concept_query = {
-            "LINK_TEMPLATE", "Expression", "2", "NODE", "Symbol", "CONCEPT", "VARIABLE", "C"};
-        query.insert(query.end(), concept_query.begin(), concept_query.end());
-    }
-    if (include_predicate && include_concept) {
-        vector<string> evaluation_header = {
-            "LINK_TEMPLATE",
-            "Expression",
-            "3",
-            "NODE",
-            "Symbol",
-            "EVALUATION",
-        };
-        query.insert(query.begin(), evaluation_header.begin(), evaluation_header.end());
-    }
-    return query;
-}
-
-static vector<string> evaluation_link_template(bool include_satisfying_set, bool include_patterns) {
-    vector<string> tokens;
-    if (include_patterns && include_satisfying_set) {
-        tokens.push_back("AND");
-        tokens.push_back("2");
-    }
-    if (include_satisfying_set) {
-        LinkCreateTemplate satisfying_set_link_template = LinkCreateTemplate("Expression");
-        shared_ptr<Node> evaluation_node = make_shared<Node>("Symbol", "SATISFYING_SET");
-        shared_ptr<UntypedVariable> evaluation_variable = make_shared<UntypedVariable>("P");
-        satisfying_set_link_template.add_target(evaluation_node);
-        satisfying_set_link_template.add_target(evaluation_variable);
-        auto custom_field = CustomField("truth_value");
-        custom_field.add_field("strength", "1.0");
-        custom_field.add_field("confidence", "1.0");
-        satisfying_set_link_template.add_custom_field(custom_field);
-        for (auto token : satisfying_set_link_template.tokenize()) {
-            tokens.push_back(token);
-        }
-    }
-    if (include_patterns) {
-        LinkCreateTemplate patterns_link_template = LinkCreateTemplate("Expression");
-        shared_ptr<Node> patterns_node = make_shared<Node>("Symbol", "PATTERNS");
-        shared_ptr<UntypedVariable> patterns_variable = make_shared<UntypedVariable>("C");
-        patterns_link_template.add_target(patterns_node);
-        patterns_link_template.add_target(patterns_variable);
-        auto patterns_custom_field = CustomField("truth_value");
-        patterns_custom_field.add_field("strength", "1.0");
-        patterns_custom_field.add_field("confidence", "1.0");
-        patterns_link_template.add_custom_field(patterns_custom_field);
-        for (auto token : patterns_link_template.tokenize()) {
-            tokens.push_back(token);
-        }
-    }
-    return tokens;
-}
 
 InferenceRequest::InferenceRequest(string first_handle,
                                    string second_handle,
@@ -179,26 +117,6 @@ static vector<string> inference_evolution_request_builder(
     if (max_proof_length == 0) {
         return request;
     }
-    // if (max_proof_length == 1) {
-    //     counter += commands.size();
-    //     for (auto ttype : commands) {
-    //         for (auto token : query_template) {
-    //             if (token == "_TYPE_") {
-    //                 request.push_back(ttype);
-    //             } else if (token == "_FIRST_") {
-    //                 request.push_back("ATOM");
-    //                 request.push_back(first_handle);
-    //             } else if (token == "_SECOND_") {
-    //                 request.push_back("ATOM");
-    //                 request.push_back(second_handle);
-    //             } else if (token == "LINK_TEMPLATE"){
-    //                 request.push_back("LINK");
-    //             } else {
-    //                 request.push_back(token);
-    //             }
-    //         }
-    //     }
-    // } else {
     vector<string> vars;
     vars.push_back(first_handle);
     for (int i = 0; i < max_proof_length; i++) {
@@ -238,30 +156,6 @@ static vector<string> inference_evolution_request_builder(
     return request;
 }
 
-// static vector<string> tokenize_atom(const string& handle) {
-//     vector<string> tokens;
-//     shared_ptr<Atom> atom = atomdb::AtomDBSingleton::get_instance()->get_atom(handle);
-//     if (Atom::is_node(*atom)) {
-//         shared_ptr<Node> node = dynamic_pointer_cast<Node>(atom);
-//         tokens.push_back("NODE");
-//         tokens.push_back(node->type);
-//         tokens.push_back(node->name);
-//     } else if (Atom::is_link(*atom)) {
-//         shared_ptr<Link> link = dynamic_pointer_cast<Link>(atom);
-//         tokens.push_back("LINK");
-//         tokens.push_back(link->type);
-//         tokens.push_back(to_string(link->targets.size()));
-//         for (const auto& target : link->targets) {
-//             for (auto token : tokenize_atom(target)) {
-//                 tokens.push_back(token);
-//             }
-//         }
-//     } else {
-//         Utils::error("Unknown atom type: " + atom->type);
-//     }
-//     return tokens;
-// }
-
 vector<string> InferenceRequest::get_distributed_inference_control_request() {
     vector<string> tokens;
     int size = 0;
@@ -275,18 +169,15 @@ vector<string> InferenceRequest::get_distributed_inference_control_request() {
     for (auto token : request) {
         tokens.push_back(token);
     }
-    // for (size_t i = 0; i < request.size(); i++) {
-    //     if (request[i] == "ATOM") {
-    //         for(auto token : tokenize_atom(request[i + 1])) {
-    //             tokens.push_back(token);
-    //         }
-    //         i++;
-    //     } else {
-    //         tokens.push_back(request[i]);
-    //     }
-    // }
     return tokens;
 }
+
+vector<string> InferenceRequest::get_correlation_query() { return {}; }
+
+map<string, QueryAnswerElement> InferenceRequest::get_correlation_query_constants() {
+    return {};
+}
+map<string, QueryAnswerElement> InferenceRequest::get_correlation_mapping() { return {}; }
 
 vector<vector<string>> InferenceRequest::get_requests() { return {}; }
 
@@ -299,6 +190,10 @@ ProofOfImplication::ProofOfImplication(string first_handle,
                                        int max_proof_length,
                                        string context)
     : InferenceRequest(first_handle, second_handle, max_proof_length, context) {
+    this->command = "IMPLICATION";
+}
+
+ProofOfImplication::ProofOfImplication() : InferenceRequest() {
     this->command = "IMPLICATION";
 }
 
@@ -343,14 +238,11 @@ string ProofOfImplication::get_type() { return "PROOF_OF_IMPLICATION"; }
 
 vector<vector<string>> ProofOfImplication::get_requests() {
     vector<vector<string>> requests;
-    // auto satisfying_set_query = evaluation_query(true, this->is_full_evaluation);
-    // auto evaluation_template = evaluation_link_template(true, this->is_full_evaluation);
-    // satisfying_set_query.insert(
-    //     satisfying_set_query.end(), evaluation_template.begin(), evaluation_template.end());
-    // requests.push_back(satisfying_set_query);
+    auto proof_of_equivalence = ProofOfEquivalence();
     auto query = this->query();
     query.push_back(this->get_type());  // processor
     requests.push_back(query);
+    requests.push_back(proof_of_equivalence.get_requests()[0]);
     return requests;
 }
 
@@ -367,6 +259,9 @@ ProofOfEquivalence::ProofOfEquivalence(string first_handle,
                                        int max_proof_length,
                                        string context)
     : InferenceRequest(first_handle, second_handle, max_proof_length, context) {
+    this->command = "EQUIVALENCE";
+}
+ProofOfEquivalence::ProofOfEquivalence() : InferenceRequest() {
     this->command = "EQUIVALENCE";
 }
 
@@ -411,13 +306,11 @@ string ProofOfEquivalence::get_type() { return "PROOF_OF_EQUIVALENCE"; }
 
 vector<vector<string>> ProofOfEquivalence::get_requests() {
     vector<vector<string>> requests;
-    // auto patterns_query = evaluation_query(this->is_full_evaluation, true);
-    // auto evaluation_template = evaluation_link_template(this->is_full_evaluation, true);
-    // patterns_query.insert(patterns_query.end(), evaluation_template.begin(),
-    // evaluation_template.end()); requests.push_back(patterns_query);
+    auto proof_of_implication = ProofOfImplication();
     auto query = this->query();
     query.push_back(this->get_type());  // processor
     requests.push_back(query);
+    requests.push_back(proof_of_implication.get_requests()[0]);
     return requests;
 }
 

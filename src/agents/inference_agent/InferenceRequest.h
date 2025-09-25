@@ -25,6 +25,7 @@ class InferenceRequest {
                      string context,
                      string max_answers = "1000000",
                      string update_attention_broker = "false");
+    InferenceRequest() = default;
     ~InferenceRequest();
     /**
      * @brief Query to send to link creation agent
@@ -67,6 +68,12 @@ class InferenceRequest {
      * @return vector<string>
      */
     virtual vector<string> get_distributed_inference_control_request();
+
+    virtual vector<string> get_correlation_query();
+
+    virtual map<string, QueryAnswerElement> get_correlation_query_constants();
+
+    virtual map<string, QueryAnswerElement> get_correlation_mapping();
 
     /**
      * @brief Get the requests of the inference request
@@ -165,24 +172,10 @@ class InferenceRequest {
     bool is_full_evaluation = false;
 };
 
-// class ProofOfImplicationOrEquivalence : public InferenceRequest {
-//    public:
-//     ProofOfImplicationOrEquivalence(string first_handle,
-//                                     string second_handle,
-//                                     int max_proof_length,
-//                                     string context);
-//     ~ProofOfImplicationOrEquivalence();
-
-//     vector<string> query() override;
-//     vector<string> patterns_link_template();
-//     string get_type() override;
-//     vector<vector<string>> get_requests() override;
-// };
-
 class ProofOfImplication : public InferenceRequest {
    public:
     ProofOfImplication(string first_handle, string second_handle, int max_proof_length, string context);
-
+    ProofOfImplication();
     vector<string> query() override;
     string get_type() override;
     vector<vector<string>> get_requests() override;
@@ -195,6 +188,7 @@ class ProofOfImplication : public InferenceRequest {
 class ProofOfEquivalence : public InferenceRequest {
    public:
     ProofOfEquivalence(string first_handle, string second_handle, int max_proof_length, string context);
+    ProofOfEquivalence();
 
     vector<string> query() override;
     string get_type() override;
