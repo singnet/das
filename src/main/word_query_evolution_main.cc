@@ -357,7 +357,7 @@ int main(int argc, char* argv[]) {
     if (argc < 7) {
         cerr << "Usage: " << argv[0]
              << "    <client id> <server id> <start_port:end_port> <context_tag> <word tag 1> <word tag "
-                "2> [AB_ip:AB_port] [RENT_RATE] [SPREADING_RATE_LOWERBOUND] [SPREADING_RATE_UPPERBOUND]"
+                "2> [RENT_RATE] [SPREADING_RATE_LOWERBOUND] [SPREADING_RATE_UPPERBOUND] [ELITISM_RATE]"
              << endl;
         exit(1);
     }
