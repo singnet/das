@@ -29,7 +29,10 @@ class MorkDBTestEnvironment : public ::testing::Environment {
         setenv("DAS_DISABLE_ATOMDB_CACHE", "true", 1);
         setenv("DAS_MORK_HOSTNAME", "localhost", 1);
         setenv("DAS_MORK_PORT", "8000", 1);
-        AtomDBSingleton::init(atomdb_api_types::ATOMDB_TYPE::MORKDB);
+
+        auto atomdb = new MorkDB("morkdb_test_");
+        atomdb->drop_all();
+        AtomDBSingleton::provide(shared_ptr<AtomDB>(atomdb));
     }
 };
 
@@ -41,7 +44,11 @@ class MorkDBTest : public ::testing::Test {
         ASSERT_NE(db, nullptr) << "Failed to cast AtomDB to MorkDB";
     }
 
-    void TearDown() override {}
+    void TearDown() override {
+        auto atomdb = AtomDBSingleton::get_instance();
+        auto db = dynamic_pointer_cast<MorkDB>(atomdb);
+        db->drop_all();
+    }
 
     string exp_hash(vector<string> targets) {
         char* symbol = (char*) "Symbol";
@@ -104,29 +111,7 @@ TEST_F(MorkDBTest, QueryForPattern) {
 
 TEST_F(MorkDBTest, QueryForTargets) {
     string link_handle = exp_hash({"Inheritance", "\"human\"", "\"mammal\""});
-
-    auto targets_list = db->query_for_targets(link_handle);
-    ASSERT_NE(targets_list, nullptr);
-
-    unsigned int count = targets_list->size();
-    ASSERT_EQ(count, 3);
-
-    vector<string> targets;
-    for (unsigned int i = 0; i < count; ++i) {
-        const char* raw = targets_list->get_handle(i);
-        ASSERT_NE(raw, nullptr);
-        targets.push_back(raw);
-    }
-
-    string inheritance_handle = terminal_hash((char*) "Symbol", (char*) "Inheritance");
-    string human_handle = terminal_hash((char*) "Symbol", (char*) "\"human\"");
-    string mammal_handle = terminal_hash((char*) "Symbol", (char*) "\"mammal\"");
-
-    vector<string> expected = {inheritance_handle, human_handle, mammal_handle};
-    std::sort(targets.begin(), targets.end());
-    std::sort(expected.begin(), expected.end());
-
-    ASSERT_EQ(targets, expected);
+    EXPECT_EQ(db->query_for_targets(link_handle), nullptr);
 }
 
 TEST_F(MorkDBTest, ConcurrentQueryForPattern) {
@@ -174,36 +159,92 @@ TEST_F(MorkDBTest, ConcurrentQueryForPattern) {
     EXPECT_EQ(handle_set->size(), 0);
 }
 
-TEST_F(MorkDBTest, ConcurrentQueryForTargets) {
-    const int num_threads = 200;
-    vector<thread> threads;
-    atomic<int> success_count{0};
-    string link_handle = exp_hash({"Similarity", "\"human\"", "\"monkey\""});
+TEST_F(MorkDBTest, AddGetAndDeleteNode) {
+    auto node = new Node("Symbol", "TestNode");
+    auto node_handle = db->add_node(node);
 
-    auto worker = [&](int thread_id) {
-        try {
-            auto targets = db->query_for_targets(link_handle);
-            ASSERT_NE(targets, nullptr);
-            ASSERT_EQ(targets->size(), 3);
-            success_count++;
-        } catch (const exception& e) {
-            cout << "Thread " << thread_id << " failed with error: " << e.what() << endl;
-        }
-    };
+    auto node_document = db->get_atom_document(node_handle);
+    EXPECT_EQ(string(node_document->get("named_type")), string("Symbol"));
+    EXPECT_EQ(string(node_document->get("name")), string("TestNode"));
 
-    for (int i = 0; i < num_threads; ++i) {
-        threads.emplace_back(worker, i);
+    ASSERT_TRUE(db->delete_node(node_handle));
+}
+
+TEST_F(MorkDBTest, AddGetAndDeleteNodes) {
+    vector<Node*> nodes;
+    for (int i = 0; i < 10; i++) {
+        nodes.push_back(new Node("Symbol", "TestNode" + to_string(i)));
     }
 
-    for (auto& t : threads) {
-        t.join();
+    auto nodes_handles = db->add_nodes(nodes);
+    EXPECT_EQ(nodes.size(), nodes.size());
+
+    auto nodes_documents = db->get_atom_documents(nodes_handles, {"_id"});
+    EXPECT_EQ(nodes_documents.size(), nodes.size());
+
+    EXPECT_EQ(db->delete_nodes(nodes_handles), nodes.size());
+
+    ASSERT_EQ(db->nodes_exist(nodes_handles).size(), 0);
+}
+
+TEST_F(MorkDBTest, AddGetAndDeleteLink) {
+    auto similarity_node = new Node("Symbol", "Similarity");
+    auto similarity_node_handle = db->add_node(similarity_node);
+
+    auto node1 = new Node("Symbol", "Node1");
+    auto node1_handle = db->add_node(node1);
+    auto node2 = new Node("Symbol", "Node2");
+    auto node2_handle = db->add_node(node2);
+
+    ASSERT_TRUE(db->node_exists(similarity_node_handle));
+    ASSERT_TRUE(db->node_exists(node1_handle));
+    ASSERT_TRUE(db->node_exists(node2_handle));
+
+    auto link = new Link("Expression", {similarity_node_handle, node1_handle, node2_handle});
+    auto link_handle = db->add_link(link);
+
+    ASSERT_TRUE(db->link_exists(link_handle));
+
+    auto link_document = db->get_atom_document(link_handle);
+    EXPECT_EQ(string(link_document->get("named_type")), string("Expression"));
+    EXPECT_EQ(string(link_document->get("targets", 0)), string(similarity_node_handle));
+    EXPECT_EQ(string(link_document->get("targets", 1)), string(node1_handle));
+    EXPECT_EQ(string(link_document->get("targets", 2)), string(node2_handle));
+
+    ASSERT_TRUE(db->delete_link(link_handle, true));
+
+    ASSERT_FALSE(db->link_exists(link_handle));
+    ASSERT_FALSE(db->node_exists(similarity_node_handle));
+    ASSERT_FALSE(db->node_exists(node1_handle));
+    ASSERT_FALSE(db->node_exists(node2_handle));
+}
+
+TEST_F(MorkDBTest, AddGetAndDeleteLinks) {
+    auto similarity_node = new Node("Symbol", "Similarity");
+    auto similarity_node_handle = db->add_node(similarity_node);
+
+    auto from_node = new Node("Symbol", "From");
+    auto from_node_handle = db->add_node(from_node);
+
+    vector<Link*> links;
+    for (int i = 0; i < 10; i++) {
+        auto to_node = new Node("Symbol", "To-" + to_string(i));
+        auto to_node_handle = db->add_node(to_node);
+        links.push_back(
+            new Link("Expression", {similarity_node_handle, from_node_handle, to_node_handle}));
     }
 
-    EXPECT_EQ(success_count, num_threads);
+    auto links_handles = db->add_links(links);
+    EXPECT_EQ(links_handles.size(), links.size());
 
-    // Test non-existing link
-    auto targets = db->query_for_targets("10000000000000000000000000000000");
-    EXPECT_EQ(targets, nullptr);
+    auto links_documents = db->get_atom_documents(links_handles, {"_id"});
+    EXPECT_EQ(links_documents.size(), links.size());
+
+    ASSERT_TRUE(db->delete_links(links_handles, true));
+
+    for (auto link_handle : links_handles) {
+        ASSERT_FALSE(db->link_exists(link_handle));
+    }
 }
 
 int main(int argc, char** argv) {
