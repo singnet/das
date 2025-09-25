@@ -1,7 +1,7 @@
 {
     "seed": 42,
     "gen_seed": 11,
-    "metta-filename": "output.metta",
+    "metta-filename": "/opt/das/3rd_party_slots/python_inference_poc/output.metta",
     "sentence-node-count": 1000,
     "word-count": 5,
     "word-length": 3,
@@ -21,6 +21,6 @@
         "probability": 0.5,
         "predicate_token": "feature_contains_",
         "predicate": "feature_contains_ddd_ccc_bbb",
-        "filename": "biased_sorting_3.metta"
+        "filename": "/opt/das/3rd_party_slots/python_inference_poc/output_test_bias_1k.metta"
     }
 }
