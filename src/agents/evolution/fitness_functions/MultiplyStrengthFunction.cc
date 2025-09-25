@@ -1,6 +1,7 @@
 #define LOG_LEVEL INFO_LEVEL
 
 #include "MultiplyStrengthFunction.h"
+
 #include "AtomDBSingleton.h"
 #include "Logger.h"
 #include "Utils.h"

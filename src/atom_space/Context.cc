@@ -61,10 +61,10 @@ Context::Context(const string& name,
     update_attention_broker();
 }
 
-void Context::add_determiners(const vector<string>& query,
-                         const vector<pair<QueryAnswerElement, QueryAnswerElement>>& determiner_schema,
-                         vector<QueryAnswerElement>& stimulus_schema) {
-
+void Context::add_determiners(
+    const vector<string>& query,
+    const vector<pair<QueryAnswerElement, QueryAnswerElement>>& determiner_schema,
+    vector<QueryAnswerElement>& stimulus_schema) {
     this->determiner_request.clear();
     this->to_stimulate.clear();
 
@@ -84,8 +84,7 @@ void Context::add_determiners(const vector<string>& query,
         shared_ptr<QueryAnswer> answer = proxy->pop();
         if (answer != NULL) {
             for (auto pair : determiner_schema) {
-                this->determiner_request.push_back(
-                    {answer->get(pair.first), answer->get(pair.second)});
+                this->determiner_request.push_back({answer->get(pair.first), answer->get(pair.second)});
             }
             for (auto element : stimulus_schema) {
                 this->to_stimulate[answer->get(element)] = 1;

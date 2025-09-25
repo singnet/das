@@ -78,7 +78,8 @@ static vector<vector<string>> buffer_determiners;
 
 static string get_predicate_name(string handle) {
     shared_ptr<Link> predicate_link = dynamic_pointer_cast<Link>(db->get_atom(handle));
-    shared_ptr<Node> predicate_symbol = dynamic_pointer_cast<Node>(db->get_atom(predicate_link->targets[1]));
+    shared_ptr<Node> predicate_symbol =
+        dynamic_pointer_cast<Node>(db->get_atom(predicate_link->targets[1]));
     return predicate_symbol.name;
 }
 
@@ -98,14 +99,16 @@ static void print_answer(shared_ptr<QueryAnswer> query_answer) {
         if (source_predicate != last_predicate) {
             Utils::error("Bad predicate chaining: " + source_predicate + " != " + last_predicate);
         }
-        target_predicate  = get_predicate_name(implication_link->targets[2]);
+        target_predicate = get_predicate_name(implication_link->targets[2]);
         cout << " --> " << target_predicate;
         last_predicate = target_predicate;
     }
     cout << endl;
 }
 
-static shared_ptr<PatternMatchingQueryProxy> issue_query(const vector<string>& query_tokens, const string& context, unsigned int max_answers) {
+static shared_ptr<PatternMatchingQueryProxy> issue_query(const vector<string>& query_tokens,
+                                                         const string& context,
+                                                         unsigned int max_answers) {
     auto proxy = make_shared<PatternMatchingQueryProxy>(query_tokens, context);
     proxy->parameters[BaseQueryProxy::UNIQUE_ASSIGNMENT_FLAG] = true;
     proxy->parameters[BaseQueryProxy::ATTENTION_UPDATE_FLAG] = false;
@@ -130,15 +133,14 @@ static void insert_or_update(map<string, double>& count_map, const string& key, 
     }
 }
 
-static void compute_counts(const vector<string>& query_tokens, 
+static void compute_counts(const vector<string>& query_tokens,
                            const string& context,
                            double& count_0,
                            double& count_1,
                            double& count_intersection,
                            double& count_union) {
-
     shared_ptr<PatternMatchingQueryProxy> proxy[2];
-    fort (unsigned int i = 0; i < 2; i++) {
+    fort(unsigned int i = 0; i < 2; i++) {
         proxy[i] = make_shared<PatternMatchingQueryProxy>(query_tokens, context);
         proxy[i]->parameters[PatternMatchingQueryProxy::POSITIVE_IMPORTANCE_FLAG] = false;
         proxy[i]->parameters[BaseQueryProxy::UNIQUE_ASSIGNMENT_FLAG] = true;
@@ -206,11 +208,7 @@ static add_or_update_link(const string& type_handle,
                           const string& target1,
                           const string& target2,
                           double strength) {
-
-    Link new_link(EXPRESSION, 
-                  {type_handle, target1, target},
-                  true,
-                  {{STRENGTH, strength}});
+    Link new_link(EXPRESSION, {type_handle, target1, target}, true, {{STRENGTH, strength}});
     string handle = new_link.handle();
     if (db->link_exists(handle)) {
         auto old_link = db->get_atom(handle);
@@ -225,7 +223,6 @@ static add_or_update_link(const string& type_handle,
 }
 
 static void build_implication_link(shared_ptr_<QueryAnswer> query_answer, const string& context) {
-
     if (query_answer->handles[0] == query_answer->handles[1]) {
         return;
     }
@@ -266,7 +263,6 @@ static void build_implication_link(shared_ptr_<QueryAnswer> query_answer, const 
 }
 
 static void build_equivalence_link(shared_ptr_<QueryAnswer> query_answer, const string& context) {
-
     if (query_answer->handles[0] == query_answer->handles[1]) {
         return;
     }
@@ -302,10 +298,9 @@ static void build_equivalence_link(shared_ptr_<QueryAnswer> query_answer, const 
     }
 }
 
-static void build_links(const string& query, 
-                        const string& context, 
+static void build_links(const string& query,
+                        const string& context,
                         void (*build_link)(shared_ptr_<QueryAnswer> query_answer)) {
-
     auto proxy = issue_query(query, context, LINK_BUILDING_QUERY_SIZE);
     unsigned int count = 0;
     while (!proxy->finished()) {
@@ -322,17 +317,15 @@ static void build_links(const string& query,
     }
 }
 
-static void evolve_chain_query(const vector<string>& chain_query, 
+static void evolve_chain_query(const vector<string>& chain_query,
                                const vector<vector<string>>& correlation_query_template,
                                const vector<vector<string>>& correlation_query_constants,
                                const string& context) {
-
-    QueryEvolutionProxy* proxy_ptr = new QueryEvolutionProxy(
-        chain_query,
-        activation_spreading_query,
-        activation_spreading_variables,
-        context,
-        FITNESS_FUNCTION);
+    QueryEvolutionProxy* proxy_ptr = new QueryEvolutionProxy(chain_query,
+                                                             activation_spreading_query,
+                                                             activation_spreading_variables,
+                                                             context,
+                                                             FITNESS_FUNCTION);
 
     shared_ptr<QueryEvolutionProxy> proxy(proxy_ptr);
     proxy->parameters[BaseQueryProxy::USE_METTA_AS_QUERY_TOKENS] = false;
@@ -365,7 +358,6 @@ static void evolve_chain_query(const vector<string>& chain_query,
 }
 
 static void run(string& context_tag) {
-
     // clang-format off
     vector<string> implication_query = {
         AND_OPERATOR, "2",
@@ -602,39 +594,42 @@ static void run(string& context_tag) {
         (EVALUATION (PREDICATE "feature_contains_adc_cbc") (CONCEPT (Sentence "dca cbc bde aaa adc")))
     ********************************************************************/
 
-    // clang-format on
+// clang-format on
 
-    LOG_INFO("Setting up context");
-    AtomSpace atom_space;
-    QueryAnswerElement target2(V2);
-    QueryAnswerElement target3(V3);
-    QueryAnswerElement toplevel_link(0);
-    auto context_obj = atom_space.create_context(
-        context_tag, context_query, {{toplevel_link, target2}, {toplevel_link, target3}}, {});
-    string context = context_obj->get_key();
-    LOG_INFO("Context " + context + " is ready");
+LOG_INFO("Setting up context");
+AtomSpace atom_space;
+QueryAnswerElement target2(V2);
+QueryAnswerElement target3(V3);
+QueryAnswerElement toplevel_link(0);
+auto context_obj = atom_space.create_context(
+    context_tag, context_query, {{toplevel_link, target2}, {toplevel_link, target3}}, {});
+string context = context_obj->get_key();
+LOG_INFO("Context " + context + " is ready");
 
-    for (unsigned int i = 0; i < NUM_ITERATIONS; i++) {
-        build_links(implication_query, context, build_implication_link);
-        build_links(equivalence_query, context, build_equivalence_link);
-        AttentionBrokerClient::set_determiners(buffer_determiners, context);
-        buffer_determiners.clear();
-        evolve_chain_query(chain_query, correlation_query_template, correlation_query_constants, correlation_mapping[0], context);
-    }
+for (unsigned int i = 0; i < NUM_ITERATIONS; i++) {
+    build_links(implication_query, context, build_implication_link);
+    build_links(equivalence_query, context, build_equivalence_link);
+    AttentionBrokerClient::set_determiners(buffer_determiners, context);
+    buffer_determiners.clear();
+    evolve_chain_query(chain_query,
+                       correlation_query_template,
+                       correlation_query_constants,
+                       correlation_mapping[0],
+                       context);
+}
 }
 
 int main(int argc, char* argv[]) {
-
     if (argc != 15) {
         cerr << "Usage: " << argv[0]
              << " <client id> <server id> <start_port:end_port> <context_tag>"
                 " <source_predicate> <target_predicate>"
                 " <RENT_RATE> <SPREADING_RATE_LOWERBOUND> <SPREADING_RATE_UPPERBOUND>"
                 " <ELITISM_RATE> <SELECTION_RATE>"
-                " <POPULATION_SIZE> <MAX_GENERATIONS> <NUM_ITERATIONS>"
+                " <POPULATION_SIZE> <MAX_GENERATIONS> <NUM_ITERATIONS>" cerr
+             << endl;
         cerr << endl;
-        cerr << endl;
-        cerr << "Suggested safe parameters:"  << endl;
+        cerr << "Suggested safe parameters:" << endl;
         cerr << "    RENT_RATE: 0.25" << endl;
         cerr << "    SPREADING_RATE_LOWERBOUND: 0.90" << endl;
         cerr << "    SPREADING_RATE_UPPERBOUND: 0.90" << endl;
@@ -657,16 +652,17 @@ int main(int argc, char* argv[]) {
     SPREADING_RATE_UPPERBOUND = Utils::string_to_float(string(argv[9]));
     ELITISM_RATE = (double) Utils::string_to_float(string(argv[10]));
     SELECTION_RATE = (double) Utils::string_to_float(string(argv[11]));
-    POPULATION_SIZE = (unsigned int) Utils::string_to_int(string(argv[12]))
-    MAX_GENERATIONS = (unsigned int) Utils::string_to_int(string(argv[13]))
-    NUM_ITERATIONS = (unsigned int) Utils::string_to_int(string(argv[14]))
+    POPULATION_SIZE = (unsigned int) Utils::string_to_int(string(argv[12])) MAX_GENERATIONS =
+        (unsigned int) Utils::string_to_int(string(argv[13])) NUM_ITERATIONS =
+            (unsigned int) Utils::string_to_int(string(argv[14]))
 
-    AtomDBSingleton::init();
+                AtomDBSingleton::init();
     db = AtomDBSingleton::get_instance();
     ServiceBusSingleton::init(client_id, server_id, start_port, end_port);
     FitnessFunctionRegistry::initialize_statics();
     service_bus = ServiceBusSingleton::get_instance();
-    AttentionBrokerClient::set_parameters(RENT_RATE, SPREADING_RATE_LOWERBOUND, SPREADING_RATE_UPPERBOUND);
+    AttentionBrokerClient::set_parameters(
+        RENT_RATE, SPREADING_RATE_LOWERBOUND, SPREADING_RATE_UPPERBOUND);
 
     LOG_INFO("ELITISM_RATE: " + to_string(ELITISM_RATE);
     LOG_INFO("RENT_RATE: " + to_string(RENT_RATE);

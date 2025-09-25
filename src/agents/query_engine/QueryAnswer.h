@@ -3,7 +3,6 @@
 #include <map>
 #include <string>
 #include <vector>
-#include <map>
 
 #include "Assignment.h"
 #include "QueryAnswer.h"
