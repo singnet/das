@@ -104,6 +104,7 @@ class ServiceBus {
     static string QUERY_EVOLUTION;
     static string LINK_CREATION;
     static string INFERENCE;
+    static string CONTEXT_MANAGER;
 
     /**
      * Registers a processor making it take the ownership of one or more bus commands.
