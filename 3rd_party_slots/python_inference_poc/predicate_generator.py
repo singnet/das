@@ -577,7 +577,7 @@ def main():
         word_predicates_duration = time.time() - word_predicates_time
         predicates.extend(word_predicates)
     write_predicates(config_json.get('metta-filename'), predicates, 
-                     write_words_and_sentences=False, append=True)
+                     write_words_and_sentences=False, append=False)
     if sorting_bias_values:
         file_name = sorting_bias_values.get('filename', 'test_sorting_bias.metta')
         writer = NodeLinkWriter(filename=file_name)
@@ -585,7 +585,7 @@ def main():
             sentence_list = sentence2list(sentence)
             generator = NodeLinkGenerator(
                 int(1),
-                int(config_json.get('word-count', 3)),
+                int(config_json.get('word-count', 5)),
                 int(config_json.get('word-length', 3)),
                 config_json.get('alphabet-range', '0-4'),
                 debug=True,
