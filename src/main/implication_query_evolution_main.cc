@@ -140,6 +140,7 @@ static void insert_or_update(map<string, double>& count_map, const string& key, 
 
 static void compute_counts(const vector<vector<string>>& query_tokens,
                            const string& context,
+                           const QueryAnswerElement& target_element,
                            double& count_0,
                            double& count_1,
                            double& count_intersection,
@@ -176,12 +177,12 @@ static void compute_counts(const vector<vector<string>>& query_tokens,
             } else {
                 if (query_answer->handles.size() == 1) {
                     d = 1.0;
-                    handle = query_answer->handles[0];
                 } else {
-                    handle = query_answer->handles[1];
-                    auto link = db->get_atom(handle);
+                    string link_handle = query_answer->handles[1];
+                    auto link = db->get_atom(link_handle);
                     d = link->custom_attributes.get<double>(STRENGTH);
                 }
+                handle = query_answer->get(target_element);
                 insert_or_update(count_map[i], handle, d);
             }
         }
@@ -258,7 +259,8 @@ static void build_implication_link(shared_ptr<QueryAnswer> query_answer, const s
         // clang-format on
     }
     double count_0, count_1, count_intersection, count_union;
-    compute_counts(query, context, count_0, count_1, count_intersection, count_union);
+    QueryAnswerElement target_element(CONCEPT1);
+    compute_counts(query, context, target_element, count_0, count_1, count_intersection, count_union);
     if (count_0 > 0) {
         double strength = count_intersection / count_0;
         add_or_update_link(IMPLICATION_HANDLE, predicate[0], predicate[1], strength);
@@ -297,7 +299,8 @@ static void build_equivalence_link(shared_ptr<QueryAnswer> query_answer, const s
         // clang-format on
     }
     double count_0, count_1, count_intersection, count_union;
-    compute_counts(query, context, count_0, count_1, count_intersection, count_union);
+    QueryAnswerElement target_element(PREDICATE1);
+    compute_counts(query, context, target_element, count_0, count_1, count_intersection, count_union);
     if (count_union > 0) {
         double strength = count_intersection / count_union;
         add_or_update_link(EQUIVALENCE_HANDLE, concept_[0], concept_[1], strength);
@@ -664,7 +667,6 @@ int main(int argc, char* argv[]) {
     string source_predicate = argv[5];
     string target_predicate = argv[6];
     RENT_RATE = Utils::string_to_float(string(argv[7]));
-    SPREADING_RATE_LOWERBOUND = Utils::string_to_float(string(argv[8]));
     SPREADING_RATE_UPPERBOUND = Utils::string_to_float(string(argv[9]));
     ELITISM_RATE = (double) Utils::string_to_float(string(argv[10]));
     SELECTION_RATE = (double) Utils::string_to_float(string(argv[11]));
