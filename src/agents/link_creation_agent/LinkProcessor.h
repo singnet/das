@@ -70,7 +70,7 @@ class LinkProcessor {
 
     static void compute_counts(const vector<vector<string>>& queries,
                                const string& context,
-                             const QueryAnswerElement& target_element,
+                               const QueryAnswerElement& target_element,
                                vector<double>& counts,
                                double& count_intersection,
                                double& count_union) {

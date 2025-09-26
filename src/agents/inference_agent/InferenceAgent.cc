@@ -211,13 +211,12 @@ void InferenceAgent::send_distributed_inference_control_request(
     correlation_replacements.push_back(inference_request->get_correlation_query_constants());
     correlation_mappings.push_back(
         *inference_request->get_correlation_mapping().begin());  // TODO check correlation mapping
-    QueryEvolutionProxy* evolution_proxy_ptr =
-        new QueryEvolutionProxy(evolution_request,
-                                correlation_queries,
-                                correlation_replacements,
-                                correlation_mappings,
-                                inference_request->get_context(),
-                                "multiply_strength");
+    QueryEvolutionProxy* evolution_proxy_ptr = new QueryEvolutionProxy(evolution_request,
+                                                                       correlation_queries,
+                                                                       correlation_replacements,
+                                                                       correlation_mappings,
+                                                                       inference_request->get_context(),
+                                                                       "multiply_strength");
     shared_ptr<QueryEvolutionProxy> evolution_proxy(evolution_proxy_ptr);
     ServiceBusSingleton::get_instance()->issue_bus_command(evolution_proxy);
     evolution_proxy_map[request_id] = evolution_proxy;

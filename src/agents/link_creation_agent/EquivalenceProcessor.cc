@@ -9,9 +9,6 @@ using namespace std;
 using namespace query_engine;
 using namespace link_creation_agent;
 
-
-
-
 EquivalenceProcessor::EquivalenceProcessor() {}
 
 bool EquivalenceProcessor::link_exists(const string& handle1, const string& handle2) {

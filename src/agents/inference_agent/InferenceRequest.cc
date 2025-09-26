@@ -207,7 +207,6 @@ string correlation_query_str =
 string correlation_constants_str = "P1";
 string correlation_mapping_str = "P1:V1";
 
-
 // clang-format on
 
 void InferenceRequest::set_correlation_query(const string& query) {

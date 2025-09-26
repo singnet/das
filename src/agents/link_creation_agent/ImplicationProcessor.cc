@@ -27,7 +27,7 @@ LinkSchema ImplicationProcessor::build_pattern_query(const string& handle) {
     return LinkSchema(tokens);
 }
 
-static vector<string> build_implication_query(const string& handle){
+static vector<string> build_implication_query(const string& handle) {
     // clang-format off
     vector<string> tokens = {
         "OR", "2",
@@ -47,7 +47,6 @@ static vector<string> build_implication_query(const string& handle){
     };
     // clang-format on
     return tokens;
-
 }
 
 bool ImplicationProcessor::link_exists(const string& handle1, const string& handle2) {

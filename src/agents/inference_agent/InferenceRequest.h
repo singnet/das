@@ -7,9 +7,10 @@
 
 #pragma once
 
+#include <map>
 #include <string>
 #include <vector>
-#include <map>
+
 #include "QueryAnswer.h"
 
 using namespace std;
