@@ -9,8 +9,11 @@
 
 #include <string>
 #include <vector>
+#include <map>
+#include "QueryAnswer.h"
 
 using namespace std;
+using namespace query_engine;
 
 namespace inference_agent {
 
@@ -71,9 +74,15 @@ class InferenceRequest {
 
     virtual vector<string> get_correlation_query();
 
+    virtual void set_correlation_query(const string& query);
+
     virtual map<string, QueryAnswerElement> get_correlation_query_constants();
 
+    virtual void set_correlation_query_constants(const string& constants);
+
     virtual map<string, QueryAnswerElement> get_correlation_mapping();
+
+    virtual void set_correlation_mapping(const string& mapping);
 
     /**
      * @brief Get the requests of the inference request
@@ -162,6 +171,9 @@ class InferenceRequest {
     string inference_request_id;
     string max_answers;
     string update_attention_broker;
+    vector<string> correlation_query;
+    map<string, QueryAnswerElement> correlation_query_constants;
+    map<string, QueryAnswerElement> correlation_mapping;
     unsigned long long timeout = 24 * 60 * 60;  // Default timeout is 24 hours
     unsigned int repeat = 5;
     unsigned long lca_max_results = 100;        // Default max results for LCA

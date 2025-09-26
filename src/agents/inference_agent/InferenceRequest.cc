@@ -14,9 +14,9 @@
 using namespace std;
 using namespace inference_agent;
 using namespace link_creation_agent;
+using namespace query_engine;
 using namespace commons;
 using namespace atoms;
-
 
 InferenceRequest::InferenceRequest(string first_handle,
                                    string second_handle,
@@ -172,12 +172,68 @@ vector<string> InferenceRequest::get_distributed_inference_control_request() {
     return tokens;
 }
 
-vector<string> InferenceRequest::get_correlation_query() { return {}; }
+vector<string> InferenceRequest::get_correlation_query() { return this->correlation_query; }
+// clang-format off
+string correlation_query_str = 
+"OR 3 "
+    "AND 4 "
+        "LINK_TEMPLATE Expression 3 "
+            "NODE Symbol EVALUATION "
+            "VARIABLE P1 "
+            "VARIABLE S1 "
+        "LINK_TEMPLATE Expression 3 "
+            "NODE Symbol Contains "
+            "VARIABLE S1 "
+            "VARIABLE W1 "
+        "LINK_TEMPLATE Expression 3 "
+            "NODE Symbol Contains "
+            "VARIABLE S2 "
+            "VARIABLE W1 "
+        "LINK_TEMPLATE Expression 3 "
+            "NODE Symbol EVALUATION "
+            "VARIABLE V1 "
+            "VARIABLE S2 "
+    "LINK_TEMPLATE Expression 3 "
+        "NODE Symbol IMPLICATION "
+        "VARIABLE P1 "
+        "VARIABLE V1 "
+    "LINK_TEMPLATE Expression 3 "
+        "NODE Symbol IMPLICATION "
+        "VARIABLE V1 "
+        "VARIABLE P1 ";
 
-map<string, QueryAnswerElement> InferenceRequest::get_correlation_query_constants() {
-    return {};
+
+
+string correlation_constants_str = "P1";
+string correlation_mapping_str = "P1:V1";
+
+
+// clang-format on
+
+void InferenceRequest::set_correlation_query(const string& query) {
+    this->correlation_query = Utils::split(correlation_query_str, ' ');
 }
-map<string, QueryAnswerElement> InferenceRequest::get_correlation_mapping() { return {}; }
+map<string, QueryAnswerElement> InferenceRequest::get_correlation_query_constants() {
+    return this->correlation_query_constants;
+}
+void InferenceRequest::set_correlation_query_constants(const string& constants) {
+    auto constants_list = Utils::split(correlation_constants_str, ',');
+    for (auto constant : constants_list) {
+        this->correlation_query_constants[constant] = QueryAnswerElement(constant);
+    }
+}
+map<string, QueryAnswerElement> InferenceRequest::get_correlation_mapping() {
+    return this->correlation_mapping;
+}
+void InferenceRequest::set_correlation_mapping(const string& mapping) {
+    auto mapping_list = Utils::split(correlation_mapping_str, ',');
+    for (auto value : mapping_list) {
+        auto pair = Utils::split(value, ':');
+        if (pair.size() == 2) {
+            this->correlation_mapping[pair[0]] = QueryAnswerElement(pair[1]);
+        }
+    }
+}
 
 vector<vector<string>> InferenceRequest::get_requests() { return {}; }
 
@@ -193,9 +249,7 @@ ProofOfImplication::ProofOfImplication(string first_handle,
     this->command = "IMPLICATION";
 }
 
-ProofOfImplication::ProofOfImplication() : InferenceRequest() {
-    this->command = "IMPLICATION";
-}
+ProofOfImplication::ProofOfImplication() : InferenceRequest() { this->command = "IMPLICATION"; }
 
 vector<string> ProofOfImplication::query() {
     // clang-format off
@@ -238,11 +292,13 @@ string ProofOfImplication::get_type() { return "PROOF_OF_IMPLICATION"; }
 
 vector<vector<string>> ProofOfImplication::get_requests() {
     vector<vector<string>> requests;
-    auto proof_of_equivalence = ProofOfEquivalence();
+    ProofOfEquivalence proof_of_equivalence;
     auto query = this->query();
     query.push_back(this->get_type());  // processor
     requests.push_back(query);
-    requests.push_back(proof_of_equivalence.get_requests()[0]);
+    auto equiv_query = proof_of_equivalence.query();
+    equiv_query.push_back(proof_of_equivalence.get_type());  // processor
+    requests.push_back(equiv_query);
     return requests;
 }
 
@@ -261,9 +317,7 @@ ProofOfEquivalence::ProofOfEquivalence(string first_handle,
     : InferenceRequest(first_handle, second_handle, max_proof_length, context) {
     this->command = "EQUIVALENCE";
 }
-ProofOfEquivalence::ProofOfEquivalence() : InferenceRequest() {
-    this->command = "EQUIVALENCE";
-}
+ProofOfEquivalence::ProofOfEquivalence() : InferenceRequest() { this->command = "EQUIVALENCE"; }
 
 vector<string> ProofOfEquivalence::query() {
     // clang-format off
@@ -306,11 +360,13 @@ string ProofOfEquivalence::get_type() { return "PROOF_OF_EQUIVALENCE"; }
 
 vector<vector<string>> ProofOfEquivalence::get_requests() {
     vector<vector<string>> requests;
-    auto proof_of_implication = ProofOfImplication();
+    ProofOfImplication proof_of_implication;
     auto query = this->query();
     query.push_back(this->get_type());  // processor
     requests.push_back(query);
-    requests.push_back(proof_of_implication.get_requests()[0]);
+    auto impl_query = proof_of_implication.query();
+    impl_query.push_back(proof_of_implication.get_type());  // processor
+    requests.push_back(impl_query);
     return requests;
 }
 
