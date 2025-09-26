@@ -160,7 +160,6 @@ jobs:
     if: failure()
     steps:
       - name: Notify Mattermost on failure
-        if: failure()
         uses: singnet/integration-github-mattermost@v0.3.0
         with:
           server-url: ${{ vars.MATTERMOST_SERVER_URL }}
