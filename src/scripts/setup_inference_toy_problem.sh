@@ -4,17 +4,33 @@ PWD=$(dirname "$0")
 JSON_FILE=$1
 METTA_FILE=""
 METTA_BIAS_FILE=""
-#check parameter count
-# if [ $# -gt 3 ]; then
 
-# fi
-# check if optional parameter is present
+# check if optional parameter is present and are valid files
 if [ $# -gt 1 ]; then
-  METTA_FILE=$2
+  if [ -f "$2" ]; then
+    METTA_FILE=$2
+  fi
 fi
 if [ $# -gt 2 ]; then
-  METTA_BIAS_FILE=$3
+  if [ -f "$3" ]; then
+    METTA_BIAS_FILE=$3
+  fi
 fi
+
+# check if optional args contain no-db and no-agents
+NO_DB=false
+NO_AGENTS=false
+for arg in "$@"; do
+  case $arg in
+    no-db)
+      NO_DB=true
+      ;;
+    no-agents)
+      NO_AGENTS=true
+      ;;
+  esac
+done
+
 echo "Using JSON file: $JSON_FILE"
 # extract the scenario from json file name
 SCENARIO=$(basename "$JSON_FILE" .json)
@@ -47,8 +63,15 @@ else
   cp -f "$METTA_FILE" /tmp/output.metta
 
 fi
-das-cli db start
-das-cli metta load /tmp/output.metta
-das-cli metta load /tmp/biased_predicates.metta
+if [ "$NO_DB" = false ] ; then
+  das-cli db start
+  das-cli metta load /tmp/output.metta
+  if [ -f /tmp/biased_predicates.metta ]; then
+    das-cli metta load /tmp/biased_predicates.metta
+  fi
+fi
+if [ "$NO_AGENTS" = true ] ; then
+  exit 0
+fi
 export LINK_CREATION_REQUESTS_INTERVAL_SECONDS=5
 $PWD/run_agents.sh start
