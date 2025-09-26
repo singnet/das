@@ -639,7 +639,7 @@ static void run(const string& predicate_source, const string& predicate_target, 
 
 int main(int argc, char* argv[]) {
     // clang-format off
-    if (argc != 17) {
+    if (argc != 15) {
         cerr << "Usage: " << argv[0]
              << " <client id> <server id> <start_port:end_port> <context_tag>"
                 " <source_predicate> <target_predicate>"
