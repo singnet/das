@@ -166,6 +166,7 @@ jobs:
           server-url: ${{ vars.MATTERMOST_SERVER_URL }}
           token: ${{ secrets.MATTERMOST_TOKEN }}
           channel-id: ${{ vars.MATTERMOST_CICD_CHANNEL_ID }}
-          text: |
+          message: |
             Benchmark pipeline failed in repository **${{ github.repository }}**.
             [View Action logs](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
+            @channel
