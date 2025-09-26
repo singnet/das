@@ -235,7 +235,7 @@ DAS_ATTENTION_BROKER_ADDRESS=localhost
 DAS_ATTENTION_BROKER_PORT=40001
 EOF
         ./src/scripts/build.sh --copt=-DLOG_LEVEL=DEBUG_LEVEL
-        ./src/scripts/run.sh query_broker localhost:35700 3000:3100 | stdbuf -oL grep "Benchmark::" > "$log_file" || true &
+        ./src/scripts/run.sh query_broker localhost:35700 3000:3100 localhost:$ATTENTION_BROKER_PORT | stdbuf -oL grep "Benchmark::" > "$log_file" || true &
         echo -e "\r\033[K${GREEN}Query Agent initialization completed!${RESET}"
     fi
 
