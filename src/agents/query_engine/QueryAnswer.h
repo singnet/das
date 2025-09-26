@@ -41,6 +41,13 @@ class QueryAnswerElement {
             return "$" + this->name;
         }
     }
+    static QueryAnswerElement from_string(const string& string) {
+        if (string[0] == '_') {
+            return QueryAnswerElement(std::stoi(string.substr(1, string.size() - 1)));
+        } else {
+            return QueryAnswerElement(string.substr(1, string.size() - 1));
+        }
+    }
 };
 
 /**

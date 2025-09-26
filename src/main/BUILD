@@ -100,6 +100,7 @@ cc_library(
     name = "word_query_evolution_main_lib",
     srcs = ["word_query_evolution_main.cc"],
     deps = [
+        "//agents/context_broker:context_broker_lib",
         "//agents/evolution:evolution_lib",
         "//atomdb:atomdb_singleton",
         "//service_bus:service_bus_lib",
@@ -135,5 +136,15 @@ cc_library(
     srcs = ["inference_agent_client_main.cc"],
     deps = [
         "//agents/inference_agent:inference_agent_lib",
+    ],
+)
+
+cc_library(
+    name = "context_broker_main_lib",
+    srcs = ["context_broker_main.cc"],
+    deps = [
+        "//agents/context_broker:context_broker_lib",
+        "//atomdb:atomdb_singleton",
+        "//service_bus:service_bus_lib",
     ],
 )
