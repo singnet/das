@@ -124,57 +124,71 @@ def generate_chart_for_operation(db_path, backend, operation, benchmark_type_id,
     output_path = Path(output_dir)
     output_path.mkdir(parents=True, exist_ok=True)
 
-    plt.figure(figsize=(8, 4))
-    plt.plot(x, medians, marker="o", alpha=0.5, label="Median")
-    plt.plot(x, ma, linewidth=2, label=f"{window}-exec MA")
-    plt.scatter(x[-1], medians[-1], color="red", zorder=5, label="Latest")
-    plt.title(f"{operation} (Benchmark Type {benchmark_type_id})")
-    plt.xlabel("Execution (oldest → latest)")
-    plt.ylabel("Median (ms)")
-    plt.legend()
-    plt.grid(True)
+    plt.figure(figsize=(4, 2), dpi=100)
+
+    plt.plot(x, medians, marker="o", alpha=0.5, label="Median", linewidth=1)
+    plt.plot(x, ma, linewidth=1.5, label=f"{window}-exec MA")
+    plt.scatter(x[-1], medians[-1], color="red", s=20, zorder=5, label="Latest")
+
+    plt.title(operation, fontsize=8)
+    plt.tick_params(axis="both", which="major", labelsize=6)
+    plt.grid(True, linewidth=0.3)
+
+    plt.legend(fontsize=6, loc="upper center", bbox_to_anchor=(0.5, -0.2), ncol=3, frameon=False)
 
     img_name = f"{backend}_{operation}_type{benchmark_type_id}.png"
     img_path = output_path / img_name
-    plt.tight_layout()
-    plt.savefig(img_path)
+    plt.tight_layout(pad=0.3)
+    plt.savefig(img_path, bbox_inches="tight")
     plt.close()
 
     return str(img_path)
 
 
 
-
 def build_table_for_prefix(db_path, results, prefix, benchmark_type_id, window=10, threshold=10):
     md = [f"\n\n### {format_title(prefix)}\n"]
-    md.append("| Operation | Median | Time Per Atom | Throughput | Chart |")
-    md.append("|-----------|--------|---------------|------------|-------|")
+    md.append("| Operation | Median | Δ Median | Time Per Atom | Δ TPA | Throughput | Δ TP | Chart |")
+    md.append("|-----------|--------|----------|---------------|-------|------------|------|-------|")
 
     for row in (r for r in results if r["backend"] == prefix and r["benchmark_type_id"] == benchmark_type_id):
         op = row["operation"]
-        median = row["median_operation_time_ms"]
-        tpa = row["time_per_atom_ms"]
-        throughput = row["throughput"]
+        median_val = row["median_operation_time_ms"]
+        tpa_val = row["time_per_atom_ms"]
+        tp_val = row["throughput"]
+
+        delta_median = delta_tpa = delta_tp = "N/A"
 
         history = get_history_for_operation(db_path, prefix, op, benchmark_type_id, window)
         if history:
             hist_median_avg = mean(h[0] for h in history)
             hist_tpa_avg = mean(h[2] for h in history)
-            hist_throughput_avg = mean(h[1] for h in history)
+            hist_tp_avg = mean(h[1] for h in history)
 
-            if median > hist_median_avg * (1 + threshold / 100):
-                median = f":red_circle: {median}"
-            if tpa > hist_tpa_avg * (1 + threshold / 100):
-                tpa = f":red_circle: {tpa}"
-            if throughput < hist_throughput_avg * (1 - threshold / 100):
-                throughput = f":red_circle: {throughput}"
+            if hist_median_avg > 0:
+                delta_median_val = ((median_val - hist_median_avg) / hist_median_avg) * 100
+                delta_median = f"{delta_median_val:+.1f}%"
+            if hist_tpa_avg > 0:
+                delta_tpa_val = ((tpa_val - hist_tpa_avg) / hist_tpa_avg) * 100
+                delta_tpa = f"{delta_tpa_val:+.1f}%"
+            if hist_tp_avg > 0:
+                delta_tp_val = ((tp_val - hist_tp_avg) / hist_tp_avg) * 100
+                delta_tp = f"{delta_tp_val:+.1f}%"
 
-        chart_path = generate_chart_for_operation(db_path, prefix, op, benchmark_type_id, window)
+            if median_val > hist_median_avg * (1 + threshold / 100):
+                median_val = f":red_circle: {median_val}"
+            if tpa_val > hist_tpa_avg * (1 + threshold / 100):
+                tpa_val = f":red_circle: {tpa_val}"
+            if tp_val < hist_tp_avg * (1 - threshold / 100):
+                tp_val = f":red_circle: {tp_val}"
+
+        chart_path = ".github/scripts/" + generate_chart_for_operation(db_path, prefix, op, benchmark_type_id, window)
         chart_md = f"![{op}]({chart_path})" if chart_path else "N/A"
 
-        md.append(f"| {op} | {median} | {tpa} | {throughput} | {chart_md} |")
+        md.append(f"| {op} | {median_val} | {delta_median} | {tpa_val} | {delta_tpa} | {tp_val} | {delta_tp} | {chart_md} |")
 
     return "\n".join(md)
+
 
 
 def generate_message(db_path, results, repo, sha, token, title, window=10, threshold=10):
