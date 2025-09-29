@@ -19,6 +19,8 @@ class AttentionBrokerClient {
    public:
     ~AttentionBrokerClient() {}
 
+    static string SERVER_ADDRESS;
+
     static void set_server_address(const string& ip_port);
     static void correlate(const set<string>& handles, const string& context);
     static void asymmetric_correlate(const vector<string>& handles, const string& context);

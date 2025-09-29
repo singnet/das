@@ -27,7 +27,7 @@ InferenceAgent::~InferenceAgent() {
 
 shared_ptr<InferenceRequest> InferenceAgent::build_inference_request(const vector<string>& request) {
     if (!inference_request_validator.validate(request)) {
-        Utils::error("Invalid inference request");
+        Utils::error("Invalid inference request, failed to parse: " + Utils::join(request, ' '));
     }
     shared_ptr<InferenceRequest> inference_request;
     string inference_command = request.front();
@@ -204,8 +204,19 @@ void InferenceAgent::send_distributed_inference_control_request(
     LOG_DEBUG("Sending distributed inference control request ID: " << request_id);
     auto evolution_request = inference_request->get_distributed_inference_control_request();
     LOG_DEBUG("Distributed inference control request: " << Utils::join(evolution_request, ' '));
-    QueryEvolutionProxy* evolution_proxy_ptr = new QueryEvolutionProxy(
-        evolution_request, {}, {}, {}, inference_request->get_context(), "multiply_strength");
+    vector<vector<string>> correlation_queries;
+    vector<map<string, QueryAnswerElement>> correlation_replacements;
+    vector<pair<QueryAnswerElement, QueryAnswerElement>> correlation_mappings;
+    correlation_queries.push_back(inference_request->get_correlation_query());
+    correlation_replacements.push_back(inference_request->get_correlation_query_constants());
+    correlation_mappings.push_back(
+        *inference_request->get_correlation_mapping().begin());  // TODO check correlation mapping
+    QueryEvolutionProxy* evolution_proxy_ptr = new QueryEvolutionProxy(evolution_request,
+                                                                       correlation_queries,
+                                                                       correlation_replacements,
+                                                                       correlation_mappings,
+                                                                       inference_request->get_context(),
+                                                                       "multiply_strength");
     shared_ptr<QueryEvolutionProxy> evolution_proxy(evolution_proxy_ptr);
     ServiceBusSingleton::get_instance()->issue_bus_command(evolution_proxy);
     evolution_proxy_map[request_id] = evolution_proxy;
@@ -241,10 +252,13 @@ void InferenceAgent::process_inference_request(shared_ptr<InferenceProxy> proxy)
                   InferenceProxy::MAX_QUERY_ANSWERS_TO_PROCESS));
     LOG_DEBUG(
         "  Full Evaluation: " << proxy->parameters.get<bool>(InferenceProxy::RUN_FULL_EVALUATION_QUERY));
-    LOG_DEBUG("Inference process repeat: "
+    LOG_DEBUG("  Inference process repeat: "
               << proxy->parameters.get<unsigned int>(InferenceProxy::REPEAT_REQUEST_NUMBER));
     auto inference_request = build_inference_request(proxy->get_args());
     inference_request->set_id(request_id);
+    inference_request->set_correlation_query("");
+    inference_request->set_correlation_query_constants("");
+    inference_request->set_correlation_mapping("");
     inference_request->set_timeout(
         proxy->parameters.get<unsigned int>(InferenceProxy::INFERENCE_REQUEST_TIMEOUT));
     inference_request->set_lca_max_results(

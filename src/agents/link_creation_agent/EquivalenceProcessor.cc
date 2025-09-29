@@ -2,6 +2,9 @@
 
 #include "Logger.h"
 
+#define P1 "P1"
+#define P2 "P2"
+
 using namespace std;
 using namespace query_engine;
 using namespace link_creation_agent;
@@ -18,10 +21,37 @@ bool EquivalenceProcessor::link_exists(const string& handle1, const string& hand
            AtomDBSingleton::get_instance()->link_exists(link_c2_c1->handle());
 }
 
+static vector<string> build_equivalence_query(const string& handle) {
+    // clang-format off
+    vector<string> tokens = {
+        "OR", "2",
+            "LINK_TEMPLATE", "Expression", "3",
+                "NODE", "Symbol", "EVALUATION",
+                "VARIABLE", P1,
+                "ATOM", handle,
+            "AND", "2",
+                "LINK_TEMPLATE", "Expression", "3",
+                    "NODE", "Symbol", "EVALUATION",
+                    "VARIABLE", P2,
+                    "ATOM", handle,
+                "LINK_TEMPLATE", "Expression", "3",
+                    "NODE", "Symbol", "EQUIVALENCE",
+                    "VARIABLE", P2,
+                    "VARIABLE", P1
+    };
+    // clang-format on
+    return tokens;
+}
+
 vector<shared_ptr<Link>> EquivalenceProcessor::process_query(shared_ptr<QueryAnswer> query_answer,
                                                              optional<vector<string>> extra_params) {
-    string c1_handle = query_answer->assignment.get("C1");
-    string c2_handle = query_answer->assignment.get("C2");
+    // C1 C2
+    if (query_answer->handles.size() < 2) {
+        LOG_INFO("Insufficient handles provided, skipping equivalence processing.");
+        return {};
+    }
+    string c1_handle = query_answer->handles[0];
+    string c2_handle = query_answer->handles[1];
     string context = "";
     LOG_DEBUG("Processing equivalence query for handles: " << c1_handle << " and " << c2_handle);
     if (extra_params.has_value()) {
@@ -37,35 +67,29 @@ vector<shared_ptr<Link>> EquivalenceProcessor::process_query(shared_ptr<QueryAns
         return {};
     }
 
-    LinkSchema pattern_query_schema = build_pattern_union_query(c1_handle, c2_handle);
-    LinkSchema satisfying_query_schema = build_pattern_set_query(c1_handle, c2_handle);
-    auto pattern_query = pattern_query_schema.tokenize();
-    auto satisfying_query = satisfying_query_schema.tokenize();
-    // remove the first element (LINK_TEMPLATE)
-    pattern_query.erase(pattern_query.begin());        // TODO remove when add operators support
-    satisfying_query.erase(satisfying_query.begin());  // TODO remove when add operators support
-    int pattern_count = 0;
-    int satisfying_count = 0;
-    try {
-        LOG_INFO("Pattern query: " << Utils::join(pattern_query, ' '));
-        pattern_count = count_query(pattern_query, context);
-        if (pattern_count <= 0) {
-            LOG_DEBUG("No pattern found for " << c1_handle << " and " << c2_handle
-                                              << ", skipping equivalence processing.");
-            return {};
-        }
-        LOG_INFO("Satisfying query: " << Utils::join(satisfying_query, ' '));
-        satisfying_count = count_query(satisfying_query, context);
-        if (satisfying_count <= 0) {
-            LOG_DEBUG("No satisfying set found for " << c1_handle << " and " << c2_handle
-                                                     << ", skipping equivalence processing.");
-            return {};
-        }
-    } catch (const exception& e) {
-        LOG_ERROR("Failed to process equivalence query: " << e.what());
+    vector<string> c1_query;
+    vector<string> c2_query;
+    c1_query = build_equivalence_query(c1_handle);
+    c2_query = build_equivalence_query(c2_handle);
+    vector<vector<string>> queries = {c1_query, c2_query};
+    vector<double> counts;
+    double count_intersection = 0;
+    double count_union = 0;
+    QueryAnswerElement target_element(P1);
+    compute_counts(queries, context, target_element, counts, count_intersection, count_union);
+
+    LOG_DEBUG("INTERSECTION: " << count_intersection);
+    LOG_DEBUG("UNION: " << count_union);
+    LOG_DEBUG("C1 set size: " << counts[0]);
+    LOG_DEBUG("C2 set size: " << counts[1]);
+
+    if (count_intersection == 0 || count_union == 0) {
+        LOG_INFO("No intersection or union found for " << c1_handle << " and " << c2_handle
+                                                       << ", skipping equivalence processing.");
         return {};
     }
-    double strength = double(satisfying_count) / double(pattern_count);
+
+    double strength = count_intersection / count_union;
     vector<shared_ptr<Link>> result;
     Node equivalence_node("Symbol", "EQUIVALENCE");
     Properties custom_attributes;

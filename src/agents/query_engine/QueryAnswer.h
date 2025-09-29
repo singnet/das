@@ -202,7 +202,7 @@ class QueryAnswer {
      * @param element_key A key indicating which elem,ent is to be returned.
      * $return The element indicated by the passed QueryAnswerElement key.
      */
-    string get(const QueryAnswerElement& element_key);
+    string get(const QueryAnswerElement& element_key, bool return_empty_when_not_found = false);
 
     /**
      * Rewrites the passed query (tokens only, no MeTTa expression allowed) replacing variables
