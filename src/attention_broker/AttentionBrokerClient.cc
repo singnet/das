@@ -73,7 +73,7 @@ void AttentionBrokerClient::stimulate(const map<string, unsigned int>& handle_ma
         grpc::CreateChannel(SERVER_ADDRESS, grpc::InsecureChannelCredentials()));
 
     handle_count.set_context(context);
-    unsigned int sum;
+    unsigned int sum = 0;
     for (auto pair : handle_map) {
         (*handle_count.mutable_map())[pair.first] = pair.second;
         sum += pair.second;
