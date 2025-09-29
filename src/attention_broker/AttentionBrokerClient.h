@@ -34,8 +34,6 @@ class AttentionBrokerClient {
                                float spreading_rate_upperbound);
     static bool health_check(bool throw_on_error = false);
 
-    static string SERVER_ADDRESS;
-
    private:
     static mutex api_mutex;
     static unsigned int MAX_GET_IMPORTANCE_BUNDLE_SIZE;
