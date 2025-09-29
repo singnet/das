@@ -41,9 +41,8 @@ class ContextBrokerProcessor : public BusCommandProcessor {
      *
      * @param monitor The monitor object.
      * @param proxy The proxy object.
-     * @return The context hash key.
      */
-    string create_context(shared_ptr<StoppableThread> monitor, shared_ptr<ContextBrokerProxy> proxy);
+    void create_context(shared_ptr<StoppableThread> monitor, shared_ptr<ContextBrokerProxy> proxy);
 
     /**
      * Write cache.
@@ -59,10 +58,14 @@ class ContextBrokerProcessor : public BusCommandProcessor {
     bool read_cache(shared_ptr<ContextBrokerProxy> proxy);
 
     /**
-     * Set AttentionBroker parameters.
-     * @param proxy The proxy object.
+     * Set attention broker parameters.
+     * @param rent_rate The rent rate.
+     * @param spreading_rate_lowerbound The spreading rate lowerbound.
+     * @param spreading_rate_upperbound The spreading rate upperbound.
      */
-    void set_attention_broker_parameters(shared_ptr<ContextBrokerProxy> proxy);
+    void set_attention_broker_parameters(double rent_rate,
+                                         double spreading_rate_lowerbound,
+                                         double spreading_rate_upperbound);
 
     /**
      * Update attention broker.

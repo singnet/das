@@ -21,8 +21,10 @@ namespace fs = std::filesystem;
 // -------------------------------------------------------------------------------------------------
 // Constructors and destructors
 
-ContextBrokerProcessor::ContextBrokerProcessor() : BusCommandProcessor({ServiceBus::CONTEXT_MANAGER}) {
-    AttentionBrokerClient::health_check(true);
+ContextBrokerProcessor::ContextBrokerProcessor() : BusCommandProcessor({ServiceBus::CONTEXT}) {
+    if (AttentionBrokerClient::health_check(true)) {
+        LOG_INFO("Connected to AttentionBroker at " + AttentionBrokerClient::SERVER_ADDRESS);
+    }
 }
 
 ContextBrokerProcessor::~ContextBrokerProcessor() {}
@@ -62,15 +64,24 @@ void ContextBrokerProcessor::thread_process_one_query(shared_ptr<StoppableThread
         if (proxy->args.size() < 2) {
             Utils::error("Syntax error in query command. Missing implicit parameters.");
         }
+
         proxy->untokenize(proxy->args);
-        if (proxy->get_atom_handle() != "") {
-            proxy->clear_to_stimulate();
-            proxy->clear_determiner_request();
-            proxy->from_atomdb(proxy->get_atom_handle());
+
+        // Do not allow use_cache == false and enforce_cache_recreation == true
+        if (!proxy->get_use_cache() && proxy->get_enforce_cache_recreation()) {
+            LOG_ERROR("use_cache == false and enforce_cache_recreation == true is not allowed");
+            throw std::runtime_error(
+                "use_cache == false and enforce_cache_recreation == true is not allowed");
         }
+
         string command = proxy->get_command();
-        if (command == ServiceBus::CONTEXT_MANAGER) {
+        if (command == ServiceBus::CONTEXT) {
             LOG_DEBUG("CONTEXT_BROKER proxy: " << proxy->to_string());
+
+            this->set_attention_broker_parameters(proxy->get_initial_rent_rate(),
+                                                  proxy->get_initial_spreading_rate_lowerbound(),
+                                                  proxy->get_initial_spreading_rate_upperbound());
+
             this->create_context(monitor, proxy);
         } else {
             Utils::error("Invalid command " + command + " in ContextBrokerProcessor");
@@ -80,15 +91,18 @@ void ContextBrokerProcessor::thread_process_one_query(shared_ptr<StoppableThread
     } catch (const std::exception& exception) {
         proxy->raise_error_on_peer(exception.what());
     }
+
+    // keep alive till client kills it
+
     LOG_DEBUG("Command finished: <" << proxy->get_command() << ">");
     // TODO add a call to remove_query_thread(monitor->get_id());
 }
 
-string ContextBrokerProcessor::create_context(shared_ptr<StoppableThread> monitor,
-                                              shared_ptr<ContextBrokerProxy> proxy) {
-    LOG_INFO("Processing CREATE_CONTEXT command for: " << proxy->get_name());
+void ContextBrokerProcessor::create_context(shared_ptr<StoppableThread> monitor,
+                                            shared_ptr<ContextBrokerProxy> proxy) {
+    LOG_INFO("Processing CONTEXT command for: " << proxy->get_name());
 
-    this->set_attention_broker_parameters(proxy);
+    bool new_cache_flag = false;
 
     // Check if we can use cached context
     if (!this->read_cache(proxy)) {
@@ -128,35 +142,54 @@ string ContextBrokerProcessor::create_context(shared_ptr<StoppableThread> monito
             }
         }
 
-        this->write_cache(proxy);
-        LOG_INFO("Context processing completed and cached");
+        if (proxy->get_use_cache()) {
+            new_cache_flag = true;
+        }
+
+        LOG_INFO("Context processing completed");
     } else {
         LOG_INFO("Context already cached and loaded...");
+    }
+
+    if (new_cache_flag || proxy->get_enforce_cache_recreation()) {
+        this->write_cache(proxy);
     }
 
     this->update_attention_broker(proxy);
 
     LOG_INFO("Context created: name<" << proxy->get_name() << "> with key<" << proxy->get_key() << ">");
     Utils::sleep(1000);
-    proxy->query_processing_finished();
-    return proxy->get_key();
+
+    // Notify caller that context has been created
+    proxy->to_remote_peer(ContextBrokerProxy::CONTEXT_CREATED, {});
+
+    // Keep alive till peer (client) kills it
+    while (proxy->running() || proxy->update_attention_broker_parameters) {
+        if (proxy->update_attention_broker_parameters) {
+            this->set_attention_broker_parameters(
+                proxy->rent_rate, proxy->spreading_rate_lowerbound, proxy->spreading_rate_upperbound);
+            proxy->update_attention_broker_parameters = false;
+            proxy->to_remote_peer(ContextBrokerProxy::ATTENTION_BROKER_SET_PARAMETERS_FINISHED, {});
+            break;
+        }
+        Utils::sleep();
+    }
+}
+
+void ContextBrokerProcessor::set_attention_broker_parameters(double rent_rate,
+                                                             double spreading_rate_lowerbound,
+                                                             double spreading_rate_upperbound) {
+    LOG_INFO("Setting AttentionBroker parameters { rent_rate: "
+             << rent_rate << ", spreading_rate_lowerbound: " << spreading_rate_lowerbound
+             << ", spreading_rate_upperbound: " << spreading_rate_upperbound << " }");
+    AttentionBrokerClient::set_parameters(
+        rent_rate, spreading_rate_lowerbound, spreading_rate_upperbound);
 }
 
 static inline void read_line(ifstream& file, string& line) {
     if (!getline(file, line)) {
         Utils::error("Error reading a line from cache file");
     }
-}
-
-void ContextBrokerProcessor::set_attention_broker_parameters(shared_ptr<ContextBrokerProxy> proxy) {
-    auto rent_rate = proxy->get_rent_rate();
-    auto spreading_rate_lowerbound = proxy->get_spreading_rate_lowerbound();
-    auto spreading_rate_upperbound = proxy->get_spreading_rate_upperbound();
-    LOG_INFO("Context(key<" << proxy->get_key() << ">) setting AttentionBroker parameters { rent_rate: "
-                            << rent_rate << ", spreading_rate_lowerbound: " << spreading_rate_lowerbound
-                            << ", spreading_rate_upperbound: " << spreading_rate_upperbound << " }");
-    AttentionBrokerClient::set_parameters(
-        rent_rate, spreading_rate_lowerbound, spreading_rate_upperbound);
 }
 
 void ContextBrokerProcessor::update_attention_broker(shared_ptr<ContextBrokerProxy> proxy) {

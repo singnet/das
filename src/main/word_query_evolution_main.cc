@@ -5,7 +5,6 @@
 #include <string>
 
 #include "AtomDBSingleton.h"
-#include "AtomSpace.h"
 #include "Context.h"
 #include "ContextBrokerProxy.h"
 #include "CountLetterFunction.h"
@@ -22,7 +21,6 @@
 
 using namespace std;
 using namespace atomdb;
-using namespace atom_space;
 using namespace query_engine;
 using namespace evolution;
 using namespace service_bus;
@@ -246,49 +244,46 @@ void run(const string& client_id,
     // Query evolution request
 
     LOG_INFO("Setting up context");
-    AtomSpace atom_space;
-    // LinkSchema context_key(context1);
-    // auto context = atom_space.create_context(context_tag, context_key);
     QueryAnswerElement sentence_link(sentence1);
     QueryAnswerElement word_link(word1);
     QueryAnswerElement contains_link(0);
-    // auto context = atom_space.create_context(
-    //     context_tag, context1, {{contains_link, sentence_link}, {sentence_link, word_link}}, {});
-    // string context_str = context->get_key();
-    // LOG_INFO("Context " + context_str + " is ready");
-
-    // ---------------------------------------------------------------------------------------------
-    // Context creation using ContextBrokerProxy (NEW APPROACH)
-
-    LOG_INFO("Setting up context using ContextBrokerProxy");
 
     vector<pair<QueryAnswerElement, QueryAnswerElement>> determiner_schema = {
         {contains_link, sentence_link}, {sentence_link, word_link}};
     vector<QueryAnswerElement> stimulus_schema = {};
 
-    bool use_cached_context = true;
-
     // Use ContextBrokerProxy to create context
-    auto context_proxy = make_shared<ContextBrokerProxy>(context_tag,
-                                                         context1,
-                                                         determiner_schema,
-                                                         stimulus_schema,
-                                                         use_cached_context,
-                                                         RENT_RATE,
-                                                         SPREADING_RATE_LOWERBOUND,
-                                                         SPREADING_RATE_UPPERBOUND);
+    shared_ptr<ContextBrokerProxy> context_proxy =
+        make_shared<ContextBrokerProxy>(context_tag, context1, determiner_schema, stimulus_schema);
+
+    context_proxy->parameters[ContextBrokerProxy::USE_CACHE] = (bool) true;
+    context_proxy->parameters[ContextBrokerProxy::ENFORCE_CACHE_RECREATION] = (bool) false;
+
+    context_proxy->parameters[ContextBrokerProxy::INITIAL_RENT_RATE] = (double) RENT_RATE;
+    context_proxy->parameters[ContextBrokerProxy::INITIAL_SPREADING_RATE_LOWERBOUND] =
+        (double) SPREADING_RATE_LOWERBOUND;
+    context_proxy->parameters[ContextBrokerProxy::INITIAL_SPREADING_RATE_UPPERBOUND] =
+        (double) SPREADING_RATE_UPPERBOUND;
 
     // Issue the ContextBrokerProxy to create context
     service_bus->issue_bus_command(context_proxy);
 
     // Wait for ContextBrokerProxy to finish context creation
-    LOG_INFO("Waiting ContextBrokerProxy to finish context creation...");
-    while (!context_proxy->finished()) {
+    LOG_INFO("Waiting for context creation to finish...");
+    while (!context_proxy->is_context_created()) {
         Utils::sleep();
     }
 
     string context_str = context_proxy->get_key();
-    LOG_INFO("Context " + context_str + " is ready (using ContextBrokerProxy)");
+    LOG_INFO("Context " + context_str + " was created");
+
+    // Example of how to set new AttentionBroker parameters
+    LOG_INFO("Setting new AttentionBroker parameters");
+    context_proxy->attention_broker_set_parameters(0.26, 0.51, 0.71);
+    while (!context_proxy->attention_broker_set_parameters_finished()) {
+        Utils::sleep();
+    }
+    LOG_INFO("AttentionBroker new parameters set");
 
     QueryEvolutionProxy* proxy_ptr;
     if (USE_METTA_QUERY) {

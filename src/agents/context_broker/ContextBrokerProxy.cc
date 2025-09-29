@@ -21,65 +21,57 @@ using namespace commons;
 // Cache file name prefix
 const string CACHE_FILE_NAME_PREFIX = "_CONTEXT_CACHE_";
 
+// Proxy Commands
+string ContextBrokerProxy::ATTENTION_BROKER_SET_PARAMETERS = "attention_broker_set_parameters";
+string ContextBrokerProxy::ATTENTION_BROKER_SET_PARAMETERS_FINISHED =
+    "attention_broker_set_parameters_finished";
+string ContextBrokerProxy::CONTEXT_CREATED = "context_created";
+string ContextBrokerProxy::SHUTDOWN = "shutdown";
+
+// Properties
+string ContextBrokerProxy::USE_CACHE = "use_cache";
+string ContextBrokerProxy::ENFORCE_CACHE_RECREATION = "enforce_cache_recreation";
+string ContextBrokerProxy::INITIAL_RENT_RATE = "initial_rent_rate";
+string ContextBrokerProxy::INITIAL_SPREADING_RATE_LOWERBOUND = "initial_spreading_rate_lowerbound";
+string ContextBrokerProxy::INITIAL_SPREADING_RATE_UPPERBOUND = "initial_spreading_rate_upperbound";
+
+// Default values for AttentionBrokerClient::set_parameters()
+double ContextBrokerProxy::DEFAULT_RENT_RATE = 0.25;
+double ContextBrokerProxy::DEFAULT_SPREADING_RATE_LOWERBOUND = 0.50;
+double ContextBrokerProxy::DEFAULT_SPREADING_RATE_UPPERBOUND = 0.70;
+
 // -------------------------------------------------------------------------------------------------
 // Constructors, destructors and initialization
 
-ContextBrokerProxy::ContextBrokerProxy(bool use_cache) {
+ContextBrokerProxy::ContextBrokerProxy() {
     // Empty constructor typically used on server side
-    this->command = ServiceBus::CONTEXT_MANAGER;
-    this->use_cache = use_cache;
+    this->command = ServiceBus::CONTEXT;
+    set_default_query_parameters();
+    this->update_attention_broker_parameters = false;
+    this->ongoing_attention_broker_set_parameters = false;
+    this->context_created = false;
+    this->keep_alive = true;
 }
 
 ContextBrokerProxy::ContextBrokerProxy(
     const string& name,
     const vector<string>& query,
     const vector<pair<QueryAnswerElement, QueryAnswerElement>>& determiner_schema,
-    const vector<QueryAnswerElement>& stimulus_schema,
-    bool use_cache,
-    float rent_rate,
-    float spreading_rate_lowerbound,
-    float spreading_rate_upperbound)
+    const vector<QueryAnswerElement>& stimulus_schema)
     : BaseQueryProxy(query, name) {
     // Constructor for query-based context
-    this->command = ServiceBus::CONTEXT_MANAGER;
+    this->command = ServiceBus::CONTEXT;
     this->determiner_schema = determiner_schema;
     this->stimulus_schema = stimulus_schema;
-    this->rent_rate = rent_rate;
-    this->spreading_rate_lowerbound = spreading_rate_lowerbound;
-    this->spreading_rate_upperbound = spreading_rate_upperbound;
-    init(name, use_cache);
+    set_default_query_parameters();
+    init(name);
+    this->update_attention_broker_parameters = false;
+    this->ongoing_attention_broker_set_parameters = false;
+    this->context_created = false;
+    this->keep_alive = true;
 }
 
-ContextBrokerProxy::~ContextBrokerProxy() {}
-
-void ContextBrokerProxy::from_atomdb(const string& atom_handle) {
-    lock_guard<mutex> semaphore(this->api_mutex);
-    if (!this->use_cache) {
-        string ID = RedisMongoDB::MONGODB_FIELD_NAME[MONGODB_FIELD::ID];
-        string TARGETS = RedisMongoDB::MONGODB_FIELD_NAME[MONGODB_FIELD::TARGETS];
-        string TYPE = RedisMongoDB::MONGODB_FIELD_NAME[MONGODB_FIELD::NAMED_TYPE];
-
-        // Get the Atom object from the handle
-        auto atom = AtomDBSingleton::get_instance()->get_atom(atom_handle);
-        if (atom) {
-            auto documents = AtomDBSingleton::get_instance()->get_matching_atoms(true, *atom);
-            vector<string> determiners;
-            for (const auto& document : documents) {
-                if (document->contains(TARGETS)) {  // if is link
-                    determiners.clear();
-                    string handle = string(document->get(ID));
-                    determiners.push_back(handle);
-                    this->to_stimulate[handle] = 1;
-                    unsigned int arity = document->get_size(TARGETS);
-                    for (unsigned int i = 1; i < arity; i++) {
-                        determiners.push_back(string(document->get(TARGETS, i)));
-                    }
-                    this->determiner_request.push_back(determiners);
-                }
-            }
-        }
-    }
-}
+ContextBrokerProxy::~ContextBrokerProxy() { to_remote_peer(SHUTDOWN, {}); }
 
 // -------------------------------------------------------------------------------------------------
 // BaseQueryProxy overrides
@@ -89,13 +81,6 @@ void ContextBrokerProxy::tokenize(vector<string>& output) {
     // Add context-specific data to the beginning (in reverse order)
     output.insert(output.begin(), this->name);
     output.insert(output.begin(), this->key);
-    output.insert(output.begin(), this->atom_handle);
-    output.insert(output.begin(), this->use_cache ? "1" : "0");
-
-    // AttentionBroker parameters
-    output.insert(output.begin(), std::to_string(this->rent_rate));
-    output.insert(output.begin(), std::to_string(this->spreading_rate_lowerbound));
-    output.insert(output.begin(), std::to_string(this->spreading_rate_upperbound));
 
     // Add determiner_schema
     for (int i = this->determiner_schema.size() - 1; i >= 0; i--) {
@@ -140,19 +125,7 @@ void ContextBrokerProxy::untokenize(vector<string>& tokens) {
         this->determiner_schema.push_back(make_pair(first, second));
     }
 
-    // AttentionBroker parameters
-    this->spreading_rate_upperbound = std::stof(tokens[0]);
-    tokens.erase(tokens.begin());
-    this->spreading_rate_lowerbound = std::stof(tokens[0]);
-    tokens.erase(tokens.begin());
-    this->rent_rate = std::stof(tokens[0]);
-    tokens.erase(tokens.begin());
-
     // context-specific data (first inserted, so last to extract)
-    this->use_cache = (tokens[0] == "1");
-    tokens.erase(tokens.begin());
-    this->atom_handle = tokens[0];
-    tokens.erase(tokens.begin());
     this->key = tokens[0];
     tokens.erase(tokens.begin());
     this->name = tokens[0];
@@ -162,11 +135,15 @@ void ContextBrokerProxy::untokenize(vector<string>& tokens) {
 
 string ContextBrokerProxy::to_string() {
     lock_guard<mutex> semaphore(this->api_mutex);
+
+    bool use_cache = this->get_use_cache();
+    bool enforce_cache_recreation = this->get_enforce_cache_recreation();
+
     string answer = "{ContextBrokerProxy: ";
     answer += "name: " + this->name + ", ";
     answer += "key: " + this->key + ", ";
-    answer += "atom_handle: " + this->atom_handle + ", ";
-    answer += "use_cache: " + string(this->use_cache ? "true" : "false") + ", ";
+    answer += "use_cache: " + string(use_cache ? "true" : "false") + ", ";
+    answer += "enforce_cache_recreation: " + string(enforce_cache_recreation ? "true" : "false") + ", ";
     answer += "AB { rent_rate: " + std::to_string(this->rent_rate) + ", ";
     answer += "spreading_rate_lowerbound: " + std::to_string(this->spreading_rate_lowerbound) + ", ";
     answer += "spreading_rate_upperbound: " + std::to_string(this->spreading_rate_upperbound) + " } ";
@@ -178,15 +155,68 @@ string ContextBrokerProxy::to_string() {
 
 void ContextBrokerProxy::pack_command_line_args() { tokenize(this->args); }
 
+bool ContextBrokerProxy::is_context_created() { return this->context_created; }
+
+bool ContextBrokerProxy::running() { return this->keep_alive; }
+
 // -------------------------------------------------------------------------------------------------
 // Private methods
 
-void ContextBrokerProxy::init(const string& name, bool use_cache) {
+void ContextBrokerProxy::init(const string& name) {
     this->name = name;
     this->key = Hasher::context_handle(name);
     this->cache_file_name = CACHE_FILE_NAME_PREFIX + this->key + ".txt";
-    this->use_cache = use_cache;
 }
+
+void ContextBrokerProxy::set_default_query_parameters() {
+    this->parameters[USE_CACHE] = (bool) true;
+    this->parameters[ENFORCE_CACHE_RECREATION] = (bool) false;
+    this->parameters[INITIAL_RENT_RATE] = (double) DEFAULT_RENT_RATE;
+    this->parameters[INITIAL_SPREADING_RATE_LOWERBOUND] = (double) DEFAULT_SPREADING_RATE_LOWERBOUND;
+    this->parameters[INITIAL_SPREADING_RATE_UPPERBOUND] = (double) DEFAULT_SPREADING_RATE_UPPERBOUND;
+}
+
+// ---------------------------------------------------------------------------------------------
+// Virtual superclass API and the piggyback methods called by it
+
+bool ContextBrokerProxy::from_remote_peer(const string& command, const vector<string>& args) {
+    LOG_DEBUG("Proxy command: <" << command << "> from " << this->peer_id() << " received in "
+                                 << this->my_id());
+    if (BaseQueryProxy::from_remote_peer(command, args)) {
+        return true;
+    } else if (command == ATTENTION_BROKER_SET_PARAMETERS) {
+        this->rent_rate = std::stod(args[0]);
+        this->spreading_rate_lowerbound = std::stod(args[1]);
+        this->spreading_rate_upperbound = std::stod(args[2]);
+        this->update_attention_broker_parameters = true;
+        return true;
+    } else if (command == CONTEXT_CREATED) {
+        this->context_created = true;
+        return true;
+    } else if (command == ATTENTION_BROKER_SET_PARAMETERS_FINISHED) {
+        this->ongoing_attention_broker_set_parameters = false;
+        return true;
+    } else if (command == SHUTDOWN) {
+        this->keep_alive = false;
+        return true;
+    } else {
+        Utils::error("Invalid ContextBrokerProxy command: <" + command + ">");
+        return false;
+    }
+}
+
+void ContextBrokerProxy::attention_broker_set_parameters(double rent_rate,
+                                                         double spreading_rate_lowerbound,
+                                                         double spreading_rate_upperbound) {
+    vector<string> args;
+    args.push_back(std::to_string(rent_rate));
+    args.push_back(std::to_string(spreading_rate_lowerbound));
+    args.push_back(std::to_string(spreading_rate_upperbound));
+    this->ongoing_attention_broker_set_parameters = true;
+    to_remote_peer(ATTENTION_BROKER_SET_PARAMETERS, args);
+}
+
+void ContextBrokerProxy::shutdown() { to_remote_peer(SHUTDOWN, {}); }
 
 // -------------------------------------------------------------------------------------------------
 // Public accessor methods
@@ -194,8 +224,6 @@ void ContextBrokerProxy::init(const string& name, bool use_cache) {
 const string& ContextBrokerProxy::get_name() { return this->name; }
 
 const string& ContextBrokerProxy::get_key() { return this->key; }
-
-const string& ContextBrokerProxy::get_atom_handle() { return this->atom_handle; }
 
 const vector<pair<QueryAnswerElement, QueryAnswerElement>>& ContextBrokerProxy::get_determiner_schema() {
     return this->determiner_schema;
@@ -215,10 +243,25 @@ void ContextBrokerProxy::clear_determiner_request() { this->determiner_request.c
 
 const string& ContextBrokerProxy::get_cache_file_name() { return this->cache_file_name; }
 
-bool ContextBrokerProxy::get_use_cache() { return this->use_cache; }
+bool ContextBrokerProxy::get_use_cache() { return this->parameters.get<bool>(USE_CACHE); }
 
-float ContextBrokerProxy::get_rent_rate() { return this->rent_rate; }
+bool ContextBrokerProxy::get_enforce_cache_recreation() {
+    return this->parameters.get<bool>(ENFORCE_CACHE_RECREATION);
+}
 
-float ContextBrokerProxy::get_spreading_rate_lowerbound() { return this->spreading_rate_lowerbound; }
+double ContextBrokerProxy::get_initial_rent_rate() {
+    return this->parameters.get<double>(INITIAL_RENT_RATE);
+}
 
-float ContextBrokerProxy::get_spreading_rate_upperbound() { return this->spreading_rate_upperbound; }
+double ContextBrokerProxy::get_initial_spreading_rate_lowerbound() {
+    return this->parameters.get<double>(INITIAL_SPREADING_RATE_LOWERBOUND);
+}
+
+double ContextBrokerProxy::get_initial_spreading_rate_upperbound() {
+    return this->parameters.get<double>(INITIAL_SPREADING_RATE_UPPERBOUND);
+}
+
+bool ContextBrokerProxy::attention_broker_set_parameters_finished() {
+    lock_guard<mutex> semaphore(this->api_mutex);
+    return !this->ongoing_attention_broker_set_parameters;
+}

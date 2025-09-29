@@ -31,11 +31,28 @@ class ContextBrokerProxy : public BaseQueryProxy {
     // ---------------------------------------------------------------------------------------------
     // Constructors, destructors and static state
 
+    // Proxy Commands
+    static string ATTENTION_BROKER_SET_PARAMETERS;
+    static string ATTENTION_BROKER_SET_PARAMETERS_FINISHED;
+    static string CONTEXT_CREATED;
+    static string SHUTDOWN;
+
+    // Query command's optional parameters
+    static string USE_CACHE;                          // Whether to use cache
+    static string ENFORCE_CACHE_RECREATION;           // Whether to enforce cache recreation
+    static string INITIAL_RENT_RATE;                  // AttentionBroker rent rate
+    static string INITIAL_SPREADING_RATE_LOWERBOUND;  // AttentionBroker lowerbound spreading rate
+    static string INITIAL_SPREADING_RATE_UPPERBOUND;  // AttentionBroker upperbound spreading rate
+
+    // Default values for AttentionBrokerClient::set_parameters()
+    static double DEFAULT_RENT_RATE;
+    static double DEFAULT_SPREADING_RATE_LOWERBOUND;
+    static double DEFAULT_SPREADING_RATE_UPPERBOUND;
+
     /**
      * Empty constructor typically used on server side.
-     * @param use_cache Whether to use cache
      */
-    ContextBrokerProxy(bool use_cache = true);
+    ContextBrokerProxy();
 
     /**
      * Constructor for query-based context.
@@ -43,29 +60,53 @@ class ContextBrokerProxy : public BaseQueryProxy {
      * @param query Query tokens
      * @param determiner_schema Determiner schema mapping
      * @param stimulus_schema Stimulus schema
-     * @param use_cache Whether to use cache
-     * @param rent_rate AttentionBroker rent rate
-     * @param spreading_rate_lowerbound AttentionBroker lowerbound spreading rate
-     * @param spreading_rate_upperbound AttentionBroker upperbound spreading rate
      */
     ContextBrokerProxy(const string& name,
                        const vector<string>& query,
                        const vector<pair<QueryAnswerElement, QueryAnswerElement>>& determiner_schema,
-                       const vector<QueryAnswerElement>& stimulus_schema,
-                       bool use_cache,
-                       float rent_rate,
-                       float spreading_rate_lowerbound,
-                       float spreading_rate_upperbound);
+                       const vector<QueryAnswerElement>& stimulus_schema);
 
     /**
      * Destructor.
      */
     virtual ~ContextBrokerProxy();
 
-    void from_atomdb(const string& atom_handle);
-
     // ---------------------------------------------------------------------------------------------
     // Context-specific API
+
+    /**
+     * Check if the proxy is still running.
+     * @return Whether the proxy is still running
+     */
+    bool running();
+
+    /**
+     * Get the context created flag.
+     * @return Whether the context has been created
+     */
+    bool is_context_created();
+
+    virtual bool from_remote_peer(const string& command, const vector<string>& args) override;
+
+    /**
+     * Set the attention broker parameters.
+     * @param rent_rate The rent rate.
+     * @param spreading_rate_lowerbound The spreading rate lowerbound.
+     * @param spreading_rate_upperbound The spreading rate upperbound.
+     */
+    void attention_broker_set_parameters(double rent_rate,
+                                         double spreading_rate_lowerbound,
+                                         double spreading_rate_upperbound);
+    /**
+     * Get the attention broker parameters finished flag.
+     * @return Whether the attention broker parameters have been set
+     */
+    bool attention_broker_set_parameters_finished();
+
+    /**
+     * Send a shutdown command to the remote proxy.
+     */
+    void shutdown();
 
     /**
      * Get the context name.
@@ -78,12 +119,6 @@ class ContextBrokerProxy : public BaseQueryProxy {
      * @return Context key
      */
     const string& get_key();
-
-    /**
-     * Get the atom handle.
-     * @return Atom handle
-     */
-    const string& get_atom_handle();
 
     /**
      * Get the determiner schema.
@@ -132,22 +167,28 @@ class ContextBrokerProxy : public BaseQueryProxy {
     bool get_use_cache();
 
     /**
-     * Get the rent rate.
+     * Get the enforce_cache_recreation flag.
+     * @return Whether to enforce cache recreation
+     */
+    bool get_enforce_cache_recreation();
+
+    /**
+     * Get the initial rent rate.
      * @return Rent rate
      */
-    float get_rent_rate();
+    double get_initial_rent_rate();
 
     /**
-     * Get the spreading rate lowerbound.
+     * Get the initial spreading rate lowerbound.
      * @return Spreading rate lowerbound
      */
-    float get_spreading_rate_lowerbound();
+    double get_initial_spreading_rate_lowerbound();
 
     /**
-     * Get the spreading rate upperbound.
+     * Get the initial spreading rate upperbound.
      * @return Spreading rate upperbound
      */
-    float get_spreading_rate_upperbound();
+    double get_initial_spreading_rate_upperbound();
 
     // ---------------------------------------------------------------------------------------------
     // BaseQueryProxy overrides
@@ -157,23 +198,30 @@ class ContextBrokerProxy : public BaseQueryProxy {
     virtual string to_string() override;
     virtual void pack_command_line_args() override;
 
+    // Attention broker parameters
+    bool update_attention_broker_parameters;
+    double rent_rate;
+    double spreading_rate_lowerbound;
+    double spreading_rate_upperbound;
+
    private:
-    void init(const string& name, bool use_cache);
+    void init(const string& name);
+    void set_default_query_parameters();
 
     // Context-specific members
     mutex api_mutex;
     string name;
     string key;
     string cache_file_name;
-    string atom_handle;
-    bool use_cache;
     map<string, unsigned int> to_stimulate;
     vector<vector<string>> determiner_request;
     vector<pair<QueryAnswerElement, QueryAnswerElement>> determiner_schema;
     vector<QueryAnswerElement> stimulus_schema;
-    float rent_rate;
-    float spreading_rate_lowerbound;
-    float spreading_rate_upperbound;
+
+    // Control flags
+    bool context_created;
+    bool keep_alive;
+    bool ongoing_attention_broker_set_parameters;
 };
 
 }  // namespace context_broker
