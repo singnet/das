@@ -97,6 +97,16 @@ jobs:
       - name: Install requirements
         run: sudo apt -y update && sudo apt -y install bc sqlite3
 
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r .github/scripts/requirements.txt
+
       - name: Download benchmark artifact
         uses: actions/download-artifact@v4
         with:
@@ -108,8 +118,11 @@ jobs:
           BENCHMARK_ID="${{ needs.benchmark_query_agent.outputs.benchmark_id }}"
           [ -z "$BENCHMARK_ID" ] && BENCHMARK_ID="UNKNOWN"
           TITLE="Query Agent Benchmark Report - Single Thread, 10 iterations"
-          IS_PR="${{ github.event_name == 'pull_request' }}"
-          bash .github/scripts/mattermost-benchmark-report.sh "$BENCHMARK_ID" "$TITLE" "$IS_PR"
+          python .github/scripts/mattermost-benchmark-report.py \
+            --benchmark-id "$BENCHMARK_ID" \
+            --title "$TITLE" \
+            --threshold 10 \
+            --output ./query_agent_benchmark/consolidated_report.json
 
       - name: Notify Mattermost
         uses: singnet/integration-github-mattermost@v0.3.0
