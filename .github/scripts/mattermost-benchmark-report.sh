@@ -10,6 +10,7 @@ declare -A TITLE_ALIAS_MAP=(
 
 TITLE="$2"
 BENCHMARK_DATABASE_PATH="/home/$USER/.cache/shared/benchmark.db"
+IS_PR="$3"
 
 function get_pr_info() {
   curl -s -H "Authorization: token $GITHUB_TOKEN" \
@@ -41,27 +42,26 @@ function build_metadata_section() {
   pr_info=$(get_pr_info)
   commit_info=$(get_commit_info)
 
-  pr_url=$(echo "$pr_info" | jq -r '.[0].html_url // empty')
-  pr_number=$(echo "$pr_info" | jq -r '.[0].number // empty')
-  pr_title=$(echo "$pr_info" | jq -r '.[0].title // empty')
-  pr_base_branch=$(echo "$pr_info" | jq -r '.[0].base.ref // "master"')
-
   commit_date=$(echo "$commit_info" | jq -r '.commit.author.date')
   commit_date_fmt=$(date -u -d "$commit_date" +"%Y-%m-%d %H:%M UTC")
   commit_sha_short=$(echo "$GITHUB_SHA" | cut -c1-7)
 
   echo "## $TITLE"$'\n'
   echo "**Repository:** $GITHUB_REPOSITORY"
-  if [[ "$pr_url" != "" ]]; then
-    echo "**Source:** [#$pr_number - $pr_title]($pr_url)"
-  fi
-  echo "**Date:** $commit_date_fmt"
 
-  if [[ "$pr_url" != "" ]]; then
+  if [[ "$IS_PR" == "true" ]]; then
+    pr_url=$(echo "$pr_info" | jq -r '.[0].html_url // empty')
+    pr_number=$(echo "$pr_info" | jq -r '.[0].number // empty')
+    pr_title=$(echo "$pr_info" | jq -r '.[0].title // empty')
+    pr_base_branch=$(echo "$pr_info" | jq -r '.[0].base.ref // "master"')
+
+    echo "**Source:** [#$pr_number - $pr_title]($pr_url)"
     echo "**Commit:** \`$commit_sha_short\` ($pr_base_branch)"
   else
     echo "**Commit:** \`$commit_sha_short\`"
   fi
+
+  echo "**Date:** $commit_date_fmt"
 }
 
 function build_table_for_prefix() {
@@ -103,7 +103,9 @@ function build_table_for_prefix() {
         echo "$op,$median,$tpa,$throughput"
     done \
     | mlr --ocsv cat \
-    | mlr --icsv --omd rename 1,Operation,2,Median,3,"Time Per Atom",4,Throughput
+    | mlr --icsv --omd rename 1,Operation,2,Median,3,"Time Per Atom",4,Throughput \
+          --omd-align left,right,right,right
+
 }
 
 function get_benchmark_result_by_id() {
