@@ -58,7 +58,7 @@ Context::Context(const string& name,
         add_determiners(query, determiner_schema, stimulus_schema);
         cache_write();
     }
-    //update_attention_broker(); XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+    update_attention_broker();
 }
 
 void Context::add_determiners(
