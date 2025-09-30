@@ -103,9 +103,7 @@ function build_table_for_prefix() {
         echo "$op,$median,$tpa,$throughput"
     done \
     | mlr --ocsv cat \
-    | mlr --icsv --omd rename 1,Operation,2,Median,3,"Time Per Atom",4,Throughput \
-          --omd-align left,right,right,right
-
+    | mlr --icsv --omd rename 1,Operation,2,Median,3,"Time Per Atom",4,Throughput
 }
 
 function get_benchmark_result_by_id() {
