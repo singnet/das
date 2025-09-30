@@ -278,12 +278,12 @@ void run(const string& client_id,
     LOG_INFO("Context " + context_str + " was created");
 
     // Example of how to set new AttentionBroker parameters
-    LOG_INFO("Setting new AttentionBroker parameters");
-    context_proxy->attention_broker_set_parameters(0.26, 0.51, 0.71);
-    while (!context_proxy->attention_broker_set_parameters_finished()) {
-        Utils::sleep();
-    }
-    LOG_INFO("AttentionBroker new parameters set");
+    // LOG_INFO("Setting new AttentionBroker parameters");
+    // context_proxy->attention_broker_set_parameters(0.26, 0.51, 0.71);
+    // while (!context_proxy->attention_broker_set_parameters_finished()) {
+    //     Utils::sleep();
+    // }
+    // LOG_INFO("AttentionBroker new parameters set");
 
     QueryEvolutionProxy* proxy_ptr;
     if (USE_METTA_QUERY) {

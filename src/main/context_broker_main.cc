@@ -25,18 +25,16 @@ void ctrl_c_handler(int) {
 }
 
 int main(int argc, char* argv[]) {
-    if (argc < 3) {
+    if (argc < 4) {
         cerr << "Context Broker Server" << endl;
         cerr << "Usage: " << argv[0]
-             << " <hostname:port> <start_port:end_port> BUS_IP:PORT [AB_ip:AB_port]" << endl;
+             << " <hostname:port> <start_port:end_port> BUS_IP:PORT <AB_ip:AB_port>" << endl;
         exit(1);
     }
 
     std::string server_id = string(argv[1]);
 
-    if (argc == 5) {
-        AttentionBrokerClient::set_server_address(string(argv[4]));
-    }
+    AttentionBrokerClient::set_server_address(string(argv[4]));
 
     auto ports_range = Utils::parse_ports_range(argv[2]);
     LOG_INFO("Starting context broker server with id: " + server_id);

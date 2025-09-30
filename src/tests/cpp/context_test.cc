@@ -185,8 +185,11 @@ TEST_F(ContextTest, ContextBroker) {
         } else {
             EXPECT_TRUE(importance[i] > 0);
         }
-        cout << "importance[" << i << "]: " << importance[i] << endl;
+        cout << "importance_check_0[" << i << "]: " << importance[i] << endl;
     }
+
+    // To be used to test AB parameters set to Zero
+    vector<float> last_importances = {};
 
     AttentionBrokerClient::stimulate({{node2, 1}}, context_proxy->get_key());
     importance.clear();
@@ -198,12 +201,31 @@ TEST_F(ContextTest, ContextBroker) {
         } else {
             EXPECT_TRUE(importance[i] > 0);
         }
-        cout << "importance[" << i << "]: " << importance[i] << endl;
+        cout << "importance_check_1[" << i << "]: " << importance[i] << endl;
+        last_importances.push_back(importance[i]);
     }
     // "monkey" must be more important than "chimp" and "ent" now
     EXPECT_TRUE(importance[1] > importance[2] && importance[1] > importance[3]);
     // "monkey" link must be more important than "chimp" and "ent" links now
     EXPECT_TRUE(importance[5] > importance[6] && importance[5] > importance[7]);
+
+    // --- Commented out as this could impact other tests when running test-all ---
+
+    // LOG_INFO("Setting AttentionBroker parameters to Zero");
+    // context_proxy->attention_broker_set_parameters(0, 0, 0);
+    // while (!context_proxy->attention_broker_set_parameters_finished()) {
+    //     Utils::sleep();
+    // }
+    // LOG_INFO("AttentionBroker parameters set to Zero");
+
+    // // Even stimulating "monkey" should not change the importances
+    // AttentionBrokerClient::stimulate({{node2, 1}}, context_proxy->get_key());
+    // importance.clear();
+    // AttentionBrokerClient::get_importance(handles, context_proxy->get_key(), importance);
+    // for (unsigned int i = 0; i < handles.size(); i++) {
+    //     EXPECT_TRUE(importance[i] == last_importances[i]);
+    //     cout << "importance_check_2[" << i << "]: " << importance[i] << endl;
+    // }
 }
 
 int main(int argc, char** argv) {
