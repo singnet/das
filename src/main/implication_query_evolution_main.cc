@@ -127,6 +127,8 @@ static shared_ptr<PatternMatchingQueryProxy> issue_link_building_query(const vec
     return proxy;
 }
 
+/*
+   WIP
 static shared_ptr<PatternMatchingQueryProxy> issue_count_query(const vector<string>& query_tokens,
                                                                const string& context) {
 
@@ -142,6 +144,7 @@ static shared_ptr<PatternMatchingQueryProxy> issue_count_query(const vector<stri
     ServiceBusSingleton::get_instance()->issue_bus_command(proxy);
     return proxy;
 }
+*/
 
 static void update_attention_allocation(const vector<string>& query_tokens,
                                         const string& context) {
@@ -183,7 +186,7 @@ static void compute_counts(const vector<vector<string>>& query_tokens,
     shared_ptr<PatternMatchingQueryProxy> proxy[2];
 
     for (unsigned int i = 0; i < 2; i++) {
-        issue_count_weight_query
+        //issue_count_weight_query
         proxy[i] = make_shared<PatternMatchingQueryProxy>(query_tokens[i], context);
         proxy[i]->parameters[PatternMatchingQueryProxy::POSITIVE_IMPORTANCE_FLAG] = false;
         proxy[i]->parameters[BaseQueryProxy::UNIQUE_ASSIGNMENT_FLAG] = true;
