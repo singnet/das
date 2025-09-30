@@ -1,6 +1,7 @@
 #include "ContextBrokerProxy.h"
 
 #include "AtomDBSingleton.h"
+#include "AttentionBrokerServer.h"
 #include "Hasher.h"
 #include "RedisMongoDB.h"
 #include "ServiceBus.h"
@@ -11,6 +12,7 @@
 
 using namespace context_broker;
 using namespace atomdb;
+using namespace attention_broker;
 using namespace query_engine;
 using namespace service_bus;
 using namespace commons;
@@ -36,9 +38,11 @@ string ContextBrokerProxy::INITIAL_SPREADING_RATE_LOWERBOUND = "initial_spreadin
 string ContextBrokerProxy::INITIAL_SPREADING_RATE_UPPERBOUND = "initial_spreading_rate_upperbound";
 
 // Default values for AttentionBrokerClient::set_parameters()
-double ContextBrokerProxy::DEFAULT_RENT_RATE = 0.25;
-double ContextBrokerProxy::DEFAULT_SPREADING_RATE_LOWERBOUND = 0.50;
-double ContextBrokerProxy::DEFAULT_SPREADING_RATE_UPPERBOUND = 0.70;
+double ContextBrokerProxy::DEFAULT_RENT_RATE = AttentionBrokerServer::RENT_RATE;
+double ContextBrokerProxy::DEFAULT_SPREADING_RATE_LOWERBOUND =
+    AttentionBrokerServer::SPREADING_RATE_LOWERBOUND;
+double ContextBrokerProxy::DEFAULT_SPREADING_RATE_UPPERBOUND =
+    AttentionBrokerServer::SPREADING_RATE_UPPERBOUND;
 
 // -------------------------------------------------------------------------------------------------
 // Constructors, destructors and initialization
@@ -108,7 +112,7 @@ void ContextBrokerProxy::untokenize(vector<string>& tokens) {
     tokens.erase(tokens.begin());
     this->stimulus_schema.clear();
     for (int i = 0; i < stimulus_size; i++) {
-        QueryAnswerElement element(tokens[0]);
+        auto element = QueryAnswerElement::from_string(tokens[0]);
         this->stimulus_schema.push_back(element);
         tokens.erase(tokens.begin());
     }
@@ -185,9 +189,9 @@ bool ContextBrokerProxy::from_remote_peer(const string& command, const vector<st
     if (BaseQueryProxy::from_remote_peer(command, args)) {
         return true;
     } else if (command == ATTENTION_BROKER_SET_PARAMETERS) {
-        this->rent_rate = std::stod(args[0]);
-        this->spreading_rate_lowerbound = std::stod(args[1]);
-        this->spreading_rate_upperbound = std::stod(args[2]);
+        this->rent_rate = Utils::string_to_float(args[0]);
+        this->spreading_rate_lowerbound = Utils::string_to_float(args[1]);
+        this->spreading_rate_upperbound = Utils::string_to_float(args[2]);
         this->update_attention_broker_parameters = true;
         return true;
     } else if (command == CONTEXT_CREATED) {

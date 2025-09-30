@@ -69,9 +69,7 @@ void ContextBrokerProcessor::thread_process_one_query(shared_ptr<StoppableThread
 
         // Do not allow use_cache == false and enforce_cache_recreation == true
         if (!proxy->get_use_cache() && proxy->get_enforce_cache_recreation()) {
-            LOG_ERROR("use_cache == false and enforce_cache_recreation == true is not allowed");
-            throw std::runtime_error(
-                "use_cache == false and enforce_cache_recreation == true is not allowed");
+            Utils::error("use_cache == false and enforce_cache_recreation == true is not allowed");
         }
 
         string command = proxy->get_command();

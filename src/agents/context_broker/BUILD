@@ -38,6 +38,7 @@ cc_library(
         "//agents:agents_lib",
         "//agents/query_engine:query_answer",
         "//atomdb:atomdb_singleton",
+        "//attention_broker:attention_broker_lib",
         "//commons:commons_lib",
         "//hasher:hasher_lib",
         "//service_bus:service_bus_lib",
