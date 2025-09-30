@@ -1,6 +1,6 @@
 #include <signal.h>
 
-#define LOG_LEVEL INFO_LEVEL
+#define LOG_LEVEL DEBUG_LEVEL
 
 #include <iomanip>
 #include <iostream>
@@ -111,13 +111,13 @@ static void print_answer(shared_ptr<QueryAnswer> query_answer) {
     cout << endl;
 }
 
-static shared_ptr<PatternMatchingQueryProxy> issue_query(const vector<string>& query_tokens,
-                                                         const string& context,
-                                                         unsigned int max_answers) {
+static shared_ptr<PatternMatchingQueryProxy> issue_link_building_query(const vector<string>& query_tokens,
+                                                                       const string& context,
+                                                                       unsigned int max_answers) {
     auto proxy = make_shared<PatternMatchingQueryProxy>(query_tokens, context);
     proxy->parameters[BaseQueryProxy::UNIQUE_ASSIGNMENT_FLAG] = true;
     proxy->parameters[BaseQueryProxy::ATTENTION_UPDATE_FLAG] = false;
-    proxy->parameters[BaseQueryProxy::USE_LINK_TEMPLATE_CACHE] = false;
+    proxy->parameters[BaseQueryProxy::USE_LINK_TEMPLATE_CACHE] = true;
     proxy->parameters[PatternMatchingQueryProxy::MAX_ANSWERS] = (unsigned int) max_answers;
     proxy->parameters[PatternMatchingQueryProxy::POSITIVE_IMPORTANCE_FLAG] = false;
     proxy->parameters[BaseQueryProxy::USE_METTA_AS_QUERY_TOKENS] = false;
@@ -125,6 +125,41 @@ static shared_ptr<PatternMatchingQueryProxy> issue_query(const vector<string>& q
 
     ServiceBusSingleton::get_instance()->issue_bus_command(proxy);
     return proxy;
+}
+
+static shared_ptr<PatternMatchingQueryProxy> issue_count_query(const vector<string>& query_tokens,
+                                                               const string& context) {
+
+    auto proxy = make_shared<PatternMatchingQueryProxy>(query_tokens, context);
+    proxy->parameters[BaseQueryProxy::UNIQUE_ASSIGNMENT_FLAG] = true;
+    proxy->parameters[BaseQueryProxy::ATTENTION_UPDATE_FLAG] = false;
+    proxy->parameters[BaseQueryProxy::USE_LINK_TEMPLATE_CACHE] = true;
+    proxy->parameters[PatternMatchingQueryProxy::MAX_ANSWERS] = (unsigned int) max_answers;
+    proxy->parameters[PatternMatchingQueryProxy::POSITIVE_IMPORTANCE_FLAG] = false;
+    proxy->parameters[BaseQueryProxy::USE_METTA_AS_QUERY_TOKENS] = false;
+    proxy->parameters[BaseQueryProxy::POPULATE_METTA_MAPPING] = false;
+
+    ServiceBusSingleton::get_instance()->issue_bus_command(proxy);
+    return proxy;
+}
+
+static void update_attention_allocation(const vector<string>& query_tokens,
+                                        const string& context) {
+
+    auto proxy = make_shared<PatternMatchingQueryProxy>(query_tokens, context);
+    proxy->parameters[BaseQueryProxy::UNIQUE_ASSIGNMENT_FLAG] = true;
+    proxy->parameters[BaseQueryProxy::ATTENTION_UPDATE_FLAG] = true;
+    proxy->parameters[BaseQueryProxy::USE_LINK_TEMPLATE_CACHE] = false;
+    proxy->parameters[PatternMatchingQueryProxy::POSITIVE_IMPORTANCE_FLAG] = false;
+    proxy->parameters[BaseQueryProxy::USE_METTA_AS_QUERY_TOKENS] = false;
+    proxy->parameters[BaseQueryProxy::POPULATE_METTA_MAPPING] = false;
+    proxy->parameters[PatternMatchingQueryProxy::COUNT_FLAG] = true;
+
+    ServiceBusSingleton::get_instance()->issue_bus_command(proxy);
+    while (!proxy->finished()) {
+        Utils::sleep();
+    }
+    LOG_INFO("Updated attention for " + to_string(proxy->get_count()) + " query answers");
 }
 
 static void insert_or_update(map<string, double>& count_map, const string& key, double value) {
@@ -148,11 +183,12 @@ static void compute_counts(const vector<vector<string>>& query_tokens,
     shared_ptr<PatternMatchingQueryProxy> proxy[2];
 
     for (unsigned int i = 0; i < 2; i++) {
+        issue_count_weight_query
         proxy[i] = make_shared<PatternMatchingQueryProxy>(query_tokens[i], context);
         proxy[i]->parameters[PatternMatchingQueryProxy::POSITIVE_IMPORTANCE_FLAG] = false;
         proxy[i]->parameters[BaseQueryProxy::UNIQUE_ASSIGNMENT_FLAG] = true;
         proxy[i]->parameters[BaseQueryProxy::ATTENTION_UPDATE_FLAG] = false;
-        proxy[i]->parameters[BaseQueryProxy::USE_LINK_TEMPLATE_CACHE] = false;
+        proxy[i]->parameters[BaseQueryProxy::USE_LINK_TEMPLATE_CACHE] = true;
         proxy[i]->parameters[BaseQueryProxy::USE_METTA_AS_QUERY_TOKENS] = false;
         proxy[i]->parameters[BaseQueryProxy::POPULATE_METTA_MAPPING] = false;
     }
@@ -210,6 +246,7 @@ static void compute_counts(const vector<vector<string>>& query_tokens,
     for (auto pair : count_map[1]) {
         count_1 += pair.second;
     }
+    LOG_DEBUG("Counts: " + to_string(count_0) + " " + to_string(count_1) + " " + to_string(count_intersection) + " " + to_string(count_union));
 }
 
 static void add_or_update_link(const string& type_handle,
@@ -217,10 +254,13 @@ static void add_or_update_link(const string& type_handle,
                                const string& target2,
                                double strength) {
     Link new_link(EXPRESSION, {type_handle, target1, target2}, true, {{STRENGTH, strength}});
+    LOG_DEBUG("Add or update: " + new_link.to_string());
     string handle = new_link.handle();
     if (db->link_exists(handle)) {
         auto old_link = db->get_atom(handle);
+        LOG_DEBUG("Link already exists: " + old_link->to_string());
         if (strength > old_link->custom_attributes.get<double>(STRENGTH)) {
+            LOG_DEBUG("Updating");
             db->delete_link(handle, false);
             db->add_link(&new_link);
         }
@@ -236,38 +276,49 @@ static void build_implication_link(shared_ptr<QueryAnswer> query_answer, const s
     }
 
     string predicate[2] = {query_answer->handles[0], query_answer->handles[1]};
+    LOG_DEBUG("Evaluating implication: " + get_predicate_name(predicate[0]) + " ==> " + get_predicate_name(predicate[1]));
     vector<vector<string>> query;
 
     for (unsigned int i = 0; i < 2; i++) {
         // clang-format off
-        query[i] = {
-            OR_OPERATOR, "2"
+        query.push_back({
+            OR_OPERATOR, "2",
             LINK_TEMPLATE, EXPRESSION, "3",
                 NODE, SYMBOL, EVALUATION,
                 ATOM, predicate[i],
-                VARIABLE, CONCEPT1,
+                LINK_TEMPLATE, EXPRESSION, "2",
+                    NODE, SYMBOL, CONCEPT,
+                    VARIABLE, CONCEPT1,
             AND_OPERATOR, "2",
                 LINK_TEMPLATE, EXPRESSION, "3",
                     NODE, SYMBOL, EVALUATION,
                     ATOM, predicate[i],
-                    VARIABLE, CONCEPT2,
+                    LINK_TEMPLATE, EXPRESSION, "2",
+                        NODE, SYMBOL, CONCEPT,
+                        VARIABLE, CONCEPT2,
                 LINK_TEMPLATE, EXPRESSION, "3",
                     NODE, SYMBOL, EQUIVALENCE,
-                    VARIABLE, CONCEPT2,
-                    VARIABLE, CONCEPT1,
-        };
+                    LINK_TEMPLATE, EXPRESSION, "2",
+                        NODE, SYMBOL, CONCEPT,
+                        VARIABLE, CONCEPT2,
+                    LINK_TEMPLATE, EXPRESSION, "2",
+                        NODE, SYMBOL, CONCEPT,
+                        VARIABLE, CONCEPT1,
+        });
         // clang-format on
     }
     double count_0, count_1, count_intersection, count_union;
     QueryAnswerElement target_element(CONCEPT1);
     compute_counts(query, context, target_element, count_0, count_1, count_intersection, count_union);
-    if (count_0 > 0) {
-        double strength = count_intersection / count_0;
-        add_or_update_link(IMPLICATION_HANDLE, predicate[0], predicate[1], strength);
-    }
-    if (count_1 > 0) {
-        double strength = count_intersection / count_1;
-        add_or_update_link(IMPLICATION_HANDLE, predicate[1], predicate[0], strength);
+    if (count_intersection > 0) {
+        if (count_0 > 0) {
+            double strength = count_intersection / count_0;
+            add_or_update_link(IMPLICATION_HANDLE, predicate[0], predicate[1], strength);
+        }
+        if (count_1 > 0) {
+            double strength = count_intersection / count_1;
+            add_or_update_link(IMPLICATION_HANDLE, predicate[1], predicate[0], strength);
+        }
     }
 }
 
@@ -280,28 +331,36 @@ static void build_equivalence_link(shared_ptr<QueryAnswer> query_answer, const s
     vector<vector<string>> query;
     for (unsigned int i = 0; i < 2; i++) {
         // clang-format off
-        query[i] = {
-            OR_OPERATOR, "2"
+        query.push_back({
+            OR_OPERATOR, "2",
             LINK_TEMPLATE, EXPRESSION, "3",
                 NODE, SYMBOL, EVALUATION,
-                VARIABLE, PREDICATE1,
+                LINK_TEMPLATE, EXPRESSION, "2",
+                    NODE, SYMBOL, PREDICATE,
+                    VARIABLE, PREDICATE1,
                 ATOM, concept_[i],
             AND_OPERATOR, "2",
                 LINK_TEMPLATE, EXPRESSION, "3",
                     NODE, SYMBOL, EVALUATION,
-                    VARIABLE, PREDICATE2,
+                    LINK_TEMPLATE, EXPRESSION, "2",
+                        NODE, SYMBOL, PREDICATE,
+                        VARIABLE, PREDICATE2,
                     ATOM, concept_[i],
                 LINK_TEMPLATE, EXPRESSION, "3",
                     NODE, SYMBOL, IMPLICATION,
-                    VARIABLE, PREDICATE2,
-                    VARIABLE, PREDICATE1,
-        };
+                    LINK_TEMPLATE, EXPRESSION, "2",
+                        NODE, SYMBOL, PREDICATE,
+                        VARIABLE, PREDICATE2,
+                    LINK_TEMPLATE, EXPRESSION, "2",
+                        NODE, SYMBOL, PREDICATE,
+                        VARIABLE, PREDICATE1,
+        });
         // clang-format on
     }
     double count_0, count_1, count_intersection, count_union;
     QueryAnswerElement target_element(PREDICATE1);
     compute_counts(query, context, target_element, count_0, count_1, count_intersection, count_union);
-    if (count_union > 0) {
+    if ((count_intersection > 0) && (count_union > 0)) {
         double strength = count_intersection / count_union;
         add_or_update_link(EQUIVALENCE_HANDLE, concept_[0], concept_[1], strength);
         add_or_update_link(EQUIVALENCE_HANDLE, concept_[1], concept_[0], strength);
@@ -311,14 +370,15 @@ static void build_equivalence_link(shared_ptr<QueryAnswer> query_answer, const s
 static void build_links(const vector<string>& query,
                         const string& context,
                         void (*build_link)(shared_ptr<QueryAnswer> query_answer, const string& context)) {
-    auto proxy = issue_query(query, context, LINK_BUILDING_QUERY_SIZE);
+    auto proxy = issue_link_building_query(query, context, LINK_BUILDING_QUERY_SIZE);
     unsigned int count = 0;
     shared_ptr<QueryAnswer> query_answer;
     while (!proxy->finished()) {
-        if ((query_answer = proxy->pop()) == NULL) {
-            Utils::sleep();
+        if ((query_answer = proxy->pop()) == nullptr) {
+            Utils::sleep(10000);
         } else {
             if (++count <= LINK_BUILDING_QUERY_SIZE) {
+                LOG_DEBUG("Processing query answer " + to_string(count) + ": " + query_answer->to_string());
                 build_link(query_answer, context);
             } else {
                 proxy->abort();
@@ -401,51 +461,72 @@ static void run(const string& predicate_source, const string& predicate_target, 
     vector<string> chain_query = {
         OR_OPERATOR, "3",
             AND_OPERATOR, "2",
-                LINK_TEMPLATE, EXPRESSION, "2",
+                LINK_TEMPLATE, EXPRESSION, "3",
                     NODE, SYMBOL, IMPLICATION,
                     ATOM, predicate_source,
                     VARIABLE, PREDICATE1,
-                LINK_TEMPLATE, EXPRESSION, "2",
+                LINK_TEMPLATE, EXPRESSION, "3",
                     NODE, SYMBOL, IMPLICATION,
                     VARIABLE, PREDICATE1,
                     ATOM, predicate_target,
             AND_OPERATOR, "3",
-                LINK_TEMPLATE, EXPRESSION, "2",
+                LINK_TEMPLATE, EXPRESSION, "3",
                     NODE, SYMBOL, IMPLICATION,
                     ATOM, predicate_source,
                     VARIABLE, PREDICATE1,
-                LINK_TEMPLATE, EXPRESSION, "2",
+                LINK_TEMPLATE, EXPRESSION, "3",
                     NODE, SYMBOL, IMPLICATION,
                     VARIABLE, PREDICATE1,
                     VARIABLE, PREDICATE2,
-                LINK_TEMPLATE, EXPRESSION, "2",
+                LINK_TEMPLATE, EXPRESSION, "3",
                     NODE, SYMBOL, IMPLICATION,
                     VARIABLE, PREDICATE2,
                     ATOM, predicate_target,
             AND_OPERATOR, "4",
-                LINK_TEMPLATE, EXPRESSION, "2",
+                LINK_TEMPLATE, EXPRESSION, "3",
                     NODE, SYMBOL, IMPLICATION,
                     ATOM, predicate_source,
                     VARIABLE, PREDICATE1,
-                LINK_TEMPLATE, EXPRESSION, "2",
+                LINK_TEMPLATE, EXPRESSION, "3",
                     NODE, SYMBOL, IMPLICATION,
                     VARIABLE, PREDICATE1,
                     VARIABLE, PREDICATE2,
-                LINK_TEMPLATE, EXPRESSION, "2",
+                LINK_TEMPLATE, EXPRESSION, "3",
                     NODE, SYMBOL, IMPLICATION,
                     VARIABLE, PREDICATE2,
                     VARIABLE, PREDICATE3,
-                LINK_TEMPLATE, EXPRESSION, "2",
+                LINK_TEMPLATE, EXPRESSION, "3",
                     NODE, SYMBOL, IMPLICATION,
                     VARIABLE, PREDICATE3,
                     ATOM, predicate_target,
     };
 
     vector<string> context_query = {
+        OR_OPERATOR, "2",
         LINK_TEMPLATE, EXPRESSION, "3",
-            VARIABLE, V1,
+            NODE, SYMBOL, EVALUATION,
             VARIABLE, V2,
             VARIABLE, V3,
+        LINK_TEMPLATE, EXPRESSION, "3",
+            NODE, SYMBOL, CONTAINS,
+            VARIABLE, V2,
+            VARIABLE, V3,
+    };
+
+    vector<string> attention_update_query = {
+        OR_OPERATOR, "2",
+        LINK_TEMPLATE, EXPRESSION, "3",
+            NODE, SYMBOL, EVALUATION,
+            ATOM, predicate_source,
+            LINK_TEMPLATE, EXPRESSION, "2",
+                NODE, SYMBOL, CONCEPT,
+                VARIABLE, SENTENCE1,
+        LINK_TEMPLATE, EXPRESSION, "3",
+            NODE, SYMBOL, EVALUATION,
+            ATOM, predicate_target,
+            LINK_TEMPLATE, EXPRESSION, "2",
+                NODE, SYMBOL, CONCEPT,
+                VARIABLE, SENTENCE1,
     };
 
     vector<vector<string>> correlation_query_template = {{
@@ -559,44 +640,6 @@ static void run(const string& predicate_source, const string& predicate_target, 
     };
 
     /*******************************************************************
-    // NOTE TO REVISOR: I left these queries in comments below just to keep
-    // all queries in the same place to ease reference. They can't be pre-defined
-    // like the other ones because they both contain a dynamic component.
-
-    build_implication = {
-        OR_OPERATOR, "2"
-        LINK_TEMPLATE, EXPRESSION, "3",
-            NODE, SYMBOL, EVALUATION,
-            ATOM, predicate[i],
-            VARIABLE, CONCEPT1,
-        AND_OPERATOR, "2",
-            LINK_TEMPLATE, EXPRESSION, "3",
-                NODE, SYMBOL, EVALUATION,
-                ATOM, predicate[i],
-                VARIABLE, CONCEPT2,
-            LINK_TEMPLATE, EXPRESSION, "3",
-                NODE, SYMBOL, EQUIVALENCE,
-                VARIABLE, CONCEPT2,
-                VARIABLE, CONCEPT1,
-    };
-
-    build_equivalence = {
-        OR_OPERATOR, "2"
-        LINK_TEMPLATE, EXPRESSION, "3",
-            NODE, SYMBOL, EVALUATION,
-            VARIABLE, PREDICATE1,
-            ATOM, concept_[i],
-        AND_OPERATOR, "2",
-            LINK_TEMPLATE, EXPRESSION, "3",
-                NODE, SYMBOL, EVALUATION,
-                VARIABLE, PREDICATE2,
-                ATOM, concept_[i],
-            LINK_TEMPLATE, EXPRESSION, "3",
-                NODE, SYMBOL, IMPLICATION,
-                VARIABLE, PREDICATE2,
-                VARIABLE, PREDICATE1,
-    };
-
     Toplevel expressions (-> created -- knowledge base):
 
     ->  (IMPLICATION (PREDICATE "feature_contains_adc_cbc") (PREDICATE "feature_contains_ccc_cac"))
@@ -614,6 +657,7 @@ static void run(const string& predicate_source, const string& predicate_target, 
     ********************************************************************/
     // clang-format on
 
+    LOG_INFO("Source: " + get_predicate_name(predicate_source) + " Target: " + get_predicate_name(predicate_target));
     LOG_INFO("Setting up context");
     AtomSpace atom_space;
     QueryAnswerElement target2(V2);
@@ -624,11 +668,23 @@ static void run(const string& predicate_source, const string& predicate_target, 
     string context = context_obj->get_key();
     LOG_INFO("Context " + context + " is ready");
 
+    LOG_INFO("Updating attention allocation");
+    update_attention_allocation(attention_update_query, context);
+
     for (unsigned int i = 0; i < NUM_ITERATIONS; i++) {
+        LOG_INFO("--------------------------------------------------------------------------------");
+        LOG_INFO("Iteration " + to_string(i + 1));
+        LOG_INFO("--------------------------------------------------------------------------------");
+        LOG_INFO("----- Building links");
+        LOG_DEBUG("Implication");
         build_links(implication_query, context, build_implication_link);
+        LOG_DEBUG("Equivalence");
+        exit(0);
         build_links(equivalence_query, context, build_equivalence_link);
+        LOG_INFO("----- Updating AttentionBroker");
         AttentionBrokerClient::set_determiners(buffer_determiners, context);
         buffer_determiners.clear();
+        LOG_INFO("----- Evolving query");
         evolve_chain_query(chain_query,
                            correlation_query_template,
                            correlation_query_constants,
@@ -637,12 +693,24 @@ static void run(const string& predicate_source, const string& predicate_target, 
     }
 }
 
+void insert_type_symbols() {
+    vector<string> to_insert = {EQUIVALENCE, IMPLICATION};
+    Node *node;
+    for (string node_name : to_insert) {
+        node = new Node(SYMBOL, node_name);
+        if (! db->node_exists(node->handle())) {
+            db->add_node(node);
+        }
+        delete(node);
+    }
+}
+
 int main(int argc, char* argv[]) {
     // clang-format off
     if (argc != 15) {
         cerr << "Usage: " << argv[0]
              << " <client id> <server id> <start_port:end_port> <context_tag>"
-                " <source_predicate> <target_predicate>"
+                " <source_preEQUIVALENCE)dicate> <target_predicate>"
                 " <RENT_RATE> <SPREADING_RATE_LOWERBOUND> <SPREADING_RATE_UPPERBOUND>"
                 " <ELITISM_RATE> <SELECTION_RATE>"
                 " <POPULATION_SIZE> <MAX_GENERATIONS> <NUM_ITERATIONS>" << endl;
@@ -681,6 +749,7 @@ int main(int argc, char* argv[]) {
     bus = ServiceBusSingleton::get_instance();
     AttentionBrokerClient::set_parameters(
         RENT_RATE, SPREADING_RATE_LOWERBOUND, SPREADING_RATE_UPPERBOUND);
+    insert_type_symbols();
 
     LOG_INFO("ELITISM_RATE: " + to_string(ELITISM_RATE));
     LOG_INFO("RENT_RATE: " + to_string(RENT_RATE));
@@ -693,10 +762,17 @@ int main(int argc, char* argv[]) {
     LOG_INFO("NUM_ITERATIONS: " + to_string(NUM_ITERATIONS));
 
     Node predicate_symbol(SYMBOL, PREDICATE);
-    Node source_predicate_symbol(SYMBOL, source_predicate);
-    Node target_predicate_symbol(SYMBOL, target_predicate);
+    //cout << "XXXXX " << source_predicate << endl;
+    //cout << "XXXXX " << target_predicate << endl;
+    Node source_predicate_symbol(SYMBOL, "\"" + source_predicate + "\"");
+    Node target_predicate_symbol(SYMBOL, "\"" + target_predicate + "\"");
+    //cout << "XXXXX " << predicate_symbol.to_string() << " " << predicate_symbol.handle() << endl;
+    //cout << "XXXXX " << source_predicate_symbol.to_string() << " " << source_predicate_symbol.handle() << endl;
+    //cout << "XXXXX " << target_predicate_symbol.to_string() << " " << target_predicate_symbol.handle() << endl;
     Link source(EXPRESSION, {predicate_symbol.handle(), source_predicate_symbol.handle()});
     Link target(EXPRESSION, {predicate_symbol.handle(), target_predicate_symbol.handle()});
+    //cout << "XXXXX " << source.to_string() << " " << source.handle() << endl;
+    //cout << "XXXXX " << target.to_string() << " " << target.handle() << endl;
     run(source.handle(), target.handle(), context_tag);
 
     return 0;
