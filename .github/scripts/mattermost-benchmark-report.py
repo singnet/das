@@ -8,6 +8,9 @@ from statistics import mean
 import pandas as pd
 import matplotlib.pyplot as plt
 from pathlib import Path
+import subprocess
+import tempfile
+import html as html_lib
 
 TITLE_ALIAS_MAP = {
     "morkdb": "MorkDB",
@@ -25,7 +28,10 @@ def run_sqlite_query(db_path, query, params=None):
 
 def get_pr_info(repo, sha, token):
     url = f"https://api.github.com/repos/{repo}/commits/{sha}/pulls"
-    headers = {"Authorization": f"token {token}", "Accept": "application/vnd.github.groot-preview+json"}
+    headers = {
+        "Authorization": f"token {token}",
+        "Accept": "application/vnd.github.groot-preview+json",
+    }
     r = requests.get(url, headers=headers, timeout=30)
     r.raise_for_status()
     return r.json()
@@ -47,7 +53,9 @@ def get_prefixes(results):
     return sorted({r["backend"] for r in results})
 
 
-def get_history_for_operation(db_path, backend, operation, benchmark_type_id, window=10):
+def get_history_for_operation(
+    db_path, backend, operation, benchmark_type_id, window=10
+):
     query = """
     SELECT r.median_operation_time_ms,
            r.throughput,
@@ -62,7 +70,9 @@ def get_history_for_operation(db_path, backend, operation, benchmark_type_id, wi
     ORDER BY r.benchmark_execution_id DESC
     LIMIT ?
     """
-    rows = run_sqlite_query(db_path, query, (backend, operation, benchmark_type_id, window))
+    rows = run_sqlite_query(
+        db_path, query, (backend, operation, benchmark_type_id, window)
+    )
     return rows[::-1]
 
 
@@ -78,10 +88,14 @@ def get_benchmark_result_by_id(db_path, benchmark_id):
         WHERE r.benchmark_execution_id = ?;
     """
     rows = run_sqlite_query(db_path, query, (benchmark_id,))
-    col_names = [d[1] for d in sqlite3.connect(db_path).execute("PRAGMA table_info(benchmark_result)").fetchall()]
+    col_names = [
+        d[1]
+        for d in sqlite3.connect(db_path)
+        .execute("PRAGMA table_info(benchmark_result)")
+        .fetchall()
+    ]
     col_names.append("benchmark_type_id")
     return [dict(zip(col_names, row)) for row in rows]
-
 
 
 def build_metadata_section(repo, sha, token, title):
@@ -91,67 +105,91 @@ def build_metadata_section(repo, sha, token, title):
     pr_url = pr_info[0]["html_url"] if pr_info else ""
     pr_number = pr_info[0]["number"] if pr_info else ""
     pr_title = pr_info[0]["title"] if pr_info else ""
-    pr_base_branch = pr_info[0].get("base", {}).get("ref", "master") if pr_info else "master"
+    pr_base_branch = (
+        pr_info[0].get("base", {}).get("ref", "master") if pr_info else "master"
+    )
 
     commit_date = commit_info["commit"]["author"]["date"]
-    commit_date_fmt = datetime.strptime(commit_date, "%Y-%m-%dT%H:%M:%SZ").strftime("%Y-%m-%d %H:%M UTC")
+    commit_date_fmt = datetime.strptime(commit_date, "%Y-%m-%dT%H:%M:%SZ").strftime(
+        "%Y-%m-%d %H:%M UTC"
+    )
     commit_sha_short = sha[:7]
 
-    md = [f"## {title}\n"]
-    md.append(f"**Repository:** {repo}")
-    if pr_url:
-        md.append(f"**Source:** [#{pr_number} - {pr_title}]({pr_url})")
-    md.append(f"**Date:** {commit_date_fmt}")
+    md = {
+        "title": title,
+        "repo": repo,
+        "pr_url": pr_url,
+        "pr_number": pr_number,
+        "pr_title": pr_title,
+        "pr_base_branch": pr_base_branch,
+        "date": commit_date_fmt,
+        "commit_sha_short": commit_sha_short,
+    }
 
-    commit_line = f"**Commit:** `{commit_sha_short}`"
-    if pr_url:
-        commit_line += f" ({pr_base_branch})"
-    md.append(commit_line)
-
-    return "\n".join(md)
+    return md
 
 
-def generate_chart_for_operation(db_path, backend, operation, benchmark_type_id, window=10, output_dir="charts"):
-    history = get_history_for_operation(db_path, backend, operation, benchmark_type_id, window)
+def generate_chart_for_operation(
+    db_path, backend, operation, benchmark_type_id, ssh, window=10, output_dir="charts"
+):
+    history = get_history_for_operation(
+        db_path, backend, operation, benchmark_type_id, window
+    )
     if not history:
         return None
 
     medians = [h[0] for h in history]
-    x = list(range(1, len(medians) + 1))  
+    x = list(range(1, len(medians) + 1))
 
     ma = pd.Series(medians).rolling(window=window, min_periods=1).mean()
 
     output_path = Path(output_dir)
     output_path.mkdir(parents=True, exist_ok=True)
 
-    plt.figure(figsize=(4, 2), dpi=100)
+    plt.figure(figsize=(3, 0.6), dpi=100)
 
-    plt.plot(x, medians, marker="o", alpha=0.5, label="Median", linewidth=1)
-    plt.plot(x, ma, linewidth=1.5, label=f"{window}-exec MA")
-    plt.scatter(x[-1], medians[-1], color="red", s=20, zorder=5, label="Latest")
+    plt.plot(x, ma, linewidth=1)
 
-    plt.title(operation, fontsize=8)
-    plt.tick_params(axis="both", which="major", labelsize=6)
-    plt.grid(True, linewidth=0.3)
+    latest = medians[-1]
+    plt.axhline(latest, linewidth=0.8)
 
-    plt.legend(fontsize=6, loc="upper center", bbox_to_anchor=(0.5, -0.2), ncol=3, frameon=False)
+    plt.yticks(fontsize=6)
+    plt.xticks([])
+
+    for spine in ["top", "right", "bottom"]:
+        plt.gca().spines[spine].set_visible(False)
 
     img_name = f"{backend}_{operation}_type{benchmark_type_id}.png"
     img_path = output_path / img_name
-    plt.tight_layout(pad=0.3)
-    plt.savefig(img_path, bbox_inches="tight")
+    plt.tight_layout(pad=0.1)
+    plt.savefig(img_path, bbox_inches="tight", pad_inches=0.05)
     plt.close()
 
-    return str(img_path)
+    remote_path = upload_file_via_ssh(
+        ssh["host"],
+        ssh["key"],
+        ssh["remote_dir"],
+        img_path,
+        ssh["public_url_base"],
+    )
+    return remote_path
 
 
+def build_table_for_prefix_html(
+    db_path, results, prefix, benchmark_type_id, ssh, window=10, threshold=10
+):
+    rows_html = []
+    title = format_title(prefix)
+    rows_html.append(f"<h3>{html_lib.escape(title)}</h3>")
+    rows_html.append(
+        '<table class="bench">\n<thead><tr>\n<th>Operation</th><th>Median (ms)</th><th>Δ Median</th><th>Time Per Atom (ms)</th><th>Δ TPA</th><th>Throughput</th><th>Δ TP</th><th>Chart</th>\n</tr></thead>\n<tbody>'
+    )
 
-def build_table_for_prefix(db_path, results, prefix, benchmark_type_id, window=10, threshold=10):
-    md = [f"\n\n### {format_title(prefix)}\n"]
-    md.append("| Operation | Median | Δ Median | Time Per Atom | Δ TPA | Throughput | Δ TP | Chart |")
-    md.append("|-----------|--------|----------|---------------|-------|------------|------|-------|")
-
-    for row in (r for r in results if r["backend"] == prefix and r["benchmark_type_id"] == benchmark_type_id):
+    for row in (
+        r
+        for r in results
+        if r["backend"] == prefix and r["benchmark_type_id"] == benchmark_type_id
+    ):
         op = row["operation"]
         median_val = row["median_operation_time_ms"]
         tpa_val = row["time_per_atom_ms"]
@@ -159,14 +197,18 @@ def build_table_for_prefix(db_path, results, prefix, benchmark_type_id, window=1
 
         delta_median = delta_tpa = delta_tp = "N/A"
 
-        history = get_history_for_operation(db_path, prefix, op, benchmark_type_id, window)
+        history = get_history_for_operation(
+            db_path, prefix, op, benchmark_type_id, window
+        )
         if history:
             hist_median_avg = mean(h[0] for h in history)
             hist_tpa_avg = mean(h[2] for h in history)
             hist_tp_avg = mean(h[1] for h in history)
 
             if hist_median_avg > 0:
-                delta_median_val = ((median_val - hist_median_avg) / hist_median_avg) * 100
+                delta_median_val = (
+                    (median_val - hist_median_avg) / hist_median_avg
+                ) * 100
                 delta_median = f"{delta_median_val:+.1f}%"
             if hist_tpa_avg > 0:
                 delta_tpa_val = ((tpa_val - hist_tpa_avg) / hist_tpa_avg) * 100
@@ -176,29 +218,113 @@ def build_table_for_prefix(db_path, results, prefix, benchmark_type_id, window=1
                 delta_tp = f"{delta_tp_val:+.1f}%"
 
             if median_val > hist_median_avg * (1 + threshold / 100):
-                median_val = f":red_circle: {median_val}"
+                median_display = f'<span class="regress">{median_val}</span>'
+            else:
+                median_display = str(median_val)
+
             if tpa_val > hist_tpa_avg * (1 + threshold / 100):
-                tpa_val = f":red_circle: {tpa_val}"
+                tpa_display = f'<span class="regress">{tpa_val}</span>'
+            else:
+                tpa_display = str(tpa_val)
+
             if tp_val < hist_tp_avg * (1 - threshold / 100):
-                tp_val = f":red_circle: {tp_val}"
+                tp_display = f'<span class="regress">{tp_val}</span>'
+            else:
+                tp_display = str(tp_val)
+        else:
+            median_display = str(median_val)
+            tpa_display = str(tpa_val)
+            tp_display = str(tp_val)
 
-        chart_path = ".github/scripts/" + generate_chart_for_operation(db_path, prefix, op, benchmark_type_id, window)
-        chart_md = f"![{op}]({chart_path})" if chart_path else "N/A"
+        chart_url = generate_chart_for_operation(
+            db_path, prefix, op, benchmark_type_id, ssh, window
+        )
+        chart_html = (
+            f'<img src="{html_lib.escape(str(chart_url))}" alt="{html_lib.escape(str(op))}" class="thumb"/>'
+            if chart_url
+            else "N/A"
+        )
 
-        md.append(f"| {op} | {median_val} | {delta_median} | {tpa_val} | {delta_tpa} | {tp_val} | {delta_tp} | {chart_md} |")
+        rows_html.append(
+            f"<tr><td>{html_lib.escape(op)}</td><td>{median_display}</td><td>{delta_median}</td><td>{tpa_display}</td><td>{delta_tpa}</td><td>{tp_display}</td><td>{delta_tp}</td><td>{chart_html}</td></tr>"
+        )
 
-    return "\n".join(md)
+    rows_html.append("</tbody></table>")
+    return "\n".join(rows_html)
 
 
+def generate_html(
+    db_path,
+    results,
+    repo,
+    sha,
+    token,
+    title,
+    ssh,
+    window=10,
+    threshold=10,
+):
+    meta = build_metadata_section(repo, sha, token, title)
 
-def generate_message(db_path, results, repo, sha, token, title, window=10, threshold=10):
-    message = build_metadata_section(repo, sha, token, title)
     prefixes = get_prefixes(results)
+
+    body_chunks = []
+    body_chunks.append(f"<h1>{html_lib.escape(meta['title'])}</h1>")
+    body_chunks.append(
+        f"<p><strong>Repository:</strong> {html_lib.escape(meta['repo'])}</p>"
+    )
+    if meta["pr_url"]:
+        body_chunks.append(
+            f"<p><strong>Source:</strong> <a href=\"{html_lib.escape(meta['pr_url'])}\">#{meta['pr_number']} - {html_lib.escape(meta['pr_title'])}</a></p>"
+        )
+    body_chunks.append(f"<p><strong>Date:</strong> {html_lib.escape(meta['date'])}</p>")
+    body_chunks.append(
+        f"<p><strong>Commit:</strong> <code>{html_lib.escape(meta['commit_sha_short'])}</code> ({html_lib.escape(meta['pr_base_branch'])})</p>"
+    )
+
     for prefix in prefixes:
-        type_ids = sorted({r["benchmark_type_id"] for r in results if r["backend"] == prefix})
+        type_ids = sorted(
+            {r["benchmark_type_id"] for r in results if r["backend"] == prefix}
+        )
         for type_id in type_ids:
-            message += build_table_for_prefix(db_path, results, prefix, type_id, window, threshold)
-    return message
+            body_chunks.append(
+                build_table_for_prefix_html(
+                    db_path,
+                    results,
+                    prefix,
+                    type_id,
+                    ssh,
+                    window,
+                    threshold,
+                )
+            )
+
+    css = """
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial; font-size:14px; }
+    .bench { border-collapse: collapse; width: 100%; margin-bottom: 20px; }
+    .bench th, .bench td { border: 1px solid #ddd; padding: 6px; font-size:13px; }
+    .bench th { background: #f7f7f7; text-align: left; }
+    .thumb { height: 40px; }
+    .regress { color: #c0392b; font-weight: 600; }
+    """
+
+    html_doc = f"<!doctype html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\">\n<meta name=\"viewport\" content=\"width=device-width,initial-scale=1\">\n<title>{html_lib.escape(meta['title'])}</title>\n<style>{css}</style>\n</head>\n<body>\n{''.join(body_chunks)}\n</body>\n</html>"
+
+    return html_doc
+
+
+def generate_mattermost_message(repo, sha, token, title, report_url):
+    meta = build_metadata_section(repo, sha, token, title)
+
+    message_text = (
+        f"## {meta['title']}\n"
+        f"**Repository:** {meta['repo']}\n"
+        f"**Commit:** {meta['commit_sha_short']}\n"
+        f"**Date:** {meta['date']}\n\n"
+        f"**Report:** {report_url}"
+    )
+
+    save_message_as_json(message_text, "mattermost_report.json")
 
 
 def update_benchmark_execution(db_path, benchmark_id, repo, sha, token):
@@ -227,28 +353,156 @@ def save_message_as_json(msg, output_file="mattermost.json"):
         json.dump({"text": msg}, f, ensure_ascii=False, indent=2)
 
 
+def create_remote_dir(ssh_host, ssh_key, ssh_path):
+    ts = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S")
+    remote_dir = os.path.join(ssh_path, ts)
+    subprocess.run(
+        ["ssh", "-i", ssh_key, ssh_host, "mkdir", "-p", remote_dir],
+        check=True,
+    )
+    return remote_dir, ts
+
+
+def build_public_url(ssh_host, ssh_path, ts):
+    hostname = ssh_host.split("@")[-1]
+    last_dir = os.path.basename(ssh_path.rstrip("/"))
+    return f"http://{hostname}/{last_dir}/{ts}"
+
+
+def upload_file_via_ssh(ssh_host, ssh_key, remote_dir, file_path, public_url_base=None):
+    remote_path = os.path.join(remote_dir, os.path.basename(file_path))
+    subprocess.run(
+        ["scp", "-i", ssh_key, str(file_path), f"{ssh_host}:{remote_path}"],
+        check=True,
+    )
+    if public_url_base:
+        return f"{public_url_base}/{os.path.basename(file_path)}"
+    return os.path.basename(file_path)
+
+
+def save_html_and_upload(html_content, ssh):
+    with tempfile.NamedTemporaryFile(
+        "w",
+        delete=False,
+        suffix=".html",
+        encoding="utf-8",
+    ) as tmp:
+        tmp.write(html_content)
+        tmp_path = tmp.name
+
+    remote_html = upload_file_via_ssh(
+        ssh["host"],
+        ssh["key"],
+        ssh["remote_dir"],
+        tmp_path,
+        ssh["public_url_base"],
+    )
+    os.unlink(tmp_path)
+    return remote_html
+
+
 def main():
-    parser = argparse.ArgumentParser(description="Generate benchmark report")
-    parser.add_argument("--benchmark-id", required=True, type=int, help="ID of the benchmark execution")
+    parser = argparse.ArgumentParser(description="Generate benchmark report (HTML)")
+    parser.add_argument(
+        "--benchmark-id", required=True, type=int, help="ID of the benchmark execution"
+    )
     parser.add_argument("--title", required=True, help="Report title")
-    parser.add_argument("--db-path", default=f"/home/{os.getenv('USER')}/.cache/shared/benchmark.db", help="Path to SQLite DB")
-    parser.add_argument("--repo", default=os.getenv("GITHUB_REPOSITORY", ""), help="GitHub repository")
-    parser.add_argument("--sha", default=os.getenv("GITHUB_SHA", ""), help="Git commit SHA")
-    parser.add_argument("--token", default=os.getenv("GITHUB_TOKEN", ""), help="GitHub token")
+    parser.add_argument(
+        "--db-path",
+        default=f"/home/{os.getenv('USER')}/.cache/shared/benchmark.db",
+        help="Path to SQLite DB",
+    )
+    parser.add_argument(
+        "--repo",
+        default=os.getenv("GITHUB_REPOSITORY", ""),
+        help="GitHub repository",
+    )
+    parser.add_argument(
+        "--sha",
+        default=os.getenv("GITHUB_SHA", ""),
+        help="Git commit SHA",
+    )
+    parser.add_argument(
+        "--token",
+        default=os.getenv("GITHUB_TOKEN", ""),
+        help="GitHub token",
+    )
     parser.add_argument("--window", type=int, default=10, help="History window size")
-    parser.add_argument("--threshold", type=int, default=10, help="Deviation threshold in percent")
-    parser.add_argument("--output", default="mattermost.json", help="Output JSON file")
+    parser.add_argument(
+        "--threshold",
+        type=int,
+        default=10,
+        help="Deviation threshold in percent",
+    )
+    parser.add_argument(
+        "--output",
+        default="report.html",
+        help="Output HTML file name (local)",
+    )
+    parser.add_argument("--ssh-host", required=True, help="SSH host (ex: user@host)")
+    parser.add_argument(
+        "--ssh-path",
+        required=True,
+        help="Remote path (ex: /var/www/html/reports/)",
+    )
+    parser.add_argument(
+        "--ssh-key",
+        required=True,
+        help="Path to private key (PEM file)",
+    )
     args = parser.parse_args()
+
+    ssh = {
+        "host": args.ssh_host,
+        "path": args.ssh_path,
+        "key": args.ssh_key,
+    }
 
     results = get_benchmark_result_by_id(args.db_path, args.benchmark_id)
     if not results:
         print("Benchmark result could not be found in the database")
         return
 
-    message = generate_message(args.db_path, results, args.repo, args.sha, args.token, args.title, args.window, args.threshold)
-    print(message)
-    save_message_as_json(message, args.output)
-    update_benchmark_execution(args.db_path, args.benchmark_id, args.repo, args.sha, args.token)
+    remote_dir, ts = create_remote_dir(ssh["host"], ssh["key"], ssh["path"])
+    public_url_base = build_public_url(ssh["host"], ssh["path"], ts)
+
+    ssh["remote_dir"] = remote_dir
+    ssh["public_url_base"] = public_url_base
+
+    html = generate_html(
+        args.db_path,
+        results,
+        args.repo,
+        args.sha,
+        args.token,
+        args.title,
+        ssh,
+        args.window,
+        args.threshold,
+    )
+
+    local_out = Path(args.output)
+    local_out.write_text(html, encoding="utf-8")
+
+    remote_html_url = save_html_and_upload(html, ssh)
+
+    print("Report generated and uploaded:", remote_html_url)
+
+    generate_mattermost_message(
+        args.repo,
+        args.sha,
+        args.token,
+        args.title,
+        remote_html_url,
+    )
+
+    update_benchmark_execution(
+        args.db_path,
+        args.benchmark_id,
+        args.repo,
+        args.sha,
+        args.token,
+    )
 
 
 if __name__ == "__main__":
