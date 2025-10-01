@@ -64,7 +64,7 @@ static float SPREADING_RATE_LOWERBOUND = 0.90;
 static float SPREADING_RATE_UPPERBOUND = 0.90;
 static double SELECTION_RATE = 0.10;
 static double ELITISM_RATE = 0.08;
-static unsigned int LINK_BUILDING_QUERY_SIZE = 200;
+static unsigned int LINK_BUILDING_QUERY_SIZE = 50;
 static unsigned int POPULATION_SIZE = 50;
 static unsigned int MAX_GENERATIONS = 20;
 static unsigned int NUM_ITERATIONS = 10;
@@ -80,6 +80,7 @@ using namespace attention_broker;
 static shared_ptr<AtomDB> db;
 static shared_ptr<ServiceBus> bus;
 static vector<vector<string>> buffer_determiners;
+static map<string, vector<string>> weight_calculation_cache;
 
 static string get_predicate_name(string handle) {
     shared_ptr<Link> predicate_link = dynamic_pointer_cast<Link>(db->get_atom(handle));
@@ -127,16 +128,14 @@ static shared_ptr<PatternMatchingQueryProxy> issue_link_building_query(const vec
     return proxy;
 }
 
-/*
-   WIP
-static shared_ptr<PatternMatchingQueryProxy> issue_count_query(const vector<string>& query_tokens,
-                                                               const string& context) {
+// Fazer um cache que permita lembrar dos handles da resposta do QA e recalcular apenas os counts (que dependem dos weight)
+static shared_ptr<PatternMatchingQueryProxy> issue_weight_count_query(const vector<string>& query_tokens,
+                                                                      const string& context) {
 
     auto proxy = make_shared<PatternMatchingQueryProxy>(query_tokens, context);
     proxy->parameters[BaseQueryProxy::UNIQUE_ASSIGNMENT_FLAG] = true;
     proxy->parameters[BaseQueryProxy::ATTENTION_UPDATE_FLAG] = false;
     proxy->parameters[BaseQueryProxy::USE_LINK_TEMPLATE_CACHE] = true;
-    proxy->parameters[PatternMatchingQueryProxy::MAX_ANSWERS] = (unsigned int) max_answers;
     proxy->parameters[PatternMatchingQueryProxy::POSITIVE_IMPORTANCE_FLAG] = false;
     proxy->parameters[BaseQueryProxy::USE_METTA_AS_QUERY_TOKENS] = false;
     proxy->parameters[BaseQueryProxy::POPULATE_METTA_MAPPING] = false;
@@ -144,13 +143,12 @@ static shared_ptr<PatternMatchingQueryProxy> issue_count_query(const vector<stri
     ServiceBusSingleton::get_instance()->issue_bus_command(proxy);
     return proxy;
 }
-*/
 
 static void update_attention_allocation(const vector<string>& query_tokens,
                                         const string& context) {
 
     auto proxy = make_shared<PatternMatchingQueryProxy>(query_tokens, context);
-    proxy->parameters[BaseQueryProxy::UNIQUE_ASSIGNMENT_FLAG] = true;
+    proxy->parameters[BaseQueryProxy::UNIQUE_ASSIGNMENT_FLAG] = false;
     proxy->parameters[BaseQueryProxy::ATTENTION_UPDATE_FLAG] = true;
     proxy->parameters[BaseQueryProxy::USE_LINK_TEMPLATE_CACHE] = false;
     proxy->parameters[PatternMatchingQueryProxy::POSITIVE_IMPORTANCE_FLAG] = false;
@@ -179,22 +177,13 @@ static void insert_or_update(map<string, double>& count_map, const string& key, 
 static void compute_counts(const vector<vector<string>>& query_tokens,
                            const string& context,
                            const QueryAnswerElement& target_element,
+                           const string& handle0,
+                           const string& handle1,
                            double& count_0,
                            double& count_1,
                            double& count_intersection,
                            double& count_union) {
     shared_ptr<PatternMatchingQueryProxy> proxy[2];
-
-    for (unsigned int i = 0; i < 2; i++) {
-        //issue_count_weight_query
-        proxy[i] = make_shared<PatternMatchingQueryProxy>(query_tokens[i], context);
-        proxy[i]->parameters[PatternMatchingQueryProxy::POSITIVE_IMPORTANCE_FLAG] = false;
-        proxy[i]->parameters[BaseQueryProxy::UNIQUE_ASSIGNMENT_FLAG] = true;
-        proxy[i]->parameters[BaseQueryProxy::ATTENTION_UPDATE_FLAG] = false;
-        proxy[i]->parameters[BaseQueryProxy::USE_LINK_TEMPLATE_CACHE] = true;
-        proxy[i]->parameters[BaseQueryProxy::USE_METTA_AS_QUERY_TOKENS] = false;
-        proxy[i]->parameters[BaseQueryProxy::POPULATE_METTA_MAPPING] = false;
-    }
 
     count_0 = 0.0;
     count_1 = 0.0;
@@ -207,6 +196,11 @@ static void compute_counts(const vector<vector<string>>& query_tokens,
 
     double d;
     string handle;
+    pair<string, string> key = {handle0, handle1};
+    weight_calculation_cache AQUI
+    for (unsigned int i = 0; i < 2; i++) {
+        proxy[i] = issue_weight_count_query(query_tokens[i], context);
+    }
     shared_ptr<QueryAnswer> query_answer;
     for (unsigned int i = 0; i < 2; i++) {
         ServiceBusSingleton::get_instance()->issue_bus_command(proxy[i]);
@@ -312,7 +306,7 @@ static void build_implication_link(shared_ptr<QueryAnswer> query_answer, const s
     }
     double count_0, count_1, count_intersection, count_union;
     QueryAnswerElement target_element(CONCEPT1);
-    compute_counts(query, context, target_element, count_0, count_1, count_intersection, count_union);
+    compute_counts(query, context, target_element, predicate[0], predicate[1], count_0, count_1, count_intersection, count_union);
     if (count_intersection > 0) {
         if (count_0 > 0) {
             double strength = count_intersection / count_0;
@@ -362,7 +356,7 @@ static void build_equivalence_link(shared_ptr<QueryAnswer> query_answer, const s
     }
     double count_0, count_1, count_intersection, count_union;
     QueryAnswerElement target_element(PREDICATE1);
-    compute_counts(query, context, target_element, count_0, count_1, count_intersection, count_union);
+    compute_counts(query, context, target_element, concept_[0], concept_[1], count_0, count_1, count_intersection, count_union);
     if ((count_intersection > 0) && (count_union > 0)) {
         double strength = count_intersection / count_union;
         add_or_update_link(EQUIVALENCE_HANDLE, concept_[0], concept_[1], strength);
@@ -514,6 +508,9 @@ static void run(const string& predicate_source, const string& predicate_target, 
             NODE, SYMBOL, CONTAINS,
             VARIABLE, V2,
             VARIABLE, V3,
+        LINK_TEMPLATE, EXPRESSION, "2",
+            NODE, SYMBOL, CONCEPT,
+            VARIABLE, V2,
     };
 
     vector<string> attention_update_query = {
@@ -538,7 +535,9 @@ static void run(const string& predicate_source, const string& predicate_target, 
                 LINK_TEMPLATE, EXPRESSION, "3",
                     NODE, SYMBOL, EVALUATION,
                     VARIABLE, PREDICATE1,
-                    VARIABLE, SENTENCE1,
+                    LINK_TEMPLATE, EXPRESSION, "2",
+                        NODE, SYMBOL, CONCEPT,
+                        VARIABLE, SENTENCE1,
                 LINK_TEMPLATE, EXPRESSION, "3",
                     NODE, SYMBOL, CONTAINS,
                     VARIABLE, SENTENCE1,
@@ -549,15 +548,17 @@ static void run(const string& predicate_source, const string& predicate_target, 
                     VARIABLE, WORD1,
                 LINK_TEMPLATE, EXPRESSION, "3",
                     NODE, SYMBOL, EVALUATION,
-                    VARIABLE, V1,
-                    VARIABLE, SENTENCE2,
+                    VARIABLE, PREDICATE2,
+                    LINK_TEMPLATE, EXPRESSION, "2",
+                        NODE, SYMBOL, CONCEPT,
+                        VARIABLE, SENTENCE2,
             LINK_TEMPLATE, EXPRESSION, "3",
                 NODE, SYMBOL, IMPLICATION,
                 VARIABLE, PREDICATE1,
-                VARIABLE, V1,
+                VARIABLE, PREDICATE2,
             LINK_TEMPLATE, EXPRESSION, "3",
                 NODE, SYMBOL, IMPLICATION,
-                VARIABLE, V1,
+                VARIABLE, PREDICATE2,
                 VARIABLE, PREDICATE1,
     } /*, { TODO: requires revision to consider the AND as in the query above.
         OR_OPERATOR, "6"
@@ -628,6 +629,7 @@ static void run(const string& predicate_source, const string& predicate_target, 
     QueryAnswerElement predicate1(PREDICATE1);
     QueryAnswerElement predicate2(PREDICATE2);
     QueryAnswerElement predicate3(PREDICATE3);
+    QueryAnswerElement sentence2(SENTENCE2);
     QueryAnswerElement v1(V1);
 
     vector<map<string, QueryAnswerElement>> correlation_query_constants = {
@@ -637,7 +639,7 @@ static void run(const string& predicate_source, const string& predicate_target, 
     };
 
     vector<vector<pair<QueryAnswerElement, QueryAnswerElement>>> correlation_mapping = {
-        {{predicate1, v1}}/*,
+        {{predicate1, predicate2}, {predicate1, sentence2}}/*,
         {{predicate1, v1}, {predicate2, v1}},
         {{predicate1, v1}, {predicate2, v1}, {predicate3, v1}},*/
     };
@@ -655,7 +657,7 @@ static void run(const string& predicate_source, const string& predicate_target, 
     ->  (PREDICATE "feature_contains_ccc_cac")
     ->  (CONCEPT (Sentence "dca cbc bde aaa adc"))
         (IMPLICATION (PREDICATE "feature_contains_adc_cbc") (PREDICATE "feature_contains_ccc_cac"))
-        (EQUIVALENCE (CONCEPT (Sentence "dca cbc bde aaa adc") (CONCEPT (Sentence "aaa cac acc baa dad")))
+        (EQUIVALENCE (CONCEPT (Sentence "dca cbc bde aaa adc")) (CONCEPT (Sentence "aaa cac acc baa dad")))
         (EVALUATION (PREDICATE "feature_contains_adc_cbc") (CONCEPT (Sentence "dca cbc bde aaa adc")))
     ********************************************************************/
     // clang-format on
@@ -682,7 +684,6 @@ static void run(const string& predicate_source, const string& predicate_target, 
         LOG_DEBUG("Implication");
         build_links(implication_query, context, build_implication_link);
         LOG_DEBUG("Equivalence");
-        exit(0);
         build_links(equivalence_query, context, build_equivalence_link);
         LOG_INFO("----- Updating AttentionBroker");
         AttentionBrokerClient::set_determiners(buffer_determiners, context);
