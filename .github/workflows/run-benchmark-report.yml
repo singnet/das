@@ -113,6 +113,14 @@ jobs:
           name: benchmark-report-query-agent
           path: query_agent_benchmark
 
+      - name: Create SSH key file
+        id: ssh_key
+        run: |
+          KEY_FILE=$(mktemp)
+          echo "$BENCHMARK_KEY" > "$KEY_FILE"
+          chmod 600 "$KEY_FILE"
+          echo "key_file=$KEY_FILE" >> $GITHUB_OUTPUT
+
       - name: Send Mattermost message
         run: |
           BENCHMARK_ID="${{ needs.benchmark_query_agent.outputs.benchmark_id }}"
@@ -122,7 +130,13 @@ jobs:
             --benchmark-id "$BENCHMARK_ID" \
             --title "$TITLE" \
             --threshold 10 \
-            --output ./query_agent_benchmark/consolidated_report.json
+            --ssh-host "$BENCHMARK_SSH_HOST" \
+            --ssh-path "$BENCHMARK_PATH" \
+            --ssh-key "$KEY_FILE"
+
+      - name: Remove SSH key file
+        if: always()
+        run: rm -f "${{ steps.ssh_key.outputs.key_file }}"
 
       - name: Notify Mattermost
         uses: singnet/integration-github-mattermost@v0.3.0
@@ -131,7 +145,6 @@ jobs:
           token: ${{ secrets.MATTERMOST_TOKEN }}
           channel-id: ${{ vars.MATTERMOST_CICD_CHANNEL_ID }}
           attachments-path: ./query_agent_benchmark/consolidated_report.txt
-
 
   notify_atomdb:
     runs-on: self-hosted-withcache
@@ -153,13 +166,30 @@ jobs:
           name: benchmark-report-atomdb
           path: atomdb_benchmark
 
+      - name: Create SSH key file
+        id: ssh_key
+        run: |
+          KEY_FILE=$(mktemp)
+          echo "$BENCHMARK_KEY" > "$KEY_FILE"
+          chmod 600 "$KEY_FILE"
+          echo "key_file=$KEY_FILE" >> $GITHUB_OUTPUT
+
       - name: Send Mattermost message
         run: |
           BENCHMARK_ID="${{ needs.benchmark_atomdb.outputs.benchmark_id }}"
           [ -z "$BENCHMARK_ID" ] && BENCHMARK_ID="UNKNOWN"
           TITLE="AtomDB Benchmark Report - Single Thread, 100 iterations"
-          IS_PR="${{ github.event_name == 'pull_request' }}"
-          bash .github/scripts/mattermost-benchmark-report.sh "$BENCHMARK_ID" "$TITLE" "$IS_PR"
+          python .github/scripts/mattermost-benchmark-report.py \
+            --benchmark-id "$BENCHMARK_ID" \
+            --title "$TITLE" \
+            --threshold 10 \
+            --ssh-host "$BENCHMARK_SSH_HOST" \
+            --ssh-path "$BENCHMARK_PATH" \
+            --ssh-key "$KEY_FILE"
+
+      - name: Remove SSH key file
+        if: always()
+        run: rm -f "${{ steps.ssh_key.outputs.key_file }}"
 
       - name: Notify Mattermost
         uses: singnet/integration-github-mattermost@v0.3.0
