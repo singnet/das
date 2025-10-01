@@ -31,11 +31,11 @@ You can export these variables by including them in your shell configuration fil
 
 ```bash
 export DAS_MONGODB_HOSTNAME="localhost"
-export DAS_MONGODB_PORT="27017"
-export DAS_MONGODB_USERNAME="your-username"
-export DAS_MONGODB_PASSWORD="your-password"
+export DAS_MONGODB_PORT="28000"
+export DAS_MONGODB_USERNAME="dbadmin"
+export DAS_MONGODB_PASSWORD="dassecret"
 export DAS_REDIS_HOSTNAME="localhost"
-export DAS_REDIS_PORT="6379"
+export DAS_REDIS_PORT="29000"
 export DAS_USE_REDIS_CLUSTER=false
 ```
 
@@ -51,7 +51,6 @@ You might not be able to execute the binary directly from your machine. To simpl
 # Note: OPTIONS="<hostname:port> <start_port:end_port> <peer_ip:peer_port> <AB_ip:AB_port>"
 make run-context-broker OPTIONS="0.0.0.0:38000 42000:42999 0.0.0.0:35700 0.0.0.0:40001"
 ```
-- The default port for the Attention Broker is `40001`.
 - If successful, you should see a message like this:
 ```bash
 2025-10-01 17:51:00 | [INFO] | Starting context broker server with id: 0.0.0.0:38000
