@@ -28,7 +28,7 @@ int main(int argc, char* argv[]) {
     if (argc < 4) {
         cerr << "Context Broker Server" << endl;
         cerr << "Usage: " << argv[0]
-             << " <hostname:port> <start_port:end_port> BUS_IP:PORT <AB_ip:AB_port>" << endl;
+             << " <hostname:port> <start_port:end_port> <peer_ip:peer_port> <AB_ip:AB_port>" << endl;
         exit(1);
     }
 
