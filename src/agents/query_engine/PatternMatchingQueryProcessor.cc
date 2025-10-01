@@ -82,7 +82,7 @@ void PatternMatchingQueryProcessor::update_attention_broker_single_answer(
     stack<string> execution_stack;
 
     // Stimulate all variables
-    for (auto pair : answer->assignments) {
+    for (auto pair : answer->assignment.table) {
         joint_answer.insert(pair.second);
     }
 

@@ -197,7 +197,7 @@ static void compute_counts(const vector<vector<string>>& query_tokens,
     double d;
     string handle;
     pair<string, string> key = {handle0, handle1};
-    weight_calculation_cache AQUI
+    // weight_calculation_cache TODO
     for (unsigned int i = 0; i < 2; i++) {
         proxy[i] = issue_weight_count_query(query_tokens[i], context);
     }
