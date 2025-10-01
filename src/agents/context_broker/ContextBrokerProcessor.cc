@@ -123,11 +123,17 @@ void ContextBrokerProcessor::create_context(shared_ptr<StoppableThread> monitor,
             shared_ptr<QueryAnswer> answer = pattern_proxy->pop();
             if (answer != NULL) {
                 for (auto pair : proxy->get_determiner_schema()) {
-                    proxy->get_determiner_request().push_back(
-                        {answer->get(pair.first), answer->get(pair.second)});
+                    string source = answer->get(pair.first);
+                    string target = answer->get(pair.second);
+                    if ((source != "") && (target != "")) {
+                        proxy->determiner_request.push_back({source, target});
+                    }
                 }
                 for (auto element : proxy->get_stimulus_schema()) {
-                    proxy->get_to_stimulate()[answer->get(element)] = 1;
+                    string stimulus = answer->get(element);
+                    if (stimulus != "") {
+                        proxy->to_stimulate[stimulus] = 1;
+                    }
                 }
 #if LOG_LEVEL >= DEBUG_LEVEL
                 if (!(++count_query_answer % 100000)) {
@@ -193,15 +199,13 @@ static inline void read_line(ifstream& file, string& line) {
 void ContextBrokerProcessor::update_attention_broker(shared_ptr<ContextBrokerProxy> proxy) {
     auto key = proxy->get_key();
     LOG_INFO("Context(key<" << key << ">) updating AttentionBroker");
-    auto determiner_request = proxy->get_determiner_request();
-    auto to_stimulate = proxy->get_to_stimulate();
 
-    AttentionBrokerClient::set_determiners(determiner_request, key);
-    if (to_stimulate.size() > 0) {
-        AttentionBrokerClient::stimulate(to_stimulate, key);
+    AttentionBrokerClient::set_determiners(proxy->determiner_request, key);
+    if (proxy->to_stimulate.size() > 0) {
+        AttentionBrokerClient::stimulate(proxy->to_stimulate, key);
     }
-    proxy->clear_to_stimulate();
-    proxy->clear_determiner_request();
+    proxy->to_stimulate.clear();
+    proxy->determiner_request.clear();
 }
 
 void ContextBrokerProcessor::write_cache(shared_ptr<ContextBrokerProxy> proxy) {
@@ -221,15 +225,12 @@ void ContextBrokerProcessor::write_cache(shared_ptr<ContextBrokerProxy> proxy) {
         return;
     }
 
-    auto to_stimulate = proxy->get_to_stimulate();
-    auto determiner_request = proxy->get_determiner_request();
-
-    file << to_stimulate.size() << endl;
-    for (auto pair : to_stimulate) {
+    file << proxy->to_stimulate.size() << endl;
+    for (auto pair : proxy->to_stimulate) {
         file << pair.first << endl;
     }
-    file << determiner_request.size() << endl;
-    for (auto sub_vector : determiner_request) {
+    file << proxy->determiner_request.size() << endl;
+    for (auto sub_vector : proxy->determiner_request) {
         file << sub_vector.size() << endl;
         for (string handle : sub_vector) {
             file << handle << endl;
@@ -261,11 +262,11 @@ bool ContextBrokerProcessor::read_cache(shared_ptr<ContextBrokerProxy> proxy) {
     int size = Utils::string_to_int(line);
     for (int i = 0; i < size; i++) {
         read_line(file, line);
-        proxy->get_to_stimulate()[line] = 1;
+        proxy->to_stimulate[line] = 1;
     }
     read_line(file, line);
     size = Utils::string_to_int(line);
-    proxy->get_determiner_request().reserve(size);
+    proxy->determiner_request.reserve(size);
     vector<string> sub_vector;
     for (int i = 0; i < size; i++) {
         read_line(file, line);
@@ -276,7 +277,7 @@ bool ContextBrokerProcessor::read_cache(shared_ptr<ContextBrokerProxy> proxy) {
             read_line(file, line);
             sub_vector.push_back(line);
         }
-        proxy->get_determiner_request().push_back(sub_vector);
+        proxy->determiner_request.push_back(sub_vector);
     }
 
     file.close();

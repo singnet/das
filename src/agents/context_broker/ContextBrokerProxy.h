@@ -133,28 +133,6 @@ class ContextBrokerProxy : public BaseQueryProxy {
     const vector<QueryAnswerElement>& get_stimulus_schema();
 
     /**
-     * Get the determiner request.
-     * @return Vector of determiner request vectors
-     */
-    vector<vector<string>>& get_determiner_request();
-
-    /**
-     * Get the to_stimulate map.
-     * @return Map of strings to unsigned ints
-     */
-    map<string, unsigned int>& get_to_stimulate();
-
-    /**
-     * Clear the to_stimulate map.
-     */
-    void clear_to_stimulate();
-
-    /**
-     * Clear the determiner request.
-     */
-    void clear_determiner_request();
-
-    /**
      * Get the cache file name.
      * @return Cache file name
      */
@@ -198,6 +176,9 @@ class ContextBrokerProxy : public BaseQueryProxy {
     virtual string to_string() override;
     virtual void pack_command_line_args() override;
 
+    map<string, unsigned int> to_stimulate;
+    vector<vector<string>> determiner_request;
+
     // Attention broker parameters
     bool update_attention_broker_parameters;
     double rent_rate;
@@ -213,8 +194,7 @@ class ContextBrokerProxy : public BaseQueryProxy {
     string name;
     string key;
     string cache_file_name;
-    map<string, unsigned int> to_stimulate;
-    vector<vector<string>> determiner_request;
+
     vector<pair<QueryAnswerElement, QueryAnswerElement>> determiner_schema;
     vector<QueryAnswerElement> stimulus_schema;
 

@@ -237,14 +237,6 @@ const vector<QueryAnswerElement>& ContextBrokerProxy::get_stimulus_schema() {
     return this->stimulus_schema;
 }
 
-vector<vector<string>>& ContextBrokerProxy::get_determiner_request() { return this->determiner_request; }
-
-map<string, unsigned int>& ContextBrokerProxy::get_to_stimulate() { return this->to_stimulate; }
-
-void ContextBrokerProxy::clear_to_stimulate() { this->to_stimulate.clear(); }
-
-void ContextBrokerProxy::clear_determiner_request() { this->determiner_request.clear(); }
-
 const string& ContextBrokerProxy::get_cache_file_name() { return this->cache_file_name; }
 
 bool ContextBrokerProxy::get_use_cache() { return this->parameters.get<bool>(USE_CACHE); }
