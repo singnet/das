@@ -81,10 +81,15 @@ void PatternMatchingQueryProcessor::update_attention_broker_single_answer(
     set<string> single_answer;
     stack<string> execution_stack;
 
+    // Stimulate all variables
+    for (auto pair : answer->assignment.table) {
+        joint_answer.insert(pair.second);
+    }
+
+    // Correlate handles which are the query answer
     for (string handle : answer->handles) {
         execution_stack.push(handle);
     }
-
     while (!execution_stack.empty()) {
         string handle = execution_stack.top();
         execution_stack.pop();
@@ -106,7 +111,7 @@ void PatternMatchingQueryProcessor::update_attention_broker_single_answer(
     if (single_answer.size() > 1) {
         AttentionBrokerClient::correlate(single_answer, proxy->get_context());
     } else {
-        LOG_DEBUG("Too few handles (" + std::to_string(single_answer.size()) + ") to stimulate");
+        LOG_DEBUG("Too few handles (" + std::to_string(single_answer.size()) + ") to correlate");
     }
 }
 

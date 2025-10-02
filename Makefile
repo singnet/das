@@ -45,6 +45,9 @@ run-query-agent:
 run-attention-broker:
 	@bash -x src/scripts/run.sh attention_broker_service 0.0.0.0:40001
 
+run-context-broker:
+	@bash -x src/scripts/run.sh context_broker $(OPTIONS)
+
 run-link-creation-agent:
 	@bash -x src/scripts/run.sh link_creation_server $(OPTIONS)
 

@@ -101,6 +101,13 @@ class BaseQueryProxy : public BaseProxy {
      */
     virtual void tokenize(vector<string>& output);
 
+    /**
+     * Returns true iff all QueryAnswer objects have been delivered AND iterated.
+     *
+     * @return true iff all QueryAnswer objects have been delivered AND iterated.
+     */
+    virtual bool finished();
+
     // ---------------------------------------------------------------------------------------------
     // Server-side API
 

@@ -78,6 +78,29 @@ class Properties : public unordered_map<string, PropertyValue> {
         }
         Utils::error("Unkown property key: " + key);
     }
+
+    /**
+     * @brief Get the value associated with a key, cast to the requested type.
+     *
+     * If the key exists and the value can be cast to type T, returns the value.
+     * Otherwise, returns the default value.
+     *
+     * @tparam T The type to cast the value to (must match the variant type).
+     * @param key The key to look up in the map.
+     * @param default_value The default value to return if the key is not found.
+     * @return The value if present and of the correct type, otherwise the default value.
+     */
+    template <typename T>
+    const T get_or(const string& key, const T& default_value) const {
+        auto it = this->find(key);
+        if (it != this->end()) {
+            if (auto attr = std::get_if<T>(&it->second)) {
+                return *attr;
+            }
+        }
+        return default_value;
+    }
+
     /**
      * @brief Convert the Properties to a string representation.
      * @return A string representation of the map in the form {key1: value1, key2: value2, ...}.

@@ -80,14 +80,22 @@ void Context::add_determiners(
 #if LOG_LEVEL >= DEBUG_LEVEL
     unsigned int count_query_answer = 0;
 #endif
+    string source, target;
     while (!proxy->finished()) {
         shared_ptr<QueryAnswer> answer = proxy->pop();
         if (answer != NULL) {
             for (auto pair : determiner_schema) {
-                this->determiner_request.push_back({answer->get(pair.first), answer->get(pair.second)});
+                source = answer->get(pair.first, true);
+                target = answer->get(pair.second, true);
+                if ((source != "") && (target != "")) {
+                    this->determiner_request.push_back({source, target});
+                }
             }
             for (auto element : stimulus_schema) {
-                this->to_stimulate[answer->get(element)] = 1;
+                target = answer->get(element, true);
+                if (target != "") {
+                    this->to_stimulate[answer->get(element)] = 1;
+                }
             }
 #if LOG_LEVEL >= DEBUG_LEVEL
             if (!(++count_query_answer % 100000)) {
@@ -99,7 +107,6 @@ void Context::add_determiners(
             Utils::sleep();
         }
     }
-    update_attention_broker();
 }
 
 Context::~Context() {

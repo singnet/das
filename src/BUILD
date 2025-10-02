@@ -189,6 +189,18 @@ cc_binary(
 )
 
 cc_binary(
+    name = "implication_query_evolution",
+    srcs = [],
+    defines = ["BAZEL_BUILD"],
+    linkstatic = 1,
+    deps = [
+        "//commons:commons_lib",
+        "//main:implication_query_evolution_main_lib",
+        "@mbedtls",
+    ],
+)
+
+cc_binary(
     name = "link_creation_server",
     srcs = [],
     defines = ["BAZEL_BUILD"],
@@ -225,5 +237,15 @@ cc_binary(
     linkstatic = 1,
     deps = [
         "//main:inference_agent_client_main_lib",
+    ],
+)
+
+cc_binary(
+    name = "context_broker",
+    srcs = [],
+    defines = ["BAZEL_BUILD"],
+    linkstatic = 1,
+    deps = [
+        "//main:context_broker_main_lib",
     ],
 )

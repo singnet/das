@@ -487,6 +487,7 @@ cc_test(
     ],
     linkstatic = 1,
     deps = [
+        "//agents/context_broker:context_broker_lib",
         "//atom_space:context",
         "//atomdb",
         "//attention_broker:attention_broker_lib",

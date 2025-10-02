@@ -113,24 +113,33 @@ void SynchronousGRPC::grpc_thread_teardown(shared_ptr<StoppableThread> monitor) 
 void SynchronousGRPC::grpc_thread_method(shared_ptr<StoppableThread> monitor) {
     thread* grpc_teardown = new thread(&SynchronousGRPC::grpc_thread_teardown, this, monitor);
     GRPC_BUILDER_MUTEX.lock();
-    grpc::ServerBuilder builder;
-    builder.AddListeningPort(this->node_id, grpc::InsecureServerCredentials());
-    builder.AddChannelArgument(GRPC_ARG_ALLOW_REUSEPORT, 1);
-    builder.RegisterService(this);
-    LOG_DEBUG("Building GRPC server on " + this->node_id);
-    this->grpc_server = builder.BuildAndStart();
-    if (this->grpc_server == nullptr) {
-        GRPC_BUILDER_MUTEX.unlock();
-        Utils::error("Couldn't start GRPC server on " + this->node_id);
-        return;
-    }
-    LOG_INFO("SynchronousGRPC listening on " + this->node_id);
+    grpc::ServerBuilder* builder;
+    do {
+        builder = new grpc::ServerBuilder();
+        builder->AddListeningPort(this->node_id, grpc::InsecureServerCredentials());
+        builder->AddChannelArgument(GRPC_ARG_ALLOW_REUSEPORT, 1);
+        builder->RegisterService(this);
+        LOG_DEBUG("Building GRPC server on " + this->node_id);
+        this->grpc_server = builder->BuildAndStart();
+        if (this->grpc_server != nullptr) {
+            LOG_INFO("SynchronousGRPC listening on " + this->node_id);
+            break;
+        } else {
+            GRPC_BUILDER_MUTEX.unlock();
+            LOG_ERROR("Failed attempt to start GRPC server on " + this->node_id + ". Retrying...");
+            Utils::sleep(10000);
+            delete builder;
+            // Utils::error("Couldn't start GRPC server on " + this->node_id);
+            // return;
+        }
+    } while (true);
     set_grpc_server_started();
     GRPC_BUILDER_MUTEX.unlock();
     this->grpc_server->Wait();
     grpc_teardown->join();
     this->grpc_server.reset();
     delete grpc_teardown;
+    delete builder;
     LOG_DEBUG("GRPC thread finished " + this->node_id);
 }
 
