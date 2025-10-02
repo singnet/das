@@ -7,10 +7,14 @@
 
 #pragma once
 
+#include <map>
 #include <string>
 #include <vector>
 
+#include "QueryAnswer.h"
+
 using namespace std;
+using namespace query_engine;
 
 namespace inference_agent {
 
@@ -25,6 +29,7 @@ class InferenceRequest {
                      string context,
                      string max_answers = "1000000",
                      string update_attention_broker = "false");
+    InferenceRequest() = default;
     ~InferenceRequest();
     /**
      * @brief Query to send to link creation agent
@@ -67,6 +72,18 @@ class InferenceRequest {
      * @return vector<string>
      */
     virtual vector<string> get_distributed_inference_control_request();
+
+    virtual vector<string> get_correlation_query();
+
+    virtual void set_correlation_query(const string& query);
+
+    virtual map<string, QueryAnswerElement> get_correlation_query_constants();
+
+    virtual void set_correlation_query_constants(const string& constants);
+
+    virtual map<string, QueryAnswerElement> get_correlation_mapping();
+
+    virtual void set_correlation_mapping(const string& mapping);
 
     /**
      * @brief Get the requests of the inference request
@@ -155,6 +172,9 @@ class InferenceRequest {
     string inference_request_id;
     string max_answers;
     string update_attention_broker;
+    vector<string> correlation_query;
+    map<string, QueryAnswerElement> correlation_query_constants;
+    map<string, QueryAnswerElement> correlation_mapping;
     unsigned long long timeout = 24 * 60 * 60;  // Default timeout is 24 hours
     unsigned int repeat = 5;
     unsigned long lca_max_results = 100;        // Default max results for LCA
@@ -165,24 +185,10 @@ class InferenceRequest {
     bool is_full_evaluation = false;
 };
 
-// class ProofOfImplicationOrEquivalence : public InferenceRequest {
-//    public:
-//     ProofOfImplicationOrEquivalence(string first_handle,
-//                                     string second_handle,
-//                                     int max_proof_length,
-//                                     string context);
-//     ~ProofOfImplicationOrEquivalence();
-
-//     vector<string> query() override;
-//     vector<string> patterns_link_template();
-//     string get_type() override;
-//     vector<vector<string>> get_requests() override;
-// };
-
 class ProofOfImplication : public InferenceRequest {
    public:
     ProofOfImplication(string first_handle, string second_handle, int max_proof_length, string context);
-
+    ProofOfImplication();
     vector<string> query() override;
     string get_type() override;
     vector<vector<string>> get_requests() override;
@@ -195,6 +201,7 @@ class ProofOfImplication : public InferenceRequest {
 class ProofOfEquivalence : public InferenceRequest {
    public:
     ProofOfEquivalence(string first_handle, string second_handle, int max_proof_length, string context);
+    ProofOfEquivalence();
 
     vector<string> query() override;
     string get_type() override;

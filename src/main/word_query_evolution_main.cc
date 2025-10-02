@@ -5,9 +5,8 @@
 #include <string>
 
 #include "AtomDBSingleton.h"
-#include "AtomSpace.h"
-#include "AttentionBrokerClient.h"
 #include "Context.h"
+#include "ContextBrokerProxy.h"
 #include "CountLetterFunction.h"
 #include "FitnessFunctionRegistry.h"
 #include "QueryAnswer.h"
@@ -22,11 +21,10 @@
 
 using namespace std;
 using namespace atomdb;
-using namespace atom_space;
 using namespace query_engine;
 using namespace evolution;
 using namespace service_bus;
-using namespace attention_broker;
+using namespace context_broker;
 
 std::vector<std::string> split(string s, string delimiter) {
     std::vector<std::string> tokens;
@@ -108,7 +106,10 @@ void run(const string& client_id,
          const string& context_tag,
          const string& word_tag1,
          const string& word_tag2,
-         double ELITISM_RATE) {
+         double ELITISM_RATE,
+         float RENT_RATE,
+         float SPREADING_RATE_LOWERBOUND,
+         float SPREADING_RATE_UPPERBOUND) {
     AtomDBSingleton::init();
     shared_ptr<AtomDB> db = AtomDBSingleton::get_instance();
     ServiceBusSingleton::init(client_id, server_id, start_port, end_port);
@@ -243,16 +244,46 @@ void run(const string& client_id,
     // Query evolution request
 
     LOG_INFO("Setting up context");
-    AtomSpace atom_space;
-    // LinkSchema context_key(context1);
-    // auto context = atom_space.create_context(context_tag, context_key);
     QueryAnswerElement sentence_link(sentence1);
     QueryAnswerElement word_link(word1);
     QueryAnswerElement contains_link(0);
-    auto context = atom_space.create_context(
-        context_tag, context1, {{contains_link, sentence_link}, {sentence_link, word_link}}, {});
-    string context_str = context->get_key();
-    LOG_INFO("Context " + context_str + " is ready");
+
+    vector<pair<QueryAnswerElement, QueryAnswerElement>> determiner_schema = {
+        {contains_link, sentence_link}, {sentence_link, word_link}};
+    vector<QueryAnswerElement> stimulus_schema = {};
+
+    // Use ContextBrokerProxy to create context
+    shared_ptr<ContextBrokerProxy> context_proxy =
+        make_shared<ContextBrokerProxy>(context_tag, context1, determiner_schema, stimulus_schema);
+
+    context_proxy->parameters[ContextBrokerProxy::USE_CACHE] = (bool) true;
+    context_proxy->parameters[ContextBrokerProxy::ENFORCE_CACHE_RECREATION] = (bool) false;
+
+    context_proxy->parameters[ContextBrokerProxy::INITIAL_RENT_RATE] = (double) RENT_RATE;
+    context_proxy->parameters[ContextBrokerProxy::INITIAL_SPREADING_RATE_LOWERBOUND] =
+        (double) SPREADING_RATE_LOWERBOUND;
+    context_proxy->parameters[ContextBrokerProxy::INITIAL_SPREADING_RATE_UPPERBOUND] =
+        (double) SPREADING_RATE_UPPERBOUND;
+
+    // Issue the ContextBrokerProxy to create context
+    service_bus->issue_bus_command(context_proxy);
+
+    // Wait for ContextBrokerProxy to finish context creation
+    LOG_INFO("Waiting for context creation to finish...");
+    while (!context_proxy->is_context_created()) {
+        Utils::sleep();
+    }
+
+    string context_str = context_proxy->get_key();
+    LOG_INFO("Context " + context_str + " was created");
+
+    // Example of how to set new AttentionBroker parameters
+    // LOG_INFO("Setting new AttentionBroker parameters");
+    // context_proxy->attention_broker_set_parameters(0.26, 0.51, 0.71);
+    // while (!context_proxy->attention_broker_set_parameters_finished()) {
+    //     Utils::sleep();
+    // }
+    // LOG_INFO("AttentionBroker new parameters set");
 
     QueryEvolutionProxy* proxy_ptr;
     if (USE_METTA_QUERY) {
@@ -321,7 +352,7 @@ int main(int argc, char* argv[]) {
     if (argc < 7) {
         cerr << "Usage: " << argv[0]
              << "    <client id> <server id> <start_port:end_port> <context_tag> <word tag 1> <word tag "
-                "2> [RENT_RATE] [SPREADING_RATE_LOWERBOUND] [SPREADING_RATE_UPPERBOUND]"
+                "2> [RENT_RATE] [SPREADING_RATE_LOWERBOUND] [SPREADING_RATE_UPPERBOUND] [ELITISM_RATE]"
              << endl;
         exit(1);
     }
@@ -341,8 +372,6 @@ int main(int argc, char* argv[]) {
         SPREADING_RATE_UPPERBOUND = Utils::string_to_float(string(argv[9]));
         ELITISM_RATE = (double) Utils::string_to_float(string(argv[10]));
     }
-    AttentionBrokerClient::set_parameters(
-        RENT_RATE, SPREADING_RATE_LOWERBOUND, SPREADING_RATE_UPPERBOUND);
     LOG_INFO("ELITISM_RATE: " << ELITISM_RATE);
     run(client_id,
         server_id,
@@ -351,6 +380,9 @@ int main(int argc, char* argv[]) {
         context_tag,
         word_tag1,
         word_tag2,
-        ELITISM_RATE);
+        ELITISM_RATE,
+        RENT_RATE,
+        SPREADING_RATE_LOWERBOUND,
+        SPREADING_RATE_UPPERBOUND);
     return 0;
 }

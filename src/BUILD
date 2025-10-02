@@ -239,3 +239,13 @@ cc_binary(
         "//main:inference_agent_client_main_lib",
     ],
 )
+
+cc_binary(
+    name = "context_broker",
+    srcs = [],
+    defines = ["BAZEL_BUILD"],
+    linkstatic = 1,
+    deps = [
+        "//main:context_broker_main_lib",
+    ],
+)
