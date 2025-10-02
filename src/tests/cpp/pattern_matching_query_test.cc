@@ -242,17 +242,7 @@ TEST(PatternMatchingQuery, queries) {
     string q7m = "";
     int q7_expected_count = 4;
 
-    vector<string> q8 = {
-        "LINK_TEMPLATE", "Expression", "3",
-            "VARIABLE", "v1",
-            "VARIABLE", "v2",
-            "VARIABLE", "v3"
-    };
-    string q8m = "($v1 $v2 $v3)";
-    int q8_expected_count = 26;
-
     // Regular queries
-    /*
     check_query("q1", q1, q1m, q1_expected_count, client_bus, "PatternMatchingQuery.queries", false, false, false, false);
     check_query("q2", q2, q2m, q2_expected_count, client_bus, "PatternMatchingQuery.queries", false, false, false, false);
     check_query("q3", q3, q3m, q3_expected_count, client_bus, "PatternMatchingQuery.queries", false, false, false, false);
@@ -260,8 +250,6 @@ TEST(PatternMatchingQuery, queries) {
     check_query("q5", q5, q5m, q5_expected_count, client_bus, "PatternMatchingQuery.queries", false, false, false, false);
     check_query("q6", q6, q6m, q6_expected_count, client_bus, "PatternMatchingQuery.queries", false, true, false, false);
     check_query("q7", q7, q7m, q7_expected_count, client_bus, "PatternMatchingQuery.queries", false, true, false, false);
-    */
-    check_query("q8", q8, q8m, q8_expected_count, client_bus, "PatternMatchingQuery.queries", false, true, false, false);
 
     // Importance filtering
     // XXX AttentionBroker is being revised so its dynamics is a bit unpredictable right now
