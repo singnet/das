@@ -1,0 +1,46 @@
+{
+    "seed": 42,
+    "gen_seed": 11,
+    "metta-filename": "/tmp/disregarded.metta",
+    "sentence-node-count": 10000,
+    "word-count": 5,
+    "word-length": 3,
+    "alphabet-range": "0-3",
+    "letter-predicates": [
+        {
+            "token": "feature_is_{letter_percent}_letter_{letter}",
+            "letter": "a",
+            "letter_percent": 0.5,
+            "percentage": 1
+        }
+    ],
+    "wildcard-predicates": [{
+        "token": "feature_contains_*",
+        "wildcards": ["*ac", "cb*"],
+        "percentage": 1
+    }],
+    "word-predicate": {
+        "token": "feature_contains_*",
+        "word-count": 2,
+        "alphabet-range": "0-3",
+        "percentage": 1
+    },
+    "start-end-predicates": [{
+        "token": "starts_{start_letter}_end_{end_letter}",
+        "start_letter": "c",
+        "end_letter": "d",
+        "percentage": 1
+    }],
+    "low-diversity-predicates": [{
+        "token": "feature_low_diversity_of_{threshold}",
+        "threshold": 0.6,
+        "percentage": 1
+    }],
+    "sorting-bias":{
+        "count_rate": 0.1,
+        "probability": 0.9,
+        "predicate_token": "feature_contains_",
+        "predicate": "feature_contains_ddd_ccc_bbb",
+        "filename": "/opt/das/3rd_party_slots/python_inference_poc/10K_5_3_a-d_1G_biased.metta"
+    }
+}
