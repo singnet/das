@@ -122,13 +122,20 @@ jobs:
           echo "key_file=$KEY_FILE" >> $GITHUB_OUTPUT
 
       - name: Send Mattermost message
+        env:
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_SHA: ${{ github.sha }}
         run: |
           BENCHMARK_ID="${{ needs.benchmark_query_agent.outputs.benchmark_id }}"
           [ -z "$BENCHMARK_ID" ] && BENCHMARK_ID="UNKNOWN"
-          TITLE="Query Agent Benchmark Report - Single Thread, 10 iterations"
+          TITLE="Query Agent Benchmark Report"
+          DETAILS="Single Thread, 10 iterations"
+          
           python .github/scripts/mattermost-benchmark-report.py \
             --benchmark-id "$BENCHMARK_ID" \
             --title "$TITLE" \
+            --details "$DETAILS" \
             --threshold 10 \
             --ssh-host "$BENCHMARK_SSH_HOST" \
             --ssh-path "$BENCHMARK_PATH" \
@@ -175,13 +182,20 @@ jobs:
           echo "key_file=$KEY_FILE" >> $GITHUB_OUTPUT
 
       - name: Send Mattermost message
+        env:
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_SHA: ${{ github.sha }}
         run: |
           BENCHMARK_ID="${{ needs.benchmark_atomdb.outputs.benchmark_id }}"
           [ -z "$BENCHMARK_ID" ] && BENCHMARK_ID="UNKNOWN"
-          TITLE="AtomDB Benchmark Report - Single Thread, 100 iterations"
+          TITLE="AtomDB Benchmark Report"
+          DETAILS="Single Thread, 100 iterations"
+
           python .github/scripts/mattermost-benchmark-report.py \
             --benchmark-id "$BENCHMARK_ID" \
             --title "$TITLE" \
+            --details "$DETAILS" \
             --threshold 10 \
             --ssh-host "$BENCHMARK_SSH_HOST" \
             --ssh-path "$BENCHMARK_PATH" \
