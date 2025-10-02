@@ -120,25 +120,30 @@ jobs:
           echo "$BENCHMARK_KEY" > "$KEY_FILE"
           chmod 600 "$KEY_FILE"
           echo "key_file=$KEY_FILE" >> $GITHUB_OUTPUT
+        env:
+          BENCHMARK_KEY: ${{ secrets.BENCHMARK_KEY }}
 
       - name: Send Mattermost message
         env:
           GITHUB_REPOSITORY: ${{ github.repository }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_SHA: ${{ github.sha }}
+          SSH_HOST: ${{ vars.BENCHMARK_SSH_HOST }}
+          SSH_PATH: ${{ vars.BENCHMARK_PATH }}
         run: |
           BENCHMARK_ID="${{ needs.benchmark_query_agent.outputs.benchmark_id }}"
           [ -z "$BENCHMARK_ID" ] && BENCHMARK_ID="UNKNOWN"
           TITLE="Query Agent Benchmark Report"
           DETAILS="Single Thread, 10 iterations"
-          
+          KEY_FILE="${{ steps.ssh_key.outputs.key_file }}"
+
           python .github/scripts/mattermost-benchmark-report.py \
             --benchmark-id "$BENCHMARK_ID" \
             --title "$TITLE" \
             --details "$DETAILS" \
             --threshold 10 \
-            --ssh-host "$BENCHMARK_SSH_HOST" \
-            --ssh-path "$BENCHMARK_PATH" \
+            --ssh-host "$SSH_HOST" \
+            --ssh-path "$SSH_PATH" \
             --ssh-key "$KEY_FILE"
 
       - name: Remove SSH key file
@@ -180,25 +185,30 @@ jobs:
           echo "$BENCHMARK_KEY" > "$KEY_FILE"
           chmod 600 "$KEY_FILE"
           echo "key_file=$KEY_FILE" >> $GITHUB_OUTPUT
+        env:
+          BENCHMARK_KEY: ${{ secrets.BENCHMARK_KEY }}
 
       - name: Send Mattermost message
         env:
           GITHUB_REPOSITORY: ${{ github.repository }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_SHA: ${{ github.sha }}
+          SSH_HOST: ${{ vars.BENCHMARK_SSH_HOST }}
+          SSH_PATH: ${{ vars.BENCHMARK_PATH }}
         run: |
           BENCHMARK_ID="${{ needs.benchmark_atomdb.outputs.benchmark_id }}"
           [ -z "$BENCHMARK_ID" ] && BENCHMARK_ID="UNKNOWN"
           TITLE="AtomDB Benchmark Report"
           DETAILS="Single Thread, 100 iterations"
+          KEY_FILE="${{ steps.ssh_key.outputs.key_file }}"
 
           python .github/scripts/mattermost-benchmark-report.py \
             --benchmark-id "$BENCHMARK_ID" \
             --title "$TITLE" \
             --details "$DETAILS" \
             --threshold 10 \
-            --ssh-host "$BENCHMARK_SSH_HOST" \
-            --ssh-path "$BENCHMARK_PATH" \
+            --ssh-host "$SSH_HOST" \
+            --ssh-path "$SSH_PATH" \
             --ssh-key "$KEY_FILE"
 
       - name: Remove SSH key file
