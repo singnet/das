@@ -107,11 +107,16 @@ void ContextBrokerProcessor::create_context(shared_ptr<StoppableThread> monitor,
         LOG_INFO("Context not cached, processing query...");
         auto pattern_proxy =
             make_shared<PatternMatchingQueryProxy>(proxy->get_query_tokens(), proxy->get_key());
-        pattern_proxy->parameters[BaseQueryProxy::UNIQUE_ASSIGNMENT_FLAG] = true;
-        pattern_proxy->parameters[BaseQueryProxy::ATTENTION_UPDATE_FLAG] = false;
-        pattern_proxy->parameters[BaseQueryProxy::USE_LINK_TEMPLATE_CACHE] = false;
-        pattern_proxy->parameters[PatternMatchingQueryProxy::POSITIVE_IMPORTANCE_FLAG] = false;
-        pattern_proxy->parameters[BaseQueryProxy::USE_METTA_AS_QUERY_TOKENS] = false;
+        pattern_proxy->parameters[BaseQueryProxy::UNIQUE_ASSIGNMENT_FLAG] =
+            proxy->parameters.get_or(BaseQueryProxy::UNIQUE_ASSIGNMENT_FLAG, true);
+        pattern_proxy->parameters[BaseQueryProxy::ATTENTION_UPDATE_FLAG] =
+            proxy->parameters.get_or(BaseQueryProxy::ATTENTION_UPDATE_FLAG, false);
+        pattern_proxy->parameters[BaseQueryProxy::USE_LINK_TEMPLATE_CACHE] =
+            proxy->parameters.get_or(BaseQueryProxy::USE_LINK_TEMPLATE_CACHE, false);
+        pattern_proxy->parameters[PatternMatchingQueryProxy::POSITIVE_IMPORTANCE_FLAG] =
+            proxy->parameters.get_or(PatternMatchingQueryProxy::POSITIVE_IMPORTANCE_FLAG, false);
+        pattern_proxy->parameters[BaseQueryProxy::USE_METTA_AS_QUERY_TOKENS] =
+            proxy->parameters.get_or(BaseQueryProxy::USE_METTA_AS_QUERY_TOKENS, false);
 
         ServiceBusSingleton::get_instance()->issue_bus_command(pattern_proxy);
 
