@@ -85,14 +85,14 @@ void Context::add_determiners(
         shared_ptr<QueryAnswer> answer = proxy->pop();
         if (answer != NULL) {
             for (auto pair : determiner_schema) {
-                source = answer->get(pair.first);
-                target = answer->get(pair.second);
+                source = answer->get(pair.first, true);
+                target = answer->get(pair.second, true);
                 if ((source != "") && (target != "")) {
                     this->determiner_request.push_back({source, target});
                 }
             }
             for (auto element : stimulus_schema) {
-                target = answer->get(element);
+                target = answer->get(element, true);
                 if (target != "") {
                     this->to_stimulate[answer->get(element)] = 1;
                 }

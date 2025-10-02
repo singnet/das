@@ -1,6 +1,6 @@
 #include <signal.h>
 
-#define LOG_LEVEL DEBUG_LEVEL
+#define LOG_LEVEL LOCAL_DEBUG_LEVEL
 
 #include <iomanip>
 #include <iostream>
@@ -64,7 +64,7 @@ static float SPREADING_RATE_LOWERBOUND = 0.90;
 static float SPREADING_RATE_UPPERBOUND = 0.90;
 static double SELECTION_RATE = 0.10;
 static double ELITISM_RATE = 0.08;
-static unsigned int LINK_BUILDING_QUERY_SIZE = 50;
+static unsigned int LINK_BUILDING_QUERY_SIZE = 200;
 static unsigned int POPULATION_SIZE = 50;
 static unsigned int MAX_GENERATIONS = 20;
 static unsigned int NUM_ITERATIONS = 10;
@@ -183,6 +183,7 @@ static void compute_counts(const vector<vector<string>>& query_tokens,
                            double& count_1,
                            double& count_intersection,
                            double& count_union) {
+    LOG_LOCAL_DEBUG("Computing counts for " + handle0 + " and " + handle1);
     shared_ptr<PatternMatchingQueryProxy> proxy[2];
 
     count_0 = 0.0;
@@ -196,13 +197,13 @@ static void compute_counts(const vector<vector<string>>& query_tokens,
 
     double d;
     string handle;
-    pair<string, string> key = {handle0, handle1};
-    // weight_calculation_cache TODO
     for (unsigned int i = 0; i < 2; i++) {
         proxy[i] = issue_weight_count_query(query_tokens[i], context);
     }
+    LOG_LOCAL_DEBUG("Queries issued");
     shared_ptr<QueryAnswer> query_answer;
     for (unsigned int i = 0; i < 2; i++) {
+        LOG_LOCAL_DEBUG("i: " + to_string(i));
         ServiceBusSingleton::get_instance()->issue_bus_command(proxy[i]);
         while (!proxy[i]->finished()) {
             if ((query_answer = proxy[i]->pop()) == NULL) {
@@ -220,6 +221,7 @@ static void compute_counts(const vector<vector<string>>& query_tokens,
             }
         }
     }
+    LOG_LOCAL_DEBUG("Query answers processed");
     count_map_union = count_map[0];
     for (auto pair : count_map[1]) {
         auto iterator = count_map[0].find(pair.first);
@@ -250,6 +252,7 @@ static void add_or_update_link(const string& type_handle,
                                const string& target1,
                                const string& target2,
                                double strength) {
+    LOG_DEBUG("add_or_update_link(" + type_handle + ", " + target1 + ", " + target2 + ", " + to_string(strength));
     Link new_link(EXPRESSION, {type_handle, target1, target2}, true, {{STRENGTH, strength}});
     LOG_DEBUG("Add or update: " + new_link.to_string());
     string handle = new_link.handle();
@@ -269,6 +272,7 @@ static void add_or_update_link(const string& type_handle,
 
 static void build_implication_link(shared_ptr<QueryAnswer> query_answer, const string& context) {
     if (query_answer->handles[0] == query_answer->handles[1]) {
+        LOG_DEBUG("Skipping because handles are the same: " + query_answer->handles[0]);
         return;
     }
 
@@ -321,6 +325,7 @@ static void build_implication_link(shared_ptr<QueryAnswer> query_answer, const s
 
 static void build_equivalence_link(shared_ptr<QueryAnswer> query_answer, const string& context) {
     if (query_answer->handles[0] == query_answer->handles[1]) {
+        LOG_DEBUG("Skipping because handles are the same: " + query_answer->handles[0]);
         return;
     }
 
@@ -499,7 +504,7 @@ static void run(const string& predicate_source, const string& predicate_target, 
     };
 
     vector<string> context_query = {
-        OR_OPERATOR, "2",
+        OR_OPERATOR, "3",
         LINK_TEMPLATE, EXPRESSION, "3",
             NODE, SYMBOL, EVALUATION,
             VARIABLE, V2,
