@@ -12,12 +12,12 @@
 #include "Context.h"
 #include "CountLetterFunction.h"
 #include "FitnessFunctionRegistry.h"
+#include "Hasher.h"
+#include "Logger.h"
 #include "QueryAnswer.h"
 #include "QueryEvolutionProxy.h"
 #include "ServiceBusSingleton.h"
 #include "Utils.h"
-#include "Hasher.h"
-#include "Logger.h"
 
 #define MAX_QUERY_ANSWERS ((unsigned int) 100000)
 
@@ -112,9 +112,8 @@ static void print_answer(shared_ptr<QueryAnswer> query_answer) {
     cout << endl;
 }
 
-static shared_ptr<PatternMatchingQueryProxy> issue_link_building_query(const vector<string>& query_tokens,
-                                                                       const string& context,
-                                                                       unsigned int max_answers) {
+static shared_ptr<PatternMatchingQueryProxy> issue_link_building_query(
+    const vector<string>& query_tokens, const string& context, unsigned int max_answers) {
     auto proxy = make_shared<PatternMatchingQueryProxy>(query_tokens, context);
     proxy->parameters[BaseQueryProxy::UNIQUE_ASSIGNMENT_FLAG] = true;
     proxy->parameters[BaseQueryProxy::ATTENTION_UPDATE_FLAG] = false;
@@ -128,10 +127,10 @@ static shared_ptr<PatternMatchingQueryProxy> issue_link_building_query(const vec
     return proxy;
 }
 
-// Fazer um cache que permita lembrar dos handles da resposta do QA e recalcular apenas os counts (que dependem dos weight)
+// Fazer um cache que permita lembrar dos handles da resposta do QA e recalcular apenas os counts (que
+// dependem dos weight)
 static shared_ptr<PatternMatchingQueryProxy> issue_weight_count_query(const vector<string>& query_tokens,
                                                                       const string& context) {
-
     auto proxy = make_shared<PatternMatchingQueryProxy>(query_tokens, context);
     proxy->parameters[BaseQueryProxy::UNIQUE_ASSIGNMENT_FLAG] = true;
     proxy->parameters[BaseQueryProxy::ATTENTION_UPDATE_FLAG] = false;
@@ -144,9 +143,7 @@ static shared_ptr<PatternMatchingQueryProxy> issue_weight_count_query(const vect
     return proxy;
 }
 
-static void update_attention_allocation(const vector<string>& query_tokens,
-                                        const string& context) {
-
+static void update_attention_allocation(const vector<string>& query_tokens, const string& context) {
     auto proxy = make_shared<PatternMatchingQueryProxy>(query_tokens, context);
     proxy->parameters[BaseQueryProxy::UNIQUE_ASSIGNMENT_FLAG] = false;
     proxy->parameters[BaseQueryProxy::ATTENTION_UPDATE_FLAG] = true;
@@ -245,14 +242,16 @@ static void compute_counts(const vector<vector<string>>& query_tokens,
     for (auto pair : count_map[1]) {
         count_1 += pair.second;
     }
-    LOG_DEBUG("Counts: " + to_string(count_0) + " " + to_string(count_1) + " " + to_string(count_intersection) + " " + to_string(count_union));
+    LOG_DEBUG("Counts: " + to_string(count_0) + " " + to_string(count_1) + " " +
+              to_string(count_intersection) + " " + to_string(count_union));
 }
 
 static void add_or_update_link(const string& type_handle,
                                const string& target1,
                                const string& target2,
                                double strength) {
-    LOG_DEBUG("add_or_update_link(" + type_handle + ", " + target1 + ", " + target2 + ", " + to_string(strength));
+    LOG_DEBUG("add_or_update_link(" + type_handle + ", " + target1 + ", " + target2 + ", " +
+              to_string(strength));
     Link new_link(EXPRESSION, {type_handle, target1, target2}, true, {{STRENGTH, strength}});
     LOG_DEBUG("Add or update: " + new_link.to_string());
     string handle = new_link.handle();
@@ -277,7 +276,8 @@ static void build_implication_link(shared_ptr<QueryAnswer> query_answer, const s
     }
 
     string predicate[2] = {query_answer->handles[0], query_answer->handles[1]};
-    LOG_DEBUG("Evaluating implication: " + get_predicate_name(predicate[0]) + " ==> " + get_predicate_name(predicate[1]));
+    LOG_DEBUG("Evaluating implication: " + get_predicate_name(predicate[0]) + " ==> " +
+              get_predicate_name(predicate[1]));
     vector<vector<string>> query;
 
     for (unsigned int i = 0; i < 2; i++) {
@@ -310,7 +310,15 @@ static void build_implication_link(shared_ptr<QueryAnswer> query_answer, const s
     }
     double count_0, count_1, count_intersection, count_union;
     QueryAnswerElement target_element(CONCEPT1);
-    compute_counts(query, context, target_element, predicate[0], predicate[1], count_0, count_1, count_intersection, count_union);
+    compute_counts(query,
+                   context,
+                   target_element,
+                   predicate[0],
+                   predicate[1],
+                   count_0,
+                   count_1,
+                   count_intersection,
+                   count_union);
     if (count_intersection > 0) {
         if (count_0 > 0) {
             double strength = count_intersection / count_0;
@@ -361,7 +369,15 @@ static void build_equivalence_link(shared_ptr<QueryAnswer> query_answer, const s
     }
     double count_0, count_1, count_intersection, count_union;
     QueryAnswerElement target_element(PREDICATE1);
-    compute_counts(query, context, target_element, concept_[0], concept_[1], count_0, count_1, count_intersection, count_union);
+    compute_counts(query,
+                   context,
+                   target_element,
+                   concept_[0],
+                   concept_[1],
+                   count_0,
+                   count_1,
+                   count_intersection,
+                   count_union);
     if ((count_intersection > 0) && (count_union > 0)) {
         double strength = count_intersection / count_union;
         add_or_update_link(EQUIVALENCE_HANDLE, concept_[0], concept_[1], strength);
@@ -371,7 +387,8 @@ static void build_equivalence_link(shared_ptr<QueryAnswer> query_answer, const s
 
 static void build_links(const vector<string>& query,
                         const string& context,
-                        void (*build_link)(shared_ptr<QueryAnswer> query_answer, const string& context)) {
+                        void (*build_link)(shared_ptr<QueryAnswer> query_answer,
+                                           const string& context)) {
     auto proxy = issue_link_building_query(query, context, LINK_BUILDING_QUERY_SIZE);
     unsigned int count = 0;
     shared_ptr<QueryAnswer> query_answer;
@@ -380,7 +397,8 @@ static void build_links(const vector<string>& query,
             Utils::sleep(10000);
         } else {
             if (++count <= LINK_BUILDING_QUERY_SIZE) {
-                LOG_DEBUG("Processing query answer " + to_string(count) + ": " + query_answer->to_string());
+                LOG_DEBUG("Processing query answer " + to_string(count) + ": " +
+                          query_answer->to_string());
                 build_link(query_answer, context);
             } else {
                 proxy->abort();
@@ -437,7 +455,9 @@ static void evolve_chain_query(
 }
 // clang-format on
 
-static void run(const string& predicate_source, const string& predicate_target, const string& context_tag) {
+static void run(const string& predicate_source,
+                const string& predicate_target,
+                const string& context_tag) {
     // clang-format off
 
     vector<string> implication_query = {
@@ -667,7 +687,8 @@ static void run(const string& predicate_source, const string& predicate_target, 
     ********************************************************************/
     // clang-format on
 
-    LOG_INFO("Source: " + get_predicate_name(predicate_source) + " Target: " + get_predicate_name(predicate_target));
+    LOG_INFO("Source: " + get_predicate_name(predicate_source) +
+             " Target: " + get_predicate_name(predicate_target));
     LOG_INFO("Setting up context");
     AtomSpace atom_space;
     QueryAnswerElement target2(V2);
@@ -704,13 +725,13 @@ static void run(const string& predicate_source, const string& predicate_target, 
 
 void insert_type_symbols() {
     vector<string> to_insert = {EQUIVALENCE, IMPLICATION};
-    Node *node;
+    Node* node;
     for (string node_name : to_insert) {
         node = new Node(SYMBOL, node_name);
-        if (! db->node_exists(node->handle())) {
+        if (!db->node_exists(node->handle())) {
             db->add_node(node);
         }
-        delete(node);
+        delete (node);
     }
 }
 
@@ -771,17 +792,18 @@ int main(int argc, char* argv[]) {
     LOG_INFO("NUM_ITERATIONS: " + to_string(NUM_ITERATIONS));
 
     Node predicate_symbol(SYMBOL, PREDICATE);
-    //cout << "XXXXX " << source_predicate << endl;
-    //cout << "XXXXX " << target_predicate << endl;
+    // cout << "XXXXX " << source_predicate << endl;
+    // cout << "XXXXX " << target_predicate << endl;
     Node source_predicate_symbol(SYMBOL, "\"" + source_predicate + "\"");
     Node target_predicate_symbol(SYMBOL, "\"" + target_predicate + "\"");
-    //cout << "XXXXX " << predicate_symbol.to_string() << " " << predicate_symbol.handle() << endl;
-    //cout << "XXXXX " << source_predicate_symbol.to_string() << " " << source_predicate_symbol.handle() << endl;
-    //cout << "XXXXX " << target_predicate_symbol.to_string() << " " << target_predicate_symbol.handle() << endl;
+    // cout << "XXXXX " << predicate_symbol.to_string() << " " << predicate_symbol.handle() << endl;
+    // cout << "XXXXX " << source_predicate_symbol.to_string() << " " << source_predicate_symbol.handle()
+    // << endl; cout << "XXXXX " << target_predicate_symbol.to_string() << " " <<
+    // target_predicate_symbol.handle() << endl;
     Link source(EXPRESSION, {predicate_symbol.handle(), source_predicate_symbol.handle()});
     Link target(EXPRESSION, {predicate_symbol.handle(), target_predicate_symbol.handle()});
-    //cout << "XXXXX " << source.to_string() << " " << source.handle() << endl;
-    //cout << "XXXXX " << target.to_string() << " " << target.handle() << endl;
+    // cout << "XXXXX " << source.to_string() << " " << source.handle() << endl;
+    // cout << "XXXXX " << target.to_string() << " " << target.handle() << endl;
     run(source.handle(), target.handle(), context_tag);
 
     return 0;

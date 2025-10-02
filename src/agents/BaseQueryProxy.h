@@ -108,7 +108,6 @@ class BaseQueryProxy : public BaseProxy {
      */
     virtual bool finished();
 
-
     // ---------------------------------------------------------------------------------------------
     // Server-side API
 
