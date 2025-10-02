@@ -46,7 +46,7 @@ int main(int argc, char* argv[]) {
 
     ServiceBusSingleton::init(client_id, server_id, ports_range.first, ports_range.second);
 
-    bool USE_METTA_QUERY = true;
+    bool USE_METTA_QUERY = false;
 
     // check if argv[4] is a number which is the max number of query answers
     // if not, set it to MAX_QUERY_ANSWERS
