@@ -98,42 +98,63 @@ def get_benchmark_result_by_id(db_path, benchmark_id):
     return [dict(zip(col_names, row)) for row in rows]
 
 
-def build_metadata_section(repo, sha, token, title):
-    pr_info = get_pr_info(repo, sha, token)
+def build_metadata_section(repo, sha, token, title, details=""):
     commit_info = get_commit_info(repo, sha, token)
+    commit_iso_date = commit_info["commit"]["committer"]["date"]
+    commit_date = datetime.fromisoformat(
+        commit_iso_date.replace("Z", "+00:00")
+    ).strftime("%Y-%m-%d %H:%M")
 
-    pr_url = pr_info[0]["html_url"] if pr_info else ""
-    pr_number = pr_info[0]["number"] if pr_info else ""
-    pr_title = pr_info[0]["title"] if pr_info else ""
-    pr_base_branch = (
-        pr_info[0].get("base", {}).get("ref", "master") if pr_info else "master"
-    )
-
-    commit_date = commit_info["commit"]["author"]["date"]
-    commit_date_fmt = datetime.strptime(commit_date, "%Y-%m-%dT%H:%M:%SZ").strftime(
-        "%Y-%m-%d %H:%M UTC"
-    )
     commit_sha_short = sha[:7]
 
-    md = {
-        "title": title,
-        "repo": repo,
-        "pr_url": pr_url,
-        "pr_number": pr_number,
-        "pr_title": pr_title,
-        "pr_base_branch": pr_base_branch,
-        "date": commit_date_fmt,
-        "commit_sha_short": commit_sha_short,
-    }
+    pr_info = get_pr_info(repo, sha, token)
 
-    return md
+    if len(pr_info) > 0:
+        pr_base_branch = pr_info[0].get("base", {}).get("ref", "master")
+        pr_url = pr_info[0].get("html_url")
+        pr_number = pr_info[0].get("number")
+        pr_title = pr_info[0].get("title")
+        return {
+            "title": title,
+            "details": details,
+            "repo": repo,
+            "commit_sha_short": commit_sha_short,
+            "date": commit_date,
+            "pr_url": pr_url,
+            "pr_number": pr_number,
+            "pr_title": pr_title,
+            "pr_base_branch": pr_base_branch,
+        }
+    else:
+        return {
+            "title": title,
+            "details": details,
+            "repo": repo,
+            "commit_sha_short": commit_sha_short,
+            "date": commit_date,
+            "pr_url": None,
+            "pr_number": None,
+            "pr_title": None,
+            "pr_base_branch": None,
+        }
 
 
 def generate_chart_for_operation(
-    db_path, backend, operation, benchmark_type_id, ssh, window=10, output_dir="charts"
+    db_path,
+    backend,
+    operation,
+    benchmark_type_id,
+    ssh,
+    window=10,
+    output_dir="charts",
+    dry_run=False,
 ):
     history = get_history_for_operation(
-        db_path, backend, operation, benchmark_type_id, window
+        db_path,
+        backend,
+        operation,
+        benchmark_type_id,
+        window,
     )
     if not history:
         return None
@@ -171,12 +192,20 @@ def generate_chart_for_operation(
         ssh["remote_dir"],
         img_path,
         ssh["public_url_base"],
+        dry_run,
     )
     return remote_path
 
 
 def build_table_for_prefix_html(
-    db_path, results, prefix, benchmark_type_id, ssh, window=10, threshold=10
+    db_path,
+    results,
+    prefix,
+    benchmark_type_id,
+    ssh,
+    window=10,
+    threshold=10,
+    dry_run=False,
 ):
     rows_html = []
     title = format_title(prefix)
@@ -237,7 +266,14 @@ def build_table_for_prefix_html(
             tp_display = str(tp_val)
 
         chart_url = generate_chart_for_operation(
-            db_path, prefix, op, benchmark_type_id, ssh, window
+            db_path,
+            prefix,
+            op,
+            benchmark_type_id,
+            ssh,
+            window,
+            "charts",
+            dry_run,
         )
         chart_html = (
             f'<img src="{html_lib.escape(str(chart_url))}" alt="{html_lib.escape(str(op))}" class="thumb"/>'
@@ -261,25 +297,38 @@ def generate_html(
     token,
     title,
     ssh,
+    report_type="daily",
+    details="",
     window=10,
     threshold=10,
+    dry_run=False,
 ):
-    meta = build_metadata_section(repo, sha, token, title)
+    meta = build_metadata_section(repo, sha, token, title, details)
 
     prefixes = get_prefixes(results)
 
     body_chunks = []
-    body_chunks.append(f"<h1>{html_lib.escape(meta['title'])}</h1>")
+
+    body_chunks.append(
+        f"<h1>{html_lib.escape(report_type.capitalize())} report - {html_lib.escape(meta['title'])}</h1>"
+    )
+
     body_chunks.append(
         f"<p><strong>Repository:</strong> {html_lib.escape(meta['repo'])}</p>"
     )
-    if meta["pr_url"]:
+
+    if report_type == "merge" and meta.get("pr_url"):
         body_chunks.append(
-            f"<p><strong>Source:</strong> <a href=\"{html_lib.escape(meta['pr_url'])}\">#{meta['pr_number']} - {html_lib.escape(meta['pr_title'])}</a></p>"
+            f"<p><strong>PR:</strong> "
+            f"<a href=\"{html_lib.escape(meta['pr_url'])}\">"
+            f"#{meta['pr_number']} - {html_lib.escape(meta['pr_title'])}</a></p>"
         )
+
     body_chunks.append(f"<p><strong>Date:</strong> {html_lib.escape(meta['date'])}</p>")
     body_chunks.append(
-        f"<p><strong>Commit:</strong> <code>{html_lib.escape(meta['commit_sha_short'])}</code> ({html_lib.escape(meta['pr_base_branch'])})</p>"
+        f"<p><strong>Commit:</strong> "
+        f"<code>{html_lib.escape(meta['commit_sha_short'])}</code> "
+        f"({html_lib.escape(meta.get('pr_base_branch', 'master'))})</p>"
     )
 
     for prefix in prefixes:
@@ -296,6 +345,7 @@ def generate_html(
                     ssh,
                     window,
                     threshold,
+                    dry_run,
                 )
             )
 
@@ -308,26 +358,59 @@ def generate_html(
     .regress { color: #c0392b; font-weight: 600; }
     """
 
-    html_doc = f"<!doctype html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\">\n<meta name=\"viewport\" content=\"width=device-width,initial-scale=1\">\n<title>{html_lib.escape(meta['title'])}</title>\n<style>{css}</style>\n</head>\n<body>\n{''.join(body_chunks)}\n</body>\n</html>"
+    html_doc = (
+        f'<!doctype html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n'
+        f'<meta name="viewport" content="width=device-width,initial-scale=1">\n'
+        f"<title>{html_lib.escape(meta['title'])}</title>\n<style>{css}</style>\n</head>\n"
+        f"<body>\n{''.join(body_chunks)}\n</body>\n</html>"
+    )
 
     return html_doc
 
 
-def generate_mattermost_message(repo, sha, token, title, report_url):
-    meta = build_metadata_section(repo, sha, token, title)
+def generate_mattermost_message(
+    repo,
+    sha,
+    token,
+    title,
+    details,
+    report_url,
+    report_type="daily",
+):
+    meta = build_metadata_section(repo, sha, token, title, details)
+
+    header = f"## {report_type.capitalize()} report - {meta['title']}\n"
+
+    pr_text = ""
+    if report_type == "merge" and meta.get("pr_url"):
+        pr_text = (
+            f"**PR:** [#{meta['pr_number']} - {meta['pr_title']}]({meta['pr_url']})\n"
+        )
 
     message_text = (
-        f"## {meta['title']}\n"
-        f"**Repository:** {meta['repo']}\n"
-        f"**Commit:** {meta['commit_sha_short']}\n"
-        f"**Date:** {meta['date']}\n\n"
+        f"{header}"
+        f"{pr_text}"
+        f"**Details:** {meta['details']}\n"
+        f"**Date:** {meta['date']}\n"
+        f"**Commit:** `{meta['commit_sha_short']}` ({meta.get('pr_base_branch', 'master')})\n"
         f"**Report:** {report_url}"
     )
 
     save_message_as_json(message_text, "mattermost_report.json")
 
 
-def update_benchmark_execution(db_path, benchmark_id, repo, sha, token):
+def update_benchmark_execution(
+    db_path,
+    benchmark_id,
+    repo,
+    sha,
+    token,
+    dry_run=False,
+):
+    if dry_run:
+        print("[dry-run] Skipping update of benchmark_execution in the database")
+        return
+
     pr_info = get_pr_info(repo, sha, token)
     pr_link = pr_info[0]["html_url"] if pr_info else ""
     pr_title = pr_info[0]["title"] if pr_info else ""
@@ -369,26 +452,38 @@ def build_public_url(ssh_host, ssh_path, ts):
     return f"http://{hostname}/{last_dir}/{ts}"
 
 
-def upload_file_via_ssh(ssh_host, ssh_key, remote_dir, file_path, public_url_base=None):
+def upload_file_via_ssh(
+    ssh_host,
+    ssh_key,
+    remote_dir,
+    file_path,
+    public_url_base=None,
+    dry_run=False,
+):
     remote_path = os.path.join(remote_dir, os.path.basename(file_path))
+
+    if dry_run:
+        print(f"[dry-run] Skipping upload of {file_path} to {ssh_host}:{remote_path}")
+        if public_url_base:
+            return f"{public_url_base}/{os.path.basename(file_path)}"
+        return os.path.basename(file_path)
+
     subprocess.run(
         ["scp", "-i", ssh_key, str(file_path), f"{ssh_host}:{remote_path}"],
         check=True,
     )
+
     if public_url_base:
         return f"{public_url_base}/{os.path.basename(file_path)}"
     return os.path.basename(file_path)
 
 
-def save_html_and_upload(html_content, ssh):
-    with tempfile.NamedTemporaryFile(
-        "w",
-        delete=False,
-        suffix=".html",
-        encoding="utf-8",
-    ) as tmp:
-        tmp.write(html_content)
-        tmp_path = tmp.name
+def save_html_and_upload(html_content, ssh, dry_run=False):
+    tmp_dir = tempfile.gettempdir()
+    tmp_path = os.path.join(tmp_dir, "index.html")
+
+    with open(tmp_path, "w", encoding="utf-8") as f:
+        f.write(html_content)
 
     remote_html = upload_file_via_ssh(
         ssh["host"],
@@ -396,17 +491,30 @@ def save_html_and_upload(html_content, ssh):
         ssh["remote_dir"],
         tmp_path,
         ssh["public_url_base"],
+        dry_run,
     )
+
     os.unlink(tmp_path)
+
     return remote_html
 
 
 def main():
     parser = argparse.ArgumentParser(description="Generate benchmark report (HTML)")
     parser.add_argument(
-        "--benchmark-id", required=True, type=int, help="ID of the benchmark execution"
+        "--benchmark-id",
+        required=True,
+        type=int,
+        help="ID of the benchmark execution",
     )
     parser.add_argument("--title", required=True, help="Report title")
+    parser.add_argument("--details", required=True, help="Report details")
+    parser.add_argument(
+        "--report-type",
+        choices=["daily", "merge"],
+        default="daily",
+        help="Type of report: daily or merge",
+    )
     parser.add_argument(
         "--db-path",
         default=f"/home/{os.getenv('USER')}/.cache/shared/benchmark.db",
@@ -436,7 +544,7 @@ def main():
     )
     parser.add_argument(
         "--output",
-        default="report.html",
+        default="index.html",
         help="Output HTML file name (local)",
     )
     parser.add_argument("--ssh-host", required=True, help="SSH host (ex: user@host)")
@@ -449,6 +557,12 @@ def main():
         "--ssh-key",
         required=True,
         help="Path to private key (PEM file)",
+    )
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        default=False,
+        help="Do not upload files, just generate HTML locally",
     )
     args = parser.parse_args()
 
@@ -477,14 +591,17 @@ def main():
         args.token,
         args.title,
         ssh,
+        args.report_type,
+        args.details,
         args.window,
         args.threshold,
+        args.dry_run,
     )
 
     local_out = Path(args.output)
     local_out.write_text(html, encoding="utf-8")
 
-    remote_html_url = save_html_and_upload(html, ssh)
+    remote_html_url = save_html_and_upload(html, ssh, dry_run=args.dry_run)
 
     print("Report generated and uploaded:", remote_html_url)
 
@@ -493,7 +610,9 @@ def main():
         args.sha,
         args.token,
         args.title,
+        args.details,
         remote_html_url,
+        args.report_type,
     )
 
     update_benchmark_execution(
@@ -502,6 +621,7 @@ def main():
         args.repo,
         args.sha,
         args.token,
+        args.dry_run,
     )
 
 
