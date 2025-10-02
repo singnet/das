@@ -5,13 +5,40 @@
 #include <string>
 
 #include "AtomDBSingleton.h"
+#include "AtomSpace.h"
 #include "InferenceProxy.h"
+#include "Logger.h"
 #include "ServiceBusSingleton.h"
 
 using namespace inference_agent;
 using namespace service_bus;
 using namespace atomdb;
 using namespace std;
+using namespace atom_space;
+
+// // clang-format off
+// vector<string> context_query = {
+//     "LINK_TEMPLATE", "EXPRESSION", "3",
+//         "NODE", "SYMBOL", "EVALUATION",
+//         "VARIABLE", "V2",
+//         "VARIABLE", "V3",
+// };
+// // clang-format on
+
+// clang-format off
+   vector<string> context_query = {
+        "OR", "2",
+        "LINK_TEMPLATE", "Expression", "3",
+            "NODE", "Symbol", "EVALUATION",
+            "VARIABLE", "V2",
+            "VARIABLE", "V3",
+        "LINK_TEMPLATE", "Expression", "3",
+            "NODE", "Symbol", "Contains",
+            "VARIABLE", "V2",
+            "VARIABLE", "V3",
+
+    };  
+// clang-format on
 
 void ctrl_c_handler(int) {
     std::cout << "Stopping client..." << std::endl;
@@ -69,17 +96,32 @@ int main(int argc, char* argv[]) {
     string number_of_iterations_str = string(argv[6]);
     string update_attention_broker_str = string(argv[7]);
     string run_full_evaluation_str = string(argv[8]);
+    string context_tag = string(argv[argc - 1]);
+
+    // Initialize the AtomDB singleton
+
+    AtomDBSingleton::init();
+    ServiceBusSingleton::init(client_id, server_id, start_port, end_port);
+    LOG_INFO("Setting up context");
+    AtomSpace atom_space;
+    QueryAnswerElement target2("V2");
+    QueryAnswerElement target3("V3");
+    QueryAnswerElement toplevel_link(0);
+    // auto context_obj = atom_space.create_context(
+    //     context_tag, context_query, {{toplevel_link, target2}, {toplevel_link, target3}}, {});
+    // string context = context_obj->get_key();
+    // LOG_INFO("Context " + context + " is ready");
+    string context = context_tag;
 
     vector<string> request;
-    for (int i = 9; i < argc; i++) {
+    for (int i = 9; i < argc - 1; i++) {
         request.push_back(argv[i]);
     }
+    request.push_back(context);
     signal(SIGINT, &ctrl_c_handler);
     signal(SIGTERM, &ctrl_c_handler);
     cout << ":: ::Starting inference agent:: ::" << endl;
-    // Initialize the AtomDB singleton
-    AtomDBSingleton::init();
-    ServiceBusSingleton::init(client_id, server_id, start_port, end_port);
+
     auto proxy = make_shared<InferenceProxy>(request);
     proxy->parameters[InferenceProxy::INFERENCE_REQUEST_TIMEOUT] = (unsigned int) stoi(timeout_str);
     proxy->parameters[InferenceProxy::MAX_QUERY_ANSWERS_TO_PROCESS] =
@@ -91,6 +133,7 @@ int main(int argc, char* argv[]) {
     proxy->parameters[InferenceProxy::REPEAT_REQUEST_NUMBER] =
         (unsigned int) stoi(number_of_iterations_str);
     auto client = ServiceBusSingleton::get_instance();
+
     client->issue_bus_command(proxy);
     int count = 1;
     shared_ptr<QueryAnswer> query_answer;

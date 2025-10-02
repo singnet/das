@@ -180,6 +180,8 @@ string correlation_query_str =
         "LINK_TEMPLATE Expression 3 "
             "NODE Symbol EVALUATION "
             "VARIABLE P1 "
+            "LINK_TEMPLATE Expression 2 "
+            "NODE Symbol CONCEPT "
             "VARIABLE S1 "
         "LINK_TEMPLATE Expression 3 "
             "NODE Symbol Contains "
@@ -191,15 +193,17 @@ string correlation_query_str =
             "VARIABLE W1 "
         "LINK_TEMPLATE Expression 3 "
             "NODE Symbol EVALUATION "
-            "VARIABLE V1 "
+            "VARIABLE P2 "
+            "LINK_TEMPLATE Expression 2 "
+            "NODE Symbol CONCEPT "
             "VARIABLE S2 "
     "LINK_TEMPLATE Expression 3 "
         "NODE Symbol IMPLICATION "
         "VARIABLE P1 "
-        "VARIABLE V1 "
+        "VARIABLE P2 "
     "LINK_TEMPLATE Expression 3 "
         "NODE Symbol IMPLICATION "
-        "VARIABLE V1 "
+        "VARIABLE P2 "
         "VARIABLE P1 ";
 
 
@@ -237,6 +241,8 @@ void InferenceRequest::set_correlation_mapping(const string& mapping) {
 vector<vector<string>> InferenceRequest::get_requests() { return {}; }
 
 string InferenceRequest::get_context() { return context; }
+
+vector<string> InferenceRequest::get_update_attention_allocation_query() {return {}; }
 
 ////////////////////////////// IMPLICATION ///////////////////////////////////
 
@@ -307,6 +313,28 @@ string ProofOfImplication::get_direct_inference_hash() {
     return implication.handle();
 }
 
+vector<string> ProofOfImplication::get_update_attention_allocation_query() {    
+    // clang-format off
+    vector<string> tokens = {
+    "OR", "2",
+       "LINK_TEMPLATE", "Expression", "3",
+            "NODE", "Symbol", "EVALUATION",
+            "ATOM", this->first_handle,
+            "LINK_TEMPLATE", "Expression", "2",
+                "NODE", "Symbol", "CONCEPT",
+                "VARIABLE", "TARGET",
+        "LINK_TEMPLATE", "Expression", "3",
+            "NODE", "Symbol", "EVALUATION",
+            "ATOM", this->second_handle,
+            "LINK_TEMPLATE", "Expression", "2",
+                "NODE", "Symbol", "CONCEPT",
+                "VARIABLE", "TARGET",
+    };
+    // clang-format on
+    return tokens;
+
+}
+
 ////////////////////////////// EQUIVALENCE ///////////////////////////////////
 
 ProofOfEquivalence::ProofOfEquivalence(string first_handle,
@@ -373,4 +401,23 @@ string ProofOfEquivalence::get_direct_inference_hash() {
     Link equivalence("Expression",
                      {Hasher::node_handle("Symbol", "EQUIVALENCE"), first_handle, second_handle});
     return equivalence.handle();
+}
+
+vector<string> ProofOfEquivalence::get_update_attention_allocation_query() {    
+    // clang-format off
+    vector<string> tokens = {
+        "OR", "2",
+            "LINK_TEMPLATE", "Expression", "3",
+                "NODE", "Symbol", "EVALUATION",
+                "VARIABLE", "TARGET",
+                "ATOM", this->first_handle,
+            "LINK_TEMPLATE", "Expression", "3",
+                "NODE", "Symbol", "EVALUATION",
+                "VARIABLE", "TARGET",
+                "ATOM", this->second_handle,
+
+    };
+    // clang-format on
+    return tokens;
+
 }

@@ -7,6 +7,7 @@
 #define LOG_LEVEL DEBUG_LEVEL
 #include "AtomDBSingleton.h"
 #include "Logger.h"
+#include "PatternMatchingQueryProxy.h"
 #include "ServiceBusSingleton.h"
 #include "Utils.h"
 
@@ -127,6 +128,7 @@ void InferenceAgent::run() {
         if (!inference_request_queue.empty()) {
             try {
                 auto inference_request = inference_request_queue.dequeue();
+                send_update_attention_allocation_request(inference_request);
                 send_link_creation_request(inference_request);
                 this->inference_requests.push_back(inference_request);
                 inference_timeout_map[inference_request->get_id()] =
@@ -221,6 +223,30 @@ void InferenceAgent::send_distributed_inference_control_request(
     ServiceBusSingleton::get_instance()->issue_bus_command(evolution_proxy);
     evolution_proxy_map[request_id] = evolution_proxy;
     LOG_DEBUG("Distributed inference control request sent");
+}
+
+void InferenceAgent::send_update_attention_allocation_request(
+    shared_ptr<InferenceRequest> inference_request) {
+    LOG_DEBUG("Sending update attention allocation request for inference request ID: "
+              << inference_request->get_id() << " with query: "
+              << Utils::join(inference_request->get_update_attention_allocation_query(), ' ')
+              << " and context: " << inference_request->get_context());
+    auto proxy = make_shared<PatternMatchingQueryProxy>(
+        inference_request->get_update_attention_allocation_query(), inference_request->get_context());
+    proxy->parameters[BaseQueryProxy::UNIQUE_ASSIGNMENT_FLAG] = true;
+    proxy->parameters[BaseQueryProxy::ATTENTION_UPDATE_FLAG] = true;
+    proxy->parameters[BaseQueryProxy::USE_LINK_TEMPLATE_CACHE] = false;
+    proxy->parameters[PatternMatchingQueryProxy::POSITIVE_IMPORTANCE_FLAG] = false;
+    proxy->parameters[BaseQueryProxy::USE_METTA_AS_QUERY_TOKENS] = false;
+    proxy->parameters[BaseQueryProxy::POPULATE_METTA_MAPPING] = false;
+    proxy->parameters[PatternMatchingQueryProxy::COUNT_FLAG] = true;
+
+    ServiceBusSingleton::get_instance()->issue_bus_command(proxy);
+    while (!proxy->finished()) {
+        Utils::sleep();
+    }
+    LOG_INFO("Updated attention for " + to_string(proxy->get_count()) +
+             " query answers of inference request ID: " + inference_request->get_id());
 }
 
 void InferenceAgent::process_inference_request(const vector<string>& request, const string& request_id) {
