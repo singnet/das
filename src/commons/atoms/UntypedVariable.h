@@ -91,6 +91,9 @@ class UntypedVariable : public Wildcard {
      * @param decoder disregarded
      */
     virtual bool match(const string& handle, Assignment& assignment, HandleDecoder& decoder) override;
+
+    virtual void tokenize(vector<string>& output);
+    virtual void untokenize(vector<string>& tokens);
 };
 
 }  // namespace atoms
