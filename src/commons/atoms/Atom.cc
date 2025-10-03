@@ -70,7 +70,7 @@ void Atom::tokenize(vector<string>& output) {
     vector<string> parameters_tokens = this->custom_attributes.tokenize();
     parameters_tokens.insert(parameters_tokens.begin(), std::to_string(parameters_tokens.size()));
     output.insert(output.begin(), parameters_tokens.begin(), parameters_tokens.end());
-    output.insert(output.begin(), (this->is_toplevel ? "true": "false"));
+    output.insert(output.begin(), (this->is_toplevel ? "true" : "false"));
     output.insert(output.begin(), this->type);
 }
 

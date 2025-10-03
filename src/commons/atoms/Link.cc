@@ -24,9 +24,7 @@ Link::Link(const string& type, const vector<string>& targets, const Properties& 
     this->validate();
 }
 
-Link::Link(vector<string>& tokens) {
-    untokenize(tokens);
-}
+Link::Link(vector<string>& tokens) { untokenize(tokens); }
 
 Link::Link(const Link& other) : Atom(other) { this->targets = other.targets; }
 
@@ -142,4 +140,3 @@ void Link::untokenize(vector<string>& tokens) {
     this->targets.insert(this->targets.begin(), tokens.begin() + 1, tokens.begin() + 1 + num_targets);
     tokens.erase(tokens.begin(), tokens.begin() + 1 + num_targets);
 }
-

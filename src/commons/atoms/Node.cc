@@ -18,9 +18,7 @@ Node::Node(const string& type, const string& name, const Properties& custom_attr
     this->validate();
 }
 
-Node::Node(vector<string>& tokens) {
-    untokenize(tokens);
-}
+Node::Node(vector<string>& tokens) { untokenize(tokens); }
 
 Node::Node(const Node& other) : Atom(other) { this->name = other.name; }
 
@@ -77,4 +75,3 @@ void Node::untokenize(vector<string>& tokens) {
     this->name = tokens[0];
     tokens.erase(tokens.begin(), tokens.begin() + 1);
 }
-
