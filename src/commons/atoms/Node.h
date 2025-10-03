@@ -28,6 +28,8 @@ class Node : public Atom {
 
     Node(const string& type, const string& name, const Properties& custom_attributes);
 
+    Node(vector<string>& tokens);
+
     /**
      * @brief Copy constructor.
      * Deeply copies node type, name and all custom attributes.

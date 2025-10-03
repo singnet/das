@@ -17,7 +17,7 @@ class HandleDecoder;  // Forward declaration
 class Atom : public HandleTrie::TrieValue {
    protected:
     static string UNDEFINED_TYPE;
-    Atom();
+    Atom() {}
 
    public:
     static string WILDCARD_STRING;

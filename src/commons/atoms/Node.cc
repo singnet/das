@@ -18,6 +18,10 @@ Node::Node(const string& type, const string& name, const Properties& custom_attr
     this->validate();
 }
 
+Node::Node(vector<string>& tokens) {
+    untokenize(tokens);
+}
+
 Node::Node(const Node& other) : Atom(other) { this->name = other.name; }
 
 Node& Node::operator=(const Node& other) {

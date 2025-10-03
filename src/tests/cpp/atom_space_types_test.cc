@@ -79,6 +79,12 @@ TEST(NodeTest, NodeWithCustomAttributes) {
     EXPECT_EQ(n.custom_attributes.get_ptr<long>("num") != nullptr, true);
     std::string s = n.to_string();
     EXPECT_EQ(s, "Node(type: 'Type', name: 'Name', custom_attributes: {foo: 'bar', num: 42})");
+    vector<string> tokens;
+    n.tokenize(tokens);
+    Node node_copy(tokens);
+    EXPECT_TRUE(node_copy == n);
+    s = node_copy.to_string();
+    EXPECT_EQ(s, "Node(type: 'Type', name: 'Name', custom_attributes: {foo: 'bar', num: 42})");
 }
 
 TEST(LinkTest, LinkWithCustomAttributes) {
