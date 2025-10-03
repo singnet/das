@@ -1,4 +1,5 @@
 pub mod query_answer;
+pub mod query_element;
 
 use std::collections::HashSet;
 
@@ -126,4 +127,14 @@ pub fn map_variables(atom_str: &str) -> HashSet<VariableAtom> {
 	}
 
 	variables
+}
+
+pub fn map_atom<T, F>(atom: &Atom, map_func: F) -> Vec<T>
+where
+	F: Fn(&Atom) -> T,
+{
+	match atom {
+		Atom::Expression(exp_atom) => exp_atom.children().iter().map(map_func).collect(),
+		_ => vec![map_func(atom)],
+	}
 }

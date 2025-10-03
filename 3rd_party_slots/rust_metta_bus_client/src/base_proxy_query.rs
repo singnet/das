@@ -53,6 +53,9 @@ pub struct BaseQueryProxy {
 	pub proxy_port: u16,
 	pub proxy_node: ProxyNode,
 
+	// Context Broker
+	pub context_created: bool,
+
 	// Evolution
 	pub eval_fitness_queue: VecDeque<String>,
 
@@ -108,6 +111,8 @@ impl BaseQueryProxy {
 
 			command,
 			args: vec![],
+
+			context_created: false,
 
 			eval_fitness_queue: VecDeque::new(),
 

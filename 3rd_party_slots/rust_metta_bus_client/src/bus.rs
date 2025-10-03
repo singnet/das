@@ -4,6 +4,7 @@ pub static PATTERN_MATCHING_QUERY_CMD: &str = "pattern_matching_query";
 pub static QUERY_EVOLUTION_CMD: &str = "query_evolution";
 pub static LINK_CREATION_CMD: &str = "link_creation";
 pub static INFERENCE_CMD: &str = "inference";
+pub static CONTEXT_CMD: &str = "context";
 
 #[derive(Debug, Default, Clone)]
 pub struct Bus {

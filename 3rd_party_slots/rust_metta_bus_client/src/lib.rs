@@ -14,6 +14,9 @@ use types::BoxError;
 
 use crate::{
 	base_proxy_query::BaseQueryProxyT,
+	context_broker_proxy::{
+		default_context_broker_params, ContextBrokerParams, ContextBrokerProxy,
+	},
 	helpers::{run_metta_runner, split_ignore_quoted},
 	inference_proxy::{parse_inference_parameters, InferenceParams, InferenceProxy},
 	query_evolution_proxy::{
@@ -26,6 +29,7 @@ pub mod space;
 
 pub mod bus;
 pub mod bus_node;
+pub mod context_broker_proxy;
 pub mod helpers;
 pub mod inference_proxy;
 pub mod pattern_matching_proxy;
@@ -64,14 +68,14 @@ pub fn query_with_das(
 	space_name: Option<String>, service_bus: Arc<Mutex<ServiceBus>>, query: &QueryType,
 	maybe_metta_runner: Option<MeTTaRunner>,
 ) -> Result<BindingsSet, BoxError> {
-	let max_query_answers = 100;
+	let max_query_answers = 1_000;
 	let unique_assignment = true;
 	let positive_importance = false;
 	let update_attention_broker = false;
 	let count_only = false;
 	let populate_metta_mapping = true;
 	let use_metta_as_query_tokens = true;
-	let max_bundle_size = 10_000;
+	let max_bundle_size = 1_000;
 
 	let mut atom = match query {
 		QueryType::Atom(a) => a.clone(),
@@ -85,18 +89,20 @@ pub fn query_with_das(
 		atom = run_metta_runner(&atom, &metta_runner)?;
 	}
 
-	let maybe_evolution_params = match parse_evolution_parameters(&atom, &maybe_metta_runner) {
-		Ok(maybe_evolution_params) => {
-			if let Some(evolution_params) = maybe_evolution_params.clone() {
-				atom = evolution_params.query_atom;
-			}
-			maybe_evolution_params
-		},
-		Err(e) => {
-			log::error!(target: "das", "{e}");
-			return Ok(BindingsSet::empty());
-		},
-	};
+	let (maybe_context_broker_params, maybe_evolution_params) =
+		match parse_evolution_parameters(&atom, &maybe_metta_runner) {
+			Ok(maybe_evolution_params) => {
+				if let Some(evolution_params) = maybe_evolution_params.clone() {
+					atom = evolution_params.query_atom;
+				}
+				let maybe_context_broker_params = Some(default_context_broker_params());
+				(maybe_context_broker_params, maybe_evolution_params)
+			},
+			Err(e) => {
+				log::error!(target: "das", "{e}");
+				return Ok(BindingsSet::empty());
+			},
+		};
 
 	let maybe_inference_params = match parse_inference_parameters(&atom) {
 		Ok(maybe_inference_params) => maybe_inference_params,
@@ -122,9 +128,13 @@ pub fn query_with_das(
 		Err(bindings_set) => return Ok(bindings_set),
 	};
 
-	match (maybe_evolution_params, maybe_inference_params) {
-		(Some(evolution_params), None) => evolution_query(service_bus, &params, &evolution_params),
-		(None, Some(inference_params)) => inference_query(service_bus, &params, &inference_params),
+	match (maybe_context_broker_params, maybe_evolution_params, maybe_inference_params) {
+		(Some(context_broker_params), Some(evolution_params), None) => {
+			evolution_query(service_bus, &params, &context_broker_params, &evolution_params)
+		},
+		(None, None, Some(inference_params)) => {
+			inference_query(service_bus, &params, &inference_params)
+		},
 		_ => pattern_matching_query(service_bus, &params),
 	}
 }
@@ -218,13 +228,27 @@ pub fn pattern_matching_query(
 
 pub fn evolution_query(
 	service_bus: Arc<Mutex<ServiceBus>>, params: &QueryParams,
-	evolution_params: &QueryEvolutionParams,
+	context_broker_params: &ContextBrokerParams, evolution_params: &QueryEvolutionParams,
 ) -> Result<BindingsSet, BoxError> {
 	let mut bindings_set = BindingsSet::empty();
 
+	let mut service_bus = service_bus.lock().unwrap();
+
+	let context_proxy = ContextBrokerProxy::new(params, context_broker_params)?;
+
+	service_bus.issue_bus_command(context_proxy.base.clone())?;
+
+	// Wait for ContextBrokerProxy to finish context creation
+	log::debug!(target: "das", "Waiting for context creation to finish...");
+	while !context_proxy.is_context_created() {
+		sleep(Duration::from_millis(100));
+	}
+
+	let context_str = context_proxy.get_key();
+	log::debug!(target: "das", "Context {context_str} was created");
+
 	let mut proxy = QueryEvolutionProxy::new(params, evolution_params)?;
 
-	let mut service_bus = service_bus.lock().unwrap();
 	service_bus.issue_bus_command(proxy.base.clone())?;
 
 	while !proxy.finished() {

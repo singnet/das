@@ -47,7 +47,7 @@ fn main() -> Result<(), BoxError> {
 	let count_only = false;
 	let populate_metta_mapping = true;
 	let use_metta_as_query_tokens = true;
-	let max_bundle_size = 10_000;
+	let max_bundle_size = 1_000;
 
 	let mut tokens_start_position = 5;
 	let max_query_answers = match (args[5]).parse::<u32>() {
