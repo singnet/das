@@ -54,6 +54,8 @@ class Wildcard : public Atom {
     virtual void validate() const override;
     virtual string to_string() const;
     virtual string schema_handle() const;
+    virtual void tokenize(vector<string>& output);
+    virtual void untokenize(vector<string>& tokens);
 
     // ---------------------------------------------------------------------------------------------
     // Public API - kept virtual (implemented in subclasses)

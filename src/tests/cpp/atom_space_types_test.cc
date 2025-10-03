@@ -100,6 +100,20 @@ TEST(LinkTest, LinkWithCustomAttributes) {
         ")"
     );
     // clang-format on
+    vector<string> tokens;
+    l.tokenize(tokens);
+    Link link_copy(tokens);
+    EXPECT_TRUE(link_copy == l);
+    s = link_copy.to_string();
+    EXPECT_EQ(
+        s,
+        "Link("
+            "type: 'LinkType', "
+            "targets: [" + n1->handle() + ", " + n2->handle() + "], "
+            "is_toplevel: false, "
+            "custom_attributes: {count: 10, flag: true}"
+        ")"
+    );
 }
 
 TEST(WildcardTest, Wildcards) {

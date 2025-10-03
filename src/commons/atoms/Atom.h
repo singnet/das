@@ -17,6 +17,7 @@ class HandleDecoder;  // Forward declaration
 class Atom : public HandleTrie::TrieValue {
    protected:
     static string UNDEFINED_TYPE;
+    Atom();
 
    public:
     static string WILDCARD_STRING;
@@ -135,6 +136,9 @@ class Atom : public HandleTrie::TrieValue {
      * @return this Atom's arity
      */
     virtual unsigned int arity() const;
+
+    virtual void tokenize(vector<string>& output);
+    virtual void untokenize(vector<string>& tokens);
 
     // ---------------------------------------------------------------------------------------------
     // Abstract (pure virtual) API

@@ -24,6 +24,10 @@ Link::Link(const string& type, const vector<string>& targets, const Properties& 
     this->validate();
 }
 
+Link::Link(vector<string>& tokens) {
+    untokenize(tokens);
+}
+
 Link::Link(const Link& other) : Atom(other) { this->targets = other.targets; }
 
 Link& Link::operator=(const Link& other) {
@@ -125,3 +129,17 @@ unsigned int Link::arity() const { return this->targets.size(); }
 bool Link::match(const string& handle, Assignment& assignment, HandleDecoder& decoder) {
     return this->handle() == handle;
 }
+
+void Link::tokenize(vector<string>& output) {
+    output.insert(output.begin(), this->targets.begin(), this->targets.end());
+    output.insert(output.begin(), std::to_string(this->targets.size()));
+    Atom::tokenize(output);
+}
+
+void Link::untokenize(vector<string>& tokens) {
+    Atom::untokenize(tokens);
+    unsigned int num_targets = std::stoi(tokens[0]);
+    this->targets.insert(this->targets.begin(), tokens.begin() + 1, tokens.begin() + 1 + num_targets);
+    tokens.erase(tokens.begin(), tokens.begin() + 1 + num_targets);
+}
+

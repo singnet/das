@@ -30,3 +30,11 @@ void Wildcard::validate() const {
 string Wildcard::to_string() const { return "Wildcard(type: '" + this->type + "')"; }
 
 string Wildcard::schema_handle() const { return Atom::WILDCARD_STRING; }
+
+void Wildcard::tokenize(vector<string>& output) {
+    Atom::tokenize(output);
+}
+
+void Wildcard::untokenize(vector<string>& tokens) {
+    Atom::untokenize(tokens);
+}

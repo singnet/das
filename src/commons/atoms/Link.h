@@ -29,6 +29,8 @@ class Link : public Atom {
 
     Link(const string& type, const vector<string>& targets, const Properties& custom_attributes);
 
+    Link(vector<string>& tokens);
+
     /**
      * @brief Copy constructor.
      * Deeply copies link type, targets and all custom attributes.
@@ -119,6 +121,9 @@ class Link : public Atom {
      * @param decoder disregarded
      */
     virtual bool match(const string& handle, Assignment& assignment, HandleDecoder& decoder) override;
+
+    virtual void tokenize(vector<string>& output);
+    virtual void untokenize(vector<string>& tokens);
 };
 
 }  // namespace atoms

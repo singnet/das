@@ -44,3 +44,14 @@ string UntypedVariable::metta_representation(HandleDecoder& decoder) const { ret
 bool UntypedVariable::match(const string& handle, Assignment& assignment, HandleDecoder& decoder) {
     return assignment.assign(this->name, handle);
 }
+
+void UntypedVariable::tokenize(vector<string>& output) {
+    output.insert(output.begin(), this->name);
+    Atom::tokenize(output);
+}
+
+void UntypedVariable::untokenize(vector<string>& tokens) {
+    Atom::untokenize(tokens);
+    this->name = tokens[0];
+    tokens.erase(tokens.begin(), tokens.begin() + 1);
+}
