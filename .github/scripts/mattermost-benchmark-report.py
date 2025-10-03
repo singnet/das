@@ -440,7 +440,7 @@ def create_remote_dir(ssh_host, ssh_key, ssh_path):
     ts = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S")
     remote_dir = os.path.join(ssh_path, ts)
     subprocess.run(
-        ["ssh", "-i", ssh_key, ssh_host, "mkdir", "-p", remote_dir],
+        ["ssh", "-o", "StrictHostKeyChecking=no", "-i", ssh_key, ssh_host, "mkdir", "-p", remote_dir],
         check=True,
     )
     return remote_dir, ts
@@ -469,7 +469,7 @@ def upload_file_via_ssh(
         return os.path.basename(file_path)
 
     subprocess.run(
-        ["scp", "-i", ssh_key, str(file_path), f"{ssh_host}:{remote_path}"],
+        ["scp", "-o", "StrictHostKeyChecking=no", "-i", ssh_key, str(file_path), f"{ssh_host}:{remote_path}"],
         check=True,
     )
 
