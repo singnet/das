@@ -396,7 +396,7 @@ def generate_mattermost_message(
         f"**Report:** {report_url}"
     )
 
-    save_message_as_json(message_text, "mattermost_report.json")
+    save_message_as_json(message_text)
 
 
 def update_benchmark_execution(
