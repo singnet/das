@@ -14,6 +14,13 @@ pub static ELITISM_RATE: &str = "elitism_rate";
 pub static SELECTION_RATE: &str = "selection_rate";
 pub static TOTAL_ATTENTION_TOKENS: &str = "total_attention_tokens";
 
+// Context Broker
+pub static USE_CACHE: &str = "use_cache";
+pub static ENFORCE_CACHE_RECREATION: &str = "enforce_cache_recreation";
+pub static INITIAL_RENT_RATE: &str = "initial_rent_rate";
+pub static INITIAL_SPREADING_RATE_LOWERBOUND: &str = "initial_spreading_rate_lowerbound";
+pub static INITIAL_SPREADING_RATE_UPPERBOUND: &str = "initial_spreading_rate_upperbound";
+
 #[derive(Clone, Debug, PartialEq)]
 pub enum PropertyValue {
 	String(String),
