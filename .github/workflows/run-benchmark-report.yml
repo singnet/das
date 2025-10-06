@@ -137,6 +137,12 @@ jobs:
           DETAILS="Single Thread, 10 iterations"
           KEY_FILE="${{ steps.ssh_key.outputs.key_file }}"
 
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            REPORT_TYPE="merge"
+          else
+            REPORT_TYPE="daily"
+          fi
+
           python .github/scripts/mattermost-benchmark-report.py \
             --benchmark-id "$BENCHMARK_ID" \
             --title "$TITLE" \
@@ -144,7 +150,8 @@ jobs:
             --threshold 10 \
             --ssh-host "$SSH_HOST" \
             --ssh-path "$SSH_PATH" \
-            --ssh-key "$KEY_FILE"
+            --ssh-key "$KEY_FILE" \
+            --report-type "$REPORT_TYPE"
 
       - name: Remove SSH key file
         if: always()
@@ -202,6 +209,12 @@ jobs:
           DETAILS="Single Thread, 100 iterations"
           KEY_FILE="${{ steps.ssh_key.outputs.key_file }}"
 
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            REPORT_TYPE="merge"
+          else
+            REPORT_TYPE="daily"
+          fi
+
           python .github/scripts/mattermost-benchmark-report.py \
             --benchmark-id "$BENCHMARK_ID" \
             --title "$TITLE" \
@@ -209,7 +222,8 @@ jobs:
             --threshold 10 \
             --ssh-host "$SSH_HOST" \
             --ssh-path "$SSH_PATH" \
-            --ssh-key "$KEY_FILE"
+            --ssh-key "$KEY_FILE" \
+            --report-type "$REPORT_TYPE"
 
       - name: Remove SSH key file
         if: always()
