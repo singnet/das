@@ -4,16 +4,8 @@ use std::thread;
 
 use tokio::runtime::{Builder, Runtime};
 
-use crate::{
-	properties::{
-		Properties, PropertyValue, ATTENTION_UPDATE_FLAG, COUNT_FLAG, MAX_BUNDLE_SIZE,
-		POPULATE_METTA_MAPPING, POSITIVE_IMPORTANCE_FLAG, UNIQUE_ASSIGNMENT_FLAG,
-		USE_METTA_AS_QUERY_TOKENS,
-	},
-	proxy::ProxyNode,
-	types::BoxError,
-	QueryParams,
-};
+use crate::properties;
+use crate::{proxy::ProxyNode, types::BoxError, QueryParams};
 
 pub trait BaseQueryProxyT {
 	fn finished(&self) -> bool;
@@ -46,7 +38,6 @@ pub struct BaseQueryProxy {
 	// BusCommandProxy
 	pub command: String,
 	pub context: String,
-	pub properties: Properties,
 	pub args: Vec<String>,
 	pub requestor_id: String,
 	pub serial: u64,
@@ -65,33 +56,6 @@ pub struct BaseQueryProxy {
 impl BaseQueryProxy {
 	#[allow(clippy::too_many_arguments)]
 	pub fn new(command: String, params: QueryParams) -> Result<Self, BoxError> {
-		let mut properties = Properties::new();
-		properties.insert(
-			UNIQUE_ASSIGNMENT_FLAG.to_string(),
-			PropertyValue::Bool(params.unique_assignment),
-		);
-		properties.insert(
-			POSITIVE_IMPORTANCE_FLAG.to_string(),
-			PropertyValue::Bool(params.positive_importance),
-		);
-		properties.insert(
-			ATTENTION_UPDATE_FLAG.to_string(),
-			PropertyValue::Bool(params.update_attention_broker),
-		);
-		properties.insert(COUNT_FLAG.to_string(), PropertyValue::Bool(params.count_only));
-		properties.insert(
-			MAX_BUNDLE_SIZE.to_string(),
-			PropertyValue::UnsignedInt(params.max_bundle_size),
-		);
-		properties.insert(
-			POPULATE_METTA_MAPPING.to_string(),
-			PropertyValue::Bool(params.populate_metta_mapping),
-		);
-		properties.insert(
-			USE_METTA_AS_QUERY_TOKENS.to_string(),
-			PropertyValue::Bool(params.use_metta_as_query_tokens),
-		);
-
 		let runtime = Arc::new(RwLock::new(Some(Arc::new(
 			Builder::new_multi_thread().enable_all().build().unwrap(),
 		))));
@@ -101,11 +65,10 @@ impl BaseQueryProxy {
 			answer_count: 0,
 
 			answer_flow_finished: false,
-			count_flag: params.count_only,
+			count_flag: params.properties.get(properties::COUNT_FLAG),
 			abort_flag: false,
 
 			context: params.context,
-			properties,
 
 			query_tokens: params.tokens,
 
