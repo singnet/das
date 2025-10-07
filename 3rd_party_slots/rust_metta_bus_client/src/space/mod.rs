@@ -9,7 +9,8 @@ use hyperon_space::{Space, SpaceCommon, SpaceMut, SpaceVisitor};
 use log;
 
 use crate::{
-	init_service_bus, query_with_das, service_bus::ServiceBus, types::MeTTaRunner, QueryType,
+	init_service_bus, properties::Properties, query_with_das, service_bus::ServiceBus,
+	types::MeTTaRunner, QueryType,
 };
 
 #[derive(Clone)]
@@ -17,13 +18,14 @@ pub struct DistributedAtomSpace {
 	common: SpaceCommon,
 	service_bus: Arc<Mutex<ServiceBus>>,
 	name: Option<String>,
+	params: Arc<Mutex<Properties>>,
 	metta_runner: MeTTaRunner,
 }
 
 impl DistributedAtomSpace {
 	pub fn new(
 		name: Option<String>, host_id: String, known_peer: String, port_lower: u16,
-		port_upper: u16, metta_runner: MeTTaRunner,
+		port_upper: u16, params: Arc<Mutex<Properties>>, metta_runner: MeTTaRunner,
 	) -> Self {
 		let service_bus = Arc::new(Mutex::new(
 			match init_service_bus(host_id, known_peer, port_lower, port_upper) {
@@ -34,12 +36,13 @@ impl DistributedAtomSpace {
 				},
 			},
 		));
-		Self { common: SpaceCommon::default(), service_bus, name, metta_runner }
+		Self { common: SpaceCommon::default(), service_bus, name, params, metta_runner }
 	}
 
 	pub fn query(&self, query: &Atom) -> BindingsSet {
 		match query_with_das(
 			self.name.clone(),
+			self.params.lock().unwrap().clone(),
 			self.service_bus.clone(),
 			&QueryType::Atom(query.clone()),
 			Some(self.metta_runner.clone()),

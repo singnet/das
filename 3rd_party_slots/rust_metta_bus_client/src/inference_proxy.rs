@@ -38,7 +38,7 @@ impl InferenceProxy {
 		let mut base = BaseQueryProxy::new(INFERENCE_CMD.to_string(), params.clone())?;
 
 		let mut args = vec![];
-		args.extend(base.properties.to_vec());
+		args.extend(params.properties.to_vec());
 		args.push(base.context.clone());
 		// TODO(arturgontijo): Shouldn't be the query length ?!
 		args.push("0".to_string());

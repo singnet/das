@@ -3,6 +3,7 @@ use std::sync::{Arc, Mutex};
 use crate::{
 	base_proxy_query::{BaseQueryProxy, BaseQueryProxyT},
 	bus::PATTERN_MATCHING_QUERY_CMD,
+	properties,
 	types::BoxError,
 	QueryParams,
 };
@@ -17,10 +18,18 @@ impl PatternMatchingQueryProxy {
 		let mut base = BaseQueryProxy::new(PATTERN_MATCHING_QUERY_CMD.to_string(), params.clone())?;
 
 		let mut args = vec![];
-		args.extend(base.properties.to_vec());
+		args.extend(params.properties.to_vec());
 		args.push(base.context.clone());
 		args.push(base.query_tokens.len().to_string());
 		args.extend(base.query_tokens.clone());
+
+		log::debug!(target: "das", "Query                    : <{}>", base.query_tokens.join(" "));
+		log::debug!(target: "das", "Max answers              : <{}>", params.properties.get::<u64>(properties::MAX_ANSWERS));
+		log::debug!(target: "das", "Update Attention Broker  : <{}>", params.properties.get::<bool>(properties::ATTENTION_UPDATE_FLAG));
+		log::debug!(target: "das", "Positive Importance      : <{}>", params.properties.get::<bool>(properties::POSITIVE_IMPORTANCE_FLAG));
+		log::debug!(target: "das", "Use metta as query tokens: <{}>", params.properties.get::<bool>(properties::USE_METTA_AS_QUERY_TOKENS));
+		log::debug!(target: "das", "Populate metta mapping   : <{}>", params.properties.get::<bool>(properties::POPULATE_METTA_MAPPING));
+
 		base.args = args;
 
 		Ok(Self { base: Arc::new(Mutex::new(base)) })

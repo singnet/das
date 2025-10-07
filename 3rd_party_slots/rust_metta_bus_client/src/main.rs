@@ -7,10 +7,13 @@ use std::{
 use hyperon_atom::Atom;
 use metta_bus_client::{
 	extract_query_params, host_id_from_atom, pattern_matching_query,
-	service_bus_singleton::ServiceBusSingleton, types::BoxError, QueryType,
+	properties::{self, Properties, PropertyValue},
+	service_bus_singleton::ServiceBusSingleton,
+	types::BoxError,
+	QueryType,
 };
 
-const MAX_QUERY_ANSWERS: u32 = 100;
+const MAX_QUERY_ANSWERS: u64 = 100;
 
 fn main() -> Result<(), BoxError> {
 	env_logger::init();
@@ -43,14 +46,18 @@ fn main() -> Result<(), BoxError> {
 	let update_attention_broker = &args[3] == "true" || &args[3] == "1";
 	let positive_importance = &args[4] == "true" || &args[4] == "1";
 
-	let unique_assignment = true;
-	let count_only = false;
-	let populate_metta_mapping = true;
-	let use_metta_as_query_tokens = true;
-	let max_bundle_size = 1_000;
+	let mut props = Properties::default();
+	props.insert(
+		properties::ATTENTION_UPDATE_FLAG.to_string(),
+		PropertyValue::Bool(update_attention_broker),
+	);
+	props.insert(
+		properties::POSITIVE_IMPORTANCE_FLAG.to_string(),
+		PropertyValue::Bool(positive_importance),
+	);
 
 	let mut tokens_start_position = 5;
-	let max_query_answers = match (args[5]).parse::<u32>() {
+	let max_query_answers = match (args[5]).parse::<u64>() {
 		Ok(value) => {
 			tokens_start_position += 1;
 			value
@@ -70,21 +77,11 @@ fn main() -> Result<(), BoxError> {
 	ServiceBusSingleton::init(host_id, known_peer, port_lower, port_upper)?;
 	let service_bus = Arc::new(Mutex::new(ServiceBusSingleton::get_instance()));
 
-	let params = match extract_query_params(
-		Some(context.to_string()),
-		&QueryType::String(tokens),
-		max_query_answers,
-		unique_assignment,
-		positive_importance,
-		update_attention_broker,
-		count_only,
-		populate_metta_mapping,
-		use_metta_as_query_tokens,
-		max_bundle_size,
-	) {
-		Ok(params) => params,
-		Err(_) => return Err("Error extracting query params".into()),
-	};
+	let params =
+		match extract_query_params(Some(context.to_string()), &QueryType::String(tokens), props) {
+			Ok(params) => params,
+			Err(_) => return Err("Error extracting query params".into()),
+		};
 
 	let bindings_set = pattern_matching_query(service_bus, &params)?;
 
