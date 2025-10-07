@@ -84,6 +84,7 @@ void PatternMatchingQueryProcessor::update_attention_broker_single_answer(
     // Stimulate all variables
     for (auto pair : answer->assignment.table) {
         joint_answer.insert(pair.second);
+        single_answer.insert(pair.second);
     }
 
     // Correlate handles which are the query answer
@@ -99,13 +100,13 @@ void PatternMatchingQueryProcessor::update_attention_broker_single_answer(
         joint_answer.insert(handle);
         // Gets targets and stack them
         // ------------- Targets are disabled
-        // shared_ptr<atomdb_api_types::HandleList> query_result =
-        // this->atomdb->query_for_targets(handle); if (query_result != NULL) {  // if handle is link
-        //    unsigned int query_result_size = query_result->size();
-        //    for (unsigned int i = 0; i < query_result_size; i++) {
-        //        execution_stack.push(string(query_result->get_handle(i)));
-        //    }
-        //}
+        shared_ptr<atomdb_api_types::HandleList> query_result =
+         this->atomdb->query_for_targets(handle); if (query_result != NULL) {  // if handle is link
+            unsigned int query_result_size = query_result->size();
+            for (unsigned int i = 0; i < query_result_size; i++) {
+                execution_stack.push(string(query_result->get_handle(i)));
+            }
+        }
         // -------------
     }
     if (single_answer.size() > 1) {

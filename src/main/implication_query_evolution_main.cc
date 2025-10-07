@@ -4,6 +4,7 @@
 
 #include <iomanip>
 #include <iostream>
+#include <fstream>
 #include <string>
 
 #include "AtomDBSingleton.h"
@@ -64,10 +65,13 @@ static float SPREADING_RATE_LOWERBOUND = 0.90;
 static float SPREADING_RATE_UPPERBOUND = 0.90;
 static double SELECTION_RATE = 0.10;
 static double ELITISM_RATE = 0.08;
-static unsigned int LINK_BUILDING_QUERY_SIZE = 200;
+static unsigned int LINK_BUILDING_QUERY_SIZE = 50;
 static unsigned int POPULATION_SIZE = 50;
 static unsigned int MAX_GENERATIONS = 20;
 static unsigned int NUM_ITERATIONS = 10;
+
+static bool SAVE_NEW_LINKS = false;
+static string NEW_LINKS_FILE_NAME = "newly_created_links.txt";
 
 using namespace std;
 using namespace atomdb;
@@ -81,6 +85,25 @@ static shared_ptr<AtomDB> db;
 static shared_ptr<ServiceBus> bus;
 static vector<vector<string>> buffer_determiners;
 static map<string, vector<string>> weight_calculation_cache;
+
+static void save_link(Link& link) {
+    ofstream file;
+    file.open(NEW_LINKS_FILE_NAME, std::ios::app);
+    if (file.is_open()) {
+        vector<string> tokens;
+        link.tokenize(tokens);
+        for (unsigned int i = 0; i < tokens.size(); i++) {
+            file << tokens[i];
+            if (i != tokens.size() - 1) {
+                file << " ";
+            }
+        }
+        file << endl;
+        file.close();
+    } else {
+        Utils::error("Couldn't open file for writing: " + NEW_LINKS_FILE_NAME);
+    }
+}
 
 static string get_predicate_name(string handle) {
     shared_ptr<Link> predicate_link = dynamic_pointer_cast<Link>(db->get_atom(handle));
@@ -119,7 +142,7 @@ static shared_ptr<PatternMatchingQueryProxy> issue_link_building_query(
     proxy->parameters[BaseQueryProxy::ATTENTION_UPDATE_FLAG] = false;
     proxy->parameters[BaseQueryProxy::USE_LINK_TEMPLATE_CACHE] = true;
     proxy->parameters[PatternMatchingQueryProxy::MAX_ANSWERS] = (unsigned int) max_answers;
-    proxy->parameters[PatternMatchingQueryProxy::POSITIVE_IMPORTANCE_FLAG] = false;
+    proxy->parameters[PatternMatchingQueryProxy::POSITIVE_IMPORTANCE_FLAG] = true;
     proxy->parameters[BaseQueryProxy::USE_METTA_AS_QUERY_TOKENS] = false;
     proxy->parameters[BaseQueryProxy::POPULATE_METTA_MAPPING] = false;
 
@@ -143,7 +166,88 @@ static shared_ptr<PatternMatchingQueryProxy> issue_weight_count_query(const vect
     return proxy;
 }
 
+static shared_ptr<PatternMatchingQueryProxy> issue_attention_allocation_query(const vector<string>& query_tokens, const string& context) {
+    auto proxy = make_shared<PatternMatchingQueryProxy>(query_tokens, context);
+    proxy->parameters[BaseQueryProxy::UNIQUE_ASSIGNMENT_FLAG] = true;
+    proxy->parameters[BaseQueryProxy::ATTENTION_UPDATE_FLAG] = false;
+    proxy->parameters[BaseQueryProxy::USE_LINK_TEMPLATE_CACHE] = false;
+    proxy->parameters[PatternMatchingQueryProxy::POSITIVE_IMPORTANCE_FLAG] = false;
+    proxy->parameters[BaseQueryProxy::USE_METTA_AS_QUERY_TOKENS] = false;
+    proxy->parameters[BaseQueryProxy::POPULATE_METTA_MAPPING] = false;
+
+    ServiceBusSingleton::get_instance()->issue_bus_command(proxy);
+    return proxy;
+}
+
+
+static void update_attention_allocation(const string& predicate_source, const string& predicate_target, const string& context) {
+
+    LOG_INFO("Updating attention allocation using custom traversal.");
+
+    vector<string> attention_update_query1 = {
+        OR_OPERATOR, "2",
+            LINK_TEMPLATE, EXPRESSION, "3",
+                NODE, SYMBOL, EVALUATION,
+                ATOM, predicate_source,
+                LINK_TEMPLATE, EXPRESSION, "2",
+                    NODE, SYMBOL, CONCEPT,
+                    VARIABLE, SENTENCE1,
+            LINK_TEMPLATE, EXPRESSION, "3",
+                NODE, SYMBOL, EVALUATION,
+                ATOM, predicate_target,
+                LINK_TEMPLATE, EXPRESSION, "2",
+                    NODE, SYMBOL, CONCEPT,
+                    VARIABLE, SENTENCE1
+    };
+
+    vector<string> attention_update_query2 = {
+        LINK_TEMPLATE, EXPRESSION, "3",
+            NODE, SYMBOL, EVALUATION,
+            VARIABLE, PREDICATE1,
+            LINK, EXPRESSION, "2",
+                NODE, SYMBOL, CONCEPT,
+                ATOM, "sentence"
+    };
+
+    shared_ptr<PatternMatchingQueryProxy> proxy1 = issue_attention_allocation_query(attention_update_query1, context);
+    shared_ptr<PatternMatchingQueryProxy> proxy2;
+    set<string> to_correlate;
+    map<string, unsigned int> to_stimulate;
+    shared_ptr<QueryAnswer> query_answer1;
+    shared_ptr<QueryAnswer> query_answer2;
+    unsigned int count = 0;
+    while (!proxy1->finished()) {
+        if ((query_answer1 = proxy1->pop()) == NULL) {
+            Utils::sleep();
+        } else {
+            LOG_INFO("Traversing handle " + to_string(++count) + "/" + to_string(proxy1->get_count()));
+            attention_update_query2[attention_update_query2.size() - 1] = query_answer1->get(SENTENCE1);
+            proxy2 = issue_attention_allocation_query(attention_update_query2, context);
+            to_stimulate[query_answer1->get(0)] = 1;
+            to_stimulate[query_answer1->get(SENTENCE1)] = 1;
+            while (!proxy2->finished()) {
+                if ((query_answer2 = proxy2->pop()) == NULL) {
+                    Utils::sleep();
+                } else {
+                    to_stimulate[query_answer2->get(0)] = 1;
+                    to_stimulate[query_answer2->get(PREDICATE1)] = 1;
+                    to_correlate.insert(query_answer1->get(0));
+                    to_correlate.insert(query_answer1->get(SENTENCE1));
+                    to_correlate.insert(query_answer2->get(0));
+                    to_correlate.insert(query_answer2->get(PREDICATE1));
+                    AttentionBrokerClient::correlate(to_correlate, context);
+                    to_correlate.clear();
+                }
+            }
+        }
+    }
+    AttentionBrokerClient::stimulate(to_stimulate, context);
+    LOG_INFO("Updated attention for " + to_string(to_stimulate.size()) + " handles.");
+}
+
+/*
 static void update_attention_allocation(const vector<string>& query_tokens, const string& context) {
+    LOG_INFO("Updating attention allocation using query.");
     auto proxy = make_shared<PatternMatchingQueryProxy>(query_tokens, context);
     proxy->parameters[BaseQueryProxy::UNIQUE_ASSIGNMENT_FLAG] = false;
     proxy->parameters[BaseQueryProxy::ATTENTION_UPDATE_FLAG] = true;
@@ -159,6 +263,7 @@ static void update_attention_allocation(const vector<string>& query_tokens, cons
     }
     LOG_INFO("Updated attention for " + to_string(proxy->get_count()) + " query answers");
 }
+*/
 
 static void insert_or_update(map<string, double>& count_map, const string& key, double value) {
     auto iterator = count_map.find(key);
@@ -262,10 +367,16 @@ static void add_or_update_link(const string& type_handle,
             LOG_DEBUG("Updating");
             db->delete_link(handle, false);
             db->add_link(&new_link);
+            if (SAVE_NEW_LINKS) {
+                save_link(new_link);
+            }
         }
     } else {
         db->add_link(&new_link);
         buffer_determiners.push_back({handle, target1, target2});
+        if (SAVE_NEW_LINKS) {
+            save_link(new_link);
+        }
     }
 }
 
@@ -397,9 +508,11 @@ static void build_links(const vector<string>& query,
             Utils::sleep(10000);
         } else {
             if (++count <= LINK_BUILDING_QUERY_SIZE) {
-                LOG_DEBUG("Processing query answer " + to_string(count) + ": " +
-                          query_answer->to_string());
-                build_link(query_answer, context);
+                if (query_answer->handles.size() == 2) {
+                    LOG_DEBUG("Processing query answer " + to_string(count) + ": " +
+                            query_answer->to_string());
+                    build_link(query_answer, context);
+                }
             } else {
                 proxy->abort();
                 break;
@@ -540,18 +653,32 @@ static void run(const string& predicate_source,
 
     vector<string> attention_update_query = {
         OR_OPERATOR, "2",
-        LINK_TEMPLATE, EXPRESSION, "3",
-            NODE, SYMBOL, EVALUATION,
-            ATOM, predicate_source,
-            LINK_TEMPLATE, EXPRESSION, "2",
-                NODE, SYMBOL, CONCEPT,
-                VARIABLE, SENTENCE1,
-        LINK_TEMPLATE, EXPRESSION, "3",
-            NODE, SYMBOL, EVALUATION,
-            ATOM, predicate_target,
-            LINK_TEMPLATE, EXPRESSION, "2",
-                NODE, SYMBOL, CONCEPT,
-                VARIABLE, SENTENCE1,
+            AND_OPERATOR, "2",
+                LINK_TEMPLATE, EXPRESSION, "3",
+                    NODE, SYMBOL, EVALUATION,
+                    ATOM, predicate_source,
+                    LINK_TEMPLATE, EXPRESSION, "2",
+                        NODE, SYMBOL, CONCEPT,
+                        VARIABLE, SENTENCE1,
+                LINK_TEMPLATE, EXPRESSION, "3",
+                    NODE, SYMBOL, EVALUATION,
+                    VARIABLE, PREDICATE1,
+                    LINK_TEMPLATE, EXPRESSION, "2",
+                        NODE, SYMBOL, CONCEPT,
+                        VARIABLE, SENTENCE1,
+            AND_OPERATOR, "2",
+                LINK_TEMPLATE, EXPRESSION, "3",
+                    NODE, SYMBOL, EVALUATION,
+                    ATOM, predicate_target,
+                    LINK_TEMPLATE, EXPRESSION, "2",
+                        NODE, SYMBOL, CONCEPT,
+                        VARIABLE, SENTENCE1,
+                LINK_TEMPLATE, EXPRESSION, "3",
+                    NODE, SYMBOL, EVALUATION,
+                    VARIABLE, PREDICATE1,
+                    LINK_TEMPLATE, EXPRESSION, "2",
+                        NODE, SYMBOL, CONCEPT,
+                        VARIABLE, SENTENCE1,
     };
 
     vector<vector<string>> correlation_query_template = {{
@@ -700,17 +827,22 @@ static void run(const string& predicate_source,
     LOG_INFO("Context " + context + " is ready");
 
     LOG_INFO("Updating attention allocation");
-    update_attention_allocation(attention_update_query, context);
+    //update_attention_allocation(attention_update_query, context);
+    update_attention_allocation(predicate_source, predicate_target, context);
 
     for (unsigned int i = 0; i < NUM_ITERATIONS; i++) {
         LOG_INFO("--------------------------------------------------------------------------------");
         LOG_INFO("Iteration " + to_string(i + 1));
         LOG_INFO("--------------------------------------------------------------------------------");
         LOG_INFO("----- Building links");
-        LOG_DEBUG("Implication");
-        build_links(implication_query, context, build_implication_link);
         LOG_DEBUG("Equivalence");
         build_links(equivalence_query, context, build_equivalence_link);
+        LOG_DEBUG("Implication");
+        build_links(implication_query, context, build_implication_link);
+
+        //LOG_INFO("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX exit");
+        //exit(0);
+
         LOG_INFO("----- Updating AttentionBroker");
         AttentionBrokerClient::set_determiners(buffer_determiners, context);
         buffer_determiners.clear();
