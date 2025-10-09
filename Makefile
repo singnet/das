@@ -60,6 +60,9 @@ run-inference-agent:
 run-inference-agent-client:
 	@bash -x src/scripts/run.sh inference_agent_client $(OPTIONS)
 
+run-query-client:
+	@bash -x src/scripts/run.sh query $(ARGS)
+
 run-inference-toy-problem:
 	@bash ./src/scripts/setup_inference_toy_problem.sh $(filter-out $@, $(MAKECMDGOALS))
 

@@ -204,18 +204,18 @@ pub fn evolution_query(
 
 	let mut service_bus = service_bus.lock().unwrap();
 
-	let context_proxy = ContextBrokerProxy::new(params, context_broker_params)?;
+	// let context_proxy = ContextBrokerProxy::new(params, context_broker_params)?;
 
-	service_bus.issue_bus_command(context_proxy.base.clone())?;
+	// service_bus.issue_bus_command(context_proxy.base.clone())?;
 
-	// Wait for ContextBrokerProxy to finish context creation
-	log::debug!(target: "das", "Waiting for context creation to finish...");
-	while !context_proxy.is_context_created() {
-		sleep(Duration::from_millis(100));
-	}
+	// // Wait for ContextBrokerProxy to finish context creation
+	// log::debug!(target: "das", "Waiting for context creation to finish...");
+	// while !context_proxy.is_context_created() {
+	// 	sleep(Duration::from_millis(100));
+	// }
 
-	let context_str = context_proxy.get_key();
-	log::debug!(target: "das", "Context {context_str} was created");
+	// let context_str = context_proxy.get_key();
+	// log::debug!(target: "das", "Context {context_str} was created");
 
 	let mut proxy = QueryEvolutionProxy::new(params, evolution_params)?;
 

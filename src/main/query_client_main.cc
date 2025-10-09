@@ -33,6 +33,17 @@ int main(int argc, char* argv[]) {
         exit(1);
     }
 
+    setenv("DAS_REDIS_HOSTNAME", "localhost", true);
+    setenv("DAS_REDIS_PORT", "40020", true);
+    setenv("DAS_USE_REDIS_CLUSTER", "false", true);
+    setenv("DAS_MONGODB_HOSTNAME", "localhost", true);
+    setenv("DAS_MONGODB_PORT", "40021", true);
+    setenv("DAS_MONGODB_USERNAME", "admin", true);
+    setenv("DAS_MONGODB_PASSWORD", "admin", true);
+    setenv("DAS_DISABLE_ATOMDB_CACHE", "false", true);
+    setenv("DAS_MORK_HOSTNAME", "localhost", true);
+    setenv("DAS_MORK_PORT", "8000", true);
+
     AtomDBSingleton::init();
 
     string client_id = string(argv[1]);
@@ -46,7 +57,7 @@ int main(int argc, char* argv[]) {
 
     ServiceBusSingleton::init(client_id, server_id, ports_range.first, ports_range.second);
 
-    bool USE_METTA_QUERY = false;
+    bool USE_METTA_QUERY = true;
 
     // check if argv[4] is a number which is the max number of query answers
     // if not, set it to MAX_QUERY_ANSWERS
@@ -90,10 +101,11 @@ int main(int argc, char* argv[]) {
         if ((query_answer = proxy->pop()) == NULL) {
             Utils::sleep();
         } else {
-            cout << query_answer->to_string() << endl;
-            for (string handle : query_answer->handles) {
-                cout << query_answer->metta_expression[handle] << endl;
+            cout << query_answer->to_string() << " -> ";
+            for (auto [key, value] : query_answer->assignment.table) {
+                cout << query_answer->metta_expression[value] << " ";
             }
+            cout << endl;
             if (++count == max_query_answers) {
                 break;
             }
