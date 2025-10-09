@@ -163,6 +163,14 @@ void LinkTemplate::processor_method(shared_ptr<StoppableThread> monitor) {
                         handles->get_metta_expressions_by_handle(tagged_handle.first));
                     count_matched++;
                 } else if (this->link_schema.match(string(tagged_handle.first), assignment, *db.get())) {
+                //    if (tagged_handle.second > 0) {
+                //        LOG_INFO("Found imp: " + string(tagged_handle.first) + " with importance " +
+                //                  std::to_string(tagged_handle.second));
+                //    }
+                  //  if(string(tagged_handle.first) == "6817851b322e3293cd6bf314b2ac9a0b" || string(tagged_handle.first) == "ba8267a5c1411eb4bc32d9062e3398ad") {
+                  //      LOG_INFO("Found :" << tagged_handle.first << ", importance value: " << tagged_handle.second);
+                  //  }
+                   // LOG_INFO("Found :" << tagged_handle.first << ", importance value: " << tagged_handle.second);
                     this->source_element->add_handle(
                         tagged_handle.first, tagged_handle.second, assignment);
                     assignment.clear();

@@ -125,7 +125,7 @@ void LinkCreationAgent::run() {
             LOG_DEBUG("Processing request ID: " << lca_request->id);
             LOG_DEBUG("Current size of request buffer: " << request_buffer.size());
             shared_ptr<PatternMatchingQueryProxy> proxy =
-                query(lca_request->query, lca_request->context, lca_request->update_attention_broker);
+                query(lca_request);
             pattern_query_proxy_map[lca_request->id] = proxy;
 
             service->process_request(proxy, lca_request);
@@ -142,12 +142,11 @@ void LinkCreationAgent::run() {
     }
 }
 
-shared_ptr<PatternMatchingQueryProxy> LinkCreationAgent::query(vector<string>& query_tokens,
-                                                               string context,
-                                                               bool update_attention_broker) {
+shared_ptr<PatternMatchingQueryProxy> LinkCreationAgent::query(shared_ptr<LinkCreationAgentRequest> lca_request) {
+    // lca_request->query, lca_request->context, lca_request->update_attention_broker
     shared_ptr<PatternMatchingQueryProxy> proxy =
-        make_shared<PatternMatchingQueryProxy>(query_tokens, context);
-    proxy->parameters[BaseQueryProxy::ATTENTION_UPDATE_FLAG] = update_attention_broker;
+        make_shared<PatternMatchingQueryProxy>(lca_request->query, lca_request->context);
+    proxy->parameters[PatternMatchingQueryProxy::MAX_ANSWERS] = (unsigned int) lca_request->max_results * 2;
     ServiceBusSingleton::get_instance()->issue_bus_command(proxy);
     return proxy;
 }

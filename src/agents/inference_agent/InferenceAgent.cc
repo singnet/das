@@ -220,6 +220,14 @@ void InferenceAgent::send_distributed_inference_control_request(
                                                                        inference_request->get_context(),
                                                                        "multiply_strength");
     shared_ptr<QueryEvolutionProxy> evolution_proxy(evolution_proxy_ptr);
+    evolution_proxy->parameters[BaseQueryProxy::USE_METTA_AS_QUERY_TOKENS] = false;
+    evolution_proxy->parameters[BaseQueryProxy::POPULATE_METTA_MAPPING] = false;
+    evolution_proxy->parameters[QueryEvolutionProxy::POPULATION_SIZE] = (unsigned int) 50;
+    // evolution_proxy->parameters[QueryEvolutionProxy::MAX_GENERATIONS] = 20;
+    evolution_proxy->parameters[QueryEvolutionProxy::ELITISM_RATE] =  (double) 0.08;
+    evolution_proxy->parameters[QueryEvolutionProxy::SELECTION_RATE] = (double) 0.10;
+    // evolution_proxy->parameters[QueryEvolutionProxy::TOTAL_ATTENTION_TOKENS] = (unsigned int) 100000;
+    // evolution_proxy->parameters[BaseQueryProxy::MAX_BUNDLE_SIZE] = (unsigned int) 1000;
     ServiceBusSingleton::get_instance()->issue_bus_command(evolution_proxy);
     evolution_proxy_map[request_id] = evolution_proxy;
     LOG_DEBUG("Distributed inference control request sent");

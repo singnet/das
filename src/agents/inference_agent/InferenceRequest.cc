@@ -179,10 +179,10 @@ string correlation_query_str =
     "AND 4 "
         "LINK_TEMPLATE Expression 3 "
             "NODE Symbol EVALUATION "
-            "VARIABLE P1 "
+            "VARIABLE V0 "
             "LINK_TEMPLATE Expression 2 "
-            "NODE Symbol CONCEPT "
-            "VARIABLE S1 "
+                "NODE Symbol CONCEPT "
+                "VARIABLE S1 "
         "LINK_TEMPLATE Expression 3 "
             "NODE Symbol Contains "
             "VARIABLE S1 "
@@ -193,23 +193,23 @@ string correlation_query_str =
             "VARIABLE W1 "
         "LINK_TEMPLATE Expression 3 "
             "NODE Symbol EVALUATION "
-            "VARIABLE P2 "
+            "VARIABLE V1 "
             "LINK_TEMPLATE Expression 2 "
-            "NODE Symbol CONCEPT "
-            "VARIABLE S2 "
+                "NODE Symbol CONCEPT "
+                "VARIABLE S2 "
     "LINK_TEMPLATE Expression 3 "
         "NODE Symbol IMPLICATION "
-        "VARIABLE P1 "
-        "VARIABLE P2 "
+        "VARIABLE V0 "
+        "VARIABLE V1 "
     "LINK_TEMPLATE Expression 3 "
         "NODE Symbol IMPLICATION "
-        "VARIABLE P2 "
-        "VARIABLE P1 ";
+        "VARIABLE V1 "
+        "VARIABLE V0";
 
 
 
-string correlation_constants_str = "P1";
-string correlation_mapping_str = "P1:V1";
+string correlation_constants_str = "V0";
+string correlation_mapping_str = "V0:V1,V0:S2";
 
 // clang-format on
 
@@ -266,6 +266,17 @@ vector<string> ProofOfImplication::query() {
             "LINK_TEMPLATE", "Expression", "2",
                 "NODE", "Symbol", "PREDICATE",
                 "VARIABLE", "P2",
+
+
+        // "AND", "2",
+        //     "LINK_TEMPLATE", "Expression", "3",
+        //         "NODE", "Symbol", "EVALUATION",
+        //         "VARIABLE", "P1",
+        //         "VARIABLE", "C1",
+        //     "LINK_TEMPLATE", "Expression", "3",
+        //         "NODE", "Symbol", "EVALUATION",
+        //         "VARIABLE", "P2",
+        //         "VARIABLE", "C2",
             // "NOT",
             //     "OR",
             //         "LINK_TEMPLATE", "Expression", "3",
@@ -329,6 +340,15 @@ vector<string> ProofOfImplication::get_update_attention_allocation_query() {
             "LINK_TEMPLATE", "Expression", "2",
                 "NODE", "Symbol", "CONCEPT",
                 "VARIABLE", "TARGET",
+
+
+    // "OR", "2",
+    //    "LINK_TEMPLATE", "Expression", "2",
+    //         "VARIABLE", "PREDICATE",
+    //         "ATOM", this->first_handle,
+    //     "LINK_TEMPLATE", "Expression", "2",
+    //         "VARIABLE", "PREDICATE2",
+    //         "ATOM", this->second_handle,
     };
     // clang-format on
     return tokens;

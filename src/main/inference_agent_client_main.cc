@@ -9,12 +9,14 @@
 #include "InferenceProxy.h"
 #include "Logger.h"
 #include "ServiceBusSingleton.h"
+#include "AttentionBrokerClient.h"
 
 using namespace inference_agent;
 using namespace service_bus;
 using namespace atomdb;
 using namespace std;
 using namespace atom_space;
+using namespace attention_broker;
 
 // // clang-format off
 // vector<string> context_query = {
@@ -27,7 +29,7 @@ using namespace atom_space;
 
 // clang-format off
    vector<string> context_query = {
-        "OR", "2",
+        "OR", "3",
         "LINK_TEMPLATE", "Expression", "3",
             "NODE", "Symbol", "EVALUATION",
             "VARIABLE", "V2",
@@ -36,6 +38,9 @@ using namespace atom_space;
             "NODE", "Symbol", "Contains",
             "VARIABLE", "V2",
             "VARIABLE", "V3",
+        "LINK_TEMPLATE", "Expression", "2",
+            "NODE", "SYMBOL", "CONCEPT",
+            "VARIABLE", "V2",
 
     };  
 // clang-format on
@@ -102,16 +107,21 @@ int main(int argc, char* argv[]) {
 
     AtomDBSingleton::init();
     ServiceBusSingleton::init(client_id, server_id, start_port, end_port);
+    float RENT_RATE = 0.25;
+    float SPREADING_RATE_LOWERBOUND = 0.9;
+    float SPREADING_RATE_UPPERBOUND = 0.9;
+    AttentionBrokerClient::set_parameters(
+        RENT_RATE, SPREADING_RATE_LOWERBOUND, SPREADING_RATE_UPPERBOUND);
     LOG_INFO("Setting up context");
     AtomSpace atom_space;
     QueryAnswerElement target2("V2");
     QueryAnswerElement target3("V3");
     QueryAnswerElement toplevel_link(0);
-    // auto context_obj = atom_space.create_context(
-    //     context_tag, context_query, {{toplevel_link, target2}, {toplevel_link, target3}}, {});
-    // string context = context_obj->get_key();
-    // LOG_INFO("Context " + context + " is ready");
-    string context = context_tag;
+    auto context_obj = atom_space.create_context(
+        context_tag, context_query, {{toplevel_link, target2}, {toplevel_link, target3}}, {});
+    string context = context_obj->get_key();
+    LOG_INFO("Context " + context + " is ready");
+    // string context = context_tag;
 
     vector<string> request;
     for (int i = 9; i < argc - 1; i++) {

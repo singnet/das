@@ -66,8 +66,14 @@ vector<shared_ptr<Link>> ImplicationProcessor::process_query(shared_ptr<QueryAns
         LOG_INFO("Insufficient handles provided, skipping implication processing.");
         return {};
     }
+    // string p1_handle = query_answer->assignment.get("P1");
+    // string p2_handle = query_answer->assignment.get("P2");
+
     string p1_handle = query_answer->handles[0];
     string p2_handle = query_answer->handles[1];
+    LOG_DEBUG("Processing implication query for QueryAnswer: "
+              << query_answer->to_string());
+    LOG_DEBUG("Processing implication query for handles: " << p1_handle << " and " << p2_handle);
     string context = "";
     if (extra_params.has_value()) {
         context = extra_params.value().front();
@@ -84,7 +90,6 @@ vector<shared_ptr<Link>> ImplicationProcessor::process_query(shared_ptr<QueryAns
         return {};
     }
 
-    LOG_DEBUG("Processing implication query for handles: " << p1_handle << " and " << p2_handle);
     vector<string> p1_query;
     vector<string> p2_query;
     p1_query = build_implication_query(p1_handle);
