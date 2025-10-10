@@ -66,7 +66,7 @@ impl BusNode {
 			let proxy = proxy_arc.lock().unwrap();
 
 			count += 1;
-			if count > 200 {
+			if count > 50 {
 				log::warn!(
 					target: "das",
 					"BusNode::join_network(): Unable to get all services ({}/{}) from peer {}",
