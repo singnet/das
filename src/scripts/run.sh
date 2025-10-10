@@ -4,7 +4,9 @@ set -eoux pipefail
 
 BINARY_NAME="${1}"
 shift
-
+# Optional: Maximum memory allocation for the Docker container (default: half of system memory)
+HALF_SYSTEM_MEMORY=$(free -m | awk '/^Mem:/{print $2*0.7 "m"}')
+MAX_MEMORY=${MAX_MEMORY:-"$HALF_SYSTEM_MEMORY"}
 IMAGE_NAME="das-builder"
 CONTAINER_NAME="das-${BINARY_NAME}-$(uuidgen | cut -d '-' -f 1)-$(date +%Y%m%d%H%M%S)"
 
@@ -13,6 +15,7 @@ ENV_VARS=$(test -f .env && echo "--env-file=.env" || echo "")
 mkdir -p bin
 docker run --rm \
     --name="${CONTAINER_NAME}" \
+    --memory="${MAX_MEMORY}" \
     --network host \
     --volume .:/opt/das \
     --workdir /opt/das \
