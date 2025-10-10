@@ -242,7 +242,7 @@ vector<vector<string>> InferenceRequest::get_requests() { return {}; }
 
 string InferenceRequest::get_context() { return context; }
 
-vector<string> InferenceRequest::get_update_attention_allocation_query() {return {}; }
+vector<string> InferenceRequest::get_update_attention_allocation_query() { return {}; }
 
 ////////////////////////////// IMPLICATION ///////////////////////////////////
 
@@ -324,7 +324,7 @@ string ProofOfImplication::get_direct_inference_hash() {
     return implication.handle();
 }
 
-vector<string> ProofOfImplication::get_update_attention_allocation_query() {    
+vector<string> ProofOfImplication::get_update_attention_allocation_query() {
     // clang-format off
     vector<string> tokens = {
     "OR", "2",
@@ -352,7 +352,6 @@ vector<string> ProofOfImplication::get_update_attention_allocation_query() {
     };
     // clang-format on
     return tokens;
-
 }
 
 ////////////////////////////// EQUIVALENCE ///////////////////////////////////
@@ -423,7 +422,7 @@ string ProofOfEquivalence::get_direct_inference_hash() {
     return equivalence.handle();
 }
 
-vector<string> ProofOfEquivalence::get_update_attention_allocation_query() {    
+vector<string> ProofOfEquivalence::get_update_attention_allocation_query() {
     // clang-format off
     vector<string> tokens = {
         "OR", "2",
@@ -439,5 +438,4 @@ vector<string> ProofOfEquivalence::get_update_attention_allocation_query() {
     };
     // clang-format on
     return tokens;
-
 }

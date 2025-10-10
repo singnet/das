@@ -96,15 +96,16 @@ shared_ptr<PatternMatchingQueryProxy> QueryEvolutionProcessor::issue_sampling_qu
 
 shared_ptr<PatternMatchingQueryProxy> QueryEvolutionProcessor::issue_correlation_query(
     shared_ptr<QueryEvolutionProxy> proxy, vector<string> query_tokens) {
-        LOG_INFO("Issuing correlation query: " << proxy->parameters.get<unsigned int>(QueryEvolutionProxy::POPULATION_SIZE) * 5);
     auto pm_proxy = make_shared<PatternMatchingQueryProxy>(query_tokens, proxy->get_context());
     pm_proxy->parameters[BaseQueryProxy::UNIQUE_ASSIGNMENT_FLAG] = true;
     pm_proxy->parameters[BaseQueryProxy::ATTENTION_UPDATE_FLAG] = false;
     pm_proxy->parameters[BaseQueryProxy::USE_LINK_TEMPLATE_CACHE] = false;
-    pm_proxy->parameters[PatternMatchingQueryProxy::POSITIVE_IMPORTANCE_FLAG] = true;  //(this->generation_count > 1);
+    pm_proxy->parameters[PatternMatchingQueryProxy::POSITIVE_IMPORTANCE_FLAG] =
+        true;  //(this->generation_count > 1);
     pm_proxy->parameters[BaseQueryProxy::USE_METTA_AS_QUERY_TOKENS] =
         proxy->parameters.get<bool>(BaseQueryProxy::USE_METTA_AS_QUERY_TOKENS);
-    pm_proxy->parameters[PatternMatchingQueryProxy::MAX_ANSWERS] = (unsigned int) 150;
+    pm_proxy->parameters[PatternMatchingQueryProxy::MAX_ANSWERS] =
+        proxy->parameters.get<unsigned int>(QueryEvolutionProxy::POPULATION_SIZE) * 5;
 
     ServiceBusSingleton::get_instance()->issue_bus_command(pm_proxy);
     return pm_proxy;

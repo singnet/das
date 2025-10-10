@@ -6,10 +6,10 @@
 
 #include "AtomDBSingleton.h"
 #include "AtomSpace.h"
+#include "AttentionBrokerClient.h"
 #include "InferenceProxy.h"
 #include "Logger.h"
 #include "ServiceBusSingleton.h"
-#include "AttentionBrokerClient.h"
 
 using namespace inference_agent;
 using namespace service_bus;
@@ -42,7 +42,7 @@ using namespace attention_broker;
             "NODE", "SYMBOL", "CONCEPT",
             "VARIABLE", "V2",
 
-    };  
+    };
 // clang-format on
 
 void ctrl_c_handler(int) {

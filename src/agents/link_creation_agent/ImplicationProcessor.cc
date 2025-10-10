@@ -71,8 +71,7 @@ vector<shared_ptr<Link>> ImplicationProcessor::process_query(shared_ptr<QueryAns
 
     string p1_handle = query_answer->handles[0];
     string p2_handle = query_answer->handles[1];
-    LOG_DEBUG("Processing implication query for QueryAnswer: "
-              << query_answer->to_string());
+    LOG_DEBUG("Processing implication query for QueryAnswer: " << query_answer->to_string());
     LOG_DEBUG("Processing implication query for handles: " << p1_handle << " and " << p2_handle);
     string context = "";
     if (extra_params.has_value()) {
