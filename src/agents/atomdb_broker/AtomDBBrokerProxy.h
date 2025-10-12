@@ -1,0 +1,62 @@
+#pragma once
+
+#include <fstream>
+#include <mutex>
+#include <set>
+#include <string>
+#include <vector>
+
+#include "BaseQueryProxy.h"
+#include "QueryAnswer.h"
+
+using namespace std;
+using namespace service_bus;
+using namespace atoms;
+using namespace agents;
+using namespace atomdb;
+
+
+namespace atomdb_broker {
+
+class AtomDBBrokerProxy : public BaseProxy {
+   public:
+    // ---------------------------------------------------------------------------------------------
+    // Constructors, destructors and static state
+
+    // Proxy Commands
+    static string ADD_ATOMS;
+
+    /**
+     * Empty constructor typically used on server side.
+     */
+    AtomDBBrokerProxy();
+
+    /**
+     * Constructor typically used on client side.
+     */
+    AtomDBBrokerProxy(const string& command, const vector<string>& tokens);
+
+    /**
+     * Destructor.
+     */
+    virtual ~AtomDBBrokerProxy();
+
+    // ---------------------------------------------------------------------------------------------
+    // Context-specific API
+
+    virtual bool from_remote_peer(const string& command, const vector<string>& args) override;
+    virtual void tokenize(vector<string>& output) override;
+    virtual void untokenize(vector<string>& tokens) override;
+    virtual string to_string() override;
+    virtual void pack_command_line_args() override;
+
+   private:
+    vector<Atom> build_atoms_from_args(vector<string> args);
+    void add_atoms(vector<Atom>);
+
+    vector<string> tokens;
+    mutex api_mutex;
+    shared_ptr<AtomDB> atomdb;
+};
+
+}  // namespace atomdb_broker

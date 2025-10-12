@@ -10,6 +10,7 @@ string ServiceBus::QUERY_EVOLUTION = "query_evolution";
 string ServiceBus::LINK_CREATION = "link_creation";
 string ServiceBus::INFERENCE = "inference";
 string ServiceBus::CONTEXT = "context";
+string ServiceBus::ATOMDB = "atomdb";
 set<string> ServiceBus::SERVICE_LIST;
 
 // -------------------------------------------------------------------------------------------------
