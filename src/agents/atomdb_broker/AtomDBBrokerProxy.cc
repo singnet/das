@@ -55,5 +55,7 @@ void AtomDBBrokerProxy::add_atoms(vector<Atom>) {}
 
 vector<Atom> AtomDBBrokerProxy::build_atoms_from_args(vector<string> args) {
     return vector<Atom>();
+
+    // new line
 }
 
