@@ -80,6 +80,8 @@ class InferenceAgent {
      * @param request_id The inference request to be sent to the link creation agent.
      */
     void send_distributed_inference_control_request(shared_ptr<InferenceRequest> inference_request);
+
+    void send_update_attention_allocation_request(shared_ptr<InferenceRequest> inference_request);
     /**
      * @brief Build inference request from the given inference request.
      * @param request The inference request to be built.
