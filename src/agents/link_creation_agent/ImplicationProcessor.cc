@@ -82,12 +82,12 @@ vector<shared_ptr<Link>> ImplicationProcessor::process_query(shared_ptr<QueryAns
         return {};
     }
 
-    // Check if links is already in DB
-    if (link_exists(p1_handle, p2_handle)) {
-        LOG_INFO("Link already exists for " << p1_handle << " and " << p2_handle
-                                            << ", skipping implication processing.");
-        return {};
-    }
+    // // Check if links is already in DB
+    // if (link_exists(p1_handle, p2_handle)) {
+    //     LOG_INFO("Link already exists for " << p1_handle << " and " << p2_handle
+    //                                         << ", skipping implication processing.");
+    //     return {};
+    // }
 
     vector<string> p1_query;
     vector<string> p2_query;
