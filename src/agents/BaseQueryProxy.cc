@@ -73,9 +73,21 @@ void BaseQueryProxy::set_count(unsigned int count) {
 }
 
 void BaseQueryProxy::tokenize(vector<string>& output) {
+    string args;
+    for (auto a : this->args) {
+        args += a;
+        args += " ";
+    }
+    LOG_INFO("=== BaseQueryProxy::tokenize - BusCommandProxy.args: [" + args + "]");
     output.insert(output.begin(), this->query_tokens.begin(), this->query_tokens.end());
     output.insert(output.begin(), std::to_string(this->query_tokens.size()));
     output.insert(output.begin(), this->get_context());
+    string args2;
+    for (auto a : this->args) {
+        args2 += a;
+        args2 += " ";
+    }
+    LOG_INFO("=== BaseQueryProxy::tokenize - BusCommandProxy.args: [" + args2 + "]");
     BaseProxy::tokenize(output);
 }
 
@@ -109,13 +121,39 @@ void BaseQueryProxy::query_processing_finished() {
 }
 
 void BaseQueryProxy::untokenize(vector<string>& tokens) {
+    string args3;
+    for (auto a : this->args) {
+        args3 += a;
+        args3 += " ";
+    }
+    LOG_INFO("=== BaseProxy::tokenize - BusCommandProxy.args: [" + args3 + "]");
     BaseProxy::untokenize(tokens);
     this->context = tokens[0];
     unsigned int num_query_tokens = std::stoi(tokens[1]);
 
+    string argsx;
+    for (auto a : this->query_tokens) {
+        argsx += a;
+        argsx += " ";
+    }
+    LOG_INFO("=== BaseProxy::tokenize - query_tokensA: [" + argsx + "]");
+
     this->query_tokens.insert(
         this->query_tokens.begin(), tokens.begin() + 2, tokens.begin() + 2 + num_query_tokens);
     tokens.erase(tokens.begin(), tokens.begin() + 2 + num_query_tokens);
+    string args4;
+    for (auto a : this->args) {
+        args4 += a;
+        args4 += " ";
+    }
+    LOG_INFO("=== BaseProxy::tokenize - BusCommandProxy.args: [" + args4 + "]");
+
+    string argsxs;
+    for (auto a : this->query_tokens) {
+        argsxs += a;
+        argsxs += " ";
+    }
+    LOG_INFO("=== BaseProxy::tokenize - query_tokensB: [" + argsxs + "]");
 }
 
 const string& BaseQueryProxy::get_context() {

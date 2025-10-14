@@ -34,12 +34,14 @@ class AtomDBBrokerProxy : public BaseProxy {
     /**
      * Constructor typically used on client side.
      */
-    AtomDBBrokerProxy(const string& command, const vector<string>& tokens);
+    AtomDBBrokerProxy(const string& action, const vector<string>& tokens);
 
     /**
      * Destructor.
      */
     virtual ~AtomDBBrokerProxy();
+
+    const string get_action();
 
     // ---------------------------------------------------------------------------------------------
     // Context-specific API
@@ -47,13 +49,14 @@ class AtomDBBrokerProxy : public BaseProxy {
     virtual bool from_remote_peer(const string& command, const vector<string>& args) override;
     virtual void tokenize(vector<string>& output) override;
     virtual void untokenize(vector<string>& tokens) override;
-    virtual string to_string() override;
+    // virtual string to_string() override;
     virtual void pack_command_line_args() override;
 
    private:
-    vector<Atom> build_atoms_from_args(vector<string> args);
-    void add_atoms(vector<Atom>);
+    vector<Atom*> build_atoms_from_tokens();
+    void add_atoms();
 
+    string action;
     vector<string> tokens;
     mutex api_mutex;
     shared_ptr<AtomDB> atomdb;

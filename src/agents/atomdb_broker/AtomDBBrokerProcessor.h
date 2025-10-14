@@ -19,6 +19,9 @@ class AtomDBBrokerProcessor : public BusCommandProcessor {
    private:
     void thread_process_one_query(shared_ptr<StoppableThread> monitor, shared_ptr<AtomDBBrokerProxy> proxy);
     shared_ptr<AtomDBBrokerProxy> proxy;
+
+    map<string, shared_ptr<StoppableThread>> query_threads;
+    mutex query_threads_mutex;
 };
 
 }  // namespace atomdb_broker

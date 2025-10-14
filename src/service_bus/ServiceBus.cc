@@ -55,6 +55,7 @@ void ServiceBus::initialize_statics(const set<string>& commands,
         SERVICE_LIST.insert(LINK_CREATION);
         SERVICE_LIST.insert(INFERENCE);
         SERVICE_LIST.insert(CONTEXT);
+        SERVICE_LIST.insert(ATOMDB);
     }
     for (string command : SERVICE_LIST) {
         LOG_INFO("BUS command: <" << command << ">");
