@@ -1,16 +1,24 @@
 #include "AtomDBBrokerProxy.h"
+#include "BaseProxy.h"
 #include "ServiceBus.h"
+#include "AtomDBSingleton.h"
+#include "Link.h"
+#include "Node.h"
+#include "Utils.h"
+#include "Properties.h"
 
 #define LOG_LEVEL INFO_LEVEL
 #include "Logger.h"
 
 using namespace atomdb_broker;
+using namespace service_bus;
+using namespace commons;
 
 // -------------------------------------------------------------------------------------------------
 // Static constants
 
 // Proxy Commands
-static AtomDBBrokerProxy::ADD_ATOMS = "add_atoms";
+string AtomDBBrokerProxy::ADD_ATOMS = "add_atoms";
 
 // -------------------------------------------------------------------------------------------------
 // Constructors, destructors and initialization
@@ -24,8 +32,8 @@ AtomDBBrokerProxy::AtomDBBrokerProxy() : BaseProxy() {
 
 AtomDBBrokerProxy::AtomDBBrokerProxy(const string& action, const vector<string>& tokens) : BaseProxy() {
     lock_guard<mutex> semaphore(this->api_mutex);
-    this->atomdb = AtomDBSingleton::get_instance();
     this->command = ServiceBus::ATOMDB;
+    this->atomdb = AtomDBSingleton::get_instance();
     this->action = action;
     this->tokens = tokens;
 }
@@ -59,7 +67,7 @@ void AtomDBBrokerProxy::untokenize(vector<string>& tokens) {
 
 bool AtomDBBrokerProxy::from_remote_peer(const string& command, const vector<string>& args) {
     LOG_DEBUG("Proxy command: <" << command << "> from " << this->peer_id() << " received in " << this->my_id());
-    if (BaseQueryProxy::from_remote_peer(command, args)) {
+    if (BaseProxy::from_remote_peer(command, args)) {
         return true;
     } else if (command == AtomDBBrokerProxy::ADD_ATOMS) {
         add_atoms();
@@ -72,12 +80,12 @@ bool AtomDBBrokerProxy::from_remote_peer(const string& command, const vector<str
 
 void AtomDBBrokerProxy::add_atoms() {
     try {
-        vector<Atom*> atoms = build_atoms_from_tokens()
+        vector<Atom*> atoms = build_atoms_from_tokens();
         this->atomdb->add_atoms(atoms);
     } catch (const std::runtime_error& exception) {
-        proxy->raise_error_on_peer(exception.what());
+        raise_error_on_peer(exception.what());
     } catch (const std::exception& exception) {
-        proxy->raise_error_on_peer(exception.what());
+        raise_error_on_peer(exception.what());
     }
     to_remote_peer(BaseProxy::FINISHED, {});
 }
@@ -166,7 +174,7 @@ vector<Atom*> AtomDBBrokerProxy::build_atoms_from_tokens() {
             if (tokens.size() > link_size_without_attrs) {
                 Properties attrs;
                 int start_idx = link_size_without_attrs;
-                auto num_attrs = std::stoi(tokens[start_idx]);
+                // auto num_attrs = std::stoi(tokens[start_idx]);
                 for (int i = start_idx; i < tokens.size() - 1;  i += 2) {
                     attrs[tokens[i + 1]] = tokens[i + 2];
                 }

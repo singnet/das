@@ -165,7 +165,21 @@ cc_library(
     srcs = ["atomdb_broker_main.cc"],
     deps = [
         "//agents/atomdb_broker:atomdb_broker_lib",
+        "//atomdb:atomdb_lib",
         "//atomdb:atomdb_singleton",
         "//service_bus:service_bus_lib",
+        "//commons:commons_lib",
+    ],
+)
+
+cc_library(
+    name = "atomdb_broker_client_lib",
+    srcs = ["atomdb_broker_client_main.cc"],
+    deps = [
+        "//agents/atomdb_broker:atomdb_broker_lib",
+        "//atomdb:atomdb_lib",
+        "//atomdb:atomdb_singleton",
+        "//service_bus:service_bus_lib",
+        "//commons:commons_lib",
     ],
 )

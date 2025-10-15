@@ -31,12 +31,14 @@ void AtomDBBrokerProcessor::run_command(shared_ptr<BusCommandProxy> proxy) {
         Utils::error("Invalid thread id: " + thread_id);
     } else {
         shared_ptr<StoppableThread> stoppable_thread = make_shared<StoppableThread>(thread_id);
-        stoppable_thread->attach(new thread(&AtomDBBrokerProcessor::thread_process_one_query, this, stoppable_thread, atomdb_broker_proxy));
+        stoppable_thread->attach(new thread(
+            &AtomDBBrokerProcessor::thread_process_one_query, this, stoppable_thread, atomdb_broker_proxy));
         this->query_threads[thread_id] = stoppable_thread;
     }
 }
 
-void AtomDBBrokerProcessor::thread_process_one_query(shared_ptr<StoppableThread> monitor, shared_ptr<AtomDBBrokerProxy> proxy) {
+void AtomDBBrokerProcessor::thread_process_one_query(
+    shared_ptr<StoppableThread> monitor, shared_ptr<AtomDBBrokerProxy> proxy) {
     try {
         if (proxy->args.size() < 2) {
             Utils::error("Syntax error in query command. Missing implicit parameters.");

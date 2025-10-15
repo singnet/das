@@ -1,11 +1,18 @@
 #pragma once
 
-#include "BusCommandProcessor.h"
+#include <map>
+#include <memory>
+#include <mutex>
+#include <thread>
+
 #include "AtomDBBrokerProxy.h"
+
+#include "BusCommandProcessor.h"
 #include "StoppableThread.h"
 
 using namespace std;
 using namespace service_bus;
+using namespace commons;
 
 namespace atomdb_broker {
 
@@ -17,7 +24,8 @@ class AtomDBBrokerProcessor : public BusCommandProcessor {
     virtual void run_command(shared_ptr<BusCommandProxy> proxy) override;
    
    private:
-    void thread_process_one_query(shared_ptr<StoppableThread> monitor, shared_ptr<AtomDBBrokerProxy> proxy);
+    void thread_process_one_query(
+        shared_ptr<StoppableThread> monitor, shared_ptr<AtomDBBrokerProxy> proxy);
     shared_ptr<AtomDBBrokerProxy> proxy;
 
     map<string, shared_ptr<StoppableThread>> query_threads;

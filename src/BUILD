@@ -259,3 +259,13 @@ cc_binary(
         "//main:atomdb_broker_main_lib",
     ],
 )
+
+cc_binary(
+    name = "atomdb_broker_client",
+    srcs = [],
+    defines = ["BAZEL_BUILD"],
+    linkstatic = 1,
+    deps = [
+        "//main:atomdb_broker_client_lib",
+    ],
+)

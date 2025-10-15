@@ -64,6 +64,7 @@ if [ "$BUILD_BINARIES" = true ]; then
     MOVE_BIN_TARGETS+=" bazel-bin/tests_db_loader"
     MOVE_BIN_TARGETS+=" bazel-bin/context_broker"
     MOVE_BIN_TARGETS+=" bazel-bin/atomdb_broker"
+    MOVE_BIN_TARGETS+=" bazel-bin/atomdb_broker_client"
 
     MOVE_LIB_TARGETS+=" bazel-bin/hyperon_das.so"
 fi

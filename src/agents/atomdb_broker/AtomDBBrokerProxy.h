@@ -1,18 +1,17 @@
 #pragma once
 
-#include <fstream>
 #include <mutex>
-#include <set>
+#include <memory>
 #include <string>
 #include <vector>
 
-#include "BaseQueryProxy.h"
-#include "QueryAnswer.h"
+#include "AtomDB.h"
+#include "Atom.h"
+#include "BaseProxy.h"
 
 using namespace std;
-using namespace service_bus;
-using namespace atoms;
 using namespace agents;
+using namespace atoms;
 using namespace atomdb;
 
 

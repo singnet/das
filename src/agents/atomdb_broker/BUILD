@@ -20,8 +20,6 @@ cc_library(
     includes = ["."],
     deps = [
         ":atomdb_broker_proxy",
-        "//commons:commons_lib",
-        "//service_bus:service_bus_lib",
     ],
 )
 
@@ -31,10 +29,12 @@ cc_library(
     hdrs = ["AtomDBBrokerProxy.h"],
     includes = ["."],
     deps = [
-        "//atomdb:atomdb_lib",
-        "//agents:agents_lib",
+        "//agents:base_proxy",
         "//atomdb:atomdb_singleton",
+        "//atomdb:atomdb",
+        "//agents/query_engine:query_engine_lib",
         "//commons:commons_lib",
+        "//commons/atoms:atoms_lib",
         "//service_bus:service_bus_lib",
     ],
 )
