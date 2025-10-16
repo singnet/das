@@ -20,3 +20,10 @@ docker run --rm \
     --workdir /app \
     "${IMAGE_NAME}" \
     --file /app/file.metta
+
+sleep 1
+
+if docker ps -a --format '{{.Names}}' | grep -q "^${CONTAINER_NAME}$"; then
+  echo "Removing existing container: ${CONTAINER_NAME}"
+  _=$(docker rm -f "${CONTAINER_NAME}" 2>&1 > /dev/null || true)
+fi
