@@ -37,6 +37,7 @@ int main(int argc, char* argv[]) {
     ServiceBusSingleton::init(client_id, server_id, ports_range.first, ports_range.second);
     auto proxy = make_shared<AtomDBBrokerProxy>(action);
     ServiceBusSingleton::get_instance()->issue_bus_command(proxy);
+    Utils::sleep(1000);
 
     if (action == AtomDBBrokerProxy::ADD_ATOMS) {
         cout << "[[ Client A ]]" << endl;
