@@ -24,17 +24,13 @@ class AtomDBBrokerProxy : public BaseProxy {
 
     // Proxy Commands
     static string ADD_ATOMS;
+    static string SHUTDOWN;
 
     /**
-     * Empty constructor typically used on server side.
+     * Empty constructor.
      */
     AtomDBBrokerProxy();
-
-    /**
-     * Constructor typically used on client side.
-     */
-    AtomDBBrokerProxy(const string& action, const vector<string>& tokens);
-
+    AtomDBBrokerProxy(string name);
     /**
      * Destructor.
      */
@@ -42,21 +38,34 @@ class AtomDBBrokerProxy : public BaseProxy {
 
     const string get_action();
 
+    /**
+     * Check if the proxy is still running.
+     * @return Whether the proxy is still running
+     */
+    bool running();
+    /**
+     * Send a shutdown command to the remote proxy.
+     */
+    void shutdown();
     // ---------------------------------------------------------------------------------------------
-    // Context-specific API
+    // Client-side API
+
+    vector<Atom*> build_atoms_from_tokens(vector<string> tokens);
+    virtual void pack_command_line_args() override;
+    virtual void tokenize(vector<string>& output) override;
+    vector<string> add_atoms(const vector<Atom*>& atoms);
+
+    // ---------------------------------------------------------------------------------------------
+    // server-side API
 
     virtual bool from_remote_peer(const string& command, const vector<string>& args) override;
-    virtual void tokenize(vector<string>& output) override;
     virtual void untokenize(vector<string>& tokens) override;
-    // virtual string to_string() override;
-    virtual void pack_command_line_args() override;
 
    private:
-    vector<Atom*> build_atoms_from_tokens();
-    void add_atoms();
-
-    string action;
+    vector<string> piggyback_add_atoms(vector<string> args);
+    
     vector<string> tokens;
+    bool keep_alive;
     mutex api_mutex;
     shared_ptr<AtomDB> atomdb;
 };

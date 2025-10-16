@@ -47,6 +47,7 @@ if [ "$BUILD_BINARIES" = true ]; then
     BUILD_TARGETS+=" //:tests_db_loader"
     BUILD_TARGETS+=" //:context_broker"
     BUILD_TARGETS+=" //:atomdb_broker"
+    BUILD_TARGETS+=" //:atomdb_broker_client"
 
     MOVE_BIN_TARGETS+=" bazel-bin/inference_agent_server"
     MOVE_BIN_TARGETS+=" bazel-bin/inference_agent_client"

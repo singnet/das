@@ -41,33 +41,15 @@ void BaseProxy::abort() {
 }
 
 void BaseProxy::tokenize(vector<string>& output) {
-    string args3;
-    for (auto a : this->args) {
-        args3 += a;
-        args3 += " ";
-    }
-    LOG_INFO("=== BaseProxy::tokenize - BusCommandProxy.args: [" + args3 + "]");
     vector<string> parameters_tokens = this->parameters.tokenize();
     parameters_tokens.insert(parameters_tokens.begin(), std::to_string(parameters_tokens.size()));
     output.insert(output.begin(), parameters_tokens.begin(), parameters_tokens.end());
-    string args4;
-    for (auto a : this->args) {
-        args4 += a;
-        args4 += " ";
-    }
-    LOG_INFO("=== BaseProxy::tokenize - BusCommandProxy.args: [" + args4 + "]");
 }
 
 // -------------------------------------------------------------------------------------------------
 // Server-side API
 
 void BaseProxy::untokenize(vector<string>& tokens) {
-    string args1;
-    for (auto a : this->args) {
-        args1 += a;
-        args1 += " ";
-    }
-    LOG_INFO("=== BaseProxy::tokenize - BusCommandProxy.args: [" + args1 + "]");
     unsigned int num_property_tokens =
         Utils::string_to_int(tokens[0]);  // safe conversion, should always be a number
     if (num_property_tokens > 0) {
@@ -80,12 +62,6 @@ void BaseProxy::untokenize(vector<string>& tokens) {
         // If no parameters are provided, we still need to remove the first token
         tokens.erase(tokens.begin());
     }
-    string args2;
-    for (auto a : this->args) {
-        args2 += a;
-        args2 += " ";
-    }
-    LOG_INFO("=== BaseProxy::tokenize - BusCommandProxy.args: [" + args2 + "]");
 }
 
 bool BaseProxy::is_aborting() {

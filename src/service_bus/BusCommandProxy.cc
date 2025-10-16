@@ -59,6 +59,9 @@ void BusCommandProxy::setup_proxy_node(const string& client_id, const string& se
             string id = this->requestor_id;
             string requestor_host = id.substr(0, id.find(":"));
             string requestor_id = requestor_host + ":" + to_string(this->proxy_port);
+
+            LOG_INFO("requestor_id" + requestor_id);
+
             this->proxy_node = new ProxyNode(this, requestor_id);
         } else {
             // This proxy is running in the processor
@@ -113,6 +116,14 @@ void ProxyNode::remote_call(const string& command, const vector<string>& args) {
 }
 
 void ProxyNode::to_remote_peer(const string& command, const vector<string>& args) {
+    LOG_INFO("node_id: " + this->node_id());
+    LOG_INFO("leader_id: " + this->leader_id());
+    LOG_INFO("server_id: " + this->server_id);
+    LOG_INFO("command: " + command);
+    for (auto a : args) {
+        LOG_INFO("arg: "+ a);
+    }
+    
     if (this->peer_id == "") {
         Utils::error("Unknown peer");
     }
