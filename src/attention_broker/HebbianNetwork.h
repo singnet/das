@@ -5,6 +5,7 @@
 #include <string>
 
 #include "HandleTrie.h"
+#include "Serializable.h"
 #include "expression_hasher.h"
 
 using namespace std;
@@ -37,7 +38,7 @@ typedef double ImportanceType;
  * another HandleTrie to keep track of the neighbors. So we have two types of value objects,
  * one to represent Nodes and another one to represent Edges.
  */
-class HebbianNetwork {
+class HebbianNetwork : public Serializable {
    public:
     HebbianNetwork();            /// Basic constructor.
     ~HebbianNetwork();           /// Destructor.
@@ -183,9 +184,16 @@ class HebbianNetwork {
 
     ImportanceType alienate_tokens();
 
+    void serialize(ostream& os) const;
+    void deserialize(istream& is);
+
    private:
+
+    void deserialize_node(istream& is, unsigned int& determiner_count, unsigned int& neighbors_count);
+
     HandleTrie* nodes;
     ImportanceType tokens_to_distribute;
+    string _handle;
     mutex tokens_mutex;
 };
 

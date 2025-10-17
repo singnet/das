@@ -2,7 +2,6 @@
 
 #include <mutex>
 #include <string>
-#include "Serializable.h"
 
 #define TRIE_ALPHABET_SIZE ((unsigned int) 16)
 
@@ -19,12 +18,12 @@ namespace commons {
  * When a (key, value) pair is inserted and key is already present, the method merge()
  * in value is called passing the newly inserted value.
  */
-class HandleTrie : public Serializable {
+class HandleTrie {
    public:
     /**
      * Virtual basic class to be extended by objects used as "values".
      */
-    class TrieValue : public Serializable {
+    class TrieValue {
        protected:
         TrieValue();                               /// basic empty constructor.
        public:
@@ -36,7 +35,7 @@ class HandleTrie : public Serializable {
     /**
      * A node in the prefix tree used to store keys.
      */
-    class TrieNode : public Serializable {
+    class TrieNode {
        public:
         TrieNode();           /// Basic empty constructor.
         ~TrieNode();          /// Destructor.
@@ -86,6 +85,7 @@ class HandleTrie : public Serializable {
     void traverse(bool keep_root_locked, bool (*visit_function)(TrieNode* node, void* data), void* data);
 
     TrieNode* root;
+    unsigned int size;
 
    private:
     static unsigned char TLB[256];
