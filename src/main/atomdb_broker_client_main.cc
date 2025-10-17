@@ -35,22 +35,34 @@ int main(int argc, char* argv[]) {
 
     AtomDBSingleton::init();
     ServiceBusSingleton::init(client_id, server_id, ports_range.first, ports_range.second);
-    auto proxy = make_shared<AtomDBBrokerProxy>(action);
+    auto proxy = make_shared<AtomDBBrokerProxy>();
     ServiceBusSingleton::get_instance()->issue_bus_command(proxy);
     Utils::sleep(1000);
 
-    if (action == AtomDBBrokerProxy::ADD_ATOMS) {
-        cout << "[[ Client A ]]" << endl;
-        for (auto a : tokens) {
-            cout << "--> " << a << endl;
-        }
-        auto atoms = proxy->build_atoms_from_tokens(tokens);
-        cout << "[[ Client B ]]" << endl;
-        auto ret = proxy->add_atoms(atoms);
-        cout << "[[ Client C ]]" << endl;
-        cout << "Response: " << ret[0] << endl;
-    }
 
+    // while (!proxy->finished()) {
+    //     if (action == AtomDBBrokerProxy::ADD_ATOMS) {
+    //         cout << "[[ Client A ]]" << endl;
+    //         for (auto a : tokens) {
+    //             cout << "--> " << a << endl;
+    //         }
+    //         auto atoms = proxy->build_atoms_from_tokens(tokens);
+    //         cout << "[[ Client B ]]" << endl;
+    //         auto ret = proxy->add_atoms(atoms);
+    //         cout << "[[ Client C ]]" << endl;
+    //         cout << "Response: " << ret[0] << endl;
+    //     }
+
+    // }
+
+    if (action == AtomDBBrokerProxy::ADD_ATOMS) {
+            // cout << "[[ Client A ]]" << endl;
+            auto atoms = proxy->build_atoms_from_tokens(tokens);
+            // cout << "[[ Client B ]]" << endl;
+            auto ret = proxy->add_atoms(atoms);
+            // cout << "[[ Client C ]]" << endl;
+            // cout << "Response: " << ret[0] << endl;
+        }
 
     // ------ prints
 

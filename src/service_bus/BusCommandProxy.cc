@@ -120,13 +120,13 @@ void ProxyNode::remote_call(const string& command, const vector<string>& args) {
 }
 
 void ProxyNode::to_remote_peer(const string& command, const vector<string>& args) {
-    LOG_INFO("node_id: " + this->node_id());
-    LOG_INFO("leader_id: " + this->leader_id());
-    LOG_INFO("server_id: " + this->server_id);
-    LOG_INFO("command: " + command);
-    for (auto a : args) {
-        LOG_INFO("arg: "+ a);
-    }
+    // LOG_INFO("node_id: " + this->node_id());
+    // LOG_INFO("leader_id: " + this->leader_id());
+    // LOG_INFO("server_id: " + this->server_id);
+    // LOG_INFO("command: " + command);
+    // for (auto a : args) {
+    //     LOG_INFO("arg: "+ a);
+    // }
     
     if (this->peer_id == "") {
         Utils::error("Unknown peer");
