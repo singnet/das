@@ -112,6 +112,7 @@ void BaseQueryProxy::untokenize(vector<string>& tokens) {
     BaseProxy::untokenize(tokens);
     this->context = tokens[0];
     unsigned int num_query_tokens = std::stoi(tokens[1]);
+
     this->query_tokens.insert(
         this->query_tokens.begin(), tokens.begin() + 2, tokens.begin() + 2 + num_query_tokens);
     tokens.erase(tokens.begin(), tokens.begin() + 2 + num_query_tokens);

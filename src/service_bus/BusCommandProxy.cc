@@ -119,15 +119,7 @@ void ProxyNode::remote_call(const string& command, const vector<string>& args) {
     this->proxy->from_remote_peer(command, args);
 }
 
-void ProxyNode::to_remote_peer(const string& command, const vector<string>& args) {
-    // LOG_INFO("node_id: " + this->node_id());
-    // LOG_INFO("leader_id: " + this->leader_id());
-    // LOG_INFO("server_id: " + this->server_id);
-    // LOG_INFO("command: " + command);
-    // for (auto a : args) {
-    //     LOG_INFO("arg: "+ a);
-    // }
-    
+void ProxyNode::to_remote_peer(const string& command, const vector<string>& args) {   
     if (this->peer_id == "") {
         Utils::error("Unknown peer");
     }
