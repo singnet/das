@@ -19,38 +19,37 @@ using namespace commons;
 
 // Proxy Commands
 string AtomDBBrokerProxy::ADD_ATOMS = "add_atoms";
-string AtomDBBrokerProxy::ADD_ATOMS_RESPONSE = "add_atoms_response";
-string AtomDBBrokerProxy::ADD_ATOMS_ERROR = "add_atoms_error";
 string AtomDBBrokerProxy::SHUTDOWN = "shutdown";
 
 // -------------------------------------------------------------------------------------------------
-// Constructors, destructors and initialization
+// Constructor and destructor
 
 AtomDBBrokerProxy::AtomDBBrokerProxy() : BaseProxy() {
     lock_guard<mutex> semaphore(this->api_mutex);
     this->command = ServiceBus::ATOMDB;
     this->atomdb = AtomDBSingleton::get_instance();
     this->keep_alive_flag = true;
-    this->add_atoms_response_flag = false;
-    this->add_atoms_error_flag = false;
 }
 
-AtomDBBrokerProxy::~AtomDBBrokerProxy() {}
+AtomDBBrokerProxy::~AtomDBBrokerProxy() { to_remote_peer(SHUTDOWN, {}); }
 
 // -------------------------------------------------------------------------------------------------
 // Client-side API
 void AtomDBBrokerProxy::shutdown() { to_remote_peer(SHUTDOWN, {}); }
 
-bool AtomDBBrokerProxy::running() { return this->keep_alive_flag; }
+bool AtomDBBrokerProxy::running() const { return this->keep_alive_flag; }
 
 void AtomDBBrokerProxy::pack_command_line_args() { tokenize(this->args); }
 
-void AtomDBBrokerProxy::tokenize(vector<string>& output) {
-    BaseProxy::tokenize(output);
-}
+void AtomDBBrokerProxy::tokenize(vector<string>& output) { BaseProxy::tokenize(output); }
 
+/**
+ * Build a single argument vector containing, for each atom, a leading type
+ * token ("NODE" or "LINK") followed by that atom's tokenized fields.
+ */     
 vector<string> AtomDBBrokerProxy::add_atoms(const vector<Atom*>& atoms) {
     vector<string> args;
+    vector<string> handles;
     string atom_type;
 
     for (Atom* atom : atoms) {
@@ -65,53 +64,18 @@ vector<string> AtomDBBrokerProxy::add_atoms(const vector<Atom*>& atoms) {
         }
         
         args.insert(args.begin(), atom_type);
+        handles.push_back(atom->handle());
     }
     
-    // {
-    //     lock_guard<mutex> semaphore(this->api_mutex);
-    //     this->args = args;
-    // }
-
-
     to_remote_peer(AtomDBBrokerProxy::ADD_ATOMS, args);
 
-
-    while (true) {
-        // {
-        //     lock_guard<mutex> semaphore(this->api_mutex);
-        if (this->add_atoms_error_flag) {
-            return {};
-        }
-
-        if (this->add_atoms_response_flag && !this->add_atoms_response.empty()) {
-            auto resp = this->add_atoms_response;
-
-            // clean
-            this->add_atoms_response.clear();
-            this->add_atoms_response_flag = false;
-            this->add_atoms_error_flag = false;
-            // this->args.clear();
-
-            return resp;
-        }
-        // }
-        Utils::sleep();
-    }
-    
-    // // wait for response (early-return on processor error)
-    // while (!this->add_atoms_response_flag && this->add_atoms_response.empty()) {
-    //     if (this->add_atoms_error_flag) return {};
-    //     Utils::sleep();
-    // }
-    // return this->add_atoms_response;
+    return handles;
 }
 
 // -------------------------------------------------------------------------------------------------
 // Server-side API
 
-void AtomDBBrokerProxy::untokenize(vector<string>& tokens) {
-    BaseProxy::untokenize(tokens);
-}
+void AtomDBBrokerProxy::untokenize(vector<string>& tokens) { BaseProxy::untokenize(tokens); }
 
 bool AtomDBBrokerProxy::from_remote_peer(const string& command, const vector<string>& args) {
     LOG_DEBUG("Proxy command: <" << command << "> from " << this->peer_id() << " received in " << this->my_id());
@@ -119,18 +83,7 @@ bool AtomDBBrokerProxy::from_remote_peer(const string& command, const vector<str
     if (BaseProxy::from_remote_peer(command, args)) {
         return true;
     } else if (command == AtomDBBrokerProxy::ADD_ATOMS) {
-        piggyback_add_atoms(args);
-        return true;
-    } else if (command == AtomDBBrokerProxy::ADD_ATOMS_RESPONSE) {
-        this->add_atoms_response_flag = true;
-        this->add_atoms_response.insert(this->add_atoms_response.begin(), args.begin(), args.end());
-        return true;
-    } else if (command == AtomDBBrokerProxy::ADD_ATOMS_ERROR) {
-        cout << "---> Chegeui aqio" << endl;
-        for (auto a : args) {
-            cout << "++++>>> " << a << endl;
-        }
-        this->add_atoms_error_flag = true;
+        handle_add_atoms(args);
         return true;
     } else if (command == AtomDBBrokerProxy::SHUTDOWN) {
         this->keep_alive_flag = false;
@@ -141,22 +94,18 @@ bool AtomDBBrokerProxy::from_remote_peer(const string& command, const vector<str
     }
 }
 
-void AtomDBBrokerProxy::piggyback_add_atoms(const vector<string>& tokens) {
+void AtomDBBrokerProxy::handle_add_atoms(const vector<string>& tokens) {
     try {
         vector<Atom*> atoms = build_atoms_from_tokens(tokens);
-        auto ret = this->atomdb->add_atoms(atoms);
-        to_remote_peer(AtomDBBrokerProxy::ADD_ATOMS_RESPONSE, ret);
+        this->atomdb->add_atoms(atoms);
     } catch (const std::runtime_error& exception) {
-        to_remote_peer(AtomDBBrokerProxy::ADD_ATOMS_ERROR, {exception.what()});
+        raise_error_on_peer(exception.what());
     } catch (const std::exception& exception) {
-        to_remote_peer(AtomDBBrokerProxy::ADD_ATOMS_ERROR, {exception.what()});
+        raise_error_on_peer(exception.what());
     }
 }
 
 vector<Atom*> AtomDBBrokerProxy::build_atoms_from_tokens(const vector<string>& tokens) {
-    // Token node: Symbol false 3 is_literal bool true human 
-    // Token link: Expression false 6 confidence double 0.230000 strengh double 0.950000 3 target1 target2 target3 
-
     vector<Atom*> atoms;
     string current;
     vector<string> buffer;

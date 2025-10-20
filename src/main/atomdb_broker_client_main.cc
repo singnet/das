@@ -39,80 +39,18 @@ int main(int argc, char* argv[]) {
     ServiceBusSingleton::get_instance()->issue_bus_command(proxy);
     Utils::sleep(1000);
 
-
-    // while (!proxy->finished()) {
-    //     if (action == AtomDBBrokerProxy::ADD_ATOMS) {
-    //         cout << "[[ Client A ]]" << endl;
-    //         for (auto a : tokens) {
-    //             cout << "--> " << a << endl;
-    //         }
-    //         auto atoms = proxy->build_atoms_from_tokens(tokens);
-    //         cout << "[[ Client B ]]" << endl;
-    //         auto ret = proxy->add_atoms(atoms);
-    //         cout << "[[ Client C ]]" << endl;
-    //         cout << "Response: " << ret[0] << endl;
-    //     }
-
-    // }
-
     if (action == AtomDBBrokerProxy::ADD_ATOMS) {
-            // cout << "[[ Client A ]]" << endl;
-            auto atoms = proxy->build_atoms_from_tokens(tokens);
-            // cout << "[[ Client B ]]" << endl;
-            auto ret = proxy->add_atoms(atoms);
-            // cout << "[[ Client C ]]" << endl;
-            // cout << "Response: " << ret[0] << endl;
+        auto atoms = proxy->build_atoms_from_tokens(tokens);
+        vector<string> response = proxy->add_atoms(atoms);
+
+        if (response.empty()) {
+            cout << "No answers" << endl;
+        } else {
+            for (auto resp : response) {
+                cout << "handle: " << resp << endl;
+            }
         }
-
-    // ------ prints
-
-    // Properties attrs;
-    // attrs["is_literal"] = true;
-
-    // auto n = new atoms::Node("Symbol", "human", attrs);
-    // auto n2 = new atoms::Node("TypeFake", "nameFake");
-
-    // Properties attrs2;
-    // attrs2["strengh"] = 0.95;
-    // attrs2["confidence"] = 0.23;
-
-    // auto l = new atoms::Link("Expression", {"target1", "target2", "target3"}, true, attrs2);
-
-    // vector<string> t1;
-    // n->tokenize(t1);
-
-    // cout << "----BEFORE------" << endl;
-    // cout << "Type2: " << n2->type << endl;
-    // cout << "Name2: " << n2->name << endl;
-    // n2->untokenize(t1);
-    // cout << "-----AFTER-----" << endl;
-    // cout << "Type2: " << n2->type << endl;
-    // cout << "Name2: " << n2->name << endl;
-
-    // vector<string> t2;
-    // l->tokenize(t2);
-
-    // string t1_out;
-    // for (auto t : t1) {
-    //     t1_out += t;
-    //     t1_out += " ";
-    // }
-    // string t2_out;
-    // for (auto tx : t2) {
-    //     t2_out += tx;
-    //     t2_out += " ";
-    // }
-
-    // cout << "Token node: " << t1_out << endl;
-    // cout << "----------" << endl;
-    // cout << "Type: " << n->type << endl;
-    // cout << "Name: " << n->name << endl;
-    
-    // cout << "----------" << endl;
-    // cout << "Type2: " << n2->type << endl;
-    // cout << "Name2: " << n2->name << endl;
-    
-    // cout << "Token link: " << t2_out << endl;
+    }
 
     return 0;
 }
