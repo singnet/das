@@ -55,22 +55,22 @@ void BusCommandProxy::setup_proxy_node(const string& client_id, const string& se
         Utils::error("Proxy node can't be set up");
     } else {
         if (client_id == "") {
-            LOG_DEBUG("ProxyNode on CLIENT");
+            LOG_INFO("ProxyNode on CLIENT");
             // This proxy is running in the requestor
             string id = this->requestor_id;
             string requestor_host = id.substr(0, id.find(":"));
             string requestor_id = requestor_host + ":" + to_string(this->proxy_port);
 
-            LOG_DEBUG("requestor_id: " + requestor_id);
+            LOG_INFO("requestor_id: " + requestor_id);
 
             this->proxy_node = new ProxyNode(this, requestor_id);
         } else {
-            LOG_DEBUG("ProxyNode on PROCESSOR");
+            LOG_INFO("ProxyNode on PROCESSOR");
             // This proxy is running in the processor
             this->proxy_node = new ProxyNode(this, client_id, server_id);
             this->proxy_node->peer_id = server_id;
-            LOG_DEBUG("client_id: " << client_id);
-            LOG_DEBUG("server_id: " << server_id);
+            LOG_INFO("client_id: " << client_id);
+            LOG_INFO("server_id: " << server_id);
         }
     }
 }
