@@ -128,7 +128,7 @@ struct VisitData {
 };
 
 static bool visit_find_handle(HandleTrie::TrieNode* trie_node, void* data) {
-    VisitData* visit_data = (VisitData *) data;
+    VisitData* visit_data = (VisitData*) data;
     HebbianNetwork::Node* node = (HebbianNetwork::Node*) trie_node->value;
     if (node == visit_data->node) {
         visit_data->handle = trie_node->suffix;
@@ -140,27 +140,30 @@ static bool visit_find_handle(HandleTrie::TrieNode* trie_node, void* data) {
 
 static bool visit_serialize_node(HandleTrie::TrieNode* trie_node, void* data) {
     HebbianNetwork::Node* node = (HebbianNetwork::Node*) trie_node->value;
-    VisitData* visit_data = (VisitData *) data;
+    VisitData* visit_data = (VisitData*) data;
     visit_data->stream->write(trie_node->suffix.c_str(), HANDLE_HASH_SIZE - 1);
     visit_data->stream->write(reinterpret_cast<const char*>(&node->count), sizeof(node->count));
-    visit_data->stream->write(reinterpret_cast<const char*>(&node->importance), sizeof(node->importance));
-    visit_data->stream->write(reinterpret_cast<const char*>(&node->stimuli_to_spread), sizeof(node->stimuli_to_spread));
+    visit_data->stream->write(reinterpret_cast<const char*>(&node->importance),
+                              sizeof(node->importance));
+    visit_data->stream->write(reinterpret_cast<const char*>(&node->stimuli_to_spread),
+                              sizeof(node->stimuli_to_spread));
     unsigned int determiners_size = node->determiners.size();
     unsigned int neighbors_size = node->neighbors->size;
-    visit_data->stream->write(reinterpret_cast<const char*>(&determiners_size), sizeof(determiners_size));
+    visit_data->stream->write(reinterpret_cast<const char*>(&determiners_size),
+                              sizeof(determiners_size));
     visit_data->stream->write(reinterpret_cast<const char*>(&neighbors_size), sizeof(neighbors_size));
     return false;
 }
 
 static bool visit_serialize_determiners(HandleTrie::TrieNode* trie_node, void* data) {
     HebbianNetwork::Node* node = (HebbianNetwork::Node*) trie_node->value;
-    VisitData* visit_data = (VisitData *) data;
+    VisitData* visit_data = (VisitData*) data;
     for (auto determiner : node->determiners) {
         visit_data->stream->write(trie_node->suffix.c_str(), HANDLE_HASH_SIZE - 1);
         visit_data->handle = "";
         visit_data->node = determiner;
         trie_node->trie_node_mutex.unlock();
-        visit_data->network->visit_nodes(false, &visit_find_handle, (void *) visit_data);
+        visit_data->network->visit_nodes(false, &visit_find_handle, (void*) visit_data);
         trie_node->trie_node_mutex.lock();
         if (visit_data->handle == "") {
             Utils::error("Invalid determiner");
@@ -172,10 +175,10 @@ static bool visit_serialize_determiners(HandleTrie::TrieNode* trie_node, void* d
 
 static bool visit_serialize_edge(HandleTrie::TrieNode* trie_node, void* data) {
     HebbianNetwork::Edge* edge = (HebbianNetwork::Edge*) trie_node->value;
-    VisitData* visit_data = (VisitData *) data;
+    VisitData* visit_data = (VisitData*) data;
     visit_data->handle = "";
     visit_data->node = edge->node1;
-    visit_data->network->visit_nodes(false, &visit_find_handle, (void *) visit_data);
+    visit_data->network->visit_nodes(false, &visit_find_handle, (void*) visit_data);
     if (visit_data->handle == "") {
         Utils::error("Invalid neighbor");
     }
@@ -193,11 +196,13 @@ static bool visit_serialize_neighbors(HandleTrie::TrieNode* trie_node, void* dat
     return false;
 }
 
-void HebbianNetwork::deserialize_node(istream& is, unsigned int& determiner_count, unsigned int& neighbors_count) {
+void HebbianNetwork::deserialize_node(istream& is,
+                                      unsigned int& determiner_count,
+                                      unsigned int& neighbors_count) {
     string key;
     key.resize(HANDLE_HASH_SIZE - 1);
     is.read(&key[0], HANDLE_HASH_SIZE - 1);
-    HebbianNetwork::Node *node = add_node(key);
+    HebbianNetwork::Node* node = add_node(key);
     is.read(reinterpret_cast<char*>(&node->count), sizeof(node->count));
     is.read(reinterpret_cast<char*>(&node->importance), sizeof(node->importance));
     is.read(reinterpret_cast<char*>(&node->stimuli_to_spread), sizeof(node->stimuli_to_spread));
@@ -209,7 +214,8 @@ void HebbianNetwork::deserialize_node(istream& is, unsigned int& determiner_coun
 }
 
 void HebbianNetwork::serialize(ostream& os) {
-    os.write(reinterpret_cast<const char*>(&this->tokens_to_distribute), sizeof(this->tokens_to_distribute));
+    os.write(reinterpret_cast<const char*>(&this->tokens_to_distribute),
+             sizeof(this->tokens_to_distribute));
     os.write(reinterpret_cast<const char*>(&this->nodes->size), sizeof(this->nodes->size));
     VisitData visit_data;
     visit_data.node = NULL;
@@ -234,28 +240,28 @@ void HebbianNetwork::deserialize(istream& is) {
     key1.resize(HANDLE_HASH_SIZE - 1);
     key2.resize(HANDLE_HASH_SIZE - 1);
     string last_key1 = "";
-    HebbianNetwork::Node *node = NULL;
+    HebbianNetwork::Node* node = NULL;
     for (unsigned int i = 0; i < determiner_count; i++) {
         is.read(&key1[0], HANDLE_HASH_SIZE - 1);
         is.read(&key2[0], HANDLE_HASH_SIZE - 1);
         if (key1 != last_key1) {
-            node = (HebbianNetwork::Node *) this->nodes->lookup(key1);
+            node = (HebbianNetwork::Node*) this->nodes->lookup(key1);
             last_key1 = key1;
         }
-        node->determiners.insert((HebbianNetwork::Node *) this->nodes->lookup(key2));
+        node->determiners.insert((HebbianNetwork::Node*) this->nodes->lookup(key2));
     }
     last_key1 = "";
-    HebbianNetwork::Node *node1;
-    HebbianNetwork::Node *node2;
-    HebbianNetwork::Edge *edge = NULL;
+    HebbianNetwork::Node* node1;
+    HebbianNetwork::Node* node2;
+    HebbianNetwork::Edge* edge = NULL;
     for (unsigned int i = 0; i < neighbors_count; i++) {
         is.read(&key1[0], HANDLE_HASH_SIZE - 1);
         is.read(&key2[0], HANDLE_HASH_SIZE - 1);
         if (key1 != last_key1) {
-            node1 = (HebbianNetwork::Node *) nodes->lookup(key1);
+            node1 = (HebbianNetwork::Node*) nodes->lookup(key1);
             last_key1 = key1;
         }
-        node2 = (HebbianNetwork::Node *) nodes->lookup(key2);
+        node2 = (HebbianNetwork::Node*) nodes->lookup(key2);
         edge = add_asymmetric_edge(key1, key2, node1, node2);
         is.read(reinterpret_cast<char*>(&edge->count), sizeof(edge->count));
     }

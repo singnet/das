@@ -181,5 +181,3 @@ bool visit2(HandleTrie::TrieNode* node,
     }
     return false;
 }
-
-
