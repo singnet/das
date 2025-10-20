@@ -184,7 +184,7 @@ class HebbianNetwork : public Serializable {
 
     ImportanceType alienate_tokens();
 
-    void serialize(ostream& os) const;
+    void serialize(ostream& os);
     void deserialize(istream& is);
 
    private:
