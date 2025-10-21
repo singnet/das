@@ -94,8 +94,8 @@ http_archive = use_repo_rule("@bazel_tools//tools/build_defs/repo:http.bzl", "ht
 
 http_archive(
     name = "com_github_singnet_das_proto",
-    strip_prefix = "das-proto-0.1.17",
-    urls = ["https://github.com/singnet/das-proto/archive/refs/tags/0.1.17.tar.gz"],
+    strip_prefix = "das-proto-0.1.18",
+    urls = ["https://github.com/singnet/das-proto/archive/refs/tags/0.1.18.tar.gz"],
 )
 
 # Deps for formatting and linting BUILD files
