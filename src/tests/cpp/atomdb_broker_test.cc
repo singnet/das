@@ -50,9 +50,8 @@ TEST_F(AtomDBTest, AddAtoms) {
     string atomdb_broker_server_id = "0.0.0.0:42010";
     string atomdb_broker_client_id = "0.0.0.0:42020";
 
-    AttentionBrokerClient::set_server_address("0.0.0.0:37007");
+    ServiceBusSingleton::init(query_agent_id, atomdb_broker_server_id, 42000, 42999);
 
-    ServiceBusSingleton::init(query_agent_id, "0.0.0.0:37007", 42000, 42999);
     shared_ptr<ServiceBus> service_bus = ServiceBusSingleton::get_instance();
     service_bus->register_processor(make_shared<PatternMatchingQueryProcessor>());
     Utils::sleep(500);
@@ -104,9 +103,7 @@ TEST_F(AtomDBTest, AddAtoms) {
     EXPECT_TRUE(handles[2] == monkeyB);
     EXPECT_TRUE(handles[3] == link_handle);
 
-    while (!proxy->finished()) {
-        Utils::sleep();
-    }
+    Utils::sleep(1000);
 
     EXPECT_TRUE(db->node_exists(similarityB));
     EXPECT_TRUE(db->node_exists(humanB));

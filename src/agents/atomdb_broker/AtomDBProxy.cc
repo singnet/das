@@ -91,7 +91,6 @@ void AtomDBProxy::handle_add_atoms(const vector<string>& tokens) {
     try {
         vector<Atom*> atoms = build_atoms_from_tokens(tokens);
         this->atomdb->add_atoms(atoms);
-        to_remote_peer(BaseProxy::FINISHED, {});
     } catch (const std::runtime_error& exception) {
         raise_error_on_peer(exception.what());
     } catch (const std::exception& exception) {
