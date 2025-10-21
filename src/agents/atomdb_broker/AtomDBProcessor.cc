@@ -1,10 +1,10 @@
 #include "AtomDBProcessor.h"
 
+#include "AtomDBProxy.h"
 #include "ServiceBus.h"
 #include "ServiceBusSingleton.h"
-#include "Utils.h"
-#include "AtomDBProxy.h"
 #include "StoppableThread.h"
+#include "Utils.h"
 
 #define LOG_LEVEL INFO_LEVEL
 #include "Logger.h"
@@ -21,9 +21,7 @@ AtomDBProcessor::~AtomDBProcessor() {}
 // -------------------------------------------------------------------------------------------------
 // Public methods
 
-shared_ptr<BusCommandProxy> AtomDBProcessor::factory_empty_proxy() {
-    return make_shared<AtomDBProxy>();
-}
+shared_ptr<BusCommandProxy> AtomDBProcessor::factory_empty_proxy() { return make_shared<AtomDBProxy>(); }
 
 void AtomDBProcessor::run_command(shared_ptr<BusCommandProxy> proxy) {
     lock_guard<mutex> semaphore(this->query_threads_mutex);
@@ -35,15 +33,14 @@ void AtomDBProcessor::run_command(shared_ptr<BusCommandProxy> proxy) {
         Utils::error("Invalid thread id: " + thread_id);
     } else {
         shared_ptr<StoppableThread> stoppable_thread = make_shared<StoppableThread>(thread_id);
-        stoppable_thread->attach(new thread(&AtomDBProcessor::thread_process_one_query,
-                                            this,
-                                            stoppable_thread,
-                                            atomdb_proxy));
+        stoppable_thread->attach(new thread(
+            &AtomDBProcessor::thread_process_one_query, this, stoppable_thread, atomdb_proxy));
         this->query_threads[thread_id] = stoppable_thread;
     }
 }
 
-void AtomDBProcessor::thread_process_one_query(shared_ptr<StoppableThread> monitor, shared_ptr<AtomDBProxy> proxy) {
+void AtomDBProcessor::thread_process_one_query(shared_ptr<StoppableThread> monitor,
+                                               shared_ptr<AtomDBProxy> proxy) {
     try {
         proxy->untokenize(proxy->args);
         string command = proxy->get_command();

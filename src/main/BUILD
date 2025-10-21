@@ -167,8 +167,8 @@ cc_library(
         "//agents/atomdb_broker:atomdb_broker_lib",
         "//atomdb:atomdb_lib",
         "//atomdb:atomdb_singleton",
-        "//service_bus:service_bus_lib",
         "//commons:commons_lib",
+        "//service_bus:service_bus_lib",
     ],
 )
 
@@ -179,7 +179,7 @@ cc_library(
         "//agents/atomdb_broker:atomdb_broker_lib",
         "//atomdb:atomdb_lib",
         "//atomdb:atomdb_singleton",
-        "//service_bus:service_bus_lib",
         "//commons:commons_lib",
+        "//service_bus:service_bus_lib",
     ],
 )

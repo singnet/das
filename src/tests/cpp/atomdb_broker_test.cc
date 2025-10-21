@@ -1,11 +1,11 @@
 #include <memory>
 
-#include "AtomDBSingleton.h"
 #include "AtomDBProcessor.h"
-#include "PatternMatchingQueryProcessor.h"
-#include "AttentionBrokerClient.h"
 #include "AtomDBProxy.h"
+#include "AtomDBSingleton.h"
+#include "AttentionBrokerClient.h"
 #include "Hasher.h"
+#include "PatternMatchingQueryProcessor.h"
 #include "RedisMongoDB.h"
 #include "ServiceBus.h"
 #include "ServiceBusSingleton.h"
@@ -21,7 +21,6 @@ using namespace atomdb;
 using namespace attention_broker;
 using namespace atomdb_broker;
 using namespace query_engine;
-
 
 class AtomDBTestEnvironment : public ::testing::Environment {
    public:
@@ -58,16 +57,18 @@ TEST_F(AtomDBTest, AddAtoms) {
     service_bus->register_processor(make_shared<PatternMatchingQueryProcessor>());
     Utils::sleep(500);
 
-    shared_ptr<ServiceBus> atomdb_broker_server_bus = make_shared<ServiceBus>(atomdb_broker_server_id, query_agent_id);
+    shared_ptr<ServiceBus> atomdb_broker_server_bus =
+        make_shared<ServiceBus>(atomdb_broker_server_id, query_agent_id);
     Utils::sleep(500);
     atomdb_broker_server_bus->register_processor(make_shared<AtomDBProcessor>());
     Utils::sleep(500);
 
-    shared_ptr<ServiceBus> atomdb_broker_client_bus = make_shared<ServiceBus>(atomdb_broker_client_id, atomdb_broker_server_id);
+    shared_ptr<ServiceBus> atomdb_broker_client_bus =
+        make_shared<ServiceBus>(atomdb_broker_client_id, atomdb_broker_server_id);
     Utils::sleep(500);
 
     auto proxy = make_shared<AtomDBProxy>();
-    
+
     atomdb_broker_client_bus->issue_bus_command(proxy);
     Utils::sleep(1000);
 
@@ -76,11 +77,10 @@ TEST_F(AtomDBTest, AddAtoms) {
     string monkeyB = Hasher::node_handle("Symbol", "\"monkeyB\"");
 
     vector<string> tokens = {
-        "NODE", "Symbol", "false", "3", "is_literal", "bool", "false", "SimilarityB",
-        "NODE", "Symbol", "false", "3", "is_literal", "bool", "true", R"("humanB")",
-        "NODE", "Symbol", "false", "3", "is_literal", "bool", "true", R"("monkeyB")",
-        "LINK", "Expression", "true", "0", "3", similarityB, humanB, monkeyB
-    };
+        "NODE", "Symbol",     "false", "3", "is_literal", "bool",      "false", "SimilarityB",
+        "NODE", "Symbol",     "false", "3", "is_literal", "bool",      "true",  R"("humanB")",
+        "NODE", "Symbol",     "false", "3", "is_literal", "bool",      "true",  R"("monkeyB")",
+        "LINK", "Expression", "true",  "0", "3",          similarityB, humanB,  monkeyB};
 
     auto link = new Link("Expression", {similarityB, humanB, monkeyB}, true);
     string link_handle = link->handle();
@@ -98,7 +98,7 @@ TEST_F(AtomDBTest, AddAtoms) {
     EXPECT_FALSE(db->link_exists(link_handle));
 
     vector<string> handles = proxy->add_atoms(atoms);
-        
+
     EXPECT_TRUE(handles[0] == similarityB);
     EXPECT_TRUE(handles[1] == humanB);
     EXPECT_TRUE(handles[2] == monkeyB);

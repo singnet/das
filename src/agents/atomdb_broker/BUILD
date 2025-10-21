@@ -30,9 +30,9 @@ cc_library(
     includes = ["."],
     deps = [
         "//agents:base_proxy",
-        "//atomdb:atomdb_singleton",
-        "//atomdb:atomdb",
         "//agents/query_engine:query_engine_lib",
+        "//atomdb",
+        "//atomdb:atomdb_singleton",
         "//commons:commons_lib",
         "//commons/atoms:atoms_lib",
         "//service_bus:service_bus_lib",

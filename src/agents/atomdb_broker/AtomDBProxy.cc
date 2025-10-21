@@ -1,11 +1,12 @@
 #include "AtomDBProxy.h"
-#include "BaseProxy.h"
-#include "ServiceBus.h"
+
 #include "AtomDBSingleton.h"
+#include "BaseProxy.h"
 #include "Link.h"
 #include "Node.h"
-#include "Utils.h"
 #include "Properties.h"
+#include "ServiceBus.h"
+#include "Utils.h"
 
 #define LOG_LEVEL INFO_LEVEL
 #include "Logger.h"
@@ -40,7 +41,7 @@ void AtomDBProxy::tokenize(vector<string>& output) { BaseProxy::tokenize(output)
 /**
  * Build a single argument vector containing, for each atom, a leading type
  * token ("NODE" or "LINK") followed by that atom's tokenized fields.
- */     
+ */
 vector<string> AtomDBProxy::add_atoms(const vector<Atom*>& atoms) {
     vector<string> args;
     vector<string> handles;
@@ -48,7 +49,7 @@ vector<string> AtomDBProxy::add_atoms(const vector<Atom*>& atoms) {
 
     for (Atom* atom : atoms) {
         atom->tokenize(args);
-        
+
         if (dynamic_cast<Node*>(atom)) {
             atom_type = "NODE";
         } else if (dynamic_cast<Link*>(atom)) {
@@ -56,11 +57,11 @@ vector<string> AtomDBProxy::add_atoms(const vector<Atom*>& atoms) {
         } else {
             Utils::error("Invalid Atom type");
         }
-        
+
         args.insert(args.begin(), atom_type);
         handles.push_back(atom->handle());
     }
-    
+
     to_remote_peer(AtomDBProxy::ADD_ATOMS, args);
 
     return handles;
@@ -72,8 +73,9 @@ vector<string> AtomDBProxy::add_atoms(const vector<Atom*>& atoms) {
 void AtomDBProxy::untokenize(vector<string>& tokens) { BaseProxy::untokenize(tokens); }
 
 bool AtomDBProxy::from_remote_peer(const string& command, const vector<string>& args) {
-    LOG_DEBUG("Proxy command: <" << command << "> from " << this->peer_id() << " received in " << this->my_id());
-   
+    LOG_DEBUG("Proxy command: <" << command << "> from " << this->peer_id() << " received in "
+                                 << this->my_id());
+
     if (BaseProxy::from_remote_peer(command, args)) {
         return true;
     } else if (command == AtomDBProxy::ADD_ATOMS) {
@@ -106,12 +108,12 @@ vector<Atom*> AtomDBProxy::build_atoms_from_tokens(const vector<string>& tokens)
         if (current.empty()) return;
         if (current == "NODE") {
             atoms.push_back(new Node(buffer));
-        } else { // LINK
+        } else {  // LINK
             atoms.push_back(new Link(buffer));
         }
         buffer.clear();
     };
- 
+
     for (const auto& token : tokens) {
         if (token == "NODE" || token == "LINK") {
             if (!current.empty()) flush();

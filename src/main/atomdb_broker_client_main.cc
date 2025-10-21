@@ -3,18 +3,17 @@
 #include <iostream>
 #include <string>
 
+#include "AtomDBProxy.h"
 #include "AtomDBSingleton.h"
+#include "Properties.h"
 #include "ServiceBusSingleton.h"
 #include "Utils.h"
-#include "AtomDBProxy.h"
-#include "Properties.h"
 
 using namespace std;
 using namespace service_bus;
 using namespace atoms;
 using namespace atomdb;
 using namespace atomdb_broker;
-
 
 int main(int argc, char* argv[]) {
     if (argc < 6) {
@@ -46,7 +45,7 @@ int main(int argc, char* argv[]) {
         while (!proxy->finished()) {
             Utils::sleep();
         }
-        
+
         if (response.empty()) {
             cout << "No answers" << endl;
         } else {
