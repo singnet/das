@@ -4,7 +4,7 @@
 #include <string>
 
 #include "AtomDBSingleton.h"
-#include "AtomDBBrokerProcessor.h"
+#include "AtomDBProcessor.h"
 #include "ServiceBusSingleton.h"
 #include "Utils.h"
 
@@ -17,7 +17,7 @@ using namespace atomdb_broker;
 using namespace service_bus;
 
 void ctrl_c_handler(int) {
-    LOG_INFO("Stopping AtomDBBroker server...");
+    LOG_INFO("Stopping AtomDB server...");
     LOG_INFO("Done.");
     exit(0);
 }
@@ -42,7 +42,7 @@ int main(int argc, char* argv[]) {
     AtomDBSingleton::init();
     ServiceBusSingleton::init(client_id, server_id, ports_range.first, ports_range.second);
     shared_ptr<ServiceBus> service_bus = ServiceBusSingleton::get_instance();
-    service_bus->register_processor(make_shared<AtomDBBrokerProcessor>());
+    service_bus->register_processor(make_shared<AtomDBProcessor>());
 
     LOG_INFO("#############################     REQUEST QUEUE EMPTY     ##################################");
     

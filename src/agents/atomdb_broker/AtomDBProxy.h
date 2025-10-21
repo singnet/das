@@ -24,12 +24,11 @@ namespace atomdb_broker {
 * commands to an AtomDB broker (remote peer) and receives incoming commands
 * from remote peers.
 */
-class AtomDBBrokerProxy : public BaseProxy {
+class AtomDBProxy : public BaseProxy {
    public:
     // ---------------------------------------------------------------------------------------------
     // Proxy Commands
     static string ADD_ATOMS;
-    static string SHUTDOWN;
 
     // ---------------------------------------------------------------------------------------------
     // Constructor and destructor
@@ -37,12 +36,12 @@ class AtomDBBrokerProxy : public BaseProxy {
     /**
      * @brief Constructor.
      */
-    AtomDBBrokerProxy();
+    AtomDBProxy();
 
     /**
      * @brief Destructor.
      */
-    virtual ~AtomDBBrokerProxy();
+    virtual ~AtomDBProxy();
 
     // ---------------------------------------------------------------------------------------------
     // Client-side API
@@ -59,21 +58,6 @@ class AtomDBBrokerProxy : public BaseProxy {
      * @param output Vector where the tokens will be put.
      */
     virtual void tokenize(vector<string>& output) override;
-
-    /**
-    * @brief Whether the proxy (server-side) is still accepting requests.
-    * 
-    * @return true if the proxy should remain alive; false if a shutdown was
-    * requested.
-    */
-    bool running() const;
-
-    /**
-    * @brief Request a graceful shutdown on the remote peer.
-    *
-    * This sends the SHUTDOWN command to the remote peer.
-    */
-    void shutdown();
 
     /**
     * @brief Build Atom objects from a token stream.
@@ -135,7 +119,6 @@ class AtomDBBrokerProxy : public BaseProxy {
 
     mutex api_mutex;
     shared_ptr<AtomDB> atomdb;
-    bool keep_alive_flag;
 };
 
 }  // namespace atomdb_broker

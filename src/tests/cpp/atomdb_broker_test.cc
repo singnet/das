@@ -1,10 +1,10 @@
 #include <memory>
 
 #include "AtomDBSingleton.h"
-#include "AtomDBBrokerProcessor.h"
+#include "AtomDBProcessor.h"
 #include "PatternMatchingQueryProcessor.h"
 #include "AttentionBrokerClient.h"
-#include "AtomDBBrokerProxy.h"
+#include "AtomDBProxy.h"
 #include "Hasher.h"
 #include "RedisMongoDB.h"
 #include "ServiceBus.h"
@@ -23,7 +23,7 @@ using namespace atomdb_broker;
 using namespace query_engine;
 
 
-class AtomDBBrokerTestEnvironment : public ::testing::Environment {
+class AtomDBTestEnvironment : public ::testing::Environment {
    public:
     void SetUp() override {
         TestConfig::load_environment();
@@ -33,7 +33,7 @@ class AtomDBBrokerTestEnvironment : public ::testing::Environment {
     void TearDown() override {}
 };
 
-class AtomDBBrokerTest : public ::testing::Test {
+class AtomDBTest : public ::testing::Test {
    protected:
     void SetUp() override {
         auto atomdb = AtomDBSingleton::get_instance();
@@ -46,7 +46,7 @@ class AtomDBBrokerTest : public ::testing::Test {
     shared_ptr<RedisMongoDB> db;
 };
 
-TEST_F(AtomDBBrokerTest, AddAtoms) {
+TEST_F(AtomDBTest, AddAtoms) {
     string query_agent_id = "0.0.0.0:42000";
     string atomdb_broker_server_id = "0.0.0.0:42010";
     string atomdb_broker_client_id = "0.0.0.0:42020";
@@ -60,13 +60,13 @@ TEST_F(AtomDBBrokerTest, AddAtoms) {
 
     shared_ptr<ServiceBus> atomdb_broker_server_bus = make_shared<ServiceBus>(atomdb_broker_server_id, query_agent_id);
     Utils::sleep(500);
-    atomdb_broker_server_bus->register_processor(make_shared<AtomDBBrokerProcessor>());
+    atomdb_broker_server_bus->register_processor(make_shared<AtomDBProcessor>());
     Utils::sleep(500);
 
     shared_ptr<ServiceBus> atomdb_broker_client_bus = make_shared<ServiceBus>(atomdb_broker_client_id, atomdb_broker_server_id);
     Utils::sleep(500);
 
-    auto proxy = make_shared<AtomDBBrokerProxy>();
+    auto proxy = make_shared<AtomDBProxy>();
     
     atomdb_broker_client_bus->issue_bus_command(proxy);
     Utils::sleep(1000);
@@ -98,12 +98,15 @@ TEST_F(AtomDBBrokerTest, AddAtoms) {
     EXPECT_FALSE(db->link_exists(link_handle));
 
     vector<string> handles = proxy->add_atoms(atoms);
-    Utils::sleep(1000);
-    
+        
     EXPECT_TRUE(handles[0] == similarityB);
     EXPECT_TRUE(handles[1] == humanB);
     EXPECT_TRUE(handles[2] == monkeyB);
     EXPECT_TRUE(handles[3] == link_handle);
+
+    while (!proxy->finished()) {
+        Utils::sleep();
+    }
 
     EXPECT_TRUE(db->node_exists(similarityB));
     EXPECT_TRUE(db->node_exists(humanB));
@@ -113,6 +116,6 @@ TEST_F(AtomDBBrokerTest, AddAtoms) {
 
 int main(int argc, char** argv) {
     ::testing::InitGoogleTest(&argc, argv);
-    ::testing::AddGlobalTestEnvironment(new AtomDBBrokerTestEnvironment());
+    ::testing::AddGlobalTestEnvironment(new AtomDBTestEnvironment());
     return RUN_ALL_TESTS();
 }

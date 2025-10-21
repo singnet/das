@@ -1,4 +1,4 @@
-#include "AtomDBBrokerProxy.h"
+#include "AtomDBProxy.h"
 #include "BaseProxy.h"
 #include "ServiceBus.h"
 #include "AtomDBSingleton.h"
@@ -18,36 +18,30 @@ using namespace commons;
 // Static constants
 
 // Proxy Commands
-string AtomDBBrokerProxy::ADD_ATOMS = "add_atoms";
-string AtomDBBrokerProxy::SHUTDOWN = "shutdown";
+string AtomDBProxy::ADD_ATOMS = "add_atoms";
 
 // -------------------------------------------------------------------------------------------------
 // Constructor and destructor
 
-AtomDBBrokerProxy::AtomDBBrokerProxy() : BaseProxy() {
+AtomDBProxy::AtomDBProxy() : BaseProxy() {
     lock_guard<mutex> semaphore(this->api_mutex);
     this->command = ServiceBus::ATOMDB;
     this->atomdb = AtomDBSingleton::get_instance();
-    this->keep_alive_flag = true;
 }
 
-AtomDBBrokerProxy::~AtomDBBrokerProxy() { to_remote_peer(SHUTDOWN, {}); }
+AtomDBProxy::~AtomDBProxy() {}
 
 // -------------------------------------------------------------------------------------------------
 // Client-side API
-void AtomDBBrokerProxy::shutdown() { to_remote_peer(SHUTDOWN, {}); }
+void AtomDBProxy::pack_command_line_args() { tokenize(this->args); }
 
-bool AtomDBBrokerProxy::running() const { return this->keep_alive_flag; }
-
-void AtomDBBrokerProxy::pack_command_line_args() { tokenize(this->args); }
-
-void AtomDBBrokerProxy::tokenize(vector<string>& output) { BaseProxy::tokenize(output); }
+void AtomDBProxy::tokenize(vector<string>& output) { BaseProxy::tokenize(output); }
 
 /**
  * Build a single argument vector containing, for each atom, a leading type
  * token ("NODE" or "LINK") followed by that atom's tokenized fields.
  */     
-vector<string> AtomDBBrokerProxy::add_atoms(const vector<Atom*>& atoms) {
+vector<string> AtomDBProxy::add_atoms(const vector<Atom*>& atoms) {
     vector<string> args;
     vector<string> handles;
     string atom_type;
@@ -67,7 +61,7 @@ vector<string> AtomDBBrokerProxy::add_atoms(const vector<Atom*>& atoms) {
         handles.push_back(atom->handle());
     }
     
-    to_remote_peer(AtomDBBrokerProxy::ADD_ATOMS, args);
+    to_remote_peer(AtomDBProxy::ADD_ATOMS, args);
 
     return handles;
 }
@@ -75,29 +69,27 @@ vector<string> AtomDBBrokerProxy::add_atoms(const vector<Atom*>& atoms) {
 // -------------------------------------------------------------------------------------------------
 // Server-side API
 
-void AtomDBBrokerProxy::untokenize(vector<string>& tokens) { BaseProxy::untokenize(tokens); }
+void AtomDBProxy::untokenize(vector<string>& tokens) { BaseProxy::untokenize(tokens); }
 
-bool AtomDBBrokerProxy::from_remote_peer(const string& command, const vector<string>& args) {
+bool AtomDBProxy::from_remote_peer(const string& command, const vector<string>& args) {
     LOG_DEBUG("Proxy command: <" << command << "> from " << this->peer_id() << " received in " << this->my_id());
    
     if (BaseProxy::from_remote_peer(command, args)) {
         return true;
-    } else if (command == AtomDBBrokerProxy::ADD_ATOMS) {
+    } else if (command == AtomDBProxy::ADD_ATOMS) {
         handle_add_atoms(args);
         return true;
-    } else if (command == AtomDBBrokerProxy::SHUTDOWN) {
-        this->keep_alive_flag = false;
-        return true;
     } else {
-        Utils::error("Invalid AtomDBBrokerProxy command: <" + command + ">");
+        Utils::error("Invalid AtomDBProxy command: <" + command + ">");
         return false;
     }
 }
 
-void AtomDBBrokerProxy::handle_add_atoms(const vector<string>& tokens) {
+void AtomDBProxy::handle_add_atoms(const vector<string>& tokens) {
     try {
         vector<Atom*> atoms = build_atoms_from_tokens(tokens);
         this->atomdb->add_atoms(atoms);
+        to_remote_peer(BaseProxy::FINISHED, {});
     } catch (const std::runtime_error& exception) {
         raise_error_on_peer(exception.what());
     } catch (const std::exception& exception) {
@@ -105,7 +97,7 @@ void AtomDBBrokerProxy::handle_add_atoms(const vector<string>& tokens) {
     }
 }
 
-vector<Atom*> AtomDBBrokerProxy::build_atoms_from_tokens(const vector<string>& tokens) {
+vector<Atom*> AtomDBProxy::build_atoms_from_tokens(const vector<string>& tokens) {
     vector<Atom*> atoms;
     string current;
     vector<string> buffer;

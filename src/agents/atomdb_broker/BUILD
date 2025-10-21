@@ -8,25 +8,25 @@ cc_library(
     hdrs = [],
     includes = ["."],
     deps = [
-        ":atomdb_broker_processor",
-        ":atomdb_broker_proxy",
+        ":atomdb_processor",
+        ":atomdb_proxy",
     ],
 )
 
 cc_library(
-    name = "atomdb_broker_processor",
-    srcs = ["AtomDBBrokerProcessor.cc"],
-    hdrs = ["AtomDBBrokerProcessor.h"],
+    name = "atomdb_processor",
+    srcs = ["AtomDBProcessor.cc"],
+    hdrs = ["AtomDBProcessor.h"],
     includes = ["."],
     deps = [
-        ":atomdb_broker_proxy",
+        ":atomdb_proxy",
     ],
 )
 
 cc_library(
-    name = "atomdb_broker_proxy",
-    srcs = ["AtomDBBrokerProxy.cc"],
-    hdrs = ["AtomDBBrokerProxy.h"],
+    name = "atomdb_proxy",
+    srcs = ["AtomDBProxy.cc"],
+    hdrs = ["AtomDBProxy.h"],
     includes = ["."],
     deps = [
         "//agents:base_proxy",
