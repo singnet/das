@@ -90,14 +90,13 @@ void ContextBrokerProcessor::thread_process_one_query(shared_ptr<StoppableThread
         proxy->raise_error_on_peer(exception.what());
     }
 
-    // Keep alive till peer (client) kills it or the on going parameters update is done
+    // Keep alive till peer (client) kills it (processing any ongoing parameters update)
     while (!(proxy->finished() || proxy->is_aborting()) || proxy->update_attention_broker_parameters) {
         if (proxy->update_attention_broker_parameters) {
             this->set_attention_broker_parameters(
                 proxy->rent_rate, proxy->spreading_rate_lowerbound, proxy->spreading_rate_upperbound);
             proxy->update_attention_broker_parameters = false;
             proxy->to_remote_peer(ContextBrokerProxy::ATTENTION_BROKER_SET_PARAMETERS_FINISHED, {});
-            break;
         }
         Utils::sleep();
     }
