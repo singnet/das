@@ -184,11 +184,13 @@ class HebbianNetwork : public Serializable {
 
     ImportanceType alienate_tokens();
 
+    void clear();
     void serialize(ostream& os);
     void deserialize(istream& is);
 
    private:
     void deserialize_node(istream& is, unsigned int& determiner_count, unsigned int& neighbors_count);
+    void init();
 
     HandleTrie* nodes;
     ImportanceType tokens_to_distribute;
