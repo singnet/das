@@ -30,7 +30,7 @@ AtomDBProxy::AtomDBProxy() : BaseProxy() {
     this->atomdb = AtomDBSingleton::get_instance();
 }
 
-AtomDBProxy::~AtomDBProxy() {}
+AtomDBProxy::~AtomDBProxy() { this->abort(); }
 
 // -------------------------------------------------------------------------------------------------
 // Client-side API
