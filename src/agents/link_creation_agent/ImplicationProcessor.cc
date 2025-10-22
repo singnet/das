@@ -66,8 +66,6 @@ vector<shared_ptr<Link>> ImplicationProcessor::process_query(shared_ptr<QueryAns
         LOG_INFO("Insufficient handles provided, skipping implication processing.");
         return {};
     }
-    // string p1_handle = query_answer->assignment.get("P1");
-    // string p2_handle = query_answer->assignment.get("P2");
 
     string p1_handle = query_answer->handles[0];
     string p2_handle = query_answer->handles[1];
@@ -81,13 +79,6 @@ vector<shared_ptr<Link>> ImplicationProcessor::process_query(shared_ptr<QueryAns
         LOG_INFO("P1 and P2 are the same, skipping implication processing.");
         return {};
     }
-
-    // // Check if links is already in DB
-    // if (link_exists(p1_handle, p2_handle)) {
-    //     LOG_INFO("Link already exists for " << p1_handle << " and " << p2_handle
-    //                                         << ", skipping implication processing.");
-    //     return {};
-    // }
 
     vector<string> p1_query;
     vector<string> p2_query;
