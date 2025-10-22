@@ -328,7 +328,7 @@ def generate_html(
     body_chunks.append(
         f"<p><strong>Commit:</strong> "
         f"<code>{html_lib.escape(meta['commit_sha_short'])}</code> "
-        f"({html_lib.escape(meta.get('pr_base_branch', 'master'))})</p>"
+        f"({html_lib.escape(meta.get('pr_base_branch') or 'master')})</p>"
     )
 
     for prefix in prefixes:
