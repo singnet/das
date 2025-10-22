@@ -4,6 +4,7 @@ set -eoux pipefail
 
 BINARY_NAME="${1}"
 shift
+
 IMAGE_NAME="das-builder"
 CONTAINER_NAME="das-${BINARY_NAME}-$(uuidgen | cut -d '-' -f 1)-$(date +%Y%m%d%H%M%S)"
 
