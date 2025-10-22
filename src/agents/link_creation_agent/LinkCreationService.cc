@@ -252,7 +252,10 @@ void LinkCreationService::create_links() {
                 // }
                 if (this->save_links_to_metta_file) {
                     LOG_INFO("MeTTa Expression: " << meta_content);
-                    add_to_file(metta_file_path, id + ".metta", meta_content + " = " + to_string(link->custom_attributes.get<double>("strength")));
+                    add_to_file(metta_file_path,
+                                id + ".metta",
+                                meta_content + " = " +
+                                    to_string(link->custom_attributes.get<double>("strength")));
                 }
                 if (this->save_links_to_db) {
                     LOG_INFO("Saving link to database: " << link->to_string());
