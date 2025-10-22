@@ -42,10 +42,6 @@ int main(int argc, char* argv[]) {
         auto atoms = proxy->build_atoms_from_tokens(tokens);
         vector<string> response = proxy->add_atoms(atoms);
 
-        while (!proxy->finished()) {
-            Utils::sleep();
-        }
-
         if (response.empty()) {
             cout << "No answers" << endl;
         } else {

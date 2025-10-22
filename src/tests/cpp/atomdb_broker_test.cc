@@ -1,3 +1,5 @@
+#include <chrono>
+#include <iostream>
 #include <memory>
 
 #include "AtomDBProcessor.h"
@@ -42,6 +44,12 @@ class AtomDBTest : public ::testing::Test {
 
     void TearDown() override {}
 
+    string timestamp() {
+        auto now = std::chrono::system_clock::now();
+        double seconds = std::chrono::duration<double>(now.time_since_epoch()).count();
+        return std::to_string(seconds);
+    }
+
     shared_ptr<RedisMongoDB> db;
 };
 
@@ -71,43 +79,46 @@ TEST_F(AtomDBTest, AddAtoms) {
     atomdb_broker_client_bus->issue_bus_command(proxy);
     Utils::sleep(1000);
 
-    string similarityB = Hasher::node_handle("Symbol", "SimilarityB");
-    string humanB = Hasher::node_handle("Symbol", "\"humanB\"");
-    string monkeyB = Hasher::node_handle("Symbol", "\"monkeyB\"");
+    string name1 = timestamp();
+    string name2 = timestamp();
+    string name3 = timestamp();
 
-    vector<string> tokens = {
-        "NODE", "Symbol",     "false", "3", "is_literal", "bool",      "false", "SimilarityB",
-        "NODE", "Symbol",     "false", "3", "is_literal", "bool",      "true",  R"("humanB")",
-        "NODE", "Symbol",     "false", "3", "is_literal", "bool",      "true",  R"("monkeyB")",
-        "LINK", "Expression", "true",  "0", "3",          similarityB, humanB,  monkeyB};
+    string node1 = Hasher::node_handle("Symbol", name1);
+    string node2 = Hasher::node_handle("Symbol", name2);
+    string node3 = Hasher::node_handle("Symbol", name3);
 
-    auto link = new Link("Expression", {similarityB, humanB, monkeyB}, true);
+    vector<string> tokens = {"NODE", "Symbol",     "false", "3", "is_literal", "bool", "false", name1,
+                             "NODE", "Symbol",     "false", "3", "is_literal", "bool", "true",  name2,
+                             "NODE", "Symbol",     "false", "3", "is_literal", "bool", "true",  name3,
+                             "LINK", "Expression", "true",  "0", "3",          node1,  node2,   node3};
+
+    auto link = new Link("Expression", {node1, node2, node3}, true);
     string link_handle = link->handle();
 
     auto atoms = proxy->build_atoms_from_tokens(tokens);
 
-    EXPECT_TRUE(atoms[0]->handle() == similarityB);
-    EXPECT_TRUE(atoms[1]->handle() == humanB);
-    EXPECT_TRUE(atoms[2]->handle() == monkeyB);
+    EXPECT_TRUE(atoms[0]->handle() == node1);
+    EXPECT_TRUE(atoms[1]->handle() == node2);
+    EXPECT_TRUE(atoms[2]->handle() == node3);
     EXPECT_TRUE(atoms[3]->handle() == link_handle);
 
-    EXPECT_FALSE(db->node_exists(similarityB));
-    EXPECT_FALSE(db->node_exists(humanB));
-    EXPECT_FALSE(db->node_exists(monkeyB));
+    EXPECT_FALSE(db->node_exists(node1));
+    EXPECT_FALSE(db->node_exists(node2));
+    EXPECT_FALSE(db->node_exists(node3));
     EXPECT_FALSE(db->link_exists(link_handle));
 
     vector<string> handles = proxy->add_atoms(atoms);
 
-    EXPECT_TRUE(handles[0] == similarityB);
-    EXPECT_TRUE(handles[1] == humanB);
-    EXPECT_TRUE(handles[2] == monkeyB);
+    EXPECT_TRUE(handles[0] == node1);
+    EXPECT_TRUE(handles[1] == node2);
+    EXPECT_TRUE(handles[2] == node3);
     EXPECT_TRUE(handles[3] == link_handle);
 
-    Utils::sleep(1000);
+    Utils::sleep(2000);
 
-    EXPECT_TRUE(db->node_exists(similarityB));
-    EXPECT_TRUE(db->node_exists(humanB));
-    EXPECT_TRUE(db->node_exists(monkeyB));
+    EXPECT_TRUE(db->node_exists(node1));
+    EXPECT_TRUE(db->node_exists(node2));
+    EXPECT_TRUE(db->node_exists(node3));
     EXPECT_TRUE(db->link_exists(link_handle));
 }
 
