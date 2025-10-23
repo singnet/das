@@ -206,11 +206,12 @@ Status AttentionBrokerServer::set_parameters(ServerContext* grpc_context,
 Status AttentionBrokerServer::save_context(ServerContext* grpc_context,
                                            const dasproto::ContextPersistence* request,
                                            dasproto::Ack* reply) {
-    LOG_INFO("Saving contents of context: " + request->context() + " into file: " + request->file_name());
+    LOG_INFO("Saving contents of context: " + request->context() +
+             " into file: " + request->file_name());
     if (this->rpc_api_enabled) {
         HebbianNetwork* network = select_hebbian_network(request->context());
         ofstream file(request->file_name());
-        if (! file.is_open()) {
+        if (!file.is_open()) {
             LOG_ERROR("Couldn't open file: " + request->file_name());
             return Status::CANCELLED;
         }
@@ -232,12 +233,13 @@ Status AttentionBrokerServer::save_context(ServerContext* grpc_context,
 Status AttentionBrokerServer::drop_and_load_context(ServerContext* grpc_context,
                                                     const dasproto::ContextPersistence* request,
                                                     dasproto::Ack* reply) {
-    LOG_INFO("Dropping contents of context: " + request->context() + " Reading from file: " + request->file_name());
+    LOG_INFO("Dropping contents of context: " + request->context() +
+             " Reading from file: " + request->file_name());
     if (this->rpc_api_enabled) {
         HebbianNetwork* network = select_hebbian_network(request->context());
         network->clear();
         ifstream file(request->file_name());
-        if (! file.is_open()) {
+        if (!file.is_open()) {
             LOG_ERROR("Couldn't open file: " + request->file_name());
             return Status::CANCELLED;
         }

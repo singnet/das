@@ -11,9 +11,7 @@ using namespace attention_broker;
 // --------------------------------------------------------------------------------
 // Public methods
 
-HebbianNetwork::HebbianNetwork() {
-    init();
-}
+HebbianNetwork::HebbianNetwork() { init(); }
 
 HebbianNetwork::~HebbianNetwork() { delete nodes; }
 
@@ -25,7 +23,7 @@ void HebbianNetwork::init() {
     tokens_mutex.unlock();
 }
 
-void HebbianNetwork::clear() { 
+void HebbianNetwork::clear() {
     delete nodes;
     init();
 }
