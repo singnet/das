@@ -105,7 +105,7 @@ class ServiceBus {
     static string LINK_CREATION;
     static string INFERENCE;
     static string CONTEXT;
-
+    static string ATOMDB;
     /**
      * Registers a processor making it take the ownership of one or more bus commands.
      *

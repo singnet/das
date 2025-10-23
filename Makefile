@@ -48,6 +48,9 @@ run-attention-broker:
 run-context-broker:
 	@bash -x src/scripts/run.sh context_broker $(OPTIONS)
 
+run-atomdb-broker:
+	@bash -x src/scripts/run.sh atomdb_broker $(OPTIONS)
+
 run-link-creation-agent:
 	@bash -x src/scripts/run.sh link_creation_server $(OPTIONS)
 
