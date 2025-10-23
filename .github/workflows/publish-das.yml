@@ -81,6 +81,7 @@ jobs:
             link-creation-client,
             inference-agent,
             evolution-agent,
+            context-broker,
           ]
 
     steps:

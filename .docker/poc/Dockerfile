@@ -64,7 +64,7 @@ RUN ldconfig
 
 ENTRYPOINT [ "inference_agent_server" ]
 
-# Build evolution broker
+# Build evolution agent
 FROM trueagi/das:22.04-builder AS evolution-agent
 
 COPY  ./bin/evolution_broker /usr/local/bin
@@ -76,3 +76,16 @@ COPY ./lib /usr/local/lib
 RUN ldconfig
 
 ENTRYPOINT [ "evolution_broker" ]
+
+# Build context broker
+FROM trueagi/das:22.04-builder AS context-broker
+
+COPY  ./bin/context_broker /usr/local/bin
+
+RUN chmod +x /usr/local/bin/context_broker
+
+COPY ./lib /usr/local/lib
+
+RUN ldconfig
+
+ENTRYPOINT [ "context_broker" ]

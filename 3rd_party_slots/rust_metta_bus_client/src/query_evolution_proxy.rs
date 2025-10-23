@@ -1,15 +1,15 @@
-use std::sync::{Arc, Mutex};
+use std::{
+	collections::HashMap,
+	sync::{Arc, Mutex},
+};
 
 use hyperon_atom::{matcher::Bindings, Atom};
 
 use crate::{
 	base_proxy_query::{BaseQueryProxy, BaseQueryProxyT},
 	bus::QUERY_EVOLUTION_CMD,
-	helpers::query_answer::parse_query_answer,
-	properties::{
-		PropertyValue, ELITISM_RATE, MAX_GENERATIONS, POPULATION_SIZE, SELECTION_RATE,
-		TOTAL_ATTENTION_TOKENS,
-	},
+	helpers::{map_atom, query_answer::parse_query_answer, query_element::QueryElement},
+	properties,
 	types::{BoxError, MeTTaRunner},
 	QueryParams,
 };
@@ -18,24 +18,21 @@ pub static REMOTE_FUNCTION: &str = "remote_fitness_function";
 pub static EVAL_FITNESS: &str = "eval_fitness";
 pub static EVAL_FITNESS_RESPONSE: &str = "eval_fitness_response";
 
-pub static EVOLUTION_PARSER_ERROR_MESSAGE: &str = "EVOLUTION query must have (parameters) (fitness function) ((query) (correlation tokens) (correlation variables)) eg:
+pub static EVOLUTION_PARSER_ERROR_MESSAGE: &str = "EVOLUTION query must have (fitness function) ((query) (correlation queries) (correlation replacements) (correlation mappings)) eg:
 (
 	EVOLUTION
-	(population_size max_generations elitism_rate selection_rate total_attention_tokens)
-	((my-func \"monkey\" $S))
-	((Similarity \"human\" $S) (Similarity \"monkey\" $V) ($S $V))
+	((my-func \"monkey\" $S1))
+	((Similarity \"human\" $S1) ((Similarity $S1 $S2) () ...) ((string QE) () ...) ((QE QE) () ...))
 )";
 
 #[derive(Clone)]
 pub struct QueryEvolutionParams {
 	pub query_atom: Atom,
-	pub population_size: u64,
-	pub max_generations: u64,
-	pub elitism_rate: f64,
-	pub selection_rate: f64,
-	pub total_attention_tokens: u64,
-	pub correlation_tokens: Vec<String>,
-	pub correlation_variables: Vec<String>,
+
+	pub correlation_queries: Vec<Vec<String>>,
+	pub correlation_replacements: Vec<HashMap<String, QueryElement>>,
+	pub correlation_mappings: Vec<(QueryElement, QueryElement)>,
+
 	pub fitness_function: String,
 	pub maybe_metta_runner: Option<MeTTaRunner>,
 }
@@ -50,8 +47,9 @@ pub struct QueryEvolutionProxy {
 	pub metta_runner: MeTTaRunner,
 	pub ongoing_remote_fitness_evaluation: bool,
 
-	pub correlation_tokens: Vec<String>,
-	pub correlation_variables: Vec<String>,
+	pub correlation_queries: Vec<Vec<String>>,
+	pub correlation_replacements: Vec<HashMap<String, QueryElement>>,
+	pub correlation_mappings: Vec<(QueryElement, QueryElement)>,
 }
 
 impl QueryEvolutionProxy {
@@ -60,57 +58,62 @@ impl QueryEvolutionProxy {
 	) -> Result<Self, BoxError> {
 		let mut base = BaseQueryProxy::new(QUERY_EVOLUTION_CMD.to_string(), params.clone())?;
 
-		base.properties.insert(
-			POPULATION_SIZE.to_string(),
-			PropertyValue::UnsignedInt(evolution_params.population_size),
-		);
-		base.properties.insert(
-			MAX_GENERATIONS.to_string(),
-			PropertyValue::UnsignedInt(evolution_params.max_generations),
-		);
-		base.properties
-			.insert(ELITISM_RATE.to_string(), PropertyValue::Double(evolution_params.elitism_rate));
-		base.properties.insert(
-			SELECTION_RATE.to_string(),
-			PropertyValue::Double(evolution_params.selection_rate),
-		);
-		base.properties.insert(
-			TOTAL_ATTENTION_TOKENS.to_string(),
-			PropertyValue::UnsignedInt(evolution_params.total_attention_tokens),
-		);
-
 		let mut args = vec![];
-		args.extend(base.properties.to_vec());
+		args.extend(params.properties.to_vec());
+
 		args.push(base.context.clone());
-		args.push(base.query_tokens.len().to_string());
-		args.extend(base.query_tokens.clone());
+
+		let query_tokens = vec![evolution_params.query_atom.to_string()];
+		args.push(query_tokens.len().to_string());
+		args.extend(query_tokens);
+
 		args.push(REMOTE_FUNCTION.to_string());
 
-		args.push(evolution_params.correlation_tokens.len().to_string());
-		args.extend(evolution_params.correlation_tokens.clone());
+		args.push(evolution_params.correlation_queries.len().to_string());
+		for inner_tokens in evolution_params.correlation_queries.iter() {
+			args.push(inner_tokens.len().to_string());
+			args.extend(inner_tokens.clone());
+		}
 
-		args.push(evolution_params.correlation_variables.len().to_string());
-		args.extend(evolution_params.correlation_variables.clone());
+		args.push(evolution_params.correlation_replacements.len().to_string());
+		for replacements in evolution_params.correlation_replacements.iter() {
+			args.push(replacements.len().to_string());
+			for (key, value) in replacements.iter() {
+				args.push(key.clone());
+				args.push(value.to_string());
+			}
+		}
 
-		log::debug!(target: "das", "Population size       : <{}>", evolution_params.population_size);
-		log::debug!(target: "das", "Max generations       : <{}>", evolution_params.max_generations);
-		log::debug!(target: "das", "Elitism rate          : <{}>", evolution_params.elitism_rate);
-		log::debug!(target: "das", "Selection rate        : <{}>", evolution_params.selection_rate);
-		log::debug!(target: "das", "Total attention tokens: <{}>", evolution_params.total_attention_tokens);
-		log::debug!(target: "das", "Correlation tokens    : <{}>", evolution_params.correlation_tokens.join(","));
-		log::debug!(target: "das", "Correlation variables : <{}>", evolution_params.correlation_variables.join(","));
-		log::debug!(target: "das", "Fitness function      : <{}>", evolution_params.fitness_function);
+		args.push(evolution_params.correlation_mappings.len().to_string());
+		for (key, value) in evolution_params.correlation_mappings.iter() {
+			args.push(key.to_string());
+			args.push(value.to_string());
+		}
+
+		let population_size = params.properties.get::<u64>(properties::POPULATION_SIZE);
+
+		log::debug!(target: "das", "Query                   : <{}>", evolution_params.query_atom);
+		log::debug!(target: "das", "Population size         : <{population_size}>");
+		log::debug!(target: "das", "Max generations         : <{}>", params.properties.get::<u64>(properties::MAX_GENERATIONS));
+		log::debug!(target: "das", "Elitism rate            : <{}>", params.properties.get::<f64>(properties::ELITISM_RATE));
+		log::debug!(target: "das", "Selection rate          : <{}>", params.properties.get::<f64>(properties::SELECTION_RATE));
+		log::debug!(target: "das", "Total attention tokens  : <{}>", params.properties.get::<u64>(properties::TOTAL_ATTENTION_TOKENS));
+		log::debug!(target: "das", "Correlation queries     : <{}>", evolution_params.correlation_queries.iter().map(|e| e.join(",")).collect::<Vec<String>>().join(","));
+		log::debug!(target: "das", "Correlation replacements: <{}>", evolution_params.correlation_replacements.iter().map(|e| e.iter().map(|(k, v)| format!("{k}, {v}")).collect::<Vec<String>>().join(",")).collect::<Vec<String>>().join(","));
+		log::debug!(target: "das", "Correlation mappings    : <{}>", evolution_params.correlation_mappings.iter().map(|e| format!("({}, {})", e.0, e.1)).collect::<Vec<String>>().join(","));
+		log::debug!(target: "das", "Fitness function        : <{}>", evolution_params.fitness_function);
 
 		base.args = args;
 
 		Ok(Self {
 			base: Arc::new(Mutex::new(base)),
-			population_size: evolution_params.population_size,
+			population_size,
 			num_generations: 0,
 			best_reported_fitness: -1.0,
 			ongoing_remote_fitness_evaluation: false,
-			correlation_tokens: evolution_params.correlation_tokens.clone(),
-			correlation_variables: evolution_params.correlation_variables.clone(),
+			correlation_queries: evolution_params.correlation_queries.clone(),
+			correlation_mappings: evolution_params.correlation_mappings.clone(),
+			correlation_replacements: evolution_params.correlation_replacements.clone(),
 			fitness_function: evolution_params.fitness_function.clone(),
 			metta_runner: if let Some(metta_runner) = evolution_params.maybe_metta_runner.clone() {
 				metta_runner
@@ -249,69 +252,71 @@ pub fn parse_evolution_parameters(
 		let children = exp_atom.children();
 		if let Some(Atom::Symbol(s)) = children.first() {
 			if s.name() == "EVOLUTION" {
-				if children.len() < 4 {
+				if children.len() < 3 {
 					return Err(EVOLUTION_PARSER_ERROR_MESSAGE.to_string().into());
 				}
 
-				// Parameters
-				let mut population_size = 50;
-				let mut max_generations = 3;
-				let mut elitism_rate = 0.05;
-				let mut selection_rate = 0.10;
-				let mut total_attention_tokens = 100;
-				if let Atom::Expression(exp_atom) = children[1].clone() {
-					let exp_atom = if let Some(Atom::Expression(inner_exp_atom)) =
-						exp_atom.children().first()
-					{
-						inner_exp_atom.clone()
-					} else {
-						exp_atom.clone()
-					};
-					let children = exp_atom.children();
-					if children.len() != 5 {
-						return Err(EVOLUTION_PARSER_ERROR_MESSAGE.to_string().into());
-					}
-					population_size = children[0].to_string().parse::<u64>().unwrap();
-					max_generations = children[1].to_string().parse::<u64>().unwrap();
-					elitism_rate = children[2].to_string().parse::<f64>().unwrap();
-					selection_rate = children[3].to_string().parse::<f64>().unwrap();
-					total_attention_tokens = children[4].to_string().parse::<u64>().unwrap();
-				}
-
 				let mut query_atom = Atom::expr([]);
-				let mut correlation_tokens = vec![];
-				let mut correlation_variables = vec![];
-				if let Atom::Expression(exp_atom) = children[2].clone() {
+				let mut correlation_queries =
+					vec![vec!["(Contains $sentence1 $word1)".to_string()]];
+				let mut correlation_replacements = vec![HashMap::from([(
+					"sentence1".to_string(),
+					QueryElement::new_variable("sentence1"),
+				)])];
+				let mut correlation_mappings = vec![(
+					QueryElement::new_variable("sentence1"),
+					QueryElement::new_variable("word1"),
+				)];
+
+				if let Atom::Expression(exp_atom) = children[1].clone() {
 					let children = exp_atom.children();
-					if children.len() != 3 {
+					if children.len() != 4 {
 						return Err(EVOLUTION_PARSER_ERROR_MESSAGE.to_string().into());
 					}
+
 					query_atom = children[0].clone();
-					correlation_tokens = vec![children[1].to_string()];
-					correlation_variables = match &children[2] {
-						Atom::Expression(exp_atom) => exp_atom
-							.children()
-							.iter()
-							.map(|atom| atom.to_string().replace("$", ""))
-							.collect(),
-						Atom::Symbol(s) => {
-							s.name().to_string().split_whitespace().map(String::from).collect()
-						},
-						_ => vec![],
-					};
+
+					correlation_queries =
+						map_atom(&children[1].clone(), |atom| vec![atom.to_string()]);
+					correlation_replacements = map_atom(&children[2].clone(), |atom| {
+						if let Atom::Expression(exp_atom) = atom {
+							let children = exp_atom.children();
+							let mut replacements = HashMap::new();
+							if children.len() != 2 {
+								panic!("{}", EVOLUTION_PARSER_ERROR_MESSAGE.to_string());
+							}
+							replacements.insert(
+								children[0].to_string(),
+								QueryElement::new_variable(&children[1].to_string()),
+							);
+							replacements
+						} else {
+							panic!("{}", EVOLUTION_PARSER_ERROR_MESSAGE.to_string());
+						}
+					});
+					correlation_mappings = map_atom(&children[3].clone(), |atom| {
+						if let Atom::Expression(exp_atom) = atom {
+							let children = exp_atom.children();
+							if children.len() != 2 {
+								panic!("{}", EVOLUTION_PARSER_ERROR_MESSAGE.to_string());
+							}
+							(
+								QueryElement::new_variable(&children[0].to_string()),
+								QueryElement::new_variable(&children[1].to_string()),
+							)
+						} else {
+							panic!("{}", EVOLUTION_PARSER_ERROR_MESSAGE.to_string());
+						}
+					});
 				}
-				let mut fitness_function = children[3].to_string();
+				let mut fitness_function = children[2].to_string();
 				fitness_function = fitness_function[1..fitness_function.len() - 1].to_string();
 
 				return Ok(Some(QueryEvolutionParams {
 					query_atom,
-					population_size,
-					max_generations,
-					elitism_rate,
-					selection_rate,
-					total_attention_tokens,
-					correlation_tokens,
-					correlation_variables,
+					correlation_queries,
+					correlation_mappings,
+					correlation_replacements,
 					fitness_function,
 					maybe_metta_runner: maybe_metta_runner.clone(),
 				}));

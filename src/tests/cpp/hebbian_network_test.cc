@@ -101,6 +101,67 @@ TEST(HebbianNetwork, alienate_tokens) {
     EXPECT_TRUE(network.alienate_tokens() == 0.0);
 }
 
+TEST(HebbianNetwork, serialization2) {
+    HebbianNetwork network1;
+    HebbianNetwork network2;
+
+    string h1 = prefixed_random_handle("a");
+    string h2 = prefixed_random_handle("b");
+    string h3 = prefixed_random_handle("d");
+    string h4 = prefixed_random_handle("d");
+    string h5 = prefixed_random_handle("e");
+    HebbianNetwork::Node* n1 = network1.add_node(h1);
+    HebbianNetwork::Node* n2 = network1.add_node(h2);
+    HebbianNetwork::Node* n3 = network1.add_node(h3);
+    HebbianNetwork::Node* n4 = network1.add_node(h4);
+    HebbianNetwork::Node* n5 = network1.add_node(h5);
+    network1.add_node(h5);
+    network1.add_symmetric_edge(h1, h2, n1, n2);
+    network1.add_symmetric_edge(h1, h3, n1, n3);
+    network1.add_symmetric_edge(h1, h4, n1, n4);
+    network1.add_symmetric_edge(h1, h2, n1, n2);
+
+    n5->determiners.insert(n1);
+    n5->determiners.insert(n2);
+    n4->determiners.insert(n2);
+    n2->determiners.insert(n2);
+    n1->determiners.insert(n5);
+    n1->determiners.insert(n4);
+    n1->determiners.insert(n3);
+
+    string fname = "/tmp/hebbian_network_serialization.txt";
+    ofstream out_file(fname);
+    EXPECT_TRUE(out_file.is_open());
+    network1.serialize(out_file);
+    out_file.close();
+
+    ifstream in_file(fname);
+    EXPECT_TRUE(in_file.is_open());
+    network2.deserialize(in_file);
+    in_file.close();
+
+    EXPECT_EQ(network2.get_node_count(h1), 1);
+    EXPECT_EQ(network2.get_node_count(h2), 1);
+    EXPECT_EQ(network2.get_node_count(h3), 1);
+    EXPECT_EQ(network2.get_node_count(h4), 1);
+    EXPECT_EQ(network2.get_node_count(h5), 2);
+
+    EXPECT_EQ(network2.get_asymmetric_edge_count(h1, h2), 2);
+    EXPECT_EQ(network2.get_asymmetric_edge_count(h2, h1), 2);
+    EXPECT_EQ(network2.get_asymmetric_edge_count(h1, h3), 1);
+    EXPECT_EQ(network2.get_asymmetric_edge_count(h3, h1), 1);
+    EXPECT_EQ(network2.get_asymmetric_edge_count(h1, h4), 1);
+    EXPECT_EQ(network2.get_asymmetric_edge_count(h4, h1), 1);
+    EXPECT_EQ(network2.get_asymmetric_edge_count(h1, h5), 0);
+    EXPECT_EQ(network2.get_asymmetric_edge_count(h5, h1), 0);
+
+    EXPECT_EQ(n1->determiners, set<HebbianNetwork::Node*>({n5, n4, n3}));
+    EXPECT_EQ(n2->determiners, set<HebbianNetwork::Node*>({n2}));
+    EXPECT_EQ(n3->determiners, set<HebbianNetwork::Node*>({}));
+    EXPECT_EQ(n4->determiners, set<HebbianNetwork::Node*>({n2}));
+    EXPECT_EQ(n5->determiners, set<HebbianNetwork::Node*>({n1, n2}));
+}
+
 bool visit1(HandleTrie::TrieNode* node, void* data) {
     ((HebbianNetwork::Node*) node->value)->importance = 1.0;
     return false;

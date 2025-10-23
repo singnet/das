@@ -462,28 +462,38 @@ dependencies = [
 
 [[package]]
 name = "hyperon-atom"
-version = "0.2.6"
-source = "git+https://github.com/trueagi-io/hyperon-experimental.git#bd27e25a08447085a15e3ef7448693da11e0e1eb"
+version = "0.2.8"
+source = "git+https://github.com/trueagi-io/hyperon-experimental.git#080e2f4f5d9677db93211c9cff9051214e866616"
 dependencies = [
  "bitset",
  "hyperon-common",
+ "hyperon-macros",
  "log",
  "smallvec",
+ "unescaper",
 ]
 
 [[package]]
 name = "hyperon-common"
-version = "0.2.6"
-source = "git+https://github.com/trueagi-io/hyperon-experimental.git#bd27e25a08447085a15e3ef7448693da11e0e1eb"
+version = "0.2.8"
+source = "git+https://github.com/trueagi-io/hyperon-experimental.git#080e2f4f5d9677db93211c9cff9051214e866616"
 dependencies = [
  "itertools 0.13.0",
  "log",
 ]
 
 [[package]]
+name = "hyperon-macros"
+version = "0.2.8"
+source = "git+https://github.com/trueagi-io/hyperon-experimental.git#080e2f4f5d9677db93211c9cff9051214e866616"
+dependencies = [
+ "litrs",
+]
+
+[[package]]
 name = "hyperon-space"
-version = "0.2.6"
-source = "git+https://github.com/trueagi-io/hyperon-experimental.git#bd27e25a08447085a15e3ef7448693da11e0e1eb"
+version = "0.2.8"
+source = "git+https://github.com/trueagi-io/hyperon-experimental.git#080e2f4f5d9677db93211c9cff9051214e866616"
 dependencies = [
  "bimap",
  "hyperon-atom",
@@ -549,6 +559,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cd945864f07fe9f5371a27ad7b52a172b4b499999f1d97574c9fa68373937e12"
 
 [[package]]
+name = "litrs"
+version = "0.5.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1e4cf394bcd88ba72eb3b2862e21ef6458b0e1586654e213b0176e667bb9d19e"
+
+[[package]]
 name = "lock_api"
 version = "0.4.13"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -578,7 +594,7 @@ checksum = "78ca9ab1a0babb1e7d5695e3530886289c18cf2f87ec19a575a0abdce112e3a3"
 
 [[package]]
 name = "metta-bus-client"
-version = "0.3.0"
+version = "0.3.2"
 dependencies = [
  "env_logger",
  "hyperon-atom",
@@ -998,6 +1014,26 @@ dependencies = [
 ]
 
 [[package]]
+name = "thiserror"
+version = "2.0.17"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f63587ca0f12b72a0600bcba1d40081f830876000bb46dd2337a3051618f4fc8"
+dependencies = [
+ "thiserror-impl",
+]
+
+[[package]]
+name = "thiserror-impl"
+version = "2.0.17"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3ff15c8ecd7de3849db632e14d18d2571fa09dfc5ed93479bc4485c7a517c913"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
 name = "tokio"
 version = "1.45.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1176,6 +1212,15 @@ name = "try-lock"
 version = "0.2.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e421abadd41a4225275504ea4d6566923418b7f05506fbc9c0fe86ba7396114b"
+
+[[package]]
+name = "unescaper"
+version = "0.1.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c01d12e3a56a4432a8b436f293c25f4808bdf9e9f9f98f9260bba1f1bc5a1f26"
+dependencies = [
+ "thiserror",
+]
 
 [[package]]
 name = "unicode-ident"

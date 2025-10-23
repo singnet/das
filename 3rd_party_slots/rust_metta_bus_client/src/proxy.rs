@@ -18,6 +18,7 @@ mod das_proto {
 
 use crate::{
 	base_proxy_query::{BaseQueryProxy, BaseQueryProxyT},
+	context_broker_proxy::CONTEXT_CREATED,
 	port_pool::PortPool,
 	query_evolution_proxy::EVAL_FITNESS,
 	types::BoxError,
@@ -155,30 +156,25 @@ impl StarNode {
 		};
 
 		// First, check for early returns and set flags
-		let mut eval_fitness_flag = false;
-		let mut should_abort = false;
-
 		match args.last() {
 			// Peer Error
 			Some(last_arg) if last_arg == &PEER_ERROR.to_string() => {
-				should_abort = true;
+				proxy.abort_flag = true;
+				return Ok(());
+			},
+			// Context Broker
+			Some(last_arg) if last_arg == &CONTEXT_CREATED.to_string() => {
+				proxy.proxy_node.peer_id = msg.sender;
+				proxy.context_created = true;
+				return Ok(());
 			},
 			// Evolution
 			Some(last_arg) if last_arg == &EVAL_FITNESS.to_string() => {
-				eval_fitness_flag = true;
+				proxy.proxy_node.peer_id = msg.sender;
+				proxy.eval_fitness_queue.extend(args);
+				return Ok(());
 			},
 			_ => {},
-		}
-
-		if should_abort {
-			proxy.abort_flag = true;
-			return Ok(());
-		}
-
-		if eval_fitness_flag {
-			proxy.proxy_node.peer_id = msg.sender;
-			proxy.eval_fitness_queue.extend(args);
-			return Ok(());
 		}
 
 		for arg in args {

@@ -28,7 +28,6 @@ string ContextBrokerProxy::ATTENTION_BROKER_SET_PARAMETERS = "attention_broker_s
 string ContextBrokerProxy::ATTENTION_BROKER_SET_PARAMETERS_FINISHED =
     "attention_broker_set_parameters_finished";
 string ContextBrokerProxy::CONTEXT_CREATED = "context_created";
-string ContextBrokerProxy::SHUTDOWN = "shutdown";
 
 // Properties
 string ContextBrokerProxy::USE_CACHE = "use_cache";
@@ -54,7 +53,6 @@ ContextBrokerProxy::ContextBrokerProxy() {
     this->update_attention_broker_parameters = false;
     this->ongoing_attention_broker_set_parameters = false;
     this->context_created = false;
-    this->keep_alive = true;
 }
 
 ContextBrokerProxy::ContextBrokerProxy(
@@ -72,10 +70,9 @@ ContextBrokerProxy::ContextBrokerProxy(
     this->update_attention_broker_parameters = false;
     this->ongoing_attention_broker_set_parameters = false;
     this->context_created = false;
-    this->keep_alive = true;
 }
 
-ContextBrokerProxy::~ContextBrokerProxy() { to_remote_peer(SHUTDOWN, {}); }
+ContextBrokerProxy::~ContextBrokerProxy() { this->abort(); }
 
 // -------------------------------------------------------------------------------------------------
 // BaseQueryProxy overrides
@@ -161,8 +158,6 @@ void ContextBrokerProxy::pack_command_line_args() { tokenize(this->args); }
 
 bool ContextBrokerProxy::is_context_created() { return this->context_created; }
 
-bool ContextBrokerProxy::running() { return this->keep_alive; }
-
 // -------------------------------------------------------------------------------------------------
 // Private methods
 
@@ -193,20 +188,15 @@ bool ContextBrokerProxy::from_remote_peer(const string& command, const vector<st
         this->spreading_rate_lowerbound = Utils::string_to_float(args[1]);
         this->spreading_rate_upperbound = Utils::string_to_float(args[2]);
         this->update_attention_broker_parameters = true;
-        return true;
     } else if (command == CONTEXT_CREATED) {
         this->context_created = true;
-        return true;
     } else if (command == ATTENTION_BROKER_SET_PARAMETERS_FINISHED) {
         this->ongoing_attention_broker_set_parameters = false;
-        return true;
-    } else if (command == SHUTDOWN) {
-        this->keep_alive = false;
-        return true;
     } else {
         Utils::error("Invalid ContextBrokerProxy command: <" + command + ">");
         return false;
     }
+    return true;
 }
 
 void ContextBrokerProxy::attention_broker_set_parameters(double rent_rate,
@@ -219,8 +209,6 @@ void ContextBrokerProxy::attention_broker_set_parameters(double rent_rate,
     this->ongoing_attention_broker_set_parameters = true;
     to_remote_peer(ATTENTION_BROKER_SET_PARAMETERS, args);
 }
-
-void ContextBrokerProxy::shutdown() { to_remote_peer(SHUTDOWN, {}); }
 
 // -------------------------------------------------------------------------------------------------
 // Public accessor methods

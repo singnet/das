@@ -90,7 +90,16 @@ void ContextBrokerProcessor::thread_process_one_query(shared_ptr<StoppableThread
         proxy->raise_error_on_peer(exception.what());
     }
 
-    // keep alive till client kills it
+    // Keep alive till peer (client) kills it (processing any ongoing parameters update)
+    while (!(proxy->finished() || proxy->is_aborting()) || proxy->update_attention_broker_parameters) {
+        if (proxy->update_attention_broker_parameters) {
+            this->set_attention_broker_parameters(
+                proxy->rent_rate, proxy->spreading_rate_lowerbound, proxy->spreading_rate_upperbound);
+            proxy->update_attention_broker_parameters = false;
+            proxy->to_remote_peer(ContextBrokerProxy::ATTENTION_BROKER_SET_PARAMETERS_FINISHED, {});
+        }
+        Utils::sleep();
+    }
 
     LOG_DEBUG("Command finished: <" << proxy->get_command() << ">");
     // TODO add a call to remove_query_thread(monitor->get_id());
@@ -167,22 +176,9 @@ void ContextBrokerProcessor::create_context(shared_ptr<StoppableThread> monitor,
     this->update_attention_broker(proxy);
 
     LOG_INFO("Context created: name<" << proxy->get_name() << "> with key<" << proxy->get_key() << ">");
-    Utils::sleep(1000);
 
     // Notify caller that context has been created
     proxy->to_remote_peer(ContextBrokerProxy::CONTEXT_CREATED, {});
-
-    // Keep alive till peer (client) kills it
-    while (proxy->running() || proxy->update_attention_broker_parameters) {
-        if (proxy->update_attention_broker_parameters) {
-            this->set_attention_broker_parameters(
-                proxy->rent_rate, proxy->spreading_rate_lowerbound, proxy->spreading_rate_upperbound);
-            proxy->update_attention_broker_parameters = false;
-            proxy->to_remote_peer(ContextBrokerProxy::ATTENTION_BROKER_SET_PARAMETERS_FINISHED, {});
-            break;
-        }
-        Utils::sleep();
-    }
 }
 
 void ContextBrokerProcessor::set_attention_broker_parameters(double rent_rate,
