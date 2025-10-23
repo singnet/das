@@ -117,24 +117,30 @@ class MockAtomDB : public AtomDB {
         return {};
     }
 
-    string add_atom(const atoms::Atom* atom) override { return ""; }
+    string add_atom(const atoms::Atom* atom, bool throw_if_exists) override { return ""; }
 
-    string add_node(const atoms::Node* node) override {
+    string add_node(const atoms::Node* node, bool throw_if_exists) override {
         add_node_calls.push_back({node->type, node->name, node->custom_attributes});
         // string handle = string("node_") + node->type + "_" + node->name;
         atoms[node->handle()] = (Atom*) node;
         return node->handle();
     }
 
-    string add_link(const atoms::Link* link) override {
+    string add_link(const atoms::Link* link, bool throw_if_exists) override {
         add_link_calls.push_back({link->type, link->targets, link->custom_attributes});
         atoms[link->handle()] = (Atom*) link;
         return link->handle();
     }
 
-    vector<string> add_atoms(const vector<atoms::Atom*>& atoms) override { return {}; }
-    vector<string> add_nodes(const vector<atoms::Node*>& nodes) override { return {}; }
-    vector<string> add_links(const vector<atoms::Link*>& links) override { return {}; }
+    vector<string> add_atoms(const vector<atoms::Atom*>& atoms, bool throw_if_exists) override {
+        return {};
+    }
+    vector<string> add_nodes(const vector<atoms::Node*>& nodes, bool throw_if_exists) override {
+        return {};
+    }
+    vector<string> add_links(const vector<atoms::Link*>& links, bool throw_if_exists) override {
+        return {};
+    }
 
     bool atom_exists(const string& handle) override { return false; }
     bool node_exists(const string& handle) override { return false; }
