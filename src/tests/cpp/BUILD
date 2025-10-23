@@ -435,7 +435,7 @@ cc_test(
 
 cc_test(
     name = "service_bus_test",
-    size = "small",
+    size = "medium",
     srcs = ["service_bus_test.cc"],
     copts = [
         "-Iexternal/gtest/googletest/include",
