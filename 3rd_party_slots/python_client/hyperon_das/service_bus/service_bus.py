@@ -1,8 +1,7 @@
 import threading
-from hyperon_das.port_pool import PortPool
-from hyperon_das.bus_node import BusNode
-from hyperon_das.proxy import PatternMatchingQueryHandler
-from hyperon_das.bus import BusCommand
+from hyperon_das.service_bus.port_pool import PortPool
+from hyperon_das.distributed_algorithm_node.bus_node import BusCommand, BusNode
+from hyperon_das.service_bus.proxy import BaseCommandProxy
 from hyperon_das.logger import log
 
 
@@ -13,7 +12,7 @@ class ServiceBus:
         self.bus_node = BusNode(host_id, commands, known_peer)
         PortPool.initialize_statics(port_lower, port_upper)
 
-    def issue_bus_command(self, proxy: 'PatternMatchingQueryHandler'):
+    def issue_bus_command(self, proxy: 'BaseCommandProxy'):
         log.info(f"{self.bus_node.node_id} is issuing BUS command <{proxy.command}>")
 
         self.next_request_serial += 1

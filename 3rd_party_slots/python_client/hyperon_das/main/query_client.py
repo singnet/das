@@ -2,9 +2,9 @@ import argparse
 import sys
 import time
 
-from hyperon_das.proxy import PatternMatchingQueryHandler
-from hyperon_das.service_bus import ServiceBusSingleton
-from hyperon_das.helpers import tokenize_preserve_quotes, str_2_bool
+from hyperon_das.service_clients import PatternMatchingQueryProxy
+from hyperon_das.service_bus.service_bus import ServiceBusSingleton
+from hyperon_das.commons.helpers import tokenize_preserve_quotes, str_2_bool
 
 
 def parse_arguments():
@@ -67,7 +67,7 @@ def pattern_matching_query(
         max_query_answers = args.max_query_answers
         query_tokens = tokenize_preserve_quotes(args.query_tokens)
 
-    proxy = PatternMatchingQueryHandler(
+    proxy = PatternMatchingQueryProxy(
         tokens=query_tokens,
         update_attention_broker=update_attention_broker,
         positive_importance=positive_importance,
