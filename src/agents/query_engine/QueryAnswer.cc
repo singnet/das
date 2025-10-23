@@ -242,9 +242,12 @@ void QueryAnswer::untokenize(const string& tokens) {
 string QueryAnswer::get(const QueryAnswerElement& key, bool return_empty_when_not_found) {
     string answer = "";
     switch (key.type) {
-        case QueryAnswerElement::HANDLE: return get(key.index, return_empty_when_not_found);
-        case QueryAnswerElement::VARIABLE: return get(key.name, return_empty_when_not_found);
-        default: Utils::error("Invalid QueryAnswerElemente: " + std::to_string(key.type));
+        case QueryAnswerElement::HANDLE:
+            return get(key.index, return_empty_when_not_found);
+        case QueryAnswerElement::VARIABLE:
+            return get(key.name, return_empty_when_not_found);
+        default:
+            Utils::error("Invalid QueryAnswerElemente: " + std::to_string(key.type));
     }
     return answer;
 }

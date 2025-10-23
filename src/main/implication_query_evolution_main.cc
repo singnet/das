@@ -2,16 +2,16 @@
 
 #define LOG_LEVEL LOCAL_DEBUG_LEVEL
 
+#include <fstream>
 #include <iomanip>
 #include <iostream>
-#include <fstream>
 #include <string>
 
 #include "AtomDBSingleton.h"
-#include "Context.h"
-#include "ContextBrokerProxy.h"
 #include "AtomSpace.h"
 #include "AttentionBrokerClient.h"
+#include "Context.h"
+#include "ContextBrokerProxy.h"
 #include "CountLetterFunction.h"
 #include "FitnessFunctionRegistry.h"
 #include "Hasher.h"
@@ -20,7 +20,6 @@
 #include "QueryEvolutionProxy.h"
 #include "ServiceBusSingleton.h"
 #include "Utils.h"
-
 
 #define MAX_QUERY_ANSWERS ((unsigned int) 100000)
 
@@ -142,9 +141,9 @@ static void print_answer(shared_ptr<QueryAnswer> query_answer) {
             last_predicate = source_predicate = get_predicate_name(implication_link->targets[1]);
             cout << source_predicate;
         }
-        //if (source_predicate != last_predicate) {
-        //    Utils::error("Bad predicate chaining: " + source_predicate + " != " + last_predicate);
-        //}
+        // if (source_predicate != last_predicate) {
+        //     Utils::error("Bad predicate chaining: " + source_predicate + " != " + last_predicate);
+        // }
         target_predicate = get_predicate_name(implication_link->targets[2]);
         cout << " --> " << target_predicate;
         last_predicate = target_predicate;
@@ -183,7 +182,8 @@ static shared_ptr<PatternMatchingQueryProxy> issue_weight_count_query(const vect
     return proxy;
 }
 
-static shared_ptr<PatternMatchingQueryProxy> issue_attention_allocation_query(const vector<string>& query_tokens, const string& context) {
+static shared_ptr<PatternMatchingQueryProxy> issue_attention_allocation_query(
+    const vector<string>& query_tokens, const string& context) {
     auto proxy = make_shared<PatternMatchingQueryProxy>(query_tokens, context);
     proxy->parameters[BaseQueryProxy::UNIQUE_ASSIGNMENT_FLAG] = true;
     proxy->parameters[BaseQueryProxy::ATTENTION_UPDATE_FLAG] = false;
@@ -196,37 +196,48 @@ static shared_ptr<PatternMatchingQueryProxy> issue_attention_allocation_query(co
     return proxy;
 }
 
-
-static void update_attention_allocation(const string& predicate_source, const string& predicate_target, const string& context) {
-
+static void update_attention_allocation(const string& predicate_source,
+                                        const string& predicate_target,
+                                        const string& context) {
     LOG_INFO("Updating attention allocation using custom tarversing.");
 
-    vector<string> attention_update_query1 = {
-        OR_OPERATOR, "2",
-            LINK_TEMPLATE, EXPRESSION, "3",
-                NODE, SYMBOL, EVALUATION,
-                ATOM, predicate_source,
-                LINK_TEMPLATE, EXPRESSION, "2",
-                    NODE, SYMBOL, CONCEPT,
-                    VARIABLE, SENTENCE1,
-            LINK_TEMPLATE, EXPRESSION, "3",
-                NODE, SYMBOL, EVALUATION,
-                ATOM, predicate_target,
-                LINK_TEMPLATE, EXPRESSION, "2",
-                    NODE, SYMBOL, CONCEPT,
-                    VARIABLE, SENTENCE1
-    };
+    vector<string> attention_update_query1 = {OR_OPERATOR,   "2",
+                                              LINK_TEMPLATE, EXPRESSION,
+                                              "3",           NODE,
+                                              SYMBOL,        EVALUATION,
+                                              ATOM,          predicate_source,
+                                              LINK_TEMPLATE, EXPRESSION,
+                                              "2",           NODE,
+                                              SYMBOL,        CONCEPT,
+                                              VARIABLE,      SENTENCE1,
+                                              LINK_TEMPLATE, EXPRESSION,
+                                              "3",           NODE,
+                                              SYMBOL,        EVALUATION,
+                                              ATOM,          predicate_target,
+                                              LINK_TEMPLATE, EXPRESSION,
+                                              "2",           NODE,
+                                              SYMBOL,        CONCEPT,
+                                              VARIABLE,      SENTENCE1};
 
-    vector<string> attention_update_query2 = {
-        LINK_TEMPLATE, EXPRESSION, "3",
-            NODE, SYMBOL, EVALUATION,
-            VARIABLE, PREDICATE1,
-            LINK, EXPRESSION, "2",
-                NODE, SYMBOL, CONCEPT,
-                ATOM, "sentence"
-    };
+    vector<string> attention_update_query2 = {LINK_TEMPLATE,
+                                              EXPRESSION,
+                                              "3",
+                                              NODE,
+                                              SYMBOL,
+                                              EVALUATION,
+                                              VARIABLE,
+                                              PREDICATE1,
+                                              LINK,
+                                              EXPRESSION,
+                                              "2",
+                                              NODE,
+                                              SYMBOL,
+                                              CONCEPT,
+                                              ATOM,
+                                              "sentence"};
 
-    shared_ptr<PatternMatchingQueryProxy> proxy1 = issue_attention_allocation_query(attention_update_query1, context);
+    shared_ptr<PatternMatchingQueryProxy> proxy1 =
+        issue_attention_allocation_query(attention_update_query1, context);
     shared_ptr<PatternMatchingQueryProxy> proxy2;
     set<string> to_correlate;
     map<string, unsigned int> to_stimulate;
@@ -263,7 +274,8 @@ static void update_attention_allocation(const string& predicate_source, const st
 }
 
 /*
-static void update_context(const string& predicate_source, const string& predicate_target, shared_ptr<ContextBrokerProxy> context_proxy) {
+static void update_context(const string& predicate_source, const string& predicate_target,
+shared_ptr<ContextBrokerProxy> context_proxy) {
 
     LOG_INFO("Updating context using custom tarversing.");
 
@@ -292,18 +304,12 @@ static void update_context(const string& predicate_source, const string& predica
                 ATOM, "sentence"
     };
 
-    shared_ptr<PatternMatchingQueryProxy> proxy1 = issue_attention_allocation_query(attention_update_query1, context);
-    shared_ptr<PatternMatchingQueryProxy> proxy2;
-    set<string> to_correlate;
-    map<string, unsigned int> to_stimulate;
-    shared_ptr<QueryAnswer> query_answer1;
-    shared_ptr<QueryAnswer> query_answer2;
-    unsigned int count = 0;
-    while (!proxy1->finished()) {
-        if ((query_answer1 = proxy1->pop()) == NULL) {
-            Utils::sleep();
-        } else {
-            LOG_INFO("Traversing handle " + to_string(++count) + "/" + to_string(proxy1->get_count()));
+    shared_ptr<PatternMatchingQueryProxy> proxy1 =
+issue_attention_allocation_query(attention_update_query1, context); shared_ptr<PatternMatchingQueryProxy>
+proxy2; set<string> to_correlate; map<string, unsigned int> to_stimulate; shared_ptr<QueryAnswer>
+query_answer1; shared_ptr<QueryAnswer> query_answer2; unsigned int count = 0; while (!proxy1->finished())
+{ if ((query_answer1 = proxy1->pop()) == NULL) { Utils::sleep(); } else { LOG_INFO("Traversing handle " +
+to_string(++count) + "/" + to_string(proxy1->get_count()));
             attention_update_query2[attention_update_query2.size() - 1] = query_answer1->get(SENTENCE1);
             proxy2 = issue_attention_allocation_query(attention_update_query2, context);
             to_stimulate[query_answer1->get(0)] = 1;
@@ -449,7 +455,7 @@ static Link add_predicate(const string& predicate_name) {
     LOG_DEBUG("add_predicate(" + predicate_name + ")");
     Node new_node(SYMBOL, predicate_name, {{IS_LITERAL, true}});
     Link new_link(EXPRESSION, {PREDICATE_HANDLE, new_node.handle()}, false);
-    if (! db->node_exists(new_node.handle())) {
+    if (!db->node_exists(new_node.handle())) {
         db->add_node(&new_node);
         db->add_link(&new_link);
     }
@@ -528,7 +534,8 @@ static void build_and_predicate_link(shared_ptr<QueryAnswer> query_answer, const
     string predicate2 = query_answer->get(PREDICATE2);
     string concept1 = query_answer->get(CONCEPT1);
 
-    LOG_DEBUG("Evaluating: " + get_predicate_name(predicate1) + " AND " + get_predicate_name(predicate2));
+    LOG_DEBUG("Evaluating: " + get_predicate_name(predicate1) + " AND " +
+              get_predicate_name(predicate2));
     string predicate_name = get_predicate_name(predicate1) + "_AND_" + get_predicate_name(predicate2);
     Link new_predicate = add_predicate(predicate_name);
     add_or_update_link(EVALUATION_HANDLE, new_predicate.handle(), concept1, 1.0);
@@ -602,7 +609,7 @@ static void build_links(const vector<string>& query,
             if (++count <= LINK_BUILDING_QUERY_SIZE) {
                 if (query_answer->handles.size() == 2) {
                     LOG_DEBUG("Processing query answer " + to_string(count) + ": " +
-                            query_answer->to_string());
+                              query_answer->to_string());
                     build_link(query_answer, context);
                 }
             } else {
@@ -932,11 +939,7 @@ static void run(const string& predicate_source,
     */
     // For some reason, make_shared was not compiling so I'm explicitly creating the shared_ptr
     shared_ptr<ContextBrokerProxy> context_proxy(new ContextBrokerProxy(
-        context_tag, 
-        context_query, 
-        {{toplevel_link, target2}, {toplevel_link, target3}}, 
-        {}
-    ));
+        context_tag, context_query, {{toplevel_link, target2}, {toplevel_link, target3}}, {}));
     context_proxy->parameters[ContextBrokerProxy::USE_CACHE] = (bool) true;
     context_proxy->parameters[ContextBrokerProxy::ENFORCE_CACHE_RECREATION] = (bool) false;
     context_proxy->parameters[ContextBrokerProxy::INITIAL_RENT_RATE] = (double) RENT_RATE;
@@ -956,7 +959,7 @@ static void run(const string& predicate_source,
 
     LOG_INFO("Updating attention allocation");
     update_attention_allocation(predicate_source, predicate_target, context);
-    //update_context(predicate_source, predicate_target, context_proxy);
+    // update_context(predicate_source, predicate_target, context_proxy);
 
     for (unsigned int i = 0; i < NUM_ITERATIONS; i++) {
         LOG_INFO("--------------------------------------------------------------------------------");
