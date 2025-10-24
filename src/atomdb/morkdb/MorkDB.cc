@@ -202,7 +202,7 @@ string MorkDB::add_link(const atoms::Link* link, bool throw_if_exists) {
 }
 
 bool MorkDB::delete_link(const string& handle, bool delete_targets) {
-    Utils::error("MORKDB does not support deleting links.");
+    Utils::error("MORKDB does not support deleting links.", false);
     return false;
 }
 
