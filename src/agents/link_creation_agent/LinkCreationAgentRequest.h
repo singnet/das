@@ -22,5 +22,6 @@ struct LinkCreationAgentRequest {
     bool aborting = false;    ///< Indicates if the request is being aborted
     int processed = 0;        ///< Number of processed items
     bool completed = false;   ///< Indicates if the request has been completed
+    bool importance_flag = false;
 };
 }  // namespace link_creation_agent
