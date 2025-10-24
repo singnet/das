@@ -179,4 +179,31 @@ shared_ptr<atomdb_api_types::HandleSet> MorkDB::query_for_pattern(const LinkSche
     return handle_set;
 }
 
+string MorkDB::add_link(const atoms::Link* link, bool throw_if_exists) {
+    if (throw_if_exists && link_exists(link->handle())) {
+        Utils::error("Link already exists: " + link->handle());
+        return "";
+    }
+
+    auto existing_targets = get_atom_documents(link->targets, {MONGODB_FIELD_NAME[MONGODB_FIELD::ID]});
+    if (existing_targets.size() != link->targets.size()) {
+        Utils::error("Failed to insert link: " + link->handle() + " has " +
+                     to_string(link->targets.size() - existing_targets.size()) + " missing targets");
+        return "";
+    }
+
+    auto metta_expression = link->metta_representation(*this);
+    this->mork_client->post(metta_expression, "$x", "$x");
+
+    auto mongodb_doc = atomdb_api_types::MongodbDocument(link, *this);
+    this->upsert_document(mongodb_doc.value(), MONGODB_LINKS_COLLECTION_NAME);
+
+    return link->handle();
+}
+
+bool MorkDB::delete_link(const string& handle, bool delete_targets) {
+    Utils::error("MORKDB does not support deleting links.");
+    return false;
+}
+
 // <--
