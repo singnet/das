@@ -44,18 +44,13 @@ jobs:
           $DAS_MONGODB_USERNAME
           $DAS_MONGODB_PASSWORD
           n
-          8888
+          40019
           40001
           40002
           40003
-          /tmp/requests_buffer.bin
-          1
-          1
-          10
-          n
-          n
           40004
           40005
+          40006
           EOF
 
       - name: Starting Redis and MongoDB

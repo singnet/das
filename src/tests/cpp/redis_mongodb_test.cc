@@ -860,6 +860,84 @@ TEST_F(RedisMongoDBTest, GetMatchingAtoms) {
     EXPECT_EQ(db->delete_atom(test_node->handle()), true);
 }
 
+TEST_F(RedisMongoDBTest, UpdateAtom) {
+    vector<Node*> nodes;
+    nodes.push_back(new Node("Symbol", "UpdateAtom1"));
+    nodes.push_back(new Node("Symbol", "UpdateAtom2"));
+    nodes.push_back(new Node("Symbol", "UpdateAtom3"));
+
+    vector<string> node_handles = db->add_nodes(nodes);
+    EXPECT_EQ(node_handles.size(), 3);
+
+    // Node 1 has no custom attributes
+    auto node1_document =
+        dynamic_pointer_cast<atomdb_api_types::MongodbDocument>(db->get_atom_document(node_handles[0]));
+    EXPECT_EQ(node1_document->contains("custom_attributes"), false);
+
+    auto custom_attributes = Properties();
+    custom_attributes["field1"] = string("value1");
+
+    // Update Node 1 with custom attributes
+    string updated_node = db->add_node(new Node("Symbol", "UpdateAtom1", custom_attributes));
+    node1_document =
+        dynamic_pointer_cast<atomdb_api_types::MongodbDocument>(db->get_atom_document(updated_node));
+    auto extracted_custom_attributes =
+        node1_document->extract_custom_attributes(node1_document->get_object("custom_attributes"));
+    EXPECT_EQ(extracted_custom_attributes.get<string>("field1"), string("value1"));
+
+    auto link = new Link("Expression", node_handles, custom_attributes);
+    string link_handle = db->add_link(link);
+
+    auto atom_document =
+        dynamic_pointer_cast<atomdb_api_types::MongodbDocument>(db->get_atom_document(link_handle));
+    extracted_custom_attributes =
+        atom_document->extract_custom_attributes(atom_document->get_object("custom_attributes"));
+    EXPECT_EQ(extracted_custom_attributes.get<string>("field1"), string("value1"));
+
+    // Update Link with modified custom attributes
+    custom_attributes["field1"] = string("value2");
+    link = new Link("Expression", node_handles, custom_attributes);
+    link_handle = db->add_link(link);
+
+    atom_document =
+        dynamic_pointer_cast<atomdb_api_types::MongodbDocument>(db->get_atom_document(link_handle));
+    extracted_custom_attributes =
+        atom_document->extract_custom_attributes(atom_document->get_object("custom_attributes"));
+    EXPECT_EQ(extracted_custom_attributes.get<string>("field1"), string("value2"));
+
+    EXPECT_EQ(db->delete_atom(link_handle, true), true);
+
+    EXPECT_EQ(db->link_exists(link_handle), false);
+    EXPECT_EQ(db->node_exists(node_handles[0]), false);
+    EXPECT_EQ(db->node_exists(node_handles[1]), false);
+    EXPECT_EQ(db->node_exists(node_handles[2]), false);
+}
+
+TEST_F(RedisMongoDBTest, AddNodesWithThrowIfExists) {
+    auto node1 = new Node("Symbol", "ThrowIfExists1");
+    EXPECT_EQ(db->add_node(node1, true), node1->handle());
+
+    vector<Node*> nodes;
+    nodes.push_back(new Node("Symbol", "ThrowIfExists2"));
+    nodes.push_back(new Node("Symbol", "ThrowIfExists3"));
+
+    EXPECT_EQ(db->add_nodes(nodes, true).size(), 2);
+
+    auto link = new Link("Expression", {node1->handle(), nodes[0]->handle(), nodes[1]->handle()});
+    EXPECT_EQ(db->add_link(link, true), link->handle());
+
+    // Try to add the same node again
+    EXPECT_THROW(db->add_node(node1, true), runtime_error);
+    EXPECT_THROW(db->add_nodes(nodes, true), runtime_error);
+    EXPECT_THROW(db->add_link(link, true), runtime_error);
+
+    EXPECT_EQ(db->delete_link(link->handle(), true), true);
+    EXPECT_EQ(db->link_exists(link->handle()), false);
+    EXPECT_EQ(db->node_exists(node1->handle()), false);
+    EXPECT_EQ(db->node_exists(nodes[0]->handle()), false);
+    EXPECT_EQ(db->node_exists(nodes[1]->handle()), false);
+}
+
 int main(int argc, char** argv) {
     ::testing::InitGoogleTest(&argc, argv);
     ::testing::AddGlobalTestEnvironment(new RedisMongoDBTestEnvironment());

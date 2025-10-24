@@ -33,6 +33,8 @@ class AttentionBrokerClient {
                                float spreading_rate_lowerbound,
                                float spreading_rate_upperbound);
     static bool health_check(bool throw_on_error = false);
+    static void save_context(const string& context, const string& file_name);
+    static void drop_and_load_context(const string& context, const string& file_name);
 
    private:
     static mutex api_mutex;

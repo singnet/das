@@ -78,13 +78,22 @@ class AtomDBMock : public AtomDB {
     MOCK_METHOD(set<string>, nodes_exist, (const vector<string>& handles), (override));
     MOCK_METHOD(set<string>, links_exist, (const vector<string>& link_handles), (override));
 
-    MOCK_METHOD(string, add_node, (const Node* node), (override));
-    MOCK_METHOD(string, add_link, (const Link* link), (override));
-    MOCK_METHOD(string, add_atom, (const Atom* atom), (override));
+    MOCK_METHOD(string, add_node, (const Node* node, bool throw_if_exists), (override));
+    MOCK_METHOD(string, add_link, (const Link* link, bool throw_if_exists), (override));
+    MOCK_METHOD(string, add_atom, (const Atom* atom, bool throw_if_exists), (override));
 
-    MOCK_METHOD(vector<string>, add_atoms, (const vector<Atom*>& atoms), (override));
-    MOCK_METHOD(vector<string>, add_nodes, (const vector<Node*>& nodes), (override));
-    MOCK_METHOD(vector<string>, add_links, (const vector<Link*>& links), (override));
+    MOCK_METHOD(vector<string>,
+                add_atoms,
+                (const vector<Atom*>& atoms, bool throw_if_exists),
+                (override));
+    MOCK_METHOD(vector<string>,
+                add_nodes,
+                (const vector<Node*>& nodes, bool throw_if_exists),
+                (override));
+    MOCK_METHOD(vector<string>,
+                add_links,
+                (const vector<Link*>& links, bool throw_if_exists),
+                (override));
 
     MOCK_METHOD(bool, delete_atom, (const string& handle, bool delete_link_targets), (override));
     MOCK_METHOD(bool, delete_node, (const string& handle, bool delete_link_targets), (override));
