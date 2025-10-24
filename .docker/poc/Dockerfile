@@ -1,6 +1,6 @@
 FROM trueagi/das:22.04-builder
 
-COPY  ./bin/context_broker /usr/local/bin
+COPY  ./bin/ /usr/local/bin
 
 RUN chmod +x /usr/local/bin/
 
