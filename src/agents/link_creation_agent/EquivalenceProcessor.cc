@@ -61,11 +61,6 @@ vector<shared_ptr<Link>> EquivalenceProcessor::process_query(shared_ptr<QueryAns
         LOG_INFO("C1 and C2 are the same, skipping equivalence processing.");
         return {};
     }
-    if (link_exists(c1_handle, c2_handle)) {
-        LOG_INFO("Link already exists for " << c1_handle << " and " << c2_handle
-                                            << ", skipping equivalence processing.");
-        return {};
-    }
 
     vector<string> c1_query;
     vector<string> c2_query;

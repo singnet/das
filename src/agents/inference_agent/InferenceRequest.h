@@ -85,6 +85,8 @@ class InferenceRequest {
 
     virtual void set_correlation_mapping(const string& mapping);
 
+    virtual vector<string> get_update_attention_allocation_query();
+
     /**
      * @brief Get the requests of the inference request
      */
@@ -193,6 +195,7 @@ class ProofOfImplication : public InferenceRequest {
     string get_type() override;
     vector<vector<string>> get_requests() override;
     string get_direct_inference_hash() override;
+    vector<string> get_update_attention_allocation_query() override;
 
    private:
     const string IMPLICATION_DEDUCTION_PROCESSOR = "IMPLICATION_DEDUCTION";
@@ -207,6 +210,7 @@ class ProofOfEquivalence : public InferenceRequest {
     string get_type() override;
     vector<vector<string>> get_requests() override;
     string get_direct_inference_hash() override;
+    vector<string> get_update_attention_allocation_query() override;
 
    private:
     const string EQUIVALENCE_DEDUCTION_PROCESSOR = "EQUIVALENCE_DEDUCTION";

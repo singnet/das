@@ -6,13 +6,16 @@
 #include <sstream>
 #define LOG_LEVEL DEBUG_LEVEL
 #include "AtomDBSingleton.h"
+#include "AttentionBrokerClient.h"
 #include "Logger.h"
+#include "PatternMatchingQueryProxy.h"
 #include "ServiceBusSingleton.h"
 #include "Utils.h"
 
 using namespace std;
 using namespace inference_agent;
 using namespace link_creation_agent;
+using namespace attention_broker;
 
 const std::string InferenceAgent::PROOF_OF_IMPLICATION = "PROOF_OF_IMPLICATION";
 const std::string InferenceAgent::PROOF_OF_EQUIVALENCE = "PROOF_OF_EQUIVALENCE";
@@ -127,6 +130,7 @@ void InferenceAgent::run() {
         if (!inference_request_queue.empty()) {
             try {
                 auto inference_request = inference_request_queue.dequeue();
+                send_update_attention_allocation_request(inference_request);
                 send_link_creation_request(inference_request);
                 this->inference_requests.push_back(inference_request);
                 inference_timeout_map[inference_request->get_id()] =
@@ -218,9 +222,99 @@ void InferenceAgent::send_distributed_inference_control_request(
                                                                        inference_request->get_context(),
                                                                        "multiply_strength");
     shared_ptr<QueryEvolutionProxy> evolution_proxy(evolution_proxy_ptr);
+    evolution_proxy->parameters[BaseQueryProxy::USE_METTA_AS_QUERY_TOKENS] = false;
+    evolution_proxy->parameters[BaseQueryProxy::POPULATE_METTA_MAPPING] = false;
+    evolution_proxy->parameters[QueryEvolutionProxy::POPULATION_SIZE] = (unsigned int) 50;
+    // evolution_proxy->parameters[QueryEvolutionProxy::MAX_GENERATIONS] = 20;
+    evolution_proxy->parameters[QueryEvolutionProxy::ELITISM_RATE] = (double) 0.08;
+    evolution_proxy->parameters[QueryEvolutionProxy::SELECTION_RATE] = (double) 0.10;
+    // evolution_proxy->parameters[QueryEvolutionProxy::TOTAL_ATTENTION_TOKENS] = (unsigned int) 100000;
+    // evolution_proxy->parameters[BaseQueryProxy::MAX_BUNDLE_SIZE] = (unsigned int) 1000;
     ServiceBusSingleton::get_instance()->issue_bus_command(evolution_proxy);
     evolution_proxy_map[request_id] = evolution_proxy;
     LOG_DEBUG("Distributed inference control request sent");
+}
+
+static shared_ptr<PatternMatchingQueryProxy> issue_attention_allocation_query(
+    const vector<string>& query_tokens, const string& context, bool update_attention_broker = false) {
+    auto proxy = make_shared<PatternMatchingQueryProxy>(query_tokens, context);
+    proxy->parameters[BaseQueryProxy::UNIQUE_ASSIGNMENT_FLAG] = true;
+    proxy->parameters[BaseQueryProxy::ATTENTION_UPDATE_FLAG] = update_attention_broker;
+    proxy->parameters[BaseQueryProxy::USE_LINK_TEMPLATE_CACHE] = false;
+    proxy->parameters[PatternMatchingQueryProxy::POSITIVE_IMPORTANCE_FLAG] = false;
+    proxy->parameters[BaseQueryProxy::USE_METTA_AS_QUERY_TOKENS] = false;
+    proxy->parameters[BaseQueryProxy::POPULATE_METTA_MAPPING] = false;
+
+    ServiceBusSingleton::get_instance()->issue_bus_command(proxy);
+    return proxy;
+}
+
+void InferenceAgent::send_update_attention_allocation_request(
+    shared_ptr<InferenceRequest> inference_request) {
+    LOG_DEBUG("Sending update attention allocation request for inference request ID: "
+              << inference_request->get_id() << " with query: "
+              << Utils::join(inference_request->get_update_attention_allocation_query(), ' ')
+              << " and context: " << inference_request->get_context());
+    string context = inference_request->get_context();
+    auto proxy = issue_attention_allocation_query(
+        inference_request->get_update_attention_allocation_query(), context, true);
+    // TODO remove hardcoded queries
+    // clang-format off
+    vector<string> attention_update_query2 = {
+        "LINK_TEMPLATE", "Expression", "3",
+            "NODE", "Symbol", "EVALUATION",
+            "VARIABLE", "P1",
+            "LINK", "Expression", "2",
+                "NODE", "Symbol", "CONCEPT",
+                "ATOM", "PLACEHOLDER"};
+    // clang-format on
+    shared_ptr<PatternMatchingQueryProxy> proxy2;
+    set<string> to_correlate;
+    string P1 = "P1";
+    string TARGET = "TARGET";
+    map<string, unsigned int> to_stimulate;
+    shared_ptr<QueryAnswer> query_answer1;
+    shared_ptr<QueryAnswer> query_answer2;
+    unsigned int count = 0;
+    while (!proxy->finished()) {
+        if ((query_answer1 = proxy->pop()) == NULL) {
+            Utils::sleep();
+        } else {
+            LOG_INFO("Traversing handle " + to_string(++count) + "/" + to_string(proxy->get_count()));
+            attention_update_query2[attention_update_query2.size() - 1] = query_answer1->get(TARGET);
+            proxy2 = issue_attention_allocation_query(attention_update_query2, context);
+            to_stimulate[query_answer1->get(0)] = 1;
+            to_stimulate[query_answer1->get(TARGET)] = 1;
+            int count2 = 0;
+            LOG_INFO("Running more queries");
+            while (!proxy2->finished()) {
+                if ((query_answer2 = proxy2->pop()) == NULL) {
+                    Utils::sleep();
+                } else {
+                    count2++;
+                    to_stimulate[query_answer2->get(0)] = 1;
+                    to_stimulate[query_answer2->get(P1)] = 1;
+                    LOG_INFO("Correlating Target " << query_answer1->get(TARGET) << " and P1 "
+                                                   << query_answer2->get(P1));
+                    to_correlate.insert(query_answer1->get(0));
+                    to_correlate.insert(query_answer1->get(TARGET));
+                    to_correlate.insert(query_answer2->get(0));
+                    to_correlate.insert(query_answer2->get(P1));
+                    AttentionBrokerClient::correlate(to_correlate, context);
+                    to_correlate.clear();
+                }
+            }
+            LOG_INFO("Found " << to_string(count2) << " more");
+        }
+    }
+    AttentionBrokerClient::stimulate(to_stimulate, context);
+    LOG_INFO("Updated attention for " + to_string(to_stimulate.size()) + " handles.");
+
+    // while (!proxy->finished()) {
+    //     Utils::sleep();
+    // }
+    LOG_INFO("Updated attention for " + to_string(proxy->get_count()) +
+             " query answers of inference request ID: " + inference_request->get_id());
 }
 
 void InferenceAgent::process_inference_request(const vector<string>& request, const string& request_id) {

@@ -148,6 +148,7 @@ cc_library(
     srcs = ["inference_agent_client_main.cc"],
     deps = [
         "//agents/inference_agent:inference_agent_lib",
+        "//atom_space:atom_space_lib",
     ],
 )
 
