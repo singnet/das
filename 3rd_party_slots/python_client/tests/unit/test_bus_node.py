@@ -1,5 +1,5 @@
 import pytest
-from hyperon_das.bus_node import BusNode
+from hyperon_das.distributed_algorithm_node.bus_node import BusNode
 
 from unittest.mock import MagicMock
 

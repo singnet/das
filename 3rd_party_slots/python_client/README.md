@@ -65,13 +65,26 @@ The client can be used in two ways: programmatically as a Python package or via 
 After installing the wheel, you can import the pattern_matching_query function from the hyperon_das.main module. Below is an example of querying:
 
 ```bash
-from hyperon_das.main import pattern_matching_query
+from hyperon_das.proxies import PatternMatchingQueryProxy
+from hyperon_das.service_bus.service_bus import ServiceBusSingleton
+from hyperon_das.commons.helpers import tokenize_preserve_quotes, str_2_bool
 
-pattern_matching_query(
-    client_id="localhost:8000",
-    server_id="localhost:35700",
-    query_tokens=["LINK_TEMPLATE", "Expression", "3", "NODE", "Symbol", "Similarity", "VARIABLE", "X", "VARIABLE", "Y"],
+proxy = PatternMatchingQueryProxy(
+    tokens=["LINK_TEMPLATE", "Expression", "3", "NODE", "Symbol", "Similarity", "NODE", "Symbol", '"human"', "VARIABLE", "Y"]
 )
+
+service_bus = ServiceBusSingleton(
+    host_id='0.0.0.0:9000',
+    known_peer='0.0.0.0:40002',
+    port_lower=54000,
+    port_upper=54500
+).get_instance()
+
+service_bus.issue_bus_command(proxy)
+
+while not proxy.finished():
+    answer = proxy.pop()
+    print(answer.to_string())
 ```
 
 ### Command-Line Usage
@@ -79,10 +92,11 @@ pattern_matching_query(
 You can also run the client directly from the command line after installation. The following command sends the same query as above:
 
 ```bash
-python -m hyperon_das.main \
-    --client-id localhost:8000 \
-    --server-id localhost:35700 \
+python -m hyperon_das.main.query_client \
+    --client-id localhost:9000 \
+    --server-id localhost:40002 \
     --query-tokens "LINK_TEMPLATE Expression 3 NODE Symbol Similarity NODE Symbol "\"human\"" VARIABLE X" \
+    --max-query-answers 10
 ```
 
 The --query-tokens argument accepts a space-separated string, which is tokenized internally while preserving quoted strings (e.g., "Alzheimer's disease").

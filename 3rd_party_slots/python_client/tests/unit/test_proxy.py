@@ -6,16 +6,16 @@ from unittest.mock import MagicMock, patch
 import hyperon_das._grpc.atom_space_node_pb2 as grpc_pb2
 import hyperon_das._grpc.common_pb2 as common_pb2
 
-from hyperon_das.proxy import (
-    BaseCommandProxy,
-    PatternMatchingQueryHandler,
+from hyperon_das.service_bus.proxy import (
+    BusCommandProxy,
     AtomSpaceNodeManager,
     AtomSpaceNodeServicer
 )
+from hyperon_das.service_clients.pattern_matching_query import PatternMatchingQueryProxy
 from hyperon_das.query_answer import QueryAnswer
 
 
-class DummyProxy(BaseCommandProxy):
+class DummyProxy(BusCommandProxy):
     def __init__(self):
         super().__init__(command="cmd", args=[])
         self.processed_msgs = []
@@ -69,10 +69,10 @@ class TestBaseCommandProxy:
         proxy.graceful_shutdown()
 
 
-class TestPatternMatchingQueryHandler:
+class TestPatternMatchingQueryProxy:
     @pytest.fixture(autouse=True)
     def handler(self):
-        return PatternMatchingQueryHandler(tokens=["x"], context="c")
+        return PatternMatchingQueryProxy(tokens=["x"], context="c")
 
     def test_finished_logic(self, handler):
         handler.abort_flag = False
@@ -103,16 +103,16 @@ class TestPatternMatchingQueryHandler:
     def test_process_message_and_counters(self, handler):
         base = QueryAnswer(handle="h0", importance=0.0)
         tokens = base.tokenize()
-        msgs = [PatternMatchingQueryHandler.ANSWER_BUNDLE, tokens, PatternMatchingQueryHandler.COUNT]
+        msgs = [PatternMatchingQueryProxy.ANSWER_BUNDLE, tokens, PatternMatchingQueryProxy.COUNT]
         handler.process_message(msgs)
         assert handler.answer_count == 1
         assert isinstance(handler.answer_queue.get(), QueryAnswer)
         # finished
-        handler.process_message([PatternMatchingQueryHandler.FINISHED])
+        handler.process_message([PatternMatchingQueryProxy.FINISHED])
         assert handler.answer_flow_finished
         # abort
-        handler2 = PatternMatchingQueryHandler(tokens=["x"], context="c")
-        handler2.process_message([PatternMatchingQueryHandler.ABORT])
+        handler2 = PatternMatchingQueryProxy(tokens=["x"], context="c")
+        handler2.process_message([PatternMatchingQueryProxy.ABORT])
         assert handler2.abort_flag
 
 

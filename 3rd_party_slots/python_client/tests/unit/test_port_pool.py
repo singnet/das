@@ -1,6 +1,6 @@
 import pytest
 
-from hyperon_das.port_pool import PortPool
+from hyperon_das.service_bus.port_pool import PortPool
 
 
 def test_initialize_invalid_range():
