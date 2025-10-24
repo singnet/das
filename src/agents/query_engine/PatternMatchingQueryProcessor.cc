@@ -104,7 +104,8 @@ void PatternMatchingQueryProcessor::update_attention_broker_single_answer(
             unsigned int query_result_size = query_result->size();
             for (unsigned int i = 0; i < query_result_size; i++) {
                 execution_stack.push(string(query_result->get_handle(i)));
-                LOG_DEBUG("Correlating handle: " << query_result->get_handle(i) << " from link: " << handle);
+                LOG_DEBUG("Correlating handle: " << query_result->get_handle(i)
+                                                 << " from link: " << handle);
             }
         }
     }
