@@ -3,6 +3,7 @@ import sys
 import time
 
 from hyperon_das.service_clients import PatternMatchingQueryProxy
+from hyperon_das.service_clients.base import BaseQueryProxy
 from hyperon_das.service_bus.service_bus import ServiceBusSingleton
 from hyperon_das.commons.helpers import tokenize_preserve_quotes, str_2_bool
 
@@ -67,12 +68,11 @@ def pattern_matching_query(
         max_query_answers = args.max_query_answers
         query_tokens = tokenize_preserve_quotes(args.query_tokens)
 
-    proxy = PatternMatchingQueryProxy(
-        tokens=query_tokens,
-        update_attention_broker=update_attention_broker,
-        positive_importance=positive_importance,
-        populate_metta_mapping=populate_metta_mapping
-    )
+    proxy = PatternMatchingQueryProxy(query_tokens, "")
+    proxy.set_parameter(BaseQueryProxy.ATTENTION_UPDATE_FLAG, update_attention_broker)
+    proxy.set_parameter(PatternMatchingQueryProxy.POSITIVE_IMPORTANCE_FLAG, positive_importance)
+    proxy.set_parameter(BaseQueryProxy.POPULATE_METTA_MAPPING, populate_metta_mapping)
+    proxy.set_parameter(BaseQueryProxy.MAX_ANSWERS, max_query_answers)
 
     service_bus = ServiceBusSingleton(
         host_id=client_id,

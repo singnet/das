@@ -1,6 +1,6 @@
 import pytest
 
-from hyperon_das.bus_node import Bus, BusCommand
+from hyperon_das.distributed_algorithm_node.bus_node import Bus, BusCommand
 
 
 def test_bus_command_enum():

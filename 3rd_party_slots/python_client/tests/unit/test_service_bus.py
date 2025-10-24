@@ -1,9 +1,9 @@
 import pytest
 from unittest.mock import MagicMock, patch
 from hyperon_das.service_bus import ServiceBus, ServiceBusSingleton
-from hyperon_das.proxy import PatternMatchingQueryProxy
-from hyperon_das.port_pool import PortPool
-from hyperon_das.bus_node import BusNode
+from hyperon_das.service_bus.proxy import PatternMatchingQueryProxy
+from hyperon_das.service_bus.port_pool import PortPool
+from hyperon_das.distributed_algorithm_node.bus_node import BusNode
 
 
 class TestServiceBus:
