@@ -203,6 +203,8 @@ class QueryAnswer {
      * $return The element indicated by the passed QueryAnswerElement key.
      */
     string get(const QueryAnswerElement& element_key, bool return_empty_when_not_found = false);
+    string get(const string& key, bool return_empty_when_not_found = false);
+    string get(unsigned int key, bool return_empty_when_not_found = false);
 
     /**
      * Rewrites the passed query (tokens only, no MeTTa expression allowed) replacing variables

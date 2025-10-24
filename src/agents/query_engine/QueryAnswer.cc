@@ -239,28 +239,35 @@ void QueryAnswer::untokenize(const string& tokens) {
     }
 }
 
-string QueryAnswer::get(const QueryAnswerElement& element_key, bool return_empty_when_not_found) {
+string QueryAnswer::get(const QueryAnswerElement& key, bool return_empty_when_not_found) {
     string answer = "";
-    switch (element_key.type) {
-        case QueryAnswerElement::HANDLE: {
-            if (element_key.index < this->handles.size()) {
-                answer = this->handles[element_key.index];
-            } else {
-                if (!return_empty_when_not_found) {
-                    Utils::error("Invalid handle index: " + std::to_string(element_key.index));
-                }
-            }
-            break;
-        }
-        case QueryAnswerElement::VARIABLE: {
-            answer = this->assignment.get(element_key.name);
-            if ((answer == "") && (!return_empty_when_not_found)) {
-                Utils::error("Invalid variable name: " + element_key.name);
-            }
-            break;
-        }
+    switch (key.type) {
+        case QueryAnswerElement::HANDLE:
+            return get(key.index, return_empty_when_not_found);
+        case QueryAnswerElement::VARIABLE:
+            return get(key.name, return_empty_when_not_found);
         default:
-            Utils::error("Invalid QueryAnswerElement type: " + std::to_string(element_key.type));
+            Utils::error("Invalid QueryAnswerElemente: " + std::to_string(key.type));
+    }
+    return answer;
+}
+
+string QueryAnswer::get(const string& key, bool return_empty_when_not_found) {
+    string answer = this->assignment.get(key);
+    if ((answer == "") && (!return_empty_when_not_found)) {
+        Utils::error("Invalid variable name: " + key);
+    }
+    return answer;
+}
+
+string QueryAnswer::get(unsigned int key, bool return_empty_when_not_found) {
+    string answer = "";
+    if (key < this->handles.size()) {
+        answer = this->handles[key];
+    } else {
+        if (!return_empty_when_not_found) {
+            Utils::error("Invalid handle index: " + std::to_string(key));
+        }
     }
     return answer;
 }
