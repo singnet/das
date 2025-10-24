@@ -74,8 +74,10 @@ static unsigned int POPULATION_SIZE = 50;
 static unsigned int MAX_GENERATIONS = 20;
 static unsigned int NUM_ITERATIONS = 10;
 
+static bool CONTEXT_CREATION_ONLY = true;
 static bool SAVE_NEW_LINKS = true;
 static string NEW_LINKS_FILE_NAME = "newly_created_links.txt";
+static string CONTEXT_FILE_NAME = "_CONTEXT_DUMP";
 
 using namespace std;
 using namespace atomdb;
@@ -201,40 +203,32 @@ static void update_attention_allocation(const string& predicate_source,
                                         const string& context) {
     LOG_INFO("Updating attention allocation using custom tarversing.");
 
-    vector<string> attention_update_query1 = {OR_OPERATOR,   "2",
-                                              LINK_TEMPLATE, EXPRESSION,
-                                              "3",           NODE,
-                                              SYMBOL,        EVALUATION,
-                                              ATOM,          predicate_source,
-                                              LINK_TEMPLATE, EXPRESSION,
-                                              "2",           NODE,
-                                              SYMBOL,        CONCEPT,
-                                              VARIABLE,      SENTENCE1,
-                                              LINK_TEMPLATE, EXPRESSION,
-                                              "3",           NODE,
-                                              SYMBOL,        EVALUATION,
-                                              ATOM,          predicate_target,
-                                              LINK_TEMPLATE, EXPRESSION,
-                                              "2",           NODE,
-                                              SYMBOL,        CONCEPT,
-                                              VARIABLE,      SENTENCE1};
+    // clang-format off
+    vector<string> attention_update_query1 = {
+        OR_OPERATOR, "2",
+            LINK_TEMPLATE, EXPRESSION, "3",
+                NODE, SYMBOL, EVALUATION,
+                ATOM, predicate_source,
+                LINK_TEMPLATE, EXPRESSION, "2",
+                    NODE, SYMBOL, CONCEPT,
+                    VARIABLE, SENTENCE1,
+            LINK_TEMPLATE, EXPRESSION, "3",
+                NODE, SYMBOL, EVALUATION,
+                ATOM, predicate_target,
+                LINK_TEMPLATE, EXPRESSION, "2",
+                    NODE, SYMBOL, CONCEPT,
+                    VARIABLE, SENTENCE1
+    };
 
-    vector<string> attention_update_query2 = {LINK_TEMPLATE,
-                                              EXPRESSION,
-                                              "3",
-                                              NODE,
-                                              SYMBOL,
-                                              EVALUATION,
-                                              VARIABLE,
-                                              PREDICATE1,
-                                              LINK,
-                                              EXPRESSION,
-                                              "2",
-                                              NODE,
-                                              SYMBOL,
-                                              CONCEPT,
-                                              ATOM,
-                                              "sentence"};
+    vector<string> attention_update_query2 = {
+        LINK_TEMPLATE, EXPRESSION, "3",
+            NODE, SYMBOL, EVALUATION,
+            VARIABLE, PREDICATE1,
+            LINK, EXPRESSION, "2",
+                NODE, SYMBOL, CONCEPT,
+                ATOM, "sentence"
+    };
+    // clang-format on
 
     shared_ptr<PatternMatchingQueryProxy> proxy1 =
         issue_attention_allocation_query(attention_update_query1, context);
@@ -957,8 +951,13 @@ static void run(const string& predicate_source,
     string context = context_proxy->get_key();
     LOG_INFO("Context " + context + " is ready");
 
-    LOG_INFO("Updating attention allocation");
-    update_attention_allocation(predicate_source, predicate_target, context);
+    if (CONTEXT_CREATION_ONLY) {
+        update_attention_allocation(predicate_source, predicate_target, context);
+        Utils::sleep(5000);
+        AttentionBrokerClient::save_context(context, CONTEXT_FILE_NAME);
+        exit(0);
+    } else {
+    }
     // update_context(predicate_source, predicate_target, context_proxy);
 
     for (unsigned int i = 0; i < NUM_ITERATIONS; i++) {
