@@ -48,6 +48,9 @@ class BaseCommandProxy(abc.ABC):
                 self.proxy_node.wait_for_termination()
             PortPool.return_port(self.proxy_port)
 
+    def to_remote_peer(self):
+        pass
+
 
 class AtomSpaceNodeManager:
     """Manages the AtomSpace node, including the gRPC server lifecycle."""
