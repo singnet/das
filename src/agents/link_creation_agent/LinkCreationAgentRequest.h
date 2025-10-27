@@ -14,7 +14,6 @@ struct LinkCreationAgentRequest {
     bool infinite = false;
     string context = "";
     bool update_attention_broker = false;
-    bool importance_flag = true;
     // Internal fields
     string id = "";
     string original_id = "";
