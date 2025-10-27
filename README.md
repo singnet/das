@@ -240,7 +240,6 @@ Now we need to load the testing knowledge base into Mork.
 make mork-loader FILE=/home/senna/work/projects/das/github/das/src/tests/assets/animals_mork.metta
 ```
 
-```
 The expected output is like this:
 
 ```
