@@ -1,175 +1,153 @@
 # OpenCog Hyperon - Distributed Atomspace (DAS)
 
-**_IMPORTANT NOTE:_** _we're currently re-structuring the project repo, documentation etc. So directory structure, documentation files, etc may be outdated or somehow messy._
+## Project
 
-## **Components**
+These are the Github repos we're currently using in the project:
 
-DAS consists of several components. Below is a list of these components, categorized by whether they are part of this repository or exist in external repositories.
+* [Source code (this repo)](https://github.com/singnet/das) - Main DAS source code
+* [Simplified MeTTa parser](https://github.com/singnet/das-metta-parser) - Simple parser to load knowledge bases (no actual MeTTa commmand interpreetation/execution)
+* [Database adapter](https://github.com/singnet/das-database-adapter) - Adapter to use DBMSs as atomspaces
+* [Command line tools](https://github.com/singnet/das-toolbox)  - Tools to configure and deploy DAS components
+* [Protobuf definitions](https://github.com/singnet/das-proto) - Remote API used all along DAS' components
+* [Github actions library](https://github.com/singnet/das-cicd) - CI/CD scripts used in DAS repos
+* [NuNET/Rejuve PoC](https://github.com/singnet/das-nunet-rejuve-poc) - Simple use case to assess DAS cognitive capabilities
+* Vultr [pre-infra](https://github.com/singnet/das-pre-infra-vultr) and [infra](https://github.com/singnet/das-infra-stack-vultr) - Infra deployment/setup in Vultr
+* AWS [pre-infra](https://github.com/singnet/das-pre-infra-aws) and [infra](https://github.com/singnet/das-infra-stack-aws) - Infra deployment/setup in AWS
 
-### **Internal Components**
-The following components are included in this repository:
+These repos are frozen and deprecated:
 
-- **Attention Broker**
-  A DAS component that tracks atom importance values in different contexts and updates those values based on user queries using context-specific Hebbian networks.
+* https://github.com/singnet/das-atom-db
+* https://github.com/singnet/das-query-engine
+* https://github.com/singnet/das-serverless-functions
+* https://github.com/singnet/das-attention-broker
+* https://github.com/singnet/das-node
+* https://github.com/singnet/das-postgres-lobe
+* https://github.com/singnet/das-openfaas-templates
+* https://github.com/singnet/das-poc
 
-  Documentation: [Read more](src/attention_broker/README.md)
-
-- **Query Agent**
-
-  C++ server which perform Pattern Matching queries.
-
-  Documentation: [Read more](src/query_engine/README.md)
-
-- **Link Creation Agent**
-  A C++ server that performs pattern-matching queries and creates new links in the Atomspace based on the results.
-
-  Documentation: [Read more](src/link_creation_agent/README.md)
-
-- **Inference Control**
-  C++ server which perform Inference Queries.
-
-  Link creation engine searches the atom space for patterns and creates new links based on the results. Both the pattern and the layout of the new links to be created are specified by the caller.
-
-  Pattern matching results are not exhaustively used to create new links. DAS query engine return results considering importance values of atoms in each result so link creation engine iterates only through the first N results, which have a greater probability of having the most interesting atoms.
-
-  Documentation: *Coming Soon*
-
-- **Query Engine**
-  A data manipulation API for Distributed Atomspace (DAS). It allows queries with pattern matching capabilities and traversal of the Atomspace hypergraph.
-
-  Documentation: [Read more](src/hyperon_das/README.md)
-
-- **Atom DB**
-  A Python library required by Hyperon DAS to interface with DBMSs and other data storage structures.
-
-  Documentation: [Read more](src/hyperon_das_atomdb/README.md)
-
----
-
-### **External Components**
-The following components are part of external repositories and are not included in this repository. You can find them in their respective locations:
-
-- **DAS Server**
-
-  A server listening on a port. Essentially, this is what we currently call DAS Server which is OpenFaas running das-query-engine function (basically our DistributedAtomSpace class python class).
-
-  Documentation: [Read more](https://github.com/singnet/das-serverless-functions)
-
-- **DAS MeTTa Parser**
-  A simplified MeTTa parser used to feed knowledge bases into DAS.
-
-  Documentation: [Read more](https://github.com/singnet/das-metta-parser)
-
-- **DAS Server Toolbox**
-
-  This CLI provides a set of commands to manage containerized services, OpenFaaS functions, and Metta operations. It includes functionalities to start and stop db services, manage OpenFaaS functions, load Metta files, and validate Metta file syntax.
-
-  Documentation: [Read more](https://github.com/singnet/das-toolbox)
-
-- **Infrastructure Setup**
-
-  Tools for provisioning and setting up servers on cloud providers.
-
-  Documentation:
-  - [Server provisioning in Vultr](infrastructure/vultr/provisioning/README.md)
-  - [Server setup Vultr](infrastructure/vultr/setup/README.md)
-  - [Server provisioning in AWS](infrastructure/aws/provisioning/README.md)
-  - [Server setup AWS](infrastructure/aws/setup/README.md)
-
-## **Getting Started**
-
-### **1. Cloning the Repository**
-```bash
-git clone git@github.com:singnet/das.git
-cd das
-```
-
-### **2. Build**
-
-To build the agents, run the command:
-
-```bash
-make build-all
-```
-
-This process will generate the binaries for all components in the `das/bin` directory.
-
-### **3. Initializing the Knowledge Base**
-
-Some of the components require an existing knowledge base and a properly configured environment with Redis and MongoDB. You can set up this environment using the `das-cli`. For detailed instructions, refer to the [das-toolbox documentation](https://github.com/singnet/das-toolbox).
-
-> For detailed information about each component, please refer to the documentation provided for each component in the [**Components**](#components) section above.
-
-## **Running the Unit Tests**
-
-### **Prerequisites**
-
-Before running the tests, ensure that **Redis** and **MongoDB** are running. You can use the [DAS CLI](https://github.com/singnet/das-toolbox) to easily start these services.
-
-Once Redis and MongoDB are running, export the necessary environment variables with the values configured in [DAS CLI](https://github.com/singnet/das-toolbox):
-
-```bash
-export DAS_REDIS_HOSTNAME=localhost
-export DAS_REDIS_PORT=29000
-export DAS_MONGODB_HOSTNAME=localhost
-export DAS_MONGODB_PORT=28000
-export DAS_MONGODB_USERNAME=dbadmin
-export DAS_MONGODB_PASSWORD=dassecret
-```
-
-Additionally, load the **animals** knowledge base using the [DAS CLI](https://github.com/singnet/das-toolbox).
-
-After setting up Redis and MongoDB, you need to run the [Attention Broker](src/attention_broker/README.md).
-
-### **Running the Tests**
-
-To execute the unit tests, simply run the following command from the project root:
-
-```bash
-make test-all
-```
-
-This will run all the tests for the project.
-
-## **Conceptual and User's Documentation**
-
-* [DAS API](https://singnet.github.io/das-query-engine/api/DAS/) - Documentation for the DAS API.
-* DAS User's Guide ([Jupyter Notebook](notebooks/das-users-guide.ipynb)) ([Markdown](docs/das-users-guide.md)) - Document with code snippets showing how to use DAS.
-* [DAS Overview](docs/das-overview.md) - Description of the main DAS components and deployment architecture.
-* [DAS Toolbox User's Guide](https://github.com/singnet/das-toolbox) - A guide with detailed instructions to use the DAS Server Toolbox.
-* [Nunet Deployment Guide](docs/nunet-deployment-guide.md) - A comprehensive guide for deploying DAS components to the NuNet network.
-* [Release Notes](docs/release-notes.md) - Release notes for all DAS components.
-
-## **Project Management**
+Issues for project management are kept in two boards:
 
 * [Public board](https://github.com/orgs/singnet/projects/7) - GitHub project board used to track bug reports, feature requests, and major new features planning. Use this board to report bugs or request new features.
-* [Development board](https://github.com/orgs/singnet/projects/6/views/1) - Used internally by the DAS Team to track issues and tasks.
-* _Contribution guidelines_
+* [Development board](https://github.com/orgs/singnet/projects/6/views/1) - Used internally by the DAS Team for day-by-day work planning.
 
-## **Integrations with third-party services**
+## DAS Usage
 
-### **MORK**
+DAS (Distributed AtomSpace) is an extension to Hyperon that allows the use of
+very large knowledge bases by offering a query API (fully integrated with
+MeTTa) that uses several internal cognitive components to improve query
+execution performance. The actual backend used to persist the knowledge base can
+be configured to use any DBMS or combination of DBMSs.
 
-[WIP] - We are testing an integration with [MORK](https://github.com/trueagi-io/MORK/tree/main) as an AtomDB. So to be able to perform queries with MORK running in the backend it is necessary:
+Currently, DAS is integrated with [Hyperon Experimental](https://github.com/trueagi-io/hyperon-experimental/)
+and can be used as a special type of space. Integration with other MeTTa interpreters
+is possible and are being planned for the near future.
 
-1) Run the MORK server
+In order to use DAS in Hyperon Experimental, you need to install our
+configuration command-line tool,
+[das-cli](https://github.com/singnet/das-toolbox/blob/master/das-cli/README.md),
+and to use it to configure the DAS components you are planning to use:
+
+* AtomDB
+* Query Engine
+* Evolution agent
+* Link Creation agent
+* Inference agent
+
+In [this README](https://github.com/singnet/das/blob/master/docs/das-cli-users-guide.md) we provide details and examples
+of the various commands we use here to configure DAS. Please refer to it to better understand the command line parameters
+we mention below. `das-cli` also has `man pages` and an embedded documentation (invoked with `--help`) which are installed
+together with the toolbox package.
+
+In addition to this documentation, we also have a couple of [Jupyter](https://jupyter.org) notebooks with hands-on examples
+of how to configure DAS and use it inside Hyperon Experimental. These notebook can be found 
+[here](https://github.com/singnet/das/tree/master/notebooks).
+
+### 1. Configuring your DAS environment
+
+To configure your DAS environment, just run
 
 ```bash
-make run-mork-server
+das-cli config set
 ```
 
-2) Upload a .metta file
+If you are setting up a new environment, it's safe to hit `<ENTER>` and accept all suggested default values. Just make sure
+you don't have any other tool listening to the PORT numbers we are using.
+
+### 2. Starting an AtomDB
+
+The AtomDB is where the knowlege base is persisted. If you already have a persisted AtomDB you can just
+start the Atom DB by calling
 
 ```bash
-make mork-loader FILE="path/to/metta_file.metta"
+das-cli db start
 ```
 
-3) Adjust atomDB type for Query Agent
+If you don't have your knowledge base persisted as an AtomDB yet, you need to load it as a MeTTa file by calling
 
-in */src/main/query_engine_main.cc* change line 32 to
-
-```cpp
-AtomDBSingleton::init(atomdb_api_types::ATOMDB_TYPE::MORKDB);
+```bash
+das-cli db start
+das-cli metta load /absolut/path/to/test/metta/file/at/das/src/tests/animals_extended.metta
 ```
 
-Now you can load Attention Broker, Query Agent and run a query
+You're supposed to see an output like this:
+
+```tty
+$ das-cli db start
+Starting Redis service...
+Redis has started successfully on port 29000 at localhost, operating under the server user senna.
+Starting MongoDB service...
+MongoDB has started successfully on port 28000 at localhost, operating under the server user senna.
+$ das-cli metta load /absolut/path/to/test/metta/file/at/das/src/tests/animals_extended.metta
+das-cli-mongodb-28000 is running on port 28000
+das-cli-redis-29000 is running on port 29000
+Loading metta file /tmp/animals_extended.metta...
+Connecting to Redis at localhost:29000
+Connecting to MongoDB at localhost:28000
+Done.
+```
+
+Optionally, we support the usage of some backends directly without the need to
+export the data to MeTTa and load them in DAS. It means you can use the DBMS server directly
+to feed the AtomDB. Newly created atoms are not sent back to the DBMS yet but this is a planned
+feature for the (near to) mid future.
+
+Currently we support [Postgresql](https://www.postgresql.org) and 
+[Mork](https://github.com/trueagi-io/MORK/blob/server/README.md) but we are working to extend this list. 
+Look [here](https://github.com/singnet/das/blob/master/docs/database-adapter-users-guide.md)
+for complete documentation on how to use our Database Adapter.
+
+### 3. Starting the AttentionBroker
+
+[das-cli](https://github.com/singnet/das-toolbox) can be used to start/stop any
+of the DAS components. So you should use it to start the AttentionBroker.
+
+```bash
+das-cli attention-broker start
+```
+
+You're supposed to see an output like this:
+
+```tty
+$ das_cli.py attention-broker start
+Starting Attention Broker service...
+Attention Broker started on port 40001
+```
+
+### 4. Starting Query Engine and other agents
+
+Similarly, you can use `das-cli` to start the Query Engine and the other DAS agents. The Query Engine is
+a mandatory component but the other agents are optional.
+
+```bash
+das-cli query-agent start
+das-cli evolution-agent start
+das-cli link-creation-agent start
+das-cli inference-agent start
+```
+
+## Contributing with DAS
+
+If you want to contribute with DAS project, please read our 
+[Development Guidelines](https://github.com/singnet/das/blob/master/docs/developer_guidelines.md) first.
+
+
