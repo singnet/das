@@ -36,7 +36,8 @@ class LinkCreationRequestProxy : public BaseProxy {
     static const string UPDATE_ATTENTION_BROKER;
     /** Importance flag for the request, return only answers that have importance greater than zero */
     static const string IMPORTANCE_FLAG;
-    /** Query interval for the request, controls how many time to wait between queries and link creations*/
+    /** Query interval for the request, controls how many time to wait between queries and link
+     * creations*/
     static const string QUERY_INTERVAL;
     /** Query timeout for the request, controls how long to wait for a query to complete */
     static const string QUERY_TIMEOUT;
