@@ -71,19 +71,6 @@ jobs:
     runs-on: self-hosted
     if: needs.build.outputs.version_exists != 'true'
     needs: build
-    strategy:
-      matrix:
-        target:
-          [
-            attention-broker,
-            query-agent,
-            link-creation-agent,
-            link-creation-client,
-            inference-agent,
-            evolution-agent,
-            context-broker,
-          ]
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -112,6 +99,5 @@ jobs:
           context: .
           file: .docker/poc/Dockerfile
           push: true
-          target: ${{ matrix.target }}
-          tags: trueagi/das:${{ matrix.target }}-${{ needs.build.outputs.version }}
+          tags: trueagi/das:${{ needs.build.outputs.version }}
 

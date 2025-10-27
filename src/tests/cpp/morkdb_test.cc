@@ -237,8 +237,8 @@ TEST_F(MorkDBTest, AddGetAndDeleteLink) {
     handle_set = db->query_for_pattern(link_schema);
     EXPECT_EQ(handle_set->size(), 3);
 
-    // MORKDB does not support deleting links, so expecting an exception
-    EXPECT_THROW(db->delete_link(link_handle, true), runtime_error);
+    // MORKDB does not support deleting links, so it must always return false
+    EXPECT_FALSE(db->delete_link(link_handle, true));
 }
 
 TEST_F(MorkDBTest, AddGetAndDeleteLinks) {
@@ -262,8 +262,8 @@ TEST_F(MorkDBTest, AddGetAndDeleteLinks) {
     auto links_documents = db->get_atom_documents(links_handles, {"_id"});
     EXPECT_EQ(links_documents.size(), links.size());
 
-    // MORKDB does not support deleting links, so expecting an exception
-    EXPECT_THROW(db->delete_links(links_handles, true), runtime_error);
+    // MORKDB does not support deleting links, so it must always return false
+    EXPECT_FALSE(db->delete_links(links_handles, true));
 }
 
 int main(int argc, char** argv) {
