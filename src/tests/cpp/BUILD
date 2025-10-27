@@ -130,7 +130,7 @@ cc_test(
 
 cc_test(
     name = "hebbian_network_test",
-    size = "medium",
+    size = "small",
     srcs = [
         "hebbian_network_test.cc",
         "test_utils.cc",
@@ -435,7 +435,7 @@ cc_test(
 
 cc_test(
     name = "service_bus_test",
-    size = "small",
+    size = "medium",
     srcs = ["service_bus_test.cc"],
     copts = [
         "-Iexternal/gtest/googletest/include",

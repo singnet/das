@@ -172,6 +172,30 @@ class AttentionBrokerServer final : public AttentionBroker::Service {
                           const dasproto::Parameters* request,
                           dasproto::Ack* reply) override;
 
+    /**
+     * Save contents of the passed context into a file.
+     * File is a flat file name (no paths).
+     *
+     * @param request Context and the name of the file to be saved.
+     * @param reply The message which will be send back to the caller with a simple ACK.
+     * @return GRPC status OK if request were properly processed or CANCELLED otherwise.
+     */
+    Status save_context(ServerContext* grpc_context,
+                        const dasproto::ContextPersistence* request,
+                        dasproto::Ack* reply) override;
+
+    /**
+     * Drop current contexts of the passed context and load data from the passed file.
+     * File is a flat file name (no paths).
+     *
+     * @param request Context and the name of the file to be loaded.
+     * @param reply The message which will be send back to the caller with a simple ACK.
+     * @return GRPC status OK if request were properly processed or CANCELLED otherwise.
+     */
+    Status drop_and_load_context(ServerContext* grpc_context,
+                                 const dasproto::ContextPersistence* request,
+                                 dasproto::Ack* reply) override;
+
     // Other public methods
 
     /**

@@ -15,6 +15,7 @@ cc_library(
         "Logger.h",
         "Properties.h",
         "RequestValidator.h",
+        "Serializable.h",
         "SharedQueue.h",
         "Stoppable.h",
         "StoppableThread.h",

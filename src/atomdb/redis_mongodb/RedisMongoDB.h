@@ -92,13 +92,13 @@ class RedisMongoDB : public AtomDB {
     set<string> nodes_exist(const vector<string>& handles);
     set<string> links_exist(const vector<string>& handles);
 
-    string add_atom(const atoms::Atom* atom);
-    string add_node(const atoms::Node* node);
-    string add_link(const atoms::Link* link);
+    string add_atom(const atoms::Atom* atom, bool throw_if_exists = false);
+    string add_node(const atoms::Node* node, bool throw_if_exists = false);
+    string add_link(const atoms::Link* link, bool throw_if_exists = false);
 
-    vector<string> add_atoms(const vector<atoms::Atom*>& atoms);
-    vector<string> add_nodes(const vector<atoms::Node*>& nodes);
-    vector<string> add_links(const vector<atoms::Link*>& links);
+    vector<string> add_atoms(const vector<atoms::Atom*>& atoms, bool throw_if_exists = false);
+    vector<string> add_nodes(const vector<atoms::Node*>& nodes, bool throw_if_exists = false);
+    vector<string> add_links(const vector<atoms::Link*>& links, bool throw_if_exists = false);
 
     bool delete_atom(const string& handle, bool delete_link_targets = false);
     bool delete_node(const string& handle, bool delete_link_targets = false);
@@ -107,6 +107,11 @@ class RedisMongoDB : public AtomDB {
     uint delete_atoms(const vector<string>& handles, bool delete_link_targets = false);
     uint delete_nodes(const vector<string>& handles, bool delete_link_targets = false);
     uint delete_links(const vector<string>& handles, bool delete_link_targets = false);
+
+    bool upsert_document(const bsoncxx::v_noabi::document::value& document,
+                         const string& collection_name);
+    uint upsert_documents(const vector<bsoncxx::document::value>& documents,
+                          const string& collection_name);
 
     vector<shared_ptr<atomdb_api_types::AtomDocument>> get_filtered_documents(
         const string& collection_name,

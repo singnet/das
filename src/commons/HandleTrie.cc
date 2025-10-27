@@ -66,7 +66,8 @@ HandleTrie::HandleTrie(unsigned int key_size) {
     if (!HandleTrie::TLB_INITIALIZED) {
         HandleTrie::TLB_INIT();
     }
-    root = new TrieNode();
+    this->root = new TrieNode();
+    this->size = 0;
 }
 
 HandleTrie::~HandleTrie() { delete root; }
@@ -82,6 +83,7 @@ HandleTrie::TrieValue* HandleTrie::insert(const string& key, TrieValue* value) {
     TrieNode* split;
     unsigned char key_cursor = 0;
     tree_cursor->trie_node_mutex.lock();
+    this->size++;
     while (true) {
         unsigned char c = TLB[(unsigned char) key[key_cursor]];
         if (tree_cursor->children[c] == NULL) {
@@ -144,6 +146,7 @@ HandleTrie::TrieValue* HandleTrie::insert(const string& key, TrieValue* value) {
                 }
                 if (match) {
                     tree_cursor->value->merge(value);
+                    this->size--;
                     delete value;
                     if (tree_cursor != parent) {
                         parent->trie_node_mutex.unlock();

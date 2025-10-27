@@ -28,6 +28,8 @@ class Node : public Atom {
 
     Node(const string& type, const string& name, const Properties& custom_attributes);
 
+    Node(vector<string>& tokens);
+
     /**
      * @brief Copy constructor.
      * Deeply copies node type, name and all custom attributes.
@@ -97,5 +99,8 @@ class Node : public Atom {
      * @param decoder disregarded
      */
     virtual bool match(const string& handle, Assignment& assignment, HandleDecoder& decoder) override;
+
+    virtual void tokenize(vector<string>& output);
+    virtual void untokenize(vector<string>& tokens);
 };
 }  // namespace atoms

@@ -111,6 +111,7 @@ cc_library(
     name = "implication_query_evolution_main_lib",
     srcs = ["implication_query_evolution_main.cc"],
     deps = [
+        "//agents/context_broker:context_broker_lib",
         "//agents/evolution:evolution_lib",
         "//atomdb:atomdb_singleton",
         "//hasher:hasher_lib",

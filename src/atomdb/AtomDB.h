@@ -50,13 +50,16 @@ class AtomDB : public HandleDecoder {
     virtual set<string> nodes_exist(const vector<string>& handles) = 0;
     virtual set<string> links_exist(const vector<string>& handles) = 0;
 
-    virtual string add_atom(const atoms::Atom* atom) = 0;
-    virtual string add_node(const atoms::Node* node) = 0;
-    virtual string add_link(const atoms::Link* link) = 0;
+    virtual string add_atom(const atoms::Atom* atom, bool throw_if_exists = false) = 0;
+    virtual string add_node(const atoms::Node* node, bool throw_if_exists = false) = 0;
+    virtual string add_link(const atoms::Link* link, bool throw_if_exists = false) = 0;
 
-    virtual vector<string> add_atoms(const vector<atoms::Atom*>& atoms) = 0;
-    virtual vector<string> add_nodes(const vector<atoms::Node*>& nodes) = 0;
-    virtual vector<string> add_links(const vector<atoms::Link*>& links) = 0;
+    virtual vector<string> add_atoms(const vector<atoms::Atom*>& atoms,
+                                     bool throw_if_exists = false) = 0;
+    virtual vector<string> add_nodes(const vector<atoms::Node*>& nodes,
+                                     bool throw_if_exists = false) = 0;
+    virtual vector<string> add_links(const vector<atoms::Link*>& links,
+                                     bool throw_if_exists = false) = 0;
 
     virtual bool delete_atom(const string& handle, bool delete_link_targets = false) = 0;
     virtual bool delete_node(const string& handle, bool delete_link_targets = false) = 0;

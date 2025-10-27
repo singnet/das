@@ -18,6 +18,8 @@ Node::Node(const string& type, const string& name, const Properties& custom_attr
     this->validate();
 }
 
+Node::Node(vector<string>& tokens) { untokenize(tokens); }
+
 Node::Node(const Node& other) : Atom(other) { this->name = other.name; }
 
 Node& Node::operator=(const Node& other) {
@@ -61,4 +63,15 @@ string Node::metta_representation(HandleDecoder& decoder) const {
 
 bool Node::match(const string& handle, Assignment& assignment, HandleDecoder& decoder) {
     return this->handle() == handle;
+}
+
+void Node::tokenize(vector<string>& output) {
+    output.insert(output.begin(), this->name);
+    Atom::tokenize(output);
+}
+
+void Node::untokenize(vector<string>& tokens) {
+    Atom::untokenize(tokens);
+    this->name = tokens[0];
+    tokens.erase(tokens.begin(), tokens.begin() + 1);
 }

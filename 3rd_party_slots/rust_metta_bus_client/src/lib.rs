@@ -14,8 +14,12 @@ use types::BoxError;
 
 use crate::{
 	base_proxy_query::BaseQueryProxyT,
+	context_broker_proxy::{
+		default_context_broker_params, ContextBrokerParams, ContextBrokerProxy,
+	},
 	helpers::{run_metta_runner, split_ignore_quoted},
 	inference_proxy::{parse_inference_parameters, InferenceParams, InferenceProxy},
+	properties::{Properties, PropertyValue},
 	query_evolution_proxy::{
 		parse_evolution_parameters, QueryEvolutionParams, QueryEvolutionProxy,
 	},
@@ -26,6 +30,7 @@ pub mod space;
 
 pub mod bus;
 pub mod bus_node;
+pub mod context_broker_proxy;
 pub mod helpers;
 pub mod inference_proxy;
 pub mod pattern_matching_proxy;
@@ -42,16 +47,9 @@ pub mod base_proxy_query;
 #[derive(Clone, Default)]
 pub struct QueryParams {
 	tokens: Vec<String>,
-	max_query_answers: u32,
 	variables: HashSet<VariableAtom>,
 	context: String,
-	unique_assignment: bool,
-	positive_importance: bool,
-	update_attention_broker: bool,
-	count_only: bool,
-	populate_metta_mapping: bool,
-	use_metta_as_query_tokens: bool,
-	max_bundle_size: u64,
+	properties: Properties,
 }
 
 #[derive(Clone, Debug)]
@@ -61,18 +59,9 @@ pub enum QueryType {
 }
 
 pub fn query_with_das(
-	space_name: Option<String>, service_bus: Arc<Mutex<ServiceBus>>, query: &QueryType,
-	maybe_metta_runner: Option<MeTTaRunner>,
+	space_name: Option<String>, properties: Properties, service_bus: Arc<Mutex<ServiceBus>>,
+	query: &QueryType, maybe_metta_runner: Option<MeTTaRunner>,
 ) -> Result<BindingsSet, BoxError> {
-	let max_query_answers = 100;
-	let unique_assignment = true;
-	let positive_importance = false;
-	let update_attention_broker = false;
-	let count_only = false;
-	let populate_metta_mapping = true;
-	let use_metta_as_query_tokens = true;
-	let max_bundle_size = 10_000;
-
 	let mut atom = match query {
 		QueryType::Atom(a) => a.clone(),
 		_ => {
@@ -85,18 +74,20 @@ pub fn query_with_das(
 		atom = run_metta_runner(&atom, &metta_runner)?;
 	}
 
-	let maybe_evolution_params = match parse_evolution_parameters(&atom, &maybe_metta_runner) {
-		Ok(maybe_evolution_params) => {
-			if let Some(evolution_params) = maybe_evolution_params.clone() {
-				atom = evolution_params.query_atom;
-			}
-			maybe_evolution_params
-		},
-		Err(e) => {
-			log::error!(target: "das", "{e}");
-			return Ok(BindingsSet::empty());
-		},
-	};
+	let (maybe_context_broker_params, maybe_evolution_params) =
+		match parse_evolution_parameters(&atom, &maybe_metta_runner) {
+			Ok(maybe_evolution_params) => {
+				if let Some(evolution_params) = maybe_evolution_params.clone() {
+					atom = evolution_params.query_atom;
+				}
+				let maybe_context_broker_params = Some(default_context_broker_params());
+				(maybe_context_broker_params, maybe_evolution_params)
+			},
+			Err(e) => {
+				log::error!(target: "das", "{e}");
+				return Ok(BindingsSet::empty());
+			},
+		};
 
 	let maybe_inference_params = match parse_inference_parameters(&atom) {
 		Ok(maybe_inference_params) => maybe_inference_params,
@@ -106,34 +97,25 @@ pub fn query_with_das(
 		},
 	};
 
-	let params = match extract_query_params(
-		space_name,
-		query,
-		max_query_answers,
-		unique_assignment,
-		positive_importance,
-		update_attention_broker,
-		count_only,
-		populate_metta_mapping,
-		use_metta_as_query_tokens,
-		max_bundle_size,
-	) {
+	let params = match extract_query_params(space_name, query, properties) {
 		Ok(params) => params,
 		Err(bindings_set) => return Ok(bindings_set),
 	};
 
-	match (maybe_evolution_params, maybe_inference_params) {
-		(Some(evolution_params), None) => evolution_query(service_bus, &params, &evolution_params),
-		(None, Some(inference_params)) => inference_query(service_bus, &params, &inference_params),
+	match (maybe_context_broker_params, maybe_evolution_params, maybe_inference_params) {
+		(Some(context_broker_params), Some(evolution_params), None) => {
+			evolution_query(service_bus, &params, &context_broker_params, &evolution_params)
+		},
+		(None, None, Some(inference_params)) => {
+			inference_query(service_bus, &params, &inference_params)
+		},
 		_ => pattern_matching_query(service_bus, &params),
 	}
 }
 
 #[allow(clippy::too_many_arguments)]
 pub fn extract_query_params(
-	space_name: Option<String>, query: &QueryType, max_query_answers: u32, unique_assignment: bool,
-	positive_importance: bool, update_attention_broker: bool, count_only: bool,
-	populate_metta_mapping: bool, use_metta_as_query_tokens: bool, max_bundle_size: u64,
+	space_name: Option<String>, query: &QueryType, properties: Properties,
 ) -> Result<QueryParams, BindingsSet> {
 	let mut params = QueryParams::default();
 
@@ -159,26 +141,23 @@ pub fn extract_query_params(
 		QueryType::Atom(a) => a.to_string(),
 	};
 
-	let mut use_metta_as_query_tokens = use_metta_as_query_tokens;
+	let mut use_metta_as_query_tokens = properties.get(properties::USE_METTA_AS_QUERY_TOKENS);
 	params.tokens = if query_tokens_str.starts_with("(") {
 		vec![query_tokens_str]
 	} else {
 		use_metta_as_query_tokens = false;
 		split_ignore_quoted(&query_tokens_str)
 	};
+	params.properties.insert(
+		properties::USE_METTA_AS_QUERY_TOKENS.to_string(),
+		PropertyValue::Bool(use_metta_as_query_tokens),
+	);
 
 	log::debug!(target: "das", "Query: <{:?}>", params.tokens);
 	log::debug!(target: "das", "Vars : <{}>", variables.iter().map(|v| v.to_string()).collect::<Vec<String>>().join(","));
 
 	params.variables = variables;
-	params.max_query_answers = max_query_answers;
-	params.unique_assignment = unique_assignment;
-	params.positive_importance = positive_importance;
-	params.update_attention_broker = update_attention_broker;
-	params.count_only = count_only;
-	params.populate_metta_mapping = populate_metta_mapping;
-	params.use_metta_as_query_tokens = use_metta_as_query_tokens;
-	params.max_bundle_size = max_bundle_size;
+	params.properties = properties;
 
 	Ok(params)
 }
@@ -193,15 +172,16 @@ pub fn pattern_matching_query(
 	let mut service_bus = service_bus.lock().unwrap();
 	service_bus.issue_bus_command(proxy.base.clone())?;
 
+	let populate_metta_mapping = params.properties.get(properties::POPULATE_METTA_MAPPING);
+	let max_query_answers: u64 = params.properties.get(properties::MAX_ANSWERS);
+
 	while !proxy.finished() {
 		if let Some(query_answer) = proxy.pop() {
-			let mut bindings = parse_query_answer(&query_answer, params.populate_metta_mapping);
+			let mut bindings = parse_query_answer(&query_answer, populate_metta_mapping);
 			bindings = bindings.narrow_vars(&params.variables);
 
 			bindings_set.push(bindings);
-			if params.max_query_answers > 0
-				&& bindings_set.len() >= params.max_query_answers as usize
-			{
+			if max_query_answers > 0 && bindings_set.len() >= max_query_answers as usize {
 				break;
 			}
 		} else {
@@ -218,25 +198,40 @@ pub fn pattern_matching_query(
 
 pub fn evolution_query(
 	service_bus: Arc<Mutex<ServiceBus>>, params: &QueryParams,
-	evolution_params: &QueryEvolutionParams,
+	context_broker_params: &ContextBrokerParams, evolution_params: &QueryEvolutionParams,
 ) -> Result<BindingsSet, BoxError> {
 	let mut bindings_set = BindingsSet::empty();
 
+	let mut service_bus = service_bus.lock().unwrap();
+
+	let context_proxy = ContextBrokerProxy::new(params, context_broker_params)?;
+
+	service_bus.issue_bus_command(context_proxy.base.clone())?;
+
+	// Wait for ContextBrokerProxy to finish context creation
+	log::debug!(target: "das", "Waiting for context creation to finish...");
+	while !context_proxy.is_context_created() {
+		sleep(Duration::from_millis(100));
+	}
+
+	let context_str = context_proxy.get_key();
+	log::debug!(target: "das", "Context {context_str} was created");
+
 	let mut proxy = QueryEvolutionProxy::new(params, evolution_params)?;
 
-	let mut service_bus = service_bus.lock().unwrap();
 	service_bus.issue_bus_command(proxy.base.clone())?;
+
+	let populate_metta_mapping = params.properties.get(properties::POPULATE_METTA_MAPPING);
+	let max_query_answers: u64 = params.properties.get(properties::MAX_ANSWERS);
 
 	while !proxy.finished() {
 		// QueryEvolution
 		proxy.eval_fitness()?;
 		// PatternMatchingQuery
 		if let Some(query_answer) = proxy.pop() {
-			let bindings = parse_query_answer(&query_answer, params.populate_metta_mapping);
+			let bindings = parse_query_answer(&query_answer, populate_metta_mapping);
 			bindings_set.push(bindings);
-			if params.max_query_answers > 0
-				&& bindings_set.len() >= params.max_query_answers as usize
-			{
+			if max_query_answers > 0 && bindings_set.len() >= max_query_answers as usize {
 				break;
 			}
 		} else {
@@ -264,8 +259,12 @@ pub fn inference_query(
 		);
 	}
 
-	params.use_metta_as_query_tokens = false;
-	params.populate_metta_mapping = false;
+	params
+		.properties
+		.insert(properties::USE_METTA_AS_QUERY_TOKENS.to_string(), PropertyValue::Bool(false));
+	params
+		.properties
+		.insert(properties::POPULATE_METTA_MAPPING.to_string(), PropertyValue::Bool(false));
 
 	for idx in 0..inference_params.max_proof_length {
 		params.variables.insert(VariableAtom::new(format!("V{idx}")));
@@ -276,9 +275,11 @@ pub fn inference_query(
 	let mut service_bus = service_bus.lock().unwrap();
 	service_bus.issue_bus_command(proxy.base.clone())?;
 
+	let populate_metta_mapping = params.properties.get(properties::POPULATE_METTA_MAPPING);
+
 	while !proxy.finished() {
 		if let Some(query_answer) = proxy.pop() {
-			let bindings = parse_query_answer(&query_answer, params.populate_metta_mapping);
+			let bindings = parse_query_answer(&query_answer, populate_metta_mapping);
 			bindings_set.push(bindings);
 		} else {
 			sleep(Duration::from_millis(100));

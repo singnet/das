@@ -35,7 +35,6 @@ class ContextBrokerProxy : public BaseQueryProxy {
     static string ATTENTION_BROKER_SET_PARAMETERS;
     static string ATTENTION_BROKER_SET_PARAMETERS_FINISHED;
     static string CONTEXT_CREATED;
-    static string SHUTDOWN;
 
     // Query command's optional parameters
     static string USE_CACHE;                          // Whether to use cache
@@ -75,12 +74,6 @@ class ContextBrokerProxy : public BaseQueryProxy {
     // Context-specific API
 
     /**
-     * Check if the proxy is still running.
-     * @return Whether the proxy is still running
-     */
-    bool running();
-
-    /**
      * Get the context created flag.
      * @return Whether the context has been created
      */
@@ -102,11 +95,6 @@ class ContextBrokerProxy : public BaseQueryProxy {
      * @return Whether the attention broker parameters have been set
      */
     bool attention_broker_set_parameters_finished();
-
-    /**
-     * Send a shutdown command to the remote proxy.
-     */
-    void shutdown();
 
     /**
      * Get the context name.
@@ -200,7 +188,6 @@ class ContextBrokerProxy : public BaseQueryProxy {
 
     // Control flags
     bool context_created;
-    bool keep_alive;
     bool ongoing_attention_broker_set_parameters;
 };
 

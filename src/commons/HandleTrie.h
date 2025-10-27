@@ -85,6 +85,7 @@ class HandleTrie {
     void traverse(bool keep_root_locked, bool (*visit_function)(TrieNode* node, void* data), void* data);
 
     TrieNode* root;
+    unsigned int size;
 
    private:
     static unsigned char TLB[256];

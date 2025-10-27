@@ -65,3 +65,29 @@ string Atom::composite_type_hash(HandleDecoder& decoder) const { return named_ty
 string Atom::schema_handle() const { return this->handle(); }
 
 unsigned int Atom::arity() const { return 0; }
+
+void Atom::tokenize(vector<string>& output) {
+    vector<string> parameters_tokens = this->custom_attributes.tokenize();
+    parameters_tokens.insert(parameters_tokens.begin(), std::to_string(parameters_tokens.size()));
+    output.insert(output.begin(), parameters_tokens.begin(), parameters_tokens.end());
+    output.insert(output.begin(), (this->is_toplevel ? "true" : "false"));
+    output.insert(output.begin(), this->type);
+}
+
+void Atom::untokenize(vector<string>& tokens) {
+    this->type = tokens[0];
+    this->is_toplevel = (tokens[1] == "true");
+    tokens.erase(tokens.begin(), tokens.begin() + 2);
+    unsigned int num_property_tokens =
+        Utils::string_to_int(tokens[0]);  // safe conversion, should always be a number
+    if (num_property_tokens > 0) {
+        vector<string> properties_tokens;
+        properties_tokens.insert(
+            properties_tokens.begin(), tokens.begin() + 1, tokens.begin() + 1 + num_property_tokens);
+        this->custom_attributes.untokenize(properties_tokens);
+        tokens.erase(tokens.begin(), tokens.begin() + 1 + num_property_tokens);
+    } else {
+        // If no properties are provided, we still need to remove the first token
+        tokens.erase(tokens.begin());
+    }
+}

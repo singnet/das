@@ -97,19 +97,65 @@ jobs:
       - name: Install requirements
         run: sudo apt -y update && sudo apt -y install bc sqlite3
 
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r .github/scripts/requirements.txt
+
       - name: Download benchmark artifact
         uses: actions/download-artifact@v4
         with:
           name: benchmark-report-query-agent
           path: query_agent_benchmark
 
+      - name: Create SSH key file
+        id: ssh_key
+        run: |
+          KEY_FILE=$(mktemp)
+          echo "$BENCHMARK_KEY" > "$KEY_FILE"
+          chmod 600 "$KEY_FILE"
+          echo "key_file=$KEY_FILE" >> $GITHUB_OUTPUT
+        env:
+          BENCHMARK_KEY: ${{ secrets.BENCHMARK_KEY }}
+
       - name: Send Mattermost message
+        env:
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_SHA: ${{ github.sha }}
+          SSH_HOST: ${{ vars.BENCHMARK_SSH_HOST }}
+          SSH_PATH: ${{ vars.BENCHMARK_PATH }}
         run: |
           BENCHMARK_ID="${{ needs.benchmark_query_agent.outputs.benchmark_id }}"
           [ -z "$BENCHMARK_ID" ] && BENCHMARK_ID="UNKNOWN"
-          TITLE="Query Agent Benchmark Report - Single Thread, 10 iterations"
-          IS_PR="${{ github.event_name == 'pull_request' }}"
-          bash .github/scripts/mattermost-benchmark-report.sh "$BENCHMARK_ID" "$TITLE" "$IS_PR"
+          TITLE="Query Agent Benchmark Report"
+          DETAILS="Single Thread, 10 iterations"
+          KEY_FILE="${{ steps.ssh_key.outputs.key_file }}"
+
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            REPORT_TYPE="merge"
+          else
+            REPORT_TYPE="daily"
+          fi
+
+          python .github/scripts/mattermost-benchmark-report.py \
+            --benchmark-id "$BENCHMARK_ID" \
+            --title "$TITLE" \
+            --details "$DETAILS" \
+            --threshold 10 \
+            --ssh-host "$SSH_HOST" \
+            --ssh-path "$SSH_PATH" \
+            --ssh-key "$KEY_FILE" \
+            --report-type "$REPORT_TYPE"
+
+      - name: Remove SSH key file
+        if: always()
+        run: rm -f "${{ steps.ssh_key.outputs.key_file }}"
 
       - name: Notify Mattermost
         uses: singnet/integration-github-mattermost@v0.3.0
@@ -118,7 +164,6 @@ jobs:
           token: ${{ secrets.MATTERMOST_TOKEN }}
           channel-id: ${{ vars.MATTERMOST_CICD_CHANNEL_ID }}
           attachments-path: ./query_agent_benchmark/consolidated_report.txt
-
 
   notify_atomdb:
     runs-on: self-hosted-withcache
@@ -134,19 +179,65 @@ jobs:
       - name: Install requirements
         run: sudo apt -y update && sudo apt -y install bc sqlite3
 
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r .github/scripts/requirements.txt
+
       - name: Download benchmark artifact
         uses: actions/download-artifact@v4
         with:
           name: benchmark-report-atomdb
           path: atomdb_benchmark
 
+      - name: Create SSH key file
+        id: ssh_key
+        run: |
+          KEY_FILE=$(mktemp)
+          echo "$BENCHMARK_KEY" > "$KEY_FILE"
+          chmod 600 "$KEY_FILE"
+          echo "key_file=$KEY_FILE" >> $GITHUB_OUTPUT
+        env:
+          BENCHMARK_KEY: ${{ secrets.BENCHMARK_KEY }}
+
       - name: Send Mattermost message
+        env:
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_SHA: ${{ github.sha }}
+          SSH_HOST: ${{ vars.BENCHMARK_SSH_HOST }}
+          SSH_PATH: ${{ vars.BENCHMARK_PATH }}
         run: |
           BENCHMARK_ID="${{ needs.benchmark_atomdb.outputs.benchmark_id }}"
           [ -z "$BENCHMARK_ID" ] && BENCHMARK_ID="UNKNOWN"
-          TITLE="AtomDB Benchmark Report - Single Thread, 100 iterations"
-          IS_PR="${{ github.event_name == 'pull_request' }}"
-          bash .github/scripts/mattermost-benchmark-report.sh "$BENCHMARK_ID" "$TITLE" "$IS_PR"
+          TITLE="AtomDB Benchmark Report"
+          DETAILS="Single Thread, 100 iterations"
+          KEY_FILE="${{ steps.ssh_key.outputs.key_file }}"
+
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            REPORT_TYPE="merge"
+          else
+            REPORT_TYPE="daily"
+          fi
+
+          python .github/scripts/mattermost-benchmark-report.py \
+            --benchmark-id "$BENCHMARK_ID" \
+            --title "$TITLE" \
+            --details "$DETAILS" \
+            --threshold 10 \
+            --ssh-host "$SSH_HOST" \
+            --ssh-path "$SSH_PATH" \
+            --ssh-key "$KEY_FILE" \
+            --report-type "$REPORT_TYPE"
+
+      - name: Remove SSH key file
+        if: always()
+        run: rm -f "${{ steps.ssh_key.outputs.key_file }}"
 
       - name: Notify Mattermost
         uses: singnet/integration-github-mattermost@v0.3.0
