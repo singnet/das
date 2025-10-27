@@ -122,7 +122,7 @@ for complete documentation on how to use our Database Adapter.
 of the DAS components. So you should use it to start the AttentionBroker.
 
 ```
-das-cli attention-broker start &
+das-cli attention-broker start
 ```
 
 You're supposed to see an output like this:
@@ -213,7 +213,7 @@ MongoDB has started successfully on port 40021 at localhost, operating under the
 Now, start the AttentionBroker.
 
 ```
-make run-attention-broker 
+make run-attention-broker &
 ```
 
 The expected output is like this:
