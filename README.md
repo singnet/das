@@ -150,4 +150,117 @@ das-cli inference-agent start
 If you want to contribute with DAS project, please read our 
 [Development Guidelines](https://github.com/singnet/das/blob/master/docs/developer_guidelines.md) first.
 
+**Building and running unit tests**
 
+Clone this repo and build DAS components:
+
+```bash
+git clone git@github.com:singnet/das.git
+cd das
+make build-all
+```
+
+We have `make` commands for most of the usual things we need to to in the repo
+(building, running tests, code-style formatting, running agents, etc). The only thing we need to
+do with `das-cli` is the DB setup. See how to install/configure `das-cli` [here](https://github.com/singnet/das-toolbox).
+
+To run unit tests you're not supposed to use the default values in `das-cli config set`. Use the values listed below.
+
+```
+$ das-cli config set
+Enter Redis port [40020]: 29000
+Is it a Redis cluster? [y/N]: 
+Enter MongoDB port [40021]: 28000
+Enter MongoDB username [admin]: dbadmin
+Enter MongoDB password [admin]: dassecret
+Is it a MongoDB cluster? [y/N]: 
+Enter Jupyter Notebook port [40019]: 
+Enter the Attention Broker port [40001]: 37007
+Enter the Query Agent port [40002]: 
+Enter the Link Creation Agent Server port [40003]: 
+Enter the Inference Agent port [40004]: 
+Enter the Evolution agent port [40005]: 
+Enter the Context Broker port [40006]: 
+```
+
+Export the following environment variables.
+
+```
+export DAS_REDIS_HOSTNAME=localhost
+export DAS_REDIS_PORT=29000
+export DAS_USE_REDIS_CLUSTER=False
+export DAS_MONGODB_HOSTNAME=localhost
+export DAS_MONGODB_PORT=28000
+export DAS_MONGODB_USERNAME=dbadmin
+export DAS_MONGODB_PASSWORD=dassecret
+```
+
+To run unit tests, firstly you need to setup an AtomDB and a Mork server. First the AtomDB.
+
+```bash
+das-cli db start
+```
+
+The expected output is like this:
+
+```
+Starting Redis service...
+Redis has started successfully on port 40020 at localhost, operating under the server user senna.
+Starting MongoDB service...
+MongoDB has started successfully on port 40021 at localhost, operating under the server user senna.
+```
+
+Now, start the AttentionBroker.
+
+```bash
+make run-attention-broker 
+```
+
+The expected output is like this:
+
+```
+2025-10-27 17:32:27 | [INFO] | AttentionBroker server listening on 0.0.0.0:40001
+```
+
+Then, start the Mork server:
+
+```bash
+make run-mork-server &
+```
+
+The expected output is like this:
+
+```
+Server starting. 15 worker threads. Listening on 0.0.0.0:8000...
+```
+
+Now we need to load the testing knowledge base into Mork.
+
+```bash
+make mork-loader FILE=/home/senna/work/projects/das/github/das/src/tests/assets/animals_mork.metta
+```
+
+```
+The expected output is like this:
+
+```
+Serving /tmp at http://0.0.0.0:38800/
+Using port:  38800
+Processing: cmd=import, args=[String("$x"), String("$x")]
+Processing: cmd=status, args=[Expr([192])]
+127.0.0.1 - - [27/Oct/2025 16:29:43] "GET /file.metta HTTP/1.1" 200 -
+Successful download from 'http://0.0.0.0:38800/file.metta', file saved to '"/tmp/0000000000000000-0000000000000000-13c42c9d3a4d4054"'
+Loaded 81 atoms from MeTTa S-Expr
+Import command successful
+Processing: cmd=status, args=[Expr([192])]
+Done!
+Static server stop.
+```
+
+Now we are ready to run unit tests.
+
+```bash
+make test-all
+```
+
+You may want to start the AttentionBroker and the Mork Server in separate terminals to make log messages cleaner.
