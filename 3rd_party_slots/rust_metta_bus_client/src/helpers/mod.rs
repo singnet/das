@@ -5,7 +5,10 @@ use std::collections::HashSet;
 
 use hyperon_atom::{Atom, VariableAtom};
 
-use crate::types::{BoxError, MeTTaRunner};
+use crate::{
+	properties::{self, Properties, PropertyValue},
+	types::{BoxError, MeTTaRunner},
+};
 
 pub fn split_ignore_quoted(s: &str) -> Vec<String> {
 	let mut result = Vec::new();
@@ -55,6 +58,29 @@ pub fn split_ignore_quoted(s: &str) -> Vec<String> {
 	result
 }
 
+pub fn get_networking_params(params: &Properties) -> Result<(String, u16, u16, String), BoxError> {
+	let hostname =
+		params.try_get(properties::HOSTNAME).ok_or_else(|| BoxError::from("Hostname not found"))?;
+	let port_lower = params
+		.try_get(properties::PORT_LOWER)
+		.ok_or_else(|| BoxError::from("Port lower not found"))?;
+	let port_upper = params
+		.try_get(properties::PORT_UPPER)
+		.ok_or_else(|| BoxError::from("Port upper not found"))?;
+	let known_peer = params
+		.try_get(properties::KNOWN_PEER_ID)
+		.ok_or_else(|| BoxError::from("Known peer not found"))?;
+	match (hostname, port_lower, port_upper, known_peer) {
+		(
+			PropertyValue::String(hostname),
+			PropertyValue::UnsignedInt(port_lower),
+			PropertyValue::UnsignedInt(port_upper),
+			PropertyValue::String(known_peer),
+		) => Ok((hostname.clone(), *port_lower as u16, *port_upper as u16, known_peer.clone())),
+		_ => Err(BoxError::from("Invalid networking parameters")),
+	}
+}
+
 pub fn output_variable_clean_up(atom: &Atom) -> Atom {
 	match atom {
 		Atom::Variable(v) => {
@@ -80,32 +106,26 @@ pub fn run_metta_runner(atom: &Atom, metta_runner: &MeTTaRunner) -> Result<Atom,
 	match atom {
 		Atom::Expression(exp_atom) => {
 			let mut atoms = vec![];
-			for child in exp_atom.children() {
+			let children = exp_atom.children();
+			let mut pos = 0;
+			while pos < children.len() {
+				let child = children[pos].clone();
 				let child_str = child.to_string();
-				if child_str.contains('!') {
-					let result = metta_runner(format!("!{child_str}"))?;
+				if child_str.starts_with('!') {
+					pos += 1;
+					let next_child = children[pos].clone();
+					let result = metta_runner(format!("!{next_child}"))?;
 					let mut final_atom = child.clone();
 					for inner_atoms in result.iter() {
 						for expanded_atom in inner_atoms {
-							final_atom = match expanded_atom {
-								Atom::Expression(exp_atom) => {
-									let mut atoms = vec![];
-									for atom in exp_atom.children() {
-										match atom {
-											Atom::Symbol(s) if s.name() == "!" => {},
-											_ => atoms.push(output_variable_clean_up(atom)),
-										}
-									}
-									Atom::expr(atoms)
-								},
-								_ => expanded_atom.clone(),
-							}
+							final_atom = output_variable_clean_up(expanded_atom);
 						}
 					}
 					atoms.push(final_atom);
 				} else {
-					atoms.push(child.clone());
+					atoms.push(child);
 				}
+				pos += 1;
 			}
 			Ok(Atom::expr(atoms))
 		},

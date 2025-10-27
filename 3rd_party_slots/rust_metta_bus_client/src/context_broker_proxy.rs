@@ -1,11 +1,11 @@
 use std::sync::{Arc, Mutex};
 
-use hyperon_atom::{expr, Atom};
+use hyperon_atom::Atom;
 
 use crate::{
 	base_proxy_query::{BaseQueryProxy, BaseQueryProxyT},
 	bus::CONTEXT_CMD,
-	helpers::query_element::QueryElement,
+	helpers::{map_atom, query_element::QueryElement},
 	properties,
 	types::BoxError,
 	QueryParams,
@@ -21,8 +21,7 @@ pub static SHUTDOWN: &str = "shutdown";
 pub static CONTEXT_BROKER_PARSER_ERROR_MESSAGE: &str =
 	"CONTEXT query must have ((query) (determiner schema) (stimulus schema)) eg:
 (
-	CONTEXT
-	((Similarity \"human\" $S) ((_0 S) ...) (S ...))
+	((Similarity \"human\" $S) ((_0 $S) ($S $V) ...) ($S $V ...))
 )";
 
 #[derive(Clone)]
@@ -154,49 +153,35 @@ pub fn hash_context(context: &str) -> String {
 	format!("{:x}", hasher.finish())
 }
 
-pub fn parse_context_broker_parameters(
-	atom: &Atom,
-) -> Result<Option<ContextBrokerParams>, BoxError> {
+pub fn parse_context_broker_parameters(atom: &Atom) -> Result<ContextBrokerParams, BoxError> {
 	if let Atom::Expression(exp_atom) = &atom {
 		let children = exp_atom.children();
-		if let Some(Atom::Symbol(s)) = children.first() {
-			if s.name() == "CONTEXT" {
-				if children.len() < 3 {
-					return Err(CONTEXT_BROKER_PARSER_ERROR_MESSAGE.to_string().into());
-				}
-
-				let mut query_atom = Atom::expr([]);
-				let mut determiner_schema = vec![];
-				let mut stimulus_schema = vec![];
-				if let Atom::Expression(exp_atom) = children[1].clone() {
-					let children = exp_atom.children();
-					if children.len() != 3 {
-						return Err(CONTEXT_BROKER_PARSER_ERROR_MESSAGE.to_string().into());
-					}
-					query_atom = children[0].clone();
-					determiner_schema =
-						vec![(QueryElement::new_handle(0), QueryElement::new_variable("S"))];
-					stimulus_schema = vec![QueryElement::new_variable("S")];
-				}
-
-				return Ok(Some(ContextBrokerParams {
-					query_atom,
-					determiner_schema,
-					stimulus_schema,
-				}));
-			}
+		if children.len() < 3 {
+			return Err(CONTEXT_BROKER_PARSER_ERROR_MESSAGE.to_string().into());
 		}
-	}
-	Ok(None)
-}
 
-pub fn default_context_broker_params() -> ContextBrokerParams {
-	ContextBrokerParams {
-		query_atom: expr!("Contains" sentence1 word1),
-		determiner_schema: vec![
-			(QueryElement::new_handle(0), QueryElement::new_variable("sentence1")),
-			(QueryElement::new_variable("sentence1"), QueryElement::new_variable("word1")),
-		],
-		stimulus_schema: vec![],
+		// TODO(arturgontijo): Implement context broker parameters parsing
+		let query_atom = children[0].clone();
+		let determiner_schema = map_atom(&children[1].clone(), |atom| {
+			if let Atom::Expression(exp_atom) = atom {
+				let children = exp_atom.children();
+				if children.len() != 2 {
+					panic!("{}", CONTEXT_BROKER_PARSER_ERROR_MESSAGE.to_string());
+				}
+
+				let first_element = QueryElement::try_from(&children[0]).unwrap();
+				let second_element = QueryElement::try_from(&children[1]).unwrap();
+
+				(first_element, second_element)
+			} else {
+				panic!("{}", CONTEXT_BROKER_PARSER_ERROR_MESSAGE.to_string());
+			}
+		});
+
+		let stimulus_schema =
+			map_atom(&children[2].clone(), |atom| QueryElement::try_from(atom).unwrap());
+
+		return Ok(ContextBrokerParams { query_atom, determiner_schema, stimulus_schema });
 	}
+	Err(CONTEXT_BROKER_PARSER_ERROR_MESSAGE.to_string().into())
 }

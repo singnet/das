@@ -1,6 +1,14 @@
 use std::collections::HashMap;
 use std::fmt::{Display, Formatter};
 
+pub static CONTEXT: &str = "context";
+
+// Networking
+pub static HOSTNAME: &str = "hostname";
+pub static PORT_LOWER: &str = "port_lower";
+pub static PORT_UPPER: &str = "port_upper";
+pub static KNOWN_PEER_ID: &str = "known_peer_id";
+
 pub static ATTENTION_UPDATE_FLAG: &str = "attention_update_flag";
 pub static COUNT_FLAG: &str = "count_flag";
 pub static MAX_BUNDLE_SIZE: &str = "max_bundle_size";
@@ -97,6 +105,14 @@ impl Properties {
 impl Default for Properties {
 	fn default() -> Self {
 		let mut map = HashMap::new();
+
+		map.insert(CONTEXT.to_string(), PropertyValue::String("context".to_string()));
+
+		// Networking
+		map.insert(HOSTNAME.to_string(), PropertyValue::String("localhost:41999".to_string()));
+		map.insert(PORT_LOWER.to_string(), PropertyValue::UnsignedInt(42000));
+		map.insert(PORT_UPPER.to_string(), PropertyValue::UnsignedInt(42999));
+		map.insert(KNOWN_PEER_ID.to_string(), PropertyValue::String("localhost:40002".to_string()));
 
 		// Base
 		map.insert(MAX_ANSWERS.to_string(), PropertyValue::UnsignedInt(1_000));

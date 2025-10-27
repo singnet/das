@@ -14,15 +14,11 @@ use types::BoxError;
 
 use crate::{
 	base_proxy_query::BaseQueryProxyT,
-	context_broker_proxy::{
-		default_context_broker_params, ContextBrokerParams, ContextBrokerProxy,
-	},
+	context_broker_proxy::{ContextBrokerParams, ContextBrokerProxy},
 	helpers::{run_metta_runner, split_ignore_quoted},
 	inference_proxy::{parse_inference_parameters, InferenceParams, InferenceProxy},
 	properties::{Properties, PropertyValue},
-	query_evolution_proxy::{
-		parse_evolution_parameters, QueryEvolutionParams, QueryEvolutionProxy,
-	},
+	query_evolution_proxy::{QueryEvolutionParams, QueryEvolutionProxy},
 	types::MeTTaRunner,
 };
 
@@ -74,21 +70,6 @@ pub fn query_with_das(
 		atom = run_metta_runner(&atom, &metta_runner)?;
 	}
 
-	let (maybe_context_broker_params, maybe_evolution_params) =
-		match parse_evolution_parameters(&atom, &maybe_metta_runner) {
-			Ok(maybe_evolution_params) => {
-				if let Some(evolution_params) = maybe_evolution_params.clone() {
-					atom = evolution_params.query_atom;
-				}
-				let maybe_context_broker_params = Some(default_context_broker_params());
-				(maybe_context_broker_params, maybe_evolution_params)
-			},
-			Err(e) => {
-				log::error!(target: "das", "{e}");
-				return Ok(BindingsSet::empty());
-			},
-		};
-
 	let maybe_inference_params = match parse_inference_parameters(&atom) {
 		Ok(maybe_inference_params) => maybe_inference_params,
 		Err(e) => {
@@ -102,14 +83,9 @@ pub fn query_with_das(
 		Err(bindings_set) => return Ok(bindings_set),
 	};
 
-	match (maybe_context_broker_params, maybe_evolution_params, maybe_inference_params) {
-		(Some(context_broker_params), Some(evolution_params), None) => {
-			evolution_query(service_bus, &params, &context_broker_params, &evolution_params)
-		},
-		(None, None, Some(inference_params)) => {
-			inference_query(service_bus, &params, &inference_params)
-		},
-		_ => pattern_matching_query(service_bus, &params),
+	match maybe_inference_params {
+		Some(inference_params) => inference_query(service_bus, &params, &inference_params),
+		None => pattern_matching_query(service_bus, &params),
 	}
 }
 
@@ -196,12 +172,10 @@ pub fn pattern_matching_query(
 	Ok(bindings_set)
 }
 
-pub fn evolution_query(
+pub fn create_context(
 	service_bus: Arc<Mutex<ServiceBus>>, params: &QueryParams,
-	context_broker_params: &ContextBrokerParams, evolution_params: &QueryEvolutionParams,
-) -> Result<BindingsSet, BoxError> {
-	let mut bindings_set = BindingsSet::empty();
-
+	context_broker_params: &ContextBrokerParams,
+) -> Result<Atom, BoxError> {
 	let mut service_bus = service_bus.lock().unwrap();
 
 	let context_proxy = ContextBrokerProxy::new(params, context_broker_params)?;
@@ -214,8 +188,24 @@ pub fn evolution_query(
 		sleep(Duration::from_millis(100));
 	}
 
-	let context_str = context_proxy.get_key();
-	log::debug!(target: "das", "Context {context_str} was created");
+	let context_name = context_proxy.get_name();
+	let context_key = context_proxy.get_key();
+	log::debug!(target: "das", "Context <name={context_name}> <key={context_key}> was created");
+
+	let name_exp = Atom::expr([Atom::sym("name"), Atom::sym(context_name)]);
+	let key_exp = Atom::expr([Atom::sym("key"), Atom::sym(context_key)]);
+	let context_exp = Atom::expr([name_exp, key_exp]);
+
+	Ok(context_exp)
+}
+
+pub fn evolution_query(
+	service_bus: Arc<Mutex<ServiceBus>>, params: &QueryParams,
+	evolution_params: &QueryEvolutionParams,
+) -> Result<BindingsSet, BoxError> {
+	let mut bindings_set = BindingsSet::empty();
+
+	let mut service_bus = service_bus.lock().unwrap();
 
 	let mut proxy = QueryEvolutionProxy::new(params, evolution_params)?;
 

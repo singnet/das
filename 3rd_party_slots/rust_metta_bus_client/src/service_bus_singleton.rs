@@ -19,7 +19,10 @@ impl ServiceBusSingleton {
 	pub fn init(
 		host_id: String, known_peer: String, port_lower: u16, port_upper: u16,
 	) -> Result<(), BoxError> {
-		INITIALIZED.set(true).expect("ServiceBusSingleton already initialized!");
+		match INITIALIZED.set(true) {
+			Ok(_) => (),
+			Err(_) => return Err(BoxError::from("ServiceBusSingleton already initialized!")),
+		}
 		let service_bus = ServiceBus::new(
 			host_id,
 			known_peer,
