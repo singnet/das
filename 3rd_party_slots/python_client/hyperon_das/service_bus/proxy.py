@@ -93,7 +93,7 @@ class AtomSpaceNodeManager:
 
         with grpc.insecure_channel(self.peer_id) as channel:
             stub = AtomSpaceNodeStub(channel)
-            log.debug(f"Sending command: {self.PROXY_COMMAND} with args: {args} to target: {target_id}")
+            log.debug(f"Sending command: {self.PROXY_COMMAND} with args: {args} to target: {self.peer_id}")
             message = atom__space__node__pb2__grpc.MessageData(
                 command=self.PROXY_COMMAND,
                 args=args,
