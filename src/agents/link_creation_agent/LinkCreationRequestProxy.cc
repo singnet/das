@@ -4,17 +4,21 @@
 
 using namespace link_creation_agent;
 
-const string LinkCreationRequestProxy::Parameters::QUERY_INTERVAL =
-    "link_creation_agent.requests_interval";
-const string LinkCreationRequestProxy::Parameters::QUERY_TIMEOUT = "link_creation_agent.query_timeout";
-
-const string LinkCreationRequestProxy::Parameters::ABORT_FLAG = "link_creation_agent.abort_flag";
+const string LinkCreationRequestProxy::MAX_RESULTS = "lca.mr";
+const string LinkCreationRequestProxy::REPEAT_COUNT = "lca.rc";
+const string LinkCreationRequestProxy::INFINITE_REQUEST = "lca.ir";
+const string LinkCreationRequestProxy::CONTEXT = "lca.ctx";
+const string LinkCreationRequestProxy::UPDATE_ATTENTION_BROKER = "lca.uab";
+const string LinkCreationRequestProxy::IMPORTANCE_FLAG = "lca.if";
+const string LinkCreationRequestProxy::QUERY_INTERVAL = "lca.qi";
+const string LinkCreationRequestProxy::QUERY_TIMEOUT = "lca.qt";
 
 LinkCreationRequestProxy::LinkCreationRequestProxy() : BaseProxy() {}
 
 LinkCreationRequestProxy::LinkCreationRequestProxy(const vector<string>& tokens) : BaseProxy() {
     lock_guard<mutex> semaphore(this->api_mutex);
     this->command = ServiceBus::LINK_CREATION;
+    set_default_parameters();
     this->args.insert(this->args.end(), tokens.begin(), tokens.end());
 }
 
@@ -23,8 +27,14 @@ LinkCreationRequestProxy::~LinkCreationRequestProxy() {}
 void LinkCreationRequestProxy::pack_command_line_args() { tokenize(this->args); }
 
 void LinkCreationRequestProxy::set_default_parameters() {
-    this->parameters[LinkCreationRequestProxy::Parameters::QUERY_INTERVAL] = (unsigned int) 800;
-    this->parameters[LinkCreationRequestProxy::Parameters::QUERY_TIMEOUT] = (unsigned int) 600;
+    this->parameters[LinkCreationRequestProxy::MAX_RESULTS] = (unsigned int) 10;
+    this->parameters[LinkCreationRequestProxy::REPEAT_COUNT] = (unsigned int) 1;
+    this->parameters[LinkCreationRequestProxy::INFINITE_REQUEST] = false;
+    this->parameters[LinkCreationRequestProxy::CONTEXT] = string("");
+    this->parameters[LinkCreationRequestProxy::UPDATE_ATTENTION_BROKER] = false;
+    this->parameters[LinkCreationRequestProxy::IMPORTANCE_FLAG] = true;
+    this->parameters[LinkCreationRequestProxy::QUERY_INTERVAL] = (unsigned int) 0;
+    this->parameters[LinkCreationRequestProxy::QUERY_TIMEOUT] = (unsigned int) 0;
 }
 
 void LinkCreationRequestProxy::set_parameter(const string& key, const PropertyValue& value) {

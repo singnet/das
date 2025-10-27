@@ -10,6 +10,7 @@
 #include "LinkCreationAgent.h"
 #include "LinkCreationRequestProcessor.h"
 #include "MockAtomDB.h"
+#include "MockServiceBus.h"
 #include "TemplateProcessor.h"
 #include "Utils.h"
 
@@ -18,6 +19,14 @@ using namespace link_creation_agent;
 using namespace commons;
 using namespace service_bus;
 using namespace atomdb;
+
+class MockLinkCreationRequestProxy : public LinkCreationRequestProxy {
+   public:
+    MockLinkCreationRequestProxy(const vector<string>& tokens) : LinkCreationRequestProxy(tokens) {}
+    ~MockLinkCreationRequestProxy() {}
+    MOCK_METHOD(string, peer_id, (), (override));
+    MOCK_METHOD(uint, get_serial, (), (override));
+};
 
 class LinkCreationAgentTest : public ::testing::Test {
    protected:
@@ -40,28 +49,35 @@ class LinkCreationAgentTest : public ::testing::Test {
         this->save_links_to_db = false;
         this->server_id = "localhost:40040";
         AtomDBSingleton::provide(move(make_shared<AtomDBMock>()));
+        ServiceBusSingleton::provide(
+            move(make_shared<MockServiceBus>("localhost:40038", "localhost:40039")));
     }
 
     void TearDown() override {
         remove("test_buffer.bin");
         AtomDBSingleton::provide(nullptr);
+        ServiceBusSingleton::provide(nullptr);
     }
 };
 
 TEST_F(LinkCreationAgentTest, TestRequest) {
-    vector<string> request = {"query1",
-                              "LINK_CREATE",
-                              "test",
-                              "1",
-                              "0",
-                              "VARIABLE",
-                              "V1",
-                              "10",
-                              "5",
-                              "test_context",
-                              "true",
-                              "id1"};
-    shared_ptr<LinkCreationAgentRequest> lca_request = LinkCreationAgent::create_request(request);
+    auto agent = new LinkCreationAgent();
+    vector<string> request = {
+        "query1",
+        "LINK_CREATE",
+        "test",
+        "1",
+        "0",
+        "VARIABLE",
+        "V1",
+    };
+    auto proxy = make_shared<MockLinkCreationRequestProxy>(request);
+    proxy->parameters[LinkCreationRequestProxy::MAX_RESULTS] = (uint) 10;
+    proxy->parameters[LinkCreationRequestProxy::REPEAT_COUNT] = (uint) 5;
+    proxy->parameters[LinkCreationRequestProxy::CONTEXT] = "test_context";
+    proxy->parameters[LinkCreationRequestProxy::UPDATE_ATTENTION_BROKER] = true;
+
+    shared_ptr<LinkCreationAgentRequest> lca_request = agent->create_request(proxy);
     EXPECT_EQ(lca_request->query, vector<string>({"query1"}));
     EXPECT_EQ(lca_request->link_template,
               vector<string>({"LINK_CREATE", "test", "1", "0", "VARIABLE", "V1"}));
@@ -72,37 +88,28 @@ TEST_F(LinkCreationAgentTest, TestRequest) {
     EXPECT_EQ(lca_request->infinite, false);
     EXPECT_EQ(lca_request->id.empty(), false);
     request.clear();
+    request = {"query2", "LINK_CREATE", "test2", "2", "1", "NODE", "Symbol", "A", "VARIABLE", "V1"};
+    proxy = make_shared<MockLinkCreationRequestProxy>(request);
+    proxy->parameters[LinkCreationRequestProxy::MAX_RESULTS] = (uint) 10;
+    proxy->parameters[LinkCreationRequestProxy::REPEAT_COUNT] = (uint) 0;
+    proxy->parameters[LinkCreationRequestProxy::CONTEXT] = "test_context";
+    proxy->parameters[LinkCreationRequestProxy::UPDATE_ATTENTION_BROKER] = false;
+    lca_request = agent->create_request(proxy);
 
-    request = {"query2",
-               "LINK_CREATE",
-               "test2",
-               "2",
-               "1",
-               "NODE",
-               "Symbol",
-               "A",
-               "VARIABLE",
-               "V1",
-               "10",
-               "-1",
-               "test_context",
-               "false",
-               "1"};
-    lca_request = LinkCreationAgent::create_request(request);
     EXPECT_EQ(lca_request->query, vector<string>({"query2"}));
     EXPECT_EQ(
         lca_request->link_template,
         vector<string>({"LINK_CREATE", "test2", "2", "1", "NODE", "Symbol", "A", "VARIABLE", "V1"}));
     EXPECT_EQ(lca_request->max_results, 10);
-    EXPECT_EQ(lca_request->repeat, -1);
+    EXPECT_EQ(lca_request->repeat, 0);
     EXPECT_EQ(lca_request->context, "test_context");
     EXPECT_EQ(lca_request->update_attention_broker, false);
     EXPECT_EQ(lca_request->infinite, true);
-    EXPECT_EQ(lca_request->id, "c4ca4238a0b923820dcc509a6f75849b");
+    EXPECT_EQ(lca_request->id, "cfcd208495d565ef66e7dff9f98764da");
+    delete agent;
 }
 
 TEST_F(LinkCreationAgentTest, TestConfig) {
-    ServiceBusSingleton::init(this->server_id, "", 40500, 40599);
     shared_ptr<ServiceBus> service_bus = ServiceBusSingleton::get_instance();
     service_bus->register_processor(
         make_shared<LinkCreationRequestProcessor>(this->request_interval,
@@ -401,7 +408,7 @@ TEST_F(LinkCreationAgentTest, TestLinkTemplateProcessor) {
     ASSERT_TRUE(targets_node.empty());
 }
 
-TEST(ImplicationProcessor, TestImplicationProcessor) {
+TEST(ImplicationProcessor, TestImplicationProcessorQueryBuilding) {
     LinkSchema ls = ImplicationProcessor::build_pattern_query("HANDLE Value1");
     vector<string> output;
     ls.tokenize(output);
@@ -418,7 +425,7 @@ TEST(ImplicationProcessor, TestImplicationProcessor) {
               "PREDICATE ATOM h2 LINK_TEMPLATE Expression 2 NODE Symbol CONCEPT VARIABLE C");
 }
 
-TEST(EquivalenceProcessor, TestEquivalenceProcessor) {
+TEST(EquivalenceProcessor, TestEquivalenceProcessorQueryBuilding) {
     LinkSchema ls = LinkProcessor::build_pattern_set_query("h1", "h2");
     vector<string> output;
     ls.tokenize(output);
@@ -433,7 +440,194 @@ TEST(EquivalenceProcessor, TestEquivalenceProcessor) {
     ls.tokenize(output);
     EXPECT_EQ(Utils::join(output, ' '),
               "LINK_TEMPLATE OR 2 LINK_TEMPLATE Expression 3 NODE Symbol EVALUATION LINK_TEMPLATE "
-              "Expression 2 NODE Symbol PREDICATE VARIABLE P LINK Expression 2 NODE Symbol CONCEPT ATOM "
-              "h1 LINK_TEMPLATE Expression 3 NODE Symbol EVALUATION LINK_TEMPLATE Expression 2 NODE "
-              "Symbol PREDICATE VARIABLE P LINK Expression 2 NODE Symbol CONCEPT ATOM h2");
+              "Expression 2 NODE Symbol PREDICATE VARIABLE P LINK Expression 2 NODE Symbol CONCEPT "
+              "ATOM h1 LINK_TEMPLATE Expression 3 NODE Symbol EVALUATION LINK_TEMPLATE Expression 2 "
+              "NODE Symbol PREDICATE VARIABLE P LINK Expression 2 NODE Symbol CONCEPT ATOM h2");
+}
+
+TEST_F(LinkCreationAgentTest, TestImplicationProcessorLinkCreation) {
+    auto mock_service_bus = dynamic_cast<MockServiceBus*>(ServiceBusSingleton::get_instance().get());
+    string A = "A";
+    string B = "B";
+    string C = "C";
+    vector<vector<string>> calls = {
+        {A, B, C},
+        {B, A},
+    };
+
+    vector<vector<pair<string, string>>> pairs = {{{A, B}, {B, C}, {C, A}}, {{B, A}, {C, B}}};
+    int count = 0;
+    EXPECT_CALL(*mock_service_bus, issue_bus_command(testing::_))
+        .Times(2)
+        .WillRepeatedly(
+            ::testing::Invoke([&count, &calls, &pairs](shared_ptr<BusCommandProxy> command_proxy) {
+                auto proxy = dynamic_pointer_cast<PatternMatchingQueryProxy>(command_proxy);
+                vector<string> query_answers;
+                int cc = 0;
+                for (const auto& handle : calls[count]) {
+                    auto qa = make_shared<QueryAnswer>(handle, 0.0);
+                    qa->assignment.assign("C1", pairs[count][cc].first);
+                    qa->assignment.assign("C2", pairs[count][cc].second);
+                    cc++;
+                    query_answers.push_back(qa->tokenize());
+                }
+                proxy->answer_bundle(query_answers);
+                proxy->command_finished({});
+                count++;
+            }));
+    auto ip = make_shared<ImplicationProcessor>();
+    shared_ptr<QueryAnswer> query_answer = make_shared<QueryAnswer>(1.0);
+    query_answer->add_handle(A);
+    query_answer->add_handle(B);
+    auto links = ip->process_query(query_answer, vector<string>({"context"}));
+    EXPECT_EQ(links.size(), 2);
+    EXPECT_NEAR(links[0]->custom_attributes.get<double>("strength"), 0.66, 1e-2);
+    EXPECT_NEAR(links[1]->custom_attributes.get<double>("strength"), 1, 1e-2);
+}
+
+TEST_F(LinkCreationAgentTest, TestImplicationProcessorLinkCreationOr) {
+    auto mock_service_bus = dynamic_cast<MockServiceBus*>(ServiceBusSingleton::get_instance().get());
+    string A = "A";
+    string B = "B";
+    string C = "C";
+    vector<vector<pair<string, string>>> calls = {{{A, B}, {B, C}, {C, A}}, {{B, A}, {C, B}}};
+
+    vector<vector<pair<string, string>>> pairs = {{{A, B}, {B, C}, {C, A}}, {{B, A}, {C, B}}};
+    int count = 0;
+    EXPECT_CALL(*mock_service_bus, issue_bus_command(testing::_))
+        .Times(2)
+        .WillRepeatedly(
+            ::testing::Invoke([&count, &calls, &pairs](shared_ptr<BusCommandProxy> command_proxy) {
+                auto proxy = dynamic_pointer_cast<PatternMatchingQueryProxy>(command_proxy);
+                vector<string> query_answers;
+                int cc = 0;
+                for (const auto& handle : calls[count]) {
+                    auto qa = make_shared<QueryAnswer>(handle.first, 0.0);
+                    qa->add_handle(handle.second);
+                    qa->assignment.assign("C1", pairs[count][cc].first);
+                    qa->assignment.assign("C2", pairs[count][cc].second);
+                    cc++;
+                    query_answers.push_back(qa->tokenize());
+                }
+                proxy->answer_bundle(query_answers);
+                proxy->command_finished({});
+                count++;
+            }));
+
+    auto targets = vector<pair<string, string>>{{A, B}, {B, A}, {B, C}, {C, B}, {C, A}, {A, C}};
+    int t_count = 0;
+    auto mock_atomdb = dynamic_cast<AtomDBMock*>(AtomDBSingleton::get_instance().get());
+    EXPECT_CALL(*mock_atomdb, get_atom(testing::_))
+        .Times(5)
+        .WillRepeatedly(::testing::Invoke([&targets, &t_count](const string& handle) {
+            Properties props;
+            props["strength"] = 0.33 * (t_count + 1);
+            vector<string> targets_ = {targets[t_count].first, targets[t_count].second};
+            auto link = make_shared<Link>("Expression", targets_, props);
+            t_count++;
+            return link;
+        }));
+    auto ip = make_shared<ImplicationProcessor>();
+    shared_ptr<QueryAnswer> query_answer = make_shared<QueryAnswer>(1.0);
+    query_answer->add_handle(A);
+    query_answer->add_handle(B);
+    auto links = ip->process_query(query_answer, vector<string>({"context"}));
+    EXPECT_EQ(links.size(), 2);
+    // TODO review these expected values
+    EXPECT_NEAR(links[0]->custom_attributes.get<double>("strength"), 1.5, 1e-2);
+    EXPECT_NEAR(links[1]->custom_attributes.get<double>("strength"), 1, 1e-2);
+}
+
+TEST_F(LinkCreationAgentTest, TestEquivalenceProcessorLinkCreation) {
+    auto mock_service_bus = dynamic_cast<MockServiceBus*>(ServiceBusSingleton::get_instance().get());
+    string A = "A";
+    string B = "B";
+    string C = "C";
+    string D = "D";
+    vector<vector<string>> calls = {
+        {A, B, C},
+        {B, A, D},
+    };
+
+    vector<vector<pair<string, string>>> pairs = {{{A, B}, {B, C}, {C, A}}, {{B, A}, {C, B}, {D, C}}};
+    int count = 0;
+    EXPECT_CALL(*mock_service_bus, issue_bus_command(testing::_))
+        .Times(2)
+        .WillRepeatedly(
+            ::testing::Invoke([&count, &calls, &pairs](shared_ptr<BusCommandProxy> command_proxy) {
+                auto proxy = dynamic_pointer_cast<PatternMatchingQueryProxy>(command_proxy);
+                vector<string> query_answers;
+                int cc = 0;
+                for (const auto& handle : calls[count]) {
+                    auto qa = make_shared<QueryAnswer>(handle, 0.0);
+                    qa->assignment.assign("P1", pairs[count][cc].first);
+                    qa->assignment.assign("P2", pairs[count][cc].second);
+                    cc++;
+                    query_answers.push_back(qa->tokenize());
+                }
+                proxy->answer_bundle(query_answers);
+                proxy->command_finished({});
+                count++;
+            }));
+    auto ep = make_shared<EquivalenceProcessor>();
+    shared_ptr<QueryAnswer> query_answer = make_shared<QueryAnswer>(1.0);
+    query_answer->add_handle(A);
+    query_answer->add_handle(B);
+    auto links = ep->process_query(query_answer, vector<string>({"context"}));
+    EXPECT_EQ(links.size(), 2);
+    EXPECT_NEAR(links[0]->custom_attributes.get<double>("strength"), 0.5, 1e-2);
+    EXPECT_NEAR(links[1]->custom_attributes.get<double>("strength"), 0.5, 1e-2);
+}
+
+TEST_F(LinkCreationAgentTest, TestEquivalenceProcessorLinkCreationOr) {
+    auto mock_service_bus = dynamic_cast<MockServiceBus*>(ServiceBusSingleton::get_instance().get());
+    string A = "A";
+    string B = "B";
+    string C = "C";
+    vector<vector<pair<string, string>>> calls = {{{A, B}, {B, C}, {C, A}}, {{B, A}, {C, B}}};
+
+    vector<vector<pair<string, string>>> pairs = {{{A, B}, {B, C}, {C, A}}, {{B, A}, {C, B}}};
+    int count = 0;
+    EXPECT_CALL(*mock_service_bus, issue_bus_command(testing::_))
+        .Times(2)
+        .WillRepeatedly(
+            ::testing::Invoke([&count, &calls, &pairs](shared_ptr<BusCommandProxy> command_proxy) {
+                auto proxy = dynamic_pointer_cast<PatternMatchingQueryProxy>(command_proxy);
+                vector<string> query_answers;
+                int cc = 0;
+                for (const auto& handle : calls[count]) {
+                    auto qa = make_shared<QueryAnswer>(handle.first, 0.0);
+                    qa->add_handle(handle.second);
+                    qa->assignment.assign("P1", pairs[count][cc].first);
+                    qa->assignment.assign("P2", pairs[count][cc].second);
+                    cc++;
+                    query_answers.push_back(qa->tokenize());
+                }
+                proxy->answer_bundle(query_answers);
+                proxy->command_finished({});
+                count++;
+            }));
+
+    auto targets = vector<pair<string, string>>{{A, B}, {B, A}, {B, C}, {C, B}, {C, A}, {A, C}};
+    int t_count = 0;
+    auto mock_atomdb = dynamic_cast<AtomDBMock*>(AtomDBSingleton::get_instance().get());
+    EXPECT_CALL(*mock_atomdb, get_atom(testing::_))
+        .Times(5)
+        .WillRepeatedly(::testing::Invoke([&targets, &t_count](const string& handle) {
+            Properties props;
+            props["strength"] = 0.33 * (t_count + 1);
+            vector<string> targets_ = {targets[t_count].first, targets[t_count].second};
+            auto link = make_shared<Link>("Expression", targets_, props);
+            t_count++;
+            return link;
+        }));
+    auto ip = make_shared<EquivalenceProcessor>();
+    shared_ptr<QueryAnswer> query_answer = make_shared<QueryAnswer>(1.0);
+    query_answer->add_handle(A);
+    query_answer->add_handle(B);
+    auto links = ip->process_query(query_answer, vector<string>({"context"}));
+    EXPECT_EQ(links.size(), 2);
+    // TODO review these expected values
+    EXPECT_NEAR(links[0]->custom_attributes.get<double>("strength"), 0.9, 1e-2);
+    EXPECT_NEAR(links[1]->custom_attributes.get<double>("strength"), 0.9, 1e-2);
 }

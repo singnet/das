@@ -189,14 +189,23 @@ void InferenceAgent::send_link_creation_request(shared_ptr<InferenceRequest> inf
         for (auto& token : request_iterator) {
             request.push_back(token);
         }
-        request.push_back(
-            to_string(inference_request->get_lca_max_results()));  // TODO check max results value
-        request.push_back(to_string(inference_request->get_lca_max_repeats()));  // repeat
-        request.push_back(inference_request->get_context());                     // context
-        request.push_back(inference_request->get_lca_update_attention_broker()
-                              ? "true"
-                              : "false");  // update_attention_broker
+        // request.push_back(
+        //     to_string(inference_request->get_lca_max_results()));  // TODO check max results value
+        // request.push_back(to_string(inference_request->get_lca_max_repeats()));  // repeat
+        // request.push_back(inference_request->get_context());                     // context
+        // request.push_back(inference_request->get_lca_update_attention_broker()
+        //                       ? "true"
+        //                       : "false");  // update_attention_broker
         auto link_creation_proxy = make_shared<LinkCreationRequestProxy>(request);
+        link_creation_proxy->parameters[LinkCreationRequestProxy::MAX_RESULTS] =
+            (unsigned int) inference_request->get_lca_max_results();
+        link_creation_proxy->parameters[LinkCreationRequestProxy::REPEAT_COUNT] =
+            (unsigned int) inference_request->get_lca_max_repeats();
+        link_creation_proxy->parameters[LinkCreationRequestProxy::INFINITE_REQUEST] = false;
+        link_creation_proxy->parameters[LinkCreationRequestProxy::CONTEXT] =
+            inference_request->get_context();
+        link_creation_proxy->parameters[LinkCreationRequestProxy::UPDATE_ATTENTION_BROKER] = false;
+        link_creation_proxy->parameters[LinkCreationRequestProxy::IMPORTANCE_FLAG] = true;
         this->link_creation_proxy_map[inference_request->get_id()].push_back(link_creation_proxy);
         service_bus->issue_bus_command(link_creation_proxy);
     }

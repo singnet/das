@@ -23,15 +23,15 @@ namespace link_creation_agent {
 class LinkCreationRequestProxy : public BaseProxy {
    public:
     // ---------------------------------------------------------------------------------------------
-    struct Commands {
-        // Commands allowed at the proxy level
-    };
 
-    struct Parameters {
-        static const string QUERY_INTERVAL;
-        static const string QUERY_TIMEOUT;
-        static const string ABORT_FLAG;
-    };
+    static const string MAX_RESULTS;
+    static const string REPEAT_COUNT;
+    static const string INFINITE_REQUEST;
+    static const string CONTEXT;
+    static const string UPDATE_ATTENTION_BROKER;
+    static const string IMPORTANCE_FLAG;
+    static const string QUERY_INTERVAL;
+    static const string QUERY_TIMEOUT;
 
     /**
      * Empty constructor typically used on server side.
