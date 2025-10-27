@@ -627,7 +627,6 @@ TEST_F(LinkCreationAgentTest, TestEquivalenceProcessorLinkCreationOr) {
     query_answer->add_handle(B);
     auto links = ip->process_query(query_answer, vector<string>({"context"}));
     EXPECT_EQ(links.size(), 2);
-    // TODO review these expected values
     EXPECT_NEAR(links[0]->custom_attributes.get<double>("strength"), 0.9, 1e-2);
     EXPECT_NEAR(links[1]->custom_attributes.get<double>("strength"), 0.9, 1e-2);
 }

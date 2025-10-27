@@ -189,13 +189,6 @@ void InferenceAgent::send_link_creation_request(shared_ptr<InferenceRequest> inf
         for (auto& token : request_iterator) {
             request.push_back(token);
         }
-        // request.push_back(
-        //     to_string(inference_request->get_lca_max_results()));  // TODO check max results value
-        // request.push_back(to_string(inference_request->get_lca_max_repeats()));  // repeat
-        // request.push_back(inference_request->get_context());                     // context
-        // request.push_back(inference_request->get_lca_update_attention_broker()
-        //                       ? "true"
-        //                       : "false");  // update_attention_broker
         auto link_creation_proxy = make_shared<LinkCreationRequestProxy>(request);
         link_creation_proxy->parameters[LinkCreationRequestProxy::MAX_RESULTS] =
             (unsigned int) inference_request->get_lca_max_results();
