@@ -53,7 +53,7 @@ and to use it to configure the DAS components you are planning to use:
 * Link Creation agent
 * Inference agent
 
-In [this README](https://github.com/singnet/das/blob/master/docs/das-cli-users-guide.md) we provide details and examples
+In this [README](https://github.com/singnet/das/blob/master/docs/das-cli-users-guide.md) we provide details and examples
 of the various commands we use here to configure DAS. Please refer to it to better understand the command line parameters
 we mention below. `das-cli` also has `man pages` and an embedded documentation (invoked with `--help`) which are installed
 together with the toolbox package.
@@ -66,7 +66,7 @@ of how to configure DAS and use it inside Hyperon Experimental. These notebook c
 
 To configure your DAS environment, just run
 
-```bash
+```
 das-cli config set
 ```
 
@@ -78,13 +78,13 @@ you don't have any other tool listening to the PORT numbers we are using.
 The AtomDB is where the knowlege base is persisted. If you already have a persisted AtomDB you can just
 start the Atom DB by calling
 
-```bash
+```
 das-cli db start
 ```
 
 If you don't have your knowledge base persisted as an AtomDB yet, you need to load it as a MeTTa file by calling
 
-```bash
+```
 das-cli db start
 das-cli metta load /absolut/path/to/test/metta/file/at/das/src/tests/animals_extended.metta
 ```
@@ -121,8 +121,8 @@ for complete documentation on how to use our Database Adapter.
 [das-cli](https://github.com/singnet/das-toolbox) can be used to start/stop any
 of the DAS components. So you should use it to start the AttentionBroker.
 
-```bash
-das-cli attention-broker start
+```
+das-cli attention-broker start &
 ```
 
 You're supposed to see an output like this:
@@ -138,7 +138,7 @@ Attention Broker started on port 40001
 Similarly, you can use `das-cli` to start the Query Engine and the other DAS agents. The Query Engine is
 a mandatory component but the other agents are optional.
 
-```bash
+```
 das-cli query-agent start
 das-cli evolution-agent start
 das-cli link-creation-agent start
@@ -154,7 +154,7 @@ If you want to contribute with DAS project, please read our
 
 Clone this repo and build DAS components:
 
-```bash
+```
 git clone git@github.com:singnet/das.git
 cd das
 make build-all
@@ -197,7 +197,7 @@ export DAS_MONGODB_PASSWORD=dassecret
 
 To run unit tests, firstly you need to setup an AtomDB and a Mork server. First the AtomDB.
 
-```bash
+```
 das-cli db start
 ```
 
@@ -212,7 +212,7 @@ MongoDB has started successfully on port 40021 at localhost, operating under the
 
 Now, start the AttentionBroker.
 
-```bash
+```
 make run-attention-broker 
 ```
 
@@ -224,7 +224,7 @@ The expected output is like this:
 
 Then, start the Mork server:
 
-```bash
+```
 make run-mork-server &
 ```
 
@@ -236,7 +236,7 @@ Server starting. 15 worker threads. Listening on 0.0.0.0:8000...
 
 Now we need to load the testing knowledge base into Mork.
 
-```bash
+```
 make mork-loader FILE=/home/senna/work/projects/das/github/das/src/tests/assets/animals_mork.metta
 ```
 
@@ -259,7 +259,7 @@ Static server stop.
 
 Now we are ready to run unit tests.
 
-```bash
+```
 make test-all
 ```
 
