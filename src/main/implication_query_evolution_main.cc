@@ -77,7 +77,7 @@ static unsigned int NUM_ITERATIONS = 10;
 static bool CONTEXT_CREATION_ONLY = true;
 static bool SAVE_NEW_LINKS = true;
 static string NEW_LINKS_FILE_NAME = "newly_created_links.txt";
-static string CONTEXT_FILE_NAME = "_CONTEXT_DUMP";
+static string CONTEXT_FILE_NAME = "/tmp/_ATTENTION_BROKER_CONTEXT_DUMP";
 
 using namespace std;
 using namespace atomdb;

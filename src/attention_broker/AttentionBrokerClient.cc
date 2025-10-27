@@ -202,7 +202,7 @@ void AttentionBrokerClient::save_context(const string& context, const string& fi
 
     LOG_INFO("Calling AttentionBroker GRPC. Saving context contents into a file. Context: " + context +
              " File name: " + file_name);
-    stub->drop_and_load_context(new grpc::ClientContext(), request, &ack);
+    stub->save_context(new grpc::ClientContext(), request, &ack);
     if (ack.msg() != "SAVE_CONTEXT") {
         Utils::error("Failed GRPC command: AttentionBroker::save_context()");
     }
