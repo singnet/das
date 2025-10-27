@@ -4,11 +4,11 @@
 
 using namespace inference_agent;
 
-string InferenceProxy::INFERENCE_REQUEST_TIMEOUT = "INFERENCE_REQUEST_TIMEOUT";
-string InferenceProxy::UPDATE_ATTENTION_BROKER_FLAG = "UPDATE_ATTENTION_BROKER_FLAG";
-string InferenceProxy::REPEAT_REQUEST_NUMBER = "REPEAT_REQUEST_NUMBER";
-string InferenceProxy::MAX_QUERY_ANSWERS_TO_PROCESS = "MAX_QUERY_ANSWERS_TO_PROCESS";
-string InferenceProxy::RUN_FULL_EVALUATION_QUERY = "RUN_FULL_EVALUATION_QUERY";
+string InferenceProxy::INFERENCE_REQUEST_TIMEOUT = "inference_request_timeout";
+string InferenceProxy::UPDATE_ATTENTION_BROKER = "update_attention_broker";
+string InferenceProxy::REPEAT_COUNT = "repeat_count";
+string InferenceProxy::MAX_RESULTS = "max_results";
+string InferenceProxy::RUN_FULL_EVALUATION_QUERY = "run_full_evaluation_query";
 
 InferenceProxy::InferenceProxy() : BaseQueryProxy() {}
 
@@ -26,9 +26,9 @@ void InferenceProxy::pack_command_line_args() { tokenize(this->args); }
 void InferenceProxy::set_default_parameters() {
     this->parameters[INFERENCE_REQUEST_TIMEOUT] =
         (unsigned int) 24 * 60 * 60;  // Default timeout is 24 hours
-    this->parameters[UPDATE_ATTENTION_BROKER_FLAG] = (bool) false;
-    this->parameters[REPEAT_REQUEST_NUMBER] = (unsigned int) 5;
-    this->parameters[MAX_QUERY_ANSWERS_TO_PROCESS] = (unsigned int) 150;
+    this->parameters[UPDATE_ATTENTION_BROKER] = (bool) false;
+    this->parameters[REPEAT_COUNT] = (unsigned int) 5;
+    this->parameters[MAX_RESULTS] = (unsigned int) 150;
     this->parameters[RUN_FULL_EVALUATION_QUERY] = (bool) false;
 }
 

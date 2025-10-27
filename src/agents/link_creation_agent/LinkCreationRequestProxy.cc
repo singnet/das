@@ -4,14 +4,14 @@
 
 using namespace link_creation_agent;
 
-const string LinkCreationRequestProxy::MAX_RESULTS = "lca.mr";
-const string LinkCreationRequestProxy::REPEAT_COUNT = "lca.rc";
-const string LinkCreationRequestProxy::INFINITE_REQUEST = "lca.ir";
-const string LinkCreationRequestProxy::CONTEXT = "lca.ctx";
-const string LinkCreationRequestProxy::UPDATE_ATTENTION_BROKER = "lca.uab";
-const string LinkCreationRequestProxy::IMPORTANCE_FLAG = "lca.if";
-const string LinkCreationRequestProxy::QUERY_INTERVAL = "lca.qi";
-const string LinkCreationRequestProxy::QUERY_TIMEOUT = "lca.qt";
+const string LinkCreationRequestProxy::MAX_RESULTS = "max_results";
+const string LinkCreationRequestProxy::REPEAT_COUNT = "repeat_count";
+const string LinkCreationRequestProxy::INFINITE_REQUEST = "infinite_request";
+const string LinkCreationRequestProxy::CONTEXT = "context";
+const string LinkCreationRequestProxy::UPDATE_ATTENTION_BROKER = "update_attention_broker";
+const string LinkCreationRequestProxy::IMPORTANCE_FLAG = "importance_flag";
+const string LinkCreationRequestProxy::QUERY_INTERVAL = "query_interval";
+const string LinkCreationRequestProxy::QUERY_TIMEOUT = "query_timeout";
 
 LinkCreationRequestProxy::LinkCreationRequestProxy() : BaseProxy() {}
 

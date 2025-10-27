@@ -24,13 +24,21 @@ class LinkCreationRequestProxy : public BaseProxy {
    public:
     // ---------------------------------------------------------------------------------------------
 
+    /** Maximum number of answers to return for each query */
     static const string MAX_RESULTS;
+    /** Number of times to repeat the link creation request, queries and creates links N times */
     static const string REPEAT_COUNT;
+    /** Whether the request is infinite, queries and create links indefinitely */
     static const string INFINITE_REQUEST;
+    /** Context for the request */
     static const string CONTEXT;
+    /** Whether to update the attention broker when running queries */
     static const string UPDATE_ATTENTION_BROKER;
+    /** Importance flag for the request, return only answers that have importance greater than zero */
     static const string IMPORTANCE_FLAG;
+    /** Query interval for the request, controls how many time to wait between queries and link creations*/
     static const string QUERY_INTERVAL;
+    /** Query timeout for the request, controls how long to wait for a query to complete */
     static const string QUERY_TIMEOUT;
 
     /**

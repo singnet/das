@@ -345,11 +345,11 @@ void InferenceAgent::process_inference_request(shared_ptr<InferenceProxy> proxy)
     LOG_DEBUG(
         "  Timeout: " << proxy->parameters.get<unsigned int>(InferenceProxy::INFERENCE_REQUEST_TIMEOUT));
     LOG_DEBUG("  Max Results: " << proxy->parameters.get<unsigned int>(
-                  InferenceProxy::MAX_QUERY_ANSWERS_TO_PROCESS));
+                  InferenceProxy::MAX_RESULTS));
     LOG_DEBUG(
         "  Full Evaluation: " << proxy->parameters.get<bool>(InferenceProxy::RUN_FULL_EVALUATION_QUERY));
     LOG_DEBUG("  Inference process repeat: "
-              << proxy->parameters.get<unsigned int>(InferenceProxy::REPEAT_REQUEST_NUMBER));
+              << proxy->parameters.get<unsigned int>(InferenceProxy::REPEAT_COUNT));
     auto inference_request = build_inference_request(proxy->get_args());
     inference_request->set_id(request_id);
     inference_request->set_correlation_query("");
@@ -358,13 +358,13 @@ void InferenceAgent::process_inference_request(shared_ptr<InferenceProxy> proxy)
     inference_request->set_timeout(
         proxy->parameters.get<unsigned int>(InferenceProxy::INFERENCE_REQUEST_TIMEOUT));
     inference_request->set_lca_max_results(
-        proxy->parameters.get<unsigned int>(InferenceProxy::MAX_QUERY_ANSWERS_TO_PROCESS));
+        proxy->parameters.get<unsigned int>(InferenceProxy::MAX_RESULTS));
     inference_request->set_full_evaluation(
         proxy->parameters.get<bool>(InferenceProxy::RUN_FULL_EVALUATION_QUERY));
     inference_request->set_lca_update_attention_broker(
-        proxy->parameters.get<bool>(InferenceProxy::UPDATE_ATTENTION_BROKER_FLAG));
+        proxy->parameters.get<bool>(InferenceProxy::UPDATE_ATTENTION_BROKER));
     inference_request->set_repeat(
-        proxy->parameters.get<unsigned int>(InferenceProxy::REPEAT_REQUEST_NUMBER));
+        proxy->parameters.get<unsigned int>(InferenceProxy::REPEAT_COUNT));
     inference_request_queue.enqueue(inference_request);
     LOG_DEBUG("Inference request processed for request ID: " << request_id);
 }
