@@ -2,7 +2,7 @@ from hyperon_das.commons.atoms import Atom
 from hyperon_das.logger import log
 from hyperon_das.hasher import Hasher
 from hyperon_das.commons.properties import Properties
-from hyperon_das.commons.atoms import HandleDecoder
+from hyperon_das.commons.atoms.handle_decoder import HandleDecoder
 from hyperon_das.query_answer import Assignment
 
 
@@ -14,7 +14,7 @@ class Node(Atom):
         is_toplevel: bool = False,
         custom_attributes: Properties = Properties(),
         tokens: list[str] | None = None,
-        other: 'Node' | None = None
+        other=None
     ) -> None:
         if tokens:
             self.untokenize(tokens)

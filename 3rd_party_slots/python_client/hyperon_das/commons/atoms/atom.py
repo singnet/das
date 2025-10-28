@@ -3,7 +3,7 @@ import abc
 from hyperon_das.commons.properties import Properties
 from hyperon_das.logger import log
 from hyperon_das.hasher import Hasher
-from hyperon_das.commons.atoms import HandleDecoder
+from hyperon_das.commons.atoms.handle_decoder import HandleDecoder
 from hyperon_das.query_answer import Assignment
 
 
@@ -16,7 +16,7 @@ class Atom:
         type: str,
         is_toplevel: bool = False,
         custom_attributes: Properties = Properties(),
-        other: 'Atom' = None
+        other=None
     ) -> None:
         if other:
             self.type = other.type
