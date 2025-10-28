@@ -189,14 +189,15 @@ void InferenceAgent::send_link_creation_request(shared_ptr<InferenceRequest> inf
         for (auto& token : request_iterator) {
             request.push_back(token);
         }
-        request.push_back(
-            to_string(inference_request->get_lca_max_results()));  // TODO check max results value
-        request.push_back(to_string(inference_request->get_lca_max_repeats()));  // repeat
-        request.push_back(inference_request->get_context());                     // context
-        request.push_back(inference_request->get_lca_update_attention_broker()
-                              ? "true"
-                              : "false");  // update_attention_broker
         auto link_creation_proxy = make_shared<LinkCreationRequestProxy>(request);
+        link_creation_proxy->parameters[LinkCreationRequestProxy::MAX_ANSWERS] =
+            (unsigned int) inference_request->get_lca_max_results();
+        link_creation_proxy->parameters[LinkCreationRequestProxy::REPEAT_COUNT] =
+            (unsigned int) inference_request->get_lca_max_repeats();
+        link_creation_proxy->parameters[LinkCreationRequestProxy::CONTEXT] =
+            inference_request->get_context();
+        link_creation_proxy->parameters[LinkCreationRequestProxy::ATTENTION_UPDATE_FLAG] = false;
+        link_creation_proxy->parameters[LinkCreationRequestProxy::POSITIVE_IMPORTANCE_FLAG] = true;
         this->link_creation_proxy_map[inference_request->get_id()].push_back(link_creation_proxy);
         service_bus->issue_bus_command(link_creation_proxy);
     }
@@ -342,12 +343,9 @@ void InferenceAgent::process_inference_request(shared_ptr<InferenceProxy> proxy)
     LOG_DEBUG("  Tokens: " << Utils::join(proxy->get_args(), ' '));
     LOG_DEBUG(
         "  Timeout: " << proxy->parameters.get<unsigned int>(InferenceProxy::INFERENCE_REQUEST_TIMEOUT));
-    LOG_DEBUG("  Max Results: " << proxy->parameters.get<unsigned int>(
-                  InferenceProxy::MAX_QUERY_ANSWERS_TO_PROCESS));
-    LOG_DEBUG(
-        "  Full Evaluation: " << proxy->parameters.get<bool>(InferenceProxy::RUN_FULL_EVALUATION_QUERY));
+    LOG_DEBUG("  Max Results: " << proxy->parameters.get<unsigned int>(InferenceProxy::MAX_ANSWERS));
     LOG_DEBUG("  Inference process repeat: "
-              << proxy->parameters.get<unsigned int>(InferenceProxy::REPEAT_REQUEST_NUMBER));
+              << proxy->parameters.get<unsigned int>(InferenceProxy::REPEAT_COUNT));
     auto inference_request = build_inference_request(proxy->get_args());
     inference_request->set_id(request_id);
     inference_request->set_correlation_query("");
@@ -356,13 +354,10 @@ void InferenceAgent::process_inference_request(shared_ptr<InferenceProxy> proxy)
     inference_request->set_timeout(
         proxy->parameters.get<unsigned int>(InferenceProxy::INFERENCE_REQUEST_TIMEOUT));
     inference_request->set_lca_max_results(
-        proxy->parameters.get<unsigned int>(InferenceProxy::MAX_QUERY_ANSWERS_TO_PROCESS));
-    inference_request->set_full_evaluation(
-        proxy->parameters.get<bool>(InferenceProxy::RUN_FULL_EVALUATION_QUERY));
+        proxy->parameters.get<unsigned int>(InferenceProxy::MAX_ANSWERS));
     inference_request->set_lca_update_attention_broker(
-        proxy->parameters.get<bool>(InferenceProxy::UPDATE_ATTENTION_BROKER_FLAG));
-    inference_request->set_repeat(
-        proxy->parameters.get<unsigned int>(InferenceProxy::REPEAT_REQUEST_NUMBER));
+        proxy->parameters.get<bool>(InferenceProxy::ATTENTION_UPDATE_FLAG));
+    inference_request->set_repeat(proxy->parameters.get<unsigned int>(InferenceProxy::REPEAT_COUNT));
     inference_request_queue.enqueue(inference_request);
     LOG_DEBUG("Inference request processed for request ID: " << request_id);
 }

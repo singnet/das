@@ -134,14 +134,10 @@ int main(int argc, char* argv[]) {
 
     auto proxy = make_shared<InferenceProxy>(request);
     proxy->parameters[InferenceProxy::INFERENCE_REQUEST_TIMEOUT] = (unsigned int) stoi(timeout_str);
-    proxy->parameters[InferenceProxy::MAX_QUERY_ANSWERS_TO_PROCESS] =
-        (unsigned int) stoi(max_query_answers_str);
-    proxy->parameters[InferenceProxy::UPDATE_ATTENTION_BROKER_FLAG] =
+    proxy->parameters[InferenceProxy::MAX_ANSWERS] = (unsigned int) stoi(max_query_answers_str);
+    proxy->parameters[InferenceProxy::ATTENTION_UPDATE_FLAG] =
         (update_attention_broker_str == "true" || update_attention_broker_str == "1");
-    proxy->parameters[InferenceProxy::RUN_FULL_EVALUATION_QUERY] =
-        (run_full_evaluation_str == "true" || run_full_evaluation_str == "1");
-    proxy->parameters[InferenceProxy::REPEAT_REQUEST_NUMBER] =
-        (unsigned int) stoi(number_of_iterations_str);
+    proxy->parameters[InferenceProxy::REPEAT_COUNT] = (unsigned int) stoi(number_of_iterations_str);
     auto client = ServiceBusSingleton::get_instance();
 
     client->issue_bus_command(proxy);
