@@ -72,10 +72,10 @@ TEST_F(LinkCreationAgentTest, TestRequest) {
         "V1",
     };
     auto proxy = make_shared<MockLinkCreationRequestProxy>(request);
-    proxy->parameters[LinkCreationRequestProxy::MAX_RESULTS] = (uint) 10;
+    proxy->parameters[LinkCreationRequestProxy::MAX_ANSWERS] = (uint) 10;
     proxy->parameters[LinkCreationRequestProxy::REPEAT_COUNT] = (uint) 5;
     proxy->parameters[LinkCreationRequestProxy::CONTEXT] = "test_context";
-    proxy->parameters[LinkCreationRequestProxy::UPDATE_ATTENTION_BROKER] = true;
+    proxy->parameters[LinkCreationRequestProxy::ATTENTION_UPDATE_FLAG] = true;
 
     shared_ptr<LinkCreationAgentRequest> lca_request = agent->create_request(proxy);
     EXPECT_EQ(lca_request->query, vector<string>({"query1"}));
@@ -90,10 +90,10 @@ TEST_F(LinkCreationAgentTest, TestRequest) {
     request.clear();
     request = {"query2", "LINK_CREATE", "test2", "2", "1", "NODE", "Symbol", "A", "VARIABLE", "V1"};
     proxy = make_shared<MockLinkCreationRequestProxy>(request);
-    proxy->parameters[LinkCreationRequestProxy::MAX_RESULTS] = (uint) 10;
+    proxy->parameters[LinkCreationRequestProxy::MAX_ANSWERS] = (uint) 10;
     proxy->parameters[LinkCreationRequestProxy::REPEAT_COUNT] = (uint) 0;
     proxy->parameters[LinkCreationRequestProxy::CONTEXT] = "test_context";
-    proxy->parameters[LinkCreationRequestProxy::UPDATE_ATTENTION_BROKER] = false;
+    proxy->parameters[LinkCreationRequestProxy::ATTENTION_UPDATE_FLAG] = false;
     lca_request = agent->create_request(proxy);
 
     EXPECT_EQ(lca_request->query, vector<string>({"query2"}));

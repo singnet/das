@@ -189,16 +189,15 @@ shared_ptr<LinkCreationAgentRequest> LinkCreationAgent::create_request(
                 lca_request->query.push_back(token);
             }
         }
-        lca_request->infinite = proxy->parameters.get<bool>(LinkCreationRequestProxy::INFINITE_REQUEST);
         lca_request->max_results =
-            proxy->parameters.get<unsigned int>(LinkCreationRequestProxy::MAX_RESULTS);
+            proxy->parameters.get<unsigned int>(LinkCreationRequestProxy::MAX_ANSWERS);
         lca_request->repeat =
             proxy->parameters.get<unsigned int>(LinkCreationRequestProxy::REPEAT_COUNT);
         lca_request->context = proxy->parameters.get<string>(LinkCreationRequestProxy::CONTEXT);
         lca_request->update_attention_broker =
-            proxy->parameters.get<bool>(LinkCreationRequestProxy::UPDATE_ATTENTION_BROKER);
+            proxy->parameters.get<bool>(LinkCreationRequestProxy::ATTENTION_UPDATE_FLAG);
         lca_request->importance_flag =
-            proxy->parameters.get<bool>(LinkCreationRequestProxy::IMPORTANCE_FLAG);
+            proxy->parameters.get<bool>(LinkCreationRequestProxy::POSITIVE_IMPORTANCE_FLAG);
         LOG_DEBUG(proxy->peer_id());
         LOG_DEBUG(to_string(proxy->get_serial()));
         lca_request->original_id = proxy->peer_id() + to_string(proxy->get_serial());

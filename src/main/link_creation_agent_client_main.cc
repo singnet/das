@@ -26,7 +26,7 @@ int main(int argc, char* argv[]) {
         server_address: The address of the server to connect to, in the form "host:port"
         <start_port:end_port>: The lower and upper bound for the port numbers to be used by the command proxy
         <max_results>: Maximum number of results to return (default: 1000)
-        <repeat>: Number of times to repeat the request (set -1 for infinite)
+        <repeat>: Number of times to repeat the request (set 0 for infinite)
         <update_attention_broker>: Whether to update the attention broker (true/false)
         <importance_flag>: Whether to set the importance flag (true/false)
         <context>: Context for the link creation request
@@ -58,12 +58,11 @@ int main(int argc, char* argv[]) {
     AtomDBSingleton::init();
     ServiceBusSingleton::init(client_id, server_id, ports_range.first, ports_range.second);
     auto proxy = make_shared<LinkCreationRequestProxy>(request);
-    proxy->parameters[LinkCreationRequestProxy::MAX_RESULTS] = (unsigned int) max_results;
+    proxy->parameters[LinkCreationRequestProxy::MAX_ANSWERS] = (unsigned int) max_results;
     proxy->parameters[LinkCreationRequestProxy::REPEAT_COUNT] = (unsigned int) repeat;
-    proxy->parameters[LinkCreationRequestProxy::INFINITE_REQUEST] = (repeat == -1);
     proxy->parameters[LinkCreationRequestProxy::CONTEXT] = context;
-    proxy->parameters[LinkCreationRequestProxy::UPDATE_ATTENTION_BROKER] = update_attention_broker;
-    proxy->parameters[LinkCreationRequestProxy::IMPORTANCE_FLAG] = importance_flag;
+    proxy->parameters[LinkCreationRequestProxy::ATTENTION_UPDATE_FLAG] = update_attention_broker;
+    proxy->parameters[LinkCreationRequestProxy::POSITIVE_IMPORTANCE_FLAG] = importance_flag;
     ServiceBusSingleton::get_instance()->issue_bus_command(proxy);
     return 0;
 }

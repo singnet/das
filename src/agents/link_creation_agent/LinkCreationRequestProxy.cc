@@ -1,17 +1,17 @@
 #include "LinkCreationRequestProxy.h"
 
+#include "BaseQueryProxy.h"
 #include "ServiceBus.h"
 
 using namespace link_creation_agent;
 
-const string LinkCreationRequestProxy::MAX_RESULTS = "max_results";
-const string LinkCreationRequestProxy::REPEAT_COUNT = "repeat_count";
-const string LinkCreationRequestProxy::INFINITE_REQUEST = "infinite_request";
-const string LinkCreationRequestProxy::CONTEXT = "context";
-const string LinkCreationRequestProxy::UPDATE_ATTENTION_BROKER = "update_attention_broker";
-const string LinkCreationRequestProxy::IMPORTANCE_FLAG = "importance_flag";
-const string LinkCreationRequestProxy::QUERY_INTERVAL = "query_interval";
-const string LinkCreationRequestProxy::QUERY_TIMEOUT = "query_timeout";
+string LinkCreationRequestProxy::MAX_ANSWERS = "max_answers";
+string LinkCreationRequestProxy::REPEAT_COUNT = "repeat_count";
+string LinkCreationRequestProxy::CONTEXT = "context";
+string LinkCreationRequestProxy::ATTENTION_UPDATE_FLAG = "attention_update_flag";
+string LinkCreationRequestProxy::POSITIVE_IMPORTANCE_FLAG = "positive_importance_flag";
+string LinkCreationRequestProxy::QUERY_INTERVAL = "query_interval";
+string LinkCreationRequestProxy::QUERY_TIMEOUT = "query_timeout";
 
 LinkCreationRequestProxy::LinkCreationRequestProxy() : BaseProxy() {}
 
@@ -27,12 +27,11 @@ LinkCreationRequestProxy::~LinkCreationRequestProxy() {}
 void LinkCreationRequestProxy::pack_command_line_args() { tokenize(this->args); }
 
 void LinkCreationRequestProxy::set_default_parameters() {
-    this->parameters[LinkCreationRequestProxy::MAX_RESULTS] = (unsigned int) 10;
+    this->parameters[LinkCreationRequestProxy::MAX_ANSWERS] = (unsigned int) 10;
     this->parameters[LinkCreationRequestProxy::REPEAT_COUNT] = (unsigned int) 1;
-    this->parameters[LinkCreationRequestProxy::INFINITE_REQUEST] = false;
     this->parameters[LinkCreationRequestProxy::CONTEXT] = string("");
-    this->parameters[LinkCreationRequestProxy::UPDATE_ATTENTION_BROKER] = false;
-    this->parameters[LinkCreationRequestProxy::IMPORTANCE_FLAG] = true;
+    this->parameters[LinkCreationRequestProxy::ATTENTION_UPDATE_FLAG] = false;
+    this->parameters[LinkCreationRequestProxy::POSITIVE_IMPORTANCE_FLAG] = true;
     this->parameters[LinkCreationRequestProxy::QUERY_INTERVAL] = (unsigned int) 0;
     this->parameters[LinkCreationRequestProxy::QUERY_TIMEOUT] = (unsigned int) 0;
 }
