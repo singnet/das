@@ -10,6 +10,7 @@ string ServiceBus::QUERY_EVOLUTION = "query_evolution";
 string ServiceBus::LINK_CREATION = "link_creation";
 string ServiceBus::INFERENCE = "inference";
 string ServiceBus::CONTEXT = "context";
+string ServiceBus::ATOMDB = "atomdb";
 set<string> ServiceBus::SERVICE_LIST;
 
 // -------------------------------------------------------------------------------------------------
@@ -54,6 +55,7 @@ void ServiceBus::initialize_statics(const set<string>& commands,
         SERVICE_LIST.insert(LINK_CREATION);
         SERVICE_LIST.insert(INFERENCE);
         SERVICE_LIST.insert(CONTEXT);
+        SERVICE_LIST.insert(ATOMDB);
     }
     for (string command : SERVICE_LIST) {
         LOG_INFO("BUS command: <" << command << ">");

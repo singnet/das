@@ -161,3 +161,27 @@ cc_library(
         "//service_bus:service_bus_lib",
     ],
 )
+
+cc_library(
+    name = "atomdb_broker_main_lib",
+    srcs = ["atomdb_broker_main.cc"],
+    deps = [
+        "//agents/atomdb_broker:atomdb_broker_lib",
+        "//atomdb:atomdb_lib",
+        "//atomdb:atomdb_singleton",
+        "//commons:commons_lib",
+        "//service_bus:service_bus_lib",
+    ],
+)
+
+cc_library(
+    name = "atomdb_broker_client_lib",
+    srcs = ["atomdb_broker_client_main.cc"],
+    deps = [
+        "//agents/atomdb_broker:atomdb_broker_lib",
+        "//atomdb:atomdb_lib",
+        "//atomdb:atomdb_singleton",
+        "//commons:commons_lib",
+        "//service_bus:service_bus_lib",
+    ],
+)
