@@ -25,7 +25,7 @@ class PatternMatchingQueryProxy(BaseQueryProxy):
         """Pops and returns the next item from the answer queue, if available."""
         with self._lock:
             if self.parameters[self.COUNT_FLAG]:
-                log.error("Can't pop QueryAnswers from count_only queries.");
+                log.error("Can't pop QueryAnswers from count_only queries.")
                 return QueryAnswer()
             else:
                 return super().pop()
