@@ -1,24 +1,22 @@
 import threading
-from hyperon_das.port_pool import PortPool
-from hyperon_das.bus_node import BusNode
-from hyperon_das.proxy import PatternMatchingQueryHandler
-from hyperon_das.bus import BusCommand
+from hyperon_das.service_bus.port_pool import PortPool
+from hyperon_das.distributed_algorithm_node.bus_node import BusCommand, BusNode
+from hyperon_das.service_bus.proxy import BusCommandProxy
 from hyperon_das.logger import log
 
 
 class ServiceBus:
     def __init__(self, host_id: str, known_peer: str, commands: list[str], port_lower: int, port_upper: int):
         self.service_list: list[str] = []
-        self.next_request_serial: int = 0
+        self.next_request_serial: int = 1
         self.bus_node = BusNode(host_id, commands, known_peer)
         PortPool.initialize_statics(port_lower, port_upper)
 
-    def issue_bus_command(self, proxy: 'PatternMatchingQueryHandler'):
+    def issue_bus_command(self, proxy: 'BusCommandProxy'):
         log.info(f"{self.bus_node.node_id} is issuing BUS command <{proxy.command}>")
-
-        self.next_request_serial += 1
         proxy.requestor_id = self.bus_node.node_id
         proxy.serial = self.next_request_serial
+        self.next_request_serial += 1
         proxy.proxy_port = PortPool.get_port()
 
         if proxy.proxy_port == 0:
@@ -31,9 +29,12 @@ class ServiceBus:
                 str(proxy.serial),
                 proxy.proxy_node.node_id
             ]
-            args.extend(proxy.args)
 
-            # TODO
+            proxy.pack_command_line_args()
+
+            for arg in proxy.args:
+                args.append(arg)
+
             try:
                 self.bus_node.send_bus_command(proxy.command, args)
             except Exception:
@@ -63,7 +64,9 @@ class ServiceBusSingleton(metaclass=ServiceBusSingletonMeta):
         self.service_bus = ServiceBus(
             host_id,
             known_peer,
-            [BusCommand.PATTERN_MATCHING_QUERY],
+            [
+                BusCommand.PATTERN_MATCHING_QUERY
+            ],
             port_lower,
             port_upper
         )
