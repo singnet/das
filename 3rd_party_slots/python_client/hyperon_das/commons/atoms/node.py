@@ -17,16 +17,16 @@ class Node(Atom):
         other=None
     ) -> None:
         if tokens:
+            self.custom_attributes = custom_attributes
             self.untokenize(tokens)
         elif other:
-            super().__init__(other=other)
             self.name = other.name
+            super().__init__(other=other)
         else:
             if not type or not name:
                 raise ValueError("'type' and 'name' are required")
-            super().__init__(type, is_toplevel, custom_attributes)
             self.name = name
-            self.validate()
+            super().__init__(type, is_toplevel, custom_attributes)
 
     def __eq__(self, other: 'Node') -> bool:
         if not isinstance(other, Node):
@@ -35,7 +35,7 @@ class Node(Atom):
             self.name == other.name
             and self.type == other.type
             and self.is_toplevel == other.is_toplevel
-            and self.custom_attributes == other.custom_attributes
+            and self.custom_attributes.P == other.custom_attributes.P
         )
 
     def __ne__(self, other: 'Node') -> bool:
@@ -48,12 +48,10 @@ class Node(Atom):
 
     def validate(self) -> None:
         if self.type == Atom.UNDEFINED_TYPE:
-            log.error(f"Node type can't be '{Atom.UNDEFINED_TYPE}'")
-            raise
+            self.log_and_raise_error(f"Node type can't be '{Atom.UNDEFINED_TYPE}'")
 
         if len(self.name) == 0:
-            log.error("Node name must not be empty")
-            raise
+            self.log_and_raise_error("Node name must not be empty")
 
     def to_string(self) -> str:
         return f"Node(type: '{self.type}', name: '{self.name}', custom_attributes: '{self.custom_attributes.to_string()}'"
@@ -72,7 +70,7 @@ class Node(Atom):
 
     def metta_representation(self, decoder: 'HandleDecoder') -> str:
         if self.type != "Symbol":
-            log.error(f"Can't compute metta expression of node whose type ({self.type}) is not Symbol")
+            self.log_and_raise_error(f"Can't compute metta expression of node whose type ({self.type}) is not Symbol")
         return self.name
 
     def match(self, handle, assignment: 'Assignment', decode: 'HandleDecoder') -> bool:

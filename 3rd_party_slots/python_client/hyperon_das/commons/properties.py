@@ -28,7 +28,6 @@ class Properties:
                 vec.extend(["double", str(v)])
             else:
                 raise TypeError(f"Unsupported property type: {type(v)}")
-        vec.insert(0, str(len(vec)))
         return vec
 
     def untokenize(self, tokens: list[str]) -> None:
@@ -65,3 +64,26 @@ class Properties:
                     raise ValueError(f"Invalid 'bool' string value: {val}")
             else:
                 raise ValueError(f"Invalid token type: {typ}")
+
+    def to_string(self) -> str:
+        if not self.P:
+            return "{}"
+
+        parts = []
+        for key in sorted(self.P.keys()):
+            value = self.P[key]
+            if isinstance(value, bool):
+                val_str = "true" if value else "false"
+            elif isinstance(value, str):
+                val_str = f"'{value}'"
+            elif isinstance(value, (int,)) and not isinstance(value, bool):
+                val_str = str(value)
+            elif isinstance(value, float):
+                val_str = str(value)
+            else:
+                # fallback other types
+                val_str = repr(value)
+
+            parts.append(f"{key}: {val_str}")
+
+        return "{" + ", ".join(parts) + "}"

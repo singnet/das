@@ -29,6 +29,7 @@ class BaseProxy(BusCommandProxy):
 
     def tokenize(self, output: list[str]) -> None:
         parameters_tokens = self.parameters.tokenize()
+        parameters_tokens.insert(0, str(len(parameters_tokens)))
         output[0:0] = parameters_tokens
 
     def is_aborting(self) -> bool:

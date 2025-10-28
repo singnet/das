@@ -86,7 +86,9 @@ class AtomSpaceNodeManager:
 
     def to_remote_peer(self, command: str, args: list[str]) -> None:
         if self.peer_id == "":
-            log.error("Unknown peer")
+            msg = "Unknown peer"
+            log.error(msg)
+            raise RuntimeError(msg)
 
         new_args = args
         new_args.append(command)

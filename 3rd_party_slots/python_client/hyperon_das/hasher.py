@@ -18,8 +18,9 @@ def named_type_hash(name: str) -> str:
 
 def terminal_hash(type: str, name: str) -> str:
     if (len(type) + len(name)) >= MAX_HASHABLE_STRING_SIZE:
-        log.error("Invalid (too large) terminal name")
-        raise ValueError
+        msg = "Invalid (too large) terminal name"
+        log.error(msg)
+        raise ValueError(msg)
 
     hashable_string = f"{type}{JOINING_CHAR}{name}"
 
@@ -30,18 +31,21 @@ def composite_hash(elements: list[str], nelements: int) -> str:
     total_size = 0
     element_size = []
 
+    def error():
+        msg = "Invalid (too large) composite elements"
+        log.error(msg)
+        raise ValueError(msg)
+
     for i in range(nelements):
         size = len(elements[i])
         if size > MAX_LITERAL_OR_SYMBOL_SIZE:
-            log.error("Invalid (too large) composite elements")
-            raise ValueError
+            error()
 
         element_size.append(size)
         total_size += size
 
     if total_size >= MAX_HASHABLE_STRING_SIZE:
-        log.error("Invalid (too large) composite elements")
-        raise ValueError
+        error()
 
     hashable_string = JOINING_CHAR.join(elements[:nelements])
 

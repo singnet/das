@@ -13,7 +13,7 @@ class Atom:
 
     def __init__(
         self,
-        type: str,
+        type: str | None = None,
         is_toplevel: bool = False,
         custom_attributes: Properties = Properties(),
         other=None
@@ -34,7 +34,7 @@ class Atom:
         return (
             self.type == other.type
             and self.is_toplevel == other.is_toplevel
-            and self.custom_attributes == other.custom_attributes
+            and self.custom_attributes.P == other.custom_attributes.P
         )
 
     def __ne__(self, other: 'Atom') -> bool:
@@ -43,7 +43,7 @@ class Atom:
     def copy_from(self, other: 'Atom') -> 'Atom':
         self.type = other.type
         self.is_toplevel = other.is_toplevel
-        self.custom_attributes = other.custom_attributes.copy()
+        self.custom_attributes = other.custom_attributes
         return self
 
     @staticmethod
@@ -56,8 +56,7 @@ class Atom:
 
     def validate(self) -> None:
         if len(self.type) == 0:
-            log.error("Atom type must not be empty")
-            raise
+            self.log_and_raise_error("Atom type must not be empty")
 
     def to_string(self) -> str:
         return f"Atom(type: '{self.type}', is_toplevel: {str(self.is_toplevel)}, custom_attributes: {self.custom_attributes.to_string()})"
@@ -96,6 +95,10 @@ class Atom:
             del tokens[: 1 + num_property_tokens]
         else:
             del tokens[0]
+
+    def log_and_raise_error(self, msg: str) -> None:
+        log.error(msg)
+        raise RuntimeError(msg)
 
     @abc.abstractmethod
     def handle(self) -> str:
