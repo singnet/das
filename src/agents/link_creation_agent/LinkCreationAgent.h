@@ -65,9 +65,7 @@ class LinkCreationAgent {
      * @brief Sends a query to DAS Query Agent
      * @returns Returns a shared_ptr<PatternMatchingQueryProxy>, to iterate through the results
      */
-    shared_ptr<PatternMatchingQueryProxy> query(vector<string>& query_tokens,
-                                                string context,
-                                                bool update_attention_broker);
+    shared_ptr<PatternMatchingQueryProxy> query(shared_ptr<LinkCreationAgentRequest> lca_request);
     /**
      * @brief Save all requests that have the infinite value set as true to the disk or DB.
      */

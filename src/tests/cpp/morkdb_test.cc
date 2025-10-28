@@ -195,10 +195,16 @@ TEST_F(MorkDBTest, AddGetAndDeleteLink) {
     auto node1_handle = db->add_node(node1);
     auto node2 = new Node("Symbol", "Node2");
     auto node2_handle = db->add_node(node2);
+    auto node3 = new Node("Symbol", "Node3");
+    auto node3_handle = db->add_node(node3);
+    auto node4 = new Node("Symbol", "Node4");
+    auto node4_handle = db->add_node(node4);
 
     ASSERT_TRUE(db->node_exists(similarity_node_handle));
     ASSERT_TRUE(db->node_exists(node1_handle));
     ASSERT_TRUE(db->node_exists(node2_handle));
+    ASSERT_TRUE(db->node_exists(node3_handle));
+    ASSERT_TRUE(db->node_exists(node4_handle));
 
     auto link = new Link("Expression", {similarity_node_handle, node1_handle, node2_handle});
     auto link_handle = db->add_link(link);
@@ -211,12 +217,28 @@ TEST_F(MorkDBTest, AddGetAndDeleteLink) {
     EXPECT_EQ(string(link_document->get("targets", 1)), string(node1_handle));
     EXPECT_EQ(string(link_document->get("targets", 2)), string(node2_handle));
 
-    ASSERT_TRUE(db->delete_link(link_handle, true));
+    // clang-format off
+    LinkSchema link_schema({
+        link_template, expression, "3", 
+            node, symbol, "Similarity", 
+            node, symbol, "Node1",
+            variable, "S"});
+    // clang-format on
 
-    ASSERT_FALSE(db->link_exists(link_handle));
-    ASSERT_FALSE(db->node_exists(similarity_node_handle));
-    ASSERT_FALSE(db->node_exists(node1_handle));
-    ASSERT_FALSE(db->node_exists(node2_handle));
+    auto handle_set = db->query_for_pattern(link_schema);
+    EXPECT_EQ(handle_set->size(), 1);
+
+    auto link_13 = new Link("Expression", {similarity_node_handle, node1_handle, node3_handle});
+    auto link_14 = new Link("Expression", {similarity_node_handle, node1_handle, node4_handle});
+
+    auto new_link_handles = db->add_links({link_13, link_14});
+    EXPECT_EQ(new_link_handles.size(), 2);
+
+    handle_set = db->query_for_pattern(link_schema);
+    EXPECT_EQ(handle_set->size(), 3);
+
+    // MORKDB does not support deleting links, so it must always return false
+    EXPECT_FALSE(db->delete_link(link_handle, true));
 }
 
 TEST_F(MorkDBTest, AddGetAndDeleteLinks) {
@@ -240,11 +262,8 @@ TEST_F(MorkDBTest, AddGetAndDeleteLinks) {
     auto links_documents = db->get_atom_documents(links_handles, {"_id"});
     EXPECT_EQ(links_documents.size(), links.size());
 
-    ASSERT_TRUE(db->delete_links(links_handles, true));
-
-    for (auto link_handle : links_handles) {
-        ASSERT_FALSE(db->link_exists(link_handle));
-    }
+    // MORKDB does not support deleting links, so it must always return false
+    EXPECT_FALSE(db->delete_links(links_handles, true));
 }
 
 int main(int argc, char** argv) {

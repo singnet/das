@@ -38,6 +38,7 @@ General changes:
 [RedisMongoDB] Add pattern_index_schema.priority logic [PR: #689]
 [#691] Add Atom::is_toplevel and AtomDB::get_matching_atoms(is_toplevel, Atom) [PR: #702] 
 [#632] Added cache to not process already processed Query Answers [PR: #733]
+[#676] Unify executables into a single Docker image [PR: #820]
 
 
 

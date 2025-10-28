@@ -11,7 +11,11 @@ using namespace attention_broker;
 // --------------------------------------------------------------------------------
 // Public methods
 
-HebbianNetwork::HebbianNetwork() {
+HebbianNetwork::HebbianNetwork() { init(); }
+
+HebbianNetwork::~HebbianNetwork() { delete nodes; }
+
+void HebbianNetwork::init() {
     nodes = new HandleTrie(HANDLE_HASH_SIZE - 1);
     largest_arity = 0;
     tokens_mutex.lock();
@@ -19,7 +23,10 @@ HebbianNetwork::HebbianNetwork() {
     tokens_mutex.unlock();
 }
 
-HebbianNetwork::~HebbianNetwork() { delete nodes; }
+void HebbianNetwork::clear() {
+    delete nodes;
+    init();
+}
 
 string HebbianNetwork::Node::to_string() {
     return "(" + std::to_string(count) + ", " + std::to_string(importance) + ", " +
