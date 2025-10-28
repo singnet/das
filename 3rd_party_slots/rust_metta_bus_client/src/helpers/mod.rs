@@ -60,23 +60,30 @@ pub fn split_ignore_quoted(s: &str) -> Vec<String> {
 
 pub fn get_networking_params(params: &Properties) -> Result<(String, u16, u16, String), BoxError> {
 	let hostname =
-		params.try_get(properties::HOSTNAME).ok_or_else(|| BoxError::from("Hostname not found"))?;
-	let port_lower = params
-		.try_get(properties::PORT_LOWER)
-		.ok_or_else(|| BoxError::from("Port lower not found"))?;
-	let port_upper = params
-		.try_get(properties::PORT_UPPER)
-		.ok_or_else(|| BoxError::from("Port upper not found"))?;
-	let known_peer = params
-		.try_get(properties::KNOWN_PEER_ID)
-		.ok_or_else(|| BoxError::from("Known peer not found"))?;
+		params.try_get(properties::HOSTNAME).ok_or(BoxError::from("Hostname not found"))?;
+	let port_lower =
+		params.try_get(properties::PORT_LOWER).ok_or(BoxError::from("Port lower not found"))?;
+	let port_upper =
+		params.try_get(properties::PORT_UPPER).ok_or(BoxError::from("Port upper not found"))?;
+	let known_peer =
+		params.try_get(properties::KNOWN_PEER_ID).ok_or(BoxError::from("Known peer not found"))?;
+
 	match (hostname, port_lower, port_upper, known_peer) {
 		(
 			PropertyValue::String(hostname),
 			PropertyValue::UnsignedInt(port_lower),
 			PropertyValue::UnsignedInt(port_upper),
 			PropertyValue::String(known_peer),
-		) => Ok((hostname.clone(), *port_lower as u16, *port_upper as u16, known_peer.clone())),
+		) => {
+			if known_peer.is_empty()
+				|| *port_lower == 0
+				|| *port_upper == 0
+				|| known_peer.is_empty()
+			{
+				return Err(BoxError::from("Run !(bind! &das (new-das! (hostname:port-port) (known-peer-host:port))) first."));
+			}
+			Ok((hostname.clone(), *port_lower as u16, *port_upper as u16, known_peer.clone()))
+		},
 		_ => Err(BoxError::from("Invalid networking parameters")),
 	}
 }
@@ -149,12 +156,12 @@ pub fn map_variables(atom_str: &str) -> HashSet<VariableAtom> {
 	variables
 }
 
-pub fn map_atom<T, F>(atom: &Atom, map_func: F) -> Vec<T>
+pub fn map_atom<T, F>(atom: &Atom, map_func: F) -> Result<Vec<T>, BoxError>
 where
-	F: Fn(&Atom) -> T,
+	F: Fn(&Atom) -> Result<T, BoxError>,
 {
 	match atom {
 		Atom::Expression(exp_atom) => exp_atom.children().iter().map(map_func).collect(),
-		_ => vec![map_func(atom)],
+		_ => Ok(vec![map_func(atom)?]),
 	}
 }

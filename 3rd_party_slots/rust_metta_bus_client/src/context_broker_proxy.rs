@@ -1,6 +1,7 @@
 use std::sync::{Arc, Mutex};
 
 use hyperon_atom::Atom;
+use md5;
 
 use crate::{
 	base_proxy_query::{BaseQueryProxy, BaseQueryProxyT},
@@ -71,6 +72,8 @@ impl ContextBrokerProxy {
 		args.push(key.clone());
 		args.push(name.clone());
 
+		log::debug!(target: "das", "Context name                     : <{name}>");
+		log::debug!(target: "das", "Context key                      : <{key}>");
 		log::debug!(target: "das", "Query                            : <{}>", context_broker_params.query_atom);
 		log::debug!(target: "das", "Use cache                        : <{}>", params.properties.get::<bool>(properties::USE_CACHE));
 		log::debug!(target: "das", "Enforce cache recreation         : <{}>", params.properties.get::<bool>(properties::ENFORCE_CACHE_RECREATION));
@@ -145,12 +148,7 @@ impl BaseQueryProxyT for ContextBrokerProxy {
 }
 
 pub fn hash_context(context: &str) -> String {
-	use std::collections::hash_map::DefaultHasher;
-	use std::hash::{Hash, Hasher};
-
-	let mut hasher = DefaultHasher::new();
-	context.hash(&mut hasher);
-	format!("{:x}", hasher.finish())
+	format!("{:x}", md5::compute(context.as_bytes()))
 }
 
 pub fn parse_context_broker_parameters(atom: &Atom) -> Result<ContextBrokerParams, BoxError> {
@@ -166,20 +164,20 @@ pub fn parse_context_broker_parameters(atom: &Atom) -> Result<ContextBrokerParam
 			if let Atom::Expression(exp_atom) = atom {
 				let children = exp_atom.children();
 				if children.len() != 2 {
-					panic!("{}", CONTEXT_BROKER_PARSER_ERROR_MESSAGE.to_string());
+					return Err(CONTEXT_BROKER_PARSER_ERROR_MESSAGE.to_string().into());
 				}
 
-				let first_element = QueryElement::try_from(&children[0]).unwrap();
-				let second_element = QueryElement::try_from(&children[1]).unwrap();
+				let first_element = QueryElement::try_from(&children[0])?;
+				let second_element = QueryElement::try_from(&children[1])?;
 
-				(first_element, second_element)
+				Ok((first_element, second_element))
 			} else {
-				panic!("{}", CONTEXT_BROKER_PARSER_ERROR_MESSAGE.to_string());
+				return Err(CONTEXT_BROKER_PARSER_ERROR_MESSAGE.to_string().into());
 			}
-		});
+		})?;
 
 		let stimulus_schema =
-			map_atom(&children[2].clone(), |atom| QueryElement::try_from(atom).unwrap());
+			map_atom(&children[2].clone(), |atom| Ok(QueryElement::try_from(atom)?))?;
 
 		return Ok(ContextBrokerParams { query_atom, determiner_schema, stimulus_schema });
 	}

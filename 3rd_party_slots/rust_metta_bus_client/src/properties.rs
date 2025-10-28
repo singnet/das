@@ -106,13 +106,13 @@ impl Default for Properties {
 	fn default() -> Self {
 		let mut map = HashMap::new();
 
-		map.insert(CONTEXT.to_string(), PropertyValue::String("context".to_string()));
+		map.insert(CONTEXT.to_string(), PropertyValue::String(String::new()));
 
 		// Networking
-		map.insert(HOSTNAME.to_string(), PropertyValue::String("localhost:41999".to_string()));
-		map.insert(PORT_LOWER.to_string(), PropertyValue::UnsignedInt(42000));
-		map.insert(PORT_UPPER.to_string(), PropertyValue::UnsignedInt(42999));
-		map.insert(KNOWN_PEER_ID.to_string(), PropertyValue::String("localhost:40002".to_string()));
+		map.insert(HOSTNAME.to_string(), PropertyValue::String(String::new()));
+		map.insert(PORT_LOWER.to_string(), PropertyValue::UnsignedInt(0));
+		map.insert(PORT_UPPER.to_string(), PropertyValue::UnsignedInt(0));
+		map.insert(KNOWN_PEER_ID.to_string(), PropertyValue::String(String::new()));
 
 		// Base
 		map.insert(MAX_ANSWERS.to_string(), PropertyValue::UnsignedInt(1_000));

@@ -116,7 +116,7 @@ impl QueryEvolutionProxy {
 			metta_runner: if let Some(metta_runner) = evolution_params.maybe_metta_runner.clone() {
 				metta_runner
 			} else {
-				panic!("MeTTa runner is required for evolution query");
+				return Err(BoxError::from("MeTTa runner is required for evolution query"));
 			},
 		})
 	}
@@ -256,39 +256,40 @@ pub fn parse_evolution_parameters(
 
 		let fitness_function = children[1].to_string();
 
-		let correlation_queries = map_atom(&children[2].clone(), |atom| vec![atom.to_string()]);
+		let correlation_queries =
+			map_atom(&children[2].clone(), |atom| Ok(vec![atom.to_string()]))?;
 
 		let correlation_replacements = map_atom(&children[3].clone(), |atom| {
 			if let Atom::Expression(exp_atom) = atom {
 				let children = exp_atom.children();
 				let mut replacements = HashMap::new();
 				if children.len() != 2 {
-					panic!("{}", EVOLUTION_PARSER_ERROR_MESSAGE.to_string());
+					return Err(EVOLUTION_PARSER_ERROR_MESSAGE.to_string().into());
 				}
 				replacements.insert(
 					children[0].to_string(),
 					QueryElement::new_variable(&children[1].to_string()),
 				);
-				replacements
+				Ok(replacements)
 			} else {
-				panic!("{}", EVOLUTION_PARSER_ERROR_MESSAGE.to_string());
+				return Err(EVOLUTION_PARSER_ERROR_MESSAGE.to_string().into());
 			}
-		});
+		})?;
 
 		let correlation_mappings = map_atom(&children[4].clone(), |atom| {
 			if let Atom::Expression(exp_atom) = atom {
 				let children = exp_atom.children();
 				if children.len() != 2 {
-					panic!("{}", EVOLUTION_PARSER_ERROR_MESSAGE.to_string());
+					return Err(EVOLUTION_PARSER_ERROR_MESSAGE.to_string().into());
 				}
-				(
+				Ok((
 					QueryElement::new_variable(&children[0].to_string()),
 					QueryElement::new_variable(&children[1].to_string()),
-				)
+				))
 			} else {
-				panic!("{}", EVOLUTION_PARSER_ERROR_MESSAGE.to_string());
+				return Err(EVOLUTION_PARSER_ERROR_MESSAGE.to_string().into());
 			}
-		});
+		})?;
 
 		return Ok(QueryEvolutionParams {
 			query_atom,
