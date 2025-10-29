@@ -62,7 +62,7 @@ impl ServiceBus {
 		Ok(())
 	}
 
-	pub fn service(&self) -> Vec<String> {
+	pub fn services(&self) -> Vec<String> {
 		self.service_list.clone()
 	}
 
@@ -108,5 +108,18 @@ impl ServiceBus {
 			}
 		});
 		Ok(())
+	}
+
+	pub fn print_services(&self) {
+		let owners_map = self.bus_node.lock().unwrap().bus.command_owner.clone();
+		println!(
+			"DAS Services (peer <command>) [{}/{}]:",
+			owners_map.values().filter(|v| !v.is_empty()).count(),
+			owners_map.len(),
+		);
+		for (command, node_id) in owners_map.iter() {
+			let node_id = if node_id.is_empty() { "NONE".to_string() } else { node_id.clone() };
+			println!("  - {node_id} <{command}>");
+		}
 	}
 }

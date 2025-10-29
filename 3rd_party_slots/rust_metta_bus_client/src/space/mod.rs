@@ -73,6 +73,10 @@ impl DistributedAtomSpace {
 		todo!()
 	}
 
+	pub fn print_services(&self) {
+		self.service_bus.lock().unwrap().print_services();
+	}
+
 	pub fn create_context(&self, context: String, atom: &Atom) -> Result<Atom, BoxError> {
 		let query_params = QueryParams {
 			context,
