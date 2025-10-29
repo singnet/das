@@ -1,4 +1,5 @@
 import abc
+import copy
 
 from hyperon_das.commons.properties import Properties
 from hyperon_das.hasher import Hasher
@@ -21,7 +22,7 @@ class Atom:
         if other:
             self.type = other.type
             self.is_toplevel = other.is_toplevel
-            self.custom_attributes = other.custom_attributes
+            self.custom_attributes = copy.deepcopy(other.custom_attributes)
         else:
             self.type = type
             self.is_toplevel = is_toplevel
@@ -43,7 +44,7 @@ class Atom:
     def copy_from(self, other: 'Atom') -> 'Atom':
         self.type = other.type
         self.is_toplevel = other.is_toplevel
-        self.custom_attributes = other.custom_attributes
+        self.custom_attributes = copy.deepcopy(other.custom_attributes)
         return self
 
     @staticmethod

@@ -1,3 +1,5 @@
+import copy
+
 from hyperon_das.commons.atoms import Atom
 from hyperon_das.hasher import Hasher, composite_hash
 from hyperon_das.commons.properties import Properties
@@ -21,7 +23,7 @@ class Link(Atom):
             self.custom_attributes = custom_attributes if custom_attributes is not None else Properties()
             self.untokenize(tokens)
         elif other:
-            self.targets = other.targets
+            self.targets = copy.deepcopy(other.targets)
             super().__init__(other=other)
         else:
             if not type or not targets:
@@ -44,7 +46,7 @@ class Link(Atom):
 
     def copy_from(self, other: 'Link') -> 'Link':
         super().copy_from(other)
-        self.targets = other.targets
+        self.targets = copy.deepcopy(other.targets)
         return self
 
     def validate(self) -> None:
