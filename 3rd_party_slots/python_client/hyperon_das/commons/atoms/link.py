@@ -1,9 +1,9 @@
 from hyperon_das.commons.atoms import Atom
-from hyperon_das.logger import log
 from hyperon_das.hasher import Hasher, composite_hash
 from hyperon_das.commons.properties import Properties
 from hyperon_das.commons.atoms.handle_decoder import HandleDecoder
 from hyperon_das.query_answer import Assignment
+from hyperon_das.commons.helpers import error
 
 
 class Link(Atom):
@@ -12,13 +12,13 @@ class Link(Atom):
         type: str | None = None,
         targets: list[str] | None = None,
         is_toplevel: bool = False,
-        custom_attributes: Properties = Properties(),
+        custom_attributes: Properties | None = None,
         tokens: list[str] | None = None,
         other=None
     ) -> None:
         if tokens:
             self.targets = []
-            self.custom_attributes = custom_attributes
+            self.custom_attributes = custom_attributes if custom_attributes is not None else Properties()
             self.untokenize(tokens)
         elif other:
             self.targets = other.targets
@@ -36,7 +36,7 @@ class Link(Atom):
             self.targets == other.targets
             and self.type == other.type
             and self.is_toplevel == other.is_toplevel
-            and self.custom_attributes.P == other.custom_attributes.P
+            and self.custom_attributes == other.custom_attributes
         )
 
     def __ne__(self, other: 'Link') -> bool:
@@ -49,10 +49,10 @@ class Link(Atom):
 
     def validate(self) -> None:
         if self.type == Atom.UNDEFINED_TYPE:
-            self.log_and_raise_error(f"Link type can't be '{Atom.UNDEFINED_TYPE}'")
+            error(f"Link type can't be '{Atom.UNDEFINED_TYPE}'")
 
         if len(self.targets) == 0:
-            self.log_and_raise_error("Link must have at least 1 target")
+            error("Link must have at least 1 target")
 
     def to_string(self) -> str:
         result = f"Link(type: '{self.type}', targets: ["
@@ -87,7 +87,7 @@ class Link(Atom):
         for handle in self.targets:
             atom = decoder.get_atom(handle)
             if atom is None:
-                self.log_and_raise_error(f"Unkown atom with handle: {handle}")
+                error(f"Unkown atom with handle: {handle}")
             else:
                 composite_type.append(atom.composite_type_hash(decoder))
         return composite_type
@@ -101,7 +101,7 @@ class Link(Atom):
 
     def metta_representation(self, decoder) -> str:
         if self.type != "Expression":
-            self.log_and_raise_error(f"Can't compute metta expression of link whose type ({self.type}) is not Expression")
+            error(f"Can't compute metta expression of link whose type ({self.type}) is not Expression")
 
         metta_string = "("
         size = len(self.targets)
@@ -110,7 +110,7 @@ class Link(Atom):
             atom = decoder.get_atom(self.targets[i])
 
             if (atom is None):
-                self.log_and_raise_error("Couldn't decode handle: {self.targets[i]}")
+                error("Couldn't decode handle: {self.targets[i]}")
 
             metta_string += atom.metta_representation(decoder)
 

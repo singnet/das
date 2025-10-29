@@ -1,3 +1,6 @@
+from hyperon_das.logger import log
+
+
 def tokenize_preserve_quotes(s: str) -> list[str]:
     """
     Split the input string into tokens by whitespace, keeping quoted substrings (including the quotes) as single tokens.
@@ -52,3 +55,9 @@ def str_2_bool(v):
         return False
     else:
         raise ValueError('Boolean value expected.')
+
+
+def error(msg: str, throw_flag: bool = True):
+    log.error(msg)
+    if throw_flag:
+        raise RuntimeError(msg)

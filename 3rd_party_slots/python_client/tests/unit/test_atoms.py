@@ -114,7 +114,10 @@ class TestNode:
         assert n.match(expected_handle, Assignment(), HandleDecoderMock())
         assert not n.match('some:other:handle', Assignment(), HandleDecoderMock())
 
-    def test_metta_representation_symbol_does_not_log_but_non_symbol_logs(self):
+    def test_metta_representation_symbol_does_not_log_but_non_symbol_logs(self, monkeypatch):
+        errors = []
+        monkeypatch.setattr(log, "error", lambda msg: errors.append(msg))
+        
         n_sym = Node(type='Symbol', name='"S"')
         assert n_sym.metta_representation(HandleDecoderMock()) == '"S"'
 
@@ -122,6 +125,8 @@ class TestNode:
 
         with pytest.raises(RuntimeError):
             n_other.metta_representation(HandleDecoderMock())
+        
+        assert any("Can't compute metta expression of node whose type (NotSymbol) is not Symbol" in m for m in errors)
 
     def test_to_string_contains_fields(self):
         attr = Properties()
@@ -251,9 +256,10 @@ class TestLink:
         monkeypatch.setattr(log, "error", lambda msg: errors.append(msg))
 
         link2 = Link(type='T', targets=['node1', 'missing'])
-        comp2 = link2.composite_type(HandleDecoderMock())
+        
+        with pytest.raises(RuntimeError):
+            link2.composite_type(HandleDecoderMock())
 
-        assert comp2 == []
         assert any('Unkown atom with handle' in m for m in errors)
 
     def test_composite_type_hash_uses_composite_hash(self):
@@ -282,6 +288,8 @@ class TestLink:
         assert m2 == '((node1 node2 node3) nodeA nodeB)'
 
         l3 = Link(type='Fake', targets=['missing'])
-        m3 = l3.metta_representation(HandleDecoderMock())
-        assert m3 == ''
-        assert any("Couldn't decode handle" in e or "Couldn't decode handle" in e for e in errors)
+        
+        with pytest.raises(RuntimeError):
+            l3.metta_representation(HandleDecoderMock())
+
+        assert any("Can't compute metta expression of link whose type (Fake) is not Expression" in e for e in errors)

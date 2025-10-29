@@ -11,6 +11,11 @@ class Properties:
     def __getitem__(self, key: str) -> str | int | float | bool | None:
         return self.P.get(key)
 
+    def __eq__(self, other: 'Properties') -> bool:
+        if not isinstance(other, Properties):
+            return False
+        return self.P == other.P
+
     def tokenize(self) -> list[str]:
         vec = []
         for k, v in self.P.items():
@@ -20,7 +25,7 @@ class Properties:
             elif isinstance(v, bool):
                 vec.extend(["bool", str(v).lower()])
             elif isinstance(v, int):
-                if 0 <= v <= UINT32_MAX:        
+                if 0 <= v <= UINT32_MAX:  # TODO: This doesn't work completely. Change it.   
                     vec.extend(["unsigned_int", str(v)])
                 else:
                     vec.extend(["long", str(v)])

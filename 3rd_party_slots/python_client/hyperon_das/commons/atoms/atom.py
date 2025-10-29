@@ -1,10 +1,10 @@
 import abc
 
 from hyperon_das.commons.properties import Properties
-from hyperon_das.logger import log
 from hyperon_das.hasher import Hasher
 from hyperon_das.commons.atoms.handle_decoder import HandleDecoder
 from hyperon_das.query_answer import Assignment
+from hyperon_das.commons.helpers import error
 
 
 class Atom:
@@ -15,7 +15,7 @@ class Atom:
         self,
         type: str | None = None,
         is_toplevel: bool = False,
-        custom_attributes: Properties = Properties(),
+        custom_attributes: Properties | None = None,
         other=None
     ) -> None:
         if other:
@@ -25,7 +25,7 @@ class Atom:
         else:
             self.type = type
             self.is_toplevel = is_toplevel
-            self.custom_attributes = custom_attributes
+            self.custom_attributes = custom_attributes if custom_attributes is not None else Properties()
             self.validate()
 
     def __eq__(self, other: 'Atom') -> bool:
@@ -34,7 +34,7 @@ class Atom:
         return (
             self.type == other.type
             and self.is_toplevel == other.is_toplevel
-            and self.custom_attributes.P == other.custom_attributes.P
+            and self.custom_attributes == other.custom_attributes
         )
 
     def __ne__(self, other: 'Atom') -> bool:
@@ -56,7 +56,7 @@ class Atom:
 
     def validate(self) -> None:
         if len(self.type) == 0:
-            self.log_and_raise_error("Atom type must not be empty")
+            error("Atom type must not be empty")
 
     def to_string(self) -> str:
         return f"Atom(type: '{self.type}', is_toplevel: {str(self.is_toplevel)}, custom_attributes: {self.custom_attributes.to_string()})"
@@ -95,10 +95,6 @@ class Atom:
             del tokens[: 1 + num_property_tokens]
         else:
             del tokens[0]
-
-    def log_and_raise_error(self, msg: str) -> None:
-        log.error(msg)
-        raise RuntimeError(msg)
 
     @abc.abstractmethod
     def handle(self) -> str:

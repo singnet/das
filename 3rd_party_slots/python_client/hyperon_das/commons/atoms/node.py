@@ -1,9 +1,9 @@
 from hyperon_das.commons.atoms import Atom
-from hyperon_das.logger import log
 from hyperon_das.hasher import Hasher
 from hyperon_das.commons.properties import Properties
 from hyperon_das.commons.atoms.handle_decoder import HandleDecoder
 from hyperon_das.query_answer import Assignment
+from hyperon_das.commons.helpers import error
 
 
 class Node(Atom):
@@ -12,12 +12,12 @@ class Node(Atom):
         type: str | None = None,
         name: str | None = None,
         is_toplevel: bool = False,
-        custom_attributes: Properties = Properties(),
+        custom_attributes: Properties | None = None,
         tokens: list[str] | None = None,
         other=None
     ) -> None:
         if tokens:
-            self.custom_attributes = custom_attributes
+            self.custom_attributes = custom_attributes if custom_attributes is not None else Properties()
             self.untokenize(tokens)
         elif other:
             self.name = other.name
@@ -35,7 +35,7 @@ class Node(Atom):
             self.name == other.name
             and self.type == other.type
             and self.is_toplevel == other.is_toplevel
-            and self.custom_attributes.P == other.custom_attributes.P
+            and self.custom_attributes == other.custom_attributes
         )
 
     def __ne__(self, other: 'Node') -> bool:
@@ -48,10 +48,10 @@ class Node(Atom):
 
     def validate(self) -> None:
         if self.type == Atom.UNDEFINED_TYPE:
-            self.log_and_raise_error(f"Node type can't be '{Atom.UNDEFINED_TYPE}'")
+            error(f"Node type can't be '{Atom.UNDEFINED_TYPE}'")
 
         if len(self.name) == 0:
-            self.log_and_raise_error("Node name must not be empty")
+            error("Node name must not be empty")
 
     def to_string(self) -> str:
         return f"Node(type: '{self.type}', name: '{self.name}', custom_attributes: '{self.custom_attributes.to_string()}'"
@@ -70,7 +70,7 @@ class Node(Atom):
 
     def metta_representation(self, decoder: 'HandleDecoder') -> str:
         if self.type != "Symbol":
-            self.log_and_raise_error(f"Can't compute metta expression of node whose type ({self.type}) is not Symbol")
+            error(f"Can't compute metta expression of node whose type ({self.type}) is not Symbol")
         return self.name
 
     def match(self, handle, assignment: 'Assignment', decode: 'HandleDecoder') -> bool:
