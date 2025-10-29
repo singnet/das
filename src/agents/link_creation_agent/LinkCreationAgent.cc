@@ -184,7 +184,8 @@ shared_ptr<LinkCreationAgentRequest> LinkCreationAgent::create_request(
     shared_ptr<LinkCreationRequestProxy> proxy) {
     auto lca_request = make_shared<LinkCreationAgentRequest>();
     try {
-        lca_request->use_metta_as_query_tokens = proxy->parameters.get<bool>(LinkCreationRequestProxy::USE_METTA_AS_QUERY_TOKENS);
+        lca_request->use_metta_as_query_tokens =
+            proxy->parameters.get<bool>(LinkCreationRequestProxy::USE_METTA_AS_QUERY_TOKENS);
         if (lca_request->use_metta_as_query_tokens) {
             auto args = proxy->get_args();
             lca_request->query.push_back(args.front());
@@ -192,7 +193,7 @@ shared_ptr<LinkCreationAgentRequest> LinkCreationAgent::create_request(
             for (size_t i = 1; i < args.size(); i++) {
                 lca_request->link_template.push_back(args[i]);
             }
-        }else{
+        } else {
             bool query_section = true;
             for (const auto& token : proxy->get_args()) {
                 if (is_link_create_arg(token) || !query_section) {

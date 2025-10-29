@@ -7,7 +7,6 @@
 #include "Link.h"
 #include "LinkProcessor.h"
 
-
 using namespace std;
 using namespace atoms;
 

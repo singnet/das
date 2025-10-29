@@ -10,10 +10,10 @@
 
 #include "EquivalenceProcessor.h"
 #include "ImplicationProcessor.h"
-#include "MettaTemplateProcessor.h"
 #include "LCAQueue.h"
 #include "LinkCreationAgentRequest.h"
 #include "LinkProcessor.h"
+#include "MettaTemplateProcessor.h"
 #include "PatternMatchingQueryProxy.h"
 #include "QueryAnswer.h"
 #include "ServiceBusSingleton.h"

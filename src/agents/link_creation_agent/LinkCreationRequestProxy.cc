@@ -14,7 +14,6 @@ string LinkCreationRequestProxy::QUERY_INTERVAL = "query_interval";
 string LinkCreationRequestProxy::QUERY_TIMEOUT = "query_timeout";
 string LinkCreationRequestProxy::USE_METTA_AS_QUERY_TOKENS = "use_metta_as_query_tokens";
 
-
 LinkCreationRequestProxy::LinkCreationRequestProxy() : BaseProxy() {}
 
 LinkCreationRequestProxy::LinkCreationRequestProxy(const vector<string>& tokens) : BaseProxy() {

@@ -109,13 +109,9 @@ TEST_F(LinkCreationAgentTest, TestRequest) {
     delete agent;
 }
 
-
 TEST_F(LinkCreationAgentTest, TestRequestMetta) {
     auto agent = new LinkCreationAgent();
-    vector<string> request = {
-        "()",
-        "()"
-    };
+    vector<string> request = {"()", "()"};
     auto proxy = make_shared<MockLinkCreationRequestProxy>(request);
     proxy->parameters[LinkCreationRequestProxy::MAX_ANSWERS] = (uint) 10;
     proxy->parameters[LinkCreationRequestProxy::REPEAT_COUNT] = (uint) 5;
@@ -125,8 +121,7 @@ TEST_F(LinkCreationAgentTest, TestRequestMetta) {
 
     shared_ptr<LinkCreationAgentRequest> lca_request = agent->create_request(proxy);
     EXPECT_EQ(lca_request->query, vector<string>({"()"}));
-    EXPECT_EQ(lca_request->link_template,
-              vector<string>({"METTA", "()"}));
+    EXPECT_EQ(lca_request->link_template, vector<string>({"METTA", "()"}));
     EXPECT_EQ(lca_request->max_results, 10);
     EXPECT_EQ(lca_request->repeat, 5);
     EXPECT_EQ(lca_request->context, "test_context");
@@ -659,7 +654,6 @@ TEST_F(LinkCreationAgentTest, TestEquivalenceProcessorLinkCreationOr) {
     EXPECT_NEAR(links[1]->custom_attributes.get<double>("strength"), 0.9, 1e-2);
 }
 
-
 TEST_F(LinkCreationAgentTest, TestMettaProcessorLinkCreation) {
     auto mp = make_shared<MettaTemplateProcessor>();
     string A = "A";
@@ -676,13 +670,14 @@ TEST_F(LinkCreationAgentTest, TestMettaProcessorLinkCreation) {
     target_queue.push(C);
     target_queue.push(D);
     EXPECT_CALL(*mock_atomdb, get_atom(testing::_))
-    .Times(2)
-    .WillRepeatedly(::testing::Invoke([&target_queue](const string& handle) {
-        string name = target_queue.front();
-        target_queue.pop();
-        auto link = make_shared<Node>("Symbol", name);
-        return link;
-    }));
-    auto links = mp->process_query(query_answer, vector<string>({"($V1 $V2 (Expression $V1 Test (Tttt $V2)))"}));
+        .Times(2)
+        .WillRepeatedly(::testing::Invoke([&target_queue](const string& handle) {
+            string name = target_queue.front();
+            target_queue.pop();
+            auto link = make_shared<Node>("Symbol", name);
+            return link;
+        }));
+    auto links =
+        mp->process_query(query_answer, vector<string>({"($V1 $V2 (Expression $V1 Test (Tttt $V2)))"}));
     EXPECT_EQ(links.size(), 1);
 }

@@ -56,7 +56,7 @@ int main(int argc, char* argv[]) {
     vector<string> request;
     for (int i = 10; i < argc; i++) {
         string token = string(argv[i]);
-        if (use_metta_expression){
+        if (use_metta_expression) {
             Utils::replace_all(token, "%", "$");
         }
         request.push_back(token);

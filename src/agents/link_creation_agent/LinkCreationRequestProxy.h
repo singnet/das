@@ -42,7 +42,6 @@ class LinkCreationRequestProxy : public BaseProxy {
 
     static string USE_METTA_AS_QUERY_TOKENS;
 
-
     /**
      * Empty constructor typically used on server side.
      */
