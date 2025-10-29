@@ -8,6 +8,7 @@ use hyperon_atom::{matcher::Bindings, Atom};
 use crate::{
 	base_proxy_query::{BaseQueryProxy, BaseQueryProxyT},
 	bus::QUERY_EVOLUTION_CMD,
+	context_broker_proxy::hash_context,
 	helpers::{map_atom, query_answer::parse_query_answer, query_element::QueryElement},
 	properties,
 	types::{BoxError, MeTTaRunner},
@@ -91,6 +92,7 @@ impl QueryEvolutionProxy {
 		let population_size = params.properties.get::<u64>(properties::POPULATION_SIZE);
 
 		log::debug!(target: "das", "Query                   : <{}>", evolution_params.query_atom);
+		log::debug!(target: "das", "Context (name, key)     : <{}, {}>", base.context, hash_context(&base.context));
 		log::debug!(target: "das", "Population size         : <{population_size}>");
 		log::debug!(target: "das", "Max generations         : <{}>", params.properties.get::<u64>(properties::MAX_GENERATIONS));
 		log::debug!(target: "das", "Elitism rate            : <{}>", params.properties.get::<f64>(properties::ELITISM_RATE));
@@ -272,7 +274,7 @@ pub fn parse_evolution_parameters(
 				);
 				Ok(replacements)
 			} else {
-				return Err(EVOLUTION_PARSER_ERROR_MESSAGE.to_string().into());
+				Err(EVOLUTION_PARSER_ERROR_MESSAGE.to_string().into())
 			}
 		})?;
 
@@ -287,7 +289,7 @@ pub fn parse_evolution_parameters(
 					QueryElement::new_variable(&children[1].to_string()),
 				))
 			} else {
-				return Err(EVOLUTION_PARSER_ERROR_MESSAGE.to_string().into());
+				Err(EVOLUTION_PARSER_ERROR_MESSAGE.to_string().into())
 			}
 		})?;
 

@@ -5,13 +5,9 @@
 
 #include "AtomDBSingleton.h"
 #include "AtomSpace.h"
-#include "ContextBrokerProxy.h"
 #include "QueryAnswer.h"
 #include "ServiceBusSingleton.h"
 #include "Utils.h"
-
-#define LOG_LEVEL INFO_LEVEL
-#include "Logger.h"
 
 #define MAX_QUERY_ANSWERS ((unsigned int) 1000)
 
@@ -20,7 +16,6 @@ using namespace query_engine;
 using namespace service_bus;
 using namespace atom_space;
 using namespace atomdb;
-using namespace context_broker;
 
 void ctrl_c_handler(int) {
     cout << "Stopping query engine server..." << endl;
@@ -47,11 +42,11 @@ int main(int argc, char* argv[]) {
     if (update_attention_broker) {
         cerr << "Enforcing update_attention_broker=false regardless the passed parameter" << endl;
     }
-    update_attention_broker = true;
+    update_attention_broker = false;
 
     ServiceBusSingleton::init(client_id, server_id, ports_range.first, ports_range.second);
 
-    bool USE_METTA_QUERY = true;
+    bool USE_METTA_QUERY = false;
 
     // check if argv[4] is a number which is the max number of query answers
     // if not, set it to MAX_QUERY_ANSWERS
@@ -77,64 +72,11 @@ int main(int argc, char* argv[]) {
         query.push_back(argv[i]);
     }
 
-    LOG_INFO("Setting up context");
-
-    string context_tag = "context";
-    // Variables
-    string sentence1 = "sentence1";
-    string sentence2 = "sentence2";
-    string sentence3 = "sentence3";
-    string word1 = "word1";
-
-    float RENT_RATE = 0.25;
-    float SPREADING_RATE_LOWERBOUND = 0.50;
-    float SPREADING_RATE_UPPERBOUND = 0.70;
-
-    vector<string> context1 = {
-        "LINK_TEMPLATE", "Expression", "3",
-            "NODE", "Symbol", "Contains",
-            "VARIABLE", "sentence1",
-            "VARIABLE", "word1",
-    };
-
-    QueryAnswerElement sentence_link(sentence1);
-    QueryAnswerElement word_link(word1);
-    QueryAnswerElement contains_link(0);
-
-    vector<pair<QueryAnswerElement, QueryAnswerElement>> determiner_schema = {
-        {contains_link, sentence_link}, {sentence_link, word_link}};
-    vector<QueryAnswerElement> stimulus_schema = {};
-
-    // Use ContextBrokerProxy to create context
-    shared_ptr<ContextBrokerProxy> context_proxy =
-        make_shared<ContextBrokerProxy>(context_tag, context1, determiner_schema, stimulus_schema);
-
-    context_proxy->parameters[ContextBrokerProxy::USE_CACHE] = (bool) true;
-    context_proxy->parameters[ContextBrokerProxy::ENFORCE_CACHE_RECREATION] = (bool) false;
-
-    context_proxy->parameters[ContextBrokerProxy::INITIAL_RENT_RATE] = (double) RENT_RATE;
-    context_proxy->parameters[ContextBrokerProxy::INITIAL_SPREADING_RATE_LOWERBOUND] =
-        (double) SPREADING_RATE_LOWERBOUND;
-    context_proxy->parameters[ContextBrokerProxy::INITIAL_SPREADING_RATE_UPPERBOUND] =
-        (double) SPREADING_RATE_UPPERBOUND;
-
-    // Issue the ContextBrokerProxy to create context
-    ServiceBusSingleton::get_instance()->issue_bus_command(context_proxy);
-
-    // Wait for ContextBrokerProxy to finish context creation
-    LOG_INFO("Waiting for context creation to finish...");
-    while (!context_proxy->is_context_created()) {
-        Utils::sleep();
-    }
-
-    string context_str = context_proxy->get_key();
-    LOG_INFO("Context " + context_str + " was created");
-
-    auto proxy = make_shared<PatternMatchingQueryProxy>(query, "context");
+    auto proxy = make_shared<PatternMatchingQueryProxy>(query, "");
     proxy->parameters[BaseQueryProxy::UNIQUE_ASSIGNMENT_FLAG] = true;
     proxy->parameters[BaseQueryProxy::ATTENTION_UPDATE_FLAG] = update_attention_broker;
     proxy->parameters[BaseQueryProxy::USE_LINK_TEMPLATE_CACHE] = false;
-    proxy->parameters[PatternMatchingQueryProxy::MAX_ANSWERS] = (unsigned int) 0;
+    proxy->parameters[PatternMatchingQueryProxy::MAX_ANSWERS] = (unsigned int) max_query_answers;
     proxy->parameters[PatternMatchingQueryProxy::POSITIVE_IMPORTANCE_FLAG] = false;
     proxy->parameters[BaseQueryProxy::USE_LINK_TEMPLATE_CACHE] = false;
     proxy->parameters[BaseQueryProxy::USE_METTA_AS_QUERY_TOKENS] = USE_METTA_QUERY;

@@ -171,12 +171,11 @@ pub fn parse_context_broker_parameters(atom: &Atom) -> Result<ContextBrokerParam
 
 				Ok((first_element, second_element))
 			} else {
-				return Err(CONTEXT_BROKER_PARSER_ERROR_MESSAGE.to_string().into());
+				Err(CONTEXT_BROKER_PARSER_ERROR_MESSAGE.to_string().into())
 			}
 		})?;
 
-		let stimulus_schema =
-			map_atom(&children[2].clone(), |atom| Ok(QueryElement::try_from(atom)?))?;
+		let stimulus_schema = map_atom(&children[2].clone(), |atom| QueryElement::try_from(atom))?;
 
 		return Ok(ContextBrokerParams { query_atom, determiner_schema, stimulus_schema });
 	}

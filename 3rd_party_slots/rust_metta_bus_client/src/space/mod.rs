@@ -37,11 +37,7 @@ impl DistributedAtomSpace {
 	) -> Result<Self, BoxError> {
 		let locked_params = params.lock().unwrap().clone();
 		let name = Some(locked_params.get(properties::CONTEXT));
-		let (host_id, port_lower, port_upper, known_peer) =
-			match get_networking_params(&locked_params) {
-				Ok(params) => params,
-				Err(e) => return Err(e),
-			};
+		let (host_id, port_lower, port_upper, known_peer) = get_networking_params(&locked_params)?;
 		let service_bus = Arc::new(Mutex::new(
 			match init_service_bus(host_id, known_peer, port_lower, port_upper) {
 				Ok(bus) => bus,
@@ -53,7 +49,6 @@ impl DistributedAtomSpace {
 
 	pub fn query(&self, query: &Atom) -> BindingsSet {
 		match query_with_das(
-			self.name.clone(),
 			self.params.lock().unwrap().clone(),
 			self.service_bus.clone(),
 			&QueryType::Atom(query.clone()),

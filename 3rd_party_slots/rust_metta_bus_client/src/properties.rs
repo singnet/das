@@ -52,14 +52,16 @@ impl PropertyValue {
 			s => Ok(Self::String(s.to_string())),
 		}
 	}
+}
 
-	pub fn to_string(&self) -> String {
+impl Display for PropertyValue {
+	fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
 		match self {
-			Self::String(s) => s.clone(),
-			Self::Long(l) => l.to_string(),
-			Self::UnsignedInt(u) => u.to_string(),
-			Self::Double(d) => d.to_string(),
-			Self::Bool(b) => b.to_string(),
+			PropertyValue::String(s) => write!(f, "{s}"),
+			PropertyValue::Long(l) => write!(f, "{l}"),
+			PropertyValue::UnsignedInt(u) => write!(f, "{u}"),
+			PropertyValue::Double(d) => write!(f, "{d}"),
+			PropertyValue::Bool(b) => write!(f, "{b}"),
 		}
 	}
 }
@@ -144,7 +146,7 @@ impl Properties {
 
 	fn print_with_set_param(&self, key: &str) -> Result<String, String> {
 		let value = self.try_get(key).ok_or(format!("Property value not found: {key}"))?;
-		Ok(format!("!(das-set-param! ({} {}))", key, value.to_string()))
+		Ok(format!("!(das-set-param! ({key} {value}))"))
 	}
 }
 
@@ -161,7 +163,7 @@ impl Default for Properties {
 		map.insert(KNOWN_PEER_ID.to_string(), PropertyValue::String(String::new()));
 
 		// Query
-		map.insert(MAX_ANSWERS.to_string(), PropertyValue::UnsignedInt(1_000));
+		map.insert(MAX_ANSWERS.to_string(), PropertyValue::UnsignedInt(0));
 		map.insert(MAX_BUNDLE_SIZE.to_string(), PropertyValue::UnsignedInt(1_000));
 		map.insert(UNIQUE_ASSIGNMENT_FLAG.to_string(), PropertyValue::Bool(true));
 		map.insert(POSITIVE_IMPORTANCE_FLAG.to_string(), PropertyValue::Bool(false));

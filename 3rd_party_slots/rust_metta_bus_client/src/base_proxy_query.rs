@@ -54,7 +54,6 @@ pub struct BaseQueryProxy {
 }
 
 impl BaseQueryProxy {
-	#[allow(clippy::too_many_arguments)]
 	pub fn new(command: String, params: QueryParams) -> Result<Self, BoxError> {
 		let runtime = Arc::new(RwLock::new(Some(Arc::new(
 			Builder::new_multi_thread().enable_all().build().unwrap(),

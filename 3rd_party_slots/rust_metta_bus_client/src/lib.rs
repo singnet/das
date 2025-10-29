@@ -52,10 +52,9 @@ pub enum QueryType {
 }
 
 pub fn query_with_das(
-	space_name: Option<String>, properties: Properties, service_bus: Arc<Mutex<ServiceBus>>,
-	query: &QueryType,
+	properties: Properties, service_bus: Arc<Mutex<ServiceBus>>, query: &QueryType,
 ) -> Result<BindingsSet, BoxError> {
-	let params = match extract_query_params(space_name, query, properties) {
+	let params = match extract_query_params(query, properties) {
 		Ok(params) => params,
 		Err(bindings_set) => return Ok(bindings_set),
 	};
@@ -63,9 +62,8 @@ pub fn query_with_das(
 	pattern_matching_query(service_bus, &params)
 }
 
-#[allow(clippy::too_many_arguments)]
 pub fn extract_query_params(
-	space_name: Option<String>, query: &QueryType, properties: Properties,
+	query: &QueryType, properties: Properties,
 ) -> Result<QueryParams, BindingsSet> {
 	let mut params = QueryParams::default();
 
@@ -81,10 +79,8 @@ pub fn extract_query_params(
 			.collect(),
 	};
 
-	params.context = match space_name {
-		Some(name) => name.clone(),
-		None => "context".to_string(),
-	};
+	params.context =
+		context_broker_proxy::hash_context(&properties.get::<String>(properties::CONTEXT));
 
 	let query_tokens_str = match query {
 		QueryType::String(s) => s.clone(),
