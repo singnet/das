@@ -57,7 +57,6 @@ impl DistributedAtomSpace {
 			self.params.lock().unwrap().clone(),
 			self.service_bus.clone(),
 			&QueryType::Atom(query.clone()),
-			Some(self.metta_runner.clone()),
 		) {
 			Ok(bindings) => bindings,
 			Err(e) => {

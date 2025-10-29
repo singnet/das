@@ -158,7 +158,6 @@ pub fn parse_context_broker_parameters(atom: &Atom) -> Result<ContextBrokerParam
 			return Err(CONTEXT_BROKER_PARSER_ERROR_MESSAGE.to_string().into());
 		}
 
-		// TODO(arturgontijo): Implement context broker parameters parsing
 		let query_atom = children[0].clone();
 		let determiner_schema = map_atom(&children[1].clone(), |atom| {
 			if let Atom::Expression(exp_atom) = atom {

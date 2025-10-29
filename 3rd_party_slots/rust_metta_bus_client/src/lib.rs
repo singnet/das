@@ -15,11 +15,9 @@ use types::BoxError;
 use crate::{
 	base_proxy_query::BaseQueryProxyT,
 	context_broker_proxy::{ContextBrokerParams, ContextBrokerProxy},
-	helpers::{run_metta_runner, split_ignore_quoted},
-	inference_proxy::{parse_inference_parameters, InferenceParams, InferenceProxy},
+	helpers::split_ignore_quoted,
 	properties::{Properties, PropertyValue},
 	query_evolution_proxy::{QueryEvolutionParams, QueryEvolutionProxy},
-	types::MeTTaRunner,
 };
 
 pub mod space;
@@ -28,7 +26,6 @@ pub mod bus;
 pub mod bus_node;
 pub mod context_broker_proxy;
 pub mod helpers;
-pub mod inference_proxy;
 pub mod pattern_matching_proxy;
 pub mod port_pool;
 pub mod properties;
@@ -56,37 +53,14 @@ pub enum QueryType {
 
 pub fn query_with_das(
 	space_name: Option<String>, properties: Properties, service_bus: Arc<Mutex<ServiceBus>>,
-	query: &QueryType, maybe_metta_runner: Option<MeTTaRunner>,
+	query: &QueryType,
 ) -> Result<BindingsSet, BoxError> {
-	let mut atom = match query {
-		QueryType::Atom(a) => a.clone(),
-		_ => {
-			log::error!(target: "das", "Invalid query type: {query:?}");
-			return Ok(BindingsSet::empty());
-		},
-	};
-
-	if let Some(metta_runner) = maybe_metta_runner.clone() {
-		atom = run_metta_runner(&atom, &metta_runner)?;
-	}
-
-	let maybe_inference_params = match parse_inference_parameters(&atom) {
-		Ok(maybe_inference_params) => maybe_inference_params,
-		Err(e) => {
-			log::error!(target: "das", "{e}");
-			return Ok(BindingsSet::empty());
-		},
-	};
-
 	let params = match extract_query_params(space_name, query, properties) {
 		Ok(params) => params,
 		Err(bindings_set) => return Ok(bindings_set),
 	};
 
-	match maybe_inference_params {
-		Some(inference_params) => inference_query(service_bus, &params, &inference_params),
-		None => pattern_matching_query(service_bus, &params),
-	}
+	pattern_matching_query(service_bus, &params)
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -224,53 +198,6 @@ pub fn evolution_query(
 			if max_query_answers > 0 && bindings_set.len() >= max_query_answers as usize {
 				break;
 			}
-		} else {
-			sleep(Duration::from_millis(100));
-		}
-	}
-
-	log::trace!(target: "das", "BindingsSet(len={}): {:?}", bindings_set.len(), bindings_set);
-
-	proxy.drop_runtime();
-
-	Ok(bindings_set)
-}
-
-pub fn inference_query(
-	service_bus: Arc<Mutex<ServiceBus>>, params: &QueryParams, inference_params: &InferenceParams,
-) -> Result<BindingsSet, BoxError> {
-	let mut bindings_set = BindingsSet::empty();
-
-	let mut params = params.clone();
-
-	if !InferenceProxy::request_types().contains(&inference_params.request_type) {
-		return Err(
-			format!("Invalid inference request type: {}", inference_params.request_type).into()
-		);
-	}
-
-	params
-		.properties
-		.insert(properties::USE_METTA_AS_QUERY_TOKENS.to_string(), PropertyValue::Bool(false));
-	params
-		.properties
-		.insert(properties::POPULATE_METTA_MAPPING.to_string(), PropertyValue::Bool(false));
-
-	for idx in 0..inference_params.max_proof_length {
-		params.variables.insert(VariableAtom::new(format!("V{idx}")));
-	}
-
-	let mut proxy = InferenceProxy::new(&params, inference_params)?;
-
-	let mut service_bus = service_bus.lock().unwrap();
-	service_bus.issue_bus_command(proxy.base.clone())?;
-
-	let populate_metta_mapping = params.properties.get(properties::POPULATE_METTA_MAPPING);
-
-	while !proxy.finished() {
-		if let Some(query_answer) = proxy.pop() {
-			let bindings = parse_query_answer(&query_answer, populate_metta_mapping);
-			bindings_set.push(bindings);
 		} else {
 			sleep(Duration::from_millis(100));
 		}
