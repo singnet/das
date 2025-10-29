@@ -54,11 +54,11 @@ class AtomDBTest : public ::testing::Test {
 };
 
 TEST_F(AtomDBTest, AddAtoms) {
-    string query_agent_id = "0.0.0.0:42000";
-    string atomdb_broker_server_id = "0.0.0.0:42010";
-    string atomdb_broker_client_id = "0.0.0.0:42020";
+    string query_agent_id = "0.0.0.0:51000";
+    string atomdb_broker_server_id = "0.0.0.0:51001";
+    string atomdb_broker_client_id = "0.0.0.0:51002";
 
-    ServiceBusSingleton::init(query_agent_id, atomdb_broker_server_id, 42000, 42999);
+    ServiceBusSingleton::init(query_agent_id, atomdb_broker_server_id, 51003, 51999);
 
     shared_ptr<ServiceBus> service_bus = ServiceBusSingleton::get_instance();
     service_bus->register_processor(make_shared<PatternMatchingQueryProcessor>());
