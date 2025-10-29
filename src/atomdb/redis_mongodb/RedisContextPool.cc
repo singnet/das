@@ -65,12 +65,12 @@ shared_ptr<RedisContext> RedisContextPool::acquire() {
         } catch (const std::exception& e) {
             retries++;
             LOG_ERROR(string(e.what()));
-            Utils::sleep(retry_delay);
+            if (retries <= MAX_RETRY_COUNT) Utils::sleep(retry_delay);
             retry_delay *= 2;
         }
     }
 
-    if (retries == MAX_RETRY_COUNT) {
+    if (retries > MAX_RETRY_COUNT) {
         Utils::error("Redis connection error: Failed to connect to Redis after " +
                      to_string(MAX_RETRY_COUNT) + " retries");
     }
