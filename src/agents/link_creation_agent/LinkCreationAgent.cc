@@ -81,7 +81,6 @@ void LinkCreationAgent::run() {
         }
         if (!requests_queue.empty()) {
             lca_request = requests_queue.dequeue();
-            lca_request->current_interval = requests_interval_seconds;
             if (lca_request != nullptr && (lca_request->infinite || lca_request->repeat > 0)) {
                 request_buffer[lca_request->id] = lca_request;
             }
@@ -169,7 +168,7 @@ void LinkCreationAgent::load_buffer() {
     file.close();
 }
 
-static bool is_link_template_arg(string arg) {
+static bool is_link_create_arg(string arg) {
     if (arg == "LIST") return true;
     if (arg == "LINK_CREATE") return true;
     if (arg == "PROOF_OF_IMPLICATION") return true;
@@ -177,49 +176,45 @@ static bool is_link_template_arg(string arg) {
     return false;
 }
 
-shared_ptr<LinkCreationAgentRequest> LinkCreationAgent::create_request(vector<string> request) {
+shared_ptr<LinkCreationAgentRequest> LinkCreationAgent::create_request(
+    shared_ptr<LinkCreationRequestProxy> proxy) {
+    auto lca_request = make_shared<LinkCreationAgentRequest>();
     try {
-        LinkCreationAgentRequest* lca_request = new LinkCreationAgentRequest();
-        long unsigned int cursor = 0;
-        bool is_link_create = false;
-        int has_id = 0;
-        if (request[request.size() - 1] != "true" && request[request.size() - 1] != "false") {
-            has_id = 1;
-        }
-        for (string arg : request) {
-            cursor++;
-            is_link_create = is_link_template_arg(arg) || is_link_create;
-            if (!is_link_create) {
-                lca_request->query.push_back(arg);
-            }
-            if (is_link_create && cursor < request.size() - 3 - has_id) {
-                lca_request->link_template.push_back(arg);
-            }
-            if (cursor == request.size() - 3 - has_id) {
-                lca_request->max_results = stoi(arg);
-            }
-            if (cursor == request.size() - 2 - has_id) {
-                lca_request->repeat = stoi(arg);
-            }
-            if (cursor == request.size() - 1 - has_id) {
-                lca_request->context = arg;
-            }
-            if (cursor == request.size() - has_id) {
-                lca_request->update_attention_broker = (arg == "true");
+        bool query_section = true;
+        for (const auto& token : proxy->get_args()) {
+            if (is_link_create_arg(token) || !query_section) {
+                query_section = false;
+                lca_request->link_template.push_back(token);
             } else {
-                if (cursor == request.size()) {
-                    lca_request->id = arg;
-                }
+                lca_request->query.push_back(token);
             }
         }
-        lca_request->infinite = (lca_request->repeat == -1);
-        lca_request->original_id = lca_request->id;
-        LOG_DEBUG("Request original ID: " << lca_request->original_id);
+        lca_request->max_results =
+            proxy->parameters.get<unsigned int>(LinkCreationRequestProxy::MAX_ANSWERS);
+        lca_request->repeat =
+            proxy->parameters.get<unsigned int>(LinkCreationRequestProxy::REPEAT_COUNT);
+        lca_request->context = proxy->parameters.get<string>(LinkCreationRequestProxy::CONTEXT);
+        lca_request->update_attention_broker =
+            proxy->parameters.get<bool>(LinkCreationRequestProxy::ATTENTION_UPDATE_FLAG);
+        lca_request->importance_flag =
+            proxy->parameters.get<bool>(LinkCreationRequestProxy::POSITIVE_IMPORTANCE_FLAG);
+        LOG_DEBUG(proxy->peer_id());
+        LOG_DEBUG(to_string(proxy->get_serial()));
+        lca_request->original_id = proxy->peer_id() + to_string(proxy->get_serial());
+        lca_request->id = compute_hash((char*) lca_request->original_id.c_str());
+        lca_request->is_running = false;
+        auto request_interval = proxy->parameters.get_or<unsigned int>(
+            LinkCreationRequestProxy::QUERY_INTERVAL, requests_interval_seconds);
+        lca_request->current_interval = request_interval;
+        if (lca_request->link_template.size() == 0) {
+            Utils::error("Link template cannot be empty");
+        }
         if (lca_request->id.empty()) {
             Utils::error("Request ID cannot be empty");
         }
-        lca_request->id = compute_hash((char*) lca_request->id.c_str());
-        lca_request->is_running = false;
+        if (lca_request->repeat == 0) {
+            lca_request->infinite = true;
+        }
         LOG_DEBUG("Creating request ID: " << lca_request->id);
         LOG_DEBUG("Query: " << Utils::join(lca_request->query, ' '));
         LOG_DEBUG("Link Template: " << Utils::join(lca_request->link_template, ' '));
@@ -228,20 +223,12 @@ shared_ptr<LinkCreationAgentRequest> LinkCreationAgent::create_request(vector<st
         LOG_DEBUG("Context: " << lca_request->context);
         LOG_DEBUG("Update Attention Broker: " << to_string(lca_request->update_attention_broker));
         LOG_DEBUG("Infinite: " << to_string(lca_request->infinite));
-        if (lca_request->link_template.size() == 0) {
-            Utils::error("Link template cannot be empty");
-        }
-
-        return shared_ptr<LinkCreationAgentRequest>(lca_request);
+        return lca_request;
     } catch (exception& e) {
-        LOG_ERROR("Error parsing request: " << string(e.what()));
-        Utils::error("Invalid request format: " + string(e.what()));
+        LOG_ERROR("Error parsing request from proxy: " << string(e.what()));
+        Utils::error("Invalid request format from proxy: " + string(e.what()));
     }
     return nullptr;
-}
-
-void LinkCreationAgent::process_request(vector<string> request) {
-    this->requests_queue.enqueue(create_request(request));
 }
 
 void LinkCreationAgent::process_request(shared_ptr<LinkCreationRequestProxy> proxy) {
@@ -250,9 +237,7 @@ void LinkCreationAgent::process_request(shared_ptr<LinkCreationRequestProxy> pro
     }
     LOG_DEBUG("Processing link creation request: " << Utils::join(proxy->get_args(), ' '));
     string request_id = proxy->peer_id() + to_string(proxy->get_serial());
-    auto request = proxy->get_args();
-    request.push_back(request_id);
-    process_request(request);
+    this->requests_queue.enqueue(create_request(proxy));
     link_creation_proxy_map[request_id] = proxy;
     LOG_DEBUG("Link creation request processed for request ID: " << request_id);
 }
