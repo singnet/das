@@ -71,7 +71,6 @@ cc_library(
     deps = [
         "//atom_space:atom_space_lib",
         "//atomdb:atomdb_singleton",
-        "//agents/context_broker:context_broker_lib",
         "//service_bus:service_bus_lib",
     ],
 )
