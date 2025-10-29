@@ -3,9 +3,13 @@
 #include "RedisContext.h"
 #include "Utils.h"
 
+#define LOG_LEVEL INFO_LEVEL
+#include "Logger.h"
+
 using namespace commons;
 
 const size_t MAX_CONTEXTS = 100;
+const unsigned int MAX_RETRY_COUNT = 5;
 
 RedisContextPool::RedisContextPool(bool is_cluster, string host, string port, string cluster_address)
     : cluster_flag(is_cluster), host(host), port(port), cluster_address(cluster_address) {
@@ -33,22 +37,42 @@ shared_ptr<RedisContext> RedisContextPool::acquire() {
 
     // Create a new context if the pool is empty
     shared_ptr<RedisContext> ctx = make_shared<RedisContext>(cluster_flag);
-    if (cluster_flag) {
-        auto cluster_ctx = redisClusterConnect(cluster_address.c_str(), 0);
-        if (!cluster_ctx || cluster_ctx->err) {
-            string err = cluster_ctx ? cluster_ctx->errstr : "Unknown error";
-            if (cluster_ctx) redisClusterFree(cluster_ctx);
-            Utils::error("Redis cluster connection error: " + err);
+
+    unsigned int retry_delay = 1000;
+    unsigned int retries = 1;
+    while (retries <= MAX_RETRY_COUNT) {
+        try {
+            if (cluster_flag) {
+                auto cluster_ctx = redisClusterConnect(cluster_address.c_str(), 0);
+                if (!cluster_ctx || cluster_ctx->err) {
+                    string err = cluster_ctx ? cluster_ctx->errstr : "Unknown error";
+                    if (cluster_ctx) redisClusterFree(cluster_ctx);
+                    throw runtime_error("Redis cluster connection error (" + to_string(retries) + " / " +
+                                        to_string(MAX_RETRY_COUNT) + "): " + err);
+                }
+                ctx->set_context(cluster_ctx);
+            } else {
+                auto single_ctx = redisConnect(host.c_str(), stoi(port));
+                if (!single_ctx || single_ctx->err) {
+                    string err = single_ctx ? single_ctx->errstr : "Unknown error";
+                    if (single_ctx) redisFree(single_ctx);
+                    throw runtime_error("Redis connection error (" + to_string(retries) + " / " +
+                                        to_string(MAX_RETRY_COUNT) + "): " + err);
+                }
+                ctx->set_context(single_ctx);
+            }
+            break;
+        } catch (const std::exception& e) {
+            retries++;
+            LOG_ERROR(string(e.what()));
+            Utils::sleep(retry_delay);
+            retry_delay *= 2;
         }
-        ctx->set_context(cluster_ctx);
-    } else {
-        auto single_ctx = redisConnect(host.c_str(), stoi(port));
-        if (!single_ctx || single_ctx->err) {
-            string err = single_ctx ? single_ctx->errstr : "Unknown error";
-            if (single_ctx) redisFree(single_ctx);
-            Utils::error("Redis connection error: " + err);
-        }
-        ctx->set_context(single_ctx);
+    }
+
+    if (retries == MAX_RETRY_COUNT) {
+        Utils::error("Redis connection error: Failed to connect to Redis after " +
+                     to_string(MAX_RETRY_COUNT) + " retries");
     }
 
     total_contexts++;
