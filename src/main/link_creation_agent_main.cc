@@ -46,8 +46,8 @@ int main(int argc, char* argv[]) {
         [AB_ip:AB_port] The address of the Attention Broker to connect to, in the form "host:port". 
 
     Requests must be in the following format:
-    QUERY, LINK_TEMPLATE, MAX_RESULTS, REPEAT
-    MAX_RESULTS and REPEAT are optional, the default value for MAX_RESULTS is 1000 and for REPEAT is 1
+    QUERY, LINK_TEMPLATE, MAX_ANSWERS, REPEAT
+    MAX_ANSWERS and REPEAT are optional, the default value for MAX_ANSWERS is 1000 and for REPEAT is 1
     )"""";
 
     if (argc < 4) {

@@ -41,6 +41,7 @@ class LinkCreationAgent {
                       bool save_links_to_metta_file,
                       bool save_links_to_db,
                       bool reindex = true);
+    LinkCreationAgent() = default;
     ~LinkCreationAgent();
 
     /**
@@ -51,11 +52,10 @@ class LinkCreationAgent {
     void run();
     /**
      * @brief Create the create link request.
-     * @param request Request to be handled
+     * @param proxy Proxy to be handled
      */
-    static shared_ptr<LinkCreationAgentRequest> create_request(vector<string> request);
+    shared_ptr<LinkCreationAgentRequest> create_request(shared_ptr<LinkCreationRequestProxy> proxy);
 
-    void process_request(vector<string> request);
     void process_request(shared_ptr<LinkCreationRequestProxy> proxy);
 
     void abort_request(const string& request_id);
