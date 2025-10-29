@@ -23,7 +23,7 @@ impl ServiceBusSingleton {
 			Ok(_) => (),
 			Err(_) => return Err(BoxError::from("ServiceBusSingleton already initialized!")),
 		}
-		let service_bus = ServiceBus::new(
+		let mut service_bus = ServiceBus::new(
 			host_id,
 			known_peer,
 			vec![
@@ -36,6 +36,7 @@ impl ServiceBusSingleton {
 			port_lower,
 			port_upper,
 		)?;
+		service_bus.join_network_thread()?;
 		SERVICE_BUS.set(service_bus).expect("ServiceBusSingleton already initialized!");
 		Ok(())
 	}

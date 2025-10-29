@@ -99,8 +99,8 @@ pub fn extract_query_params(
 		PropertyValue::Bool(use_metta_as_query_tokens),
 	);
 
-	log::debug!(target: "das", "Query: <{:?}>", params.tokens);
-	log::debug!(target: "das", "Vars : <{}>", variables.iter().map(|v| v.to_string()).collect::<Vec<String>>().join(","));
+	log::trace!(target: "das", "Query: <{:?}>", params.tokens);
+	log::trace!(target: "das", "Vars : <{}>", variables.iter().map(|v| v.to_string()).collect::<Vec<String>>().join(","));
 
 	params.variables = variables;
 	params.properties = properties;

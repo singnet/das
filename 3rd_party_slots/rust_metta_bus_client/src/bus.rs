@@ -29,14 +29,12 @@ impl Bus {
 	pub fn set_ownership(&mut self, command: String, node_id: &str) {
 		if !self.command_owner.contains_key(&command) {
 			panic!("Bus: command <{command}> is not defined");
-		} else if self.command_owner[&command].is_empty() {
-			log::trace!(target: "das", "Bus::set_ownership(): Adding {command} to bus, owner: {node_id}");
-			self.command_owner.insert(command.to_string(), node_id.to_string());
-		} else if self.command_owner[&command] != node_id {
-			panic!(
-				"Bus: command <{command}> is already assigned to {}",
-				self.command_owner[&command]
-			);
+		} else {
+			let current_owner = self.command_owner.get(&command).unwrap();
+			if current_owner != node_id {
+				log::trace!(target: "das", "Bus::set_ownership(): Adding {command} to bus, owner: {node_id}");
+				self.command_owner.insert(command.to_string(), node_id.to_string());
+			}
 		}
 	}
 

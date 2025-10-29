@@ -1,16 +1,23 @@
-use std::sync::{Arc, Mutex};
+use std::{
+	sync::{Arc, Mutex, RwLock},
+	thread::{self, sleep},
+	time::Duration,
+};
+
+use tokio::runtime::Builder;
 
 use crate::{
 	base_proxy_query::{BaseQueryProxy, BaseQueryProxyT},
 	bus_node::BusNode,
 	port_pool::PortPool,
+	proxy::StarNode,
 	types::BoxError,
 };
 
 #[derive(Debug, Default, Clone)]
 pub struct ServiceBus {
 	pub service_list: Vec<String>,
-	pub bus_node: BusNode,
+	pub bus_node: Arc<Mutex<BusNode>>,
 	pub next_request_serial: u64,
 }
 
@@ -20,8 +27,9 @@ impl ServiceBus {
 		port_upper: u16,
 	) -> Result<Self, BoxError> {
 		PortPool::initialize_statics(port_lower, port_upper)?;
-		let mut bus_node = BusNode::new(host_id, commands.clone(), known_peer)?;
-		bus_node.join_network()?;
+		let host_id = format!("{}:{}", host_id, PortPool::get_port());
+		let bus_node =
+			Arc::new(Mutex::new(BusNode::new(host_id.clone(), commands.clone(), known_peer)?));
 		Ok(Self { service_list: commands, bus_node, next_request_serial: 0 })
 	}
 
@@ -29,8 +37,9 @@ impl ServiceBus {
 		&mut self, proxy_arc: Arc<Mutex<BaseQueryProxy>>,
 	) -> Result<(), BoxError> {
 		let mut proxy = proxy_arc.lock().unwrap();
-		log::debug!(target: "das", "{} is issuing BUS command <{}>", self.bus_node.node_id(), proxy.command);
-		proxy.requestor_id = self.bus_node.node_id();
+		let locked_bus_node = self.bus_node.lock().unwrap();
+		log::debug!(target: "das", "{} is issuing BUS command <{}>", locked_bus_node.node_id(), proxy.command);
+		proxy.requestor_id = locked_bus_node.node_id();
 		self.next_request_serial += 1;
 		proxy.serial = self.next_request_serial;
 		proxy.proxy_port = PortPool::get_port();
@@ -45,7 +54,7 @@ impl ServiceBus {
 			for arg in &proxy.args {
 				args.push(arg.clone());
 			}
-			match self.bus_node.send_bus_command(proxy.command.clone(), args) {
+			match locked_bus_node.send_bus_command(proxy.command.clone(), args) {
 				Ok(_) => (),
 				Err(_) => proxy.answer_flow_finished = true,
 			}
@@ -53,8 +62,51 @@ impl ServiceBus {
 		Ok(())
 	}
 
-	// TODO: Avoiding warnings...
 	pub fn service(&self) -> Vec<String> {
 		self.service_list.clone()
+	}
+
+	pub fn join_network_thread(&mut self) -> Result<(), BoxError> {
+		let host_id_clone = self.bus_node.lock().unwrap().host_id.clone();
+		let bus_clone = self.bus_node.clone();
+		thread::spawn(move || {
+			let runtime = Arc::new(RwLock::new(Some(Arc::new(
+				Builder::new_multi_thread().enable_all().build().unwrap(),
+			))));
+
+			let proxy_arc =
+				Arc::new(Mutex::new(BaseQueryProxy::default_with_runtime(runtime.clone())));
+
+			StarNode::serve(host_id_clone.clone(), proxy_arc.clone(), runtime.clone()).unwrap();
+
+			let mut send_join_network = true;
+			loop {
+				let mut bus_node = bus_clone.lock().unwrap();
+
+				if send_join_network {
+					log::debug!(target: "das", "BusNode::join_network(): Joining network with peer {}", bus_node.peer_id);
+					bus_node
+						.send(
+							"node_joined_network".to_string(),
+							vec![bus_node.host_id.clone()],
+							bus_node.peer_id.clone(),
+							true,
+						)
+						.unwrap();
+					send_join_network = false;
+					sleep(Duration::from_millis(250));
+				}
+
+				let proxy = proxy_arc.lock().unwrap();
+				for (command, owner) in proxy.service_list.iter() {
+					bus_node.bus.set_ownership(command.clone(), owner);
+				}
+				drop(proxy);
+				drop(bus_node);
+
+				sleep(Duration::from_millis(1_000));
+			}
+		});
+		Ok(())
 	}
 }
