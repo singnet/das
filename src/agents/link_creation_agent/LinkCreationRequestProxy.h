@@ -40,6 +40,9 @@ class LinkCreationRequestProxy : public BaseProxy {
     /** Query timeout for the request, controls how long to wait for a query to complete */
     static string QUERY_TIMEOUT;
 
+    static string USE_METTA_AS_QUERY_TOKENS;
+
+
     /**
      * Empty constructor typically used on server side.
      */

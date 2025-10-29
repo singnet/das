@@ -29,8 +29,9 @@ int main(int argc, char* argv[]) {
         <repeat>: Number of times to repeat the request (set 0 for infinite)
         <update_attention_broker>: Whether to update the attention broker (true/false)
         <importance_flag>: Whether to set the importance flag (true/false)
+        <use_metta_expression>: Whether to use MeTTa expression as query tokens (true/false)
         <context>: Context for the link creation request
-        REQUEST+: A list of tokens to be sent to the server
+        REQUEST+/MeTTa: A list of tokens to be sent to the server or MeTTa expression
     Requests must be in the following format:
     QUERY+, ( LINK_CREATE+ | PROOF_OF_EQUIVALENCE | PROOF_OF_IMPLICATION )
     )"""";
@@ -49,11 +50,17 @@ int main(int argc, char* argv[]) {
     int repeat = Utils::string_to_int(string(argv[5]));
     bool update_attention_broker = (string(argv[6]) == "true");
     bool importance_flag = (string(argv[7]) == "true");
-    string context = string(argv[8]);
+    bool use_metta_expression = (string(argv[8]) == "true");
+    string context = string(argv[9]);
 
     vector<string> request;
-    for (int i = 9; i < argc; i++) {
-        request.push_back(argv[i]);
+    for (int i = 10; i < argc; i++) {
+        string token = string(argv[i]);
+        if (use_metta_expression){
+            Utils::replace_all(token, "%", "$");
+        }
+        request.push_back(token);
+        cout << "Request token: " << token << endl;
     }
     AtomDBSingleton::init();
     ServiceBusSingleton::init(client_id, server_id, ports_range.first, ports_range.second);
@@ -63,6 +70,7 @@ int main(int argc, char* argv[]) {
     proxy->parameters[LinkCreationRequestProxy::CONTEXT] = context;
     proxy->parameters[LinkCreationRequestProxy::ATTENTION_UPDATE_FLAG] = update_attention_broker;
     proxy->parameters[LinkCreationRequestProxy::POSITIVE_IMPORTANCE_FLAG] = importance_flag;
+    proxy->parameters[LinkCreationRequestProxy::USE_METTA_AS_QUERY_TOKENS] = use_metta_expression;
     ServiceBusSingleton::get_instance()->issue_bus_command(proxy);
     return 0;
 }

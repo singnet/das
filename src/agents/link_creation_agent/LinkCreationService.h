@@ -10,6 +10,7 @@
 
 #include "EquivalenceProcessor.h"
 #include "ImplicationProcessor.h"
+#include "MettaTemplateProcessor.h"
 #include "LCAQueue.h"
 #include "LinkCreationAgentRequest.h"
 #include "LinkProcessor.h"
@@ -70,6 +71,7 @@ class LinkCreationService
     shared_ptr<LinkTemplateProcessor> link_template_processor;
     shared_ptr<ImplicationProcessor> implication_processor;
     shared_ptr<EquivalenceProcessor> equivalence_processor;
+    shared_ptr<MettaTemplateProcessor> metta_link_processor;
     shared_ptr<mutex> query_agent_mutex;
     Queue<tuple<string, shared_ptr<Link>>> link_creation_queue;
     bool is_stoping = false;
