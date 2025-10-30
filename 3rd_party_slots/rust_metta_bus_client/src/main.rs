@@ -79,7 +79,7 @@ fn main() -> Result<(), BoxError> {
 		.join(" ");
 
 	ServiceBusSingleton::init(host_id, known_peer, port_lower, port_upper)?;
-	let service_bus = ServiceBusSingleton::get_instance();
+	let service_bus = ServiceBusSingleton::get_instance()?;
 	let mut bus = service_bus.bus_node.lock().unwrap().bus.clone();
 
 	let mut timeout = 0;
@@ -89,8 +89,6 @@ fn main() -> Result<(), BoxError> {
 		sleep(Duration::from_millis(100));
 		bus = service_bus.bus_node.lock().unwrap().bus.clone();
 	}
-
-	service_bus.print_services();
 
 	let params = match extract_query_params(&QueryType::String(tokens), props) {
 		Ok(params) => params,

@@ -8,7 +8,6 @@ use std::{
 use helpers::{map_variables, query_answer::parse_query_answer};
 use hyperon_atom::{matcher::BindingsSet, Atom, ExecError, VariableAtom};
 use pattern_matching_proxy::PatternMatchingQueryProxy;
-use service_bus::ServiceBus;
 use service_bus_singleton::ServiceBusSingleton;
 use types::BoxError;
 
@@ -18,6 +17,7 @@ use crate::{
 	helpers::split_ignore_quoted,
 	properties::{Properties, PropertyValue},
 	query_evolution_proxy::{QueryEvolutionParams, QueryEvolutionProxy},
+	service_bus::ServiceBus,
 };
 
 pub mod space;
@@ -53,7 +53,7 @@ pub enum QueryType {
 }
 
 pub fn query_with_das(
-	properties: Properties, service_bus: Arc<Mutex<ServiceBus>>, query: &QueryType,
+	service_bus: Arc<Mutex<ServiceBus>>, properties: Properties, query: &QueryType,
 ) -> Result<BindingsSet, BoxError> {
 	let params = match extract_query_params(query, properties) {
 		Ok(params) => params,
@@ -207,10 +207,26 @@ pub fn evolution_query(
 }
 
 pub fn init_service_bus(
-	host_id: String, known_peer: String, port_lower: u16, port_upper: u16,
+	host_id: String, known_peer: String, port_lower: u16, port_upper: u16, re_init: bool,
 ) -> Result<ServiceBus, BoxError> {
-	ServiceBusSingleton::init(host_id, known_peer, port_lower, port_upper)?;
-	Ok(ServiceBusSingleton::get_instance())
+	let service_bus = match ServiceBusSingleton::get_instance() {
+		Ok(service_bus) => {
+			if re_init {
+				*service_bus.keep_alive.lock().unwrap() = false;
+				sleep(Duration::from_millis(600));
+				drop(service_bus);
+				ServiceBusSingleton::provide(host_id, known_peer, port_lower, port_upper)?;
+				ServiceBusSingleton::get_instance()?
+			} else {
+				service_bus
+			}
+		},
+		Err(_) => {
+			ServiceBusSingleton::init(host_id, known_peer, port_lower, port_upper)?;
+			ServiceBusSingleton::get_instance()?
+		},
+	};
+	Ok(service_bus)
 }
 
 pub fn host_id_from_atom(atom: &Atom) -> Result<(String, u16, u16), ExecError> {
@@ -226,4 +242,22 @@ pub fn host_id_from_atom(atom: &Atom) -> Result<(String, u16, u16), ExecError> {
 		}
 	}
 	Err(ExecError::from("new-das arguments must be a valid endpoint (eg. 0.0.0.0:42000-42999)"))
+}
+
+pub fn compare_networking_params(
+	host_id: &String, known_peer: &String, port_lower: &u16, port_upper: &u16, params: &Properties,
+) -> Result<(), BoxError> {
+	if *host_id != params.get::<String>(properties::HOSTNAME) {
+		return Err("Host ID does not match".into());
+	}
+	if *known_peer != params.get::<String>(properties::KNOWN_PEER_ID) {
+		return Err("Known peer does not match".into());
+	}
+	if *port_lower != params.get::<u64>(properties::PORT_LOWER) as u16 {
+		return Err("Port lower does not match".into());
+	}
+	if *port_upper != params.get::<u64>(properties::PORT_UPPER) as u16 {
+		return Err("Port upper does not match".into());
+	}
+	Ok(())
 }

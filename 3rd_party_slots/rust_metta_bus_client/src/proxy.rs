@@ -94,7 +94,12 @@ impl Drop for ProxyNode {
 			let splitted = self.node_id.split(":").collect::<Vec<_>>();
 			if splitted.len() == 2 {
 				let port = splitted[1].parse::<u16>().unwrap();
-				PortPool::return_port(port);
+				match PortPool::return_port(port) {
+					Ok(_) => (),
+					Err(err) => {
+						log::error!(target: "das", "ProxyNode::drop(): Failed to return port to pool: {err:?}")
+					},
+				}
 			} else {
 				log::error!(target: "das", "Failed to parse and return port from: {}", self.node_id);
 			}
