@@ -26,7 +26,7 @@ int main(int argc, char* argv[]) {
         server_address: The address of the server to connect to, in the form "host:port"
         <start_port:end_port>: The lower and upper bound for the port numbers to be used by the command proxy
         <max_answers>: Maximum number of results to return (default: 1000)
-        <repeat_count>: Number of times to repeat the request (set 0 for infinite)
+        <repeat_count_count>: Number of times to repeat_count the request (set 0 for infinite)
         <attention_update_flag>: Whether to update the attention broker (true/false)
         <positive_importance_flag>: Whether to set the importance flag (true/false)
         <use_metta_as_query_tokens>: Whether to use MeTTa expression as query tokens (true/false)
@@ -46,17 +46,17 @@ int main(int argc, char* argv[]) {
     string client_id = string(argv[1]);
     string server_id = string(argv[2]);
     auto ports_range = Utils::parse_ports_range(argv[3]);
-    int max_results = Utils::string_to_int(string(argv[4]));
-    int repeat = Utils::string_to_int(string(argv[5]));
-    bool update_attention_broker = (string(argv[6]) == "true");
-    bool importance_flag = (string(argv[7]) == "true");
-    bool use_metta_expression = (string(argv[8]) == "true");
+    int max_answers = Utils::string_to_int(string(argv[4]));
+    int repeat_count = Utils::string_to_int(string(argv[5]));
+    bool attention_update_flag = (string(argv[6]) == "true");
+    bool positive_importance_flag = (string(argv[7]) == "true");
+    bool use_metta_as_query_tokens = (string(argv[8]) == "true");
     string context = string(argv[9]);
 
     vector<string> request;
     for (int i = 10; i < argc; i++) {
         string token = string(argv[i]);
-        if (use_metta_expression) {
+        if (use_metta_as_query_tokens) {
             Utils::replace_all(token, "%", "$");
         }
         request.push_back(token);
@@ -65,12 +65,12 @@ int main(int argc, char* argv[]) {
     AtomDBSingleton::init();
     ServiceBusSingleton::init(client_id, server_id, ports_range.first, ports_range.second);
     auto proxy = make_shared<LinkCreationRequestProxy>(request);
-    proxy->parameters[LinkCreationRequestProxy::max_answers] = (unsigned int) max_results;
-    proxy->parameters[LinkCreationRequestProxy::REPEAT_COUNT] = (unsigned int) repeat;
+    proxy->parameters[LinkCreationRequestProxy::MAX_ANSWERS] = (unsigned int) max_answers;
+    proxy->parameters[LinkCreationRequestProxy::REPEAT_COUNT] = (unsigned int) repeat_count;
     proxy->parameters[LinkCreationRequestProxy::CONTEXT] = context;
-    proxy->parameters[LinkCreationRequestProxy::ATTENTION_UPDATE_FLAG] = update_attention_broker;
-    proxy->parameters[LinkCreationRequestProxy::POSITIVE_IMPORTANCE_FLAG] = importance_flag;
-    proxy->parameters[LinkCreationRequestProxy::USE_METTA_AS_QUERY_TOKENS] = use_metta_expression;
+    proxy->parameters[LinkCreationRequestProxy::ATTENTION_UPDATE_FLAG] = attention_update_flag;
+    proxy->parameters[LinkCreationRequestProxy::POSITIVE_IMPORTANCE_FLAG] = positive_importance_flag;
+    proxy->parameters[LinkCreationRequestProxy::USE_METTA_AS_QUERY_TOKENS] = use_metta_as_query_tokens;
     ServiceBusSingleton::get_instance()->issue_bus_command(proxy);
     return 0;
 }
