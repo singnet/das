@@ -49,9 +49,12 @@ impl ContextBrokerProxy {
 	) -> Result<Self, BoxError> {
 		let mut base = BaseQueryProxy::new(CONTEXT_CMD.to_string(), params.clone())?;
 
+		let name = params.properties.get::<String>(properties::CONTEXT);
+		let key = params.context.clone();
+
 		let mut args = vec![];
 		args.extend(params.properties.to_vec());
-		args.push(base.context_key.clone());
+		args.push(name.clone());
 
 		let query_tokens = vec![context_broker_params.query_atom.to_string()];
 		args.push(query_tokens.len().to_string());
@@ -65,9 +68,6 @@ impl ContextBrokerProxy {
 			args.push(source.to_string());
 			args.push(target.to_string());
 		}
-
-		let name = params.context_name.clone();
-		let key = params.context_key.clone();
 
 		args.push(key.clone());
 		args.push(name.clone());
@@ -134,8 +134,9 @@ impl BaseQueryProxyT for ContextBrokerProxy {
 	fn setup_proxy_node(
 		&mut self, proxy_arc: Arc<Mutex<BaseQueryProxy>>, client_id: Option<String>,
 		server_id: Option<String>,
-	) {
-		self.base.lock().unwrap().setup_proxy_node(proxy_arc, client_id, server_id)
+	) -> Result<(), BoxError> {
+		self.base.lock().unwrap().setup_proxy_node(proxy_arc, client_id, server_id)?;
+		Ok(())
 	}
 
 	fn to_remote_peer(&self, command: String, args: Vec<String>) -> Result<(), BoxError> {

@@ -64,9 +64,9 @@ impl ServiceBus {
 		proxy.serial = self.next_request_serial;
 		proxy.proxy_port = PortPool::get_port()?;
 		if proxy.proxy_port == 0 {
-			panic!("No port is available to start bus command proxy");
+			return Err("No port is available to start bus command proxy".into());
 		} else {
-			proxy.setup_proxy_node(proxy_arc.clone(), None, None);
+			proxy.setup_proxy_node(proxy_arc.clone(), None, None)?;
 			let mut args = Vec::new();
 			args.push(proxy.requestor_id.clone());
 			args.push(proxy.serial.to_string());

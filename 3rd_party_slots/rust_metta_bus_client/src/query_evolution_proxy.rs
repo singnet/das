@@ -59,7 +59,7 @@ impl QueryEvolutionProxy {
 		let mut args = vec![];
 		args.extend(params.properties.to_vec());
 
-		args.push(base.context_key.clone());
+		args.push(base.context.clone());
 
 		let query_tokens = vec![evolution_params.query_atom.to_string()];
 		args.push(query_tokens.len().to_string());
@@ -89,9 +89,10 @@ impl QueryEvolutionProxy {
 		}
 
 		let population_size = params.properties.get::<u64>(properties::POPULATION_SIZE);
+		let context_name = params.properties.get::<String>(properties::CONTEXT);
 
 		log::debug!(target: "das", "Query                   : <{}>", evolution_params.query_atom);
-		log::debug!(target: "das", "Context (name, key)     : <{}, {}>", base.context_name, base.context_key);
+		log::debug!(target: "das", "Context (name, key)     : <{}, {}>", context_name, base.context);
 		log::debug!(target: "das", "Population size         : <{population_size}>");
 		log::debug!(target: "das", "Max generations         : <{}>", params.properties.get::<u64>(properties::MAX_GENERATIONS));
 		log::debug!(target: "das", "Elitism rate            : <{}>", params.properties.get::<f64>(properties::ELITISM_RATE));
@@ -129,7 +130,7 @@ impl QueryEvolutionProxy {
 			if query_answer_str == EVAL_FITNESS {
 				continue;
 			}
-			let query_answer = parse_query_answer(&query_answer_str, true);
+			let query_answer = parse_query_answer(&query_answer_str, true)?;
 			let fitness = self.compute_fitness(
 				self.fitness_function.clone(),
 				query_answer,
@@ -231,8 +232,9 @@ impl BaseQueryProxyT for QueryEvolutionProxy {
 	fn setup_proxy_node(
 		&mut self, proxy_arc: Arc<Mutex<BaseQueryProxy>>, client_id: Option<String>,
 		server_id: Option<String>,
-	) {
-		self.base.lock().unwrap().setup_proxy_node(proxy_arc, client_id, server_id)
+	) -> Result<(), BoxError> {
+		self.base.lock().unwrap().setup_proxy_node(proxy_arc, client_id, server_id)?;
+		Ok(())
 	}
 
 	fn to_remote_peer(&self, command: String, args: Vec<String>) -> Result<(), BoxError> {

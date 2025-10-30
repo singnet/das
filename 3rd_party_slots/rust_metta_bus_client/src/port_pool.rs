@@ -1,5 +1,6 @@
 use std::{
 	collections::VecDeque,
+	net::TcpListener,
 	sync::{Arc, Mutex, OnceLock, RwLock},
 };
 
@@ -18,7 +19,11 @@ impl PortPool {
 	pub fn init(port_lower: u16, port_upper: u16) -> Result<(), BoxError> {
 		let mut queue = VecDeque::with_capacity((port_upper - port_lower + 1) as usize);
 		for port in port_lower..=port_upper {
-			queue.push_back(port);
+			if !PortPool::is_port_in_use(port) {
+				queue.push_back(port);
+			} else {
+				log::debug!(target: "das", "PortPool::init(): {port} is already in use!");
+			}
 		}
 
 		let pool = PortPool { pool: Arc::new(Mutex::new(queue)), port_lower, port_upper };
@@ -59,5 +64,10 @@ impl PortPool {
 			},
 			None => Err(BoxError::from("PortPool not initialized!")),
 		}
+	}
+
+	/// Checks if a port is already in use.
+	pub fn is_port_in_use(port: u16) -> bool {
+		TcpListener::bind(format!("0.0.0.0:{port}")).is_err()
 	}
 }

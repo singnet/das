@@ -19,12 +19,14 @@ impl PatternMatchingQueryProxy {
 
 		let mut args = vec![];
 		args.extend(params.properties.to_vec());
-		args.push(base.context_key.clone());
+		args.push(base.context.clone());
 		args.push(base.query_tokens.len().to_string());
 		args.extend(base.query_tokens.clone());
 
+		let context_name = params.properties.get::<String>(properties::CONTEXT);
+
 		log::debug!(target: "das", "Query                    : <{}>", base.query_tokens.join(" "));
-		log::debug!(target: "das", "Context (name, key)      : <{}, {}>", base.context_name, base.context_key);
+		log::debug!(target: "das", "Context (name, key)      : <{}, {}>", context_name, base.context);
 		log::debug!(target: "das", "Max answers              : <{}>", params.properties.get::<u64>(properties::MAX_ANSWERS));
 		log::debug!(target: "das", "Update Attention Broker  : <{}>", params.properties.get::<bool>(properties::ATTENTION_UPDATE_FLAG));
 		log::debug!(target: "das", "Positive Importance      : <{}>", params.properties.get::<bool>(properties::POSITIVE_IMPORTANCE_FLAG));
@@ -65,8 +67,9 @@ impl BaseQueryProxyT for PatternMatchingQueryProxy {
 	fn setup_proxy_node(
 		&mut self, proxy_arc: Arc<Mutex<BaseQueryProxy>>, client_id: Option<String>,
 		server_id: Option<String>,
-	) {
-		self.base.lock().unwrap().setup_proxy_node(proxy_arc, client_id, server_id)
+	) -> Result<(), BoxError> {
+		self.base.lock().unwrap().setup_proxy_node(proxy_arc, client_id, server_id)?;
+		Ok(())
 	}
 
 	fn drop_runtime(&mut self) {

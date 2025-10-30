@@ -41,10 +41,10 @@ impl ProxyNode {
 	pub fn new(
 		proxy: Arc<Mutex<BaseQueryProxy>>, node_id: String, server_id: String,
 		runtime: Arc<RwLock<Option<Arc<Runtime>>>>,
-	) -> Self {
+	) -> Result<Self, BoxError> {
 		let port = node_id.split(":").collect::<Vec<_>>()[1].parse::<u16>().unwrap_or(0);
-		StarNode::serve(port, proxy, runtime.clone()).unwrap();
-		Self { node_id, peer_id: server_id, runtime: runtime.clone() }
+		StarNode::serve(port, proxy.clone(), runtime.clone())?;
+		Ok(Self { node_id, peer_id: server_id, runtime: runtime.clone() })
 	}
 
 	pub fn node_id(&self) -> String {
@@ -122,7 +122,7 @@ impl StarNode {
 
 		// Start gRPC server (runs indefinitely)
 		let node_id = format!("0.0.0.0:{port}");
-		let node = StarNode { address: StarNode::check_host_id(node_id), proxy };
+		let node = StarNode { address: StarNode::check_host_id(node_id)?, proxy };
 		runtime.spawn(async move {
 			node.start_server().await.unwrap();
 		});
@@ -130,10 +130,10 @@ impl StarNode {
 		Ok(())
 	}
 
-	fn check_host_id(host_id: String) -> SocketAddr {
+	fn check_host_id(host_id: String) -> Result<SocketAddr, BoxError> {
 		match host_id.to_socket_addrs() {
-			Ok(mut iter) => iter.next().unwrap(),
-			Err(err) => panic!("Can not use '{host_id}' as socket address: {err}"),
+			Ok(mut iter) => iter.next().ok_or("Can not use '{host_id}' as socket address".into()),
+			Err(err) => Err(format!("Can not use '{host_id}' as socket address: {err}").into()),
 		}
 	}
 

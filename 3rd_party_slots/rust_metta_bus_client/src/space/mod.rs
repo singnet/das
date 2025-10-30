@@ -105,8 +105,7 @@ impl DistributedAtomSpace {
 			return Err("No context broker available".into());
 		}
 		let query_params = QueryParams {
-			context_name: context.clone(),
-			context_key: hash_context(&context),
+			context: hash_context(&context),
 			properties: self.params.lock().unwrap().clone(),
 			tokens: vec![atom.to_string()],
 			..Default::default()
@@ -122,9 +121,10 @@ impl DistributedAtomSpace {
 		if locked_bus.get_ownership(QUERY_EVOLUTION_CMD.to_string()).is_empty() {
 			return Err("No evolution agent available".into());
 		}
+
+		let context_name = self.params.lock().unwrap().get::<String>(properties::CONTEXT);
 		let query_params = QueryParams {
-			context_name: self.name.clone().unwrap(),
-			context_key: hash_context(&self.name.clone().unwrap()),
+			context: hash_context(&context_name),
 			properties: self.params.lock().unwrap().clone(),
 			tokens: vec![atom.to_string()],
 			..Default::default()

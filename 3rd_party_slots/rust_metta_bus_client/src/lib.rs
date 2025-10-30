@@ -41,8 +41,7 @@ pub mod base_proxy_query;
 pub struct QueryParams {
 	tokens: Vec<String>,
 	variables: HashSet<VariableAtom>,
-	context_name: String,
-	context_key: String,
+	context: String,
 	properties: Properties,
 }
 
@@ -79,8 +78,8 @@ pub fn extract_query_params(
 			.collect(),
 	};
 
-	params.context_name = properties.get::<String>(properties::CONTEXT);
-	params.context_key = hash_context(&properties.get::<String>(properties::CONTEXT));
+	let context_name = properties.get::<String>(properties::CONTEXT);
+	params.context = hash_context(&context_name);
 
 	let query_tokens_str = match query {
 		QueryType::String(s) => s.clone(),
@@ -123,7 +122,7 @@ pub fn pattern_matching_query(
 
 	while !proxy.finished() {
 		if let Some(query_answer) = proxy.pop() {
-			let mut bindings = parse_query_answer(&query_answer, populate_metta_mapping);
+			let mut bindings = parse_query_answer(&query_answer, populate_metta_mapping)?;
 			bindings = bindings.narrow_vars(&params.variables);
 
 			bindings_set.push(bindings);
@@ -189,7 +188,7 @@ pub fn evolution_query(
 		proxy.eval_fitness()?;
 		// PatternMatchingQuery
 		if let Some(query_answer) = proxy.pop() {
-			let bindings = parse_query_answer(&query_answer, populate_metta_mapping);
+			let bindings = parse_query_answer(&query_answer, populate_metta_mapping)?;
 			bindings_set.push(bindings);
 			if max_query_answers > 0 && bindings_set.len() >= max_query_answers as usize {
 				break;
