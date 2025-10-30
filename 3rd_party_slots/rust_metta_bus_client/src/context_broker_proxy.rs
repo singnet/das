@@ -54,7 +54,7 @@ impl ContextBrokerProxy {
 
 		let mut args = vec![];
 		args.extend(params.properties.to_vec());
-		args.push(name.clone());
+		args.push(base.context.clone());
 
 		let query_tokens = vec![context_broker_params.query_atom.to_string()];
 		args.push(query_tokens.len().to_string());
