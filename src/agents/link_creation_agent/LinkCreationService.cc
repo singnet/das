@@ -173,4 +173,5 @@ void LinkCreationService::create_links() {
 
 void LinkCreationService::set_metta_file_path(string metta_file_path) {
     this->metta_file_path = metta_file_path;
+    Utils::linux_command_line(("mkdir -p " + metta_file_path).c_str());
 }
