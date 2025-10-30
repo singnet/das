@@ -37,7 +37,8 @@ pub struct BaseQueryProxy {
 
 	// BusCommandProxy
 	pub command: String,
-	pub context: String,
+	pub context_name: String,
+	pub context_key: String,
 	pub args: Vec<String>,
 	pub requestor_id: String,
 	pub serial: u64,
@@ -67,7 +68,8 @@ impl BaseQueryProxy {
 			count_flag: params.properties.get(properties::COUNT_FLAG),
 			abort_flag: false,
 
-			context: params.context,
+			context_key: params.context_key.clone(),
+			context_name: params.context_name.clone(),
 
 			query_tokens: params.tokens,
 

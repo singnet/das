@@ -59,7 +59,7 @@ impl QueryEvolutionProxy {
 		let mut args = vec![];
 		args.extend(params.properties.to_vec());
 
-		args.push(base.context.clone());
+		args.push(base.context_key.clone());
 
 		let query_tokens = vec![evolution_params.query_atom.to_string()];
 		args.push(query_tokens.len().to_string());
@@ -91,7 +91,7 @@ impl QueryEvolutionProxy {
 		let population_size = params.properties.get::<u64>(properties::POPULATION_SIZE);
 
 		log::debug!(target: "das", "Query                   : <{}>", evolution_params.query_atom);
-		log::debug!(target: "das", "Context (name, key)     : <{}, {}>", params.properties.get::<String>(properties::CONTEXT), base.context);
+		log::debug!(target: "das", "Context (name, key)     : <{}, {}>", base.context_name, base.context_key);
 		log::debug!(target: "das", "Population size         : <{population_size}>");
 		log::debug!(target: "das", "Max generations         : <{}>", params.properties.get::<u64>(properties::MAX_GENERATIONS));
 		log::debug!(target: "das", "Elitism rate            : <{}>", params.properties.get::<f64>(properties::ELITISM_RATE));

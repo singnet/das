@@ -19,12 +19,12 @@ impl PatternMatchingQueryProxy {
 
 		let mut args = vec![];
 		args.extend(params.properties.to_vec());
-		args.push(base.context.clone());
+		args.push(base.context_key.clone());
 		args.push(base.query_tokens.len().to_string());
 		args.extend(base.query_tokens.clone());
 
 		log::debug!(target: "das", "Query                    : <{}>", base.query_tokens.join(" "));
-		log::debug!(target: "das", "Context (name, key)      : <{}, {}>", params.properties.get::<String>(properties::CONTEXT), base.context);
+		log::debug!(target: "das", "Context (name, key)      : <{}, {}>", base.context_name, base.context_key);
 		log::debug!(target: "das", "Max answers              : <{}>", params.properties.get::<u64>(properties::MAX_ANSWERS));
 		log::debug!(target: "das", "Update Attention Broker  : <{}>", params.properties.get::<bool>(properties::ATTENTION_UPDATE_FLAG));
 		log::debug!(target: "das", "Positive Importance      : <{}>", params.properties.get::<bool>(properties::POSITIVE_IMPORTANCE_FLAG));

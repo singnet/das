@@ -14,6 +14,7 @@ pub struct BusNode {
 	pub host_id: String,
 	pub peer_id: String,
 	pub bus: Bus,
+	pub send_join_network: bool,
 }
 
 impl BusNode {
@@ -26,7 +27,7 @@ impl BusNode {
 			bus.add(command.clone());
 		}
 
-		Ok(Self { host_id, peer_id: target_id, bus })
+		Ok(Self { host_id, peer_id: target_id, bus, send_join_network: true })
 	}
 
 	pub fn node_id(&self) -> String {
@@ -61,10 +62,7 @@ impl BusNode {
 			log::trace!(target: "das", "BusNode::query(target_addr): {target_addr}");
 			match AtomSpaceNodeClient::connect(target_addr).await {
 				Ok(mut client) => client.execute_message(request).await,
-				Err(err) => {
-					log::error!(target: "das", "BusNode::query(ERROR): {err:?}");
-					Err(Status::internal("Client failed to connect with remote!"))
-				},
+				Err(err) => Err(Status::internal(format!("Client failed to connect: {err}"))),
 			}
 		})?;
 

@@ -68,6 +68,7 @@ impl ServiceBus {
 
 	pub fn join_network_thread(&mut self) -> Result<(), BoxError> {
 		let host_id_clone = self.bus_node.lock().unwrap().host_id.clone();
+		let port = host_id_clone.split(":").collect::<Vec<_>>()[1].parse::<u16>().unwrap_or(0);
 		let bus_clone = self.bus_node.clone();
 		thread::spawn(move || {
 			let runtime = Arc::new(RwLock::new(Some(Arc::new(
@@ -77,23 +78,25 @@ impl ServiceBus {
 			let proxy_arc =
 				Arc::new(Mutex::new(BaseQueryProxy::default_with_runtime(runtime.clone())));
 
-			StarNode::serve(host_id_clone.clone(), proxy_arc.clone(), runtime.clone()).unwrap();
+			StarNode::serve(port, proxy_arc.clone(), runtime.clone()).unwrap();
 
-			let mut send_join_network = true;
 			loop {
 				let mut bus_node = bus_clone.lock().unwrap();
 
-				if send_join_network {
+				if bus_node.send_join_network {
 					log::debug!(target: "das", "BusNode::join_network(): Joining network with peer {}", bus_node.peer_id);
-					bus_node
-						.send(
-							"node_joined_network".to_string(),
-							vec![bus_node.host_id.clone()],
-							bus_node.peer_id.clone(),
-							true,
-						)
-						.unwrap();
-					send_join_network = false;
+					match bus_node.send(
+						"node_joined_network".to_string(),
+						vec![bus_node.host_id.clone()],
+						bus_node.peer_id.clone(),
+						true,
+					) {
+						Ok(_) => (),
+						Err(e) => {
+							log::debug!(target: "das", "BusNode::join_network(): Error sending join network command: {e}")
+						},
+					}
+					bus_node.send_join_network = false;
 					sleep(Duration::from_millis(250));
 				}
 

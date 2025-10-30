@@ -34,7 +34,14 @@ impl PortPool {
 		INITIALIZED.get().expect("PortPool not initialized!");
 		let locked_pool = POOL.get().unwrap();
 		match locked_pool.lock() {
-			Ok(mut pool) => pool.pop_front().unwrap(),
+			Ok(mut pool) => match pool.pop_front() {
+				Some(port) => port,
+				None => panic!(
+					"Unable to get available PORT number in PortPool({}..{})",
+					PORT_LOWER.get().unwrap(),
+					PORT_LOWER.get().unwrap()
+				),
+			},
 			Err(_) => panic!(
 				"Unable to get available PORT number in PortPool({}..{})",
 				PORT_LOWER.get().unwrap(),

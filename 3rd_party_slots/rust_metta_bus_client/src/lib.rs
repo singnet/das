@@ -14,7 +14,7 @@ use types::BoxError;
 
 use crate::{
 	base_proxy_query::BaseQueryProxyT,
-	context_broker_proxy::{ContextBrokerParams, ContextBrokerProxy},
+	context_broker_proxy::{hash_context, ContextBrokerParams, ContextBrokerProxy},
 	helpers::split_ignore_quoted,
 	properties::{Properties, PropertyValue},
 	query_evolution_proxy::{QueryEvolutionParams, QueryEvolutionProxy},
@@ -41,7 +41,8 @@ pub mod base_proxy_query;
 pub struct QueryParams {
 	tokens: Vec<String>,
 	variables: HashSet<VariableAtom>,
-	context: String,
+	context_name: String,
+	context_key: String,
 	properties: Properties,
 }
 
@@ -56,15 +57,14 @@ pub fn query_with_das(
 ) -> Result<BindingsSet, BoxError> {
 	let params = match extract_query_params(query, properties) {
 		Ok(params) => params,
-		Err(bindings_set) => return Ok(bindings_set),
+		Err(_) => return Ok(BindingsSet::empty()),
 	};
-
 	pattern_matching_query(service_bus, &params)
 }
 
 pub fn extract_query_params(
 	query: &QueryType, properties: Properties,
-) -> Result<QueryParams, BindingsSet> {
+) -> Result<QueryParams, BoxError> {
 	let mut params = QueryParams::default();
 
 	// Getting variables from query_tokens_str
@@ -79,31 +79,31 @@ pub fn extract_query_params(
 			.collect(),
 	};
 
-	params.context =
-		context_broker_proxy::hash_context(&properties.get::<String>(properties::CONTEXT));
+	params.context_name = properties.get::<String>(properties::CONTEXT);
+	params.context_key = hash_context(&properties.get::<String>(properties::CONTEXT));
 
 	let query_tokens_str = match query {
 		QueryType::String(s) => s.clone(),
 		QueryType::Atom(a) => a.to_string(),
 	};
 
-	let mut use_metta_as_query_tokens = properties.get(properties::USE_METTA_AS_QUERY_TOKENS);
-	params.tokens = if query_tokens_str.starts_with("(") {
-		vec![query_tokens_str]
+	let (tokens, use_metta_as_query_tokens) = if query_tokens_str.starts_with("LINK_TEMPLATE") {
+		(split_ignore_quoted(&query_tokens_str), false)
 	} else {
-		use_metta_as_query_tokens = false;
-		split_ignore_quoted(&query_tokens_str)
+		(vec![query_tokens_str], true)
 	};
-	params.properties.insert(
-		properties::USE_METTA_AS_QUERY_TOKENS.to_string(),
-		PropertyValue::Bool(use_metta_as_query_tokens),
-	);
+
+	params.tokens = tokens;
 
 	log::trace!(target: "das", "Query: <{:?}>", params.tokens);
 	log::trace!(target: "das", "Vars : <{}>", variables.iter().map(|v| v.to_string()).collect::<Vec<String>>().join(","));
 
 	params.variables = variables;
 	params.properties = properties;
+	params.properties.insert(
+		properties::USE_METTA_AS_QUERY_TOKENS.to_string(),
+		PropertyValue::Bool(use_metta_as_query_tokens),
+	);
 
 	Ok(params)
 }

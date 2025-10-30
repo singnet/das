@@ -130,16 +130,16 @@ impl Properties {
 		println!("  Query:");
 		println!("    {}", self.print_with_set_param(MAX_ANSWERS).unwrap());
 		println!("    {}", self.print_with_set_param(MAX_BUNDLE_SIZE).unwrap());
+		println!("    {}", self.print_with_set_param(COUNT_FLAG).unwrap());
+		println!("    {}", self.print_with_set_param(ATTENTION_UPDATE_FLAG).unwrap());
 		println!("    {}", self.print_with_set_param(UNIQUE_ASSIGNMENT_FLAG).unwrap());
 		println!("    {}", self.print_with_set_param(POSITIVE_IMPORTANCE_FLAG).unwrap());
-		println!("    {}", self.print_with_set_param(ATTENTION_UPDATE_FLAG).unwrap());
-		println!("    {}", self.print_with_set_param(COUNT_FLAG).unwrap());
 		println!("    {}", self.print_with_set_param(POPULATE_METTA_MAPPING).unwrap());
 		println!("    {}", self.print_with_set_param(USE_METTA_AS_QUERY_TOKENS).unwrap());
 		println!("  Evolution:");
-		println!("    {}", self.print_with_set_param(POPULATION_SIZE).unwrap());
-		println!("    {}", self.print_with_set_param(MAX_GENERATIONS).unwrap());
 		println!("    {}", self.print_with_set_param(ELITISM_RATE).unwrap());
+		println!("    {}", self.print_with_set_param(MAX_GENERATIONS).unwrap());
+		println!("    {}", self.print_with_set_param(POPULATION_SIZE).unwrap());
 		println!("    {}", self.print_with_set_param(SELECTION_RATE).unwrap());
 		println!("    {}", self.print_with_set_param(TOTAL_ATTENTION_TOKENS).unwrap());
 	}

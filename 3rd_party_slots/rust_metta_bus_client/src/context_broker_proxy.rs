@@ -51,7 +51,7 @@ impl ContextBrokerProxy {
 
 		let mut args = vec![];
 		args.extend(params.properties.to_vec());
-		args.push(base.context.clone());
+		args.push(base.context_key.clone());
 
 		let query_tokens = vec![context_broker_params.query_atom.to_string()];
 		args.push(query_tokens.len().to_string());
@@ -66,8 +66,8 @@ impl ContextBrokerProxy {
 			args.push(target.to_string());
 		}
 
-		let name = params.context.clone();
-		let key = hash_context(&name);
+		let name = params.context_name.clone();
+		let key = params.context_key.clone();
 
 		args.push(key.clone());
 		args.push(name.clone());

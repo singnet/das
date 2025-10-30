@@ -9,7 +9,8 @@ use hyperon_space::{Space, SpaceCommon, SpaceMut, SpaceVisitor};
 use log;
 
 use crate::{
-	context_broker_proxy::parse_context_broker_parameters,
+	bus::{CONTEXT_CMD, QUERY_EVOLUTION_CMD},
+	context_broker_proxy::{hash_context, parse_context_broker_parameters},
 	create_context, evolution_query,
 	helpers::{get_networking_params, run_metta_runner},
 	init_service_bus,
@@ -28,12 +29,12 @@ pub struct DistributedAtomSpace {
 	service_bus: Arc<Mutex<ServiceBus>>,
 	name: Option<String>,
 	params: Arc<Mutex<Properties>>,
-	metta_runner: MeTTaRunner,
+	maybe_metta_runner: Option<MeTTaRunner>,
 }
 
 impl DistributedAtomSpace {
 	pub fn new(
-		params: Arc<Mutex<Properties>>, metta_runner: MeTTaRunner,
+		params: Arc<Mutex<Properties>>, maybe_metta_runner: Option<MeTTaRunner>,
 	) -> Result<Self, BoxError> {
 		let locked_params = params.lock().unwrap().clone();
 		let name = Some(locked_params.get(properties::CONTEXT));
@@ -44,7 +45,7 @@ impl DistributedAtomSpace {
 				Err(_) => ServiceBusSingleton::get_instance(),
 			},
 		));
-		Ok(Self { common: SpaceCommon::default(), service_bus, name, params, metta_runner })
+		Ok(Self { common: SpaceCommon::default(), service_bus, name, params, maybe_metta_runner })
 	}
 
 	pub fn query(&self, query: &Atom) -> BindingsSet {
@@ -77,9 +78,18 @@ impl DistributedAtomSpace {
 		self.service_bus.lock().unwrap().print_services();
 	}
 
+	pub fn join_network(&self) {
+		self.service_bus.lock().unwrap().bus_node.lock().unwrap().send_join_network = true;
+	}
+
 	pub fn create_context(&self, context: String, atom: &Atom) -> Result<Atom, BoxError> {
+		let locked_bus = self.service_bus.lock().unwrap().bus_node.lock().unwrap().bus.clone();
+		if locked_bus.get_ownership(CONTEXT_CMD.to_string()).is_empty() {
+			return Err("No context broker available".into());
+		}
 		let query_params = QueryParams {
-			context,
+			context_name: context.clone(),
+			context_key: hash_context(&context),
 			properties: self.params.lock().unwrap().clone(),
 			tokens: vec![atom.to_string()],
 			..Default::default()
@@ -89,19 +99,27 @@ impl DistributedAtomSpace {
 	}
 
 	pub fn evolution(&self, atom: &Atom) -> Result<BindingsSet, BoxError> {
+		let locked_bus = self.service_bus.lock().unwrap().bus_node.lock().unwrap().bus.clone();
+		if locked_bus.get_ownership(QUERY_EVOLUTION_CMD.to_string()).is_empty() {
+			return Err("No evolution agent available".into());
+		}
 		let query_params = QueryParams {
-			context: self.name.clone().unwrap(),
+			context_name: self.name.clone().unwrap(),
+			context_key: hash_context(&self.name.clone().unwrap()),
 			properties: self.params.lock().unwrap().clone(),
 			tokens: vec![atom.to_string()],
 			..Default::default()
 		};
 
-		let atom = run_metta_runner(atom, &self.metta_runner)?;
-		log::debug!(target: "das", "Atom after running metta runner: {atom}");
+		if let Some(metta_runner) = self.maybe_metta_runner.clone() {
+			let atom = run_metta_runner(atom, &metta_runner)?;
+			log::debug!(target: "das", "Atom after running metta runner: {atom}");
 
-		let evolution_params = parse_evolution_parameters(&atom, &Some(self.metta_runner.clone()))?;
+			let evolution_params = parse_evolution_parameters(&atom, &Some(metta_runner.clone()))?;
 
-		evolution_query(self.service_bus.clone(), &query_params, &evolution_params)
+			return evolution_query(self.service_bus.clone(), &query_params, &evolution_params);
+		}
+		Err("No metta runner available".into())
 	}
 }
 

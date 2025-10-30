@@ -42,7 +42,8 @@ impl ProxyNode {
 		proxy: Arc<Mutex<BaseQueryProxy>>, node_id: String, server_id: String,
 		runtime: Arc<RwLock<Option<Arc<Runtime>>>>,
 	) -> Self {
-		StarNode::serve(node_id.clone(), proxy, runtime.clone()).unwrap();
+		let port = node_id.split(":").collect::<Vec<_>>()[1].parse::<u16>().unwrap_or(0);
+		StarNode::serve(port, proxy, runtime.clone()).unwrap();
 		Self { node_id, peer_id: server_id, runtime: runtime.clone() }
 	}
 
@@ -109,13 +110,13 @@ pub struct StarNode {
 
 impl StarNode {
 	pub fn serve(
-		node_id: String, proxy: Arc<Mutex<BaseQueryProxy>>,
-		runtime: Arc<RwLock<Option<Arc<Runtime>>>>,
+		port: u16, proxy: Arc<Mutex<BaseQueryProxy>>, runtime: Arc<RwLock<Option<Arc<Runtime>>>>,
 	) -> Result<(), BoxError> {
 		let runtime = runtime.read().unwrap();
 		let runtime = runtime.clone().unwrap();
 
 		// Start gRPC server (runs indefinitely)
+		let node_id = format!("0.0.0.0:{port}");
 		let node = StarNode { address: StarNode::check_host_id(node_id), proxy };
 		runtime.spawn(async move {
 			node.start_server().await.unwrap();

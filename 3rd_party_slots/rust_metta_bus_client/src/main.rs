@@ -2,10 +2,13 @@ use std::{
 	env,
 	process::exit,
 	sync::{Arc, Mutex},
+	thread::sleep,
+	time::Duration,
 };
 
 use hyperon_atom::Atom;
 use metta_bus_client::{
+	bus::PATTERN_MATCHING_QUERY_CMD,
 	extract_query_params, host_id_from_atom, pattern_matching_query,
 	properties::{self, Properties, PropertyValue},
 	service_bus_singleton::ServiceBusSingleton,
@@ -76,14 +79,25 @@ fn main() -> Result<(), BoxError> {
 		.join(" ");
 
 	ServiceBusSingleton::init(host_id, known_peer, port_lower, port_upper)?;
-	let service_bus = Arc::new(Mutex::new(ServiceBusSingleton::get_instance()));
+	let service_bus = ServiceBusSingleton::get_instance();
+	let mut bus = service_bus.bus_node.lock().unwrap().bus.clone();
+
+	let mut timeout = 0;
+	while bus.get_ownership(PATTERN_MATCHING_QUERY_CMD.to_string()).is_empty() && timeout < 100 {
+		timeout -= 1;
+		drop(bus);
+		sleep(Duration::from_millis(100));
+		bus = service_bus.bus_node.lock().unwrap().bus.clone();
+	}
+
+	service_bus.print_services();
 
 	let params = match extract_query_params(&QueryType::String(tokens), props) {
 		Ok(params) => params,
 		Err(_) => return Err("Error extracting query params".into()),
 	};
 
-	let bindings_set = pattern_matching_query(service_bus, &params)?;
+	let bindings_set = pattern_matching_query(Arc::new(Mutex::new(service_bus)), &params)?;
 
 	println!("{} answers:", bindings_set.len());
 	for bs in bindings_set {
