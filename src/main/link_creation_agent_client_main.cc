@@ -25,11 +25,11 @@ int main(int argc, char* argv[]) {
         client_address: The address of the client to connect to, in the form "host:port"
         server_address: The address of the server to connect to, in the form "host:port"
         <start_port:end_port>: The lower and upper bound for the port numbers to be used by the command proxy
-        <max_results>: Maximum number of results to return (default: 1000)
-        <repeat>: Number of times to repeat the request (set 0 for infinite)
-        <update_attention_broker>: Whether to update the attention broker (true/false)
-        <importance_flag>: Whether to set the importance flag (true/false)
-        <use_metta_expression>: Whether to use MeTTa expression as query tokens (true/false)
+        <max_answers>: Maximum number of results to return (default: 1000)
+        <repeat_count>: Number of times to repeat the request (set 0 for infinite)
+        <attention_update_flag>: Whether to update the attention broker (true/false)
+        <positive_importance_flag>: Whether to set the importance flag (true/false)
+        <use_metta_as_query_tokens>: Whether to use MeTTa expression as query tokens (true/false)
         <context>: Context for the link creation request
         REQUEST+/MeTTa: A list of tokens to be sent to the server or MeTTa expression
     Requests must be in the following format:
@@ -65,7 +65,7 @@ int main(int argc, char* argv[]) {
     AtomDBSingleton::init();
     ServiceBusSingleton::init(client_id, server_id, ports_range.first, ports_range.second);
     auto proxy = make_shared<LinkCreationRequestProxy>(request);
-    proxy->parameters[LinkCreationRequestProxy::MAX_ANSWERS] = (unsigned int) max_results;
+    proxy->parameters[LinkCreationRequestProxy::max_answers] = (unsigned int) max_results;
     proxy->parameters[LinkCreationRequestProxy::REPEAT_COUNT] = (unsigned int) repeat;
     proxy->parameters[LinkCreationRequestProxy::CONTEXT] = context;
     proxy->parameters[LinkCreationRequestProxy::ATTENTION_UPDATE_FLAG] = update_attention_broker;
