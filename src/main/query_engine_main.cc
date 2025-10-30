@@ -26,7 +26,8 @@ void ctrl_c_handler(int) {
 
 int main(int argc, char* argv[]) {
     if ((argc != 4) && (argc != 5)) {
-        cerr << "Usage: " << argv[0] << " <hostname:port> <start_port:end_port> <AB_ip:AB_port> [--use-mork]" << endl;
+        cerr << "Usage: " << argv[0]
+             << " <hostname:port> <start_port:end_port> <AB_ip:AB_port> [--use-mork]" << endl;
         exit(1);
     }
 
