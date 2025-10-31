@@ -8,6 +8,7 @@ from hyperon_das.logger import log
 
 
 class BusCommand(str, enum.Enum):
+    ATOMDB = "atomdb"
     PATTERN_MATCHING_QUERY = "pattern_matching_query"
 
 
