@@ -1,4 +1,4 @@
-use std::sync::OnceLock;
+use std::sync::{OnceLock, RwLock};
 
 use crate::{
 	bus::{
@@ -9,8 +9,7 @@ use crate::{
 	types::BoxError,
 };
 
-static INITIALIZED: OnceLock<bool> = OnceLock::new();
-static SERVICE_BUS: OnceLock<ServiceBus> = OnceLock::new();
+static SERVICE_BUS: OnceLock<RwLock<ServiceBus>> = OnceLock::new();
 
 #[derive(Debug, Default)]
 pub struct ServiceBusSingleton;
@@ -19,8 +18,49 @@ impl ServiceBusSingleton {
 	pub fn init(
 		host_id: String, known_peer: String, port_lower: u16, port_upper: u16,
 	) -> Result<(), BoxError> {
-		INITIALIZED.set(true).expect("ServiceBusSingleton already initialized!");
-		let service_bus = ServiceBus::new(
+		let service_bus = Self::internal_init(host_id, known_peer, port_lower, port_upper)?;
+
+		match SERVICE_BUS.set(RwLock::new(service_bus)) {
+			Ok(_) => Ok(()),
+			Err(rwlock_with_new_bus) => {
+				let new_service_bus = rwlock_with_new_bus.into_inner().unwrap();
+				let lock = SERVICE_BUS.get().expect("ServiceBusSingleton not initialized!");
+				let mut write_guard = lock.write().unwrap();
+				*write_guard = new_service_bus;
+				Ok(())
+			},
+		}
+	}
+
+	pub fn provide(
+		host_id: String, known_peer: String, port_lower: u16, port_upper: u16,
+	) -> Result<(), BoxError> {
+		log::debug!(target: "das", "ServiceBusSingleton::provide(): Providing new service bus (host_id={host_id}, known_peer={known_peer}, port_lower={port_lower}, port_upper={port_upper})");
+		let service_bus = Self::internal_init(host_id, known_peer, port_lower, port_upper)?;
+		if let Some(lock) = SERVICE_BUS.get() {
+			let mut write_guard = lock.write().unwrap();
+			*write_guard = service_bus;
+		} else {
+			SERVICE_BUS
+				.set(RwLock::new(service_bus))
+				.expect("ServiceBusSingleton already initialized!");
+		}
+		Ok(())
+	}
+
+	pub fn get_instance() -> Result<ServiceBus, BoxError> {
+		let lock = match SERVICE_BUS.get() {
+			Some(lock) => lock,
+			None => return Err(BoxError::from("ServiceBusSingleton not initialized!")),
+		};
+		let read_guard = lock.read().unwrap();
+		Ok(read_guard.clone())
+	}
+
+	fn internal_init(
+		host_id: String, known_peer: String, port_lower: u16, port_upper: u16,
+	) -> Result<ServiceBus, BoxError> {
+		let mut service_bus = ServiceBus::new(
 			host_id,
 			known_peer,
 			vec![
@@ -33,13 +73,7 @@ impl ServiceBusSingleton {
 			port_lower,
 			port_upper,
 		)?;
-		SERVICE_BUS.set(service_bus).expect("ServiceBusSingleton already initialized!");
-		Ok(())
-	}
-
-	pub fn get_instance() -> ServiceBus {
-		INITIALIZED.get().expect("ServiceBusSingleton not initialized!");
-		let service_bus = SERVICE_BUS.get().expect("ServiceBusSingleton not initialized!");
-		service_bus.clone()
+		service_bus.join_network_thread()?;
+		Ok(service_bus)
 	}
 }

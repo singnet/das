@@ -30,17 +30,17 @@ If you need to setup a local DAS stack, follow #[] before
 
 After building you can run it by:
 ```sh
-./target/release/metta-bus-client localhost:8080 localhost:35700 0 0 'LINK_TEMPLATE Expression 3 NODE Symbol Similarity NODE Symbol "human" VARIABLE S'
+./target/release/metta-bus-client localhost:42000-42999 localhost:40002 0 0 'LINK_TEMPLATE Expression 3 NODE Symbol Similarity NODE Symbol "human" VARIABLE S'
 ```
 
 You can also use MeTTa S-Expression (unstable):
 ```sh
-./target/release/metta-bus-client localhost:8080 localhost:35700 0 0 'Similarity "human" $S'
+./target/release/metta-bus-client localhost:42000-42999 localhost:40002 0 0 'Similarity "human" $S'
 ```
 
 To control log's level use `RUST_LOG=das=<LEVEL>`:
 ```sh
-RUST_LOG=das=debug ./target/release/metta-bus-client localhost:8080 localhost:35700 0 0 'LINK_TEMPLATE Expression 3 NODE Symbol Similarity NODE Symbol "human" VARIABLE S'
+RUST_LOG=das=debug ./target/release/metta-bus-client localhost:42000-42999 localhost:40002 0 0 'LINK_TEMPLATE Expression 3 NODE Symbol Similarity NODE Symbol "human" VARIABLE S'
 ```
 
 ## Setup DAS locally
@@ -82,6 +82,5 @@ python3 das_cli.py query-agent start
 docker ps -a
 
 # Now you can start sending queries using the './metta-bus-client'
-./target/release/metta-bus-client localhost:8080 localhost:35700 0 0 'Similarity "human" $S'
+./target/release/metta-bus-client localhost:42000-42999 localhost:40002 0 0 'Similarity "human" $S'
 ```
-

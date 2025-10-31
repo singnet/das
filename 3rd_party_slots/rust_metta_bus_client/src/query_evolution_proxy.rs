@@ -18,11 +18,9 @@ pub static REMOTE_FUNCTION: &str = "remote_fitness_function";
 pub static EVAL_FITNESS: &str = "eval_fitness";
 pub static EVAL_FITNESS_RESPONSE: &str = "eval_fitness_response";
 
-pub static EVOLUTION_PARSER_ERROR_MESSAGE: &str = "EVOLUTION query must have (fitness function) ((query) (correlation queries) (correlation replacements) (correlation mappings)) eg:
+pub static EVOLUTION_PARSER_ERROR_MESSAGE: &str = "EVOLUTION query must have ((query) (fitness function) (correlation queries) (correlation replacements) (correlation mappings)) eg:
 (
-	EVOLUTION
-	((my-func \"monkey\" $S1))
-	((Similarity \"human\" $S1) ((Similarity $S1 $S2) () ...) ((string QE) () ...) ((QE QE) () ...))
+	((Similarity \"human\" $S1) (my-func \"monkey\" $S1) ((Similarity $S1 $S2) () ...) ((string QE) () ...) ((QE QE) () ...))
 )";
 
 #[derive(Clone)]
@@ -91,15 +89,17 @@ impl QueryEvolutionProxy {
 		}
 
 		let population_size = params.properties.get::<u64>(properties::POPULATION_SIZE);
+		let context_name = params.properties.get::<String>(properties::CONTEXT);
 
 		log::debug!(target: "das", "Query                   : <{}>", evolution_params.query_atom);
+		log::debug!(target: "das", "Context (name, key)     : <{}, {}>", context_name, base.context);
 		log::debug!(target: "das", "Population size         : <{population_size}>");
 		log::debug!(target: "das", "Max generations         : <{}>", params.properties.get::<u64>(properties::MAX_GENERATIONS));
 		log::debug!(target: "das", "Elitism rate            : <{}>", params.properties.get::<f64>(properties::ELITISM_RATE));
 		log::debug!(target: "das", "Selection rate          : <{}>", params.properties.get::<f64>(properties::SELECTION_RATE));
 		log::debug!(target: "das", "Total attention tokens  : <{}>", params.properties.get::<u64>(properties::TOTAL_ATTENTION_TOKENS));
 		log::debug!(target: "das", "Correlation queries     : <{}>", evolution_params.correlation_queries.iter().map(|e| e.join(",")).collect::<Vec<String>>().join(","));
-		log::debug!(target: "das", "Correlation replacements: <{}>", evolution_params.correlation_replacements.iter().map(|e| e.iter().map(|(k, v)| format!("{k}, {v}")).collect::<Vec<String>>().join(",")).collect::<Vec<String>>().join(","));
+		log::debug!(target: "das", "Correlation replacements: <{}>", evolution_params.correlation_replacements.iter().map(|e| e.iter().map(|(k, v)| format!("({k}, {v})")).collect::<Vec<String>>().join(",")).collect::<Vec<String>>().join(","));
 		log::debug!(target: "das", "Correlation mappings    : <{}>", evolution_params.correlation_mappings.iter().map(|e| format!("({}, {})", e.0, e.1)).collect::<Vec<String>>().join(","));
 		log::debug!(target: "das", "Fitness function        : <{}>", evolution_params.fitness_function);
 
@@ -118,7 +118,7 @@ impl QueryEvolutionProxy {
 			metta_runner: if let Some(metta_runner) = evolution_params.maybe_metta_runner.clone() {
 				metta_runner
 			} else {
-				panic!("MeTTa runner is required for evolution query");
+				return Err(BoxError::from("MeTTa runner is required for evolution query"));
 			},
 		})
 	}
@@ -130,7 +130,7 @@ impl QueryEvolutionProxy {
 			if query_answer_str == EVAL_FITNESS {
 				continue;
 			}
-			let query_answer = parse_query_answer(&query_answer_str, true);
+			let query_answer = parse_query_answer(&query_answer_str, true)?;
 			let fitness = self.compute_fitness(
 				self.fitness_function.clone(),
 				query_answer,
@@ -232,8 +232,9 @@ impl BaseQueryProxyT for QueryEvolutionProxy {
 	fn setup_proxy_node(
 		&mut self, proxy_arc: Arc<Mutex<BaseQueryProxy>>, client_id: Option<String>,
 		server_id: Option<String>,
-	) {
-		self.base.lock().unwrap().setup_proxy_node(proxy_arc, client_id, server_id)
+	) -> Result<(), BoxError> {
+		self.base.lock().unwrap().setup_proxy_node(proxy_arc, client_id, server_id)?;
+		Ok(())
 	}
 
 	fn to_remote_peer(&self, command: String, args: Vec<String>) -> Result<(), BoxError> {
@@ -247,81 +248,60 @@ impl BaseQueryProxyT for QueryEvolutionProxy {
 
 pub fn parse_evolution_parameters(
 	atom: &Atom, maybe_metta_runner: &Option<MeTTaRunner>,
-) -> Result<Option<QueryEvolutionParams>, BoxError> {
+) -> Result<QueryEvolutionParams, BoxError> {
 	if let Atom::Expression(exp_atom) = &atom {
 		let children = exp_atom.children();
-		if let Some(Atom::Symbol(s)) = children.first() {
-			if s.name() == "EVOLUTION" {
-				if children.len() < 3 {
+		if children.len() < 5 {
+			return Err(EVOLUTION_PARSER_ERROR_MESSAGE.to_string().into());
+		}
+
+		let query_atom = children[0].clone();
+
+		let fitness_function = children[1].to_string();
+
+		let correlation_queries =
+			map_atom(&children[2].clone(), |atom| Ok(vec![atom.to_string()]))?;
+
+		let correlation_replacements = map_atom(&children[3].clone(), |atom| {
+			if let Atom::Expression(exp_atom) = atom {
+				let children = exp_atom.children();
+				let mut replacements = HashMap::new();
+				if children.len() != 2 {
 					return Err(EVOLUTION_PARSER_ERROR_MESSAGE.to_string().into());
 				}
-
-				let mut query_atom = Atom::expr([]);
-				let mut correlation_queries =
-					vec![vec!["(Contains $sentence1 $word1)".to_string()]];
-				let mut correlation_replacements = vec![HashMap::from([(
-					"sentence1".to_string(),
-					QueryElement::new_variable("sentence1"),
-				)])];
-				let mut correlation_mappings = vec![(
-					QueryElement::new_variable("sentence1"),
-					QueryElement::new_variable("word1"),
-				)];
-
-				if let Atom::Expression(exp_atom) = children[1].clone() {
-					let children = exp_atom.children();
-					if children.len() != 4 {
-						return Err(EVOLUTION_PARSER_ERROR_MESSAGE.to_string().into());
-					}
-
-					query_atom = children[0].clone();
-
-					correlation_queries =
-						map_atom(&children[1].clone(), |atom| vec![atom.to_string()]);
-					correlation_replacements = map_atom(&children[2].clone(), |atom| {
-						if let Atom::Expression(exp_atom) = atom {
-							let children = exp_atom.children();
-							let mut replacements = HashMap::new();
-							if children.len() != 2 {
-								panic!("{}", EVOLUTION_PARSER_ERROR_MESSAGE.to_string());
-							}
-							replacements.insert(
-								children[0].to_string(),
-								QueryElement::new_variable(&children[1].to_string()),
-							);
-							replacements
-						} else {
-							panic!("{}", EVOLUTION_PARSER_ERROR_MESSAGE.to_string());
-						}
-					});
-					correlation_mappings = map_atom(&children[3].clone(), |atom| {
-						if let Atom::Expression(exp_atom) = atom {
-							let children = exp_atom.children();
-							if children.len() != 2 {
-								panic!("{}", EVOLUTION_PARSER_ERROR_MESSAGE.to_string());
-							}
-							(
-								QueryElement::new_variable(&children[0].to_string()),
-								QueryElement::new_variable(&children[1].to_string()),
-							)
-						} else {
-							panic!("{}", EVOLUTION_PARSER_ERROR_MESSAGE.to_string());
-						}
-					});
-				}
-				let mut fitness_function = children[2].to_string();
-				fitness_function = fitness_function[1..fitness_function.len() - 1].to_string();
-
-				return Ok(Some(QueryEvolutionParams {
-					query_atom,
-					correlation_queries,
-					correlation_mappings,
-					correlation_replacements,
-					fitness_function,
-					maybe_metta_runner: maybe_metta_runner.clone(),
-				}));
+				replacements.insert(
+					children[0].to_string(),
+					QueryElement::new_variable(&children[1].to_string()),
+				);
+				Ok(replacements)
+			} else {
+				Err(EVOLUTION_PARSER_ERROR_MESSAGE.to_string().into())
 			}
-		}
+		})?;
+
+		let correlation_mappings = map_atom(&children[4].clone(), |atom| {
+			if let Atom::Expression(exp_atom) = atom {
+				let children = exp_atom.children();
+				if children.len() != 2 {
+					return Err(EVOLUTION_PARSER_ERROR_MESSAGE.to_string().into());
+				}
+				Ok((
+					QueryElement::new_variable(&children[0].to_string()),
+					QueryElement::new_variable(&children[1].to_string()),
+				))
+			} else {
+				Err(EVOLUTION_PARSER_ERROR_MESSAGE.to_string().into())
+			}
+		})?;
+
+		return Ok(QueryEvolutionParams {
+			query_atom,
+			correlation_queries,
+			correlation_mappings,
+			correlation_replacements,
+			fitness_function,
+			maybe_metta_runner: maybe_metta_runner.clone(),
+		});
 	}
-	Ok(None)
+	Err(EVOLUTION_PARSER_ERROR_MESSAGE.to_string().into())
 }

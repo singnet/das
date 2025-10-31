@@ -1,6 +1,14 @@
 use std::collections::HashMap;
 use std::fmt::{Display, Formatter};
 
+pub static CONTEXT: &str = "context";
+
+// Networking
+pub static HOSTNAME: &str = "hostname";
+pub static PORT_LOWER: &str = "port_lower";
+pub static PORT_UPPER: &str = "port_upper";
+pub static KNOWN_PEER_ID: &str = "known_peer_id";
+
 pub static ATTENTION_UPDATE_FLAG: &str = "attention_update_flag";
 pub static COUNT_FLAG: &str = "count_flag";
 pub static MAX_BUNDLE_SIZE: &str = "max_bundle_size";
@@ -42,6 +50,18 @@ impl PropertyValue {
 			s if s.parse::<i64>().is_ok() => Ok(Self::Long(s.parse::<i64>().unwrap())),
 			s if s.parse::<f64>().is_ok() => Ok(Self::Double(s.parse::<f64>().unwrap())),
 			s => Ok(Self::String(s.to_string())),
+		}
+	}
+}
+
+impl Display for PropertyValue {
+	fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+		match self {
+			PropertyValue::String(s) => write!(f, "{s}"),
+			PropertyValue::Long(l) => write!(f, "{l}"),
+			PropertyValue::UnsignedInt(u) => write!(f, "{u}"),
+			PropertyValue::Double(d) => write!(f, "{d}"),
+			PropertyValue::Bool(b) => write!(f, "{b}"),
 		}
 	}
 }
@@ -92,14 +112,58 @@ impl Properties {
 		keys.sort();
 		keys
 	}
+
+	pub fn section_print(&self) {
+		println!("DAS Parameters:");
+		println!("  Networking:");
+		println!("    {}", self.print_with_set_param(HOSTNAME).unwrap());
+		println!("    {}", self.print_with_set_param(PORT_LOWER).unwrap());
+		println!("    {}", self.print_with_set_param(PORT_UPPER).unwrap());
+		println!("    {}", self.print_with_set_param(KNOWN_PEER_ID).unwrap());
+		println!("  Context:");
+		println!("    {}", self.print_with_set_param(CONTEXT).unwrap());
+		println!("    {}", self.print_with_set_param(USE_CACHE).unwrap());
+		println!("    {}", self.print_with_set_param(ENFORCE_CACHE_RECREATION).unwrap());
+		println!("    {}", self.print_with_set_param(INITIAL_RENT_RATE).unwrap());
+		println!("    {}", self.print_with_set_param(INITIAL_SPREADING_RATE_LOWERBOUND).unwrap());
+		println!("    {}", self.print_with_set_param(INITIAL_SPREADING_RATE_UPPERBOUND).unwrap());
+		println!("  Query:");
+		println!("    {}", self.print_with_set_param(MAX_ANSWERS).unwrap());
+		println!("    {}", self.print_with_set_param(MAX_BUNDLE_SIZE).unwrap());
+		println!("    {}", self.print_with_set_param(COUNT_FLAG).unwrap());
+		println!("    {}", self.print_with_set_param(ATTENTION_UPDATE_FLAG).unwrap());
+		println!("    {}", self.print_with_set_param(UNIQUE_ASSIGNMENT_FLAG).unwrap());
+		println!("    {}", self.print_with_set_param(POSITIVE_IMPORTANCE_FLAG).unwrap());
+		println!("    {}", self.print_with_set_param(POPULATE_METTA_MAPPING).unwrap());
+		println!("    {}", self.print_with_set_param(USE_METTA_AS_QUERY_TOKENS).unwrap());
+		println!("  Evolution:");
+		println!("    {}", self.print_with_set_param(ELITISM_RATE).unwrap());
+		println!("    {}", self.print_with_set_param(MAX_GENERATIONS).unwrap());
+		println!("    {}", self.print_with_set_param(POPULATION_SIZE).unwrap());
+		println!("    {}", self.print_with_set_param(SELECTION_RATE).unwrap());
+		println!("    {}", self.print_with_set_param(TOTAL_ATTENTION_TOKENS).unwrap());
+	}
+
+	fn print_with_set_param(&self, key: &str) -> Result<String, String> {
+		let value = self.try_get(key).ok_or(format!("Property value not found: {key}"))?;
+		Ok(format!("!(das-set-param! ({key} {value}))"))
+	}
 }
 
 impl Default for Properties {
 	fn default() -> Self {
 		let mut map = HashMap::new();
 
-		// Base
-		map.insert(MAX_ANSWERS.to_string(), PropertyValue::UnsignedInt(1_000));
+		map.insert(CONTEXT.to_string(), PropertyValue::String(String::from("context")));
+
+		// Networking
+		map.insert(HOSTNAME.to_string(), PropertyValue::String(String::new()));
+		map.insert(PORT_LOWER.to_string(), PropertyValue::UnsignedInt(0));
+		map.insert(PORT_UPPER.to_string(), PropertyValue::UnsignedInt(0));
+		map.insert(KNOWN_PEER_ID.to_string(), PropertyValue::String(String::new()));
+
+		// Query
+		map.insert(MAX_ANSWERS.to_string(), PropertyValue::UnsignedInt(0));
 		map.insert(MAX_BUNDLE_SIZE.to_string(), PropertyValue::UnsignedInt(1_000));
 		map.insert(UNIQUE_ASSIGNMENT_FLAG.to_string(), PropertyValue::Bool(true));
 		map.insert(POSITIVE_IMPORTANCE_FLAG.to_string(), PropertyValue::Bool(false));

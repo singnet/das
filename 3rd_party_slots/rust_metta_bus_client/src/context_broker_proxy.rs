@@ -1,11 +1,12 @@
 use std::sync::{Arc, Mutex};
 
-use hyperon_atom::{expr, Atom};
+use hyperon_atom::Atom;
+use md5;
 
 use crate::{
 	base_proxy_query::{BaseQueryProxy, BaseQueryProxyT},
 	bus::CONTEXT_CMD,
-	helpers::query_element::QueryElement,
+	helpers::{map_atom, query_element::QueryElement},
 	properties,
 	types::BoxError,
 	QueryParams,
@@ -21,8 +22,7 @@ pub static SHUTDOWN: &str = "shutdown";
 pub static CONTEXT_BROKER_PARSER_ERROR_MESSAGE: &str =
 	"CONTEXT query must have ((query) (determiner schema) (stimulus schema)) eg:
 (
-	CONTEXT
-	((Similarity \"human\" $S) ((_0 S) ...) (S ...))
+	((Similarity \"human\" $S) ((_0 $S) ($S $V) ...) ($S $V ...))
 )";
 
 #[derive(Clone)]
@@ -49,6 +49,9 @@ impl ContextBrokerProxy {
 	) -> Result<Self, BoxError> {
 		let mut base = BaseQueryProxy::new(CONTEXT_CMD.to_string(), params.clone())?;
 
+		let name = params.properties.get::<String>(properties::CONTEXT);
+		let key = params.context.clone();
+
 		let mut args = vec![];
 		args.extend(params.properties.to_vec());
 		args.push(base.context.clone());
@@ -66,12 +69,11 @@ impl ContextBrokerProxy {
 			args.push(target.to_string());
 		}
 
-		let name = params.context.clone();
-		let key = hash_context(&name);
-
 		args.push(key.clone());
 		args.push(name.clone());
 
+		log::debug!(target: "das", "Context name                     : <{name}>");
+		log::debug!(target: "das", "Context key                      : <{key}>");
 		log::debug!(target: "das", "Query                            : <{}>", context_broker_params.query_atom);
 		log::debug!(target: "das", "Use cache                        : <{}>", params.properties.get::<bool>(properties::USE_CACHE));
 		log::debug!(target: "das", "Enforce cache recreation         : <{}>", params.properties.get::<bool>(properties::ENFORCE_CACHE_RECREATION));
@@ -132,8 +134,9 @@ impl BaseQueryProxyT for ContextBrokerProxy {
 	fn setup_proxy_node(
 		&mut self, proxy_arc: Arc<Mutex<BaseQueryProxy>>, client_id: Option<String>,
 		server_id: Option<String>,
-	) {
-		self.base.lock().unwrap().setup_proxy_node(proxy_arc, client_id, server_id)
+	) -> Result<(), BoxError> {
+		self.base.lock().unwrap().setup_proxy_node(proxy_arc, client_id, server_id)?;
+		Ok(())
 	}
 
 	fn to_remote_peer(&self, command: String, args: Vec<String>) -> Result<(), BoxError> {
@@ -146,57 +149,36 @@ impl BaseQueryProxyT for ContextBrokerProxy {
 }
 
 pub fn hash_context(context: &str) -> String {
-	use std::collections::hash_map::DefaultHasher;
-	use std::hash::{Hash, Hasher};
-
-	let mut hasher = DefaultHasher::new();
-	context.hash(&mut hasher);
-	format!("{:x}", hasher.finish())
+	format!("{:x}", md5::compute(context.as_bytes()))
 }
 
-pub fn parse_context_broker_parameters(
-	atom: &Atom,
-) -> Result<Option<ContextBrokerParams>, BoxError> {
+pub fn parse_context_broker_parameters(atom: &Atom) -> Result<ContextBrokerParams, BoxError> {
 	if let Atom::Expression(exp_atom) = &atom {
 		let children = exp_atom.children();
-		if let Some(Atom::Symbol(s)) = children.first() {
-			if s.name() == "CONTEXT" {
-				if children.len() < 3 {
+		if children.len() < 3 {
+			return Err(CONTEXT_BROKER_PARSER_ERROR_MESSAGE.to_string().into());
+		}
+
+		let query_atom = children[0].clone();
+		let determiner_schema = map_atom(&children[1].clone(), |atom| {
+			if let Atom::Expression(exp_atom) = atom {
+				let children = exp_atom.children();
+				if children.len() != 2 {
 					return Err(CONTEXT_BROKER_PARSER_ERROR_MESSAGE.to_string().into());
 				}
 
-				let mut query_atom = Atom::expr([]);
-				let mut determiner_schema = vec![];
-				let mut stimulus_schema = vec![];
-				if let Atom::Expression(exp_atom) = children[1].clone() {
-					let children = exp_atom.children();
-					if children.len() != 3 {
-						return Err(CONTEXT_BROKER_PARSER_ERROR_MESSAGE.to_string().into());
-					}
-					query_atom = children[0].clone();
-					determiner_schema =
-						vec![(QueryElement::new_handle(0), QueryElement::new_variable("S"))];
-					stimulus_schema = vec![QueryElement::new_variable("S")];
-				}
+				let first_element = QueryElement::try_from(&children[0])?;
+				let second_element = QueryElement::try_from(&children[1])?;
 
-				return Ok(Some(ContextBrokerParams {
-					query_atom,
-					determiner_schema,
-					stimulus_schema,
-				}));
+				Ok((first_element, second_element))
+			} else {
+				Err(CONTEXT_BROKER_PARSER_ERROR_MESSAGE.to_string().into())
 			}
-		}
-	}
-	Ok(None)
-}
+		})?;
 
-pub fn default_context_broker_params() -> ContextBrokerParams {
-	ContextBrokerParams {
-		query_atom: expr!("Contains" sentence1 word1),
-		determiner_schema: vec![
-			(QueryElement::new_handle(0), QueryElement::new_variable("sentence1")),
-			(QueryElement::new_variable("sentence1"), QueryElement::new_variable("word1")),
-		],
-		stimulus_schema: vec![],
+		let stimulus_schema = map_atom(&children[2].clone(), |atom| QueryElement::try_from(atom))?;
+
+		return Ok(ContextBrokerParams { query_atom, determiner_schema, stimulus_schema });
 	}
+	Err(CONTEXT_BROKER_PARSER_ERROR_MESSAGE.to_string().into())
 }

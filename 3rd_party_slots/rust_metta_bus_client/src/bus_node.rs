@@ -1,9 +1,3 @@
-use std::{
-	sync::{Arc, Mutex, RwLock},
-	thread::sleep,
-	time::Duration,
-};
-
 use tokio::runtime::Builder;
 use tonic::{Request, Status};
 
@@ -13,19 +7,14 @@ mod das_proto {
 	tonic::include_proto!("dasproto");
 }
 
-use crate::port_pool::PortPool;
-use crate::{
-	base_proxy_query::{BaseQueryProxy, BaseQueryProxyT},
-	bus::Bus,
-	proxy::StarNode,
-	types::BoxError,
-};
+use crate::{bus::Bus, types::BoxError};
 
 #[derive(Debug, Default, Clone)]
 pub struct BusNode {
-	host_id: String,
-	peer_id: String,
-	bus: Bus,
+	pub host_id: String,
+	pub peer_id: String,
+	pub bus: Bus,
+	pub send_join_network: bool,
 }
 
 impl BusNode {
@@ -38,63 +27,11 @@ impl BusNode {
 			bus.add(command.clone());
 		}
 
-		Ok(Self { host_id, peer_id: target_id, bus })
+		Ok(Self { host_id, peer_id: target_id, bus, send_join_network: true })
 	}
 
 	pub fn node_id(&self) -> String {
 		self.host_id.clone()
-	}
-
-	pub fn join_network(&mut self) -> Result<(), BoxError> {
-		let runtime = Arc::new(RwLock::new(Some(Arc::new(
-			Builder::new_multi_thread().enable_all().build().unwrap(),
-		))));
-
-		let proxy_arc = Arc::new(Mutex::new(BaseQueryProxy::default_with_runtime(runtime.clone())));
-		let port = PortPool::get_port();
-		let host_id = format!("{}:{}", self.host_id, port);
-
-		StarNode::serve(host_id.clone(), proxy_arc.clone(), runtime.clone())?;
-
-		log::trace!(target: "das", "BusNode::join_network(): Joining network with peer {}", self.peer_id);
-		self.send("node_joined_network".to_string(), vec![host_id], self.peer_id.clone(), true)?;
-
-		let mut count = 0;
-		loop {
-			sleep(Duration::from_millis(100));
-
-			let proxy = proxy_arc.lock().unwrap();
-
-			count += 1;
-			if count > 200 {
-				log::warn!(
-					target: "das",
-					"BusNode::join_network(): Unable to get all services ({}/{}) from peer {}",
-					proxy.service_list.len(),
-					self.bus.command_owner.len(),
-					self.peer_id,
-				);
-				drop(proxy);
-				break;
-			}
-
-			for (command, owner) in proxy.service_list.iter() {
-				self.bus.set_ownership(command.clone(), owner);
-			}
-
-			if proxy.service_list.len() == self.bus.command_owner.len() {
-				drop(proxy);
-				break;
-			}
-			drop(proxy);
-		}
-
-		proxy_arc.lock().unwrap().drop_runtime();
-		runtime.write().unwrap().take();
-
-		PortPool::return_port(port);
-
-		Ok(())
 	}
 
 	pub fn send_bus_command(&self, command: String, args: Vec<String>) -> Result<(), BoxError> {
@@ -108,7 +45,7 @@ impl BusNode {
 		}
 	}
 
-	fn send(
+	pub fn send(
 		&self, command: String, args: Vec<String>, target_id: String, is_broadcast: bool,
 	) -> Result<(), BoxError> {
 		let request = Request::new(MessageData {
@@ -125,10 +62,7 @@ impl BusNode {
 			log::trace!(target: "das", "BusNode::query(target_addr): {target_addr}");
 			match AtomSpaceNodeClient::connect(target_addr).await {
 				Ok(mut client) => client.execute_message(request).await,
-				Err(err) => {
-					log::error!(target: "das", "BusNode::query(ERROR): {err:?}");
-					Err(Status::internal("Client failed to connect with remote!"))
-				},
+				Err(err) => Err(Status::internal(format!("Client failed to connect: {err}"))),
 			}
 		})?;
 
