@@ -41,9 +41,10 @@ impl ProxyNode {
 	pub fn new(
 		proxy: Arc<Mutex<BaseQueryProxy>>, node_id: String, server_id: String,
 		runtime: Arc<RwLock<Option<Arc<Runtime>>>>,
-	) -> Self {
-		StarNode::serve(node_id.clone(), proxy, runtime.clone()).unwrap();
-		Self { node_id, peer_id: server_id, runtime: runtime.clone() }
+	) -> Result<Self, BoxError> {
+		let port = node_id.split(":").collect::<Vec<_>>()[1].parse::<u16>().unwrap_or(0);
+		StarNode::serve(port, proxy.clone(), runtime.clone())?;
+		Ok(Self { node_id, peer_id: server_id, runtime: runtime.clone() })
 	}
 
 	pub fn node_id(&self) -> String {
@@ -93,7 +94,12 @@ impl Drop for ProxyNode {
 			let splitted = self.node_id.split(":").collect::<Vec<_>>();
 			if splitted.len() == 2 {
 				let port = splitted[1].parse::<u16>().unwrap();
-				PortPool::return_port(port);
+				match PortPool::return_port(port) {
+					Ok(_) => (),
+					Err(err) => {
+						log::error!(target: "das", "ProxyNode::drop(): Failed to return port to pool: {err:?}")
+					},
+				}
 			} else {
 				log::error!(target: "das", "Failed to parse and return port from: {}", self.node_id);
 			}
@@ -109,14 +115,14 @@ pub struct StarNode {
 
 impl StarNode {
 	pub fn serve(
-		node_id: String, proxy: Arc<Mutex<BaseQueryProxy>>,
-		runtime: Arc<RwLock<Option<Arc<Runtime>>>>,
+		port: u16, proxy: Arc<Mutex<BaseQueryProxy>>, runtime: Arc<RwLock<Option<Arc<Runtime>>>>,
 	) -> Result<(), BoxError> {
 		let runtime = runtime.read().unwrap();
 		let runtime = runtime.clone().unwrap();
 
 		// Start gRPC server (runs indefinitely)
-		let node = StarNode { address: StarNode::check_host_id(node_id), proxy };
+		let node_id = format!("0.0.0.0:{port}");
+		let node = StarNode { address: StarNode::check_host_id(node_id)?, proxy };
 		runtime.spawn(async move {
 			node.start_server().await.unwrap();
 		});
@@ -124,10 +130,10 @@ impl StarNode {
 		Ok(())
 	}
 
-	fn check_host_id(host_id: String) -> SocketAddr {
+	fn check_host_id(host_id: String) -> Result<SocketAddr, BoxError> {
 		match host_id.to_socket_addrs() {
-			Ok(mut iter) => iter.next().unwrap(),
-			Err(err) => panic!("Can not use '{host_id}' as socket address: {err}"),
+			Ok(mut iter) => iter.next().ok_or("Can not use '{host_id}' as socket address".into()),
+			Err(err) => Err(format!("Can not use '{host_id}' as socket address: {err}").into()),
 		}
 	}
 

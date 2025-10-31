@@ -17,7 +17,7 @@ pub trait BaseQueryProxyT {
 	fn setup_proxy_node(
 		&mut self, proxy_arc: Arc<Mutex<BaseQueryProxy>>, client_id: Option<String>,
 		server_id: Option<String>,
-	);
+	) -> Result<(), BoxError>;
 	fn drop_runtime(&mut self);
 }
 
@@ -54,7 +54,6 @@ pub struct BaseQueryProxy {
 }
 
 impl BaseQueryProxy {
-	#[allow(clippy::too_many_arguments)]
 	pub fn new(command: String, params: QueryParams) -> Result<Self, BoxError> {
 		let runtime = Arc::new(RwLock::new(Some(Arc::new(
 			Builder::new_multi_thread().enable_all().build().unwrap(),
@@ -68,7 +67,7 @@ impl BaseQueryProxy {
 			count_flag: params.properties.get(properties::COUNT_FLAG),
 			abort_flag: false,
 
-			context: params.context,
+			context: params.context.clone(),
 
 			query_tokens: params.tokens,
 
@@ -124,22 +123,23 @@ impl BaseQueryProxyT for BaseQueryProxy {
 	fn setup_proxy_node(
 		&mut self, proxy_arc: Arc<Mutex<BaseQueryProxy>>, client_id: Option<String>,
 		server_id: Option<String>,
-	) {
+	) -> Result<(), BoxError> {
 		let server_id = server_id.unwrap_or_default();
 		if self.proxy_port == 0 {
-			panic!("Proxy node can't be set up");
+			return Err("Proxy node can't be set up".into());
 		} else if let Some(client_id) = client_id {
 			// This proxy is running in the processor
 			self.proxy_node =
-				ProxyNode::new(proxy_arc, client_id, server_id.clone(), self.runtime.clone());
+				ProxyNode::new(proxy_arc, client_id, server_id.clone(), self.runtime.clone())?;
 		} else {
 			// This proxy is running in the requestor
 			let id = self.requestor_id.clone();
 			let requestor_host = id.split(":").collect::<Vec<_>>()[0];
 			let requestor_id = requestor_host.to_string() + ":" + &self.proxy_port.to_string();
 			self.proxy_node =
-				ProxyNode::new(proxy_arc, requestor_id, server_id, self.runtime.clone());
+				ProxyNode::new(proxy_arc, requestor_id, server_id, self.runtime.clone())?;
 		}
+		Ok(())
 	}
 
 	fn to_remote_peer(&self, command: String, args: Vec<String>) -> Result<(), BoxError> {

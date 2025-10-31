@@ -2,6 +2,8 @@ use std::collections::{HashMap, HashSet};
 
 use hyperon_atom::{matcher::Bindings, Atom, VariableAtom};
 
+use crate::types::BoxError;
+
 const HANDLE_HASH_SIZE: usize = 32;
 const MAX_VARIABLE_NAME_SIZE: usize = 100;
 const MAX_NUMBER_OF_OPERATION_CLAUSES: usize = 100;
@@ -17,60 +19,71 @@ pub struct QueryAnswer {
 }
 
 impl QueryAnswer {
-	pub fn untokenize(&mut self, query_answer_str: &str) {
+	pub fn untokenize(&mut self, query_answer_str: &str) -> Result<(), BoxError> {
 		let token_string = query_answer_str;
 		let mut cursor: usize = 0;
 
-		let strength = read_token(token_string, &mut cursor, 13);
+		let strength = read_token(token_string, &mut cursor, 13)?;
 		self.strength = strength.parse::<f64>().unwrap_or(0.0);
 
-		let importance = read_token(token_string, &mut cursor, 13);
+		let importance = read_token(token_string, &mut cursor, 13)?;
 		self.importance = importance.parse::<f64>().unwrap_or(0.0);
 
-		let number = read_token(token_string, &mut cursor, 4);
+		let number = read_token(token_string, &mut cursor, 4)?;
 		let handles_size = number.parse::<usize>().unwrap_or(0);
 		if handles_size > MAX_NUMBER_OF_OPERATION_CLAUSES {
-			panic!("Invalid handles_size: {handles_size} untokenizing QueryAnswer");
+			return Err(
+				format!("Invalid handles_size: {handles_size} untokenizing QueryAnswer").into()
+			);
 		}
 		for _ in 0..handles_size {
-			let handle = read_token(token_string, &mut cursor, HANDLE_HASH_SIZE);
+			let handle = read_token(token_string, &mut cursor, HANDLE_HASH_SIZE)?;
 			self.handles.insert(handle);
 		}
 
-		let number = read_token(token_string, &mut cursor, 4);
+		let number = read_token(token_string, &mut cursor, 4)?;
 		let assignment_size = number.parse::<usize>().unwrap_or(0);
 		if assignment_size > MAX_NUMBER_OF_VARIABLES_IN_QUERY {
-			panic!("Invalid number of assignments: {assignment_size} untokenizing QueryAnswer");
+			return Err(format!(
+				"Invalid number of assignments: {assignment_size} untokenizing QueryAnswer"
+			)
+			.into());
 		}
 		for _ in 0..assignment_size {
-			let label = read_token(token_string, &mut cursor, MAX_VARIABLE_NAME_SIZE);
-			let handle = read_token(token_string, &mut cursor, HANDLE_HASH_SIZE);
+			let label = read_token(token_string, &mut cursor, MAX_VARIABLE_NAME_SIZE)?;
+			let handle = read_token(token_string, &mut cursor, HANDLE_HASH_SIZE)?;
 			self.assignment.insert(label, handle);
 		}
 
-		let number = read_token(token_string, &mut cursor, 4);
+		let number = read_token(token_string, &mut cursor, 4)?;
 		let metta_mapping_size = number.parse::<usize>().unwrap_or(0);
 		if metta_mapping_size > 0 {
 			for _ in 0..metta_mapping_size {
-				let handle = read_token(token_string, &mut cursor, HANDLE_HASH_SIZE);
-				let metta_expression = read_metta_expression(token_string, &mut cursor);
+				let handle = read_token(token_string, &mut cursor, HANDLE_HASH_SIZE)?;
+				let metta_expression = read_metta_expression(token_string, &mut cursor)?;
 				self.metta_expression.insert(handle, metta_expression);
 			}
 		}
 
 		if cursor < token_string.len() && !token_string[cursor..].trim().is_empty() {
-			panic!("Invalid token string - invalid text after QueryAnswer definition");
+			return Err("Invalid token string - invalid text after QueryAnswer definition".into());
 		}
+		Ok(())
 	}
 }
 
-fn read_token(token_string: &str, cursor: &mut usize, token_size: usize) -> String {
+fn read_token(
+	token_string: &str, cursor: &mut usize, token_size: usize,
+) -> Result<String, BoxError> {
 	let bytes = token_string.as_bytes();
 	let mut token = Vec::with_capacity(token_size);
 	let mut cursor_token = 0;
 	while *cursor < bytes.len() && bytes[*cursor] != b' ' {
 		if cursor_token == token_size || bytes[*cursor] == b'\0' {
-			panic!("Invalid token string");
+			return Err(format!(
+				"Invalid token string: reached end of token string: {token_string}"
+			)
+			.into());
 		}
 		token.push(bytes[*cursor]);
 		*cursor += 1;
@@ -80,10 +93,10 @@ fn read_token(token_string: &str, cursor: &mut usize, token_size: usize) -> Stri
 	if *cursor < bytes.len() && bytes[*cursor] == b' ' {
 		*cursor += 1;
 	}
-	String::from_utf8(token).unwrap_or_default()
+	String::from_utf8(token).map_err(|e| format!("Invalid token string: {e}").into())
 }
 
-fn read_metta_expression(token_string: &str, cursor: &mut usize) -> String {
+fn read_metta_expression(token_string: &str, cursor: &mut usize) -> Result<String, BoxError> {
 	let bytes = token_string.as_bytes();
 	let start = *cursor;
 	let mut unmatched = 1;
@@ -97,7 +110,9 @@ fn read_metta_expression(token_string: &str, cursor: &mut usize) -> String {
 	*cursor += 1;
 	while unmatched > 0 {
 		if *cursor >= bytes.len() {
-			panic!("Invalid metta expression string");
+			return Err(
+				"Invalid metta expression string: reached end of metta expression string".into()
+			);
 		}
 		if bytes[*cursor] == close_char && bytes[*cursor - 1] != b'\\' {
 			unmatched -= 1;
@@ -111,14 +126,18 @@ fn read_metta_expression(token_string: &str, cursor: &mut usize) -> String {
 	if close_char != b' ' && *cursor < bytes.len() {
 		*cursor += 1;
 	}
-	String::from_utf8(bytes[start..end].to_vec()).unwrap_or_default().trim().to_string()
+	String::from_utf8(bytes[start..end].to_vec())
+		.map_err(|e| format!("Invalid metta expression string: {e}").into())
+		.map(|s| s.trim().to_string())
 }
 
-pub fn parse_query_answer(query_answer_str: &str, populate_metta_mapping: bool) -> Bindings {
+pub fn parse_query_answer(
+	query_answer_str: &str, populate_metta_mapping: bool,
+) -> Result<Bindings, BoxError> {
 	log::trace!(target: "das", "{query_answer_str}");
 
 	let mut query_answer = QueryAnswer::default();
-	query_answer.untokenize(query_answer_str);
+	query_answer.untokenize(query_answer_str)?;
 
 	log::trace!(target: "das", "{query_answer:?}");
 
@@ -127,13 +146,13 @@ pub fn parse_query_answer(query_answer_str: &str, populate_metta_mapping: bool) 
 		if populate_metta_mapping {
 			if let Some(metta_expression) = query_answer.metta_expression.get(value) {
 				let atom = Atom::sym(metta_expression.clone());
-				bindings = bindings.add_var_binding(VariableAtom::new(key), atom).unwrap();
+				bindings = bindings.add_var_binding(VariableAtom::new(key), atom)?;
 			}
 		} else {
 			bindings =
-				bindings.add_var_binding(VariableAtom::new(key), Atom::sym(value.clone())).unwrap();
+				bindings.add_var_binding(VariableAtom::new(key), Atom::sym(value.clone()))?;
 		}
 	}
 
-	bindings
+	Ok(bindings)
 }
