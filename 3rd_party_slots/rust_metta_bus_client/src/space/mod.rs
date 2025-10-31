@@ -9,12 +9,14 @@ use hyperon_space::{Space, SpaceCommon, SpaceMut, SpaceVisitor};
 use log;
 
 use crate::{
-	bus::{CONTEXT_CMD, QUERY_EVOLUTION_CMD},
+	bus::{CONTEXT_CMD, LINK_CREATION_CMD, QUERY_EVOLUTION_CMD},
 	compare_networking_params,
-	context_broker_proxy::{hash_context, parse_context_broker_parameters},
+	context_broker_proxy::parse_context_broker_parameters,
 	create_context, evolution_query,
-	helpers::{get_networking_params, run_metta_runner},
+	helpers::{compute_hash, get_networking_params, run_metta_runner},
 	init_service_bus,
+	link_creation_proxy::LinkCreationParams,
+	link_creation_query,
 	properties::{self, Properties},
 	query_evolution_proxy::parse_evolution_parameters,
 	query_with_das,
@@ -105,7 +107,7 @@ impl DistributedAtomSpace {
 			return Err("No context broker available".into());
 		}
 		let query_params = QueryParams {
-			context: hash_context(&context),
+			context: compute_hash(&context),
 			properties: self.params.lock().unwrap().clone(),
 			tokens: vec![atom.to_string()],
 			..Default::default()
@@ -124,7 +126,7 @@ impl DistributedAtomSpace {
 
 		let context_name = self.params.lock().unwrap().get::<String>(properties::CONTEXT);
 		let query_params = QueryParams {
-			context: hash_context(&context_name),
+			context: compute_hash(&context_name),
 			properties: self.params.lock().unwrap().clone(),
 			tokens: vec![atom.to_string()],
 			..Default::default()
@@ -140,6 +142,27 @@ impl DistributedAtomSpace {
 			return evolution_query(service_bus_arc, &query_params, &evolution_params);
 		}
 		Err("No metta runner available".into())
+	}
+
+	pub fn link_creation(&self, query: &Atom, templates: Vec<Atom>) -> Result<Atom, BoxError> {
+		let service_bus = ServiceBusSingleton::get_instance()?;
+		let locked_bus = service_bus.bus_node.lock().unwrap().bus.clone();
+		if locked_bus.get_ownership(LINK_CREATION_CMD.to_string()).is_empty() {
+			return Err("No link creation agent available".into());
+		}
+
+		let context_name = self.params.lock().unwrap().get::<String>(properties::CONTEXT);
+		let query_params = QueryParams {
+			context: compute_hash(&context_name),
+			properties: self.params.lock().unwrap().clone(),
+			tokens: vec![query.to_string()],
+			..Default::default()
+		};
+
+		let link_creation_params = LinkCreationParams { query: query.clone(), templates };
+
+		let service_bus_arc = Arc::new(Mutex::new(service_bus));
+		link_creation_query(service_bus_arc, &query_params, &link_creation_params)
 	}
 }
 

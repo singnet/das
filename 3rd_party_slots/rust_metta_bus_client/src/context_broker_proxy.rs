@@ -1,7 +1,6 @@
 use std::sync::{Arc, Mutex};
 
 use hyperon_atom::Atom;
-use md5;
 
 use crate::{
 	base_proxy_query::{BaseQueryProxy, BaseQueryProxyT},
@@ -146,10 +145,6 @@ impl BaseQueryProxyT for ContextBrokerProxy {
 	fn drop_runtime(&mut self) {
 		self.base.lock().unwrap().drop_runtime()
 	}
-}
-
-pub fn hash_context(context: &str) -> String {
-	format!("{:x}", md5::compute(context.as_bytes()))
 }
 
 pub fn parse_context_broker_parameters(atom: &Atom) -> Result<ContextBrokerParams, BoxError> {
