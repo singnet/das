@@ -58,6 +58,10 @@ pub fn split_ignore_quoted(s: &str) -> Vec<String> {
 	result
 }
 
+pub fn compute_hash(data: &str) -> String {
+	format!("{:x}", md5::compute(data.as_bytes()))
+}
+
 pub fn get_networking_params(params: &Properties) -> Result<(String, u16, u16, String), BoxError> {
 	let hostname =
 		params.try_get(properties::HOSTNAME).ok_or(BoxError::from("Hostname not found"))?;
