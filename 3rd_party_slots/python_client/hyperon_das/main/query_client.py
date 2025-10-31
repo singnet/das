@@ -50,7 +50,7 @@ def pattern_matching_query(
         if not populate_metta_mapping:
             populate_metta_mapping = False
 
-        max_query_answers = max_query_answers or 1
+        max_query_answers = int(max_query_answers) or 1
 
         if isinstance(query_tokens, str):
             query_tokens = tokenize_preserve_quotes(query_tokens)
@@ -65,7 +65,7 @@ def pattern_matching_query(
         update_attention_broker = args.update_attention_broker
         positive_importance = args.positive_importance
         populate_metta_mapping = args.populate_metta_mapping
-        max_query_answers = args.max_query_answers
+        max_query_answers = int(args.max_query_answers)
         query_tokens = tokenize_preserve_quotes(args.query_tokens)
 
     proxy = PatternMatchingQueryProxy(query_tokens, "")

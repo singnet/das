@@ -1,31 +1,17 @@
 UINT32_MAX = 2**32 - 1
 
 
-class Properties:
-    def __init__(self):
-        self.P = {}
-
-    def __setitem__(self, key: str, value: str | int | float | bool) -> None:
-        self.P[key] = value
-
-    def __getitem__(self, key: str) -> str | int | float | bool | None:
-        return self.P.get(key)
-
-    def __eq__(self, other: 'Properties') -> bool:
-        if not isinstance(other, Properties):
-            return False
-        return self.P == other.P
-
+class Properties(dict):
     def tokenize(self) -> list[str]:
         vec = []
-        for k, v in self.P.items():
+        for k, v in self.items():
             vec.append(k)
             if isinstance(v, str):
                 vec.extend(["string", v])
             elif isinstance(v, bool):
                 vec.extend(["bool", str(v).lower()])
             elif isinstance(v, int):
-                if 0 <= v <= UINT32_MAX:  # TODO: This doesn't work completely. Change it.   
+                if 0 <= v <= UINT32_MAX:  # TODO: This doesn't work completely. Change it.
                     vec.extend(["unsigned_int", str(v)])
                 else:
                     vec.extend(["long", str(v)])
@@ -71,12 +57,12 @@ class Properties:
                 raise ValueError(f"Invalid token type: {typ}")
 
     def to_string(self) -> str:
-        if not self.P:
+        if not self.keys():
             return "{}"
 
         parts = []
-        for key in sorted(self.P.keys()):
-            value = self.P[key]
+        for key in sorted(self.keys()):
+            value = self[key]
             if isinstance(value, bool):
                 val_str = "true" if value else "false"
             elif isinstance(value, str):
