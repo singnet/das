@@ -105,7 +105,7 @@ class TestNode:
         new = Node(tokens=tcopy)
 
         assert new == n
-        assert new.custom_attributes.P == attr.P
+        assert new.custom_attributes == attr
 
     def test_handle_and_match_true_and_false(self):
         n = Node(type='T', name='N')
@@ -165,7 +165,7 @@ class TestLink:
         assert reconstructed.targets == original.targets
         assert reconstructed.type == original.type
         assert reconstructed.is_toplevel == original.is_toplevel
-        assert reconstructed.custom_attributes.P == original.custom_attributes.P
+        assert reconstructed.custom_attributes == original.custom_attributes
 
     def test_init_with_other_makes_copy(self):
         attr = Properties()
@@ -242,7 +242,7 @@ class TestLink:
         tcopy = tokens.copy()
         new = Link(tokens=tcopy)
         assert new.targets == link.targets
-        assert new.custom_attributes.P == attr.P
+        assert new.custom_attributes == attr
 
     def test_composite_type_success_and_failure(self, monkeypatch):
         link = Link(type='T', targets=['node1', 'node2'])

@@ -25,6 +25,7 @@ class TestServiceBus:
         proxy.args = ['arg1', 'arg2']
         proxy.setup_proxy_node = MagicMock()
         proxy.proxy_node = MagicMock()
+        proxy.proxy_node.node_id = "0.0.0.0:9999"
         return proxy
 
     def test_service_bus_issues_command(self, mock_port_pool, mock_bus_node, mock_proxy):

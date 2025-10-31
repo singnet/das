@@ -16,7 +16,7 @@ def parse_arguments():
     parser.add_argument("--update-attention-broker", required=False, type=str_2_bool, help="true/yes/1 or false/no/0", default=False)
     parser.add_argument("--positive-importance", required=False, type=str_2_bool, help="true/yes/1 or false/no/0", default=False)
     parser.add_argument("--populate-metta-mapping", required=False, type=str_2_bool, help="true/yes/1 or false/no/0", default=False)
-    parser.add_argument("--max-query-answers", required=False, default=1)
+    parser.add_argument("--max-query-answers", required=False, type=int, default=0)
     parser.add_argument("--query-tokens", required=True, type=str)
 
     return parser.parse_args()
@@ -50,22 +50,17 @@ def pattern_matching_query(
         if not populate_metta_mapping:
             populate_metta_mapping = False
 
-        max_query_answers = int(max_query_answers) or 1
-
         if isinstance(query_tokens, str):
             query_tokens = tokenize_preserve_quotes(query_tokens)
     else:
         args = parse_arguments()
-
-        if int(args.max_query_answers) <= 0:
-            sys.exit("--max-query-answers cannot be 0 or negative")
 
         client_id = args.client_id
         server_id = args.server_id
         update_attention_broker = args.update_attention_broker
         positive_importance = args.positive_importance
         populate_metta_mapping = args.populate_metta_mapping
-        max_query_answers = int(args.max_query_answers)
+        max_query_answers = args.max_query_answers
         query_tokens = tokenize_preserve_quotes(args.query_tokens)
 
     proxy = PatternMatchingQueryProxy(query_tokens, "")
@@ -84,7 +79,7 @@ def pattern_matching_query(
     try:
         service_bus.issue_bus_command(proxy)
         count = 0
-        while count < int(max_query_answers) and not proxy.finished():
+        while not proxy.finished() and (max_query_answers == 0 or count < max_query_answers):
             answer = proxy.pop()
             if answer:
                 print(f"query_answer: {answer.to_string()}")
