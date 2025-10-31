@@ -131,6 +131,7 @@ cc_library(
     name = "link_creation_agent_client_main_lib",
     srcs = ["link_creation_agent_client_main.cc"],
     deps = [
+        "//agents/context_broker:context_broker_lib",
         "//agents/link_creation_agent:link_creation_agent_lib",
     ],
 )

@@ -5,6 +5,7 @@
 #include <string>
 
 #include "AtomDBSingleton.h"
+#include "ContextBrokerProxy.h"
 #include "LinkCreationRequestProxy.h"
 #include "ServiceBusSingleton.h"
 #include "Utils.h"
@@ -12,6 +13,7 @@ using namespace link_creation_agent;
 using namespace std;
 using namespace service_bus;
 using namespace atomdb;
+using namespace context_broker;
 
 bool running = true;
 
@@ -68,15 +70,24 @@ int main(int argc, char* argv[]) {
     }
     AtomDBSingleton::init();
     ServiceBusSingleton::init(client_id, server_id, ports_range.first, ports_range.second);
+
+    shared_ptr<ContextBrokerProxy> context_proxy(new ContextBrokerProxy(context, {}, {}, {}));
+    ServiceBusSingleton::get_instance()->issue_bus_command(context_proxy);
+    while (!context_proxy->is_context_created()) {
+        Utils::sleep();
+    }
+    string context_hash = context_proxy->get_key();
+
     auto proxy = make_shared<LinkCreationRequestProxy>(request);
     proxy->parameters[LinkCreationRequestProxy::MAX_ANSWERS] = (unsigned int) max_answers;
     proxy->parameters[LinkCreationRequestProxy::REPEAT_COUNT] = (unsigned int) repeat_count;
-    proxy->parameters[LinkCreationRequestProxy::CONTEXT] = context;
+    proxy->parameters[LinkCreationRequestProxy::CONTEXT] = context_hash;
     proxy->parameters[LinkCreationRequestProxy::ATTENTION_UPDATE_FLAG] = attention_update_flag;
     proxy->parameters[LinkCreationRequestProxy::POSITIVE_IMPORTANCE_FLAG] = positive_importance_flag;
     proxy->parameters[LinkCreationRequestProxy::USE_METTA_AS_QUERY_TOKENS] = use_metta_as_query_tokens;
+
     ServiceBusSingleton::get_instance()->issue_bus_command(proxy);
-    while(!proxy->finished()) {
+    while (!proxy->finished()) {
         Utils::sleep();
         if (!running) {
             proxy->abort();
