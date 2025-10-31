@@ -113,10 +113,10 @@ void LinkCreationAgent::run() {
         }
 
         LOG_DEBUG("Request ID: " << (lca_request ? lca_request->id : "NULL"));
-
-        if (lca_request->repeat == 0 && lca_request->processed == 0) {
-            lca_request->repeat = 1;
-        }
+        // Rework this when Inference Agent integration is done
+        // if (lca_request->repeat == 0 && lca_request->processed == 0) {
+        //     lca_request->repeat = 1;
+        // }
 
         if (lca_request->infinite || lca_request->repeat > 0) {
             LOG_DEBUG("Request IDX: " << current_buffer_position);
@@ -146,6 +146,10 @@ shared_ptr<PatternMatchingQueryProxy> LinkCreationAgent::query(
     proxy->parameters[PatternMatchingQueryProxy::MAX_ANSWERS] = (unsigned int) lca_request->max_results;
     proxy->parameters[PatternMatchingQueryProxy::POSITIVE_IMPORTANCE_FLAG] =
         lca_request->importance_flag;
+    proxy->parameters[PatternMatchingQueryProxy::ATTENTION_UPDATE_FLAG] =
+        lca_request->update_attention_broker;
+    proxy->parameters[PatternMatchingQueryProxy::USE_METTA_AS_QUERY_TOKENS] =
+        lca_request->use_metta_as_query_tokens;
     ServiceBusSingleton::get_instance()->issue_bus_command(proxy);
     return proxy;
 }
@@ -180,13 +184,24 @@ shared_ptr<LinkCreationAgentRequest> LinkCreationAgent::create_request(
     shared_ptr<LinkCreationRequestProxy> proxy) {
     auto lca_request = make_shared<LinkCreationAgentRequest>();
     try {
-        bool query_section = true;
-        for (const auto& token : proxy->get_args()) {
-            if (is_link_create_arg(token) || !query_section) {
-                query_section = false;
-                lca_request->link_template.push_back(token);
-            } else {
-                lca_request->query.push_back(token);
+        lca_request->use_metta_as_query_tokens =
+            proxy->parameters.get<bool>(LinkCreationRequestProxy::USE_METTA_AS_QUERY_TOKENS);
+        if (lca_request->use_metta_as_query_tokens) {
+            auto args = proxy->get_args();
+            lca_request->query.push_back(args.front());
+            lca_request->link_template.push_back("METTA");
+            for (size_t i = 1; i < args.size(); i++) {
+                lca_request->link_template.push_back(args[i]);
+            }
+        } else {
+            bool query_section = true;
+            for (const auto& token : proxy->get_args()) {
+                if (is_link_create_arg(token) || !query_section) {
+                    query_section = false;
+                    lca_request->link_template.push_back(token);
+                } else {
+                    lca_request->query.push_back(token);
+                }
             }
         }
         lca_request->max_results =

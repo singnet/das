@@ -12,6 +12,7 @@ string LinkCreationRequestProxy::ATTENTION_UPDATE_FLAG = "attention_update_flag"
 string LinkCreationRequestProxy::POSITIVE_IMPORTANCE_FLAG = "positive_importance_flag";
 string LinkCreationRequestProxy::QUERY_INTERVAL = "query_interval";
 string LinkCreationRequestProxy::QUERY_TIMEOUT = "query_timeout";
+string LinkCreationRequestProxy::USE_METTA_AS_QUERY_TOKENS = "use_metta_as_query_tokens";
 
 LinkCreationRequestProxy::LinkCreationRequestProxy() : BaseProxy() {}
 
@@ -34,6 +35,7 @@ void LinkCreationRequestProxy::set_default_parameters() {
     this->parameters[LinkCreationRequestProxy::POSITIVE_IMPORTANCE_FLAG] = true;
     this->parameters[LinkCreationRequestProxy::QUERY_INTERVAL] = (unsigned int) 0;
     this->parameters[LinkCreationRequestProxy::QUERY_TIMEOUT] = (unsigned int) 0;
+    this->parameters[LinkCreationRequestProxy::USE_METTA_AS_QUERY_TOKENS] = false;
 }
 
 void LinkCreationRequestProxy::set_parameter(const string& key, const PropertyValue& value) {

@@ -27,6 +27,7 @@ LinkCreationService::LinkCreationService(int thread_count) : thread_pool(thread_
     this->link_template_processor = make_shared<LinkTemplateProcessor>();
     this->equivalence_processor = make_shared<EquivalenceProcessor>();
     this->implication_processor = make_shared<ImplicationProcessor>();
+    this->metta_link_processor = make_shared<MettaTemplateProcessor>();
     // run create_link in a separate thread
     this->create_link_thread = thread(&LinkCreationService::create_links, this);
 }
@@ -112,6 +113,10 @@ vector<shared_ptr<Link>> LinkCreationService::process_query_answer(shared_ptr<Qu
     } else if (LinkCreationProcessor::get_processor_type(link_template.front()) ==
                ProcessorType::PROOF_OF_EQUIVALENCE) {
         return equivalence_processor->process_query(query_answer, params);
+    } else if (LinkCreationProcessor::get_processor_type(link_template.front()) ==
+               ProcessorType::METTA) {
+        link_template.erase(link_template.begin());
+        return metta_link_processor->process_query(query_answer, link_template);
     } else {
         return link_template_processor->process_query(query_answer, link_template);
     }
@@ -145,16 +150,16 @@ void LinkCreationService::create_links() {
                     LOG_ERROR("Failed to create MeTTa expression for " << link->to_string());
                     continue;
                 }
+                if (this->save_links_to_db) {
+                    LOG_INFO("Saving link to database: " << link->to_string());
+                    add_or_update_link(link);
+                }
                 if (this->save_links_to_metta_file) {
                     LOG_INFO("MeTTa Expression: " << meta_content);
                     add_to_file(metta_file_path,
                                 id + ".metta",
                                 meta_content + " = " +
-                                    to_string(link->custom_attributes.get<double>("strength")));
-                }
-                if (this->save_links_to_db) {
-                    LOG_INFO("Saving link to database: " << link->to_string());
-                    add_or_update_link(link);
+                                    to_string(link->custom_attributes.get_or<double>("strength", 0.0)));
                 }
                 metta_expression_set.insert(meta_content);
             } catch (const exception& e) {
@@ -168,4 +173,5 @@ void LinkCreationService::create_links() {
 
 void LinkCreationService::set_metta_file_path(string metta_file_path) {
     this->metta_file_path = metta_file_path;
+    Utils::linux_command_line(("mkdir -p " + metta_file_path).c_str());
 }

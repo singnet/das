@@ -7,18 +7,25 @@ DAS Link Creation Agent (DAS LCA), process a query and create links using the re
 
 ### Request
 
-The request must have 6 elements:
-1. Query (string): A valid Query Agent query (see Query Example)
-2. Link Create Template (string): A valid link create template (see Link Create Template Example)
-3. Max number of query response (int)
-4. Repeat (int): 0 to run once, -1 to run infinitely, 1 or higher to run this number of times.
-5. Context (string): Query context for Attention Broker requests
-6. Update Attention Broker flag (bool): true or false to update or not the Attention Broker
-7. Optional Request ID
+The request must have 8 elements:
+1. MAX_ANSWERS (int): Maximum number of anwers to be processed
+2. REPEAT_COUNT (int): Number of times the request will query and create links (set to 0 to infinite)
+3. ATTENTION_UPDATE_FLAG (bool): Whether to update the attention broker (true/false)
+4. POSITIVE_IMPORTANCE_FLAG (bool): Query Agent should return only links with importance greater than zero (true/false)
+5. USE_METTA_AS_QUERY_TOKENS (bool): Use MeTTa expressions as query and template to create links
+6. CONTEXT (string): Query context for Attention Broker requests
+7. Query (string): A valid Query Agent query (see Query Example) or MeTTa expression if USE_METTA_AS_QUERY_TOKENS is set as true
+8. Link Create Template (string): A valid link create template (see Link Create Template Example) or MeTTa expression if USE_METTA_AS_QUERY_TOKENS is set as true
 
-Example:
+
+Example (Tokens):
 ```
-LINK_TEMPLATE", "Expression", "3", "NODE", "Symbol", "Similarity","VARIABLE", "V1", "VARIABLE", "V2", "LINK_CREATE", "Similarity", "2", "1", "VARIABLE", "V1", "VARIABLE", "V2", "CUSTOM_FIELD", "truth_value", "2", "CUSTOM_FIELD", "mean", "2", "count", "10", "avg", "0.9", "confidence", "0.9", "10", "0", "test", "false"
+AND 2 LINK_TEMPLATE Expression 2 NODE Symbol PREDICATE VARIABLE P1 LINK_TEMPLATE Expression 2 NODE Symbol PREDICATE VARIABLE P2 LINK_CREATE Similarity 2 1 VARIABLE P1 VARIABLE P2 CUSTOM_FIELD truth_value 2 CUSTOM_FIELD mean 2 count 10 avg 0.9 confidence 0.9
+```
+
+Example (MeTTa):
+```
+'(and (PREDICATE %P1) (PREDICATE %P2))' '(IMPLICATION %P1 %P2)'
 ```
 
 #### Query Example
@@ -68,7 +75,7 @@ To build the Link Creation Agent, run the following command from the project roo
 make build-all
 ```
 
-This will generate the binaries for all components in the `das/bin` directory.
+This will generate the binaries for all components in the `bin` directory.
 
 ## How to run
 
@@ -99,26 +106,36 @@ make run-link-creation-agent OPTIONS="link_creation_agent server_address peer_ad
 
 #### Running client
 
+Example:
 ```
-make run-link-creation-client OPTIONS="localhost:1010 localhost:9080 <start_port:end_port> LINK_TEMPLATE Expression 3 NODE Symbol Similarity VARIABLE V1 VARIABLE V2 LINK_CREATE Similarity 2 1 VARIABLE V1 VARIABLE V2 CUSTOM_FIELD truth_value 2 CUSTOM_FIELD mean 2 count 10 avg 0.9 confidence 0.9 10 1 test false"
+ make run-link-creation-client OPTIONS="<client_address> <server_address> <start_port:end_port> <max_answers> <repeat_count> <attention_update_flag> <positive_importance_flag> <use_metta_as_query_tokens> <context> <query_tokens or metta expression> <linkcreate_tokens or metta expression>"
+```
+
+Tokens:
+```
+ make run-link-creation-client OPTIONS="localhost:9085 localhost:9080 1777:1888 50 1 false false false context1 AND 2 LINK_TEMPLATE Expression 2 NODE Symbol PREDICATE VARIABLE P1 LINK_TEMPLATE Expression 2 NODE Symbol PREDICATE VARIABLE P2 LINK_CREATE Similarity 2 1 VARIABLE P1 VARIABLE P2"
+```
+MeTTa:
+```
+make run-link-creation-client OPTIONS="localhost:9085 localhost:9080 1777:1888 50 1 false false true context1 '(and (PREDICATE %P1) (PREDICATE %P2))' '(IMPLICATION %P1 %P2)'"
 ```
 ##### OPTIONS parameters are:
-* client_host: The address of the client (localhost:1010)
-* server_host: The address of the server (localhost:9080)
+* client_address: The address of the client (localhost:1010)
+* server_address: The address of the server (localhost:9080)
 * \<start_port:end_port\> The lower and upper bound for the port numbers to be used by the command proxy
-* query: Base query to create links (LINK_TEMPLATE Expression 3 NODE Symbol Similarity VARIABLE V1 VARIABLE V2)
-* create_template: Template to create the new links (LINK_CREATE Similarity 2 1 VARIABLE V1 VARIABLE V2 CUSTOM_FIELD truth_value 2 CUSTOM_FIELD mean 2 count 10 avg 0.9 confidence 0.9)
-* max_result: Max number of responses of the query to process (10)
-* repeat: Repeat the query and link creations, should be greater than 0, 0 is reserved for other agents (1)
+* max_answers: ax number of responses of the query to process
+* repeat_count: Repeat the query and link creations, should be greater than 0, 0 is to run the process for ever
+* attention_update_flag: "true" if this query should update the Attention Broker (false)
+* positive_importance_flag: "true" if this query should only return answers thar have a importance value greater than zero
+* use_metta_as_query_tokens: "true" if this request is using MeTTa expressions as query and creation template
 * context: Context of the query (test)
-* update_attention_broker: "true" if this query should update the Attention Broker (false)
-
+* query: Base token or MeTTa query to create links 
+* create_template: Template or MeTTa to create the new links
 
 If successful, you should see a message like this:
 
 ```
-Starting server
-SynchronousGRPC listening on localhost:9080
-SynchronousGRPC listening on localhost:9001
-SynchronousGRPC listening on localhost:9090
+2025-10-18 10:48:16 | [INFO] | SynchronousGRPC listening on localhost:9080
+2025-10-18 10:48:17 | [INFO] | LinkCreationAgent initialized with request interval: ... seconds
+2025-10-18 10:48:17 | [INFO] | LinkCreationAgent initialized with Query timeout: .. seconds
 ```

@@ -109,6 +109,29 @@ TEST_F(LinkCreationAgentTest, TestRequest) {
     delete agent;
 }
 
+TEST_F(LinkCreationAgentTest, TestRequestMetta) {
+    auto agent = new LinkCreationAgent();
+    vector<string> request = {"()", "()"};
+    auto proxy = make_shared<MockLinkCreationRequestProxy>(request);
+    proxy->parameters[LinkCreationRequestProxy::MAX_ANSWERS] = (uint) 10;
+    proxy->parameters[LinkCreationRequestProxy::REPEAT_COUNT] = (uint) 5;
+    proxy->parameters[LinkCreationRequestProxy::CONTEXT] = "test_context";
+    proxy->parameters[LinkCreationRequestProxy::ATTENTION_UPDATE_FLAG] = true;
+    proxy->parameters[LinkCreationRequestProxy::USE_METTA_AS_QUERY_TOKENS] = true;
+
+    shared_ptr<LinkCreationAgentRequest> lca_request = agent->create_request(proxy);
+    EXPECT_EQ(lca_request->query, vector<string>({"()"}));
+    EXPECT_EQ(lca_request->link_template, vector<string>({"METTA", "()"}));
+    EXPECT_EQ(lca_request->max_results, 10);
+    EXPECT_EQ(lca_request->repeat, 5);
+    EXPECT_EQ(lca_request->context, "test_context");
+    EXPECT_EQ(lca_request->update_attention_broker, true);
+    EXPECT_EQ(lca_request->infinite, false);
+    EXPECT_EQ(lca_request->id.empty(), false);
+    request.clear();
+    delete agent;
+}
+
 TEST_F(LinkCreationAgentTest, TestConfig) {
     shared_ptr<ServiceBus> service_bus = ServiceBusSingleton::get_instance();
     service_bus->register_processor(
@@ -629,4 +652,32 @@ TEST_F(LinkCreationAgentTest, TestEquivalenceProcessorLinkCreationOr) {
     EXPECT_EQ(links.size(), 2);
     EXPECT_NEAR(links[0]->custom_attributes.get<double>("strength"), 0.9, 1e-2);
     EXPECT_NEAR(links[1]->custom_attributes.get<double>("strength"), 0.9, 1e-2);
+}
+
+TEST_F(LinkCreationAgentTest, TestMettaProcessorLinkCreation) {
+    auto mp = make_shared<MettaTemplateProcessor>();
+    string A = "A";
+    string B = "B";
+    string C = "C";
+    string D = "D";
+    shared_ptr<QueryAnswer> query_answer = make_shared<QueryAnswer>(1.0);
+    query_answer->add_handle(A);
+    query_answer->add_handle(B);
+    query_answer->assignment.assign("V1", C);
+    query_answer->assignment.assign("V2", D);
+    auto mock_atomdb = dynamic_cast<AtomDBMock*>(AtomDBSingleton::get_instance().get());
+    std::queue<string> target_queue;
+    target_queue.push(C);
+    target_queue.push(D);
+    EXPECT_CALL(*mock_atomdb, get_atom(testing::_))
+        .Times(2)
+        .WillRepeatedly(::testing::Invoke([&target_queue](const string& handle) {
+            string name = target_queue.front();
+            target_queue.pop();
+            auto link = make_shared<Node>("Symbol", name);
+            return link;
+        }));
+    auto links =
+        mp->process_query(query_answer, vector<string>({"($V1 $V2 (Expression $V1 Test (Tttt $V2)))"}));
+    EXPECT_EQ(links.size(), 1);
 }
