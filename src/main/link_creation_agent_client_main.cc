@@ -7,13 +7,17 @@
 #include "AtomDBSingleton.h"
 #include "LinkCreationRequestProxy.h"
 #include "ServiceBusSingleton.h"
+#include "Utils.h"
 using namespace link_creation_agent;
 using namespace std;
 using namespace service_bus;
 using namespace atomdb;
 
+bool running = true;
+
 void ctrl_c_handler(int) {
     cout << "Stopping client..." << endl;
+    running = false;
     cout << "Done." << endl;
     exit(0);
 }
@@ -72,5 +76,11 @@ int main(int argc, char* argv[]) {
     proxy->parameters[LinkCreationRequestProxy::POSITIVE_IMPORTANCE_FLAG] = positive_importance_flag;
     proxy->parameters[LinkCreationRequestProxy::USE_METTA_AS_QUERY_TOKENS] = use_metta_as_query_tokens;
     ServiceBusSingleton::get_instance()->issue_bus_command(proxy);
+    while(!proxy->finished()) {
+        Utils::sleep();
+        if (!running) {
+            proxy->abort();
+        }
+    }
     return 0;
 }
