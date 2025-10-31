@@ -172,12 +172,16 @@ void LinkCreationAgent::load_buffer() {
     file.close();
 }
 
-static bool is_link_create_arg(string arg) {
-    if (arg == "LIST") return true;
-    if (arg == "LINK_CREATE") return true;
+static bool is_processor_arg(string arg) {
     if (arg == "PROOF_OF_IMPLICATION") return true;
     if (arg == "PROOF_OF_EQUIVALENCE") return true;
     return false;
+}
+
+static bool is_link_create_arg(string arg) {
+    if (arg == "LIST") return true;
+    if (arg == "LINK_CREATE") return true;
+    return is_processor_arg(arg);
 }
 
 shared_ptr<LinkCreationAgentRequest> LinkCreationAgent::create_request(
@@ -189,10 +193,15 @@ shared_ptr<LinkCreationAgentRequest> LinkCreationAgent::create_request(
         if (lca_request->use_metta_as_query_tokens) {
             auto args = proxy->get_args();
             lca_request->query.push_back(args.front());
-            lca_request->link_template.push_back("METTA");
-            for (size_t i = 1; i < args.size(); i++) {
-                lca_request->link_template.push_back(args[i]);
+            if (is_processor_arg(args[1])) {
+                lca_request->link_template.push_back(args[1]);
+            } else {
+                lca_request->link_template.push_back("METTA");
+                for (size_t i = 1; i < args.size(); i++) {
+                    lca_request->link_template.push_back(args[i]);
+                }
             }
+
         } else {
             bool query_section = true;
             for (const auto& token : proxy->get_args()) {
