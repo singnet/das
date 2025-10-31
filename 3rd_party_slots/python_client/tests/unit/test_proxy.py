@@ -19,6 +19,9 @@ class DummyProxy(BusCommandProxy):
     def __init__(self):
         super().__init__(command="cmd", args=[])
         self.processed_msgs = []
+    
+    def pack_command_line_args(self):
+        pass
 
     def process_message(self, msg):
         self.processed_msgs.append(msg)
@@ -31,7 +34,7 @@ class TestBaseCommandProxy:
         with pytest.raises(RuntimeError):
             proxy.setup_proxy_node()
 
-    @patch('hyperon_das.proxy.AtomSpaceNodeManager')
+    @patch('hyperon_das.service_bus.proxy.AtomSpaceNodeManager')
     def test_setup_proxy_node_with_requestor_id(self, MockManager):
         proxy = DummyProxy()
         proxy.proxy_port = 1111
@@ -39,20 +42,20 @@ class TestBaseCommandProxy:
         instance = MockManager.return_value
         proxy.setup_proxy_node(server_id="srv")
         expected_node_id = "host:1111"
-        MockManager.assert_called_with(node_id=expected_node_id, server_id="srv", handler=proxy)
+        MockManager.assert_called_with(node_id=expected_node_id, server_id="srv", proxy=proxy)
         instance.start.assert_called_once()
 
-    @patch('hyperon_das.proxy.AtomSpaceNodeManager')
+    @patch('hyperon_das.service_bus.proxy.AtomSpaceNodeManager')
     def test_setup_proxy_node_with_client_override(self, MockManager):
         proxy = DummyProxy()
         proxy.proxy_port = 2222
         instance = MockManager.return_value
         proxy.setup_proxy_node(client_id="cli:1", server_id="srv2")
-        MockManager.assert_called_with(node_id="cli:1", server_id="srv2", handler=proxy)
+        MockManager.assert_called_with(node_id="cli:1", server_id="srv2", proxy=proxy)
         assert instance.peer_id == "srv2"
         instance.start.assert_called_once()
 
-    @patch('hyperon_das.port_pool.PortPool.return_port')
+    @patch('hyperon_das.service_bus.port_pool.PortPool.return_port')
     def test_graceful_shutdown_calls_node_and_returns_port(self, mock_return):
         proxy = DummyProxy()
         proxy.proxy_port = 3333
@@ -71,49 +74,45 @@ class TestBaseCommandProxy:
 
 class TestPatternMatchingQueryProxy:
     @pytest.fixture(autouse=True)
-    def handler(self):
+    def proxy(self):
         return PatternMatchingQueryProxy(tokens=["x"], context="c")
 
-    def test_finished_logic(self, handler):
-        handler.abort_flag = False
-        handler.answer_flow_finished = False
-        handler.count_flag = False
-        assert not handler.finished()
+    def test_finished_logic(self, proxy):
+        proxy.abort_flag = False
+        proxy.command_finished_flag = False
+        assert not proxy.finished()
 
-        handler.abort_flag = True
-        assert handler.finished()
+        proxy.abort_flag = True
+        assert proxy.finished()
 
-        handler.abort_flag = False
-        handler.answer_flow_finished = True
-        handler.count_flag = True
-        assert handler.finished()
+        proxy.abort_flag = False
+        proxy.command_finished_flag = True
+        assert proxy.finished()
 
-    def test_pop_behaviour(self, handler):
-        handler.count_flag = True
-        assert handler.pop() is None
-        handler.count_flag = False
-        handler.abort_flag = True
-        assert handler.pop() is None
-        handler.abort_flag = False
-        assert handler.pop() is None
+    def test_pop_behaviour(self, proxy):
+        assert proxy.pop() is None
+        proxy.abort_flag = True
+        assert isinstance(proxy.pop(), QueryAnswer)
+        proxy.abort_flag = False
+        assert proxy.pop() is None
         qa = QueryAnswer(handle="h", importance=0)
-        handler.answer_queue.put(qa)
-        assert handler.pop() is qa
+        proxy.answer_queue.put(qa)
+        assert proxy.pop() is qa
 
-    def test_process_message_and_counters(self, handler):
+    def test_process_message_and_counters(self, proxy):
         base = QueryAnswer(handle="h0", importance=0.0)
         tokens = base.tokenize()
         msgs = [PatternMatchingQueryProxy.ANSWER_BUNDLE, tokens, PatternMatchingQueryProxy.COUNT]
-        handler.process_message(msgs)
-        assert handler.answer_count == 1
-        assert isinstance(handler.answer_queue.get(), QueryAnswer)
+        proxy.process_message(msgs)
+        assert proxy.answer_count == 1
+        assert isinstance(proxy.answer_queue.get(), QueryAnswer)
         # finished
-        handler.process_message([PatternMatchingQueryProxy.FINISHED])
-        assert handler.answer_flow_finished
+        proxy.process_message([PatternMatchingQueryProxy.FINISHED])
+        assert proxy.command_finished_flag
         # abort
-        handler2 = PatternMatchingQueryProxy(tokens=["x"], context="c")
-        handler2.process_message([PatternMatchingQueryProxy.ABORT])
-        assert handler2.abort_flag
+        proxy2 = PatternMatchingQueryProxy(tokens=["x"], context="c")
+        proxy2.process_message([PatternMatchingQueryProxy.ABORT])
+        assert proxy2.abort_flag
 
 
 class TestAtomSpaceNodeManager:
@@ -128,13 +127,13 @@ class TestAtomSpaceNodeManager:
         return fake_server
 
     def test_start_adds_port_and_starts(self, stub_grpc):
-        mgr = AtomSpaceNodeManager(node_id="host:1234", server_id="srv", handler=None)
+        mgr = AtomSpaceNodeManager(node_id="host:1234", server_id="srv", proxy=None)
         mgr.start()
         stub_grpc.add_insecure_port.assert_called_with("host:1234")
         stub_grpc.start.assert_called_once()
 
     def test_stop_and_wait(self, stub_grpc):
-        mgr = AtomSpaceNodeManager(node_id="h:1", server_id="s", handler=None)
+        mgr = AtomSpaceNodeManager(node_id="h:1", server_id="s", proxy=None)
         mgr.server = stub_grpc
         mgr.stop(grace=5)
         mgr.wait_for_termination()
@@ -145,8 +144,8 @@ class TestAtomSpaceNodeManager:
 class TestAtomSpaceNodeServicer:
     @pytest.fixture(autouse=True)
     def servicer(self):
-        handler = MagicMock()
-        return AtomSpaceNodeServicer(handler)
+        proxy = MagicMock()
+        return AtomSpaceNodeServicer(proxy)
 
     def test_ping(self, servicer):
         ack = servicer.ping()
@@ -154,14 +153,14 @@ class TestAtomSpaceNodeServicer:
         assert ack.msg == "ack"
 
     def test_execute_message_dispatch(self, servicer):
-        servicer.handler = MagicMock()
+        servicer.proxy = MagicMock()
         msg = grpc_pb2.MessageData(command="query_answer_tokens_flow", args=["arg1"])
         resp = servicer.execute_message(msg)
         assert isinstance(resp, common_pb2.Empty)
-        servicer.handler.process_message.assert_called_with(["arg1"])
+        servicer.proxy.process_message.assert_called_with(["arg1"])
 
     def test_execute_message_ignores_other(self, servicer):
-        servicer.handler = MagicMock()
+        servicer.proxy = MagicMock()
         msg = grpc_pb2.MessageData(command="unrelated", args=["arg2"])
         servicer.execute_message(msg)
-        servicer.handler.process_message.assert_not_called()
+        servicer.proxy.process_message.assert_not_called()

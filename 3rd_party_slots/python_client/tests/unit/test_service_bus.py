@@ -1,7 +1,7 @@
 import pytest
 from unittest.mock import MagicMock, patch
-from hyperon_das.service_bus import ServiceBus, ServiceBusSingleton
-from hyperon_das.service_bus.proxy import PatternMatchingQueryProxy
+from hyperon_das.service_bus.service_bus import ServiceBus, ServiceBusSingleton
+from hyperon_das.service_clients import PatternMatchingQueryProxy
 from hyperon_das.service_bus.port_pool import PortPool
 from hyperon_das.distributed_algorithm_node.bus_node import BusNode
 
@@ -25,6 +25,7 @@ class TestServiceBus:
         proxy.args = ['arg1', 'arg2']
         proxy.setup_proxy_node = MagicMock()
         proxy.proxy_node = MagicMock()
+        proxy.proxy_node.node_id = "0.0.0.0:9999"
         return proxy
 
     def test_service_bus_issues_command(self, mock_port_pool, mock_bus_node, mock_proxy):

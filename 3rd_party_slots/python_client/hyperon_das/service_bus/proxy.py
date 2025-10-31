@@ -84,9 +84,14 @@ class AtomSpaceNodeManager:
         if self.server:
             self.server.wait_for_termination()
 
+    def node_joined_network(self, node_id: str) -> None:
+        self.peer_id = node_id
+
     def to_remote_peer(self, command: str, args: list[str]) -> None:
-        if self.peer_id == "":
-            log.error("Unknown peer")
+        if not self.peer_id:
+            msg = "Unknown peer"
+            log.error(msg)
+            raise RuntimeError(msg)
 
         new_args = args
         new_args.append(command)
@@ -94,7 +99,7 @@ class AtomSpaceNodeManager:
         with grpc.insecure_channel(self.peer_id) as channel:
             stub = AtomSpaceNodeStub(channel)
             log.debug(f"Sending command: {self.PROXY_COMMAND} with args: {args} to target: {self.peer_id}")
-            message = atom__space__node__pb2__grpc.MessageData(
+            message = atom__space__node__pb2.MessageData(
                 command=self.PROXY_COMMAND,
                 args=args,
                 sender=self.node_id,
@@ -118,6 +123,8 @@ class AtomSpaceNodeServicer(atom__space__node__pb2__grpc.AtomSpaceNodeServicer):
     def execute_message(self, request: atom__space__node__pb2.MessageData, context=None):
         log.info(f"Remote command: <{request.command}> arrived at AtomSpaceNodeServicer {self.proxy.proxy_node.node_id}")
         log.debug(f"Request command: {request.command}, args: {request.args}, sender: {request.sender}, is_broadcast: {request.is_broadcast}, visited_recipients: {request.visited_recipients}")
+        if request.command == "node_joined_network":
+            self.proxy.proxy_node.node_joined_network(request.args[0])
         if request.command in ["query_answer_tokens_flow", "bus_command_proxy"]:
             self.proxy.process_message(request.args)
         return common__pb2.Empty()

@@ -1,3 +1,4 @@
+import time
 import threading
 from hyperon_das.service_bus.port_pool import PortPool
 from hyperon_das.distributed_algorithm_node.bus_node import BusCommand, BusNode
@@ -12,7 +13,7 @@ class ServiceBus:
         self.bus_node = BusNode(host_id, commands, known_peer)
         PortPool.initialize_statics(port_lower, port_upper)
 
-    def issue_bus_command(self, proxy: 'BusCommandProxy'):
+    def issue_bus_command(self, proxy: 'BusCommandProxy') -> None:
         log.info(f"{self.bus_node.node_id} is issuing BUS command <{proxy.command}>")
         proxy.requestor_id = self.bus_node.node_id
         proxy.serial = self.next_request_serial
@@ -37,9 +38,11 @@ class ServiceBus:
 
             try:
                 self.bus_node.send_bus_command(proxy.command, args)
+                time.sleep(1)
             except Exception:
                 proxy.abort_flag = False
                 log.error(f"Failed to issue BUS command <{proxy.command}> with args {args}")
+                raise
 
 
 class ServiceBusSingletonMeta(type):
@@ -65,7 +68,8 @@ class ServiceBusSingleton(metaclass=ServiceBusSingletonMeta):
             host_id,
             known_peer,
             [
-                BusCommand.PATTERN_MATCHING_QUERY
+                BusCommand.PATTERN_MATCHING_QUERY,
+                BusCommand.ATOMDB
             ],
             port_lower,
             port_upper
