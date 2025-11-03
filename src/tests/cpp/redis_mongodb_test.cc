@@ -913,6 +913,32 @@ TEST_F(RedisMongoDBTest, UpdateAtom) {
     EXPECT_EQ(db->node_exists(node_handles[2]), false);
 }
 
+TEST_F(RedisMongoDBTest, AddSameAtomMustNotThrow) {
+    vector<Node*> nodes;
+    nodes.push_back(new Node("Symbol", "AddSameAtomMustNotThrowNode1"));
+    nodes.push_back(new Node("Symbol", "AddSameAtomMustNotThrowNode2"));
+    nodes.push_back(new Node("Symbol", "AddSameAtomMustNotThrowNode3"));
+    EXPECT_EQ(db->add_nodes(nodes).size(), 3);
+    EXPECT_EQ(db->add_nodes(nodes).size(), 3);
+
+    EXPECT_EQ(db->add_node(nodes[0]), nodes[0]->handle());
+    EXPECT_EQ(db->add_node(nodes[0]), nodes[0]->handle());
+
+    auto link = new Link("Expression", {nodes[0]->handle(), nodes[1]->handle(), nodes[2]->handle()});
+    EXPECT_EQ(db->add_link(link), link->handle());
+    EXPECT_EQ(db->add_link(link), link->handle());
+
+    EXPECT_EQ(db->add_links({link, link}).size(), 2);
+    EXPECT_EQ(db->add_links({link, link}).size(), 2);
+
+    EXPECT_EQ(db->delete_link(link->handle(), true), true);
+
+    EXPECT_EQ(db->link_exists(link->handle()), false);
+    for (auto node : nodes) {
+        EXPECT_EQ(db->node_exists(node->handle()), false);
+    }
+}
+
 TEST_F(RedisMongoDBTest, AddNodesWithThrowIfExists) {
     auto node1 = new Node("Symbol", "ThrowIfExists1");
     EXPECT_EQ(db->add_node(node1, true), node1->handle());

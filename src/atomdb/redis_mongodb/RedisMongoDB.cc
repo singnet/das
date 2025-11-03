@@ -787,7 +787,8 @@ bool RedisMongoDB::upsert_document(const bsoncxx::v_noabi::document::value& docu
         }
     }
 
-    return reply->modified_count() > 0 || reply->upserted_id() != bsoncxx::v_noabi::stdx::nullopt;
+    return reply->matched_count() > 0 || reply->modified_count() > 0 ||
+           reply->upserted_id() != bsoncxx::v_noabi::stdx::nullopt;
 }
 
 uint RedisMongoDB::upsert_documents(const std::vector<bsoncxx::document::value>& documents,
