@@ -47,11 +47,10 @@ static void create_missing_atoms_in_atomdb(shared_ptr<MettaParserActions> parser
     // Add missing links
     for (size_t i = 0; i < parser_actions->metta_expressions.size() - 1; i++) {
         auto metta_expression_cp = parser_actions->metta_expressions[i];
-        auto handle = find_if(parser_actions->handle_to_metta_expression.begin(),
-                              parser_actions->handle_to_metta_expression.end(),
-                              [&metta_expression_cp](const auto& pair) {
-                                  return pair.second == metta_expression_cp;
-                              });
+        auto handle = find_if(
+            parser_actions->handle_to_metta_expression.begin(),
+            parser_actions->handle_to_metta_expression.end(),
+            [&metta_expression_cp](const auto& pair) { return pair.second == metta_expression_cp; });
         if (handle == parser_actions->handle_to_metta_expression.end()) {
             Utils::error("Could not find handle for metta expression: " + metta_expression_cp);
             continue;
