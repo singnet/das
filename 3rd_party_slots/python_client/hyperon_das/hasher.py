@@ -1,6 +1,6 @@
 import hashlib
-from hyperon_das.logger import log
 
+from hyperon_das.logger import log
 
 JOINING_CHAR = ' '
 MAX_LITERAL_OR_SYMBOL_SIZE = 10000

@@ -1,7 +1,8 @@
 import argparse
+
+from hyperon_das.commons.helpers import tokenize_preserve_quotes
 from hyperon_das.service_bus.service_bus import ServiceBusSingleton
 from hyperon_das.service_clients import AtomDBProxy
-from hyperon_das.commons.helpers import tokenize_preserve_quotes
 
 
 def parse_arguments():
@@ -15,12 +16,7 @@ def parse_arguments():
     return parser.parse_args()
 
 
-def atomdb_client(
-    client_id: str = None,
-    peer_id: str = None,
-    action: str = None,
-    tokens: list[str] | str = None
-):
+def atomdb_client(client_id: str = None, peer_id: str = None, action: str = None, tokens: list[str] | str = None):
     if any([client_id, peer_id, action, tokens]):
         if not client_id:
             raise ValueError("client_id is required")
@@ -42,10 +38,7 @@ def atomdb_client(
     proxy = AtomDBProxy()
 
     service_bus = ServiceBusSingleton(
-        host_id=client_id,
-        known_peer=peer_id,
-        port_lower=41200,
-        port_upper=41299
+        host_id=client_id, known_peer=peer_id, port_lower=41200, port_upper=41299
     ).get_instance()
 
     try:

@@ -1,11 +1,11 @@
 import abc
 import copy
 
+from hyperon_das.commons.atoms.handle_decoder import HandleDecoder
+from hyperon_das.commons.helpers import error
 from hyperon_das.commons.properties import Properties
 from hyperon_das.hasher import Hasher
-from hyperon_das.commons.atoms.handle_decoder import HandleDecoder
 from hyperon_das.query_answer import Assignment
-from hyperon_das.commons.helpers import error
 
 
 class Atom:
@@ -17,7 +17,7 @@ class Atom:
         type: str | None = None,
         is_toplevel: bool = False,
         custom_attributes: Properties | None = None,
-        other=None
+        other=None,
     ) -> None:
         if other:
             self.type = other.type
@@ -91,7 +91,7 @@ class Atom:
 
         num_property_tokens = int(tokens[0])
         if num_property_tokens > 0:
-            properties_tokens = tokens[1: 1 + num_property_tokens]
+            properties_tokens = tokens[1 : 1 + num_property_tokens]
             self.custom_attributes.untokenize(properties_tokens)
             del tokens[: 1 + num_property_tokens]
         else:
@@ -103,7 +103,7 @@ class Atom:
 
     @abc.abstractmethod
     def metta_representation(self, decoder: 'HandleDecoder') -> str:
-        """ Constructs and returns a MeTTa expression which represents this Atom."""
+        """Constructs and returns a MeTTa expression which represents this Atom."""
 
     @abc.abstractmethod
     def match(self, handle, assignment: 'Assignment', decode: 'HandleDecoder') -> bool:

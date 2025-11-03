@@ -1,9 +1,9 @@
 import enum
+
 import grpc
 
-from hyperon_das._grpc.atom_space_node_pb2_grpc import AtomSpaceNodeStub
 from hyperon_das._grpc import atom_space_node_pb2
-
+from hyperon_das._grpc.atom_space_node_pb2_grpc import AtomSpaceNodeStub
 from hyperon_das.logger import log
 
 
@@ -34,7 +34,9 @@ class Bus:
                 self._command_owner[command] = node_id
             else:
                 if self._command_owner[command] != node_id:
-                    raise RuntimeError(f"Bus: command <{command}> is already assigned to {self._command_owner[command]}")
+                    raise RuntimeError(
+                        f"Bus: command <{command}> is already assigned to {self._command_owner[command]}"
+                    )
 
     def get_ownership(self, command: str) -> str:
         if command not in self._command_owner:
@@ -82,11 +84,7 @@ class BusNode:
             stub = AtomSpaceNodeStub(channel)
             log.debug(f"Sending command: {command} with args: {args} to target: {target_id}")
             message = atom_space_node_pb2.MessageData(
-                command=command,
-                args=args,
-                sender=self.node_id,
-                is_broadcast=False,
-                visited_recipients=[]
+                command=command, args=args, sender=self.node_id, is_broadcast=False, visited_recipients=[]
             )
             try:
                 stub.execute_message(message)

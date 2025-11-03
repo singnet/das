@@ -1,14 +1,14 @@
 import abc
-import grpc
 from concurrent import futures
-import hyperon_das._grpc.atom_space_node_pb2_grpc as atom__space__node__pb2__grpc
+
+import grpc
+
 import hyperon_das._grpc.atom_space_node_pb2 as atom__space__node__pb2
+import hyperon_das._grpc.atom_space_node_pb2_grpc as atom__space__node__pb2__grpc
 import hyperon_das._grpc.common_pb2 as common__pb2
 from hyperon_das._grpc.atom_space_node_pb2_grpc import AtomSpaceNodeStub
-
-
-from hyperon_das.service_bus.port_pool import PortPool
 from hyperon_das.logger import log
+from hyperon_das.service_bus.port_pool import PortPool
 
 
 class BusCommandProxy(abc.ABC):
@@ -100,11 +100,7 @@ class AtomSpaceNodeManager:
             stub = AtomSpaceNodeStub(channel)
             log.debug(f"Sending command: {self.PROXY_COMMAND} with args: {args} to target: {self.peer_id}")
             message = atom__space__node__pb2.MessageData(
-                command=self.PROXY_COMMAND,
-                args=args,
-                sender=self.node_id,
-                is_broadcast=False,
-                visited_recipients=[]
+                command=self.PROXY_COMMAND, args=args, sender=self.node_id, is_broadcast=False, visited_recipients=[]
             )
             try:
                 stub.execute_message(message)
@@ -114,6 +110,7 @@ class AtomSpaceNodeManager:
 
 class AtomSpaceNodeServicer(atom__space__node__pb2__grpc.AtomSpaceNodeServicer):
     """Implements the gRPC service for the AtomSpace node."""
+
     def __init__(self, proxy: BusCommandProxy):
         self.proxy = proxy
 
@@ -121,8 +118,12 @@ class AtomSpaceNodeServicer(atom__space__node__pb2__grpc.AtomSpaceNodeServicer):
         return common__pb2.Ack(error=False, msg="ack")
 
     def execute_message(self, request: atom__space__node__pb2.MessageData, context=None):
-        log.info(f"Remote command: <{request.command}> arrived at AtomSpaceNodeServicer {self.proxy.proxy_node.node_id}")
-        log.debug(f"Request command: {request.command}, args: {request.args}, sender: {request.sender}, is_broadcast: {request.is_broadcast}, visited_recipients: {request.visited_recipients}")
+        log.info(
+            f"Remote command: <{request.command}> arrived at AtomSpaceNodeServicer {self.proxy.proxy_node.node_id}"
+        )
+        log.debug(
+            f"Request command: {request.command}, args: {request.args}, sender: {request.sender}, is_broadcast: {request.is_broadcast}, visited_recipients: {request.visited_recipients}"
+        )
         if request.command == "node_joined_network":
             self.proxy.proxy_node.node_joined_network(request.args[0])
         if request.command in ["query_answer_tokens_flow", "bus_command_proxy"]:

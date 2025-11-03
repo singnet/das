@@ -1,8 +1,9 @@
-from hyperon_das.commons.atoms.handle_decoder import HandleDecoder
-from hyperon_das.logger import log
 from pymongo.mongo_client import MongoClient
+
+from hyperon_das.commons.atoms import Atom, Link, Node
+from hyperon_das.commons.atoms.handle_decoder import HandleDecoder
 from hyperon_das.commons.properties import Properties
-from hyperon_das.commons.atoms import Atom, Node, Link
+from hyperon_das.logger import log
 
 DAS_MONGODB_HOSTNAME = "0.0.0.0"
 DAS_MONGODB_PORT = 28000
@@ -17,11 +18,7 @@ class AtomDecoder(HandleDecoder):
         self.links_collection = 'links'
 
     def setup_mongo_db(
-        self,
-        hostname: str = None,
-        port: int = None,
-        username: str = None,
-        password: str = None
+        self, hostname: str = None, port: int = None, username: str = None, password: str = None
     ) -> None:
         hostname = hostname or DAS_MONGODB_HOSTNAME
         port = port or DAS_MONGODB_PORT
@@ -65,9 +62,7 @@ class AtomDecoder(HandleDecoder):
 
     def build_node(self, doc) -> Node:
         return Node(
-            type=doc['named_type'],
-            name=doc['name'],
-            custom_attributes=Properties(doc.get('custom_attributes', {}))
+            type=doc['named_type'], name=doc['name'], custom_attributes=Properties(doc.get('custom_attributes', {}))
         )
 
     def build_link(self, doc) -> Link:
@@ -75,5 +70,5 @@ class AtomDecoder(HandleDecoder):
             type=doc['named_type'],
             targets=doc['targets'],
             is_toplevel=doc['is_toplevel'],
-            custom_attributes=Properties(doc.get('custom_attributes', {}))
+            custom_attributes=Properties(doc.get('custom_attributes', {})),
         )

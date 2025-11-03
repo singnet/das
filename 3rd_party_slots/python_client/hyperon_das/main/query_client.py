@@ -2,10 +2,10 @@ import argparse
 import sys
 import time
 
+from hyperon_das.commons.helpers import str_2_bool, tokenize_preserve_quotes
+from hyperon_das.service_bus.service_bus import ServiceBusSingleton
 from hyperon_das.service_clients import PatternMatchingQueryProxy
 from hyperon_das.service_clients.base import BaseQueryProxy
-from hyperon_das.service_bus.service_bus import ServiceBusSingleton
-from hyperon_das.commons.helpers import tokenize_preserve_quotes, str_2_bool
 
 
 def parse_arguments():
@@ -13,9 +13,15 @@ def parse_arguments():
 
     parser.add_argument("--client-id", required=True, help="<IP:PORT>")
     parser.add_argument("--server-id", required=True, help="<IP:PORT>")
-    parser.add_argument("--update-attention-broker", required=False, type=str_2_bool, help="true/yes/1 or false/no/0", default=False)
-    parser.add_argument("--positive-importance", required=False, type=str_2_bool, help="true/yes/1 or false/no/0", default=False)
-    parser.add_argument("--populate-metta-mapping", required=False, type=str_2_bool, help="true/yes/1 or false/no/0", default=False)
+    parser.add_argument(
+        "--update-attention-broker", required=False, type=str_2_bool, help="true/yes/1 or false/no/0", default=False
+    )
+    parser.add_argument(
+        "--positive-importance", required=False, type=str_2_bool, help="true/yes/1 or false/no/0", default=False
+    )
+    parser.add_argument(
+        "--populate-metta-mapping", required=False, type=str_2_bool, help="true/yes/1 or false/no/0", default=False
+    )
     parser.add_argument("--max-query-answers", required=False, type=int, default=0)
     parser.add_argument("--query-tokens", required=True, type=str)
 
@@ -29,9 +35,19 @@ def pattern_matching_query(
     positive_importance: bool = None,
     populate_metta_mapping: bool = None,
     max_query_answers: int = None,
-    query_tokens: list[str] | str = None
+    query_tokens: list[str] | str = None,
 ):
-    if any([client_id, server_id, update_attention_broker, positive_importance, populate_metta_mapping, max_query_answers, query_tokens]):
+    if any(
+        [
+            client_id,
+            server_id,
+            update_attention_broker,
+            positive_importance,
+            populate_metta_mapping,
+            max_query_answers,
+            query_tokens,
+        ]
+    ):
         if not client_id:
             raise ValueError("client_id is required")
 
@@ -70,10 +86,7 @@ def pattern_matching_query(
     proxy.set_parameter(BaseQueryProxy.MAX_ANSWERS, max_query_answers)
 
     service_bus = ServiceBusSingleton(
-        host_id=client_id,
-        known_peer=server_id,
-        port_lower=54000,
-        port_upper=54500
+        host_id=client_id, known_peer=server_id, port_lower=54000, port_upper=54500
     ).get_instance()
 
     try:

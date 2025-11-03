@@ -1,9 +1,9 @@
 from hyperon_das.commons.atoms import Atom
-from hyperon_das.hasher import Hasher
-from hyperon_das.commons.properties import Properties
 from hyperon_das.commons.atoms.handle_decoder import HandleDecoder
-from hyperon_das.query_answer import Assignment
 from hyperon_das.commons.helpers import error
+from hyperon_das.commons.properties import Properties
+from hyperon_das.hasher import Hasher
+from hyperon_das.query_answer import Assignment
 
 
 class Node(Atom):
@@ -14,7 +14,7 @@ class Node(Atom):
         is_toplevel: bool = False,
         custom_attributes: Properties | None = None,
         tokens: list[str] | None = None,
-        other=None
+        other=None,
     ) -> None:
         if tokens:
             self.custom_attributes = custom_attributes if custom_attributes is not None else Properties()
@@ -54,7 +54,9 @@ class Node(Atom):
             error("Node name must not be empty")
 
     def to_string(self) -> str:
-        return f"Node(type: '{self.type}', name: '{self.name}', custom_attributes: '{self.custom_attributes.to_string()}'"
+        return (
+            f"Node(type: '{self.type}', name: '{self.name}', custom_attributes: '{self.custom_attributes.to_string()}'"
+        )
 
     def tokenize(self, output: list[str]) -> None:
         output.insert(0, self.name)

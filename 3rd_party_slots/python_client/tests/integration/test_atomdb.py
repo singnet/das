@@ -1,20 +1,18 @@
 import concurrent.futures
 import uuid
 
+from hyperon_das.commons.atoms import Link, Node
+from hyperon_das.commons.properties import Properties
+from hyperon_das.hasher import Hasher
 from hyperon_das.service_bus.service_bus import ServiceBusSingleton
 from hyperon_das.service_clients import AtomDBProxy
-from hyperon_das.hasher import Hasher
-from hyperon_das.commons.atoms import Node, Link
-from hyperon_das.commons.properties import Properties
+
 from .utils import AtomDecoder
 
 
 def test_atomdb_proxy_simple_client():
     service_bus = ServiceBusSingleton(
-        host_id="0.0.0.0:9001",
-        known_peer="0.0.0.0:40006",
-        port_lower=41200,
-        port_upper=41299
+        host_id="0.0.0.0:9001", known_peer="0.0.0.0:40006", port_lower=41200, port_upper=41299
     ).get_instance()
 
     proxy = AtomDBProxy()
@@ -29,16 +27,44 @@ def test_atomdb_proxy_simple_client():
     attr2 = Properties()
     attr2['is_literal'] = True
 
-    node1 = Node(type="Symbol", name='Similarity', is_toplevel=False, custom_attributes=attr1)   
+    node1 = Node(type="Symbol", name='Similarity', is_toplevel=False, custom_attributes=attr1)
     node2 = Node(type="Symbol", name='"human"', is_toplevel=False, custom_attributes=attr2)
     node3 = Node(type="Symbol", name='"monkey"', is_toplevel=False, custom_attributes=attr2)
     link = Link(type="Expression", targets=[node_handle1, node_handle2, node_handle3], is_toplevel=True)
 
     atoms_tokens = [
-        "NODE", "Symbol", "false", "3", "is_literal", "bool", "false", "Similarity",
-        "NODE", "Symbol", "false", "3", "is_literal", "bool", "true",  '"human"',
-        "NODE", "Symbol", "false", "3", "is_literal", "bool", "true",  '"monkey"',
-        "LINK", "Expression", "true",  "0", "3", node_handle1, node_handle2, node_handle3
+        "NODE",
+        "Symbol",
+        "false",
+        "3",
+        "is_literal",
+        "bool",
+        "false",
+        "Similarity",
+        "NODE",
+        "Symbol",
+        "false",
+        "3",
+        "is_literal",
+        "bool",
+        "true",
+        '"human"',
+        "NODE",
+        "Symbol",
+        "false",
+        "3",
+        "is_literal",
+        "bool",
+        "true",
+        '"monkey"',
+        "LINK",
+        "Expression",
+        "true",
+        "0",
+        "3",
+        node_handle1,
+        node_handle2,
+        node_handle3,
     ]
 
     atoms = proxy.build_atoms_from_tokens(atoms_tokens)
@@ -69,9 +95,7 @@ def _build_tokens_for_nodes(node_names):
     for name in node_names:
         handle = Hasher.node_handle("Symbol", name)
         handles.append(handle)
-        tokens.extend([
-            "NODE", "Symbol", "false", "3", "is_literal", "bool", "false", name
-        ])
+        tokens.extend(["NODE", "Symbol", "false", "3", "is_literal", "bool", "false", name])
     return tokens, handles
 
 
@@ -95,10 +119,7 @@ def test_atomdb_proxy_concurrent_clients():
     This test simulates N simultaneous clients, each sending its atoms to AtomDB through a proxy.
     """
     service_bus = ServiceBusSingleton(
-        host_id="0.0.0.0:9001",
-        known_peer="0.0.0.0:40006",
-        port_lower=41200,
-        port_upper=41299
+        host_id="0.0.0.0:9001", known_peer="0.0.0.0:40006", port_lower=41200, port_upper=41299
     ).get_instance()
 
     N = 5
@@ -113,10 +134,7 @@ def test_atomdb_proxy_concurrent_clients():
         clients_node_lists.append(node_names)
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=N) as exe:
-        futures = [
-            exe.submit(_client_send_atoms, service_bus, client_nodes)
-            for client_nodes in clients_node_lists
-        ]
+        futures = [exe.submit(_client_send_atoms, service_bus, client_nodes) for client_nodes in clients_node_lists]
         for fut in concurrent.futures.as_completed(futures):
             handles = fut.result()
             all_expected_handles.extend(handles)
