@@ -738,7 +738,6 @@ TEST_F(LinkCreationAgentTest, TestMettaProcessorLinkCreationInnerCheck) {
         .Times(expected_links.size())
         .WillRepeatedly(::testing::Invoke(
             [&links_count, &expected_links](const atoms::Link* link, bool throw_if_exists) {
-                cout << "Adding link: " << link->to_string() << endl;
                 EXPECT_EQ(link->type, "Expression");
                 EXPECT_EQ(link->targets.size(), expected_links[links_count].size());
                 for (size_t i = 0; i < expected_links[links_count].size(); i++) {
@@ -747,7 +746,49 @@ TEST_F(LinkCreationAgentTest, TestMettaProcessorLinkCreationInnerCheck) {
                 links_count++;
                 return "";
             }));
-    auto links =
-        mp->process_query(query_answer, vector<string>({"($V1 $V2 ($V1 Test (Tttt ($V1 Z) $V2)))"}));
+    string metta_expression_str = "($V1 $V2 ($V1 Test (Tttt ($V1 Z) $V2)))";
+    auto links = mp->process_query(query_answer, vector<string>({metta_expression_str}));
+    EXPECT_EQ(links.size(), 1);
+}
+
+TEST_F(LinkCreationAgentTest, TestMettaProcessorLinkCreationSimpleMeta) {
+    auto mp = make_shared<MettaTemplateProcessor>();
+    string A = "A";
+    string B = "B";
+    string C = "C";
+    string D = "D";
+    string Z = "Z";
+    shared_ptr<QueryAnswer> query_answer = make_shared<QueryAnswer>(1.0);
+    query_answer->add_handle(A);
+    query_answer->add_handle(B);
+    query_answer->assignment.assign("V1", C);
+    query_answer->assignment.assign("V2", D);
+    auto mock_atomdb = dynamic_cast<AtomDBMock*>(AtomDBSingleton::get_instance().get());
+    std::queue<string> target_queue;
+    target_queue.push(C);
+    target_queue.push(D);
+    EXPECT_CALL(*mock_atomdb, get_atom(testing::_))
+        .Times(2)
+        .WillRepeatedly(::testing::Invoke([&target_queue](const string& handle) {
+            string name = target_queue.front();
+            target_queue.pop();
+            auto link = make_shared<Node>("Symbol", name);
+            return link;
+        }));
+
+    vector<string> expected_nodes = {A, C, D};
+    int nodes_count = 0;
+    EXPECT_CALL(*mock_atomdb, add_node(testing::_, testing::_))
+        .Times(expected_nodes.size())
+        .WillRepeatedly(::testing::Invoke(
+            [&expected_nodes, &nodes_count](const atoms::Node* node, bool throw_if_exists) {
+                EXPECT_EQ(node->type, "Symbol");
+                EXPECT_EQ(node->name, expected_nodes[nodes_count].c_str());
+                nodes_count++;
+                return "";
+            }));
+    // This should never be called
+    EXPECT_CALL(*mock_atomdb, add_link(testing::_, testing::_)).Times(0);
+    auto links = mp->process_query(query_answer, vector<string>({"(A $V1 $V2)"}));
     EXPECT_EQ(links.size(), 1);
 }
