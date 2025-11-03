@@ -31,15 +31,10 @@ static string parse_metta_expression(string metta_expression,
     return metta_expression_cp;
 }
 
-static void create_missing_atoms_in_atomdb(string metta_expression,
-                                           shared_ptr<QueryAnswer> query_answer,
-                                           unordered_map<string, string>& hash_to_metta) {
+static void create_missing_atoms_in_atomdb(shared_ptr<MettaParserActions> parser_actions) {
     auto atomdb = AtomDBSingleton::get_instance();
-    auto pre_parser_actions = make_shared<MettaParserActions>();
-    MettaParser pre_parser(metta_expression, pre_parser_actions);
-    pre_parser.parse(true);
     // Add missing nodes to AtomDB
-    for (const auto& element : pre_parser_actions->handle_to_atom) {
+    for (const auto& element : parser_actions->handle_to_atom) {
         if (dynamic_pointer_cast<Node>(element.second) != nullptr) {
             try {
                 atomdb->add_node(dynamic_pointer_cast<Node>(element.second).get(), false);
@@ -49,17 +44,19 @@ static void create_missing_atoms_in_atomdb(string metta_expression,
             }
         }
     }
-
     // Add missing links
-    for (size_t i = 0; i < pre_parser_actions->metta_expressions.size() - 1; i++) {
-        auto metta_expression_cp = pre_parser_actions->metta_expressions[i];
-        metta_expression_cp =
-            parse_metta_expression(metta_expression_cp, hash_to_metta, query_answer->assignment.table);
-        LOG_DEBUG("Processing MeTTa link expression for link creation: " << metta_expression_cp);
-        auto p_actions = make_shared<MettaParserActions>();
-        MettaParser p_parser(metta_expression_cp, p_actions);
-        p_parser.parse(true);
-        auto link = p_actions->element_stack.top();
+    for (size_t i = 0; i < parser_actions->metta_expressions.size() - 1; i++) {
+        auto metta_expression_cp = parser_actions->metta_expressions[i];
+        auto handle = find_if(parser_actions->handle_to_metta_expression.begin(),
+                              parser_actions->handle_to_metta_expression.end(),
+                              [&metta_expression_cp](const auto& pair) {
+                                  return pair.second == metta_expression_cp;
+                              });
+        if (handle == parser_actions->handle_to_metta_expression.end()) {
+            Utils::error("Could not find handle for metta expression: " + metta_expression_cp);
+            continue;
+        }
+        auto link = parser_actions->handle_to_atom[handle->first];
         try {
             atomdb->add_link(dynamic_pointer_cast<Link>(link).get(), false);
             LOG_DEBUG("Link added to AtomDB: " << metta_expression_cp);
@@ -78,7 +75,6 @@ vector<shared_ptr<Link>> MettaTemplateProcessor::process_query(shared_ptr<QueryA
     auto atomdb = AtomDBSingleton::get_instance();
     for (const auto& param : extra_params.value()) {
         LOG_DEBUG("Processing MeTTa link template: " << param);
-        create_missing_atoms_in_atomdb(param, query_answer, hash_to_metta);
         string metta_expression = param;
         LOG_DEBUG("Parsing MeTTa link template: " << metta_expression);
         auto parser_actions = make_shared<MettaParserActions>();
@@ -86,11 +82,9 @@ vector<shared_ptr<Link>> MettaTemplateProcessor::process_query(shared_ptr<QueryA
             parse_metta_expression(metta_expression, hash_to_metta, query_answer->assignment.table);
         MettaParser parser(metta_expression, parser_actions);
         parser.parse(true);
+        create_missing_atoms_in_atomdb(parser_actions);
         if (parser_actions->element_stack.size() == 0) {
             Utils::error("Invalid MeTTa link template. Parser returned an empty stack.");
-            continue;
-        } else if (parser_actions->element_stack.size() > 1) {
-            Utils::error("Invalid MeTTa link template with more than 1 toplevel expressions");
             continue;
         } else {
             auto link = parser_actions->element_stack.top();
