@@ -107,6 +107,7 @@ void MettaParserActions::expression_begin() {
 
 void MettaParserActions::expression_end(bool toplevel, const string& metta_string) {
     ParserActions::expression_end(toplevel, metta_string);
+    this->metta_expressions.push_back(metta_string);
     unsigned int arity = this->current_expression_size;
     if (element_stack.size() < arity) {
         Utils::error("Invalid metta expression: too few arguments for expression. Expected: " +

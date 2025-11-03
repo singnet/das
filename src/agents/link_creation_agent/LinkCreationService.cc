@@ -148,7 +148,7 @@ void LinkCreationService::create_links() {
                 string meta_content = link->metta_representation(*AtomDBSingleton::get_instance());
                 if (meta_content.empty()) {
                     LOG_ERROR("Failed to create MeTTa expression for " << link->to_string());
-                    continue;
+                    // continue;
                 }
                 if (this->save_links_to_db) {
                     LOG_INFO("Saving link to database: " << link->to_string());
@@ -161,7 +161,6 @@ void LinkCreationService::create_links() {
                                 meta_content + " = " +
                                     to_string(link->custom_attributes.get_or<double>("strength", 0.0)));
                 }
-                metta_expression_set.insert(meta_content);
             } catch (const exception& e) {
                 LOG_ERROR("Exception: " << e.what());
             }
