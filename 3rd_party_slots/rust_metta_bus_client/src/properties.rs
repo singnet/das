@@ -32,6 +32,11 @@ pub static INITIAL_RENT_RATE: &str = "initial_rent_rate";
 pub static INITIAL_SPREADING_RATE_LOWERBOUND: &str = "initial_spreading_rate_lowerbound";
 pub static INITIAL_SPREADING_RATE_UPPERBOUND: &str = "initial_spreading_rate_upperbound";
 
+// Link Creation
+pub static REPEAT_COUNT: &str = "repeat_count";
+pub static QUERY_INTERVAL: &str = "query_interval";
+pub static QUERY_TIMEOUT: &str = "query_timeout";
+
 #[derive(Clone, Debug, PartialEq)]
 pub enum PropertyValue {
 	String(String),
@@ -142,6 +147,10 @@ impl Properties {
 		println!("    {}", self.print_with_set_param(POPULATION_SIZE).unwrap());
 		println!("    {}", self.print_with_set_param(SELECTION_RATE).unwrap());
 		println!("    {}", self.print_with_set_param(TOTAL_ATTENTION_TOKENS).unwrap());
+		println!("  Link Creation:");
+		println!("    {}", self.print_with_set_param(REPEAT_COUNT).unwrap());
+		println!("    {}", self.print_with_set_param(QUERY_INTERVAL).unwrap());
+		println!("    {}", self.print_with_set_param(QUERY_TIMEOUT).unwrap());
 	}
 
 	fn print_with_set_param(&self, key: &str) -> Result<String, String> {
@@ -163,7 +172,7 @@ impl Default for Properties {
 		map.insert(KNOWN_PEER_ID.to_string(), PropertyValue::String(String::new()));
 
 		// Query
-		map.insert(MAX_ANSWERS.to_string(), PropertyValue::UnsignedInt(0));
+		map.insert(MAX_ANSWERS.to_string(), PropertyValue::UnsignedInt(100));
 		map.insert(MAX_BUNDLE_SIZE.to_string(), PropertyValue::UnsignedInt(1_000));
 		map.insert(UNIQUE_ASSIGNMENT_FLAG.to_string(), PropertyValue::Bool(true));
 		map.insert(POSITIVE_IMPORTANCE_FLAG.to_string(), PropertyValue::Bool(false));
@@ -185,6 +194,11 @@ impl Default for Properties {
 		map.insert(INITIAL_RENT_RATE.to_string(), PropertyValue::Double(0.25));
 		map.insert(INITIAL_SPREADING_RATE_LOWERBOUND.to_string(), PropertyValue::Double(0.50));
 		map.insert(INITIAL_SPREADING_RATE_UPPERBOUND.to_string(), PropertyValue::Double(0.70));
+
+		// Link Creation
+		map.insert(REPEAT_COUNT.to_string(), PropertyValue::UnsignedInt(1));
+		map.insert(QUERY_INTERVAL.to_string(), PropertyValue::UnsignedInt(0));
+		map.insert(QUERY_TIMEOUT.to_string(), PropertyValue::UnsignedInt(0));
 
 		Self(map)
 	}
