@@ -15,7 +15,13 @@ The request must have 8 elements:
 5. USE_METTA_AS_QUERY_TOKENS (bool): Use MeTTa expressions as query and template to create links
 6. CONTEXT (string): Query context for Attention Broker requests
 7. Query (string): A valid Query Agent query (see Query Example) or MeTTa expression if USE_METTA_AS_QUERY_TOKENS is set as true
-8. Link Create Template (string): A valid link create template (see Link Create Template Example) or MeTTa expression if USE_METTA_AS_QUERY_TOKENS is set as true
+8. Link Create Template (string): A valid link create template (see Link Create Template Example) or MeTTa expression if USE_METTA_AS_QUERY_TOKENS is set as true or a processor
+
+Processors:
+```
+PROOF_OF_IMPLICATION
+PROOF_OF_EQUIVALENCE
+```
 
 
 Example (Tokens):
