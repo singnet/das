@@ -148,3 +148,56 @@ def test_atomdb_proxy_concurrent_clients():
             missing.append(h)
 
     assert not missing, f"The following identifiers were not found in the database: {missing}"
+
+
+def test_atomdb_proxy_add_nested_links():
+    import time
+    service_bus = ServiceBusSingleton(
+        host_id="0.0.0.0:9002", known_peer="0.0.0.0:40007", port_lower=42200, port_upper=42299
+    ).get_instance()
+
+    proxy = AtomDBProxy()
+    service_bus.issue_bus_command(proxy)
+
+    atoms = []
+    nodes = []
+    links = []
+
+    for j in range(1000):
+        for i in range(200):
+            node_e = Node(type="Symbol", name=f"EVALUATION{i}{j}")
+            node_p = Node(type="Symbol", name=f"PREDICATE{i}{j}")
+            node_c = Node(type="Symbol", name=f"CONCEPT{i}{j}")
+            node_pf = Node(type="Symbol", name=f"public.feature{i}{j}")
+            node_pfn = Node(type="Symbol", name=f"public.feature.name{i}{j}")
+            node_val1 = Node(type="Symbol", name=f"snRNA:4.5S{i}{j}")
+            node_val2 = Node(type="Symbol", name=f"23269151{i}{j}")
+
+            link_a = Link(type="Expression", targets=[node_pf.handle(), node_pfn.handle(), node_val1.handle()], is_toplevel=False)
+            link_b = Link(type="Expression", targets=[node_p.handle(), link_a.handle()], is_toplevel=False)
+            link_c = Link(type="Expression", targets=[node_pf.handle(), node_val2.handle()], is_toplevel=False)
+            link_d = Link(type="Expression", targets=[node_c.handle(), link_c.handle()], is_toplevel=False)
+            link_e = Link(type="Expression", targets=[node_e.handle(), link_b.handle(), link_d.handle()], is_toplevel=True)
+
+            links.append(link_a)
+            links.append(link_b)
+            links.append(link_c)
+            links.append(link_d)
+            links.append(link_e)
+
+            nodes.append(node_e)
+            nodes.append(node_p)
+            nodes.append(node_c)
+            nodes.append(node_pf)
+            nodes.append(node_pfn)
+            nodes.append(node_val1)
+            nodes.append(node_val2)
+
+        proxy.add_atoms(nodes)
+        time.sleep(2)
+        proxy.add_atoms(links)
+
+    decoder = AtomDecoder()
+
+    for atom in atoms:
+        assert atom == decoder.get_atom(atom.handle())

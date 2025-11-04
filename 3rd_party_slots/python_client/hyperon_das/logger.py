@@ -23,7 +23,7 @@ log_format = "%(asctime)s | [%(levelname)s] | %(message)s"
 date_format = "%Y-%m-%d %H:%M:%S"
 
 log = logging.getLogger("python_client")
-log.setLevel(logging.INFO)
+log.setLevel(logging.DEBUG)
 
 handler = logging.StreamHandler(sys.stdout)
 handler.setFormatter(ColoredFormatter(fmt=log_format, datefmt=date_format))

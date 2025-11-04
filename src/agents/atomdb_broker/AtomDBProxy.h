@@ -1,9 +1,13 @@
 #pragma once
 
 #include <memory>
-#include <mutex>
 #include <string>
 #include <vector>
+#include <thread>
+#include <mutex>
+#include <condition_variable>
+#include <queue>
+#include <atomic>
 
 #include "Atom.h"
 #include "AtomDB.h"
@@ -117,6 +121,17 @@ class AtomDBProxy : public BaseProxy {
 
     mutex api_mutex;
     shared_ptr<AtomDB> atomdb;
+    
+    queue<vector<string>> m_work_queue;
+    mutex m_queue_mutex;
+    condition_variable m_queue_cond;
+    atomic<bool> m_shutdown;
+
+    // Thread consumer
+    thread m_worker_thread;
+
+    // Function that will be executed by the thread
+    void worker_loop();
 };
 
 }  // namespace atomdb_broker

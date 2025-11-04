@@ -24,13 +24,21 @@ string AtomDBProxy::ADD_ATOMS = "add_atoms";
 // -------------------------------------------------------------------------------------------------
 // Constructor and destructor
 
-AtomDBProxy::AtomDBProxy() : BaseProxy() {
-    lock_guard<mutex> semaphore(this->api_mutex);
+AtomDBProxy::AtomDBProxy() : BaseProxy(), m_shutdown(false) {
     this->command = ServiceBus::ATOMDB;
     this->atomdb = AtomDBSingleton::get_instance();
+
+    // Start thread that will consume the queue
+    m_worker_thread = thread(&AtomDBProxy::worker_loop, this);
 }
 
-AtomDBProxy::~AtomDBProxy() {}
+AtomDBProxy::~AtomDBProxy() {
+    m_shutdown = true;
+    m_queue_cond.notify_one();
+    if (m_worker_thread.joinable()) {
+        m_worker_thread.join();
+    }
+}
 
 // -------------------------------------------------------------------------------------------------
 // Client-side API
@@ -88,14 +96,11 @@ bool AtomDBProxy::from_remote_peer(const string& command, const vector<string>& 
 }
 
 void AtomDBProxy::handle_add_atoms(const vector<string>& tokens) {
-    try {
-        vector<Atom*> atoms = build_atoms_from_tokens(tokens);
-        this->atomdb->add_atoms(atoms);
-    } catch (const std::runtime_error& exception) {
-        raise_error_on_peer(exception.what());
-    } catch (const std::exception& exception) {
-        raise_error_on_peer(exception.what());
+    {
+        lock_guard<mutex> lock(m_queue_mutex);
+        m_work_queue.push(tokens);
     }
+    m_queue_cond.notify_one();
 }
 
 vector<Atom*> AtomDBProxy::build_atoms_from_tokens(const vector<string>& tokens) {
@@ -125,4 +130,38 @@ vector<Atom*> AtomDBProxy::build_atoms_from_tokens(const vector<string>& tokens)
     if (!buffer.empty() && !current.empty()) flush();
 
     return atoms;
+}
+
+void AtomDBProxy::worker_loop() {
+    while (!m_shutdown) {
+        vector<string> tokens;
+
+        {
+            unique_lock<mutex> lock(m_queue_mutex);
+            m_queue_cond.wait(lock, [this] { return !m_work_queue.empty() || m_shutdown; });
+
+            if (m_shutdown) {
+                break;
+            }
+
+            tokens = m_work_queue.front();
+            m_work_queue.pop();
+        }
+
+        try {
+            vector<Atom*> atoms = build_atoms_from_tokens(tokens);
+
+            if (!atoms.empty()) {
+                this->atomdb->add_atoms(atoms);
+            }
+            
+            for (Atom* atom : atoms) {
+                delete atom;
+            }
+            atoms.clear();
+
+        } catch (const exception& e) {
+            LOG_ERROR("Error processing batch from worker thread: " << e.what());
+        }
+    }
 }
