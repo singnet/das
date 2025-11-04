@@ -184,15 +184,7 @@ shared_ptr<atomdb_api_types::HandleList> MorkDB::query_for_targets(const string&
     if (document == nullptr || !document->contains(MONGODB_FIELD_NAME[MONGODB_FIELD::TARGETS])) {
         return nullptr;
     }
-
-    vector<string> targets;
-
-    unsigned int arity = document->get_size(MONGODB_FIELD_NAME[MONGODB_FIELD::TARGETS]);
-    for (unsigned int i = 0; i < arity; i++) {
-        targets.push_back(string(document->get(MONGODB_FIELD_NAME[MONGODB_FIELD::TARGETS], i)));
-    }
-
-    return make_shared<atomdb_api_types::HandleListMork>(targets);
+    return make_shared<atomdb_api_types::HandleListMork>(document);
 }
 
 string MorkDB::add_link(const atoms::Link* link, bool throw_if_exists) {
