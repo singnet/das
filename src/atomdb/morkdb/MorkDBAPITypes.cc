@@ -1,5 +1,7 @@
 #include "MorkDBAPITypes.h"
 
+#include <cstring>
+
 #include "RedisMongoDB.h"
 
 using namespace atomdb;
@@ -81,7 +83,12 @@ HandleListMork::HandleListMork(const shared_ptr<AtomDocument>& document) : Handl
     }
 }
 
-HandleListMork::~HandleListMork() {}
+HandleListMork::~HandleListMork() {
+    for (unsigned int i = 0; i < this->handles_size; i++) {
+        free(this->handles[i]);
+    }
+    delete[] this->handles;
+}
 
 const char* HandleListMork::get_handle(unsigned int index) {
     if (index > this->handles_size) {
