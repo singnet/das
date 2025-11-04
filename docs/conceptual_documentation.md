@@ -10,6 +10,8 @@ The way DAS prioritize and present query results can leverage AI/ML algorithms b
 
 ## DAS components
 
+![](assets/conceptual_documentation_1.png){ width=500 style="display: block; margin: 0 auto;" }
+
 DAS functions primarily as a query engine. Its architecture and components are specifically engineered to efficiently answer pattern matching queries. This design is crucial for timely responses, especially given that query results can expand combinatorially with the increasing size of the knowledge base stored in the AtomDB.
 
 To avoid combinatorial explosion, the query engine dynamically prunes the search space using Short-term Importance (STI) values of atoms. These STI values are updated by multiple Economic Attention Networks (ECANs, see Chapter 5 of [this book](https://link.springer.com/book/10.2991/978-94-6239-030-0)) for a more detailed description), which are managed by an AttentionBroker component. The AttentionBroker maintains separate ECANs for different query contexts, enabling the assignment of independent STI values to atoms across these various contexts.
@@ -98,9 +100,12 @@ However, we don't use anything like a Bayesian network, as in BOA. We just use t
 Here's a high level description of the algorithm.
  
 Input: 
+
 * `Q`: Pattern matching query
 * `F`: Fitness function mapping from QueryAnswer objects to numbers in [0, 1] (0: useless answer, 1: best possible answer)
+
 Output:
+
 * An iterator to the best distinct QueryAnswers found by the algorithm
  
 1. Determine evolution parameters
