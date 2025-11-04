@@ -1,4 +1,5 @@
 import pytest
+
 from hyperon_das.query_answer import Assignment, QueryAnswer
 
 
@@ -172,16 +173,19 @@ class TestQueryAnswer:
         assert new_q.handles == ["h1", "h2"]
         assert new_q.assignment.get("x") == "v1"
 
-    @pytest.mark.parametrize("token_str", [
-        "",  # empty
-        "badfloat 0.0 1 h1 0",  # invalid strength
-        "1.2 badfloat 1 h1 0",  # invalid importance
-        "1.1 1.0 badint h1 0",  # invalid handles size
-        "1.0 1.0 -1",  # negative handles size
-        "1.0 1.0 1 h1 bad",  # invalid assignment size
-        "1.0 1.0 1 h1 -1",  # negative assignment size
-        "1.0 1.0 0 1 extra",  # extra token
-    ])
+    @pytest.mark.parametrize(
+        "token_str",
+        [
+            "",  # empty
+            "badfloat 0.0 1 h1 0",  # invalid strength
+            "1.2 badfloat 1 h1 0",  # invalid importance
+            "1.1 1.0 badint h1 0",  # invalid handles size
+            "1.0 1.0 -1",  # negative handles size
+            "1.0 1.0 1 h1 bad",  # invalid assignment size
+            "1.0 1.0 1 h1 -1",  # negative assignment size
+            "1.0 1.0 0 1 extra",  # extra token
+        ],
+    )
     def test_untokenize_errors(self, token_str):
         with pytest.raises(ValueError):
             QueryAnswer().untokenize(token_str)

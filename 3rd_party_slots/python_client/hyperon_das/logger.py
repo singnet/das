@@ -3,11 +3,11 @@ import sys
 
 RESET = "\033[0m"
 COLOR_MAP = {
-    logging.DEBUG: "\033[33m",      # yellow
-    logging.INFO: "\033[32m",       # green
-    logging.WARNING: "\033[35m",    # magenta
-    logging.ERROR: "\033[31m",      # red
-    logging.CRITICAL: "\033[1;31m"  # bold red
+    logging.DEBUG: "\033[33m",  # yellow
+    logging.INFO: "\033[32m",  # green
+    logging.WARNING: "\033[35m",  # magenta
+    logging.ERROR: "\033[31m",  # red
+    logging.CRITICAL: "\033[1;31m",  # bold red
 }
 
 

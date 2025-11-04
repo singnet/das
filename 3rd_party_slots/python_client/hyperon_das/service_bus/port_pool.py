@@ -1,4 +1,5 @@
-from queue import Queue, Empty
+from queue import Empty, Queue
+
 from hyperon_das.logger import log
 
 
@@ -26,9 +27,7 @@ class PortPool:
         try:
             port = cls._pool.get(timeout=0.1)
         except Empty:
-            raise ValueError(
-                f"Unable to get available PORT number in [{cls._port_lower}..{cls._port_upper}]"
-            )
+            raise ValueError(f"Unable to get available PORT number in [{cls._port_lower}..{cls._port_upper}]")
         return port
 
     @classmethod

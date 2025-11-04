@@ -1,8 +1,9 @@
 import threading
-from queue import Queue, Empty
+from queue import Empty, Queue
+
 from hyperon_das.commons.properties import Properties
-from hyperon_das.service_bus.proxy import BusCommandProxy
 from hyperon_das.query_answer import QueryAnswer
+from hyperon_das.service_bus.proxy import BusCommandProxy
 
 
 class BaseProxy(BusCommandProxy):
@@ -58,7 +59,7 @@ class BaseQueryProxy(BaseProxy):
     MAX_BUNDLE_SIZE = "max_bundle_size"
     MAX_ANSWERS = "max_answers"
     USE_LINK_TEMPLATE_CACHE = "use_link_template_cache"
-    POPULATE_METTA_MAPPING = "populate_metta_mapping"                                   
+    POPULATE_METTA_MAPPING = "populate_metta_mapping"
     USE_METTA_AS_QUERY_TOKENS = "user_metta_as_query_tokens"
 
     def __init__(self, tokens: list[str], context: str = "") -> None:
@@ -106,10 +107,7 @@ class BaseQueryProxy(BaseProxy):
 
     def finished(self) -> bool:
         with self._lock_base_query_proxy:
-            return (
-                self.is_aborting() or
-                (super().finished() and self.answer_queue.empty())
-            )
+            return self.is_aborting() or (super().finished() and self.answer_queue.empty())
 
     def process_message(self, msg: list[str]) -> bool:
         with self._lock_base_query_proxy:
