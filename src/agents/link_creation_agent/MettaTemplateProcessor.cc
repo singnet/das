@@ -11,22 +11,22 @@ using namespace link_creation_agent;
 using namespace metta;
 
 static string parse_metta_expression(string metta_expression,
-                                     unordered_map<string, string>& hash_to_metta,
+                                     unordered_map<string, string>& handle_to_metta,
                                      map<string, string>& assignment_table) {
     auto atomdb = AtomDBSingleton::get_instance();
     string metta_expression_cp = metta_expression;
     for (const auto& assignment_pair : assignment_table) {
-        if (hash_to_metta.find(assignment_pair.first) == hash_to_metta.end()) {
+        if (handle_to_metta.find(assignment_pair.first) == handle_to_metta.end()) {
             auto atom = atomdb->get_atom(assignment_pair.second);
             if (atom == nullptr) {
                 Utils::error("Atom with handle " + assignment_pair.second +
                              " not found in AtomDB while creating missing atoms for link creation.");
                 continue;
             }
-            hash_to_metta[assignment_pair.second] = atom->metta_representation(*atomdb.get());
+            handle_to_metta[assignment_pair.second] = atom->metta_representation(*atomdb.get());
         }
         Utils::replace_all(
-            metta_expression_cp, "$" + assignment_pair.first, hash_to_metta[assignment_pair.second]);
+            metta_expression_cp, "$" + assignment_pair.first, handle_to_metta[assignment_pair.second]);
     }
     return metta_expression_cp;
 }
@@ -40,7 +40,7 @@ static void create_missing_atoms_in_atomdb(shared_ptr<MettaParserActions> parser
                 atomdb->add_node(dynamic_pointer_cast<Node>(element.second).get(), false);
                 LOG_DEBUG("Node added to AtomDB: " << element.second->to_string());
             } catch (const std::exception& e) {
-                // LOG_DEBUG("Error adding node to AtomDB: " << e.what());
+                LOG_LOCAL_DEBUG("Error adding node to AtomDB: " << e.what());
             }
         }
     }
@@ -60,7 +60,7 @@ static void create_missing_atoms_in_atomdb(shared_ptr<MettaParserActions> parser
             atomdb->add_link(dynamic_pointer_cast<Link>(link).get(), false);
             LOG_DEBUG("Link added to AtomDB: " << metta_expression_cp);
         } catch (const std::exception& e) {
-            // LOG_DEBUG("Error adding link to AtomDB: " << e.what());
+            LOG_LOCAL_DEBUG("Error adding link to AtomDB: " << e.what());
         }
     }
 }
@@ -78,7 +78,7 @@ vector<shared_ptr<Link>> MettaTemplateProcessor::process_query(shared_ptr<QueryA
         LOG_DEBUG("Parsing MeTTa link template: " << metta_expression);
         auto parser_actions = make_shared<MettaParserActions>();
         metta_expression =
-            parse_metta_expression(metta_expression, hash_to_metta, query_answer->assignment.table);
+            parse_metta_expression(metta_expression, handle_to_metta, query_answer->assignment.table);
         MettaParser parser(metta_expression, parser_actions);
         parser.parse(true);
         create_missing_atoms_in_atomdb(parser_actions);

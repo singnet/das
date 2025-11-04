@@ -19,6 +19,6 @@ class MettaTemplateProcessor : public LinkProcessor {
     ~MettaTemplateProcessor() = default;
 
    private:
-    unordered_map<string, string> hash_to_metta;
+    unordered_map<string, string> handle_to_metta;
 };
 }  // namespace link_creation_agent

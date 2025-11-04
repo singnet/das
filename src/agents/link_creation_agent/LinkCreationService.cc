@@ -148,19 +148,21 @@ void LinkCreationService::create_links() {
                 string meta_content = link->metta_representation(*AtomDBSingleton::get_instance());
                 if (meta_content.empty()) {
                     LOG_ERROR("Failed to create MeTTa expression for " << link->to_string());
-                    // continue;
+                } else {
+                    if (this->save_links_to_db) {
+                        LOG_INFO("Saving link to database: " << link->to_string());
+                        add_or_update_link(link);
+                    }
+                    if (this->save_links_to_metta_file) {
+                        LOG_INFO("MeTTa Expression: " << meta_content);
+                        add_to_file(
+                            metta_file_path,
+                            id + ".metta",
+                            meta_content + " = " +
+                                to_string(link->custom_attributes.get_or<double>("strength", 0.0)));
+                    }
                 }
-                if (this->save_links_to_db) {
-                    LOG_INFO("Saving link to database: " << link->to_string());
-                    add_or_update_link(link);
-                }
-                if (this->save_links_to_metta_file) {
-                    LOG_INFO("MeTTa Expression: " << meta_content);
-                    add_to_file(metta_file_path,
-                                id + ".metta",
-                                meta_content + " = " +
-                                    to_string(link->custom_attributes.get_or<double>("strength", 0.0)));
-                }
+
             } catch (const exception& e) {
                 LOG_ERROR("Exception: " << e.what());
             }
