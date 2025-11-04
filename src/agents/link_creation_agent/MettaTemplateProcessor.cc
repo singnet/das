@@ -40,7 +40,7 @@ static void create_missing_atoms_in_atomdb(shared_ptr<MettaParserActions> parser
                 atomdb->add_node(dynamic_pointer_cast<Node>(element.second).get(), false);
                 LOG_DEBUG("Node added to AtomDB: " << element.second->to_string());
             } catch (const std::exception& e) {
-                LOG_LOCAL_DEBUG("Error adding node to AtomDB: " << e.what());
+                LOG_ERROR("Error adding node to AtomDB: " << e.what());
             }
         }
     }
@@ -60,7 +60,7 @@ static void create_missing_atoms_in_atomdb(shared_ptr<MettaParserActions> parser
             atomdb->add_link(dynamic_pointer_cast<Link>(link).get(), false);
             LOG_DEBUG("Link added to AtomDB: " << metta_expression_cp);
         } catch (const std::exception& e) {
-            LOG_LOCAL_DEBUG("Error adding link to AtomDB: " << e.what());
+            LOG_ERROR("Error adding link to AtomDB: " << e.what());
         }
     }
 }
