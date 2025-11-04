@@ -964,6 +964,25 @@ TEST_F(RedisMongoDBTest, AddNodesWithThrowIfExists) {
     EXPECT_EQ(db->node_exists(nodes[1]->handle()), false);
 }
 
+TEST_F(RedisMongoDBTest, AddLinksWithDuplicateTargets) {
+    vector<Node*> nodes;
+    nodes.push_back(new Node("Symbol", "DuplicateTargets1"));
+    nodes.push_back(new Node("Symbol", "DuplicateTargets2"));
+    nodes.push_back(new Node("Symbol", "DuplicateTargets3"));
+    EXPECT_EQ(db->add_nodes(nodes, true).size(), 3);
+
+    auto link = new Link("Expression",
+                         {nodes[0]->handle(),
+                          nodes[1]->handle(),
+                          nodes[1]->handle(),
+                          nodes[0]->handle(),
+                          nodes[2]->handle(),
+                          nodes[0]->handle(),
+                          nodes[2]->handle()});
+    EXPECT_EQ(db->add_link(link), link->handle());
+    EXPECT_EQ(db->delete_link(link->handle(), true), true);
+}
+
 int main(int argc, char** argv) {
     ::testing::InitGoogleTest(&argc, argv);
     ::testing::AddGlobalTestEnvironment(new RedisMongoDBTestEnvironment());
