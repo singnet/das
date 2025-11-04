@@ -10,7 +10,7 @@ The way DAS prioritize and present query results can leverage AI/ML algorithms b
 
 ## DAS components
 
-![](assets/conceptual_documentation_1.png){ width=500 style="display: block; margin: 0 auto;" }
+![](assets/conceptual_documentation_1.png)
 
 DAS functions primarily as a query engine. Its architecture and components are specifically engineered to efficiently answer pattern matching queries. This design is crucial for timely responses, especially given that query results can expand combinatorially with the increasing size of the knowledge base stored in the AtomDB.
 
