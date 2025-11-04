@@ -24,4 +24,6 @@ void TestConfig::load_environment(bool replace_existing) {
     setenv("DAS_MORK_PORT", DAS_MORK_PORT.c_str(), replace_existing);
 }
 
-void TestConfig::set_atomdb_cache(bool enable) { setenv("DAS_DISABLE_ATOMDB_CACHE", enable ? "false" : "true", true); }
+void TestConfig::set_atomdb_cache(bool enable) {
+    setenv("DAS_DISABLE_ATOMDB_CACHE", enable ? "false" : "true", true);
+}

@@ -9,8 +9,8 @@
 #include <thread>
 #include <vector>
 
-#include "AtomDBSingleton.h"
 #include "AtomDBCacheSingleton.h"
+#include "AtomDBSingleton.h"
 #include "LinkSchema.h"
 #include "TestConfig.h"
 
