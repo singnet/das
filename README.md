@@ -5,7 +5,7 @@
 These are the Github repos we're currently using in the project:
 
 * [Source code (this repo)](https://github.com/singnet/das) - Main DAS source code
-* [Simplified MeTTa parser](https://github.com/singnet/das-metta-parser) - Simple parser to load knowledge bases (no actual MeTTa commmand interpreetation/execution)
+* [Simplified MeTTa parser](https://github.com/singnet/das-metta-parser) - Simple parser to load knowledge bases (no actual MeTTa command interpretation/execution)
 * [Database adapter](https://github.com/singnet/das-database-adapter) - Adapter to use DBMSs as atomspaces
 * [Command line tools](https://github.com/singnet/das-toolbox)  - Tools to configure and deploy DAS components
 * [Protobuf definitions](https://github.com/singnet/das-proto) - Remote API used all along DAS' components
@@ -75,7 +75,7 @@ you don't have any other tool listening to the PORT numbers we are using.
 
 ### 2. Starting an AtomDB
 
-The AtomDB is where the knowlege base is persisted. If you already have a persisted AtomDB you can just
+The AtomDB is where the knowledge base is persisted. If you already have a persisted AtomDB you can just
 start the Atom DB by calling
 
 ```
@@ -141,13 +141,14 @@ a mandatory component but the other agents are optional.
 ```
 das-cli query-agent start
 das-cli evolution-agent start
+das-cli context-broker start
 das-cli link-creation-agent start
 das-cli inference-agent start
 ```
 
 ## Contributing with DAS
 
-If you want to contribute with DAS project, please read our 
+If you want to contribute to DAS project, please read our 
 [Development Guidelines](https://github.com/singnet/das/blob/master/docs/developer_guidelines.md) first.
 
 **Building and running unit tests**
@@ -160,7 +161,7 @@ cd das
 make build-all
 ```
 
-We have `make` commands for most of the usual things we need to to in the repo
+We have `make` commands for most of the usual things we need to do in the repo
 (building, running tests, code-style formatting, running agents, etc). The only thing we need to
 do with `das-cli` is the DB setup. See how to install/configure `das-cli` [here](https://github.com/singnet/das-toolbox).
 
@@ -205,9 +206,9 @@ The expected output is like this:
 
 ```
 Starting Redis service...
-Redis has started successfully on port 40020 at localhost, operating under the server user senna.
+Redis has started successfully on port 29000 at localhost, operating under the server user senna.
 Starting MongoDB service...
-MongoDB has started successfully on port 40021 at localhost, operating under the server user senna.
+MongoDB has started successfully on port 28000 at localhost, operating under the server user senna.
 ```
 
 Now, start the AttentionBroker.
@@ -219,7 +220,7 @@ make run-attention-broker &
 The expected output is like this:
 
 ```
-2025-10-27 17:32:27 | [INFO] | AttentionBroker server listening on 0.0.0.0:40001
+2025-10-27 17:32:27 | [INFO] | AttentionBroker server listening on 0.0.0.0:37007
 ```
 
 Then, start the Mork server:
@@ -237,7 +238,7 @@ Server starting. 15 worker threads. Listening on 0.0.0.0:8000...
 Now we need to load the testing knowledge base into Mork.
 
 ```
-make mork-loader FILE=/home/senna/work/projects/das/github/das/src/tests/assets/animals_mork.metta
+make mork-loader FILE=/home/senna/work/projects/das/github/das/src/tests/assets/animals_extended.metta
 ```
 
 The expected output is like this:
