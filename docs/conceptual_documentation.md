@@ -9,7 +9,8 @@ The way DAS prioritize and present query results can leverage AI/ML algorithms b
 
 ## DAS components
 
-![](assets/conceptual_documentation_1.png){Figure 1 - DAS components}
+![](assets/conceptual_documentation_1.png)
+Figure 1 - DAS components
 
 DAS functions primarily as a query engine. Its architecture and components, shown in Figure 1,  are specifically engineered to efficiently answer pattern matching queries. This design is crucial for timely responses, especially given that query results can expand combinatorially with the increasing size of the knowledge base stored in the AtomDB.
 
@@ -56,7 +57,8 @@ After parsing a query, the Query Engine constructs a corresponding query tree, w
 
 An example of a query tree is shown in Figure 2.
 
-![](assets/conceptual_documentation_1.png){Figure 2 - Example of query tree}
+![](assets/conceptual_documentation_2.png)
+Figure 2 - Example of query tree
 
 Sources are the leaves of the query tree. Typically they are a LinkTemplate and represent the points where the underlying AtomDB will be queried for candidate answers that match a given pattern. After fetching the candidate answers from the AtomDB, sources query the AttentionBroker for their STI values and attach these values to the candidates, which are then sorted by their STI in such a way that most important candidate answers (i.e. candidates that contain the most promising atoms) are prioritized. Candidate answers then flow up the query tree to the boolean operators.
 
