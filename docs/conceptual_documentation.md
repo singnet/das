@@ -68,19 +68,27 @@ Sinks are the root of the query tree. They mark the end of the query processing 
 
 Query elements communicate via channels. These elements can be deployed in various configurations: as threads within the same process, as independent processes on the same server, or across different machines. The choice of communication channel - such as in-RAM shared queues, GRPC, or MQTT - depends on the deployment method. New communication channel types can be integrated with minimal effort.
 
-Query execution begins once all query elements are in place and optimized. Candidate answers then flow through the query tree, starting from the source elements. Throughout this process, candidates with higher STI are prioritized (from the source to the sink, and then to the caller). The caller can then iterate through the query results or interrupt the query at any time.
+Query execution starts once all its elements are optimized and in place. The candidate answers then move up the query tree, beginning with the source elements. As Figure 3 illustrates, query answer candidates are retrieved from the AtomDB and assigned an STI value. This value dictates the order in which the candidates are presented to the up-level elements within the query tree.
+
+![](assets/conceptual_documentation_3.png)
+Figure 3 - Sources using AtomDB and AttentionBroker to feed Operators with answer candidates
+
+Throughout this process, candidates with higher STI are prioritized (from the source to the sink, and then to the caller). The caller can then iterate through the query results or interrupt the query at any time.
 
 ### Attention Broker
 
 Atoms may have a Short-term importance (STI) value attached to them. This is a number in [0..1] which is used in the query engine to prioritize which candidate answers will be processed and potentially passed through to the next query element first.
 
-However, STI values are not stored in the AtomDB as atom’s property. They are kept in the AttentionBroker instead, in a specialized data structure which keeps different STI values for different contexts. Hence, the same atom can have multiple STI values depending on the context.
+However, STI values are not stored in the AtomDB as an atom’s property. They are kept in the AttentionBroker instead, in a specialized data structure which keeps different STI values for different contexts. Hence, the same atom can have multiple STI values depending on the context.
 
 STI values are stored and updated according to the Economic Attention Allocation (ECAN) algorithm described in Chapter 5 of [this book](https://link.springer.com/book/10.2991/978-94-6239-030-0). The Attention Broker has an API to update and extend the Hebbian networks connecting the atoms of a context. DAS uses this API to build the Hebbian networks and to stimulate atoms according to their importance values and connectivity with other atoms in the Hebbian network.
 
-Update of either, the Hebbian connections and the STI values can be performed implicitly while pattern matching queries are executed or can be explicitly requested by the user. 
+Update of either, the Hebbian connections and the STI values can be performed implicitly while pattern matching queries are executed or can be explicitly requested by the user.
 
-Hebbian links' weights can be seen as the probability of a given atom being present in a query answer given that another atom is present in the same answer. Thus, when submitting a query to the Query Engine, the caller can set an optional parameter in the query to trigger the update of the Hebbian network related to a given context and the STI values of the atoms that appear in the query answers.
+Hebbian links' weights can be seen as the probability of a given atom being present in a query answer given that another atom is present in the same answer. Thus, when submitting a query to the Query Engine, the caller can set an optional parameter in the query to trigger the update of the Hebbian network related to a given context and the STI values of the atoms that appear in the query answers. In Figure 4 we show an example of how elements of a query answer can be used to update the Hebbian Network of a context.
+
+![](assets/conceptual_documentation_4.png)
+Figure 4 - Query answers being used to autom atically update the Hebbian Network
 
 Explicit updating of the Hebbian networks is also possible. This way the caller can use regular links present in the atomspace as if they were Hebbian links. Explicit STI boosting and subsequent activation spreading can also be done explicitly by user's request using queries that are similar to the ones used for pattern matching. This makes the whole STI update process extremely flaxible and adaptable to different problem domains.
 
