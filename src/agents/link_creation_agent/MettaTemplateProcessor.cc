@@ -87,7 +87,10 @@ vector<shared_ptr<Link>> MettaTemplateProcessor::process_query(shared_ptr<QueryA
             continue;
         } else {
             auto link = parser_actions->element_stack.top();
-            LOG_DEBUG("Parsed MeTTa link template: " << link->to_string());
+            LOG_DEBUG("Parsed MeTTa link template: " << metta_expression
+                                                     << " Link handle: " << link->handle());
+            LOG_DEBUG("Parsed MeTTa link template: " << metta_expression
+                                                     << " Link: " << link->to_string());
             links.push_back(dynamic_pointer_cast<Link>(link));
         }
     }

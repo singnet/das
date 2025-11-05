@@ -39,8 +39,7 @@ class LinkCreationAgent {
                       string buffer_file_path,
                       string metta_file_path,
                       bool save_links_to_metta_file,
-                      bool save_links_to_db,
-                      bool reindex = true);
+                      bool save_links_to_db);
     LinkCreationAgent() = default;
     ~LinkCreationAgent();
 
@@ -78,9 +77,6 @@ class LinkCreationAgent {
      * @brief Stop the agent
      */
     void stop();
-
-    // TODO remove when default index is implemented
-    void load_db_patterns();
 
     // Attributes loaded from config file
     string config_path;                    // Path to the configuration file
