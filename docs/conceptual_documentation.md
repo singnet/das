@@ -1,4 +1,3 @@
-# Distributed Atomspace - Overview
 
 Atomspace is the hypergraph OpenCog Hyperon uses to represent and store knowledge, being the source of knowledge for AI agents and the container of any computational result that might be created or achieved during their execution.
 
@@ -10,13 +9,15 @@ The way DAS prioritize and present query results can leverage AI/ML algorithms b
 
 ## DAS components
 
-![](assets/conceptual_documentation_1.png)
+![](assets/conceptual_documentation_1.png){Figure 1 - DAS components}
 
-DAS functions primarily as a query engine. Its architecture and components are specifically engineered to efficiently answer pattern matching queries. This design is crucial for timely responses, especially given that query results can expand combinatorially with the increasing size of the knowledge base stored in the AtomDB.
+DAS functions primarily as a query engine. Its architecture and components, shown in Figure 1,  are specifically engineered to efficiently answer pattern matching queries. This design is crucial for timely responses, especially given that query results can expand combinatorially with the increasing size of the knowledge base stored in the AtomDB.
 
-To avoid combinatorial explosion, the query engine dynamically prunes the search space using Short-term Importance (STI) values of atoms. These STI values are updated by multiple Economic Attention Networks (ECANs, see Chapter 5 of [this book](https://link.springer.com/book/10.2991/978-94-6239-030-0)) for a more detailed description), which are managed by an AttentionBroker component. The AttentionBroker maintains separate ECANs for different query contexts, enabling the assignment of independent STI values to atoms across these various contexts.
+To avoid combinatorial explosion, the query engine dynamically prunes the search space using Short-term Importance (STI) values of atoms. These STI values are updated by multiple Economic Attention Networks (ECANs, see Chapter 5 of [this book](https://link.springer.com/book/10.2991/978-94-6239-030-0) for a more detailed description), which are managed by an AttentionBroker component. The AttentionBroker maintains separate ECANs for different query contexts, enabling the assignment of independent STI values to atoms across these various contexts.
 
 Beyond the Query Engine and Attention Broker, DAS incorporates specialized agents that offer specific APIs for various knowledge base tasks. Presently, these include the Evolution and Link Creation agents. An Inference agent is also under development.
+
+DAS also has a Service Bus to mediate communication between components (including the MeTTa interpreter) in a service-oriented architecture, acting as a central hub for routing and transforming messages and commands. The Service Bus can be easily extended to use any type of message exchanging framework (GRPC, MQTT, etc).
 
 Let's delve into the operational details of each component.
 
@@ -30,7 +31,7 @@ An AtomDB primarily contains two types of data: atom attributes and indexes. The
 
 The Query Engine supports two syntaxes for queries: MeTTa expressions or a vector of tokens. MeTTa expressions, such as (contains (sentence $s) (word $w)), are patterns that allow for nested expressions. The vector of tokens representation is a more general approach, similar to the Atomese used in Opencog classic. MeTTa expressions are mapped to "Expression" type links, while symbols are mapped to "Symbol" type nodes. Consequently, the MeTTa expression mentioned above would be represented by the following tokens: [LinkTemplate, Expression, 3, Node, Symbol, contains, LinkTemplate, Expression, 2, Node, Symbol, sentence, Variable, s, LinkTemplate, Expression, 2, Node, Symbol, word, Variable, w]. This can be indented for improved readability.
 
-  ```
+```
 LinkTemplate Expression 3
     Node Symbol contains
     LinkTemplate Expression 2
@@ -52,6 +53,10 @@ Query execution
 The syntax used to represent the query is relevant only during the first step. From this point on, MeTTa or tokens query are processed in the same way.
 
 After parsing a query, the Query Engine constructs a corresponding query tree, which acts as an execution plan. During this phase, the system can implement optimization strategies, such as reusing subtrees or pre-fetching data from the cache. Query trees are composed of three distinct element types: sources, operators, and sinks. Each element is an asynchronous and independent processing unit connected to other elements by a communication channel.
+
+An example of a query tree is shown in Figure 2.
+
+![](assets/conceptual_documentation_1.png){Figure 2 - Example of query tree}
 
 Sources are the leaves of the query tree. Typically they are a LinkTemplate and represent the points where the underlying AtomDB will be queried for candidate answers that match a given pattern. After fetching the candidate answers from the AtomDB, sources query the AttentionBroker for their STI values and attach these values to the candidates, which are then sorted by their STI in such a way that most important candidate answers (i.e. candidates that contain the most promising atoms) are prioritized. Candidate answers then flow up the query tree to the boolean operators.
 
