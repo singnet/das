@@ -125,7 +125,7 @@ class LinkProcessor {
                 insert_or_update(count_map_union, pair.first, pair.second);
             } else {
                 insert_or_update(count_map_union, pair.first, pair.second);
-                insert_or_update(count_map_intersection, pair.first, pair.second);
+                insert_or_update(count_map_intersection, pair.first, min(pair.second, iterator->second));
             }
         }
 
