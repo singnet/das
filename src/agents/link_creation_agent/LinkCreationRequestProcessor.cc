@@ -11,8 +11,7 @@ LinkCreationRequestProcessor::LinkCreationRequestProcessor(int request_interval,
                                                            string buffer_file_path,
                                                            string metta_file_path,
                                                            bool save_links_to_metta_file,
-                                                           bool save_links_to_db,
-                                                           bool reindex)
+                                                           bool save_links_to_db)
     : BusCommandProcessor({ServiceBus::LINK_CREATION}) {
     this->link_creation_agent = new LinkCreationAgent(request_interval,
                                                       thread_count,
@@ -20,8 +19,7 @@ LinkCreationRequestProcessor::LinkCreationRequestProcessor(int request_interval,
                                                       buffer_file_path,
                                                       metta_file_path,
                                                       save_links_to_metta_file,
-                                                      save_links_to_db,
-                                                      reindex);
+                                                      save_links_to_db);
 }
 
 LinkCreationRequestProcessor::~LinkCreationRequestProcessor() { delete this->link_creation_agent; }

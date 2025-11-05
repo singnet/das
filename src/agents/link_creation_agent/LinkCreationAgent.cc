@@ -16,8 +16,7 @@ LinkCreationAgent::LinkCreationAgent(int request_interval,
                                      string buffer_file_path,
                                      string metta_file_path,
                                      bool save_links_to_metta_file,
-                                     bool save_links_to_db,
-                                     bool reindex) {
+                                     bool save_links_to_db) {
     this->requests_interval_seconds = request_interval;
     LOG_DEBUG("LinkCreationAgent initialized with request interval: " << request_interval << " seconds");
     this->link_creation_agent_thread_count = thread_count;
@@ -38,10 +37,6 @@ LinkCreationAgent::LinkCreationAgent(int request_interval,
     }
     service->set_save_links_to_metta_file(save_links_to_metta_file);
     service->set_save_links_to_db(save_links_to_db);
-    if (reindex) {
-        LOG_DEBUG("Reindexing patterns in DB");
-        load_db_patterns();
-    }
     this->agent_thread = new thread(&LinkCreationAgent::run, this);
 }
 
@@ -95,8 +90,7 @@ void LinkCreationAgent::run() {
         }
 
         if (lca_request != nullptr) {
-            if (!lca_request->is_running && lca_request->repeat == 0 && lca_request->processed > 0 &&
-                !lca_request->completed) {
+            if (!lca_request->is_running && lca_request->repeat == 0 && !lca_request->completed) {
                 LOG_DEBUG("Finishing request ID: " << lca_request->id);
                 auto proxy = link_creation_proxy_map[lca_request->original_id];
                 proxy->to_remote_peer(BaseProxy::FINISHED, {});
@@ -278,56 +272,4 @@ void LinkCreationAgent::abort_request(const string& request_id) {
     }
     // pattern_query_proxy_map[request_id_hash]->abort();
     pattern_query_proxy_map.erase(request_id_hash);
-}
-
-void LinkCreationAgent::load_db_patterns() {
-    auto db = dynamic_pointer_cast<RedisMongoDB>(AtomDBSingleton::get_instance());
-
-    try {
-        string tokens = "LINK_TEMPLATE Expression 3 NODE Symbol EVALUATION VARIABLE v1 VARIABLE v2";
-        vector<vector<string>> index_entries = {{"_", "*", "*"}, {"_", "v1", "*"}, {"_", "*", "v2"}};
-        LOG_DEBUG("Adding pattern index schema for: " + tokens + "...");
-        db->add_pattern_index_schema(tokens, index_entries);
-
-        tokens = "LINK_TEMPLATE Expression 2 NODE Symbol PREDICATE VARIABLE v1";
-        index_entries = {{"_", "*"}, {"_", "v1"}};
-        LOG_DEBUG("Adding pattern index schema for: " + tokens + "...");
-        db->add_pattern_index_schema(tokens, index_entries);
-
-        tokens = "LINK_TEMPLATE Expression 2 NODE Symbol PATTERNS VARIABLE v1";
-        index_entries = {{"_", "*"}, {"_", "v1"}};
-        LOG_DEBUG("Adding pattern index schema for: " + tokens + "...");
-        db->add_pattern_index_schema(tokens, index_entries);
-
-        tokens = "LINK_TEMPLATE Expression 2 NODE Symbol SATISFYING_SET VARIABLE v1";
-        index_entries = {{"_", "*"}, {"_", "v1"}};
-        LOG_DEBUG("Adding pattern index schema for: " + tokens + "...");
-        db->add_pattern_index_schema(tokens, index_entries);
-
-        tokens = "LINK_TEMPLATE Expression 3 NODE Symbol IMPLICATION VARIABLE v1 VARIABLE v2";
-        index_entries = {{"_", "*", "*"}, {"_", "v1", "*"}, {"_", "*", "v2"}};
-        LOG_DEBUG("Adding pattern index schema for: " + tokens + "...");
-        db->add_pattern_index_schema(tokens, index_entries);
-
-        tokens = "LINK_TEMPLATE Expression 3 NODE Symbol EQUIVALENCE VARIABLE v1 VARIABLE v2";
-        index_entries = {{"_", "*", "*"}, {"_", "v1", "*"}, {"_", "*", "v2"}};
-        LOG_DEBUG("Adding pattern index schema for: " + tokens + "...");
-        db->add_pattern_index_schema(tokens, index_entries);
-
-    } catch (const std::exception& e) {
-        LOG_DEBUG("Failed to add pattern index schema to DB: " << e.what());
-    }
-
-    try {
-        auto atoms = {make_pair<string, string>("Symbol", "EQUIVALENCE"),
-                      make_pair<string, string>("Symbol", "IMPLICATION"),
-                      make_pair<string, string>("Symbol", "PATTERNS"),
-                      make_pair<string, string>("Symbol", "SATISFYING_SET")};
-        for (auto& atom : atoms) {
-            shared_ptr<Node> node = make_shared<Node>(atom.first, atom.second);
-            db->add_atom(node.get());
-        }
-    } catch (const std::exception& e) {
-        LOG_ERROR("Error loading LCA Nodes: " << e.what());
-    }
 }
