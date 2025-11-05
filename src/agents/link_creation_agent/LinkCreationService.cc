@@ -144,17 +144,20 @@ void LinkCreationService::create_links() {
             string id = get<0>(request_map);
             shared_ptr<Link> link = get<1>(request_map);
             try {
-                LOG_INFO("Processing link: " << link->to_string());
+                LOG_INFO("Processing link: " << link->handle() << " for request ID: " << id);
+                LOG_DEBUG("Link details: [" << link->handle() << "]: " << link->to_string());
                 string meta_content = link->metta_representation(*AtomDBSingleton::get_instance());
                 if (meta_content.empty()) {
-                    LOG_ERROR("Failed to create MeTTa expression for " << link->to_string());
+                    LOG_ERROR("Failed to create MeTTa expression for Link: "
+                              << link->to_string() << " Link handle: " << link->handle());
                 } else {
                     if (this->save_links_to_db) {
                         LOG_INFO("Saving link to database: " << link->to_string());
                         add_or_update_link(link);
                     }
                     if (this->save_links_to_metta_file) {
-                        LOG_INFO("MeTTa Expression: " << meta_content);
+                        LOG_INFO("MeTTa Expression: " << meta_content
+                                                      << " Link handle: " << link->handle());
                         add_to_file(
                             metta_file_path,
                             id + ".metta",
