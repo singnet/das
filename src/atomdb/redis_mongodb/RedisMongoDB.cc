@@ -787,7 +787,8 @@ bool RedisMongoDB::upsert_document(const bsoncxx::v_noabi::document::value& docu
         }
     }
 
-    return reply->modified_count() > 0 || reply->upserted_id() != bsoncxx::v_noabi::stdx::nullopt;
+    return reply->matched_count() > 0 || reply->modified_count() > 0 ||
+           reply->upserted_id() != bsoncxx::v_noabi::stdx::nullopt;
 }
 
 uint RedisMongoDB::upsert_documents(const std::vector<bsoncxx::document::value>& documents,
@@ -865,10 +866,13 @@ string RedisMongoDB::add_link(const atoms::Link* link, bool throw_if_exists) {
         return "";
     }
 
-    auto existing_targets = get_atom_documents(link->targets, {MONGODB_FIELD_NAME[MONGODB_FIELD::ID]});
-    if (existing_targets.size() != link->targets.size()) {
+    auto unique_targets = set<string>(link->targets.begin(), link->targets.end());
+    auto existing_targets =
+        get_atom_documents(vector<string>(unique_targets.begin(), unique_targets.end()),
+                           {MONGODB_FIELD_NAME[MONGODB_FIELD::ID]});
+    if (existing_targets.size() != unique_targets.size()) {
         Utils::error("Failed to insert link: " + link->handle() + " has " +
-                     to_string(link->targets.size() - existing_targets.size()) + " missing targets");
+                     to_string(unique_targets.size() - existing_targets.size()) + " missing targets");
         return "";
     }
 

@@ -1,9 +1,10 @@
-import time
 import threading
-from hyperon_das.service_bus.port_pool import PortPool
+import time
+
 from hyperon_das.distributed_algorithm_node.bus_node import BusCommand, BusNode
-from hyperon_das.service_bus.proxy import BusCommandProxy
 from hyperon_das.logger import log
+from hyperon_das.service_bus.port_pool import PortPool
+from hyperon_das.service_bus.proxy import BusCommandProxy
 
 
 class ServiceBus:
@@ -25,11 +26,7 @@ class ServiceBus:
         else:
             proxy.setup_proxy_node()
 
-            args = [
-                proxy.requestor_id,
-                str(proxy.serial),
-                proxy.proxy_node.node_id
-            ]
+            args = [proxy.requestor_id, str(proxy.serial), proxy.proxy_node.node_id]
 
             proxy.pack_command_line_args()
 
@@ -65,14 +62,7 @@ class ServiceBusSingletonMeta(type):
 class ServiceBusSingleton(metaclass=ServiceBusSingletonMeta):
     def __init__(self, host_id: str, known_peer: str, port_lower: int, port_upper: int) -> None:
         self.service_bus = ServiceBus(
-            host_id,
-            known_peer,
-            [
-                BusCommand.PATTERN_MATCHING_QUERY,
-                BusCommand.ATOMDB
-            ],
-            port_lower,
-            port_upper
+            host_id, known_peer, [BusCommand.PATTERN_MATCHING_QUERY, BusCommand.ATOMDB], port_lower, port_upper
         )
 
     def get_instance(self) -> 'ServiceBus':

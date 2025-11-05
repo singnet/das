@@ -1,11 +1,11 @@
 import pytest
 
+from hyperon_das.commons.atoms import Atom, Link, Node
+from hyperon_das.commons.atoms.handle_decoder import HandleDecoder
 from hyperon_das.commons.properties import Properties
 from hyperon_das.hasher import Hasher, composite_hash
-from hyperon_das.commons.atoms import Node, Atom, Link
-from hyperon_das.query_answer import Assignment
-from hyperon_das.commons.atoms.handle_decoder import HandleDecoder
 from hyperon_das.logger import log
+from hyperon_das.query_answer import Assignment
 
 
 class HandleDecoderMock(HandleDecoder):
@@ -117,7 +117,7 @@ class TestNode:
     def test_metta_representation_symbol_does_not_log_but_non_symbol_logs(self, monkeypatch):
         errors = []
         monkeypatch.setattr(log, "error", lambda msg: errors.append(msg))
-        
+
         n_sym = Node(type='Symbol', name='"S"')
         assert n_sym.metta_representation(HandleDecoderMock()) == '"S"'
 
@@ -125,7 +125,7 @@ class TestNode:
 
         with pytest.raises(RuntimeError):
             n_other.metta_representation(HandleDecoderMock())
-        
+
         assert any("Can't compute metta expression of node whose type (NotSymbol) is not Symbol" in m for m in errors)
 
     def test_to_string_contains_fields(self):
@@ -256,7 +256,7 @@ class TestLink:
         monkeypatch.setattr(log, "error", lambda msg: errors.append(msg))
 
         link2 = Link(type='T', targets=['node1', 'missing'])
-        
+
         with pytest.raises(RuntimeError):
             link2.composite_type(HandleDecoderMock())
 
@@ -288,7 +288,7 @@ class TestLink:
         assert m2 == '((node1 node2 node3) nodeA nodeB)'
 
         l3 = Link(type='Fake', targets=['missing'])
-        
+
         with pytest.raises(RuntimeError):
             l3.metta_representation(HandleDecoderMock())
 

@@ -1,15 +1,20 @@
-import pytest
 from unittest.mock import MagicMock, patch
+
+import pytest
+
+from hyperon_das.distributed_algorithm_node.bus_node import BusNode
+from hyperon_das.service_bus.port_pool import PortPool
 from hyperon_das.service_bus.service_bus import ServiceBus, ServiceBusSingleton
 from hyperon_das.service_clients import PatternMatchingQueryProxy
-from hyperon_das.service_bus.port_pool import PortPool
-from hyperon_das.distributed_algorithm_node.bus_node import BusNode
 
 
 class TestServiceBus:
     @pytest.fixture
     def mock_port_pool(self):
-        with patch.object(PortPool, 'initialize_statics') as init_mock, patch.object(PortPool, 'get_port', return_value=12345) as port_mock:
+        with (
+            patch.object(PortPool, 'initialize_statics') as init_mock,
+            patch.object(PortPool, 'get_port', return_value=12345) as port_mock,
+        ):
             yield init_mock, port_mock
 
     @pytest.fixture

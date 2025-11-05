@@ -1,11 +1,11 @@
 import copy
 
 from hyperon_das.commons.atoms import Atom
-from hyperon_das.hasher import Hasher, composite_hash
-from hyperon_das.commons.properties import Properties
 from hyperon_das.commons.atoms.handle_decoder import HandleDecoder
-from hyperon_das.query_answer import Assignment
 from hyperon_das.commons.helpers import error
+from hyperon_das.commons.properties import Properties
+from hyperon_das.hasher import Hasher, composite_hash
+from hyperon_das.query_answer import Assignment
 
 
 class Link(Atom):
@@ -16,7 +16,7 @@ class Link(Atom):
         is_toplevel: bool = False,
         custom_attributes: Properties | None = None,
         tokens: list[str] | None = None,
-        other=None
+        other=None,
     ) -> None:
         if tokens:
             self.targets = []
@@ -63,7 +63,7 @@ class Link(Atom):
             for target in self.targets:
                 result += target + ", "
 
-            result = result[0: (len(result) - 2)]
+            result = result[0 : (len(result) - 2)]
 
         result += f"], is_toplevel: {'true' if self.is_toplevel else 'false'}, custom_attributes: {self.custom_attributes.to_string()}"
 
@@ -80,8 +80,8 @@ class Link(Atom):
     def untokenize(self, tokens: list[str]) -> None:
         super().untokenize(tokens)
         num_targets = int(tokens[0])
-        self.targets[0:0] = tokens[1: 1 + num_targets]
-        del tokens[:1 + num_targets]
+        self.targets[0:0] = tokens[1 : 1 + num_targets]
+        del tokens[: 1 + num_targets]
 
     def composite_type(self, decoder: 'HandleDecoder') -> list[str]:
         composite_type = []
@@ -111,12 +111,12 @@ class Link(Atom):
         for i in range(size):
             atom = decoder.get_atom(self.targets[i])
 
-            if (atom is None):
+            if atom is None:
                 error("Couldn't decode handle: {self.targets[i]}")
 
             metta_string += atom.metta_representation(decoder)
 
-            if (i != (size - 1)):
+            if i != (size - 1):
                 metta_string += " "
 
         metta_string += ")"

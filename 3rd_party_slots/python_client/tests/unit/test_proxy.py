@@ -1,25 +1,20 @@
-import pytest
-import grpc
-
 from unittest.mock import MagicMock, patch
+
+import grpc
+import pytest
 
 import hyperon_das._grpc.atom_space_node_pb2 as grpc_pb2
 import hyperon_das._grpc.common_pb2 as common_pb2
-
-from hyperon_das.service_bus.proxy import (
-    BusCommandProxy,
-    AtomSpaceNodeManager,
-    AtomSpaceNodeServicer
-)
-from hyperon_das.service_clients.pattern_matching_query import PatternMatchingQueryProxy
 from hyperon_das.query_answer import QueryAnswer
+from hyperon_das.service_bus.proxy import AtomSpaceNodeManager, AtomSpaceNodeServicer, BusCommandProxy
+from hyperon_das.service_clients.pattern_matching_query import PatternMatchingQueryProxy
 
 
 class DummyProxy(BusCommandProxy):
     def __init__(self):
         super().__init__(command="cmd", args=[])
         self.processed_msgs = []
-    
+
     def pack_command_line_args(self):
         pass
 
