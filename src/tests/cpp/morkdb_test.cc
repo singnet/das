@@ -9,8 +9,10 @@
 #include <thread>
 #include <vector>
 
+#include "AtomDBCacheSingleton.h"
 #include "AtomDBSingleton.h"
 #include "LinkSchema.h"
+#include "TestConfig.h"
 
 using namespace atomdb;
 using namespace atoms;
@@ -19,17 +21,8 @@ using namespace std;
 class MorkDBTestEnvironment : public ::testing::Environment {
    public:
     void SetUp() override {
-        setenv("DAS_REDIS_HOSTNAME", "localhost", 1);
-        setenv("DAS_REDIS_PORT", "29000", 1);
-        setenv("DAS_USE_REDIS_CLUSTER", "false", 1);
-        setenv("DAS_MONGODB_HOSTNAME", "localhost", 1);
-        setenv("DAS_MONGODB_PORT", "28000", 1);
-        setenv("DAS_MONGODB_USERNAME", "dbadmin", 1);
-        setenv("DAS_MONGODB_PASSWORD", "dassecret", 1);
-        setenv("DAS_DISABLE_ATOMDB_CACHE", "true", 1);
-        setenv("DAS_MORK_HOSTNAME", "localhost", 1);
-        setenv("DAS_MORK_PORT", "8000", 1);
-
+        TestConfig::load_environment();
+        TestConfig::set_atomdb_cache(false);
         auto atomdb = new MorkDB("morkdb_test_");
         atomdb->drop_all();
         AtomDBSingleton::provide(shared_ptr<AtomDB>(atomdb));
