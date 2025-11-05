@@ -285,6 +285,26 @@ TEST_F(MorkDBTest, AddGetAndDeleteLinks) {
     EXPECT_FALSE(db->delete_links(links_handles, true));
 }
 
+TEST_F(MorkDBTest, AddLinksWithDuplicateTargets) {
+    vector<Node*> nodes;
+    nodes.push_back(new Node("Symbol", "DuplicateTargets1"));
+    nodes.push_back(new Node("Symbol", "DuplicateTargets2"));
+    nodes.push_back(new Node("Symbol", "DuplicateTargets3"));
+    EXPECT_EQ(db->add_nodes(nodes, true).size(), 3);
+
+    auto link = new Link("Expression",
+                         {nodes[0]->handle(),
+                          nodes[1]->handle(),
+                          nodes[1]->handle(),
+                          nodes[0]->handle(),
+                          nodes[2]->handle(),
+                          nodes[0]->handle(),
+                          nodes[2]->handle()});
+    EXPECT_EQ(db->add_link(link), link->handle());
+    // MORKDB does not support deleting links, so it must always return false
+    EXPECT_FALSE(db->delete_link(link->handle(), true));
+}
+
 int main(int argc, char** argv) {
     ::testing::InitGoogleTest(&argc, argv);
     ::testing::AddGlobalTestEnvironment(new MorkDBTestEnvironment());
