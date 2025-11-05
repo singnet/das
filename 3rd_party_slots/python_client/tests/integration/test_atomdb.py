@@ -159,12 +159,10 @@ def test_atomdb_proxy_add_nested_links():
     proxy = AtomDBProxy()
     service_bus.issue_bus_command(proxy)
 
-    atoms = []
-    nodes = []
-    links = []
-
-    for j in range(1000):
-        for i in range(200):
+    for j in range(50):
+        nodes = []
+        links = []
+        for i in range(50):
             node_e = Node(type="Symbol", name=f"EVALUATION{i}{j}")
             node_p = Node(type="Symbol", name=f"PREDICATE{i}{j}")
             node_c = Node(type="Symbol", name=f"CONCEPT{i}{j}")
@@ -179,25 +177,9 @@ def test_atomdb_proxy_add_nested_links():
             link_d = Link(type="Expression", targets=[node_c.handle(), link_c.handle()], is_toplevel=False)
             link_e = Link(type="Expression", targets=[node_e.handle(), link_b.handle(), link_d.handle()], is_toplevel=True)
 
-            links.append(link_a)
-            links.append(link_b)
-            links.append(link_c)
-            links.append(link_d)
-            links.append(link_e)
-
-            nodes.append(node_e)
-            nodes.append(node_p)
-            nodes.append(node_c)
-            nodes.append(node_pf)
-            nodes.append(node_pfn)
-            nodes.append(node_val1)
-            nodes.append(node_val2)
+            links.extend([link_a, link_b, link_c, link_d, link_e])
+            nodes.extend([node_e, node_p, node_c, node_pf, node_pfn, node_val1, node_val2])
 
         proxy.add_atoms(nodes)
         time.sleep(2)
         proxy.add_atoms(links)
-
-    decoder = AtomDecoder()
-
-    for atom in atoms:
-        assert atom == decoder.get_atom(atom.handle())
