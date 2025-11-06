@@ -95,6 +95,10 @@ vector<shared_ptr<Link>> MettaTemplateProcessor::process_query(shared_ptr<QueryA
             continue;
         } else {
             auto link = parser_actions->element_stack.top();
+            if (dynamic_pointer_cast<Link>(link) == nullptr) {
+                Utils::error("Parsed atom is not a Link for metta expression: " + metta_expression);
+                continue;
+            }
             LOG_DEBUG("Parsed MeTTa link template: " << metta_expression
                                                      << " Link handle: " << link->handle());
             LOG_DEBUG("Parsed MeTTa link template: " << metta_expression
