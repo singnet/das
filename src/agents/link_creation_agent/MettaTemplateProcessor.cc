@@ -44,6 +44,10 @@ static void create_missing_atoms_in_atomdb(shared_ptr<MettaParserActions> parser
             }
         }
     }
+    if (parser_actions->metta_expressions.size() == 0) {
+        LOG_INFO("No MeTTa expressions found, skipping link metta processing.");
+        return;
+    }
     // Add missing links
     for (size_t i = 0; i < parser_actions->metta_expressions.size() - 1; i++) {
         auto metta_expression_cp = parser_actions->metta_expressions[i];
@@ -57,6 +61,10 @@ static void create_missing_atoms_in_atomdb(shared_ptr<MettaParserActions> parser
         }
         auto link = parser_actions->handle_to_atom[handle->first];
         try {
+            if (dynamic_pointer_cast<Link>(link) == nullptr) {
+                Utils::error("Parsed atom is not a Link for metta expression: " + metta_expression_cp);
+                continue;
+            }
             atomdb->add_link(dynamic_pointer_cast<Link>(link).get(), false);
             LOG_DEBUG("Link added to AtomDB: " << metta_expression_cp);
         } catch (const std::exception& e) {
