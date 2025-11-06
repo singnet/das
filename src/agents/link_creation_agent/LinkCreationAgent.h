@@ -39,8 +39,8 @@ class LinkCreationAgent {
                       string buffer_file_path,
                       string metta_file_path,
                       bool save_links_to_metta_file,
-                      bool save_links_to_db,
-                      bool reindex = true);
+                      bool save_links_to_db);
+    LinkCreationAgent() = default;
     ~LinkCreationAgent();
 
     /**
@@ -51,11 +51,10 @@ class LinkCreationAgent {
     void run();
     /**
      * @brief Create the create link request.
-     * @param request Request to be handled
+     * @param proxy Proxy to be handled
      */
-    static shared_ptr<LinkCreationAgentRequest> create_request(vector<string> request);
+    shared_ptr<LinkCreationAgentRequest> create_request(shared_ptr<LinkCreationRequestProxy> proxy);
 
-    void process_request(vector<string> request);
     void process_request(shared_ptr<LinkCreationRequestProxy> proxy);
 
     void abort_request(const string& request_id);
@@ -78,9 +77,6 @@ class LinkCreationAgent {
      * @brief Stop the agent
      */
     void stop();
-
-    // TODO remove when default index is implemented
-    void load_db_patterns();
 
     // Attributes loaded from config file
     string config_path;                    // Path to the configuration file

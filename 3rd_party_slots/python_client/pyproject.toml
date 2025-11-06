@@ -16,6 +16,11 @@ google = "3.0.0"
 [tool.poetry.group.dev.dependencies]
 pytest = "8.4.0"
 pytest-cov = "6.1.1"
+isort = "^7.0.0"
+flake8 = "^7.3.0"
+black = "^25.9.0"
+flake8-pyproject = "^1.2.3"
+pymongo = "^4.15.3"
 
 [build-system]
 requires = ["poetry-core"]

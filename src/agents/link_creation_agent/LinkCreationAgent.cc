@@ -16,8 +16,7 @@ LinkCreationAgent::LinkCreationAgent(int request_interval,
                                      string buffer_file_path,
                                      string metta_file_path,
                                      bool save_links_to_metta_file,
-                                     bool save_links_to_db,
-                                     bool reindex) {
+                                     bool save_links_to_db) {
     this->requests_interval_seconds = request_interval;
     LOG_DEBUG("LinkCreationAgent initialized with request interval: " << request_interval << " seconds");
     this->link_creation_agent_thread_count = thread_count;
@@ -38,10 +37,6 @@ LinkCreationAgent::LinkCreationAgent(int request_interval,
     }
     service->set_save_links_to_metta_file(save_links_to_metta_file);
     service->set_save_links_to_db(save_links_to_db);
-    if (reindex) {
-        LOG_DEBUG("Reindexing patterns in DB");
-        load_db_patterns();
-    }
     this->agent_thread = new thread(&LinkCreationAgent::run, this);
 }
 
@@ -81,7 +76,6 @@ void LinkCreationAgent::run() {
         }
         if (!requests_queue.empty()) {
             lca_request = requests_queue.dequeue();
-            lca_request->current_interval = requests_interval_seconds;
             if (lca_request != nullptr && (lca_request->infinite || lca_request->repeat > 0)) {
                 request_buffer[lca_request->id] = lca_request;
             }
@@ -96,8 +90,7 @@ void LinkCreationAgent::run() {
         }
 
         if (lca_request != nullptr) {
-            if (!lca_request->is_running && lca_request->repeat == 0 && lca_request->processed > 0 &&
-                !lca_request->completed) {
+            if (!lca_request->is_running && lca_request->repeat == 0 && !lca_request->completed) {
                 LOG_DEBUG("Finishing request ID: " << lca_request->id);
                 auto proxy = link_creation_proxy_map[lca_request->original_id];
                 proxy->to_remote_peer(BaseProxy::FINISHED, {});
@@ -114,10 +107,10 @@ void LinkCreationAgent::run() {
         }
 
         LOG_DEBUG("Request ID: " << (lca_request ? lca_request->id : "NULL"));
-
-        if (lca_request->repeat == 0 && lca_request->processed == 0) {
-            lca_request->repeat = 1;
-        }
+        // Rework this when Inference Agent integration is done
+        // if (lca_request->repeat == 0 && lca_request->processed == 0) {
+        //     lca_request->repeat = 1;
+        // }
 
         if (lca_request->infinite || lca_request->repeat > 0) {
             LOG_DEBUG("Request IDX: " << current_buffer_position);
@@ -147,6 +140,10 @@ shared_ptr<PatternMatchingQueryProxy> LinkCreationAgent::query(
     proxy->parameters[PatternMatchingQueryProxy::MAX_ANSWERS] = (unsigned int) lca_request->max_results;
     proxy->parameters[PatternMatchingQueryProxy::POSITIVE_IMPORTANCE_FLAG] =
         lca_request->importance_flag;
+    proxy->parameters[PatternMatchingQueryProxy::ATTENTION_UPDATE_FLAG] =
+        lca_request->update_attention_broker;
+    proxy->parameters[PatternMatchingQueryProxy::USE_METTA_AS_QUERY_TOKENS] =
+        lca_request->use_metta_as_query_tokens;
     ServiceBusSingleton::get_instance()->issue_bus_command(proxy);
     return proxy;
 }
@@ -169,57 +166,73 @@ void LinkCreationAgent::load_buffer() {
     file.close();
 }
 
-static bool is_link_template_arg(string arg) {
-    if (arg == "LIST") return true;
-    if (arg == "LINK_CREATE") return true;
+static bool is_processor_arg(string arg) {
     if (arg == "PROOF_OF_IMPLICATION") return true;
     if (arg == "PROOF_OF_EQUIVALENCE") return true;
     return false;
 }
 
-shared_ptr<LinkCreationAgentRequest> LinkCreationAgent::create_request(vector<string> request) {
+static bool is_link_create_arg(string arg) {
+    if (arg == "LIST") return true;
+    if (arg == "LINK_CREATE") return true;
+    return is_processor_arg(arg);
+}
+
+shared_ptr<LinkCreationAgentRequest> LinkCreationAgent::create_request(
+    shared_ptr<LinkCreationRequestProxy> proxy) {
+    auto lca_request = make_shared<LinkCreationAgentRequest>();
     try {
-        LinkCreationAgentRequest* lca_request = new LinkCreationAgentRequest();
-        long unsigned int cursor = 0;
-        bool is_link_create = false;
-        int has_id = 0;
-        if (request[request.size() - 1] != "true" && request[request.size() - 1] != "false") {
-            has_id = 1;
-        }
-        for (string arg : request) {
-            cursor++;
-            is_link_create = is_link_template_arg(arg) || is_link_create;
-            if (!is_link_create) {
-                lca_request->query.push_back(arg);
-            }
-            if (is_link_create && cursor < request.size() - 3 - has_id) {
-                lca_request->link_template.push_back(arg);
-            }
-            if (cursor == request.size() - 3 - has_id) {
-                lca_request->max_results = stoi(arg);
-            }
-            if (cursor == request.size() - 2 - has_id) {
-                lca_request->repeat = stoi(arg);
-            }
-            if (cursor == request.size() - 1 - has_id) {
-                lca_request->context = arg;
-            }
-            if (cursor == request.size() - has_id) {
-                lca_request->update_attention_broker = (arg == "true");
+        lca_request->use_metta_as_query_tokens =
+            proxy->parameters.get<bool>(LinkCreationRequestProxy::USE_METTA_AS_QUERY_TOKENS);
+        if (lca_request->use_metta_as_query_tokens) {
+            auto args = proxy->get_args();
+            lca_request->query.push_back(args.front());
+            if (is_processor_arg(args[1])) {
+                lca_request->link_template.push_back(args[1]);
             } else {
-                if (cursor == request.size()) {
-                    lca_request->id = arg;
+                lca_request->link_template.push_back("METTA");
+                for (size_t i = 1; i < args.size(); i++) {
+                    lca_request->link_template.push_back(args[i]);
+                }
+            }
+
+        } else {
+            bool query_section = true;
+            for (const auto& token : proxy->get_args()) {
+                if (is_link_create_arg(token) || !query_section) {
+                    query_section = false;
+                    lca_request->link_template.push_back(token);
+                } else {
+                    lca_request->query.push_back(token);
                 }
             }
         }
-        lca_request->infinite = (lca_request->repeat == -1);
-        lca_request->original_id = lca_request->id;
-        LOG_DEBUG("Request original ID: " << lca_request->original_id);
+        lca_request->max_results =
+            proxy->parameters.get<unsigned int>(LinkCreationRequestProxy::MAX_ANSWERS);
+        lca_request->repeat =
+            proxy->parameters.get<unsigned int>(LinkCreationRequestProxy::REPEAT_COUNT);
+        lca_request->context = proxy->parameters.get<string>(LinkCreationRequestProxy::CONTEXT);
+        lca_request->update_attention_broker =
+            proxy->parameters.get<bool>(LinkCreationRequestProxy::ATTENTION_UPDATE_FLAG);
+        lca_request->importance_flag =
+            proxy->parameters.get<bool>(LinkCreationRequestProxy::POSITIVE_IMPORTANCE_FLAG);
+        LOG_DEBUG(proxy->peer_id());
+        LOG_DEBUG(to_string(proxy->get_serial()));
+        lca_request->original_id = proxy->peer_id() + to_string(proxy->get_serial());
+        lca_request->id = compute_hash((char*) lca_request->original_id.c_str());
+        lca_request->is_running = false;
+        auto request_interval = proxy->parameters.get_or<unsigned int>(
+            LinkCreationRequestProxy::QUERY_INTERVAL, requests_interval_seconds);
+        lca_request->current_interval = request_interval;
+        if (lca_request->link_template.size() == 0) {
+            Utils::error("Link template cannot be empty");
+        }
         if (lca_request->id.empty()) {
             Utils::error("Request ID cannot be empty");
         }
-        lca_request->id = compute_hash((char*) lca_request->id.c_str());
-        lca_request->is_running = false;
+        if (lca_request->repeat == 0) {
+            lca_request->infinite = true;
+        }
         LOG_DEBUG("Creating request ID: " << lca_request->id);
         LOG_DEBUG("Query: " << Utils::join(lca_request->query, ' '));
         LOG_DEBUG("Link Template: " << Utils::join(lca_request->link_template, ' '));
@@ -228,20 +241,12 @@ shared_ptr<LinkCreationAgentRequest> LinkCreationAgent::create_request(vector<st
         LOG_DEBUG("Context: " << lca_request->context);
         LOG_DEBUG("Update Attention Broker: " << to_string(lca_request->update_attention_broker));
         LOG_DEBUG("Infinite: " << to_string(lca_request->infinite));
-        if (lca_request->link_template.size() == 0) {
-            Utils::error("Link template cannot be empty");
-        }
-
-        return shared_ptr<LinkCreationAgentRequest>(lca_request);
+        return lca_request;
     } catch (exception& e) {
-        LOG_ERROR("Error parsing request: " << string(e.what()));
-        Utils::error("Invalid request format: " + string(e.what()));
+        LOG_ERROR("Error parsing request from proxy: " << string(e.what()));
+        Utils::error("Invalid request format from proxy: " + string(e.what()));
     }
     return nullptr;
-}
-
-void LinkCreationAgent::process_request(vector<string> request) {
-    this->requests_queue.enqueue(create_request(request));
 }
 
 void LinkCreationAgent::process_request(shared_ptr<LinkCreationRequestProxy> proxy) {
@@ -250,9 +255,7 @@ void LinkCreationAgent::process_request(shared_ptr<LinkCreationRequestProxy> pro
     }
     LOG_DEBUG("Processing link creation request: " << Utils::join(proxy->get_args(), ' '));
     string request_id = proxy->peer_id() + to_string(proxy->get_serial());
-    auto request = proxy->get_args();
-    request.push_back(request_id);
-    process_request(request);
+    this->requests_queue.enqueue(create_request(proxy));
     link_creation_proxy_map[request_id] = proxy;
     LOG_DEBUG("Link creation request processed for request ID: " << request_id);
 }
@@ -269,56 +272,4 @@ void LinkCreationAgent::abort_request(const string& request_id) {
     }
     // pattern_query_proxy_map[request_id_hash]->abort();
     pattern_query_proxy_map.erase(request_id_hash);
-}
-
-void LinkCreationAgent::load_db_patterns() {
-    auto db = dynamic_pointer_cast<RedisMongoDB>(AtomDBSingleton::get_instance());
-
-    try {
-        string tokens = "LINK_TEMPLATE Expression 3 NODE Symbol EVALUATION VARIABLE v1 VARIABLE v2";
-        vector<vector<string>> index_entries = {{"_", "*", "*"}, {"_", "v1", "*"}, {"_", "*", "v2"}};
-        LOG_DEBUG("Adding pattern index schema for: " + tokens + "...");
-        db->add_pattern_index_schema(tokens, index_entries);
-
-        tokens = "LINK_TEMPLATE Expression 2 NODE Symbol PREDICATE VARIABLE v1";
-        index_entries = {{"_", "*"}, {"_", "v1"}};
-        LOG_DEBUG("Adding pattern index schema for: " + tokens + "...");
-        db->add_pattern_index_schema(tokens, index_entries);
-
-        tokens = "LINK_TEMPLATE Expression 2 NODE Symbol PATTERNS VARIABLE v1";
-        index_entries = {{"_", "*"}, {"_", "v1"}};
-        LOG_DEBUG("Adding pattern index schema for: " + tokens + "...");
-        db->add_pattern_index_schema(tokens, index_entries);
-
-        tokens = "LINK_TEMPLATE Expression 2 NODE Symbol SATISFYING_SET VARIABLE v1";
-        index_entries = {{"_", "*"}, {"_", "v1"}};
-        LOG_DEBUG("Adding pattern index schema for: " + tokens + "...");
-        db->add_pattern_index_schema(tokens, index_entries);
-
-        tokens = "LINK_TEMPLATE Expression 3 NODE Symbol IMPLICATION VARIABLE v1 VARIABLE v2";
-        index_entries = {{"_", "*", "*"}, {"_", "v1", "*"}, {"_", "*", "v2"}};
-        LOG_DEBUG("Adding pattern index schema for: " + tokens + "...");
-        db->add_pattern_index_schema(tokens, index_entries);
-
-        tokens = "LINK_TEMPLATE Expression 3 NODE Symbol EQUIVALENCE VARIABLE v1 VARIABLE v2";
-        index_entries = {{"_", "*", "*"}, {"_", "v1", "*"}, {"_", "*", "v2"}};
-        LOG_DEBUG("Adding pattern index schema for: " + tokens + "...");
-        db->add_pattern_index_schema(tokens, index_entries);
-
-    } catch (const std::exception& e) {
-        LOG_DEBUG("Failed to add pattern index schema to DB: " << e.what());
-    }
-
-    try {
-        auto atoms = {make_pair<string, string>("Symbol", "EQUIVALENCE"),
-                      make_pair<string, string>("Symbol", "IMPLICATION"),
-                      make_pair<string, string>("Symbol", "PATTERNS"),
-                      make_pair<string, string>("Symbol", "SATISFYING_SET")};
-        for (auto& atom : atoms) {
-            shared_ptr<Node> node = make_shared<Node>(atom.first, atom.second);
-            db->add_atom(node.get());
-        }
-    } catch (const std::exception& e) {
-        LOG_ERROR("Error loading LCA Nodes: " << e.what());
-    }
 }

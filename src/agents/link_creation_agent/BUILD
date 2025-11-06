@@ -81,7 +81,22 @@ cc_library(
     ],
     deps = [
         ":link_create_template",
+        ":metta_processor",
         "//agents/query_engine:query_engine_lib",
+        "//commons:commons_lib",
+    ],
+)
+
+cc_library(
+    name = "metta_processor",
+    srcs = [
+        "MettaTemplateProcessor.cc",
+    ],
+    hdrs = [
+        "MettaTemplateProcessor.h",
+    ],
+    deps = [
+        ":link_create_template",
         "//commons:commons_lib",
     ],
 )

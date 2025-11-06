@@ -131,6 +131,7 @@ cc_library(
     name = "link_creation_agent_client_main_lib",
     srcs = ["link_creation_agent_client_main.cc"],
     deps = [
+        "//agents/context_broker:context_broker_lib",
         "//agents/link_creation_agent:link_creation_agent_lib",
     ],
 )
@@ -158,6 +159,30 @@ cc_library(
     deps = [
         "//agents/context_broker:context_broker_lib",
         "//atomdb:atomdb_singleton",
+        "//service_bus:service_bus_lib",
+    ],
+)
+
+cc_library(
+    name = "atomdb_broker_main_lib",
+    srcs = ["atomdb_broker_main.cc"],
+    deps = [
+        "//agents/atomdb_broker:atomdb_broker_lib",
+        "//atomdb:atomdb_lib",
+        "//atomdb:atomdb_singleton",
+        "//commons:commons_lib",
+        "//service_bus:service_bus_lib",
+    ],
+)
+
+cc_library(
+    name = "atomdb_broker_client_lib",
+    srcs = ["atomdb_broker_client_main.cc"],
+    deps = [
+        "//agents/atomdb_broker:atomdb_broker_lib",
+        "//atomdb:atomdb_lib",
+        "//atomdb:atomdb_singleton",
+        "//commons:commons_lib",
         "//service_bus:service_bus_lib",
     ],
 )

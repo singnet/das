@@ -23,15 +23,24 @@ namespace link_creation_agent {
 class LinkCreationRequestProxy : public BaseProxy {
    public:
     // ---------------------------------------------------------------------------------------------
-    struct Commands {
-        // Commands allowed at the proxy level
-    };
 
-    struct Parameters {
-        static const string QUERY_INTERVAL;
-        static const string QUERY_TIMEOUT;
-        static const string ABORT_FLAG;
-    };
+    /** Maximum number of answers to return for each query */
+    static string MAX_ANSWERS;
+    /** Number of times to repeat the link creation request, queries and creates links N times */
+    static string REPEAT_COUNT;
+    /** Context for the request */
+    static string CONTEXT;
+    /** Whether to update the attention broker when running queries */
+    static string ATTENTION_UPDATE_FLAG;
+    /** Importance flag for the request, return only answers that have importance greater than zero */
+    static string POSITIVE_IMPORTANCE_FLAG;
+    /** Query interval for the request, controls how many time to wait between queries and link
+     * creations*/
+    static string QUERY_INTERVAL;
+    /** Query timeout for the request, controls how long to wait for a query to complete */
+    static string QUERY_TIMEOUT;
+
+    static string USE_METTA_AS_QUERY_TOKENS;
 
     /**
      * Empty constructor typically used on server side.

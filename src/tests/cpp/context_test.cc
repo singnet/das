@@ -115,11 +115,11 @@ TEST_F(ContextTest, basics) {
 }
 
 TEST_F(ContextTest, ContextBroker) {
-    string query_agent_id = "localhost:42070";
-    string context_processor_id = "localhost:42071";
-    string context_client_id = "localhost:42072";
+    string query_agent_id = "localhost:50000";
+    string context_processor_id = "localhost:50001";
+    string context_client_id = "localhost:50002";
 
-    ServiceBusSingleton::init(context_processor_id, query_agent_id, 42000, 42999);
+    ServiceBusSingleton::init(context_processor_id, query_agent_id, 50003, 50999);
     shared_ptr<ServiceBus> context_bus = ServiceBusSingleton::get_instance();
     context_bus->register_processor(make_shared<ContextBrokerProcessor>());
     Utils::sleep(500);

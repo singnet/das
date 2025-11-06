@@ -219,7 +219,7 @@ class LinkProcessor {
     }
 };
 
-enum class ProcessorType { PROOF_OF_IMPLICATION, PROOF_OF_EQUIVALENCE, INVALID, TEMPLATE };
+enum class ProcessorType { PROOF_OF_IMPLICATION, PROOF_OF_EQUIVALENCE, INVALID, TEMPLATE, METTA };
 
 class LinkCreationProcessor {
    public:
@@ -228,6 +228,10 @@ class LinkCreationProcessor {
             return ProcessorType::PROOF_OF_IMPLICATION;
         } else if (processor == "PROOF_OF_EQUIVALENCE") {
             return ProcessorType::PROOF_OF_EQUIVALENCE;
+        } else if (processor == "METTA") {
+            return ProcessorType::METTA;
+        } else if (processor == "TEMPLATE") {
+            return ProcessorType::TEMPLATE;
         } else {
             return ProcessorType::INVALID;
         }

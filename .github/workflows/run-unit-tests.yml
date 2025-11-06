@@ -12,11 +12,11 @@ jobs:
     runs-on: ${{ inputs.runner }}
     env:
       DAS_REDIS_HOSTNAME: localhost
-      DAS_REDIS_PORT: 29000
+      DAS_REDIS_PORT: 40020
       DAS_MONGODB_HOSTNAME: localhost
-      DAS_MONGODB_PORT: 28000
-      DAS_MONGODB_USERNAME: dbadmin
-      DAS_MONGODB_PASSWORD: dassecret
+      DAS_MONGODB_PORT: 40021
+      DAS_MONGODB_USERNAME: admin
+      DAS_MONGODB_PASSWORD: admin
       DAS_MORK_HOSTNAME: localhost
       DAS_MORK_PORT: 8000
     steps:

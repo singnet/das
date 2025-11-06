@@ -497,6 +497,35 @@ cc_test(
 )
 
 cc_test(
+    name = "atomdb_broker_test",
+    size = "small",
+    srcs = [
+        "atomdb_broker_test.cc",
+        "test_utils.cc",
+        "test_utils.h",
+    ],
+    copts = [
+        "-Iexternal/gtest/googletest/include",
+        "-Iexternal/gtest/googletest",
+    ],
+    linkopts = [
+        "-L/usr/local/lib",
+        "-lhiredis_cluster",
+        "-lhiredis",
+        "-lmongocxx",
+        "-lbsoncxx",
+    ],
+    linkstatic = 1,
+    deps = [
+        "//agents/atomdb_broker:atomdb_broker_lib",
+        "//atomdb",
+        "//attention_broker:attention_broker_lib",
+        "//tests/cpp/test_commons",
+        "@com_github_google_googletest//:gtest_main",
+    ],
+)
+
+cc_test(
     name = "query_evolution_test",
     size = "small",
     srcs = ["query_evolution_test.cc"],
@@ -677,6 +706,7 @@ cc_test(
     linkstatic = 1,
     deps = [
         "//atomdb:atomdb_singleton",
+        "//tests/cpp/test_commons",
         "@com_github_google_googletest//:gtest_main",
         "@mbedtls",
     ],

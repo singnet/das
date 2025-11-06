@@ -11,11 +11,11 @@ struct LinkCreationAgentRequest {
     vector<string> link_template;
     int max_results = 1000;
     int repeat = 1;
-    long last_execution = 0;
-    int current_interval;
     bool infinite = false;
     string context = "";
     bool update_attention_broker = false;
+    bool use_metta_as_query_tokens = false;
+    // Internal fields
     string id = "";
     string original_id = "";
     bool is_running = false;  ///< Indicates if the request is currently being processed
@@ -23,5 +23,7 @@ struct LinkCreationAgentRequest {
     int processed = 0;        ///< Number of processed items
     bool completed = false;   ///< Indicates if the request has been completed
     bool importance_flag = false;
+    long last_execution = 0;
+    int current_interval;
 };
 }  // namespace link_creation_agent

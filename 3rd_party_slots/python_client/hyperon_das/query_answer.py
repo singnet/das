@@ -31,7 +31,9 @@ class Assignment:
             return self._mapping[label] == value
         else:
             if len(self._mapping) >= self.max_size:
-                raise ValueError(f"Assignment size exceeds the maximal number of allowed variables in a query: {self.max_size}")
+                raise ValueError(
+                    f"Assignment size exceeds the maximal number of allowed variables in a query: {self.max_size}"
+                )
         self._mapping[label] = value
         return True
 
@@ -189,12 +191,20 @@ class QueryAnswer:
             str: Tokenized string encoding this QueryAnswer.
         """
         tokens = [f"{self.strength:.10f} {self.importance:.10f}"]
+
         tokens.append(str(len(self.handles)))
         tokens.extend(self.handles)
+
         tokens.append(str(self.assignment.variable_count()))
         for label, value in self.assignment._mapping.items():
             tokens.append(label)
             tokens.append(value)
+
+        tokens.append(str(len(self.metta_expression)))
+        for key, value in self.metta_expression.items():
+            tokens.append(key)
+            tokens.append(value)
+
         return " ".join(tokens)
 
     def untokenize(self, token_str: str) -> None:
