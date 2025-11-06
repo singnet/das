@@ -109,7 +109,7 @@ vector<shared_ptr<Link>> ImplicationProcessor::process_query(shared_ptr<QueryAns
 
     vector<shared_ptr<Link>> result;
     Node implication_node("Symbol", "IMPLICATION");
-    try{
+    try {
         AtomDBSingleton::get_instance()->add_node(&implication_node);
     } catch (const std::exception& e) {
         LOG_ERROR("Failed to add node to AtomDB: " << e.what());

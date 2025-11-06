@@ -87,7 +87,7 @@ vector<shared_ptr<Link>> EquivalenceProcessor::process_query(shared_ptr<QueryAns
     double strength = count_intersection / count_union;
     vector<shared_ptr<Link>> result;
     Node equivalence_node("Symbol", "EQUIVALENCE");
-    try{
+    try {
         AtomDBSingleton::get_instance()->add_node(&equivalence_node);
     } catch (const std::exception& e) {
         LOG_ERROR("Failed to add node to AtomDB: " << e.what());
