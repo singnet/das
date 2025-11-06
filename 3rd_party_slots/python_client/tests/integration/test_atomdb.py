@@ -152,30 +152,33 @@ def test_atomdb_proxy_concurrent_clients():
 
 def test_atomdb_proxy_add_nested_links():
     service_bus = ServiceBusSingleton(
-        host_id="0.0.0.0:9002", known_peer="0.0.0.0:40007", port_lower=41300, port_upper=41399
+        host_id="0.0.0.0:9002", known_peer="0.0.0.0:40007", port_lower=21400, port_upper=21499
     ).get_instance()
 
     proxy = AtomDBProxy()
     service_bus.issue_bus_command(proxy)
 
-    for j in range(50):
-        atoms = []
-        for i in range(50):
-            node_e = Node(type="Symbol", name=f"EVALUATION{i}{j}")
-            node_p = Node(type="Symbol", name=f"PREDICATE{i}{j}")
-            node_c = Node(type="Symbol", name=f"CONCEPT{i}{j}")
-            node_pf = Node(type="Symbol", name=f"public.feature{i}{j}")
-            node_pfn = Node(type="Symbol", name=f"public.feature.name{i}{j}")
-            node_val1 = Node(type="Symbol", name=f"snRNA:4.5S{i}{j}")
-            node_val2 = Node(type="Symbol", name=f"23269151{i}{j}")
+    with open('./atomdb_nested_links_tokens.metta', '+a') as f:
+        for j in range(1):
+            atoms = []
+            for i in range(1000):
+                node_e = Node(type="Symbol", name=f"EVALUATION_{i}_{j}")
+                node_p = Node(type="Symbol", name=f"PREDICATE_{i}_{j}")
+                node_c = Node(type="Symbol", name=f"CONCEPT_{i}_{j}")
+                node_pf = Node(type="Symbol", name=f"public.feature_{i}_{j}")
+                node_pfn = Node(type="Symbol", name=f"public.feature.name_{i}_{j}")
+                node_val1 = Node(type="Symbol", name=f"X_{i}_{j}")
+                node_val2 = Node(type="Symbol", name=f"Y_{i}_{j}")
 
-            link_a = Link(type="Expression", targets=[node_pf.handle(), node_pfn.handle(), node_val1.handle()], is_toplevel=False)
-            link_b = Link(type="Expression", targets=[node_p.handle(), link_a.handle()], is_toplevel=False)
-            link_c = Link(type="Expression", targets=[node_pf.handle(), node_val2.handle()], is_toplevel=False)
-            link_d = Link(type="Expression", targets=[node_c.handle(), link_c.handle()], is_toplevel=False)
-            link_e = Link(type="Expression", targets=[node_e.handle(), link_b.handle(), link_d.handle()], is_toplevel=True)
+                link_a = Link(type="Expression", targets=[node_pf.handle(), node_pfn.handle(), node_val1.handle()], is_toplevel=False)
+                link_b = Link(type="Expression", targets=[node_e.handle(), link_a.handle()], is_toplevel=False)
+                link_c = Link(type="Expression", targets=[node_pf.handle(), node_val2.handle()], is_toplevel=False)
+                link_d = Link(type="Expression", targets=[node_e.handle(), link_c.handle()], is_toplevel=False)
+                link_e = Link(type="Expression", targets=[node_e.handle(), link_b.handle(), link_d.handle()], is_toplevel=True)
 
-            atoms.extend([node_e, node_p, node_c, node_pf, node_pfn, node_val1, node_val2, link_a, link_b, link_c, link_d, link_e])
+                atoms.extend([node_e, node_pf, node_pfn, node_val1, node_val2, link_a, link_b, link_c, link_d, link_e])
 
-        proxy.add_atoms(atoms)
-        
+                f.write(f'(EVALUATION_{i}_{j} (PREDICATE_{i}_{j} (public.feature_{i}_{j} public.feature.name_{i}_{j} "X_{i}_{j}")) (CONCEPT_{i}_{j} (public.feature_{i}_{j} "Y_{i}_{j}")))\n')
+
+            print(f"=====> Adding nested atoms batch {j}")
+            proxy.add_atoms(atoms)

@@ -46,6 +46,11 @@ int main(int argc, char* argv[]) {
     LOG_INFO(
         "#############################     REQUEST QUEUE EMPTY     ##################################");
 
+
+    auto db = AtomDBSingleton::get_instance();
+
+    
+
     do {
         Utils::sleep();
     } while (true);

@@ -30,14 +30,19 @@ AtomDBProxy::AtomDBProxy() : BaseProxy(), m_shutdown(false) {
 
     // Start thread that will consume the queue
     m_worker_thread = thread(&AtomDBProxy::worker_loop, this);
+    const char* thread_name = "AtomDBWorker";
+    pthread_setname_np(m_worker_thread.native_handle(), thread_name);
+
 }
 
 AtomDBProxy::~AtomDBProxy() {
+    LOG_INFO("Shutting down AtomDBProxy worker thread");
     m_shutdown = true;
     m_queue_cond.notify_one();
     if (m_worker_thread.joinable()) {
         m_worker_thread.join();
     }
+    this->abort();
 }
 
 // -------------------------------------------------------------------------------------------------
@@ -96,11 +101,37 @@ bool AtomDBProxy::from_remote_peer(const string& command, const vector<string>& 
 }
 
 void AtomDBProxy::handle_add_atoms(const vector<string>& tokens) {
-    {
-        lock_guard<mutex> lock(m_queue_mutex);
-        m_work_queue.push(tokens);
+    // {
+    //     lock_guard<mutex> lock(m_queue_mutex);
+    //     m_work_queue.push(tokens);
+    // }
+    // m_queue_cond.notify_one();
+
+    try {
+        vector<Atom*> atoms = build_atoms_from_tokens(tokens);
+        LOG_INFO("Processing batch, total atoms to process: " << atoms.size());
+
+        if (atoms.empty()) {
+            LOG_INFO("No atoms were built from tokens. Nothing to process.");
+            return;
+        }
+
+        const size_t BATCH_SIZE = 1000;
+
+        for (size_t i = 0; i < atoms.size(); i += BATCH_SIZE) {
+            auto batch_start = atoms.begin() + i;
+            auto batch_end = atoms.begin() + min(i + BATCH_SIZE, atoms.size());
+            vector<Atom*> buffer(batch_start, batch_end);
+            LOG_INFO("Processing a batch of " << buffer.size() << " atoms.");
+            this->atomdb->add_atoms(buffer);
+            Utils::sleep(1000);
+        }
+
+        LOG_INFO("Finished processing all batches.");
+
+    } catch (const exception& e) {
+        LOG_ERROR("Error processing batch: " << e.what());
     }
-    m_queue_cond.notify_one();
 }
 
 vector<Atom*> AtomDBProxy::build_atoms_from_tokens(const vector<string>& tokens) {
@@ -138,30 +169,40 @@ void AtomDBProxy::worker_loop() {
 
         {
             unique_lock<mutex> lock(m_queue_mutex);
-            m_queue_cond.wait(lock, [this] { return !m_work_queue.empty() || m_shutdown; });
+            m_queue_cond.wait(lock, [this] {
+                return !m_work_queue.empty() || m_shutdown;
+            });
 
-            if (m_shutdown) {
-                break;
-            }
+            if (m_shutdown) break;
 
             tokens = m_work_queue.front();
             m_work_queue.pop();
         }
 
-        try {
-            vector<Atom*> atoms = build_atoms_from_tokens(tokens);
+    try {
+        vector<Atom*> atoms = build_atoms_from_tokens(tokens);
+        LOG_INFO("Processing batch from worker thread, total atoms to process: " << atoms.size());
 
-            if (!atoms.empty()) {
-                this->atomdb->add_atoms(atoms);
-            }
-            
-            for (Atom* atom : atoms) {
-                delete atom;
-            }
-            atoms.clear();
-
-        } catch (const exception& e) {
-            LOG_ERROR("Error processing batch from worker thread: " << e.what());
+        if (atoms.empty()) {
+            LOG_INFO("No atoms were built from tokens. Nothing to process.");
+            return;
         }
+
+        const size_t BATCH_SIZE = 2000;
+
+        for (size_t i = 0; i < atoms.size(); i += BATCH_SIZE) {
+            auto batch_start = atoms.begin() + i;
+            auto batch_end = atoms.begin() + min(i + BATCH_SIZE, atoms.size());
+            vector<Atom*> buffer(batch_start, batch_end);
+            LOG_INFO("Processing a batch of " << buffer.size() << " atoms.");
+            this->atomdb->add_atoms(buffer);
+            Utils::sleep(5000);
+        }
+
+        LOG_INFO("Finished processing all batches.");
+
+    } catch (const exception& e) {
+        LOG_ERROR("Error processing batch from worker thread: " << e.what());
+    }
     }
 }
