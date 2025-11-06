@@ -236,5 +236,19 @@ class LinkCreationProcessor {
             return ProcessorType::INVALID;
         }
     }
+    static string get_processor_type(ProcessorType processor) {
+        switch (processor) {
+            case ProcessorType::IMPLICATION_RELATION:
+                return "IMPLICATION_RELATION";
+            case ProcessorType::EQUIVALENCE_RELATION:
+                return "EQUIVALENCE_RELATION";
+            case ProcessorType::METTA:
+                return "METTA";
+            case ProcessorType::TEMPLATE:
+                return "TEMPLATE";
+            default:
+                return "INVALID";
+        }
+    }
 };
 }  // namespace link_creation_agent

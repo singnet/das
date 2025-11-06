@@ -5,7 +5,7 @@
 #include "Atom.h"
 #include "Hasher.h"
 #include "Link.h"
-#include "LinkCreateTemplate.h"
+#include "LinkProcessor.h"
 #include "Node.h"
 #include "UntypedVariable.h"
 #include "Utils.h"
@@ -304,7 +304,9 @@ vector<string> ProofOfImplication::query() {
     return tokens;
 }
 
-string ProofOfImplication::get_type() { return "IMPLICATION_RELATION"; }
+string ProofOfImplication::get_type() {
+    return LinkCreationProcessor::get_processor_type(ProcessorType::IMPLICATION_RELATION);
+}
 
 vector<vector<string>> ProofOfImplication::get_requests() {
     vector<vector<string>> requests;
@@ -402,7 +404,9 @@ vector<string> ProofOfEquivalence::query() {
     return tokens;
 }
 
-string ProofOfEquivalence::get_type() { return "EQUIVALENCE_RELATION"; }
+string ProofOfEquivalence::get_type() {
+    return LinkCreationProcessor::get_processor_type(ProcessorType::EQUIVALENCE_RELATION);
+}
 
 vector<vector<string>> ProofOfEquivalence::get_requests() {
     vector<vector<string>> requests;
