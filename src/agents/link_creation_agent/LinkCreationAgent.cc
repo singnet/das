@@ -3,6 +3,7 @@
 #include <fstream>
 
 #include "LinkCreateTemplate.h"
+#include "LinkProcessor.h"
 #define LOG_LEVEL DEBUG_LEVEL
 #include "Logger.h"
 #include "expression_hasher.h"
@@ -167,8 +168,10 @@ void LinkCreationAgent::load_buffer() {
 }
 
 static bool is_processor_arg(string arg) {
-    if (arg == "PROOF_OF_IMPLICATION") return true;
-    if (arg == "PROOF_OF_EQUIVALENCE") return true;
+    if (LinkCreationProcessor::get_processor_type(arg) == ProcessorType::IMPLICATION_RELATION)
+        return true;
+    if (LinkCreationProcessor::get_processor_type(arg) == ProcessorType::EQUIVALENCE_RELATION)
+        return true;
     return false;
 }
 

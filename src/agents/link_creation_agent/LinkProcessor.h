@@ -219,21 +219,35 @@ class LinkProcessor {
     }
 };
 
-enum class ProcessorType { PROOF_OF_IMPLICATION, PROOF_OF_EQUIVALENCE, INVALID, TEMPLATE, METTA };
+enum class ProcessorType { IMPLICATION_RELATION, EQUIVALENCE_RELATION, INVALID, TEMPLATE, METTA };
 
 class LinkCreationProcessor {
    public:
     static ProcessorType get_processor_type(string processor) {
-        if (processor == "PROOF_OF_IMPLICATION") {
-            return ProcessorType::PROOF_OF_IMPLICATION;
-        } else if (processor == "PROOF_OF_EQUIVALENCE") {
-            return ProcessorType::PROOF_OF_EQUIVALENCE;
+        if (processor == "IMPLICATION_RELATION") {
+            return ProcessorType::IMPLICATION_RELATION;
+        } else if (processor == "EQUIVALENCE_RELATION") {
+            return ProcessorType::EQUIVALENCE_RELATION;
         } else if (processor == "METTA") {
             return ProcessorType::METTA;
         } else if (processor == "TEMPLATE") {
             return ProcessorType::TEMPLATE;
         } else {
             return ProcessorType::INVALID;
+        }
+    }
+    static string get_processor_type(ProcessorType processor) {
+        switch (processor) {
+            case ProcessorType::IMPLICATION_RELATION:
+                return "IMPLICATION_RELATION";
+            case ProcessorType::EQUIVALENCE_RELATION:
+                return "EQUIVALENCE_RELATION";
+            case ProcessorType::METTA:
+                return "METTA";
+            case ProcessorType::TEMPLATE:
+                return "TEMPLATE";
+            default:
+                return "INVALID";
         }
     }
 };

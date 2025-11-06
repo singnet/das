@@ -108,10 +108,10 @@ vector<shared_ptr<Link>> LinkCreationService::process_query_answer(shared_ptr<Qu
                                                                    vector<string> params,
                                                                    vector<string> link_template) {
     if (LinkCreationProcessor::get_processor_type(link_template.front()) ==
-        ProcessorType::PROOF_OF_IMPLICATION) {
+        ProcessorType::IMPLICATION_RELATION) {
         return implication_processor->process_query(query_answer, params);
     } else if (LinkCreationProcessor::get_processor_type(link_template.front()) ==
-               ProcessorType::PROOF_OF_EQUIVALENCE) {
+               ProcessorType::EQUIVALENCE_RELATION) {
         return equivalence_processor->process_query(query_answer, params);
     } else if (LinkCreationProcessor::get_processor_type(link_template.front()) ==
                ProcessorType::METTA) {
