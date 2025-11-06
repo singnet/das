@@ -861,39 +861,8 @@ string RedisMongoDB::add_node(const atoms::Node* node, bool throw_if_exists) {
 }
 
 string RedisMongoDB::add_link(const atoms::Link* link, bool throw_if_exists) {
-    if (throw_if_exists && link_exists(link->handle())) {
-        Utils::error("Link already exists: " + link->handle());
-        return "";
-    }
-
-    auto unique_targets = set<string>(link->targets.begin(), link->targets.end());
-    auto existing_targets =
-        get_atom_documents(vector<string>(unique_targets.begin(), unique_targets.end()),
-                           {MONGODB_FIELD_NAME[MONGODB_FIELD::ID]});
-    if (existing_targets.size() != unique_targets.size()) {
-        Utils::error("Failed to insert link: " + link->handle() + " has " +
-                     to_string(unique_targets.size() - existing_targets.size()) + " missing targets");
-        return "";
-    }
-
-    auto pattern_handles = match_pattern_index_schema(link);
-    for (const auto& pattern_handle : pattern_handles) {
-        add_pattern(pattern_handle, link->handle());
-    }
-
-    for (const auto& target : existing_targets) {
-        add_incoming_set(target->get(MONGODB_FIELD_NAME[MONGODB_FIELD::ID]), link->handle());
-    }
-
-    add_outgoing_set(link->handle(), link->targets);
-
-    auto mongodb_doc = atomdb_api_types::MongodbDocument(link, *this);
-    if (!this->upsert_document(mongodb_doc.value(), MONGODB_LINKS_COLLECTION_NAME)) {
-        Utils::error("Failed to insert link into MongoDB");
-        return "";
-    }
-
-    return link->handle();
+    vector<Link*> links = {const_cast<atoms::Link*>(link)};
+    return add_links(links, throw_if_exists)[0];
 }
 
 vector<string> RedisMongoDB::add_atoms(const vector<atoms::Atom*>& atoms, bool throw_if_exists) {
@@ -949,10 +918,82 @@ vector<string> RedisMongoDB::add_links(const vector<atoms::Link*>& links, bool t
     if (links.empty()) {
         return {};
     }
+
     vector<string> handles;
-    for (const auto& link : links) {
-        handles.push_back(add_link(link, throw_if_exists));
+
+    shared_ptr<RedisContext> ctx = nullptr;
+
+    if (!this->cluster_flag) {
+        ctx = this->redis_pool->acquire();
     }
+
+    for (const auto& link : links) {
+        if (throw_if_exists && link_exists(link->handle())) {
+            Utils::error("Link already exists: " + link->handle());
+            return {};
+        }
+
+        auto unique_targets = set<string>(link->targets.begin(), link->targets.end());
+        auto existing_targets =
+            get_atom_documents(vector<string>(unique_targets.begin(), unique_targets.end()),
+                               {MONGODB_FIELD_NAME[MONGODB_FIELD::ID]});
+        if (existing_targets.size() != unique_targets.size()) {
+            Utils::error("Failed to insert link: " + link->handle() + " has " +
+                         to_string(unique_targets.size() - existing_targets.size()) +
+                         " missing targets");
+            return {};
+        }
+
+        auto pattern_handles = match_pattern_index_schema(link);
+
+        if (!this->cluster_flag) {
+            string incoming_handle = link->handle();
+            for (const auto& target : existing_targets) {
+                string handle = target->get(MONGODB_FIELD_NAME[MONGODB_FIELD::ID]);
+                string incomming_set_cmd = "ZADD " + REDIS_INCOMING_PREFIX + ":" + handle + " " +
+                                           to_string(this->incoming_set_next_score.load()) + " " +
+                                           incoming_handle;
+                ctx->append_command(incomming_set_cmd.c_str());
+                this->incoming_set_next_score.fetch_add(1);
+            }
+
+            string outgoing_set_cmd = "SET " + REDIS_OUTGOING_PREFIX + ":" + link->handle() + " ";
+            for (const auto& outgoing_handle : link->targets) {
+                outgoing_set_cmd += outgoing_handle;
+            }
+            ctx->append_command(outgoing_set_cmd.c_str());
+
+            for (const auto& pattern_handle : pattern_handles) {
+                string patterns_cmd = "ZADD " + REDIS_PATTERNS_PREFIX + ":" + pattern_handle + " " +
+                                      to_string(this->patterns_next_score.load()) + " " + link->handle();
+                ctx->append_command(patterns_cmd.c_str());
+                this->patterns_next_score.fetch_add(1);
+            }
+        } else {
+            for (const auto& pattern_handle : pattern_handles) {
+                add_pattern(pattern_handle, link->handle());
+            }
+
+            for (const auto& target : existing_targets) {
+                add_incoming_set(target->get(MONGODB_FIELD_NAME[MONGODB_FIELD::ID]), link->handle());
+            }
+
+            add_outgoing_set(link->handle(), link->targets);
+        }
+
+        auto mongodb_doc = atomdb_api_types::MongodbDocument(link, *this);
+        if (!this->upsert_document(mongodb_doc.value(), MONGODB_LINKS_COLLECTION_NAME)) {
+            Utils::error("Failed to insert link into MongoDB");
+            return {};
+        }
+
+        handles.push_back(link->handle());
+    }
+
+    if (!this->cluster_flag) {
+        flush_redis_commands(ctx);
+    }
+
     return handles;
 }
 
@@ -1319,4 +1360,12 @@ void RedisMongoDB::drop_all() {
     // We need to clear the pattern index schema map and reload it
     this->pattern_index_schema_map.clear();
     this->load_pattern_index_schema();
+}
+
+void RedisMongoDB::flush_redis_commands(shared_ptr<RedisContext> ctx) {
+    if (SKIP_REDIS) return;
+
+    ctx->flush_commands();
+    set_next_score(REDIS_PATTERNS_PREFIX + ":next_score", this->patterns_next_score.load());
+    set_next_score(REDIS_INCOMING_PREFIX + ":next_score", this->incoming_set_next_score.load());
 }
