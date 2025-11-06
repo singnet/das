@@ -304,7 +304,7 @@ vector<string> ProofOfImplication::query() {
     return tokens;
 }
 
-string ProofOfImplication::get_type() { return "PROOF_OF_IMPLICATION"; }
+string ProofOfImplication::get_type() { return "IMPLICATION_RELATION"; }
 
 vector<vector<string>> ProofOfImplication::get_requests() {
     vector<vector<string>> requests;
@@ -402,7 +402,7 @@ vector<string> ProofOfEquivalence::query() {
     return tokens;
 }
 
-string ProofOfEquivalence::get_type() { return "PROOF_OF_EQUIVALENCE"; }
+string ProofOfEquivalence::get_type() { return "EQUIVALENCE_RELATION"; }
 
 vector<vector<string>> ProofOfEquivalence::get_requests() {
     vector<vector<string>> requests;

@@ -167,8 +167,8 @@ void LinkCreationAgent::load_buffer() {
 }
 
 static bool is_processor_arg(string arg) {
-    if (arg == "PROOF_OF_IMPLICATION") return true;
-    if (arg == "PROOF_OF_EQUIVALENCE") return true;
+    if (arg == "IMPLICATION_RELATION") return true;
+    if (arg == "EQUIVALENCE_RELATION") return true;
     return false;
 }
 

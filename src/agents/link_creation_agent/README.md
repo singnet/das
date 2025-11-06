@@ -19,8 +19,8 @@ The request must have 8 elements:
 
 Processors:
 ```
-PROOF_OF_IMPLICATION
-PROOF_OF_EQUIVALENCE
+IMPLICATION_RELATION
+EQUIVALENCE_RELATION
 ```
 
 
