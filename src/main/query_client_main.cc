@@ -24,21 +24,27 @@ void ctrl_c_handler(int) {
 }
 
 int main(int argc, char* argv[]) {
-    if (argc < 6) {
+    if (argc < 7) {
         cerr << "Usage: " << argv[0]
-             << " CLIENT_HOST:CLIENT_PORT SERVER_HOST:SERVER_PORT <START_PORT:END_PORT> "
+             << " CLIENT_HOST:CLIENT_PORT SERVER_HOST:SERVER_PORT ATOMDB_TYPE <START_PORT:END_PORT> "
                 "UPDATE_ATTENTION_BROKER QUERY_TOKEN+ "
                 "(hosts are supposed to be public IPs or known hostnames)"
              << endl;
         exit(1);
     }
 
-    AtomDBSingleton::init();
+    string atomdb_type = argv[3];
+
+    if (atomdb_type == "morkdb") {
+        AtomDBSingleton::init(atomdb_api_types::ATOMDB_TYPE::MORKDB);
+    } else {
+        AtomDBSingleton::init(atomdb_api_types::ATOMDB_TYPE::REDIS_MONGODB);
+    }
 
     string client_id = string(argv[1]);
     string server_id = string(argv[2]);
-    auto ports_range = Utils::parse_ports_range(argv[3]);
-    bool update_attention_broker = (string(argv[4]) == "true" || string(argv[4]) == "1");
+    auto ports_range = Utils::parse_ports_range(argv[4]);
+    bool update_attention_broker = (string(argv[5]) == "true" || string(argv[5]) == "1");
     if (update_attention_broker) {
         cerr << "Enforcing update_attention_broker=false regardless the passed parameter" << endl;
     }
@@ -53,7 +59,7 @@ int main(int argc, char* argv[]) {
     int max_query_answers = 0;
     size_t tokens_start_position = 5;
     try {
-        max_query_answers = stol(argv[5]);
+        max_query_answers = stol(argv[6]);
         if (max_query_answers <= 0) {
             cout << "max_query_answers cannot be 0 or negative" << endl;
             exit(1);
