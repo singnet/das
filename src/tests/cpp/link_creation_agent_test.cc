@@ -435,16 +435,16 @@ TEST(ImplicationProcessor, TestImplicationProcessorQueryBuilding) {
     vector<string> output;
     ls.tokenize(output);
     EXPECT_EQ(Utils::join(output, ' '),
-              "LINK_TEMPLATE Expression 3 NODE Symbol EVALUATION LINK Expression 2 NODE Symbol "
-              "PREDICATE ATOM HANDLE Value1 LINK_TEMPLATE Expression 2 NODE Symbol CONCEPT VARIABLE PX");
+              "LINK_TEMPLATE Expression 3 NODE Symbol Evaluation LINK Expression 2 NODE Symbol "
+              "Predicate ATOM HANDLE Value1 LINK_TEMPLATE Expression 2 NODE Symbol Concept VARIABLE PX");
     output.clear();
     ls = ImplicationProcessor::build_satisfying_set_query("h1", "h2");
     ls.tokenize(output);
     EXPECT_EQ(Utils::join(output, ' '),
-              "LINK_TEMPLATE AND 2 LINK_TEMPLATE Expression 3 NODE Symbol EVALUATION LINK Expression 2 "
-              "NODE Symbol PREDICATE ATOM h1 LINK_TEMPLATE Expression 2 NODE Symbol CONCEPT VARIABLE C "
-              "LINK_TEMPLATE Expression 3 NODE Symbol EVALUATION LINK Expression 2 NODE Symbol "
-              "PREDICATE ATOM h2 LINK_TEMPLATE Expression 2 NODE Symbol CONCEPT VARIABLE C");
+              "LINK_TEMPLATE AND 2 LINK_TEMPLATE Expression 3 NODE Symbol Evaluation LINK Expression 2 "
+              "NODE Symbol Predicate ATOM h1 LINK_TEMPLATE Expression 2 NODE Symbol Concept VARIABLE C "
+              "LINK_TEMPLATE Expression 3 NODE Symbol Evaluation LINK Expression 2 NODE Symbol "
+              "Predicate ATOM h2 LINK_TEMPLATE Expression 2 NODE Symbol Concept VARIABLE C");
 }
 
 TEST(EquivalenceProcessor, TestEquivalenceProcessorQueryBuilding) {
@@ -452,19 +452,19 @@ TEST(EquivalenceProcessor, TestEquivalenceProcessorQueryBuilding) {
     vector<string> output;
     ls.tokenize(output);
     EXPECT_EQ(Utils::join(output, ' '),
-              "LINK_TEMPLATE AND 2 LINK_TEMPLATE Expression 3 NODE Symbol EVALUATION LINK_TEMPLATE "
-              "Expression 2 NODE Symbol PREDICATE VARIABLE P LINK Expression 2 NODE Symbol CONCEPT ATOM "
-              "h1 LINK_TEMPLATE Expression 3 NODE Symbol EVALUATION LINK_TEMPLATE Expression 2 NODE "
-              "Symbol PREDICATE VARIABLE P LINK Expression 2 NODE Symbol CONCEPT ATOM h2");
+              "LINK_TEMPLATE AND 2 LINK_TEMPLATE Expression 3 NODE Symbol Evaluation LINK_TEMPLATE "
+              "Expression 2 NODE Symbol Predicate VARIABLE P LINK Expression 2 NODE Symbol Concept ATOM "
+              "h1 LINK_TEMPLATE Expression 3 NODE Symbol Evaluation LINK_TEMPLATE Expression 2 NODE "
+              "Symbol Predicate VARIABLE P LINK Expression 2 NODE Symbol Concept ATOM h2");
 
     ls = LinkProcessor::build_pattern_union_query("h1", "h2");
     output.clear();
     ls.tokenize(output);
     EXPECT_EQ(Utils::join(output, ' '),
-              "LINK_TEMPLATE OR 2 LINK_TEMPLATE Expression 3 NODE Symbol EVALUATION LINK_TEMPLATE "
-              "Expression 2 NODE Symbol PREDICATE VARIABLE P LINK Expression 2 NODE Symbol CONCEPT "
-              "ATOM h1 LINK_TEMPLATE Expression 3 NODE Symbol EVALUATION LINK_TEMPLATE Expression 2 "
-              "NODE Symbol PREDICATE VARIABLE P LINK Expression 2 NODE Symbol CONCEPT ATOM h2");
+              "LINK_TEMPLATE OR 2 LINK_TEMPLATE Expression 3 NODE Symbol Evaluation LINK_TEMPLATE "
+              "Expression 2 NODE Symbol Predicate VARIABLE P LINK Expression 2 NODE Symbol Concept "
+              "ATOM h1 LINK_TEMPLATE Expression 3 NODE Symbol Evaluation LINK_TEMPLATE Expression 2 "
+              "NODE Symbol Predicate VARIABLE P LINK Expression 2 NODE Symbol Concept ATOM h2");
 }
 
 TEST_F(LinkCreationAgentTest, TestImplicationProcessorLinkCreation) {

@@ -16,12 +16,12 @@ LinkSchema ImplicationProcessor::build_pattern_query(const string& handle) {
     // clang-format off
     vector<string> tokens = {
         "LINK_TEMPLATE", "Expression", "3",
-            "NODE", "Symbol", "EVALUATION",
+            "NODE", "Symbol", "Evaluation",
             "LINK", "Expression", "2",
-                "NODE", "Symbol", "PREDICATE",
+                "NODE", "Symbol", "Predicate",
                 "ATOM", handle,
             "LINK_TEMPLATE", "Expression", "2",
-                "NODE", "Symbol", "CONCEPT",
+                "NODE", "Symbol", "Concept",
                 "VARIABLE", "PX"};
     // clang-format on
     return LinkSchema(tokens);
@@ -32,16 +32,16 @@ static vector<string> build_implication_query(const string& handle) {
     vector<string> tokens = {
         "OR", "2",
             "LINK_TEMPLATE", "Expression", "3",
-                "NODE", "Symbol", "EVALUATION",
+                "NODE", "Symbol", "Evaluation",
                 "ATOM", handle,
                 "VARIABLE", C1,
             "AND", "2",
                 "LINK_TEMPLATE", "Expression", "3",
-                    "NODE", "Symbol", "EVALUATION",
+                    "NODE", "Symbol", "Evaluation",
                     "ATOM", handle,
                     "VARIABLE", C2,
                 "LINK_TEMPLATE", "Expression", "3",
-                    "NODE", "Symbol", "EQUIVALENCE",
+                    "NODE", "Symbol", "Equivalence",
                     "VARIABLE", C2,
                     "VARIABLE", C1
     };
@@ -50,7 +50,7 @@ static vector<string> build_implication_query(const string& handle) {
 }
 
 bool ImplicationProcessor::link_exists(const string& handle1, const string& handle2) {
-    Node implication_node("Symbol", "IMPLICATION");
+    Node implication_node("Symbol", "Implication");
     vector<string> targets_p1_p2 = {implication_node.handle(), handle1, handle2};
     vector<string> targets_p2_p1 = {implication_node.handle(), handle2, handle1};
     shared_ptr<Link> p1_link = make_shared<Link>("Expression", targets_p1_p2);
@@ -108,7 +108,7 @@ vector<shared_ptr<Link>> ImplicationProcessor::process_query(shared_ptr<QueryAns
     double p2_p1_strength = count_intersection / p2_set_size;
 
     vector<shared_ptr<Link>> result;
-    Node implication_node("Symbol", "IMPLICATION");
+    Node implication_node("Symbol", "Implication");
     try {
         AtomDBSingleton::get_instance()->add_node(&implication_node);
     } catch (const std::exception& e) {

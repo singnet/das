@@ -26,12 +26,12 @@ EQUIVALENCE_RELATION
 
 Example (Tokens):
 ```
-AND 2 LINK_TEMPLATE Expression 2 NODE Symbol PREDICATE VARIABLE P1 LINK_TEMPLATE Expression 2 NODE Symbol PREDICATE VARIABLE P2 LINK_CREATE Similarity 2 1 VARIABLE P1 VARIABLE P2 CUSTOM_FIELD truth_value 2 CUSTOM_FIELD mean 2 count 10 avg 0.9 confidence 0.9
+AND 2 LINK_TEMPLATE Expression 2 NODE Symbol Predicate VARIABLE P1 LINK_TEMPLATE Expression 2 NODE Symbol Predicate VARIABLE P2 LINK_CREATE Similarity 2 1 VARIABLE P1 VARIABLE P2 CUSTOM_FIELD truth_value 2 CUSTOM_FIELD mean 2 count 10 avg 0.9 confidence 0.9
 ```
 
 Example (MeTTa):
 ```
-'(and (PREDICATE %P1) (PREDICATE %P2))' '(IMPLICATION %P1 %P2)'
+'(and (Predicate %P1) (Predicate %P2))' '(Implication %P1 %P2)'
 ```
 
 #### Query Example
@@ -119,11 +119,11 @@ Example:
 
 Tokens:
 ```
- make run-link-creation-client OPTIONS="localhost:9085 localhost:9080 1777:1888 50 1 false false false context1 AND 2 LINK_TEMPLATE Expression 2 NODE Symbol PREDICATE VARIABLE P1 LINK_TEMPLATE Expression 2 NODE Symbol PREDICATE VARIABLE P2 LINK_CREATE Similarity 2 1 VARIABLE P1 VARIABLE P2"
+ make run-link-creation-client OPTIONS="localhost:9085 localhost:9080 1777:1888 50 1 false false false context1 AND 2 LINK_TEMPLATE Expression 2 NODE Symbol Predicate VARIABLE P1 LINK_TEMPLATE Expression 2 NODE Symbol Predicate VARIABLE P2 LINK_CREATE Similarity 2 1 VARIABLE P1 VARIABLE P2"
 ```
 MeTTa:
 ```
-make run-link-creation-client OPTIONS="localhost:9085 localhost:9080 1777:1888 50 1 false false true context1 '(and (PREDICATE %P1) (PREDICATE %P2))' '(IMPLICATION %P1 %P2)'"
+make run-link-creation-client OPTIONS="localhost:9085 localhost:9080 1777:1888 50 1 false false true context1 '(and (Predicate %P1) (Predicate %P2))' '(Implication %P1 %P2)'"
 ```
 ##### OPTIONS parameters are:
 * client_address: The address of the client (localhost:1010)
