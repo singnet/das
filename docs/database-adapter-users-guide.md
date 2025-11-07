@@ -21,7 +21,7 @@ This guide will show you what Database Adapter is, how it works, and walk you th
       - [3. Build DAS components](#3-build-das-components)
       - [4. Run the AtomDBBroker](#4-run-the-atomdbbroker)
     - [2. Build and run the Database Adapter](#2-build-and-run-the-database-adapter)
-      - [1. Clone the Repository of the das-database-adapter](#1-clone-the-repository-of-the-das-database-adapter)
+      - [1. Clone the DAS Database Adapter repository](#1-clone-the-das-database-adapter-repository)
       - [2. Prepare Secrets and Context](#2-prepare-secrets-and-context)
       - [3. Build and run the Adapter](#3-build-and-run-the-adapter)
   - [Understanding the Context File](#understanding-the-context-file)
@@ -156,7 +156,7 @@ das-cli config set
 
 ### 2. Build and run the Database Adapter
 
-#### 1. Clone the Repository of the das-database-adapter
+#### 1. Clone the DAS Database Adapter repository
 
 ```bash
 git clone https://github.com/singnet/das-database-adapter.git
