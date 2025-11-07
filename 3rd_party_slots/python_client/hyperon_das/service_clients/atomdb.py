@@ -1,10 +1,10 @@
 import threading
+import time
 
 from hyperon_das.commons.atoms import Atom, Link, Node
 from hyperon_das.distributed_algorithm_node.bus_node import BusCommand
 from hyperon_das.logger import log
 from hyperon_das.service_clients.base import BaseProxy
-
 
 MAX_ARGS_BYTES = 3 * 1024 * 1024  # 3 MB
 
@@ -78,10 +78,11 @@ class AtomDBProxy(BaseProxy):
             current_chunk = []
             current_size = 0
             temp_atom_args = []
+            atoms_count = 0
 
             for atom in atoms:
                 handles.append(atom.handle())
-                
+
                 temp_atom_args.clear()
                 atom.tokenize(temp_atom_args)
 
@@ -95,26 +96,29 @@ class AtomDBProxy(BaseProxy):
 
                 full_args.append(atom_type)
                 full_args.extend(temp_atom_args)
-            
+
                 args_size = sum(len(arg.encode('utf-8')) for arg in ([atom_type] + temp_atom_args))
-                
+
                 if current_size + args_size > MAX_ARGS_BYTES and current_chunk:
-                    chunks.append(current_chunk)
+                    chunks.append((current_chunk, atoms_count))
                     current_chunk = []
                     current_size = 0
-                
+                    atoms_count = 0
+
                 current_chunk.extend([atom_type] + temp_atom_args)
+                atoms_count += 1
                 current_size += args_size
 
             if current_chunk:
-                chunks.append(current_chunk)
+                chunks.append((current_chunk, atoms_count))
 
-            log.debug(f"Sending {len(full_args)} arguments in {len(chunks)} chunk(s).")
+            log.debug(f"Sending {len(atoms)} atoms in {len(chunks)} chunk(s).")
 
-            for i, chunk_args in enumerate(chunks):
-                log.debug(f"Sending chunk {i+1}/{len(chunks)} with {len(chunk_args)} arguments.")
+            for i, (chunk_args, atoms_count) in enumerate(chunks):
+                log.debug(f"Sending chunk {i+1}/{len(chunks)} with {atoms_count} atoms.")
                 try:
                     self.to_remote_peer(self.ADD_ATOMS, chunk_args)
+                    time.sleep(2)  # Delay to avoid overwhelming the receiver
                 except Exception as e:
                     log.error(f"Failed to send chunk {i+1}/{len(chunks)}: {e}")
                     raise RuntimeError(f"Failed to send data chunk {i+1} to remote peer.") from e

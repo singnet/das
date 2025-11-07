@@ -1366,7 +1366,12 @@ void RedisMongoDB::drop_all() {
 void RedisMongoDB::flush_redis_commands(shared_ptr<RedisContext> ctx) {
     if (SKIP_REDIS) return;
 
+    LOG_DEBUG("Flushing Redis commands START");
     ctx->flush_commands();
+    LOG_DEBUG("Flushing Redis commands END");
+
     set_next_score(REDIS_PATTERNS_PREFIX + ":next_score", this->patterns_next_score.load());
+    LOG_DEBUG("Patterns next score set to " + to_string(this->patterns_next_score.load()));
     set_next_score(REDIS_INCOMING_PREFIX + ":next_score", this->incoming_set_next_score.load());
+    LOG_DEBUG("Incoming sets next score set to " + to_string(this->incoming_set_next_score.load()));
 }
