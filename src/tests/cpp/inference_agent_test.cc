@@ -111,8 +111,8 @@ TEST_F(InferenceAgentTest, TestInferenceRequests) {
     auto dic_request = proof_of_implication.get_distributed_inference_control_request();
     EXPECT_EQ(requests.size(), 2);
     EXPECT_EQ(Utils::join(dic_request, ' '),
-              "AND 2 LINK_TEMPLATE Expression 3 NODE Symbol IMPLICATION ATOM handle1 VARIABLE V0 "
-              "LINK_TEMPLATE Expression 3 NODE Symbol IMPLICATION VARIABLE V0 ATOM handle2");
+              "AND 2 LINK_TEMPLATE Expression 3 NODE Symbol Implication ATOM handle1 VARIABLE V0 "
+              "LINK_TEMPLATE Expression 3 NODE Symbol Implication VARIABLE V0 ATOM handle2");
 
     ProofOfImplication proof_of_implication2("handle1", "handle2", 2, "context");
     requests = proof_of_implication2.get_requests();
@@ -123,24 +123,24 @@ TEST_F(InferenceAgentTest, TestInferenceRequests) {
               "OR 2 "
                 "AND 3 "
                     "LINK_TEMPLATE Expression 3 "
-                        "NODE Symbol IMPLICATION "
+                        "NODE Symbol Implication "
                         "ATOM handle1 "
                         "VARIABLE V0 "
                     "LINK_TEMPLATE Expression 3 "
-                        "NODE Symbol IMPLICATION "
+                        "NODE Symbol Implication "
                         "VARIABLE V0 "
                         "VARIABLE V1 "
                     "LINK_TEMPLATE Expression 3 "
-                        "NODE Symbol IMPLICATION "
+                        "NODE Symbol Implication "
                         "VARIABLE V1 "
                         "ATOM handle2 "
                 "AND 2 "
                     "LINK_TEMPLATE Expression 3 "
-                        "NODE Symbol IMPLICATION "
+                        "NODE Symbol Implication "
                         "ATOM handle1 "
                         "VARIABLE V0 "
                     "LINK_TEMPLATE Expression 3 "
-                        "NODE Symbol IMPLICATION "
+                        "NODE Symbol Implication "
                         "VARIABLE V0 "
                         "ATOM handle2");
     // clang-format on
