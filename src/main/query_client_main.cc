@@ -26,24 +26,22 @@ void ctrl_c_handler(int) {
 int main(int argc, char* argv[]) {
     if (argc < 7) {
         cerr << "Usage: " << argv[0]
-             << " CLIENT_HOST:CLIENT_PORT SERVER_HOST:SERVER_PORT ATOMDB_TYPE <START_PORT:END_PORT> "
+             << " CLIENT_HOST:CLIENT_PORT SERVER_HOST:SERVER_PORT <START_PORT:END_PORT> "
+                "--use-mork|--use-redismongo"
                 "UPDATE_ATTENTION_BROKER QUERY_TOKEN+ "
                 "(hosts are supposed to be public IPs or known hostnames)"
              << endl;
         exit(1);
     }
 
-    string atomdb_type = argv[3];
-
-    if (atomdb_type == "morkdb") {
+    string client_id = string(argv[1]);
+    string server_id = string(argv[2]);
+    auto ports_range = Utils::parse_ports_range(argv[3]);
+    if (string(argv[4]) == string("--use-mork")) {
         AtomDBSingleton::init(atomdb_api_types::ATOMDB_TYPE::MORKDB);
     } else {
         AtomDBSingleton::init(atomdb_api_types::ATOMDB_TYPE::REDIS_MONGODB);
     }
-
-    string client_id = string(argv[1]);
-    string server_id = string(argv[2]);
-    auto ports_range = Utils::parse_ports_range(argv[4]);
     bool update_attention_broker = (string(argv[5]) == "true" || string(argv[5]) == "1");
     if (update_attention_broker) {
         cerr << "Enforcing update_attention_broker=false regardless the passed parameter" << endl;

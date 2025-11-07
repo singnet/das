@@ -26,18 +26,22 @@ void ctrl_c_handler(int) {
 }
 
 int main(int argc, char* argv[]) {
-    if (argc < 4) {
+    if ((argc < 5) && (argc != 6)) {
         cerr << "Usage: " << argv[0]
-             << " <hostname>:<port> <start_port:end_port> BUS_IP:PORT [AB_ip:AB_port]" << endl;
+             << " <hostname>:<port> <start_port:end_port> BUS_IP:PORT AB_ip:AB_port [--use-mork]"
+             << endl;
         exit(1);
     }
-    if (argc == 5) {
-        AttentionBrokerClient::set_server_address(string(argv[4]));
+    AttentionBrokerClient::set_server_address(string(argv[4]));
+
+    if ((argc == 6) && (string(argv[5]) == string("--use-mork"))) {
+        AtomDBSingleton::init(atomdb_api_types::ATOMDB_TYPE::MORKDB);
+    } else {
+        AtomDBSingleton::init();
     }
 
     string server_id = string(argv[1]);
     auto ports_range = Utils::parse_ports_range(argv[2]);
-    AtomDBSingleton::init();
     ServiceBusSingleton::init(server_id, argv[3], ports_range.first, ports_range.second);
 
     FitnessFunctionRegistry::initialize_statics();

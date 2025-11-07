@@ -16,11 +16,18 @@ using namespace atomdb;
 using namespace atomdb_broker;
 
 int main(int argc, char* argv[]) {
-    if (argc < 6) {
+    if ((argc != 6) && (argc != 7)) {
         cerr << "Usage: " << argv[0]
              << " <client_ip:client_port> <peer_ip:peer_port> <start_port:end_port> <action> <tokens+> "
+                "[--use-mork]"
              << endl;
         exit(1);
+    }
+
+    if ((argc == 7) && (string(argv[6]) == string("--use-mork"))) {
+        AtomDBSingleton::init(atomdb_api_types::ATOMDB_TYPE::MORKDB);
+    } else {
+        AtomDBSingleton::init();
     }
 
     string client_id = string(argv[1]);
@@ -32,7 +39,6 @@ int main(int argc, char* argv[]) {
         tokens.push_back(argv[i]);
     }
 
-    AtomDBSingleton::init();
     ServiceBusSingleton::init(client_id, peer_id, ports_range.first, ports_range.second);
     auto proxy = make_shared<AtomDBProxy>();
     ServiceBusSingleton::get_instance()->issue_bus_command(proxy);

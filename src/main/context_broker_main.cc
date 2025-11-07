@@ -25,10 +25,11 @@ void ctrl_c_handler(int) {
 }
 
 int main(int argc, char* argv[]) {
-    if (argc < 4) {
+    if ((argc != 5) && (argc != 6)) {
         cerr << "Context Broker Server" << endl;
         cerr << "Usage: " << argv[0]
-             << " <hostname:port> <start_port:end_port> <peer_ip:peer_port> <AB_ip:AB_port>" << endl;
+             << " <hostname:port> <start_port:end_port> <peer_ip:peer_port> <AB_ip:AB_port> [--use-mork]"
+             << endl;
         exit(1);
     }
 
@@ -37,10 +38,16 @@ int main(int argc, char* argv[]) {
     AttentionBrokerClient::set_server_address(string(argv[4]));
 
     auto ports_range = Utils::parse_ports_range(argv[2]);
+
+    if ((argc == 6) && (string(argv[5]) == string("--use-mork"))) {
+        AtomDBSingleton::init(atomdb_api_types::ATOMDB_TYPE::MORKDB);
+    } else {
+        AtomDBSingleton::init();
+    }
+
     LOG_INFO("Starting context broker server with id: " + server_id);
     signal(SIGINT, &ctrl_c_handler);
     signal(SIGTERM, &ctrl_c_handler);
-    AtomDBSingleton::init();
     ServiceBusSingleton::init(server_id, argv[3], ports_range.first, ports_range.second);
     shared_ptr<ServiceBus> service_bus = ServiceBusSingleton::get_instance();
     service_bus->register_processor(make_shared<ContextBrokerProcessor>());
