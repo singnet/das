@@ -24,13 +24,26 @@ string AtomDBProxy::ADD_ATOMS = "add_atoms";
 // -------------------------------------------------------------------------------------------------
 // Constructor and destructor
 
-AtomDBProxy::AtomDBProxy() : BaseProxy() {
-    lock_guard<mutex> semaphore(this->api_mutex);
+AtomDBProxy::AtomDBProxy() : BaseProxy(), m_shutdown(false) {
     this->command = ServiceBus::ATOMDB;
     this->atomdb = AtomDBSingleton::get_instance();
+
+    // Start thread that will consume the queue
+    m_worker_thread = thread(&AtomDBProxy::worker_loop, this);
+    const char* thread_name = "AtomDBWorker";
+    pthread_setname_np(m_worker_thread.native_handle(), thread_name);
+
 }
 
-AtomDBProxy::~AtomDBProxy() {}
+AtomDBProxy::~AtomDBProxy() {
+    LOG_INFO("Shutting down AtomDBProxy worker thread");
+    m_shutdown = true;
+    m_queue_cond.notify_one();
+    if (m_worker_thread.joinable()) {
+        m_worker_thread.join();
+    }
+    this->abort();
+}
 
 // -------------------------------------------------------------------------------------------------
 // Client-side API
@@ -88,13 +101,36 @@ bool AtomDBProxy::from_remote_peer(const string& command, const vector<string>& 
 }
 
 void AtomDBProxy::handle_add_atoms(const vector<string>& tokens) {
+    // {
+    //     lock_guard<mutex> lock(m_queue_mutex);
+    //     m_work_queue.push(tokens);
+    // }
+    // m_queue_cond.notify_one();
+
     try {
         vector<Atom*> atoms = build_atoms_from_tokens(tokens);
-        this->atomdb->add_atoms(atoms);
-    } catch (const std::runtime_error& exception) {
-        raise_error_on_peer(exception.what());
-    } catch (const std::exception& exception) {
-        raise_error_on_peer(exception.what());
+        LOG_INFO("Processing batch, total atoms to process: " << atoms.size());
+
+        if (atoms.empty()) {
+            LOG_INFO("No atoms were built from tokens. Nothing to process.");
+            return;
+        }
+
+        const size_t BATCH_SIZE = 1000;
+
+        for (size_t i = 0; i < atoms.size(); i += BATCH_SIZE) {
+            auto batch_start = atoms.begin() + i;
+            auto batch_end = atoms.begin() + min(i + BATCH_SIZE, atoms.size());
+            vector<Atom*> buffer(batch_start, batch_end);
+            LOG_INFO("Processing a batch of " << buffer.size() << " atoms.");
+            this->atomdb->add_atoms(buffer);
+            Utils::sleep(1000);
+        }
+
+        LOG_INFO("Finished processing all batches.");
+
+    } catch (const exception& e) {
+        LOG_ERROR("Error processing batch: " << e.what());
     }
 }
 
@@ -125,4 +161,48 @@ vector<Atom*> AtomDBProxy::build_atoms_from_tokens(const vector<string>& tokens)
     if (!buffer.empty() && !current.empty()) flush();
 
     return atoms;
+}
+
+void AtomDBProxy::worker_loop() {
+    while (!m_shutdown) {
+        vector<string> tokens;
+
+        {
+            unique_lock<mutex> lock(m_queue_mutex);
+            m_queue_cond.wait(lock, [this] {
+                return !m_work_queue.empty() || m_shutdown;
+            });
+
+            if (m_shutdown) break;
+
+            tokens = m_work_queue.front();
+            m_work_queue.pop();
+        }
+
+    try {
+        vector<Atom*> atoms = build_atoms_from_tokens(tokens);
+        LOG_INFO("Processing batch from worker thread, total atoms to process: " << atoms.size());
+
+        if (atoms.empty()) {
+            LOG_INFO("No atoms were built from tokens. Nothing to process.");
+            return;
+        }
+
+        const size_t BATCH_SIZE = 2000;
+
+        for (size_t i = 0; i < atoms.size(); i += BATCH_SIZE) {
+            auto batch_start = atoms.begin() + i;
+            auto batch_end = atoms.begin() + min(i + BATCH_SIZE, atoms.size());
+            vector<Atom*> buffer(batch_start, batch_end);
+            LOG_INFO("Processing a batch of " << buffer.size() << " atoms.");
+            this->atomdb->add_atoms(buffer);
+            Utils::sleep(5000);
+        }
+
+        LOG_INFO("Finished processing all batches.");
+
+    } catch (const exception& e) {
+        LOG_ERROR("Error processing batch from worker thread: " << e.what());
+    }
+    }
 }

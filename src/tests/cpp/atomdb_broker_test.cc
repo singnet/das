@@ -23,6 +23,7 @@ using namespace atomdb;
 using namespace attention_broker;
 using namespace atomdb_broker;
 using namespace query_engine;
+using namespace atoms;
 
 class AtomDBTestEnvironment : public ::testing::Environment {
    public:

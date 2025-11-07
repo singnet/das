@@ -278,7 +278,7 @@ void RedisMongoDB::add_pattern(const string& pattern_handle, const string& handl
     string command = "ZADD " + REDIS_PATTERNS_PREFIX + ":" + pattern_handle + " " +
                      to_string(this->patterns_next_score.load()) + " " + handle;
     redisReply* reply = ctx->execute(command.c_str());
-    if (reply == NULL) Utils::error("Redis error at add_pattern");
+    if (reply == NULL) Utils::error("Redis error at add_pattern: <" + command + ">");
 
     if (reply->type != REDIS_REPLY_INTEGER) {
         Utils::error("Invalid Redis response at add_pattern: " + std::to_string(reply->type));
@@ -379,7 +379,7 @@ void RedisMongoDB::set_next_score(const string& key, uint score) {
     auto ctx = this->redis_pool->acquire();
     string command = "SET " + key + " " + to_string(score);
     redisReply* reply = ctx->execute(command.c_str());
-    if (reply == NULL) Utils::error("Redis error at set_next_score");
+    if (reply == NULL) Utils::error("Redis error at set_next_score: <" + command + ">");
 
     if (reply->type != REDIS_REPLY_STATUS) {
         Utils::error("Invalid Redis response at set_next_score: " + std::to_string(reply->type));
@@ -873,6 +873,7 @@ vector<string> RedisMongoDB::add_atoms(const vector<atoms::Atom*>& atoms, bool t
     vector<Node*> nodes;
     vector<Link*> links;
     for (const auto& atom : atoms) {
+        LOG_DEBUG("Adding atom: " + atom->to_string());
         if (atom->arity() == 0) {
             nodes.push_back(dynamic_cast<atoms::Node*>(atom));
         } else {
