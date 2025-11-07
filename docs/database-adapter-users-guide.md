@@ -1,6 +1,6 @@
-# DatabaseWrapper - User's Guide
+# Database Adapter - User's Guide
 
-This guide will show you what DatabaseWrapper is, how it works, and walk you through using it, enabling you to map data from a PostgreSQL database into MeTTa expressions and interact with the DAS ecosystem. The mapping logic used to convert SQL data to MeTTa expressions can be seen in the diagram below.
+This guide will show you what Database Adapter is, how it works, and walk you through using it, enabling you to map data from a PostgreSQL database and load it into the DAS. The mapping logic used to convert SQL data to MeTTa expressions can be seen in the diagram below.
 
 <p align="center">
 <img src="../docs/assets/mapping.jpg" width="400"/>
@@ -10,25 +10,25 @@ This guide will show you what DatabaseWrapper is, how it works, and walk you thr
 
 ## Table of Contents
 
-- [DatabaseWrapper - User's Guide](#databasewrapper---users-guide)
+- [Database Adapter - User's Guide](#database-adapter---users-guide)
   - [Table of Contents](#table-of-contents)
   - [Introduction](#introduction)
   - [Prerequisites](#prerequisites)
   - [Quickstart Example](#quickstart-example)
-    - [1. Clone the Repository](#1-clone-the-repository)
-    - [2. Prepare Secrets and Context](#2-prepare-secrets-and-context)
-    - [3. Build and Run](#3-build-and-run)
-    - [4. Reviewing the Generated Files](#4-reviewing-the-generated-files)
+    - [1. Configure the DAS stack](#1-configure-the-das-stack)
+      - [1. Install das-cli and start the DAS services](#1-install-das-cli-and-start-the-das-services)
+      - [2. Clone the DAS repository and setting up the environment](#2-clone-the-das-repository-and-setting-up-the-environment)
+      - [3. Build DAS components](#3-build-das-components)
+      - [4. Run the AtomDBBroker](#4-run-the-atomdbbroker)
+    - [2. Build and run the Database Adapter](#2-build-and-run-the-database-adapter)
+      - [1. Clone the Repository of the das-database-adapter](#1-clone-the-repository-of-the-das-database-adapter)
+      - [2. Prepare Secrets and Context](#2-prepare-secrets-and-context)
+      - [3. Build and run the Adapter](#3-build-and-run-the-adapter)
   - [Understanding the Context File](#understanding-the-context-file)
     - [Context Structures](#context-structures)
       - [**Structure 1: Table Filter (Recommended)**](#structure-1-table-filter-recommended)
       - [**Structure 2: Subquery Table (WIP)**](#structure-2-subquery-table-wip)
     - [Writing Your Own Context File](#writing-your-own-context-file)
-  - [Load the mapped data into the DAS](#load-the-mapped-data-into-the-das)
-    - [das-cli installation](#das-cli-installation)
-    - [Running the database container and loading data](#running-the-database-container-and-loading-data)
-      - [das-cli settings](#das-cli-settings)
-      - [To load the data into DAS](#to-load-the-data-into-das)
   - [Troubleshooting and Tips](#troubleshooting-and-tips)
 
 ---
@@ -36,9 +36,7 @@ This guide will show you what DatabaseWrapper is, how it works, and walk you thr
 ## Introduction
 
 The DAS Database Adapter is a modular system designed to map data from SQL databases into Atoms (MeTTa symbols and expressions).
-The primary workflow involves cloning the [repository](https://github.com/singnet/das-database-adapter), configuring a context file to define the data mapping, and running the adapter to generate `.metta` files.
-
-These `.metta` files can then be loaded into the Distributed AtomSpace (DAS) using the [`das-cli`](https://github.com/singnet/das-toolbox), the command-line tool for interacting with the DAS ecosystem.
+The main workflow involves cloning the [repository](https://github.com/singnet/das-database-adapter), configuring a context file to define the data mapping, and running the adapter passing the necessary parameters.
 
 ---
 
@@ -46,8 +44,8 @@ These `.metta` files can then be loaded into the Distributed AtomSpace (DAS) usi
 
 Before you begin, ensure you have the following tools installed and running:
 
-- **Docker** Essential for building and running the adapter in a containerized environment.
-- **das-cli** The DAS command-line interface. While not used to *generate* MeTTa files with this adapter, it is **required for the next step**: loading the data into DAS. ([See das-toolbox](https://github.com/singnet/das-toolbox) for installation guidelines).
+- **Docker:** Essential for building and running the adapter in a containerized environment.
+- **das-cli:** The DAS command-line interface. You can find installation instructions in the [das-cli User's Guide](das-cli-users-guide.md).
 
 ---
 
@@ -55,41 +53,150 @@ Before you begin, ensure you have the following tools installed and running:
 
 This example maps data from the [FlyBase public PostgreSQL database](https://flybase.github.io/docs/chado/#public-database) using the provided context and secrets.
 
-### 1. Clone the Repository
+> [!NOTE]
+> Currently, it is only possible to use the Database Adapter with scripts directly from the repository.
+> In the future, a version of the Adapter will be integrated into `das-cli` to facilitate its use.
+
+For the mapping and loading of data into DAS to work correctly, you need to follow these steps:
+
+### 1. Configure the DAS stack
+
+#### 1. Install das-cli and start the DAS services
+
+Follow the instructions in the [das-cli User's Guide](das-cli-users-guide.md) to install `das-cli`.
+
+- Configuring your DAS environment
 
 ```bash
-git clone git@github.com:singnet/das-database-adapter.git
+das-cli config set
+```
+
+- Starting an AtomDB
+
+  ```bash
+  das-cli db start
+  ```
+
+- Starting the AttentionBroker
+
+  ```bash
+  das-cli attention-broker start
+  ```
+
+- Starting an Agent (QueryAgent for instance)
+
+  **IMPORTANT:** The `<ip:port>` of the agent started here is used as `peer_id` to AtomDBBroker.
+
+  ```bash
+  das-cli query-agent start
+  ```
+
+  You will see this output in the terminal:
+
+  ```bash
+  Starting Query Agent service...
+  Query Agent started on port 40002
+  ```
+
+#### 2. Clone the DAS repository and setting up the environment
+
+  ```bash
+  git clone https://github.com/singnet/das.git
+  cd das
+  ```
+
+  You need to create a `.env` file in the `das` directory with the following content:
+
+  ```bash
+  DAS_REDIS_HOSTNAME=0.0.0.0
+  DAS_REDIS_PORT=29000
+  DAS_USE_REDIS_CLUSTER=False
+  DAS_MONGODB_HOSTNAME=0.0.0.0
+  DAS_MONGODB_PORT=28000
+  DAS_MONGODB_USERNAME=dbadmin
+  DAS_MONGODB_PASSWORD=dassecret
+  ```
+
+#### 3. Build DAS components
+
+  ```bash
+  make build-all
+  ```
+
+#### 4. Run the AtomDBBroker
+
+  You need to pass the <ip:port> of the QueryAgent started before as `peer_id` to AtomDBBroker.
+
+  ```bash
+  make run-atomdb-broker OPTIONS="0.0.0.0:40007 44000:44999 0.0.0.0:40002"
+  ```
+
+  **IMPORTANT:** The `<ip:port>` of the AtomDBBroker is used as `peer_id` when running the adapter.
+
+  You will see this output in the terminal:
+
+  ```bash
+  2025-11-07 19:44:31 | [INFO] | Starting AtomDB Broker server with id: 0.0.0.0:40007
+  2025-11-07 19:44:31 | [INFO] | Using default MongoDB chunk size: 1000
+  2025-11-07 19:44:31 | [INFO] | Connected to MongoDB at 0.0.0.0:28000
+  2025-11-07 19:44:31 | [INFO] | WARNING: No pattern_index_schema found, all possible patterns will be created during link insertion!
+  2025-11-07 19:44:31 | [INFO] | Connected to (NON-CLUSTER) Redis at 0.0.0.0:29000
+  2025-11-07 19:44:31 | [INFO] | BUS static initialization
+  2025-11-07 19:44:31 | [INFO] | BUS command: <atomdb>
+  2025-11-07 19:44:31 | [INFO] | BUS command: <context>
+  2025-11-07 19:44:31 | [INFO] | BUS command: <inference>
+  2025-11-07 19:44:31 | [INFO] | BUS command: <link_creation>
+  2025-11-07 19:44:31 | [INFO] | BUS command: <pattern_matching_query>
+  2025-11-07 19:44:31 | [INFO] | BUS command: <query_evolution>
+  2025-11-07 19:44:31 | [INFO] | Port range: [44000 : 44999]
+  2025-11-07 19:44:31 | [INFO] | SynchronousGRPC listening on 0.0.0.0:40007
+  2025-11-07 19:44:32 | [INFO] | BUS node 0.0.0.0:40007 is taking ownership of command atomdb
+  2025-11-07 19:44:32 | [INFO] | #############################     REQUEST QUEUE EMPTY     ##################################
+  ```
+
+### 2. Build and run the Database Adapter
+
+#### 1. Clone the Repository of the das-database-adapter
+
+```bash
+git clone https://github.com/singnet/das-database-adapter.git
 cd das-database-adapter
 ```
 
-### 2. Prepare Secrets and Context
+#### 2. Prepare Secrets and Context
 
-- **secrets.ini**: Use the provided example at. `./examples/secrets.ini`. It contains the database credentials:
+Before running the adapter, you need to set up two configuration files: `secrets.ini` (with SQL database credentials) and `context.txt`.
 
-  ```ini
-  [postgres]
-  username=flybase
-  password=
-  ```
+- **secrets.ini**: Use the provided example at `./examples/secrets.ini`. It contains the database credentials:
+
+```ini
+[postgres]
+username=flybase
+password=
+```
 
 - **context.txt**: Use the provided example at `./examples/context.txt`. It defines what data to extract:
 
-  ```txt
-  public.feature -[residues,seqlen,md5checksum] <uniquename LIKE 'FBgn%'><is_obsolete=false>
-  ```
+```txt
+public.feature -[residues,seqlen,md5checksum] <uniquename LIKE 'FBgn%'><is_obsolete=false>
+```
 
-  **NOTE :** The context files are better explained in the [Understanding the Context File](#understanding-the-context-file) section.
+**NOTE:** The context files are better explained in the [Understanding the Context File](#understanding-the-context-file) section.
 
-### 3. Build and Run
+#### 3. Build and run the Adapter
 
-Use the `make` commands to build the Docker image and run the adapter. Pass the connection parameters and paths to your configuration files.
+Build the adapter's Docker image (in the das-database-adapter directory)
 
 ```bash
-# Build the adapter's Docker image
 make build
 
-# Run the adapter
-make run host=chado.flybase.org port=5432 db=flybase secrets=$(pwd)/examples/secrets.ini context=$(pwd)/examples/context.txt output=$(pwd)/
+make run \
+  host=chado.flybase.org \
+  port=5432 \
+  db=flybase \
+  secrets=$(pwd)/examples/secrets.ini \
+  context=$(pwd)/examples/context.txt \
+  peer_id=0.0.0.0:40007
 ```
 
 If everything is configured correctly, the adapter will connect to the remote database, map the data as described in the context, and process it into MeTTa files in the specified output directory. You should see the generated output files in the current directory and terminal output similar to the one below:
@@ -98,25 +205,7 @@ If everything is configured correctly, the adapter will connect to the remote da
 <img src="../docs/assets/mapping_output.png" width="400"/>
 </p>
 
-**After these steps, you will have your Postgres database properly translated into MeTTa files.**
-
-### 4. Reviewing the Generated Files
-
-After execution, several directories will be created, where each directory represents a table that was mapped according to the passed context and each directory will contain one or more `.metta` files. This files contains your SQL data translated into the MeTTa format. Each record in the table becomes a MeTTa expression, as shown in the [image](#databasewrapper---users-guide). See an example of a generated `.metta` file bellow:
-
-
-```metta
-(EVALUATION (PREDICATE (public.feature public.feature.is_analysis "False")) (CONCEPT (public.feature "100182789")))
-(EVALUATION (PREDICATE (public.feature public.feature.is_analysis "False")) (CONCEPT (public.feature "100182790")))
-(EVALUATION (PREDICATE (public.feature public.feature.is_analysis "False")) (CONCEPT (public.feature "100182979")))
-(EVALUATION (PREDICATE (public.feature public.feature.is_analysis "False")) (CONCEPT (public.feature "100182980")))
-(EVALUATION (PREDICATE (public.feature public.feature.is_analysis "False")) (CONCEPT (public.feature "1005074")))
-(EVALUATION (PREDICATE (public.feature public.feature.is_analysis "False")) (CONCEPT (public.feature "100572913")))
-(EVALUATION (PREDICATE (public.feature public.feature.is_analysis "False")) (CONCEPT (public.feature "1013")))
-(EVALUATION (PREDICATE (public.feature public.feature.is_analysis "False")) (CONCEPT (public.feature "101601525")))
-(EVALUATION (PREDICATE (public.feature public.feature.is_analysis "False")) (CONCEPT (public.feature "101601526")))
-(EVALUATION (PREDICATE (public.feature public.feature.is_analysis "False")) (CONCEPT (public.feature "101601527")))
-```
+**After these steps, you will have your Postgres database properly loaded into DAS.**
 
 ---
 
@@ -139,7 +228,7 @@ schema_name.table_name -[columns_to_exclude] <CLAUSE_1> <CLAUSE_2> ...
 - Each `<CLAUSE>`: A SQL WHERE clause (without `WHERE` keyword).
 - Clauses are combined with `AND` operator.
 
-**Note:** If you don't want to exclude any columns, you must pass `-[]`.
+**NOTE:** If you don't want to exclude any columns, you must pass `-[]`.
 
 **Example:**
 
@@ -166,7 +255,7 @@ SQL custom_table_name <SQL_QUERY>
 - `custom_table_name`: Any identifier you assign to this data set.
 - `<SQL_QUERY>`: An SQL query enclosed in `<>`. Each column **must** use an alias in the form `schema_table__column`.
 
-**Note:** The `schema_table__column` alias convention is mandatory for the adapter to track the origin of each data field.
+**NOTE:** The `schema_table__column` alias convention is mandatory for the adapter to track the origin of each data field.
 
 **Example 1:**
 ```txt
@@ -203,64 +292,9 @@ library.uniquename in (
 ### Writing Your Own Context File
 
 1.  **Identify** the tables and data you want to extract.
-2.  **Decide** if a simple filter (Structure 1) is sufficient or if a custom query (Structure 2) is needed, remembering that Structure 1 is recommended.
+2.  **Decide** if a simple filter (Structure 1) is sufficient or if a custom query (Structure 2) is needed, remembering that Structure 2 is unstable and not recommended because it could lead to mapping errors.
 3.  **Write** one context line per dataset you want to extract.
 4.  **Always use** complete schema and table names and valid SQL syntax.
-
----
-
-## Load the mapped data into the DAS
-
-Once the data mapping is complete and the `.metta` files have been generated, you can load them into DAS using the `das-cli`.
-
-### das-cli installation
-
-Installation via APT package is recommended.
-
-- Set up the repository:
-```bash
-sudo bash -c "wget -O - http://45.77.4.33/apt-repo/setup.sh | bash"
-```
-- Install the package:
-```bash
-sudo apt install das-cli
-```
-- Check installation:
-```bash
-das-cli --version
-```
-
-- **NOTE :** For more details on installing `das-cli`, see the official [documentation](https://github.com/singnet/das-toolbox/blob/master/das-cli/README.md#installation).
-
-### Running the database container and loading data
-
-#### das-cli settings
-
-```bash
-das-cli config set
-```
-
-To load MeTTa files into the database, only the first few configurations are required. You can accept the default port number or specify your own. See below:
-
-```bash
-Enter Redis port [40020]:
-Is it a Redis cluster? [y/N]: N
-Enter MongoDB port [40021]:
-Enter MongoDB username [admin]:
-Enter MongoDB password [admin]:
-Is it a MongoDB cluster? [y/N]: N
-```
-
-**NOTE:** Other settings after the ones above you can ignore them, just press enter.
-
-#### To load the data into DAS
-
-You need to start the DAS internal database and then load the `.metta` files generated by the DatabaseWrapper. Use the following commands:
-
-```bash
-das-cli db start
-das-cli metta load /absolute/path/to/your/file.metta
-```
 
 ---
 
