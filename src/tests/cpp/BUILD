@@ -706,6 +706,7 @@ cc_test(
     linkstatic = 1,
     deps = [
         "//atomdb:atomdb_singleton",
+        "//tests/cpp/test_commons",
         "@com_github_google_googletest//:gtest_main",
         "@mbedtls",
     ],

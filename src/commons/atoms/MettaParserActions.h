@@ -70,6 +70,8 @@ class MettaParserActions : public ParserActions {
     // A map with all parsed metta expressions, indexed by their handle.
     map<string, string> handle_to_metta_expression;
 
+    vector<string> metta_expressions;
+
    private:
     unsigned int current_expression_size;
     ExpressionType current_expression_type;

@@ -9,8 +9,10 @@
 #include <thread>
 #include <vector>
 
+#include "AtomDBCacheSingleton.h"
 #include "AtomDBSingleton.h"
 #include "LinkSchema.h"
+#include "TestConfig.h"
 
 using namespace atomdb;
 using namespace atoms;
@@ -19,17 +21,8 @@ using namespace std;
 class MorkDBTestEnvironment : public ::testing::Environment {
    public:
     void SetUp() override {
-        setenv("DAS_REDIS_HOSTNAME", "localhost", 1);
-        setenv("DAS_REDIS_PORT", "29000", 1);
-        setenv("DAS_USE_REDIS_CLUSTER", "false", 1);
-        setenv("DAS_MONGODB_HOSTNAME", "localhost", 1);
-        setenv("DAS_MONGODB_PORT", "28000", 1);
-        setenv("DAS_MONGODB_USERNAME", "dbadmin", 1);
-        setenv("DAS_MONGODB_PASSWORD", "dassecret", 1);
-        setenv("DAS_DISABLE_ATOMDB_CACHE", "true", 1);
-        setenv("DAS_MORK_HOSTNAME", "localhost", 1);
-        setenv("DAS_MORK_PORT", "8000", 1);
-
+        TestConfig::load_environment();
+        TestConfig::set_atomdb_cache(false);
         auto atomdb = new MorkDB("morkdb_test_");
         atomdb->drop_all();
         AtomDBSingleton::provide(shared_ptr<AtomDB>(atomdb));
@@ -86,7 +79,7 @@ TEST_F(MorkDBTest, QueryForPattern) {
     LinkSchema link_schema({
         link_template, expression, "3", 
             node, symbol, inheritance, 
-            variable, "$x",
+            variable, "x",
             node, symbol, mammal});
     // clang-format on
 
@@ -110,8 +103,27 @@ TEST_F(MorkDBTest, QueryForPattern) {
 }
 
 TEST_F(MorkDBTest, QueryForTargets) {
-    string link_handle = exp_hash({"Inheritance", "\"human\"", "\"mammal\""});
-    EXPECT_EQ(db->query_for_targets(link_handle), nullptr);
+    auto node1 = new Node("Symbol", "QueryForTargetsNode1");
+    auto node1_handle = db->add_node(node1);
+    auto node2 = new Node("Symbol", "QueryForTargetsNode2");
+    auto node2_handle = db->add_node(node2);
+    auto node3 = new Node("Symbol", "QueryForTargetsNode3");
+    auto node3_handle = db->add_node(node3);
+
+    auto node1_targets = db->query_for_targets(node1_handle);
+    EXPECT_EQ(node1_targets, nullptr);
+
+    auto link1 = new Link("Expression", {node1_handle, node2_handle, node3_handle});
+    auto link1_handle = db->add_link(link1);
+
+    ASSERT_TRUE(db->link_exists(link1_handle));
+
+    auto link1_targets = db->query_for_targets(link1_handle);
+    EXPECT_NE(link1_targets, nullptr);
+    EXPECT_EQ(link1_targets->size(), 3);
+    EXPECT_EQ(link1_targets->get_handle(0), node1_handle);
+    EXPECT_EQ(link1_targets->get_handle(1), node2_handle);
+    EXPECT_EQ(link1_targets->get_handle(2), node3_handle);
 }
 
 TEST_F(MorkDBTest, ConcurrentQueryForPattern) {
@@ -125,8 +137,8 @@ TEST_F(MorkDBTest, ConcurrentQueryForPattern) {
             LinkSchema link_schema({
                 link_template, expression, "3", 
                     node, symbol, similarity, 
-                    variable, "$x",
-                    variable, "$y"});
+                    variable, "x",
+                    variable, "y"});
             // clang-format on
             auto handle_set = db->query_for_pattern(link_schema);
             ASSERT_NE(handle_set, nullptr);
@@ -152,8 +164,8 @@ TEST_F(MorkDBTest, ConcurrentQueryForPattern) {
     LinkSchema link_schema({
         link_template, expression, "3", 
             node, symbol, "Fake", 
-            variable, "$x",
-            variable, "$y"});
+            variable, "x",
+            variable, "y"});
     // clang-format on
     auto handle_set = db->query_for_pattern(link_schema);
     EXPECT_EQ(handle_set->size(), 0);
@@ -264,6 +276,26 @@ TEST_F(MorkDBTest, AddGetAndDeleteLinks) {
 
     // MORKDB does not support deleting links, so it must always return false
     EXPECT_FALSE(db->delete_links(links_handles, true));
+}
+
+TEST_F(MorkDBTest, AddLinksWithDuplicateTargets) {
+    vector<Node*> nodes;
+    nodes.push_back(new Node("Symbol", "DuplicateTargets1"));
+    nodes.push_back(new Node("Symbol", "DuplicateTargets2"));
+    nodes.push_back(new Node("Symbol", "DuplicateTargets3"));
+    EXPECT_EQ(db->add_nodes(nodes, true).size(), 3);
+
+    auto link = new Link("Expression",
+                         {nodes[0]->handle(),
+                          nodes[1]->handle(),
+                          nodes[1]->handle(),
+                          nodes[0]->handle(),
+                          nodes[2]->handle(),
+                          nodes[0]->handle(),
+                          nodes[2]->handle()});
+    EXPECT_EQ(db->add_link(link), link->handle());
+    // MORKDB does not support deleting links, so it must always return false
+    EXPECT_FALSE(db->delete_link(link->handle(), true));
 }
 
 int main(int argc, char** argv) {

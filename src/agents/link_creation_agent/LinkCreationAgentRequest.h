@@ -14,6 +14,7 @@ struct LinkCreationAgentRequest {
     bool infinite = false;
     string context = "";
     bool update_attention_broker = false;
+    bool use_metta_as_query_tokens = false;
     // Internal fields
     string id = "";
     string original_id = "";

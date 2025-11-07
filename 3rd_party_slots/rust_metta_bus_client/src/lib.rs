@@ -13,8 +13,9 @@ use types::BoxError;
 
 use crate::{
 	base_proxy_query::BaseQueryProxyT,
-	context_broker_proxy::{hash_context, ContextBrokerParams, ContextBrokerProxy},
-	helpers::split_ignore_quoted,
+	context_broker_proxy::{ContextBrokerParams, ContextBrokerProxy},
+	helpers::{compute_hash, split_ignore_quoted},
+	link_creation_proxy::{LinkCreationParams, LinkCreationProxy},
 	properties::{Properties, PropertyValue},
 	query_evolution_proxy::{QueryEvolutionParams, QueryEvolutionProxy},
 	service_bus::ServiceBus,
@@ -24,18 +25,19 @@ pub mod space;
 
 pub mod bus;
 pub mod bus_node;
-pub mod context_broker_proxy;
 pub mod helpers;
-pub mod pattern_matching_proxy;
 pub mod port_pool;
 pub mod properties;
 pub mod proxy;
-pub mod query_evolution_proxy;
 pub mod service_bus;
 pub mod service_bus_singleton;
 pub mod types;
 
 pub mod base_proxy_query;
+pub mod context_broker_proxy;
+pub mod link_creation_proxy;
+pub mod pattern_matching_proxy;
+pub mod query_evolution_proxy;
 
 #[derive(Clone, Default)]
 pub struct QueryParams {
@@ -79,7 +81,7 @@ pub fn extract_query_params(
 	};
 
 	let context_name = properties.get::<String>(properties::CONTEXT);
-	params.context = hash_context(&context_name);
+	params.context = compute_hash(&context_name);
 
 	let query_tokens_str = match query {
 		QueryType::String(s) => s.clone(),
@@ -203,6 +205,22 @@ pub fn evolution_query(
 	proxy.drop_runtime();
 
 	Ok(bindings_set)
+}
+
+pub fn link_creation_query(
+	service_bus: Arc<Mutex<ServiceBus>>, params: &QueryParams,
+	link_creation_params: &LinkCreationParams,
+) -> Result<Atom, BoxError> {
+	let proxy = LinkCreationProxy::new(params, link_creation_params)?;
+
+	let mut service_bus = service_bus.lock().unwrap();
+	service_bus.issue_bus_command(proxy.base.clone())?;
+
+	while !proxy.finished() {
+		sleep(Duration::from_millis(100));
+	}
+
+	Ok(Atom::expr([Atom::sym("das-link-creation!"), Atom::sym("Done")]))
 }
 
 pub fn init_service_bus(

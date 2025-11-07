@@ -55,7 +55,7 @@ class HandleSetMorkIterator : public HandleSetIterator {
 
 class HandleListMork : public HandleList {
    public:
-    HandleListMork(vector<string> targets);
+    HandleListMork(const shared_ptr<AtomDocument>& document);
     ~HandleListMork();
 
     const char* get_handle(unsigned int index);
@@ -63,7 +63,7 @@ class HandleListMork : public HandleList {
 
    private:
     unsigned int handles_size;
-    vector<string> handles;
+    char** handles;
 };
 
 }  // namespace atomdb_api_types

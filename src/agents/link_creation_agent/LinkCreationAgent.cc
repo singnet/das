@@ -3,6 +3,7 @@
 #include <fstream>
 
 #include "LinkCreateTemplate.h"
+#include "LinkProcessor.h"
 #define LOG_LEVEL DEBUG_LEVEL
 #include "Logger.h"
 #include "expression_hasher.h"
@@ -16,8 +17,7 @@ LinkCreationAgent::LinkCreationAgent(int request_interval,
                                      string buffer_file_path,
                                      string metta_file_path,
                                      bool save_links_to_metta_file,
-                                     bool save_links_to_db,
-                                     bool reindex) {
+                                     bool save_links_to_db) {
     this->requests_interval_seconds = request_interval;
     LOG_DEBUG("LinkCreationAgent initialized with request interval: " << request_interval << " seconds");
     this->link_creation_agent_thread_count = thread_count;
@@ -38,10 +38,6 @@ LinkCreationAgent::LinkCreationAgent(int request_interval,
     }
     service->set_save_links_to_metta_file(save_links_to_metta_file);
     service->set_save_links_to_db(save_links_to_db);
-    if (reindex) {
-        LOG_DEBUG("Reindexing patterns in DB");
-        load_db_patterns();
-    }
     this->agent_thread = new thread(&LinkCreationAgent::run, this);
 }
 
@@ -95,8 +91,7 @@ void LinkCreationAgent::run() {
         }
 
         if (lca_request != nullptr) {
-            if (!lca_request->is_running && lca_request->repeat == 0 && lca_request->processed > 0 &&
-                !lca_request->completed) {
+            if (!lca_request->is_running && lca_request->repeat == 0 && !lca_request->completed) {
                 LOG_DEBUG("Finishing request ID: " << lca_request->id);
                 auto proxy = link_creation_proxy_map[lca_request->original_id];
                 proxy->to_remote_peer(BaseProxy::FINISHED, {});
@@ -113,10 +108,10 @@ void LinkCreationAgent::run() {
         }
 
         LOG_DEBUG("Request ID: " << (lca_request ? lca_request->id : "NULL"));
-
-        if (lca_request->repeat == 0 && lca_request->processed == 0) {
-            lca_request->repeat = 1;
-        }
+        // Rework this when Inference Agent integration is done
+        // if (lca_request->repeat == 0 && lca_request->processed == 0) {
+        //     lca_request->repeat = 1;
+        // }
 
         if (lca_request->infinite || lca_request->repeat > 0) {
             LOG_DEBUG("Request IDX: " << current_buffer_position);
@@ -146,6 +141,10 @@ shared_ptr<PatternMatchingQueryProxy> LinkCreationAgent::query(
     proxy->parameters[PatternMatchingQueryProxy::MAX_ANSWERS] = (unsigned int) lca_request->max_results;
     proxy->parameters[PatternMatchingQueryProxy::POSITIVE_IMPORTANCE_FLAG] =
         lca_request->importance_flag;
+    proxy->parameters[PatternMatchingQueryProxy::ATTENTION_UPDATE_FLAG] =
+        lca_request->update_attention_broker;
+    proxy->parameters[PatternMatchingQueryProxy::USE_METTA_AS_QUERY_TOKENS] =
+        lca_request->use_metta_as_query_tokens;
     ServiceBusSingleton::get_instance()->issue_bus_command(proxy);
     return proxy;
 }
@@ -168,25 +167,47 @@ void LinkCreationAgent::load_buffer() {
     file.close();
 }
 
+static bool is_processor_arg(string arg) {
+    if (LinkCreationProcessor::get_processor_type(arg) == ProcessorType::IMPLICATION_RELATION)
+        return true;
+    if (LinkCreationProcessor::get_processor_type(arg) == ProcessorType::EQUIVALENCE_RELATION)
+        return true;
+    return false;
+}
+
 static bool is_link_create_arg(string arg) {
     if (arg == "LIST") return true;
     if (arg == "LINK_CREATE") return true;
-    if (arg == "PROOF_OF_IMPLICATION") return true;
-    if (arg == "PROOF_OF_EQUIVALENCE") return true;
-    return false;
+    return is_processor_arg(arg);
 }
 
 shared_ptr<LinkCreationAgentRequest> LinkCreationAgent::create_request(
     shared_ptr<LinkCreationRequestProxy> proxy) {
     auto lca_request = make_shared<LinkCreationAgentRequest>();
     try {
-        bool query_section = true;
-        for (const auto& token : proxy->get_args()) {
-            if (is_link_create_arg(token) || !query_section) {
-                query_section = false;
-                lca_request->link_template.push_back(token);
+        lca_request->use_metta_as_query_tokens =
+            proxy->parameters.get<bool>(LinkCreationRequestProxy::USE_METTA_AS_QUERY_TOKENS);
+        if (lca_request->use_metta_as_query_tokens) {
+            auto args = proxy->get_args();
+            lca_request->query.push_back(args.front());
+            if (is_processor_arg(args[1])) {
+                lca_request->link_template.push_back(args[1]);
             } else {
-                lca_request->query.push_back(token);
+                lca_request->link_template.push_back("METTA");
+                for (size_t i = 1; i < args.size(); i++) {
+                    lca_request->link_template.push_back(args[i]);
+                }
+            }
+
+        } else {
+            bool query_section = true;
+            for (const auto& token : proxy->get_args()) {
+                if (is_link_create_arg(token) || !query_section) {
+                    query_section = false;
+                    lca_request->link_template.push_back(token);
+                } else {
+                    lca_request->query.push_back(token);
+                }
             }
         }
         lca_request->max_results =
@@ -254,56 +275,4 @@ void LinkCreationAgent::abort_request(const string& request_id) {
     }
     // pattern_query_proxy_map[request_id_hash]->abort();
     pattern_query_proxy_map.erase(request_id_hash);
-}
-
-void LinkCreationAgent::load_db_patterns() {
-    auto db = dynamic_pointer_cast<RedisMongoDB>(AtomDBSingleton::get_instance());
-
-    try {
-        string tokens = "LINK_TEMPLATE Expression 3 NODE Symbol EVALUATION VARIABLE v1 VARIABLE v2";
-        vector<vector<string>> index_entries = {{"_", "*", "*"}, {"_", "v1", "*"}, {"_", "*", "v2"}};
-        LOG_DEBUG("Adding pattern index schema for: " + tokens + "...");
-        db->add_pattern_index_schema(tokens, index_entries);
-
-        tokens = "LINK_TEMPLATE Expression 2 NODE Symbol PREDICATE VARIABLE v1";
-        index_entries = {{"_", "*"}, {"_", "v1"}};
-        LOG_DEBUG("Adding pattern index schema for: " + tokens + "...");
-        db->add_pattern_index_schema(tokens, index_entries);
-
-        tokens = "LINK_TEMPLATE Expression 2 NODE Symbol PATTERNS VARIABLE v1";
-        index_entries = {{"_", "*"}, {"_", "v1"}};
-        LOG_DEBUG("Adding pattern index schema for: " + tokens + "...");
-        db->add_pattern_index_schema(tokens, index_entries);
-
-        tokens = "LINK_TEMPLATE Expression 2 NODE Symbol SATISFYING_SET VARIABLE v1";
-        index_entries = {{"_", "*"}, {"_", "v1"}};
-        LOG_DEBUG("Adding pattern index schema for: " + tokens + "...");
-        db->add_pattern_index_schema(tokens, index_entries);
-
-        tokens = "LINK_TEMPLATE Expression 3 NODE Symbol IMPLICATION VARIABLE v1 VARIABLE v2";
-        index_entries = {{"_", "*", "*"}, {"_", "v1", "*"}, {"_", "*", "v2"}};
-        LOG_DEBUG("Adding pattern index schema for: " + tokens + "...");
-        db->add_pattern_index_schema(tokens, index_entries);
-
-        tokens = "LINK_TEMPLATE Expression 3 NODE Symbol EQUIVALENCE VARIABLE v1 VARIABLE v2";
-        index_entries = {{"_", "*", "*"}, {"_", "v1", "*"}, {"_", "*", "v2"}};
-        LOG_DEBUG("Adding pattern index schema for: " + tokens + "...");
-        db->add_pattern_index_schema(tokens, index_entries);
-
-    } catch (const std::exception& e) {
-        LOG_DEBUG("Failed to add pattern index schema to DB: " << e.what());
-    }
-
-    try {
-        auto atoms = {make_pair<string, string>("Symbol", "EQUIVALENCE"),
-                      make_pair<string, string>("Symbol", "IMPLICATION"),
-                      make_pair<string, string>("Symbol", "PATTERNS"),
-                      make_pair<string, string>("Symbol", "SATISFYING_SET")};
-        for (auto& atom : atoms) {
-            shared_ptr<Node> node = make_shared<Node>(atom.first, atom.second);
-            db->add_atom(node.get());
-        }
-    } catch (const std::exception& e) {
-        LOG_ERROR("Error loading LCA Nodes: " << e.what());
-    }
 }

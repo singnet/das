@@ -179,16 +179,27 @@ shared_ptr<atomdb_api_types::HandleSet> MorkDB::query_for_pattern(const LinkSche
     return handle_set;
 }
 
+shared_ptr<atomdb_api_types::HandleList> MorkDB::query_for_targets(const string& handle) {
+    auto document = this->get_atom_document(handle);
+    if (document == nullptr || !document->contains(MONGODB_FIELD_NAME[MONGODB_FIELD::TARGETS])) {
+        return nullptr;
+    }
+    return make_shared<atomdb_api_types::HandleListMork>(document);
+}
+
 string MorkDB::add_link(const atoms::Link* link, bool throw_if_exists) {
     if (throw_if_exists && link_exists(link->handle())) {
         Utils::error("Link already exists: " + link->handle());
         return "";
     }
 
-    auto existing_targets = get_atom_documents(link->targets, {MONGODB_FIELD_NAME[MONGODB_FIELD::ID]});
-    if (existing_targets.size() != link->targets.size()) {
+    auto unique_targets = set<string>(link->targets.begin(), link->targets.end());
+    auto existing_targets =
+        get_atom_documents(vector<string>(unique_targets.begin(), unique_targets.end()),
+                           {MONGODB_FIELD_NAME[MONGODB_FIELD::ID]});
+    if (existing_targets.size() != unique_targets.size()) {
         Utils::error("Failed to insert link: " + link->handle() + " has " +
-                     to_string(link->targets.size() - existing_targets.size()) + " missing targets");
+                     to_string(unique_targets.size() - existing_targets.size()) + " missing targets");
         return "";
     }
 

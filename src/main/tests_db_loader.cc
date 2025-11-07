@@ -21,7 +21,7 @@ void ctrl_c_handler(int) {
 
 int main(int argc, char* argv[]) {
     TestConfig::load_environment();
-    TestConfig::disable_atomdb_cache();
+    TestConfig::set_atomdb_cache(false);
 
     string context = "";
     if (argc > 1) context = string(argv[1]);

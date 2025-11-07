@@ -42,6 +42,7 @@ class MorkDB : public RedisMongoDB {
     bool allow_nested_indexing() override;
 
     shared_ptr<atomdb_api_types::HandleSet> query_for_pattern(const LinkSchema& link_schema) override;
+    shared_ptr<atomdb_api_types::HandleList> query_for_targets(const string& handle) override;
 
     string add_link(const atoms::Link* link, bool throw_if_exists = false) override;
 
