@@ -36,11 +36,11 @@
 #define SENTENCE "Sentence"
 #define WORD "Word"
 #define CONTAINS "Contains"
-#define EVALUATION "EVALUATION"
-#define PREDICATE "PREDICATE"
-#define CONCEPT "CONCEPT"
-#define EQUIVALENCE "EQUIVALENCE"
-#define IMPLICATION "IMPLICATION"
+#define EVALUATION "Evaluation"
+#define PREDICATE "Predicate"
+#define CONCEPT "Concept"
+#define EQUIVALENCE "Equivalence"
+#define IMPLICATION "Implication"
 
 // Variables
 #define V1 "v1"

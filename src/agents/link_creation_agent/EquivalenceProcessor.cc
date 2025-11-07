@@ -12,7 +12,7 @@ using namespace link_creation_agent;
 EquivalenceProcessor::EquivalenceProcessor() {}
 
 bool EquivalenceProcessor::link_exists(const string& handle1, const string& handle2) {
-    Node equivalence_node("Symbol", "EQUIVALENCE");
+    Node equivalence_node("Symbol", "Equivalence");
     vector<string> targets_c1_c2 = {equivalence_node.handle(), handle1, handle2};
     vector<string> targets_c2_c1 = {equivalence_node.handle(), handle2, handle1};
     shared_ptr<Link> link_c1_c2 = make_shared<Link>("Expression", targets_c1_c2);
@@ -26,16 +26,16 @@ static vector<string> build_equivalence_query(const string& handle) {
     vector<string> tokens = {
         "OR", "2",
             "LINK_TEMPLATE", "Expression", "3",
-                "NODE", "Symbol", "EVALUATION",
+                "NODE", "Symbol", "Evaluation",
                 "VARIABLE", P1,
                 "ATOM", handle,
             "AND", "2",
                 "LINK_TEMPLATE", "Expression", "3",
-                    "NODE", "Symbol", "EVALUATION",
+                    "NODE", "Symbol", "Evaluation",
                     "VARIABLE", P2,
                     "ATOM", handle,
                 "LINK_TEMPLATE", "Expression", "3",
-                    "NODE", "Symbol", "EQUIVALENCE",
+                    "NODE", "Symbol", "Equivalence",
                     "VARIABLE", P2,
                     "VARIABLE", P1
     };
@@ -86,7 +86,7 @@ vector<shared_ptr<Link>> EquivalenceProcessor::process_query(shared_ptr<QueryAns
 
     double strength = count_intersection / count_union;
     vector<shared_ptr<Link>> result;
-    Node equivalence_node("Symbol", "EQUIVALENCE");
+    Node equivalence_node("Symbol", "Equivalence");
     try {
         AtomDBSingleton::get_instance()->add_node(&equivalence_node);
     } catch (const std::exception& e) {

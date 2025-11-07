@@ -21,7 +21,7 @@ using namespace attention_broker;
 // // clang-format off
 // vector<string> context_query = {
 //     "LINK_TEMPLATE", "EXPRESSION", "3",
-//         "NODE", "SYMBOL", "EVALUATION",
+//         "NODE", "SYMBOL", "Evaluation",
 //         "VARIABLE", "V2",
 //         "VARIABLE", "V3",
 // };
@@ -31,7 +31,7 @@ using namespace attention_broker;
    vector<string> context_query = {
         "OR", "3",
         "LINK_TEMPLATE", "Expression", "3",
-            "NODE", "Symbol", "EVALUATION",
+            "NODE", "Symbol", "Evaluation",
             "VARIABLE", "V2",
             "VARIABLE", "V3",
         "LINK_TEMPLATE", "Expression", "3",
@@ -39,7 +39,7 @@ using namespace attention_broker;
             "VARIABLE", "V2",
             "VARIABLE", "V3",
         "LINK_TEMPLATE", "Expression", "2",
-            "NODE", "SYMBOL", "CONCEPT",
+            "NODE", "Symbol", "Concept",
             "VARIABLE", "V2",
 
     };

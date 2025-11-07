@@ -263,10 +263,10 @@ void InferenceAgent::send_update_attention_allocation_request(
     // clang-format off
     vector<string> attention_update_query2 = {
         "LINK_TEMPLATE", "Expression", "3",
-            "NODE", "Symbol", "EVALUATION",
+            "NODE", "Symbol", "Evaluation",
             "VARIABLE", "P1",
             "LINK", "Expression", "2",
-                "NODE", "Symbol", "CONCEPT",
+                "NODE", "Symbol", "Concept",
                 "ATOM", "PLACEHOLDER"};
     // clang-format on
     shared_ptr<PatternMatchingQueryProxy> proxy2;
