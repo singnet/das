@@ -182,18 +182,18 @@ impl Default for Properties {
 		map.insert(USE_METTA_AS_QUERY_TOKENS.to_string(), PropertyValue::Bool(true));
 
 		// Evolution
-		map.insert(POPULATION_SIZE.to_string(), PropertyValue::UnsignedInt(50));
+		map.insert(POPULATION_SIZE.to_string(), PropertyValue::UnsignedInt(100));
 		map.insert(MAX_GENERATIONS.to_string(), PropertyValue::UnsignedInt(10));
-		map.insert(ELITISM_RATE.to_string(), PropertyValue::Double(0.08));
-		map.insert(SELECTION_RATE.to_string(), PropertyValue::Double(0.1));
+		map.insert(ELITISM_RATE.to_string(), PropertyValue::Double(0.09));
+		map.insert(SELECTION_RATE.to_string(), PropertyValue::Double(0.10));
 		map.insert(TOTAL_ATTENTION_TOKENS.to_string(), PropertyValue::UnsignedInt(100_000));
 
 		// Context Broker
 		map.insert(USE_CACHE.to_string(), PropertyValue::Bool(true));
 		map.insert(ENFORCE_CACHE_RECREATION.to_string(), PropertyValue::Bool(false));
-		map.insert(INITIAL_RENT_RATE.to_string(), PropertyValue::Double(0.25));
-		map.insert(INITIAL_SPREADING_RATE_LOWERBOUND.to_string(), PropertyValue::Double(0.50));
-		map.insert(INITIAL_SPREADING_RATE_UPPERBOUND.to_string(), PropertyValue::Double(0.70));
+		map.insert(INITIAL_RENT_RATE.to_string(), PropertyValue::Double(0.50));
+		map.insert(INITIAL_SPREADING_RATE_LOWERBOUND.to_string(), PropertyValue::Double(0.10));
+		map.insert(INITIAL_SPREADING_RATE_UPPERBOUND.to_string(), PropertyValue::Double(0.10));
 
 		// Link Creation
 		map.insert(REPEAT_COUNT.to_string(), PropertyValue::UnsignedInt(1));
