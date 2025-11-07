@@ -24,7 +24,8 @@ void ctrl_c_handler(int) {
 
 int main(int argc, char* argv[]) {
     if (argc < 6) {
-        cerr << "Usage: " << argv[0] << " <port> <start_port:end_port> BUS_IP:PORT --use-mork|--use-redismongo TOKENS+" << endl;
+        cerr << "Usage: " << argv[0]
+             << " <port> <start_port:end_port> BUS_IP:PORT --use-mork|--use-redismongo TOKENS+" << endl;
         exit(1);
     }
 

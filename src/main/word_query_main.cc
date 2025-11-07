@@ -178,7 +178,8 @@ void run(const string& client_id,
 int main(int argc, char* argv[]) {
     if ((argc != 6) && (argc != 7)) {
         cerr << "Usage: " << argv[0]
-             << " <client id> <server id> <start_port:end_port> <context> <word tag> [--use-mork]" << endl;
+             << " <client id> <server id> <start_port:end_port> <context> <word tag> [--use-mork]"
+             << endl;
         exit(1);
     }
     signal(SIGINT, &ctrl_c_handler);

@@ -25,7 +25,8 @@ void ctrl_c_handler(int) {
 int main(int argc, char* argv[]) {
     if ((argc != 4) && (argc != 5)) {
         cerr << "AtomDB Broker Server" << endl;
-        cerr << "Usage: " << argv[0] << " <ip:port> <start_port:end_port> <peer_ip:peer_port> [--use-mork]" << endl;
+        cerr << "Usage: " << argv[0]
+             << " <ip:port> <start_port:end_port> <peer_ip:peer_port> [--use-mork]" << endl;
         exit(1);
     }
 

@@ -18,7 +18,8 @@ using namespace atomdb_broker;
 int main(int argc, char* argv[]) {
     if ((argc != 6) && (argc != 7)) {
         cerr << "Usage: " << argv[0]
-             << " <client_ip:client_port> <peer_ip:peer_port> <start_port:end_port> <action> <tokens+> [--use-mork]"
+             << " <client_ip:client_port> <peer_ip:peer_port> <start_port:end_port> <action> <tokens+> "
+                "[--use-mork]"
              << endl;
         exit(1);
     }

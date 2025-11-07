@@ -26,7 +26,8 @@ void ctrl_c_handler(int) {
 int main(int argc, char* argv[]) {
     if (argc < 7) {
         cerr << "Usage: " << argv[0]
-             << " CLIENT_HOST:CLIENT_PORT SERVER_HOST:SERVER_PORT <START_PORT:END_PORT> --use-mork|--use-redismongo"
+             << " CLIENT_HOST:CLIENT_PORT SERVER_HOST:SERVER_PORT <START_PORT:END_PORT> "
+                "--use-mork|--use-redismongo"
                 "UPDATE_ATTENTION_BROKER QUERY_TOKEN+ "
                 "(hosts are supposed to be public IPs or known hostnames)"
              << endl;

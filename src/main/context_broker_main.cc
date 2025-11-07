@@ -28,7 +28,8 @@ int main(int argc, char* argv[]) {
     if ((argc != 5) && (argc != 6)) {
         cerr << "Context Broker Server" << endl;
         cerr << "Usage: " << argv[0]
-             << " <hostname:port> <start_port:end_port> <peer_ip:peer_port> <AB_ip:AB_port> [--use-mork]" << endl;
+             << " <hostname:port> <start_port:end_port> <peer_ip:peer_port> <AB_ip:AB_port> [--use-mork]"
+             << endl;
         exit(1);
     }
 
