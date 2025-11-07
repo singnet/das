@@ -16,6 +16,7 @@
 
 #include "AtomDB.h"
 #include "AtomDBCacheSingleton.h"
+#include "RedisContext.h"
 #include "RedisContextPool.h"
 #include "RedisMongoDBAPITypes.h"
 
@@ -156,8 +157,10 @@ class RedisMongoDB : public AtomDB {
 
     uint get_next_score(const string& key);
     void set_next_score(const string& key, uint score);
+    void flush_redis_commands(shared_ptr<RedisContext> ctx);
     void reset_scores();
 
+    string add_link_(const atoms::Link* link, bool throw_if_exists = false);
     void add_pattern(const string& handle, const string& pattern_handle);
     void add_patterns(const vector<pair<string, string>>& pattern_handles);
     void delete_pattern(const string& handle);

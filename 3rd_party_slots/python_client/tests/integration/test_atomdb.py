@@ -12,7 +12,7 @@ from .utils import AtomDecoder
 
 def test_atomdb_proxy_simple_client():
     service_bus = ServiceBusSingleton(
-        host_id="0.0.0.0:9001", known_peer="0.0.0.0:40006", port_lower=41200, port_upper=41299
+        host_id="0.0.0.0:9001", known_peer="0.0.0.0:40007", port_lower=41200, port_upper=41299
     ).get_instance()
 
     proxy = AtomDBProxy()
