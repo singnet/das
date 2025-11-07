@@ -31,6 +31,7 @@ int main(int argc, char* argv[]) {
         client_address: The address of the client to connect to, in the form "host:port"
         server_address: The address of the server to connect to, in the form "host:port"
         <start_port:end_port>: The lower and upper bound for the port numbers to be used by the command proxy
+        --use-mork|--use-redismongo: Whether to use MorkDB or RedisMongoDB
         <max_answers>: Maximum number of results to return (default: 1000)
         <repeat_count_count>: Number of times to repeat_count the request (set 0 for infinite)
         <attention_update_flag>: Whether to update the attention broker (true/false)

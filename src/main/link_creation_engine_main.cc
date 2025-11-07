@@ -200,11 +200,18 @@ string handle_to_atom(const string& handle) {
     return answer;
 }
 
-void run(const string& context, const string& link_type_tag, const set<string> highlighted) {
+void run(string atomdb_type,
+         const string& context,
+         const string& link_type_tag,
+         const set<string> highlighted) {
     string server_id = "0.0.0.0:31700";
     string client_id = "0.0.0.0:31701";
 
-    AtomDBSingleton::init();
+    if (atomdb_type == string("morkdb")) {
+        AtomDBSingleton::init(atomdb_api_types::ATOMDB_TYPE::MORKDB);
+    } else {
+        AtomDBSingleton::init();
+    }
     shared_ptr<AtomDB> db = AtomDBSingleton::get_instance();
 
     string and_operator = "AND";
@@ -312,7 +319,8 @@ void run(const string& context, const string& link_type_tag, const set<string> h
 
 int main(int argc, char* argv[]) {
     if (argc < 3) {
-        cerr << "Usage: " << argv[0] << " <context> <link type tag> <word>*" << endl;
+        cerr << "Usage: " << argv[0] << " <context> <link type tag> --use-mork|--use-redismongo <word>*"
+             << endl;
         exit(1);
     }
     signal(SIGINT, &ctrl_c_handler);
@@ -324,11 +332,13 @@ int main(int argc, char* argv[]) {
         Utils::error("Invalid link_type_tag: " + link_type_tag);
     }
 
+    string atomdb_type = string(argv[3]) == string("--use-mork") ? "morkdb" : "redismongodb";
+
     set<string> highlighted;
-    for (int i = 3; i < argc; i++) {
+    for (int i = 4; i < argc; i++) {
         highlighted.insert(string(argv[i]));
     }
 
-    run(context, link_type_tag, highlighted);
+    run(atomdb_type, context, link_type_tag, highlighted);
     return 0;
 }
