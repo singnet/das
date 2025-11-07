@@ -18,6 +18,8 @@ using namespace commons;
 // -------------------------------------------------------------------------------------------------
 // Static constants
 
+const size_t AtomDBProxy::BATCH_SIZE = 5000;
+
 // Proxy Commands
 string AtomDBProxy::ADD_ATOMS = "add_atoms";
 
@@ -25,12 +27,14 @@ string AtomDBProxy::ADD_ATOMS = "add_atoms";
 // Constructor and destructor
 
 AtomDBProxy::AtomDBProxy() : BaseProxy() {
-    lock_guard<mutex> semaphore(this->api_mutex);
     this->command = ServiceBus::ATOMDB;
     this->atomdb = AtomDBSingleton::get_instance();
 }
 
-AtomDBProxy::~AtomDBProxy() {}
+AtomDBProxy::~AtomDBProxy() {
+    LOG_INFO("Shutdown AtomDBProxy...");
+    this->abort();
+}
 
 // -------------------------------------------------------------------------------------------------
 // Client-side API
@@ -90,11 +94,26 @@ bool AtomDBProxy::from_remote_peer(const string& command, const vector<string>& 
 void AtomDBProxy::handle_add_atoms(const vector<string>& tokens) {
     try {
         vector<Atom*> atoms = build_atoms_from_tokens(tokens);
-        this->atomdb->add_atoms(atoms);
-    } catch (const std::runtime_error& exception) {
-        raise_error_on_peer(exception.what());
-    } catch (const std::exception& exception) {
-        raise_error_on_peer(exception.what());
+        LOG_INFO("Processing batch, total atoms to process: " << atoms.size());
+
+        if (atoms.empty()) {
+            LOG_INFO("No atoms were built from tokens. Nothing to process.");
+            return;
+        }
+
+        for (size_t i = 0; i < atoms.size(); i += AtomDBProxy::BATCH_SIZE) {
+            auto batch_start = atoms.begin() + i;
+            auto batch_end = atoms.begin() + min(i + AtomDBProxy::BATCH_SIZE, atoms.size());
+            vector<Atom*> buffer(batch_start, batch_end);
+            LOG_INFO("Processing a batch of " << buffer.size() << " atoms.");
+            this->atomdb->add_atoms(buffer);
+            Utils::sleep(1000);
+        }
+
+        LOG_INFO("Finished processing all batches.");
+
+    } catch (const exception& e) {
+        LOG_ERROR("Error processing batch: " << e.what());
     }
 }
 
