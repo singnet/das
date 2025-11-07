@@ -110,7 +110,6 @@ void run(const string& client_id,
          float RENT_RATE,
          float SPREADING_RATE_LOWERBOUND,
          float SPREADING_RATE_UPPERBOUND) {
-    AtomDBSingleton::init();
     shared_ptr<AtomDB> db = AtomDBSingleton::get_instance();
     ServiceBusSingleton::init(client_id, server_id, start_port, end_port);
     FitnessFunctionRegistry::initialize_statics();
@@ -351,7 +350,7 @@ void run(const string& client_id,
 int main(int argc, char* argv[]) {
     if (argc < 7) {
         cerr << "Usage: " << argv[0]
-             << "    <client id> <server id> <start_port:end_port> <context_tag> <word tag 1> <word tag "
+             << "    <client id> <server id> <start_port:end_port> --use-mork|--use-redismongo <context_tag> <word tag 1> <word tag "
                 "2> [RENT_RATE] [SPREADING_RATE_LOWERBOUND] [SPREADING_RATE_UPPERBOUND] [ELITISM_RATE]"
              << endl;
         exit(1);
@@ -363,14 +362,19 @@ int main(int argc, char* argv[]) {
     string client_id = argv[1];
     string server_id = argv[2];
     auto ports_range = Utils::parse_ports_range(argv[3]);
-    string context_tag = argv[4];
-    string word_tag1 = argv[5];
-    string word_tag2 = argv[6];
-    if (argc > 7) {
-        RENT_RATE = Utils::string_to_float(string(argv[7]));
-        SPREADING_RATE_LOWERBOUND = Utils::string_to_float(string(argv[8]));
-        SPREADING_RATE_UPPERBOUND = Utils::string_to_float(string(argv[9]));
-        ELITISM_RATE = (double) Utils::string_to_float(string(argv[10]));
+    if (argv[4] == string("--use-mork")) {
+        AtomDBSingleton::init(atomdb_api_types::ATOMDB_TYPE::MORKDB);
+    } else {
+        AtomDBSingleton::init();
+    }
+    string context_tag = argv[5];
+    string word_tag1 = argv[6];
+    string word_tag2 = argv[7];
+    if (argc > 8) {
+        RENT_RATE = Utils::string_to_float(string(argv[8]));
+        SPREADING_RATE_LOWERBOUND = Utils::string_to_float(string(argv[9]));
+        SPREADING_RATE_UPPERBOUND = Utils::string_to_float(string(argv[10]));
+        ELITISM_RATE = (double) Utils::string_to_float(string(argv[11]));
     }
     LOG_INFO("ELITISM_RATE: " << ELITISM_RATE);
     run(client_id,

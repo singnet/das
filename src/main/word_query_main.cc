@@ -89,7 +89,6 @@ void run(const string& client_id,
          size_t end_port,
          const string& context,
          const string& word_tag) {
-    AtomDBSingleton::init();
     shared_ptr<AtomDB> db = AtomDBSingleton::get_instance();
     ServiceBusSingleton::init(client_id, server_id, start_port, end_port);
     shared_ptr<ServiceBus> service_bus = ServiceBusSingleton::get_instance();
@@ -177,9 +176,9 @@ void run(const string& client_id,
 }
 
 int main(int argc, char* argv[]) {
-    if (argc < 6) {
+    if ((argc != 6) && (argc != 7)) {
         cerr << "Usage: " << argv[0]
-             << " <client id> <server id> <start_port:end_port> <context> <word tag>" << endl;
+             << " <client id> <server id> <start_port:end_port> <context> <word tag> [--use-mork]" << endl;
         exit(1);
     }
     signal(SIGINT, &ctrl_c_handler);
@@ -189,6 +188,11 @@ int main(int argc, char* argv[]) {
     auto ports_range = Utils::parse_ports_range(argv[3]);
     string context = argv[4];
     string word_tag = argv[5];
+    if ((argc == 6) && (string(argv[5]) == string("--use-mork"))) {
+        AtomDBSingleton::init(atomdb_api_types::ATOMDB_TYPE::MORKDB);
+    } else {
+        AtomDBSingleton::init();
+    }
 
     run(client_id, server_id, ports_range.first, ports_range.second, context, word_tag);
     return 0;

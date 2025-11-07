@@ -23,22 +23,27 @@ void ctrl_c_handler(int) {
 }
 
 int main(int argc, char* argv[]) {
-    if (argc < 5) {
-        cerr << "Usage: " << argv[0] << " <port> <start_port:end_port> BUS_IP:PORT TOKENS+" << endl;
+    if (argc < 6) {
+        cerr << "Usage: " << argv[0] << " <port> <start_port:end_port> BUS_IP:PORT --use-mork|--use-redismongo TOKENS+" << endl;
         exit(1);
     }
 
     string server_id = "0.0.0.0:" + string(argv[1]);
     auto ports_range = Utils::parse_ports_range(argv[2]);
-    AtomDBSingleton::init();
     ServiceBusSingleton::init(server_id, argv[3], ports_range.first, ports_range.second);
     FitnessFunctionRegistry::initialize_statics();
 
     signal(SIGINT, &ctrl_c_handler);
     signal(SIGTERM, &ctrl_c_handler);
 
+    if (argv[4] == string("--use-mork")) {
+        AtomDBSingleton::init(atomdb_api_types::ATOMDB_TYPE::MORKDB);
+    } else {
+        AtomDBSingleton::init();
+    }
+
     vector<string> query;
-    for (int i = 4; i < argc; i++) {
+    for (int i = 5; i < argc; i++) {
         query.push_back(argv[i]);
     }
 

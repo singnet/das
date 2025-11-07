@@ -11,21 +11,25 @@ using namespace std;
 using namespace atomdb;
 
 int main(int argc, char* argv[]) {
-    if (argc < 4) {
+    if (argc < 5) {
         cerr << "Attention broker client" << endl;
-        cerr << "Usage: " << argv[0] << " host:port <command> arg+" << endl;
+        cerr << "Usage: " << argv[0] << " host:port --use-mork|--use-redismongo <command> arg+" << endl;
         return 1;
     }
 
     string attention_broker_address = string(argv[1]);
-    string command = string(argv[2]);
+    if (argv[2] == string("--use-mork")) {
+        AtomDBSingleton::init(atomdb_api_types::ATOMDB_TYPE::MORKDB);
+    } else {
+        AtomDBSingleton::init();
+    }
+    string command = string(argv[3]);
     vector<string> args;
-    for (int i = 3; i < argc; i++) {
+    for (int i = 4; i < argc; i++) {
         args.push_back(string(argv[i]));
     }
     auto stub = dasproto::AttentionBroker::NewStub(
         grpc::CreateChannel(attention_broker_address, grpc::InsecureChannelCredentials()));
-    AtomDBSingleton::init();
     shared_ptr<AtomDB> db = AtomDBSingleton::get_instance();
 
     if (command == "importance") {

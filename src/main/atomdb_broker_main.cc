@@ -23,10 +23,16 @@ void ctrl_c_handler(int) {
 }
 
 int main(int argc, char* argv[]) {
-    if (argc < 4) {
+    if ((argc != 4) && (argc != 5)) {
         cerr << "AtomDB Broker Server" << endl;
-        cerr << "Usage: " << argv[0] << " <ip:port> <start_port:end_port> <peer_ip:peer_port>" << endl;
+        cerr << "Usage: " << argv[0] << " <ip:port> <start_port:end_port> <peer_ip:peer_port> [--use-mork]" << endl;
         exit(1);
+    }
+
+    if ((argc == 5) && (string(argv[4]) == string("--use-mork"))) {
+        AtomDBSingleton::init(atomdb_api_types::ATOMDB_TYPE::MORKDB);
+    } else {
+        AtomDBSingleton::init();
     }
 
     string client_id = string(argv[1]);
@@ -38,7 +44,6 @@ int main(int argc, char* argv[]) {
     signal(SIGINT, &ctrl_c_handler);
     signal(SIGTERM, &ctrl_c_handler);
 
-    AtomDBSingleton::init();
     ServiceBusSingleton::init(client_id, server_id, ports_range.first, ports_range.second);
     shared_ptr<ServiceBus> service_bus = ServiceBusSingleton::get_instance();
     service_bus->register_processor(make_shared<AtomDBProcessor>());

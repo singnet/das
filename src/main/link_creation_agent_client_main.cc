@@ -26,7 +26,7 @@ void ctrl_c_handler(int) {
 
 int main(int argc, char* argv[]) {
     string help = R""""(
-    Usage: link_creation_agent client_address server_address <start_port:end_port> REQUEST+
+    Usage: link_creation_agent client_address server_address <start_port:end_port> --use-mork|--use-redismongo REQUEST+
     Supported args:
         client_address: The address of the client to connect to, in the form "host:port"
         server_address: The address of the server to connect to, in the form "host:port"
@@ -42,7 +42,7 @@ int main(int argc, char* argv[]) {
     QUERY+, ( LINK_CREATE+ | PROOF_OF_EQUIVALENCE | PROOF_OF_IMPLICATION )
     )"""";
 
-    if ((argc < 5)) {
+    if ((argc < 6)) {
         cerr << help << endl;
         exit(1);
     }
@@ -52,15 +52,20 @@ int main(int argc, char* argv[]) {
     string client_id = string(argv[1]);
     string server_id = string(argv[2]);
     auto ports_range = Utils::parse_ports_range(argv[3]);
-    int max_answers = Utils::string_to_int(string(argv[4]));
-    int repeat_count = Utils::string_to_int(string(argv[5]));
-    bool attention_update_flag = (string(argv[6]) == "true");
-    bool positive_importance_flag = (string(argv[7]) == "true");
-    bool use_metta_as_query_tokens = (string(argv[8]) == "true");
-    string context = string(argv[9]);
+    if (argv[4] == string("--use-mork")) {
+        AtomDBSingleton::init(atomdb_api_types::ATOMDB_TYPE::MORKDB);
+    } else {
+        AtomDBSingleton::init();
+    }
+    int max_answers = Utils::string_to_int(string(argv[5]));
+    int repeat_count = Utils::string_to_int(string(argv[6]));
+    bool attention_update_flag = (string(argv[7]) == "true");
+    bool positive_importance_flag = (string(argv[8]) == "true");
+    bool use_metta_as_query_tokens = (string(argv[9]) == "true");
+    string context = string(argv[10]);
 
     vector<string> request;
-    for (int i = 10; i < argc; i++) {
+    for (int i = 11; i < argc; i++) {
         string token = string(argv[i]);
         if (use_metta_as_query_tokens) {
             Utils::replace_all(token, "%", "$");
@@ -68,7 +73,6 @@ int main(int argc, char* argv[]) {
         request.push_back(token);
         cout << "Request token: " << token << endl;
     }
-    AtomDBSingleton::init();
     ServiceBusSingleton::init(client_id, server_id, ports_range.first, ports_range.second);
 
     shared_ptr<ContextBrokerProxy> context_proxy(new ContextBrokerProxy(context, {}, {}, {}));
