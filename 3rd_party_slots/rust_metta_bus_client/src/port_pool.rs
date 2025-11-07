@@ -59,7 +59,7 @@ impl PortPool {
 		match POOL.get() {
 			Some(locked_pool) => {
 				let write_guard = locked_pool.read().unwrap();
-				write_guard.pool.lock().unwrap().push_front(port);
+				write_guard.pool.lock().unwrap().push_back(port);
 				Ok(())
 			},
 			None => Err(BoxError::from("PortPool not initialized!")),
