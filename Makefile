@@ -29,13 +29,13 @@ github-runner:
 	@bash $(CURDIR)/scripts/github-runner/main.sh
 
 build-image:
-	@bash -x src/scripts/docker_image_build.sh
+	@bash -x src/scripts/docker_image_build.sh $(ARCHS)
 
 build-mork-image:
 	@bash -x src/scripts/docker_image_build_mork.sh $(VERSION)
 
 build-all: build-image
-	@bash -x src/scripts/build.sh
+	bash -x src/scripts/build.sh $(ARCHS)
 
 run-query-agent:
 	@PORT=$$(bash src/scripts/gkctl_auto_join_and_reserve.sh | tail -n 1); \
