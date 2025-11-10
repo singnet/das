@@ -2,7 +2,7 @@
 
 Atomspace is the hypergraph OpenCog Hyperon uses to represent and store knowledge, being the source of knowledge for AI agents and the container of any computational result that might be created or achieved during their execution.
 
-The Distributed Atomspace (DAS) is an extension of OpenCog Hyperon's Atomspace. It functions as an independent component, designed to facilitate multiple simultaneous connections with diverse AI algorithms.
+The Distributed Atomspace (DAS) is an extension of OpenCog Hyperon's Atomspace. It works as an independent component, designed to facilitate multiple simultaneous connections with diverse AI algorithms.
 
 Implemented as a MeTTa space, DAS offers a flexible query interface to distributed knowledge bases, responding similarly to other Hyperon spaces. However, DAS distinguishes itself by its ability to manage large knowledge bases through the internal use of various cognitive components. These components prioritize the most "promising" query results, leading to two key benefits. The results are ordered by their "promising" nature, from most to least. This allows the code processing the query to cease iteration and stop the query before full processing once an adequate number of "good" answers has been identified.
 
@@ -13,7 +13,7 @@ The way DAS prioritize and present query results can leverage AI/ML algorithms b
 ![](assets/conceptual_documentation_1.png)
 Figure 1 - DAS components
 
-DAS functions primarily as a query engine. Its architecture and components, shown in Figure 1,  are specifically engineered to efficiently answer pattern matching queries. This design is crucial for timely responses, especially given that query results can expand combinatorially with the increasing size of the knowledge base stored in the AtomDB.
+DAS works primarily as a query engine. Its architecture and components, shown in Figure 1,  are specifically engineered to efficiently answer pattern matching queries. This design is crucial for timely responses, especially given that query results can expand combinatorially with the increasing size of the knowledge base stored in the AtomDB.
 
 To avoid combinatorial explosion, the query engine dynamically prunes the search space using Short-term Importance (STI) values of atoms. These STI values are updated by multiple Economic Attention Networks (ECANs, see Chapter 5 of [this book](https://link.springer.com/book/10.2991/978-94-6239-030-0) for a more detailed description), which are managed by an AttentionBroker component. The AttentionBroker maintains separate ECANs for different query contexts, enabling the assignment of independent STI values to atoms across these various contexts.
 
@@ -89,9 +89,9 @@ Update of either, the Hebbian connections and the STI values can be performed im
 Hebbian links' weights can be seen as the probability of a given atom being present in a query answer given that another atom is present in the same answer. Thus, when submitting a query to the Query Engine, the caller can set an optional parameter in the query to trigger the update of the Hebbian network related to a given context and the STI values of the atoms that appear in the query answers. In Figure 4 we show an example of how elements of a query answer can be used to update the Hebbian Network of a context.
 
 ![](assets/conceptual_documentation_4.png)
-Figure 4 - Query answers being used to autom atically update the Hebbian Network
+Figure 4 - Query answers being used to autom automatically update the Hebbian Network
 
-Explicit updating of the Hebbian networks is also possible. This way the caller can use regular links present in the atomspace as if they were Hebbian links. Explicit STI boosting and subsequent activation spreading can also be done explicitly by user's request using queries that are similar to the ones used for pattern matching. This makes the whole STI update process extremely flaxible and adaptable to different problem domains.
+Explicit updating of the Hebbian networks is also possible. This way the caller can use regular links present in the atomspace as if they were Hebbian links. Explicit STI boosting and subsequent activation spreading can also be done explicitly by user's request using queries that are similar to the ones used for pattern matching. This makes the whole STI update process extremely flexible and adaptable to different problem domains.
 
 ### Query Evolution
 
@@ -129,9 +129,9 @@ Output:
     b. `M` - Number of individuals selected from the population at each generation in order to update the Attention Broker before the next generation is selected.
     c. `Stop criteria` (number of generations, target fitness value, minimal evolution in last n cycles, etc)
 2. Sample a population `Population[]` by executing `Q` and iterating `P` times in the result.
-3. Evaluate `F(Population[i])` for all individuals `Population[I]`.
+3. Evaluate `F(Population[i])` for all individuals `Population[i]`.
 4. Select `M` individuals from current population using their fitness value using some selection method (best `M`, roulette, tournament, etc)
 5. Use selected individuals to update AttentionBroker.
-6. Iterate steps 2., 3., 4.  and 5. until `Stop criteria` is matched. While Iterating, keep record of the best QueryAnswers.
+6. Iterate steps 2., 3., 4.  and 5. until `Stop criteria` is matched. While iterating, keep record of the best QueryAnswers.
 7. Return an iterator to the best QueryAnswers recorded during the evolution process.
 In the first generation, we select the first `P` QueryAnswers to compose our initial population. From this point on, we rely on the current relative importance of the atoms stored in the AttentionBroker
