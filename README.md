@@ -1,5 +1,8 @@
 # OpenCog Hyperon - Distributed Atomspace (DAS)
 
+The Distributed Atomspace (DAS) is an extension of OpenCog Hyperon's Atomspace. It works as an independent component, designed to facilitate multiple simultaneous connections with diverse AI algorithms.
+More details about how DAS components work can be found in [this document](https://github.com/singnet/das/blob/master/docs/conceptual_documentation.md).
+
 ## Project
 
 These are the Github repos we're currently using in the project:
@@ -30,6 +33,8 @@ Issues for project management are kept in two boards:
 * [Public board](https://github.com/orgs/singnet/projects/7) - GitHub project board used to track bug reports, feature requests, and major new features planning. Use this board to report bugs or request new features.
 * [Development board](https://github.com/orgs/singnet/projects/6/views/1) - Used internally by the DAS Team for day-by-day work planning.
 
+We have a support community in Disclosure: [hyperon.discourse.group](https://hyperon.discourse.group)
+
 ## DAS Usage
 
 DAS (Distributed AtomSpace) is an extension to Hyperon that allows the use of
@@ -59,7 +64,7 @@ we mention below. `das-cli` also has `man pages` and an embedded documentation (
 together with the toolbox package.
 
 In addition to this documentation, we also have a couple of [Jupyter](https://jupyter.org) notebooks with hands-on examples
-of how to configure DAS and use it inside Hyperon Experimental. These notebook can be found 
+of how to configure DAS and use it inside Hyperon Experimental. These notebooks can be found 
 [here](https://github.com/singnet/das/tree/master/notebooks).
 
 ### 1. Configuring your DAS environment
@@ -148,8 +153,7 @@ das-cli inference-agent start
 
 ## Contributing with DAS
 
-If you want to contribute to DAS project, please read our 
-[Development Guidelines](https://github.com/singnet/das/blob/master/docs/developer_guidelines.md) first.
+If you want to contribute to DAS project, please read our [Development Guidelines](https://github.com/singnet/das/blob/master/docs/developer_guidelines.md) first and join our [support community](https://hyperon.discourse.group).
 
 **Building and running unit tests**
 
