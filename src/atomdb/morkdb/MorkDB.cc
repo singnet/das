@@ -187,29 +187,40 @@ shared_ptr<atomdb_api_types::HandleList> MorkDB::query_for_targets(const string&
     return make_shared<atomdb_api_types::HandleListMork>(document);
 }
 
-string MorkDB::add_link(const atoms::Link* link, bool throw_if_exists) {
-    if (throw_if_exists && link_exists(link->handle())) {
-        Utils::error("Link already exists: " + link->handle());
-        return "";
+vector<string> MorkDB::add_links(const vector<atoms::Link*>& links, bool throw_if_exists) {
+    if (links.empty()) {
+        return {};
     }
 
-    auto unique_targets = set<string>(link->targets.begin(), link->targets.end());
-    auto existing_targets =
-        get_atom_documents(vector<string>(unique_targets.begin(), unique_targets.end()),
-                           {MONGODB_FIELD_NAME[MONGODB_FIELD::ID]});
-    if (existing_targets.size() != unique_targets.size()) {
-        Utils::error("Failed to insert link: " + link->handle() + " has " +
-                     to_string(unique_targets.size() - existing_targets.size()) + " missing targets");
-        return "";
+    vector<string> handles;
+
+    for (const auto& link : links) {
+        if (throw_if_exists && link_exists(link->handle())) {
+            Utils::error("Link already exists: " + link->handle());
+            return {};
+        }
+
+        auto unique_targets = set<string>(link->targets.begin(), link->targets.end());
+        auto existing_targets =
+            get_atom_documents(vector<string>(unique_targets.begin(), unique_targets.end()),
+                               {MONGODB_FIELD_NAME[MONGODB_FIELD::ID]});
+        if (existing_targets.size() != unique_targets.size()) {
+            Utils::error("Failed to insert link: " + link->handle() + " has " +
+                         to_string(unique_targets.size() - existing_targets.size()) +
+                         " missing targets");
+            return {};
+        }
+
+        auto metta_expression = link->metta_representation(*this);
+        this->mork_client->post(metta_expression, "$x", "$x");
+
+        auto mongodb_doc = atomdb_api_types::MongodbDocument(link, *this);
+        this->upsert_document(mongodb_doc.value(), MONGODB_LINKS_COLLECTION_NAME);
+
+        handles.push_back(link->handle());
     }
 
-    auto metta_expression = link->metta_representation(*this);
-    this->mork_client->post(metta_expression, "$x", "$x");
-
-    auto mongodb_doc = atomdb_api_types::MongodbDocument(link, *this);
-    this->upsert_document(mongodb_doc.value(), MONGODB_LINKS_COLLECTION_NAME);
-
-    return link->handle();
+    return handles;
 }
 
 bool MorkDB::delete_link(const string& handle, bool delete_targets) {
