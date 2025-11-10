@@ -107,7 +107,7 @@ void AtomDBProxy::handle_add_atoms(const vector<string>& tokens) {
             vector<Atom*> buffer(batch_start, batch_end);
             LOG_INFO("Processing a batch of " << buffer.size() << " atoms.");
             this->atomdb->add_atoms(buffer);
-            Utils::sleep(1000);
+            Utils::sleep(1000);  // FIXME: temporary sleep to avoid overloading the DB
         }
 
         LOG_INFO("Finished processing all batches.");
