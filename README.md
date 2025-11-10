@@ -33,7 +33,7 @@ Issues for project management are kept in two boards:
 * [Public board](https://github.com/orgs/singnet/projects/7) - GitHub project board used to track bug reports, feature requests, and major new features planning. Use this board to report bugs or request new features.
 * [Development board](https://github.com/orgs/singnet/projects/6/views/1) - Used internally by the DAS Team for day-by-day work planning.
 
-We have a support community in Disclosure: [hyperon.discourse.group](https://hyperon.discourse.group)
+We have a support community in Discourse: [hyperon.discourse.group](https://hyperon.discourse.group)
 
 ## DAS Usage
 
