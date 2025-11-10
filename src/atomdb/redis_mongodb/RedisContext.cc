@@ -41,7 +41,11 @@ redisReply* RedisContext::execute(const char* command) {
 
 void RedisContext::append_command(const char* command) {
     if (cluster_flag) {
-        Utils::error("The `append_command` is not supported in cluster mode.");
+        if (redisClusterAppendCommand(cluster_ctx, command) == REDIS_OK) {
+            pending_commands_count++;
+        } else {
+            Utils::error("Failed to append command to Redis cluster context.");
+        }
     } else {
         if (redisAppendCommand(single_ctx, command) == REDIS_OK) {
             pending_commands_count++;
@@ -51,10 +55,20 @@ void RedisContext::append_command(const char* command) {
     }
 }
 void RedisContext::flush_commands() {
+    redisReply* reply;
     if (cluster_flag) {
-        Utils::error("The `flush_commands` command is not supported in cluster mode.");
+        while (pending_commands_count > 0) {
+            pending_commands_count--;
+
+            if (redisClusterGetReply(cluster_ctx, (void**) &reply) == REDIS_ERR) {
+                return;
+            }
+
+            if (reply != nullptr) {
+                freeReplyObject(reply);
+            }
+        }
     } else {
-        redisReply* reply;
         while (pending_commands_count > 0) {
             pending_commands_count--;
 

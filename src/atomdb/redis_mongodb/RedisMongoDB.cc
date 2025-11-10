@@ -919,13 +919,17 @@ vector<string> RedisMongoDB::add_links(const vector<atoms::Link*>& links, bool t
     if (links.empty()) {
         return {};
     }
-
     vector<string> handles;
-
-    shared_ptr<RedisContext> ctx = nullptr;
-
-    if (!this->cluster_flag) {
-        ctx = this->redis_pool->acquire();
+    vector<bsoncxx::document::value> documents;
+    shared_ptr<RedisContext> ctx;
+    
+    if (!SKIP_REDIS) {
+        try {
+            ctx = this->redis_pool->acquire();
+        } catch (const std::exception& e) {
+            Utils::error("Failed to acquire Redis connection: " + string(e.what()));
+            return {};
+        }
     }
 
     for (const auto& link : links) {
@@ -944,16 +948,16 @@ vector<string> RedisMongoDB::add_links(const vector<atoms::Link*>& links, bool t
                          " missing targets");
             return {};
         }
+        
+        if (!SKIP_REDIS) {
+            auto pattern_handles = match_pattern_index_schema(link);
 
-        auto pattern_handles = match_pattern_index_schema(link);
-
-        if (!this->cluster_flag) {
             string incoming_handle = link->handle();
             for (const auto& target : existing_targets) {
                 string handle = target->get(MONGODB_FIELD_NAME[MONGODB_FIELD::ID]);
                 string incomming_set_cmd = "ZADD " + REDIS_INCOMING_PREFIX + ":" + handle + " " +
-                                           to_string(this->incoming_set_next_score.load()) + " " +
-                                           incoming_handle;
+                                            to_string(this->incoming_set_next_score.load()) + " " +
+                                            incoming_handle;
                 ctx->append_command(incomming_set_cmd.c_str());
                 this->incoming_set_next_score.fetch_add(1);
             }
@@ -966,32 +970,23 @@ vector<string> RedisMongoDB::add_links(const vector<atoms::Link*>& links, bool t
 
             for (const auto& pattern_handle : pattern_handles) {
                 string patterns_cmd = "ZADD " + REDIS_PATTERNS_PREFIX + ":" + pattern_handle + " " +
-                                      to_string(this->patterns_next_score.load()) + " " + link->handle();
+                                        to_string(this->patterns_next_score.load()) + " " + link->handle();
                 ctx->append_command(patterns_cmd.c_str());
                 this->patterns_next_score.fetch_add(1);
             }
-        } else {
-            for (const auto& pattern_handle : pattern_handles) {
-                add_pattern(pattern_handle, link->handle());
-            }
-
-            for (const auto& target : existing_targets) {
-                add_incoming_set(target->get(MONGODB_FIELD_NAME[MONGODB_FIELD::ID]), link->handle());
-            }
-
-            add_outgoing_set(link->handle(), link->targets);
         }
 
         auto mongodb_doc = atomdb_api_types::MongodbDocument(link, *this);
-        if (!this->upsert_document(mongodb_doc.value(), MONGODB_LINKS_COLLECTION_NAME)) {
-            Utils::error("Failed to insert link into MongoDB");
-            return {};
-        }
-
+        documents.push_back(mongodb_doc.value());
+        
         handles.push_back(link->handle());
     }
 
-    if (!this->cluster_flag) {
+    if (!documents.empty()) {
+        upsert_documents(documents, MONGODB_LINKS_COLLECTION_NAME);
+    }
+
+    if (!SKIP_REDIS) {
         flush_redis_commands(ctx);
     }
 
