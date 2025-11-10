@@ -72,7 +72,6 @@ class AtomDBProxy(BaseProxy):
         message size limit, and then send each chunk to the remote peer.
         """
         with self._lock:
-            full_args = []
             handles = []
             chunks = []
             current_chunk = []
@@ -93,9 +92,6 @@ class AtomDBProxy(BaseProxy):
                 else:
                     log.error(f"Invalid Atom Type: {type(atom)}")
                     raise ValueError("Invalid Atom Type")
-
-                full_args.append(atom_type)
-                full_args.extend(temp_atom_args)
 
                 args_size = sum(len(arg.encode('utf-8')) for arg in ([atom_type] + temp_atom_args))
 
