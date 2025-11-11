@@ -132,13 +132,19 @@ class MockAtomDB : public AtomDB {
         return link->handle();
     }
 
-    vector<string> add_atoms(const vector<atoms::Atom*>& atoms, bool throw_if_exists) override {
+    vector<string> add_atoms(const vector<atoms::Atom*>& atoms,
+                             bool throw_if_exists,
+                             bool is_transactional) override {
         return {};
     }
-    vector<string> add_nodes(const vector<atoms::Node*>& nodes, bool throw_if_exists) override {
+    vector<string> add_nodes(const vector<atoms::Node*>& nodes,
+                             bool throw_if_exists,
+                             bool is_transactional) override {
         return {};
     }
-    vector<string> add_links(const vector<atoms::Link*>& links, bool throw_if_exists) override {
+    vector<string> add_links(const vector<atoms::Link*>& links,
+                             bool throw_if_exists,
+                             bool is_transactional) override {
         return {};
     }
 

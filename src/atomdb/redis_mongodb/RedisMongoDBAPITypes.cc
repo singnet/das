@@ -242,3 +242,28 @@ MongodbDocument::MongodbDocument(const atoms::Link* link, HandleDecoder& db) {
     add_custom_attributes(doc, link->custom_attributes);
     this->document = doc.extract();
 }
+
+MongodbDocument::MongodbDocument(const atoms::Link* link,
+                                 const string& composite_type_hash,
+                                 const vector<string>& composite_type) {
+    bsoncxx::builder::basic::array composite_type_array;
+    for (const auto& entry : composite_type) {
+        composite_type_array.append(entry);
+    }
+
+    bsoncxx::builder::basic::array targets_array;
+    for (const auto& target : link->targets) {
+        targets_array.append(target);
+    }
+
+    bsoncxx::builder::basic::document doc;
+    doc.append(bsoncxx::builder::basic::kvp("_id", link->handle()));
+    doc.append(bsoncxx::builder::basic::kvp("is_toplevel", link->is_toplevel));
+    doc.append(bsoncxx::builder::basic::kvp("composite_type_hash", composite_type_hash));
+    doc.append(bsoncxx::builder::basic::kvp("composite_type", composite_type_array));
+    doc.append(bsoncxx::builder::basic::kvp("named_type", link->type));
+    doc.append(bsoncxx::builder::basic::kvp("named_type_hash", link->named_type_hash()));
+    doc.append(bsoncxx::builder::basic::kvp("targets", targets_array));
+    add_custom_attributes(doc, link->custom_attributes);
+    this->document = doc.extract();
+}

@@ -79,6 +79,9 @@ class MongodbDocument : public AtomDocument {
     MongodbDocument(bsoncxx::v_noabi::stdx::optional<bsoncxx::v_noabi::document::value>& document);
     MongodbDocument(const atoms::Node* node);
     MongodbDocument(const atoms::Link* link, HandleDecoder& db);
+    MongodbDocument(const atoms::Link* link,
+                    const string& composite_type_hash,
+                    const vector<string>& composite_type);
     ~MongodbDocument();
 
     const char* get(const string& key);

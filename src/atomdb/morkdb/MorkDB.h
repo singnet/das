@@ -20,6 +20,8 @@
 
 namespace atomdb {
 
+#define MORKDB_CHUNK_SIZE 5000
+
 class MorkClient {
    public:
     MorkClient(const string& base_url = "");
@@ -44,7 +46,9 @@ class MorkDB : public RedisMongoDB {
     shared_ptr<atomdb_api_types::HandleSet> query_for_pattern(const LinkSchema& link_schema) override;
     shared_ptr<atomdb_api_types::HandleList> query_for_targets(const string& handle) override;
 
-    vector<string> add_links(const vector<atoms::Link*>& links, bool throw_if_exists = false) override;
+    vector<string> add_links(const vector<atoms::Link*>& links,
+                             bool throw_if_exists = false,
+                             bool is_transactional = false) override;
 
     // TODO: Implement this once MORK supports deleting links (S-Expressions)
     bool delete_link(const string& handle, bool delete_targets) override;

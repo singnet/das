@@ -97,9 +97,15 @@ class RedisMongoDB : public AtomDB {
     string add_node(const atoms::Node* node, bool throw_if_exists = false);
     string add_link(const atoms::Link* link, bool throw_if_exists = false);
 
-    vector<string> add_atoms(const vector<atoms::Atom*>& atoms, bool throw_if_exists = false);
-    vector<string> add_nodes(const vector<atoms::Node*>& nodes, bool throw_if_exists = false);
-    vector<string> add_links(const vector<atoms::Link*>& links, bool throw_if_exists = false);
+    vector<string> add_atoms(const vector<atoms::Atom*>& atoms,
+                             bool throw_if_exists = false,
+                             bool is_transactional = false);
+    vector<string> add_nodes(const vector<atoms::Node*>& nodes,
+                             bool throw_if_exists = false,
+                             bool is_transactional = false);
+    vector<string> add_links(const vector<atoms::Link*>& links,
+                             bool throw_if_exists = false,
+                             bool is_transactional = false);
 
     bool delete_atom(const string& handle, bool delete_link_targets = false);
     bool delete_node(const string& handle, bool delete_link_targets = false);
@@ -126,6 +132,13 @@ class RedisMongoDB : public AtomDB {
     void drop_all();
 
     mongocxx::pool* get_mongo_pool() const { return mongodb_pool; }
+
+    void check_existing_targets(const vector<atoms::Link*>& links);
+
+    mutex composite_type_hashes_map_mutex;
+    map<string, string> composite_type_hashes_map;
+    void build_composite_type_entries_map(const vector<atoms::Link*>& links,
+                                          map<string, vector<string>>& composite_type_entries_map);
 
    private:
     string context;
@@ -157,7 +170,6 @@ class RedisMongoDB : public AtomDB {
 
     uint get_next_score(const string& key);
     void set_next_score(const string& key, uint score);
-    void flush_redis_commands(shared_ptr<RedisContext> ctx);
     void reset_scores();
 
     void add_pattern(const string& handle, const string& pattern_handle);

@@ -9,7 +9,8 @@ namespace atoms {
 
 class Link : public Atom {
    public:
-    vector<string> targets;  ///< The handles of the target atoms of the link.
+    vector<string> targets;   ///< The handles of the target atoms of the link.
+    string metta_expression;  ///< The MeTTa expression of the link.
 
     // ---------------------------------------------------------------------------------------------
     // Constructors, destructors , basic operators and initializers
@@ -25,7 +26,8 @@ class Link : public Atom {
     Link(const string& type,
          const vector<string>& targets,
          bool is_toplevel = false,
-         const Properties& custom_attributes = {});
+         const Properties& custom_attributes = {},
+         const string& metta_expression = "");
 
     Link(const string& type, const vector<string>& targets, const Properties& custom_attributes);
 

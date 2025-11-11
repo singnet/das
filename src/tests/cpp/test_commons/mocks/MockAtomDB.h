@@ -84,15 +84,15 @@ class AtomDBMock : public AtomDB {
 
     MOCK_METHOD(vector<string>,
                 add_atoms,
-                (const vector<Atom*>& atoms, bool throw_if_exists),
+                (const vector<Atom*>& atoms, bool throw_if_exists, bool is_transactional),
                 (override));
     MOCK_METHOD(vector<string>,
                 add_nodes,
-                (const vector<Node*>& nodes, bool throw_if_exists),
+                (const vector<Node*>& nodes, bool throw_if_exists, bool is_transactional),
                 (override));
     MOCK_METHOD(vector<string>,
                 add_links,
-                (const vector<Link*>& links, bool throw_if_exists),
+                (const vector<Link*>& links, bool throw_if_exists, bool is_transactional),
                 (override));
 
     MOCK_METHOD(bool, delete_atom, (const string& handle, bool delete_link_targets), (override));

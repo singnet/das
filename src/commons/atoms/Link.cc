@@ -14,8 +14,9 @@ using namespace atoms;
 Link::Link(const string& type,
            const vector<string>& targets,
            bool is_toplevel,
-           const Properties& custom_attributes)
-    : Atom(type, is_toplevel, custom_attributes), targets(targets) {
+           const Properties& custom_attributes,
+           const string& metta_expression)
+    : Atom(type, is_toplevel, custom_attributes), targets(targets), metta_expression(metta_expression) {
     this->validate();
 }
 

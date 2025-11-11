@@ -8,6 +8,7 @@
 #include <string>
 
 #include "HandleDecoder.h"
+#include "Hasher.h"
 #include "MettaMapping.h"
 #include "MettaParser.h"
 #include "MettaParserActions.h"
@@ -187,37 +188,60 @@ shared_ptr<atomdb_api_types::HandleList> MorkDB::query_for_targets(const string&
     return make_shared<atomdb_api_types::HandleListMork>(document);
 }
 
-vector<string> MorkDB::add_links(const vector<atoms::Link*>& links, bool throw_if_exists) {
+vector<string> MorkDB::add_links(const vector<atoms::Link*>& links,
+                                 bool throw_if_exists,
+                                 bool is_transactional) {
     if (links.empty()) {
         return {};
     }
 
+    map<string, vector<string>> composite_type_entries_map;
+    if (is_transactional) {
+        this->build_composite_type_entries_map(links, composite_type_entries_map);
+    } else {
+        this->check_existing_targets(links);
+    }
+
     vector<string> handles;
+    string metta_expressions;
+    vector<bsoncxx::document::value> documents;
 
+    uint count = 0;
     for (const auto& link : links) {
-        if (throw_if_exists && link_exists(link->handle())) {
-            Utils::error("Link already exists: " + link->handle());
-            return {};
+        auto link_handle = link->handle();
+
+        string metta_expression = link->metta_expression;
+        if (metta_expression.empty()) metta_expression = link->metta_representation(*this);
+        metta_expressions += metta_expression + "\n";
+
+        count++;
+        if (count >= MORKDB_CHUNK_SIZE) {
+            this->mork_client->post(metta_expressions, "$x", "$x");
+            metta_expressions = "";
+            count = 0;
         }
 
-        auto unique_targets = set<string>(link->targets.begin(), link->targets.end());
-        auto existing_targets =
-            get_atom_documents(vector<string>(unique_targets.begin(), unique_targets.end()),
-                               {MONGODB_FIELD_NAME[MONGODB_FIELD::ID]});
-        if (existing_targets.size() != unique_targets.size()) {
-            Utils::error("Failed to insert link: " + link->handle() + " has " +
-                         to_string(unique_targets.size() - existing_targets.size()) +
-                         " missing targets");
-            return {};
+        shared_ptr<atomdb_api_types::MongodbDocument> mongodb_doc;
+        if (is_transactional) {
+            mongodb_doc = make_shared<atomdb_api_types::MongodbDocument>(
+                link,
+                this->composite_type_hashes_map[link_handle],
+                composite_type_entries_map[link_handle]);
+        } else {
+            mongodb_doc = make_shared<atomdb_api_types::MongodbDocument>(link, *this);
         }
 
-        auto metta_expression = link->metta_representation(*this);
-        this->mork_client->post(metta_expression, "$x", "$x");
+        documents.push_back(mongodb_doc->value());
 
-        auto mongodb_doc = atomdb_api_types::MongodbDocument(link, *this);
-        this->upsert_document(mongodb_doc.value(), MONGODB_LINKS_COLLECTION_NAME);
+        handles.push_back(link_handle);
+    }
 
-        handles.push_back(link->handle());
+    if (!documents.empty()) {
+        this->upsert_documents(documents, MONGODB_LINKS_COLLECTION_NAME);
+    }
+
+    if (!metta_expressions.empty()) {
+        this->mork_client->post(metta_expressions, "$x", "$x");
     }
 
     return handles;
