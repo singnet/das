@@ -884,7 +884,6 @@ vector<string> RedisMongoDB::add_atoms(const vector<atoms::Atom*>& atoms,
     }
     auto node_handles = add_nodes(nodes, throw_if_exists, is_transactional);
     auto link_handles = add_links(links, throw_if_exists, is_transactional);
-    if (is_transactional) this->composite_type_hashes_map.clear();
 
     node_handles.insert(node_handles.end(), link_handles.begin(), link_handles.end());
     return node_handles;
@@ -929,6 +928,7 @@ vector<string> RedisMongoDB::add_links(const vector<atoms::Link*>& links,
                                        bool throw_if_exists,
                                        bool is_transactional) {
     if (links.empty()) {
+        if (is_transactional) this->composite_type_hashes_map.clear();
         return {};
     }
 
@@ -1002,6 +1002,8 @@ vector<string> RedisMongoDB::add_links(const vector<atoms::Link*>& links,
               ", incoming=" + to_string(this->incoming_set_next_score.load()));
     set_next_score(REDIS_PATTERNS_PREFIX + ":next_score", this->patterns_next_score.load());
     set_next_score(REDIS_INCOMING_PREFIX + ":next_score", this->incoming_set_next_score.load());
+
+    if (is_transactional) this->composite_type_hashes_map.clear();
 
     return handles;
 }
