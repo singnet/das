@@ -169,35 +169,23 @@ We have `make` commands for most of the usual things we need to do in the repo
 (building, running tests, code-style formatting, running agents, etc). The only thing we need to
 do with `das-cli` is the DB setup. See how to install/configure `das-cli` [here](https://github.com/singnet/das-toolbox).
 
-To run unit tests you're not supposed to use the default values in `das-cli config set`. Use the values listed below.
+To run unit tests you're are supposed to use the default values in `das-cli config set`.
 
 ```
 $ das-cli config set
-Enter Redis port [40020]: 29000
+Enter Redis port [40020]:
 Is it a Redis cluster? [y/N]: 
-Enter MongoDB port [40021]: 28000
-Enter MongoDB username [admin]: dbadmin
-Enter MongoDB password [admin]: dassecret
+Enter MongoDB port [40021]:
+Enter MongoDB username [admin]:
+Enter MongoDB password [admin]:
 Is it a MongoDB cluster? [y/N]: 
 Enter Jupyter Notebook port [40019]: 
-Enter the Attention Broker port [40001]: 37007
+Enter the Attention Broker port [40001]:
 Enter the Query Agent port [40002]: 
 Enter the Link Creation Agent Server port [40003]: 
 Enter the Inference Agent port [40004]: 
 Enter the Evolution agent port [40005]: 
 Enter the Context Broker port [40006]: 
-```
-
-Export the following environment variables.
-
-```
-export DAS_REDIS_HOSTNAME=localhost
-export DAS_REDIS_PORT=29000
-export DAS_USE_REDIS_CLUSTER=False
-export DAS_MONGODB_HOSTNAME=localhost
-export DAS_MONGODB_PORT=28000
-export DAS_MONGODB_USERNAME=dbadmin
-export DAS_MONGODB_PASSWORD=dassecret
 ```
 
 To run unit tests, firstly you need to setup an AtomDB and a Mork server. First the AtomDB.
