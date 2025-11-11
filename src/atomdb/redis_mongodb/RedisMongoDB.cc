@@ -865,7 +865,9 @@ string RedisMongoDB::add_link(const atoms::Link* link, bool throw_if_exists) {
     return add_links(links, throw_if_exists)[0];
 }
 
-vector<string> RedisMongoDB::add_atoms(const vector<atoms::Atom*>& atoms, bool throw_if_exists) {
+vector<string> RedisMongoDB::add_atoms(const vector<atoms::Atom*>& atoms,
+                                       bool throw_if_exists,
+                                       bool is_transactional) {
     if (atoms.empty()) {
         return {};
     }
@@ -880,13 +882,16 @@ vector<string> RedisMongoDB::add_atoms(const vector<atoms::Atom*>& atoms, bool t
             links.push_back(dynamic_cast<atoms::Link*>(atom));
         }
     }
-    auto node_handles = add_nodes(nodes, throw_if_exists);
-    auto link_handles = add_links(links, throw_if_exists);
+    auto node_handles = add_nodes(nodes, throw_if_exists, is_transactional);
+    auto link_handles = add_links(links, throw_if_exists, is_transactional);
+
     node_handles.insert(node_handles.end(), link_handles.begin(), link_handles.end());
     return node_handles;
 }
 
-vector<string> RedisMongoDB::add_nodes(const vector<atoms::Node*>& nodes, bool throw_if_exists) {
+vector<string> RedisMongoDB::add_nodes(const vector<atoms::Node*>& nodes,
+                                       bool throw_if_exists,
+                                       bool is_transactional) {
     if (nodes.empty()) {
         return {};
     }
@@ -898,6 +903,10 @@ vector<string> RedisMongoDB::add_nodes(const vector<atoms::Node*>& nodes, bool t
         auto mongodb_doc = atomdb_api_types::MongodbDocument(node);
         documents.push_back(mongodb_doc.value());
         handles.push_back(node->handle());
+        if (is_transactional) {
+            lock_guard<mutex> composite_type_hashes_map_lock(this->composite_type_hashes_map_mutex);
+            this->composite_type_hashes_map[node->handle()] = node->named_type_hash();
+        }
     }
 
     if (throw_if_exists) {
@@ -915,80 +924,86 @@ vector<string> RedisMongoDB::add_nodes(const vector<atoms::Node*>& nodes, bool t
     return handles;
 }
 
-vector<string> RedisMongoDB::add_links(const vector<atoms::Link*>& links, bool throw_if_exists) {
+vector<string> RedisMongoDB::add_links(const vector<atoms::Link*>& links,
+                                       bool throw_if_exists,
+                                       bool is_transactional) {
     if (links.empty()) {
+        if (is_transactional) this->composite_type_hashes_map.clear();
         return {};
     }
-    vector<string> handles;
-    vector<bsoncxx::document::value> documents;
-    shared_ptr<RedisContext> ctx;
 
-    if (!SKIP_REDIS) {
-        try {
-            ctx = this->redis_pool->acquire();
-        } catch (const std::exception& e) {
-            Utils::error("Failed to acquire Redis connection: " + string(e.what()));
-            return {};
-        }
+    map<string, vector<string>> composite_type_entries_map;
+    if (is_transactional) {
+        this->build_composite_type_entries_map(links, composite_type_entries_map);
+    } else {
+        this->check_existing_targets(links);
     }
 
+    vector<string> handles;
+    vector<bsoncxx::document::value> documents;
+
+    shared_ptr<RedisContext> ctx = this->redis_pool->acquire();
+
     for (const auto& link : links) {
-        if (throw_if_exists && link_exists(link->handle())) {
-            Utils::error("Link already exists: " + link->handle());
+        auto link_handle = link->handle();
+        if (throw_if_exists && link_exists(link_handle)) {
+            Utils::error("Link already exists: " + link_handle);
             return {};
         }
 
-        auto unique_targets = set<string>(link->targets.begin(), link->targets.end());
-        auto existing_targets =
-            get_atom_documents(vector<string>(unique_targets.begin(), unique_targets.end()),
-                               {MONGODB_FIELD_NAME[MONGODB_FIELD::ID]});
-        if (existing_targets.size() != unique_targets.size()) {
-            Utils::error("Failed to insert link: " + link->handle() + " has " +
-                         to_string(unique_targets.size() - existing_targets.size()) +
-                         " missing targets");
-            return {};
+        auto pattern_handles = match_pattern_index_schema(link);
+
+        for (const auto& target : link->targets) {
+            string incomming_set_cmd = "ZADD " + REDIS_INCOMING_PREFIX + ":" + target + " " +
+                                       to_string(this->incoming_set_next_score.load()) + " " +
+                                       link_handle;
+            ctx->append_command(incomming_set_cmd.c_str());
+            this->incoming_set_next_score.fetch_add(1);
         }
 
-        if (!SKIP_REDIS) {
-            auto pattern_handles = match_pattern_index_schema(link);
+        string outgoing_set_cmd = "SET " + REDIS_OUTGOING_PREFIX + ":" + link_handle + " ";
+        for (const auto& outgoing_handle : link->targets) {
+            outgoing_set_cmd += outgoing_handle;
+        }
+        ctx->append_command(outgoing_set_cmd.c_str());
 
-            string incoming_handle = link->handle();
-            for (const auto& target : existing_targets) {
-                string handle = target->get(MONGODB_FIELD_NAME[MONGODB_FIELD::ID]);
-                string incomming_set_cmd = "ZADD " + REDIS_INCOMING_PREFIX + ":" + handle + " " +
-                                           to_string(this->incoming_set_next_score.load()) + " " +
-                                           incoming_handle;
-                ctx->append_command(incomming_set_cmd.c_str());
-                this->incoming_set_next_score.fetch_add(1);
-            }
-
-            string outgoing_set_cmd = "SET " + REDIS_OUTGOING_PREFIX + ":" + link->handle() + " ";
-            for (const auto& outgoing_handle : link->targets) {
-                outgoing_set_cmd += outgoing_handle;
-            }
-            ctx->append_command(outgoing_set_cmd.c_str());
-
-            for (const auto& pattern_handle : pattern_handles) {
-                string patterns_cmd = "ZADD " + REDIS_PATTERNS_PREFIX + ":" + pattern_handle + " " +
-                                      to_string(this->patterns_next_score.load()) + " " + link->handle();
-                ctx->append_command(patterns_cmd.c_str());
-                this->patterns_next_score.fetch_add(1);
-            }
+        for (const auto& pattern_handle : pattern_handles) {
+            string patterns_cmd = "ZADD " + REDIS_PATTERNS_PREFIX + ":" + pattern_handle + " " +
+                                  to_string(this->patterns_next_score.load()) + " " + link_handle;
+            ctx->append_command(patterns_cmd.c_str());
+            this->patterns_next_score.fetch_add(1);
         }
 
-        auto mongodb_doc = atomdb_api_types::MongodbDocument(link, *this);
-        documents.push_back(mongodb_doc.value());
+        shared_ptr<atomdb_api_types::MongodbDocument> mongodb_doc;
+        if (is_transactional) {
+            lock_guard<mutex> composite_type_hashes_map_lock(this->composite_type_hashes_map_mutex);
+            mongodb_doc = make_shared<atomdb_api_types::MongodbDocument>(
+                link,
+                this->composite_type_hashes_map[link_handle],
+                composite_type_entries_map[link_handle]);
+        } else {
+            mongodb_doc = make_shared<atomdb_api_types::MongodbDocument>(link, *this);
+        }
 
-        handles.push_back(link->handle());
+        documents.push_back(mongodb_doc->value());
+
+        handles.push_back(link_handle);
     }
 
     if (!documents.empty()) {
         upsert_documents(documents, MONGODB_LINKS_COLLECTION_NAME);
     }
 
-    if (!SKIP_REDIS) {
-        flush_redis_commands(ctx);
-    }
+    LOG_DEBUG("Flushing Redis commands START");
+    ctx->flush_commands();
+    LOG_DEBUG("Flushing Redis commands END");
+
+    LOG_DEBUG("Setting next scores: patterns=" + to_string(this->patterns_next_score.load()) +
+              ", incoming=" + to_string(this->incoming_set_next_score.load()));
+    set_next_score(REDIS_PATTERNS_PREFIX + ":next_score", this->patterns_next_score.load());
+    set_next_score(REDIS_INCOMING_PREFIX + ":next_score", this->incoming_set_next_score.load());
+
+    if (is_transactional) this->composite_type_hashes_map.clear();
 
     return handles;
 }
@@ -1358,15 +1373,37 @@ void RedisMongoDB::drop_all() {
     this->load_pattern_index_schema();
 }
 
-void RedisMongoDB::flush_redis_commands(shared_ptr<RedisContext> ctx) {
-    if (SKIP_REDIS) return;
-
-    LOG_DEBUG("Flushing Redis commands START");
-    ctx->flush_commands();
-    LOG_DEBUG("Flushing Redis commands END");
-
-    set_next_score(REDIS_PATTERNS_PREFIX + ":next_score", this->patterns_next_score.load());
-    LOG_DEBUG("Patterns next score set to " + to_string(this->patterns_next_score.load()));
-    set_next_score(REDIS_INCOMING_PREFIX + ":next_score", this->incoming_set_next_score.load());
-    LOG_DEBUG("Incoming sets next score set to " + to_string(this->incoming_set_next_score.load()));
+// composite_type and composite_type_hash helper function
+void RedisMongoDB::build_composite_type_entries_map(
+    const vector<atoms::Link*>& links, map<string, vector<string>>& composite_type_entries_map) {
+    for (const auto& link : links) {
+        string link_handle = link->handle();
+        composite_type_entries_map[link_handle] = {};
+        composite_type_entries_map[link_handle].push_back(link->named_type_hash());
+        for (const auto& target : link->targets) {
+            composite_type_entries_map[link_handle].push_back(target);
+        }
+        string composite_type_hash = Hasher::composite_handle(composite_type_entries_map[link_handle]);
+        composite_type_hashes_map[link_handle] = composite_type_hash;
+    }
 }
+
+void RedisMongoDB::check_existing_targets(const vector<atoms::Link*>& links) {
+    set<string> unique_targets;
+
+    for (const auto& link : links) {
+        string link_handle = link->handle();
+        for (const auto& target : link->targets) {
+            unique_targets.insert(target);
+        }
+    }
+
+    auto existing_targets =
+        this->get_atom_documents(vector<string>(unique_targets.begin(), unique_targets.end()),
+                                 {MONGODB_FIELD_NAME[MONGODB_FIELD::ID]});
+    LOG_DEBUG("Existing targets size: " + to_string(existing_targets.size()));
+    if (existing_targets.size() != unique_targets.size()) {
+        Utils::error("Failed to insert links: some targets are missing");
+    }
+}
+// end of composite_type and composite_type_hash helper functions

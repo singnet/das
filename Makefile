@@ -76,7 +76,7 @@ agents:
 	@bash -x src/scripts/run_agents.sh $(filter-out $@, $(MAKECMDGOALS))
 
 run-tests-db-loader:
-	@bash -x src/scripts/run.sh tests_db_loader $(CONTEXT)
+	@bash -x src/scripts/run.sh tests_db_loader $(OPTIONS)
 
 setup-nunet-dms:
 	@bash -x src/scripts/setup-nunet-dms.sh
@@ -104,7 +104,7 @@ clean:
 	@echo "Done."
 
 
-test-all-no-cache:
+test-all-no-cache: build-image run-tests-db-loader
 	@$(MAKE) bazel 'test --show_progress --cache_test_results=no //tests/...'
 
 test-all: build-image run-tests-db-loader
