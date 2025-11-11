@@ -1,9 +1,9 @@
 #!/bin/bash
 
-set -eoux pipefail
+set -eoux pipefail 
 
-ARCHS="${1}"
-shift 
+ARCHS="${1:-amd64,arm64}"
+shift || true
 
 IFS=',' read -r -a TARGET_ARCHS_ARRAY <<< "$ARCHS"
 
@@ -25,7 +25,7 @@ for TARGET_ARCH in "${TARGET_ARCHS_ARRAY[@]}"; do
   LOCAL_WORKDIR=$(pwd)
   LOCAL_BIN_DIR=$LOCAL_WORKDIR/bin/$TARGET_ARCH
   LOCAL_LIB_DIR=$LOCAL_WORKDIR/lib/$TARGET_ARCH
-  LOCAL_CACHE="$HOME/.cache/das"
+  LOCAL_CACHE="$HOME/.cache/das/$TARGET_ARCH"
 
   mkdir -p $LOCAL_BIN_DIR $LOCAL_LIB_DIR $LOCAL_CACHE
 
