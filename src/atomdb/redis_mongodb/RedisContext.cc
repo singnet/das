@@ -1,7 +1,11 @@
 #include "RedisContext.h"
 
+#include "Utils.h"
+
+using namespace commons;
+
 RedisContext::RedisContext(bool is_cluster)
-    : cluster_flag(is_cluster), single_ctx(nullptr), cluster_ctx(nullptr) {}
+    : cluster_flag(is_cluster), single_ctx(nullptr), cluster_ctx(nullptr), pending_commands_count(0) {}
 
 RedisContext::~RedisContext() {
     if (cluster_flag) {
@@ -32,6 +36,50 @@ redisReply* RedisContext::execute(const char* command) {
         return (redisReply*) redisClusterCommand(cluster_ctx, command);
     } else {
         return (redisReply*) redisCommand(single_ctx, command);
+    }
+}
+
+void RedisContext::append_command(const char* command) {
+    if (cluster_flag) {
+        if (redisClusterAppendCommand(cluster_ctx, command) == REDIS_OK) {
+            pending_commands_count++;
+        } else {
+            Utils::error("Failed to append command to Redis cluster context.");
+        }
+    } else {
+        if (redisAppendCommand(single_ctx, command) == REDIS_OK) {
+            pending_commands_count++;
+        } else {
+            Utils::error("Failed to append command to Redis context.");
+        }
+    }
+}
+void RedisContext::flush_commands() {
+    redisReply* reply;
+    if (cluster_flag) {
+        while (pending_commands_count > 0) {
+            pending_commands_count--;
+
+            if (redisClusterGetReply(cluster_ctx, (void**) &reply) == REDIS_ERR) {
+                return;
+            }
+
+            if (reply != nullptr) {
+                freeReplyObject(reply);
+            }
+        }
+    } else {
+        while (pending_commands_count > 0) {
+            pending_commands_count--;
+
+            if (redisGetReply(single_ctx, (void**) &reply) == REDIS_ERR) {
+                return;
+            }
+
+            if (reply != nullptr) {
+                freeReplyObject(reply);
+            }
+        }
     }
 }
 

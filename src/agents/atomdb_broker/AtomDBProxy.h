@@ -117,6 +117,8 @@ class AtomDBProxy : public BaseProxy {
 
     mutex api_mutex;
     shared_ptr<AtomDB> atomdb;
+
+    static const size_t BATCH_SIZE;
 };
 
 }  // namespace atomdb_broker

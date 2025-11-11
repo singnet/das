@@ -51,6 +51,7 @@ cc_library(
     hdrs = ["RedisMongoDB.h"],
     includes = ["."],
     deps = [
+        ":redis_context",
         ":redis_context_pool",
         ":redis_mongodb_api_types",
         "//atomdb",
