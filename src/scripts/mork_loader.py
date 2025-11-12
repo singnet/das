@@ -10,6 +10,8 @@ from urllib.parse import quote
 
 import requests
 
+MORK_SERVER_ADDRESS = f"http://{os.getenv('MORK_SERVER_ADDR')}:{os.getenv('MORK_SERVER_PORT')}"
+
 
 class FileServer:
     """Start a simple HTTP server in a background thread to serve a directory."""
@@ -115,7 +117,7 @@ def copy_to_temp(args: argparse.Namespace) -> Path:
 
 def load_s_expressions(
     uri: str,
-    mork_server_address: str = "http://127.0.0.1:8000",
+    mork_server_address: str = MORK_SERVER_ADDRESS,
 ) -> dict:
     """
     Loads S-expressions from the given URI via the MORK server.
