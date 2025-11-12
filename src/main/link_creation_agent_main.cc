@@ -71,10 +71,12 @@ int main(int argc, char* argv[]) {
     int default_timeout = argc > 7 ? Utils::string_to_int(argv[7]) : 50;
     string buffer_file = argc > 8 ? argv[8] : "requests_buffer.bin";
     string metta_file_path = argc > 9 ? argv[9] : "./";
-    bool save_links_to_metta_file = argc > 10 && (string(argv[10]) == string("true") ||
-                                                  string(argv[10]) == "1" || string(argv[10]) == "yes");
-    bool save_links_to_db = argc > 11 && (string(argv[11]) == string("true") ||
-                                          string(argv[11]) == "1" || string(argv[11]) == "yes");
+    bool save_links_to_metta_file = argc > 10 ? (string(argv[10]) == string("true") ||
+                                                 string(argv[10]) == "1" || string(argv[10]) == "yes")
+                                              : false;
+    bool save_links_to_db = argc > 11 ? (string(argv[11]) == string("true") || string(argv[11]) == "1" ||
+                                         string(argv[11]) == "yes")
+                                      : true;
 
     if (argc == 13) {
         attention_broker::AttentionBrokerClient::set_server_address(argv[12]);
