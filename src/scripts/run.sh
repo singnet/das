@@ -2,10 +2,26 @@
 
 set -eoux pipefail
 
+detect_host_arch() {
+  case "$(uname -m)" in
+    x86_64)
+      echo "amd64"
+      ;;
+    aarch64 | arm64)
+      echo "arm64"
+      ;;
+    *)
+      uname -m
+      ;;
+  esac
+}
+
+ARCH=$(detect_host_arch)
+
 BINARY_NAME="${1}"
 shift
 
-IMAGE_NAME="das-builder"
+IMAGE_NAME="das-builder:${ARCH}"
 CONTAINER_NAME="das-${BINARY_NAME}-$(uuidgen | cut -d '-' -f 1)-$(date +%Y%m%d%H%M%S)"
 
 ENV_VARS=$(test -f .env && echo "--env-file=.env" || echo "")
@@ -18,7 +34,7 @@ docker run --rm \
     --workdir /opt/das \
     $ENV_VARS \
     "${IMAGE_NAME}" \
-    "bin/${BINARY_NAME}" "$@"
+    "bin/$ARCH/${BINARY_NAME}" "$@"
 
 sleep 1
 
