@@ -1,44 +1,27 @@
-Highlights:
-[#637][HE Client] Add InferenceProxy
-[#691] Add Atom::is_toplevel and AtomDB::get_matching_atoms(is_toplevel, Atom)
-[#695] Add Context objects which initializes AB and sets importance determiners for toplevel links
-[#668] Add User's Guide to Database Wrapper
-[#118] [C++ repos] Add test coverage check [PR: #685] 
-[#695] Implement Context objects with proper Attention Broker initialization [PR: #709] 
+Changes:
 
-Bug fixes:
-[#595] OR query doesn't process QueryAnswer objects
-[#595] Issues an error msg when any AND/OR clause is not LT or Operator 
-[#609] Inference/Evolution Query causing Query Agent crash
-[#618] atom::Link and atom::LinkSchema are crashing after decoding a handle to NULL
-[#613] Query Agent is crashing after returning answers
-[#648] 'abort' command in LinkCreationAgent
-[#620] Miscellaneous changes in order to diminish probability of PORT conflict error 
-[#629] Miscelaneous fixes, logging changes, minor features to help debuging, etc [PR: #719]
-[FIX] Equivalence strength calculating with wrong value [PR: #716]
-[Fix][AtomDBCache] Split document caching into nodes and links. [PR: #711]
-[#629] Miscellaneous minor fixes and changes for parameter tuning [PR: #735]
-[#632] Removing PROOF_OF_IMPLICATION_OR_EQUIVALENCE command [PR: #715]
-[#727] Fix MongodbDocument::get_size() [PR: #734]
-[FIX] Fixing evolution query [PR: #732]
-[#632] [TOY PROBLEM] Change the way bias is added and fix word predicates [PR: #741]
-[#632] Toy problem DB gen improvements [PR: #743]
-
-General changes:
-[#695] Creates a class AttentionBrokerClient which shaw be used as a hub to all AB requests [PR: #697]
-[#662] Benchmark median tracking with alerts [PR: #673] 
-[#692] Implements match() in all atom subclasses [PR: #693]
-[#695] Add a new AttentionBroker API command: set_determiners() [PR: #706] 
-[#632] Parameter to repeat Evolution Agent iterations [PR: #703] 
-[#632] Added more parameters to tune Inference Agent [PR: #690] 
-[#557] Add a make clean clause in our main Makefile [PR: #704] 
-[#644] Use DBMS to gather benchmark test results [PR: #701]
-[#632] Predicate more descritive names [PR: #731]
-[Feature] Add RedisMongoDB::add_patterns() [PR: #737]
-[RedisMongoDB] Add pattern_index_schema.priority logic [PR: #689]
-[#691] Add Atom::is_toplevel and AtomDB::get_matching_atoms(is_toplevel, Atom) [PR: #702] 
-[#632] Added cache to not process already processed Query Answers [PR: #733]
-[#676] Unify executables into a single Docker image [PR: #820]
-
-
-
+[das#843] Add support to MorkDB in Query Agent main
+[das#824] Integration of LCA in Hyperon Experimental
+[das#825] Create separate commands for LCA and Evolution in Hyperon Experimental
+[das#859] Strength formulae for Equivalence/Implication links are generating > 1.0 values
+[das#795] Update Python Client for new bus element
+[das#796] Database Adapter must communicate with AtomDB over the bus using AtomDBProxy
+[das#822] Add support to MorkDB in das-cli
+[das#823] Implement a command to set a single parameter
+[das#819] Add a flag to tell agents' binaries to use MorkDB
+[das#828] Implement a Jupyter notebook to show how to setup DAS environment
+[das#829] Implement a Jupyter notebook to explain how Query Evolution works
+[das#832] Write a conceptual document explaining how DAS components work
+[das#830] Implement a Jupyter notebook to show how to use LCA
+[das#835] Update main repo README
+[das#864] Notebook explaining LCA usage
+[das#860] Fix strength formulae for equivalence/implication links
+[das#858] DAS conceptual documentation
+[das#872] Set LCA queries to Camel Case
+[das#844] Added a cmd line parameter to use MorkDB in Query Agent
+[das#845] HE Client v0.4.0
+[das#850] Add missing atoms when using MeTTa template
+[das#852] Add `MorkDB::query_for_targets()`
+[das#856] Use default das-cli config values on tests.
+[das#867] Setup QEMU for cross-platform Docker image builds in CI
+[das#871] Use push_back in `PortPool::return_port()`
