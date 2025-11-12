@@ -2,9 +2,23 @@
 
 set -exou pipefail
 
-ARCH=$(uname -m)
+detect_host_arch() {
+  case "$(uname -m)" in
+    x86_64)
+      echo "amd64"
+      ;;
+    aarch64 | arm64)
+      echo "arm64"
+      ;;
+    *)
+      uname -m
+      ;;
+  esac
+}
 
-IMAGE_NAME="das-builder"
+ARCH=$(detect_host_arch)
+
+IMAGE_NAME="das-builder:$ARCH"
 CONTAINER_USER=$([ "$ARCH" != "arm64" ] && echo "$USER" || echo "builder")
 CONTAINER_NAME="das-bazel-cmd-$(uuidgen | cut -d '-' -f 1)-$(date +%Y%m%d%H%M%S)"
 
@@ -12,17 +26,17 @@ ENV_VARS=$(test -f .env && echo "--env-file=.env" || echo "")
 
 # local paths
 LOCAL_WORKDIR=$(pwd)
-LOCAL_BIN_DIR=$LOCAL_WORKDIR/bin
-LOCAL_LIB_DIR=$LOCAL_WORKDIR/lib
-LOCAL_CACHE="$HOME/.cache/das"
+LOCAL_BIN_DIR=$LOCAL_WORKDIR/bin/$ARCH
+LOCAL_LIB_DIR=$LOCAL_WORKDIR/lib/$ARCH
+LOCAL_CACHE="$HOME/.cache/das/$ARCH"
 
 mkdir -p "$LOCAL_LIB_DIR" "$LOCAL_BIN_DIR" "$LOCAL_CACHE"
 
 # container paths
 CONTAINER_WORKDIR=/opt/das
 CONTAINER_WORKSPACE_DIR=/opt/das/src
-CONTAINER_LIB_DIR=$CONTAINER_WORKDIR/lib
-CONTAINER_BIN_DIR=$CONTAINER_WORKDIR/bin
+CONTAINER_LIB_DIR=$CONTAINER_WORKDIR/lib/$ARCH
+CONTAINER_BIN_DIR=$CONTAINER_WORKDIR/bin/$ARCH
 CONTAINER_CACHE=/home/"${CONTAINER_USER}"/.cache
 
 docker run --rm \
