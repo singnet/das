@@ -15,6 +15,8 @@ CONTAINER_NAME="das-mork-loader-$(date +%Y%m%d%H%M%S)"
 docker run --rm \
     --name="${CONTAINER_NAME}" \
     --network host \
+    --env MORK_SERVER_ADDR=${DAS_MORK_HOSTNAME:-localhost} \
+    --env MORK_SERVER_PORT=${DAS_MORK_PORT:-8000} \
     --volume "${FILE}":/app/file.metta \
     --volume `pwd`/src/scripts/mork_loader.py:/app/mork_loader.py \
     --workdir /app \
