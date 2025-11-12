@@ -195,6 +195,20 @@ vector<string> MorkDB::add_links(const vector<atoms::Link*>& links,
         return {};
     }
 
+    if (throw_if_exists) {
+        vector<string> handles;
+        for (const auto& link : links) {
+            handles.push_back(link->handle());
+        }
+        auto existing_handles = this->links_exist(handles);
+        if (!existing_handles.empty()) {
+            vector<string> existing_handles_vector(existing_handles.begin(), existing_handles.end());
+            Utils::error("Failed to insert links, some links already exist: " +
+                         Utils::join(existing_handles_vector, ','));
+            return {};
+        }
+    }
+
     map<string, vector<string>> composite_type_entries_map;
     if (is_transactional) {
         this->build_composite_type_entries_map(links, composite_type_entries_map);
