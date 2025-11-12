@@ -2,13 +2,28 @@
 
 set -eoux pipefail 
 
-ARCHS="${1:-amd64,arm64}"
+detect_host_arch() {
+  case "$(uname -m)" in
+    x86_64)
+      echo "amd64"
+      ;;
+    aarch64 | arm64)
+      echo "arm64"
+      ;;
+    *)
+      uname -m
+      ;;
+  esac
+}
+
+HOST_ARCH=$(detect_host_arch)
+
+ARCHS="${1:-$HOST_ARCH}"
 shift || true
 
 IFS=',' read -r -a TARGET_ARCHS_ARRAY <<< "$ARCHS"
 
 for TARGET_ARCH in "${TARGET_ARCHS_ARRAY[@]}"; do
-  HOST_ARCH=$(uname -m)
   IMAGE_NAME=$([ "$HOST_ARCH" != "arm64" ] && [ "$HOST_ARCH" != "amd64" ] && echo "das-builder:$TARGET_ARCH" || echo "das-builder:latest")
 
   CONTAINER_USER=$([ "$HOST_ARCH" != "arm64" ] && [ "$HOST_ARCH" != "amd64" ] && echo "$USER" || echo "builder")
