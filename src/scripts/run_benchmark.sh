@@ -65,6 +65,23 @@ usage() {
     exit 1
 }
 
+
+detect_host_arch() {
+  case "$(uname -m)" in
+    x86_64)
+      echo "amd64"
+      ;;
+    aarch64 | arm64)
+      echo "arm64"
+      ;;
+    *)
+      uname -m
+      ;;
+  esac
+}
+
+HOST_ARCH=$(detect_host_arch)
+
 check_dependencies() {
     local missing=0
 
@@ -234,7 +251,7 @@ DAS_USE_REDIS_CLUSTER=false
 DAS_ATTENTION_BROKER_ADDRESS=localhost
 DAS_ATTENTION_BROKER_PORT=40001
 EOF
-        ./src/scripts/build.sh --copt=-DLOG_LEVEL=DEBUG_LEVEL
+        ./src/scripts/build.sh $HOST_ARCH --copt=-DLOG_LEVEL=DEBUG_LEVEL
         ./src/scripts/run.sh query_broker localhost:35700 3000:3100 localhost:$ATTENTION_BROKER_PORT | stdbuf -oL grep "Benchmark::" > "$log_file" || true &
         echo -e "\r\033[K${GREEN}Query Agent initialization completed!${RESET}"
     fi
