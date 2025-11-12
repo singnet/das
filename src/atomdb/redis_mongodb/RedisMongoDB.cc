@@ -932,6 +932,20 @@ vector<string> RedisMongoDB::add_links(const vector<atoms::Link*>& links,
         return {};
     }
 
+    if (throw_if_exists) {
+        vector<string> handles;
+        for (const auto& link : links) {
+            handles.push_back(link->handle());
+        }
+        auto existing_handles = this->links_exist(handles);
+        if (!existing_handles.empty()) {
+            vector<string> existing_handles_vector(existing_handles.begin(), existing_handles.end());
+            Utils::error("Failed to insert links, some links already exist: " +
+                         Utils::join(existing_handles_vector, ','));
+            return {};
+        }
+    }
+
     map<string, vector<string>> composite_type_entries_map;
     if (is_transactional) {
         this->build_composite_type_entries_map(links, composite_type_entries_map);
@@ -946,10 +960,6 @@ vector<string> RedisMongoDB::add_links(const vector<atoms::Link*>& links,
 
     for (const auto& link : links) {
         auto link_handle = link->handle();
-        if (throw_if_exists && link_exists(link_handle)) {
-            Utils::error("Link already exists: " + link_handle);
-            return {};
-        }
 
         auto pattern_handles = match_pattern_index_schema(link);
 
@@ -1376,6 +1386,7 @@ void RedisMongoDB::drop_all() {
 // composite_type and composite_type_hash helper function
 void RedisMongoDB::build_composite_type_entries_map(
     const vector<atoms::Link*>& links, map<string, vector<string>>& composite_type_entries_map) {
+    lock_guard<mutex> composite_type_hashes_map_lock(this->composite_type_hashes_map_mutex);
     for (const auto& link : links) {
         string link_handle = link->handle();
         composite_type_entries_map[link_handle] = {};
@@ -1384,7 +1395,7 @@ void RedisMongoDB::build_composite_type_entries_map(
             composite_type_entries_map[link_handle].push_back(target);
         }
         string composite_type_hash = Hasher::composite_handle(composite_type_entries_map[link_handle]);
-        composite_type_hashes_map[link_handle] = composite_type_hash;
+        this->composite_type_hashes_map[link_handle] = composite_type_hash;
     }
 }
 
