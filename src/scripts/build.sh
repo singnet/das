@@ -11,9 +11,6 @@ for TARGET_ARCH in "${TARGET_ARCHS_ARRAY[@]}"; do
   HOST_ARCH=$(uname -m)
   IMAGE_NAME=$([ "$HOST_ARCH" != "arm64" ] && [ "$HOST_ARCH" != "amd64" ] && echo "das-builder:$TARGET_ARCH" || echo "das-builder:latest")
 
-  OUTPUT_DIR_BINARIES="bin"
-  OUTPUT_DIR_LIBRARIES="lib"
-
   CONTAINER_USER=$([ "$HOST_ARCH" != "arm64" ] && [ "$HOST_ARCH" != "amd64" ] && echo "$USER" || echo "builder")
 
   TARGET_PLATFORM="linux/$TARGET_ARCH"
@@ -32,8 +29,8 @@ for TARGET_ARCH in "${TARGET_ARCHS_ARRAY[@]}"; do
   # container paths
   CONTAINER_WORKDIR=/opt/das
   CONTAINER_WORKSPACE_DIR=/opt/das/src
-  CONTAINER_BIN_DIR=$CONTAINER_WORKDIR/bin
-  CONTAINER_LIB_DIR=$CONTAINER_WORKDIR/lib
+  CONTAINER_BIN_DIR=$CONTAINER_WORKDIR/bin/$TARGET_ARCH
+  CONTAINER_LIB_DIR=$CONTAINER_WORKDIR/lib/$TARGET_ARCH
   CONTAINER_CACHE=/home/${CONTAINER_USER}/.cache
 
   docker run --rm \
