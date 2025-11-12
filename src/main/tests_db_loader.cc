@@ -80,11 +80,18 @@ int main(int argc, char* argv[]) {
             auto link = new Link("Expression", targets, true, {}, metta_expression);
             links.push_back(link);
 
+            vector<string> nested_targets = {targets[0], targets[1], link->handle()};
+            string nested_metta_expression =
+                "(" + targets[0] + " " + targets[1] + " " + metta_expression + ")";
+            auto link_with_nested =
+                new Link("Expression", nested_targets, true, {}, nested_metta_expression);
+            links.push_back(link_with_nested);
+
             if (i % chunck_size == 0) {
                 LOG_DEBUG("Adding " + to_string(nodes.size()) + " nodes");
-                db->add_nodes(nodes, true, true);
+                db->add_nodes(nodes, false, true);
                 LOG_DEBUG("Adding " + to_string(links.size()) + " links");
-                db->add_links(links, true, true);
+                db->add_links(links, false, true);
                 nodes.clear();
                 links.clear();
             }
@@ -92,11 +99,11 @@ int main(int argc, char* argv[]) {
 
         if (!nodes.empty()) {
             LOG_DEBUG("Final - Adding " + to_string(nodes.size()) + " nodes");
-            db->add_nodes(nodes, true, true);
+            db->add_nodes(nodes, false, true);
         }
         if (!links.empty()) {
             LOG_DEBUG("Final - Adding " + to_string(links.size()) + " links");
-            db->add_links(links, true, true);
+            db->add_links(links, false, true);
         }
 
         STOP_WATCH_FINISH(tests_db_loader, "TestsDBLoader");
@@ -111,8 +118,8 @@ int main(int argc, char* argv[]) {
         // clang-format on
 
         auto result = db->query_for_pattern(link_schema);
-        if (result->size() != 1) {
-            Utils::error("Expected 1 result, got " + to_string(result->size()));
+        if (result->size() != 2) {
+            Utils::error("Expected 2 results, got " + to_string(result->size()));
             return 1;
         }
 

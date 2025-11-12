@@ -932,6 +932,20 @@ vector<string> RedisMongoDB::add_links(const vector<atoms::Link*>& links,
         return {};
     }
 
+    if (throw_if_exists) {
+        vector<string> handles;
+        for (const auto& link : links) {
+            handles.push_back(link->handle());
+        }
+        auto existing_handles = this->links_exist(handles);
+        if (!existing_handles.empty()) {
+            vector<string> existing_handles_vector(existing_handles.begin(), existing_handles.end());
+            Utils::error("Failed to insert links, some links already exist: " +
+                         Utils::join(existing_handles_vector, ','));
+            return {};
+        }
+    }
+
     map<string, vector<string>> composite_type_entries_map;
     if (is_transactional) {
         this->build_composite_type_entries_map(links, composite_type_entries_map);
@@ -946,10 +960,6 @@ vector<string> RedisMongoDB::add_links(const vector<atoms::Link*>& links,
 
     for (const auto& link : links) {
         auto link_handle = link->handle();
-        if (throw_if_exists && link_exists(link_handle)) {
-            Utils::error("Link already exists: " + link_handle);
-            return {};
-        }
 
         auto pattern_handles = match_pattern_index_schema(link);
 
@@ -976,11 +986,10 @@ vector<string> RedisMongoDB::add_links(const vector<atoms::Link*>& links,
 
         shared_ptr<atomdb_api_types::MongodbDocument> mongodb_doc;
         if (is_transactional) {
-            lock_guard<mutex> composite_type_hashes_map_lock(this->composite_type_hashes_map_mutex);
+            string composite_type_hash =
+                Hasher::composite_handle(composite_type_entries_map[link_handle]);
             mongodb_doc = make_shared<atomdb_api_types::MongodbDocument>(
-                link,
-                this->composite_type_hashes_map[link_handle],
-                composite_type_entries_map[link_handle]);
+                link, composite_type_hash, composite_type_entries_map[link_handle]);
         } else {
             mongodb_doc = make_shared<atomdb_api_types::MongodbDocument>(link, *this);
         }
@@ -1376,15 +1385,17 @@ void RedisMongoDB::drop_all() {
 // composite_type and composite_type_hash helper function
 void RedisMongoDB::build_composite_type_entries_map(
     const vector<atoms::Link*>& links, map<string, vector<string>>& composite_type_entries_map) {
+    lock_guard<mutex> composite_type_hashes_map_lock(this->composite_type_hashes_map_mutex);
     for (const auto& link : links) {
         string link_handle = link->handle();
+        string named_type_hash = link->named_type_hash();
         composite_type_entries_map[link_handle] = {};
-        composite_type_entries_map[link_handle].push_back(link->named_type_hash());
+        composite_type_entries_map[link_handle].push_back(named_type_hash);
         for (const auto& target : link->targets) {
-            composite_type_entries_map[link_handle].push_back(target);
+            string target_composite_type_hash = this->composite_type_hashes_map[target];
+            composite_type_entries_map[link_handle].push_back(target_composite_type_hash);
         }
-        string composite_type_hash = Hasher::composite_handle(composite_type_entries_map[link_handle]);
-        composite_type_hashes_map[link_handle] = composite_type_hash;
+        this->composite_type_hashes_map[link_handle] = named_type_hash;
     }
 }
 
