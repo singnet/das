@@ -928,7 +928,10 @@ vector<string> RedisMongoDB::add_links(const vector<atoms::Link*>& links,
                                        bool throw_if_exists,
                                        bool is_transactional) {
     if (links.empty()) {
-        if (is_transactional) this->composite_type_hashes_map.clear();
+        if (is_transactional) {
+            lock_guard<mutex> composite_type_hashes_map_lock(this->composite_type_hashes_map_mutex);
+            this->composite_type_hashes_map.clear();
+        }
         return {};
     }
 
@@ -1012,8 +1015,10 @@ vector<string> RedisMongoDB::add_links(const vector<atoms::Link*>& links,
     set_next_score(REDIS_PATTERNS_PREFIX + ":next_score", this->patterns_next_score.load());
     set_next_score(REDIS_INCOMING_PREFIX + ":next_score", this->incoming_set_next_score.load());
 
-    if (is_transactional) this->composite_type_hashes_map.clear();
-
+    if (is_transactional) {
+        lock_guard<mutex> composite_type_hashes_map_lock(this->composite_type_hashes_map_mutex);
+        this->composite_type_hashes_map.clear();
+    }
     return handles;
 }
 
