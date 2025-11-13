@@ -5,6 +5,9 @@ on:
     branches:
       - master
 
+env:
+  TAG_SUFFIX: -rc
+
 jobs:
   build:
     runs-on: self-hosted
@@ -107,6 +110,6 @@ jobs:
           context: .
           file: .docker/poc/Dockerfile
           push: true
-          tags: trueagi/das:${{ needs.build.outputs.version }}
+          tags: trueagi/das:${{ needs.build.outputs.version }}${{ env.TAG_SUFFIX }}
           platforms: linux/amd64,linux/arm64
 
