@@ -94,19 +94,26 @@ bool AtomDBProxy::from_remote_peer(const string& command, const vector<string>& 
 void AtomDBProxy::handle_add_atoms(const vector<string>& tokens) {
     try {
         vector<Atom*> atoms = build_atoms_from_tokens(tokens);
-        LOG_INFO("Processing " << atoms.size() << " atoms...");
+        LOG_INFO("Processing batch, total atoms to process: " << atoms.size());
 
         if (atoms.empty()) {
             LOG_INFO("No atoms were built from tokens. Nothing to process.");
             return;
         }
 
-        this->atomdb->add_atoms(atoms, false, true);
+        for (size_t i = 0; i < atoms.size(); i += AtomDBProxy::BATCH_SIZE) {
+            auto batch_start = atoms.begin() + i;
+            auto batch_end = atoms.begin() + min(i + AtomDBProxy::BATCH_SIZE, atoms.size());
+            vector<Atom*> buffer(batch_start, batch_end);
+            LOG_INFO("Processing a batch of " << buffer.size() << " atoms.");
+            this->atomdb->add_atoms(buffer, false, true);
+            Utils::sleep(1000);  // FIXME: temporary sleep to avoid overloading the DB
+        }
 
-        LOG_INFO("Finished processing all atoms.");
+        LOG_INFO("Finished processing all batches.");
 
     } catch (const exception& e) {
-        LOG_ERROR("Error processing atoms: " << e.what());
+        LOG_ERROR("Error processing batch: " << e.what());
     }
 }
 
