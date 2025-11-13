@@ -24,9 +24,8 @@ shift || true
 IFS=',' read -r -a TARGET_ARCHS_ARRAY <<< "$ARCHS"
 
 for TARGET_ARCH in "${TARGET_ARCHS_ARRAY[@]}"; do
-  IMAGE_NAME=$([ "$HOST_ARCH" != "arm64" ] && [ "$HOST_ARCH" != "amd64" ] && echo "das-builder:$TARGET_ARCH" || echo "das-builder:latest")
-
-  CONTAINER_USER=$([ "$HOST_ARCH" != "arm64" ] && [ "$HOST_ARCH" != "amd64" ] && echo "$USER" || echo "builder")
+  IMAGE_NAME="das-builder:${TARGET_ARCH:-latest}"
+  CONTAINER_USER="$USER"
 
   TARGET_PLATFORM="linux/$TARGET_ARCH"
   CONTAINER_NAME="das-builder-${TARGET_ARCH}-$(uuidgen | cut -d '-' -f 1)-$(date +%Y%m%d%H%M%S)"
@@ -49,9 +48,7 @@ for TARGET_ARCH in "${TARGET_ARCHS_ARRAY[@]}"; do
   CONTAINER_CACHE=/home/${CONTAINER_USER}/.cache
 
   docker run --rm \
-    $([ "$HOST_ARCH" = "arm64" ] || [ "$HOST_ARCH" = "amd64" ] \
-      && echo "--user=$CONTAINER_USER" \
-      || echo "--user=$(id -u):$(id -g) --volume /etc/passwd:/etc/passwd:ro") \
+    --user=$(id -u):$(id -g) --volume /etc/passwd:/etc/passwd:ro \
     --privileged \
     --platform $TARGET_PLATFORM \
     --name=$CONTAINER_NAME \

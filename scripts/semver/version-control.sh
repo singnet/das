@@ -230,7 +230,7 @@ _update_changelog() {
         if _check_for_uncommitted_changes; then
             git add "$CHANGELOG_PATH"
             git commit -m "Reset CHANGELOG"
-            git push origin "${MAIN_BRANCH}"
+            git push origin "${MAIN_BRANCH}" -f
         fi
 
     else
