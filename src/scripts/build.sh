@@ -27,6 +27,13 @@ for TARGET_ARCH in "${TARGET_ARCHS_ARRAY[@]}"; do
   IMAGE_NAME="das-builder:${TARGET_ARCH:-latest}"
   CONTAINER_USER="$USER"
 
+  if [ "$TARGET_ARCH" = "amd64" ]; then
+    USER="--user=$(id -u):$(id -g) --volume /etc/passwd:/etc/passwd:ro"
+  else
+    CONTAINER_USER="builder"
+    USER="--user=$CONTAINER_USER"
+  fi
+
   TARGET_PLATFORM="linux/$TARGET_ARCH"
   CONTAINER_NAME="das-builder-${TARGET_ARCH}-$(uuidgen | cut -d '-' -f 1)-$(date +%Y%m%d%H%M%S)"
 
@@ -46,12 +53,6 @@ for TARGET_ARCH in "${TARGET_ARCHS_ARRAY[@]}"; do
   CONTAINER_BIN_DIR=$CONTAINER_WORKDIR/bin/$TARGET_ARCH
   CONTAINER_LIB_DIR=$CONTAINER_WORKDIR/lib/$TARGET_ARCH
   CONTAINER_CACHE=/home/${CONTAINER_USER}/.cache
-
-  if [ "$TARGET_ARCH" = "amd64" ]; then
-    USER="--user=$(id -u):$(id -g) --volume /etc/passwd:/etc/passwd:ro"
-  else
-    USER="--user=$CONTAINER_USER"
-  fi
 
   docker run --rm \
     $USER \
