@@ -24,13 +24,13 @@ jobs:
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
         with:
-          platforms: linux/amd64,linux/arm64
+          platforms: linux/arm64
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
       - name: Build Binaries
-        run: make build-all ARCHS=amd64,arm64
+        run: make build-all ARCHS=arm64
 
       - name: Upload Binaries as Artifacts
         uses: actions/upload-artifact@v4
@@ -111,7 +111,7 @@ jobs:
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
         with:
-          platforms: linux/amd64,linux/arm64
+          platforms: linux/arm64
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -123,5 +123,5 @@ jobs:
           file: .docker/poc/Dockerfile
           push: true
           tags: trueagi/das:${{ needs.build.outputs.version }}${{ env.TAG_SUFFIX }}
-          platforms: linux/amd64,linux/arm64
+          platforms: linux/arm64
 
