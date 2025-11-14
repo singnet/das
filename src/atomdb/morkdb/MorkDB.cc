@@ -90,7 +90,7 @@ string MorkClient::url_encode(const string& value) {
 
 // --> MorkDB : RedisMongoDB(context, skip_redis = true)
 MorkDB::MorkDB(const string& context) : RedisMongoDB(context, true) {
-    bool disable_cache = (Utils::get_environment("DAS_DISABLE_ATOMDB_CACHE") == "true");
+    bool disable_cache = true;
     this->atomdb_cache = disable_cache ? nullptr : AtomDBCacheSingleton::get_instance();
     mork_setup();
 }

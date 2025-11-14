@@ -36,7 +36,7 @@ RedisMongoDB::RedisMongoDB(const string& context, bool skip_redis) {
     initialize_statics(context, skip_redis);
     mongodb_setup();
     load_pattern_index_schema();
-    bool disable_cache = (Utils::get_environment("DAS_DISABLE_ATOMDB_CACHE") == "true");
+    bool disable_cache = true;
     this->atomdb_cache = disable_cache ? nullptr : AtomDBCacheSingleton::get_instance();
     redis_setup();
     this->patterns_next_score.store(get_next_score(REDIS_PATTERNS_PREFIX + ":next_score"));
