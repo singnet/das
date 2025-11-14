@@ -70,7 +70,7 @@ int main(int argc, char* argv[]) {
     int thread_count = argc > 6 ? Utils::string_to_int(argv[6]) : 1;
     int default_timeout = argc > 7 ? Utils::string_to_int(argv[7]) : 50;
     string buffer_file = argc > 8 ? argv[8] : "requests_buffer.bin";
-    string metta_file_path = argc > 9 ? argv[9] : "./";
+    string metta_file_path = argc > 9 ? argv[9] : "/tmp/metta_links";
     bool save_links_to_metta_file = argc > 10 ? (string(argv[10]) == string("true") ||
                                                  string(argv[10]) == "1" || string(argv[10]) == "yes")
                                               : false;
