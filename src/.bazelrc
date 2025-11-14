@@ -21,7 +21,7 @@ common --enable_bzlmod
 build --spawn_strategy=local
 
 # Define versions
-build --define=DAS_VERSION=0.12.2
+build --define=DAS_VERSION=0.12.3
 
 
 # Enable debugging symbols for development

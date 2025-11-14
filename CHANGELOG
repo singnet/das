@@ -1,1 +1,27 @@
+Changes:
 
+[das#843] Add support to MorkDB in Query Agent main
+[das#824] Integration of LCA in Hyperon Experimental
+[das#825] Create separate commands for LCA and Evolution in Hyperon Experimental
+[das#859] Strength formulae for Equivalence/Implication links are generating > 1.0 values
+[das#795] Update Python Client for new bus element
+[das#796] Database Adapter must communicate with AtomDB over the bus using AtomDBProxy
+[das#822] Add support to MorkDB in das-cli
+[das#823] Implement a command to set a single parameter
+[das#819] Add a flag to tell agents' binaries to use MorkDB
+[das#828] Implement a Jupyter notebook to show how to setup DAS environment
+[das#829] Implement a Jupyter notebook to explain how Query Evolution works
+[das#832] Write a conceptual document explaining how DAS components work
+[das#830] Implement a Jupyter notebook to show how to use LCA
+[das#835] Update main repo README
+[das#864] Notebook explaining LCA usage
+[das#860] Fix strength formulae for equivalence/implication links
+[das#858] DAS conceptual documentation
+[das#872] Set LCA queries to Camel Case
+[das#844] Added a cmd line parameter to use MorkDB in Query Agent
+[das#845] HE Client v0.4.0
+[das#850] Add missing atoms when using MeTTa template
+[das#852] Add `MorkDB::query_for_targets()`
+[das#856] Use default das-cli config values on tests.
+[das#867] Setup QEMU for cross-platform Docker image builds in CI
+[das#871] Use push_back in `PortPool::return_port()`
