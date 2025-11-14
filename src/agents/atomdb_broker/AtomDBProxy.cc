@@ -92,8 +92,9 @@ bool AtomDBProxy::from_remote_peer(const string& command, const vector<string>& 
 }
 
 void AtomDBProxy::handle_add_atoms(const vector<string>& tokens) {
+    vector<Atom*> atoms;
     try {
-        vector<Atom*> atoms = build_atoms_from_tokens(tokens);
+        atoms = build_atoms_from_tokens(tokens);
         LOG_INFO("Processing " << atoms.size() << " atoms...");
 
         if (atoms.empty()) {
@@ -113,7 +114,6 @@ void AtomDBProxy::handle_add_atoms(const vector<string>& tokens) {
 
     } catch (const exception& e) {
         LOG_ERROR("Error processing atoms: " << e.what());
-        LOG_ERROR("Cleaning up " << atoms.size() << " atom pointers after exception.");
         for (Atom* atom : atoms) {
             delete atom;
         }
