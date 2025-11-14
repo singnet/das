@@ -36,16 +36,16 @@ int main(int argc, char* argv[]) {
         AtomDBSingleton::init();
     }
 
-    string client_id = string(argv[1]);
-    string server_id = string(argv[3]);
+    string host_id = string(argv[1]);
+    string peer_id = string(argv[3]);
     auto ports_range = Utils::parse_ports_range(argv[2]);
 
-    LOG_INFO("Starting AtomDB Broker server with id: " + server_id);
+    LOG_INFO("Starting AtomDB Broker server with id: " + host_id);
 
     signal(SIGINT, &ctrl_c_handler);
     signal(SIGTERM, &ctrl_c_handler);
 
-    ServiceBusSingleton::init(client_id, server_id, ports_range.first, ports_range.second);
+    ServiceBusSingleton::init(host_id, peer_id, ports_range.first, ports_range.second);
     shared_ptr<ServiceBus> service_bus = ServiceBusSingleton::get_instance();
     service_bus->register_processor(make_shared<AtomDBProcessor>());
 

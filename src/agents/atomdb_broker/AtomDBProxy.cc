@@ -103,10 +103,20 @@ void AtomDBProxy::handle_add_atoms(const vector<string>& tokens) {
 
         this->atomdb->add_atoms(atoms, false, true);
 
+        LOG_DEBUG("Cleaning up " << atoms.size() << " atom pointers after successful processing.");
+        for (Atom* atom : atoms) {
+            delete atom;
+        }
+        atoms.clear();
+
         LOG_INFO("Finished processing all atoms.");
 
     } catch (const exception& e) {
         LOG_ERROR("Error processing atoms: " << e.what());
+        LOG_ERROR("Cleaning up " << atoms.size() << " atom pointers after exception.");
+        for (Atom* atom : atoms) {
+            delete atom;
+        }
     }
 }
 
