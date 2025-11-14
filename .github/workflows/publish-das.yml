@@ -11,7 +11,9 @@ on:
 
 jobs:
   compile-source-code:
-    runs-on: ${{ matrix.platforms }}
+    runs-on: 
+      - ${{ matrix.platforms }}
+      - self-hosted-withcache
     strategy:
       matrix:
         platforms: [amd64, arm64]
@@ -75,7 +77,8 @@ jobs:
     secrets: inherit
 
   build-push-docker-image:
-    runs-on: self-hosted
+    runs-on: 
+      - ${{ matrix.platforms }}
     strategy:
       matrix:
         platforms: [arm64, amd64]
