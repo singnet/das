@@ -192,6 +192,10 @@ vector<string> MorkDB::add_links(const vector<atoms::Link*>& links,
                                  bool throw_if_exists,
                                  bool is_transactional) {
     if (links.empty()) {
+        if (is_transactional) {
+            lock_guard<mutex> composite_type_hashes_map_lock(this->composite_type_hashes_map_mutex);
+            this->composite_type_hashes_map.clear();
+        }
         return {};
     }
 
@@ -210,8 +214,11 @@ vector<string> MorkDB::add_links(const vector<atoms::Link*>& links,
     }
 
     map<string, vector<string>> composite_type_entries_map;
+    map<string, string> composite_type_hashes_map_copy;
     if (is_transactional) {
         this->build_composite_type_entries_map(links, composite_type_entries_map);
+        lock_guard<mutex> composite_type_hashes_map_lock(this->composite_type_hashes_map_mutex);
+        composite_type_hashes_map_copy = this->composite_type_hashes_map;
     } else {
         this->check_existing_targets(links);
     }
@@ -239,7 +246,7 @@ vector<string> MorkDB::add_links(const vector<atoms::Link*>& links,
         if (is_transactional) {
             mongodb_doc = make_shared<atomdb_api_types::MongodbDocument>(
                 link,
-                this->composite_type_hashes_map[link_handle],
+                composite_type_hashes_map_copy[link_handle],
                 composite_type_entries_map[link_handle]);
         } else {
             mongodb_doc = make_shared<atomdb_api_types::MongodbDocument>(link, *this);
@@ -256,6 +263,11 @@ vector<string> MorkDB::add_links(const vector<atoms::Link*>& links,
 
     if (!metta_expressions.empty()) {
         this->mork_client->post(metta_expressions, "$x", "$x");
+    }
+
+    if (is_transactional) {
+        lock_guard<mutex> composite_type_hashes_map_lock(this->composite_type_hashes_map_mutex);
+        this->composite_type_hashes_map.clear();
     }
 
     return handles;

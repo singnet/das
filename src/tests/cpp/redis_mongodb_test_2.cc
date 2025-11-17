@@ -214,6 +214,75 @@ TEST_F(RedisMongoDBTest, MongodbDocumentGetSize) {
     EXPECT_EQ(link4_document->get_size("targets"), 10);
 }
 
+TEST_F(RedisMongoDBTest, ConcurrentAddLinks) {
+    int num_links = 5000;
+    int arity = 3;
+    int chunck_size = 500;
+
+    const int num_threads = 100;
+    vector<thread> threads;
+    atomic<int> success_count{0};
+
+    auto worker = [&](int thread_id) {
+        try {
+            vector<Node*> nodes;
+            vector<Link*> links;
+            for (int i = 1; i <= num_links; i++) {
+                vector<string> targets;
+                for (int j = 1; j <= arity; j++) {
+                    string name = "ConcurrentAddLinks-" + to_string(thread_id) + "-" + to_string(i) +
+                                  "-" + to_string(j);
+                    auto node = new Node("Symbol", name);
+                    targets.push_back(node->handle());
+                    nodes.push_back(node);
+                }
+                auto link = new Link("Expression", targets);
+                links.push_back(link);
+
+                vector<string> nested_targets = {targets[0], targets[1], link->handle()};
+                auto link_with_nested = new Link("Expression", nested_targets);
+                links.push_back(link_with_nested);
+
+                if (i % chunck_size == 0) {
+                    db2->add_nodes(nodes, false, true);
+                    db2->add_links(links, false, true);
+                    nodes.clear();
+                    links.clear();
+                }
+            }
+
+            if (!nodes.empty()) db2->add_nodes(nodes, false, true);
+            if (!links.empty()) db2->add_links(links, false, true);
+
+            success_count++;
+        } catch (const exception& e) {
+            cout << "Thread " << thread_id << " failed with error: " << e.what() << endl;
+        }
+    };
+
+    for (int i = 0; i < num_threads; ++i) {
+        threads.emplace_back(worker, i);
+    }
+
+    for (auto& t : threads) {
+        t.join();
+    }
+
+    EXPECT_EQ(success_count, num_threads);
+
+    // clang-format off
+    LinkSchema link_schema({
+        "LINK_TEMPLATE", "Expression", "3", 
+        "NODE", "Symbol", "ConcurrentAddLinks-0-1-1", 
+        "NODE", "Symbol", "ConcurrentAddLinks-0-1-2",
+        "VARIABLE", "V"
+    });
+    // clang-format on
+
+    auto result = db2->query_for_pattern(link_schema);
+    EXPECT_EQ(result->size(), 2);
+}
+
 int main(int argc, char** argv) {
     ::testing::InitGoogleTest(&argc, argv);
     ::testing::AddGlobalTestEnvironment(new RedisMongoDBTestEnvironment());
