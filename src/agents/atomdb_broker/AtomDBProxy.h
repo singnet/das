@@ -1,8 +1,10 @@
 #pragma once
 
+#include <condition_variable>
 #include <memory>
 #include <mutex>
 #include <string>
+#include <thread>
 #include <vector>
 
 #include "Atom.h"
@@ -28,6 +30,7 @@ class AtomDBProxy : public BaseProxy {
     // ---------------------------------------------------------------------------------------------
     // Proxy Commands
     static string ADD_ATOMS;
+    static string FLUSH_ATOMS;
 
     // ---------------------------------------------------------------------------------------------
     // Constructor and destructor
@@ -114,11 +117,22 @@ class AtomDBProxy : public BaseProxy {
      * reported back to the peer.
      */
     void handle_add_atoms(const vector<string>& args);
+    void flush_atoms();
+    void add_work(vector<Atom*> atoms);
+    void worker_loop();
 
     mutex api_mutex;
     shared_ptr<AtomDB> atomdb;
 
     static const size_t BATCH_SIZE;
+    static const size_t NUM_THREADS;
+
+    vector<thread> workers;
+    bool stop_processing = false;
+
+    vector<vector<Atom*>> work_queue;
+    mutex queue_mutex;
+    condition_variable queue_condition;
 };
 
 }  // namespace atomdb_broker
