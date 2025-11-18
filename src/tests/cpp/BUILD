@@ -662,7 +662,7 @@ cc_test(
 
 cc_test(
     name = "redis_mongodb_test_2",
-    size = "small",
+    size = "medium",
     srcs = [
         "redis_mongodb_test_2.cc",
         "test_utils.cc",
@@ -690,7 +690,7 @@ cc_test(
 
 cc_test(
     name = "morkdb_test",
-    size = "small",
+    size = "medium",
     srcs = ["morkdb_test.cc"],
     copts = [
         "-Iexternal/gtest/googletest/include",

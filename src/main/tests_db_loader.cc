@@ -64,12 +64,14 @@ int main(int argc, char* argv[]) {
 
         for (int i = 1; i <= num_links; i++) {
             string metta_expression = "(";
+            vector<string> node_names;
             vector<string> targets;
             for (int j = 1; j <= arity; j++) {
                 string name = "add-links-" + to_string(i) + "-" + to_string(j);
                 auto node = new Node("Symbol", name);
                 targets.push_back(node->handle());
                 nodes.push_back(node);
+                node_names.push_back(name);
                 metta_expression += name;
                 if (j != arity) {
                     metta_expression += " ";
@@ -82,7 +84,7 @@ int main(int argc, char* argv[]) {
 
             vector<string> nested_targets = {targets[0], targets[1], link->handle()};
             string nested_metta_expression =
-                "(" + targets[0] + " " + targets[1] + " " + metta_expression + ")";
+                "(" + node_names[0] + " " + node_names[1] + " " + metta_expression + ")";
             auto link_with_nested =
                 new Link("Expression", nested_targets, true, {}, nested_metta_expression);
             links.push_back(link_with_nested);

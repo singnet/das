@@ -29,8 +29,8 @@ LinkCreationAgent::LinkCreationAgent(int request_interval,
     this->save_links_to_db = save_links_to_db;
     service = new LinkCreationService(link_creation_agent_thread_count);
     service->set_timeout(query_timeout_seconds);
-    service->set_metta_file_path(metta_file_path);
     if (save_links_to_metta_file) {
+        service->set_metta_file_path(metta_file_path);
         LOG_DEBUG("Saving links to metta file: " << metta_file_path);
     }
     if (save_links_to_db) {

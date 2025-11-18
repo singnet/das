@@ -18,7 +18,7 @@ jobs:
       DAS_MONGODB_USERNAME: admin
       DAS_MONGODB_PASSWORD: admin
       DAS_MORK_HOSTNAME: localhost
-      DAS_MORK_PORT: 8000
+      DAS_MORK_PORT: 40022
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -66,7 +66,7 @@ jobs:
         run: |-
           make run-mork-server > /dev/null 2>&1 &
           
-          until curl --silent http://localhost:8000/status/-; do
+          until curl --silent http://localhost:40022/status/-; do
             echo "Waiting MORK…"
             sleep 1
           done

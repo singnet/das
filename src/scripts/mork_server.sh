@@ -2,12 +2,14 @@
 
 set -eoux pipefail
 
-IMAGE_NAME="trueagi/das:mork-server-0.10.2"
+IMAGE_NAME="trueagi/das:mork-server-1.0.0"
 CONTAINER_NAME="das-mork-server-$(date +%Y%m%d%H%M%S)"
 
 docker run --rm \
     --name="${CONTAINER_NAME}" \
     --network host \
+    -e MORK_SERVER_ADDR=0.0.0.0 \
+    -e MORK_SERVER_PORT=${DAS_MORK_PORT:-40022} \
     "${IMAGE_NAME}" "$@"
 
 sleep 1

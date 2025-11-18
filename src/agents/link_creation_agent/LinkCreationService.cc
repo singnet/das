@@ -177,5 +177,10 @@ void LinkCreationService::create_links() {
 
 void LinkCreationService::set_metta_file_path(string metta_file_path) {
     this->metta_file_path = metta_file_path;
-    Utils::linux_command_line(("mkdir -p " + metta_file_path).c_str());
+    try {
+        Utils::linux_command_line(("mkdir -p " + metta_file_path).c_str());
+    } catch (const exception& e) {
+        this->save_links_to_metta_file = false;
+        LOG_ERROR("Failed to create metta directory: " << e.what());
+    }
 }

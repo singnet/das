@@ -2,10 +2,12 @@ FROM trueagi/das:22.04-builder AS builder
 
 ENV DAS_DIR=/opt/das
 ENV BIN_DIR=${DAS_DIR}/bin
+ENV LIB_DIR=${DAS_DIR}/lib
 
 WORKDIR ${DAS_DIR}
 
 COPY ./bin/ ${BIN_DIR}/
+COPY ./lib/ ${LIB_DIR}/
 
 # Strip debug symbols and copy only necessary binaries to /usr/local/bin
 RUN if [ "$(uname -m)" = "aarch64" ] || [ "$(uname -m)" = "arm64" ]; then \
@@ -18,6 +20,15 @@ RUN if [ "$(uname -m)" = "aarch64" ] || [ "$(uname -m)" = "arm64" ]; then \
     && cp -r ${BIN_DIR}/${ARCH}/* /usr/local/bin/ \
     && rm -rf ${BIN_DIR} \
     && chmod +x /usr/local/bin/ -R
+
+# Copy necessary libs to /opt/das/lib
+RUN if [ "$(uname -m)" = "aarch64" ] || [ "$(uname -m)" = "arm64" ]; then \
+        ARCH="arm64"; \
+    else \
+        ARCH="amd64"; \
+    fi \
+    && cp -r ${LIB_DIR}/${ARCH}/* ${LIB_DIR}/ \
+    && rm -rf ${LIB_DIR}/${ARCH}/
 
 # Collect system libraries to a common location for easier copying
 RUN if [ "$(uname -m)" = "aarch64" ] || [ "$(uname -m)" = "arm64" ]; then \
@@ -43,6 +54,8 @@ WORKDIR /opt/das
 
 COPY --chown=nonroot:nonroot --from=builder /usr/local/bin/ /usr/local/bin/
 COPY --chown=nonroot:nonroot --from=builder /usr/local/lib/ /usr/local/lib/
+
+COPY --chown=nonroot:nonroot --from=builder /opt/das/lib/ /opt/das/lib/
 
 COPY --from=builder /opt/das/syslibs/usr/lib/ /usr/lib/
 COPY --from=builder /opt/das/syslibs/lib/ /lib/

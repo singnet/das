@@ -1,9 +1,16 @@
 name: Build and Publish DAS
 
 on:
+  workflow_dispatch:
+
+  workflow_call:
+
   push:
     branches:
       - master
+
+env:
+  TAG_SUFFIX: -rc
 
 jobs:
   build:
@@ -14,8 +21,16 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: linux/amd64
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
       - name: Build Binaries
-        run: make build-all ARCHS=amd64,arm64
+        run: make build-all ARCHS=amd64
 
       - name: Upload Binaries as Artifacts
         uses: actions/upload-artifact@v4
@@ -96,7 +111,7 @@ jobs:
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
         with:
-          platforms: linux/amd64,linux/arm64
+          platforms: linux/amd64
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -107,6 +122,6 @@ jobs:
           context: .
           file: .docker/poc/Dockerfile
           push: true
-          tags: trueagi/das:${{ needs.build.outputs.version }}
-          platforms: linux/amd64,linux/arm64
+          tags: trueagi/das:${{ needs.build.outputs.version }}${{ env.TAG_SUFFIX }}
+          platforms: linux/amd64
 

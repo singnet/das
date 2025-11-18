@@ -9,7 +9,7 @@ string TestConfig::DAS_MONGODB_USERNAME = "admin";
 string TestConfig::DAS_MONGODB_PASSWORD = "admin";
 string TestConfig::DAS_DISABLE_ATOMDB_CACHE = "false";
 string TestConfig::DAS_MORK_HOSTNAME = "localhost";
-string TestConfig::DAS_MORK_PORT = "8000";
+string TestConfig::DAS_MORK_PORT = "40022";
 
 void TestConfig::load_environment(bool replace_existing) {
     setenv("DAS_REDIS_HOSTNAME", DAS_REDIS_HOSTNAME.c_str(), replace_existing);
