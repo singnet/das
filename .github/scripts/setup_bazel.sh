@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+
 BASE_DIR="/opt"
 TMP_DIR="/tmp"
 
@@ -11,7 +13,7 @@ PROTO_DIR="${BASE_DIR}/proto"
 BAZEL_DIR="${BASE_DIR}/bazel"
 THIRD_PARTY="${BASE_DIR}/3rd-party"
 
-ASSETS_DIR="$(dirname "$(readlink -f "$0")")/src/assets"
+ASSETS_DIR="${REPO_ROOT}/src/assets"
 
 echo "[INFO] Creating base directories under ${BASE_DIR}..."
 sudo mkdir -p \
