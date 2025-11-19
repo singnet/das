@@ -5,9 +5,9 @@ on:
 
   workflow_call:
 
-  push:
-    branches:
-      - master
+  # push:
+  #   branches:
+  #     - master
 
 env:
   TAG_SUFFIX: -test
@@ -71,7 +71,7 @@ jobs:
   tag:
     needs: build
     uses: singnet/das/.github/workflows/run-semver.yml@master
-    if: needs.build.outputs.version_exists != 'true'
+    #if: needs.build.outputs.version_exists != 'true'
     with:
       version: ${{ needs.build.outputs.version }}
       version-strategy: bump-version-from-variable-value
@@ -88,7 +88,7 @@ jobs:
     runs-on: 
      - self-hosted
      - self-hosted-withcache
-    if: needs.build.outputs.version_exists != 'true'
+    #if: needs.build.outputs.version_exists != 'true'
     needs: build
     steps:
       - name: Checkout code
