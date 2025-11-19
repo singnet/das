@@ -128,11 +128,10 @@ int main(int argc, char* argv[]) {
                 }
 
                 threads.emplace_back([&, start_line, end_line, i]() {
-                    auto thread_atomdb = AtomDBSingleton::get_instance();
+                    auto db = dynamic_pointer_cast<RedisMongoDB>(AtomDBSingleton::get_instance());
                     vector<Atom*> batch_atoms;
                     vector<shared_ptr<MettaParserActions>> parser_actions_list;  // Keep parser_actions alive
                     size_t thread_atoms_count = 0;
-                    set<string> handles;  // Avoid deduplication
 
                     for (size_t line_idx = start_line; line_idx < end_line; line_idx++) {
                         const string& metta_expr = lines[line_idx];
@@ -157,26 +156,28 @@ int main(int argc, char* argv[]) {
 
                             // Convert shared_ptr<Atom> to Atom* for add_atoms
                             for (const auto& pair : parser_actions->handle_to_atom) {
-                                // Deduplicate atoms by handle within this thread
-                                if (handles.find(pair.second->handle()) != handles.end()) {
+                                // Avoid adding atoms that already exist
+                                if (db->get_atom_properties(pair.second->handle()) != nullptr) {
                                     continue;
                                 }
-                                handles.insert(pair.second->handle());
                                 batch_atoms.push_back(pair.second.get());
+
+                                db->set_atom_properties(
+                                    pair.second->handle(),
+                                    new AtomProperties({"hash_1", "hash_2", "hash_3"}, "(hash_1 hash_2 hash_3)"));
+
                                 thread_atoms_count++;
 
-                                // Add atoms in batches
                                 if (batch_atoms.size() >= static_cast<size_t>(chunk_size)) {
-                                    thread_atomdb->add_atoms(batch_atoms, false, true);
+                                    db->add_atoms(batch_atoms, false, true);
                                     batch_atoms.clear();
-                                    // Clear old parser_actions that are no longer needed
-                                    // Keep only the last few to avoid memory buildup
                                     if (parser_actions_list.size() > 10) {
                                         parser_actions_list.erase(parser_actions_list.begin(), 
                                                                   parser_actions_list.end() - 5);
                                     }
                                 }
                             }
+
                         } catch (const exception& e) {
                             LOG_ERROR("Thread " + to_string(i) + " exception on line " + 
                                      to_string(line_idx) + ": " + string(e.what()));
@@ -185,7 +186,7 @@ int main(int argc, char* argv[]) {
 
                     // Add remaining atoms
                     if (!batch_atoms.empty()) {
-                        thread_atomdb->add_atoms(batch_atoms, false, true);
+                        db->add_atoms(batch_atoms, false, true);
                     }
 
                     total_atoms_processed += thread_atoms_count;

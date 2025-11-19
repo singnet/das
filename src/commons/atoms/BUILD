@@ -6,6 +6,7 @@ cc_library(
     name = "atoms_lib",
     srcs = [
         "Atom.cc",
+        "AtomPropertiesIndex.cc",
         "Link.cc",
         "LinkSchema.cc",
         "MettaParserActions.cc",
@@ -15,6 +16,7 @@ cc_library(
     ],
     hdrs = [
         "Atom.h",
+        "AtomPropertiesIndex.h",
         "HandleDecoder.h",
         "Link.h",
         "LinkSchema.h",

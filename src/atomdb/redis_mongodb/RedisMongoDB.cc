@@ -41,6 +41,15 @@ RedisMongoDB::RedisMongoDB(const string& context, bool skip_redis) {
     redis_setup();
     this->patterns_next_score.store(get_next_score(REDIS_PATTERNS_PREFIX + ":next_score"));
     this->incoming_set_next_score.store(get_next_score(REDIS_INCOMING_PREFIX + ":next_score"));
+    this->atom_properties_index = make_shared<AtomPropertiesIndex>();
+}
+
+void RedisMongoDB::set_atom_properties(const string& handle, AtomProperties* atom_properties) {
+    this->atom_properties_index->set(handle, atom_properties);
+}
+
+AtomProperties* RedisMongoDB::get_atom_properties(const string& handle) const {
+    return this->atom_properties_index->get(handle);
 }
 
 RedisMongoDB::~RedisMongoDB() {
@@ -949,10 +958,7 @@ vector<string> RedisMongoDB::add_links(const vector<atoms::Link*>& links,
         }
     }
 
-    map<string, vector<string>> composite_type_entries_map;
-    if (is_transactional) {
-        this->build_composite_type_entries_map(links, composite_type_entries_map);
-    } else {
+    if (!is_transactional) {
         this->check_existing_targets(links);
     }
 
@@ -989,10 +995,13 @@ vector<string> RedisMongoDB::add_links(const vector<atoms::Link*>& links,
 
         shared_ptr<atomdb_api_types::MongodbDocument> mongodb_doc;
         if (is_transactional) {
-            string composite_type_hash =
-                Hasher::composite_handle(composite_type_entries_map[link_handle]);
+            AtomProperties* props = this->get_atom_properties(link_handle);
+            if (props == nullptr) {
+                Utils::error("Atom properties not found for link: " + link_handle);
+                return {};
+            }
             mongodb_doc = make_shared<atomdb_api_types::MongodbDocument>(
-                link, composite_type_hash, composite_type_entries_map[link_handle]);
+                link, props->get_composite_type_hash(), props->get_composite_type());
         } else {
             mongodb_doc = make_shared<atomdb_api_types::MongodbDocument>(link, *this);
         }

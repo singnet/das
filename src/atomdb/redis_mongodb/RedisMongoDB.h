@@ -16,6 +16,7 @@
 
 #include "AtomDB.h"
 #include "AtomDBCacheSingleton.h"
+#include "AtomPropertiesIndex.h"
 #include "RedisContext.h"
 #include "RedisContextPool.h"
 #include "RedisMongoDBAPITypes.h"
@@ -140,12 +141,16 @@ class RedisMongoDB : public AtomDB {
     void build_composite_type_entries_map(const vector<atoms::Link*>& links,
                                           map<string, vector<string>>& composite_type_entries_map);
 
+    void set_atom_properties(const string& handle, AtomProperties* atom_properties);
+    AtomProperties* get_atom_properties(const string& handle) const;
+
    private:
     string context;
     bool cluster_flag;
     RedisContextPool* redis_pool;
     mongocxx::pool* mongodb_pool;
     shared_ptr<AtomDBCache> atomdb_cache;
+    shared_ptr<AtomPropertiesIndex> atom_properties_index;
     atomic<uint> patterns_next_score{0};
     atomic<uint> incoming_set_next_score{0};
 
