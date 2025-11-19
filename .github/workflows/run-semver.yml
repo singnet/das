@@ -110,7 +110,7 @@ jobs:
           deliverable="${{ inputs.deliverable }}"
           version="${{ needs.tag.outputs.version }}"
           repository="${{ needs.tag.outputs.repository }}"
-          releaseNote=${{ needs.tag.outputs.release-note }}
+          releaseNote="${{ needs.tag.outputs.release-note }}"
 
           message="${title}\n\nDeliverable:${deliverable}\nNew version available: $version\nRepository: https://github.com/$repository/releases/tag/$version"
 
@@ -118,7 +118,7 @@ jobs:
             message="$message\nChanges:\n$releaseNote"
           fi
 
-          escaped_message=$(printf '%s' "$message" | jq -sRr @json | sed 's/\\\\n/\\n/g')
+          escaped_message=$(printf '%s' "$message" | jq -Rs .)
 
           echo "{\"text\": $escaped_message}" > mattermost.json
 
