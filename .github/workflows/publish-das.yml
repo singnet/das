@@ -14,9 +14,7 @@ jobs:
     strategy:
       matrix:
         platforms: [amd64, arm64]
-    runs-on:
-      - ${{ matrix.platforms }}
-      - self-hosted-withcache
+    runs-on: self-hosted-withcache
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -91,8 +89,7 @@ jobs:
     strategy:
       matrix:
         platforms: [arm64, amd64]
-    runs-on:
-      - ${{ matrix.platforms }}
+    runs-on: self-hosted
     if: needs.compile-source-code.outputs.version_exists != 'true'
     needs: compile-source-code
     steps:

@@ -16,6 +16,8 @@ detect_host_arch() {
   esac
 }
 
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+
 HOST_ARCH="$(detect_host_arch)"
 ARCH="$HOST_ARCH"
 
@@ -34,14 +36,15 @@ set -- "${TMP_ARGS[@]}"
 
 BAZELISK_CMD=${BAZELISK_CMD:-/opt/bazel/bazelisk}
 
+cd "$REPO_ROOT"
+
 if [ ! -x "$BAZELISK_CMD" ]; then
   echo "[ERROR] bazelisk not found or not executable at: $BAZELISK_CMD"
   exit 1
 fi
 
-ROOT_DIR="$(pwd)"
-BIN_DIR=${BIN_DIR:-"$ROOT_DIR/bin/$ARCH"}
-LIB_DIR=${LIB_DIR:-"$ROOT_DIR/lib/$ARCH"}
+BIN_DIR=${BIN_DIR:-"$REPO_ROOT/bin/$ARCH"}
+LIB_DIR=${LIB_DIR:-"$REPO_ROOT/lib/$ARCH"}
 
 echo "[INFO] Using ARCH=$ARCH"
 echo "[INFO] Using BIN_DIR=$BIN_DIR"
