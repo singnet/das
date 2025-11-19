@@ -84,6 +84,20 @@ shared_ptr<RedisContext> RedisContextPool::acquire() {
 void RedisContextPool::release(shared_ptr<RedisContext> ctx) {
     if (!ctx) return;
 
+    // Ping the context to check if it is still alive
+    redisReply* reply = ctx->execute("PING");
+
+    bool is_alive = false;
+    if (reply != NULL) {
+        if (reply->type == REDIS_REPLY_STATUS) is_alive = true;
+        freeReplyObject(reply);
+    }
+
+    if (!is_alive) {
+        Utils::error("Redis context is not alive. Not returning to pool.", false);
+        return;
+    }
+
     unique_lock<mutex> lock(this->pool_mutex);
     pool.push(ctx);
     total_contexts--;
