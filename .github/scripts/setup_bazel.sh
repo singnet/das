@@ -107,7 +107,7 @@ if [[ ! -f "${ASSETS_DIR}/cpp-httplib-master.zip" ]]; then
   exit 1
 fi
 
-sudo cp "${ASSETS_DIR}/cpp-httplib-master.zip" "${TMP_DIR}/"
+cp "${ASSETS_DIR}/cpp-httplib-master.zip" "${TMP_DIR}/"
 cd "${TMP_DIR}"
 unzip -q cpp-httplib-master.zip
 sudo cp cpp-httplib-master/httplib.h /usr/local/include/
