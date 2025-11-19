@@ -32,10 +32,10 @@ jobs:
         uses: docker/setup-buildx-action@v3
 
       - name: Setup bazel
-        run: .github/script/setup_bazel.sh
+        run: .github/scripts/setup_bazel.sh
 
       - name: Build Binaries
-        run: ./.github/scripts/bazel_build.sh --binaries --arch=${{ matrix.platforms }}
+        run: .github/scripts/bazel_build.sh --binaries --arch=${{ matrix.platforms }}
 
       - name: Upload Binaries as Artifacts
         uses: actions/upload-artifact@v4
