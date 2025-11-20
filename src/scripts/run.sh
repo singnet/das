@@ -31,6 +31,7 @@ docker run --rm \
     --name="${CONTAINER_NAME}" \
     --network host \
     --volume .:/opt/das \
+    --volume /tmp:/tmp \
     --workdir /opt/das \
     $ENV_VARS \
     "${IMAGE_NAME}" \

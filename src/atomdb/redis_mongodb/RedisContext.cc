@@ -39,6 +39,13 @@ redisReply* RedisContext::execute(const char* command) {
     }
 }
 
+bool RedisContext::ping() {
+    redisReply* reply = this->execute("PING");
+    if (reply == NULL) return false;
+    if (reply->type != REDIS_REPLY_STATUS) return false;
+    return string(reply->str) == string("PONG");
+}
+
 void RedisContext::append_command(const char* command) {
     if (cluster_flag) {
         if (redisClusterAppendCommand(cluster_ctx, command) == REDIS_OK) {
