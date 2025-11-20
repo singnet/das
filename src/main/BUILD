@@ -186,3 +186,21 @@ cc_library(
         "//service_bus:service_bus_lib",
     ],
 )
+
+cc_library(
+    name = "bus_node_lib",
+    srcs = ["bus_node.cc"],
+    deps = [
+        "//commons:commons_lib",
+        "//main/helpers:main_helper_processor_factory_lib",
+    ],
+)
+
+cc_library(
+    name = "bus_client_lib",
+    srcs = ["bus_client.cc"],
+    deps = [
+        "//commons:commons_lib",
+        "//main/helpers:main_helper_proxy_factory_lib",
+    ],
+)
