@@ -193,6 +193,7 @@ cc_library(
     deps = [
         "//commons:commons_lib",
         "//main/helpers:main_helper_processor_factory_lib",
+        "//agents/atomdb_broker:atomdb_broker_lib",
     ],
 )
 

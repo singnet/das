@@ -7,6 +7,8 @@ bool RunnerHelper::is_running = true;
 static map<ProcessorType, string> node_service_help = {{ProcessorType::INFERENCE_AGENT, string(R"(
 Inference Agent:
 This processor handles inference requests from the service bus.
+Required arguments:
+    - attention_broker_address: The address of the Attention Broker to connect to, in the form "host:port"
 )")},
                                                        {ProcessorType::LINK_CREATION_AGENT, string(R"(
 Link Creation Agent:
@@ -15,14 +17,20 @@ This processor manages link creation requests from the service bus.
                                                        {ProcessorType::CONTEXT_BROKER, string(R"(
 Context Broker:
 This processor handles context management requests from the service bus.
+Required arguments:
+    - attention_broker_address: The address of the Attention Broker to connect to, in the form "host:port"
 )")},
                                                        {ProcessorType::EVOLUTION_AGENT, string(R"(
 Evolution Agent:
 This processor manages query evolution requests from the service bus.
+Required arguments:
+    - attention_broker_address: The address of the Attention Broker to connect to, in the form "host:port"
 )")},
                                                        {ProcessorType::QUERY_ENGINE, string(R"(
 Query Engine:
 This processor handles pattern matching query requests from the service bus.
+Required arguments:
+    - attention_broker_address: The address of the Attention Broker to connect to, in the form "host:port"
 )")},
                                                        {ProcessorType::UNKNOWN, string(R"(
 Usage:
@@ -157,7 +165,7 @@ vector<string> RunnerHelper::get_required_arguments(const string& processor_type
             if (caller_type == ServiceCallerType::CLIENT) {
                 return {"request", "timeout", "max-answers", "attention-update-flag", "repeat-count"};
             } else {
-                return {};
+                return {"attention_broker_address"};
             }
         case ProcessorType::LINK_CREATION_AGENT:
             if (caller_type == ServiceCallerType::CLIENT) {
@@ -180,19 +188,19 @@ vector<string> RunnerHelper::get_required_arguments(const string& processor_type
                         "use-cache",
                         "enforce-cache-recreation"};
             } else {
-                return {};
+                return {"attention_broker_address"};
             }
         case ProcessorType::EVOLUTION_AGENT:
             if (caller_type == ServiceCallerType::CLIENT) {
                 return {"evolution-request", "max-answers", "attention-update-flag", "repeat-count"};
             } else {
-                return {};
+                return {"attention_broker_address"};
             }
         case ProcessorType::QUERY_ENGINE:
             if (caller_type == ServiceCallerType::CLIENT) {
                 return {"query", "context"};
             } else {
-                return {};
+                return {"attention_broker_address"};
             }
         default:
             return {};

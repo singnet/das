@@ -4,11 +4,13 @@
 #include "ProcessorFactory.h"
 #include "Properties.h"
 #include "RunnerHelper.h"
+#include "AttentionBrokerClient.h"
 #include "Utils.h"
 
 using namespace commons;
 using namespace mains;
 using namespace std;
+using namespace attention_broker;
 
 void ctrl_c_handler(int) {
     LOG_INFO("Stopping service...");
@@ -18,7 +20,7 @@ void ctrl_c_handler(int) {
 
 int main(int argc, char* argv[]) {
     try {
-        auto required_cmd_args = {"service", "hostname", "ports_range", "attention_broker_address"};
+        auto required_cmd_args = {"service", "hostname", "ports_range"};
         auto cmd_args = Utils::parse_command_line(argc, argv);
         if (cmd_args.find("help") != cmd_args.end()) {
             cout << RunnerHelper::help(RunnerHelper::processor_type_from_string(cmd_args["service"]))
@@ -44,6 +46,10 @@ int main(int argc, char* argv[]) {
             AtomDBSingleton::init(atomdb_api_types::ATOMDB_TYPE::MORKDB);
         } else {
             AtomDBSingleton::init();
+        }
+        if (props.find("attention_broker_address") != props.end()) {
+            AttentionBrokerClient::set_server_address(
+                props.get<string>("attention_broker_address"));
         }
         auto service = ProcessorFactory::create_processor(cmd_args["service"], props);
         auto ports_range = Utils::parse_ports_range(props.get<string>("ports_range"));
