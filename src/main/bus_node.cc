@@ -1,10 +1,10 @@
 #include <signal.h>
 
+#include "AttentionBrokerClient.h"
 #include "Logger.h"
 #include "ProcessorFactory.h"
 #include "Properties.h"
 #include "RunnerHelper.h"
-#include "AttentionBrokerClient.h"
 #include "Utils.h"
 
 using namespace commons;
@@ -48,8 +48,7 @@ int main(int argc, char* argv[]) {
             AtomDBSingleton::init();
         }
         if (props.find("attention_broker_address") != props.end()) {
-            AttentionBrokerClient::set_server_address(
-                props.get<string>("attention_broker_address"));
+            AttentionBrokerClient::set_server_address(props.get<string>("attention_broker_address"));
         }
         auto service = ProcessorFactory::create_processor(cmd_args["service"], props);
         auto ports_range = Utils::parse_ports_range(props.get<string>("ports_range"));

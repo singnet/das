@@ -1,6 +1,7 @@
 #include "RunnerHelper.h"
 using namespace std;
 using namespace mains;
+using namespace commons;
 
 bool RunnerHelper::is_running = true;
 
@@ -107,6 +108,13 @@ Usage:
 busclient --service=<service> --hostname=<host:port> --service-hostname=<service_host:service_port> --ports-range=<start_port:end_port> [--use_mork=true|false]
         )")}};
 
+static map<string, ProcessorType> string_to_processor_type = {
+    {"inference-agent", ProcessorType::INFERENCE_AGENT},
+    {"link-creation-agent", ProcessorType::LINK_CREATION_AGENT},
+    {"context-broker", ProcessorType::CONTEXT_BROKER},
+    {"evolution-agent", ProcessorType::EVOLUTION_AGENT},
+    {"query-engine", ProcessorType::QUERY_ENGINE}};
+
 string RunnerHelper::help(const ProcessorType& processor_type, ServiceCallerType caller_type) {
     string usage;
     if (caller_type == ServiceCallerType::CLIENT) {
@@ -146,14 +154,12 @@ string RunnerHelper::help(const ProcessorType& processor_type, ServiceCallerType
                 return usage + node_service_help[ProcessorType::QUERY_ENGINE];
             }
         default:
-            return string(usage) + string(R"(
-Available services:
- - inference-agent
- - link-creation-agent
- - context-broker
- - evolution-agent
- - query-engine
-                )");
+            vector<string> avaiable_services;
+            for (const auto& service : string_to_processor_type) {
+                avaiable_services.push_back(" - " + service.first);
+            }
+            return string(usage) + string("\nAvaiable services:\n") +
+                   Utils::join(avaiable_services, '\n');
     }
 }
 
@@ -208,16 +214,8 @@ vector<string> RunnerHelper::get_required_arguments(const string& processor_type
 }
 
 ProcessorType RunnerHelper::processor_type_from_string(const string& type_str) {
-    if (type_str == "inference-agent") {
-        return ProcessorType::INFERENCE_AGENT;
-    } else if (type_str == "link-creation-agent") {
-        return ProcessorType::LINK_CREATION_AGENT;
-    } else if (type_str == "context-broker") {
-        return ProcessorType::CONTEXT_BROKER;
-    } else if (type_str == "evolution-agent") {
-        return ProcessorType::EVOLUTION_AGENT;
-    } else if (type_str == "query-engine") {
-        return ProcessorType::QUERY_ENGINE;
+    if (string_to_processor_type.find(type_str) != string_to_processor_type.end()) {
+        return string_to_processor_type[type_str];
     } else {
         return ProcessorType::UNKNOWN;
     }
