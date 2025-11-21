@@ -20,7 +20,7 @@ void ctrl_c_handler(int) {
 
 int main(int argc, char* argv[]) {
     try {
-        auto required_cmd_args = {"service", "hostname", "ports_range"};
+        auto required_cmd_args = {"service", "hostname", "ports-range"};
         auto cmd_args = Utils::parse_command_line(argc, argv);
         if (cmd_args.find("help") != cmd_args.end()) {
             cout << RunnerHelper::help(RunnerHelper::processor_type_from_string(cmd_args["service"]))
@@ -42,21 +42,34 @@ int main(int argc, char* argv[]) {
         signal(SIGTERM, ctrl_c_handler);
         LOG_INFO("Starting service: " + cmd_args["service"]);
         auto props = Properties(cmd_args.begin(), cmd_args.end());
-        if (props.get_or<string>("use_mork", "false") == "true") {
+        if (props.find("attention-broker-address") != props.end()) {
+            AttentionBrokerClient::set_server_address(props.get<string>("attention-broker-address"));
+        }
+        if (props.get_or<string>("use-mork", "false") == "true") {
             AtomDBSingleton::init(atomdb_api_types::ATOMDB_TYPE::MORKDB);
         } else {
             AtomDBSingleton::init();
         }
-        if (props.find("attention_broker_address") != props.end()) {
-            AttentionBrokerClient::set_server_address(props.get<string>("attention_broker_address"));
-        }
-        auto service = ProcessorFactory::create_processor(cmd_args["service"], props);
-        auto ports_range = Utils::parse_ports_range(props.get<string>("ports_range"));
+
+        auto ports_range = Utils::parse_ports_range(props.get<string>("ports-range"));
+        LOG_INFO("Initializing ServiceBusSingleton with hostname: "
+                 << props.get<string>("hostname")
+                 << " , service-hostname: " << props.get_or<string>("service-hostname", "")
+                 << ", ports-range: " << ports_range.first << "-" << ports_range.second);
         ServiceBusSingleton::init(props.get<string>("hostname"),
-                                  props.get_or<string>("peer_address", ""),
+                                  props.get_or<string>("service-hostname", ""),
                                   ports_range.first,
                                   ports_range.second);
+        auto service = ProcessorFactory::create_processor(cmd_args["service"], props);
+        if (service == nullptr) {
+            Utils::error("Could not create processor for service or service is inactive: " +
+                         cmd_args["service"]);
+        }
+
+        LOG_INFO("Registering processor for service: " + cmd_args["service"]);
+
         shared_ptr<ServiceBus> service_bus = ServiceBusSingleton::get_instance();
+        LOG_INFO("Processor registered for service: " + cmd_args["service"]);
         service_bus->register_processor(service);
 
         while (true) {

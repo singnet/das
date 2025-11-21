@@ -4,12 +4,44 @@ using namespace mains;
 using namespace commons;
 
 bool RunnerHelper::is_running = true;
+// Args names
+string RunnerHelper::SERVICE = "service";
+string RunnerHelper::HOSTNAME = "hostname";
+string RunnerHelper::SERVICE_HOSTNAME = "service-hostname";
+string RunnerHelper::PORTS_RANGE = "ports-range";
+string RunnerHelper::ATTENTION_BROKER_ADDRESS = "attention-broker-address";
+string RunnerHelper::USE_MORK = "use-mork";
+string RunnerHelper::ACTION = "action";
+string RunnerHelper::TOKENS = "tokens";
+string RunnerHelper::REQUEST = "request";
+string RunnerHelper::TIMEOUT = "timeout";
+string RunnerHelper::MAX_ANSWERS = "max-answers";
+string RunnerHelper::ATTENTION_UPDATE_FLAG = "attention-update-flag";
+string RunnerHelper::REPEAT_COUNT = "repeat-count";
+string RunnerHelper::CONTEXT = "context";
+string RunnerHelper::CORRELATION_QUERIES = "correlation-queries";
+string RunnerHelper::CORRELATION_REPLACEMENTS = "correlation-replacements";
+string RunnerHelper::CORRELATION_MAPPINGS = "correlation-mappings";
+string RunnerHelper::FITNESS_FUNCTION_TAG = "fitness-function-tag";
+string RunnerHelper::USE_CACHE = "use-cache";
+string RunnerHelper::ENFORCE_CACHE_RECREATION = "enforce-cache-recreation";
+string RunnerHelper::INITIAL_RENT_RATE = "initial-rent-rate";
+string RunnerHelper::INITIAL_SPREADING_RATE_LOWERBOUND = "initial-spreading-rate-lowerbound";
+string RunnerHelper::INITIAL_SPREADING_RATE_UPPERBOUND = "initial-spreading-rate-upperbound";
+string RunnerHelper::DETERMINER_SCHEMA = "determiner-schema";
+string RunnerHelper::STIMULUS_SCHEMA = "stimulus-schema";
+string RunnerHelper::POSITIVE_IMPORTANCE_FLAG = "positive-importance-flag";
+string RunnerHelper::USE_METTA_AS_QUERY_TOKENS = "use-metta-as-query-tokens";
+string RunnerHelper::UNIQUE_ASSIGNMENT_FLAG = "unique-assignment-flag";
+string RunnerHelper::USE_LINK_TEMPLATE_CACHE = "use-link-template-cache";
+string RunnerHelper::POPULATE_METTA_MAPPING = "populate-metta-mapping";
+string RunnerHelper::QUERY = "query";
 
 static map<ProcessorType, string> node_service_help = {{ProcessorType::INFERENCE_AGENT, string(R"(
 Inference Agent:
 This processor handles inference requests from the service bus.
 Required arguments:
-    - attention_broker_address: The address of the Attention Broker to connect to, in the form "host:port"
+    - attention-broker-address: The address of the Attention Broker to connect to, in the form "host:port"
 )")},
                                                        {ProcessorType::LINK_CREATION_AGENT, string(R"(
 Link Creation Agent:
@@ -19,23 +51,27 @@ This processor manages link creation requests from the service bus.
 Context Broker:
 This processor handles context management requests from the service bus.
 Required arguments:
-    - attention_broker_address: The address of the Attention Broker to connect to, in the form "host:port"
+    - attention-broker-address: The address of the Attention Broker to connect to, in the form "host:port"
 )")},
                                                        {ProcessorType::EVOLUTION_AGENT, string(R"(
 Evolution Agent:
 This processor manages query evolution requests from the service bus.
 Required arguments:
-    - attention_broker_address: The address of the Attention Broker to connect to, in the form "host:port"
+    - attention-broker-address: The address of the Attention Broker to connect to, in the form "host:port"
 )")},
                                                        {ProcessorType::QUERY_ENGINE, string(R"(
 Query Engine:
 This processor handles pattern matching query requests from the service bus.
 Required arguments:
-    - attention_broker_address: The address of the Attention Broker to connect to, in the form "host:port"
+    - attention-broker-address: The address of the Attention Broker to connect to, in the form "host:port"
+)")},
+                                                       {ProcessorType::ATOMDB_BROKER, string(R"(
+AtomDB Broker:
+This processor manages AtomDB broker requests from the service bus.
 )")},
                                                        {ProcessorType::UNKNOWN, string(R"(
 Usage:
-busnode --service=<service> --hostname=<host:port> --ports_range=<start_port:end_port> [--peer_address=<peer_host:peer_port>] --attention_broker_address=<AB_ip:AB_port> [--use_mork=true|false]
+busnode --service=<service> --hostname=<host:port> --ports_range=<start_port:end_port> [--peer_address=<peer_host:peer_port>] --attention-broker-address=<AB_ip:AB_port> [--use-mork=true|false]
 )")}};
 
 static map<ProcessorType, string> client_service_help = {{ProcessorType::INFERENCE_AGENT, string(R"(
@@ -103,9 +139,18 @@ It requires the following arguments:
     - use-metta-as-query-tokens: Whether to use MeTTa expressions as query tokens (true/false)
     - positive-importance-flag: Whether to set positive importance flag (true/false)
 )")},
+                                                         {ProcessorType::ATOMDB_BROKER, string(R"(
+AtomDB Broker Client:
+This client interacts with the AtomDB Broker via the service bus.
+ It requires the following arguments:
+    - action: The action to be performed, supported actions: (add_atoms).
+    - tokens: The tokens associated with the action.
+ Optional arguments:
+    - use-mork: Whether to use MorkDB as the backend (true/false)
+)")},
                                                          {ProcessorType::UNKNOWN, string(R"(
 Usage:
-busclient --service=<service> --hostname=<host:port> --service-hostname=<service_host:service_port> --ports-range=<start_port:end_port> [--use_mork=true|false]
+busclient --service=<service> --hostname=<host:port> --service-hostname=<service_host:service_port> --ports-range=<start_port:end_port> [--use-mork=true|false]
         )")}};
 
 static map<string, ProcessorType> string_to_processor_type = {
@@ -113,7 +158,8 @@ static map<string, ProcessorType> string_to_processor_type = {
     {"link-creation-agent", ProcessorType::LINK_CREATION_AGENT},
     {"context-broker", ProcessorType::CONTEXT_BROKER},
     {"evolution-agent", ProcessorType::EVOLUTION_AGENT},
-    {"query-engine", ProcessorType::QUERY_ENGINE}};
+    {"query-engine", ProcessorType::QUERY_ENGINE},
+    {"atomdb-broker", ProcessorType::ATOMDB_BROKER}};
 
 string RunnerHelper::help(const ProcessorType& processor_type, ServiceCallerType caller_type) {
     string usage;
@@ -153,6 +199,12 @@ string RunnerHelper::help(const ProcessorType& processor_type, ServiceCallerType
             } else {
                 return usage + node_service_help[ProcessorType::QUERY_ENGINE];
             }
+        case ProcessorType::ATOMDB_BROKER:
+            if (caller_type == ServiceCallerType::CLIENT) {
+                return usage + client_service_help[ProcessorType::ATOMDB_BROKER];
+            } else {
+                return usage + node_service_help[ProcessorType::ATOMDB_BROKER];
+            }
         default:
             vector<string> avaiable_services;
             for (const auto& service : string_to_processor_type) {
@@ -169,44 +221,44 @@ vector<string> RunnerHelper::get_required_arguments(const string& processor_type
     switch (p_type) {
         case ProcessorType::INFERENCE_AGENT:
             if (caller_type == ServiceCallerType::CLIENT) {
-                return {"request", "timeout", "max-answers", "attention-update-flag", "repeat-count"};
+                return {REQUEST, TIMEOUT, MAX_ANSWERS, ATTENTION_UPDATE_FLAG, REPEAT_COUNT};
             } else {
-                return {"attention_broker_address"};
+                return {ATTENTION_BROKER_ADDRESS};
             }
         case ProcessorType::LINK_CREATION_AGENT:
             if (caller_type == ServiceCallerType::CLIENT) {
-                return {"request",
-                        "max-answers",
-                        "repeat-count",
-                        "context",
-                        "attention-update-flag",
-                        "positive-importance-flag",
-                        "use-metta-as-query-tokens"};
+                return {REQUEST};
             } else {
                 return {};
             }
         case ProcessorType::CONTEXT_BROKER:
             if (caller_type == ServiceCallerType::CLIENT) {
-                return {"context",
-                        "query",
-                        "determiner-schema",
-                        "stimulus-schema",
-                        "use-cache",
-                        "enforce-cache-recreation"};
+                return {CONTEXT,
+                        QUERY,
+                        DETERMINER_SCHEMA,
+                        STIMULUS_SCHEMA,
+                        USE_CACHE,
+                        ENFORCE_CACHE_RECREATION};
             } else {
-                return {"attention_broker_address"};
+                return {ATTENTION_BROKER_ADDRESS};
             }
         case ProcessorType::EVOLUTION_AGENT:
             if (caller_type == ServiceCallerType::CLIENT) {
-                return {"evolution-request", "max-answers", "attention-update-flag", "repeat-count"};
+                return {REQUEST, MAX_ANSWERS, ATTENTION_UPDATE_FLAG, REPEAT_COUNT};
             } else {
-                return {"attention_broker_address"};
+                return {ATTENTION_BROKER_ADDRESS};
             }
         case ProcessorType::QUERY_ENGINE:
             if (caller_type == ServiceCallerType::CLIENT) {
-                return {"query", "context"};
+                return {QUERY, CONTEXT};
             } else {
-                return {"attention_broker_address"};
+                return {ATTENTION_BROKER_ADDRESS};
+            }
+        case ProcessorType::ATOMDB_BROKER:
+            if (caller_type == ServiceCallerType::CLIENT) {
+                return {ACTION, TOKENS};
+            } else {
+                return {};
             }
         default:
             return {};

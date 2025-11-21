@@ -13,7 +13,10 @@ using namespace std;
 
 int main(int argc, char* argv[]) {
     try {
-        auto required_cmd_args = {"service", "hostname", "service-hostname", "ports-range"};
+        auto required_cmd_args = {RunnerHelper::SERVICE,
+                                  RunnerHelper::HOSTNAME,
+                                  RunnerHelper::SERVICE_HOSTNAME,
+                                  RunnerHelper::PORTS_RANGE};
         auto cmd_args = Utils::parse_command_line(argc, argv);
         if (cmd_args.find("help") != cmd_args.end()) {
             cout << RunnerHelper::help(RunnerHelper::processor_type_from_string(cmd_args["service"]),
@@ -45,12 +48,16 @@ int main(int argc, char* argv[]) {
         signal(SIGINT, signal_handler);
         signal(SIGTERM, signal_handler);
         LOG_INFO("Starting service: " + cmd_args["service"]);
-        if (props.get_or<string>("use_mork", "false") == "true") {
+        if (props.get_or<string>("use-mork", "false") == "true") {
             AtomDBSingleton::init(atomdb_api_types::ATOMDB_TYPE::MORKDB);
         } else {
             AtomDBSingleton::init();
         }
         auto proxy = ProxyFactory::create_proxy(cmd_args["service"], props);
+        if (proxy == nullptr) {
+            Utils::error("Could not create proxy for service or client is inactive: " +
+                         cmd_args["service"]);
+        }
         auto ports_range = Utils::parse_ports_range(props.get<string>("ports-range"));
         ServiceBusSingleton::init(props.get<string>("hostname"),
                                   props.get<string>("service-hostname"),
@@ -59,6 +66,30 @@ int main(int argc, char* argv[]) {
         shared_ptr<ServiceBus> service_bus = ServiceBusSingleton::get_instance();
         service_bus->issue_bus_command(proxy);
 
+        // Special case for AtomDBBroker client
+        // Note to reviewer: The original client doesn't work, this also doesn't work but maintains
+        // the original structure. Proper fix will be done later.
+        // if (cmd_args["service"] == "atomdb-broker") {
+        //     auto action = props.get_or<string>("action", "");
+        //     auto tokens_str = props.get_or<string>("tokens", "");
+        //     vector<string> tokens = Utils::split(tokens_str, ' ');
+        //     shared_ptr<atomdb_broker::AtomDBProxy> atomdb_proxy =
+        //         dynamic_pointer_cast<atomdb_broker::AtomDBProxy>(proxy);
+        //     if (action == atomdb_broker::AtomDBProxy::ADD_ATOMS) {
+        //         auto atoms = atomdb_proxy->build_atoms_from_tokens(tokens);
+        //         vector<string> response = atomdb_proxy->add_atoms(atoms);
+        //         if (response.empty()) {
+        //             cout << "No answers" << endl;
+        //         } else {
+        //             for (auto resp : response) {
+        //                 cout << "handle: " << resp << endl;
+        //             }
+        //         }
+        //     }
+        //     return 0;
+        // }
+
+        // Default case for other clients
         while (proxy->finished() == false && RunnerHelper::is_running) {
             if (dynamic_cast<BaseQueryProxy*>(proxy.get()) != nullptr) {
                 auto query_proxy = dynamic_cast<BaseQueryProxy*>(proxy.get());

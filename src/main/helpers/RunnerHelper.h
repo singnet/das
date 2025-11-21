@@ -12,6 +12,7 @@ enum class ProcessorType {
     CONTEXT_BROKER,
     EVOLUTION_AGENT,
     QUERY_ENGINE,
+    ATOMDB_BROKER,
     UNKNOWN
 };
 
@@ -21,6 +22,39 @@ class RunnerHelper {
    public:
     RunnerHelper() = default;
     ~RunnerHelper() = default;
+
+    // Args names
+    static string SERVICE;
+    static string HOSTNAME;
+    static string SERVICE_HOSTNAME;
+    static string PORTS_RANGE;
+    static string ATTENTION_BROKER_ADDRESS;
+    static string USE_MORK;
+    static string ACTION;
+    static string TOKENS;
+    static string REQUEST;
+    static string TIMEOUT;
+    static string MAX_ANSWERS;
+    static string ATTENTION_UPDATE_FLAG;
+    static string REPEAT_COUNT;
+    static string CONTEXT;
+    static string CORRELATION_QUERIES;
+    static string CORRELATION_REPLACEMENTS;
+    static string CORRELATION_MAPPINGS;
+    static string FITNESS_FUNCTION_TAG;
+    static string USE_CACHE;
+    static string ENFORCE_CACHE_RECREATION;
+    static string INITIAL_RENT_RATE;
+    static string INITIAL_SPREADING_RATE_LOWERBOUND;
+    static string INITIAL_SPREADING_RATE_UPPERBOUND;
+    static string DETERMINER_SCHEMA;
+    static string STIMULUS_SCHEMA;
+    static string POSITIVE_IMPORTANCE_FLAG;
+    static string USE_METTA_AS_QUERY_TOKENS;
+    static string UNIQUE_ASSIGNMENT_FLAG;
+    static string USE_LINK_TEMPLATE_CACHE;
+    static string POPULATE_METTA_MAPPING;
+    static string QUERY;
 
     static bool is_running;
 
