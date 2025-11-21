@@ -43,7 +43,7 @@ jobs:
     needs: determine-version
     strategy:
       matrix:
-        platforms: [amd64, arm64]
+        platforms: [arm64]
     runs-on:
       - self-hosted-withcache
       - ${{ matrix.platforms }}
@@ -79,7 +79,7 @@ jobs:
       - compile-source-code
     strategy:
       matrix:
-        platforms: [amd64, arm64]
+        platforms: [arm64]
     runs-on:
       - self-hosted-withcache
       - ${{ matrix.platforms }}
