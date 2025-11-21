@@ -1154,18 +1154,13 @@ void RedisMongoDB::add_pattern_index_schema(const string& tokens,
         index_entries_array.append(index_entry_array);
     }
 
-    auto conn = this->mongodb_pool->acquire();
-    auto mongodb_collection = (*conn)[MONGODB_DB_NAME][MONGODB_PATTERN_INDEX_SCHEMA_COLLECTION_NAME];
-
-    auto reply = mongodb_collection.insert_one(bsoncxx::v_noabi::builder::basic::make_document(
+    auto document = bsoncxx::v_noabi::builder::basic::make_document(
         bsoncxx::v_noabi::builder::basic::kvp(MONGODB_FIELD_NAME[MONGODB_FIELD::ID], id),
         bsoncxx::v_noabi::builder::basic::kvp("tokens", tokens),
         bsoncxx::v_noabi::builder::basic::kvp("priority", this->pattern_index_schema_next_priority),
-        bsoncxx::v_noabi::builder::basic::kvp("index_entries", index_entries_array)));
+        bsoncxx::v_noabi::builder::basic::kvp("index_entries", index_entries_array));
 
-    if (!reply) {
-        Utils::error("Failed to insert pattern index schema into MongoDB");
-    }
+    this->upsert_document(document, MONGODB_PATTERN_INDEX_SCHEMA_COLLECTION_NAME);
 
     this->pattern_index_schema_map[this->pattern_index_schema_next_priority] =
         make_tuple(move(tokens_vector), index_entries);
