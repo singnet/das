@@ -31,13 +31,6 @@ class ProcessorFactory {
    public:
     ProcessorFactory();
     ~ProcessorFactory();
-    /**
-     * Creates a BusCommandProcessor based on the provided type and parameters.
-     * @param processor_type The type of the processor to create, types are: "inference-agent",
-     * "link-creation-agent", "evolution-agent", "query-engine", "context-broker".
-     * @param params A map of parameters required for the processor creation.
-     * @return A shared pointer to the created BusCommandProcessor.
-     */
     static shared_ptr<BusCommandProcessor> create_processor(const string& processor_type,
                                                             const Properties& params) {
         ProcessorType p_type = RunnerHelper::processor_type_from_string(processor_type);
