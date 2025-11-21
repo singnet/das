@@ -1,10 +1,11 @@
 #include <signal.h>
 
 #include "AttentionBrokerClient.h"
+#include "FitnessFunctionRegistry.h"
+#include "Helper.h"
 #include "Logger.h"
 #include "ProcessorFactory.h"
 #include "Properties.h"
-#include "Helper.h"
 #include "Utils.h"
 
 using namespace commons;
@@ -20,11 +21,11 @@ void ctrl_c_handler(int) {
 
 int main(int argc, char* argv[]) {
     try {
-        auto required_cmd_args = {"service", "hostname", "ports-range"};
+        auto required_cmd_args = {Helper::SERVICE, Helper::HOSTNAME, Helper::PORTS_RANGE};
         auto cmd_args = Utils::parse_command_line(argc, argv);
+        ///////// Checking args
         if (cmd_args.find("help") != cmd_args.end()) {
-            cout << Helper::help(Helper::processor_type_from_string(cmd_args["service"]))
-                 << endl;
+            cout << Helper::help(Helper::processor_type_from_string(cmd_args[Helper::SERVICE])) << endl;
             return 0;
         }
         for (auto req_arg : required_cmd_args) {
@@ -32,44 +33,51 @@ int main(int argc, char* argv[]) {
                 Utils::error("Required argument missing: " + string(req_arg));
             }
         }
-        auto required_args = Helper::get_required_arguments(cmd_args["service"]);
+        auto required_args = Helper::get_required_arguments(cmd_args[Helper::SERVICE]);
         for (auto req_arg : required_args) {
             if (cmd_args.find(req_arg) == cmd_args.end()) {
                 Utils::error("Required argument missing: " + string(req_arg));
             }
         }
+        ///////// Handling signals
         signal(SIGINT, ctrl_c_handler);
         signal(SIGTERM, ctrl_c_handler);
-        LOG_INFO("Starting service: " + cmd_args["service"]);
+        ///////// Initializing dependencies
+        LOG_INFO("Starting service: " + cmd_args[Helper::SERVICE]);
         auto props = Properties(cmd_args.begin(), cmd_args.end());
-        if (props.find("attention-broker-address") != props.end()) {
-            AttentionBrokerClient::set_server_address(props.get<string>("attention-broker-address"));
+        if (props.find(Helper::ATTENTION_BROKER_ADDRESS) != props.end()) {
+            AttentionBrokerClient::set_server_address(
+                props.get<string>(Helper::ATTENTION_BROKER_ADDRESS));
         }
-        if (props.get_or<string>("use-mork", "false") == "true") {
+        if (props.get_or<string>(Helper::USE_MORK, "false") == "true") {
             AtomDBSingleton::init(atomdb_api_types::ATOMDB_TYPE::MORKDB);
         } else {
             AtomDBSingleton::init();
         }
 
-        auto ports_range = Utils::parse_ports_range(props.get<string>("ports-range"));
-        LOG_INFO("Initializing ServiceBusSingleton with hostname: "
-                 << props.get<string>("hostname")
-                 << " , service-hostname: " << props.get_or<string>("service-hostname", "")
-                 << ", ports-range: " << ports_range.first << "-" << ports_range.second);
-        ServiceBusSingleton::init(props.get<string>("hostname"),
-                                  props.get_or<string>("service-hostname", ""),
-                                  ports_range.first,
-                                  ports_range.second);
-        auto service = ProcessorFactory::create_processor(cmd_args["service"], props);
-        if (service == nullptr) {
-            Utils::error("Could not create processor for service or service is inactive: " +
-                         cmd_args["service"]);
+        if (Helper::processor_type_from_string(cmd_args[Helper::SERVICE]) ==
+                mains::ProcessorType::INFERENCE_AGENT ||
+            Helper::processor_type_from_string(cmd_args[Helper::SERVICE]) ==
+                mains::ProcessorType::EVOLUTION_AGENT) {
+            fitness_functions::FitnessFunctionRegistry::initialize_statics();
         }
 
-        LOG_INFO("Registering processor for service: " + cmd_args["service"]);
+        auto ports_range = Utils::parse_ports_range(props.get<string>(Helper::PORTS_RANGE));
+        ServiceBusSingleton::init(props.get<string>(Helper::HOSTNAME),
+                                  props.get_or<string>(Helper::SERVICE_HOSTNAME, ""),
+                                  ports_range.first,
+                                  ports_range.second);
+        ///////// Registering processor
+        auto service = ProcessorFactory::create_processor(cmd_args[Helper::SERVICE], props);
+        if (service == nullptr) {
+            Utils::error("Could not create processor for service or service is inactive: " +
+                         cmd_args[Helper::SERVICE]);
+        }
+
+        LOG_INFO("Registering processor for service: " + cmd_args[Helper::SERVICE]);
 
         shared_ptr<ServiceBus> service_bus = ServiceBusSingleton::get_instance();
-        LOG_INFO("Processor registered for service: " + cmd_args["service"]);
+        LOG_INFO("Processor registered for service: " + cmd_args[Helper::SERVICE]);
         service_bus->register_processor(service);
 
         while (true) {

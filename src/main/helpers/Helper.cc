@@ -216,12 +216,12 @@ string Helper::help(const ProcessorType& processor_type, ServiceCallerType calle
 }
 
 vector<string> Helper::get_required_arguments(const string& processor_type,
-                                                    ServiceCallerType caller_type) {
+                                              ServiceCallerType caller_type) {
     ProcessorType p_type = processor_type_from_string(processor_type);
     switch (p_type) {
         case ProcessorType::INFERENCE_AGENT:
             if (caller_type == ServiceCallerType::CLIENT) {
-                return {REQUEST, TIMEOUT, MAX_ANSWERS, ATTENTION_UPDATE_FLAG, REPEAT_COUNT};
+                return {REQUEST};
             } else {
                 return {ATTENTION_BROKER_ADDRESS};
             }

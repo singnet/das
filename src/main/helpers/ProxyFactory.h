@@ -3,12 +3,12 @@
 #include "AtomDBProxy.h"
 #include "BaseProxy.h"
 #include "ContextBrokerProxy.h"
+#include "Helper.h"
 #include "InferenceProxy.h"
 #include "LinkCreationRequestProxy.h"
 #include "PatternMatchingQueryProxy.h"
 #include "Properties.h"
 #include "QueryEvolutionProxy.h"
-#include "Helper.h"
 #include "Utils.h"
 
 using namespace std;
@@ -36,7 +36,6 @@ class ProxyFactory {
         if (param_value.empty()) {
             return;
         }
-        LOG_INFO("Setting proxy parameter: " << param_name << " to value: " << param_value);
         switch (param_type) {
             case ParamType::UINT:
                 proxy_params[param_name] = (unsigned int) stoi(param_value);
@@ -131,8 +130,7 @@ class ProxyFactory {
                 string query =
                     params.get<string>("query");  // Note to reviewer: Helper::QUERY is not linking
                 string correlation_queries = params.get<string>(Helper::CORRELATION_QUERIES);
-                string correlation_replacements =
-                    params.get<string>(Helper::CORRELATION_REPLACEMENTS);
+                string correlation_replacements = params.get<string>(Helper::CORRELATION_REPLACEMENTS);
                 string correlation_mappings = params.get<string>(Helper::CORRELATION_MAPPINGS);
                 string context = params.get<string>(Helper::CONTEXT);
                 string fitness_function_tag = params.get<string>(Helper::FITNESS_FUNCTION_TAG);

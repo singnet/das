@@ -7,12 +7,12 @@
 #include "AtomDBProcessor.h"
 #include "BusCommandProcessor.h"
 #include "ContextBrokerProcessor.h"
+#include "Helper.h"
 #include "InferenceProcessor.h"
 #include "LinkCreationRequestProcessor.h"
 #include "PatternMatchingQueryProcessor.h"
 #include "Properties.h"
 #include "QueryEvolutionProcessor.h"
-#include "Helper.h"
 #include "Utils.h"
 
 using namespace std;
