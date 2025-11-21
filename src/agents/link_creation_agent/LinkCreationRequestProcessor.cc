@@ -22,6 +22,25 @@ LinkCreationRequestProcessor::LinkCreationRequestProcessor(int request_interval,
                                                       save_links_to_db);
 }
 
+LinkCreationRequestProcessor::LinkCreationRequestProcessor(const Properties& props)
+    : BusCommandProcessor({ServiceBus::LINK_CREATION}) {
+    int request_interval = Utils::string_to_int(props.get_or<string>("request_interval", "1"));
+    int thread_count = Utils::string_to_int(props.get_or<string>("thread_count", "1"));
+    int default_timeout = Utils::string_to_int(props.get_or<string>("default_timeout", "10"));
+    string buffer_file_path = props.get_or<string>("buffer_file", "requests_buffer.bin");
+    string metta_file_path = props.get_or<string>("metta_file_path", "/tmp/metta_links");
+    bool save_links_to_metta_file = props.get_or<string>("save_links_to_metta_file", "false") == "true";
+    bool save_links_to_db = props.get_or<string>("save_links_to_db", "true") == "true";
+
+    this->link_creation_agent = new LinkCreationAgent(request_interval,
+                                                      thread_count,
+                                                      default_timeout,
+                                                      buffer_file_path,
+                                                      metta_file_path,
+                                                      save_links_to_metta_file,
+                                                      save_links_to_db);
+}
+
 LinkCreationRequestProcessor::~LinkCreationRequestProcessor() { delete this->link_creation_agent; }
 
 shared_ptr<BusCommandProxy> LinkCreationRequestProcessor::factory_empty_proxy() {
