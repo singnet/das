@@ -19,7 +19,6 @@ using namespace commons;
 
 // -------------------------------------------------------------------------------------------------
 // Static constants
-queue<vector<Atom*>> ready_batches;
 
 const size_t AtomDBProxy::BATCH_SIZE = 100000;
 const size_t AtomDBProxy::NUM_THREADS = 10;
@@ -153,78 +152,85 @@ void AtomDBProxy::handle_add_atoms(const vector<string>& tokens) {
 void AtomDBProxy::persist_pending() {
     unique_lock<mutex> lock(this->queue_mutex);
 
-    if (this->work_queue.empty()) {
+    if (this->accumulator.empty()) {
         LOG_INFO("[Persist] Received persist command, but accumulator is empty. Nothing to do.");
         return;
     }
 
-    LOG_INFO("[Persist] Received persist command. Flushing " << this->work_queue.size()
+    LOG_INFO("[Persist] Received persist command. Flushing " << this->accumulator.size()
                                                              << " remaining batches from accumulator.");
 
-    size_t total_remaining = accumulate(
-        this->work_queue.begin(), this->work_queue.end(), size_t{0}, [](size_t sum, const auto& batch) {
-            return sum + batch.size();
-        });
+    this->batches_ready_to_process.push(move(this->accumulator));
 
-    vector<Atom*> final_batch;
-    final_batch.reserve(total_remaining);
-    for (auto& batch : this->work_queue) {
-        final_batch.insert(
-            final_batch.end(), make_move_iterator(batch.begin()), make_move_iterator(batch.end()));
-    }
-
-    this->work_queue.clear();
-    ready_batches.push(move(final_batch));
+    this->accumulator = vector<Atom*>();
+    this->accumulator.reserve(BATCH_SIZE);
 
     this->queue_condition.notify_one();
 }
 
 void AtomDBProxy::add_work(vector<Atom*> atoms) {
     if (atoms.empty()) return;
+
     unique_lock<mutex> lock(this->queue_mutex);
-    this->work_queue.push_back(move(atoms));
 
-    size_t total_in_queue = accumulate(
-        this->work_queue.begin(), this->work_queue.end(), size_t{0}, [](size_t sum, const auto& batch) {
-            return sum + batch.size();
-        });
+    size_t required_size = this->accumulator.size() + atoms.size();
 
-    if (total_in_queue < BATCH_SIZE) return;
-
-    LOG_DEBUG("[Accumulator] Batch target reached. Total: " << total_in_queue
-                                                            << ". Creating super-batch.");
-
-    vector<Atom*> final_batch;
-    final_batch.reserve(total_in_queue);
-
-    for (auto& batch : this->work_queue) {
-        final_batch.insert(
-            final_batch.end(), make_move_iterator(batch.begin()), make_move_iterator(batch.end()));
+    if (this->accumulator.capacity() < required_size) {
+        this->accumulator.reserve(required_size);
     }
 
-    this->work_queue.clear();
-    ready_batches.push(move(final_batch));
-    this->queue_condition.notify_one();
+    this->accumulator.insert(
+        this->accumulator.end(), make_move_iterator(atoms.begin()), make_move_iterator(atoms.end()));
+
+    if (this->accumulator.size() >= BATCH_SIZE) {
+        this->batches_ready_to_process.push(move(this->accumulator));
+
+        this->accumulator = vector<Atom*>();
+        this->accumulator.reserve(BATCH_SIZE);
+
+        this->queue_condition.notify_one();
+    }
 }
 
 void AtomDBProxy::worker_loop() {
     while (true) {
-        vector<Atom*> batch_to_process;
+        vector<Atom*> batch;
         {
             unique_lock<mutex> lock(this->queue_mutex);
-            this->queue_condition.wait(
-                lock, [this] { return this->stop_processing || !ready_batches.empty(); });
-            if (this->stop_processing && ready_batches.empty()) return;
-            batch_to_process = move(ready_batches.front());
-            ready_batches.pop();
+
+            this->queue_condition.wait(lock, [this] {
+                return this->stop_processing || !this->batches_ready_to_process.empty();
+            });
+
+            if (this->stop_processing && this->batches_ready_to_process.empty()) {
+                return;
+            }
+
+            batch = move(this->batches_ready_to_process.front());
+            this->batches_ready_to_process.pop();
         }
-        LOG_INFO("[Thread " << this_thread::get_id() << "] Processing batch with "
-                            << batch_to_process.size() << " atoms.");
+
+        LOG_INFO("[Thread " << this_thread::get_id() << "] Processing batch with " << batch.size()
+                            << " atoms.");
+
         try {
-            this->atomdb->add_atoms(batch_to_process, false, true);
+            this->atomdb->add_atoms(batch, false, true);
             LOG_INFO("[Thread " << this_thread::get_id() << "] batch processed successfully.");
         } catch (const exception& e) {
             LOG_ERROR("Error processing batch: " << e.what());
         }
+
+        for (Atom* atom : batch) {
+            if (Node* node_ptr = dynamic_cast<Node*>(atom)) {
+                delete node_ptr;
+            }
+            else if (Link* link_ptr = dynamic_cast<Link*>(atom)) {
+                delete link_ptr;
+            }
+            else {
+                delete atom;
+            }
+        }
+        batch.clear();
     }
 }

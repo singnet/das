@@ -3,6 +3,7 @@
 #include <condition_variable>
 #include <memory>
 #include <mutex>
+#include <queue>
 #include <string>
 #include <thread>
 #include <vector>
@@ -130,7 +131,8 @@ class AtomDBProxy : public BaseProxy {
     vector<thread> workers;
     bool stop_processing = false;
 
-    vector<vector<Atom*>> work_queue;
+    queue<vector<Atom*>> batches_ready_to_process;
+    vector<Atom*> accumulator;
     mutex queue_mutex;
     condition_variable queue_condition;
 };
