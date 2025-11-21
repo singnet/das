@@ -1,41 +1,41 @@
-#include "RunnerHelper.h"
+#include "Helper.h"
 using namespace std;
 using namespace mains;
 using namespace commons;
 
-bool RunnerHelper::is_running = true;
+bool Helper::is_running = true;
 // Args names
-string RunnerHelper::SERVICE = "service";
-string RunnerHelper::HOSTNAME = "hostname";
-string RunnerHelper::SERVICE_HOSTNAME = "service-hostname";
-string RunnerHelper::PORTS_RANGE = "ports-range";
-string RunnerHelper::ATTENTION_BROKER_ADDRESS = "attention-broker-address";
-string RunnerHelper::USE_MORK = "use-mork";
-string RunnerHelper::ACTION = "action";
-string RunnerHelper::TOKENS = "tokens";
-string RunnerHelper::REQUEST = "request";
-string RunnerHelper::TIMEOUT = "timeout";
-string RunnerHelper::MAX_ANSWERS = "max-answers";
-string RunnerHelper::ATTENTION_UPDATE_FLAG = "attention-update-flag";
-string RunnerHelper::REPEAT_COUNT = "repeat-count";
-string RunnerHelper::CONTEXT = "context";
-string RunnerHelper::CORRELATION_QUERIES = "correlation-queries";
-string RunnerHelper::CORRELATION_REPLACEMENTS = "correlation-replacements";
-string RunnerHelper::CORRELATION_MAPPINGS = "correlation-mappings";
-string RunnerHelper::FITNESS_FUNCTION_TAG = "fitness-function-tag";
-string RunnerHelper::USE_CACHE = "use-cache";
-string RunnerHelper::ENFORCE_CACHE_RECREATION = "enforce-cache-recreation";
-string RunnerHelper::INITIAL_RENT_RATE = "initial-rent-rate";
-string RunnerHelper::INITIAL_SPREADING_RATE_LOWERBOUND = "initial-spreading-rate-lowerbound";
-string RunnerHelper::INITIAL_SPREADING_RATE_UPPERBOUND = "initial-spreading-rate-upperbound";
-string RunnerHelper::DETERMINER_SCHEMA = "determiner-schema";
-string RunnerHelper::STIMULUS_SCHEMA = "stimulus-schema";
-string RunnerHelper::POSITIVE_IMPORTANCE_FLAG = "positive-importance-flag";
-string RunnerHelper::USE_METTA_AS_QUERY_TOKENS = "use-metta-as-query-tokens";
-string RunnerHelper::UNIQUE_ASSIGNMENT_FLAG = "unique-assignment-flag";
-string RunnerHelper::USE_LINK_TEMPLATE_CACHE = "use-link-template-cache";
-string RunnerHelper::POPULATE_METTA_MAPPING = "populate-metta-mapping";
-string RunnerHelper::QUERY = "query";
+string Helper::SERVICE = "service";
+string Helper::HOSTNAME = "hostname";
+string Helper::SERVICE_HOSTNAME = "service-hostname";
+string Helper::PORTS_RANGE = "ports-range";
+string Helper::ATTENTION_BROKER_ADDRESS = "attention-broker-address";
+string Helper::USE_MORK = "use-mork";
+string Helper::ACTION = "action";
+string Helper::TOKENS = "tokens";
+string Helper::REQUEST = "request";
+string Helper::TIMEOUT = "timeout";
+string Helper::MAX_ANSWERS = "max-answers";
+string Helper::ATTENTION_UPDATE_FLAG = "attention-update-flag";
+string Helper::REPEAT_COUNT = "repeat-count";
+string Helper::CONTEXT = "context";
+string Helper::CORRELATION_QUERIES = "correlation-queries";
+string Helper::CORRELATION_REPLACEMENTS = "correlation-replacements";
+string Helper::CORRELATION_MAPPINGS = "correlation-mappings";
+string Helper::FITNESS_FUNCTION_TAG = "fitness-function-tag";
+string Helper::USE_CACHE = "use-cache";
+string Helper::ENFORCE_CACHE_RECREATION = "enforce-cache-recreation";
+string Helper::INITIAL_RENT_RATE = "initial-rent-rate";
+string Helper::INITIAL_SPREADING_RATE_LOWERBOUND = "initial-spreading-rate-lowerbound";
+string Helper::INITIAL_SPREADING_RATE_UPPERBOUND = "initial-spreading-rate-upperbound";
+string Helper::DETERMINER_SCHEMA = "determiner-schema";
+string Helper::STIMULUS_SCHEMA = "stimulus-schema";
+string Helper::POSITIVE_IMPORTANCE_FLAG = "positive-importance-flag";
+string Helper::USE_METTA_AS_QUERY_TOKENS = "use-metta-as-query-tokens";
+string Helper::UNIQUE_ASSIGNMENT_FLAG = "unique-assignment-flag";
+string Helper::USE_LINK_TEMPLATE_CACHE = "use-link-template-cache";
+string Helper::POPULATE_METTA_MAPPING = "populate-metta-mapping";
+string Helper::QUERY = "query";
 
 static map<ProcessorType, string> node_service_help = {{ProcessorType::INFERENCE_AGENT, string(R"(
 Inference Agent:
@@ -161,7 +161,7 @@ static map<string, ProcessorType> string_to_processor_type = {
     {"query-engine", ProcessorType::QUERY_ENGINE},
     {"atomdb-broker", ProcessorType::ATOMDB_BROKER}};
 
-string RunnerHelper::help(const ProcessorType& processor_type, ServiceCallerType caller_type) {
+string Helper::help(const ProcessorType& processor_type, ServiceCallerType caller_type) {
     string usage;
     if (caller_type == ServiceCallerType::CLIENT) {
         usage = client_service_help[ProcessorType::UNKNOWN];
@@ -215,7 +215,7 @@ string RunnerHelper::help(const ProcessorType& processor_type, ServiceCallerType
     }
 }
 
-vector<string> RunnerHelper::get_required_arguments(const string& processor_type,
+vector<string> Helper::get_required_arguments(const string& processor_type,
                                                     ServiceCallerType caller_type) {
     ProcessorType p_type = processor_type_from_string(processor_type);
     switch (p_type) {
@@ -265,7 +265,7 @@ vector<string> RunnerHelper::get_required_arguments(const string& processor_type
     }
 }
 
-ProcessorType RunnerHelper::processor_type_from_string(const string& type_str) {
+ProcessorType Helper::processor_type_from_string(const string& type_str) {
     if (string_to_processor_type.find(type_str) != string_to_processor_type.end()) {
         return string_to_processor_type[type_str];
     } else {

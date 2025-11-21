@@ -43,10 +43,10 @@ cc_library(
 cc_library(
     name = "main_helper_runner_helper_lib",
     srcs = [
-        "RunnerHelper.cc",
+        "Helper.cc",
     ],
     hdrs = [
-        "RunnerHelper.h",
+        "Helper.h",
     ],
     includes = ["."],
     deps = [

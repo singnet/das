@@ -12,7 +12,7 @@
 #include "PatternMatchingQueryProcessor.h"
 #include "Properties.h"
 #include "QueryEvolutionProcessor.h"
-#include "RunnerHelper.h"
+#include "Helper.h"
 #include "Utils.h"
 
 using namespace std;
@@ -33,7 +33,7 @@ class ProcessorFactory {
     ~ProcessorFactory();
     static shared_ptr<BusCommandProcessor> create_processor(const string& processor_type,
                                                             const Properties& params) {
-        ProcessorType p_type = RunnerHelper::processor_type_from_string(processor_type);
+        ProcessorType p_type = Helper::processor_type_from_string(processor_type);
         switch (p_type) {
             case ProcessorType::ATOMDB_BROKER:
                 return make_shared<AtomDBProcessor>();

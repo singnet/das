@@ -8,7 +8,7 @@
 #include "PatternMatchingQueryProxy.h"
 #include "Properties.h"
 #include "QueryEvolutionProxy.h"
-#include "RunnerHelper.h"
+#include "Helper.h"
 #include "Utils.h"
 
 using namespace std;
@@ -59,14 +59,14 @@ class ProxyFactory {
     }
 
     static shared_ptr<BaseProxy> create_proxy(const string& proxy_type, const Properties& params) {
-        auto processor_type = RunnerHelper::processor_type_from_string(proxy_type);
+        auto processor_type = Helper::processor_type_from_string(proxy_type);
         switch (processor_type) {
             case ProcessorType::INFERENCE_AGENT: {
-                string request = params.get_or<string>(RunnerHelper::REQUEST, "");
-                string timeout = params.get_or<string>(RunnerHelper::TIMEOUT, "");
-                string max_answers = params.get_or<string>(RunnerHelper::MAX_ANSWERS, "");
-                string auf = params.get_or<string>(RunnerHelper::ATTENTION_UPDATE_FLAG, "");
-                string repeat_count = params.get_or<string>(RunnerHelper::REPEAT_COUNT, "");
+                string request = params.get_or<string>(Helper::REQUEST, "");
+                string timeout = params.get_or<string>(Helper::TIMEOUT, "");
+                string max_answers = params.get_or<string>(Helper::MAX_ANSWERS, "");
+                string auf = params.get_or<string>(Helper::ATTENTION_UPDATE_FLAG, "");
+                string repeat_count = params.get_or<string>(Helper::REPEAT_COUNT, "");
                 auto proxy = make_shared<InferenceProxy>(Utils::split(request, ' '));
                 auto params = &proxy->parameters;
                 set_param(*params, InferenceProxy::INFERENCE_REQUEST_TIMEOUT, timeout, ParamType::UINT);
@@ -76,13 +76,13 @@ class ProxyFactory {
                 return proxy;
             }
             case ProcessorType::LINK_CREATION_AGENT: {
-                string request = params.get_or<string>(RunnerHelper::REQUEST, "");
-                string max_answers = params.get_or<string>(RunnerHelper::MAX_ANSWERS, "");
-                string repeat_count = params.get_or<string>(RunnerHelper::REPEAT_COUNT, "");
-                string context = params.get_or<string>(RunnerHelper::CONTEXT, "");
-                string auf = params.get_or<string>(RunnerHelper::ATTENTION_UPDATE_FLAG, "");
-                string pif = params.get_or<string>(RunnerHelper::POSITIVE_IMPORTANCE_FLAG, "");
-                string umaqt = params.get_or<string>(RunnerHelper::USE_METTA_AS_QUERY_TOKENS, "");
+                string request = params.get_or<string>(Helper::REQUEST, "");
+                string max_answers = params.get_or<string>(Helper::MAX_ANSWERS, "");
+                string repeat_count = params.get_or<string>(Helper::REPEAT_COUNT, "");
+                string context = params.get_or<string>(Helper::CONTEXT, "");
+                string auf = params.get_or<string>(Helper::ATTENTION_UPDATE_FLAG, "");
+                string pif = params.get_or<string>(Helper::POSITIVE_IMPORTANCE_FLAG, "");
+                string umaqt = params.get_or<string>(Helper::USE_METTA_AS_QUERY_TOKENS, "");
                 if (umaqt == "true" || umaqt == "1") {
                     Utils::replace_all(request, "%", "$");
                 }
@@ -103,11 +103,11 @@ class ProxyFactory {
                 return proxy;
             }
             case ProcessorType::CONTEXT_BROKER: {
-                string context = params.get<string>(RunnerHelper::CONTEXT);
+                string context = params.get<string>(Helper::CONTEXT);
                 string query = params.get_or<string>(
-                    "query", "");  // Note to reviewer: RunnerHelper::QUERY is not linking
-                string determiner_schema = params.get<string>(RunnerHelper::DETERMINER_SCHEMA);
-                string stimulus_schema = params.get<string>(RunnerHelper::STIMULUS_SCHEMA);
+                    "query", "");  // Note to reviewer: Helper::QUERY is not linking
+                string determiner_schema = params.get<string>(Helper::DETERMINER_SCHEMA);
+                string stimulus_schema = params.get<string>(Helper::STIMULUS_SCHEMA);
                 // auto proxy = make_shared<ContextBrokerProxy>();
                 // auto use_cache = params.get<string>("use-cache");
                 // auto enforce_cache_recreation = params.get<string>("enforce-cache-recreation");
@@ -129,28 +129,28 @@ class ProxyFactory {
             }
             case ProcessorType::EVOLUTION_AGENT: {
                 string query =
-                    params.get<string>("query");  // Note to reviewer: RunnerHelper::QUERY is not linking
-                string correlation_queries = params.get<string>(RunnerHelper::CORRELATION_QUERIES);
+                    params.get<string>("query");  // Note to reviewer: Helper::QUERY is not linking
+                string correlation_queries = params.get<string>(Helper::CORRELATION_QUERIES);
                 string correlation_replacements =
-                    params.get<string>(RunnerHelper::CORRELATION_REPLACEMENTS);
-                string correlation_mappings = params.get<string>(RunnerHelper::CORRELATION_MAPPINGS);
-                string context = params.get<string>(RunnerHelper::CONTEXT);
-                string fitness_function_tag = params.get<string>(RunnerHelper::FITNESS_FUNCTION_TAG);
+                    params.get<string>(Helper::CORRELATION_REPLACEMENTS);
+                string correlation_mappings = params.get<string>(Helper::CORRELATION_MAPPINGS);
+                string context = params.get<string>(Helper::CONTEXT);
+                string fitness_function_tag = params.get<string>(Helper::FITNESS_FUNCTION_TAG);
                 // auto proxy = make_shared<QueryEvolutionProxy>();
                 return nullptr;
             }
             case ProcessorType::QUERY_ENGINE: {
                 string query =
-                    params.get<string>("query");  // Note to reviewer: RunnerHelper::QUERY is not linking
-                string context = params.get<string>(RunnerHelper::CONTEXT);
+                    params.get<string>("query");  // Note to reviewer: Helper::QUERY is not linking
+                string context = params.get<string>(Helper::CONTEXT);
                 auto proxy = make_shared<PatternMatchingQueryProxy>(Utils::split(query, ' '), context);
-                string uaf = params.get_or<string>(RunnerHelper::UNIQUE_ASSIGNMENT_FLAG, "");
-                string auf = params.get_or<string>(RunnerHelper::ATTENTION_UPDATE_FLAG, "");
-                string max_answers = params.get_or<string>(RunnerHelper::MAX_ANSWERS, "");
-                string ultc = params.get_or<string>(RunnerHelper::USE_LINK_TEMPLATE_CACHE, "");
-                string pmm = params.get_or<string>(RunnerHelper::POPULATE_METTA_MAPPING, "");
-                string umaqt = params.get_or<string>(RunnerHelper::USE_METTA_AS_QUERY_TOKENS, "");
-                string pif = params.get_or<string>(RunnerHelper::POSITIVE_IMPORTANCE_FLAG, "");
+                string uaf = params.get_or<string>(Helper::UNIQUE_ASSIGNMENT_FLAG, "");
+                string auf = params.get_or<string>(Helper::ATTENTION_UPDATE_FLAG, "");
+                string max_answers = params.get_or<string>(Helper::MAX_ANSWERS, "");
+                string ultc = params.get_or<string>(Helper::USE_LINK_TEMPLATE_CACHE, "");
+                string pmm = params.get_or<string>(Helper::POPULATE_METTA_MAPPING, "");
+                string umaqt = params.get_or<string>(Helper::USE_METTA_AS_QUERY_TOKENS, "");
+                string pif = params.get_or<string>(Helper::POSITIVE_IMPORTANCE_FLAG, "");
                 auto params = &proxy->parameters;
                 set_param(*params, BaseQueryProxy::UNIQUE_ASSIGNMENT_FLAG, uaf, ParamType::BOOL);
                 set_param(*params, BaseQueryProxy::ATTENTION_UPDATE_FLAG, auf, ParamType::BOOL);

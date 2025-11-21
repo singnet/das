@@ -4,7 +4,7 @@
 #include "Logger.h"
 #include "ProcessorFactory.h"
 #include "Properties.h"
-#include "RunnerHelper.h"
+#include "Helper.h"
 #include "Utils.h"
 
 using namespace commons;
@@ -23,7 +23,7 @@ int main(int argc, char* argv[]) {
         auto required_cmd_args = {"service", "hostname", "ports-range"};
         auto cmd_args = Utils::parse_command_line(argc, argv);
         if (cmd_args.find("help") != cmd_args.end()) {
-            cout << RunnerHelper::help(RunnerHelper::processor_type_from_string(cmd_args["service"]))
+            cout << Helper::help(Helper::processor_type_from_string(cmd_args["service"]))
                  << endl;
             return 0;
         }
@@ -32,7 +32,7 @@ int main(int argc, char* argv[]) {
                 Utils::error("Required argument missing: " + string(req_arg));
             }
         }
-        auto required_args = RunnerHelper::get_required_arguments(cmd_args["service"]);
+        auto required_args = Helper::get_required_arguments(cmd_args["service"]);
         for (auto req_arg : required_args) {
             if (cmd_args.find(req_arg) == cmd_args.end()) {
                 Utils::error("Required argument missing: " + string(req_arg));

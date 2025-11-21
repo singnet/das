@@ -18,10 +18,10 @@ enum class ProcessorType {
 
 enum class ServiceCallerType { CLIENT, NODE, UNKNOWN };
 
-class RunnerHelper {
+class Helper {
    public:
-    RunnerHelper() = default;
-    ~RunnerHelper() = default;
+    Helper() = default;
+    ~Helper() = default;
 
     // Args names
     static string SERVICE;
