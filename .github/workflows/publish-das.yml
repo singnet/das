@@ -53,14 +53,6 @@ jobs:
         with:
           fetch-depth: 0
 
-      # - name: Set up QEMU
-      #   uses: docker/setup-qemu-action@v3
-      #   with:
-      #     platforms: linux/amd64,linux/arm64
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
       - name: Setup bazel
         run: .github/scripts/setup_bazel.sh
 
@@ -87,8 +79,10 @@ jobs:
       - compile-source-code
     strategy:
       matrix:
-        platforms: [arm64, amd64]
-    runs-on: self-hosted
+        platforms: [amd64, arm64]
+    runs-on:
+      - self-hosted-withcache
+      - ${{ matrix.platforms }}
     # if: needs.determine-version.outputs.version_exists != 'true'
     steps:
       - name: Checkout code
@@ -112,23 +106,11 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
-      # - name: Set up QEMU
-      #   uses: docker/setup-qemu-action@v3
-      #   with:
-      #     platforms: linux/amd64,linux/arm64
+      - name: Build Docker Image
+        run: docker build -t trueagi/das:${{ matrix.platforms }}-rc -f .docker/poc/Dockerfile --build-arg ARCH=${{ matrix.platforms }} .
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Build and Push Docker Image
-        uses: docker/build-push-action@v4
-        with:
-          context: .
-          file: .docker/poc/Dockerfile
-          push: true
-          provenance: false
-          tags: trueagi/das:${{ matrix.platforms }}-rc
-          platforms: linux/${{ matrix.platforms }}
+      - name: Push Docker Image
+        run: docker push trueagi/das:${{ matrix.platforms }}-rc
 
   tag:
     needs: 
