@@ -17,6 +17,7 @@ detect_host_arch() {
 }
 
 REPO_ROOT="$(git rev-parse --show-toplevel)"
+BAZEL_WORKSPACE="$REPO_ROOT/src"
 
 HOST_ARCH="$(detect_host_arch)"
 ARCH="$HOST_ARCH"
@@ -36,7 +37,7 @@ set -- "${TMP_ARGS[@]}"
 
 BAZELISK_CMD=${BAZELISK_CMD:-/opt/bazel/bazelisk}
 
-cd "$REPO_ROOT"
+cd "$BAZEL_WORKSPACE"
 
 if [ ! -x "$BAZELISK_CMD" ]; then
   echo "[ERROR] bazelisk not found or not executable at: $BAZELISK_CMD"

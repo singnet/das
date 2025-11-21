@@ -10,21 +10,53 @@ on:
       - master
 
 jobs:
-  compile-source-code:
-    strategy:
-      matrix:
-        platforms: [amd64, arm64]
-    runs-on: self-hosted-withcache
+  determine-version:
+    runs-on: self-hosted
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
+      - name: Extract DAS_VERSION from .bazelrc
+        id: get_version
+        run: |
+          VERSION=$(grep -oP '(?<=--define=DAS_VERSION=)[0-9\.]+' src/.bazelrc)
+          echo "DAS_VERSION=$VERSION" >> $GITHUB_ENV
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Check if version already exists
+        id: check_version
+        run: |
+          if git rev-parse "refs/tags/${{ steps.get_version.outputs.version }}" >/dev/null 2>&1; then
+            echo "version_exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "version_exists=false" >> $GITHUB_OUTPUT
+          fi
+
+    outputs:
+      version: ${{steps.get_version.outputs.version}}
+      version_exists: ${{steps.check_version.outputs.version_exists}}
+
+
+  compile-source-code:
+    needs: determine-version
+    strategy:
+      matrix:
+        platforms: [amd64, arm64]
+    runs-on:
+      - self-hosted-withcache
+      - ${{ matrix.platforms }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
         with:
-          platforms: linux/amd64,linux/arm64
+          fetch-depth: 0
+
+      # - name: Set up QEMU
+      #   uses: docker/setup-qemu-action@v3
+      #   with:
+      #     platforms: linux/amd64,linux/arm64
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -49,49 +81,15 @@ jobs:
           path: lib
           if-no-files-found: "error"
 
-      - name: Extract DAS_VERSION from .bazelrc
-        id: get_version
-        run: |
-          VERSION=$(grep -oP '(?<=--define=DAS_VERSION=)[0-9\.]+' src/.bazelrc)
-          echo "DAS_VERSION=$VERSION" >> $GITHUB_ENV
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
-
-      - name: Check if version already exists
-        id: check_version
-        run: |
-          if git rev-parse "refs/tags/${{ steps.get_version.outputs.version }}" >/dev/null 2>&1; then
-            echo "version_exists=true" >> $GITHUB_OUTPUT
-          else
-            echo "version_exists=false" >> $GITHUB_OUTPUT
-          fi
-
-    outputs:
-      version: ${{steps.get_version.outputs.version}}
-      version_exists: ${{steps.check_version.outputs.version_exists}}
-
-  tag:
-    needs: compile-source-code
-    uses: singnet/das/.github/workflows/run-semver.yml@master
-    if: needs.compile-source-code.outputs.version_exists != 'true'
-    with:
-      version: ${{ needs.compile-source-code.outputs.version }}
-      version-strategy: bump-version-from-variable-value
-      job-image-namespace: trueagi
-      job-image-version-semver: semantic-versioning
-      main-branch: master
-      version-tag-regex-pattern: /^\d+\.\d+\.\d+$/
-      version-require-confirmation: "true"
-      title: New DAS version released
-      deliverable: Tagged branch (${{ github.ref_name }}) in the repository
-    secrets: inherit
-
   build-push-docker-image:
+    needs: 
+      - determine-version
+      - compile-source-code
     strategy:
       matrix:
         platforms: [arm64, amd64]
     runs-on: self-hosted
-    if: needs.compile-source-code.outputs.version_exists != 'true'
-    needs: compile-source-code
+    # if: needs.determine-version.outputs.version_exists != 'true'
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -114,10 +112,10 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
-        with:
-          platforms: ${{ matrix.platforms }}
+      # - name: Set up QEMU
+      #   uses: docker/setup-qemu-action@v3
+      #   with:
+      #     platforms: linux/amd64,linux/arm64
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -128,15 +126,34 @@ jobs:
           context: .
           file: .docker/poc/Dockerfile
           push: true
-          platforms: ${{ matrix.platforms }}
           provenance: false
-          tags: trueagi/das:${{ matrix.platforms }}
+          tags: trueagi/das:${{ matrix.platforms }}-rc
+          platforms: linux/${{ matrix.platforms }}
+
+  tag:
+    needs: 
+      - determine-version
+      - build-push-docker-image
+    uses: singnet/das/.github/workflows/run-semver.yml@master
+    if: needs.determine-version.outputs.version_exists != 'true'
+    with:
+      version: ${{ needs.determine-version.outputs.version }}
+      version-strategy: bump-version-from-variable-value
+      job-image-namespace: trueagi
+      job-image-version-semver: semantic-versioning
+      main-branch: master
+      version-tag-regex-pattern: /^\d+\.\d+\.\d+$/
+      version-require-confirmation: "true"
+      title: New DAS version released
+      deliverable: Tagged branch (${{ github.ref_name }}) in the repository
+    secrets: inherit
 
   publish-docker-image-manifest:
     runs-on: self-hosted
     needs:
       - build-push-docker-image
       - compile-source-code
+      - determine-version
     steps:
       - name: Log in to Docker Hub
         uses: docker/login-action@v2
@@ -146,9 +163,9 @@ jobs:
 
       - name: Create docker manifest
         run: |
-          docker manifest create trueagi/das:latest \
+          docker manifest create trueagi/das:${{ needs.determine-version.outputs.version }}-rc \
           --amend trueagi/das:amd64-rc \
           --amend trueagi/das:arm64-rc
 
       - name: Publish manifest
-        run: docker manifest push trueagi/das:${{ needs.compile-source-code.outputs.version }}-rc
+        run: docker manifest push trueagi/das:${{ needs.determine-version.outputs.version }}-rc
