@@ -56,5 +56,5 @@ void AtomDBProcessor::thread_process_one_query(shared_ptr<StoppableThread> monit
     } catch (const std::exception& exception) {
         proxy->raise_error_on_peer(exception.what());
     }
-    LOG_DEBUG("Command finished: <" << command << ">");
+    LOG_DEBUG("Command finished: <" << proxy->get_command() << ">");
 }

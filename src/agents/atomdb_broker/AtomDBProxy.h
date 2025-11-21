@@ -1,8 +1,11 @@
 #pragma once
 
+#include <condition_variable>
 #include <memory>
 #include <mutex>
+#include <queue>
 #include <string>
+#include <thread>
 #include <vector>
 
 #include "Atom.h"
@@ -28,6 +31,7 @@ class AtomDBProxy : public BaseProxy {
     // ---------------------------------------------------------------------------------------------
     // Proxy Commands
     static string ADD_ATOMS;
+    static string PERSIST_PENDING;
 
     // ---------------------------------------------------------------------------------------------
     // Constructor and destructor
@@ -115,10 +119,38 @@ class AtomDBProxy : public BaseProxy {
      */
     void handle_add_atoms(const vector<string>& args);
 
+    /**
+     * @brief Handle an incoming PERSIST_PENDING command from a remote peer.
+     *
+     * This will flush any pending atoms in the accumulator to be processed.
+     */
+    void persist_pending();
+
+    /**
+     * @brief Add work (atoms) to the processing queue.
+     *
+     * @param atoms Vector of Atom pointers to be added to the work queue.
+     */
+    void add_work(vector<Atom*> atoms);
+
+    /**
+     * @brief Worker loop that processes batches of atoms from the queue.
+     */
+    void worker_loop();
+
     mutex api_mutex;
     shared_ptr<AtomDB> atomdb;
 
     static const size_t BATCH_SIZE;
+    static const size_t NUM_THREADS;
+
+    bool stop_processing = false;
+
+    vector<thread> workers;
+    queue<vector<Atom*>> batches_ready_to_process;
+    vector<Atom*> accumulator;
+    mutex queue_mutex;
+    condition_variable queue_condition;
 };
 
 }  // namespace atomdb_broker

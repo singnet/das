@@ -1,5 +1,7 @@
 #include "AtomDBProxy.h"
 
+#include <numeric>
+
 #include "AtomDBSingleton.h"
 #include "BaseProxy.h"
 #include "Link.h"
@@ -18,10 +20,12 @@ using namespace commons;
 // -------------------------------------------------------------------------------------------------
 // Static constants
 
-const size_t AtomDBProxy::BATCH_SIZE = 5000;
+const size_t AtomDBProxy::BATCH_SIZE = 100000;
+const size_t AtomDBProxy::NUM_THREADS = 10;
 
 // Proxy Commands
 string AtomDBProxy::ADD_ATOMS = "add_atoms";
+string AtomDBProxy::PERSIST_PENDING = "persist_pending";
 
 // -------------------------------------------------------------------------------------------------
 // Constructor and destructor
@@ -29,10 +33,26 @@ string AtomDBProxy::ADD_ATOMS = "add_atoms";
 AtomDBProxy::AtomDBProxy() : BaseProxy() {
     this->command = ServiceBus::ATOMDB;
     this->atomdb = AtomDBSingleton::get_instance();
+
+    for (size_t i = 0; i < NUM_THREADS; ++i) {
+        this->workers.emplace_back(&AtomDBProxy::worker_loop, this);
+    }
 }
 
 AtomDBProxy::~AtomDBProxy() {
     LOG_INFO("Shutdown AtomDBProxy...");
+    persist_pending();
+    {
+        unique_lock<mutex> lock(this->queue_mutex);
+        this->stop_processing = true;
+    }
+    this->queue_condition.notify_all();
+
+    for (thread& worker : this->workers) {
+        if (worker.joinable()) {
+            worker.join();
+        }
+    }
     this->abort();
 }
 
@@ -85,6 +105,9 @@ bool AtomDBProxy::from_remote_peer(const string& command, const vector<string>& 
     } else if (command == AtomDBProxy::ADD_ATOMS) {
         handle_add_atoms(args);
         return true;
+    } else if (command == AtomDBProxy::PERSIST_PENDING) {
+        persist_pending();
+        return true;
     } else {
         Utils::error("Invalid AtomDBProxy command: <" + command + ">");
         return false;
@@ -92,29 +115,28 @@ bool AtomDBProxy::from_remote_peer(const string& command, const vector<string>& 
 }
 
 void AtomDBProxy::handle_add_atoms(const vector<string>& tokens) {
-    try {
-        vector<Atom*> atoms = build_atoms_from_tokens(tokens);
-        LOG_INFO("Processing batch, total atoms to process: " << atoms.size());
+    vector<Atom*> atoms = build_atoms_from_tokens(tokens);
+    LOG_INFO("Received " << atoms.size() << " atoms from peer " << this->peer_id());
+    add_work(move(atoms));
+}
 
-        if (atoms.empty()) {
-            LOG_INFO("No atoms were built from tokens. Nothing to process.");
-            return;
-        }
+void AtomDBProxy::persist_pending() {
+    unique_lock<mutex> lock(this->queue_mutex);
 
-        for (size_t i = 0; i < atoms.size(); i += AtomDBProxy::BATCH_SIZE) {
-            auto batch_start = atoms.begin() + i;
-            auto batch_end = atoms.begin() + min(i + AtomDBProxy::BATCH_SIZE, atoms.size());
-            vector<Atom*> buffer(batch_start, batch_end);
-            LOG_INFO("Processing a batch of " << buffer.size() << " atoms.");
-            this->atomdb->add_atoms(buffer, false, true);
-            Utils::sleep(1000);  // FIXME: temporary sleep to avoid overloading the DB
-        }
-
-        LOG_INFO("Finished processing all batches.");
-
-    } catch (const exception& e) {
-        LOG_ERROR("Error processing batch: " << e.what());
+    if (this->accumulator.empty()) {
+        LOG_INFO("[Persist] Received persist command, but accumulator is empty. Nothing to do.");
+        return;
     }
+
+    LOG_INFO("[Persist] Received persist command. Flushing " << this->accumulator.size()
+                                                             << " remaining batches from accumulator.");
+
+    this->batches_ready_to_process.push(move(this->accumulator));
+
+    this->accumulator = vector<Atom*>();
+    this->accumulator.reserve(BATCH_SIZE);
+
+    this->queue_condition.notify_one();
 }
 
 vector<Atom*> AtomDBProxy::build_atoms_from_tokens(const vector<string>& tokens) {
@@ -144,4 +166,69 @@ vector<Atom*> AtomDBProxy::build_atoms_from_tokens(const vector<string>& tokens)
     if (!buffer.empty() && !current.empty()) flush();
 
     return atoms;
+}
+
+void AtomDBProxy::add_work(vector<Atom*> atoms) {
+    if (atoms.empty()) return;
+
+    unique_lock<mutex> lock(this->queue_mutex);
+
+    size_t required_size = this->accumulator.size() + atoms.size();
+
+    if (this->accumulator.capacity() < required_size) {
+        this->accumulator.reserve(required_size);
+    }
+
+    this->accumulator.insert(
+        this->accumulator.end(), make_move_iterator(atoms.begin()), make_move_iterator(atoms.end()));
+
+    if (this->accumulator.size() >= BATCH_SIZE) {
+        this->batches_ready_to_process.push(move(this->accumulator));
+
+        this->accumulator = vector<Atom*>();
+        this->accumulator.reserve(BATCH_SIZE);
+
+        this->queue_condition.notify_one();
+    }
+}
+
+void AtomDBProxy::worker_loop() {
+    while (true) {
+        vector<Atom*> batch;
+        {
+            unique_lock<mutex> lock(this->queue_mutex);
+
+            this->queue_condition.wait(lock, [this] {
+                return this->stop_processing || !this->batches_ready_to_process.empty();
+            });
+
+            if (this->stop_processing && this->batches_ready_to_process.empty()) {
+                return;
+            }
+
+            batch = move(this->batches_ready_to_process.front());
+            this->batches_ready_to_process.pop();
+        }
+
+        LOG_INFO("[Thread " << this_thread::get_id() << "] Processing batch with " << batch.size()
+                            << " atoms.");
+
+        try {
+            this->atomdb->add_atoms(batch, false, true);
+            LOG_INFO("[Thread " << this_thread::get_id() << "] batch processed successfully.");
+        } catch (const exception& e) {
+            LOG_ERROR("Error processing batch: " << e.what());
+        }
+
+        for (Atom* atom : batch) {
+            if (Node* node_ptr = dynamic_cast<Node*>(atom)) {
+                delete node_ptr;
+            } else if (Link* link_ptr = dynamic_cast<Link*>(atom)) {
+                delete link_ptr;
+            } else {
+                delete atom;
+            }
+        }
+        batch.clear();
+    }
 }
