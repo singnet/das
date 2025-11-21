@@ -1,4 +1,5 @@
 import copy
+import functools
 
 from hyperon_das.commons.atoms import Atom
 from hyperon_das.commons.atoms.handle_decoder import HandleDecoder
@@ -19,17 +20,29 @@ class Link(Atom):
         other=None,
     ) -> None:
         if tokens:
-            self.targets = []
+            self._targets = []
             self.custom_attributes = custom_attributes if custom_attributes is not None else Properties()
             self.untokenize(tokens)
         elif other:
-            self.targets = copy.deepcopy(other.targets)
+            self._targets = copy.deepcopy(other.targets)
             super().__init__(other=other)
         else:
             if not type or not targets:
                 raise ValueError("'type' and 'targets' are required")
-            self.targets = targets
+            self._targets = targets
             super().__init__(type, is_toplevel, custom_attributes)
+
+    @property
+    def targets(self) -> list[str]:
+        return self._targets
+
+    @targets.setter
+    def targets(self, value: list[str]) -> None:
+        self._targets = value
+
+        # If the handle has already been calculated, delete it.
+        if "handle" in self.__dict__:
+            del self.__dict__["handle"]
 
     def __eq__(self, other: 'Link') -> bool:
         if not isinstance(other, Link):
@@ -73,9 +86,9 @@ class Link(Atom):
         return len(self.targets)
 
     def tokenize(self, output: list[str]) -> None:
-        output[0:0] = self.targets
-        output.insert(0, str(len(self.targets)))
         super().tokenize(output)
+        output.append(str(len(self.targets)))
+        output.extend(self.targets)
 
     def untokenize(self, tokens: list[str]) -> None:
         super().untokenize(tokens)
@@ -98,6 +111,7 @@ class Link(Atom):
         composite_type = self.composite_type(decoder)
         return composite_hash(composite_type, len(composite_type))
 
+    @functools.cached_property
     def handle(self) -> str:
         return Hasher.link_handle(self.type, self.targets)
 
@@ -123,4 +137,4 @@ class Link(Atom):
         return metta_string
 
     def match(self, handle, assignment: 'Assignment', decode: 'HandleDecoder') -> bool:
-        return self.handle() == handle
+        return self.handle == handle

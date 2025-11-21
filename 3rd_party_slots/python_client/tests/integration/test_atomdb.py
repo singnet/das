@@ -78,10 +78,10 @@ def test_atomdb_proxy_simple_client():
 
     decoder = AtomDecoder()
 
-    node_db1 = decoder.get_atom(node1.handle())
-    node_db2 = decoder.get_atom(node2.handle())
-    node_db3 = decoder.get_atom(node3.handle())
-    link_db = decoder.get_atom(link.handle())
+    node_db1 = decoder.get_atom(node1.handle)
+    node_db2 = decoder.get_atom(node2.handle)
+    node_db3 = decoder.get_atom(node3.handle)
+    link_db = decoder.get_atom(link.handle)
 
     assert node1 == node_db1
     assert node2 == node_db2

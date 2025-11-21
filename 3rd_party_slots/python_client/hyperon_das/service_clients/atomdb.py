@@ -67,7 +67,7 @@ class AtomDBProxy(BaseProxy):
         """
         Serialize atoms, send `ADD_ATOMS` to the remote peer, and return their handles.
 
-        Each atom must implement `tokenize(args: list[str])` and `handle() -> str`.
+        Each atom must implement `tokenize(args: list[str])` and `handle -> str`.
         The method prepends the atom-type token ("NODE" / "LINK") to each atom's
         token block before sending.
 
@@ -76,27 +76,15 @@ class AtomDBProxy(BaseProxy):
 
         Returns:
             List of handles corresponding to the provided atoms, in the same order.
-
-        Raises:
-            ValueError: If an atom is neither `Node` nor `Link`.
         """
         args = []
         handles = []
-        atom_type = ""
 
         for atom in atoms:
+            atom_type = "NODE" if atom.arity() == 0 else "LINK"
+            args.append(atom_type)
             atom.tokenize(args)
-
-            if isinstance(atom, Node):
-                atom_type = "NODE"
-            elif isinstance(atom, Link):
-                atom_type = "LINK"
-            else:
-                log.error("Invalid Atom Type")
-                raise ValueError("Invalid Atom Type")
-
-            args.insert(0, atom_type)
-            handles.append(atom.handle())
+            handles.append(atom.handle)
 
         self.to_remote_peer(self.ADD_ATOMS, args)
 

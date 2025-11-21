@@ -110,7 +110,7 @@ class TestNode:
     def test_handle_and_match_true_and_false(self):
         n = Node(type='T', name='N')
         expected_handle = Hasher.node_handle('T', 'N')
-        assert n.handle() == expected_handle
+        assert n.handle == expected_handle
         assert n.match(expected_handle, Assignment(), HandleDecoderMock())
         assert not n.match('some:other:handle', Assignment(), HandleDecoderMock())
 
@@ -271,7 +271,7 @@ class TestLink:
     def test_handle_and_match_true_and_false(self):
         link = Link(type='MyType', targets=['t'])
         expected = Hasher.link_handle('MyType', ['t'])
-        assert link.handle() == expected
+        assert link.handle == expected
         assert link.match(expected, Assignment(), HandleDecoderMock())
         assert not link.match('other', Assignment(), HandleDecoderMock())
 
