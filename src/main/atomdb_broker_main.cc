@@ -34,6 +34,30 @@ int main(int argc, char* argv[]) {
         AtomDBSingleton::init(atomdb_api_types::ATOMDB_TYPE::MORKDB);
     } else {
         AtomDBSingleton::init();
+        auto db = dynamic_pointer_cast<RedisMongoDB>(AtomDBSingleton::get_instance());
+
+        string tokens = "LINK_TEMPLATE Expression 3 VARIABLE v1 VARIABLE v2 VARIABLE v3";
+        vector<vector<string>> index_entries = {{"v1", "v2", "v3"},
+                                                {"*", "v2", "v3"},
+                                                {"v1", "*", "v3"},
+                                                {"*", "*", "v3"},
+                                                {"v1", "v2", "*"},
+                                                {"*", "v2", "*"},
+                                                {"v1", "*", "*"},
+                                                {"*", "*", "*"}};
+        db->add_pattern_index_schema(tokens, index_entries);
+
+        string tokens_2 = "LINK_TEMPLATE Expression 3 NODE Symbol EVALUATION VARIABLE v1 VARIABLE v2";
+        vector<vector<string>> index_entries_2 = {{"_", "*", "*"}, {"_", "v1", "*"}, {"_", "*", "v2"}};
+        db->add_pattern_index_schema(tokens_2, index_entries_2);
+
+        string tokens_3 = "LINK_TEMPLATE Expression 2 NODE Symbol PREDICATE VARIABLE v1";
+        vector<vector<string>> index_entries_3 = {{"_", "*"}, {"_", "v1"}};
+        db->add_pattern_index_schema(tokens_3, index_entries_3);
+
+        string tokens_4 = "LINK_TEMPLATE Expression 2 NODE Symbol CONCEPT VARIABLE v1";
+        vector<vector<string>> index_entries_4 = {{"_", "*"}, {"_", "v1"}};
+        db->add_pattern_index_schema(tokens_4, index_entries_4);
     }
 
     string host_id = string(argv[1]);

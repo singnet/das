@@ -26,7 +26,7 @@ const size_t AtomDBProxy::NUM_THREADS = 10;
 
 // Proxy Commands
 string AtomDBProxy::ADD_ATOMS = "add_atoms";
-string AtomDBProxy::FLUSH_ATOMS = "flush_atoms";
+string AtomDBProxy::PERSIST_PENDING = "persist_pending";
 
 // -------------------------------------------------------------------------------------------------
 // Constructor and destructor
@@ -35,7 +35,7 @@ AtomDBProxy::AtomDBProxy() : BaseProxy() {
     this->command = ServiceBus::ATOMDB;
     this->atomdb = AtomDBSingleton::get_instance();
 
-    for (int i = 0; i < NUM_THREADS; ++i) {
+    for (size_t i = 0; i < NUM_THREADS; ++i) {
         this->workers.emplace_back(&AtomDBProxy::worker_loop, this);
     }
 }
@@ -106,8 +106,8 @@ bool AtomDBProxy::from_remote_peer(const string& command, const vector<string>& 
     } else if (command == AtomDBProxy::ADD_ATOMS) {
         handle_add_atoms(args);
         return true;
-    } else if (command == AtomDBProxy::FLUSH_ATOMS) {
-        flush_atoms();
+    } else if (command == AtomDBProxy::PERSIST_PENDING) {
+        persist_pending();
         return true;
     } else {
         Utils::error("Invalid AtomDBProxy command: <" + command + ">");
@@ -144,51 +144,22 @@ vector<Atom*> AtomDBProxy::build_atoms_from_tokens(const vector<string>& tokens)
     return atoms;
 }
 
-// void AtomDBProxy::handle_add_atoms(const vector<string>& tokens) {
-//     vector<Atom*> atoms;
-//     try {
-//         atoms = build_atoms_from_tokens(tokens);
-//         LOG_INFO("Processing " << atoms.size() << " atoms...");
-
-//         if (atoms.empty()) {
-//             LOG_INFO("No atoms were built from tokens. Nothing to process.");
-//             return;
-//         }
-
-//         this->atomdb->add_atoms(atoms, false, true);
-
-//         LOG_DEBUG("Cleaning up " << atoms.size() << " atom pointers after successful processing.");
-//         for (Atom* atom : atoms) {
-//             delete atom;
-//         }
-//         atoms.clear();
-
-//         LOG_INFO("Finished processing all atoms.");
-
-//     } catch (const exception& e) {
-//         LOG_ERROR("Error processing atoms: " << e.what());
-//         for (Atom* atom : atoms) {
-//             delete atom;
-//         }
-//     }
-// }
-
 void AtomDBProxy::handle_add_atoms(const vector<string>& tokens) {
     vector<Atom*> atoms = build_atoms_from_tokens(tokens);
     LOG_INFO("Received " << atoms.size() << " atoms from peer " << this->peer_id());
     add_work(move(atoms));
 }
 
-void AtomDBProxy::flush_atoms() {
+void AtomDBProxy::persist_pending() {
     unique_lock<mutex> lock(this->queue_mutex);
 
     if (this->work_queue.empty()) {
-        LOG_INFO("[Flush] Received flush command, but accumulator is empty. Nothing to do.");
+        LOG_INFO("[Persist] Received persist command, but accumulator is empty. Nothing to do.");
         return;
     }
 
-    LOG_INFO("[Flush] Received flush command. Flushing " << this->work_queue.size()
-                                                         << " remaining batches from accumulator.");
+    LOG_INFO("[Persist] Received persist command. Flushing " << this->work_queue.size()
+                                                             << " remaining batches from accumulator.");
 
     size_t total_remaining = accumulate(
         this->work_queue.begin(), this->work_queue.end(), size_t{0}, [](size_t sum, const auto& batch) {
@@ -212,25 +183,25 @@ void AtomDBProxy::add_work(vector<Atom*> atoms) {
     if (atoms.empty()) return;
     unique_lock<mutex> lock(this->queue_mutex);
     this->work_queue.push_back(move(atoms));
-    
+
     size_t total_in_queue = accumulate(
         this->work_queue.begin(), this->work_queue.end(), size_t{0}, [](size_t sum, const auto& batch) {
             return sum + batch.size();
         });
-    
+
     if (total_in_queue < BATCH_SIZE) return;
-    
+
     LOG_DEBUG("[Accumulator] Batch target reached. Total: " << total_in_queue
-                                                           << ". Creating super-batch.");
-    
+                                                            << ". Creating super-batch.");
+
     vector<Atom*> final_batch;
     final_batch.reserve(total_in_queue);
-    
+
     for (auto& batch : this->work_queue) {
         final_batch.insert(
             final_batch.end(), make_move_iterator(batch.begin()), make_move_iterator(batch.end()));
     }
-    
+
     this->work_queue.clear();
     ready_batches.push(move(final_batch));
     this->queue_condition.notify_one();

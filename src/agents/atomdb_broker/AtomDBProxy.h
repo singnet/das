@@ -30,7 +30,7 @@ class AtomDBProxy : public BaseProxy {
     // ---------------------------------------------------------------------------------------------
     // Proxy Commands
     static string ADD_ATOMS;
-    static string FLUSH_ATOMS;
+    static string PERSIST_PENDING;
 
     // ---------------------------------------------------------------------------------------------
     // Constructor and destructor
@@ -117,7 +117,7 @@ class AtomDBProxy : public BaseProxy {
      * reported back to the peer.
      */
     void handle_add_atoms(const vector<string>& args);
-    void flush_atoms();
+    void persist_pending();
     void add_work(vector<Atom*> atoms);
     void worker_loop();
 

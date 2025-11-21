@@ -28,7 +28,7 @@ void AtomDBProcessor::run_command(shared_ptr<BusCommandProxy> proxy) {
     auto atomdb_proxy = dynamic_pointer_cast<AtomDBProxy>(proxy);
     string thread_id = "thread<" + proxy->my_id() + "_" + std::to_string(proxy->get_serial()) + ">";
     LOG_DEBUG("Starting new thread: " << thread_id << " to run command: <" << proxy->get_command()
-                                     << ">");
+                                      << ">");
     if (this->query_threads.find(thread_id) != this->query_threads.end()) {
         Utils::error("Invalid thread id: " + thread_id);
     } else {
