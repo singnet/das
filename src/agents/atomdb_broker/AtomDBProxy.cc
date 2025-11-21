@@ -42,7 +42,7 @@ AtomDBProxy::AtomDBProxy() : BaseProxy() {
 
 AtomDBProxy::~AtomDBProxy() {
     LOG_INFO("Shutdown AtomDBProxy...");
-    flush_atoms();
+    persist_pending();
     {
         unique_lock<mutex> lock(this->queue_mutex);
         this->stop_processing = true;
