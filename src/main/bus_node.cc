@@ -21,7 +21,7 @@ void ctrl_c_handler(int) {
 
 int main(int argc, char* argv[]) {
     try {
-        auto required_cmd_args = {Helper::SERVICE, Helper::HOSTNAME, Helper::PORTS_RANGE};
+        auto required_cmd_args = {Helper::SERVICE, Helper::ENDPOINT, Helper::PORTS_RANGE};
         auto cmd_args = Utils::parse_command_line(argc, argv);
         ///////// Checking args
         if (cmd_args.find("help") != cmd_args.end()) {
@@ -63,8 +63,8 @@ int main(int argc, char* argv[]) {
         }
 
         auto ports_range = Utils::parse_ports_range(props.get<string>(Helper::PORTS_RANGE));
-        ServiceBusSingleton::init(props.get<string>(Helper::HOSTNAME),
-                                  props.get_or<string>(Helper::SERVICE_HOSTNAME, ""),
+        ServiceBusSingleton::init(props.get<string>(Helper::ENDPOINT),
+                                  props.get_or<string>(Helper::BUS_ENDPOINT, ""),
                                   ports_range.first,
                                   ports_range.second);
         ///////// Registering processor

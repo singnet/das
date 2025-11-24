@@ -25,8 +25,8 @@ class Helper {
 
     // Args names
     static string SERVICE;
-    static string HOSTNAME;
-    static string SERVICE_HOSTNAME;
+    static string ENDPOINT;
+    static string BUS_ENDPOINT;
     static string PORTS_RANGE;
     static string ATTENTION_BROKER_ADDRESS;
     static string USE_MORK;
@@ -42,7 +42,7 @@ class Helper {
     static string CORRELATION_REPLACEMENTS;
     static string CORRELATION_MAPPINGS;
     static string FITNESS_FUNCTION_TAG;
-    static string USE_CACHE;
+    static string USE_CONTEXT_CACHE;
     static string ENFORCE_CACHE_RECREATION;
     static string INITIAL_RENT_RATE;
     static string INITIAL_SPREADING_RATE_LOWERBOUND;

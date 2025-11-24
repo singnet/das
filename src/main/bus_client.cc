@@ -14,7 +14,7 @@ using namespace std;
 int main(int argc, char* argv[]) {
     try {
         auto required_cmd_args = {
-            Helper::SERVICE, Helper::HOSTNAME, Helper::SERVICE_HOSTNAME, Helper::PORTS_RANGE};
+            Helper::SERVICE, Helper::ENDPOINT, Helper::BUS_ENDPOINT, Helper::PORTS_RANGE};
         auto cmd_args = Utils::parse_command_line(argc, argv);
         if (cmd_args.find("help") != cmd_args.end()) {
             cout << Helper::help(Helper::processor_type_from_string(cmd_args["service"]),
@@ -57,8 +57,8 @@ int main(int argc, char* argv[]) {
                          cmd_args[Helper::SERVICE]);
         }
         auto ports_range = Utils::parse_ports_range(props.get<string>(Helper::PORTS_RANGE));
-        ServiceBusSingleton::init(props.get<string>(Helper::HOSTNAME),
-                                  props.get<string>(Helper::SERVICE_HOSTNAME),
+        ServiceBusSingleton::init(props.get<string>(Helper::ENDPOINT),
+                                  props.get<string>(Helper::BUS_ENDPOINT),
                                   ports_range.first,
                                   ports_range.second);
         shared_ptr<ServiceBus> service_bus = ServiceBusSingleton::get_instance();

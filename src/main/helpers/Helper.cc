@@ -6,8 +6,8 @@ using namespace commons;
 bool Helper::is_running = true;
 // Args names
 string Helper::SERVICE = "service";
-string Helper::HOSTNAME = "hostname";
-string Helper::SERVICE_HOSTNAME = "service-hostname";
+string Helper::ENDPOINT = "endpoint";
+string Helper::BUS_ENDPOINT = "bus-endpoint";
 string Helper::PORTS_RANGE = "ports-range";
 string Helper::ATTENTION_BROKER_ADDRESS = "attention-broker-address";
 string Helper::USE_MORK = "use-mork";
@@ -23,7 +23,7 @@ string Helper::CORRELATION_QUERIES = "correlation-queries";
 string Helper::CORRELATION_REPLACEMENTS = "correlation-replacements";
 string Helper::CORRELATION_MAPPINGS = "correlation-mappings";
 string Helper::FITNESS_FUNCTION_TAG = "fitness-function-tag";
-string Helper::USE_CACHE = "use-cache";
+string Helper::USE_CONTEXT_CACHE = "use-context-cache";
 string Helper::ENFORCE_CACHE_RECREATION = "enforce-cache-recreation";
 string Helper::INITIAL_RENT_RATE = "initial-rent-rate";
 string Helper::INITIAL_SPREADING_RATE_LOWERBOUND = "initial-spreading-rate-lowerbound";
@@ -107,7 +107,7 @@ It requires the following arguments:
     - determiner-schema: The determiner schema for the query.
     - stimulus-schema: The stimulus schema for the query.
  Optional arguments:
-    - use-cache: Whether to use the cache (true/false)
+    - use-context-cache: Whether to use the context cache (true/false)
     - enforce-cache-recreation: Whether to enforce cache recreation (true/false)
     - initial-rent-rate: The initial rent rate for the context
     - initial-spreading-rate-lowerbound: The initial spreading rate lower bound
@@ -237,7 +237,7 @@ vector<string> Helper::get_required_arguments(const string& processor_type,
                         QUERY,
                         DETERMINER_SCHEMA,
                         STIMULUS_SCHEMA,
-                        USE_CACHE,
+                        USE_CONTEXT_CACHE,
                         ENFORCE_CACHE_RECREATION};
             } else {
                 return {ATTENTION_BROKER_ADDRESS};
