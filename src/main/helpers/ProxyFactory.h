@@ -108,13 +108,13 @@ class ProxyFactory {
                 string determiner_schema = params.get<string>(Helper::DETERMINER_SCHEMA);
                 string stimulus_schema = params.get<string>(Helper::STIMULUS_SCHEMA);
                 // auto proxy = make_shared<ContextBrokerProxy>();
-                // auto use_cache = params.get<string>("use-cache");
-                // auto enforce_cache_recreation = params.get<string>("enforce-cache-recreation");
-                // auto initial_rent_rate = params.get<string>("initial-rent-rate");
+                // auto use_cache = params.get<string>(Helper::USE_CONTEXT_CACHE);
+                // auto enforce_cache_recreation = params.get<string>(Helper::ENFORCE_CACHE_RECREATION);
+                // auto initial_rent_rate = params.get<string>(Helper::INITIAL_RENT_RATE);
                 // auto initial_spreading_rate_lowerbound =
-                //     params.get<string>("initial-spreading-rate-lowerbound");
+                //     params.get<string>(Helper::INITIAL_SPREADING_RATE_LOWERBOUND);
                 // auto initial_spreading_rate_upperbound =
-                //     params.get<string>("initial-spreading-rate-upperbound");
+                //     params.get<string>(Helper::INITIAL_SPREADING_RATE_UPPERBOUND);
                 // proxy->parameters[ContextBrokerProxy::USE_CACHE] =
                 //     (use_cache == "true" || use_cache == "1");
                 // proxy->parameters[ContextBrokerProxy::ENFORCE_CACHE_RECREATION] =
@@ -161,8 +161,8 @@ class ProxyFactory {
                 return proxy;
             }
             case ProcessorType::ATOMDB_BROKER: {
-                // string action = params.get_or<string>("action", "");
-                // string tokens = params.get_or<string>("tokens", "");
+                // string action = params.get_or<string>(Helper::ACTION, "");
+                // string tokens = params.get_or<string>(Helper::TOKENS, "");
                 return make_shared<AtomDBProxy>();
             }
             default:
