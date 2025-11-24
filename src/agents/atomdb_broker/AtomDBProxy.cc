@@ -1,5 +1,5 @@
 #include "AtomDBProxy.h"
-
+#include <malloc.h>
 #include <numeric>
 
 #include "AtomDBSingleton.h"
@@ -74,12 +74,10 @@ vector<string> AtomDBProxy::add_atoms(const vector<Atom*>& atoms) {
     for (Atom* atom : atoms) {
         atom->tokenize(args);
 
-        if (dynamic_cast<Node*>(atom)) {
+        if (atom->arity() == 0) {
             atom_type = "NODE";
-        } else if (dynamic_cast<Link*>(atom)) {
-            atom_type = "LINK";
         } else {
-            Utils::error("Invalid Atom type");
+            atom_type = "LINK";
         }
 
         args.insert(args.begin(), atom_type);
@@ -221,14 +219,10 @@ void AtomDBProxy::worker_loop() {
         }
 
         for (Atom* atom : batch) {
-            if (Node* node_ptr = dynamic_cast<Node*>(atom)) {
-                delete node_ptr;
-            } else if (Link* link_ptr = dynamic_cast<Link*>(atom)) {
-                delete link_ptr;
-            } else {
-                delete atom;
-            }
+            delete atom;
         }
         batch.clear();
+
+        // malloc_trim(0);
     }
 }
