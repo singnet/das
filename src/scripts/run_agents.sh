@@ -75,11 +75,11 @@ DAS_AGENT_CONFIG=$(echo $DAS_AGENT_CONFIG_JSON)
 # List of agent and paths
 AGENTS=(
     "attention_broker_service $ATTENTION_BROKER_NODE_ID ;src/scripts/run.sh"
-    "query_broker $QUERY_AGENT_NODE_ID $QUERY_AGENT_START_END_PORT $ATTENTION_BROKER_NODE_ID;src/scripts/run.sh"
-    "context_broker $CONTEXT_BROKER_NODE_ID $CONTEXT_BROKER_START_END_PORT $QUERY_AGENT_NODE_ID $ATTENTION_BROKER_NODE_ID;src/scripts/run.sh"
-    "link_creation_server $LINK_CREATION_AGENT_NODE_ID $QUERY_AGENT_NODE_ID $LINK_CREATION_START_END_PORT $LINK_CREATION_REQUESTS_INTERVAL_SECONDS $LINK_CREATION_AGENT_THREAD_COUNT $LINK_CREATION_QUERY_TIMEOUT_SECONDS $LINK_CREATION_REQUESTS_BUFFER_FILE $LINK_CREATION_METTA_FILE_PATH $SAVE_LINKS_TO_METTA $SAVE_LINKS_TO_DB;src/scripts/run.sh"
-    "inference_agent_server $INFERENCE_AGENT_NODE_ID $QUERY_AGENT_NODE_ID $INFERENCE_AGENT_START_END_PORT;src/scripts/run.sh"
-    "evolution_broker $EVOLUTION_NODE_ID $EVOLUTION_START_END_PORT $QUERY_AGENT_NODE_ID $ATTENTION_BROKER_NODE_ID;src/scripts/run.sh"
+    "busnode --service=query-engine --endpoint=$QUERY_AGENT_NODE_ID --ports-range=$QUERY_AGENT_START_END_PORT --attention-broker-endpoint=$ATTENTION_BROKER_NODE_ID;src/scripts/run.sh"
+    "busnode --service=context-broker --endpoint=$CONTEXT_BROKER_NODE_ID --ports-range=$CONTEXT_BROKER_START_END_PORT --bus-endpoint=$QUERY_AGENT_NODE_ID --attention-broker-endpoint=$ATTENTION_BROKER_NODE_ID;src/scripts/run.sh"
+    "busnode --service=link-creation-agent --endpoint=$LINK_CREATION_AGENT_NODE_ID --bus-endpoint=$QUERY_AGENT_NODE_ID --ports-range=$LINK_CREATION_START_END_PORT --request-interval=$LINK_CREATION_REQUESTS_INTERVAL_SECONDS --thread-count=$LINK_CREATION_AGENT_THREAD_COUNT --default-timeout=$LINK_CREATION_QUERY_TIMEOUT_SECONDS --buffer-file=$LINK_CREATION_REQUESTS_BUFFER_FILE --metta-file-path=$LINK_CREATION_METTA_FILE_PATH --save-links-to-metta=$SAVE_LINKS_TO_METTA --save-links-to-db=$SAVE_LINKS_TO_DB;src/scripts/run.sh"
+    "busnode --service=inference-agent --endpoint=$INFERENCE_AGENT_NODE_ID --bus-endpoint=$QUERY_AGENT_NODE_ID --ports-range=$INFERENCE_AGENT_START_END_PORT;src/scripts/run.sh"
+    "busnode --service=evolution-agent --endpoint=$EVOLUTION_NODE_ID --ports-range=$EVOLUTION_START_END_PORT --bus-endpoint=$QUERY_AGENT_NODE_ID --attention-broker-endpoint=$ATTENTION_BROKER_NODE_ID;src/scripts/run.sh"
 )
 
 WAIT_FOR_AGENTS=true
@@ -101,18 +101,13 @@ stop() {
         echo "Stopping agent: $AGENT_NAME"
         # split AGENT_NAME by space
         if [[ "$AGENT_PATH" == *"src/scripts/run.sh"* ]]; then
-            IFS=' ' read -r TEMP_NAME _ _ <<< "$AGENT_NAME"
+            IFS=' ' read -r TEMP_NAME <<< "$AGENT_NAME"
             echo "$TEMP_NAME"
-            CONTAINER_NAME=`docker ps | grep $TEMP_NAME | awk '{print $NF}'`
-            # docker rm -f "$CONTAINER_NAME"
+            CONTAINER_NAME=`docker ps --no-trunc | grep "$TEMP_NAME" | awk '{print $NF}'`
         else
-            # IFS=' ' read -r _ TEMP_NAME _ <<< "$AGENT_NAME"
-            CONTAINER_NAME=`docker ps | grep das-bazel-cmd | awk '{print $NF}'`
-            # CONTAINER_NAME=${CONTAINER_NAME//[^[:alnum:]]/}
+            CONTAINER_NAME=`docker ps --no-trunc | grep das-bazel-cmd | awk '{print $NF}'`
         fi
         if [ -z "$CONTAINER_NAME" ]; then
-            # echo -e "${RED}No container found for agent: $AGENT_NAME${NC}"
-            # echo "Container name: $CONTAINER_NAME"
             continue
         fi
         docker rm -f "$CONTAINER_NAME"

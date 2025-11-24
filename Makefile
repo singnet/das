@@ -40,25 +40,25 @@ build-all: build-image
 run-query-agent:
 	@PORT=$$(bash src/scripts/gkctl_auto_join_and_reserve.sh | tail -n 1); \
 	PORT_RANGE=$$(bash src/scripts/gkctl_auto_join_and_reserve.sh --range=999 | tail -n 1); \
-	bash -x src/scripts/run.sh query_broker 0.0.0.0:$$PORT $$PORT_RANGE
+	bash -x src/scripts/run.sh busnode --service=query-engine --endpoint=0.0.0.0:$$PORT --ports-range=$$PORT_RANGE 
 
 run-attention-broker:
 	@bash -x src/scripts/run.sh attention_broker_service 0.0.0.0:40001
 
 run-context-broker:
-	@bash -x src/scripts/run.sh context_broker $(OPTIONS)
+	@bash -x src/scripts/run.sh busnode --service=context-broker $(OPTIONS)
 
 run-atomdb-broker:
-	@bash -x src/scripts/run.sh atomdb_broker $(OPTIONS)
+	@bash -x src/scripts/run.sh busnode --service=atomdb-broker $(OPTIONS)
 
 run-link-creation-agent:
-	@bash -x src/scripts/run.sh link_creation_server $(OPTIONS)
+	@bash -x src/scripts/run.sh busnode --service=link-creation-agent $(OPTIONS)
 
 run-link-creation-client:
-	@bash -x src/scripts/run.sh link_creation_agent_client $(OPTIONS)
+	@bash -x src/scripts/run.sh busclient --service=link-creation-agent $(OPTIONS)
 
 run-inference-agent:
-	@bash -x src/scripts/run.sh inference_agent_server $(OPTIONS)
+	@bash -x src/scripts/run.sh busnode --service=inference-agent $(OPTIONS)
 
 run-busnode:
 	@bash ./src/scripts/run.sh busnode $(filter-out $@, $(MAKECMDGOALS)) $(OPTIONS)
@@ -67,7 +67,7 @@ run-client:
 	@bash ./src/scripts/run.sh busclient $(filter-out $@, $(MAKECMDGOALS)) $(OPTIONS)
 
 run-inference-agent-client:
-	@bash -x src/scripts/run.sh inference_agent_client $(OPTIONS)
+	@bash -x src/scripts/run.sh busclient --service=inference-agent $(OPTIONS)
 
 run-inference-toy-problem:
 	@bash ./src/scripts/setup_inference_toy_problem.sh $(filter-out $@, $(MAKECMDGOALS))

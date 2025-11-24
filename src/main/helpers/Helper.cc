@@ -46,6 +46,14 @@ Required arguments:
                                                        {ProcessorType::LINK_CREATION_AGENT, string(R"(
 Link Creation Agent:
 This processor manages link creation requests from the service bus.
+Optional arguments:
+    - request-interval: Interval between processing requests (default: 5 second)
+    - thread-count: Number of threads to use for processing (default: 1)
+    - default-timeout: Default timeout for link creation requests in seconds (default: 180)
+    - buffer-file: Path to the file used for buffering requests (default: "requests_buffer.bin")
+    - metta-file-path: Path to the MeTTa file for storing created links (default: "/tmp/metta_links")
+    - save-links-to-metta: Whether to save created links to the MeTTa file (default: false)
+    - save-links-to-db: Whether to save created links to the database (default: true)
 )")},
                                                        {ProcessorType::CONTEXT_BROKER, string(R"(
 Context Broker:
