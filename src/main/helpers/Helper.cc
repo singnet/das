@@ -9,7 +9,7 @@ string Helper::SERVICE = "service";
 string Helper::ENDPOINT = "endpoint";
 string Helper::BUS_ENDPOINT = "bus-endpoint";
 string Helper::PORTS_RANGE = "ports-range";
-string Helper::ATTENTION_BROKER_ADDRESS = "attention-broker-address";
+string Helper::ATTENTION_BROKER_ENDPOINT = "attention-broker-endpoint";
 string Helper::USE_MORK = "use-mork";
 string Helper::ACTION = "action";
 string Helper::TOKENS = "tokens";
@@ -41,7 +41,7 @@ static map<ProcessorType, string> node_service_help = {{ProcessorType::INFERENCE
 Inference Agent:
 This processor handles inference requests from the service bus.
 Required arguments:
-    - attention-broker-address: The address of the Attention Broker to connect to, in the form "host:port"
+    - attention-broker-endpoint: The address of the Attention Broker to connect to, in the form "host:port"
 )")},
                                                        {ProcessorType::LINK_CREATION_AGENT, string(R"(
 Link Creation Agent:
@@ -51,19 +51,19 @@ This processor manages link creation requests from the service bus.
 Context Broker:
 This processor handles context management requests from the service bus.
 Required arguments:
-    - attention-broker-address: The address of the Attention Broker to connect to, in the form "host:port"
+    - attention-broker-endpoint: The address of the Attention Broker to connect to, in the form "host:port"
 )")},
                                                        {ProcessorType::EVOLUTION_AGENT, string(R"(
 Evolution Agent:
 This processor manages query evolution requests from the service bus.
 Required arguments:
-    - attention-broker-address: The address of the Attention Broker to connect to, in the form "host:port"
+    - attention-broker-endpoint: The address of the Attention Broker to connect to, in the form "host:port"
 )")},
                                                        {ProcessorType::QUERY_ENGINE, string(R"(
 Query Engine:
 This processor handles pattern matching query requests from the service bus.
 Required arguments:
-    - attention-broker-address: The address of the Attention Broker to connect to, in the form "host:port"
+    - attention-broker-endpoint: The address of the Attention Broker to connect to, in the form "host:port"
 )")},
                                                        {ProcessorType::ATOMDB_BROKER, string(R"(
 AtomDB Broker:
@@ -71,7 +71,7 @@ This processor manages AtomDB broker requests from the service bus.
 )")},
                                                        {ProcessorType::UNKNOWN, string(R"(
 Usage:
-busnode --service=<service> --hostname=<host:port> --ports_range=<start_port:end_port> [--peer_address=<peer_host:peer_port>] --attention-broker-address=<AB_ip:AB_port> [--use-mork=true|false]
+busnode --service=<service> --hostname=<host:port> --ports_range=<start_port:end_port> [--peer_address=<peer_host:peer_port>] [--use-mork=true|false]
 )")}};
 
 static map<ProcessorType, string> client_service_help = {{ProcessorType::INFERENCE_AGENT, string(R"(
@@ -223,7 +223,7 @@ vector<string> Helper::get_required_arguments(const string& processor_type,
             if (caller_type == ServiceCallerType::CLIENT) {
                 return {REQUEST};
             } else {
-                return {ATTENTION_BROKER_ADDRESS};
+                return {ATTENTION_BROKER_ENDPOINT};
             }
         case ProcessorType::LINK_CREATION_AGENT:
             if (caller_type == ServiceCallerType::CLIENT) {
@@ -240,19 +240,19 @@ vector<string> Helper::get_required_arguments(const string& processor_type,
                         USE_CONTEXT_CACHE,
                         ENFORCE_CACHE_RECREATION};
             } else {
-                return {ATTENTION_BROKER_ADDRESS};
+                return {ATTENTION_BROKER_ENDPOINT};
             }
         case ProcessorType::EVOLUTION_AGENT:
             if (caller_type == ServiceCallerType::CLIENT) {
                 return {REQUEST, MAX_ANSWERS, ATTENTION_UPDATE_FLAG, REPEAT_COUNT};
             } else {
-                return {ATTENTION_BROKER_ADDRESS};
+                return {ATTENTION_BROKER_ENDPOINT};
             }
         case ProcessorType::QUERY_ENGINE:
             if (caller_type == ServiceCallerType::CLIENT) {
                 return {QUERY, CONTEXT};
             } else {
-                return {ATTENTION_BROKER_ADDRESS};
+                return {ATTENTION_BROKER_ENDPOINT};
             }
         case ProcessorType::ATOMDB_BROKER:
             if (caller_type == ServiceCallerType::CLIENT) {

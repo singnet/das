@@ -45,9 +45,9 @@ int main(int argc, char* argv[]) {
         ///////// Initializing dependencies
         LOG_INFO("Starting service: " + cmd_args[Helper::SERVICE]);
         auto props = Properties(cmd_args.begin(), cmd_args.end());
-        if (props.find(Helper::ATTENTION_BROKER_ADDRESS) != props.end()) {
+        if (props.find(Helper::ATTENTION_BROKER_ENDPOINT) != props.end()) {
             AttentionBrokerClient::set_server_address(
-                props.get<string>(Helper::ATTENTION_BROKER_ADDRESS));
+                props.get<string>(Helper::ATTENTION_BROKER_ENDPOINT));
         }
         if (props.get_or<string>(Helper::USE_MORK, "false") == "true") {
             AtomDBSingleton::init(atomdb_api_types::ATOMDB_TYPE::MORKDB);

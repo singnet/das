@@ -28,7 +28,7 @@ class Helper {
     static string ENDPOINT;
     static string BUS_ENDPOINT;
     static string PORTS_RANGE;
-    static string ATTENTION_BROKER_ADDRESS;
+    static string ATTENTION_BROKER_ENDPOINT;
     static string USE_MORK;
     static string ACTION;
     static string TOKENS;
