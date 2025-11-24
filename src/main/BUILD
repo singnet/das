@@ -29,7 +29,9 @@ cc_library(
     name = "tests_db_loader_main_lib",
     srcs = ["tests_db_loader.cc"],
     deps = [
+        "//agents/atomdb_broker:atomdb_broker_lib",
         "//atomdb:atomdb_singleton",
+        "//service_bus:service_bus_lib",
         "//tests/cpp/test_commons",
         "//tests/cpp/test_commons:mock_animals_data_lib",
     ],
