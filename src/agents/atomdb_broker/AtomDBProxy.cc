@@ -1,5 +1,7 @@
 #include "AtomDBProxy.h"
+
 #include <malloc.h>
+
 #include <numeric>
 
 #include "AtomDBSingleton.h"
