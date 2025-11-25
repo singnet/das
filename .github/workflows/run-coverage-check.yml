@@ -23,6 +23,9 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Setup bazel
+        run: .github/scripts/setup_bazel.sh
+
       - name: Install dependencies
         run: |-
           sudo apt -y update
@@ -74,4 +77,5 @@ jobs:
           make mork-loader FILE="/tmp/animals.metta"
 
       - name: Execute Coverage check
-        run: make test-coverage-check
+        working-directory: ./src
+        run: ./scripts/bazel_coverage_check.sh
