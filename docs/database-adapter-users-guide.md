@@ -178,7 +178,7 @@ password=
 - **context.txt**: Use the provided example at `./examples/context.txt`. It defines what data to extract:
 
 ```txt
-public.feature -[residues,seqlen,md5checksum] <uniquename LIKE 'FBgn%'><is_obsolete=false>
+public.feature -[residues,seqlen,md5checksum] <<uniquename LIKE 'FBgn%'>><<is_obsolete=false>>
 ```
 
 **NOTE:** The context files are better explained in the [Understanding the Context File](#understanding-the-context-file) section.
@@ -220,12 +220,12 @@ There are two supported structures for context lines. Each line in the file is p
 #### **Structure 1: Table Filter (Recommended)**
 
 ```txt
-schema_name.table_name -[columns_to_exclude] <CLAUSE_1> <CLAUSE_2> ...
+schema_name.table_name -[columns_to_exclude] <<CLAUSE_1>> <<CLAUSE_2>> ...
 ```
 
 - `schema_name.table_name`: Fully qualified table name.
 - `columns_to_exclude`: A comma-separated list of columns to exclude from the mapping.
-- Each `<CLAUSE>`: A SQL WHERE clause (without `WHERE` keyword).
+- Each `<<CLAUSE>>`: A SQL WHERE clause (without `WHERE` keyword).
 - Clauses are combined with `AND` operator.
 
 **NOTE:** If you don't want to exclude any columns, you must pass `-[]`.
@@ -233,10 +233,10 @@ schema_name.table_name -[columns_to_exclude] <CLAUSE_1> <CLAUSE_2> ...
 **Example:**
 
 ```txt
-public.feature -[residues,seqlen,md5checksum] <is_obsolete=false><uniquename LIKE 'FBgn%'>
-public.feature -[residues,seqlen,md5checksum] <is_obsolete=false><type_id IN (1179)>
-public.cvterm -[definition] <is_obsolete=0>
-public.feature_cvterm -[] <is_not=false><feature_id not IN ('11382573','11387545')>
+public.feature -[residues,seqlen,md5checksum] <<is_obsolete=false>><<uniquename LIKE 'FBgn%'>> 
+public.feature -[residues,seqlen,md5checksum] <<is_obsolete=false>><<type_id IN (1179)>>
+public.cvterm -[definition] <<is_obsolete=0>>
+public.feature_cvterm -[] <<is_not=false>><<feature_id not IN ('11382573','11387545')>>
 ```
 
 This extracts:
