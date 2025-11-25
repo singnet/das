@@ -1,3 +1,5 @@
+import functools
+
 from hyperon_das.commons.atoms import Atom
 from hyperon_das.commons.atoms.handle_decoder import HandleDecoder
 from hyperon_das.commons.helpers import error
@@ -20,13 +22,25 @@ class Node(Atom):
             self.custom_attributes = custom_attributes if custom_attributes is not None else Properties()
             self.untokenize(tokens)
         elif other:
-            self.name = other.name
+            self._name = other.name
             super().__init__(other=other)
         else:
             if not type or not name:
                 raise ValueError("'type' and 'name' are required")
-            self.name = name
+            self._name = name
             super().__init__(type, is_toplevel, custom_attributes)
+
+    @property
+    def name(self) -> str:
+        return self._name
+
+    @name.setter
+    def name(self, value: str) -> None:
+        self._name = value
+
+        # If the handle has already been calculated, delete it.
+        if "handle" in self.__dict__:
+            del self.__dict__["handle"]
 
     def __eq__(self, other: 'Node') -> bool:
         if not isinstance(other, Node):
@@ -59,14 +73,15 @@ class Node(Atom):
         )
 
     def tokenize(self, output: list[str]) -> None:
-        output.insert(0, self.name)
         super().tokenize(output)
+        output.append(self.name)
 
     def untokenize(self, tokens: list[str]) -> None:
         super().untokenize(tokens)
         self.name = tokens[0]
         del tokens[:1]
 
+    @functools.cached_property
     def handle(self) -> str:
         return Hasher.node_handle(self.type, self.name)
 
@@ -76,4 +91,4 @@ class Node(Atom):
         return self.name
 
     def match(self, handle, assignment: 'Assignment', decode: 'HandleDecoder') -> bool:
-        return self.handle() == handle
+        return self.handle == handle
