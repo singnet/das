@@ -17,6 +17,7 @@ class RedisContext {
     void set_context(redisClusterContext* ctx);
 
     redisReply* execute(const char* command);
+    bool ping();
     void append_command(const char* command);
     void flush_commands();
     bool has_error() const;
