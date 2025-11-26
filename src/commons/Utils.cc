@@ -304,6 +304,30 @@ string StopWatch::str_time() {
     }
 }
 
+void Utils::retry_function(function<void()> func,
+                           unsigned int max_retries,
+                           unsigned int wait_millis,
+                           const string& function_name) {
+    unsigned int attempt = 0;
+    while (attempt < max_retries) {
+        try {
+            func();
+            return;  // Success
+        } catch (const exception& e) {
+            attempt++;
+            LOG_ERROR("Attempt " + to_string(attempt) + " failed for function " + function_name + ": " +
+                      string(e.what()));
+            if (attempt < max_retries) {
+                Utils::sleep(wait_millis);
+            } else {
+                LOG_ERROR("All " + to_string(max_retries) + " attempts failed for function " +
+                          function_name);
+                throw;  // Rethrow the last exception
+            }
+        }
+    }
+}
+
 // --------------------------------------------------------------------------------
 // MemoryFootprint
 

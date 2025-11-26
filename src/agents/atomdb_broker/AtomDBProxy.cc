@@ -8,20 +8,24 @@
 #include "ServiceBus.h"
 #include "Utils.h"
 
-#define LOG_LEVEL INFO_LEVEL
+#define LOG_LEVEL DEBUG_LEVEL
 #include "Logger.h"
 
 using namespace atomdb_broker;
 using namespace service_bus;
 using namespace commons;
+using namespace std;
 
 // -------------------------------------------------------------------------------------------------
 // Static constants
 
-const size_t AtomDBProxy::BATCH_SIZE = 5000;
+const size_t AtomDBProxy::BATCH_SIZE = 1000;
+const size_t AtomDBProxy::COMMAND_SIZE_LIMIT = 50;
 
 // Proxy Commands
 string AtomDBProxy::ADD_ATOMS = "add_atoms";
+string AtomDBProxy::START_STREAM = "start_stream";
+string AtomDBProxy::END_STREAM = "end_stream";
 
 // -------------------------------------------------------------------------------------------------
 // Constructor and destructor
@@ -29,6 +33,7 @@ string AtomDBProxy::ADD_ATOMS = "add_atoms";
 AtomDBProxy::AtomDBProxy() : BaseProxy() {
     this->command = ServiceBus::ATOMDB;
     this->atomdb = AtomDBSingleton::get_instance();
+    this->processing_buffer = false;
 }
 
 AtomDBProxy::~AtomDBProxy() {
@@ -42,6 +47,15 @@ void AtomDBProxy::pack_command_line_args() { tokenize(this->args); }
 
 void AtomDBProxy::tokenize(vector<string>& output) { BaseProxy::tokenize(output); }
 
+vector<string> AtomDBProxy::add_atoms(const vector<string>& tokens) {
+    vector<shared_ptr<Atom>> atoms = build_atoms_from_tokens(tokens);
+    vector<Atom*> atom_ptrs;
+    for (const auto& atom : atoms) {
+        atom_ptrs.push_back(atom.get());
+    }
+    return add_atoms(atom_ptrs);
+}
+
 /**
  * Build a single argument vector containing, for each atom, a leading type
  * token ("NODE" or "LINK") followed by that atom's tokenized fields.
@@ -50,6 +64,13 @@ vector<string> AtomDBProxy::add_atoms(const vector<Atom*>& atoms) {
     vector<string> args;
     vector<string> handles;
     string atom_type;
+    vector<string> stream_info;
+    stream_info.push_back(std::to_string(atoms.size()));
+
+    Utils::retry_function([&]() { this->to_remote_peer(AtomDBProxy::START_STREAM, stream_info); },
+                          5,
+                          2000,
+                          "AtomDBProxy::start_stream");
 
     for (Atom* atom : atoms) {
         atom->tokenize(args);
@@ -64,9 +85,18 @@ vector<string> AtomDBProxy::add_atoms(const vector<Atom*>& atoms) {
 
         args.insert(args.begin(), atom_type);
         handles.push_back(atom->handle());
+        if ((args.size() > AtomDBProxy::COMMAND_SIZE_LIMIT) || (atom == atoms.back())) {
+            Utils::retry_function([&]() { this->to_remote_peer(AtomDBProxy::ADD_ATOMS, args); },
+                                  5,
+                                  2000,
+                                  "AtomDBProxy::add_atoms");
+            args.clear();
+        }
     }
-
-    to_remote_peer(AtomDBProxy::ADD_ATOMS, args);
+    Utils::retry_function([&]() { this->to_remote_peer(AtomDBProxy::END_STREAM, stream_info); },
+                          5,
+                          2000,
+                          "AtomDBProxy::end_stream");
 
     return handles;
 }
@@ -77,13 +107,18 @@ vector<string> AtomDBProxy::add_atoms(const vector<Atom*>& atoms) {
 void AtomDBProxy::untokenize(vector<string>& tokens) { BaseProxy::untokenize(tokens); }
 
 bool AtomDBProxy::from_remote_peer(const string& command, const vector<string>& args) {
-    LOG_DEBUG("Proxy command: <" << command << "> from " << this->peer_id() << " received in "
-                                 << this->my_id());
-
     if (BaseProxy::from_remote_peer(command, args)) {
         return true;
     } else if (command == AtomDBProxy::ADD_ATOMS) {
         handle_add_atoms(args);
+        return true;
+    } else if (command == AtomDBProxy::START_STREAM) {
+        LOG_INFO("Starting atom stream, total atoms to receive: " << args[0]);
+        this->processing_buffer = true;
+        return true;
+    } else if (command == AtomDBProxy::END_STREAM) {
+        LOG_INFO("Ending atom stream.");
+        this->processing_buffer = false;
         return true;
     } else {
         Utils::error("Invalid AtomDBProxy command: <" + command + ">");
@@ -93,41 +128,28 @@ bool AtomDBProxy::from_remote_peer(const string& command, const vector<string>& 
 
 void AtomDBProxy::handle_add_atoms(const vector<string>& tokens) {
     try {
-        vector<Atom*> atoms = build_atoms_from_tokens(tokens);
-        LOG_INFO("Processing batch, total atoms to process: " << atoms.size());
-
-        if (atoms.empty()) {
-            LOG_INFO("No atoms were built from tokens. Nothing to process.");
-            return;
+        vector<shared_ptr<Atom>> atoms = build_atoms_from_tokens(tokens);
+        vector<Atom*> buffer;
+        for (auto& atom : atoms) {
+            buffer.push_back(atom.get());
         }
-
-        for (size_t i = 0; i < atoms.size(); i += AtomDBProxy::BATCH_SIZE) {
-            auto batch_start = atoms.begin() + i;
-            auto batch_end = atoms.begin() + min(i + AtomDBProxy::BATCH_SIZE, atoms.size());
-            vector<Atom*> buffer(batch_start, batch_end);
-            LOG_INFO("Processing a batch of " << buffer.size() << " atoms.");
-            this->atomdb->add_atoms(buffer, false, true);
-            Utils::sleep(1000);  // FIXME: temporary sleep to avoid overloading the DB
-        }
-
-        LOG_INFO("Finished processing all batches.");
-
+        this->atomdb->add_atoms(buffer, false, true);
     } catch (const exception& e) {
         LOG_ERROR("Error processing batch: " << e.what());
     }
 }
 
-vector<Atom*> AtomDBProxy::build_atoms_from_tokens(const vector<string>& tokens) {
-    vector<Atom*> atoms;
+vector<shared_ptr<Atom>> AtomDBProxy::build_atoms_from_tokens(const vector<string>& tokens) {
+    vector<shared_ptr<Atom>> atoms;
     string current;
     vector<string> buffer;
 
     auto flush = [&]() {
         if (current.empty()) return;
         if (current == "NODE") {
-            atoms.push_back(new Node(buffer));
+            atoms.push_back(make_shared<Node>(buffer));
         } else {  // LINK
-            atoms.push_back(new Link(buffer));
+            atoms.push_back(make_shared<Link>(buffer));
         }
         buffer.clear();
     };

@@ -8,10 +8,13 @@
 #include <thread>
 #include <vector>
 
+#include "AtomDBProxy.h"
 #include "AtomDBSingleton.h"
 #include "MettaParser.h"
-#include "MettaParserActions.h"
+#include "ServiceBus.h"
+#include "ServiceBusSingleton.h"
 #include "TestConfig.h"
+#include "commons/atoms/MettaParserActions.h"
 
 #define LOG_LEVEL DEBUG_LEVEL
 #include "Logger.h"
@@ -22,24 +25,33 @@ using namespace atomdb;
 using namespace metta;
 using namespace atoms;
 
+using namespace atomdb_broker;
+using namespace service_bus;
+
 void ctrl_c_handler(int) {
     cout << "Stopping tests_db_loader..." << endl;
     cout << "Done." << endl;
     exit(0);
 }
 
+vector<string> add_atoms_via_atomdb(vector<Atom*> atoms, bool throw_if_exists, bool is_transactional) {
+    auto db = AtomDBSingleton::get_instance();
+    return db->add_atoms(atoms, throw_if_exists, is_transactional);
+}
+
 int main(int argc, char* argv[]) {
     TestConfig::load_environment();
     TestConfig::set_atomdb_cache(false);
 
-    //                          OPTIONS="context atomdb_type num_threads num_links arity chunck_size"
+    //                          OPTIONS="context atomdb_type use_proxy num_threads num_links arity
+    //                          chunck_size"
     //
-    // make run-tests-db-loader OPTIONS="test_1m_ redismongodb 8 1000000 3 5000"
-    // make run-tests-db-loader OPTIONS="test_1m_ morkdb 8 1000000 3 5000"
-    // make run-tests-db-loader OPTIONS="test_1m_ redismongodb 8 1000000 3 5000"
+    // make run-tests-db-loader OPTIONS="test_1m_ redismongodb false 8 1000000 3 5000"
+    // make run-tests-db-loader OPTIONS="test_1m_ morkdb false 8 1000000 3 5000"
+    // make run-tests-db-loader OPTIONS="test_1m_ redismongodb true 8 1000000 3 5000"
 
     // From file
-    // make run-tests-db-loader OPTIONS="test_1m_ redismongodb 8 file /path/to/file.metta 5000"
+    // make run-tests-db-loader OPTIONS="test_1m_ redismongodb true 8 file /path/to/file.metta 5000"
 
     string context = "";
     if (argc > 1) context = string(argv[1]);
@@ -47,7 +59,7 @@ int main(int argc, char* argv[]) {
     if (argc > 2) atomdb_type = string(argv[2]);
 
     if (atomdb_type == "redismongodb") {
-        AtomDBSingleton::provide(shared_ptr<AtomDB>(new RedisMongoDB(context)));
+        AtomDBSingleton::provide(shared_ptr<AtomDB>(new RedisMongoDB("")));
     } else if (atomdb_type == "morkdb") {
         AtomDBSingleton::provide(shared_ptr<AtomDB>(new MorkDB(context)));
     } else {
@@ -68,7 +80,16 @@ int main(int argc, char* argv[]) {
 
         int num_threads = Utils::string_to_int(argv[3]);
 
-        string arg4 = string(argv[4]);
+        bool use_proxy =
+            string(argv[4]) == "proxy" || string(argv[4]) == "1" || string(argv[4]) == "true";
+        if (use_proxy) {
+            string atomdb_broker_client_id = "0.0.0.0:62002";
+            string atomdb_broker_server_id = "0.0.0.0:40007";
+            ServiceBusSingleton::init(atomdb_broker_client_id, atomdb_broker_server_id, 62003, 62099);
+            Utils::sleep(1000);
+        }
+
+        string arg4 = string(argv[5]);
         vector<string> file_keywords = {"file", "--file", "FILE"};
         bool is_file_mode =
             find(file_keywords.begin(), file_keywords.end(), arg4) != file_keywords.end();
@@ -76,7 +97,7 @@ int main(int argc, char* argv[]) {
         if (is_file_mode) {
             STOP_WATCH_START(tests_db_loader_from_file);
 
-            if (argc < 6) {
+            if (argc < 7) {
                 Utils::error(
                     "File mode requires file path as argument. Usage: context atomdb_type num_threads "
                     "file "
@@ -84,10 +105,10 @@ int main(int argc, char* argv[]) {
                 return 1;
             }
 
-            string file_path = argv[5];
+            string file_path = argv[6];
             int chunk_size = 1000;  // Batch size for adding atoms to DB
-            if (argc > 6) {
-                chunk_size = Utils::string_to_int(argv[6]);
+            if (argc > 7) {
+                chunk_size = Utils::string_to_int(argv[7]);
             }
 
             // First, read all lines from the file to determine line ranges for each thread
@@ -123,17 +144,22 @@ int main(int argc, char* argv[]) {
             vector<thread> threads;
             atomic<size_t> total_atoms_processed(0);
 
+            shared_ptr<AtomDBProxy> proxy = nullptr;
+            if (use_proxy) {
+                proxy = make_shared<AtomDBProxy>();
+                ServiceBusSingleton::get_instance()->issue_bus_command(proxy);
+            }
+
             for (int i = 0; i < num_threads; i++) {
                 size_t start_line = i * lines_per_thread;
                 size_t end_line = start_line + lines_per_thread;
 
                 // Remainder must be added to the last thread
                 if (i == num_threads - 1) {
-                    end_line++;
+                    end_line += remainder;
                 }
 
                 threads.emplace_back([&, start_line, end_line, i]() -> void {
-                    auto thread_atomdb = AtomDBSingleton::get_instance();
                     vector<Atom*> batch_atoms;
                     vector<shared_ptr<MettaParserActions>>
                         parser_actions_list;  // Keep parser_actions alive
@@ -173,7 +199,11 @@ int main(int argc, char* argv[]) {
 
                                 // Add atoms in batches
                                 if (batch_atoms.size() >= static_cast<size_t>(chunk_size)) {
-                                    thread_atomdb->add_atoms(batch_atoms, false, true);
+                                    if (use_proxy) {
+                                        proxy->add_atoms(batch_atoms);
+                                    } else {
+                                        add_atoms_via_atomdb(batch_atoms, false, true);
+                                    }
                                     batch_atoms.clear();
                                     // Clear old parser_actions that are no longer needed
                                     // Keep only the last few to avoid memory buildup
@@ -191,7 +221,11 @@ int main(int argc, char* argv[]) {
 
                     // Add remaining atoms
                     if (!batch_atoms.empty()) {
-                        thread_atomdb->add_atoms(batch_atoms, false, true);
+                        if (use_proxy) {
+                            proxy->add_atoms(batch_atoms);
+                        } else {
+                            add_atoms_via_atomdb(batch_atoms, false, true);
+                        }
                     }
 
                     total_atoms_processed += thread_atoms_count;
@@ -212,9 +246,9 @@ int main(int argc, char* argv[]) {
             STOP_WATCH_FINISH(tests_db_loader_from_file, "TestsDBLoaderFromFile");
 
         } else {
-            int num_links = Utils::string_to_int(argv[4]);
-            int arity = Utils::string_to_int(argv[5]);
-            int chunck_size = Utils::string_to_int(argv[6]);
+            int num_links = Utils::string_to_int(argv[5]);
+            int arity = Utils::string_to_int(argv[6]);
+            int chunck_size = Utils::string_to_int(argv[7]);
 
             int links_per_thread = num_links / num_threads;
             int remainder = num_links % num_threads;
@@ -222,11 +256,14 @@ int main(int argc, char* argv[]) {
             vector<thread> threads;
 
             STOP_WATCH_START(tests_db_loader);
+            shared_ptr<AtomDBProxy> proxy = nullptr;
+            if (use_proxy) {
+                proxy = make_shared<AtomDBProxy>();
+                ServiceBusSingleton::get_instance()->issue_bus_command(proxy);
+            }
 
             for (int i = 0; i < num_threads; i++) {
                 threads.emplace_back([&, thread_id = i, links_per_thread, remainder]() -> void {
-                    auto db = AtomDBSingleton::get_instance();
-
                     vector<Link*> links;
                     vector<Node*> nodes;
 
@@ -267,22 +304,42 @@ int main(int argc, char* argv[]) {
                         links.push_back(link_with_nested);
 
                         if (j % chunck_size == 0) {
-                            db->add_nodes(nodes, false, true);
-                            db->add_links(links, false, true);
+                            vector<Atom*> atoms;
+                            for (auto* node : nodes) atoms.push_back(node);
+                            for (auto* link : links) atoms.push_back(link);
+                            if (use_proxy) {
+                                proxy->add_atoms(atoms);
+                            } else {
+                                add_atoms_via_atomdb(atoms, false, true);
+                            }
+                            // Delete nodes and links after adding to database
+                            for (auto* node : nodes) {
+                                delete node;
+                            }
+                            for (auto* link : links) {
+                                delete link;
+                            }
                             nodes.clear();
                             links.clear();
                         }
                     }
 
-                    if (!nodes.empty()) {
+                    if (!nodes.empty() || !links.empty()) {
                         LOG_DEBUG("[" + to_string(thread_id) + "] Final - Adding " +
-                                  to_string(nodes.size()) + " nodes");
-                        db->add_nodes(nodes, false, true);
-                    }
-                    if (!links.empty()) {
-                        LOG_DEBUG("[" + to_string(thread_id) + "] Final - Adding " +
-                                  to_string(links.size()) + " links");
-                        db->add_links(links, false, true);
+                                  to_string(nodes.size()) + " nodes and " + to_string(links.size()) +
+                                  " links");
+                        vector<Atom*> atoms;
+                        for (auto* node : nodes) atoms.push_back(node);
+                        for (auto* link : links) atoms.push_back(link);
+                        if (use_proxy) {
+                            proxy->add_atoms(atoms);
+                        } else {
+                            add_atoms_via_atomdb(atoms, false, true);
+                        }
+                        // Delete nodes after adding to database
+                        for (auto* atom : atoms) {
+                            delete atom;
+                        }
                     }
 
                     // clang-format off
@@ -294,7 +351,18 @@ int main(int argc, char* argv[]) {
                     });
                     // clang-format on
 
-                    auto result = db->query_for_pattern(link_schema);
+                    auto result = AtomDBSingleton::get_instance()->query_for_pattern(link_schema);
+                    auto timeout_counter = 0;
+                    while (result->size() != 2) {
+                        Utils::sleep(100);
+                        result = AtomDBSingleton::get_instance()->query_for_pattern(link_schema);
+                        timeout_counter++;
+                        if (timeout_counter >= 10 * 60) {  // 60 seconds
+                            Utils::error("[" + to_string(thread_id) +
+                                         "] Timeout waiting for pattern query results");
+                            return;
+                        }
+                    }
                     if (result->size() != 2) {
                         Utils::error("[" + to_string(thread_id) + "] Expected 2 results, got " +
                                      to_string(result->size()));

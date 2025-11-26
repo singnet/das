@@ -45,9 +45,7 @@ int main(int argc, char* argv[]) {
     Utils::sleep(1000);
 
     if (action == AtomDBProxy::ADD_ATOMS) {
-        auto atoms = proxy->build_atoms_from_tokens(tokens);
-        vector<string> response = proxy->add_atoms(atoms);
-
+        vector<string> response = proxy->add_atoms(tokens);
         if (response.empty()) {
             cout << "No answers" << endl;
         } else {

@@ -28,6 +28,8 @@ class AtomDBProxy : public BaseProxy {
     // ---------------------------------------------------------------------------------------------
     // Proxy Commands
     static string ADD_ATOMS;
+    static string START_STREAM;
+    static string END_STREAM;
 
     // ---------------------------------------------------------------------------------------------
     // Constructor and destructor
@@ -58,25 +60,6 @@ class AtomDBProxy : public BaseProxy {
     virtual void tokenize(vector<string>& output) override;
 
     /**
-     * @brief Build Atom objects from a token stream.
-     *
-     * The returned vector owns newly-allocated Atom pointers; the caller is
-     * responsible for their lifetime (matching the previous behaviour).
-     *
-     * * Token format expected by this method:
-     *
-     * <NODE> <type> <is_toplevel> <number_properties> <property_name> <property_type> <property_value>
-     * <name> <LINK> <type> <is_toplevel> <number_properties> <property_name> <property_type>
-     * <property_value> <number_handles> <handle_1> ... <handle_n>
-     *
-     * If there are no properties <number_properties> should be 0
-     *
-     * @param tokens Token stream describing one or more atoms (NODE/LINK blocks)
-     * @return vector of Atom* reconstructed from tokens.
-     */
-    vector<Atom*> build_atoms_from_tokens(const vector<string>& tokens);
-
-    /**
      * @brief Send atoms to the remote peer and return their local handles.
      *
      * This serializes each atom into the RPC arguments and issues an
@@ -87,6 +70,8 @@ class AtomDBProxy : public BaseProxy {
      * @return Vector of handles corresponding to each atom.
      */
     vector<string> add_atoms(const vector<Atom*>& atoms);
+
+    vector<string> add_atoms(const vector<string>& tokens);
 
     // ---------------------------------------------------------------------------------------------
     // server-side API
@@ -114,11 +99,14 @@ class AtomDBProxy : public BaseProxy {
      * reported back to the peer.
      */
     void handle_add_atoms(const vector<string>& args);
+    vector<shared_ptr<Atom>> build_atoms_from_tokens(const vector<string>& tokens);
 
     mutex api_mutex;
     shared_ptr<AtomDB> atomdb;
 
     static const size_t BATCH_SIZE;
+    static const size_t COMMAND_SIZE_LIMIT;
+    bool processing_buffer = false;
 };
 
 }  // namespace atomdb_broker
