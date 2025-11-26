@@ -11,13 +11,13 @@ jobs:
   coverage-check:
     runs-on: ${{ inputs.runner }}
     env:
-      DAS_REDIS_HOSTNAME: localhost
+      DAS_REDIS_HOSTNAME: 0.0.0.0
       DAS_REDIS_PORT: 29000
-      DAS_MONGODB_HOSTNAME: localhost
+      DAS_MONGODB_HOSTNAME: 0.0.0.0
       DAS_MONGODB_PORT: 28000
       DAS_MONGODB_USERNAME: dbadmin
       DAS_MONGODB_PASSWORD: dassecret
-      DAS_MORK_HOSTNAME: localhost
+      DAS_MORK_HOSTNAME: 0.0.0.0
       DAS_MORK_PORT: 40022
     steps:
       - name: Checkout
