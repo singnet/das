@@ -21,6 +21,8 @@ using namespace std;
 
 const size_t AtomDBProxy::BATCH_SIZE = 1000;
 const size_t AtomDBProxy::COMMAND_SIZE_LIMIT = 50;
+const static string NODE = "NODE";;
+const static string LINK = "LINK";
 
 // Proxy Commands
 string AtomDBProxy::ADD_ATOMS = "add_atoms";
@@ -76,9 +78,9 @@ vector<string> AtomDBProxy::add_atoms(const vector<Atom*>& atoms) {
         atom->tokenize(args);
 
         if (dynamic_cast<Node*>(atom)) {
-            atom_type = "NODE";
+            atom_type = NODE;
         } else if (dynamic_cast<Link*>(atom)) {
-            atom_type = "LINK";
+            atom_type = LINK;
         } else {
             Utils::error("Invalid Atom type");
         }
@@ -146,7 +148,7 @@ vector<shared_ptr<Atom>> AtomDBProxy::build_atoms_from_tokens(const vector<strin
 
     auto flush = [&]() {
         if (current.empty()) return;
-        if (current == "NODE") {
+        if (current == NODE) {
             atoms.push_back(make_shared<Node>(buffer));
         } else {  // LINK
             atoms.push_back(make_shared<Link>(buffer));
@@ -155,7 +157,7 @@ vector<shared_ptr<Atom>> AtomDBProxy::build_atoms_from_tokens(const vector<strin
     };
 
     for (const auto& token : tokens) {
-        if (token == "NODE" || token == "LINK") {
+        if (token == NODE || token == LINK) {
             if (!current.empty()) flush();
             current = token;
         } else {
