@@ -170,6 +170,7 @@ class RedisMongoDB : public AtomDB {
 
     uint get_next_score(const string& key);
     void set_next_score(const string& key, uint score);
+    void set_next_score_with_context(shared_ptr<RedisContext> ctx, const string& key, uint score);
     void reset_scores();
 
     void add_pattern(const string& handle, const string& pattern_handle);

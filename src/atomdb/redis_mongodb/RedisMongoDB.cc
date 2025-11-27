@@ -375,8 +375,15 @@ uint RedisMongoDB::get_next_score(const string& key) {
 
 void RedisMongoDB::set_next_score(const string& key, uint score) {
     if (SKIP_REDIS) return;
-
     auto ctx = this->redis_pool->acquire();
+    set_next_score_with_context(ctx, key, score);
+}
+
+void RedisMongoDB::set_next_score_with_context(shared_ptr<RedisContext> ctx,
+                                               const string& key,
+                                               uint score) {
+    if (SKIP_REDIS) return;
+
     string command = "SET " + key + " " + to_string(score);
     redisReply* reply = ctx->execute(command.c_str());
     if (reply == NULL) Utils::error("Redis error at set_next_score: <" + command + ">");
@@ -1012,8 +1019,11 @@ vector<string> RedisMongoDB::add_links(const vector<atoms::Link*>& links,
 
     LOG_DEBUG("Setting next scores: patterns=" + to_string(this->patterns_next_score.load()) +
               ", incoming=" + to_string(this->incoming_set_next_score.load()));
-    set_next_score(REDIS_PATTERNS_PREFIX + ":next_score", this->patterns_next_score.load());
-    set_next_score(REDIS_INCOMING_PREFIX + ":next_score", this->incoming_set_next_score.load());
+
+    set_next_score_with_context(
+        ctx, REDIS_PATTERNS_PREFIX + ":next_score", this->patterns_next_score.load());
+    set_next_score_with_context(
+        ctx, REDIS_INCOMING_PREFIX + ":next_score", this->incoming_set_next_score.load());
 
     if (is_transactional) {
         lock_guard<mutex> composite_type_hashes_map_lock(this->composite_type_hashes_map_mutex);

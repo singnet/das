@@ -66,6 +66,12 @@ run-busnode:
 run-client:
 	@bash ./src/scripts/run.sh busclient $(filter-out $@, $(MAKECMDGOALS)) $(OPTIONS)
 
+run-busnode:
+	@bash ./src/scripts/run.sh busnode $(filter-out $@, $(MAKECMDGOALS)) $(OPTIONS)
+
+run-client:
+	@bash ./src/scripts/run.sh busclient $(filter-out $@, $(MAKECMDGOALS)) $(OPTIONS)
+
 run-inference-agent-client:
 	@bash -x src/scripts/run.sh busclient --service=inference-agent $(OPTIONS)
 

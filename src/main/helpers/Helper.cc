@@ -47,7 +47,7 @@ Required arguments:
 Link Creation Agent:
 This processor manages link creation requests from the service bus.
 Optional arguments:
-    - request-interval: Interval between processing requests (default: 5 second)
+    - request-interval: Interval between processing requests (default: 5 seconds)
     - thread-count: Number of threads to use for processing (default: 1)
     - default-timeout: Default timeout for link creation requests in seconds (default: 180)
     - buffer-file: Path to the file used for buffering requests (default: "requests_buffer.bin")

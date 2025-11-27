@@ -32,7 +32,13 @@ shared_ptr<RedisContext> RedisContextPool::acquire() {
     if (!pool.empty()) {
         auto ctx = pool.front();
         pool.pop();
-        return ctx;
+        if (ctx->ping()) {
+            LOG_DEBUG("Context is alive, returning to the caller.");
+            return shared_ptr<RedisContext>(ctx.get(),
+                                            [this, ctx](RedisContext* ptr) { this->release(ctx); });
+        }
+        LOG_DEBUG("Context is not alive, creating a new one.");
+        total_contexts--;
     }
 
     // Create a new context if the pool is empty
@@ -83,9 +89,9 @@ shared_ptr<RedisContext> RedisContextPool::acquire() {
 
 void RedisContextPool::release(shared_ptr<RedisContext> ctx) {
     if (!ctx) return;
-
     unique_lock<mutex> lock(this->pool_mutex);
     pool.push(ctx);
-    total_contexts--;
-    pool_cond_var.notify_one();
+    LOG_DEBUG("Context added to the pool (size: " << pool.size()
+                                                  << ", contexts: " << to_string(total_contexts) << ")");
+    pool_cond_var.notify_all();
 }
