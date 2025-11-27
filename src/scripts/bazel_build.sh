@@ -30,48 +30,33 @@ if [ "$BUILD_BINARIES" = false ] && [ "$BUILD_WHEELS" = false ]; then
 fi
 
 if [ "$BUILD_BINARIES" = true ]; then
-    BUILD_TARGETS+=" //:inference_agent_server"
-    BUILD_TARGETS+=" //:inference_agent_client"
-    BUILD_TARGETS+=" //:link_creation_server"
-    BUILD_TARGETS+=" //:link_creation_agent_client"
-    BUILD_TARGETS+=" //:word_query"
-    BUILD_TARGETS+=" //:word_query_evolution"
-    BUILD_TARGETS+=" //:implication_query_evolution"
+    # Binaries
+    BUILD_TARGETS+=" //:das"
     BUILD_TARGETS+=" //:attention_broker_service"
     BUILD_TARGETS+=" //:attention_broker_client"
-    BUILD_TARGETS+=" //:query_broker"
-    BUILD_TARGETS+=" //:evolution_broker"
-    BUILD_TARGETS+=" //:evolution_client"
-    BUILD_TARGETS+=" //:query"
-    BUILD_TARGETS+=" //:das"
-    BUILD_TARGETS+=" //:tests_db_loader"
-    BUILD_TARGETS+=" //:context_broker"
-    BUILD_TARGETS+=" //:atomdb_broker"
-    BUILD_TARGETS+=" //:atomdb_broker_client"
     BUILD_TARGETS+=" //:busnode"
     BUILD_TARGETS+=" //:busclient"
 
-    MOVE_BIN_TARGETS+=" bazel-bin/inference_agent_server"
-    MOVE_BIN_TARGETS+=" bazel-bin/inference_agent_client"
-    MOVE_BIN_TARGETS+=" bazel-bin/link_creation_server"
-    MOVE_BIN_TARGETS+=" bazel-bin/link_creation_agent_client"
-    MOVE_BIN_TARGETS+=" bazel-bin/word_query"
-    MOVE_BIN_TARGETS+=" bazel-bin/word_query_evolution"
-    MOVE_BIN_TARGETS+=" bazel-bin/implication_query_evolution"
+    # Other binaries
+    BUILD_TARGETS+=" //:word_query"
+    BUILD_TARGETS+=" //:word_query_evolution"
+    BUILD_TARGETS+=" //:implication_query_evolution"
+    BUILD_TARGETS+=" //:tests_db_loader"
+
+    # Move targets
+    MOVE_LIB_TARGETS+=" bazel-bin/hyperon_das.so"
     MOVE_BIN_TARGETS+=" bazel-bin/attention_broker_service"
     MOVE_BIN_TARGETS+=" bazel-bin/attention_broker_client"
-    MOVE_BIN_TARGETS+=" bazel-bin/query_broker"
-    MOVE_BIN_TARGETS+=" bazel-bin/evolution_broker"
-    MOVE_BIN_TARGETS+=" bazel-bin/evolution_client"
-    MOVE_BIN_TARGETS+=" bazel-bin/query"
-    MOVE_BIN_TARGETS+=" bazel-bin/tests_db_loader"
-    MOVE_BIN_TARGETS+=" bazel-bin/context_broker"
-    MOVE_BIN_TARGETS+=" bazel-bin/atomdb_broker"
-    MOVE_BIN_TARGETS+=" bazel-bin/atomdb_broker_client"
     MOVE_BIN_TARGETS+=" bazel-bin/busnode"
     MOVE_BIN_TARGETS+=" bazel-bin/busclient"
 
-    MOVE_LIB_TARGETS+=" bazel-bin/hyperon_das.so"
+    # Other binaries
+    MOVE_BIN_TARGETS+=" bazel-bin/word_query"
+    MOVE_BIN_TARGETS+=" bazel-bin/word_query_evolution"
+    MOVE_BIN_TARGETS+=" bazel-bin/implication_query_evolution"
+    MOVE_BIN_TARGETS+=" bazel-bin/tests_db_loader"
+
+
 fi
 
 if [ "$BUILD_WHEELS" = true ]; then
