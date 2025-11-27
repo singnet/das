@@ -269,3 +269,23 @@ cc_binary(
         "//main:atomdb_broker_client_lib",
     ],
 )
+
+cc_binary(
+    name = "busnode",
+    srcs = [],
+    defines = ["BAZEL_BUILD"],
+    linkstatic = 1,
+    deps = [
+        "//main:bus_node_lib",
+    ],
+)
+
+cc_binary(
+    name = "busclient",
+    srcs = [],
+    defines = ["BAZEL_BUILD"],
+    linkstatic = 1,
+    deps = [
+        "//main:bus_client_lib",
+    ],
+)
