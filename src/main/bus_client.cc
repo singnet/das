@@ -64,28 +64,24 @@ int main(int argc, char* argv[]) {
         shared_ptr<ServiceBus> service_bus = ServiceBusSingleton::get_instance();
         service_bus->issue_bus_command(proxy);
 
-        // Special case for AtomDBBroker client
-        // Note to reviewer: The original client doesn't work, this also doesn't work but maintains
-        // the original structure. Proper fix will be done later.
-        // if (cmd_args["service"] == "atomdb-broker") {
-        //     auto action = props.get_or<string>("action", "");
-        //     auto tokens_str = props.get_or<string>("tokens", "");
-        //     vector<string> tokens = Utils::split(tokens_str, ' ');
-        //     shared_ptr<atomdb_broker::AtomDBProxy> atomdb_proxy =
-        //         dynamic_pointer_cast<atomdb_broker::AtomDBProxy>(proxy);
-        //     if (action == atomdb_broker::AtomDBProxy::ADD_ATOMS) {
-        //         auto atoms = atomdb_proxy->build_atoms_from_tokens(tokens);
-        //         vector<string> response = atomdb_proxy->add_atoms(atoms);
-        //         if (response.empty()) {
-        //             cout << "No answers" << endl;
-        //         } else {
-        //             for (auto resp : response) {
-        //                 cout << "handle: " << resp << endl;
-        //             }
-        //         }
-        //     }
-        //     return 0;
-        // }
+        if (cmd_args["service"] == "atomdb-broker") {
+            auto action = props.get_or<string>("action", "");
+            auto tokens_str = props.get_or<string>("tokens", "");
+            vector<string> tokens = Utils::split(tokens_str, ' ');
+            shared_ptr<atomdb_broker::AtomDBProxy> atomdb_proxy =
+                dynamic_pointer_cast<atomdb_broker::AtomDBProxy>(proxy);
+            if (action == atomdb_broker::AtomDBProxy::ADD_ATOMS) {
+                vector<string> response = atomdb_proxy->add_atoms(atoms, false);
+                if (response.empty()) {
+                    cout << "No answers" << endl;
+                } else {
+                    for (auto resp : response) {
+                        cout << "handle: " << resp << endl;
+                    }
+                }
+            }
+            return 0;
+        }
 
         // Default case for other clients
         while (proxy->finished() == false && Helper::is_running) {
