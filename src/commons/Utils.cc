@@ -66,6 +66,33 @@ map<string, string> Utils::parse_config(string const& config_path) {
     return config;
 }
 
+map<string, string> Utils::parse_command_line(int argc, char* argv[], char delimiter) {
+    map<string, string> cmd_args;
+    for (int i = 1; i < argc; i++) {
+        string arg_str(argv[i]);
+        auto tokens = Utils::split(arg_str, delimiter);
+        if (tokens.size() == 2) {
+            replace_all(tokens[0], "--", "");  // Remove leading dashes
+            string value = tokens[1];
+            for (int j = i + 1; j < argc; j++) {
+                string next_arg_str(argv[j]);
+                if (next_arg_str.rfind("--", 0) == 0) {
+                    break;
+                } else {
+                    value += " " + next_arg_str;
+                    i++;
+                }
+            }
+            cmd_args[tokens[0]] = value;
+        }
+        if (tokens.size() == 1) {
+            replace_all(tokens[0], "--", "");  // Remove leading dashes
+            cmd_args[tokens[0]] = "true";
+        }
+    }
+    return cmd_args;
+}
+
 vector<string> Utils::split(const string& s, char delimiter) {
     vector<string> tokens;
     string token;

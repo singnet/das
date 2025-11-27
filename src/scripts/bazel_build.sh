@@ -48,6 +48,8 @@ if [ "$BUILD_BINARIES" = true ]; then
     BUILD_TARGETS+=" //:context_broker"
     BUILD_TARGETS+=" //:atomdb_broker"
     BUILD_TARGETS+=" //:atomdb_broker_client"
+    BUILD_TARGETS+=" //:busnode"
+    BUILD_TARGETS+=" //:busclient"
 
     MOVE_BIN_TARGETS+=" bazel-bin/inference_agent_server"
     MOVE_BIN_TARGETS+=" bazel-bin/inference_agent_client"
@@ -66,6 +68,8 @@ if [ "$BUILD_BINARIES" = true ]; then
     MOVE_BIN_TARGETS+=" bazel-bin/context_broker"
     MOVE_BIN_TARGETS+=" bazel-bin/atomdb_broker"
     MOVE_BIN_TARGETS+=" bazel-bin/atomdb_broker_client"
+    MOVE_BIN_TARGETS+=" bazel-bin/busnode"
+    MOVE_BIN_TARGETS+=" bazel-bin/busclient"
 
     MOVE_LIB_TARGETS+=" bazel-bin/hyperon_das.so"
 fi
