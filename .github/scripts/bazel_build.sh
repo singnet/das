@@ -58,44 +58,26 @@ BAZELISK_BUILD_CMD="${BAZELISK_CMD} build --noshow_progress --strategy=CppCompil
 BAZELISK_RUN_CMD="${BAZELISK_CMD} run"
 
 BAZEL_BINARY_TARGETS=(
-  "//:inference_agent_server"
-  "//:inference_agent_client"
-  "//:link_creation_server"
-  "//:link_creation_agent_client"
   "//:word_query"
   "//:word_query_evolution"
   "//:implication_query_evolution"
   "//:attention_broker_service"
   "//:attention_broker_client"
-  "//:query_broker"
-  "//:evolution_broker"
-  "//:evolution_client"
-  "//:query"
   "//:das"
   "//:tests_db_loader"
-  "//:context_broker"
-  "//:atomdb_broker"
-  "//:atomdb_broker_client"
+  "//:busnode"
+  "//:busclient"
 )
 
 BAZEL_BINARY_OUTPUTS=(
-  "bazel-bin/inference_agent_server"
-  "bazel-bin/inference_agent_client"
-  "bazel-bin/link_creation_server"
-  "bazel-bin/link_creation_agent_client"
   "bazel-bin/word_query"
   "bazel-bin/word_query_evolution"
   "bazel-bin/implication_query_evolution"
   "bazel-bin/attention_broker_service"
   "bazel-bin/attention_broker_client"
-  "bazel-bin/query_broker"
-  "bazel-bin/evolution_broker"
-  "bazel-bin/evolution_client"
-  "bazel-bin/query"
   "bazel-bin/tests_db_loader"
-  "bazel-bin/context_broker"
-  "bazel-bin/atomdb_broker"
-  "bazel-bin/atomdb_broker_client"
+  "bazel-bin/busnode"
+  "bazel-bin/busclient"
 )
 
 BAZEL_LIB_OUTPUTS=(
