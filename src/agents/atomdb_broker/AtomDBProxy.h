@@ -8,6 +8,8 @@
 #include "Atom.h"
 #include "AtomDB.h"
 #include "BaseProxy.h"
+#include "SharedQueue.h"
+#include "ThreadPool.h"
 
 using namespace std;
 using namespace agents;
@@ -27,7 +29,13 @@ class AtomDBProxy : public BaseProxy {
    public:
     // ---------------------------------------------------------------------------------------------
     // Proxy Commands
+    static int THREAD_POOL_SIZE;
+    static size_t MAX_PENDING_ATOMS;
     static string ADD_ATOMS;
+    static string START_STREAM;
+    static string END_STREAM;
+    static string NODE;
+    static string LINK;
 
     // ---------------------------------------------------------------------------------------------
     // Constructor and destructor
@@ -58,25 +66,6 @@ class AtomDBProxy : public BaseProxy {
     virtual void tokenize(vector<string>& output) override;
 
     /**
-     * @brief Build Atom objects from a token stream.
-     *
-     * The returned vector owns newly-allocated Atom pointers; the caller is
-     * responsible for their lifetime (matching the previous behaviour).
-     *
-     * * Token format expected by this method:
-     *
-     * <NODE> <type> <is_toplevel> <number_properties> <property_name> <property_type> <property_value>
-     * <name> <LINK> <type> <is_toplevel> <number_properties> <property_name> <property_type>
-     * <property_value> <number_handles> <handle_1> ... <handle_n>
-     *
-     * If there are no properties <number_properties> should be 0
-     *
-     * @param tokens Token stream describing one or more atoms (NODE/LINK blocks)
-     * @return vector of Atom* reconstructed from tokens.
-     */
-    vector<Atom*> build_atoms_from_tokens(const vector<string>& tokens);
-
-    /**
      * @brief Send atoms to the remote peer and return their local handles.
      *
      * This serializes each atom into the RPC arguments and issues an
@@ -86,7 +75,9 @@ class AtomDBProxy : public BaseProxy {
      * @param atoms Vector of pointers to Atom to be sent.
      * @return Vector of handles corresponding to each atom.
      */
-    vector<string> add_atoms(const vector<Atom*>& atoms);
+    vector<string> add_atoms(const vector<Atom*>& atoms, bool use_streaming = false);
+
+    vector<string> add_atoms(const vector<string>& tokens, bool use_streaming = false);
 
     // ---------------------------------------------------------------------------------------------
     // server-side API
@@ -113,12 +104,56 @@ class AtomDBProxy : public BaseProxy {
      * local AtomDB instance. Any exception during processing will be
      * reported back to the peer.
      */
+
     void handle_add_atoms(const vector<string>& args);
+    template <typename AtomDataType, typename Factory>
+    std::vector<AtomDataType> build_atoms_from_tokens(const vector<string>& tokens, Factory&& factory) {
+        std::vector<AtomDataType> atoms;
+        std::string current;
+        std::vector<std::string> buffer;
+
+        auto flush = [&]() {
+            if (current.empty()) return;
+            atoms.emplace_back(factory(current, buffer));
+            buffer.clear();
+        };
+
+        for (const auto& t : tokens) {
+            if (t == NODE || t == LINK) {
+                if (!current.empty()) flush();
+                current = t;
+            } else {
+                buffer.push_back(t);
+            }
+        }
+
+        if (!current.empty()) flush();
+
+        return atoms;
+    }
+    static std::shared_ptr<Atom> shared_ptr_atom_factory(const string& type, vector<string>& data) {
+        if (type == NODE) return std::make_shared<Node>(data);
+        return std::make_shared<Link>(data);
+    }
+    static Atom* raw_ptr_atom_factory(const string& type, vector<string>& data) {
+        if (type == NODE) return new Node(data);
+        return new Link(data);
+    }
+    void enqueue_request(const vector<string>& tokens);
+    void process_atom_batches();
+    void set_stream(const string& command, const vector<string>& args);
 
     mutex api_mutex;
     shared_ptr<AtomDB> atomdb;
 
     static const size_t BATCH_SIZE;
+    static const size_t COMMAND_SIZE_LIMIT;
+    bool is_processing_buffer = false;
+    SharedQueue* processing_queue = nullptr;
+    size_t pending_atoms_count = 0;
+    thread processing_thread;
+    ThreadPool* thread_pool;
+    bool stop_processing = false;
 };
 
 }  // namespace atomdb_broker
