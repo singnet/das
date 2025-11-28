@@ -141,7 +141,6 @@ class ProxyFactory {
                 string query =
                     params.get<string>("query");  // Note to reviewer: Helper::QUERY is not linking
                 string context = params.get<string>(Helper::CONTEXT);
-                auto proxy = make_shared<PatternMatchingQueryProxy>(Utils::split(query, ' '), context);
                 string uaf = params.get_or<string>(Helper::UNIQUE_ASSIGNMENT_FLAG, "");
                 string auf = params.get_or<string>(Helper::ATTENTION_UPDATE_FLAG, "");
                 string max_answers = params.get_or<string>(Helper::MAX_ANSWERS, "");
@@ -149,6 +148,13 @@ class ProxyFactory {
                 string pmm = params.get_or<string>(Helper::POPULATE_METTA_MAPPING, "");
                 string umaqt = params.get_or<string>(Helper::USE_METTA_AS_QUERY_TOKENS, "");
                 string pif = params.get_or<string>(Helper::POSITIVE_IMPORTANCE_FLAG, "");
+                bool umaqt_flag = umaqt == "true" || umaqt == "1";
+                if (umaqt_flag) {
+                    Utils::replace_all(query, "%", "$");
+                }
+                vector<string> query_tokens =
+                    umaqt_flag ? vector<string>{query} : Utils::split(query, ' ');
+                auto proxy = make_shared<PatternMatchingQueryProxy>(query_tokens, context);
                 auto params = &proxy->parameters;
                 set_param(*params, BaseQueryProxy::UNIQUE_ASSIGNMENT_FLAG, uaf, ParamType::BOOL);
                 set_param(*params, BaseQueryProxy::ATTENTION_UPDATE_FLAG, auf, ParamType::BOOL);
