@@ -18,15 +18,17 @@ AtomDBProcessor::AtomDBProcessor() : BusCommandProcessor({ServiceBus::ATOMDB}) {
     // Run manage_finished_threads in a separate thread
     this->stop_flag = false;
     this->thread_management = thread(&AtomDBProcessor::manage_finished_threads, this);
-    this->thread_management.detach();
 }
 
 AtomDBProcessor::~AtomDBProcessor() {
     LOG_INFO("Shutting down AtomDBProcessor...");
     this->stop_flag = true;
+    LOG_INFO("Waiting for thread management to finish...");
     this->thread_management.join();
+    LOG_INFO("Stopping all query threads...");
     lock_guard<mutex> semaphore(this->query_threads_mutex);
     for (auto& pair : this->query_threads) {
+        LOG_INFO("Stopping thread: " << pair.first);
         pair.second->stop();
     }
 }
