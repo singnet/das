@@ -1,4 +1,5 @@
 import concurrent.futures
+import time
 import uuid
 
 from hyperon_das.commons.atoms import Link, Node
@@ -75,6 +76,8 @@ def test_atomdb_proxy_simple_client():
     assert link == atoms[3]
 
     proxy.add_atoms(atoms)
+
+    time.sleep(1)  # Wait a moment for the data to be committed to the database
 
     decoder = AtomDecoder()
 

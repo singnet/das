@@ -6,9 +6,9 @@ from hyperon_das.commons.properties import Properties
 from hyperon_das.logger import log
 
 DAS_MONGODB_HOSTNAME = "0.0.0.0"
-DAS_MONGODB_PORT = 28000
-DAS_MONGODB_USERNAME = "dbadmin"
-DAS_MONGODB_PASSWORD = "dassecret"
+DAS_MONGODB_PORT = 40021
+DAS_MONGODB_USERNAME = "admin"
+DAS_MONGODB_PASSWORD = "admin"
 
 
 class AtomDecoder(HandleDecoder):
