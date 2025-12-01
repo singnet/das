@@ -77,7 +77,6 @@ TEST_F(AtomDBTest, AddAtoms) {
     auto proxy = make_shared<AtomDBProxy>();
 
     atomdb_broker_client_bus->issue_bus_command(proxy);
-    Utils::sleep(1000);
 
     string name1 = timestamp();
     string name2 = timestamp();
@@ -87,15 +86,26 @@ TEST_F(AtomDBTest, AddAtoms) {
     string node2 = Hasher::node_handle("Symbol", name2);
     string node3 = Hasher::node_handle("Symbol", name3);
 
-    vector<string> tokens = {"NODE", "Symbol",     "false", "3", "is_literal", "bool", "false", name1,
-                             "NODE", "Symbol",     "false", "3", "is_literal", "bool", "true",  name2,
-                             "NODE", "Symbol",     "false", "3", "is_literal", "bool", "true",  name3,
-                             "LINK", "Expression", "true",  "0", "3",          node1,  node2,   node3};
+    vector<string> tokens = {"NODE Symbol false 3 is_literal bool false " + name1,
+                             "NODE Symbol false 3 is_literal bool true " + name2,
+                             "NODE Symbol false 3 is_literal bool true " + name3,
+                             "LINK Expression true 0 3 " + node1 + " " + node2 + " " + node3};
 
     auto link = new Link("Expression", {node1, node2, node3}, true);
     string link_handle = link->handle();
 
-    auto atoms = proxy->build_atoms_from_tokens(tokens);
+    vector<Atom*> atoms;
+    for (auto& token : tokens) {
+        if (token.find("NODE") == 0) {
+            auto parts = Utils::split(token, ' ');
+            parts.erase(parts.begin());
+            atoms.push_back(new Node(parts));
+        } else if (token.find("LINK") == 0) {
+            auto parts = Utils::split(token, ' ');
+            parts.erase(parts.begin());
+            atoms.push_back(new Link(parts));
+        }
+    }
 
     EXPECT_TRUE(atoms[0]->handle() == node1);
     EXPECT_TRUE(atoms[1]->handle() == node2);
@@ -108,6 +118,83 @@ TEST_F(AtomDBTest, AddAtoms) {
     EXPECT_FALSE(db->link_exists(link_handle));
 
     vector<string> handles = proxy->add_atoms(atoms);
+
+    EXPECT_TRUE(handles[0] == node1);
+    EXPECT_TRUE(handles[1] == node2);
+    EXPECT_TRUE(handles[2] == node3);
+    EXPECT_TRUE(handles[3] == link_handle);
+
+    Utils::sleep(2000);
+
+    EXPECT_TRUE(db->node_exists(node1));
+    EXPECT_TRUE(db->node_exists(node2));
+    EXPECT_TRUE(db->node_exists(node3));
+    EXPECT_TRUE(db->link_exists(link_handle));
+}
+
+TEST_F(AtomDBTest, AddAtomsStreaming) {
+    string query_agent_id = "0.0.0.0:52000";
+    string atomdb_broker_server_id = "0.0.0.0:52001";
+    string atomdb_broker_client_id = "0.0.0.0:52002";
+
+    shared_ptr<ServiceBus> service_bus = ServiceBusSingleton::get_instance();
+    service_bus->register_processor(make_shared<PatternMatchingQueryProcessor>());
+    Utils::sleep(500);
+
+    shared_ptr<ServiceBus> atomdb_broker_server_bus =
+        make_shared<ServiceBus>(atomdb_broker_server_id, query_agent_id);
+    Utils::sleep(500);
+    atomdb_broker_server_bus->register_processor(make_shared<AtomDBProcessor>());
+    Utils::sleep(500);
+
+    shared_ptr<ServiceBus> atomdb_broker_client_bus =
+        make_shared<ServiceBus>(atomdb_broker_client_id, atomdb_broker_server_id);
+    Utils::sleep(500);
+
+    auto proxy = make_shared<AtomDBProxy>();
+
+    atomdb_broker_client_bus->issue_bus_command(proxy);
+
+    string name1 = timestamp();
+    string name2 = timestamp();
+    string name3 = timestamp();
+
+    string node1 = Hasher::node_handle("Symbol", name1);
+    string node2 = Hasher::node_handle("Symbol", name2);
+    string node3 = Hasher::node_handle("Symbol", name3);
+
+    vector<string> tokens = {"NODE Symbol false 3 is_literal bool false " + name1,
+                             "NODE Symbol false 3 is_literal bool true " + name2,
+                             "NODE Symbol false 3 is_literal bool true " + name3,
+                             "LINK Expression true 0 3 " + node1 + " " + node2 + " " + node3};
+
+    auto link = new Link("Expression", {node1, node2, node3}, true);
+    string link_handle = link->handle();
+
+    vector<Atom*> atoms;
+    for (auto& token : tokens) {
+        if (token.find("NODE") == 0) {
+            auto parts = Utils::split(token, ' ');
+            parts.erase(parts.begin());
+            atoms.push_back(new Node(parts));
+        } else if (token.find("LINK") == 0) {
+            auto parts = Utils::split(token, ' ');
+            parts.erase(parts.begin());
+            atoms.push_back(new Link(parts));
+        }
+    }
+
+    EXPECT_TRUE(atoms[0]->handle() == node1);
+    EXPECT_TRUE(atoms[1]->handle() == node2);
+    EXPECT_TRUE(atoms[2]->handle() == node3);
+    EXPECT_TRUE(atoms[3]->handle() == link_handle);
+
+    EXPECT_FALSE(db->node_exists(node1));
+    EXPECT_FALSE(db->node_exists(node2));
+    EXPECT_FALSE(db->node_exists(node3));
+    EXPECT_FALSE(db->link_exists(link_handle));
+
+    vector<string> handles = proxy->add_atoms(atoms, true);
 
     EXPECT_TRUE(handles[0] == node1);
     EXPECT_TRUE(handles[1] == node2);

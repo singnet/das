@@ -56,7 +56,6 @@ cc_library(
     srcs = ["LinkCreationService.cc"],
     hdrs = [
         "LinkCreationService.h",
-        "ThreadPool.h",
     ],
     deps = [
         ":link_creation_agent_request",
