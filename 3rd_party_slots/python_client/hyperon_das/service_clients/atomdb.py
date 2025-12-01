@@ -7,8 +7,12 @@ from hyperon_das.service_clients.base import BaseProxy
 
 
 class AtomDBProxy(BaseProxy):
+    COMMAND_SIZE_LIMIT = 50
 
+    # Proxy Commands
     ADD_ATOMS = "add_atoms"
+    START_STREAM = "start_stream"
+    END_STREAM = "end_stream"
 
     def __init__(self) -> None:
         super().__init__()
@@ -63,7 +67,7 @@ class AtomDBProxy(BaseProxy):
 
             return atoms
 
-    def add_atoms(self, atoms: list[Atom]) -> list[str]:
+    def add_atoms(self, atoms: list[Atom], use_streaming: bool = False) -> list[str]:
         """
         Serialize atoms, send `ADD_ATOMS` to the remote peer, and return their handles.
 
@@ -79,6 +83,10 @@ class AtomDBProxy(BaseProxy):
         """
         args = []
         handles = []
+        stream_info = [str(len(atoms))]
+
+        if use_streaming:
+            self.to_remote_peer(self.START_STREAM, stream_info)
 
         for atom in atoms:
             atom_type = "NODE" if atom.arity() == 0 else "LINK"
@@ -86,6 +94,11 @@ class AtomDBProxy(BaseProxy):
             atom.tokenize(args)
             handles.append(atom.handle)
 
-        self.to_remote_peer(self.ADD_ATOMS, args)
+            if len(args) > self.COMMAND_SIZE_LIMIT or atom == atoms[-1]:
+                self.to_remote_peer(self.ADD_ATOMS, args)
+                args.clear()
+
+        if use_streaming:
+            self.to_remote_peer(self.END_STREAM, [])
 
         return handles
