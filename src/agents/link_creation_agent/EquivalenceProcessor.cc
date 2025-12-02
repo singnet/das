@@ -35,7 +35,7 @@ static vector<string> build_equivalence_query(const string& handle) {
                     "VARIABLE", P2,
                     "ATOM", handle,
                 "LINK_TEMPLATE", "Expression", "3",
-                    "NODE", "Symbol", "Equivalence",
+                    "NODE", "Symbol", "Implication",
                     "VARIABLE", P2,
                     "VARIABLE", P1
     };

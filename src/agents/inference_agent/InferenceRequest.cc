@@ -259,13 +259,23 @@ ProofOfImplication::ProofOfImplication() : InferenceRequest() { this->command = 
 vector<string> ProofOfImplication::query() {
     // clang-format off
     vector<string> tokens = {
+        // "AND", "2",
+        //     "LINK_TEMPLATE", "Expression", "2",
+        //         "NODE", "Symbol", "Predicate",
+        //         "VARIABLE", "P1",
+        //     "LINK_TEMPLATE", "Expression", "2",
+        //         "NODE", "Symbol", "Predicate",
+        //         "VARIABLE", "P2",
+
         "AND", "2",
-            "LINK_TEMPLATE", "Expression", "2",
-                "NODE", "Symbol", "Predicate",
+            "LINK_TEMPLATE", "Expression", "3",
+                "NODE", "Symbol", "Evaluation",
                 "VARIABLE", "P1",
-            "LINK_TEMPLATE", "Expression", "2",
-                "NODE", "Symbol", "Predicate",
+                "VARIABLE", "C",
+            "LINK_TEMPLATE", "Expression", "3",
+                "NODE", "Symbol", "Evaluation",
                 "VARIABLE", "P2",
+                "VARIABLE", "C",
 
 
         // "AND", "2",
@@ -370,12 +380,21 @@ ProofOfEquivalence::ProofOfEquivalence() : InferenceRequest() { this->command = 
 vector<string> ProofOfEquivalence::query() {
     // clang-format off
     vector<string> tokens = {
+        // "AND", "2",
+        // "LINK_TEMPLATE", "Expression", "2",
+        //     "NODE", "Symbol", "Concept",
+        //     "VARIABLE", "C1",
+        // "LINK_TEMPLATE", "Expression", "2",
+        //     "NODE", "Symbol", "Concept",
+        //     "VARIABLE", "C2",
         "AND", "2",
-        "LINK_TEMPLATE", "Expression", "2",
-            "NODE", "Symbol", "Concept",
+        "LINK_TEMPLATE", "Expression", "3",
+            "NODE", "Symbol", "Evaluation",
+            "VARIABLE", "P",
             "VARIABLE", "C1",
-        "LINK_TEMPLATE", "Expression", "2",
-            "NODE", "Symbol", "Concept",
+        "LINK_TEMPLATE", "Expression", "3",
+            "NODE", "Symbol", "Evaluation",
+            "VARIABLE", "P",
             "VARIABLE", "C2",
         // "NOT",
         //     "OR",

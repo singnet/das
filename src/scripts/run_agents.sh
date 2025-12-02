@@ -78,7 +78,7 @@ AGENTS=(
     "busnode --service=query-engine --endpoint=$QUERY_AGENT_NODE_ID --ports-range=$QUERY_AGENT_START_END_PORT --attention-broker-endpoint=$ATTENTION_BROKER_NODE_ID;src/scripts/run.sh"
     "busnode --service=context-broker --endpoint=$CONTEXT_BROKER_NODE_ID --ports-range=$CONTEXT_BROKER_START_END_PORT --bus-endpoint=$QUERY_AGENT_NODE_ID --attention-broker-endpoint=$ATTENTION_BROKER_NODE_ID;src/scripts/run.sh"
     "busnode --service=link-creation-agent --endpoint=$LINK_CREATION_AGENT_NODE_ID --bus-endpoint=$QUERY_AGENT_NODE_ID --ports-range=$LINK_CREATION_START_END_PORT --request-interval=$LINK_CREATION_REQUESTS_INTERVAL_SECONDS --thread-count=$LINK_CREATION_AGENT_THREAD_COUNT --default-timeout=$LINK_CREATION_QUERY_TIMEOUT_SECONDS --buffer-file=$LINK_CREATION_REQUESTS_BUFFER_FILE --metta-file-path=$LINK_CREATION_METTA_FILE_PATH --save-links-to-metta=$SAVE_LINKS_TO_METTA --save-links-to-db=$SAVE_LINKS_TO_DB;src/scripts/run.sh"
-    "busnode --service=inference-agent --endpoint=$INFERENCE_AGENT_NODE_ID --bus-endpoint=$QUERY_AGENT_NODE_ID --ports-range=$INFERENCE_AGENT_START_END_PORT;src/scripts/run.sh"
+    "busnode --service=inference-agent --endpoint=$INFERENCE_AGENT_NODE_ID --bus-endpoint=$QUERY_AGENT_NODE_ID --ports-range=$INFERENCE_AGENT_START_END_PORT --attention-broker-endpoint=$ATTENTION_BROKER_NODE_ID;src/scripts/run.sh"
     "busnode --service=evolution-agent --endpoint=$EVOLUTION_NODE_ID --ports-range=$EVOLUTION_START_END_PORT --bus-endpoint=$QUERY_AGENT_NODE_ID --attention-broker-endpoint=$ATTENTION_BROKER_NODE_ID;src/scripts/run.sh"
 )
 
