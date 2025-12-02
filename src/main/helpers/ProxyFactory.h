@@ -107,24 +107,30 @@ class ProxyFactory {
                     "query", "");  // Note to reviewer: Helper::QUERY is not linking
                 string determiner_schema = params.get<string>(Helper::DETERMINER_SCHEMA);
                 string stimulus_schema = params.get<string>(Helper::STIMULUS_SCHEMA);
-                // auto proxy = make_shared<ContextBrokerProxy>();
-                // auto use_cache = params.get<string>(Helper::USE_CONTEXT_CACHE);
-                // auto enforce_cache_recreation = params.get<string>(Helper::ENFORCE_CACHE_RECREATION);
-                // auto initial_rent_rate = params.get<string>(Helper::INITIAL_RENT_RATE);
-                // auto initial_spreading_rate_lowerbound =
-                //     params.get<string>(Helper::INITIAL_SPREADING_RATE_LOWERBOUND);
-                // auto initial_spreading_rate_upperbound =
-                //     params.get<string>(Helper::INITIAL_SPREADING_RATE_UPPERBOUND);
-                // proxy->parameters[ContextBrokerProxy::USE_CACHE] =
-                //     (use_cache == "true" || use_cache == "1");
-                // proxy->parameters[ContextBrokerProxy::ENFORCE_CACHE_RECREATION] =
-                //     (enforce_cache_recreation == "true" || enforce_cache_recreation == "1");
-                // proxy->parameters[ContextBrokerProxy::INITIAL_RENT_RATE] = stod(initial_rent_rate);
-                // proxy->parameters[ContextBrokerProxy::INITIAL_SPREADING_RATE_LOWERBOUND] =
-                //     stod(initial_spreading_rate_lowerbound);
-                // proxy->parameters[ContextBrokerProxy::INITIAL_SPREADING_RATE_UPPERBOUND] =
-                //     stod(initial_spreading_rate_upperbound);
-                return nullptr;
+                auto proxy = make_shared<ContextBrokerProxy>(
+                    context, Utils::split(query, ' '), determiner_schema, stimulus_schema);
+                auto params = &proxy->parameters;
+                set_param(*params,
+                          ContextBrokerProxy::USE_CACHE,
+                          params.get_or<string>(Helper::USE_CONTEXT_CACHE, ""),
+                          ParamType::BOOL);
+                set_param(*params,
+                          ContextBrokerProxy::ENFORCE_CACHE_RECREATION,
+                          params.get_or<string>(Helper::ENFORCE_CACHE_RECREATION, ""),
+                          ParamType::BOOL);
+                set_param(*params,
+                          ContextBrokerProxy::INITIAL_RENT_RATE,
+                          params.get_or<string>(Helper::INITIAL_RENT_RATE, ""),
+                          ParamType::DOUBLE);
+                set_param(*params,
+                          ContextBrokerProxy::INITIAL_SPREADING_RATE_LOWERBOUND,
+                          params.get_or<string>(Helper::INITIAL_SPREADING_RATE_LOWERBOUND, ""),
+                          ParamType::DOUBLE);
+                set_param(*params,
+                          ContextBrokerProxy::INITIAL_SPREADING_RATE_UPPERBOUND,
+                          params.get_or<string>(Helper::INITIAL_SPREADING_RATE_UPPERBOUND, ""),
+                          ParamType::DOUBLE);
+                return proxy;
             }
             case ProcessorType::EVOLUTION_AGENT: {
                 string query =
@@ -167,8 +173,6 @@ class ProxyFactory {
                 return proxy;
             }
             case ProcessorType::ATOMDB_BROKER: {
-                // string action = params.get_or<string>(Helper::ACTION, "");
-                // string tokens = params.get_or<string>(Helper::TOKENS, "");
                 return make_shared<AtomDBProxy>();
             }
             default:
