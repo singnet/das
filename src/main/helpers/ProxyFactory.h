@@ -112,23 +112,23 @@ class ProxyFactory {
                 auto params = &proxy->parameters;
                 set_param(*params,
                           ContextBrokerProxy::USE_CACHE,
-                          params.get_or<string>(Helper::USE_CONTEXT_CACHE, ""),
+                          params->get_or<string>(Helper::USE_CONTEXT_CACHE, ""),
                           ParamType::BOOL);
                 set_param(*params,
                           ContextBrokerProxy::ENFORCE_CACHE_RECREATION,
-                          params.get_or<string>(Helper::ENFORCE_CACHE_RECREATION, ""),
+                          params->get_or<string>(Helper::ENFORCE_CACHE_RECREATION, ""),
                           ParamType::BOOL);
                 set_param(*params,
                           ContextBrokerProxy::INITIAL_RENT_RATE,
-                          params.get_or<string>(Helper::INITIAL_RENT_RATE, ""),
+                          params->get_or<string>(Helper::INITIAL_RENT_RATE, ""),
                           ParamType::DOUBLE);
                 set_param(*params,
                           ContextBrokerProxy::INITIAL_SPREADING_RATE_LOWERBOUND,
-                          params.get_or<string>(Helper::INITIAL_SPREADING_RATE_LOWERBOUND, ""),
+                          params->get_or<string>(Helper::INITIAL_SPREADING_RATE_LOWERBOUND, ""),
                           ParamType::DOUBLE);
                 set_param(*params,
                           ContextBrokerProxy::INITIAL_SPREADING_RATE_UPPERBOUND,
-                          params.get_or<string>(Helper::INITIAL_SPREADING_RATE_UPPERBOUND, ""),
+                          params->get_or<string>(Helper::INITIAL_SPREADING_RATE_UPPERBOUND, ""),
                           ParamType::DOUBLE);
                 return proxy;
             }
