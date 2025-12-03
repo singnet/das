@@ -11,5 +11,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Setup bazel
+        run: .github/scripts/setup_bazel.sh
+
       - name: Run format check
-        run: make format-check
+        working-directory: ./src
+        run: |
+          ./scripts/bazel_exec.sh run //:format.check

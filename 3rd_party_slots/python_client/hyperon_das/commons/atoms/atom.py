@@ -20,14 +20,26 @@ class Atom:
         other=None,
     ) -> None:
         if other:
-            self.type = other.type
+            self._type = other.type
             self.is_toplevel = other.is_toplevel
             self.custom_attributes = copy.deepcopy(other.custom_attributes)
         else:
-            self.type = type
+            self._type = type
             self.is_toplevel = is_toplevel
             self.custom_attributes = custom_attributes if custom_attributes is not None else Properties()
             self.validate()
+
+    @property
+    def type(self) -> str:
+        return self._type
+
+    @type.setter
+    def type(self, value: str) -> None:
+        self._type = value
+
+        # If the handle has already been calculated, delete it.
+        if "handle" in self.__dict__:
+            del self.__dict__["handle"]
 
     def __eq__(self, other: 'Atom') -> bool:
         if not isinstance(other, Atom):
@@ -72,17 +84,17 @@ class Atom:
         return self.named_type_hash()
 
     def schema_handle(self) -> str:
-        return self.handle()
+        return self.handle
 
     def arity(self) -> int:
         return 0
 
     def tokenize(self, output: list[str]) -> None:
+        output.append(self.type)
+        output.append("true" if self.is_toplevel else "false")
         parameters_tokens = self.custom_attributes.tokenize()
         parameters_tokens.insert(0, str(len(parameters_tokens)))
-        output[0:0] = parameters_tokens
-        output.insert(0, "true" if self.is_toplevel else "false")
-        output.insert(0, self.type)
+        output.extend(parameters_tokens)
 
     def untokenize(self, tokens: list[str]) -> None:
         self.type = tokens[0]

@@ -102,7 +102,7 @@ void check_query(const string& query_tag,
 
     // giving time to the server to close the previous connection
     // otherwise the test fails with "Node ID already in the network"
-    Utils::sleep(3000);
+    Utils::sleep();
 
     client_bus->issue_bus_command(proxy2);
     while (!proxy2->finished()) {
@@ -113,7 +113,7 @@ void check_query(const string& query_tag,
 
     // giving time to the server to close the previous connection
     // otherwise the test fails with "Node ID already in the network"
-    Utils::sleep(3000);
+    Utils::sleep();
 
     if (metta_expression != "") {
         client_bus->issue_bus_command(proxy3);
@@ -147,11 +147,11 @@ TEST(PatternMatchingQuery, queries) {
     string peer2_id = "localhost:40042";
 
     ServiceBus* server_bus = new ServiceBus(peer1_id);
-    Utils::sleep(500);
+    Utils::sleep();
     server_bus->register_processor(make_shared<PatternMatchingQueryProcessor>());
-    Utils::sleep(500);
+    Utils::sleep();
     ServiceBus* client_bus = new ServiceBus(peer2_id, peer1_id);
-    Utils::sleep(500);
+    Utils::sleep();
 
     // clang-format off
     vector<string> q1 = {
@@ -284,6 +284,5 @@ TEST(PatternMatchingQuery, queries) {
     }
     EXPECT_EQ(count, 1);
 
-    Utils::sleep(2000);
     // clang-format on
 }

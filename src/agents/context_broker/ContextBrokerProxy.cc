@@ -72,6 +72,34 @@ ContextBrokerProxy::ContextBrokerProxy(
     this->context_created = false;
 }
 
+ContextBrokerProxy::ContextBrokerProxy(const string& name,
+                                       const vector<string>& query,
+                                       const string& determiner_schema,
+                                       const string& stimulus_schema)
+    : BaseQueryProxy(query, name) {
+    // Constructor for query-based context
+    this->command = ServiceBus::CONTEXT;
+    // Parse determiner_schema
+    auto determiner_list = Utils::split(determiner_schema, ',');
+    for (auto item : determiner_list) {
+        auto pair = Utils::split(item, ':');
+        if (pair.size() == 2) {
+            this->determiner_schema.push_back(make_pair(QueryAnswerElement::from_string(pair[0]),
+                                                        QueryAnswerElement::from_string(pair[1])));
+        }
+    }
+    // Parse stimulus_schema
+    auto stimulus_list = Utils::split(stimulus_schema, ',');
+    for (auto item : stimulus_list) {
+        this->stimulus_schema.push_back(QueryAnswerElement::from_string(item));
+    }
+    set_default_query_parameters();
+    init(name);
+    this->update_attention_broker_parameters = false;
+    this->ongoing_attention_broker_set_parameters = false;
+    this->context_created = false;
+}
+
 ContextBrokerProxy::~ContextBrokerProxy() { this->abort(); }
 
 // -------------------------------------------------------------------------------------------------

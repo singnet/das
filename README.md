@@ -227,10 +227,13 @@ The expected output is like this:
 Server starting. 15 worker threads. Listening on 0.0.0.0:8000...
 ```
 
-Now we need to load the testing knowledge base into Mork.
+Now we need to copy the testing knowledge base to `/tmp` and load into Mork.
+```
+cp src/tests/assets/animals_extended.metta /tmp
+```
 
 ```
-make mork-loader FILE=/home/senna/work/projects/das/github/das/src/tests/assets/animals_extended.metta
+make mork-loader FILE=/tmp/animals_extended.metta
 ```
 
 The expected output is like this:

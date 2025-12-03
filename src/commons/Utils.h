@@ -2,6 +2,7 @@
 #define _COMMONS_UTILS_H
 
 #include <chrono>
+#include <functional>
 #include <map>
 #include <string>
 #include <vector>
@@ -68,6 +69,11 @@ class Utils {
     static unsigned long get_current_ram_usage();  // Kbytes
     static bool is_port_available(unsigned int port);
     static void replace_all(string& base_string, const string& from, const string& to);
+    static map<string, string> parse_command_line(int argc, char* argv[], char delimiter = '=');
+    static void retry_function(function<void()> func,
+                               unsigned int max_retries,
+                               unsigned int wait_millis,
+                               const string& function_name = "");
 };
 
 }  // namespace commons

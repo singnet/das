@@ -1,6 +1,12 @@
 name: Unit Tests
 
 on:
+  workflow_dispatch:
+    inputs:
+      runner:
+        description: Choose a runner tag to run this workflow (e.g self-hosted, ubuntu-latest)
+        required: true
+        type: string
   workflow_call:
     inputs:
       runner:
@@ -9,7 +15,10 @@ on:
 
 jobs:
   unit-tests:
-    runs-on: ${{ inputs.runner }}
+    runs-on:
+      - self-hosted
+      - amd64
+      - ${{ inputs.runner }}
     env:
       DAS_REDIS_HOSTNAME: localhost
       DAS_REDIS_PORT: 40020
@@ -37,30 +46,22 @@ jobs:
 
       - name: Setting das-cli configuration
         run: |-
-          das-cli config set <<EOF
-          $DAS_REDIS_PORT
-          n
-          $DAS_MONGODB_PORT
-          $DAS_MONGODB_USERNAME
-          $DAS_MONGODB_PASSWORD
-          n
-          40019
-          40001
-          40002
-          40003
-          40004
-          40005
-          40006
-          EOF
+          das-cli config set services.database.atomdb_backend=redis_mongodb
 
       - name: Starting Redis and MongoDB
-        run: das-cli db start
+        run: das-cli db restart
 
-      - name: Build source code
-        run: make build-all
+      - name: Loading Load Knowledge Base
+        run: das-cli metta load /tmp/animals.metta
+
+      - name: Setup bazel
+        run: .github/scripts/setup_bazel.sh
+
+      - name: Compile Binaries
+        run: .github/scripts/bazel_build.sh
 
       - name: Starting Attention Broker
-        run: das-cli attention-broker start
+        run: das-cli attention-broker restart
 
       - name: Starting MORK Server and Load Knowledge Base
         run: |-

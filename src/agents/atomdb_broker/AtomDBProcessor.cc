@@ -6,7 +6,7 @@
 #include "StoppableThread.h"
 #include "Utils.h"
 
-#define LOG_LEVEL INFO_LEVEL
+#define LOG_LEVEL DEBUG_LEVEL
 #include "Logger.h"
 
 using namespace atomdb_broker;
@@ -14,9 +14,24 @@ using namespace atomdb_broker;
 // -------------------------------------------------------------------------------------------------
 // Constructor and destructor
 
-AtomDBProcessor::AtomDBProcessor() : BusCommandProcessor({ServiceBus::ATOMDB}) {}
+AtomDBProcessor::AtomDBProcessor() : BusCommandProcessor({ServiceBus::ATOMDB}) {
+    // Run manage_finished_threads in a separate thread
+    this->stop_flag = false;
+    this->thread_management = thread(&AtomDBProcessor::manage_finished_threads, this);
+}
 
-AtomDBProcessor::~AtomDBProcessor() {}
+AtomDBProcessor::~AtomDBProcessor() {
+    LOG_INFO("Shutting down AtomDBProcessor...");
+    this->stop_flag = true;
+    LOG_INFO("Waiting for thread management to finish...");
+    this->thread_management.join();
+    LOG_INFO("Stopping all query threads...");
+    lock_guard<mutex> semaphore(this->query_threads_mutex);
+    for (auto& pair : this->query_threads) {
+        LOG_INFO("Stopping thread: " << pair.first);
+        pair.second->stop();
+    }
+}
 
 // -------------------------------------------------------------------------------------------------
 // Public methods
@@ -41,11 +56,11 @@ void AtomDBProcessor::run_command(shared_ptr<BusCommandProxy> proxy) {
 
 void AtomDBProcessor::thread_process_one_query(shared_ptr<StoppableThread> monitor,
                                                shared_ptr<AtomDBProxy> proxy) {
+    string command = proxy->get_command();
     try {
         proxy->untokenize(proxy->args);
-        string command = proxy->get_command();
         if (command == ServiceBus::ATOMDB) {
-            while (!proxy->is_aborting()) {
+            while (!proxy->is_aborting() && !this->stop_flag) {
                 Utils::sleep();
             }
         } else {
@@ -57,4 +72,23 @@ void AtomDBProcessor::thread_process_one_query(shared_ptr<StoppableThread> monit
         proxy->raise_error_on_peer(exception.what());
     }
     LOG_DEBUG("Command finished: <" << command << ">");
+
+    LOG_INFO("Aborting command: <" << command << "> in thread: " << monitor->get_id());
+    this->query_threads[monitor->get_id()]->stop(false);
+}
+
+void AtomDBProcessor::manage_finished_threads() {
+    while (!this->stop_flag) {
+        for (auto it = this->query_threads.begin(); it != this->query_threads.end();) {
+            if (it->second->stopped()) {
+                lock_guard<mutex> semaphore(this->query_threads_mutex);
+                LOG_DEBUG("Removing finished thread: " << it->first);
+                it->second->stop();
+                it = this->query_threads.erase(it);
+            } else {
+                ++it;
+            }
+        }
+        Utils::sleep(1000);
+    }
 }

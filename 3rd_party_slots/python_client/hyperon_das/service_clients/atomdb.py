@@ -7,8 +7,12 @@ from hyperon_das.service_clients.base import BaseProxy
 
 
 class AtomDBProxy(BaseProxy):
+    COMMAND_SIZE_LIMIT = 50
 
+    # Proxy Commands
     ADD_ATOMS = "add_atoms"
+    START_STREAM = "start_stream"
+    END_STREAM = "end_stream"
 
     def __init__(self) -> None:
         super().__init__()
@@ -63,11 +67,11 @@ class AtomDBProxy(BaseProxy):
 
             return atoms
 
-    def add_atoms(self, atoms: list[Atom]) -> list[str]:
+    def add_atoms(self, atoms: list[Atom], use_streaming: bool = False) -> list[str]:
         """
         Serialize atoms, send `ADD_ATOMS` to the remote peer, and return their handles.
 
-        Each atom must implement `tokenize(args: list[str])` and `handle() -> str`.
+        Each atom must implement `tokenize(args: list[str])` and `handle -> str`.
         The method prepends the atom-type token ("NODE" / "LINK") to each atom's
         token block before sending.
 
@@ -76,28 +80,25 @@ class AtomDBProxy(BaseProxy):
 
         Returns:
             List of handles corresponding to the provided atoms, in the same order.
-
-        Raises:
-            ValueError: If an atom is neither `Node` nor `Link`.
         """
         args = []
         handles = []
-        atom_type = ""
+        stream_info = [str(len(atoms))]
+
+        if use_streaming:
+            self.to_remote_peer(self.START_STREAM, stream_info)
 
         for atom in atoms:
+            atom_type = "NODE" if atom.arity() == 0 else "LINK"
+            args.append(atom_type)
             atom.tokenize(args)
+            handles.append(atom.handle)
 
-            if isinstance(atom, Node):
-                atom_type = "NODE"
-            elif isinstance(atom, Link):
-                atom_type = "LINK"
-            else:
-                log.error("Invalid Atom Type")
-                raise ValueError("Invalid Atom Type")
+            if len(args) > self.COMMAND_SIZE_LIMIT or atom == atoms[-1]:
+                self.to_remote_peer(self.ADD_ATOMS, args)
+                args.clear()
 
-            args.insert(0, atom_type)
-            handles.append(atom.handle())
-
-        self.to_remote_peer(self.ADD_ATOMS, args)
+        if use_streaming:
+            self.to_remote_peer(self.END_STREAM, [])
 
         return handles

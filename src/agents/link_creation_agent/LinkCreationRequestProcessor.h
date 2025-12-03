@@ -2,6 +2,7 @@
 
 #include "BusCommandProcessor.h"
 #include "LinkCreationAgent.h"
+#include "Properties.h"
 
 using namespace std;
 using namespace service_bus;
@@ -16,6 +17,7 @@ class LinkCreationRequestProcessor : public BusCommandProcessor {
                                  string metta_file_path,
                                  bool save_links_to_metta_file = true,
                                  bool save_links_to_db = false);
+    LinkCreationRequestProcessor(const Properties& props);
     ~LinkCreationRequestProcessor();
     virtual shared_ptr<BusCommandProxy> factory_empty_proxy() override;
     virtual void run_command(shared_ptr<BusCommandProxy> proxy) override;
