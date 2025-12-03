@@ -28,6 +28,7 @@ string AtomDBProxy::LINK = "LINK";
 
 // Proxy Commands
 string AtomDBProxy::ADD_ATOMS = "add_atoms";
+string AtomDBProxy::DELETE_ATOMS = "delete_atoms";
 string AtomDBProxy::START_STREAM = "start_stream";
 string AtomDBProxy::END_STREAM = "end_stream";
 
@@ -118,6 +119,24 @@ vector<string> AtomDBProxy::add_atoms(const vector<Atom*>& atoms, bool use_strea
     return handles;
 }
 
+uint AtomDBProxy::delete_atoms(const vector<string>& handles, bool delete_link_targets) {
+    vector<string> args;
+    // split handles into chunks to avoid exceeding command size limits
+    size_t chunk_size = AtomDBProxy::COMMAND_SIZE_LIMIT;
+    uint total_deleted = 0;
+    for (size_t i = 0; i < handles.size(); i += chunk_size) {
+        args.clear();
+        size_t end = std::min(i + chunk_size, handles.size());
+        args.insert(args.end(), handles.begin() + i, handles.begin() + end);
+        args.push_back(delete_link_targets ? "1" : "0");
+        Utils::retry_function([&]() { this->to_remote_peer(AtomDBProxy::DELETE_ATOMS, args); },
+                              5,
+                              2000,
+                              "AtomDBProxy::delete_atoms");
+    }
+    return total_deleted;
+}
+
 // -------------------------------------------------------------------------------------------------
 // Server-side API
 
@@ -141,6 +160,9 @@ bool AtomDBProxy::from_remote_peer(const string& command, const vector<string>& 
         LOG_INFO("Ending atom stream.");
         this->is_processing_buffer = false;
         return true;
+    } else if (command == AtomDBProxy::DELETE_ATOMS) {
+        this->handle_delete_atoms(args);
+        return true;
     } else {
         Utils::error("Invalid AtomDBProxy command: <" + command + ">");
         return false;
@@ -158,6 +180,20 @@ void AtomDBProxy::handle_add_atoms(const vector<string>& tokens) {
         this->atomdb->add_atoms(buffer, false, true);
     } catch (const exception& e) {
         LOG_ERROR("Error processing batch: " << e.what());
+    }
+}
+
+void AtomDBProxy::handle_delete_atoms(const vector<string>& args) {
+    try {
+        if (args.size() < 1) {
+            Utils::error("No handles provided for deletion");
+        }
+        vector<string> handles(args.begin(), args.end() - 1);
+        bool delete_link_targets = args.back() == "1";
+        uint deleted_count = this->atomdb->delete_atoms(handles, delete_link_targets);
+        LOG_INFO("Deleted " << deleted_count << " atoms");
+    } catch (const exception& e) {
+        LOG_ERROR("Error processing delete_atoms command: " << e.what());
     }
 }
 

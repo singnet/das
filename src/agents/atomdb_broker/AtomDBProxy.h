@@ -32,6 +32,7 @@ class AtomDBProxy : public BaseProxy {
     static int THREAD_POOL_SIZE;
     static size_t MAX_PENDING_ATOMS;
     static string ADD_ATOMS;
+    static string DELETE_ATOMS;
     static string START_STREAM;
     static string END_STREAM;
     static string NODE;
@@ -76,8 +77,25 @@ class AtomDBProxy : public BaseProxy {
      * @return Vector of handles corresponding to each atom.
      */
     vector<string> add_atoms(const vector<Atom*>& atoms, bool use_streaming = false);
-
+    /**
+     * @brief Send atoms to the remote peer and return their local handles.
+     *
+     * This serializes each atom into the RPC arguments and issues an
+     * ADD_ATOMS command to the remote peer. The returned vector contains the
+     * handle of each atom in the same order as the input.
+     *
+     * @param tokens Vector of tokenized atoms to be sent.
+     * @return Vector of handles corresponding to each atom.
+     */
     vector<string> add_atoms(const vector<string>& tokens, bool use_streaming = false);
+    /**
+     * @brief Send a DELETE_ATOMS command to the remote peer.
+     *
+     * @param handles Vector of handles of atoms to be deleted.
+     * @param delete_link_targets Whether to delete link targets.
+     * @return The number of atoms deleted.
+     */
+    uint delete_atoms(const vector<string>& handles, bool delete_link_targets = false);
 
     // ---------------------------------------------------------------------------------------------
     // server-side API
@@ -106,6 +124,10 @@ class AtomDBProxy : public BaseProxy {
      */
 
     void handle_add_atoms(const vector<string>& args);
+    /**
+     * @brief Handle an incoming DELETE_ATOMS command from a remote peer.
+     */
+    void handle_delete_atoms(const vector<string>& args);
     template <typename AtomDataType, typename Factory>
     std::vector<AtomDataType> build_atoms_from_tokens(const vector<string>& tokens, Factory&& factory) {
         std::vector<AtomDataType> atoms;
