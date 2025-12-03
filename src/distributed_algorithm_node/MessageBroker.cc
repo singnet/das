@@ -1,3 +1,5 @@
+#include "MessageBroker.h"
+
 #include <grpcpp/channel.h>
 #include <grpcpp/client_context.h>
 #include <grpcpp/create_channel.h>
@@ -6,12 +8,10 @@
 #include <grpcpp/health_check_service_interface.h>
 #include <grpcpp/security/credentials.h>
 
+#include "Utils.h"
 #include "common.pb.h"
-
 #include "distributed_algorithm_node.grpc.pb.h"
 #include "distributed_algorithm_node.pb.h"
-#include "MessageBroker.h"
-#include "Utils.h"
 
 #define LOG_LEVEL INFO_LEVEL
 #include "Logger.h"

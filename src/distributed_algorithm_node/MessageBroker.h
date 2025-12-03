@@ -6,12 +6,11 @@
 #include <unordered_set>
 #include <vector>
 
-#include "distributed_algorithm_node.grpc.pb.h"
-
 #include "Message.h"
 #include "SharedQueue.h"
 #include "Stoppable.h"
 #include "StoppableThread.h"
+#include "distributed_algorithm_node.grpc.pb.h"
 
 using namespace std;
 using namespace commons;
