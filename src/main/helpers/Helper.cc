@@ -112,8 +112,8 @@ This client sends context management requests to the Context Broker via the serv
 It requires the following arguments:
     - context: The context in which the query should be evaluated.
     - query: The query to be processed.
-    - determiner-schema: The determiner schema for the query.
-    - stimulus-schema: The stimulus schema for the query.
+    - determiner-schema: The determiner schema for the query, ex: "C1:C2,C3:C4".
+    - stimulus-schema: The stimulus schema for the query, ex: "S1,S2,S3".
  Optional arguments:
     - use-context-cache: Whether to use the context cache (true/false)
     - enforce-cache-recreation: Whether to enforce cache recreation (true/false)
@@ -241,12 +241,7 @@ vector<string> Helper::get_required_arguments(const string& processor_type,
             }
         case ProcessorType::CONTEXT_BROKER:
             if (caller_type == ServiceCallerType::CLIENT) {
-                return {CONTEXT,
-                        QUERY,
-                        DETERMINER_SCHEMA,
-                        STIMULUS_SCHEMA,
-                        USE_CONTEXT_CACHE,
-                        ENFORCE_CACHE_RECREATION};
+                return {CONTEXT, QUERY, DETERMINER_SCHEMA, STIMULUS_SCHEMA};
             } else {
                 return {ATTENTION_BROKER_ENDPOINT};
             }
