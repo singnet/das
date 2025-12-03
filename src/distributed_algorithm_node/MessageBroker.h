@@ -6,10 +6,7 @@
 #include <unordered_set>
 #include <vector>
 
-// TODO: Once das-proto is updated, update atom_space_node to distributed_algorithm_node
-
-#include "atom_space_node.grpc.pb.h"
-// #include "distributed_algorithm_node.grpc.pb.h"
+#include "distributed_algorithm_node.grpc.pb.h"
 
 #include "Message.h"
 #include "SharedQueue.h"
@@ -246,9 +243,7 @@ class SynchronousSharedRAM : public MessageBroker {
  * answer is supposed to be implemented as a separate Message going back from the target node to
  * the node that originated the request.
  */
-// TODO: Once das-proto is updated, update atom_space_node to distributed_algorithm_node
-// class SynchronousGRPC : public MessageBroker, public dasproto::DistributedAlgorithmNode::Service {
-class SynchronousGRPC : public MessageBroker, public dasproto::AtomSpaceNode::Service {
+class SynchronousGRPC : public MessageBroker, public dasproto::DistributedAlgorithmNode::Service {
    public:
     /**
      * Basic constructor
