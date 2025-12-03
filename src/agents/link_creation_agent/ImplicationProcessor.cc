@@ -64,6 +64,7 @@ vector<shared_ptr<Link>> ImplicationProcessor::process_query(shared_ptr<QueryAns
     // P1 P2
     if (query_answer->handles.size() < 2) {
         LOG_INFO("Insufficient handles provided, skipping implication processing.");
+        LOG_DEBUG("QueryAnswer: " << query_answer->to_string());
         return {};
     }
 
