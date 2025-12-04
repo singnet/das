@@ -321,7 +321,6 @@ TEST_F(AtomDBTest, DeleteLinkTargetsBottom) {
     EXPECT_FALSE(db->node_exists(node2));
     EXPECT_FALSE(db->node_exists(node3));
     EXPECT_TRUE(db->node_exists(node4));
-
 }
 
 int main(int argc, char** argv) {
