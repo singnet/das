@@ -26,7 +26,8 @@ class Assignment {
     /**
      * Basic constructor.
      *
-     * @param unique_assignment_flag When true, enforces the assignment of different values for different variables.
+     * @param unique_assignment_flag When true, enforces the assignment of different values for different
+     * variables.
      */
     Assignment(bool unique_assignment_flag = false);
 
@@ -122,7 +123,6 @@ class Assignment {
      * Deep copy
      */
     Assignment& operator=(const Assignment& other);
-
 
     /**
      * Clear all assignments.

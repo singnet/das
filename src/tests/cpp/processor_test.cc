@@ -1,6 +1,6 @@
-#include <gtest/gtest.h>
-
 #include "Processor.h"
+
+#include <gtest/gtest.h>
 
 using namespace std;
 using namespace processor;

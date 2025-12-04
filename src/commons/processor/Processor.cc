@@ -1,4 +1,5 @@
 #include "Processor.h"
+
 #include "Utils.h"
 
 using namespace commons;
@@ -50,9 +51,7 @@ bool Processor::is_finished() {
     return (this->current_state == FINISHED);
 }
 
-string Processor::to_string() {
-    return this->id;
-}
+string Processor::to_string() { return this->id; }
 
 // -------------------------------------------------------------------------------------------------
 // Private methods

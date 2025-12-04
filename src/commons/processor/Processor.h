@@ -10,9 +10,7 @@ namespace processor {
  *
  */
 class Processor {
-
-public:
-
+   public:
     enum State { UNDEFINED = 0, WAITING_SETUP, WAITING_START, WAITING_STOP, FINISHED };
 
     Processor(const string& id);
@@ -24,7 +22,7 @@ public:
     bool is_finished();
     string to_string();
 
-private:
+   private:
     void check_state(const string& action, State state);
 
     State current_state;
@@ -32,4 +30,4 @@ private:
     mutex api_mutex;
 };
 
-} // namespace processor
+}  // namespace processor

@@ -78,7 +78,6 @@ TEST(QueryAnswer, assignments_basics) {
 }
 
 TEST(QueryAnswer, unique_assignment_flag) {
-
     Assignment mapping1(true);
     EXPECT_TRUE(mapping1.assign("v1", "1"));
     EXPECT_TRUE(mapping1.assign("v2", "2"));
