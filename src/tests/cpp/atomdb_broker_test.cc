@@ -48,7 +48,6 @@ class AtomDBTest : public ::testing::Test {
         auto atomdb = AtomDBSingleton::get_instance();
         db = dynamic_pointer_cast<RedisMongoDB>(atomdb);
         ASSERT_NE(db, nullptr) << "Failed to cast AtomDB to RedisMongoDB";
-        // try {
         query_agent_id = "0.0.0.0:52000";
         atomdb_broker_server_id = "0.0.0.0:52001";
         atomdb_broker_client_id = "0.0.0.0:52002";
