@@ -186,7 +186,7 @@ If everything is configured correctly, the adapter will connect to the remote da
   2025-12-03 14:06:44 | [INFO] | Port range: [50000 : 50999]
   2025-12-03 14:06:44 | [INFO] | 0.0.0.0:9999 is issuing BUS command <atomdb>
   2025-12-03 14:06:44 | [INFO] | BUS node 0.0.0.0:9999 is routing command <atomdb> to localhost:40007
-  2025-12-03 14:06:44 | [INFO] | Remote command: <node_joined_network> arrived at AtomSpaceNodeServicer 0.0.0.0:50000
+  2025-12-03 14:06:44 | [INFO] | Remote command: <node_joined_network> arrived at DistributedAlgorithmNodeServicer 0.0.0.0:50000
   2025-12-03 14:06:51 | [INFO] | Mapped 879/87882 (1%) rows from the public.cvterm table
   2025-12-03 14:06:52 | [INFO] | Mapped 1758/87882 (2%) rows from the public.cvterm table
   2025-12-03 14:06:53 | [INFO] | Mapped 2637/87882 (3%) rows from the public.cvterm table

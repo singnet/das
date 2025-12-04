@@ -10,7 +10,7 @@ else
     PROTO_DIR=$1
 fi
 
-# git submodule update --init --recursive
+# git submodule update --remote 3rd_party_slots/python_client/proto
 
 poetry run \
     python -m grpc_tools.protoc \
@@ -18,12 +18,12 @@ poetry run \
     --python_out=$(pwd)/hyperon_das/_grpc \
     --pyi_out=$(pwd)/hyperon_das/_grpc \
     --grpc_python_out=$(pwd)/hyperon_das/_grpc \
-    "$PROTO_DIR"/atom_space_node.proto \
+    "$PROTO_DIR"/distributed_algorithm_node.proto \
     "$PROTO_DIR"/common.proto
 
 find "$(pwd)/hyperon_das/_grpc" -name '*_pb2*.py' | while read -r file; do
     sed -i \
-        -e "s/import atom_space_node_pb2/import hyperon_das._grpc.atom_space_node_pb2/g" \
+        -e "s/import distributed_algorithm_node_pb2/import hyperon_das._grpc.distributed_algorithm_node_pb2/g" \
         -e "s/import common_pb2/import hyperon_das._grpc.common_pb2/g" \
         "$file"
 done
