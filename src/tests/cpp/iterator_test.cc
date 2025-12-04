@@ -84,7 +84,7 @@ TEST(Iterator, link_template_integration) {
     auto human = make_shared<Terminal>(symbol, "\"human\"");
 
     LinkTemplate* link_template =
-        new LinkTemplate("Expression", {similarity, human, v1}, "", false, false);
+        new LinkTemplate("Expression", {similarity, human, v1}, "", false, false, false);
     link_template->build();
     Iterator query_answer_iterator(link_template->get_source_element());
 

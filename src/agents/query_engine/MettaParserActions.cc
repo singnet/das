@@ -129,6 +129,7 @@ void MettaParserActions::expression_end(bool toplevel, const string& metta_expre
                 targets,
                 this->proxy->get_context(),
                 this->proxy->parameters.get<bool>(PatternMatchingQueryProxy::POSITIVE_IMPORTANCE_FLAG),
+                this->proxy->parameters.get<bool>(PatternMatchingQueryProxy::UNIQUE_VALUE_FLAG),
                 this->proxy->parameters.get<bool>(BaseQueryProxy::USE_LINK_TEMPLATE_CACHE)));
         }
     } else if ((this->current_expression_type == AND) || (this->current_expression_type == OR)) {
