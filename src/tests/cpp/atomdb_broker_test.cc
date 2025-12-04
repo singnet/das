@@ -268,8 +268,11 @@ TEST_F(AtomDBTest, DeleteLinkTargetsBottom) {
     client_bus->issue_bus_command(proxy);
 
     string name1 = timestamp();
+    Utils::sleep();
     string name2 = timestamp();
+    Utils::sleep();
     string name3 = timestamp();
+    Utils::sleep();
     string name4 = timestamp();
 
     string node1 = Hasher::node_handle("Symbol", name1);
@@ -318,6 +321,7 @@ TEST_F(AtomDBTest, DeleteLinkTargetsBottom) {
     EXPECT_FALSE(db->node_exists(node2));
     EXPECT_FALSE(db->node_exists(node3));
     EXPECT_TRUE(db->node_exists(node4));
+
 }
 
 int main(int argc, char** argv) {
