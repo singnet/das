@@ -41,7 +41,9 @@ class AtomDBTest : public ::testing::Test {
     string atomdb_broker_server_id;
     string atomdb_broker_client_id;
     vector<string> added_atom_handles;
-    shared_ptr<ServiceBus> client_bus;
+    shared_ptr<ServiceBus> client_bus = nullptr;
+    shared_ptr<PatternMatchingQueryProcessor> query_processor = nullptr;
+    shared_ptr<AtomDBProcessor> atomdb_processor = nullptr;
     vector<Atom*> created_atoms;
 
     void SetUp() override {
@@ -52,12 +54,17 @@ class AtomDBTest : public ::testing::Test {
         atomdb_broker_server_id = "0.0.0.0:52001";
         atomdb_broker_client_id = "0.0.0.0:52002";
         shared_ptr<ServiceBus> service_bus = ServiceBusSingleton::get_instance();
-        service_bus->register_processor(make_shared<PatternMatchingQueryProcessor>());
-        Utils::sleep(500);
-        service_bus->register_processor(make_shared<AtomDBProcessor>());
-        Utils::sleep(500);
-        client_bus = make_shared<ServiceBus>(atomdb_broker_client_id, atomdb_broker_server_id);
-        Utils::sleep(500);
+        if (query_processor == nullptr) {
+            query_processor = make_shared<PatternMatchingQueryProcessor>();
+            service_bus->register_processor(query_processor);
+        }
+        if (atomdb_processor == nullptr) {
+            atomdb_processor = make_shared<AtomDBProcessor>();
+            service_bus->register_processor(atomdb_processor);
+        }
+        if (client_bus == nullptr) {
+            client_bus = make_shared<ServiceBus>(atomdb_broker_client_id, atomdb_broker_server_id);
+        }
     }
     vector<Atom*> build_atoms(vector<string>& tokens) {
         vector<Atom*> atoms;
