@@ -52,7 +52,8 @@ void check_query(const string& query_tag,
                  bool update_attention_broker,
                  bool unique_assignment,
                  bool positive_importance,
-                 bool error_flag) {
+                 bool error_flag,
+                 bool unique_value_flag) {
     LOG_INFO("==================== Query tag: " + query_tag);
 
     shared_ptr<PatternMatchingQueryProxy> proxy1(new PatternMatchingQueryProxy(query, context));
@@ -60,6 +61,7 @@ void check_query(const string& query_tag,
     proxy1->parameters[BaseQueryProxy::ATTENTION_UPDATE_FLAG] = update_attention_broker;
     proxy1->parameters[BaseQueryProxy::POPULATE_METTA_MAPPING] = false;
     proxy1->parameters[PatternMatchingQueryProxy::POSITIVE_IMPORTANCE_FLAG] = positive_importance;
+    proxy1->parameters[PatternMatchingQueryProxy::UNIQUE_VALUE_FLAG] = unique_value_flag;
     LOG_INFO("proxy1: " + proxy1->to_string());
 
     shared_ptr<PatternMatchingQueryProxy> proxy2(new PatternMatchingQueryProxy(query, context));
@@ -67,6 +69,7 @@ void check_query(const string& query_tag,
     proxy2->parameters[BaseQueryProxy::ATTENTION_UPDATE_FLAG] = update_attention_broker;
     proxy2->parameters[PatternMatchingQueryProxy::COUNT_FLAG] = true;
     proxy2->parameters[PatternMatchingQueryProxy::POSITIVE_IMPORTANCE_FLAG] = positive_importance;
+    proxy2->parameters[PatternMatchingQueryProxy::UNIQUE_VALUE_FLAG] = unique_value_flag;
     LOG_INFO("proxy2: " + proxy2->to_string());
 
     vector<string> metta_query = {metta_expression};
@@ -76,6 +79,7 @@ void check_query(const string& query_tag,
     proxy3->parameters[BaseQueryProxy::ATTENTION_UPDATE_FLAG] = update_attention_broker;
     proxy3->parameters[BaseQueryProxy::POPULATE_METTA_MAPPING] = false;
     proxy3->parameters[PatternMatchingQueryProxy::POSITIVE_IMPORTANCE_FLAG] = positive_importance;
+    proxy3->parameters[PatternMatchingQueryProxy::UNIQUE_VALUE_FLAG] = unique_value_flag;
     LOG_INFO("proxy3: " + proxy3->to_string());
 
     unsigned int count = 0;
@@ -93,6 +97,9 @@ void check_query(const string& query_tag,
         }
         if (query_answer) {
             LOG_INFO(">>>>>>>>>> " << query_answer->assignment.to_string());
+            for (auto pair : query_answer->assignment.table) {
+                LOG_INFO(">>>>>>>>>>>>>> " << pair.first << " " << handle_to_atom(pair.second));
+            }
             count++;
         }
     }
@@ -198,7 +205,14 @@ TEST(PatternMatchingQuery, queries) {
                 "VARIABLE", "v3"
     };
     string q4m = "(and (Similarity $v1 $v2) (Similarity $v2 $v3))";
-    int q4_expected_count = 26;  // TODO: FIX THIS count should be == 1
+    int q4_expected_count = 12;  // TODO: FIX THIS count should be == 3?
+                                 // The point is that different permutations
+                                 // are being returned, e.g. (human, monkey, chimp)
+                                 // and (chimp, human, monkey). These repetitions
+                                 // doesn't violate the current query parameters
+                                 // we have to avoid repetitions (UNIQUE_ASSIGNMENT
+                                 // and UNIQUE_VALUE) but we may want to avoid them,
+                                 // I'm not sure. Perhaps a third optional parameter?
 
     vector<string> q5 = {
         "OR", "2",
@@ -243,23 +257,24 @@ TEST(PatternMatchingQuery, queries) {
     int q7_expected_count = 4;
 
     // Regular queries
-    check_query("q1", q1, q1m, q1_expected_count, client_bus, "PatternMatchingQuery.queries", false, false, false, false);
-    check_query("q2", q2, q2m, q2_expected_count, client_bus, "PatternMatchingQuery.queries", false, false, false, false);
-    check_query("q3", q3, q3m, q3_expected_count, client_bus, "PatternMatchingQuery.queries", false, false, false, false);
-    check_query("q4", q4, q4m, q4_expected_count, client_bus, "PatternMatchingQuery.queries", false, false, false, false);
-    check_query("q5", q5, q5m, q5_expected_count, client_bus, "PatternMatchingQuery.queries", false, false, false, false);
-    check_query("q6", q6, q6m, q6_expected_count, client_bus, "PatternMatchingQuery.queries", false, true, false, false);
-    check_query("q7", q7, q7m, q7_expected_count, client_bus, "PatternMatchingQuery.queries", false, true, false, false);
+    check_query("q1", q1, q1m, q1_expected_count, client_bus, "PatternMatchingQuery.queries", false, false, false, false, false);
+    check_query("q2", q2, q2m, q2_expected_count, client_bus, "PatternMatchingQuery.queries", false, false, false, false, false);
+    check_query("q3", q3, q3m, q3_expected_count, client_bus, "PatternMatchingQuery.queries", false, false, false, false, false);
+    check_query("q4", q4, q4m, q4_expected_count, client_bus, "PatternMatchingQuery.queries", false, true, false, false, true);
+    check_query("q4", q4, q4m, 26, client_bus, "PatternMatchingQuery.queries", false, false, false, false, false);
+    check_query("q5", q5, q5m, q5_expected_count, client_bus, "PatternMatchingQuery.queries", false, false, false, false, false);
+    check_query("q6", q6, q6m, q6_expected_count, client_bus, "PatternMatchingQuery.queries", false, true, false, false, false);
+    check_query("q7", q7, q7m, q7_expected_count, client_bus, "PatternMatchingQuery.queries", false, true, false, false, false);
 
     // Importance filtering
     // XXX AttentionBroker is being revised so its dynamics is a bit unpredictable right now
     // XXX so we're disabling the following test cases for while because they rely on these
     // XXX dynamics.
-    //check_query("filtered q2", q2, q2m, q2_expected_count, client_bus, "PatternMatchingQuery.queries", true, false, false, false);
-    //check_query("filtered q1", q1, q1m, 3, client_bus, "PatternMatchingQuery.queries", false, false, true, false);
+    //check_query("filtered q2", q2, q2m, q2_expected_count, client_bus, "PatternMatchingQuery.queries", true, false, false, false, false);
+    //check_query("filtered q1", q1, q1m, 3, client_bus, "PatternMatchingQuery.queries", false, false, true, false, false);
 
     // Remote exception
-    check_query("invalid", {"BLAH"}, "", 0, client_bus, "PatternMatchingQuery.queries", false, false, false, true);
+    check_query("invalid", {"BLAH"}, "", 0, client_bus, "PatternMatchingQuery.queries", false, false, false, true, false);
 
     // Metta expression in QueryAnswer
     shared_ptr<PatternMatchingQueryProxy> proxy(new PatternMatchingQueryProxy(q3, "PatternMatchingQuery.queries"));
