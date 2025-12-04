@@ -77,27 +77,6 @@ das-cli config set
   das-cli db start
   ```
 
-- Starting the AttentionBroker
-
-  ```bash
-  das-cli attention-broker start
-  ```
-
-- Starting an Agent (QueryAgent for instance)
-
-  **IMPORTANT:** The `<ip:port>` of the agent started here is used as `peer_id` to AtomDBBroker.
-
-  ```bash
-  das-cli query-agent start
-  ```
-
-  You will see this output in the terminal:
-
-  ```bash
-  Starting Query Agent service...
-  Query Agent started on port 40002
-  ```
-
 #### 2. Clone the DAS repository and setting up the environment
 
   ```bash
@@ -125,33 +104,33 @@ das-cli config set
 
 #### 4. Run the AtomDBBroker
 
-  You need to pass the <ip:port> of the QueryAgent started before as `peer_id` to AtomDBBroker.
-
   ```bash
-  make run-atomdb-broker OPTIONS="0.0.0.0:40007 44000:44999 0.0.0.0:40002"
+  make run-busnode OPTIONS="--service=atomdb-broker --endpoint=localhost:40007 --ports-range=25000:26000"
   ```
 
-  **IMPORTANT:** The `<ip:port>` of the AtomDBBroker is used as `peer_id` when running the adapter.
+  **IMPORTANT:** The endpoint `<ip:port>` of the AtomDBBroker is used as `peer_id` when running the adapter.
 
   You will see this output in the terminal:
 
   ```bash
-  2025-11-07 19:44:31 | [INFO] | Starting AtomDB Broker server with id: 0.0.0.0:40007
-  2025-11-07 19:44:31 | [INFO] | Using default MongoDB chunk size: 1000
-  2025-11-07 19:44:31 | [INFO] | Connected to MongoDB at 0.0.0.0:28000
-  2025-11-07 19:44:31 | [INFO] | WARNING: No pattern_index_schema found, all possible patterns will be created during link insertion!
-  2025-11-07 19:44:31 | [INFO] | Connected to (NON-CLUSTER) Redis at 0.0.0.0:29000
-  2025-11-07 19:44:31 | [INFO] | BUS static initialization
-  2025-11-07 19:44:31 | [INFO] | BUS command: <atomdb>
-  2025-11-07 19:44:31 | [INFO] | BUS command: <context>
-  2025-11-07 19:44:31 | [INFO] | BUS command: <inference>
-  2025-11-07 19:44:31 | [INFO] | BUS command: <link_creation>
-  2025-11-07 19:44:31 | [INFO] | BUS command: <pattern_matching_query>
-  2025-11-07 19:44:31 | [INFO] | BUS command: <query_evolution>
-  2025-11-07 19:44:31 | [INFO] | Port range: [44000 : 44999]
-  2025-11-07 19:44:31 | [INFO] | SynchronousGRPC listening on 0.0.0.0:40007
-  2025-11-07 19:44:32 | [INFO] | BUS node 0.0.0.0:40007 is taking ownership of command atomdb
-  2025-11-07 19:44:32 | [INFO] | #############################     REQUEST QUEUE EMPTY     ##################################
+  2025-12-03 13:55:02 | [INFO] | Starting service: atomdb-broker
+  2025-12-03 13:55:02 | [INFO] | Using default MongoDB chunk size: 1000
+  2025-12-03 13:55:02 | [INFO] | Connected to MongoDB at 0.0.0.0:40021
+  2025-12-03 13:55:02 | [INFO] | WARNING: No pattern_index_schema found, all possible patterns will be created during link insertion!
+  2025-12-03 13:55:02 | [INFO] | Connected to (NON-CLUSTER) Redis at 0.0.0.0:40020
+  2025-12-03 13:55:02 | [INFO] | BUS static initialization
+  2025-12-03 13:55:02 | [INFO] | BUS command: <atomdb>
+  2025-12-03 13:55:02 | [INFO] | BUS command: <context>
+  2025-12-03 13:55:02 | [INFO] | BUS command: <inference>
+  2025-12-03 13:55:02 | [INFO] | BUS command: <link_creation>
+  2025-12-03 13:55:02 | [INFO] | BUS command: <pattern_matching_query>
+  2025-12-03 13:55:02 | [INFO] | BUS command: <query_evolution>
+  2025-12-03 13:55:02 | [INFO] | Port range: [25000 : 26000]
+  2025-12-03 13:55:02 | [INFO] | New BUS on: localhost:40007
+  2025-12-03 13:55:02 | [INFO] | SynchronousGRPC listening on localhost:40007
+  2025-12-03 13:55:03 | [INFO] | Registering processor for service: atomdb-broker
+  2025-12-03 13:55:03 | [INFO] | Processor registered for service: atomdb-broker
+  2025-12-03 13:55:03 | [INFO] | BUS node localhost:40007 is taking ownership of command atomdb
   ```
 
 ### 2. Build and run the Database Adapter
@@ -196,16 +175,37 @@ make run \
   db=flybase \
   secrets=$(pwd)/examples/secrets.ini \
   context=$(pwd)/examples/context.txt \
-  peer_id=0.0.0.0:40007
+  peer_id=localhost:40007
 ```
 
-If everything is configured correctly, the adapter will connect to the remote database, map the data as described in the context, and process it into MeTTa files in the specified output directory. You should see the generated output files in the current directory and terminal output similar to the one below:
+If everything is configured correctly, the adapter will connect to the remote database, map the data as described in the context, and send the Atoms to AtomDB. You should see the terminal output similar to the one below:
 
-<p align="center">
-<img src="../docs/assets/mapping_output.png" width="400"/>
-</p>
+```bash
+  ==> Script starting...
+  Using SQL2ATOMS mapper type.
+  2025-12-03 14:06:44 | [INFO] | Port range: [50000 : 50999]
+  2025-12-03 14:06:44 | [INFO] | 0.0.0.0:9999 is issuing BUS command <atomdb>
+  2025-12-03 14:06:44 | [INFO] | BUS node 0.0.0.0:9999 is routing command <atomdb> to localhost:40007
+  2025-12-03 14:06:44 | [INFO] | Remote command: <node_joined_network> arrived at AtomSpaceNodeServicer 0.0.0.0:50000
+  2025-12-03 14:06:51 | [INFO] | Mapped 879/87882 (1%) rows from the public.cvterm table
+  2025-12-03 14:06:52 | [INFO] | Mapped 1758/87882 (2%) rows from the public.cvterm table
+  2025-12-03 14:06:53 | [INFO] | Mapped 2637/87882 (3%) rows from the public.cvterm table
+  2025-12-03 14:06:53 | [INFO] | Mapped 3516/87882 (4%) rows from the public.cvterm table
+  2025-12-03 14:06:54 | [INFO] | Mapped 4395/87882 (5%) rows from the public.cvterm table
+  2025-12-03 14:06:55 | [INFO] | Mapped 5273/87882 (6%) rows from the public.cvterm table
+  2025-12-03 14:06:55 | [INFO] | Mapped 6152/87882 (7%) rows from the public.cvterm table
+  2025-12-03 14:06:56 | [INFO] | Mapped 7031/87882 (8%) rows from the public.cvterm table
+  2025-12-03 14:06:57 | [INFO] | Mapped 7910/87882 (9%) rows from the public.cvterm table
+  2025-12-03 14:06:57 | [INFO] | Mapped 8789/87882 (10%) rows from the public.cvterm table
+```
 
 **After these steps, you will have your Postgres database properly loaded into DAS.**
+
+**Tip:** You can monitor the number of Atoms in the AtomDB using the following command:
+
+```bash
+das-cli db count-atoms
+```
 
 ---
 
@@ -215,7 +215,7 @@ The context file is the core of your data mapping. It precisely defines what dat
 
 ### Context Structures
 
-There are two supported structures for context lines. Each line in the file is processed independently.
+There are two supported structures for contexts. Each context in the file is processed independently and ends with `>>`.
 
 #### **Structure 1: Table Filter (Recommended)**
 
@@ -224,7 +224,7 @@ schema_name.table_name -[columns_to_exclude] <<CLAUSE_1>> <<CLAUSE_2>> ...
 ```
 
 - `schema_name.table_name`: Fully qualified table name.
-- `columns_to_exclude`: A comma-separated list of columns to exclude from the mapping.
+- `columns_to_exclude`: A comma-separated list of columns to exclude from the mapping. Don't include spaces.
 - Each `<<CLAUSE>>`: A SQL WHERE clause (without `WHERE` keyword).
 - Clauses are combined with `AND` operator.
 
@@ -246,45 +246,69 @@ This extracts:
 
 #### **Structure 2: Subquery Table (WIP)**
 
-**Warning:** This feature is [WIP](https://github.com/singnet/das/issues/684). For reliable mappings use **Structure 1**.
-
 ```txt
-SQL custom_table_name <SQL_QUERY>
+SQL virtual_table_name <<SQL_QUERY>>
 ```
 
-- `custom_table_name`: Any identifier you assign to this data set.
-- `<SQL_QUERY>`: An SQL query enclosed in `<>`. Each column **must** use an alias in the form `schema_table__column`.
+- `virtual_table_name`: Any identifier you assign to this data set.
+- `<SQL_QUERY>`: An SQL query enclosed in `<<>>`.
 
-**NOTE:** The `schema_table__column` alias convention is mandatory for the adapter to track the origin of each data field.
+**IMPORTANT:** Mandatory rules for the SQL query:
+
+- Explicitly define the columns with aliases in the format `table_schema__column` (so that the adapter knows which table/column each value belongs to)
+- Include the primary key of each table involved, also with the alias in the same pattern.
 
 **Example 1:**
 ```txt
-SQL table_experiment_1 <SELECT grp.uniquename as public_grp__uniquename, grp.name as public_grp__name
+SQL my_grp <<
+SELECT
+grp.grp_id as public_grp__grp_id,
+grp.uniquename as public_grp__uniquename,
+grp.name as public_grp__name
 FROM grp
 JOIN grpmember ON grpmember.grp_id = grp.grp_id
 JOIN feature_grpmember ON feature_grpmember.grpmember_id = grpmember.grpmember_id
 JOIN feature ON feature.feature_id = feature_grpmember.feature_id
-WHERE feature.name = 'Abd-B' AND feature.is_obsolete = 'f';>
+WHERE feature.name = 'Abd-B' AND feature.is_obsolete = 'f';>>
+```
+
+Is this example, the adapter will map the following data:
+
+```txt
+public_grp__grp_id|public_grp__uniquename|public_grp__name|
+------------------+----------------------+----------------+
+327               |FBgg0000366           |BX-C            |
+708               |FBgg0000747           |HOXL            |
+324               |FBgg0000363           |HOX-C           |
+705               |FBgg0000744           |HBTF            |
+707               |FBgg0000746           |HTH             |
+706               |FBgg0000745           |TFS             |
 ```
 
 **Example 2:**
 ```txt
-SQL gene_expr_1 <select distinct
-    feature.name as public_feature__name,
-    feature.uniquename as public_feature__uniquename,
-    library.uniquename as public_library__uniquename,
-    library_featureprop.value as public_library_featureprop__value
-from feature
+SQL gene_expr <<
+SELECT
+feature.feature_id as public_feature__feature_id,
+feature.name as public_feature__name,
+feature.uniquename as public_feature__uniquename,
+library.library_id as public_library__library_id,
+library.uniquename as public_library__uniquename,
+library_featureprop.library_featureprop_id as public_library_featureprop__library_featureprop_id,
+library_featureprop.value as public_library_featureprop__value
+FROM
+feature
 join library_feature on library_feature.feature_id = feature.feature_id
-join library on library.library_id = library_feature.library_id
-left join library_featureprop on library_featureprop.library_feature_id = library_feature.library_feature_id
-where library_featureprop.type_id = '151505' and
+join library on library.library_id = library_feature.library_id left
+join library_featureprop on library_featureprop.library_feature_id = library_feature.library_feature_id
+WHERE
+library_featureprop.type_id = '151505' AND
 library.uniquename in (
-'FBlc0003850', 'FBlc0003851', 'FBlc0003852', 'FBlc0003853', 'FBlc0003854', 
-'FBlc0003855', 'FBlc0003856', 'FBlc0003857', 'FBlc0003858', 'FBlc0003859', 
-'FBlc0003860', 'FBlc0003861', 'FBlc0003862', 'FBlc0003863', 'FBlc0003864', 
-'FBlc0003865', 'FBlc0003866', 'FBlc0003867', 'FBlc0003868', 'FBlc0003869', 
-'FBlc0003870', 'FBlc0003871', 'FBlc0003872', 'FBlc0003873', 'FBlc0003874');>
+    'FBlc0003850', 'FBlc0003851', 'FBlc0003852', 'FBlc0003853', 'FBlc0003854',
+    'FBlc0003855', 'FBlc0003856', 'FBlc0003857', 'FBlc0003858', 'FBlc0003859',
+    'FBlc0003860', 'FBlc0003861', 'FBlc0003862', 'FBlc0003863', 'FBlc0003864',
+    'FBlc0003865', 'FBlc0003866', 'FBlc0003867', 'FBlc0003868', 'FBlc0003869',
+    'FBlc0003870', 'FBlc0003871', 'FBlc0003872', 'FBlc0003873', 'FBlc0003874');>>
 ```
 
 ---
@@ -292,7 +316,7 @@ library.uniquename in (
 ### Writing Your Own Context File
 
 1.  **Identify** the tables and data you want to extract.
-2.  **Decide** if a simple filter (Structure 1) is sufficient or if a custom query (Structure 2) is needed, remembering that Structure 2 is unstable and not recommended because it could lead to mapping errors.
+2.  **Decide** if a simple filter (Structure 1) is sufficient or if a custom query (Structure 2) is needed.
 3.  **Write** one context line per dataset you want to extract.
 4.  **Always use** complete schema and table names and valid SQL syntax.
 
@@ -302,6 +326,6 @@ library.uniquename in (
 
 -   **Connection errors?** Double-check your `secrets.ini` and the database host/port parameters in the `make run` command.
 -   **No data mapped?** Review your `context.txt` for typos, incorrect table/column names, or query logic.
--   **Custom context not working?** Remember that Structure 2 (Subquery) is unstable. Check that your SQL query uses the `schema_table__column` alias format correctly. Preferably use Structure 1.
+-   **Custom context not working?** Check that your SQL query uses the `schema_table__column` alias format correctly. Preferably use Structure 1.
 
 ---
