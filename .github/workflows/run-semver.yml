@@ -127,10 +127,10 @@ jobs:
           
           releaseNote=$(printf %b "$rawReleaseNote")
 
-          message="${title}\n\nDeliverable: ${deliverable}\nNew version available: ${version}\nRepository: https://github.com/${repository}/releases/tag/${version}"
+          message="${title} Deliverable: ${deliverable} New version available: ${version} Repository: https://github.com/${repository}/releases/tag/${version}"
 
           if [ -n "$releaseNote" ]; then
-            message="$message\nChanges:\n$releaseNote"
+            message="$message Changes: $releaseNote"
           fi
 
           escaped_message=$(printf '%s' "$message" | jq -Rs .)

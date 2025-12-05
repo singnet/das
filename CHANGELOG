@@ -1,4 +1,4 @@
-Highlights:
+Highlights: 
 
 Add `RedisContext` ping before returning it to the pool
 [AtomDB] Add ConcurrentAddLinks tests.
