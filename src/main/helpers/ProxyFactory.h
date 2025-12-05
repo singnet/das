@@ -57,14 +57,86 @@ class ProxyFactory {
         }
     }
 
+    static string parse_metta_expression(const string& metta_expression) {
+        string parsed_expression = metta_expression;
+        Utils::replace_all(parsed_expression, "%", "$");
+        return parsed_expression;
+    }
+
+    static vector<string> parse_request(const string& request_str,
+                                        const string& use_metta_as_query_tokens,
+                                        bool single_metta = false) {
+        vector<string> request_tokens;
+        if (use_metta_as_query_tokens == "true" || use_metta_as_query_tokens == "1") {
+            string parsed_request = parse_metta_expression(request_str);
+            if (single_metta) {
+                request_tokens.push_back(parsed_request);
+
+            } else {
+                request_tokens = Utils::split(parsed_request, ' ');
+            }
+        } else {
+            request_tokens = Utils::split(request_str, ' ');
+        }
+        return request_tokens;
+    }
+
+    static vector<vector<string>> parse_correlation_queries(const string& correlation_queries_str,
+                                                            const string& use_metta_as_query_tokens) {
+        vector<string> correlation_queries_vec = Utils::split(correlation_queries_str, ',');
+        vector<vector<string>> correlation_queries;
+        for (auto& q : correlation_queries_vec) {
+            correlation_queries.push_back(parse_request(q, use_metta_as_query_tokens, true));
+        }
+        return correlation_queries;
+    }
+
+    static vector<map<string, QueryAnswerElement>> parse_correlation_replacements(
+        const string& correlation_replacements_str) {
+        auto constants_list = Utils::split(correlation_replacements_str, ';');
+        vector<map<string, QueryAnswerElement>> correlation_replacements;
+        for (auto value : constants_list) {
+            auto mapping = Utils::split(value, ',');
+            map<string, QueryAnswerElement> replacement_map;
+            for (auto pair_str : mapping) {
+                auto pair = Utils::split(pair_str, ':');
+                if (pair.size() == 2) {
+                    replacement_map[pair[0]] = QueryAnswerElement(pair[1]);
+                }
+            }
+            correlation_replacements.push_back(replacement_map);
+        }
+        return correlation_replacements;
+    }
+
+    static vector<pair<QueryAnswerElement, QueryAnswerElement>> parse_correlation_mappings(
+        const string& correlation_mappings_str) {
+        vector<pair<QueryAnswerElement, QueryAnswerElement>> correlation_mappings;
+        auto mapping_list = Utils::split(correlation_mappings_str, ',');
+        for (auto value : mapping_list) {
+            auto pair = Utils::split(value, ':');
+            if (pair.size() == 2) {
+                correlation_mappings.push_back(
+                    make_pair(QueryAnswerElement(pair[0]), QueryAnswerElement(pair[1])));
+            }
+        }
+        return correlation_mappings;
+    }
+
     static shared_ptr<BaseProxy> create_proxy(const string& proxy_type, const Properties& params) {
         auto processor_type = Helper::processor_type_from_string(proxy_type);
+        string context = params.get<string>(Helper::CONTEXT);
+        string uaf = params.get_or<string>(Helper::UNIQUE_ASSIGNMENT_FLAG, "");
+        string auf = params.get_or<string>(Helper::ATTENTION_UPDATE_FLAG, "");
+        string max_answers = params.get_or<string>(Helper::MAX_ANSWERS, "");
+        string ultc = params.get_or<string>(Helper::USE_LINK_TEMPLATE_CACHE, "");
+        string pmm = params.get_or<string>(Helper::POPULATE_METTA_MAPPING, "");
+        string umaqt = params.get_or<string>(Helper::USE_METTA_AS_QUERY_TOKENS, "");
+        string pif = params.get_or<string>(Helper::POSITIVE_IMPORTANCE_FLAG, "");
         switch (processor_type) {
             case ProcessorType::INFERENCE_AGENT: {
                 string request = params.get_or<string>(Helper::REQUEST, "");
                 string timeout = params.get_or<string>(Helper::TIMEOUT, "");
-                string max_answers = params.get_or<string>(Helper::MAX_ANSWERS, "");
-                string auf = params.get_or<string>(Helper::ATTENTION_UPDATE_FLAG, "");
                 string repeat_count = params.get_or<string>(Helper::REPEAT_COUNT, "");
                 auto proxy = make_shared<InferenceProxy>(Utils::split(request, ' '));
                 auto params = &proxy->parameters;
@@ -75,17 +147,10 @@ class ProxyFactory {
                 return proxy;
             }
             case ProcessorType::LINK_CREATION_AGENT: {
-                string request = params.get_or<string>(Helper::REQUEST, "");
-                string max_answers = params.get_or<string>(Helper::MAX_ANSWERS, "");
+                string request_str = params.get_or<string>(Helper::REQUEST, "");
                 string repeat_count = params.get_or<string>(Helper::REPEAT_COUNT, "");
-                string context = params.get_or<string>(Helper::CONTEXT, "");
-                string auf = params.get_or<string>(Helper::ATTENTION_UPDATE_FLAG, "");
-                string pif = params.get_or<string>(Helper::POSITIVE_IMPORTANCE_FLAG, "");
-                string umaqt = params.get_or<string>(Helper::USE_METTA_AS_QUERY_TOKENS, "");
-                if (umaqt == "true" || umaqt == "1") {
-                    Utils::replace_all(request, "%", "$");
-                }
-                auto proxy = make_shared<LinkCreationRequestProxy>(Utils::split(request, ' '));
+                auto request = parse_request(request_str, umaqt);
+                auto proxy = make_shared<LinkCreationRequestProxy>(request);
                 auto params = &proxy->parameters;
                 set_param(*params, LinkCreationRequestProxy::MAX_ANSWERS, max_answers, ParamType::UINT);
                 set_param(
@@ -102,7 +167,6 @@ class ProxyFactory {
                 return proxy;
             }
             case ProcessorType::CONTEXT_BROKER: {
-                string context = params.get<string>(Helper::CONTEXT);
                 string query = params.get_or<string>(
                     "query", "");  // Note to reviewer: Helper::QUERY is not linking
                 string determiner_schema = params.get<string>(Helper::DETERMINER_SCHEMA);
@@ -133,38 +197,40 @@ class ProxyFactory {
                 return proxy;
             }
             case ProcessorType::EVOLUTION_AGENT: {
-                string query =
-                    params.get<string>("query");  // Note to reviewer: Helper::QUERY is not linking
-                string correlation_queries = params.get<string>(Helper::CORRELATION_QUERIES);
-                string correlation_replacements = params.get<string>(Helper::CORRELATION_REPLACEMENTS);
-                string correlation_mappings = params.get<string>(Helper::CORRELATION_MAPPINGS);
-                string context = params.get<string>(Helper::CONTEXT);
+                string query_str = params.get<string>("query");
+                auto query = parse_request(query_str, umaqt, true);
+                string correlation_queries_str = params.get<string>(Helper::CORRELATION_QUERIES);
+                auto correlation_queries = parse_correlation_queries(correlation_queries_str, umaqt);
+                string correlation_replacements_str =
+                    params.get<string>(Helper::CORRELATION_REPLACEMENTS);
+                auto correlation_replacements =
+                    parse_correlation_replacements(correlation_replacements_str);
+                string correlation_mappings_str = params.get<string>(Helper::CORRELATION_MAPPINGS);
+                auto correlation_mappings = parse_correlation_mappings(correlation_mappings_str);
                 string fitness_function_tag = params.get<string>(Helper::FITNESS_FUNCTION_TAG);
-                // auto proxy = make_shared<QueryEvolutionProxy>();
-                return nullptr;
-            }
-            case ProcessorType::QUERY_ENGINE: {
-                string query =
-                    params.get<string>("query");  // Note to reviewer: Helper::QUERY is not linking
-                string context = params.get<string>(Helper::CONTEXT);
-                string uaf = params.get_or<string>(Helper::UNIQUE_ASSIGNMENT_FLAG, "");
-                string auf = params.get_or<string>(Helper::ATTENTION_UPDATE_FLAG, "");
-                string max_answers = params.get_or<string>(Helper::MAX_ANSWERS, "");
-                string ultc = params.get_or<string>(Helper::USE_LINK_TEMPLATE_CACHE, "");
-                string pmm = params.get_or<string>(Helper::POPULATE_METTA_MAPPING, "");
-                string umaqt = params.get_or<string>(Helper::USE_METTA_AS_QUERY_TOKENS, "");
-                string pif = params.get_or<string>(Helper::POSITIVE_IMPORTANCE_FLAG, "");
-                bool umaqt_flag = umaqt == "true" || umaqt == "1";
-                if (umaqt_flag) {
-                    Utils::replace_all(query, "%", "$");
-                }
-                vector<string> query_tokens =
-                    umaqt_flag ? vector<string>{query} : Utils::split(query, ' ');
-                auto proxy = make_shared<PatternMatchingQueryProxy>(query_tokens, context);
+                auto proxy = make_shared<QueryEvolutionProxy>(query,
+                                                              correlation_queries,
+                                                              correlation_replacements,
+                                                              correlation_mappings,
+                                                              context,
+                                                              fitness_function_tag);
                 auto params = &proxy->parameters;
                 set_param(*params, BaseQueryProxy::UNIQUE_ASSIGNMENT_FLAG, uaf, ParamType::BOOL);
                 set_param(*params, BaseQueryProxy::ATTENTION_UPDATE_FLAG, auf, ParamType::BOOL);
-                set_param(*params, PatternMatchingQueryProxy::MAX_ANSWERS, max_answers, ParamType::UINT);
+                set_param(*params, BaseQueryProxy::MAX_ANSWERS, max_answers, ParamType::UINT);
+                set_param(*params, BaseQueryProxy::USE_LINK_TEMPLATE_CACHE, ultc, ParamType::BOOL);
+                set_param(*params, BaseQueryProxy::POPULATE_METTA_MAPPING, pmm, ParamType::BOOL);
+                set_param(*params, BaseQueryProxy::USE_METTA_AS_QUERY_TOKENS, umaqt, ParamType::BOOL);
+                return proxy;
+            }
+            case ProcessorType::QUERY_ENGINE: {
+                string query_str = params.get<string>("query");
+                auto query = parse_request(query_str, umaqt, true);
+                auto proxy = make_shared<PatternMatchingQueryProxy>(query, context);
+                auto params = &proxy->parameters;
+                set_param(*params, BaseQueryProxy::UNIQUE_ASSIGNMENT_FLAG, uaf, ParamType::BOOL);
+                set_param(*params, BaseQueryProxy::ATTENTION_UPDATE_FLAG, auf, ParamType::BOOL);
+                set_param(*params, BaseQueryProxy::MAX_ANSWERS, max_answers, ParamType::UINT);
                 set_param(*params, BaseQueryProxy::USE_LINK_TEMPLATE_CACHE, ultc, ParamType::BOOL);
                 set_param(*params, BaseQueryProxy::POPULATE_METTA_MAPPING, pmm, ParamType::BOOL);
                 set_param(*params, BaseQueryProxy::USE_METTA_AS_QUERY_TOKENS, umaqt, ParamType::BOOL);
