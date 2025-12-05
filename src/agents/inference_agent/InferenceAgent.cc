@@ -261,13 +261,19 @@ void InferenceAgent::send_update_attention_allocation_request(
         inference_request->get_update_attention_allocation_query(), context, true);
     // TODO remove hardcoded queries
     // clang-format off
-    vector<string> attention_update_query2 = {
+    // vector<string> attention_update_query2 = {
+    //     "LINK_TEMPLATE", "Expression", "3",
+    //         "NODE", "Symbol", "Evaluation",
+    //         "VARIABLE", "P1",
+    //         "LINK", "Expression", "2",
+    //             "NODE", "Symbol", "Concept",
+    //             "ATOM", "PLACEHOLDER"};
+
+        vector<string> attention_update_query2 = {
         "LINK_TEMPLATE", "Expression", "3",
             "NODE", "Symbol", "Evaluation",
             "VARIABLE", "P1",
-            "LINK", "Expression", "2",
-                "NODE", "Symbol", "Concept",
-                "ATOM", "PLACEHOLDER"};
+            "ATOM", "PLACEHOLDER"};
     // clang-format on
     shared_ptr<PatternMatchingQueryProxy> proxy2;
     set<string> to_correlate;
@@ -282,6 +288,7 @@ void InferenceAgent::send_update_attention_allocation_request(
             Utils::sleep();
         } else {
             LOG_INFO("Traversing handle " + to_string(++count) + "/" + to_string(proxy->get_count()));
+            LOG_DEBUG("Updating attention for handle: " << query_answer1->to_string());
             attention_update_query2[attention_update_query2.size() - 1] = query_answer1->get(TARGET);
             proxy2 = issue_attention_allocation_query(attention_update_query2, context);
             to_stimulate[query_answer1->get(0)] = 1;

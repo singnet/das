@@ -50,8 +50,8 @@ vector<shared_ptr<Link>> EquivalenceProcessor::process_query(shared_ptr<QueryAns
         LOG_INFO("Insufficient handles provided, skipping equivalence processing.");
         return {};
     }
-    string c1_handle = query_answer->handles[0];
-    string c2_handle = query_answer->handles[1];
+    string c1_handle = query_answer->assignment.get("C1");
+    string c2_handle = query_answer->assignment.get("C2");
     string context = "";
     LOG_DEBUG("Processing equivalence query for handles: " << c1_handle << " and " << c2_handle);
     if (extra_params.has_value()) {

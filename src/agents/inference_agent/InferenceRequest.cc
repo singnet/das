@@ -174,6 +174,38 @@ vector<string> InferenceRequest::get_distributed_inference_control_request() {
 
 vector<string> InferenceRequest::get_correlation_query() { return this->correlation_query; }
 // clang-format off
+// string correlation_query_str = 
+// "OR 3 "
+//     "AND 4 "
+//         "LINK_TEMPLATE Expression 3 "
+//             "NODE Symbol Evaluation "
+//             "VARIABLE V0 "
+//             "LINK_TEMPLATE Expression 2 "
+//                 "NODE Symbol Concept "
+//                 "VARIABLE S1 "
+//         "LINK_TEMPLATE Expression 3 "
+//             "NODE Symbol Contains "
+//             "VARIABLE S1 "
+//             "VARIABLE W1 "
+//         "LINK_TEMPLATE Expression 3 "
+//             "NODE Symbol Contains "
+//             "VARIABLE S2 "
+//             "VARIABLE W1 "
+//         "LINK_TEMPLATE Expression 3 "
+//             "NODE Symbol Evaluation "
+//             "VARIABLE V1 "
+//             "LINK_TEMPLATE Expression 2 "
+//                 "NODE Symbol Concept "
+//                 "VARIABLE S2 "
+//     "LINK_TEMPLATE Expression 3 "
+//         "NODE Symbol Implication "
+//         "VARIABLE V0 "
+//         "VARIABLE V1 "
+//     "LINK_TEMPLATE Expression 3 "
+//         "NODE Symbol Implication "
+//         "VARIABLE V1 "
+//         "VARIABLE V0";
+
 string correlation_query_str = 
 "OR 3 "
     "AND 4 "
@@ -205,8 +237,6 @@ string correlation_query_str =
         "NODE Symbol Implication "
         "VARIABLE V1 "
         "VARIABLE V0";
-
-
 
 string correlation_constants_str = "V0";
 string correlation_mapping_str = "V0:V1,V0:S2";

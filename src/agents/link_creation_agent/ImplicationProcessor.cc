@@ -68,8 +68,8 @@ vector<shared_ptr<Link>> ImplicationProcessor::process_query(shared_ptr<QueryAns
         return {};
     }
 
-    string p1_handle = query_answer->handles[0];
-    string p2_handle = query_answer->handles[1];
+    string p1_handle = query_answer->assignment.get("P1");
+    string p2_handle = query_answer->assignment.get("P2");
     LOG_DEBUG("Processing implication query for QueryAnswer: " << query_answer->to_string());
     LOG_DEBUG("Processing implication query for handles: " << p1_handle << " and " << p2_handle);
     string context = "";
