@@ -116,18 +116,18 @@ class AtomDBProxy : public BaseProxy {
 
    private:
     /**
-     * @brief Handle an incoming ADD_ATOMS command from a remote peer.
-     *
-     * This will build Atom objects from the tokens and apply them to the
-     * local AtomDB instance. Any exception during processing will be
-     * reported back to the peer.
+     * @brief Callback to handle an incoming ADD_ATOMS command from a remote peer.
+     * @param args Command arguments (tokenized atoms)
      */
 
-    void handle_add_atoms(const vector<string>& args);
+    void add_atoms_callback(const vector<string>& args);
     /**
-     * @brief Handle an incoming DELETE_ATOMS command from a remote peer.
+     * @brief Callback to handle an incoming DELETE_ATOMS command from a remote peer.
+     * @param args Command arguments (tokenized atoms), the last argument is delete_link_targets
+     * flag with "1" or "0".
      */
-    void handle_delete_atoms(const vector<string>& args);
+    void delete_atoms_callback(const vector<string>& args);
+
     template <typename AtomDataType, typename Factory>
     std::vector<AtomDataType> build_atoms_from_tokens(const vector<string>& tokens, Factory&& factory) {
         std::vector<AtomDataType> atoms;
@@ -163,7 +163,6 @@ class AtomDBProxy : public BaseProxy {
     }
     void enqueue_request(const vector<string>& tokens);
     void process_atom_batches();
-    void set_stream(const string& command, const vector<string>& args);
 
     mutex api_mutex;
     shared_ptr<AtomDB> atomdb;

@@ -88,7 +88,7 @@ vector<string> AtomDBProxy::add_atoms(const vector<Atom*>& atoms, bool use_strea
     // should be re-enabled by default.
 
     if (use_streaming) {
-        set_stream(AtomDBProxy::START_STREAM, stream_info);
+        this->to_remote_peer(AtomDBProxy::START_STREAM, stream_info);
     }
 
     for (Atom* atom : atoms) {
@@ -105,15 +105,12 @@ vector<string> AtomDBProxy::add_atoms(const vector<Atom*>& atoms, bool use_strea
         args.insert(args.begin(), atom_type);
         handles.push_back(atom->handle());
         if ((args.size() > AtomDBProxy::COMMAND_SIZE_LIMIT) || (atom == atoms.back())) {
-            Utils::retry_function([&]() { this->to_remote_peer(AtomDBProxy::ADD_ATOMS, args); },
-                                  5,
-                                  2000,
-                                  "AtomDBProxy::add_atoms");
+            this->to_remote_peer(AtomDBProxy::ADD_ATOMS, args);
             args.clear();
         }
     }
     if (use_streaming) {
-        set_stream(AtomDBProxy::END_STREAM, {});
+        this->to_remote_peer(AtomDBProxy::END_STREAM, {});
     }
 
     return handles;
@@ -121,7 +118,6 @@ vector<string> AtomDBProxy::add_atoms(const vector<Atom*>& atoms, bool use_strea
 
 uint AtomDBProxy::delete_atoms(const vector<string>& handles, bool delete_link_targets) {
     vector<string> args;
-    // split handles into chunks to avoid exceeding command size limits
     size_t chunk_size = AtomDBProxy::COMMAND_SIZE_LIMIT;
     uint total_deleted = 0;
     for (size_t i = 0; i < handles.size(); i += chunk_size) {
@@ -129,10 +125,7 @@ uint AtomDBProxy::delete_atoms(const vector<string>& handles, bool delete_link_t
         size_t end = std::min(i + chunk_size, handles.size());
         args.insert(args.end(), handles.begin() + i, handles.begin() + end);
         args.push_back(delete_link_targets ? "1" : "0");
-        Utils::retry_function([&]() { this->to_remote_peer(AtomDBProxy::DELETE_ATOMS, args); },
-                              5,
-                              2000,
-                              "AtomDBProxy::delete_atoms");
+        this->to_remote_peer(AtomDBProxy::DELETE_ATOMS, args);
     }
     return total_deleted;
 }
@@ -149,7 +142,7 @@ bool AtomDBProxy::from_remote_peer(const string& command, const vector<string>& 
         if (this->is_processing_buffer) {
             this->enqueue_request(args);
         } else {
-            this->handle_add_atoms(args);
+            this->add_atoms_callback(args);
         }
         return true;
     } else if (command == AtomDBProxy::START_STREAM) {
@@ -161,7 +154,7 @@ bool AtomDBProxy::from_remote_peer(const string& command, const vector<string>& 
         this->is_processing_buffer = false;
         return true;
     } else if (command == AtomDBProxy::DELETE_ATOMS) {
-        this->handle_delete_atoms(args);
+        this->delete_atoms_callback(args);
         return true;
     } else {
         Utils::error("Invalid AtomDBProxy command: <" + command + ">");
@@ -169,7 +162,7 @@ bool AtomDBProxy::from_remote_peer(const string& command, const vector<string>& 
     }
 }
 
-void AtomDBProxy::handle_add_atoms(const vector<string>& tokens) {
+void AtomDBProxy::add_atoms_callback(const vector<string>& tokens) {
     try {
         vector<shared_ptr<Atom>> atoms =
             build_atoms_from_tokens<shared_ptr<Atom>>(tokens, shared_ptr_atom_factory);
@@ -183,7 +176,7 @@ void AtomDBProxy::handle_add_atoms(const vector<string>& tokens) {
     }
 }
 
-void AtomDBProxy::handle_delete_atoms(const vector<string>& args) {
+void AtomDBProxy::delete_atoms_callback(const vector<string>& args) {
     try {
         if (args.size() < 1) {
             Utils::error("No handles provided for deletion");
@@ -234,9 +227,4 @@ void AtomDBProxy::process_atom_batches() {
         }
         Utils::sleep();
     }
-}
-
-void AtomDBProxy::set_stream(const string& command, const vector<string>& args) {
-    Utils::retry_function(
-        [&]() { this->to_remote_peer(command, args); }, 5, 2000, "AtomDBProxy::end_stream");
 }
