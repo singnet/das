@@ -2,6 +2,10 @@
 name: Build DAS Script Pipeline
 
 on:
+  workflow_call:
+
+  workflow_dispatch:
+
   push:
     branches:
       - master
