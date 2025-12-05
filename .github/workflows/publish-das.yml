@@ -10,144 +10,21 @@ on:
       - master
 
 jobs:
-  determine-version:
-    runs-on: self-hosted
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Extract DAS_VERSION from .bazelrc
-        id: get_version
-        run: |
-          VERSION=$(grep -oP '(?<=--define=DAS_VERSION=)[0-9\.]+' src/.bazelrc)
-          echo "DAS_VERSION=$VERSION" >> $GITHUB_ENV
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
-
-      - name: Check if version already exists
-        id: check_version
-        run: |
-          if git rev-parse "refs/tags/${{ steps.get_version.outputs.version }}" >/dev/null 2>&1; then
-            echo "version_exists=true" >> $GITHUB_OUTPUT
-          else
-            echo "version_exists=false" >> $GITHUB_OUTPUT
-          fi
-
-    outputs:
-      version: ${{steps.get_version.outputs.version}}
-      version_exists: ${{steps.check_version.outputs.version_exists}}
-
-
-  compile-source-code:
-    needs: determine-version
-    strategy:
-      matrix:
-        platforms: [amd64,arm64]
-    runs-on:
-      - self-hosted-withcache
-      - ${{ matrix.platforms }}
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Setup bazel
-        run: .github/scripts/setup_bazel.sh
-
-      - name: Build Binaries
-        run: .github/scripts/bazel_build.sh --binaries --arch=${{ matrix.platforms }}
-
-      - name: Upload Binaries as Artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: binaries-${{ matrix.platforms }}
-          path: bin
-          if-no-files-found: "error"
-
-      - name: Upload libs Artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: libs-${{ matrix.platforms }}
-          path: lib
-          if-no-files-found: "error"
-
-  build-push-docker-image:
-    needs: 
-      - determine-version
-      - compile-source-code
-    strategy:
-      matrix:
-        platforms: [amd64,arm64]
-    runs-on:
-      - self-hosted-withcache
-      - ${{ matrix.platforms }}
-    if: needs.determine-version.outputs.version_exists != 'true'
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Download Binaries Artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: binaries-${{ matrix.platforms }}
-          path: bin
-
-      - name: Download lib Artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: libs-${{ matrix.platforms }}
-          path: lib
-
-      - name: Log in to Docker Hub
-        uses: docker/login-action@v2
-        with:
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_PASSWORD }}
-
-      - name: Build Docker Image
-        run: docker build -t trueagi/das:${{ matrix.platforms }}-rc -f .docker/poc/Dockerfile --build-arg ARCH=${{ matrix.platforms }} .
-
-      - name: Push Docker Image
-        run: docker push trueagi/das:${{ matrix.platforms }}-rc
 
   tag:
     needs: 
       - determine-version
       - build-push-docker-image
-    uses: singnet/das/.github/workflows/run-semver.yml@fix/tagging-job
+    uses: singnet/das/.github/workflows/run-semver.yml@rl/notification-test
     if: needs.determine-version.outputs.version_exists != 'true'
     with:
-      version: ${{ needs.determine-version.outputs.version }}
+      version: 1.0.1
       version-strategy: bump-version-from-variable-value
       job-image-namespace: trueagi
       job-image-version-semver: semantic-versioning
-      main-branch: fix/tagging-job
+      main-branch: rl/notification-test
       version-tag-regex-pattern: /^\d+\.\d+\.\d+$/
       version-require-confirmation: "true"
       title: New DAS version released
       deliverable: Tagged branch (${{ github.ref_name }}) in the repository
     secrets: inherit
-
-  publish-docker-image-manifest:
-    runs-on: self-hosted
-    needs:
-      - build-push-docker-image
-      - compile-source-code
-      - determine-version
-    steps:
-      - name: Log in to Docker Hub
-        uses: docker/login-action@v2
-        with:
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_PASSWORD }}
-
-      - name: Create docker manifest
-        run: |
-          docker manifest create trueagi/das:${{ needs.determine-version.outputs.version }}-rc \
-          --amend trueagi/das:amd64-rc \
-          --amend trueagi/das:arm64-rc
-
-      - name: Publish manifest
-        run: docker manifest push trueagi/das:${{ needs.determine-version.outputs.version }}-rc
