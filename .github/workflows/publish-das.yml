@@ -116,14 +116,14 @@ jobs:
     needs: 
       - determine-version
       - build-push-docker-image
-    uses: singnet/das/.github/workflows/run-semver.yml@master
+    uses: singnet/das/.github/workflows/run-semver.yml@fix/tagging-job
     if: needs.determine-version.outputs.version_exists != 'true'
     with:
       version: ${{ needs.determine-version.outputs.version }}
       version-strategy: bump-version-from-variable-value
       job-image-namespace: trueagi
       job-image-version-semver: semantic-versioning
-      main-branch: master
+      main-branch: fix/tagging-job
       version-tag-regex-pattern: /^\d+\.\d+\.\d+$/
       version-require-confirmation: "true"
       title: New DAS version released

@@ -1,0 +1,21 @@
+Highlights:
+
+Add `RedisContext` ping before returning it to the pool
+[AtomDB] Add ConcurrentAddLinks tests.
+Update architecture diagram to include attention broker
+[DAS#957] Add handle properties and optimize tokenization logic
+[DAS#821] Main files refactoring
+[DAS#959] AtomDB Broker code clean up, memory fix and thread/stream support
+
+Bug fixes:
+
+[FIX] Add methods to support Context Broker client
+[FIX] Fix MeTTa query on bus client
+[DAS#948] Fix versioning pipeline
+
+General Changes:
+
+[CI/CD]: Disable benchmark report workflow
+[DAS#961] Change syntax in documentation by replacing <...> with <<...>>
+[#974] Updated AtomDBProxy to align with recent cleanup in AtomDBBroker
+[#972] Rename PROTO RPC AtomSpaceNode -> DistributedAlgorithmNode

@@ -47,7 +47,7 @@ on:
         type: string
         default: CHANGELOG
     secrets:
-      MATTERMOST_WEBHOOK_URL:
+      MATTERMOST_NOTIFICATIONS_CHANNEL_HOOK:
         required: true
 
 jobs:
@@ -140,4 +140,4 @@ jobs:
       - name: Notify Mattermost
         uses: singnet/integration-github-mattermost@v0.2.0
         with:
-          webhook-url: ${{ secrets.MATTERMOST_WEBHOOK_URL }}
+          webhook-url: ${{ secrets.MATTERMOST_NOTIFICATIONS_CHANNEL_HOOK }}
