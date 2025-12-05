@@ -16,7 +16,7 @@ ENV POETRY_VIRTUALENVS_IN_PROJECT=false
 
 # Create the proto directory and download the .proto files
 RUN mkdir -p /proto_files \
-    && curl -o /proto_files/atom_space_node.proto https://raw.githubusercontent.com/singnet/das-proto/refs/heads/master/atom_space_node.proto \
+    && curl -o /proto_files/distributed_algorithm_node.proto https://raw.githubusercontent.com/singnet/das-proto/refs/heads/master/distributed_algorithm_node.proto \
     && curl -o /proto_files/common.proto https://raw.githubusercontent.com/singnet/das-proto/refs/heads/master/common.proto
 
 RUN useradd -ms /bin/bash builder

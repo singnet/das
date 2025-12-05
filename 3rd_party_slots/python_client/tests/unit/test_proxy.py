@@ -3,10 +3,14 @@ from unittest.mock import MagicMock, patch
 import grpc
 import pytest
 
-import hyperon_das._grpc.atom_space_node_pb2 as grpc_pb2
 import hyperon_das._grpc.common_pb2 as common_pb2
+import hyperon_das._grpc.distributed_algorithm_node_pb2 as grpc_pb2
 from hyperon_das.query_answer import QueryAnswer
-from hyperon_das.service_bus.proxy import AtomSpaceNodeManager, AtomSpaceNodeServicer, BusCommandProxy
+from hyperon_das.service_bus.proxy import (
+    BusCommandProxy,
+    DistributedAlgorithmNodeManager,
+    DistributedAlgorithmNodeServicer,
+)
 from hyperon_das.service_clients.pattern_matching_query import PatternMatchingQueryProxy
 
 
@@ -29,7 +33,7 @@ class TestBaseCommandProxy:
         with pytest.raises(RuntimeError):
             proxy.setup_proxy_node()
 
-    @patch('hyperon_das.service_bus.proxy.AtomSpaceNodeManager')
+    @patch('hyperon_das.service_bus.proxy.DistributedAlgorithmNodeManager')
     def test_setup_proxy_node_with_requestor_id(self, MockManager):
         proxy = DummyProxy()
         proxy.proxy_port = 1111
@@ -40,7 +44,7 @@ class TestBaseCommandProxy:
         MockManager.assert_called_with(node_id=expected_node_id, server_id="srv", proxy=proxy)
         instance.start.assert_called_once()
 
-    @patch('hyperon_das.service_bus.proxy.AtomSpaceNodeManager')
+    @patch('hyperon_das.service_bus.proxy.DistributedAlgorithmNodeManager')
     def test_setup_proxy_node_with_client_override(self, MockManager):
         proxy = DummyProxy()
         proxy.proxy_port = 2222
@@ -110,7 +114,7 @@ class TestPatternMatchingQueryProxy:
         assert proxy2.abort_flag
 
 
-class TestAtomSpaceNodeManager:
+class TestDistributedAlgorithmNodeManager:
     @pytest.fixture(autouse=True)
     def stub_grpc(self, monkeypatch):
         fake_server = MagicMock()
@@ -122,13 +126,13 @@ class TestAtomSpaceNodeManager:
         return fake_server
 
     def test_start_adds_port_and_starts(self, stub_grpc):
-        mgr = AtomSpaceNodeManager(node_id="host:1234", server_id="srv", proxy=None)
+        mgr = DistributedAlgorithmNodeManager(node_id="host:1234", server_id="srv", proxy=None)
         mgr.start()
         stub_grpc.add_insecure_port.assert_called_with("host:1234")
         stub_grpc.start.assert_called_once()
 
     def test_stop_and_wait(self, stub_grpc):
-        mgr = AtomSpaceNodeManager(node_id="h:1", server_id="s", proxy=None)
+        mgr = DistributedAlgorithmNodeManager(node_id="h:1", server_id="s", proxy=None)
         mgr.server = stub_grpc
         mgr.stop(grace=5)
         mgr.wait_for_termination()
@@ -136,11 +140,11 @@ class TestAtomSpaceNodeManager:
         stub_grpc.wait_for_termination.assert_called_once()
 
 
-class TestAtomSpaceNodeServicer:
+class TestDistributedAlgorithmNodeServicer:
     @pytest.fixture(autouse=True)
     def servicer(self):
         proxy = MagicMock()
-        return AtomSpaceNodeServicer(proxy)
+        return DistributedAlgorithmNodeServicer(proxy)
 
     def test_ping(self, servicer):
         ack = servicer.ping()

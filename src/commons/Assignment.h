@@ -25,8 +25,11 @@ class Assignment {
    public:
     /**
      * Basic constructor.
+     *
+     * @param unique_assignment_flag When true, enforces the assignment of different values for different
+     * variables.
      */
-    Assignment();
+    Assignment(bool unique_assignment_flag = false);
 
     /**
      * Destructor.
@@ -117,6 +120,11 @@ class Assignment {
     bool operator==(const Assignment& other) const;
 
     /**
+     * Deep copy
+     */
+    Assignment& operator=(const Assignment& other);
+
+    /**
      * Clear all assignments.
      */
     void clear();
@@ -125,6 +133,7 @@ class Assignment {
 
    private:
     static string EMPTY_VALUE;
+    bool unique_assignment_flag;
 };
 
 }  // namespace commons

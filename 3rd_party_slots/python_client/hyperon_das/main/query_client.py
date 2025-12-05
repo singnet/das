@@ -1,5 +1,4 @@
 import argparse
-import sys
 import time
 
 from hyperon_das.commons.helpers import str_2_bool, tokenize_preserve_quotes

@@ -20,8 +20,8 @@ TEST(QueryAnswer, assignments_basics) {
     EXPECT_TRUE(mapping1.assign("v2", "2"));
     EXPECT_FALSE(mapping1.assign("v2", "3"));
     Assignment mapping2;
-    EXPECT_TRUE(mapping1.assign("v1", "1"));
-    EXPECT_TRUE(mapping1.assign("v3", "3"));
+    EXPECT_TRUE(mapping2.assign("v1", "1"));
+    EXPECT_TRUE(mapping2.assign("v3", "3"));
     Assignment mapping3;
     EXPECT_TRUE(mapping3.assign("v1", "1"));
     EXPECT_TRUE(mapping3.assign("v2", "3"));
@@ -75,6 +75,41 @@ TEST(QueryAnswer, assignments_basics) {
     EXPECT_TRUE(mapping0.to_string() != "");
     EXPECT_TRUE(mapping1.to_string() != "");
     EXPECT_TRUE(mapping4.to_string() != "");
+}
+
+TEST(QueryAnswer, unique_assignment_flag) {
+    Assignment mapping1(true);
+    EXPECT_TRUE(mapping1.assign("v1", "1"));
+    EXPECT_TRUE(mapping1.assign("v2", "2"));
+    Assignment mapping2(true);
+    EXPECT_TRUE(mapping2.assign("v1", "1"));
+    EXPECT_TRUE(mapping2.assign("v3", "3"));
+    Assignment mapping3(true);
+    EXPECT_TRUE(mapping3.assign("v1", "1"));
+    EXPECT_TRUE(mapping3.assign("v2", "3"));
+    Assignment mapping4(true);
+    EXPECT_TRUE(mapping4.assign("v4", "4"));
+    EXPECT_TRUE(mapping4.assign("v1", "1"));
+
+    EXPECT_TRUE(mapping1.is_compatible(mapping1));
+    EXPECT_TRUE(mapping1.is_compatible(mapping2));
+    EXPECT_FALSE(mapping1.is_compatible(mapping3));
+    EXPECT_TRUE(mapping1.is_compatible(mapping4));
+
+    EXPECT_TRUE(mapping2.is_compatible(mapping1));
+    EXPECT_TRUE(mapping2.is_compatible(mapping2));
+    EXPECT_FALSE(mapping2.is_compatible(mapping3));
+    EXPECT_TRUE(mapping2.is_compatible(mapping4));
+
+    EXPECT_FALSE(mapping3.is_compatible(mapping1));
+    EXPECT_FALSE(mapping3.is_compatible(mapping2));
+    EXPECT_TRUE(mapping3.is_compatible(mapping3));
+    EXPECT_TRUE(mapping3.is_compatible(mapping4));
+
+    EXPECT_TRUE(mapping4.is_compatible(mapping1));
+    EXPECT_TRUE(mapping4.is_compatible(mapping2));
+    EXPECT_TRUE(mapping4.is_compatible(mapping3));
+    EXPECT_TRUE(mapping4.is_compatible(mapping4));
 }
 
 TEST(QueryAnswer, assignments_equal) {

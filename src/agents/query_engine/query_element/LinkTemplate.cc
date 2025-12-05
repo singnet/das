@@ -21,11 +21,13 @@ LinkTemplate::LinkTemplate(const string& type,
                            const vector<shared_ptr<QueryElement>>& targets,
                            const string& context,
                            bool positive_importance_flag,
+                           bool unique_value_flag,
                            bool use_cache)
     : link_schema(type, targets.size()) {
     this->targets = targets;
     this->context = context;
     this->positive_importance_flag = positive_importance_flag;
+    this->unique_value_flag = unique_value_flag;
     this->use_cache = use_cache;
     this->inner_flag = true;
     this->arity = targets.size();
@@ -134,6 +136,7 @@ void LinkTemplate::processor_method(shared_ptr<StoppableThread> monitor) {
         LinkTemplate::fetched_links_cache().set(link_schema_handle, handles);
     }
     LOG_DEBUG("Positive importance flag: " + string(this->positive_importance_flag ? "true" : "false"));
+    LOG_DEBUG("Unique value flag: " + string(this->unique_value_flag ? "true" : "false"));
     LOG_INFO("Fetched " + std::to_string(handles->size()) + " atoms in " + link_schema_handle);
 
     vector<pair<char*, float>> tagged_handles;
@@ -147,7 +150,7 @@ void LinkTemplate::processor_method(shared_ptr<StoppableThread> monitor) {
     }
     unsigned int pending = tagged_handles.size();
     unsigned int cursor = 0;
-    Assignment assignment;
+    Assignment assignment(this->unique_value_flag);
     unsigned int count_matched = 0;
     while ((pending > 0) && !monitor->stopped()) {
         pair<char*, float> tagged_handle = tagged_handles[cursor++];

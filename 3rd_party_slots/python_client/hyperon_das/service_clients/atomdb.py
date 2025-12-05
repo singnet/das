@@ -7,7 +7,7 @@ from hyperon_das.service_clients.base import BaseProxy
 
 
 class AtomDBProxy(BaseProxy):
-    COMMAND_SIZE_LIMIT = 50
+    COMMAND_SIZE_LIMIT = 5000
 
     # Proxy Commands
     ADD_ATOMS = "add_atoms"

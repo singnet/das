@@ -3,10 +3,10 @@ from concurrent import futures
 
 import grpc
 
-import hyperon_das._grpc.atom_space_node_pb2 as atom__space__node__pb2
-import hyperon_das._grpc.atom_space_node_pb2_grpc as atom__space__node__pb2__grpc
 import hyperon_das._grpc.common_pb2 as common__pb2
-from hyperon_das._grpc.atom_space_node_pb2_grpc import AtomSpaceNodeStub
+import hyperon_das._grpc.distributed_algorithm_node_pb2 as distributed__algorithm__node__pb2
+import hyperon_das._grpc.distributed_algorithm_node_pb2_grpc as distributed__algorithm__node__pb2__grpc
+from hyperon_das._grpc.distributed_algorithm_node_pb2_grpc import DistributedAlgorithmNodeStub
 from hyperon_das.logger import log
 from hyperon_das.service_bus.port_pool import PortPool
 
@@ -18,7 +18,7 @@ class BusCommandProxy(abc.ABC):
         self.command = command
         self.args = args or []
         self.proxy_port: int = 0
-        self.proxy_node: 'AtomSpaceNodeManager' = None
+        self.proxy_node: 'DistributedAlgorithmNodeManager' = None
         self.requestor_id: str = None
         self.serial: int = None
 
@@ -38,9 +38,9 @@ class BusCommandProxy(abc.ABC):
                 id = self.requestor_id
                 requestor_host = id.split(":")[0]
                 requestor_id = requestor_host + ":" + str(self.proxy_port)
-                self.proxy_node = AtomSpaceNodeManager(node_id=requestor_id, server_id=server_id, proxy=self)
+                self.proxy_node = DistributedAlgorithmNodeManager(node_id=requestor_id, server_id=server_id, proxy=self)
             else:
-                self.proxy_node = AtomSpaceNodeManager(node_id=client_id, server_id=server_id, proxy=self)
+                self.proxy_node = DistributedAlgorithmNodeManager(node_id=client_id, server_id=server_id, proxy=self)
                 self.proxy_node.peer_id = server_id
             self.proxy_node.start()
 
@@ -58,7 +58,7 @@ class BusCommandProxy(abc.ABC):
         self.proxy_node.to_remote_peer(command, args)
 
 
-class AtomSpaceNodeManager:
+class DistributedAlgorithmNodeManager:
     """Manages the AtomSpace node, including the gRPC server lifecycle."""
 
     PROXY_COMMAND = "bus_command_proxy"
@@ -68,11 +68,13 @@ class AtomSpaceNodeManager:
         self.peer_id = None
         self.node_id = node_id
         self.server_id = server_id
-        self.servicer = AtomSpaceNodeServicer(proxy)
+        self.servicer = DistributedAlgorithmNodeServicer(proxy)
 
     def start(self):
         self.server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
-        atom__space__node__pb2__grpc.add_AtomSpaceNodeServicer_to_server(self.servicer, self.server)
+        distributed__algorithm__node__pb2__grpc.add_DistributedAlgorithmNodeServicer_to_server(
+            self.servicer, self.server
+        )
         self.server.add_insecure_port(self.node_id)
         self.server.start()
 
@@ -97,9 +99,9 @@ class AtomSpaceNodeManager:
         new_args.append(command)
 
         with grpc.insecure_channel(self.peer_id) as channel:
-            stub = AtomSpaceNodeStub(channel)
+            stub = DistributedAlgorithmNodeStub(channel)
             log.debug(f"Sending command: {self.PROXY_COMMAND} to target: {self.peer_id}")
-            message = atom__space__node__pb2.MessageData(
+            message = distributed__algorithm__node__pb2.MessageData(
                 command=self.PROXY_COMMAND,
                 args=new_args,
                 sender=self.node_id,
@@ -112,7 +114,7 @@ class AtomSpaceNodeManager:
                 log.error(f"Failed to send message: {e}")
 
 
-class AtomSpaceNodeServicer(atom__space__node__pb2__grpc.AtomSpaceNodeServicer):
+class DistributedAlgorithmNodeServicer(distributed__algorithm__node__pb2__grpc.DistributedAlgorithmNodeServicer):
     """Implements the gRPC service for the AtomSpace node."""
 
     def __init__(self, proxy: BusCommandProxy):
@@ -121,9 +123,9 @@ class AtomSpaceNodeServicer(atom__space__node__pb2__grpc.AtomSpaceNodeServicer):
     def ping(self, request=None, context=None):
         return common__pb2.Ack(error=False, msg="ack")
 
-    def execute_message(self, request: atom__space__node__pb2.MessageData, context=None):
+    def execute_message(self, request: distributed__algorithm__node__pb2.MessageData, context=None):
         log.info(
-            f"Remote command: <{request.command}> arrived at AtomSpaceNodeServicer {self.proxy.proxy_node.node_id}"
+            f"Remote command: <{request.command}> arrived at DistributedAlgorithmNodeServicer {self.proxy.proxy_node.node_id}"
         )
         log.debug(
             f"Request command: {request.command}, args: {request.args}, sender: {request.sender}, is_broadcast: {request.is_broadcast}, visited_recipients: {request.visited_recipients}"

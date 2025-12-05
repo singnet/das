@@ -32,10 +32,19 @@ class PatternMatchingQueryProxy : public BaseQueryProxy {
     static string COUNT;  // Delivery of the final result of a count_only query
 
     // Query command's optional parameters
-    static string POSITIVE_IMPORTANCE_FLAG;  // Indicates that only answres whose importance > 0
+    static string POSITIVE_IMPORTANCE_FLAG;  // Indicates that only answers whose importance > 0
                                              // are supposed to be returned
 
-    static string COUNT_FLAG;  // indicates that this query is supposed to count the results and not
+    static string UNIQUE_VALUE_FLAG;         // When true, QueryAnswers won't be allowed to have the same
+                                             // handle assigned to different values. For instance, if a
+                                             // variable V1 is assigned to a handle H1, if this parameter
+                                             // is true then it's assured that no other variable will be
+                                             // assigned with the same value H1. When this parameter is
+                                             // false (which is the default value, btw), it's possible
+                                             // to have a QueryAnswer with an assignment like this, for
+                                             // example: V1: H1, V2: H2, V3, H1.
+
+    static string COUNT_FLAG;  // Indicates that this query is supposed to count the results and not
                                // actually provide the query answers (i.e. no QueryAnswer is sent
                                // from the command executor and the caller of the query).
 

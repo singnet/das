@@ -64,6 +64,17 @@ class ContextBrokerProxy : public BaseQueryProxy {
                        const vector<string>& query,
                        const vector<pair<QueryAnswerElement, QueryAnswerElement>>& determiner_schema,
                        const vector<QueryAnswerElement>& stimulus_schema);
+    /**
+     * Constructor for schema-based context.
+     * @param name Context name
+     * @param query Query tokens
+     * @param determiner_schema Determiner schema string, ex: "C1:C2,C3:C4"
+     * @param stimulus_schema Stimulus schema string, ex: "S1,S2,S3"
+     */
+    ContextBrokerProxy(const string& name,
+                       const vector<string>& query,
+                       const string& determiner_schema,
+                       const string& stimulus_schema);
 
     /**
      * Destructor.

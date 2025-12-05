@@ -9,7 +9,9 @@ using namespace commons;
 
 string Assignment::EMPTY_VALUE = "";
 
-Assignment::Assignment() {}
+Assignment::Assignment(bool unique_assignment_flag) {
+    this->unique_assignment_flag = unique_assignment_flag;
+}
 
 Assignment::~Assignment() {}
 
@@ -41,11 +43,21 @@ bool Assignment::is_compatible(const Assignment& other) {
                 return false;
             }
         }
+        if (this->unique_assignment_flag) {
+            for (auto other_pair : other.table) {
+                if ((pair.second == other_pair.second) && (pair.first != other_pair.first)) {
+                    return false;
+                }
+            }
+        }
     }
     return true;
 }
 
-void Assignment::copy_from(const Assignment& other) { this->table = other.table; }
+void Assignment::copy_from(const Assignment& other) {
+    this->table = other.table;
+    this->unique_assignment_flag = other.unique_assignment_flag;
+}
 
 void Assignment::add_assignments(const Assignment& other) {
     for (auto pair : other.table) {
@@ -84,4 +96,13 @@ string Assignment::to_string() {
 
 void Assignment::clear() { this->table.clear(); }
 
-bool Assignment::operator==(const Assignment& other) const { return (this->table == other.table); }
+bool Assignment::operator==(const Assignment& other) const {
+    return (this->table == other.table) &&
+           (this->unique_assignment_flag == other.unique_assignment_flag);
+}
+
+Assignment& Assignment::operator=(const Assignment& other) {
+    this->table = other.table;
+    this->unique_assignment_flag = other.unique_assignment_flag;
+    return *this;
+}

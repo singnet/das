@@ -36,7 +36,7 @@ pip install dist/python_client-0.1.0*.whl
 
 If you prefer to build without Docker, you can do so locally, though this requires manual adjustments.
 
-**Note:** The Docker method is preferred for its consistency, as the local build requires manual path adjustments and assumes the proto/ directory contains the necessary .proto files (atom_space_node.proto and common.proto).
+**Note:** The Docker method is preferred for its consistency, as the local build requires manual path adjustments and assumes the proto/ directory contains the necessary .proto files (distributed_algorithm_node.proto and common.proto).
 
 1. Install Poetry: [Follow the instructions at Poetry Installation](https://python-poetry.org/docs/#installation)
 

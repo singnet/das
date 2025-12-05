@@ -2,8 +2,8 @@ import enum
 
 import grpc
 
-from hyperon_das._grpc import atom_space_node_pb2
-from hyperon_das._grpc.atom_space_node_pb2_grpc import AtomSpaceNodeStub
+from hyperon_das._grpc import distributed_algorithm_node_pb2
+from hyperon_das._grpc.distributed_algorithm_node_pb2_grpc import DistributedAlgorithmNodeStub
 from hyperon_das.logger import log
 
 
@@ -81,9 +81,9 @@ class BusNode:
 
     def send(self, command: str, args: list[str], target_id: str) -> None:
         with grpc.insecure_channel(target_id) as channel:
-            stub = AtomSpaceNodeStub(channel)
+            stub = DistributedAlgorithmNodeStub(channel)
             log.debug(f"Sending command: {command} with args: {args} to target: {target_id}")
-            message = atom_space_node_pb2.MessageData(
+            message = distributed_algorithm_node_pb2.MessageData(
                 command=command, args=args, sender=self.node_id, is_broadcast=False, visited_recipients=[]
             )
             try:
