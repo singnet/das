@@ -77,7 +77,10 @@ void BusCommandProxy::setup_proxy_node(const string& client_id, const string& se
 
 void BusCommandProxy::to_remote_peer(const string& command, const vector<string>& args) {
     LOG_DEBUG(this->proxy_node->node_id() << " is issuing proxy command <" << command << ">");
-    this->proxy_node->to_remote_peer(command, args);
+    Utils::retry_function([&]() { this->proxy_node->to_remote_peer(command, args); },
+                          6,
+                          500,
+                          "BusCommandProxy::to_remote_peer");
 }
 
 bool BusCommandProxy::from_remote_peer(const string& command, const vector<string>& args) {
