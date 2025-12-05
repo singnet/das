@@ -12,9 +12,6 @@ on:
 jobs:
 
   tag:
-    needs: 
-      - determine-version
-      - build-push-docker-image
     uses: singnet/das/.github/workflows/run-semver.yml@rl/notification-test
     if: needs.determine-version.outputs.version_exists != 'true'
     with:
