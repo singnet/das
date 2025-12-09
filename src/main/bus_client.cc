@@ -1,5 +1,6 @@
 #include <signal.h>
 
+#include "FitnessFunctionRegistry.h"
 #include "Helper.h"
 #include "Logger.h"
 #include "Properties.h"
@@ -50,6 +51,11 @@ int main(int argc, char* argv[]) {
             AtomDBSingleton::init(atomdb_api_types::ATOMDB_TYPE::MORKDB);
         } else {
             AtomDBSingleton::init();
+        }
+        if (Helper::processor_type_from_string(cmd_args[Helper::SERVICE]) ==
+            mains::ProcessorType::EVOLUTION_AGENT) {
+            LOG_INFO("Initializing Fitness Function Registry statics...");
+            FitnessFunctionRegistry::initialize_statics();
         }
         auto proxy = ProxyFactory::create_proxy(cmd_args[Helper::SERVICE], props);
         if (proxy == nullptr) {
