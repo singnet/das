@@ -93,7 +93,7 @@ class AtomDBProxy : public BaseProxy {
      *
      * @param handles Vector of handles of atoms to be deleted.
      * @param delete_link_targets Whether to delete link targets.
-     * @return The number of atoms deleted.
+
      */
     void delete_atoms(const vector<string>& handles, bool delete_link_targets = false);
 
@@ -113,6 +113,10 @@ class AtomDBProxy : public BaseProxy {
      * Called when an untokenize operation targets this proxy.
      */
     virtual void untokenize(vector<string>& tokens) override;
+
+    void init_server_side();
+
+    void shutdown_server_side();
 
    private:
     /**
@@ -170,10 +174,10 @@ class AtomDBProxy : public BaseProxy {
     static const size_t BATCH_SIZE;
     static const size_t COMMAND_SIZE_LIMIT;
     bool is_processing_buffer = false;
-    SharedQueue* processing_queue = nullptr;
+    shared_ptr<SharedQueue> processing_queue = nullptr;
     size_t pending_atoms_count = 0;
     thread processing_thread;
-    ThreadPool* thread_pool;
+    shared_ptr<ThreadPool> thread_pool;
     bool stop_processing = false;
 };
 
