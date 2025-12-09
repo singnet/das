@@ -116,10 +116,9 @@ vector<string> AtomDBProxy::add_atoms(const vector<Atom*>& atoms, bool use_strea
     return handles;
 }
 
-uint AtomDBProxy::delete_atoms(const vector<string>& handles, bool delete_link_targets) {
+void AtomDBProxy::delete_atoms(const vector<string>& handles, bool delete_link_targets) {
     vector<string> args;
     size_t chunk_size = AtomDBProxy::COMMAND_SIZE_LIMIT;
-    uint total_deleted = 0;
     for (size_t i = 0; i < handles.size(); i += chunk_size) {
         args.clear();
         size_t end = std::min(i + chunk_size, handles.size());
@@ -127,7 +126,6 @@ uint AtomDBProxy::delete_atoms(const vector<string>& handles, bool delete_link_t
         args.push_back(delete_link_targets ? "1" : "0");
         this->to_remote_peer(AtomDBProxy::DELETE_ATOMS, args);
     }
-    return total_deleted;
 }
 
 // -------------------------------------------------------------------------------------------------

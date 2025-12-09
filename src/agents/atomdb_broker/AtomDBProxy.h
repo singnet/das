@@ -95,7 +95,7 @@ class AtomDBProxy : public BaseProxy {
      * @param delete_link_targets Whether to delete link targets.
      * @return The number of atoms deleted.
      */
-    uint delete_atoms(const vector<string>& handles, bool delete_link_targets = false);
+    void delete_atoms(const vector<string>& handles, bool delete_link_targets = false);
 
     // ---------------------------------------------------------------------------------------------
     // server-side API
