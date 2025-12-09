@@ -51,6 +51,7 @@ on:
         required: true
 
 jobs:
+
   setup:
     runs-on: self-hosted
     outputs:
@@ -61,9 +62,18 @@ jobs:
 
       - id: setup-release-note
         name: Setup release notes
-        run: |-
-          releaseNote=$([ -e "${{ inputs.changelog }}" ] && awk -v ORS='\\n' '1' "${{ inputs.changelog }}" || echo "")
-          echo "::set-output name=releaseNote::${releaseNote}"
+        run: |
+          if [ -e "${{ inputs.changelog }}" ]; then
+            releaseNote="$(cat "${{ inputs.changelog }}")"
+          else
+            releaseNote=""
+          fi
+
+          {
+            echo "releaseNote<<EOF"
+            printf '%s\n' "$releaseNote"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
 
   tag:
     runs-on: self-hosted
@@ -108,11 +118,16 @@ jobs:
         run: |
           title="${{ inputs.title }}"
           deliverable="${{ inputs.deliverable }}"
-          version="${{ needs.tag.outputs.version }}"
-          repository="${{ needs.tag.outputs.repository }}"
-          releaseNote="${{ needs.tag.outputs.release-note }}"
+          version=${{ needs.tag.outputs.version }}
+          repository=${{ needs.tag.outputs.repository }}
+          
+          read -r rawReleaseNote << 'EOF_RN'
+          ${{ needs.tag.outputs.release-note }}
+          EOF_RN
+          
+          releaseNote=$(printf %b "$rawReleaseNote")
 
-          message="${title}\n\nDeliverable:${deliverable}\nNew version available: $version\nRepository: https://github.com/$repository/releases/tag/$version"
+          message="${title}\n\nDeliverable: ${deliverable}\nNew version available: ${version}\nRepository: https://github.com/${repository}/releases/tag/${version}"
 
           if [ -n "$releaseNote" ]; then
             message="$message\nChanges:\n$releaseNote"
