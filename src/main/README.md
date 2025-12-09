@@ -36,10 +36,7 @@ make run-busnode OPTIONS="--service=<SERVICE_NAME> --endpoint=<ENDPOINT> --ports
 ```
 
 ### Examples
-#### AtomDB
-```
-make run-busnode OPTIONS="--service=atomdb-broker --endpoint=localhost:8888 --ports-range=25000:26000"
-```
+
 #### Query Engine
 ```
 make run-busnode OPTIONS="--service=query-engine --endpoint=localhost:9000 --ports-range=3000:3100 --attention-broker-endpoint=localhost:37007"
@@ -56,7 +53,10 @@ make run-busnode OPTIONS="--service=link-creation-agent --endpoint=localhost:900
 ```
 make run-busnode OPTIONS="--service=inference-agent --endpoint=localhost:9003 --ports-range=5000:5100 --attention-broker-endpoint=localhost:37007 --bus-endpoint=localhost:9000"
 ```
-
+#### AtomDB
+```
+make run-busnode OPTIONS="--service=atomdb-broker --endpoint=localhost:9004 --ports-range=25000:26000 --bus-endpoint=localhost:9000"
+```
 
 ## Running Client
 
@@ -71,7 +71,7 @@ make run-client OPTIONS="--service=<SERVICE_NAME> --endpoint=<ENDPOINT> --bus-en
 ### Examples
 #### AtomDB:
 ```
-make run-client OPTIONS="--service=atomdb-broker --endpoint=localhost:8887 --bus-endpoint=localhost:8888 --ports-range=27000:28000 --action=add_atoms --tokens=LINK Expression 2 NODE Symbol A NODE Symbol B"
+make run-client OPTIONS="--service=atomdb-broker --endpoint=localhost:8887 --bus-endpoint=localhost:9000 --ports-range=27000:28000 --action=add_atoms --tokens=LINK Expression 2 NODE Symbol A NODE Symbol B"
 ```
 #### Query Engine:
 ```
@@ -79,17 +79,27 @@ make run-client OPTIONS="--service=query-engine --endpoint=localhost:8085 --bus-
 ```
 #### LCA:
 ```
-make run-client OPTIONS="--service=link-creation-agent --endpoint=localhost:8085 --bus-endpoint=localhost:9002 --ports-range=41000:41999 --use-metta-as-query-tokens --max-answers=5 --request='(and (Concept %C1) (Concept %C2)) EQUIVALENCE_RELATION'"
+make run-client OPTIONS="--service=link-creation-agent --endpoint=localhost:8085 --bus-endpoint=localhost:9000 --ports-range=41000:41999 --use-metta-as-query-tokens --max-answers=5 --request='(and (Concept %C1) (Concept %C2)) EQUIVALENCE_RELATION'"
 ```
 or
 ```
-make run-client OPTIONS="--service=link-creation-agent --endpoint=localhost:8085 --bus-endpoint=localhost:9002 --ports-range=41000:41999 --max-answers=5 --request=AND 2 LINK_TEMPLATE Expression 2 NODE Symbol PREDICATE VARIABLE P1 LINK_TEMPLATE Expression 2 NODE Symbol PREDICATE VARIABLE P2 LINK_CREATE Similarity3 2 0 VARIABLE P1 VARIABLE P2"
+make run-client OPTIONS="--service=link-creation-agent --endpoint=localhost:8085 --bus-endpoint=localhost:9000 --ports-range=41000:41999 --max-answers=5 --request=AND 2 LINK_TEMPLATE Expression 2 NODE Symbol PREDICATE VARIABLE P1 LINK_TEMPLATE Expression 2 NODE Symbol PREDICATE VARIABLE P2 LINK_CREATE Similarity3 2 0 VARIABLE P1 VARIABLE P2"
 ```
 #### Inference Agent
 ```
- make run-client OPTIONS="--service=inference-agent --endpoint=localhost:8085 --bus-endpoint=localhost:9003 --ports-range=41000:41999 --max-answers=5 --request=PROOF_OF_IMPLICATION 2d01b94c549678aa84840e5901f8d449 ba8267a5c1411eb4bc32d9062e3398ad 2 TOY"
+ make run-client OPTIONS="--service=inference-agent --endpoint=localhost:8085 --bus-endpoint=localhost:9000 --ports-range=41000:41999 --max-answers=5 --request=PROOF_OF_IMPLICATION 2d01b94c549678aa84840e5901f8d449 ba8267a5c1411eb4bc32d9062e3398ad 2 TOY"
  ```
 
+#### Context Broker
+```
+ make run-client OPTIONS="--service=context-broker --endpoint=localhost:8086 --bus-endpoint=localhost:9000 --ports-range=41000:41999  --query=OR 3 AND 4 LINK_TEMPLATE Expression 3 NODE Symbol Evaluation VARIABLE V0 LINK_TEMPLATE Expression 2 NODE Symbol Concept VARIABLE S1 LINK_TEMPLATE Expression 3 NODE Symbol Contains VARIABLE S1 VARIABLE W1 LINK_TEMPLATE Expression 3 NODE Symbol Contains VARIABLE S2 VARIABLE W1 LINK_TEMPLATE Expression 3 NODE Symbol Evaluation VARIABLE V1 LINK_TEMPLATE Expression 2 NODE Symbol Concept VARIABLE S2 LINK_TEMPLATE Expression 3 NODE Symbol Implication VARIABLE V0 VARIABLE V1 LINK_TEMPLATE Expression 3 NODE Symbol Implication VARIABLE V1 VARIABLE V0 --determiner-schema=V0:V1,V0:S2 --stimulus-schema=V0"
+ ```
+
+#### Evolution Agent
+
+```
+make run-client OPTIONS="--service=evolution-agent --endpoint=localhost:8085 --bus-endpoint=localhost:9000 --ports-range=41000:41999  --query='(Contains %sentence1 (Word \"bbb\"))' --correlation-queries='(Contains %placeholder1 %word1)' --correlation-replacements=%placeholder1:sentence1 --correlation-mappings=sentence1:%word1 --max-generations=3 --fitness-function-tag=count_letter --context=Aaa --use-metta-as-query-tokens --max-answers=50"
+```
 
 ## Adding a New Element
 

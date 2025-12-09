@@ -42,6 +42,11 @@ class Helper {
     static string CORRELATION_REPLACEMENTS;
     static string CORRELATION_MAPPINGS;
     static string FITNESS_FUNCTION_TAG;
+    static string POPULATION_SIZE;
+    static string MAX_GENERATIONS;
+    static string ELITISM_RATE;
+    static string SELECTION_RATE;
+    static string TOTAL_ATTENTION_TOKENS;
     static string USE_CONTEXT_CACHE;
     static string ENFORCE_CACHE_RECREATION;
     static string INITIAL_RENT_RATE;
