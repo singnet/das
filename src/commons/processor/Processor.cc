@@ -30,7 +30,9 @@ void Processor::bind_subprocessor(shared_ptr<Processor> root, shared_ptr<Process
         Utils::error("Can't bind processors after setup() has been called");
     }
     if (child->parent_processor != nullptr) {
-        Utils::error("Invalid attempt to bind processor " + child->to_string() + " to " + root->to_string() + ". It's already bound to " + child->parent_processor->to_string());
+        Utils::error("Invalid attempt to bind processor " + child->to_string() + " to " +
+                     root->to_string() + ". It's already bound to " +
+                     child->parent_processor->to_string());
     }
     root->subprocessors.push_back(child);
     child->parent_processor = root;
@@ -44,11 +46,11 @@ void Processor::setup() {
     this->current_state = WAITING_START;
     this->api_mutex.unlock();
     for (auto subprocess : this->subprocessors) {
-        if (! subprocess->is_setup()) {
+        if (!subprocess->is_setup()) {
             subprocess->setup();
         }
     }
-    if ((this->parent_processor != nullptr) && ! this->parent_processor->is_setup()) {
+    if ((this->parent_processor != nullptr) && !this->parent_processor->is_setup()) {
         this->parent_processor->setup();
     }
 }
@@ -59,11 +61,11 @@ void Processor::start() {
     this->current_state = WAITING_STOP;
     this->api_mutex.unlock();
     for (auto subprocess : this->subprocessors) {
-        if (! subprocess->is_running()) {
+        if (!subprocess->is_running()) {
             subprocess->start();
         }
     }
-    if ((this->parent_processor != nullptr) && ! this->parent_processor->is_running()) {
+    if ((this->parent_processor != nullptr) && !this->parent_processor->is_running()) {
         this->parent_processor->start();
     }
 }
@@ -74,11 +76,11 @@ void Processor::stop() {
     this->current_state = FINISHED;
     this->api_mutex.unlock();
     for (auto subprocess : this->subprocessors) {
-        if (! subprocess->is_finished()) {
+        if (!subprocess->is_finished()) {
             subprocess->stop();
         }
     }
-    if ((this->parent_processor != nullptr) && ! this->parent_processor->is_finished()) {
+    if ((this->parent_processor != nullptr) && !this->parent_processor->is_finished()) {
         this->parent_processor->stop();
     }
     this->subprocessors.clear();

@@ -66,13 +66,13 @@ TEST(ProcessorTest, subprocessors) {
         g = make_shared<Processor>("g");
         h = make_shared<Processor>("h");
         nodes = {a, b, c, d, e, f, g, h};
-        Processor::bind_subprocessor(a, c); //    a       //
-        Processor::bind_subprocessor(a, d); //   / \      //
-        Processor::bind_subprocessor(d, e); //  c   d     //
-        Processor::bind_subprocessor(d, f); //    / | \   //
-        Processor::bind_subprocessor(d, g); //   e  f  g  //
-        Processor::bind_subprocessor(e, b); //   |  |     //
-        Processor::bind_subprocessor(f, h); //   b  h     //
+        Processor::bind_subprocessor(a, c);  //    a       //
+        Processor::bind_subprocessor(a, d);  //   / \      //
+        Processor::bind_subprocessor(d, e);  //  c   d     //
+        Processor::bind_subprocessor(d, f);  //    / | \   //
+        Processor::bind_subprocessor(d, g);  //   e  f  g  //
+        Processor::bind_subprocessor(e, b);  //   |  |     //
+        Processor::bind_subprocessor(f, h);  //   b  h     //
 
         p = nodes[i % nodes.size()];
         for (auto cursor : nodes) {
