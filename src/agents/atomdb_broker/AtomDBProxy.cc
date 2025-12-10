@@ -35,7 +35,9 @@ string AtomDBProxy::END_STREAM = "end_stream";
 // -------------------------------------------------------------------------------------------------
 // Constructor and destructor
 
-AtomDBProxy::AtomDBProxy() : BaseProxy() {}
+AtomDBProxy::AtomDBProxy() : BaseProxy() {
+    this->command = ServiceBus::ATOMDB;
+}
 
 AtomDBProxy::~AtomDBProxy() {}
 
@@ -113,7 +115,6 @@ void AtomDBProxy::delete_atoms(const vector<string>& handles, bool delete_link_t
 // Server-side API
 
 void AtomDBProxy::init_server_side() {
-    this->command = ServiceBus::ATOMDB;
     this->atomdb = AtomDBSingleton::get_instance();
     this->is_processing_buffer = false;
     this->processing_queue = make_shared<SharedQueue>(MAX_PENDING_ATOMS * 2);
