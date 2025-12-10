@@ -35,9 +35,7 @@ string AtomDBProxy::END_STREAM = "end_stream";
 // -------------------------------------------------------------------------------------------------
 // Constructor and destructor
 
-AtomDBProxy::AtomDBProxy() : BaseProxy() {
-    this->command = ServiceBus::ATOMDB;
-}
+AtomDBProxy::AtomDBProxy() : BaseProxy() { this->command = ServiceBus::ATOMDB; }
 
 AtomDBProxy::~AtomDBProxy() {}
 
