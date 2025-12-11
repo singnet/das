@@ -6,9 +6,13 @@ cc_library(
     name = "processor_lib",
     srcs = [
         "Processor.cc",
+        "DedicatedThread.cc",
+        "ThreadPool.cc",
     ],
     hdrs = [
         "Processor.h",
+        "DedicatedThread.h",
+        "ThreadPool.h",
     ],
     includes = ["."],
     deps = [

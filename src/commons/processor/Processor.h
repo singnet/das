@@ -16,7 +16,7 @@ class Processor {
     enum State { UNDEFINED = 0, WAITING_SETUP, WAITING_START, WAITING_STOP, FINISHED };
 
     Processor(const string& id);
-    ~Processor();
+    virtual ~Processor();
 
     static void bind_subprocessor(shared_ptr<Processor> root, shared_ptr<Processor> child);
 
