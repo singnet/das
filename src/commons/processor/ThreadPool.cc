@@ -1,4 +1,5 @@
 #include "ThreadPool.h"
+
 #include "Utils.h"
 
 using namespace processor;
@@ -12,12 +13,9 @@ ThreadPool::ThreadPool(const string& id, unsigned int num_threads) : Processor(i
     this->active_tasks = 0;
 }
 
-ThreadPool::~ThreadPool() {
-}
+ThreadPool::~ThreadPool() {}
 
-void ThreadPool::setup() {
-    Processor::setup();
-}
+void ThreadPool::setup() { Processor::setup(); }
 
 void ThreadPool::start() {
     for (unsigned int i = 0; i < this->num_threads; ++i) {
@@ -26,7 +24,8 @@ void ThreadPool::start() {
                 function<void()> task;
                 {
                     unique_lock<mutex> lock(this->queue_mutex);
-                    this->condition.wait(lock, [this] { return this->stop_flag || !this->tasks.empty(); });
+                    this->condition.wait(lock,
+                                         [this] { return this->stop_flag || !this->tasks.empty(); });
                     if (this->stop_flag && this->tasks.empty()) return;
 
                     task = move(this->tasks.front());
@@ -65,7 +64,8 @@ void ThreadPool::enqueue(function<void()> task) {
         }
         condition.notify_one();
     } else {
-        Utils::error("Attempt to add a job to ThreadPool " + this->to_string() + " which has not being started");
+        Utils::error("Attempt to add a job to ThreadPool " + this->to_string() +
+                     " which has not being started");
     }
 }
 

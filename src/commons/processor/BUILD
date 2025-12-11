@@ -5,13 +5,13 @@ package(default_visibility = ["//visibility:public"])
 cc_library(
     name = "processor_lib",
     srcs = [
-        "Processor.cc",
         "DedicatedThread.cc",
+        "Processor.cc",
         "ThreadPool.cc",
     ],
     hdrs = [
-        "Processor.h",
         "DedicatedThread.h",
+        "Processor.h",
         "ThreadPool.h",
     ],
     includes = ["."],

@@ -21,9 +21,7 @@ namespace processor {
  *
  */
 class ThreadPool : public Processor {
-
-public:
-
+   public:
     ThreadPool(const string& id, unsigned int num_threads);
     virtual ~ThreadPool();
 
@@ -36,8 +34,7 @@ public:
     bool empty();
     void wait();
 
-private:
-
+   private:
     unsigned int num_threads;
 
     vector<thread> workers;
@@ -47,8 +44,6 @@ private:
     condition_variable done_condition;
     unsigned int active_tasks;
     bool stop_flag = false;
-
-
 };
 
-} // namespace processor
+}  // namespace processor

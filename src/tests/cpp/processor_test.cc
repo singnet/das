@@ -1,10 +1,11 @@
 #include "Processor.h"
-#include "DedicatedThread.h"
-#include "processor/ThreadPool.h"
-#include "Utils.h"
-#include "Logger.h"
 
 #include <gtest/gtest.h>
+
+#include "DedicatedThread.h"
+#include "Logger.h"
+#include "Utils.h"
+#include "processor/ThreadPool.h"
 
 using namespace std;
 using namespace processor;
@@ -107,9 +108,8 @@ TEST(ProcessorTest, subprocessors) {
 }
 
 TEST(ProcessorTest, dedicated_thread) {
-
     class TestThreadMethod : public ThreadMethod {
-        public:
+       public:
         mutex api_mutex;
         bool cycle_flag;
         unsigned int count;
@@ -178,7 +178,7 @@ TEST(ProcessorTest, thread_pool) {
         Utils::sleep(Utils::uint_rand(10));
     };
 
-    ThreadPool *pool;
+    ThreadPool* pool;
     for (unsigned int n_threads : {1, 2, 4, 10, 100}) {
         for (int n_inc : {100, 200, 300}) {
             for (int n_dec : {50, 150, 250}) {
@@ -211,7 +211,7 @@ TEST(ProcessorTest, thread_pool) {
                 LOG_INFO("n_threads: " << n_threads << " n_inc: " << n_inc << " n_dec: " << n_dec);
                 EXPECT_EQ(count, (n_inc - n_dec));
                 pool->stop();
-                delete(pool);
+                delete (pool);
             }
         }
     }

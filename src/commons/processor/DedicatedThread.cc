@@ -1,9 +1,9 @@
 #ifndef LOG_LEVEL
 #define LOG_LEVEL INFO_LEVEL
 #endif
-#include "Logger.h"
-
 #include "DedicatedThread.h"
+
+#include "Logger.h"
 #include "Utils.h"
 
 using namespace processor;
@@ -12,14 +12,13 @@ using namespace commons;
 // -------------------------------------------------------------------------------------------------
 // Public methods
 
-DedicatedThread::DedicatedThread(const string& id, ThreadMethod* job): Processor(id) {
+DedicatedThread::DedicatedThread(const string& id, ThreadMethod* job) : Processor(id) {
     this->job = job;
     this->start_flag = false;
     this->stop_flag = false;
 }
 
-DedicatedThread::~DedicatedThread() {
-}
+DedicatedThread::~DedicatedThread() {}
 
 void DedicatedThread::setup() {
     this->thread_object = new thread(&DedicatedThread::thread_method, this);
@@ -60,12 +59,12 @@ bool DedicatedThread::stopped() {
 }
 
 void DedicatedThread::thread_method() {
-    while (! started()) {
+    while (!started()) {
         Utils::sleep();
     }
     do {
-        if (! this->job->thread_one_step()) {
+        if (!this->job->thread_one_step()) {
             Utils::sleep();
         };
-    } while (! stopped());
+    } while (!stopped());
 }
