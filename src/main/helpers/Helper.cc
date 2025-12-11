@@ -23,6 +23,11 @@ string Helper::CORRELATION_QUERIES = "correlation-queries";
 string Helper::CORRELATION_REPLACEMENTS = "correlation-replacements";
 string Helper::CORRELATION_MAPPINGS = "correlation-mappings";
 string Helper::FITNESS_FUNCTION_TAG = "fitness-function-tag";
+string Helper::POPULATION_SIZE = "population-size";
+string Helper::MAX_GENERATIONS = "max-generations";
+string Helper::ELITISM_RATE = "elitism-rate";
+string Helper::SELECTION_RATE = "selection-rate";
+string Helper::TOTAL_ATTENTION_TOKENS = "total-attention-tokens";
 string Helper::USE_CONTEXT_CACHE = "use-context-cache";
 string Helper::ENFORCE_CACHE_RECREATION = "enforce-cache-recreation";
 string Helper::INITIAL_RENT_RATE = "initial-rent-rate";
@@ -127,8 +132,11 @@ This client sends query evolution requests to the Evolution Agent via the servic
 It requires the following arguments:
     - query: The query to be processed.
     - correlation-queries: The correlation queries associated with the evolution request.
+        Example format: "query1,query2,query3"
     - correlation-replacements: The correlation replacements for the evolution request.
+        Example format: "C1:S1,C2:S2;C3:S3,C4:S4"
     - correlation-mappings: The correlation mappings for the evolution request.
+        Example format: "C1:S1,C2:S2"
     - context: The context in which the evolution should be evaluated.
     - fitness-function-tag: The fitness function tag to be used.
 )")},
@@ -247,7 +255,12 @@ vector<string> Helper::get_required_arguments(const string& processor_type,
             }
         case ProcessorType::EVOLUTION_AGENT:
             if (caller_type == ServiceCallerType::CLIENT) {
-                return {REQUEST, MAX_ANSWERS, ATTENTION_UPDATE_FLAG, REPEAT_COUNT};
+                return {QUERY,
+                        CORRELATION_QUERIES,
+                        CORRELATION_REPLACEMENTS,
+                        CORRELATION_MAPPINGS,
+                        CONTEXT,
+                        FITNESS_FUNCTION_TAG};
             } else {
                 return {ATTENTION_BROKER_ENDPOINT};
             }
