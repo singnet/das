@@ -26,7 +26,7 @@ AtomDBProcessor::~AtomDBProcessor() {
     LOG_INFO("Waiting for thread management to finish...");
     this->thread_management.join();
     LOG_INFO("Stopping all query threads...");
-    lock_guard<mutex> semaphore(this->query_threads_mutex);
+    lock_guard<mutex> lock(this->query_threads_mutex);
     for (auto& pair : this->query_threads) {
         LOG_INFO("Stopping thread: " << pair.first);
         pair.second->stop();
@@ -39,8 +39,9 @@ AtomDBProcessor::~AtomDBProcessor() {
 shared_ptr<BusCommandProxy> AtomDBProcessor::factory_empty_proxy() { return make_shared<AtomDBProxy>(); }
 
 void AtomDBProcessor::run_command(shared_ptr<BusCommandProxy> proxy) {
-    lock_guard<mutex> semaphore(this->query_threads_mutex);
+    lock_guard<mutex> lock(this->query_threads_mutex);
     auto atomdb_proxy = dynamic_pointer_cast<AtomDBProxy>(proxy);
+    atomdb_proxy->init_server_side();
     string thread_id = "thread<" + proxy->my_id() + "_" + std::to_string(proxy->get_serial()) + ">";
     LOG_DEBUG("Starting new thread: " << thread_id << " to run command: <" << proxy->get_command()
                                       << ">");
@@ -74,19 +75,28 @@ void AtomDBProcessor::thread_process_one_query(shared_ptr<StoppableThread> monit
     LOG_DEBUG("Command finished: <" << command << ">");
 
     LOG_INFO("Aborting command: <" << command << "> in thread: " << monitor->get_id());
-    this->query_threads[monitor->get_id()]->stop(false);
+    proxy->shutdown_server_side();
+    {
+        lock_guard<mutex> lock(this->query_threads_mutex);
+        auto it = this->query_threads.find(monitor->get_id());
+        if (it != this->query_threads.end()) {
+            it->second->stop(false);
+        }
+    }
 }
 
 void AtomDBProcessor::manage_finished_threads() {
     while (!this->stop_flag) {
-        for (auto it = this->query_threads.begin(); it != this->query_threads.end();) {
-            if (it->second->stopped()) {
-                lock_guard<mutex> semaphore(this->query_threads_mutex);
-                LOG_DEBUG("Removing finished thread: " << it->first);
-                it->second->stop();
-                it = this->query_threads.erase(it);
-            } else {
-                ++it;
+        {
+            lock_guard<mutex> lock(this->query_threads_mutex);
+            for (auto it = this->query_threads.begin(); it != this->query_threads.end();) {
+                if (it->second->stopped()) {
+                    LOG_DEBUG("Removing finished thread: " << it->first);
+                    it->second->stop();
+                    it = this->query_threads.erase(it);
+                } else {
+                    ++it;
+                }
             }
         }
         Utils::sleep(1000);

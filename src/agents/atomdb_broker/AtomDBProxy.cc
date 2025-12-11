@@ -35,28 +35,9 @@ string AtomDBProxy::END_STREAM = "end_stream";
 // -------------------------------------------------------------------------------------------------
 // Constructor and destructor
 
-AtomDBProxy::AtomDBProxy() : BaseProxy() {
-    this->command = ServiceBus::ATOMDB;
-    this->atomdb = AtomDBSingleton::get_instance();
-    this->is_processing_buffer = false;
-    this->processing_queue = new SharedQueue(AtomDBProxy::MAX_PENDING_ATOMS * 2);
-    this->thread_pool = new ThreadPool(AtomDBProxy::THREAD_POOL_SIZE);
-    this->processing_thread = thread(&AtomDBProxy::process_atom_batches, this);
-}
+AtomDBProxy::AtomDBProxy() : BaseProxy() { this->command = ServiceBus::ATOMDB; }
 
-AtomDBProxy::~AtomDBProxy() {
-    LOG_DEBUG("Shuting down AtomDBProxy, waiting for pending atoms to be processed...");
-    while (!this->processing_queue->empty()) {
-        Utils::sleep(100);
-    }
-    this->thread_pool->wait();
-    this->stop_processing = true;
-    this->processing_thread.join();
-    delete this->processing_queue;
-    delete this->thread_pool;
-    this->abort();
-    LOG_DEBUG("AtomDBProxy shut down complete.");
-}
+AtomDBProxy::~AtomDBProxy() {}
 
 // -------------------------------------------------------------------------------------------------
 // Client-side API
@@ -131,6 +112,26 @@ void AtomDBProxy::delete_atoms(const vector<string>& handles, bool delete_link_t
 // -------------------------------------------------------------------------------------------------
 // Server-side API
 
+void AtomDBProxy::init_server_side() {
+    this->atomdb = AtomDBSingleton::get_instance();
+    this->is_processing_buffer = false;
+    this->processing_queue = make_shared<SharedQueue>(MAX_PENDING_ATOMS * 2);
+    this->thread_pool = make_shared<ThreadPool>(AtomDBProxy::THREAD_POOL_SIZE);
+    this->processing_thread = thread(&AtomDBProxy::process_atom_batches, this);
+}
+
+void AtomDBProxy::shutdown_server_side() {
+    LOG_DEBUG("Shutting down AtomDBProxy, waiting for pending atoms to be processed...");
+    while (!this->processing_queue->empty()) {
+        Utils::sleep(100);
+    }
+    this->thread_pool->wait();
+    this->stop_processing = true;
+    this->processing_thread.join();
+    this->abort();
+    LOG_DEBUG("AtomDBProxy shut down complete.");
+}
+
 void AtomDBProxy::untokenize(vector<string>& tokens) { BaseProxy::untokenize(tokens); }
 
 bool AtomDBProxy::from_remote_peer(const string& command, const vector<string>& args) {
@@ -190,10 +191,10 @@ void AtomDBProxy::delete_atoms_callback(const vector<string>& args) {
 
 void AtomDBProxy::enqueue_request(const vector<string>& tokens) {
     auto atoms = build_atoms_from_tokens<Atom*>(tokens, raw_ptr_atom_factory);
+    unique_lock<mutex> lock(this->api_mutex);
     for (const auto& atom : atoms) {
         this->processing_queue->enqueue((void*) atom);
     }
-    unique_lock<mutex> lock(this->api_mutex);
     this->pending_atoms_count += atoms.size();
 }
 
@@ -215,7 +216,7 @@ void AtomDBProxy::process_atom_batches() {
             }
             this->pending_atoms_count -= atoms.size();
             lock.unlock();
-            auto job = [this, atoms]() {
+            auto job = [this, atoms = std::move(atoms)]() {
                 this->atomdb->add_atoms(atoms, false, true);
                 for (auto& atom : atoms) {
                     delete atom;
