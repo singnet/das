@@ -272,6 +272,8 @@ vector<vector<string>> InferenceRequest::get_requests() { return {}; }
 
 string InferenceRequest::get_context() { return context; }
 
+void InferenceRequest::set_context(string context) { this->context = context; }
+
 vector<string> InferenceRequest::get_update_attention_allocation_query() { return {}; }
 
 ////////////////////////////// IMPLICATION ///////////////////////////////////

@@ -7,6 +7,7 @@
 #define LOG_LEVEL DEBUG_LEVEL
 #include "AtomDBSingleton.h"
 #include "AttentionBrokerClient.h"
+#include "InferenceContext.h"
 #include "Logger.h"
 #include "PatternMatchingQueryProxy.h"
 #include "ServiceBusSingleton.h"
@@ -130,6 +131,11 @@ void InferenceAgent::run() {
         if (!inference_request_queue.empty()) {
             try {
                 auto inference_request = inference_request_queue.dequeue();
+                LOG_DEBUG("Creating context for inference request ID: " << inference_request->get_id());
+                shared_ptr<InferenceContext> inference_context =
+                    make_shared<InferenceContext>(inference_request->get_context(), "", "", "");
+                LOG_DEBUG("Context created: " << inference_context->get_context_name());
+                inference_request->set_context(inference_context->get_context_name());
                 send_update_attention_allocation_request(inference_request);
                 send_link_creation_request(inference_request);
                 this->inference_requests.push_back(inference_request);

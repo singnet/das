@@ -103,6 +103,8 @@ class InferenceRequest {
      * @brief Set the timeout
      * @param timeout Timeout in seconds
      */
+
+    void set_context(string context);
     void set_timeout(unsigned int timeout);
 
     /**
