@@ -32,6 +32,7 @@ class AtomDBProxy : public BaseProxy {
     static int THREAD_POOL_SIZE;
     static size_t MAX_PENDING_ATOMS;
     static string ADD_ATOMS;
+    static string DELETE_ATOMS;
     static string START_STREAM;
     static string END_STREAM;
     static string NODE;
@@ -76,8 +77,25 @@ class AtomDBProxy : public BaseProxy {
      * @return Vector of handles corresponding to each atom.
      */
     vector<string> add_atoms(const vector<Atom*>& atoms, bool use_streaming = false);
-
+    /**
+     * @brief Send atoms to the remote peer and return their local handles.
+     *
+     * This serializes each atom into the RPC arguments and issues an
+     * ADD_ATOMS command to the remote peer. The returned vector contains the
+     * handle of each atom in the same order as the input.
+     *
+     * @param tokens Vector of tokenized atoms to be sent.
+     * @return Vector of handles corresponding to each atom.
+     */
     vector<string> add_atoms(const vector<string>& tokens, bool use_streaming = false);
+    /**
+     * @brief Send a DELETE_ATOMS command to the remote peer.
+     *
+     * @param handles Vector of handles of atoms to be deleted.
+     * @param delete_link_targets Whether to delete link targets.
+
+     */
+    void delete_atoms(const vector<string>& handles, bool delete_link_targets = false);
 
     // ---------------------------------------------------------------------------------------------
     // server-side API
@@ -96,16 +114,24 @@ class AtomDBProxy : public BaseProxy {
      */
     virtual void untokenize(vector<string>& tokens) override;
 
+    void init_server_side();
+
+    void shutdown_server_side();
+
    private:
     /**
-     * @brief Handle an incoming ADD_ATOMS command from a remote peer.
-     *
-     * This will build Atom objects from the tokens and apply them to the
-     * local AtomDB instance. Any exception during processing will be
-     * reported back to the peer.
+     * @brief Callback to handle an incoming ADD_ATOMS command from a remote peer.
+     * @param args Command arguments (tokenized atoms)
      */
 
-    void handle_add_atoms(const vector<string>& args);
+    void add_atoms_callback(const vector<string>& args);
+    /**
+     * @brief Callback to handle an incoming DELETE_ATOMS command from a remote peer.
+     * @param args Command arguments (tokenized atoms), the last argument is delete_link_targets
+     * flag with "1" or "0".
+     */
+    void delete_atoms_callback(const vector<string>& args);
+
     template <typename AtomDataType, typename Factory>
     std::vector<AtomDataType> build_atoms_from_tokens(const vector<string>& tokens, Factory&& factory) {
         std::vector<AtomDataType> atoms;
@@ -141,7 +167,6 @@ class AtomDBProxy : public BaseProxy {
     }
     void enqueue_request(const vector<string>& tokens);
     void process_atom_batches();
-    void set_stream(const string& command, const vector<string>& args);
 
     mutex api_mutex;
     shared_ptr<AtomDB> atomdb;
@@ -149,10 +174,10 @@ class AtomDBProxy : public BaseProxy {
     static const size_t BATCH_SIZE;
     static const size_t COMMAND_SIZE_LIMIT;
     bool is_processing_buffer = false;
-    SharedQueue* processing_queue = nullptr;
+    shared_ptr<SharedQueue> processing_queue = nullptr;
     size_t pending_atoms_count = 0;
     thread processing_thread;
-    ThreadPool* thread_pool;
+    shared_ptr<ThreadPool> thread_pool;
     bool stop_processing = false;
 };
 

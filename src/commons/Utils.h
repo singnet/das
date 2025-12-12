@@ -52,6 +52,8 @@ class Utils {
 
     static void error(string msg, bool throw_flag = true);
     static bool flip_coin(double true_probability = 0.5);
+    static unsigned int uint_rand(unsigned int open_upper_bound);
+    static unsigned int uint_rand(unsigned int closed_lower_bound, unsigned int open_upper_bound);
     static void sleep(unsigned int milliseconds = 100);
     static string get_environment(string const& key);
     static map<string, string> parse_config(string const& config_path);

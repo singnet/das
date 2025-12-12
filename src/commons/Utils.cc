@@ -36,6 +36,17 @@ bool Utils::flip_coin(double true_probability) {
     return (rand() % f) < lround(true_probability * f);
 }
 
+unsigned int Utils::uint_rand(unsigned int closed_lower_bound, unsigned int open_upper_bound) {
+    if (open_upper_bound <= closed_lower_bound) {
+        Utils::error("Invalid bounds");
+    }
+    return (rand() % (open_upper_bound - closed_lower_bound)) + closed_lower_bound;
+}
+
+unsigned int Utils::uint_rand(unsigned int open_upper_bound) {
+    return Utils::uint_rand(0, open_upper_bound);
+}
+
 void Utils::sleep(unsigned int milliseconds) {
     this_thread::sleep_for(chrono::milliseconds(milliseconds));
 }
