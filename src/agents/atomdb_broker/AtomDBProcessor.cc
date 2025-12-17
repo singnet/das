@@ -14,10 +14,9 @@ using namespace atomdb_broker;
 // -------------------------------------------------------------------------------------------------
 // Constructor and destructor
 
-AtomDBProcessor::AtomDBProcessor() : BusCommandProcessor({ServiceBus::ATOMDB}) {
-}
+AtomDBProcessor::AtomDBProcessor() : BusCommandProcessor({ServiceBus::ATOMDB}) {}
 
-AtomDBProcessor::~AtomDBProcessor() { }
+AtomDBProcessor::~AtomDBProcessor() {}
 
 // -------------------------------------------------------------------------------------------------
 // Public methods
