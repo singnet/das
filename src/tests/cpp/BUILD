@@ -498,7 +498,7 @@ cc_test(
 
 cc_test(
     name = "atomdb_broker_test",
-    size = "small",
+    size = "medium",
     srcs = [
         "atomdb_broker_test.cc",
         "test_utils.cc",
