@@ -14,24 +14,9 @@ using namespace atomdb_broker;
 // -------------------------------------------------------------------------------------------------
 // Constructor and destructor
 
-AtomDBProcessor::AtomDBProcessor() : BusCommandProcessor({ServiceBus::ATOMDB}) {
-    // Run manage_finished_threads in a separate thread
-    this->stop_flag = false;
-    this->thread_management = thread(&AtomDBProcessor::manage_finished_threads, this);
-}
+AtomDBProcessor::AtomDBProcessor() : BusCommandProcessor({ServiceBus::ATOMDB}) {}
 
-AtomDBProcessor::~AtomDBProcessor() {
-    LOG_INFO("Shutting down AtomDBProcessor...");
-    this->stop_flag = true;
-    LOG_INFO("Waiting for thread management to finish...");
-    this->thread_management.join();
-    LOG_INFO("Stopping all query threads...");
-    lock_guard<mutex> lock(this->query_threads_mutex);
-    for (auto& pair : this->query_threads) {
-        LOG_INFO("Stopping thread: " << pair.first);
-        pair.second->stop();
-    }
-}
+AtomDBProcessor::~AtomDBProcessor() {}
 
 // -------------------------------------------------------------------------------------------------
 // Public methods
@@ -61,7 +46,7 @@ void AtomDBProcessor::thread_process_one_query(shared_ptr<StoppableThread> monit
     try {
         proxy->untokenize(proxy->args);
         if (command == ServiceBus::ATOMDB) {
-            while (!proxy->is_aborting() && !this->stop_flag) {
+            while (!proxy->is_aborting()) {
                 Utils::sleep();
             }
         } else {
@@ -80,25 +65,7 @@ void AtomDBProcessor::thread_process_one_query(shared_ptr<StoppableThread> monit
         lock_guard<mutex> lock(this->query_threads_mutex);
         auto it = this->query_threads.find(monitor->get_id());
         if (it != this->query_threads.end()) {
-            it->second->stop(false);
+            it->second->stop();
         }
-    }
-}
-
-void AtomDBProcessor::manage_finished_threads() {
-    while (!this->stop_flag) {
-        {
-            lock_guard<mutex> lock(this->query_threads_mutex);
-            for (auto it = this->query_threads.begin(); it != this->query_threads.end();) {
-                if (it->second->stopped()) {
-                    LOG_DEBUG("Removing finished thread: " << it->first);
-                    it->second->stop();
-                    it = this->query_threads.erase(it);
-                } else {
-                    ++it;
-                }
-            }
-        }
-        Utils::sleep(1000);
     }
 }
