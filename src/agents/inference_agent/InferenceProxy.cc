@@ -24,7 +24,7 @@ void InferenceProxy::set_default_parameters() {
     this->parameters[INFERENCE_REQUEST_TIMEOUT] =
         (unsigned int) 24 * 60 * 60;  // Default timeout is 24 hours
     this->parameters[ATTENTION_UPDATE_FLAG] = (bool) false;
-    this->parameters[REPEAT_COUNT] = (unsigned int) 5;
+    this->parameters[REPEAT_COUNT] = (unsigned int) 2;
     this->parameters[MAX_ANSWERS] = (unsigned int) 150;
 }
 
