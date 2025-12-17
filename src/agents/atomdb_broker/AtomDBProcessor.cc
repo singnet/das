@@ -88,9 +88,9 @@ void AtomDBProcessor::thread_process_one_query(shared_ptr<StoppableThread> monit
 void AtomDBProcessor::manage_finished_threads() {
     while (!this->stop_flag) {
         {
-            lock_guard<mutex> lock(this->query_threads_mutex);
             for (auto it = this->query_threads.begin(); it != this->query_threads.end();) {
                 if (it->second->stopped()) {
+                    lock_guard<mutex> lock(this->query_threads_mutex);
                     LOG_DEBUG("Removing finished thread: " << it->first);
                     it->second->stop();
                     it = this->query_threads.erase(it);
