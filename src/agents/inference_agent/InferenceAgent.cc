@@ -264,7 +264,7 @@ void InferenceAgent::send_update_attention_allocation_request(
               << " and context: " << inference_request->get_context());
     string context = inference_request->get_context();
     auto proxy = issue_attention_allocation_query(
-        inference_request->get_update_attention_allocation_query(), context, true);
+        inference_request->get_update_attention_allocation_query(), context, false);
     // TODO remove hardcoded queries
     // clang-format off
     // vector<string> attention_update_query2 = {
@@ -297,7 +297,7 @@ void InferenceAgent::send_update_attention_allocation_request(
             LOG_DEBUG("Updating attention for handle: " << query_answer1->to_string());
             attention_update_query2[attention_update_query2.size() - 1] = query_answer1->get(TARGET);
             proxy2 = issue_attention_allocation_query(attention_update_query2, context);
-            to_stimulate[query_answer1->get(0)] = 1;
+            // to_stimulate[query_answer1->get(0)] = 1;
             to_stimulate[query_answer1->get(TARGET)] = 1;
             int count2 = 0;
             LOG_INFO("Running more queries");
@@ -306,13 +306,13 @@ void InferenceAgent::send_update_attention_allocation_request(
                     Utils::sleep();
                 } else {
                     count2++;
-                    to_stimulate[query_answer2->get(0)] = 1;
-                    to_stimulate[query_answer2->get(P1)] = 1;
+                    // to_stimulate[query_answer2->get(0)] = 1;
+                    // to_stimulate[query_answer2->get(P1)] = 1;
                     LOG_INFO("Correlating Target " << query_answer1->get(TARGET) << " and P1 "
                                                    << query_answer2->get(P1));
-                    to_correlate.insert(query_answer1->get(0));
+                    // to_correlate.insert(query_answer1->get(0));
                     to_correlate.insert(query_answer1->get(TARGET));
-                    to_correlate.insert(query_answer2->get(0));
+                    // to_correlate.insert(query_answer2->get(0));
                     to_correlate.insert(query_answer2->get(P1));
                     AttentionBrokerClient::correlate(to_correlate, context);
                     to_correlate.clear();
