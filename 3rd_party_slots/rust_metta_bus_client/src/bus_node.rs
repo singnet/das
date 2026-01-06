@@ -1,7 +1,7 @@
 use tokio::runtime::Builder;
 use tonic::{Request, Status};
 
-use das_proto::{atom_space_node_client::AtomSpaceNodeClient, MessageData};
+use das_proto::{distributed_algorithm_node_client::DistributedAlgorithmNodeClient, MessageData};
 
 mod das_proto {
 	tonic::include_proto!("dasproto");
@@ -60,7 +60,7 @@ impl BusNode {
 		runtime.block_on(async move {
 			let target_addr = format!("http://{target_id}");
 			log::trace!(target: "das", "BusNode::query(target_addr): {target_addr}");
-			match AtomSpaceNodeClient::connect(target_addr).await {
+			match DistributedAlgorithmNodeClient::connect(target_addr).await {
 				Ok(mut client) => client.execute_message(request).await,
 				Err(err) => Err(Status::internal(format!("Client failed to connect: {err}"))),
 			}
