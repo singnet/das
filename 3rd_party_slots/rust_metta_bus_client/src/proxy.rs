@@ -7,8 +7,8 @@ use tokio::runtime::Runtime;
 use tonic::{transport::Server, Request, Response, Status};
 
 use das_proto::{
-	atom_space_node_client::AtomSpaceNodeClient,
-	atom_space_node_server::{AtomSpaceNode, AtomSpaceNodeServer},
+	distributed_algorithm_node_client::DistributedAlgorithmNodeClient,
+	distributed_algorithm_node_server::{DistributedAlgorithmNode, DistributedAlgorithmNodeServer},
 	Ack, Empty, MessageData,
 };
 
@@ -73,7 +73,7 @@ impl ProxyNode {
 		let peer_id = self.peer_id.clone();
 		runtime.spawn(async move {
 			let target_addr = format!("http://{peer_id}");
-			match AtomSpaceNodeClient::connect(target_addr).await {
+			match DistributedAlgorithmNodeClient::connect(target_addr).await {
 				Ok(mut client) => client.execute_message(request).await,
 				Err(err) => {
 					log::error!(target: "das", "ProxyNode::to_remote_peer(ERROR): {err:?}");
@@ -201,7 +201,7 @@ impl StarNode {
 }
 
 #[tonic::async_trait]
-impl AtomSpaceNode for StarNode {
+impl DistributedAlgorithmNode for StarNode {
 	async fn execute_message(
 		&self, request: Request<MessageData>,
 	) -> Result<Response<Empty>, Status> {
@@ -225,7 +225,11 @@ impl GrpcServer for StarNode {
 	async fn start_server(self) -> Result<(), BoxError> {
 		let addr = self.address;
 		log::debug!(target: "das", "StarNode::start_server(): Inside gRPC server thread at {:?}", addr);
-		Server::builder().add_service(AtomSpaceNodeServer::new(self)).serve(addr).await.unwrap();
+		Server::builder()
+			.add_service(DistributedAlgorithmNodeServer::new(self))
+			.serve(addr)
+			.await
+			.unwrap();
 		Ok(())
 	}
 }

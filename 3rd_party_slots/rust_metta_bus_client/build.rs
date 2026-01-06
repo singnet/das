@@ -1,4 +1,4 @@
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-	tonic_build::compile_protos("proto/atom_space_node.proto")?;
+	tonic_build::compile_protos("proto/distributed_algorithm_node.proto")?;
 	Ok(())
 }
