@@ -24,9 +24,9 @@ cc_library(
     ],
     includes = ["."],
     deps = [
+        ":inference_context",
         ":inference_proxy",
         ":inference_request",
-        ":inference_context",
         "//agents/evolution:evolution_lib",
         "//agents/link_creation_agent:link_creation_agent_lib",
         "//atomdb",

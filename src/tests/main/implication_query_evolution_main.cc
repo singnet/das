@@ -54,6 +54,12 @@
 #define SENTENCE1 "sentence1"
 #define SENTENCE2 "sentence2"
 #define WORD1 "word1"
+#define P1 "P1"
+#define P2 "P2"
+#define C1 "C1"
+#define C2 "C2"
+#define C "C"
+#define P "P"
 
 // Misc
 #define STRENGTH "strength"
@@ -69,7 +75,7 @@ static float SPREADING_RATE_LOWERBOUND = 0.90;
 static float SPREADING_RATE_UPPERBOUND = 0.90;
 static double SELECTION_RATE = 0.10;
 static double ELITISM_RATE = 0.08;
-static unsigned int LINK_BUILDING_QUERY_SIZE = 50;
+static unsigned int LINK_BUILDING_QUERY_SIZE = 150;
 static unsigned int POPULATION_SIZE = 50;
 static unsigned int MAX_GENERATIONS = 20;
 static unsigned int NUM_ITERATIONS = 10;
@@ -158,11 +164,12 @@ static shared_ptr<PatternMatchingQueryProxy> issue_link_building_query(
     auto proxy = make_shared<PatternMatchingQueryProxy>(query_tokens, context);
     proxy->parameters[BaseQueryProxy::UNIQUE_ASSIGNMENT_FLAG] = true;
     proxy->parameters[BaseQueryProxy::ATTENTION_UPDATE_FLAG] = false;
-    proxy->parameters[BaseQueryProxy::USE_LINK_TEMPLATE_CACHE] = true;
+    // proxy->parameters[BaseQueryProxy::USE_LINK_TEMPLATE_CACHE] = true; // Use the default value
     proxy->parameters[PatternMatchingQueryProxy::MAX_ANSWERS] = (unsigned int) max_answers;
     proxy->parameters[PatternMatchingQueryProxy::POSITIVE_IMPORTANCE_FLAG] = true;
     proxy->parameters[BaseQueryProxy::USE_METTA_AS_QUERY_TOKENS] = false;
     proxy->parameters[BaseQueryProxy::POPULATE_METTA_MAPPING] = false;
+    proxy->parameters[PatternMatchingQueryProxy::UNIQUE_VALUE_FLAG] = true;
 
     ServiceBusSingleton::get_instance()->issue_bus_command(proxy);
     return proxy;
@@ -209,24 +216,18 @@ static void update_attention_allocation(const string& predicate_source,
             LINK_TEMPLATE, EXPRESSION, "3",
                 NODE, SYMBOL, EVALUATION,
                 ATOM, predicate_source,
-                LINK_TEMPLATE, EXPRESSION, "2",
-                    NODE, SYMBOL, CONCEPT,
-                    VARIABLE, SENTENCE1,
+                VARIABLE, SENTENCE1,
             LINK_TEMPLATE, EXPRESSION, "3",
                 NODE, SYMBOL, EVALUATION,
                 ATOM, predicate_target,
-                LINK_TEMPLATE, EXPRESSION, "2",
-                    NODE, SYMBOL, CONCEPT,
-                    VARIABLE, SENTENCE1
+                VARIABLE, SENTENCE1
     };
 
     vector<string> attention_update_query2 = {
         LINK_TEMPLATE, EXPRESSION, "3",
             NODE, SYMBOL, EVALUATION,
             VARIABLE, PREDICATE1,
-            LINK, EXPRESSION, "2",
-                NODE, SYMBOL, CONCEPT,
-                ATOM, "sentence"
+            ATOM, "sentence_placeholder"
     };
     // clang-format on
 
@@ -245,17 +246,17 @@ static void update_attention_allocation(const string& predicate_source,
             LOG_INFO("Traversing handle " + to_string(++count) + "/" + to_string(proxy1->get_count()));
             attention_update_query2[attention_update_query2.size() - 1] = query_answer1->get(SENTENCE1);
             proxy2 = issue_attention_allocation_query(attention_update_query2, context);
-            to_stimulate[query_answer1->get(0)] = 1;
+            // to_stimulate[query_answer1->get(0)] = 1;
             to_stimulate[query_answer1->get(SENTENCE1)] = 1;
             while (!proxy2->finished()) {
                 if ((query_answer2 = proxy2->pop()) == NULL) {
                     Utils::sleep();
                 } else {
-                    to_stimulate[query_answer2->get(0)] = 1;
-                    to_stimulate[query_answer2->get(PREDICATE1)] = 1;
-                    to_correlate.insert(query_answer1->get(0));
+                    // to_stimulate[query_answer2->get(0)] = 1;
+                    // to_stimulate[query_answer2->get(PREDICATE1)] = 1;
+                    // to_correlate.insert(query_answer1->get(0));
                     to_correlate.insert(query_answer1->get(SENTENCE1));
-                    to_correlate.insert(query_answer2->get(0));
+                    // to_correlate.insert(query_answer2->get(0));
                     to_correlate.insert(query_answer2->get(PREDICATE1));
                     AttentionBrokerClient::correlate(to_correlate, context);
                     to_correlate.clear();
@@ -395,7 +396,7 @@ static void compute_counts(const vector<vector<string>>& query_tokens,
             insert_or_update(count_map_union, pair.first, pair.second);
         } else {
             insert_or_update(count_map_union, pair.first, pair.second);
-            insert_or_update(count_map_intersection, pair.first, pair.second);
+            insert_or_update(count_map_intersection, pair.first, min(pair.second, iterator->second));
         }
     }
 
@@ -462,7 +463,7 @@ static void build_implication_link(shared_ptr<QueryAnswer> query_answer, const s
         return;
     }
 
-    string predicate[2] = {query_answer->handles[0], query_answer->handles[1]};
+    string predicate[2] = {query_answer->assignment.get("P1"), query_answer->assignment.get("P2")};
     LOG_DEBUG("Evaluating implication: " + get_predicate_name(predicate[0]) + " ==> " +
               get_predicate_name(predicate[1]));
     vector<vector<string>> query;
@@ -474,24 +475,16 @@ static void build_implication_link(shared_ptr<QueryAnswer> query_answer, const s
             LINK_TEMPLATE, EXPRESSION, "3",
                 NODE, SYMBOL, EVALUATION,
                 ATOM, predicate[i],
-                LINK_TEMPLATE, EXPRESSION, "2",
-                    NODE, SYMBOL, CONCEPT,
-                    VARIABLE, CONCEPT1,
+                VARIABLE, CONCEPT1,
             AND_OPERATOR, "2",
                 LINK_TEMPLATE, EXPRESSION, "3",
                     NODE, SYMBOL, EVALUATION,
                     ATOM, predicate[i],
-                    LINK_TEMPLATE, EXPRESSION, "2",
-                        NODE, SYMBOL, CONCEPT,
-                        VARIABLE, CONCEPT2,
+                    VARIABLE, CONCEPT2,
                 LINK_TEMPLATE, EXPRESSION, "3",
                     NODE, SYMBOL, EQUIVALENCE,
-                    LINK_TEMPLATE, EXPRESSION, "2",
-                        NODE, SYMBOL, CONCEPT,
-                        VARIABLE, CONCEPT2,
-                    LINK_TEMPLATE, EXPRESSION, "2",
-                        NODE, SYMBOL, CONCEPT,
-                        VARIABLE, CONCEPT1,
+                    VARIABLE, CONCEPT2,
+                    VARIABLE, CONCEPT1,
         });
         // clang-format on
     }
@@ -541,7 +534,7 @@ static void build_equivalence_link(shared_ptr<QueryAnswer> query_answer, const s
         return;
     }
 
-    string concept_[2] = {query_answer->handles[0], query_answer->handles[1]};
+    string concept_[2] = {query_answer->assignment.get("C1"), query_answer->assignment.get("C2")};
     vector<vector<string>> query;
     for (unsigned int i = 0; i < 2; i++) {
         // clang-format off
@@ -549,25 +542,17 @@ static void build_equivalence_link(shared_ptr<QueryAnswer> query_answer, const s
             OR_OPERATOR, "2",
             LINK_TEMPLATE, EXPRESSION, "3",
                 NODE, SYMBOL, EVALUATION,
-                LINK_TEMPLATE, EXPRESSION, "2",
-                    NODE, SYMBOL, PREDICATE,
-                    VARIABLE, PREDICATE1,
+                VARIABLE, PREDICATE1,
                 ATOM, concept_[i],
             AND_OPERATOR, "2",
                 LINK_TEMPLATE, EXPRESSION, "3",
                     NODE, SYMBOL, EVALUATION,
-                    LINK_TEMPLATE, EXPRESSION, "2",
-                        NODE, SYMBOL, PREDICATE,
-                        VARIABLE, PREDICATE2,
+                    VARIABLE, PREDICATE2,
                     ATOM, concept_[i],
                 LINK_TEMPLATE, EXPRESSION, "3",
                     NODE, SYMBOL, IMPLICATION,
-                    LINK_TEMPLATE, EXPRESSION, "2",
-                        NODE, SYMBOL, PREDICATE,
-                        VARIABLE, PREDICATE2,
-                    LINK_TEMPLATE, EXPRESSION, "2",
-                        NODE, SYMBOL, PREDICATE,
-                        VARIABLE, PREDICATE1,
+                    VARIABLE, PREDICATE2,
+                    VARIABLE, PREDICATE1,
         });
         // clang-format on
     }
@@ -668,22 +653,26 @@ static void run(const string& predicate_source,
 
     vector<string> implication_query = {
         AND_OPERATOR, "2",
-            LINK_TEMPLATE, EXPRESSION, "2",
-                NODE, SYMBOL, PREDICATE,
-                VARIABLE, V1,
-            LINK_TEMPLATE, EXPRESSION, "2",
-                NODE, SYMBOL, PREDICATE,
-                VARIABLE, V2,
+            LINK_TEMPLATE, EXPRESSION, "3",
+                NODE, SYMBOL, EVALUATION,
+                VARIABLE, P1,
+                VARIABLE, C,
+            LINK_TEMPLATE, EXPRESSION, "3",
+                NODE, SYMBOL, EVALUATION,
+                VARIABLE, P2,
+                VARIABLE, C,
     };
 
     vector<string> equivalence_query = {
         AND_OPERATOR, "2",
-            LINK_TEMPLATE, EXPRESSION, "2",
-                NODE, SYMBOL, CONCEPT,
-                VARIABLE, V1,
-            LINK_TEMPLATE, EXPRESSION, "2",
-                NODE, SYMBOL, CONCEPT,
-                VARIABLE, V2,
+            LINK_TEMPLATE, EXPRESSION, "3",
+                NODE, SYMBOL, EVALUATION,
+                VARIABLE, P,
+                VARIABLE, C1,
+            LINK_TEMPLATE, EXPRESSION, "3",
+                NODE, SYMBOL, EVALUATION,
+                VARIABLE, P,
+                VARIABLE, C2,
     };
 
     vector<string> and_predicate_query = {
@@ -742,7 +731,7 @@ static void run(const string& predicate_source,
     };
 
     vector<string> context_query = {
-        OR_OPERATOR, "3",
+        OR_OPERATOR, "2",
         LINK_TEMPLATE, EXPRESSION, "3",
             NODE, SYMBOL, EVALUATION,
             VARIABLE, V2,
@@ -751,40 +740,38 @@ static void run(const string& predicate_source,
             NODE, SYMBOL, CONTAINS,
             VARIABLE, V2,
             VARIABLE, V3,
-        LINK_TEMPLATE, EXPRESSION, "2",
-            NODE, SYMBOL, CONCEPT,
-            VARIABLE, V2,
     };
 
-    vector<string> attention_update_query = {
-        OR_OPERATOR, "2",
-            AND_OPERATOR, "2",
-                LINK_TEMPLATE, EXPRESSION, "3",
-                    NODE, SYMBOL, EVALUATION,
-                    ATOM, predicate_source,
-                    LINK_TEMPLATE, EXPRESSION, "2",
-                        NODE, SYMBOL, CONCEPT,
-                        VARIABLE, SENTENCE1,
-                LINK_TEMPLATE, EXPRESSION, "3",
-                    NODE, SYMBOL, EVALUATION,
-                    VARIABLE, PREDICATE1,
-                    LINK_TEMPLATE, EXPRESSION, "2",
-                        NODE, SYMBOL, CONCEPT,
-                        VARIABLE, SENTENCE1,
-            AND_OPERATOR, "2",
-                LINK_TEMPLATE, EXPRESSION, "3",
-                    NODE, SYMBOL, EVALUATION,
-                    ATOM, predicate_target,
-                    LINK_TEMPLATE, EXPRESSION, "2",
-                        NODE, SYMBOL, CONCEPT,
-                        VARIABLE, SENTENCE1,
-                LINK_TEMPLATE, EXPRESSION, "3",
-                    NODE, SYMBOL, EVALUATION,
-                    VARIABLE, PREDICATE1,
-                    LINK_TEMPLATE, EXPRESSION, "2",
-                        NODE, SYMBOL, CONCEPT,
-                        VARIABLE, SENTENCE1,
-    };
+    // NOTE: The attention update query below is not used, but kept for reference.
+    // vector<string> attention_update_query = {
+    //     OR_OPERATOR, "2",
+    //         AND_OPERATOR, "2",
+    //             LINK_TEMPLATE, EXPRESSION, "3",
+    //                 NODE, SYMBOL, EVALUATION,
+    //                 ATOM, predicate_source,
+    //                 LINK_TEMPLATE, EXPRESSION, "2",
+    //                     NODE, SYMBOL, CONCEPT,
+    //                     VARIABLE, SENTENCE1,
+    //             LINK_TEMPLATE, EXPRESSION, "3",
+    //                 NODE, SYMBOL, EVALUATION,
+    //                 VARIABLE, PREDICATE1,
+    //                 LINK_TEMPLATE, EXPRESSION, "2",
+    //                     NODE, SYMBOL, CONCEPT,
+    //                     VARIABLE, SENTENCE1,
+    //         AND_OPERATOR, "2",
+    //             LINK_TEMPLATE, EXPRESSION, "3",
+    //                 NODE, SYMBOL, EVALUATION,
+    //                 ATOM, predicate_target,
+    //                 LINK_TEMPLATE, EXPRESSION, "2",
+    //                     NODE, SYMBOL, CONCEPT,
+    //                     VARIABLE, SENTENCE1,
+    //             LINK_TEMPLATE, EXPRESSION, "3",
+    //                 NODE, SYMBOL, EVALUATION,
+    //                 VARIABLE, PREDICATE1,
+    //                 LINK_TEMPLATE, EXPRESSION, "2",
+    //                     NODE, SYMBOL, CONCEPT,
+    //                     VARIABLE, SENTENCE1,
+    // };
 
     vector<vector<string>> correlation_query_template = {{
         OR_OPERATOR, "3",
