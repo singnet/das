@@ -145,6 +145,8 @@ shared_ptr<PatternMatchingQueryProxy> LinkCreationAgent::query(
         lca_request->update_attention_broker;
     proxy->parameters[PatternMatchingQueryProxy::USE_METTA_AS_QUERY_TOKENS] =
         lca_request->use_metta_as_query_tokens;
+    proxy->parameters[PatternMatchingQueryProxy::UNIQUE_VALUE_FLAG] = true;
+    proxy->parameters[PatternMatchingQueryProxy::UNIQUE_ASSIGNMENT_FLAG] = true;
     ServiceBusSingleton::get_instance()->issue_bus_command(proxy);
     return proxy;
 }

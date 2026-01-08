@@ -187,7 +187,7 @@ def sorting_predicate(sentences, token=None, percentage=1, **kwargs):
     for sentence in sentences:
         parsed_sentence = sentence.split('"')[1].split(" ")
         if sorted(parsed_sentence) == parsed_sentence and random.random() < percentage:
-            predicates.append(f'(EVALUATION (PREDICATE "{predicate_name}") (CONCEPT {sentence}))')
+            predicates.append(f'(Evaluation (Predicate "{predicate_name}") (Concept {sentence}))')
     return predicates
 
 def sorting_bias(sentences, count_rate, probability, word_list=["ddd", "ccc", "bbb"]):
@@ -222,7 +222,7 @@ def letter_predicate(sentences, token=None, letter=None, letter_percent=0.6, per
         count_letter = parsed_sentence.count(letter)
         if count_letter > 0 and count_letter / len(parsed_sentence) >= letter_percent:
             if random.random() < percentage:
-                predicates.append(f'(EVALUATION (PREDICATE "{predicate_name}") (CONCEPT {sentence}))')
+                predicates.append(f'(Evaluation (Predicate "{predicate_name}") (Concept {sentence}))')
     return predicates
 
 def wildcard_predicate(sentences, token=None, wildcards=None, percentage=0.8, operator=None, **kwargs):
@@ -241,13 +241,13 @@ def wildcard_predicate(sentences, token=None, wildcards=None, percentage=0.8, op
         if operator == 'and':
             if all(any(re.match(wildcard.replace('*', '.'), s) for s in split_sentence) for wildcard in wildcards):
                 if random.random() < percentage:
-                    predicates.append(f'(EVALUATION (PREDICATE "{predicate_name}") (CONCEPT {sentence}))')
+                    predicates.append(f'(Evaluation (Predicate "{predicate_name}") (Concept {sentence}))')
             continue
         for s in split_sentence:
             for wildcard in wildcards:
                 if re.match(wildcard.replace('*', '.'), s):
                     if random.random() < percentage:
-                        predicates.append(f'(EVALUATION (PREDICATE "{predicate_name}") (CONCEPT {sentence}))')
+                        predicates.append(f'(Evaluation (Predicate "{predicate_name}") (Concept {sentence}))')
                     break
     return predicates
 
@@ -268,7 +268,7 @@ def start_end_predicate(sentences, token=None, start_letter=None, end_letter=Non
         for s in split_sentence:
             if s.startswith(start_letter) and s.endswith(end_letter):
                 if random.random() < percentage:
-                    predicates.append(f'(EVALUATION (PREDICATE "{predicate_name}") (CONCEPT {sentence}))')
+                    predicates.append(f'(Evaluation (Predicate "{predicate_name}") (Concept {sentence}))')
                     break
     return predicates
 
@@ -290,7 +290,7 @@ def low_diversity_predicate(sentences, token=None, threshold=None, percentage=0.
             if parsed_sentence.count(letter) > 0:
                 letter_count += 1
         if letter_count / len(letters) < threshold and random.random() < percentage:
-            predicates.append(f'(EVALUATION (PREDICATE "{predicate_name}") (CONCEPT {sentence}))')
+            predicates.append(f'(Evaluation (Predicate "{predicate_name}") (Concept {sentence}))')
 
     return predicates
 
@@ -326,7 +326,7 @@ def word_predicate(sentences, token=None, word_count=1, alphabet_range="0-4", pe
                         predicate_n = word1
                         predicate_token = token.replace('*', predicate_n)
                         set_predicate_name('word_predicate', predicate_token)
-                        predicates.add(f'(EVALUATION (PREDICATE "{predicate_token}") (CONCEPT {sentence}))')
+                        predicates.add(f'(Evaluation (Predicate "{predicate_token}") (Concept {sentence}))')
         elif word_count == 2:
             for word1 in words:
                 for word2 in words:
@@ -335,7 +335,7 @@ def word_predicate(sentences, token=None, word_count=1, alphabet_range="0-4", pe
                             predicate_n = '_'.join([word1, word2])
                             predicate_token = token.replace('*', predicate_n)
                             set_predicate_name('word_predicate', predicate_token)
-                            predicates.add(f'(EVALUATION (PREDICATE "{predicate_token}") (CONCEPT {sentence}))')
+                            predicates.add(f'(Evaluation (Predicate "{predicate_token}") (Concept {sentence}))')
         elif word_count == 3:
             for word1 in words:
                 for word2 in words:
@@ -345,7 +345,7 @@ def word_predicate(sentences, token=None, word_count=1, alphabet_range="0-4", pe
                                 predicate_n = '_'.join([word1, word2, word3])
                                 predicate_token = token.replace('*', predicate_n)
                                 set_predicate_name('word_predicate', predicate_token)
-                                predicates.add(f'(EVALUATION (PREDICATE "{predicate_token}") (CONCEPT {sentence}))')
+                                predicates.add(f'(Evaluation (Predicate "{predicate_token}") (Concept {sentence}))')
         else:
             print(f"### ERROR: invalid word_count: {word_count}")
     return list(predicates)

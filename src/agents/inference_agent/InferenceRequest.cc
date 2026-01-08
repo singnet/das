@@ -174,6 +174,38 @@ vector<string> InferenceRequest::get_distributed_inference_control_request() {
 
 vector<string> InferenceRequest::get_correlation_query() { return this->correlation_query; }
 // clang-format off
+// string correlation_query_str = 
+// "OR 3 "
+//     "AND 4 "
+//         "LINK_TEMPLATE Expression 3 "
+//             "NODE Symbol Evaluation "
+//             "VARIABLE V0 "
+//             "LINK_TEMPLATE Expression 2 "
+//                 "NODE Symbol Concept "
+//                 "VARIABLE S1 "
+//         "LINK_TEMPLATE Expression 3 "
+//             "NODE Symbol Contains "
+//             "VARIABLE S1 "
+//             "VARIABLE W1 "
+//         "LINK_TEMPLATE Expression 3 "
+//             "NODE Symbol Contains "
+//             "VARIABLE S2 "
+//             "VARIABLE W1 "
+//         "LINK_TEMPLATE Expression 3 "
+//             "NODE Symbol Evaluation "
+//             "VARIABLE V1 "
+//             "LINK_TEMPLATE Expression 2 "
+//                 "NODE Symbol Concept "
+//                 "VARIABLE S2 "
+//     "LINK_TEMPLATE Expression 3 "
+//         "NODE Symbol Implication "
+//         "VARIABLE V0 "
+//         "VARIABLE V1 "
+//     "LINK_TEMPLATE Expression 3 "
+//         "NODE Symbol Implication "
+//         "VARIABLE V1 "
+//         "VARIABLE V0";
+
 string correlation_query_str = 
 "OR 3 "
     "AND 4 "
@@ -205,8 +237,6 @@ string correlation_query_str =
         "NODE Symbol Implication "
         "VARIABLE V1 "
         "VARIABLE V0";
-
-
 
 string correlation_constants_str = "V0";
 string correlation_mapping_str = "V0:V1,V0:S2";
@@ -242,6 +272,8 @@ vector<vector<string>> InferenceRequest::get_requests() { return {}; }
 
 string InferenceRequest::get_context() { return context; }
 
+void InferenceRequest::set_context(string context) { this->context = context; }
+
 vector<string> InferenceRequest::get_update_attention_allocation_query() { return {}; }
 
 ////////////////////////////// IMPLICATION ///////////////////////////////////
@@ -259,13 +291,23 @@ ProofOfImplication::ProofOfImplication() : InferenceRequest() { this->command = 
 vector<string> ProofOfImplication::query() {
     // clang-format off
     vector<string> tokens = {
+        // "AND", "2",
+        //     "LINK_TEMPLATE", "Expression", "2",
+        //         "NODE", "Symbol", "Predicate",
+        //         "VARIABLE", "P1",
+        //     "LINK_TEMPLATE", "Expression", "2",
+        //         "NODE", "Symbol", "Predicate",
+        //         "VARIABLE", "P2",
+
         "AND", "2",
-            "LINK_TEMPLATE", "Expression", "2",
-                "NODE", "Symbol", "Predicate",
+            "LINK_TEMPLATE", "Expression", "3",
+                "NODE", "Symbol", "Evaluation",
                 "VARIABLE", "P1",
-            "LINK_TEMPLATE", "Expression", "2",
-                "NODE", "Symbol", "Predicate",
+                "VARIABLE", "C",
+            "LINK_TEMPLATE", "Expression", "3",
+                "NODE", "Symbol", "Evaluation",
                 "VARIABLE", "P2",
+                "VARIABLE", "C",
 
 
         // "AND", "2",
@@ -329,19 +371,29 @@ string ProofOfImplication::get_direct_inference_hash() {
 vector<string> ProofOfImplication::get_update_attention_allocation_query() {
     // clang-format off
     vector<string> tokens = {
+    // "OR", "2",
+    //    "LINK_TEMPLATE", "Expression", "3",
+    //         "NODE", "Symbol", "Evaluation",
+    //         "ATOM", this->first_handle,
+    //         "LINK_TEMPLATE", "Expression", "2",
+    //             "NODE", "Symbol", "Concept",
+    //             "VARIABLE", "TARGET",
+    //     "LINK_TEMPLATE", "Expression", "3",
+    //         "NODE", "Symbol", "Evaluation",
+    //         "ATOM", this->second_handle,
+    //         "LINK_TEMPLATE", "Expression", "2",
+    //             "NODE", "Symbol", "Concept",
+    //             "VARIABLE", "TARGET",
+
     "OR", "2",
        "LINK_TEMPLATE", "Expression", "3",
             "NODE", "Symbol", "Evaluation",
             "ATOM", this->first_handle,
-            "LINK_TEMPLATE", "Expression", "2",
-                "NODE", "Symbol", "Concept",
-                "VARIABLE", "TARGET",
+            "VARIABLE", "TARGET",
         "LINK_TEMPLATE", "Expression", "3",
             "NODE", "Symbol", "Evaluation",
             "ATOM", this->second_handle,
-            "LINK_TEMPLATE", "Expression", "2",
-                "NODE", "Symbol", "Concept",
-                "VARIABLE", "TARGET",
+            "VARIABLE", "TARGET",
 
 
     // "OR", "2",
@@ -370,13 +422,22 @@ ProofOfEquivalence::ProofOfEquivalence() : InferenceRequest() { this->command = 
 vector<string> ProofOfEquivalence::query() {
     // clang-format off
     vector<string> tokens = {
+        // "AND", "2",
+        // "LINK_TEMPLATE", "Expression", "2",
+        //     "NODE", "Symbol", "Concept",
+        //     "VARIABLE", "C1",
+        // "LINK_TEMPLATE", "Expression", "2",
+        //     "NODE", "Symbol", "Concept",
+        //     "VARIABLE", "C2",
         "AND", "2",
-        "LINK_TEMPLATE", "Expression", "2",
-            "NODE", "Symbol", "Concept",
-            "VARIABLE", "C1",
-        "LINK_TEMPLATE", "Expression", "2",
-            "NODE", "Symbol", "Concept",
-            "VARIABLE", "C2",
+            "LINK_TEMPLATE", "Expression", "3",
+                "NODE", "Symbol", "Evaluation",
+                "VARIABLE", "P",
+                "VARIABLE", "C1",
+            "LINK_TEMPLATE", "Expression", "3",
+                "NODE", "Symbol", "Evaluation",
+                "VARIABLE", "P",
+                "VARIABLE", "C2",
         // "NOT",
         //     "OR",
         //         "LINK_TEMPLATE", "Expression", "3",

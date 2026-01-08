@@ -7,6 +7,7 @@
 #define LOG_LEVEL DEBUG_LEVEL
 #include "AtomDBSingleton.h"
 #include "AttentionBrokerClient.h"
+#include "InferenceContext.h"
 #include "Logger.h"
 #include "PatternMatchingQueryProxy.h"
 #include "ServiceBusSingleton.h"
@@ -130,6 +131,11 @@ void InferenceAgent::run() {
         if (!inference_request_queue.empty()) {
             try {
                 auto inference_request = inference_request_queue.dequeue();
+                LOG_DEBUG("Creating context for inference request ID: " << inference_request->get_id());
+                shared_ptr<InferenceContext> inference_context =
+                    make_shared<InferenceContext>(inference_request->get_context(), "", "", "");
+                LOG_DEBUG("Context created: " << inference_context->get_context_name());
+                inference_request->set_context(inference_context->get_context_name());
                 send_update_attention_allocation_request(inference_request);
                 send_link_creation_request(inference_request);
                 this->inference_requests.push_back(inference_request);
@@ -258,16 +264,22 @@ void InferenceAgent::send_update_attention_allocation_request(
               << " and context: " << inference_request->get_context());
     string context = inference_request->get_context();
     auto proxy = issue_attention_allocation_query(
-        inference_request->get_update_attention_allocation_query(), context, true);
+        inference_request->get_update_attention_allocation_query(), context, false);
     // TODO remove hardcoded queries
     // clang-format off
-    vector<string> attention_update_query2 = {
+    // vector<string> attention_update_query2 = {
+    //     "LINK_TEMPLATE", "Expression", "3",
+    //         "NODE", "Symbol", "Evaluation",
+    //         "VARIABLE", "P1",
+    //         "LINK", "Expression", "2",
+    //             "NODE", "Symbol", "Concept",
+    //             "ATOM", "PLACEHOLDER"};
+
+        vector<string> attention_update_query2 = {
         "LINK_TEMPLATE", "Expression", "3",
             "NODE", "Symbol", "Evaluation",
             "VARIABLE", "P1",
-            "LINK", "Expression", "2",
-                "NODE", "Symbol", "Concept",
-                "ATOM", "PLACEHOLDER"};
+            "ATOM", "PLACEHOLDER"};
     // clang-format on
     shared_ptr<PatternMatchingQueryProxy> proxy2;
     set<string> to_correlate;
@@ -282,9 +294,10 @@ void InferenceAgent::send_update_attention_allocation_request(
             Utils::sleep();
         } else {
             LOG_INFO("Traversing handle " + to_string(++count) + "/" + to_string(proxy->get_count()));
+            LOG_DEBUG("Updating attention for handle: " << query_answer1->to_string());
             attention_update_query2[attention_update_query2.size() - 1] = query_answer1->get(TARGET);
             proxy2 = issue_attention_allocation_query(attention_update_query2, context);
-            to_stimulate[query_answer1->get(0)] = 1;
+            // to_stimulate[query_answer1->get(0)] = 1;
             to_stimulate[query_answer1->get(TARGET)] = 1;
             int count2 = 0;
             LOG_INFO("Running more queries");
@@ -293,13 +306,13 @@ void InferenceAgent::send_update_attention_allocation_request(
                     Utils::sleep();
                 } else {
                     count2++;
-                    to_stimulate[query_answer2->get(0)] = 1;
-                    to_stimulate[query_answer2->get(P1)] = 1;
+                    // to_stimulate[query_answer2->get(0)] = 1;
+                    // to_stimulate[query_answer2->get(P1)] = 1;
                     LOG_INFO("Correlating Target " << query_answer1->get(TARGET) << " and P1 "
                                                    << query_answer2->get(P1));
-                    to_correlate.insert(query_answer1->get(0));
+                    // to_correlate.insert(query_answer1->get(0));
                     to_correlate.insert(query_answer1->get(TARGET));
-                    to_correlate.insert(query_answer2->get(0));
+                    // to_correlate.insert(query_answer2->get(0));
                     to_correlate.insert(query_answer2->get(P1));
                     AttentionBrokerClient::correlate(to_correlate, context);
                     to_correlate.clear();

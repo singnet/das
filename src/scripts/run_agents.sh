@@ -78,7 +78,7 @@ AGENTS=(
     "busnode --service=query-engine --endpoint=$QUERY_AGENT_NODE_ID --ports-range=$QUERY_AGENT_START_END_PORT --attention-broker-endpoint=$ATTENTION_BROKER_NODE_ID;src/scripts/run.sh"
     "busnode --service=context-broker --endpoint=$CONTEXT_BROKER_NODE_ID --ports-range=$CONTEXT_BROKER_START_END_PORT --bus-endpoint=$QUERY_AGENT_NODE_ID --attention-broker-endpoint=$ATTENTION_BROKER_NODE_ID;src/scripts/run.sh"
     "busnode --service=link-creation-agent --endpoint=$LINK_CREATION_AGENT_NODE_ID --bus-endpoint=$QUERY_AGENT_NODE_ID --ports-range=$LINK_CREATION_START_END_PORT --request-interval=$LINK_CREATION_REQUESTS_INTERVAL_SECONDS --thread-count=$LINK_CREATION_AGENT_THREAD_COUNT --default-timeout=$LINK_CREATION_QUERY_TIMEOUT_SECONDS --buffer-file=$LINK_CREATION_REQUESTS_BUFFER_FILE --metta-file-path=$LINK_CREATION_METTA_FILE_PATH --save-links-to-metta=$SAVE_LINKS_TO_METTA --save-links-to-db=$SAVE_LINKS_TO_DB;src/scripts/run.sh"
-    "busnode --service=inference-agent --endpoint=$INFERENCE_AGENT_NODE_ID --bus-endpoint=$QUERY_AGENT_NODE_ID --ports-range=$INFERENCE_AGENT_START_END_PORT;src/scripts/run.sh"
+    "busnode --service=inference-agent --endpoint=$INFERENCE_AGENT_NODE_ID --bus-endpoint=$QUERY_AGENT_NODE_ID --ports-range=$INFERENCE_AGENT_START_END_PORT --attention-broker-endpoint=$ATTENTION_BROKER_NODE_ID;src/scripts/run.sh"
     "busnode --service=evolution-agent --endpoint=$EVOLUTION_NODE_ID --ports-range=$EVOLUTION_START_END_PORT --bus-endpoint=$QUERY_AGENT_NODE_ID --attention-broker-endpoint=$ATTENTION_BROKER_NODE_ID;src/scripts/run.sh"
 )
 
@@ -92,12 +92,25 @@ if [ "$3" == "no-logs" ]; then
     SHOW_LOGS=false
 fi
 
+parse_agent_name() {
+    IFS=';' read -r AGENT_NAME AGENT_PATH <<< "$AGENT"
+    if [[ "$AGENT_NAME" == *"busnode"* ]]; then
+        IFS=' ' read -r _ TEMP_NAME _ <<< "$AGENT_NAME"
+        IFS='=' read -r _ TEMP_NAME <<< "$TEMP_NAME"
+        # AGENT_NAME=$TEMP_NAME
+        TEMP_NAME=${TEMP_NAME//-/_}
+    else
+        IFS=' ' read -r TEMP_NAME _ _ <<< "$AGENT_NAME"
+    fi
+
+}
+
 # stop function
 stop() {
    echo "Stopping all agents..."
     for AGENT in "${AGENTS[@]}"; do
         # Split the agent and path
-        IFS=';' read -r AGENT_NAME AGENT_PATH <<< "$AGENT"
+        parse_agent_name "$AGENT"
         echo "Stopping agent: $AGENT_NAME"
         # split AGENT_NAME by space
         if [[ "$AGENT_PATH" == *"src/scripts/run.sh"* ]]; then
@@ -128,13 +141,13 @@ if [ "$PARAM" == "start" ]; then
     i=0
     for AGENT in "${AGENTS[@]}"; do
         # Split the agent and path
-        IFS=';' read -r AGENT_NAME AGENT_PATH <<< "$AGENT"
-        IFS=' ' read -r TEMP_NAME _ _ <<< "$AGENT_NAME"
+        parse_agent_name "$AGENT"
         # create a log file
         LOG_FILE="$PWD/logs/$TEMP_NAME.log"
+        echo "Log file: $LOG_FILE"
         mkdir -p logs
         touch $LOG_FILE
-        # echo "Starting agent: $AGENT_NAME"
+        echo "Starting agent: $AGENT_NAME"
         {
             echo -e "${colors[i % ${#colors[@]}]}Starting: $AGENT_NAME ${commands[i]}${NC}"
             bash -c "$PWD/$AGENT_PATH $AGENT_NAME" 2>&1 | while IFS= read -r line; do
