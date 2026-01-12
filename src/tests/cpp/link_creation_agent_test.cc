@@ -468,7 +468,7 @@ TEST(EquivalenceProcessor, TestEquivalenceProcessorQueryBuilding) {
 }
 
 TEST_F(LinkCreationAgentTest, TestImplicationProcessorLinkCreation) {
-    GTEST_SKIP(); // TODO re-enable after fine tuning
+    GTEST_SKIP();  // TODO re-enable after fine tuning
     auto mock_service_bus = dynamic_cast<MockServiceBus*>(ServiceBusSingleton::get_instance().get());
     string A = "A";
     string B = "B";
@@ -509,7 +509,7 @@ TEST_F(LinkCreationAgentTest, TestImplicationProcessorLinkCreation) {
 }
 
 TEST_F(LinkCreationAgentTest, TestImplicationProcessorLinkCreationOr) {
-    GTEST_SKIP(); // TODO re-enable after fine tuning
+    GTEST_SKIP();  // TODO re-enable after fine tuning
     auto mock_service_bus = dynamic_cast<MockServiceBus*>(ServiceBusSingleton::get_instance().get());
     string A = "A";
     string B = "B";
@@ -563,7 +563,7 @@ TEST_F(LinkCreationAgentTest, TestImplicationProcessorLinkCreationOr) {
 }
 
 TEST_F(LinkCreationAgentTest, TestEquivalenceProcessorLinkCreation) {
-    GTEST_SKIP(); // TODO re-enable after fine tuning
+    GTEST_SKIP();  // TODO re-enable after fine tuning
     auto mock_service_bus = dynamic_cast<MockServiceBus*>(ServiceBusSingleton::get_instance().get());
     string A = "A";
     string B = "B";
@@ -605,7 +605,7 @@ TEST_F(LinkCreationAgentTest, TestEquivalenceProcessorLinkCreation) {
 }
 
 TEST_F(LinkCreationAgentTest, TestEquivalenceProcessorLinkCreationOr) {
-    GTEST_SKIP(); // TODO re-enable after fine tuning
+    GTEST_SKIP();  // TODO re-enable after fine tuning
     auto mock_service_bus = dynamic_cast<MockServiceBus*>(ServiceBusSingleton::get_instance().get());
     string A = "A";
     string B = "B";
