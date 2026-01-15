@@ -24,6 +24,7 @@ cc_library(
     ],
     includes = ["."],
     deps = [
+        ":inference_context",
         ":inference_proxy",
         ":inference_request",
         "//agents/evolution:evolution_lib",
@@ -51,5 +52,15 @@ cc_library(
     hdrs = ["InferenceProxy.h"],
     deps = [
         "//agents:agents_lib",
+    ],
+)
+
+cc_library(
+    name = "inference_context",
+    srcs = ["InferenceContext.cc"],
+    hdrs = ["InferenceContext.h"],
+    deps = [
+        "//agents:agents_lib",
+        "//agents/context_broker:context_broker_lib",
     ],
 )
