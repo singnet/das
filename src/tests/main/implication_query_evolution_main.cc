@@ -534,7 +534,7 @@ static void build_equivalence_link(shared_ptr<QueryAnswer> query_answer, const s
         return;
     }
 
-    string concept_[2] = {query_answer->assignment.get("C1"), query_answer->assignment.get("C2")};
+    string concept_[2] = {query_answer->assignment.get(C1), query_answer->assignment.get(C2)};
     vector<vector<string>> query;
     for (unsigned int i = 0; i < 2; i++) {
         // clang-format off
