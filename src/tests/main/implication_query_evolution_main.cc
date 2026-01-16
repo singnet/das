@@ -78,9 +78,9 @@ static double ELITISM_RATE = 0.08;
 static unsigned int LINK_BUILDING_QUERY_SIZE = 150;
 static unsigned int POPULATION_SIZE = 50;
 static unsigned int MAX_GENERATIONS = 20;
-static unsigned int NUM_ITERATIONS = 10;
+static unsigned int NUM_ITERATIONS = 1;
 
-static bool CONTEXT_CREATION_ONLY = true;
+static bool CONTEXT_CREATION_ONLY = false;
 static bool SAVE_NEW_LINKS = true;
 static string NEW_LINKS_FILE_NAME = "newly_created_links.txt";
 static string CONTEXT_FILE_NAME = "_CONTEXT_DUMP";
@@ -534,7 +534,7 @@ static void build_equivalence_link(shared_ptr<QueryAnswer> query_answer, const s
         return;
     }
 
-    string concept_[2] = {query_answer->assignment.get(C1), query_answer->assignment.get(C2)};
+    string concept_[2] = {query_answer->assignment.get("C1"), query_answer->assignment.get("C2")};
     vector<vector<string>> query;
     for (unsigned int i = 0; i < 2; i++) {
         // clang-format off
@@ -943,7 +943,9 @@ static void run(const string& predicate_source,
         Utils::sleep(5000);
         AttentionBrokerClient::save_context(context, CONTEXT_FILE_NAME);
         exit(0);
-    } else {
+    } else {        
+        update_attention_allocation(predicate_source, predicate_target, context);
+        Utils::sleep(5000);
     }
     // update_context(predicate_source, predicate_target, context_proxy);
 
