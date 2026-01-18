@@ -168,7 +168,12 @@ int main(int argc, char* argv[]) {
                                     continue;
                                 }
                                 handles.insert(pair.second->handle());
-                                batch_atoms.push_back(pair.second.get());
+
+                                auto atom = pair.second.get();
+                                if (atom->arity() > 0)
+                                    atom->custom_attributes["metta_expression"] = metta_expr;
+                                batch_atoms.push_back(atom);
+
                                 thread_atoms_count++;
 
                                 // Add atoms in batches
@@ -256,14 +261,20 @@ int main(int argc, char* argv[]) {
                         }
                         metta_expression += ")";
 
-                        auto link = new Link("Expression", targets, true, {}, metta_expression);
+                        auto link = new Link("Expression",
+                                             targets,
+                                             true,
+                                             Properties{{"metta_expression", metta_expression}});
                         links.push_back(link);
 
                         vector<string> nested_targets = {targets[0], targets[1], link->handle()};
                         string nested_metta_expression =
                             "(" + node_names[0] + " " + node_names[1] + " " + metta_expression + ")";
                         auto link_with_nested =
-                            new Link("Expression", nested_targets, true, {}, nested_metta_expression);
+                            new Link("Expression",
+                                     nested_targets,
+                                     true,
+                                     Properties{{"metta_expression", nested_metta_expression}});
                         links.push_back(link_with_nested);
 
                         if (j % chunck_size == 0) {

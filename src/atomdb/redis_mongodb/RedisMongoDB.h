@@ -125,8 +125,9 @@ class RedisMongoDB : public AtomDB {
         const bsoncxx::builder::stream::document& filter_builder,
         const vector<string>& fields);
 
+    void re_index_patterns(bool flush_patterns = true);
+
     void add_pattern_index_schema(const string& tokens, const vector<vector<string>>& index_entries);
-    void re_index_patterns();
     void flush_redis_by_prefix(const string& prefix);
 
     void drop_all();
