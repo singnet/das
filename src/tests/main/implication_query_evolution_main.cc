@@ -945,7 +945,6 @@ static void run(const string& predicate_source,
         exit(0);
     } else {
         update_attention_allocation(predicate_source, predicate_target, context);
-        Utils::sleep(5000);
     }
     // update_context(predicate_source, predicate_target, context_proxy);
 
