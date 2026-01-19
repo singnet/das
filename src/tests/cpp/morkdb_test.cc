@@ -383,6 +383,33 @@ TEST_F(MorkDBTest, ConcurrentAddLinks) {
     EXPECT_EQ(result->size(), 2);
 }
 
+TEST_F(MorkDBTest, AddLinkWithoutMettaExpressionMustPopulateIt) {
+    auto similarity = new Node("Symbol", "Similarity");
+    auto human = new Node("Symbol", "\"human\"");
+    auto robot = new Node("Symbol", "\"robot\"");
+
+    db->add_node(similarity, false);
+    db->add_node(human, false);
+    auto robot_handle = db->add_node(robot);
+
+    auto link = new Link("Expression", {similarity->handle(), human->handle(), robot->handle()});
+    EXPECT_EQ(link->custom_attributes.get_or<string>("metta_expression", ""), "");
+
+    auto link_handle = db->add_link(link);
+
+    auto link_document =
+        dynamic_pointer_cast<atomdb_api_types::MongodbDocument>(db->get_link_document(link_handle));
+
+    Properties custom_attributes;
+    if (link_document->contains("custom_attributes")) {
+        custom_attributes =
+            link_document->extract_custom_attributes(link_document->get_object("custom_attributes"));
+    }
+
+    EXPECT_EQ(custom_attributes.get_or<string>("metta_expression", ""),
+              string("(Similarity \"human\" \"robot\")"));
+}
+
 TEST_F(MorkDBTest, ReIndexPatterns) {
     auto evaluation_node = new Node("Symbol", "EvaluationReIndex");
     vector<string> targets1 = {

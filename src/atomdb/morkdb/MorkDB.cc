@@ -239,7 +239,10 @@ vector<string> MorkDB::add_links(const vector<atoms::Link*>& links,
     for (const auto& link : links) {
         auto link_handle = link->handle();
         string metta_expression = link->custom_attributes.get_or<string>("metta_expression", "");
-        if (metta_expression.empty()) metta_expression = link->metta_representation(*this);
+        if (metta_expression.empty()) {
+            metta_expression = link->metta_representation(*this);
+            link->custom_attributes["metta_expression"] = metta_expression;
+        }
         metta_expressions += metta_expression + "\n";
 
         count++;
