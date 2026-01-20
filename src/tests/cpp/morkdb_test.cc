@@ -12,6 +12,7 @@
 #include "AtomDBCacheSingleton.h"
 #include "AtomDBSingleton.h"
 #include "LinkSchema.h"
+#include "MockAnimalsData.h"
 #include "TestConfig.h"
 
 using namespace atomdb;
@@ -26,6 +27,7 @@ class MorkDBTestEnvironment : public ::testing::Environment {
         auto atomdb = new MorkDB("morkdb_test_");
         atomdb->drop_all();
         AtomDBSingleton::provide(shared_ptr<AtomDB>(atomdb));
+        load_animals_data();
     }
 };
 
@@ -327,14 +329,18 @@ TEST_F(MorkDBTest, ConcurrentAddLinks) {
                 }
                 metta_expression += ")";
 
-                auto link = new Link("Expression", targets, true, {}, metta_expression);
+                auto link = new Link(
+                    "Expression", targets, true, Properties{{"metta_expression", metta_expression}});
                 links.push_back(link);
 
                 vector<string> nested_targets = {targets[0], targets[1], link->handle()};
                 string nested_metta_expression =
                     "(" + node_names[0] + " " + node_names[1] + " " + metta_expression + ")";
                 auto link_with_nested =
-                    new Link("Expression", nested_targets, true, {}, nested_metta_expression);
+                    new Link("Expression",
+                             nested_targets,
+                             true,
+                             Properties{{"metta_expression", nested_metta_expression}});
                 links.push_back(link_with_nested);
 
                 if (i % chunck_size == 0) {
@@ -375,6 +381,103 @@ TEST_F(MorkDBTest, ConcurrentAddLinks) {
 
     auto result = db->query_for_pattern(link_schema);
     EXPECT_EQ(result->size(), 2);
+}
+
+TEST_F(MorkDBTest, AddLinkWithoutMettaExpressionMustPopulateIt) {
+    auto similarity = new Node("Symbol", "Similarity");
+    auto human = new Node("Symbol", "\"human\"");
+    auto robot = new Node("Symbol", "\"robot\"");
+
+    db->add_node(similarity, false);
+    db->add_node(human, false);
+    auto robot_handle = db->add_node(robot);
+
+    auto link = new Link("Expression", {similarity->handle(), human->handle(), robot->handle()});
+    EXPECT_EQ(link->custom_attributes.get_or<string>("metta_expression", ""), "");
+
+    auto link_handle = db->add_link(link);
+
+    auto link_document =
+        dynamic_pointer_cast<atomdb_api_types::MongodbDocument>(db->get_link_document(link_handle));
+
+    Properties custom_attributes;
+    if (link_document->contains("custom_attributes")) {
+        custom_attributes =
+            link_document->extract_custom_attributes(link_document->get_object("custom_attributes"));
+    }
+
+    EXPECT_EQ(custom_attributes.get_or<string>("metta_expression", ""),
+              string("(Similarity \"human\" \"robot\")"));
+}
+
+TEST_F(MorkDBTest, ReIndexPatterns) {
+    auto evaluation_node = new Node("Symbol", "EvaluationReIndex");
+    vector<string> targets1 = {
+        evaluation_node->handle(), exp_hash({"Predicate", "link"}), exp_hash({"Concept", "One"})};
+    vector<string> targets2 = {
+        evaluation_node->handle(), exp_hash({"Predicate", "link"}), exp_hash({"Concept", "Two"})};
+    vector<string> targets3 = {
+        evaluation_node->handle(), exp_hash({"Predicate", "link"}), exp_hash({"Concept", "Three"})};
+
+    auto p1 = Properties();
+    p1["metta_expression"] = "(EvaluationReIndex (Predicate \"link\") (Concept \"One\"))";
+    auto link_1 = new Link("Expression", targets1, true, p1);
+
+    auto p2 = Properties();
+    p2["metta_expression"] = "(EvaluationReIndex (Predicate \"link\") (Concept \"Two\"))";
+    auto link_2 = new Link("Expression", targets2, true, p2);
+
+    auto p3 = Properties();
+    p3["metta_expression"] = "(EvaluationReIndex (Predicate \"link\") (Concept \"Three\"))";
+    auto link_3 = new Link("Expression", targets3, true, p3);
+
+    auto link_1_doc = make_shared<atomdb_api_types::MongodbDocument>(link_1, "", vector<string>{});
+    auto link_2_doc = make_shared<atomdb_api_types::MongodbDocument>(link_2, "", vector<string>{});
+    auto link_3_doc = make_shared<atomdb_api_types::MongodbDocument>(link_3, "", vector<string>{});
+
+    // clang-format off
+    LinkSchema link_schema({
+        "LINK_TEMPLATE", "Expression", "3", 
+        "NODE", "Symbol", "EvaluationReIndex", 
+        "LINK", "Expression", "2", "NODE", "Symbol", "Predicate", "NODE", "Symbol", "\"link\"",
+        "VARIABLE", "C"
+    });
+    // clang-format on
+    auto result = db->query_for_pattern(link_schema);
+    EXPECT_EQ(result->size(), 0);
+
+    // Resetting MongoDB database to animals data
+    load_animals_data();
+
+    // Direct insertion into MongoDB
+    auto inserted_count =
+        db->upsert_documents({link_1_doc->value(), link_2_doc->value(), link_3_doc->value()},
+                             RedisMongoDB::MONGODB_LINKS_COLLECTION_NAME);
+    EXPECT_EQ(inserted_count, 3);
+
+    db->re_index_patterns();
+
+    result = db->query_for_pattern(link_schema);
+    EXPECT_EQ(result->size(), 3);
+
+    string pattern = "(EvaluationReIndex $P $C)";
+    db->flush_pattern(pattern);
+
+    result = db->query_for_pattern(link_schema);
+    EXPECT_EQ(result->size(), 0);
+
+    // Confirm that patterns are re-indexed
+
+    // clang-format off
+    link_schema = LinkSchema({
+        link_template, expression, "3",
+            node, symbol, inheritance,
+            variable, "x",
+            node, symbol, mammal});
+    // clang-format on
+
+    result = db->query_for_pattern(link_schema);
+    EXPECT_EQ(result->size(), 4);
 }
 
 int main(int argc, char** argv) {

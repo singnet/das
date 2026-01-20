@@ -112,6 +112,8 @@ class AtomDBMock : public AtomDB {
                 (const vector<string>& handles, bool delete_link_targets),
                 (override));
 
+    MOCK_METHOD(void, re_index_patterns, (bool flush_patterns), (override));
+
     AtomDBMock() {
         ON_CALL(*this, get_atom_document(testing::_))
             .WillByDefault(::testing::Return(make_shared<MockAtomDocument>()));

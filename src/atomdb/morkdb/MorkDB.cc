@@ -47,6 +47,14 @@ vector<string> MorkClient::get(const string& pattern, const string& template_) {
     return Utils::split(res->body, '\n');
 }
 
+string MorkClient::clear(const string& pattern) {
+    auto path = "/clear/" + url_encode(pattern);
+    LOG_DEBUG("CLEAR request sent to MORK: "
+              << " url=" << path);
+    auto res = send_request("GET", path);
+    return res->body;
+}
+
 httplib::Result MorkClient::send_request(const string& method, const string& path, const string& data) {
     httplib::Result res;
 
@@ -230,9 +238,11 @@ vector<string> MorkDB::add_links(const vector<atoms::Link*>& links,
     uint count = 0;
     for (const auto& link : links) {
         auto link_handle = link->handle();
-
-        string metta_expression = link->metta_expression;
-        if (metta_expression.empty()) metta_expression = link->metta_representation(*this);
+        string metta_expression = link->custom_attributes.get_or<string>("metta_expression", "");
+        if (metta_expression.empty()) {
+            metta_expression = link->metta_representation(*this);
+            link->custom_attributes["metta_expression"] = metta_expression;
+        }
         metta_expressions += metta_expression + "\n";
 
         count++;
@@ -276,6 +286,51 @@ vector<string> MorkDB::add_links(const vector<atoms::Link*>& links,
 bool MorkDB::delete_link(const string& handle, bool delete_targets) {
     Utils::error("MORKDB does not support deleting links.", false);
     return false;
+}
+
+string MorkDB::flush_pattern(const string& pattern) { return this->mork_client->clear(pattern); }
+
+void MorkDB::re_index_patterns(bool flush_patterns) {
+    vector<Link*> links;
+    uint max_arity = 0;
+
+    bsoncxx::builder::stream::document filter_builder;
+    auto atom_documents =
+        this->get_filtered_documents(MONGODB_LINKS_COLLECTION_NAME, filter_builder, {});
+
+    for (const auto& atom_document : atom_documents) {
+        auto link_document = dynamic_pointer_cast<atomdb_api_types::MongodbDocument>(atom_document);
+        vector<string> targets;
+        size_t size = link_document->get_size("targets");
+        for (size_t i = 0; i < size; i++) {
+            targets.push_back(string(link_document->get("targets", i)));
+        }
+        Properties custom_attributes;
+        if (link_document->contains("custom_attributes")) {
+            custom_attributes =
+                link_document->extract_custom_attributes(link_document->get_object("custom_attributes"));
+        }
+        links.push_back(new Link(string(link_document->get("named_type")), targets, custom_attributes));
+
+        uint link_arity = targets.size();
+        if (link_arity > max_arity) max_arity = link_arity;
+    }
+
+    // Clear MORK for each arity
+    if (max_arity > 0 && flush_patterns) {
+        for (uint i = max_arity; i >= 1; i--) {
+            string pattern = "(";
+            for (uint j = 0; j < i; j++) {
+                pattern += "$v" + to_string(j + 1);
+                if (j < i - 1) pattern += " ";
+            }
+            pattern += ")";
+            LOG_DEBUG("Clearing MORK for arity " << i << " with pattern " << pattern);
+            this->mork_client->clear(pattern);
+        }
+    }
+
+    this->add_links(links, false, true);
 }
 
 // <--

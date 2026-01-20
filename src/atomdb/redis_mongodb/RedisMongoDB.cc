@@ -1276,7 +1276,7 @@ vector<vector<string>> RedisMongoDB::index_entries_combinations(unsigned int ari
     return index_entries;
 }
 
-void RedisMongoDB::re_index_patterns() {
+void RedisMongoDB::re_index_patterns(bool flush_patterns) {
     vector<Link*> links;
     auto conn = this->mongodb_pool->acquire();
     auto mongodb_collection = (*conn)[MONGODB_DB_NAME][MONGODB_LINKS_COLLECTION_NAME];
@@ -1293,7 +1293,7 @@ void RedisMongoDB::re_index_patterns() {
     load_pattern_index_schema();
 
     // Flush Redis patterns indexes
-    flush_redis_by_prefix(REDIS_PATTERNS_PREFIX);
+    if (flush_patterns) flush_redis_by_prefix(REDIS_PATTERNS_PREFIX);
 
     // Reset patterns next score
     this->patterns_next_score.store(1);

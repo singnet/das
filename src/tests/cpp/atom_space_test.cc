@@ -171,6 +171,8 @@ class MockAtomDB : public AtomDB {
     }
 
     shared_ptr<Atom> get_atom(const string& handle) { return shared_ptr<Atom>(this->atoms[handle]); }
+
+    void re_index_patterns(bool flush_patterns = true) override { return; }
 };
 
 class MockAtomSpace : public AtomSpace {
