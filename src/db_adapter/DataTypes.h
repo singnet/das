@@ -1,9 +1,9 @@
 #pragma once
 
 #include <string>
-#include <vector>
-#include <variant>
 #include <unordered_map>
+#include <variant>
+#include <vector>
 
 using namespace std;
 
@@ -24,7 +24,7 @@ struct MappedData {
 };
 
 /**
- * Representing SQL-based source data. 
+ * Representing SQL-based source data.
  */
 struct SQLSourceData {
     string table_name;
@@ -47,6 +47,6 @@ struct Table {
     std::vector<std::string> foreign_keys;
 };
 
-} // namespace db_adapter_types
+}  // namespace db_adapter_types
 
-} // namespace db_adapter
+}  // namespace db_adapter

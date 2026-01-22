@@ -6,15 +6,6 @@ cc_library(
     name = "db_adapter_lib",
     includes = ["."],
     deps = [
-        ":postgres",
-    ],
-)
-
-cc_library(
-    name = "postgres",
-    hdrs = ["Postgres.h"],
-    includes = ["."],
-    deps = [
-        ":atomdb_api_types",
+        "//db_adapter/postgres:postgres_lib",
     ],
 )
