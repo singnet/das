@@ -730,6 +730,22 @@ cc_test(
 )
 
 cc_test(
+    name = "inmemorydb_test",
+    size = "small",
+    srcs = ["inmemorydb_test.cc"],
+    copts = [
+        "-Iexternal/gtest/googletest/include",
+        "-Iexternal/gtest/googletest",
+    ],
+    linkstatic = 1,
+    deps = [
+        "//atomdb/inmemorydb:inmemorydb_lib",
+        "//commons/atoms:atoms_lib",
+        "@com_github_google_googletest//:gtest_main",
+    ],
+)
+
+cc_test(
     name = "profiling_test",
     size = "small",
     srcs = [
