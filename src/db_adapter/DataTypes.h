@@ -2,10 +2,14 @@
 
 #include <string>
 #include <unordered_map>
+#include <optional>
 #include <variant>
 #include <vector>
 
+#include "Atom.h"
+
 using namespace std;
+using namespace atoms;
 
 struct MappedData;
 struct SQLSourceData;
@@ -16,36 +20,54 @@ namespace db_adapter {
 
 namespace db_adapter_types {
 
-/**
- * Representing the mapped data after processing.
- */
-struct MappedData {
-    vector<variant<int, double, string>> mapped_atoms;
+// using DbScalar = variant<nullptr_t, bool, int64_t, double, string>;
+
+struct ColumnValue {
+    string name;
+    string value;
 };
 
-/**
- * Representing SQL-based source data.
- */
-struct SQLSourceData {
+struct SqlRow {
     string table_name;
-    unordered_map<string, variant<int, double, string>> row_data;
+    optional<ColumnValue> primary_key;
+    vector<ColumnValue> fields;
+
+    void add_field(string name, string value) {
+        fields.push_back(ColumnValue{move(name), move(value)});
+    }
+
+    optional<string> get(string name) const {
+        if (primary_key && primary_key->name == name) {
+            return primary_key->value;
+        }
+        for (const auto& field : fields) {
+            if (field.name == name) {
+                return field.value;
+            }
+        }
+        return nullopt;
+    }
+
+    size_t size() const {
+        return (primary_key ? 1 : 0) + fields.size();
+    }
 };
 
-/**
- * Representing NoSQL source data (empty structure).
- */
-struct NoSQLSourceData {};
+struct NoSqlDocument {};
 
-// TypeAlias equivalente:  SourceData could be SQL or NoSQL
-using SourceData = variant<SQLSourceData, NoSQLSourceData>;
+using DbInput = variant<SqlRow, NoSqlDocument>;
+
+using OutputList = variant<vector<string>, vector<Atom*>>;
 
 struct Table {
-    std::string name;
+    string name;
     int row_count = 0;
-    std::vector<std::string> column_names;
-    std::string primary_key;
-    std::vector<std::string> foreign_keys;
+    vector<string> column_names;
+    string primary_key;
+    vector<string> foreign_keys;
 };
+
+enum MAPPER_TYPE { SQL2METTA, SQL2ATOMS };
 
 }  // namespace db_adapter_types
 
