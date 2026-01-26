@@ -13,6 +13,7 @@ cc_library(
     hdrs = [
         "Assignment.h",
         "Logger.h",
+        "Profiler.h",
         "Properties.h",
         "RequestValidator.h",
         "Serializable.h",
@@ -20,9 +21,8 @@ cc_library(
         "Stoppable.h",
         "StoppableThread.h",
         "ThreadPool.h",
+        "ThreadSafeHashmap.h",
         "Utils.h",
-        "Profiler.h",
-        "ThreadSafeHashmap.h"
     ],
     includes = ["."],
     deps = [

@@ -31,9 +31,9 @@ cc_library(
     ],
     deps = [
         "//commons:commons_lib",
+        "@com_github_singnet_das_proto//:distributed_algorithm_node_cc_grpc",
         "@grpc//:grpc++",
         "@grpc//:grpc++_reflection",
-        "@com_github_singnet_das_proto//:distributed_algorithm_node_cc_grpc",
     ],
 )
 

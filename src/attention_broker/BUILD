@@ -24,9 +24,9 @@ cc_library(
         "//commons:commons_lib",
         "//commons:handle_trie",
         "//hasher:hasher_lib",
+        "@com_github_singnet_das_proto//:attention_broker_cc_grpc",
         "@grpc//:grpc++",
         "@grpc//:grpc++_reflection",
-        "@com_github_singnet_das_proto//:attention_broker_cc_grpc",
     ],
 )
 
@@ -37,9 +37,9 @@ cc_library(
     includes = ["."],
     deps = [
         "//commons:commons_lib",
+        "@com_github_singnet_das_proto//:attention_broker_cc_grpc",
         "@grpc//:grpc++",
         "@grpc//:grpc++_reflection",
-        "@com_github_singnet_das_proto//:attention_broker_cc_grpc",
     ],
 )
 
@@ -65,9 +65,9 @@ cc_library(
         "//commons:commons_lib",
         "//commons:handle_trie",
         "//hasher:hasher_lib",
+        "@com_github_singnet_das_proto//:attention_broker_cc_grpc",
         "@grpc//:grpc++",
         "@grpc//:grpc++_reflection",
-        "@com_github_singnet_das_proto//:attention_broker_cc_grpc",
     ],
 )
 
