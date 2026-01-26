@@ -161,12 +161,16 @@ HandleTrie::TrieValue* HandleTrie::insert(const string& key, TrieValue* value) {
 }
 
 HandleTrie::TrieValue* HandleTrie::lookup(const string& key) {
+    TrieNode* node = lookup_node(key);
+    return node != NULL ? node->value : NULL;
+}
+
+HandleTrie::TrieNode* HandleTrie::lookup_node(const string& key) {
     if (key.size() != key_size) {
         Utils::error("Invalid key size: " + to_string(key.size()) + " != " + to_string(key_size));
     }
 
     TrieNode* tree_cursor = root;
-    TrieValue* value;
     unsigned char key_cursor = 0;
     tree_cursor->trie_node_mutex.lock();
     while (tree_cursor != NULL) {
@@ -179,13 +183,9 @@ HandleTrie::TrieValue* HandleTrie::lookup(const string& key) {
                     break;
                 }
             }
-            if (match) {
-                value = tree_cursor->value;
-            } else {
-                value = NULL;
-            }
+            TrieNode* node = match ? tree_cursor : NULL;
             tree_cursor->trie_node_mutex.unlock();
-            return value;
+            return node;
         } else {
             unsigned char c = TLB[(unsigned char) key[key_cursor]];
             TrieNode* child = tree_cursor->children[c];
@@ -198,6 +198,19 @@ HandleTrie::TrieValue* HandleTrie::lookup(const string& key) {
         }
     }
     return NULL;
+}
+
+bool HandleTrie::remove(const string& key) {
+    TrieNode* node = lookup_node(key);
+    if (node == NULL || node->value == NULL) {
+        return false;
+    }
+    node->trie_node_mutex.lock();
+    delete node->value;
+    node->value = NULL;
+    this->size--;
+    node->trie_node_mutex.unlock();
+    return true;
 }
 
 void HandleTrie::traverse(bool keep_root_locked,

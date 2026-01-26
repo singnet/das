@@ -104,9 +104,6 @@ class InMemoryDB : public AtomDB {
 
     void add_pattern_index_schema(const string& tokens, const vector<vector<string>>& index_entries);
     vector<vector<string>> index_entries_combinations(unsigned int arity);
-
-    // Helper to clear a value in the trie (set to nullptr for deletion)
-    void clear_atom_value(const string& handle);
 };
 
 }  // namespace atomdb

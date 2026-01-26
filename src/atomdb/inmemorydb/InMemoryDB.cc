@@ -47,11 +47,6 @@ struct ReIndexData {
     InMemoryDB* db;
 };
 
-struct ClearValueData {
-    string handle;
-    bool found;
-};
-
 bool re_index_visitor(HandleTrie::TrieNode* node, void* data) {
     ReIndexData* index_data = static_cast<ReIndexData*>(data);
     if (node->value != nullptr) {
@@ -66,25 +61,6 @@ bool re_index_visitor(HandleTrie::TrieNode* node, void* data) {
                 for (const auto& pattern_handle : pattern_handles) {
                     index_data->db->add_pattern(pattern_handle, link_handle);
                 }
-            }
-        }
-    }
-    return false;  // Continue traversal
-}
-
-bool clear_value_visitor(HandleTrie::TrieNode* node, void* data) {
-    ClearValueData* clear_data = static_cast<ClearValueData*>(data);
-    if (node->value != nullptr) {
-        auto atom_trie_value = dynamic_cast<AtomTrieValue*>(node->value);
-        if (atom_trie_value != nullptr) {
-            Atom* atom = atom_trie_value->get_atom();
-            // Compare handles to find the right node
-            if (atom->handle() == clear_data->handle) {
-                // Found it! Delete the value and set to nullptr
-                delete node->value;
-                node->value = nullptr;
-                clear_data->found = true;
-                return true;  // Stop traversal
             }
         }
     }
@@ -509,7 +485,7 @@ bool InMemoryDB::delete_node(const string& handle, bool delete_link_targets) {
     }
 
     // Clear the value in the trie (set to nullptr)
-    this->clear_atom_value(handle);
+    this->atoms_trie_->remove(handle);
     incoming_sets_.erase(handle);
 
     return true;
@@ -556,7 +532,7 @@ bool InMemoryDB::delete_link(const string& handle, bool delete_link_targets) {
     }
 
     // Clear the value in the trie (set to nullptr)
-    this->clear_atom_value(handle);
+    this->atoms_trie_->remove(handle);
 
     return true;
 }
@@ -636,16 +612,6 @@ void InMemoryDB::delete_incoming_set(const string& target_handle, const string& 
 
 void InMemoryDB::update_incoming_set(const string& target_handle, const string& link_handle) {
     this->delete_incoming_set(target_handle, link_handle);
-}
-
-void InMemoryDB::clear_atom_value(const string& handle) {
-    // Use traverse to find the node with this handle and clear its value
-    // NOTE: This method assumes trie_mutex_ is already locked by the caller
-    ClearValueData clear_data;
-    clear_data.handle = handle;
-    clear_data.found = false;
-
-    this->atoms_trie_->traverse(false, clear_value_visitor, &clear_data);
 }
 
 void InMemoryDB::add_pattern_index_schema(const string& tokens,
