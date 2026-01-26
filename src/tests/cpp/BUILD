@@ -33,9 +33,9 @@ cc_test(
     deps = [
         "//attention_broker:attention_broker_lib",
         "@com_github_google_googletest//:gtest_main",
-        "@com_github_grpc_grpc//:grpc++",
-        "@com_github_grpc_grpc//:grpc++_reflection",
         "@com_github_singnet_das_proto//:attention_broker_cc_grpc",
+        "@grpc//:grpc++",
+        "@grpc//:grpc++_reflection",
         "@mbedtls",
     ],
 )
@@ -52,9 +52,9 @@ cc_test(
     deps = [
         "//attention_broker:attention_broker_lib",
         "@com_github_google_googletest//:gtest_main",
-        "@com_github_grpc_grpc//:grpc++",
-        "@com_github_grpc_grpc//:grpc++_reflection",
         "@com_github_singnet_das_proto//:attention_broker_cc_grpc",
+        "@grpc//:grpc++",
+        "@grpc//:grpc++_reflection",
         "@mbedtls",
     ],
 )
@@ -76,9 +76,9 @@ cc_test(
         "//attention_broker:attention_broker_lib",
         "//commons:commons_lib",
         "@com_github_google_googletest//:gtest_main",
-        "@com_github_grpc_grpc//:grpc++",
-        "@com_github_grpc_grpc//:grpc++_reflection",
         "@com_github_singnet_das_proto//:attention_broker_cc_grpc",
+        "@grpc//:grpc++",
+        "@grpc//:grpc++_reflection",
         "@mbedtls",
     ],
 )
@@ -99,9 +99,9 @@ cc_test(
     deps = [
         "//attention_broker:attention_broker_lib",
         "@com_github_google_googletest//:gtest_main",
-        "@com_github_grpc_grpc//:grpc++",
-        "@com_github_grpc_grpc//:grpc++_reflection",
         "@com_github_singnet_das_proto//:attention_broker_cc_grpc",
+        "@grpc//:grpc++",
+        "@grpc//:grpc++_reflection",
         "@mbedtls",
     ],
 )
@@ -122,9 +122,9 @@ cc_test(
     deps = [
         "//attention_broker:attention_broker_lib",
         "@com_github_google_googletest//:gtest_main",
-        "@com_github_grpc_grpc//:grpc++",
-        "@com_github_grpc_grpc//:grpc++_reflection",
         "@com_github_singnet_das_proto//:attention_broker_cc_grpc",
+        "@grpc//:grpc++",
+        "@grpc//:grpc++_reflection",
         "@mbedtls",
     ],
 )
@@ -146,9 +146,9 @@ cc_test(
         "//attention_broker:attention_broker_lib",
         "//commons:commons_lib",
         "@com_github_google_googletest//:gtest_main",
-        "@com_github_grpc_grpc//:grpc++",
-        "@com_github_grpc_grpc//:grpc++_reflection",
         "@com_github_singnet_das_proto//:attention_broker_cc_grpc",
+        "@grpc//:grpc++",
+        "@grpc//:grpc++_reflection",
         "@mbedtls",
     ],
 )
@@ -169,9 +169,9 @@ cc_test(
     deps = [
         "//attention_broker:attention_broker_lib",
         "@com_github_google_googletest//:gtest_main",
-        "@com_github_grpc_grpc//:grpc++",
-        "@com_github_grpc_grpc//:grpc++_reflection",
         "@com_github_singnet_das_proto//:attention_broker_cc_grpc",
+        "@grpc//:grpc++",
+        "@grpc//:grpc++_reflection",
         "@mbedtls",
     ],
 )
@@ -192,9 +192,9 @@ cc_test(
     deps = [
         "//attention_broker:attention_broker_lib",
         "@com_github_google_googletest//:gtest_main",
-        "@com_github_grpc_grpc//:grpc++",
-        "@com_github_grpc_grpc//:grpc++_reflection",
         "@com_github_singnet_das_proto//:attention_broker_cc_grpc",
+        "@grpc//:grpc++",
+        "@grpc//:grpc++_reflection",
         "@mbedtls",
     ],
 )
@@ -556,6 +556,7 @@ cc_test(
         "//commons:commons_lib",
         "//service_bus:service_bus_lib",
         "//tests/cpp/test_commons/mocks:mock_atom_db_lib",
+        "//tests/cpp/test_commons/mocks:mock_service_bus_lib",
         "@com_github_google_googletest//:gtest_main",
     ],
 )
@@ -700,6 +701,7 @@ cc_test(
     deps = [
         "//atomdb:atomdb_singleton",
         "//tests/cpp/test_commons",
+        "//tests/cpp/test_commons:mock_animals_data_lib",
         "@com_github_google_googletest//:gtest_main",
         "@mbedtls",
     ],
@@ -744,9 +746,9 @@ cc_test(
     deps = [
         "//commons:commons_lib",
         "@com_github_google_googletest//:gtest_main",
-        "@com_github_grpc_grpc//:grpc++",
-        "@com_github_grpc_grpc//:grpc++_reflection",
         "@com_github_singnet_das_proto//:attention_broker_cc_grpc",
+        "@grpc//:grpc++",
+        "@grpc//:grpc++_reflection",
     ],
 )
 
