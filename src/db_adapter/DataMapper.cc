@@ -101,7 +101,15 @@ void db_adapter::SQL2MettaMapper::process_foreign_key_column(
     string fk_table = column_name.substr(separator_pos + 1);
     all_foreign_keys.push_back({fk_column, fk_table, value});
 
-    string predicate_inner
+    string literal_value = this->escape_inner_quotes('"' + value + '"');
+    string predicate_inner_1_link = "(" + fk_tavle + " " + literal_value + ")";
+    this->metta_expression.push_back(predicate_inner_1_link);
+
+    string predicate_inner_2_link = "(Concept " + predicate_inner_1_link + ")";
+    this->metta_expression.push_back(predicate_inner_2_link);
+
+    string predicate_inner_3_link = "(" + fk_column + " " + predicate_inner_2_link + ")";
+    this->metta_expressions.push_back(predicate_inner_3_link);
 }
 
 // def _process_foreign_key(
@@ -110,7 +118,7 @@ void db_adapter::SQL2MettaMapper::process_foreign_key_column(
 //     column_name: str,
 //     value: str,
 //     primary_key_value: str,
-// ) -> None:
+// ) -> None::
 //     column_name, foreign_table_name = column_name.split('|')
 //     expr_inner_1 = "({foreign_table_name} {value})"
 //     self.mapped_expressions.append(
