@@ -21,6 +21,8 @@ cc_library(
         "StoppableThread.h",
         "ThreadPool.h",
         "Utils.h",
+        "Profiler.h",
+        "ThreadSafeHashmap.h"
     ],
     includes = ["."],
     deps = [

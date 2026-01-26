@@ -25,6 +25,7 @@ cc_library(
     deps = [
         ":service_bus",
         "//commons:commons_lib",
+        "//distributed_algorithm_node:star_node",
     ],
 )
 
@@ -60,6 +61,7 @@ cc_library(
         ":port_pool",
         "//commons:commons_lib",
         "//distributed_algorithm_node:bus_node",
+        "//distributed_algorithm_node:star_node",
     ],
 )
 

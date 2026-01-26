@@ -1,4 +1,6 @@
 load("@rules_cc//cc:cc_library.bzl", "cc_library")
+load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_shared_library")
+load("@rules_proto_grpc_cpp//:defs.bzl", "cpp_grpc_library", "cc_proto_library", "cc_grpc_library")
 
 package(default_visibility = ["//visibility:public"])
 
@@ -7,7 +9,7 @@ cc_library(
     srcs = ["tests_db_loader.cc"],
     deps = [
         "//atomdb:atomdb_singleton",
-        "//tests/cpp/test_commons",
+        "//tests/cpp/test_commons:test_commons",
         "//tests/cpp/test_commons:mock_animals_data_lib",
     ],
 )

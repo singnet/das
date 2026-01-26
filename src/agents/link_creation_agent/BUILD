@@ -26,6 +26,7 @@ cc_library(
     hdrs = [
         "LinkCreationAgent.h",
         "LinkCreationService.h",
+        "LCAQueue.h"
     ],
     includes = ["."],
     deps = [
@@ -56,6 +57,7 @@ cc_library(
     srcs = ["LinkCreationService.cc"],
     hdrs = [
         "LinkCreationService.h",
+        "LCAQueue.h"
     ],
     deps = [
         ":link_creation_agent_request",
@@ -93,6 +95,7 @@ cc_library(
     ],
     hdrs = [
         "MettaTemplateProcessor.h",
+        "LinkProcessor.h",
     ],
     deps = [
         ":link_create_template",

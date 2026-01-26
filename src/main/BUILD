@@ -7,8 +7,8 @@ cc_library(
     srcs = ["attention_broker_main.cc"],
     deps = [
         "//attention_broker:attention_broker_lib",
-        "@com_github_grpc_grpc//:grpc++",
-        "@com_github_grpc_grpc//:grpc++_reflection",
+        "@grpc//:grpc++",
+        "@grpc//:grpc++_reflection",
         "@com_github_singnet_das_proto//:attention_broker_cc_grpc",
     ],
 )
@@ -19,8 +19,8 @@ cc_library(
     deps = [
         "//atomdb:atomdb_singleton",
         "//attention_broker:attention_broker_lib",
-        "@com_github_grpc_grpc//:grpc++",
-        "@com_github_grpc_grpc//:grpc++_reflection",
+        "@grpc//:grpc++",
+        "@grpc//:grpc++_reflection",
         "@com_github_singnet_das_proto//:attention_broker_cc_grpc",
     ],
 )
