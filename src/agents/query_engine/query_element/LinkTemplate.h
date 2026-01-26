@@ -1,9 +1,9 @@
 #pragma once
 
 #include <mutex>
+#include <random>
 #include <string>
 #include <vector>
-#include <random>
 
 #include "Assignment.h"
 #include "AtomDB.h"

@@ -26,16 +26,17 @@ bazel_dep(name = "rules_proto", version = "7.1.0")
 bazel_dep(name = "rules_nodejs", version = "6.7.3")
 
 # Python dependency
-bazel_dep(name = "rules_python", version = "1.6.0")
-python = use_extension("@rules_python//python/extensions:python.bzl", "python") # Use extensions:python.bzl
+bazel_dep(name = "rules_python", version = "1.8.2")
 
-python.toolchain( # No singular aqui
-    python_version = "3.10",
+python = use_extension("@rules_python//python/extensions:python.bzl", "python")  # Use extensions:python.bzl
+python.toolchain(
     is_default = True,
+    # No singular aqui
+    python_version = "3.10",
 )
 
 # Bazel to run linters and formatters
-bazel_dep(name = "aspect_rules_lint", version = "1.2.0")
+bazel_dep(name = "aspect_rules_lint", version = "2.0.0-rc1")
 bazel_dep(name = "toolchains_llvm", version = "1.6.0")
 bazel_dep(name = "bazel_skylib", version = "1.9.0")
 
@@ -74,10 +75,10 @@ http_archive = use_repo_rule("@bazel_tools//tools/build_defs/repo:http.bzl", "ht
 
 http_archive(
     name = "com_github_singnet_das_proto",
+    patch_strip = 1,
+    patches = ["//patches:das_proto_patch.patch"],
     strip_prefix = "das-proto-0.1.19",
     urls = ["https://github.com/singnet/das-proto/archive/refs/tags/0.1.19.tar.gz"],
-    patches = ["//patches:das_proto_patch.patch"],
-    patch_strip = 1
 )
 
 # Deps for formatting and linting BUILD files
