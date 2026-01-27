@@ -28,6 +28,7 @@ class MorkClient {
     ~MorkClient();
     string post(const string& data, const string& pattern = "$x", const string& template_ = "$x");
     vector<string> get(const string& pattern, const string& template_);
+    string clear(const string& pattern);
 
    private:
     string base_url_;
@@ -52,6 +53,10 @@ class MorkDB : public RedisMongoDB {
 
     // TODO: Implement this once MORK supports deleting links (S-Expressions)
     bool delete_link(const string& handle, bool delete_targets) override;
+
+    string flush_pattern(const string& pattern);
+
+    void re_index_patterns(bool flush_patterns = true) override;
 
    private:
     shared_ptr<AtomDBCache> atomdb_cache;

@@ -1,4 +1,6 @@
 load("@rules_cc//cc:cc_library.bzl", "cc_library")
+load("@rules_proto//proto:defs.bzl", "proto_library")
+load("@rules_proto_grpc_cpp//:defs.bzl", "cc_grpc_library", "cc_proto_library", "cpp_grpc_library")
 
 package(default_visibility = ["//visibility:public"])
 

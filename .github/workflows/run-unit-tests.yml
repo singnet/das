@@ -71,8 +71,6 @@ jobs:
             echo "Waiting MORK…"
             sleep 1
           done
-          
-          make mork-loader FILE="/tmp/animals.metta"
 
       - name: Execute Unit Test Suite
         run: make test-all
