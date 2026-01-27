@@ -85,9 +85,9 @@ void PatternMatchingQueryProcessor::update_attention_broker_single_answer(
     for (auto pair : answer->assignment.table) {
         single_answer.insert(pair.second);
         joint_answer.insert(pair.second);
-        single_answer.insert(pair.second);
     }
 
+    /*
     // Correlate handles which are the query answer
     for (string handle : answer->handles) {
         execution_stack.push(handle);
@@ -109,6 +109,7 @@ void PatternMatchingQueryProcessor::update_attention_broker_single_answer(
             }
         }
     }
+    */
     if (single_answer.size() > 1) {
         AttentionBrokerClient::correlate(single_answer, proxy->get_context());
     } else {

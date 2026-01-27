@@ -153,6 +153,18 @@ cc_binary(
 )
 
 cc_binary(
+    name = "evaluation_evolution",
+    srcs = [],
+    defines = ["BAZEL_BUILD"],
+    linkstatic = 1,
+    deps = [
+        "//commons:commons_lib",
+        "//tests/main:evaluation_evolution_main_lib",
+        "@mbedtls",
+    ],
+)
+
+cc_binary(
     name = "busnode",
     srcs = [],
     defines = ["BAZEL_BUILD"],
