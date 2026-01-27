@@ -5,6 +5,7 @@
 
 #include "DataTypes.h"
 #include "HandleTrie.h"
+#include "MettaMapping.h"
 
 using namespace std;
 using namespace atoms;

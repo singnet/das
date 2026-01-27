@@ -11,11 +11,6 @@
 using namespace std;
 using namespace atoms;
 
-struct MappedData;
-struct SQLSourceData;
-struct NoSQLSourceData;
-struct Table;
-
 namespace db_adapter {
 
 namespace db_adapter_types {
