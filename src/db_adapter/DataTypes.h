@@ -1,8 +1,8 @@
 #pragma once
 
+#include <optional>
 #include <string>
 #include <unordered_map>
-#include <optional>
 #include <variant>
 #include <vector>
 
@@ -32,9 +32,7 @@ struct SqlRow {
     optional<ColumnValue> primary_key;
     vector<ColumnValue> fields;
 
-    void add_field(string name, string value) {
-        fields.push_back(ColumnValue{move(name), move(value)});
-    }
+    void add_field(string name, string value) { fields.push_back(ColumnValue{move(name), move(value)}); }
 
     optional<string> get(string name) const {
         if (primary_key && primary_key->name == name) {
@@ -48,9 +46,7 @@ struct SqlRow {
         return nullopt;
     }
 
-    size_t size() const {
-        return (primary_key ? 1 : 0) + fields.size();
-    }
+    size_t size() const { return (primary_key ? 1 : 0) + fields.size(); }
 };
 
 struct NoSqlDocument {};
