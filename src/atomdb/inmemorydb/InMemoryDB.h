@@ -8,7 +8,7 @@
 
 #include "AtomDB.h"
 #include "HandleTrie.h"
-#include "InmemoryDBAPITypes.h"
+#include "InMemoryDBAPITypes.h"
 #include "LinkSchema.h"
 
 using namespace std;
@@ -82,9 +82,9 @@ class InMemoryDB : public AtomDB {
 
    private:
     string context_;
-    HandleTrie* atoms_trie_;                  // Stores handle -> Atom*
-    map<string, set<string>> pattern_index_;  // pattern_handle -> set of atom handles
-    map<string, set<string>> incoming_sets_;  // target_handle -> set of link handles that reference it
+    HandleTrie* atoms_trie_;          // Stores handle -> Atom*
+    HandleTrie* pattern_index_trie_;  // Stores pattern_handle -> set of atom handles
+    HandleTrie* incoming_sets_trie_;  // Stores target_handle -> set of link handles that reference it
     mutex trie_mutex_;
     mutex index_mutex_;
 

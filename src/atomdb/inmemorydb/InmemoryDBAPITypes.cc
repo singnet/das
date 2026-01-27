@@ -1,4 +1,4 @@
-#include "InmemoryDBAPITypes.h"
+#include "InMemoryDBAPITypes.h"
 
 #include <cstring>
 
