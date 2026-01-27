@@ -13,6 +13,7 @@ cc_test(
     linkstatic = 1,
     deps = [
         "//tests/integration/cpp/helpers:process_helper",
+        "//tests/integration/cpp/helpers:test_helper",
         "@com_github_google_googletest//:gtest_main",
     ],
 )

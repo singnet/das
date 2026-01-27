@@ -109,6 +109,7 @@ cc_library(
     srcs = ["UniqueAssignmentFilter.cc"],
     hdrs = ["UniqueAssignmentFilter.h"],
     deps = [
+        ":operator",
         ":query_element",
     ],
 )
