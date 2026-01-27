@@ -145,14 +145,24 @@ HandleTrie::TrieValue* HandleTrie::insert(const string& key, TrieValue* value) {
                     }
                 }
                 if (match) {
-                    tree_cursor->value->merge(value);
-                    this->size--;
-                    delete value;
-                    if (tree_cursor != parent) {
-                        parent->trie_node_mutex.unlock();
+                    if (tree_cursor->value != NULL) {
+                        tree_cursor->value->merge(value);
+                        this->size--;
+                        delete value;
+                        if (tree_cursor != parent) {
+                            parent->trie_node_mutex.unlock();
+                        }
+                        tree_cursor->trie_node_mutex.unlock();
+                        return tree_cursor->value;
+                    } else {
+                        // Value was removed, set it to the new value
+                        tree_cursor->value = value;
+                        if (tree_cursor != parent) {
+                            parent->trie_node_mutex.unlock();
+                        }
+                        tree_cursor->trie_node_mutex.unlock();
+                        return tree_cursor->value;
                     }
-                    tree_cursor->trie_node_mutex.unlock();
-                    return tree_cursor->value;
                 }
             }
             key_cursor++;
@@ -202,10 +212,14 @@ HandleTrie::TrieNode* HandleTrie::lookup_node(const string& key) {
 
 bool HandleTrie::remove(const string& key) {
     TrieNode* node = lookup_node(key);
-    if (node == NULL || node->value == NULL) {
+    if (node == NULL) {
         return false;
     }
     node->trie_node_mutex.lock();
+    if (node->value == NULL) {
+        node->trie_node_mutex.unlock();
+        return false;
+    }
     delete node->value;
     node->value = NULL;
     this->size--;

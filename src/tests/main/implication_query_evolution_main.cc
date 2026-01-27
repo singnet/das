@@ -78,9 +78,9 @@ static double ELITISM_RATE = 0.08;
 static unsigned int LINK_BUILDING_QUERY_SIZE = 150;
 static unsigned int POPULATION_SIZE = 50;
 static unsigned int MAX_GENERATIONS = 20;
-static unsigned int NUM_ITERATIONS = 10;
+static unsigned int NUM_ITERATIONS = 1;
 
-static bool CONTEXT_CREATION_ONLY = true;
+static bool CONTEXT_CREATION_ONLY = false;
 static bool SAVE_NEW_LINKS = true;
 static string NEW_LINKS_FILE_NAME = "newly_created_links.txt";
 static string CONTEXT_FILE_NAME = "_CONTEXT_DUMP";
@@ -944,6 +944,7 @@ static void run(const string& predicate_source,
         AttentionBrokerClient::save_context(context, CONTEXT_FILE_NAME);
         exit(0);
     } else {
+        update_attention_allocation(predicate_source, predicate_target, context);
     }
     // update_context(predicate_source, predicate_target, context_proxy);
 

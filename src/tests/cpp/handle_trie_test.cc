@@ -537,3 +537,141 @@ TEST(HandleTrieTest, multithread_limited_handle_set) {
         }
     }
 }
+
+TEST(HandleTrieTest, remove_basic) {
+    HandleTrie trie(4);
+    TestValue* value;
+
+    unsigned int initial_size = trie.size;
+    EXPECT_EQ(initial_size, 0);
+
+    // Insert some values
+    trie.insert("ABCD", new TestValue(3));
+    trie.insert("ABCF", new TestValue(4));
+    trie.insert("ABFD", new TestValue(5));
+    trie.insert("FBCD", new TestValue(6));
+    trie.insert("AFCD", new TestValue(7));
+
+    EXPECT_EQ(trie.size, initial_size + 5);
+
+    // Verify they exist
+    value = (TestValue*) trie.lookup("ABCD");
+    EXPECT_TRUE(value != NULL);
+    EXPECT_TRUE(value->count == 3);
+    value = (TestValue*) trie.lookup("ABCF");
+    EXPECT_TRUE(value != NULL);
+    EXPECT_TRUE(value->count == 4);
+
+    // Remove one
+    bool removed = trie.remove("ABCD");
+    EXPECT_TRUE(removed);
+
+    // Verify it's gone
+    value = (TestValue*) trie.lookup("ABCD");
+    EXPECT_TRUE(value == NULL);
+
+    EXPECT_EQ(trie.size, initial_size + 4);
+
+    // Verify others still exist
+    value = (TestValue*) trie.lookup("ABCF");
+    EXPECT_TRUE(value != NULL);
+    EXPECT_TRUE(value->count == 4);
+    value = (TestValue*) trie.lookup("ABFD");
+    EXPECT_TRUE(value != NULL);
+    EXPECT_TRUE(value->count == 5);
+    value = (TestValue*) trie.lookup("FBCD");
+    EXPECT_TRUE(value != NULL);
+    EXPECT_TRUE(value->count == 6);
+    value = (TestValue*) trie.lookup("AFCD");
+    EXPECT_TRUE(value != NULL);
+    EXPECT_TRUE(value->count == 7);
+
+    // Try to remove non-existent key
+    removed = trie.remove("XXXX");
+    EXPECT_FALSE(removed);
+
+    EXPECT_EQ(trie.size, initial_size + 4);
+}
+
+TEST(HandleTrieTest, remove_and_reinsert) {
+    HandleTrie trie(4);
+    TestValue* value;
+
+    // Insert
+    trie.insert("ABCD", new TestValue(3));
+    value = (TestValue*) trie.lookup("ABCD");
+    EXPECT_TRUE(value != NULL);
+    EXPECT_TRUE(value->count == 3);
+
+    // Remove
+    bool removed = trie.remove("ABCD");
+    EXPECT_TRUE(removed);
+    value = (TestValue*) trie.lookup("ABCD");
+    EXPECT_TRUE(value == NULL);
+
+    // Re-insert
+    trie.insert("ABCD", new TestValue(5));
+    value = (TestValue*) trie.lookup("ABCD");
+    EXPECT_TRUE(value != NULL);
+    EXPECT_TRUE(value->count == 5);
+}
+
+TEST(HandleTrieTest, remove_multiple) {
+    HandleTrie trie(4);
+
+    // Insert multiple values
+    trie.insert("ABCD", new TestValue(3));
+    trie.insert("ABCF", new TestValue(4));
+    trie.insert("ABFD", new TestValue(5));
+    trie.insert("FBCD", new TestValue(6));
+    trie.insert("AFCD", new TestValue(7));
+
+    // Remove all
+    EXPECT_TRUE(trie.remove("ABCD"));
+    EXPECT_TRUE(trie.remove("ABCF"));
+    EXPECT_TRUE(trie.remove("ABFD"));
+    EXPECT_TRUE(trie.remove("FBCD"));
+    EXPECT_TRUE(trie.remove("AFCD"));
+
+    // Verify all are gone
+    EXPECT_TRUE(trie.lookup("ABCD") == NULL);
+    EXPECT_TRUE(trie.lookup("ABCF") == NULL);
+    EXPECT_TRUE(trie.lookup("ABFD") == NULL);
+    EXPECT_TRUE(trie.lookup("FBCD") == NULL);
+    EXPECT_TRUE(trie.lookup("AFCD") == NULL);
+}
+
+TEST(HandleTrieTest, remove_already_removed) {
+    HandleTrie trie(4);
+
+    // Insert
+    trie.insert("ABCD", new TestValue(3));
+
+    // Remove once
+    bool removed = trie.remove("ABCD");
+    EXPECT_TRUE(removed);
+
+    // Try to remove again
+    removed = trie.remove("ABCD");
+    EXPECT_FALSE(removed);
+}
+
+TEST(HandleTrieTest, remove_after_merge) {
+    HandleTrie trie(4);
+    AccumulatorValue* value;
+
+    // Insert and merge
+    trie.insert("ABCD", new AccumulatorValue());
+    trie.insert("ABCD", new AccumulatorValue());
+    value = (AccumulatorValue*) trie.lookup("ABCD");
+    EXPECT_TRUE(value != NULL);
+    EXPECT_TRUE(value->count == 2);
+
+    // Remove
+    bool removed = trie.remove("ABCD");
+    EXPECT_TRUE(removed);
+
+    // Verify it's gone
+    value = (AccumulatorValue*) trie.lookup("ABCD");
+    EXPECT_TRUE(value == NULL);
+}
