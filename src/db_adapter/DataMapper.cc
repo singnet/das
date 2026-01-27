@@ -2,6 +2,7 @@
 
 #include "Atom.h"
 #include "DataTypes.h"
+#include "Hasher.h"
 #include "Link.h"
 #include "MettaMapping.h"
 #include "Node.h"
@@ -88,9 +89,7 @@ bool db_adapter::BaseSQL2Mapper::insert_handle_if_missing(const string& handle) 
 
 // -- SQL2MettaMapper
 
-SQL2MettaMapper::SQL2MettaMapper() {
-   this->default_mapper_value = new MapperValue();
-}
+SQL2MettaMapper::SQL2MettaMapper() { this->default_mapper_value = new MapperValue(); }
 
 SQL2MettaMapper::~SQL2MettaMapper() {}
 
@@ -98,20 +97,27 @@ db_adapter_types::OutputList db_adapter::SQL2MettaMapper::get_output() {
     return this->metta_expressions;
 }
 
+void SQL2MettaMapper::add_metta_if_new(const string& s_expression) {
+    string key = Hasher::context_handle(s_expression);
+    if (this->insert_handle_if_missing(key)) {
+        this->metta_expressions.push_back(s_expression);
+    }
+};
+
 void SQL2MettaMapper::process_primary_key(string& table_name, string& primary_key_value) {
     string literal_pk = this->escape_inner_quotes("\"" + primary_key_value + "\"");
 
     string predicate_link = "(Predicate " + table_name + ")";
-    this->metta_expressions.push_back(predicate_link);
+    this->add_metta_if_new(predicate_link);
 
     string concept_inner_link = "(" + table_name + literal_pk + ")";
-    this->metta_expressions.push_back(concept_inner_link);
+    this->add_metta_if_new(concept_inner_link);
 
     string concept_link = "(Concept " + concept_inner_link + ")";
-    this->metta_expressions.push_back(concept_link);
+    this->add_metta_if_new(concept_link);
 
     string evaluation_link = "(Evaluation " + predicate_link + " " + concept_link + ")";
-    this->metta_expressions.push_back(evaluation_link);
+    this->add_metta_if_new(evaluation_link);
 }
 
 void SQL2MettaMapper::process_foreign_key_column(
@@ -132,25 +138,25 @@ void SQL2MettaMapper::process_foreign_key_column(
     string literal_pk = this->escape_inner_quotes("\"" + primary_key_value + "\"");
 
     string predicate_inner_1_link = "(" + fk_table + " " + literal_value + ")";
-    this->metta_expressions.push_back(predicate_inner_1_link);
+    this->add_metta_if_new(predicate_inner_1_link);
 
     string predicate_inner_2_link = "(Concept " + predicate_inner_1_link + ")";
-    this->metta_expressions.push_back(predicate_inner_2_link);
+    this->add_metta_if_new(predicate_inner_2_link);
 
     string predicate_inner_3_link = "(" + fk_column + " " + predicate_inner_2_link + ")";
-    this->metta_expressions.push_back(predicate_inner_3_link);
+    this->add_metta_if_new(predicate_inner_3_link);
 
     string predicate_link = "(Predicate " + predicate_inner_3_link + ")";
-    this->metta_expressions.push_back(predicate_link);
+    this->add_metta_if_new(predicate_link);
 
     string concept_inner_link = "(" + table_name + " " + literal_pk + ")";
-    this->metta_expressions.push_back(concept_inner_link);
+    this->add_metta_if_new(concept_inner_link);
 
     string concept_link = "(Concept " + concept_inner_link + ")";
-    this->metta_expressions.push_back(concept_link);
+    this->add_metta_if_new(concept_link);
 
     string evaluation_link = "(Evaluation " + predicate_link + " " + concept_link + ")";
-    this->metta_expressions.push_back(evaluation_link);
+    this->add_metta_if_new(evaluation_link);
 }
 
 void SQL2MettaMapper::process_regular_column(string& table_name,
@@ -161,19 +167,19 @@ void SQL2MettaMapper::process_regular_column(string& table_name,
     string literal_pk = this->escape_inner_quotes("\"" + primary_key_value + "\"");
 
     string predicate_inner_link = "(" + table_name + " " + column_name + " " + literal_value + ")";
-    this->metta_expressions.push_back(predicate_inner_link);
+    this->add_metta_if_new(predicate_inner_link);
 
     string predicate_link = "(Predicate " + predicate_inner_link + ")";
-    this->metta_expressions.push_back(predicate_link);
+    this->add_metta_if_new(predicate_link);
 
     string concept_inner_link = "(" + table_name + " " + literal_pk + ")";
-    this->metta_expressions.push_back(concept_inner_link);
+    this->add_metta_if_new(concept_inner_link);
 
     string concept_link = "(Concept " + concept_inner_link + ")";
-    this->metta_expressions.push_back(concept_link);
+    this->add_metta_if_new(concept_link);
 
     string evaluation_link = "(Evaluation " + predicate_link + " " + concept_link + ")";
-    this->metta_expressions.push_back(evaluation_link);
+    this->add_metta_if_new(evaluation_link);
 }
 
 void SQL2MettaMapper::process_foreign_keys_combinations(
@@ -185,25 +191,25 @@ void SQL2MettaMapper::process_foreign_keys_combinations(
                 string literal_value_2 = this->escape_inner_quotes("\"" + value2 + "\"");
 
                 string predicate_inner_1_link = "(" + foreign_table_name + " " + literal_value + ")";
-                this->metta_expressions.push_back(predicate_inner_1_link);
+                this->add_metta_if_new(predicate_inner_1_link);
 
                 string predicate_inner_2_link = "(Concept " + predicate_inner_1_link + ")";
-                this->metta_expressions.push_back(predicate_inner_2_link);
+                this->add_metta_if_new(predicate_inner_2_link);
 
                 string predicate_inner_3_link = "(" + column_name + " " + predicate_inner_2_link + ")";
-                this->metta_expressions.push_back(predicate_inner_3_link);
+                this->add_metta_if_new(predicate_inner_3_link);
 
                 string predicate_link = "(Predicate " + predicate_inner_3_link + ")";
-                this->metta_expressions.push_back(predicate_link);
+                this->add_metta_if_new(predicate_link);
 
                 string concept_inner_link = "(" + foreign_table_name2 + " " + literal_value_2 + ")";
-                this->metta_expressions.push_back(concept_inner_link);
+                this->add_metta_if_new(concept_inner_link);
 
                 string concept_link = "(Concept " + concept_inner_link + ")";
-                this->metta_expressions.push_back(concept_link);
+                this->add_metta_if_new(concept_link);
 
                 string evaluation_link = "(Evaluation " + predicate_link + " " + concept_link + ")";
-                this->metta_expressions.push_back(evaluation_link);
+                this->add_metta_if_new(evaluation_link);
             }
         }
     }
@@ -211,17 +217,17 @@ void SQL2MettaMapper::process_foreign_keys_combinations(
 
 // -- SQL2AtomsMapper
 
-SQL2AtomsMapper::SQL2AtomsMapper() {
-    this->default_mapper_value = new MapperValue();
-}
+SQL2AtomsMapper::SQL2AtomsMapper() { this->default_mapper_value = new MapperValue(); }
 
 SQL2AtomsMapper::~SQL2AtomsMapper() {}
 
 db_adapter_types::OutputList db_adapter::SQL2AtomsMapper::get_output() { return this->atoms; }
 
-string SQL2AtomsMapper::add_atom_if_new(const string& name, const vector<string>& targets, bool is_toplevel) {
+string SQL2AtomsMapper::add_atom_if_new(const string& name,
+                                        const vector<string>& targets,
+                                        bool is_toplevel) {
     Atom* atom;
-    
+
     if (!name.empty()) {
         atom = new Node(BaseSQL2Mapper::SYMBOL, name);
     } else if (!targets.empty()) {
@@ -229,7 +235,7 @@ string SQL2AtomsMapper::add_atom_if_new(const string& name, const vector<string>
     } else {
         Utils::error("Either name or targets must be provided to create an Atom.");
     }
-    
+
     if (this->insert_handle_if_missing(atom->handle())) {
         this->atoms.push_back(atom);
         return atom->handle();
@@ -241,7 +247,7 @@ string SQL2AtomsMapper::add_atom_if_new(const string& name, const vector<string>
 
 void SQL2AtomsMapper::process_primary_key(string& table_name, string& primary_key_value) {
     string literal_pk = this->escape_inner_quotes("\"" + primary_key_value + "\"");
-   
+
     // Nodes
     string predicate_node_h = this->add_atom_if_new("Predicate", {});
     string concept_node_h = this->add_atom_if_new("Concept", {});
@@ -253,18 +259,8 @@ void SQL2AtomsMapper::process_primary_key(string& table_name, string& primary_ke
     string predicate_link_h = this->add_atom_if_new("", {predicate_node_h, table_name_node_h});
     string concept_inner_link_h = this->add_atom_if_new("", {table_name_node_h, literal_pk__node_h});
     string concept_link_h = this->add_atom_if_new("", {concept_node_h, concept_inner_link_h});
-    
-    this->add_atom_if_new("", {evaluation_node_h, predicate_link_h, concept_link_h}, true);
 
-    // auto predicate_node = new Node(BaseSQL2Mapper::SYMBOL, "Predicate");
-    // auto concept_node = new Node(BaseSQL2Mapper::SYMBOL, "Concept");
-    // auto evaluation_node = new Node(BaseSQL2Mapper::SYMBOL, "Evaluation");
-    // auto literal_pk_node = new Node(BaseSQL2Mapper::SYMBOL, literal_pk);
-    // auto table_name_node = new Node(BaseSQL2Mapper::SYMBOL, table_name);
-    // auto predicate_link = new Link(BaseSQL2Mapper::EXPRESSION, {predicate_node->handle(), table_name_node->handle()}, false);
-    // auto concept_inner_link = new Link(BaseSQL2Mapper::EXPRESSION, {table_name_node->handle(), literal_pk_node->handle()}, false);
-    // auto concept_link = new Link(BaseSQL2Mapper::EXPRESSION, {concept_node->handle(), concept_inner_link->handle()}, false);
-    // auto evaluation_link =new Link(BaseSQL2Mapper::EXPRESSION, {evaluation_node->handle(), predicate_link->handle(), concept_link->handle()}, true);
+    this->add_atom_if_new("", {evaluation_node_h, predicate_link_h, concept_link_h}, true);
 }
 
 void SQL2AtomsMapper::process_foreign_key_column(
@@ -272,8 +268,7 @@ void SQL2AtomsMapper::process_foreign_key_column(
     string& column_name,
     string& value,
     string& primary_key_value,
-    vector<tuple<string, string, string>>& all_foreign_keys
-) {
+    vector<tuple<string, string, string>>& all_foreign_keys) {
     size_t separator_pos = column_name.find('|');
     if (separator_pos == string::npos) {
         Utils::error("Invalid foreign key format: " + column_name);
@@ -297,56 +292,24 @@ void SQL2AtomsMapper::process_foreign_key_column(
 
     // Links
     string predicate_inner_1_link_h = this->add_atom_if_new("", {fk_table_node_h, literal_value_node_h});
-    string predicate_inner_2_link_h = this->add_atom_if_new("", {concept_node_h, predicate_inner_1_link_h});
-    string predicate_inner_3_link_h = this->add_atom_if_new("", {fk_column_node_h, predicate_inner_2_link_h});
+    string predicate_inner_2_link_h =
+        this->add_atom_if_new("", {concept_node_h, predicate_inner_1_link_h});
+    string predicate_inner_3_link_h =
+        this->add_atom_if_new("", {fk_column_node_h, predicate_inner_2_link_h});
     string predicate_link_h = this->add_atom_if_new("", {predicate_node_h, predicate_inner_3_link_h});
     string concept_inner_link_h = this->add_atom_if_new("", {table_name_node_h, literal_pk_node_h});
     string concept_link_h = this->add_atom_if_new("", {concept_node_h, concept_inner_link_h});
-    
+
     this->add_atom_if_new("", {evaluation_node_h, predicate_link_h, concept_link_h}, true);
-
-    // auto predicate_node = new Node(BaseSQL2Mapper::SYMBOL, "Predicate");
-    // auto concept_node = new Node(BaseSQL2Mapper::SYMBOL, "Concept");
-    // auto evaluation_node = new Node(BaseSQL2Mapper::SYMBOL, "Evaluation");
-    // auto literal_pk_node = new Node(BaseSQL2Mapper::SYMBOL, literal_pk);
-    // auto table_name_node = new Node(BaseSQL2Mapper::SYMBOL, table_name);
-    // auto fk_table_node = new Node(BaseSQL2Mapper::SYMBOL, fk_table);
-    // auto literal_value_node = new Node(BaseSQL2Mapper::SYMBOL, literal_value);
-    // auto fk_column_node = new Node(BaseSQL2Mapper::SYMBOL, fk_column);
-    // auto predicate_inner_1_link = new Link(BaseSQL2Mapper::EXPRESSION, {fk_table_node->handle(), literal_value_node->handle()}, false);
-    // auto predicate_inner_2_link = new Link(BaseSQL2Mapper::EXPRESSION, {concept_node->handle(), predicate_inner_1_link->handle()}, false);
-    // auto predicate_inner_3_link = new Link(BaseSQL2Mapper::EXPRESSION, {fk_column_node->handle(), predicate_inner_2_link->handle()}, false);
-    // auto predicate_link = new Link(BaseSQL2Mapper::EXPRESSION, {predicate_node->handle(), predicate_inner_3_link->handle()}, false);
-    // auto concept_inner_link = new Link(BaseSQL2Mapper::EXPRESSION, {table_name_node->handle(), literal_pk_node->handle()}, false);
-    // auto concept_link = new Link(BaseSQL2Mapper::EXPRESSION, {concept_node->handle(), concept_inner_link->handle()}, false);
-    // auto evaluation_link = new Link(BaseSQL2Mapper::EXPRESSION,{evaluation_node->handle(), predicate_link->handle(), concept_link->handle()},true);
-
-    // if (this->insert_handle_if_missing(predicate_node->handle())) this->atoms.push_back(predicate_node);
-    // if (this->insert_handle_if_missing(concept_node->handle())) this->atoms.push_back(concept_node);
-    // if (this->insert_handle_if_missing(evaluation_node->handle())) this->atoms.push_back(evaluation_node);
-    // if (this->insert_handle_if_missing(literal_pk_node->handle())) this->atoms.push_back(literal_pk_node);
-    // if (this->insert_handle_if_missing(table_name_node->handle())) this->atoms.push_back(table_name_node);
-    // if (this->insert_handle_if_missing(fk_table_node->handle())) this->atoms.push_back(fk_table_node);
-    // if (this->insert_handle_if_missing(literal_value_node->handle())) this->atoms.push_back(literal_value_node);
-    // if (this->insert_handle_if_missing(fk_column_node->handle())) this->atoms.push_back(fk_column_node);
-    // if (this->insert_handle_if_missing(predicate_inner_1_link->handle())) this->atoms.push_back(predicate_inner_1_link);
-    // if (this->insert_handle_if_missing(predicate_inner_2_link->handle())) this->atoms.push_back(predicate_inner_2_link);
-    // if (this->insert_handle_if_missing(predicate_inner_3_link->handle())) this->atoms.push_back(predicate_inner_3_link);
-    // if (this->insert_handle_if_missing(predicate_link->handle())) this->atoms.push_back(predicate_link);
-    // if (this->insert_handle_if_missing(concept_inner_link->handle())) this->atoms.push_back(concept_inner_link);
-    // if (this->insert_handle_if_missing(concept_link->handle())) this->atoms.push_back(concept_link);
-    // if (this->insert_handle_if_missing(evaluation_link->handle())) this->atoms.push_back(evaluation_link);
 }
 
-void SQL2AtomsMapper::process_regular_column(
-    string& table_name,
-    string& column_name,
-    string& value,
-    string& primary_key_value
-) {
+void SQL2AtomsMapper::process_regular_column(string& table_name,
+                                             string& column_name,
+                                             string& value,
+                                             string& primary_key_value) {
     string literal_pk = this->escape_inner_quotes("\"" + primary_key_value + "\"");
     string literal_value = this->escape_inner_quotes("\"" + value + "\"");
-    
+
     // Nodes
     string predicate_node_h = this->add_atom_if_new("Predicate", {});
     string concept_node_h = this->add_atom_if_new("Concept", {});
@@ -355,9 +318,10 @@ void SQL2AtomsMapper::process_regular_column(
     string column_name_node_h = this->add_atom_if_new(column_name, {});
     string literal_value_node_h = this->add_atom_if_new(literal_value, {});
     string literal_pk__node_h = this->add_atom_if_new(literal_pk, {});
-    
+
     // Links
-    string predicate_inner_link_h = this->add_atom_if_new("", {table_name_node_h, column_name_node_h, literal_value_node_h});
+    string predicate_inner_link_h =
+        this->add_atom_if_new("", {table_name_node_h, column_name_node_h, literal_value_node_h});
     string predicate_link_h = this->add_atom_if_new("", {predicate_node_h, predicate_inner_link_h});
     string concept_inner_link_h = this->add_atom_if_new("", {table_name_node_h, literal_pk__node_h});
     string concept_link_h = this->add_atom_if_new("", {concept_node_h, concept_inner_link_h});
@@ -372,7 +336,7 @@ void SQL2AtomsMapper::process_foreign_keys_combinations(
             if ((foreign_table_name != foreign_table_name2) && (value != value2)) {
                 string literal_value = this->escape_inner_quotes("\"" + value + "\"");
                 string literal_value_2 = this->escape_inner_quotes("\"" + value2 + "\"");
-                
+
                 // Nodes
                 string predicate_node_h = this->add_atom_if_new("Predicate", {});
                 string concept_node_h = this->add_atom_if_new("Concept", {});
@@ -384,13 +348,19 @@ void SQL2AtomsMapper::process_foreign_keys_combinations(
                 string literal_value2_node_h = this->add_atom_if_new(literal_value_2, {});
 
                 // Links
-                string predicate_inner_1_link_h = this->add_atom_if_new("", {foreign_table_name_node_h, literal_value_node_h});
-                string predicate_inner_2_link_h = this->add_atom_if_new("", {concept_node_h, predicate_inner_1_link_h});
-                string predicate_inner_3_link_h = this->add_atom_if_new("", {fk_column_node_h, predicate_inner_2_link_h});
-                string predicate_link_h = this->add_atom_if_new("", {predicate_node_h, predicate_inner_3_link_h});
-                string concept_inner_link_h = this->add_atom_if_new("", {foreign_table_name2_node_h, literal_value2_node_h});
-                string concept_link_h = this->add_atom_if_new("", {concept_node_h, concept_inner_link_h});
-                
+                string predicate_inner_1_link_h =
+                    this->add_atom_if_new("", {foreign_table_name_node_h, literal_value_node_h});
+                string predicate_inner_2_link_h =
+                    this->add_atom_if_new("", {concept_node_h, predicate_inner_1_link_h});
+                string predicate_inner_3_link_h =
+                    this->add_atom_if_new("", {fk_column_node_h, predicate_inner_2_link_h});
+                string predicate_link_h =
+                    this->add_atom_if_new("", {predicate_node_h, predicate_inner_3_link_h});
+                string concept_inner_link_h =
+                    this->add_atom_if_new("", {foreign_table_name2_node_h, literal_value2_node_h});
+                string concept_link_h =
+                    this->add_atom_if_new("", {concept_node_h, concept_inner_link_h});
+
                 this->add_atom_if_new("", {evaluation_node_h, predicate_link_h, concept_link_h}, true);
             }
         }

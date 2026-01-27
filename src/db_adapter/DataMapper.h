@@ -18,7 +18,6 @@ class MapperValue : public HandleTrie::TrieValue {
     void merge(TrieValue* other) {}
 };
 
-
 class Mapper {
    public:
     virtual ~Mapper() = default;
@@ -50,7 +49,7 @@ class BaseSQL2Mapper : public Mapper {
     string escape_inner_quotes(string text);
     virtual db_adapter_types::OutputList get_output() = 0;
     bool insert_handle_if_missing(const string& handle);
-    
+
     virtual void process_primary_key(string& table_name, string& primary_key_value) = 0;
     virtual void process_foreign_key_column(string& table_name,
                                             string& column_name,
@@ -73,6 +72,7 @@ class SQL2MettaMapper : public BaseSQL2Mapper {
    private:
     vector<string> metta_expressions;
     db_adapter_types::OutputList get_output() override;
+    void add_metta_if_new(const string& s_expression);
 
     void process_primary_key(string& table_name, string& primary_key_value) override;
     void process_foreign_key_column(string& table_name,
@@ -96,7 +96,9 @@ class SQL2AtomsMapper : public BaseSQL2Mapper {
    private:
     vector<Atom*> atoms;
     db_adapter_types::OutputList get_output() override;
-    string add_atom_if_new(const string& name = "", const vector<string>& targets = {}, bool is_toplevel = false);
+    string add_atom_if_new(const string& name = "",
+                           const vector<string>& targets = {},
+                           bool is_toplevel = false);
 
     void process_primary_key(string& table_name, string& primary_key_value) override;
     void process_foreign_key_column(string& table_name,
