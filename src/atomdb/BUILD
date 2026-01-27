@@ -11,6 +11,7 @@ cc_library(
         ":atomdb_cache",
         ":atomdb_cache_singleton",
         ":atomdb_singleton",
+        "//atomdb/inmemorydb:inmemorydb_lib",
         "//atomdb/morkdb:morkdb_lib",
         "//atomdb/redis_mongodb:redis_mongodb_lib",
     ],
