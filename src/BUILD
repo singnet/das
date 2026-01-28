@@ -45,6 +45,7 @@ cc_shared_library(
         "//hasher:hasher_lib",
         "//metta:metta_lib",
         "//service_bus:service_bus_lib",
+        "//db_adapter:db_adapter_lib"
     ],
 )
 
