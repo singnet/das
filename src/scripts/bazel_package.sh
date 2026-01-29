@@ -56,14 +56,14 @@ find "$BUILT_TARGETS_PATH" -type f -name "*.so" | while IFS= read -r sofile; do
 done
 
 if [[ "$PACKAGE_TYPE" == "deb" ]]; then
-    BUILD_TARGETS=" //:das_deb_package"
+    BUILD_TARGETS=" //package:das_deb_package"
     $BAZELISK_BUILD_CMD $BUILD_TARGETS
-    cp -L bazel-bin/das_deb_package.deb $BIN_DIR
+    cp -L bazel-bin/package/das_1.0.3_amd64.deb $BIN_DIR
 
 elif [[ "$PACKAGE_TYPE" == "rpm" ]]; then
-    BUILD_TARGETS=" //:das_rpm_package"
+    BUILD_TARGETS=" //package:das_rpm_package"
     $BAZELISK_BUILD_CMD $BUILD_TARGETS
-    cp -L bazel-bin/das_rpm_package.rpm $BIN_DIR
+    cp -L bazel-bin/package/das-1.0.3-1.x86_64.rpm $BIN_DIR
 fi
 
 rm -rf $EXTERNAL_LIBS_FOLDER
