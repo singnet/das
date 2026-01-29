@@ -97,7 +97,6 @@ find_rpm = use_extension(
     "@rules_pkg//toolchains/rpm:rpmbuild_configure.bzl",
     "find_system_rpmbuild_bzlmod",
 )
-
 use_repo(find_rpm, "rules_pkg_rpmbuild")
-register_toolchains("@rules_pkg_rpmbuild//:all")
 
+register_toolchains("@rules_pkg_rpmbuild//:all")
