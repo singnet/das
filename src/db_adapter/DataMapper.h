@@ -50,17 +50,18 @@ class BaseSQL2Mapper : public Mapper {
     virtual db_adapter_types::OutputList get_output() = 0;
     bool insert_handle_if_missing(const string& handle);
 
-    virtual void process_primary_key(string& table_name, string& primary_key_value) = 0;
-    virtual void process_foreign_key_column(string& table_name,
-                                            string& column_name,
-                                            string& value,
-                                            string& primary_key_value,
-                                            vector<tuple<string, string, string>>& all_foreign_keys) = 0;
-    virtual void process_regular_column(string& table_name,
+    virtual void map_primary_key(string& table_name, string& primary_key_value) = 0;
+    virtual void map_foreign_key_column(string& table_name,
                                         string& column_name,
                                         string& value,
-                                        string& primary_key_value) = 0;
-    virtual void process_foreign_keys_combinations(
+                                        string& primary_key_value,
+                                        string& fk_table,
+                                        string& fk_column) = 0;
+    virtual void map_regular_column(string& table_name,
+                                    string& column_name,
+                                    string& value,
+                                    string& primary_key_value) = 0;
+    virtual void map_foreign_keys_combinations(
         vector<tuple<string, string, string>> all_foreign_keys) = 0;
 };
 
@@ -74,18 +75,18 @@ class SQL2MettaMapper : public BaseSQL2Mapper {
     db_adapter_types::OutputList get_output() override;
     void add_metta_if_new(const string& s_expression);
 
-    void process_primary_key(string& table_name, string& primary_key_value) override;
-    void process_foreign_key_column(string& table_name,
-                                    string& column_name,
-                                    string& value,
-                                    string& primary_key_value,
-                                    vector<tuple<string, string, string>>& all_foreign_keys) override;
-    void process_regular_column(string& table_name,
+    void map_primary_key(string& table_name, string& primary_key_value) override;
+    void map_foreign_key_column(string& table_name,
                                 string& column_name,
                                 string& value,
-                                string& primary_key_value) override;
-    void process_foreign_keys_combinations(
-        vector<tuple<string, string, string>> all_foreign_keys) override;
+                                string& primary_key_value,
+                                string& fk_table,
+                                string& fk_column) override;
+    void map_regular_column(string& table_name,
+                            string& column_name,
+                            string& value,
+                            string& primary_key_value) override;
+    void map_foreign_keys_combinations(vector<tuple<string, string, string>> all_foreign_keys) override;
 };
 
 class SQL2AtomsMapper : public BaseSQL2Mapper {
@@ -93,25 +94,27 @@ class SQL2AtomsMapper : public BaseSQL2Mapper {
     SQL2AtomsMapper();
     ~SQL2AtomsMapper() override;
 
+    enum ATOM_TYPE { NODE, LINK };
+
    private:
     vector<Atom*> atoms;
     db_adapter_types::OutputList get_output() override;
-    string add_atom_if_new(const string& name = "",
-                           const vector<string>& targets = {},
+    string add_atom_if_new(SQL2AtomsMapper::ATOM_TYPE atom_type,
+                           variant<string, vector<string>> value,
                            bool is_toplevel = false);
 
-    void process_primary_key(string& table_name, string& primary_key_value) override;
-    void process_foreign_key_column(string& table_name,
-                                    string& column_name,
-                                    string& value,
-                                    string& primary_key_value,
-                                    vector<tuple<string, string, string>>& all_foreign_keys) override;
-    void process_regular_column(string& table_name,
+    void map_primary_key(string& table_name, string& primary_key_value) override;
+    void map_foreign_key_column(string& table_name,
                                 string& column_name,
                                 string& value,
-                                string& primary_key_value) override;
-    void process_foreign_keys_combinations(
-        vector<tuple<string, string, string>> all_foreign_keys) override;
+                                string& primary_key_value,
+                                string& fk_table,
+                                string& fk_column) override;
+    void map_regular_column(string& table_name,
+                            string& column_name,
+                            string& value,
+                            string& primary_key_value) override;
+    void map_foreign_keys_combinations(vector<tuple<string, string, string>> all_foreign_keys) override;
 };
 
 }  // namespace db_adapter

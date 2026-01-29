@@ -6,6 +6,8 @@
 #include <stdexcept>
 #include <string>
 
+#include "Logger.h"
+
 using namespace std;
 
 PostgresWrapper::PostgresWrapper(const string& host,
