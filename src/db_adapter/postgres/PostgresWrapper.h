@@ -1,12 +1,22 @@
 #pragma once
-#include <DBWrapper.h>
+
+#include <Atom.h>
 
 #include <memory>
 #include <optional>
 #include <pqxx/pqxx>
 #include <string>
 
+#include "DBWrapper.h"
+
+#define MAX_VALUE_SIZE ((size_t) 1000)
+
 using namespace std;
+using namespace db_adapter_types;
+using namespace atoms;
+using namespace commons;
+
+namespace db_adapter {
 
 /** * @class PostgresWrapper
  * @brief A class that provides a high-level interface to interact with a PostgreSQL database.
@@ -26,13 +36,12 @@ class PostgresWrapper : public SQLWrapper<pqxx::connection> {
      * @param user The username for authentication.
      * @param password The password for authentication.
      */
-    PostgresWrapper(
-        const string& host,
-        int port,
-        const string& database = "postgres",
-        const string& user = "postgres",
-        const string& password = "postgres",
-        db_adapter_types::MAPPER_TYPE mapper_type = db_adapter_types::MAPPER_TYPE::SQL2ATOMS);
+    PostgresWrapper(const string& host,
+                    int port,
+                    const string& database = "postgres",
+                    const string& user = "postgres",
+                    const string& password = "postgres",
+                    MAPPER_TYPE mapper_type = MAPPER_TYPE::SQL2ATOMS);
 
     ~PostgresWrapper() override;
 
@@ -49,8 +58,7 @@ class PostgresWrapper : public SQLWrapper<pqxx::connection> {
     void map_table(const Table& table,
                    const vector<string>& clauses,
                    const vector<string>* skip_columns,
-                   bool second_level,
-                   const function<void(const vector<Atom>&)>& on_row) override;
+                   bool second_level) override;
 
    private:
     string host;
@@ -60,20 +68,15 @@ class PostgresWrapper : public SQLWrapper<pqxx::connection> {
     string password;
     optional<vector<Table>> tables_cache;
 
-    /**
-     * @brief Builds the connection string from the stored parameters.
-     *
-     * @return A PostgreSQL connection string.
-     */
-    string build_connection_string() const;
-
     pqxx::result execute_query(const string& query);
     vector<string> build_columns_to_map(const Table& table,
-                        const vector<string>* map_columns,
-                        const vector<string>* skip_columns);
+                                        const vector<string>* map_columns,
+                                        const vector<string>* skip_columns);
     void process_pagineted(const Table& table,
                            const vector<string>& columns,
                            const string& where_clauses);
-    vector<Atom*> map_row_2_atoms()
-    
+    vector<Atom*> map_row_2_atoms(const pqxx::row& row, const Table& table, vector<string> columns);
+    SqlRow build_sql_row(const pqxx::row& row, const Table& table, vector<string> columns);
 };
+
+}  // namespace db_adapter

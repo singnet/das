@@ -6,9 +6,9 @@ cc_library(
     name = "db_adapter_lib",
     includes = ["."],
     deps = [
-        "//db_adapter:data_mapper",
-        "//db_adapter:data_types",
-        "//db_adapter:db_wrapper",
+        ":data_mapper",
+        ":data_types",
+        ":db_wrapper",
         "//db_adapter/postgres:postgres_lib",
     ],
 )
@@ -36,12 +36,11 @@ cc_library(
 
 cc_library(
     name = "db_wrapper",
-    srcs = ["DBWrapper.cc"],
     hdrs = ["DBWrapper.h"],
     includes = ["."],
     deps = [
-        "//db_adapter:data_types",
+        ":data_types",
         "//commons:commons_lib",
         "//commons/atoms:atoms_lib",
-    ], 
+    ],
 )

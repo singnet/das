@@ -41,11 +41,11 @@ cc_shared_library(
         "//atomdb:atomdb_lib",
         "//attention_broker:attention_broker_lib",
         "//commons:commons_lib",
+        "//db_adapter:db_adapter_lib",
         "//distributed_algorithm_node:distributed_algorithm_node_lib",
         "//hasher:hasher_lib",
         "//metta:metta_lib",
         "//service_bus:service_bus_lib",
-        "//db_adapter:db_adapter_lib"
     ],
 )
 

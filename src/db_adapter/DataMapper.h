@@ -22,18 +22,17 @@ class MapperValue : public HandleTrie::TrieValue {
 class Mapper {
    public:
     virtual ~Mapper() = default;
-    virtual const db_adapter_types::OutputList map(db_adapter_types::DbInput& data) = 0;
+    virtual const db_adapter_types::OutputList map(const db_adapter_types::DbInput& data) = 0;
 
    protected:
     Mapper() = default;
     HandleTrie handle_trie{32};
-    MapperValue* default_mapper_value;
 };
 
 class BaseSQL2Mapper : public Mapper {
    public:
     virtual ~BaseSQL2Mapper() override = default;
-    const db_adapter_types::OutputList map(db_adapter_types::DbInput& data) override;
+    const db_adapter_types::OutputList map(const db_adapter_types::DbInput& data) override;
 
     static string SYMBOL;
     static string EXPRESSION;
