@@ -1,8 +1,5 @@
 load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_shared_library")
 load("@rules_proto_grpc_cpp//:defs.bzl", "cc_grpc_library", "cc_proto_library", "cpp_grpc_library")
-load("@rules_pkg//pkg:files.bzl", "pkg_files", "pkg_dirs")
-load("@rules_pkg//pkg:deb.bzl", "pkg_deb")
-load("@rules_pkg//pkg:rpm.bzl", "pkg_rpm")
 
 package(default_visibility = ["//visibility:public"])
 
@@ -176,72 +173,4 @@ cc_binary(
     deps = [
         "//main:bus_client_lib",
     ],
-)
-
-# RPM and DEB Packaging setup
-
-
-
-pkg_tar(
-    name = "binaries_tar",
-    srcs = [
-        "//:attention_broker_service",
-        "//:attention_broker_client",
-        "//:busnode",
-        "//:busclient",
-        "//:word_query",
-        "//:word_query_evolution",
-        "//:implication_query_evolution",
-        "//:tests_db_loader",
-    ],
-    package_dir = "/usr/bin",
-)
-
-pkg_tar(
-    name = "libs_tar",
-    srcs = [
-        "//:das",
-    ],
-    package_dir = "/usr/lib",
-)
-
-pkg_tar(
-    name = "external_deps",
-    srcs = glob(["ext_libs/*.so*"], allow_empty = True),
-    package_dir = "/usr/lib",
-)
-
-pkg_tar(
-    name = "das_tar",
-    deps = [
-        ":binaries_tar",
-        ":libs_tar",
-        ":external_deps"
-    ],
-)
-
-pkg_deb(
-    name = "das_deb_package",
-    package = "das",
-    architecture = "amd64",
-    version = "1.0.1",
-    data = ":das_tar",
-    description = "Distributed AtomSpace Binaries and Libraries",
-    maintainer = "Hyperon DAS Team",
-)
-
-pkg_rpm(
-    name = "das_rpm_package",
-    package_name = "das",
-    architecture = "x86_64",
-    version = "1.0.1",
-    srcs = [":das_tar"],
-    summary = "Distributed AtomSpace Binaries and Libraries",
-    description = "Distributed AtomSpace Binaries and Libraries and system dependencies",
-    license = "Apache-2.0",
-    rpmbuild_path = "/usr/bin/rpmbuild",
-    target_compatible_with = select({
-        "@platforms//os:linux": [],
-        "//conditions:default": ["@platforms//:incompatible"],
-    }),
 )
