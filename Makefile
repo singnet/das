@@ -29,13 +29,13 @@ github-runner:
 	@bash $(CURDIR)/scripts/github-runner/main.sh
 
 build-image:
-	@bash -x src/scripts/docker_image_build.sh $(ARCHS)
+	@bash -x src/scripts/docker_image_build.sh
 
 build-mork-image:
 	@bash -x src/scripts/docker_image_build_mork.sh $(VERSION)
 
 build-all: build-image
-	bash -x src/scripts/build.sh $(ARCHS)
+	bash -x src/scripts/build.sh $(PACKAGE_TYPE)
 
 run-query-agent:
 	@PORT=$$(bash src/scripts/gkctl_auto_join_and_reserve.sh | tail -n 1); \
@@ -59,12 +59,6 @@ run-link-creation-client:
 
 run-inference-agent:
 	@bash -x src/scripts/run.sh busnode --service=inference-agent $(OPTIONS)
-
-run-busnode:
-	@bash ./src/scripts/run.sh busnode $(filter-out $@, $(MAKECMDGOALS)) $(OPTIONS)
-
-run-client:
-	@bash ./src/scripts/run.sh busclient $(filter-out $@, $(MAKECMDGOALS)) $(OPTIONS)
 
 run-busnode:
 	@bash ./src/scripts/run.sh busnode $(filter-out $@, $(MAKECMDGOALS)) $(OPTIONS)
