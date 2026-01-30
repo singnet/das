@@ -14,6 +14,7 @@ BUILD_BINARIES=false
 BUILD_WHEELS=false
 
 EXTERNAL_LIBS_FOLDER="ext_libs"
+EXTERNAL_LIBS_PATH="package/$EXTERNAL_LIBS_FOLDER"
 
 PACKAGE_TYPE=${1:-none}
 shift 1 || true # Clean script args to not mess with the bazel run commands
@@ -40,7 +41,7 @@ fi
 
 $BAZELISK_BUILD_CMD $BUILD_TARGETS
 
-mkdir -p $EXTERNAL_LIBS_FOLDER
+mkdir -p $EXTERNAL_LIBS_PATH
 
 find "$BUILT_TARGETS_PATH" -type f -name "*.so" | while IFS= read -r sofile; do
     ldd "$sofile" | awk '/=> \// { print $3 }' | while IFS= read -r dep; do
@@ -48,7 +49,7 @@ find "$BUILT_TARGETS_PATH" -type f -name "*.so" | while IFS= read -r sofile; do
         case "$dep_base" in
             "libmongoc2.so.2"|"libmongocxx.so._noabi"|"libhiredis.so.1.1.0"|"libhiredis_cluster.so.0.12"|"libbson2.so.2"|"libbsoncxx.so._noabi")
                 if [ -f "$dep" ]; then
-                    cp "$dep" $EXTERNAL_LIBS_FOLDER/
+                    cp "$dep" $EXTERNAL_LIBS_PATH/
                 fi
                 ;;
         esac
@@ -66,5 +67,5 @@ elif [[ "$PACKAGE_TYPE" == "rpm" ]]; then
     cp -L bazel-bin/package/das-1.0.3-1.x86_64.rpm $PKG_DIR
 fi
 
-rm -rf $EXTERNAL_LIBS_FOLDER
+rm -rf $EXTERNAL_LIBS_PATH
 exit $?

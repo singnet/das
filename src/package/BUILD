@@ -96,7 +96,7 @@ pkg_tar(
     name = "external_deps",
     srcs = glob(
         ["ext_libs/*.so*"],
-        allow_empty = True,
+        allow_empty = False,
     ),
     package_dir = "/usr/lib",
 )
