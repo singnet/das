@@ -74,8 +74,11 @@ static unsigned int POPULATION_SIZE = 50;
 static unsigned int MAX_GENERATIONS = 20;
 static unsigned int NUM_ITERATIONS = 10;
 
-static bool SAVE_NEW_LINKS = true;
 static string NEW_LINKS_FILE_NAME = "newly_created_links.txt";
+static bool WRITE_CREATED_LINKS_TO_DB = false;
+static bool WRITE_CREATED_LINKS_TO_FILE = true;
+static bool PRINT_CREATED_LINKS_METTA = true;
+
 static string CONTEXT_FILE_NAME = "_CONTEXT_DUMP";
 
 using namespace std;
@@ -266,22 +269,32 @@ static Link add_or_update_link(const string& type_handle,
               to_string(strength) + ")");
     Link new_link(EXPRESSION, {type_handle, target1, target2}, true, {{STRENGTH, strength}});
     LOG_DEBUG("Add or update: " + new_link.to_string());
+    if (PRINT_CREATED_LINKS_METTA) {
+        LOG_INFO("ADD LINK: " + new_link.metta_representation(*static_pointer_cast<HandleDecoder>(db).get()));
+    }
     string handle = new_link.handle();
     if (db->link_exists(handle)) {
         auto old_link = db->get_atom(handle);
         LOG_DEBUG("Link already exists: " + old_link->to_string());
         if (strength > old_link->custom_attributes.get<double>(STRENGTH)) {
-            LOG_DEBUG("Updating");
-            db->delete_link(handle, false);
-            db->add_link(&new_link);
-            if (SAVE_NEW_LINKS) {
+            if (WRITE_CREATED_LINKS_TO_DB) {
+                LOG_DEBUG("Updating Link in AtomDB");
+                db->delete_link(handle, false);
+                db->add_link(&new_link);
+            }
+            if (WRITE_CREATED_LINKS_TO_FILE) {
+                LOG_DEBUG("Writing Link to file: " + NEW_LINKS_FILE_NAME);
                 save_link(new_link);
             }
         }
     } else {
-        db->add_link(&new_link);
+        if (WRITE_CREATED_LINKS_TO_DB) {
+            LOG_DEBUG("Creating Link in AtomDB");
+            db->add_link(&new_link);
+        }
         buffer_determiners.push_back({handle, target1, target2});
-        if (SAVE_NEW_LINKS) {
+        if (WRITE_CREATED_LINKS_TO_FILE) {
+            LOG_DEBUG("Writing Link to file: " + NEW_LINKS_FILE_NAME);
             save_link(new_link);
         }
     }
@@ -464,7 +477,7 @@ static void print_answer(shared_ptr<QueryAnswer> query_answer) {
 }
 
 // clang-format off
-static void evolve_chain_query(
+static void query_evolution(
     const vector<string>& query_to_evolve,
     const vector<vector<string>>& correlation_query_template,
     const vector<map<string, QueryAnswerElement>>& correlation_query_constants,
@@ -689,7 +702,7 @@ static void run(const string& target_predicate_handle,
         AttentionBrokerClient::set_determiners(buffer_determiners, context);
         buffer_determiners.clear();
         LOG_INFO("----- Evolving query");
-        evolve_chain_query(query_to_evolve,
+        query_evolution(query_to_evolve,
                            correlation_query_template,
                            correlation_query_constants,
                            correlation_mapping[0],
