@@ -162,12 +162,40 @@ void PostgresWrapper::map_table(const Table& table,
                                 const vector<string>* skip_columns,
                                 bool second_level) {
     string where_clauses;
+    
     for (size_t i = 0; i < clauses.size(); ++i) {
         if (i > 0) where_clauses += " AND ";
         where_clauses += clauses[i];
     }
+    
     auto columns = build_columns_to_map(table, nullptr, skip_columns);
-    this->process_pagineted(table, columns, where_clauses);
+    
+    this->process_paginated(table, columns, where_clauses);
+
+    if (second_level) {
+        for (const auto& fk : table.foreign_keys) {
+            auto pair = Utils:split(fk, '|');
+            
+            if (pair.size() != 2) {
+                Utils::error("Invalid foreign key format: " << fk);
+            }
+            
+            string column = pair[0];
+            string ref_table_name = pair[1];
+
+            // Collect distinct non-null foreign-key values in paginated fashion
+            auto fk_ids = this->collect_fk_ids(table.name, column, where_clauses);
+            if (!fk_ids) continue;
+
+            auto ref_table = this->get_table(ref_table_name);
+            auto ref_columns = this->build_columns_to_map(ref_table, NULL, NULL);
+            
+            //f"{ref_table.primary_key} IN ({', '.join(fk_ids)})"
+            string where_clause = to_string(ref_table.primary_key) + " IN " + "(" + Utils::join(*fk_ids, ',') + ")";
+
+            this->process_paginated(ref_table, ref_columns, where_clause)  
+        }
+    }
 }
 
 vector<string> PostgresWrapper::build_columns_to_map(const Table& table,
@@ -208,7 +236,7 @@ vector<string> PostgresWrapper::build_columns_to_map(const Table& table,
     return final_columns;
 }
 
-void PostgresWrapper::process_pagineted(const Table& table,
+void PostgresWrapper::process_paginated(const Table& table,
                                         const vector<string>& columns,
                                         const string& where_clauses) {
     size_t offset = 0;
@@ -229,6 +257,7 @@ void PostgresWrapper::process_pagineted(const Table& table,
 
         for (const auto& row : rows) {
             auto atoms = this->map_row_2_atoms(row, table, columns);
+            // WIP - send atom to SahredQueue
         }
 
         offset += limit;
@@ -276,6 +305,37 @@ SqlRow PostgresWrapper::build_sql_row(const pqxx::row& row, const Table& table, 
         sql_row.add_field(column_name, value);
     }
     return sql_row;
+}
+
+vector<string> PostgresWrapper::collect_fk_ids(const string& table_name,
+                                                           const string& column_name,
+                                                           const string& where_clause) {
+    /*
+        offset = 0
+        limit = 10000
+        ids: list[str] = []
+
+        with self.db_client.cursor() as cursor:
+            while True:
+                query = (
+                    f"SELECT {column} FROM {table_name}"
+                    + (f" WHERE {where}" if where else "")
+                    + f" LIMIT {limit} OFFSET {offset};"
+                )
+                self._execute_query(cursor, query)
+                rows = cursor.fetchall()
+                if not rows:
+                    break
+
+                # Filter None, quote values
+                for (val,) in rows:
+                    if val is not None:
+                        ids.append(f"'{val}'")
+
+                offset += limit
+
+        return ids
+    */
 }
 
 pqxx::result PostgresWrapper::execute_query(const string& query) {

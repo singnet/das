@@ -72,11 +72,14 @@ class PostgresWrapper : public SQLWrapper<pqxx::connection> {
     vector<string> build_columns_to_map(const Table& table,
                                         const vector<string>* map_columns,
                                         const vector<string>* skip_columns);
-    void process_pagineted(const Table& table,
+    void process_paginated(const Table& table,
                            const vector<string>& columns,
                            const string& where_clauses);
     vector<Atom*> map_row_2_atoms(const pqxx::row& row, const Table& table, vector<string> columns);
     SqlRow build_sql_row(const pqxx::row& row, const Table& table, vector<string> columns);
+    vector<string> collect_fk_ids(const string& table_name,
+                                   const string& column_name,
+                                   const string& where_clause);
 };
 
 }  // namespace db_adapter
