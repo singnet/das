@@ -84,7 +84,7 @@ This processor manages AtomDB broker requests from the service bus.
 )")},
                                                        {ProcessorType::UNKNOWN, string(R"(
 Usage:
-busnode --service=<service> --hostname=<host:port> --ports_range=<start_port:end_port> [--peer_address=<peer_host:peer_port>] [--use-mork=true|false]
+busnode --service=<service> --endpoint=<host:port> --ports-range=<start_port:end_port> [--bus-endpoint=<bus_host:bus_port>] [--use-mork=true|false]
 )")}};
 
 static map<ProcessorType, string> client_service_help = {{ProcessorType::INFERENCE_AGENT, string(R"(
@@ -166,7 +166,7 @@ This client interacts with the AtomDB Broker via the service bus.
 )")},
                                                          {ProcessorType::UNKNOWN, string(R"(
 Usage:
-busclient --service=<service> --hostname=<host:port> --service-hostname=<service_host:service_port> --ports-range=<start_port:end_port> [--use-mork=true|false]
+busclient --service=<service> --endpoint=<host:port> --bus-endpoint=<bus_host:bus_port> --ports-range=<start_port:end_port> [--use-mork=true|false]
         )")}};
 
 static map<string, ProcessorType> string_to_processor_type = {
