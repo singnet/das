@@ -36,7 +36,7 @@ class SQLWrapper : public DatabaseWrapper<ConnT> {
     virtual vector<Table> list_tables() = 0;
     virtual void map_table(const Table& table,
                            const vector<string>& clauses,
-                           const vector<string>* skip_columns,
+                           const vector<string>& skip_columns,
                            bool second_level) = 0;
 
    private:

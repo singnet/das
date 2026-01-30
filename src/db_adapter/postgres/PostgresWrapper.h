@@ -57,8 +57,8 @@ class PostgresWrapper : public SQLWrapper<pqxx::connection> {
     vector<Table> list_tables() override;
     void map_table(const Table& table,
                    const vector<string>& clauses,
-                   const vector<string>* skip_columns,
-                   bool second_level) override;
+                   const vector<string>& skip_columns = {},
+                   bool second_level = false) override;
 
    private:
     string host;
@@ -69,17 +69,15 @@ class PostgresWrapper : public SQLWrapper<pqxx::connection> {
     optional<vector<Table>> tables_cache;
 
     pqxx::result execute_query(const string& query);
-    vector<string> build_columns_to_map(const Table& table,
-                                        const vector<string>* map_columns,
-                                        const vector<string>* skip_columns);
+    vector<string> build_columns_to_map(const Table& table, const vector<string>& skip_columns = {});
     void process_paginated(const Table& table,
                            const vector<string>& columns,
                            const string& where_clauses);
     vector<Atom*> map_row_2_atoms(const pqxx::row& row, const Table& table, vector<string> columns);
     SqlRow build_sql_row(const pqxx::row& row, const Table& table, vector<string> columns);
     vector<string> collect_fk_ids(const string& table_name,
-                                   const string& column_name,
-                                   const string& where_clause);
+                                  const string& column_name,
+                                  const string& where_clause = "");
 };
 
 }  // namespace db_adapter

@@ -7,6 +7,7 @@
 #include <string>
 
 #include "Logger.h"
+#include "Node.h"
 
 using namespace std;
 
@@ -78,7 +79,7 @@ vector<Table> PostgresWrapper::list_tables() {
     column_info AS (
         SELECT
             table_schema || '.' || table_name AS table_name,
-            string_agg(column_name, ', ') AS columns
+            string_agg(column_name, ',') AS columns
         FROM
             information_schema.columns
         WHERE
@@ -89,7 +90,7 @@ vector<Table> PostgresWrapper::list_tables() {
     pk_info AS (
         SELECT
             tc.table_schema || '.' || tc.table_name AS table_name,
-            string_agg(kcu.column_name, ', ') AS pk_column
+            string_agg(kcu.column_name, ',') AS pk_column
         FROM
             information_schema.table_constraints AS tc
             JOIN information_schema.key_column_usage AS kcu
@@ -103,7 +104,7 @@ vector<Table> PostgresWrapper::list_tables() {
     fk_info AS (
         SELECT
             tc.table_schema || '.' || tc.table_name AS table_name,
-            string_agg(kcu.column_name || '|' || ccu.table_schema || '.' || ccu.table_name, ', ') AS fk_columns
+            string_agg(kcu.column_name || '|' || ccu.table_schema || '.' || ccu.table_name, ',') AS fk_columns
         FROM
             information_schema.table_constraints AS tc
             JOIN information_schema.key_column_usage AS kcu
@@ -147,8 +148,8 @@ vector<Table> PostgresWrapper::list_tables() {
         Table t;
         t.name = table_name;
         t.row_count = row_count;
-        t.column_names = Utils::split(columns, ',');
         t.primary_key = pk_column;
+        t.column_names = columns.empty() ? vector<string>{} : Utils::split(columns, ',');
         t.foreign_keys = fk_columns.empty() ? vector<string>{} : Utils::split(fk_columns, ',');
 
         tables.push_back(move(t));
@@ -159,64 +160,58 @@ vector<Table> PostgresWrapper::list_tables() {
 
 void PostgresWrapper::map_table(const Table& table,
                                 const vector<string>& clauses,
-                                const vector<string>* skip_columns,
+                                const vector<string>& skip_columns,
                                 bool second_level) {
     string where_clauses;
-    
+
     for (size_t i = 0; i < clauses.size(); ++i) {
         if (i > 0) where_clauses += " AND ";
         where_clauses += clauses[i];
     }
-    
-    auto columns = build_columns_to_map(table, nullptr, skip_columns);
-    
+
+    auto columns = build_columns_to_map(table, skip_columns);
+
     this->process_paginated(table, columns, where_clauses);
 
     if (second_level) {
         for (const auto& fk : table.foreign_keys) {
-            auto pair = Utils:split(fk, '|');
-            
+            auto pair = Utils::split(fk, '|');
+
             if (pair.size() != 2) {
-                Utils::error("Invalid foreign key format: " << fk);
+                Utils::error("Invalid foreign key format: " + fk);
             }
-            
+
             string column = pair[0];
             string ref_table_name = pair[1];
 
-            // Collect distinct non-null foreign-key values in paginated fashion
+            // Collect distinct non-null foreign-key values
             auto fk_ids = this->collect_fk_ids(table.name, column, where_clauses);
-            if (!fk_ids) continue;
+
+            if (fk_ids.empty()) continue;
 
             auto ref_table = this->get_table(ref_table_name);
-            auto ref_columns = this->build_columns_to_map(ref_table, NULL, NULL);
-            
-            //f"{ref_table.primary_key} IN ({', '.join(fk_ids)})"
-            string where_clause = to_string(ref_table.primary_key) + " IN " + "(" + Utils::join(*fk_ids, ',') + ")";
+            auto ref_columns = this->build_columns_to_map(ref_table);
 
-            this->process_paginated(ref_table, ref_columns, where_clause)  
+            string where_clause = ref_table.primary_key + " IN " + "(" + Utils::join(fk_ids, ',') + ")";
+
+            this->process_paginated(ref_table, ref_columns, where_clause);
         }
     }
 }
 
 vector<string> PostgresWrapper::build_columns_to_map(const Table& table,
-                                                     const vector<string>* map_columns,
-                                                     const vector<string>* skip_columns) {
-    vector<string> columns_to_process;
-    if (map_columns) {
-        columns_to_process = *map_columns;
-    } else {
-        columns_to_process = table.column_names;
-    }
+                                                     const vector<string>& skip_columns) {
+    vector<string> columns_to_process = table.column_names;
 
     vector<string> non_primary_key_columns;
     for (const auto& col : columns_to_process) {
         if (col != table.primary_key) non_primary_key_columns.push_back(col);
     }
 
-    if (skip_columns) {
+    if (!skip_columns.empty()) {
         vector<string> filtered_columns;
         for (const auto& col : non_primary_key_columns) {
-            if (find(skip_columns->begin(), skip_columns->end(), col) == skip_columns->end()) {
+            if (find(skip_columns.begin(), skip_columns.end(), col) == skip_columns.end()) {
                 filtered_columns.push_back(col);
             }
         }
@@ -230,7 +225,7 @@ vector<string> PostgresWrapper::build_columns_to_map(const Table& table,
 
     vector<string> final_columns;
     for (const auto& item : columns_list) {
-        if (!item.empty()) final_columns.push_back(Utils::trim(item));
+        if (!item.empty()) final_columns.push_back(item);
     }
 
     return final_columns;
@@ -257,7 +252,7 @@ void PostgresWrapper::process_paginated(const Table& table,
 
         for (const auto& row : rows) {
             auto atoms = this->map_row_2_atoms(row, table, columns);
-            // WIP - send atom to SahredQueue
+            // WIP - send atom to SharedQueue
         }
 
         offset += limit;
@@ -269,6 +264,9 @@ vector<Atom*> PostgresWrapper::map_row_2_atoms(const pqxx::row& row,
                                                vector<string> columns) {
     SqlRow sql_row = this->build_sql_row(row, table, columns);
     auto atoms = this->mapper->map(DbInput{sql_row});
+
+    LOG_INFO("====>>>>>> Atoms count: " << get<vector<Atom*>>(atoms).size());
+
     return get<vector<Atom*>>(atoms);
 }
 
@@ -308,34 +306,30 @@ SqlRow PostgresWrapper::build_sql_row(const pqxx::row& row, const Table& table, 
 }
 
 vector<string> PostgresWrapper::collect_fk_ids(const string& table_name,
-                                                           const string& column_name,
-                                                           const string& where_clause) {
-    /*
-        offset = 0
-        limit = 10000
-        ids: list[str] = []
+                                               const string& column_name,
+                                               const string& where_clause) {
+    size_t offset = 0;
+    size_t limit = 10000;
+    vector<string> ids;
 
-        with self.db_client.cursor() as cursor:
-            while True:
-                query = (
-                    f"SELECT {column} FROM {table_name}"
-                    + (f" WHERE {where}" if where else "")
-                    + f" LIMIT {limit} OFFSET {offset};"
-                )
-                self._execute_query(cursor, query)
-                rows = cursor.fetchall()
-                if not rows:
-                    break
+    while (true) {
+        string query = "SELECT " + column_name + " FROM " + table_name + " WHERE " + where_clause +
+                       " LIMIT " + to_string(limit) + " OFFSET " + to_string(offset) + ";";
+        pqxx::result rows = this->execute_query(query);
 
-                # Filter None, quote values
-                for (val,) in rows:
-                    if val is not None:
-                        ids.append(f"'{val}'")
+        if (rows.empty()) break;
 
-                offset += limit
+        for (const pqxx::row& row : rows) {
+            auto field = row[0];
+            if (!field.is_null()) {
+                string value = field.c_str();
+                ids.push_back(value);
+            }
+        }
 
-        return ids
-    */
+        offset += limit;
+    }
+    return ids;
 }
 
 pqxx::result PostgresWrapper::execute_query(const string& query) {
