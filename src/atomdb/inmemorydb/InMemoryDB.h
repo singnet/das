@@ -1,7 +1,6 @@
 #pragma once
 
 #include <map>
-#include <mutex>
 #include <set>
 #include <string>
 #include <vector>
@@ -16,8 +15,6 @@ using namespace commons;
 using namespace atoms;
 
 namespace atomdb {
-
-#define INMEMORYDB_MAX_TRIE_SIZE 1000000000
 
 class InMemoryDB : public AtomDB {
    public:
@@ -85,8 +82,6 @@ class InMemoryDB : public AtomDB {
     HandleTrie* atoms_trie_;          // Stores handle -> Atom*
     HandleTrie* pattern_index_trie_;  // Stores pattern_handle -> set of atom handles
     HandleTrie* incoming_sets_trie_;  // Stores target_handle -> set of link handles that reference it
-    mutex trie_mutex_;
-    mutex index_mutex_;
 
     map<int, tuple<vector<string>, vector<vector<string>>>> pattern_index_schema_map;
     int pattern_index_schema_next_priority{1};
