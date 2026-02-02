@@ -38,6 +38,7 @@ class SQLWrapper : public DatabaseWrapper<ConnT> {
                            const vector<string>& clauses,
                            const vector<string>& skip_columns,
                            bool second_level) = 0;
+    virtual void map_sql_query(const string& virtual_name, const string& raw_query) = 0;
 
    private:
     static shared_ptr<Mapper> create_mapper(db_adapter_types::MAPPER_TYPE mapper_type);

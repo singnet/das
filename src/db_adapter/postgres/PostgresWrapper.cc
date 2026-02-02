@@ -1,8 +1,10 @@
 #include "PostgresWrapper.h"
 
+#include <algorithm>
 #include <iostream>
 #include <memory>
 #include <pqxx/pqxx>
+#include <regex>
 #include <stdexcept>
 #include <string>
 
@@ -10,6 +12,9 @@
 #include "Node.h"
 
 using namespace std;
+
+size_t PostgresWrapper::OFFSET = 0;
+size_t PostgresWrapper::LIMIT = 10000;
 
 PostgresWrapper::PostgresWrapper(const string& host,
                                  int port,
@@ -171,18 +176,24 @@ void PostgresWrapper::map_table(const Table& table,
 
     auto columns = build_columns_to_map(table, skip_columns);
 
-    this->process_paginated(table, columns, where_clauses);
+    string cols_sql = Utils::join(columns, ',');
+    string base_query = "SELECT " + cols_sql + " FROM " + table.name;
+    if (!where_clauses.empty()) {
+        base_query += " WHERE " + where_clauses;
+    }
+
+    this->fetch_rows_paginated(table, columns, base_query);
 
     if (second_level) {
         for (const auto& fk : table.foreign_keys) {
-            auto pair = Utils::split(fk, '|');
+            auto parts = Utils::split(fk, '|');
 
-            if (pair.size() != 2) {
+            if (parts.size() != 2) {
                 Utils::error("Invalid foreign key format: " + fk);
             }
 
-            string column = pair[0];
-            string ref_table_name = pair[1];
+            string column = parts[0];
+            string ref_table_name = parts[1];
 
             // Collect distinct non-null foreign-key values
             auto fk_ids = this->collect_fk_ids(table.name, column, where_clauses);
@@ -194,7 +205,13 @@ void PostgresWrapper::map_table(const Table& table,
 
             string where_clause = ref_table.primary_key + " IN " + "(" + Utils::join(fk_ids, ',') + ")";
 
-            this->process_paginated(ref_table, ref_columns, where_clause);
+            string cols_sql = Utils::join(ref_columns, ',');
+            string base_query = "SELECT " + cols_sql + " FROM " + ref_table.name;
+            if (!where_clause.empty()) {
+                base_query += " WHERE " + where_clause;
+            }
+
+            this->fetch_rows_paginated(ref_table, ref_columns, base_query);
         }
     }
 }
@@ -231,22 +248,118 @@ vector<string> PostgresWrapper::build_columns_to_map(const Table& table,
     return final_columns;
 }
 
-void PostgresWrapper::process_paginated(const Table& table,
-                                        const vector<string>& columns,
-                                        const string& where_clauses) {
-    size_t offset = 0;
-    const size_t limit = 10000;
-    string cols_sql = Utils::join(columns, ',');
-
-    string base_query = "SELECT " + cols_sql + " FROM " + table.name;
-
-    if (!where_clauses.empty()) {
-        base_query += " WHERE " + where_clauses;
-    }
+vector<string> PostgresWrapper::collect_fk_ids(const string& table_name,
+                                               const string& column_name,
+                                               const string& where_clause) {
+    vector<string> ids;
 
     while (true) {
-        string query = base_query + " LIMIT " + to_string(limit) + " OFFSET " + to_string(offset);
+        string query = "SELECT " + column_name + " FROM " + table_name + " WHERE " + where_clause +
+                       " LIMIT " + to_string(PostgresWrapper::LIMIT) + " OFFSET " +
+                       to_string(PostgresWrapper::OFFSET) + ";";
         pqxx::result rows = this->execute_query(query);
+
+        if (rows.empty()) break;
+
+        for (const pqxx::row& row : rows) {
+            auto field = row[0];
+            if (!field.is_null()) {
+                string value = field.c_str();
+                ids.push_back(value);
+            }
+        }
+
+        PostgresWrapper::OFFSET += PostgresWrapper::LIMIT;
+    }
+    return ids;
+}
+
+void PostgresWrapper::map_sql_query(const string& virtual_name, const string& raw_query) {
+    map<string, vector<string>> table_columns_map = this->extract_aliases_from_query(raw_query);
+
+    if (table_columns_map.empty()) {
+        Utils::error("No valid aliases found in query for " + virtual_name);
+    }
+
+    map<string, Table> tables_metadata;
+
+    // Search metadata (PK, FK, ...) of each referenced table
+    // and validate that each table has its PK included in the aliases
+    for (const auto& table_columns : table_columns_map) {
+        string table_name = table_columns.first;
+        vector<string> columns = table_columns.second;
+        try {
+            tables_metadata[table_name] = this->get_table(table_name);
+            string pk = tables_metadata[table_name].primary_key;
+            if (find(columns.begin(), columns.end(), pk) == columns.end()) {
+                auto parts = Utils::split(table_name, '.');
+                string schema = parts[0];
+                string table = parts[1];
+                Utils::error("Primary key '" + pk + "' of table '" + table_name +
+                             "' must be included in SELECT aliases. Add: " + table + "." + pk + " AS " +
+                             schema + "_" + table + "__" + pk);
+            }
+        } catch (const exception& e) {
+            Utils::error("Error retrieving metadata for table '" + table_name + "': " + e.what());
+        }
+    }
+
+    string base_query = Utils::trim(raw_query);
+
+    if (!base_query.empty() && base_query.back() == ';') base_query.pop_back();
+
+    for (const auto& table_columns : table_columns_map) {
+        string table_name = table_columns.first;
+        vector<string> columns = table_columns.second;
+        Table table = tables_metadata[table_name];
+        this->fetch_rows_paginated(table, columns, base_query);
+    }
+}
+
+map<string, vector<string>> PostgresWrapper::extract_aliases_from_query(const string& query) {
+    map<string, vector<string>> tables;
+
+    regex alias_pattern(alias_pattern_regex, regex_constants::icase);
+
+    auto matches_begin = sregex_iterator(query.begin(), query.end(), alias_pattern);
+    auto matches_end = sregex_iterator();
+
+    for (auto it = matches_begin; it != matches_end; ++it) {
+        smatch match = *it;
+        string table_part = match[1].str();
+        string column_name = match[2].str();
+
+        string table_name;
+
+        size_t dot_pos = table_part.find('.');
+        if (dot_pos != string::npos) {
+            table_name = table_part;
+        } else {
+            size_t underscore_pos = table_part.find('_');
+            if (underscore_pos != string::npos) {
+                table_name =
+                    table_part.substr(0, underscore_pos) + "." + table_part.substr(underscore_pos + 1);
+            } else {
+                table_name = "public." + table_part;
+            }
+        }
+
+        auto& columns = tables[table_name];
+        if (find(columns.begin(), columns.end(), column_name) == columns.end()) {
+            columns.push_back(column_name);
+        }
+    }
+
+    return tables;
+}
+
+void PostgresWrapper::fetch_rows_paginated(const Table& table,
+                                           const vector<string>& columns,
+                                           const string& query) {
+    while (true) {
+        string paginated_query = query + " LIMIT " + to_string(PostgresWrapper::LIMIT) + " OFFSET " +
+                                 to_string(PostgresWrapper::OFFSET);
+        pqxx::result rows = this->execute_query(paginated_query);
 
         if (rows.empty()) break;
 
@@ -255,7 +368,7 @@ void PostgresWrapper::process_paginated(const Table& table,
             // WIP - send atom to SharedQueue
         }
 
-        offset += limit;
+        PostgresWrapper::OFFSET += PostgresWrapper::LIMIT;
     }
 }
 
@@ -265,7 +378,7 @@ vector<Atom*> PostgresWrapper::map_row_2_atoms(const pqxx::row& row,
     SqlRow sql_row = this->build_sql_row(row, table, columns);
     auto atoms = this->mapper->map(DbInput{sql_row});
 
-    LOG_INFO("====>>>>>> Atoms count: " << get<vector<Atom*>>(atoms).size());
+    LOG_DEBUG("====>>>>>> Atoms count: " << get<vector<Atom*>>(atoms).size());
 
     return get<vector<Atom*>>(atoms);
 }
@@ -303,33 +416,6 @@ SqlRow PostgresWrapper::build_sql_row(const pqxx::row& row, const Table& table, 
         sql_row.add_field(column_name, value);
     }
     return sql_row;
-}
-
-vector<string> PostgresWrapper::collect_fk_ids(const string& table_name,
-                                               const string& column_name,
-                                               const string& where_clause) {
-    size_t offset = 0;
-    size_t limit = 10000;
-    vector<string> ids;
-
-    while (true) {
-        string query = "SELECT " + column_name + " FROM " + table_name + " WHERE " + where_clause +
-                       " LIMIT " + to_string(limit) + " OFFSET " + to_string(offset) + ";";
-        pqxx::result rows = this->execute_query(query);
-
-        if (rows.empty()) break;
-
-        for (const pqxx::row& row : rows) {
-            auto field = row[0];
-            if (!field.is_null()) {
-                string value = field.c_str();
-                ids.push_back(value);
-            }
-        }
-
-        offset += limit;
-    }
-    return ids;
 }
 
 pqxx::result PostgresWrapper::execute_query(const string& query) {

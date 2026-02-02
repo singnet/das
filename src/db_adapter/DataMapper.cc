@@ -84,6 +84,7 @@ string BaseSQL2Mapper::escape_inner_quotes(string text) {
 
         return "\"" + escaped + "\"";
     }
+    return "";
 }
 
 bool BaseSQL2Mapper::insert_handle_if_missing(const string& handle) {

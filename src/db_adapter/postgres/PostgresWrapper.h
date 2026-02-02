@@ -5,7 +5,9 @@
 #include <memory>
 #include <optional>
 #include <pqxx/pqxx>
+#include <regex>
 #include <string>
+#include <vector>
 
 #include "DBWrapper.h"
 
@@ -45,6 +47,9 @@ class PostgresWrapper : public SQLWrapper<pqxx::connection> {
 
     ~PostgresWrapper() override;
 
+    static size_t OFFSET;
+    static size_t LIMIT;
+
     /**
      * @brief Establishes a connection to the PostgreSQL database.
      *
@@ -59,6 +64,10 @@ class PostgresWrapper : public SQLWrapper<pqxx::connection> {
                    const vector<string>& clauses,
                    const vector<string>& skip_columns = {},
                    bool second_level = false) override;
+    void map_sql_query(const string& virtual_name, const string& raw_query) override;
+
+   protected:
+    const string alias_pattern_regex = R"(\bAS\s+([a-zA-Z_][a-zA-Z0-9_]*)__([a-zA-Z_][a-zA-Z0-9_]*))";
 
    private:
     string host;
@@ -68,16 +77,15 @@ class PostgresWrapper : public SQLWrapper<pqxx::connection> {
     string password;
     optional<vector<Table>> tables_cache;
 
-    pqxx::result execute_query(const string& query);
     vector<string> build_columns_to_map(const Table& table, const vector<string>& skip_columns = {});
-    void process_paginated(const Table& table,
-                           const vector<string>& columns,
-                           const string& where_clauses);
-    vector<Atom*> map_row_2_atoms(const pqxx::row& row, const Table& table, vector<string> columns);
-    SqlRow build_sql_row(const pqxx::row& row, const Table& table, vector<string> columns);
     vector<string> collect_fk_ids(const string& table_name,
                                   const string& column_name,
                                   const string& where_clause = "");
+    map<string, vector<string>> extract_aliases_from_query(const string& query);
+    void fetch_rows_paginated(const Table& table, const vector<string>& columns, const string& query);
+    vector<Atom*> map_row_2_atoms(const pqxx::row& row, const Table& table, vector<string> columns);
+    SqlRow build_sql_row(const pqxx::row& row, const Table& table, vector<string> columns);
+    pqxx::result execute_query(const string& query);
 };
 
 }  // namespace db_adapter
