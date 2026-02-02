@@ -74,12 +74,11 @@ static unsigned int POPULATION_SIZE = 50;
 static unsigned int MAX_GENERATIONS = 20;
 static unsigned int NUM_ITERATIONS = 10;
 
+static string CONTEXT_FILE_NAME = "_CONTEXT_DUMP";
 static string NEW_LINKS_FILE_NAME = "newly_created_links.txt";
 static bool WRITE_CREATED_LINKS_TO_DB = false;
 static bool WRITE_CREATED_LINKS_TO_FILE = true;
 static bool PRINT_CREATED_LINKS_METTA = true;
-
-static string CONTEXT_FILE_NAME = "_CONTEXT_DUMP";
 
 using namespace std;
 using namespace atomdb;
@@ -613,7 +612,6 @@ static void run(const string& target_predicate_handle,
     }};
 
     vector<string> context_query = {
-        OR_OPERATOR, "2",
         LINK_TEMPLATE, EXPRESSION, "3",
             NODE, SYMBOL, EVALUATION,
             VARIABLE, V2,
@@ -724,12 +722,12 @@ void insert_type_symbols() {
 
 int main(int argc, char* argv[]) {
     // clang-format off
-    if (argc != 15) {
+    if (argc < 15) {
         cerr << "Usage: " << argv[0]
              << " <client_endpoint> <server_endpoint> <start_port:end_port>"
                 " <context_tag> <target_predicate> <target_concept>"
                 " <RENT_RATE> <SPREADING_RATE_LOWERBOUND> <SPREADING_RATE_UPPERBOUND>"
-                " <ELITISM_RATE> <SELECTION_RATE> <POPULATION_SIZE> <MAX_GENERATIONS> <NUM_ITERATIONS>" << endl;
+                " <ELITISM_RATE> <SELECTION_RATE> <POPULATION_SIZE> <MAX_GENERATIONS> <NUM_ITERATIONS> [--use-mork]" << endl;
         cerr << endl;
         cerr << "<target_predicate> <target_concept> are MeTTa expressions" << endl;
         cerr << endl;
@@ -748,7 +746,7 @@ int main(int argc, char* argv[]) {
     }
     // clang-format on
 
-    unsigned int cursor = 0;
+    int cursor = 0;
 
     string client_endpoint = argv[++cursor];
     string server_endpoint = argv[++cursor];
@@ -772,7 +770,12 @@ int main(int argc, char* argv[]) {
         Utils::error("Error setting up parameters");
     }
 
-    AtomDBSingleton::init();
+    if ((++cursor < argc) && (string(argv[cursor]) == string("--use-mork"))) {
+        AtomDBSingleton::init(atomdb_api_types::ATOMDB_TYPE::MORKDB);
+    } else {
+        AtomDBSingleton::init();
+    }
+
     db = AtomDBSingleton::get_instance();
     ServiceBusSingleton::init(client_endpoint, server_endpoint, ports_range.first, ports_range.second);
     FitnessFunctionRegistry::initialize_statics();
@@ -794,6 +797,8 @@ int main(int argc, char* argv[]) {
     shared_ptr<atoms::MettaParserActions> concept_pa = make_shared<atoms::MettaParserActions>();
     MettaParser predicate_p(target_predicate, predicate_pa);
     MettaParser concept_p(target_concept, concept_pa);
+    predicate_p.parse();
+    concept_p.parse();
 
     LOG_INFO("Target predicate: " + target_predicate + " Handle: " + predicate_pa->metta_expression_handle);
     LOG_INFO("Target concept: " + target_concept + " Handle: " + concept_pa->metta_expression_handle);
