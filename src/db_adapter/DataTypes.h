@@ -13,10 +13,6 @@ using namespace atoms;
 
 namespace db_adapter {
 
-namespace db_adapter_types {
-
-// using DbScalar = variant<nullptr_t, bool, int64_t, double, string>;
-
 struct ColumnValue {
     string name;
     string value;
@@ -59,7 +55,5 @@ struct Table {
 };
 
 enum MAPPER_TYPE { SQL2METTA, SQL2ATOMS };
-
-}  // namespace db_adapter_types
 
 }  // namespace db_adapter

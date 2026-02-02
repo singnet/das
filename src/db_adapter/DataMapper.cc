@@ -20,9 +20,9 @@ string BaseSQL2Mapper::EXPRESSION;
 
 // -- BaseSQL2Mapper
 
-const db_adapter_types::OutputList BaseSQL2Mapper::map(const db_adapter_types::DbInput& data) {
+const OutputList BaseSQL2Mapper::map(const DbInput& data) {
     vector<tuple<string, string, string>> all_foreign_keys;
-    db_adapter_types::SqlRow sql_row = get<db_adapter_types::SqlRow>(data);
+    SqlRow sql_row = get<SqlRow>(data);
     string table_name = sql_row.table_name;
 
     string primary_key_value = sql_row.primary_key ? sql_row.primary_key->value : "";
@@ -100,7 +100,7 @@ SQL2MettaMapper::SQL2MettaMapper() { this->initialize_statics(); }
 
 SQL2MettaMapper::~SQL2MettaMapper() {}
 
-db_adapter_types::OutputList SQL2MettaMapper::get_output() { return this->metta_expressions; }
+OutputList SQL2MettaMapper::get_output() { return this->metta_expressions; }
 
 void SQL2MettaMapper::add_metta_if_new(const string& s_expression) {
     string key = Hasher::context_handle(s_expression);
@@ -220,7 +220,7 @@ SQL2AtomsMapper::~SQL2AtomsMapper() {
     for (auto atom : this->atoms) delete atom;
 }
 
-db_adapter_types::OutputList SQL2AtomsMapper::get_output() { return this->atoms; }
+OutputList SQL2AtomsMapper::get_output() { return this->atoms; }
 
 string SQL2AtomsMapper::add_atom_if_new(SQL2AtomsMapper::ATOM_TYPE atom_type,
                                         variant<string, vector<string>> value,

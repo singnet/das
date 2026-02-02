@@ -22,7 +22,7 @@ class MapperValue : public HandleTrie::TrieValue {
 class Mapper {
    public:
     virtual ~Mapper() = default;
-    virtual const db_adapter_types::OutputList map(const db_adapter_types::DbInput& data) = 0;
+    virtual const OutputList map(const DbInput& data) = 0;
 
    protected:
     Mapper() = default;
@@ -32,7 +32,7 @@ class Mapper {
 class BaseSQL2Mapper : public Mapper {
    public:
     virtual ~BaseSQL2Mapper() override = default;
-    const db_adapter_types::OutputList map(const db_adapter_types::DbInput& data) override;
+    const OutputList map(const DbInput& data) override;
 
     static string SYMBOL;
     static string EXPRESSION;
@@ -47,7 +47,7 @@ class BaseSQL2Mapper : public Mapper {
 
     bool is_foreign_key(string& column_name);
     string escape_inner_quotes(string text);
-    virtual db_adapter_types::OutputList get_output() = 0;
+    virtual OutputList get_output() = 0;
     bool insert_handle_if_missing(const string& handle);
 
     virtual void map_primary_key(string& table_name, string& primary_key_value) = 0;
@@ -72,7 +72,7 @@ class SQL2MettaMapper : public BaseSQL2Mapper {
 
    private:
     vector<string> metta_expressions;
-    db_adapter_types::OutputList get_output() override;
+    OutputList get_output() override;
     void add_metta_if_new(const string& s_expression);
 
     void map_primary_key(string& table_name, string& primary_key_value) override;
@@ -98,7 +98,7 @@ class SQL2AtomsMapper : public BaseSQL2Mapper {
 
    private:
     vector<Atom*> atoms;
-    db_adapter_types::OutputList get_output() override;
+    OutputList get_output() override;
     string add_atom_if_new(SQL2AtomsMapper::ATOM_TYPE atom_type,
                            variant<string, vector<string>> value,
                            bool is_toplevel = false);

@@ -14,7 +14,6 @@
 #define MAX_VALUE_SIZE ((size_t) 1000)
 
 using namespace std;
-using namespace db_adapter_types;
 using namespace atoms;
 using namespace commons;
 
@@ -83,7 +82,6 @@ class PostgresWrapper : public SQLWrapper<pqxx::connection> {
                                   const string& where_clause = "");
     map<string, vector<string>> extract_aliases_from_query(const string& query);
     void fetch_rows_paginated(const Table& table, const vector<string>& columns, const string& query);
-    vector<Atom*> map_row_2_atoms(const pqxx::row& row, const Table& table, vector<string> columns);
     SqlRow build_sql_row(const pqxx::row& row, const Table& table, vector<string> columns);
     pqxx::result execute_query(const string& query);
 };

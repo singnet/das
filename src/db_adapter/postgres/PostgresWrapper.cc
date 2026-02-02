@@ -8,8 +8,8 @@
 #include <stdexcept>
 #include <string>
 
+#define LOG_LEVEL DEBUG_LEVEL
 #include "Logger.h"
-#include "Node.h"
 
 using namespace std;
 
@@ -21,7 +21,7 @@ PostgresWrapper::PostgresWrapper(const string& host,
                                  const string& database,
                                  const string& user,
                                  const string& password,
-                                 db_adapter_types::MAPPER_TYPE mapper_type)
+                                 MAPPER_TYPE mapper_type)
     : SQLWrapper<pqxx::connection>(mapper_type),
       host(host),
       port(port),
@@ -364,23 +364,22 @@ void PostgresWrapper::fetch_rows_paginated(const Table& table,
         if (rows.empty()) break;
 
         for (const auto& row : rows) {
-            auto atoms = this->map_row_2_atoms(row, table, columns);
-            // WIP - send atom to SharedQueue
+            SqlRow sql_row = this->build_sql_row(row, table, columns);
+            auto output = this->mapper->map(DbInput{sql_row});
+
+            if (this->mapper_type == MAPPER_TYPE::SQL2ATOMS) {
+                vector<Atom*> atoms = get<vector<Atom*>>(output);
+                LOG_DEBUG("====>>>>>> Atoms count: " << atoms.size());
+                // WIP - send atoms to SharedQueue
+            } else {
+                vector<string> metta_expressions = get<vector<string>>(output);
+                LOG_DEBUG("====>>>>>> Metta Expressions count: " << metta_expressions.size());
+                // WIP - save metta expressions to file
+            }
         }
 
         PostgresWrapper::OFFSET += PostgresWrapper::LIMIT;
     }
-}
-
-vector<Atom*> PostgresWrapper::map_row_2_atoms(const pqxx::row& row,
-                                               const Table& table,
-                                               vector<string> columns) {
-    SqlRow sql_row = this->build_sql_row(row, table, columns);
-    auto atoms = this->mapper->map(DbInput{sql_row});
-
-    LOG_DEBUG("====>>>>>> Atoms count: " << get<vector<Atom*>>(atoms).size());
-
-    return get<vector<Atom*>>(atoms);
 }
 
 SqlRow PostgresWrapper::build_sql_row(const pqxx::row& row, const Table& table, vector<string> columns) {
