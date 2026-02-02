@@ -21,12 +21,17 @@ LinkTemplate::LinkTemplate(const string& type,
                            const vector<shared_ptr<QueryElement>>& targets,
                            const string& context,
                            bool positive_importance_flag,
+                           bool disregard_importance_flag,
                            bool unique_value_flag,
                            bool use_cache)
     : link_schema(type, targets.size()) {
     this->targets = targets;
     this->context = context;
+    if (positive_importance_flag && disregard_importance_flag) {
+        Utils::error("Conficting settings for positive_importance_flag and disregard_importance_flag");
+    }
     this->positive_importance_flag = positive_importance_flag;
+    this->disregard_importance_flag = disregard_importance_flag;
     this->unique_value_flag = unique_value_flag;
     this->use_cache = use_cache;
     this->inner_flag = true;
@@ -136,6 +141,7 @@ void LinkTemplate::processor_method(shared_ptr<StoppableThread> monitor) {
         LinkTemplate::fetched_links_cache().set(link_schema_handle, handles);
     }
     LOG_DEBUG("Positive importance flag: " + string(this->positive_importance_flag ? "true" : "false"));
+    LOG_DEBUG("Disregard importance flag: " + string(this->disregard_importance_flag ? "true" : "false"));
     LOG_DEBUG("Unique value flag: " + string(this->unique_value_flag ? "true" : "false"));
     LOG_INFO("Fetched " + std::to_string(handles->size()) + " atoms in " + link_schema_handle);
 
@@ -146,7 +152,9 @@ void LinkTemplate::processor_method(shared_ptr<StoppableThread> monitor) {
         while ((handle = iterator->next()) != nullptr) {
             tagged_handles.push_back(make_pair<char*, float>((char*) handle, 0));
         }
-        compute_importance(tagged_handles);
+        if (! this->disregard_importance_flag) {
+            compute_importance(tagged_handles);
+        }
     }
     unsigned int pending = tagged_handles.size();
     unsigned int cursor = 0;

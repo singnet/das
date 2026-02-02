@@ -35,6 +35,10 @@ class PatternMatchingQueryProxy : public BaseQueryProxy {
     static string POSITIVE_IMPORTANCE_FLAG;  // Indicates that only answers whose importance > 0
                                              // are supposed to be returned
 
+    static string DISREGARD_IMPORTANCE_FLAG; // When set true, importance values are not fetched from
+                                             // Attention Broker, thus the order of query answers
+                                             // are not determined by importance.
+
     static string UNIQUE_VALUE_FLAG;         // When true, QueryAnswers won't be allowed to have the same
                                              // handle assigned to different values. For instance, if a
                                              // variable V1 is assigned to a handle H1, if this parameter
