@@ -53,7 +53,7 @@ const OutputList BaseSQL2Mapper::map(const DbInput& data) {
     return this->get_output();
 }
 
-bool BaseSQL2Mapper::is_foreign_key(string& column_name) {
+bool BaseSQL2Mapper::is_foreign_key(const string& column_name) {
     size_t pos = column_name.find('|');
     if (pos == string::npos) return false;
     return true;
@@ -109,7 +109,7 @@ void SQL2MettaMapper::add_metta_if_new(const string& s_expression) {
     }
 };
 
-void SQL2MettaMapper::map_primary_key(string& table_name, string& primary_key_value) {
+void SQL2MettaMapper::map_primary_key(const string& table_name, const string& primary_key_value) {
     string literal_pk = this->escape_inner_quotes("\"" + primary_key_value + "\"");
 
     string predicate_link = "(Predicate " + table_name + ")";
@@ -125,12 +125,12 @@ void SQL2MettaMapper::map_primary_key(string& table_name, string& primary_key_va
     this->add_metta_if_new(evaluation_link);
 }
 
-void SQL2MettaMapper::map_foreign_key_column(string& table_name,
-                                             string& column_name,
-                                             string& value,
-                                             string& primary_key_value,
-                                             string& fk_table,
-                                             string& fk_column) {
+void SQL2MettaMapper::map_foreign_key_column(const string& table_name,
+                                             const string& column_name,
+                                             const string& value,
+                                             const string& primary_key_value,
+                                             const string& fk_table,
+                                             const string& fk_column) {
     string literal_value = this->escape_inner_quotes("\"" + value + "\"");
     string literal_pk = this->escape_inner_quotes("\"" + primary_key_value + "\"");
 
@@ -156,10 +156,10 @@ void SQL2MettaMapper::map_foreign_key_column(string& table_name,
     this->add_metta_if_new(evaluation_link);
 }
 
-void SQL2MettaMapper::map_regular_column(string& table_name,
-                                         string& column_name,
-                                         string& value,
-                                         string& primary_key_value) {
+void SQL2MettaMapper::map_regular_column(const string& table_name,
+                                         const string& column_name,
+                                         const string& value,
+                                         const string& primary_key_value) {
     string literal_value = this->escape_inner_quotes("\"" + value + "\"");
     string literal_pk = this->escape_inner_quotes("\"" + primary_key_value + "\"");
 
@@ -180,7 +180,7 @@ void SQL2MettaMapper::map_regular_column(string& table_name,
 }
 
 void SQL2MettaMapper::map_foreign_keys_combinations(
-    vector<tuple<string, string, string>> all_foreign_keys) {
+    const vector<tuple<string, string, string>>& all_foreign_keys) {
     for (const auto& [column_name, foreign_table_name, value] : all_foreign_keys) {
         for (const auto& [column_name2, foreign_table_name2, value2] : all_foreign_keys) {
             if ((foreign_table_name != foreign_table_name2) && (value != value2)) {
@@ -246,7 +246,7 @@ string SQL2AtomsMapper::add_atom_if_new(SQL2AtomsMapper::ATOM_TYPE atom_type,
     return handle;
 };
 
-void SQL2AtomsMapper::map_primary_key(string& table_name, string& primary_key_value) {
+void SQL2AtomsMapper::map_primary_key(const string& table_name, const string& primary_key_value) {
     string literal_pk = this->escape_inner_quotes("\"" + primary_key_value + "\"");
 
     // Nodes
@@ -272,12 +272,12 @@ void SQL2AtomsMapper::map_primary_key(string& table_name, string& primary_key_va
                           true);
 }
 
-void SQL2AtomsMapper::map_foreign_key_column(string& table_name,
-                                             string& column_name,
-                                             string& value,
-                                             string& primary_key_value,
-                                             string& fk_table,
-                                             string& fk_column) {
+void SQL2AtomsMapper::map_foreign_key_column(const string& table_name,
+                                             const string& column_name,
+                                             const string& value,
+                                             const string& primary_key_value,
+                                             const string& fk_table,
+                                             const string& fk_column) {
     string literal_value = this->escape_inner_quotes("\"" + value + "\"");
     string literal_pk = this->escape_inner_quotes("\"" + primary_key_value + "\"");
 
@@ -315,10 +315,10 @@ void SQL2AtomsMapper::map_foreign_key_column(string& table_name,
                           true);
 }
 
-void SQL2AtomsMapper::map_regular_column(string& table_name,
-                                         string& column_name,
-                                         string& value,
-                                         string& primary_key_value) {
+void SQL2AtomsMapper::map_regular_column(const string& table_name,
+                                         const string& column_name,
+                                         const string& value,
+                                         const string& primary_key_value) {
     string literal_pk = this->escape_inner_quotes("\"" + primary_key_value + "\"");
     string literal_value = this->escape_inner_quotes("\"" + value + "\"");
 
@@ -353,7 +353,7 @@ void SQL2AtomsMapper::map_regular_column(string& table_name,
 }
 
 void SQL2AtomsMapper::map_foreign_keys_combinations(
-    vector<tuple<string, string, string>> all_foreign_keys) {
+    const vector<tuple<string, string, string>>& all_foreign_keys) {
     for (const auto& [column_name, foreign_table_name, value] : all_foreign_keys) {
         for (const auto& [column_name2, foreign_table_name2, value2] : all_foreign_keys) {
             if ((foreign_table_name != foreign_table_name2) && (value != value2)) {
