@@ -263,6 +263,7 @@ shared_ptr<QueryElement> PatternMatchingQueryProcessor::setup_query_tree(
     unsigned int cursor = 0;
     const vector<string> query_tokens = proxy->get_query_tokens();
     unsigned int tokens_count = query_tokens.size();
+    unsigned int count_nested_elements = 0;
 
     while (cursor < tokens_count) {
         execution_stack.push(cursor);
@@ -277,7 +278,13 @@ shared_ptr<QueryElement> PatternMatchingQueryProcessor::setup_query_tree(
         } else {
             Utils::error("Invalid token in query: " + query_tokens[cursor]);
         }
+        if ((query_tokens[cursor] == LinkSchema::LINK_TEMPLATE) ||
+            (query_tokens[cursor] == OR) ||
+            (query_tokens[cursor] == AND)) {
+            count_nested_elements++;
+        }
     }
+    bool flat_pattern_flag = (count_nested_elements == 1);
 
     if (cursor != tokens_count) {
         Utils::error("Parse error in query tokens");
@@ -298,7 +305,7 @@ shared_ptr<QueryElement> PatternMatchingQueryProcessor::setup_query_tree(
         } else if (query_tokens[cursor] == LinkSchema::LINK) {
             element_stack.push(build_link(proxy, cursor, element_stack));
         } else if (query_tokens[cursor] == LinkSchema::LINK_TEMPLATE) {
-            element_stack.push(build_link_template(proxy, cursor, element_stack));
+            element_stack.push(build_link_template(proxy, cursor, element_stack, flat_pattern_flag));
         } else if (query_tokens[cursor] == AND) {
             element_stack.push(build_and(proxy, cursor, element_stack));
             if (proxy->parameters.get<bool>(BaseQueryProxy::UNIQUE_ASSIGNMENT_FLAG)) {
@@ -325,7 +332,8 @@ shared_ptr<QueryElement> PatternMatchingQueryProcessor::setup_query_tree(
 shared_ptr<QueryElement> PatternMatchingQueryProcessor::build_link_template(
     shared_ptr<PatternMatchingQueryProxy> proxy,
     unsigned int cursor,
-    stack<shared_ptr<QueryElement>>& element_stack) {
+    stack<shared_ptr<QueryElement>>& element_stack,
+    bool flat_pattern_flag) {
     const vector<string> query_tokens = proxy->get_query_tokens();
     unsigned int arity = std::stoi(query_tokens[cursor + 2]);
     if (element_stack.size() < arity) {
@@ -346,6 +354,7 @@ shared_ptr<QueryElement> PatternMatchingQueryProcessor::build_link_template(
         proxy->parameters.get<bool>(PatternMatchingQueryProxy::DISREGARD_IMPORTANCE_FLAG),
         proxy->parameters.get<bool>(PatternMatchingQueryProxy::UNIQUE_VALUE_FLAG),
         proxy->parameters.get<bool>(BaseQueryProxy::USE_LINK_TEMPLATE_CACHE));
+    link_template->flat_pattern_flag = flat_pattern_flag;
     return link_template;
 }
 

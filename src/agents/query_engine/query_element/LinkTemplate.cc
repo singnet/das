@@ -39,6 +39,7 @@ LinkTemplate::LinkTemplate(const string& type,
     this->processor = nullptr;
     this->random_generator =
         new std::mt19937(std::chrono::system_clock::now().time_since_epoch().count());
+    this->flat_pattern_flag = false;
 }
 
 LinkTemplate::~LinkTemplate() {
