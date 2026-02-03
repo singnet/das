@@ -5,7 +5,6 @@
 #include <string>
 
 #include "AtomDBSingleton.h"
-#include "Context.h"
 #include "ContextBrokerProxy.h"
 #include "CountLetterFunction.h"
 #include "FitnessFunctionRegistry.h"
