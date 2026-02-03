@@ -158,6 +158,7 @@ void LinkTemplate::processor_method(shared_ptr<StoppableThread> monitor) {
         }
     }
     unsigned int pending = tagged_handles.size();
+    unsigned int processed = 0;
     unsigned int cursor = 0;
     Assignment assignment(this->unique_value_flag);
     unsigned int count_matched = 0;
@@ -180,6 +181,9 @@ void LinkTemplate::processor_method(shared_ptr<StoppableThread> monitor) {
                     assignment.clear();
                     count_matched++;
                 }
+            }
+            if (! (++processed % 1000000)) {
+                LOG_INFO("Processed " + std::to_string(processed++) + "/" + std::to_string(tagged_handles.size()) + ". " + std::to_string(count_matched) + " matched so far.");
             }
             pending--;
         }
