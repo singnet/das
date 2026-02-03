@@ -216,9 +216,7 @@ void SQL2MettaMapper::map_foreign_keys_combinations(
 
 SQL2AtomsMapper::SQL2AtomsMapper() { this->initialize_statics(); }
 
-SQL2AtomsMapper::~SQL2AtomsMapper() {
-    for (auto atom : this->atoms) delete atom;
-}
+SQL2AtomsMapper::~SQL2AtomsMapper() {}
 
 OutputList SQL2AtomsMapper::get_output() { return this->atoms; }
 

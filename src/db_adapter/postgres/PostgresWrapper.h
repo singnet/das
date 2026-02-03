@@ -42,7 +42,7 @@ class PostgresWrapper : public SQLWrapper<pqxx::connection> {
                     const string& password = "postgres",
                     MAPPER_TYPE mapper_type = MAPPER_TYPE::SQL2ATOMS);
 
-    ~PostgresWrapper() override;
+    ~PostgresWrapper() = default;
 
     static size_t OFFSET;
     static size_t LIMIT;
@@ -61,7 +61,7 @@ class PostgresWrapper : public SQLWrapper<pqxx::connection> {
     void map_sql_query(const string& virtual_name, const string& raw_query) override;
 
    protected:
-    // Regex for parsing alias patterns (e.g., "AS table__column")
+    // Regex for parsing alias patterns (e.g., "AS public_feature__uniquename")
     const string alias_pattern_regex = R"(\bAS\s+([a-zA-Z_][a-zA-Z0-9_]*)__([a-zA-Z_][a-zA-Z0-9_]*))";
 
    private:

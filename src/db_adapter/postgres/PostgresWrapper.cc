@@ -31,8 +31,6 @@ PostgresWrapper::PostgresWrapper(const string& host,
     this->db_client = this->connect();
 }
 
-PostgresWrapper::~PostgresWrapper() = default;
-
 unique_ptr<pqxx::connection> PostgresWrapper::connect() {
     try {
         string conn_str = "host=" + host + " port=" + to_string(port) + " dbname=" + database;
