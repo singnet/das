@@ -266,20 +266,19 @@ void QueryEvolutionProcessor::select_best_individuals(
 
 float eval_word(const string& handle, string& word) {
     auto db = AtomDBSingleton::get_instance();
-    shared_ptr<atomdb_api_types::AtomDocument> word_document;
-    shared_ptr<atomdb_api_types::AtomDocument> word_name_document;
-    word_document = db->get_atom_document(handle);
-    string symbol_handle = string(word_document->get("targets", 1));
-    word_name_document = db->get_atom_document(symbol_handle);
-    const char* word_name = word_name_document->get("name");
-    word = string(word_name);
+    shared_ptr<Link> word_link;
+    shared_ptr<Node> word_name_node;
+    word_link = db->get_link(handle);
+    string symbol_handle = word_link->targets[1];
+    word_name_node = db->get_node(symbol_handle);
+    word = word_name_node->name;
     unsigned int count = 0;
     unsigned int sentence_length = 0;
-    for (unsigned int i = 0; word_name[i] != '\0'; i++) {
-        if ((word_name[i] != ' ') && (word_name[i] != '"')) {
+    for (unsigned int i = 0; i < word.length(); i++) {
+        if ((word[i] != ' ') && (word[i] != '"')) {
             sentence_length++;
         }
-        if (word_name[i] == 'c') {
+        if (word[i] == 'c') {
             count++;
         }
     }

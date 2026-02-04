@@ -4,7 +4,6 @@
 #include <memory>
 #include <thread>
 
-#include "AtomSpace.h"
 #include "BusCommandProcessor.h"
 #include "PatternMatchingQueryProxy.h"
 #include "QueryEvolutionProxy.h"
@@ -12,7 +11,6 @@
 
 using namespace std;
 using namespace service_bus;
-using namespace atom_space;
 
 namespace evolution {
 
@@ -77,7 +75,6 @@ class QueryEvolutionProcessor : public BusCommandProcessor {
     mutex query_threads_mutex;
     shared_ptr<QueryEvolutionProxy> proxy;
     set<string> visited_individuals;
-    AtomSpace atom_space;
     unsigned int generation_count;
 };
 

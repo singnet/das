@@ -70,6 +70,7 @@ cc_library(
     name = "pattern_matching_query_processor",
     srcs = ["PatternMatchingQueryProcessor.cc"],
     hdrs = ["PatternMatchingQueryProcessor.h"],
+    includes = ["."],
     deps = [
         ":metta_parser_actions",
         ":pattern_matching_query_proxy",

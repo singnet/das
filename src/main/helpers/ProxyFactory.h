@@ -258,9 +258,9 @@ class ProxyFactory {
             }
             default:
                 Utils::error("Unknown proxy type: " + proxy_type);
-
                 break;
         }
+        return nullptr;
     }
 };
 }  // namespace mains

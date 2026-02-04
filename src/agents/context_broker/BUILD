@@ -22,7 +22,6 @@ cc_library(
         ":context_broker_proxy",
         "//agents/query_engine:pattern_matching_query_proxy",
         "//agents/query_engine:query_answer",
-        "//atom_space:atom_space_lib",
         "//attention_broker:attention_broker_client",
         "//commons:commons_lib",
         "//service_bus:service_bus_lib",

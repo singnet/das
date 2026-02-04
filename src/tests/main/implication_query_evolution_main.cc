@@ -8,13 +8,12 @@
 #include <string>
 
 #include "AtomDBSingleton.h"
-#include "AtomSpace.h"
 #include "AttentionBrokerClient.h"
 #include "ContextBrokerProxy.h"
-#include "CountLetterFunction.h"
 #include "FitnessFunctionRegistry.h"
 #include "Hasher.h"
 #include "Logger.h"
+#include "PatternMatchingQueryProxy.h"
 #include "QueryAnswer.h"
 #include "QueryEvolutionProxy.h"
 #include "ServiceBusSingleton.h"
@@ -86,7 +85,6 @@ static string CONTEXT_FILE_NAME = "_CONTEXT_DUMP";
 
 using namespace std;
 using namespace atomdb;
-using namespace atom_space;
 using namespace query_engine;
 using namespace evolution;
 using namespace service_bus;
@@ -911,12 +909,7 @@ static void run(const string& predicate_source,
     QueryAnswerElement target2(V2);
     QueryAnswerElement target3(V3);
     QueryAnswerElement toplevel_link(0);
-    /*
-    AtomSpace atom_space;
-    auto context_obj = atom_space.create_context(
-        context_tag, context_query, {{toplevel_link, target2}, {toplevel_link, target3}}, {});
-    string context = context_obj->get_key();
-    */
+
     // For some reason, make_shared was not compiling so I'm explicitly creating the shared_ptr
     shared_ptr<ContextBrokerProxy> context_proxy(new ContextBrokerProxy(
         context_tag, context_query, {{toplevel_link, target2}, {toplevel_link, target3}}, {}));

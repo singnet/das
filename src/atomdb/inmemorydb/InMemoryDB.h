@@ -24,26 +24,16 @@ class InMemoryDB : public AtomDB {
     bool allow_nested_indexing() override;
 
     shared_ptr<Atom> get_atom(const string& handle) override;
+    shared_ptr<Node> get_node(const string& handle) override;
+    shared_ptr<Link> get_link(const string& handle) override;
+
+    vector<shared_ptr<Atom>> get_matching_atoms(bool is_toplevel, Atom& key) override;
 
     shared_ptr<atomdb_api_types::HandleSet> query_for_pattern(const LinkSchema& link_schema) override;
 
     shared_ptr<atomdb_api_types::HandleList> query_for_targets(const string& handle) override;
 
     shared_ptr<atomdb_api_types::HandleSet> query_for_incoming_set(const string& handle) override;
-
-    shared_ptr<atomdb_api_types::AtomDocument> get_atom_document(const string& handle) override;
-    shared_ptr<atomdb_api_types::AtomDocument> get_node_document(const string& handle) override;
-    shared_ptr<atomdb_api_types::AtomDocument> get_link_document(const string& handle) override;
-
-    vector<shared_ptr<atomdb_api_types::AtomDocument>> get_atom_documents(
-        const vector<string>& handles, const vector<string>& fields) override;
-    vector<shared_ptr<atomdb_api_types::AtomDocument>> get_node_documents(
-        const vector<string>& handles, const vector<string>& fields) override;
-    vector<shared_ptr<atomdb_api_types::AtomDocument>> get_link_documents(
-        const vector<string>& handles, const vector<string>& fields) override;
-
-    vector<shared_ptr<atomdb_api_types::AtomDocument>> get_matching_atoms(bool is_toplevel,
-                                                                          Atom& key) override;
 
     bool atom_exists(const string& handle) override;
     bool node_exists(const string& handle) override;

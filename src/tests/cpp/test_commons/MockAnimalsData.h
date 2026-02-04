@@ -7,9 +7,6 @@
 #include "Node.h"
 #include "RedisMongoDB.h"
 
-#define LOG_LEVEL INFO_LEVEL
-#include "Logger.h"
-
 using namespace std;
 using namespace atomdb;
 
