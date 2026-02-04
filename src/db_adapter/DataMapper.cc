@@ -10,7 +10,7 @@
 #include "MettaMapping.h"
 #include "Node.h"
 
-#define LOG_LEVEL DEBUG_LEVEL
+#define LOG_LEVEL INFO_LEVEL
 #include "Logger.h"
 
 using namespace db_adapter;

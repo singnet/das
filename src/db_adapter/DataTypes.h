@@ -5,8 +5,10 @@
 #include <variant>
 #include <vector>
 
-// Forward declaration if Atom.h is heavy, otherwise keep include
 #include "Atom.h"
+
+using namespace std;
+using namespace atoms;
 
 namespace db_adapter {
 
@@ -69,7 +71,7 @@ using DbInput = variant<SqlRow, NoSqlDocument>;
  *
  * Can be a list of S-Expression strings (SQL2METTA) or a list of Atom pointers (SQL2ATOMS).
  */
-using OutputList = variant<vector<string>, vector<atoms::Atom*>>;
+using OutputList = variant<vector<string>, vector<Atom*>>;
 
 /**
  * @struct Table

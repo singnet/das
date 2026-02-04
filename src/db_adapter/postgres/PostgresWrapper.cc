@@ -8,7 +8,7 @@
 #include <stdexcept>
 #include <string>
 
-#define LOG_LEVEL DEBUG_LEVEL
+#define LOG_LEVEL INFO_LEVEL
 #include "Logger.h"
 
 using namespace std;
@@ -385,31 +385,20 @@ void PostgresWrapper::fetch_rows_paginated(const Table& table,
                 LOG_DEBUG("  Field: " << field.name << " = " << field.value);
             }
 
-            auto before = this->mapper->handle_trie_size();
             auto output = this->mapper->map(DbInput{sql_row});
-            auto after = this->mapper->handle_trie_size();
-
-            LOG_DEBUG("############################ Mapper handle trie size before: "
-                      << before << ", after: " << after);
 
             if (this->mapper_type == MAPPER_TYPE::SQL2ATOMS) {
                 vector<Atom*> atoms = get<vector<Atom*>>(output);
-                LOG_DEBUG("====>>>>>> Atoms count: " << atoms.size());
+                LOG_DEBUG("Atoms count: " << atoms.size());
                 // WIP - send atoms to SharedQueue
-
-                // NOTE: This code is used for testing purposes only.
-                // if (this->processor) {
-                //     this->processor->process_atoms(atoms, table.name);
-                // }
 
             } else {
                 vector<string> metta_expressions = get<vector<string>>(output);
-                LOG_DEBUG("====>>>>>> Metta Expressions count: " << metta_expressions.size());
+                LOG_DEBUG("Metta Expressions count: " << metta_expressions.size());
                 // WIP - save metta expressions to file
-
-                // NOTE: This code is used for testing purposes only.
-                // if (this->processor) this->processor->process_metta(metta_expressions, table.name);
             }
+
+            LOG_DEBUG("Mapper HandleTrie size: " << this->mapper->handle_trie_size());
         }
 
         offset += limit;
