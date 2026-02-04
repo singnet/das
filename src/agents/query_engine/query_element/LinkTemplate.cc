@@ -8,7 +8,7 @@
 #include "AttentionBrokerClient.h"
 #include "Terminal.h"
 
-#define LOG_LEVEL INFO_LEVEL
+#define LOG_LEVEL DEBUG_LEVEL
 #include "Logger.h"
 
 using namespace query_element;
@@ -144,6 +144,7 @@ void LinkTemplate::processor_method(shared_ptr<StoppableThread> monitor) {
     LOG_DEBUG("Positive importance flag: " + string(this->positive_importance_flag ? "true" : "false"));
     LOG_DEBUG("Disregard importance flag: " + string(this->disregard_importance_flag ? "true" : "false"));
     LOG_DEBUG("Unique value flag: " + string(this->unique_value_flag ? "true" : "false"));
+    LOG_DEBUG("Flat pattern flag: " + string(this->flat_pattern_flag ? "true" : "false"));
     LOG_INFO("Fetched " + std::to_string(handles->size()) + " atoms in " + link_schema_handle);
 
     vector<pair<char*, float>> tagged_handles;
@@ -183,7 +184,7 @@ void LinkTemplate::processor_method(shared_ptr<StoppableThread> monitor) {
                 }
             }
             if (! (++processed % 1000000)) {
-                LOG_INFO("Processed " + std::to_string(processed++) + "/" + std::to_string(tagged_handles.size()) + ". " + std::to_string(count_matched) + " matched so far.");
+                LOG_INFO("Processed " + std::to_string(processed) + "/" + std::to_string(tagged_handles.size()) + ". " + std::to_string(count_matched) + " matched so far.");
             }
             pending--;
         }
