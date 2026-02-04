@@ -26,16 +26,18 @@ class DatabaseWrapper {
     virtual ~DatabaseWrapper() = default;
 
     /**
-     * @brief Establishes connection to the database.
-     */
-    virtual unique_ptr<ConnT> connect() = 0;
-
-    /**
      * @brief Closes the connection.
      */
     virtual void disconnect() = 0;
 
+    unsigned int mapper_handle_trie_size() { return mapper->handle_trie_size(); }
+
    protected:
+    /**
+     * @brief Establishes connection to the database.
+     */
+    virtual unique_ptr<ConnT> connect() = 0;
+
     unique_ptr<ConnT> db_client;
     shared_ptr<Mapper> mapper;
     MAPPER_TYPE mapper_type;

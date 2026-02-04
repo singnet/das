@@ -13,9 +13,6 @@
 
 using namespace std;
 
-size_t PostgresWrapper::OFFSET = 0;
-size_t PostgresWrapper::LIMIT = 10000;
-
 PostgresWrapper::PostgresWrapper(const string& host,
                                  int port,
                                  const string& database,
@@ -30,6 +27,8 @@ PostgresWrapper::PostgresWrapper(const string& host,
       password(password) {
     this->db_client = this->connect();
 }
+
+PostgresWrapper::~PostgresWrapper() { this->disconnect(); }
 
 unique_ptr<pqxx::connection> PostgresWrapper::connect() {
     try {
@@ -60,7 +59,6 @@ Table PostgresWrapper::get_table(const string& name) {
         if (table.name == name) return table;
     }
     Utils::error("Table '" + name + "' not found in the database.");
-    return Table{};
 }
 
 vector<Table> PostgresWrapper::list_tables() {
@@ -165,6 +163,8 @@ void PostgresWrapper::map_table(const Table& table,
                                 const vector<string>& clauses,
                                 const vector<string>& skip_columns,
                                 bool second_level) {
+    LOG_DEBUG("Mapping table: " << table.name);
+
     string where_clauses;
 
     for (size_t i = 0; i < clauses.size(); ++i) {
@@ -179,7 +179,7 @@ void PostgresWrapper::map_table(const Table& table,
     if (!where_clauses.empty()) {
         base_query += " WHERE " + where_clauses;
     }
-
+    LOG_DEBUG("Base query: " << base_query);
     this->fetch_rows_paginated(table, columns, base_query);
 
     if (second_level) {
@@ -216,6 +216,13 @@ void PostgresWrapper::map_table(const Table& table,
 
 vector<string> PostgresWrapper::build_columns_to_map(const Table& table,
                                                      const vector<string>& skip_columns) {
+    for (const auto& skipo_col : skip_columns) {
+        if (find(table.column_names.begin(), table.column_names.end(), skipo_col) ==
+            table.column_names.end()) {
+            Utils::error("Skip column '" + skipo_col + "' not found in table '" + table.name + "'");
+        }
+    }
+
     vector<string> columns_to_process = table.column_names;
 
     vector<string> non_primary_key_columns;
@@ -251,10 +258,12 @@ vector<string> PostgresWrapper::collect_fk_ids(const string& table_name,
                                                const string& where_clause) {
     vector<string> ids;
 
+    size_t offset = 0;
+    size_t limit = 10000;
+
     while (true) {
         string query = "SELECT " + column_name + " FROM " + table_name + " WHERE " + where_clause +
-                       " LIMIT " + to_string(PostgresWrapper::LIMIT) + " OFFSET " +
-                       to_string(PostgresWrapper::OFFSET) + ";";
+                       " LIMIT " + to_string(limit) + " OFFSET " + to_string(offset) + ";";
         pqxx::result rows = this->execute_query(query);
 
         if (rows.empty()) break;
@@ -267,7 +276,7 @@ vector<string> PostgresWrapper::collect_fk_ids(const string& table_name,
             }
         }
 
-        PostgresWrapper::OFFSET += PostgresWrapper::LIMIT;
+        offset += limit;
     }
     return ids;
 }
@@ -354,29 +363,56 @@ map<string, vector<string>> PostgresWrapper::extract_aliases_from_query(const st
 void PostgresWrapper::fetch_rows_paginated(const Table& table,
                                            const vector<string>& columns,
                                            const string& query) {
+    size_t offset = 0;
+    size_t limit = 10000;
+
     while (true) {
-        string paginated_query = query + " LIMIT " + to_string(PostgresWrapper::LIMIT) + " OFFSET " +
-                                 to_string(PostgresWrapper::OFFSET);
+        string paginated_query = query + " LIMIT " + to_string(limit) + " OFFSET " + to_string(offset);
         pqxx::result rows = this->execute_query(paginated_query);
+
+        LOG_DEBUG("Executing paginated query: " << paginated_query);
+        LOG_DEBUG("Fetched " << rows.size() << " rows from table " << table.name);
 
         if (rows.empty()) break;
 
         for (const auto& row : rows) {
             SqlRow sql_row = this->build_sql_row(row, table, columns);
+
+            LOG_DEBUG("Built SqlRow for table "
+                      << table.name << " with primary key: "
+                      << (sql_row.primary_key ? sql_row.primary_key->value : "NULL"));
+            for (const auto& field : sql_row.fields) {
+                LOG_DEBUG("  Field: " << field.name << " = " << field.value);
+            }
+
+            auto before = this->mapper->handle_trie_size();
             auto output = this->mapper->map(DbInput{sql_row});
+            auto after = this->mapper->handle_trie_size();
+
+            LOG_DEBUG("############################ Mapper handle trie size before: "
+                      << before << ", after: " << after);
 
             if (this->mapper_type == MAPPER_TYPE::SQL2ATOMS) {
                 vector<Atom*> atoms = get<vector<Atom*>>(output);
                 LOG_DEBUG("====>>>>>> Atoms count: " << atoms.size());
                 // WIP - send atoms to SharedQueue
+
+                // NOTE: This code is used for testing purposes only.
+                // if (this->processor) {
+                //     this->processor->process_atoms(atoms, table.name);
+                // }
+
             } else {
                 vector<string> metta_expressions = get<vector<string>>(output);
                 LOG_DEBUG("====>>>>>> Metta Expressions count: " << metta_expressions.size());
                 // WIP - save metta expressions to file
+
+                // NOTE: This code is used for testing purposes only.
+                // if (this->processor) this->processor->process_metta(metta_expressions, table.name);
             }
         }
 
-        PostgresWrapper::OFFSET += PostgresWrapper::LIMIT;
+        offset += limit;
     }
 }
 

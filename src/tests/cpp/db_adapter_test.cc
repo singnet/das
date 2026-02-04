@@ -6,65 +6,613 @@
 #include <thread>
 #include <vector>
 
+#include "Atom.h"
+#include "Logger.h"
+#include "Node.h"
 #include "PostgresWrapper.h"
 #include "TestConfig.h"
 
 using namespace std;
+using namespace db_adapter;
+using namespace atoms;
 
-class PostgresTestEnvironment : public ::testing::Environment {
+class PostgresWrapperTestEnvironment : public ::testing::Environment {
    public:
     void SetUp() override { TestConfig::load_environment(); }
 
     void TearDown() override {}
 };
 
-class PostgresTest : public ::testing::Test {
+class PostgresWrapperTest : public ::testing::Test {
    protected:
-    void SetUp() override {
-        host = "chado.flybase.org";
-        port = 5432;
-        database = "flybase";
-        user = "flybase";
-        // password = "password"; // No password needed for this public database
-    }
+    string TEST_HOST = "localhost";
+    int TEST_PORT = 5433;
+    string TEST_DB = "postgres_wrapper_test";
+    string TEST_USER = "postgres";
+    string TEST_PASSWORD = "test";
+
+    string INVALID_HOST = "invalid.host";
+    int INVALID_PORT = 99999;
+    string INVALID_DB = "database_xyz";
+
+    string FEATURE_TABLE = "public.feature";
+    string ORGANISM_TABLE = "public.organism";
+    string CVTERM_TABLE = "public.cvterm";
+    string FEATURE_PK = "feature_id";
+    string ORGANISM_PK = "organism_id";
+    string CVTERM_PK = "cvterm_id";
+
+    int DROSOPHILA_ORGANISM_ID = 1;
+    int HUMAN_ORGANISM_ID = 2;
+
+    int WHITE_GENE_ID = 1;
+    string WHITE_GENE_NAME = "white";
+    string WHITE_GENE_UNIQUENAME = "FBgn0003996";
+
+    int TOTAL_ROWS_ORGANISMS = 5;
+    int TOTAL_ROWS_CVTERMS = 10;
+    int TOTAL_ROWS_FEATURES = 26;
+
+    void SetUp() override {}
 
     void TearDown() override {}
 
-    string host;
-    int port;
-    string database;
-    string user;
-    string password;
+    shared_ptr<PostgresWrapper> create_wrapper(MAPPER_TYPE mapper_type = MAPPER_TYPE::SQL2ATOMS) {
+        return make_shared<PostgresWrapper>(
+            TEST_HOST, TEST_PORT, TEST_DB, TEST_USER, TEST_PASSWORD, mapper_type);
+    }
 };
 
-TEST_F(PostgresTest, ConnectSuccess) {
-    PostgresWrapper wrapper(host, port, database, user, password);
+TEST_F(PostgresWrapperTest, Connection) {
+    auto wrapper = create_wrapper();
 
-    auto conn = wrapper.connect();
+    auto result = wrapper->execute_query("SELECT 1");
 
-    ASSERT_NE(conn, nullptr);
-    EXPECT_TRUE(conn->is_open());
+    EXPECT_FALSE(result.empty());
+    EXPECT_EQ(result[0][0].as<int>(), 1);
+
+    EXPECT_THROW({ PostgresWrapper("invalid.host", TEST_PORT, TEST_DB, TEST_USER, TEST_PASSWORD); },
+                 std::runtime_error);
+    EXPECT_THROW({ PostgresWrapper(TEST_HOST, 99999, TEST_DB, TEST_USER, TEST_PASSWORD); },
+                 std::runtime_error);
+    EXPECT_THROW({ PostgresWrapper(TEST_HOST, TEST_PORT, "non_existent_db", TEST_USER, TEST_PASSWORD); },
+                 std::runtime_error);
+
+    wrapper->disconnect();
+
+    EXPECT_THROW(wrapper->execute_query("SELECT 1"), std::runtime_error);
 }
 
-TEST_F(PostgresTest, SimpleQuery) {
-    PostgresWrapper wrapper(host, port, database, user, password);
+TEST_F(PostgresWrapperTest, GetTable) {
+    auto wrapper = create_wrapper();
+    auto tables = wrapper->list_tables();
+    ASSERT_FALSE(tables.empty());
 
-    auto conn = wrapper.connect();
-    ASSERT_NE(conn, nullptr);
-    ASSERT_TRUE(conn->is_open());
+    string target_name = tables[0].name;
+    Table t = wrapper->get_table(target_name);
 
-    // Default transaction (write-read)
-    pqxx::work transaction(*conn);
-    string query = "select * from feature f where f.feature_id = 3164551;";
-    pqxx::result result = transaction.exec(query);
-    transaction.commit();
+    EXPECT_EQ(t.name, target_name);
+    EXPECT_EQ(t.primary_key, tables[0].primary_key);
 
-    EXPECT_EQ(result.size(), 1);
-    EXPECT_EQ(result[0]["uniquename"].as<string>(), "FBgn0020238");
+    Table feature = wrapper->get_table("public.feature");
+
+    EXPECT_EQ(feature.name, "public.feature");
+    EXPECT_EQ(feature.primary_key, "feature_id");
+
+    EXPECT_THROW(wrapper->get_table("fake_table_name"), std::runtime_error);
+}
+
+TEST_F(PostgresWrapperTest, ListTables) {
+    auto wrapper = create_wrapper();
+
+    auto tables = wrapper->list_tables();
+
+    EXPECT_GE(tables.size(), 3);
+
+    bool found_organism = false;
+    bool found_cvterm = false;
+    bool found_feature = false;
+
+    for (const auto& table : tables) {
+        if (table.name == ORGANISM_TABLE) found_organism = true;
+        if (table.name == CVTERM_TABLE) found_cvterm = true;
+        if (table.name == FEATURE_TABLE) found_feature = true;
+    }
+
+    EXPECT_TRUE(found_organism);
+    EXPECT_TRUE(found_cvterm);
+    EXPECT_TRUE(found_feature);
+
+    vector<Table> tables_cached = wrapper->list_tables();
+
+    ASSERT_EQ(tables_cached.size(), tables_cached.size());
+    if (!tables_cached.empty()) {
+        EXPECT_EQ(tables_cached[0].name, tables_cached[0].name);
+    }
+}
+
+TEST_F(PostgresWrapperTest, TablesStructure) {
+    auto wrapper = create_wrapper();
+
+    Table organism_table = wrapper->get_table(ORGANISM_TABLE);
+
+    EXPECT_EQ(organism_table.name, ORGANISM_TABLE);
+    EXPECT_EQ(organism_table.primary_key, ORGANISM_PK);
+    EXPECT_TRUE(organism_table.foreign_keys.empty());
+
+    vector<string> expected_cols = {
+        "organism_id", "genus", "species", "common_name", "abbreviation", "comment", "created_at"};
+    for (const auto& expected : expected_cols) {
+        bool found =
+            find(organism_table.column_names.begin(), organism_table.column_names.end(), expected) !=
+            organism_table.column_names.end();
+        EXPECT_TRUE(found);
+    }
+
+    Table cvterm_table = wrapper->get_table(CVTERM_TABLE);
+
+    EXPECT_EQ(cvterm_table.name, CVTERM_TABLE);
+    EXPECT_EQ(cvterm_table.primary_key, CVTERM_PK);
+    EXPECT_TRUE(cvterm_table.foreign_keys.empty());
+
+    Table feature_table = wrapper->get_table(FEATURE_TABLE);
+
+    EXPECT_EQ(feature_table.name, FEATURE_TABLE);
+    EXPECT_EQ(feature_table.primary_key, FEATURE_PK);
+    EXPECT_EQ(feature_table.foreign_keys.size(), 2);
+
+    bool has_organism_fk = false;
+    bool has_type_fk = false;
+    for (const auto& fk : feature_table.foreign_keys) {
+        if (fk.find("organism_id") != string::npos && fk.find("public.organism") != string::npos) {
+            has_organism_fk = true;
+        }
+        if (fk.find("type_id") != string::npos && fk.find("public.cvterm") != string::npos) {
+            has_type_fk = true;
+        }
+    }
+    EXPECT_TRUE(has_organism_fk);
+    EXPECT_TRUE(has_type_fk);
+}
+
+TEST_F(PostgresWrapperTest, CheckData) {
+    auto wrapper = create_wrapper();
+
+    auto result = wrapper->execute_query(
+        "SELECT organism_id, genus, species, common_name FROM organism WHERE organism_id = 1");
+
+    ASSERT_EQ(result.size(), 1);
+    EXPECT_EQ(result[0]["organism_id"].as<int>(), 1);
+    EXPECT_EQ(result[0]["genus"].as<string>(), "Drosophila");
+    EXPECT_EQ(result[0]["species"].as<string>(), "melanogaster");
+    EXPECT_EQ(result[0]["common_name"].as<string>(), "fruit fly");
+
+    auto result2 =
+        wrapper->execute_query("SELECT feature_id, name, uniquename FROM feature WHERE feature_id = " +
+                               to_string(WHITE_GENE_ID));
+
+    ASSERT_EQ(result2.size(), 1);
+    EXPECT_EQ(result2[0]["feature_id"].as<int>(), WHITE_GENE_ID);
+    EXPECT_EQ(result2[0]["name"].as<string>(), WHITE_GENE_NAME);
+    EXPECT_EQ(result2[0]["uniquename"].as<string>(), WHITE_GENE_UNIQUENAME);
+
+    auto result3 = wrapper->execute_query("SELECT COUNT(*) FROM organism");
+
+    EXPECT_EQ(result3[0][0].as<int>(), TOTAL_ROWS_ORGANISMS);
+
+    auto result4 = wrapper->execute_query("SELECT COUNT(*) FROM cvterm");
+
+    EXPECT_EQ(result4[0][0].as<int>(), TOTAL_ROWS_CVTERMS);
+
+    auto result5 = wrapper->execute_query("SELECT COUNT(*) FROM feature");
+
+    EXPECT_EQ(result5[0][0].as<int>(), TOTAL_ROWS_FEATURES);
+}
+
+// map_table - SQL2ATOMS
+TEST_F(PostgresWrapperTest, MapTablesFirstRowAtoms) {
+    auto wrapper = create_wrapper();
+
+    Table organism_table = wrapper->get_table(ORGANISM_TABLE);
+    EXPECT_NO_THROW({ wrapper->map_table(organism_table, {"organism_id = 1"}, {}, false); });
+    EXPECT_EQ(wrapper->mapper_handle_trie_size(), 34);
+
+    Table feature_table = wrapper->get_table(FEATURE_TABLE);
+    EXPECT_NO_THROW({ wrapper->map_table(feature_table, {"feature_id = 1"}, {}, false); });
+    EXPECT_EQ(wrapper->mapper_handle_trie_size(), 81);
+
+    Table cvterm_table = wrapper->get_table(CVTERM_TABLE);
+    EXPECT_NO_THROW({ wrapper->map_table(cvterm_table, {"cvterm_id = 1"}, {}, false); });
+    EXPECT_EQ(wrapper->mapper_handle_trie_size(), 101);
+}
+
+TEST_F(PostgresWrapperTest, MapTableWithClausesAndSkipColumnsAtoms) {
+    auto wrapper = create_wrapper();
+
+    Table table = wrapper->get_table(FEATURE_TABLE);
+    vector<string> clauses = {"organism_id = " + to_string(DROSOPHILA_ORGANISM_ID), "feature_id <= 5"};
+    vector<string> skip_columns = {"residues", "md5checksum", "seqlen"};
+
+    EXPECT_NO_THROW({ wrapper->map_table(table, clauses, skip_columns, false); });
+    EXPECT_EQ(wrapper->mapper_handle_trie_size(), 114);
+}
+
+TEST_F(PostgresWrapperTest, MapTableZeroRowsAtoms) {
+    auto wrapper = create_wrapper();
+
+    Table table = wrapper->get_table(FEATURE_TABLE);
+    vector<string> clauses = {"feature_id = -999"};
+
+    EXPECT_NO_THROW({ wrapper->map_table(table, clauses, {}, false); });
+    EXPECT_EQ(wrapper->mapper_handle_trie_size(), 0);
+}
+
+TEST_F(PostgresWrapperTest, MapTableWithNonExistentSkipColumnAtoms) {
+    auto wrapper = create_wrapper();
+
+    Table table = wrapper->get_table(FEATURE_TABLE);
+
+    vector<string> clauses = {"feature_id < 10"};
+    vector<string> skip_columns = {"column_xyz"};
+
+    EXPECT_THROW({ wrapper->map_table(table, clauses, skip_columns, false); }, std::runtime_error);
+    EXPECT_EQ(wrapper->mapper_handle_trie_size(), 0);
+}
+
+TEST_F(PostgresWrapperTest, MapTableWithInvalidClauseAtoms) {
+    auto wrapper = create_wrapper();
+
+    Table table = wrapper->get_table(FEATURE_TABLE);
+
+    vector<string> clauses = {"INVALID CLAUSE SYNTAX !!!"};
+
+    EXPECT_THROW({ wrapper->map_table(table, clauses, {}, false); }, std::runtime_error);
+    EXPECT_EQ(wrapper->mapper_handle_trie_size(), 0);
+}
+
+// map_table - SQL2METTA
+TEST_F(PostgresWrapperTest, MapTablesFirstRowMetta) {
+    auto wrapper = create_wrapper(MAPPER_TYPE::SQL2METTA);
+
+    Table organism_table = wrapper->get_table(ORGANISM_TABLE);
+    EXPECT_NO_THROW({ wrapper->map_table(organism_table, {"organism_id = 1"}, {}, false); });
+    EXPECT_EQ(wrapper->mapper_handle_trie_size(), 19);
+
+    Table feature_table = wrapper->get_table(FEATURE_TABLE);
+    EXPECT_NO_THROW({ wrapper->map_table(feature_table, {"feature_id = 1"}, {}, false); });
+    EXPECT_EQ(wrapper->mapper_handle_trie_size(), 51);
+
+    Table cvterm_table = wrapper->get_table(CVTERM_TABLE);
+    EXPECT_NO_THROW({ wrapper->map_table(cvterm_table, {"cvterm_id = 1"}, {}, false); });
+    EXPECT_EQ(wrapper->mapper_handle_trie_size(), 65);
+}
+
+TEST_F(PostgresWrapperTest, MapTableWithClausesAndSkipColumnsMetta) {
+    auto wrapper = create_wrapper(MAPPER_TYPE::SQL2METTA);
+
+    Table table = wrapper->get_table(FEATURE_TABLE);
+    vector<string> clauses = {"organism_id = " + to_string(DROSOPHILA_ORGANISM_ID), "feature_id <= 5"};
+    vector<string> skip_columns = {"residues", "md5checksum", "seqlen"};
+
+    EXPECT_NO_THROW({ wrapper->map_table(table, clauses, skip_columns, false); });
+    EXPECT_EQ(wrapper->mapper_handle_trie_size(), 86);
+}
+
+TEST_F(PostgresWrapperTest, MapTableZeroRowsMetta) {
+    auto wrapper = create_wrapper(MAPPER_TYPE::SQL2METTA);
+
+    Table table = wrapper->get_table(FEATURE_TABLE);
+    vector<string> clauses = {"feature_id = -999"};
+
+    EXPECT_NO_THROW({ wrapper->map_table(table, clauses, {}, false); });
+    EXPECT_EQ(wrapper->mapper_handle_trie_size(), 0);
+}
+
+TEST_F(PostgresWrapperTest, MapTableWithNonExistentSkipColumnMetta) {
+    auto wrapper = create_wrapper(MAPPER_TYPE::SQL2METTA);
+
+    Table table = wrapper->get_table(FEATURE_TABLE);
+
+    vector<string> clauses = {"feature_id < 10"};
+    vector<string> skip_columns = {"column_xyz"};
+
+    EXPECT_THROW({ wrapper->map_table(table, clauses, skip_columns, false); }, std::runtime_error);
+    EXPECT_EQ(wrapper->mapper_handle_trie_size(), 0);
+}
+
+TEST_F(PostgresWrapperTest, MapTableWithInvalidClauseMetta) {
+    auto wrapper = create_wrapper(MAPPER_TYPE::SQL2METTA);
+
+    Table table = wrapper->get_table(FEATURE_TABLE);
+
+    vector<string> clauses = {"INVALID CLAUSE SYNTAX !!!"};
+
+    EXPECT_THROW({ wrapper->map_table(table, clauses, {}, false); }, std::runtime_error);
+    EXPECT_EQ(wrapper->mapper_handle_trie_size(), 0);
+}
+
+// map_sql_query - SQL2ATOMS
+TEST_F(PostgresWrapperTest, MapSqlQueryFirstRowAtoms) {
+    auto wrapper = create_wrapper();
+
+    string query_organism = R"(
+        SELECT
+            o.organism_id AS public_organism__organism_id,
+            o.genus AS public_organism__genus,
+            o.species AS public_organism__species,
+            o.common_name AS public_organism__common_name,
+            o.abbreviation AS public_organism__abbreviation,
+            o.comment AS public_organism__comment
+        FROM organism AS o
+        WHERE o.organism_id = 1
+    )";
+
+    EXPECT_NO_THROW({ wrapper->map_sql_query("test_organism", query_organism); });
+    EXPECT_EQ(wrapper->mapper_handle_trie_size(), 34);
+
+    string query_feature = R"(
+        SELECT
+            f.feature_id AS public_feature__feature_id,
+            f.organism_id AS public_feature__organism_id,
+            f.type_id AS public_feature__type_id,
+            f.name AS public_feature__name,
+            f.uniquename AS public_feature__uniquename,
+            f.residues AS public_feature__residues,
+            f.md5checksum AS public_feature__md5checksum,
+            f.seqlen AS public_feature__seqlen,
+            f.is_analysis AS public_feature__is_analysis,
+            f.is_obsolete AS public_feature__is_obsolete
+        FROM feature AS f
+        WHERE f.feature_id = 1
+    )";
+
+    EXPECT_NO_THROW({ wrapper->map_sql_query("test_feature", query_feature); });
+    EXPECT_EQ(wrapper->mapper_handle_trie_size(), 81);
+
+    string query_cvterm = R"(
+        SELECT
+            c.cvterm_id AS public_cvterm__cvterm_id,
+            c.name AS public_cvterm__name,
+            c.definition AS public_cvterm__definition,
+            c.is_obsolete AS public_cvterm__is_obsolete,
+            c.is_relationshiptype AS public_cvterm__is_relationshiptype
+        FROM cvterm AS c
+        WHERE c.cvterm_id = 1
+    )";
+
+    EXPECT_NO_THROW({ wrapper->map_sql_query("test_cvterm", query_cvterm); });
+    EXPECT_EQ(wrapper->mapper_handle_trie_size(), 101);
+}
+
+TEST_F(PostgresWrapperTest, MapSqlQueryWithClausesAndSkipColumnsAtoms) {
+    auto wrapper = create_wrapper();
+
+    string query = R"(
+        SELECT
+            f.feature_id AS public_feature__feature_id,
+            f.organism_id AS public_feature__organism_id,
+            f.type_id AS public_feature__type_id,
+            f.name AS public_feature__name,
+            f.uniquename AS public_feature__uniquename,
+            f.is_analysis AS public_feature__is_analysis,
+            f.is_obsolete AS public_feature__is_obsolete
+        FROM feature AS f
+        WHERE f.organism_id = )" +
+                   to_string(DROSOPHILA_ORGANISM_ID) + R"( AND f.feature_id <= 5)";
+
+    EXPECT_NO_THROW({ wrapper->map_sql_query("test_feature_clause_and_skip", query); });
+    EXPECT_EQ(wrapper->mapper_handle_trie_size(), 114);
+}
+
+TEST_F(PostgresWrapperTest, MapSqlQueryZeroRowsAtoms) {
+    auto wrapper = create_wrapper();
+
+    string query = R"(
+        SELECT
+            f.feature_id AS public_feature__feature_id,
+            f.organism_id AS public_feature__organism_id,
+            f.type_id AS public_feature__type_id,
+            f.name AS public_feature__name,
+            f.uniquename AS public_feature__uniquename,
+            f.residues AS public_feature__residues,
+            f.md5checksum AS public_feature__md5checksum,
+            f.seqlen AS public_feature__seqlen,
+            f.is_analysis AS public_feature__is_analysis,
+            f.is_obsolete AS public_feature__is_obsolete
+        FROM feature AS f
+        WHERE f.feature_id = -999
+    )";
+
+    EXPECT_NO_THROW({ wrapper->map_sql_query("test_feature_zero_rows", query); });
+    EXPECT_EQ(wrapper->mapper_handle_trie_size(), 0);
+}
+
+TEST_F(PostgresWrapperTest, MapSqlQueryWithNonExistentSkipColumnAtoms) {
+    auto wrapper = create_wrapper();
+
+    string query = R"(
+        SELECT
+            f.feature_id AS public_feature__feature_id,
+            f.organism_id AS public_feature__organism_id,
+            f.type_id AS public_feature__type_id,
+            f.name AS public_feature__name,
+            f.uniquename AS public_feature__uniquename,
+            f.column_xyz AS public_feature__column_xyz
+        FROM feature AS f
+        WHERE f.feature_id < 10
+    )";
+
+    EXPECT_THROW({ wrapper->map_sql_query("test_feature_with_non_existent_column", query); },
+                 std::runtime_error);
+    EXPECT_EQ(wrapper->mapper_handle_trie_size(), 0);
+}
+
+TEST_F(PostgresWrapperTest, MapSqlQueryWithInvalidClauseAtoms) {
+    auto wrapper = create_wrapper();
+
+    string query = R"(
+        SELECT
+            f.feature_id AS public_feature__feature_id,
+            f.organism_id AS public_feature__organism_id,
+            f.type_id AS public_feature__type_id,
+            f.name AS public_feature__name,
+            f.uniquename AS public_feature__uniquename,
+            f.residues AS public_feature__residues,
+            f.md5checksum AS public_feature__md5checksum,
+            f.seqlen AS public_feature__seqlen,
+            f.is_analysis AS public_feature__is_analysis,
+            f.is_obsolete AS public_feature__is_obsolete
+        FROM feature AS f
+        WHERE INVALID CLAUSE SYNTAX !!!
+    )";
+
+    EXPECT_THROW({ wrapper->map_sql_query("test_feature_with_invalid_clause", query); },
+                 std::runtime_error);
+    EXPECT_EQ(wrapper->mapper_handle_trie_size(), 0);
+}
+
+// map_sql_query - SQL2METTA
+TEST_F(PostgresWrapperTest, MapSqlQueryFirstRowMetta) {
+    auto wrapper = create_wrapper(MAPPER_TYPE::SQL2METTA);
+
+    string query_organism = R"(
+        SELECT
+            o.organism_id AS public_organism__organism_id,
+            o.genus AS public_organism__genus,
+            o.species AS public_organism__species,
+            o.common_name AS public_organism__common_name,
+            o.abbreviation AS public_organism__abbreviation,
+            o.comment AS public_organism__comment
+        FROM organism AS o
+        WHERE o.organism_id = 1
+    )";
+
+    EXPECT_NO_THROW({ wrapper->map_sql_query("test_organism", query_organism); });
+    EXPECT_EQ(wrapper->mapper_handle_trie_size(), 19);
+
+    string query_feature = R"(
+        SELECT
+            f.feature_id AS public_feature__feature_id,
+            f.organism_id AS public_feature__organism_id,
+            f.type_id AS public_feature__type_id,
+            f.name AS public_feature__name,
+            f.uniquename AS public_feature__uniquename,
+            f.residues AS public_feature__residues,
+            f.md5checksum AS public_feature__md5checksum,
+            f.seqlen AS public_feature__seqlen,
+            f.is_analysis AS public_feature__is_analysis,
+            f.is_obsolete AS public_feature__is_obsolete
+        FROM feature AS f
+        WHERE f.feature_id = 1
+    )";
+
+    EXPECT_NO_THROW({ wrapper->map_sql_query("test_feature", query_feature); });
+    EXPECT_EQ(wrapper->mapper_handle_trie_size(), 51);
+
+    string query_cvterm = R"(
+        SELECT
+            c.cvterm_id AS public_cvterm__cvterm_id,
+            c.name AS public_cvterm__name,
+            c.definition AS public_cvterm__definition,
+            c.is_obsolete AS public_cvterm__is_obsolete,
+            c.is_relationshiptype AS public_cvterm__is_relationshiptype
+        FROM cvterm AS c
+        WHERE c.cvterm_id = 1
+    )";
+
+    EXPECT_NO_THROW({ wrapper->map_sql_query("test_cvterm", query_cvterm); });
+    EXPECT_EQ(wrapper->mapper_handle_trie_size(), 65);
+}
+
+TEST_F(PostgresWrapperTest, MapSqlQueryWithClausesAndSkipColumnsMetta) {
+    auto wrapper = create_wrapper(MAPPER_TYPE::SQL2METTA);
+
+    string query = R"(
+        SELECT
+            f.feature_id AS public_feature__feature_id,
+            f.organism_id AS public_feature__organism_id,
+            f.type_id AS public_feature__type_id,
+            f.name AS public_feature__name,
+            f.uniquename AS public_feature__uniquename,
+            f.is_analysis AS public_feature__is_analysis,
+            f.is_obsolete AS public_feature__is_obsolete
+        FROM feature AS f
+        WHERE f.organism_id = )" +
+                   to_string(DROSOPHILA_ORGANISM_ID) + R"( AND f.feature_id <= 5)";
+
+    EXPECT_NO_THROW({ wrapper->map_sql_query("test_feature_clause_and_skip", query); });
+    EXPECT_EQ(wrapper->mapper_handle_trie_size(), 86);
+}
+
+TEST_F(PostgresWrapperTest, MapSqlQueryZeroRowsMetta) {
+    auto wrapper = create_wrapper(MAPPER_TYPE::SQL2METTA);
+
+    string query = R"(
+        SELECT
+            f.feature_id AS public_feature__feature_id,
+            f.organism_id AS public_feature__organism_id,
+            f.type_id AS public_feature__type_id,
+            f.name AS public_feature__name,
+            f.uniquename AS public_feature__uniquename,
+            f.residues AS public_feature__residues,
+            f.md5checksum AS public_feature__md5checksum,
+            f.seqlen AS public_feature__seqlen,
+            f.is_analysis AS public_feature__is_analysis,
+            f.is_obsolete AS public_feature__is_obsolete
+        FROM feature AS f
+        WHERE f.feature_id = -999
+    )";
+
+    EXPECT_NO_THROW({ wrapper->map_sql_query("test_feature_zero_rows", query); });
+    EXPECT_EQ(wrapper->mapper_handle_trie_size(), 0);
+}
+
+TEST_F(PostgresWrapperTest, MapSqlQueryWithNonExistentSkipColumnMetta) {
+    auto wrapper = create_wrapper(MAPPER_TYPE::SQL2METTA);
+
+    string query = R"(
+        SELECT
+            f.feature_id AS public_feature__feature_id,
+            f.organism_id AS public_feature__organism_id,
+            f.type_id AS public_feature__type_id,
+            f.name AS public_feature__name,
+            f.uniquename AS public_feature__uniquename,
+            f.column_xyz AS public_feature__column_xyz
+        FROM feature AS f
+        WHERE f.feature_id < 10
+    )";
+
+    EXPECT_THROW({ wrapper->map_sql_query("test_feature_with_non_existent_column", query); },
+                 std::runtime_error);
+    EXPECT_EQ(wrapper->mapper_handle_trie_size(), 0);
+}
+
+TEST_F(PostgresWrapperTest, MapSqlQueryWithInvalidClauseMetta) {
+    auto wrapper = create_wrapper(MAPPER_TYPE::SQL2METTA);
+
+    string query = R"(
+        SELECT
+            f.feature_id AS public_feature__feature_id,
+            f.organism_id AS public_feature__organism_id,
+            f.type_id AS public_feature__type_id,
+            f.name AS public_feature__name,
+            f.uniquename AS public_feature__uniquename,
+            f.residues AS public_feature__residues,
+            f.md5checksum AS public_feature__md5checksum,
+            f.seqlen AS public_feature__seqlen,
+            f.is_analysis AS public_feature__is_analysis,
+            f.is_obsolete AS public_feature__is_obsolete
+        FROM feature AS f
+        WHERE INVALID CLAUSE SYNTAX !!!
+    )";
+
+    EXPECT_THROW({ wrapper->map_sql_query("test_feature_with_invalid_clause", query); },
+                 std::runtime_error);
+    EXPECT_EQ(wrapper->mapper_handle_trie_size(), 0);
 }
 
 int main(int argc, char** argv) {
     ::testing::InitGoogleTest(&argc, argv);
-    ::testing::AddGlobalTestEnvironment(new PostgresTestEnvironment);
+    ::testing::AddGlobalTestEnvironment(new PostgresWrapperTestEnvironment);
     return RUN_ALL_TESTS();
 }

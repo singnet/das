@@ -7,9 +7,11 @@
 #include "DataTypes.h"
 #include "Hasher.h"
 #include "Link.h"
-#include "Logger.h"
 #include "MettaMapping.h"
 #include "Node.h"
+
+#define LOG_LEVEL DEBUG_LEVEL
+#include "Logger.h"
 
 using namespace db_adapter;
 using namespace commons;
@@ -50,7 +52,10 @@ const OutputList BaseSQL2Mapper::map(const DbInput& data) {
         };
     }
     this->map_foreign_keys_combinations(all_foreign_keys);
-    return this->get_output();
+
+    auto result = move(this->get_output());
+    this->clear();
+    return result;
 }
 
 bool BaseSQL2Mapper::is_foreign_key(const string& column_name) {
@@ -102,6 +107,8 @@ SQL2MettaMapper::~SQL2MettaMapper() {}
 
 OutputList SQL2MettaMapper::get_output() { return this->metta_expressions; }
 
+void SQL2MettaMapper::clear() { this->metta_expressions.clear(); }
+
 void SQL2MettaMapper::add_metta_if_new(const string& s_expression) {
     string key = Hasher::context_handle(s_expression);
     if (this->insert_handle_if_missing(key)) {
@@ -115,7 +122,7 @@ void SQL2MettaMapper::map_primary_key(const string& table_name, const string& pr
     string predicate_link = "(Predicate " + table_name + ")";
     this->add_metta_if_new(predicate_link);
 
-    string concept_inner_link = "(" + table_name + literal_pk + ")";
+    string concept_inner_link = "(" + table_name + " " + literal_pk + ")";
     this->add_metta_if_new(concept_inner_link);
 
     string concept_link = "(Concept " + concept_inner_link + ")";
@@ -183,7 +190,7 @@ void SQL2MettaMapper::map_foreign_keys_combinations(
     const vector<tuple<string, string, string>>& all_foreign_keys) {
     for (const auto& [column_name, foreign_table_name, value] : all_foreign_keys) {
         for (const auto& [column_name2, foreign_table_name2, value2] : all_foreign_keys) {
-            if ((foreign_table_name != foreign_table_name2) && (value != value2)) {
+            if (make_pair(foreign_table_name, value) != make_pair(foreign_table_name2, value2)) {
                 string literal_value = this->escape_inner_quotes("\"" + value + "\"");
                 string literal_value_2 = this->escape_inner_quotes("\"" + value2 + "\"");
 
@@ -220,6 +227,8 @@ SQL2AtomsMapper::~SQL2AtomsMapper() {}
 
 OutputList SQL2AtomsMapper::get_output() { return this->atoms; }
 
+void SQL2AtomsMapper::clear() { this->atoms.clear(); }
+
 string SQL2AtomsMapper::add_atom_if_new(SQL2AtomsMapper::ATOM_TYPE atom_type,
                                         variant<string, vector<string>> value,
                                         bool is_toplevel) {
@@ -228,7 +237,7 @@ string SQL2AtomsMapper::add_atom_if_new(SQL2AtomsMapper::ATOM_TYPE atom_type,
     if (atom_type == SQL2AtomsMapper::ATOM_TYPE::NODE) {
         string name = get<string>(value);
         atom = new Node(BaseSQL2Mapper::SYMBOL, name);
-    } else if (SQL2AtomsMapper::ATOM_TYPE::LINK) {
+    } else if (atom_type == SQL2AtomsMapper::ATOM_TYPE::LINK) {
         vector<string> targets = get<vector<string>>(value);
         atom = new Link(BaseSQL2Mapper::EXPRESSION, targets, is_toplevel);
     } else {
@@ -354,7 +363,7 @@ void SQL2AtomsMapper::map_foreign_keys_combinations(
     const vector<tuple<string, string, string>>& all_foreign_keys) {
     for (const auto& [column_name, foreign_table_name, value] : all_foreign_keys) {
         for (const auto& [column_name2, foreign_table_name2, value2] : all_foreign_keys) {
-            if ((foreign_table_name != foreign_table_name2) && (value != value2)) {
+            if (make_pair(foreign_table_name, value) != make_pair(foreign_table_name2, value2)) {
                 string literal_value = this->escape_inner_quotes("\"" + value + "\"");
                 string literal_value_2 = this->escape_inner_quotes("\"" + value2 + "\"");
 

@@ -42,25 +42,20 @@ class PostgresWrapper : public SQLWrapper<pqxx::connection> {
                     const string& password = "postgres",
                     MAPPER_TYPE mapper_type = MAPPER_TYPE::SQL2ATOMS);
 
-    ~PostgresWrapper() = default;
+    ~PostgresWrapper() override;
 
-    static size_t OFFSET;
-    static size_t LIMIT;
-
-    unique_ptr<pqxx::connection> connect() override;
     void disconnect() override;
-
     Table get_table(const string& name) override;
     vector<Table> list_tables() override;
-
     void map_table(const Table& table,
                    const vector<string>& clauses,
                    const vector<string>& skip_columns = {},
                    bool second_level = false) override;
-
     void map_sql_query(const string& virtual_name, const string& raw_query) override;
+    pqxx::result execute_query(const string& query);
 
    protected:
+    unique_ptr<pqxx::connection> connect() override;
     // Regex for parsing alias patterns (e.g., "AS public_feature__uniquename")
     const string alias_pattern_regex = R"(\bAS\s+([a-zA-Z_][a-zA-Z0-9_]*)__([a-zA-Z_][a-zA-Z0-9_]*))";
 
@@ -73,20 +68,13 @@ class PostgresWrapper : public SQLWrapper<pqxx::connection> {
 
     // Store tables in cache to avoid repeated database queries.
     optional<vector<Table>> tables_cache;
-
     vector<string> build_columns_to_map(const Table& table, const vector<string>& skip_columns = {});
-
     vector<string> collect_fk_ids(const string& table_name,
                                   const string& column_name,
                                   const string& where_clause = "");
-
     map<string, vector<string>> extract_aliases_from_query(const string& query);
-
     void fetch_rows_paginated(const Table& table, const vector<string>& columns, const string& query);
-
     SqlRow build_sql_row(const pqxx::row& row, const Table& table, vector<string> columns);
-
-    pqxx::result execute_query(const string& query);
 };
 
 }  // namespace db_adapter

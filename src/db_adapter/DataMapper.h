@@ -37,6 +37,8 @@ class Mapper {
      */
     virtual const OutputList map(const DbInput& data) = 0;
 
+    unsigned int handle_trie_size() { return handle_trie.size; }
+
    protected:
     Mapper() = default;
     HandleTrie handle_trie{32};
@@ -66,6 +68,7 @@ class BaseSQL2Mapper : public Mapper {
     bool is_foreign_key(const string& column_name);
     string escape_inner_quotes(string text);
     virtual OutputList get_output() = 0;
+    virtual void clear() = 0;
     bool insert_handle_if_missing(const string& handle);
 
     virtual void map_primary_key(const string& table_name, const string& primary_key_value) = 0;
@@ -95,6 +98,7 @@ class SQL2MettaMapper : public BaseSQL2Mapper {
    private:
     vector<string> metta_expressions;
     OutputList get_output() override;
+    void clear() override;
     void add_metta_if_new(const string& s_expression);
 
     void map_primary_key(const string& table_name, const string& primary_key_value) override;
@@ -127,6 +131,7 @@ class SQL2AtomsMapper : public BaseSQL2Mapper {
     vector<Atom*> atoms;
 
     OutputList get_output() override;
+    void clear() override;
     string add_atom_if_new(SQL2AtomsMapper::ATOM_TYPE atom_type,
                            variant<string, vector<string>> value,
                            bool is_toplevel = false);
