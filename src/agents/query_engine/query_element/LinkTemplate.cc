@@ -183,11 +183,13 @@ void LinkTemplate::processor_method(shared_ptr<StoppableThread> monitor) {
                         handles->get_assignments_by_handle(tagged_handle.first),
                         handles->get_metta_expressions_by_handle(tagged_handle.first));
                     count_matched++;
-                } else if (flat_pattern_flag || this->link_schema.match(string(tagged_handle.first), assignment, *db.get())) {
-                    this->source_element->add_handle(
-                        tagged_handle.first, tagged_handle.second, assignment);
-                    assignment.clear();
-                    count_matched++;
+                } else {
+                    bool matched = (flat_pattern_flag ? this->link_schema.match_flat_pattern(string(tagged_handle.first), assignment, *db.get()) : this->link_schema.match(string(tagged_handle.first), assignment, *db.get()));
+                    if (matched) {
+                        this->source_element->add_handle(tagged_handle.first, tagged_handle.second, assignment);
+                        assignment.clear();
+                        count_matched++;
+                    }
                 }
             }
             if (! (++processed % 1000000)) {
