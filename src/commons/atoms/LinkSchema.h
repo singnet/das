@@ -20,7 +20,7 @@ class LinkSchema : public Wildcard {
         bool is_link;
         bool is_wildcard;
         SchemaElement() : is_link(false), is_wildcard(false) {}
-        bool match(const string& handle, Assignment& assignment, HandleDecoder& decoder, Atom* atom_ptr, bool flat_pattern_flag);
+        bool match(const string& handle, Assignment& assignment, HandleDecoder& decoder, Atom* atom_ptr);
     };
     bool _frozen;
     unsigned int _arity;
@@ -164,7 +164,6 @@ class LinkSchema : public Wildcard {
 
     bool match(Link& link, Assignment& assignment, HandleDecoder& decoder);
     bool match(const string& handle, Assignment& assignment, HandleDecoder& decoder) override;
-    bool match_flat_pattern(const string& handle, Assignment& assignment, HandleDecoder& decoder);
 
     // ---------------------------------------------------------------------------------------------
     // Public API to build LinkSchema objects

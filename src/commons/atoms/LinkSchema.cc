@@ -154,8 +154,7 @@ unsigned int LinkSchema::arity() const { return this->_arity; }
 bool LinkSchema::SchemaElement::match(const string& handle,
                                       Assignment& assignment,
                                       HandleDecoder& decoder,
-                                      Atom* atom_ptr,
-                                      bool flat_pattern_flag) {
+                                      Atom* atom_ptr) {
     LOG_DEBUG((handle != "" ? "Matching handle: " + handle : "Matching atom " + atom_ptr->to_string()));
     shared_ptr<Atom> atom;
     if (this->is_link) {
@@ -171,18 +170,14 @@ bool LinkSchema::SchemaElement::match(const string& handle,
             atom_ptr = (Link*) atom.get();
         }
         if (Atom::is_link(*atom_ptr) && (atom_ptr->arity() == this->targets.size())) {
-            if (flat_pattern_flag) {
-                LOG_DEBUG("Flat pattern. MATCH.");
-            } else {
-                unsigned int cursor = 0;
-                for (string target_handle : ((Link*) atom_ptr)->targets) {
-                    if (!this->targets[cursor++].match(target_handle, assignment, decoder, NULL, false)) {
-                        LOG_DEBUG("Target[" + std::to_string(cursor - 1) + "] mismatches. NO MATCH.");
-                        return false;
-                    }
+            unsigned int cursor = 0;
+            for (string target_handle : ((Link*) atom_ptr)->targets) {
+                if (!this->targets[cursor++].match(target_handle, assignment, decoder, NULL)) {
+                    LOG_DEBUG("Target[" + std::to_string(cursor - 1) + "] mismatches. NO MATCH.");
+                    return false;
                 }
-                LOG_DEBUG("All targets matched. MATCH.");
             }
+            LOG_DEBUG("All targets matched. MATCH.");
             return true;
         } else {
             LOG_DEBUG("Atom isn't a link or has wrong arity. NO MATCH.");
@@ -201,15 +196,11 @@ bool LinkSchema::SchemaElement::match(const string& handle,
 }
 
 bool LinkSchema::match(Link& link, Assignment& assignment, HandleDecoder& decoder) {
-    return this->_schema_element.match("", assignment, decoder, &link, false);
+    return this->_schema_element.match("", assignment, decoder, &link);
 }
 
 bool LinkSchema::match(const string& handle, Assignment& assignment, HandleDecoder& decoder) {
-    return this->_schema_element.match(handle, assignment, decoder, NULL, false);
-}
-
-bool LinkSchema::match_flat_pattern(const string& handle, Assignment& assignment, HandleDecoder& decoder) {
-    return this->_schema_element.match(handle, assignment, decoder, NULL, true);
+    return this->_schema_element.match(handle, assignment, decoder, NULL);
 }
 
 // -------------------------------------------------------------------------------------------------
