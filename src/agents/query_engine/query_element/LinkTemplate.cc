@@ -176,14 +176,14 @@ void LinkTemplate::processor_method(shared_ptr<StoppableThread> monitor) {
             pending = 0;
         } else {
             if (tagged_handle.second > 0 || !this->positive_importance_flag) {
-                if (db->allow_nested_indexing() || flat_pattern_flag) {
+                if (db->allow_nested_indexing()) {
                     this->source_element->add_handle(
                         tagged_handle.first,
                         tagged_handle.second,
                         handles->get_assignments_by_handle(tagged_handle.first),
                         handles->get_metta_expressions_by_handle(tagged_handle.first));
                     count_matched++;
-                } else if (this->link_schema.match(string(tagged_handle.first), assignment, *db.get())) {
+                } else if (flat_pattern_flag || this->link_schema.match(string(tagged_handle.first), assignment, *db.get())) {
                     this->source_element->add_handle(
                         tagged_handle.first, tagged_handle.second, assignment);
                     assignment.clear();
