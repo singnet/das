@@ -40,6 +40,7 @@ cc_library(
     ],
     hdrs = [
         "MettaParser.h",
+        "ParserActions.h",
     ],
     includes = ["."],
     deps = [
@@ -55,6 +56,7 @@ cc_library(
     ],
     hdrs = [
         "ParserActions.h",
+        "Token.h",
     ],
     includes = ["."],
     deps = [

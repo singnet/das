@@ -19,7 +19,7 @@ RUN mkdir -p \
     ${THIRD_PARTY}
 
 RUN yes | apt update -y \
-    && yes | apt install -y git build-essential curl protobuf-compiler python3 python3-pip cmake unzip uuid-runtime lcov bc \
+    && yes | apt install -y git build-essential curl protobuf-compiler python3 python3-pip cmake unzip uuid-runtime lcov rpm bc \
     libevent-dev libssl-dev pkg-config libncurses5 libpq-dev \
     && yes | apt clean -y \
     && rm -rf /var/lib/apt/lists/*

@@ -77,6 +77,15 @@ class HandleTrie {
     bool exists(const string& key);
 
     /**
+     * Remove a key from this HandleTrie and its associated value.
+     *
+     * @param key Handle being removed.
+     *
+     * @return true if the key was found and removed, false otherwise.
+     */
+    bool remove(const string& key);
+
+    /**
      * Traverse all keys (in-order) calling the passed visit_function once per stored value.
      *
      * @param keep_root_locked Keep root HandleTrie::TrieNode locked during the whole traversing
@@ -90,6 +99,16 @@ class HandleTrie {
     unsigned int size;
 
    private:
+    /**
+     * Lookup for a node containing a given handle.
+     * Similar to lookup() but returns the node pointer instead of the value.
+     *
+     * @param key Handle being searched.
+     *
+     * @return The HandleTrie::TrieNode containing the key or NULL if none.
+     */
+    TrieNode* lookup_node(const string& key);
+
     static unsigned char TLB[256];
     static bool TLB_INITIALIZED;
     static void TLB_INIT() {

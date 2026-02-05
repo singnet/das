@@ -33,6 +33,12 @@ build:debug --strip=never
 build:release --compilation_mode=opt
 build:release --strip=always
 
+# Bazel 9.0.0 adaptations
+build --noincompatible_disable_objc_library_transition
+build --@rules_python//python/config_settings:bootstrap_impl=system
+build --@rules_python//python/config_settings:bootstrap_impl=system_python
+
+
 #################################### TEST #####################################
 # Use half of all available CPU cores
 # test --jobs=HOST_CPUS*0.5
