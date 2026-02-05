@@ -134,7 +134,7 @@ void MettaParserActions::expression_end(bool toplevel, const string& metta_expre
                 this->proxy->parameters.get<bool>(PatternMatchingQueryProxy::DISREGARD_IMPORTANCE_FLAG),
                 this->proxy->parameters.get<bool>(PatternMatchingQueryProxy::UNIQUE_VALUE_FLAG),
                 this->proxy->parameters.get<bool>(BaseQueryProxy::USE_LINK_TEMPLATE_CACHE));
-            new_link_template->flat_pattern_flag = (this->count_open_expression == 1);
+            new_link_template->set_flat_pattern_flag(this->count_open_expression == 1);
             this->element_stack.push(new_link_template);
         }
     } else if ((this->current_expression_type == AND) || (this->current_expression_type == OR)) {

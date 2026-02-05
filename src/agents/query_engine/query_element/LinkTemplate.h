@@ -58,6 +58,7 @@ class LinkTemplate : public QueryElement {
     bool unique_value_flag;
     bool use_cache;
     bool inner_flag;
+    bool flat_pattern_flag;
     LinkSchema link_schema;
     shared_ptr<SourceElement> source_element;
     shared_ptr<StoppableThread> processor;
@@ -106,6 +107,6 @@ class LinkTemplate : public QueryElement {
      */
     virtual void graceful_shutdown() {}
 
-    bool flat_pattern_flag;
+    void set_flat_pattern_flag(bool value) {this->flat_pattern_flag = value;}
 };
 }  // namespace query_element

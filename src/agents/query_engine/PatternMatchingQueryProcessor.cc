@@ -285,6 +285,7 @@ shared_ptr<QueryElement> PatternMatchingQueryProcessor::setup_query_tree(
         }
     }
     bool flat_pattern_flag = (count_nested_elements == 1);
+    LOG_DEBUG("count_nested_elements: " + count_nested_elements);
 
     if (cursor != tokens_count) {
         Utils::error("Parse error in query tokens");
@@ -354,7 +355,7 @@ shared_ptr<QueryElement> PatternMatchingQueryProcessor::build_link_template(
         proxy->parameters.get<bool>(PatternMatchingQueryProxy::DISREGARD_IMPORTANCE_FLAG),
         proxy->parameters.get<bool>(PatternMatchingQueryProxy::UNIQUE_VALUE_FLAG),
         proxy->parameters.get<bool>(BaseQueryProxy::USE_LINK_TEMPLATE_CACHE));
-    link_template->flat_pattern_flag = flat_pattern_flag;
+    link_template->set_flat_pattern_flag(flat_pattern_flag);
     return link_template;
 }
 
