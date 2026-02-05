@@ -57,8 +57,7 @@ class PatternMatchingQueryProcessor : public BusCommandProcessor {
                                   shared_ptr<PatternMatchingQueryProxy> proxy);
     shared_ptr<QueryElement> build_link_template(shared_ptr<PatternMatchingQueryProxy> proxy,
                                                  unsigned int cursor,
-                                                 stack<shared_ptr<QueryElement>>& element_stack,
-                                                 bool flat_pattern_flag);
+                                                 stack<shared_ptr<QueryElement>>& element_stack);
 
     shared_ptr<QueryElement> build_link_template2(shared_ptr<PatternMatchingQueryProxy> proxy,
                                                   unsigned int cursor,

@@ -39,7 +39,13 @@ LinkTemplate::LinkTemplate(const string& type,
     this->processor = nullptr;
     this->random_generator =
         new std::mt19937(std::chrono::system_clock::now().time_since_epoch().count());
-    this->flat_pattern_flag = false;
+    unsigned int max_reverse_nesting = 0;
+    for (auto element: targets) {
+        if (element->reverse_nesting_level > max_reverse_nesting) {
+            max_reverse_nesting = element->reverse_nesting_level;
+        }
+    }
+    this->reverse_nesting_level = max_reverse_nesting + 1;
 }
 
 LinkTemplate::~LinkTemplate() {
@@ -141,10 +147,11 @@ void LinkTemplate::processor_method(shared_ptr<StoppableThread> monitor) {
         handles = db->query_for_pattern(this->link_schema);
         LinkTemplate::fetched_links_cache().set(link_schema_handle, handles);
     }
+    bool flat_pattern_flag = (this->reverse_nesting_level <= 1);
     LOG_DEBUG("Positive importance flag: " + string(this->positive_importance_flag ? "true" : "false"));
     LOG_DEBUG("Disregard importance flag: " + string(this->disregard_importance_flag ? "true" : "false"));
     LOG_DEBUG("Unique value flag: " + string(this->unique_value_flag ? "true" : "false"));
-    LOG_DEBUG("Flat pattern flag: " + string(this->flat_pattern_flag ? "true" : "false"));
+    LOG_DEBUG("Flat pattern flag: " + string(flat_pattern_flag ? "true" : "false"));
     LOG_INFO("Fetched " + std::to_string(handles->size()) + " atoms in " + link_schema_handle);
 
     vector<pair<char*, float>> tagged_handles;
@@ -169,7 +176,7 @@ void LinkTemplate::processor_method(shared_ptr<StoppableThread> monitor) {
             pending = 0;
         } else {
             if (tagged_handle.second > 0 || !this->positive_importance_flag) {
-                if (db->allow_nested_indexing() || this->flat_pattern_flag) {
+                if (db->allow_nested_indexing() || flat_pattern_flag) {
                     this->source_element->add_handle(
                         tagged_handle.first,
                         tagged_handle.second,

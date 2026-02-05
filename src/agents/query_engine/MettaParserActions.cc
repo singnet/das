@@ -26,7 +26,6 @@ MettaParserActions::MettaParserActions(shared_ptr<PatternMatchingQueryProxy> pro
     this->proxy = proxy;
     this->current_expression_size = 0;
     this->current_expression_type = LINK;
-    this->count_open_expression = 0;
 }
 
 MettaParserActions::~MettaParserActions() {}
@@ -98,7 +97,6 @@ void MettaParserActions::expression_begin() {
     this->expression_type_stack.push(this->current_expression_type);
     this->current_expression_size = 0;
     this->current_expression_type = LINK;
-    this->count_open_expression++;
 }
 
 void MettaParserActions::expression_end(bool toplevel, const string& metta_expression) {
@@ -134,7 +132,6 @@ void MettaParserActions::expression_end(bool toplevel, const string& metta_expre
                 this->proxy->parameters.get<bool>(PatternMatchingQueryProxy::DISREGARD_IMPORTANCE_FLAG),
                 this->proxy->parameters.get<bool>(PatternMatchingQueryProxy::UNIQUE_VALUE_FLAG),
                 this->proxy->parameters.get<bool>(BaseQueryProxy::USE_LINK_TEMPLATE_CACHE));
-            new_link_template->set_flat_pattern_flag(this->count_open_expression == 1);
             this->element_stack.push(new_link_template);
         }
     } else if ((this->current_expression_type == AND) || (this->current_expression_type == OR)) {

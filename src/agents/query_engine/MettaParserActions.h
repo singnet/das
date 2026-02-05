@@ -68,7 +68,6 @@ class MettaParserActions : public ParserActions {
     ExpressionType current_expression_type;
     stack<unsigned int> expression_size_stack;
     stack<ExpressionType> expression_type_stack;
-    unsigned int count_open_expression;
 };
 
 }  // namespace query_engine
