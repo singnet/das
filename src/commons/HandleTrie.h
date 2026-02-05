@@ -74,6 +74,8 @@ class HandleTrie {
      */
     TrieValue* lookup(const string& key);
 
+    bool exists(const string& key);
+
     /**
      * Traverse all keys (in-order) calling the passed visit_function once per stored value.
      *
