@@ -8,12 +8,12 @@ RUN yes | apt update -y \
 ENV COMMIT_ID="578a759d2c4962de7b4a2cd17f695c89f5e53bb4"
 
 WORKDIR /opt
-
 RUN git clone -b server https://github.com/trueagi-io/MORK.git \
-    && cd MORK \
-    && git checkout ${COMMIT_ID} \
-    && cd server \
-    && cargo b -r
+ && cd MORK \
+ && git checkout ${COMMIT_ID} \
+ && sed -i 's/branch = "master"/rev = "cd30438cc1056ba819d88aa22c783ba4dd6c8e1c"/' Cargo.toml \ 
+ && cd server \
+ && cargo build --release
 
 FROM gcr.io/distroless/cc
 
