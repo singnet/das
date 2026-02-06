@@ -123,6 +123,13 @@ cc_binary(
     name = "word_query",
     srcs = [],
     defines = ["BAZEL_BUILD"],
+    linkopts = [
+        "-L/usr/local/lib",
+        "-lhiredis_cluster",
+        "-lhiredis",
+        "-lmongocxx",
+        "-lbsoncxx",
+    ],
     linkstatic = 1,
     deps = [
         "//commons:commons_lib",
@@ -135,6 +142,13 @@ cc_binary(
     name = "word_query_evolution",
     srcs = [],
     defines = ["BAZEL_BUILD"],
+    linkopts = [
+        "-L/usr/local/lib",
+        "-lhiredis_cluster",
+        "-lhiredis",
+        "-lmongocxx",
+        "-lbsoncxx",
+    ],
     linkstatic = 1,
     deps = [
         "//commons:commons_lib",
@@ -147,6 +161,13 @@ cc_binary(
     name = "implication_query_evolution",
     srcs = [],
     defines = ["BAZEL_BUILD"],
+    linkopts = [
+        "-L/usr/local/lib",
+        "-lhiredis_cluster",
+        "-lhiredis",
+        "-lmongocxx",
+        "-lbsoncxx",
+    ],
     linkstatic = 1,
     deps = [
         "//commons:commons_lib",

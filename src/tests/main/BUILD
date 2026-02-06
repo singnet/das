@@ -29,7 +29,6 @@ cc_library(
     srcs = ["word_query_main.cc"],
     deps = [
         "//agents/query_engine:query_engine_lib",
-        "//atom_space:atom_space_lib",
         "//atomdb:atomdb_singleton",
         "//service_bus:service_bus_lib",
     ],
@@ -52,6 +51,7 @@ cc_library(
     deps = [
         "//agents/context_broker:context_broker_lib",
         "//agents/evolution:evolution_lib",
+        "//agents/query_engine:pattern_matching_query_proxy",
         "//atomdb:atomdb_singleton",
         "//hasher:hasher_lib",
         "//service_bus:service_bus_lib",

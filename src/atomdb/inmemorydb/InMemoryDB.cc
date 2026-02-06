@@ -152,6 +152,22 @@ shared_ptr<Atom> InMemoryDB::get_atom(const string& handle) {
     }
 }
 
+shared_ptr<Node> InMemoryDB::get_node(const string& handle) {
+    auto atom = get_atom(handle);
+    if (atom != nullptr) {
+        return make_shared<Node>(*dynamic_cast<Node*>(atom.get()));
+    }
+    return nullptr;
+}
+
+shared_ptr<Link> InMemoryDB::get_link(const string& handle) {
+    auto atom = get_atom(handle);
+    if (atom != nullptr) {
+        return make_shared<Link>(*dynamic_cast<Link*>(atom.get()));
+    }
+    return nullptr;
+}
+
 shared_ptr<HandleSet> InMemoryDB::query_for_pattern(const LinkSchema& link_schema) {
     auto handle_set = make_shared<HandleSetInMemory>();
 
@@ -196,50 +212,23 @@ shared_ptr<HandleSet> InMemoryDB::query_for_incoming_set(const string& handle) {
     return handle_set;
 }
 
-// Stub implementations for AtomDocument methods (to be implemented later)
-shared_ptr<AtomDocument> InMemoryDB::get_atom_document(const string& handle) {
-    // TODO: Must be removed from AtomDB.h
-    Utils::error("get_atom_document is not implemented for InMemoryDB");
-    return nullptr;
-}
-
-shared_ptr<AtomDocument> InMemoryDB::get_node_document(const string& handle) {
-    // TODO: Must be removed from AtomDB.h
-    Utils::error("get_node_document is not implemented for InMemoryDB");
-    return nullptr;
-}
-
-shared_ptr<AtomDocument> InMemoryDB::get_link_document(const string& handle) {
-    // TODO: Must be removed from AtomDB.h
-    Utils::error("get_link_document is not implemented for InMemoryDB");
-    return nullptr;
-}
-
-vector<shared_ptr<AtomDocument>> InMemoryDB::get_atom_documents(const vector<string>& handles,
-                                                                const vector<string>& fields) {
-    // TODO: Must be removed from AtomDB.h
-    Utils::error("get_atom_documents is not implemented for InMemoryDB");
-    return {};
-}
-
-vector<shared_ptr<AtomDocument>> InMemoryDB::get_node_documents(const vector<string>& handles,
-                                                                const vector<string>& fields) {
-    // TODO: Must be removed from AtomDB.h
-    Utils::error("get_node_documents is not implemented for InMemoryDB");
-    return {};
-}
-
-vector<shared_ptr<AtomDocument>> InMemoryDB::get_link_documents(const vector<string>& handles,
-                                                                const vector<string>& fields) {
-    // TODO: Must be removed from AtomDB.h
-    Utils::error("get_link_documents is not implemented for InMemoryDB");
-    return {};
-}
-
-vector<shared_ptr<AtomDocument>> InMemoryDB::get_matching_atoms(bool is_toplevel, Atom& key) {
-    // TODO: Must be removed from AtomDB.h
-    Utils::error("get_matching_atoms is not implemented for InMemoryDB");
-    return {};
+vector<shared_ptr<Atom>> InMemoryDB::get_matching_atoms(bool is_toplevel, Atom& key) {
+    vector<shared_ptr<Atom>> matching_atoms;
+    auto trie_value = atoms_trie_->lookup(key.handle());
+    if (trie_value == NULL) {
+        return matching_atoms;
+    }
+    auto atom_trie_value = dynamic_cast<AtomTrieValue*>(trie_value);
+    if (atom_trie_value == NULL) {
+        return matching_atoms;
+    }
+    Atom* atom = atom_trie_value->get_atom();
+    if (Atom::is_node(*atom)) {
+        matching_atoms.push_back(shared_ptr<Node>(dynamic_cast<Node*>(atom)));
+    } else {
+        matching_atoms.push_back(shared_ptr<Link>(dynamic_cast<Link*>(atom)));
+    }
+    return matching_atoms;
 }
 
 bool InMemoryDB::atom_exists(const string& handle) { return atoms_trie_->lookup(handle) != NULL; }
