@@ -61,7 +61,7 @@ jobs:
             --amend trueagi/das:mork-server-amd64-${{ inputs.version }} \
             --amend trueagi/das:mork-server-arm64-${{ inputs.version }}
 
-          docker manifest push trueagi/das:mork-server:${{ inputs.version }}
+          docker manifest push trueagi/das:mork-server-${{ inputs.version }}
 
       - name: Create and push Mork Loader manifest
         run: |
@@ -69,4 +69,4 @@ jobs:
             --amend trueagi/das:mork-loader-amd64-${{ inputs.version }} \
             --amend trueagi/das:mork-loader-arm64-${{ inputs.version }}
 
-          docker manifest push trueagi/das:mork-loader:${{ inputs.version }}
+          docker manifest push trueagi/das:mork-loader-${{ inputs.version }}
