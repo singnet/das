@@ -40,8 +40,8 @@ jobs:
 
   build-mork-images:
     uses: singnet/das/.github/workflows/build-mork.yml@das-1023/add-mork-images-build
-    needs: determine-version
-    if: needs.determine-version.outputs.version_exists != 'true'
+    # needs: determine-version
+    # if: needs.determine-version.outputs.version_exists != 'true'
     with:
       version: 0.0.1-test
     secrets: inherit
