@@ -43,7 +43,7 @@ jobs:
     # needs: determine-version
     # if: needs.determine-version.outputs.version_exists != 'true'
     with:
-      version: 0.0.1-test
+      version: 0.0.1
     secrets: inherit
 
   # compile-source-code:
