@@ -39,7 +39,7 @@ jobs:
   #     version_exists: ${{steps.check_version.outputs.version_exists}}
 
   build-mork-images:
-    uses: singnet/das/.github/workflows/build-mork.yml@das-1023/add-mork-images-build
+    uses: singnet/das/.github/workflows/build-mork-images.yml@das-1023/add-mork-images-build
     # needs: determine-version
     # if: needs.determine-version.outputs.version_exists != 'true'
     with:
