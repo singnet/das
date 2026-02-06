@@ -38,9 +38,18 @@ jobs:
       version: ${{steps.get_version.outputs.version}}
       version_exists: ${{steps.check_version.outputs.version_exists}}
 
+  build-mork-images:
+    uses: singnet/das/.github/workflows/build-mork.yml@master
+    needs: determine-version
+    if: needs.determine-version.outputs.version_exists != 'true'
+    with:
+      version: ${{ needs.determine-version.outputs.version }}
+    secrets: inherit
 
   compile-source-code:
-    needs: determine-version
+    needs: 
+      - determine-version
+      - build-mork-images
     strategy:
       matrix:
         platforms: [amd64,arm64]
