@@ -4,7 +4,6 @@
 
 #include "AtomDBAPITypes.h"
 #include "AtomDBSingleton.h"
-#include "Context.h"
 #include "Link.h"
 #include "Node.h"
 #include "PatternMatchingQueryProxy.h"
@@ -175,33 +174,6 @@ class AtomSpace {
      * @param scope Where to commit changes (default: LOCAL_AND_REMOTE).
      */
     void commit_changes(Scope scope = LOCAL_AND_REMOTE);
-
-    /**
-     * Create and return a context object.
-     *
-     * Context objects are used to make queries in the atom space.
-     *
-     * @param name Context name.
-     * @param atom_key Key used to match toplevel atoms; only matching toplevel atoms will be considered.
-     * @return A newly created Context object.
-     */
-    shared_ptr<Context> create_context(const string& context_name, Atom& atom_key);
-
-    shared_ptr<Context> create_context(
-        const string& context_name,
-        const vector<string>& query,
-        const vector<pair<QueryAnswerElement, QueryAnswerElement>> determiner_schema,
-        vector<QueryAnswerElement> stimulus_schema);
-
-    /**
-     * Create and return a context object passing UntypedVariable (which matches everything) as atom key.
-     *
-     * Context objects are used to make queries in the atom space.
-     *
-     * @param name Context name.
-     * @return A newly created Context object.
-     */
-    shared_ptr<Context> create_context(const string& context_name);
 
    protected:
     shared_ptr<AtomDB> db;  // to allow mocking in tests
