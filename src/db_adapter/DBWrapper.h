@@ -6,11 +6,37 @@
 #include <vector>
 
 #include "DataMapper.h"
+#include "Processor.h"
 
 using namespace std;
 using namespace db_adapter;
+using namespace commons;
+using namespace processor;
 
 namespace db_adapter {
+
+class DBConnection : public Processor {
+   public:
+    DBConnection(const string& id, const string& host, int port);
+    ~DBConnection() override;
+
+    virtual void setup() override;
+    virtual void start() override;
+    virtual void stop() override;
+
+    virtual void connect() = 0;
+    virtual void disconnect() = 0;
+
+    bool is_connected() const;
+
+   protected:
+    string host;
+    int port;
+
+   private:
+    bool connected;
+    mutex connection_mutex;
+};
 
 /**
  * @class DatabaseWrapper
@@ -18,27 +44,17 @@ namespace db_adapter {
  *
  * @tparam ConnT The underlying connection object type (e.g., pqxx::connection).
  */
-template <typename ConnT>
+template <typename ConnectionType>
 class DatabaseWrapper {
    public:
     explicit DatabaseWrapper(shared_ptr<Mapper> mapper, MAPPER_TYPE mapper_type)
         : mapper(move(mapper)), mapper_type(mapper_type) {}
     virtual ~DatabaseWrapper() = default;
 
-    /**
-     * @brief Closes the connection.
-     */
-    virtual void disconnect() = 0;
-
     unsigned int mapper_handle_trie_size() { return mapper->handle_trie_size(); }
 
    protected:
-    /**
-     * @brief Establishes connection to the database.
-     */
-    virtual unique_ptr<ConnT> connect() = 0;
-
-    unique_ptr<ConnT> db_client;
+    unique_ptr<ConnectionType> db_client;
     shared_ptr<Mapper> mapper;
     MAPPER_TYPE mapper_type;
 };
@@ -47,11 +63,11 @@ class DatabaseWrapper {
  * @class SQLWrapper
  * @brief Specialization of DatabaseWrapper for SQL-based databases.
  */
-template <typename ConnT>
-class SQLWrapper : public DatabaseWrapper<ConnT> {
+template <typename ConnectionType>
+class SQLWrapper : public DatabaseWrapper<ConnectionType> {
    public:
     explicit SQLWrapper(MAPPER_TYPE mapper_type)
-        : DatabaseWrapper<ConnT>(create_mapper(mapper_type), mapper_type) {}
+        : DatabaseWrapper<ConnectionType>(create_mapper(mapper_type), mapper_type) {}
     virtual ~SQLWrapper() = default;
 
     /**

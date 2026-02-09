@@ -19,11 +19,32 @@ using namespace commons;
 
 namespace db_adapter {
 
+class PostgresDBConnection : public DBConnection {
+   public:
+    PostgresDBConnection(const string& id,
+                         const string& host,
+                         int port,
+                         const string& database,
+                         const string& user,
+                         const string& password);
+    ~PostgresDBConnection() override;
+
+    void connect() override;
+    void disconnect() override;
+    pqxx::result execute_query(const string& query);
+
+   protected:
+    unique_ptr<pqxx::connection> conn;
+    string database;
+    string user;
+    string password;
+};
+
 /**
  * @class PostgresWrapper
  * @brief Concrete implementation of SQLWrapper for PostgreSQL using libpqxx.
  */
-class PostgresWrapper : public SQLWrapper<pqxx::connection> {
+class PostgresWrapper : public SQLWrapper<PostgresDBConnection> {
    public:
     /**
      * @brief Constructs a PostgresWrapper.
@@ -44,7 +65,7 @@ class PostgresWrapper : public SQLWrapper<pqxx::connection> {
 
     ~PostgresWrapper() override;
 
-    void disconnect() override;
+    // void disconnect() override;
     Table get_table(const string& name) override;
     vector<Table> list_tables() override;
     void map_table(const Table& table,
@@ -52,19 +73,19 @@ class PostgresWrapper : public SQLWrapper<pqxx::connection> {
                    const vector<string>& skip_columns = {},
                    bool second_level = false) override;
     void map_sql_query(const string& virtual_name, const string& raw_query) override;
-    pqxx::result execute_query(const string& query);
+    // pqxx::result execute_query(const string& query);
 
    protected:
-    unique_ptr<pqxx::connection> connect() override;
+    // unique_ptr<pqxx::connection> connect() override;
     // Regex for parsing alias patterns (e.g., "AS public_feature__uniquename")
     const string alias_pattern_regex = R"(\bAS\s+([a-zA-Z_][a-zA-Z0-9_]*)__([a-zA-Z_][a-zA-Z0-9_]*))";
 
    private:
-    string host;
-    int port;
-    string database;
-    string user;
-    string password;
+    // string host;
+    // int port;
+    // string database;
+    // string user;
+    // string password;
 
     // Store tables in cache to avoid repeated database queries.
     optional<vector<Table>> tables_cache;

@@ -25,6 +25,48 @@ class PostgresWrapperTestEnvironment : public ::testing::Environment {
     void TearDown() override {}
 };
 
+class PostgresDBConnectionTest : public ::testing::Test {
+   protected:
+    string TEST_HOST = "localhost";
+    int TEST_PORT = 5433;
+    string TEST_DB = "postgres_wrapper_test";
+    string TEST_USER = "postgres";
+    string TEST_PASSWORD = "test";
+
+    string INVALID_HOST = "invalid.host";
+    int INVALID_PORT = 99999;
+    string INVALID_DB = "database_xyz";
+
+    string FEATURE_TABLE = "public.feature";
+    string ORGANISM_TABLE = "public.organism";
+    string CVTERM_TABLE = "public.cvterm";
+    string FEATURE_PK = "feature_id";
+    string ORGANISM_PK = "organism_id";
+    string CVTERM_PK = "cvterm_id";
+
+    int DROSOPHILA_ORGANISM_ID = 1;
+    int HUMAN_ORGANISM_ID = 2;
+
+    int WHITE_GENE_ID = 1;
+    string WHITE_GENE_NAME = "white";
+    string WHITE_GENE_UNIQUENAME = "FBgn0003996";
+
+    int TOTAL_ROWS_ORGANISMS = 5;
+    int TOTAL_ROWS_CVTERMS = 10;
+    int TOTAL_ROWS_FEATURES = 26;
+
+    void SetUp() override {}
+
+    void TearDown() override {}
+
+    shared_ptr<PostgresDBConnection> create_db_connection() {
+        auto conn = make_shared<PostgresDBConnection>(
+            "test-conn", TEST_HOST, TEST_PORT, TEST_DB, TEST_USER, TEST_PASSWORD);
+        conn->start();
+        return conn;
+    }
+};
+
 class PostgresWrapperTest : public ::testing::Test {
    protected:
     string TEST_HOST = "localhost";
@@ -92,26 +134,110 @@ class PostgresWrapperTest : public ::testing::Test {
     }
 
     string temp_file_path;
+
+    shared_ptr<PostgresDBConnection> create_db_connection() {
+        auto conn = make_shared<PostgresDBConnection>(
+            "test-conn", TEST_HOST, TEST_PORT, TEST_DB, TEST_USER, TEST_PASSWORD);
+        conn->start();
+        return conn;
+    }
 };
 
-TEST_F(PostgresWrapperTest, Connection) {
-    auto wrapper = create_wrapper();
+TEST_F(PostgresDBConnectionTest, Connection) {
+    auto conn = create_db_connection();
 
-    auto result = wrapper->execute_query("SELECT 1");
+    EXPECT_TRUE(conn->is_connected());
+
+    auto result = conn->execute_query("SELECT 1");
 
     EXPECT_FALSE(result.empty());
     EXPECT_EQ(result[0][0].as<int>(), 1);
 
-    EXPECT_THROW({ PostgresWrapper("invalid.host", TEST_PORT, TEST_DB, TEST_USER, TEST_PASSWORD); },
-                 std::runtime_error);
-    EXPECT_THROW({ PostgresWrapper(TEST_HOST, 99999, TEST_DB, TEST_USER, TEST_PASSWORD); },
-                 std::runtime_error);
-    EXPECT_THROW({ PostgresWrapper(TEST_HOST, TEST_PORT, "non_existent_db", TEST_USER, TEST_PASSWORD); },
-                 std::runtime_error);
+    conn->stop();
 
-    wrapper->disconnect();
+    EXPECT_FALSE(conn->is_connected());
 
-    EXPECT_THROW(wrapper->execute_query("SELECT 1"), std::runtime_error);
+    auto conn1 = new PostgresDBConnection(
+        "test-conn1", INVALID_HOST, TEST_PORT, TEST_DB, TEST_USER, TEST_PASSWORD);
+    EXPECT_THROW(conn1->connect(), std::runtime_error);
+
+    auto conn2 = new PostgresDBConnection(
+        "test-conn2", TEST_HOST, INVALID_PORT, TEST_DB, TEST_USER, TEST_PASSWORD);
+    EXPECT_THROW(conn2->connect(), std::runtime_error);
+
+    auto conn3 = new PostgresDBConnection(
+        "test-conn3", TEST_HOST, TEST_PORT, INVALID_DB, TEST_USER, TEST_PASSWORD);
+    EXPECT_THROW(conn3->connect(), std::runtime_error);
+}
+
+TEST_F(PostgresDBConnectionTest, ConcurrentConnection) {
+    const int num_threads = 100;
+    vector<thread> threads;
+    atomic<int> count_threads{0};
+
+    auto worker = [&](int thread_id) {
+        try {
+            string thread_id_str = "conn-" + to_string(thread_id);
+            auto conn = new PostgresDBConnection(
+                thread_id_str, TEST_HOST, TEST_PORT, TEST_DB, TEST_USER, TEST_PASSWORD);
+
+            EXPECT_FALSE(conn->is_connected());
+
+            conn->start();
+
+            EXPECT_TRUE(conn->is_connected());
+
+            conn->execute_query("SELECT 1");
+
+            count_threads++;
+
+            conn->stop();
+
+            EXPECT_FALSE(conn->is_connected());
+        } catch (const exception& e) {
+            cout << "Thread " << thread_id << " failed with error: " << e.what() << endl;
+        }
+    };
+
+    for (int i = 0; i < num_threads; ++i) threads.emplace_back(worker, i);
+
+    for (auto& t : threads) t.join();
+
+    EXPECT_EQ(count_threads, num_threads);
+}
+
+TEST_F(PostgresDBConnectionTest, CheckData) {
+    auto conn = create_db_connection();
+
+    auto result = conn->execute_query(
+        "SELECT organism_id, genus, species, common_name FROM organism WHERE organism_id = 1");
+
+    ASSERT_EQ(result.size(), 1);
+    EXPECT_EQ(result[0]["organism_id"].as<int>(), 1);
+    EXPECT_EQ(result[0]["genus"].as<string>(), "Drosophila");
+    EXPECT_EQ(result[0]["species"].as<string>(), "melanogaster");
+    EXPECT_EQ(result[0]["common_name"].as<string>(), "fruit fly");
+
+    auto result2 =
+        conn->execute_query("SELECT feature_id, name, uniquename FROM feature WHERE feature_id = " +
+                            to_string(WHITE_GENE_ID));
+
+    ASSERT_EQ(result2.size(), 1);
+    EXPECT_EQ(result2[0]["feature_id"].as<int>(), WHITE_GENE_ID);
+    EXPECT_EQ(result2[0]["name"].as<string>(), WHITE_GENE_NAME);
+    EXPECT_EQ(result2[0]["uniquename"].as<string>(), WHITE_GENE_UNIQUENAME);
+
+    auto result3 = conn->execute_query("SELECT COUNT(*) FROM organism");
+
+    EXPECT_EQ(result3[0][0].as<int>(), TOTAL_ROWS_ORGANISMS);
+
+    auto result4 = conn->execute_query("SELECT COUNT(*) FROM cvterm");
+
+    EXPECT_EQ(result4[0][0].as<int>(), TOTAL_ROWS_CVTERMS);
+
+    auto result5 = conn->execute_query("SELECT COUNT(*) FROM feature");
+
+    EXPECT_EQ(result5[0][0].as<int>(), TOTAL_ROWS_FEATURES);
 }
 
 TEST_F(PostgresWrapperTest, GetTable) {
@@ -204,40 +330,6 @@ TEST_F(PostgresWrapperTest, TablesStructure) {
     }
     EXPECT_TRUE(has_organism_fk);
     EXPECT_TRUE(has_type_fk);
-}
-
-TEST_F(PostgresWrapperTest, CheckData) {
-    auto wrapper = create_wrapper();
-
-    auto result = wrapper->execute_query(
-        "SELECT organism_id, genus, species, common_name FROM organism WHERE organism_id = 1");
-
-    ASSERT_EQ(result.size(), 1);
-    EXPECT_EQ(result[0]["organism_id"].as<int>(), 1);
-    EXPECT_EQ(result[0]["genus"].as<string>(), "Drosophila");
-    EXPECT_EQ(result[0]["species"].as<string>(), "melanogaster");
-    EXPECT_EQ(result[0]["common_name"].as<string>(), "fruit fly");
-
-    auto result2 =
-        wrapper->execute_query("SELECT feature_id, name, uniquename FROM feature WHERE feature_id = " +
-                               to_string(WHITE_GENE_ID));
-
-    ASSERT_EQ(result2.size(), 1);
-    EXPECT_EQ(result2[0]["feature_id"].as<int>(), WHITE_GENE_ID);
-    EXPECT_EQ(result2[0]["name"].as<string>(), WHITE_GENE_NAME);
-    EXPECT_EQ(result2[0]["uniquename"].as<string>(), WHITE_GENE_UNIQUENAME);
-
-    auto result3 = wrapper->execute_query("SELECT COUNT(*) FROM organism");
-
-    EXPECT_EQ(result3[0][0].as<int>(), TOTAL_ROWS_ORGANISMS);
-
-    auto result4 = wrapper->execute_query("SELECT COUNT(*) FROM cvterm");
-
-    EXPECT_EQ(result4[0][0].as<int>(), TOTAL_ROWS_CVTERMS);
-
-    auto result5 = wrapper->execute_query("SELECT COUNT(*) FROM feature");
-
-    EXPECT_EQ(result5[0][0].as<int>(), TOTAL_ROWS_FEATURES);
 }
 
 // map_table - SQL2ATOMS
