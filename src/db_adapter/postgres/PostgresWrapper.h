@@ -65,7 +65,6 @@ class PostgresWrapper : public SQLWrapper<PostgresDBConnection> {
 
     ~PostgresWrapper() override;
 
-    // void disconnect() override;
     Table get_table(const string& name) override;
     vector<Table> list_tables() override;
     void map_table(const Table& table,
@@ -73,20 +72,12 @@ class PostgresWrapper : public SQLWrapper<PostgresDBConnection> {
                    const vector<string>& skip_columns = {},
                    bool second_level = false) override;
     void map_sql_query(const string& virtual_name, const string& raw_query) override;
-    // pqxx::result execute_query(const string& query);
 
    protected:
-    // unique_ptr<pqxx::connection> connect() override;
     // Regex for parsing alias patterns (e.g., "AS public_feature__uniquename")
     const string alias_pattern_regex = R"(\bAS\s+([a-zA-Z_][a-zA-Z0-9_]*)__([a-zA-Z_][a-zA-Z0-9_]*))";
 
    private:
-    // string host;
-    // int port;
-    // string database;
-    // string user;
-    // string password;
-
     // Store tables in cache to avoid repeated database queries.
     optional<vector<Table>> tables_cache;
     vector<string> build_columns_to_map(const Table& table, const vector<string>& skip_columns = {});
