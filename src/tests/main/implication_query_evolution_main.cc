@@ -8,14 +8,12 @@
 #include <string>
 
 #include "AtomDBSingleton.h"
-#include "AtomSpace.h"
 #include "AttentionBrokerClient.h"
-#include "Context.h"
 #include "ContextBrokerProxy.h"
-#include "CountLetterFunction.h"
 #include "FitnessFunctionRegistry.h"
 #include "Hasher.h"
 #include "Logger.h"
+#include "PatternMatchingQueryProxy.h"
 #include "QueryAnswer.h"
 #include "QueryEvolutionProxy.h"
 #include "ServiceBusSingleton.h"
@@ -78,16 +76,15 @@ static double ELITISM_RATE = 0.08;
 static unsigned int LINK_BUILDING_QUERY_SIZE = 150;
 static unsigned int POPULATION_SIZE = 50;
 static unsigned int MAX_GENERATIONS = 20;
-static unsigned int NUM_ITERATIONS = 10;
+static unsigned int NUM_ITERATIONS = 1;
 
-static bool CONTEXT_CREATION_ONLY = true;
+static bool CONTEXT_CREATION_ONLY = false;
 static bool SAVE_NEW_LINKS = true;
 static string NEW_LINKS_FILE_NAME = "newly_created_links.txt";
 static string CONTEXT_FILE_NAME = "_CONTEXT_DUMP";
 
 using namespace std;
 using namespace atomdb;
-using namespace atom_space;
 using namespace query_engine;
 using namespace evolution;
 using namespace service_bus;
@@ -912,12 +909,7 @@ static void run(const string& predicate_source,
     QueryAnswerElement target2(V2);
     QueryAnswerElement target3(V3);
     QueryAnswerElement toplevel_link(0);
-    /*
-    AtomSpace atom_space;
-    auto context_obj = atom_space.create_context(
-        context_tag, context_query, {{toplevel_link, target2}, {toplevel_link, target3}}, {});
-    string context = context_obj->get_key();
-    */
+
     // For some reason, make_shared was not compiling so I'm explicitly creating the shared_ptr
     shared_ptr<ContextBrokerProxy> context_proxy(new ContextBrokerProxy(
         context_tag, context_query, {{toplevel_link, target2}, {toplevel_link, target3}}, {}));
@@ -944,6 +936,7 @@ static void run(const string& predicate_source,
         AttentionBrokerClient::save_context(context, CONTEXT_FILE_NAME);
         exit(0);
     } else {
+        update_attention_allocation(predicate_source, predicate_target, context);
     }
     // update_context(predicate_source, predicate_target, context_proxy);
 

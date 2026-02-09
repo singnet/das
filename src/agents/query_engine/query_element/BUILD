@@ -70,6 +70,7 @@ cc_library(
     name = "sink",
     srcs = ["Sink.cc"],
     hdrs = ["Sink.h"],
+    includes = ["."],
     deps = [
         ":query_element",
     ],
@@ -79,6 +80,7 @@ cc_library(
     name = "query_element",
     srcs = ["QueryElement.cc"],
     hdrs = ["QueryElement.h"],
+    includes = ["."],
     deps = [
         "//agents/query_engine:query_node",
         "//commons:commons_lib",
@@ -109,6 +111,7 @@ cc_library(
     srcs = ["UniqueAssignmentFilter.cc"],
     hdrs = ["UniqueAssignmentFilter.h"],
     deps = [
+        ":operator",
         ":query_element",
     ],
 )

@@ -29,54 +29,22 @@ github-runner:
 	@bash $(CURDIR)/scripts/github-runner/main.sh
 
 build-image:
-	@bash -x src/scripts/docker_image_build.sh $(ARCHS)
+	@bash -x src/scripts/docker_image_build.sh
 
 build-mork-image:
 	@bash -x src/scripts/docker_image_build_mork.sh $(VERSION)
 
 build-all: build-image
-	bash -x src/scripts/build.sh $(ARCHS)
-
-run-query-agent:
-	@PORT=$$(bash src/scripts/gkctl_auto_join_and_reserve.sh | tail -n 1); \
-	PORT_RANGE=$$(bash src/scripts/gkctl_auto_join_and_reserve.sh --range=999 | tail -n 1); \
-	bash -x src/scripts/run.sh busnode --service=query-engine --endpoint=0.0.0.0:$$PORT --ports-range=$$PORT_RANGE 
+	bash -x src/scripts/build.sh $(PACKAGE_TYPE)
 
 run-attention-broker:
 	@bash -x src/scripts/run.sh attention_broker_service 0.0.0.0:40001
 
-run-context-broker:
-	@bash -x src/scripts/run.sh busnode --service=context-broker $(OPTIONS)
-
-run-atomdb-broker:
-	@bash -x src/scripts/run.sh busnode --service=atomdb-broker $(OPTIONS)
-
-run-link-creation-agent:
-	@bash -x src/scripts/run.sh busnode --service=link-creation-agent $(OPTIONS)
-
-run-link-creation-client:
-	@bash -x src/scripts/run.sh busclient --service=link-creation-agent $(OPTIONS)
-
-run-inference-agent:
-	@bash -x src/scripts/run.sh busnode --service=inference-agent $(OPTIONS)
-
 run-busnode:
 	@bash ./src/scripts/run.sh busnode $(filter-out $@, $(MAKECMDGOALS)) $(OPTIONS)
 
 run-client:
 	@bash ./src/scripts/run.sh busclient $(filter-out $@, $(MAKECMDGOALS)) $(OPTIONS)
-
-run-busnode:
-	@bash ./src/scripts/run.sh busnode $(filter-out $@, $(MAKECMDGOALS)) $(OPTIONS)
-
-run-client:
-	@bash ./src/scripts/run.sh busclient $(filter-out $@, $(MAKECMDGOALS)) $(OPTIONS)
-
-run-inference-agent-client:
-	@bash -x src/scripts/run.sh busclient --service=inference-agent $(OPTIONS)
-
-run-inference-toy-problem:
-	@bash ./src/scripts/setup_inference_toy_problem.sh $(filter-out $@, $(MAKECMDGOALS))
 
 run-mork-server:
 	@bash -x src/scripts/mork_server.sh
@@ -86,6 +54,9 @@ mork-loader:
 
 agents:
 	@bash -x src/scripts/run_agents.sh $(filter-out $@, $(MAKECMDGOALS))
+
+setup-inference-toy-problem:
+	@bash ./src/scripts/setup_inference_toy_problem.sh $(filter-out $@, $(MAKECMDGOALS))
 
 run-tests-db-loader:
 	@bash -x src/scripts/run.sh tests_db_loader $(OPTIONS)

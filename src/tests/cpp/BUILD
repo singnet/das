@@ -1,5 +1,6 @@
 load("@rules_cc//cc:cc_library.bzl", "cc_library")
 load("@rules_cc//cc:cc_test.bzl", "cc_test")
+load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_shared_library")
 
 package(default_visibility = ["//visibility:public"])
 
@@ -32,9 +33,9 @@ cc_test(
     deps = [
         "//attention_broker:attention_broker_lib",
         "@com_github_google_googletest//:gtest_main",
-        "@com_github_grpc_grpc//:grpc++",
-        "@com_github_grpc_grpc//:grpc++_reflection",
         "@com_github_singnet_das_proto//:attention_broker_cc_grpc",
+        "@grpc//:grpc++",
+        "@grpc//:grpc++_reflection",
         "@mbedtls",
     ],
 )
@@ -51,9 +52,9 @@ cc_test(
     deps = [
         "//attention_broker:attention_broker_lib",
         "@com_github_google_googletest//:gtest_main",
-        "@com_github_grpc_grpc//:grpc++",
-        "@com_github_grpc_grpc//:grpc++_reflection",
         "@com_github_singnet_das_proto//:attention_broker_cc_grpc",
+        "@grpc//:grpc++",
+        "@grpc//:grpc++_reflection",
         "@mbedtls",
     ],
 )
@@ -75,9 +76,9 @@ cc_test(
         "//attention_broker:attention_broker_lib",
         "//commons:commons_lib",
         "@com_github_google_googletest//:gtest_main",
-        "@com_github_grpc_grpc//:grpc++",
-        "@com_github_grpc_grpc//:grpc++_reflection",
         "@com_github_singnet_das_proto//:attention_broker_cc_grpc",
+        "@grpc//:grpc++",
+        "@grpc//:grpc++_reflection",
         "@mbedtls",
     ],
 )
@@ -98,9 +99,9 @@ cc_test(
     deps = [
         "//attention_broker:attention_broker_lib",
         "@com_github_google_googletest//:gtest_main",
-        "@com_github_grpc_grpc//:grpc++",
-        "@com_github_grpc_grpc//:grpc++_reflection",
         "@com_github_singnet_das_proto//:attention_broker_cc_grpc",
+        "@grpc//:grpc++",
+        "@grpc//:grpc++_reflection",
         "@mbedtls",
     ],
 )
@@ -121,16 +122,16 @@ cc_test(
     deps = [
         "//attention_broker:attention_broker_lib",
         "@com_github_google_googletest//:gtest_main",
-        "@com_github_grpc_grpc//:grpc++",
-        "@com_github_grpc_grpc//:grpc++_reflection",
         "@com_github_singnet_das_proto//:attention_broker_cc_grpc",
+        "@grpc//:grpc++",
+        "@grpc//:grpc++_reflection",
         "@mbedtls",
     ],
 )
 
 cc_test(
     name = "hebbian_network_test",
-    size = "small",
+    size = "medium",
     srcs = [
         "hebbian_network_test.cc",
         "test_utils.cc",
@@ -145,9 +146,9 @@ cc_test(
         "//attention_broker:attention_broker_lib",
         "//commons:commons_lib",
         "@com_github_google_googletest//:gtest_main",
-        "@com_github_grpc_grpc//:grpc++",
-        "@com_github_grpc_grpc//:grpc++_reflection",
         "@com_github_singnet_das_proto//:attention_broker_cc_grpc",
+        "@grpc//:grpc++",
+        "@grpc//:grpc++_reflection",
         "@mbedtls",
     ],
 )
@@ -168,9 +169,9 @@ cc_test(
     deps = [
         "//attention_broker:attention_broker_lib",
         "@com_github_google_googletest//:gtest_main",
-        "@com_github_grpc_grpc//:grpc++",
-        "@com_github_grpc_grpc//:grpc++_reflection",
         "@com_github_singnet_das_proto//:attention_broker_cc_grpc",
+        "@grpc//:grpc++",
+        "@grpc//:grpc++_reflection",
         "@mbedtls",
     ],
 )
@@ -191,9 +192,9 @@ cc_test(
     deps = [
         "//attention_broker:attention_broker_lib",
         "@com_github_google_googletest//:gtest_main",
-        "@com_github_grpc_grpc//:grpc++",
-        "@com_github_grpc_grpc//:grpc++_reflection",
         "@com_github_singnet_das_proto//:attention_broker_cc_grpc",
+        "@grpc//:grpc++",
+        "@grpc//:grpc++_reflection",
         "@mbedtls",
     ],
 )
@@ -488,7 +489,7 @@ cc_test(
     linkstatic = 1,
     deps = [
         "//agents/context_broker:context_broker_lib",
-        "//atom_space:context",
+        "//agents/query_engine:pattern_matching_query_processor",
         "//atomdb",
         "//attention_broker:attention_broker_lib",
         "//tests/cpp/test_commons",
@@ -533,9 +534,17 @@ cc_test(
         "-Iexternal/gtest/googletest/include",
         "-Iexternal/gtest/googletest",
     ],
+    linkopts = [
+        "-L/usr/local/lib",
+        "-lhiredis_cluster",
+        "-lhiredis",
+        "-lmongocxx",
+        "-lbsoncxx",
+    ],
     linkstatic = 1,
     deps = [
         "//agents/evolution:evolution_lib",
+        "//agents/query_engine:pattern_matching_query_processor",
         "//tests/cpp/test_commons",
         "@com_github_google_googletest//:gtest_main",
     ],
@@ -555,6 +564,7 @@ cc_test(
         "//commons:commons_lib",
         "//service_bus:service_bus_lib",
         "//tests/cpp/test_commons/mocks:mock_atom_db_lib",
+        "//tests/cpp/test_commons/mocks:mock_service_bus_lib",
         "@com_github_google_googletest//:gtest_main",
     ],
 )
@@ -628,26 +638,6 @@ cc_test(
 )
 
 cc_test(
-    name = "atom_space_test",
-    size = "small",
-    srcs = ["atom_space_test.cc"],
-    copts = [
-        "-Iexternal/gtest/googletest/include",
-        "-Iexternal/gtest/googletest",
-    ],
-    linkstatic = 1,
-    deps = [
-        "//agents/query_engine:query_engine_lib",
-        "//atom_space:atom_space_lib",
-        "//commons:commons_lib",
-        "//commons/atoms:atoms_lib",
-        "//service_bus:service_bus_lib",
-        "//tests/cpp/test_commons",
-        "@com_github_google_googletest//:gtest_main",
-    ],
-)
-
-cc_test(
     name = "redis_mongodb_test",
     size = "medium",
     srcs = [
@@ -699,6 +689,7 @@ cc_test(
     deps = [
         "//atomdb:atomdb_singleton",
         "//tests/cpp/test_commons",
+        "//tests/cpp/test_commons:mock_animals_data_lib",
         "@com_github_google_googletest//:gtest_main",
         "@mbedtls",
     ],
@@ -730,6 +721,22 @@ cc_test(
 )
 
 cc_test(
+    name = "inmemorydb_test",
+    size = "small",
+    srcs = ["inmemorydb_test.cc"],
+    copts = [
+        "-Iexternal/gtest/googletest/include",
+        "-Iexternal/gtest/googletest",
+    ],
+    linkstatic = 1,
+    deps = [
+        "//atomdb/inmemorydb:inmemorydb_lib",
+        "//commons/atoms:atoms_lib",
+        "@com_github_google_googletest//:gtest_main",
+    ],
+)
+
+cc_test(
     name = "profiling_test",
     size = "small",
     srcs = [
@@ -743,9 +750,9 @@ cc_test(
     deps = [
         "//commons:commons_lib",
         "@com_github_google_googletest//:gtest_main",
-        "@com_github_grpc_grpc//:grpc++",
-        "@com_github_grpc_grpc//:grpc++_reflection",
         "@com_github_singnet_das_proto//:attention_broker_cc_grpc",
+        "@grpc//:grpc++",
+        "@grpc//:grpc++_reflection",
     ],
 )
 

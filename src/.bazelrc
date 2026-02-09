@@ -21,7 +21,7 @@ common --enable_bzlmod
 build --spawn_strategy=local
 
 # Define versions
-build --define=DAS_VERSION=1.0.2
+build --define=DAS_VERSION=1.0.3
 
 
 # Enable debugging symbols for development
@@ -32,6 +32,12 @@ build:debug --strip=never
 # Optimeze for speed in production
 build:release --compilation_mode=opt
 build:release --strip=always
+
+# Bazel 9.0.0 adaptations
+build --noincompatible_disable_objc_library_transition
+build --@rules_python//python/config_settings:bootstrap_impl=system
+build --@rules_python//python/config_settings:bootstrap_impl=system_python
+
 
 #################################### TEST #####################################
 # Use half of all available CPU cores

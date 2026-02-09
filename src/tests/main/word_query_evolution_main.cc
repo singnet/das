@@ -5,7 +5,6 @@
 #include <string>
 
 #include "AtomDBSingleton.h"
-#include "Context.h"
 #include "ContextBrokerProxy.h"
 #include "CountLetterFunction.h"
 #include "FitnessFunctionRegistry.h"
@@ -71,28 +70,29 @@ class RemoteFitnessFunction : public FitnessFunction {
 
 string handle_to_atom(const string& handle) {
     shared_ptr<AtomDB> db = AtomDBSingleton::get_instance();
-    shared_ptr<atomdb_api_types::AtomDocument> document = db->get_atom_document(handle);
-    shared_ptr<atomdb_api_types::HandleList> targets = db->query_for_targets(handle);
+    shared_ptr<Atom> atom = db->get_atom(handle);
     string answer;
 
-    if (targets != NULL) {
+    if (atom->arity() > 0) {
         // is link
+        auto link = dynamic_cast<Link*>(atom.get());
         answer += "<";
-        answer += document->get("named_type");
+        answer += link->type;
         answer += ": [";
-        for (unsigned int i = 0; i < targets->size(); i++) {
-            answer += handle_to_atom(targets->get_handle(i));
-            if (i < (targets->size() - 1)) {
+        for (unsigned int i = 0; i < link->arity(); i++) {
+            answer += handle_to_atom(link->targets[i]);
+            if (i < (link->arity() - 1)) {
                 answer += ", ";
             }
         }
         answer += ">";
     } else {
         // is node
+        auto node = dynamic_cast<Node*>(atom.get());
         answer += "(";
-        answer += document->get("named_type");
+        answer += node->type;
         answer += ": ";
-        answer += document->get("name");
+        answer += node->name;
         answer += ")";
     }
 
@@ -317,8 +317,6 @@ void run(const string& client_id,
     shared_ptr<QueryAnswer> query_answer;
     unsigned int count = 0;
 
-    shared_ptr<atomdb_api_types::AtomDocument> sentence_document;
-    shared_ptr<atomdb_api_types::AtomDocument> sentence_name_document;
     vector<string> sentences;
     while (!proxy->finished()) {
         if ((query_answer = proxy->pop()) == NULL) {
@@ -326,11 +324,11 @@ void run(const string& client_id,
         } else {
             string handle = query_answer->assignment.get(sentence1.c_str());
             float fitness = query_answer->strength;
-            sentence_document = db->get_atom_document(handle);
-            handle = string(sentence_document->get("targets", 1));
-            sentence_name_document = db->get_atom_document(handle);
+            shared_ptr<Link> sentence_link = db->get_link(handle);
+            handle = sentence_link->targets[1];
+            shared_ptr<Node> sentence_name_node = db->get_node(handle);
             set<string> to_highlight = {word_tag1, word_tag2};
-            string sentence_name = string(sentence_name_document->get("name"));
+            string sentence_name = sentence_name_node->name;
             string highlighted_sentence_name = highlight(sentence_name, to_highlight);
             cout << std::fixed << std::setw(6) << std::setprecision(4) << std::setfill('0') << fitness
                  << ": " << highlighted_sentence_name << endl;

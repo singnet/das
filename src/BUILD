@@ -1,3 +1,6 @@
+load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_shared_library")
+load("@rules_proto_grpc_cpp//:defs.bzl", "cc_grpc_library", "cc_proto_library", "cpp_grpc_library")
+
 package(default_visibility = ["//visibility:public"])
 
 exports_files(
@@ -56,9 +59,9 @@ cc_binary(
     deps = [
         "//commons:commons_lib",
         "//main:attention_broker_main_lib",
-        "@com_github_grpc_grpc//:grpc++",
-        "@com_github_grpc_grpc//:grpc++_reflection",
         "@com_github_singnet_das_proto//:attention_broker_cc_grpc",
+        "@grpc//:grpc++",
+        "@grpc//:grpc++_reflection",
         "@mbedtls",
     ],
 )
@@ -78,9 +81,9 @@ cc_binary(
     deps = [
         "//commons:commons_lib",
         "//main:attention_broker_client_main_lib",
-        "@com_github_grpc_grpc//:grpc++",
-        "@com_github_grpc_grpc//:grpc++_reflection",
         "@com_github_singnet_das_proto//:attention_broker_cc_grpc",
+        "@grpc//:grpc++",
+        "@grpc//:grpc++_reflection",
         "@mbedtls",
     ],
 )
@@ -120,6 +123,13 @@ cc_binary(
     name = "word_query",
     srcs = [],
     defines = ["BAZEL_BUILD"],
+    linkopts = [
+        "-L/usr/local/lib",
+        "-lhiredis_cluster",
+        "-lhiredis",
+        "-lmongocxx",
+        "-lbsoncxx",
+    ],
     linkstatic = 1,
     deps = [
         "//commons:commons_lib",
@@ -132,6 +142,13 @@ cc_binary(
     name = "word_query_evolution",
     srcs = [],
     defines = ["BAZEL_BUILD"],
+    linkopts = [
+        "-L/usr/local/lib",
+        "-lhiredis_cluster",
+        "-lhiredis",
+        "-lmongocxx",
+        "-lbsoncxx",
+    ],
     linkstatic = 1,
     deps = [
         "//commons:commons_lib",
@@ -144,6 +161,13 @@ cc_binary(
     name = "implication_query_evolution",
     srcs = [],
     defines = ["BAZEL_BUILD"],
+    linkopts = [
+        "-L/usr/local/lib",
+        "-lhiredis_cluster",
+        "-lhiredis",
+        "-lmongocxx",
+        "-lbsoncxx",
+    ],
     linkstatic = 1,
     deps = [
         "//commons:commons_lib",

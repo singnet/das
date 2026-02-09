@@ -139,6 +139,26 @@ shared_ptr<Atom> RedisMongoDB::get_atom(const string& handle) {
     }
 }
 
+shared_ptr<Node> RedisMongoDB::get_node(const string& handle) {
+    auto atom = get_atom(handle);
+    if (atom != nullptr) {
+        if (auto node = dynamic_cast<Node*>(atom.get())) {
+            return shared_ptr<Node>(node);
+        }
+    }
+    return nullptr;
+}
+
+shared_ptr<Link> RedisMongoDB::get_link(const string& handle) {
+    auto atom = get_atom(handle);
+    if (atom != nullptr) {
+        if (auto link = dynamic_cast<Link*>(atom.get())) {
+            return shared_ptr<Link>(link);
+        }
+    }
+    return nullptr;
+}
+
 shared_ptr<atomdb_api_types::HandleSet> RedisMongoDB::query_for_pattern(const LinkSchema& link_schema) {
     if (SKIP_REDIS) return nullptr;
 
@@ -648,9 +668,8 @@ vector<shared_ptr<atomdb_api_types::AtomDocument>> RedisMongoDB::get_link_docume
     return get_documents(handles, fields, MONGODB_LINKS_COLLECTION_NAME);
 }
 
-vector<shared_ptr<atomdb_api_types::AtomDocument>> RedisMongoDB::get_matching_atoms(bool is_toplevel,
-                                                                                    Atom& key) {
-    vector<shared_ptr<atomdb_api_types::AtomDocument>> matching_atoms;
+vector<shared_ptr<Atom>> RedisMongoDB::get_matching_atoms(bool is_toplevel, Atom& key) {
+    vector<shared_ptr<Atom>> matching_atoms;
 
     vector<string> collection_names = {MONGODB_NODES_COLLECTION_NAME, MONGODB_LINKS_COLLECTION_NAME};
     bool add_id_filter = false;
@@ -678,7 +697,10 @@ vector<shared_ptr<atomdb_api_types::AtomDocument>> RedisMongoDB::get_matching_at
         for (const auto& document : documents) {
             Assignment assignment;
             if (key.match(document->get(MONGODB_FIELD_NAME[MONGODB_FIELD::ID]), assignment, *this)) {
-                matching_atoms.push_back(document);
+                auto atom = this->get_atom(document->get(MONGODB_FIELD_NAME[MONGODB_FIELD::ID]));
+                if (atom != nullptr) {
+                    matching_atoms.push_back(atom);
+                }
             }
         }
     }

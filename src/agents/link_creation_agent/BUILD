@@ -24,6 +24,7 @@ cc_library(
         "LinkCreationService.cc",
     ],
     hdrs = [
+        "LCAQueue.h",
         "LinkCreationAgent.h",
         "LinkCreationService.h",
     ],
@@ -55,6 +56,7 @@ cc_library(
     name = "service",
     srcs = ["LinkCreationService.cc"],
     hdrs = [
+        "LCAQueue.h",
         "LinkCreationService.h",
     ],
     deps = [
@@ -92,6 +94,7 @@ cc_library(
         "MettaTemplateProcessor.cc",
     ],
     hdrs = [
+        "LinkProcessor.h",
         "MettaTemplateProcessor.h",
     ],
     deps = [
