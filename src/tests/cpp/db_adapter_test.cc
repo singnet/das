@@ -61,26 +61,20 @@ class PostgresWrapperTest : public ::testing::Test {
         ofstream file(temp_file_path);
         file << R"([
             {
-                "type": 1,
-                "tables": [
-                {
-                    "table_name": "public.organism",
-                    "skip_columns": [],
-                    "where_clauses": ["organism_id = 1"]
-                },
-                {
-                    "table_name": "public.feature",
-                    "skip_columns": [],
-                    "where_clauses": ["feature_id = 1"]
-                },
-                {
-                    "table_name": "public.cvterm",
-                    "skip_columns": [],
-                    "where_clauses": ["cvterm_id = 1"]
-                }
-                ]
-            }
-            ])";
+                "table_name": "public.organism",
+                "skip_columns": [],
+                "where_clauses": ["organism_id = 1"]
+            },
+            {
+                "table_name": "public.feature",
+                "skip_columns": [],
+                "where_clauses": ["feature_id = 1"]
+            },
+            {
+                "table_name": "public.cvterm",
+                "skip_columns": [],
+                "where_clauses": ["cvterm_id = 1"]
+            }])";
         file.close();
     }
 
@@ -654,15 +648,13 @@ TEST_F(PostgresWrapperTest, MapTablesFirstRowAtomsWithContextFile) {
     vector<unsigned int> atoms_sizes;
 
     for (const auto& tm : tables_mapping) {
-        if (!tm.query.has_value()) {
-            string table_name = tm.table_name;
-            vector<string> skip_columns = tm.skip_columns.value_or(vector<string>{});
-            vector<string> where_clauses = tm.where_clauses.value_or(vector<string>{});
+        string table_name = tm.table_name;
+        vector<string> skip_columns = tm.skip_columns.value_or(vector<string>{});
+        vector<string> where_clauses = tm.where_clauses.value_or(vector<string>{});
 
-            Table table = wrapper->get_table(table_name);
-            EXPECT_NO_THROW({ wrapper->map_table(table, where_clauses, skip_columns, false); });
-            atoms_sizes.push_back(wrapper->mapper_handle_trie_size());
-        }
+        Table table = wrapper->get_table(table_name);
+        EXPECT_NO_THROW({ wrapper->map_table(table, where_clauses, skip_columns, false); });
+        atoms_sizes.push_back(wrapper->mapper_handle_trie_size());
     }
     EXPECT_EQ(atoms_sizes.size(), 3);
     EXPECT_EQ(atoms_sizes[0], 34);
