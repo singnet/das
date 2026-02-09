@@ -76,7 +76,7 @@ static unsigned int NUM_ITERATIONS = 10;
 
 static string CONTEXT_FILE_NAME = "_CONTEXT_DUMP";
 static string NEW_LINKS_FILE_NAME = "newly_created_links.txt";
-static bool WRITE_CREATED_LINKS_TO_DB = false;
+static bool WRITE_CREATED_LINKS_TO_DB = true;
 static bool WRITE_CREATED_LINKS_TO_FILE = true;
 static bool PRINT_CREATED_LINKS_METTA = true;
 
