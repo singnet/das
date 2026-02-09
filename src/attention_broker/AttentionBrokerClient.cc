@@ -120,7 +120,6 @@ void AttentionBrokerClient::set_determiners(const vector<vector<string>>& handle
         request.clear_list();
         handle_count = 0;
     }
-    Utils::sleep(10000);
 }
 
 void AttentionBrokerClient::get_importance(const vector<string>& handles,

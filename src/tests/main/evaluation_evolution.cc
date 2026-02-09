@@ -1,6 +1,6 @@
 #include <signal.h>
 
-#define LOG_LEVEL LOCAL_DEBUG_LEVEL
+#define LOG_LEVEL INFO_LEVEL
 
 #include <fstream>
 #include <iomanip>
@@ -69,7 +69,7 @@ static float SPREADING_RATE_LOWERBOUND = 0.90;
 static float SPREADING_RATE_UPPERBOUND = 0.90;
 static double SELECTION_RATE = 0.10;
 static double ELITISM_RATE = 0.08;
-static unsigned int LINK_BUILDING_QUERY_SIZE = 150;
+static unsigned int LINK_BUILDING_QUERY_SIZE = 50;
 static unsigned int POPULATION_SIZE = 50;
 static unsigned int MAX_GENERATIONS = 20;
 static unsigned int NUM_ITERATIONS = 10;
@@ -690,11 +690,11 @@ static void run(const string& target_predicate_handle,
         LOG_INFO("Iteration " + to_string(i + 1));
         LOG_INFO("--------------------------------------------------------------------------------");
         LOG_INFO("----- Building links");
-        LOG_DEBUG("AND predicates");
+        LOG_INFO("Building AND predicates");
         build_links(and_predicate_query, context, LINK_BUILDING_QUERY_SIZE, "", build_and_predicate_link);
-        LOG_DEBUG("Equivalence");
+        LOG_INFO("Building Equivalence links");
         build_links(equivalence_query, context, LINK_BUILDING_QUERY_SIZE, "", build_equivalence_link);
-        LOG_DEBUG("Implication");
+        LOG_INFO("Building Implication links");
         build_links(implication_query, context, LINK_BUILDING_QUERY_SIZE, "", build_implication_link);
         LOG_INFO("----- Updating AttentionBroker");
         AttentionBrokerClient::set_determiners(buffer_determiners, context);
