@@ -7,6 +7,8 @@
 #include <vector>
 
 #include "Atom.h"
+#include "ContextLoader.h"
+#include "DataTypes.h"
 #include "Logger.h"
 #include "Node.h"
 #include "PostgresWrapper.h"
@@ -53,14 +55,43 @@ class PostgresWrapperTest : public ::testing::Test {
     int TOTAL_ROWS_CVTERMS = 10;
     int TOTAL_ROWS_FEATURES = 26;
 
-    void SetUp() override {}
+    void SetUp() override {
+        temp_file_path = "/tmp/context.json";
 
-    void TearDown() override {}
+        ofstream file(temp_file_path);
+        file << R"([
+            {
+                "type": 1,
+                "tables": [
+                {
+                    "table_name": "public.organism",
+                    "skip_columns": [],
+                    "where_clauses": ["organism_id = 1"]
+                },
+                {
+                    "table_name": "public.feature",
+                    "skip_columns": [],
+                    "where_clauses": ["feature_id = 1"]
+                },
+                {
+                    "table_name": "public.cvterm",
+                    "skip_columns": [],
+                    "where_clauses": ["cvterm_id = 1"]
+                }
+                ]
+            }
+            ])";
+        file.close();
+    }
+
+    void TearDown() override { std::remove(temp_file_path.c_str()); }
 
     shared_ptr<PostgresWrapper> create_wrapper(MAPPER_TYPE mapper_type = MAPPER_TYPE::SQL2ATOMS) {
         return make_shared<PostgresWrapper>(
             TEST_HOST, TEST_PORT, TEST_DB, TEST_USER, TEST_PASSWORD, mapper_type);
     }
+
+    string temp_file_path;
 };
 
 TEST_F(PostgresWrapperTest, Connection) {
@@ -609,6 +640,34 @@ TEST_F(PostgresWrapperTest, MapSqlQueryWithInvalidClauseMetta) {
     EXPECT_THROW({ wrapper->map_sql_query("test_feature_with_invalid_clause", query); },
                  std::runtime_error);
     EXPECT_EQ(wrapper->mapper_handle_trie_size(), 0);
+}
+
+TEST_F(PostgresWrapperTest, MapTablesFirstRowAtomsWithContextFile) {
+    vector<TableMapping> tables_mapping;
+
+    if (!load_context_file("/tmp/context.json", tables_mapping)) {
+        Utils::error("Failed to load context file. Aborting test.");
+    }
+
+    auto wrapper = create_wrapper();
+
+    vector<unsigned int> atoms_sizes;
+
+    for (const auto& tm : tables_mapping) {
+        if (!tm.query.has_value()) {
+            string table_name = tm.table_name;
+            vector<string> skip_columns = tm.skip_columns.value_or(vector<string>{});
+            vector<string> where_clauses = tm.where_clauses.value_or(vector<string>{});
+
+            Table table = wrapper->get_table(table_name);
+            EXPECT_NO_THROW({ wrapper->map_table(table, where_clauses, skip_columns, false); });
+            atoms_sizes.push_back(wrapper->mapper_handle_trie_size());
+        }
+    }
+    EXPECT_EQ(atoms_sizes.size(), 3);
+    EXPECT_EQ(atoms_sizes[0], 34);
+    EXPECT_EQ(atoms_sizes[1], 81);
+    EXPECT_EQ(atoms_sizes[2], 101);
 }
 
 int main(int argc, char** argv) {

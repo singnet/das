@@ -100,3 +100,6 @@ find_rpm = use_extension(
 use_repo(find_rpm, "rules_pkg_rpmbuild")
 
 register_toolchains("@rules_pkg_rpmbuild//:all")
+
+# Dependency for JSON
+bazel_dep(name = "nlohmann_json", version = "3.12.0.bcr.1")

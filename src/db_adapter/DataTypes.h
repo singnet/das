@@ -91,4 +91,11 @@ struct Table {
  */
 enum class MAPPER_TYPE { SQL2METTA, SQL2ATOMS };
 
+struct TableMapping {
+    string table_name;
+    optional<vector<string>> where_clauses = nullopt;
+    optional<vector<string>> skip_columns = nullopt;
+    optional<string> query = nullopt;
+};
+
 }  // namespace db_adapter
