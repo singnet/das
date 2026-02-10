@@ -13,45 +13,73 @@
 
 using namespace std;
 
-PostgresWrapper::PostgresWrapper(const string& host,
-                                 int port,
-                                 const string& database,
-                                 const string& user,
-                                 const string& password,
-                                 MAPPER_TYPE mapper_type)
-    : SQLWrapper<pqxx::connection>(mapper_type),
-      host(host),
-      port(port),
-      database(database),
-      user(user),
-      password(password) {
-    this->db_client = this->connect();
+PostgresDBConnection::PostgresDBConnection(const string& id,
+                                           const string& host,
+                                           int port,
+                                           const string& database,
+                                           const string& user,
+                                           const string& password)
+    : DBConnection(id, host, port), database(database), user(user), password(password) {}
+
+PostgresDBConnection::~PostgresDBConnection() {
+    if (this->is_running()) {
+        this->stop();
+    }
 }
 
-PostgresWrapper::~PostgresWrapper() { this->disconnect(); }
-
-unique_ptr<pqxx::connection> PostgresWrapper::connect() {
+void PostgresDBConnection::connect() {
     try {
-        string conn_str = "host=" + host + " port=" + to_string(port) + " dbname=" + database;
+        string conn_str = "host=" + host + " port=" + std::to_string(port) + " dbname=" + database;
         if (!user.empty()) {
             conn_str += " user=" + user;
         }
         if (!password.empty()) {
             conn_str += " password=" + password;
         }
-        return make_unique<pqxx::connection>(conn_str);
-    } catch (const pqxx::sql_error& e) {
-        throw runtime_error("Could not connect to database: " + string(e.what()));
+        this->conn = make_unique<pqxx::connection>(conn_str);
     } catch (const exception& e) {
         throw runtime_error("Could not connect to database: " + string(e.what()));
     }
 }
 
-void PostgresWrapper::disconnect() {
-    if (this->db_client) {
-        this->db_client->close();
+void PostgresDBConnection::disconnect() {
+    if (this->conn) {
+        this->conn->close();
+        this->conn.reset();
     }
 }
+
+pqxx::result PostgresDBConnection::execute_query(const string& query) {
+    if (!this->conn || !this->conn->is_open()) {
+        Utils::error("Postgres connection is not open.");
+    }
+
+    try {
+        pqxx::work transaction(*this->conn);
+        pqxx::result result = transaction.exec(query);
+        transaction.commit();
+        return result;
+    } catch (const exception& e) {
+        Utils::error("Error during query execution: " + string(e.what()));
+    }
+    return pqxx::result{};
+}
+
+// ===============================================================================================
+
+PostgresWrapper::PostgresWrapper(const string& host,
+                                 int port,
+                                 const string& database,
+                                 const string& user,
+                                 const string& password,
+                                 MAPPER_TYPE mapper_type)
+    : SQLWrapper<PostgresDBConnection>(mapper_type) {
+    this->db_client =
+        make_unique<PostgresDBConnection>("postgres-conn", host, port, database, user, password);
+    this->db_client->start();
+}
+
+PostgresWrapper::~PostgresWrapper() {}
 
 Table PostgresWrapper::get_table(const string& name) {
     auto tables = this->list_tables();
@@ -135,7 +163,7 @@ vector<Table> PostgresWrapper::list_tables() {
     ORDER BY
         pg_total_relation_size(ti.table_name) ASC;
     )";
-    auto result = this->execute_query(query);
+    auto result = this->db_client->execute_query(query);
     vector<Table> tables;
     tables.reserve(result.size());
 
@@ -263,8 +291,8 @@ vector<string> PostgresWrapper::collect_fk_ids(const string& table_name,
 
     while (true) {
         string query = "SELECT " + column_name + " FROM " + table_name + " WHERE " + where_clause +
-                       " LIMIT " + to_string(limit) + " OFFSET " + to_string(offset) + ";";
-        pqxx::result rows = this->execute_query(query);
+                       " LIMIT " + std::to_string(limit) + " OFFSET " + std::to_string(offset) + ";";
+        pqxx::result rows = this->db_client->execute_query(query);
 
         if (rows.empty()) break;
 
@@ -367,8 +395,9 @@ void PostgresWrapper::fetch_rows_paginated(const Table& table,
     size_t limit = 10000;
 
     while (true) {
-        string paginated_query = query + " LIMIT " + to_string(limit) + " OFFSET " + to_string(offset);
-        pqxx::result rows = this->execute_query(paginated_query);
+        string paginated_query =
+            query + " LIMIT " + std::to_string(limit) + " OFFSET " + std::to_string(offset);
+        pqxx::result rows = this->db_client->execute_query(paginated_query);
 
         LOG_DEBUG("Executing paginated query: " << paginated_query);
         LOG_DEBUG("Fetched " << rows.size() << " rows from table " << table.name);
@@ -438,22 +467,4 @@ SqlRow PostgresWrapper::build_sql_row(const pqxx::row& row, const Table& table, 
         sql_row.add_field(column_name, value);
     }
     return sql_row;
-}
-
-pqxx::result PostgresWrapper::execute_query(const string& query) {
-    if (!this->db_client || !this->db_client->is_open()) {
-        Utils::error("Database connection is not open.");
-    }
-
-    try {
-        pqxx::work transaction(*this->db_client);
-        pqxx::result result = transaction.exec(query);
-        transaction.commit();
-        return result;
-    } catch (const pqxx::sql_error& e) {
-        Utils::error("SQL error during query execution: " + string(e.what()));
-    } catch (const exception& e) {
-        Utils::error("Error during query execution: " + string(e.what()));
-    }
-    return pqxx::result{};
 }

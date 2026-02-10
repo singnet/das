@@ -17,6 +17,16 @@ cc_library(
 )
 
 cc_library(
+    name = "data_types",
+    hdrs = ["DataTypes.h"],
+    includes = ["."],
+    deps = [
+        "//commons:commons_lib",
+        "//commons/atoms:atoms_lib",
+    ],
+)
+
+cc_library(
     name = "data_mapper",
     srcs = ["DataMapper.cc"],
     hdrs = ["DataMapper.h"],
@@ -29,23 +39,16 @@ cc_library(
 )
 
 cc_library(
-    name = "data_types",
-    hdrs = ["DataTypes.h"],
-    includes = ["."],
-    deps = [
-        "//commons:commons_lib",
-        "//commons/atoms:atoms_lib",
-    ],
-)
-
-cc_library(
     name = "db_wrapper",
+    srcs = ["DBWrapper.cc"],
     hdrs = ["DBWrapper.h"],
     includes = ["."],
     deps = [
+        ":data_mapper",
         ":data_types",
         "//commons:commons_lib",
         "//commons/atoms:atoms_lib",
+        "//commons/processor:processor_lib",
     ],
 )
 
