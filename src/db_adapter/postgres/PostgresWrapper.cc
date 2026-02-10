@@ -420,7 +420,10 @@ void PostgresWrapper::fetch_rows_paginated(const Table& table,
                 vector<Atom*> atoms = get<vector<Atom*>>(output);
                 LOG_DEBUG("Atoms count: " << atoms.size());
                 // WIP - send atoms to SharedQueue
-
+                unique_lock<mutex> lock(this->api_mutex);
+                for (const auto& atom : atoms) {
+                    this->processing_queue->enqueue((void*) atom);
+                }
             } else {
                 vector<string> metta_expressions = get<vector<string>>(output);
                 LOG_DEBUG("Metta Expressions count: " << metta_expressions.size());

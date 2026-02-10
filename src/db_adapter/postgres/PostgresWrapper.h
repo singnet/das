@@ -3,6 +3,7 @@
 #include <Atom.h>
 
 #include <memory>
+#include <mutex>
 #include <optional>
 #include <pqxx/pqxx>
 #include <regex>
@@ -72,6 +73,8 @@ class PostgresWrapper : public SQLWrapper<PostgresDBConnection> {
                    const vector<string>& skip_columns = {},
                    bool second_level = false) override;
     void map_sql_query(const string& virtual_name, const string& raw_query) override;
+
+    mutex api_mutex;
 
    protected:
     // Regex for parsing alias patterns (e.g., "AS public_feature__uniquename")
