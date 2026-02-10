@@ -802,6 +802,10 @@ cc_test(
         "-L/usr/local/lib",
         "-lpqxx",
         "-lpq",
+        "-lhiredis_cluster",
+        "-lhiredis",
+        "-lmongocxx",
+        "-lbsoncxx",
     ],
     linkstatic = 1,
     deps = [

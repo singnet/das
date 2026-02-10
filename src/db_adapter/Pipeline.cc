@@ -1,61 +1,79 @@
+#include "Pipeline.h"
+
+#include "AtomDBSingleton.h"
 #include "DedicatedThread.h"
 #include "PostgresWrapper.h"
 #include "Processor.h"
 #include "SharedQueue.h"
 
-class PostgresWrapperJob : public ThreadMethod {
-   public:
-    PostgresWrapperJob(const string& host,
-                       int port,
-                       const string& database,
-                       const string& user,
-                       const string& password,
-                       MAPPER_TYPE mapper_type = MAPPER_TYPE::SQL2ATOMS) {
-        this->db = make_shared<PostgresWrapper>(host, port, database, user, password, mapper_type);
-    }
-    ~PostgresWrapperJob() = default;
+#define BATCH_SIZE 1000
 
-    bool thread_one_step() override {
-        try {
-            this->db->map_table();
-        } catch (const exception& e) {
-            Utils::error("Error in PostgresWrapperProducer: " + string(e.what()));
-        }
+using namespace atomdb;
+using namespace std;
+using namespace commons;
+using namespace atoms;
+using namespace db_adapter;
+
+PostgresWrapperJob::PostgresWrapperJob(shared_ptr<PostgresWrapper> db) : db(db) {}
+
+void PostgresWrapperJob::add_task_query(const string& virtual_name, const string& query) {
+    this->tasks.push_back(MappingTask{MappingTask::QUERY, TableMapping{}, virtual_name, query});
+}
+void PostgresWrapperJob::add_task_table(TableMapping table_mapping) {
+    this->tasks.push_back(MappingTask{MappingTask::TABLE, move(table_mapping), "", ""});
+}
+
+bool PostgresWrapperJob::thread_one_step() {
+    if (this->current_task >= this->tasks.size()) {
         return false;
     }
 
-    void set_output_queue(shared_ptr<SharedQueue> output_queue) { this->output_queue = output_queue; }
+    auto& task = this->tasks[this->current_task];
 
-   protected:
-    shared_ptr<PostgresWrapper> db;
-    shared_ptr<SharedQueue> output_queue;
-};
+    if (task.type == MappingTask::TABLE) {
+        auto table = this->db->get_table(task.table_mapping.table_name);
+        this->db->map_table(table,
+                            task.table_mapping.where_clauses.value_or(vector<string>{}),
+                            task.table_mapping.skip_columns.value_or(vector<string>{}),
+                            false);
+    } else if (task.type == MappingTask::QUERY) {
+        this->db->map_sql_query(task.virtual_name, task.query);
+    }
 
-class WorkerJob : public ThreadMethod {
-   public:
-    bool thread_one_step() override {
-        try {
-            auto request = this->input_queue->dequeue();
-            if (request) {
-                // Process the request
+    this->current_task++;
+    return (this->current_task < this->tasks.size());
+}
+
+WorkerJob::WorkerJob(shared_ptr<SharedQueue> input_queue) : input_queue(input_queue) {
+    this->atomdb = AtomDBSingleton::get_instance();
+}
+bool WorkerJob::thread_one_step() {
+    if (this->input_queue->size() == 0) {
+        Utils::sleep();
+        return true;
+    }
+    try {
+        vector<Atom*> atoms;
+        for (size_t i = 0; i < BATCH_SIZE; ++i) {
+            if (this->input_queue->empty()) break;
+
+            auto atom = (Atom*) this->input_queue->dequeue();
+
+            if (atom == nullptr) {
+                Utils::error("Dequeued atom is nullptr");
             }
-        } catch (const exception& e) {
-            Utils::error("Error in Worker: " + string(e.what()));
+            atoms.push_back(atom);
         }
-        return false;
+        if (!atoms.empty()) {
+            cout << "Worker processing batch of " << atoms.size() << " atoms." << endl;
+            this->atomdb->add_atoms(atoms, false, true);
+            for (auto& atom : atoms) {
+                delete atom;
+            }
+        }
+        return true;
+    } catch (const exception& e) {
+        Utils::error("Error in Worker: " + string(e.what()));
     }
-
-    void set_input_queue(shared_ptr<SharedQueue> input_queue) { this->input_queue = input_queue; }
-
-   protected:
-    shared_ptr<SharedQueue> input_queue;
-};
-
-// resources
-ProstgresWrapperJob producer_job("localhost", 5433, "postgres_wrapper_test", "postgres", "test");
-WorkerJob worker_job;
-
-auto queue = make_shared<SharedQueue>();
-auto db = make_shared<PostgresWrapper>("localhost", 5433, "postgres_wrapper_test", "postgres", "test");
-
-// Jobs
+    return false;
+}

@@ -11,6 +11,7 @@
 #include <vector>
 
 #include "DBWrapper.h"
+#include "SharedQueue.h"
 
 #define MAX_VALUE_SIZE ((size_t) 1000)
 
@@ -62,7 +63,8 @@ class PostgresWrapper : public SQLWrapper<PostgresDBConnection> {
                     const string& database = "postgres",
                     const string& user = "postgres",
                     const string& password = "postgres",
-                    MAPPER_TYPE mapper_type = MAPPER_TYPE::SQL2ATOMS);
+                    MAPPER_TYPE mapper_type = MAPPER_TYPE::SQL2ATOMS,
+                    shared_ptr<SharedQueue> output_queue = nullptr);
 
     ~PostgresWrapper() override;
 
@@ -82,6 +84,7 @@ class PostgresWrapper : public SQLWrapper<PostgresDBConnection> {
 
    private:
     // Store tables in cache to avoid repeated database queries.
+    shared_ptr<SharedQueue> output_queue;
     optional<vector<Table>> tables_cache;
     vector<string> build_columns_to_map(const Table& table, const vector<string>& skip_columns = {});
     vector<string> collect_fk_ids(const string& table_name,

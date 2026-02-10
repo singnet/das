@@ -10,6 +10,7 @@ cc_library(
         ":data_mapper",
         ":data_types",
         ":db_wrapper",
+        ":pipeline",
         "//commons:commons_lib",
         "//commons/atoms:atoms_lib",
         "//db_adapter/postgres:postgres_lib",
@@ -59,5 +60,21 @@ cc_library(
     deps = [
         "//commons:commons_lib",
         "@nlohmann_json//:json",
+    ],
+)
+
+cc_library(
+    name = "pipeline",
+    srcs = ["Pipeline.cc"],
+    hdrs = ["Pipeline.h"],
+    includes = ["."],
+    deps = [
+        ":data_types",
+        ":db_wrapper",
+        "//atomdb",
+        "//atomdb:atomdb_singleton",
+        "//commons:commons_lib",
+        "//commons/atoms:atoms_lib",
+        "//db_adapter/postgres:postgres_lib",
     ],
 )

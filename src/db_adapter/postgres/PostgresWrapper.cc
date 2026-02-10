@@ -72,8 +72,9 @@ PostgresWrapper::PostgresWrapper(const string& host,
                                  const string& database,
                                  const string& user,
                                  const string& password,
-                                 MAPPER_TYPE mapper_type)
-    : SQLWrapper<PostgresDBConnection>(mapper_type) {
+                                 MAPPER_TYPE mapper_type,
+                                 shared_ptr<SharedQueue> output_queue)
+    : SQLWrapper<PostgresDBConnection>(mapper_type), output_queue(output_queue) {
     this->db_client =
         make_unique<PostgresDBConnection>("postgres-conn", host, port, database, user, password);
     this->db_client->start();
@@ -417,15 +418,16 @@ void PostgresWrapper::fetch_rows_paginated(const Table& table,
             auto output = this->mapper->map(DbInput{sql_row});
 
             if (this->mapper_type == MAPPER_TYPE::SQL2ATOMS) {
-                vector<Atom*> atoms = get<vector<Atom*>>(output);
+                auto atoms = get<vector<Atom*>>(output);
+
                 LOG_DEBUG("Atoms count: " << atoms.size());
-                // WIP - send atoms to SharedQueue
+
                 unique_lock<mutex> lock(this->api_mutex);
                 for (const auto& atom : atoms) {
-                    this->processing_queue->enqueue((void*) atom);
+                    this->output_queue->enqueue((void*) atom);
                 }
             } else {
-                vector<string> metta_expressions = get<vector<string>>(output);
+                auto metta_expressions = get<vector<string>>(output);
                 LOG_DEBUG("Metta Expressions count: " << metta_expressions.size());
                 // WIP - save metta expressions to file
             }

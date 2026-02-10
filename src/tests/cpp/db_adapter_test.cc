@@ -9,18 +9,25 @@
 #include "Atom.h"
 #include "ContextLoader.h"
 #include "DataTypes.h"
+#include "DedicatedThread.h"
 #include "Logger.h"
 #include "Node.h"
+#include "Pipeline.h"
 #include "PostgresWrapper.h"
+#include "Processor.h"
 #include "TestConfig.h"
 
 using namespace std;
 using namespace db_adapter;
 using namespace atoms;
+using namespace processor;
 
 class PostgresWrapperTestEnvironment : public ::testing::Environment {
    public:
-    void SetUp() override { TestConfig::load_environment(); }
+    void SetUp() override {
+        TestConfig::load_environment();
+        AtomDBSingleton::init();
+    }
 
     void TearDown() override {}
 };
@@ -129,8 +136,9 @@ class PostgresWrapperTest : public ::testing::Test {
     void TearDown() override { std::remove(temp_file_path.c_str()); }
 
     shared_ptr<PostgresWrapper> create_wrapper(MAPPER_TYPE mapper_type = MAPPER_TYPE::SQL2ATOMS) {
+        auto queue = make_shared<SharedQueue>();
         return make_shared<PostgresWrapper>(
-            TEST_HOST, TEST_PORT, TEST_DB, TEST_USER, TEST_PASSWORD, mapper_type);
+            TEST_HOST, TEST_PORT, TEST_DB, TEST_USER, TEST_PASSWORD, mapper_type, queue);
     }
 
     string temp_file_path;
@@ -760,6 +768,40 @@ TEST_F(PostgresWrapperTest, MapTablesFirstRowAtomsWithContextFile) {
     EXPECT_EQ(atoms_sizes[0], 34);
     EXPECT_EQ(atoms_sizes[1], 81);
     EXPECT_EQ(atoms_sizes[2], 101);
+}
+
+TEST_F(PostgresWrapperTest, PipelineProcessor) {
+    auto queue = make_shared<SharedQueue>();
+    auto wrapper = make_shared<PostgresWrapper>(
+        "localhost", 5433, "postgres_wrapper_test", "postgres", "test", MAPPER_TYPE::SQL2ATOMS, queue);
+
+    // Jobs
+    PostgresWrapperJob producer_job(wrapper);
+    string query_organism = R"(
+        SELECT
+            o.organism_id AS public_organism__organism_id,
+            o.genus AS public_organism__genus,
+            o.species AS public_organism__species,
+            o.common_name AS public_organism__common_name,
+            o.abbreviation AS public_organism__abbreviation,
+            o.comment AS public_organism__comment
+        FROM organism AS o
+        WHERE o.organism_id = 1
+    )";
+    producer_job.add_task_query("Test1", query_organism);
+    WorkerJob worker_job(queue);
+
+    // Threads
+    auto producer = make_shared<DedicatedThread>("psql", &producer_job);
+    auto worker = make_shared<DedicatedThread>("worker", &worker_job);
+
+    auto pipeline = make_shared<Processor>("pipeline");
+    Processor::bind_subprocessor(pipeline, producer);
+    Processor::bind_subprocessor(pipeline, worker);
+      
+    pipeline->setup();
+    pipeline->start();
+    pipeline->stop();
 }
 
 int main(int argc, char** argv) {
