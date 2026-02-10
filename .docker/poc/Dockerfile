@@ -48,7 +48,11 @@ RUN if [ "$(uname -m)" = "aarch64" ] || [ "$(uname -m)" = "arm64" ]; then \
     && cp -f /usr/lib/${LIB_SUBDIR}/libevent-2.1.so.7 ${DAS_DIR}/syslibs/usr/lib/${LIB_SUBDIR}/ 2>/dev/null || true \
     && cp -f /etc/ssl/certs/ca-certificates.crt ${DAS_DIR}/syslibs/etc/ssl/certs/ 2>/dev/null || true
 
+FROM debian:12-slim AS tz
+RUN apt-get update && apt-get install -y tzdata
+
 FROM gcr.io/distroless/cc-debian12:nonroot AS runner
+COPY --from=tz /usr/share/zoneinfo /usr/share/zoneinfo
 
 WORKDIR /opt/das
 
