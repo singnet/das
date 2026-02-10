@@ -3,6 +3,7 @@
 #include <memory>
 #include <stdexcept>
 #include <string>
+#include <mutex>
 #include <vector>
 
 #include "DataMapper.h"
