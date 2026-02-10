@@ -17,11 +17,11 @@
 #include "Hasher.h"
 #include "Logger.h"
 #include "MettaParser.h"
-#include "commons/atoms/MettaParserActions.h"
 #include "QueryAnswer.h"
 #include "QueryEvolutionProxy.h"
 #include "ServiceBusSingleton.h"
 #include "Utils.h"
+#include "commons/atoms/MettaParserActions.h"
 
 #define MAX_QUERY_ANSWERS ((unsigned int) 100000)
 
@@ -156,9 +156,7 @@ static shared_ptr<PatternMatchingQueryProxy> issue_weight_count_query(const vect
     return proxy;
 }
 
-static void attention_allocation_query(
-    const vector<string>& query_tokens, const string& context) {
-
+static void attention_allocation_query(const vector<string>& query_tokens, const string& context) {
     auto proxy = make_shared<PatternMatchingQueryProxy>(query_tokens, context);
     proxy->parameters[BaseQueryProxy::UNIQUE_ASSIGNMENT_FLAG] = true;
     proxy->parameters[BaseQueryProxy::ATTENTION_UPDATE_FLAG] = true;
@@ -269,7 +267,8 @@ static Link add_or_update_link(const string& type_handle,
     Link new_link(EXPRESSION, {type_handle, target1, target2}, true, {{STRENGTH, strength}});
     LOG_DEBUG("Add or update: " + new_link.to_string());
     if (PRINT_CREATED_LINKS_METTA) {
-        LOG_INFO("ADD LINK: " + new_link.metta_representation(*static_pointer_cast<HandleDecoder>(db).get()));
+        LOG_INFO("ADD LINK: " +
+                 new_link.metta_representation(*static_pointer_cast<HandleDecoder>(db).get()));
     }
     string handle = new_link.handle();
     if (db->link_exists(handle)) {
@@ -308,8 +307,9 @@ static Link add_predicate(const string& handle1, const string& handle2) {
     return new_link;
 }
 
-static void build_implication_link(shared_ptr<QueryAnswer> query_answer, const string& context, const string& custom_handle) {
-
+static void build_implication_link(shared_ptr<QueryAnswer> query_answer,
+                                   const string& context,
+                                   const string& custom_handle) {
     string predicates[2];
     if (custom_handle == "") {
         predicates[0] = query_answer->get(PREDICATE1);
@@ -368,7 +368,9 @@ static void build_implication_link(shared_ptr<QueryAnswer> query_answer, const s
     }
 }
 
-static void build_and_predicate_link(shared_ptr<QueryAnswer> query_answer, const string& context, const string& custom_handle) {
+static void build_and_predicate_link(shared_ptr<QueryAnswer> query_answer,
+                                     const string& context,
+                                     const string& custom_handle) {
     string predicate1 = query_answer->get(PREDICATE1);
     string predicate2 = query_answer->get(PREDICATE2);
     string concept1 = query_answer->get(CONCEPT);
@@ -382,8 +384,9 @@ static void build_and_predicate_link(shared_ptr<QueryAnswer> query_answer, const
     add_or_update_link(EVALUATION_HANDLE, new_predicate.handle(), concept1, 1.0);
 }
 
-static void build_equivalence_link(shared_ptr<QueryAnswer> query_answer, const string& context, const string& custom_handle) {
-
+static void build_equivalence_link(shared_ptr<QueryAnswer> query_answer,
+                                   const string& context,
+                                   const string& custom_handle) {
     string concepts[2];
     if (custom_handle == "") {
         concepts[0] = query_answer->get(CONCEPT1);
@@ -439,10 +442,10 @@ static void build_equivalence_link(shared_ptr<QueryAnswer> query_answer, const s
 
 static void build_links(const vector<string>& query,
                         const string& context,
-                        unsigned int num_links, 
+                        unsigned int num_links,
                         const string& custom_handle,
                         void (*build_link)(shared_ptr<QueryAnswer> query_answer,
-                                           const string& context, 
+                                           const string& context,
                                            const string& custom_handle)) {
     auto proxy = issue_link_building_query(query, context, num_links);
     unsigned int count = 0;
@@ -459,7 +462,7 @@ static void build_links(const vector<string>& query,
                 }
             } else {
                 Utils::sleep();
-                if (! proxy->finished()) {
+                if (!proxy->finished()) {
                     proxy->abort();
                 }
                 break;
@@ -525,7 +528,6 @@ static void query_evolution(
 static void run(const string& target_predicate_handle,
                 const string& target_concept_handle,
                 const string& context_tag) {
-
     // clang-format off
 
     vector<string> implication_query = {
@@ -665,8 +667,10 @@ static void run(const string& target_predicate_handle,
     context_proxy->parameters[ContextBrokerProxy::USE_CACHE] = (bool) true;
     context_proxy->parameters[ContextBrokerProxy::ENFORCE_CACHE_RECREATION] = (bool) false;
     context_proxy->parameters[ContextBrokerProxy::INITIAL_RENT_RATE] = (double) RENT_RATE;
-    context_proxy->parameters[ContextBrokerProxy::INITIAL_SPREADING_RATE_LOWERBOUND] = (double) SPREADING_RATE_LOWERBOUND;
-    context_proxy->parameters[ContextBrokerProxy::INITIAL_SPREADING_RATE_UPPERBOUND] = (double) SPREADING_RATE_UPPERBOUND;
+    context_proxy->parameters[ContextBrokerProxy::INITIAL_SPREADING_RATE_LOWERBOUND] =
+        (double) SPREADING_RATE_LOWERBOUND;
+    context_proxy->parameters[ContextBrokerProxy::INITIAL_SPREADING_RATE_UPPERBOUND] =
+        (double) SPREADING_RATE_UPPERBOUND;
     // Issue the ContextBrokerProxy to create context
     ServiceBusSingleton::get_instance()->issue_bus_command(context_proxy);
     // Wait for ContextBrokerProxy to finish context creation
@@ -681,8 +685,10 @@ static void run(const string& target_predicate_handle,
     LOG_INFO("Initializing STI");
     attention_allocation_query(initialization_STI_query, context);
     LOG_INFO("Building initial custom links");
-    build_links(custom_initial_equivalence_query, context, 0, target_concept_handle, build_equivalence_link);
-    build_links(custom_initial_implication_query, context, 0, target_predicate_handle, build_implication_link);
+    build_links(
+        custom_initial_equivalence_query, context, 0, target_concept_handle, build_equivalence_link);
+    build_links(
+        custom_initial_implication_query, context, 0, target_predicate_handle, build_implication_link);
     LOG_INFO("Pre-processing complete");
 
     for (unsigned int i = 0; i < NUM_ITERATIONS; i++) {
@@ -691,7 +697,8 @@ static void run(const string& target_predicate_handle,
         LOG_INFO("--------------------------------------------------------------------------------");
         LOG_INFO("----- Building links");
         LOG_INFO("Building AND predicates");
-        build_links(and_predicate_query, context, LINK_BUILDING_QUERY_SIZE, "", build_and_predicate_link);
+        build_links(
+            and_predicate_query, context, LINK_BUILDING_QUERY_SIZE, "", build_and_predicate_link);
         LOG_INFO("Building Equivalence links");
         build_links(equivalence_query, context, LINK_BUILDING_QUERY_SIZE, "", build_equivalence_link);
         LOG_INFO("Building Implication links");
@@ -701,10 +708,10 @@ static void run(const string& target_predicate_handle,
         buffer_determiners.clear();
         LOG_INFO("----- Evolving query");
         query_evolution(query_to_evolve,
-                           correlation_query_template,
-                           correlation_query_constants,
-                           correlation_mapping[0],
-                           context);
+                        correlation_query_template,
+                        correlation_query_constants,
+                        correlation_mapping[0],
+                        context);
     }
 }
 
@@ -780,7 +787,8 @@ int main(int argc, char* argv[]) {
     ServiceBusSingleton::init(client_endpoint, server_endpoint, ports_range.first, ports_range.second);
     FitnessFunctionRegistry::initialize_statics();
     bus = ServiceBusSingleton::get_instance();
-    AttentionBrokerClient::set_parameters(RENT_RATE, SPREADING_RATE_LOWERBOUND, SPREADING_RATE_UPPERBOUND);
+    AttentionBrokerClient::set_parameters(
+        RENT_RATE, SPREADING_RATE_LOWERBOUND, SPREADING_RATE_UPPERBOUND);
     insert_type_symbols();
 
     LOG_INFO("ELITISM_RATE: " + to_string(ELITISM_RATE));
@@ -800,7 +808,8 @@ int main(int argc, char* argv[]) {
     predicate_p.parse();
     concept_p.parse();
 
-    LOG_INFO("Target predicate: " + target_predicate + " Handle: " + predicate_pa->metta_expression_handle);
+    LOG_INFO("Target predicate: " + target_predicate +
+             " Handle: " + predicate_pa->metta_expression_handle);
     LOG_INFO("Target concept: " + target_concept + " Handle: " + concept_pa->metta_expression_handle);
 
     run(predicate_pa->metta_expression_handle, concept_pa->metta_expression_handle, context_tag);

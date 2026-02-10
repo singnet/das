@@ -277,8 +277,7 @@ shared_ptr<QueryElement> PatternMatchingQueryProcessor::setup_query_tree(
         } else {
             Utils::error("Invalid token in query: " + query_tokens[cursor]);
         }
-        if ((query_tokens[cursor] == LinkSchema::LINK_TEMPLATE) ||
-            (query_tokens[cursor] == OR) ||
+        if ((query_tokens[cursor] == LinkSchema::LINK_TEMPLATE) || (query_tokens[cursor] == OR) ||
             (query_tokens[cursor] == AND)) {
         }
     }

@@ -106,6 +106,5 @@ class LinkTemplate : public QueryElement {
      * Empty implementation. There are no QueryNode element or local thread to shut down.
      */
     virtual void graceful_shutdown() {}
-
 };
 }  // namespace query_element

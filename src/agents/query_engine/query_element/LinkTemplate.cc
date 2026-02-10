@@ -40,7 +40,7 @@ LinkTemplate::LinkTemplate(const string& type,
     this->random_generator =
         new std::mt19937(std::chrono::system_clock::now().time_since_epoch().count());
     unsigned int max_reverse_nesting = 0;
-    for (auto element: targets) {
+    for (auto element : targets) {
         if (element->reverse_nesting_level > max_reverse_nesting) {
             max_reverse_nesting = element->reverse_nesting_level;
         }
@@ -149,7 +149,8 @@ void LinkTemplate::processor_method(shared_ptr<StoppableThread> monitor) {
     }
     bool flat_pattern_flag = (this->reverse_nesting_level <= 1);
     LOG_DEBUG("Positive importance flag: " + string(this->positive_importance_flag ? "true" : "false"));
-    LOG_DEBUG("Disregard importance flag: " + string(this->disregard_importance_flag ? "true" : "false"));
+    LOG_DEBUG("Disregard importance flag: " +
+              string(this->disregard_importance_flag ? "true" : "false"));
     LOG_DEBUG("Unique value flag: " + string(this->unique_value_flag ? "true" : "false"));
     LOG_DEBUG("Flat pattern flag: " + string(flat_pattern_flag ? "true" : "false"));
     LOG_INFO("Fetched " + std::to_string(handles->size()) + " atoms in " + link_schema_handle);
@@ -161,7 +162,7 @@ void LinkTemplate::processor_method(shared_ptr<StoppableThread> monitor) {
         while ((handle = iterator->next()) != nullptr) {
             tagged_handles.push_back(make_pair<char*, float>((char*) handle, 0));
         }
-        if (! this->disregard_importance_flag) {
+        if (!this->disregard_importance_flag) {
             compute_importance(tagged_handles);
         }
     }
@@ -185,14 +186,17 @@ void LinkTemplate::processor_method(shared_ptr<StoppableThread> monitor) {
                     count_matched++;
                 } else {
                     if (this->link_schema.match(string(tagged_handle.first), assignment, *db.get())) {
-                        this->source_element->add_handle(tagged_handle.first, tagged_handle.second, assignment);
+                        this->source_element->add_handle(
+                            tagged_handle.first, tagged_handle.second, assignment);
                         assignment.clear();
                         count_matched++;
                     }
                 }
             }
-            if (! (++processed % 1000000)) {
-                LOG_INFO("Processed " + std::to_string(processed) + "/" + std::to_string(tagged_handles.size()) + ". " + std::to_string(count_matched) + " matched so far.");
+            if (!(++processed % 1000000)) {
+                LOG_INFO("Processed " + std::to_string(processed) + "/" +
+                         std::to_string(tagged_handles.size()) + ". " + std::to_string(count_matched) +
+                         " matched so far.");
             }
             pending--;
         }
