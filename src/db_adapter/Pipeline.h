@@ -50,24 +50,3 @@ class WorkerJob : public ThreadMethod {
 };
 
 }  // namespace db_adapter
-
-   // // resources
-// auto queue = make_shared<SharedQueue>();
-// auto wrapper = make_shared<PostgresWrapper>(
-//     "localhost", 5433, "postgres_wrapper_test", "postgres", "test", MAPPER_TYPE::SQL2ATOMS, queue);
-
-// // Jobs
-// PostgresWrapperJob producer_job(wrapper);
-// WorkerJob worker_job(queue);
-
-// // Threads
-// auto producer = make_shared<DedicatedThread>("psql", &producer_job);
-// auto worker = make_shared<DedicatedThread>("worker", &worker_job);
-
-// auto pipeline = make_shared<Processor>("pipeline");
-// Processor::bind_subprocessor(pipeline, producer);
-// Processor::bind_subprocessor(pipeline, worker);
-
-// pipeline->setup();
-// pipeline->start();
-// pipeline->stop();
