@@ -37,16 +37,27 @@ class PostgresWrapperJob : public ThreadMethod {
     size_t current_task = 0;
 };
 
-class WorkerJob : public ThreadMethod {
+class AtomDBJob : public ThreadMethod {
    public:
-    WorkerJob(shared_ptr<SharedQueue> input_queue);
-    ~WorkerJob() = default;
+    AtomDBJob(shared_ptr<SharedQueue> input_queue);
+    ~AtomDBJob() = default;
 
     bool thread_one_step() override;
 
    protected:
     shared_ptr<SharedQueue> input_queue;
     shared_ptr<AtomDB> atomdb;
+};
+
+class FileJob : public ThreadMethod {
+   public:
+    FileJob(shared_ptr<SharedQueue> input_queue, const string& file_path);
+    ~FileJob() = default;
+
+    bool thread_one_step() override;
+
+   protected:
+    shared_ptr<SharedQueue> input_queue;
 };
 
 }  // namespace db_adapter

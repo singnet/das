@@ -44,10 +44,11 @@ bool PostgresWrapperJob::thread_one_step() {
     return (this->current_task < this->tasks.size());
 }
 
-WorkerJob::WorkerJob(shared_ptr<SharedQueue> input_queue) : input_queue(input_queue) {
+AtomDBJob::AtomDBJob(shared_ptr<SharedQueue> input_queue) : input_queue(input_queue) {
     this->atomdb = AtomDBSingleton::get_instance();
 }
-bool WorkerJob::thread_one_step() {
+
+bool AtomDBJob::thread_one_step() {
     if (this->input_queue->size() == 0) {
         Utils::sleep();
         return true;
@@ -71,6 +72,24 @@ bool WorkerJob::thread_one_step() {
                 delete atom;
             }
         }
+        return true;
+    } catch (const exception& e) {
+        Utils::error("Error in Worker: " + string(e.what()));
+    }
+    return false;
+}
+
+FileJob::FileJob(shared_ptr<SharedQueue> input_queue, const string& file_path) : input_queue(input_queue), file_path(file_path) {
+    // Open the file
+}
+
+bool FileJob::thread_one_step() {
+    if (this->input_queue->size() == 0) {
+        Utils::sleep();
+        return true;
+    }
+    try {
+        // Send expressions to file
         return true;
     } catch (const exception& e) {
         Utils::error("Error in Worker: " + string(e.what()));
