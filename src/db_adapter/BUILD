@@ -51,9 +51,11 @@ cc_library(
 
 cc_library(
     name = "context_loader",
+    srcs = ["ContextLoader.cc"],
     hdrs = ["ContextLoader.h"],
     includes = ["."],
     deps = [
+        ":data_types",
         "//commons:commons_lib",
         "@nlohmann_json//:json",
     ],
