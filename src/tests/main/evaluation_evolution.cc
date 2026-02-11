@@ -684,11 +684,11 @@ static void run(const string& target_predicate_handle,
     LOG_INFO("Pre-processing...");
     LOG_INFO("Initializing STI");
     attention_allocation_query(initialization_STI_query, context);
-    LOG_INFO("Building initial custom links");
-    build_links(
-        custom_initial_equivalence_query, context, 0, target_concept_handle, build_equivalence_link);
-    build_links(
-        custom_initial_implication_query, context, 0, target_predicate_handle, build_implication_link);
+    //LOG_INFO("Building initial custom links");
+    //build_links(
+    //    custom_initial_equivalence_query, context, 0, target_concept_handle, build_equivalence_link);
+    //build_links(
+    //    custom_initial_implication_query, context, 0, target_predicate_handle, build_implication_link);
     LOG_INFO("Pre-processing complete");
 
     for (unsigned int i = 0; i < NUM_ITERATIONS; i++) {
