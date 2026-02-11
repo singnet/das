@@ -8,10 +8,9 @@
 #include <string>
 
 #include "AtomDBSingleton.h"
-#include "AtomSpace.h"
 #include "AttentionBrokerClient.h"
-#include "Context.h"
 #include "ContextBrokerProxy.h"
+#include "PatternMatchingQueryProxy.h"
 #include "CountLetterFunction.h"
 #include "FitnessFunctionRegistry.h"
 #include "Hasher.h"
@@ -82,7 +81,6 @@ static bool PRINT_CREATED_LINKS_METTA = true;
 
 using namespace std;
 using namespace atomdb;
-using namespace atom_space;
 using namespace query_engine;
 using namespace evolution;
 using namespace service_bus;
