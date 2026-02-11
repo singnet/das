@@ -6,9 +6,12 @@ cc_library(
     name = "db_adapter_lib",
     includes = ["."],
     deps = [
+        ":context_loader",
         ":data_mapper",
         ":data_types",
         ":db_wrapper",
+        "//commons:commons_lib",
+        "//commons/atoms:atoms_lib",
         "//db_adapter/postgres:postgres_lib",
     ],
 )
@@ -19,6 +22,7 @@ cc_library(
     hdrs = ["DataMapper.h"],
     includes = ["."],
     deps = [
+        ":data_types",
         "//commons:commons_lib",
         "//commons/atoms:atoms_lib",
     ],
@@ -42,5 +46,17 @@ cc_library(
         ":data_types",
         "//commons:commons_lib",
         "//commons/atoms:atoms_lib",
+    ],
+)
+
+cc_library(
+    name = "context_loader",
+    srcs = ["ContextLoader.cc"],
+    hdrs = ["ContextLoader.h"],
+    includes = ["."],
+    deps = [
+        ":data_types",
+        "//commons:commons_lib",
+        "@nlohmann_json//:json",
     ],
 )
