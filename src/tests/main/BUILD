@@ -63,8 +63,8 @@ cc_library(
     srcs = ["evaluation_evolution.cc"],
     deps = [
         "//agents/context_broker:context_broker_lib",
-        "//agents/query_engine:query_engine_lib",
         "//agents/evolution:evolution_lib",
+        "//agents/query_engine:query_engine_lib",
         "//atomdb:atomdb_singleton",
         "//hasher:hasher_lib",
         "//service_bus:service_bus_lib",
