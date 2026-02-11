@@ -74,6 +74,8 @@ class HandleTrie {
      */
     TrieValue* lookup(const string& key);
 
+    bool exists(const string& key);
+
     /**
      * Remove a key from this HandleTrie and its associated value.
      *
