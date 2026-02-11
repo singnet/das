@@ -53,6 +53,7 @@ class QueryElement {
     string id;
     string subsequent_id;
     unsigned int arity;
+    unsigned int reverse_nesting_level;
 
     /**
      * Basic constructor which solely initialize variables.

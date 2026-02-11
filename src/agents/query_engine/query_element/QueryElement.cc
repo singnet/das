@@ -10,6 +10,7 @@ QueryElement::QueryElement() {
     this->is_terminal = false;
     this->is_operator = false;
     this->arity = 0;
+    this->reverse_nesting_level = 0;
 }
 
 QueryElement::~QueryElement() {}

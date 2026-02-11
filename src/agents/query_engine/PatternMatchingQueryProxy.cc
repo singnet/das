@@ -13,6 +13,7 @@ using namespace query_engine;
 string PatternMatchingQueryProxy::COUNT = "count";
 
 string PatternMatchingQueryProxy::POSITIVE_IMPORTANCE_FLAG = "positive_importance_flag";
+string PatternMatchingQueryProxy::DISREGARD_IMPORTANCE_FLAG = "disregard_importance_flag";
 string PatternMatchingQueryProxy::UNIQUE_VALUE_FLAG = "unique_value_flag";
 string PatternMatchingQueryProxy::COUNT_FLAG = "count_flag";
 
@@ -32,6 +33,7 @@ PatternMatchingQueryProxy::PatternMatchingQueryProxy(const vector<string>& token
 
 void PatternMatchingQueryProxy::set_default_parameters() {
     this->parameters[POSITIVE_IMPORTANCE_FLAG] = false;
+    this->parameters[DISREGARD_IMPORTANCE_FLAG] = false;
     this->parameters[UNIQUE_VALUE_FLAG] = false;
     this->parameters[COUNT_FLAG] = false;
 }

@@ -57,3 +57,15 @@ cc_library(
         "//service_bus:service_bus_lib",
     ],
 )
+
+cc_library(
+    name = "evaluation_evolution_main_lib",
+    srcs = ["evaluation_evolution.cc"],
+    deps = [
+        "//agents/context_broker:context_broker_lib",
+        "//agents/evolution:evolution_lib",
+        "//atomdb:atomdb_singleton",
+        "//hasher:hasher_lib",
+        "//service_bus:service_bus_lib",
+    ],
+)
