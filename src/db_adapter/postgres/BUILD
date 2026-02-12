@@ -18,6 +18,7 @@ cc_library(
     deps = [
         "//commons:commons_lib",
         "//db_adapter:data_mapper",
-        "//db_adapter:db_wrapper",
+        "//db_adapter:database_connection",
+        "//db_adapter:database_wrapper",
     ],
 )

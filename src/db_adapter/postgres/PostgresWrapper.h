@@ -9,7 +9,8 @@
 #include <string>
 #include <vector>
 
-#include "DBWrapper.h"
+#include "DatabaseConnection.h"
+#include "DatabaseWrapper.h"
 
 #define MAX_VALUE_SIZE ((size_t) 1000)
 
@@ -19,15 +20,15 @@ using namespace commons;
 
 namespace db_adapter {
 
-class PostgresDBConnection : public DBConnection {
+class PostgresDatabaseConnection : public DatabaseConnection {
    public:
-    PostgresDBConnection(const string& id,
-                         const string& host,
-                         int port,
-                         const string& database,
-                         const string& user,
-                         const string& password);
-    ~PostgresDBConnection() override;
+    PostgresDatabaseConnection(const string& id,
+                               const string& host,
+                               int port,
+                               const string& database,
+                               const string& user,
+                               const string& password);
+    ~PostgresDatabaseConnection() override;
 
     void connect() override;
     void disconnect() override;
@@ -44,7 +45,7 @@ class PostgresDBConnection : public DBConnection {
  * @class PostgresWrapper
  * @brief Concrete implementation of SQLWrapper for PostgreSQL using libpqxx.
  */
-class PostgresWrapper : public SQLWrapper<PostgresDBConnection> {
+class PostgresWrapper : public SQLWrapper {
    public:
     /**
      * @brief Constructs a PostgresWrapper.
@@ -76,6 +77,9 @@ class PostgresWrapper : public SQLWrapper<PostgresDBConnection> {
    protected:
     // Regex for parsing alias patterns (e.g., "AS public_feature__uniquename")
     const string alias_pattern_regex = R"(\bAS\s+([a-zA-Z_][a-zA-Z0-9_]*)__([a-zA-Z_][a-zA-Z0-9_]*))";
+    PostgresDatabaseConnection& pg_client() {
+        return static_cast<PostgresDatabaseConnection&>(*db_client);
+    }
 
    private:
     // Store tables in cache to avoid repeated database queries.

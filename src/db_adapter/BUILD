@@ -9,7 +9,8 @@ cc_library(
         ":context_loader",
         ":data_mapper",
         ":data_types",
-        ":db_wrapper",
+        ":database_connection",
+        ":database_wrapper",
         "//commons:commons_lib",
         "//commons/atoms:atoms_lib",
         "//db_adapter/postgres:postgres_lib",
@@ -39,16 +40,16 @@ cc_library(
 )
 
 cc_library(
-    name = "db_wrapper",
-    srcs = ["DBWrapper.cc"],
-    hdrs = ["DBWrapper.h"],
+    name = "database_wrapper",
+    srcs = ["DatabaseWrapper.cc"],
+    hdrs = ["DatabaseWrapper.h"],
     includes = ["."],
     deps = [
         ":data_mapper",
         ":data_types",
+        ":database_connection",
         "//commons:commons_lib",
         "//commons/atoms:atoms_lib",
-        "//commons/processor:processor_lib",
     ],
 )
 
@@ -59,5 +60,18 @@ cc_library(
     deps = [
         "//commons:commons_lib",
         "@nlohmann_json//:json",
+    ],
+)
+
+cc_library(
+    name = "database_connection",
+    srcs = ["DatabaseConnection.cc"],
+    hdrs = ["DatabaseConnection.h"],
+    includes = ["."],
+    deps = [
+        ":data_types",
+        "//commons:commons_lib",
+        "//commons/atoms:atoms_lib",
+        "//commons/processor:processor_lib",
     ],
 )

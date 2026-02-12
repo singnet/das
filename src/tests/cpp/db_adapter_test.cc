@@ -25,7 +25,7 @@ class PostgresWrapperTestEnvironment : public ::testing::Environment {
     void TearDown() override {}
 };
 
-class PostgresDBConnectionTest : public ::testing::Test {
+class PostgresDatabaseConnectionTest : public ::testing::Test {
    protected:
     string TEST_HOST = "localhost";
     int TEST_PORT = 5433;
@@ -59,8 +59,8 @@ class PostgresDBConnectionTest : public ::testing::Test {
 
     void TearDown() override {}
 
-    shared_ptr<PostgresDBConnection> create_db_connection() {
-        auto conn = make_shared<PostgresDBConnection>(
+    shared_ptr<PostgresDatabaseConnection> create_db_connection() {
+        auto conn = make_shared<PostgresDatabaseConnection>(
             "test-conn", TEST_HOST, TEST_PORT, TEST_DB, TEST_USER, TEST_PASSWORD);
         conn->start();
         return conn;
@@ -135,15 +135,15 @@ class PostgresWrapperTest : public ::testing::Test {
 
     string temp_file_path;
 
-    shared_ptr<PostgresDBConnection> create_db_connection() {
-        auto conn = make_shared<PostgresDBConnection>(
+    shared_ptr<PostgresDatabaseConnection> create_db_connection() {
+        auto conn = make_shared<PostgresDatabaseConnection>(
             "test-conn", TEST_HOST, TEST_PORT, TEST_DB, TEST_USER, TEST_PASSWORD);
         conn->start();
         return conn;
     }
 };
 
-TEST_F(PostgresDBConnectionTest, Connection) {
+TEST_F(PostgresDatabaseConnectionTest, Connection) {
     auto conn = create_db_connection();
 
     EXPECT_TRUE(conn->is_connected());
@@ -157,20 +157,20 @@ TEST_F(PostgresDBConnectionTest, Connection) {
 
     EXPECT_FALSE(conn->is_connected());
 
-    auto conn1 = new PostgresDBConnection(
+    auto conn1 = new PostgresDatabaseConnection(
         "test-conn1", INVALID_HOST, TEST_PORT, TEST_DB, TEST_USER, TEST_PASSWORD);
     EXPECT_THROW(conn1->connect(), std::runtime_error);
 
-    auto conn2 = new PostgresDBConnection(
+    auto conn2 = new PostgresDatabaseConnection(
         "test-conn2", TEST_HOST, INVALID_PORT, TEST_DB, TEST_USER, TEST_PASSWORD);
     EXPECT_THROW(conn2->connect(), std::runtime_error);
 
-    auto conn3 = new PostgresDBConnection(
+    auto conn3 = new PostgresDatabaseConnection(
         "test-conn3", TEST_HOST, TEST_PORT, INVALID_DB, TEST_USER, TEST_PASSWORD);
     EXPECT_THROW(conn3->connect(), std::runtime_error);
 }
 
-TEST_F(PostgresDBConnectionTest, ConcurrentConnection) {
+TEST_F(PostgresDatabaseConnectionTest, ConcurrentConnection) {
     const int num_threads = 100;
     vector<thread> threads;
     atomic<int> count_threads{0};
@@ -178,7 +178,7 @@ TEST_F(PostgresDBConnectionTest, ConcurrentConnection) {
     auto worker = [&](int thread_id) {
         try {
             string thread_id_str = "conn-" + to_string(thread_id);
-            auto conn = new PostgresDBConnection(
+            auto conn = new PostgresDatabaseConnection(
                 thread_id_str, TEST_HOST, TEST_PORT, TEST_DB, TEST_USER, TEST_PASSWORD);
 
             EXPECT_FALSE(conn->is_connected());
@@ -206,7 +206,7 @@ TEST_F(PostgresDBConnectionTest, ConcurrentConnection) {
     EXPECT_EQ(count_threads, num_threads);
 }
 
-TEST_F(PostgresDBConnectionTest, CheckData) {
+TEST_F(PostgresDatabaseConnectionTest, CheckData) {
     auto conn = create_db_connection();
 
     auto result = conn->execute_query(

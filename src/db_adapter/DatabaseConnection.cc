@@ -1,23 +1,23 @@
-#include "DBWrapper.h"
+#include "DatabaseConnection.h"
 
 using namespace db_adapter;
 
-DBConnection::DBConnection(const string& id, const string& host, int port) : Processor(id) {
+DatabaseConnection::DatabaseConnection(const string& id, const string& host, int port) : Processor(id) {
     this->host = host;
     this->port = port;
     this->connected = false;
     this->setup();
 }
 
-DBConnection::~DBConnection() {}
+DatabaseConnection::~DatabaseConnection() {}
 
-void DBConnection::setup() {
+void DatabaseConnection::setup() {
     if (!this->is_setup()) {
         Processor::setup();
     }
 }
 
-void DBConnection::start() {
+void DatabaseConnection::start() {
     if (this->is_running() || this->is_finished()) return;
 
     {
@@ -29,7 +29,7 @@ void DBConnection::start() {
     Processor::start();
 }
 
-void DBConnection::stop() {
+void DatabaseConnection::stop() {
     if (!this->is_running()) return;
 
     {
@@ -41,4 +41,4 @@ void DBConnection::stop() {
     Processor::stop();
 }
 
-bool DBConnection::is_connected() const { return this->connected; }
+bool DatabaseConnection::is_connected() const { return this->connected; }
