@@ -66,6 +66,8 @@ pqxx::result PostgresDatabaseConnection::execute_query(const string& query) {
 }
 
 // ===============================================================================================
+// PostgresWrapper implementation
+// ===============================================================================================
 
 PostgresWrapper::PostgresWrapper(const string& host,
                                  int port,
