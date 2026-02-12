@@ -772,9 +772,10 @@ TEST_F(PostgresWrapperTest, MapTablesFirstRowAtomsWithContextFile) {
 
 TEST_F(PostgresWrapperTest, PipelineProcessor) {
     auto queue = make_shared<SharedQueue>();
-    auto wrapper = make_shared<PostgresWrapper>("localhost", 5433, "postgres_wrapper_test", "postgres", "test", MAPPER_TYPE::SQL2ATOMS, queue);
+    auto wrapper = make_shared<PostgresWrapper>(
+        "localhost", 5433, "postgres_wrapper_test", "postgres", "test", MAPPER_TYPE::SQL2ATOMS, queue);
 
-    PostgresWrapperJob postgres_wrapper_job(wrapper);
+    PostgresWrapperJob wrapper_job(wrapper);
     string query_organism = R"(
         SELECT
             o.organism_id AS public_organism__organism_id,
