@@ -11,6 +11,7 @@ cc_library(
         ":link_template",
         ":operator",
         ":or",
+        ":chain",
         ":query_element",
         ":sink",
         ":source",
@@ -39,6 +40,15 @@ cc_library(
 cc_library(
     name = "or",
     hdrs = ["Or.h"],
+    deps = [
+        ":operator",
+    ],
+)
+
+cc_library(
+    name = "chain",
+    hdrs = ["Chain.h"],
+    srcs = ["Chain.cc"],
     deps = [
         ":operator",
     ],
