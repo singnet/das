@@ -69,17 +69,8 @@ pqxx::result PostgresDatabaseConnection::execute_query(const string& query) {
 // PostgresWrapper implementation
 // ===============================================================================================
 
-PostgresWrapper::PostgresWrapper(const string& host,
-                                 int port,
-                                 const string& database,
-                                 const string& user,
-                                 const string& password,
-                                 MAPPER_TYPE mapper_type)
-    : SQLWrapper(mapper_type) {
-    this->db_client =
-        make_unique<PostgresDatabaseConnection>("postgres-conn", host, port, database, user, password);
-    this->db_client->start();
-}
+PostgresWrapper::PostgresWrapper(PostgresDatabaseConnection& db_conn, MAPPER_TYPE mapper_type)
+    : SQLWrapper(db_conn, mapper_type), db_conn(db_conn) {}
 
 PostgresWrapper::~PostgresWrapper() {}
 
@@ -165,7 +156,7 @@ vector<Table> PostgresWrapper::list_tables() {
     ORDER BY
         pg_total_relation_size(ti.table_name) ASC;
     )";
-    auto result = pg_client().execute_query(query);
+    auto result = db_conn.execute_query(query);
     vector<Table> tables;
     tables.reserve(result.size());
 
@@ -294,7 +285,7 @@ vector<string> PostgresWrapper::collect_fk_ids(const string& table_name,
     while (true) {
         string query = "SELECT " + column_name + " FROM " + table_name + " WHERE " + where_clause +
                        " LIMIT " + std::to_string(limit) + " OFFSET " + std::to_string(offset) + ";";
-        pqxx::result rows = pg_client().execute_query(query);
+        pqxx::result rows = db_conn.execute_query(query);
 
         if (rows.empty()) break;
 
@@ -399,7 +390,7 @@ void PostgresWrapper::fetch_rows_paginated(const Table& table,
     while (true) {
         string paginated_query =
             query + " LIMIT " + std::to_string(limit) + " OFFSET " + std::to_string(offset);
-        pqxx::result rows = pg_client().execute_query(paginated_query);
+        pqxx::result rows = db_conn.execute_query(paginated_query);
 
         LOG_DEBUG("Executing paginated query: " << paginated_query);
         LOG_DEBUG("Fetched " << rows.size() << " rows from table " << table.name);

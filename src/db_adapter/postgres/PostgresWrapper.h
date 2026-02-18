@@ -50,18 +50,10 @@ class PostgresWrapper : public SQLWrapper {
     /**
      * @brief Constructs a PostgresWrapper.
      *
-     * @param host The hostname or IP address.
-     * @param port The port number.
-     * @param database The database name (default: "postgres").
-     * @param user The username.
-     * @param password The password.
+     * @param connection The PostgreSQL database connection.
      * @param mapper_type The strategy for mapping results.
      */
-    PostgresWrapper(const string& host,
-                    int port,
-                    const string& database = "postgres",
-                    const string& user = "postgres",
-                    const string& password = "postgres",
+    PostgresWrapper(PostgresDatabaseConnection& db_conn,
                     MAPPER_TYPE mapper_type = MAPPER_TYPE::SQL2ATOMS);
 
     ~PostgresWrapper() override;
@@ -77,12 +69,10 @@ class PostgresWrapper : public SQLWrapper {
    protected:
     // Regex for parsing alias patterns (e.g., "AS public_feature__uniquename")
     const string alias_pattern_regex = R"(\bAS\s+([a-zA-Z_][a-zA-Z0-9_]*)__([a-zA-Z_][a-zA-Z0-9_]*))";
-    PostgresDatabaseConnection& pg_client() {
-        return static_cast<PostgresDatabaseConnection&>(*db_client);
-    }
 
    private:
     // Store tables in cache to avoid repeated database queries.
+    PostgresDatabaseConnection& db_conn;
     optional<vector<Table>> tables_cache;
     vector<string> build_columns_to_map(const Table& table, const vector<string>& skip_columns = {});
     vector<string> collect_fk_ids(const string& table_name,

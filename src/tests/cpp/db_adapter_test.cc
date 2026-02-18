@@ -128,15 +128,15 @@ class PostgresWrapperTest : public ::testing::Test {
 
     void TearDown() override { std::remove(temp_file_path.c_str()); }
 
-    shared_ptr<PostgresWrapper> create_wrapper(MAPPER_TYPE mapper_type = MAPPER_TYPE::SQL2ATOMS) {
-        return make_shared<PostgresWrapper>(
-            TEST_HOST, TEST_PORT, TEST_DB, TEST_USER, TEST_PASSWORD, mapper_type);
+    shared_ptr<PostgresWrapper> create_wrapper(PostgresDatabaseConnection& db_conn,
+                                               MAPPER_TYPE mapper_type = MAPPER_TYPE::SQL2ATOMS) {
+        return make_shared<PostgresWrapper>(db_conn, mapper_type);
     }
 
     string temp_file_path;
 
     shared_ptr<PostgresDatabaseConnection> create_db_connection() {
-        auto conn = make_shared<PostgresDatabaseConnection>(
+        auto conn = make_unique<PostgresDatabaseConnection>(
             "test-conn", TEST_HOST, TEST_PORT, TEST_DB, TEST_USER, TEST_PASSWORD);
         conn->start();
         return conn;
@@ -241,7 +241,8 @@ TEST_F(PostgresDatabaseConnectionTest, CheckData) {
 }
 
 TEST_F(PostgresWrapperTest, GetTable) {
-    auto wrapper = create_wrapper();
+    auto conn = create_db_connection();
+    auto wrapper = create_wrapper(*conn);
     auto tables = wrapper->list_tables();
     ASSERT_FALSE(tables.empty());
 
@@ -260,7 +261,8 @@ TEST_F(PostgresWrapperTest, GetTable) {
 }
 
 TEST_F(PostgresWrapperTest, ListTables) {
-    auto wrapper = create_wrapper();
+    auto conn = create_db_connection();
+    auto wrapper = create_wrapper(*conn);
 
     auto tables = wrapper->list_tables();
 
@@ -289,7 +291,8 @@ TEST_F(PostgresWrapperTest, ListTables) {
 }
 
 TEST_F(PostgresWrapperTest, TablesStructure) {
-    auto wrapper = create_wrapper();
+    auto conn = create_db_connection();
+    auto wrapper = create_wrapper(*conn);
 
     Table organism_table = wrapper->get_table(ORGANISM_TABLE);
 
@@ -334,7 +337,8 @@ TEST_F(PostgresWrapperTest, TablesStructure) {
 
 // map_table - SQL2ATOMS
 TEST_F(PostgresWrapperTest, MapTablesFirstRowAtoms) {
-    auto wrapper = create_wrapper();
+    auto conn = create_db_connection();
+    auto wrapper = create_wrapper(*conn);
 
     Table organism_table = wrapper->get_table(ORGANISM_TABLE);
     EXPECT_NO_THROW({ wrapper->map_table(organism_table, {"organism_id = 1"}, {}, false); });
@@ -350,7 +354,8 @@ TEST_F(PostgresWrapperTest, MapTablesFirstRowAtoms) {
 }
 
 TEST_F(PostgresWrapperTest, MapTableWithClausesAndSkipColumnsAtoms) {
-    auto wrapper = create_wrapper();
+    auto conn = create_db_connection();
+    auto wrapper = create_wrapper(*conn);
 
     Table table = wrapper->get_table(FEATURE_TABLE);
     vector<string> clauses = {"organism_id = " + to_string(DROSOPHILA_ORGANISM_ID), "feature_id <= 5"};
@@ -361,7 +366,8 @@ TEST_F(PostgresWrapperTest, MapTableWithClausesAndSkipColumnsAtoms) {
 }
 
 TEST_F(PostgresWrapperTest, MapTableZeroRowsAtoms) {
-    auto wrapper = create_wrapper();
+    auto conn = create_db_connection();
+    auto wrapper = create_wrapper(*conn);
 
     Table table = wrapper->get_table(FEATURE_TABLE);
     vector<string> clauses = {"feature_id = -999"};
@@ -371,7 +377,8 @@ TEST_F(PostgresWrapperTest, MapTableZeroRowsAtoms) {
 }
 
 TEST_F(PostgresWrapperTest, MapTableWithNonExistentSkipColumnAtoms) {
-    auto wrapper = create_wrapper();
+    auto conn = create_db_connection();
+    auto wrapper = create_wrapper(*conn);
 
     Table table = wrapper->get_table(FEATURE_TABLE);
 
@@ -383,7 +390,8 @@ TEST_F(PostgresWrapperTest, MapTableWithNonExistentSkipColumnAtoms) {
 }
 
 TEST_F(PostgresWrapperTest, MapTableWithInvalidClauseAtoms) {
-    auto wrapper = create_wrapper();
+    auto conn = create_db_connection();
+    auto wrapper = create_wrapper(*conn);
 
     Table table = wrapper->get_table(FEATURE_TABLE);
 
@@ -395,7 +403,8 @@ TEST_F(PostgresWrapperTest, MapTableWithInvalidClauseAtoms) {
 
 // map_table - SQL2METTA
 TEST_F(PostgresWrapperTest, MapTablesFirstRowMetta) {
-    auto wrapper = create_wrapper(MAPPER_TYPE::SQL2METTA);
+    auto conn = create_db_connection();
+    auto wrapper = create_wrapper(*conn, MAPPER_TYPE::SQL2METTA);
 
     Table organism_table = wrapper->get_table(ORGANISM_TABLE);
     EXPECT_NO_THROW({ wrapper->map_table(organism_table, {"organism_id = 1"}, {}, false); });
@@ -411,7 +420,8 @@ TEST_F(PostgresWrapperTest, MapTablesFirstRowMetta) {
 }
 
 TEST_F(PostgresWrapperTest, MapTableWithClausesAndSkipColumnsMetta) {
-    auto wrapper = create_wrapper(MAPPER_TYPE::SQL2METTA);
+    auto conn = create_db_connection();
+    auto wrapper = create_wrapper(*conn, MAPPER_TYPE::SQL2METTA);
 
     Table table = wrapper->get_table(FEATURE_TABLE);
     vector<string> clauses = {"organism_id = " + to_string(DROSOPHILA_ORGANISM_ID), "feature_id <= 5"};
@@ -422,7 +432,8 @@ TEST_F(PostgresWrapperTest, MapTableWithClausesAndSkipColumnsMetta) {
 }
 
 TEST_F(PostgresWrapperTest, MapTableZeroRowsMetta) {
-    auto wrapper = create_wrapper(MAPPER_TYPE::SQL2METTA);
+    auto conn = create_db_connection();
+    auto wrapper = create_wrapper(*conn, MAPPER_TYPE::SQL2METTA);
 
     Table table = wrapper->get_table(FEATURE_TABLE);
     vector<string> clauses = {"feature_id = -999"};
@@ -432,7 +443,8 @@ TEST_F(PostgresWrapperTest, MapTableZeroRowsMetta) {
 }
 
 TEST_F(PostgresWrapperTest, MapTableWithNonExistentSkipColumnMetta) {
-    auto wrapper = create_wrapper(MAPPER_TYPE::SQL2METTA);
+    auto conn = create_db_connection();
+    auto wrapper = create_wrapper(*conn, MAPPER_TYPE::SQL2METTA);
 
     Table table = wrapper->get_table(FEATURE_TABLE);
 
@@ -444,7 +456,8 @@ TEST_F(PostgresWrapperTest, MapTableWithNonExistentSkipColumnMetta) {
 }
 
 TEST_F(PostgresWrapperTest, MapTableWithInvalidClauseMetta) {
-    auto wrapper = create_wrapper(MAPPER_TYPE::SQL2METTA);
+    auto conn = create_db_connection();
+    auto wrapper = create_wrapper(*conn, MAPPER_TYPE::SQL2METTA);
 
     Table table = wrapper->get_table(FEATURE_TABLE);
 
@@ -456,7 +469,8 @@ TEST_F(PostgresWrapperTest, MapTableWithInvalidClauseMetta) {
 
 // map_sql_query - SQL2ATOMS
 TEST_F(PostgresWrapperTest, MapSqlQueryFirstRowAtoms) {
-    auto wrapper = create_wrapper();
+    auto conn = create_db_connection();
+    auto wrapper = create_wrapper(*conn);
 
     string query_organism = R"(
         SELECT
@@ -508,7 +522,8 @@ TEST_F(PostgresWrapperTest, MapSqlQueryFirstRowAtoms) {
 }
 
 TEST_F(PostgresWrapperTest, MapSqlQueryWithClausesAndSkipColumnsAtoms) {
-    auto wrapper = create_wrapper();
+    auto conn = create_db_connection();
+    auto wrapper = create_wrapper(*conn);
 
     string query = R"(
         SELECT
@@ -528,7 +543,8 @@ TEST_F(PostgresWrapperTest, MapSqlQueryWithClausesAndSkipColumnsAtoms) {
 }
 
 TEST_F(PostgresWrapperTest, MapSqlQueryZeroRowsAtoms) {
-    auto wrapper = create_wrapper();
+    auto conn = create_db_connection();
+    auto wrapper = create_wrapper(*conn);
 
     string query = R"(
         SELECT
@@ -551,7 +567,8 @@ TEST_F(PostgresWrapperTest, MapSqlQueryZeroRowsAtoms) {
 }
 
 TEST_F(PostgresWrapperTest, MapSqlQueryWithNonExistentSkipColumnAtoms) {
-    auto wrapper = create_wrapper();
+    auto conn = create_db_connection();
+    auto wrapper = create_wrapper(*conn);
 
     string query = R"(
         SELECT
@@ -571,7 +588,8 @@ TEST_F(PostgresWrapperTest, MapSqlQueryWithNonExistentSkipColumnAtoms) {
 }
 
 TEST_F(PostgresWrapperTest, MapSqlQueryWithInvalidClauseAtoms) {
-    auto wrapper = create_wrapper();
+    auto conn = create_db_connection();
+    auto wrapper = create_wrapper(*conn);
 
     string query = R"(
         SELECT
@@ -596,7 +614,8 @@ TEST_F(PostgresWrapperTest, MapSqlQueryWithInvalidClauseAtoms) {
 
 // map_sql_query - SQL2METTA
 TEST_F(PostgresWrapperTest, MapSqlQueryFirstRowMetta) {
-    auto wrapper = create_wrapper(MAPPER_TYPE::SQL2METTA);
+    auto conn = create_db_connection();
+    auto wrapper = create_wrapper(*conn, MAPPER_TYPE::SQL2METTA);
 
     string query_organism = R"(
         SELECT
@@ -648,7 +667,8 @@ TEST_F(PostgresWrapperTest, MapSqlQueryFirstRowMetta) {
 }
 
 TEST_F(PostgresWrapperTest, MapSqlQueryWithClausesAndSkipColumnsMetta) {
-    auto wrapper = create_wrapper(MAPPER_TYPE::SQL2METTA);
+    auto conn = create_db_connection();
+    auto wrapper = create_wrapper(*conn, MAPPER_TYPE::SQL2METTA);
 
     string query = R"(
         SELECT
@@ -668,7 +688,8 @@ TEST_F(PostgresWrapperTest, MapSqlQueryWithClausesAndSkipColumnsMetta) {
 }
 
 TEST_F(PostgresWrapperTest, MapSqlQueryZeroRowsMetta) {
-    auto wrapper = create_wrapper(MAPPER_TYPE::SQL2METTA);
+    auto conn = create_db_connection();
+    auto wrapper = create_wrapper(*conn, MAPPER_TYPE::SQL2METTA);
 
     string query = R"(
         SELECT
@@ -691,7 +712,8 @@ TEST_F(PostgresWrapperTest, MapSqlQueryZeroRowsMetta) {
 }
 
 TEST_F(PostgresWrapperTest, MapSqlQueryWithNonExistentSkipColumnMetta) {
-    auto wrapper = create_wrapper(MAPPER_TYPE::SQL2METTA);
+    auto conn = create_db_connection();
+    auto wrapper = create_wrapper(*conn, MAPPER_TYPE::SQL2METTA);
 
     string query = R"(
         SELECT
@@ -711,7 +733,8 @@ TEST_F(PostgresWrapperTest, MapSqlQueryWithNonExistentSkipColumnMetta) {
 }
 
 TEST_F(PostgresWrapperTest, MapSqlQueryWithInvalidClauseMetta) {
-    auto wrapper = create_wrapper(MAPPER_TYPE::SQL2METTA);
+    auto conn = create_db_connection();
+    auto wrapper = create_wrapper(*conn, MAPPER_TYPE::SQL2METTA);
 
     string query = R"(
         SELECT
@@ -741,7 +764,8 @@ TEST_F(PostgresWrapperTest, MapTablesFirstRowAtomsWithContextFile) {
         Utils::error("Failed to load context file. Aborting test.");
     }
 
-    auto wrapper = create_wrapper();
+    auto conn = create_db_connection();
+    auto wrapper = create_wrapper(*conn);
 
     vector<unsigned int> atoms_sizes;
 

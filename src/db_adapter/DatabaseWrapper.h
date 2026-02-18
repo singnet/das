@@ -22,13 +22,13 @@ namespace db_adapter {
  */
 class DatabaseWrapper {
    public:
-    DatabaseWrapper(shared_ptr<Mapper> mapper, MAPPER_TYPE mapper_type);
+    DatabaseWrapper(DatabaseConnection& db_client, shared_ptr<Mapper> mapper, MAPPER_TYPE mapper_type);
     virtual ~DatabaseWrapper() = default;
 
     unsigned int mapper_handle_trie_size();
 
    protected:
-    unique_ptr<DatabaseConnection> db_client;
+    DatabaseConnection& db_client;
     shared_ptr<Mapper> mapper;
     MAPPER_TYPE mapper_type;
 };
@@ -39,7 +39,7 @@ class DatabaseWrapper {
  */
 class SQLWrapper : public DatabaseWrapper {
    public:
-    explicit SQLWrapper(MAPPER_TYPE mapper_type);
+    SQLWrapper(DatabaseConnection& db_client, MAPPER_TYPE mapper_type);
     virtual ~SQLWrapper() = default;
 
     /**
