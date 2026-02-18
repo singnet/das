@@ -1,0 +1,9 @@
+{
+    "atomdbs": [
+        {
+            "uid": "single_peer",
+            "type": "inmemorydb",
+            "context": "remotedb_test_single_peer_"
+        }
+    ]
+}
