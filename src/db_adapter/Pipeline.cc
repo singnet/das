@@ -19,6 +19,7 @@ PostgresWrapperJob::PostgresWrapperJob(shared_ptr<PostgresWrapper> db) : db(db) 
 void PostgresWrapperJob::add_task_query(const string& virtual_name, const string& query) {
     this->tasks.push_back(MappingTask{MappingTask::QUERY, TableMapping{}, virtual_name, query});
 }
+
 void PostgresWrapperJob::add_task_table(TableMapping table_mapping) {
     this->tasks.push_back(MappingTask{MappingTask::TABLE, move(table_mapping), "", ""});
 }
@@ -79,66 +80,67 @@ bool AtomDBJob::thread_one_step() {
     return false;
 }
 
-FileJob::FileJob(shared_ptr<SharedQueue> input_queue, const string& file_path)
-    : input_queue(input_queue), file_path(file_path) {
-    // Open the file
-}
-
-bool FileJob::thread_one_step() {
-    if (this->input_queue->size() == 0) {
-        Utils::sleep();
-        return true;
-    }
-    try {
-        // Send expressions to file
-        return true;
-    } catch (const exception& e) {
-        Utils::error("Error in Worker: " + string(e.what()));
-    }
-    return false;
-}
-
 // ==============================================================================
 
-PipelineProcessor::PipelineProcessor(const string& id, shared_ptr<SharedQueue> input_queue)
-    : Processor(id),
-      input_queue(input_queue),
-      thread_method(make_unique<PipelineThreadMethod>(this)),
-      thread(make_shared<DedicatedThread>(id + "-thread", thread_method.get())) {
-    add_subprocessor(thread);
+// PipelineProcessor::PipelineProcessor(const string& id, shared_ptr<SharedQueue> input_queue)
+//     : Processor(id),
+//       input_queue(input_queue),
+//       thread_method(make_unique<PipelineThreadMethod>(this)),
+//       thread(make_shared<DedicatedThread>(id + "-thread", thread_method.get())) {
+//     add_subprocessor(thread);
+// }
+
+// void PipelineProcessor::setup() {
+//     on_setup();
+//     Processor::setup();
+// }
+
+// void PipelineProcessor::start() {
+//     on_start();
+//     Processor::start();
+// }
+
+// void PipelineProcessor::stop() {
+//     Processor::stop();
+//     on_stop();
+// }
+
+// PostgresProducerProcessor::PostgresProducerProcessor(const string& id,
+//                                                      shared_ptr<PostgresWrapper> db,
+//                                                      shared_ptr<SharedQueue> output_queue) {}
+
+// void PostgresProducerProcessor::add_task_query(const string& virtual_name, const string& query) {
+//     this->tasks.push_back(MappingTask{MappingTask::QUERY, TableMapping{}, virtual_name, query});
+// }
+
+// void PostgresProducerProcessor::add_task_table(TableMapping table_mapping) {
+//     this->tasks.push_back(MappingTask{MappingTask::TABLE, move(table_mapping), "", ""});
+// }
+
+// void PostgresProducerProcessor::on_setup() {}
+
+// void PostgresProducerProcessor::on_start() {}
+
+// bool PostgresProducerProcessor::produce_one() { return false; }
+
+// void PostgresProducerProcessor::on_stop() {}
+
+Producer::Producer(const string& id, ThreadMethod* job, shared_ptr<PostgresWrapper> wrapper) : wrapper(wrapper) {
+    DedicatedThread::DedicatedThread(id, job);
+    Processor::bind_subprocessor(this, )
 }
 
-void PipelineProcessor::setup() {
-    on_setup();
-    Processor::setup();
+void Producer::setup() {
+    DedicatedThread::setup();
+    PostgresDBConnection::setup();
 }
 
-void PipelineProcessor::start() {
-    on_start();
-    Processor::start();
+void Producer::start() {
+    PostgresDBConnection::start();
+    DedicatedThread::start();
 }
 
-void PipelineProcessor::stop() {
-    Processor::stop();
-    on_stop();
+void Producer::stop() {
+    PostgresDBConnection::stop();
+    DedicatedThread::stop();
 }
-
-PostgresProducerProcessor::PostgresProducerProcessor(const string& id,
-                                                     shared_ptr<PostgresWrapper> db,
-                                                     shared_ptr<SharedQueue> output_queue) {}
-
-void PostgresProducerProcessor::add_task_query(const string& virtual_name, const string& query) {
-    this->tasks.push_back(MappingTask{MappingTask::QUERY, TableMapping{}, virtual_name, query});
-}
-
-void PostgresProducerProcessor::add_task_table(TableMapping table_mapping) {
-    this->tasks.push_back(MappingTask{MappingTask::TABLE, move(table_mapping), "", ""});
-}
-
-void PostgresProducerProcessor::on_setup() {}
-
-void PostgresProducerProcessor::on_start() {}
-
-bool PostgresProducerProcessor::produce_one() { return false; }
-
-void PostgresProducerProcessor::on_stop() {}

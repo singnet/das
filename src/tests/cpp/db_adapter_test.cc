@@ -771,11 +771,6 @@ TEST_F(PostgresWrapperTest, MapTablesFirstRowAtomsWithContextFile) {
 }
 
 TEST_F(PostgresWrapperTest, PipelineProcessor) {
-    auto queue = make_shared<SharedQueue>();
-    auto wrapper = make_shared<PostgresWrapper>(
-        "localhost", 5433, "postgres_wrapper_test", "postgres", "test", MAPPER_TYPE::SQL2ATOMS, queue);
-
-    PostgresWrapperJob wrapper_job(wrapper);
     string query_organism = R"(
         SELECT
             o.organism_id AS public_organism__organism_id,
@@ -787,21 +782,28 @@ TEST_F(PostgresWrapperTest, PipelineProcessor) {
         FROM organism AS o
         WHERE o.organism_id = 1
     )";
-    wrapper_job.add_task_query("Test1", query_organism);
+
+    auto queue = make_shared<SharedQueue>();
     
+    auto wrapper = make_shared<PostgresWrapper>(
+        "localhost", 5433, "postgres_wrapper_test", "postgres", "test", MAPPER_TYPE::SQL2ATOMS, queue);
+
+    PostgresWrapperJob wrapper_job(wrapper);
+    wrapper_job.add_task_query("Test1", query_organism);
     AtomDBJob atomdb_job(queue);
 
-    auto pw_job = make_shared<DedicatedThread>("psql", &wrapper_job);
-    auto ad_job = make_shared<DedicatedThread>("worker", &atomdb_job);
-
+    auto producer = make_shared<Producer>("psql", &wrapper_job, wrapper);
+    auto consumer = make_shared<DedicatedThread>("worker", &atomdb_job);
 
     // main thread
+    consumer->setup();
+    producer->setup();
 
-    pw_job->setup();
-    pw_job->start();
+    consumer->start();
+    producer->start();
 
     // auto pipeline = make_shared<Processor>("pipeline");
-    // Processor::bind_subprocessor(pipeline, pw_job);
+    Processor::bind_subprocessor(pipeline, pw_job);
     // Processor::bind_subprocessor(pipeline, ad_job);
     // pipeline->setup();
     // pipeline->start();
