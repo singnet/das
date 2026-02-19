@@ -1,0 +1,14 @@
+{
+    "atomdbs": [
+        {
+            "uid": "peer1",
+            "type": "inmemorydb",
+            "context": "remotedb_test_peer1_"
+        },
+        {
+            "uid": "peer2",
+            "type": "inmemorydb",
+            "context": "remotedb_test_peer2_"
+        }
+    ]
+}
