@@ -14,15 +14,17 @@ using namespace db_adapter;
 
 namespace db_adapter {
 
-class PostgresWrapperJob : public ThreadMethod {
+class ProducerJob : public ThreadMethod {
    public:
-    PostgresWrapperJob(shared_ptr<PostgresWrapper> db);
-    ~PostgresWrapperJob() = default;
+    ProducerJob(shared_ptr<PostgresWrapper> wrapper);
+    ~ProducerJob() = default;
 
     void add_task_query(const string& virtual_name, const string& query);
     void add_task_table(TableMapping table_mapping);
 
     bool thread_one_step() override;
+
+    bool is_finished() const { return this->finished; }
 
    protected:
     struct MappingTask {
@@ -31,9 +33,10 @@ class PostgresWrapperJob : public ThreadMethod {
         string virtual_name;
         string query;
     };
-    shared_ptr<PostgresWrapper> db;
+    shared_ptr<PostgresWrapper> wrapper;
     vector<MappingTask> tasks;
     size_t current_task = 0;
+    bool finished = false;
 };
 
 class AtomDBJob : public ThreadMethod {
@@ -51,50 +54,50 @@ class AtomDBJob : public ThreadMethod {
 
 class Producer : public DedicatedThread {
     public:
-     Producer(const string& id, ThreadMethod* job, shared_ptr<PostgresWrapper> wrapper);
+     Producer(const string& id, ThreadMethod* job, shared_ptr<PostgresDatabaseConnection> db_conn, shared_ptr<SharedQueue> queue);
      ~Producer() = default;
 
-     void setup();
-     void start();
-     void stop();
+    //  void setup();
+    //  void start();
+    //  void stop();
 
-    protected:
-     shared_ptr<PostgresWrapper> wrapper;
-}
+    // protected:
+    //  shared_ptr<PostgresWrapper> wrapper;
+};
 
 // =============================================================================
 // Producer
 // =============================================================================
-// class ProducerProcessor : public Processor {
-//    public:
-//     ProducerProcessor(const string& id, shared_ptr<SharedQueue> output_queue);
-//     virtual ~ProducerProcessor() = default;
+class ProducerProcessor : public Processor {
+   public:
+    ProducerProcessor(const string& id, shared_ptr<SharedQueue> output_queue);
+    virtual ~ProducerProcessor() = default;
 
-//     void setup() override;
-//     void start() override;
-//     void stop() override;
+    void setup() override;
+    void start() override;
+    void stop() override;
 
-//    protected:
-//     virtual void on_setup() = 0;
-//     virtual void on_start() = 0;
-//     virtual void on_stop() = 0;
-//     virtual bool produce_one() = 0;
+   protected:
+    virtual void on_setup() = 0;
+    virtual void on_start() = 0;
+    virtual void on_stop() = 0;
+    virtual bool produce_one() = 0;
 
-//     shared_ptr<SharedQueue> output_queue;
+    shared_ptr<SharedQueue> output_queue;
 
-//    private:
-//     class ProducerThreadMethod : public ThreadMethod {
-//        public:
-//         ProducerThreadMethod(ProducerProcessor* owner) : owner(owner) {}
-//         bool thread_one_step() override { return owner->produce_one(); }
+   private:
+    class ProducerThreadMethod : public ThreadMethod {
+       public:
+        ProducerThreadMethod(ProducerProcessor* owner) : owner(owner) {}
+        bool thread_one_step() override { return owner->produce_one(); }
 
-//        private:
-//         ProducerProcessor* owner;
-//     };
+       private:
+        ProducerProcessor* owner;
+    };
 
-//     unique_ptr<ProducerThreadMethod> thread_method;
-//     shared_ptr<DedicatedThread> thread;
-// };
+    unique_ptr<ProducerThreadMethod> thread_method;
+    shared_ptr<DedicatedThread> thread;
+};
 
 // // =============================================================================
 // // Consumer

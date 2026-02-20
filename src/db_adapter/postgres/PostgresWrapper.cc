@@ -13,21 +13,22 @@
 
 using namespace std;
 
-PostgresDBConnection::PostgresDBConnection(const string& id,
-                                           const string& host,
-                                           int port,
-                                           const string& database,
-                                           const string& user,
-                                           const string& password)
-    : DBConnection(id, host, port), database(database), user(user), password(password) {}
+PostgresDatabaseConnection::PostgresDatabaseConnection(const string& id,
+                                                       const string& host,
+                                                       int port,
+                                                       const string& database,
+                                                       const string& user,
+                                                       const string& password)
+    : DatabaseConnection(id, host, port), database(database), user(user), password(password) {}
 
-PostgresDBConnection::~PostgresDBConnection() {
+PostgresDatabaseConnection::~PostgresDatabaseConnection() {
     if (this->is_running()) {
         this->stop();
     }
 }
 
-void PostgresDBConnection::connect() {
+void PostgresDatabaseConnection::connect() {
+    LOG_INFO("Connecting to PostgreSQL database at " << host << ":" << port << "...");
     try {
         string conn_str = "host=" + host + " port=" + std::to_string(port) + " dbname=" + database;
         if (!user.empty()) {
@@ -42,14 +43,14 @@ void PostgresDBConnection::connect() {
     }
 }
 
-void PostgresDBConnection::disconnect() {
+void PostgresDatabaseConnection::disconnect() {
     if (this->conn) {
         this->conn->close();
         this->conn.reset();
     }
 }
 
-pqxx::result PostgresDBConnection::execute_query(const string& query) {
+pqxx::result PostgresDatabaseConnection::execute_query(const string& query) {
     if (!this->conn || !this->conn->is_open()) {
         Utils::error("Postgres connection is not open.");
     }
@@ -66,19 +67,11 @@ pqxx::result PostgresDBConnection::execute_query(const string& query) {
 }
 
 // ===============================================================================================
+// PostgresWrapper implementation
+// ===============================================================================================
 
-PostgresWrapper::PostgresWrapper(const string& host,
-                                 int port,
-                                 const string& database,
-                                 const string& user,
-                                 const string& password,
-                                 MAPPER_TYPE mapper_type,
-                                 shared_ptr<SharedQueue> output_queue)
-    : SQLWrapper<PostgresDBConnection>(mapper_type), output_queue(output_queue) {
-    this->db_client =
-        make_unique<PostgresDBConnection>("postgres-conn", host, port, database, user, password);
-    this->db_client->start();
-}
+PostgresWrapper::PostgresWrapper(PostgresDatabaseConnection& db_conn, MAPPER_TYPE mapper_type, shared_ptr<SharedQueue> output_queue)
+    : SQLWrapper(db_conn, mapper_type), db_conn(db_conn), output_queue(output_queue) {}
 
 PostgresWrapper::~PostgresWrapper() {}
 
@@ -164,7 +157,7 @@ vector<Table> PostgresWrapper::list_tables() {
     ORDER BY
         pg_total_relation_size(ti.table_name) ASC;
     )";
-    auto result = this->db_client->execute_query(query);
+    auto result = db_conn.execute_query(query);
     vector<Table> tables;
     tables.reserve(result.size());
 
@@ -293,7 +286,7 @@ vector<string> PostgresWrapper::collect_fk_ids(const string& table_name,
     while (true) {
         string query = "SELECT " + column_name + " FROM " + table_name + " WHERE " + where_clause +
                        " LIMIT " + std::to_string(limit) + " OFFSET " + std::to_string(offset) + ";";
-        pqxx::result rows = this->db_client->execute_query(query);
+        pqxx::result rows = db_conn.execute_query(query);
 
         if (rows.empty()) break;
 
@@ -398,7 +391,7 @@ void PostgresWrapper::fetch_rows_paginated(const Table& table,
     while (true) {
         string paginated_query =
             query + " LIMIT " + std::to_string(limit) + " OFFSET " + std::to_string(offset);
-        pqxx::result rows = this->db_client->execute_query(paginated_query);
+        pqxx::result rows = db_conn.execute_query(paginated_query);
 
         LOG_DEBUG("Executing paginated query: " << paginated_query);
         LOG_DEBUG("Fetched " << rows.size() << " rows from table " << table.name);

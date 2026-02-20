@@ -1,3 +1,8 @@
+#ifndef LOG_LEVEL
+#define LOG_LEVEL INFO_LEVEL
+#endif
+#include "Logger.h"
+
 #include "Pipeline.h"
 
 #include "AtomDBSingleton.h"
@@ -14,35 +19,39 @@ using namespace commons;
 using namespace atoms;
 using namespace db_adapter;
 
-PostgresWrapperJob::PostgresWrapperJob(shared_ptr<PostgresWrapper> db) : db(db) {}
+ProducerJob::ProducerJob(shared_ptr<PostgresWrapper> wrapper) : wrapper(wrapper) {}
 
-void PostgresWrapperJob::add_task_query(const string& virtual_name, const string& query) {
+void ProducerJob::add_task_query(const string& virtual_name, const string& query) {
     this->tasks.push_back(MappingTask{MappingTask::QUERY, TableMapping{}, virtual_name, query});
 }
 
-void PostgresWrapperJob::add_task_table(TableMapping table_mapping) {
+void ProducerJob::add_task_table(TableMapping table_mapping) {
     this->tasks.push_back(MappingTask{MappingTask::TABLE, move(table_mapping), "", ""});
 }
 
-bool PostgresWrapperJob::thread_one_step() {
+bool ProducerJob::thread_one_step() {
+    LOG_INFO("ProducerJob thread_one_step called. Current task index: " << this->current_task);
     if (this->current_task >= this->tasks.size()) {
         return false;
     }
 
     auto& task = this->tasks[this->current_task];
 
+    LOG_INFO("Processing task " << this->current_task << " of type " << (task.type == MappingTask::TABLE ? "TABLE" : "QUERY"));
+
     if (task.type == MappingTask::TABLE) {
-        auto table = this->db->get_table(task.table_mapping.table_name);
-        this->db->map_table(table,
-                            task.table_mapping.where_clauses.value_or(vector<string>{}),
-                            task.table_mapping.skip_columns.value_or(vector<string>{}),
-                            false);
+        auto table = this->wrapper->get_table(task.table_mapping.table_name);
+        this->wrapper->map_table(table,
+                                 task.table_mapping.where_clauses.value_or(vector<string>{}),
+                                 task.table_mapping.skip_columns.value_or(vector<string>{}),
+                                 false);
     } else if (task.type == MappingTask::QUERY) {
-        this->db->map_sql_query(task.virtual_name, task.query);
+        this->wrapper->map_sql_query(task.virtual_name, task.query);
     }
 
     this->current_task++;
-    return (this->current_task < this->tasks.size());
+    this->finished = (this->current_task >= this->tasks.size());
+    return !this->finished;
 }
 
 AtomDBJob::AtomDBJob(shared_ptr<SharedQueue> input_queue) : input_queue(input_queue) {
@@ -125,22 +134,22 @@ bool AtomDBJob::thread_one_step() {
 
 // void PostgresProducerProcessor::on_stop() {}
 
-Producer::Producer(const string& id, ThreadMethod* job, shared_ptr<PostgresWrapper> wrapper) : wrapper(wrapper) {
-    DedicatedThread::DedicatedThread(id, job);
-    Processor::bind_subprocessor(this, )
-}
+// Producer::Producer(const string& id, ThreadMethod* job, shared_ptr<PostgresDatabaseConnection> db_conn, shared_ptr<SharedQueue> queue) {
+//     shared_ptr<DedicatedThread> dedicated_thread = make_shared<DedicatedThread>(id, &job);
+//     Processor::bind_subprocessor(dedicated_thread, db_conn);
+// }
 
-void Producer::setup() {
-    DedicatedThread::setup();
-    PostgresDBConnection::setup();
-}
+// void Producer::setup() {
+//     DedicatedThread::setup();
+//     PostgresDBConnection::setup();
+// }
 
-void Producer::start() {
-    PostgresDBConnection::start();
-    DedicatedThread::start();
-}
+// void Producer::start() {
+//     PostgresDBConnection::start();
+//     DedicatedThread::start();
+// }
 
-void Producer::stop() {
-    PostgresDBConnection::stop();
-    DedicatedThread::stop();
-}
+// void Producer::stop() {
+//     DedicatedThread::stop();
+//     PostgresDBConnection::stop();
+// }

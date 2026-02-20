@@ -32,7 +32,7 @@ class PostgresWrapperTestEnvironment : public ::testing::Environment {
     void TearDown() override {}
 };
 
-class PostgresDBConnectionTest : public ::testing::Test {
+class PostgresDatabaseConnectionTest : public ::testing::Test {
    protected:
     string TEST_HOST = "localhost";
     int TEST_PORT = 5433;
@@ -66,9 +66,10 @@ class PostgresDBConnectionTest : public ::testing::Test {
 
     void TearDown() override {}
 
-    shared_ptr<PostgresDBConnection> create_db_connection() {
-        auto conn = make_shared<PostgresDBConnection>(
+    shared_ptr<PostgresDatabaseConnection> create_db_connection() {
+        auto conn = make_shared<PostgresDatabaseConnection>(
             "test-conn", TEST_HOST, TEST_PORT, TEST_DB, TEST_USER, TEST_PASSWORD);
+        conn->setup();
         conn->start();
         return conn;
     }
@@ -135,23 +136,24 @@ class PostgresWrapperTest : public ::testing::Test {
 
     void TearDown() override { std::remove(temp_file_path.c_str()); }
 
-    shared_ptr<PostgresWrapper> create_wrapper(MAPPER_TYPE mapper_type = MAPPER_TYPE::SQL2ATOMS) {
+    shared_ptr<PostgresWrapper> create_wrapper(PostgresDatabaseConnection& db_conn,
+                                               MAPPER_TYPE mapper_type = MAPPER_TYPE::SQL2ATOMS) {
         auto queue = make_shared<SharedQueue>();
-        return make_shared<PostgresWrapper>(
-            TEST_HOST, TEST_PORT, TEST_DB, TEST_USER, TEST_PASSWORD, mapper_type, queue);
+        return make_shared<PostgresWrapper>(db_conn, mapper_type, queue);
     }
 
     string temp_file_path;
 
-    shared_ptr<PostgresDBConnection> create_db_connection() {
-        auto conn = make_shared<PostgresDBConnection>(
+    shared_ptr<PostgresDatabaseConnection> create_db_connection() {
+        auto conn = make_unique<PostgresDatabaseConnection>(
             "test-conn", TEST_HOST, TEST_PORT, TEST_DB, TEST_USER, TEST_PASSWORD);
+        conn->setup();
         conn->start();
         return conn;
     }
 };
 
-TEST_F(PostgresDBConnectionTest, Connection) {
+TEST_F(PostgresDatabaseConnectionTest, Connection) {
     auto conn = create_db_connection();
 
     EXPECT_TRUE(conn->is_connected());
@@ -165,20 +167,20 @@ TEST_F(PostgresDBConnectionTest, Connection) {
 
     EXPECT_FALSE(conn->is_connected());
 
-    auto conn1 = new PostgresDBConnection(
+    auto conn1 = new PostgresDatabaseConnection(
         "test-conn1", INVALID_HOST, TEST_PORT, TEST_DB, TEST_USER, TEST_PASSWORD);
     EXPECT_THROW(conn1->connect(), std::runtime_error);
 
-    auto conn2 = new PostgresDBConnection(
+    auto conn2 = new PostgresDatabaseConnection(
         "test-conn2", TEST_HOST, INVALID_PORT, TEST_DB, TEST_USER, TEST_PASSWORD);
     EXPECT_THROW(conn2->connect(), std::runtime_error);
 
-    auto conn3 = new PostgresDBConnection(
+    auto conn3 = new PostgresDatabaseConnection(
         "test-conn3", TEST_HOST, TEST_PORT, INVALID_DB, TEST_USER, TEST_PASSWORD);
     EXPECT_THROW(conn3->connect(), std::runtime_error);
 }
 
-TEST_F(PostgresDBConnectionTest, ConcurrentConnection) {
+TEST_F(PostgresDatabaseConnectionTest, ConcurrentConnection) {
     const int num_threads = 100;
     vector<thread> threads;
     atomic<int> count_threads{0};
@@ -186,8 +188,12 @@ TEST_F(PostgresDBConnectionTest, ConcurrentConnection) {
     auto worker = [&](int thread_id) {
         try {
             string thread_id_str = "conn-" + to_string(thread_id);
-            auto conn = new PostgresDBConnection(
+            auto conn = new PostgresDatabaseConnection(
                 thread_id_str, TEST_HOST, TEST_PORT, TEST_DB, TEST_USER, TEST_PASSWORD);
+
+            EXPECT_FALSE(conn->is_connected());
+
+            conn->setup();
 
             EXPECT_FALSE(conn->is_connected());
 
@@ -214,7 +220,7 @@ TEST_F(PostgresDBConnectionTest, ConcurrentConnection) {
     EXPECT_EQ(count_threads, num_threads);
 }
 
-TEST_F(PostgresDBConnectionTest, CheckData) {
+TEST_F(PostgresDatabaseConnectionTest, CheckData) {
     auto conn = create_db_connection();
 
     auto result = conn->execute_query(
@@ -249,7 +255,8 @@ TEST_F(PostgresDBConnectionTest, CheckData) {
 }
 
 TEST_F(PostgresWrapperTest, GetTable) {
-    auto wrapper = create_wrapper();
+    auto conn = create_db_connection();
+    auto wrapper = create_wrapper(*conn);
     auto tables = wrapper->list_tables();
     ASSERT_FALSE(tables.empty());
 
@@ -268,7 +275,8 @@ TEST_F(PostgresWrapperTest, GetTable) {
 }
 
 TEST_F(PostgresWrapperTest, ListTables) {
-    auto wrapper = create_wrapper();
+    auto conn = create_db_connection();
+    auto wrapper = create_wrapper(*conn);
 
     auto tables = wrapper->list_tables();
 
@@ -297,7 +305,8 @@ TEST_F(PostgresWrapperTest, ListTables) {
 }
 
 TEST_F(PostgresWrapperTest, TablesStructure) {
-    auto wrapper = create_wrapper();
+    auto conn = create_db_connection();
+    auto wrapper = create_wrapper(*conn);
 
     Table organism_table = wrapper->get_table(ORGANISM_TABLE);
 
@@ -342,7 +351,8 @@ TEST_F(PostgresWrapperTest, TablesStructure) {
 
 // map_table - SQL2ATOMS
 TEST_F(PostgresWrapperTest, MapTablesFirstRowAtoms) {
-    auto wrapper = create_wrapper();
+    auto conn = create_db_connection();
+    auto wrapper = create_wrapper(*conn);
 
     Table organism_table = wrapper->get_table(ORGANISM_TABLE);
     EXPECT_NO_THROW({ wrapper->map_table(organism_table, {"organism_id = 1"}, {}, false); });
@@ -358,7 +368,8 @@ TEST_F(PostgresWrapperTest, MapTablesFirstRowAtoms) {
 }
 
 TEST_F(PostgresWrapperTest, MapTableWithClausesAndSkipColumnsAtoms) {
-    auto wrapper = create_wrapper();
+    auto conn = create_db_connection();
+    auto wrapper = create_wrapper(*conn);
 
     Table table = wrapper->get_table(FEATURE_TABLE);
     vector<string> clauses = {"organism_id = " + to_string(DROSOPHILA_ORGANISM_ID), "feature_id <= 5"};
@@ -369,7 +380,8 @@ TEST_F(PostgresWrapperTest, MapTableWithClausesAndSkipColumnsAtoms) {
 }
 
 TEST_F(PostgresWrapperTest, MapTableZeroRowsAtoms) {
-    auto wrapper = create_wrapper();
+    auto conn = create_db_connection();
+    auto wrapper = create_wrapper(*conn);
 
     Table table = wrapper->get_table(FEATURE_TABLE);
     vector<string> clauses = {"feature_id = -999"};
@@ -379,7 +391,8 @@ TEST_F(PostgresWrapperTest, MapTableZeroRowsAtoms) {
 }
 
 TEST_F(PostgresWrapperTest, MapTableWithNonExistentSkipColumnAtoms) {
-    auto wrapper = create_wrapper();
+    auto conn = create_db_connection();
+    auto wrapper = create_wrapper(*conn);
 
     Table table = wrapper->get_table(FEATURE_TABLE);
 
@@ -391,7 +404,8 @@ TEST_F(PostgresWrapperTest, MapTableWithNonExistentSkipColumnAtoms) {
 }
 
 TEST_F(PostgresWrapperTest, MapTableWithInvalidClauseAtoms) {
-    auto wrapper = create_wrapper();
+    auto conn = create_db_connection();
+    auto wrapper = create_wrapper(*conn);
 
     Table table = wrapper->get_table(FEATURE_TABLE);
 
@@ -403,7 +417,8 @@ TEST_F(PostgresWrapperTest, MapTableWithInvalidClauseAtoms) {
 
 // map_table - SQL2METTA
 TEST_F(PostgresWrapperTest, MapTablesFirstRowMetta) {
-    auto wrapper = create_wrapper(MAPPER_TYPE::SQL2METTA);
+    auto conn = create_db_connection();
+    auto wrapper = create_wrapper(*conn, MAPPER_TYPE::SQL2METTA);
 
     Table organism_table = wrapper->get_table(ORGANISM_TABLE);
     EXPECT_NO_THROW({ wrapper->map_table(organism_table, {"organism_id = 1"}, {}, false); });
@@ -419,7 +434,8 @@ TEST_F(PostgresWrapperTest, MapTablesFirstRowMetta) {
 }
 
 TEST_F(PostgresWrapperTest, MapTableWithClausesAndSkipColumnsMetta) {
-    auto wrapper = create_wrapper(MAPPER_TYPE::SQL2METTA);
+    auto conn = create_db_connection();
+    auto wrapper = create_wrapper(*conn, MAPPER_TYPE::SQL2METTA);
 
     Table table = wrapper->get_table(FEATURE_TABLE);
     vector<string> clauses = {"organism_id = " + to_string(DROSOPHILA_ORGANISM_ID), "feature_id <= 5"};
@@ -430,7 +446,8 @@ TEST_F(PostgresWrapperTest, MapTableWithClausesAndSkipColumnsMetta) {
 }
 
 TEST_F(PostgresWrapperTest, MapTableZeroRowsMetta) {
-    auto wrapper = create_wrapper(MAPPER_TYPE::SQL2METTA);
+    auto conn = create_db_connection();
+    auto wrapper = create_wrapper(*conn, MAPPER_TYPE::SQL2METTA);
 
     Table table = wrapper->get_table(FEATURE_TABLE);
     vector<string> clauses = {"feature_id = -999"};
@@ -440,7 +457,8 @@ TEST_F(PostgresWrapperTest, MapTableZeroRowsMetta) {
 }
 
 TEST_F(PostgresWrapperTest, MapTableWithNonExistentSkipColumnMetta) {
-    auto wrapper = create_wrapper(MAPPER_TYPE::SQL2METTA);
+    auto conn = create_db_connection();
+    auto wrapper = create_wrapper(*conn, MAPPER_TYPE::SQL2METTA);
 
     Table table = wrapper->get_table(FEATURE_TABLE);
 
@@ -452,7 +470,8 @@ TEST_F(PostgresWrapperTest, MapTableWithNonExistentSkipColumnMetta) {
 }
 
 TEST_F(PostgresWrapperTest, MapTableWithInvalidClauseMetta) {
-    auto wrapper = create_wrapper(MAPPER_TYPE::SQL2METTA);
+    auto conn = create_db_connection();
+    auto wrapper = create_wrapper(*conn, MAPPER_TYPE::SQL2METTA);
 
     Table table = wrapper->get_table(FEATURE_TABLE);
 
@@ -464,7 +483,8 @@ TEST_F(PostgresWrapperTest, MapTableWithInvalidClauseMetta) {
 
 // map_sql_query - SQL2ATOMS
 TEST_F(PostgresWrapperTest, MapSqlQueryFirstRowAtoms) {
-    auto wrapper = create_wrapper();
+    auto conn = create_db_connection();
+    auto wrapper = create_wrapper(*conn);
 
     string query_organism = R"(
         SELECT
@@ -516,7 +536,8 @@ TEST_F(PostgresWrapperTest, MapSqlQueryFirstRowAtoms) {
 }
 
 TEST_F(PostgresWrapperTest, MapSqlQueryWithClausesAndSkipColumnsAtoms) {
-    auto wrapper = create_wrapper();
+    auto conn = create_db_connection();
+    auto wrapper = create_wrapper(*conn);
 
     string query = R"(
         SELECT
@@ -536,7 +557,8 @@ TEST_F(PostgresWrapperTest, MapSqlQueryWithClausesAndSkipColumnsAtoms) {
 }
 
 TEST_F(PostgresWrapperTest, MapSqlQueryZeroRowsAtoms) {
-    auto wrapper = create_wrapper();
+    auto conn = create_db_connection();
+    auto wrapper = create_wrapper(*conn);
 
     string query = R"(
         SELECT
@@ -559,7 +581,8 @@ TEST_F(PostgresWrapperTest, MapSqlQueryZeroRowsAtoms) {
 }
 
 TEST_F(PostgresWrapperTest, MapSqlQueryWithNonExistentSkipColumnAtoms) {
-    auto wrapper = create_wrapper();
+    auto conn = create_db_connection();
+    auto wrapper = create_wrapper(*conn);
 
     string query = R"(
         SELECT
@@ -579,7 +602,8 @@ TEST_F(PostgresWrapperTest, MapSqlQueryWithNonExistentSkipColumnAtoms) {
 }
 
 TEST_F(PostgresWrapperTest, MapSqlQueryWithInvalidClauseAtoms) {
-    auto wrapper = create_wrapper();
+    auto conn = create_db_connection();
+    auto wrapper = create_wrapper(*conn);
 
     string query = R"(
         SELECT
@@ -604,7 +628,8 @@ TEST_F(PostgresWrapperTest, MapSqlQueryWithInvalidClauseAtoms) {
 
 // map_sql_query - SQL2METTA
 TEST_F(PostgresWrapperTest, MapSqlQueryFirstRowMetta) {
-    auto wrapper = create_wrapper(MAPPER_TYPE::SQL2METTA);
+    auto conn = create_db_connection();
+    auto wrapper = create_wrapper(*conn, MAPPER_TYPE::SQL2METTA);
 
     string query_organism = R"(
         SELECT
@@ -656,7 +681,8 @@ TEST_F(PostgresWrapperTest, MapSqlQueryFirstRowMetta) {
 }
 
 TEST_F(PostgresWrapperTest, MapSqlQueryWithClausesAndSkipColumnsMetta) {
-    auto wrapper = create_wrapper(MAPPER_TYPE::SQL2METTA);
+    auto conn = create_db_connection();
+    auto wrapper = create_wrapper(*conn, MAPPER_TYPE::SQL2METTA);
 
     string query = R"(
         SELECT
@@ -676,7 +702,8 @@ TEST_F(PostgresWrapperTest, MapSqlQueryWithClausesAndSkipColumnsMetta) {
 }
 
 TEST_F(PostgresWrapperTest, MapSqlQueryZeroRowsMetta) {
-    auto wrapper = create_wrapper(MAPPER_TYPE::SQL2METTA);
+    auto conn = create_db_connection();
+    auto wrapper = create_wrapper(*conn, MAPPER_TYPE::SQL2METTA);
 
     string query = R"(
         SELECT
@@ -699,7 +726,8 @@ TEST_F(PostgresWrapperTest, MapSqlQueryZeroRowsMetta) {
 }
 
 TEST_F(PostgresWrapperTest, MapSqlQueryWithNonExistentSkipColumnMetta) {
-    auto wrapper = create_wrapper(MAPPER_TYPE::SQL2METTA);
+    auto conn = create_db_connection();
+    auto wrapper = create_wrapper(*conn, MAPPER_TYPE::SQL2METTA);
 
     string query = R"(
         SELECT
@@ -719,7 +747,8 @@ TEST_F(PostgresWrapperTest, MapSqlQueryWithNonExistentSkipColumnMetta) {
 }
 
 TEST_F(PostgresWrapperTest, MapSqlQueryWithInvalidClauseMetta) {
-    auto wrapper = create_wrapper(MAPPER_TYPE::SQL2METTA);
+    auto conn = create_db_connection();
+    auto wrapper = create_wrapper(*conn, MAPPER_TYPE::SQL2METTA);
 
     string query = R"(
         SELECT
@@ -749,7 +778,8 @@ TEST_F(PostgresWrapperTest, MapTablesFirstRowAtomsWithContextFile) {
         Utils::error("Failed to load context file. Aborting test.");
     }
 
-    auto wrapper = create_wrapper();
+    auto conn = create_db_connection();
+    auto wrapper = create_wrapper(*conn);
 
     vector<unsigned int> atoms_sizes;
 
@@ -784,30 +814,45 @@ TEST_F(PostgresWrapperTest, PipelineProcessor) {
     )";
 
     auto queue = make_shared<SharedQueue>();
-    
-    auto wrapper = make_shared<PostgresWrapper>(
-        "localhost", 5433, "postgres_wrapper_test", "postgres", "test", MAPPER_TYPE::SQL2ATOMS, queue);
+    auto db_conn = make_shared<PostgresDatabaseConnection>("test-conn", TEST_HOST, TEST_PORT, TEST_DB, TEST_USER, TEST_PASSWORD);
+    auto wrapper = make_shared<PostgresWrapper>(*db_conn, MAPPER_TYPE::SQL2ATOMS, queue);
 
-    PostgresWrapperJob wrapper_job(wrapper);
+    ProducerJob wrapper_job(wrapper);
     wrapper_job.add_task_query("Test1", query_organism);
-    AtomDBJob atomdb_job(queue);
 
-    auto producer = make_shared<Producer>("psql", &wrapper_job, wrapper);
-    auto consumer = make_shared<DedicatedThread>("worker", &atomdb_job);
+    auto producer = make_shared<DedicatedThread>("psql", &wrapper_job);
 
-    // main thread
-    consumer->setup();
+    Processor::bind_subprocessor(producer, db_conn);
+
     producer->setup();
-
-    consumer->start();
     producer->start();
+    while (wrapper_job.is_finished()) {
+        Utils::sleep();
+    }
+    // EXPECT_EQ(2, 3);
 
-    // auto pipeline = make_shared<Processor>("pipeline");
-    Processor::bind_subprocessor(pipeline, pw_job);
-    // Processor::bind_subprocessor(pipeline, ad_job);
-    // pipeline->setup();
-    // pipeline->start();
-    // pipeline->stop();
+
+//     // producer->setup();
+//     // producer->start();
+//     // producer->stop();
+
+
+//     // AtomDBJob atomdb_job(queue);
+//     // auto consumer = make_shared<DedicatedThread>("worker", &atomdb_job);
+
+//     // main thread
+//     // consumer->setup();
+//     // producer->setup();
+
+//     // consumer->start();
+//     // producer->start();
+
+//     // auto pipeline = make_shared<Processor>("pipeline");
+//     // Processor::bind_subprocessor(pipeline, pw_job);
+//     // Processor::bind_subprocessor(pipeline, ad_job);
+//     // pipeline->setup();
+//     // pipeline->start();
+//     // pipeline->stop();
 }
 
 int main(int argc, char** argv) {

@@ -9,7 +9,8 @@ cc_library(
         ":context_loader",
         ":data_mapper",
         ":data_types",
-        ":db_wrapper",
+        ":database_connection",
+        ":database_wrapper",
         ":pipeline",
         "//commons:commons_lib",
         "//commons/atoms:atoms_lib",
@@ -40,16 +41,16 @@ cc_library(
 )
 
 cc_library(
-    name = "db_wrapper",
-    srcs = ["DBWrapper.cc"],
-    hdrs = ["DBWrapper.h"],
+    name = "database_wrapper",
+    srcs = ["DatabaseWrapper.cc"],
+    hdrs = ["DatabaseWrapper.h"],
     includes = ["."],
     deps = [
         ":data_mapper",
         ":data_types",
+        ":database_connection",
         "//commons:commons_lib",
         "//commons/atoms:atoms_lib",
-        "//commons/processor:processor_lib",
     ],
 )
 
@@ -64,13 +65,26 @@ cc_library(
 )
 
 cc_library(
+    name = "database_connection",
+    srcs = ["DatabaseConnection.cc"],
+    hdrs = ["DatabaseConnection.h"],
+    includes = ["."],
+    deps = [
+        ":data_types",
+        "//commons:commons_lib",
+        "//commons/atoms:atoms_lib",
+        "//commons/processor:processor_lib",
+    ],
+)
+
+cc_library(
     name = "pipeline",
     srcs = ["Pipeline.cc"],
     hdrs = ["Pipeline.h"],
     includes = ["."],
     deps = [
         ":data_types",
-        ":db_wrapper",
+        ":database_wrapper",
         "//atomdb",
         "//atomdb:atomdb_singleton",
         "//commons:commons_lib",

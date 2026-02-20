@@ -10,7 +10,8 @@
 #include <string>
 #include <vector>
 
-#include "DBWrapper.h"
+#include "DatabaseConnection.h"
+#include "DatabaseWrapper.h"
 #include "SharedQueue.h"
 
 #define MAX_VALUE_SIZE ((size_t) 1000)
@@ -21,15 +22,15 @@ using namespace commons;
 
 namespace db_adapter {
 
-class PostgresDBConnection : public DBConnection {
+class PostgresDatabaseConnection : public DatabaseConnection {
    public:
-    PostgresDBConnection(const string& id,
-                         const string& host,
-                         int port,
-                         const string& database,
-                         const string& user,
-                         const string& password);
-    ~PostgresDBConnection() override;
+    PostgresDatabaseConnection(const string& id,
+                               const string& host,
+                               int port,
+                               const string& database,
+                               const string& user,
+                               const string& password);
+    ~PostgresDatabaseConnection() override;
 
     void connect() override;
     void disconnect() override;
@@ -46,23 +47,15 @@ class PostgresDBConnection : public DBConnection {
  * @class PostgresWrapper
  * @brief Concrete implementation of SQLWrapper for PostgreSQL using libpqxx.
  */
-class PostgresWrapper : public SQLWrapper<PostgresDBConnection> {
+class PostgresWrapper : public SQLWrapper {
    public:
     /**
      * @brief Constructs a PostgresWrapper.
      *
-     * @param host The hostname or IP address.
-     * @param port The port number.
-     * @param database The database name (default: "postgres").
-     * @param user The username.
-     * @param password The password.
+     * @param connection The PostgreSQL database connection.
      * @param mapper_type The strategy for mapping results.
      */
-    PostgresWrapper(const string& host,
-                    int port,
-                    const string& database = "postgres",
-                    const string& user = "postgres",
-                    const string& password = "postgres",
+    PostgresWrapper(PostgresDatabaseConnection& db_conn,
                     MAPPER_TYPE mapper_type = MAPPER_TYPE::SQL2ATOMS,
                     shared_ptr<SharedQueue> output_queue = nullptr);
 
@@ -84,6 +77,7 @@ class PostgresWrapper : public SQLWrapper<PostgresDBConnection> {
 
    private:
     // Store tables in cache to avoid repeated database queries.
+    PostgresDatabaseConnection& db_conn;
     shared_ptr<SharedQueue> output_queue;
     optional<vector<Table>> tables_cache;
     vector<string> build_columns_to_map(const Table& table, const vector<string>& skip_columns = {});
