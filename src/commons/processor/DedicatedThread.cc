@@ -21,13 +21,11 @@ DedicatedThread::DedicatedThread(const string& id, ThreadMethod* job) : Processo
 DedicatedThread::~DedicatedThread() {}
 
 void DedicatedThread::setup() {
-    LOG_INFO("[1]");
     this->thread_object = new thread(&DedicatedThread::thread_method, this);
     Processor::setup();
 }
 
 void DedicatedThread::start() {
-    LOG_INFO("[A]");
     if (is_setup()) {
         this->api_mutex.lock();
         this->start_flag = true;

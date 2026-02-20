@@ -1,10 +1,7 @@
-#ifndef LOG_LEVEL
-#define LOG_LEVEL INFO_LEVEL
-#endif
-
 #include "Processor.h"
+
 #include "Utils.h"
-#include "Logger.h"
+
 using namespace commons;
 using namespace processor;
 
@@ -44,7 +41,6 @@ void Processor::bind_subprocessor(shared_ptr<Processor> root, shared_ptr<Process
 }
 
 void Processor::setup() {
-    LOG_INFO("[2]");
     this->api_mutex.lock();
     check_state("setup", WAITING_SETUP);
     this->current_state = WAITING_START;
@@ -60,13 +56,11 @@ void Processor::setup() {
 }
 
 void Processor::start() {
-    LOG_INFO("[B]");
     this->api_mutex.lock();
     check_state("start", WAITING_START);
     this->current_state = WAITING_STOP;
     this->api_mutex.unlock();
     for (auto subprocess : this->subprocessors) {
-        LOG_INFO("[C]");
         if (!subprocess->is_running()) {
             subprocess->start();
         }

@@ -15,16 +15,12 @@ DatabaseConnection::DatabaseConnection(const string& id, const string& host, int
 DatabaseConnection::~DatabaseConnection() {}
 
 void DatabaseConnection::setup() {
-    LOG_INFO("[3]");
     if (!this->is_setup()) {
         Processor::setup();
     }
 }
 
 void DatabaseConnection::start() {
-    LOG_INFO("[X]");
-    LOG_INFO("is_running: " << this->is_running());
-    LOG_INFO("is_finished: " << this->is_finished());
     if (this->is_running() || this->is_finished()) return;
 
     {
