@@ -12,6 +12,86 @@ using namespace query_engine;
 using namespace query_element;
 
 #define SLEEP_DURATION ((unsigned int) 1000)
+#define NODE_TYPE "Node"
+#define LINK_TYPE "Link"
+#define UNKNOWN_NODE "UNKNOWN_NODE";
+#define UNKNOWN_LINK "UNKNOWN_LINK";
+#define NODE_COUNT ((unsigned int) 20)
+
+static void load_data() {
+    auto db = AtomDBSingleton::get_instance();
+    Node* node1, node2;
+    Link* link;
+    for (unsigned int i = 1; i <= NODE_COUNT; i++) {
+        node1 = new Node(NODE_TYPE, std::to_string(i));
+        db->add_node(node1, false);
+        for (unsigned int j = 1; j <= NODE_COUNT; j++) {
+            node2 = new Node(NODE_TYPE, std::to_string(j));
+            db->add_node(node2, false);
+            link = new Link(LINK_TYPE, [node1->handle(), node2->handle()]);
+            db->add_link(link, false);
+        }
+    }
+}
+
+class ChainOperatorTestEnvironment : public ::testing::Environment {
+   public:
+    void SetUp() override {
+        auto atomdb = new InMemoryDB("chain_operator_test_");
+        AtomDBSingleton::provide(shared_ptr<AtomDB>(atomdb));
+        load_data();
+    }
+
+    void TearDown() override {
+    }
+};
+
+class ChainOperatorTest : public ::testing::Test {
+   protected:
+    void SetUp() override {
+        auto atomdb = AtomDBSingleton::get_instance();
+        db = dynamic_pointer_cast<InMemoryDB>(atomdb);
+        ASSERT_NE(db, nullptr) << "Failed to cast AtomDB to InMemoryDB";
+    }
+
+    void TearDown() override {}
+    shared_ptr<InMemoryDB> db;
+};
+
+static string get_node_string(string handle) {
+    for (unsigned int i = 1; i <= NODE_COUNT; i++) {
+        node_handle = Hasher::node_handle(NODE_TYPE, std::to_string(i));
+        if (node_handle == handle) {
+            return std::to_string(i);
+        }
+    }
+    return UNKNOWN_NODE;
+}
+
+static string get_link_string(string handle) {
+    for (unsigned int i = 1; i <= NODE_COUNT; i++) {
+        node1_handle = Hasher::node_handle(NODE_TYPE, std::to_string(i));
+        for (unsigned int j = 1; j <= NODE_COUNT; j++) {
+            node2_handle = Hasher::node_handle(NODE_TYPE, std::to_string(j));
+            link_handle = Hasher::link_handle(LINK_TYPE, [node1_handle, node2_handle]);
+            if (link_handle == handle) {
+                return get_node_string(node1_handle) + " -> " + get_node_string(node2_handle);
+            }
+        }
+    }
+    return UNKNOWN_LINK;
+}
+
+static string link(const string& node1_name, const string& node2_name) {
+    Node node1(NODE_TYPE, node1_name);
+    Node node2(NODE_TYPE, node2_name);
+    Link link(LINK_TYPE, [node1.handle(), node2.handle()]);
+    return link.handle();
+}
+
+static string link(unsigned int node1, unsigned int node2) {
+    return link(std::to_string(node1), std::to_string(node2));
+}
 
 class TestSource : public Source {
    public:
@@ -25,11 +105,10 @@ class TestSource : public Source {
              const array<const char*, 1>& values,
              bool sleep_flag = true) {
         QueryAnswer* query_answer = new QueryAnswer(handle, importance);
-        /*
         for (unsigned int i = 0; i < labels.size(); i++) {
             query_answer->assignment.assign(labels[i], values[i]);
         }
-        */
+        LOG_INFO("Feeding answer in the source element: " + get_link_string(handle));
         this->output_buffer->add_query_answer(query_answer);
         if (sleep_flag) {
             Utils::sleep(SLEEP_DURATION);
@@ -63,21 +142,7 @@ void check_query_answer(string tag,
     EXPECT_TRUE(set<string>(query_answer->handles.begin(), query_answer->handles.end()) == set_handles);
 }
 
-static char LINK_HANDLE_DELIMITER  = '-';
-
-static string link(const string& node1, const string& node2) {
-    return node1 + std::to_string(LINK_HANDLE_DELIMITER) + node2;
-}
-
-static string link(unsigned int node1, unsigned int node2) {
-    return link(std::to_string(node1), std::to_string(node2));
-}
-
-static vector<string> targets(const string& link_handle) {
-    return Utils::split(link_handle, LINK_HANDLE_DELIMITER);
-}
-
-TEST(ChainOperator, basics) {
+TEST(ChainOperatorTest, basics) {
     auto source = make_shared<TestSource>(10);
     auto chain_operator = make_shared<Chain>(array<shared_ptr<QueryElement>, 1>({source}));
     TestSink sink(chain_operator);
@@ -107,7 +172,7 @@ TEST(ChainOperator, basics) {
     //         |      |                   |
     //         +      +-- 6 -- 8          |
     //         |                          |
-    //  S -----+--------------------------+--+---- T
+    //  S -----+--------------------------+--+----- T
     //         |                          |  |
     //         |                          |  |
     //         +- 9 --+-- 10 -+- 13       |  |
@@ -124,34 +189,40 @@ TEST(ChainOperator, basics) {
     //         |                             |
     //         +------------------------ 20 -+
 
-    source->add(link(S, 1),   0.5, {}, {}, false);
-    source->add(link(S, 2),   0.5, {}, {}, false);
-    source->add(link(S, T),   0.5, {}, {}, false);
-    source->add(link(S, 4),   0.5, {}, {}, false);
-    source->add(link(S, 5),   0.5, {}, {}, false);
-    source->add(link(S, 9),   0.5, {}, {}, false);
-    source->add(link(S, 20),  0.5, {}, {}, false);
-    source->add(link(1, 2),   0.5, {}, {}, false);
-    source->add(link(2, 3),   0.5, {}, {}, false);
-    source->add(link(3, T),   0.5, {}, {}, false);
-    source->add(link(4, 1),   0.5, {}, {}, false);
-    source->add(link(5, 7),   0.5, {}, {}, false);
-    source->add(link(5, 6),   0.5, {}, {}, false);
-    source->add(link(6, 8),   0.5, {}, {}, false);
-    source->add(link(9, 10),  0.5, {}, {}, false);
-    source->add(link(9, 11),  0.5, {}, {}, false);
-    source->add(link(9, 12),  0.5, {}, {}, false);
-    source->add(link(10, 13), 0.5, {}, {}, false);
-    source->add(link(10, 14), 0.5, {}, {}, false);
-    source->add(link(11, 15), 0.5, {}, {}, false);
-    source->add(link(11, 16), 0.5, {}, {}, false);
-    source->add(link(12, 17), 0.5, {}, {}, false);
-    source->add(link(12, 18), 0.5, {}, {}, false);
-    source->add(link(14, 19), 0.5, {}, {}, false);
-    source->add(link(15, T),  0.5, {}, {}, false);
-    source->add(link(17, 9),  0.5, {}, {}, false);
-    source->add(link(18, 12), 0.5, {}, {}, false);
-    source->add(link(19, T),  0.5, {}, {}, false);
-    source->add(link(20, T),  0.5, {}, {}, false);
+    source->add(link(S, 1),   0.5, {"v1"}, {"h1"}, false);
+    source->add(link(S, 2),   0.5, {"v1"}, {"h1"}, false);
+    source->add(link(S, T),   0.5, {"v1"}, {"h1"}, false);
+    source->add(link(S, 4),   0.5, {"v1"}, {"h1"}, false);
+    source->add(link(S, 5),   0.5, {"v1"}, {"h1"}, false);
+    source->add(link(S, 9),   0.5, {"v1"}, {"h1"}, false);
+    source->add(link(S, 20),  0.5, {"v1"}, {"h1"}, false);
+    source->add(link(1, 2),   0.5, {"v1"}, {"h1"}, false);
+    source->add(link(2, 3),   0.5, {"v1"}, {"h1"}, false);
+    source->add(link(3, T),   0.5, {"v1"}, {"h1"}, false);
+    source->add(link(4, 1),   0.5, {"v1"}, {"h1"}, false);
+    source->add(link(5, 7),   0.5, {"v1"}, {"h1"}, false);
+    source->add(link(5, 6),   0.5, {"v1"}, {"h1"}, false);
+    source->add(link(6, 8),   0.5, {"v1"}, {"h1"}, false);
+    source->add(link(9, 10),  0.5, {"v1"}, {"h1"}, false);
+    source->add(link(9, 11),  0.5, {"v1"}, {"h1"}, false);
+    source->add(link(9, 12),  0.5, {"v1"}, {"h1"}, false);
+    source->add(link(10, 13), 0.5, {"v1"}, {"h1"}, false);
+    source->add(link(10, 14), 0.5, {"v1"}, {"h1"}, false);
+    source->add(link(11, 15), 0.5, {"v1"}, {"h1"}, false);
+    source->add(link(11, 16), 0.5, {"v1"}, {"h1"}, false);
+    source->add(link(12, 17), 0.5, {"v1"}, {"h1"}, false);
+    source->add(link(12, 18), 0.5, {"v1"}, {"h1"}, false);
+    source->add(link(14, 19), 0.5, {"v1"}, {"h1"}, false);
+    source->add(link(15, T),  0.5, {"v1"}, {"h1"}, false);
+    source->add(link(17, 9),  0.5, {"v1"}, {"h1"}, false);
+    source->add(link(18, 12), 0.5, {"v1"}, {"h1"}, false);
+    source->add(link(19, T),  0.5, {"v1"}, {"h1"}, false);
+    source->add(link(20, T),  0.5, {"v1"}, {"h1"}, false);
     // clang-format on
+}
+
+int main(int argc, char** argv) {
+    ::testing::InitGoogleTest(&argc, argv);
+    ::testing::AddGlobalTestEnvironment(new ChainOperatorTestEnvironment());
+    return RUN_ALL_TESTS();
 }
