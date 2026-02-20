@@ -19,12 +19,12 @@ namespace db_adapter {
 class DatabaseMappingJob : public ThreadMethod {
    public:
     DatabaseMappingJob(const string& host,
-                int port,
-                const string& database,
-                const string& user,
-                const string& password,
-                MAPPER_TYPE mapper_type = MAPPER_TYPE::SQL2ATOMS,
-                shared_ptr<SharedQueue> output_queue = nullptr);
+                       int port,
+                       const string& database,
+                       const string& user,
+                       const string& password,
+                       MAPPER_TYPE mapper_type = MAPPER_TYPE::SQL2ATOMS,
+                       shared_ptr<SharedQueue> output_queue = nullptr);
     ~DatabaseMappingJob() = default;
 
     void add_task_query(const string& virtual_name, const string& query);

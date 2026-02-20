@@ -19,12 +19,12 @@ using namespace atoms;
 using namespace db_adapter;
 
 DatabaseMappingJob::DatabaseMappingJob(const string& host,
-                         int port,
-                         const string& database,
-                         const string& user,
-                         const string& password,
-                         MAPPER_TYPE mapper_type,
-                         shared_ptr<SharedQueue> output_queue) {
+                                       int port,
+                                       const string& database,
+                                       const string& user,
+                                       const string& password,
+                                       MAPPER_TYPE mapper_type,
+                                       shared_ptr<SharedQueue> output_queue) {
     this->db_conn =
         make_unique<PostgresDatabaseConnection>("psql-conn", host, port, database, user, password);
     this->wrapper = make_unique<PostgresWrapper>(*db_conn, mapper_type, output_queue);

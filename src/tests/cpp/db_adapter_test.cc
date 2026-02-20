@@ -838,18 +838,17 @@ TEST_F(PostgresWrapperTest, PipelineProcessor) {
     auto consumer = make_shared<DedicatedThread>("consumer", &atomdb_job);
 
     EXPECT_EQ(queue->size(), 34);
-    producer->setup();
+    consumer->setup();
     EXPECT_EQ(queue->size(), 34);
-    producer->start();
+    consumer->start();
     EXPECT_EQ(queue->size(), 34);
 
     while (!db_job.is_finished()) {
         Utils::sleep();
     }
-    producer->stop();
+    consumer->stop();
 
     EXPECT_EQ(queue->size(), 0);
-
 }
 
 int main(int argc, char** argv) {
