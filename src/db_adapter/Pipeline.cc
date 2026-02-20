@@ -53,7 +53,7 @@ bool DatabaseMappingJob::thread_one_step() {
 
     auto& task = this->tasks[this->current_task];
 
-    LOG_INFO("Processing task " << this->current_task << " of type "
+    LOG_DEBUG("Processing task " << this->current_task << " of type "
                                 << (task.type == MappingTask::TABLE ? "TABLE" : "QUERY"));
 
     if (task.type == MappingTask::TABLE) {
@@ -71,17 +71,20 @@ bool DatabaseMappingJob::thread_one_step() {
     return !this->finished;
 }
 
+bool DatabaseMappingJob::is_finished() const { return this->finished; }
+
 AtomPersistenceJob::AtomPersistenceJob(shared_ptr<SharedQueue> input_queue) : input_queue(input_queue) {
     this->atomdb = AtomDBSingleton::get_instance();
 }
 
 bool AtomPersistenceJob::thread_one_step() {
-    if (this->input_queue->size() == 0) {
+    if (this->input_queue->empty()) {
         Utils::sleep();
-        return true;
+        this->finished = false;
+        return false;
     }
+    vector<Atom*> atoms;
     try {
-        vector<Atom*> atoms;
         for (size_t i = 0; i < BATCH_SIZE; ++i) {
             if (this->input_queue->empty()) break;
 
@@ -93,16 +96,22 @@ bool AtomPersistenceJob::thread_one_step() {
             atoms.push_back(atom);
         }
         if (!atoms.empty()) {
-            cout << "Worker processing batch of " << atoms.size() << " atoms." << endl;
+            LOG_DEBUG("Worker processing batch of " << atoms.size() << " atoms." << endl);
             this->atomdb->add_atoms(atoms, false, true);
             for (auto& atom : atoms) {
                 delete atom;
             }
         }
+        this->finished = this->input_queue->empty();
         return true;
     } catch (const exception& e) {
         Utils::error("Error in Worker: " + string(e.what()));
+        for (auto& atom : atoms) {
+            delete atom;
+        }
     }
-    this->finished = true;
+    this->finished = false;
     return false;
 }
+
+bool AtomPersistenceJob::is_finished() const { return this->finished; }

@@ -32,7 +32,7 @@ class DatabaseMappingJob : public ThreadMethod {
 
     bool thread_one_step() override;
 
-    bool is_finished() const { return this->finished; }
+    bool is_finished() const;
 
    protected:
     struct MappingTask {
@@ -55,6 +55,7 @@ class AtomPersistenceJob : public ThreadMethod {
     ~AtomPersistenceJob() = default;
 
     bool thread_one_step() override;
+    bool is_finished() const;
 
    protected:
     shared_ptr<SharedQueue> input_queue;
