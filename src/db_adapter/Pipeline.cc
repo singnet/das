@@ -39,7 +39,7 @@ void DatabaseMappingJob::add_task_table(TableMapping table_mapping) {
 }
 
 bool DatabaseMappingJob::thread_one_step() {
-    LOG_INFO("DatabaseMappingJob thread_one_step called. Current task index: " << this->current_task);
+    LOG_DEBUG("DatabaseMappingJob thread_one_step called. Current task index: " << this->current_task);
     if (this->current_task >= this->tasks.size()) {
         this->db_conn->stop();
         return false;
@@ -54,7 +54,7 @@ bool DatabaseMappingJob::thread_one_step() {
     auto& task = this->tasks[this->current_task];
 
     LOG_DEBUG("Processing task " << this->current_task << " of type "
-                                << (task.type == MappingTask::TABLE ? "TABLE" : "QUERY"));
+                                 << (task.type == MappingTask::TABLE ? "TABLE" : "QUERY"));
 
     if (task.type == MappingTask::TABLE) {
         auto table = this->wrapper->get_table(task.table_mapping.table_name);

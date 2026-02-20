@@ -844,7 +844,6 @@ TEST_F(PostgresWrapperTest, PipelineProcessor) {
     EXPECT_EQ(queue->size(), 34);
 
     while (!atomdb_job.is_finished()) {
-        cout << "Waiting for consumer to finish. Current queue size: " << queue->size() << endl;
         Utils::sleep();
     }
     consumer->stop();
