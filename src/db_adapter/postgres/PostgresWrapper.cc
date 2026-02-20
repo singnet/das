@@ -70,7 +70,9 @@ pqxx::result PostgresDatabaseConnection::execute_query(const string& query) {
 // PostgresWrapper implementation
 // ===============================================================================================
 
-PostgresWrapper::PostgresWrapper(PostgresDatabaseConnection& db_conn, MAPPER_TYPE mapper_type, shared_ptr<SharedQueue> output_queue)
+PostgresWrapper::PostgresWrapper(PostgresDatabaseConnection& db_conn,
+                                 MAPPER_TYPE mapper_type,
+                                 shared_ptr<SharedQueue> output_queue)
     : SQLWrapper(db_conn, mapper_type), db_conn(db_conn), output_queue(output_queue) {}
 
 PostgresWrapper::~PostgresWrapper() {}

@@ -1,3 +1,5 @@
+#include <memory>
+
 #include "AtomDBSingleton.h"
 #include "DedicatedThread.h"
 #include "PostgresWrapper.h"
@@ -59,11 +61,13 @@ class AtomDBJob : public ThreadMethod {
     shared_ptr<AtomDB> atomdb;
 };
 
-
 class Producer : public DedicatedThread {
-    public:
-     Producer(const string& id, ThreadMethod* job, shared_ptr<PostgresDatabaseConnection> db_conn, shared_ptr<SharedQueue> queue);
-     ~Producer() = default;
+   public:
+    Producer(const string& id,
+             ThreadMethod* job,
+             shared_ptr<PostgresDatabaseConnection> db_conn,
+             shared_ptr<SharedQueue> queue);
+    ~Producer() = default;
 
     //  void setup();
     //  void start();

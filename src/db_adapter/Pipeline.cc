@@ -1,12 +1,11 @@
 #ifndef LOG_LEVEL
 #define LOG_LEVEL INFO_LEVEL
 #endif
-#include "Logger.h"
-
 #include "Pipeline.h"
 
 #include "AtomDBSingleton.h"
 #include "DedicatedThread.h"
+#include "Logger.h"
 #include "PostgresWrapper.h"
 #include "Processor.h"
 #include "SharedQueue.h"
@@ -20,15 +19,15 @@ using namespace atoms;
 using namespace db_adapter;
 
 ProducerJob::ProducerJob(const string& host,
-                int port,
-                const string& database,
-                const string& user,
-                const string& password,
-                MAPPER_TYPE mapper_type = MAPPER_TYPE::SQL2ATOMS,
-                shared_ptr<SharedQueue> output_queue = nullptr)
-{
-    auto this->db_conn = make_shared<PostgresDatabaseConnection>("psql-conn", host, port, database, user, password);
-    auto this->wrapper = make_shared<PostgresWrapper>(*db_conn, mapper, queue);
+                         int port,
+                         const string& database,
+                         const string& user,
+                         const string& password,
+                         MAPPER_TYPE mapper_type,
+                         shared_ptr<SharedQueue> output_queue) {
+    this->db_conn =
+        make_unique<PostgresDatabaseConnection>("psql-conn", host, port, database, user, password);
+    this->wrapper = make_unique<PostgresWrapper>(*db_conn, mapper_type, output_queue);
 }
 
 void ProducerJob::add_task_query(const string& virtual_name, const string& query) {
@@ -54,7 +53,8 @@ bool ProducerJob::thread_one_step() {
 
     auto& task = this->tasks[this->current_task];
 
-    LOG_INFO("Processing task " << this->current_task << " of type " << (task.type == MappingTask::TABLE ? "TABLE" : "QUERY"));
+    LOG_INFO("Processing task " << this->current_task << " of type "
+                                << (task.type == MappingTask::TABLE ? "TABLE" : "QUERY"));
 
     if (task.type == MappingTask::TABLE) {
         auto table = this->wrapper->get_table(task.table_mapping.table_name);
@@ -151,7 +151,8 @@ bool AtomDBJob::thread_one_step() {
 
 // void PostgresProducerProcessor::on_stop() {}
 
-// Producer::Producer(const string& id, ThreadMethod* job, shared_ptr<PostgresDatabaseConnection> db_conn, shared_ptr<SharedQueue> queue) {
+// Producer::Producer(const string& id, ThreadMethod* job, shared_ptr<PostgresDatabaseConnection>
+// db_conn, shared_ptr<SharedQueue> queue) {
 //     shared_ptr<DedicatedThread> dedicated_thread = make_shared<DedicatedThread>(id, &job);
 //     Processor::bind_subprocessor(dedicated_thread, db_conn);
 // }

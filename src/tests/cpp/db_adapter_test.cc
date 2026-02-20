@@ -814,43 +814,43 @@ TEST_F(PostgresWrapperTest, PipelineProcessor) {
     )";
 
     auto queue = make_shared<SharedQueue>();
-    //auto db_conn = make_shared<PostgresDatabaseConnection>("test-conn", TEST_HOST, TEST_PORT, TEST_DB, TEST_USER, TEST_PASSWORD);
-    //auto wrapper = make_shared<PostgresWrapper>(*db_conn, MAPPER_TYPE::SQL2ATOMS, queue);
+    // auto db_conn = make_shared<PostgresDatabaseConnection>("test-conn", TEST_HOST, TEST_PORT, TEST_DB,
+    // TEST_USER, TEST_PASSWORD); auto wrapper = make_shared<PostgresWrapper>(*db_conn,
+    // MAPPER_TYPE::SQL2ATOMS, queue);
 
-    ProducerJob wrapper_job(TEST_HOST, TEST_PORT, TEST_DB, TEST_USER, TEST_PASSWORD, MAPPER_TYPE::SQL2ATOMS, queue);
+    ProducerJob wrapper_job(
+        TEST_HOST, TEST_PORT, TEST_DB, TEST_USER, TEST_PASSWORD, MAPPER_TYPE::SQL2ATOMS, queue);
     wrapper_job.add_task_query("Test1", query_organism);
 
     auto producer = make_shared<DedicatedThread>("psql", &wrapper_job);
 
-    //Processor::bind_subprocessor(producer, db_conn);
+    // Processor::bind_subprocessor(producer, db_conn);
 
     producer->setup();
     producer->start();
-    
+
     EXPECT_EQ(2, 3);
 
+    //     // producer->setup();
+    //     // producer->start();
+    //     // producer->stop();
 
-//     // producer->setup();
-//     // producer->start();
-//     // producer->stop();
+    //     // AtomDBJob atomdb_job(queue);
+    //     // auto consumer = make_shared<DedicatedThread>("worker", &atomdb_job);
 
+    //     // main thread
+    //     // consumer->setup();
+    //     // producer->setup();
 
-//     // AtomDBJob atomdb_job(queue);
-//     // auto consumer = make_shared<DedicatedThread>("worker", &atomdb_job);
+    //     // consumer->start();
+    //     // producer->start();
 
-//     // main thread
-//     // consumer->setup();
-//     // producer->setup();
-
-//     // consumer->start();
-//     // producer->start();
-
-//     // auto pipeline = make_shared<Processor>("pipeline");
-//     // Processor::bind_subprocessor(pipeline, pw_job);
-//     // Processor::bind_subprocessor(pipeline, ad_job);
-//     // pipeline->setup();
-//     // pipeline->start();
-//     // pipeline->stop();
+    //     // auto pipeline = make_shared<Processor>("pipeline");
+    //     // Processor::bind_subprocessor(pipeline, pw_job);
+    //     // Processor::bind_subprocessor(pipeline, ad_job);
+    //     // pipeline->setup();
+    //     // pipeline->start();
+    //     // pipeline->stop();
 }
 
 int main(int argc, char** argv) {
