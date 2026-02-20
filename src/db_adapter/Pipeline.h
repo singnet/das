@@ -16,16 +16,16 @@ using namespace db_adapter;
 
 namespace db_adapter {
 
-class ProducerJob : public ThreadMethod {
+class DatabaseMappingJob : public ThreadMethod {
    public:
-    ProducerJob(const string& host,
+    DatabaseMappingJob(const string& host,
                 int port,
                 const string& database,
                 const string& user,
                 const string& password,
                 MAPPER_TYPE mapper_type = MAPPER_TYPE::SQL2ATOMS,
                 shared_ptr<SharedQueue> output_queue = nullptr);
-    ~ProducerJob() = default;
+    ~DatabaseMappingJob() = default;
 
     void add_task_query(const string& virtual_name, const string& query);
     void add_task_table(TableMapping table_mapping);
@@ -49,16 +49,17 @@ class ProducerJob : public ThreadMethod {
     bool initialized = false;
 };
 
-class AtomDBJob : public ThreadMethod {
+class AtomPersistenceJob : public ThreadMethod {
    public:
-    AtomDBJob(shared_ptr<SharedQueue> input_queue);
-    ~AtomDBJob() = default;
+    AtomPersistenceJob(shared_ptr<SharedQueue> input_queue);
+    ~AtomPersistenceJob() = default;
 
     bool thread_one_step() override;
 
    protected:
     shared_ptr<SharedQueue> input_queue;
     shared_ptr<AtomDB> atomdb;
+    bool finished = false;
 };
 
 }  // namespace db_adapter

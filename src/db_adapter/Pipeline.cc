@@ -18,7 +18,7 @@ using namespace commons;
 using namespace atoms;
 using namespace db_adapter;
 
-ProducerJob::ProducerJob(const string& host,
+DatabaseMappingJob::DatabaseMappingJob(const string& host,
                          int port,
                          const string& database,
                          const string& user,
@@ -30,16 +30,16 @@ ProducerJob::ProducerJob(const string& host,
     this->wrapper = make_unique<PostgresWrapper>(*db_conn, mapper_type, output_queue);
 }
 
-void ProducerJob::add_task_query(const string& virtual_name, const string& query) {
+void DatabaseMappingJob::add_task_query(const string& virtual_name, const string& query) {
     this->tasks.push_back(MappingTask{MappingTask::QUERY, TableMapping{}, virtual_name, query});
 }
 
-void ProducerJob::add_task_table(TableMapping table_mapping) {
+void DatabaseMappingJob::add_task_table(TableMapping table_mapping) {
     this->tasks.push_back(MappingTask{MappingTask::TABLE, move(table_mapping), "", ""});
 }
 
-bool ProducerJob::thread_one_step() {
-    LOG_INFO("ProducerJob thread_one_step called. Current task index: " << this->current_task);
+bool DatabaseMappingJob::thread_one_step() {
+    LOG_INFO("DatabaseMappingJob thread_one_step called. Current task index: " << this->current_task);
     if (this->current_task >= this->tasks.size()) {
         this->db_conn->stop();
         return false;
@@ -71,11 +71,11 @@ bool ProducerJob::thread_one_step() {
     return !this->finished;
 }
 
-AtomDBJob::AtomDBJob(shared_ptr<SharedQueue> input_queue) : input_queue(input_queue) {
+AtomPersistenceJob::AtomPersistenceJob(shared_ptr<SharedQueue> input_queue) : input_queue(input_queue) {
     this->atomdb = AtomDBSingleton::get_instance();
 }
 
-bool AtomDBJob::thread_one_step() {
+bool AtomPersistenceJob::thread_one_step() {
     if (this->input_queue->size() == 0) {
         Utils::sleep();
         return true;
@@ -103,5 +103,6 @@ bool AtomDBJob::thread_one_step() {
     } catch (const exception& e) {
         Utils::error("Error in Worker: " + string(e.what()));
     }
+    this->finished = true;
     return false;
 }

@@ -815,11 +815,11 @@ TEST_F(PostgresWrapperTest, PipelineProcessor) {
 
     auto queue = make_shared<SharedQueue>();
 
-    ProducerJob wrapper_job(
+    DatabaseMappingJob db_job(
         TEST_HOST, TEST_PORT, TEST_DB, TEST_USER, TEST_PASSWORD, MAPPER_TYPE::SQL2ATOMS, queue);
-    wrapper_job.add_task_query("Test1", query_organism);
+    db_job.add_task_query("Test1", query_organism);
 
-    auto producer = make_shared<DedicatedThread>("psql", &wrapper_job);
+    auto producer = make_shared<DedicatedThread>("producer", &db_job);
 
     EXPECT_EQ(queue->size(), 0);
     producer->setup();
@@ -827,12 +827,29 @@ TEST_F(PostgresWrapperTest, PipelineProcessor) {
     producer->start();
     EXPECT_EQ(queue->size(), 0);
 
-    while (!wrapper_job.is_finished()) {
+    while (!db_job.is_finished()) {
         Utils::sleep();
     }
     producer->stop();
 
     EXPECT_EQ(queue->size(), 34);
+
+    AtomPersistenceJob atomdb_job(queue);
+    auto consumer = make_shared<DedicatedThread>("consumer", &atomdb_job);
+
+    EXPECT_EQ(queue->size(), 34);
+    producer->setup();
+    EXPECT_EQ(queue->size(), 34);
+    producer->start();
+    EXPECT_EQ(queue->size(), 34);
+
+    while (!db_job.is_finished()) {
+        Utils::sleep();
+    }
+    producer->stop();
+
+    EXPECT_EQ(queue->size(), 0);
+
 }
 
 int main(int argc, char** argv) {
