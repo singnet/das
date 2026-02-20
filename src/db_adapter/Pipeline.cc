@@ -19,7 +19,17 @@ using namespace commons;
 using namespace atoms;
 using namespace db_adapter;
 
-ProducerJob::ProducerJob(shared_ptr<PostgresWrapper> wrapper) : wrapper(wrapper) {}
+ProducerJob::ProducerJob(const string& host,
+                int port,
+                const string& database,
+                const string& user,
+                const string& password,
+                MAPPER_TYPE mapper_type = MAPPER_TYPE::SQL2ATOMS,
+                shared_ptr<SharedQueue> output_queue = nullptr)
+{
+    auto this->db_conn = make_shared<PostgresDatabaseConnection>("psql-conn", host, port, database, user, password);
+    auto this->wrapper = make_shared<PostgresWrapper>(*db_conn, mapper, queue);
+}
 
 void ProducerJob::add_task_query(const string& virtual_name, const string& query) {
     this->tasks.push_back(MappingTask{MappingTask::QUERY, TableMapping{}, virtual_name, query});
@@ -32,7 +42,14 @@ void ProducerJob::add_task_table(TableMapping table_mapping) {
 bool ProducerJob::thread_one_step() {
     LOG_INFO("ProducerJob thread_one_step called. Current task index: " << this->current_task);
     if (this->current_task >= this->tasks.size()) {
+        this->db_conn->stop();
         return false;
+    }
+
+    if (!this->initialized) {
+        this->db_conn->setup();
+        this->db_conn->start();
+        this->initialized = true;
     }
 
     auto& task = this->tasks[this->current_task];

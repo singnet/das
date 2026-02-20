@@ -16,7 +16,13 @@ namespace db_adapter {
 
 class ProducerJob : public ThreadMethod {
    public:
-    ProducerJob(shared_ptr<PostgresWrapper> wrapper);
+    ProducerJob(const string& host,
+                int port,
+                const string& database,
+                const string& user,
+                const string& password,
+                MAPPER_TYPE mapper_type = MAPPER_TYPE::SQL2ATOMS,
+                shared_ptr<SharedQueue> output_queue = nullptr);
     ~ProducerJob() = default;
 
     void add_task_query(const string& virtual_name, const string& query);
@@ -33,10 +39,12 @@ class ProducerJob : public ThreadMethod {
         string virtual_name;
         string query;
     };
-    shared_ptr<PostgresWrapper> wrapper;
+    unique_ptr<PostgresDatabaseConnection> db_conn;
+    unique_ptr<PostgresWrapper> wrapper;
     vector<MappingTask> tasks;
     size_t current_task = 0;
     bool finished = false;
+    bool initialized = false;
 };
 
 class AtomDBJob : public ThreadMethod {

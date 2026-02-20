@@ -814,22 +814,20 @@ TEST_F(PostgresWrapperTest, PipelineProcessor) {
     )";
 
     auto queue = make_shared<SharedQueue>();
-    auto db_conn = make_shared<PostgresDatabaseConnection>("test-conn", TEST_HOST, TEST_PORT, TEST_DB, TEST_USER, TEST_PASSWORD);
-    auto wrapper = make_shared<PostgresWrapper>(*db_conn, MAPPER_TYPE::SQL2ATOMS, queue);
+    //auto db_conn = make_shared<PostgresDatabaseConnection>("test-conn", TEST_HOST, TEST_PORT, TEST_DB, TEST_USER, TEST_PASSWORD);
+    //auto wrapper = make_shared<PostgresWrapper>(*db_conn, MAPPER_TYPE::SQL2ATOMS, queue);
 
-    ProducerJob wrapper_job(wrapper);
+    ProducerJob wrapper_job(TEST_HOST, TEST_PORT, TEST_DB, TEST_USER, TEST_PASSWORD, MAPPER_TYPE::SQL2ATOMS, queue);
     wrapper_job.add_task_query("Test1", query_organism);
 
     auto producer = make_shared<DedicatedThread>("psql", &wrapper_job);
 
-    Processor::bind_subprocessor(producer, db_conn);
+    //Processor::bind_subprocessor(producer, db_conn);
 
     producer->setup();
     producer->start();
-    while (wrapper_job.is_finished()) {
-        Utils::sleep();
-    }
-    // EXPECT_EQ(2, 3);
+    
+    EXPECT_EQ(2, 3);
 
 
 //     // producer->setup();
