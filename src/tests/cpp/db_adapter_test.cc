@@ -821,14 +821,18 @@ TEST_F(PostgresWrapperTest, PipelineProcessor) {
 
     auto producer = make_shared<DedicatedThread>("psql", &wrapper_job);
 
+    EXPECT_EQ(queue->size(), 0);
     producer->setup();
+    EXPECT_EQ(queue->size(), 0);
     producer->start();
+    EXPECT_EQ(queue->size(), 0);
+
     while (!wrapper_job.is_finished()) {
         Utils::sleep();
     }
     producer->stop();
 
-    EXPECT_EQ(2, 3);
+    EXPECT_EQ(queue->size(), 34);
 }
 
 int main(int argc, char** argv) {
