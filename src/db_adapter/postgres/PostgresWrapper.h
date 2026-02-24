@@ -80,6 +80,7 @@ class PostgresWrapper : public SQLWrapper {
     PostgresDatabaseConnection& db_conn;
     shared_ptr<SharedQueue> output_queue;
     optional<vector<Table>> tables_cache;
+    unordered_map<string, int> tables_rows_count;
     vector<string> build_columns_to_map(const Table& table, const vector<string>& skip_columns = {});
     vector<string> collect_fk_ids(const string& table_name,
                                   const string& column_name,
@@ -87,6 +88,7 @@ class PostgresWrapper : public SQLWrapper {
     map<string, vector<string>> extract_aliases_from_query(const string& query);
     void fetch_rows_paginated(const Table& table, const vector<string>& columns, const string& query);
     SqlRow build_sql_row(const pqxx::row& row, const Table& table, vector<string> columns);
+    void log_progress(const string& table_name, int rows_count, int total_rows);
 };
 
 }  // namespace db_adapter
