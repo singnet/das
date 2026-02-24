@@ -157,6 +157,27 @@ cc_binary(
 )
 
 cc_binary(
+    name = "database_adapter",
+    srcs = [],
+    defines = ["BAZEL_BUILD"],
+    linkopts = [
+        "-L/usr/local/lib",
+        "-lpqxx",
+        "-lpq",
+        "-lhiredis_cluster",
+        "-lhiredis",
+        "-lmongocxx",
+        "-lbsoncxx",
+    ],
+    linkstatic = 1,
+    deps = [
+        "//commons:commons_lib",
+        "//tests/main:database_adapter_main_lib",
+        "@mbedtls",
+    ],
+)
+
+cc_binary(
     name = "busnode",
     srcs = [],
     defines = ["BAZEL_BUILD"],

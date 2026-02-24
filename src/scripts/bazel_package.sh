@@ -37,6 +37,7 @@ if [ "$BUILD_BINARIES" = true ]; then
     BUILD_TARGETS+=" //:word_query_evolution"
     BUILD_TARGETS+=" //:implication_query_evolution"
     BUILD_TARGETS+=" //:tests_db_loader"
+    BUILD_TARGETS+=" //:database_adapter"
 fi
 
 $BAZELISK_BUILD_CMD $BUILD_TARGETS
