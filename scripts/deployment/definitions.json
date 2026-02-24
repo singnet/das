@@ -1,4 +1,17 @@
 [
+    {
+    "name": "das",
+    "repository": "https://github.com/singnet/das.git",
+    "workflow": "publish-das.yml",
+    "ref": "master",
+    "hooks": {
+      "beforeRelease": "custom/das-before-release.sh"
+    },
+    "dependencies": [
+      "das-metta-parser",
+      "das-toolbox"
+    ]
+  },
   {
     "name": "das-metta-parser",
     "repository": "https://github.com/singnet/das-metta-parser.git",
@@ -25,18 +38,5 @@
       "dependencyCheck": "custom/das-toolbox-dependency-check.sh"
     },
     "dependencies": ["das-metta-parser", "das-database-adapter"]
-  },
-  {
-    "name": "das",
-    "repository": "https://github.com/singnet/das.git",
-    "workflow": "publish-das.yml",
-    "ref": "master",
-    "hooks": {
-      "beforeRelease": "custom/das-before-release.sh"
-    },
-    "dependencies": [
-      "das-metta-parser",
-      "das-toolbox"
-    ]
   }
 ]
