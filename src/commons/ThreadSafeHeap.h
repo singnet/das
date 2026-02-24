@@ -1,6 +1,6 @@
 #pragma once
 
-#include <priority_queue>
+#include <queue>
 #include <mutex>
 
 using namespace std;
@@ -20,7 +20,7 @@ namespace commons {
  * and its key. When popping (actually top()'ing) just the heap-ed element is returned.
  */
 template<typename T, typename V>
-class ThreadSafeHeap<T, V> {
+class ThreadSafeHeap {
 
 private:
 
@@ -34,6 +34,7 @@ private:
         HeapElement& operator=(const HeapElement& other) { 
             this->element = other.element; 
             this->value = other.value; 
+            return *this;
         }
     };
 
@@ -42,17 +43,17 @@ public:
     ThreadSafeHeap() {}
     ~ThreadSafeHeap() {}
 
-    const T& top() const {
+    const T& top() {
         lock_guard<mutex> semaphore(this->api_mutex);
         return queue.top().element;
     }
 
-    const V& top_value() const {
+    const V& top_value() {
         lock_guard<mutex> semaphore(this->api_mutex);
         return queue.top().value;
     }
 
-    const T& top_and_pop() const {
+    T top_and_pop() {
         lock_guard<mutex> semaphore(this->api_mutex);
         T element = queue.top().element;
         queue.pop();
@@ -69,7 +70,7 @@ public:
         queue.pop();
     }
 
-    std::size_type size() {
+    unsigned int size() {
         lock_guard<mutex> semaphore(this->api_mutex);
         return queue.size();
     }
@@ -80,8 +81,10 @@ public:
     }
 
     void snapshot(vector<T>& output) {
-        for (auto cursor : this->queue) {
-            output.push_back(cursor.element);
+        priority_queue<HeapElement, vector<HeapElement>> copy = this->queue;
+        while (! copy.empty()) {
+            output.push_back(copy.top().element);
+            copy.pop();
         }
     }
 

@@ -51,6 +51,10 @@ cc_library(
     srcs = ["Chain.cc"],
     deps = [
         ":operator",
+        "//commons:commons_lib",
+        "//commons/processor:processor_lib",
+        "//commons/atoms:atoms_lib",
+        "//atomdb:atomdb_singleton",
     ],
 )
 

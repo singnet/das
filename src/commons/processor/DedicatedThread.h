@@ -11,6 +11,7 @@ namespace processor {
 
 class ThreadMethod {
    public:
+    virtual ~ThreadMethod() {};
     virtual bool thread_one_step() = 0;
 };
 

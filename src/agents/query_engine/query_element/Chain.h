@@ -2,6 +2,8 @@
 
 #include "Operator.h"
 #include "DedicatedThread.h"
+#include "ThreadSafeHeap.h"
+#include "Link.h"
 #include "map"
 #include "set"
 #include "mutex"
@@ -10,53 +12,61 @@
 #include "Logger.h"
 
 using namespace std;
+using namespace atoms;
+using namespace processor;
 
 namespace query_element {
 
 /**
  *
  */
-class Chain : public Operator<1>, ThreadMethod {
+class Chain : public Operator<1>, public ThreadMethod {
 
 private:
 
     class HeapElement {
-        private:
+        public:
         vector<pair<shared_ptr<Link>, double>> path;
         double path_sti;
         bool forward_flag;
-        public:
-        HeapElement(shared_ptr<Link> link, double sti, bool forward_flag) { 
-            this->path.push_back({link, sti}); 
+        HeapElement(shared_ptr<Link> link, double sti, bool forward_flag) {
+            this->path.push_back({link, sti});
             this->path_sti = sti;
             this->forward_flag = forward_flag;
         }
-        HeapElement(const HeapElement& other) { 
-            this->path = other.path; 
-            this->path_sti = other.path_sti; 
+        HeapElement(const HeapElement& other) {
+            this->path = other.path;
+            this->path_sti = other.path_sti;
             this->forward_flag = other.forward_flag;
         }
-        HeapElement& operator=(const HeapElement& other) { 
-            this->path = other.path; 
-            this->path_sti = other.path_sti; 
-            this->forward_flag = other.forward_flag;
+        HeapElement(bool forward_flag) {
+            this->path_sti = 0;
+            this->forward_flag = forward_flag;
         }
+        HeapElement& operator=(const HeapElement& other) {
+            this->path = other.path;
+            this->path_sti = other.path_sti;
+            this->forward_flag = other.forward_flag;
+            return *this;
+        }
+        inline bool empty() { return this->path.size() == 0; }
+        inline unsigned int size() { return this->path.size(); }
         inline void clear() {
-            this->path.clear()
+            this->path.clear();
             this->path_sti = 0;
         }
-        inline void push(shared_ptr<Link> link, double sti) { 
-            path.push_back({link, sti}); 
+        inline void push(shared_ptr<Link> link, double sti) {
+            path.push_back({link, sti});
             this->path_sti = max(this->path_sti, sti);
         }
-        inline void push(const HeapElement& other) { 
+        inline void push(const HeapElement& other) {
             if (this->forward_flag != other.forward_flag) {
                 Utils::error("Invalid attempt to merge incompatible HeapElements");
             }
             this->path.insert(this->path.end(), other.path.begin(), other.path.end());
             this->path_sti = max(this->path_sti, other.path_sti);
         }
-        inline shared_ptr<Link> endpoint() {
+        inline string endpoint() {
             if (this->forward_flag) {
                 return this->path.back().first->targets[2];
             } else {
@@ -94,17 +104,19 @@ private:
         }
     };
 
-    typedef HeapType ThreadSafeHeap<HeapElement, double>;
+    typedef ThreadSafeHeap<HeapElement, double> HeapType;
 
 public:
 
     // --------------------------------------------------------------------------------------------
-    // Constructors and destructors
+    // Public methods
 
     /**
      * Constructor.
      */
-    Chain(const array<shared_ptr<QueryElement>, 1>& clauses);
+    Chain(const array<shared_ptr<QueryElement>, 1>& clauses,
+          const string& source_handle,
+          const string& target_handle);
 
     /**
      * Destructor.
@@ -113,6 +125,7 @@ public:
 
     shared_ptr<HeapType> get_source_index(const string& key);
     shared_ptr<HeapType> get_target_index(const string& key);
+    void report_path(const HeapElement& path);
 
     // --------------------------------------------------------------------------------------------
     // QueryElement API
@@ -145,8 +158,11 @@ private:
                 destiny = chain_operator->source_handle;
             }
         }
-        virtual bool thread_one_step();
+        ~PathFinder() {}
+        bool thread_one_step();
     };
+
+    void initialize(const array<shared_ptr<QueryElement>, 1>& clauses);
 
     string source_handle;
     string target_handle;
