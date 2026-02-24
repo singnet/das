@@ -328,6 +328,24 @@ function press_enter_to_continue() {
   text_prompt "Press ENTER to continue..."
 }
 
+function local_semver_check(){
+    IFS='.' read -r -a v1 <<< "$1"
+    IFS='.' read -r -a v2 <<< "$2"
+
+    for i in 0 1 2; do
+        local a=${v1[$i]:-0}
+        local b=${v2[$i]:-0}
+
+        if ((10#$a > 10#$b)); then
+            return 0
+        elif ((10#$a < 10#$b)); then
+            return 1
+        fi
+    done
+
+    return 1
+}
+
 function choose_menu() {
   local prompt="$1" outvar="$2"
   shift 2
