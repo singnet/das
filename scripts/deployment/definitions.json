@@ -36,10 +36,7 @@
     },
     "dependencies": [
       "das-metta-parser",
-      "das-toolbox",
-      "hyperon-das-atomdb",
-      "hyperon-das",
-      "das-serverless-functions"
+      "das-toolbox"
     ]
   }
 ]
