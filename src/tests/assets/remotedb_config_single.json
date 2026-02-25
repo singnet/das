@@ -2,8 +2,16 @@
     "atomdbs": [
         {
             "uid": "single_peer",
-            "type": "inmemorydb",
-            "context": "remotedb_test_single_peer_"
+            "type": "redismongodb",
+            "context": "remotedb_test_single_peer_",
+            "env": {
+                "DAS_REDIS_HOSTNAME": "localhost",
+                "DAS_REDIS_PORT": "40020",
+                "DAS_MONGODB_HOSTNAME": "localhost",
+                "DAS_MONGODB_PORT": "40021",
+                "DAS_MONGODB_USERNAME": "admin",
+                "DAS_MONGODB_PASSWORD": "admin"
+            }
         }
     ]
 }

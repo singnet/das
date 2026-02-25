@@ -2,6 +2,7 @@
 
 #include <cstdlib>
 #include <fstream>
+#include <map>
 #include <nlohmann/json.hpp>
 #include <optional>
 #include <sstream>
@@ -23,6 +24,35 @@ using json = nlohmann::json;
 
 namespace {
 
+// Saves current env vars for keys in config["env"], then setenv's from config.
+// Restorer restores them in destructor (or when restore() is called).
+class EnvRestoreGuard {
+   public:
+    void save_and_apply(const json& config) {
+        if (!config.contains("env") || !config["env"].is_object()) return;
+        for (auto it = config["env"].begin(); it != config["env"].end(); ++it) {
+            string key = it.key();
+            if (it.value().is_string()) {
+                const char* prev = getenv(key.c_str());
+                saved_[key] = prev ? string(prev) : string();
+                setenv(key.c_str(), it.value().get<string>().c_str(), 1);
+            }
+        }
+    }
+
+    ~EnvRestoreGuard() { restore(); }
+
+    void restore() {
+        for (const auto& [k, v] : saved_) {
+            setenv(k.c_str(), v.c_str(), 1);
+        }
+        saved_.clear();
+    }
+
+   private:
+    map<string, string> saved_;
+};
+
 shared_ptr<AtomDB> create_atomdb_from_config(const json& config) {
     string type = config.at("type").get<string>();
     string context = config.value("context", "");
@@ -31,10 +61,14 @@ shared_ptr<AtomDB> create_atomdb_from_config(const json& config) {
         return make_shared<InMemoryDB>(context.empty() ? "remotedb_" : context);
     }
     if (type == "redismongodb") {
+        EnvRestoreGuard env_guard;
+        env_guard.save_and_apply(config);
         RedisMongoDB::initialize_statics(context);
         return make_shared<RedisMongoDB>(context);
     }
     if (type == "morkdb") {
+        EnvRestoreGuard env_guard;
+        env_guard.save_and_apply(config);
         return make_shared<MorkDB>(context);
     }
 

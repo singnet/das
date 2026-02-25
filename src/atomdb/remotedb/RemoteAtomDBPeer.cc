@@ -174,11 +174,10 @@ shared_ptr<HandleSet> RemoteAtomDBPeer::query_for_pattern(const LinkSchema& link
     auto collect_handles = [&](shared_ptr<HandleSet> handle_set) {
         if (!handle_set) return;
         auto it = handle_set->get_iterator();
-        if (!it) return;
-        while (true) {
-            char* handle_cstr = it->next();
-            if (!handle_cstr) break;
-            string h(handle_cstr);
+        char* handle;
+        while ((handle = it->next()) != nullptr) {
+            string h(handle);
+            // Check if the handle must be added to the result
             if (all_handles.insert(h).second) {
                 result->add_handle(h);
             }
@@ -320,57 +319,33 @@ set<string> RemoteAtomDBPeer::links_exist(const vector<string>& handles) {
 }
 
 string RemoteAtomDBPeer::add_atom(const atoms::Atom* atom, bool throw_if_exists) {
-    string handle = cache_.add_atom(atom, throw_if_exists);
-    if (!handle.empty() && local_persistence_) {
-        local_persistence_->add_atom(atom, throw_if_exists);
-    }
-    return handle;
+    return cache_.add_atom(atom, throw_if_exists);
 }
 
 string RemoteAtomDBPeer::add_node(const atoms::Node* node, bool throw_if_exists) {
-    string handle = cache_.add_node(node, throw_if_exists);
-    if (!handle.empty() && local_persistence_) {
-        local_persistence_->add_node(node, throw_if_exists);
-    }
-    return handle;
+    return cache_.add_node(node, throw_if_exists);
 }
 
 string RemoteAtomDBPeer::add_link(const atoms::Link* link, bool throw_if_exists) {
-    string handle = cache_.add_link(link, throw_if_exists);
-    if (!handle.empty() && local_persistence_) {
-        local_persistence_->add_link(link, throw_if_exists);
-    }
-    return handle;
+    return cache_.add_link(link, throw_if_exists);
 }
 
 vector<string> RemoteAtomDBPeer::add_atoms(const vector<atoms::Atom*>& atoms,
                                            bool throw_if_exists,
                                            bool is_transactional) {
-    auto handles = cache_.add_atoms(atoms, throw_if_exists, is_transactional);
-    if (!handles.empty() && local_persistence_) {
-        local_persistence_->add_atoms(atoms, throw_if_exists, is_transactional);
-    }
-    return handles;
+    return cache_.add_atoms(atoms, throw_if_exists, is_transactional);
 }
 
 vector<string> RemoteAtomDBPeer::add_nodes(const vector<atoms::Node*>& nodes,
                                            bool throw_if_exists,
                                            bool is_transactional) {
-    auto handles = cache_.add_nodes(nodes, throw_if_exists, is_transactional);
-    if (!handles.empty() && local_persistence_) {
-        local_persistence_->add_nodes(nodes, throw_if_exists, is_transactional);
-    }
-    return handles;
+    return cache_.add_nodes(nodes, throw_if_exists, is_transactional);
 }
 
 vector<string> RemoteAtomDBPeer::add_links(const vector<atoms::Link*>& links,
                                            bool throw_if_exists,
                                            bool is_transactional) {
-    auto handles = cache_.add_links(links, throw_if_exists, is_transactional);
-    if (!handles.empty() && local_persistence_) {
-        local_persistence_->add_links(links, throw_if_exists, is_transactional);
-    }
-    return handles;
+    return cache_.add_links(links, throw_if_exists, is_transactional);
 }
 
 bool RemoteAtomDBPeer::delete_atom(const string& handle, bool delete_link_targets) {
@@ -379,7 +354,7 @@ bool RemoteAtomDBPeer::delete_atom(const string& handle, bool delete_link_target
     if (local_persistence_) {
         local_ok = local_persistence_->delete_atom(handle, delete_link_targets);
     }
-    return cache_ok && local_ok;
+    return cache_ok || local_ok;
 }
 
 bool RemoteAtomDBPeer::delete_node(const string& handle, bool delete_link_targets) {
@@ -388,7 +363,7 @@ bool RemoteAtomDBPeer::delete_node(const string& handle, bool delete_link_target
     if (local_persistence_) {
         local_ok = local_persistence_->delete_node(handle, delete_link_targets);
     }
-    return cache_ok && local_ok;
+    return cache_ok || local_ok;
 }
 
 bool RemoteAtomDBPeer::delete_link(const string& handle, bool delete_link_targets) {
@@ -397,31 +372,34 @@ bool RemoteAtomDBPeer::delete_link(const string& handle, bool delete_link_target
     if (local_persistence_) {
         local_ok = local_persistence_->delete_link(handle, delete_link_targets);
     }
-    return cache_ok && local_ok;
+    return cache_ok || local_ok;
 }
 
 uint RemoteAtomDBPeer::delete_atoms(const vector<string>& handles, bool delete_link_targets) {
     uint cache_count = cache_.delete_atoms(handles, delete_link_targets);
+    uint local_count = 0;
     if (local_persistence_) {
-        local_persistence_->delete_atoms(handles, delete_link_targets);
+        local_count = local_persistence_->delete_atoms(handles, delete_link_targets);
     }
-    return cache_count;
+    return cache_count + local_count;
 }
 
 uint RemoteAtomDBPeer::delete_nodes(const vector<string>& handles, bool delete_link_targets) {
     uint cache_count = cache_.delete_nodes(handles, delete_link_targets);
+    uint local_count = 0;
     if (local_persistence_) {
-        local_persistence_->delete_nodes(handles, delete_link_targets);
+        local_count = local_persistence_->delete_nodes(handles, delete_link_targets);
     }
-    return cache_count;
+    return cache_count + local_count;
 }
 
 uint RemoteAtomDBPeer::delete_links(const vector<string>& handles, bool delete_link_targets) {
     uint cache_count = cache_.delete_links(handles, delete_link_targets);
+    uint local_count = 0;
     if (local_persistence_) {
-        local_persistence_->delete_links(handles, delete_link_targets);
+        local_count = local_persistence_->delete_links(handles, delete_link_targets);
     }
-    return cache_count;
+    return cache_count + local_count;
 }
 
 void RemoteAtomDBPeer::re_index_patterns(bool flush_patterns) {
@@ -447,10 +425,13 @@ void RemoteAtomDBPeer::release(const LinkSchema& link_schema) {
 
 double RemoteAtomDBPeer::available_ram() { return static_cast<double>(Utils::get_current_free_ram()); }
 
+// TODO: Implement cache cleanup properly
 void RemoteAtomDBPeer::auto_cleanup() {
-    // TODO: Implement
-    LOG_INFO("RemoteAtomDBPeer " << uid_ << ": Low RAM detected (available=" << available_ram()
-                                 << "), cache cleanup triggered");
+    auto available_ram_mb = available_ram() / 1024;
+    if (available_ram_mb < 128) {
+        LOG_INFO("RemoteAtomDBPeer " << uid_ << ": Low RAM detected (available=" << available_ram_mb
+                                     << " MB), cache cleanup triggered");
+    }
 }
 
 void RemoteAtomDBPeer::start_cleanup_thread() {
