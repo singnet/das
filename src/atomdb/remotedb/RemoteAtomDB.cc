@@ -60,16 +60,20 @@ shared_ptr<AtomDB> create_atomdb_from_config(const json& config) {
     if (type == "inmemorydb") {
         return make_shared<InMemoryDB>(context.empty() ? "remotedb_" : context);
     }
+
+    EnvRestoreGuard env_guard;
     if (type == "redismongodb") {
-        EnvRestoreGuard env_guard;
         env_guard.save_and_apply(config);
         RedisMongoDB::initialize_statics(context);
-        return make_shared<RedisMongoDB>(context);
+        auto atomdb = make_shared<RedisMongoDB>(context);
+        env_guard.restore();
+        return atomdb;
     }
     if (type == "morkdb") {
-        EnvRestoreGuard env_guard;
         env_guard.save_and_apply(config);
-        return make_shared<MorkDB>(context);
+        auto atomdb = make_shared<MorkDB>(context);
+        env_guard.restore();
+        return atomdb;
     }
 
     Utils::error("Unknown AtomDB type in config: " + type);
