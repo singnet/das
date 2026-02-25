@@ -3,7 +3,19 @@
         {
             "uid": "peer1",
             "type": "inmemorydb",
-            "context": "remotedb_test_peer1_"
+            "context": "remotedb_test_peer1_",
+            "local_persistence": {
+                "type": "morkdb",
+                "context": "remotedb_test_peer1_local_",
+                "env": {
+                    "DAS_MORK_HOSTNAME": "localhost",
+                    "DAS_MORK_PORT": "40022",
+                    "DAS_MONGODB_HOSTNAME": "localhost",
+                    "DAS_MONGODB_PORT": "40021",
+                    "DAS_MONGODB_USERNAME": "admin",
+                    "DAS_MONGODB_PASSWORD": "admin"
+                }
+            }
         },
         {
             "uid": "peer2",
