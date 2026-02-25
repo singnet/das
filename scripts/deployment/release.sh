@@ -131,13 +131,15 @@ function create_release() {
 
     local new_package_version=$(prompt_for_new_version "The current version is :green:$package_version:/green:. What is the next version you want to release? (0.0.0): ")
 
+    if ! local_semver_check "$new_package_version" "$package_version"; then
+        print ":red:[ERROR]: The provided version ($new_package_version) must be greater than the current one ($package_version).:/red:"
+        return 0
+    fi
+
     if process_package_dependencies "$package_name" "$package_dependencies"; then
         execute_hook_if_exists "BeforeRelease" "$package_hook_before_release"
-
         cd "$workdir" &>/dev/null
-
         local new_package="{\"package_name\": \"${package_name}\", \"current_version\": \"${package_version}\", \"new_version\": \"${new_package_version}\", \"repository_path\": \"${package_repository_folder}\", \"repository_owner\": \"${package_repo_owner}\", \"repository_name\": \"${package_repo_name}\", \"repository_workflow\": \"${package_workflow}\", \"repository_ref\": \"$package_repo_ref\"}"
-
         add_package_to_pending_updates "$new_package"
     fi
 

@@ -5,7 +5,7 @@ set -e
 # PATHS
 workdir=$(pwd)
 release_notes_file_path="$workdir/docs/release-notes.md"
-package_order=("das-toolbox" "hyperon-das" "hyperon-das-atomdb" "das-serverless-functions" "das-metta-parser")
+package_order=("das-toolbox" "das-metta-parser" "das-database-adapter")
 
 function get_repository_changelog() {
     local changelog_path="$1"
@@ -25,7 +25,7 @@ function create_release_notes_file() {
 function map_package_name() {
   case "$1" in
     das-toolbox) echo "Toolbox das-cli" ;;
-    das-serverless-functions) echo "FaaS functions" ;;
+    das-database-adapter) echo "Das Database Adapter" ;;
     das-metta-parser) echo "MeTTa Parser" ;;
     *) echo "$1" ;;
   esac
