@@ -16,6 +16,7 @@ DedicatedThread::DedicatedThread(const string& id, ThreadMethod* job) : Processo
     this->job = job;
     this->start_flag = false;
     this->stop_flag = false;
+    this->thread_object = NULL;
 }
 
 DedicatedThread::~DedicatedThread() {}
@@ -39,10 +40,13 @@ void DedicatedThread::stop() {
     this->stop_flag = true;
     this->api_mutex.unlock();
     Processor::stop();
-    LOG_DEBUG("Joining DedicatedThread " + this->to_string() + "...");
-    this->thread_object->join();
-    LOG_DEBUG("Joined DedicatedThread " + this->to_string() ". Deleting thread object.");
-    delete this->thread_object;
+    if (this->thread_object != NULL) {
+        LOG_DEBUG("Joining DedicatedThread " + this->to_string() + "...");
+        this->thread_object->join();
+        LOG_DEBUG("Joined DedicatedThread " + this->to_string() ". Deleting thread object.");
+        delete this->thread_object;
+        this->thread_object = NULL;
+    }
 }
 
 // -------------------------------------------------------------------------------------------------

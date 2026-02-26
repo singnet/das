@@ -329,6 +329,7 @@ cc_test(
         "//atomdb:atomdb_singleton",
         "//atomdb/inmemorydb:inmemorydb_lib",
         "//hasher:hasher_lib",
+        "//commons:commons_lib",
         "@com_github_google_googletest//:gtest_main",
         "@mbedtls",
     ],

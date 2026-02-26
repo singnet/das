@@ -8,9 +8,6 @@
 #include "set"
 #include "mutex"
 
-#define LOG_LEVEL INFO_LEVEL
-#include "Logger.h"
-
 using namespace std;
 using namespace atoms;
 using namespace processor;
@@ -66,11 +63,18 @@ private:
             this->path.insert(this->path.end(), other.path.begin(), other.path.end());
             this->path_sti = max(this->path_sti, other.path_sti);
         }
-        inline string endpoint() {
+        inline string end_point() {
             if (this->forward_flag) {
                 return this->path.back().first->targets[2];
             } else {
                 return this->path.back().first->targets[1];
+            }
+        }
+        inline string start_point() {
+            if (this->forward_flag) {
+                return this->path.front().first->targets[1];
+            } else {
+                return this->path.front().first->targets[2];
             }
         }
         inline bool contains(string handle) {
@@ -123,9 +127,17 @@ public:
      */
     ~Chain();
 
+    static string ORIGIN_VARIABLE_NAME;
+    static string DESTINY_VARIABLE_NAME;
+
     shared_ptr<HeapType> get_source_index(const string& key);
     shared_ptr<HeapType> get_target_index(const string& key);
-    void report_path(const HeapElement& path);
+    void report_path(HeapElement& path);
+    void set_all_input_aknowledged(bool flag);
+    bool all_input_aknowledged();
+    void set_all_paths_explored(bool flag);
+    bool all_paths_explored();
+
 
     // --------------------------------------------------------------------------------------------
     // QueryElement API
@@ -138,6 +150,7 @@ public:
 
     virtual bool thread_one_step();
 
+    mutex thread_debug_mutex;
 
 private:
 
@@ -172,10 +185,15 @@ private:
     shared_ptr<DedicatedThread> forward_thread;
     shared_ptr<DedicatedThread> backward_thread;
     set<string> known_links;
+    set<string> reported_answers;
     map<string, shared_ptr<HeapType>> source_index;
     map<string, shared_ptr<HeapType>> target_index;
+    bool all_input_aknowledged_flag;
+    bool all_paths_explored_flag;
     mutex source_index_mutex;
     mutex target_index_mutex;
+    mutex all_input_aknowledged_mutex;
+    mutex all_paths_explored_mutex;
 };
 
 } // namespace query_element
