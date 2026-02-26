@@ -775,3 +775,31 @@ cc_test(
         "@com_github_google_googletest//:gtest_main",
     ],
 )
+
+cc_test(
+    name = "db_adapter_test",
+    size = "small",
+    srcs = [
+        "db_adapter_test.cc",
+    ],
+    copts = [
+        "-Iexternal/gtest/googletest/include",
+        "-Iexternal/gtest/googletest",
+    ],
+    linkopts = [
+        "-L/usr/local/lib",
+        "-lpqxx",
+        "-lpq",
+        "-lhiredis_cluster",
+        "-lhiredis",
+        "-lmongocxx",
+        "-lbsoncxx",
+    ],
+    linkstatic = 1,
+    deps = [
+        "//db_adapter:db_adapter_lib",
+        "//tests/cpp/test_commons",
+        "@com_github_google_googletest//:gtest_main",
+        "@mbedtls",
+    ],
+)

@@ -20,7 +20,7 @@ RUN mkdir -p \
 
 RUN yes | apt update -y \
     && yes | apt install -y git build-essential curl protobuf-compiler python3 python3-pip cmake unzip uuid-runtime lcov rpm bc \
-    libevent-dev libssl-dev pkg-config libncurses5 \
+    libevent-dev libssl-dev pkg-config libncurses5 libpq-dev \
     && yes | apt clean -y \
     && rm -rf /var/lib/apt/lists/*
 
@@ -60,6 +60,16 @@ RUN cd /tmp \
     && ln -s /usr/local/include/bsoncxx/v_noabi/bsoncxx/* /usr/local/include/bsoncxx \
     && ln -s /usr/local/include/bsoncxx/v_noabi/bsoncxx/third_party/mnmlstc/core/ /usr/local/include/core \
     && ln -s /usr/local/include/mongocxx/v_noabi/mongocxx/* /usr/local/include/mongocxx/ \
+    && ldconfig
+
+# Postgres client (libpqxx)
+COPY src/assets/libpqxx-7.10.5.tar.gz /tmp
+RUN cd /tmp \
+    && tar xzvf libpqxx-7.10.5.tar.gz \
+    && cd /tmp/libpqxx-7.10.5 \
+    && cmake -S . -B build -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+    && cmake --build build -j \
+    && cmake --install build \
     && ldconfig
 
 # cpp-httplib
