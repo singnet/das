@@ -163,30 +163,32 @@ void RemoteAtomDBPeer::feed_cache_from_handle_set(shared_ptr<HandleSet> handle_s
     }
 }
 
+void RemoteAtomDBPeer::merge_handle_set(shared_ptr<HandleSet> source,
+                                        shared_ptr<HandleSetInMemory> dest,
+                                        set<string>& seen) {
+    if (!source) return;
+    auto it = source->get_iterator();
+    char* h;
+    while ((h = it->next()) != nullptr) {
+        string s(h);
+        if (seen.insert(s).second) {
+            dest->add_handle(s);
+        }
+    }
+}
+
 shared_ptr<HandleSet> RemoteAtomDBPeer::query_for_pattern(const LinkSchema& link_schema) {
     auto result = make_shared<HandleSetInMemory>();
-    set<string> all_handles;
-
-    auto collect_handles = [&](shared_ptr<HandleSet> handle_set) {
-        if (!handle_set) return;
-        auto it = handle_set->get_iterator();
-        char* handle;
-        while ((handle = it->next()) != nullptr) {
-            string h(handle);
-            if (all_handles.insert(h).second) {
-                result->add_handle(h);
-            }
-        }
-    };
+    set<string> seen;
 
     if (schema_already_fetched(link_schema)) {
-        collect_handles(cache_.query_for_pattern(link_schema));
+        merge_handle_set(cache_.query_for_pattern(link_schema), result, seen);
         if (local_persistence_) {
-            collect_handles(local_persistence_->query_for_pattern(link_schema));
+            merge_handle_set(local_persistence_->query_for_pattern(link_schema), result, seen);
         }
     } else {
         if (atomdb_) {
-            collect_handles(atomdb_->query_for_pattern(link_schema));
+            merge_handle_set(atomdb_->query_for_pattern(link_schema), result, seen);
         }
         feed_cache_from_handle_set(result);
         fetched_link_templates_.insert(link_schema.handle(), new EmptyTrieValue());
@@ -212,19 +214,18 @@ shared_ptr<HandleList> RemoteAtomDBPeer::query_for_targets(const string& handle)
 }
 
 shared_ptr<HandleSet> RemoteAtomDBPeer::query_for_incoming_set(const string& handle) {
-    auto result = cache_.query_for_incoming_set(handle);
-    if (result && result->size() > 0) return result;
+    auto result = make_shared<HandleSetInMemory>();
+    set<string> seen;
 
+    merge_handle_set(cache_.query_for_incoming_set(handle), result, seen);
     if (local_persistence_) {
-        auto local_result = local_persistence_->query_for_incoming_set(handle);
-        if (local_result && local_result->size() > 0) return local_result;
+        merge_handle_set(local_persistence_->query_for_incoming_set(handle), result, seen);
     }
-
     if (atomdb_) {
-        return atomdb_->query_for_incoming_set(handle);
+        merge_handle_set(atomdb_->query_for_incoming_set(handle), result, seen);
     }
 
-    return make_shared<HandleSetInMemory>();
+    return result;
 }
 
 bool RemoteAtomDBPeer::atom_exists(const string& handle) {
