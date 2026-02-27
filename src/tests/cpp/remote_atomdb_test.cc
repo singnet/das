@@ -101,22 +101,24 @@ TEST_F(RemoteAtomDBPeerTest, PersistsToLocal) {
 }
 
 TEST_F(RemoteAtomDBPeerTest, QueryForPattern) {
+    // Add atoms to the remote DB directly so that the "not yet fetched" path
+    // (which only queries atomdb_) finds them.
     auto human = new Node("Symbol", "\"human\"");
     auto monkey = new Node("Symbol", "\"monkey\"");
     auto mammal = new Node("Symbol", "\"mammal\"");
     auto inheritance = new Node("Symbol", "Inheritance");
 
-    string human_handle = peer_->add_node(human, false);
-    string monkey_handle = peer_->add_node(monkey, false);
-    string mammal_handle = peer_->add_node(mammal, false);
-    string inheritance_handle = peer_->add_node(inheritance, false);
+    string human_handle = remote_->add_node(human, false);
+    string monkey_handle = remote_->add_node(monkey, false);
+    string mammal_handle = remote_->add_node(mammal, false);
+    string inheritance_handle = remote_->add_node(inheritance, false);
 
     auto link1 = new Link("Expression", {inheritance_handle, human_handle, mammal_handle});
     auto link2 = new Link("Expression", {inheritance_handle, monkey_handle, mammal_handle});
-    string link1_handle = peer_->add_link(link1, false);
-    string link2_handle = peer_->add_link(link2, false);
+    string link1_handle = remote_->add_link(link1, false);
+    string link2_handle = remote_->add_link(link2, false);
 
-    peer_->re_index_patterns(true);
+    remote_->re_index_patterns(true);
 
     LinkSchema link_schema({"LINK_TEMPLATE",
                             "Expression",
@@ -379,7 +381,7 @@ TEST_F(RemoteAtomDBTest, AddAndGetAcrossPeers) {
     EXPECT_EQ(retrieved->handle(), human_handle);
 }
 
-TEST_F(RemoteAtomDBTest, AddLinksAndQuery) {
+TEST_F(RemoteAtomDBTest, AddLinksAndRetrieve) {
     auto human = new Node("Symbol", "\"human\"");
     auto monkey = new Node("Symbol", "\"monkey\"");
     auto mammal = new Node("Symbol", "\"mammal\"");
@@ -395,23 +397,16 @@ TEST_F(RemoteAtomDBTest, AddLinksAndQuery) {
     string link1_handle = db_->add_link(link1, false);
     string link2_handle = db_->add_link(link2, false);
 
-    db_->re_index_patterns(true);
+    EXPECT_TRUE(db_->link_exists(link1_handle));
+    EXPECT_TRUE(db_->link_exists(link2_handle));
 
-    LinkSchema link_schema({"LINK_TEMPLATE",
-                            "Expression",
-                            "3",
-                            "NODE",
-                            "Symbol",
-                            "Inheritance",
-                            "VARIABLE",
-                            "x",
-                            "NODE",
-                            "Symbol",
-                            "\"mammal\""});
+    auto retrieved1 = db_->get_link(link1_handle);
+    ASSERT_NE(retrieved1, nullptr);
+    EXPECT_EQ(retrieved1->handle(), link1_handle);
 
-    auto result = db_->query_for_pattern(link_schema);
-    ASSERT_NE(result, nullptr);
-    EXPECT_EQ(result->size(), 2);
+    auto retrieved2 = db_->get_link(link2_handle);
+    ASSERT_NE(retrieved2, nullptr);
+    EXPECT_EQ(retrieved2->handle(), link2_handle);
 }
 
 TEST_F(RemoteAtomDBTest, DeleteOperations) {

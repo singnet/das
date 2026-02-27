@@ -164,10 +164,6 @@ void RemoteAtomDBPeer::feed_cache_from_handle_set(shared_ptr<HandleSet> handle_s
 }
 
 shared_ptr<HandleSet> RemoteAtomDBPeer::query_for_pattern(const LinkSchema& link_schema) {
-    if (schema_already_fetched(link_schema)) {
-        return cache_.query_for_pattern(link_schema);
-    }
-
     auto result = make_shared<HandleSetInMemory>();
     set<string> all_handles;
 
@@ -177,23 +173,24 @@ shared_ptr<HandleSet> RemoteAtomDBPeer::query_for_pattern(const LinkSchema& link
         char* handle;
         while ((handle = it->next()) != nullptr) {
             string h(handle);
-            // Check if the handle must be added to the result
             if (all_handles.insert(h).second) {
                 result->add_handle(h);
             }
         }
     };
 
-    if (atomdb_) {
-        collect_handles(atomdb_->query_for_pattern(link_schema));
+    if (schema_already_fetched(link_schema)) {
+        collect_handles(cache_.query_for_pattern(link_schema));
+        if (local_persistence_) {
+            collect_handles(local_persistence_->query_for_pattern(link_schema));
+        }
+    } else {
+        if (atomdb_) {
+            collect_handles(atomdb_->query_for_pattern(link_schema));
+        }
+        feed_cache_from_handle_set(result);
+        fetched_link_templates_.insert(link_schema.handle(), new EmptyTrieValue());
     }
-    if (local_persistence_) {
-        collect_handles(local_persistence_->query_for_pattern(link_schema));
-    }
-    collect_handles(cache_.query_for_pattern(link_schema));
-
-    feed_cache_from_handle_set(result);
-    fetched_link_templates_.insert(link_schema.handle(), new EmptyTrieValue());
 
     return result;
 }
@@ -462,7 +459,8 @@ bool RemoteAtomDBPeer::thread_one_step() {
 
 void RemoteAtomDBPeer::start_cleanup_thread() {
     if (cleanup_thread_) return;
-    cleanup_thread_ = make_unique<processor::DedicatedThread>(uid_ + "_remote_atomdb_peer_cleanup", this);
+    cleanup_thread_ =
+        make_unique<processor::DedicatedThread>(uid_ + "_remote_atomdb_peer_cleanup", this);
     cleanup_thread_->setup();
     cleanup_thread_->start();
 }
