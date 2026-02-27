@@ -30,6 +30,7 @@ cc_library(
         "//atomdb/redis_mongodb:redis_mongodb_lib",
         "//commons:commons_lib",
         "//commons/atoms:atoms_lib",
+        "//commons/processor:processor_lib",
         "//hasher:hasher_lib",
         "@nlohmann_json//:json",
     ],

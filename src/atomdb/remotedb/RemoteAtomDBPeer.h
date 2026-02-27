@@ -1,13 +1,11 @@
 #pragma once
 
-#include <atomic>
 #include <map>
 #include <memory>
-#include <mutex>
 #include <string>
-#include <thread>
 
 #include "AtomDB.h"
+#include "DedicatedThread.h"
 #include "HandleTrie.h"
 #include "InMemoryDB.h"
 #include "LinkSchema.h"
@@ -23,7 +21,7 @@ namespace atomdb {
  * It combines an in-memory cache, a read-only remote AtomDB, and local persistence
  * for newly added atoms.
  */
-class RemoteAtomDBPeer : public AtomDB {
+class RemoteAtomDBPeer : public AtomDB, public processor::ThreadMethod {
    public:
     RemoteAtomDBPeer(shared_ptr<AtomDB> remote_atomdb,
                      shared_ptr<AtomDB> local_persistence,
@@ -83,6 +81,9 @@ class RemoteAtomDBPeer : public AtomDB {
     void start_cleanup_thread();
     void stop_cleanup_thread();
 
+    // ThreadMethod interface
+    bool thread_one_step() override;
+
     const string& get_uid() const { return uid_; }
 
    private:
@@ -96,9 +97,7 @@ class RemoteAtomDBPeer : public AtomDB {
     shared_ptr<AtomDB> local_persistence_;
     HandleTrie fetched_link_templates_;
 
-    atomic<bool> cleanup_thread_running_{false};
-    thread cleanup_thread_;
-    mutex cleanup_mutex_;
+    unique_ptr<processor::DedicatedThread> cleanup_thread_;
 
     static constexpr double CRITICAL_RAM_THRESHOLD = 0.1;  // 10% - cleanup when below this
 };

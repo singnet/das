@@ -421,7 +421,8 @@ void RemoteAtomDBPeer::fetch(const LinkSchema& link_schema) {
 
 void RemoteAtomDBPeer::release(const LinkSchema& link_schema) {
     // Query cache for pattern results before removing, so we can persist them.
-    // TODO: This may remove atoms that were also fetched by another schema. We need to handle this properly.
+    // TODO: This may remove atoms that were also fetched by another schema. We need to handle this
+    // properly.
     auto handle_set = cache_.query_for_pattern(link_schema);
     if (handle_set && local_persistence_) {
         auto it = handle_set->get_iterator();
@@ -438,37 +439,37 @@ void RemoteAtomDBPeer::release(const LinkSchema& link_schema) {
     fetched_link_templates_.remove(link_schema.handle());
 }
 
-double RemoteAtomDBPeer::available_ram() { return static_cast<double>(Utils::get_current_free_ram()); }
+double RemoteAtomDBPeer::available_ram() {
+    unsigned long total = Utils::get_total_ram();
+    if (total == 0) return 0.0;
+    return static_cast<double>(Utils::get_current_free_ram()) / static_cast<double>(total);
+}
 
-// TODO: Implement cache cleanup properly
+// TODO: Implement actual cache eviction
 void RemoteAtomDBPeer::auto_cleanup() {
-    auto available_ram_mb = available_ram() / 1024;
-    if (available_ram_mb < 128) {
-        LOG_INFO("RemoteAtomDBPeer " << uid_ << ": Low RAM detected (available=" << available_ram_mb
-                                     << " MB), cache cleanup triggered");
+    double ram_fraction = available_ram();
+    if (ram_fraction < CRITICAL_RAM_THRESHOLD) {
+        LOG_INFO("RemoteAtomDBPeer " << uid_ << ": Low RAM detected (available="
+                                     << (ram_fraction * 100.0) << "%), cache cleanup triggered");
     }
+}
+
+bool RemoteAtomDBPeer::thread_one_step() {
+    Utils::sleep(1000);
+    auto_cleanup();
+    return false;
 }
 
 void RemoteAtomDBPeer::start_cleanup_thread() {
-    lock_guard<mutex> lock(cleanup_mutex_);
-    if (cleanup_thread_running_) return;
-
-    cleanup_thread_running_ = true;
-    cleanup_thread_ = thread([this]() {
-        while (cleanup_thread_running_) {
-            Utils::sleep(1000);
-            if (!cleanup_thread_running_) break;
-            auto_cleanup();
-        }
-    });
+    if (cleanup_thread_) return;
+    cleanup_thread_ = make_unique<processor::DedicatedThread>(uid_ + "_remote_atomdb_peer_cleanup", this);
+    cleanup_thread_->setup();
+    cleanup_thread_->start();
 }
 
 void RemoteAtomDBPeer::stop_cleanup_thread() {
-    {
-        lock_guard<mutex> lock(cleanup_mutex_);
-        cleanup_thread_running_ = false;
-    }
-    if (cleanup_thread_.joinable()) {
-        cleanup_thread_.join();
+    if (cleanup_thread_) {
+        cleanup_thread_->stop();
+        cleanup_thread_.reset();
     }
 }
