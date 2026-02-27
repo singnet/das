@@ -94,7 +94,7 @@ bool Chain::PathFinder::thread_one_step() {
     }
     LOG_DEBUG("[PATH_FINDER] " << (this->forward_flag ? "FORWARD" : "BACKWARD") << " PathFinder STEP");
     string cursor = this->origin;
-    HeapElement visited(this->forward_flag);
+    Path visited(this->forward_flag);
     do {
         LOG_DEBUG("[PATH_FINDER] " << "Cursor: " + cursor);
         shared_ptr<HeapType> base_heap = this->forward_flag ?
@@ -115,12 +115,12 @@ bool Chain::PathFinder::thread_one_step() {
             }
             break;
         }
-        HeapElement previous_path = base_heap->top_and_pop();
+        Path previous_path = base_heap->top_and_pop();
         LOG_DEBUG("[PATH_FINDER] " << "Popped: " + previous_path.to_string());
         if (previous_path.end_point() == this->destiny) {
             LOG_DEBUG("[PATH_FINDER] " << "Reporting complete path: " << previous_path.to_string());
             this->chain_operator->report_path(previous_path);
-            visited.push(previous_path);
+            visited.concatenate(previous_path);
             break;
         }
         LOG_DEBUG("[PATH_FINDER] " << "Searching candidate paths " << (this->forward_flag ? "FROM " : "TO ") << previous_path.end_point());
@@ -138,34 +138,35 @@ bool Chain::PathFinder::thread_one_step() {
             break;
         }
 
-        vector<HeapElement> candidates;
+        vector<Path> candidates;
         candidates_heap->snapshot(candidates);
-        HeapElement new_path(this->forward_flag);
-        HeapElement best_path(this->forward_flag);
+        Path new_path(this->forward_flag);
+        Path best_path(this->forward_flag);
         double best_candidate_sti = -1;
         string best_candidate = "";
-        for (HeapElement candidate : candidates) {
+        for (Path candidate : candidates) {
             LOG_DEBUG("[PATH_FINDER] " << "Candidate: " << candidate.to_string());
-AQUI checar se o endpoint do candidate esta presente no previous_path.
-    esta abscuro o caso onde o endpoint do path é T se nesse caso é possivel que o candidate tenha um
-    hop intermediario que jha pertence a previous_path. Me parece que so no caso do endpoint set T é que
-    essa situacao ;é possivel mas nao estou certo.
             new_path = previous_path;
-            new_path.push(candidate);
-            if (candidate.path_sti > best_candidate_sti) {
-                LOG_DEBUG("[PATH_FINDER] " << "Candidate is the best so far. Resulting path is: " << new_path.to_string());
-                best_candidate_sti = candidate.path_sti;
-                best_candidate = candidate.end_point();
-                best_path = new_path;
+            new_path.concatenate(candidate);
+            if (true) {
+            //if (! new_path.has_cycles()) {
+                if (candidate.path_sti > best_candidate_sti) {
+                    LOG_DEBUG("[PATH_FINDER] " << "Candidate is the best so far. Resulting path is: " << new_path.to_string());
+                    best_candidate_sti = candidate.path_sti;
+                    best_candidate = candidate.end_point();
+                    best_path = new_path;
+                }
+                LOG_DEBUG("[PATH_FINDER] " << "Pushing new path: " << new_path.to_string());
+                base_heap->push(new_path, new_path.path_sti);
+            } else {
+                LOG_DEBUG("[PATH_FINDER] " << "Disregarding candidate because it adds a cycle: " << new_path.to_string());
             }
-            LOG_DEBUG("[PATH_FINDER] " << "Pushing new path: " << new_path.to_string());
-            base_heap->push(new_path, new_path.path_sti);
         }
         cursor = best_candidate;
         if (best_candidate_sti > 0) {
             LOG_DEBUG("[PATH_FINDER] " << "Reporting incomplete path: " << best_path.to_string());
             this->chain_operator->report_path(best_path);
-            visited.push(best_path);
+            visited.concatenate(best_path);
             best_path.clear();
         }
         LOG_DEBUG("[PATH_FINDER] " << "Iteration ended. Destiny: " << this->destiny << ". Cursor: " << cursor << ". Visited: " << visited.to_string());
@@ -220,7 +221,7 @@ bool Chain::thread_one_step() {
                                 this->source_index[link->targets[i]] = make_shared<HeapType>();
                             }
                         }
-                        this->source_index[link->targets[1]]->push(HeapElement(link, answer->importance, true), answer->importance);
+                        this->source_index[link->targets[1]]->push(Path(link, answer->importance, true), answer->importance);
                     }
                     {
                         lock_guard<mutex> semaphore(this->target_index_mutex);
@@ -229,7 +230,7 @@ bool Chain::thread_one_step() {
                                 this->target_index[link->targets[i]] = make_shared<HeapType>();
                             }
                         }
-                        this->target_index[link->targets[2]]->push(HeapElement(link, answer->importance, false), answer->importance);
+                        this->target_index[link->targets[2]]->push(Path(link, answer->importance, false), answer->importance);
                     }
                 } else {
                     Utils::error("Invalid Link " + link->to_string() + " with arity " + std::to_string(link->arity()) + " in CHAIN operator.");
@@ -252,14 +253,14 @@ bool Chain::thread_one_step() {
 #endif
 }
 
-void Chain::report_path(HeapElement& path) {
+void Chain::report_path(Path& path) {
     QueryAnswer* query_answer = new QueryAnswer(path.path_sti);
     if (path.forward_flag) {
-        for (auto pair : path.path) {
+        for (auto pair : path.links) {
             query_answer->add_handle(pair.first->handle());
         }
     } else {
-        for (auto pair = path.path.rbegin(); pair != path.path.rend(); ++pair) {
+        for (auto pair = path.links.rbegin(); pair != path.links.rend(); ++pair) {
             query_answer->add_handle(pair->first->handle());
         }
     }
