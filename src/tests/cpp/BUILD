@@ -737,6 +737,34 @@ cc_test(
 )
 
 cc_test(
+    name = "remote_atomdb_test",
+    size = "small",
+    srcs = ["remote_atomdb_test.cc"],
+    copts = [
+        "-Iexternal/gtest/googletest/include",
+        "-Iexternal/gtest/googletest",
+    ],
+    data = [
+        "//tests/assets:remotedb_config.json",
+        "//tests/assets:remotedb_config_single.json",
+    ],
+    linkopts = [
+        "-L/usr/local/lib",
+        "-lhiredis_cluster",
+        "-lhiredis",
+        "-lmongocxx",
+        "-lbsoncxx",
+    ],
+    linkstatic = 1,
+    deps = [
+        "//atomdb/inmemorydb:inmemorydb_lib",
+        "//atomdb/remotedb:remotedb_lib",
+        "//commons/atoms:atoms_lib",
+        "@com_github_google_googletest//:gtest_main",
+    ],
+)
+
+cc_test(
     name = "profiling_test",
     size = "small",
     srcs = [

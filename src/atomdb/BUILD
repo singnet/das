@@ -14,6 +14,7 @@ cc_library(
         "//atomdb/inmemorydb:inmemorydb_lib",
         "//atomdb/morkdb:morkdb_lib",
         "//atomdb/redis_mongodb:redis_mongodb_lib",
+        "//atomdb/remotedb:remotedb_lib",
     ],
 )
 
