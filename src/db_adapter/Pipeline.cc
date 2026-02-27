@@ -10,8 +10,6 @@
 #include "Processor.h"
 #include "SharedQueue.h"
 
-#define BATCH_SIZE 1000
-
 using namespace atomdb;
 using namespace std;
 using namespace commons;
@@ -28,6 +26,12 @@ DatabaseMappingJob::DatabaseMappingJob(const string& host,
     this->db_conn =
         make_unique<PostgresDatabaseConnection>("psql-conn", host, port, database, user, password);
     this->wrapper = make_unique<PostgresWrapper>(*db_conn, mapper_type, output_queue);
+}
+
+DatabaseMappingJob::~DatabaseMappingJob() {
+    if (this->db_conn->is_running()) {
+        this->db_conn->stop();
+    }
 }
 
 void DatabaseMappingJob::add_task_query(const string& virtual_name, const string& query) {
@@ -78,9 +82,9 @@ AtomPersistenceJob::AtomPersistenceJob(shared_ptr<SharedQueue> input_queue) : in
 }
 
 bool AtomPersistenceJob::thread_one_step() {
+    LOG_DEBUG("AtomPersistenceJob thread_one_step called. Checking input queue...");
     if (this->input_queue->empty()) {
         Utils::sleep();
-        this->finished = false;
         return false;
     }
     vector<Atom*> atoms;
@@ -96,13 +100,15 @@ bool AtomPersistenceJob::thread_one_step() {
             atoms.push_back(atom);
         }
         if (!atoms.empty()) {
-            LOG_DEBUG("Worker processing batch of " << atoms.size() << " atoms." << endl);
+            LOG_DEBUG("Processing batch of " << atoms.size() << " atoms.");
             this->atomdb->add_atoms(atoms, false, true);
             for (auto& atom : atoms) {
                 delete atom;
             }
         }
         this->finished = this->input_queue->empty();
+        LOG_DEBUG("Batch processing completed. Finished: " << this->finished);
+        LOG_DEBUG("Current queue size: " << this->input_queue->size());
         return true;
     } catch (const exception& e) {
         Utils::error("Error in Worker: " + string(e.what()));
@@ -110,7 +116,6 @@ bool AtomPersistenceJob::thread_one_step() {
             delete atom;
         }
     }
-    this->finished = false;
     return false;
 }
 

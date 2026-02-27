@@ -30,7 +30,7 @@ class PostgresDatabaseConnection : public DatabaseConnection {
                                const string& database,
                                const string& user,
                                const string& password);
-    ~PostgresDatabaseConnection() override;
+    ~PostgresDatabaseConnection();
 
     void connect() override;
     void disconnect() override;

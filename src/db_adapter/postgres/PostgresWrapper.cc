@@ -21,11 +21,7 @@ PostgresDatabaseConnection::PostgresDatabaseConnection(const string& id,
                                                        const string& password)
     : DatabaseConnection(id, host, port), database(database), user(user), password(password) {}
 
-PostgresDatabaseConnection::~PostgresDatabaseConnection() {
-    if (this->is_running()) {
-        this->stop();
-    }
-}
+PostgresDatabaseConnection::~PostgresDatabaseConnection() {}
 
 void PostgresDatabaseConnection::connect() {
     LOG_INFO("Connecting to PostgreSQL database at " << host << ":" << port << "...");
@@ -472,6 +468,8 @@ SqlRow PostgresWrapper::build_sql_row(const pqxx::row& row, const Table& table, 
         } else if (value.size() > MAX_VALUE_SIZE) {
             continue;
         }
+
+        Utils::replace_all(value, "\n", " ");
 
         string column_name = col;
         for (const auto& fk : table.foreign_keys) {

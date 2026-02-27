@@ -13,9 +13,8 @@ namespace db_adapter {
 class DatabaseConnection : public Processor {
    public:
     DatabaseConnection(const string& id, const string& host, int port);
-    ~DatabaseConnection() override;
+    virtual ~DatabaseConnection();
 
-    virtual void setup() override;
     virtual void start() override;
     virtual void stop() override;
 

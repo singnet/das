@@ -69,5 +69,7 @@ class SQLWrapper : public DatabaseWrapper {
      * @brief Executes a raw SQL query and maps the result.
      */
     virtual void map_sql_query(const string& virtual_name, const string& raw_query) = 0;
+
+    static shared_ptr<Mapper> create_mapper(MAPPER_TYPE mapper_type);
 };
 }  // namespace db_adapter

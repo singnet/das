@@ -14,12 +14,6 @@ DatabaseConnection::DatabaseConnection(const string& id, const string& host, int
 
 DatabaseConnection::~DatabaseConnection() {}
 
-void DatabaseConnection::setup() {
-    if (!this->is_setup()) {
-        Processor::setup();
-    }
-}
-
 void DatabaseConnection::start() {
     if (this->is_running() || this->is_finished()) return;
 

@@ -10,6 +10,9 @@
 #include "Pipeline.h"
 #include "Utils.h"
 
+#define LOG_LEVEL INFO_LEVEL
+#include "Logger.h"
+
 using namespace std;
 using namespace commons;
 using namespace atomdb;
@@ -70,11 +73,19 @@ void run(string host,
     producer->setup();
     producer->start();
 
-    while (!db_mapping_job.is_finished() || !atomdb_job.is_finished()) {
+    while (!db_mapping_job.is_finished()) {
         Utils::sleep();
     }
 
+    LOG_INFO("Mapping completed. Loading data into DAS.");
     producer->stop();
+
+    while (!atomdb_job.is_finished()) {
+        LOG_DEBUG("Waiting for AtomPersistenceJob to finish...");
+        Utils::sleep();
+    }
+
+    LOG_INFO("Loading completed!");
     consumer->stop();
 }
 

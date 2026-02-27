@@ -6,7 +6,7 @@
 #include "Processor.h"
 #include "SharedQueue.h"
 
-#define BATCH_SIZE 1000
+#define BATCH_SIZE 5000
 
 using namespace atomdb;
 using namespace std;
@@ -25,7 +25,7 @@ class DatabaseMappingJob : public ThreadMethod {
                        const string& password,
                        MAPPER_TYPE mapper_type = MAPPER_TYPE::SQL2ATOMS,
                        shared_ptr<SharedQueue> output_queue = nullptr);
-    ~DatabaseMappingJob() = default;
+    ~DatabaseMappingJob();
 
     void add_task_query(const string& virtual_name, const string& query);
     void add_task_table(TableMapping table_mapping);
