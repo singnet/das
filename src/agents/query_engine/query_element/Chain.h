@@ -81,27 +81,8 @@ private:
             }
             return false;
         }
-        string to_string() {
-            string answer = "";
-            bool first = true;
-            string last_handle = "";
-            string check_handle = "";
-            for (auto pair : this->links) {
-                if (first) {
-                    first = false;
-                    last_handle = this->forward_flag ? pair.first->targets[1] : pair.first->targets[2];
-                    answer = last_handle;
-                }
-                check_handle = this->forward_flag ? pair.first->targets[1] : pair.first->targets[2];
-                if (check_handle != last_handle) {
-                    LOG_ERROR("Invalid Path");
-                }
-                last_handle = this->forward_flag ? pair.first->targets[2] : pair.first->targets[1];
-                answer += this->forward_flag ? " -> " : " <- ";
-                answer += last_handle;
-            }
-            return answer;
-        }
+        public:
+        string to_string();
     };
 
     typedef ThreadSafeHeap<Path, double> HeapType;
@@ -129,8 +110,8 @@ public:
     shared_ptr<HeapType> get_source_index(const string& key);
     shared_ptr<HeapType> get_target_index(const string& key);
     void report_path(Path& path);
-    void set_all_input_aknowledged(bool flag);
-    bool all_input_aknowledged();
+    void set_all_input_acknowledged(bool flag);
+    bool all_input_acknowledged();
     void set_all_paths_explored(bool flag);
     bool all_paths_explored();
 
@@ -184,11 +165,11 @@ private:
     set<string> reported_answers;
     map<string, shared_ptr<HeapType>> source_index;
     map<string, shared_ptr<HeapType>> target_index;
-    bool all_input_aknowledged_flag;
+    bool all_input_acknowledged_flag;
     bool all_paths_explored_flag;
     mutex source_index_mutex;
     mutex target_index_mutex;
-    mutex all_input_aknowledged_mutex;
+    mutex all_input_acknowledged_mutex;
     mutex all_paths_explored_mutex;
 };
 

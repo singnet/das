@@ -12,6 +12,16 @@ using namespace commons;
 string Chain::ORIGIN_VARIABLE_NAME = "origin";
 string Chain::DESTINY_VARIABLE_NAME = "destiny";
 
+static string convert_handle(const string& handle) {
+#if LOG_LEVEL >= DEBUG_LEVEL
+    shared_ptr<Node> node = dynamic_pointer_cast<Node>(AtomDBSingleton::get_instance()->get_atom(handle));
+    if (node != nullptr) {
+        return node->name;
+    }
+#endif
+    return handle;
+}
+
 // -------------------------------------------------------------------------------------------------
 // Public methods
 
@@ -95,15 +105,16 @@ bool Chain::PathFinder::thread_one_step() {
     LOG_DEBUG("[PATH_FINDER] " << (this->forward_flag ? "FORWARD" : "BACKWARD") << " PathFinder STEP");
     string cursor = this->origin;
     Path visited(this->forward_flag);
+    bool state_changed = false;
     do {
-        LOG_DEBUG("[PATH_FINDER] " << "Cursor: " + cursor);
+        LOG_DEBUG("[PATH_FINDER] " << "Cursor: " + convert_handle(cursor));
         shared_ptr<HeapType> base_heap = this->forward_flag ?
                                          this->chain_operator->get_source_index(cursor):
                                          this->chain_operator->get_target_index(cursor);
 
         if (base_heap == nullptr || base_heap->empty()) {
             LOG_DEBUG("[PATH_FINDER] " << "Empty or non-existent base_heap");
-            if (this->chain_operator->all_input_aknowledged()) {
+            if (this->chain_operator->all_input_acknowledged()) {
                 // double check is required to avoid race condition
                 shared_ptr<HeapType> check_heap = this->forward_flag ?
                                                   this->chain_operator->get_source_index(cursor):
@@ -121,18 +132,19 @@ bool Chain::PathFinder::thread_one_step() {
             LOG_DEBUG("[PATH_FINDER] " << "Reporting complete path: " << previous_path.to_string());
             this->chain_operator->report_path(previous_path);
             visited.concatenate(previous_path);
+            state_changed = true;
             break;
         }
-        LOG_DEBUG("[PATH_FINDER] " << "Searching candidate paths " << (this->forward_flag ? "FROM " : "TO ") << previous_path.end_point());
+        LOG_DEBUG("[PATH_FINDER] " << "Searching candidate paths " << (this->forward_flag ? "FROM " : "TO ") << convert_handle(previous_path.end_point()));
         shared_ptr<HeapType> candidates_heap = this->forward_flag ?
                                                this->chain_operator->get_source_index(previous_path.end_point()):
                                                this->chain_operator->get_target_index(previous_path.end_point());
         if (candidates_heap->empty()) {
             LOG_DEBUG("[PATH_FINDER] " << "Found no candidates.");
-            if (this->chain_operator->all_input_aknowledged() && candidates_heap->empty()) { // double check is required to avoid race condition
-                LOG_DEBUG("[PATH_FINDER] " << "All input is aknowlkedged. Discarding dead-end path: " << previous_path.to_string());
+            if (this->chain_operator->all_input_acknowledged() && candidates_heap->empty()) { // double check is required to avoid race condition
+                LOG_DEBUG("[PATH_FINDER] " << "All input is acknowledged. Discarding dead-end path: " << previous_path.to_string());
             } else {
-                LOG_DEBUG("[PATH_FINDER] " << "Still aknowledging input. Pushing " << previous_path.to_string() << " back.");
+                LOG_DEBUG("[PATH_FINDER] " << "Still acknowledging input. Pushing " << previous_path.to_string() << " back.");
                 base_heap->push(previous_path, previous_path.path_sti);
             }
             break;
@@ -148,28 +160,24 @@ bool Chain::PathFinder::thread_one_step() {
             LOG_DEBUG("[PATH_FINDER] " << "Candidate: " << candidate.to_string());
             new_path = previous_path;
             new_path.concatenate(candidate);
-            if (true) {
-            //if (! new_path.has_cycles()) {
-                if (candidate.path_sti > best_candidate_sti) {
-                    LOG_DEBUG("[PATH_FINDER] " << "Candidate is the best so far. Resulting path is: " << new_path.to_string());
-                    best_candidate_sti = candidate.path_sti;
-                    best_candidate = candidate.end_point();
-                    best_path = new_path;
-                }
-                LOG_DEBUG("[PATH_FINDER] " << "Pushing new path: " << new_path.to_string());
-                base_heap->push(new_path, new_path.path_sti);
-            } else {
-                LOG_DEBUG("[PATH_FINDER] " << "Disregarding candidate because it adds a cycle: " << new_path.to_string());
+            if (candidate.path_sti > best_candidate_sti) {
+                LOG_DEBUG("[PATH_FINDER] " << "Candidate is the best so far. Resulting path is: " << new_path.to_string());
+                best_candidate_sti = candidate.path_sti;
+                best_candidate = candidate.end_point();
+                best_path = new_path;
             }
+            LOG_DEBUG("[PATH_FINDER] " << "Pushing new path: " << new_path.to_string());
+            base_heap->push(new_path, new_path.path_sti);
         }
         cursor = best_candidate;
         if (best_candidate_sti > 0) {
             LOG_DEBUG("[PATH_FINDER] " << "Reporting incomplete path: " << best_path.to_string());
             this->chain_operator->report_path(best_path);
             visited.concatenate(best_path);
+            state_changed = true;
             best_path.clear();
         }
-        LOG_DEBUG("[PATH_FINDER] " << "Iteration ended. Destiny: " << this->destiny << ". Cursor: " << cursor << ". Visited: " << visited.to_string());
+        LOG_DEBUG("[PATH_FINDER] " << "Iteration ended. Destiny: " << convert_handle(this->destiny) << ". Cursor: " << convert_handle(cursor) << ". Visited: " << visited.to_string());
     } while ((cursor != "") &&
              (! visited.contains(cursor)) &&
              (cursor != this->destiny));
@@ -193,7 +201,7 @@ bool Chain::thread_one_step() {
         }
         return false;
     }
-    if (all_input_aknowledged()) {
+    if (all_input_acknowledged()) {
         return false;
     }
 #if LOG_LEVEL >= DEBUG_LEVEL
@@ -237,14 +245,14 @@ bool Chain::thread_one_step() {
                     break;
                 }
             } else {
-                LOG_DEBUG("[CHAIN OPERATOR] " << "Discarding already inserted handle: " << handle);
+                LOG_DEBUG("[CHAIN OPERATOR] " << "Discarding already inserted handle: " << convert_handle(handle));
             }
         }
         return true;
     } else {
         if (this->input_buffer[0]->is_query_answers_finished() && this->input_buffer[0]->is_query_answers_empty()) {
-            LOG_DEBUG("[CHAIN OPERATOR] " << "All input has been aknowledged");
-            this->set_all_input_aknowledged(true);
+            LOG_DEBUG("[CHAIN OPERATOR] " << "All input has been acknowledged");
+            this->set_all_input_acknowledged(true);
         }
         return false;
     }
@@ -276,14 +284,14 @@ void Chain::report_path(Path& path) {
     }
 }
 
-void Chain::set_all_input_aknowledged(bool flag) {
-    lock_guard<mutex> semaphore(this->all_input_aknowledged_mutex);
-    this->all_input_aknowledged_flag = flag;
+void Chain::set_all_input_acknowledged(bool flag) {
+    lock_guard<mutex> semaphore(this->all_input_acknowledged_mutex);
+    this->all_input_acknowledged_flag = flag;
 }
 
-bool Chain::all_input_aknowledged() {
-    lock_guard<mutex> semaphore(this->all_input_aknowledged_mutex);
-    return this->all_input_aknowledged_flag;
+bool Chain::all_input_acknowledged() {
+    lock_guard<mutex> semaphore(this->all_input_acknowledged_mutex);
+    return this->all_input_acknowledged_flag;
 }
 
 void Chain::set_all_paths_explored(bool flag) {
@@ -301,8 +309,30 @@ bool Chain::all_paths_explored() {
 
 void Chain::initialize(const array<shared_ptr<QueryElement>, 1>& clauses) {
     this->id = "CHAIN";
-    this->all_input_aknowledged_flag = false;
+    this->all_input_acknowledged_flag = false;
     this->all_paths_explored_flag = false;
     this->forward_path_finder = new PathFinder(this, true);
     this->backward_path_finder = new PathFinder(this, false);
+}
+
+string Chain::Path::to_string() {
+    string answer = "";
+    bool first = true;
+    string last_handle = "";
+    string check_handle = "";
+    for (auto pair : this->links) {
+        if (first) {
+            first = false;
+            last_handle = convert_handle(this->forward_flag ? pair.first->targets[1] : pair.first->targets[2]);
+            answer = last_handle;
+        }
+        check_handle = convert_handle(this->forward_flag ? pair.first->targets[1] : pair.first->targets[2]);
+        if (check_handle != last_handle) {
+            LOG_ERROR("Invalid Path");
+        }
+        last_handle = convert_handle(this->forward_flag ? pair.first->targets[2] : pair.first->targets[1]);
+        answer += this->forward_flag ? " -> " : " <- ";
+        answer += last_handle;
+    }
+    return answer;
 }
