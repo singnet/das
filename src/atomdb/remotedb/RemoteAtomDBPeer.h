@@ -16,6 +16,12 @@ using namespace atoms;
 
 namespace atomdb {
 
+// Dummy TrieValue for using HandleTrie as a set (presence only)
+class EmptyTrieValue : public HandleTrie::TrieValue {
+   public:
+    void merge(HandleTrie::TrieValue* /*other*/) override {}
+};
+
 /**
  * RemoteAtomDBPeer represents a cached connection to a remote AtomDB.
  * It combines an in-memory cache, a read-only remote AtomDB, and local persistence
@@ -87,7 +93,6 @@ class RemoteAtomDBPeer : public AtomDB, public processor::ThreadMethod {
     const string& get_uid() const { return uid_; }
 
    private:
-    vector<shared_ptr<Atom>> get_matching_atoms_impl(bool is_toplevel, Atom& key, bool local_only);
     void feed_cache_from_handle_set(shared_ptr<atomdb_api_types::HandleSet> handle_set);
     void merge_handle_set(shared_ptr<atomdb_api_types::HandleSet> source,
                           shared_ptr<atomdb_api_types::HandleSetInMemory> dest,
@@ -99,6 +104,7 @@ class RemoteAtomDBPeer : public AtomDB, public processor::ThreadMethod {
     shared_ptr<AtomDB> atomdb_;
     shared_ptr<AtomDB> local_persistence_;
     HandleTrie fetched_link_templates_;
+    EmptyTrieValue* empty_trie_value_;
 
     unique_ptr<processor::DedicatedThread> cleanup_thread_;
 

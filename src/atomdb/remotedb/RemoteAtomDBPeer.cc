@@ -19,12 +19,6 @@ using namespace atomdb_api_types;
 using namespace atoms;
 using namespace commons;
 
-// Dummy TrieValue for using HandleTrie as a set (presence only)
-class EmptyTrieValue : public HandleTrie::TrieValue {
-   public:
-    void merge(HandleTrie::TrieValue* /*other*/) override {}
-};
-
 RemoteAtomDBPeer::RemoteAtomDBPeer(shared_ptr<AtomDB> remote_atomdb,
                                    shared_ptr<AtomDB> local_persistence,
                                    const string& uid)
@@ -33,6 +27,7 @@ RemoteAtomDBPeer::RemoteAtomDBPeer(shared_ptr<AtomDB> remote_atomdb,
       atomdb_(remote_atomdb),
       local_persistence_(local_persistence),
       fetched_link_templates_(HANDLE_HASH_SIZE - 1) {
+    empty_trie_value_ = new EmptyTrieValue();
     start_cleanup_thread();
 }
 
@@ -142,7 +137,7 @@ vector<shared_ptr<Atom>> RemoteAtomDBPeer::get_matching_atoms(bool is_toplevel,
 }
 
 bool RemoteAtomDBPeer::schema_already_fetched(const LinkSchema& link_schema) {
-    return fetched_link_templates_.lookup(link_schema.handle()) != nullptr;
+    return fetched_link_templates_.lookup(link_schema.handle()) != NULL;
 }
 
 void RemoteAtomDBPeer::feed_cache_from_handle_set(shared_ptr<HandleSet> handle_set) {
@@ -191,7 +186,7 @@ shared_ptr<HandleSet> RemoteAtomDBPeer::query_for_pattern(const LinkSchema& link
             merge_handle_set(atomdb_->query_for_pattern(link_schema), result, seen);
         }
         feed_cache_from_handle_set(result);
-        fetched_link_templates_.insert(link_schema.handle(), new EmptyTrieValue());
+        fetched_link_templates_.insert(link_schema.handle(), empty_trie_value_);
     }
 
     return result;
@@ -412,7 +407,7 @@ void RemoteAtomDBPeer::fetch(const LinkSchema& link_schema) {
         auto result = atomdb_->query_for_pattern(link_schema);
         if (result) {
             feed_cache_from_handle_set(result);
-            fetched_link_templates_.insert(link_schema.handle(), new EmptyTrieValue());
+            fetched_link_templates_.insert(link_schema.handle(), NULL);
         }
     }
 }
@@ -434,7 +429,7 @@ void RemoteAtomDBPeer::release(const LinkSchema& link_schema) {
             }
         }
     }
-    fetched_link_templates_.remove(link_schema.handle());
+    fetched_link_templates_.remove(link_schema.handle(), false);
 }
 
 double RemoteAtomDBPeer::available_ram() {
