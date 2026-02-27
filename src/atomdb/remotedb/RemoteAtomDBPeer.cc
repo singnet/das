@@ -110,12 +110,12 @@ shared_ptr<Link> RemoteAtomDBPeer::get_link(const string& handle) {
 }
 
 vector<shared_ptr<Atom>> RemoteAtomDBPeer::get_matching_atoms(bool is_toplevel, Atom& key) {
-    return get_matching_atoms_impl(is_toplevel, key, false);
+    return get_matching_atoms(is_toplevel, key, false);
 }
 
-vector<shared_ptr<Atom>> RemoteAtomDBPeer::get_matching_atoms_impl(bool is_toplevel,
-                                                                   Atom& key,
-                                                                   bool local_only) {
+vector<shared_ptr<Atom>> RemoteAtomDBPeer::get_matching_atoms(bool is_toplevel,
+                                                              Atom& key,
+                                                              bool local_only) {
     vector<shared_ptr<Atom>> result;
     set<string> seen_handles;
 
@@ -420,6 +420,21 @@ void RemoteAtomDBPeer::fetch(const LinkSchema& link_schema) {
 }
 
 void RemoteAtomDBPeer::release(const LinkSchema& link_schema) {
+    // Query cache for pattern results before removing, so we can persist them.
+    // TODO: This may remove atoms that were also fetched by another schema. We need to handle this properly.
+    auto handle_set = cache_.query_for_pattern(link_schema);
+    if (handle_set && local_persistence_) {
+        auto it = handle_set->get_iterator();
+        char* handle_cstr;
+        while ((handle_cstr = it->next()) != nullptr) {
+            string handle(handle_cstr);
+            auto atom = cache_.get_atom(handle);
+            if (atom) {
+                local_persistence_->add_atom(atom.get(), false);
+                cache_.delete_atom(handle, false);
+            }
+        }
+    }
     fetched_link_templates_.remove(link_schema.handle());
 }
 

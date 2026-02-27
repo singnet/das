@@ -6,12 +6,14 @@ cc_library(
     name = "commons_lib",
     srcs = [
         "Assignment.cc",
+        "EnvironmentRestoreGuard.cc",
         "SharedQueue.cc",
         "StoppableThread.cc",
         "Utils.cc",
     ],
     hdrs = [
         "Assignment.h",
+        "EnvironmentRestoreGuard.h",
         "Logger.h",
         "Profiler.h",
         "Properties.h",

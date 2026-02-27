@@ -1,12 +1,11 @@
 #include "RemoteAtomDB.h"
 
-#include <cstdlib>
 #include <fstream>
-#include <map>
 #include <nlohmann/json.hpp>
 #include <optional>
 #include <sstream>
 
+#include "EnvironmentRestoreGuard.h"
 #include "InMemoryDB.h"
 #include "InMemoryDBAPITypes.h"
 #include "MorkDB.h"
@@ -24,34 +23,17 @@ using json = nlohmann::json;
 
 namespace {
 
-// Saves current env vars for keys in config["env"], then setenv's from config.
-// Restorer restores them in destructor (or when restore() is called).
-class EnvRestoreGuard {
-   public:
-    void save_and_apply(const json& config) {
-        if (!config.contains("env") || !config["env"].is_object()) return;
-        for (auto it = config["env"].begin(); it != config["env"].end(); ++it) {
-            string key = it.key();
-            if (it.value().is_string()) {
-                const char* prev = getenv(key.c_str());
-                saved_[key] = prev ? string(prev) : string();
-                setenv(key.c_str(), it.value().get<string>().c_str(), 1);
-            }
+map<string, string> env_overrides_from_config(const json& config) {
+    map<string, string> overrides;
+    if (!config.contains("env") || !config["env"].is_object()) return overrides;
+    for (auto it = config["env"].begin(); it != config["env"].end(); ++it) {
+        string key = it.key();
+        if (it.value().is_string()) {
+            overrides[key] = it.value().get<string>();
         }
     }
-
-    ~EnvRestoreGuard() { restore(); }
-
-    void restore() {
-        for (const auto& [k, v] : saved_) {
-            setenv(k.c_str(), v.c_str(), 1);
-        }
-        saved_.clear();
-    }
-
-   private:
-    map<string, string> saved_;
-};
+    return overrides;
+}
 
 shared_ptr<AtomDB> create_atomdb_from_config(const json& config) {
     string type = config.at("type").get<string>();
@@ -61,16 +43,16 @@ shared_ptr<AtomDB> create_atomdb_from_config(const json& config) {
         return make_shared<InMemoryDB>(context.empty() ? "remotedb_" : context);
     }
 
-    EnvRestoreGuard env_guard;
+    EnvironmentRestoreGuard env_guard;
     if (type == "redismongodb") {
-        env_guard.save_and_apply(config);
+        env_guard.save_and_apply(env_overrides_from_config(config));
         RedisMongoDB::initialize_statics(context);
         auto atomdb = make_shared<RedisMongoDB>(context);
         env_guard.restore();
         return atomdb;
     }
     if (type == "morkdb") {
-        env_guard.save_and_apply(config);
+        env_guard.save_and_apply(env_overrides_from_config(config));
         auto atomdb = make_shared<MorkDB>(context);
         env_guard.restore();
         return atomdb;
@@ -104,14 +86,14 @@ RemoteAtomDB::RemoteAtomDB(const string& json_file_path) {
 
         shared_ptr<AtomDB> remote = create_atomdb_from_config(peer_config);
 
-        shared_ptr<AtomDB> local_persistence;
+        shared_ptr<AtomDB> local_persistence = nullptr;
         if (peer_config.contains("local_persistence")) {
             auto local_it = peer_config.at("local_persistence");
             if (local_it.is_object()) {
                 local_persistence = create_atomdb_from_config(local_it);
             }
         }
-        if (!local_persistence) {
+        if (local_persistence == nullptr) {
             local_persistence = make_shared<InMemoryDB>(uid + "_local");
         }
 

@@ -37,6 +37,7 @@ class RemoteAtomDBPeer : public AtomDB {
     shared_ptr<Link> get_link(const string& handle) override;
 
     vector<shared_ptr<Atom>> get_matching_atoms(bool is_toplevel, Atom& key) override;
+    vector<shared_ptr<Atom>> get_matching_atoms(bool is_toplevel, Atom& key, bool local_only);
 
     shared_ptr<atomdb_api_types::HandleSet> query_for_pattern(const LinkSchema& link_schema) override;
     shared_ptr<atomdb_api_types::HandleList> query_for_targets(const string& handle) override;

@@ -207,6 +207,104 @@ TEST_F(RemoteAtomDBPeerTest, GetUid) { EXPECT_EQ(peer_->get_uid(), "test_peer");
 
 TEST_F(RemoteAtomDBPeerTest, AllowNestedIndexing) { EXPECT_FALSE(peer_->allow_nested_indexing()); }
 
+TEST_F(RemoteAtomDBPeerTest, FetchAndRelease) {
+    auto human = new Node("Symbol", "\"human\"");
+    auto monkey = new Node("Symbol", "\"monkey\"");
+    auto mammal = new Node("Symbol", "\"mammal\"");
+    auto inheritance = new Node("Symbol", "Inheritance");
+
+    // Add nodes and links to the remote DB directly (bypass peer)
+    string human_handle = remote_->add_node(human, false);
+    string monkey_handle = remote_->add_node(monkey, false);
+    string mammal_handle = remote_->add_node(mammal, false);
+    string inheritance_handle = remote_->add_node(inheritance, false);
+
+    auto link1 = new Link("Expression", {inheritance_handle, human_handle, mammal_handle});
+    auto link2 = new Link("Expression", {inheritance_handle, monkey_handle, mammal_handle});
+    string link1_handle = remote_->add_link(link1, false);
+    string link2_handle = remote_->add_link(link2, false);
+    remote_->re_index_patterns(true);
+
+    LinkSchema link_schema({"LINK_TEMPLATE",
+                            "Expression",
+                            "3",
+                            "NODE",
+                            "Symbol",
+                            "Inheritance",
+                            "VARIABLE",
+                            "x",
+                            "NODE",
+                            "Symbol",
+                            "\"mammal\""});
+
+    // fetch() should pull the pattern results into the cache
+    peer_->fetch(link_schema);
+
+    // The peer should now answer the query from its cache
+    auto result = peer_->query_for_pattern(link_schema);
+    ASSERT_NE(result, nullptr);
+    EXPECT_EQ(result->size(), 2);
+
+    // Atoms from the query results should be in the cache (retrievable via peer)
+    auto atom1 = peer_->get_atom(link1_handle);
+    ASSERT_NE(atom1, nullptr);
+    EXPECT_EQ(atom1->handle(), link1_handle);
+
+    // release() should move cached atoms to local_persistence and remove from cache
+    peer_->release(link_schema);
+
+    // After release, atoms should be in local_persistence
+    EXPECT_TRUE(local_->atom_exists(link1_handle));
+    EXPECT_TRUE(local_->atom_exists(link2_handle));
+
+    // The peer should still find the atoms (via local_persistence fallback)
+    auto after_release = peer_->get_atom(link1_handle);
+    ASSERT_NE(after_release, nullptr);
+    EXPECT_EQ(after_release->handle(), link1_handle);
+}
+
+TEST_F(RemoteAtomDBPeerTest, ReleaseWithoutLocalPersistence) {
+    // Create a peer without local persistence (nullptr)
+    auto remote = make_shared<InMemoryDB>("no_local_remote_");
+    auto peer_no_local = make_shared<RemoteAtomDBPeer>(remote, nullptr, "no_local_peer");
+
+    auto human = new Node("Symbol", "\"human\"");
+    auto mammal = new Node("Symbol", "\"mammal\"");
+    auto inheritance = new Node("Symbol", "Inheritance");
+
+    string human_handle = remote->add_node(human, false);
+    string mammal_handle = remote->add_node(mammal, false);
+    string inheritance_handle = remote->add_node(inheritance, false);
+
+    auto link = new Link("Expression", {inheritance_handle, human_handle, mammal_handle});
+    string link_handle = remote->add_link(link, false);
+    remote->re_index_patterns(true);
+
+    LinkSchema link_schema({"LINK_TEMPLATE",
+                            "Expression",
+                            "3",
+                            "NODE",
+                            "Symbol",
+                            "Inheritance",
+                            "VARIABLE",
+                            "x",
+                            "NODE",
+                            "Symbol",
+                            "\"mammal\""});
+
+    peer_no_local->fetch(link_schema);
+    auto result = peer_no_local->query_for_pattern(link_schema);
+    ASSERT_NE(result, nullptr);
+    EXPECT_EQ(result->size(), 1);
+
+    // release() should not crash when there's no local persistence
+    peer_no_local->release(link_schema);
+
+    // Atom should still be available via the remote fallback
+    auto atom = peer_no_local->get_atom(link_handle);
+    ASSERT_NE(atom, nullptr);
+}
+
 // Resolves path to config file from Bazel runfiles or workspace.
 string resolve_config_path(const string& filename) {
     auto exists = [](const string& path) {
