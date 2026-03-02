@@ -78,10 +78,11 @@ class HandleTrie {
      * Remove a key from this HandleTrie and its associated value.
      *
      * @param key Handle being removed.
+     * @param delete_value Whether to delete the value associated with the key.
      *
      * @return true if the key was found and removed, false otherwise.
      */
-    bool remove(const string& key);
+    bool remove(const string& key, bool delete_value = true);
 
     /**
      * Traverse all keys (in-order) calling the passed visit_function once per stored value.
