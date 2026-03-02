@@ -19,7 +19,10 @@ namespace query_element {
  */
 class Chain : public Operator<1>, public ThreadMethod {
 
-private:
+public:
+
+    // --------------------------------------------------------------------------------------------
+    // Inner types
 
     class Path {
         public:
@@ -27,6 +30,9 @@ private:
         double path_sti;
         bool forward_flag;
         Path(shared_ptr<Link> link, double sti, bool forward_flag) {
+            if (link->targets[1] == link->targets[2]) {
+                Utils::error("Invalid cyclic link: " + link->to_string());
+            }
             this->links.push_back({link, sti});
             this->path_sti = sti;
             this->forward_flag = forward_flag;
@@ -81,13 +87,27 @@ private:
             }
             return false;
         }
-        public:
+        inline bool allow_concatenation(Path& other) {
+            if ((this->size() == 0) || (other.size() == 0)) {
+                return true;
+            } else if (this->end_point() != other.start_point()) {
+                return false;
+            }
+            unsigned int this_index = (this->forward_flag ? 1 : 2);
+            unsigned int other_index = (this->forward_flag ? 2 : 1);
+            for (auto pair_other : other.links) {
+                for (auto pair_this : this->links) {
+                    if (pair_other.first->targets[other_index] == pair_this.first->targets[this_index]) {
+                        return false;
+                    }
+                }
+            }
+            return true;
+        }
         string to_string();
     };
 
     typedef ThreadSafeHeap<Path, double> HeapType;
-
-public:
 
     // --------------------------------------------------------------------------------------------
     // Public methods
@@ -150,6 +170,7 @@ private:
         }
         ~PathFinder() {}
         bool thread_one_step();
+        bool conditional_push_back(Path& path, shared_ptr<HeapType>& candidates_heap, shared_ptr<HeapType>& base_heap, unsigned int count_cycles);
     };
 
     void initialize(const array<shared_ptr<QueryElement>, 1>& clauses);

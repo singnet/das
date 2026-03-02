@@ -95,6 +95,18 @@ void Chain::graceful_shutdown() {
 // --------------------------------------------------------------------------------------------
 // ThreadMethod API
 
+bool Chain::PathFinder::conditional_push_back(Path& path, shared_ptr<HeapType>& candidates_heap, shared_ptr<HeapType>& base_heap, unsigned int count_cycles) {
+    if (this->chain_operator->all_input_acknowledged() && (candidates_heap->empty() || (count_cycles == candidates_heap->size()))) {
+        LOG_DEBUG("[PATH_FINDER] " << "All input is acknowledged. Discarding dead-end path: " << path.to_string());
+        return false;
+    } else {
+        LOG_DEBUG("[PATH_FINDER] " << "Still acknowledging input. Pushing " << path.to_string() << " back.");
+        base_heap->push(path, path.path_sti);
+        // TODO: make sure the heap will not select this element again
+        return true;
+    }
+}
+
 bool Chain::PathFinder::thread_one_step() {
 #if LOG_LEVEL >= DEBUG_LEVEL
     lock_guard<mutex> semaphore(this->chain_operator->thread_debug_mutex);
@@ -103,87 +115,72 @@ bool Chain::PathFinder::thread_one_step() {
         return false;
     }
     LOG_DEBUG("[PATH_FINDER] " << (this->forward_flag ? "FORWARD" : "BACKWARD") << " PathFinder STEP");
-    string cursor = this->origin;
-    Path visited(this->forward_flag);
-    bool state_changed = false;
-    do {
-        LOG_DEBUG("[PATH_FINDER] " << "Cursor: " + convert_handle(cursor));
-        shared_ptr<HeapType> base_heap = this->forward_flag ?
-                                         this->chain_operator->get_source_index(cursor):
-                                         this->chain_operator->get_target_index(cursor);
+    shared_ptr<HeapType> base_heap = this->forward_flag ?
+                                     this->chain_operator->get_source_index(this->origin):
+                                     this->chain_operator->get_target_index(this->origin);
 
-        if (base_heap == nullptr || base_heap->empty()) {
-            LOG_DEBUG("[PATH_FINDER] " << "Empty or non-existent base_heap");
-            if (this->chain_operator->all_input_acknowledged()) {
-                // double check is required to avoid race condition
-                shared_ptr<HeapType> check_heap = this->forward_flag ?
-                                                  this->chain_operator->get_source_index(cursor):
-                                                  this->chain_operator->get_target_index(cursor);
-                if (check_heap == nullptr || check_heap->empty()) {
-                    this->chain_operator->set_all_paths_explored(true);
-                    LOG_DEBUG("[PATH_FINDER] " << "All paths has been explored");
-                }
+    if (base_heap == nullptr || base_heap->empty()) {
+        LOG_DEBUG("[PATH_FINDER] " << "Empty or non-existent base_heap");
+        if (this->chain_operator->all_input_acknowledged()) {
+            // double check is required to avoid race condition
+            shared_ptr<HeapType> check_heap = this->forward_flag ?
+                                              this->chain_operator->get_source_index(this->origin):
+                                              this->chain_operator->get_target_index(this->origin);
+            if (check_heap == nullptr || check_heap->empty()) {
+                this->chain_operator->set_all_paths_explored(true);
+                LOG_DEBUG("[PATH_FINDER] " << "All paths has been explored");
             }
-            break;
         }
-        Path previous_path = base_heap->top_and_pop();
-        LOG_DEBUG("[PATH_FINDER] " << "Popped: " + previous_path.to_string());
-        if (previous_path.end_point() == this->destiny) {
-            LOG_DEBUG("[PATH_FINDER] " << "Reporting complete path: " << previous_path.to_string());
-            this->chain_operator->report_path(previous_path);
-            visited.concatenate(previous_path);
-            state_changed = true;
-            break;
-        }
-        LOG_DEBUG("[PATH_FINDER] " << "Searching candidate paths " << (this->forward_flag ? "FROM " : "TO ") << convert_handle(previous_path.end_point()));
-        shared_ptr<HeapType> candidates_heap = this->forward_flag ?
-                                               this->chain_operator->get_source_index(previous_path.end_point()):
-                                               this->chain_operator->get_target_index(previous_path.end_point());
-        if (candidates_heap->empty()) {
-            LOG_DEBUG("[PATH_FINDER] " << "Found no candidates.");
-            if (this->chain_operator->all_input_acknowledged() && candidates_heap->empty()) { // double check is required to avoid race condition
-                LOG_DEBUG("[PATH_FINDER] " << "All input is acknowledged. Discarding dead-end path: " << previous_path.to_string());
-            } else {
-                LOG_DEBUG("[PATH_FINDER] " << "Still acknowledging input. Pushing " << previous_path.to_string() << " back.");
-                base_heap->push(previous_path, previous_path.path_sti);
-            }
-            break;
-        }
+        return false;
+    }
 
-        vector<Path> candidates;
-        candidates_heap->snapshot(candidates);
-        Path new_path(this->forward_flag);
-        Path best_path(this->forward_flag);
-        double best_candidate_sti = -1;
-        string best_candidate = "";
-        for (Path candidate : candidates) {
-            LOG_DEBUG("[PATH_FINDER] " << "Candidate: " << candidate.to_string());
+    Path previous_path = base_heap->top_and_pop();
+    LOG_DEBUG("[PATH_FINDER] " << "Popped: " + previous_path.to_string());
+    if (previous_path.end_point() == this->destiny) {
+        LOG_DEBUG("[PATH_FINDER] " << "Reporting complete path: " << previous_path.to_string());
+        this->chain_operator->report_path(previous_path);
+        return true;
+    }
+
+    LOG_DEBUG("[PATH_FINDER] " << "Searching candidate paths " << (this->forward_flag ? "FROM " : "TO ") << convert_handle(previous_path.end_point()));
+    shared_ptr<HeapType> candidates_heap = this->forward_flag ?
+                                           this->chain_operator->get_source_index(previous_path.end_point()):
+                                           this->chain_operator->get_target_index(previous_path.end_point());
+    if (candidates_heap->empty()) {
+        LOG_DEBUG("[PATH_FINDER] " << "Found no candidates.");
+        return ! conditional_push_back(previous_path, candidates_heap, base_heap, 0);
+    }
+
+    vector<Path> candidates;
+    candidates_heap->snapshot(candidates);
+    Path new_path(this->forward_flag);
+    Path best_path(this->forward_flag);
+    double best_sti = -1;
+    unsigned int count_cycles = 0;
+    for (Path candidate : candidates) {
+        LOG_DEBUG("[PATH_FINDER] " << "Candidate: " << candidate.to_string());
+        if (previous_path.allow_concatenation(candidate)) {
             new_path = previous_path;
             new_path.concatenate(candidate);
-            if (candidate.path_sti > best_candidate_sti) {
+            if (candidate.path_sti > best_sti) {
                 LOG_DEBUG("[PATH_FINDER] " << "Candidate is the best so far. Resulting path is: " << new_path.to_string());
-                best_candidate_sti = candidate.path_sti;
-                best_candidate = candidate.end_point();
+                best_sti = candidate.path_sti;
                 best_path = new_path;
             }
             LOG_DEBUG("[PATH_FINDER] " << "Pushing new path: " << new_path.to_string());
             base_heap->push(new_path, new_path.path_sti);
+        } else {
+            count_cycles++;
         }
-        cursor = best_candidate;
-        if (best_candidate_sti > 0) {
-            LOG_DEBUG("[PATH_FINDER] " << "Reporting incomplete path: " << best_path.to_string());
-            this->chain_operator->report_path(best_path);
-            visited.concatenate(best_path);
-            state_changed = true;
-            best_path.clear();
-        }
-        LOG_DEBUG("[PATH_FINDER] " << "Iteration ended. Destiny: " << convert_handle(this->destiny) << ". Cursor: " << convert_handle(cursor) << ". Visited: " << visited.to_string());
-    } while ((cursor != "") &&
-             (! visited.contains(cursor)) &&
-             (cursor != this->destiny));
-
-    LOG_DEBUG("[PATH_FINDER] " << (this->forward_flag ? "FORWARD" : "BACKWARD") << " PathFinder STEP finished. " << (visited.size() > 0 ? "" : "Nothing changed. Going to sleep."));
-    return (! visited.empty());
+    }
+    if (best_sti >= 0) {
+        LOG_DEBUG("[PATH_FINDER] " << "Reporting incomplete path: " << best_path.to_string());
+        this->chain_operator->report_path(best_path);
+        return true;
+    } else {
+        LOG_DEBUG("[PATH_FINDER] " << "No suitable candidate.");
+        return ! conditional_push_back(previous_path, candidates_heap, base_heap, count_cycles);
+    }
 }
 
 bool Chain::thread_one_step() {
@@ -194,7 +191,7 @@ bool Chain::thread_one_step() {
             LOG_DEBUG("[CHAIN OPERATOR] " << "All paths explored. Stopping path finders...");
             this->forward_thread->stop();
             this->backward_thread->stop();
-            LOG_DEBUG("[CHAIN OPERATOR] " << "All paths explored. Sopping path finders. DONE");
+            LOG_DEBUG("[CHAIN OPERATOR] " << "All paths explored. Stopping path finders. DONE");
             LOG_DEBUG("[CHAIN OPERATOR] " << "All paths explored. Notifying output buffer...");
             this->output_buffer->query_answers_finished();
             LOG_DEBUG("[CHAIN OPERATOR] " << "All paths explored. Notifying output buffer. DONE");
