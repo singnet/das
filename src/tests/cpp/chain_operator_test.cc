@@ -207,7 +207,6 @@ static string answer_path_to_string(QueryAnswer *query_answer) {
     return answer;
 }
 
-/*
 TEST(ChainOperatorTest, allow_concatenation) {
 
     shared_ptr<Link> ab_link(new Link(LINK_TYPE, {" ", "a", "b"}));
@@ -353,7 +352,6 @@ TEST(ChainOperatorTest, allow_concatenation_reverse) {
     EXPECT_TRUE(base.contains("x"));
     EXPECT_TRUE(base.contains("e"));
 }
-*/
 
 TEST(ChainOperatorTest, back_after_dead_end) {
     auto source = make_shared<TestSource>(10);
@@ -448,7 +446,7 @@ TEST(ChainOperatorTest, back_after_dead_end) {
     EXPECT_FALSE(sink.finished());
     EXPECT_EQ(complete_path, 5);
     source->add(link(S, 9),   0.5, {"v1"}, {"h1"}, false);
-    Utils::sleep(10000);
+    Utils::sleep(1000);
     while (! sink.empty()) {
         while ((answer = sink.pop()) != NULL) {
             LOG_INFO("[" + std::to_string(answer->importance) + "]: " + answer_path_to_string(answer));
@@ -461,7 +459,7 @@ TEST(ChainOperatorTest, back_after_dead_end) {
     EXPECT_EQ(complete_path, 6);
     source->add(link(14, 19), 0.5, {"v1"}, {"h1"}, false);
     source->query_answers_finished();
-    Utils::sleep(10000);
+    Utils::sleep(1000);
     while (! sink.empty() || ! sink.finished()) {
         while ((answer = sink.pop()) != NULL) {
             LOG_INFO("[" + std::to_string(answer->importance) + "]: " + answer_path_to_string(answer));
@@ -478,7 +476,6 @@ TEST(ChainOperatorTest, back_after_dead_end) {
     EXPECT_TRUE(sink.empty());
     EXPECT_TRUE(sink.finished());
 }
-/*
 
 TEST(ChainOperatorTest, basics) {
     auto source = make_shared<TestSource>(10);
@@ -577,7 +574,6 @@ TEST(ChainOperatorTest, basics) {
     EXPECT_TRUE(sink.empty());
     EXPECT_TRUE(sink.finished());
 }
-*/
 
 int main(int argc, char** argv) {
     ::testing::InitGoogleTest(&argc, argv);

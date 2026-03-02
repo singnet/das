@@ -22,6 +22,7 @@ cc_library(
         "StoppableThread.h",
         "ThreadPool.h",
         "ThreadSafeHashmap.h",
+        "ThreadSafeQueue.h",
         "ThreadSafeHeap.h",
         "Utils.h",
     ],

@@ -3,6 +3,7 @@
 #include "Operator.h"
 #include "DedicatedThread.h"
 #include "ThreadSafeHeap.h"
+#include "ThreadSafeQueue.h"
 #include "Link.h"
 #include "map"
 #include "set"
@@ -134,6 +135,7 @@ public:
     bool all_input_acknowledged();
     void set_all_paths_explored(bool flag);
     bool all_paths_explored();
+    void refeed_paths();
 
 
     // --------------------------------------------------------------------------------------------
@@ -170,7 +172,7 @@ private:
         }
         ~PathFinder() {}
         bool thread_one_step();
-        bool conditional_push_back(Path& path, shared_ptr<HeapType>& candidates_heap, shared_ptr<HeapType>& base_heap, unsigned int count_cycles);
+        bool conditional_refeed(Path& path, shared_ptr<HeapType>& candidates_heap, unsigned int count_cycles);
     };
 
     void initialize(const array<shared_ptr<QueryElement>, 1>& clauses);
@@ -182,6 +184,7 @@ private:
     shared_ptr<DedicatedThread> operator_thread;
     shared_ptr<DedicatedThread> forward_thread;
     shared_ptr<DedicatedThread> backward_thread;
+    ThreadSafeQueue<Path> refeeding_buffer;
     set<string> known_links;
     set<string> reported_answers;
     map<string, shared_ptr<HeapType>> source_index;

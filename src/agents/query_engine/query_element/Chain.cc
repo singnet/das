@@ -95,14 +95,13 @@ void Chain::graceful_shutdown() {
 // --------------------------------------------------------------------------------------------
 // ThreadMethod API
 
-bool Chain::PathFinder::conditional_push_back(Path& path, shared_ptr<HeapType>& candidates_heap, shared_ptr<HeapType>& base_heap, unsigned int count_cycles) {
+bool Chain::PathFinder::conditional_refeed(Path& path, shared_ptr<HeapType>& candidates_heap, unsigned int count_cycles) {
     if (this->chain_operator->all_input_acknowledged() && (candidates_heap->empty() || (count_cycles == candidates_heap->size()))) {
         LOG_DEBUG("[PATH_FINDER] " << "All input is acknowledged. Discarding dead-end path: " << path.to_string());
         return false;
     } else {
-        LOG_DEBUG("[PATH_FINDER] " << "Still acknowledging input. Pushing " << path.to_string() << " back.");
-        base_heap->push(path, path.path_sti);
-        // TODO: make sure the heap will not select this element again
+        LOG_DEBUG("[PATH_FINDER] " << "Still acknowledging input. Pushing " << path.to_string() << " back to refeeding buffer.");
+        this->chain_operator->refeeding_buffer.push(path);
         return true;
     }
 }
@@ -119,19 +118,25 @@ bool Chain::PathFinder::thread_one_step() {
                                      this->chain_operator->get_source_index(this->origin):
                                      this->chain_operator->get_target_index(this->origin);
 
-    if (base_heap == nullptr || base_heap->empty()) {
-        LOG_DEBUG("[PATH_FINDER] " << "Empty or non-existent base_heap");
-        if (this->chain_operator->all_input_acknowledged()) {
-            // double check is required to avoid race condition
-            shared_ptr<HeapType> check_heap = this->forward_flag ?
-                                              this->chain_operator->get_source_index(this->origin):
-                                              this->chain_operator->get_target_index(this->origin);
-            if (check_heap == nullptr || check_heap->empty()) {
-                this->chain_operator->set_all_paths_explored(true);
-                LOG_DEBUG("[PATH_FINDER] " << "All paths has been explored");
+    if (base_heap->empty()) {
+        LOG_DEBUG("[PATH_FINDER] " << "Empty base_heap. Trying to refeed paths.");
+        this->chain_operator->refeed_paths();
+        if (base_heap->empty()) {
+            LOG_DEBUG("[PATH_FINDER] " << "No paths to refeed.");
+            if (this->chain_operator->all_input_acknowledged()) {
+                // double check is required to avoid race condition
+                shared_ptr<HeapType> check_heap = this->forward_flag ?
+                                                  this->chain_operator->get_source_index(this->origin):
+                                                  this->chain_operator->get_target_index(this->origin);
+                if (check_heap == nullptr || check_heap->empty()) {
+                    this->chain_operator->set_all_paths_explored(true);
+                    LOG_DEBUG("[PATH_FINDER] " << "All paths has been explored");
+                }
             }
+            return false;
+        } else {
+            LOG_DEBUG("[PATH_FINDER] " << "Paths has been refed.");
         }
-        return false;
     }
 
     Path previous_path = base_heap->top_and_pop();
@@ -148,7 +153,7 @@ bool Chain::PathFinder::thread_one_step() {
                                            this->chain_operator->get_target_index(previous_path.end_point());
     if (candidates_heap->empty()) {
         LOG_DEBUG("[PATH_FINDER] " << "Found no candidates.");
-        return ! conditional_push_back(previous_path, candidates_heap, base_heap, 0);
+        return ! conditional_refeed(previous_path, candidates_heap, 0);
     }
 
     vector<Path> candidates;
@@ -179,7 +184,18 @@ bool Chain::PathFinder::thread_one_step() {
         return true;
     } else {
         LOG_DEBUG("[PATH_FINDER] " << "No suitable candidate.");
-        return ! conditional_push_back(previous_path, candidates_heap, base_heap, count_cycles);
+        return ! conditional_refeed(previous_path, candidates_heap, count_cycles);
+    }
+}
+
+void Chain::refeed_paths() {
+    while (! this->refeeding_buffer.empty()) {
+        Path path = refeeding_buffer.front_and_pop();
+        if (path.forward_flag) {
+            this->source_index[source_handle]->push(path, path.path_sti);
+        } else {
+            this->target_index[target_handle]->push(path, path.path_sti);
+        }
     }
 }
 
@@ -245,6 +261,7 @@ bool Chain::thread_one_step() {
                 LOG_DEBUG("[CHAIN OPERATOR] " << "Discarding already inserted handle: " << convert_handle(handle));
             }
         }
+        refeed_paths();
         return true;
     } else {
         if (this->input_buffer[0]->is_query_answers_finished() && this->input_buffer[0]->is_query_answers_empty()) {
@@ -310,6 +327,10 @@ void Chain::initialize(const array<shared_ptr<QueryElement>, 1>& clauses) {
     this->all_paths_explored_flag = false;
     this->forward_path_finder = new PathFinder(this, true);
     this->backward_path_finder = new PathFinder(this, false);
+    this->source_index[source_handle] = make_shared<HeapType>();
+    this->source_index[target_handle] = make_shared<HeapType>();
+    this->target_index[source_handle] = make_shared<HeapType>();
+    this->target_index[target_handle] = make_shared<HeapType>();
 }
 
 string Chain::Path::to_string() {
