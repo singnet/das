@@ -6,7 +6,7 @@
 #include "Processor.h"
 #include "SharedQueue.h"
 
-#define BATCH_SIZE 5000
+#define BATCH_SIZE 10000
 
 using namespace atomdb;
 using namespace std;
@@ -56,11 +56,13 @@ class AtomPersistenceJob : public ThreadMethod {
 
     bool thread_one_step() override;
     bool is_finished() const;
+    void set_producer_finished();
 
    protected:
     shared_ptr<SharedQueue> input_queue;
     shared_ptr<AtomDB> atomdb;
     bool finished = false;
+    bool producer_finished = false;
 };
 
 }  // namespace db_adapter

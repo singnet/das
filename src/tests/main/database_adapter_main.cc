@@ -49,8 +49,10 @@ void run(string host,
          string username,
          string password,
          vector<TableMapping> tables_mapping,
-         string query_SQL,
+         vector<string> queries_SQL,
          MAPPER_TYPE mapper_type) {
+    LOG_DEBUG("Starting database adapter with the following parameters:");
+
     auto queue = make_shared<SharedQueue>();
 
     DatabaseMappingJob db_mapping_job(host, port, database, username, password, mapper_type, queue);
@@ -60,18 +62,24 @@ void run(string host,
             db_mapping_job.add_task_table(table_mapping);
         }
     }
-    if (!query_SQL.empty()) {
-        db_mapping_job.add_task_query("custom_query", query_SQL);
+    LOG_DEBUG("Loaded " + to_string(tables_mapping.size()) + " table mappings from context file.");
+    if (!queries_SQL.empty()) {
+        for (size_t i = 0; i < queries_SQL.size(); i++) {
+            db_mapping_job.add_task_query("custom_query_" + to_string(i), queries_SQL[i]);
+        }
     }
+    LOG_DEBUG("Loaded " + to_string(queries_SQL.size()) + " queries from query file.");
 
     AtomPersistenceJob atomdb_job(queue);
     auto consumer = make_shared<DedicatedThread>("consumer", &atomdb_job);
 
     consumer->setup();
     consumer->start();
+    LOG_DEBUG("Consumer thread started.");
 
     producer->setup();
     producer->start();
+    LOG_DEBUG("Producer thread started.");
 
     while (!db_mapping_job.is_finished()) {
         Utils::sleep();
@@ -79,6 +87,8 @@ void run(string host,
 
     LOG_INFO("Mapping completed. Loading data into DAS.");
     producer->stop();
+
+    atomdb_job.set_producer_finished();
 
     while (!atomdb_job.is_finished()) {
         LOG_DEBUG("Waiting for AtomPersistenceJob to finish...");
@@ -104,16 +114,16 @@ int main(int argc, char* argv[]) {
     string password = argv[5];
 
     string context_file_path = argv[6];
-    string query_SQL = (argc >= 8) ? argv[7] : ".";
+    string query_file_path = (argc >= 8) ? argv[7] : ".";
     string mapper_type_str = (argc >= 9) ? argv[8] : ".";
 
-    if (is_empty_arg(context_file_path) && is_empty_arg(query_SQL)) {
-        cerr << "Error: You must provide at least context_file_path OR query_SQL.\n\n";
+    if (is_empty_arg(context_file_path) && is_empty_arg(query_file_path)) {
+        cerr << "Error: You must provide at least context_file_path OR query_file_path.\n\n";
         usage(argv[0]);
     }
 
     bool has_context = !is_empty_arg(context_file_path);
-    bool has_query = !is_empty_arg(query_SQL);
+    bool has_query = !is_empty_arg(query_file_path);
     bool has_mapper = !is_empty_arg(mapper_type_str);
 
     vector<TableMapping> tables_mapping;
@@ -121,12 +131,13 @@ int main(int argc, char* argv[]) {
         tables_mapping = ContextLoader::load_context_file(context_file_path);
     }
 
-    if (!has_query) {
-        query_SQL.clear();
+    vector<string> queries_SQL;
+    if (has_query) {
+        LOG_DEBUG("Loading queries from file: " + query_file_path);
+        queries_SQL = ContextLoader::load_query_file(query_file_path);
     }
 
     MAPPER_TYPE mapper_type = MAPPER_TYPE::SQL2ATOMS;
-    ;
 
     if (has_mapper) {
         if (mapper_type_str == "ATOMS") {
@@ -141,7 +152,7 @@ int main(int argc, char* argv[]) {
 
     AtomDBSingleton::init();
 
-    run(host, port, database, username, password, tables_mapping, query_SQL, mapper_type);
+    run(host, port, database, username, password, tables_mapping, queries_SQL, mapper_type);
 
     return 0;
 }

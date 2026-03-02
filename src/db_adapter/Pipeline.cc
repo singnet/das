@@ -1,6 +1,3 @@
-#ifndef LOG_LEVEL
-#define LOG_LEVEL INFO_LEVEL
-#endif
 #include "Pipeline.h"
 
 #include "AtomDBSingleton.h"
@@ -9,6 +6,9 @@
 #include "PostgresWrapper.h"
 #include "Processor.h"
 #include "SharedQueue.h"
+
+#define LOG_LEVEL DEBUG_LEVEL
+#include "Logger.h"
 
 using namespace atomdb;
 using namespace std;
@@ -83,8 +83,16 @@ AtomPersistenceJob::AtomPersistenceJob(shared_ptr<SharedQueue> input_queue) : in
 
 bool AtomPersistenceJob::thread_one_step() {
     LOG_DEBUG("AtomPersistenceJob thread_one_step called. Checking input queue...");
+    LOG_DEBUG("Current input queue size: " << this->input_queue->size());
+    LOG_DEBUG("Current finished status: " << (this->finished ? "true" : "false"));
     if (this->input_queue->empty()) {
         Utils::sleep();
+        if (this->producer_finished) {
+            LOG_INFO(
+                "Producer has finished and input queue is empty. Marking AtomPersistenceJob as "
+                "finished.");
+            this->finished = true;
+        }
         return false;
     }
     vector<Atom*> atoms;
@@ -102,12 +110,13 @@ bool AtomPersistenceJob::thread_one_step() {
         if (!atoms.empty()) {
             LOG_DEBUG("Processing batch of " << atoms.size() << " atoms.");
             this->atomdb->add_atoms(atoms, false, true);
+            LOG_DEBUG("Batch processed and added to AtomDB. Clearing batch from memory.");
             for (auto& atom : atoms) {
                 delete atom;
             }
         }
-        this->finished = this->input_queue->empty();
-        LOG_DEBUG("Batch processing completed. Finished: " << this->finished);
+        string finished_str = this->finished ? "true" : "false";
+        LOG_DEBUG("Batch processing completed. Finished: " << finished_str);
         LOG_DEBUG("Current queue size: " << this->input_queue->size());
         return true;
     } catch (const exception& e) {
@@ -120,3 +129,5 @@ bool AtomPersistenceJob::thread_one_step() {
 }
 
 bool AtomPersistenceJob::is_finished() const { return this->finished; }
+
+void AtomPersistenceJob::set_producer_finished() { this->producer_finished = true; }

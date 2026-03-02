@@ -4,6 +4,7 @@
 #include <fstream>
 #include <nlohmann/json.hpp>
 
+#define LOG_LEVEL INFO_LEVEL
 #include "Logger.h"
 #include "Utils.h"
 
@@ -118,5 +119,33 @@ vector<TableMapping> ContextLoader::load_context_file(const string& file_path) {
         LOG_ERROR("Context file validation failed with errors. Please fix the issues and try again.");
         return vector<TableMapping>{};
     }
+    return out;
+}
+
+vector<string> ContextLoader::load_query_file(const string& file_path) {
+    if (!fs::exists(file_path)) {
+        Utils::error("Query file " + file_path + " does not exist");
+    }
+
+    ifstream f(file_path);
+
+    vector<string> out;
+    string query;
+    string line;
+
+    while (getline(f, line)) {
+        line = Utils::trim(line);
+        if (!line.empty()) {
+            query += line + " ";
+        } else {
+            out.push_back(query);
+            query.clear();
+        }
+    }
+
+    if (!query.empty()) {
+        out.push_back(query);
+    }
+
     return out;
 }
