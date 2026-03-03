@@ -82,49 +82,60 @@ AtomPersistenceJob::AtomPersistenceJob(shared_ptr<SharedQueue> input_queue) : in
 }
 
 bool AtomPersistenceJob::thread_one_step() {
-    LOG_DEBUG("AtomPersistenceJob thread_one_step called. Checking input queue...");
-    LOG_DEBUG("Current input queue size: " << this->input_queue->size());
+    LOG_DEBUG("== START ==");
+    LOG_DEBUG("Current input queue size 1: " << this->input_queue->size());
     LOG_DEBUG("Current finished status: " << (this->finished ? "true" : "false"));
+    
     if (this->input_queue->empty()) {
-        Utils::sleep();
         if (this->producer_finished) {
             LOG_INFO(
                 "Producer has finished and input queue is empty. Marking AtomPersistenceJob as "
                 "finished.");
             this->finished = true;
+            if (!this->atoms.empty()) {
+                LOG_DEBUG("Processing remaining " << this->atoms.size() << " atoms.");
+                this->atomdb->add_atoms(this->atoms, false, true);
+                LOG_DEBUG("Batch processed and added to AtomDB. Clearing batch from memory.");
+                for (auto& atom : this->atoms) {
+                    delete atom;
+                }
+                this->atoms.clear();
+            }
         }
+        Utils::sleep();
         return false;
     }
-    vector<Atom*> atoms;
+    
     try {
         for (size_t i = 0; i < BATCH_SIZE; ++i) {
             if (this->input_queue->empty()) break;
-
             auto atom = (Atom*) this->input_queue->dequeue();
-
             if (atom == nullptr) {
                 Utils::error("Dequeued atom is nullptr");
             }
-            atoms.push_back(atom);
+            this->atoms.push_back(atom);
         }
-        if (!atoms.empty()) {
-            LOG_DEBUG("Processing batch of " << atoms.size() << " atoms.");
-            this->atomdb->add_atoms(atoms, false, true);
+        if (!this->atoms.empty() && this->atoms.size() >= BATCH_SIZE) {
+            LOG_DEBUG("Processing batch of " << this->atoms.size() << " atoms.");
+            this->atomdb->add_atoms(this->atoms, false, true);
             LOG_DEBUG("Batch processed and added to AtomDB. Clearing batch from memory.");
-            for (auto& atom : atoms) {
+            for (auto& atom : this->atoms) {
                 delete atom;
             }
+            this->atoms.clear();
         }
-        string finished_str = this->finished ? "true" : "false";
-        LOG_DEBUG("Batch processing completed. Finished: " << finished_str);
-        LOG_DEBUG("Current queue size: " << this->input_queue->size());
+        LOG_DEBUG("Current Atom size: " << this->atoms.size());
+        LOG_DEBUG("Current input queue size 2: " << this->input_queue->size());
+        LOG_DEBUG("== END ==");
         return true;
     } catch (const exception& e) {
         Utils::error("Error in Worker: " + string(e.what()));
-        for (auto& atom : atoms) {
+        for (auto& atom : this->atoms) {
             delete atom;
         }
+        this->atoms.clear();
     }
+
     return false;
 }
 

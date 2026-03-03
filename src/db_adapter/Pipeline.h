@@ -59,6 +59,7 @@ class AtomPersistenceJob : public ThreadMethod {
     void set_producer_finished();
 
    protected:
+    vector<Atom*> atoms;
     shared_ptr<SharedQueue> input_queue;
     shared_ptr<AtomDB> atomdb;
     bool finished = false;
