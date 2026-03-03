@@ -85,7 +85,7 @@ bool AtomPersistenceJob::thread_one_step() {
     LOG_DEBUG("== START ==");
     LOG_DEBUG("Current input queue size 1: " << this->input_queue->size());
     LOG_DEBUG("Current finished status: " << (this->finished ? "true" : "false"));
-    
+
     if (this->input_queue->empty()) {
         if (this->producer_finished) {
             LOG_INFO(
@@ -105,7 +105,7 @@ bool AtomPersistenceJob::thread_one_step() {
         Utils::sleep();
         return false;
     }
-    
+
     try {
         for (size_t i = 0; i < BATCH_SIZE; ++i) {
             if (this->input_queue->empty()) break;
