@@ -25,6 +25,8 @@ class AtomDBMock : public AtomDB {
    public:
     MOCK_METHOD(bool, allow_nested_indexing, (), (override));
     MOCK_METHOD(shared_ptr<Atom>, get_atom, (const string& handle), (override));
+    MOCK_METHOD(shared_ptr<Node>, get_node, (const string& handle), (override));
+    MOCK_METHOD(shared_ptr<Link>, get_link, (const string& handle), (override));
     MOCK_METHOD(shared_ptr<atomdb_api_types::HandleSet>,
                 query_for_pattern,
                 (const LinkSchema& link_template),
@@ -39,36 +41,7 @@ class AtomDBMock : public AtomDB {
                 (const string& handle),
                 (override));
 
-    MOCK_METHOD(shared_ptr<atomdb_api_types::AtomDocument>,
-                get_atom_document,
-                (const string& handle),
-                (override));
-    MOCK_METHOD(shared_ptr<atomdb_api_types::AtomDocument>,
-                get_node_document,
-                (const string& handle),
-                (override));
-    MOCK_METHOD(shared_ptr<atomdb_api_types::AtomDocument>,
-                get_link_document,
-                (const string& handle),
-                (override));
-
-    MOCK_METHOD(vector<shared_ptr<atomdb_api_types::AtomDocument>>,
-                get_atom_documents,
-                (const vector<string>& handles, const vector<string>& fields),
-                (override));
-    MOCK_METHOD(vector<shared_ptr<atomdb_api_types::AtomDocument>>,
-                get_node_documents,
-                (const vector<string>& handles, const vector<string>& fields),
-                (override));
-    MOCK_METHOD(vector<shared_ptr<atomdb_api_types::AtomDocument>>,
-                get_link_documents,
-                (const vector<string>& handles, const vector<string>& fields),
-                (override));
-
-    MOCK_METHOD(vector<shared_ptr<atomdb_api_types::AtomDocument>>,
-                get_matching_atoms,
-                (bool is_toplevel, Atom& key),
-                (override));
+    MOCK_METHOD(vector<shared_ptr<Atom>>, get_matching_atoms, (bool is_toplevel, Atom& key), (override));
 
     MOCK_METHOD(bool, atom_exists, (const string& handle), (override));
     MOCK_METHOD(bool, node_exists, (const string& handle), (override));
@@ -115,7 +88,12 @@ class AtomDBMock : public AtomDB {
     MOCK_METHOD(void, re_index_patterns, (bool flush_patterns), (override));
 
     AtomDBMock() {
-        ON_CALL(*this, get_atom_document(testing::_))
-            .WillByDefault(::testing::Return(make_shared<MockAtomDocument>()));
+        ON_CALL(*this, get_atom(testing::_))
+            .WillByDefault(::testing::Return(make_shared<Node>("Node", "TestNode")));
+        ON_CALL(*this, get_node(testing::_))
+            .WillByDefault(::testing::Return(make_shared<Node>("Node", "TestNode")));
+        ON_CALL(*this, get_link(testing::_))
+            .WillByDefault(
+                ::testing::Return(make_shared<Link>("Link", vector<string>({"TestNode", "TestNode"}))));
     }
 };

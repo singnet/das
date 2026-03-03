@@ -1,5 +1,6 @@
 #include "EquivalenceProcessor.h"
 
+#define LOG_LEVEL INFO_LEVEL
 #include "Logger.h"
 
 #define P1 "P1"

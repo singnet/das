@@ -1,13 +1,13 @@
 #pragma once
 
 #include <map>
-#include <set>
+#include <memory>
 #include <string>
-#include <vector>
 
 #include "AtomDB.h"
+#include "DedicatedThread.h"
 #include "HandleTrie.h"
-#include "InMemoryDBAPITypes.h"
+#include "InMemoryDB.h"
 #include "LinkSchema.h"
 
 using namespace std;
@@ -16,10 +16,23 @@ using namespace atoms;
 
 namespace atomdb {
 
-class InMemoryDB : public AtomDB {
+// Dummy TrieValue for using HandleTrie as a set (presence only)
+class EmptyTrieValue : public HandleTrie::TrieValue {
    public:
-    InMemoryDB(const string& context = "");
-    ~InMemoryDB();
+    void merge(HandleTrie::TrieValue* /*other*/) override {}
+};
+
+/**
+ * RemoteAtomDBPeer represents a cached connection to a remote AtomDB.
+ * It combines an in-memory cache, a read-only remote AtomDB, and local persistence
+ * for newly added atoms.
+ */
+class RemoteAtomDBPeer : public AtomDB, public processor::ThreadMethod {
+   public:
+    RemoteAtomDBPeer(shared_ptr<AtomDB> remote_atomdb,
+                     shared_ptr<AtomDB> local_persistence,
+                     const string& uid = "");
+    ~RemoteAtomDBPeer();
 
     bool allow_nested_indexing() override;
 
@@ -28,11 +41,10 @@ class InMemoryDB : public AtomDB {
     shared_ptr<Link> get_link(const string& handle) override;
 
     vector<shared_ptr<Atom>> get_matching_atoms(bool is_toplevel, Atom& key) override;
+    vector<shared_ptr<Atom>> get_matching_atoms(bool is_toplevel, Atom& key, bool local_only);
 
     shared_ptr<atomdb_api_types::HandleSet> query_for_pattern(const LinkSchema& link_schema) override;
-
     shared_ptr<atomdb_api_types::HandleList> query_for_targets(const string& handle) override;
-
     shared_ptr<atomdb_api_types::HandleSet> query_for_incoming_set(const string& handle) override;
 
     bool atom_exists(const string& handle) override;
@@ -67,28 +79,36 @@ class InMemoryDB : public AtomDB {
 
     void re_index_patterns(bool flush_patterns = true) override;
 
+    // Cache policy API
+    void fetch(const LinkSchema& link_schema);
+    void release(const LinkSchema& link_schema);
+    double available_ram();
+    void auto_cleanup();
+    void start_cleanup_thread();
+    void stop_cleanup_thread();
+
+    // ThreadMethod interface
+    bool thread_one_step() override;
+
+    const string& get_uid() const { return uid_; }
+
    private:
-    string context_;
-    HandleTrie* atoms_trie_;          // Stores handle -> Atom*
-    HandleTrie* pattern_index_trie_;  // Stores pattern_handle -> set of atom handles
-    HandleTrie* incoming_sets_trie_;  // Stores target_handle -> set of link handles that reference it
+    void feed_cache_from_handle_set(shared_ptr<atomdb_api_types::HandleSet> handle_set);
+    void merge_handle_set(shared_ptr<atomdb_api_types::HandleSet> source,
+                          shared_ptr<atomdb_api_types::HandleSetInMemory> dest,
+                          set<string>& seen);
+    bool schema_already_fetched(const LinkSchema& link_schema);
 
-    map<int, tuple<vector<string>, vector<vector<string>>>> pattern_index_schema_map;
-    int pattern_index_schema_next_priority{1};
+    string uid_;
+    InMemoryDB cache_;
+    shared_ptr<AtomDB> atomdb_;
+    shared_ptr<AtomDB> local_persistence_;
+    HandleTrie fetched_link_templates_;
+    EmptyTrieValue* empty_trie_value_;
 
-    // Helper methods
-   public:
-    void add_pattern(const string& pattern_handle, const string& atom_handle);
-    vector<string> match_pattern_index_schema(const Link* link);
+    unique_ptr<processor::DedicatedThread> cleanup_thread_;
 
-   private:
-    void delete_pattern(const string& pattern_handle, const string& atom_handle);
-    void add_incoming_set(const string& target_handle, const string& link_handle);
-    void delete_incoming_set(const string& target_handle, const string& link_handle);
-    void update_incoming_set(const string& target_handle, const string& link_handle);
-
-    void add_pattern_index_schema(const string& tokens, const vector<vector<string>>& index_entries);
-    vector<vector<string>> index_entries_combinations(unsigned int arity);
+    static constexpr double CRITICAL_RAM_THRESHOLD = 0.1;  // 10% - cleanup when below this
 };
 
 }  // namespace atomdb

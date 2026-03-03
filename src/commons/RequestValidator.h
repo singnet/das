@@ -20,7 +20,7 @@ class RequestValidator {
    public:
     RequestValidator() {}
     bool validate(const vector<string>& request) {
-        if (request.size() != count_tokens(validator_regex)) {
+        if (request.size() != static_cast<size_t>(count_tokens(validator_regex))) {
             return false;
         }
         string joined_request_str = Utils::join(request, ' ');

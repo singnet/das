@@ -50,6 +50,7 @@ class ProcessorFactory {
             default:
                 Utils::error("Unknown processor type: " + processor_type);
         }
+        return nullptr;
     };
 };
 

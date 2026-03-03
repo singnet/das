@@ -30,7 +30,7 @@ TEST(LinkTemplate, basics) {
     similarity->handle = Hasher::node_handle(symbol, "Similarity");
     auto human = make_shared<Terminal>(symbol, "\"human\"");
 
-    LinkTemplate link_template1("Expression", {similarity, human, v1}, "", false, false, false);
+    LinkTemplate link_template1("Expression", {similarity, human, v1}, "", false, false, false, false);
     link_template1.build();
     link_template1.get_source_element()->subsequent_id = server_node_id;
     link_template1.get_source_element()->setup_buffers();

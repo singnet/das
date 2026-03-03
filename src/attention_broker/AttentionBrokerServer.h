@@ -1,7 +1,5 @@
 #pragma once
 
-#define DEBUG
-
 #include <string>
 #include <unordered_map>
 

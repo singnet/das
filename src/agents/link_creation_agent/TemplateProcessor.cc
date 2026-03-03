@@ -2,6 +2,9 @@
 
 #include "LinkCreateTemplate.h"
 
+#define LOG_LEVEL INFO_LEVEL
+#include "Logger.h"
+
 using namespace std;
 using namespace query_engine;
 using namespace link_creation_agent;

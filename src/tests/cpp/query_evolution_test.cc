@@ -1,5 +1,4 @@
 #include "AtomDBSingleton.h"
-#include "AtomSpace.h"
 #include "FitnessFunctionRegistry.h"
 #include "PatternMatchingQueryProcessor.h"
 #include "QueryEvolutionProcessor.h"
@@ -17,7 +16,6 @@ using namespace evolution;
 
 class TestProcessor : public QueryEvolutionProcessor {
    public:
-    AtomSpace atom_space;
     TestProcessor() {}
     ~TestProcessor() {}
     void sample_population(shared_ptr<QueryEvolutionProxy> proxy,
@@ -45,7 +43,7 @@ TEST(QueryEvolution, protected_methods) {
     Utils::sleep(1000);
 
     auto processor = make_shared<TestProcessor>();
-    ServiceBus* bus = new ServiceBus(peer2_id, peer1_id);
+    shared_ptr<ServiceBus> bus = make_shared<ServiceBus>(peer2_id, peer1_id);
     Utils::sleep(1000);
     bus->register_processor(processor);
 

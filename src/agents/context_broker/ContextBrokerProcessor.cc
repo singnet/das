@@ -122,8 +122,8 @@ void ContextBrokerProcessor::create_context(shared_ptr<StoppableThread> monitor,
             proxy->parameters.get_or(BaseQueryProxy::ATTENTION_UPDATE_FLAG, false);
         pattern_proxy->parameters[BaseQueryProxy::USE_LINK_TEMPLATE_CACHE] =
             proxy->parameters.get_or(BaseQueryProxy::USE_LINK_TEMPLATE_CACHE, false);
-        pattern_proxy->parameters[PatternMatchingQueryProxy::POSITIVE_IMPORTANCE_FLAG] =
-            proxy->parameters.get_or(PatternMatchingQueryProxy::POSITIVE_IMPORTANCE_FLAG, false);
+        pattern_proxy->parameters[PatternMatchingQueryProxy::POSITIVE_IMPORTANCE_FLAG] = false;
+        pattern_proxy->parameters[PatternMatchingQueryProxy::DISREGARD_IMPORTANCE_FLAG] = true;
         pattern_proxy->parameters[BaseQueryProxy::USE_METTA_AS_QUERY_TOKENS] =
             proxy->parameters.get_or(BaseQueryProxy::USE_METTA_AS_QUERY_TOKENS, false);
 

@@ -124,13 +124,15 @@ void MettaParserActions::expression_end(bool toplevel, const string& metta_expre
             this->element_stack.push(make_shared<Terminal>(MettaMapping::EXPRESSION_LINK_TYPE, targets));
         } else {
             LOG_DEBUG("Pushing LINK_TEMPLATE");
-            this->element_stack.push(make_shared<LinkTemplate>(
+            auto new_link_template = make_shared<LinkTemplate>(
                 MettaMapping::EXPRESSION_LINK_TYPE,
                 targets,
                 this->proxy->get_context(),
                 this->proxy->parameters.get<bool>(PatternMatchingQueryProxy::POSITIVE_IMPORTANCE_FLAG),
+                this->proxy->parameters.get<bool>(PatternMatchingQueryProxy::DISREGARD_IMPORTANCE_FLAG),
                 this->proxy->parameters.get<bool>(PatternMatchingQueryProxy::UNIQUE_VALUE_FLAG),
-                this->proxy->parameters.get<bool>(BaseQueryProxy::USE_LINK_TEMPLATE_CACHE)));
+                this->proxy->parameters.get<bool>(BaseQueryProxy::USE_LINK_TEMPLATE_CACHE));
+            this->element_stack.push(new_link_template);
         }
     } else if ((this->current_expression_type == AND) || (this->current_expression_type == OR)) {
         if (element_stack.size() >= 2) {

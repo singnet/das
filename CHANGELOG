@@ -1,0 +1,3 @@
+Highlights:
+(#1036) Joint test client for inference and query evolution
+(#1040) Hotfix: compliance with removal of context.h and atomspace.h

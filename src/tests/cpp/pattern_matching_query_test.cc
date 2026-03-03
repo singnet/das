@@ -15,28 +15,29 @@ using namespace atomdb;
 
 string handle_to_atom(const string& handle) {
     shared_ptr<AtomDB> db = AtomDBSingleton::get_instance();
-    shared_ptr<atomdb_api_types::AtomDocument> document = db->get_atom_document(handle);
-    shared_ptr<atomdb_api_types::HandleList> targets = db->query_for_targets(handle);
+    shared_ptr<Atom> atom = db->get_atom(handle);
     string answer;
 
-    if (targets != nullptr) {
+    if (atom->arity() > 0) {
         // is link
+        auto link = dynamic_cast<Link*>(atom.get());
         answer += "<";
-        answer += document->get("named_type");
+        answer += link->type;
         answer += ": [";
-        for (unsigned int i = 0; i < targets->size(); i++) {
-            answer += handle_to_atom(targets->get_handle(i));
-            if (i < (targets->size() - 1)) {
+        for (unsigned int i = 0; i < link->arity(); i++) {
+            answer += handle_to_atom(link->targets[i]);
+            if (i < (link->arity() - 1)) {
                 answer += ", ";
             }
         }
         answer += ">";
     } else {
         // is node
+        auto node = dynamic_cast<Node*>(atom.get());
         answer += "(";
-        answer += document->get("named_type");
+        answer += node->type;
         answer += ": ";
-        answer += document->get("name");
+        answer += node->name;
         answer += ")";
     }
 

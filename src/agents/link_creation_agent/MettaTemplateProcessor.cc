@@ -4,6 +4,9 @@
 #include "MettaParser.h"
 #include "commons/atoms/MettaParserActions.h"  // Compiler is having issues with relative path here
 
+#define LOG_LEVEL INFO_LEVEL
+#include "Logger.h"
+
 using namespace std;
 // using namespace query_engine;
 using namespace atoms;

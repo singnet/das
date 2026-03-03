@@ -1,6 +1,8 @@
 #include "ImplicationProcessor.h"
 
 #include "AtomDBSingleton.h"
+
+#define LOG_LEVEL INFO_LEVEL
 #include "Logger.h"
 
 #define C1 "C1"

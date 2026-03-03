@@ -149,23 +149,23 @@ string BaseQueryProxy::to_string() {
 
 void BaseQueryProxy::recursive_metta_mapping(string handle, map<string, string>& table) {
     if (table.find(handle) == table.end()) {
-        auto document = this->atomdb->get_atom_document(handle);
-        if (document->contains("targets")) {
+        auto atom = this->atomdb->get_atom(handle);
+        if (atom->arity() > 0) {
             // is link
-            if (strcmp(document->get("named_type"), "Expression")) {
-                Utils::error("Link type \"" + string(document->get("named_type")) +
-                             "\" can't be mapped to MeTTa");
+            auto link = dynamic_cast<Link*>(atom.get());
+            if (link->type != "Expression") {
+                Utils::error("Link type \"" + link->type + "\" can't be mapped to MeTTa");
                 table[handle] = "";
                 return;
             }
-            unsigned int arity = document->get_size("targets");
+            unsigned int arity = link->arity();
             for (unsigned int i = 0; i < arity; i++) {
-                recursive_metta_mapping(string(document->get("targets", i)), table);
+                recursive_metta_mapping(link->targets[i], table);
             }
             string expression = "(";
             bool empty_flag = true;
             for (unsigned int i = 0; i < arity; i++) {
-                expression += table[string(document->get("targets", i))];
+                expression += table[link->targets[i]];
                 expression += " ";
                 empty_flag = false;
             }
@@ -176,13 +176,13 @@ void BaseQueryProxy::recursive_metta_mapping(string handle, map<string, string>&
             table[handle] = expression;
         } else {
             // is node
-            if (strcmp(document->get("named_type"), "Symbol")) {
-                Utils::error("Node type \"" + string(document->get("named_type")) +
-                             "\" can't be mapped to MeTTa");
+            auto node = dynamic_cast<Node*>(atom.get());
+            if (node->type != "Symbol") {
+                Utils::error("Node type \"" + node->type + "\" can't be mapped to MeTTa");
                 table[handle] = "";
                 return;
             }
-            table[handle] = document->get("name");
+            table[handle] = node->name;
         }
     }
 }

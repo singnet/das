@@ -266,20 +266,19 @@ void QueryEvolutionProcessor::select_best_individuals(
 
 float eval_word(const string& handle, string& word) {
     auto db = AtomDBSingleton::get_instance();
-    shared_ptr<atomdb_api_types::AtomDocument> word_document;
-    shared_ptr<atomdb_api_types::AtomDocument> word_name_document;
-    word_document = db->get_atom_document(handle);
-    string symbol_handle = string(word_document->get("targets", 1));
-    word_name_document = db->get_atom_document(symbol_handle);
-    const char* word_name = word_name_document->get("name");
-    word = string(word_name);
+    shared_ptr<Link> word_link;
+    shared_ptr<Node> word_name_node;
+    word_link = db->get_link(handle);
+    string symbol_handle = word_link->targets[1];
+    word_name_node = db->get_node(symbol_handle);
+    word = word_name_node->name;
     unsigned int count = 0;
     unsigned int sentence_length = 0;
-    for (unsigned int i = 0; word_name[i] != '\0'; i++) {
-        if ((word_name[i] != ' ') && (word_name[i] != '"')) {
+    for (unsigned int i = 0; i < word.length(); i++) {
+        if ((word[i] != ' ') && (word[i] != '"')) {
             sentence_length++;
         }
-        if (word_name[i] == 'c') {
+        if (word[i] == 'c') {
             count++;
         }
     }
@@ -293,7 +292,7 @@ float eval_word(const string& handle, string& word) {
 void QueryEvolutionProcessor::correlate_similar(shared_ptr<QueryEvolutionProxy> proxy,
                                                 shared_ptr<QueryAnswer> correlation_query_answer) {
     vector<string> query_tokens;
-    vector<string> handle_list;
+    map<string, vector<string>> handle_lists;
     vector<vector<string>> correlation_queries = proxy->get_correlation_queries();
     vector<map<string, QueryAnswerElement>> correlation_replacements =
         proxy->get_correlation_replacements();
@@ -350,24 +349,30 @@ void QueryEvolutionProcessor::correlate_similar(shared_ptr<QueryEvolutionProxy> 
         }
 
         // Update AttentionBroker
-        handle_list.clear();
-        handle_list.push_back(correlation_query_answer->get(correlation_mappings[0].first));
+        handle_lists.clear();
         auto pm_query = issue_correlation_query(proxy, query_tokens);
         while (!pm_query->finished()) {
             shared_ptr<QueryAnswer> answer = pm_query->pop();
             string word;
             if (answer != NULL) {
                 for (auto pair : correlation_mappings) {
-                    string handle = answer->get(pair.second);
-                    if (handle != "") {
-                        handle_list.push_back(handle);
+                    string key = answer->get(pair.first, true);
+                    string handle = answer->get(pair.second, true);
+                    if ((key != "") && (handle != "")) {
+                        if (handle_lists.find(key) == handle_lists.end()) {
+                            handle_lists[key] = {key};
+                        } else {
+                            handle_lists[key].push_back(handle);
+                        }
                     }
                 }
             } else {
                 Utils::sleep();
             }
         }
-        AttentionBrokerClient::asymmetric_correlate(handle_list, proxy->get_context());
+        for (auto pair : handle_lists) {
+            AttentionBrokerClient::asymmetric_correlate(pair.second, proxy->get_context());
+        }
     }
 }
 

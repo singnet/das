@@ -15,16 +15,16 @@ float CountLetterFunction::eval(shared_ptr<QueryAnswer> query_answer) {
         Utils::error("Invalid answer in CountLetterFunction");
         return 0;
     } else {
-        shared_ptr<atomdb_api_types::AtomDocument> sentence_document;
-        shared_ptr<atomdb_api_types::AtomDocument> sentence_name_document;
+        shared_ptr<Link> sentence_link;
+        shared_ptr<Node> sentence_name_node;
         string handle = query_answer->assignment.get(VARIABLE_NAME);
-        sentence_document = this->db->get_atom_document(handle);
-        handle = string(sentence_document->get("targets", 1));
-        sentence_name_document = this->db->get_atom_document(handle);
-        const char* sentence_name = sentence_name_document->get("name");
+        sentence_link = this->db->get_link(handle);
+        handle = sentence_link->targets[1];
+        sentence_name_node = this->db->get_node(handle);
+        string sentence_name = sentence_name_node->name;
         unsigned int count = 0;
         unsigned int sentence_length = 0;
-        for (unsigned int i = 0; sentence_name[i] != '\0'; i++) {
+        for (unsigned int i = 0; i < sentence_name.length(); i++) {
             if ((sentence_name[i] != ' ') && (sentence_name[i] != '"')) {
                 sentence_length++;
             }

@@ -489,7 +489,7 @@ cc_test(
     linkstatic = 1,
     deps = [
         "//agents/context_broker:context_broker_lib",
-        "//atom_space:context",
+        "//agents/query_engine:pattern_matching_query_processor",
         "//atomdb",
         "//attention_broker:attention_broker_lib",
         "//tests/cpp/test_commons",
@@ -534,9 +534,17 @@ cc_test(
         "-Iexternal/gtest/googletest/include",
         "-Iexternal/gtest/googletest",
     ],
+    linkopts = [
+        "-L/usr/local/lib",
+        "-lhiredis_cluster",
+        "-lhiredis",
+        "-lmongocxx",
+        "-lbsoncxx",
+    ],
     linkstatic = 1,
     deps = [
         "//agents/evolution:evolution_lib",
+        "//agents/query_engine:pattern_matching_query_processor",
         "//tests/cpp/test_commons",
         "@com_github_google_googletest//:gtest_main",
     ],
@@ -625,26 +633,6 @@ cc_test(
     deps = [
         "//commons:commons_lib",
         "//commons/processor:processor_lib",
-        "@com_github_google_googletest//:gtest_main",
-    ],
-)
-
-cc_test(
-    name = "atom_space_test",
-    size = "small",
-    srcs = ["atom_space_test.cc"],
-    copts = [
-        "-Iexternal/gtest/googletest/include",
-        "-Iexternal/gtest/googletest",
-    ],
-    linkstatic = 1,
-    deps = [
-        "//agents/query_engine:query_engine_lib",
-        "//atom_space:atom_space_lib",
-        "//commons:commons_lib",
-        "//commons/atoms:atoms_lib",
-        "//service_bus:service_bus_lib",
-        "//tests/cpp/test_commons",
         "@com_github_google_googletest//:gtest_main",
     ],
 )
@@ -743,6 +731,34 @@ cc_test(
     linkstatic = 1,
     deps = [
         "//atomdb/inmemorydb:inmemorydb_lib",
+        "//commons/atoms:atoms_lib",
+        "@com_github_google_googletest//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "remote_atomdb_test",
+    size = "small",
+    srcs = ["remote_atomdb_test.cc"],
+    copts = [
+        "-Iexternal/gtest/googletest/include",
+        "-Iexternal/gtest/googletest",
+    ],
+    data = [
+        "//tests/assets:remotedb_config.json",
+        "//tests/assets:remotedb_config_single.json",
+    ],
+    linkopts = [
+        "-L/usr/local/lib",
+        "-lhiredis_cluster",
+        "-lhiredis",
+        "-lmongocxx",
+        "-lbsoncxx",
+    ],
+    linkstatic = 1,
+    deps = [
+        "//atomdb/inmemorydb:inmemorydb_lib",
+        "//atomdb/remotedb:remotedb_lib",
         "//commons/atoms:atoms_lib",
         "@com_github_google_googletest//:gtest_main",
     ],

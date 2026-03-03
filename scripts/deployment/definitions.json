@@ -1,8 +1,29 @@
 [
+    {
+    "name": "das",
+    "repository": "https://github.com/singnet/das.git",
+    "workflow": "publish-das.yml",
+    "ref": "master",
+    "hooks": {
+      "beforeRelease": "custom/das-before-release.sh"
+    },
+    "dependencies": [
+      "das-metta-parser",
+      "das-toolbox"
+    ]
+  },
   {
     "name": "das-metta-parser",
     "repository": "https://github.com/singnet/das-metta-parser.git",
     "workflow": "build.yml",
+    "ref": "master",
+    "hooks": {},
+    "dependencies": []
+  },
+  {
+    "name": "das-database-adapter",
+    "repository": "https://github.com/singnet/das-database-adapter.git",
+    "workflow": "run-tests.yml",
     "ref": "master",
     "hooks": {},
     "dependencies": []
@@ -16,53 +37,6 @@
       "beforeRelease": "custom/das-toolbox-before-release.sh",
       "dependencyCheck": "custom/das-toolbox-dependency-check.sh"
     },
-    "dependencies": ["das-metta-parser"]
-  },
-  {
-    "name": "hyperon-das-atomdb",
-    "repository": "https://github.com/singnet/das-atom-db.git",
-    "workflow": "publish-pypi.yml",
-    "ref": "master",
-    "hooks": {
-      "beforeRelease": "poetry/before-release.sh"
-    },
-    "dependencies": []
-  },
-  {
-    "name": "hyperon-das",
-    "repository": "https://github.com/singnet/das-query-engine.git",
-    "workflow": "publish-pypi.yml",
-    "ref": "master",
-    "hooks": {
-      "beforeRelease": "poetry/before-release.sh",
-      "dependencyCheck": "poetry/dependency-check.sh"
-    },
-    "dependencies": ["hyperon-das-atomdb"]
-  },
-  {
-    "name": "das-serverless-functions",
-    "repository": "https://github.com/singnet/das-serverless-functions.git",
-    "workflow": "vultr-build.yml",
-    "ref": "master",
-    "hooks": {
-      "dependencyCheck": "pip/dependency-check.sh"
-    },
-    "dependencies": ["hyperon-das"]
-  },
-  {
-    "name": "das",
-    "repository": "https://github.com/singnet/das.git",
-    "workflow": "publish-das.yml",
-    "ref": "master",
-    "hooks": {
-      "beforeRelease": "custom/das-before-release.sh"
-    },
-    "dependencies": [
-      "das-metta-parser",
-      "das-toolbox",
-      "hyperon-das-atomdb",
-      "hyperon-das",
-      "das-serverless-functions"
-    ]
+    "dependencies": ["das-metta-parser", "das-database-adapter"]
   }
 ]

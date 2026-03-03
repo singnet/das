@@ -21,12 +21,17 @@ LinkTemplate::LinkTemplate(const string& type,
                            const vector<shared_ptr<QueryElement>>& targets,
                            const string& context,
                            bool positive_importance_flag,
+                           bool disregard_importance_flag,
                            bool unique_value_flag,
                            bool use_cache)
     : link_schema(type, targets.size()) {
     this->targets = targets;
     this->context = context;
+    if (positive_importance_flag && disregard_importance_flag) {
+        Utils::error("Conficting settings for positive_importance_flag and disregard_importance_flag");
+    }
     this->positive_importance_flag = positive_importance_flag;
+    this->disregard_importance_flag = disregard_importance_flag;
     this->unique_value_flag = unique_value_flag;
     this->use_cache = use_cache;
     this->inner_flag = true;
@@ -34,6 +39,13 @@ LinkTemplate::LinkTemplate(const string& type,
     this->processor = nullptr;
     this->random_generator =
         new std::mt19937(std::chrono::system_clock::now().time_since_epoch().count());
+    unsigned int max_reverse_nesting = 0;
+    for (auto element : targets) {
+        if (element->reverse_nesting_level > max_reverse_nesting) {
+            max_reverse_nesting = element->reverse_nesting_level;
+        }
+    }
+    this->reverse_nesting_level = max_reverse_nesting + 1;
 }
 
 LinkTemplate::~LinkTemplate() {
@@ -135,8 +147,12 @@ void LinkTemplate::processor_method(shared_ptr<StoppableThread> monitor) {
         handles = db->query_for_pattern(this->link_schema);
         LinkTemplate::fetched_links_cache().set(link_schema_handle, handles);
     }
+    bool flat_pattern_flag = (this->reverse_nesting_level <= 1);
     LOG_DEBUG("Positive importance flag: " + string(this->positive_importance_flag ? "true" : "false"));
+    LOG_DEBUG("Disregard importance flag: " +
+              string(this->disregard_importance_flag ? "true" : "false"));
     LOG_DEBUG("Unique value flag: " + string(this->unique_value_flag ? "true" : "false"));
+    LOG_DEBUG("Flat pattern flag: " + string(flat_pattern_flag ? "true" : "false"));
     LOG_INFO("Fetched " + std::to_string(handles->size()) + " atoms in " + link_schema_handle);
 
     vector<pair<char*, float>> tagged_handles;
@@ -146,9 +162,12 @@ void LinkTemplate::processor_method(shared_ptr<StoppableThread> monitor) {
         while ((handle = iterator->next()) != nullptr) {
             tagged_handles.push_back(make_pair<char*, float>((char*) handle, 0));
         }
-        compute_importance(tagged_handles);
+        if (!this->disregard_importance_flag) {
+            compute_importance(tagged_handles);
+        }
     }
     unsigned int pending = tagged_handles.size();
+    unsigned int processed = 0;
     unsigned int cursor = 0;
     Assignment assignment(this->unique_value_flag);
     unsigned int count_matched = 0;
@@ -165,12 +184,19 @@ void LinkTemplate::processor_method(shared_ptr<StoppableThread> monitor) {
                         handles->get_assignments_by_handle(tagged_handle.first),
                         handles->get_metta_expressions_by_handle(tagged_handle.first));
                     count_matched++;
-                } else if (this->link_schema.match(string(tagged_handle.first), assignment, *db.get())) {
-                    this->source_element->add_handle(
-                        tagged_handle.first, tagged_handle.second, assignment);
-                    assignment.clear();
-                    count_matched++;
+                } else {
+                    if (this->link_schema.match(string(tagged_handle.first), assignment, *db.get())) {
+                        this->source_element->add_handle(
+                            tagged_handle.first, tagged_handle.second, assignment);
+                        assignment.clear();
+                        count_matched++;
+                    }
                 }
+            }
+            if (!(++processed % 1000000)) {
+                LOG_INFO("Processed " + std::to_string(processed) + "/" +
+                         std::to_string(tagged_handles.size()) + ". " + std::to_string(count_matched) +
+                         " matched so far.");
             }
             pending--;
         }

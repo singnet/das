@@ -65,6 +65,10 @@ class RedisMongoDB : public AtomDB {
 
     // HandleDecoder interface
     shared_ptr<Atom> get_atom(const string& handle);
+    shared_ptr<Node> get_node(const string& handle);
+    shared_ptr<Link> get_link(const string& handle);
+
+    vector<shared_ptr<Atom>> get_matching_atoms(bool is_toplevel, Atom& key);
 
     shared_ptr<atomdb_api_types::HandleSet> query_for_pattern(const LinkSchema& link_schema);
 
@@ -82,8 +86,6 @@ class RedisMongoDB : public AtomDB {
                                                                           const vector<string>& fields);
     vector<shared_ptr<atomdb_api_types::AtomDocument>> get_link_documents(const vector<string>& handles,
                                                                           const vector<string>& fields);
-
-    vector<shared_ptr<atomdb_api_types::AtomDocument>> get_matching_atoms(bool is_toplevel, Atom& key);
 
     bool atom_exists(const string& handle);
     bool node_exists(const string& handle);

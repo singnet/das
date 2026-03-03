@@ -23,24 +23,14 @@ class AtomDB : public HandleDecoder {
     virtual bool allow_nested_indexing() = 0;
 
     virtual shared_ptr<Atom> get_atom(const string& handle) = 0;  // HandleDecoder interface
+    virtual shared_ptr<Node> get_node(const string& handle) = 0;
+    virtual shared_ptr<Link> get_link(const string& handle) = 0;
+
+    virtual vector<shared_ptr<Atom>> get_matching_atoms(bool is_toplevel, Atom& key) = 0;
 
     virtual shared_ptr<atomdb_api_types::HandleSet> query_for_pattern(const LinkSchema& link_schema) = 0;
     virtual shared_ptr<atomdb_api_types::HandleList> query_for_targets(const string& handle) = 0;
     virtual shared_ptr<atomdb_api_types::HandleSet> query_for_incoming_set(const string& handle) = 0;
-
-    virtual shared_ptr<atomdb_api_types::AtomDocument> get_atom_document(const string& handle) = 0;
-    virtual shared_ptr<atomdb_api_types::AtomDocument> get_node_document(const string& handle) = 0;
-    virtual shared_ptr<atomdb_api_types::AtomDocument> get_link_document(const string& handle) = 0;
-
-    virtual vector<shared_ptr<atomdb_api_types::AtomDocument>> get_atom_documents(
-        const vector<string>& handles, const vector<string>& fields) = 0;
-    virtual vector<shared_ptr<atomdb_api_types::AtomDocument>> get_node_documents(
-        const vector<string>& handles, const vector<string>& fields) = 0;
-    virtual vector<shared_ptr<atomdb_api_types::AtomDocument>> get_link_documents(
-        const vector<string>& handles, const vector<string>& fields) = 0;
-
-    virtual vector<shared_ptr<atomdb_api_types::AtomDocument>> get_matching_atoms(bool is_toplevel,
-                                                                                  Atom& key) = 0;
 
     virtual bool atom_exists(const string& handle) = 0;
     virtual bool node_exists(const string& handle) = 0;

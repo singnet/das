@@ -77,6 +77,7 @@ class Properties : public unordered_map<string, PropertyValue> {
             }
         }
         Utils::error("Unkown property key: " + key);
+        return T();
     }
 
     /**

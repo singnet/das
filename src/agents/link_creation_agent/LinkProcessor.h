@@ -11,14 +11,17 @@
 #include <string>
 #include <vector>
 
-#include "Link.h"
-#define LOG_LEVEL DEBUG_LEVEL
 #include "AtomDBSingleton.h"
-#include "Logger.h"
+#include "Link.h"
 #include "PatternMatchingQueryProxy.h"
 #include "QueryAnswer.h"
 #include "ServiceBusSingleton.h"
 #include "Utils.h"
+
+#ifndef LOG_LEVEL
+#define LOG_LEVEL INFO_LEVEL
+#include "Logger.h"
+#endif
 
 #define TARGETS_SIZE 2
 
