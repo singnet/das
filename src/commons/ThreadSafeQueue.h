@@ -8,6 +8,9 @@
 namespace commons {
 
 template <typename T>
+/**
+ * This class is a wrapper around std::queue to provide thread-safe access.
+ */
 class ThreadSafeQueue {
    private:
     queue<T> _queue;
