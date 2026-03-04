@@ -1,7 +1,7 @@
 #pragma once
 
-#include <queue>
 #include <mutex>
+#include <queue>
 
 using namespace std;
 
@@ -19,27 +19,24 @@ namespace commons {
  * So when pushing something into the heapm one need to pass both, the element to be heap-ed
  * and its key. When popping (actually top()'ing) just the heap-ed element is returned.
  */
-template<typename T, typename V>
+template <typename T, typename V>
 class ThreadSafeHeap {
-
-private:
-
+   private:
     class HeapElement {
-        public:
+       public:
         T element;
         V value;
         HeapElement(const HeapElement& other) : element(other.element), value(other.value) {}
         HeapElement(const T& element, const V& value) : element(element), value(value) {}
         bool operator<(const HeapElement& other) const { return this->value < other.value; }
-        HeapElement& operator=(const HeapElement& other) { 
-            this->element = other.element; 
-            this->value = other.value; 
+        HeapElement& operator=(const HeapElement& other) {
+            this->element = other.element;
+            this->value = other.value;
             return *this;
         }
     };
 
-public:
-
+   public:
     ThreadSafeHeap() {}
     ~ThreadSafeHeap() {}
 
@@ -82,16 +79,15 @@ public:
 
     void snapshot(vector<T>& output) {
         priority_queue<HeapElement, vector<HeapElement>> copy = this->queue;
-        while (! copy.empty()) {
+        while (!copy.empty()) {
             output.push_back(copy.top().element);
             copy.pop();
         }
     }
 
-private:
-
+   private:
     mutex api_mutex;
     priority_queue<HeapElement, vector<HeapElement>> queue;
 };
 
-} // namespace commons
+}  // namespace commons

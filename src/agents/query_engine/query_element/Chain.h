@@ -1,13 +1,13 @@
 #pragma once
 
-#include "Operator.h"
 #include "DedicatedThread.h"
+#include "Link.h"
+#include "Operator.h"
 #include "ThreadSafeHeap.h"
 #include "ThreadSafeQueue.h"
-#include "Link.h"
 #include "map"
-#include "set"
 #include "mutex"
+#include "set"
 
 using namespace std;
 using namespace atoms;
@@ -19,14 +19,12 @@ namespace query_element {
  *
  */
 class Chain : public Operator<1>, public ThreadMethod {
-
-public:
-
+   public:
     // --------------------------------------------------------------------------------------------
     // Inner types
 
     class Path {
-        public:
+       public:
         vector<pair<shared_ptr<Link>, shared_ptr<QueryAnswer>>> links;
         double path_sti;
         bool forward_flag;
@@ -137,7 +135,6 @@ public:
     bool all_paths_explored();
     void refeed_paths();
 
-
     // --------------------------------------------------------------------------------------------
     // QueryElement API
 
@@ -151,10 +148,9 @@ public:
 
     mutex thread_debug_mutex;
 
-private:
-
+   private:
     class PathFinder : public ThreadMethod {
-        public:
+       public:
         Chain* chain_operator;
         bool forward_flag;
         string origin;
@@ -172,7 +168,9 @@ private:
         }
         ~PathFinder() {}
         bool thread_one_step();
-        bool conditional_refeed(Path& path, shared_ptr<HeapType>& candidates_heap, unsigned int count_cycles);
+        bool conditional_refeed(Path& path,
+                                shared_ptr<HeapType>& candidates_heap,
+                                unsigned int count_cycles);
     };
 
     void initialize(const array<shared_ptr<QueryElement>, 1>& clauses);
@@ -197,4 +195,4 @@ private:
     mutex all_paths_explored_mutex;
 };
 
-} // namespace query_element
+}  // namespace query_element

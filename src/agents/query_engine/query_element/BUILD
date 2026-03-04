@@ -7,11 +7,11 @@ cc_library(
     includes = ["."],
     deps = [
         ":and",
+        ":chain",
         ":iterator",
         ":link_template",
         ":operator",
         ":or",
-        ":chain",
         ":query_element",
         ":sink",
         ":source",
@@ -47,14 +47,14 @@ cc_library(
 
 cc_library(
     name = "chain",
-    hdrs = ["Chain.h"],
     srcs = ["Chain.cc"],
+    hdrs = ["Chain.h"],
     deps = [
         ":operator",
-        "//commons:commons_lib",
-        "//commons/processor:processor_lib",
-        "//commons/atoms:atoms_lib",
         "//atomdb:atomdb_singleton",
+        "//commons:commons_lib",
+        "//commons/atoms:atoms_lib",
+        "//commons/processor:processor_lib",
     ],
 )
 

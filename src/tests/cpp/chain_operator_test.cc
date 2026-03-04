@@ -1,17 +1,16 @@
 #include <cstdlib>
 #include <cstring>
 
-#include "Chain.h"
 #include "AtomDBSingleton.h"
+#include "Chain.h"
+#include "Hasher.h"
 #include "InMemoryDB.h"
+#include "Logger.h"
 #include "QueryAnswer.h"
 #include "Sink.h"
-#include "Hasher.h"
 #include "Source.h"
 #include "gtest/gtest.h"
 #include "test_utils.h"
-
-#include "Logger.h"
 
 using namespace commons;
 using namespace query_engine;
@@ -28,10 +27,10 @@ using namespace commons;
 #define NODE_COUNT ((unsigned int) 20)
 
 // Just to help in debugging
-#define RUN_allow_concatenation         ((bool) true)
+#define RUN_allow_concatenation ((bool) true)
 #define RUN_allow_concatenation_reverse ((bool) true)
-#define RUN_back_after_dead_end         ((bool) true)
-#define RUN_basics                      ((bool) true)
+#define RUN_back_after_dead_end ((bool) true)
+#define RUN_basics ((bool) true)
 
 static string EVALUATION_HANDLE = Hasher::node_handle(NODE_TYPE, EVALUATION);
 
@@ -49,11 +48,10 @@ static string node_name(unsigned int n) {
 
 class ChainOperatorTestEnvironment : public ::testing::Environment {
    public:
-
     void load_data() {
         auto db = AtomDBSingleton::get_instance();
         atoms::Node *node1, *node2;
-        atoms::Link *link;
+        atoms::Link* link;
         node1 = new atoms::Node(NODE_TYPE, EVALUATION);
         LOG_DEBUG("Add node: " + node1->handle() + " " + node1->to_string());
         db->add_node(node1, false);
@@ -65,7 +63,8 @@ class ChainOperatorTestEnvironment : public ::testing::Environment {
                 node2 = new atoms::Node(NODE_TYPE, node_name(j));
                 LOG_DEBUG("Add node: " + node2->handle() + " " + node2->to_string());
                 db->add_node(node2, false);
-                link = new atoms::Link(LINK_TYPE, {EVALUATION_HANDLE, node1->handle(), node2->handle()}, true);
+                link = new atoms::Link(
+                    LINK_TYPE, {EVALUATION_HANDLE, node1->handle(), node2->handle()}, true);
                 LOG_DEBUG("Add link: " + link->handle() + " " + link->to_string());
                 db->add_link(link, false);
             }
@@ -78,8 +77,7 @@ class ChainOperatorTestEnvironment : public ::testing::Environment {
         this->load_data();
     }
 
-    void TearDown() override {
-    }
+    void TearDown() override {}
 };
 
 class ChainOperatorTest : public ::testing::Test {
@@ -109,7 +107,8 @@ static string get_link_string(string handle, unsigned int select = 0) {
         string node1_handle = Hasher::node_handle(NODE_TYPE, node_name(i));
         for (unsigned int j = 0; j <= (NODE_COUNT + 1); j++) {
             string node2_handle = Hasher::node_handle(NODE_TYPE, node_name(j));
-            string link_handle = Hasher::link_handle(LINK_TYPE, {EVALUATION_HANDLE, node1_handle, node2_handle});
+            string link_handle =
+                Hasher::link_handle(LINK_TYPE, {EVALUATION_HANDLE, node1_handle, node2_handle});
             if (link_handle == handle) {
                 if (select == 0) {
                     return get_node_string(node1_handle) + " -> " + get_node_string(node2_handle);
@@ -170,7 +169,7 @@ class TestSink : public Sink {
     QueryAnswer* pop() { return this->input_buffer->pop_query_answer(); }
 };
 
-static bool check_answer(QueryAnswer *query_answer) {
+static bool check_answer(QueryAnswer* query_answer) {
     string origin = get_node_string(query_answer->get(Chain::ORIGIN_VARIABLE_NAME));
     string destiny = get_node_string(query_answer->get(Chain::DESTINY_VARIABLE_NAME));
     EXPECT_TRUE((origin == "S") || (origin == "T"));
@@ -190,11 +189,10 @@ static bool check_answer(QueryAnswer *query_answer) {
         EXPECT_EQ(get_link_string(handle, 1), cursor);
         cursor = get_link_string(handle, 2);
     }
-    return (((origin == "S") && (destiny == "T")) ||
-            ((origin == "T") && (destiny == "S")));
+    return (((origin == "S") && (destiny == "T")) || ((origin == "T") && (destiny == "S")));
 }
 
-static string answer_path_to_string(QueryAnswer *query_answer) {
+static string answer_path_to_string(QueryAnswer* query_answer) {
     bool first = true;
     string answer = "";
     string cursor;
@@ -204,7 +202,8 @@ static string answer_path_to_string(QueryAnswer *query_answer) {
             answer = cursor = get_link_string(handle, 1);
         }
         if (get_link_string(handle, 1) != cursor) {
-            return "<Invalid path " + query_answer->to_string() + " " + answer + " + " + get_link_string(handle) + ">";
+            return "<Invalid path " + query_answer->to_string() + " " + answer + " + " +
+                   get_link_string(handle) + ">";
         }
         answer += " -> ";
         cursor = get_link_string(handle, 2);
@@ -214,7 +213,7 @@ static string answer_path_to_string(QueryAnswer *query_answer) {
 }
 
 TEST(ChainOperatorTest, allow_concatenation) {
-    if (! RUN_allow_concatenation) return;
+    if (!RUN_allow_concatenation) return;
 
     shared_ptr<Link> ab_link(new Link(LINK_TYPE, {" ", "a", "b"}));
     shared_ptr<Link> ba_link(new Link(LINK_TYPE, {" ", "b", "a"}));
@@ -307,7 +306,7 @@ TEST(ChainOperatorTest, allow_concatenation) {
 }
 
 TEST(ChainOperatorTest, allow_concatenation_reverse) {
-    if (! RUN_allow_concatenation_reverse) return;
+    if (!RUN_allow_concatenation_reverse) return;
 
     return;
     shared_ptr<Link> ab_link(new Link(LINK_TYPE, {" ", "a", "b"}));
@@ -363,12 +362,11 @@ TEST(ChainOperatorTest, allow_concatenation_reverse) {
 }
 
 TEST(ChainOperatorTest, back_after_dead_end) {
-    if (! RUN_back_after_dead_end) return;
+    if (!RUN_back_after_dead_end) return;
     auto source = make_shared<TestSource>(10);
-    auto chain_operator = make_shared<Chain>(
-        array<shared_ptr<QueryElement>, 1>({source}), 
-        Hasher::node_handle(NODE_TYPE, "S"), 
-        Hasher::node_handle(NODE_TYPE, "T"));
+    auto chain_operator = make_shared<Chain>(array<shared_ptr<QueryElement>, 1>({source}),
+                                             Hasher::node_handle(NODE_TYPE, "S"),
+                                             Hasher::node_handle(NODE_TYPE, "T"));
     TestSink sink(chain_operator);
 
     EXPECT_TRUE(sink.empty());
@@ -383,7 +381,7 @@ TEST(ChainOperatorTest, back_after_dead_end) {
         node.push_back(std::to_string(cursor));
     }
     node.push_back("T");
- 
+
     // clang-format off
     //
     //         +----- 1 -- 2 -- 3 --------+
@@ -443,7 +441,7 @@ TEST(ChainOperatorTest, back_after_dead_end) {
     source->add(link(20, T),  0.5, {"v1"}, {"h1"}, false);
     Utils::sleep(3000); // TODO remove this
     // clang-format on
-    QueryAnswer *answer;
+    QueryAnswer* answer;
     unsigned int complete_path = 0;
     while (complete_path < 5) {
         while ((answer = sink.pop()) != NULL) {
@@ -456,7 +454,7 @@ TEST(ChainOperatorTest, back_after_dead_end) {
     }
     EXPECT_FALSE(sink.finished());
     EXPECT_EQ(complete_path, 5);
-    source->add(link(S, 9),   0.5, {"v1"}, {"h1"}, false);
+    source->add(link(S, 9), 0.5, {"v1"}, {"h1"}, false);
     while (complete_path < 6) {
         while ((answer = sink.pop()) != NULL) {
             LOG_INFO("[" + std::to_string(answer->importance) + "]: " + answer_path_to_string(answer));
@@ -470,7 +468,7 @@ TEST(ChainOperatorTest, back_after_dead_end) {
     EXPECT_EQ(complete_path, 6);
     source->add(link(14, 19), 0.5, {"v1"}, {"h1"}, false);
     source->query_answers_finished();
-    while (! sink.empty() || ! sink.finished()) {
+    while (!sink.empty() || !sink.finished()) {
         while ((answer = sink.pop()) != NULL) {
             LOG_INFO("[" + std::to_string(answer->importance) + "]: " + answer_path_to_string(answer));
             if (check_answer(answer)) {
@@ -485,12 +483,11 @@ TEST(ChainOperatorTest, back_after_dead_end) {
 }
 
 TEST(ChainOperatorTest, basics) {
-    if (! RUN_basics) return;
+    if (!RUN_basics) return;
     auto source = make_shared<TestSource>(10);
-    auto chain_operator = make_shared<Chain>(
-        array<shared_ptr<QueryElement>, 1>({source}), 
-        Hasher::node_handle(NODE_TYPE, "S"), 
-        Hasher::node_handle(NODE_TYPE, "T"));
+    auto chain_operator = make_shared<Chain>(array<shared_ptr<QueryElement>, 1>({source}),
+                                             Hasher::node_handle(NODE_TYPE, "S"),
+                                             Hasher::node_handle(NODE_TYPE, "T"));
     TestSink sink(chain_operator);
 
     EXPECT_TRUE(sink.empty());
@@ -505,7 +502,7 @@ TEST(ChainOperatorTest, basics) {
         node.push_back(std::to_string(cursor));
     }
     node.push_back("T");
- 
+
     // clang-format off
     //
     //         +----- 1 -- 2 -- 3 --------+
@@ -568,9 +565,9 @@ TEST(ChainOperatorTest, basics) {
     Utils::sleep(3000); // TODO remove this
     // clang-format on
     source->query_answers_finished();
-    QueryAnswer *answer;
+    QueryAnswer* answer;
     unsigned int complete_path = 0;
-    while (! sink.empty() || ! sink.finished()) {
+    while (!sink.empty() || !sink.finished()) {
         while ((answer = sink.pop()) != NULL) {
             LOG_INFO("[" + std::to_string(answer->importance) + "]: " + answer_path_to_string(answer));
             if (check_answer(answer)) {
