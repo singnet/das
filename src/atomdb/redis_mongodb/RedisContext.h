@@ -20,6 +20,7 @@ class RedisContext {
     bool ping();
     void append_command(const char* command);
     void flush_commands();
+    int get_pending_commands_count() const { return pending_commands_count; }
     bool has_error() const;
     const char* get_error() const;
 
