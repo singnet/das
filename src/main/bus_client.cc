@@ -14,8 +14,10 @@ using namespace std;
 
 int main(int argc, char* argv[]) {
     try {
-        auto required_cmd_args = {
-            Helper::SERVICE, Helper::ENDPOINT, Helper::BUS_ENDPOINT, Helper::PORTS_RANGE};
+        auto required_cmd_args = {Helper::SERVICE,
+                                  Helper::ENDPOINT,
+                                  Helper::BUS_ENDPOINT,
+                                  Helper::PORTS_RANGE};
         auto cmd_args = Utils::parse_command_line(argc, argv);
         if (cmd_args.find("help") != cmd_args.end()) {
             cout << Helper::help(Helper::processor_type_from_string(cmd_args["service"]),
@@ -47,8 +49,18 @@ int main(int argc, char* argv[]) {
         signal(SIGINT, signal_handler);
         signal(SIGTERM, signal_handler);
         LOG_INFO("Starting service: " + cmd_args[Helper::SERVICE]);
-        if (props.get_or<string>(Helper::USE_MORK, "false") == "true") {
+        string atomdb_type = props.get_or<string>(Helper::ATOMDB_TYPE, "");
+        if (atomdb_type == "morkdb") {
             AtomDBSingleton::init(atomdb_api_types::ATOMDB_TYPE::MORKDB);
+        } else if (atomdb_type == "inmemorydb") {
+            AtomDBSingleton::init(atomdb_api_types::ATOMDB_TYPE::INMEMORYDB);
+        } else if (atomdb_type == "remotedb") {
+            auto json_file_path = props.get_or<string>(Helper::REMOTEDB_CONFIG_FILE_PATH, "");
+            if (json_file_path == "") {
+                Utils::error("RemoteDB config file path is required");
+                return 1;
+            }
+            AtomDBSingleton::init(atomdb_api_types::ATOMDB_TYPE::REMOTEDB, json_file_path);
         } else {
             AtomDBSingleton::init();
         }

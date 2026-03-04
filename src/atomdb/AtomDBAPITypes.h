@@ -67,7 +67,7 @@ class AtomDocument {
     virtual bool contains(const string& key) = 0;
 };
 
-enum ATOMDB_TYPE { REDIS_MONGODB, MORKDB };
+enum ATOMDB_TYPE { REDIS_MONGODB, MORKDB, INMEMORYDB, REMOTEDB };
 
 }  // namespace atomdb_api_types
 }  // namespace atomdb

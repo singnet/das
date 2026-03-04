@@ -10,7 +10,8 @@ string Helper::ENDPOINT = "endpoint";
 string Helper::BUS_ENDPOINT = "bus-endpoint";
 string Helper::PORTS_RANGE = "ports-range";
 string Helper::ATTENTION_BROKER_ENDPOINT = "attention-broker-endpoint";
-string Helper::USE_MORK = "use-mork";
+string Helper::ATOMDB_TYPE = "atomdb-type";
+string Helper::REMOTEDB_CONFIG_FILE_PATH = "remotedb-config";
 string Helper::ACTION = "action";
 string Helper::TOKENS = "tokens";
 string Helper::REQUEST = "request";
@@ -84,7 +85,7 @@ This processor manages AtomDB broker requests from the service bus.
 )")},
                                                        {ProcessorType::UNKNOWN, string(R"(
 Usage:
-busnode --service=<service> --endpoint=<host:port> --ports-range=<start_port:end_port> [--bus-endpoint=<bus_host:bus_port>] [--use-mork=true|false]
+busnode --service=<service> --endpoint=<host:port> --ports-range=<start_port:end_port> [--bus-endpoint=<bus_host:bus_port>] [--atomdb-type=<redismongodb|morkdb|inmemorydb>]
 )")}};
 
 static map<ProcessorType, string> client_service_help = {{ProcessorType::INFERENCE_AGENT, string(R"(
@@ -166,7 +167,7 @@ This client interacts with the AtomDB Broker via the service bus.
 )")},
                                                          {ProcessorType::UNKNOWN, string(R"(
 Usage:
-busclient --service=<service> --endpoint=<host:port> --bus-endpoint=<bus_host:bus_port> --ports-range=<start_port:end_port> [--use-mork=true|false]
+busclient --service=<service> --endpoint=<host:port> --bus-endpoint=<bus_host:bus_port> --ports-range=<start_port:end_port> [--atomdb-type=<redismongodb|morkdb|inmemorydb>]
         )")}};
 
 static map<string, ProcessorType> string_to_processor_type = {

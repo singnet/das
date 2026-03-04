@@ -46,8 +46,10 @@ cc_library(
     deps = [
         ":atomdb_cache_singleton",
         "//atomdb:atomdb_api_types",
+        "//atomdb/inmemorydb",
         "//atomdb/morkdb",
         "//atomdb/redis_mongodb",
+        "//atomdb/remotedb",
         "//commons:commons_lib",
     ],
 )

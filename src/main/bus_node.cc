@@ -43,14 +43,25 @@ int main(int argc, char* argv[]) {
         signal(SIGINT, ctrl_c_handler);
         signal(SIGTERM, ctrl_c_handler);
         ///////// Initializing dependencies
-        LOG_INFO("Starting service: " + cmd_args[Helper::SERVICE]);
+        LOG_INFO("Starting service: PREULA" + cmd_args[Helper::SERVICE]);
         auto props = Properties(cmd_args.begin(), cmd_args.end());
         if (props.find(Helper::ATTENTION_BROKER_ENDPOINT) != props.end()) {
             AttentionBrokerClient::set_server_address(
                 props.get<string>(Helper::ATTENTION_BROKER_ENDPOINT));
         }
-        if (props.get_or<string>(Helper::USE_MORK, "false") == "true") {
+        string atomdb_type = props.get_or<string>(Helper::ATOMDB_TYPE, "");
+        LOG_INFO("AtomDB type: " + atomdb_type);
+        if (atomdb_type == "morkdb") {
             AtomDBSingleton::init(atomdb_api_types::ATOMDB_TYPE::MORKDB);
+        } else if (atomdb_type == "inmemorydb") {
+            AtomDBSingleton::init(atomdb_api_types::ATOMDB_TYPE::INMEMORYDB);
+        } else if (atomdb_type == "remotedb") {
+            auto json_file_path = props.get_or<string>(Helper::REMOTEDB_CONFIG_FILE_PATH, "");
+            if (json_file_path == "") {
+                Utils::error("RemoteDB config file path is required");
+                return 1;
+            }
+            AtomDBSingleton::init(atomdb_api_types::ATOMDB_TYPE::REMOTEDB, json_file_path);
         } else {
             AtomDBSingleton::init();
         }

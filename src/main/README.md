@@ -32,26 +32,30 @@ make run-busnode OPTIONS="--service=query-engine --help"
 Run the `bus_node` binary with the required parameters:
 
 ```bash
-make run-busnode OPTIONS="--service=<SERVICE_NAME> --endpoint=<ENDPOINT> --ports-range=<PORTS_RANGE>
+make run-busnode OPTIONS="--service=<SERVICE_NAME> --endpoint=<ENDPOINT> --ports-range=<PORTS_RANGE>"
 ```
+
+The default AtomDB backend is `RedisMongoDB`, you can change that by adding `--atomdb-type=<morkdb|inmemorydb|remotedb>`
+
+Using `--atomdb-type=remotedb` also requires to add the flag `--remotedb-config=<JSON_FILE_PATH>`
 
 ### Examples
 
 #### Query Engine
 ```
-make run-busnode OPTIONS="--service=query-engine --endpoint=localhost:9000 --ports-range=3000:3100 --attention-broker-endpoint=localhost:37007"
+make run-busnode OPTIONS="--service=query-engine --endpoint=localhost:9000 --ports-range=3000:3100 --attention-broker-endpoint=localhost:40001"
 ```
 #### Evolution Agent
 ```
-make run-busnode OPTIONS="--service=evolution-agent --endpoint=localhost:9001 --ports-range=4000:4100 --attention-broker-endpoint=localhost:37007 --bus-endpoint=localhost:9000"
+make run-busnode OPTIONS="--service=evolution-agent --endpoint=localhost:9001 --ports-range=4000:4100 --attention-broker-endpoint=localhost:40001 --bus-endpoint=localhost:9000"
 ```
 #### LCA
 ```
-make run-busnode OPTIONS="--service=link-creation-agent --endpoint=localhost:9002 --ports-range=4000:4100 --attention-broker-endpoint=localhost:37007 --bus-endpoint=localhost:9000"
+make run-busnode OPTIONS="--service=link-creation-agent --endpoint=localhost:9002 --ports-range=4000:4100 --attention-broker-endpoint=localhost:40001 --bus-endpoint=localhost:9000"
 ```
 #### Inference Agent
 ```
-make run-busnode OPTIONS="--service=inference-agent --endpoint=localhost:9003 --ports-range=5000:5100 --attention-broker-endpoint=localhost:37007 --bus-endpoint=localhost:9000"
+make run-busnode OPTIONS="--service=inference-agent --endpoint=localhost:9003 --ports-range=5000:5100 --attention-broker-endpoint=localhost:40001 --bus-endpoint=localhost:9000"
 ```
 #### AtomDB
 ```

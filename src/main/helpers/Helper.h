@@ -29,7 +29,8 @@ class Helper {
     static string BUS_ENDPOINT;
     static string PORTS_RANGE;
     static string ATTENTION_BROKER_ENDPOINT;
-    static string USE_MORK;
+    static string ATOMDB_TYPE;
+    static string REMOTEDB_CONFIG_FILE_PATH;
     static string ACTION;
     static string TOKENS;
     static string REQUEST;

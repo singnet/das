@@ -2,8 +2,10 @@
 
 #include <memory>
 
+#include "InMemoryDB.h"
 #include "MorkDB.h"
 #include "RedisMongoDB.h"
+#include "RemoteAtomDB.h"
 
 using namespace std;
 
@@ -21,7 +23,8 @@ class AtomDBSingleton {
    public:
     ~AtomDBSingleton() {}
     static void init(
-        atomdb_api_types::ATOMDB_TYPE atomdb_type = atomdb_api_types::ATOMDB_TYPE::REDIS_MONGODB);
+        atomdb_api_types::ATOMDB_TYPE atomdb_type = atomdb_api_types::ATOMDB_TYPE::REDIS_MONGODB,
+        const string& json_file_path = "");
     static shared_ptr<AtomDB> get_instance();
     static void provide(shared_ptr<AtomDB> atom_db);
 
