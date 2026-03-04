@@ -77,6 +77,10 @@ HandleTrie::TrieValue* HandleTrie::insert(const string& key, TrieValue* value) {
         Utils::error("Invalid key size: " + to_string(key.size()) + " != " + to_string(key_size));
     }
 
+    if (value == NULL) {
+        Utils::error("Value cannot be NULL");
+    }
+
     TrieNode* tree_cursor = root;
     TrieNode* parent = root;
     TrieNode* child;

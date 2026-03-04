@@ -407,7 +407,7 @@ void RemoteAtomDBPeer::fetch(const LinkSchema& link_schema) {
         auto result = atomdb_->query_for_pattern(link_schema);
         if (result) {
             feed_cache_from_handle_set(result);
-            fetched_link_templates_.insert(link_schema.handle(), NULL);
+            fetched_link_templates_.insert(link_schema.handle(), empty_trie_value_);
         }
     }
 }

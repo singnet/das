@@ -16,12 +16,6 @@ using namespace atoms;
 
 namespace atomdb {
 
-// Dummy TrieValue for using HandleTrie as a set (presence only)
-class EmptyTrieValue : public HandleTrie::TrieValue {
-   public:
-    void merge(HandleTrie::TrieValue* /*other*/) override {}
-};
-
 /**
  * RemoteAtomDBPeer represents a cached connection to a remote AtomDB.
  * It combines an in-memory cache, a read-only remote AtomDB, and local persistence
