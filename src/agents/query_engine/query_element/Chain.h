@@ -27,15 +27,15 @@ public:
 
     class Path {
         public:
-        vector<pair<shared_ptr<Link>, double>> links;
+        vector<pair<shared_ptr<Link>, shared_ptr<QueryAnswer>>> links;
         double path_sti;
         bool forward_flag;
-        Path(shared_ptr<Link> link, double sti, bool forward_flag) {
+        Path(shared_ptr<Link> link, QueryAnswer* answer, bool forward_flag) {
             if (link->targets[1] == link->targets[2]) {
                 Utils::error("Invalid cyclic link: " + link->to_string());
             }
-            this->links.push_back({link, sti});
-            this->path_sti = sti;
+            this->links.push_back({link, shared_ptr<QueryAnswer>(answer)});
+            this->path_sti = answer->importance;
             this->forward_flag = forward_flag;
         }
         Path(const Path& other) {

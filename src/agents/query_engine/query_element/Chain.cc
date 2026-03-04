@@ -142,7 +142,7 @@ bool Chain::PathFinder::thread_one_step() {
     Path previous_path = base_heap->top_and_pop();
     LOG_DEBUG("[PATH_FINDER] " << "Popped: " + previous_path.to_string());
     if (previous_path.end_point() == this->destiny) {
-        LOG_DEBUG("[PATH_FINDER] " << "Reporting complete path: " << previous_path.to_string());
+        LOG_DEBUG("[PATH_FINDER] " << "Found complete path: " << previous_path.to_string());
         this->chain_operator->report_path(previous_path);
         return true;
     }
@@ -154,6 +154,8 @@ bool Chain::PathFinder::thread_one_step() {
     if (candidates_heap->empty()) {
         LOG_DEBUG("[PATH_FINDER] " << "Found no candidates.");
         return ! conditional_refeed(previous_path, candidates_heap, 0);
+    } else {
+        LOG_DEBUG("[PATH_FINDER] " << "Found " << candidates_heap->size());
     }
 
     vector<Path> candidates;
@@ -179,7 +181,7 @@ bool Chain::PathFinder::thread_one_step() {
         }
     }
     if (best_sti >= 0) {
-        LOG_DEBUG("[PATH_FINDER] " << "Reporting incomplete path: " << best_path.to_string());
+        LOG_DEBUG("[PATH_FINDER] " << "Best path: " << best_path.to_string());
         this->chain_operator->report_path(best_path);
         return true;
     } else {
@@ -192,9 +194,9 @@ void Chain::refeed_paths() {
     while (! this->refeeding_buffer.empty()) {
         Path path = refeeding_buffer.front_and_pop();
         if (path.forward_flag) {
-            this->source_index[source_handle]->push(path, path.path_sti);
+            this->source_index[this->source_handle]->push(path, path.path_sti);
         } else {
-            this->target_index[target_handle]->push(path, path.path_sti);
+            this->target_index[this->target_handle]->push(path, path.path_sti);
         }
     }
 }
@@ -242,7 +244,7 @@ bool Chain::thread_one_step() {
                                 this->source_index[link->targets[i]] = make_shared<HeapType>();
                             }
                         }
-                        this->source_index[link->targets[1]]->push(Path(link, answer->importance, true), answer->importance);
+                        this->source_index[link->targets[1]]->push(Path(link, answer, true), answer->importance);
                     }
                     {
                         lock_guard<mutex> semaphore(this->target_index_mutex);
@@ -251,7 +253,7 @@ bool Chain::thread_one_step() {
                                 this->target_index[link->targets[i]] = make_shared<HeapType>();
                             }
                         }
-                        this->target_index[link->targets[2]]->push(Path(link, answer->importance, false), answer->importance);
+                        this->target_index[link->targets[2]]->push(Path(link, QueryAnswer::copy(answer), false), answer->importance);
                     }
                 } else {
                     Utils::error("Invalid Link " + link->to_string() + " with arity " + std::to_string(link->arity()) + " in CHAIN operator.");
@@ -279,11 +281,17 @@ void Chain::report_path(Path& path) {
     QueryAnswer* query_answer = new QueryAnswer(path.path_sti);
     if (path.forward_flag) {
         for (auto pair : path.links) {
-            query_answer->add_handle(pair.first->handle());
+            query_answer->add_handle(pair.first->handle()); // TODO change to use handle in query_answer
+            if (! query_answer->merge(pair.second.get())) {
+                Utils::error("Incompatible assignments in Chain operator answer: " + query_answer->to_string() + " + " + pair.second->to_string());
+            }
         }
     } else {
         for (auto pair = path.links.rbegin(); pair != path.links.rend(); ++pair) {
             query_answer->add_handle(pair->first->handle());
+            if (! query_answer->merge(pair->second.get())) {
+                Utils::error("Incompatible assignments in Chain operator answer: " + query_answer->to_string() + " + " + pair->second->to_string());
+            }
         }
     }
     string answer_hash = Hasher::composite_handle(query_answer->handles);
@@ -322,15 +330,18 @@ bool Chain::all_paths_explored() {
 // Private stuff
 
 void Chain::initialize(const array<shared_ptr<QueryElement>, 1>& clauses) {
-    this->id = "CHAIN";
+    if (clauses.size() != 1) {
+        Utils::error("Invalid Chain operator with " + std::to_string(clauses.size()) + " clauses.");
+    }
+    this->id = "CHAIN(" + clauses[0]->id, + ", " + this->source_handle + ", " + this->target_handle + ")";
     this->all_input_acknowledged_flag = false;
     this->all_paths_explored_flag = false;
     this->forward_path_finder = new PathFinder(this, true);
     this->backward_path_finder = new PathFinder(this, false);
-    this->source_index[source_handle] = make_shared<HeapType>();
-    this->source_index[target_handle] = make_shared<HeapType>();
-    this->target_index[source_handle] = make_shared<HeapType>();
-    this->target_index[target_handle] = make_shared<HeapType>();
+    this->source_index[this->source_handle] = make_shared<HeapType>();
+    this->source_index[this->target_handle] = make_shared<HeapType>();
+    this->target_index[this->source_handle] = make_shared<HeapType>();
+    this->target_index[this->target_handle] = make_shared<HeapType>();
 }
 
 string Chain::Path::to_string() {
