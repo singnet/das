@@ -77,6 +77,10 @@ HandleTrie::TrieValue* HandleTrie::insert(const string& key, TrieValue* value) {
         Utils::error("Invalid key size: " + to_string(key.size()) + " != " + to_string(key_size));
     }
 
+    if (value == NULL) {
+        Utils::error("Value cannot be NULL");
+    }
+
     TrieNode* tree_cursor = root;
     TrieNode* parent = root;
     TrieNode* child;
@@ -210,17 +214,18 @@ HandleTrie::TrieNode* HandleTrie::lookup_node(const string& key) {
     return NULL;
 }
 
-bool HandleTrie::remove(const string& key) {
+bool HandleTrie::remove(const string& key, bool delete_value) {
     TrieNode* node = lookup_node(key);
     if (node == NULL) {
         return false;
     }
-    node->trie_node_mutex.lock();
     if (node->value == NULL) {
-        node->trie_node_mutex.unlock();
         return false;
     }
-    delete node->value;
+    node->trie_node_mutex.lock();
+    if (delete_value) {
+        delete node->value;
+    }
     node->value = NULL;
     this->size--;
     node->trie_node_mutex.unlock();

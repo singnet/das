@@ -1,13 +1,3 @@
 Highlights:
-(#1030) Add mork-server and mork-loader images to DAS release.
-(#1024) Remove old atom_space 'Context' code
-(#1021) Add support for RPM and DEB packaging
-(#1016) Implement InMemoryDB
-(#1008) Add re_index_patterns()
-(#998)  Inference fine tunning
-
-Bug fixes:
-(#1022) Fixed client and server mains helper
-(#1017) Fixed bazel dependencies and updated for Bazel 9.0.0
-(#1007) Fixed Inference test code parameters
-(#997)  Fixed mattermost message format
+(#1036) Joint test client for inference and query evolution
+(#1040) Hotfix: compliance with removal of context.h and atomspace.h

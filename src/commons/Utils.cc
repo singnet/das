@@ -216,6 +216,11 @@ unsigned long Utils::get_current_free_ram() {
         "cat /proc/meminfo | grep MemAvailable | rev | cut -d\" \" -f2 | rev"));
 }
 
+unsigned long Utils::get_total_ram() {
+    return std::stol(
+        Utils::linux_command_line("cat /proc/meminfo | grep MemTotal | rev | cut -d\" \" -f2 | rev"));
+}
+
 unsigned long Utils::get_current_ram_usage() {
     using std::ifstream;
     using std::ios_base;

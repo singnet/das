@@ -1,26 +1,16 @@
 [
   {
-    "repository": "https://github.com/singnet/das-atom-db.git",
-    "workflow": "run-tests.yml",
-    "ref": "master"
-  },
-  {
-    "repository": "https://github.com/singnet/das-query-engine.git",
-    "workflow": "run-tests.yml",
-    "ref": "master"
-  },
-  {
     "repository": "https://github.com/singnet/das-toolbox.git",
     "workflow": "run-das-cli-tests.yml",
     "ref": "master"
   },
   {
-    "repository": "https://github.com/singnet/das-node.git",
+    "repository": "https://github.com/singnet/das-database-adapter.git",
     "workflow": "run-tests.yml",
     "ref": "master"
   },
   {
-    "repository": "https://github.com/singnet/das-database-adapter.git",
+    "repository": "https://github.com/singnet/das.git",
     "workflow": "run-tests.yml",
     "ref": "master"
   }

@@ -78,10 +78,11 @@ class HandleTrie {
      * Remove a key from this HandleTrie and its associated value.
      *
      * @param key Handle being removed.
+     * @param delete_value Whether to delete the value associated with the key.
      *
      * @return true if the key was found and removed, false otherwise.
      */
-    bool remove(const string& key);
+    bool remove(const string& key, bool delete_value = true);
 
     /**
      * Traverse all keys (in-order) calling the passed visit_function once per stored value.
@@ -130,6 +131,16 @@ class HandleTrie {
     }
 
     unsigned int key_size;
+};
+
+/**
+ * Dummy TrieValue for using HandleTrie as a set (presence only).
+ * Use this when you only need to track which keys exist, with no payload.
+ * Safe to pass to insert(); merge() is a no-op.
+ */
+class EmptyTrieValue : public HandleTrie::TrieValue {
+   public:
+    void merge(HandleTrie::TrieValue* /*other*/) override {}
 };
 
 }  // namespace commons
