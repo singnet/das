@@ -65,7 +65,7 @@ pkg_rpm(
         "@platforms//os:linux": [],
         "//conditions:default": ["@platforms//:incompatible"],
     }),
-    version = "1.0.3",
+    version = "1",
 )
 
 # DEB Packaging Setup
@@ -119,5 +119,5 @@ pkg_deb(
     description = "Distributed AtomSpace Binaries and Libraries",
     maintainer = "Hyperon DAS Team",
     package = "das",
-    version = "1.0.3",
+    version = "1",
 )
