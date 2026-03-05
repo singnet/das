@@ -6,7 +6,7 @@
 #include "Processor.h"
 #include "SharedQueue.h"
 
-#define BATCH_SIZE 10000
+#define BATCH_SIZE 2000
 
 using namespace atomdb;
 using namespace std;

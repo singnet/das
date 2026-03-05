@@ -35,9 +35,13 @@ class PostgresDatabaseConnection : public DatabaseConnection {
     void connect() override;
     void disconnect() override;
     pqxx::result execute_query(const string& query);
+    void begin_cursor(const string& cursor_name, const string& query);
+    pqxx::result fetch_cursor(const string& cursor_name, size_t limit);
+    void close_cursor();
 
    protected:
     unique_ptr<pqxx::connection> conn;
+    unique_ptr<pqxx::work> transaction;
     string database;
     string user;
     string password;
@@ -88,7 +92,7 @@ class PostgresWrapper : public SQLWrapper {
     map<string, vector<string>> extract_aliases_from_query(const string& query);
     void fetch_rows_paginated(const Table& table, const vector<string>& columns, const string& query);
     SqlRow build_sql_row(const pqxx::row& row, const Table& table, vector<string> columns);
-    void log_progress(const string& table_name, int rows_count, int total_rows);
+    void log_progress(const string& table_name, int rows_count);
 };
 
 }  // namespace db_adapter

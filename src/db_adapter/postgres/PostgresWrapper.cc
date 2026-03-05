@@ -62,6 +62,31 @@ pqxx::result PostgresDatabaseConnection::execute_query(const string& query) {
     return pqxx::result{};
 }
 
+void PostgresDatabaseConnection::begin_cursor(const string& cursor_name, const string& query) {
+    if (!this->conn || !this->conn->is_open()) {
+        Utils::error("Postgres connection is not open.");
+    }
+    if (this->transaction) {
+        Utils::error("A transaction is already active. Close the current cursor first.");
+    }
+    this->transaction = make_unique<pqxx::work>(*this->conn);
+    this->transaction->exec("DECLARE " + cursor_name + " CURSOR FOR " + query);
+}
+
+pqxx::result PostgresDatabaseConnection::fetch_cursor(const string& cursor_name, size_t limit) {
+    if (!this->transaction) {
+        Utils::error("No active transaction. Call begin_cursor first.");
+    }
+    return this->transaction->exec("FETCH " + std::to_string(limit) + " FROM " + cursor_name);
+}
+
+void PostgresDatabaseConnection::close_cursor() {
+    if (this->transaction) {
+        this->transaction->commit();
+        this->transaction.reset();
+    }
+}
+
 // ===============================================================================================
 // PostgresWrapper implementation
 // ===============================================================================================
@@ -383,22 +408,21 @@ map<string, vector<string>> PostgresWrapper::extract_aliases_from_query(const st
 void PostgresWrapper::fetch_rows_paginated(const Table& table,
                                            const vector<string>& columns,
                                            const string& query) {
-    size_t offset = 0;
+    LOG_INFO("[START] Mapping table " << table.name);
+
     size_t limit = 10000;
-
-    pqxx::result result = db_conn.execute_query("SELECT COUNT(*) FROM (" + query + ") AS total");
-    int total_rows = result[0][0].as<int>(0);
-    // int total_rows = table.row_count;
     int rows_count = 0;
+    int atoms_count = 0;
 
-    LOG_DEBUG("Counting rows for query on table " << table.name << ": " << total_rows);
+    string table_name = table.name;
+    Utils::replace_all(table_name, ".", "_");
+    string cursor_name = "cursor_" + table_name;
+
+    this->db_conn.begin_cursor(cursor_name, query);
 
     while (true) {
-        string paginated_query =
-            query + " LIMIT " + std::to_string(limit) + " OFFSET " + std::to_string(offset);
-        pqxx::result rows = db_conn.execute_query(paginated_query);
+        pqxx::result rows = this->db_conn.fetch_cursor(cursor_name, limit);
 
-        LOG_DEBUG("Executing paginated query: " << paginated_query);
         LOG_DEBUG("Fetched " << rows.size() << " rows from table " << table.name);
 
         if (rows.empty()) break;
@@ -417,9 +441,8 @@ void PostgresWrapper::fetch_rows_paginated(const Table& table,
 
             if (this->mapper_type == MAPPER_TYPE::SQL2ATOMS) {
                 auto atoms = get<vector<Atom*>>(output);
-
                 LOG_DEBUG("Atoms count: " << atoms.size());
-
+                atoms_count += atoms.size();
                 unique_lock<mutex> lock(this->api_mutex);
                 for (const auto& atom : atoms) {
                     this->output_queue->enqueue((void*) atom);
@@ -434,16 +457,15 @@ void PostgresWrapper::fetch_rows_paginated(const Table& table,
 
             rows_count++;
 
-            // int current_progress = (rows_count * 100) / total_rows;
-
-            // LOG_INFO("Mapped " << rows_count << "/" << total_rows << " (" << current_progress
-            //                << "%) rows from the " << table.name << " table");
-
-            this->log_progress(table.name, rows_count, total_rows);
+            this->log_progress(table.name, rows_count);
         }
-
-        offset += limit;
+        LOG_DEBUG("Mapping table " << table.name << ". Total atoms generated: " << atoms_count);
     }
+
+    this->db_conn.close_cursor();
+
+    LOG_INFO("[END] Mapping table " << table.name << ". Total atoms generated: " << atoms_count);
+    LOG_DEBUG("[END] Mapper HandleTrie size: " << this->mapper->handle_trie_size());
 }
 
 SqlRow PostgresWrapper::build_sql_row(const pqxx::row& row, const Table& table, vector<string> columns) {
@@ -483,13 +505,11 @@ SqlRow PostgresWrapper::build_sql_row(const pqxx::row& row, const Table& table, 
     return sql_row;
 }
 
-void PostgresWrapper::log_progress(const string& table_name, int rows_count, int total_rows) {
-    int current_progress = (rows_count * 100) / total_rows;
-    int last_progress = this->tables_rows_count[table_name];
+void PostgresWrapper::log_progress(const string& table_name, int rows_count) {
+    int last_logged_count = this->tables_rows_count[table_name];
 
-    if (current_progress != last_progress) {
-        LOG_INFO("Mapped " << rows_count << "/" << total_rows << " (" << current_progress
-                           << "%) rows from the " << table_name << " table");
-        this->tables_rows_count[table_name] = current_progress;
+    if (rows_count - last_logged_count >= 10000) {
+        LOG_INFO("Mapped " << rows_count << " rows from the " << table_name << " table");
+        this->tables_rows_count[table_name] = rows_count;
     }
 }
