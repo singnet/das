@@ -123,6 +123,8 @@ fi
 
 echo "[INFO] Installing libpqxx (PostgreSQL C++ client)..."
 
+apt install libpq-dev -y
+
 if [[ ! -f "${ASSETS_DIR}/libpqxx-7.10.5.tar.gz" ]]; then
   echo "[ERROR] ${ASSETS_DIR}/libpqxx-7.10.5.tar.gz not found."
   exit 1
