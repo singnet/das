@@ -29,7 +29,7 @@ sudo apt update -y
 sudo apt install -y \
   git build-essential curl protobuf-compiler python3 python3-pip \
   cmake unzip uuid-runtime lcov bc \
-  libevent-dev libssl-dev pkg-config libncurses5
+  libevent-dev libssl-dev pkg-config libncurses5 libpq-dev
 
 echo "[INFO] Cleaning apt cache..."
 sudo apt clean -y || true
@@ -123,20 +123,25 @@ fi
 
 echo "[INFO] Installing libpqxx (PostgreSQL C++ client)..."
 
-if [[ ! -f "${ASSETS_DIR}/libpqxx-7.7.0.tar.gz" ]]; then
-  echo "[ERROR] ${ASSETS_DIR}/libpqxx-7.7.0.tar.gz not found."
+if [[ ! -f "${ASSETS_DIR}/libpqxx-7.10.5.tar.gz" ]]; then
+  echo "[ERROR] ${ASSETS_DIR}/libpqxx-7.10.5.tar.gz not found."
   exit 1
 fi
 
-cp "${ASSETS_DIR}/libpqxx-7.7.0.tar.gz" "${TMP_DIR}/"
+cp "${ASSETS_DIR}/libpqxx-7.10.5.tar.gz" "${TMP_DIR}/"
 cd "${TMP_DIR}"
-tar xzvf libpqxx-7.7.0.tar.gz
-cd libpqxx-7.7.0
-./configure --prefix=/usr/local
-cmake -S . -B build -DCMAKE_BUILD_TYPE=RelWithDebInfo
+tar xzvf libpqxx-7.10.5.tar.gz
+cd libpqxx-7.10.5
+
+cmake -S . -B build \
+    -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+    -DBUILD_TESTING=OFF \
+    -DCMAKE_INSTALL_PREFIX=/usr/local
+
 cmake --build build -j"$(nproc)"
-cmake --install build
-ldconfig
+
+sudo cmake --install build
+sudo ldconfig
 
 echo "[INFO] Configuring git safe.directory for ${DAS_DIR}..."
 sudo -u builder git config --global --add safe.directory "${DAS_DIR}"
