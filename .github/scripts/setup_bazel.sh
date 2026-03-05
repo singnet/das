@@ -132,11 +132,16 @@ cp "${ASSETS_DIR}/libpqxx-7.10.5.tar.gz" "${TMP_DIR}/"
 cd "${TMP_DIR}"
 tar xzvf libpqxx-7.10.5.tar.gz
 cd libpqxx-7.10.5
-./configure --prefix=/usr/local
-cmake -S . -B build -DCMAKE_BUILD_TYPE=RelWithDebInfo
+
+cmake -S . -B build \
+    -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+    -DBUILD_TESTING=OFF \
+    -DCMAKE_INSTALL_PREFIX=/usr/local
+
 cmake --build build -j"$(nproc)"
-cmake --install build
-ldconfig
+
+sudo cmake --install build
+sudo ldconfig
 
 echo "[INFO] Configuring git safe.directory for ${DAS_DIR}..."
 sudo -u builder git config --global --add safe.directory "${DAS_DIR}"
