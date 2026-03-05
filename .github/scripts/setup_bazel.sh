@@ -29,7 +29,7 @@ sudo apt update -y
 sudo apt install -y \
   git build-essential curl protobuf-compiler python3 python3-pip \
   cmake unzip uuid-runtime lcov bc \
-  libevent-dev libssl-dev pkg-config libncurses5
+  libevent-dev libssl-dev pkg-config libncurses5 libpq-dev 
 
 echo "[INFO] Cleaning apt cache..."
 sudo apt clean -y || true
@@ -122,8 +122,6 @@ if ! id "builder" &>/dev/null; then
 fi
 
 echo "[INFO] Installing libpqxx (PostgreSQL C++ client)..."
-
-apt install libpq-dev -y
 
 if [[ ! -f "${ASSETS_DIR}/libpqxx-7.10.5.tar.gz" ]]; then
   echo "[ERROR] ${ASSETS_DIR}/libpqxx-7.10.5.tar.gz not found."
