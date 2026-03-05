@@ -263,8 +263,7 @@ bool Chain::thread_one_step() {
                     shared_ptr<Link> link =
                         dynamic_pointer_cast<Link>(AtomDBSingleton::get_instance()->get_atom(handle));
                     if (link == nullptr) {
-                        LOG_DEBUG("[CHAIN OPERATOR] "
-                                  << "NULL link");
+                        Utils::error("Invalid query answer in Chain operator.");
                     } else {
                         LOG_DEBUG("[CHAIN OPERATOR] "
                                   << "Valid link");
@@ -378,7 +377,8 @@ void Chain::initialize(const array<shared_ptr<QueryElement>, 1>& clauses) {
     if (clauses.size() != 1) {
         Utils::error("Invalid Chain operator with " + std::to_string(clauses.size()) + " clauses.");
     }
-    this->id = "CHAIN(" + clauses[0]->id, +", " + this->source_handle + ", " + this->target_handle + ")";
+    this->id = "CHAIN(" + clauses[0]->id + ", " + this->source_handle + ", " 
+        + this->target_handle + ")";
     this->all_input_acknowledged_flag = false;
     this->all_paths_explored_flag = false;
     this->forward_path_finder = new PathFinder(this, true);
