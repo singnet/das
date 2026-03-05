@@ -123,12 +123,12 @@ fi
 
 echo "[INFO] Installing libpqxx (PostgreSQL C++ client)..."
 
-if [[ ! -f "${ASSETS_DIR}/libpqxx-7.10.5" ]]; then
-  echo "[ERROR] ${ASSETS_DIR}/libpqxx-7.10.5 not found."
+if [[ ! -f "${ASSETS_DIR}/libpqxx-7.10.5.tar.gz" ]]; then
+  echo "[ERROR] ${ASSETS_DIR}/libpqxx-7.10.5.tar.gz not found."
   exit 1
 fi
 
-cp "${ASSETS_DIR}/libpqxx-7.10.5" "${TMP_DIR}/"
+cp "${ASSETS_DIR}/libpqxx-7.10.5.tar.gz" "${TMP_DIR}/"
 cd "${TMP_DIR}"
 tar xzvf libpqxx-7.10.5.tar.gz
 cd libpqxx-7.10.5
