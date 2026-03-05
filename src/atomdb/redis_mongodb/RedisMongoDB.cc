@@ -1026,6 +1026,12 @@ vector<string> RedisMongoDB::add_links(const vector<atoms::Link*>& links,
             mongodb_doc = make_shared<atomdb_api_types::MongodbDocument>(link, *this);
         }
 
+        if (ctx->get_pending_commands_count() >= REDIS_CHUNK_SIZE) {
+            LOG_DEBUG("Flushing Redis commands batch START");
+            ctx->flush_commands();
+            LOG_DEBUG("Flushing Redis commands batch END");
+        }
+
         documents.push_back(mongodb_doc->value());
 
         handles.push_back(link_handle);
@@ -1035,9 +1041,11 @@ vector<string> RedisMongoDB::add_links(const vector<atoms::Link*>& links,
         upsert_documents(documents, MONGODB_LINKS_COLLECTION_NAME);
     }
 
-    LOG_DEBUG("Flushing Redis commands START");
-    ctx->flush_commands();
-    LOG_DEBUG("Flushing Redis commands END");
+    if (ctx->get_pending_commands_count() > 0) {
+        LOG_DEBUG("Flushing remaining Redis commands");
+        ctx->flush_commands();
+        LOG_DEBUG("Flushing remaining Redis commands END");
+    }
 
     LOG_DEBUG("Setting next scores: patterns=" + to_string(this->patterns_next_score.load()) +
               ", incoming=" + to_string(this->incoming_set_next_score.load()));
