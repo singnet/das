@@ -35,6 +35,8 @@ echo "[INFO] Cleaning apt cache..."
 sudo apt clean -y || true
 sudo rm -rf /var/lib/apt/lists/* || true
 
+# Installing bazelisk and copying other assets.
+
 echo "[INFO] Installing 3rd-party tools (bazelisk, buildifier)..."
 
 if [[ ! -f "${ASSETS_DIR}/3rd-party.tgz" ]]; then
@@ -118,6 +120,23 @@ echo "[INFO] Creating user 'builder' (if not exists)..."
 if ! id "builder" &>/dev/null; then
   sudo useradd -ms /bin/bash builder
 fi
+
+echo "[INFO] Installing libpqxx (PostgreSQL C++ client)..."
+
+if [[ ! -f "${ASSETS_DIR}/libpqxx-7.7.0.tar.gz" ]]; then
+  echo "[ERROR] ${ASSETS_DIR}/libpqxx-7.7.0.tar.gz not found."
+  exit 1
+fi
+
+cp "${ASSETS_DIR}/libpqxx-7.7.0.tar.gz" "${TMP_DIR}/"
+cd "${TMP_DIR}"
+tar xzvf libpqxx-7.7.0.tar.gz
+cd libpqxx-7.7.0
+./configure --prefix=/usr/local
+cmake -S . -B build -DCMAKE_BUILD_TYPE=RelWithDebInfo
+cmake --build build -j"$(nproc)"
+cmake --install build
+ldconfig
 
 echo "[INFO] Configuring git safe.directory for ${DAS_DIR}..."
 sudo -u builder git config --global --add safe.directory "${DAS_DIR}"

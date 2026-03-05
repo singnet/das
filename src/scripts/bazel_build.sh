@@ -60,7 +60,6 @@ if [ "$BUILD_BINARIES" = true ]; then
     MOVE_BIN_TARGETS+=" bazel-bin/tests_db_loader"
     MOVE_BIN_TARGETS+=" bazel-bin/database_adapter"
 
-
 fi
 
 if [ "$BUILD_WHEELS" = true ]; then
@@ -87,5 +86,19 @@ find "$LIB_DIR" -type f -name "*.so" | while IFS= read -r sofile; do
     done
 done
 
+# Add exclusive block just to handle database_adapter SO dependencies.
+
+find "$BIN_DIR" -type f -executable -name "database_adapter" | while IFS= read -r binfile; do
+    ldd "$binfile" | awk '/=> \// { print $3 }' | while IFS= read -r dep; do
+        dep_base=$(basename "$dep")
+        case "$dep_base" in
+            "libpq.so.5")
+                if [ -f "$dep" ]; then
+                    cp -f "$dep" "$LIB_DIR"
+                fi
+                ;;
+        esac
+    done
+done
 
 exit $?

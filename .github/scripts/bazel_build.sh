@@ -67,6 +67,7 @@ BAZEL_BINARY_TARGETS=(
   "//:tests_db_loader"
   "//:busnode"
   "//:busclient"
+  "//:database_adapter"
 )
 
 BAZEL_BINARY_OUTPUTS=(
@@ -78,6 +79,7 @@ BAZEL_BINARY_OUTPUTS=(
   "bazel-bin/tests_db_loader"
   "bazel-bin/busnode"
   "bazel-bin/busclient"
+  "bazel-bin/database_adapter"
 )
 
 BAZEL_LIB_OUTPUTS=(
@@ -180,6 +182,21 @@ if [ -d "$LIB_DIR" ]; then
     done
   done
 fi
+
+echo "[INFO] Copying database-adapter shared library dependencies into $LIB_DIR..."
+
+find "$BIN_DIR" -type f -executable -name "database_adapter" | while IFS= read -r binfile; do
+    ldd "$binfile" | awk '/=> \// { print $3 }' | while IFS= read -r dep; do
+        dep_base=$(basename "$dep")
+        case "$dep_base" in
+            "libpq.so.5")
+                if [ -f "$dep" ]; then
+                    cp -f "$dep" "$LIB_DIR"
+                fi
+                ;;
+        esac
+    done
+done
 
 echo "[INFO] Build finished successfully."
 echo "[INFO] Binaries in: $BIN_DIR"
