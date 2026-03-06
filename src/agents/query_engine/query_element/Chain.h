@@ -109,19 +109,25 @@ class Chain : public Operator<1>, public ThreadMethod {
 
     class Path {
        public:
-        vector<pair<shared_ptr<Link>, shared_ptr<QueryAnswer>>> links;
+        vector<pair<pair<string, string>, shared_ptr<QueryAnswer>>> edges;
         double path_sti;
         bool forward_flag;
-        Path(shared_ptr<Link> link, QueryAnswer* answer, bool forward_flag) {
-            if (link->targets[1] == link->targets[2]) {
-                Utils::error("Invalid cyclic link: " + link->to_string());
+        Path(const string& tail, const string& head, QueryAnswer* answer, bool forward_flag) {
+            if (tail == head) {
+                Utils::error("Invalid cyclic edge: " + tail + " -> " + head);
             }
-            this->links.push_back({link, shared_ptr<QueryAnswer>(answer)});
+            this->edges.push_back({{tail, head}, shared_ptr<QueryAnswer>(answer)});
             this->path_sti = answer->importance;
             this->forward_flag = forward_flag;
         }
+        Path(shared_ptr<Link> link, // Used in tests
+             QueryAnswer* answer, 
+             bool forward_flag) : Path(link->targets[1],
+                                       link->targets[2],
+                                       answer,
+                                       forward_flag) {}
         Path(const Path& other) {
-            this->links = other.links;
+            this->edges = other.edges;
             this->path_sti = other.path_sti;
             this->forward_flag = other.forward_flag;
         }
@@ -130,41 +136,41 @@ class Chain : public Operator<1>, public ThreadMethod {
             this->forward_flag = forward_flag;
         }
         Path& operator=(const Path& other) {
-            this->links = other.links;
+            this->edges = other.edges;
             this->path_sti = other.path_sti;
             this->forward_flag = other.forward_flag;
             return *this;
         }
-        inline bool empty() { return this->links.size() == 0; }
-        inline unsigned int size() { return this->links.size(); }
+        inline bool empty() { return this->edges.size() == 0; }
+        inline unsigned int size() { return this->edges.size(); }
         inline void clear() {
-            this->links.clear();
+            this->edges.clear();
             this->path_sti = 0;
         }
         inline void concatenate(const Path& other) {
             if (this->forward_flag != other.forward_flag) {
                 Utils::error("Invalid attempt to merge incompatible HeapElements");
             }
-            this->links.insert(this->links.end(), other.links.begin(), other.links.end());
+            this->edges.insert(this->edges.end(), other.edges.begin(), other.edges.end());
             this->path_sti = max(this->path_sti, other.path_sti);
         }
         inline string end_point() {
             if (this->forward_flag) {
-                return this->links.back().first->targets[2];
+                return this->edges.back().first.second;
             } else {
-                return this->links.back().first->targets[1];
+                return this->edges.back().first.first;
             }
         }
         inline string start_point() {
             if (this->forward_flag) {
-                return this->links.front().first->targets[1];
+                return this->edges.front().first.first;
             } else {
-                return this->links.front().first->targets[2];
+                return this->edges.front().first.second;
             }
         }
         inline bool contains(string handle) {
-            for (auto pair : this->links) {
-                if ((pair.first->targets[1] == handle) || (pair.first->targets[2] == handle)) {
+            for (auto pair : this->edges) {
+                if ((pair.first.first == handle) || (pair.first.second == handle)) {
                     return true;
                 }
             }
@@ -176,12 +182,18 @@ class Chain : public Operator<1>, public ThreadMethod {
             } else if (this->end_point() != other.start_point()) {
                 return false;
             }
-            unsigned int this_index = (this->forward_flag ? 1 : 2);
-            unsigned int other_index = (this->forward_flag ? 2 : 1);
-            for (auto pair_other : other.links) {
-                for (auto pair_this : this->links) {
-                    if (pair_other.first->targets[other_index] == pair_this.first->targets[this_index]) {
-                        return false;
+            //unsigned int this_index = (this->forward_flag ? 1 : 2);
+            //unsigned int other_index = (this->forward_flag ? 2 : 1);
+            for (auto pair_other : other.edges) {
+                for (auto pair_this : this->edges) {
+                    if (this->forward_flag) {
+                        if (pair_other.first.second == pair_this.first.first) {
+                            return false;
+                        }
+                    } else {
+                        if (pair_other.first.first == pair_this.first.second) {
+                            return false;
+                        }
                     }
                 }
             }
@@ -203,6 +215,18 @@ class Chain : public Operator<1>, public ThreadMethod {
 
     /**
      * Constructor.
+     */
+    Chain(const array<shared_ptr<QueryElement>, 1>& clauses,
+          const string& source_handle,
+          const string& target_handle,
+          const QueryAnswerElement& link_selector,
+          unsigned int tail_reference,
+          unsigned int head_reference);
+
+    /**
+     * Constructor. Typically used in tests, defaulting the link selector to the first handle in
+     * the query answer and assuming a link like (disregarded $v1 $v2) where chaining will be made
+     * assuming $v1 -> $v2.
      */
     Chain(const array<shared_ptr<QueryElement>, 1>& clauses,
           const string& source_handle,
@@ -306,6 +330,9 @@ class Chain : public Operator<1>, public ThreadMethod {
 
     string source_handle;
     string target_handle;
+    QueryAnswerElement link_selector;
+    unsigned int tail_reference;
+    unsigned int head_reference;
     PathFinder* forward_path_finder;
     PathFinder* backward_path_finder;
     shared_ptr<DedicatedThread> operator_thread;
