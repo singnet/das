@@ -837,10 +837,17 @@ TEST_F(PostgresWrapperTest, PipelineProcessor) {
     DatabaseMappingJob db_job(
         TEST_HOST, TEST_PORT, TEST_DB, TEST_USER, TEST_PASSWORD, MAPPER_TYPE::SQL2ATOMS, queue);
     db_job.add_task_query("Test1", query_organism);
-
     auto producer = make_shared<DedicatedThread>("producer", &db_job);
 
+    AtomPersistenceJob atomdb_job(queue);
+    auto consumer = make_shared<DedicatedThread>("consumer", &atomdb_job);
+
     EXPECT_EQ(queue->size(), 0);
+    consumer->setup();
+    EXPECT_EQ(queue->size(), 0);
+    consumer->start();
+    EXPECT_EQ(queue->size(), 0);
+
     producer->setup();
     EXPECT_EQ(queue->size(), 0);
     producer->start();
@@ -851,15 +858,8 @@ TEST_F(PostgresWrapperTest, PipelineProcessor) {
     }
     producer->stop();
 
-    EXPECT_EQ(queue->size(), 34);
+    atomdb_job.set_producer_finished();
 
-    AtomPersistenceJob atomdb_job(queue);
-    auto consumer = make_shared<DedicatedThread>("consumer", &atomdb_job);
-
-    EXPECT_EQ(queue->size(), 34);
-    consumer->setup();
-    EXPECT_EQ(queue->size(), 34);
-    consumer->start();
     EXPECT_EQ(queue->size(), 34);
 
     while (!atomdb_job.is_finished()) {
