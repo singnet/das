@@ -29,9 +29,7 @@ DatabaseMappingJob::DatabaseMappingJob(const string& host,
 }
 
 DatabaseMappingJob::~DatabaseMappingJob() {
-    if (this->db_conn->is_running()) {
-        this->db_conn->stop();
-    }
+    this->db_conn->stop();
 }
 
 void DatabaseMappingJob::add_task_query(const string& virtual_name, const string& query) {
@@ -79,6 +77,13 @@ bool DatabaseMappingJob::is_finished() const { return this->finished; }
 
 AtomPersistenceJob::AtomPersistenceJob(shared_ptr<SharedQueue> input_queue) : input_queue(input_queue) {
     this->atomdb = AtomDBSingleton::get_instance();
+}
+
+AtomPersistenceJob::~AtomPersistenceJob() {
+    for (auto& atom : this->atoms) {
+        delete atom;
+    }
+    this->atoms.clear();
 }
 
 bool AtomPersistenceJob::thread_one_step() {

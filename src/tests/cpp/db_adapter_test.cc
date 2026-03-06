@@ -317,9 +317,9 @@ TEST_F(PostgresWrapperTest, ListTables) {
 
     vector<Table> tables_cached = wrapper->list_tables();
 
-    ASSERT_EQ(tables_cached.size(), tables_cached.size());
+    ASSERT_EQ(tables_cached.size(), tables.size());
     if (!tables_cached.empty()) {
-        EXPECT_EQ(tables_cached[0].name, tables_cached[0].name);
+        EXPECT_EQ(tables_cached[0].name, tables[0].name);
     }
 }
 

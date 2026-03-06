@@ -12,7 +12,7 @@ DatabaseConnection::DatabaseConnection(const string& id, const string& host, int
     this->connected = false;
 }
 
-DatabaseConnection::~DatabaseConnection() {}
+DatabaseConnection::~DatabaseConnection() { this->stop(); }
 
 void DatabaseConnection::start() {
     if (this->is_running() || this->is_finished()) return;

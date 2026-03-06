@@ -3,7 +3,6 @@
 #include <iostream>
 #include <stack>
 
-#include "Logger.h"
 #include "Utils.h"
 #include "expression_hasher.h"
 
@@ -27,6 +26,7 @@ HandleTrie::TrieNode::~TrieNode() {
         delete children[i];
     }
     delete[] children;
+    // TODO: Remove this check once improve insert()
     if (value != NULL) {
         delete value;
         value = NULL;

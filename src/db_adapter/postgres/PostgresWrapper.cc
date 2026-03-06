@@ -21,7 +21,10 @@ PostgresDatabaseConnection::PostgresDatabaseConnection(const string& id,
                                                        const string& password)
     : DatabaseConnection(id, host, port), database(database), user(user), password(password) {}
 
-PostgresDatabaseConnection::~PostgresDatabaseConnection() {}
+PostgresDatabaseConnection::~PostgresDatabaseConnection() {
+    this->close_cursor();
+    this->disconnect();
+}
 
 void PostgresDatabaseConnection::connect() {
     LOG_INFO("Connecting to PostgreSQL database at " << host << ":" << port << "...");

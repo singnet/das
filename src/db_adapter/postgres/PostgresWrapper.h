@@ -73,14 +73,12 @@ class PostgresWrapper : public SQLWrapper {
                    bool second_level = false) override;
     void map_sql_query(const string& virtual_name, const string& raw_query) override;
 
-    mutex api_mutex;
-
    protected:
     // Regex for parsing alias patterns (e.g., "AS public_feature__uniquename")
     const string alias_pattern_regex = R"(\bAS\s+([a-zA-Z_][a-zA-Z0-9_]*)__([a-zA-Z_][a-zA-Z0-9_]*))";
 
    private:
-    // Store tables in cache to avoid repeated database queries.
+    mutex api_mutex;
     PostgresDatabaseConnection& db_conn;
     shared_ptr<SharedQueue> output_queue;
     optional<vector<Table>> tables_cache;

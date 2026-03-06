@@ -52,7 +52,7 @@ class DatabaseMappingJob : public ThreadMethod {
 class AtomPersistenceJob : public ThreadMethod {
    public:
     AtomPersistenceJob(shared_ptr<SharedQueue> input_queue);
-    ~AtomPersistenceJob() = default;
+    ~AtomPersistenceJob();
 
     bool thread_one_step() override;
     bool is_finished() const;
