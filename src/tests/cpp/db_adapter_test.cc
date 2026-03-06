@@ -65,15 +65,17 @@ class PostgresDatabaseConnectionTest : public ::testing::Test {
 
     void SetUp() override {}
 
-    void TearDown() override {}
+    void TearDown() override { this->conn->stop(); }
 
     shared_ptr<PostgresDatabaseConnection> create_db_connection() {
-        auto conn = make_shared<PostgresDatabaseConnection>(
+        this->conn = make_shared<PostgresDatabaseConnection>(
             "test-conn", TEST_HOST, TEST_PORT, TEST_DB, TEST_USER, TEST_PASSWORD);
-        conn->setup();
-        conn->start();
-        return conn;
+        this->conn->setup();
+        this->conn->start();
+        return this->conn;
     }
+
+    shared_ptr<PostgresDatabaseConnection> conn;
 };
 
 class PostgresWrapperTest : public ::testing::Test {
@@ -152,6 +154,7 @@ class PostgresWrapperTest : public ::testing::Test {
     void TearDown() override {
         std::remove(temp_file_path_1.c_str());
         std::remove(temp_file_path_2.c_str());
+        this->conn->stop();
     }
 
     shared_ptr<PostgresWrapper> create_wrapper(PostgresDatabaseConnection& db_conn,
@@ -164,12 +167,14 @@ class PostgresWrapperTest : public ::testing::Test {
     string temp_file_path_2;
 
     shared_ptr<PostgresDatabaseConnection> create_db_connection() {
-        auto conn = make_unique<PostgresDatabaseConnection>(
+        this->conn = make_shared<PostgresDatabaseConnection>(
             "test-conn", TEST_HOST, TEST_PORT, TEST_DB, TEST_USER, TEST_PASSWORD);
-        conn->setup();
-        conn->start();
-        return conn;
+        this->conn->setup();
+        this->conn->start();
+        return this->conn;
     }
+
+    shared_ptr<PostgresDatabaseConnection> conn;
 };
 
 TEST_F(PostgresDatabaseConnectionTest, Connection) {

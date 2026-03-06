@@ -95,13 +95,16 @@ string BaseSQL2Mapper::escape_inner_quotes(string text) {
 bool BaseSQL2Mapper::insert_handle_if_missing(const string& handle) {
     auto exists = this->handle_trie.exists(handle);
     if (exists) return false;
-    this->handle_trie.insert(handle, NULL);
+    this->handle_trie.insert(handle, this->empty_trie_value);
     return true;
 }
 
 // -- SQL2MettaMapper
 
-SQL2MettaMapper::SQL2MettaMapper() { this->initialize_statics(); }
+SQL2MettaMapper::SQL2MettaMapper() {
+    this->initialize_statics();
+    this->empty_trie_value = new EmptyTrieValue();
+}
 
 SQL2MettaMapper::~SQL2MettaMapper() {}
 
@@ -221,7 +224,10 @@ void SQL2MettaMapper::map_foreign_keys_combinations(
 
 // -- SQL2AtomsMapper
 
-SQL2AtomsMapper::SQL2AtomsMapper() { this->initialize_statics(); }
+SQL2AtomsMapper::SQL2AtomsMapper() {
+    this->initialize_statics();
+    this->empty_trie_value = new EmptyTrieValue();
+}
 
 SQL2AtomsMapper::~SQL2AtomsMapper() {}
 
