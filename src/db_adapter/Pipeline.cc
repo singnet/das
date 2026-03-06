@@ -28,9 +28,7 @@ DatabaseMappingJob::DatabaseMappingJob(const string& host,
     this->wrapper = make_unique<PostgresWrapper>(*db_conn, mapper_type, output_queue);
 }
 
-DatabaseMappingJob::~DatabaseMappingJob() {
-    this->db_conn->stop();
-}
+DatabaseMappingJob::~DatabaseMappingJob() { this->db_conn->stop(); }
 
 void DatabaseMappingJob::add_task_query(const string& virtual_name, const string& query) {
     this->tasks.push_back(MappingTask{MappingTask::QUERY, TableMapping{}, virtual_name, query});
