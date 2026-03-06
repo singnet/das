@@ -135,4 +135,14 @@ class HandleTrie {
     unsigned int key_size;
 };
 
+/**
+ * Dummy TrieValue for using HandleTrie as a set (presence only).
+ * Use this when you only need to track which keys exist, with no payload.
+ * Safe to pass to insert(); merge() is a no-op.
+ */
+class EmptyTrieValue : public HandleTrie::TrieValue {
+   public:
+    void merge(HandleTrie::TrieValue* /*other*/) override {}
+};
+
 }  // namespace commons

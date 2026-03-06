@@ -24,6 +24,8 @@ cc_library(
         "StoppableThread.h",
         "ThreadPool.h",
         "ThreadSafeHashmap.h",
+        "ThreadSafeHeap.h",
+        "ThreadSafeQueue.h",
         "Utils.h",
     ],
     includes = ["."],
