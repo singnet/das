@@ -12,6 +12,7 @@ pkg_files(
         "//:attention_broker_service",
         "//:busclient",
         "//:busnode",
+        "//:database_adapter",
         "//:implication_query_evolution",
         "//:tests_db_loader",
         "//:word_query",
@@ -64,7 +65,7 @@ pkg_rpm(
         "@platforms//os:linux": [],
         "//conditions:default": ["@platforms//:incompatible"],
     }),
-    version = "1.0.3",
+    version = "1",
 )
 
 # DEB Packaging Setup
@@ -76,6 +77,7 @@ pkg_tar(
         "//:attention_broker_service",
         "//:busclient",
         "//:busnode",
+        "//:database_adapter",
         "//:implication_query_evolution",
         "//:tests_db_loader",
         "//:word_query",
@@ -117,5 +119,5 @@ pkg_deb(
     description = "Distributed AtomSpace Binaries and Libraries",
     maintainer = "Hyperon DAS Team",
     package = "das",
-    version = "1.0.3",
+    version = "1",
 )

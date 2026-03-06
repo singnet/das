@@ -44,6 +44,7 @@ cc_shared_library(
         "//atomdb:atomdb_lib",
         "//attention_broker:attention_broker_lib",
         "//commons:commons_lib",
+        "//db_adapter:db_adapter_lib",
         "//distributed_algorithm_node:distributed_algorithm_node_lib",
         "//hasher:hasher_lib",
         "//metta:metta_lib",
@@ -184,6 +185,27 @@ cc_binary(
     deps = [
         "//commons:commons_lib",
         "//tests/main:evaluation_evolution_main_lib",
+        "@mbedtls",
+    ],
+)
+
+cc_binary(
+    name = "database_adapter",
+    srcs = [],
+    defines = ["BAZEL_BUILD"],
+    linkopts = [
+        "-L/usr/local/lib",
+        "-lpqxx",
+        "-lpq",
+        "-lhiredis_cluster",
+        "-lhiredis",
+        "-lmongocxx",
+        "-lbsoncxx",
+    ],
+    linkstatic = 1,
+    deps = [
+        "//commons:commons_lib",
+        "//tests/main:database_adapter_main_lib",
         "@mbedtls",
     ],
 )

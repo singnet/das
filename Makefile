@@ -61,6 +61,9 @@ setup-inference-toy-problem:
 run-tests-db-loader:
 	@bash -x src/scripts/run.sh tests_db_loader $(OPTIONS)
 
+run-adapter:
+	@bash -x src/scripts/run.sh database_adapter $(OPTIONS)
+
 setup-nunet-dms:
 	@bash -x src/scripts/setup-nunet-dms.sh
 
