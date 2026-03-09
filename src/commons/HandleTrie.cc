@@ -26,7 +26,11 @@ HandleTrie::TrieNode::~TrieNode() {
         delete children[i];
     }
     delete[] children;
-    delete value;
+    // TODO: Remove this check once improve insert()
+    if (value != NULL) {
+        delete value;
+        value = NULL;
+    }
 }
 
 string HandleTrie::TrieValue::to_string() { return ""; }
@@ -268,4 +272,9 @@ void HandleTrie::traverse(bool keep_root_locked,
     if (keep_root_locked) {
         root->trie_node_mutex.unlock();
     }
+}
+
+bool HandleTrie::exists(const string& key) {
+    TrieNode* node = lookup_node(key);
+    return node != NULL ? true : false;
 }
