@@ -441,7 +441,7 @@ void PostgresWrapper::fetch_rows_paginated(const Table& table,
 
         if (rows.empty()) break;
 
-        while (this->get_available_ram_ratio() < 0.2) {
+        while (this->get_available_ram_ratio() < 0.1) {
             LOG_INFO("Low available RAM. Waiting before adding more atoms to the queue...");
             Utils::sleep(5000);
         }
