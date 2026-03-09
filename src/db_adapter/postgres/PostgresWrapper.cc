@@ -4,6 +4,7 @@
 #include <iostream>
 #include <memory>
 #include <pqxx/pqxx>
+#include <queue>
 #include <regex>
 #include <stdexcept>
 #include <string>
@@ -461,11 +462,13 @@ void PostgresWrapper::fetch_rows_paginated(const Table& table,
                 auto atoms = get<vector<Atom*>>(output);
                 LOG_DEBUG("Atoms count: " << atoms.size());
                 atoms_count += atoms.size();
-                unique_lock<mutex> lock(this->api_mutex);
+
+                std::queue<Atom*>* batch_queue = new std::queue<Atom*>();
                 for (const auto& atom : atoms) {
-                    this->output_queue->enqueue((void*) atom);
-                    this->count++;
+                    batch_queue->push(atom);
                 }
+                unique_lock<mutex> lock(this->api_mutex);
+                this->output_queue->enqueue((void*) batch_queue);
             } else {
                 auto metta_expressions = get<vector<string>>(output);
                 LOG_DEBUG("Metta Expressions count: " << metta_expressions.size());

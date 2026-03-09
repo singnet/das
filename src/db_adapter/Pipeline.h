@@ -1,4 +1,7 @@
+#include <atomic>
 #include <memory>
+#include <string>
+#include <vector>
 
 #include "AtomDBSingleton.h"
 #include "DedicatedThread.h"
@@ -6,7 +9,7 @@
 #include "Processor.h"
 #include "SharedQueue.h"
 
-#define BATCH_SIZE 2000
+#define BATCH_SIZE 10000
 
 using namespace atomdb;
 using namespace std;
@@ -59,11 +62,27 @@ class AtomPersistenceJob : public ThreadMethod {
     void set_producer_finished();
 
    protected:
+    atomic<int> count = 0;
     vector<Atom*> atoms;
     shared_ptr<SharedQueue> input_queue;
     shared_ptr<AtomDB> atomdb;
     bool finished = false;
     bool producer_finished = false;
+};
+
+class AtomPersistenceJob2 {
+   public:
+    AtomPersistenceJob2(shared_ptr<SharedQueue> input_queue);
+    ~AtomPersistenceJob2();
+
+    void consumer_task();
+    void set_producer_finished();
+
+   protected:
+    atomic<int> total_count{0};
+    shared_ptr<SharedQueue> input_queue;
+    shared_ptr<AtomDB> atomdb;
+    atomic<bool> producer_finished{false};
 };
 
 }  // namespace db_adapter

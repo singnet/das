@@ -113,6 +113,7 @@ bool AtomPersistenceJob::thread_one_step() {
         for (size_t i = 0; i < BATCH_SIZE; ++i) {
             if (this->input_queue->empty()) break;
             auto atom = (Atom*) this->input_queue->dequeue();
+            this->count++;
             if (atom == nullptr) {
                 Utils::error("Dequeued atom is nullptr");
             }
@@ -127,6 +128,7 @@ bool AtomPersistenceJob::thread_one_step() {
             }
             this->atoms.clear();
         }
+        LOG_DEBUG(this->count << " atoms removed from the Queue");
         LOG_DEBUG("Current Atom size: " << this->atoms.size());
         LOG_DEBUG("Current input queue size 2: " << this->input_queue->size());
         LOG_DEBUG("== END ==");
@@ -145,3 +147,73 @@ bool AtomPersistenceJob::thread_one_step() {
 bool AtomPersistenceJob::is_finished() const { return this->finished; }
 
 void AtomPersistenceJob::set_producer_finished() { this->producer_finished = true; }
+
+/*
+    AtomPersistenceJob2 implementation using ThreadPool
+*/
+
+AtomPersistenceJob2::AtomPersistenceJob2(shared_ptr<SharedQueue> input_queue)
+    : input_queue(input_queue) {
+    this->atomdb = AtomDBSingleton::get_instance();
+}
+
+AtomPersistenceJob2::~AtomPersistenceJob2() {}
+
+void AtomPersistenceJob2::consumer_task() {
+    LOG_INFO("== CONSUMER WORKER STARTED ==");
+
+    vector<Atom*> local_atoms;
+
+    while (true) {
+        while (local_atoms.size() < BATCH_SIZE) {
+            if (this->input_queue->empty()) break;
+
+            void* raw_ptr = this->input_queue->dequeue();
+            std::queue<Atom*>* batch_queue = static_cast<std::queue<Atom*>*>(raw_ptr);
+
+            if (batch_queue != nullptr) {
+                while (!batch_queue->empty()) {
+                    Atom* atom = batch_queue->front();
+                    batch_queue->pop();
+
+                    if (atom != nullptr) {
+                        local_atoms.push_back(atom);
+                    }
+                }
+                delete batch_queue;
+            }
+        }
+
+        if (!local_atoms.empty() &&
+            (local_atoms.size() >= BATCH_SIZE || this->producer_finished.load())) {
+            LOG_INFO("Thread processing batch of " << local_atoms.size() << " atoms.");
+            try {
+                this->atomdb->add_atoms(local_atoms, false, true);
+                this->total_count += local_atoms.size();
+                for (auto& atom : local_atoms) {
+                    delete atom;
+                }
+                local_atoms.clear();
+            } catch (const exception& e) {
+                Utils::error("Error in Worker: " + string(e.what()));
+                for (auto& atom : local_atoms) {
+                    delete atom;
+                }
+                local_atoms.clear();
+            }
+        }
+
+        Utils::sleep();
+
+        if (this->producer_finished.load() && this->input_queue->empty() && local_atoms.empty()) {
+            LOG_INFO("Consumer task finishing. Thread exiting.");
+            break;
+        }
+
+        if (this->input_queue->empty() && !this->producer_finished.load()) {
+            Utils::sleep();
+        }
+    }
+}
+
+void AtomPersistenceJob2::set_producer_finished() { this->producer_finished.store(true); }
