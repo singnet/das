@@ -2,6 +2,7 @@
 
 #include <Atom.h>
 
+#include <atomic>
 #include <memory>
 #include <mutex>
 #include <optional>
@@ -78,6 +79,7 @@ class PostgresWrapper : public SQLWrapper {
     const string alias_pattern_regex = R"(\bAS\s+([a-zA-Z_][a-zA-Z0-9_]*)__([a-zA-Z_][a-zA-Z0-9_]*))";
 
    private:
+    atomic<int> count = 0;
     mutex api_mutex;
     PostgresDatabaseConnection& db_conn;
     shared_ptr<SharedQueue> output_queue;

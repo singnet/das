@@ -73,7 +73,13 @@ void PostgresDatabaseConnection::begin_cursor(const string& cursor_name, const s
         Utils::error("A transaction is already active. Close the current cursor first.");
     }
     this->transaction = make_unique<pqxx::work>(*this->conn);
-    this->transaction->exec("DECLARE " + cursor_name + " CURSOR FOR " + query);
+
+    try {
+        this->transaction->exec("DECLARE " + cursor_name + " CURSOR FOR " + query);
+    } catch (const exception& e) {
+        this->transaction.reset();
+        Utils::error("Error executing cursor query: " + string(e.what()));
+    }
 }
 
 pqxx::result PostgresDatabaseConnection::fetch_cursor(const string& cursor_name, size_t limit) {
@@ -85,7 +91,11 @@ pqxx::result PostgresDatabaseConnection::fetch_cursor(const string& cursor_name,
 
 void PostgresDatabaseConnection::close_cursor() {
     if (this->transaction) {
-        this->transaction->commit();
+        try {
+            this->transaction->commit();
+        } catch (...) {
+            // Ignore errors during commit on close
+        }
         this->transaction.reset();
     }
 }
@@ -449,6 +459,7 @@ void PostgresWrapper::fetch_rows_paginated(const Table& table,
                 unique_lock<mutex> lock(this->api_mutex);
                 for (const auto& atom : atoms) {
                     this->output_queue->enqueue((void*) atom);
+                    this->count++;
                 }
             } else {
                 auto metta_expressions = get<vector<string>>(output);
@@ -462,7 +473,10 @@ void PostgresWrapper::fetch_rows_paginated(const Table& table,
 
             this->log_progress(table.name, rows_count);
         }
+        LOG_DEBUG("Added " << this->count << " atoms in the queue");
+        LOG_DEBUG("Atoms in queue: " << to_string(this->output_queue->size()));
         LOG_DEBUG("Mapping table " << table.name << ". Total atoms generated: " << atoms_count);
+        Utils::sleep();  // Sleep to allow consumer to process the queue and avoid memory issues
     }
 
     this->db_conn.close_cursor();

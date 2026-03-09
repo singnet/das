@@ -42,7 +42,6 @@ class Mapper {
    protected:
     Mapper() = default;
     HandleTrie handle_trie{32};
-    EmptyTrieValue* empty_trie_value;
 };
 
 /**
