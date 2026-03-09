@@ -440,6 +440,11 @@ void PostgresWrapper::fetch_rows_paginated(const Table& table,
 
         if (rows.empty()) break;
 
+        while (this->get_available_ram_ratio() < 0.2) {
+            LOG_INFO("Low available RAM. Waiting before adding more atoms to the queue...");
+            Utils::sleep(5000);
+        }
+
         for (const auto& row : rows) {
             SqlRow sql_row = this->build_sql_row(row, table, columns);
 
@@ -476,7 +481,6 @@ void PostgresWrapper::fetch_rows_paginated(const Table& table,
         LOG_DEBUG("Added " << this->count << " atoms in the queue");
         LOG_DEBUG("Atoms in queue: " << to_string(this->output_queue->size()));
         LOG_DEBUG("Mapping table " << table.name << ". Total atoms generated: " << atoms_count);
-        Utils::sleep();  // Sleep to allow consumer to process the queue and avoid memory issues
     }
 
     this->db_conn.close_cursor();
@@ -529,4 +533,10 @@ void PostgresWrapper::log_progress(const string& table_name, int rows_count) {
         LOG_INFO("Mapped " << rows_count << " rows from the " << table_name << " table");
         this->tables_rows_count[table_name] = rows_count;
     }
+}
+
+double PostgresWrapper::get_available_ram_ratio() {
+    unsigned long total = Utils::get_total_ram();
+    if (total == 0) return 0.0;
+    return static_cast<double>(Utils::get_current_free_ram()) / static_cast<double>(total);
 }

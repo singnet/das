@@ -93,6 +93,7 @@ class PostgresWrapper : public SQLWrapper {
     void fetch_rows_paginated(const Table& table, const vector<string>& columns, const string& query);
     SqlRow build_sql_row(const pqxx::row& row, const Table& table, vector<string> columns);
     void log_progress(const string& table_name, int rows_count);
+    double get_available_ram_ratio();
 };
 
 }  // namespace db_adapter
