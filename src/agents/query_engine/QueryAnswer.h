@@ -7,6 +7,7 @@
 #include "Assignment.h"
 #include "QueryAnswer.h"
 #include "expression_hasher.h"
+#include "Utils.h"
 
 using namespace std;
 using namespace commons;
@@ -33,6 +34,22 @@ class QueryAnswerElement {
         this->index = other.index;
         this->name = other.name;
         return *this;
+    }
+    void set(const string& key) {
+        if (this->type == UNDEFINED) {
+            this->type = VARIABLE;
+            this->name = key;
+        } else {
+            Utils::error("Invalid attempt to reset a QueryAnswerElement");
+        }
+    }
+    void set(unsigned int key) {
+        if (this->type == UNDEFINED) {
+            this->type = HANDLE;
+            this->index = key;
+        } else {
+            Utils::error("Invalid attempt to reset a QueryAnswerElement");
+        }
     }
     string to_string() {
         if (this->type == HANDLE) {
