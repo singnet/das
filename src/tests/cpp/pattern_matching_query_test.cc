@@ -1,6 +1,6 @@
 #include "AtomDBSingleton.h"
-#include "Hasher.h"
 #include "Chain.h"
+#include "Hasher.h"
 #include "PatternMatchingQueryProcessor.h"
 #include "PatternMatchingQueryProxy.h"
 #include "ServiceBus.h"
@@ -187,11 +187,14 @@ void check_query_chain(const string& query_tag,
             for (auto pair : query_answer->assignment.table) {
                 LOG_INFO(">>>>>>>>>>>>>> " << pair.first << " " << handle_to_atom(pair.second));
             }
-            if (((query_answer->get(Chain::ORIGIN_VARIABLE_NAME) == source) && (query_answer->get(Chain::DESTINY_VARIABLE_NAME) == target)) ||
-                ((query_answer->get(Chain::ORIGIN_VARIABLE_NAME) == target) && (query_answer->get(Chain::DESTINY_VARIABLE_NAME) == source))) {
+            if (((query_answer->get(Chain::ORIGIN_VARIABLE_NAME) == source) &&
+                 (query_answer->get(Chain::DESTINY_VARIABLE_NAME) == target)) ||
+                ((query_answer->get(Chain::ORIGIN_VARIABLE_NAME) == target) &&
+                 (query_answer->get(Chain::DESTINY_VARIABLE_NAME) == source))) {
                 count++;
             }
-            EXPECT_TRUE((query_answer->get(Chain::ORIGIN_VARIABLE_NAME) == source) || (query_answer->get(Chain::ORIGIN_VARIABLE_NAME) == target));
+            EXPECT_TRUE((query_answer->get(Chain::ORIGIN_VARIABLE_NAME) == source) ||
+                        (query_answer->get(Chain::ORIGIN_VARIABLE_NAME) == target));
         }
     }
     EXPECT_EQ(count, expected_count);

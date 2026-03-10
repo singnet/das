@@ -6,8 +6,8 @@
 
 #include "Assignment.h"
 #include "QueryAnswer.h"
-#include "expression_hasher.h"
 #include "Utils.h"
+#include "expression_hasher.h"
 
 using namespace std;
 using namespace commons;

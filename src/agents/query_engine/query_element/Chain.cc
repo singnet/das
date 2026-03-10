@@ -32,25 +32,21 @@ Chain::Chain(const array<shared_ptr<QueryElement>, 1>& clauses,
              const string& target_handle,
              const QueryAnswerElement& link_selector,
              unsigned int tail_reference,
-             unsigned int head_reference) : Operator<1>(clauses), 
-                                            input_link_template(link_template),
-                                            source_handle(source_handle), 
-                                            target_handle(target_handle),
-                                            link_selector(link_selector),
-                                            tail_reference(tail_reference),
-                                            head_reference(head_reference) {
+             unsigned int head_reference)
+    : Operator<1>(clauses),
+      input_link_template(link_template),
+      source_handle(source_handle),
+      target_handle(target_handle),
+      link_selector(link_selector),
+      tail_reference(tail_reference),
+      head_reference(head_reference) {
     initialize(clauses);
 }
 
 Chain::Chain(const array<shared_ptr<QueryElement>, 1>& clauses,
              const string& source_handle,
-             const string& target_handle) : Chain(clauses,
-                                                  nullptr,
-                                                  source_handle,
-                                                  target_handle,
-                                                  QueryAnswerElement(0),
-                                                  1,
-                                                  2) {}
+             const string& target_handle)
+    : Chain(clauses, nullptr, source_handle, target_handle, QueryAnswerElement(0), 1, 2) {}
 
 Chain::~Chain() {
     LOG_DEBUG("Chain::~Chain() BEGIN");
@@ -297,26 +293,28 @@ bool Chain::thread_one_step() {
                     {
                         lock_guard<mutex> semaphore(this->source_index_mutex);
                         for (string key : {tail, head}) {
-                            if (this->source_index.find(key) ==
-                                this->source_index.end()) {
+                            if (this->source_index.find(key) == this->source_index.end()) {
                                 this->source_index[key] = make_shared<HeapType>();
                             }
                         }
-                        this->source_index[tail]->push(Path(tail, head, answer, true), answer->importance);
+                        this->source_index[tail]->push(Path(tail, head, answer, true),
+                                                       answer->importance);
                     }
                     {
                         lock_guard<mutex> semaphore(this->target_index_mutex);
                         for (string key : {tail, head}) {
-                            if (this->target_index.find(key) ==
-                                this->target_index.end()) {
+                            if (this->target_index.find(key) == this->target_index.end()) {
                                 this->target_index[key] = make_shared<HeapType>();
                             }
                         }
-                        this->target_index[head]->push(Path(tail, head, QueryAnswer::copy(answer), false), answer->importance);
+                        this->target_index[head]->push(
+                            Path(tail, head, QueryAnswer::copy(answer), false), answer->importance);
                     }
                 } else {
                     Utils::error("Invalid Link " + link->to_string() + " with arity " +
-                                 std::to_string(link->arity()) + " in CHAIN operator. Tail reference: " + std::to_string(this->tail_reference) + ". Head reference: " + std::to_string(this->head_reference));
+                                 std::to_string(link->arity()) + " in CHAIN operator. Tail reference: " +
+                                 std::to_string(this->tail_reference) +
+                                 ". Head reference: " + std::to_string(this->head_reference));
                 }
             } else {
                 LOG_DEBUG("[CHAIN OPERATOR] "
@@ -407,17 +405,14 @@ string Chain::Path::to_string() {
     for (auto pair : this->edges) {
         if (first) {
             first = false;
-            last_handle =
-                convert_handle(this->forward_flag ? pair.first.first : pair.first.second);
+            last_handle = convert_handle(this->forward_flag ? pair.first.first : pair.first.second);
             answer = last_handle;
         }
-        check_handle =
-            convert_handle(this->forward_flag ? pair.first.first : pair.first.second);
+        check_handle = convert_handle(this->forward_flag ? pair.first.first : pair.first.second);
         if (check_handle != last_handle) {
             LOG_ERROR("Invalid Path");
         }
-        last_handle =
-            convert_handle(this->forward_flag ? pair.first.second : pair.first.first);
+        last_handle = convert_handle(this->forward_flag ? pair.first.second : pair.first.first);
         answer += this->forward_flag ? " -> " : " <- ";
         answer += last_handle;
     }

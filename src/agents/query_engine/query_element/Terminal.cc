@@ -1,11 +1,11 @@
 #include "Terminal.h"
 
 #define LOG_LEVEL INFO_LEVEL
+#include "Hasher.h"
 #include "Link.h"
 #include "Logger.h"
 #include "Node.h"
 #include "UntypedVariable.h"
-#include "Hasher.h"
 
 using namespace query_element;
 using namespace commons;

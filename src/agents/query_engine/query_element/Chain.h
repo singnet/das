@@ -2,10 +2,10 @@
 
 #include "DedicatedThread.h"
 #include "Link.h"
+#include "LinkTemplate.h"
 #include "Operator.h"
 #include "ThreadSafeHeap.h"
 #include "ThreadSafeQueue.h"
-#include "LinkTemplate.h"
 #include "map"
 #include "mutex"
 #include "set"
@@ -123,12 +123,10 @@ class Chain : public Operator<1>, public ThreadMethod {
             this->path_sti = answer->importance;
             this->forward_flag = forward_flag;
         }
-        Path(shared_ptr<Link> link, // Used in tests
-             QueryAnswer* answer, 
-             bool forward_flag) : Path(link->targets[1],
-                                       link->targets[2],
-                                       answer,
-                                       forward_flag) {}
+        Path(shared_ptr<Link> link,  // Used in tests
+             QueryAnswer* answer,
+             bool forward_flag)
+            : Path(link->targets[1], link->targets[2], answer, forward_flag) {}
         Path(const Path& other) {
             this->edges = other.edges;
             this->path_sti = other.path_sti;
@@ -185,8 +183,8 @@ class Chain : public Operator<1>, public ThreadMethod {
             } else if (this->end_point() != other.start_point()) {
                 return false;
             }
-            //unsigned int this_index = (this->forward_flag ? 1 : 2);
-            //unsigned int other_index = (this->forward_flag ? 2 : 1);
+            // unsigned int this_index = (this->forward_flag ? 1 : 2);
+            // unsigned int other_index = (this->forward_flag ? 2 : 1);
             for (auto pair_other : other.edges) {
                 for (auto pair_this : this->edges) {
                     if (this->forward_flag) {
