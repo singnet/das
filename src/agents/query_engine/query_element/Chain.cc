@@ -27,11 +27,13 @@ static string convert_handle(const string& handle) {
 // Public methods
 
 Chain::Chain(const array<shared_ptr<QueryElement>, 1>& clauses,
+             shared_ptr<LinkTemplate> link_template,
              const string& source_handle,
              const string& target_handle,
              const QueryAnswerElement& link_selector,
              unsigned int tail_reference,
              unsigned int head_reference) : Operator<1>(clauses), 
+                                            input_link_template(link_template),
                                             source_handle(source_handle), 
                                             target_handle(target_handle),
                                             link_selector(link_selector),
@@ -43,6 +45,7 @@ Chain::Chain(const array<shared_ptr<QueryElement>, 1>& clauses,
 Chain::Chain(const array<shared_ptr<QueryElement>, 1>& clauses,
              const string& source_handle,
              const string& target_handle) : Chain(clauses,
+                                                  nullptr,
                                                   source_handle,
                                                   target_handle,
                                                   QueryAnswerElement(0),
@@ -217,6 +220,7 @@ bool Chain::PathFinder::thread_one_step() {
                       << "Pushing new path: " << new_path.to_string());
             base_heap->push(new_path, new_path.path_sti);
         } else {
+            LOG_DEBUG("[PATH_FINDER] Discarding because candidate would lead to a cycle.");
             count_cycles++;
         }
     }
@@ -235,6 +239,7 @@ bool Chain::PathFinder::thread_one_step() {
 void Chain::refeed_paths() {
     while (!this->refeeding_buffer.empty()) {
         Path path = refeeding_buffer.front_and_pop();
+        LOG_DEBUG("Refeeding: " << path.to_string());
         if (path.forward_flag) {
             this->source_index[this->source_handle]->push(path, path.path_sti);
         } else {
@@ -338,18 +343,10 @@ void Chain::report_path(Path& path) {
     if (path.forward_flag) {
         for (auto pair : path.edges) {
             query_answer->add_handle(pair.second->get(this->link_selector));
-            if (!query_answer->merge(pair.second.get())) {
-                Utils::error("Incompatible assignments in Chain operator answer: " +
-                             query_answer->to_string() + " + " + pair.second->to_string());
-            }
         }
     } else {
         for (auto pair = path.edges.rbegin(); pair != path.edges.rend(); ++pair) {
             query_answer->add_handle(pair->second->get(this->link_selector));
-            if (!query_answer->merge(pair->second.get())) {
-                Utils::error("Incompatible assignments in Chain operator answer: " +
-                             query_answer->to_string() + " + " + pair->second->to_string());
-            }
         }
     }
     string answer_hash = Hasher::composite_handle(query_answer->handles);

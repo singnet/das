@@ -5,6 +5,7 @@
 #include "Operator.h"
 #include "ThreadSafeHeap.h"
 #include "ThreadSafeQueue.h"
+#include "LinkTemplate.h"
 #include "map"
 #include "mutex"
 #include "set"
@@ -17,7 +18,9 @@ namespace query_element {
 
 /**
  * This operator takes as input a single query element and two handles (SOURCE and TARGET) and
- * outputs QueryAnswers which represent paths between SOURCE and TARGET.
+ * outputs QueryAnswers which represent paths between SOURCE and TARGET. Additional parameters
+ * (link selector and tail/head reference) are used to determine which handle in the QueryAnswer
+ * is supposed to be used and which link targets are supposed to be used as edge tail and head.
  *
  * Each QueryAnswer in the input is supposed to have exatcly 1 handle,
  * i.e. query_answer->handles.size() == 1. In addition to this, the handle is supposed to be the
@@ -217,6 +220,7 @@ class Chain : public Operator<1>, public ThreadMethod {
      * Constructor.
      */
     Chain(const array<shared_ptr<QueryElement>, 1>& clauses,
+          shared_ptr<LinkTemplate> link_template,
           const string& source_handle,
           const string& target_handle,
           const QueryAnswerElement& link_selector,
@@ -328,6 +332,7 @@ class Chain : public Operator<1>, public ThreadMethod {
 
     void initialize(const array<shared_ptr<QueryElement>, 1>& clauses);
 
+    shared_ptr<LinkTemplate> input_link_template;
     string source_handle;
     string target_handle;
     QueryAnswerElement link_selector;

@@ -71,6 +71,10 @@ class PatternMatchingQueryProcessor : public BusCommandProcessor {
                                       unsigned int cursor,
                                       stack<shared_ptr<QueryElement>>& element_stack);
 
+    shared_ptr<QueryElement> build_chain(shared_ptr<PatternMatchingQueryProxy> proxy,
+                                         unsigned int cursor,
+                                         stack<shared_ptr<QueryElement>>& element_stack);
+
     shared_ptr<QueryElement> build_link(shared_ptr<PatternMatchingQueryProxy> proxy,
                                         unsigned int cursor,
                                         stack<shared_ptr<QueryElement>>& element_stack);
@@ -88,6 +92,7 @@ class PatternMatchingQueryProcessor : public BusCommandProcessor {
     shared_ptr<AtomDB> atomdb;
     static string AND;
     static string OR;
+    static string CHAIN;
 };
 
 }  // namespace atomdb
