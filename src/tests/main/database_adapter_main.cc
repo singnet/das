@@ -109,7 +109,7 @@ void run(string host,
     */
 
     AtomPersistenceJob2 atomdb_job(queue);
-    int num_consumers = 4;
+    int num_consumers = 8;
     ThreadPool pool("consumers_pool", num_consumers);
     pool.setup();
     pool.start();
