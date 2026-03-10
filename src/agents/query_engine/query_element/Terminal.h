@@ -32,6 +32,7 @@ class Terminal : public QueryElement {
     Terminal(const string& type, const vector<shared_ptr<QueryElement>>& targets);  // Link
     Terminal(const string& name);                                                   // Variable
     string to_string();
+    string compute_handle();
 
     // QueryElement virtual API
 

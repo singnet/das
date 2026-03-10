@@ -176,6 +176,18 @@ int Utils::string_to_int(const string& s) {
     return stoi(s);
 }
 
+unsigned int Utils::string_to_uint(const string& s) {
+    if (!is_number(s)) {
+        throw invalid_argument("Can not convert string to unsigned int: Invalid arguments (" + s + ")");
+    }
+    int n = stoi(s);
+    if (n < 0) {
+        throw invalid_argument("Can not convert string to unsigned int: Invalid negative number (" + s +
+                               ")");
+    }
+    return (unsigned int) n;
+}
+
 string Utils::trim(const string& s) {
     const string whitespace = " \n\r\t\f\v";
     size_t start = s.find_first_not_of(whitespace);
