@@ -10,7 +10,8 @@ using namespace std;
 namespace commons {
 
 /**
- * @brief Wrapper around a JSON value from at_path(); provides get_or<T>(default) when the path is missing.
+ * @brief Wrapper around a JSON value from at_path(); provides get_or<T>(default) when the path is
+ * missing.
  */
 class JsonPathValue {
    public:

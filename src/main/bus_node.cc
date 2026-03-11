@@ -88,7 +88,8 @@ int main(int argc, char* argv[]) {
             if (atomdb_type == "morkdb") {
                 AtomDBSingleton::init(atomdb_api_types::ATOMDB_TYPE::MORKDB);
             } else if (atomdb_type == "remotedb") {
-                auto remote_peers_config = json_config.at_path("atomdb.remote_peers").get_or<json>(json());
+                auto remote_peers_config =
+                    json_config.at_path("atomdb.remote_peers").get_or<json>(json());
                 auto remote_atomdb = make_shared<RemoteAtomDB>(remote_peers_config);
                 AtomDBSingleton::provide(remote_atomdb);
             } else if (atomdb_type == "redismongodb" || atomdb_type.empty()) {
