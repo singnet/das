@@ -70,7 +70,7 @@ int main(int argc, char* argv[]) {
         shared_ptr<ServiceBus> service_bus = ServiceBusSingleton::get_instance();
         service_bus->issue_bus_command(proxy);
 
-        if (cmd_args["service"] == "atomdb-broker") {
+        if (cmd_args[Helper::SERVICE] == "atomdb-broker") {
             auto action = props.get_or<string>("action", "");
             auto tokens_str = props.get_or<string>("tokens", "");
             vector<string> tokens = Utils::split(tokens_str, ' ');

@@ -3,6 +3,8 @@
 set -e
 
 BAZEL_CMD="/opt/bazel/bazelisk"
+export USE_BAZEL_VERSION="${USE_BAZEL_VERSION:-9.0.0}"
+export BAZELISK_BASE_URL="${BAZELISK_BASE_URL:-https://github.com/bazelbuild/bazel/releases/download}"
 
 $BAZEL_CMD $([ ${BAZEL_JOBS:-x} != x ] && echo --jobs=${BAZEL_JOBS}) "$@"
 
