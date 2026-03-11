@@ -36,13 +36,6 @@ LOCAL_PKG_DIR="$LOCAL_WORKDIR/pkg/$HOST_ARCH"
 
 mkdir -p "$LOCAL_CACHE"
 
-# If the Bazel cache has wrong ownership (e.g. from a previous run as root), clear it
-# so the next run recreates it as the current user. Use: CLEAN_BAZEL_CACHE=1 gmake build-all
-if [ "${CLEAN_BAZEL_CACHE:-0}" = "1" ]; then
-  echo "[INFO] CLEAN_BAZEL_CACHE=1: removing Bazel cache at $LOCAL_CACHE/bazel"
-  rm -rf "$LOCAL_CACHE/bazel" 2>/dev/null || sudo rm -rf "$LOCAL_CACHE/bazel"
-fi
-
 # Container paths
 IMAGE_NAME="das-builder:${HOST_ARCH:-latest}"
 CONTAINER_WORKDIR=/opt/das
@@ -59,7 +52,6 @@ if [[ -z "$PACKAGE_TYPE" ]]; then
   DOCKER_ENVS="
     -e BIN_DIR=$CONTAINER_BIN_DIR
     -e LIB_DIR=$CONTAINER_LIB_DIR
-    -e CLEAN_BAZEL_CACHE=${CLEAN_BAZEL_CACHE:-0}
   "
 
   BUILD_CMD="./scripts/bazel_build.sh $*"
@@ -81,7 +73,6 @@ else
 
   DOCKER_ENVS="
     -e PKG_DIR=$CONTAINER_PKG_DIR
-    -e CLEAN_BAZEL_CACHE=${CLEAN_BAZEL_CACHE:-0}
   "
 
   BUILD_CMD="./scripts/bazel_package.sh $PACKAGE_TYPE"

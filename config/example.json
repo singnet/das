@@ -1,149 +1,148 @@
 {
     "schema_version": "2.0",
     "atomdb": {
-      "redis": {
-        "image": "redis:7.2.3-alpine",
-        "port": 40020,
-        "cluster": false,
-        "nodes": [
-          {
-            "context": "default",
-            "ip": "localhost",
-            "username": "arturgontijo"
-          }
-        ]
-      },
-      "mongodb": {
-        "image": "mongodb/mongodb-community-server:8.2-ubuntu2204",
-        "port": 40021,
-        "username": "admin",
-        "password": "admin",
-        "cluster": false,
-        "cluster_secret_key": "8UDJSgpUCaVOTQG",
-        "nodes": [
-          {
-            "context": "default",
-            "ip": "localhost",
-            "username": "arturgontijo"
-          }
-        ]
-      },
-      "morkdb": {
-        "image": "trueagi/das:mork-server-1.0.4",
-        "port": 40022
-      },
-      "remote_peers": [
-        {
-          "uid": "peer1",
-          "type": "redismongodb",
-          "context": "remotedb_test_peer1_",
-          "mongodb": {
-            "hostname": "localhost",
+        "redis": {
+            "image": "redis:7.2.3-alpine",
+            "port": 40020,
+            "cluster": false,
+            "nodes": [
+                {
+                    "context": "default",
+                    "ip": "localhost",
+                    "username": "arturgontijo"
+                }
+            ]
+        },
+        "mongodb": {
+            "image": "mongodb/mongodb-community-server:8.2-ubuntu2204",
             "port": 40021,
             "username": "admin",
-            "password": "admin"
-          },
-          "redis": {
-            "hostname": "localhost",
-            "port": 40020,
-            "cluster": false
-          },
-          "local_persistence": {
-            "type": "morkdb",
-            "context": "remotedb_test_peer1_local_",
-            "mongodb": {
-              "hostname": "localhost",
-              "port": 40021,
-              "username": "admin",
-              "password": "admin"
-            },
-            "morkdb": {
-              "hostname": "localhost",
-              "port": 40022
-            }
-          }
+            "password": "admin",
+            "cluster": false,
+            "cluster_secret_key": "8UDJSgpUCaVOTQG",
+            "nodes": [
+                {
+                    "context": "default",
+                    "ip": "localhost",
+                    "username": "arturgontijo"
+                }
+            ]
         },
-        {
-          "uid": "peer2",
-          "type": "inmemorydb",
-          "context": "remotedb_test_peer2_",
-          "local_persistence": {
-            "type": "inmemorydb",
-            "context": "remotedb_test_peer2_local_"
-          }
-        }
-      ]
+        "morkdb": {
+            "image": "trueagi/das:mork-server-1.0.4",
+            "port": 40022
+        },
+        "remote_peers": [
+            {
+                "uid": "peer1",
+                "type": "redismongodb",
+                "context": "remotedb_test_peer1_",
+                "mongodb": {
+                    "hostname": "localhost",
+                    "port": 40021,
+                    "username": "admin",
+                    "password": "admin"
+                },
+                "redis": {
+                    "hostname": "localhost",
+                    "port": 40020,
+                    "cluster": false
+                },
+                "local_persistence": {
+                    "type": "morkdb",
+                    "context": "remotedb_test_peer1_local_",
+                    "mongodb": {
+                        "hostname": "localhost",
+                        "port": 40021,
+                        "username": "admin",
+                        "password": "admin"
+                    },
+                    "morkdb": {
+                        "hostname": "localhost",
+                        "port": 40022
+                    }
+                }
+            },
+            {
+                "uid": "peer2",
+                "type": "inmemorydb",
+                "context": "remotedb_test_peer2_",
+                "local_persistence": {
+                    "type": "inmemorydb",
+                    "context": "remotedb_test_peer2_local_"
+                }
+            }
+        ]
     },
     "loaders": {
-      "metta": {
-        "image": "trueagi/das:1.0.0-metta-parser"
-      },
-      "morkdb": {
-        "image": "trueagi/das:mork-loader-1.0.4"
-      }
+        "metta": {
+            "image": "trueagi/das:1.0.0-metta-parser"
+        },
+        "morkdb": {
+            "image": "trueagi/das:mork-loader-1.0.4"
+        }
     },
     "agents": {
-      "query": {
-        "endpoint": "localhost:40002",
-        "ports_range": "42000:42999"
-      },
-      "link_creation": {
-        "endpoint": "localhost:40003",
-        "ports_range": "43000:43999"
-      },
-      "inference": {
-        "endpoint": "localhost:40004",
-        "ports_range": "44000:44999"
-      },
-      "evolution": {
-        "endpoint": "localhost:40005",
-        "ports_range": "45000:45999"
-      }
+        "query": {
+            "endpoint": "localhost:40002",
+            "ports_range": "42000:42999"
+        },
+        "link_creation": {
+            "endpoint": "localhost:40003",
+            "ports_range": "43000:43999"
+        },
+        "inference": {
+            "endpoint": "localhost:40004",
+            "ports_range": "44000:44999"
+        },
+        "evolution": {
+            "endpoint": "localhost:40005",
+            "ports_range": "45000:45999"
+        }
     },
     "brokers": {
-      "attention": {
-        "endpoint": "localhost:40001"
-      },
-      "context": {
-        "endpoint": "localhost:40006",
-        "ports_range": "46000:46999"
-      },
-      "atomdb": {
-        "endpoint": "localhost:40007",
-        "ports_range": "47000:47999"
-      }
+        "attention": {
+            "endpoint": "localhost:40001"
+        },
+        "context": {
+            "endpoint": "localhost:40006",
+            "ports_range": "46000:46999"
+        },
+        "atomdb": {
+            "endpoint": "localhost:40007",
+            "ports_range": "47000:47999"
+        }
     },
     "params": {
-      "query": {
-        "max_answers": 100,
-        "max_bundle_size": 1000,
-        "count_flag": false,
-        "attention_update_flag": false,
-        "unique_assignment_flag": true,
-        "positive_importance_flag": false,
-        "populate_metta_mapping": true,
-        "use_metta_as_query_tokens": true
-      },
-      "link_creation": {
-        "repeat_count": 1,
-        "query_interval": 0,
-        "query_timeout": 0
-      },
-      "evolution": {
-        "elitism_rate": 0.08,
-        "max_generations": 10,
-        "population_size": 50,
-        "selection_rate": 0.1,
-        "total_attention_tokens": 100000
-      },
-      "context": {
-        "context": "context",
-        "use_cache": true,
-        "enforce_cache_recreation": false,
-        "initial_rent_rate": 0.25,
-        "initial_spreading_rate_lowerbound": 0.5,
-        "initial_spreading_rate_upperbound": 0.7
-      }
+        "query": {
+            "max_answers": 100,
+            "max_bundle_size": 1000,
+            "count_flag": false,
+            "attention_update_flag": false,
+            "unique_assignment_flag": true,
+            "positive_importance_flag": false,
+            "populate_metta_mapping": true,
+            "use_metta_as_query_tokens": true
+        },
+        "link_creation": {
+            "repeat_count": 1,
+            "query_interval": 0,
+            "query_timeout": 0
+        },
+        "evolution": {
+            "elitism_rate": 0.08,
+            "max_generations": 10,
+            "population_size": 50,
+            "selection_rate": 0.1,
+            "total_attention_tokens": 100000
+        },
+        "context": {
+            "context": "context",
+            "use_cache": true,
+            "enforce_cache_recreation": false,
+            "initial_rent_rate": 0.25,
+            "initial_spreading_rate_lowerbound": 0.5,
+            "initial_spreading_rate_upperbound": 0.7
+        }
     }
-  }
-  
+}

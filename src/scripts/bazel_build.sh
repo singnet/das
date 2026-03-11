@@ -3,19 +3,9 @@
 set -eou pipefail 
 
 BAZELISK_CMD=/opt/bazel/bazelisk
-export USE_BAZEL_VERSION="${USE_BAZEL_VERSION:-9.0.0}"
-# Use official Bazel releases (avoid aspect-cli URL which may 404 for some versions/platforms)
-export BAZELISK_BASE_URL="${BAZELISK_BASE_URL:-https://github.com/bazelbuild/bazel/releases/download}"
 BAZELISK_BUILD_CMD="${BAZELISK_CMD} build --noshow_progress --strategy=CppCompile=standalone --spawn_strategy=standalone"
 [ "${BAZEL_JOBS:-x}" != "x" ] && BAZELISK_BUILD_CMD="${BAZELISK_BUILD_CMD} --jobs=${BAZEL_JOBS}"
 BAZELISK_RUN_CMD="${BAZELISK_CMD} run"
-
-# Fix "Permission denied" on external repos when cache was created by another user
-if [ "${CLEAN_BAZEL_CACHE:-0}" = "1" ]; then
-  echo "[INFO] CLEAN_BAZEL_CACHE=1: expunging Bazel cache..."
-  $BAZELISK_CMD clean --expunge 2>/dev/null || true
-fi
-
 BUILD_TARGETS=""
 MOVE_LIB_TARGETS=""
 MOVE_BIN_TARGETS=""
