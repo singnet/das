@@ -100,12 +100,10 @@ test-clear:
 
 test-all-no-cache: setup-test-all
 	@$(MAKE) bazel 'test --show_progress --cache_test_results=no //tests/...'
-	@$(MAKE) test-clear
 
 test-all: 
 	@$(MAKE) setup-test-all
 	@$(MAKE) bazel 'test --show_progress //tests/...'
-	@$(MAKE) test-clear
 
 test-agents-integration:
 	@bash  ./src/scripts/integration_test_setup.sh &
