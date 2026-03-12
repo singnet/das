@@ -95,8 +95,7 @@ setup-test-all:
 	@$(MAKE) run-tests-db-loader
 
 test-clear:
-	@docker rm -f db-redis-test-container db-mongo-test-container das-attention-broker-service pg-test
- mork-test-server || true
+	@docker rm -f db-redis-test-container db-mongo-test-container das-attention-broker-service pg-test mork-test-server || true
 
 test-all-no-cache: setup-test-all
 	@$(MAKE) bazel 'test --show_progress --cache_test_results=no //tests/...'
