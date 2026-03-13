@@ -4,6 +4,7 @@
 #include <iostream>
 #include <memory>
 #include <pqxx/pqxx>
+#include <queue>
 #include <regex>
 #include <stdexcept>
 #include <string>
@@ -440,7 +441,7 @@ void PostgresWrapper::fetch_rows_paginated(const Table& table,
 
         if (rows.empty()) break;
 
-        while (this->get_available_ram_ratio() < 0.2) {
+        while (this->get_available_ram_ratio() < 0.1) {
             LOG_INFO("Low available RAM. Waiting before adding more atoms to the queue...");
             Utils::sleep(5000);
         }
@@ -461,11 +462,13 @@ void PostgresWrapper::fetch_rows_paginated(const Table& table,
                 auto atoms = get<vector<Atom*>>(output);
                 LOG_DEBUG("Atoms count: " << atoms.size());
                 atoms_count += atoms.size();
-                unique_lock<mutex> lock(this->api_mutex);
+
+                std::queue<Atom*>* batch_queue = new std::queue<Atom*>();
                 for (const auto& atom : atoms) {
-                    this->output_queue->enqueue((void*) atom);
-                    this->count++;
+                    batch_queue->push(atom);
                 }
+                unique_lock<mutex> lock(this->api_mutex);
+                this->output_queue->enqueue((void*) batch_queue);
             } else {
                 auto metta_expressions = get<vector<string>>(output);
                 LOG_DEBUG("Metta Expressions count: " << metta_expressions.size());
@@ -478,9 +481,8 @@ void PostgresWrapper::fetch_rows_paginated(const Table& table,
 
             this->log_progress(table.name, rows_count);
         }
-        LOG_DEBUG("Added " << this->count << " atoms in the queue");
-        LOG_DEBUG("Atoms in queue: " << to_string(this->output_queue->size()));
-        LOG_DEBUG("Mapping table " << table.name << ". Total atoms generated: " << atoms_count);
+        LOG_INFO("Atoms in queue: " << to_string(this->output_queue->size()));
+        LOG_INFO("Mapping table " << table.name << ". Total atoms generated: " << atoms_count);
     }
 
     this->db_conn.close_cursor();

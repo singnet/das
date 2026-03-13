@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <string>
 #include <tuple>
+#include <unordered_set>
 #include <variant>
 #include <vector>
 
@@ -42,6 +43,7 @@ class Mapper {
    protected:
     Mapper() = default;
     HandleTrie handle_trie{32};
+    unordered_set<string> unique_handles;
 };
 
 /**
