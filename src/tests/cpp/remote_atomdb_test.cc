@@ -335,6 +335,16 @@ string resolve_config_path(const string& filename) {
 // RemoteAtomDB tests - uses tests/assets/remotedb_config.json
 // =============================================================================
 
+json load_config(const string& filename) {
+    ifstream f(filename);
+    if (!f.good()) {
+        Utils::error("RemoteAtomDBTest: Cannot open config file: " + filename);
+    }
+    stringstream buf;
+    buf << f.rdbuf();
+    return json::parse(buf.str());
+}
+
 class RemoteAtomDBTest : public ::testing::Test {
    protected:
     void SetUp() override {
@@ -342,7 +352,7 @@ class RemoteAtomDBTest : public ::testing::Test {
         ASSERT_FALSE(config_path_.empty())
             << "Could not find tests/assets/remotedb_config.json (TEST_SRCDIR="
             << (std::getenv("TEST_SRCDIR") ? std::getenv("TEST_SRCDIR") : "unset") << ")";
-        db_ = make_shared<RemoteAtomDB>(config_path_);
+        db_ = make_shared<RemoteAtomDB>(load_config(config_path_));
     }
 
     void TearDown() override {}
@@ -436,7 +446,7 @@ class RemoteAtomDBConfigTest : public ::testing::Test {
     void SetUp() override {
         config_path_ = resolve_config_path("remotedb_config_single.json");
         ASSERT_FALSE(config_path_.empty()) << "Could not find tests/assets/remotedb_config_single.json";
-        db_ = make_shared<RemoteAtomDB>(config_path_);
+        db_ = make_shared<RemoteAtomDB>(load_config(config_path_));
     }
 
     void TearDown() override {}

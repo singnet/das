@@ -64,24 +64,8 @@ shared_ptr<AtomDB> create_atomdb_from_config(const json& config) {
 
 }  // namespace
 
-RemoteAtomDB::RemoteAtomDB(const string& json_file_path) {
-    std::ifstream f(json_file_path);
-    if (!f.good()) {
-        Utils::error("RemoteAtomDB: Cannot open config file: " + json_file_path);
-    }
-    std::stringstream buf;
-    buf << f.rdbuf();
-    string json_str = buf.str();
-
-    std::optional<json> doc_opt;
-    try {
-        doc_opt = json::parse(json_str);
-    } catch (const std::exception& e) {
-        Utils::error("RemoteAtomDB: Invalid JSON in config: " + string(e.what()));
-    }
-
-    auto doc = doc_opt->at("atomdbs");
-    for (auto&& peer_config : doc) {
+RemoteAtomDB::RemoteAtomDB(const json& remote_peers_config) {
+    for (auto&& peer_config : remote_peers_config) {
         string uid = peer_config.at("uid");
 
         shared_ptr<AtomDB> remote = create_atomdb_from_config(peer_config);

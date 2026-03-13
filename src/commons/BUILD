@@ -7,6 +7,8 @@ cc_library(
     srcs = [
         "Assignment.cc",
         "EnvironmentRestoreGuard.cc",
+        "JsonConfig.cc",
+        "JsonConfigParser.cc",
         "SharedQueue.cc",
         "StoppableThread.cc",
         "Utils.cc",
@@ -14,6 +16,8 @@ cc_library(
     hdrs = [
         "Assignment.h",
         "EnvironmentRestoreGuard.h",
+        "JsonConfig.h",
+        "JsonConfigParser.h",
         "Logger.h",
         "Profiler.h",
         "Properties.h",
@@ -31,6 +35,7 @@ cc_library(
     includes = ["."],
     deps = [
         "//hasher:hasher_lib",
+        "@nlohmann_json//:json",
     ],
 )
 
