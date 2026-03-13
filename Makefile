@@ -109,6 +109,9 @@ test-agents-integration:
 	@$(MAKE) bazel 'test --show_progress --cache_test_results=no //tests/integration/...' || true; \
 	touch ./bin/kill
 
+run-tests-only:
+	@$(MAKE) bazel 'test --show_progress --cache_test_results=no //tests/...'
+
 lint-all:
 	@$(MAKE) bazel lint \
 		"//... --fix --report --diff" \
