@@ -4,6 +4,8 @@
 #include <map>
 #include <string>
 
+using namespace std;
+
 namespace commons {
 
 /**
@@ -19,7 +21,7 @@ class EnvironmentRestoreGuard {
     /**
      * For each key in overrides: save current getenv(key), then setenv(key, value, 1).
      */
-    void save_and_apply(const std::map<std::string, std::string>& overrides);
+    void save_and_apply(const map<string, string>& overrides);
 
     /**
      * Restore all saved environment variable values and clear saved state.
@@ -27,7 +29,7 @@ class EnvironmentRestoreGuard {
     void restore();
 
    private:
-    std::map<std::string, std::string> saved_;
+    map<string, string> saved_;
 };
 
 }  // namespace commons

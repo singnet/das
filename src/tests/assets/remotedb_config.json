@@ -1,5 +1,5 @@
 {
-    "atomdbs": [
+    "remote_peers": [
         {
             "uid": "peer1",
             "type": "inmemorydb",

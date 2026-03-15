@@ -7,6 +7,7 @@
 #include <vector>
 
 #include "InMemoryDB.h"
+#include "JsonConfig.h"
 #include "Link.h"
 #include "LinkSchema.h"
 #include "Node.h"
@@ -15,6 +16,7 @@
 
 using namespace atomdb;
 using namespace atoms;
+using namespace commons;
 using namespace std;
 
 // =============================================================================
@@ -335,14 +337,14 @@ string resolve_config_path(const string& filename) {
 // RemoteAtomDB tests - uses tests/assets/remotedb_config.json
 // =============================================================================
 
-json load_config(const string& filename) {
+JsonConfig load_config(const string& filename) {
     ifstream f(filename);
     if (!f.good()) {
         Utils::error("RemoteAtomDBTest: Cannot open config file: " + filename);
     }
     stringstream buf;
     buf << f.rdbuf();
-    return json::parse(buf.str());
+    return JsonConfig(nlohmann::json::parse(buf.str()));
 }
 
 class RemoteAtomDBTest : public ::testing::Test {
@@ -352,7 +354,10 @@ class RemoteAtomDBTest : public ::testing::Test {
         ASSERT_FALSE(config_path_.empty())
             << "Could not find tests/assets/remotedb_config.json (TEST_SRCDIR="
             << (std::getenv("TEST_SRCDIR") ? std::getenv("TEST_SRCDIR") : "unset") << ")";
-        db_ = make_shared<RemoteAtomDB>(load_config(config_path_));
+        auto json_config = load_config(config_path_);
+        auto remote_peers_val = json_config.at_path("remote_peers");
+        JsonConfig peers_config = remote_peers_val.is_null() ? JsonConfig() : *remote_peers_val;
+        db_ = make_shared<RemoteAtomDB>(peers_config);
     }
 
     void TearDown() override {}
@@ -446,7 +451,10 @@ class RemoteAtomDBConfigTest : public ::testing::Test {
     void SetUp() override {
         config_path_ = resolve_config_path("remotedb_config_single.json");
         ASSERT_FALSE(config_path_.empty()) << "Could not find tests/assets/remotedb_config_single.json";
-        db_ = make_shared<RemoteAtomDB>(load_config(config_path_));
+        auto json_config = load_config(config_path_);
+        auto remote_peers_val = json_config.at_path("remote_peers");
+        JsonConfig peers_config = remote_peers_val.is_null() ? JsonConfig() : *remote_peers_val;
+        db_ = make_shared<RemoteAtomDB>(peers_config);
     }
 
     void TearDown() override {}

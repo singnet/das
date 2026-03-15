@@ -2,15 +2,13 @@
 
 #include <map>
 #include <memory>
-#include <nlohmann/json.hpp>
 #include <string>
 
 #include "AtomDB.h"
+#include "JsonConfig.h"
 #include "RemoteAtomDBPeer.h"
 
 using namespace std;
-
-using nlohmann::json;
 
 namespace atomdb {
 
@@ -21,7 +19,7 @@ namespace atomdb {
  */
 class RemoteAtomDB : public AtomDB {
    public:
-    explicit RemoteAtomDB(const json& remote_peers_config);
+    explicit RemoteAtomDB(const JsonConfig& peers_config);
     ~RemoteAtomDB();
 
     bool allow_nested_indexing() override;

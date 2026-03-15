@@ -63,8 +63,8 @@ class JsonConfig : public nlohmann::json {
     // Default path for the config file.
     static string JSON_CONFIG_DEFAULT_PATH;
 
-    /** Construct from already-parsed JSON (parser validates before building). */
-    explicit JsonConfig(nlohmann::json root);
+    /** Construct from already-parsed JSON. */
+    JsonConfig(nlohmann::json root);
 
     JsonConfig();
 

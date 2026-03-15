@@ -1,6 +1,7 @@
 {
-    "schema_version": "2.0",
+    "schema_version": "1.0",
     "atomdb": {
+        "type": "redismongodb",
         "redis": {
             "image": "redis:7.2.3-alpine",
             "port": 40020,

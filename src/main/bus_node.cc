@@ -81,21 +81,25 @@ int main(int argc, char* argv[]) {
             AttentionBrokerClient::set_server_address(
                 props.get<string>(Helper::ATTENTION_BROKER_ENDPOINT));
         }
+
+        ///////// Initializing AtomDB
+        shared_ptr<AtomDB> atomdb = nullptr;
         if (props.get_or<string>(Helper::USE_MORK, "false") == "true") {
-            AtomDBSingleton::init(atomdb_api_types::ATOMDB_TYPE::MORKDB);
+            atomdb = make_shared<MorkDB>();
         } else {
             string atomdb_type = json_config.at_path("atomdb.type").get_or<string>("");
             if (atomdb_type == "morkdb") {
-                AtomDBSingleton::init(atomdb_api_types::ATOMDB_TYPE::MORKDB);
+                atomdb = make_shared<MorkDB>();
             } else if (atomdb_type == "remotedb") {
-                auto remote_peers_config =
-                    json_config.at_path("atomdb.remote_peers").get_or<json>(json());
-                auto remote_atomdb = make_shared<RemoteAtomDB>(remote_peers_config);
-                AtomDBSingleton::provide(remote_atomdb);
+                auto remote_peers_val = json_config.at_path("atomdb.remote_peers");
+                JsonConfig peers_config =
+                    remote_peers_val.is_null() ? nlohmann::json() : *remote_peers_val;
+                atomdb = make_shared<RemoteAtomDB>(peers_config);
             } else if (atomdb_type == "redismongodb" || atomdb_type.empty()) {
-                AtomDBSingleton::init();
+                atomdb = make_shared<RedisMongoDB>();
             }
         }
+        AtomDBSingleton::provide(atomdb);
 
         if (Helper::processor_type_from_string(cmd_args[Helper::SERVICE]) ==
                 mains::ProcessorType::INFERENCE_AGENT ||

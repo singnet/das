@@ -10,8 +10,8 @@ using namespace commons;
 
 namespace {
 
-const char* kValidConfigV2 = R"({
-  "schema_version": "2.0",
+const char* kValidConfigV1 = R"({
+  "schema_version": "1.0",
   "atomdb": {
     "type": "redismongodb",
     "redis": {
@@ -27,10 +27,10 @@ const char* kValidConfigV2 = R"({
     "metta": { "image": "trueagi/das:metta-parser" }
   },
   "agents": {
-    "query": { "port": 40002 }
+    "query": { "endpoint": "localhost:40002" }
   },
   "brokers": {
-    "attention": { "port": 40001 }
+    "attention": { "endpoint": "localhost:40001" }
   },
   "params": {
     "query": { "max_answers": 100 }
@@ -39,19 +39,19 @@ const char* kValidConfigV2 = R"({
 
 }  // namespace
 
-TEST(ConfigParserTest, LoadFromStringValidSchemaV2) {
-    JsonConfig config = JsonConfigParser::load_from_string(kValidConfigV2);
-    EXPECT_EQ(config.get_schema_version(), "2.0");
+TEST(ConfigParserTest, LoadFromStringValidSchemaV1) {
+    JsonConfig config = JsonConfigParser::load_from_string(kValidConfigV1);
+    EXPECT_EQ(config.get_schema_version(), "1.0");
 }
 
 TEST(ConfigParserTest, ToPropertiesNestedStructure) {
-    JsonConfig config = JsonConfigParser::load_from_string(kValidConfigV2);
+    JsonConfig config = JsonConfigParser::load_from_string(kValidConfigV1);
     Properties props = config.to_properties();
 
     // Top-level scalar
     const std::string* schema = props.get_ptr<std::string>("schema_version");
     ASSERT_NE(schema, nullptr);
-    EXPECT_EQ(*schema, "2.0");
+    EXPECT_EQ(*schema, "1.0");
 
     // Nested sections
     auto atomdb = props.get_nested("atomdb");
@@ -76,14 +76,14 @@ TEST(ConfigParserTest, ToPropertiesNestedStructure) {
 }
 
 TEST(ConfigParserTest, ToPropertiesNestedAgentsAndParams) {
-    JsonConfig config = JsonConfigParser::load_from_string(kValidConfigV2);
+    JsonConfig config = JsonConfigParser::load_from_string(kValidConfigV1);
     Properties props = config.to_properties();
 
     auto agents = props.get_nested("agents");
     ASSERT_NE(agents, nullptr);
     auto query = agents->get_nested("query");
     ASSERT_NE(query, nullptr);
-    EXPECT_EQ(query->get_or<long>("port", 0), 40002);
+    EXPECT_EQ(query->get_or<string>("endpoint", ""), "localhost:40002");
 
     auto params = props.get_nested("params");
     ASSERT_NE(params, nullptr);
@@ -93,7 +93,7 @@ TEST(ConfigParserTest, ToPropertiesNestedAgentsAndParams) {
 }
 
 TEST(ConfigParserTest, GetNestedMissingKeyReturnsNullptr) {
-    JsonConfig config = JsonConfigParser::load_from_string(kValidConfigV2);
+    JsonConfig config = JsonConfigParser::load_from_string(kValidConfigV1);
     Properties props = config.to_properties();
 
     EXPECT_EQ(props.get_nested("nonexistent"), nullptr);
@@ -118,7 +118,7 @@ TEST(ConfigParserTest, UnsupportedSchemaVersionThrows) {
 
 TEST(ConfigParserTest, MissingRequiredFieldThrows) {
     const char* no_atomdb = R"({
-      "schema_version": "2.0",
+      "schema_version": "1.0",
       "loaders": {}, "agents": {}, "brokers": {}, "params": {}
     })";
     EXPECT_THROW(JsonConfigParser::load_from_string(no_atomdb), std::runtime_error);
@@ -126,7 +126,7 @@ TEST(ConfigParserTest, MissingRequiredFieldThrows) {
 
 TEST(ConfigParserTest, NullRequiredFieldThrows) {
     const char* null_atomdb = R"({
-      "schema_version": "2.0",
+      "schema_version": "1.0",
       "atomdb": null,
       "loaders": {}, "agents": {}, "brokers": {}, "params": {}
     })";
@@ -138,9 +138,9 @@ TEST(ConfigParserTest, InvalidJsonThrows) {
 }
 
 TEST(ConfigParserTest, GetJsonReturnsRoot) {
-    JsonConfig config = JsonConfigParser::load_from_string(kValidConfigV2);
+    JsonConfig config = JsonConfigParser::load_from_string(kValidConfigV1);
     const auto& j = config.get_json();
     EXPECT_TRUE(j.is_object());
-    EXPECT_EQ(j["schema_version"].get<std::string>(), "2.0");
+    EXPECT_EQ(j["schema_version"].get<std::string>(), "1.0");
     EXPECT_EQ(j["atomdb"]["redis"]["port"].get<long>(), 40020);
 }

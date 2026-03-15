@@ -19,16 +19,14 @@ namespace {
 // Required top-level keys per schema version.
 const unordered_map<string, vector<string>>& required_fields_by_version() {
     static const unordered_map<string, vector<string>> m = {
-        {"2.0", {"schema_version", "atomdb", "loaders", "agents", "brokers", "params"}},
-        // Add more versions as needed, e.g.:
-        // {"1.0", {"schema_version", "database", "loader"}},
+        {"1.0", {"schema_version", "atomdb", "atomdb.type", "loaders", "agents", "brokers", "params"}},
     };
     return m;
 }
 
 string required_fields_error(const string& version, const vector<string>& missing) {
     string msg = "Config schema version \"" + version +
-                 "\" requires the following top-level fields that are missing or null: ";
+                 "\" requires the following fields that are missing or null: ";
     for (size_t i = 0; i < missing.size(); ++i) {
         if (i > 0) msg += ", ";
         msg += "\"" + missing[i] + "\"";
@@ -37,21 +35,8 @@ string required_fields_error(const string& version, const vector<string>& missin
     return msg;
 }
 
-void validate_schema_version(const json& root) {
-    if (!root.is_object()) {
-        Utils::error("Config root must be a JSON object.", true);
-    }
-    if (!root.contains("schema_version")) {
-        Utils::error(
-            "Config must contain a \"schema_version\" field (e.g. \"2.0\"). "
-            "Cannot validate required fields without it.",
-            true);
-    }
-    const json& sv = root["schema_version"];
-    if (!sv.is_string()) {
-        Utils::error("Config \"schema_version\" must be a string (e.g. \"2.0\").", true);
-    }
-    string version = sv.get<string>();
+void validate_schema_version(const JsonConfig& config) {
+    string version = config.get_schema_version();
     auto it = required_fields_by_version().find(version);
     if (it == required_fields_by_version().end()) {
         string supported;
@@ -66,7 +51,7 @@ void validate_schema_version(const json& root) {
     const vector<string>& required = it->second;
     vector<string> missing;
     for (const string& key : required) {
-        if (!root.contains(key) || root[key].is_null()) {
+        if (config.at_path(key).is_null()) {
             missing.push_back(key);
         }
     }
@@ -76,14 +61,14 @@ void validate_schema_version(const json& root) {
 }
 
 JsonConfig parse_and_validate(const string& json_str) {
-    json root;
+    JsonConfig config;
     try {
-        root = json::parse(json_str);
+        config = JsonConfig(json::parse(json_str));
     } catch (const exception& e) {
         Utils::error("Invalid JSON in config: " + string(e.what()), true);
     }
-    validate_schema_version(root);
-    return JsonConfig(std::move(root));
+    validate_schema_version(config);
+    return config;
 }
 
 }  // namespace

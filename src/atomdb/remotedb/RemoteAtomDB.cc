@@ -23,21 +23,22 @@ using json = nlohmann::json;
 
 namespace {
 
-map<string, string> env_overrides_from_config(const json& config) {
+map<string, string> env_overrides_from_config(const JsonConfig& config) {
     map<string, string> overrides;
-    if (!config.contains("env") || !config["env"].is_object()) return overrides;
-    for (auto it = config["env"].begin(); it != config["env"].end(); ++it) {
-        string key = it.key();
-        if (it.value().is_string()) {
-            overrides[key] = it.value().get<string>();
+    auto env_val = config.at_path("env");
+    if (env_val.is_null() || !(*env_val).is_object()) return overrides;
+    for (auto& [key, value] : (*env_val).items()) {
+        if (value.is_string()) {
+            overrides[key] = value.get<string>();
         }
     }
     return overrides;
 }
 
-shared_ptr<AtomDB> create_atomdb_from_config(const json& config) {
-    string type = config.at("type").get<string>();
-    string context = config.value("context", "");
+shared_ptr<AtomDB> create_atomdb_from_config(const JsonConfig& config) {
+    string uid = config.at_path("uid").get_or<string>("");
+    string type = config.at_path("type").get_or<string>("");
+    string context = config.at_path("context").get_or<string>("");
 
     if (type == "inmemorydb") {
         return make_shared<InMemoryDB>(context.empty() ? "remotedb_" : context);
@@ -58,30 +59,19 @@ shared_ptr<AtomDB> create_atomdb_from_config(const json& config) {
         return atomdb;
     }
 
-    Utils::error("Unknown AtomDB type in config: " + type);
+    Utils::error("Unknown AtomDB type for peer " + uid + ": " + type);
     return nullptr;
 }
 
 }  // namespace
 
-RemoteAtomDB::RemoteAtomDB(const json& remote_peers_config) {
-    for (auto&& peer_config : remote_peers_config) {
-        string uid = peer_config.at("uid");
-
-        shared_ptr<AtomDB> remote = create_atomdb_from_config(peer_config);
-
-        shared_ptr<AtomDB> local_persistence = nullptr;
-        if (peer_config.contains("local_persistence")) {
-            auto local_it = peer_config.at("local_persistence");
-            if (local_it.is_object()) {
-                local_persistence = create_atomdb_from_config(local_it);
-            }
-        }
-        if (local_persistence == nullptr) {
-            local_persistence = make_shared<InMemoryDB>(uid + "_local");
-        }
-
-        remote_db_[uid] = make_shared<RemoteAtomDBPeer>(remote, local_persistence, uid);
+RemoteAtomDB::RemoteAtomDB(const JsonConfig& peers_config) {
+    for (auto& entry : peers_config) {
+        auto peer_config = JsonConfig(entry);
+        string uid = peer_config.at_path("uid").get_or<string>("");
+        if (uid.empty()) continue;
+        remote_db_[uid] =
+            make_shared<RemoteAtomDBPeer>(create_atomdb_from_config(peer_config), nullptr, uid);
     }
 
     LOG_INFO("RemoteAtomDB initialized with " << remote_db_.size() << " remote peers");
