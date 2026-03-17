@@ -1,6 +1,7 @@
 #include <signal.h>
 
 #include "AttentionBrokerClient.h"
+#include "EnvironmentRestoreGuard.h"
 #include "FitnessFunctionRegistry.h"
 #include "Helper.h"
 #include "JsonConfigParser.h"
@@ -14,6 +15,28 @@ using namespace commons;
 using namespace mains;
 using namespace std;
 using namespace attention_broker;
+
+namespace {
+
+map<string, string> atomdb_env_from_config(const JsonConfig& config) {
+    map<string, string> env;
+    auto set_if = [&](const string& env_var, const string& path) {
+        auto val = config.at_path(path);
+        if (!val.is_null()) env[env_var] = (*val).is_string() ? val.get<string>() : (*val).dump();
+    };
+    set_if("DAS_REDIS_HOSTNAME", "atomdb.redis.hostname");
+    set_if("DAS_REDIS_PORT", "atomdb.redis.port");
+    set_if("DAS_USE_REDIS_CLUSTER", "atomdb.redis.cluster");
+    set_if("DAS_MONGODB_HOSTNAME", "atomdb.mongodb.hostname");
+    set_if("DAS_MONGODB_PORT", "atomdb.mongodb.port");
+    set_if("DAS_MONGODB_USERNAME", "atomdb.mongodb.username");
+    set_if("DAS_MONGODB_PASSWORD", "atomdb.mongodb.password");
+    set_if("DAS_MORK_HOSTNAME", "atomdb.morkdb.hostname");
+    set_if("DAS_MORK_PORT", "atomdb.morkdb.port");
+    return env;
+}
+
+}  // namespace
 
 void ctrl_c_handler(int) {
     LOG_INFO("Stopping service...");
@@ -83,6 +106,9 @@ int main(int argc, char* argv[]) {
         }
 
         ///////// Initializing AtomDB
+        EnvironmentRestoreGuard env_guard;
+        env_guard.save_and_apply(atomdb_env_from_config(json_config));
+
         shared_ptr<AtomDB> atomdb = nullptr;
         if (props.get_or<string>(Helper::USE_MORK, "false") == "true") {
             atomdb = make_shared<MorkDB>();
@@ -100,6 +126,7 @@ int main(int argc, char* argv[]) {
             }
         }
         AtomDBSingleton::provide(atomdb);
+        env_guard.restore();
 
         if (Helper::processor_type_from_string(cmd_args[Helper::SERVICE]) ==
                 mains::ProcessorType::INFERENCE_AGENT ||

@@ -89,4 +89,11 @@ class JsonConfig : public nlohmann::json {
     Properties to_properties() const;
 };
 
+/** Allows nlohmann::json::get<JsonConfig>() and get_or<JsonConfig>(). */
+inline void from_json(const nlohmann::json& j, JsonConfig& config) { config = JsonConfig(j); }
+
+inline void to_json(nlohmann::json& j, const JsonConfig& config) {
+    j = static_cast<const nlohmann::json&>(config);
+}
+
 }  // namespace commons

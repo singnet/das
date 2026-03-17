@@ -4,6 +4,7 @@
         "type": "redismongodb",
         "redis": {
             "image": "redis:7.2.3-alpine",
+            "hostname": "localhost",
             "port": 40020,
             "cluster": false,
             "nodes": [
@@ -16,6 +17,7 @@
         },
         "mongodb": {
             "image": "mongodb/mongodb-community-server:8.2-ubuntu2204",
+            "hostname": "localhost",
             "port": 40021,
             "username": "admin",
             "password": "admin",
@@ -31,6 +33,7 @@
         },
         "morkdb": {
             "image": "trueagi/das:mork-server-1.0.4",
+            "hostname": "localhost",
             "port": 40022
         },
         "remote_peers": [

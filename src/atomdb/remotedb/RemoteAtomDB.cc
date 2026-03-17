@@ -44,18 +44,14 @@ shared_ptr<AtomDB> create_atomdb_from_config(const JsonConfig& config) {
         return make_shared<InMemoryDB>(context.empty() ? "remotedb_" : context);
     }
 
-    EnvironmentRestoreGuard env_guard;
     if (type == "redismongodb") {
-        env_guard.save_and_apply(env_overrides_from_config(config));
         RedisMongoDB::initialize_statics(context);
-        auto atomdb = make_shared<RedisMongoDB>(context);
-        env_guard.restore();
+        auto atomdb = make_shared<RedisMongoDB>(context, false, config);
         return atomdb;
     }
+
     if (type == "morkdb") {
-        env_guard.save_and_apply(env_overrides_from_config(config));
-        auto atomdb = make_shared<MorkDB>(context);
-        env_guard.restore();
+        auto atomdb = make_shared<MorkDB>(context, config);
         return atomdb;
     }
 

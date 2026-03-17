@@ -6,6 +6,7 @@
 #include "JsonConfigParser.h"
 #include "Properties.h"
 
+using namespace std;
 using namespace commons;
 
 namespace {
@@ -16,11 +17,18 @@ const char* kValidConfigV1 = R"({
     "type": "redismongodb",
     "redis": {
       "port": 40020,
+      "hostname": "localhost",
       "cluster": false
     },
     "mongodb": {
       "port": 40021,
-      "username": "admin"
+      "hostname": "localhost",
+      "username": "admin",
+      "password": "admin"
+    },
+    "morkdb": {
+      "hostname": "localhost",
+      "port": 40022
     }
   },
   "loaders": {
@@ -44,68 +52,62 @@ TEST(ConfigParserTest, LoadFromStringValidSchemaV1) {
     EXPECT_EQ(config.get_schema_version(), "1.0");
 }
 
-TEST(ConfigParserTest, ToPropertiesNestedStructure) {
+TEST(ConfigParserTest, GetNestedStructure) {
     JsonConfig config = JsonConfigParser::load_from_string(kValidConfigV1);
-    Properties props = config.to_properties();
 
     // Top-level scalar
-    const std::string* schema = props.get_ptr<std::string>("schema_version");
-    ASSERT_NE(schema, nullptr);
-    EXPECT_EQ(*schema, "1.0");
+    string schema = config.at_path("schema_version").get_or<string>("");
+    EXPECT_EQ(schema, "1.0");
 
     // Nested sections
-    auto atomdb = props.get_nested("atomdb");
-    ASSERT_NE(atomdb, nullptr);
-    const std::string* type = atomdb->get_ptr<std::string>("type");
-    ASSERT_NE(type, nullptr);
-    EXPECT_EQ(*type, "redismongodb");
+    auto atomdb = config.at_path("atomdb").get_or<JsonConfig>(JsonConfig());
+    string type = atomdb.at_path("type").get_or<string>("");
+    EXPECT_EQ(type, "redismongodb");
 
-    auto redis = atomdb->get_nested("redis");
-    ASSERT_NE(redis, nullptr);
-    const long* port = redis->get_ptr<long>("port");
-    ASSERT_NE(port, nullptr);
-    EXPECT_EQ(*port, 40020);
-    const bool* cluster = redis->get_ptr<bool>("cluster");
-    ASSERT_NE(cluster, nullptr);
-    EXPECT_FALSE(*cluster);
+    auto redis = atomdb.at_path("redis").get_or<JsonConfig>(JsonConfig());
+    long port = redis.at_path("port").get_or<long>(0);
+    EXPECT_EQ(port, 40020);
+    string hostname = redis.at_path("hostname").get_or<string>("");
+    EXPECT_EQ(hostname, "localhost");
+    bool cluster = redis.at_path("cluster").get_or<bool>(false);
+    EXPECT_FALSE(cluster);
 
-    auto mongodb = atomdb->get_nested("mongodb");
-    ASSERT_NE(mongodb, nullptr);
-    EXPECT_EQ(mongodb->get_or<long>("port", 0), 40021);
-    EXPECT_EQ(mongodb->get_or<std::string>("username", ""), "admin");
+    auto mongodb = atomdb.at_path("mongodb").get_or<JsonConfig>(JsonConfig());
+    port = mongodb.at_path("port").get_or<long>(0);
+    EXPECT_EQ(port, 40021);
+    hostname = mongodb.at_path("hostname").get_or<string>("");
+    EXPECT_EQ(hostname, "localhost");
+    string username = mongodb.at_path("username").get_or<string>("");
+    EXPECT_EQ(username, "admin");
+    string password = mongodb.at_path("password").get_or<string>("");
+    EXPECT_EQ(password, "admin");
+
+    auto morkdb = atomdb.at_path("morkdb").get_or<JsonConfig>(JsonConfig());
+    hostname = morkdb.at_path("hostname").get_or<string>("");
+    EXPECT_EQ(hostname, "localhost");
+    port = morkdb.at_path("port").get_or<long>(0);
+    EXPECT_EQ(port, 40022);
 }
 
-TEST(ConfigParserTest, ToPropertiesNestedAgentsAndParams) {
+TEST(ConfigParserTest, GetNestedAgentsAndParams) {
     JsonConfig config = JsonConfigParser::load_from_string(kValidConfigV1);
-    Properties props = config.to_properties();
+    string query = config.at_path("agents.query.endpoint").get_or<string>("");
+    EXPECT_EQ(query, "localhost:40002");
 
-    auto agents = props.get_nested("agents");
-    ASSERT_NE(agents, nullptr);
-    auto query = agents->get_nested("query");
-    ASSERT_NE(query, nullptr);
-    EXPECT_EQ(query->get_or<string>("endpoint", ""), "localhost:40002");
-
-    auto params = props.get_nested("params");
-    ASSERT_NE(params, nullptr);
-    auto query_params = params->get_nested("query");
-    ASSERT_NE(query_params, nullptr);
-    EXPECT_EQ(query_params->get_or<long>("max_answers", 0), 100);
+    long max_answers = config.at_path("params.query.max_answers").get_or<long>(0);
+    EXPECT_EQ(max_answers, 100);
 }
 
-TEST(ConfigParserTest, GetNestedMissingKeyReturnsNullptr) {
+TEST(ConfigParserTest, GetNestedMissingKeyReturnsEmptyString) {
     JsonConfig config = JsonConfigParser::load_from_string(kValidConfigV1);
-    Properties props = config.to_properties();
-
-    EXPECT_EQ(props.get_nested("nonexistent"), nullptr);
-    auto atomdb = props.get_nested("atomdb");
-    ASSERT_NE(atomdb, nullptr);
-    EXPECT_EQ(atomdb->get_nested("nonexistent"), nullptr);
+    EXPECT_EQ(config.at_path("nonexistent").get_or<string>(""), "");
+    EXPECT_EQ(config.at_path("atomdb.nonexistent").get_or<string>(""), "");
 }
 
 TEST(ConfigParserTest, MissingSchemaVersionThrows) {
     const char* no_version =
         R"({ "atomdb": {}, "loaders": {}, "agents": {}, "brokers": {}, "params": {} })";
-    EXPECT_THROW(JsonConfigParser::load_from_string(no_version), std::runtime_error);
+    EXPECT_THROW(JsonConfigParser::load_from_string(no_version), runtime_error);
 }
 
 TEST(ConfigParserTest, UnsupportedSchemaVersionThrows) {
@@ -113,7 +115,7 @@ TEST(ConfigParserTest, UnsupportedSchemaVersionThrows) {
       "schema_version": "99.0",
       "atomdb": {}, "loaders": {}, "agents": {}, "brokers": {}, "params": {}
     })";
-    EXPECT_THROW(JsonConfigParser::load_from_string(bad_version), std::runtime_error);
+    EXPECT_THROW(JsonConfigParser::load_from_string(bad_version), runtime_error);
 }
 
 TEST(ConfigParserTest, MissingRequiredFieldThrows) {
@@ -121,7 +123,7 @@ TEST(ConfigParserTest, MissingRequiredFieldThrows) {
       "schema_version": "1.0",
       "loaders": {}, "agents": {}, "brokers": {}, "params": {}
     })";
-    EXPECT_THROW(JsonConfigParser::load_from_string(no_atomdb), std::runtime_error);
+    EXPECT_THROW(JsonConfigParser::load_from_string(no_atomdb), runtime_error);
 }
 
 TEST(ConfigParserTest, NullRequiredFieldThrows) {
@@ -130,17 +132,17 @@ TEST(ConfigParserTest, NullRequiredFieldThrows) {
       "atomdb": null,
       "loaders": {}, "agents": {}, "brokers": {}, "params": {}
     })";
-    EXPECT_THROW(JsonConfigParser::load_from_string(null_atomdb), std::runtime_error);
+    EXPECT_THROW(JsonConfigParser::load_from_string(null_atomdb), runtime_error);
 }
 
 TEST(ConfigParserTest, InvalidJsonThrows) {
-    EXPECT_THROW(JsonConfigParser::load_from_string("{ invalid json }"), std::runtime_error);
+    EXPECT_THROW(JsonConfigParser::load_from_string("{ invalid json }"), runtime_error);
 }
 
 TEST(ConfigParserTest, GetJsonReturnsRoot) {
     JsonConfig config = JsonConfigParser::load_from_string(kValidConfigV1);
     const auto& j = config.get_json();
     EXPECT_TRUE(j.is_object());
-    EXPECT_EQ(j["schema_version"].get<std::string>(), "1.0");
+    EXPECT_EQ(j["schema_version"].get<string>(), "1.0");
     EXPECT_EQ(j["atomdb"]["redis"]["port"].get<long>(), 40020);
 }
