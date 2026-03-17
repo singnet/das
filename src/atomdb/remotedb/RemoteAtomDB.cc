@@ -5,7 +5,6 @@
 #include <optional>
 #include <sstream>
 
-#include "EnvironmentRestoreGuard.h"
 #include "InMemoryDB.h"
 #include "InMemoryDBAPITypes.h"
 #include "MorkDB.h"
@@ -22,18 +21,6 @@ using namespace commons;
 using json = nlohmann::json;
 
 namespace {
-
-map<string, string> env_overrides_from_config(const JsonConfig& config) {
-    map<string, string> overrides;
-    auto env_val = config.at_path("env");
-    if (env_val.is_null() || !(*env_val).is_object()) return overrides;
-    for (auto& [key, value] : (*env_val).items()) {
-        if (value.is_string()) {
-            overrides[key] = value.get<string>();
-        }
-    }
-    return overrides;
-}
 
 shared_ptr<AtomDB> create_atomdb_from_config(const JsonConfig& config) {
     string uid = config.at_path("uid").get_or<string>("");

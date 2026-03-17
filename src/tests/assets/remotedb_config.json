@@ -8,12 +8,10 @@
                 "type": "morkdb",
                 "context": "remotedb_test_peer1_local_",
                 "morkdb": {
-                    "hostname": "localhost",
-                    "port": "40022"
+                    "endpoint": "localhost:40022"
                 },
                 "mongodb": {
-                    "hostname": "localhost",
-                    "port": "40021",
+                    "endpoint": "localhost:40021",
                     "username": "admin",
                     "password": "admin"
                 }

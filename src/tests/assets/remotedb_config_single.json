@@ -5,13 +5,11 @@
             "type": "redismongodb",
             "context": "remotedb_test_single_peer_",
             "redis": {
-                "hostname": "localhost",
-                "port": "40020",
+                "endpoint": "localhost:40020",
                 "cluster": "false"
             },
             "mongodb": {
-                "hostname": "localhost",
-                "port": "40021",
+                "endpoint": "localhost:40021",
                 "username": "admin",
                 "password": "admin"
             }

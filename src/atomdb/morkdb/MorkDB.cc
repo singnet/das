@@ -108,13 +108,12 @@ MorkDB::~MorkDB() {}
 bool MorkDB::allow_nested_indexing() { return true; }
 
 void MorkDB::mork_setup(const JsonConfig& config) {
-    string host =
-        config.at_path("morkdb.hostname").get_or<string>(Utils::get_environment("DAS_MORK_HOSTNAME"));
-    string port = config.at_path("morkdb.port").get_or<string>(Utils::get_environment("DAS_MORK_PORT"));
-    string address = host + ":" + port;
+    string host = Utils::get_environment("DAS_MORK_HOSTNAME");
+    string port = Utils::get_environment("DAS_MORK_PORT");
+    string address = config.at_path("morkdb.endpoint").get_or<string>(host + ":" + port);
 
-    if (host == "" || port == "") {
-        Utils::error("You need to set MORK access info as configuration: morkdb.hostname, morkdb.port");
+    if (address == "" || address == ":") {
+        Utils::error("You need to set MORK access info as configuration: morkdb.endpoint");
     }
 
     try {

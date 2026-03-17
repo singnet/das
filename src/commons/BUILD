@@ -6,7 +6,6 @@ cc_library(
     name = "commons_lib",
     srcs = [
         "Assignment.cc",
-        "EnvironmentRestoreGuard.cc",
         "JsonConfig.cc",
         "JsonConfigParser.cc",
         "SharedQueue.cc",
@@ -15,7 +14,6 @@ cc_library(
     ],
     hdrs = [
         "Assignment.h",
-        "EnvironmentRestoreGuard.h",
         "JsonConfig.h",
         "JsonConfigParser.h",
         "Logger.h",
