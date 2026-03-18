@@ -11,10 +11,10 @@
 #include <string>
 #include <vector>
 
+#include "AtomProcessor.h"
 #include "DatabaseConnection.h"
 #include "DatabaseWrapper.h"
 #include "SharedQueue.h"
-#include "AtomProcessor.h"
 
 #define MAX_VALUE_SIZE ((size_t) 1000)
 

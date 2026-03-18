@@ -1,30 +1,30 @@
 #pragma once
 
+#include <AtomDB.h>
+
+#include <memory>
 #include <string>
 #include <vector>
-#include <AtomDB.h>
-#include <memory>
-#include "HandleTrie.h"
 
+#include "HandleTrie.h"
 
 using namespace std;
 using namespace atomdb;
 
-
 namespace db_adapter {
 
 class AtomProcessor {
-    public:
-     AtomProcessor();
-     ~AtomProcessor();
+   public:
+    AtomProcessor();
+    ~AtomProcessor();
 
-     void process_atoms(vector<Atom*> atoms);
-     bool has_handle(const string& handle);
+    void process_atoms(vector<Atom*> atoms);
+    bool has_handle(const string& handle);
 
-    private:
-     vector<Atom*> atoms;
-     HandleTrie handle_trie{32};
-     shared_ptr<AtomDB> atomdb;
+   private:
+    vector<Atom*> atoms;
+    HandleTrie handle_trie{32};
+    shared_ptr<AtomDB> atomdb;
 };
 
-} // namespace db_adapter
+}  // namespace db_adapter

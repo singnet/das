@@ -109,7 +109,10 @@ PostgresWrapper::PostgresWrapper(PostgresDatabaseConnection& db_conn,
                                  MAPPER_TYPE mapper_type,
                                  shared_ptr<AtomProcessor> atom_processor,
                                  shared_ptr<SharedQueue> output_queue)
-    : SQLWrapper(db_conn, mapper_type), db_conn(db_conn), atom_processor(atom_processor), output_queue(output_queue) {}
+    : SQLWrapper(db_conn, mapper_type),
+      db_conn(db_conn),
+      atom_processor(atom_processor),
+      output_queue(output_queue) {}
 
 PostgresWrapper::~PostgresWrapper() {}
 

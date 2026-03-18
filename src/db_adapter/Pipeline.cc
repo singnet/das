@@ -1,11 +1,11 @@
 #include "Pipeline.h"
 
 #include "AtomDBSingleton.h"
+#include "AtomProcessor.h"
 #include "DedicatedThread.h"
 #include "Logger.h"
 #include "PostgresWrapper.h"
 #include "Processor.h"
-#include "AtomProcessor.h"
 #include "SharedQueue.h"
 
 #define LOG_LEVEL DEBUG_LEVEL
