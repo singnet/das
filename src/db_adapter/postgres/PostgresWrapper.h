@@ -14,6 +14,7 @@
 #include "DatabaseConnection.h"
 #include "DatabaseWrapper.h"
 #include "SharedQueue.h"
+#include "AtomProcessor.h"
 
 #define MAX_VALUE_SIZE ((size_t) 1000)
 
@@ -62,6 +63,7 @@ class PostgresWrapper : public SQLWrapper {
      */
     PostgresWrapper(PostgresDatabaseConnection& db_conn,
                     MAPPER_TYPE mapper_type = MAPPER_TYPE::SQL2ATOMS,
+                    shared_ptr<AtomProcessor> atom_processor = nullptr,
                     shared_ptr<SharedQueue> output_queue = nullptr);
 
     ~PostgresWrapper() override;
@@ -83,6 +85,7 @@ class PostgresWrapper : public SQLWrapper {
     mutex api_mutex;
     PostgresDatabaseConnection& db_conn;
     shared_ptr<SharedQueue> output_queue;
+    shared_ptr<AtomProcessor> atom_processor;
     optional<vector<Table>> tables_cache;
     unordered_map<string, int> tables_rows_count;
     vector<string> build_columns_to_map(const Table& table, const vector<string>& skip_columns = {});

@@ -107,8 +107,9 @@ void PostgresDatabaseConnection::close_cursor() {
 
 PostgresWrapper::PostgresWrapper(PostgresDatabaseConnection& db_conn,
                                  MAPPER_TYPE mapper_type,
+                                 shared_ptr<AtomProcessor> atom_processor,
                                  shared_ptr<SharedQueue> output_queue)
-    : SQLWrapper(db_conn, mapper_type), db_conn(db_conn), output_queue(output_queue) {}
+    : SQLWrapper(db_conn, mapper_type), db_conn(db_conn), atom_processor(atom_processor), output_queue(output_queue) {}
 
 PostgresWrapper::~PostgresWrapper() {}
 
@@ -463,9 +464,7 @@ void PostgresWrapper::fetch_rows_paginated(const Table& table,
                 LOG_DEBUG("Atoms count: " << atoms.size());
                 atoms_count += atoms.size();
                 unique_lock<mutex> lock(this->api_mutex);
-                for (const auto& atom : atoms) {
-                    this->output_queue->enqueue((void*) atom);
-                }
+                this->atom_processor->process_atoms(atoms);
             } else {
                 auto metta_expressions = get<vector<string>>(output);
                 LOG_DEBUG("Metta Expressions count: " << metta_expressions.size());

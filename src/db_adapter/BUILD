@@ -12,6 +12,7 @@ cc_library(
         ":database_connection",
         ":database_wrapper",
         ":pipeline",
+        ":atom_processor",
         "//commons:commons_lib",
         "//commons/atoms:atoms_lib",
         "//db_adapter/postgres:postgres_lib",
@@ -80,6 +81,20 @@ cc_library(
 )
 
 cc_library(
+    name = "atom_processor",
+    srcs = ["AtomProcessor.cc"],
+    hdrs = ["AtomProcessor.h"],
+    includes = ["."],
+    deps = [
+        ":data_types",
+        "//atomdb",
+        "//atomdb:atomdb_singleton",
+        "//commons:commons_lib",
+        "//commons/atoms:atoms_lib",
+    ],
+)
+
+cc_library(
     name = "pipeline",
     srcs = ["Pipeline.cc"],
     hdrs = ["Pipeline.h"],
@@ -87,6 +102,7 @@ cc_library(
     deps = [
         ":data_types",
         ":database_wrapper",
+        ":atom_processor",
         "//atomdb",
         "//atomdb:atomdb_singleton",
         "//commons:commons_lib",

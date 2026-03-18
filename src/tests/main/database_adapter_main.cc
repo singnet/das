@@ -72,17 +72,6 @@ void run(string host,
     }
     LOG_DEBUG("Loaded " + to_string(queries_SQL.size()) + " queries from query file.");
 
-    /*
-    DedicatedThread approach:
-    */
-
-    AtomPersistenceJob atomdb_job(queue);
-    auto consumer = make_shared<DedicatedThread>("consumer", &atomdb_job);
-
-    consumer->setup();
-    consumer->start();
-    LOG_DEBUG("Consumer thread started.");
-
     producer->setup();
     producer->start();
     LOG_DEBUG("Producer thread started.");
@@ -93,43 +82,7 @@ void run(string host,
 
     LOG_INFO("Mapping completed. Loading data into DAS.");
     producer->stop();
-
-    atomdb_job.set_producer_finished();
-
-    while (!atomdb_job.is_finished()) {
-        LOG_DEBUG("Waiting for AtomPersistenceJob to finish...");
-        Utils::sleep();
-    }
-
     LOG_INFO("Loading completed!");
-    consumer->stop();
-
-    /*
-    ThreadPool approach:
-    */
-
-    // AtomPersistenceJob2 atomdb_job(queue);
-    // int num_consumers = 8;
-    // ThreadPool pool("consumers_pool", num_consumers);
-    // pool.setup();
-    // pool.start();
-    // for (int i = 0; i < num_consumers; ++i) {
-    //     pool.enqueue([&atomdb_job]() { atomdb_job.consumer_task(); });
-    // }
-
-    // producer->setup();
-    // producer->start();
-    // LOG_DEBUG("Producer thread started.");
-    // while (!db_mapping_job.is_finished()) {
-    //     Utils::sleep();
-    // }
-    // LOG_INFO("Mapping completed. Loading data into DAS.");
-    // producer->stop();
-    // atomdb_job.set_producer_finished();
-
-    // pool.wait();
-    // pool.stop();
-    // LOG_INFO("Loading completed!");
 }
 
 int main(int argc, char* argv[]) {

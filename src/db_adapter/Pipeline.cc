@@ -5,6 +5,7 @@
 #include "Logger.h"
 #include "PostgresWrapper.h"
 #include "Processor.h"
+#include "AtomProcessor.h"
 #include "SharedQueue.h"
 
 #define LOG_LEVEL DEBUG_LEVEL
@@ -25,7 +26,8 @@ DatabaseMappingJob::DatabaseMappingJob(const string& host,
                                        shared_ptr<SharedQueue> output_queue) {
     this->db_conn =
         make_unique<PostgresDatabaseConnection>("psql-conn", host, port, database, user, password);
-    this->wrapper = make_unique<PostgresWrapper>(*db_conn, mapper_type, output_queue);
+    auto atom_processor = make_shared<AtomProcessor>();
+    this->wrapper = make_unique<PostgresWrapper>(*db_conn, mapper_type, atom_processor, output_queue);
 }
 
 DatabaseMappingJob::~DatabaseMappingJob() { this->db_conn->stop(); }

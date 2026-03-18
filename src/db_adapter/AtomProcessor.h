@@ -1,3 +1,5 @@
+#pragma once
+
 #include <string>
 #include <vector>
 #include <AtomDB.h>
@@ -14,7 +16,7 @@ namespace db_adapter {
 class AtomProcessor {
     public:
      AtomProcessor();
-     ~AtomProcessor() = default;
+     ~AtomProcessor();
 
      void process_atoms(vector<Atom*> atoms);
      bool has_handle(const string& handle);
