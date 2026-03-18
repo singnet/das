@@ -17,71 +17,43 @@ using namespace processor;
 namespace query_element {
 
 /**
- * This operator takes as input a single query element and two handles (SOURCE and TARGET) and
- * outputs QueryAnswers which represent paths between SOURCE and TARGET. Additional parameters
- * (link selector and tail/head reference) are used to determine which handle in the QueryAnswer
- * is supposed to be used and which link targets are supposed to be used as edge tail and head.
+ * This operator takes as input another query element, a specification of how to extract edges
+ * information from each query answer and two handles (SOURCE and TARGET) and
+ * outputs QueryAnswers which represent paths between SOURCE and TARGET.
  *
- * Each QueryAnswer in the input is supposed to have exatcly 1 handle,
- * i.e. query_answer->handles.size() == 1. In addition to this, the handle is supposed to be the
- * handle of a ternary link such as
+ * We'll use the term "edge" here in order to avoid confusion if "links" to explain how pths
+ * are created. So, a path between SOURCE and TARGET is a chain of edges (Hi, Hj) that
+ * goes from SOURCE to TARGET. Something like (SOURCE, H1), (H1, H2), (H2, H3), ... (HN, TARGET)
+ * which can also be represented as SOURCE -> H1 -> H2 -> H3 -> ... -> HN -> TARGET.
  *
- * LINK
- *     TARGET1
- *     TARGET2
- *     TARGET3
+ * So while processing its input (query answers), the chain operator extractc one edge from
+ * each query answer and try to combine it with the edges it extracted from other query answers
+ * in order to form paths from SOURCE to TARGET. To do so, it uses link_selector, tail_reference and
+ * head_reference.
  *
- * TARGET1 is disregarded. TARGET2 and TARGET3 are used to connect the paths. Just to make it
- * easy to write an example, lets assume the input handles represent links like these:
+ * Suppose we have a KB with several Similarity links like these:
  *
- * (Similarity H1 H2)
+ * (Similarity "human" "chimp")
+ * (Similarity "chimp" "monkey")
+ * (Similarity "human" "monkey")
+ * (Similarity "human" "ent")
  *
- * Each QueryAnswer in the Chain Operator output will contain N handles, representing a path
- * with N links connecting SOURCE and TARGET. Suppose we have a QueryAnswer with N=4, the handles
- * in query_answer->handles will point to links like these:
+ * We may use a Chain operator to find a path conecting "human" and "ent" through SImilarity links.
+ * To do this, we can use a query like this:
  *
- * (Similarity SOURCE H1)
- * (Similarity H1 H2)
- * (Similarity H2 H3)
- * (Similarity H3 TARGET)
+ * CHAIN, "0", "1", "2",
+ *     "NODE", "Symbol", "chimp",
+ *     "NODE", "Symbol", "ent",
+ *     "LINK_TEMPLATE", "Expression", "3",
+ *         "NODE", "Symbol", "Similarity",
+ *         "VARIABLE", "v1",
+ *         "VARIABLE", "v2"
  *
- * Chained to form a path between SOURCE and TARGET. Note that the first link target is
- * disregarded so you may have something like:
- *
- * CHAIN SOURCE TARGET
- *     OR 2
- *         LinkTemplate 3
- *             Node Equivalence
- *             Variable v1
- *             Variable v2
- *         LinkTemplate 3
- *             Node Similarity
- *             Variable v1
- *             Variable v2
- *
- * This cold produce QueryAnswers paths chaining Similarity and Equivalence links in the same path.
- * E.g.:
- *
- * (Similarity SOURCE H1)
- * (Similarity H1 H2)
- * (Equivalence H2 H3)
- * (Similarity H3 H4)
- * (Equivalence H4 H5)
- * (Similarrity H5 TARGET)
- *
- * Also note that, because input QueryAnswer are supposed to have exatcly 1 handle, the following
- * query IS NOT valid:
- *
- * CHAIN SOURCE TARGET
- *     AND 2
- *         LinkTemplate 3
- *             Node Equivalence
- *             Variable v1
- *             Variable v2
- *         LinkTemplate 3
- *             Node Equivalence
- *             Variable v2
- *             Variable v3
+ * In this example, the LINK_TEMPLATE is the query. Its query answers will be exactly the Similarity
+ * links we listed above. So "0" is used to select the first handle of each query answer (which represents
+ * the Similarity links themselves) and "1" and "2" are the target indexes that will be used to get the
+ * tail and the head of each edge. So, for instance, for the query answer for (Similarity "human" "chimp"),
+ * the edge "human" -> "chimp" is extracted.
  *
  * Optionally, ALLOW_INCOMPLETE_CHAIN_PATH can be set true to determine that the Chain Operator
  * should output incomplete paths as well as complete ones (the same prioritizartion by
