@@ -103,3 +103,12 @@ register_toolchains("@rules_pkg_rpmbuild//:all")
 
 # Dependency for JSON
 bazel_dep(name = "nlohmann_json", version = "3.12.0.bcr.1")
+
+# Work around BCR rules_kotlin patch causing "Permission denied" on MODULE.bazel when
+# extracting in Docker (extracted files can be read-only; see bazelbuild/bazel#7369).
+# Override with the same archive but no patches so the patch step is skipped.
+archive_override(
+    module_name = "rules_kotlin",
+    integrity = "sha256-O3cpdv7Hvc2h2EudObF2WJQkwEfrIXW+0JqsYw5Qr0M=",
+    urls = ["https://github.com/bazelbuild/rules_kotlin/releases/download/v1.9.6/rules_kotlin-v1.9.6.tar.gz"],
+)

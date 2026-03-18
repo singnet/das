@@ -32,13 +32,13 @@ string RedisMongoDB::MONGODB_FIELD_NAME[MONGODB_FIELD::size];
 uint RedisMongoDB::MONGODB_CHUNK_SIZE;
 mongocxx::instance RedisMongoDB::MONGODB_INSTANCE;
 
-RedisMongoDB::RedisMongoDB(const string& context, bool skip_redis) {
+RedisMongoDB::RedisMongoDB(const string& context, bool skip_redis, const JsonConfig& config) {
     initialize_statics(context, skip_redis);
-    mongodb_setup();
+    mongodb_setup(config);
     load_pattern_index_schema();
     bool disable_cache = true;
     this->atomdb_cache = disable_cache ? nullptr : AtomDBCacheSingleton::get_instance();
-    redis_setup();
+    redis_setup(config);
     this->patterns_next_score.store(get_next_score(REDIS_PATTERNS_PREFIX + ":next_score"));
     this->incoming_set_next_score.store(get_next_score(REDIS_INCOMING_PREFIX + ":next_score"));
 }
@@ -50,17 +50,28 @@ RedisMongoDB::~RedisMongoDB() {
 
 bool RedisMongoDB::allow_nested_indexing() { return false; }
 
-void RedisMongoDB::redis_setup() {
+void RedisMongoDB::redis_setup(const JsonConfig& config) {
     if (SKIP_REDIS) return;
 
     string host = Utils::get_environment("DAS_REDIS_HOSTNAME");
     string port = Utils::get_environment("DAS_REDIS_PORT");
-    string address = host + ":" + port;
-    string cluster = Utils::get_environment("DAS_USE_REDIS_CLUSTER");
+
+    string address = config.at_path("redis.endpoint").get_or<string>("");
+
+    if (!address.empty()) {
+        auto tokens = Utils::split(address, ':');
+        host = tokens[0];
+        port = tokens[1];
+    } else {
+        address = host + ":" + port;
+    }
+
+    string cluster =
+        config.at_path("redis.cluster").get_or<string>(Utils::get_environment("DAS_USE_REDIS_CLUSTER"));
     std::transform(cluster.begin(), cluster.end(), cluster.begin(), ::toupper);
     this->cluster_flag = (cluster == "TRUE");
 
-    if (host == "" || port == "") {
+    if (address == "" || address == ":") {
         Utils::error(
             "You need to set Redis access info as environment variables: DAS_REDIS_HOSTNAME, "
             "DAS_REDIS_PORT and DAS_USE_REDIS_CLUSTER");
@@ -70,25 +81,29 @@ void RedisMongoDB::redis_setup() {
                               << address);
 }
 
-void RedisMongoDB::mongodb_setup() {
+void RedisMongoDB::mongodb_setup(const JsonConfig& config) {
     string host = Utils::get_environment("DAS_MONGODB_HOSTNAME");
     string port = Utils::get_environment("DAS_MONGODB_PORT");
-    string user = Utils::get_environment("DAS_MONGODB_USERNAME");
-    string password = Utils::get_environment("DAS_MONGODB_PASSWORD");
+    string address = config.at_path("mongodb.endpoint").get_or<string>(host + ":" + port);
+    string user = config.at_path("mongodb.username")
+                      .get_or<string>(Utils::get_environment("DAS_MONGODB_USERNAME"));
+    string password = config.at_path("mongodb.password")
+                          .get_or<string>(Utils::get_environment("DAS_MONGODB_PASSWORD"));
     try {
-        uint chunk_size = Utils::string_to_int(Utils::get_environment("DAS_MONGODB_CHUNK_SIZE"));
+        uint chunk_size =
+            config.at_path("mongodb.chunk_size")
+                .get_or<uint>(Utils::string_to_int(Utils::get_environment("DAS_MONGODB_CHUNK_SIZE")));
         if (chunk_size > 0) {
             MONGODB_CHUNK_SIZE = chunk_size;
         }
     } catch (const std::exception& e) {
         LOG_INFO("Using default MongoDB chunk size: " + to_string(MONGODB_CHUNK_SIZE));
     }
-    if (host == "" || port == "" || user == "" || password == "") {
+    if (address == "" || address == ":" || user == "" || password == "") {
         Utils::error(
             string("You need to set MongoDB access info as environment variables: ") +
             "DAS_MONGODB_HOSTNAME, DAS_MONGODB_PORT, DAS_MONGODB_USERNAME and DAS_MONGODB_PASSWORD");
     }
-    string address = host + ":" + port;
     string url = "mongodb://" + user + ":" + password + "@" + address;
 
     try {
