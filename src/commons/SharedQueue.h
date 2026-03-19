@@ -1,6 +1,9 @@
 #ifndef _COMMONS_SHAREDQUEUE_H
 #define _COMMONS_SHAREDQUEUE_H
 
+#include <chrono>
+#include <condition_variable>
+#include <functional>
 #include <mutex>
 
 namespace commons {
@@ -20,18 +23,35 @@ class SharedQueue {
     ~SharedQueue();                                 /// Destructor.
 
     /**
-     * Enqueues a request.
+     * Enqueues a request and notifies one waiting consumer.
      *
      * @param request Request to be queued.
      */
     void enqueue(void* request);
 
     /**
-     * Dequeues a request.
+     * Dequeues a request (non-blocking). Returns NULL if the queue is empty.
      *
-     * @return The dequeued request.
+     * @return The dequeued request or NULL.
      */
     void* dequeue();
+
+    /**
+     * Blocks until an item is available or the timeout expires.
+     * Returns NULL on timeout.
+     *
+     * @param timeout_ms Maximum time to wait in milliseconds.
+     * @return The dequeued request or NULL on timeout.
+     */
+    void* blocking_dequeue(unsigned int timeout_ms = 500);
+
+    /**
+     * Dequeues and applies deleter to every remaining item. Useful for cleanup
+     * when the queue may still hold heap-allocated objects.
+     *
+     * @param deleter Called once per remaining item.
+     */
+    void drain(std::function<void(void*)> deleter);
 
     /**
      * Returns true iff the queue is empty.
@@ -55,6 +75,7 @@ class SharedQueue {
 
    private:
     std::mutex shared_queue_mutex;
+    std::condition_variable not_empty_cv;
 
     void** requests;  // GRPC documentation states that request types should not be inherited
     unsigned int allocated_size;
@@ -63,6 +84,8 @@ class SharedQueue {
     unsigned int end;
 
     void enlarge_shared_queue();
+
+    void* dequeue_locked();
 };
 
 }  // namespace commons

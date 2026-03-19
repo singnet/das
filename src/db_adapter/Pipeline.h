@@ -9,7 +9,7 @@
 #include "Processor.h"
 #include "SharedQueue.h"
 
-#define BATCH_SIZE 10000
+#define BATCH_SIZE 5000
 
 using namespace atomdb;
 using namespace std;
@@ -77,6 +77,7 @@ class AtomPersistenceJob2 {
 
     void consumer_task();
     void set_producer_finished();
+    shared_ptr<AtomDB> get_atomdb() const { return atomdb; }
 
    protected:
     atomic<int> total_count{0};

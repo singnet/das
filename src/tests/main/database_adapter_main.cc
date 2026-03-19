@@ -1,6 +1,7 @@
 #include <signal.h>
 
 #include <iostream>
+#include <queue>
 #include <string>
 
 #include "AtomDBSingleton.h"
@@ -9,6 +10,8 @@
 #include "DedicatedThread.h"
 #include "Pipeline.h"
 #include "Processor.h"
+#include "RedisMongoDB.h"
+#include "SharedQueue.h"
 #include "Utils.h"
 #include "processor/ThreadPool.h"
 
@@ -129,6 +132,22 @@ void run(string host,
 
     pool.wait();
     pool.stop();
+
+    queue->drain([](void* ptr) {
+        auto* batch = static_cast<std::queue<atoms::Atom*>*>(ptr);
+        if (batch) {
+            while (!batch->empty()) {
+                delete batch->front();
+                batch->pop();
+            }
+            delete batch;
+        }
+    });
+
+    if (auto* redis_mongodb = dynamic_cast<RedisMongoDB*>(atomdb_job.get_atomdb().get())) {
+        redis_mongodb->flush_scores();
+    }
+
     LOG_INFO("Loading completed!");
 }
 

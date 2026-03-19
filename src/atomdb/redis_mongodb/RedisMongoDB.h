@@ -147,6 +147,8 @@ class RedisMongoDB : public AtomDB {
     void build_composite_type_entries_map(const vector<atoms::Link*>& links,
                                           map<string, vector<string>>& composite_type_entries_map);
 
+    void flush_scores();
+
    private:
     string context;
     bool cluster_flag;

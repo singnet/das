@@ -32,14 +32,16 @@ bool SharedQueue::empty() {
 }
 
 void SharedQueue::enqueue(void* request) {
-    shared_queue_mutex.lock();
-    if (count == allocated_size) {
-        enlarge_shared_queue();
+    {
+        std::lock_guard<std::mutex> lock(shared_queue_mutex);
+        if (count == allocated_size) {
+            enlarge_shared_queue();
+        }
+        requests[end] = request;
+        end = (end + 1) % allocated_size;
+        count++;
     }
-    requests[end] = request;
-    end = (end + 1) % allocated_size;
-    count++;
-    shared_queue_mutex.unlock();
+    not_empty_cv.notify_one();
 }
 
 void* SharedQueue::dequeue() {
@@ -51,6 +53,32 @@ void* SharedQueue::dequeue() {
         count--;
     }
     shared_queue_mutex.unlock();
+    return answer;
+}
+
+void SharedQueue::drain(std::function<void(void*)> deleter) {
+    std::lock_guard<std::mutex> lock(shared_queue_mutex);
+    while (count > 0) {
+        void* item = dequeue_locked();
+        if (item != nullptr && deleter) {
+            deleter(item);
+        }
+    }
+}
+
+void* SharedQueue::blocking_dequeue(unsigned int timeout_ms) {
+    std::unique_lock<std::mutex> lock(shared_queue_mutex);
+    if (count == 0) {
+        not_empty_cv.wait_for(lock, std::chrono::milliseconds(timeout_ms), [this] { return count > 0; });
+    }
+    return dequeue_locked();
+}
+
+void* SharedQueue::dequeue_locked() {
+    if (count == 0) return nullptr;
+    void* answer = requests[start];
+    start = (start + 1) % allocated_size;
+    count--;
     return answer;
 }
 

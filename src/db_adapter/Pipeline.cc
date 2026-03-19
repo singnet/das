@@ -159,29 +159,36 @@ AtomPersistenceJob2::AtomPersistenceJob2(shared_ptr<SharedQueue> input_queue)
 
 AtomPersistenceJob2::~AtomPersistenceJob2() {}
 
+static double get_available_ram_ratio() {
+    unsigned long total = Utils::get_total_ram();
+    if (total == 0) return 0.0;
+    return static_cast<double>(Utils::get_current_free_ram()) / static_cast<double>(total);
+}
+
 void AtomPersistenceJob2::consumer_task() {
     LOG_INFO("== CONSUMER WORKER STARTED ==");
 
     vector<Atom*> local_atoms;
 
     while (true) {
+        while (get_available_ram_ratio() < 0.20) {
+            LOG_INFO("Consumer: low RAM, waiting before accumulating more atoms...");
+            Utils::sleep(2000);
+        }
+
         while (local_atoms.size() < BATCH_SIZE) {
-            if (this->input_queue->empty()) break;
+            void* raw_ptr = this->input_queue->blocking_dequeue(200);
+            if (raw_ptr == nullptr) break;
 
-            void* raw_ptr = this->input_queue->dequeue();
-            std::queue<Atom*>* batch_queue = static_cast<std::queue<Atom*>*>(raw_ptr);
-
-            if (batch_queue != nullptr) {
-                while (!batch_queue->empty()) {
-                    Atom* atom = batch_queue->front();
-                    batch_queue->pop();
-
-                    if (atom != nullptr) {
-                        local_atoms.push_back(atom);
-                    }
+            queue<Atom*>* batch_queue = static_cast<queue<Atom*>*>(raw_ptr);
+            while (!batch_queue->empty()) {
+                Atom* atom = batch_queue->front();
+                batch_queue->pop();
+                if (atom != nullptr) {
+                    local_atoms.push_back(atom);
                 }
-                delete batch_queue;
             }
+            delete batch_queue;
         }
 
         if (!local_atoms.empty() &&
@@ -203,15 +210,9 @@ void AtomPersistenceJob2::consumer_task() {
             }
         }
 
-        Utils::sleep();
-
         if (this->producer_finished.load() && this->input_queue->empty() && local_atoms.empty()) {
             LOG_INFO("Consumer task finishing. Thread exiting.");
             break;
-        }
-
-        if (this->input_queue->empty() && !this->producer_finished.load()) {
-            Utils::sleep();
         }
     }
 }

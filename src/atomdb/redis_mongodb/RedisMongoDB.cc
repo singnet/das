@@ -45,7 +45,10 @@ RedisMongoDB::RedisMongoDB(const string& context, bool skip_redis, const JsonCon
 
 RedisMongoDB::~RedisMongoDB() {
     delete this->mongodb_pool;
-    if (!SKIP_REDIS) delete this->redis_pool;
+    if (!SKIP_REDIS) {
+        flush_scores();
+        delete this->redis_pool;
+    }
 }
 
 bool RedisMongoDB::allow_nested_indexing() { return false; }
@@ -1011,11 +1014,10 @@ vector<string> RedisMongoDB::add_links(const vector<atoms::Link*>& links,
         auto pattern_handles = match_pattern_index_schema(link);
 
         for (const auto& target : link->targets) {
+            auto score = this->incoming_set_next_score.fetch_add(1);
             string incomming_set_cmd = "ZADD " + REDIS_INCOMING_PREFIX + ":" + target + " " +
-                                       to_string(this->incoming_set_next_score.load()) + " " +
-                                       link_handle;
+                                       to_string(score) + " " + link_handle;
             ctx->append_command(incomming_set_cmd.c_str());
-            this->incoming_set_next_score.fetch_add(1);
         }
 
         string outgoing_set_cmd = "SET " + REDIS_OUTGOING_PREFIX + ":" + link_handle + " ";
@@ -1025,10 +1027,10 @@ vector<string> RedisMongoDB::add_links(const vector<atoms::Link*>& links,
         ctx->append_command(outgoing_set_cmd.c_str());
 
         for (const auto& pattern_handle : pattern_handles) {
+            auto score = this->patterns_next_score.fetch_add(1);
             string patterns_cmd = "ZADD " + REDIS_PATTERNS_PREFIX + ":" + pattern_handle + " " +
-                                  to_string(this->patterns_next_score.load()) + " " + link_handle;
+                                  to_string(score) + " " + link_handle;
             ctx->append_command(patterns_cmd.c_str());
-            this->patterns_next_score.fetch_add(1);
         }
 
         shared_ptr<atomdb_api_types::MongodbDocument> mongodb_doc;
@@ -1061,14 +1063,6 @@ vector<string> RedisMongoDB::add_links(const vector<atoms::Link*>& links,
         ctx->flush_commands();
         LOG_DEBUG("Flushing remaining Redis commands END");
     }
-
-    LOG_DEBUG("Setting next scores: patterns=" + to_string(this->patterns_next_score.load()) +
-              ", incoming=" + to_string(this->incoming_set_next_score.load()));
-
-    set_next_score_with_context(
-        ctx, REDIS_PATTERNS_PREFIX + ":next_score", this->patterns_next_score.load());
-    set_next_score_with_context(
-        ctx, REDIS_INCOMING_PREFIX + ":next_score", this->incoming_set_next_score.load());
 
     if (is_transactional) {
         lock_guard<mutex> composite_type_hashes_map_lock(this->composite_type_hashes_map_mutex);
@@ -1473,3 +1467,13 @@ void RedisMongoDB::check_existing_targets(const vector<atoms::Link*>& links) {
     }
 }
 // end of composite_type and composite_type_hash helper functions
+
+void RedisMongoDB::flush_scores() {
+    shared_ptr<RedisContext> ctx = this->redis_pool->acquire();
+    LOG_INFO("Flushing scores to Redis: patterns=" + to_string(this->patterns_next_score.load()) +
+             ", incoming=" + to_string(this->incoming_set_next_score.load()));
+    set_next_score_with_context(
+        ctx, REDIS_PATTERNS_PREFIX + ":next_score", this->patterns_next_score.load());
+    set_next_score_with_context(
+        ctx, REDIS_INCOMING_PREFIX + ":next_score", this->incoming_set_next_score.load());
+}
