@@ -9,8 +9,16 @@
 #include <stdexcept>
 #include <string>
 
+#include "Utils.h"
+
 #define LOG_LEVEL INFO_LEVEL
 #include "Logger.h"
+
+namespace {
+// Bound producer ahead of consumers: each queue item is one SQL row's atom batch.
+constexpr size_t kOutputQueueHighWaterBatches = 1500;
+constexpr size_t kCursorFetchRowLimit = 2500;
+}  // namespace
 
 using namespace std;
 
@@ -424,7 +432,7 @@ void PostgresWrapper::fetch_rows_paginated(const Table& table,
                                            const string& query) {
     LOG_INFO("[START] Mapping table " << table.name);
 
-    size_t limit = 10000;
+    size_t limit = kCursorFetchRowLimit;
     int rows_count = 0;
     int atoms_count = 0;
 
@@ -462,6 +470,12 @@ void PostgresWrapper::fetch_rows_paginated(const Table& table,
                 auto atoms = get<vector<Atom*>>(output);
                 LOG_DEBUG("Atoms count: " << atoms.size());
                 atoms_count += atoms.size();
+
+                while (this->output_queue->size() > kOutputQueueHighWaterBatches) {
+                    LOG_INFO("Output queue backlog (" << this->output_queue->size()
+                                                      << " batches), waiting for consumers...");
+                    Utils::sleep(100);
+                }
 
                 std::queue<Atom*>* batch_queue = new std::queue<Atom*>();
                 for (const auto& atom : atoms) {
