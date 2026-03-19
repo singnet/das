@@ -1,6 +1,7 @@
 #include <atomic>
 #include <memory>
 #include <string>
+#include <unordered_set>
 #include <vector>
 
 #include "AtomDBSingleton.h"
@@ -60,6 +61,8 @@ class AtomPersistenceJob : public ThreadMethod {
     bool thread_one_step() override;
     bool is_finished() const;
     void set_producer_finished();
+    bool has_handle(const string& handle);
+    void set_pattern_index_schema();
 
    protected:
     atomic<int> count = 0;
@@ -68,6 +71,7 @@ class AtomPersistenceJob : public ThreadMethod {
     shared_ptr<AtomDB> atomdb;
     bool finished = false;
     bool producer_finished = false;
+    unordered_set<string> handle_set;
 };
 
 class AtomPersistenceJob2 {
@@ -77,12 +81,14 @@ class AtomPersistenceJob2 {
 
     void consumer_task();
     void set_producer_finished();
+    bool has_handle(const string& handle);
 
    protected:
     atomic<int> total_count{0};
     shared_ptr<SharedQueue> input_queue;
     shared_ptr<AtomDB> atomdb;
     atomic<bool> producer_finished{false};
+    unordered_set<string> handle_set;
 };
 
 }  // namespace db_adapter

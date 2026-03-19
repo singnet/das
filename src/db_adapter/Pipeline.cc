@@ -75,6 +75,35 @@ bool DatabaseMappingJob::is_finished() const { return this->finished; }
 
 AtomPersistenceJob::AtomPersistenceJob(shared_ptr<SharedQueue> input_queue) : input_queue(input_queue) {
     this->atomdb = AtomDBSingleton::get_instance();
+    // this->set_pattern_index_schema();
+}
+
+void AtomPersistenceJob::set_pattern_index_schema() {
+    auto db = dynamic_pointer_cast<RedisMongoDB>(AtomDBSingleton::get_instance());
+
+    // 1. (Evaluation Predicate Concept)
+    string tokens = "LINK_TEMPLATE Expression 3 NODE Symbol Evaluation VARIABLE v1 VARIABLE v2";
+    vector<vector<string>> index_entries = {{"_", "*", "*"}, {"_", "v1", "*"}, {"_", "*", "v2"}};
+    db->add_pattern_index_schema(tokens, index_entries);
+
+    // 2. (Predicate X) e (Concept X)
+    tokens = "LINK_TEMPLATE Expression 2 NODE Symbol Predicate VARIABLE v1";
+    index_entries = {{"_", "*"}, {"_", "v1"}};
+    db->add_pattern_index_schema(tokens, index_entries);
+
+    tokens = "LINK_TEMPLATE Expression 2 NODE Symbol Concept VARIABLE v1";
+    index_entries = {{"_", "*"}, {"_", "v1"}};
+    db->add_pattern_index_schema(tokens, index_entries);
+
+    // 3. (table_name value) or (column_name link_fk)
+    tokens = "LINK_TEMPLATE Expression 2 VARIABLE v1 VARIABLE v2";
+    index_entries = {{"v1", "*"}, {"*", "v2"}};
+    db->add_pattern_index_schema(tokens, index_entries);
+
+    // 4. (table_name column_name value)
+    tokens = "LINK_TEMPLATE Expression 3 VARIABLE v1 VARIABLE v2 VARIABLE v3";
+    index_entries = {{"v1", "v2", "*"}, {"v1", "*", "v3"}, {"*", "v2", "v3"}};
+    db->add_pattern_index_schema(tokens, index_entries);
 }
 
 AtomPersistenceJob::~AtomPersistenceJob() {
@@ -117,7 +146,11 @@ bool AtomPersistenceJob::thread_one_step() {
             if (atom == nullptr) {
                 Utils::error("Dequeued atom is nullptr");
             }
-            this->atoms.push_back(atom);
+            if (!this->has_handle(atom->handle())) {
+                this->atoms.push_back(atom);
+            } else {
+                delete atom;
+            }
         }
         if (!this->atoms.empty() && this->atoms.size() >= BATCH_SIZE) {
             LOG_DEBUG("Processing batch of " << this->atoms.size() << " atoms.");
@@ -148,6 +181,11 @@ bool AtomPersistenceJob::is_finished() const { return this->finished; }
 
 void AtomPersistenceJob::set_producer_finished() { this->producer_finished = true; }
 
+bool AtomPersistenceJob::has_handle(const string& handle) {
+    auto result = this->handle_set.insert(handle);
+    return !result.second;
+}
+
 /*
     AtomPersistenceJob2 implementation using ThreadPool
 */
@@ -158,6 +196,11 @@ AtomPersistenceJob2::AtomPersistenceJob2(shared_ptr<SharedQueue> input_queue)
 }
 
 AtomPersistenceJob2::~AtomPersistenceJob2() {}
+
+bool AtomPersistenceJob2::has_handle(const string& handle) {
+    auto result = this->handle_set.insert(handle);
+    return !result.second;
+}
 
 void AtomPersistenceJob2::consumer_task() {
     LOG_INFO("== CONSUMER WORKER STARTED ==");
@@ -177,7 +220,11 @@ void AtomPersistenceJob2::consumer_task() {
                     batch_queue->pop();
 
                     if (atom != nullptr) {
-                        local_atoms.push_back(atom);
+                        if (!this->has_handle(atom->handle())) {
+                            local_atoms.push_back(atom);
+                        } else {
+                            delete atom;
+                        }
                     }
                 }
                 delete batch_queue;
