@@ -97,25 +97,23 @@ string MorkClient::url_encode(const string& value) {
 // <--
 
 // --> MorkDB : RedisMongoDB(context, skip_redis = true)
-MorkDB::MorkDB(const string& context) : RedisMongoDB(context, true) {
+MorkDB::MorkDB(const string& context, const JsonConfig& config) : RedisMongoDB(context, true, config) {
     bool disable_cache = true;
     this->atomdb_cache = disable_cache ? nullptr : AtomDBCacheSingleton::get_instance();
-    mork_setup();
+    mork_setup(config);
 }
 
 MorkDB::~MorkDB() {}
 
 bool MorkDB::allow_nested_indexing() { return true; }
 
-void MorkDB::mork_setup() {
+void MorkDB::mork_setup(const JsonConfig& config) {
     string host = Utils::get_environment("DAS_MORK_HOSTNAME");
     string port = Utils::get_environment("DAS_MORK_PORT");
-    string address = host + ":" + port;
+    string address = config.at_path("morkdb.endpoint").get_or<string>(host + ":" + port);
 
-    if (host == "" || port == "") {
-        Utils::error(
-            "You need to set MORK access info as environment variables: DAS_MORK_HOSTNAME, "
-            "DAS_MORK_PORT");
+    if (address == "" || address == ":") {
+        Utils::error("You need to set MORK access info as configuration: morkdb.endpoint");
     }
 
     try {

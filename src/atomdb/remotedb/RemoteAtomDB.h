@@ -5,6 +5,7 @@
 #include <string>
 
 #include "AtomDB.h"
+#include "JsonConfig.h"
 #include "RemoteAtomDBPeer.h"
 
 using namespace std;
@@ -14,11 +15,11 @@ namespace atomdb {
 /**
  * RemoteAtomDB connects to multiple remote AtomDBs via RemoteAtomDBPeer instances.
  * Each peer maintains its own cache, remote connection, and local persistence.
- * The constructor expects a JSON file with connection info for each remote DB.
+ * The constructor expects a JSON config with connection info for each remote peer.
  */
 class RemoteAtomDB : public AtomDB {
    public:
-    explicit RemoteAtomDB(const string& json_file_path);
+    explicit RemoteAtomDB(const JsonConfig& peers_config);
     ~RemoteAtomDB();
 
     bool allow_nested_indexing() override;

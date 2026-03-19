@@ -88,4 +88,4 @@ jobs:
           docker exec -i pg_test psql -U postgres -d postgres_wrapper_test < src/scripts/postgres_setup.sql
 
       - name: Execute Unit Test Suite
-        run: make test-all
+        run: make run-tests-only
