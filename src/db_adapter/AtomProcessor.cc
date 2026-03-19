@@ -26,16 +26,14 @@ AtomProcessor::~AtomProcessor() {
 }
 
 bool AtomProcessor::has_handle(const string& handle) {
-    auto exists = this->handle_trie.exists(handle);
-    if (exists) return true;
-    this->handle_trie.insert(handle, new EmptyTrieValue());
-    return false;
+    auto result = this->handle_set.insert(handle);
+    return !result.second;
 }
 
 void AtomProcessor::process_atoms(vector<Atom*> atoms) {
     if (atoms.empty()) return;
 
-    LOG_INFO("AtomProcessor batch size: " << this->atoms.size() << ". Adding atoms to batch...");
+    // LOG_INFO("AtomProcessor batch size: " << this->atoms.size() << ". Adding atoms to batch...");
 
     for (auto& atom : atoms) {
         if (!this->has_handle(atom->handle())) {
@@ -53,5 +51,6 @@ void AtomProcessor::process_atoms(vector<Atom*> atoms) {
             delete atom;
         }
         this->atoms.clear();
+        this->handle_set.clear();
     }
 }

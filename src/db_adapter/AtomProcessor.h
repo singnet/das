@@ -4,6 +4,7 @@
 
 #include <memory>
 #include <string>
+#include <unordered_set>
 #include <vector>
 
 #include "HandleTrie.h"
@@ -23,7 +24,7 @@ class AtomProcessor {
 
    private:
     vector<Atom*> atoms;
-    HandleTrie handle_trie{32};
+    unordered_set<string> handle_set;
     shared_ptr<AtomDB> atomdb;
 };
 

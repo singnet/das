@@ -93,10 +93,8 @@ string BaseSQL2Mapper::escape_inner_quotes(string text) {
 }
 
 bool BaseSQL2Mapper::insert_handle_if_missing(const string& handle) {
-    auto exists = this->handle_trie.exists(handle);
-    if (exists) return false;
-    this->handle_trie.insert(handle, new EmptyTrieValue());
-    return true;
+    auto result = this->handle_set.insert(handle);
+    return result.second;
 }
 
 // -- SQL2MettaMapper
@@ -109,7 +107,7 @@ OutputList SQL2MettaMapper::get_output() { return this->metta_expressions; }
 
 void SQL2MettaMapper::clear() {
     this->metta_expressions.clear();
-    this->unique_handles.clear();
+    this->handle_set.clear();
 }
 
 void SQL2MettaMapper::add_metta_if_new(const string& s_expression) {
@@ -232,12 +230,12 @@ OutputList SQL2AtomsMapper::get_output() { return this->atoms; }
 
 void SQL2AtomsMapper::clear() {
     this->atoms.clear();
-    this->unique_handles.clear();
+    this->handle_set.clear();
 }
 
-string SQL2AtomsMapper::add_atom_if_new(SQL2AtomsMapper::ATOM_TYPE atom_type,
-                                        variant<string, vector<string>> value,
-                                        bool is_toplevel) {
+string SQL2AtomsMapper::add_atom(SQL2AtomsMapper::ATOM_TYPE atom_type,
+                                 variant<string, vector<string>> value,
+                                 bool is_toplevel) {
     Atom* atom;
 
     if (atom_type == SQL2AtomsMapper::ATOM_TYPE::NODE) {
@@ -250,39 +248,31 @@ string SQL2AtomsMapper::add_atom_if_new(SQL2AtomsMapper::ATOM_TYPE atom_type,
         Utils::error("Either name or targets must be provided to create an Atom.");
     }
 
-    string handle = atom->handle();
-    if (this->insert_handle_if_missing(handle)) {
-        this->atoms.push_back(atom);
-    } else {
-        delete atom;
-    }
-    return handle;
+    this->atoms.push_back(atom);
+
+    return atom->handle();
 };
 
 void SQL2AtomsMapper::map_primary_key(const string& table_name, const string& primary_key_value) {
     string literal_pk = this->escape_inner_quotes("\"" + primary_key_value + "\"");
 
     // Nodes
-    string predicate_node_h =
-        this->add_atom_if_new(SQL2AtomsMapper::ATOM_TYPE::NODE, string("Predicate"));
-    string concept_node_h = this->add_atom_if_new(SQL2AtomsMapper::ATOM_TYPE::NODE, string("Concept"));
-    string evaluation_node_h =
-        this->add_atom_if_new(SQL2AtomsMapper::ATOM_TYPE::NODE, string("Evaluation"));
-    string literal_pk_node_h =
-        this->add_atom_if_new(SQL2AtomsMapper::ATOM_TYPE::NODE, string(literal_pk));
-    string table_name_node_h =
-        this->add_atom_if_new(SQL2AtomsMapper::ATOM_TYPE::NODE, string(table_name));
+    string predicate_node_h = this->add_atom(SQL2AtomsMapper::ATOM_TYPE::NODE, string("Predicate"));
+    string concept_node_h = this->add_atom(SQL2AtomsMapper::ATOM_TYPE::NODE, string("Concept"));
+    string evaluation_node_h = this->add_atom(SQL2AtomsMapper::ATOM_TYPE::NODE, string("Evaluation"));
+    string literal_pk_node_h = this->add_atom(SQL2AtomsMapper::ATOM_TYPE::NODE, string(literal_pk));
+    string table_name_node_h = this->add_atom(SQL2AtomsMapper::ATOM_TYPE::NODE, string(table_name));
 
     // Links
-    string predicate_link_h = this->add_atom_if_new(SQL2AtomsMapper::ATOM_TYPE::LINK,
-                                                    vector<string>{predicate_node_h, table_name_node_h});
-    string concept_inner_link_h = this->add_atom_if_new(
-        SQL2AtomsMapper::ATOM_TYPE::LINK, vector<string>{table_name_node_h, literal_pk_node_h});
-    string concept_link_h = this->add_atom_if_new(SQL2AtomsMapper::ATOM_TYPE::LINK,
-                                                  vector<string>{concept_node_h, concept_inner_link_h});
-    this->add_atom_if_new(SQL2AtomsMapper::ATOM_TYPE::LINK,
-                          vector<string>{evaluation_node_h, predicate_link_h, concept_link_h},
-                          true);
+    string predicate_link_h = this->add_atom(SQL2AtomsMapper::ATOM_TYPE::LINK,
+                                             vector<string>{predicate_node_h, table_name_node_h});
+    string concept_inner_link_h = this->add_atom(SQL2AtomsMapper::ATOM_TYPE::LINK,
+                                                 vector<string>{table_name_node_h, literal_pk_node_h});
+    string concept_link_h = this->add_atom(SQL2AtomsMapper::ATOM_TYPE::LINK,
+                                           vector<string>{concept_node_h, concept_inner_link_h});
+    this->add_atom(SQL2AtomsMapper::ATOM_TYPE::LINK,
+                   vector<string>{evaluation_node_h, predicate_link_h, concept_link_h},
+                   true);
 }
 
 void SQL2AtomsMapper::map_foreign_key_column(const string& table_name,
@@ -295,37 +285,33 @@ void SQL2AtomsMapper::map_foreign_key_column(const string& table_name,
     string literal_pk = this->escape_inner_quotes("\"" + primary_key_value + "\"");
 
     // Nodes
-    string predicate_node_h =
-        this->add_atom_if_new(SQL2AtomsMapper::ATOM_TYPE::NODE, string("Predicate"));
-    string concept_node_h = this->add_atom_if_new(SQL2AtomsMapper::ATOM_TYPE::NODE, string("Concept"));
-    string evaluation_node_h =
-        this->add_atom_if_new(SQL2AtomsMapper::ATOM_TYPE::NODE, string("Evaluation"));
-    string literal_pk_node_h =
-        this->add_atom_if_new(SQL2AtomsMapper::ATOM_TYPE::NODE, string(literal_pk));
-    string table_name_node_h =
-        this->add_atom_if_new(SQL2AtomsMapper::ATOM_TYPE::NODE, string(table_name));
-    string fk_table_node_h = this->add_atom_if_new(SQL2AtomsMapper::ATOM_TYPE::NODE, string(fk_table));
+    string predicate_node_h = this->add_atom(SQL2AtomsMapper::ATOM_TYPE::NODE, string("Predicate"));
+    string concept_node_h = this->add_atom(SQL2AtomsMapper::ATOM_TYPE::NODE, string("Concept"));
+    string evaluation_node_h = this->add_atom(SQL2AtomsMapper::ATOM_TYPE::NODE, string("Evaluation"));
+    string literal_pk_node_h = this->add_atom(SQL2AtomsMapper::ATOM_TYPE::NODE, string(literal_pk));
+    string table_name_node_h = this->add_atom(SQL2AtomsMapper::ATOM_TYPE::NODE, string(table_name));
+    string fk_table_node_h = this->add_atom(SQL2AtomsMapper::ATOM_TYPE::NODE, string(fk_table));
     string literal_value_node_h =
-        this->add_atom_if_new(SQL2AtomsMapper::ATOM_TYPE::NODE, string(literal_value));
-    string fk_column_node_h = this->add_atom_if_new(SQL2AtomsMapper::ATOM_TYPE::NODE, string(fk_column));
+        this->add_atom(SQL2AtomsMapper::ATOM_TYPE::NODE, string(literal_value));
+    string fk_column_node_h = this->add_atom(SQL2AtomsMapper::ATOM_TYPE::NODE, string(fk_column));
 
     // Links
-    string predicate_inner_1_link_h = this->add_atom_if_new(
+    string predicate_inner_1_link_h = this->add_atom(
         SQL2AtomsMapper::ATOM_TYPE::LINK, vector<string>{fk_table_node_h, literal_value_node_h});
-    string predicate_inner_2_link_h = this->add_atom_if_new(
+    string predicate_inner_2_link_h = this->add_atom(
         SQL2AtomsMapper::ATOM_TYPE::LINK, vector<string>{concept_node_h, predicate_inner_1_link_h});
-    string predicate_inner_3_link_h = this->add_atom_if_new(
+    string predicate_inner_3_link_h = this->add_atom(
         SQL2AtomsMapper::ATOM_TYPE::LINK, vector<string>{fk_column_node_h, predicate_inner_2_link_h});
-    string predicate_link_h = this->add_atom_if_new(
-        SQL2AtomsMapper::ATOM_TYPE::LINK, vector<string>{predicate_node_h, predicate_inner_3_link_h});
-    string concept_inner_link_h = this->add_atom_if_new(
-        SQL2AtomsMapper::ATOM_TYPE::LINK, vector<string>{table_name_node_h, literal_pk_node_h});
-    string concept_link_h = this->add_atom_if_new(SQL2AtomsMapper::ATOM_TYPE::LINK,
-                                                  vector<string>{concept_node_h, concept_inner_link_h});
+    string predicate_link_h = this->add_atom(SQL2AtomsMapper::ATOM_TYPE::LINK,
+                                             vector<string>{predicate_node_h, predicate_inner_3_link_h});
+    string concept_inner_link_h = this->add_atom(SQL2AtomsMapper::ATOM_TYPE::LINK,
+                                                 vector<string>{table_name_node_h, literal_pk_node_h});
+    string concept_link_h = this->add_atom(SQL2AtomsMapper::ATOM_TYPE::LINK,
+                                           vector<string>{concept_node_h, concept_inner_link_h});
 
-    this->add_atom_if_new(SQL2AtomsMapper::ATOM_TYPE::LINK,
-                          vector<string>{evaluation_node_h, predicate_link_h, concept_link_h},
-                          true);
+    this->add_atom(SQL2AtomsMapper::ATOM_TYPE::LINK,
+                   vector<string>{evaluation_node_h, predicate_link_h, concept_link_h},
+                   true);
 }
 
 void SQL2AtomsMapper::map_regular_column(const string& table_name,
@@ -336,33 +322,28 @@ void SQL2AtomsMapper::map_regular_column(const string& table_name,
     string literal_value = this->escape_inner_quotes("\"" + value + "\"");
 
     // Nodes
-    string predicate_node_h =
-        this->add_atom_if_new(SQL2AtomsMapper::ATOM_TYPE::NODE, string("Predicate"));
-    string concept_node_h = this->add_atom_if_new(SQL2AtomsMapper::ATOM_TYPE::NODE, string("Concept"));
-    string evaluation_node_h =
-        this->add_atom_if_new(SQL2AtomsMapper::ATOM_TYPE::NODE, string("Evaluation"));
-    string table_name_node_h =
-        this->add_atom_if_new(SQL2AtomsMapper::ATOM_TYPE::NODE, string(table_name));
-    string column_name_node_h =
-        this->add_atom_if_new(SQL2AtomsMapper::ATOM_TYPE::NODE, string(column_name));
+    string predicate_node_h = this->add_atom(SQL2AtomsMapper::ATOM_TYPE::NODE, string("Predicate"));
+    string concept_node_h = this->add_atom(SQL2AtomsMapper::ATOM_TYPE::NODE, string("Concept"));
+    string evaluation_node_h = this->add_atom(SQL2AtomsMapper::ATOM_TYPE::NODE, string("Evaluation"));
+    string table_name_node_h = this->add_atom(SQL2AtomsMapper::ATOM_TYPE::NODE, string(table_name));
+    string column_name_node_h = this->add_atom(SQL2AtomsMapper::ATOM_TYPE::NODE, string(column_name));
     string literal_value_node_h =
-        this->add_atom_if_new(SQL2AtomsMapper::ATOM_TYPE::NODE, string(literal_value));
-    string literal_pk_node_h =
-        this->add_atom_if_new(SQL2AtomsMapper::ATOM_TYPE::NODE, string(literal_pk));
+        this->add_atom(SQL2AtomsMapper::ATOM_TYPE::NODE, string(literal_value));
+    string literal_pk_node_h = this->add_atom(SQL2AtomsMapper::ATOM_TYPE::NODE, string(literal_pk));
 
     // Links
-    string predicate_inner_link_h = this->add_atom_if_new(
-        SQL2AtomsMapper::ATOM_TYPE::LINK,
-        vector<string>{table_name_node_h, column_name_node_h, literal_value_node_h});
-    string predicate_link_h = this->add_atom_if_new(
-        SQL2AtomsMapper::ATOM_TYPE::LINK, vector<string>{predicate_node_h, predicate_inner_link_h});
-    string concept_inner_link_h = this->add_atom_if_new(
-        SQL2AtomsMapper::ATOM_TYPE::LINK, vector<string>{table_name_node_h, literal_pk_node_h});
-    string concept_link_h = this->add_atom_if_new(SQL2AtomsMapper::ATOM_TYPE::LINK,
-                                                  vector<string>{concept_node_h, concept_inner_link_h});
-    this->add_atom_if_new(SQL2AtomsMapper::ATOM_TYPE::LINK,
-                          vector<string>{evaluation_node_h, predicate_link_h, concept_link_h},
-                          true);
+    string predicate_inner_link_h =
+        this->add_atom(SQL2AtomsMapper::ATOM_TYPE::LINK,
+                       vector<string>{table_name_node_h, column_name_node_h, literal_value_node_h});
+    string predicate_link_h = this->add_atom(SQL2AtomsMapper::ATOM_TYPE::LINK,
+                                             vector<string>{predicate_node_h, predicate_inner_link_h});
+    string concept_inner_link_h = this->add_atom(SQL2AtomsMapper::ATOM_TYPE::LINK,
+                                                 vector<string>{table_name_node_h, literal_pk_node_h});
+    string concept_link_h = this->add_atom(SQL2AtomsMapper::ATOM_TYPE::LINK,
+                                           vector<string>{concept_node_h, concept_inner_link_h});
+    this->add_atom(SQL2AtomsMapper::ATOM_TYPE::LINK,
+                   vector<string>{evaluation_node_h, predicate_link_h, concept_link_h},
+                   true);
 }
 
 void SQL2AtomsMapper::map_foreign_keys_combinations(
@@ -375,45 +356,44 @@ void SQL2AtomsMapper::map_foreign_keys_combinations(
 
                 // Nodes
                 string predicate_node_h =
-                    this->add_atom_if_new(SQL2AtomsMapper::ATOM_TYPE::NODE, string("Predicate"));
+                    this->add_atom(SQL2AtomsMapper::ATOM_TYPE::NODE, string("Predicate"));
                 string concept_node_h =
-                    this->add_atom_if_new(SQL2AtomsMapper::ATOM_TYPE::NODE, string("Concept"));
+                    this->add_atom(SQL2AtomsMapper::ATOM_TYPE::NODE, string("Concept"));
                 string evaluation_node_h =
-                    this->add_atom_if_new(SQL2AtomsMapper::ATOM_TYPE::NODE, string("Evaluation"));
+                    this->add_atom(SQL2AtomsMapper::ATOM_TYPE::NODE, string("Evaluation"));
                 string fk_column_node_h =
-                    this->add_atom_if_new(SQL2AtomsMapper::ATOM_TYPE::NODE, string(column_name));
+                    this->add_atom(SQL2AtomsMapper::ATOM_TYPE::NODE, string(column_name));
                 string foreign_table_name_node_h =
-                    this->add_atom_if_new(SQL2AtomsMapper::ATOM_TYPE::NODE, string(foreign_table_name));
+                    this->add_atom(SQL2AtomsMapper::ATOM_TYPE::NODE, string(foreign_table_name));
                 string literal_value_node_h =
-                    this->add_atom_if_new(SQL2AtomsMapper::ATOM_TYPE::NODE, string(literal_value));
+                    this->add_atom(SQL2AtomsMapper::ATOM_TYPE::NODE, string(literal_value));
                 string foreign_table_name2_node_h =
-                    this->add_atom_if_new(SQL2AtomsMapper::ATOM_TYPE::NODE, string(foreign_table_name2));
+                    this->add_atom(SQL2AtomsMapper::ATOM_TYPE::NODE, string(foreign_table_name2));
                 string literal_value2_node_h =
-                    this->add_atom_if_new(SQL2AtomsMapper::ATOM_TYPE::NODE, string(literal_value_2));
+                    this->add_atom(SQL2AtomsMapper::ATOM_TYPE::NODE, string(literal_value_2));
                 // Links
-                string predicate_inner_1_link_h = this->add_atom_if_new(
-                    SQL2AtomsMapper::ATOM_TYPE::LINK,
-                    vector<string>{foreign_table_name_node_h, literal_value_node_h});
+                string predicate_inner_1_link_h =
+                    this->add_atom(SQL2AtomsMapper::ATOM_TYPE::LINK,
+                                   vector<string>{foreign_table_name_node_h, literal_value_node_h});
                 string predicate_inner_2_link_h =
-                    this->add_atom_if_new(SQL2AtomsMapper::ATOM_TYPE::LINK,
-                                          vector<string>{concept_node_h, predicate_inner_1_link_h});
+                    this->add_atom(SQL2AtomsMapper::ATOM_TYPE::LINK,
+                                   vector<string>{concept_node_h, predicate_inner_1_link_h});
                 string predicate_inner_3_link_h =
-                    this->add_atom_if_new(SQL2AtomsMapper::ATOM_TYPE::LINK,
-                                          vector<string>{fk_column_node_h, predicate_inner_2_link_h});
+                    this->add_atom(SQL2AtomsMapper::ATOM_TYPE::LINK,
+                                   vector<string>{fk_column_node_h, predicate_inner_2_link_h});
                 string predicate_link_h =
-                    this->add_atom_if_new(SQL2AtomsMapper::ATOM_TYPE::LINK,
-                                          vector<string>{predicate_node_h, predicate_inner_3_link_h});
-                string concept_inner_link_h = this->add_atom_if_new(
-                    SQL2AtomsMapper::ATOM_TYPE::LINK,
-                    vector<string>{foreign_table_name2_node_h, literal_value2_node_h});
+                    this->add_atom(SQL2AtomsMapper::ATOM_TYPE::LINK,
+                                   vector<string>{predicate_node_h, predicate_inner_3_link_h});
+                string concept_inner_link_h =
+                    this->add_atom(SQL2AtomsMapper::ATOM_TYPE::LINK,
+                                   vector<string>{foreign_table_name2_node_h, literal_value2_node_h});
                 string concept_link_h =
-                    this->add_atom_if_new(SQL2AtomsMapper::ATOM_TYPE::LINK,
-                                          vector<string>{concept_node_h, concept_inner_link_h});
+                    this->add_atom(SQL2AtomsMapper::ATOM_TYPE::LINK,
+                                   vector<string>{concept_node_h, concept_inner_link_h});
 
-                this->add_atom_if_new(
-                    SQL2AtomsMapper::ATOM_TYPE::LINK,
-                    vector<string>{evaluation_node_h, predicate_link_h, concept_link_h},
-                    true);
+                this->add_atom(SQL2AtomsMapper::ATOM_TYPE::LINK,
+                               vector<string>{evaluation_node_h, predicate_link_h, concept_link_h},
+                               true);
             }
         }
     }
