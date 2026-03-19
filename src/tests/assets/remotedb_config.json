@@ -1,5 +1,5 @@
 {
-    "atomdbs": [
+    "remote_peers": [
         {
             "uid": "peer1",
             "type": "inmemorydb",
@@ -7,13 +7,13 @@
             "local_persistence": {
                 "type": "morkdb",
                 "context": "remotedb_test_peer1_local_",
-                "env": {
-                    "DAS_MORK_HOSTNAME": "localhost",
-                    "DAS_MORK_PORT": "40022",
-                    "DAS_MONGODB_HOSTNAME": "localhost",
-                    "DAS_MONGODB_PORT": "40021",
-                    "DAS_MONGODB_USERNAME": "admin",
-                    "DAS_MONGODB_PASSWORD": "admin"
+                "morkdb": {
+                    "endpoint": "localhost:40022"
+                },
+                "mongodb": {
+                    "endpoint": "localhost:40021",
+                    "username": "admin",
+                    "password": "admin"
                 }
             }
         },
