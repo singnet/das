@@ -217,6 +217,11 @@ int main(int argc, char* argv[]) {
     LOG_INFO("Adding pattern index schema for: " + tokens + "...");
     db->add_pattern_index_schema(tokens, index_entries);
 
+    tokens = "LINK_TEMPLATE Expression 3 NODE Symbol public.feature VARIABLE v1 VARIABLE v2";
+    index_entries = {{"_", "*", "*"}, {"_", "v1", "*"}, {"_", "*", "v2"}};
+    LOG_INFO("Adding pattern index schema for: " + tokens + "...");
+    db->add_pattern_index_schema(tokens, index_entries);
+
     tokens = "LINK_TEMPLATE Expression 3 NODE Symbol Evaluation VARIABLE v1 VARIABLE v2";
     index_entries = {{"_", "*", "*"}, {"_", "v1", "*"}, {"_", "*", "v2"}};
     LOG_INFO("Adding pattern index schema for: " + tokens + "...");
