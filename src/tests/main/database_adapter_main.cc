@@ -204,6 +204,24 @@ int main(int argc, char* argv[]) {
 
     AtomDBSingleton::init();
 
+    // adding pattern index schemas
+    auto db = dynamic_pointer_cast<RedisMongoDB>(AtomDBSingleton::get_instance());
+
+    string tokens = "LINK_TEMPLATE Expression 2 NODE Symbol Predicate VARIABLE v1";
+    vector<vector<string>> index_entries = {{"_", "*"}, {"_", "v1"}};
+    LOG_INFO("Adding pattern index schema for: " + tokens + "...");
+    db->add_pattern_index_schema(tokens, index_entries);
+
+    tokens = "LINK_TEMPLATE Expression 2 NODE Symbol Concept VARIABLE v1";
+    index_entries = {{"_", "*"}, {"_", "v1"}};
+    LOG_INFO("Adding pattern index schema for: " + tokens + "...");
+    db->add_pattern_index_schema(tokens, index_entries);
+
+    tokens = "LINK_TEMPLATE Expression 3 NODE Symbol Evaluation VARIABLE v1 VARIABLE v2";
+    index_entries = {{"_", "*", "*"}, {"_", "v1", "*"}, {"_", "*", "v2"}};
+    LOG_INFO("Adding pattern index schema for: " + tokens + "...");
+    db->add_pattern_index_schema(tokens, index_entries);
+
     run(host, port, database, username, password, tables_mapping, queries_SQL, mapper_type);
 
     return 0;
