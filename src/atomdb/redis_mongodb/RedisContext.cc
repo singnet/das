@@ -42,8 +42,13 @@ redisReply* RedisContext::execute(const char* command) {
 bool RedisContext::ping() {
     redisReply* reply = this->execute("PING");
     if (reply == NULL) return false;
-    if (reply->type != REDIS_REPLY_STATUS) return false;
-    return string(reply->str) == string("PONG");
+    if (reply->type != REDIS_REPLY_STATUS) {
+        freeReplyObject(reply);
+        return false;
+    }
+    bool is_pong = (string(reply->str) == string("PONG"));
+    freeReplyObject(reply);
+    return is_pong;
 }
 
 void RedisContext::append_command(const char* command) {

@@ -13,7 +13,7 @@ class Hasher {
     static inline string plain_string_hash(const string& str) {
         char* h = named_type_hash((char*) str.c_str());
         string handle(h);
-        free(h);
+        delete[] h;
         return handle;
     }
 
@@ -24,7 +24,7 @@ class Hasher {
     static inline string node_handle(const string& type, const string& name) {
         char* h = terminal_hash((char*) type.c_str(), (char*) name.c_str());
         string handle(h);
-        free(h);
+        delete[] h;
         return handle;
     }
 
@@ -38,8 +38,8 @@ class Hasher {
         char* s = expression_hash(type_hash, t, arity);
         string handle(s);
         delete[] t;
-        free(type_hash);
-        free(s);
+        delete[] type_hash;
+        delete[] s;
         return handle;
     }
 
@@ -52,7 +52,7 @@ class Hasher {
         char* s = composite_hash(t, n);
         string handle(s);
         delete[] t;
-        free(s);
+        delete[] s;
         return handle;
     }
 };

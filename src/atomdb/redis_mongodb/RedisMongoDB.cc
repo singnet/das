@@ -399,13 +399,19 @@ uint RedisMongoDB::get_next_score(const string& key) {
     redisReply* reply = ctx->execute(command.c_str());
     if (reply == NULL) Utils::error("Redis error at get_next_score");
 
-    if (reply->type == REDIS_REPLY_NIL) return 0;
+    if (reply->type == REDIS_REPLY_NIL) {
+        freeReplyObject(reply);
+        return 0;
+    }
 
     if (reply->type != REDIS_REPLY_STRING) {
+        freeReplyObject(reply);
         Utils::error("Invalid Redis response at get_next_score: " + std::to_string(reply->type));
     }
 
-    return std::stoi(reply->str);
+    uint score = std::stoi(reply->str);
+    freeReplyObject(reply);
+    return score;
 }
 
 void RedisMongoDB::set_next_score(const string& key, uint score) {
@@ -424,8 +430,10 @@ void RedisMongoDB::set_next_score_with_context(shared_ptr<RedisContext> ctx,
     if (reply == NULL) Utils::error("Redis error at set_next_score: <" + command + ">");
 
     if (reply->type != REDIS_REPLY_STATUS) {
+        freeReplyObject(reply);
         Utils::error("Invalid Redis response at set_next_score: " + std::to_string(reply->type));
     }
+    freeReplyObject(reply);
 }
 
 void RedisMongoDB::reset_scores() {
