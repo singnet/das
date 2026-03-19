@@ -97,10 +97,10 @@ bool BaseSQL2Mapper::insert_handle_if_missing(const string& handle) {
     // if (exists) return false;
     // this->handle_trie.insert(handle, new EmptyTrieValue());
     // return true;
-    if (this->unique_handles.find(handle) != this->unique_handles.end()) {
-        return false;
-    }
-    this->unique_handles.insert(handle);
+    // if (this->unique_handles.find(handle) != this->unique_handles.end()) {
+    //     return false;
+    // }
+    // this->unique_handles.insert(handle);
     return true;
 }
 
@@ -119,6 +119,7 @@ void SQL2MettaMapper::clear() {
 
 void SQL2MettaMapper::add_metta_if_new(const string& s_expression) {
     string key = Hasher::context_handle(s_expression);
+    this->metta_expressions.push_back(s_expression);
     if (this->insert_handle_if_missing(key)) {
         this->metta_expressions.push_back(s_expression);
     }
