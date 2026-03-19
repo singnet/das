@@ -653,6 +653,21 @@ cc_test(
 )
 
 cc_test(
+    name = "config_parser_test",
+    size = "small",
+    srcs = ["config_parser_test.cc"],
+    copts = [
+        "-Iexternal/gtest/googletest/include",
+        "-Iexternal/gtest/googletest",
+    ],
+    linkstatic = 1,
+    deps = [
+        "//commons:commons_lib",
+        "@com_github_google_googletest//:gtest_main",
+    ],
+)
+
+cc_test(
     name = "processor_test",
     size = "small",
     srcs = ["processor_test.cc"],

@@ -35,6 +35,8 @@ Run the `bus_node` binary with the required parameters:
 make run-busnode OPTIONS="--service=<SERVICE_NAME> --endpoint=<ENDPOINT> --ports-range=<PORTS_RANGE>
 ```
 
+Optional: pass `--config=<JSON_FILE_PATH>` to load defaults from a JSON config file (schema version 2.0). Values from the config are used as defaults for the selected service; **command-line arguments always override** config (e.g. `--endpoint=localhost:9002` wins over `agents.query.endpoint` in the file).
+
 ### Examples
 
 #### Query Engine
@@ -67,6 +69,8 @@ Run the `bus_client` binary with the required parameters using make:
 ```bash
 make run-client OPTIONS="--service=<SERVICE_NAME> --endpoint=<ENDPOINT> --bus-endpoint=<BUS_ENDPOINT> --ports-range=<PORTS_RANGE>"
 ```
+
+Optional: pass `--config=<JSON_FILE_PATH>` to load defaults from a JSON config file; command-line arguments override config.
 
 ### Examples
 #### AtomDB:
