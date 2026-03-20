@@ -6,6 +6,9 @@
 #include "PostgresWrapper.h"
 #include "Processor.h"
 #include "SharedQueue.h"
+#include "Utils.h"
+
+#include <queue>
 
 #define LOG_LEVEL DEBUG_LEVEL
 #include "Logger.h"
@@ -15,6 +18,26 @@ using namespace std;
 using namespace commons;
 using namespace atoms;
 using namespace db_adapter;
+
+namespace {
+
+// PostgresWrapper enqueues heap-allocated std::queue<Atom*>* per row; drain and delete the wrapper.
+void drain_atom_batch_queue_to_vector(vector<Atom*>& out, void* raw_ptr) {
+    if (raw_ptr == nullptr) {
+        return;
+    }
+    auto* batch_queue = static_cast<queue<Atom*>*>(raw_ptr);
+    while (!batch_queue->empty()) {
+        Atom* atom = batch_queue->front();
+        batch_queue->pop();
+        if (atom != nullptr) {
+            out.push_back(atom);
+        }
+    }
+    delete batch_queue;
+}
+
+}  // namespace
 
 DatabaseMappingJob::DatabaseMappingJob(const string& host,
                                        int port,
@@ -110,14 +133,11 @@ bool AtomPersistenceJob::thread_one_step() {
     }
 
     try {
-        for (size_t i = 0; i < BATCH_SIZE; ++i) {
-            if (this->input_queue->empty()) break;
-            auto atom = (Atom*) this->input_queue->dequeue();
-            this->count++;
-            if (atom == nullptr) {
-                Utils::error("Dequeued atom is nullptr");
-            }
-            this->atoms.push_back(atom);
+        while (this->atoms.size() < BATCH_SIZE && !this->input_queue->empty()) {
+            void* raw = this->input_queue->dequeue();
+            size_t before = this->atoms.size();
+            drain_atom_batch_queue_to_vector(this->atoms, raw);
+            this->count += static_cast<int>(this->atoms.size() - before);
         }
         if (!this->atoms.empty() && this->atoms.size() >= BATCH_SIZE) {
             LOG_DEBUG("Processing batch of " << this->atoms.size() << " atoms.");
@@ -134,11 +154,11 @@ bool AtomPersistenceJob::thread_one_step() {
         LOG_DEBUG("== END ==");
         return true;
     } catch (const exception& e) {
-        Utils::error("Error in Worker: " + string(e.what()));
         for (auto& atom : this->atoms) {
             delete atom;
         }
         this->atoms.clear();
+        Utils::error("Error in Worker: " + string(e.what()));
     }
 
     return false;
@@ -180,15 +200,7 @@ void AtomPersistenceJob2::consumer_task() {
             void* raw_ptr = this->input_queue->blocking_dequeue(200);
             if (raw_ptr == nullptr) break;
 
-            queue<Atom*>* batch_queue = static_cast<queue<Atom*>*>(raw_ptr);
-            while (!batch_queue->empty()) {
-                Atom* atom = batch_queue->front();
-                batch_queue->pop();
-                if (atom != nullptr) {
-                    local_atoms.push_back(atom);
-                }
-            }
-            delete batch_queue;
+            drain_atom_batch_queue_to_vector(local_atoms, raw_ptr);
         }
 
         if (!local_atoms.empty() &&
@@ -202,11 +214,11 @@ void AtomPersistenceJob2::consumer_task() {
                 }
                 local_atoms.clear();
             } catch (const exception& e) {
-                Utils::error("Error in Worker: " + string(e.what()));
                 for (auto& atom : local_atoms) {
                     delete atom;
                 }
                 local_atoms.clear();
+                Utils::error("Error in Worker: " + string(e.what()));
             }
         }
 
