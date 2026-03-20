@@ -9,7 +9,12 @@
 #include "Processor.h"
 #include "SharedQueue.h"
 
-#define BATCH_SIZE 5000
+// Larger batches = fewer AtomDB/Redis round-trips (major throughput win for huge loads).
+#ifndef DAS_ADAPTER_BATCH_SIZE
+#define BATCH_SIZE 12000
+#else
+#define BATCH_SIZE DAS_ADAPTER_BATCH_SIZE
+#endif
 
 using namespace atomdb;
 using namespace std;

@@ -112,7 +112,8 @@ void run(string host,
     */
 
     AtomPersistenceJob2 atomdb_job(queue);
-    int num_consumers = 8;
+    // Throughput: more workers help if Redis/Mongo and CPU keep up; reduce if remote DB is the bottleneck.
+    int num_consumers = 12;
     ThreadPool pool("consumers_pool", num_consumers);
     pool.setup();
     pool.start();

@@ -4,7 +4,6 @@
 
 #include <atomic>
 #include <memory>
-#include <mutex>
 #include <optional>
 #include <pqxx/pqxx>
 #include <regex>
@@ -80,7 +79,6 @@ class PostgresWrapper : public SQLWrapper {
 
    private:
     atomic<int> count = 0;
-    mutex api_mutex;
     PostgresDatabaseConnection& db_conn;
     shared_ptr<SharedQueue> output_queue;
     optional<vector<Table>> tables_cache;

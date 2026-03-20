@@ -16,8 +16,8 @@
 
 namespace {
 // Bound producer ahead of consumers: each queue item is one SQL row's atom batch.
-constexpr size_t kOutputQueueHighWaterBatches = 1500;
-constexpr size_t kCursorFetchRowLimit = 2500;
+constexpr size_t kOutputQueueHighWaterBatches = 5000;
+constexpr size_t kCursorFetchRowLimit = 8000;
 }  // namespace
 
 using namespace std;
@@ -472,16 +472,15 @@ void PostgresWrapper::fetch_rows_paginated(const Table& table,
                 atoms_count += atoms.size();
 
                 while (this->output_queue->size() > kOutputQueueHighWaterBatches) {
-                    LOG_INFO("Output queue backlog (" << this->output_queue->size()
-                                                      << " batches), waiting for consumers...");
-                    Utils::sleep(100);
+                    LOG_DEBUG("Output queue backlog (" << this->output_queue->size()
+                                                        << " batches), waiting for consumers...");
+                    Utils::sleep(20);
                 }
 
                 std::queue<Atom*>* batch_queue = new std::queue<Atom*>();
                 for (const auto& atom : atoms) {
                     batch_queue->push(atom);
                 }
-                unique_lock<mutex> lock(this->api_mutex);
                 this->output_queue->enqueue((void*) batch_queue);
             } else {
                 auto metta_expressions = get<vector<string>>(output);
@@ -495,8 +494,8 @@ void PostgresWrapper::fetch_rows_paginated(const Table& table,
 
             this->log_progress(table.name, rows_count);
         }
-        LOG_INFO("Atoms in queue: " << to_string(this->output_queue->size()));
-        LOG_INFO("Mapping table " << table.name << ". Total atoms generated: " << atoms_count);
+        LOG_DEBUG("Atoms in queue: " << to_string(this->output_queue->size()));
+        LOG_DEBUG("Mapping table " << table.name << ". Total atoms generated: " << atoms_count);
     }
 
     this->db_conn.close_cursor();

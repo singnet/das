@@ -189,6 +189,8 @@ void AtomPersistenceJob2::consumer_task() {
     LOG_INFO("== CONSUMER WORKER STARTED ==");
 
     vector<Atom*> local_atoms;
+    // Reserve to avoid repeated reallocations while draining row batches into one AtomDB batch.
+    local_atoms.reserve(BATCH_SIZE);
 
     while (true) {
         while (get_available_ram_ratio() < 0.20) {
