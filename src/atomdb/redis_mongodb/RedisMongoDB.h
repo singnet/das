@@ -193,6 +193,7 @@ class RedisMongoDB : public AtomDB {
     void update_incoming_set(const string& key, const string& value);
 
     void load_pattern_index_schema();
+    map<int, tuple<vector<string>, vector<vector<string>>>> default_pattern_index_schema();
     vector<string> match_pattern_index_schema(const Link* link);
     vector<vector<string>> index_entries_combinations(unsigned int arity);
 
