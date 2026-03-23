@@ -9,7 +9,38 @@ using namespace db_adapter;
 using namespace atomdb;
 using namespace commons;
 
-AtomProcessor::AtomProcessor() { this->atomdb = AtomDBSingleton::get_instance(); }
+AtomProcessor::AtomProcessor() {
+    this->atomdb = AtomDBSingleton::get_instance();
+    this->set_pattern_index();
+}
+
+void AtomProcessor::set_pattern_index() {
+    auto db = dynamic_pointer_cast<RedisMongoDB>(AtomDBSingleton::get_instance());
+
+    // 1. (Evaluation Predicate Concept)
+    string tokens = "LINK_TEMPLATE Expression 3 NODE Symbol Evaluation VARIABLE v1 VARIABLE v2";
+    vector<vector<string>> index_entries = {{"_", "*", "*"}, {"_", "v1", "*"}, {"_", "*", "v2"}};
+    db->add_pattern_index_schema(tokens, index_entries);
+
+    // 2. (Predicate X) e (Concept X)
+    tokens = "LINK_TEMPLATE Expression 2 NODE Symbol Predicate VARIABLE v1";
+    index_entries = {{"_", "*"}, {"_", "v1"}};
+    db->add_pattern_index_schema(tokens, index_entries);
+
+    tokens = "LINK_TEMPLATE Expression 2 NODE Symbol Concept VARIABLE v1";
+    index_entries = {{"_", "*"}, {"_", "v1"}};
+    db->add_pattern_index_schema(tokens, index_entries);
+
+    // 3. (table_name value) or (column_name link_fk)
+    tokens = "LINK_TEMPLATE Expression 2 VARIABLE v1 VARIABLE v2";
+    index_entries = {{"v1", "*"}, {"*", "v2"}};
+    db->add_pattern_index_schema(tokens, index_entries);
+
+    // 4. (table_name column_name value)
+    tokens = "LINK_TEMPLATE Expression 3 VARIABLE v1 VARIABLE v2 VARIABLE v3";
+    index_entries = {{"v1", "v2", "*"}, {"v1", "*", "v3"}, {"*", "v2", "v3"}};
+    db->add_pattern_index_schema(tokens, index_entries);
+}
 
 AtomProcessor::~AtomProcessor() {
     if (!this->atoms.empty()) {

@@ -21,6 +21,7 @@ class AtomProcessor {
 
     void process_atoms(vector<Atom*> atoms);
     bool has_handle(const string& handle);
+    void set_pattern_index();
 
    private:
     vector<Atom*> atoms;
