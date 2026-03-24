@@ -1,3 +1,8 @@
 Highlights:
-(#1036) Joint test client for inference and query evolution
-(#1040) Hotfix: compliance with removal of context.h and atomspace.h
+(#1035) Implement the Database Adapter
+(#1044) Add RemoteAtomDB and RemoteAtomDBPeer
+(#1058) [Config] Add --config=FILE argument
+
+Minor changes:
+(#1059) Setup script for tests-all (cache/no-cache)
+
