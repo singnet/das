@@ -1242,34 +1242,35 @@ void RedisMongoDB::load_pattern_index_schema() {
         LOG_INFO(
             "WARNING: No pattern_index_schema found, all possible patterns will be created during link "
             "insertion!");
+        this->pattern_index_schema_map = default_pattern_index_schema();
     }
+}
+
+map<int, tuple<vector<string>, vector<vector<string>>>> RedisMongoDB::default_pattern_index_schema() {
+    map<int, tuple<vector<string>, vector<vector<string>>>> default_map;
+    for (unsigned int arity = 1; arity <= 4; arity++) {
+        vector<string> tokens = {"LINK_TEMPLATE", "Expression", to_string(arity)};
+        for (unsigned int i = 0; i < arity; i++) {
+            tokens.push_back("VARIABLE");
+            tokens.push_back("v" + to_string(i + 1));
+        }
+        auto index_entries = index_entries_combinations(arity);
+        default_map[arity] = make_tuple(move(tokens), move(index_entries));
+    }
+    return default_map;
 }
 
 vector<string> RedisMongoDB::match_pattern_index_schema(const Link* link) {
     vector<string> pattern_handles;
-    auto local_map = this->pattern_index_schema_map;
-
-    if (local_map.size() == 0) {
-        vector<string> tokens = {"LINK_TEMPLATE", "Expression", to_string(link->arity())};
-        for (unsigned int i = 0; i < link->arity(); i++) {
-            tokens.push_back("VARIABLE");
-            tokens.push_back("v" + to_string(i + 1));
-        }
-
-        auto link_schema = LinkSchema(tokens);
-        auto index_entries = index_entries_combinations(link->arity());
-
-        local_map[1] = make_tuple(move(tokens), move(index_entries));
-    }
 
     vector<int> sorted_keys;
-    for (const auto& pair : local_map) {
+    for (const auto& pair : this->pattern_index_schema_map) {
         sorted_keys.push_back(pair.first);
     }
     std::sort(sorted_keys.begin(), sorted_keys.end(), std::greater<int>());
 
     for (const auto& priority : sorted_keys) {
-        auto value = local_map[priority];
+        const auto& value = this->pattern_index_schema_map.at(priority);
         auto link_schema = LinkSchema(get<0>(value));
         auto index_entries = get<1>(value);
         Assignment assignment;
@@ -1307,7 +1308,8 @@ vector<vector<string>> RedisMongoDB::index_entries_combinations(unsigned int ari
     vector<vector<string>> index_entries;
     unsigned int total = 1 << arity;  // 2^arity
 
-    for (unsigned int mask = 0; mask < total; ++mask) {
+    // Skip mask == 0 (all concrete): identical to the link's own handle; no separate pattern index.
+    for (unsigned int mask = 1; mask < total; ++mask) {
         vector<string> index_entry;
         for (unsigned int i = 0; i < arity; ++i) {
             if (mask & (1 << i))
