@@ -58,10 +58,12 @@ class BaseSQL2Mapper : public Mapper {
 
     static string SYMBOL;
     static string EXPRESSION;
+    static MapperValue* empty_trie_value;
 
     static void initialize_statics() {
         SYMBOL = MettaMapping::SYMBOL_NODE_TYPE;
         EXPRESSION = MettaMapping::EXPRESSION_LINK_TYPE;
+        empty_trie_value = new MapperValue();
     }
 
    protected:

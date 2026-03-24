@@ -66,6 +66,17 @@ int main(int argc, char* argv[]) {
         db->drop_all();
         LOG_INFO("Databases dropped");
 
+        // adding pattern index schemas
+        string tokens = "LINK_TEMPLATE Expression 2 VARIABLE v1 VARIABLE v2";
+        vector<vector<string>> index_entries = {{"v1", "*"}, {"*", "v2"}};
+        LOG_INFO("Adding pattern index schema for: " + tokens + "...");
+        db->add_pattern_index_schema(tokens, index_entries);
+
+        tokens = "LINK_TEMPLATE Expression 3 VARIABLE v1 VARIABLE v2 VARIABLE v3";
+        index_entries = {{"v1", "*", "*"}, {"v1", "v2", "*"}, {"v1", "*", "v3"}, {"*", "v2", "*"}, {"*", "v2", "v3"}, {"*", "*", "v3"}};
+        LOG_INFO("Adding pattern index schema for: " + tokens + "...");
+        db->add_pattern_index_schema(tokens, index_entries);
+
         int num_threads = Utils::string_to_int(argv[3]);
 
         string arg4 = string(argv[4]);
