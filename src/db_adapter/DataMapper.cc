@@ -19,7 +19,6 @@ using namespace atoms;
 
 string BaseSQL2Mapper::SYMBOL;
 string BaseSQL2Mapper::EXPRESSION;
-MapperValue* BaseSQL2Mapper::empty_trie_value = nullptr;
 
 // -- BaseSQL2Mapper
 
@@ -94,14 +93,14 @@ string BaseSQL2Mapper::escape_inner_quotes(string text) {
 }
 
 bool BaseSQL2Mapper::insert_handle_if_missing(const string& handle) {
-    auto exists = this->handle_trie.exists(handle);
-    if (exists) return false;
-    this->handle_trie.insert(handle, this->empty_trie_value);
-    return true;
-    if (this->unique_handles.find(handle) != this->unique_handles.end()) {
-        return false;
-    }
-    this->unique_handles.insert(handle);
+    // auto exists = this->handle_trie.exists(handle);
+    // if (exists) return false;
+    // this->handle_trie.insert(handle, new EmptyTrieValue());
+    // return true;
+    // if (this->unique_handles.find(handle) != this->unique_handles.end()) {
+    //     return false;
+    // }
+    // this->unique_handles.insert(handle);
     return true;
 }
 
@@ -115,13 +114,13 @@ OutputList SQL2MettaMapper::get_output() { return this->metta_expressions; }
 
 void SQL2MettaMapper::clear() {
     this->metta_expressions.clear();
+    this->metta_seen_keys.clear();
     this->unique_handles.clear();
 }
 
 void SQL2MettaMapper::add_metta_if_new(const string& s_expression) {
-    string key = Hasher::context_handle(s_expression);
-    this->metta_expressions.push_back(s_expression);
-    if (this->insert_handle_if_missing(key)) {
+    const string key = Hasher::context_handle(s_expression);
+    if (this->metta_seen_keys.insert(key).second) {
         this->metta_expressions.push_back(s_expression);
     }
 };
