@@ -1,6 +1,7 @@
 #include "PostgresWrapper.h"
 
 #include <algorithm>
+#include <atomic>
 #include <iostream>
 #include <memory>
 #include <pqxx/pqxx>
@@ -8,7 +9,11 @@
 #include <regex>
 #include <stdexcept>
 #include <string>
+#include <unordered_map>
 
+#include "HandleDecoder.h"
+#include "Link.h"
+#include "Node.h"
 #include "Utils.h"
 
 #define LOG_LEVEL INFO_LEVEL
@@ -18,6 +23,93 @@ namespace {
 // Bound producer ahead of consumers: each queue item is one SQL row's atom batch.
 constexpr size_t kOutputQueueHighWaterBatches = 5000;
 constexpr size_t kCursorFetchRowLimit = 8000;
+
+// DAS_ADAPTER_DEBUG_ATOMS=1: log atoms as each Postgres row is mapped (before the queue).
+// DAS_ADAPTER_DEBUG_ATOMS_MAX caps total lines (default 500). Per-row, all targets for links
+// usually resolve because the vector is one row's mapper output.
+std::atomic<size_t> g_adapter_debug_atoms_logged{0};
+
+class BatchHandleDecoder : public atoms::HandleDecoder {
+   public:
+    explicit BatchHandleDecoder(std::unordered_map<std::string, atoms::Atom*>* by_handle)
+        : by_handle_(by_handle) {}
+
+    std::shared_ptr<atoms::Atom> get_atom(const std::string& handle) override {
+        auto it = by_handle_->find(handle);
+        if (it == by_handle_->end()) {
+            return nullptr;
+        }
+        return std::shared_ptr<atoms::Atom>(it->second, [](atoms::Atom*) {});
+    }
+
+   private:
+    std::unordered_map<std::string, atoms::Atom*>* by_handle_;
+};
+
+static bool link_targets_all_in_batch(const atoms::Link* link,
+                                      const std::unordered_map<std::string, atoms::Atom*>& by_handle) {
+    for (const auto& t : link->targets) {
+        if (by_handle.find(t) == by_handle.end()) {
+            return false;
+        }
+    }
+    return true;
+}
+
+void debug_log_adapter_atoms_after_pg_row(const std::string& table_name,
+                                          const std::string& row_pk,
+                                          const std::vector<atoms::Atom*>& atoms) {
+    const std::string flag = Utils::get_environment("DAS_ADAPTER_DEBUG_ATOMS");
+    if (flag.empty() || flag == "0") {
+        return;
+    }
+    size_t max_total = 500;
+    const std::string max_env = Utils::get_environment("DAS_ADAPTER_DEBUG_ATOMS_MAX");
+    if (!max_env.empty()) {
+        max_total = static_cast<size_t>(std::stoul(max_env));
+    }
+
+    std::unordered_map<std::string, atoms::Atom*> by_handle;
+    by_handle.reserve(atoms.size());
+    for (atoms::Atom* atom : atoms) {
+        if (atom != nullptr) {
+            by_handle[atom->handle()] = atom;
+        }
+    }
+    BatchHandleDecoder decoder(&by_handle);
+
+    for (atoms::Atom* atom : atoms) {
+        if (atom == nullptr) {
+            continue;
+        }
+        if (g_adapter_debug_atoms_logged.load() >= max_total) {
+            return;
+        }
+        g_adapter_debug_atoms_logged.fetch_add(1);
+
+        LOG_INFO("[adapter atom] table=" << table_name << " row_pk=" << row_pk << " "
+                                         << atom->to_string());
+        if (auto* node = dynamic_cast<atoms::Node*>(atom)) {
+            try {
+                LOG_INFO("[adapter atom metta] " << node->metta_representation(decoder));
+            } catch (const std::exception& e) {
+                LOG_INFO("[adapter atom metta] <unavailable: " << e.what() << ">");
+            }
+        } else if (auto* link = dynamic_cast<atoms::Link*>(atom)) {
+            if (link_targets_all_in_batch(link, by_handle)) {
+                try {
+                    LOG_INFO("[adapter atom metta] " << link->metta_representation(decoder));
+                } catch (const std::exception& e) {
+                    LOG_INFO("[adapter atom metta] <unavailable: " << e.what() << ">");
+                }
+            } else {
+                LOG_INFO("[adapter atom metta] <skipped: missing target handle in this row's atom "
+                         "list>");
+            }
+        }
+    }
+}
+
 }  // namespace
 
 using namespace std;
@@ -470,6 +562,10 @@ void PostgresWrapper::fetch_rows_paginated(const Table& table,
                 auto atoms = get<vector<Atom*>>(output);
                 LOG_DEBUG("Atoms count: " << atoms.size());
                 atoms_count += atoms.size();
+
+                const string row_pk =
+                    sql_row.primary_key ? sql_row.primary_key->value : string("NULL");
+                debug_log_adapter_atoms_after_pg_row(table.name, row_pk, atoms);
 
                 while (this->output_queue->size() > kOutputQueueHighWaterBatches) {
                     LOG_DEBUG("Output queue backlog (" << this->output_queue->size()
