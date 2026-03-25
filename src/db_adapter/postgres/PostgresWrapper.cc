@@ -87,8 +87,8 @@ void debug_log_adapter_atoms_after_pg_row(const std::string& table_name,
         }
         g_adapter_debug_atoms_logged.fetch_add(1);
 
-        LOG_INFO("[adapter atom] table=" << table_name << " row_pk=" << row_pk << " "
-                                         << atom->to_string());
+        // LOG_INFO("[adapter atom] table=" << table_name << " row_pk=" << row_pk << " "
+        //                                  << atom->to_string());
         if (auto* node = dynamic_cast<atoms::Node*>(atom)) {
             try {
                 LOG_INFO("[adapter atom metta] " << node->metta_representation(decoder));
