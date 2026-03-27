@@ -27,10 +27,12 @@ using namespace commons;
 #define NODE_COUNT ((unsigned int) 20)
 
 // Just to help in debugging
-#define RUN_allow_concatenation ((bool) true)
+// clang-format off
+#define RUN_allow_concatenation         ((bool) true)
 #define RUN_allow_concatenation_reverse ((bool) true)
-#define RUN_back_after_dead_end ((bool) true)
-#define RUN_basics ((bool) true)
+#define RUN_back_after_dead_end         ((bool) true)
+#define RUN_basics                      ((bool) true)
+// clang-format on
 
 static string EVALUATION_HANDLE = Hasher::node_handle(NODE_TYPE, EVALUATION);
 
