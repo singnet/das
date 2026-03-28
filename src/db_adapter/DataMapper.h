@@ -136,6 +136,7 @@ class SQL2AtomsMapper : public BaseSQL2Mapper {
     void clear() override;
     string add_atom(SQL2AtomsMapper::ATOM_TYPE atom_type,
                     variant<string, vector<string>> value,
+                    const string& metta_expression = "",
                     bool is_toplevel = false);
 
     void map_primary_key(const string& table_name, const string& primary_key_value) override;

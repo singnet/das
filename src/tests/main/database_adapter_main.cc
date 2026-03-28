@@ -136,7 +136,7 @@ int main(int argc, char* argv[]) {
         }
     }
 
-    AtomDBSingleton::init();
+    AtomDBSingleton::init(atomdb_api_types::ATOMDB_TYPE::MORKDB);
 
     run(host, port, database, username, password, tables_mapping, queries_SQL, mapper_type);
 
