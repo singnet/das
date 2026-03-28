@@ -93,9 +93,14 @@ string BaseSQL2Mapper::escape_inner_quotes(string text) {
 }
 
 bool BaseSQL2Mapper::insert_handle_if_missing(const string& handle) {
-    auto exists = this->handle_trie.exists(handle);
-    if (exists) return false;
-    this->handle_trie.insert(handle, new EmptyTrieValue());
+    // auto exists = this->handle_trie.exists(handle);
+    // if (exists) return false;
+    // this->handle_trie.insert(handle, new EmptyTrieValue());
+    // return true;
+    if (this->unique_handles.find(handle) != this->unique_handles.end()) {
+        return false;
+    }
+    this->unique_handles.insert(handle);
     return true;
 }
 
@@ -107,7 +112,10 @@ SQL2MettaMapper::~SQL2MettaMapper() {}
 
 OutputList SQL2MettaMapper::get_output() { return this->metta_expressions; }
 
-void SQL2MettaMapper::clear() { this->metta_expressions.clear(); }
+void SQL2MettaMapper::clear() {
+    this->metta_expressions.clear();
+    this->unique_handles.clear();
+}
 
 void SQL2MettaMapper::add_metta_if_new(const string& s_expression) {
     string key = Hasher::context_handle(s_expression);
@@ -227,7 +235,10 @@ SQL2AtomsMapper::~SQL2AtomsMapper() {}
 
 OutputList SQL2AtomsMapper::get_output() { return this->atoms; }
 
-void SQL2AtomsMapper::clear() { this->atoms.clear(); }
+void SQL2AtomsMapper::clear() {
+    this->atoms.clear();
+    this->unique_handles.clear();
+}
 
 string SQL2AtomsMapper::add_atom_if_new(SQL2AtomsMapper::ATOM_TYPE atom_type,
                                         variant<string, vector<string>> value,
