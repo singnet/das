@@ -86,7 +86,7 @@ void AtomProcessor::process_atoms(vector<Atom*> atoms) {
         }
     }
 
-    if (this->atoms.size() >= 50000) {
+    if (this->atoms.size() >= 100000) {
         LOG_INFO("AtomProcessor batch size reached. Persisting " << this->atoms.size()
                                                                  << " atoms to AtomDB...");
         this->atomdb->add_atoms(this->atoms, false, true);
