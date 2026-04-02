@@ -89,24 +89,24 @@ void debug_log_adapter_atoms_after_pg_row(const std::string& table_name,
 
         // LOG_INFO("[adapter atom] table=" << table_name << " row_pk=" << row_pk << " "
         //                                  << atom->to_string());
-        if (auto* node = dynamic_cast<atoms::Node*>(atom)) {
-            try {
-                LOG_INFO("[adapter atom metta] " << node->metta_representation(decoder));
-            } catch (const std::exception& e) {
-                LOG_INFO("[adapter atom metta] <unavailable: " << e.what() << ">");
-            }
-        } else if (auto* link = dynamic_cast<atoms::Link*>(atom)) {
-            if (link_targets_all_in_batch(link, by_handle)) {
-                try {
-                    LOG_INFO("[adapter atom metta] " << link->metta_representation(decoder));
-                } catch (const std::exception& e) {
-                    LOG_INFO("[adapter atom metta] <unavailable: " << e.what() << ">");
-                }
-            } else {
-                LOG_INFO("[adapter atom metta] <skipped: missing target handle in this row's atom "
-                         "list>");
-            }
-        }
+        // if (auto* node = dynamic_cast<atoms::Node*>(atom)) {
+        //     try {
+        //         LOG_INFO("[adapter atom metta] " << node->metta_representation(decoder));
+        //     } catch (const std::exception& e) {
+        //         LOG_INFO("[adapter atom metta] <unavailable: " << e.what() << ">");
+        //     }
+        // } else if (auto* link = dynamic_cast<atoms::Link*>(atom)) {
+        //     if (link_targets_all_in_batch(link, by_handle)) {
+        //         try {
+        //             LOG_INFO("[adapter atom metta] " << link->metta_representation(decoder));
+        //         } catch (const std::exception& e) {
+        //             LOG_INFO("[adapter atom metta] <unavailable: " << e.what() << ">");
+        //         }
+        //     } else {
+        //         LOG_INFO("[adapter atom metta] <skipped: missing target handle in this row's atom "
+        //                  "list>");
+        //     }
+        // }
     }
 }
 
