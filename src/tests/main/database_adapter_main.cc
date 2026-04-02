@@ -203,20 +203,21 @@ int main(int argc, char* argv[]) {
         }
     }
 
-    AtomDBSingleton::init();
+    // AtomDBSingleton::init();
+    AtomDBSingleton::provide(shared_ptr<AtomDB>(new MorkDB("")));
 
-    // adding pattern index schemas
-    auto db = dynamic_pointer_cast<RedisMongoDB>(AtomDBSingleton::get_instance());
+    // // adding pattern index schemas
+    // auto db = dynamic_pointer_cast<RedisMongoDB>(AtomDBSingleton::get_instance());
 
-    string tokens = "LINK_TEMPLATE Expression 2 VARIABLE v1 VARIABLE v2";
-    vector<vector<string>> index_entries = {{"v1", "*"}, {"*", "v2"}};
-    LOG_INFO("Adding pattern index schema for: " + tokens + "...");
-    db->add_pattern_index_schema(tokens, index_entries);
+    // string tokens = "LINK_TEMPLATE Expression 2 VARIABLE v1 VARIABLE v2";
+    // vector<vector<string>> index_entries = {{"v1", "*"}, {"*", "v2"}};
+    // LOG_INFO("Adding pattern index schema for: " + tokens + "...");
+    // db->add_pattern_index_schema(tokens, index_entries);
 
-    tokens = "LINK_TEMPLATE Expression 3 VARIABLE v1 VARIABLE v2 VARIABLE v3";
-    index_entries = {{"v1", "*", "*"}, {"v1", "v2", "*"}, {"v1", "*", "v3"}, {"*", "v2", "*"}, {"*", "v2", "v3"}, {"*", "*", "v3"}};
-    LOG_INFO("Adding pattern index schema for: " + tokens + "...");
-    db->add_pattern_index_schema(tokens, index_entries);
+    // tokens = "LINK_TEMPLATE Expression 3 VARIABLE v1 VARIABLE v2 VARIABLE v3";
+    // index_entries = {{"v1", "*", "*"}, {"v1", "v2", "*"}, {"v1", "*", "v3"}, {"*", "v2", "*"}, {"*", "v2", "v3"}, {"*", "*", "v3"}};
+    // LOG_INFO("Adding pattern index schema for: " + tokens + "...");
+    // db->add_pattern_index_schema(tokens, index_entries);
 
     run(host, port, database, username, password, tables_mapping, queries_SQL, mapper_type);
 
