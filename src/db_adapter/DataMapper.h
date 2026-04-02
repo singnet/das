@@ -1,6 +1,7 @@
 #pragma once
 
 #include <algorithm>
+#include <optional>
 #include <string>
 #include <tuple>
 #include <unordered_set>
@@ -139,7 +140,8 @@ class SQL2AtomsMapper : public BaseSQL2Mapper {
     void clear() override;
     string add_atom_if_new(SQL2AtomsMapper::ATOM_TYPE atom_type,
                            variant<string, vector<string>> value,
-                           bool is_toplevel = false);
+                           bool is_toplevel = false,
+                           const optional<string>& metta_expression = nullopt);
 
     void map_primary_key(const string& table_name, const string& primary_key_value) override;
     void map_foreign_key_column(const string& table_name,
