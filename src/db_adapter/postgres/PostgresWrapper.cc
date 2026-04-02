@@ -480,7 +480,6 @@ void PostgresWrapper::fetch_rows_paginated(const Table& table,
 
             this->log_progress(table.name, rows_count);
         }
-        LOG_INFO("Atoms in queue: " << to_string(this->output_queue->size()));
         LOG_INFO("Mapping table " << table.name << ". Total atoms generated: " << atoms_count);
     }
 
