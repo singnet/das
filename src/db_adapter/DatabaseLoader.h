@@ -6,10 +6,10 @@
 #include <vector>
 
 #include "AtomDBSingleton.h"
+#include "BoundedSharedQueue.h"
 #include "DedicatedThread.h"
 #include "PostgresWrapper.h"
 #include "Processor.h"
-#include "BoundedSharedQueue.h"
 #include "processor/ThreadPool.h"
 
 #define BATCH_SIZE 100000
@@ -73,21 +73,6 @@ class AtomPersistenceJob : public ThreadMethod {
     bool producer_finished = false;
 };
 
-class AtomPersistenceJob2 {
-   public:
-    AtomPersistenceJob2(shared_ptr<BoundedSharedQueue> input_queue);
-    ~AtomPersistenceJob2();
-
-    void consumer_task();
-    void set_producer_finished();
-
-   protected:
-    atomic<int> total_count{0};
-    shared_ptr<BoundedSharedQueue> input_queue;
-    shared_ptr<AtomDB> atomdb;
-    atomic<bool> producer_finished{false};
-};
-
 class BatchConsumer {
    public:
     BatchConsumer(shared_ptr<BoundedSharedQueue> input_queue,
@@ -96,7 +81,6 @@ class BatchConsumer {
                   size_t max_pending_batches = 4);
     ~BatchConsumer();
 
-    // Drain the queue and dispatch ONE batch to the pool.
     void dispatch();
     void set_producer_finished();
     bool is_producer_finished() const;

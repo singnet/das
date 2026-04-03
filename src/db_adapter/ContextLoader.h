@@ -1,7 +1,7 @@
 #include <string>
 #include <vector>
 
-#include "DataTypes.h"
+#include "DatabaseTypes.h"
 
 using namespace std;
 using namespace db_adapter;

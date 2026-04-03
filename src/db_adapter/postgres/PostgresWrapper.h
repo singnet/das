@@ -11,9 +11,9 @@
 #include <string>
 #include <vector>
 
+#include "BoundedSharedQueue.h"
 #include "DatabaseConnection.h"
 #include "DatabaseWrapper.h"
-#include "BoundedSharedQueue.h"
 
 #define MAX_VALUE_SIZE ((size_t) 1000)
 

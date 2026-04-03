@@ -1,11 +1,11 @@
-#include "Pipeline.h"
+#include "DatabaseLoader.h"
 
 #include "AtomDBSingleton.h"
+#include "BoundedSharedQueue.h"
 #include "DedicatedThread.h"
 #include "Logger.h"
 #include "PostgresWrapper.h"
 #include "Processor.h"
-#include "BoundedSharedQueue.h"
 
 #define LOG_LEVEL DEBUG_LEVEL
 #include "Logger.h"
@@ -73,7 +73,8 @@ bool DatabaseMappingJob::thread_one_step() {
 
 bool DatabaseMappingJob::is_finished() const { return this->finished; }
 
-AtomPersistenceJob::AtomPersistenceJob(shared_ptr<BoundedSharedQueue> input_queue) : input_queue(input_queue) {
+AtomPersistenceJob::AtomPersistenceJob(shared_ptr<BoundedSharedQueue> input_queue)
+    : input_queue(input_queue) {
     this->atomdb = AtomDBSingleton::get_instance();
 }
 
@@ -147,76 +148,6 @@ bool AtomPersistenceJob::thread_one_step() {
 bool AtomPersistenceJob::is_finished() const { return this->finished; }
 
 void AtomPersistenceJob::set_producer_finished() { this->producer_finished = true; }
-
-/*
-    AtomPersistenceJob2 implementation using ThreadPool
-*/
-
-AtomPersistenceJob2::AtomPersistenceJob2(shared_ptr<BoundedSharedQueue> input_queue)
-    : input_queue(input_queue) {
-    this->atomdb = AtomDBSingleton::get_instance();
-}
-
-AtomPersistenceJob2::~AtomPersistenceJob2() {}
-
-void AtomPersistenceJob2::consumer_task() {
-    LOG_INFO("== CONSUMER WORKER STARTED ==");
-
-    vector<Atom*> local_atoms;
-
-    while (true) {
-        while (local_atoms.size() < BATCH_SIZE) {
-            if (this->input_queue->empty()) break;
-
-            void* raw_ptr = this->input_queue->dequeue();
-            std::queue<Atom*>* batch_queue = static_cast<std::queue<Atom*>*>(raw_ptr);
-
-            if (batch_queue != nullptr) {
-                while (!batch_queue->empty()) {
-                    Atom* atom = batch_queue->front();
-                    batch_queue->pop();
-
-                    if (atom != nullptr) {
-                        local_atoms.push_back(atom);
-                    }
-                }
-                delete batch_queue;
-            }
-        }
-
-        if (!local_atoms.empty() &&
-            (local_atoms.size() >= BATCH_SIZE || this->producer_finished.load())) {
-            LOG_INFO("Thread processing batch of " << local_atoms.size() << " atoms.");
-            try {
-                this->atomdb->add_atoms(local_atoms, false, true);
-                this->total_count += local_atoms.size();
-                for (auto& atom : local_atoms) {
-                    delete atom;
-                }
-                local_atoms.clear();
-            } catch (const exception& e) {
-                Utils::error("Error in Worker: " + string(e.what()));
-                for (auto& atom : local_atoms) {
-                    delete atom;
-                }
-                local_atoms.clear();
-            }
-        }
-
-        Utils::sleep();
-
-        if (this->producer_finished.load() && this->input_queue->empty() && local_atoms.empty()) {
-            LOG_INFO("Consumer task finishing. Thread exiting.");
-            break;
-        }
-
-        if (this->input_queue->empty() && !this->producer_finished.load()) {
-            Utils::sleep();
-        }
-    }
-}
-
-void AtomPersistenceJob2::set_producer_finished() { this->producer_finished.store(true); }
 
 /*
     BatchConsumer implementation using ThreadPool

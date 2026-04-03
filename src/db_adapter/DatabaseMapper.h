@@ -7,7 +7,7 @@
 #include <variant>
 #include <vector>
 
-#include "DataTypes.h"
+#include "DatabaseTypes.h"
 #include "HandleTrie.h"
 #include "MettaMapping.h"
 

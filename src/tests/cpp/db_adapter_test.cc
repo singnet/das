@@ -9,11 +9,11 @@
 
 #include "Atom.h"
 #include "ContextLoader.h"
-#include "DataTypes.h"
+#include "DatabaseLoader.h"
+#include "DatabaseTypes.h"
 #include "DedicatedThread.h"
 #include "Logger.h"
 #include "Node.h"
-#include "Pipeline.h"
 #include "PostgresWrapper.h"
 #include "Processor.h"
 #include "TestConfig.h"

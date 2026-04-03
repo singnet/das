@@ -1,10 +1,10 @@
-#include "DataMapper.h"
+#include "DatabaseMapper.h"
 
 #include <iostream>
 #include <variant>
 
 #include "Atom.h"
-#include "DataTypes.h"
+#include "DatabaseTypes.h"
 #include "Hasher.h"
 #include "Link.h"
 #include "MettaMapping.h"
