@@ -12,6 +12,7 @@ cc_library(
         ":database_connection",
         ":database_wrapper",
         ":pipeline",
+        ":bounded_shared_queue",
         "//commons:commons_lib",
         "//commons/atoms:atoms_lib",
         "//db_adapter/postgres:postgres_lib",
@@ -87,10 +88,21 @@ cc_library(
     deps = [
         ":data_types",
         ":database_wrapper",
+        ":bounded_shared_queue",
         "//atomdb",
         "//atomdb:atomdb_singleton",
         "//commons:commons_lib",
         "//commons/atoms:atoms_lib",
         "//db_adapter/postgres:postgres_lib",
+    ],
+)
+
+cc_library(
+    name = "bounded_shared_queue",
+    srcs = ["BoundedSharedQueue.cc"],
+    hdrs = ["BoundedSharedQueue.h"],
+    includes = ["."],
+    deps = [
+        "//commons:commons_lib",
     ],
 )

@@ -11,6 +11,7 @@
 #include "Processor.h"
 #include "Utils.h"
 #include "processor/ThreadPool.h"
+#include "BoundedSharedQueue.h"
 
 #define LOG_LEVEL INFO_LEVEL
 #include "Logger.h"
@@ -55,9 +56,10 @@ void run(string host,
          MAPPER_TYPE mapper_type) {
     LOG_DEBUG("Starting database adapter with the following parameters:");
 
-    auto queue = make_shared<SharedQueue>();
+    auto queue = make_shared<BoundedSharedQueue>(100000);
 
     DatabaseMappingJob db_mapping_job(host, port, database, username, password, mapper_type, queue);
+
     auto producer = make_shared<DedicatedThread>("producer", &db_mapping_job);
     if (!tables_mapping.empty()) {
         for (const auto& table_mapping : tables_mapping) {
@@ -72,64 +74,39 @@ void run(string host,
     }
     LOG_DEBUG("Loaded " + to_string(queries_SQL.size()) + " queries from query file.");
 
-    /*
-    DedicatedThread approach:
-    */
-
-    // AtomPersistenceJob atomdb_job(queue);
-    // auto consumer = make_shared<DedicatedThread>("consumer", &atomdb_job);
-
-    // consumer->setup();
-    // consumer->start();
-    // LOG_DEBUG("Consumer thread started.");
-
-    // producer->setup();
-    // producer->start();
-    // LOG_DEBUG("Producer thread started.");
-
-    // while (!db_mapping_job.is_finished()) {
-    //     Utils::sleep();
-    // }
-
-    // LOG_INFO("Mapping completed. Loading data into DAS.");
-    // producer->stop();
-
-    // atomdb_job.set_producer_finished();
-
-    // while (!atomdb_job.is_finished()) {
-    //     LOG_DEBUG("Waiting for AtomPersistenceJob to finish...");
-    //     Utils::sleep();
-    // }
-
-    // LOG_INFO("Loading completed!");
-    // consumer->stop();
-
-    /*
-    ThreadPool approach:
-    */
-
-    AtomPersistenceJob2 atomdb_job(queue);
-    int num_consumers = 8;
-    ThreadPool pool("consumers_pool", num_consumers);
+    unsigned int num_threads = 8;
+    ThreadPool pool("consumers_pool", num_threads);
     pool.setup();
     pool.start();
-    for (int i = 0; i < num_consumers; ++i) {
-        pool.enqueue([&atomdb_job]() { atomdb_job.consumer_task(); });
-    }
+
+    BatchConsumer atomdb_job(queue, pool, BATCH_SIZE);
 
     producer->setup();
     producer->start();
     LOG_DEBUG("Producer thread started.");
-    while (!db_mapping_job.is_finished()) {
-        Utils::sleep();
+
+    while (true) {
+        atomdb_job.dispatch();
+
+        if (db_mapping_job.is_finished() && !atomdb_job.is_producer_finished()) {
+            LOG_INFO("Mapping completed. Loading data into DAS.");
+            producer->stop();
+            atomdb_job.set_producer_finished();
+        }
+
+        if (atomdb_job.is_producer_finished() && queue->empty()) {
+            atomdb_job.dispatch();
+            break;
+        }
+
+        if (queue->empty()) {
+            this_thread::sleep_for(chrono::milliseconds(5));
+        }
     }
-    LOG_INFO("Mapping completed. Loading data into DAS.");
-    producer->stop();
-    atomdb_job.set_producer_finished();
 
     pool.wait();
     pool.stop();
-    LOG_INFO("Loading completed!");
+    LOG_INFO("Loading completed! Total atoms: " << atomdb_job.get_total_count());
 }
 
 int main(int argc, char* argv[]) {
@@ -183,7 +160,7 @@ int main(int argc, char* argv[]) {
         }
     }
 
-    AtomDBSingleton::init();
+    AtomDBSingleton::init(atomdb_api_types::ATOMDB_TYPE::MORKDB);
 
     run(host, port, database, username, password, tables_mapping, queries_SQL, mapper_type);
 

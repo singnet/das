@@ -5,7 +5,7 @@
 #include "Logger.h"
 #include "PostgresWrapper.h"
 #include "Processor.h"
-#include "SharedQueue.h"
+#include "BoundedSharedQueue.h"
 
 #define LOG_LEVEL DEBUG_LEVEL
 #include "Logger.h"
@@ -22,7 +22,7 @@ DatabaseMappingJob::DatabaseMappingJob(const string& host,
                                        const string& user,
                                        const string& password,
                                        MAPPER_TYPE mapper_type,
-                                       shared_ptr<SharedQueue> output_queue) {
+                                       shared_ptr<BoundedSharedQueue> output_queue) {
     this->db_conn =
         make_unique<PostgresDatabaseConnection>("psql-conn", host, port, database, user, password);
     this->wrapper = make_unique<PostgresWrapper>(*db_conn, mapper_type, output_queue);
@@ -73,7 +73,7 @@ bool DatabaseMappingJob::thread_one_step() {
 
 bool DatabaseMappingJob::is_finished() const { return this->finished; }
 
-AtomPersistenceJob::AtomPersistenceJob(shared_ptr<SharedQueue> input_queue) : input_queue(input_queue) {
+AtomPersistenceJob::AtomPersistenceJob(shared_ptr<BoundedSharedQueue> input_queue) : input_queue(input_queue) {
     this->atomdb = AtomDBSingleton::get_instance();
 }
 
@@ -152,7 +152,7 @@ void AtomPersistenceJob::set_producer_finished() { this->producer_finished = tru
     AtomPersistenceJob2 implementation using ThreadPool
 */
 
-AtomPersistenceJob2::AtomPersistenceJob2(shared_ptr<SharedQueue> input_queue)
+AtomPersistenceJob2::AtomPersistenceJob2(shared_ptr<BoundedSharedQueue> input_queue)
     : input_queue(input_queue) {
     this->atomdb = AtomDBSingleton::get_instance();
 }
@@ -217,3 +217,159 @@ void AtomPersistenceJob2::consumer_task() {
 }
 
 void AtomPersistenceJob2::set_producer_finished() { this->producer_finished.store(true); }
+
+/*
+    BatchConsumer implementation using ThreadPool
+*/
+
+BatchConsumer::BatchConsumer(shared_ptr<BoundedSharedQueue> input_queue,
+                             ThreadPool& pool,
+                             size_t batch_size,
+                             size_t max_pending_batches)
+    : input_queue(input_queue),
+      pool(pool),
+      batch_size(batch_size),
+      max_pending_batches(max_pending_batches) {
+    this->atomdb = AtomDBSingleton::get_instance();
+    this->accumulator.reserve(batch_size);
+    LOG_INFO("BatchConsumer initialized | batch_size: " << batch_size << " | max_pending_batches: "
+                                                        << max_pending_batches
+                                                        << " | pool: " << pool.to_string());
+}
+
+BatchConsumer::~BatchConsumer() {
+    LOG_INFO("BatchConsumer destroyed | total_atoms: "
+             << total_count.load() << " | batches_dispatched: " << batches_dispatched.load()
+             << " | batches_completed: " << batches_completed.load()
+             << " | batches_failed: " << batches_failed.load());
+}
+
+void BatchConsumer::dispatch() {
+    if (static_cast<size_t>(pool.size()) >= max_pending_batches) {
+        flush_batch();
+        return;
+    }
+
+    drain_into_accumulator();
+
+    flush_batch();
+
+    if (this->producer_finished.load() && !this->accumulator.empty()) {
+        int batch_id = this->batches_dispatched.fetch_add(1) + 1;
+
+        LOG_INFO("Dispatching FINAL batch #" << batch_id << " | size: " << accumulator.size()
+                                             << " | (remainder < batch_size)");
+
+        vector<Atom*> final_batch = move(this->accumulator);
+        this->accumulator.clear();
+
+        pool.enqueue(
+            [this, b = move(final_batch), batch_id]() mutable { send_batch(move(b), batch_id); });
+    }
+}
+
+void BatchConsumer::set_producer_finished() {
+    this->producer_finished.store(true);
+    LOG_INFO("Producer finished signal received"
+             << " | accumulator_size: " << accumulator.size() << " | queue_remaining: "
+             << input_queue->size() << " | total_atoms_so_far: " << total_count.load()
+             << " | batches_dispatched: " << batches_dispatched.load()
+             << " | batches_completed: " << batches_completed.load());
+}
+
+bool BatchConsumer::is_producer_finished() const { return this->producer_finished.load(); }
+
+int BatchConsumer::get_total_count() const { return this->total_count.load(); }
+
+void BatchConsumer::drain_into_accumulator() {
+    size_t limit = (this->accumulator.size() < this->batch_size)
+                       ? (this->batch_size - this->accumulator.size())
+                       : 0;
+
+    if (limit == 0) return;
+
+    size_t drained = 0;
+
+    while (drained < limit) {
+        if (this->input_queue->empty()) break;
+
+        void* raw_ptr = this->input_queue->dequeue();
+        queue<Atom*>* batch_queue = static_cast<queue<Atom*>*>(raw_ptr);
+
+        if (batch_queue != nullptr) {
+            while (!batch_queue->empty()) {
+                Atom* atom = batch_queue->front();
+                batch_queue->pop();
+                if (atom != nullptr) {
+                    this->accumulator.push_back(atom);
+                    ++drained;
+                }
+            }
+            delete batch_queue;
+        }
+    }
+}
+
+void BatchConsumer::flush_batch() {
+    while (this->accumulator.size() >= this->batch_size) {
+        if (static_cast<size_t>(pool.size()) >= max_pending_batches) {
+            LOG_INFO("Backpressure in flush | pool_pending_tasks: "
+                     << pool.size() << " | accumulator_size: " << accumulator.size()
+                     << " | waiting for pool to drain");
+            return;
+        }
+
+        vector<Atom*> batch(this->accumulator.begin(), this->accumulator.begin() + this->batch_size);
+        this->accumulator.erase(this->accumulator.begin(), this->accumulator.begin() + this->batch_size);
+
+        int batch_id = this->batches_dispatched.fetch_add(1) + 1;
+
+        LOG_INFO("Dispatching batch #" << batch_id << " | size: " << batch.size()
+                                       << " | accumulator_remaining: " << accumulator.size()
+                                       << " | queue_remaining: " << input_queue->size()
+                                       << " | pool_pending_tasks: " << pool.size()
+                                       << " | total_dispatched: " << batches_dispatched.load());
+
+        pool.enqueue([this, b = move(batch), batch_id]() mutable { send_batch(move(b), batch_id); });
+    }
+}
+
+void BatchConsumer::send_batch(vector<Atom*> atoms, int batch_id) {
+    auto start = chrono::steady_clock::now();
+
+    LOG_INFO("Batch #" << batch_id << " started | size: " << atoms.size()
+                       << " | thread: " << this_thread::get_id());
+
+    try {
+        this->atomdb->add_atoms(atoms, false, true);
+
+        auto elapsed =
+            chrono::duration_cast<chrono::milliseconds>(chrono::steady_clock::now() - start).count();
+
+        int new_total =
+            this->total_count.fetch_add(static_cast<int>(atoms.size())) + static_cast<int>(atoms.size());
+        this->batches_completed.fetch_add(1);
+
+        LOG_INFO("Batch #" << batch_id << " completed | size: " << atoms.size() << " | time: " << elapsed
+                           << "ms"
+                           << " | total_atoms_so_far: " << new_total << " | batches_completed: "
+                           << batches_completed.load() << " | thread: " << this_thread::get_id());
+
+    } catch (const exception& e) {
+        auto elapsed =
+            chrono::duration_cast<chrono::milliseconds>(chrono::steady_clock::now() - start).count();
+
+        this->batches_failed.fetch_add(1);
+
+        LOG_INFO("Batch #" << batch_id << " FAILED | size: " << atoms.size() << " | time: " << elapsed
+                           << "ms"
+                           << " | error: " << e.what() << " | batches_failed: " << batches_failed.load()
+                           << " | thread: " << this_thread::get_id());
+
+        Utils::error("Error in batch #" + to_string(batch_id) + ": " + string(e.what()));
+    }
+
+    for (auto& atom : atoms) {
+        delete atom;
+    }
+}

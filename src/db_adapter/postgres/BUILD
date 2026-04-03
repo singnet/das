@@ -20,5 +20,6 @@ cc_library(
         "//db_adapter:data_mapper",
         "//db_adapter:database_connection",
         "//db_adapter:database_wrapper",
+        "//db_adapter:bounded_shared_queue",
     ],
 )
