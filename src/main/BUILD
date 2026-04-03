@@ -43,3 +43,12 @@ cc_library(
         "//main/helpers:main_helper_proxy_factory_lib",
     ],
 )
+
+cc_library(
+    name = "database_adapter_main_lib",
+    srcs = ["database_adapter_main.cc"],
+    deps = [
+        "//atomdb:atomdb_singleton",
+        "//db_adapter:db_adapter_lib",
+    ],
+)

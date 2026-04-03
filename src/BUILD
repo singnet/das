@@ -205,7 +205,7 @@ cc_binary(
     linkstatic = 1,
     deps = [
         "//commons:commons_lib",
-        "//tests/main:database_adapter_main_lib",
+        "//main:database_adapter_main_lib",
         "@mbedtls",
     ],
 )

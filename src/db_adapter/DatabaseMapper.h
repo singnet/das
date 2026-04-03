@@ -3,10 +3,11 @@
 #include <algorithm>
 #include <string>
 #include <tuple>
+#include <unordered_set>
 #include <variant>
 #include <vector>
 
-#include "DataTypes.h"
+#include "DatabaseTypes.h"
 #include "HandleTrie.h"
 #include "MettaMapping.h"
 
@@ -42,6 +43,7 @@ class Mapper {
    protected:
     Mapper() = default;
     HandleTrie handle_trie{32};
+    unordered_set<string> unique_handles;
 };
 
 /**
@@ -134,6 +136,7 @@ class SQL2AtomsMapper : public BaseSQL2Mapper {
     void clear() override;
     string add_atom_if_new(SQL2AtomsMapper::ATOM_TYPE atom_type,
                            variant<string, vector<string>> value,
+                           const string& metta_expression = "",
                            bool is_toplevel = false);
 
     void map_primary_key(const string& table_name, const string& primary_key_value) override;

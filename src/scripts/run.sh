@@ -22,7 +22,7 @@ BINARY_NAME="${1}"
 shift
 
 IMAGE_NAME="das-builder:${ARCH}"
-CONTAINER_NAME="das-${BINARY_NAME}-$(uuidgen | cut -d '-' -f 1)-$(date +%Y%m%d%H%M%S)"
+CONTAINER_NAME="das-${BINARY_NAME}"
 
 ENV_VARS=$(test -f .env && echo "--env-file=.env" || echo "")
 

@@ -4,6 +4,7 @@
 #include <iostream>
 #include <memory>
 #include <pqxx/pqxx>
+#include <queue>
 #include <regex>
 #include <stdexcept>
 #include <string>
@@ -106,7 +107,7 @@ void PostgresDatabaseConnection::close_cursor() {
 
 PostgresWrapper::PostgresWrapper(PostgresDatabaseConnection& db_conn,
                                  MAPPER_TYPE mapper_type,
-                                 shared_ptr<SharedQueue> output_queue)
+                                 shared_ptr<BoundedSharedQueue> output_queue)
     : SQLWrapper(db_conn, mapper_type), db_conn(db_conn), output_queue(output_queue) {}
 
 PostgresWrapper::~PostgresWrapper() {}
@@ -423,7 +424,7 @@ void PostgresWrapper::fetch_rows_paginated(const Table& table,
                                            const string& query) {
     LOG_INFO("[START] Mapping table " << table.name);
 
-    size_t limit = 10000;
+    size_t limit = 100000;
     int rows_count = 0;
     int atoms_count = 0;
 
@@ -436,11 +437,11 @@ void PostgresWrapper::fetch_rows_paginated(const Table& table,
     while (true) {
         pqxx::result rows = this->db_conn.fetch_cursor(cursor_name, limit);
 
-        LOG_DEBUG("Fetched " << rows.size() << " rows from table " << table.name);
+        LOG_INFO("Fetched " << rows.size() << " rows from table " << table.name);
 
         if (rows.empty()) break;
 
-        while (this->get_available_ram_ratio() < 0.2) {
+        while (this->get_available_ram_ratio() < 0.1) {
             LOG_INFO("Low available RAM. Waiting before adding more atoms to the queue...");
             Utils::sleep(5000);
         }
@@ -459,13 +460,14 @@ void PostgresWrapper::fetch_rows_paginated(const Table& table,
 
             if (this->mapper_type == MAPPER_TYPE::SQL2ATOMS) {
                 auto atoms = get<vector<Atom*>>(output);
-                LOG_DEBUG("Atoms count: " << atoms.size());
                 atoms_count += atoms.size();
-                unique_lock<mutex> lock(this->api_mutex);
+
+                std::queue<Atom*>* batch_queue = new std::queue<Atom*>();
                 for (const auto& atom : atoms) {
-                    this->output_queue->enqueue((void*) atom);
-                    this->count++;
+                    batch_queue->push(atom);
                 }
+                unique_lock<mutex> lock(this->api_mutex);
+                this->output_queue->enqueue((void*) batch_queue);
             } else {
                 auto metta_expressions = get<vector<string>>(output);
                 LOG_DEBUG("Metta Expressions count: " << metta_expressions.size());
@@ -478,9 +480,7 @@ void PostgresWrapper::fetch_rows_paginated(const Table& table,
 
             this->log_progress(table.name, rows_count);
         }
-        LOG_DEBUG("Added " << this->count << " atoms in the queue");
-        LOG_DEBUG("Atoms in queue: " << to_string(this->output_queue->size()));
-        LOG_DEBUG("Mapping table " << table.name << ". Total atoms generated: " << atoms_count);
+        LOG_INFO("Mapping table " << table.name << ". Total atoms generated: " << atoms_count);
     }
 
     this->db_conn.close_cursor();
@@ -529,7 +529,7 @@ SqlRow PostgresWrapper::build_sql_row(const pqxx::row& row, const Table& table, 
 void PostgresWrapper::log_progress(const string& table_name, int rows_count) {
     int last_logged_count = this->tables_rows_count[table_name];
 
-    if (rows_count - last_logged_count >= 10000) {
+    if (rows_count - last_logged_count >= 50000) {
         LOG_INFO("Mapped " << rows_count << " rows from the " << table_name << " table");
         this->tables_rows_count[table_name] = rows_count;
     }
