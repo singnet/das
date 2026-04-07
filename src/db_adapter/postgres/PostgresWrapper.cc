@@ -468,10 +468,12 @@ void PostgresWrapper::fetch_rows_paginated(const Table& table,
                 }
                 unique_lock<mutex> lock(this->api_mutex);
                 this->output_queue->enqueue((void*) batch_queue);
-            } else {
+            } else if (this->mapper_type == MAPPER_TYPE::SQL2METTA) {
                 auto metta_expressions = get<vector<string>>(output);
                 LOG_DEBUG("Metta Expressions count: " << metta_expressions.size());
                 // WIP - save metta expressions to file
+            } else {
+                Utils::error("Unsupported mapper type.");
             }
 
             LOG_DEBUG("Mapper HandleTrie size: " << this->mapper->handle_trie_size());

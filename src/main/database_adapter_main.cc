@@ -26,16 +26,16 @@ void ctrl_c_handler(int) {
 void usage(const char* a) {
     cerr << "Usage: " << a
          << " <host> <port> <database> <username> [password] "
-            "[context_file_path] [query_SQL] [mapper_type] \n\n"
+            "[table_file_path] [query_file_path] [mapper_type] \n\n"
             "Rules:\n"
-            "- You must provide at least context_file_path OR query_SQL.\n"
+            "- You must provide at least table_file_path OR query_file_path.\n"
             "- Use '.' to skip an optional argument.\n\n"
             "Examples:\n"
-            "  ./bin host port db user pwd ./context.json\n"
-            "  ./bin host port db user pwd . \"SELECT * FROM table\"\n"
-            "  ./bin host port db user pwd ./context.json . ATOMS\n"
-            "  ./bin host port db user pwd . \"SELECT * FROM table\" ATOMS\n"
-            "  ./bin host port db user pwd ./context.json \"SELECT * FROM table\" METTA\n";
+            "  ./bin host port db user pwd ./table.json\n"
+            "  ./bin host port db user pwd . ./query.sql\n"
+            "  ./bin host port db user pwd ./table.json . ATOMS\n"
+            "  ./bin host port db user pwd . ./query.sql ATOMS\n"
+            "  ./bin host port db user pwd ./table.json ./query.sql METTA\n";
     exit(1);
 }
 
@@ -55,28 +55,28 @@ int main(int argc, char* argv[]) {
     string username = argv[4];
     string password = argv[5];
 
-    string context_file_path = argv[6];
+    string table_file_path = argv[6];
     string query_file_path = (argc >= 8) ? argv[7] : ".";
     string mapper_type_str = (argc >= 9) ? argv[8] : ".";
 
-    if (is_empty_arg(context_file_path) && is_empty_arg(query_file_path)) {
-        cerr << "Error: You must provide at least context_file_path OR query_file_path.\n\n";
+    if (is_empty_arg(table_file_path) && is_empty_arg(query_file_path)) {
+        cerr << "Error: You must provide at least table_file_path OR query_file_path.\n\n";
         usage(argv[0]);
     }
 
-    bool has_context = !is_empty_arg(context_file_path);
+    bool has_table = !is_empty_arg(table_file_path);
     bool has_query = !is_empty_arg(query_file_path);
     bool has_mapper = !is_empty_arg(mapper_type_str);
 
     vector<TableMapping> tables_mapping;
-    if (has_context) {
-        tables_mapping = ContextLoader::load_context_file(context_file_path);
+    if (has_table) {
+        tables_mapping = ContextLoader::load_table_file(table_file_path);
     }
 
     vector<string> queries_SQL;
     if (has_query) {
-        LOG_DEBUG("Loading queries from file: " + query_file_path);
         queries_SQL = ContextLoader::load_query_file(query_file_path);
+        LOG_DEBUG("Loaded " + to_string(queries_SQL.size()) + " queries from file: " + query_file_path);
     }
 
     MAPPER_TYPE mapper_type = MAPPER_TYPE::SQL2ATOMS;

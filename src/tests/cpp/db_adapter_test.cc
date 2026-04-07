@@ -113,8 +113,8 @@ class PostgresWrapperTest : public ::testing::Test {
     int TOTAL_ROWS_FEATURES = 26;
 
     void SetUp() override {
-        temp_file_path_1 = "/tmp/context_1.json";
-        temp_file_path_2 = "/tmp/context_2.json";
+        temp_file_path_1 = "/tmp/table_1.json";
+        temp_file_path_2 = "/tmp/table_2.json";
 
         ofstream file_1(temp_file_path_1);
         file_1 << R"([
@@ -802,7 +802,7 @@ TEST_F(PostgresWrapperTest, MapSqlQueryWithInvalidClauseMetta) {
 }
 
 TEST_F(PostgresWrapperTest, MapTablesFirstRowAtomsWithContextFile) {
-    vector<TableMapping> tables_mapping = ContextLoader::load_context_file("/tmp/context_1.json");
+    vector<TableMapping> tables_mapping = ContextLoader::load_table_file("/tmp/table_1.json");
 
     EXPECT_FALSE(tables_mapping.empty());
 
@@ -825,7 +825,7 @@ TEST_F(PostgresWrapperTest, MapTablesFirstRowAtomsWithContextFile) {
     EXPECT_EQ(atoms_sizes[1], 81);
     EXPECT_EQ(atoms_sizes[2], 101);
 
-    vector<TableMapping> tables_mapping_2 = ContextLoader::load_context_file("/tmp/context_2.json");
+    vector<TableMapping> tables_mapping_2 = ContextLoader::load_table_file("/tmp/table_2.json");
 
     EXPECT_TRUE(tables_mapping_2.empty());
 }
