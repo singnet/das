@@ -3,9 +3,11 @@
 #include "AttentionBrokerClient.h"
 #include "FitnessFunctionRegistry.h"
 #include "Helper.h"
+#include "JsonConfigParser.h"
 #include "Logger.h"
 #include "ProcessorFactory.h"
 #include "Properties.h"
+#include "RemoteAtomDB.h"
 #include "Utils.h"
 
 using namespace commons;
@@ -21,8 +23,32 @@ void ctrl_c_handler(int) {
 
 int main(int argc, char* argv[]) {
     try {
-        auto required_cmd_args = {Helper::SERVICE, Helper::ENDPOINT, Helper::PORTS_RANGE};
+        auto required_cmd_args = {Helper::SERVICE};
         auto cmd_args = Utils::parse_command_line(argc, argv);
+        auto it_config = cmd_args.find("config");
+
+        ///////// Loading JSON config
+        JsonConfig json_config;
+        if (it_config != cmd_args.end() && !it_config->second.empty()) {
+            json_config = JsonConfigParser::load(it_config->second);
+        } else {
+            json_config = JsonConfigParser::load(JsonConfig::JSON_CONFIG_DEFAULT_PATH, false);
+        }
+        // Map service name (e.g. "query-engine") to config section path (e.g. "agents.query")
+        string service_name = cmd_args[Helper::SERVICE];
+        auto it_section = Helper::arg_to_json_config_key.find(service_name);
+        if (it_section != Helper::arg_to_json_config_key.end()) {
+            const string& section_path = it_section->second;
+            if (cmd_args.find(Helper::ENDPOINT) == cmd_args.end()) {
+                auto endpoint_val = json_config.at_path(section_path + ".endpoint");
+                cmd_args[Helper::ENDPOINT] = endpoint_val.get<string>();
+            }
+            if (cmd_args.find(Helper::PORTS_RANGE) == cmd_args.end()) {
+                auto ports_val = json_config.at_path(section_path + ".ports_range");
+                cmd_args[Helper::PORTS_RANGE] = ports_val.get<string>();
+            }
+        }
+
         ///////// Checking args
         if (cmd_args.find("help") != cmd_args.end()) {
             cout << Helper::help(Helper::processor_type_from_string(cmd_args[Helper::SERVICE])) << endl;
@@ -36,7 +62,13 @@ int main(int argc, char* argv[]) {
         auto required_args = Helper::get_required_arguments(cmd_args[Helper::SERVICE]);
         for (auto req_arg : required_args) {
             if (cmd_args.find(req_arg) == cmd_args.end()) {
-                Utils::error("Required argument missing: " + string(req_arg));
+                auto it_path = Helper::arg_to_json_config_key.find(req_arg);
+                if (it_path != Helper::arg_to_json_config_key.end()) {
+                    auto val = json_config.at_path(it_path->second);
+                    cmd_args[req_arg] = val.get<string>();
+                } else {
+                    Utils::error("Required argument missing: " + string(req_arg));
+                }
             }
         }
         ///////// Handling signals
@@ -49,11 +81,25 @@ int main(int argc, char* argv[]) {
             AttentionBrokerClient::set_server_address(
                 props.get<string>(Helper::ATTENTION_BROKER_ENDPOINT));
         }
+
+        ///////// Initializing AtomDB
+        shared_ptr<AtomDB> atomdb = nullptr;
         if (props.get_or<string>(Helper::USE_MORK, "false") == "true") {
-            AtomDBSingleton::init(atomdb_api_types::ATOMDB_TYPE::MORKDB);
+            atomdb = make_shared<MorkDB>();
         } else {
-            AtomDBSingleton::init();
+            auto atomdb_config = json_config.at_path("atomdb").get_or<JsonConfig>(JsonConfig());
+            string atomdb_type = atomdb_config.at_path("type").get_or<string>("");
+            if (atomdb_type == "morkdb") {
+                atomdb = make_shared<MorkDB>("", atomdb_config);
+            } else if (atomdb_type == "remotedb") {
+                atomdb = make_shared<RemoteAtomDB>(atomdb_config);
+            } else if (atomdb_type == "redismongodb") {
+                atomdb = make_shared<RedisMongoDB>("", false, atomdb_config);
+            } else {
+                atomdb = make_shared<RedisMongoDB>();
+            }
         }
+        AtomDBSingleton::provide(atomdb);
 
         if (Helper::processor_type_from_string(cmd_args[Helper::SERVICE]) ==
                 mains::ProcessorType::INFERENCE_AGENT ||

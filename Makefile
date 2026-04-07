@@ -61,6 +61,9 @@ setup-inference-toy-problem:
 run-tests-db-loader:
 	@bash -x src/scripts/run.sh tests_db_loader $(OPTIONS)
 
+run-adapter:
+	@bash -x src/scripts/run.sh database_adapter $(OPTIONS)
+
 setup-nunet-dms:
 	@bash -x src/scripts/setup-nunet-dms.sh
 
@@ -86,17 +89,28 @@ clean:
 		bash -c 'find ~/.cache/ -name "*.o" -not -path "*/external/*" -delete'
 	@echo "Done."
 
+setup-test-all:
+	@$(MAKE) build-image
+	bash src/scripts/test_all_setup.sh
+	@$(MAKE) run-tests-db-loader
 
-test-all-no-cache: build-image run-tests-db-loader
+test-clear:
+	@docker rm -f db-redis-test-container db-mongo-test-container das-attention-broker-service pg-test mork-test-server || true
+
+test-all-no-cache: setup-test-all
 	@$(MAKE) bazel 'test --show_progress --cache_test_results=no //tests/...'
 
-test-all: build-image run-tests-db-loader
+test-all: 
+	@$(MAKE) setup-test-all
 	@$(MAKE) bazel 'test --show_progress //tests/...'
 
 test-agents-integration:
 	@bash  ./src/scripts/integration_test_setup.sh &
 	@$(MAKE) bazel 'test --show_progress --cache_test_results=no //tests/integration/...' || true; \
 	touch ./bin/kill
+
+run-tests-only:
+	@$(MAKE) bazel 'test --show_progress --cache_test_results=no //tests/...'
 
 lint-all:
 	@$(MAKE) bazel lint \

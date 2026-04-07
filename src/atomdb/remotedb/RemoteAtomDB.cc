@@ -5,7 +5,6 @@
 #include <optional>
 #include <sstream>
 
-#include "EnvironmentRestoreGuard.h"
 #include "InMemoryDB.h"
 #include "InMemoryDBAPITypes.h"
 #include "MorkDB.h"
@@ -23,81 +22,39 @@ using json = nlohmann::json;
 
 namespace {
 
-map<string, string> env_overrides_from_config(const json& config) {
-    map<string, string> overrides;
-    if (!config.contains("env") || !config["env"].is_object()) return overrides;
-    for (auto it = config["env"].begin(); it != config["env"].end(); ++it) {
-        string key = it.key();
-        if (it.value().is_string()) {
-            overrides[key] = it.value().get<string>();
-        }
-    }
-    return overrides;
-}
-
-shared_ptr<AtomDB> create_atomdb_from_config(const json& config) {
-    string type = config.at("type").get<string>();
-    string context = config.value("context", "");
+shared_ptr<AtomDB> create_atomdb_from_config(const JsonConfig& config) {
+    string uid = config.at_path("uid").get_or<string>("");
+    string type = config.at_path("type").get_or<string>("");
+    string context = config.at_path("context").get_or<string>("");
 
     if (type == "inmemorydb") {
         return make_shared<InMemoryDB>(context.empty() ? "remotedb_" : context);
     }
 
-    EnvironmentRestoreGuard env_guard;
     if (type == "redismongodb") {
-        env_guard.save_and_apply(env_overrides_from_config(config));
         RedisMongoDB::initialize_statics(context);
-        auto atomdb = make_shared<RedisMongoDB>(context);
-        env_guard.restore();
-        return atomdb;
-    }
-    if (type == "morkdb") {
-        env_guard.save_and_apply(env_overrides_from_config(config));
-        auto atomdb = make_shared<MorkDB>(context);
-        env_guard.restore();
+        auto atomdb = make_shared<RedisMongoDB>(context, false, config);
         return atomdb;
     }
 
-    Utils::error("Unknown AtomDB type in config: " + type);
+    if (type == "morkdb") {
+        auto atomdb = make_shared<MorkDB>(context, config);
+        return atomdb;
+    }
+
+    Utils::error("Unknown AtomDB type for peer " + uid + ": " + type);
     return nullptr;
 }
 
 }  // namespace
 
-RemoteAtomDB::RemoteAtomDB(const string& json_file_path) {
-    std::ifstream f(json_file_path);
-    if (!f.good()) {
-        Utils::error("RemoteAtomDB: Cannot open config file: " + json_file_path);
-    }
-    std::stringstream buf;
-    buf << f.rdbuf();
-    string json_str = buf.str();
-
-    std::optional<json> doc_opt;
-    try {
-        doc_opt = json::parse(json_str);
-    } catch (const std::exception& e) {
-        Utils::error("RemoteAtomDB: Invalid JSON in config: " + string(e.what()));
-    }
-
-    auto doc = doc_opt->at("atomdbs");
-    for (auto&& peer_config : doc) {
-        string uid = peer_config.at("uid");
-
-        shared_ptr<AtomDB> remote = create_atomdb_from_config(peer_config);
-
-        shared_ptr<AtomDB> local_persistence = nullptr;
-        if (peer_config.contains("local_persistence")) {
-            auto local_it = peer_config.at("local_persistence");
-            if (local_it.is_object()) {
-                local_persistence = create_atomdb_from_config(local_it);
-            }
-        }
-        if (local_persistence == nullptr) {
-            local_persistence = make_shared<InMemoryDB>(uid + "_local");
-        }
-
-        remote_db_[uid] = make_shared<RemoteAtomDBPeer>(remote, local_persistence, uid);
+RemoteAtomDB::RemoteAtomDB(const JsonConfig& peers_config) {
+    for (auto& entry : peers_config) {
+        auto peer_config = JsonConfig(entry);
+        string uid = peer_config.at_path("uid").get_or<string>("");
+        if (uid.empty()) continue;
+        remote_db_[uid] =
+            make_shared<RemoteAtomDBPeer>(create_atomdb_from_config(peer_config), nullptr, uid);
     }
 
     LOG_INFO("RemoteAtomDB initialized with " << remote_db_.size() << " remote peers");
