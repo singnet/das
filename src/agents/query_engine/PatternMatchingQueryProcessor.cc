@@ -2,7 +2,7 @@
 // clang-format off
 
 #ifndef LOG_LEVEL
-#define LOG_LEVEL DEBUG_LEVEL
+#define LOG_LEVEL INFO_LEVEL
 #endif
 #include "Logger.h"
 
