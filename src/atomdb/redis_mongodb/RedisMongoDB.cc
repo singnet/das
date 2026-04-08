@@ -1242,35 +1242,37 @@ void RedisMongoDB::load_pattern_index_schema() {
         LOG_INFO(
             "WARNING: No pattern_index_schema found, all possible patterns will be created during link "
             "insertion!");
-        this->pattern_index_schema_map = default_pattern_index_schema();
     }
-}
-
-map<int, tuple<vector<string>, vector<vector<string>>>> RedisMongoDB::default_pattern_index_schema() {
-    map<int, tuple<vector<string>, vector<vector<string>>>> default_map;
-    for (unsigned int arity = 1; arity <= 4; arity++) {
-        vector<string> tokens = {"LINK_TEMPLATE", "Expression", to_string(arity)};
-        for (unsigned int i = 0; i < arity; i++) {
-            tokens.push_back("VARIABLE");
-            tokens.push_back("v" + to_string(i + 1));
-        }
-        auto index_entries = index_entries_combinations(arity);
-        default_map[arity] = make_tuple(move(tokens), move(index_entries));
-    }
-    return default_map;
 }
 
 vector<string> RedisMongoDB::match_pattern_index_schema(const Link* link) {
     vector<string> pattern_handles;
 
+    const auto& map_ref = this->pattern_index_schema_map;
+
+    const map<int, tuple<vector<string>, vector<vector<string>>>>* iter_map = &map_ref;
+
+    // When map is empty, use a default map
+    map<int, tuple<vector<string>, vector<vector<string>>>> default_map;
+    if (map_ref.empty()) {
+        vector<string> tokens = {"LINK_TEMPLATE", "Expression", to_string(link->arity())};
+        for (unsigned int i = 0; i < link->arity(); i++) {
+            tokens.push_back("VARIABLE");
+            tokens.push_back("v" + to_string(i + 1));
+        }
+        auto index_entries = this->index_entries_combinations(link->arity());
+        default_map = {{1, make_tuple(move(tokens), move(index_entries))}};
+        iter_map = &default_map;
+    }
+
     vector<int> sorted_keys;
-    for (const auto& pair : this->pattern_index_schema_map) {
+    for (const auto& pair : *iter_map) {
         sorted_keys.push_back(pair.first);
     }
     std::sort(sorted_keys.begin(), sorted_keys.end(), std::greater<int>());
 
     for (const auto& priority : sorted_keys) {
-        const auto& value = this->pattern_index_schema_map.at(priority);
+        const auto& value = (*iter_map).at(priority);
         auto link_schema = LinkSchema(get<0>(value));
         auto index_entries = get<1>(value);
         Assignment assignment;
