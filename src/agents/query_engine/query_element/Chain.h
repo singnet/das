@@ -195,7 +195,8 @@ class Chain : public Operator<1>, public ThreadMethod {
           const string& target_handle,
           const QueryAnswerElement& link_selector,
           unsigned int tail_reference,
-          unsigned int head_reference);
+          unsigned int head_reference,
+          bool allow_incomplete_chain_path);
 
     /**
      * Constructor. Typically used in tests, defaulting the link selector to the first handle in
@@ -204,7 +205,8 @@ class Chain : public Operator<1>, public ThreadMethod {
      */
     Chain(const array<shared_ptr<QueryElement>, 1>& clauses,
           const string& source_handle,
-          const string& target_handle);
+          const string& target_handle,
+          bool allow_incomplete_chain_path=true);
 
     /**
      * Destructor.
@@ -320,6 +322,7 @@ class Chain : public Operator<1>, public ThreadMethod {
     map<string, shared_ptr<HeapType>> target_index;
     bool all_input_acknowledged_flag;
     bool all_paths_explored_flag;
+    bool allow_incomplete_chain_path;
     mutex source_index_mutex;
     mutex target_index_mutex;
     mutex all_input_acknowledged_mutex;

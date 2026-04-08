@@ -344,6 +344,27 @@ TEST(PatternMatchingQuery, queries) {
     };
     int q9_expected_count = 5;
 
+    vector<string> q10 = {
+        "CHAIN", "1", "1", "2",
+            "NODE", "Symbol", "\"chimp\"",
+            "NODE", "Symbol", "\"ent\"",
+            "AND", "2",
+                "OR", "2",
+                    "LINK_TEMPLATE", "Expression", "3",
+                        "NODE", "Symbol", "Inheritance",
+                        "VARIABLE", "v1",
+                        "NODE", "Symbol", "\"mammal\"",
+                    "LINK_TEMPLATE", "Expression", "3",
+                        "NODE", "Symbol", "Inheritance",
+                        "VARIABLE", "v2",
+                        "NODE", "Symbol", "\"mammal\"",
+                "LINK_TEMPLATE", "Expression", "3",
+                    "NODE", "Symbol", "Similarity",
+                    "VARIABLE", "v1",
+                    "VARIABLE", "v2"
+    };
+    int q10_expected_count = 2;
+
     // Regular queries
     check_query("q1", q1, q1m, q1_expected_count, client_bus, "PatternMatchingQuery.queries", false, false, false, false, false);
     check_query("q2", q2, q2m, q2_expected_count, client_bus, "PatternMatchingQuery.queries", false, false, false, false, false);
@@ -355,6 +376,7 @@ TEST(PatternMatchingQuery, queries) {
     check_query("q7", q7, q7m, q7_expected_count, client_bus, "PatternMatchingQuery.queries", false, true, false, false, false);
     check_query_chain("q8", q8, Hasher::node_handle("Symbol", "\"chimp\""), Hasher::node_handle("Symbol", "\"ent\""), q8_expected_count, client_bus, "PatternMatchingQuery.queries", false, true, false, false, false);
     check_query_chain("q9", q9, Hasher::node_handle("Symbol", "\"ent\""), Hasher::node_handle("Symbol", "\"animal\""), q9_expected_count, client_bus, "PatternMatchingQuery.queries", false, true, false, false, false);
+    check_query_chain("q10", q10, Hasher::node_handle("Symbol", "\"chimp\""), Hasher::node_handle("Symbol", "\"ent\""), q10_expected_count, client_bus, "PatternMatchingQuery.queries", false, true, false, false, false);
 
     // Importance filtering
     // XXX AttentionBroker is being revised so its dynamics is a bit unpredictable right now

@@ -32,21 +32,24 @@ Chain::Chain(const array<shared_ptr<QueryElement>, 1>& clauses,
              const string& target_handle,
              const QueryAnswerElement& link_selector,
              unsigned int tail_reference,
-             unsigned int head_reference)
+             unsigned int head_reference,
+             bool allow_incomplete_chain_path)
     : Operator<1>(clauses),
       input_link_template(link_template),
       source_handle(source_handle),
       target_handle(target_handle),
       link_selector(link_selector),
       tail_reference(tail_reference),
-      head_reference(head_reference) {
+      head_reference(head_reference),
+      allow_incomplete_chain_path(allow_incomplete_chain_path) {
     initialize(clauses);
 }
 
 Chain::Chain(const array<shared_ptr<QueryElement>, 1>& clauses,
              const string& source_handle,
-             const string& target_handle)
-    : Chain(clauses, nullptr, source_handle, target_handle, QueryAnswerElement(0), 1, 2) {}
+             const string& target_handle,
+             bool allow_incomplete_chain_path)
+    : Chain(clauses, nullptr, source_handle, target_handle, QueryAnswerElement(0), 1, 2, allow_incomplete_chain_path) {}
 
 Chain::~Chain() {
     LOG_DEBUG("Chain::~Chain() BEGIN");
@@ -337,25 +340,35 @@ bool Chain::thread_one_step() {
 }
 
 void Chain::report_path(Path& path) {
-    QueryAnswer* query_answer = new QueryAnswer(path.path_sti);
-    if (path.forward_flag) {
-        for (auto pair : path.edges) {
-            query_answer->add_handle(pair.second->get(this->link_selector));
+
+    bool complete_flag = 
+        ((path.start_point() == this->source_handle) && (path.end_point() == this->target_handle)) ||
+        ((path.start_point() == this->target_handle) && (path.end_point() == this->source_handle));
+
+    if (complete_flag || this->allow_incomplete_chain_path) {
+        QueryAnswer* query_answer = new QueryAnswer(path.path_sti);
+        if (path.forward_flag) {
+            for (auto pair : path.edges) {
+                query_answer->add_handle(pair.second->get(this->link_selector));
+            }
+        } else {
+            for (auto pair = path.edges.rbegin(); pair != path.edges.rend(); ++pair) {
+                query_answer->add_handle(pair->second->get(this->link_selector));
+            }
+        }
+        string answer_hash = Hasher::composite_handle(query_answer->handles);
+        if (this->reported_answers.find(answer_hash) == this->reported_answers.end()) {
+            this->reported_answers.insert(answer_hash);
+            query_answer->assignment.assign(ORIGIN_VARIABLE_NAME, path.start_point());
+            query_answer->assignment.assign(DESTINY_VARIABLE_NAME, path.end_point());
+            string tag = (complete_flag ? "complete" : "incomplete");
+            LOG_INFO("Reporting " << tag << " path: " << path.to_string());
+            this->output_buffer->add_query_answer(query_answer);
+        } else {
+            delete query_answer;
         }
     } else {
-        for (auto pair = path.edges.rbegin(); pair != path.edges.rend(); ++pair) {
-            query_answer->add_handle(pair->second->get(this->link_selector));
-        }
-    }
-    string answer_hash = Hasher::composite_handle(query_answer->handles);
-    if (this->reported_answers.find(answer_hash) == this->reported_answers.end()) {
-        this->reported_answers.insert(answer_hash);
-        query_answer->assignment.assign(ORIGIN_VARIABLE_NAME, path.start_point());
-        query_answer->assignment.assign(DESTINY_VARIABLE_NAME, path.end_point());
-        LOG_INFO("Reporting path: " << path.to_string());
-        this->output_buffer->add_query_answer(query_answer);
-    } else {
-        delete query_answer;
+        LOG_INFO("Incomplete path not reported: " << path.to_string());
     }
 }
 

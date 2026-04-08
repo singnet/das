@@ -21,6 +21,7 @@ string BaseQueryProxy::MAX_ANSWERS = "max_answers";
 string BaseQueryProxy::USE_LINK_TEMPLATE_CACHE = "use_link_template_cache";
 string BaseQueryProxy::POPULATE_METTA_MAPPING = "populate_metta_mapping";
 string BaseQueryProxy::USE_METTA_AS_QUERY_TOKENS = "use_metta_as_query_tokens";
+string BaseQueryProxy::ALLOW_INCOMPLETE_CHAIN_PATH = "allow_incomplete_chain_path";
 
 BaseQueryProxy::BaseQueryProxy() {
     // constructor typically used in processor
@@ -46,6 +47,7 @@ void BaseQueryProxy::init() {
     this->parameters[USE_LINK_TEMPLATE_CACHE] = false;
     this->parameters[POPULATE_METTA_MAPPING] = false;
     this->parameters[USE_METTA_AS_QUERY_TOKENS] = false;
+    this->parameters[ALLOW_INCOMPLETE_CHAIN_PATH] = false;
 }
 
 BaseQueryProxy::~BaseQueryProxy() {}

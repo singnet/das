@@ -508,13 +508,15 @@ shared_ptr<QueryElement> PatternMatchingQueryProcessor::build_chain(
     LOG_DEBUG("Input: " + clauses[0]->to_string());
     element_stack.pop();
 
+    bool incomplete_flag = proxy->parameters.get<bool>(BaseQueryProxy::ALLOW_INCOMPLETE_CHAIN_PATH);
     auto chain_operator = make_shared<Chain>(clauses,
                                              link_template,
                                              source->compute_handle(),
                                              target->compute_handle(),
                                              link_selector,
                                              tail_reference,
-                                             head_reference);
+                                             head_reference,
+                                             incomplete_flag);
     LOG_DEBUG("Building CHAIN operator... DONE");
 
     return chain_operator;
