@@ -240,8 +240,10 @@ void Chain::refeed_paths() {
         Path path = refeeding_buffer.front_and_pop();
         LOG_DEBUG("Refeeding: " << path.to_string());
         if (path.forward_flag) {
+            lock_guard<mutex> semaphore(this->source_index_mutex);
             this->source_index[this->source_handle]->push(path, path.path_sti);
         } else {
+            lock_guard<mutex> semaphore(this->target_index_mutex);
             this->target_index[this->target_handle]->push(path, path.path_sti);
         }
     }
@@ -341,6 +343,7 @@ bool Chain::thread_one_step() {
 
 void Chain::report_path(Path& path) {
 
+    lock_guard<mutex> semaphore(this->reported_answers_mutex);
     bool complete_flag = 
         ((path.start_point() == this->source_handle) && (path.end_point() == this->target_handle)) ||
         ((path.start_point() == this->target_handle) && (path.end_point() == this->source_handle));

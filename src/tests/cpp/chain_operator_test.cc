@@ -140,7 +140,7 @@ static string link(unsigned int node1, unsigned int node2) {
 
 class TestSource : public Source {
    public:
-    TestSource(unsigned int count) { this->id = "TestSource_" + std::to_string(count); }
+    TestSource() { this->id = "TestSource_" + Utils::random_string(30); }
 
     ~TestSource() {}
 
@@ -165,7 +165,7 @@ class TestSource : public Source {
 
 class TestSink : public Sink {
    public:
-    TestSink(shared_ptr<QueryElement> precedent) : Sink(precedent, "TestSink(" + precedent->id + ")") {}
+    TestSink(shared_ptr<QueryElement> precedent) : Sink(precedent, "TestSink(" + precedent->id + ", " + Utils::random_string(30) + ")") {}
     ~TestSink() {}
     bool empty() { return this->input_buffer->is_query_answers_empty(); }
     bool finished() { return this->input_buffer->is_query_answers_finished(); }
@@ -366,7 +366,7 @@ TEST(ChainOperatorTest, allow_concatenation_reverse) {
 
 TEST(ChainOperatorTest, back_after_dead_end) {
     if (!RUN_back_after_dead_end) return;
-    auto source = make_shared<TestSource>(10);
+    auto source = make_shared<TestSource>();
     auto chain_operator = make_shared<Chain>(array<shared_ptr<QueryElement>, 1>({source}),
                                              Hasher::node_handle(NODE_TYPE, "S"),
                                              Hasher::node_handle(NODE_TYPE, "T"));
@@ -487,7 +487,7 @@ TEST(ChainOperatorTest, back_after_dead_end) {
 
 TEST(ChainOperatorTest, complete_only) {
     if (!RUN_complete_only) return;
-    auto source = make_shared<TestSource>(10);
+    auto source = make_shared<TestSource>();
     auto chain_operator = make_shared<Chain>(array<shared_ptr<QueryElement>, 1>({source}),
                                              Hasher::node_handle(NODE_TYPE, "S"),
                                              Hasher::node_handle(NODE_TYPE, "T"),
@@ -586,7 +586,7 @@ TEST(ChainOperatorTest, complete_only) {
 
 TEST(ChainOperatorTest, basics) {
     if (!RUN_basics) return;
-    auto source = make_shared<TestSource>(10);
+    auto source = make_shared<TestSource>();
     auto chain_operator = make_shared<Chain>(array<shared_ptr<QueryElement>, 1>({source}),
                                              Hasher::node_handle(NODE_TYPE, "S"),
                                              Hasher::node_handle(NODE_TYPE, "T"));

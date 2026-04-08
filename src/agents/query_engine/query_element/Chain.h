@@ -327,6 +327,7 @@ class Chain : public Operator<1>, public ThreadMethod {
     mutex target_index_mutex;
     mutex all_input_acknowledged_mutex;
     mutex all_paths_explored_mutex;
+    mutex reported_answers_mutex;
 };
 
 }  // namespace query_element
