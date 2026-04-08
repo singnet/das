@@ -50,10 +50,10 @@ namespace query_element {
  *         "VARIABLE", "v2"
  *
  * In this example, the LINK_TEMPLATE is the query. Its query answers will be exactly the Similarity
- * links we listed above. So "0" is used to select the first handle of each query answer (which represents
- * the Similarity links themselves) and "1" and "2" are the target indexes that will be used to get the
- * tail and the head of each edge. So, for instance, for the query answer for (Similarity "human" "chimp"),
- * the edge "human" -> "chimp" is extracted.
+ * links we listed above. So "0" is used to select the first handle of each query answer (which
+ * represents the Similarity links themselves) and "1" and "2" are the target indexes that will be used
+ * to get the tail and the head of each edge. So, for instance, for the query answer for (Similarity
+ * "human" "chimp"), the edge "human" -> "chimp" is extracted.
  *
  * Optionally, ALLOW_INCOMPLETE_CHAIN_PATH can be set true to determine that the Chain Operator
  * should output incomplete paths as well as complete ones (the same prioritizartion by
