@@ -2,6 +2,7 @@
 
 #include "DedicatedThread.h"
 #include "Link.h"
+#include "LinkTemplate.h"
 #include "Operator.h"
 #include "ThreadSafeHeap.h"
 #include "ThreadSafeQueue.h"
@@ -16,69 +17,43 @@ using namespace processor;
 namespace query_element {
 
 /**
- * This operator takes as input a single query element and two handles (SOURCE and TARGET) and
+ * This operator takes as input another query element, a specification of how to extract edges
+ * information from each query answer and two handles (SOURCE and TARGET) and
  * outputs QueryAnswers which represent paths between SOURCE and TARGET.
  *
- * Each QueryAnswer in the input is supposed to have exatcly 1 handle,
- * i.e. query_answer->handles.size() == 1. In addition to this, the handle is supposed to be the
- * handle of a ternary link such as
+ * We'll use the term "edge" here in order to avoid confusion if "links" to explain how pths
+ * are created. So, a path between SOURCE and TARGET is a chain of edges (Hi, Hj) that
+ * goes from SOURCE to TARGET. Something like (SOURCE, H1), (H1, H2), (H2, H3), ... (HN, TARGET)
+ * which can also be represented as SOURCE -> H1 -> H2 -> H3 -> ... -> HN -> TARGET.
  *
- * LINK
- *     TARGET1
- *     TARGET2
- *     TARGET3
+ * So while processing its input (query answers), the chain operator extractc one edge from
+ * each query answer and try to combine it with the edges it extracted from other query answers
+ * in order to form paths from SOURCE to TARGET. To do so, it uses link_selector, tail_reference and
+ * head_reference.
  *
- * TARGET1 is disregarded. TARGET2 and TARGET3 are used to connect the paths. Just to make it
- * easy to write an example, lets assume the input handles represent links like these:
+ * Suppose we have a KB with several Similarity links like these:
  *
- * (Similarity H1 H2)
+ * (Similarity "human" "chimp")
+ * (Similarity "chimp" "monkey")
+ * (Similarity "human" "monkey")
+ * (Similarity "human" "ent")
  *
- * Each QueryAnswer in the Chain Operator output will contain N handles, representing a path
- * with N links connecting SOURCE and TARGET. Suppose we have a QueryAnswer with N=4, the handles
- * in query_answer->handles will point to links like these:
+ * We may use a Chain operator to find a path conecting "human" and "ent" through SImilarity links.
+ * To do this, we can use a query like this:
  *
- * (Similarity SOURCE H1)
- * (Similarity H1 H2)
- * (Similarity H2 H3)
- * (Similarity H3 TARGET)
+ * CHAIN, "0", "1", "2",
+ *     "NODE", "Symbol", "chimp",
+ *     "NODE", "Symbol", "ent",
+ *     "LINK_TEMPLATE", "Expression", "3",
+ *         "NODE", "Symbol", "Similarity",
+ *         "VARIABLE", "v1",
+ *         "VARIABLE", "v2"
  *
- * Chained to form a path between SOURCE and TARGET. Note that the first link target is
- * disregarded so you may have something like:
- *
- * CHAIN SOURCE TARGET
- *     OR 2
- *         LinkTemplate 3
- *             Node Equivalence
- *             Variable v1
- *             Variable v2
- *         LinkTemplate 3
- *             Node Similarity
- *             Variable v1
- *             Variable v2
- *
- * This cold produce QueryAnswers paths chaining Similarity and Equivalence links in the same path.
- * E.g.:
- *
- * (Similarity SOURCE H1)
- * (Similarity H1 H2)
- * (Equivalence H2 H3)
- * (Similarity H3 H4)
- * (Equivalence H4 H5)
- * (Similarrity H5 TARGET)
- *
- * Also note that, because input QueryAnswer are supposed to have exatcly 1 handle, the following
- * query IS NOT valid:
- *
- * CHAIN SOURCE TARGET
- *     AND 2
- *         LinkTemplate 3
- *             Node Equivalence
- *             Variable v1
- *             Variable v2
- *         LinkTemplate 3
- *             Node Equivalence
- *             Variable v2
- *             Variable v3
+ * In this example, the LINK_TEMPLATE is the query. Its query answers will be exactly the Similarity
+ * links we listed above. So "0" is used to select the first handle of each query answer (which
+ * represents the Similarity links themselves) and "1" and "2" are the target indexes that will be used
+ * to get the tail and the head of each edge. So, for instance, for the query answer for (Similarity
+ * "human" "chimp"), the edge "human" -> "chimp" is extracted.
  *
  * Optionally, ALLOW_INCOMPLETE_CHAIN_PATH can be set true to determine that the Chain Operator
  * should output incomplete paths as well as complete ones (the same prioritizartion by
@@ -109,19 +84,23 @@ class Chain : public Operator<1>, public ThreadMethod {
 
     class Path {
        public:
-        vector<pair<shared_ptr<Link>, shared_ptr<QueryAnswer>>> links;
+        vector<pair<pair<string, string>, shared_ptr<QueryAnswer>>> edges;
         double path_sti;
         bool forward_flag;
-        Path(shared_ptr<Link> link, QueryAnswer* answer, bool forward_flag) {
-            if (link->targets[1] == link->targets[2]) {
-                Utils::error("Invalid cyclic link: " + link->to_string());
+        Path(const string& tail, const string& head, QueryAnswer* answer, bool forward_flag) {
+            if (tail == head) {
+                Utils::error("Invalid cyclic edge: " + tail + " -> " + head);
             }
-            this->links.push_back({link, shared_ptr<QueryAnswer>(answer)});
+            this->edges.push_back({{tail, head}, shared_ptr<QueryAnswer>(answer)});
             this->path_sti = answer->importance;
             this->forward_flag = forward_flag;
         }
+        Path(shared_ptr<Link> link,  // Used in tests
+             QueryAnswer* answer,
+             bool forward_flag)
+            : Path(link->targets[1], link->targets[2], answer, forward_flag) {}
         Path(const Path& other) {
-            this->links = other.links;
+            this->edges = other.edges;
             this->path_sti = other.path_sti;
             this->forward_flag = other.forward_flag;
         }
@@ -130,41 +109,41 @@ class Chain : public Operator<1>, public ThreadMethod {
             this->forward_flag = forward_flag;
         }
         Path& operator=(const Path& other) {
-            this->links = other.links;
+            this->edges = other.edges;
             this->path_sti = other.path_sti;
             this->forward_flag = other.forward_flag;
             return *this;
         }
-        inline bool empty() { return this->links.size() == 0; }
-        inline unsigned int size() { return this->links.size(); }
+        inline bool empty() { return this->edges.size() == 0; }
+        inline unsigned int size() { return this->edges.size(); }
         inline void clear() {
-            this->links.clear();
+            this->edges.clear();
             this->path_sti = 0;
         }
         inline void concatenate(const Path& other) {
             if (this->forward_flag != other.forward_flag) {
                 Utils::error("Invalid attempt to merge incompatible HeapElements");
             }
-            this->links.insert(this->links.end(), other.links.begin(), other.links.end());
+            this->edges.insert(this->edges.end(), other.edges.begin(), other.edges.end());
             this->path_sti = max(this->path_sti, other.path_sti);
         }
         inline string end_point() {
             if (this->forward_flag) {
-                return this->links.back().first->targets[2];
+                return this->edges.back().first.second;
             } else {
-                return this->links.back().first->targets[1];
+                return this->edges.back().first.first;
             }
         }
         inline string start_point() {
             if (this->forward_flag) {
-                return this->links.front().first->targets[1];
+                return this->edges.front().first.first;
             } else {
-                return this->links.front().first->targets[2];
+                return this->edges.front().first.second;
             }
         }
         inline bool contains(string handle) {
-            for (auto pair : this->links) {
-                if ((pair.first->targets[1] == handle) || (pair.first->targets[2] == handle)) {
+            for (auto pair : this->edges) {
+                if ((pair.first.first == handle) || (pair.first.second == handle)) {
                     return true;
                 }
             }
@@ -176,12 +155,18 @@ class Chain : public Operator<1>, public ThreadMethod {
             } else if (this->end_point() != other.start_point()) {
                 return false;
             }
-            unsigned int this_index = (this->forward_flag ? 1 : 2);
-            unsigned int other_index = (this->forward_flag ? 2 : 1);
-            for (auto pair_other : other.links) {
-                for (auto pair_this : this->links) {
-                    if (pair_other.first->targets[other_index] == pair_this.first->targets[this_index]) {
-                        return false;
+            // unsigned int this_index = (this->forward_flag ? 1 : 2);
+            // unsigned int other_index = (this->forward_flag ? 2 : 1);
+            for (auto pair_other : other.edges) {
+                for (auto pair_this : this->edges) {
+                    if (this->forward_flag) {
+                        if (pair_other.first.second == pair_this.first.first) {
+                            return false;
+                        }
+                    } else {
+                        if (pair_other.first.first == pair_this.first.second) {
+                            return false;
+                        }
                     }
                 }
             }
@@ -203,6 +188,19 @@ class Chain : public Operator<1>, public ThreadMethod {
 
     /**
      * Constructor.
+     */
+    Chain(const array<shared_ptr<QueryElement>, 1>& clauses,
+          shared_ptr<LinkTemplate> link_template,
+          const string& source_handle,
+          const string& target_handle,
+          const QueryAnswerElement& link_selector,
+          unsigned int tail_reference,
+          unsigned int head_reference);
+
+    /**
+     * Constructor. Typically used in tests, defaulting the link selector to the first handle in
+     * the query answer and assuming a link like (disregarded $v1 $v2) where chaining will be made
+     * assuming $v1 -> $v2.
      */
     Chain(const array<shared_ptr<QueryElement>, 1>& clauses,
           const string& source_handle,
@@ -304,8 +302,12 @@ class Chain : public Operator<1>, public ThreadMethod {
 
     void initialize(const array<shared_ptr<QueryElement>, 1>& clauses);
 
+    shared_ptr<LinkTemplate> input_link_template;
     string source_handle;
     string target_handle;
+    QueryAnswerElement link_selector;
+    unsigned int tail_reference;
+    unsigned int head_reference;
     PathFinder* forward_path_finder;
     PathFinder* backward_path_finder;
     shared_ptr<DedicatedThread> operator_thread;
