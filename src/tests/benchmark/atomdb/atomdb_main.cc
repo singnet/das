@@ -12,7 +12,6 @@
 #include <vector>
 
 #include "AtomDB.h"
-#include "AtomDBCacheSingleton.h"
 #include "MorkDB.h"
 #include "RedisMongoDB.h"
 #include "Utils.h"
@@ -31,7 +30,7 @@ const size_t BATCH_SIZE = 10;  // Number of atoms in a single batch
 mutex global_mutex;
 map<string, Metrics> global_metrics;
 
-void setup(bool cache_enable) {
+void setup() {
     setenv("DAS_REDIS_HOSTNAME", "localhost", 1);
     setenv("DAS_REDIS_PORT", "29000", 1);
     setenv("DAS_USE_REDIS_CLUSTER", "false", 1);
@@ -41,8 +40,6 @@ void setup(bool cache_enable) {
     setenv("DAS_MONGODB_PASSWORD", "dassecret", 1);
     setenv("DAS_MORK_HOSTNAME", "localhost", 1);
     setenv("DAS_MORK_PORT", "8000", 1);
-    setenv("DAS_DISABLE_ATOMDB_CACHE", cache_enable ? "false" : "true", 1);
-    AtomDBCacheSingleton::init();
     RedisMongoDB::initialize_statics();
 }
 
@@ -59,21 +56,18 @@ shared_ptr<AtomDB> factory_create_atomdb(string type) {
 int main(int argc, char** argv) {
     if (argc < 2) {
         cerr << "Usage: " << argv[0]
-             << " <atomdb_type> <action> <cache_enabled> <num_concurrency> <num_iterations> <timestamp>"
-             << endl;
+             << " <atomdb_type> <action> <num_concurrency> <num_iterations> <timestamp>" << endl;
         exit(1);
     }
 
     string atomdb_type = argv[1];
     string action = argv[2];
     string method = argv[3];
-    bool cache_enabled = (string(argv[4]) == "true" || string(argv[4]) == "1");
-    ;
     int concurrency = stoi(argv[5]);
     int iterations = stoi(argv[6]);
     string timestamp = argv[7];
 
-    setup(cache_enabled);
+    setup();
     auto atomdb = factory_create_atomdb(atomdb_type);
 
     auto worker = [&](int tid, shared_ptr<AtomDB> atomdb) {

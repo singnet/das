@@ -36,8 +36,6 @@ RedisMongoDB::RedisMongoDB(const string& context, bool skip_redis, const JsonCon
     initialize_statics(context, skip_redis);
     mongodb_setup(config);
     load_pattern_index_schema();
-    bool disable_cache = true;
-    this->atomdb_cache = disable_cache ? nullptr : AtomDBCacheSingleton::get_instance();
     redis_setup(config);
     this->patterns_next_score.store(get_next_score(REDIS_PATTERNS_PREFIX + ":next_score"));
     this->incoming_set_next_score.store(get_next_score(REDIS_INCOMING_PREFIX + ":next_score"));
@@ -179,11 +177,6 @@ shared_ptr<atomdb_api_types::HandleSet> RedisMongoDB::query_for_pattern(const Li
 
     auto pattern_handle = link_schema.handle();
 
-    if (this->atomdb_cache != nullptr) {
-        auto cache_result = this->atomdb_cache->query_for_pattern(pattern_handle);
-        if (cache_result.is_cache_hit) return cache_result.result;
-    }
-
     unsigned int redis_cursor = 0;
     bool redis_has_more = true;
     string command;
@@ -217,18 +210,11 @@ shared_ptr<atomdb_api_types::HandleSet> RedisMongoDB::query_for_pattern(const Li
         handle_set->append(make_shared<atomdb_api_types::HandleSetRedis>(reply, false));
     }
 
-    if (this->atomdb_cache != nullptr)
-        this->atomdb_cache->add_pattern_matching(pattern_handle, handle_set);
     return handle_set;
 }
 
 shared_ptr<atomdb_api_types::HandleList> RedisMongoDB::query_for_targets(const string& handle) {
     if (SKIP_REDIS) return nullptr;
-
-    if (this->atomdb_cache != nullptr) {
-        auto cache_result = this->atomdb_cache->query_for_targets(handle);
-        if (cache_result.is_cache_hit) return cache_result.result;
-    }
 
     redisReply* reply;
     try {
@@ -239,7 +225,6 @@ shared_ptr<atomdb_api_types::HandleList> RedisMongoDB::query_for_targets(const s
         if (reply == NULL) Utils::error("Redis error at query_for_targets");
 
         if ((reply == NULL) || (reply->type == REDIS_REPLY_NIL)) {
-            if (this->atomdb_cache != nullptr) this->atomdb_cache->add_handle_targets(handle, nullptr);
             return nullptr;
         }
 
@@ -256,17 +241,11 @@ shared_ptr<atomdb_api_types::HandleList> RedisMongoDB::query_for_targets(const s
     // ~RedisSet().
     auto handle_list = make_shared<atomdb_api_types::RedisStringBundle>(reply);
 
-    if (this->atomdb_cache != nullptr) this->atomdb_cache->add_handle_targets(handle, handle_list);
     return handle_list;
 }
 
 shared_ptr<atomdb_api_types::HandleSet> RedisMongoDB::query_for_incoming_set(const string& handle) {
     if (SKIP_REDIS) return nullptr;
-
-    if (this->atomdb_cache != nullptr) {
-        auto cache_result = this->atomdb_cache->query_for_incoming_set(handle);
-        if (cache_result.is_cache_hit) return cache_result.result;
-    }
 
     unsigned int redis_cursor = 0;
     bool redis_has_more = true;
@@ -301,8 +280,6 @@ shared_ptr<atomdb_api_types::HandleSet> RedisMongoDB::query_for_incoming_set(con
         handle_set->append(make_shared<atomdb_api_types::HandleSetRedis>(reply, false));
     }
 
-    if (this->atomdb_cache != nullptr) this->atomdb_cache->add_incoming_set(handle, handle_set);
-
     return handle_set;
 }
 
@@ -320,8 +297,6 @@ void RedisMongoDB::add_pattern(const string& pattern_handle, const string& handl
     }
 
     set_next_score(REDIS_PATTERNS_PREFIX + ":next_score", this->patterns_next_score.fetch_add(1));
-
-    if (this->atomdb_cache != nullptr) this->atomdb_cache->erase_pattern_matching_cache(pattern_handle);
 }
 
 void RedisMongoDB::add_patterns(const vector<pair<string, string>>& pattern_handles) {
@@ -355,11 +330,6 @@ void RedisMongoDB::add_patterns(const vector<pair<string, string>>& pattern_hand
         if (reply->type != REDIS_REPLY_INTEGER) {
             Utils::error("Invalid Redis response at add_patterns: " + std::to_string(reply->type));
         }
-
-        // Clear cache for this pattern
-        if (this->atomdb_cache != nullptr) {
-            this->atomdb_cache->erase_pattern_matching_cache(pattern_handle);
-        }
     }
     set_next_score(REDIS_PATTERNS_PREFIX + ":next_score", this->patterns_next_score.load());
 }
@@ -376,8 +346,6 @@ void RedisMongoDB::delete_pattern(const string& handle) {
     if (reply->type != REDIS_REPLY_INTEGER) {
         Utils::error("Invalid Redis response at delete_pattern: " + std::to_string(reply->type));
     }
-
-    if (this->atomdb_cache != nullptr) this->atomdb_cache->erase_pattern_matching_cache(handle);
 }
 
 void RedisMongoDB::update_pattern(const string& key, const string& value) {
@@ -387,8 +355,6 @@ void RedisMongoDB::update_pattern(const string& key, const string& value) {
     string command = "ZREM " + REDIS_PATTERNS_PREFIX + ":" + key + " " + value;
     redisReply* reply = ctx->execute(command.c_str());
     if (reply == NULL) Utils::error("Redis error at update_pattern");
-
-    if (this->atomdb_cache != nullptr) this->atomdb_cache->erase_pattern_matching_cache(key);
 }
 
 uint RedisMongoDB::get_next_score(const string& key) {
@@ -456,7 +422,6 @@ void RedisMongoDB::delete_outgoing_set(const string& handle) {
     string command = "DEL " + REDIS_OUTGOING_PREFIX + ":" + handle;
     redisReply* reply = ctx->execute(command.c_str());
     if (reply == NULL) Utils::error("Redis error at delete_outgoing_set");
-    if (this->atomdb_cache != nullptr) this->atomdb_cache->erase_handle_targets_cache(handle);
 }
 
 void RedisMongoDB::add_incoming_set(const string& handle, const string& incoming_handle) {
@@ -473,8 +438,6 @@ void RedisMongoDB::add_incoming_set(const string& handle, const string& incoming
     }
 
     set_next_score(REDIS_INCOMING_PREFIX + ":next_score", this->incoming_set_next_score.fetch_add(1));
-
-    if (this->atomdb_cache != nullptr) this->atomdb_cache->erase_incoming_set_cache(handle);
 }
 
 void RedisMongoDB::delete_incoming_set(const string& handle) {
@@ -489,8 +452,6 @@ void RedisMongoDB::delete_incoming_set(const string& handle) {
     if (reply->type != REDIS_REPLY_INTEGER) {
         Utils::error("Invalid Redis response at delete_incoming_set: " + std::to_string(reply->type));
     }
-
-    if (this->atomdb_cache != nullptr) this->atomdb_cache->erase_incoming_set_cache(handle);
 }
 
 void RedisMongoDB::update_incoming_set(const string& key, const string& value) {
@@ -505,22 +466,10 @@ void RedisMongoDB::update_incoming_set(const string& key, const string& value) {
     if (reply->type != REDIS_REPLY_INTEGER) {
         Utils::error("Invalid Redis response at update_incoming_set: " + std::to_string(reply->type));
     }
-
-    if (this->atomdb_cache != nullptr) this->atomdb_cache->erase_incoming_set_cache(key);
 }
 
 shared_ptr<atomdb_api_types::AtomDocument> RedisMongoDB::get_document(const string& handle,
                                                                       const string& collection_name) {
-    if (this->atomdb_cache != nullptr) {
-        if (collection_name == MONGODB_NODES_COLLECTION_NAME) {
-            auto cache_result = this->atomdb_cache->get_node_document(handle);
-            if (cache_result.is_cache_hit) return cache_result.result;
-        } else if (collection_name == MONGODB_LINKS_COLLECTION_NAME) {
-            auto cache_result = this->atomdb_cache->get_link_document(handle);
-            if (cache_result.is_cache_hit) return cache_result.result;
-        }
-    }
-
     auto conn = this->mongodb_pool->acquire();
     auto mongodb_collection = (*conn)[MONGODB_DB_NAME][collection_name];
     auto reply = mongodb_collection.find_one(bsoncxx::v_noabi::builder::basic::make_document(
@@ -529,14 +478,6 @@ shared_ptr<atomdb_api_types::AtomDocument> RedisMongoDB::get_document(const stri
     auto atom_document = reply != bsoncxx::v_noabi::stdx::nullopt
                              ? make_shared<atomdb_api_types::MongodbDocument>(reply)
                              : nullptr;
-
-    if (this->atomdb_cache != nullptr && atom_document != nullptr) {
-        if (collection_name == MONGODB_NODES_COLLECTION_NAME) {
-            this->atomdb_cache->add_node_document(handle, atom_document);
-        } else if (collection_name == MONGODB_LINKS_COLLECTION_NAME) {
-            this->atomdb_cache->add_link_document(handle, atom_document);
-        }
-    }
 
     return atom_document;
 }
@@ -823,14 +764,6 @@ bool RedisMongoDB::upsert_document(const bsoncxx::v_noabi::document::value& docu
         Utils::error("Failed to upsert document into MongoDB");
     }
 
-    if (this->atomdb_cache != nullptr) {
-        if (collection_name == MONGODB_NODES_COLLECTION_NAME) {
-            this->atomdb_cache->erase_node_document_cache(document_id);
-        } else if (collection_name == MONGODB_LINKS_COLLECTION_NAME) {
-            this->atomdb_cache->erase_link_document_cache(document_id);
-        }
-    }
-
     return reply->matched_count() > 0 || reply->modified_count() > 0 ||
            reply->upserted_id() != bsoncxx::v_noabi::stdx::nullopt;
 }
@@ -1084,14 +1017,6 @@ bool RedisMongoDB::delete_document(const string& handle,
     auto mongodb_collection = (*conn)[MONGODB_DB_NAME][collection_name];
     auto reply = mongodb_collection.delete_one(bsoncxx::v_noabi::builder::basic::make_document(
         bsoncxx::v_noabi::builder::basic::kvp(MONGODB_FIELD_NAME[MONGODB_FIELD::ID], handle)));
-
-    if (this->atomdb_cache != nullptr) {
-        if (collection_name == MONGODB_NODES_COLLECTION_NAME) {
-            this->atomdb_cache->erase_node_document_cache(handle);
-        } else if (collection_name == MONGODB_LINKS_COLLECTION_NAME) {
-            this->atomdb_cache->erase_link_document_cache(handle);
-        }
-    }
 
     if (!SKIP_REDIS) {
         auto incoming_set = query_for_incoming_set(handle);
@@ -1396,16 +1321,6 @@ void RedisMongoDB::flush_redis_by_prefix(const string& prefix) {
         }
         freeReplyObject(reply);
     } while (cursor != "0");
-
-    if (this->atomdb_cache != nullptr) {
-        if (prefix == REDIS_PATTERNS_PREFIX) {
-            this->atomdb_cache->clear_all_pattern_handles();
-        } else if (prefix == REDIS_OUTGOING_PREFIX) {
-            this->atomdb_cache->clear_all_targets_handles();
-        } else if (prefix == REDIS_INCOMING_PREFIX) {
-            this->atomdb_cache->clear_all_incoming_handles();
-        }
-    }
 }
 
 void RedisMongoDB::drop_all() {

@@ -31,7 +31,6 @@ cc_library(
     deps = [
         ":morkdb_api_types",
         "//atomdb",
-        "//atomdb:atomdb_cache_singleton",
         "//atomdb/redis_mongodb:redis_mongodb_lib",
         "//commons:commons_lib",
         "//commons/atoms:atoms_lib",

@@ -30,7 +30,6 @@ void ctrl_c_handler(int) {
 
 int main(int argc, char* argv[]) {
     TestConfig::load_environment();
-    TestConfig::set_atomdb_cache(false);
 
     //                          OPTIONS="context atomdb_type num_threads num_links arity chunck_size"
     //
