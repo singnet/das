@@ -115,10 +115,7 @@ static const unordered_set<pqxx::oid> TIME_TYPE_OIDS = {
     1266,  // time with time zone
 };
 
-static bool is_time_type(pqxx::oid oid) {
-    return TIME_TYPE_OIDS.count(oid) > 0;
-}
-
+static bool is_time_type(pqxx::oid oid) { return TIME_TYPE_OIDS.count(oid) > 0; }
 
 PostgresWrapper::PostgresWrapper(PostgresDatabaseConnection& db_conn,
                                  MAPPER_TYPE mapper_type,
@@ -525,6 +522,8 @@ SqlRow PostgresWrapper::build_sql_row(const pqxx::row& row, const Table& table, 
         }
 
         Utils::replace_all(value, "\n", " ");
+        Utils::replace_all(value, "\t", " ");
+        value = Utils::trim(value);
 
         string column_name = columns[i];
         for (const auto& fk : table.foreign_keys) {
