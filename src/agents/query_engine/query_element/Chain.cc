@@ -129,8 +129,21 @@ bool Chain::PathFinder::conditional_refeed(Path& path,
         LOG_DEBUG("[PATH_FINDER] "
                   << "Still acknowledging input. Pushing " << path.to_string()
                   << " back to refeeding buffer.");
-        this->chain_operator->refeeding_buffer.push(path);
+        if (this->forward_flag) {
+            this->chain_operator->refeeding_buffer_forward.push(path);
+        } else {
+            this->chain_operator->refeeding_buffer_backward.push(path);
+        }
+        LOG_DEBUG("[PATH_FINDER] Pushed. ");
         return true;
+    }
+}
+
+void Chain::PathFinder::refeed_paths() {
+    if (this->forward_flag) {
+        this->chain_operator->refeed_paths_forward();
+    } else {
+        this->chain_operator->refeed_paths_backward();
     }
 }
 
@@ -149,7 +162,7 @@ bool Chain::PathFinder::thread_one_step() {
     if (base_heap->empty()) {
         LOG_DEBUG("[PATH_FINDER] "
                   << "Empty base_heap. Trying to refeed paths.");
-        this->chain_operator->refeed_paths();
+        this->refeed_paths();
         if (base_heap->empty()) {
             LOG_DEBUG("[PATH_FINDER] "
                       << "No paths to refeed.");
@@ -235,17 +248,25 @@ bool Chain::PathFinder::thread_one_step() {
     }
 }
 
-void Chain::refeed_paths() {
-    while (!this->refeeding_buffer.empty()) {
-        Path path = refeeding_buffer.front_and_pop();
+void Chain::refeed_paths_forward() {
+    lock_guard<mutex> semaphore(this->refeed_paths_forward_mutex);
+    while (!this->refeeding_buffer_forward.empty()) {
+        Path path = refeeding_buffer_forward.front_and_pop();
         LOG_DEBUG("Refeeding: " << path.to_string());
-        if (path.forward_flag) {
-            lock_guard<mutex> semaphore(this->source_index_mutex);
-            this->source_index[this->source_handle]->push(path, path.path_sti);
-        } else {
-            lock_guard<mutex> semaphore(this->target_index_mutex);
-            this->target_index[this->target_handle]->push(path, path.path_sti);
-        }
+        this->source_index_mutex.lock();
+        this->source_index[this->source_handle]->push(path, path.path_sti);
+        this->source_index_mutex.unlock();
+    }
+}
+
+void Chain::refeed_paths_backward() {
+    lock_guard<mutex> semaphore(this->refeed_paths_backward_mutex);
+    while (!this->refeeding_buffer_backward.empty()) {
+        Path path = refeeding_buffer_backward.front_and_pop();
+        LOG_DEBUG("Refeeding: " << path.to_string());
+        this->target_index_mutex.lock();
+        this->target_index[this->target_handle]->push(path, path.path_sti);
+        this->target_index_mutex.unlock();
     }
 }
 
@@ -325,7 +346,10 @@ bool Chain::thread_one_step() {
                 LOG_DEBUG("[CHAIN OPERATOR] "
                           << "Discarding already inserted handle: " << convert_handle(handle));
             }
-            refeed_paths();
+            LOG_DEBUG("[CHAIN OPERATOR] " << "Refeeding paths");
+            refeed_paths_forward();
+            refeed_paths_backward();
+            LOG_DEBUG("[CHAIN OPERATOR] " << "Done refeeding");
             return true;
         } else {
             if (this->input_buffer[0]->is_query_answers_finished() &&

@@ -262,7 +262,8 @@ class Chain : public Operator<1>, public ThreadMethod {
      * Empties the refeed_buffer, a buffer that stores paths which are supposed to get back to be
      * re-evaluated by Pathg Finder when new (so yet unseen) input is read in the Chain Operator.
      */
-    void refeed_paths();
+    void refeed_paths_forward();
+    void refeed_paths_backward();
 
     // --------------------------------------------------------------------------------------------
     // QueryElement API
@@ -300,6 +301,7 @@ class Chain : public Operator<1>, public ThreadMethod {
         bool conditional_refeed(Path& path,
                                 shared_ptr<HeapType>& candidates_heap,
                                 unsigned int count_cycles);
+        void refeed_paths();
     };
 
     void initialize(const array<shared_ptr<QueryElement>, 1>& clauses);
@@ -315,7 +317,8 @@ class Chain : public Operator<1>, public ThreadMethod {
     shared_ptr<DedicatedThread> operator_thread;
     shared_ptr<DedicatedThread> forward_thread;
     shared_ptr<DedicatedThread> backward_thread;
-    ThreadSafeQueue<Path> refeeding_buffer;
+    ThreadSafeQueue<Path> refeeding_buffer_forward;
+    ThreadSafeQueue<Path> refeeding_buffer_backward;
     set<string> known_links;
     set<string> reported_answers;
     map<string, shared_ptr<HeapType>> source_index;
@@ -328,6 +331,8 @@ class Chain : public Operator<1>, public ThreadMethod {
     mutex all_input_acknowledged_mutex;
     mutex all_paths_explored_mutex;
     mutex reported_answers_mutex;
+    mutex refeed_paths_forward_mutex;
+    mutex refeed_paths_backward_mutex;
 };
 
 }  // namespace query_element
