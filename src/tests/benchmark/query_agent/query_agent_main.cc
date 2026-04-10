@@ -35,7 +35,7 @@ using namespace atomdb;
 mutex global_mutex;
 map<string, Metrics> global_metrics;
 
-void setup(bool cache_enable, string atomdb_type, string client_id, string server_id) {
+void setup(string atomdb_type, string client_id, string server_id) {
     setenv("DAS_REDIS_HOSTNAME", "localhost", 1);
     setenv("DAS_REDIS_PORT", "29000", 1);
     setenv("DAS_USE_REDIS_CLUSTER", "false", 1);
@@ -45,7 +45,6 @@ void setup(bool cache_enable, string atomdb_type, string client_id, string serve
     setenv("DAS_MONGODB_PASSWORD", "dassecret", 1);
     setenv("DAS_MORK_HOSTNAME", "localhost", 1);
     setenv("DAS_MORK_PORT", "8000", 1);
-    setenv("DAS_DISABLE_ATOMDB_CACHE", cache_enable ? "false" : "true", 1);
     if (atomdb_type == "redismongodb") {
         AtomDBSingleton::init(atomdb_api_types::ATOMDB_TYPE::REDIS_MONGODB);
     } else if (atomdb_type == "morkdb") {
@@ -57,7 +56,7 @@ void setup(bool cache_enable, string atomdb_type, string client_id, string serve
 int main(int argc, char** argv) {
     if (argc < 6) {
         cerr << "Usage: " << argv[0]
-             << " <report_base_directory> <atomdb_type> <action> <cache_enabled> <num_iterations> "
+             << " <report_base_directory> <atomdb_type> <action> <num_iterations> "
              << "[server_host:port] [client_host:port]" << endl;
         exit(1);
     }
@@ -65,20 +64,19 @@ int main(int argc, char** argv) {
     string report_base_directory = argv[1];
     string atomdb_type = argv[2];
     string action = argv[3];
-    bool cache_enable = (string(argv[4]) == "true" || string(argv[4]) == "1");
-    int iterations = stoi(argv[5]);
-    string base_log_file = argv[6];
+    int iterations = stoi(argv[4]);
+    string base_log_file = argv[5];
     string server_id = "0.0.0.0:35700";
     string client_id = "0.0.0.0:9000";
 
-    if (argc > 7) {
-        server_id = argv[7];
+    if (argc > 6) {
+        server_id = argv[6];
     }
-    if (argc > 8) {
-        client_id = argv[8];
+    if (argc > 7) {
+        client_id = argv[7];
     }
 
-    setup(cache_enable, atomdb_type, client_id, server_id);
+    setup(atomdb_type, client_id, server_id);
 
     auto atom_space = make_shared<AtomSpace>();
     PatternMatchingQuery benchmark(1, atom_space, iterations);
