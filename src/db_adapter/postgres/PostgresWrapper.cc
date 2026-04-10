@@ -8,6 +8,7 @@
 #include <regex>
 #include <stdexcept>
 #include <string>
+#include <unordered_set>
 
 #define LOG_LEVEL INFO_LEVEL
 #include "Logger.h"
@@ -104,6 +105,20 @@ void PostgresDatabaseConnection::close_cursor() {
 // ===============================================================================================
 // PostgresWrapper implementation
 // ===============================================================================================
+
+static const unordered_set<pqxx::oid> TIME_TYPE_OIDS = {
+    1082,  // date
+    1083,  // time without time zone
+    1114,  // timestamp without time zone
+    1184,  // timestamp with time zone
+    1186,  // interval
+    1266,  // time with time zone
+};
+
+static bool is_time_type(pqxx::oid oid) {
+    return TIME_TYPE_OIDS.count(oid) > 0;
+}
+
 
 PostgresWrapper::PostgresWrapper(PostgresDatabaseConnection& db_conn,
                                  MAPPER_TYPE mapper_type,
@@ -497,28 +512,23 @@ SqlRow PostgresWrapper::build_sql_row(const pqxx::row& row, const Table& table, 
     sql_row.primary_key = ColumnValue{columns[0], row[0].c_str()};
 
     for (size_t i = 1; i < columns.size() && i < row.size(); i++) {
-        string col = columns[i];
         auto field = row[i];
 
         if (field.is_null()) continue;
 
+        if (is_time_type(field.type())) continue;
+
         string value = field.c_str();
 
-        // datetime → SKIP
-        // YYYY-MM-DD HH:MM:SS...
-        if (value.size() >= 19 && value[4] == '-' && value[7] == '-') continue;
-
-        if (value.empty()) {
-            continue;
-        } else if (value.size() > MAX_VALUE_SIZE) {
+        if (value.empty() || value.size() > MAX_VALUE_SIZE) {
             continue;
         }
 
         Utils::replace_all(value, "\n", " ");
 
-        string column_name = col;
+        string column_name = columns[i];
         for (const auto& fk : table.foreign_keys) {
-            if (fk.find(col) != string::npos) {
+            if (fk.find(columns[i]) != string::npos) {
                 column_name = fk;
                 break;
             }
