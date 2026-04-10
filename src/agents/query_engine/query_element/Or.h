@@ -6,7 +6,6 @@
 #include "Operator.h"
 #include "QueryAnswer.h"
 
-#define LOG_LEVEL INFO_LEVEL
 #include "Logger.h"
 
 using namespace std;
