@@ -195,7 +195,8 @@ class Chain : public Operator<1>, public ThreadMethod {
           const string& target_handle,
           const QueryAnswerElement& link_selector,
           unsigned int tail_reference,
-          unsigned int head_reference);
+          unsigned int head_reference,
+          bool allow_incomplete_chain_path);
 
     /**
      * Constructor. Typically used in tests, defaulting the link selector to the first handle in
@@ -204,7 +205,8 @@ class Chain : public Operator<1>, public ThreadMethod {
      */
     Chain(const array<shared_ptr<QueryElement>, 1>& clauses,
           const string& source_handle,
-          const string& target_handle);
+          const string& target_handle,
+          bool allow_incomplete_chain_path = true);
 
     /**
      * Destructor.
@@ -260,7 +262,8 @@ class Chain : public Operator<1>, public ThreadMethod {
      * Empties the refeed_buffer, a buffer that stores paths which are supposed to get back to be
      * re-evaluated by Pathg Finder when new (so yet unseen) input is read in the Chain Operator.
      */
-    void refeed_paths();
+    void refeed_paths_forward();
+    void refeed_paths_backward();
 
     // --------------------------------------------------------------------------------------------
     // QueryElement API
@@ -298,6 +301,7 @@ class Chain : public Operator<1>, public ThreadMethod {
         bool conditional_refeed(Path& path,
                                 shared_ptr<HeapType>& candidates_heap,
                                 unsigned int count_cycles);
+        void refeed_paths();
     };
 
     void initialize(const array<shared_ptr<QueryElement>, 1>& clauses);
@@ -313,17 +317,22 @@ class Chain : public Operator<1>, public ThreadMethod {
     shared_ptr<DedicatedThread> operator_thread;
     shared_ptr<DedicatedThread> forward_thread;
     shared_ptr<DedicatedThread> backward_thread;
-    ThreadSafeQueue<Path> refeeding_buffer;
+    ThreadSafeQueue<Path> refeeding_buffer_forward;
+    ThreadSafeQueue<Path> refeeding_buffer_backward;
     set<string> known_links;
     set<string> reported_answers;
     map<string, shared_ptr<HeapType>> source_index;
     map<string, shared_ptr<HeapType>> target_index;
     bool all_input_acknowledged_flag;
     bool all_paths_explored_flag;
+    bool allow_incomplete_chain_path;
     mutex source_index_mutex;
     mutex target_index_mutex;
     mutex all_input_acknowledged_mutex;
     mutex all_paths_explored_mutex;
+    mutex reported_answers_mutex;
+    mutex refeed_paths_forward_mutex;
+    mutex refeed_paths_backward_mutex;
 };
 
 }  // namespace query_element

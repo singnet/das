@@ -32,6 +32,7 @@ using namespace commons;
 #define RUN_allow_concatenation_reverse ((bool) true)
 #define RUN_back_after_dead_end         ((bool) true)
 #define RUN_basics                      ((bool) true)
+#define RUN_complete_only               ((bool) true)
 // clang-format on
 
 static string EVALUATION_HANDLE = Hasher::node_handle(NODE_TYPE, EVALUATION);
@@ -139,7 +140,7 @@ static string link(unsigned int node1, unsigned int node2) {
 
 class TestSource : public Source {
    public:
-    TestSource(unsigned int count) { this->id = "TestSource_" + std::to_string(count); }
+    TestSource() { this->id = "TestSource_" + Utils::random_string(30); }
 
     ~TestSource() {}
 
@@ -164,7 +165,8 @@ class TestSource : public Source {
 
 class TestSink : public Sink {
    public:
-    TestSink(shared_ptr<QueryElement> precedent) : Sink(precedent, "TestSink(" + precedent->id + ")") {}
+    TestSink(shared_ptr<QueryElement> precedent)
+        : Sink(precedent, "TestSink(" + precedent->id + ", " + Utils::random_string(30) + ")") {}
     ~TestSink() {}
     bool empty() { return this->input_buffer->is_query_answers_empty(); }
     bool finished() { return this->input_buffer->is_query_answers_finished(); }
@@ -365,7 +367,7 @@ TEST(ChainOperatorTest, allow_concatenation_reverse) {
 
 TEST(ChainOperatorTest, back_after_dead_end) {
     if (!RUN_back_after_dead_end) return;
-    auto source = make_shared<TestSource>(10);
+    auto source = make_shared<TestSource>();
     auto chain_operator = make_shared<Chain>(array<shared_ptr<QueryElement>, 1>({source}),
                                              Hasher::node_handle(NODE_TYPE, "S"),
                                              Hasher::node_handle(NODE_TYPE, "T"));
@@ -484,9 +486,108 @@ TEST(ChainOperatorTest, back_after_dead_end) {
     EXPECT_TRUE(sink.finished());
 }
 
+TEST(ChainOperatorTest, complete_only) {
+    if (!RUN_complete_only) return;
+    auto source = make_shared<TestSource>();
+    auto chain_operator = make_shared<Chain>(array<shared_ptr<QueryElement>, 1>({source}),
+                                             Hasher::node_handle(NODE_TYPE, "S"),
+                                             Hasher::node_handle(NODE_TYPE, "T"),
+                                             false);
+    TestSink sink(chain_operator);
+
+    EXPECT_TRUE(sink.empty());
+    EXPECT_FALSE(sink.finished());
+
+    vector<string> node;
+    unsigned int S = 0;
+    unsigned int node_count = 20;
+    unsigned int T = node_count + 1;
+    node.push_back("S");
+    for (unsigned int cursor = S + 1; cursor <= node_count; cursor++) {
+        node.push_back(std::to_string(cursor));
+    }
+    node.push_back("T");
+
+    // clang-format off
+    //
+    //         +----- 1 -- 2 -- 3 --------+
+    //         |      |    |              |
+    //         +- 4 --+    |              |
+    //         |           |              |
+    //         +-----------+              |
+    //         |                          |
+    //         +- 5 --+-- 7               |
+    //         |      |                   |
+    //         +      +-- 6 -- 8          |
+    //         |                          |
+    //  S -----+--------------------------+--+----- T
+    //         |                          |  |
+    //         |                          |  |
+    //         +- 9 --+-- 10 -+- 13       |  |
+    //         |      |       |           |  |
+    //         |      |       +- 14 - 19 -+  |
+    //         |      |                      |
+    //         |      +-- 11 -+- 15 ---------+
+    //         |      |       |              |
+    //         |      |       +- 16          |
+    //         |      |                      |
+    //         |      +-- 12 -+- 17 -> (9)   |
+    //         |              |              |
+    //         |              +- 18 -> (12)  |
+    //         |                             |
+    //         +------------------------ 20 -+
+
+    Utils::sleep(1000);
+    source->add(link(S, 1),   0.5, {"v1"}, {"h1"}, false);
+    source->add(link(S, 2),   0.5, {"v1"}, {"h1"}, false);
+    source->add(link(S, T),   0.5, {"v1"}, {"h1"}, false);
+    source->add(link(S, 4),   0.5, {"v1"}, {"h1"}, false);
+    source->add(link(S, 5),   0.5, {"v1"}, {"h1"}, false);
+    source->add(link(S, 9),   0.5, {"v1"}, {"h1"}, false);
+    source->add(link(S, 20),  0.5, {"v1"}, {"h1"}, false);
+    source->add(link(1, 2),   0.5, {"v1"}, {"h1"}, false);
+    source->add(link(2, 3),   0.5, {"v1"}, {"h1"}, false);
+    source->add(link(3, T),   0.5, {"v1"}, {"h1"}, false);
+    source->add(link(4, 1),   0.5, {"v1"}, {"h1"}, false);
+    source->add(link(5, 7),   0.5, {"v1"}, {"h1"}, false);
+    source->add(link(5, 6),   0.5, {"v1"}, {"h1"}, false);
+    source->add(link(6, 8),   0.5, {"v1"}, {"h1"}, false);
+    source->add(link(9, 10),  0.5, {"v1"}, {"h1"}, false);
+    source->add(link(9, 11),  0.5, {"v1"}, {"h1"}, false);
+    source->add(link(9, 12),  0.5, {"v1"}, {"h1"}, false);
+    source->add(link(10, 13), 0.5, {"v1"}, {"h1"}, false);
+    source->add(link(10, 14), 0.5, {"v1"}, {"h1"}, false);
+    source->add(link(11, 15), 0.5, {"v1"}, {"h1"}, false);
+    source->add(link(11, 16), 0.5, {"v1"}, {"h1"}, false);
+    source->add(link(12, 17), 0.5, {"v1"}, {"h1"}, false);
+    source->add(link(12, 18), 0.5, {"v1"}, {"h1"}, false);
+    source->add(link(14, 19), 0.5, {"v1"}, {"h1"}, false);
+    source->add(link(15, T),  0.5, {"v1"}, {"h1"}, false);
+    source->add(link(17, 9),  0.5, {"v1"}, {"h1"}, false);
+    source->add(link(18, 12), 0.5, {"v1"}, {"h1"}, false);
+    source->add(link(19, T),  0.5, {"v1"}, {"h1"}, false);
+    source->add(link(20, T),  0.5, {"v1"}, {"h1"}, false);
+    Utils::sleep(3000); // TODO remove this
+    // clang-format on
+    source->query_answers_finished();
+    QueryAnswer* answer;
+    unsigned int complete_path = 0;
+    while (!sink.empty() || !sink.finished()) {
+        while ((answer = sink.pop()) != NULL) {
+            LOG_INFO("[" + std::to_string(answer->importance) + "]: " + answer_path_to_string(answer));
+            EXPECT_TRUE(check_answer(answer));
+            complete_path++;
+        }
+        Utils::sleep(500);
+    }
+    EXPECT_EQ(complete_path, 7);
+    EXPECT_TRUE(sink.empty());
+    EXPECT_TRUE(sink.finished());
+}
+
 TEST(ChainOperatorTest, basics) {
     if (!RUN_basics) return;
-    auto source = make_shared<TestSource>(10);
+    auto source = make_shared<TestSource>();
     auto chain_operator = make_shared<Chain>(array<shared_ptr<QueryElement>, 1>({source}),
                                              Hasher::node_handle(NODE_TYPE, "S"),
                                              Hasher::node_handle(NODE_TYPE, "T"));
