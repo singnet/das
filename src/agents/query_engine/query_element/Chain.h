@@ -206,7 +206,7 @@ class Chain : public Operator<1>, public ThreadMethod {
     Chain(const array<shared_ptr<QueryElement>, 1>& clauses,
           const string& source_handle,
           const string& target_handle,
-          bool allow_incomplete_chain_path=true);
+          bool allow_incomplete_chain_path = true);
 
     /**
      * Destructor.

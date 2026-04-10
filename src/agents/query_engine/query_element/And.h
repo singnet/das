@@ -3,10 +3,9 @@
 #include <cstring>
 #include <queue>
 
+#include "Logger.h"
 #include "Operator.h"
 #include "QueryAnswer.h"
-
-#include "Logger.h"
 
 using namespace std;
 

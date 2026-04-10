@@ -49,7 +49,14 @@ Chain::Chain(const array<shared_ptr<QueryElement>, 1>& clauses,
              const string& source_handle,
              const string& target_handle,
              bool allow_incomplete_chain_path)
-    : Chain(clauses, nullptr, source_handle, target_handle, QueryAnswerElement(0), 1, 2, allow_incomplete_chain_path) {}
+    : Chain(clauses,
+            nullptr,
+            source_handle,
+            target_handle,
+            QueryAnswerElement(0),
+            1,
+            2,
+            allow_incomplete_chain_path) {}
 
 Chain::~Chain() {
     LOG_DEBUG("Chain::~Chain() BEGIN");
@@ -346,10 +353,12 @@ bool Chain::thread_one_step() {
                 LOG_DEBUG("[CHAIN OPERATOR] "
                           << "Discarding already inserted handle: " << convert_handle(handle));
             }
-            LOG_DEBUG("[CHAIN OPERATOR] " << "Refeeding paths");
+            LOG_DEBUG("[CHAIN OPERATOR] "
+                      << "Refeeding paths");
             refeed_paths_forward();
             refeed_paths_backward();
-            LOG_DEBUG("[CHAIN OPERATOR] " << "Done refeeding");
+            LOG_DEBUG("[CHAIN OPERATOR] "
+                      << "Done refeeding");
             return true;
         } else {
             if (this->input_buffer[0]->is_query_answers_finished() &&
@@ -366,9 +375,8 @@ bool Chain::thread_one_step() {
 }
 
 void Chain::report_path(Path& path) {
-
     lock_guard<mutex> semaphore(this->reported_answers_mutex);
-    bool complete_flag = 
+    bool complete_flag =
         ((path.start_point() == this->source_handle) && (path.end_point() == this->target_handle)) ||
         ((path.start_point() == this->target_handle) && (path.end_point() == this->source_handle));
 

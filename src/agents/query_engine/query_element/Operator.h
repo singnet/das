@@ -2,9 +2,9 @@
 
 #include <mutex>
 
+#include "Logger.h"
 #include "QueryAnswer.h"
 #include "QueryElement.h"
-#include "Logger.h"
 
 using namespace std;
 

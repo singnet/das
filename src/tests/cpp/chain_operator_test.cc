@@ -165,7 +165,8 @@ class TestSource : public Source {
 
 class TestSink : public Sink {
    public:
-    TestSink(shared_ptr<QueryElement> precedent) : Sink(precedent, "TestSink(" + precedent->id + ", " + Utils::random_string(30) + ")") {}
+    TestSink(shared_ptr<QueryElement> precedent)
+        : Sink(precedent, "TestSink(" + precedent->id + ", " + Utils::random_string(30) + ")") {}
     ~TestSink() {}
     bool empty() { return this->input_buffer->is_query_answers_empty(); }
     bool finished() { return this->input_buffer->is_query_answers_finished(); }

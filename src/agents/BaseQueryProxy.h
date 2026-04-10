@@ -62,8 +62,8 @@ class BaseQueryProxy : public BaseProxy {
                                               // to represent the query instead of the multiple query
                                               // tokens.
 
-    static string ALLOW_INCOMPLETE_CHAIN_PATH; // When true, CHAIN operator returns incomplete paths
-                                               // as well as complete ones.
+    static string ALLOW_INCOMPLETE_CHAIN_PATH;  // When true, CHAIN operator returns incomplete paths
+                                                // as well as complete ones.
 
     /**
      * Destructor.
