@@ -38,6 +38,7 @@ void PostgresDatabaseConnection::connect() {
         if (!password.empty()) {
             conn_str += " password=" + password;
         }
+        LOG_DEBUG("Connection string: " << conn_str);
         this->conn = make_unique<pqxx::connection>(conn_str);
     } catch (const exception& e) {
         throw runtime_error("Could not connect to database: " + string(e.what()));
@@ -483,6 +484,12 @@ void PostgresWrapper::fetch_rows_paginated(const Table& table,
             } else if (this->mapper_type == MAPPER_TYPE::SQL2METTA) {
                 auto metta_expressions = get<vector<string>>(output);
                 LOG_DEBUG("Metta Expressions count: " << metta_expressions.size());
+                std::queue<string>* batch_queue = new std::queue<string>();
+                for (const auto& expr : metta_expressions) {
+                    batch_queue->push(expr);
+                }
+                unique_lock<mutex> lock(this->api_mutex);
+                this->output_queue->enqueue((void*) batch_queue);
                 // WIP - save metta expressions to file
             } else {
                 Utils::error("Unsupported mapper type.");
