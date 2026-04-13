@@ -178,11 +178,11 @@ int Utils::string_to_int(const string& s) {
 
 unsigned int Utils::string_to_uint(const string& s) {
     if (!is_number(s)) {
-        throw invalid_argument("Can not convert string to unsigned int: Invalid arguments (" + s + ")");
+        Utils::error("Can not convert string to unsigned int: Invalid arguments (" + s + ")");
     }
     int n = stoi(s);
     if (n < 0) {
-        throw invalid_argument("Can not convert string to unsigned int: Invalid negative number (" + s +
+        Utils::error("Can not convert string to unsigned int: Invalid negative number (" + s +
                                ")");
     }
     return (unsigned int) n;

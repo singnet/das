@@ -3,6 +3,7 @@
 #include <stack>
 
 #include "ParserActions.h"
+#include "Terminal.h"
 #include "PatternMatchingQueryProxy.h"
 #include "QueryElement.h"
 
@@ -12,7 +13,7 @@ using namespace query_element;
 
 namespace query_engine {
 
-enum ExpressionType { LINK, LINK_TEMPLATE, AND, OR };
+enum ExpressionType { LINK, LINK_TEMPLATE, AND, OR, CHAIN };
 
 /**
  *
@@ -63,6 +64,9 @@ class MettaParserActions : public ParserActions {
     stack<shared_ptr<QueryElement>> element_stack;
 
    private:
+
+    shared_ptr<Terminal> unstack_terminal(bool node_flag = false);
+
     shared_ptr<PatternMatchingQueryProxy> proxy;
     unsigned int current_expression_size;
     ExpressionType current_expression_type;
