@@ -132,7 +132,7 @@ TEST_F(LinkCreationAgentTest, TestRequestMetta) {
     delete agent;
 }
 
-TEST_F(LinkCreationAgentTest, TestConfig) {
+TEST_F(LinkCreationAgentTest, RegistersLinkCreationRequestProcessor) {
     shared_ptr<ServiceBus> service_bus = ServiceBusSingleton::get_instance();
     service_bus->register_processor(
         make_shared<LinkCreationRequestProcessor>(this->request_interval,

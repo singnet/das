@@ -7,6 +7,7 @@
 #include <iostream>
 #include <string>
 
+#include "AtomDBAPITypes.h"
 #include "AtomDBSingleton.h"
 #include "AttentionBrokerClient.h"
 #include "ContextBrokerProxy.h"
@@ -19,6 +20,7 @@
 #include "QueryAnswer.h"
 #include "QueryEvolutionProxy.h"
 #include "ServiceBusSingleton.h"
+#include "TestAtomDBJsonConfig.h"
 #include "Utils.h"
 #include "commons/atoms/MettaParserActions.h"
 
@@ -775,11 +777,11 @@ int main(int argc, char* argv[]) {
         Utils::error("Error setting up parameters");
     }
 
+    atomdb_api_types::ATOMDB_TYPE atomdb_type = atomdb_api_types::ATOMDB_TYPE::REDIS_MONGODB;
     if ((++cursor < argc) && (string(argv[cursor]) == string("--use-mork"))) {
-        AtomDBSingleton::init(atomdb_api_types::ATOMDB_TYPE::MORKDB);
-    } else {
-        AtomDBSingleton::init();
+        atomdb_type = atomdb_api_types::ATOMDB_TYPE::MORKDB;
     }
+    AtomDBSingleton::init(atomdb_type, test_atomdb_json_config());
 
     db = AtomDBSingleton::get_instance();
     ServiceBusSingleton::init(client_endpoint, server_endpoint, ports_range.first, ports_range.second);

@@ -1,3 +1,4 @@
+#include "AtomDBAPITypes.h"
 #include "AtomDBSingleton.h"
 #include "FitnessFunctionRegistry.h"
 #include "PatternMatchingQueryProcessor.h"
@@ -5,13 +6,14 @@
 #include "QueryEvolutionProxy.h"
 #include "ServiceBus.h"
 #include "ServiceBusSingleton.h"
-#include "TestConfig.h"
+#include "TestAtomDBJsonConfig.h"
 #include "Utils.h"
 #include "gtest/gtest.h"
 
 // #define LOG_LEVEL DEBUG_LEVEL
 // #include "Logger.h"
 
+using namespace atomdb;
 using namespace evolution;
 
 class TestProcessor : public QueryEvolutionProcessor {
@@ -31,8 +33,7 @@ class TestFitnessFunction : public FitnessFunction {
 };
 
 TEST(QueryEvolution, protected_methods) {
-    TestConfig::load_environment();
-    AtomDBSingleton::init();
+    AtomDBSingleton::init(atomdb_api_types::ATOMDB_TYPE::REDIS_MONGODB, test_atomdb_json_config());
 
     string peer1_id = "localhost:40043";
     string peer2_id = "localhost:40044";

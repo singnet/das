@@ -11,8 +11,7 @@
 #include "AtomDBSingleton.h"
 #include "MettaParser.h"
 #include "MettaParserActions.h"
-#include "TestConfig.h"
-
+#include "TestAtomDBJsonConfig.h"
 #define LOG_LEVEL DEBUG_LEVEL
 #include "Logger.h"
 #include "MockAnimalsData.h"
@@ -29,8 +28,6 @@ void ctrl_c_handler(int) {
 }
 
 int main(int argc, char* argv[]) {
-    TestConfig::load_environment();
-
     //                          OPTIONS="context atomdb_type num_threads num_links arity chunck_size"
     //
     // make run-tests-db-loader OPTIONS="test_1m_ redismongodb 8 1000000 3 5000"
@@ -46,9 +43,10 @@ int main(int argc, char* argv[]) {
     if (argc > 2) atomdb_type = string(argv[2]);
 
     if (atomdb_type == "redismongodb") {
-        AtomDBSingleton::provide(shared_ptr<AtomDB>(new RedisMongoDB(context)));
+        AtomDBSingleton::provide(
+            shared_ptr<AtomDB>(new RedisMongoDB(context, false, test_atomdb_json_config())));
     } else if (atomdb_type == "morkdb") {
-        AtomDBSingleton::provide(shared_ptr<AtomDB>(new MorkDB(context)));
+        AtomDBSingleton::provide(shared_ptr<AtomDB>(new MorkDB(context, test_atomdb_json_config())));
     } else {
         Utils::error("Invalid atomdb type: " + atomdb_type);
         return 1;

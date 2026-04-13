@@ -1,10 +1,10 @@
 #include <chrono>
-#include <cstdlib>
 #include <functional>
 #include <iostream>
 #include <map>
 #include <memory>
 #include <mutex>
+#include <nlohmann/json.hpp>
 #include <numeric>
 #include <random>
 #include <string>
@@ -14,6 +14,7 @@
 #include "AtomDB.h"
 #include "AtomDBSingleton.h"
 #include "AtomSpace.h"
+#include "JsonConfig.h"
 #include "MorkDB.h"
 #include "PatternMatchingQueryProxy.h"
 #include "RedisMongoDB.h"
@@ -31,24 +32,33 @@ using namespace query_engine;
 using namespace service_bus;
 using namespace atom_space;
 using namespace atomdb;
+using namespace commons;
 
 mutex global_mutex;
 map<string, Metrics> global_metrics;
 
+namespace {
+
+JsonConfig benchmark_atomdb_config() {
+    return JsonConfig(nlohmann::json::parse(R"({
+        "redis": { "endpoint": "localhost:29000", "cluster": false },
+        "mongodb": {
+            "endpoint": "localhost:28000",
+            "username": "dbadmin",
+            "password": "dassecret"
+        },
+        "morkdb": { "endpoint": "localhost:8000" }
+    })"));
+}
+
+}  // namespace
+
 void setup(string atomdb_type, string client_id, string server_id) {
-    setenv("DAS_REDIS_HOSTNAME", "localhost", 1);
-    setenv("DAS_REDIS_PORT", "29000", 1);
-    setenv("DAS_USE_REDIS_CLUSTER", "false", 1);
-    setenv("DAS_MONGODB_HOSTNAME", "localhost", 1);
-    setenv("DAS_MONGODB_PORT", "28000", 1);
-    setenv("DAS_MONGODB_USERNAME", "dbadmin", 1);
-    setenv("DAS_MONGODB_PASSWORD", "dassecret", 1);
-    setenv("DAS_MORK_HOSTNAME", "localhost", 1);
-    setenv("DAS_MORK_PORT", "8000", 1);
+    const JsonConfig cfg = benchmark_atomdb_config();
     if (atomdb_type == "redismongodb") {
-        AtomDBSingleton::init(atomdb_api_types::ATOMDB_TYPE::REDIS_MONGODB);
+        AtomDBSingleton::init(atomdb_api_types::ATOMDB_TYPE::REDIS_MONGODB, cfg);
     } else if (atomdb_type == "morkdb") {
-        AtomDBSingleton::init(atomdb_api_types::ATOMDB_TYPE::MORKDB);
+        AtomDBSingleton::init(atomdb_api_types::ATOMDB_TYPE::MORKDB, cfg);
     }
     ServiceBusSingleton::init(client_id, server_id, 4000, 4100);
 }

@@ -4,6 +4,7 @@
 #include <vector>
 
 #include "AtomDBSingleton.h"
+#include "Helper.h"
 #include "attention_broker.grpc.pb.h"
 #include "attention_broker.pb.h"
 
@@ -18,11 +19,12 @@ int main(int argc, char* argv[]) {
     }
 
     string attention_broker_address = string(argv[1]);
+    atomdb_api_types::ATOMDB_TYPE atomdb_type = atomdb_api_types::ATOMDB_TYPE::REDIS_MONGODB;
     if (argv[2] == string("--use-mork")) {
-        AtomDBSingleton::init(atomdb_api_types::ATOMDB_TYPE::MORKDB);
-    } else {
-        AtomDBSingleton::init();
+        atomdb_type = atomdb_api_types::ATOMDB_TYPE::MORKDB;
     }
+    AtomDBSingleton::init(atomdb_type, mains::Helper::default_atomdb_json_config());
+
     string command = string(argv[3]);
     vector<string> args;
     for (int i = 4; i < argc; i++) {

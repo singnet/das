@@ -7,6 +7,7 @@
 #include <iostream>
 #include <string>
 
+#include "AtomDBAPITypes.h"
 #include "AtomDBSingleton.h"
 #include "AttentionBrokerClient.h"
 #include "ContextBrokerProxy.h"
@@ -17,6 +18,7 @@
 #include "QueryAnswer.h"
 #include "QueryEvolutionProxy.h"
 #include "ServiceBusSingleton.h"
+#include "TestAtomDBJsonConfig.h"
 #include "Utils.h"
 
 #define MAX_QUERY_ANSWERS ((unsigned int) 100000)
@@ -1012,7 +1014,8 @@ int main(int argc, char* argv[]) {
     MAX_GENERATIONS = (unsigned int) Utils::string_to_int(string(argv[13]));
     NUM_ITERATIONS = (unsigned int) Utils::string_to_int(string(argv[14]));
 
-    AtomDBSingleton::init();
+    AtomDBSingleton::init(atomdb_api_types::ATOMDB_TYPE::REDIS_MONGODB, test_atomdb_json_config());
+
     db = AtomDBSingleton::get_instance();
     ServiceBusSingleton::init(client_id, server_id, ports_range.first, ports_range.second);
     FitnessFunctionRegistry::initialize_statics();

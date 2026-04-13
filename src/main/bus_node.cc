@@ -83,11 +83,11 @@ int main(int argc, char* argv[]) {
         }
 
         ///////// Initializing AtomDB
+        auto atomdb_config = json_config.at_path("atomdb").get_or<JsonConfig>(JsonConfig());
         shared_ptr<AtomDB> atomdb = nullptr;
         if (props.get_or<string>(Helper::USE_MORK, "false") == "true") {
-            atomdb = make_shared<MorkDB>();
+            atomdb = make_shared<MorkDB>("", atomdb_config);
         } else {
-            auto atomdb_config = json_config.at_path("atomdb").get_or<JsonConfig>(JsonConfig());
             string atomdb_type = atomdb_config.at_path("type").get_or<string>("");
             if (atomdb_type == "morkdb") {
                 atomdb = make_shared<MorkDB>("", atomdb_config);
@@ -96,7 +96,7 @@ int main(int argc, char* argv[]) {
             } else if (atomdb_type == "redismongodb") {
                 atomdb = make_shared<RedisMongoDB>("", false, atomdb_config);
             } else {
-                atomdb = make_shared<RedisMongoDB>();
+                atomdb = make_shared<RedisMongoDB>("", false, atomdb_config);
             }
         }
         AtomDBSingleton::provide(atomdb);

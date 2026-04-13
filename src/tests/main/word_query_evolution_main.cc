@@ -4,6 +4,7 @@
 #include <iostream>
 #include <string>
 
+#include "AtomDBAPITypes.h"
 #include "AtomDBSingleton.h"
 #include "ContextBrokerProxy.h"
 #include "CountLetterFunction.h"
@@ -11,6 +12,7 @@
 #include "QueryAnswer.h"
 #include "QueryEvolutionProxy.h"
 #include "ServiceBusSingleton.h"
+#include "TestAtomDBJsonConfig.h"
 #include "Utils.h"
 
 #define LOG_LEVEL INFO_LEVEL
@@ -361,11 +363,12 @@ int main(int argc, char* argv[]) {
     string client_id = argv[1];
     string server_id = argv[2];
     auto ports_range = Utils::parse_ports_range(argv[3]);
+    atomdb_api_types::ATOMDB_TYPE atomdb_type = atomdb_api_types::ATOMDB_TYPE::REDIS_MONGODB;
     if (argv[4] == string("--use-mork")) {
-        AtomDBSingleton::init(atomdb_api_types::ATOMDB_TYPE::MORKDB);
-    } else {
-        AtomDBSingleton::init();
+        atomdb_type = atomdb_api_types::ATOMDB_TYPE::MORKDB;
     }
+    AtomDBSingleton::init(atomdb_type, test_atomdb_json_config());
+
     string context_tag = argv[5];
     string word_tag1 = argv[6];
     string word_tag2 = argv[7];

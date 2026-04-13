@@ -12,8 +12,7 @@
 #include "AtomDBSingleton.h"
 #include "LinkSchema.h"
 #include "MockAnimalsData.h"
-#include "TestConfig.h"
-
+#include "TestAtomDBJsonConfig.h"
 using namespace atomdb;
 using namespace atoms;
 using namespace std;
@@ -21,8 +20,7 @@ using namespace std;
 class MorkDBTestEnvironment : public ::testing::Environment {
    public:
     void SetUp() override {
-        TestConfig::load_environment();
-        auto atomdb = new MorkDB("morkdb_test_");
+        auto atomdb = new MorkDB("morkdb_test_", test_atomdb_json_config());
         atomdb->drop_all();
         AtomDBSingleton::provide(shared_ptr<AtomDB>(atomdb));
         load_animals_data();

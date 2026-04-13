@@ -48,9 +48,11 @@ int main(int argc, char* argv[]) {
         signal(SIGTERM, signal_handler);
         LOG_INFO("Starting service: " + cmd_args[Helper::SERVICE]);
         if (props.get_or<string>(Helper::USE_MORK, "false") == "true") {
-            AtomDBSingleton::init(atomdb_api_types::ATOMDB_TYPE::MORKDB);
+            AtomDBSingleton::init(atomdb_api_types::ATOMDB_TYPE::MORKDB,
+                                  Helper::default_atomdb_json_config());
         } else {
-            AtomDBSingleton::init();
+            AtomDBSingleton::init(atomdb_api_types::ATOMDB_TYPE::REDIS_MONGODB,
+                                  Helper::default_atomdb_json_config());
         }
         if (Helper::processor_type_from_string(cmd_args[Helper::SERVICE]) ==
             mains::ProcessorType::EVOLUTION_AGENT) {

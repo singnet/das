@@ -29,9 +29,7 @@ enum MONGODB_FIELD { ID = 0, NAME, TARGETS, NAMED_TYPE, size };
 
 class RedisMongoDB : public AtomDB {
    public:
-    RedisMongoDB(const string& context = "",
-                 bool skip_redis = false,
-                 const JsonConfig& config = JsonConfig());
+    RedisMongoDB(const string& context, bool skip_redis, const JsonConfig& config);
     ~RedisMongoDB();
 
     bool allow_nested_indexing() override;

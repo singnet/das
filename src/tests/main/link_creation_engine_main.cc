@@ -4,10 +4,12 @@
 #include <stack>
 #include <string>
 
+#include "AtomDBAPITypes.h"
 #include "AtomDBSingleton.h"
 #include "DASNode.h"
 #include "QueryAnswer.h"
 #include "RemoteIterator.h"
+#include "TestAtomDBJsonConfig.h"
 #include "Utils.h"
 
 #define MAX_QUERY_ANSWERS ((unsigned int) 1000)
@@ -200,18 +202,18 @@ string handle_to_atom(const string& handle) {
     return answer;
 }
 
-void run(string atomdb_type,
+void run(string atomdb_type_str,
          const string& context,
          const string& link_type_tag,
          const set<string> highlighted) {
     string server_id = "0.0.0.0:31700";
     string client_id = "0.0.0.0:31701";
 
-    if (atomdb_type == string("morkdb")) {
-        AtomDBSingleton::init(atomdb_api_types::ATOMDB_TYPE::MORKDB);
-    } else {
-        AtomDBSingleton::init();
+    atomdb_api_types::ATOMDB_TYPE atomdb_type = atomdb_api_types::ATOMDB_TYPE::REDIS_MONGODB;
+    if (atomdb_type_str == string("morkdb")) {
+        atomdb_type = atomdb_api_types::ATOMDB_TYPE::MORKDB;
     }
+    AtomDBSingleton::init(atomdb_type, test_atomdb_json_config());
     shared_ptr<AtomDB> db = AtomDBSingleton::get_instance();
 
     string and_operator = "AND";
