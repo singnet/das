@@ -27,11 +27,36 @@ static string convert_handle(const string& handle) {
 // Public methods
 
 Chain::Chain(const array<shared_ptr<QueryElement>, 1>& clauses,
+             shared_ptr<LinkTemplate> link_template,
              const string& source_handle,
-             const string& target_handle)
-    : Operator<1>(clauses), source_handle(source_handle), target_handle(target_handle) {
+             const string& target_handle,
+             const QueryAnswerElement& link_selector,
+             unsigned int tail_reference,
+             unsigned int head_reference,
+             bool allow_incomplete_chain_path)
+    : Operator<1>(clauses),
+      input_link_template(link_template),
+      source_handle(source_handle),
+      target_handle(target_handle),
+      link_selector(link_selector),
+      tail_reference(tail_reference),
+      head_reference(head_reference),
+      allow_incomplete_chain_path(allow_incomplete_chain_path) {
     initialize(clauses);
 }
+
+Chain::Chain(const array<shared_ptr<QueryElement>, 1>& clauses,
+             const string& source_handle,
+             const string& target_handle,
+             bool allow_incomplete_chain_path)
+    : Chain(clauses,
+            nullptr,
+            source_handle,
+            target_handle,
+            QueryAnswerElement(0),
+            1,
+            2,
+            allow_incomplete_chain_path) {}
 
 Chain::~Chain() {
     LOG_DEBUG("Chain::~Chain() BEGIN");
@@ -111,8 +136,21 @@ bool Chain::PathFinder::conditional_refeed(Path& path,
         LOG_DEBUG("[PATH_FINDER] "
                   << "Still acknowledging input. Pushing " << path.to_string()
                   << " back to refeeding buffer.");
-        this->chain_operator->refeeding_buffer.push(path);
+        if (this->forward_flag) {
+            this->chain_operator->refeeding_buffer_forward.push(path);
+        } else {
+            this->chain_operator->refeeding_buffer_backward.push(path);
+        }
+        LOG_DEBUG("[PATH_FINDER] Pushed. ");
         return true;
+    }
+}
+
+void Chain::PathFinder::refeed_paths() {
+    if (this->forward_flag) {
+        this->chain_operator->refeed_paths_forward();
+    } else {
+        this->chain_operator->refeed_paths_backward();
     }
 }
 
@@ -131,7 +169,7 @@ bool Chain::PathFinder::thread_one_step() {
     if (base_heap->empty()) {
         LOG_DEBUG("[PATH_FINDER] "
                   << "Empty base_heap. Trying to refeed paths.");
-        this->chain_operator->refeed_paths();
+        this->refeed_paths();
         if (base_heap->empty()) {
             LOG_DEBUG("[PATH_FINDER] "
                       << "No paths to refeed.");
@@ -201,6 +239,7 @@ bool Chain::PathFinder::thread_one_step() {
                       << "Pushing new path: " << new_path.to_string());
             base_heap->push(new_path, new_path.path_sti);
         } else {
+            LOG_DEBUG("[PATH_FINDER] Discarding because candidate would lead to a cycle.");
             count_cycles++;
         }
     }
@@ -216,14 +255,25 @@ bool Chain::PathFinder::thread_one_step() {
     }
 }
 
-void Chain::refeed_paths() {
-    while (!this->refeeding_buffer.empty()) {
-        Path path = refeeding_buffer.front_and_pop();
-        if (path.forward_flag) {
-            this->source_index[this->source_handle]->push(path, path.path_sti);
-        } else {
-            this->target_index[this->target_handle]->push(path, path.path_sti);
-        }
+void Chain::refeed_paths_forward() {
+    lock_guard<mutex> semaphore(this->refeed_paths_forward_mutex);
+    while (!this->refeeding_buffer_forward.empty()) {
+        Path path = refeeding_buffer_forward.front_and_pop();
+        LOG_DEBUG("Refeeding: " << path.to_string());
+        this->source_index_mutex.lock();
+        this->source_index[this->source_handle]->push(path, path.path_sti);
+        this->source_index_mutex.unlock();
+    }
+}
+
+void Chain::refeed_paths_backward() {
+    lock_guard<mutex> semaphore(this->refeed_paths_backward_mutex);
+    while (!this->refeeding_buffer_backward.empty()) {
+        Path path = refeeding_buffer_backward.front_and_pop();
+        LOG_DEBUG("Refeeding: " << path.to_string());
+        this->target_index_mutex.lock();
+        this->target_index[this->target_handle]->push(path, path.path_sti);
+        this->target_index_mutex.unlock();
     }
 }
 
@@ -256,54 +306,59 @@ bool Chain::thread_one_step() {
         if ((answer = dynamic_cast<QueryAnswer*>(this->input_buffer[0]->pop_query_answer())) != NULL) {
             LOG_DEBUG("[CHAIN OPERATOR] "
                       << "New query answer: " << answer->to_string());
-            for (string handle : answer->handles) {
-                auto iterator = this->known_links.find(handle);
-                if (iterator == this->known_links.end()) {
-                    this->known_links.insert(iterator, handle);
-                    shared_ptr<Link> link =
-                        dynamic_pointer_cast<Link>(AtomDBSingleton::get_instance()->get_atom(handle));
-                    if (link == nullptr) {
-                        Utils::error("Invalid query answer in Chain operator.");
-                    } else {
-                        LOG_DEBUG("[CHAIN OPERATOR] "
-                                  << "Valid link");
-                    }
-                    LOG_DEBUG("[CHAIN OPERATOR] "
-                              << "New link: " << link->to_string());
-                    if (link->arity() == 3) {
-                        {
-                            lock_guard<mutex> semaphore(this->source_index_mutex);
-                            for (unsigned int i = 1; i <= 2; i++) {
-                                if (this->source_index.find(link->targets[i]) ==
-                                    this->source_index.end()) {
-                                    this->source_index[link->targets[i]] = make_shared<HeapType>();
-                                }
-                            }
-                            this->source_index[link->targets[1]]->push(Path(link, answer, true),
-                                                                       answer->importance);
-                        }
-                        {
-                            lock_guard<mutex> semaphore(this->target_index_mutex);
-                            for (unsigned int i = 1; i <= 2; i++) {
-                                if (this->target_index.find(link->targets[i]) ==
-                                    this->target_index.end()) {
-                                    this->target_index[link->targets[i]] = make_shared<HeapType>();
-                                }
-                            }
-                            this->target_index[link->targets[2]]->push(
-                                Path(link, QueryAnswer::copy(answer), false), answer->importance);
-                        }
-                    } else {
-                        Utils::error("Invalid Link " + link->to_string() + " with arity " +
-                                     std::to_string(link->arity()) + " in CHAIN operator.");
-                        break;
-                    }
+            string handle = answer->get(this->link_selector);
+            auto iterator = this->known_links.find(handle);
+            if (iterator == this->known_links.end()) {
+                this->known_links.insert(iterator, handle);
+                shared_ptr<Link> link =
+                    dynamic_pointer_cast<Link>(AtomDBSingleton::get_instance()->get_atom(handle));
+                if (link == nullptr) {
+                    Utils::error("Invalid query answer in Chain operator.");
                 } else {
                     LOG_DEBUG("[CHAIN OPERATOR] "
-                              << "Discarding already inserted handle: " << convert_handle(handle));
+                              << "Valid link");
                 }
+                LOG_DEBUG("[CHAIN OPERATOR] "
+                          << "New link: " << link->to_string());
+                if (link->arity() > max(this->tail_reference, this->head_reference)) {
+                    string tail = link->targets[this->tail_reference];
+                    string head = link->targets[this->head_reference];
+                    {
+                        lock_guard<mutex> semaphore(this->source_index_mutex);
+                        for (string key : {tail, head}) {
+                            if (this->source_index.find(key) == this->source_index.end()) {
+                                this->source_index[key] = make_shared<HeapType>();
+                            }
+                        }
+                        this->source_index[tail]->push(Path(tail, head, answer, true),
+                                                       answer->importance);
+                    }
+                    {
+                        lock_guard<mutex> semaphore(this->target_index_mutex);
+                        for (string key : {tail, head}) {
+                            if (this->target_index.find(key) == this->target_index.end()) {
+                                this->target_index[key] = make_shared<HeapType>();
+                            }
+                        }
+                        this->target_index[head]->push(
+                            Path(tail, head, QueryAnswer::copy(answer), false), answer->importance);
+                    }
+                } else {
+                    Utils::error("Invalid Link " + link->to_string() + " with arity " +
+                                 std::to_string(link->arity()) + " in CHAIN operator. Tail reference: " +
+                                 std::to_string(this->tail_reference) +
+                                 ". Head reference: " + std::to_string(this->head_reference));
+                }
+            } else {
+                LOG_DEBUG("[CHAIN OPERATOR] "
+                          << "Discarding already inserted handle: " << convert_handle(handle));
             }
-            refeed_paths();
+            LOG_DEBUG("[CHAIN OPERATOR] "
+                      << "Refeeding paths");
+            refeed_paths_forward();
+            refeed_paths_backward();
+            LOG_DEBUG("[CHAIN OPERATOR] "
+                      << "Done refeeding");
             return true;
         } else {
             if (this->input_buffer[0]->is_query_answers_finished() &&
@@ -320,33 +375,35 @@ bool Chain::thread_one_step() {
 }
 
 void Chain::report_path(Path& path) {
-    QueryAnswer* query_answer = new QueryAnswer(path.path_sti);
-    if (path.forward_flag) {
-        for (auto pair : path.links) {
-            query_answer->add_handle(pair.first->handle());  // TODO change to use handle in query_answer
-            if (!query_answer->merge(pair.second.get())) {
-                Utils::error("Incompatible assignments in Chain operator answer: " +
-                             query_answer->to_string() + " + " + pair.second->to_string());
+    lock_guard<mutex> semaphore(this->reported_answers_mutex);
+    bool complete_flag =
+        ((path.start_point() == this->source_handle) && (path.end_point() == this->target_handle)) ||
+        ((path.start_point() == this->target_handle) && (path.end_point() == this->source_handle));
+
+    if (complete_flag || this->allow_incomplete_chain_path) {
+        QueryAnswer* query_answer = new QueryAnswer(path.path_sti);
+        if (path.forward_flag) {
+            for (auto pair : path.edges) {
+                query_answer->add_handle(pair.second->get(this->link_selector));
+            }
+        } else {
+            for (auto pair = path.edges.rbegin(); pair != path.edges.rend(); ++pair) {
+                query_answer->add_handle(pair->second->get(this->link_selector));
             }
         }
-    } else {
-        for (auto pair = path.links.rbegin(); pair != path.links.rend(); ++pair) {
-            query_answer->add_handle(pair->first->handle());
-            if (!query_answer->merge(pair->second.get())) {
-                Utils::error("Incompatible assignments in Chain operator answer: " +
-                             query_answer->to_string() + " + " + pair->second->to_string());
-            }
+        string answer_hash = Hasher::composite_handle(query_answer->handles);
+        if (this->reported_answers.find(answer_hash) == this->reported_answers.end()) {
+            this->reported_answers.insert(answer_hash);
+            query_answer->assignment.assign(ORIGIN_VARIABLE_NAME, path.start_point());
+            query_answer->assignment.assign(DESTINY_VARIABLE_NAME, path.end_point());
+            string tag = (complete_flag ? "complete" : "incomplete");
+            LOG_INFO("Reporting " << tag << " path: " << path.to_string());
+            this->output_buffer->add_query_answer(query_answer);
+        } else {
+            delete query_answer;
         }
-    }
-    string answer_hash = Hasher::composite_handle(query_answer->handles);
-    if (this->reported_answers.find(answer_hash) == this->reported_answers.end()) {
-        this->reported_answers.insert(answer_hash);
-        query_answer->assignment.assign(ORIGIN_VARIABLE_NAME, path.start_point());
-        query_answer->assignment.assign(DESTINY_VARIABLE_NAME, path.end_point());
-        LOG_INFO("Reporting path: " << path.to_string());
-        this->output_buffer->add_query_answer(query_answer);
     } else {
-        delete query_answer;
+        LOG_INFO("Incomplete path not reported: " << path.to_string());
     }
 }
 
@@ -393,20 +450,17 @@ string Chain::Path::to_string() {
     bool first = true;
     string last_handle = "";
     string check_handle = "";
-    for (auto pair : this->links) {
+    for (auto pair : this->edges) {
         if (first) {
             first = false;
-            last_handle =
-                convert_handle(this->forward_flag ? pair.first->targets[1] : pair.first->targets[2]);
+            last_handle = convert_handle(this->forward_flag ? pair.first.first : pair.first.second);
             answer = last_handle;
         }
-        check_handle =
-            convert_handle(this->forward_flag ? pair.first->targets[1] : pair.first->targets[2]);
+        check_handle = convert_handle(this->forward_flag ? pair.first.first : pair.first.second);
         if (check_handle != last_handle) {
             LOG_ERROR("Invalid Path");
         }
-        last_handle =
-            convert_handle(this->forward_flag ? pair.first->targets[2] : pair.first->targets[1]);
+        last_handle = convert_handle(this->forward_flag ? pair.first.second : pair.first.first);
         answer += this->forward_flag ? " -> " : " <- ";
         answer += last_handle;
     }

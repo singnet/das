@@ -24,7 +24,6 @@ class RedisMongoDBTestEnvironment : public ::testing::Environment {
    public:
     void SetUp() override {
         TestConfig::load_environment();
-        AtomDBCacheSingleton::init();
         auto atomdb = new RedisMongoDB("test2_");
         atomdb->drop_all();
         AtomDBSingleton::provide(shared_ptr<AtomDB>(atomdb));

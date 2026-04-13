@@ -15,8 +15,6 @@ class TestConfig {
     static string DAS_MONGODB_PASSWORD;
     static string DAS_MORK_HOSTNAME;
     static string DAS_MORK_PORT;
-    static string DAS_DISABLE_ATOMDB_CACHE;
 
     static void load_environment(bool replace_existing = true);
-    static void set_atomdb_cache(bool enable);
 };

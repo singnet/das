@@ -37,7 +37,6 @@ class RedisMongoDBTestEnvironment : public ::testing::Environment {
    public:
     void SetUp() override {
         TestConfig::load_environment();
-        TestConfig::set_atomdb_cache(false);
         auto atomdb = new RedisMongoDB("test_");
         AtomDBSingleton::provide(shared_ptr<AtomDB>(atomdb));
         load_animals_data();

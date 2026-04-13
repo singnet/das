@@ -9,7 +9,6 @@
 #include <thread>
 #include <vector>
 
-#include "AtomDBCacheSingleton.h"
 #include "AtomDBSingleton.h"
 #include "LinkSchema.h"
 #include "MockAnimalsData.h"
@@ -23,7 +22,6 @@ class MorkDBTestEnvironment : public ::testing::Environment {
    public:
     void SetUp() override {
         TestConfig::load_environment();
-        TestConfig::set_atomdb_cache(false);
         auto atomdb = new MorkDB("morkdb_test_");
         atomdb->drop_all();
         AtomDBSingleton::provide(shared_ptr<AtomDB>(atomdb));

@@ -15,7 +15,6 @@
 #include <vector>
 
 #include "AtomDB.h"
-#include "AtomDBCacheSingleton.h"
 #include "JsonConfig.h"
 #include "RedisContext.h"
 #include "RedisContextPool.h"
@@ -152,7 +151,6 @@ class RedisMongoDB : public AtomDB {
     bool cluster_flag;
     RedisContextPool* redis_pool;
     mongocxx::pool* mongodb_pool;
-    shared_ptr<AtomDBCache> atomdb_cache;
     atomic<uint> patterns_next_score{0};
     atomic<uint> incoming_set_next_score{0};
 

@@ -17,6 +17,7 @@
 #include "MettaParserActions.h"
 #include "Node.h"
 #include "Or.h"
+#include "Chain.h"
 #include "PatternMatchingQueryProxy.h"
 #include "ServiceBus.h"
 #include "Sink.h"
@@ -33,6 +34,7 @@ using namespace attention_broker;
 
 string PatternMatchingQueryProcessor::AND = "AND";
 string PatternMatchingQueryProcessor::OR = "OR";
+string PatternMatchingQueryProcessor::CHAIN = "CHAIN";
 
 // -------------------------------------------------------------------------------------------------
 // Constructors and destructors
@@ -274,6 +276,8 @@ shared_ptr<QueryElement> PatternMatchingQueryProcessor::setup_query_tree(
                    (query_tokens[cursor] == LinkSchema::ATOM) || (query_tokens[cursor] == AND) ||
                    (query_tokens[cursor] == OR)) {
             cursor += 2;
+        } else if (query_tokens[cursor] == CHAIN) {
+            cursor += 4;
         } else {
             Utils::error("Invalid token in query: " + query_tokens[cursor]);
         }
@@ -309,6 +313,8 @@ shared_ptr<QueryElement> PatternMatchingQueryProcessor::setup_query_tree(
             if (proxy->parameters.get<bool>(BaseQueryProxy::UNIQUE_ASSIGNMENT_FLAG)) {
                 element_stack.push(build_unique_assignment_filter(proxy, cursor, element_stack));
             }
+        } else if (query_tokens[cursor] == CHAIN) {
+            element_stack.push(build_chain(proxy, cursor, element_stack));
         } else {
             Utils::error("Invalid token " + query_tokens[cursor] + " in PATTERN_MATCHING_QUERY message");
         }
@@ -326,6 +332,7 @@ shared_ptr<QueryElement> PatternMatchingQueryProcessor::build_link_template(
     shared_ptr<PatternMatchingQueryProxy> proxy,
     unsigned int cursor,
     stack<shared_ptr<QueryElement>>& element_stack) {
+    LOG_DEBUG("Building LinkTemplate...");
     const vector<string> query_tokens = proxy->get_query_tokens();
     unsigned int arity = std::stoi(query_tokens[cursor + 2]);
     if (element_stack.size() < arity) {
@@ -346,6 +353,8 @@ shared_ptr<QueryElement> PatternMatchingQueryProcessor::build_link_template(
         proxy->parameters.get<bool>(PatternMatchingQueryProxy::DISREGARD_IMPORTANCE_FLAG),
         proxy->parameters.get<bool>(PatternMatchingQueryProxy::UNIQUE_VALUE_FLAG),
         proxy->parameters.get<bool>(BaseQueryProxy::USE_LINK_TEMPLATE_CACHE));
+    LOG_DEBUG("New LinkTemplate: " + link_template->to_string());
+    LOG_DEBUG("Building LinkTemplate... Done.");
     return link_template;
 }
 
@@ -411,9 +420,11 @@ shared_ptr<QueryElement> PatternMatchingQueryProcessor::build_and(
                 link_templates.push_back(element_stack.top());                                    \
                 link_template->build();                                                           \
                 clauses[i] = link_template->get_source_element();                                 \
+                LOG_DEBUG("OR input[" << i << "]: " << element_stack.top()->to_string());         \
             } else {                                                                              \
                 if (element_stack.top()->is_operator) {                                           \
                     clauses[i] = element_stack.top();                                             \
+                    LOG_DEBUG("OR input[" << i << "]: " << element_stack.top()->to_string());     \
                 } else {                                                                          \
                     Utils::error("All OR clauses are supposed to be LinkTemplate or Operator");   \
                 }                                                                                 \
@@ -427,6 +438,7 @@ shared_ptr<QueryElement> PatternMatchingQueryProcessor::build_or(
     shared_ptr<PatternMatchingQueryProxy> proxy,
     unsigned int cursor,
     stack<shared_ptr<QueryElement>>& element_stack) {
+    LOG_DEBUG("Building OR operator");
     const vector<string> query_tokens = proxy->get_query_tokens();
     unsigned int num_clauses = std::stoi(query_tokens[cursor + 1]);
     if (element_stack.size() < num_clauses) {
@@ -450,6 +462,64 @@ shared_ptr<QueryElement> PatternMatchingQueryProcessor::build_or(
         }
     }
     return NULL;  // Just to avoid warnings. This is not actually reachable.
+}
+
+shared_ptr<QueryElement> PatternMatchingQueryProcessor::build_chain(
+    shared_ptr<PatternMatchingQueryProxy> proxy,
+    unsigned int cursor,
+    stack<shared_ptr<QueryElement>>& element_stack) {
+    LOG_DEBUG("Building CHAIN operator...");
+    const vector<string> query_tokens = proxy->get_query_tokens();
+    QueryAnswerElement link_selector;
+    if (isdigit(static_cast<unsigned char>(query_tokens[cursor + 1][0]))) {
+        link_selector.set(Utils::string_to_uint(query_tokens[cursor + 1]));
+        LOG_DEBUG("Link selector is handle index: " + query_tokens[cursor + 1]);
+    } else {
+        link_selector.set(query_tokens[cursor + 1]);
+        LOG_DEBUG("Link selector is variable: " + query_tokens[cursor + 1]);
+    }
+    unsigned int tail_reference = Utils::string_to_uint(query_tokens[cursor + 2]);
+    unsigned int head_reference = Utils::string_to_uint(query_tokens[cursor + 3]);
+    LOG_DEBUG("Tail reference: " + std::to_string(tail_reference));
+    LOG_DEBUG("Head reference: " + std::to_string(head_reference));
+
+    if (element_stack.size() < 3) {
+        Utils::error(
+            "PATTERN_MATCHING_QUERY message: parse error in tokens - too few arguments for "
+            "CHAIN");
+    }
+
+    shared_ptr<Terminal> source = dynamic_pointer_cast<Terminal>(element_stack.top());
+    element_stack.pop();
+    shared_ptr<Terminal> target = dynamic_pointer_cast<Terminal>(element_stack.top());
+    element_stack.pop();
+    LOG_DEBUG("Source terminal: " + source->to_string());
+    LOG_DEBUG("Target terminal: " + target->to_string());
+    LOG_DEBUG("Source handle: " + source->compute_handle());
+    LOG_DEBUG("Target handle: " + target->compute_handle());
+
+    array<shared_ptr<QueryElement>, 1> clauses;
+    clauses[0] = element_stack.top();
+    shared_ptr<LinkTemplate> link_template = dynamic_pointer_cast<LinkTemplate>(clauses[0]);
+    if (link_template != nullptr) {
+        link_template->build();
+        clauses[0] = link_template->get_source_element();
+    }
+    LOG_DEBUG("Input: " + clauses[0]->to_string());
+    element_stack.pop();
+
+    bool incomplete_flag = proxy->parameters.get<bool>(BaseQueryProxy::ALLOW_INCOMPLETE_CHAIN_PATH);
+    auto chain_operator = make_shared<Chain>(clauses,
+                                             link_template,
+                                             source->compute_handle(),
+                                             target->compute_handle(),
+                                             link_selector,
+                                             tail_reference,
+                                             head_reference,
+                                             incomplete_flag);
+    LOG_DEBUG("Building CHAIN operator... DONE");
+
+    return chain_operator;
 }
 
 shared_ptr<QueryElement> PatternMatchingQueryProcessor::build_link(
