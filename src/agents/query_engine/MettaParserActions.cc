@@ -33,7 +33,8 @@ MettaParserActions::~MettaParserActions() {}
 
 void MettaParserActions::symbol(const string& name) {
     ParserActions::symbol(name);
-    if ((name == MettaMapping::AND_QUERY_OPERATOR) || (name == MettaMapping::OR_QUERY_OPERATOR) || (name == MettaMapping::CHAIN_QUERY_OPERATOR)) {
+    if ((name == MettaMapping::AND_QUERY_OPERATOR) || (name == MettaMapping::OR_QUERY_OPERATOR) ||
+        (name == MettaMapping::CHAIN_QUERY_OPERATOR)) {
         if (name == MettaMapping::AND_QUERY_OPERATOR) {
             this->current_expression_type = AND;
         } else if (name == MettaMapping::OR_QUERY_OPERATOR) {
@@ -53,7 +54,8 @@ void MettaParserActions::symbol(const string& name) {
 
 void MettaParserActions::variable(const string& value) {
     ParserActions::variable(value);
-    if ((this->current_expression_type == AND) || (this->current_expression_type == OR) || (this->current_expression_type == CHAIN)) {
+    if ((this->current_expression_type == AND) || (this->current_expression_type == OR) ||
+        (this->current_expression_type == CHAIN)) {
         Utils::error("Invalid query expression: AND/OR/CHAIN can't operate variables.");
         return;
     }
@@ -85,7 +87,8 @@ void MettaParserActions::literal(int value) {
 
 void MettaParserActions::literal(float value) {
     ParserActions::literal(value);
-    if ((this->current_expression_type == AND) || (this->current_expression_type == OR) || (this->current_expression_type == CHAIN)) {
+    if ((this->current_expression_type == AND) || (this->current_expression_type == OR) ||
+        (this->current_expression_type == CHAIN)) {
         Utils::error("Invalid query expression: AND/OR can't operate float literals.");
         return;
     }
@@ -107,7 +110,7 @@ shared_ptr<Terminal> MettaParserActions::unstack_terminal(bool node_flag) {
     if (terminal == nullptr) {
         Utils::error("Expecting Terminal. Got: " + this->element_stack.top()->to_string());
     } else {
-        if (node_flag && (! terminal->is_node)) {
+        if (node_flag && (!terminal->is_node)) {
             Utils::error("Expecting Node. Got: " + this->element_stack.top()->to_string());
         }
     }
@@ -120,7 +123,8 @@ void MettaParserActions::expression_end(bool toplevel, const string& metta_expre
     unsigned int arity = this->current_expression_size;
     if (this->element_stack.size() < arity) {
         Utils::error("Invalid query expression: too few arguments for expression. Expected: " +
-                     std::to_string(arity) + " Stack size: " + std::to_string(this->element_stack.size()));
+                     std::to_string(arity) +
+                     " Stack size: " + std::to_string(this->element_stack.size()));
         return;
     }
     LOG_DEBUG("Arity: " + std::to_string(arity));
@@ -157,7 +161,8 @@ void MettaParserActions::expression_end(bool toplevel, const string& metta_expre
             array<shared_ptr<QueryElement>, 2> clauses;
             vector<shared_ptr<QueryElement>> link_templates;
             for (int i = 1; i >= 0; i--) {
-                LinkTemplate* link_template = dynamic_cast<LinkTemplate*>(this->element_stack.top().get());
+                LinkTemplate* link_template =
+                    dynamic_cast<LinkTemplate*>(this->element_stack.top().get());
                 if (link_template != NULL) {
                     link_templates.push_back(this->element_stack.top());
                     link_template->build();
@@ -222,7 +227,8 @@ void MettaParserActions::expression_end(bool toplevel, const string& metta_expre
             LOG_DEBUG("Source handle: " + source->compute_handle());
             LOG_DEBUG("Target handle: " + target->compute_handle());
 
-            bool incomplete_flag = this->proxy->parameters.get<bool>(BaseQueryProxy::ALLOW_INCOMPLETE_CHAIN_PATH);
+            bool incomplete_flag =
+                this->proxy->parameters.get<bool>(BaseQueryProxy::ALLOW_INCOMPLETE_CHAIN_PATH);
             auto chain_operator = make_shared<Chain>(clauses,
                                                      link_template,
                                                      source->compute_handle(),

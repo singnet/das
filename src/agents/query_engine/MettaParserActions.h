@@ -3,9 +3,9 @@
 #include <stack>
 
 #include "ParserActions.h"
-#include "Terminal.h"
 #include "PatternMatchingQueryProxy.h"
 #include "QueryElement.h"
+#include "Terminal.h"
 
 using namespace std;
 using namespace metta;
@@ -64,7 +64,6 @@ class MettaParserActions : public ParserActions {
     stack<shared_ptr<QueryElement>> element_stack;
 
    private:
-
     shared_ptr<Terminal> unstack_terminal(bool node_flag = false);
 
     shared_ptr<PatternMatchingQueryProxy> proxy;
