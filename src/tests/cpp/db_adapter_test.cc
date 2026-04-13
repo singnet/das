@@ -8,6 +8,7 @@
 #include <vector>
 
 #include "Atom.h"
+#include "BoundedSharedQueue.h"
 #include "ContextLoader.h"
 #include "DatabaseLoader.h"
 #include "DatabaseTypes.h"
@@ -165,7 +166,7 @@ class PostgresWrapperTest : public ::testing::Test {
 
     shared_ptr<PostgresWrapper> create_wrapper(PostgresDatabaseConnection& db_conn,
                                                MAPPER_TYPE mapper_type = MAPPER_TYPE::SQL2ATOMS) {
-        auto queue = make_shared<SharedQueue>();
+        auto queue = make_shared<BoundedSharedQueue>();
         return make_shared<PostgresWrapper>(db_conn, mapper_type, queue);
     }
 
