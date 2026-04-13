@@ -244,9 +244,9 @@ void BatchConsumer::drain_into_accumulator() {
 void BatchConsumer::flush_batch() {
     while (this->accumulator.size() >= this->batch_size) {
         if (static_cast<size_t>(pool.size()) >= max_pending_batches) {
-            LOG_INFO("Backpressure in flush | pool_pending_tasks: "
-                     << pool.size() << " | accumulator_size: " << accumulator.size()
-                     << " | waiting for pool to drain");
+            LOG_DEBUG("flush_batch() | pool_pending_tasks: " << pool.size() << " | accumulator_size: "
+                                                             << accumulator.size()
+                                                             << " | waiting for pool to drain");
             return;
         }
 
@@ -255,11 +255,11 @@ void BatchConsumer::flush_batch() {
 
         int batch_id = this->batches_dispatched.fetch_add(1) + 1;
 
-        LOG_INFO("Dispatching batch #" << batch_id << " | size: " << batch.size()
-                                       << " | accumulator_remaining: " << accumulator.size()
-                                       << " | queue_remaining: " << input_queue->size()
-                                       << " | pool_pending_tasks: " << pool.size()
-                                       << " | total_dispatched: " << batches_dispatched.load());
+        LOG_DEBUG("Dispatching batch #" << batch_id << " | size: " << batch.size()
+                                        << " | accumulator_remaining: " << accumulator.size()
+                                        << " | queue_remaining: " << input_queue->size()
+                                        << " | pool_pending_tasks: " << pool.size()
+                                        << " | total_dispatched: " << batches_dispatched.load());
 
         pool.enqueue([this, b = move(batch), batch_id]() mutable { send_batch(move(b), batch_id); });
     }
@@ -268,8 +268,8 @@ void BatchConsumer::flush_batch() {
 void BatchConsumer::send_batch(vector<Atom*> atoms, int batch_id) {
     auto start = chrono::steady_clock::now();
 
-    LOG_INFO("Batch #" << batch_id << " started | size: " << atoms.size()
-                       << " | thread: " << this_thread::get_id());
+    LOG_DEBUG("Batch #" << batch_id << " started | size: " << atoms.size()
+                        << " | thread: " << this_thread::get_id());
 
     try {
         this->atomdb->add_atoms(atoms, false, true);
@@ -281,10 +281,10 @@ void BatchConsumer::send_batch(vector<Atom*> atoms, int batch_id) {
             this->total_count.fetch_add(static_cast<int>(atoms.size())) + static_cast<int>(atoms.size());
         this->batches_completed.fetch_add(1);
 
-        LOG_INFO("Batch #" << batch_id << " completed | size: " << atoms.size() << " | time: " << elapsed
-                           << "ms"
-                           << " | total_atoms_so_far: " << new_total << " | batches_completed: "
-                           << batches_completed.load() << " | thread: " << this_thread::get_id());
+        LOG_DEBUG("Batch #" << batch_id << " completed | size: " << atoms.size()
+                            << " | time: " << elapsed << "ms"
+                            << " | total_atoms_so_far: " << new_total << " | batches_completed: "
+                            << batches_completed.load() << " | thread: " << this_thread::get_id());
 
     } catch (const exception& e) {
         auto elapsed =
@@ -292,10 +292,10 @@ void BatchConsumer::send_batch(vector<Atom*> atoms, int batch_id) {
 
         this->batches_failed.fetch_add(1);
 
-        LOG_INFO("Batch #" << batch_id << " FAILED | size: " << atoms.size() << " | time: " << elapsed
-                           << "ms"
-                           << " | error: " << e.what() << " | batches_failed: " << batches_failed.load()
-                           << " | thread: " << this_thread::get_id());
+        LOG_ERROR("Batch #" << batch_id << " FAILED | size: " << atoms.size() << " | time: " << elapsed
+                            << "ms"
+                            << " | error: " << e.what() << " | batches_failed: " << batches_failed.load()
+                            << " | thread: " << this_thread::get_id());
 
         Utils::error("Error in batch #" + to_string(batch_id) + ": " + string(e.what()));
     }
