@@ -10,6 +10,7 @@
 
 using namespace std;
 using namespace atomdb;
+using namespace mains;
 
 int main(int argc, char* argv[]) {
     if (argc < 5) {
@@ -23,7 +24,7 @@ int main(int argc, char* argv[]) {
     if (argv[2] == string("--use-mork")) {
         atomdb_type = atomdb_api_types::ATOMDB_TYPE::MORKDB;
     }
-    AtomDBSingleton::init(atomdb_type, mains::Helper::default_atomdb_json_config());
+    AtomDBSingleton::init(atomdb_type, Helper::default_atomdb_json_config());
 
     string command = string(argv[3]);
     vector<string> args;
