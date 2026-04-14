@@ -176,6 +176,17 @@ int Utils::string_to_int(const string& s) {
     return stoi(s);
 }
 
+unsigned int Utils::string_to_uint(const string& s) {
+    if (!is_number(s)) {
+        Utils::error("Can not convert string to unsigned int: Invalid arguments (" + s + ")");
+    }
+    int n = stoi(s);
+    if (n < 0) {
+        Utils::error("Can not convert string to unsigned int: Invalid negative number (" + s + ")");
+    }
+    return (unsigned int) n;
+}
+
 string Utils::trim(const string& s) {
     const string whitespace = " \n\r\t\f\v";
     size_t start = s.find_first_not_of(whitespace);
@@ -214,6 +225,11 @@ string Utils::linux_command_line(const char* cmd) {
 unsigned long Utils::get_current_free_ram() {
     return std::stol(Utils::linux_command_line(
         "cat /proc/meminfo | grep MemAvailable | rev | cut -d\" \" -f2 | rev"));
+}
+
+unsigned long Utils::get_total_ram() {
+    return std::stol(
+        Utils::linux_command_line("cat /proc/meminfo | grep MemTotal | rev | cut -d\" \" -f2 | rev"));
 }
 
 unsigned long Utils::get_current_ram_usage() {

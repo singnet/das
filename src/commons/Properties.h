@@ -1,6 +1,7 @@
 #pragma once
 
 #include <algorithm>
+#include <memory>
 #include <string>
 #include <unordered_map>
 #include <variant>
@@ -12,7 +13,9 @@ using namespace std;
 
 namespace commons {
 
-using PropertyValue = variant<string, long, unsigned int, double, bool>;
+class Properties;
+
+using PropertyValue = variant<string, long, unsigned int, double, bool, shared_ptr<Properties>>;
 
 /**
  * @brief A specialization of std::unordered_map using string as key and
@@ -103,6 +106,16 @@ class Properties : public unordered_map<string, PropertyValue> {
     }
 
     /**
+     * @brief Get a nested Properties for the given key (e.g. for config sections).
+     * @param key The key to look up.
+     * @return shared_ptr to the nested Properties, or nullptr if key is missing or not nested.
+     */
+    shared_ptr<Properties> get_nested(const string& key) const {
+        auto p = get_ptr<shared_ptr<Properties>>(key);
+        return p ? *p : nullptr;
+    }
+
+    /**
      * @brief Convert the Properties to a string representation.
      * @return A string representation of the map in the form {key1: value1, key2: value2, ...}.
      */
@@ -134,6 +147,8 @@ class Properties : public unordered_map<string, PropertyValue> {
                 result += std::to_string(*floating);
             } else if (auto boolean = std::get_if<bool>(&value)) {
                 result += *boolean ? "true" : "false";
+            } else if (auto nested = std::get_if<shared_ptr<Properties>>(&value)) {
+                result += (*nested)->to_string();
             }
             result += ", ";
             empty_flag = false;
@@ -183,6 +198,9 @@ class Properties : public unordered_map<string, PropertyValue> {
                 } else if (auto boolean = std::get_if<bool>(&value)) {
                     result.push_back("bool");
                     result.push_back(*boolean ? "true" : "false");
+                } else if (std::get_if<shared_ptr<Properties>>(&value)) {
+                    result.push_back("object");
+                    result.push_back("");  // nested not serialized in tokenize; use to_string for debug
                 }
             }
         }

@@ -1,0 +1,26 @@
+{
+    "remote_peers": [
+        {
+            "uid": "peer1",
+            "type": "inmemorydb",
+            "context": "remotedb_test_peer1_",
+            "local_persistence": {
+                "type": "morkdb",
+                "context": "remotedb_test_peer1_local_",
+                "morkdb": {
+                    "endpoint": "localhost:40022"
+                },
+                "mongodb": {
+                    "endpoint": "localhost:40021",
+                    "username": "admin",
+                    "password": "admin"
+                }
+            }
+        },
+        {
+            "uid": "peer2",
+            "type": "inmemorydb",
+            "context": "remotedb_test_peer2_"
+        }
+    ]
+}

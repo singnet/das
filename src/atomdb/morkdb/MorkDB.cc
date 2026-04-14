@@ -97,25 +97,21 @@ string MorkClient::url_encode(const string& value) {
 // <--
 
 // --> MorkDB : RedisMongoDB(context, skip_redis = true)
-MorkDB::MorkDB(const string& context) : RedisMongoDB(context, true) {
-    bool disable_cache = true;
-    this->atomdb_cache = disable_cache ? nullptr : AtomDBCacheSingleton::get_instance();
-    mork_setup();
+MorkDB::MorkDB(const string& context, const JsonConfig& config) : RedisMongoDB(context, true, config) {
+    mork_setup(config);
 }
 
 MorkDB::~MorkDB() {}
 
 bool MorkDB::allow_nested_indexing() { return true; }
 
-void MorkDB::mork_setup() {
+void MorkDB::mork_setup(const JsonConfig& config) {
     string host = Utils::get_environment("DAS_MORK_HOSTNAME");
     string port = Utils::get_environment("DAS_MORK_PORT");
-    string address = host + ":" + port;
+    string address = config.at_path("morkdb.endpoint").get_or<string>(host + ":" + port);
 
-    if (host == "" || port == "") {
-        Utils::error(
-            "You need to set MORK access info as environment variables: DAS_MORK_HOSTNAME, "
-            "DAS_MORK_PORT");
+    if (address == "" || address == ":") {
+        Utils::error("You need to set MORK access info as configuration: morkdb.endpoint");
     }
 
     try {
@@ -150,10 +146,6 @@ class MorkDBDecoder : public HandleDecoder {
 };
 
 shared_ptr<atomdb_api_types::HandleSet> MorkDB::query_for_pattern(const LinkSchema& link_schema) {
-    if (this->atomdb_cache != nullptr) {
-        auto cache_result = this->atomdb_cache->query_for_pattern(link_schema.handle());
-        if (cache_result.is_cache_hit) return cache_result.result;
-    }
     string pattern_metta = link_schema.metta_representation(*this);
     // template should equals to pattern_metta
     LOG_DEBUG("Fetching data...");
@@ -181,9 +173,6 @@ shared_ptr<atomdb_api_types::HandleSet> MorkDB::query_for_pattern(const LinkSche
             make_shared<atomdb_api_types::HandleSetMork>(handle, metta_expressions, assignments));
         assignments.clear();
     }
-
-    if (this->atomdb_cache != nullptr)
-        this->atomdb_cache->add_pattern_matching(link_schema.handle(), handle_set);
 
     return handle_set;
 }

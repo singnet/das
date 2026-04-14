@@ -8,12 +8,11 @@ cc_library(
     deps = [
         ":atomdb",
         ":atomdb_api_types",
-        ":atomdb_cache",
-        ":atomdb_cache_singleton",
         ":atomdb_singleton",
         "//atomdb/inmemorydb:inmemorydb_lib",
         "//atomdb/morkdb:morkdb_lib",
         "//atomdb/redis_mongodb:redis_mongodb_lib",
+        "//atomdb/remotedb:remotedb_lib",
     ],
 )
 
@@ -43,32 +42,9 @@ cc_library(
     hdrs = ["AtomDBSingleton.h"],
     includes = ["."],
     deps = [
-        ":atomdb_cache_singleton",
         "//atomdb:atomdb_api_types",
         "//atomdb/morkdb",
         "//atomdb/redis_mongodb",
-        "//commons:commons_lib",
-    ],
-)
-
-cc_library(
-    name = "atomdb_cache",
-    srcs = ["AtomDBCache.cc"],
-    hdrs = ["AtomDBCache.h"],
-    includes = ["."],
-    deps = [
-        ":atomdb_api_types",
-        "//commons:commons_lib",
-    ],
-)
-
-cc_library(
-    name = "atomdb_cache_singleton",
-    srcs = ["AtomDBCacheSingleton.cc"],
-    hdrs = ["AtomDBCacheSingleton.h"],
-    includes = ["."],
-    deps = [
-        ":atomdb_cache",
         "//commons:commons_lib",
     ],
 )

@@ -15,12 +15,13 @@
 #include <vector>
 
 #include "AtomDB.h"
-#include "AtomDBCacheSingleton.h"
+#include "JsonConfig.h"
 #include "RedisContext.h"
 #include "RedisContextPool.h"
 #include "RedisMongoDBAPITypes.h"
 
 using namespace std;
+using namespace commons;
 
 namespace atomdb {
 
@@ -28,7 +29,9 @@ enum MONGODB_FIELD { ID = 0, NAME, TARGETS, NAMED_TYPE, size };
 
 class RedisMongoDB : public AtomDB {
    public:
-    RedisMongoDB(const string& context = "", bool skip_redis = false);
+    RedisMongoDB(const string& context = "",
+                 bool skip_redis = false,
+                 const JsonConfig& config = JsonConfig());
     ~RedisMongoDB();
 
     bool allow_nested_indexing() override;
@@ -148,7 +151,6 @@ class RedisMongoDB : public AtomDB {
     bool cluster_flag;
     RedisContextPool* redis_pool;
     mongocxx::pool* mongodb_pool;
-    shared_ptr<AtomDBCache> atomdb_cache;
     atomic<uint> patterns_next_score{0};
     atomic<uint> incoming_set_next_score{0};
 
@@ -192,8 +194,8 @@ class RedisMongoDB : public AtomDB {
     vector<string> match_pattern_index_schema(const Link* link);
     vector<vector<string>> index_entries_combinations(unsigned int arity);
 
-    void redis_setup();
-    void mongodb_setup();
+    void redis_setup(const JsonConfig& config);
+    void mongodb_setup(const JsonConfig& config);
 };
 
 }  // namespace atomdb

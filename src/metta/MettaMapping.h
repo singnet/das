@@ -19,6 +19,7 @@ class MettaMapping {
     static string SYMBOL_NODE_TYPE;
     static string AND_QUERY_OPERATOR;
     static string OR_QUERY_OPERATOR;
+    static string CHAIN_QUERY_OPERATOR;
 };
 
 }  // namespace commons

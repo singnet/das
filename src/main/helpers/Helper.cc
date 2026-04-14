@@ -42,6 +42,17 @@ string Helper::USE_LINK_TEMPLATE_CACHE = "use-link-template-cache";
 string Helper::POPULATE_METTA_MAPPING = "populate-metta-mapping";
 string Helper::QUERY = "query";
 
+map<string, string> Helper::arg_to_json_config_key = {
+    {"query-engine", "agents.query"},
+    {"evolution-agent", "agents.evolution"},
+    {"link-creation-agent", "agents.link_creation"},
+    {"inference-agent", "agents.inference"},
+    {"atomdb-broker", "brokers.atomdb"},
+    {"context-broker", "brokers.context"},
+    {"attention-broker", "brokers.attention"},
+    {Helper::ATTENTION_BROKER_ENDPOINT, "brokers.attention.endpoint"},
+};
+
 static map<ProcessorType, string> node_service_help = {{ProcessorType::INFERENCE_AGENT, string(R"(
 Inference Agent:
 This processor handles inference requests from the service bus.

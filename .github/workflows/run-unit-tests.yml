@@ -72,5 +72,20 @@ jobs:
             sleep 1
           done
 
+      - name: Starting Postgres Server and load database
+        run: |-
+          docker run -d --name pg_test -e POSTGRES_PASSWORD=test -e POSTGRES_DB=postgres_wrapper_test -p 5433:5432 postgres:15
+
+          for i in {1..30}; do
+            if docker exec pg_test pg_isready -U postgres -d postgres_wrapper_test; then
+              echo "Postgres is ready"
+              break
+            fi
+            echo "Waiting for Postgres..."
+            sleep 1
+          done
+          
+          docker exec -i pg_test psql -U postgres -d postgres_wrapper_test < src/scripts/postgres_setup.sql
+
       - name: Execute Unit Test Suite
-        run: make test-all
+        run: make run-tests-only

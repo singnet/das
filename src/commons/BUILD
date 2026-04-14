@@ -6,12 +6,16 @@ cc_library(
     name = "commons_lib",
     srcs = [
         "Assignment.cc",
+        "JsonConfig.cc",
+        "JsonConfigParser.cc",
         "SharedQueue.cc",
         "StoppableThread.cc",
         "Utils.cc",
     ],
     hdrs = [
         "Assignment.h",
+        "JsonConfig.h",
+        "JsonConfigParser.h",
         "Logger.h",
         "Profiler.h",
         "Properties.h",
@@ -22,11 +26,14 @@ cc_library(
         "StoppableThread.h",
         "ThreadPool.h",
         "ThreadSafeHashmap.h",
+        "ThreadSafeHeap.h",
+        "ThreadSafeQueue.h",
         "Utils.h",
     ],
     includes = ["."],
     deps = [
         "//hasher:hasher_lib",
+        "@nlohmann_json//:json",
     ],
 )
 

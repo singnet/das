@@ -14,9 +14,11 @@
 #include <vector>
 
 #include "AtomDB.h"
-#include "AtomDBCacheSingleton.h"
+#include "JsonConfig.h"
 #include "MorkDBAPITypes.h"
 #include "RedisMongoDB.h"
+
+using namespace commons;
 
 namespace atomdb {
 
@@ -39,7 +41,7 @@ class MorkClient {
 
 class MorkDB : public RedisMongoDB {
    public:
-    MorkDB(const string& context = "");
+    MorkDB(const string& context = "", const JsonConfig& config = JsonConfig());
     ~MorkDB();
 
     bool allow_nested_indexing() override;
@@ -59,10 +61,9 @@ class MorkDB : public RedisMongoDB {
     void re_index_patterns(bool flush_patterns = true) override;
 
    private:
-    shared_ptr<AtomDBCache> atomdb_cache;
     shared_ptr<MorkClient> mork_client;
 
-    void mork_setup();
+    void mork_setup(const JsonConfig& config);
 };
 
 }  // namespace atomdb

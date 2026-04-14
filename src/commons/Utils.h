@@ -63,11 +63,13 @@ class Utils {
     static string random_string(size_t length);
     static bool is_number(const string& s);
     static int string_to_int(const string& s);
+    static unsigned int string_to_uint(const string& s);
     static float string_to_float(const string& s);
     static string trim(const string& s);
     static unsigned long long get_current_time_millis();
     static string linux_command_line(const char* cmd);
     static unsigned long get_current_free_ram();   // Kbytes
+    static unsigned long get_total_ram();          // Kbytes
     static unsigned long get_current_ram_usage();  // Kbytes
     static bool is_port_available(unsigned int port);
     static void replace_all(string& base_string, const string& from, const string& to);

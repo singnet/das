@@ -1,6 +1,5 @@
 #include "AtomDBSingleton.h"
 
-#include "AtomDBCacheSingleton.h"
 #include "Utils.h"
 
 using namespace atomdb;
@@ -16,8 +15,6 @@ void AtomDBSingleton::init(atomdb_api_types::ATOMDB_TYPE atomdb_type) {
         Utils::error(
             "AtomDBSingleton already initialized. AtomDBSingleton::init() should be called only once.");
     } else {
-        AtomDBCacheSingleton::init();
-
         if (atomdb_type == atomdb_api_types::ATOMDB_TYPE::MORKDB) {
             AtomDBSingleton::atom_db = shared_ptr<AtomDB>(new MorkDB());
         } else if (atomdb_type == atomdb_api_types::ATOMDB_TYPE::REDIS_MONGODB) {

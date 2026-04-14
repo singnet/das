@@ -305,6 +305,37 @@ cc_test(
 )
 
 cc_test(
+    name = "chain_operator_test",
+    size = "small",
+    srcs = [
+        "chain_operator_test.cc",
+        "test_utils.cc",
+        "test_utils.h",
+    ],
+    copts = [
+        "-Iexternal/gtest/googletest/include",
+        "-Iexternal/gtest/googletest",
+    ],
+    linkopts = [
+        "-L/usr/local/lib",
+        "-lhiredis_cluster",
+        "-lhiredis",
+        "-lmongocxx",
+        "-lbsoncxx",
+    ],
+    linkstatic = 1,
+    deps = [
+        "//agents/query_engine:query_engine_lib",
+        "//atomdb:atomdb_singleton",
+        "//atomdb/inmemorydb:inmemorydb_lib",
+        "//commons:commons_lib",
+        "//hasher:hasher_lib",
+        "@com_github_google_googletest//:gtest_main",
+        "@mbedtls",
+    ],
+)
+
+cc_test(
     name = "unique_assignment_filter_test",
     size = "medium",
     srcs = [
@@ -622,6 +653,21 @@ cc_test(
 )
 
 cc_test(
+    name = "config_parser_test",
+    size = "small",
+    srcs = ["config_parser_test.cc"],
+    copts = [
+        "-Iexternal/gtest/googletest/include",
+        "-Iexternal/gtest/googletest",
+    ],
+    linkstatic = 1,
+    deps = [
+        "//commons:commons_lib",
+        "@com_github_google_googletest//:gtest_main",
+    ],
+)
+
+cc_test(
     name = "processor_test",
     size = "small",
     srcs = ["processor_test.cc"],
@@ -737,6 +783,34 @@ cc_test(
 )
 
 cc_test(
+    name = "remote_atomdb_test",
+    size = "small",
+    srcs = ["remote_atomdb_test.cc"],
+    copts = [
+        "-Iexternal/gtest/googletest/include",
+        "-Iexternal/gtest/googletest",
+    ],
+    data = [
+        "//tests/assets:remotedb_config.json",
+        "//tests/assets:remotedb_config_single.json",
+    ],
+    linkopts = [
+        "-L/usr/local/lib",
+        "-lhiredis_cluster",
+        "-lhiredis",
+        "-lmongocxx",
+        "-lbsoncxx",
+    ],
+    linkstatic = 1,
+    deps = [
+        "//atomdb/inmemorydb:inmemorydb_lib",
+        "//atomdb/remotedb:remotedb_lib",
+        "//commons/atoms:atoms_lib",
+        "@com_github_google_googletest//:gtest_main",
+    ],
+)
+
+cc_test(
     name = "profiling_test",
     size = "small",
     srcs = [
@@ -773,5 +847,33 @@ cc_test(
         "//commons/atoms:atoms_lib",
         "//metta:metta_lib",
         "@com_github_google_googletest//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "db_adapter_test",
+    size = "small",
+    srcs = [
+        "db_adapter_test.cc",
+    ],
+    copts = [
+        "-Iexternal/gtest/googletest/include",
+        "-Iexternal/gtest/googletest",
+    ],
+    linkopts = [
+        "-L/usr/local/lib",
+        "-lpqxx",
+        "-lpq",
+        "-lhiredis_cluster",
+        "-lhiredis",
+        "-lmongocxx",
+        "-lbsoncxx",
+    ],
+    linkstatic = 1,
+    deps = [
+        "//db_adapter:db_adapter_lib",
+        "//tests/cpp/test_commons",
+        "@com_github_google_googletest//:gtest_main",
+        "@mbedtls",
     ],
 )

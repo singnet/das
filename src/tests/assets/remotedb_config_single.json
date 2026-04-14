@@ -1,0 +1,18 @@
+{
+    "remote_peers": [
+        {
+            "uid": "single_peer",
+            "type": "redismongodb",
+            "context": "remotedb_test_single_peer_",
+            "redis": {
+                "endpoint": "localhost:40020",
+                "cluster": "false"
+            },
+            "mongodb": {
+                "endpoint": "localhost:40021",
+                "username": "admin",
+                "password": "admin"
+            }
+        }
+    ]
+}
