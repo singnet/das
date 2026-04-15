@@ -2,9 +2,11 @@
 
 #include "FitnessFunctionRegistry.h"
 #include "Helper.h"
+#include "JsonConfigParser.h"
 #include "Logger.h"
 #include "Properties.h"
 #include "ProxyFactory.h"
+#include "RemoteAtomDB.h"
 #include "ServiceBusSingleton.h"
 #include "Utils.h"
 
@@ -36,6 +38,14 @@ int main(int argc, char* argv[]) {
                 Utils::error("Required argument missing: " + string(req_arg));
             }
         }
+
+        ///////// Loading JSON config
+        auto it_config = cmd_args.find("config");
+        JsonConfig json_config;
+        if (it_config != cmd_args.end() && !it_config->second.empty()) {
+            json_config = JsonConfigParser::load(it_config->second);
+        }
+
         auto props = Properties(cmd_args.begin(), cmd_args.end());
         LOG_INFO("Parsed Properties: " + props.to_string());
         auto signal_handler = [](int) {
@@ -46,14 +56,27 @@ int main(int argc, char* argv[]) {
         };
         signal(SIGINT, signal_handler);
         signal(SIGTERM, signal_handler);
+
         LOG_INFO("Starting service: " + cmd_args[Helper::SERVICE]);
+        auto atomdb_config =
+            json_config.at_path("atomdb").get_or<JsonConfig>(Helper::default_atomdb_json_config());
+        shared_ptr<AtomDB> atomdb = nullptr;
         if (props.get_or<string>(Helper::USE_MORK, "false") == "true") {
-            AtomDBSingleton::init(atomdb_api_types::ATOMDB_TYPE::MORKDB,
-                                  Helper::default_atomdb_json_config());
+            atomdb = make_shared<MorkDB>("", atomdb_config);
         } else {
-            AtomDBSingleton::init(atomdb_api_types::ATOMDB_TYPE::REDIS_MONGODB,
-                                  Helper::default_atomdb_json_config());
+            string atomdb_type = atomdb_config.at_path("type").get_or<string>("");
+            if (atomdb_type == "morkdb") {
+                atomdb = make_shared<MorkDB>("", atomdb_config);
+            } else if (atomdb_type == "remotedb") {
+                atomdb = make_shared<RemoteAtomDB>(atomdb_config);
+            } else if (atomdb_type == "redismongodb") {
+                atomdb = make_shared<RedisMongoDB>("", false, atomdb_config);
+            } else {
+                throw runtime_error("Invalid AtomDB type: " + atomdb_type);
+            }
         }
+        AtomDBSingleton::provide(atomdb);
+
         if (Helper::processor_type_from_string(cmd_args[Helper::SERVICE]) ==
             mains::ProcessorType::EVOLUTION_AGENT) {
             LOG_INFO("Initializing Fitness Function Registry statics...");
