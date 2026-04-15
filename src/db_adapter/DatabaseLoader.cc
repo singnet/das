@@ -115,12 +115,12 @@ bool AtomPersistenceJob::thread_one_step() {
             if (this->input_queue->empty()) break;
             auto atom = (Atom*) this->input_queue->dequeue();
             this->count++;
-            if (atom == nullptr) {
-                Utils::error("Dequeued atom is nullptr");
+            if (atom == NULL) {
+                Utils::error("Dequeued atom is NULL");
             }
             this->atoms.push_back(atom);
         }
-        if (!this->atoms.empty() && this->atoms.size() >= BATCH_SIZE) {
+        if (this->atoms.size() >= BATCH_SIZE) {
             LOG_DEBUG("Processing batch of " << this->atoms.size() << " atoms.");
             this->atomdb->add_atoms(this->atoms, false, true);
             LOG_DEBUG("Batch processed and added to AtomDB. Clearing batch from memory.");
@@ -266,7 +266,10 @@ void BatchConsumer::flush_batch() {
 }
 
 void BatchConsumer::send_batch(vector<Atom*> atoms, int batch_id) {
-    auto start = chrono::steady_clock::now();
+    StopWatch timer_success;
+    StopWatch timer_failure;
+    timer_success.start();
+    timer_failure.start();
 
     LOG_DEBUG("Batch #" << batch_id << " started | size: " << atoms.size()
                         << " | thread: " << this_thread::get_id());
@@ -274,26 +277,24 @@ void BatchConsumer::send_batch(vector<Atom*> atoms, int batch_id) {
     try {
         this->atomdb->add_atoms(atoms, false, true);
 
-        auto elapsed =
-            chrono::duration_cast<chrono::milliseconds>(chrono::steady_clock::now() - start).count();
+        timer_success.stop();
 
         int new_total =
             this->total_count.fetch_add(static_cast<int>(atoms.size())) + static_cast<int>(atoms.size());
         this->batches_completed.fetch_add(1);
 
-        LOG_DEBUG("Batch #" << batch_id << " completed | size: " << atoms.size()
-                            << " | time: " << elapsed << "ms"
-                            << " | total_atoms_so_far: " << new_total << " | batches_completed: "
-                            << batches_completed.load() << " | thread: " << this_thread::get_id());
+        LOG_INFO("Batch #" << batch_id << " completed | size: " << atoms.size()
+                           << " | time: " << timer_success.milliseconds() << "ms"
+                           << " | total_atoms_so_far: " << new_total << " | batches_completed: "
+                           << batches_completed.load() << " | thread: " << this_thread::get_id());
 
     } catch (const exception& e) {
-        auto elapsed =
-            chrono::duration_cast<chrono::milliseconds>(chrono::steady_clock::now() - start).count();
+        timer_failure.stop();
 
         this->batches_failed.fetch_add(1);
 
-        LOG_ERROR("Batch #" << batch_id << " FAILED | size: " << atoms.size() << " | time: " << elapsed
-                            << "ms"
+        LOG_ERROR("Batch #" << batch_id << " FAILED | size: " << atoms.size()
+                            << " | time: " << timer_failure.milliseconds() << "ms"
                             << " | error: " << e.what() << " | batches_failed: " << batches_failed.load()
                             << " | thread: " << this_thread::get_id());
 

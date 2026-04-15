@@ -22,7 +22,6 @@ class BoundedSharedQueue {
    private:
     queue<void*> queue_;
     mutex mtx_;
-    condition_variable not_empty_;
     condition_variable not_full_;
     size_t max_size_;
 };
