@@ -4,7 +4,6 @@
 
 // clang-format off
 
-#define LOG_LEVEL DEBUG_LEVEL
 #include "Logger.h"
 
 #include "And.h"
@@ -89,7 +88,7 @@ void MettaParserActions::literal(float value) {
     ParserActions::literal(value);
     if ((this->current_expression_type == AND) || (this->current_expression_type == OR) ||
         (this->current_expression_type == CHAIN)) {
-        Utils::error("Invalid query expression: AND/OR can't operate float literals.");
+        Utils::error("Invalid query expression: AND/OR/CHAIN can't operate float literals.");
         return;
     }
     this->current_expression_size++;
