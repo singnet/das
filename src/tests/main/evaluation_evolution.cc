@@ -27,6 +27,7 @@
 // Symbols
 #define AND_OPERATOR "AND"
 #define OR_OPERATOR "OR"
+#define CHAIN_OPERATOR "CHAIN"
 #define LINK_TEMPLATE "LINK_TEMPLATE"
 #define LINK "LINK"
 #define NODE "NODE"
@@ -570,20 +571,20 @@ static void run(const string& target_predicate_handle,
                 NODE, SYMBOL, EVALUATION,
                 VARIABLE, PREDICATE,
                 VARIABLE, CONCEPT,
-            CHAIN, "0", "1", "2",
+            CHAIN_OPERATOR, "0", "1", "2",
                 VARIABLE, CONCEPT,
                 ATOM, target_concept_handle,
                 LINK_TEMPLATE, EXPRESSION, "3",
                     NODE, SYMBOL, EQUIVALENCE,
-                    VARIABLE, C1,
-                    VARIABLE, C2,
-            CHAIN, "0", "1", "2",
+                    VARIABLE, CONCEPT1,
+                    VARIABLE, CONCEPT2,
+            CHAIN_OPERATOR, "0", "1", "2",
                 VARIABLE, PREDICATE,
                 ATOM, target_predicate_handle,
                 LINK_TEMPLATE, EXPRESSION, "3",
                     NODE, SYMBOL, IMPLICATION,
-                    VARIABLE, P1,
-                    VARIABLE, P2,
+                    VARIABLE, PREDICATE1,
+                    VARIABLE, PREDICATE2,
     };
 
     vector<vector<string>> correlation_query_template = {{

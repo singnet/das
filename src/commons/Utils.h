@@ -61,6 +61,7 @@ class Utils {
     static pair<size_t, size_t> parse_ports_range(string const& str, char delimiter = ':');
     static string join(vector<string> const& tokens, char delimiter);
     static string random_string(size_t length);
+    static string random_string(size_t length, const string &charset);
     static bool is_number(const string& s);
     static int string_to_int(const string& s);
     static unsigned int string_to_uint(const string& s);

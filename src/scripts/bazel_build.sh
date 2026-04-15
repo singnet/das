@@ -44,6 +44,7 @@ if [ "$BUILD_BINARIES" = true ]; then
     BUILD_TARGETS+=" //:evaluation_evolution"
     BUILD_TARGETS+=" //:tests_db_loader"
     BUILD_TARGETS+=" //:database_adapter"
+    BUILD_TARGETS+=" //:inference_toy_kb_generator"
 
     # Move targets
     MOVE_LIB_TARGETS+=" bazel-bin/hyperon_das.so"
@@ -59,6 +60,7 @@ if [ "$BUILD_BINARIES" = true ]; then
     MOVE_BIN_TARGETS+=" bazel-bin/evaluation_evolution"
     MOVE_BIN_TARGETS+=" bazel-bin/tests_db_loader"
     MOVE_BIN_TARGETS+=" bazel-bin/database_adapter"
+    MOVE_BIN_TARGETS+=" bazel-bin/inference_toy_kb_generator"
 
 fi
 

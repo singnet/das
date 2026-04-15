@@ -139,8 +139,12 @@ string Utils::join(const vector<string>& tokens, char delimiter) {
 }
 
 string Utils::random_string(size_t length) {
-    const char charset[] = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
-    const size_t max_index = (sizeof(charset) - 1);
+    string charset = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+    return random_string(length, charset);
+}
+
+string Utils::random_string(size_t length, const string& charset) {
+    const size_t max_index = (charset.size() - 1);
     string result;
     for (size_t i = 0; i < length; i++) {
         result += charset[rand() % max_index];
