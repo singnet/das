@@ -43,18 +43,18 @@ void DatabaseAdapterRunner::run() {
     DatabaseMappingJob db_mapping_job(host, port, database, username, password, mapper_type, queue);
 
     auto producer = make_shared<DedicatedThread>("producer", &db_mapping_job);
-    if (!tables_mapping.empty()) {
-        for (const auto& table_mapping : tables_mapping) {
+    if (!this->tables_mapping.empty()) {
+        for (const auto& table_mapping : this->tables_mapping) {
             db_mapping_job.add_task_table(table_mapping);
         }
     }
-    LOG_DEBUG("Loaded " + to_string(tables_mapping.size()) + " table mappings from context file.");
-    if (!queries_SQL.empty()) {
-        for (size_t i = 0; i < queries_SQL.size(); i++) {
-            db_mapping_job.add_task_query("custom_query_" + to_string(i), queries_SQL[i]);
+    LOG_DEBUG("Loaded " + to_string(this->tables_mapping.size()) + " table mappings from context file.");
+    if (!this->queries_SQL.empty()) {
+        for (size_t i = 0; i < this->queries_SQL.size(); i++) {
+            db_mapping_job.add_task_query("custom_query_" + to_string(i), this->queries_SQL[i]);
         }
     }
-    LOG_DEBUG("Loaded " + to_string(queries_SQL.size()) + " queries from query file.");
+    LOG_DEBUG("Loaded " + to_string(this->queries_SQL.size()) + " queries from query file.");
 
     unsigned int num_threads = 8;
     ThreadPool pool("consumers_pool", num_threads);
@@ -82,7 +82,7 @@ void DatabaseAdapterRunner::run() {
         }
 
         if (queue->empty()) {
-            this_thread::sleep_for(chrono::milliseconds(5));
+            Utils::sleep(5);
         }
     }
 
