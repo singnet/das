@@ -144,10 +144,10 @@ string Utils::random_string(size_t length) {
 }
 
 string Utils::random_string(size_t length, const string& charset) {
-    const size_t max_index = (charset.size() - 1);
+    const size_t size = charset.size();
     string result;
     for (size_t i = 0; i < length; i++) {
-        result += charset[rand() % max_index];
+        result += charset[rand() % size];
     }
     return result;
 }
