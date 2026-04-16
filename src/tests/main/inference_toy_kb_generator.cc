@@ -1,9 +1,9 @@
-#include "Logger.h"
-
-#include <vector>
-#include <string>
-#include <iostream>
 #include <fstream>
+#include <iostream>
+#include <string>
+#include <vector>
+
+#include "Logger.h"
 
 using namespace commons;
 
@@ -100,9 +100,9 @@ bool predicate_bcd(vector<string>& _concept) {
     return false;
 }
 
-bool hidden_predicates(vector<string>& _concept); // Just the header to avoid compilation error
+bool hidden_predicates(vector<string>& _concept);  // Just the header to avoid compilation error
 
-void enforce_bcd_sort(vector<vector<string>> &concepts) {
+void enforce_bcd_sort(vector<vector<string>>& concepts) {
     unsigned int count = 0;
     for (auto& _concept : concepts) {
         if (predicate_bcd(_concept)) {
@@ -113,10 +113,11 @@ void enforce_bcd_sort(vector<vector<string>> &concepts) {
     unsigned int cursor = 0;
     while (count < BCD_SHORT_COUNT) {
         if (cursor == concepts.size()) {
-            Utils::error("Invalid parameters. BCD_SHORT_COUNT = " + std::to_string(BCD_SHORT_COUNT) + " concepts.size() = " + std::to_string(concepts.size()));
+            Utils::error("Invalid parameters. BCD_SHORT_COUNT = " + std::to_string(BCD_SHORT_COUNT) +
+                         " concepts.size() = " + std::to_string(concepts.size()));
             return;
         }
-        if (! hidden_predicates(concepts[cursor])) {
+        if (!hidden_predicates(concepts[cursor])) {
             concepts[cursor][0] = Utils::random_string(CONCEPT_PART_SIZE, "b");
             concepts[cursor][1] = Utils::random_string(CONCEPT_PART_SIZE, "c");
             concepts[cursor][2] = Utils::random_string(CONCEPT_PART_SIZE, "d");
@@ -127,18 +128,14 @@ void enforce_bcd_sort(vector<vector<string>> &concepts) {
     }
 }
 
-bool hidden_predicates(vector<string>& _concept) {
-    return predicate_bcd(_concept);
-}
+bool hidden_predicates(vector<string>& _concept) { return predicate_bcd(_concept); }
 
-void enforce_hidden_predicates(vector<vector<string>> &concepts) {
-    enforce_bcd_sort(concepts);
-}
+void enforce_hidden_predicates(vector<vector<string>>& concepts) { enforce_bcd_sort(concepts); }
 
 // --------------------------------------------------------------------------------
 // Export to metta
 
-void export_contains(ofstream& metta_file, vector<string> &_concept) {
+void export_contains(ofstream& metta_file, vector<string>& _concept) {
     for (string& part : _concept) {
         string predicate_exp = "(" + PREDICATE + " " + predicate_name("contains", part) + ")";
         string concept_exp = "(" + CONCEPT + " " + concept_name(_concept) + ")";
@@ -147,7 +144,7 @@ void export_contains(ofstream& metta_file, vector<string> &_concept) {
     }
 }
 
-void export_start_end(ofstream& metta_file, vector<string> &_concept, bool start_flag) {
+void export_start_end(ofstream& metta_file, vector<string>& _concept, bool start_flag) {
     string tag = (start_flag ? "starts_with" : "ends_with");
     string key = (start_flag ? _concept[0] : _concept[CONCEPT_SIZE - 1]);
     string predicate_exp = "(" + PREDICATE + " " + predicate_name(tag, key) + ")";
@@ -156,16 +153,18 @@ void export_start_end(ofstream& metta_file, vector<string> &_concept, bool start
     metta_file << evaluation_exp << endl;
 }
 
-void export_concept(ofstream& metta_file, vector<string> &_concept) {
+void export_concept(ofstream& metta_file, vector<string>& _concept) {
     export_contains(metta_file, _concept);
     export_start_end(metta_file, _concept, true);
     export_start_end(metta_file, _concept, false);
 }
 
-void export_metta(vector<vector<string>> &concepts) {
-    string file_name = METTA_FILE_PREFIX + "_" + std::to_string(KB_SIZE) + "_" + std::to_string(CONCEPT_SIZE) + "_" + std::to_string(CONCEPT_PART_SIZE) + "_" + CHARSET + "_" + std::to_string(BCD_SHORT_COUNT) + ".metta";
+void export_metta(vector<vector<string>>& concepts) {
+    string file_name = METTA_FILE_PREFIX + "_" + std::to_string(KB_SIZE) + "_" +
+                       std::to_string(CONCEPT_SIZE) + "_" + std::to_string(CONCEPT_PART_SIZE) + "_" +
+                       CHARSET + "_" + std::to_string(BCD_SHORT_COUNT) + ".metta";
     ofstream metta_file(file_name);
-    if (! metta_file.is_open()) {
+    if (!metta_file.is_open()) {
         Utils::error("Unable to open file: " + file_name);
     }
     for (auto& _concept : concepts) {
@@ -178,9 +177,10 @@ void export_metta(vector<vector<string>> &concepts) {
 // Main
 
 int main(int argc, char* argv[]) {
-
     if (argc != 6) {
-        Utils::error("Usage: inference_toy_kb_generator <KB size> <concept size> <concept part size> <charset> <bcd_short count>");
+        Utils::error(
+            "Usage: inference_toy_kb_generator <KB size> <concept size> <concept part size> <charset> "
+            "<bcd_short count>");
     }
 
     unsigned int count = 1;
@@ -196,7 +196,7 @@ int main(int argc, char* argv[]) {
     create_concepts(concepts);
     LOG_INFO("Enforcing BCD-Sort predicate...");
     enforce_hidden_predicates(concepts);
-    //print_concepts(concepts);
+    // print_concepts(concepts);
     LOG_INFO("Exporting MeTTa file...");
     export_metta(concepts);
     LOG_INFO("Finished");
