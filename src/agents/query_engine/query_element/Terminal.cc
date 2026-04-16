@@ -1,6 +1,5 @@
 #include "Terminal.h"
 
-#define LOG_LEVEL INFO_LEVEL
 #include "Hasher.h"
 #include "Link.h"
 #include "Logger.h"
