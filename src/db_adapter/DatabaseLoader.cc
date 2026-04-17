@@ -244,9 +244,9 @@ void BatchConsumer::drain_into_accumulator() {
 void BatchConsumer::flush_batch() {
     while (this->accumulator.size() >= this->batch_size) {
         if (static_cast<size_t>(this->pool.size()) >= this->max_pending_batches) {
-            LOG_DEBUG("flush_batch() | pool_pending_tasks: " << this->pool.size() << " | accumulator_size: "
-                                                             << this->accumulator.size()
-                                                             << " | waiting for pool to drain");
+            LOG_DEBUG("flush_batch() | pool_pending_tasks: "
+                      << this->pool.size() << " | accumulator_size: " << this->accumulator.size()
+                      << " | waiting for pool to drain");
             return;
         }
 
@@ -261,7 +261,8 @@ void BatchConsumer::flush_batch() {
                                         << " | pool_pending_tasks: " << this->pool.size()
                                         << " | total_dispatched: " << this->batches_dispatched.load());
 
-        this->pool.enqueue([this, b = move(batch), batch_id]() mutable { send_batch(move(b), batch_id); });
+        this->pool.enqueue(
+            [this, b = move(batch), batch_id]() mutable { send_batch(move(b), batch_id); });
     }
 }
 
@@ -295,8 +296,8 @@ void BatchConsumer::send_batch(vector<Atom*> atoms, int batch_id) {
 
         LOG_ERROR("Batch #" << batch_id << " FAILED | size: " << atoms.size()
                             << " | time: " << timer_failure.milliseconds() << "ms"
-                            << " | error: " << e.what() << " | batches_failed: " << this->batches_failed.load()
-                            << " | thread: " << this_thread::get_id());
+                            << " | error: " << e.what() << " | batches_failed: "
+                            << this->batches_failed.load() << " | thread: " << this_thread::get_id());
 
         Utils::error("Error in batch #" + to_string(batch_id) + ": " + string(e.what()));
     }
