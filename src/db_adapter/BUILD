@@ -6,12 +6,14 @@ cc_library(
     name = "db_adapter_lib",
     includes = ["."],
     deps = [
+        ":bounded_shared_queue",
         ":context_loader",
-        ":data_mapper",
-        ":data_types",
+        ":database_adapter_runner",
         ":database_connection",
+        ":database_loader",
+        ":database_mapper",
+        ":database_types",
         ":database_wrapper",
-        ":pipeline",
         "//commons:commons_lib",
         "//commons/atoms:atoms_lib",
         "//db_adapter/postgres:postgres_lib",
@@ -19,8 +21,8 @@ cc_library(
 )
 
 cc_library(
-    name = "data_types",
-    hdrs = ["DataTypes.h"],
+    name = "database_types",
+    hdrs = ["DatabaseTypes.h"],
     includes = ["."],
     deps = [
         "//commons:commons_lib",
@@ -29,12 +31,12 @@ cc_library(
 )
 
 cc_library(
-    name = "data_mapper",
-    srcs = ["DataMapper.cc"],
-    hdrs = ["DataMapper.h"],
+    name = "database_mapper",
+    srcs = ["DatabaseMapper.cc"],
+    hdrs = ["DatabaseMapper.h"],
     includes = ["."],
     deps = [
-        ":data_types",
+        ":database_types",
         "//commons:commons_lib",
         "//commons/atoms:atoms_lib",
     ],
@@ -46,9 +48,9 @@ cc_library(
     hdrs = ["DatabaseWrapper.h"],
     includes = ["."],
     deps = [
-        ":data_mapper",
-        ":data_types",
         ":database_connection",
+        ":database_mapper",
+        ":database_types",
         "//commons:commons_lib",
         "//commons/atoms:atoms_lib",
     ],
@@ -60,7 +62,7 @@ cc_library(
     hdrs = ["ContextLoader.h"],
     includes = ["."],
     deps = [
-        ":data_types",
+        ":database_types",
         "//commons:commons_lib",
         "@nlohmann_json//:json",
     ],
@@ -72,7 +74,7 @@ cc_library(
     hdrs = ["DatabaseConnection.h"],
     includes = ["."],
     deps = [
-        ":data_types",
+        ":database_types",
         "//commons:commons_lib",
         "//commons/atoms:atoms_lib",
         "//commons/processor:processor_lib",
@@ -80,17 +82,42 @@ cc_library(
 )
 
 cc_library(
-    name = "pipeline",
-    srcs = ["Pipeline.cc"],
-    hdrs = ["Pipeline.h"],
+    name = "database_loader",
+    srcs = ["DatabaseLoader.cc"],
+    hdrs = ["DatabaseLoader.h"],
     includes = ["."],
     deps = [
-        ":data_types",
+        ":bounded_shared_queue",
+        ":database_types",
         ":database_wrapper",
         "//atomdb",
         "//atomdb:atomdb_singleton",
         "//commons:commons_lib",
         "//commons/atoms:atoms_lib",
         "//db_adapter/postgres:postgres_lib",
+    ],
+)
+
+cc_library(
+    name = "bounded_shared_queue",
+    srcs = ["BoundedSharedQueue.cc"],
+    hdrs = ["BoundedSharedQueue.h"],
+    includes = ["."],
+    deps = [
+        "//commons:commons_lib",
+    ],
+)
+
+cc_library(
+    name = "database_adapter_runner",
+    srcs = ["DatabaseAdapterRunner.cc"],
+    hdrs = ["DatabaseAdapterRunner.h"],
+    includes = ["."],
+    deps = [
+        ":bounded_shared_queue",
+        ":database_loader",
+        ":database_types",
+        "//commons:commons_lib",
+        "//commons/atoms:atoms_lib",
     ],
 )

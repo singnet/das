@@ -72,15 +72,6 @@ cc_library(
 )
 
 cc_library(
-    name = "database_adapter_main_lib",
-    srcs = ["database_adapter_main.cc"],
-    deps = [
-        "//atomdb:atomdb_singleton",
-        "//db_adapter:db_adapter_lib",
-    ],
-)
-
-cc_library(
     name = "inference_toy_kb_generator_lib",
     srcs = ["inference_toy_kb_generator.cc"],
     deps = [

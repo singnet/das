@@ -6,9 +6,9 @@
 #include <string>
 #include <vector>
 
-#include "DataMapper.h"
-#include "DataTypes.h"
 #include "DatabaseConnection.h"
+#include "DatabaseMapper.h"
+#include "DatabaseTypes.h"
 
 using namespace std;
 using namespace db_adapter;
