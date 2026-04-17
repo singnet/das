@@ -184,7 +184,8 @@ void export_concept(ofstream& metta_file, vector<string>& _concept) {
 void export_metta(vector<vector<string>>& concepts) {
     string file_name = METTA_FILE_PREFIX + "_" + std::to_string(KB_SIZE) + "_" +
                        std::to_string(CONCEPT_SIZE) + "_" + std::to_string(CONCEPT_PART_SIZE) + "_" +
-                       CHARSET + "_" + std::to_string(BCD_SORT_COUNT) + "_" + std::to_string(SORT_COUNT) + ".metta";
+                       CHARSET + "_" + std::to_string(BCD_SORT_COUNT) + "_" +
+                       std::to_string(SORT_COUNT) + ".metta";
     ofstream metta_file(file_name);
     if (!metta_file.is_open()) {
         Utils::error("Unable to open file: " + file_name);
