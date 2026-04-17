@@ -27,6 +27,7 @@
 // Symbols
 #define AND_OPERATOR "AND"
 #define OR_OPERATOR "OR"
+#define CHAIN_OPERATOR "CHAIN"
 #define LINK_TEMPLATE "LINK_TEMPLATE"
 #define LINK "LINK"
 #define NODE "NODE"
@@ -565,38 +566,25 @@ static void run(const string& target_predicate_handle,
     };
 
     vector<string> query_to_evolve = {
-        OR_OPERATOR, "3",
-            AND_OPERATOR, "2",
-                LINK_TEMPLATE, EXPRESSION, "3",
-                    NODE, SYMBOL, EVALUATION,
-                    ATOM, target_predicate_handle,
-                    VARIABLE, CONCEPT,
-                LINK_TEMPLATE, EXPRESSION, "3",
-                    NODE, SYMBOL, EQUIVALENCE,
-                    VARIABLE, CONCEPT,
-                    ATOM, target_concept_handle,
-            AND_OPERATOR, "2",
-                LINK_TEMPLATE, EXPRESSION, "3",
-                    NODE, SYMBOL, EVALUATION,
-                    VARIABLE, PREDICATE,
-                    ATOM, target_concept_handle,
-                LINK_TEMPLATE, EXPRESSION, "3",
-                    NODE, SYMBOL, IMPLICATION,
-                    VARIABLE, PREDICATE,
-                    ATOM, target_predicate_handle,
-            AND_OPERATOR, "3",
-                LINK_TEMPLATE, EXPRESSION, "3",
-                    NODE, SYMBOL, EVALUATION,
-                    VARIABLE, PREDICATE,
-                    VARIABLE, CONCEPT,
+        AND_OPERATOR, "3",
+            LINK_TEMPLATE, EXPRESSION, "3",
+                NODE, SYMBOL, EVALUATION,
+                VARIABLE, PREDICATE,
+                VARIABLE, CONCEPT,
+            CHAIN_OPERATOR, "0", "1", "2",
+                VARIABLE, CONCEPT,
+                ATOM, target_concept_handle,
                 LINK_TEMPLATE, EXPRESSION, "3",
                     NODE, SYMBOL, EQUIVALENCE,
-                    VARIABLE, CONCEPT,
-                    ATOM, target_concept_handle,
+                    VARIABLE, CONCEPT1,
+                    VARIABLE, CONCEPT2,
+            CHAIN_OPERATOR, "0", "1", "2",
+                VARIABLE, PREDICATE,
+                ATOM, target_predicate_handle,
                 LINK_TEMPLATE, EXPRESSION, "3",
                     NODE, SYMBOL, IMPLICATION,
-                    VARIABLE, PREDICATE,
-                    ATOM, target_predicate_handle,
+                    VARIABLE, PREDICATE1,
+                    VARIABLE, PREDICATE2,
     };
 
     vector<vector<string>> correlation_query_template = {{
@@ -682,11 +670,12 @@ static void run(const string& target_predicate_handle,
     LOG_INFO("Pre-processing...");
     LOG_INFO("Initializing STI");
     attention_allocation_query(initialization_STI_query, context);
-    LOG_INFO("Building initial custom links");
-    build_links(
-        custom_initial_equivalence_query, context, 0, target_concept_handle, build_equivalence_link);
-    build_links(
-        custom_initial_implication_query, context, 0, target_predicate_handle, build_implication_link);
+    // LOG_INFO("Building initial custom links");
+    // build_links(
+    //     custom_initial_equivalence_query, context, 0, target_concept_handle, build_equivalence_link);
+    // build_links(
+    //     custom_initial_implication_query, context, 0, target_predicate_handle,
+    //     build_implication_link);
     LOG_INFO("Pre-processing complete");
 
     for (unsigned int i = 0; i < NUM_ITERATIONS; i++) {
