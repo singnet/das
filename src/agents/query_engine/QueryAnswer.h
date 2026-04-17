@@ -98,11 +98,6 @@ class QueryAnswerElement {
 class QueryAnswer {
    public:
     /**
-     * Handles which are the constituents of this QueryAnswer.
-     */
-    vector<string> handles;
-
-    /**
      * Estimated importance of this QueryAnswer based on the importance of its constituents.
      */
     double importance;
@@ -238,7 +233,16 @@ class QueryAnswer {
                        map<string, QueryAnswerElement>& replacements,
                        vector<string>& new_query);
 
+    unsigned int get_handles_size();
+    vector<string>& get_handles_vector();
+
    private:
+
+    /**
+     * Handles which are the constituents of this QueryAnswer.
+     */
+    vector<vector<string>> handles;
+
     string token_representation;
 };
 

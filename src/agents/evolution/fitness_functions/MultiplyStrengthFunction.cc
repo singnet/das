@@ -19,7 +19,7 @@ float MultiplyStrengthFunction::eval(shared_ptr<QueryAnswer> query_answer) {
 
     LOG_DEBUG("Evaluating strength for " << query_answer->to_string());
 
-    for (const auto& handle : query_answer->handles) {
+    for (const auto& handle : query_answer->get_handles_vector()) {
         auto atom = db->get_atom(handle);
         LOG_DEBUG("Evaluating strength for handle: " << handle);
         LOG_DEBUG("MeTTa expression: " << atom->metta_representation(*db.get()));

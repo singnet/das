@@ -64,7 +64,7 @@ bool ImplicationProcessor::link_exists(const string& handle1, const string& hand
 vector<shared_ptr<Link>> ImplicationProcessor::process_query(shared_ptr<QueryAnswer> query_answer,
                                                              optional<vector<string>> extra_params) {
     // P1 P2
-    if (query_answer->handles.size() < 2) {
+    if (query_answer->get_handles_size() < 2) {
         LOG_INFO("Insufficient handles provided, skipping implication processing.");
         LOG_DEBUG("QueryAnswer: " << query_answer->to_string());
         return {};

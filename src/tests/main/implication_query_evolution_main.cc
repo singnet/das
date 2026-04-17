@@ -134,12 +134,12 @@ static double get_strength(string handle) {
 */
 
 static void print_answer(shared_ptr<QueryAnswer> query_answer) {
-    unsigned int chain_size = query_answer->handles.size();
+    unsigned int chain_size = query_answer->get_handles_size();
     cout << fixed << setw(6) << setprecision(4) << setfill('0');
     cout << query_answer->strength << " [" << to_string(chain_size) << "]: ";
     bool first_flag = true;
     string source_predicate, target_predicate, last_predicate;
-    for (string implication_handle : query_answer->handles) {
+    for (string implication_handle : query_answer->get_handles_vector()) {
         shared_ptr<Link> implication_link = dynamic_pointer_cast<Link>(db->get_atom(implication_handle));
         if (first_flag) {
             first_flag = false;
@@ -373,10 +373,10 @@ static void compute_counts(const vector<vector<string>>& query_tokens,
             if ((query_answer = proxy[i]->pop()) == NULL) {
                 Utils::sleep();
             } else {
-                if (query_answer->handles.size() == 1) {
+                if (query_answer->get_handles_size() == 1) {
                     d = 1.0;
                 } else {
-                    string link_handle = query_answer->handles[1];
+                    string link_handle = query_answer->get_handles_vector()[1];
                     auto link = db->get_atom(link_handle);
                     d = link->custom_attributes.get<double>(STRENGTH);
                 }
@@ -455,8 +455,8 @@ static Link add_predicate(const string& predicate_name) {
 }
 
 static void build_implication_link(shared_ptr<QueryAnswer> query_answer, const string& context) {
-    if (query_answer->handles[0] == query_answer->handles[1]) {
-        LOG_DEBUG("Skipping because handles are the same: " + query_answer->handles[0]);
+    if (query_answer->get_handles_vector()[0] == query_answer->get_handles_vector()[1]) {
+        LOG_DEBUG("Skipping because handles are the same: " + query_answer->get_handles_vector()[0]);
         return;
     }
 
@@ -509,8 +509,8 @@ static void build_implication_link(shared_ptr<QueryAnswer> query_answer, const s
 }
 
 static void build_and_predicate_link(shared_ptr<QueryAnswer> query_answer, const string& context) {
-    if (query_answer->handles[0] == query_answer->handles[1]) {
-        LOG_DEBUG("Skipping because handles are the same: " + query_answer->handles[0]);
+    if (query_answer->get_handles_vector()[0] == query_answer->get_handles_vector()[1]) {
+        LOG_DEBUG("Skipping because handles are the same: " + query_answer->get_handles_vector()[0]);
         return;
     }
 
@@ -526,8 +526,8 @@ static void build_and_predicate_link(shared_ptr<QueryAnswer> query_answer, const
 }
 
 static void build_equivalence_link(shared_ptr<QueryAnswer> query_answer, const string& context) {
-    if (query_answer->handles[0] == query_answer->handles[1]) {
-        LOG_DEBUG("Skipping because handles are the same: " + query_answer->handles[0]);
+    if (query_answer->get_handles_vector()[0] == query_answer->get_handles_vector()[1]) {
+        LOG_DEBUG("Skipping because handles are the same: " + query_answer->get_handles_vector()[0]);
         return;
     }
 
@@ -583,7 +583,7 @@ static void build_links(const vector<string>& query,
             Utils::sleep(10000);
         } else {
             if (++count <= LINK_BUILDING_QUERY_SIZE) {
-                if (query_answer->handles.size() == 2) {
+                if (query_answer->get_handles_size() == 2) {
                     LOG_DEBUG("Processing query answer " + to_string(count) + ": " +
                               query_answer->to_string());
                     build_link(query_answer, context);

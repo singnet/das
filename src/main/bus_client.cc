@@ -96,7 +96,7 @@ int main(int argc, char* argv[]) {
                 shared_ptr<QueryAnswer> answer;
                 while ((answer = query_proxy->pop()) != nullptr) {
                     LOG_INFO("Received answer: " + answer->to_string());
-                    for (string handle : answer->handles) {
+                    for (string handle : answer->get_handles_vector()) {
                         LOG_INFO(answer->metta_expression[handle]);
                     }
                 }
