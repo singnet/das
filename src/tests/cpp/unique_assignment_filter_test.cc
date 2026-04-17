@@ -53,12 +53,13 @@ void check_query_answer(string tag,
                         const array<const char*, 2>& handles) {
     cout << "check_query_answer(" + tag + ")" << endl;
     EXPECT_TRUE(double_equals(query_answer->importance, importance));
-    EXPECT_EQ(query_answer->handles.size(), 1);
+    EXPECT_EQ(query_answer->get_handles_size(), 1);
     set<string> set_handles;
     for (unsigned int i = 0; i < handles_size; i++) {
         set_handles.insert(handles[i]);
     }
-    EXPECT_TRUE(set<string>(query_answer->handles.begin(), query_answer->handles.end()) == set_handles);
+    EXPECT_TRUE(set<string>(query_answer->get_handles_vector().begin(),
+                            query_answer->get_handles_vector().end()) == set_handles);
 }
 
 TEST(UniqueAssignmentFilter, basics) {

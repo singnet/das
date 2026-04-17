@@ -47,7 +47,7 @@ static vector<string> build_equivalence_query(const string& handle) {
 vector<shared_ptr<Link>> EquivalenceProcessor::process_query(shared_ptr<QueryAnswer> query_answer,
                                                              optional<vector<string>> extra_params) {
     // C1 C2
-    if (query_answer->handles.size() < 2) {
+    if (query_answer->get_handles_size() < 2) {
         LOG_INFO("Insufficient handles provided, skipping equivalence processing.");
         return {};
     }

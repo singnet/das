@@ -178,13 +178,13 @@ static bool check_answer(QueryAnswer* query_answer) {
     string destiny = get_node_string(query_answer->get(Chain::DESTINY_VARIABLE_NAME));
     EXPECT_TRUE((origin == "S") || (origin == "T"));
     if (origin == "S") {
-        EXPECT_TRUE(get_link_string(query_answer->handles.front(), 1) == "S");
+        EXPECT_TRUE(get_link_string(query_answer->get_handles_vector().front(), 1) == "S");
     } else {
-        EXPECT_TRUE(get_link_string(query_answer->handles.back(), 2) == "T");
+        EXPECT_TRUE(get_link_string(query_answer->get_handles_vector().back(), 2) == "T");
     }
     bool first = true;
     string cursor;
-    for (string handle : query_answer->handles) {
+    for (string handle : query_answer->get_handles_vector()) {
         EXPECT_TRUE(ALL_LINKS.find(handle) != ALL_LINKS.end());
         if (first) {
             first = false;
@@ -200,7 +200,7 @@ static string answer_path_to_string(QueryAnswer* query_answer) {
     bool first = true;
     string answer = "";
     string cursor;
-    for (string handle : query_answer->handles) {
+    for (string handle : query_answer->get_handles_vector()) {
         if (first) {
             first = false;
             answer = cursor = get_link_string(handle, 1);

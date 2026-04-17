@@ -141,7 +141,7 @@ void QueryEvolutionProcessor::sample_population(
             }
             LOG_DEBUG("Sampling: " + answer->to_string());
             population.push_back(make_pair(answer, fitness));
-            this->visited_individuals.insert(Hasher::composite_handle(answer->handles));
+            this->visited_individuals.insert(Hasher::composite_handle(answer->get_handles_vector()));
         } else {
             Utils::sleep();
         }
@@ -255,10 +255,11 @@ void QueryEvolutionProcessor::select_best_individuals(
     }
     float sum = 0;
     for (unsigned int i = 0; i < count; i++) {
-        LOG_INFO("Selected: " + (proxy->populate_metta_mapping(selected[i].first.get()),
-                                 sum += selected[i].second,
-                                 selected[i].first->metta_expression[selected[i].first->handles[0]] +
-                                     " " + std::to_string(selected[i].first->strength)));
+        LOG_INFO("Selected: " +
+                 (proxy->populate_metta_mapping(selected[i].first.get()),
+                  sum += selected[i].second,
+                  selected[i].first->metta_expression[selected[i].first->get_handles_vector()[0]] + " " +
+                      std::to_string(selected[i].first->strength)));
     }
     LOG_INFO("Generation: " + std::to_string(this->generation_count) +
              " - Average fitness in selected group: " + std::to_string(sum / count));
@@ -401,7 +402,7 @@ void QueryEvolutionProcessor::stimulate(shared_ptr<QueryEvolutionProxy> proxy,
     }
     /*
     for (auto pair : selected) {
-        for (string handle : pair.first->handles) {
+        for (string handle : pair.first->get_handles_vector()) {
             unsigned int value = (unsigned int) std::lround(pair.second * importance_tokens);
             if (handle_count.find(handle) == handle_count.end()) {
                 handle_count[handle] = value;

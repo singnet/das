@@ -282,8 +282,8 @@ void run(string atomdb_type,
                 continue;
             }
             // cout << query_answer->to_string() << endl;
-            // cout << handle_to_atom(query_answer->handles[0]) << endl;
-            // cout << handle_to_atom(query_answer->handles[1]) << endl;
+            // cout << handle_to_atom(query_answer->get_handles_vector()[0]) << endl;
+            // cout << handle_to_atom(query_answer->get_handles_vector()[1]) << endl;
             sentence_document1 = db->get_atom_document(query_answer->assignment.get(sentence1.c_str()));
             sentence_document2 = db->get_atom_document(query_answer->assignment.get(sentence2.c_str()));
             sentence_symbol_document1 = db->get_atom_document(sentence_document1->get("targets", 1));

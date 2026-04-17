@@ -190,7 +190,7 @@ void BaseQueryProxy::recursive_metta_mapping(string handle, map<string, string>&
 }
 
 void BaseQueryProxy::populate_metta_mapping(QueryAnswer* answer) {
-    for (string handle : answer->handles) {
+    for (string handle : answer->get_handles_vector()) {
         recursive_metta_mapping(handle, answer->metta_expression);
     }
 }
