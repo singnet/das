@@ -149,6 +149,7 @@ void check_query(const string& query_tag,
 
 void check_query_chain(const string& query_tag,
                        const vector<string>& query,
+                       const string& metta_expression,
                        const string& source,
                        const string& target,
                        unsigned int expected_count,
@@ -168,6 +169,16 @@ void check_query_chain(const string& query_tag,
     proxy1->parameters[PatternMatchingQueryProxy::POSITIVE_IMPORTANCE_FLAG] = positive_importance;
     proxy1->parameters[PatternMatchingQueryProxy::UNIQUE_VALUE_FLAG] = unique_value_flag;
     LOG_INFO("proxy1: " + proxy1->to_string());
+
+    vector<string> metta_query = {metta_expression};
+    shared_ptr<PatternMatchingQueryProxy> proxy2(new PatternMatchingQueryProxy(metta_query, context));
+    proxy2->parameters[BaseQueryProxy::USE_METTA_AS_QUERY_TOKENS] = true;
+    proxy2->parameters[BaseQueryProxy::UNIQUE_ASSIGNMENT_FLAG] = unique_assignment;
+    proxy2->parameters[BaseQueryProxy::ATTENTION_UPDATE_FLAG] = update_attention_broker;
+    proxy2->parameters[BaseQueryProxy::POPULATE_METTA_MAPPING] = false;
+    proxy2->parameters[PatternMatchingQueryProxy::POSITIVE_IMPORTANCE_FLAG] = positive_importance;
+    proxy2->parameters[PatternMatchingQueryProxy::UNIQUE_VALUE_FLAG] = unique_value_flag;
+    LOG_INFO("proxy2: " + proxy2->to_string());
 
     unsigned int count = 0;
     shared_ptr<QueryAnswer> query_answer;
@@ -203,6 +214,36 @@ void check_query_chain(const string& query_tag,
     // giving time to the server to close the previous connection
     // otherwise the test fails with "Node ID already in the network"
     Utils::sleep();
+
+    if (metta_expression != "") {
+        client_bus->issue_bus_command(proxy2);
+        count = 0;
+        while (!proxy2->finished()) {
+            while (!(query_answer = proxy2->pop())) {
+                if (proxy2->finished()) {
+                    break;
+                } else {
+                    Utils::sleep();
+                }
+            }
+            if (query_answer) {
+                LOG_INFO(">>>>>>>>>> " << query_answer->assignment.to_string());
+                for (auto pair : query_answer->assignment.table) {
+                    LOG_INFO(">>>>>>>>>>>>>> " << pair.first << " " << handle_to_atom(pair.second));
+                }
+                if (((query_answer->get(Chain::ORIGIN_VARIABLE_NAME) == source) &&
+                     (query_answer->get(Chain::DESTINY_VARIABLE_NAME) == target)) ||
+                    ((query_answer->get(Chain::ORIGIN_VARIABLE_NAME) == target) &&
+                     (query_answer->get(Chain::DESTINY_VARIABLE_NAME) == source))) {
+                    count++;
+                }
+                EXPECT_TRUE((query_answer->get(Chain::ORIGIN_VARIABLE_NAME) == source) ||
+                            (query_answer->get(Chain::ORIGIN_VARIABLE_NAME) == target));
+            }
+        }
+        EXPECT_EQ(count, expected_count);
+        EXPECT_EQ(proxy2->error_flag, error_flag);
+    }
 }
 
 TEST(PatternMatchingQuery, queries) {
@@ -326,6 +367,7 @@ TEST(PatternMatchingQuery, queries) {
                 "VARIABLE", "v1",
                 "VARIABLE", "v2",
     };
+    string q8m = "(chain 0 1 2 \"chimp\" \"ent\" (Similarity $v1 $v2))";
     int q8_expected_count = 2;
 
     vector<string> q9 = {
@@ -342,6 +384,7 @@ TEST(PatternMatchingQuery, queries) {
                     "VARIABLE", "v1",
                     "VARIABLE", "v2",
     };
+    string q9m = "(chain 0 1 2 \"ent\" \"animal\" (or (Similarity $v1 $v2) (Inheritance $v1 $v2)))";
     int q9_expected_count = 5;
 
     vector<string> q10 = {
@@ -363,6 +406,7 @@ TEST(PatternMatchingQuery, queries) {
                     "VARIABLE", "v1",
                     "VARIABLE", "v2"
     };
+    string q10m = "(chain 1 1 2 \"chimp\" \"ent\" (and (or (Inheritance $v1 \"mammal\") (Inheritance $v2 \"mammal\")) (Similarity $v1 $v2)))";
     int q10_expected_count = 2;
 
     // Regular queries
@@ -374,9 +418,9 @@ TEST(PatternMatchingQuery, queries) {
     check_query("q5", q5, q5m, q5_expected_count, client_bus, "PatternMatchingQuery.queries", false, false, false, false, false);
     check_query("q6", q6, q6m, q6_expected_count, client_bus, "PatternMatchingQuery.queries", false, true, false, false, false);
     check_query("q7", q7, q7m, q7_expected_count, client_bus, "PatternMatchingQuery.queries", false, true, false, false, false);
-    check_query_chain("q8", q8, Hasher::node_handle("Symbol", "\"chimp\""), Hasher::node_handle("Symbol", "\"ent\""), q8_expected_count, client_bus, "PatternMatchingQuery.queries", false, true, false, false, false);
-    check_query_chain("q9", q9, Hasher::node_handle("Symbol", "\"ent\""), Hasher::node_handle("Symbol", "\"animal\""), q9_expected_count, client_bus, "PatternMatchingQuery.queries", false, true, false, false, false);
-    check_query_chain("q10", q10, Hasher::node_handle("Symbol", "\"chimp\""), Hasher::node_handle("Symbol", "\"ent\""), q10_expected_count, client_bus, "PatternMatchingQuery.queries", false, true, false, false, false);
+    check_query_chain("q8", q8, q8m, Hasher::node_handle("Symbol", "\"chimp\""), Hasher::node_handle("Symbol", "\"ent\""), q8_expected_count, client_bus, "PatternMatchingQuery.queries", false, true, false, false, false);
+    check_query_chain("q9", q9, q9m, Hasher::node_handle("Symbol", "\"ent\""), Hasher::node_handle("Symbol", "\"animal\""), q9_expected_count, client_bus, "PatternMatchingQuery.queries", false, true, false, false, false);
+    check_query_chain("q10", q10, q10m, Hasher::node_handle("Symbol", "\"chimp\""), Hasher::node_handle("Symbol", "\"ent\""), q10_expected_count, client_bus, "PatternMatchingQuery.queries", false, true, false, false, false);
 
     // Importance filtering
     // XXX AttentionBroker is being revised so its dynamics is a bit unpredictable right now

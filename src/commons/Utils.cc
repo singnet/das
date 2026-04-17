@@ -139,11 +139,15 @@ string Utils::join(const vector<string>& tokens, char delimiter) {
 }
 
 string Utils::random_string(size_t length) {
-    const char charset[] = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
-    const size_t max_index = (sizeof(charset) - 1);
+    string charset = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+    return random_string(length, charset);
+}
+
+string Utils::random_string(size_t length, const string& charset) {
+    const size_t size = charset.size();
     string result;
     for (size_t i = 0; i < length; i++) {
-        result += charset[rand() % max_index];
+        result += charset[rand() % size];
     }
     return result;
 }
@@ -178,12 +182,11 @@ int Utils::string_to_int(const string& s) {
 
 unsigned int Utils::string_to_uint(const string& s) {
     if (!is_number(s)) {
-        throw invalid_argument("Can not convert string to unsigned int: Invalid arguments (" + s + ")");
+        Utils::error("Can not convert string to unsigned int: Invalid arguments (" + s + ")");
     }
     int n = stoi(s);
     if (n < 0) {
-        throw invalid_argument("Can not convert string to unsigned int: Invalid negative number (" + s +
-                               ")");
+        Utils::error("Can not convert string to unsigned int: Invalid negative number (" + s + ")");
     }
     return (unsigned int) n;
 }

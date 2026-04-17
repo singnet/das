@@ -190,6 +190,17 @@ cc_binary(
 )
 
 cc_binary(
+    name = "inference_toy_kb_generator",
+    srcs = [],
+    defines = ["BAZEL_BUILD"],
+    linkstatic = 1,
+    deps = [
+        "//commons:commons_lib",
+        "//tests/main:inference_toy_kb_generator_lib",
+    ],
+)
+
+cc_binary(
     name = "database_adapter",
     srcs = [],
     defines = ["BAZEL_BUILD"],
