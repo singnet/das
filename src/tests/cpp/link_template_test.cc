@@ -19,7 +19,7 @@ TEST(LinkTemplate, basics) {
     string server_node_id = "SERVER";
     QueryNodeServer server_node(server_node_id);
 
-    AtomDBSingleton::init(atomdb_api_types::ATOMDB_TYPE::REDIS_MONGODB, test_atomdb_json_config());
+    AtomDBSingleton::init(test_atomdb_json_config());
     string expression = "Expression";
     string symbol = "Symbol";
 

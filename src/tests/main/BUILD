@@ -76,6 +76,7 @@ cc_library(
         "//agents/query_engine:query_engine_lib",
         "//atomdb:atomdb_api_types",
         "//atomdb:atomdb_singleton",
+        "//commons:commons_lib",
         "//hasher:hasher_lib",
         "//service_bus:service_bus_lib",
         "//tests/cpp/test_commons:test_atomdb_json_config",

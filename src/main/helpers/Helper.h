@@ -74,7 +74,5 @@ class Helper {
         const string& processor_type, ServiceCallerType caller_type = ServiceCallerType::UNKNOWN);
 
     static ProcessorType processor_type_from_string(const string& type_str);
-
-    static commons::JsonConfig default_atomdb_json_config();
 };
 }  // namespace mains

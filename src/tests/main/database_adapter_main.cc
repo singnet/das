@@ -152,7 +152,7 @@ int main(int argc, char* argv[]) {
         }
     }
 
-    AtomDBSingleton::init(atomdb_api_types::ATOMDB_TYPE::REDIS_MONGODB, test_atomdb_json_config());
+    AtomDBSingleton::init(test_atomdb_json_config());
 
     run(host, port, database, username, password, tables_mapping, queries_SQL, mapper_type);
 

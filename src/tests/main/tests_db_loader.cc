@@ -42,15 +42,7 @@ int main(int argc, char* argv[]) {
     string atomdb_type = "redismongodb";
     if (argc > 2) atomdb_type = string(argv[2]);
 
-    if (atomdb_type == "redismongodb") {
-        AtomDBSingleton::provide(
-            shared_ptr<AtomDB>(new RedisMongoDB(context, false, test_atomdb_json_config())));
-    } else if (atomdb_type == "morkdb") {
-        AtomDBSingleton::provide(shared_ptr<AtomDB>(new MorkDB(context, test_atomdb_json_config())));
-    } else {
-        Utils::error("Invalid atomdb type: " + atomdb_type);
-        return 1;
-    }
+    AtomDBSingleton::init(test_atomdb_json_config(atomdb_type));
 
     signal(SIGINT, &ctrl_c_handler);
     signal(SIGTERM, &ctrl_c_handler);

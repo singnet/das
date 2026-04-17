@@ -2,6 +2,7 @@
 
 #include "FitnessFunctionRegistry.h"
 #include "Helper.h"
+#include "JsonConfig.h"
 #include "JsonConfigParser.h"
 #include "Logger.h"
 #include "Properties.h"
@@ -58,24 +59,8 @@ int main(int argc, char* argv[]) {
         signal(SIGTERM, signal_handler);
 
         LOG_INFO("Starting service: " + cmd_args[Helper::SERVICE]);
-        auto atomdb_config =
-            json_config.at_path("atomdb").get_or<JsonConfig>(Helper::default_atomdb_json_config());
-        shared_ptr<AtomDB> atomdb = nullptr;
-        if (props.get_or<string>(Helper::USE_MORK, "false") == "true") {
-            atomdb = make_shared<MorkDB>("", atomdb_config);
-        } else {
-            string atomdb_type = atomdb_config.at_path("type").get_or<string>("");
-            if (atomdb_type == "morkdb") {
-                atomdb = make_shared<MorkDB>("", atomdb_config);
-            } else if (atomdb_type == "remotedb") {
-                atomdb = make_shared<RemoteAtomDB>(atomdb_config);
-            } else if (atomdb_type == "redismongodb") {
-                atomdb = make_shared<RedisMongoDB>("", false, atomdb_config);
-            } else {
-                throw runtime_error("Invalid AtomDB type: " + atomdb_type);
-            }
-        }
-        AtomDBSingleton::provide(atomdb);
+        auto atomdb_config = json_config.at_path("atomdb").get_or<JsonConfig>(JsonConfig());
+        AtomDBSingleton::init(atomdb_config);
 
         if (Helper::processor_type_from_string(cmd_args[Helper::SERVICE]) ==
             mains::ProcessorType::EVOLUTION_AGENT) {

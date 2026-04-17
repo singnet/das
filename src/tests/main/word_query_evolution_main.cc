@@ -363,11 +363,8 @@ int main(int argc, char* argv[]) {
     string client_id = argv[1];
     string server_id = argv[2];
     auto ports_range = Utils::parse_ports_range(argv[3]);
-    atomdb_api_types::ATOMDB_TYPE atomdb_type = atomdb_api_types::ATOMDB_TYPE::REDIS_MONGODB;
-    if (argv[4] == string("--use-mork")) {
-        atomdb_type = atomdb_api_types::ATOMDB_TYPE::MORKDB;
-    }
-    AtomDBSingleton::init(atomdb_type, test_atomdb_json_config());
+    string atomdb_type_str = argv[4];
+    AtomDBSingleton::init(test_atomdb_json_config(atomdb_type_str));
 
     string context_tag = argv[5];
     string word_tag1 = argv[6];

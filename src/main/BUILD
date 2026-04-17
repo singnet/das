@@ -19,6 +19,7 @@ cc_library(
     deps = [
         "//atomdb:atomdb_singleton",
         "//attention_broker:attention_broker_lib",
+        "//commons:commons_lib",
         "//main/helpers:main_helper_runner_helper_lib",
         "@com_github_singnet_das_proto//:attention_broker_cc_grpc",
         "@grpc//:grpc++",

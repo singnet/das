@@ -14,6 +14,7 @@
 #include "CountLetterFunction.h"
 #include "FitnessFunctionRegistry.h"
 #include "Hasher.h"
+#include "JsonConfigParser.h"
 #include "Logger.h"
 #include "MettaParser.h"
 #include "PatternMatchingQueryProxy.h"
@@ -83,6 +84,7 @@ static bool PRINT_CREATED_LINKS_METTA = true;
 
 using namespace std;
 using namespace atomdb;
+using namespace commons;
 using namespace query_engine;
 using namespace evolution;
 using namespace service_bus;
@@ -731,10 +733,10 @@ int main(int argc, char* argv[]) {
     // clang-format off
     if (argc < 15) {
         cerr << "Usage: " << argv[0]
-             << " <client_endpoint> <server_endpoint> <start_port:end_port>"
+             << " <client_endpoint> <server_endpoint> <start_port:end_port> <config_file>"
                 " <context_tag> <target_predicate> <target_concept>"
                 " <RENT_RATE> <SPREADING_RATE_LOWERBOUND> <SPREADING_RATE_UPPERBOUND>"
-                " <ELITISM_RATE> <SELECTION_RATE> <POPULATION_SIZE> <MAX_GENERATIONS> <NUM_ITERATIONS> [--use-mork]" << endl;
+                " <ELITISM_RATE> <SELECTION_RATE> <POPULATION_SIZE> <MAX_GENERATIONS> <NUM_ITERATIONS>" << endl;
         cerr << endl;
         cerr << "<target_predicate> <target_concept> are MeTTa expressions" << endl;
         cerr << endl;
@@ -758,7 +760,7 @@ int main(int argc, char* argv[]) {
     string client_endpoint = argv[++cursor];
     string server_endpoint = argv[++cursor];
     auto ports_range = Utils::parse_ports_range(argv[++cursor]);
-
+    string config_file = argv[++cursor];
     string context_tag = argv[++cursor];
     string target_predicate = argv[++cursor];
     string target_concept = argv[++cursor];
@@ -777,11 +779,9 @@ int main(int argc, char* argv[]) {
         Utils::error("Error setting up parameters");
     }
 
-    atomdb_api_types::ATOMDB_TYPE atomdb_type = atomdb_api_types::ATOMDB_TYPE::REDIS_MONGODB;
-    if ((++cursor < argc) && (string(argv[cursor]) == string("--use-mork"))) {
-        atomdb_type = atomdb_api_types::ATOMDB_TYPE::MORKDB;
-    }
-    AtomDBSingleton::init(atomdb_type, test_atomdb_json_config());
+    auto json_config = JsonConfigParser::load(config_file);
+    auto atomdb_config = json_config.at_path("atomdb").get_or<JsonConfig>(JsonConfig());
+    AtomDBSingleton::init(atomdb_config);
 
     db = AtomDBSingleton::get_instance();
     ServiceBusSingleton::init(client_endpoint, server_endpoint, ports_range.first, ports_range.second);

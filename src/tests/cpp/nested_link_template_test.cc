@@ -17,7 +17,7 @@ using namespace query_engine;
 using namespace query_element;
 
 TEST(LinkTemplate, basics) {
-    AtomDBSingleton::init(atomdb_api_types::ATOMDB_TYPE::REDIS_MONGODB, test_atomdb_json_config());
+    AtomDBSingleton::init(test_atomdb_json_config());
 
     const string expression = "Expression";
     const string symbol = "Symbol";

@@ -39,27 +39,19 @@ map<string, Metrics> global_metrics;
 
 namespace {
 
-JsonConfig benchmark_atomdb_config() {
-    return JsonConfig(nlohmann::json::parse(R"({
-        "redis": { "endpoint": "localhost:29000", "cluster": false },
-        "mongodb": {
-            "endpoint": "localhost:28000",
-            "username": "dbadmin",
-            "password": "dassecret"
-        },
-        "morkdb": { "endpoint": "localhost:8000" }
-    })"));
+JsonConfig benchmark_atomdb_config(string atomdb_type) {
+    auto json = nlohmann::json();
+    json["type"] = atomdb_type;
+    json["redis"] = {"endpoint" : "localhost:40020", "cluster" : false};
+    json["mongodb"] = {"endpoint" : "localhost:40021", "username" : "admin", "password" : "admin"};
+    json["morkdb"] = {"endpoint" : "localhost:40022"};
+    return JsonConfig(json);
 }
 
 }  // namespace
 
 void setup(string atomdb_type, string client_id, string server_id) {
-    const JsonConfig cfg = benchmark_atomdb_config();
-    if (atomdb_type == "redismongodb") {
-        AtomDBSingleton::init(atomdb_api_types::ATOMDB_TYPE::REDIS_MONGODB, cfg);
-    } else if (atomdb_type == "morkdb") {
-        AtomDBSingleton::init(atomdb_api_types::ATOMDB_TYPE::MORKDB, cfg);
-    }
+    AtomDBSingleton::init(benchmark_atomdb_config(atomdb_type));
     ServiceBusSingleton::init(client_id, server_id, 4000, 4100);
 }
 

@@ -1014,7 +1014,7 @@ int main(int argc, char* argv[]) {
     MAX_GENERATIONS = (unsigned int) Utils::string_to_int(string(argv[13]));
     NUM_ITERATIONS = (unsigned int) Utils::string_to_int(string(argv[14]));
 
-    AtomDBSingleton::init(atomdb_api_types::ATOMDB_TYPE::REDIS_MONGODB, test_atomdb_json_config());
+    AtomDBSingleton::init(test_atomdb_json_config());
 
     db = AtomDBSingleton::get_instance();
     ServiceBusSingleton::init(client_id, server_id, ports_range.first, ports_range.second);

@@ -73,7 +73,7 @@ TEST(Iterator, basics) {
 }
 
 TEST(Iterator, link_template_integration) {
-    AtomDBSingleton::init(atomdb_api_types::ATOMDB_TYPE::REDIS_MONGODB, test_atomdb_json_config());
+    AtomDBSingleton::init(test_atomdb_json_config());
     string expression = "Expression";
     string symbol = "Symbol";
 

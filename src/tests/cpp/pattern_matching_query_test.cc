@@ -207,7 +207,7 @@ void check_query_chain(const string& query_tag,
 }
 
 TEST(PatternMatchingQuery, queries) {
-    AtomDBSingleton::init(atomdb_api_types::ATOMDB_TYPE::REDIS_MONGODB, test_atomdb_json_config());
+    AtomDBSingleton::init(test_atomdb_json_config());
     ServiceBus::initialize_statics({}, 40200, 40299);
 
     string peer1_id = "localhost:40041";

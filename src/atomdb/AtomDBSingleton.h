@@ -5,6 +5,7 @@
 #include "JsonConfig.h"
 #include "MorkDB.h"
 #include "RedisMongoDB.h"
+#include "RemoteAtomDB.h"
 
 using namespace std;
 
@@ -21,8 +22,7 @@ namespace atomdb {
 class AtomDBSingleton {
    public:
     ~AtomDBSingleton() {}
-    static void init(atomdb_api_types::ATOMDB_TYPE atomdb_type,
-                     const commons::JsonConfig& atomdb_config);
+    static void init(const commons::JsonConfig& atomdb_config);
     static shared_ptr<AtomDB> get_instance();
     static void provide(shared_ptr<AtomDB> atom_db);
 

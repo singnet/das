@@ -4,27 +4,27 @@
 #include <vector>
 
 #include "AtomDBSingleton.h"
-#include "Helper.h"
+#include "JsonConfig.h"
+#include "JsonConfigParser.h"
 #include "attention_broker.grpc.pb.h"
 #include "attention_broker.pb.h"
 
-using namespace std;
 using namespace atomdb;
-using namespace mains;
+using namespace commons;
+using namespace std;
 
 int main(int argc, char* argv[]) {
     if (argc < 5) {
         cerr << "Attention broker client" << endl;
-        cerr << "Usage: " << argv[0] << " host:port --use-mork|--use-redismongo <command> arg+" << endl;
+        cerr << "Usage: " << argv[0] << " host:port --config=<config_file> <command> arg+" << endl;
         return 1;
     }
 
     string attention_broker_address = string(argv[1]);
-    atomdb_api_types::ATOMDB_TYPE atomdb_type = atomdb_api_types::ATOMDB_TYPE::REDIS_MONGODB;
-    if (argv[2] == string("--use-mork")) {
-        atomdb_type = atomdb_api_types::ATOMDB_TYPE::MORKDB;
-    }
-    AtomDBSingleton::init(atomdb_type, Helper::default_atomdb_json_config());
+    auto config = string(argv[2]).substr(string("--config=").length());
+    JsonConfig json_config = JsonConfigParser::load(config);
+    auto atomdb_config = json_config.at_path("atomdb").get_or<JsonConfig>(JsonConfig());
+    AtomDBSingleton::init(atomdb_config);
 
     string command = string(argv[3]);
     vector<string> args;

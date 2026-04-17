@@ -209,11 +209,7 @@ void run(string atomdb_type_str,
     string server_id = "0.0.0.0:31700";
     string client_id = "0.0.0.0:31701";
 
-    atomdb_api_types::ATOMDB_TYPE atomdb_type = atomdb_api_types::ATOMDB_TYPE::REDIS_MONGODB;
-    if (atomdb_type_str == string("morkdb")) {
-        atomdb_type = atomdb_api_types::ATOMDB_TYPE::MORKDB;
-    }
-    AtomDBSingleton::init(atomdb_type, test_atomdb_json_config());
+    AtomDBSingleton::init(test_atomdb_json_config(atomdb_type_str));
     shared_ptr<AtomDB> db = AtomDBSingleton::get_instance();
 
     string and_operator = "AND";

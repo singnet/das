@@ -33,7 +33,7 @@ class TestFitnessFunction : public FitnessFunction {
 };
 
 TEST(QueryEvolution, protected_methods) {
-    AtomDBSingleton::init(atomdb_api_types::ATOMDB_TYPE::REDIS_MONGODB, test_atomdb_json_config());
+    AtomDBSingleton::init(test_atomdb_json_config());
 
     string peer1_id = "localhost:40043";
     string peer2_id = "localhost:40044";

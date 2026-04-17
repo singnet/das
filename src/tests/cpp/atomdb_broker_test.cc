@@ -28,7 +28,7 @@ using namespace query_engine;
 class AtomDBTestEnvironment : public ::testing::Environment {
    public:
     void SetUp() override {
-        AtomDBSingleton::init(atomdb_api_types::ATOMDB_TYPE::REDIS_MONGODB, test_atomdb_json_config());
+        AtomDBSingleton::init(test_atomdb_json_config());
         ServiceBusSingleton::init("0.0.0.0:52001", "", 52003, 52999);
     }
 

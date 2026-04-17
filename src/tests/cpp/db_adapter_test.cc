@@ -27,9 +27,7 @@ using namespace processor;
 
 class PostgresWrapperTestEnvironment : public ::testing::Environment {
    public:
-    void SetUp() override {
-        AtomDBSingleton::init(atomdb_api_types::ATOMDB_TYPE::REDIS_MONGODB, test_atomdb_json_config());
-    }
+    void SetUp() override { AtomDBSingleton::init(test_atomdb_json_config()); }
 
     void TearDown() override {}
 };

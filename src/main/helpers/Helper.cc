@@ -304,12 +304,3 @@ ProcessorType Helper::processor_type_from_string(const string& type_str) {
         return ProcessorType::UNKNOWN;
     }
 }
-
-commons::JsonConfig Helper::default_atomdb_json_config() {
-    return commons::JsonConfig(nlohmann::json::parse(R"({
-        "type": "redismongodb",
-        "redis": { "endpoint": "localhost:40020", "cluster": false },
-        "mongodb": { "endpoint": "localhost:40021", "username": "admin", "password": "admin" },
-        "morkdb": { "endpoint": "localhost:40022" }
-    })"));
-}
