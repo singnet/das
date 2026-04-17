@@ -237,7 +237,6 @@ class QueryAnswer {
     vector<string>& get_handles_vector();
 
    private:
-
     /**
      * Handles which are the constituents of this QueryAnswer.
      */

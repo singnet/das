@@ -218,12 +218,12 @@ TEST(QueryAnswer, handles_answer_basics) {
     QueryAnswer query_answer1("h1", 0);
     query_answer1.assignment.assign("v1", "1");
     EXPECT_EQ(query_answer1.get_handles_size(), 1);
-    EXPECT_TRUE(set<string>(query_answer1.get_handles_vector().begin(), query_answer1.get_handles_vector().end()) ==
-                set<string>({"h1"}));
+    EXPECT_TRUE(set<string>(query_answer1.get_handles_vector().begin(),
+                            query_answer1.get_handles_vector().end()) == set<string>({"h1"}));
     query_answer1.add_handle("hx");
     EXPECT_EQ(query_answer1.get_handles_size(), 2);
-    EXPECT_TRUE(set<string>(query_answer1.get_handles_vector().begin(), query_answer1.get_handles_vector().end()) ==
-                set<string>({"h1", "hx"}));
+    EXPECT_TRUE(set<string>(query_answer1.get_handles_vector().begin(),
+                            query_answer1.get_handles_vector().end()) == set<string>({"h1", "hx"}));
 
     // Tests merge()
     QueryAnswer query_answer2("h2", 0);
@@ -231,7 +231,8 @@ TEST(QueryAnswer, handles_answer_basics) {
     query_answer2.add_handle("hx");
     query_answer2.merge(&query_answer1);
     EXPECT_EQ(query_answer2.get_handles_size(), 3);
-    EXPECT_TRUE(set<string>(query_answer2.get_handles_vector().begin(), query_answer2.get_handles_vector().end()) ==
+    EXPECT_TRUE(set<string>(query_answer2.get_handles_vector().begin(),
+                            query_answer2.get_handles_vector().end()) ==
                 set<string>({"h1", "h2", "hx"}));
     EXPECT_FALSE(query_answer2.assignment.assign("v1", "x"));
     EXPECT_FALSE(query_answer2.assignment.assign("v2", "x"));
@@ -240,7 +241,8 @@ TEST(QueryAnswer, handles_answer_basics) {
     // Tests copy()
     QueryAnswer* query_answer3 = QueryAnswer::copy(&query_answer2);
     EXPECT_EQ(query_answer3->get_handles_size(), 3);
-    EXPECT_TRUE(set<string>(query_answer3->get_handles_vector().begin(), query_answer3->get_handles_vector().end()) ==
+    EXPECT_TRUE(set<string>(query_answer3->get_handles_vector().begin(),
+                            query_answer3->get_handles_vector().end()) ==
                 set<string>({"h1", "h2", "hx"}));
     EXPECT_FALSE(query_answer3->assignment.assign("v1", "x"));
     EXPECT_FALSE(query_answer3->assignment.assign("v2", "x"));

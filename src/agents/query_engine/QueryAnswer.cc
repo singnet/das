@@ -303,11 +303,6 @@ void QueryAnswer::rewrite_query(const vector<string>& original_query,
     }
 }
 
-unsigned int QueryAnswer::get_handles_size() {
-    return handles[0].size();
-}
+unsigned int QueryAnswer::get_handles_size() { return handles[0].size(); }
 
-vector<string>& QueryAnswer::get_handles_vector() {
-    return handles[0];
-}
-
+vector<string>& QueryAnswer::get_handles_vector() { return handles[0]; }

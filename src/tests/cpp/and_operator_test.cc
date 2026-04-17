@@ -58,7 +58,8 @@ void check_query_answer(string tag,
     for (unsigned int i = 0; i < handles.size(); i++) {
         set_handles.insert(handles[i]);
     }
-    EXPECT_TRUE(set<string>(query_answer->get_handles_vector().begin(), query_answer->get_handles_vector().end()) == set_handles);
+    EXPECT_TRUE(set<string>(query_answer->get_handles_vector().begin(),
+                            query_answer->get_handles_vector().end()) == set_handles);
 }
 
 TEST(AndOperator, basics) {

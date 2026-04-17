@@ -255,10 +255,11 @@ void QueryEvolutionProcessor::select_best_individuals(
     }
     float sum = 0;
     for (unsigned int i = 0; i < count; i++) {
-        LOG_INFO("Selected: " + (proxy->populate_metta_mapping(selected[i].first.get()),
-                                 sum += selected[i].second,
-                                 selected[i].first->metta_expression[selected[i].first->get_handles_vector()[0]] +
-                                     " " + std::to_string(selected[i].first->strength)));
+        LOG_INFO("Selected: " +
+                 (proxy->populate_metta_mapping(selected[i].first.get()),
+                  sum += selected[i].second,
+                  selected[i].first->metta_expression[selected[i].first->get_handles_vector()[0]] + " " +
+                      std::to_string(selected[i].first->strength)));
     }
     LOG_INFO("Generation: " + std::to_string(this->generation_count) +
              " - Average fitness in selected group: " + std::to_string(sum / count));
