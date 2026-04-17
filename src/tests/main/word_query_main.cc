@@ -3,10 +3,12 @@
 #include <iostream>
 #include <string>
 
+#include "AtomDBAPITypes.h"
 #include "AtomDBSingleton.h"
 #include "PatternMatchingQueryProxy.h"
 #include "QueryAnswer.h"
 #include "ServiceBusSingleton.h"
+#include "TestAtomDBJsonConfig.h"
 #include "Utils.h"
 
 #define MAX_QUERY_ANSWERS ((unsigned int) 500)
@@ -190,11 +192,8 @@ int main(int argc, char* argv[]) {
     auto ports_range = Utils::parse_ports_range(argv[3]);
     string context = argv[4];
     string word_tag = argv[5];
-    if ((argc == 6) && (string(argv[5]) == string("--use-mork"))) {
-        AtomDBSingleton::init(atomdb_api_types::ATOMDB_TYPE::MORKDB);
-    } else {
-        AtomDBSingleton::init();
-    }
+    string atomdb_type_str = argv[6];
+    AtomDBSingleton::init(test_atomdb_json_config(atomdb_type_str));
 
     run(client_id, server_id, ports_range.first, ports_range.second, context, word_tag);
     return 0;

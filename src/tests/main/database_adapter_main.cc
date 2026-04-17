@@ -3,11 +3,13 @@
 #include <iostream>
 #include <string>
 
+#include "AtomDBAPITypes.h"
 #include "AtomDBSingleton.h"
 #include "ContextLoader.h"
 #include "DataTypes.h"
 #include "DedicatedThread.h"
 #include "Pipeline.h"
+#include "TestAtomDBJsonConfig.h"
 #include "Utils.h"
 
 #define LOG_LEVEL INFO_LEVEL
@@ -150,7 +152,7 @@ int main(int argc, char* argv[]) {
         }
     }
 
-    AtomDBSingleton::init();
+    AtomDBSingleton::init(test_atomdb_json_config());
 
     run(host, port, database, username, password, tables_mapping, queries_SQL, mapper_type);
 

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "JsonConfig.h"
 #include "Utils.h"
 
 using namespace std;
@@ -61,8 +62,7 @@ class Helper {
     static string POPULATE_METTA_MAPPING;
     static string QUERY;
 
-    /** Maps CLI arg names to dotted JSON config paths (e.g. "attention-broker-endpoint" ->
-     * "brokers.attention.endpoint"). */
+    /** Maps CLI arg names to dotted JSON config paths (e.g. "query-engine" -> "agents.query"). */
     static map<string, string> arg_to_json_config_key;
 
     static bool is_running;

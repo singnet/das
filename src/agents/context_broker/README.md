@@ -14,31 +14,6 @@ This will generate the binaries for all components in the `das/bin` directory.
 
 ## **Prerequisites**
 
-Before running the Context Broker, ensure that the following environment variables are properly exported (or set in `.env` file):
-
-- **MongoDB**
-  - `DAS_MONGODB_HOSTNAME`
-  - `DAS_MONGODB_PORT`
-  - `DAS_MONGODB_USERNAME`
-  - `DAS_MONGODB_PASSWORD`
-
-- **Redis**
-  - `DAS_REDIS_HOSTNAME`
-  - `DAS_REDIS_PORT`
-  - `DAS_USE_REDIS_CLUSTER` (set to `true` if using Redis Cluster)
-
-You can export these variables by including them in your shell configuration file or by running:
-
-```bash
-export DAS_MONGODB_HOSTNAME="localhost"
-export DAS_MONGODB_PORT="28000"
-export DAS_MONGODB_USERNAME="dbadmin"
-export DAS_MONGODB_PASSWORD="dassecret"
-export DAS_REDIS_HOSTNAME="localhost"
-export DAS_REDIS_PORT="29000"
-export DAS_USE_REDIS_CLUSTER=false
-```
-
 Before running the Context Broker, you need to start the Attention Broker. For more information on how to set up and run the Attention Broker, refer to [attention-broker](../../attention_broker/README.md).
 
 

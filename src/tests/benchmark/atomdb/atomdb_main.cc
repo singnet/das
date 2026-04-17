@@ -1,10 +1,10 @@
 #include <chrono>
-#include <cstdlib>
 #include <functional>
 #include <iostream>
 #include <map>
 #include <memory>
 #include <mutex>
+#include <nlohmann/json.hpp>
 #include <numeric>
 #include <random>
 #include <string>
@@ -12,6 +12,7 @@
 #include <vector>
 
 #include "AtomDB.h"
+#include "JsonConfig.h"
 #include "MorkDB.h"
 #include "RedisMongoDB.h"
 #include "Utils.h"
@@ -24,30 +25,37 @@
 
 using namespace std;
 using namespace atomdb;
+using namespace commons;
 
 const size_t BATCH_SIZE = 10;  // Number of atoms in a single batch
+
+namespace {
+
+/** Benchmark compose ports (see scripts/run_benchmark.sh). */
+JsonConfig benchmark_atomdb_config() {
+    return JsonConfig(nlohmann::json::parse(R"({
+        "redis": { "endpoint": "localhost:29000", "cluster": false },
+        "mongodb": {
+            "endpoint": "localhost:28000",
+            "username": "dbadmin",
+            "password": "dassecret"
+        },
+        "morkdb": { "endpoint": "localhost:8000" }
+    })"));
+}
+
+}  // namespace
 
 mutex global_mutex;
 map<string, Metrics> global_metrics;
 
-void setup() {
-    setenv("DAS_REDIS_HOSTNAME", "localhost", 1);
-    setenv("DAS_REDIS_PORT", "29000", 1);
-    setenv("DAS_USE_REDIS_CLUSTER", "false", 1);
-    setenv("DAS_MONGODB_HOSTNAME", "localhost", 1);
-    setenv("DAS_MONGODB_PORT", "28000", 1);
-    setenv("DAS_MONGODB_USERNAME", "dbadmin", 1);
-    setenv("DAS_MONGODB_PASSWORD", "dassecret", 1);
-    setenv("DAS_MORK_HOSTNAME", "localhost", 1);
-    setenv("DAS_MORK_PORT", "8000", 1);
-    RedisMongoDB::initialize_statics();
-}
+void setup() { RedisMongoDB::initialize_statics(); }
 
-shared_ptr<AtomDB> factory_create_atomdb(string type) {
+shared_ptr<AtomDB> factory_create_atomdb(string type, const JsonConfig& atomdb_config) {
     if (type == "redismongodb") {
-        return make_shared<RedisMongoDB>();
+        return make_shared<RedisMongoDB>("", false, atomdb_config);
     } else if (type == "morkdb") {
-        return make_shared<MorkDB>();
+        return make_shared<MorkDB>("", atomdb_config);
     } else {
         Utils::error("Unknown AtomDB type: " + type);
     }
@@ -68,7 +76,7 @@ int main(int argc, char** argv) {
     string timestamp = argv[7];
 
     setup();
-    auto atomdb = factory_create_atomdb(atomdb_type);
+    auto atomdb = factory_create_atomdb(atomdb_type, benchmark_atomdb_config());
 
     auto worker = [&](int tid, shared_ptr<AtomDB> atomdb) {
         if (action == "AddAtom") {

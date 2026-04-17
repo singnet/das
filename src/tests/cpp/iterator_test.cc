@@ -2,15 +2,17 @@
 
 #include <cstdlib>
 
+#include "AtomDBAPITypes.h"
 #include "AtomDBSingleton.h"
 #include "LinkTemplate.h"
 #include "QueryAnswer.h"
 #include "QueryNode.h"
 #include "Terminal.h"
-#include "TestConfig.h"
+#include "TestAtomDBJsonConfig.h"
 #include "gtest/gtest.h"
 #include "test_utils.h"
 
+using namespace atomdb;
 using namespace query_engine;
 using namespace query_element;
 using namespace query_node;
@@ -71,9 +73,7 @@ TEST(Iterator, basics) {
 }
 
 TEST(Iterator, link_template_integration) {
-    TestConfig::load_environment();
-
-    AtomDBSingleton::init();
+    AtomDBSingleton::init(test_atomdb_json_config());
     string expression = "Expression";
     string symbol = "Symbol";
 

@@ -65,8 +65,6 @@ shared_ptr<Properties> json_to_properties(const json& j) {
 
 JsonConfig::JsonConfig() : nlohmann::json() {}
 
-string JsonConfig::JSON_CONFIG_DEFAULT_PATH = "~/.das/config.json";
-
 JsonConfig::JsonConfig(nlohmann::json root) : nlohmann::json(std::move(root)) {}
 
 string JsonConfig::get_schema_version() const { return value("schema_version", string("")); }

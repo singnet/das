@@ -1,10 +1,11 @@
+#include "AtomDBAPITypes.h"
 #include "AtomDBSingleton.h"
 #include "Chain.h"
 #include "Hasher.h"
 #include "PatternMatchingQueryProcessor.h"
 #include "PatternMatchingQueryProxy.h"
 #include "ServiceBus.h"
-#include "TestConfig.h"
+#include "TestAtomDBJsonConfig.h"
 #include "Utils.h"
 #include "gtest/gtest.h"
 
@@ -247,9 +248,7 @@ void check_query_chain(const string& query_tag,
 }
 
 TEST(PatternMatchingQuery, queries) {
-    TestConfig::load_environment();
-
-    AtomDBSingleton::init();
+    AtomDBSingleton::init(test_atomdb_json_config());
     ServiceBus::initialize_statics({}, 40200, 40299);
 
     string peer1_id = "localhost:40041";

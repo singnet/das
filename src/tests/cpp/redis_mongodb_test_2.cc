@@ -14,8 +14,7 @@
 #include "MockAnimalsData.h"
 #include "Node.h"
 #include "RedisMongoDB.h"
-#include "TestConfig.h"
-
+#include "TestAtomDBJsonConfig.h"
 using namespace atomdb;
 using namespace atoms;
 using namespace std;
@@ -23,8 +22,7 @@ using namespace std;
 class RedisMongoDBTestEnvironment : public ::testing::Environment {
    public:
     void SetUp() override {
-        TestConfig::load_environment();
-        auto atomdb = new RedisMongoDB("test2_");
+        auto atomdb = new RedisMongoDB("test2_", false, test_atomdb_json_config());
         atomdb->drop_all();
         AtomDBSingleton::provide(shared_ptr<AtomDB>(atomdb));
     }
