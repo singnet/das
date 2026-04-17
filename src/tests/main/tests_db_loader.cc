@@ -123,13 +123,13 @@ int main(int argc, char* argv[]) {
             atomic<size_t> total_atoms_processed(0);
 
             for (int i = 0; i < num_threads; i++) {
-                size_t start_line = i * lines_per_thread;
-                size_t end_line = start_line + lines_per_thread;
-
-                // Remainder must be added to the last thread
-                if (i == num_threads - 1) {
-                    end_line++;
-                }
+                // Even split: thread i gets [start_line, end_line). Using integer division avoids
+                // the bug where "last thread gets +1" was always applied (OOB when remainder==0,
+                // e.g. 5 lines / 1 thread => end_line 6 and lines[5] is undefined).
+                size_t start_line =
+                    (static_cast<size_t>(i) * lines.size()) / static_cast<size_t>(num_threads);
+                size_t end_line =
+                    (static_cast<size_t>(i + 1) * lines.size()) / static_cast<size_t>(num_threads);
 
                 threads.emplace_back([&, start_line, end_line, i]() -> void {
                     auto thread_atomdb = AtomDBSingleton::get_instance();
