@@ -13,7 +13,8 @@ static unsigned int KB_SIZE = 0;
 static unsigned int CONCEPT_SIZE = 0;
 static unsigned int CONCEPT_PART_SIZE = 0;
 static string CHARSET = "";
-static unsigned int BCD_SHORT_COUNT = 0;
+static unsigned int BCD_SORT_COUNT = 0;
+static unsigned int SORT_COUNT = 0;
 
 static string EVALUATION = "Evaluation";
 static string PREDICATE = "Predicate";
@@ -100,6 +101,15 @@ bool predicate_bcd(vector<string>& _concept) {
     return false;
 }
 
+bool predicate_sort(vector<string>& _concept) {
+    for (unsigned int i = 1; i < CONCEPT_SIZE; i++) {
+        if (_concept[i] < _concept[i - 1]) {
+            return false;
+        }
+    }
+    return true;
+}
+
 bool hidden_predicates(vector<string>& _concept);  // Just the header to avoid compilation error
 
 void enforce_bcd_sort(vector<vector<string>>& concepts) {
@@ -111,9 +121,9 @@ void enforce_bcd_sort(vector<vector<string>>& concepts) {
         }
     }
     unsigned int cursor = 0;
-    while (count < BCD_SHORT_COUNT) {
+    while (count < BCD_SORT_COUNT) {
         if (cursor == concepts.size()) {
-            Utils::error("Invalid parameters. BCD_SHORT_COUNT = " + std::to_string(BCD_SHORT_COUNT) +
+            Utils::error("Invalid parameters. BCD_SORT_COUNT = " + std::to_string(BCD_SORT_COUNT) +
                          " concepts.size() = " + std::to_string(concepts.size()));
             return;
         }
@@ -153,16 +163,28 @@ void export_start_end(ofstream& metta_file, vector<string>& _concept, bool start
     metta_file << evaluation_exp << endl;
 }
 
+void export_sort(ofstream& metta_file, vector<string>& _concept) {
+    static unsigned int count_sort = 0;
+    if ((count_sort < SORT_COUNT) && predicate_sort(_concept)) {
+        count_sort++;
+        string predicate_exp = "(" + PREDICATE + " " + predicate_name("sort", "") + ")";
+        string concept_exp = "(" + CONCEPT + " " + concept_name(_concept) + ")";
+        string evaluation_exp = "(" + EVALUATION + " " + predicate_exp + " " + concept_exp + ")";
+        metta_file << evaluation_exp << endl;
+    }
+}
+
 void export_concept(ofstream& metta_file, vector<string>& _concept) {
     export_contains(metta_file, _concept);
     export_start_end(metta_file, _concept, true);
     export_start_end(metta_file, _concept, false);
+    export_sort(metta_file, _concept);
 }
 
 void export_metta(vector<vector<string>>& concepts) {
     string file_name = METTA_FILE_PREFIX + "_" + std::to_string(KB_SIZE) + "_" +
                        std::to_string(CONCEPT_SIZE) + "_" + std::to_string(CONCEPT_PART_SIZE) + "_" +
-                       CHARSET + "_" + std::to_string(BCD_SHORT_COUNT) + ".metta";
+                       CHARSET + "_" + std::to_string(BCD_SORT_COUNT) + "_" + std::to_string(SORT_COUNT) + ".metta";
     ofstream metta_file(file_name);
     if (!metta_file.is_open()) {
         Utils::error("Unable to open file: " + file_name);
@@ -177,10 +199,10 @@ void export_metta(vector<vector<string>>& concepts) {
 // Main
 
 int main(int argc, char* argv[]) {
-    if (argc != 6) {
+    if (argc != 7) {
         Utils::error(
-            "Usage: inference_toy_kb_generator <KB size> <concept size> <concept part size> <charset> "
-            "<bcd_short count>");
+            "Usage: inference_toy_kb_generator <KB size> <concept size> "
+            "<concept part size> <charset> <BCD-SORT count> <SORT count>");
     }
 
     unsigned int count = 1;
@@ -188,8 +210,13 @@ int main(int argc, char* argv[]) {
     CONCEPT_SIZE = Utils::string_to_uint(string(argv[count++]));
     CONCEPT_PART_SIZE = Utils::string_to_uint(string(argv[count++]));
     CHARSET = string(argv[count++]);
-    BCD_SHORT_COUNT = Utils::string_to_uint(string(argv[count++]));
+    BCD_SORT_COUNT = Utils::string_to_uint(string(argv[count++]));
+    SORT_COUNT = Utils::string_to_uint(string(argv[count++]));
     print_setup();
+
+    if ((SORT_COUNT > BCD_SORT_COUNT) || (BCD_SORT_COUNT > KB_SIZE) || (CONCEPT_SIZE < 3)) {
+        Utils::error("Invalid parameters");
+    }
 
     vector<vector<string>> concepts;
     LOG_INFO("Creating initial concepts...");
