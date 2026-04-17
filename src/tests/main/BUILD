@@ -70,3 +70,11 @@ cc_library(
         "//service_bus:service_bus_lib",
     ],
 )
+
+cc_library(
+    name = "inference_toy_kb_generator_lib",
+    srcs = ["inference_toy_kb_generator.cc"],
+    deps = [
+        "//commons:commons_lib",
+    ],
+)
