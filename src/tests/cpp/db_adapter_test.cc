@@ -182,6 +182,7 @@ class PostgresWrapperTest : public ::testing::Test {
                             atom_handles.insert(atom->handle());
                         }
                     }
+                    delete atom;
                 }
                 delete batch_queue;
             }
@@ -219,7 +220,7 @@ class PostgresWrapperTest : public ::testing::Test {
                                                shared_ptr<BoundedSharedQueue> queue = nullptr,
                                                MAPPER_TYPE mapper_type = MAPPER_TYPE::SQL2ATOMS) {
         if (!queue) {
-            queue = make_shared<BoundedSharedQueue>(10000);
+            queue = make_shared<BoundedSharedQueue>();
         }
         return make_shared<PostgresWrapper>(db_conn, mapper_type, queue);
     }
@@ -438,7 +439,7 @@ TEST_F(PostgresWrapperTest, TablesStructure) {
 // map_table - SQL2ATOMS
 TEST_F(PostgresWrapperTest, MapTablesFirstRowAtoms) {
     auto conn = create_db_connection();
-    auto queue = make_shared<BoundedSharedQueue>(100000);
+    auto queue = make_shared<BoundedSharedQueue>();
     auto wrapper = create_wrapper(*conn, queue);
 
     Table organism_table = wrapper->get_table("public", "organism");
@@ -456,7 +457,7 @@ TEST_F(PostgresWrapperTest, MapTablesFirstRowAtoms) {
 
 TEST_F(PostgresWrapperTest, MapTableWithClausesAndSkipColumnsAtoms) {
     auto conn = create_db_connection();
-    auto queue = make_shared<BoundedSharedQueue>(100000);
+    auto queue = make_shared<BoundedSharedQueue>();
     auto wrapper = create_wrapper(*conn, queue);
 
     Table table = wrapper->get_table("public", "feature");
@@ -469,7 +470,7 @@ TEST_F(PostgresWrapperTest, MapTableWithClausesAndSkipColumnsAtoms) {
 
 TEST_F(PostgresWrapperTest, MapTableZeroRowsAtoms) {
     auto conn = create_db_connection();
-    auto queue = make_shared<BoundedSharedQueue>(100000);
+    auto queue = make_shared<BoundedSharedQueue>();
     auto wrapper = create_wrapper(*conn, queue);
 
     Table table = wrapper->get_table("public", "feature");
@@ -481,7 +482,7 @@ TEST_F(PostgresWrapperTest, MapTableZeroRowsAtoms) {
 
 TEST_F(PostgresWrapperTest, MapTableWithNonExistentSkipColumnAtoms) {
     auto conn = create_db_connection();
-    auto queue = make_shared<BoundedSharedQueue>(100000);
+    auto queue = make_shared<BoundedSharedQueue>();
     auto wrapper = create_wrapper(*conn, queue);
 
     Table table = wrapper->get_table("public", "feature");
@@ -495,7 +496,7 @@ TEST_F(PostgresWrapperTest, MapTableWithNonExistentSkipColumnAtoms) {
 
 TEST_F(PostgresWrapperTest, MapTableWithInvalidClauseAtoms) {
     auto conn = create_db_connection();
-    auto queue = make_shared<BoundedSharedQueue>(100000);
+    auto queue = make_shared<BoundedSharedQueue>();
     auto wrapper = create_wrapper(*conn, queue);
 
     Table table = wrapper->get_table("public", "feature");
@@ -509,7 +510,7 @@ TEST_F(PostgresWrapperTest, MapTableWithInvalidClauseAtoms) {
 // map_table - SQL2METTA
 TEST_F(PostgresWrapperTest, MapTablesFirstRowMetta) {
     auto conn = create_db_connection();
-    auto queue = make_shared<BoundedSharedQueue>(100000);
+    auto queue = make_shared<BoundedSharedQueue>();
     auto wrapper = create_wrapper(*conn, queue, MAPPER_TYPE::SQL2METTA);
 
     Table organism_table = wrapper->get_table("public", "organism");
@@ -527,7 +528,7 @@ TEST_F(PostgresWrapperTest, MapTablesFirstRowMetta) {
 
 TEST_F(PostgresWrapperTest, MapTableWithClausesAndSkipColumnsMetta) {
     auto conn = create_db_connection();
-    auto queue = make_shared<BoundedSharedQueue>(100000);
+    auto queue = make_shared<BoundedSharedQueue>();
     auto wrapper = create_wrapper(*conn, queue, MAPPER_TYPE::SQL2METTA);
 
     Table table = wrapper->get_table("public", "feature");
@@ -540,7 +541,7 @@ TEST_F(PostgresWrapperTest, MapTableWithClausesAndSkipColumnsMetta) {
 
 TEST_F(PostgresWrapperTest, MapTableZeroRowsMetta) {
     auto conn = create_db_connection();
-    auto queue = make_shared<BoundedSharedQueue>(100000);
+    auto queue = make_shared<BoundedSharedQueue>();
     auto wrapper = create_wrapper(*conn, queue, MAPPER_TYPE::SQL2METTA);
 
     Table table = wrapper->get_table("public", "feature");
@@ -552,7 +553,7 @@ TEST_F(PostgresWrapperTest, MapTableZeroRowsMetta) {
 
 TEST_F(PostgresWrapperTest, MapTableWithNonExistentSkipColumnMetta) {
     auto conn = create_db_connection();
-    auto queue = make_shared<BoundedSharedQueue>(100000);
+    auto queue = make_shared<BoundedSharedQueue>();
     auto wrapper = create_wrapper(*conn, queue, MAPPER_TYPE::SQL2METTA);
 
     Table table = wrapper->get_table("public", "feature");
@@ -566,7 +567,7 @@ TEST_F(PostgresWrapperTest, MapTableWithNonExistentSkipColumnMetta) {
 
 TEST_F(PostgresWrapperTest, MapTableWithInvalidClauseMetta) {
     auto conn = create_db_connection();
-    auto queue = make_shared<BoundedSharedQueue>(100000);
+    auto queue = make_shared<BoundedSharedQueue>();
     auto wrapper = create_wrapper(*conn, queue, MAPPER_TYPE::SQL2METTA);
 
     Table table = wrapper->get_table("public", "feature");
@@ -580,7 +581,7 @@ TEST_F(PostgresWrapperTest, MapTableWithInvalidClauseMetta) {
 // map_sql_query - SQL2ATOMS
 TEST_F(PostgresWrapperTest, MapSqlQueryFirstRowAtoms) {
     auto conn = create_db_connection();
-    auto queue = make_shared<BoundedSharedQueue>(100000);
+    auto queue = make_shared<BoundedSharedQueue>();
     auto wrapper = create_wrapper(*conn, queue);
 
     string query_organism = R"(
@@ -634,7 +635,7 @@ TEST_F(PostgresWrapperTest, MapSqlQueryFirstRowAtoms) {
 
 TEST_F(PostgresWrapperTest, MapSqlQueryWithClausesAndSkipColumnsAtoms) {
     auto conn = create_db_connection();
-    auto queue = make_shared<BoundedSharedQueue>(100000);
+    auto queue = make_shared<BoundedSharedQueue>();
     auto wrapper = create_wrapper(*conn, queue);
 
     string query = R"(
@@ -656,7 +657,7 @@ TEST_F(PostgresWrapperTest, MapSqlQueryWithClausesAndSkipColumnsAtoms) {
 
 TEST_F(PostgresWrapperTest, MapSqlQueryZeroRowsAtoms) {
     auto conn = create_db_connection();
-    auto queue = make_shared<BoundedSharedQueue>(100000);
+    auto queue = make_shared<BoundedSharedQueue>();
     auto wrapper = create_wrapper(*conn, queue);
 
     string query = R"(
@@ -681,7 +682,7 @@ TEST_F(PostgresWrapperTest, MapSqlQueryZeroRowsAtoms) {
 
 TEST_F(PostgresWrapperTest, MapSqlQueryWithNonExistentSkipColumnAtoms) {
     auto conn = create_db_connection();
-    auto queue = make_shared<BoundedSharedQueue>(100000);
+    auto queue = make_shared<BoundedSharedQueue>();
     auto wrapper = create_wrapper(*conn, queue);
 
     string query = R"(
@@ -703,7 +704,7 @@ TEST_F(PostgresWrapperTest, MapSqlQueryWithNonExistentSkipColumnAtoms) {
 
 TEST_F(PostgresWrapperTest, MapSqlQueryWithInvalidClauseAtoms) {
     auto conn = create_db_connection();
-    auto queue = make_shared<BoundedSharedQueue>(100000);
+    auto queue = make_shared<BoundedSharedQueue>();
     auto wrapper = create_wrapper(*conn, queue);
 
     string query = R"(
@@ -730,7 +731,7 @@ TEST_F(PostgresWrapperTest, MapSqlQueryWithInvalidClauseAtoms) {
 // map_sql_query - SQL2METTA
 TEST_F(PostgresWrapperTest, MapSqlQueryFirstRowMetta) {
     auto conn = create_db_connection();
-    auto queue = make_shared<BoundedSharedQueue>(100000);
+    auto queue = make_shared<BoundedSharedQueue>();
     auto wrapper = create_wrapper(*conn, queue, MAPPER_TYPE::SQL2METTA);
 
     string query_organism = R"(
@@ -784,7 +785,7 @@ TEST_F(PostgresWrapperTest, MapSqlQueryFirstRowMetta) {
 
 TEST_F(PostgresWrapperTest, MapSqlQueryWithClausesAndSkipColumnsMetta) {
     auto conn = create_db_connection();
-    auto queue = make_shared<BoundedSharedQueue>(100000);
+    auto queue = make_shared<BoundedSharedQueue>();
     auto wrapper = create_wrapper(*conn, queue, MAPPER_TYPE::SQL2METTA);
 
     string query = R"(
@@ -806,7 +807,7 @@ TEST_F(PostgresWrapperTest, MapSqlQueryWithClausesAndSkipColumnsMetta) {
 
 TEST_F(PostgresWrapperTest, MapSqlQueryZeroRowsMetta) {
     auto conn = create_db_connection();
-    auto queue = make_shared<BoundedSharedQueue>(100000);
+    auto queue = make_shared<BoundedSharedQueue>();
     auto wrapper = create_wrapper(*conn, queue, MAPPER_TYPE::SQL2METTA);
 
     string query = R"(
@@ -831,7 +832,7 @@ TEST_F(PostgresWrapperTest, MapSqlQueryZeroRowsMetta) {
 
 TEST_F(PostgresWrapperTest, MapSqlQueryWithNonExistentSkipColumnMetta) {
     auto conn = create_db_connection();
-    auto queue = make_shared<BoundedSharedQueue>(100000);
+    auto queue = make_shared<BoundedSharedQueue>();
     auto wrapper = create_wrapper(*conn, queue, MAPPER_TYPE::SQL2METTA);
 
     string query = R"(
@@ -853,7 +854,7 @@ TEST_F(PostgresWrapperTest, MapSqlQueryWithNonExistentSkipColumnMetta) {
 
 TEST_F(PostgresWrapperTest, MapSqlQueryWithInvalidClauseMetta) {
     auto conn = create_db_connection();
-    auto queue = make_shared<BoundedSharedQueue>(100000);
+    auto queue = make_shared<BoundedSharedQueue>();
     auto wrapper = create_wrapper(*conn, queue, MAPPER_TYPE::SQL2METTA);
 
     string query = R"(
@@ -883,7 +884,7 @@ TEST_F(PostgresWrapperTest, MapTablesFirstRowAtomsWithContextFile) {
     EXPECT_FALSE(tables_mapping.empty());
 
     auto conn = create_db_connection();
-    auto queue = make_shared<BoundedSharedQueue>(100000);
+    auto queue = make_shared<BoundedSharedQueue>();
     auto wrapper = create_wrapper(*conn, queue);
 
     vector<unsigned int> atoms_sizes;

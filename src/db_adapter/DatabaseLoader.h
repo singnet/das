@@ -13,6 +13,7 @@
 #include "processor/ThreadPool.h"
 
 #define BATCH_SIZE 100000
+#define THREAD_POOL_SIZE 8
 
 using namespace atomdb;
 using namespace std;
@@ -24,21 +25,21 @@ namespace db_adapter {
 
 class DatabaseMappingOrchestrator : public ThreadMethod {
    public:
-    DatabaseMappingOrchestrator(const string& host,
-                                int port,
-                                const string& database,
-                                const string& user,
-                                const string& password,
-                                MAPPER_TYPE mapper_type = MAPPER_TYPE::SQL2ATOMS,
+    DatabaseMappingOrchestrator(const JsonConfig& config,
+                                MAPPER_TYPE mapper_type,
                                 shared_ptr<BoundedSharedQueue> output_queue = nullptr);
     ~DatabaseMappingOrchestrator();
 
     void add_task_query(const string& virtual_name, const string& query);
     void add_task_table(TableMapping table_mapping);
-
     bool thread_one_step() override;
-
     bool is_finished() const;
+
+   private:
+    void database_setup(const JsonConfig& config,
+                        MAPPER_TYPE mapper_type,
+                        shared_ptr<BoundedSharedQueue> output_queue);
+    void task_setup(const JsonConfig& config);
 
    protected:
     struct MappingTask {

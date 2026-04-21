@@ -5,6 +5,7 @@
 #include <vector>
 
 #include "DatabaseTypes.h"
+#include "JsonConfig.h"
 
 using namespace std;
 
@@ -12,25 +13,22 @@ namespace db_adapter {
 
 class DatabaseAdapter {
    public:
-    DatabaseAdapter(const string& host,
-                    int port,
-                    const string& database,
-                    const string& username,
-                    const string& password,
-                    const vector<TableMapping>& tables_mapping,
-                    const vector<string>& queries_SQL,
-                    MAPPER_TYPE mapper_type);
-
+    /**
+     * @param config JSON configuration for the adapter
+     * @param mapper_type Type of mapper to use (default is SQL2ATOMS)
+     *
+     * Required fields in config:
+     *  - adapter.host, adapter.port, adapter.username, adapter.password, adapter.database: connection
+     * info for the source database
+     *  - adapter.context_mapping.tables: path to a JSON file defining tables to map
+     *  - adapter.context_mapping.queries_sql: path to a SQL file with custom queries to map
+     */
+    DatabaseAdapter(const JsonConfig& config, MAPPER_TYPE mapper_type = MAPPER_TYPE::SQL2ATOMS);
+    ~DatabaseAdapter() = default;
     void run();
 
    private:
-    string host;
-    int port;
-    string database;
-    string username;
-    string password;
-    vector<TableMapping> tables_mapping;
-    vector<string> queries_SQL;
+    JsonConfig config;
     MAPPER_TYPE mapper_type;
 };
 

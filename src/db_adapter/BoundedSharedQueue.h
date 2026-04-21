@@ -11,7 +11,7 @@ namespace db_adapter {
 
 class BoundedSharedQueue {
    public:
-    BoundedSharedQueue(size_t max_size);
+    BoundedSharedQueue(size_t max_size = 100000);
     ~BoundedSharedQueue();
 
     void enqueue(void* item);

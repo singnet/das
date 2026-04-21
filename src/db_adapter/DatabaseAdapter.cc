@@ -20,45 +20,16 @@ using namespace atomdb;
 using namespace db_adapter;
 using namespace processor;
 
-DatabaseAdapter::DatabaseAdapter(const string& host,
-                                 int port,
-                                 const string& database,
-                                 const string& username,
-                                 const string& password,
-                                 const vector<TableMapping>& tables_mapping,
-                                 const vector<string>& queries_SQL,
-                                 MAPPER_TYPE mapper_type)
-    : host(host),
-      port(port),
-      database(database),
-      username(username),
-      password(password),
-      tables_mapping(tables_mapping),
-      queries_SQL(queries_SQL),
-      mapper_type(mapper_type) {}
+DatabaseAdapter::DatabaseAdapter(const JsonConfig& config, MAPPER_TYPE mapper_type)
+    : config(config), mapper_type(mapper_type) {}
 
 void DatabaseAdapter::run() {
-    auto queue = make_shared<BoundedSharedQueue>(100000);
+    auto queue = make_shared<BoundedSharedQueue>();
 
-    DatabaseMappingOrchestrator db_mapping_orchestrator(
-        host, port, database, username, password, mapper_type, queue);
-
+    DatabaseMappingOrchestrator db_mapping_orchestrator(config, mapper_type, queue);
     auto producer = make_shared<DedicatedThread>("producer", &db_mapping_orchestrator);
-    if (!this->tables_mapping.empty()) {
-        for (const auto& table_mapping : this->tables_mapping) {
-            db_mapping_orchestrator.add_task_table(table_mapping);
-        }
-    }
-    LOG_DEBUG("Loaded " + to_string(this->tables_mapping.size()) + " table mappings from context file.");
-    if (!this->queries_SQL.empty()) {
-        for (size_t i = 0; i < this->queries_SQL.size(); i++) {
-            db_mapping_orchestrator.add_task_query("custom_query_" + to_string(i), this->queries_SQL[i]);
-        }
-    }
-    LOG_DEBUG("Loaded " + to_string(this->queries_SQL.size()) + " queries from query file.");
 
-    unsigned int num_threads = 8;
-    ThreadPool pool("consumers_pool", num_threads);
+    ThreadPool pool("consumers_pool", THREAD_POOL_SIZE);
     pool.setup();
     pool.start();
 
@@ -66,6 +37,7 @@ void DatabaseAdapter::run() {
 
     producer->setup();
     producer->start();
+
     LOG_DEBUG("Producer thread started.");
 
     while (true) {
@@ -89,5 +61,6 @@ void DatabaseAdapter::run() {
 
     pool.wait();
     pool.stop();
+
     LOG_INFO("Loading completed! Total atoms: " << consumer.get_total_count());
 }

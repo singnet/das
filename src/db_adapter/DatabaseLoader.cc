@@ -2,12 +2,12 @@
 
 #include "AtomDBSingleton.h"
 #include "BoundedSharedQueue.h"
+#include "ContextLoader.h"
 #include "DedicatedThread.h"
-#include "Logger.h"
 #include "PostgresWrapper.h"
 #include "Processor.h"
 
-#define LOG_LEVEL DEBUG_LEVEL
+#define LOG_LEVEL INFO_LEVEL
 #include "Logger.h"
 
 using namespace atomdb;
@@ -16,19 +16,61 @@ using namespace commons;
 using namespace atoms;
 using namespace db_adapter;
 
-DatabaseMappingOrchestrator::DatabaseMappingOrchestrator(const string& host,
-                                                         int port,
-                                                         const string& database,
-                                                         const string& user,
-                                                         const string& password,
+DatabaseMappingOrchestrator::DatabaseMappingOrchestrator(const JsonConfig& config,
                                                          MAPPER_TYPE mapper_type,
                                                          shared_ptr<BoundedSharedQueue> output_queue) {
-    this->db_conn =
-        make_unique<PostgresDatabaseConnection>("psql-conn", host, port, database, user, password);
-    this->wrapper = make_unique<PostgresWrapper>(*db_conn, mapper_type, output_queue);
+    this->database_setup(config, mapper_type, output_queue);
+    this->task_setup(config);
 }
 
 DatabaseMappingOrchestrator::~DatabaseMappingOrchestrator() { this->db_conn->stop(); }
+
+void DatabaseMappingOrchestrator::database_setup(const JsonConfig& config,
+                                                 MAPPER_TYPE mapper_type,
+                                                 shared_ptr<BoundedSharedQueue> output_queue) {
+    string host = config.at_path("adapter.host").get<string>();
+    uint port = config.at_path("adapter.port").get<uint>();
+    string username = config.at_path("adapter.username").get<string>();
+    string password = config.at_path("adapter.password").get<string>();
+    string database = config.at_path("adapter.database").get<string>();
+    this->db_conn =
+        make_unique<PostgresDatabaseConnection>("psql-conn", host, port, database, username, password);
+    this->wrapper = make_unique<PostgresWrapper>(*db_conn, mapper_type, output_queue);
+}
+
+void DatabaseMappingOrchestrator::task_setup(const JsonConfig& config) {
+    string tables_file_path = config.at_path("adapter.context_mapping.tables").get_or<string>("");
+    string query_file_path = config.at_path("adapter.context_mapping.queries_sql").get_or<string>("");
+
+    if (tables_file_path.empty() && query_file_path.empty()) {
+        Utils::error(
+            "No mapping tasks found in the context file. Provide at least one of the following:\n"
+            " - adapter.context_mapping.tables (path to tables mapping JSON file)\n"
+            " - adapter.context_mapping.queries_sql (path to SQL queries file)");
+        return;
+    }
+
+    if (!tables_file_path.empty()) {
+        auto tables_mapping = ContextLoader::load_table_file(tables_file_path);
+        if (!tables_mapping.empty()) {
+            for (const auto& table_mapping : tables_mapping) {
+                this->add_task_table(table_mapping);
+            }
+        }
+        LOG_DEBUG(to_string(tables_mapping.size()) +
+                  " tables were loaded from the context file for mapping.");
+    }
+
+    if (!query_file_path.empty()) {
+        auto queries_sql = ContextLoader::load_query_file(query_file_path);
+        if (!queries_sql.empty()) {
+            for (size_t i = 0; i < queries_sql.size(); i++) {
+                this->add_task_query("custom_query_" + to_string(i), queries_sql[i]);
+            }
+        }
+        LOG_DEBUG(to_string(queries_sql.size()) + " queries were loaded from the query file.");
+    }
+}
 
 void DatabaseMappingOrchestrator::add_task_query(const string& virtual_name, const string& query) {
     this->tasks.push_back(MappingTask{MappingTask::QUERY, TableMapping{}, virtual_name, query});

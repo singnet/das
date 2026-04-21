@@ -88,6 +88,7 @@ cc_library(
     includes = ["."],
     deps = [
         ":bounded_shared_queue",
+        ":context_loader",
         ":database_types",
         ":database_wrapper",
         "//atomdb",
