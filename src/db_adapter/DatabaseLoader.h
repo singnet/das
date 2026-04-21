@@ -55,24 +55,6 @@ class DatabaseMappingOrchestrator : public ThreadMethod {
     bool initialized = false;
 };
 
-class SingleThreadAtomPersister : public ThreadMethod {
-   public:
-    SingleThreadAtomPersister(shared_ptr<BoundedSharedQueue> input_queue);
-    ~SingleThreadAtomPersister();
-
-    bool thread_one_step() override;
-    bool is_finished() const;
-    void set_producer_finished();
-
-   protected:
-    atomic<int> count = 0;
-    vector<Atom*> atoms;
-    shared_ptr<BoundedSharedQueue> input_queue;
-    shared_ptr<AtomDB> atomdb;
-    bool finished = false;
-    bool producer_finished = false;
-};
-
 class MultiThreadAtomPersister {
    public:
     MultiThreadAtomPersister(shared_ptr<BoundedSharedQueue> input_queue,
