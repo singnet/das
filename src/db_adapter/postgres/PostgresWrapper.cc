@@ -125,12 +125,98 @@ PostgresWrapper::PostgresWrapper(PostgresDatabaseConnection& db_conn,
 
 PostgresWrapper::~PostgresWrapper() {}
 
-Table PostgresWrapper::get_table(const string& name) {
-    auto tables = this->list_tables();
-    for (const auto& table : tables) {
-        if (table.name == name) return table;
+Table PostgresWrapper::get_table(const string& schema_name, const string& table_name) {
+    string query = R"(
+        WITH table_info AS (
+            SELECT
+                pt.schemaname || '.' || pt.tablename AS full_table_name,
+                pc.reltuples::bigint AS row_count
+            FROM pg_tables pt
+            JOIN pg_class pc ON pc.relname = pt.tablename
+            JOIN pg_namespace pn ON pn.oid = pc.relnamespace
+                                AND pn.nspname = pt.schemaname
+            WHERE pt.schemaname = ')" +
+                   schema_name + R"('
+              AND pt.tablename  = ')" +
+                   table_name + R"('
+        ),
+        column_info AS (
+            SELECT
+                table_schema || '.' || table_name AS full_table_name,
+                string_agg(column_name, ',' ORDER BY ordinal_position) AS columns
+            FROM information_schema.columns
+            WHERE table_schema = ')" +
+                   schema_name + R"('
+              AND table_name   = ')" +
+                   table_name + R"('
+            GROUP BY table_schema, table_name
+        ),
+        pk_info AS (
+            SELECT
+                n.nspname || '.' || c.relname AS full_table_name,
+                string_agg(a.attname, ',' ORDER BY a.attnum) AS pk_column
+            FROM pg_class c
+            JOIN pg_namespace n ON n.oid = c.relnamespace
+            JOIN pg_index i ON i.indrelid = c.oid AND i.indisprimary
+            JOIN pg_attribute a ON a.attrelid = c.oid AND a.attnum = ANY(i.indkey)
+            WHERE n.nspname = ')" +
+                   schema_name + R"('
+              AND c.relname = ')" +
+                   table_name + R"('
+            GROUP BY n.nspname, c.relname
+        ),
+        fk_info AS (
+            SELECT
+                n.nspname || '.' || c.relname AS full_table_name,
+                string_agg(
+                    a.attname || '|' || fn.nspname || '.' || fc.relname,
+                    ','
+                ) AS fk_columns
+            FROM pg_constraint con
+            JOIN pg_class c ON c.oid = con.conrelid
+            JOIN pg_namespace n ON n.oid = c.relnamespace
+            JOIN pg_attribute a ON a.attrelid = c.oid AND a.attnum = ANY(con.conkey)
+            JOIN pg_class fc ON fc.oid = con.confrelid
+            JOIN pg_namespace fn ON fn.oid = fc.relnamespace
+            WHERE con.contype = 'f'
+              AND n.nspname = ')" +
+                   schema_name + R"('
+              AND c.relname = ')" +
+                   table_name + R"('
+            GROUP BY n.nspname, c.relname
+        )
+        SELECT
+            ti.full_table_name          AS table_name,
+            COALESCE(ti.row_count, 0)   AS row_count,
+            COALESCE(ci.columns,   '')  AS columns,
+            COALESCE(pk.pk_column, '')  AS pk_column,
+            COALESCE(fk.fk_columns,'')  AS fk_columns
+        FROM      table_info  ti
+        LEFT JOIN column_info ci ON ci.full_table_name = ti.full_table_name
+        LEFT JOIN pk_info     pk ON pk.full_table_name = ti.full_table_name
+        LEFT JOIN fk_info     fk ON fk.full_table_name = ti.full_table_name;
+    )";
+
+    auto result = db_conn.execute_query(query);
+
+    if (result.empty()) {
+        Utils::error("Table '" + schema_name + "." + table_name + "' not found.");
     }
-    Utils::error("Table '" + name + "' not found in the database.");
+
+    const auto& row = result[0];
+
+    string cols = row["columns"].c_str();
+    string pk_col = row["pk_column"].c_str();
+    string fk_cols = row["fk_columns"].c_str();
+
+    Table t;
+    t.name = row["table_name"].c_str();
+    t.row_count = row["row_count"].as<int>(0);
+    t.primary_key = pk_col;
+    t.column_names = cols.empty() ? vector<string>{} : Utils::split(cols, ',');
+    t.foreign_keys = fk_cols.empty() ? vector<string>{} : Utils::split(fk_cols, ',');
+
+    return t;
 }
 
 vector<Table> PostgresWrapper::list_tables() {
@@ -269,8 +355,8 @@ void PostgresWrapper::map_table(const Table& table,
             auto fk_ids = this->collect_fk_ids(table.name, column, where_clauses);
 
             if (fk_ids.empty()) continue;
-
-            auto ref_table = this->get_table(ref_table_name);
+            auto table_name_parts = Utils::split(ref_table_name, '.');
+            auto ref_table = this->get_table(table_name_parts[0], table_name_parts[1]);
             auto ref_columns = this->build_columns_to_map(ref_table);
 
             string where_clause = ref_table.primary_key + " IN " + "(" + Utils::join(fk_ids, ',') + ")";
@@ -368,7 +454,8 @@ void PostgresWrapper::map_sql_query(const string& virtual_name, const string& ra
         string table_name = table_columns.first;
         vector<string> columns = table_columns.second;
         try {
-            tables_metadata[table_name] = this->get_table(table_name);
+            auto table_name_parts = Utils::split(table_name, '.');
+            tables_metadata[table_name] = this->get_table(table_name_parts[0], table_name_parts[1]);
             string pk = tables_metadata[table_name].primary_key;
             if (find(columns.begin(), columns.end(), pk) == columns.end()) {
                 auto parts = Utils::split(table_name, '.');

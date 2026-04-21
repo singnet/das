@@ -16,30 +16,31 @@ using namespace commons;
 using namespace atoms;
 using namespace db_adapter;
 
-DatabaseMappingJob::DatabaseMappingJob(const string& host,
-                                       int port,
-                                       const string& database,
-                                       const string& user,
-                                       const string& password,
-                                       MAPPER_TYPE mapper_type,
-                                       shared_ptr<BoundedSharedQueue> output_queue) {
+DatabaseMappingOrchestrator::DatabaseMappingOrchestrator(const string& host,
+                                                         int port,
+                                                         const string& database,
+                                                         const string& user,
+                                                         const string& password,
+                                                         MAPPER_TYPE mapper_type,
+                                                         shared_ptr<BoundedSharedQueue> output_queue) {
     this->db_conn =
         make_unique<PostgresDatabaseConnection>("psql-conn", host, port, database, user, password);
     this->wrapper = make_unique<PostgresWrapper>(*db_conn, mapper_type, output_queue);
 }
 
-DatabaseMappingJob::~DatabaseMappingJob() { this->db_conn->stop(); }
+DatabaseMappingOrchestrator::~DatabaseMappingOrchestrator() { this->db_conn->stop(); }
 
-void DatabaseMappingJob::add_task_query(const string& virtual_name, const string& query) {
+void DatabaseMappingOrchestrator::add_task_query(const string& virtual_name, const string& query) {
     this->tasks.push_back(MappingTask{MappingTask::QUERY, TableMapping{}, virtual_name, query});
 }
 
-void DatabaseMappingJob::add_task_table(TableMapping table_mapping) {
+void DatabaseMappingOrchestrator::add_task_table(TableMapping table_mapping) {
     this->tasks.push_back(MappingTask{MappingTask::TABLE, move(table_mapping), "", ""});
 }
 
-bool DatabaseMappingJob::thread_one_step() {
-    LOG_DEBUG("DatabaseMappingJob thread_one_step called. Current task index: " << this->current_task);
+bool DatabaseMappingOrchestrator::thread_one_step() {
+    LOG_DEBUG("DatabaseMappingOrchestrator thread_one_step called. Current task index: "
+              << this->current_task);
     if (this->current_task >= this->tasks.size()) {
         this->db_conn->stop();
         return false;
@@ -57,7 +58,8 @@ bool DatabaseMappingJob::thread_one_step() {
                                  << (task.type == MappingTask::TABLE ? "TABLE" : "QUERY"));
 
     if (task.type == MappingTask::TABLE) {
-        auto table = this->wrapper->get_table(task.table_mapping.table_name);
+        auto table_name_parts = Utils::split(task.table_mapping.table_name, '.');
+        auto table = this->wrapper->get_table(table_name_parts[0], table_name_parts[1]);
         this->wrapper->map_table(table,
                                  task.table_mapping.where_clauses.value_or(vector<string>{}),
                                  task.table_mapping.skip_columns.value_or(vector<string>{}),
@@ -71,21 +73,21 @@ bool DatabaseMappingJob::thread_one_step() {
     return !this->finished;
 }
 
-bool DatabaseMappingJob::is_finished() const { return this->finished; }
+bool DatabaseMappingOrchestrator::is_finished() const { return this->finished; }
 
-AtomPersistenceJob::AtomPersistenceJob(shared_ptr<BoundedSharedQueue> input_queue)
+SingleThreadAtomPersister::SingleThreadAtomPersister(shared_ptr<BoundedSharedQueue> input_queue)
     : input_queue(input_queue) {
     this->atomdb = AtomDBSingleton::get_instance();
 }
 
-AtomPersistenceJob::~AtomPersistenceJob() {
+SingleThreadAtomPersister::~SingleThreadAtomPersister() {
     for (auto& atom : this->atoms) {
         delete atom;
     }
     this->atoms.clear();
 }
 
-bool AtomPersistenceJob::thread_one_step() {
+bool SingleThreadAtomPersister::thread_one_step() {
     LOG_DEBUG("== START ==");
     LOG_DEBUG("Current input queue size 1: " << this->input_queue->size());
     LOG_DEBUG("Current finished status: " << (this->finished ? "true" : "false"));
@@ -93,7 +95,7 @@ bool AtomPersistenceJob::thread_one_step() {
     if (this->input_queue->empty()) {
         if (this->producer_finished) {
             LOG_INFO(
-                "Producer has finished and input queue is empty. Marking AtomPersistenceJob as "
+                "Producer has finished and input queue is empty. Marking SingleThreadAtomPersister as "
                 "finished.");
             this->finished = true;
             if (!this->atoms.empty()) {
@@ -145,37 +147,37 @@ bool AtomPersistenceJob::thread_one_step() {
     return false;
 }
 
-bool AtomPersistenceJob::is_finished() const { return this->finished; }
+bool SingleThreadAtomPersister::is_finished() const { return this->finished; }
 
-void AtomPersistenceJob::set_producer_finished() { this->producer_finished = true; }
+void SingleThreadAtomPersister::set_producer_finished() { this->producer_finished = true; }
 
 /*
-    BatchConsumer implementation using ThreadPool
+    MultiThreadAtomPersister implementation using ThreadPool
 */
 
-BatchConsumer::BatchConsumer(shared_ptr<BoundedSharedQueue> input_queue,
-                             ThreadPool& pool,
-                             size_t batch_size,
-                             size_t max_pending_batches)
+MultiThreadAtomPersister::MultiThreadAtomPersister(shared_ptr<BoundedSharedQueue> input_queue,
+                                                   ThreadPool& pool,
+                                                   size_t batch_size,
+                                                   size_t max_pending_batches)
     : input_queue(input_queue),
       pool(pool),
       batch_size(batch_size),
       max_pending_batches(max_pending_batches) {
     this->atomdb = AtomDBSingleton::get_instance();
     this->accumulator.reserve(batch_size);
-    LOG_INFO("BatchConsumer initialized | batch_size: " << batch_size << " | max_pending_batches: "
-                                                        << max_pending_batches
-                                                        << " | pool: " << this->pool.to_string());
+    LOG_INFO("MultiThreadAtomPersister initialized | batch_size: "
+             << batch_size << " | max_pending_batches: " << max_pending_batches
+             << " | pool: " << this->pool.to_string());
 }
 
-BatchConsumer::~BatchConsumer() {
-    LOG_INFO("BatchConsumer destroyed | total_atoms: "
+MultiThreadAtomPersister::~MultiThreadAtomPersister() {
+    LOG_INFO("MultiThreadAtomPersister destroyed | total_atoms: "
              << this->total_count.load() << " | batches_dispatched: " << this->batches_dispatched.load()
              << " | batches_completed: " << this->batches_completed.load()
              << " | batches_failed: " << this->batches_failed.load());
 }
 
-void BatchConsumer::dispatch() {
+void MultiThreadAtomPersister::dispatch() {
     if (static_cast<size_t>(this->pool.size()) >= this->max_pending_batches) {
         this->flush_batch();
         return;
@@ -199,7 +201,7 @@ void BatchConsumer::dispatch() {
     }
 }
 
-void BatchConsumer::set_producer_finished() {
+void MultiThreadAtomPersister::set_producer_finished() {
     this->producer_finished.store(true);
     LOG_INFO("Producer finished signal received"
              << " | accumulator_size: " << this->accumulator.size() << " | queue_remaining: "
@@ -208,11 +210,11 @@ void BatchConsumer::set_producer_finished() {
              << " | batches_completed: " << this->batches_completed.load());
 }
 
-bool BatchConsumer::is_producer_finished() const { return this->producer_finished.load(); }
+bool MultiThreadAtomPersister::is_producer_finished() const { return this->producer_finished.load(); }
 
-int BatchConsumer::get_total_count() const { return this->total_count.load(); }
+int MultiThreadAtomPersister::get_total_count() const { return this->total_count.load(); }
 
-void BatchConsumer::drain_into_accumulator() {
+void MultiThreadAtomPersister::drain_into_accumulator() {
     size_t limit = (this->accumulator.size() < this->batch_size)
                        ? (this->batch_size - this->accumulator.size())
                        : 0;
@@ -241,7 +243,7 @@ void BatchConsumer::drain_into_accumulator() {
     }
 }
 
-void BatchConsumer::flush_batch() {
+void MultiThreadAtomPersister::flush_batch() {
     while (this->accumulator.size() >= this->batch_size) {
         if (static_cast<size_t>(this->pool.size()) >= this->max_pending_batches) {
             LOG_DEBUG("flush_batch() | pool_pending_tasks: "
@@ -266,7 +268,7 @@ void BatchConsumer::flush_batch() {
     }
 }
 
-void BatchConsumer::send_batch(vector<Atom*> atoms, int batch_id) {
+void MultiThreadAtomPersister::send_batch(vector<Atom*> atoms, int batch_id) {
     StopWatch timer_success;
     StopWatch timer_failure;
     timer_success.start();

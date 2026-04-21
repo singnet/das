@@ -5,7 +5,7 @@
 
 #include "AtomDBSingleton.h"
 #include "ContextLoader.h"
-#include "DatabaseAdapterRunner.h"
+#include "DatabaseAdapter.h"
 #include "DatabaseTypes.h"
 #include "Utils.h"
 
@@ -94,9 +94,9 @@ int main(int argc, char* argv[]) {
 
     AtomDBSingleton::init(atomdb_api_types::ATOMDB_TYPE::MORKDB);
 
-    DatabaseAdapterRunner runner(
+    DatabaseAdapter db_adapter(
         host, port, database, username, password, tables_mapping, queries_SQL, mapper_type);
-    runner.run();
+    db_adapter.run();
 
     return 0;
 }

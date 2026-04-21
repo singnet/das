@@ -66,7 +66,7 @@ class PostgresWrapper : public SQLWrapper {
 
     ~PostgresWrapper() override;
 
-    Table get_table(const string& name) override;
+    Table get_table(const string& schema_name, const string& table_name) override;
     vector<Table> list_tables() override;
     void map_table(const Table& table,
                    const vector<string>& clauses,

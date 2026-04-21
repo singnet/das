@@ -45,7 +45,7 @@ class SQLWrapper : public DatabaseWrapper {
     /**
      * @brief Retrieves schema information for a specific table.
      */
-    virtual Table get_table(const string& name) = 0;
+    virtual Table get_table(const string& schema_name, const string& table_name) = 0;
 
     /**
      * @brief Lists all tables in the database.

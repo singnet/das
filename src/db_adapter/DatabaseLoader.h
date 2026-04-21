@@ -22,16 +22,16 @@ using namespace db_adapter;
 
 namespace db_adapter {
 
-class DatabaseMappingJob : public ThreadMethod {
+class DatabaseMappingOrchestrator : public ThreadMethod {
    public:
-    DatabaseMappingJob(const string& host,
-                       int port,
-                       const string& database,
-                       const string& user,
-                       const string& password,
-                       MAPPER_TYPE mapper_type = MAPPER_TYPE::SQL2ATOMS,
-                       shared_ptr<BoundedSharedQueue> output_queue = nullptr);
-    ~DatabaseMappingJob();
+    DatabaseMappingOrchestrator(const string& host,
+                                int port,
+                                const string& database,
+                                const string& user,
+                                const string& password,
+                                MAPPER_TYPE mapper_type = MAPPER_TYPE::SQL2ATOMS,
+                                shared_ptr<BoundedSharedQueue> output_queue = nullptr);
+    ~DatabaseMappingOrchestrator();
 
     void add_task_query(const string& virtual_name, const string& query);
     void add_task_table(TableMapping table_mapping);
@@ -55,10 +55,10 @@ class DatabaseMappingJob : public ThreadMethod {
     bool initialized = false;
 };
 
-class AtomPersistenceJob : public ThreadMethod {
+class SingleThreadAtomPersister : public ThreadMethod {
    public:
-    AtomPersistenceJob(shared_ptr<BoundedSharedQueue> input_queue);
-    ~AtomPersistenceJob();
+    SingleThreadAtomPersister(shared_ptr<BoundedSharedQueue> input_queue);
+    ~SingleThreadAtomPersister();
 
     bool thread_one_step() override;
     bool is_finished() const;
@@ -73,13 +73,13 @@ class AtomPersistenceJob : public ThreadMethod {
     bool producer_finished = false;
 };
 
-class BatchConsumer {
+class MultiThreadAtomPersister {
    public:
-    BatchConsumer(shared_ptr<BoundedSharedQueue> input_queue,
-                  ThreadPool& pool,
-                  size_t batch_size = BATCH_SIZE,
-                  size_t max_pending_batches = 4);
-    ~BatchConsumer();
+    MultiThreadAtomPersister(shared_ptr<BoundedSharedQueue> input_queue,
+                             ThreadPool& pool,
+                             size_t batch_size = BATCH_SIZE,
+                             size_t max_pending_batches = 4);
+    ~MultiThreadAtomPersister();
 
     void dispatch();
     void set_producer_finished();

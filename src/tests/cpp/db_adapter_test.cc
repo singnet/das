@@ -347,17 +347,18 @@ TEST_F(PostgresWrapperTest, GetTable) {
     ASSERT_FALSE(tables.empty());
 
     string target_name = tables[0].name;
-    Table t = wrapper->get_table(target_name);
+    auto table_name_parts = Utils::split(target_name, '.');
+    Table t = wrapper->get_table(table_name_parts[0], table_name_parts[1]);
 
     EXPECT_EQ(t.name, target_name);
     EXPECT_EQ(t.primary_key, tables[0].primary_key);
 
-    Table feature = wrapper->get_table("public.feature");
+    Table feature = wrapper->get_table("public", "feature");
 
     EXPECT_EQ(feature.name, "public.feature");
     EXPECT_EQ(feature.primary_key, "feature_id");
 
-    EXPECT_THROW(wrapper->get_table("fake_table_name"), std::runtime_error);
+    EXPECT_THROW(wrapper->get_table("fake_schema_name", "fake_table_name"), std::runtime_error);
 }
 
 TEST_F(PostgresWrapperTest, ListTables) {
@@ -394,7 +395,7 @@ TEST_F(PostgresWrapperTest, TablesStructure) {
     auto conn = create_db_connection();
     auto wrapper = create_wrapper(*conn);
 
-    Table organism_table = wrapper->get_table(ORGANISM_TABLE);
+    Table organism_table = wrapper->get_table("public", "organism");
 
     EXPECT_EQ(organism_table.name, ORGANISM_TABLE);
     EXPECT_EQ(organism_table.primary_key, ORGANISM_PK);
@@ -409,13 +410,13 @@ TEST_F(PostgresWrapperTest, TablesStructure) {
         EXPECT_TRUE(found);
     }
 
-    Table cvterm_table = wrapper->get_table(CVTERM_TABLE);
+    Table cvterm_table = wrapper->get_table("public", "cvterm");
 
     EXPECT_EQ(cvterm_table.name, CVTERM_TABLE);
     EXPECT_EQ(cvterm_table.primary_key, CVTERM_PK);
     EXPECT_TRUE(cvterm_table.foreign_keys.empty());
 
-    Table feature_table = wrapper->get_table(FEATURE_TABLE);
+    Table feature_table = wrapper->get_table("public", "feature");
 
     EXPECT_EQ(feature_table.name, FEATURE_TABLE);
     EXPECT_EQ(feature_table.primary_key, FEATURE_PK);
@@ -441,15 +442,15 @@ TEST_F(PostgresWrapperTest, MapTablesFirstRowAtoms) {
     auto queue = make_shared<BoundedSharedQueue>(100000);
     auto wrapper = create_wrapper(*conn, queue);
 
-    Table organism_table = wrapper->get_table(ORGANISM_TABLE);
+    Table organism_table = wrapper->get_table("public", "organism");
     EXPECT_NO_THROW({ wrapper->map_table(organism_table, {"organism_id = 1"}, {}, false); });
     EXPECT_EQ(read_atoms_from_queue(queue).size(), 34);
 
-    Table feature_table = wrapper->get_table(FEATURE_TABLE);
+    Table feature_table = wrapper->get_table("public", "feature");
     EXPECT_NO_THROW({ wrapper->map_table(feature_table, {"feature_id = 1"}, {}, false); });
     EXPECT_EQ(read_atoms_from_queue(queue).size(), 54);
 
-    Table cvterm_table = wrapper->get_table(CVTERM_TABLE);
+    Table cvterm_table = wrapper->get_table("public", "cvterm");
     EXPECT_NO_THROW({ wrapper->map_table(cvterm_table, {"cvterm_id = 1"}, {}, false); });
     EXPECT_EQ(read_atoms_from_queue(queue).size(), 28);
 }
@@ -459,7 +460,7 @@ TEST_F(PostgresWrapperTest, MapTableWithClausesAndSkipColumnsAtoms) {
     auto queue = make_shared<BoundedSharedQueue>(100000);
     auto wrapper = create_wrapper(*conn, queue);
 
-    Table table = wrapper->get_table(FEATURE_TABLE);
+    Table table = wrapper->get_table("public", "feature");
     vector<string> clauses = {"organism_id = " + to_string(DROSOPHILA_ORGANISM_ID), "feature_id <= 5"};
     vector<string> skip_columns = {"residues", "md5checksum", "seqlen"};
 
@@ -472,7 +473,7 @@ TEST_F(PostgresWrapperTest, MapTableZeroRowsAtoms) {
     auto queue = make_shared<BoundedSharedQueue>(100000);
     auto wrapper = create_wrapper(*conn, queue);
 
-    Table table = wrapper->get_table(FEATURE_TABLE);
+    Table table = wrapper->get_table("public", "feature");
     vector<string> clauses = {"feature_id = -999"};
 
     EXPECT_NO_THROW({ wrapper->map_table(table, clauses, {}, false); });
@@ -484,7 +485,7 @@ TEST_F(PostgresWrapperTest, MapTableWithNonExistentSkipColumnAtoms) {
     auto queue = make_shared<BoundedSharedQueue>(100000);
     auto wrapper = create_wrapper(*conn, queue);
 
-    Table table = wrapper->get_table(FEATURE_TABLE);
+    Table table = wrapper->get_table("public", "feature");
 
     vector<string> clauses = {"feature_id < 10"};
     vector<string> skip_columns = {"column_xyz"};
@@ -498,7 +499,7 @@ TEST_F(PostgresWrapperTest, MapTableWithInvalidClauseAtoms) {
     auto queue = make_shared<BoundedSharedQueue>(100000);
     auto wrapper = create_wrapper(*conn, queue);
 
-    Table table = wrapper->get_table(FEATURE_TABLE);
+    Table table = wrapper->get_table("public", "feature");
 
     vector<string> clauses = {"INVALID CLAUSE SYNTAX !!!"};
 
@@ -512,15 +513,15 @@ TEST_F(PostgresWrapperTest, MapTablesFirstRowMetta) {
     auto queue = make_shared<BoundedSharedQueue>(100000);
     auto wrapper = create_wrapper(*conn, queue, MAPPER_TYPE::SQL2METTA);
 
-    Table organism_table = wrapper->get_table(ORGANISM_TABLE);
+    Table organism_table = wrapper->get_table("public", "organism");
     EXPECT_NO_THROW({ wrapper->map_table(organism_table, {"organism_id = 1"}, {}, false); });
     EXPECT_EQ(read_metta_expressions_from_queue(queue).size(), 19);
 
-    Table feature_table = wrapper->get_table(FEATURE_TABLE);
+    Table feature_table = wrapper->get_table("public", "feature");
     EXPECT_NO_THROW({ wrapper->map_table(feature_table, {"feature_id = 1"}, {}, false); });
     EXPECT_EQ(read_metta_expressions_from_queue(queue).size(), 34);
 
-    Table cvterm_table = wrapper->get_table(CVTERM_TABLE);
+    Table cvterm_table = wrapper->get_table("public", "cvterm");
     EXPECT_NO_THROW({ wrapper->map_table(cvterm_table, {"cvterm_id = 1"}, {}, false); });
     EXPECT_EQ(read_metta_expressions_from_queue(queue).size(), 16);
 }
@@ -530,7 +531,7 @@ TEST_F(PostgresWrapperTest, MapTableWithClausesAndSkipColumnsMetta) {
     auto queue = make_shared<BoundedSharedQueue>(100000);
     auto wrapper = create_wrapper(*conn, queue, MAPPER_TYPE::SQL2METTA);
 
-    Table table = wrapper->get_table(FEATURE_TABLE);
+    Table table = wrapper->get_table("public", "feature");
     vector<string> clauses = {"organism_id = " + to_string(DROSOPHILA_ORGANISM_ID), "feature_id <= 5"};
     vector<string> skip_columns = {"residues", "md5checksum", "seqlen"};
 
@@ -543,7 +544,7 @@ TEST_F(PostgresWrapperTest, MapTableZeroRowsMetta) {
     auto queue = make_shared<BoundedSharedQueue>(100000);
     auto wrapper = create_wrapper(*conn, queue, MAPPER_TYPE::SQL2METTA);
 
-    Table table = wrapper->get_table(FEATURE_TABLE);
+    Table table = wrapper->get_table("public", "feature");
     vector<string> clauses = {"feature_id = -999"};
 
     EXPECT_NO_THROW({ wrapper->map_table(table, clauses, {}, false); });
@@ -555,7 +556,7 @@ TEST_F(PostgresWrapperTest, MapTableWithNonExistentSkipColumnMetta) {
     auto queue = make_shared<BoundedSharedQueue>(100000);
     auto wrapper = create_wrapper(*conn, queue, MAPPER_TYPE::SQL2METTA);
 
-    Table table = wrapper->get_table(FEATURE_TABLE);
+    Table table = wrapper->get_table("public", "feature");
 
     vector<string> clauses = {"feature_id < 10"};
     vector<string> skip_columns = {"column_xyz"};
@@ -569,7 +570,7 @@ TEST_F(PostgresWrapperTest, MapTableWithInvalidClauseMetta) {
     auto queue = make_shared<BoundedSharedQueue>(100000);
     auto wrapper = create_wrapper(*conn, queue, MAPPER_TYPE::SQL2METTA);
 
-    Table table = wrapper->get_table(FEATURE_TABLE);
+    Table table = wrapper->get_table("public", "feature");
 
     vector<string> clauses = {"INVALID CLAUSE SYNTAX !!!"};
 
@@ -893,7 +894,8 @@ TEST_F(PostgresWrapperTest, MapTablesFirstRowAtomsWithContextFile) {
         vector<string> skip_columns = tm.skip_columns.value_or(vector<string>{});
         vector<string> where_clauses = tm.where_clauses.value_or(vector<string>{});
 
-        Table table = wrapper->get_table(table_name);
+        auto table_name_parts = Utils::split(table_name, '.');
+        Table table = wrapper->get_table(table_name_parts[0], table_name_parts[1]);
         EXPECT_NO_THROW({ wrapper->map_table(table, where_clauses, skip_columns, false); });
         atoms_sizes.push_back(read_atoms_from_queue(queue).size());
     }

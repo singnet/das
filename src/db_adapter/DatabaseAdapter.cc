@@ -1,4 +1,4 @@
-#include "DatabaseAdapterRunner.h"
+#include "DatabaseAdapter.h"
 
 #include <chrono>
 #include <thread>
@@ -20,14 +20,14 @@ using namespace atomdb;
 using namespace db_adapter;
 using namespace processor;
 
-DatabaseAdapterRunner::DatabaseAdapterRunner(const string& host,
-                                             int port,
-                                             const string& database,
-                                             const string& username,
-                                             const string& password,
-                                             const vector<TableMapping>& tables_mapping,
-                                             const vector<string>& queries_SQL,
-                                             MAPPER_TYPE mapper_type)
+DatabaseAdapter::DatabaseAdapter(const string& host,
+                                 int port,
+                                 const string& database,
+                                 const string& username,
+                                 const string& password,
+                                 const vector<TableMapping>& tables_mapping,
+                                 const vector<string>& queries_SQL,
+                                 MAPPER_TYPE mapper_type)
     : host(host),
       port(port),
       database(database),
@@ -37,21 +37,22 @@ DatabaseAdapterRunner::DatabaseAdapterRunner(const string& host,
       queries_SQL(queries_SQL),
       mapper_type(mapper_type) {}
 
-void DatabaseAdapterRunner::run() {
+void DatabaseAdapter::run() {
     auto queue = make_shared<BoundedSharedQueue>(100000);
 
-    DatabaseMappingJob db_mapping_job(host, port, database, username, password, mapper_type, queue);
+    DatabaseMappingOrchestrator db_mapping_orchestrator(
+        host, port, database, username, password, mapper_type, queue);
 
-    auto producer = make_shared<DedicatedThread>("producer", &db_mapping_job);
+    auto producer = make_shared<DedicatedThread>("producer", &db_mapping_orchestrator);
     if (!this->tables_mapping.empty()) {
         for (const auto& table_mapping : this->tables_mapping) {
-            db_mapping_job.add_task_table(table_mapping);
+            db_mapping_orchestrator.add_task_table(table_mapping);
         }
     }
     LOG_DEBUG("Loaded " + to_string(this->tables_mapping.size()) + " table mappings from context file.");
     if (!this->queries_SQL.empty()) {
         for (size_t i = 0; i < this->queries_SQL.size(); i++) {
-            db_mapping_job.add_task_query("custom_query_" + to_string(i), this->queries_SQL[i]);
+            db_mapping_orchestrator.add_task_query("custom_query_" + to_string(i), this->queries_SQL[i]);
         }
     }
     LOG_DEBUG("Loaded " + to_string(this->queries_SQL.size()) + " queries from query file.");
@@ -61,7 +62,7 @@ void DatabaseAdapterRunner::run() {
     pool.setup();
     pool.start();
 
-    BatchConsumer consumer(queue, pool, BATCH_SIZE);
+    MultiThreadAtomPersister consumer(queue, pool, BATCH_SIZE);
 
     producer->setup();
     producer->start();
@@ -70,7 +71,7 @@ void DatabaseAdapterRunner::run() {
     while (true) {
         consumer.dispatch();
 
-        if (db_mapping_job.is_finished() && !consumer.is_producer_finished()) {
+        if (db_mapping_orchestrator.is_finished() && !consumer.is_producer_finished()) {
             LOG_INFO("Mapping completed. Loading data into DAS.");
             producer->stop();
             consumer.set_producer_finished();

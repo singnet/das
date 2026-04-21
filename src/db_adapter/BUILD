@@ -8,7 +8,7 @@ cc_library(
     deps = [
         ":bounded_shared_queue",
         ":context_loader",
-        ":database_adapter_runner",
+        ":database_adapter",
         ":database_connection",
         ":database_loader",
         ":database_mapper",
@@ -109,9 +109,9 @@ cc_library(
 )
 
 cc_library(
-    name = "database_adapter_runner",
-    srcs = ["DatabaseAdapterRunner.cc"],
-    hdrs = ["DatabaseAdapterRunner.h"],
+    name = "database_adapter",
+    srcs = ["DatabaseAdapter.cc"],
+    hdrs = ["DatabaseAdapter.h"],
     includes = ["."],
     deps = [
         ":bounded_shared_queue",
