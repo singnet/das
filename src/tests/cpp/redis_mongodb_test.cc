@@ -15,7 +15,7 @@
 #include "MockAnimalsData.h"
 #include "Node.h"
 #include "RedisMongoDB.h"
-#include "TestConfig.h"
+#include "TestAtomDBJsonConfig.h"
 #include "UntypedVariable.h"
 #include "Wildcard.h"
 
@@ -36,8 +36,7 @@ class MockDecoder : public HandleDecoder {
 class RedisMongoDBTestEnvironment : public ::testing::Environment {
    public:
     void SetUp() override {
-        TestConfig::load_environment();
-        auto atomdb = new RedisMongoDB("test_");
+        auto atomdb = new RedisMongoDB("test_", false, test_atomdb_json_config());
         AtomDBSingleton::provide(shared_ptr<AtomDB>(atomdb));
         load_animals_data();
     }

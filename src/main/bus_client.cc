@@ -2,9 +2,12 @@
 
 #include "FitnessFunctionRegistry.h"
 #include "Helper.h"
+#include "JsonConfig.h"
+#include "JsonConfigParser.h"
 #include "Logger.h"
 #include "Properties.h"
 #include "ProxyFactory.h"
+#include "RemoteAtomDB.h"
 #include "ServiceBusSingleton.h"
 #include "Utils.h"
 
@@ -36,6 +39,14 @@ int main(int argc, char* argv[]) {
                 Utils::error("Required argument missing: " + string(req_arg));
             }
         }
+
+        ///////// Loading JSON config
+        auto it_config = cmd_args.find("config");
+        JsonConfig json_config;
+        if (it_config != cmd_args.end() && !it_config->second.empty()) {
+            json_config = JsonConfigParser::load(it_config->second);
+        }
+
         auto props = Properties(cmd_args.begin(), cmd_args.end());
         LOG_INFO("Parsed Properties: " + props.to_string());
         auto signal_handler = [](int) {
@@ -46,12 +57,11 @@ int main(int argc, char* argv[]) {
         };
         signal(SIGINT, signal_handler);
         signal(SIGTERM, signal_handler);
+
         LOG_INFO("Starting service: " + cmd_args[Helper::SERVICE]);
-        if (props.get_or<string>(Helper::USE_MORK, "false") == "true") {
-            AtomDBSingleton::init(atomdb_api_types::ATOMDB_TYPE::MORKDB);
-        } else {
-            AtomDBSingleton::init();
-        }
+        auto atomdb_config = json_config.at_path("atomdb").get_or<JsonConfig>(JsonConfig());
+        AtomDBSingleton::init(atomdb_config);
+
         if (Helper::processor_type_from_string(cmd_args[Helper::SERVICE]) ==
             mains::ProcessorType::EVOLUTION_AGENT) {
             LOG_INFO("Initializing Fitness Function Registry statics...");

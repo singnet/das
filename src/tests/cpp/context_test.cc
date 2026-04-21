@@ -1,3 +1,4 @@
+#include "AtomDBAPITypes.h"
 #include "AtomDBSingleton.h"
 #include "AttentionBrokerClient.h"
 #include "ContextBrokerProcessor.h"
@@ -8,7 +9,7 @@
 #include "RedisMongoDB.h"
 #include "ServiceBus.h"
 #include "ServiceBusSingleton.h"
-#include "TestConfig.h"
+#include "TestAtomDBJsonConfig.h"
 #include "UntypedVariable.h"
 #include "Utils.h"
 #include "gtest/gtest.h"
@@ -24,10 +25,7 @@ using namespace query_engine;
 
 class ContextTestEnvironment : public ::testing::Environment {
    public:
-    void SetUp() override {
-        TestConfig::load_environment();
-        AtomDBSingleton::init();
-    }
+    void SetUp() override { AtomDBSingleton::init(test_atomdb_json_config()); }
 
     void TearDown() override {}
 };

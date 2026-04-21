@@ -1,14 +1,6 @@
-load("@rules_cc//cc:cc_binary.bzl", "cc_binary")
 load("@rules_cc//cc:cc_library.bzl", "cc_library")
 
 package(default_visibility = ["//visibility:public"])
-
-cc_library(
-    name = "test_commons",
-    srcs = ["TestConfig.cc"],
-    hdrs = ["TestConfig.h"],
-    includes = ["."],
-)
 
 cc_library(
     name = "mock_animals_data_lib",
@@ -17,6 +9,15 @@ cc_library(
     includes = ["."],
     deps = [
         "//atomdb:atomdb_singleton",
+        "//commons:commons_lib",
+    ],
+)
+
+cc_library(
+    name = "test_atomdb_json_config",
+    hdrs = ["TestAtomDBJsonConfig.h"],
+    includes = ["."],
+    deps = [
         "//commons:commons_lib",
     ],
 )

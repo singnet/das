@@ -26,7 +26,7 @@ namespace atomdb {
 
 class MorkClient {
    public:
-    MorkClient(const string& base_url = "");
+    MorkClient(const string& base_url);
     ~MorkClient();
     string post(const string& data, const string& pattern = "$x", const string& template_ = "$x");
     vector<string> get(const string& pattern, const string& template_);
@@ -41,7 +41,7 @@ class MorkClient {
 
 class MorkDB : public RedisMongoDB {
    public:
-    MorkDB(const string& context = "", const JsonConfig& config = JsonConfig());
+    MorkDB(const string& context, const JsonConfig& config);
     ~MorkDB();
 
     bool allow_nested_indexing() override;

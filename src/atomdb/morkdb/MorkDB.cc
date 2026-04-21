@@ -24,8 +24,7 @@ using namespace metta;
 
 // --> MorkClient
 MorkClient::MorkClient(const string& base_url)
-    : base_url_(Utils::trim(base_url.empty() ? Utils::get_environment("MORK_URL") : base_url)),
-      cli(httplib::Client(base_url)) {
+    : base_url_(Utils::trim(base_url)), cli(httplib::Client(base_url)) {
     send_request("GET", "/status/-");
 }
 
@@ -106,13 +105,7 @@ MorkDB::~MorkDB() {}
 bool MorkDB::allow_nested_indexing() { return true; }
 
 void MorkDB::mork_setup(const JsonConfig& config) {
-    string host = Utils::get_environment("DAS_MORK_HOSTNAME");
-    string port = Utils::get_environment("DAS_MORK_PORT");
-    string address = config.at_path("morkdb.endpoint").get_or<string>(host + ":" + port);
-
-    if (address == "" || address == ":") {
-        Utils::error("You need to set MORK access info as configuration: morkdb.endpoint");
-    }
+    string address = config.at_path("morkdb.endpoint").get<string>();
 
     try {
         this->mork_client = make_shared<MorkClient>(address);
