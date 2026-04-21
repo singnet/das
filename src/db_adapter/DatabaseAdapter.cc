@@ -20,10 +20,7 @@ using namespace atomdb;
 using namespace db_adapter;
 using namespace processor;
 
-DatabaseAdapter::DatabaseAdapter(const JsonConfig& config, MAPPER_TYPE mapper_type)
-    : config(config), mapper_type(mapper_type) {}
-
-void DatabaseAdapter::run() {
+void db_adapter::run_database_adapter(const JsonConfig& config, MAPPER_TYPE mapper_type) {
     auto queue = make_shared<BoundedSharedQueue>();
 
     DatabaseMappingOrchestrator db_mapping_orchestrator(config, mapper_type, queue);

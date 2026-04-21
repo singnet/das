@@ -62,8 +62,7 @@ int main(int argc, char* argv[]) {
     auto atomdb_config = json_config.at_path("atomdb").get_or<JsonConfig>(JsonConfig());
     AtomDBSingleton::init(atomdb_config);
 
-    DatabaseAdapter db_adapter(json_config, mapper_type);
-    db_adapter.run();
+    run_database_adapter(json_config, mapper_type);
 
     LOG_INFO("Database adapter stopped.");
 
