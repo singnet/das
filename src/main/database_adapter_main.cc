@@ -7,6 +7,8 @@
 #include "ContextLoader.h"
 #include "DatabaseAdapter.h"
 #include "DatabaseTypes.h"
+#include "JsonConfig.h"
+#include "JsonConfigParser.h"
 #include "Utils.h"
 
 #define LOG_LEVEL INFO_LEVEL
@@ -25,39 +27,40 @@ void ctrl_c_handler(int) {
 
 void usage(const char* a) {
     cerr << "Usage: " << a
-         << " <host> <port> <database> <username> [password] "
+         << " <config_file> <host> <port> <database> <username> [password] "
             "[table_file_path] [query_file_path] [mapper_type] \n\n"
             "Rules:\n"
             "- You must provide at least table_file_path OR query_file_path.\n"
             "- Use '.' to skip an optional argument.\n\n"
             "Examples:\n"
-            "  ./bin host port db user pwd ./table.json\n"
-            "  ./bin host port db user pwd . ./query.sql\n"
-            "  ./bin host port db user pwd ./table.json . ATOMS\n"
-            "  ./bin host port db user pwd . ./query.sql ATOMS\n"
-            "  ./bin host port db user pwd ./table.json ./query.sql METTA\n";
+            "  ./bin config.json host port db user pwd ./table.json\n"
+            "  ./bin config.json host port db user pwd . ./query.sql\n"
+            "  ./bin config.json host port db user pwd ./table.json . ATOMS\n"
+            "  ./bin config.json host port db user pwd . ./query.sql ATOMS\n"
+            "  ./bin config.json host port db user pwd ./table.json ./query.sql METTA\n";
     exit(1);
 }
 
 bool is_empty_arg(const string& s) { return s.empty() || s == "."; }
 
 int main(int argc, char* argv[]) {
-    if (argc < 7 || argc > 9) {
+    if (argc < 8 || argc > 10) {
         usage(argv[0]);
     }
 
+    LOG_INFO("Starting database adapter...");
     signal(SIGINT, &ctrl_c_handler);
     signal(SIGTERM, &ctrl_c_handler);
 
-    string host = argv[1];
-    int port = stoi(argv[2]);
-    string database = argv[3];
-    string username = argv[4];
-    string password = argv[5];
-
-    string table_file_path = argv[6];
-    string query_file_path = (argc >= 8) ? argv[7] : ".";
-    string mapper_type_str = (argc >= 9) ? argv[8] : ".";
+    string config = argv[1];
+    string host = argv[2];
+    int port = stoi(argv[3]);
+    string database = argv[4];
+    string username = argv[5];
+    string password = argv[6];
+    string table_file_path = argv[7];
+    string query_file_path = (argc >= 9) ? argv[8] : ".";
+    string mapper_type_str = (argc >= 10) ? argv[9] : ".";
 
     if (is_empty_arg(table_file_path) && is_empty_arg(query_file_path)) {
         cerr << "Error: You must provide at least table_file_path OR query_file_path.\n\n";
@@ -92,7 +95,9 @@ int main(int argc, char* argv[]) {
         }
     }
 
-    AtomDBSingleton::init(atomdb_api_types::ATOMDB_TYPE::MORKDB);
+    JsonConfig json_config = JsonConfigParser::load(config);
+    auto atomdb_config = json_config.at_path("atomdb").get_or<JsonConfig>(JsonConfig());
+    AtomDBSingleton::init(atomdb_config);
 
     DatabaseAdapter db_adapter(
         host, port, database, username, password, tables_mapping, queries_SQL, mapper_type);

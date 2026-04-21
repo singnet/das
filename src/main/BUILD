@@ -53,6 +53,7 @@ cc_library(
     srcs = ["database_adapter_main.cc"],
     deps = [
         "//atomdb:atomdb_singleton",
+        "//commons:commons_lib",
         "//db_adapter:db_adapter_lib",
     ],
 )
