@@ -25,6 +25,11 @@ class DatabaseAdapter {
      */
     DatabaseAdapter(const JsonConfig& config, MAPPER_TYPE mapper_type = MAPPER_TYPE::SQL2ATOMS);
     ~DatabaseAdapter() = default;
+
+    /**
+     * Run the adapter: perform mapping and load data into DAS. This method blocks until the process is
+     * complete.
+     */
     void run();
 
    private:
