@@ -78,15 +78,19 @@ bool QueryAnswer::merge(QueryAnswer* other, bool merge_handles) {
 string QueryAnswer::to_string() {
     string answer = "QueryAnswer<" + std::to_string(this->handles[0].size()) + ",";
     answer += std::to_string(this->assignment.variable_count()) + "> [";
-    bool empty_flag = true;
-    for (string handle : this->handles[0]) {
-        answer += handle;
-        answer += ", ";
-        empty_flag = false;
-    }
-    if (!empty_flag) {
-        answer.pop_back();
-        answer.pop_back();
+    for (auto& vector : this->handles) {
+        answer += "[";
+        bool empty_flag = true;
+        for (string handle : vector) {
+            answer += handle;
+            answer += ", ";
+            empty_flag = false;
+        }
+        if (!empty_flag) {
+            answer.pop_back();
+            answer.pop_back();
+        }
+        answer += "]";
     }
     answer += "] " + this->assignment.to_string();
     answer += " (" + std::to_string(this->strength) + ", " + std::to_string(this->importance) + ")";
@@ -103,12 +107,15 @@ const string& QueryAnswer::tokenize() {
     unsigned int char_count =
         13    // strength with 10 decimals + space
         + 13  // importance with 10 decimals + space
-        + 4   // (up to 3 digits) to represent this->handles[0].size() + space
-        + this->handles[0].size() * (HANDLE_HASH_SIZE + 1)  // handles[0] + spaces
-        + 4  // (up to 3 digits) to represent this->assignment.size + space
+        + 4   // (up to 3 digits) to represent this->assignment.size + space
         + this->assignment.table.size() *
               (MAX_VARIABLE_NAME_SIZE + HANDLE_HASH_SIZE + 2)  // label<space>handle<space>
-        + 4;  // (up to 3 digits) to represent this->metta_expression.size + space
+        + 4   // (up to 3 digits) to represent this->metta_expression.size + space
+        + 4;  // (up to 3 digits) to represent this->handles.size() + space
+    for (auto& vector : this->handles) {
+        char_count += 4;   // (up to 3 digits) to represent this->handles[i].size() + space
+        char_count += vector.size() * (HANDLE_HASH_SIZE + 1);  // handles[i] + spaces
+    }
 
     this->token_representation.clear();
     this->token_representation.reserve(char_count);
@@ -117,11 +124,15 @@ const string& QueryAnswer::tokenize() {
     this->token_representation += space;
     this->token_representation += importance_buffer;
     this->token_representation += space;
-    this->token_representation += std::to_string(this->handles[0].size());
+    this->token_representation += std::to_string(this->handles.size());
     this->token_representation += space;
-    for (string handle : this->handles[0]) {
-        this->token_representation += handle;
+    for (auto& vector : this->handles) {
+        this->token_representation += std::to_string(vector.size());
         this->token_representation += space;
+        for (string handle : vector) {
+            this->token_representation += handle;
+            this->token_representation += space;
+        }
     }
     this->token_representation += std::to_string(this->assignment.table.size());
     this->token_representation += space;
@@ -209,14 +220,29 @@ void QueryAnswer::untokenize(const string& tokens) {
 
     read_token(token_string, cursor, number, 4);
     unsigned int handles_size = (unsigned int) std::stoi(number);
-    if (handles_size > MAX_NUMBER_OF_OPERATION_CLAUSES) {
+
+    if (handles_size >= MAX_NUMBER_OF_OPERATION_CLAUSES) {
         Utils::error("Invalid handles_size: " + std::to_string(handles_size) +
                      " untokenizing QueryAnswer");
-    }
-
-    for (unsigned int i = 0; i < handles_size; i++) {
-        read_token(token_string, cursor, handle, HANDLE_HASH_SIZE);
-        this->handles[0].push_back(string(handle));
+    } else {
+        for (unsigned int i = 0; i < handles_size; i++) {
+            read_token(token_string, cursor, number, 4);
+            unsigned int vector_size = (unsigned int) std::stoi(number);
+            unsigned int path_index = 0;
+            if (i > 0) {
+                path_index = this->add_path();
+            }
+            for (unsigned int j = 0; j < vector_size; j++) {
+                read_token(token_string, cursor, handle, HANDLE_HASH_SIZE);
+                if (i == 0) {
+                    // handles vector
+                    this->add_handle(handle);
+                } else {
+                    // paths
+                    this->add_path_element(path_index, handle);
+                }
+            }
+        }
     }
 
     read_token(token_string, cursor, number, 4);

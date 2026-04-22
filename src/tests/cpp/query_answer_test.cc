@@ -258,15 +258,26 @@ void query_answers_equal(QueryAnswer* qa1, QueryAnswer* qa2) {
 
 TEST(QueryAnswer, tokenization) {
     unsigned int NUM_TESTS = 100000;
+    unsigned int MAX_PATHS = 5;
+    unsigned int MAX_PATH_SIZE = 10;
     unsigned int MAX_HANDLES = 5;
     unsigned int MAX_ASSIGNMENTS = 10;
 
     for (unsigned int test = 0; test < NUM_TESTS; test++) {
         unsigned int num_handles = (rand() % MAX_HANDLES) + 1;
+        unsigned int num_paths = (rand() % MAX_PATHS) + 1;
         unsigned int num_assignments = (rand() % MAX_ASSIGNMENTS);
+        unsigned int path_size = 0;
         QueryAnswer input(Utils::flip_coin() ? 1 : 0);
         for (unsigned int i = 0; i < num_handles; i++) {
             input.add_handle(strdup(random_handle().c_str()));
+        }
+        for (unsigned int i = 0; i < num_paths; i++) {
+            unsigned int path_index = input.add_path();
+            path_size = (rand() % MAX_PATH_SIZE) + 1;
+            for (unsigned int j = 0; j < path_size; j++) {
+                input.add_path_element(path_index, strdup(random_handle().c_str()));
+            }
         }
         unsigned int label_count = 0;
         for (unsigned int i = 0; i < num_assignments; i++) {
