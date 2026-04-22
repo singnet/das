@@ -39,6 +39,12 @@ QueryAnswer* QueryAnswer::copy(QueryAnswer* other) {  // Static method
     return copy;
 }
 
+void QueryAnswer::merge_path(QueryAnswer* other) {
+    if (this->handles.size() > 1) {
+    } else {
+    }
+}
+
 bool QueryAnswer::merge(QueryAnswer* other, bool merge_handles) {
     if (this->assignment.is_compatible(other->assignment)) {
         this->assignment.add_assignments(other->assignment);
@@ -59,6 +65,9 @@ bool QueryAnswer::merge(QueryAnswer* other, bool merge_handles) {
                 if (!other->metta_expression[handle1].empty()) {
                     this->metta_expression[handle1] = other->metta_expression[handle1];
                 }
+            }
+            if ((this->handles.size() > 1) || (other->handles.size() > 1)) {
+                this->merge_paths(other);
             }
         }
         return true;
