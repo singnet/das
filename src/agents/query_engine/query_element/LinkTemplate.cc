@@ -147,12 +147,10 @@ void LinkTemplate::processor_method(shared_ptr<StoppableThread> monitor) {
         handles = db->query_for_pattern(this->link_schema);
         LinkTemplate::fetched_links_cache().set(link_schema_handle, handles);
     }
-    bool flat_pattern_flag = (this->reverse_nesting_level <= 1);
     LOG_DEBUG("Positive importance flag: " + string(this->positive_importance_flag ? "true" : "false"));
     LOG_DEBUG("Disregard importance flag: " +
               string(this->disregard_importance_flag ? "true" : "false"));
     LOG_DEBUG("Unique value flag: " + string(this->unique_value_flag ? "true" : "false"));
-    LOG_DEBUG("Flat pattern flag: " + string(flat_pattern_flag ? "true" : "false"));
     LOG_INFO("Fetched " + std::to_string(handles->size()) + " atoms in " + link_schema_handle);
 
     vector<pair<char*, float>> tagged_handles;

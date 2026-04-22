@@ -40,7 +40,7 @@ LinkCreationService::~LinkCreationService() {
 }
 
 string LinkCreationService::query_answer_hash(shared_ptr<QueryAnswer> query_answer) {
-    return Hasher::composite_handle(query_answer->handles);
+    return Hasher::composite_handle(query_answer->get_handles_vector());
 }
 
 void LinkCreationService::process_request(shared_ptr<PatternMatchingQueryProxy> proxy,

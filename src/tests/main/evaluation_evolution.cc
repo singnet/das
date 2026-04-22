@@ -221,10 +221,10 @@ static void compute_counts(const vector<vector<string>>& query_tokens,
             if ((query_answer = proxy[i]->pop()) == NULL) {
                 Utils::sleep();
             } else {
-                if (query_answer->handles.size() == 1) {
+                if (query_answer->get_handles_size() == 1) {
                     d = 1.0;
                 } else {
-                    string link_handle = query_answer->handles[1];
+                    string link_handle = query_answer->get(1);
                     auto link = db->get_atom(link_handle);
                     d = link->custom_attributes.get<double>(STRENGTH);
                 }
@@ -458,7 +458,7 @@ static void build_links(const vector<string>& query,
             Utils::sleep();
         } else {
             if (++count <= num_links) {
-                if (query_answer->handles.size() == 2) {
+                if (query_answer->get_handles_size() == 2) {
                     LOG_DEBUG("Processing query answer " + to_string(count) + ": " +
                               query_answer->to_string());
                     build_link(query_answer, context, custom_handle);
@@ -475,7 +475,7 @@ static void build_links(const vector<string>& query,
 }
 
 static void print_answer(shared_ptr<QueryAnswer> query_answer) {
-    unsigned int answer_arity = query_answer->handles.size();
+    unsigned int answer_arity = query_answer->get_handles_size();
     cout << fixed << setw(6) << setprecision(4) << setfill('0');
     cout << query_answer->strength << " [" << to_string(answer_arity) << "]";
     cout << endl;

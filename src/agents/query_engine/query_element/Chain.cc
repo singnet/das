@@ -391,7 +391,7 @@ void Chain::report_path(Path& path) {
                 query_answer->add_handle(pair->second->get(this->link_selector));
             }
         }
-        string answer_hash = Hasher::composite_handle(query_answer->handles);
+        string answer_hash = Hasher::composite_handle(query_answer->get_handles_vector());
         if (this->reported_answers.find(answer_hash) == this->reported_answers.end()) {
             this->reported_answers.insert(answer_hash);
             query_answer->assignment.assign(ORIGIN_VARIABLE_NAME, path.start_point());

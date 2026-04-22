@@ -88,7 +88,7 @@ void PatternMatchingQueryProcessor::update_attention_broker_single_answer(
 
     /*
     // Correlate handles which are the query answer
-    for (string handle : answer->handles) {
+    for (string handle : answer->get_handles_vector()) {
         execution_stack.push(handle);
     }
     while (!execution_stack.empty()) {

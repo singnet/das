@@ -16,17 +16,19 @@ QueryAnswer::QueryAnswer() : QueryAnswer(0.0) {}
 QueryAnswer::QueryAnswer(double importance) {
     this->importance = importance;
     this->strength = 0;
+    this->handles.push_back({});
 }
 
 QueryAnswer::QueryAnswer(const string& handle, double importance) {
     this->importance = importance;
-    this->handles.push_back(handle);
+    this->handles.push_back({});
+    this->handles[0].push_back(handle);
     this->strength = 0;
 }
 
 QueryAnswer::~QueryAnswer() {}
 
-void QueryAnswer::add_handle(const string& handle) { this->handles.push_back(handle); }
+void QueryAnswer::add_handle(const string& handle) { this->handles[0].push_back(handle); }
 
 QueryAnswer* QueryAnswer::copy(QueryAnswer* other) {  // Static method
     QueryAnswer* copy = new QueryAnswer(other->importance);
@@ -43,15 +45,15 @@ bool QueryAnswer::merge(QueryAnswer* other, bool merge_handles) {
         if (merge_handles) {
             this->importance = fmax(this->importance, other->importance);
             this->strength = this->strength * other->strength;
-            for (string handle1 : other->handles) {
+            for (string handle1 : other->handles[0]) {
                 bool flag = true;
-                for (string handle2 : this->handles) {
+                for (string handle2 : this->handles[0]) {
                     if (handle1 == handle2) {
                         flag = false;
                     }
                 }
                 if (flag) {
-                    this->handles.push_back(handle1);
+                    this->handles[0].push_back(handle1);
                 }
                 // Only merge if the other has a non-empty metta expression
                 if (!other->metta_expression[handle1].empty()) {
@@ -66,10 +68,10 @@ bool QueryAnswer::merge(QueryAnswer* other, bool merge_handles) {
 }
 
 string QueryAnswer::to_string() {
-    string answer = "QueryAnswer<" + std::to_string(this->handles.size()) + ",";
+    string answer = "QueryAnswer<" + std::to_string(this->handles[0].size()) + ",";
     answer += std::to_string(this->assignment.variable_count()) + "> [";
     bool empty_flag = true;
-    for (string handle : this->handles) {
+    for (string handle : this->handles[0]) {
         answer += handle;
         answer += ", ";
         empty_flag = false;
@@ -93,8 +95,8 @@ const string& QueryAnswer::tokenize() {
     unsigned int char_count =
         13    // strength with 10 decimals + space
         + 13  // importance with 10 decimals + space
-        + 4   // (up to 3 digits) to represent this->handles.size() + space
-        + this->handles.size() * (HANDLE_HASH_SIZE + 1)  // handles + spaces
+        + 4   // (up to 3 digits) to represent this->handles[0].size() + space
+        + this->handles[0].size() * (HANDLE_HASH_SIZE + 1)  // handles[0] + spaces
         + 4  // (up to 3 digits) to represent this->assignment.size + space
         + this->assignment.table.size() *
               (MAX_VARIABLE_NAME_SIZE + HANDLE_HASH_SIZE + 2)  // label<space>handle<space>
@@ -107,9 +109,9 @@ const string& QueryAnswer::tokenize() {
     this->token_representation += space;
     this->token_representation += importance_buffer;
     this->token_representation += space;
-    this->token_representation += std::to_string(this->handles.size());
+    this->token_representation += std::to_string(this->handles[0].size());
     this->token_representation += space;
-    for (string handle : this->handles) {
+    for (string handle : this->handles[0]) {
         this->token_representation += handle;
         this->token_representation += space;
     }
@@ -206,7 +208,7 @@ void QueryAnswer::untokenize(const string& tokens) {
 
     for (unsigned int i = 0; i < handles_size; i++) {
         read_token(token_string, cursor, handle, HANDLE_HASH_SIZE);
-        this->handles.push_back(string(handle));
+        this->handles[0].push_back(string(handle));
     }
 
     read_token(token_string, cursor, number, 4);
@@ -262,8 +264,8 @@ string QueryAnswer::get(const string& key, bool return_empty_when_not_found) {
 
 string QueryAnswer::get(unsigned int key, bool return_empty_when_not_found) {
     string answer = "";
-    if (key < this->handles.size()) {
-        answer = this->handles[key];
+    if (key < this->handles[0].size()) {
+        answer = this->handles[0][key];
     } else {
         if (!return_empty_when_not_found) {
             Utils::error("Invalid handle index: " + std::to_string(key));
@@ -300,3 +302,7 @@ void QueryAnswer::rewrite_query(const vector<string>& original_query,
         }
     }
 }
+
+unsigned int QueryAnswer::get_handles_size() { return handles[0].size(); }
+
+vector<string>& QueryAnswer::get_handles_vector() { return handles[0]; }

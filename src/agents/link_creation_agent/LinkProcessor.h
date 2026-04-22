@@ -109,10 +109,10 @@ class LinkProcessor {
                 if ((query_answer = query_proxies[i]->pop()) == NULL) {
                     Utils::sleep(20);
                 } else {
-                    if (query_answer->handles.size() == 1) {
+                    if (query_answer->get_handles_size() == 1) {
                         d = 1.0;
                     } else {
-                        string link_handle = query_answer->handles[1];
+                        string link_handle = query_answer->get_handles_vector()[1];
                         auto link = db->get_atom(link_handle);
                         d = link->custom_attributes.get<double>("strength");
                     }
