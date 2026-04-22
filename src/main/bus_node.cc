@@ -31,8 +31,6 @@ int main(int argc, char* argv[]) {
         JsonConfig json_config;
         if (it_config != cmd_args.end() && !it_config->second.empty()) {
             json_config = JsonConfigParser::load(it_config->second);
-        } else {
-            json_config = JsonConfigParser::load(JsonConfig::JSON_CONFIG_DEFAULT_PATH, false);
         }
         // Map service name (e.g. "query-engine") to config section path (e.g. "agents.query")
         string service_name = cmd_args[Helper::SERVICE];
@@ -83,23 +81,8 @@ int main(int argc, char* argv[]) {
         }
 
         ///////// Initializing AtomDB
-        shared_ptr<AtomDB> atomdb = nullptr;
-        if (props.get_or<string>(Helper::USE_MORK, "false") == "true") {
-            atomdb = make_shared<MorkDB>();
-        } else {
-            auto atomdb_config = json_config.at_path("atomdb").get_or<JsonConfig>(JsonConfig());
-            string atomdb_type = atomdb_config.at_path("type").get_or<string>("");
-            if (atomdb_type == "morkdb") {
-                atomdb = make_shared<MorkDB>("", atomdb_config);
-            } else if (atomdb_type == "remotedb") {
-                atomdb = make_shared<RemoteAtomDB>(atomdb_config);
-            } else if (atomdb_type == "redismongodb") {
-                atomdb = make_shared<RedisMongoDB>("", false, atomdb_config);
-            } else {
-                atomdb = make_shared<RedisMongoDB>();
-            }
-        }
-        AtomDBSingleton::provide(atomdb);
+        auto atomdb_config = json_config.at_path("atomdb").get_or<JsonConfig>(JsonConfig());
+        AtomDBSingleton::init(atomdb_config);
 
         if (Helper::processor_type_from_string(cmd_args[Helper::SERVICE]) ==
                 mains::ProcessorType::INFERENCE_AGENT ||

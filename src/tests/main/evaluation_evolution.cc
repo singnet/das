@@ -7,18 +7,21 @@
 #include <iostream>
 #include <string>
 
+#include "AtomDBAPITypes.h"
 #include "AtomDBSingleton.h"
 #include "AttentionBrokerClient.h"
 #include "ContextBrokerProxy.h"
 #include "CountLetterFunction.h"
 #include "FitnessFunctionRegistry.h"
 #include "Hasher.h"
+#include "JsonConfigParser.h"
 #include "Logger.h"
 #include "MettaParser.h"
 #include "PatternMatchingQueryProxy.h"
 #include "QueryAnswer.h"
 #include "QueryEvolutionProxy.h"
 #include "ServiceBusSingleton.h"
+#include "TestAtomDBJsonConfig.h"
 #include "Utils.h"
 #include "commons/atoms/MettaParserActions.h"
 
@@ -27,6 +30,7 @@
 // Symbols
 #define AND_OPERATOR "AND"
 #define OR_OPERATOR "OR"
+#define CHAIN_OPERATOR "CHAIN"
 #define LINK_TEMPLATE "LINK_TEMPLATE"
 #define LINK "LINK"
 #define NODE "NODE"
@@ -81,6 +85,7 @@ static bool PRINT_CREATED_LINKS_METTA = true;
 
 using namespace std;
 using namespace atomdb;
+using namespace commons;
 using namespace query_engine;
 using namespace evolution;
 using namespace service_bus;
@@ -565,38 +570,25 @@ static void run(const string& target_predicate_handle,
     };
 
     vector<string> query_to_evolve = {
-        OR_OPERATOR, "3",
-            AND_OPERATOR, "2",
-                LINK_TEMPLATE, EXPRESSION, "3",
-                    NODE, SYMBOL, EVALUATION,
-                    ATOM, target_predicate_handle,
-                    VARIABLE, CONCEPT,
-                LINK_TEMPLATE, EXPRESSION, "3",
-                    NODE, SYMBOL, EQUIVALENCE,
-                    VARIABLE, CONCEPT,
-                    ATOM, target_concept_handle,
-            AND_OPERATOR, "2",
-                LINK_TEMPLATE, EXPRESSION, "3",
-                    NODE, SYMBOL, EVALUATION,
-                    VARIABLE, PREDICATE,
-                    ATOM, target_concept_handle,
-                LINK_TEMPLATE, EXPRESSION, "3",
-                    NODE, SYMBOL, IMPLICATION,
-                    VARIABLE, PREDICATE,
-                    ATOM, target_predicate_handle,
-            AND_OPERATOR, "3",
-                LINK_TEMPLATE, EXPRESSION, "3",
-                    NODE, SYMBOL, EVALUATION,
-                    VARIABLE, PREDICATE,
-                    VARIABLE, CONCEPT,
+        AND_OPERATOR, "3",
+            LINK_TEMPLATE, EXPRESSION, "3",
+                NODE, SYMBOL, EVALUATION,
+                VARIABLE, PREDICATE,
+                VARIABLE, CONCEPT,
+            CHAIN_OPERATOR, "0", "1", "2",
+                VARIABLE, CONCEPT,
+                ATOM, target_concept_handle,
                 LINK_TEMPLATE, EXPRESSION, "3",
                     NODE, SYMBOL, EQUIVALENCE,
-                    VARIABLE, CONCEPT,
-                    ATOM, target_concept_handle,
+                    VARIABLE, CONCEPT1,
+                    VARIABLE, CONCEPT2,
+            CHAIN_OPERATOR, "0", "1", "2",
+                VARIABLE, PREDICATE,
+                ATOM, target_predicate_handle,
                 LINK_TEMPLATE, EXPRESSION, "3",
                     NODE, SYMBOL, IMPLICATION,
-                    VARIABLE, PREDICATE,
-                    ATOM, target_predicate_handle,
+                    VARIABLE, PREDICATE1,
+                    VARIABLE, PREDICATE2,
     };
 
     vector<vector<string>> correlation_query_template = {{
@@ -682,11 +674,12 @@ static void run(const string& target_predicate_handle,
     LOG_INFO("Pre-processing...");
     LOG_INFO("Initializing STI");
     attention_allocation_query(initialization_STI_query, context);
-    LOG_INFO("Building initial custom links");
-    build_links(
-        custom_initial_equivalence_query, context, 0, target_concept_handle, build_equivalence_link);
-    build_links(
-        custom_initial_implication_query, context, 0, target_predicate_handle, build_implication_link);
+    // LOG_INFO("Building initial custom links");
+    // build_links(
+    //     custom_initial_equivalence_query, context, 0, target_concept_handle, build_equivalence_link);
+    // build_links(
+    //     custom_initial_implication_query, context, 0, target_predicate_handle,
+    //     build_implication_link);
     LOG_INFO("Pre-processing complete");
 
     for (unsigned int i = 0; i < NUM_ITERATIONS; i++) {
@@ -729,10 +722,10 @@ int main(int argc, char* argv[]) {
     // clang-format off
     if (argc < 15) {
         cerr << "Usage: " << argv[0]
-             << " <client_endpoint> <server_endpoint> <start_port:end_port>"
+             << " <client_endpoint> <server_endpoint> <start_port:end_port> <config_file>"
                 " <context_tag> <target_predicate> <target_concept>"
                 " <RENT_RATE> <SPREADING_RATE_LOWERBOUND> <SPREADING_RATE_UPPERBOUND>"
-                " <ELITISM_RATE> <SELECTION_RATE> <POPULATION_SIZE> <MAX_GENERATIONS> <NUM_ITERATIONS> [--use-mork]" << endl;
+                " <ELITISM_RATE> <SELECTION_RATE> <POPULATION_SIZE> <MAX_GENERATIONS> <NUM_ITERATIONS>" << endl;
         cerr << endl;
         cerr << "<target_predicate> <target_concept> are MeTTa expressions" << endl;
         cerr << endl;
@@ -756,7 +749,7 @@ int main(int argc, char* argv[]) {
     string client_endpoint = argv[++cursor];
     string server_endpoint = argv[++cursor];
     auto ports_range = Utils::parse_ports_range(argv[++cursor]);
-
+    string config_file = argv[++cursor];
     string context_tag = argv[++cursor];
     string target_predicate = argv[++cursor];
     string target_concept = argv[++cursor];
@@ -775,11 +768,9 @@ int main(int argc, char* argv[]) {
         Utils::error("Error setting up parameters");
     }
 
-    if ((++cursor < argc) && (string(argv[cursor]) == string("--use-mork"))) {
-        AtomDBSingleton::init(atomdb_api_types::ATOMDB_TYPE::MORKDB);
-    } else {
-        AtomDBSingleton::init();
-    }
+    auto json_config = JsonConfigParser::load(config_file);
+    auto atomdb_config = json_config.at_path("atomdb").get_or<JsonConfig>(JsonConfig());
+    AtomDBSingleton::init(atomdb_config);
 
     db = AtomDBSingleton::get_instance();
     ServiceBusSingleton::init(client_endpoint, server_endpoint, ports_range.first, ports_range.second);

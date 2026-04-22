@@ -221,7 +221,7 @@ cc_test(
     linkstatic = 1,
     deps = [
         "//agents/query_engine:query_engine_lib",
-        "//tests/cpp/test_commons",
+        "//tests/cpp/test_commons:test_atomdb_json_config",
         "@com_github_google_googletest//:gtest_main",
         "@mbedtls",
     ],
@@ -250,7 +250,7 @@ cc_test(
     deps = [
         "//agents/query_engine:query_engine_lib",
         "//atomdb:atomdb_singleton",
-        "//tests/cpp/test_commons",
+        "//tests/cpp/test_commons:test_atomdb_json_config",
         "@com_github_google_googletest//:gtest_main",
         "@mbedtls",
     ],
@@ -384,7 +384,7 @@ cc_test(
     linkstatic = 1,
     deps = [
         "//agents/query_engine:query_engine_lib",
-        "//tests/cpp/test_commons",
+        "//tests/cpp/test_commons:test_atomdb_json_config",
         "@com_github_google_googletest//:gtest_main",
         "@mbedtls",
     ],
@@ -493,7 +493,7 @@ cc_test(
         "//agents/query_engine:query_engine_lib",
         "//atomdb:atomdb_singleton",
         "//service_bus:service_bus_lib",
-        "//tests/cpp/test_commons",
+        "//tests/cpp/test_commons:test_atomdb_json_config",
         "@com_github_google_googletest//:gtest_main",
     ],
 )
@@ -523,7 +523,7 @@ cc_test(
         "//agents/query_engine:pattern_matching_query_processor",
         "//atomdb",
         "//attention_broker:attention_broker_lib",
-        "//tests/cpp/test_commons",
+        "//tests/cpp/test_commons:test_atomdb_json_config",
         "@com_github_google_googletest//:gtest_main",
     ],
 )
@@ -552,7 +552,7 @@ cc_test(
         "//agents/atomdb_broker:atomdb_broker_lib",
         "//atomdb",
         "//attention_broker:attention_broker_lib",
-        "//tests/cpp/test_commons",
+        "//tests/cpp/test_commons:test_atomdb_json_config",
         "@com_github_google_googletest//:gtest_main",
     ],
 )
@@ -576,7 +576,7 @@ cc_test(
     deps = [
         "//agents/evolution:evolution_lib",
         "//agents/query_engine:pattern_matching_query_processor",
-        "//tests/cpp/test_commons",
+        "//tests/cpp/test_commons:test_atomdb_json_config",
         "@com_github_google_googletest//:gtest_main",
     ],
 )
@@ -705,8 +705,8 @@ cc_test(
     linkstatic = 1,
     deps = [
         "//atomdb:atomdb_singleton",
-        "//tests/cpp/test_commons",
         "//tests/cpp/test_commons:mock_animals_data_lib",
+        "//tests/cpp/test_commons:test_atomdb_json_config",
         "@com_github_google_googletest//:gtest_main",
         "@mbedtls",
     ],
@@ -734,8 +734,8 @@ cc_test(
     linkstatic = 1,
     deps = [
         "//atomdb:atomdb_singleton",
-        "//tests/cpp/test_commons",
         "//tests/cpp/test_commons:mock_animals_data_lib",
+        "//tests/cpp/test_commons:test_atomdb_json_config",
         "@com_github_google_googletest//:gtest_main",
         "@mbedtls",
     ],
@@ -759,8 +759,8 @@ cc_test(
     linkstatic = 1,
     deps = [
         "//atomdb:atomdb_singleton",
-        "//tests/cpp/test_commons",
         "//tests/cpp/test_commons:mock_animals_data_lib",
+        "//tests/cpp/test_commons:test_atomdb_json_config",
         "@com_github_google_googletest//:gtest_main",
         "@mbedtls",
     ],
@@ -871,8 +871,9 @@ cc_test(
     ],
     linkstatic = 1,
     deps = [
+        "//atomdb:atomdb_singleton",
         "//db_adapter:db_adapter_lib",
-        "//tests/cpp/test_commons",
+        "//tests/cpp/test_commons:test_atomdb_json_config",
         "@com_github_google_googletest//:gtest_main",
         "@mbedtls",
     ],

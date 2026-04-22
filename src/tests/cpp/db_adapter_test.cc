@@ -8,6 +8,8 @@
 #include <vector>
 
 #include "Atom.h"
+#include "AtomDBAPITypes.h"
+#include "AtomDBSingleton.h"
 #include "ContextLoader.h"
 #include "DataTypes.h"
 #include "DedicatedThread.h"
@@ -16,19 +18,16 @@
 #include "Pipeline.h"
 #include "PostgresWrapper.h"
 #include "Processor.h"
-#include "TestConfig.h"
-
+#include "TestAtomDBJsonConfig.h"
 using namespace std;
+using namespace atomdb;
 using namespace db_adapter;
 using namespace atoms;
 using namespace processor;
 
 class PostgresWrapperTestEnvironment : public ::testing::Environment {
    public:
-    void SetUp() override {
-        TestConfig::load_environment();
-        AtomDBSingleton::init();
-    }
+    void SetUp() override { AtomDBSingleton::init(test_atomdb_json_config()); }
 
     void TearDown() override {}
 };

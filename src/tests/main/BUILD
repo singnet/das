@@ -8,9 +8,10 @@ cc_library(
     name = "tests_db_loader_main_lib",
     srcs = ["tests_db_loader.cc"],
     deps = [
+        "//atomdb:atomdb_api_types",
         "//atomdb:atomdb_singleton",
-        "//tests/cpp/test_commons",
         "//tests/cpp/test_commons:mock_animals_data_lib",
+        "//tests/cpp/test_commons:test_atomdb_json_config",
     ],
 )
 
@@ -19,8 +20,10 @@ cc_library(
     srcs = ["link_creation_engine_main.cc"],
     deps = [
         "//agents/query_engine:query_engine_lib",
+        "//atomdb:atomdb_api_types",
         "//atomdb:atomdb_singleton",
         "//service_bus:service_bus_lib",
+        "//tests/cpp/test_commons:test_atomdb_json_config",
     ],
 )
 
@@ -29,8 +32,10 @@ cc_library(
     srcs = ["word_query_main.cc"],
     deps = [
         "//agents/query_engine:query_engine_lib",
+        "//atomdb:atomdb_api_types",
         "//atomdb:atomdb_singleton",
         "//service_bus:service_bus_lib",
+        "//tests/cpp/test_commons:test_atomdb_json_config",
     ],
 )
 
@@ -40,8 +45,10 @@ cc_library(
     deps = [
         "//agents/context_broker:context_broker_lib",
         "//agents/evolution:evolution_lib",
+        "//atomdb:atomdb_api_types",
         "//atomdb:atomdb_singleton",
         "//service_bus:service_bus_lib",
+        "//tests/cpp/test_commons:test_atomdb_json_config",
     ],
 )
 
@@ -52,9 +59,11 @@ cc_library(
         "//agents/context_broker:context_broker_lib",
         "//agents/evolution:evolution_lib",
         "//agents/query_engine:pattern_matching_query_proxy",
+        "//atomdb:atomdb_api_types",
         "//atomdb:atomdb_singleton",
         "//hasher:hasher_lib",
         "//service_bus:service_bus_lib",
+        "//tests/cpp/test_commons:test_atomdb_json_config",
     ],
 )
 
@@ -65,9 +74,12 @@ cc_library(
         "//agents/context_broker:context_broker_lib",
         "//agents/evolution:evolution_lib",
         "//agents/query_engine:query_engine_lib",
+        "//atomdb:atomdb_api_types",
         "//atomdb:atomdb_singleton",
+        "//commons:commons_lib",
         "//hasher:hasher_lib",
         "//service_bus:service_bus_lib",
+        "//tests/cpp/test_commons:test_atomdb_json_config",
     ],
 )
 
@@ -75,7 +87,17 @@ cc_library(
     name = "database_adapter_main_lib",
     srcs = ["database_adapter_main.cc"],
     deps = [
+        "//atomdb:atomdb_api_types",
         "//atomdb:atomdb_singleton",
         "//db_adapter:db_adapter_lib",
+        "//tests/cpp/test_commons:test_atomdb_json_config",
+    ],
+)
+
+cc_library(
+    name = "inference_toy_kb_generator_lib",
+    srcs = ["inference_toy_kb_generator.cc"],
+    deps = [
+        "//commons:commons_lib",
     ],
 )

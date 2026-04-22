@@ -45,6 +45,7 @@ cc_library(
         "//atomdb:atomdb_api_types",
         "//atomdb/morkdb",
         "//atomdb/redis_mongodb",
+        "//atomdb/remotedb:remotedb_lib",
         "//commons:commons_lib",
     ],
 )
