@@ -383,16 +383,17 @@ void Chain::report_path(Path& path) {
     if (complete_flag || this->allow_incomplete_chain_path) {
         QueryAnswer* query_answer = new QueryAnswer(path.path_sti);
         query_answer->strength = 1;
+        unsigned int path_index = query_answer->add_path();
         if (path.forward_flag) {
             for (auto pair : path.edges) {
-                query_answer->get_handles_vector()[1].push_back(pair.second->get(this->link_selector));
+                query_answer->add_path_element(path_index, pair.second->get(this->link_selector));
             }
         } else {
             for (auto pair = path.edges.rbegin(); pair != path.edges.rend(); ++pair) {
-                query_answer->get_handles_vector()[1].push_back(pair->second->get(this->link_selector));
+                query_answer->add_path_element(path_index, pair->second->get(this->link_selector));
             }
         }
-        string answer_hash = Hasher::composite_handle(query_answer->get_handles_vector()[1]);
+        string answer_hash = Hasher::composite_handle(query_answer->get_path_vector(path_index));
         if (this->reported_answers.find(answer_hash) == this->reported_answers.end()) {
             this->reported_answers.insert(answer_hash);
             query_answer->assignment.assign(ORIGIN_VARIABLE_NAME, path.start_point());

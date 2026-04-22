@@ -153,6 +153,9 @@ class QueryAnswer {
      */
     void add_handle(const string& handle);
 
+    unsigned int add_path();
+    void add_path_element(unsigned int path_index, const string& handle);
+
     /**
      * Merges this QueryAnswer with the passed one.
      *
@@ -234,7 +237,9 @@ class QueryAnswer {
                        vector<string>& new_query);
 
     unsigned int get_handles_size();
+    unsigned int get_paths_size();
     vector<string>& get_handles_vector();
+    vector<string>& get_path_vector(unsigned int path_index);
 
    private:
     /**

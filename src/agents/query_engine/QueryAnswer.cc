@@ -28,8 +28,6 @@ QueryAnswer::QueryAnswer(const string& handle, double importance) {
 
 QueryAnswer::~QueryAnswer() {}
 
-void QueryAnswer::add_handle(const string& handle) { this->handles[0].push_back(handle); }
-
 QueryAnswer* QueryAnswer::copy(QueryAnswer* other) {  // Static method
     QueryAnswer* copy = new QueryAnswer(other->importance);
     copy->strength = other->strength;
@@ -39,11 +37,12 @@ QueryAnswer* QueryAnswer::copy(QueryAnswer* other) {  // Static method
     return copy;
 }
 
-void QueryAnswer::merge_path(QueryAnswer* other) {
-    if (this->handles.size() > 1) {
-    } else {
-    }
-}
+//void QueryAnswer::merge_path(QueryAnswer* other) {
+//    if (this->handles.size() > 1) {
+//        AQUI
+//    } else {
+//    }
+//}
 
 bool QueryAnswer::merge(QueryAnswer* other, bool merge_handles) {
     if (this->assignment.is_compatible(other->assignment)) {
@@ -67,7 +66,7 @@ bool QueryAnswer::merge(QueryAnswer* other, bool merge_handles) {
                 }
             }
             if ((this->handles.size() > 1) || (other->handles.size() > 1)) {
-                this->merge_paths(other);
+                //this->merge_paths(other);
             }
         }
         return true;
@@ -312,6 +311,47 @@ void QueryAnswer::rewrite_query(const vector<string>& original_query,
     }
 }
 
-unsigned int QueryAnswer::get_handles_size() { return handles[0].size(); }
+void QueryAnswer::add_handle(const string& handle) { this->handles[0].push_back(handle); }
 
-vector<string>& QueryAnswer::get_handles_vector() { return handles[0]; }
+unsigned int QueryAnswer::add_path() { 
+    if (this->handles.size() == 0) {
+        Utils::error("Invalid QueryAnswer setup. Trying to add a path to an uninitialized  QueryAnswer");
+        return 0;
+    } else {
+        unsigned int new_index = this->handles.size() - 1;
+        this->handles.push_back({});
+        return new_index;
+    }
+}
+
+void QueryAnswer::add_path_element(unsigned int path_index, const string& handle) {
+    if (this->handles.size() == 0) {
+        Utils::error("Invalid QueryAnswer setup. Trying to add a path element to an uninitialized  QueryAnswer");
+    } else {
+        if (path_index >= (this->handles.size() - 1)) {
+            Utils::error("Invalid path index: " + std::to_string(path_index) + " QueryAnswer: " + to_string());
+        } else {
+            this->handles[path_index + 1].push_back(handle);
+        }
+    }
+}
+
+unsigned int QueryAnswer::get_handles_size() { return this->handles[0].size(); }
+
+unsigned int QueryAnswer::get_paths_size() { 
+    unsigned int size = this->handles.size();
+    if (size == 0) {
+        return 0;
+    } else {
+        return size - 1;
+    }
+}
+
+vector<string>& QueryAnswer::get_handles_vector() { return this->handles[0]; }
+
+vector<string>& QueryAnswer::get_path_vector(unsigned int path_index) {
+    if ((this->handles.size() == 0) || (path_index >= (this->handles.size() - 1))) {
+        Utils::error("Invalid path index: " + std::to_string(path_index) + " QueryAnswer: " + to_string());
+    }
+    return this->handles[path_index + 1];
+}
