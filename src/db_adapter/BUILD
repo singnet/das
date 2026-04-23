@@ -14,6 +14,7 @@ cc_library(
         ":database_mapper",
         ":database_types",
         ":database_wrapper",
+        ":metta_file_writer",
         "//commons:commons_lib",
         "//commons/atoms:atoms_lib",
         "//db_adapter/postgres:postgres_lib",
@@ -91,6 +92,7 @@ cc_library(
         ":context_loader",
         ":database_types",
         ":database_wrapper",
+        ":metta_file_writer",
         "//atomdb",
         "//atomdb:atomdb_singleton",
         "//commons:commons_lib",
@@ -120,5 +122,15 @@ cc_library(
         ":database_types",
         "//commons:commons_lib",
         "//commons/atoms:atoms_lib",
+    ],
+)
+
+cc_library(
+    name = "metta_file_writer",
+    srcs = ["MettaFileWriter.cc"],
+    hdrs = ["MettaFileWriter.h"],
+    includes = ["."],
+    deps = [
+        "//commons:commons_lib",
     ],
 )
