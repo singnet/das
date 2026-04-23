@@ -716,7 +716,8 @@ vector<vector<string>> InMemoryDB::index_entries_combinations(unsigned int arity
     vector<vector<string>> index_entries;
     unsigned int total = 1 << arity;  // 2^arity
 
-    for (unsigned int mask = 0; mask < total; ++mask) {
+    // Skip mask == 0 (all concrete): identical to the link's own handle; no separate pattern index.
+    for (unsigned int mask = 1; mask < total; ++mask) {
         vector<string> index_entry;
         for (unsigned int i = 0; i < arity; ++i) {
             if (mask & (1 << i))
