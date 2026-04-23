@@ -250,6 +250,98 @@ TEST(QueryAnswer, handles_answer_basics) {
     EXPECT_TRUE(query_answer3->assignment.assign("v4", "x"));
 }
 
+TEST(QueryAnswer, path_merging) {
+
+    unsigned int path_index = 0;
+
+    QueryAnswer query_answer1("h", 0);
+
+    QueryAnswer query_answer2("h", 0);
+    path_index = query_answer2.add_path();
+    query_answer2.add_path_element(path_index, "p_2_1");
+    query_answer2.add_path_element(path_index, "p_2_2");
+    path_index = query_answer2.add_path();
+    query_answer2.add_path_element(path_index, "p_2_1");
+    query_answer2.add_path_element(path_index, "p_2_2");
+    query_answer2.add_path_element(path_index, "p_2_3");
+
+    QueryAnswer query_answer3("h", 0);
+    path_index = query_answer3.add_path();
+    query_answer3.add_path_element(path_index, "p_3_1");
+    query_answer3.add_path_element(path_index, "p_3_2");
+    path_index = query_answer3.add_path();
+    query_answer3.add_path_element(path_index, "p_3_1");
+    query_answer3.add_path_element(path_index, "p_3_2");
+    query_answer3.add_path_element(path_index, "p_3_3");
+
+    QueryAnswer query_answer4("h", 0);
+    path_index = query_answer4.add_path();
+    query_answer4.add_path_element(path_index, "p_2_1");
+    query_answer4.add_path_element(path_index, "p_3_2");
+    path_index = query_answer4.add_path();
+    query_answer4.add_path_element(path_index, "p_2_1");
+    query_answer4.add_path_element(path_index, "p_2_2");
+
+    // ---------------------------------------------
+
+    QueryAnswer query_answer1_2("h", 0);
+    path_index = query_answer1_2.add_path();
+    query_answer1_2.add_path_element(path_index, "p_2_1");
+    query_answer1_2.add_path_element(path_index, "p_2_2");
+    path_index = query_answer1_2.add_path();
+    query_answer1_2.add_path_element(path_index, "p_2_1");
+    query_answer1_2.add_path_element(path_index, "p_2_2");
+    query_answer1_2.add_path_element(path_index, "p_2_3");
+
+    QueryAnswer *query_answer2_1 = QueryAnswer::copy(&query_answer1_2);
+
+    QueryAnswer query_answer2_3("h", 0);
+    path_index = query_answer2_3.add_path();
+    query_answer2_3.add_path_element(path_index, "p_2_1");
+    query_answer2_3.add_path_element(path_index, "p_2_2");
+    path_index = query_answer2_3.add_path();
+    query_answer2_3.add_path_element(path_index, "p_2_1");
+    query_answer2_3.add_path_element(path_index, "p_2_2");
+    query_answer2_3.add_path_element(path_index, "p_2_3");
+    path_index = query_answer2_3.add_path();
+    query_answer2_3.add_path_element(path_index, "p_3_1");
+    query_answer2_3.add_path_element(path_index, "p_3_2");
+    path_index = query_answer2_3.add_path();
+    query_answer2_3.add_path_element(path_index, "p_3_1");
+    query_answer2_3.add_path_element(path_index, "p_3_2");
+    query_answer2_3.add_path_element(path_index, "p_3_3");
+
+    QueryAnswer query_answer2_4("h", 0);
+    path_index = query_answer2_4.add_path();
+    query_answer2_4.add_path_element(path_index, "p_2_1");
+    query_answer2_4.add_path_element(path_index, "p_2_2");
+    path_index = query_answer2_4.add_path();
+    query_answer2_4.add_path_element(path_index, "p_2_1");
+    query_answer2_4.add_path_element(path_index, "p_2_2");
+    query_answer2_4.add_path_element(path_index, "p_2_3");
+    path_index = query_answer2_4.add_path();
+    query_answer2_4.add_path_element(path_index, "p_2_1");
+    query_answer2_4.add_path_element(path_index, "p_3_2");
+
+    QueryAnswer *q;
+
+    q = QueryAnswer::copy(&query_answer1);
+    q->merge(&query_answer2);
+    EXPECT_EQ(q->to_string(), query_answer1_2.to_string());
+
+    q = QueryAnswer::copy(&query_answer2);
+    q->merge(&query_answer1);
+    EXPECT_EQ(q->to_string(), query_answer2_1->to_string());
+
+    q = QueryAnswer::copy(&query_answer2);
+    q->merge(&query_answer3);
+    EXPECT_EQ(q->to_string(), query_answer2_3.to_string());
+
+    q = QueryAnswer::copy(&query_answer2);
+    q->merge(&query_answer4);
+    EXPECT_EQ(q->to_string(), query_answer2_4.to_string());
+}
+
 void query_answers_equal(QueryAnswer* qa1, QueryAnswer* qa2) {
     EXPECT_TRUE(double_equals(qa1->strength, qa2->strength));
     EXPECT_TRUE(double_equals(qa1->importance, qa2->importance));
