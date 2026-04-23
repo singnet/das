@@ -8,6 +8,7 @@
 #include "AtomDBSingleton.h"
 #include "BoundedSharedQueue.h"
 #include "DedicatedThread.h"
+#include "MettaFileWriter.h"
 #include "PostgresWrapper.h"
 #include "Processor.h"
 #include "processor/ThreadPool.h"
@@ -26,7 +27,6 @@ namespace db_adapter {
 class DatabaseMappingOrchestrator : public ThreadMethod {
    public:
     DatabaseMappingOrchestrator(const JsonConfig& config,
-                                MAPPER_TYPE mapper_type,
                                 shared_ptr<BoundedSharedQueue> output_queue = nullptr);
     ~DatabaseMappingOrchestrator();
 
@@ -36,9 +36,7 @@ class DatabaseMappingOrchestrator : public ThreadMethod {
     bool is_finished() const;
 
    private:
-    void database_setup(const JsonConfig& config,
-                        MAPPER_TYPE mapper_type,
-                        shared_ptr<BoundedSharedQueue> output_queue);
+    void database_setup(const JsonConfig& config, shared_ptr<BoundedSharedQueue> output_queue);
     void task_setup(const JsonConfig& config);
 
    protected:
@@ -61,6 +59,7 @@ class MultiThreadAtomPersister {
     MultiThreadAtomPersister(shared_ptr<BoundedSharedQueue> input_queue,
                              ThreadPool& pool,
                              size_t batch_size = BATCH_SIZE,
+                             bool save_metta_expression = false,
                              size_t max_pending_batches = 4);
     ~MultiThreadAtomPersister();
 
@@ -72,9 +71,11 @@ class MultiThreadAtomPersister {
    private:
     shared_ptr<BoundedSharedQueue> input_queue;
     shared_ptr<AtomDB> atomdb;
+    shared_ptr<MettaFileWriter> metta_writer;
     ThreadPool& pool;
     size_t batch_size;
     size_t max_pending_batches;
+    atomic<bool> save_metta_expression;
 
     atomic<bool> producer_finished{false};
     atomic<int> total_count{0};
@@ -85,7 +86,8 @@ class MultiThreadAtomPersister {
     vector<Atom*> accumulator;
     void drain_into_accumulator();
     void flush_batch();
-    void send_batch(vector<Atom*> atoms, int batch_id);
+    void send_batch(vector<Atom*> atoms, int batch_id, shared_ptr<MettaFileWriter> writer);
+    bool is_save_metta() const { return this->save_metta_expression; }
 };
 
 }  // namespace db_adapter

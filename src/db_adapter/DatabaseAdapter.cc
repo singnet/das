@@ -20,17 +20,19 @@ using namespace atomdb;
 using namespace db_adapter;
 using namespace processor;
 
-void db_adapter::run_database_adapter(const JsonConfig& config, MAPPER_TYPE mapper_type) {
+void db_adapter::run_database_adapter(const JsonConfig& config, bool save_metta) {
     auto queue = make_shared<BoundedSharedQueue>();
 
-    DatabaseMappingOrchestrator db_mapping_orchestrator(config, mapper_type, queue);
+    DatabaseMappingOrchestrator db_mapping_orchestrator(config, queue);
     auto producer = make_shared<DedicatedThread>("producer", &db_mapping_orchestrator);
 
     ThreadPool pool("consumers_pool", THREAD_POOL_SIZE);
     pool.setup();
     pool.start();
 
-    MultiThreadAtomPersister consumer(queue, pool, BATCH_SIZE);
+    LOG_INFO("Save metta: " << (save_metta ? "ENABLED" : "DISABLED"));
+
+    MultiThreadAtomPersister consumer(queue, pool, BATCH_SIZE, save_metta);
 
     producer->setup();
     producer->start();

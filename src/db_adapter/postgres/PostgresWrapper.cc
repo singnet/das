@@ -15,6 +15,10 @@
 
 using namespace std;
 
+// ==============================
+//  Construction / destruction
+// ==============================
+
 PostgresDatabaseConnection::PostgresDatabaseConnection(const string& id,
                                                        const string& host,
                                                        int port,
@@ -27,6 +31,10 @@ PostgresDatabaseConnection::~PostgresDatabaseConnection() {
     this->close_cursor();
     this->disconnect();
 }
+
+// ==============================
+//  Public
+// ==============================
 
 void PostgresDatabaseConnection::connect() {
     LOG_INFO("Connecting to PostgreSQL database at " << host << ":" << port << "...");
@@ -103,9 +111,9 @@ void PostgresDatabaseConnection::close_cursor() {
     }
 }
 
-// ===============================================================================================
-// PostgresWrapper implementation
-// ===============================================================================================
+/**
+ * PostgresWrapper implementation
+ */
 
 static const unordered_set<pqxx::oid> TIME_TYPE_OIDS = {
     1082,  // date
@@ -118,12 +126,20 @@ static const unordered_set<pqxx::oid> TIME_TYPE_OIDS = {
 
 static bool is_time_type(pqxx::oid oid) { return TIME_TYPE_OIDS.count(oid) > 0; }
 
+// ==============================
+//  Construction / destruction
+// ==============================
+
 PostgresWrapper::PostgresWrapper(PostgresDatabaseConnection& db_conn,
-                                 MAPPER_TYPE mapper_type,
-                                 shared_ptr<BoundedSharedQueue> output_queue)
+                                 shared_ptr<BoundedSharedQueue> output_queue,
+                                 MAPPER_TYPE mapper_type)
     : SQLWrapper(db_conn, mapper_type), db_conn(db_conn), output_queue(output_queue) {}
 
 PostgresWrapper::~PostgresWrapper() {}
+
+// ==============================
+//  Public
+// ==============================
 
 Table PostgresWrapper::get_table(const string& schema_name, const string& table_name) {
     string query = R"(
@@ -372,6 +388,53 @@ void PostgresWrapper::map_table(const Table& table,
     }
 }
 
+void PostgresWrapper::map_sql_query(const string& virtual_name, const string& raw_query) {
+    map<string, vector<string>> table_columns_map = this->extract_aliases_from_query(raw_query);
+
+    if (table_columns_map.empty()) {
+        Utils::error("No valid aliases found in query for " + virtual_name);
+    }
+
+    map<string, Table> tables_metadata;
+
+    // Search metadata (PK, FK, ...) of each referenced table
+    // and validate that each table has its PK included in the aliases
+    for (const auto& table_columns : table_columns_map) {
+        string table_name = table_columns.first;
+        vector<string> columns = table_columns.second;
+        try {
+            auto table_name_parts = Utils::split(table_name, '.');
+            tables_metadata[table_name] = this->get_table(table_name_parts[0], table_name_parts[1]);
+            string pk = tables_metadata[table_name].primary_key;
+            if (find(columns.begin(), columns.end(), pk) == columns.end()) {
+                auto parts = Utils::split(table_name, '.');
+                string schema = parts[0];
+                string table = parts[1];
+                Utils::error("Primary key '" + pk + "' of table '" + table_name +
+                             "' must be included in SELECT aliases. Add: " + table + "." + pk + " AS " +
+                             schema + "_" + table + "__" + pk);
+            }
+        } catch (const exception& e) {
+            Utils::error("Error retrieving metadata for table '" + table_name + "': " + e.what());
+        }
+    }
+
+    string base_query = Utils::trim(raw_query);
+
+    if (!base_query.empty() && base_query.back() == ';') base_query.pop_back();
+
+    for (const auto& table_columns : table_columns_map) {
+        string table_name = table_columns.first;
+        vector<string> columns = table_columns.second;
+        Table table = tables_metadata[table_name];
+        this->fetch_rows_paginated(table, columns, base_query);
+    }
+}
+
+// ==============================
+//  Private
+// ==============================
+
 vector<string> PostgresWrapper::build_columns_to_map(const Table& table,
                                                      const vector<string>& skip_columns) {
     for (const auto& skipo_col : skip_columns) {
@@ -437,49 +500,6 @@ vector<string> PostgresWrapper::collect_fk_ids(const string& table_name,
         offset += limit;
     }
     return ids;
-}
-
-void PostgresWrapper::map_sql_query(const string& virtual_name, const string& raw_query) {
-    map<string, vector<string>> table_columns_map = this->extract_aliases_from_query(raw_query);
-
-    if (table_columns_map.empty()) {
-        Utils::error("No valid aliases found in query for " + virtual_name);
-    }
-
-    map<string, Table> tables_metadata;
-
-    // Search metadata (PK, FK, ...) of each referenced table
-    // and validate that each table has its PK included in the aliases
-    for (const auto& table_columns : table_columns_map) {
-        string table_name = table_columns.first;
-        vector<string> columns = table_columns.second;
-        try {
-            auto table_name_parts = Utils::split(table_name, '.');
-            tables_metadata[table_name] = this->get_table(table_name_parts[0], table_name_parts[1]);
-            string pk = tables_metadata[table_name].primary_key;
-            if (find(columns.begin(), columns.end(), pk) == columns.end()) {
-                auto parts = Utils::split(table_name, '.');
-                string schema = parts[0];
-                string table = parts[1];
-                Utils::error("Primary key '" + pk + "' of table '" + table_name +
-                             "' must be included in SELECT aliases. Add: " + table + "." + pk + " AS " +
-                             schema + "_" + table + "__" + pk);
-            }
-        } catch (const exception& e) {
-            Utils::error("Error retrieving metadata for table '" + table_name + "': " + e.what());
-        }
-    }
-
-    string base_query = Utils::trim(raw_query);
-
-    if (!base_query.empty() && base_query.back() == ';') base_query.pop_back();
-
-    for (const auto& table_columns : table_columns_map) {
-        string table_name = table_columns.first;
-        vector<string> columns = table_columns.second;
-        Table table = tables_metadata[table_name];
-        this->fetch_rows_paginated(table, columns, base_query);
-    }
 }
 
 map<string, vector<string>> PostgresWrapper::extract_aliases_from_query(const string& query) {
@@ -556,10 +576,9 @@ void PostgresWrapper::fetch_rows_paginated(const Table& table,
                 LOG_DEBUG("  Field: " << field.name << " = " << field.value);
             }
 
-            auto output = this->mapper->map(DbInput{sql_row});
+            vector<Atom*> atoms = this->mapper->map(DbInput{sql_row});
 
             if (this->mapper_type == MAPPER_TYPE::SQL2ATOMS) {
-                auto atoms = get<vector<Atom*>>(output);
                 atoms_count += atoms.size();
 
                 std::queue<Atom*>* batch_queue = new std::queue<Atom*>();
@@ -568,16 +587,6 @@ void PostgresWrapper::fetch_rows_paginated(const Table& table,
                 }
                 unique_lock<mutex> lock(this->api_mutex);
                 this->output_queue->enqueue((void*) batch_queue);
-            } else if (this->mapper_type == MAPPER_TYPE::SQL2METTA) {
-                auto metta_expressions = get<vector<string>>(output);
-                LOG_DEBUG("Metta Expressions count: " << metta_expressions.size());
-                std::queue<string>* batch_queue = new std::queue<string>();
-                for (const auto& expr : metta_expressions) {
-                    batch_queue->push(expr);
-                }
-                unique_lock<mutex> lock(this->api_mutex);
-                this->output_queue->enqueue((void*) batch_queue);
-                // WIP - save metta expressions to file
             } else {
                 Utils::error("Unsupported mapper type.");
             }

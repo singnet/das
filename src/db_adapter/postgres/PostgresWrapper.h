@@ -57,12 +57,13 @@ class PostgresWrapper : public SQLWrapper {
     /**
      * @brief Constructs a PostgresWrapper.
      *
-     * @param connection The PostgreSQL database connection.
+     * @param db_conn The PostgreSQL database connection.
+     * @param output_queue Optional shared queue for outputting mapped data.
      * @param mapper_type The strategy for mapping results.
      */
     PostgresWrapper(PostgresDatabaseConnection& db_conn,
-                    MAPPER_TYPE mapper_type = MAPPER_TYPE::SQL2ATOMS,
-                    shared_ptr<BoundedSharedQueue> output_queue = nullptr);
+                    shared_ptr<BoundedSharedQueue> output_queue = nullptr,
+                    MAPPER_TYPE mapper_type = MAPPER_TYPE::SQL2ATOMS);
 
     ~PostgresWrapper() override;
 

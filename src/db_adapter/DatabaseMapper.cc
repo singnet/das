@@ -17,12 +17,22 @@ using namespace db_adapter;
 using namespace commons;
 using namespace atoms;
 
-string BaseSQL2Mapper::SYMBOL;
-string BaseSQL2Mapper::EXPRESSION;
+string SQL2AtomsMapper::SYMBOL;
+string SQL2AtomsMapper::EXPRESSION;
 
-// -- BaseSQL2Mapper
+// ==============================
+//  Construction / destruction
+// ==============================
 
-const OutputList BaseSQL2Mapper::map(const DbInput& data) {
+SQL2AtomsMapper::SQL2AtomsMapper() { this->initialize_statics(); }
+
+SQL2AtomsMapper::~SQL2AtomsMapper() {}
+
+// ==============================
+//  Public
+// ==============================
+
+const vector<Atom*> SQL2AtomsMapper::map(const DbInput& data) {
     vector<tuple<string, string, string>> all_foreign_keys;
     SqlRow sql_row = get<SqlRow>(data);
     string table_name = sql_row.table_name;
@@ -51,20 +61,25 @@ const OutputList BaseSQL2Mapper::map(const DbInput& data) {
             this->map_regular_column(table_name, column_name, field.value, primary_key_value);
         };
     }
+
     this->map_foreign_keys_combinations(all_foreign_keys);
 
-    auto result = move(this->get_output());
-    this->clear();
+    auto result = move(this->atoms);
+    this->atoms.clear();
     return result;
 }
 
-bool BaseSQL2Mapper::is_foreign_key(const string& column_name) {
+// ==============================
+// Private
+// ==============================
+
+bool SQL2AtomsMapper::is_foreign_key(const string& column_name) {
     size_t pos = column_name.find('|');
     if (pos == string::npos) return false;
     return true;
 }
 
-string BaseSQL2Mapper::escape_inner_quotes(string text) {
+string SQL2AtomsMapper::escape_inner_quotes(string text) {
     const auto count = std::count(text.begin(), text.end(), '"');
 
     if (count == 0 || count == 2) return text;
@@ -92,152 +107,11 @@ string BaseSQL2Mapper::escape_inner_quotes(string text) {
     return "";
 }
 
-bool BaseSQL2Mapper::insert_handle_if_missing(const string& handle) {
-    // auto exists = this->handle_trie.exists(handle);
-    // if (exists) return false;
-    // this->handle_trie.insert(handle, new EmptyTrieValue());
-    // return true;
-    if (this->unique_handles.find(handle) != this->unique_handles.end()) {
-        return false;
-    }
-    this->unique_handles.insert(handle);
+bool SQL2AtomsMapper::insert_handle_if_missing(const string& handle) {
+    auto exists = this->handle_trie.exists(handle);
+    if (exists) return false;
+    this->handle_trie.insert(handle, new EmptyTrieValue());
     return true;
-}
-
-// -- SQL2MettaMapper
-
-SQL2MettaMapper::SQL2MettaMapper() { this->initialize_statics(); }
-
-SQL2MettaMapper::~SQL2MettaMapper() {}
-
-OutputList SQL2MettaMapper::get_output() { return this->metta_expressions; }
-
-void SQL2MettaMapper::clear() {
-    this->metta_expressions.clear();
-    this->unique_handles.clear();
-}
-
-void SQL2MettaMapper::add_metta_if_new(const string& s_expression) {
-    string key = Hasher::context_handle(s_expression);
-    if (this->insert_handle_if_missing(key)) {
-        this->metta_expressions.push_back(s_expression);
-    }
-};
-
-void SQL2MettaMapper::map_primary_key(const string& table_name, const string& primary_key_value) {
-    string literal_pk = this->escape_inner_quotes("\"" + primary_key_value + "\"");
-
-    string predicate_link = "(Predicate " + table_name + ")";
-    this->add_metta_if_new(predicate_link);
-
-    string concept_inner_link = "(" + table_name + " " + literal_pk + ")";
-    this->add_metta_if_new(concept_inner_link);
-
-    string concept_link = "(Concept " + concept_inner_link + ")";
-    this->add_metta_if_new(concept_link);
-
-    string evaluation_link = "(Evaluation " + predicate_link + " " + concept_link + ")";
-    this->add_metta_if_new(evaluation_link);
-}
-
-void SQL2MettaMapper::map_foreign_key_column(const string& table_name,
-                                             const string& column_name,
-                                             const string& value,
-                                             const string& primary_key_value,
-                                             const string& fk_table,
-                                             const string& fk_column) {
-    string literal_value = this->escape_inner_quotes("\"" + value + "\"");
-    string literal_pk = this->escape_inner_quotes("\"" + primary_key_value + "\"");
-
-    string predicate_inner_1_link = "(" + fk_table + " " + literal_value + ")";
-    this->add_metta_if_new(predicate_inner_1_link);
-
-    string predicate_inner_2_link = "(Concept " + predicate_inner_1_link + ")";
-    this->add_metta_if_new(predicate_inner_2_link);
-
-    string predicate_inner_3_link = "(" + fk_column + " " + predicate_inner_2_link + ")";
-    this->add_metta_if_new(predicate_inner_3_link);
-
-    string predicate_link = "(Predicate " + predicate_inner_3_link + ")";
-    this->add_metta_if_new(predicate_link);
-
-    string concept_inner_link = "(" + table_name + " " + literal_pk + ")";
-    this->add_metta_if_new(concept_inner_link);
-
-    string concept_link = "(Concept " + concept_inner_link + ")";
-    this->add_metta_if_new(concept_link);
-
-    string evaluation_link = "(Evaluation " + predicate_link + " " + concept_link + ")";
-    this->add_metta_if_new(evaluation_link);
-}
-
-void SQL2MettaMapper::map_regular_column(const string& table_name,
-                                         const string& column_name,
-                                         const string& value,
-                                         const string& primary_key_value) {
-    string literal_value = this->escape_inner_quotes("\"" + value + "\"");
-    string literal_pk = this->escape_inner_quotes("\"" + primary_key_value + "\"");
-
-    string predicate_inner_link = "(" + table_name + " " + column_name + " " + literal_value + ")";
-    this->add_metta_if_new(predicate_inner_link);
-
-    string predicate_link = "(Predicate " + predicate_inner_link + ")";
-    this->add_metta_if_new(predicate_link);
-
-    string concept_inner_link = "(" + table_name + " " + literal_pk + ")";
-    this->add_metta_if_new(concept_inner_link);
-
-    string concept_link = "(Concept " + concept_inner_link + ")";
-    this->add_metta_if_new(concept_link);
-
-    string evaluation_link = "(Evaluation " + predicate_link + " " + concept_link + ")";
-    this->add_metta_if_new(evaluation_link);
-}
-
-void SQL2MettaMapper::map_foreign_keys_combinations(
-    const vector<tuple<string, string, string>>& all_foreign_keys) {
-    for (const auto& [column_name, foreign_table_name, value] : all_foreign_keys) {
-        for (const auto& [column_name2, foreign_table_name2, value2] : all_foreign_keys) {
-            if (make_pair(foreign_table_name, value) != make_pair(foreign_table_name2, value2)) {
-                string literal_value = this->escape_inner_quotes("\"" + value + "\"");
-                string literal_value_2 = this->escape_inner_quotes("\"" + value2 + "\"");
-
-                string predicate_inner_1_link = "(" + foreign_table_name + " " + literal_value + ")";
-                this->add_metta_if_new(predicate_inner_1_link);
-
-                string predicate_inner_2_link = "(Concept " + predicate_inner_1_link + ")";
-                this->add_metta_if_new(predicate_inner_2_link);
-
-                string predicate_inner_3_link = "(" + column_name + " " + predicate_inner_2_link + ")";
-                this->add_metta_if_new(predicate_inner_3_link);
-
-                string predicate_link = "(Predicate " + predicate_inner_3_link + ")";
-                this->add_metta_if_new(predicate_link);
-
-                string concept_inner_link = "(" + foreign_table_name2 + " " + literal_value_2 + ")";
-                this->add_metta_if_new(concept_inner_link);
-
-                string concept_link = "(Concept " + concept_inner_link + ")";
-                this->add_metta_if_new(concept_link);
-
-                string evaluation_link = "(Evaluation " + predicate_link + " " + concept_link + ")";
-                this->add_metta_if_new(evaluation_link);
-            }
-        }
-    }
-}
-
-// -- SQL2AtomsMapper
-
-SQL2AtomsMapper::SQL2AtomsMapper() { this->initialize_statics(); }
-
-SQL2AtomsMapper::~SQL2AtomsMapper() {}
-
-OutputList SQL2AtomsMapper::get_output() { return this->atoms; }
-
-void SQL2AtomsMapper::clear() {
-    this->atoms.clear();
-    // this->unique_handles.clear();
 }
 
 string SQL2AtomsMapper::add_atom_if_new(SQL2AtomsMapper::ATOM_TYPE atom_type,
@@ -246,12 +120,12 @@ string SQL2AtomsMapper::add_atom_if_new(SQL2AtomsMapper::ATOM_TYPE atom_type,
                                         bool is_toplevel) {
     Atom* atom;
 
-    if (atom_type == SQL2AtomsMapper::ATOM_TYPE::NODE) {
+    if (atom_type == NODE) {
         string name = get<string>(value);
-        atom = new Node(BaseSQL2Mapper::SYMBOL, name);
-    } else if (atom_type == SQL2AtomsMapper::ATOM_TYPE::LINK) {
+        atom = new Node(SQL2AtomsMapper::SYMBOL, name);
+    } else if (atom_type == LINK) {
         vector<string> targets = get<vector<string>>(value);
-        atom = new Link(BaseSQL2Mapper::EXPRESSION, targets, is_toplevel);
+        atom = new Link(SQL2AtomsMapper::EXPRESSION, targets, is_toplevel);
     } else {
         Utils::error("Either name or targets must be provided to create an Atom.");
     }
@@ -259,14 +133,6 @@ string SQL2AtomsMapper::add_atom_if_new(SQL2AtomsMapper::ATOM_TYPE atom_type,
     if (!metta_expression.empty()) {
         atom->custom_attributes["metta_expression"] = metta_expression;
     }
-
-    // string handle = atom->handle();
-    // if (this->insert_handle_if_missing(handle)) {
-    //     this->atoms.push_back(atom);
-    // } else {
-    //     delete atom;
-    // }
-    // return handle;
 
     this->atoms.push_back(atom);
     return atom->handle();

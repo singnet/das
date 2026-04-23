@@ -26,11 +26,10 @@ void ctrl_c_handler(int) {
 
 void usage(const char* a) {
     cerr << "Usage: " << a
-         << " <config_file> [mapper_type] \n\n"
+         << " <config_file> [save_metta] \n\n"
             "Examples:\n"
             "  ./bin config.json\n"
-            "  ./bin config.json ATOMS\n"
-            "  ./bin config.json METTA\n";
+            "  ./bin config.json true\n";
     exit(1);
 }
 
@@ -45,24 +44,14 @@ int main(int argc, char* argv[]) {
     signal(SIGTERM, &ctrl_c_handler);
 
     string config = argv[1];
-    string mapper_type_str = (argc >= 3) ? argv[2] : "ATOMS";
-
-    MAPPER_TYPE mapper_type;
-    if (mapper_type_str == "ATOMS") {
-        mapper_type = MAPPER_TYPE::SQL2ATOMS;
-    } else if (mapper_type_str == "METTA") {
-        mapper_type = MAPPER_TYPE::SQL2METTA;
-    } else {
-        cerr << "Error: Invalid mapper_type. Use 'ATOMS' or 'METTA'.\n\n";
-        usage(argv[0]);
-    }
+    bool save_metta = (argc >= 3) ? (string(argv[2]) == "true") : false;
 
     JsonConfig json_config = JsonConfigParser::load(config);
 
     auto atomdb_config = json_config.at_path("atomdb").get_or<JsonConfig>(JsonConfig());
     AtomDBSingleton::init(atomdb_config);
 
-    run_database_adapter(json_config, mapper_type);
+    run_database_adapter(json_config, save_metta);
 
     LOG_INFO("Database adapter stopped.");
 

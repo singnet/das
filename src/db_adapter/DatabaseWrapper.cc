@@ -12,8 +12,6 @@ SQLWrapper::SQLWrapper(DatabaseConnection& db_client, MAPPER_TYPE mapper_type)
 
 shared_ptr<Mapper> SQLWrapper::create_mapper(MAPPER_TYPE mapper_type) {
     switch (mapper_type) {
-        case MAPPER_TYPE::SQL2METTA:
-            return make_shared<SQL2MettaMapper>();
         case MAPPER_TYPE::SQL2ATOMS:
             return make_shared<SQL2AtomsMapper>();
         default:

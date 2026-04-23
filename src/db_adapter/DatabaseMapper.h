@@ -17,12 +17,6 @@ using namespace commons;
 
 namespace db_adapter {
 
-class MapperValue : public HandleTrie::TrieValue {
-   public:
-    MapperValue() {}
-    void merge(TrieValue* other) {}
-};
-
 /**
  * @class Mapper
  * @brief Abstract base class for transforming database input into a target representation.
@@ -32,29 +26,29 @@ class Mapper {
     virtual ~Mapper() = default;
 
     /**
-     * @brief Transforms the input data into the output format.
+     * @brief Transforms the input data into a list of Atom pointers.
      * @param data The database row or document to map.
-     * @return OutputList A variant containing either strings or Atoms.
+     * @return vector<Atom*> A list of Atom pointers.
      */
-    virtual const OutputList map(const DbInput& data) = 0;
+    virtual const vector<Atom*> map(const DbInput& data) = 0;
 
     unsigned int handle_trie_size() { return handle_trie.size; }
 
    protected:
     Mapper() = default;
     HandleTrie handle_trie{32};
-    unordered_set<string> unique_handles;
 };
 
 /**
- * @class BaseSQL2Mapper
- * @brief Common logic for mapping SQL data, handling Primary and Foreign keys.
+ * @class SQL2AtomsMapper
+ * @brief Maps SQL rows to Atom objects.
  */
-class BaseSQL2Mapper : public Mapper {
+class SQL2AtomsMapper : public Mapper {
    public:
-    virtual ~BaseSQL2Mapper() override = default;
+    SQL2AtomsMapper();
+    ~SQL2AtomsMapper() override;
 
-    const OutputList map(const DbInput& data) override;
+    enum ATOM_TYPE { NODE, LINK };
 
     static string SYMBOL;
     static string EXPRESSION;
@@ -64,94 +58,31 @@ class BaseSQL2Mapper : public Mapper {
         EXPRESSION = MettaMapping::EXPRESSION_LINK_TYPE;
     }
 
-   protected:
-    BaseSQL2Mapper() = default;
-
-    bool is_foreign_key(const string& column_name);
-    string escape_inner_quotes(string text);
-    virtual OutputList get_output() = 0;
-    virtual void clear() = 0;
-    bool insert_handle_if_missing(const string& handle);
-
-    virtual void map_primary_key(const string& table_name, const string& primary_key_value) = 0;
-    virtual void map_foreign_key_column(const string& table_name,
-                                        const string& column_name,
-                                        const string& value,
-                                        const string& primary_key_value,
-                                        const string& fk_table,
-                                        const string& fk_column) = 0;
-    virtual void map_regular_column(const string& table_name,
-                                    const string& column_name,
-                                    const string& value,
-                                    const string& primary_key_value) = 0;
-    virtual void map_foreign_keys_combinations(
-        const vector<tuple<string, string, string>>& all_foreign_keys) = 0;
-};
-
-/**
- * @class SQL2MettaMapper
- * @brief Maps SQL rows to Metta S-Expressions.
- */
-class SQL2MettaMapper : public BaseSQL2Mapper {
-   public:
-    SQL2MettaMapper();
-    ~SQL2MettaMapper() override;
-
-   private:
-    vector<string> metta_expressions;
-    OutputList get_output() override;
-    void clear() override;
-    void add_metta_if_new(const string& s_expression);
-
-    void map_primary_key(const string& table_name, const string& primary_key_value) override;
-    void map_foreign_key_column(const string& table_name,
-                                const string& column_name,
-                                const string& value,
-                                const string& primary_key_value,
-                                const string& fk_table,
-                                const string& fk_column) override;
-    void map_regular_column(const string& table_name,
-                            const string& column_name,
-                            const string& value,
-                            const string& primary_key_value) override;
-    void map_foreign_keys_combinations(
-        const vector<tuple<string, string, string>>& all_foreign_keys) override;
-};
-
-/**
- * @class SQL2AtomsMapper
- * @brief Maps SQL rows to Atom objects.
- */
-class SQL2AtomsMapper : public BaseSQL2Mapper {
-   public:
-    SQL2AtomsMapper();
-    ~SQL2AtomsMapper() override;
-
-    enum ATOM_TYPE { NODE, LINK };
+    const vector<Atom*> map(const DbInput& data) override;
 
    private:
     vector<Atom*> atoms;
 
-    OutputList get_output() override;
-    void clear() override;
+    bool is_foreign_key(const string& column_name);
+    string escape_inner_quotes(string text);
+    bool insert_handle_if_missing(const string& handle);
     string add_atom_if_new(SQL2AtomsMapper::ATOM_TYPE atom_type,
                            variant<string, vector<string>> value,
                            const string& metta_expression = "",
                            bool is_toplevel = false);
 
-    void map_primary_key(const string& table_name, const string& primary_key_value) override;
+    void map_primary_key(const string& table_name, const string& primary_key_value);
     void map_foreign_key_column(const string& table_name,
                                 const string& column_name,
                                 const string& value,
                                 const string& primary_key_value,
                                 const string& fk_table,
-                                const string& fk_column) override;
+                                const string& fk_column);
     void map_regular_column(const string& table_name,
                             const string& column_name,
                             const string& value,
-                            const string& primary_key_value) override;
-    void map_foreign_keys_combinations(
-        const vector<tuple<string, string, string>>& all_foreign_keys) override;
+                            const string& primary_key_value);
+    void map_foreign_keys_combinations(const vector<tuple<string, string, string>>& all_foreign_keys);
 };
 
 }  // namespace db_adapter

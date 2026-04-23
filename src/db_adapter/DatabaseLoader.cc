@@ -16,61 +16,21 @@ using namespace commons;
 using namespace atoms;
 using namespace db_adapter;
 
+// ==============================
+//  Construction / destruction
+// ==============================
+
 DatabaseMappingOrchestrator::DatabaseMappingOrchestrator(const JsonConfig& config,
-                                                         MAPPER_TYPE mapper_type,
                                                          shared_ptr<BoundedSharedQueue> output_queue) {
-    this->database_setup(config, mapper_type, output_queue);
+    this->database_setup(config, output_queue);
     this->task_setup(config);
 }
 
 DatabaseMappingOrchestrator::~DatabaseMappingOrchestrator() { this->db_conn->stop(); }
 
-void DatabaseMappingOrchestrator::database_setup(const JsonConfig& config,
-                                                 MAPPER_TYPE mapper_type,
-                                                 shared_ptr<BoundedSharedQueue> output_queue) {
-    string host = config.at_path("adapter.host").get<string>();
-    uint port = config.at_path("adapter.port").get<uint>();
-    string username = config.at_path("adapter.username").get<string>();
-    string password = config.at_path("adapter.password").get<string>();
-    string database = config.at_path("adapter.database").get<string>();
-    this->db_conn =
-        make_unique<PostgresDatabaseConnection>("psql-conn", host, port, database, username, password);
-    this->wrapper = make_unique<PostgresWrapper>(*db_conn, mapper_type, output_queue);
-}
-
-void DatabaseMappingOrchestrator::task_setup(const JsonConfig& config) {
-    string tables_file_path = config.at_path("adapter.context_mapping.tables").get_or<string>("");
-    string query_file_path = config.at_path("adapter.context_mapping.queries_sql").get_or<string>("");
-
-    if (tables_file_path.empty() && query_file_path.empty()) {
-        Utils::error(
-            "No mapping tasks found in the context file. Provide at least one of the following:\n"
-            " - adapter.context_mapping.tables (path to tables mapping JSON file)\n"
-            " - adapter.context_mapping.queries_sql (path to SQL queries file)");
-        return;
-    }
-
-    if (!tables_file_path.empty()) {
-        auto tables_mapping = ContextLoader::load_table_file(tables_file_path);
-        if (!tables_mapping.empty()) {
-            for (const auto& table_mapping : tables_mapping) {
-                this->add_task_table(table_mapping);
-            }
-        }
-        LOG_DEBUG(to_string(tables_mapping.size()) +
-                  " tables were loaded from the context file for mapping.");
-    }
-
-    if (!query_file_path.empty()) {
-        auto queries_sql = ContextLoader::load_query_file(query_file_path);
-        if (!queries_sql.empty()) {
-            for (size_t i = 0; i < queries_sql.size(); i++) {
-                this->add_task_query("custom_query_" + to_string(i), queries_sql[i]);
-            }
-        }
-        LOG_DEBUG(to_string(queries_sql.size()) + " queries were loaded from the query file.");
-    }
-}
+// ==============================
+//  Public
+// ==============================
 
 void DatabaseMappingOrchestrator::add_task_query(const string& virtual_name, const string& query) {
     this->tasks.push_back(MappingTask{MappingTask::QUERY, TableMapping{}, virtual_name, query});
@@ -117,31 +77,100 @@ bool DatabaseMappingOrchestrator::thread_one_step() {
 
 bool DatabaseMappingOrchestrator::is_finished() const { return this->finished; }
 
-/*
-    MultiThreadAtomPersister implementation using ThreadPool
-*/
+// ==============================
+//  Private
+// ==============================
+
+void DatabaseMappingOrchestrator::database_setup(const JsonConfig& config,
+                                                 shared_ptr<BoundedSharedQueue> output_queue) {
+    string host = config.at_path("adapter.host").get<string>();
+    uint port = config.at_path("adapter.port").get<uint>();
+    string username = config.at_path("adapter.username").get<string>();
+    string password = config.at_path("adapter.password").get<string>();
+    string database = config.at_path("adapter.database").get<string>();
+    this->db_conn =
+        make_unique<PostgresDatabaseConnection>("psql-conn", host, port, database, username, password);
+    this->wrapper = make_unique<PostgresWrapper>(*db_conn, output_queue);
+}
+
+void DatabaseMappingOrchestrator::task_setup(const JsonConfig& config) {
+    string tables_file_path = config.at_path("adapter.context_mapping.tables").get_or<string>("");
+    string query_file_path = config.at_path("adapter.context_mapping.queries_sql").get_or<string>("");
+
+    if (tables_file_path.empty() && query_file_path.empty()) {
+        Utils::error(
+            "No mapping tasks found in the context file. Provide at least one of the following:\n"
+            " - adapter.context_mapping.tables (path to tables mapping JSON file)\n"
+            " - adapter.context_mapping.queries_sql (path to SQL queries file)");
+        return;
+    }
+
+    if (!tables_file_path.empty()) {
+        auto tables_mapping = ContextLoader::load_table_file(tables_file_path);
+        if (!tables_mapping.empty()) {
+            for (const auto& table_mapping : tables_mapping) {
+                this->add_task_table(table_mapping);
+            }
+        }
+        LOG_DEBUG(to_string(tables_mapping.size()) +
+                  " tables were loaded from the context file for mapping.");
+    }
+
+    if (!query_file_path.empty()) {
+        auto queries_sql = ContextLoader::load_query_file(query_file_path);
+        if (!queries_sql.empty()) {
+            for (size_t i = 0; i < queries_sql.size(); i++) {
+                this->add_task_query("custom_query_" + to_string(i), queries_sql[i]);
+            }
+        }
+        LOG_DEBUG(to_string(queries_sql.size()) + " queries were loaded from the query file.");
+    }
+}
+
+/**
+ * MultiThreadAtomPersister implementation using ThreadPool
+ */
+
+// ==============================
+//  Construction / destruction
+// ==============================
 
 MultiThreadAtomPersister::MultiThreadAtomPersister(shared_ptr<BoundedSharedQueue> input_queue,
                                                    ThreadPool& pool,
                                                    size_t batch_size,
+                                                   bool save_metta_expression,
                                                    size_t max_pending_batches)
     : input_queue(input_queue),
       pool(pool),
       batch_size(batch_size),
-      max_pending_batches(max_pending_batches) {
+      max_pending_batches(max_pending_batches),
+      save_metta_expression(save_metta_expression) {
     this->atomdb = AtomDBSingleton::get_instance();
     this->accumulator.reserve(batch_size);
+
+    if (save_metta_expression) {
+        this->metta_writer = make_shared<MettaFileWriter>();
+    }
+
     LOG_INFO("MultiThreadAtomPersister initialized | batch_size: "
              << batch_size << " | max_pending_batches: " << max_pending_batches
              << " | pool: " << this->pool.to_string());
 }
 
 MultiThreadAtomPersister::~MultiThreadAtomPersister() {
+    if (is_save_metta()) {
+        this->metta_writer->close();
+    }
+
     LOG_INFO("MultiThreadAtomPersister destroyed | total_atoms: "
              << this->total_count.load() << " | batches_dispatched: " << this->batches_dispatched.load()
              << " | batches_completed: " << this->batches_completed.load()
              << " | batches_failed: " << this->batches_failed.load());
 }
+
+// ==============================
+//  Public
+// ==============================
 
 void MultiThreadAtomPersister::dispatch() {
     if (static_cast<size_t>(this->pool.size()) >= this->max_pending_batches) {
@@ -162,8 +191,11 @@ void MultiThreadAtomPersister::dispatch() {
         vector<Atom*> final_batch = move(this->accumulator);
         this->accumulator.clear();
 
-        this->pool.enqueue(
-            [this, b = move(final_batch), batch_id]() mutable { send_batch(move(b), batch_id); });
+        shared_ptr<MettaFileWriter> writer = this->metta_writer;
+
+        this->pool.enqueue([this, b = move(final_batch), batch_id, writer]() mutable {
+            send_batch(move(b), batch_id, writer);
+        });
     }
 }
 
@@ -179,6 +211,10 @@ void MultiThreadAtomPersister::set_producer_finished() {
 bool MultiThreadAtomPersister::is_producer_finished() const { return this->producer_finished.load(); }
 
 int MultiThreadAtomPersister::get_total_count() const { return this->total_count.load(); }
+
+// ==============================
+//  Private
+// ==============================
 
 void MultiThreadAtomPersister::drain_into_accumulator() {
     size_t limit = (this->accumulator.size() < this->batch_size)
@@ -229,12 +265,16 @@ void MultiThreadAtomPersister::flush_batch() {
                                         << " | pool_pending_tasks: " << this->pool.size()
                                         << " | total_dispatched: " << this->batches_dispatched.load());
 
-        this->pool.enqueue(
-            [this, b = move(batch), batch_id]() mutable { send_batch(move(b), batch_id); });
+        shared_ptr<MettaFileWriter> writer = this->metta_writer;
+        this->pool.enqueue([this, b = move(batch), batch_id, writer]() mutable {
+            send_batch(move(b), batch_id, writer);
+        });
     }
 }
 
-void MultiThreadAtomPersister::send_batch(vector<Atom*> atoms, int batch_id) {
+void MultiThreadAtomPersister::send_batch(vector<Atom*> atoms,
+                                          int batch_id,
+                                          shared_ptr<MettaFileWriter> writer) {
     StopWatch timer_success;
     StopWatch timer_failure;
     timer_success.start();
@@ -245,6 +285,22 @@ void MultiThreadAtomPersister::send_batch(vector<Atom*> atoms, int batch_id) {
 
     try {
         this->atomdb->add_atoms(atoms, false, true);
+
+        if (this->is_save_metta()) {
+            for (auto& atom : atoms) {
+                if (atom->arity() > 0) {
+                    Link* link = dynamic_cast<Link*>(atom);
+                    const string metta_expression =
+                        link->custom_attributes.get_or<string>("metta_expression", "");
+
+                    if (metta_expression.empty()) continue;
+
+                    LOG_DEBUG("Thread_ID: " << this_thread::get_id()
+                                            << " |  Saving Metta expression: " << metta_expression);
+                    writer->write(metta_expression);
+                }
+            }
+        }
 
         timer_success.stop();
 
