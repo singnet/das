@@ -22,6 +22,7 @@
 #include "PostgresWrapper.h"
 #include "Processor.h"
 #include "TestAtomDBJsonConfig.h"
+
 using namespace std;
 using namespace atomdb;
 using namespace db_adapter;
@@ -222,7 +223,7 @@ class PostgresWrapperTest : public ::testing::Test {
         if (!queue) {
             queue = make_shared<BoundedSharedQueue>();
         }
-        return make_shared<PostgresWrapper>(db_conn, mapper_type, queue);
+        return make_shared<PostgresWrapper>(db_conn, queue);
     }
 
     string temp_file_path_1;
