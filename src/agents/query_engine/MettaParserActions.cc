@@ -223,15 +223,34 @@ void MettaParserActions::expression_end(bool toplevel, const string& metta_expre
             LOG_DEBUG("Head reference: " + std::to_string(head_reference));
             LOG_DEBUG("Source terminal: " + source->to_string());
             LOG_DEBUG("Target terminal: " + target->to_string());
-            LOG_DEBUG("Source handle: " + source->compute_handle());
-            LOG_DEBUG("Target handle: " + target->compute_handle());
+            LOG_DEBUG("Source handle: " + (source->is_variable ? "<variable>" : source->compute_handle()));
+            LOG_DEBUG("Target handle: " + (target->is_variable ? "<variable>" : target->compute_handle()));
+
+            Chain::SearchDirection search_direction;
+            if (target->is_variable) {
+                if (source->is_variable) {
+                    Utils::error("Invalid CHAIN arguments. source and target are variables.");
+                } else {
+                    search_direction = Chain::FORWARD;
+                    LOG_DEBUG("Search direction: FORWARD");
+                }
+            } else {
+                if (source->is_variable) {
+                    search_direction = Chain::BACKWARD;
+                    LOG_DEBUG("Search direction: BACKWARD");
+                } else {
+                    search_direction = Chain::BOTH;
+                    LOG_DEBUG("Search direction: FORWARD/BACKWARD");
+                }
+            }
 
             bool incomplete_flag =
                 this->proxy->parameters.get<bool>(BaseQueryProxy::ALLOW_INCOMPLETE_CHAIN_PATH);
             auto chain_operator = make_shared<Chain>(clauses,
                                                      link_template,
-                                                     source->compute_handle(),
-                                                     target->compute_handle(),
+                                                     source->is_variable ? source->name : source->compute_handle(),
+                                                     target->is_variable ? target->name : target->compute_handle(),
+                                                     search_direction,
                                                      link_selector,
                                                      tail_reference,
                                                      head_reference,

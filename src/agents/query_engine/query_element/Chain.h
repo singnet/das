@@ -155,8 +155,6 @@ class Chain : public Operator<1>, public ThreadMethod {
             } else if (this->end_point() != other.start_point()) {
                 return false;
             }
-            // unsigned int this_index = (this->forward_flag ? 1 : 2);
-            // unsigned int other_index = (this->forward_flag ? 2 : 1);
             for (auto pair_other : other.edges) {
                 for (auto pair_this : this->edges) {
                     if (this->forward_flag) {
@@ -174,6 +172,8 @@ class Chain : public Operator<1>, public ThreadMethod {
         }
         string to_string();
     };
+
+    enum SearchDirection { FORWARD = 1, BACKWARD, BOTH };
 
     typedef ThreadSafeHeap<Path, double> HeapType;
 
@@ -193,6 +193,7 @@ class Chain : public Operator<1>, public ThreadMethod {
           shared_ptr<LinkTemplate> link_template,
           const string& source_handle,
           const string& target_handle,
+          SearchDirection search_direction,
           const QueryAnswerElement& link_selector,
           unsigned int tail_reference,
           unsigned int head_reference,
@@ -305,15 +306,19 @@ class Chain : public Operator<1>, public ThreadMethod {
     };
 
     void initialize(const array<shared_ptr<QueryElement>, 1>& clauses);
+    inline bool forward_active() { return (search_direction == FORWARD) || (search_direction == BOTH); }
+    inline bool backward_active() { return (search_direction == BACKWARD) || (search_direction == BOTH); }
 
     shared_ptr<LinkTemplate> input_link_template;
     string source_handle;
     string target_handle;
+    SearchDirection search_direction;
     QueryAnswerElement link_selector;
     unsigned int tail_reference;
     unsigned int head_reference;
     PathFinder* forward_path_finder;
     PathFinder* backward_path_finder;
+    bool path_finders_stopped;
     shared_ptr<DedicatedThread> operator_thread;
     shared_ptr<DedicatedThread> forward_thread;
     shared_ptr<DedicatedThread> backward_thread;

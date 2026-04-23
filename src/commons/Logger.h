@@ -42,7 +42,7 @@ static inline char* timenow();
 #define LOCAL_DEBUG_LEVEL 0x04
 
 #ifndef LOG_LEVEL
-#define LOG_LEVEL INFO_LEVEL
+#define LOG_LEVEL DEBUG_LEVEL
 #endif
 
 #if LOG_LEVEL >= LOCAL_DEBUG_LEVEL
