@@ -223,9 +223,11 @@ int main(int argc, char* argv[]) {
     LOG_INFO("Creating initial concepts...");
     create_concepts(concepts);
     LOG_INFO("Enforcing BCD-Sort predicate...");
-    enforce_hidden_predicates(concepts);
+    enforce_hidden_predicates(concepts); // "bbb" "ccc" "ddd" concept are created and sorted here
     // print_concepts(concepts);
     LOG_INFO("Exporting MeTTa file...");
+    // Exports predicates (contains, start/end, etc). BCD predicates are not explicitly exported but
+    // sort predicates are.
     export_metta(concepts);
     LOG_INFO("Finished");
 }
