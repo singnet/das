@@ -150,7 +150,7 @@
         "password": "",
         "database": "flybase",
         "context_mapping": {
-        "queries_sql": "./simple_test.sql"
+            "queries_sql": "./simple_test.sql"
         }
-  }
+    }
 }
