@@ -46,6 +46,7 @@
 #define CONCEPT "Concept"
 #define EQUIVALENCE "Equivalence"
 #define IMPLICATION "Implication"
+#define LOGICAL_AND "LogicalAnd"
 
 // Variables
 #define V1 "V1"
@@ -67,12 +68,13 @@ static string IMPLICATION_HANDLE = Hasher::node_handle(SYMBOL, IMPLICATION);
 static string EQUIVALENCE_HANDLE = Hasher::node_handle(SYMBOL, EQUIVALENCE);
 static string PREDICATE_HANDLE = Hasher::node_handle(SYMBOL, PREDICATE);
 static string EVALUATION_HANDLE = Hasher::node_handle(SYMBOL, EVALUATION);
+static string LOGICAL_AND_HANDLE = Hasher::node_handle(SYMBOL, LOGICAL_AND);
 static float RENT_RATE = 0.25;
 static float SPREADING_RATE_LOWERBOUND = 0.90;
 static float SPREADING_RATE_UPPERBOUND = 0.90;
 static double SELECTION_RATE = 0.10;
 static double ELITISM_RATE = 0.08;
-static unsigned int LINK_BUILDING_QUERY_SIZE = 50;
+static unsigned int LINK_BUILDING_QUERY_SIZE = 10;
 static unsigned int POPULATION_SIZE = 50;
 static unsigned int MAX_GENERATIONS = 20;
 static unsigned int NUM_ITERATIONS = 10;
@@ -303,28 +305,60 @@ static Link add_or_update_link(const string& type_handle,
 }
 
 static Link add_predicate(const string& handle1, const string& handle2) {
-    Link new_link(EXPRESSION, {handle1, handle2}, false);
+    string h1, h2;
+    if (handle1 < handle2) {
+        h1 = handle1;
+        h2 = handle2;
+    } else {
+        h1 = handle2;
+        h2 = handle1;
+    }
+    Link new_link(EXPRESSION, {LOGICAL_AND_HANDLE, h1, h2}, false);
     if (!db->link_exists(new_link.handle())) {
         db->add_link(&new_link);
     }
     return new_link;
 }
 
+static void build_and_predicate_link(shared_ptr<QueryAnswer> query_answer,
+                                     const string& context,
+                                     const string& custom_handle) {
+    string predicate1 = query_answer->get(PREDICATE1);
+    string predicate2 = query_answer->get(PREDICATE2);
+    string concept1 = query_answer->get(CONCEPT);
+
+    if (predicate1 == predicate2) {
+        LOG_DEBUG("Skipping link building because targets are the same: " + predicate1);
+        return;
+    }
+
+    Link new_predicate = add_predicate(predicate1, predicate2);
+    add_or_update_link(EVALUATION_HANDLE, new_predicate.handle(), concept1, 1.0);
+}
+
 static void build_implication_link(shared_ptr<QueryAnswer> query_answer,
                                    const string& context,
                                    const string& custom_handle) {
     string predicates[2];
+    string concept = query_answer->get(CONCEPT);
+    bool custom_implication_flag = false;
     if (custom_handle == "") {
         predicates[0] = query_answer->get(PREDICATE1);
         predicates[1] = query_answer->get(PREDICATE2);
     } else {
         predicates[0] = custom_handle;
         predicates[1] = query_answer->get(0);
+        custom_implication_flag = true;
     }
 
     if (predicates[0] == predicates[1]) {
         LOG_DEBUG("Skipping link building because targets are the same: " + predicates[0]);
         return;
+    }
+
+    if (! custom_implication_flag) {
+        // build Evaluation of the AND of both predicates
+        build_and_predicate_link(query_answer, context, custom_handle);
     }
 
     vector<vector<string>> query;
@@ -369,22 +403,6 @@ static void build_implication_link(shared_ptr<QueryAnswer> query_answer,
             add_or_update_link(IMPLICATION_HANDLE, predicates[1], predicates[0], strength);
         }
     }
-}
-
-static void build_and_predicate_link(shared_ptr<QueryAnswer> query_answer,
-                                     const string& context,
-                                     const string& custom_handle) {
-    string predicate1 = query_answer->get(PREDICATE1);
-    string predicate2 = query_answer->get(PREDICATE2);
-    string concept1 = query_answer->get(CONCEPT);
-
-    if (predicate1 == predicate2) {
-        LOG_DEBUG("Skipping link building because targets are the same: " + predicate1);
-        return;
-    }
-
-    Link new_predicate = add_predicate(predicate1, predicate2);
-    add_or_update_link(EVALUATION_HANDLE, new_predicate.handle(), concept1, 1.0);
 }
 
 static void build_equivalence_link(shared_ptr<QueryAnswer> query_answer,
@@ -557,18 +575,6 @@ static void run(const string& target_predicate_handle,
                 VARIABLE, CONCEPT2,
     };
 
-    vector<string> and_predicate_query = {
-        AND_OPERATOR, "2",
-            LINK_TEMPLATE, EXPRESSION, "3",
-                NODE, SYMBOL, EVALUATION,
-                VARIABLE, PREDICATE1,
-                VARIABLE, CONCEPT,
-            LINK_TEMPLATE, EXPRESSION, "3",
-                NODE, SYMBOL, EVALUATION,
-                VARIABLE, PREDICATE2,
-                VARIABLE, CONCEPT,
-    };
-
     vector<string> query_to_evolve = {
         AND_OPERATOR, "3",
             LINK_TEMPLATE, EXPRESSION, "3",
@@ -687,13 +693,10 @@ static void run(const string& target_predicate_handle,
         LOG_INFO("Iteration " + to_string(i + 1));
         LOG_INFO("--------------------------------------------------------------------------------");
         LOG_INFO("----- Building links");
-        LOG_INFO("Building AND predicates");
-        build_links(
-            and_predicate_query, context, LINK_BUILDING_QUERY_SIZE, "", build_and_predicate_link);
-        LOG_INFO("Building Equivalence links");
-        build_links(equivalence_query, context, LINK_BUILDING_QUERY_SIZE, "", build_equivalence_link);
         LOG_INFO("Building Implication links");
         build_links(implication_query, context, LINK_BUILDING_QUERY_SIZE, "", build_implication_link);
+        LOG_INFO("Building Equivalence links");
+        build_links(equivalence_query, context, LINK_BUILDING_QUERY_SIZE, "", build_equivalence_link);
         LOG_INFO("----- Updating AttentionBroker");
         AttentionBrokerClient::set_determiners(buffer_determiners, context);
         buffer_determiners.clear();
