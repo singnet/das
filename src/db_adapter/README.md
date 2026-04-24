@@ -13,7 +13,28 @@ make run-adapter OPTIONS="config.json true"
 
 ```json
 {
-    "adapter": {
+  "schema_version": "1.0",
+  "atomdb": {
+    "type": "morkdb",
+    "mongodb": {
+      "endpoint": "localhost:40021",
+      "username": "admin",
+      "password": "admin",
+      "cluster": false,
+      "cluster_secret_key": "None",
+      "nodes": [
+        {
+          "context": "default",
+          "ip": "localhost",
+          "username": "username"
+        }
+      ]
+    },
+    "morkdb": {
+      "endpoint": "localhost:40022"
+    }
+  },
+  "adapter": {
     "type": "postgres",
     "host": "chado.flybase.org",
     "port": 5432,
@@ -21,9 +42,9 @@ make run-adapter OPTIONS="config.json true"
     "password": "",
     "database": "flybase",
     "context_mapping": {
-      "queries_sql": "./.nogit/simple_test.sql"
+      "queries_sql": "./simple_test.sql"
     }
-  },
+  }
 }
 ```
 
