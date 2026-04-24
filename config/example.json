@@ -141,5 +141,16 @@
             "initial_spreading_rate_lowerbound": 0.5,
             "initial_spreading_rate_upperbound": 0.7
         }
-    }
+    },
+    "adapter": {
+        "type": "postgres",
+        "host": "chado.flybase.org",
+        "port": 5432,
+        "username": "flybase",
+        "password": "",
+        "database": "flybase",
+        "context_mapping": {
+        "queries_sql": "./simple_test.sql"
+        }
+  }
 }

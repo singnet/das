@@ -12,40 +12,7 @@ make run-adapter OPTIONS="config.json true"
 ## Example of config.json
 
 ```json
-{
-  "schema_version": "1.0",
-  "atomdb": {
-    "type": "morkdb",
-    "mongodb": {
-      "endpoint": "localhost:40021",
-      "username": "admin",
-      "password": "admin",
-      "cluster": false,
-      "cluster_secret_key": "None",
-      "nodes": [
-        {
-          "context": "default",
-          "ip": "localhost",
-          "username": "username"
-        }
-      ]
-    },
-    "morkdb": {
-      "endpoint": "localhost:40022"
-    }
-  },
-  "adapter": {
-    "type": "postgres",
-    "host": "chado.flybase.org",
-    "port": 5432,
-    "username": "flybase",
-    "password": "",
-    "database": "flybase",
-    "context_mapping": {
-      "queries_sql": "./simple_test.sql"
-    }
-  }
-}
+See the config/example.json file in the root of this repository.
 ```
 
 ## simple_test.sql
