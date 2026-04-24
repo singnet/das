@@ -173,11 +173,11 @@ void check_query_chain(const string& query_tag,
                        bool positive_importance,
                        bool error_flag,
                        bool unique_value_flag) {
-
     LOG_INFO("==================== Query tag: " + query_tag);
     vector<shared_ptr<PatternMatchingQueryProxy>> proxies;
-        
-    proxies.push_back(shared_ptr<PatternMatchingQueryProxy>(new PatternMatchingQueryProxy(query, context)));
+
+    proxies.push_back(
+        shared_ptr<PatternMatchingQueryProxy>(new PatternMatchingQueryProxy(query, context)));
     proxies[0]->parameters[BaseQueryProxy::UNIQUE_ASSIGNMENT_FLAG] = unique_assignment;
     proxies[0]->parameters[BaseQueryProxy::ATTENTION_UPDATE_FLAG] = update_attention_broker;
     proxies[0]->parameters[BaseQueryProxy::POPULATE_METTA_MAPPING] = true;
@@ -187,12 +187,14 @@ void check_query_chain(const string& query_tag,
 
     if (metta_expression != "") {
         vector<string> metta_query = {metta_expression};
-        proxies.push_back(shared_ptr<PatternMatchingQueryProxy>(new PatternMatchingQueryProxy(metta_query, context)));
+        proxies.push_back(
+            shared_ptr<PatternMatchingQueryProxy>(new PatternMatchingQueryProxy(metta_query, context)));
         proxies[1]->parameters[BaseQueryProxy::USE_METTA_AS_QUERY_TOKENS] = true;
         proxies[1]->parameters[BaseQueryProxy::UNIQUE_ASSIGNMENT_FLAG] = unique_assignment;
         proxies[1]->parameters[BaseQueryProxy::ATTENTION_UPDATE_FLAG] = update_attention_broker;
         proxies[1]->parameters[BaseQueryProxy::POPULATE_METTA_MAPPING] = true;
-        proxies[1]->parameters[PatternMatchingQueryProxy::POSITIVE_IMPORTANCE_FLAG] = positive_importance;
+        proxies[1]->parameters[PatternMatchingQueryProxy::POSITIVE_IMPORTANCE_FLAG] =
+            positive_importance;
         proxies[1]->parameters[PatternMatchingQueryProxy::UNIQUE_VALUE_FLAG] = unique_value_flag;
         LOG_INFO("proxy 1: " + proxies[1]->to_string());
     }

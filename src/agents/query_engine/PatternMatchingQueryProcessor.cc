@@ -527,15 +527,16 @@ shared_ptr<QueryElement> PatternMatchingQueryProcessor::build_chain(
     LOG_DEBUG("Input: " + clauses[0]->to_string());
     element_stack.pop();
 
-    auto chain_operator = make_shared<Chain>(clauses,
-                                             link_template,
-                                             source->is_variable ? source->name : source->compute_handle(),
-                                             target->is_variable ? target->name : target->compute_handle(),
-                                             search_direction,
-                                             link_selector,
-                                             tail_reference,
-                                             head_reference,
-                                             incomplete_flag);
+    auto chain_operator =
+        make_shared<Chain>(clauses,
+                           link_template,
+                           source->is_variable ? source->name : source->compute_handle(),
+                           target->is_variable ? target->name : target->compute_handle(),
+                           search_direction,
+                           link_selector,
+                           tail_reference,
+                           head_reference,
+                           incomplete_flag);
     LOG_DEBUG("Building CHAIN operator... DONE");
 
     return chain_operator;

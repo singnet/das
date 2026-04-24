@@ -251,7 +251,6 @@ TEST(QueryAnswer, handles_answer_basics) {
 }
 
 TEST(QueryAnswer, path_merging) {
-
     unsigned int path_index = 0;
 
     QueryAnswer query_answer1("h", 0);
@@ -293,7 +292,7 @@ TEST(QueryAnswer, path_merging) {
     query_answer1_2.add_path_element(path_index, "p_2_2");
     query_answer1_2.add_path_element(path_index, "p_2_3");
 
-    QueryAnswer *query_answer2_1 = QueryAnswer::copy(&query_answer1_2);
+    QueryAnswer* query_answer2_1 = QueryAnswer::copy(&query_answer1_2);
 
     QueryAnswer query_answer2_3("h", 0);
     path_index = query_answer2_3.add_path();
@@ -323,7 +322,7 @@ TEST(QueryAnswer, path_merging) {
     query_answer2_4.add_path_element(path_index, "p_2_1");
     query_answer2_4.add_path_element(path_index, "p_3_2");
 
-    QueryAnswer *q;
+    QueryAnswer* q;
 
     q = QueryAnswer::copy(&query_answer1);
     q->merge(&query_answer2);

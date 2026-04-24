@@ -242,7 +242,6 @@ class QueryAnswer {
     vector<string>& get_path_vector(unsigned int path_index);
 
    private:
-
     void merge_paths(QueryAnswer* other);
 
     /**

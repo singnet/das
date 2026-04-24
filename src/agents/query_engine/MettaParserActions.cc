@@ -32,7 +32,8 @@ MettaParserActions::~MettaParserActions() {}
 
 void MettaParserActions::symbol(const string& name) {
     ParserActions::symbol(name);
-    if ((name == MettaMapping::AND_QUERY_OPERATOR) || (name == MettaMapping::OR_QUERY_OPERATOR) || (name == MettaMapping::CHAIN_QUERY_OPERATOR)) {
+    if ((name == MettaMapping::AND_QUERY_OPERATOR) || (name == MettaMapping::OR_QUERY_OPERATOR) ||
+        (name == MettaMapping::CHAIN_QUERY_OPERATOR)) {
         if (name == MettaMapping::AND_QUERY_OPERATOR) {
             this->current_expression_type = AND;
         } else if (name == MettaMapping::OR_QUERY_OPERATOR) {
@@ -41,7 +42,8 @@ void MettaParserActions::symbol(const string& name) {
             this->current_expression_type = CHAIN;
         }
     } else {
-        if ((this->current_expression_type == AND) || (this->current_expression_type == OR) || (this->current_expression_type == CHAIN)) {
+        if ((this->current_expression_type == AND) || (this->current_expression_type == OR) ||
+            (this->current_expression_type == CHAIN)) {
             Utils::error("Invalid query expression: AND/OR/CHAIN can't operate symbols.");
             return;
         }
@@ -223,10 +225,13 @@ void MettaParserActions::expression_end(bool toplevel, const string& metta_expre
             LOG_DEBUG("Head reference: " + std::to_string(head_reference));
             LOG_DEBUG("Source terminal: " + source->to_string());
             LOG_DEBUG("Target terminal: " + target->to_string());
-            LOG_DEBUG("Source handle: " + (source->is_variable ? "<variable>" : source->compute_handle()));
-            LOG_DEBUG("Target handle: " + (target->is_variable ? "<variable>" : target->compute_handle()));
+            LOG_DEBUG("Source handle: " +
+                      (source->is_variable ? "<variable>" : source->compute_handle()));
+            LOG_DEBUG("Target handle: " +
+                      (target->is_variable ? "<variable>" : target->compute_handle()));
 
-            bool incomplete_flag = this->proxy->parameters.get<bool>(BaseQueryProxy::ALLOW_INCOMPLETE_CHAIN_PATH);
+            bool incomplete_flag =
+                this->proxy->parameters.get<bool>(BaseQueryProxy::ALLOW_INCOMPLETE_CHAIN_PATH);
             Chain::SearchDirection search_direction;
             if (target->is_variable) {
                 if (source->is_variable) {
@@ -248,16 +253,16 @@ void MettaParserActions::expression_end(bool toplevel, const string& metta_expre
             }
             LOG_DEBUG(string("Allow incomplete paths: ") + (incomplete_flag ? "true" : "false"));
 
-
-            auto chain_operator = make_shared<Chain>(clauses,
-                                                     link_template,
-                                                     source->is_variable ? source->name : source->compute_handle(),
-                                                     target->is_variable ? target->name : target->compute_handle(),
-                                                     search_direction,
-                                                     link_selector,
-                                                     tail_reference,
-                                                     head_reference,
-                                                     incomplete_flag);
+            auto chain_operator =
+                make_shared<Chain>(clauses,
+                                   link_template,
+                                   source->is_variable ? source->name : source->compute_handle(),
+                                   target->is_variable ? target->name : target->compute_handle(),
+                                   search_direction,
+                                   link_selector,
+                                   tail_reference,
+                                   head_reference,
+                                   incomplete_flag);
             LOG_DEBUG("Building CHAIN operator... DONE");
             this->element_stack.push(chain_operator);
         } else {

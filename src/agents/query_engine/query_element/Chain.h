@@ -301,7 +301,9 @@ class Chain : public Operator<1>, public ThreadMethod {
 
     void initialize(const array<shared_ptr<QueryElement>, 1>& clauses);
     inline bool forward_active() { return (search_direction == FORWARD) || (search_direction == BOTH); }
-    inline bool backward_active() { return (search_direction == BACKWARD) || (search_direction == BOTH); }
+    inline bool backward_active() {
+        return (search_direction == BACKWARD) || (search_direction == BOTH);
+    }
 
     shared_ptr<LinkTemplate> input_link_template;
     string source_reference;

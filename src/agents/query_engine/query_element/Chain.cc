@@ -1,8 +1,8 @@
-#include "Logger.h"
 #include "Chain.h"
 
 #include "AtomDBSingleton.h"
 #include "Hasher.h"
+#include "Logger.h"
 #include "ThreadSafeHeap.h"
 
 using namespace query_element;
@@ -141,9 +141,12 @@ bool Chain::PathFinder::conditional_refeed(Path& path,
                                            unsigned int count_cycles) {
     if (this->chain_operator->all_input_acknowledged() &&
         (candidates_heap->empty() || (count_cycles == candidates_heap->size()))) {
-        LOG_DEBUG("[PATH_FINDER] " << "All input is acknowledged. " << "Reporting incomplete dead-end path: " << path.to_string());
+        LOG_DEBUG("[PATH_FINDER] "
+                  << "All input is acknowledged. "
+                  << "Reporting incomplete dead-end path: " << path.to_string());
         this->chain_operator->report_path(path);
-        LOG_DEBUG("[PATH_FINDER] " << "Discarding dead-end path: " << path.to_string());
+        LOG_DEBUG("[PATH_FINDER] "
+                  << "Discarding dead-end path: " << path.to_string());
         return false;
     } else {
         LOG_DEBUG("[PATH_FINDER] "
@@ -296,17 +299,21 @@ bool Chain::thread_one_step() {
     if (all_paths_explored()) {
         if (!this->path_finders_stopped) {
             this->path_finders_stopped = true;
-            LOG_DEBUG("[CHAIN OPERATOR] " << "All paths explored. Stopping path finders...");
+            LOG_DEBUG("[CHAIN OPERATOR] "
+                      << "All paths explored. Stopping path finders...");
             if (forward_thread != nullptr) {
                 this->forward_thread->stop();
             }
             if (backward_thread != nullptr) {
                 this->backward_thread->stop();
             }
-            LOG_DEBUG("[CHAIN OPERATOR] " << "All paths explored. Stopping path finders. DONE");
-            LOG_DEBUG("[CHAIN OPERATOR] " << "All paths explored. Notifying output buffer...");
+            LOG_DEBUG("[CHAIN OPERATOR] "
+                      << "All paths explored. Stopping path finders. DONE");
+            LOG_DEBUG("[CHAIN OPERATOR] "
+                      << "All paths explored. Notifying output buffer...");
             this->output_buffer->query_answers_finished();
-            LOG_DEBUG("[CHAIN OPERATOR] " << "All paths explored. Notifying output buffer. DONE");
+            LOG_DEBUG("[CHAIN OPERATOR] "
+                      << "All paths explored. Notifying output buffer. DONE");
         }
         return false;
     }
@@ -395,7 +402,8 @@ bool Chain::thread_one_step() {
 void Chain::report_path(Path& path) {
     lock_guard<mutex> semaphore(this->reported_answers_mutex);
     bool complete_flag =
-        ((path.start_point() == this->source_reference) && (path.end_point() == this->target_reference)) ||
+        ((path.start_point() == this->source_reference) &&
+         (path.end_point() == this->target_reference)) ||
         ((path.start_point() == this->target_reference) && (path.end_point() == this->source_reference));
 
     if (complete_flag || this->allow_incomplete_chain_path) {
@@ -457,10 +465,13 @@ void Chain::initialize(const array<shared_ptr<QueryElement>, 1>& clauses) {
     if (clauses.size() != 1) {
         Utils::error("Invalid Chain operator with " + std::to_string(clauses.size()) + " clauses.");
     }
-    if (! (allow_incomplete_chain_path || (forward_active() && backward_active()))) {
-        Utils::error("Invalid parameters. If CHAIN source or target is a variable, incomplete paths must be allowed");
+    if (!(allow_incomplete_chain_path || (forward_active() && backward_active()))) {
+        Utils::error(
+            "Invalid parameters. If CHAIN source or target is a variable, incomplete paths must be "
+            "allowed");
     }
-    this->id = "CHAIN(" + clauses[0]->id + ", " + this->source_reference + ", " + this->target_reference + ")";
+    this->id =
+        "CHAIN(" + clauses[0]->id + ", " + this->source_reference + ", " + this->target_reference + ")";
     this->all_input_acknowledged_flag = false;
     this->all_paths_explored_flag = false;
     if (forward_active()) {
