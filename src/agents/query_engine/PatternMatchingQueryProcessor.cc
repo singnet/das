@@ -492,8 +492,30 @@ shared_ptr<QueryElement> PatternMatchingQueryProcessor::build_chain(
     element_stack.pop();
     LOG_DEBUG("Source terminal: " + source->to_string());
     LOG_DEBUG("Target terminal: " + target->to_string());
-    LOG_DEBUG("Source handle: " + source->compute_handle());
-    LOG_DEBUG("Target handle: " + target->compute_handle());
+    LOG_DEBUG("Source handle: " + (source->is_variable ? "<variable>" : source->compute_handle()));
+    LOG_DEBUG("Target handle: " + (target->is_variable ? "<variable>" : target->compute_handle()));
+
+    bool incomplete_flag = proxy->parameters.get<bool>(BaseQueryProxy::ALLOW_INCOMPLETE_CHAIN_PATH);
+    Chain::SearchDirection search_direction;
+    if (target->is_variable) {
+        if (source->is_variable) {
+            Utils::error("Invalid CHAIN arguments. source and target are variables.");
+        } else {
+            search_direction = Chain::FORWARD;
+            incomplete_flag = true;
+            LOG_DEBUG("Search direction: FORWARD");
+        }
+    } else {
+        if (source->is_variable) {
+            search_direction = Chain::BACKWARD;
+            incomplete_flag = true;
+            LOG_DEBUG("Search direction: BACKWARD");
+        } else {
+            search_direction = Chain::BOTH;
+            LOG_DEBUG("Search direction: FORWARD/BACKWARD");
+        }
+    }
+    LOG_DEBUG(string("Allow incomplete paths: ") + (incomplete_flag ? "true" : "false"));
 
     array<shared_ptr<QueryElement>, 1> clauses;
     clauses[0] = element_stack.top();
@@ -505,15 +527,16 @@ shared_ptr<QueryElement> PatternMatchingQueryProcessor::build_chain(
     LOG_DEBUG("Input: " + clauses[0]->to_string());
     element_stack.pop();
 
-    bool incomplete_flag = proxy->parameters.get<bool>(BaseQueryProxy::ALLOW_INCOMPLETE_CHAIN_PATH);
-    auto chain_operator = make_shared<Chain>(clauses,
-                                             link_template,
-                                             source->compute_handle(),
-                                             target->compute_handle(),
-                                             link_selector,
-                                             tail_reference,
-                                             head_reference,
-                                             incomplete_flag);
+    auto chain_operator =
+        make_shared<Chain>(clauses,
+                           link_template,
+                           source->is_variable ? source->name : source->compute_handle(),
+                           target->is_variable ? target->name : target->compute_handle(),
+                           search_direction,
+                           link_selector,
+                           tail_reference,
+                           head_reference,
+                           incomplete_flag);
     LOG_DEBUG("Building CHAIN operator... DONE");
 
     return chain_operator;

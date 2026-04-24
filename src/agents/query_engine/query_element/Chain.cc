@@ -9,9 +9,6 @@ using namespace query_element;
 using namespace atomdb;
 using namespace commons;
 
-string Chain::ORIGIN_VARIABLE_NAME = "origin";
-string Chain::DESTINY_VARIABLE_NAME = "destiny";
-
 static string convert_handle(const string& handle) {
 #if LOG_LEVEL >= DEBUG_LEVEL
     shared_ptr<Node> node =
@@ -28,16 +25,18 @@ static string convert_handle(const string& handle) {
 
 Chain::Chain(const array<shared_ptr<QueryElement>, 1>& clauses,
              shared_ptr<LinkTemplate> link_template,
-             const string& source_handle,
-             const string& target_handle,
+             const string& source_reference,
+             const string& target_reference,
+             SearchDirection search_direction,
              const QueryAnswerElement& link_selector,
              unsigned int tail_reference,
              unsigned int head_reference,
              bool allow_incomplete_chain_path)
     : Operator<1>(clauses),
       input_link_template(link_template),
-      source_handle(source_handle),
-      target_handle(target_handle),
+      source_reference(source_reference),
+      target_reference(target_reference),
+      search_direction(search_direction),
       link_selector(link_selector),
       tail_reference(tail_reference),
       head_reference(head_reference),
@@ -46,13 +45,14 @@ Chain::Chain(const array<shared_ptr<QueryElement>, 1>& clauses,
 }
 
 Chain::Chain(const array<shared_ptr<QueryElement>, 1>& clauses,
-             const string& source_handle,
-             const string& target_handle,
+             const string& source_reference,
+             const string& target_reference,
              bool allow_incomplete_chain_path)
     : Chain(clauses,
             nullptr,
-            source_handle,
-            target_handle,
+            source_reference,
+            target_reference,
+            BOTH,
             QueryAnswerElement(0),
             1,
             2,
@@ -61,8 +61,12 @@ Chain::Chain(const array<shared_ptr<QueryElement>, 1>& clauses,
 Chain::~Chain() {
     LOG_DEBUG("Chain::~Chain() BEGIN");
     graceful_shutdown();
-    delete this->forward_path_finder;
-    delete this->backward_path_finder;
+    if (this->forward_path_finder != NULL) {
+        delete this->forward_path_finder;
+    }
+    if (this->backward_path_finder != NULL) {
+        delete this->backward_path_finder;
+    }
     LOG_DEBUG("~Chain::Chain() END");
 }
 
@@ -95,23 +99,31 @@ void Chain::setup_buffers() {
     this->operator_thread = make_shared<DedicatedThread>(this->id + ":main_thread", this);
     this->operator_thread->setup();
     this->operator_thread->start();
-    this->forward_thread =
-        make_shared<DedicatedThread>(this->id + ":forward_thread", this->forward_path_finder);
-    this->forward_thread->setup();
-    this->forward_thread->start();
-    this->backward_thread =
-        make_shared<DedicatedThread>(this->id + ":backward_thread", this->backward_path_finder);
-    this->backward_thread->setup();
-    this->backward_thread->start();
+    if (this->forward_path_finder != NULL) {
+        this->forward_thread =
+            make_shared<DedicatedThread>(this->id + ":forward_thread", this->forward_path_finder);
+        this->forward_thread->setup();
+        this->forward_thread->start();
+    } else {
+        this->forward_thread = nullptr;
+    }
+    if (this->backward_path_finder != NULL) {
+        this->backward_thread =
+            make_shared<DedicatedThread>(this->id + ":backward_thread", this->backward_path_finder);
+        this->backward_thread->setup();
+        this->backward_thread->start();
+    } else {
+        this->backward_thread = nullptr;
+    }
     LOG_DEBUG("Chain::setup_buffers() END");
 }
 
 void Chain::graceful_shutdown() {
     LOG_DEBUG("Chain::graceful_shutdown() BEGIN");
-    if (!this->forward_thread->is_finished()) {
+    if ((this->forward_thread != nullptr) && !this->forward_thread->is_finished()) {
         this->forward_thread->stop();
     }
-    if (!this->backward_thread->is_finished()) {
+    if ((this->backward_thread != nullptr) && !this->backward_thread->is_finished()) {
         this->backward_thread->stop();
     }
     if (!this->operator_thread->is_finished()) {
@@ -130,7 +142,11 @@ bool Chain::PathFinder::conditional_refeed(Path& path,
     if (this->chain_operator->all_input_acknowledged() &&
         (candidates_heap->empty() || (count_cycles == candidates_heap->size()))) {
         LOG_DEBUG("[PATH_FINDER] "
-                  << "All input is acknowledged. Discarding dead-end path: " << path.to_string());
+                  << "All input is acknowledged. "
+                  << "Reporting incomplete dead-end path: " << path.to_string());
+        this->chain_operator->report_path(path);
+        LOG_DEBUG("[PATH_FINDER] "
+                  << "Discarding dead-end path: " << path.to_string());
         return false;
     } else {
         LOG_DEBUG("[PATH_FINDER] "
@@ -193,7 +209,7 @@ bool Chain::PathFinder::thread_one_step() {
 
     Path previous_path = base_heap->top_and_pop();
     LOG_DEBUG("[PATH_FINDER] "
-              << "Popped: " + previous_path.to_string());
+              << "Popped: " << previous_path.to_string());
     if (previous_path.end_point() == this->destiny) {
         LOG_DEBUG("[PATH_FINDER] "
                   << "Found complete path: " << previous_path.to_string());
@@ -261,7 +277,7 @@ void Chain::refeed_paths_forward() {
         Path path = refeeding_buffer_forward.front_and_pop();
         LOG_DEBUG("Refeeding: " << path.to_string());
         this->source_index_mutex.lock();
-        this->source_index[this->source_handle]->push(path, path.path_sti);
+        this->source_index[this->source_reference]->push(path, path.path_sti);
         this->source_index_mutex.unlock();
     }
 }
@@ -272,7 +288,7 @@ void Chain::refeed_paths_backward() {
         Path path = refeeding_buffer_backward.front_and_pop();
         LOG_DEBUG("Refeeding: " << path.to_string());
         this->target_index_mutex.lock();
-        this->target_index[this->target_handle]->push(path, path.path_sti);
+        this->target_index[this->target_reference]->push(path, path.path_sti);
         this->target_index_mutex.unlock();
     }
 }
@@ -281,11 +297,16 @@ bool Chain::thread_one_step() {
     QueryAnswer* answer;
 
     if (all_paths_explored()) {
-        if (!this->forward_thread->is_finished()) {
+        if (!this->path_finders_stopped) {
+            this->path_finders_stopped = true;
             LOG_DEBUG("[CHAIN OPERATOR] "
                       << "All paths explored. Stopping path finders...");
-            this->forward_thread->stop();
-            this->backward_thread->stop();
+            if (forward_thread != nullptr) {
+                this->forward_thread->stop();
+            }
+            if (backward_thread != nullptr) {
+                this->backward_thread->stop();
+            }
             LOG_DEBUG("[CHAIN OPERATOR] "
                       << "All paths explored. Stopping path finders. DONE");
             LOG_DEBUG("[CHAIN OPERATOR] "
@@ -323,7 +344,7 @@ bool Chain::thread_one_step() {
                 if (link->arity() > max(this->tail_reference, this->head_reference)) {
                     string tail = link->targets[this->tail_reference];
                     string head = link->targets[this->head_reference];
-                    {
+                    if (forward_active()) {
                         lock_guard<mutex> semaphore(this->source_index_mutex);
                         for (string key : {tail, head}) {
                             if (this->source_index.find(key) == this->source_index.end()) {
@@ -333,7 +354,7 @@ bool Chain::thread_one_step() {
                         this->source_index[tail]->push(Path(tail, head, answer, true),
                                                        answer->importance);
                     }
-                    {
+                    if (backward_active()) {
                         lock_guard<mutex> semaphore(this->target_index_mutex);
                         for (string key : {tail, head}) {
                             if (this->target_index.find(key) == this->target_index.end()) {
@@ -355,8 +376,12 @@ bool Chain::thread_one_step() {
             }
             LOG_DEBUG("[CHAIN OPERATOR] "
                       << "Refeeding paths");
-            refeed_paths_forward();
-            refeed_paths_backward();
+            if (forward_active()) {
+                refeed_paths_forward();
+            }
+            if (backward_active()) {
+                refeed_paths_backward();
+            }
             LOG_DEBUG("[CHAIN OPERATOR] "
                       << "Done refeeding");
             return true;
@@ -377,25 +402,31 @@ bool Chain::thread_one_step() {
 void Chain::report_path(Path& path) {
     lock_guard<mutex> semaphore(this->reported_answers_mutex);
     bool complete_flag =
-        ((path.start_point() == this->source_handle) && (path.end_point() == this->target_handle)) ||
-        ((path.start_point() == this->target_handle) && (path.end_point() == this->source_handle));
+        ((path.start_point() == this->source_reference) &&
+         (path.end_point() == this->target_reference)) ||
+        ((path.start_point() == this->target_reference) && (path.end_point() == this->source_reference));
 
     if (complete_flag || this->allow_incomplete_chain_path) {
         QueryAnswer* query_answer = new QueryAnswer(path.path_sti);
+        query_answer->strength = 1;
+        unsigned int path_index = query_answer->add_path();
         if (path.forward_flag) {
             for (auto pair : path.edges) {
-                query_answer->add_handle(pair.second->get(this->link_selector));
+                query_answer->add_path_element(path_index, pair.second->get(this->link_selector));
             }
         } else {
             for (auto pair = path.edges.rbegin(); pair != path.edges.rend(); ++pair) {
-                query_answer->add_handle(pair->second->get(this->link_selector));
+                query_answer->add_path_element(path_index, pair->second->get(this->link_selector));
             }
         }
-        string answer_hash = Hasher::composite_handle(query_answer->get_handles_vector());
+        string answer_hash = Hasher::composite_handle(query_answer->get_path_vector(path_index));
         if (this->reported_answers.find(answer_hash) == this->reported_answers.end()) {
             this->reported_answers.insert(answer_hash);
-            query_answer->assignment.assign(ORIGIN_VARIABLE_NAME, path.start_point());
-            query_answer->assignment.assign(DESTINY_VARIABLE_NAME, path.end_point());
+            if (this->search_direction == FORWARD) {
+                query_answer->assignment.assign(this->target_reference, path.start_point());
+            } else if (this->search_direction == BACKWARD) {
+                query_answer->assignment.assign(this->source_reference, path.end_point());
+            }
             string tag = (complete_flag ? "complete" : "incomplete");
             LOG_INFO("Reporting " << tag << " path: " << path.to_string());
             this->output_buffer->add_query_answer(query_answer);
@@ -434,15 +465,30 @@ void Chain::initialize(const array<shared_ptr<QueryElement>, 1>& clauses) {
     if (clauses.size() != 1) {
         Utils::error("Invalid Chain operator with " + std::to_string(clauses.size()) + " clauses.");
     }
-    this->id = "CHAIN(" + clauses[0]->id + ", " + this->source_handle + ", " + this->target_handle + ")";
+    if (!(allow_incomplete_chain_path || (forward_active() && backward_active()))) {
+        Utils::error(
+            "Invalid parameters. If CHAIN source or target is a variable, incomplete paths must be "
+            "allowed");
+    }
+    this->id =
+        "CHAIN(" + clauses[0]->id + ", " + this->source_reference + ", " + this->target_reference + ")";
     this->all_input_acknowledged_flag = false;
     this->all_paths_explored_flag = false;
-    this->forward_path_finder = new PathFinder(this, true);
-    this->backward_path_finder = new PathFinder(this, false);
-    this->source_index[this->source_handle] = make_shared<HeapType>();
-    this->source_index[this->target_handle] = make_shared<HeapType>();
-    this->target_index[this->source_handle] = make_shared<HeapType>();
-    this->target_index[this->target_handle] = make_shared<HeapType>();
+    if (forward_active()) {
+        this->forward_path_finder = new PathFinder(this, true);
+    } else {
+        this->forward_path_finder = NULL;
+    }
+    if (backward_active()) {
+        this->backward_path_finder = new PathFinder(this, false);
+    } else {
+        this->backward_path_finder = NULL;
+    }
+    this->path_finders_stopped = false;
+    this->source_index[this->source_reference] = make_shared<HeapType>();
+    this->source_index[this->target_reference] = make_shared<HeapType>();
+    this->target_index[this->source_reference] = make_shared<HeapType>();
+    this->target_index[this->target_reference] = make_shared<HeapType>();
 }
 
 string Chain::Path::to_string() {
