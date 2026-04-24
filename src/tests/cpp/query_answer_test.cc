@@ -378,10 +378,15 @@ TEST(QueryAnswer, tokenization) {
 
         query_answers_equal(&input, QueryAnswer::copy(&input));
         string token_string = input.tokenize();
+        cout << "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX" << endl;
+        cout << input.to_string() << endl;
+        cout << "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX" << endl;
+        cout << token_string << endl;
         QueryAnswer output(0.0);
         output.untokenize(token_string);
         query_answers_equal(&input, &output);
     }
+    FAIL();
 }
 
 TEST(QueryAnswer, get_query_answer_element) {
