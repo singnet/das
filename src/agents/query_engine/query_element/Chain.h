@@ -191,8 +191,8 @@ class Chain : public Operator<1>, public ThreadMethod {
      */
     Chain(const array<shared_ptr<QueryElement>, 1>& clauses,
           shared_ptr<LinkTemplate> link_template,
-          const string& source_handle,
-          const string& target_handle,
+          const string& source_reference,
+          const string& target_reference,
           SearchDirection search_direction,
           const QueryAnswerElement& link_selector,
           unsigned int tail_reference,
@@ -205,8 +205,8 @@ class Chain : public Operator<1>, public ThreadMethod {
      * assuming $v1 -> $v2.
      */
     Chain(const array<shared_ptr<QueryElement>, 1>& clauses,
-          const string& source_handle,
-          const string& target_handle,
+          const string& source_reference,
+          const string& target_reference,
           bool allow_incomplete_chain_path = true);
 
     /**
@@ -290,11 +290,11 @@ class Chain : public Operator<1>, public ThreadMethod {
             this->chain_operator = chain_operator;
             this->forward_flag = forward_flag;
             if (forward_flag) {
-                origin = chain_operator->source_handle;
-                destiny = chain_operator->target_handle;
+                origin = chain_operator->source_reference;
+                destiny = chain_operator->target_reference;
             } else {
-                origin = chain_operator->target_handle;
-                destiny = chain_operator->source_handle;
+                origin = chain_operator->target_reference;
+                destiny = chain_operator->source_reference;
             }
         }
         ~PathFinder() {}
@@ -310,8 +310,8 @@ class Chain : public Operator<1>, public ThreadMethod {
     inline bool backward_active() { return (search_direction == BACKWARD) || (search_direction == BOTH); }
 
     shared_ptr<LinkTemplate> input_link_template;
-    string source_handle;
-    string target_handle;
+    string source_reference;
+    string target_reference;
     SearchDirection search_direction;
     QueryAnswerElement link_selector;
     unsigned int tail_reference;

@@ -28,8 +28,8 @@ static string convert_handle(const string& handle) {
 
 Chain::Chain(const array<shared_ptr<QueryElement>, 1>& clauses,
              shared_ptr<LinkTemplate> link_template,
-             const string& source_handle,
-             const string& target_handle,
+             const string& source_reference,
+             const string& target_reference,
              SearchDirection search_direction,
              const QueryAnswerElement& link_selector,
              unsigned int tail_reference,
@@ -37,8 +37,8 @@ Chain::Chain(const array<shared_ptr<QueryElement>, 1>& clauses,
              bool allow_incomplete_chain_path)
     : Operator<1>(clauses),
       input_link_template(link_template),
-      source_handle(source_handle),
-      target_handle(target_handle),
+      source_reference(source_reference),
+      target_reference(target_reference),
       search_direction(search_direction),
       link_selector(link_selector),
       tail_reference(tail_reference),
@@ -48,13 +48,13 @@ Chain::Chain(const array<shared_ptr<QueryElement>, 1>& clauses,
 }
 
 Chain::Chain(const array<shared_ptr<QueryElement>, 1>& clauses,
-             const string& source_handle,
-             const string& target_handle,
+             const string& source_reference,
+             const string& target_reference,
              bool allow_incomplete_chain_path)
     : Chain(clauses,
             nullptr,
-            source_handle,
-            target_handle,
+            source_reference,
+            target_reference,
             BOTH,
             QueryAnswerElement(0),
             1,
@@ -144,8 +144,9 @@ bool Chain::PathFinder::conditional_refeed(Path& path,
                                            unsigned int count_cycles) {
     if (this->chain_operator->all_input_acknowledged() &&
         (candidates_heap->empty() || (count_cycles == candidates_heap->size()))) {
-        LOG_DEBUG("[PATH_FINDER] "
-                  << "All input is acknowledged. Discarding dead-end path: " << path.to_string());
+        LOG_DEBUG("[PATH_FINDER] " << "All input is acknowledged. " << "Reporting incomplete dead-end path: " << path.to_string());
+        this->chain_operator->report_path(path);
+        LOG_DEBUG("[PATH_FINDER] " << "Discarding dead-end path: " << path.to_string());
         return false;
     } else {
         LOG_DEBUG("[PATH_FINDER] "
@@ -276,7 +277,7 @@ void Chain::refeed_paths_forward() {
         Path path = refeeding_buffer_forward.front_and_pop();
         LOG_DEBUG("Refeeding: " << path.to_string());
         this->source_index_mutex.lock();
-        this->source_index[this->source_handle]->push(path, path.path_sti);
+        this->source_index[this->source_reference]->push(path, path.path_sti);
         this->source_index_mutex.unlock();
     }
 }
@@ -287,7 +288,7 @@ void Chain::refeed_paths_backward() {
         Path path = refeeding_buffer_backward.front_and_pop();
         LOG_DEBUG("Refeeding: " << path.to_string());
         this->target_index_mutex.lock();
-        this->target_index[this->target_handle]->push(path, path.path_sti);
+        this->target_index[this->target_reference]->push(path, path.path_sti);
         this->target_index_mutex.unlock();
     }
 }
@@ -397,8 +398,8 @@ bool Chain::thread_one_step() {
 void Chain::report_path(Path& path) {
     lock_guard<mutex> semaphore(this->reported_answers_mutex);
     bool complete_flag =
-        ((path.start_point() == this->source_handle) && (path.end_point() == this->target_handle)) ||
-        ((path.start_point() == this->target_handle) && (path.end_point() == this->source_handle));
+        ((path.start_point() == this->source_reference) && (path.end_point() == this->target_reference)) ||
+        ((path.start_point() == this->target_reference) && (path.end_point() == this->source_reference));
 
     if (complete_flag || this->allow_incomplete_chain_path) {
         QueryAnswer* query_answer = new QueryAnswer(path.path_sti);
@@ -418,6 +419,11 @@ void Chain::report_path(Path& path) {
             this->reported_answers.insert(answer_hash);
             query_answer->assignment.assign(ORIGIN_VARIABLE_NAME, path.start_point());
             query_answer->assignment.assign(DESTINY_VARIABLE_NAME, path.end_point());
+            if (this->search_direction == FORWARD) {
+                query_answer->assignment.assign(this->target_reference, path.start_point());
+            } else if (this->search_direction == BACKWARD) {
+                query_answer->assignment.assign(this->source_reference, path.end_point());
+            }
             string tag = (complete_flag ? "complete" : "incomplete");
             LOG_INFO("Reporting " << tag << " path: " << path.to_string());
             this->output_buffer->add_query_answer(query_answer);
@@ -456,7 +462,10 @@ void Chain::initialize(const array<shared_ptr<QueryElement>, 1>& clauses) {
     if (clauses.size() != 1) {
         Utils::error("Invalid Chain operator with " + std::to_string(clauses.size()) + " clauses.");
     }
-    this->id = "CHAIN(" + clauses[0]->id + ", " + this->source_handle + ", " + this->target_handle + ")";
+    if (! (allow_incomplete_chain_path || (forward_active() && backward_active()))) {
+        Utils::error("Invalid parameters. If CHAIN source or target is a variable, incomplete paths must be allowed");
+    }
+    this->id = "CHAIN(" + clauses[0]->id + ", " + this->source_reference + ", " + this->target_reference + ")";
     this->all_input_acknowledged_flag = false;
     this->all_paths_explored_flag = false;
     if (forward_active()) {
@@ -470,10 +479,10 @@ void Chain::initialize(const array<shared_ptr<QueryElement>, 1>& clauses) {
         this->backward_path_finder = NULL;
     }
     this->path_finders_stopped = false;
-    this->source_index[this->source_handle] = make_shared<HeapType>();
-    this->source_index[this->target_handle] = make_shared<HeapType>();
-    this->target_index[this->source_handle] = make_shared<HeapType>();
-    this->target_index[this->target_handle] = make_shared<HeapType>();
+    this->source_index[this->source_reference] = make_shared<HeapType>();
+    this->source_index[this->target_reference] = make_shared<HeapType>();
+    this->target_index[this->source_reference] = make_shared<HeapType>();
+    this->target_index[this->target_reference] = make_shared<HeapType>();
 }
 
 string Chain::Path::to_string() {

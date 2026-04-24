@@ -32,8 +32,7 @@ MettaParserActions::~MettaParserActions() {}
 
 void MettaParserActions::symbol(const string& name) {
     ParserActions::symbol(name);
-    if ((name == MettaMapping::AND_QUERY_OPERATOR) || (name == MettaMapping::OR_QUERY_OPERATOR) ||
-        (name == MettaMapping::CHAIN_QUERY_OPERATOR)) {
+    if ((name == MettaMapping::AND_QUERY_OPERATOR) || (name == MettaMapping::OR_QUERY_OPERATOR) || (name == MettaMapping::CHAIN_QUERY_OPERATOR)) {
         if (name == MettaMapping::AND_QUERY_OPERATOR) {
             this->current_expression_type = AND;
         } else if (name == MettaMapping::OR_QUERY_OPERATOR) {
@@ -42,8 +41,8 @@ void MettaParserActions::symbol(const string& name) {
             this->current_expression_type = CHAIN;
         }
     } else {
-        if ((this->current_expression_type == AND) || (this->current_expression_type == OR)) {
-            Utils::error("Invalid query expression: AND/OR can't operate symbols.");
+        if ((this->current_expression_type == AND) || (this->current_expression_type == OR) || (this->current_expression_type == CHAIN)) {
+            Utils::error("Invalid query expression: AND/OR/CHAIN can't operate symbols.");
             return;
         }
         this->current_expression_size++;
@@ -53,13 +52,14 @@ void MettaParserActions::symbol(const string& name) {
 
 void MettaParserActions::variable(const string& value) {
     ParserActions::variable(value);
-    if ((this->current_expression_type == AND) || (this->current_expression_type == OR) ||
-        (this->current_expression_type == CHAIN)) {
-        Utils::error("Invalid query expression: AND/OR/CHAIN can't operate variables.");
+    if ((this->current_expression_type == AND) || (this->current_expression_type == OR)) {
+        Utils::error("Invalid query expression: AND/OR can't operate variables.");
         return;
     }
+    if (this->current_expression_type == LINK) {
+        this->current_expression_type = LINK_TEMPLATE;
+    }
     this->current_expression_size++;
-    this->current_expression_type = LINK_TEMPLATE;
     this->element_stack.push(make_shared<Terminal>(value));
 }
 
@@ -226,26 +226,29 @@ void MettaParserActions::expression_end(bool toplevel, const string& metta_expre
             LOG_DEBUG("Source handle: " + (source->is_variable ? "<variable>" : source->compute_handle()));
             LOG_DEBUG("Target handle: " + (target->is_variable ? "<variable>" : target->compute_handle()));
 
+            bool incomplete_flag = this->proxy->parameters.get<bool>(BaseQueryProxy::ALLOW_INCOMPLETE_CHAIN_PATH);
             Chain::SearchDirection search_direction;
             if (target->is_variable) {
                 if (source->is_variable) {
                     Utils::error("Invalid CHAIN arguments. source and target are variables.");
                 } else {
                     search_direction = Chain::FORWARD;
+                    incomplete_flag = true;
                     LOG_DEBUG("Search direction: FORWARD");
                 }
             } else {
                 if (source->is_variable) {
                     search_direction = Chain::BACKWARD;
+                    incomplete_flag = true;
                     LOG_DEBUG("Search direction: BACKWARD");
                 } else {
                     search_direction = Chain::BOTH;
                     LOG_DEBUG("Search direction: FORWARD/BACKWARD");
                 }
             }
+            LOG_DEBUG(string("Allow incomplete paths: ") + (incomplete_flag ? "true" : "false"));
 
-            bool incomplete_flag =
-                this->proxy->parameters.get<bool>(BaseQueryProxy::ALLOW_INCOMPLETE_CHAIN_PATH);
+
             auto chain_operator = make_shared<Chain>(clauses,
                                                      link_template,
                                                      source->is_variable ? source->name : source->compute_handle(),
