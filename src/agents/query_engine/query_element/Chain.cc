@@ -9,9 +9,6 @@ using namespace query_element;
 using namespace atomdb;
 using namespace commons;
 
-string Chain::ORIGIN_VARIABLE_NAME = "origin";
-string Chain::DESTINY_VARIABLE_NAME = "destiny";
-
 static string convert_handle(const string& handle) {
 #if LOG_LEVEL >= DEBUG_LEVEL
     shared_ptr<Node> node =
@@ -417,8 +414,6 @@ void Chain::report_path(Path& path) {
         string answer_hash = Hasher::composite_handle(query_answer->get_path_vector(path_index));
         if (this->reported_answers.find(answer_hash) == this->reported_answers.end()) {
             this->reported_answers.insert(answer_hash);
-            query_answer->assignment.assign(ORIGIN_VARIABLE_NAME, path.start_point());
-            query_answer->assignment.assign(DESTINY_VARIABLE_NAME, path.end_point());
             if (this->search_direction == FORWARD) {
                 query_answer->assignment.assign(this->target_reference, path.start_point());
             } else if (this->search_direction == BACKWARD) {

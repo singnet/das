@@ -178,12 +178,6 @@ class Chain : public Operator<1>, public ThreadMethod {
     typedef ThreadSafeHeap<Path, double> HeapType;
 
     // --------------------------------------------------------------------------------------------
-    // Static variables
-
-    static string ORIGIN_VARIABLE_NAME;
-    static string DESTINY_VARIABLE_NAME;
-
-    // --------------------------------------------------------------------------------------------
     // Public methods
 
     /**
