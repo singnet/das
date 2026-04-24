@@ -1,24 +1,28 @@
 #include <gtest/gtest.h>
 
+#include <algorithm>
 #include <atomic>
 #include <fstream>
 #include <iostream>
 #include <memory>
 #include <thread>
+#include <unordered_set>
 #include <vector>
 
 #include "Atom.h"
 #include "AtomDBAPITypes.h"
 #include "AtomDBSingleton.h"
+#include "BoundedSharedQueue.h"
 #include "ContextLoader.h"
-#include "DataTypes.h"
+#include "DatabaseLoader.h"
+#include "DatabaseTypes.h"
 #include "DedicatedThread.h"
 #include "Logger.h"
 #include "Node.h"
-#include "Pipeline.h"
 #include "PostgresWrapper.h"
 #include "Processor.h"
 #include "TestAtomDBJsonConfig.h"
+
 using namespace std;
 using namespace atomdb;
 using namespace db_adapter;
@@ -112,8 +116,8 @@ class PostgresWrapperTest : public ::testing::Test {
     int TOTAL_ROWS_FEATURES = 26;
 
     void SetUp() override {
-        temp_file_path_1 = "/tmp/context_1.json";
-        temp_file_path_2 = "/tmp/context_2.json";
+        temp_file_path_1 = "/tmp/table_1.json";
+        temp_file_path_2 = "/tmp/table_2.json";
 
         ofstream file_1(temp_file_path_1);
         file_1 << R"([
@@ -162,10 +166,64 @@ class PostgresWrapperTest : public ::testing::Test {
         }
     }
 
+    unordered_set<string> read_atoms_from_queue(shared_ptr<BoundedSharedQueue> q) {
+        unordered_set<string> atom_handles;
+
+        while (true) {
+            if (q->empty()) break;
+            void* raw_ptr = q->dequeue();
+            std::queue<Atom*>* batch_queue = static_cast<std::queue<Atom*>*>(raw_ptr);
+
+            if (batch_queue != nullptr) {
+                while (!batch_queue->empty()) {
+                    Atom* atom = batch_queue->front();
+                    batch_queue->pop();
+                    if (atom != nullptr) {
+                        if (atom_handles.find(atom->handle()) == atom_handles.end()) {
+                            atom_handles.insert(atom->handle());
+                        }
+                    }
+                    delete atom;
+                }
+                delete batch_queue;
+            }
+        }
+
+        return atom_handles;
+    }
+
+    unordered_set<string> read_metta_expressions_from_queue(shared_ptr<BoundedSharedQueue> q) {
+        unordered_set<string> metta_expressions;
+
+        while (true) {
+            if (q->empty()) break;
+            void* raw_ptr = q->dequeue();
+            std::queue<string>* batch_queue = static_cast<std::queue<string>*>(raw_ptr);
+
+            if (batch_queue != nullptr) {
+                while (!batch_queue->empty()) {
+                    string metta_expression = batch_queue->front();
+                    batch_queue->pop();
+                    if (!metta_expression.empty()) {
+                        if (metta_expressions.find(metta_expression) == metta_expressions.end()) {
+                            metta_expressions.insert(metta_expression);
+                        }
+                    }
+                }
+                delete batch_queue;
+            }
+        }
+
+        return metta_expressions;
+    }
+
     shared_ptr<PostgresWrapper> create_wrapper(PostgresDatabaseConnection& db_conn,
+                                               shared_ptr<BoundedSharedQueue> queue = nullptr,
                                                MAPPER_TYPE mapper_type = MAPPER_TYPE::SQL2ATOMS) {
-        auto queue = make_shared<SharedQueue>();
-        return make_shared<PostgresWrapper>(db_conn, mapper_type, queue);
+        if (!queue) {
+            queue = make_shared<BoundedSharedQueue>();
+        }
+        return make_shared<PostgresWrapper>(db_conn, queue);
     }
 
     string temp_file_path_1;
@@ -290,17 +348,18 @@ TEST_F(PostgresWrapperTest, GetTable) {
     ASSERT_FALSE(tables.empty());
 
     string target_name = tables[0].name;
-    Table t = wrapper->get_table(target_name);
+    auto table_name_parts = Utils::split(target_name, '.');
+    Table t = wrapper->get_table(table_name_parts[0], table_name_parts[1]);
 
     EXPECT_EQ(t.name, target_name);
     EXPECT_EQ(t.primary_key, tables[0].primary_key);
 
-    Table feature = wrapper->get_table("public.feature");
+    Table feature = wrapper->get_table("public", "feature");
 
     EXPECT_EQ(feature.name, "public.feature");
     EXPECT_EQ(feature.primary_key, "feature_id");
 
-    EXPECT_THROW(wrapper->get_table("fake_table_name"), std::runtime_error);
+    EXPECT_THROW(wrapper->get_table("fake_schema_name", "fake_table_name"), std::runtime_error);
 }
 
 TEST_F(PostgresWrapperTest, ListTables) {
@@ -337,7 +396,7 @@ TEST_F(PostgresWrapperTest, TablesStructure) {
     auto conn = create_db_connection();
     auto wrapper = create_wrapper(*conn);
 
-    Table organism_table = wrapper->get_table(ORGANISM_TABLE);
+    Table organism_table = wrapper->get_table("public", "organism");
 
     EXPECT_EQ(organism_table.name, ORGANISM_TABLE);
     EXPECT_EQ(organism_table.primary_key, ORGANISM_PK);
@@ -352,13 +411,13 @@ TEST_F(PostgresWrapperTest, TablesStructure) {
         EXPECT_TRUE(found);
     }
 
-    Table cvterm_table = wrapper->get_table(CVTERM_TABLE);
+    Table cvterm_table = wrapper->get_table("public", "cvterm");
 
     EXPECT_EQ(cvterm_table.name, CVTERM_TABLE);
     EXPECT_EQ(cvterm_table.primary_key, CVTERM_PK);
     EXPECT_TRUE(cvterm_table.foreign_keys.empty());
 
-    Table feature_table = wrapper->get_table(FEATURE_TABLE);
+    Table feature_table = wrapper->get_table("public", "feature");
 
     EXPECT_EQ(feature_table.name, FEATURE_TABLE);
     EXPECT_EQ(feature_table.primary_key, FEATURE_PK);
@@ -381,139 +440,79 @@ TEST_F(PostgresWrapperTest, TablesStructure) {
 // map_table - SQL2ATOMS
 TEST_F(PostgresWrapperTest, MapTablesFirstRowAtoms) {
     auto conn = create_db_connection();
-    auto wrapper = create_wrapper(*conn);
+    auto queue = make_shared<BoundedSharedQueue>();
+    auto wrapper = create_wrapper(*conn, queue);
 
-    Table organism_table = wrapper->get_table(ORGANISM_TABLE);
+    Table organism_table = wrapper->get_table("public", "organism");
     EXPECT_NO_THROW({ wrapper->map_table(organism_table, {"organism_id = 1"}, {}, false); });
-    EXPECT_EQ(wrapper->mapper_handle_trie_size(), 34);
+    EXPECT_EQ(read_atoms_from_queue(queue).size(), 34);
 
-    Table feature_table = wrapper->get_table(FEATURE_TABLE);
+    Table feature_table = wrapper->get_table("public", "feature");
     EXPECT_NO_THROW({ wrapper->map_table(feature_table, {"feature_id = 1"}, {}, false); });
-    EXPECT_EQ(wrapper->mapper_handle_trie_size(), 81);
+    EXPECT_EQ(read_atoms_from_queue(queue).size(), 54);
 
-    Table cvterm_table = wrapper->get_table(CVTERM_TABLE);
+    Table cvterm_table = wrapper->get_table("public", "cvterm");
     EXPECT_NO_THROW({ wrapper->map_table(cvterm_table, {"cvterm_id = 1"}, {}, false); });
-    EXPECT_EQ(wrapper->mapper_handle_trie_size(), 101);
+    EXPECT_EQ(read_atoms_from_queue(queue).size(), 28);
 }
 
 TEST_F(PostgresWrapperTest, MapTableWithClausesAndSkipColumnsAtoms) {
     auto conn = create_db_connection();
-    auto wrapper = create_wrapper(*conn);
+    auto queue = make_shared<BoundedSharedQueue>();
+    auto wrapper = create_wrapper(*conn, queue);
 
-    Table table = wrapper->get_table(FEATURE_TABLE);
+    Table table = wrapper->get_table("public", "feature");
     vector<string> clauses = {"organism_id = " + to_string(DROSOPHILA_ORGANISM_ID), "feature_id <= 5"};
     vector<string> skip_columns = {"residues", "md5checksum", "seqlen"};
 
     EXPECT_NO_THROW({ wrapper->map_table(table, clauses, skip_columns, false); });
-    EXPECT_EQ(wrapper->mapper_handle_trie_size(), 114);
+    EXPECT_EQ(read_atoms_from_queue(queue).size(), 114);
 }
 
 TEST_F(PostgresWrapperTest, MapTableZeroRowsAtoms) {
     auto conn = create_db_connection();
-    auto wrapper = create_wrapper(*conn);
+    auto queue = make_shared<BoundedSharedQueue>();
+    auto wrapper = create_wrapper(*conn, queue);
 
-    Table table = wrapper->get_table(FEATURE_TABLE);
+    Table table = wrapper->get_table("public", "feature");
     vector<string> clauses = {"feature_id = -999"};
 
     EXPECT_NO_THROW({ wrapper->map_table(table, clauses, {}, false); });
-    EXPECT_EQ(wrapper->mapper_handle_trie_size(), 0);
+    EXPECT_EQ(read_atoms_from_queue(queue).size(), 0);
 }
 
 TEST_F(PostgresWrapperTest, MapTableWithNonExistentSkipColumnAtoms) {
     auto conn = create_db_connection();
-    auto wrapper = create_wrapper(*conn);
+    auto queue = make_shared<BoundedSharedQueue>();
+    auto wrapper = create_wrapper(*conn, queue);
 
-    Table table = wrapper->get_table(FEATURE_TABLE);
+    Table table = wrapper->get_table("public", "feature");
 
     vector<string> clauses = {"feature_id < 10"};
     vector<string> skip_columns = {"column_xyz"};
 
     EXPECT_THROW({ wrapper->map_table(table, clauses, skip_columns, false); }, std::runtime_error);
-    EXPECT_EQ(wrapper->mapper_handle_trie_size(), 0);
+    EXPECT_EQ(read_atoms_from_queue(queue).size(), 0);
 }
 
 TEST_F(PostgresWrapperTest, MapTableWithInvalidClauseAtoms) {
     auto conn = create_db_connection();
-    auto wrapper = create_wrapper(*conn);
+    auto queue = make_shared<BoundedSharedQueue>();
+    auto wrapper = create_wrapper(*conn, queue);
 
-    Table table = wrapper->get_table(FEATURE_TABLE);
-
-    vector<string> clauses = {"INVALID CLAUSE SYNTAX !!!"};
-
-    EXPECT_THROW({ wrapper->map_table(table, clauses, {}, false); }, std::runtime_error);
-    EXPECT_EQ(wrapper->mapper_handle_trie_size(), 0);
-}
-
-// map_table - SQL2METTA
-TEST_F(PostgresWrapperTest, MapTablesFirstRowMetta) {
-    auto conn = create_db_connection();
-    auto wrapper = create_wrapper(*conn, MAPPER_TYPE::SQL2METTA);
-
-    Table organism_table = wrapper->get_table(ORGANISM_TABLE);
-    EXPECT_NO_THROW({ wrapper->map_table(organism_table, {"organism_id = 1"}, {}, false); });
-    EXPECT_EQ(wrapper->mapper_handle_trie_size(), 19);
-
-    Table feature_table = wrapper->get_table(FEATURE_TABLE);
-    EXPECT_NO_THROW({ wrapper->map_table(feature_table, {"feature_id = 1"}, {}, false); });
-    EXPECT_EQ(wrapper->mapper_handle_trie_size(), 51);
-
-    Table cvterm_table = wrapper->get_table(CVTERM_TABLE);
-    EXPECT_NO_THROW({ wrapper->map_table(cvterm_table, {"cvterm_id = 1"}, {}, false); });
-    EXPECT_EQ(wrapper->mapper_handle_trie_size(), 65);
-}
-
-TEST_F(PostgresWrapperTest, MapTableWithClausesAndSkipColumnsMetta) {
-    auto conn = create_db_connection();
-    auto wrapper = create_wrapper(*conn, MAPPER_TYPE::SQL2METTA);
-
-    Table table = wrapper->get_table(FEATURE_TABLE);
-    vector<string> clauses = {"organism_id = " + to_string(DROSOPHILA_ORGANISM_ID), "feature_id <= 5"};
-    vector<string> skip_columns = {"residues", "md5checksum", "seqlen"};
-
-    EXPECT_NO_THROW({ wrapper->map_table(table, clauses, skip_columns, false); });
-    EXPECT_EQ(wrapper->mapper_handle_trie_size(), 86);
-}
-
-TEST_F(PostgresWrapperTest, MapTableZeroRowsMetta) {
-    auto conn = create_db_connection();
-    auto wrapper = create_wrapper(*conn, MAPPER_TYPE::SQL2METTA);
-
-    Table table = wrapper->get_table(FEATURE_TABLE);
-    vector<string> clauses = {"feature_id = -999"};
-
-    EXPECT_NO_THROW({ wrapper->map_table(table, clauses, {}, false); });
-    EXPECT_EQ(wrapper->mapper_handle_trie_size(), 0);
-}
-
-TEST_F(PostgresWrapperTest, MapTableWithNonExistentSkipColumnMetta) {
-    auto conn = create_db_connection();
-    auto wrapper = create_wrapper(*conn, MAPPER_TYPE::SQL2METTA);
-
-    Table table = wrapper->get_table(FEATURE_TABLE);
-
-    vector<string> clauses = {"feature_id < 10"};
-    vector<string> skip_columns = {"column_xyz"};
-
-    EXPECT_THROW({ wrapper->map_table(table, clauses, skip_columns, false); }, std::runtime_error);
-    EXPECT_EQ(wrapper->mapper_handle_trie_size(), 0);
-}
-
-TEST_F(PostgresWrapperTest, MapTableWithInvalidClauseMetta) {
-    auto conn = create_db_connection();
-    auto wrapper = create_wrapper(*conn, MAPPER_TYPE::SQL2METTA);
-
-    Table table = wrapper->get_table(FEATURE_TABLE);
+    Table table = wrapper->get_table("public", "feature");
 
     vector<string> clauses = {"INVALID CLAUSE SYNTAX !!!"};
 
     EXPECT_THROW({ wrapper->map_table(table, clauses, {}, false); }, std::runtime_error);
-    EXPECT_EQ(wrapper->mapper_handle_trie_size(), 0);
+    EXPECT_EQ(read_atoms_from_queue(queue).size(), 0);
 }
 
 // map_sql_query - SQL2ATOMS
 TEST_F(PostgresWrapperTest, MapSqlQueryFirstRowAtoms) {
     auto conn = create_db_connection();
-    auto wrapper = create_wrapper(*conn);
+    auto queue = make_shared<BoundedSharedQueue>();
+    auto wrapper = create_wrapper(*conn, queue);
 
     string query_organism = R"(
         SELECT
@@ -528,7 +527,7 @@ TEST_F(PostgresWrapperTest, MapSqlQueryFirstRowAtoms) {
     )";
 
     EXPECT_NO_THROW({ wrapper->map_sql_query("test_organism", query_organism); });
-    EXPECT_EQ(wrapper->mapper_handle_trie_size(), 34);
+    EXPECT_EQ(read_atoms_from_queue(queue).size(), 34);
 
     string query_feature = R"(
         SELECT
@@ -547,7 +546,7 @@ TEST_F(PostgresWrapperTest, MapSqlQueryFirstRowAtoms) {
     )";
 
     EXPECT_NO_THROW({ wrapper->map_sql_query("test_feature", query_feature); });
-    EXPECT_EQ(wrapper->mapper_handle_trie_size(), 81);
+    EXPECT_EQ(read_atoms_from_queue(queue).size(), 54);
 
     string query_cvterm = R"(
         SELECT
@@ -561,12 +560,13 @@ TEST_F(PostgresWrapperTest, MapSqlQueryFirstRowAtoms) {
     )";
 
     EXPECT_NO_THROW({ wrapper->map_sql_query("test_cvterm", query_cvterm); });
-    EXPECT_EQ(wrapper->mapper_handle_trie_size(), 101);
+    EXPECT_EQ(read_atoms_from_queue(queue).size(), 28);
 }
 
 TEST_F(PostgresWrapperTest, MapSqlQueryWithClausesAndSkipColumnsAtoms) {
     auto conn = create_db_connection();
-    auto wrapper = create_wrapper(*conn);
+    auto queue = make_shared<BoundedSharedQueue>();
+    auto wrapper = create_wrapper(*conn, queue);
 
     string query = R"(
         SELECT
@@ -582,12 +582,13 @@ TEST_F(PostgresWrapperTest, MapSqlQueryWithClausesAndSkipColumnsAtoms) {
                    to_string(DROSOPHILA_ORGANISM_ID) + R"( AND f.feature_id <= 5)";
 
     EXPECT_NO_THROW({ wrapper->map_sql_query("test_feature_clause_and_skip", query); });
-    EXPECT_EQ(wrapper->mapper_handle_trie_size(), 114);
+    EXPECT_EQ(read_atoms_from_queue(queue).size(), 114);
 }
 
 TEST_F(PostgresWrapperTest, MapSqlQueryZeroRowsAtoms) {
     auto conn = create_db_connection();
-    auto wrapper = create_wrapper(*conn);
+    auto queue = make_shared<BoundedSharedQueue>();
+    auto wrapper = create_wrapper(*conn, queue);
 
     string query = R"(
         SELECT
@@ -606,12 +607,13 @@ TEST_F(PostgresWrapperTest, MapSqlQueryZeroRowsAtoms) {
     )";
 
     EXPECT_NO_THROW({ wrapper->map_sql_query("test_feature_zero_rows", query); });
-    EXPECT_EQ(wrapper->mapper_handle_trie_size(), 0);
+    EXPECT_EQ(read_atoms_from_queue(queue).size(), 0);
 }
 
 TEST_F(PostgresWrapperTest, MapSqlQueryWithNonExistentSkipColumnAtoms) {
     auto conn = create_db_connection();
-    auto wrapper = create_wrapper(*conn);
+    auto queue = make_shared<BoundedSharedQueue>();
+    auto wrapper = create_wrapper(*conn, queue);
 
     string query = R"(
         SELECT
@@ -627,12 +629,13 @@ TEST_F(PostgresWrapperTest, MapSqlQueryWithNonExistentSkipColumnAtoms) {
 
     EXPECT_THROW({ wrapper->map_sql_query("test_feature_with_non_existent_column", query); },
                  std::runtime_error);
-    EXPECT_EQ(wrapper->mapper_handle_trie_size(), 0);
+    EXPECT_EQ(read_atoms_from_queue(queue).size(), 0);
 }
 
 TEST_F(PostgresWrapperTest, MapSqlQueryWithInvalidClauseAtoms) {
     auto conn = create_db_connection();
-    auto wrapper = create_wrapper(*conn);
+    auto queue = make_shared<BoundedSharedQueue>();
+    auto wrapper = create_wrapper(*conn, queue);
 
     string query = R"(
         SELECT
@@ -652,232 +655,8 @@ TEST_F(PostgresWrapperTest, MapSqlQueryWithInvalidClauseAtoms) {
 
     EXPECT_THROW({ wrapper->map_sql_query("test_feature_with_invalid_clause", query); },
                  std::runtime_error);
-    EXPECT_EQ(wrapper->mapper_handle_trie_size(), 0);
+    EXPECT_EQ(read_atoms_from_queue(queue).size(), 0);
 }
-
-// map_sql_query - SQL2METTA
-TEST_F(PostgresWrapperTest, MapSqlQueryFirstRowMetta) {
-    auto conn = create_db_connection();
-    auto wrapper = create_wrapper(*conn, MAPPER_TYPE::SQL2METTA);
-
-    string query_organism = R"(
-        SELECT
-            o.organism_id AS public_organism__organism_id,
-            o.genus AS public_organism__genus,
-            o.species AS public_organism__species,
-            o.common_name AS public_organism__common_name,
-            o.abbreviation AS public_organism__abbreviation,
-            o.comment AS public_organism__comment
-        FROM organism AS o
-        WHERE o.organism_id = 1
-    )";
-
-    EXPECT_NO_THROW({ wrapper->map_sql_query("test_organism", query_organism); });
-    EXPECT_EQ(wrapper->mapper_handle_trie_size(), 19);
-
-    string query_feature = R"(
-        SELECT
-            f.feature_id AS public_feature__feature_id,
-            f.organism_id AS public_feature__organism_id,
-            f.type_id AS public_feature__type_id,
-            f.name AS public_feature__name,
-            f.uniquename AS public_feature__uniquename,
-            f.residues AS public_feature__residues,
-            f.md5checksum AS public_feature__md5checksum,
-            f.seqlen AS public_feature__seqlen,
-            f.is_analysis AS public_feature__is_analysis,
-            f.is_obsolete AS public_feature__is_obsolete
-        FROM feature AS f
-        WHERE f.feature_id = 1
-    )";
-
-    EXPECT_NO_THROW({ wrapper->map_sql_query("test_feature", query_feature); });
-    EXPECT_EQ(wrapper->mapper_handle_trie_size(), 51);
-
-    string query_cvterm = R"(
-        SELECT
-            c.cvterm_id AS public_cvterm__cvterm_id,
-            c.name AS public_cvterm__name,
-            c.definition AS public_cvterm__definition,
-            c.is_obsolete AS public_cvterm__is_obsolete,
-            c.is_relationshiptype AS public_cvterm__is_relationshiptype
-        FROM cvterm AS c
-        WHERE c.cvterm_id = 1
-    )";
-
-    EXPECT_NO_THROW({ wrapper->map_sql_query("test_cvterm", query_cvterm); });
-    EXPECT_EQ(wrapper->mapper_handle_trie_size(), 65);
-}
-
-TEST_F(PostgresWrapperTest, MapSqlQueryWithClausesAndSkipColumnsMetta) {
-    auto conn = create_db_connection();
-    auto wrapper = create_wrapper(*conn, MAPPER_TYPE::SQL2METTA);
-
-    string query = R"(
-        SELECT
-            f.feature_id AS public_feature__feature_id,
-            f.organism_id AS public_feature__organism_id,
-            f.type_id AS public_feature__type_id,
-            f.name AS public_feature__name,
-            f.uniquename AS public_feature__uniquename,
-            f.is_analysis AS public_feature__is_analysis,
-            f.is_obsolete AS public_feature__is_obsolete
-        FROM feature AS f
-        WHERE f.organism_id = )" +
-                   to_string(DROSOPHILA_ORGANISM_ID) + R"( AND f.feature_id <= 5)";
-
-    EXPECT_NO_THROW({ wrapper->map_sql_query("test_feature_clause_and_skip", query); });
-    EXPECT_EQ(wrapper->mapper_handle_trie_size(), 86);
-}
-
-TEST_F(PostgresWrapperTest, MapSqlQueryZeroRowsMetta) {
-    auto conn = create_db_connection();
-    auto wrapper = create_wrapper(*conn, MAPPER_TYPE::SQL2METTA);
-
-    string query = R"(
-        SELECT
-            f.feature_id AS public_feature__feature_id,
-            f.organism_id AS public_feature__organism_id,
-            f.type_id AS public_feature__type_id,
-            f.name AS public_feature__name,
-            f.uniquename AS public_feature__uniquename,
-            f.residues AS public_feature__residues,
-            f.md5checksum AS public_feature__md5checksum,
-            f.seqlen AS public_feature__seqlen,
-            f.is_analysis AS public_feature__is_analysis,
-            f.is_obsolete AS public_feature__is_obsolete
-        FROM feature AS f
-        WHERE f.feature_id = -999
-    )";
-
-    EXPECT_NO_THROW({ wrapper->map_sql_query("test_feature_zero_rows", query); });
-    EXPECT_EQ(wrapper->mapper_handle_trie_size(), 0);
-}
-
-TEST_F(PostgresWrapperTest, MapSqlQueryWithNonExistentSkipColumnMetta) {
-    auto conn = create_db_connection();
-    auto wrapper = create_wrapper(*conn, MAPPER_TYPE::SQL2METTA);
-
-    string query = R"(
-        SELECT
-            f.feature_id AS public_feature__feature_id,
-            f.organism_id AS public_feature__organism_id,
-            f.type_id AS public_feature__type_id,
-            f.name AS public_feature__name,
-            f.uniquename AS public_feature__uniquename,
-            f.column_xyz AS public_feature__column_xyz
-        FROM feature AS f
-        WHERE f.feature_id < 10
-    )";
-
-    EXPECT_THROW({ wrapper->map_sql_query("test_feature_with_non_existent_column", query); },
-                 std::runtime_error);
-    EXPECT_EQ(wrapper->mapper_handle_trie_size(), 0);
-}
-
-TEST_F(PostgresWrapperTest, MapSqlQueryWithInvalidClauseMetta) {
-    auto conn = create_db_connection();
-    auto wrapper = create_wrapper(*conn, MAPPER_TYPE::SQL2METTA);
-
-    string query = R"(
-        SELECT
-            f.feature_id AS public_feature__feature_id,
-            f.organism_id AS public_feature__organism_id,
-            f.type_id AS public_feature__type_id,
-            f.name AS public_feature__name,
-            f.uniquename AS public_feature__uniquename,
-            f.residues AS public_feature__residues,
-            f.md5checksum AS public_feature__md5checksum,
-            f.seqlen AS public_feature__seqlen,
-            f.is_analysis AS public_feature__is_analysis,
-            f.is_obsolete AS public_feature__is_obsolete
-        FROM feature AS f
-        WHERE INVALID CLAUSE SYNTAX !!!
-    )";
-
-    EXPECT_THROW({ wrapper->map_sql_query("test_feature_with_invalid_clause", query); },
-                 std::runtime_error);
-    EXPECT_EQ(wrapper->mapper_handle_trie_size(), 0);
-}
-
-TEST_F(PostgresWrapperTest, MapTablesFirstRowAtomsWithContextFile) {
-    vector<TableMapping> tables_mapping = ContextLoader::load_context_file("/tmp/context_1.json");
-
-    EXPECT_FALSE(tables_mapping.empty());
-
-    auto conn = create_db_connection();
-    auto wrapper = create_wrapper(*conn);
-
-    vector<unsigned int> atoms_sizes;
-
-    for (const auto& tm : tables_mapping) {
-        string table_name = tm.table_name;
-        vector<string> skip_columns = tm.skip_columns.value_or(vector<string>{});
-        vector<string> where_clauses = tm.where_clauses.value_or(vector<string>{});
-
-        Table table = wrapper->get_table(table_name);
-        EXPECT_NO_THROW({ wrapper->map_table(table, where_clauses, skip_columns, false); });
-        atoms_sizes.push_back(wrapper->mapper_handle_trie_size());
-    }
-    EXPECT_EQ(atoms_sizes.size(), 3);
-    EXPECT_EQ(atoms_sizes[0], 34);
-    EXPECT_EQ(atoms_sizes[1], 81);
-    EXPECT_EQ(atoms_sizes[2], 101);
-
-    vector<TableMapping> tables_mapping_2 = ContextLoader::load_context_file("/tmp/context_2.json");
-
-    EXPECT_TRUE(tables_mapping_2.empty());
-}
-
-// TEST_F(PostgresWrapperTest, PipelineProcessor) {
-//     string query_organism = R"(
-//         SELECT
-//             o.organism_id AS public_organism__organism_id,
-//             o.genus AS public_organism__genus,
-//             o.species AS public_organism__species,
-//             o.common_name AS public_organism__common_name,
-//             o.abbreviation AS public_organism__abbreviation,
-//             o.comment AS public_organism__comment
-//         FROM organism AS o
-//         WHERE o.organism_id = 1
-//     )";
-
-//     auto queue = make_shared<SharedQueue>();
-
-//     DatabaseMappingJob db_job(
-//         TEST_HOST, TEST_PORT, TEST_DB, TEST_USER, TEST_PASSWORD, MAPPER_TYPE::SQL2ATOMS, queue);
-//     db_job.add_task_query("Test1", query_organism);
-//     auto producer = make_shared<DedicatedThread>("producer", &db_job);
-
-//     EXPECT_EQ(queue->size(), 0);
-//     producer->setup();
-//     EXPECT_EQ(queue->size(), 0);
-//     producer->start();
-//     EXPECT_EQ(queue->size(), 0);
-
-//     while (!db_job.is_finished()) {
-//         Utils::sleep();
-//     }
-//     producer->stop();
-
-//     EXPECT_EQ(queue->size(), 34);
-
-//     AtomPersistenceJob atomdb_job(queue);
-//     auto consumer = make_shared<DedicatedThread>("consumer", &atomdb_job);
-
-//     EXPECT_EQ(queue->size(), 34);
-//     consumer->setup();
-//     EXPECT_EQ(queue->size(), 34);
-//     consumer->start();
-//     EXPECT_EQ(queue->size(), 34);
-
-//     while (!atomdb_job.is_finished()) {
-//         Utils::sleep();
-//     }
-//     consumer->stop();
-
-//     EXPECT_EQ(queue->size(), 0);
-// }
 
 int main(int argc, char** argv) {
     ::testing::InitGoogleTest(&argc, argv);

@@ -4,14 +4,20 @@
 #include <iostream>
 #include <memory>
 #include <pqxx/pqxx>
+#include <queue>
 #include <regex>
 #include <stdexcept>
 #include <string>
+#include <unordered_set>
 
 #define LOG_LEVEL INFO_LEVEL
 #include "Logger.h"
 
 using namespace std;
+
+// ==============================
+//  Construction / destruction
+// ==============================
 
 PostgresDatabaseConnection::PostgresDatabaseConnection(const string& id,
                                                        const string& host,
@@ -26,6 +32,10 @@ PostgresDatabaseConnection::~PostgresDatabaseConnection() {
     this->disconnect();
 }
 
+// ==============================
+//  Public
+// ==============================
+
 void PostgresDatabaseConnection::connect() {
     LOG_INFO("Connecting to PostgreSQL database at " << host << ":" << port << "...");
     try {
@@ -36,6 +46,7 @@ void PostgresDatabaseConnection::connect() {
         if (!password.empty()) {
             conn_str += " password=" + password;
         }
+        LOG_DEBUG("Connection string: " << conn_str);
         this->conn = make_unique<pqxx::connection>(conn_str);
     } catch (const exception& e) {
         throw runtime_error("Could not connect to database: " + string(e.what()));
@@ -100,23 +111,128 @@ void PostgresDatabaseConnection::close_cursor() {
     }
 }
 
-// ===============================================================================================
-// PostgresWrapper implementation
-// ===============================================================================================
+/**
+ * PostgresWrapper implementation
+ */
+
+static const unordered_set<pqxx::oid> TIME_TYPE_OIDS = {
+    1082,  // date
+    1083,  // time without time zone
+    1114,  // timestamp without time zone
+    1184,  // timestamp with time zone
+    1186,  // interval
+    1266,  // time with time zone
+};
+
+static bool is_time_type(pqxx::oid oid) { return TIME_TYPE_OIDS.count(oid) > 0; }
+
+// ==============================
+//  Construction / destruction
+// ==============================
 
 PostgresWrapper::PostgresWrapper(PostgresDatabaseConnection& db_conn,
-                                 MAPPER_TYPE mapper_type,
-                                 shared_ptr<SharedQueue> output_queue)
+                                 shared_ptr<BoundedSharedQueue> output_queue,
+                                 MAPPER_TYPE mapper_type)
     : SQLWrapper(db_conn, mapper_type), db_conn(db_conn), output_queue(output_queue) {}
 
 PostgresWrapper::~PostgresWrapper() {}
 
-Table PostgresWrapper::get_table(const string& name) {
-    auto tables = this->list_tables();
-    for (const auto& table : tables) {
-        if (table.name == name) return table;
+// ==============================
+//  Public
+// ==============================
+
+Table PostgresWrapper::get_table(const string& schema_name, const string& table_name) {
+    string query = R"(
+        WITH table_info AS (
+            SELECT
+                pt.schemaname || '.' || pt.tablename AS full_table_name,
+                pc.reltuples::bigint AS row_count
+            FROM pg_tables pt
+            JOIN pg_class pc ON pc.relname = pt.tablename
+            JOIN pg_namespace pn ON pn.oid = pc.relnamespace
+                                AND pn.nspname = pt.schemaname
+            WHERE pt.schemaname = ')" +
+                   schema_name + R"('
+              AND pt.tablename  = ')" +
+                   table_name + R"('
+        ),
+        column_info AS (
+            SELECT
+                table_schema || '.' || table_name AS full_table_name,
+                string_agg(column_name, ',' ORDER BY ordinal_position) AS columns
+            FROM information_schema.columns
+            WHERE table_schema = ')" +
+                   schema_name + R"('
+              AND table_name   = ')" +
+                   table_name + R"('
+            GROUP BY table_schema, table_name
+        ),
+        pk_info AS (
+            SELECT
+                n.nspname || '.' || c.relname AS full_table_name,
+                string_agg(a.attname, ',' ORDER BY a.attnum) AS pk_column
+            FROM pg_class c
+            JOIN pg_namespace n ON n.oid = c.relnamespace
+            JOIN pg_index i ON i.indrelid = c.oid AND i.indisprimary
+            JOIN pg_attribute a ON a.attrelid = c.oid AND a.attnum = ANY(i.indkey)
+            WHERE n.nspname = ')" +
+                   schema_name + R"('
+              AND c.relname = ')" +
+                   table_name + R"('
+            GROUP BY n.nspname, c.relname
+        ),
+        fk_info AS (
+            SELECT
+                n.nspname || '.' || c.relname AS full_table_name,
+                string_agg(
+                    a.attname || '|' || fn.nspname || '.' || fc.relname,
+                    ','
+                ) AS fk_columns
+            FROM pg_constraint con
+            JOIN pg_class c ON c.oid = con.conrelid
+            JOIN pg_namespace n ON n.oid = c.relnamespace
+            JOIN pg_attribute a ON a.attrelid = c.oid AND a.attnum = ANY(con.conkey)
+            JOIN pg_class fc ON fc.oid = con.confrelid
+            JOIN pg_namespace fn ON fn.oid = fc.relnamespace
+            WHERE con.contype = 'f'
+              AND n.nspname = ')" +
+                   schema_name + R"('
+              AND c.relname = ')" +
+                   table_name + R"('
+            GROUP BY n.nspname, c.relname
+        )
+        SELECT
+            ti.full_table_name          AS table_name,
+            COALESCE(ti.row_count, 0)   AS row_count,
+            COALESCE(ci.columns,   '')  AS columns,
+            COALESCE(pk.pk_column, '')  AS pk_column,
+            COALESCE(fk.fk_columns,'')  AS fk_columns
+        FROM      table_info  ti
+        LEFT JOIN column_info ci ON ci.full_table_name = ti.full_table_name
+        LEFT JOIN pk_info     pk ON pk.full_table_name = ti.full_table_name
+        LEFT JOIN fk_info     fk ON fk.full_table_name = ti.full_table_name;
+    )";
+
+    auto result = db_conn.execute_query(query);
+
+    if (result.empty()) {
+        Utils::error("Table '" + schema_name + "." + table_name + "' not found.");
     }
-    Utils::error("Table '" + name + "' not found in the database.");
+
+    const auto& row = result[0];
+
+    string cols = row["columns"].c_str();
+    string pk_col = row["pk_column"].c_str();
+    string fk_cols = row["fk_columns"].c_str();
+
+    Table t;
+    t.name = row["table_name"].c_str();
+    t.row_count = row["row_count"].as<int>(0);
+    t.primary_key = pk_col;
+    t.column_names = cols.empty() ? vector<string>{} : Utils::split(cols, ',');
+    t.foreign_keys = fk_cols.empty() ? vector<string>{} : Utils::split(fk_cols, ',');
+
+    return t;
 }
 
 vector<Table> PostgresWrapper::list_tables() {
@@ -255,8 +371,8 @@ void PostgresWrapper::map_table(const Table& table,
             auto fk_ids = this->collect_fk_ids(table.name, column, where_clauses);
 
             if (fk_ids.empty()) continue;
-
-            auto ref_table = this->get_table(ref_table_name);
+            auto table_name_parts = Utils::split(ref_table_name, '.');
+            auto ref_table = this->get_table(table_name_parts[0], table_name_parts[1]);
             auto ref_columns = this->build_columns_to_map(ref_table);
 
             string where_clause = ref_table.primary_key + " IN " + "(" + Utils::join(fk_ids, ',') + ")";
@@ -271,6 +387,53 @@ void PostgresWrapper::map_table(const Table& table,
         }
     }
 }
+
+void PostgresWrapper::map_sql_query(const string& virtual_name, const string& raw_query) {
+    map<string, vector<string>> table_columns_map = this->extract_aliases_from_query(raw_query);
+
+    if (table_columns_map.empty()) {
+        Utils::error("No valid aliases found in query for " + virtual_name);
+    }
+
+    map<string, Table> tables_metadata;
+
+    // Search metadata (PK, FK, ...) of each referenced table
+    // and validate that each table has its PK included in the aliases
+    for (const auto& table_columns : table_columns_map) {
+        string table_name = table_columns.first;
+        vector<string> columns = table_columns.second;
+        try {
+            auto table_name_parts = Utils::split(table_name, '.');
+            tables_metadata[table_name] = this->get_table(table_name_parts[0], table_name_parts[1]);
+            string pk = tables_metadata[table_name].primary_key;
+            if (find(columns.begin(), columns.end(), pk) == columns.end()) {
+                auto parts = Utils::split(table_name, '.');
+                string schema = parts[0];
+                string table = parts[1];
+                Utils::error("Primary key '" + pk + "' of table '" + table_name +
+                             "' must be included in SELECT aliases. Add: " + table + "." + pk + " AS " +
+                             schema + "_" + table + "__" + pk);
+            }
+        } catch (const exception& e) {
+            Utils::error("Error retrieving metadata for table '" + table_name + "': " + e.what());
+        }
+    }
+
+    string base_query = Utils::trim(raw_query);
+
+    if (!base_query.empty() && base_query.back() == ';') base_query.pop_back();
+
+    for (const auto& table_columns : table_columns_map) {
+        string table_name = table_columns.first;
+        vector<string> columns = table_columns.second;
+        Table table = tables_metadata[table_name];
+        this->fetch_rows_paginated(table, columns, base_query);
+    }
+}
+
+// ==============================
+//  Private
+// ==============================
 
 vector<string> PostgresWrapper::build_columns_to_map(const Table& table,
                                                      const vector<string>& skip_columns) {
@@ -339,48 +502,6 @@ vector<string> PostgresWrapper::collect_fk_ids(const string& table_name,
     return ids;
 }
 
-void PostgresWrapper::map_sql_query(const string& virtual_name, const string& raw_query) {
-    map<string, vector<string>> table_columns_map = this->extract_aliases_from_query(raw_query);
-
-    if (table_columns_map.empty()) {
-        Utils::error("No valid aliases found in query for " + virtual_name);
-    }
-
-    map<string, Table> tables_metadata;
-
-    // Search metadata (PK, FK, ...) of each referenced table
-    // and validate that each table has its PK included in the aliases
-    for (const auto& table_columns : table_columns_map) {
-        string table_name = table_columns.first;
-        vector<string> columns = table_columns.second;
-        try {
-            tables_metadata[table_name] = this->get_table(table_name);
-            string pk = tables_metadata[table_name].primary_key;
-            if (find(columns.begin(), columns.end(), pk) == columns.end()) {
-                auto parts = Utils::split(table_name, '.');
-                string schema = parts[0];
-                string table = parts[1];
-                Utils::error("Primary key '" + pk + "' of table '" + table_name +
-                             "' must be included in SELECT aliases. Add: " + table + "." + pk + " AS " +
-                             schema + "_" + table + "__" + pk);
-            }
-        } catch (const exception& e) {
-            Utils::error("Error retrieving metadata for table '" + table_name + "': " + e.what());
-        }
-    }
-
-    string base_query = Utils::trim(raw_query);
-
-    if (!base_query.empty() && base_query.back() == ';') base_query.pop_back();
-
-    for (const auto& table_columns : table_columns_map) {
-        string table_name = table_columns.first;
-        vector<string> columns = table_columns.second;
-        Table table = tables_metadata[table_name];
-        this->fetch_rows_paginated(table, columns, base_query);
-    }
-}
-
 map<string, vector<string>> PostgresWrapper::extract_aliases_from_query(const string& query) {
     map<string, vector<string>> tables;
 
@@ -423,7 +544,7 @@ void PostgresWrapper::fetch_rows_paginated(const Table& table,
                                            const string& query) {
     LOG_INFO("[START] Mapping table " << table.name);
 
-    size_t limit = 10000;
+    size_t limit = 100000;
     int rows_count = 0;
     int atoms_count = 0;
 
@@ -436,11 +557,11 @@ void PostgresWrapper::fetch_rows_paginated(const Table& table,
     while (true) {
         pqxx::result rows = this->db_conn.fetch_cursor(cursor_name, limit);
 
-        LOG_DEBUG("Fetched " << rows.size() << " rows from table " << table.name);
+        LOG_INFO("Fetched " << rows.size() << " rows from table " << table.name);
 
         if (rows.empty()) break;
 
-        while (this->get_available_ram_ratio() < 0.2) {
+        while (this->get_available_ram_ratio() < 0.1) {
             LOG_INFO("Low available RAM. Waiting before adding more atoms to the queue...");
             Utils::sleep(5000);
         }
@@ -455,21 +576,19 @@ void PostgresWrapper::fetch_rows_paginated(const Table& table,
                 LOG_DEBUG("  Field: " << field.name << " = " << field.value);
             }
 
-            auto output = this->mapper->map(DbInput{sql_row});
+            vector<Atom*> atoms = this->mapper->map(DbInput{sql_row});
 
             if (this->mapper_type == MAPPER_TYPE::SQL2ATOMS) {
-                auto atoms = get<vector<Atom*>>(output);
-                LOG_DEBUG("Atoms count: " << atoms.size());
                 atoms_count += atoms.size();
-                unique_lock<mutex> lock(this->api_mutex);
+
+                std::queue<Atom*>* batch_queue = new std::queue<Atom*>();
                 for (const auto& atom : atoms) {
-                    this->output_queue->enqueue((void*) atom);
-                    this->count++;
+                    batch_queue->push(atom);
                 }
+                unique_lock<mutex> lock(this->api_mutex);
+                this->output_queue->enqueue((void*) batch_queue);
             } else {
-                auto metta_expressions = get<vector<string>>(output);
-                LOG_DEBUG("Metta Expressions count: " << metta_expressions.size());
-                // WIP - save metta expressions to file
+                Utils::error("Unsupported mapper type.");
             }
 
             LOG_DEBUG("Mapper HandleTrie size: " << this->mapper->handle_trie_size());
@@ -478,9 +597,7 @@ void PostgresWrapper::fetch_rows_paginated(const Table& table,
 
             this->log_progress(table.name, rows_count);
         }
-        LOG_DEBUG("Added " << this->count << " atoms in the queue");
-        LOG_DEBUG("Atoms in queue: " << to_string(this->output_queue->size()));
-        LOG_DEBUG("Mapping table " << table.name << ". Total atoms generated: " << atoms_count);
+        LOG_INFO("Mapping table " << table.name << ". Total atoms generated: " << atoms_count);
     }
 
     this->db_conn.close_cursor();
@@ -495,28 +612,25 @@ SqlRow PostgresWrapper::build_sql_row(const pqxx::row& row, const Table& table, 
     sql_row.primary_key = ColumnValue{columns[0], row[0].c_str()};
 
     for (size_t i = 1; i < columns.size() && i < row.size(); i++) {
-        string col = columns[i];
         auto field = row[i];
 
         if (field.is_null()) continue;
 
+        if (is_time_type(field.type())) continue;
+
         string value = field.c_str();
 
-        // datetime → SKIP
-        // YYYY-MM-DD HH:MM:SS...
-        if (value.size() >= 19 && value[4] == '-' && value[7] == '-') continue;
-
-        if (value.empty()) {
-            continue;
-        } else if (value.size() > MAX_VALUE_SIZE) {
+        if (value.empty() || value.size() > MAX_VALUE_SIZE) {
             continue;
         }
 
         Utils::replace_all(value, "\n", " ");
+        Utils::replace_all(value, "\t", " ");
+        value = Utils::trim(value);
 
-        string column_name = col;
+        string column_name = columns[i];
         for (const auto& fk : table.foreign_keys) {
-            if (fk.find(col) != string::npos) {
+            if (fk.find(columns[i]) != string::npos) {
                 column_name = fk;
                 break;
             }
@@ -529,7 +643,7 @@ SqlRow PostgresWrapper::build_sql_row(const pqxx::row& row, const Table& table, 
 void PostgresWrapper::log_progress(const string& table_name, int rows_count) {
     int last_logged_count = this->tables_rows_count[table_name];
 
-    if (rows_count - last_logged_count >= 10000) {
+    if (rows_count - last_logged_count >= 50000) {
         LOG_INFO("Mapped " << rows_count << " rows from the " << table_name << " table");
         this->tables_rows_count[table_name] = rows_count;
     }

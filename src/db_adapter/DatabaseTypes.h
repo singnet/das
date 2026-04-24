@@ -66,14 +66,6 @@ struct NoSqlDocument {};
 using DbInput = variant<SqlRow, NoSqlDocument>;
 
 /**
- * @typedef OutputList
- * @brief The result of the mapping process.
- *
- * Can be a list of S-Expression strings (SQL2METTA) or a list of Atom pointers (SQL2ATOMS).
- */
-using OutputList = variant<vector<string>, vector<Atom*>>;
-
-/**
  * @struct Table
  * @brief Metadata describing a database table.
  */
@@ -89,7 +81,7 @@ struct Table {
  * @enum MAPPER_TYPE
  * @brief Defines the strategy used to transform database rows.
  */
-enum class MAPPER_TYPE { SQL2METTA, SQL2ATOMS };
+enum class MAPPER_TYPE { SQL2ATOMS };
 
 struct TableMapping {
     string table_name;
