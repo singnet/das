@@ -57,6 +57,9 @@ void QueryAnswer::merge_paths(QueryAnswer* other) {
 
 bool QueryAnswer::merge(QueryAnswer* other, bool merge_handles) {
     if (this->assignment.is_compatible(other->assignment)) {
+        for (auto pair : other->assignment.table) {
+            this->metta_expression[pair.second] = other->metta_expression[pair.second];
+        }
         this->assignment.add_assignments(other->assignment);
         if (merge_handles) {
             this->importance = fmax(this->importance, other->importance);
@@ -103,7 +106,22 @@ string QueryAnswer::to_string(bool metta_flag) {
         }
         answer += "]";
     }
-    answer += "] " + this->assignment.to_string();
+    answer += "] ";
+    if (metta_flag) {
+        bool empty_flag = true;
+        answer += "{";
+        for (auto pair : this->assignment.table) {
+            answer += "(" + pair.first + ": " + metta_expression[pair.second] + "), ";
+            empty_flag = false;
+        }
+        if (!empty_flag) {
+            answer.pop_back();
+            answer.pop_back();
+        }
+        answer += "}";
+    } else {
+        answer += this->assignment.to_string();
+    }
     answer += " (" + std::to_string(this->strength) + ", " + std::to_string(this->importance) + ")";
     return answer;
 }
