@@ -1,0 +1,38 @@
+{
+    "schema_version": "1.0",
+    "params": {
+        "bus-endpoint": "localhost:40000",
+        "ports-range": "52000:52999",
+        "das-config-file": "config/das.json",
+        "query": {
+            "max-answers": 100,
+            "max-bundle-size": 1000,
+            "count-flag": false,
+            "attention-update-flag": false,
+            "unique-assignment-flag": true,
+            "positive-importance-flag": false,
+            "populate-metta-mapping": true,
+            "use-metta-as-query-tokens": true
+        },
+        "link_creation": {
+            "repeat-count": 1,
+            "interval": 0,
+            "timeout": 0
+        },
+        "evolution": {
+            "elitism-rate": 0.08,
+            "max-generations": 10,
+            "population-size": 50,
+            "selection-rate": 0.1,
+            "total-attention-tokens": 100000
+        },
+        "context": {
+            "context": "context",
+            "use-context-cache": true,
+            "enforce-cache-recreation": false,
+            "initial-rent-rate": 0.25,
+            "initial-spreading-rate-lowerbound": 0.5,
+            "initial-spreading-rate-upperbound": 0.7
+        }
+    }
+}

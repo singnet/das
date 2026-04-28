@@ -1,6 +1,7 @@
 #include "JsonConfigParser.h"
 
 #include <fstream>
+#include <iostream>
 #include <nlohmann/json.hpp>
 #include <sstream>
 #include <stdexcept>
@@ -16,10 +17,18 @@ namespace commons {
 
 namespace {
 
-// Required top-level keys per schema version.
-const unordered_map<string, vector<string>>& required_fields_by_version() {
+// bus_node: required fields.
+const unordered_map<string, vector<string>>& required_node_fields_by_version() {
     static const unordered_map<string, vector<string>> m = {
-        {"1.0", {"schema_version", "atomdb", "atomdb.type", "loaders", "agents", "brokers", "params"}},
+        {"1.0", {"atomdb", "atomdb.type", "loaders", "agents", "brokers"}},
+    };
+    return m;
+}
+
+// bus_client: required fields.
+const unordered_map<string, vector<string>>& required_client_fields_by_version() {
+    static const unordered_map<string, vector<string>> m = {
+        {"1.0", {"params", "params.das-config-file", "params.bus-endpoint", "params.ports-range"}},
     };
     return m;
 }
@@ -35,20 +44,7 @@ string required_fields_error(const string& version, const vector<string>& missin
     return msg;
 }
 
-void validate_schema_version(const JsonConfig& config) {
-    string version = config.get_schema_version();
-    auto it = required_fields_by_version().find(version);
-    if (it == required_fields_by_version().end()) {
-        string supported;
-        for (const auto& p : required_fields_by_version()) {
-            if (!supported.empty()) supported += ", ";
-            supported += "\"" + p.first + "\"";
-        }
-        Utils::error("Config schema version \"" + version +
-                         "\" is not supported. Supported versions: " + supported + ".",
-                     true);
-    }
-    const vector<string>& required = it->second;
+void validate_schema_version(const JsonConfig& config, vector<string>& required) {
     vector<string> missing;
     for (const string& key : required) {
         if (config.at_path(key).is_null()) {
@@ -56,18 +52,26 @@ void validate_schema_version(const JsonConfig& config) {
         }
     }
     if (!missing.empty()) {
+        string version = config.get_schema_version();
         Utils::error(required_fields_error(version, missing), true);
     }
 }
 
-JsonConfig parse_and_validate(const string& json_str) {
+JsonConfig parse_and_validate(const string& json_str, bool is_node) {
     JsonConfig config;
     try {
         config = JsonConfig(json::parse(json_str));
     } catch (const exception& e) {
         Utils::error("Invalid JSON in config: " + string(e.what()), true);
     }
-    validate_schema_version(config);
+    string version = config.get_schema_version();
+    try {
+        vector<string> required = is_node ? required_node_fields_by_version().at(version)
+                                          : required_client_fields_by_version().at(version);
+        validate_schema_version(config, required);
+    } catch (const exception& e) {
+        Utils::error("Invalid schema version: " + version + " " + string(e.what()), true);
+    }
     return config;
 }
 
@@ -81,11 +85,26 @@ JsonConfig JsonConfigParser::load(const string& file_path, bool throw_flag) {
     }
     stringstream buf;
     buf << f.rdbuf();
-    return parse_and_validate(buf.str());
+    return parse_and_validate(buf.str(), true);
 }
 
 JsonConfig JsonConfigParser::load_from_string(const string& json_content) {
-    return parse_and_validate(json_content);
+    return parse_and_validate(json_content, true);
+}
+
+JsonConfig JsonConfigParser::load_client_config(const string& file_path, bool throw_flag) {
+    ifstream f(file_path);
+    if (!f.good()) {
+        Utils::error("JsonConfigParser: Cannot open client config file: " + file_path, throw_flag);
+        return JsonConfig();
+    }
+    stringstream buf;
+    buf << f.rdbuf();
+    return parse_and_validate(buf.str(), false);
+}
+
+JsonConfig JsonConfigParser::load_client_config_from_string(const string& json_content) {
+    return parse_and_validate(json_content, false);
 }
 
 }  // namespace commons
