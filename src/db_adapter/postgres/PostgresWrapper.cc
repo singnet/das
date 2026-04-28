@@ -572,9 +572,11 @@ void PostgresWrapper::fetch_rows_paginated(const Table& table,
             LOG_DEBUG("Built SqlRow for table "
                       << table.name << " with primary key: "
                       << (sql_row.primary_key ? sql_row.primary_key->value : "NULL"));
+#if LOG_LEVEL >= DEBUG_LEVEL
             for (const auto& field : sql_row.fields) {
                 LOG_DEBUG("  Field: " << field.name << " = " << field.value);
             }
+#endif
 
             vector<Atom*> atoms = this->mapper->map(DbInput{sql_row});
 

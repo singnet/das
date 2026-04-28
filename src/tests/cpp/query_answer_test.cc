@@ -250,6 +250,97 @@ TEST(QueryAnswer, handles_answer_basics) {
     EXPECT_TRUE(query_answer3->assignment.assign("v4", "x"));
 }
 
+TEST(QueryAnswer, path_merging) {
+    unsigned int path_index = 0;
+
+    QueryAnswer query_answer1("h", 0);
+
+    QueryAnswer query_answer2("h", 0);
+    path_index = query_answer2.add_path();
+    query_answer2.add_path_element(path_index, "p_2_1");
+    query_answer2.add_path_element(path_index, "p_2_2");
+    path_index = query_answer2.add_path();
+    query_answer2.add_path_element(path_index, "p_2_1");
+    query_answer2.add_path_element(path_index, "p_2_2");
+    query_answer2.add_path_element(path_index, "p_2_3");
+
+    QueryAnswer query_answer3("h", 0);
+    path_index = query_answer3.add_path();
+    query_answer3.add_path_element(path_index, "p_3_1");
+    query_answer3.add_path_element(path_index, "p_3_2");
+    path_index = query_answer3.add_path();
+    query_answer3.add_path_element(path_index, "p_3_1");
+    query_answer3.add_path_element(path_index, "p_3_2");
+    query_answer3.add_path_element(path_index, "p_3_3");
+
+    QueryAnswer query_answer4("h", 0);
+    path_index = query_answer4.add_path();
+    query_answer4.add_path_element(path_index, "p_2_1");
+    query_answer4.add_path_element(path_index, "p_3_2");
+    path_index = query_answer4.add_path();
+    query_answer4.add_path_element(path_index, "p_2_1");
+    query_answer4.add_path_element(path_index, "p_2_2");
+
+    // ---------------------------------------------
+
+    QueryAnswer query_answer1_2("h", 0);
+    path_index = query_answer1_2.add_path();
+    query_answer1_2.add_path_element(path_index, "p_2_1");
+    query_answer1_2.add_path_element(path_index, "p_2_2");
+    path_index = query_answer1_2.add_path();
+    query_answer1_2.add_path_element(path_index, "p_2_1");
+    query_answer1_2.add_path_element(path_index, "p_2_2");
+    query_answer1_2.add_path_element(path_index, "p_2_3");
+
+    QueryAnswer* query_answer2_1 = QueryAnswer::copy(&query_answer1_2);
+
+    QueryAnswer query_answer2_3("h", 0);
+    path_index = query_answer2_3.add_path();
+    query_answer2_3.add_path_element(path_index, "p_2_1");
+    query_answer2_3.add_path_element(path_index, "p_2_2");
+    path_index = query_answer2_3.add_path();
+    query_answer2_3.add_path_element(path_index, "p_2_1");
+    query_answer2_3.add_path_element(path_index, "p_2_2");
+    query_answer2_3.add_path_element(path_index, "p_2_3");
+    path_index = query_answer2_3.add_path();
+    query_answer2_3.add_path_element(path_index, "p_3_1");
+    query_answer2_3.add_path_element(path_index, "p_3_2");
+    path_index = query_answer2_3.add_path();
+    query_answer2_3.add_path_element(path_index, "p_3_1");
+    query_answer2_3.add_path_element(path_index, "p_3_2");
+    query_answer2_3.add_path_element(path_index, "p_3_3");
+
+    QueryAnswer query_answer2_4("h", 0);
+    path_index = query_answer2_4.add_path();
+    query_answer2_4.add_path_element(path_index, "p_2_1");
+    query_answer2_4.add_path_element(path_index, "p_2_2");
+    path_index = query_answer2_4.add_path();
+    query_answer2_4.add_path_element(path_index, "p_2_1");
+    query_answer2_4.add_path_element(path_index, "p_2_2");
+    query_answer2_4.add_path_element(path_index, "p_2_3");
+    path_index = query_answer2_4.add_path();
+    query_answer2_4.add_path_element(path_index, "p_2_1");
+    query_answer2_4.add_path_element(path_index, "p_3_2");
+
+    QueryAnswer* q;
+
+    q = QueryAnswer::copy(&query_answer1);
+    q->merge(&query_answer2);
+    EXPECT_EQ(q->to_string(), query_answer1_2.to_string());
+
+    q = QueryAnswer::copy(&query_answer2);
+    q->merge(&query_answer1);
+    EXPECT_EQ(q->to_string(), query_answer2_1->to_string());
+
+    q = QueryAnswer::copy(&query_answer2);
+    q->merge(&query_answer3);
+    EXPECT_EQ(q->to_string(), query_answer2_3.to_string());
+
+    q = QueryAnswer::copy(&query_answer2);
+    q->merge(&query_answer4);
+    EXPECT_EQ(q->to_string(), query_answer2_4.to_string());
+}
+
 void query_answers_equal(QueryAnswer* qa1, QueryAnswer* qa2) {
     EXPECT_TRUE(double_equals(qa1->strength, qa2->strength));
     EXPECT_TRUE(double_equals(qa1->importance, qa2->importance));
@@ -258,15 +349,26 @@ void query_answers_equal(QueryAnswer* qa1, QueryAnswer* qa2) {
 
 TEST(QueryAnswer, tokenization) {
     unsigned int NUM_TESTS = 100000;
+    unsigned int MAX_PATHS = 5;
+    unsigned int MAX_PATH_SIZE = 10;
     unsigned int MAX_HANDLES = 5;
     unsigned int MAX_ASSIGNMENTS = 10;
 
     for (unsigned int test = 0; test < NUM_TESTS; test++) {
         unsigned int num_handles = (rand() % MAX_HANDLES) + 1;
+        unsigned int num_paths = (rand() % MAX_PATHS) + 1;
         unsigned int num_assignments = (rand() % MAX_ASSIGNMENTS);
+        unsigned int path_size = 0;
         QueryAnswer input(Utils::flip_coin() ? 1 : 0);
         for (unsigned int i = 0; i < num_handles; i++) {
             input.add_handle(strdup(random_handle().c_str()));
+        }
+        for (unsigned int i = 0; i < num_paths; i++) {
+            unsigned int path_index = input.add_path();
+            path_size = (rand() % MAX_PATH_SIZE) + 1;
+            for (unsigned int j = 0; j < path_size; j++) {
+                input.add_path_element(path_index, strdup(random_handle().c_str()));
+            }
         }
         unsigned int label_count = 0;
         for (unsigned int i = 0; i < num_assignments; i++) {

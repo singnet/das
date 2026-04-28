@@ -155,8 +155,6 @@ class Chain : public Operator<1>, public ThreadMethod {
             } else if (this->end_point() != other.start_point()) {
                 return false;
             }
-            // unsigned int this_index = (this->forward_flag ? 1 : 2);
-            // unsigned int other_index = (this->forward_flag ? 2 : 1);
             for (auto pair_other : other.edges) {
                 for (auto pair_this : this->edges) {
                     if (this->forward_flag) {
@@ -175,13 +173,9 @@ class Chain : public Operator<1>, public ThreadMethod {
         string to_string();
     };
 
+    enum SearchDirection { FORWARD = 1, BACKWARD, BOTH };
+
     typedef ThreadSafeHeap<Path, double> HeapType;
-
-    // --------------------------------------------------------------------------------------------
-    // Static variables
-
-    static string ORIGIN_VARIABLE_NAME;
-    static string DESTINY_VARIABLE_NAME;
 
     // --------------------------------------------------------------------------------------------
     // Public methods
@@ -191,8 +185,9 @@ class Chain : public Operator<1>, public ThreadMethod {
      */
     Chain(const array<shared_ptr<QueryElement>, 1>& clauses,
           shared_ptr<LinkTemplate> link_template,
-          const string& source_handle,
-          const string& target_handle,
+          const string& source_reference,
+          const string& target_reference,
+          SearchDirection search_direction,
           const QueryAnswerElement& link_selector,
           unsigned int tail_reference,
           unsigned int head_reference,
@@ -204,8 +199,8 @@ class Chain : public Operator<1>, public ThreadMethod {
      * assuming $v1 -> $v2.
      */
     Chain(const array<shared_ptr<QueryElement>, 1>& clauses,
-          const string& source_handle,
-          const string& target_handle,
+          const string& source_reference,
+          const string& target_reference,
           bool allow_incomplete_chain_path = true);
 
     /**
@@ -289,11 +284,11 @@ class Chain : public Operator<1>, public ThreadMethod {
             this->chain_operator = chain_operator;
             this->forward_flag = forward_flag;
             if (forward_flag) {
-                origin = chain_operator->source_handle;
-                destiny = chain_operator->target_handle;
+                origin = chain_operator->source_reference;
+                destiny = chain_operator->target_reference;
             } else {
-                origin = chain_operator->target_handle;
-                destiny = chain_operator->source_handle;
+                origin = chain_operator->target_reference;
+                destiny = chain_operator->source_reference;
             }
         }
         ~PathFinder() {}
@@ -305,15 +300,21 @@ class Chain : public Operator<1>, public ThreadMethod {
     };
 
     void initialize(const array<shared_ptr<QueryElement>, 1>& clauses);
+    inline bool forward_active() { return (search_direction == FORWARD) || (search_direction == BOTH); }
+    inline bool backward_active() {
+        return (search_direction == BACKWARD) || (search_direction == BOTH);
+    }
 
     shared_ptr<LinkTemplate> input_link_template;
-    string source_handle;
-    string target_handle;
+    string source_reference;
+    string target_reference;
+    SearchDirection search_direction;
     QueryAnswerElement link_selector;
     unsigned int tail_reference;
     unsigned int head_reference;
     PathFinder* forward_path_finder;
     PathFinder* backward_path_finder;
+    bool path_finders_stopped;
     shared_ptr<DedicatedThread> operator_thread;
     shared_ptr<DedicatedThread> forward_thread;
     shared_ptr<DedicatedThread> backward_thread;
