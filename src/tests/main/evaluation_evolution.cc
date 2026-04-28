@@ -115,9 +115,7 @@ static string metta_chain(const string& source, const string& target, const stri
     return "(chain 0 1 2 " + source + " " + target + " " + query + ")";
 }
 
-static string metta_var(const string& name) {
-    return "$" + name;
-}
+static string metta_var(const string& name) { return "$" + name; }
 
 static void save_link(Link& link) {
     ofstream file;
@@ -520,7 +518,8 @@ static void build_links(const vector<string>& query,
         } else {
             if (++count <= num_links) {
                 if (query_answer->get_handles_size() == 2) {
-                    LOG_DEBUG("Processing query answer " + to_string(count) + ": " + query_answer->to_string(true));
+                    LOG_DEBUG("Processing query answer " + to_string(count) + ": " +
+                              query_answer->to_string(true));
                     build_link(query_answer, context, custom_handle);
                 }
             } else {
@@ -738,7 +737,8 @@ static void run(const string& target_predicate,
 
     LOG_INFO("Pre-processing...");
     LOG_INFO("Initializing STI");
-    attention_allocation_query((USE_MORK ? initialization_STI_metta_query : initialization_STI_query), context);
+    attention_allocation_query((USE_MORK ? initialization_STI_metta_query : initialization_STI_query),
+                               context);
     // LOG_INFO("Building initial custom links");
     // build_links(
     //     custom_initial_equivalence_query, context, 0, target_concept_handle, build_equivalence_link);
@@ -860,13 +860,14 @@ int main(int argc, char* argv[]) {
     predicate_p.parse();
     concept_p.parse();
 
-    LOG_INFO("Target predicate: " + target_predicate + " Handle: " + predicate_pa->metta_expression_handle);
+    LOG_INFO("Target predicate: " + target_predicate +
+             " Handle: " + predicate_pa->metta_expression_handle);
     LOG_INFO("Target concept: " + target_concept + " Handle: " + concept_pa->metta_expression_handle);
 
     run(target_predicate,
         target_concept,
-        predicate_pa->metta_expression_handle, 
-        concept_pa->metta_expression_handle, 
+        predicate_pa->metta_expression_handle,
+        concept_pa->metta_expression_handle,
         context_tag);
 
     return 0;

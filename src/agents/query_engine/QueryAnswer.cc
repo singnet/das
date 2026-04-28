@@ -98,7 +98,7 @@ string QueryAnswer::to_string(bool metta_flag) {
         answer += "[";
         bool empty_flag = true;
         for (string handle : vector) {
-            answer += (metta_flag ? metta_expression[handle] :  handle);
+            answer += (metta_flag ? metta_expression[handle] : handle);
             answer += ", ";
             empty_flag = false;
         }

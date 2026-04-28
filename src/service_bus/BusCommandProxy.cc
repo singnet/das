@@ -19,7 +19,8 @@ BusCommandProxy::BusCommandProxy() {
     this->proxy_port = 0;
 }
 
-BusCommandProxy::BusCommandProxy(const string& command, const vector<string>& args) : command(command), args(args) {
+BusCommandProxy::BusCommandProxy(const string& command, const vector<string>& args)
+    : command(command), args(args) {
     this->issued = false;
     this->proxy_port = 0;
 }
