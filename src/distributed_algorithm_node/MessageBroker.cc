@@ -118,7 +118,7 @@ void SynchronousGRPC::grpc_thread_method(shared_ptr<StoppableThread> monitor) {
         LOG_DEBUG("Building GRPC server on " + this->node_id);
         this->grpc_server = builder->BuildAndStart();
         if (this->grpc_server != nullptr) {
-            LOG_INFO("SynchronousGRPC listening on " + this->node_id);
+            LOG_DEBUG("SynchronousGRPC listening on " + this->node_id);
             break;
         } else {
             GRPC_BUILDER_MUTEX.unlock();
