@@ -125,7 +125,6 @@ void check_query(const string& query_tag,
     // otherwise the test fails with "Node ID already in the network"
     Utils::sleep();
 
-    /*
     client_bus->issue_bus_command(proxy2);
     while (!proxy2->finished()) {
         Utils::sleep();
@@ -157,7 +156,6 @@ void check_query(const string& query_tag,
         EXPECT_EQ(proxy3->get_count(), expected_count);
         EXPECT_EQ(proxy3->error_flag, error_flag);
     }
-    */
 }
 
 void check_query_chain(const string& query_tag,
@@ -482,21 +480,21 @@ TEST(PatternMatchingQuery, queries) {
     int q14_expected_count = 2;
 
     // Regular queries
-      check_query("q1", q1, q1m, q1_expected_count, client_bus, "PatternMatchingQuery.queries", false, false, false, false, false);
-      check_query("q2", q2, q2m, q2_expected_count, client_bus, "PatternMatchingQuery.queries", false, false, false, false, false);
-      check_query("q3", q3, q3m, q3_expected_count, client_bus, "PatternMatchingQuery.queries", false, false, false, false, false);
-      check_query("q4", q4, q4m, q4_expected_count, client_bus, "PatternMatchingQuery.queries", false, true, false, false, true);
-      check_query("q4", q4, q4m, 26, client_bus, "PatternMatchingQuery.queries", false, false, false, false, false);
-      check_query("q5", q5, q5m, q5_expected_count, client_bus, "PatternMatchingQuery.queries", false, false, false, false, false);
-      check_query("q6", q6, q6m, q6_expected_count, client_bus, "PatternMatchingQuery.queries", false, true, false, false, false);
-      check_query("q7", q7, q7m, q7_expected_count, client_bus, "PatternMatchingQuery.queries", false, true, false, false, false);
-      check_query_chain("q8", q8, q8m, Hasher::node_handle("Symbol", "\"chimp\""), Hasher::node_handle("Symbol", "\"ent\""), q8_expected_count, client_bus, "PatternMatchingQuery.queries", false, true, false, false, false);
-      check_query_chain("q9", q9, q9m, Hasher::node_handle("Symbol", "\"ent\""), Hasher::node_handle("Symbol", "\"animal\""), q9_expected_count, client_bus, "PatternMatchingQuery.queries", false, true, false, false, false);
-      check_query_chain("q10", q10, q10m, Hasher::node_handle("Symbol", "\"chimp\""), Hasher::node_handle("Symbol", "\"ent\""), q10_expected_count, client_bus, "PatternMatchingQuery.queries", false, true, false, false, false);
-      check_query("q11", q11, q11m, q11_expected_count, client_bus, "PatternMatchingQuery.queries", false, true, false, false, false);
-      check_query("q12", q12, q12m, q12_expected_count, client_bus, "PatternMatchingQuery.queries", false, true, false, false, false);
-      check_query("q13", q13, q13m, q13_expected_count, client_bus, "PatternMatchingQuery.queries", false, true, false, false, false);
-      check_query("q14", q14, q14m, q14_expected_count, client_bus, "PatternMatchingQuery.queries", false, true, false, false, false);
+    check_query("q1", q1, q1m, q1_expected_count, client_bus, "PatternMatchingQuery.queries", false, false, false, false, false);
+    check_query("q2", q2, q2m, q2_expected_count, client_bus, "PatternMatchingQuery.queries", false, false, false, false, false);
+    check_query("q3", q3, q3m, q3_expected_count, client_bus, "PatternMatchingQuery.queries", false, false, false, false, false);
+    check_query("q4", q4, q4m, q4_expected_count, client_bus, "PatternMatchingQuery.queries", false, true, false, false, true);
+    check_query("q4", q4, q4m, 26, client_bus, "PatternMatchingQuery.queries", false, false, false, false, false);
+    check_query("q5", q5, q5m, q5_expected_count, client_bus, "PatternMatchingQuery.queries", false, false, false, false, false);
+    check_query("q6", q6, q6m, q6_expected_count, client_bus, "PatternMatchingQuery.queries", false, true, false, false, false);
+    check_query("q7", q7, q7m, q7_expected_count, client_bus, "PatternMatchingQuery.queries", false, true, false, false, false);
+    check_query_chain("q8", q8, q8m, Hasher::node_handle("Symbol", "\"chimp\""), Hasher::node_handle("Symbol", "\"ent\""), q8_expected_count, client_bus, "PatternMatchingQuery.queries", false, true, false, false, false);
+    check_query_chain("q9", q9, q9m, Hasher::node_handle("Symbol", "\"ent\""), Hasher::node_handle("Symbol", "\"animal\""), q9_expected_count, client_bus, "PatternMatchingQuery.queries", false, true, false, false, false);
+    check_query_chain("q10", q10, q10m, Hasher::node_handle("Symbol", "\"chimp\""), Hasher::node_handle("Symbol", "\"ent\""), q10_expected_count, client_bus, "PatternMatchingQuery.queries", false, true, false, false, false);
+    check_query("q11", q11, q11m, q11_expected_count, client_bus, "PatternMatchingQuery.queries", false, true, false, false, false);
+    check_query("q12", q12, q12m, q12_expected_count, client_bus, "PatternMatchingQuery.queries", false, true, false, false, false);
+    check_query("q13", q13, q13m, q13_expected_count, client_bus, "PatternMatchingQuery.queries", false, true, false, false, false);
+    check_query("q14", q14, q14m, q14_expected_count, client_bus, "PatternMatchingQuery.queries", false, true, false, false, false);
 
     // Importance filtering
     // XXX AttentionBroker is being revised so its dynamics is a bit unpredictable right now
@@ -506,7 +504,7 @@ TEST(PatternMatchingQuery, queries) {
     //check_query("filtered q1", q1, q1m, 3, client_bus, "PatternMatchingQuery.queries", false, false, true, false, false);
 
     // Remote exception
-      check_query("invalid", {"BLAH"}, "", 0, client_bus, "PatternMatchingQuery.queries", false, false, false, true, false);
+    check_query("invalid", {"BLAH"}, "", 0, client_bus, "PatternMatchingQuery.queries", false, false, false, true, false);
 
     // Metta expression in QueryAnswer
     shared_ptr<PatternMatchingQueryProxy> proxy(new PatternMatchingQueryProxy(q3, "PatternMatchingQuery.queries"));

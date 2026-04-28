@@ -58,7 +58,9 @@ void QueryAnswer::merge_paths(QueryAnswer* other) {
 bool QueryAnswer::merge(QueryAnswer* other, bool merge_handles) {
     if (this->assignment.is_compatible(other->assignment)) {
         for (auto pair : other->assignment.table) {
-            this->metta_expression[pair.second] = other->metta_expression[pair.second];
+            if (!other->metta_expression[pair.second].empty()) {
+                this->metta_expression[pair.second] = other->metta_expression[pair.second];
+            }
         }
         this->assignment.add_assignments(other->assignment);
         if (merge_handles) {
