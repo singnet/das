@@ -32,10 +32,10 @@ make run-busnode OPTIONS="--service=query-engine --help"
 Run the `bus_node` binary with the required parameters:
 
 ```bash
-make run-busnode OPTIONS="--service=<SERVICE_NAME> --endpoint=<ENDPOINT> --ports-range=<PORTS_RANGE>
+make run-busnode OPTIONS="--service=<SERVICE_NAME> --endpoint=<ENDPOINT> --ports-range=<PORTS_RANGE> [--config=<config/das.json>]
 ```
 
-Optional: pass `--config=<JSON_FILE_PATH>` to load defaults from a JSON config file (schema version 2.0). Values from the config are used as defaults for the selected service; **command-line arguments always override** config (e.g. `--endpoint=localhost:9002` wins over `agents.query.endpoint` in the file).
+Optional: pass `--config=<JSON_FILE_PATH>` to load defaults from a JSON config file (schema version 1.0), for example `config/das.json`. Values from the config are used as defaults for the selected service; **command-line arguments always override** config (e.g. `--endpoint=localhost:9002` wins over `agents.query.endpoint` in the file). Node configs include `atomdb`, `loaders`, `agents`, and `brokers`; they do not include `params` (those apply to `bus_client` only).
 
 ### Examples
 
@@ -67,42 +67,48 @@ make run-busnode OPTIONS="--service=atomdb-broker --endpoint=localhost:9004 --po
 Run the `bus_client` binary with the required parameters using make:
 
 ```bash
-make run-client OPTIONS="--service=<SERVICE_NAME> --endpoint=<ENDPOINT> --bus-endpoint=<BUS_ENDPOINT> --ports-range=<PORTS_RANGE>"
+make run-client OPTIONS="--client=<BUS_NODE_SERVICE> [--endpoint=...] --bus-endpoint=<THIS_CLIENT_HOST:PORT> --ports-range=<PORTS_RANGE> [--config=<config/client.json>]"
 ```
 
-Optional: pass `--config=<JSON_FILE_PATH>` to load defaults from a JSON config file; command-line arguments override config.
+**`--client`** is required and must be a valid bus node service.
+
+Pass **`--config=<client.json>`** (schema 1.0) so **`atomdb`** can be merged from **`params.das-config-file`** (path to **`das.json`**). Without it, **`bus_client`** cannot initialize AtomDB with the slim client schema. With config, **`--bus-endpoint`**, **`--ports-range`** and **`--endpoint`** may default from **`params`** field and **`das.json`**; optional **`--attention-broker-endpoint`** from merged **`brokers.attention.endpoint`**. Command-line arguments always win.
 
 ### Examples
 #### AtomDB:
 ```
-make run-client OPTIONS="--service=atomdb-broker --endpoint=localhost:8887 --bus-endpoint=localhost:9000 --ports-range=27000:28000 --action=add_atoms --tokens=LINK Expression 2 NODE Symbol A NODE Symbol B"
+make run-client OPTIONS="--client=atomdb-broker --endpoint=localhost:8887 --bus-endpoint=localhost:9000 --ports-range=27000:28000 --action=add_atoms --tokens=LINK Expression 2 NODE Symbol A NODE Symbol B"
 ```
 #### Query Engine:
 ```
-make run-client OPTIONS="--service=query-engine --endpoint=localhost:8085 --bus-endpoint=localhost:9000 --ports-range=41000:41999 --query=LINK_TEMPLATE Expression 2 NODE Symbol Predicate VARIABLE V1  --context=test --populate-metta-mapping"
+make run-client OPTIONS="--config=config/client.json --client=query-engine --query=LINK_TEMPLATE Expression 2 NODE Symbol Predicate VARIABLE V1 --context=test"
 ```
+(With **`config/client.json`**, **`--endpoint`**, **`--bus-endpoint`**, and **`--ports-range`** can be omitted when **`das.json`** and **`params`** supply them.)
+
+**If you see `Bus: no owner is defined for command <pattern_matching_query>`:** the resolved **`--endpoint`** (from **`agents.<client>.endpoint`** / **`brokers.<client>.endpoint`** in **`das.json`**) must match the **`--endpoint`** used when starting that agent’s **`busnode`** (same `host:port` string).
+
 #### LCA:
 ```
-make run-client OPTIONS="--service=link-creation-agent --endpoint=localhost:8085 --bus-endpoint=localhost:9000 --ports-range=41000:41999 --use-metta-as-query-tokens --max-answers=5 --request='(and (Concept %C1) (Concept %C2)) EQUIVALENCE_RELATION'"
+make run-client OPTIONS="--client=link-creation-agent --endpoint=localhost:8085 --bus-endpoint=localhost:9000 --ports-range=41000:41999 --use-metta-as-query-tokens --max-answers=5 --request='(and (Concept %C1) (Concept %C2)) EQUIVALENCE_RELATION'"
 ```
 or
 ```
-make run-client OPTIONS="--service=link-creation-agent --endpoint=localhost:8085 --bus-endpoint=localhost:9000 --ports-range=41000:41999 --max-answers=5 --request=AND 2 LINK_TEMPLATE Expression 2 NODE Symbol PREDICATE VARIABLE P1 LINK_TEMPLATE Expression 2 NODE Symbol PREDICATE VARIABLE P2 LINK_CREATE Similarity3 2 0 VARIABLE P1 VARIABLE P2"
+make run-client OPTIONS="--client=link-creation-agent --endpoint=localhost:8085 --bus-endpoint=localhost:9000 --ports-range=41000:41999 --max-answers=5 --request=AND 2 LINK_TEMPLATE Expression 2 NODE Symbol PREDICATE VARIABLE P1 LINK_TEMPLATE Expression 2 NODE Symbol PREDICATE VARIABLE P2 LINK_CREATE Similarity3 2 0 VARIABLE P1 VARIABLE P2"
 ```
 #### Inference Agent
 ```
- make run-client OPTIONS="--service=inference-agent --endpoint=localhost:8085 --bus-endpoint=localhost:9000 --ports-range=41000:41999 --max-answers=5 --request=PROOF_OF_IMPLICATION 2d01b94c549678aa84840e5901f8d449 ba8267a5c1411eb4bc32d9062e3398ad 2 TOY"
+ make run-client OPTIONS="--client=inference-agent --endpoint=localhost:8085 --bus-endpoint=localhost:9000 --ports-range=41000:41999 --max-answers=5 --request=PROOF_OF_IMPLICATION 2d01b94c549678aa84840e5901f8d449 ba8267a5c1411eb4bc32d9062e3398ad 2 TOY"
  ```
 
 #### Context Broker
 ```
- make run-client OPTIONS="--service=context-broker --endpoint=localhost:8086 --bus-endpoint=localhost:9000 --ports-range=41000:41999  --query=OR 3 AND 4 LINK_TEMPLATE Expression 3 NODE Symbol Evaluation VARIABLE V0 LINK_TEMPLATE Expression 2 NODE Symbol Concept VARIABLE S1 LINK_TEMPLATE Expression 3 NODE Symbol Contains VARIABLE S1 VARIABLE W1 LINK_TEMPLATE Expression 3 NODE Symbol Contains VARIABLE S2 VARIABLE W1 LINK_TEMPLATE Expression 3 NODE Symbol Evaluation VARIABLE V1 LINK_TEMPLATE Expression 2 NODE Symbol Concept VARIABLE S2 LINK_TEMPLATE Expression 3 NODE Symbol Implication VARIABLE V0 VARIABLE V1 LINK_TEMPLATE Expression 3 NODE Symbol Implication VARIABLE V1 VARIABLE V0 --determiner-schema=V0:V1,V0:S2 --stimulus-schema=V0"
+ make run-client OPTIONS="--client=context-broker --endpoint=localhost:8086 --bus-endpoint=localhost:9000 --ports-range=41000:41999  --query=OR 3 AND 4 LINK_TEMPLATE Expression 3 NODE Symbol Evaluation VARIABLE V0 LINK_TEMPLATE Expression 2 NODE Symbol Concept VARIABLE S1 LINK_TEMPLATE Expression 3 NODE Symbol Contains VARIABLE S1 VARIABLE W1 LINK_TEMPLATE Expression 3 NODE Symbol Contains VARIABLE S2 VARIABLE W1 LINK_TEMPLATE Expression 3 NODE Symbol Evaluation VARIABLE V1 LINK_TEMPLATE Expression 2 NODE Symbol Concept VARIABLE S2 LINK_TEMPLATE Expression 3 NODE Symbol Implication VARIABLE V0 VARIABLE V1 LINK_TEMPLATE Expression 3 NODE Symbol Implication VARIABLE V1 VARIABLE V0 --determiner-schema=V0:V1,V0:S2 --stimulus-schema=V0"
  ```
 
 #### Evolution Agent
 
 ```
-make run-client OPTIONS="--service=evolution-agent --endpoint=localhost:8085 --bus-endpoint=localhost:9000 --ports-range=41000:41999  --query='(Contains %sentence1 (Word \"bbb\"))' --correlation-queries='(Contains %placeholder1 %word1)' --correlation-replacements=%placeholder1:sentence1 --correlation-mappings=sentence1:%word1 --max-generations=3 --fitness-function-tag=count_letter --context=Aaa --use-metta-as-query-tokens --max-answers=50"
+make run-client OPTIONS="--client=evolution-agent --endpoint=localhost:8085 --bus-endpoint=localhost:9000 --ports-range=41000:41999  --query='(Contains %sentence1 (Word \"bbb\"))' --correlation-queries='(Contains %placeholder1 %word1)' --correlation-replacements=%placeholder1:sentence1 --correlation-mappings=sentence1:%word1 --max-generations=3 --fitness-function-tag=count_letter --context=Aaa --use-metta-as-query-tokens --max-answers=50"
 ```
 
 ## Adding a New Element

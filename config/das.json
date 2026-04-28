@@ -110,38 +110,6 @@
             "ports_range": "47000:47999"
         }
     },
-    "params": {
-        "query": {
-            "max_answers": 100,
-            "max_bundle_size": 1000,
-            "count_flag": false,
-            "attention_update_flag": false,
-            "unique_assignment_flag": true,
-            "positive_importance_flag": false,
-            "populate_metta_mapping": true,
-            "use_metta_as_query_tokens": true
-        },
-        "link_creation": {
-            "repeat_count": 1,
-            "query_interval": 0,
-            "query_timeout": 0
-        },
-        "evolution": {
-            "elitism_rate": 0.08,
-            "max_generations": 10,
-            "population_size": 50,
-            "selection_rate": 0.1,
-            "total_attention_tokens": 100000
-        },
-        "context": {
-            "context": "context",
-            "use_cache": true,
-            "enforce_cache_recreation": false,
-            "initial_rent_rate": 0.25,
-            "initial_spreading_rate_lowerbound": 0.5,
-            "initial_spreading_rate_upperbound": 0.7
-        }
-    },
     "adapter": {
         "type": "postgres",
         "host": "chado.flybase.org",
