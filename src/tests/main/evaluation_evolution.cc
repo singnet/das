@@ -1,6 +1,6 @@
 #include <signal.h>
 
-#define LOG_LEVEL INFO_LEVEL
+#define LOG_LEVEL DEBUG_LEVEL
 
 #include <fstream>
 #include <iomanip>
@@ -134,7 +134,7 @@ static shared_ptr<PatternMatchingQueryProxy> issue_link_building_query(
     auto proxy = make_shared<PatternMatchingQueryProxy>(query_tokens, context);
     proxy->parameters[BaseQueryProxy::UNIQUE_ASSIGNMENT_FLAG] = true;
     proxy->parameters[BaseQueryProxy::ATTENTION_UPDATE_FLAG] = false;
-    // proxy->parameters[BaseQueryProxy::USE_LINK_TEMPLATE_CACHE] = true; // Use the default value
+    proxy->parameters[BaseQueryProxy::USE_LINK_TEMPLATE_CACHE] = true;
     proxy->parameters[PatternMatchingQueryProxy::MAX_ANSWERS] = (unsigned int) max_answers;
     proxy->parameters[PatternMatchingQueryProxy::POSITIVE_IMPORTANCE_FLAG] = (max_answers != 0);
     proxy->parameters[BaseQueryProxy::USE_METTA_AS_QUERY_TOKENS] = false;
@@ -168,7 +168,7 @@ static void attention_allocation_query(const vector<string>& query_tokens, const
     proxy->parameters[BaseQueryProxy::USE_LINK_TEMPLATE_CACHE] = false;
     proxy->parameters[PatternMatchingQueryProxy::POSITIVE_IMPORTANCE_FLAG] = false;
     proxy->parameters[PatternMatchingQueryProxy::COUNT_FLAG] = true;
-    proxy->parameters[BaseQueryProxy::USE_METTA_AS_QUERY_TOKENS] = false;
+    proxy->parameters[BaseQueryProxy::USE_METTA_AS_QUERY_TOKENS] = true;
     proxy->parameters[BaseQueryProxy::POPULATE_METTA_MAPPING] = false;
 
     ServiceBusSingleton::get_instance()->issue_bus_command(proxy);
@@ -340,25 +340,19 @@ static void build_implication_link(shared_ptr<QueryAnswer> query_answer,
                                    const string& context,
                                    const string& custom_handle) {
     string predicates[2];
-    string concept = query_answer->get(CONCEPT);
-    bool custom_implication_flag = false;
     if (custom_handle == "") {
+        // build Evaluation of the AND of both predicates
+        build_and_predicate_link(query_answer, context, custom_handle);
         predicates[0] = query_answer->get(PREDICATE1);
         predicates[1] = query_answer->get(PREDICATE2);
     } else {
         predicates[0] = custom_handle;
         predicates[1] = query_answer->get(0);
-        custom_implication_flag = true;
     }
 
     if (predicates[0] == predicates[1]) {
         LOG_DEBUG("Skipping link building because targets are the same: " + predicates[0]);
         return;
-    }
-
-    if (! custom_implication_flag) {
-        // build Evaluation of the AND of both predicates
-        build_and_predicate_link(query_answer, context, custom_handle);
     }
 
     vector<vector<string>> query;
@@ -516,7 +510,7 @@ static void query_evolution(
         FITNESS_FUNCTION);
 
     shared_ptr<QueryEvolutionProxy> proxy(proxy_ptr);
-    proxy->parameters[BaseQueryProxy::USE_METTA_AS_QUERY_TOKENS] = false;
+    proxy->parameters[BaseQueryProxy::USE_METTA_AS_QUERY_TOKENS] = true;
     proxy->parameters[BaseQueryProxy::POPULATE_METTA_MAPPING] = false;
     proxy->parameters[QueryEvolutionProxy::POPULATION_SIZE] = (unsigned int) POPULATION_SIZE;
     proxy->parameters[QueryEvolutionProxy::MAX_GENERATIONS] = (unsigned int) MAX_GENERATIONS;
@@ -524,6 +518,7 @@ static void query_evolution(
     proxy->parameters[QueryEvolutionProxy::SELECTION_RATE] = (double) SELECTION_RATE;
     proxy->parameters[QueryEvolutionProxy::TOTAL_ATTENTION_TOKENS] = (unsigned int) 100000;
     proxy->parameters[BaseQueryProxy::MAX_BUNDLE_SIZE] = (unsigned int) 1000;
+    proxy->parameters[BaseQueryProxy::ALLOW_INCOMPLETE_CHAIN_PATH] = true;
     bus->issue_bus_command(proxy);
 
     shared_ptr<QueryAnswer> query_answer;
@@ -546,7 +541,29 @@ static void query_evolution(
 }
 // clang-format on
 
-static void run(const string& target_predicate_handle,
+static string metta_expr_3(const string& expr1, const string& expr2, const string& expr3) {
+    return "(" + expr1 + " " + expr2 + " " + expr3 + ")";
+}
+
+static string metta_or(const string& expr1, const string& expr2) {
+    return metta_expr_3("or", expr1, expr2);
+}
+
+static string metta_and(const string& expr1, const string& expr2) {
+    return metta_expr_3("and", expr1, expr2);
+}
+
+static string metta_chain(const string& source, const string& target, const string& query) {
+    return "(chain 0 1 2 " + source + " " + target + " " + query + ")";
+}
+
+static string metta_var(const string& name) {
+    return "$" + name;
+}
+
+static void run(const string& target_predicate,
+                const string& target_concept,
+                const string& target_predicate_handle,
                 const string& target_concept_handle,
                 const string& context_tag) {
     // clang-format off
@@ -596,6 +613,13 @@ static void run(const string& target_predicate_handle,
                     VARIABLE, PREDICATE1,
                     VARIABLE, PREDICATE2,
     };
+    vector<string> metta_query_to_evolve = {
+        metta_and(
+            metta_and(
+                metta_expr_3(EVALUATION, metta_var(PREDICATE), metta_var(CONCEPT)),
+                metta_chain(metta_var(CONCEPT), target_concept, metta_expr_3(EQUIVALENCE, metta_var(CONCEPT1) , metta_var(CONCEPT2)))),
+            metta_chain(metta_var(PREDICATE), target_predicate, metta_expr_3(IMPLICATION, metta_var(PREDICATE1) , metta_var(PREDICATE2))))
+    };
 
     vector<vector<string>> correlation_query_template = {{
         OR_OPERATOR, "2",
@@ -627,6 +651,10 @@ static void run(const string& target_predicate_handle,
             VARIABLE, PREDICATE,
             ATOM, target_concept_handle,
     };
+    vector<string> initialization_STI_metta_query = {
+        metta_or(metta_expr_3(EVALUATION, target_predicate, metta_var(CONCEPT)),
+                 metta_expr_3(EVALUATION, metta_var(PREDICATE), target_concept)),
+    };
 
     vector<string> custom_initial_equivalence_query = {
         LINK_TEMPLATE, EXPRESSION, "2",
@@ -652,6 +680,9 @@ static void run(const string& target_predicate_handle,
     };
 
     // clang-format on
+
+    LOG_INFO("initialization_STI_metta_query: " + initialization_STI_metta_query[0]);
+    LOG_INFO("metta_query_to_evolve: " + metta_query_to_evolve[0]);
 
     LOG_INFO("Setting up context for tag: " + context_tag);
     QueryAnswerElement target2(V2);
@@ -679,7 +710,7 @@ static void run(const string& target_predicate_handle,
 
     LOG_INFO("Pre-processing...");
     LOG_INFO("Initializing STI");
-    attention_allocation_query(initialization_STI_query, context);
+    attention_allocation_query(initialization_STI_metta_query, context);
     // LOG_INFO("Building initial custom links");
     // build_links(
     //     custom_initial_equivalence_query, context, 0, target_concept_handle, build_equivalence_link);
@@ -701,7 +732,7 @@ static void run(const string& target_predicate_handle,
         AttentionBrokerClient::set_determiners(buffer_determiners, context);
         buffer_determiners.clear();
         LOG_INFO("----- Evolving query");
-        query_evolution(query_to_evolve,
+        query_evolution(metta_query_to_evolve,
                         correlation_query_template,
                         correlation_query_constants,
                         correlation_mapping[0],
@@ -710,7 +741,7 @@ static void run(const string& target_predicate_handle,
 }
 
 void insert_type_symbols() {
-    vector<string> to_insert = {EQUIVALENCE, IMPLICATION};
+    vector<string> to_insert = {EQUIVALENCE, IMPLICATION, LOGICAL_AND};
     Node* node;
     for (string node_name : to_insert) {
         node = new Node(SYMBOL, node_name);
@@ -723,7 +754,7 @@ void insert_type_symbols() {
 
 int main(int argc, char* argv[]) {
     // clang-format off
-    if (argc < 15) {
+    if (argc != 16) {
         cerr << "Usage: " << argv[0]
              << " <client_endpoint> <server_endpoint> <start_port:end_port> <config_file>"
                 " <context_tag> <target_predicate> <target_concept>"
@@ -767,7 +798,7 @@ int main(int argc, char* argv[]) {
     MAX_GENERATIONS = (unsigned int) Utils::string_to_int(string(argv[++cursor]));
     NUM_ITERATIONS = (unsigned int) Utils::string_to_int(string(argv[++cursor]));
 
-    if (cursor != 14) {
+    if (cursor != 15) {
         Utils::error("Error setting up parameters");
     }
 
@@ -781,6 +812,7 @@ int main(int argc, char* argv[]) {
     bus = ServiceBusSingleton::get_instance();
     AttentionBrokerClient::set_parameters(
         RENT_RATE, SPREADING_RATE_LOWERBOUND, SPREADING_RATE_UPPERBOUND);
+
     insert_type_symbols();
 
     LOG_INFO("ELITISM_RATE: " + to_string(ELITISM_RATE));
@@ -800,11 +832,14 @@ int main(int argc, char* argv[]) {
     predicate_p.parse();
     concept_p.parse();
 
-    LOG_INFO("Target predicate: " + target_predicate +
-             " Handle: " + predicate_pa->metta_expression_handle);
+    LOG_INFO("Target predicate: " + target_predicate + " Handle: " + predicate_pa->metta_expression_handle);
     LOG_INFO("Target concept: " + target_concept + " Handle: " + concept_pa->metta_expression_handle);
 
-    run(predicate_pa->metta_expression_handle, concept_pa->metta_expression_handle, context_tag);
+    run(target_predicate,
+        target_concept,
+        predicate_pa->metta_expression_handle, 
+        concept_pa->metta_expression_handle, 
+        context_tag);
 
     return 0;
 }
