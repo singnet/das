@@ -74,7 +74,11 @@ void ServiceBus::register_processor(shared_ptr<BusCommandProcessor> processor) {
 
 void ServiceBus::issue_bus_command(shared_ptr<BusCommandProxy> proxy) {
     lock_guard<mutex> semaphore(this->api_mutex);
-    LOG_INFO(bus_node->node_id() << " is issuing BUS command <" << proxy->command << ">");
+    LOG_DEBUG(bus_node->node_id() << " is issuing BUS command <" << proxy->command << ">");
+    if (proxy->issued) {
+        Utils::error("Attempt to issue the same proxy twice");
+    }
+    proxy->issued = true;
     proxy->requestor_id = this->bus_node->node_id();
     proxy->serial = this->next_request_serial++;
     proxy->proxy_port = PortPool::get_port();
