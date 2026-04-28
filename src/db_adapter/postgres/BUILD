@@ -17,8 +17,9 @@ cc_library(
     includes = ["."],
     deps = [
         "//commons:commons_lib",
-        "//db_adapter:data_mapper",
+        "//db_adapter:bounded_shared_queue",
         "//db_adapter:database_connection",
+        "//db_adapter:database_mapper",
         "//db_adapter:database_wrapper",
     ],
 )
