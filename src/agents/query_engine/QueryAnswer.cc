@@ -86,14 +86,14 @@ bool QueryAnswer::merge(QueryAnswer* other, bool merge_handles) {
     }
 }
 
-string QueryAnswer::to_string() {
+string QueryAnswer::to_string(bool metta_flag) {
     string answer = "QueryAnswer<" + std::to_string(this->handles[0].size()) + ",";
     answer += std::to_string(this->assignment.variable_count()) + "> [";
     for (auto& vector : this->handles) {
         answer += "[";
         bool empty_flag = true;
         for (string handle : vector) {
-            answer += handle;
+            answer += (metta_flag ? metta_expression[handle] :  handle);
             answer += ", ";
             empty_flag = false;
         }
