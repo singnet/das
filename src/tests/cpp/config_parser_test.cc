@@ -45,7 +45,7 @@ const char* kValidConfigV1 = R"({
 const char* kValidClientConfigV1 = R"({
   "schema_version": "1.0",
   "params": {
-    "bus-endpoint": "localhost:9000",
+    "endpoint": "localhost:9000",
     "ports-range": "41000:41999",
     "das-config-file": "config/das.json",
     "query": { "max-answers": 100 }

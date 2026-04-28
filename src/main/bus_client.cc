@@ -46,7 +46,7 @@ int main(int argc, char* argv[]) {
                 // Get bus node endpoint from das.json
                 auto it_known_peer = Helper::arg_to_json_config_key.find(cmd_args[Helper::CLIENT]);
                 if (it_known_peer != Helper::arg_to_json_config_key.end()) {
-                    cmd_args[Helper::ENDPOINT] =
+                    cmd_args[Helper::BUS_ENDPOINT] =
                         das_config.at_path(it_known_peer->second + ".endpoint").get<string>();
                 } else {
                     Utils::error("Required argument missing: " + cmd_args[Helper::CLIENT] +
@@ -57,7 +57,7 @@ int main(int argc, char* argv[]) {
                 Utils::error("params.das-config-file is missing");
             }
 
-            cmd_args[Helper::BUS_ENDPOINT] = json_config.at_path("params.bus-endpoint").get<string>();
+            cmd_args[Helper::ENDPOINT] = json_config.at_path("params.endpoint").get<string>();
             cmd_args[Helper::PORTS_RANGE] = json_config.at_path("params.ports-range").get<string>();
 
             // Merge all params from client json config to cmd_args, existing cmd_args have precedence
@@ -99,21 +99,21 @@ int main(int argc, char* argv[]) {
             FitnessFunctionRegistry::initialize_statics();
         }
 
-        auto ports_range = Utils::parse_ports_range(props.get<string>(Helper::PORTS_RANGE));
-        ServiceBusSingleton::init(props.get<string>(Helper::BUS_ENDPOINT),
-                                  props.get<string>(Helper::ENDPOINT),
-                                  ports_range.first,
-                                  ports_range.second);
-        LOG_DEBUG("ServiceBus host_id (bus-endpoint): " + props.get<string>(Helper::BUS_ENDPOINT) +
-                  "; known_peer (endpoint): " + props.get<string>(Helper::ENDPOINT));
-
         auto proxy = ProxyFactory::create_proxy(cmd_args[Helper::CLIENT], props);
         if (proxy == nullptr) {
             Utils::error("Could not create proxy for service or client is inactive: " +
                          cmd_args[Helper::CLIENT]);
         }
+        auto ports_range = Utils::parse_ports_range(props.get<string>(Helper::PORTS_RANGE));
+        ServiceBusSingleton::init(props.get<string>(Helper::ENDPOINT),
+                                  props.get<string>(Helper::BUS_ENDPOINT),
+                                  ports_range.first,
+                                  ports_range.second);
         shared_ptr<ServiceBus> service_bus = ServiceBusSingleton::get_instance();
         service_bus->issue_bus_command(proxy);
+
+        LOG_DEBUG("ServiceBus host_id (endpoint): " + props.get<string>(Helper::ENDPOINT) +
+                  "; known_peer (bus-endpoint): " + props.get<string>(Helper::BUS_ENDPOINT));
 
         if (cmd_args[Helper::CLIENT] == "atomdb-broker") {
             auto action = props.get_or<string>("action", "");

@@ -28,7 +28,7 @@ const unordered_map<string, vector<string>>& required_node_fields_by_version() {
 // bus_client: required fields.
 const unordered_map<string, vector<string>>& required_client_fields_by_version() {
     static const unordered_map<string, vector<string>> m = {
-        {"1.0", {"params", "params.das-config-file", "params.bus-endpoint", "params.ports-range"}},
+        {"1.0", {"params", "params.das-config-file", "params.endpoint", "params.ports-range"}},
     };
     return m;
 }
