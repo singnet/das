@@ -15,7 +15,7 @@ using json = nlohmann::json;
 
 namespace fs = std::filesystem;
 
-vector<TableMapping> ContextLoader::load_context_file(const string& file_path) {
+vector<TableMapping> ContextLoader::load_table_file(const string& file_path) {
     if (!fs::exists(file_path)) {
         Utils::error("Context file " + file_path + " does not exist");
     }
@@ -135,7 +135,8 @@ vector<string> ContextLoader::load_query_file(const string& file_path) {
 
     while (getline(f, line)) {
         line = Utils::trim(line);
-        if (!line.empty()) {
+        bool is_comment = line.size() >= 2 && line[0] == '-' && line[1] == '-';
+        if (!line.empty() && !is_comment) {
             query += line + " ";
         } else {
             out.push_back(query);

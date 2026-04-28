@@ -109,5 +109,16 @@
             "endpoint": "localhost:40007",
             "ports_range": "47000:47999"
         }
+    },
+    "adapter": {
+        "type": "postgres",
+        "host": "chado.flybase.org",
+        "port": 5432,
+        "username": "flybase",
+        "password": "",
+        "database": "flybase",
+        "context_mapping": {
+            "queries_sql": "./simple_test.sql"
+        }
     }
 }

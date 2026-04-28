@@ -11,9 +11,9 @@
 #include <string>
 #include <vector>
 
+#include "BoundedSharedQueue.h"
 #include "DatabaseConnection.h"
 #include "DatabaseWrapper.h"
-#include "SharedQueue.h"
 
 #define MAX_VALUE_SIZE ((size_t) 1000)
 
@@ -57,16 +57,17 @@ class PostgresWrapper : public SQLWrapper {
     /**
      * @brief Constructs a PostgresWrapper.
      *
-     * @param connection The PostgreSQL database connection.
+     * @param db_conn The PostgreSQL database connection.
+     * @param output_queue Optional shared queue for outputting mapped data.
      * @param mapper_type The strategy for mapping results.
      */
     PostgresWrapper(PostgresDatabaseConnection& db_conn,
-                    MAPPER_TYPE mapper_type = MAPPER_TYPE::SQL2ATOMS,
-                    shared_ptr<SharedQueue> output_queue = nullptr);
+                    shared_ptr<BoundedSharedQueue> output_queue = nullptr,
+                    MAPPER_TYPE mapper_type = MAPPER_TYPE::SQL2ATOMS);
 
     ~PostgresWrapper() override;
 
-    Table get_table(const string& name) override;
+    Table get_table(const string& schema_name, const string& table_name) override;
     vector<Table> list_tables() override;
     void map_table(const Table& table,
                    const vector<string>& clauses,
@@ -82,7 +83,7 @@ class PostgresWrapper : public SQLWrapper {
     atomic<int> count = 0;
     mutex api_mutex;
     PostgresDatabaseConnection& db_conn;
-    shared_ptr<SharedQueue> output_queue;
+    shared_ptr<BoundedSharedQueue> output_queue;
     optional<vector<Table>> tables_cache;
     unordered_map<string, int> tables_rows_count;
     vector<string> build_columns_to_map(const Table& table, const vector<string>& skip_columns = {});
