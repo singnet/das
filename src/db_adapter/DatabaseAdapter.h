@@ -1,26 +1,128 @@
 #pragma once
 
+#include <atomic>
 #include <memory>
+#include <mutex>
 #include <string>
 #include <vector>
 
+#include "AtomDB.h"
 #include "DatabaseTypes.h"
 #include "JsonConfig.h"
 
 using namespace std;
+using namespace atomdb;
 
 namespace db_adapter {
 
 /**
- * @param config JSON configuration for the adapter
- * @param save_metta Generate and save Metta expressions for mapped Atoms (optional; default: false)
+ * @brief A fully functional AtomDB backed by a relational database.
+ *
+ * During construction, it is checked whether the context defined by `config` has already been loaded
+ * into the AtomDB backend. If so, the object is ready for immediate use. Otherwise, the adapter
+ * pipeline runs synchronously—fetching, mapping, and persisting the Atoms—and the constructor is blocked
+ * until this is completed.
+ *
+ * After construction the caller can use the AtomDB API normally.
  *
  * Required fields in config:
- *  - adapter.host, adapter.port, adapter.username, adapter.password, adapter.database: connection
- * info for the source database
- *  - adapter.context_mapping.tables: path to a JSON file defining tables to map
- *  - adapter.context_mapping.queries_sql: path to a SQL file with custom queries to map
+ *  - adapter.host / port / username / password / database -> source DB connection
+ *  - adapter.context_mapping.tables -> path to a JSON file listing tables to map
+ *  - adapter.context_mapping.queries_sql -> path to a SQL file with custom queries
+ *
+ * (At least one of the two mapping fields must be present.)
+ *
+ * @param config     JSON configuration describing the source DB and mapping context.
  */
-void run_database_adapter(const JsonConfig& config, bool save_metta = false);
+class DatabaseAdapter : public AtomDB {
+   public:
+    explicit DatabaseAdapter(const JsonConfig& config);
+    ~DatabaseAdapter() override;
+
+    static string MONGODB_ADAPTER_COLLECTION_NAME;
+
+    /**
+     * @brief Unconditionally re-runs the adapter pipeline against the source database.
+     */
+    void reload();
+
+    /**
+     * @brief Returns true if the source database contains data not yet in the backend.
+     */
+    bool needs_sync() const;
+
+    // ------------------------------------------------------------------
+    // AtomDB API
+    // ------------------------------------------------------------------
+
+    bool allow_nested_indexing() override;
+
+    shared_ptr<Atom> get_atom(const string& handle) override;
+    shared_ptr<Node> get_node(const string& handle) override;
+    shared_ptr<Link> get_link(const string& handle) override;
+
+    vector<shared_ptr<Atom>> get_matching_atoms(bool is_toplevel, Atom& key) override;
+
+    shared_ptr<atomdb_api_types::HandleSet> query_for_pattern(const LinkSchema& link_schema) override;
+
+    shared_ptr<atomdb_api_types::HandleList> query_for_targets(const string& handle) override;
+
+    shared_ptr<atomdb_api_types::HandleSet> query_for_incoming_set(const string& handle) override;
+
+    bool atom_exists(const string& handle) override;
+    bool node_exists(const string& handle) override;
+    bool link_exists(const string& handle) override;
+
+    set<string> atoms_exist(const vector<string>& handles) override;
+    set<string> nodes_exist(const vector<string>& handles) override;
+    set<string> links_exist(const vector<string>& handles) override;
+
+    string add_atom(const atoms::Atom* atom, bool throw_if_exists = false) override;
+    string add_node(const atoms::Node* node, bool throw_if_exists = false) override;
+    string add_link(const atoms::Link* link, bool throw_if_exists = false) override;
+
+    vector<string> add_atoms(const vector<atoms::Atom*>& atoms,
+                             bool throw_if_exists = false,
+                             bool is_transactional = false) override;
+    vector<string> add_nodes(const vector<atoms::Node*>& nodes,
+                             bool throw_if_exists = false,
+                             bool is_transactional = false) override;
+    vector<string> add_links(const vector<atoms::Link*>& links,
+                             bool throw_if_exists = false,
+                             bool is_transactional = false) override;
+
+    bool delete_atom(const string& handle, bool delete_link_targets = false) override;
+    bool delete_node(const string& handle, bool delete_link_targets = false) override;
+    bool delete_link(const string& handle, bool delete_link_targets = false) override;
+
+    uint delete_atoms(const vector<string>& handles, bool delete_link_targets = false) override;
+    uint delete_nodes(const vector<string>& handles, bool delete_link_targets = false) override;
+    uint delete_links(const vector<string>& handles, bool delete_link_targets = false) override;
+
+    void re_index_patterns(bool flush_patterns = true) override;
+
+   private:
+    /**
+     * @brief Returns true if the context is already loaded in the AtomDB backend.
+     */
+    bool is_loaded(const string& context_id) const;
+
+    /**
+     * Produces a string that identifies this mapping context (a hash)
+     * Used to decide whether the backend already holds this data.
+     */
+    string context_id() const;
+    vector<string> get_mapping_file_paths() const;
+    vector<string> get_mapping_file_contents() const;
+
+    /**
+     * Runs the full adapter pipeline (orchestrator -> persister) synchronously.
+     */
+    void sync_source_database_to_atomdb();
+
+    JsonConfig config;
+    shared_ptr<AtomDB> atomdb;
+    mutex mtx;
+};
 
 }  // namespace db_adapter

@@ -48,10 +48,15 @@ int main(int argc, char* argv[]) {
 
     JsonConfig json_config = JsonConfigParser::load(config);
 
-    auto atomdb_config = json_config.at_path("atomdb").get_or<JsonConfig>(JsonConfig());
+    auto atomdb_config = json_config.at_path("atomdb.atomdb_backend").get_or<JsonConfig>(JsonConfig());
     AtomDBSingleton::init(atomdb_config);
 
-    run_database_adapter(json_config, save_metta);
+    auto adapter = make_shared<DatabaseAdapter>(json_config);
+
+    auto atom = adapter->get_atom("4fec22fd642b774756ca0dd8a892225f");
+
+    LOG_INFO("Retrieved atom with handle 4fec22fd642b774756ca0dd8a892225f: " << (atom ? atom->to_string()
+                                                                                      : "NOT_FOUND"));
 
     LOG_INFO("Database adapter stopped.");
 
