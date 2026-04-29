@@ -1,8 +1,11 @@
 #include "Helper.h"
 
+#include <filesystem>
 #include <nlohmann/json.hpp>
+#include <sstream>
 
 #include "JsonConfig.h"
+#include "JsonConfigParser.h"
 
 using namespace std;
 using namespace mains;
@@ -11,6 +14,7 @@ using namespace commons;
 bool Helper::is_running = true;
 // Args names
 string Helper::SERVICE = "service";
+string Helper::CLIENT = "client";
 string Helper::ENDPOINT = "endpoint";
 string Helper::BUS_ENDPOINT = "bus-endpoint";
 string Helper::PORTS_RANGE = "ports-range";
@@ -58,6 +62,31 @@ map<string, string> Helper::arg_to_json_config_key = {
     {"attention-broker", "brokers.attention"},
     {Helper::ATTENTION_BROKER_ENDPOINT, "brokers.attention.endpoint"},
 };
+
+void merge_params(map<string, string>& cmd_args, JsonConfig& params) {
+    for (const auto& entry : params.items()) {
+        const nlohmann::json& v = entry.value();
+        if (v.is_object() || v.is_array()) {
+            continue;
+        }
+        // If the param is not already set, set it
+        if (cmd_args.find(entry.key()) == cmd_args.end()) {
+            cmd_args[entry.key()] = v.dump();
+        }
+    }
+}
+
+void Helper::merge_params_from_client_json_config(map<string, string>& cmd_args,
+                                                  JsonConfig& json_config) {
+    auto query_params = json_config.at_path("params.query").get<JsonConfig>();
+    merge_params(cmd_args, query_params);
+    auto link_creation_params = json_config.at_path("params.link_creation").get<JsonConfig>();
+    merge_params(cmd_args, link_creation_params);
+    auto evolution_params = json_config.at_path("params.evolution").get<JsonConfig>();
+    merge_params(cmd_args, evolution_params);
+    auto context_params = json_config.at_path("params.context").get<JsonConfig>();
+    merge_params(cmd_args, context_params);
+}
 
 static map<ProcessorType, string> node_service_help = {{ProcessorType::INFERENCE_AGENT, string(R"(
 Inference Agent:
@@ -183,7 +212,8 @@ This client interacts with the AtomDB Broker via the service bus.
 )")},
                                                          {ProcessorType::UNKNOWN, string(R"(
 Usage:
-busclient --service=<service> --endpoint=<host:port> --bus-endpoint=<bus_host:bus_port> --ports-range=<start_port:end_port> [--use-mork=true|false]
+busclient --client=<name> --endpoint=<remote_agent_host:port> --bus-endpoint=<this_client_host:port> --ports-range=<start_port:end_port> [--config=<client.json>] [--use-mork=true|false]
+With --config=client.json (schema 1.0), params.das_config_file points at das.json (DAS bus node config); --endpoint may be omitted when --client is set (reads agents.<name>.endpoint or brokers.<name>.endpoint); optional attention-broker-endpoint from merged brokers.attention.endpoint; bus-endpoint and ports-range from params. Internal bus proxy is chosen from --client (query -> query-engine, etc.).
         )")}};
 
 static map<string, ProcessorType> string_to_processor_type = {

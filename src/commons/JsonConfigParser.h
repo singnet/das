@@ -29,6 +29,16 @@ class JsonConfigParser {
      * @throws std::runtime_error on invalid JSON or schema validation failure.
      */
     static JsonConfig load_from_string(const string& json_content);
+
+    /**
+     * Load and validate a bus_client config (schema 1.0): requires params and params.das_config_file
+     * (path to `das.json`, same schema as bus `busnode` config). Atomdb may be supplied inline or merged
+     * from that file in bus_client.
+     */
+    static JsonConfig load_client_config(const string& file_path, bool throw_flag = true);
+
+    /** Same as load_client_config for inline JSON (tests). */
+    static JsonConfig load_client_config_from_string(const string& json_content);
 };
 
 }  // namespace commons

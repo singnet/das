@@ -4,6 +4,7 @@
 #include "Utils.h"
 
 using namespace std;
+using namespace commons;
 
 namespace mains {
 
@@ -24,9 +25,15 @@ class Helper {
     Helper() = default;
     ~Helper() = default;
 
-    // Args names
+    // Args names (CLI keys). bus_client: required --client; SERVICE is derived (not a CLI flag).
+    // bus_node vs bus_client use ENDPOINT / BUS_ENDPOINT differently; see merge_client_json_defaults.
     static string SERVICE;
+    /** Agent/broker key in `das.json` (e.g. query -> agents.query.endpoint). */
+    static string CLIENT;
+    /** bus_node: this node's listen address. bus_client: remote bus peer id (ServiceBus known_peer). */
     static string ENDPOINT;
+    /** bus_client: this client's listen address on the bus (ServiceBus host_id). bus_node: optional
+     * peer. */
     static string BUS_ENDPOINT;
     static string PORTS_RANGE;
     static string ATTENTION_BROKER_ENDPOINT;
@@ -65,6 +72,9 @@ class Helper {
 
     /** Maps CLI arg names to dotted JSON config paths (e.g. "query-engine" -> "agents.query"). */
     static map<string, string> arg_to_json_config_key;
+    /** Merges params from client json config to cmd_args. */
+    static void merge_params_from_client_json_config(map<string, string>& cmd_args,
+                                                     JsonConfig& json_config);
 
     static bool is_running;
 
