@@ -153,7 +153,20 @@ class QueryAnswer {
      */
     void add_handle(const string& handle);
 
+    /**
+     * Adds a new path in the QueryAnswer (e.g. by CHAIN operator).
+     *
+     * @return The index opf the newly inserted path, which can be used to make
+     * further calls to add_path_element().
+     */
     unsigned int add_path();
+
+    /**
+     * Adds a new hop in the given path.
+     *
+     * @param path_index Index of the path which shaw be updated.
+     * @param handle The handle of the atom that is the new hop in the path.
+     */
     void add_path_element(unsigned int path_index, const string& handle);
 
     /**
@@ -206,7 +219,7 @@ class QueryAnswer {
      * Returns a string representation of this QueryAnswer (mainly for debugging; not optimized to
      * production environment).
      */
-    string to_string();
+    string to_string(bool metta_flag = false);
 
     /**
      * Returns the element indicated by the passed QueryAnswerElement key, it can be either one

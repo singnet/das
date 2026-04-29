@@ -56,6 +56,7 @@ void check_command(ServiceBus& source, shared_ptr<TestProcessor> target, const s
     Utils::sleep(1000);
     EXPECT_EQ(dynamic_pointer_cast<TestProxy>(target->proxy)->remote_command, ping);
     EXPECT_EQ(dynamic_pointer_cast<TestProxy>(target->proxy)->remote_args[0], ping_arg);
+    EXPECT_THROW(source.issue_bus_command(proxy), runtime_error);
 }
 
 TEST(ServiceBus, basics) {

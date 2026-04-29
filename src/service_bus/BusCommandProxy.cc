@@ -14,10 +14,16 @@ string BusCommandProxy::PEER_ERROR = "peer_error";
 // -------------------------------------------------------------------------------------------------
 // Constructors and destructors
 
-BusCommandProxy::BusCommandProxy() { this->proxy_port = 0; }
+BusCommandProxy::BusCommandProxy() {
+    this->issued = false;
+    this->proxy_port = 0;
+}
 
 BusCommandProxy::BusCommandProxy(const string& command, const vector<string>& args)
-    : command(command), args(args) {}
+    : command(command), args(args) {
+    this->issued = false;
+    this->proxy_port = 0;
+}
 
 BusCommandProxy::~BusCommandProxy() {
     if (this->proxy_port != 0) {

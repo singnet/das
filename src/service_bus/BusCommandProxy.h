@@ -205,6 +205,7 @@ class BusCommandProxy {
     unsigned int serial;
     unsigned long proxy_port;
     ProxyNode* proxy_node;
+    bool issued;
 };
 
 }  // namespace service_bus
