@@ -61,7 +61,7 @@ void QueryEvolutionProcessor::thread_process_one_query(shared_ptr<StoppableThrea
         proxy->untokenize(proxy->args);
         string command = proxy->get_command();
         if (command == ServiceBus::QUERY_EVOLUTION) {
-            LOG_DEBUG("QUERY_EVOLUTION proxy: " << proxy->to_string());
+            LOG_INFO("Proxy: " << proxy->to_string());
             this->evolve_query(monitor, proxy);
         } else {
             Utils::error("Invalid command " + command + " in QueryEvolutionProcessor");
@@ -77,13 +77,14 @@ void QueryEvolutionProcessor::thread_process_one_query(shared_ptr<StoppableThrea
 
 shared_ptr<PatternMatchingQueryProxy> QueryEvolutionProcessor::issue_sampling_query(
     shared_ptr<QueryEvolutionProxy> proxy) {
+    bool positive_importance_flag = proxy->parameters.get<bool>(PatternMatchingQueryProxy::POSITIVE_IMPORTANCE_FLAG);
     auto pm_proxy =
         make_shared<PatternMatchingQueryProxy>(proxy->get_query_tokens(), proxy->get_context());
     pm_proxy->parameters[BaseQueryProxy::UNIQUE_ASSIGNMENT_FLAG] = true;
-    pm_proxy->parameters[BaseQueryProxy::ATTENTION_UPDATE_FLAG] =
-        false;  // (this->generation_count == 1);
+    pm_proxy->parameters[BaseQueryProxy::ATTENTION_CORRELATION] = (unsigned int) BaseQueryProxy::NONE;
+    pm_proxy->parameters[BaseQueryProxy::ATTENTION_UPDATE] = (unsigned int) BaseQueryProxy::NONE;
     pm_proxy->parameters[BaseQueryProxy::USE_LINK_TEMPLATE_CACHE] = false;
-    pm_proxy->parameters[PatternMatchingQueryProxy::POSITIVE_IMPORTANCE_FLAG] = false;
+    pm_proxy->parameters[PatternMatchingQueryProxy::POSITIVE_IMPORTANCE_FLAG] = positive_importance_flag;
     pm_proxy->parameters[BaseQueryProxy::USE_METTA_AS_QUERY_TOKENS] =
         proxy->parameters.get<bool>(BaseQueryProxy::USE_METTA_AS_QUERY_TOKENS);
     pm_proxy->parameters[BaseQueryProxy::POPULATE_METTA_MAPPING] = proxy->parameters.get<bool>(
@@ -98,7 +99,8 @@ shared_ptr<PatternMatchingQueryProxy> QueryEvolutionProcessor::issue_correlation
     shared_ptr<QueryEvolutionProxy> proxy, vector<string> query_tokens) {
     auto pm_proxy = make_shared<PatternMatchingQueryProxy>(query_tokens, proxy->get_context());
     pm_proxy->parameters[BaseQueryProxy::UNIQUE_ASSIGNMENT_FLAG] = true;
-    pm_proxy->parameters[BaseQueryProxy::ATTENTION_UPDATE_FLAG] = false;
+    pm_proxy->parameters[BaseQueryProxy::ATTENTION_CORRELATION] = (unsigned int) BaseQueryProxy::NONE;
+    pm_proxy->parameters[BaseQueryProxy::ATTENTION_UPDATE] = (unsigned int) BaseQueryProxy::NONE;
     pm_proxy->parameters[BaseQueryProxy::USE_LINK_TEMPLATE_CACHE] = false;
     pm_proxy->parameters[PatternMatchingQueryProxy::POSITIVE_IMPORTANCE_FLAG] =
         true;  //(this->generation_count > 1);

@@ -31,7 +31,8 @@ class LinkCreationRequestProxy : public BaseProxy {
     /** Context for the request */
     static string CONTEXT;
     /** Whether to update the attention broker when running queries */
-    static string ATTENTION_UPDATE_FLAG;
+    static string ATTENTION_UPDATE;
+    static string ATTENTION_CORRELATION;
     /** Importance flag for the request, return only answers that have importance greater than zero */
     static string POSITIVE_IMPORTANCE_FLAG;
     /** Query interval for the request, controls how many time to wait between queries and link

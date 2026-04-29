@@ -162,7 +162,6 @@ static shared_ptr<PatternMatchingQueryProxy> issue_link_building_query(
     const vector<string>& query_tokens, const string& context, unsigned int max_answers) {
     auto proxy = make_shared<PatternMatchingQueryProxy>(query_tokens, context);
     proxy->parameters[BaseQueryProxy::UNIQUE_ASSIGNMENT_FLAG] = true;
-    proxy->parameters[BaseQueryProxy::ATTENTION_UPDATE_FLAG] = false;
     // proxy->parameters[BaseQueryProxy::USE_LINK_TEMPLATE_CACHE] = true; // Use the default value
     proxy->parameters[PatternMatchingQueryProxy::MAX_ANSWERS] = (unsigned int) max_answers;
     proxy->parameters[PatternMatchingQueryProxy::POSITIVE_IMPORTANCE_FLAG] = true;
@@ -180,7 +179,6 @@ static shared_ptr<PatternMatchingQueryProxy> issue_weight_count_query(const vect
                                                                       const string& context) {
     auto proxy = make_shared<PatternMatchingQueryProxy>(query_tokens, context);
     proxy->parameters[BaseQueryProxy::UNIQUE_ASSIGNMENT_FLAG] = true;
-    proxy->parameters[BaseQueryProxy::ATTENTION_UPDATE_FLAG] = false;
     proxy->parameters[BaseQueryProxy::USE_LINK_TEMPLATE_CACHE] = true;
     proxy->parameters[PatternMatchingQueryProxy::POSITIVE_IMPORTANCE_FLAG] = false;
     proxy->parameters[BaseQueryProxy::USE_METTA_AS_QUERY_TOKENS] = false;
@@ -194,7 +192,6 @@ static shared_ptr<PatternMatchingQueryProxy> issue_attention_allocation_query(
     const vector<string>& query_tokens, const string& context) {
     auto proxy = make_shared<PatternMatchingQueryProxy>(query_tokens, context);
     proxy->parameters[BaseQueryProxy::UNIQUE_ASSIGNMENT_FLAG] = true;
-    proxy->parameters[BaseQueryProxy::ATTENTION_UPDATE_FLAG] = false;
     proxy->parameters[BaseQueryProxy::USE_LINK_TEMPLATE_CACHE] = false;
     proxy->parameters[PatternMatchingQueryProxy::POSITIVE_IMPORTANCE_FLAG] = false;
     proxy->parameters[BaseQueryProxy::USE_METTA_AS_QUERY_TOKENS] = false;
