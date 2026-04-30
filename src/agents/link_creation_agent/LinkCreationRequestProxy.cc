@@ -33,7 +33,8 @@ void LinkCreationRequestProxy::set_default_parameters() {
     this->parameters[LinkCreationRequestProxy::REPEAT_COUNT] = (unsigned int) 1;
     this->parameters[LinkCreationRequestProxy::CONTEXT] = string("");
     this->parameters[LinkCreationRequestProxy::ATTENTION_UPDATE] = (unsigned int) BaseQueryProxy::NONE;
-    this->parameters[LinkCreationRequestProxy::ATTENTION_CORRELATION] = (unsigned int) BaseQueryProxy::NONE;
+    this->parameters[LinkCreationRequestProxy::ATTENTION_CORRELATION] =
+        (unsigned int) BaseQueryProxy::NONE;
     this->parameters[LinkCreationRequestProxy::POSITIVE_IMPORTANCE_FLAG] = true;
     this->parameters[LinkCreationRequestProxy::QUERY_INTERVAL] = (unsigned int) 0;
     this->parameters[LinkCreationRequestProxy::QUERY_TIMEOUT] = (unsigned int) 0;

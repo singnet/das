@@ -77,8 +77,8 @@ void PatternMatchingQueryProcessor::run_command(shared_ptr<BusCommandProxy> prox
 
 void PatternMatchingQueryProcessor::update_attention_broker_single_answer(
     shared_ptr<PatternMatchingQueryProxy> proxy, QueryAnswer* answer, set<string>& joint_answer) {
-
-    unsigned int control_single = proxy->parameters.get<unsigned int>(BaseQueryProxy::ATTENTION_CORRELATION);
+    unsigned int control_single =
+        proxy->parameters.get<unsigned int>(BaseQueryProxy::ATTENTION_CORRELATION);
     unsigned int control_joint = proxy->parameters.get<unsigned int>(BaseQueryProxy::ATTENTION_UPDATE);
 
     set<string> single_answer;
@@ -86,10 +86,12 @@ void PatternMatchingQueryProcessor::update_attention_broker_single_answer(
 
     // Stimulate all variables
     for (auto pair : answer->assignment.table) {
-        if ((control_single == BaseQueryProxy::VARIABLES) || (control_single == BaseQueryProxy::HANDLES_AND_VARIABLES)) {
+        if ((control_single == BaseQueryProxy::VARIABLES) ||
+            (control_single == BaseQueryProxy::HANDLES_AND_VARIABLES)) {
             single_answer.insert(pair.second);
         }
-        if ((control_joint == BaseQueryProxy::VARIABLES) || (control_joint == BaseQueryProxy::HANDLES_AND_VARIABLES)) {
+        if ((control_joint == BaseQueryProxy::VARIABLES) ||
+            (control_joint == BaseQueryProxy::HANDLES_AND_VARIABLES)) {
             joint_answer.insert(pair.second);
         }
     }
@@ -103,19 +105,21 @@ void PatternMatchingQueryProcessor::update_attention_broker_single_answer(
         execution_stack.pop();
 
         // Updates single_answer (correlation)
-        if ((control_single == BaseQueryProxy::HANDLES) || (control_single == BaseQueryProxy::HANDLES_AND_VARIABLES)) {
+        if ((control_single == BaseQueryProxy::HANDLES) ||
+            (control_single == BaseQueryProxy::HANDLES_AND_VARIABLES)) {
             single_answer.insert(handle);
         }
         // Updates joint answer (stimulation)
-        if ((control_joint == BaseQueryProxy::HANDLES) || (control_joint == BaseQueryProxy::HANDLES_AND_VARIABLES)) {
+        if ((control_joint == BaseQueryProxy::HANDLES) ||
+            (control_joint == BaseQueryProxy::HANDLES_AND_VARIABLES)) {
             joint_answer.insert(handle);
         }
 
         // Note to reviewer - dead code kept here to remark that we are still not sure if we
         // want to include link's targets in this update or not.
         //
-        // shared_ptr<atomdb_api_types::HandleList> query_result = this->atomdb->query_for_targets(handle);
-        // if (query_result != NULL) {  // if handle is link
+        // shared_ptr<atomdb_api_types::HandleList> query_result =
+        // this->atomdb->query_for_targets(handle); if (query_result != NULL) {  // if handle is link
         //     unsigned int query_result_size = query_result->size();
         //     for (unsigned int i = 0; i < query_result_size; i++) {
         //         execution_stack.push(string(query_result->get_handle(i)));
@@ -155,7 +159,8 @@ void PatternMatchingQueryProcessor::process_query_answers(
     bool populate_metta = proxy->parameters.get<bool>(BaseQueryProxy::POPULATE_METTA_MAPPING);
     while ((answer = query_sink->input_buffer->pop_query_answer()) != NULL) {
         answer_count++;
-        if (proxy->parameters.get<unsigned int>(BaseQueryProxy::ATTENTION_CORRELATION) != BaseQueryProxy::NONE) {
+        if (proxy->parameters.get<unsigned int>(BaseQueryProxy::ATTENTION_CORRELATION) !=
+            BaseQueryProxy::NONE) {
             update_attention_broker_single_answer(proxy, answer, joint_answer);
         }
         if (proxy->parameters.get<bool>(PatternMatchingQueryProxy::COUNT_FLAG)) {
@@ -202,12 +207,12 @@ void PatternMatchingQueryProcessor::thread_process_one_query(
                     query_sink = make_shared<Sink>(
                         root_link_template->get_source_element(),
                         "Sink_" + proxy->peer_id() + "_" + std::to_string(proxy->get_serial()));
-                        LOG_DEBUG("Query tree sink LinkTemplate: " + query_sink->id);
+                    LOG_DEBUG("Query tree sink LinkTemplate: " + query_sink->id);
                 } else {
                     query_sink = make_shared<Sink>(
                         root_query_element,
                         "Sink_" + proxy->peer_id() + "_" + std::to_string(proxy->get_serial()));
-                        LOG_DEBUG("Query tree sink Operator: " + query_sink->id);
+                    LOG_DEBUG("Query tree sink Operator: " + query_sink->id);
                 }
                 unsigned int answer_count = 0;
                 LOG_DEBUG("Processing QueryAnswer objects");
@@ -226,7 +231,8 @@ void PatternMatchingQueryProcessor::thread_process_one_query(
                 }
                 Utils::sleep(500);
                 proxy->query_processing_finished();
-                if (proxy->parameters.get<unsigned int>(BaseQueryProxy::ATTENTION_UPDATE) != BaseQueryProxy::NONE) {
+                if (proxy->parameters.get<unsigned int>(BaseQueryProxy::ATTENTION_UPDATE) !=
+                    BaseQueryProxy::NONE) {
                     LOG_DEBUG("Updating AttentionBroker (stimulate)");
                     update_attention_broker_joint_answer(proxy, joint_answer);
                 }

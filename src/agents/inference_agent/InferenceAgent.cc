@@ -202,8 +202,10 @@ void InferenceAgent::send_link_creation_request(shared_ptr<InferenceRequest> inf
             (unsigned int) inference_request->get_lca_max_repeats();
         link_creation_proxy->parameters[LinkCreationRequestProxy::CONTEXT] =
             inference_request->get_context();
-        link_creation_proxy->parameters[LinkCreationRequestProxy::ATTENTION_UPDATE] = (unsigned int) BaseQueryProxy::NONE;
-        link_creation_proxy->parameters[LinkCreationRequestProxy::ATTENTION_CORRELATION] = (unsigned int) BaseQueryProxy::NONE;
+        link_creation_proxy->parameters[LinkCreationRequestProxy::ATTENTION_UPDATE] =
+            (unsigned int) BaseQueryProxy::NONE;
+        link_creation_proxy->parameters[LinkCreationRequestProxy::ATTENTION_CORRELATION] =
+            (unsigned int) BaseQueryProxy::NONE;
         link_creation_proxy->parameters[LinkCreationRequestProxy::POSITIVE_IMPORTANCE_FLAG] = true;
         this->link_creation_proxy_map[inference_request->get_id()].push_back(link_creation_proxy);
         service_bus->issue_bus_command(link_creation_proxy);
@@ -249,7 +251,8 @@ static shared_ptr<PatternMatchingQueryProxy> issue_attention_allocation_query(
     proxy->parameters[BaseQueryProxy::UNIQUE_ASSIGNMENT_FLAG] = true;
     if (update_attention_broker) {
         proxy->parameters[BaseQueryProxy::ATTENTION_UPDATE] = (unsigned int) BaseQueryProxy::VARIABLES;
-        proxy->parameters[BaseQueryProxy::ATTENTION_CORRELATION] = (unsigned int) BaseQueryProxy::VARIABLES;
+        proxy->parameters[BaseQueryProxy::ATTENTION_CORRELATION] =
+            (unsigned int) BaseQueryProxy::VARIABLES;
     } else {
         proxy->parameters[BaseQueryProxy::ATTENTION_UPDATE] = (unsigned int) BaseQueryProxy::NONE;
         proxy->parameters[BaseQueryProxy::ATTENTION_CORRELATION] = (unsigned int) BaseQueryProxy::NONE;
@@ -375,7 +378,11 @@ void InferenceAgent::process_inference_request(shared_ptr<InferenceProxy> proxy)
         proxy->parameters.get<unsigned int>(InferenceProxy::INFERENCE_REQUEST_TIMEOUT));
     inference_request->set_lca_max_results(
         proxy->parameters.get<unsigned int>(InferenceProxy::MAX_ANSWERS));
-    inference_request->set_lca_update_attention_broker((proxy->parameters.get<unsigned int>(InferenceProxy::ATTENTION_UPDATE) != BaseQueryProxy::NONE) || (proxy->parameters.get<unsigned int>(InferenceProxy::ATTENTION_CORRELATION) != BaseQueryProxy::NONE));
+    inference_request->set_lca_update_attention_broker(
+        (proxy->parameters.get<unsigned int>(InferenceProxy::ATTENTION_UPDATE) !=
+         BaseQueryProxy::NONE) ||
+        (proxy->parameters.get<unsigned int>(InferenceProxy::ATTENTION_CORRELATION) !=
+         BaseQueryProxy::NONE));
     inference_request->set_repeat(proxy->parameters.get<unsigned int>(InferenceProxy::REPEAT_COUNT));
     inference_request_queue.enqueue(inference_request);
     LOG_DEBUG("Inference request processed for request ID: " << request_id);

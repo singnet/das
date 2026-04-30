@@ -3,6 +3,7 @@
 #define LOG_LEVEL INFO_LEVEL
 
 #include <fstream>
+#include <filesystem>
 #include <iomanip>
 #include <iostream>
 #include <string>
@@ -79,7 +80,7 @@ static unsigned int POPULATION_SIZE = 50;
 static unsigned int MAX_GENERATIONS = 20;
 static unsigned int NUM_ITERATIONS = 10;
 
-static string CONTEXT_FILE_NAME = "_CONTEXT_DUMP";
+static string CONTEXT_FILE_NAME_PREFIX = "_CONTEXT_DUMP_";
 static string NEW_LINKS_FILE_NAME = "newly_created_links.txt";
 static bool WRITE_CREATED_LINKS_TO_DB = true;
 static bool WRITE_CREATED_LINKS_TO_FILE = true;
@@ -93,6 +94,8 @@ using namespace evolution;
 using namespace service_bus;
 using namespace attention_broker;
 using namespace context_broker;
+
+enum ContextTaskType { UNDEFINED = 0, DETERMINER, CORRELATION, ACTIVATION };
 
 static shared_ptr<AtomDB> db;
 static shared_ptr<ServiceBus> bus;
@@ -119,7 +122,7 @@ static string metta_var(const string& name) { return "$" + name; }
 
 static void save_link(Link& link) {
     ofstream file;
-    file.open(NEW_LINKS_FILE_NAME, std::ios::app);
+    file.open(NEW_LINKS_FILE_NAME, ios::app);
     if (file.is_open()) {
         vector<string> tokens;
         link.tokenize(tokens);
@@ -181,39 +184,23 @@ static shared_ptr<PatternMatchingQueryProxy> issue_weight_count_query(const vect
     return proxy;
 }
 
-static void attention_correlation_query(const vector<string>& query_tokens, const string& context) {
+static shared_ptr<PatternMatchingQueryProxy> issue_context_creation_query(
+    const vector<string>& query_tokens, const string& context) {
     auto proxy = make_shared<PatternMatchingQueryProxy>(query_tokens, context);
-    proxy->parameters[BaseQueryProxy::ATTENTION_CORRELATION] = (unsigned int) BaseQueryProxy::VARIABLES;
+    proxy->parameters[BaseQueryProxy::ATTENTION_CORRELATION] = (unsigned int) BaseQueryProxy::NONE;
     proxy->parameters[BaseQueryProxy::ATTENTION_UPDATE] = (unsigned int) BaseQueryProxy::NONE;
     proxy->parameters[BaseQueryProxy::UNIQUE_ASSIGNMENT_FLAG] = true;
     proxy->parameters[BaseQueryProxy::USE_LINK_TEMPLATE_CACHE] = false;
+    proxy->parameters[PatternMatchingQueryProxy::MAX_ANSWERS] = (unsigned int) 0;
     proxy->parameters[PatternMatchingQueryProxy::POSITIVE_IMPORTANCE_FLAG] = false;
-    proxy->parameters[PatternMatchingQueryProxy::COUNT_FLAG] = true;
-    proxy->parameters[BaseQueryProxy::USE_METTA_AS_QUERY_TOKENS] = false;
+    proxy->parameters[BaseQueryProxy::USE_METTA_AS_QUERY_TOKENS] = (query_tokens.size() == 1);
     proxy->parameters[BaseQueryProxy::POPULATE_METTA_MAPPING] = false;
+    proxy->parameters[PatternMatchingQueryProxy::UNIQUE_VALUE_FLAG] = true;
 
     ServiceBusSingleton::get_instance()->issue_bus_command(proxy);
-    while (!proxy->finished()) {
-        Utils::sleep();
-    }
+    return proxy;
 }
 
-static void attention_allocation_query(const vector<string>& query_tokens, const string& context) {
-    auto proxy = make_shared<PatternMatchingQueryProxy>(query_tokens, context);
-    proxy->parameters[BaseQueryProxy::ATTENTION_CORRELATION] = (unsigned int) BaseQueryProxy::NONE;
-    proxy->parameters[BaseQueryProxy::ATTENTION_UPDATE] = (unsigned int) BaseQueryProxy::VARIABLES;
-    proxy->parameters[BaseQueryProxy::UNIQUE_ASSIGNMENT_FLAG] = true;
-    proxy->parameters[BaseQueryProxy::USE_LINK_TEMPLATE_CACHE] = false;
-    proxy->parameters[PatternMatchingQueryProxy::POSITIVE_IMPORTANCE_FLAG] = false;
-    proxy->parameters[PatternMatchingQueryProxy::COUNT_FLAG] = true;
-    proxy->parameters[BaseQueryProxy::USE_METTA_AS_QUERY_TOKENS] = USE_MORK;
-    proxy->parameters[BaseQueryProxy::POPULATE_METTA_MAPPING] = false;
-
-    ServiceBusSingleton::get_instance()->issue_bus_command(proxy);
-    while (!proxy->finished()) {
-        Utils::sleep();
-    }
-}
 
 static void insert_or_update(map<string, double>& count_map, const string& key, double value) {
     auto iterator = count_map.find(key);
@@ -620,6 +607,58 @@ static void query_evolution(
 }
 // clang-format on
 
+static void add_to_context_file(const filesystem::path& context_file_name, 
+                                const string& context, 
+                                ContextTaskType task, 
+                                const vector<string>& query, 
+                                const vector<vector<QueryAnswerElement>>& selector) {
+
+    ofstream file;
+    file.open(context_file_name, ios::app);
+    string mnemonic = "";
+    if (file.is_open()) {
+        auto proxy = issue_context_creation_query(query, context);
+        unsigned int count = 0;
+        shared_ptr<QueryAnswer> query_answer;
+        while (!proxy->finished()) {
+            if ((query_answer = proxy->pop()) == nullptr) {
+                Utils::sleep();
+            } else {
+                count++;
+                switch(task) {
+                    case DETERMINER:
+                        mnemonic = "DET";
+                    case CORRELATION:
+                        if (mnemonic == "") mnemonic = "COR";
+                        for (auto pair : selector) {
+                            if (pair.size() != 2) {
+                                Utils::error("Invalid context task selector for " + mnemonic);
+                                return;
+                            }
+                            file << mnemonic << " " << query_answer->get(pair[0]) << " " << query_answer->get(pair[1]) << endl;
+                        }
+                        break;
+                    case ACTIVATION:
+                        mnemonic = "ACT";
+                        if (selector.size() != 1) {
+                            Utils::error("Invalid context task selector for " + mnemonic);
+                        }
+                        file << mnemonic;
+                        for (auto element : selector[0]) {
+                            file << " " << query_answer->get(element);
+                        }
+                        file << endl;
+                        break;
+                    default: Utils::error("Invalid context creation task: " + std::to_string((unsigned int) task));
+                }
+            }
+        }
+        file.close();
+    } else {
+        Utils::error("Couldn't open file for writing: " + string(context_file_name));
+    }
+}
+
 static void run(const string& target_predicate,
                 const string& target_concept,
                 const string& target_predicate_handle,
@@ -692,34 +731,38 @@ static void run(const string& target_predicate,
                 VARIABLE, V2,
     }};
 
-    vector<string> context_query = {
-        LINK_TEMPLATE, EXPRESSION, "3",
-            NODE, SYMBOL, EVALUATION,
-            VARIABLE, V2,
-            VARIABLE, V3,
-    };
-
-    vector<string> initialization_correlation_query = {
+    vector<string> context_determiner_query = {
         LINK_TEMPLATE, EXPRESSION, "3",
             NODE, SYMBOL, EVALUATION,
             VARIABLE, PREDICATE,
             VARIABLE, CONCEPT,
     };
 
-    vector<string> initialization_STI_query = {
-        OR_OPERATOR, "2",
+    vector<string> context_correlation_query = {
+        LINK_TEMPLATE, EXPRESSION, "3",
+            NODE, SYMBOL, EVALUATION,
+            VARIABLE, PREDICATE,
+            VARIABLE, CONCEPT,
+    };
+
+    vector<string> context_activation_query1 = {
         LINK_TEMPLATE, EXPRESSION, "3",
             NODE, SYMBOL, EVALUATION,
             ATOM, target_predicate_handle,
             VARIABLE, CONCEPT,
+    };
+    vector<string> context_activation_metta_query1 = {
+        metta_expr3(EVALUATION, target_predicate, metta_var(CONCEPT))
+    };
+
+    vector<string> context_activation_query2 = {
         LINK_TEMPLATE, EXPRESSION, "3",
             NODE, SYMBOL, EVALUATION,
             VARIABLE, PREDICATE,
             ATOM, target_concept_handle,
     };
-    vector<string> initialization_STI_metta_query = {
-        metta_or(metta_expr3(EVALUATION, target_predicate, metta_var(CONCEPT)),
-                 metta_expr3(EVALUATION, metta_var(PREDICATE), target_concept)),
+    vector<string> context_activation_metta_query2 = {
+        metta_expr3(EVALUATION, metta_var(PREDICATE), target_concept)
     };
 
     vector<string> custom_initial_equivalence_query = {
@@ -747,16 +790,30 @@ static void run(const string& target_predicate,
 
     // clang-format on
 
-    LOG_INFO("initialization_STI_metta_query: " + initialization_STI_metta_query[0]);
-    LOG_INFO("metta_query_to_evolve: " + metta_query_to_evolve[0]);
-
     LOG_INFO("Setting up context for tag: " + context_tag);
-    QueryAnswerElement target2(V2);
-    QueryAnswerElement target3(V3);
-    QueryAnswerElement toplevel_link(0);
-    // For some reason, make_shared was not compiling so I'm explicitly creating the shared_ptr
-    shared_ptr<ContextBrokerProxy> context_proxy(new ContextBrokerProxy(
-        context_tag, context_query, {{toplevel_link, target2}, {toplevel_link, target3}}, {}));
+    string context = Hasher::context_handle(context_tag);
+    filesystem::path context_file_name = CONTEXT_FILE_NAME_PREFIX + context + ".txt";
+    if (! filesystem::exists(context_file_name)) {
+        LOG_INFO("Context file doesn't exist. Creating it...");
+        QueryAnswerElement qe_predicate(PREDICATE);
+        QueryAnswerElement qe_concept(CONCEPT);
+        QueryAnswerElement qe_toplevel(0);
+        LOG_INFO("Creating determiners");
+        add_to_context_file(context_file_name, context, DETERMINER, context_determiner_query, {{qe_toplevel, qe_predicate}, {qe_toplevel, qe_concept}});
+        LOG_INFO("Making correlations");
+        add_to_context_file(context_file_name, context, CORRELATION, context_correlation_query, {{qe_concept, qe_predicate}, {qe_predicate, qe_concept}});
+        LOG_INFO("Spreading activation");
+        add_to_context_file(context_file_name, context, ACTIVATION, (USE_MORK ? context_activation_metta_query1 : context_activation_query1), {{qe_concept}});
+        add_to_context_file(context_file_name, context, ACTIVATION, (USE_MORK ? context_activation_metta_query2 : context_activation_query2), {{qe_predicate}});
+    } else {
+        LOG_INFO("Context file already exists. Reusing it...");
+    }
+    LOG_INFO("Updating AttentionBroker");
+    return;
+    //read_context(context, context_file_name);
+    LOG_INFO("Context " + context + " is ready");
+
+    /*
     context_proxy->parameters[ContextBrokerProxy::USE_CACHE] = (bool) true;
     context_proxy->parameters[ContextBrokerProxy::ENFORCE_CACHE_RECREATION] = (bool) false;
     context_proxy->parameters[ContextBrokerProxy::INITIAL_RENT_RATE] = (double) RENT_RATE;
@@ -771,21 +828,21 @@ static void run(const string& target_predicate,
     while (!context_proxy->is_context_created()) {
         Utils::sleep();
     }
-    string context = context_proxy->get_key();
     LOG_INFO("Context " + context + " is ready");
+    */
 
-    LOG_INFO("Pre-processing...");
-    LOG_INFO("Make initial correlations");
-    attention_correlation_query(initialization_correlation_query, context);
-    LOG_INFO("Initializing STI");
-    attention_allocation_query((USE_MORK ? initialization_STI_metta_query : initialization_STI_query), context);
+    // LOG_INFO("Pre-processing...");
+    // LOG_INFO("Make initial correlations");
+    // attention_correlation_query(initialization_correlation_query, context);
+    // LOG_INFO("Initializing STI");
+    // attention_allocation_query((USE_MORK ? initialization_STI_metta_query : initialization_STI_query), context);
     // LOG_INFO("Building initial custom links");
     // build_links(
     //     custom_initial_equivalence_query, context, 0, target_concept_handle, build_equivalence_link);
     // build_links(
     //     custom_initial_implication_query, context, 0, target_predicate_handle,
     //     build_implication_link);
-    LOG_INFO("Pre-processing complete");
+    // LOG_INFO("Pre-processing complete");
 
     for (unsigned int i = 0; i < NUM_ITERATIONS; i++) {
         LOG_INFO("--------------------------------------------------------------------------------");

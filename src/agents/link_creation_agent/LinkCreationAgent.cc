@@ -142,11 +142,15 @@ shared_ptr<PatternMatchingQueryProxy> LinkCreationAgent::query(
     proxy->parameters[PatternMatchingQueryProxy::POSITIVE_IMPORTANCE_FLAG] =
         lca_request->importance_flag;
     if (lca_request->update_attention_broker) {
-        proxy->parameters[PatternMatchingQueryProxy::ATTENTION_UPDATE] = (unsigned int) BaseQueryProxy::VARIABLES;
-        proxy->parameters[PatternMatchingQueryProxy::ATTENTION_CORRELATION] = (unsigned int) BaseQueryProxy::VARIABLES;
+        proxy->parameters[PatternMatchingQueryProxy::ATTENTION_UPDATE] =
+            (unsigned int) BaseQueryProxy::VARIABLES;
+        proxy->parameters[PatternMatchingQueryProxy::ATTENTION_CORRELATION] =
+            (unsigned int) BaseQueryProxy::VARIABLES;
     } else {
-        proxy->parameters[PatternMatchingQueryProxy::ATTENTION_UPDATE] = (unsigned int) BaseQueryProxy::NONE;
-        proxy->parameters[PatternMatchingQueryProxy::ATTENTION_CORRELATION] = (unsigned int) BaseQueryProxy::NONE;
+        proxy->parameters[PatternMatchingQueryProxy::ATTENTION_UPDATE] =
+            (unsigned int) BaseQueryProxy::NONE;
+        proxy->parameters[PatternMatchingQueryProxy::ATTENTION_CORRELATION] =
+            (unsigned int) BaseQueryProxy::NONE;
     }
     proxy->parameters[PatternMatchingQueryProxy::USE_METTA_AS_QUERY_TOKENS] =
         lca_request->use_metta_as_query_tokens;
@@ -222,7 +226,11 @@ shared_ptr<LinkCreationAgentRequest> LinkCreationAgent::create_request(
         lca_request->repeat =
             proxy->parameters.get<unsigned int>(LinkCreationRequestProxy::REPEAT_COUNT);
         lca_request->context = proxy->parameters.get<string>(LinkCreationRequestProxy::CONTEXT);
-        lca_request->update_attention_broker = (proxy->parameters.get<unsigned int>(LinkCreationRequestProxy::ATTENTION_UPDATE) != BaseQueryProxy::NONE) || (proxy->parameters.get<unsigned int>(LinkCreationRequestProxy::ATTENTION_CORRELATION) != BaseQueryProxy::NONE);
+        lca_request->update_attention_broker =
+            (proxy->parameters.get<unsigned int>(LinkCreationRequestProxy::ATTENTION_UPDATE) !=
+             BaseQueryProxy::NONE) ||
+            (proxy->parameters.get<unsigned int>(LinkCreationRequestProxy::ATTENTION_CORRELATION) !=
+             BaseQueryProxy::NONE);
         lca_request->importance_flag =
             proxy->parameters.get<bool>(LinkCreationRequestProxy::POSITIVE_IMPORTANCE_FLAG);
         LOG_DEBUG(proxy->peer_id());
