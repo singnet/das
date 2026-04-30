@@ -72,7 +72,8 @@ void check_query(const string& query_tag,
 
     shared_ptr<PatternMatchingQueryProxy> proxy1(new PatternMatchingQueryProxy(query, context));
     proxy1->parameters[BaseQueryProxy::UNIQUE_ASSIGNMENT_FLAG] = unique_assignment;
-    proxy1->parameters[BaseQueryProxy::ATTENTION_UPDATE_FLAG] = update_attention_broker;
+    proxy1->parameters[BaseQueryProxy::ATTENTION_UPDATE] = (unsigned int) (update_attention_broker ? BaseQueryProxy::VARIABLES : BaseQueryProxy::NONE);
+    proxy1->parameters[BaseQueryProxy::ATTENTION_CORRELATION] = (unsigned int) (update_attention_broker ? BaseQueryProxy::VARIABLES : BaseQueryProxy::NONE);
     proxy1->parameters[BaseQueryProxy::POPULATE_METTA_MAPPING] = false;
     proxy1->parameters[PatternMatchingQueryProxy::POSITIVE_IMPORTANCE_FLAG] = positive_importance;
     proxy1->parameters[PatternMatchingQueryProxy::UNIQUE_VALUE_FLAG] = unique_value_flag;
@@ -80,7 +81,8 @@ void check_query(const string& query_tag,
 
     shared_ptr<PatternMatchingQueryProxy> proxy2(new PatternMatchingQueryProxy(query, context));
     proxy2->parameters[BaseQueryProxy::UNIQUE_ASSIGNMENT_FLAG] = unique_assignment;
-    proxy2->parameters[BaseQueryProxy::ATTENTION_UPDATE_FLAG] = update_attention_broker;
+    proxy2->parameters[BaseQueryProxy::ATTENTION_UPDATE] = (unsigned int) (update_attention_broker ? BaseQueryProxy::VARIABLES : BaseQueryProxy::NONE);
+    proxy2->parameters[BaseQueryProxy::ATTENTION_CORRELATION] = (unsigned int) (update_attention_broker ? BaseQueryProxy::VARIABLES : BaseQueryProxy::NONE);
     proxy2->parameters[PatternMatchingQueryProxy::COUNT_FLAG] = true;
     proxy2->parameters[PatternMatchingQueryProxy::POSITIVE_IMPORTANCE_FLAG] = positive_importance;
     proxy2->parameters[PatternMatchingQueryProxy::UNIQUE_VALUE_FLAG] = unique_value_flag;
@@ -90,7 +92,8 @@ void check_query(const string& query_tag,
     shared_ptr<PatternMatchingQueryProxy> proxy3(new PatternMatchingQueryProxy(metta_query, context));
     proxy3->parameters[BaseQueryProxy::USE_METTA_AS_QUERY_TOKENS] = true;
     proxy3->parameters[BaseQueryProxy::UNIQUE_ASSIGNMENT_FLAG] = unique_assignment;
-    proxy3->parameters[BaseQueryProxy::ATTENTION_UPDATE_FLAG] = update_attention_broker;
+    proxy3->parameters[BaseQueryProxy::ATTENTION_UPDATE] = (unsigned int) (update_attention_broker ? BaseQueryProxy::VARIABLES : BaseQueryProxy::NONE);
+    proxy3->parameters[BaseQueryProxy::ATTENTION_CORRELATION] = (unsigned int) (update_attention_broker ? BaseQueryProxy::VARIABLES : BaseQueryProxy::NONE);
     proxy3->parameters[BaseQueryProxy::POPULATE_METTA_MAPPING] = false;
     proxy3->parameters[PatternMatchingQueryProxy::POSITIVE_IMPORTANCE_FLAG] = positive_importance;
     proxy3->parameters[PatternMatchingQueryProxy::UNIQUE_VALUE_FLAG] = unique_value_flag;
@@ -177,7 +180,8 @@ void check_query_chain(const string& query_tag,
     proxies.push_back(
         shared_ptr<PatternMatchingQueryProxy>(new PatternMatchingQueryProxy(query, context)));
     proxies[0]->parameters[BaseQueryProxy::UNIQUE_ASSIGNMENT_FLAG] = unique_assignment;
-    proxies[0]->parameters[BaseQueryProxy::ATTENTION_UPDATE_FLAG] = update_attention_broker;
+    proxies[0]->parameters[BaseQueryProxy::ATTENTION_UPDATE] = (unsigned int) (update_attention_broker ? BaseQueryProxy::VARIABLES : BaseQueryProxy::NONE);
+    proxies[0]->parameters[BaseQueryProxy::ATTENTION_CORRELATION] = (unsigned int) (update_attention_broker ? BaseQueryProxy::VARIABLES : BaseQueryProxy::NONE);
     proxies[0]->parameters[BaseQueryProxy::POPULATE_METTA_MAPPING] = true;
     proxies[0]->parameters[PatternMatchingQueryProxy::POSITIVE_IMPORTANCE_FLAG] = positive_importance;
     proxies[0]->parameters[PatternMatchingQueryProxy::UNIQUE_VALUE_FLAG] = unique_value_flag;
@@ -189,7 +193,8 @@ void check_query_chain(const string& query_tag,
             shared_ptr<PatternMatchingQueryProxy>(new PatternMatchingQueryProxy(metta_query, context)));
         proxies[1]->parameters[BaseQueryProxy::USE_METTA_AS_QUERY_TOKENS] = true;
         proxies[1]->parameters[BaseQueryProxy::UNIQUE_ASSIGNMENT_FLAG] = unique_assignment;
-        proxies[1]->parameters[BaseQueryProxy::ATTENTION_UPDATE_FLAG] = update_attention_broker;
+        proxies[1]->parameters[BaseQueryProxy::ATTENTION_UPDATE] = (unsigned int) (update_attention_broker ? BaseQueryProxy::VARIABLES : BaseQueryProxy::NONE);
+        proxies[1]->parameters[BaseQueryProxy::ATTENTION_CORRELATION] = (unsigned int) (update_attention_broker ? BaseQueryProxy::VARIABLES : BaseQueryProxy::NONE);
         proxies[1]->parameters[BaseQueryProxy::POPULATE_METTA_MAPPING] = true;
         proxies[1]->parameters[PatternMatchingQueryProxy::POSITIVE_IMPORTANCE_FLAG] =
             positive_importance;
