@@ -371,6 +371,8 @@ static void build_and_predicate_link(shared_ptr<QueryAnswer> query_answer,
 
     Link new_predicate = add_predicate(predicate1, predicate2);
     add_or_update_link(EVALUATION_HANDLE, new_predicate.handle(), concept1, 1.0);
+    set<string> ab_request = {new_predicate.handle(), concept1};
+    AttentionBrokerClient::correlate(ab_request, context);
 }
 
 static void build_implication_link(shared_ptr<QueryAnswer> query_answer,
@@ -440,13 +442,20 @@ static void build_implication_link(shared_ptr<QueryAnswer> query_answer,
                    count_intersection,
                    count_union);
     if (count_intersection > 0) {
+        bool link_created = false;
         if (count_0 > 0) {
             double strength = count_intersection / count_0;
             add_or_update_link(IMPLICATION_HANDLE, predicates[0], predicates[1], strength);
+            link_created = true;
         }
         if (count_1 > 0) {
             double strength = count_intersection / count_1;
             add_or_update_link(IMPLICATION_HANDLE, predicates[1], predicates[0], strength);
+            link_created = true;
+        }
+        if (link_created) {
+            set<string> ab_request = {predicates[0], predicates[1]};
+            AttentionBrokerClient::correlate(ab_request, context);
         }
     }
 }
@@ -519,6 +528,8 @@ static void build_equivalence_link(shared_ptr<QueryAnswer> query_answer,
         double strength = count_intersection / count_union;
         add_or_update_link(EQUIVALENCE_HANDLE, concepts[0], concepts[1], strength);
         add_or_update_link(EQUIVALENCE_HANDLE, concepts[1], concepts[0], strength);
+        set<string> ab_request = {concepts[0], concepts[1]};
+        AttentionBrokerClient::correlate(ab_request, context);
     }
 }
 
@@ -688,48 +699,11 @@ static void run(const string& target_predicate,
             VARIABLE, V3,
     };
 
-    vector<string> initialization_correlation_query1 = {
-        //OR_OPERATOR, "2",
-            AND_OPERATOR, "2",
-                LINK_TEMPLATE, EXPRESSION, "3",
-                    NODE, SYMBOL, EVALUATION,
-                    VARIABLE, PREDICATE,
-                    VARIABLE, CONCEPT1,
-                LINK_TEMPLATE, EXPRESSION, "3",
-                    NODE, SYMBOL, EVALUATION,
-                    VARIABLE, PREDICATE,
-                    VARIABLE, CONCEPT2,
-            //AND_OPERATOR, "2",
-                //LINK_TEMPLATE, EXPRESSION, "3",
-                    //NODE, SYMBOL, EVALUATION,
-                    //VARIABLE, PREDICATE1,
-                    //VARIABLE, CONCEPT,
-                //LINK_TEMPLATE, EXPRESSION, "3",
-                    //NODE, SYMBOL, EVALUATION,
-                    //VARIABLE, PREDICATE2,
-                    //VARIABLE, CONCEPT,
-    };
-
-    vector<string> initialization_correlation_query2 = {
-        //OR_OPERATOR, "2",
-            //AND_OPERATOR, "2",
-                //LINK_TEMPLATE, EXPRESSION, "3",
-                    //NODE, SYMBOL, EVALUATION,
-                    //VARIABLE, PREDICATE,
-                    //VARIABLE, CONCEPT1,
-                //LINK_TEMPLATE, EXPRESSION, "3",
-                    //NODE, SYMBOL, EVALUATION,
-                    //VARIABLE, PREDICATE,
-                    //VARIABLE, CONCEPT2,
-            AND_OPERATOR, "2",
-                LINK_TEMPLATE, EXPRESSION, "3",
-                    NODE, SYMBOL, EVALUATION,
-                    VARIABLE, PREDICATE1,
-                    VARIABLE, CONCEPT,
-                LINK_TEMPLATE, EXPRESSION, "3",
-                    NODE, SYMBOL, EVALUATION,
-                    VARIABLE, PREDICATE2,
-                    VARIABLE, CONCEPT,
+    vector<string> initialization_correlation_query = {
+        LINK_TEMPLATE, EXPRESSION, "3",
+            NODE, SYMBOL, EVALUATION,
+            VARIABLE, PREDICATE,
+            VARIABLE, CONCEPT,
     };
 
     vector<string> initialization_STI_query = {
@@ -802,8 +776,7 @@ static void run(const string& target_predicate,
 
     LOG_INFO("Pre-processing...");
     LOG_INFO("Make initial correlations");
-    attention_correlation_query(initialization_correlation_query1, context);
-    attention_correlation_query(initialization_correlation_query2, context);
+    attention_correlation_query(initialization_correlation_query, context);
     LOG_INFO("Initializing STI");
     attention_allocation_query((USE_MORK ? initialization_STI_metta_query : initialization_STI_query), context);
     // LOG_INFO("Building initial custom links");
