@@ -113,6 +113,7 @@ void PatternMatchingQueryProcessor::update_attention_broker_single_answer(
 
         // Note to reviewer - dead code kept here to remark that we are still not sure if we
         // want to include link's targets in this update or not.
+        //
         // shared_ptr<atomdb_api_types::HandleList> query_result = this->atomdb->query_for_targets(handle);
         // if (query_result != NULL) {  // if handle is link
         //     unsigned int query_result_size = query_result->size();
@@ -157,7 +158,9 @@ void PatternMatchingQueryProcessor::process_query_answers(
         if (proxy->parameters.get<unsigned int>(BaseQueryProxy::ATTENTION_CORRELATION) != BaseQueryProxy::NONE) {
             update_attention_broker_single_answer(proxy, answer, joint_answer);
         }
-        if (!proxy->parameters.get<bool>(PatternMatchingQueryProxy::COUNT_FLAG)) {
+        if (proxy->parameters.get<bool>(PatternMatchingQueryProxy::COUNT_FLAG)) {
+            delete answer;
+        } else {
             if (populate_metta && answer->metta_expression.size() == 0) {
                 proxy->populate_metta_mapping(answer);
             }
@@ -199,10 +202,12 @@ void PatternMatchingQueryProcessor::thread_process_one_query(
                     query_sink = make_shared<Sink>(
                         root_link_template->get_source_element(),
                         "Sink_" + proxy->peer_id() + "_" + std::to_string(proxy->get_serial()));
+                        LOG_DEBUG("Query tree sink LinkTemplate: " + query_sink->id);
                 } else {
                     query_sink = make_shared<Sink>(
                         root_query_element,
                         "Sink_" + proxy->peer_id() + "_" + std::to_string(proxy->get_serial()));
+                        LOG_DEBUG("Query tree sink Operator: " + query_sink->id);
                 }
                 unsigned int answer_count = 0;
                 LOG_DEBUG("Processing QueryAnswer objects");
