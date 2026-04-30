@@ -773,7 +773,8 @@ static void run(const string& target_predicate,
     LOG_INFO("Make initial correlations");
     attention_correlation_query(initialization_correlation_query, context);
     LOG_INFO("Initializing STI");
-    attention_allocation_query((USE_MORK ? initialization_STI_metta_query : initialization_STI_query), context);
+    attention_allocation_query((USE_MORK ? initialization_STI_metta_query : initialization_STI_query),
+                               context);
     // LOG_INFO("Building initial custom links");
     // build_links(
     //     custom_initial_equivalence_query, context, 0, target_concept_handle, build_equivalence_link);

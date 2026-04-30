@@ -76,7 +76,8 @@ TEST_F(LinkCreationAgentTest, TestRequest) {
     proxy->parameters[LinkCreationRequestProxy::REPEAT_COUNT] = (uint) 5;
     proxy->parameters[LinkCreationRequestProxy::CONTEXT] = "test_context";
     proxy->parameters[LinkCreationRequestProxy::ATTENTION_UPDATE] = (uint) BaseQueryProxy::VARIABLES;
-    proxy->parameters[LinkCreationRequestProxy::ATTENTION_CORRELATION] = (uint) BaseQueryProxy::VARIABLES;
+    proxy->parameters[LinkCreationRequestProxy::ATTENTION_CORRELATION] =
+        (uint) BaseQueryProxy::VARIABLES;
 
     shared_ptr<LinkCreationAgentRequest> lca_request = agent->create_request(proxy);
     EXPECT_EQ(lca_request->query, vector<string>({"query1"}));
@@ -119,7 +120,8 @@ TEST_F(LinkCreationAgentTest, TestRequestMetta) {
     proxy->parameters[LinkCreationRequestProxy::REPEAT_COUNT] = (uint) 5;
     proxy->parameters[LinkCreationRequestProxy::CONTEXT] = "test_context";
     proxy->parameters[LinkCreationRequestProxy::ATTENTION_UPDATE] = (uint) BaseQueryProxy::VARIABLES;
-    proxy->parameters[LinkCreationRequestProxy::ATTENTION_CORRELATION] = (uint) BaseQueryProxy::VARIABLES;
+    proxy->parameters[LinkCreationRequestProxy::ATTENTION_CORRELATION] =
+        (uint) BaseQueryProxy::VARIABLES;
     proxy->parameters[LinkCreationRequestProxy::USE_METTA_AS_QUERY_TOKENS] = true;
 
     shared_ptr<LinkCreationAgentRequest> lca_request = agent->create_request(proxy);
