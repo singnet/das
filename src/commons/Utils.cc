@@ -16,6 +16,7 @@
 #include <string>
 #include <thread>
 
+
 #include "Logger.h"
 
 using namespace commons;
@@ -384,6 +385,19 @@ void Utils::retry_function(function<void()> func,
             }
         }
     }
+}
+
+bool Utils::read_and_split(vector<string>& output, ifstream& file, char delimiter) {
+    string line;
+    if (getline(file, line)) {
+        stringstream string_stream(line);
+        string word;
+        while (getline(string_stream, word, delimiter)) {
+            output.push_back(word);
+        }
+        return true;
+    }
+    return false;
 }
 
 // --------------------------------------------------------------------------------
