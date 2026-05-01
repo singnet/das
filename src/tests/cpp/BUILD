@@ -635,6 +635,25 @@ cc_test(
 )
 
 cc_test(
+    name = "utils_test",
+    size = "small",
+    srcs = [
+        "utils_test.cc",
+        "test_utils.cc",
+        "test_utils.h",
+    ],
+    copts = [
+        "-Iexternal/gtest/googletest/include",
+        "-Iexternal/gtest/googletest",
+    ],
+    linkstatic = 1,
+    deps = [
+        "//commons:commons_lib",
+        "@com_github_google_googletest//:gtest_main",
+    ],
+)
+
+cc_test(
     name = "atom_space_types_test",
     size = "small",
     srcs = ["atom_space_types_test.cc"],
