@@ -75,7 +75,9 @@ TEST_F(LinkCreationAgentTest, TestRequest) {
     proxy->parameters[LinkCreationRequestProxy::MAX_ANSWERS] = (uint) 10;
     proxy->parameters[LinkCreationRequestProxy::REPEAT_COUNT] = (uint) 5;
     proxy->parameters[LinkCreationRequestProxy::CONTEXT] = "test_context";
-    proxy->parameters[LinkCreationRequestProxy::ATTENTION_UPDATE_FLAG] = true;
+    proxy->parameters[LinkCreationRequestProxy::ATTENTION_UPDATE] = (uint) BaseQueryProxy::VARIABLES;
+    proxy->parameters[LinkCreationRequestProxy::ATTENTION_CORRELATION] =
+        (uint) BaseQueryProxy::VARIABLES;
 
     shared_ptr<LinkCreationAgentRequest> lca_request = agent->create_request(proxy);
     EXPECT_EQ(lca_request->query, vector<string>({"query1"}));
@@ -93,7 +95,8 @@ TEST_F(LinkCreationAgentTest, TestRequest) {
     proxy->parameters[LinkCreationRequestProxy::MAX_ANSWERS] = (uint) 10;
     proxy->parameters[LinkCreationRequestProxy::REPEAT_COUNT] = (uint) 0;
     proxy->parameters[LinkCreationRequestProxy::CONTEXT] = "test_context";
-    proxy->parameters[LinkCreationRequestProxy::ATTENTION_UPDATE_FLAG] = false;
+    proxy->parameters[LinkCreationRequestProxy::ATTENTION_UPDATE] = (uint) BaseQueryProxy::NONE;
+    proxy->parameters[LinkCreationRequestProxy::ATTENTION_CORRELATION] = (uint) BaseQueryProxy::NONE;
     lca_request = agent->create_request(proxy);
 
     EXPECT_EQ(lca_request->query, vector<string>({"query2"}));
@@ -116,7 +119,9 @@ TEST_F(LinkCreationAgentTest, TestRequestMetta) {
     proxy->parameters[LinkCreationRequestProxy::MAX_ANSWERS] = (uint) 10;
     proxy->parameters[LinkCreationRequestProxy::REPEAT_COUNT] = (uint) 5;
     proxy->parameters[LinkCreationRequestProxy::CONTEXT] = "test_context";
-    proxy->parameters[LinkCreationRequestProxy::ATTENTION_UPDATE_FLAG] = true;
+    proxy->parameters[LinkCreationRequestProxy::ATTENTION_UPDATE] = (uint) BaseQueryProxy::VARIABLES;
+    proxy->parameters[LinkCreationRequestProxy::ATTENTION_CORRELATION] =
+        (uint) BaseQueryProxy::VARIABLES;
     proxy->parameters[LinkCreationRequestProxy::USE_METTA_AS_QUERY_TOKENS] = true;
 
     shared_ptr<LinkCreationAgentRequest> lca_request = agent->create_request(proxy);

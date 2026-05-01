@@ -141,8 +141,17 @@ shared_ptr<PatternMatchingQueryProxy> LinkCreationAgent::query(
     proxy->parameters[PatternMatchingQueryProxy::MAX_ANSWERS] = (unsigned int) lca_request->max_results;
     proxy->parameters[PatternMatchingQueryProxy::POSITIVE_IMPORTANCE_FLAG] =
         lca_request->importance_flag;
-    proxy->parameters[PatternMatchingQueryProxy::ATTENTION_UPDATE_FLAG] =
-        lca_request->update_attention_broker;
+    if (lca_request->update_attention_broker) {
+        proxy->parameters[PatternMatchingQueryProxy::ATTENTION_UPDATE] =
+            (unsigned int) BaseQueryProxy::VARIABLES;
+        proxy->parameters[PatternMatchingQueryProxy::ATTENTION_CORRELATION] =
+            (unsigned int) BaseQueryProxy::VARIABLES;
+    } else {
+        proxy->parameters[PatternMatchingQueryProxy::ATTENTION_UPDATE] =
+            (unsigned int) BaseQueryProxy::NONE;
+        proxy->parameters[PatternMatchingQueryProxy::ATTENTION_CORRELATION] =
+            (unsigned int) BaseQueryProxy::NONE;
+    }
     proxy->parameters[PatternMatchingQueryProxy::USE_METTA_AS_QUERY_TOKENS] =
         lca_request->use_metta_as_query_tokens;
     proxy->parameters[PatternMatchingQueryProxy::UNIQUE_VALUE_FLAG] = true;
@@ -218,7 +227,10 @@ shared_ptr<LinkCreationAgentRequest> LinkCreationAgent::create_request(
             proxy->parameters.get<unsigned int>(LinkCreationRequestProxy::REPEAT_COUNT);
         lca_request->context = proxy->parameters.get<string>(LinkCreationRequestProxy::CONTEXT);
         lca_request->update_attention_broker =
-            proxy->parameters.get<bool>(LinkCreationRequestProxy::ATTENTION_UPDATE_FLAG);
+            (proxy->parameters.get<unsigned int>(LinkCreationRequestProxy::ATTENTION_UPDATE) !=
+             BaseQueryProxy::NONE) ||
+            (proxy->parameters.get<unsigned int>(LinkCreationRequestProxy::ATTENTION_CORRELATION) !=
+             BaseQueryProxy::NONE);
         lca_request->importance_flag =
             proxy->parameters.get<bool>(LinkCreationRequestProxy::POSITIVE_IMPORTANCE_FLAG);
         LOG_DEBUG(proxy->peer_id());

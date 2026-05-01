@@ -43,7 +43,8 @@ class Helper {
     static string REQUEST;
     static string TIMEOUT;
     static string MAX_ANSWERS;
-    static string ATTENTION_UPDATE_FLAG;
+    static string ATTENTION_UPDATE;
+    static string ATTENTION_CORRELATION;
     static string REPEAT_COUNT;
     static string CONTEXT;
     static string CORRELATION_QUERIES;

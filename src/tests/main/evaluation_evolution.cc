@@ -150,8 +150,9 @@ static double get_strength(string handle) {
 static shared_ptr<PatternMatchingQueryProxy> issue_link_building_query(
     const vector<string>& query_tokens, const string& context, unsigned int max_answers) {
     auto proxy = make_shared<PatternMatchingQueryProxy>(query_tokens, context);
+    proxy->parameters[BaseQueryProxy::ATTENTION_CORRELATION] = (unsigned int) BaseQueryProxy::NONE;
+    proxy->parameters[BaseQueryProxy::ATTENTION_UPDATE] = (unsigned int) BaseQueryProxy::NONE;
     proxy->parameters[BaseQueryProxy::UNIQUE_ASSIGNMENT_FLAG] = true;
-    proxy->parameters[BaseQueryProxy::ATTENTION_UPDATE_FLAG] = false;
     proxy->parameters[BaseQueryProxy::USE_LINK_TEMPLATE_CACHE] = false;
     proxy->parameters[PatternMatchingQueryProxy::MAX_ANSWERS] = (unsigned int) max_answers;
     proxy->parameters[PatternMatchingQueryProxy::POSITIVE_IMPORTANCE_FLAG] = (max_answers != 0);
@@ -169,7 +170,8 @@ static shared_ptr<PatternMatchingQueryProxy> issue_weight_count_query(const vect
                                                                       const string& context) {
     auto proxy = make_shared<PatternMatchingQueryProxy>(query_tokens, context);
     proxy->parameters[BaseQueryProxy::UNIQUE_ASSIGNMENT_FLAG] = true;
-    proxy->parameters[BaseQueryProxy::ATTENTION_UPDATE_FLAG] = false;
+    proxy->parameters[BaseQueryProxy::ATTENTION_CORRELATION] = (unsigned int) BaseQueryProxy::NONE;
+    proxy->parameters[BaseQueryProxy::ATTENTION_UPDATE] = (unsigned int) BaseQueryProxy::NONE;
     proxy->parameters[BaseQueryProxy::USE_LINK_TEMPLATE_CACHE] = false;
     proxy->parameters[PatternMatchingQueryProxy::POSITIVE_IMPORTANCE_FLAG] = false;
     proxy->parameters[BaseQueryProxy::USE_METTA_AS_QUERY_TOKENS] = USE_MORK;
@@ -179,10 +181,28 @@ static shared_ptr<PatternMatchingQueryProxy> issue_weight_count_query(const vect
     return proxy;
 }
 
+static void attention_correlation_query(const vector<string>& query_tokens, const string& context) {
+    auto proxy = make_shared<PatternMatchingQueryProxy>(query_tokens, context);
+    proxy->parameters[BaseQueryProxy::ATTENTION_CORRELATION] = (unsigned int) BaseQueryProxy::VARIABLES;
+    proxy->parameters[BaseQueryProxy::ATTENTION_UPDATE] = (unsigned int) BaseQueryProxy::NONE;
+    proxy->parameters[BaseQueryProxy::UNIQUE_ASSIGNMENT_FLAG] = true;
+    proxy->parameters[BaseQueryProxy::USE_LINK_TEMPLATE_CACHE] = false;
+    proxy->parameters[PatternMatchingQueryProxy::POSITIVE_IMPORTANCE_FLAG] = false;
+    proxy->parameters[PatternMatchingQueryProxy::COUNT_FLAG] = true;
+    proxy->parameters[BaseQueryProxy::USE_METTA_AS_QUERY_TOKENS] = USE_MORK;
+    proxy->parameters[BaseQueryProxy::POPULATE_METTA_MAPPING] = false;
+
+    ServiceBusSingleton::get_instance()->issue_bus_command(proxy);
+    while (!proxy->finished()) {
+        Utils::sleep();
+    }
+}
+
 static void attention_allocation_query(const vector<string>& query_tokens, const string& context) {
     auto proxy = make_shared<PatternMatchingQueryProxy>(query_tokens, context);
+    proxy->parameters[BaseQueryProxy::ATTENTION_CORRELATION] = (unsigned int) BaseQueryProxy::NONE;
+    proxy->parameters[BaseQueryProxy::ATTENTION_UPDATE] = (unsigned int) BaseQueryProxy::VARIABLES;
     proxy->parameters[BaseQueryProxy::UNIQUE_ASSIGNMENT_FLAG] = true;
-    proxy->parameters[BaseQueryProxy::ATTENTION_UPDATE_FLAG] = true;
     proxy->parameters[BaseQueryProxy::USE_LINK_TEMPLATE_CACHE] = false;
     proxy->parameters[PatternMatchingQueryProxy::POSITIVE_IMPORTANCE_FLAG] = false;
     proxy->parameters[PatternMatchingQueryProxy::COUNT_FLAG] = true;
@@ -566,6 +586,7 @@ static void query_evolution(
     proxy->parameters[QueryEvolutionProxy::TOTAL_ATTENTION_TOKENS] = (unsigned int) 100000;
     proxy->parameters[BaseQueryProxy::MAX_BUNDLE_SIZE] = (unsigned int) 1000;
     proxy->parameters[BaseQueryProxy::ALLOW_INCOMPLETE_CHAIN_PATH] = true;
+    proxy->parameters[PatternMatchingQueryProxy::POSITIVE_IMPORTANCE_FLAG] = true;
     bus->issue_bus_command(proxy);
 
     shared_ptr<QueryAnswer> query_answer;
@@ -667,6 +688,19 @@ static void run(const string& target_predicate,
             VARIABLE, V3,
     };
 
+    vector<string> initialization_correlation_query = {
+        OR_OPERATOR, "2",
+            AND_OPERATOR, "2",
+                LINK_TEMPLATE, EXPRESSION, "3",
+                    NODE, SYMBOL, EVALUATION,
+                    VARIABLE, PREDICATE,
+                    VARIABLE, CONCEPT1,
+                LINK_TEMPLATE, EXPRESSION, "3",
+                    NODE, SYMBOL, EVALUATION,
+                    VARIABLE, PREDICATE,
+                    VARIABLE, CONCEPT2,
+    };
+
     vector<string> initialization_STI_query = {
         OR_OPERATOR, "2",
         LINK_TEMPLATE, EXPRESSION, "3",
@@ -736,6 +770,8 @@ static void run(const string& target_predicate,
     LOG_INFO("Context " + context + " is ready");
 
     LOG_INFO("Pre-processing...");
+    LOG_INFO("Make initial correlations");
+    attention_correlation_query(initialization_correlation_query, context);
     LOG_INFO("Initializing STI");
     attention_allocation_query((USE_MORK ? initialization_STI_metta_query : initialization_STI_query),
                                context);

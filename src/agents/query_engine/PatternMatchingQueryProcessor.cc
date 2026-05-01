@@ -77,16 +77,25 @@ void PatternMatchingQueryProcessor::run_command(shared_ptr<BusCommandProxy> prox
 
 void PatternMatchingQueryProcessor::update_attention_broker_single_answer(
     shared_ptr<PatternMatchingQueryProxy> proxy, QueryAnswer* answer, set<string>& joint_answer) {
+    unsigned int control_single =
+        proxy->parameters.get<unsigned int>(BaseQueryProxy::ATTENTION_CORRELATION);
+    unsigned int control_joint = proxy->parameters.get<unsigned int>(BaseQueryProxy::ATTENTION_UPDATE);
+
     set<string> single_answer;
     stack<string> execution_stack;
 
     // Stimulate all variables
     for (auto pair : answer->assignment.table) {
-        single_answer.insert(pair.second);
-        joint_answer.insert(pair.second);
+        if ((control_single == BaseQueryProxy::VARIABLES) ||
+            (control_single == BaseQueryProxy::HANDLES_AND_VARIABLES)) {
+            single_answer.insert(pair.second);
+        }
+        if ((control_joint == BaseQueryProxy::VARIABLES) ||
+            (control_joint == BaseQueryProxy::HANDLES_AND_VARIABLES)) {
+            joint_answer.insert(pair.second);
+        }
     }
 
-    /*
     // Correlate handles which are the query answer
     for (string handle : answer->get_handles_vector()) {
         execution_stack.push(handle);
@@ -94,21 +103,31 @@ void PatternMatchingQueryProcessor::update_attention_broker_single_answer(
     while (!execution_stack.empty()) {
         string handle = execution_stack.top();
         execution_stack.pop();
+
         // Updates single_answer (correlation)
-        single_answer.insert(handle);
-        // Updates joint answer (stimulation)
-        joint_answer.insert(handle);
-        shared_ptr<atomdb_api_types::HandleList> query_result = this->atomdb->query_for_targets(handle);
-        if (query_result != NULL) {  // if handle is link
-            unsigned int query_result_size = query_result->size();
-            for (unsigned int i = 0; i < query_result_size; i++) {
-                execution_stack.push(string(query_result->get_handle(i)));
-                LOG_DEBUG("Correlating handle: " << query_result->get_handle(i)
-                                                 << " from link: " << handle);
-            }
+        if ((control_single == BaseQueryProxy::HANDLES) ||
+            (control_single == BaseQueryProxy::HANDLES_AND_VARIABLES)) {
+            single_answer.insert(handle);
         }
+        // Updates joint answer (stimulation)
+        if ((control_joint == BaseQueryProxy::HANDLES) ||
+            (control_joint == BaseQueryProxy::HANDLES_AND_VARIABLES)) {
+            joint_answer.insert(handle);
+        }
+
+        // Note to reviewer - dead code kept here to remark that we are still not sure if we
+        // want to include link's targets in this update or not.
+        // shared_ptr<atomdb_api_types::HandleList> query_result =
+        // this->atomdb->query_for_targets(handle); if (query_result != NULL) {  // if handle is link
+        //     unsigned int query_result_size = query_result->size();
+        //     for (unsigned int i = 0; i < query_result_size; i++) {
+        //         execution_stack.push(string(query_result->get_handle(i)));
+        //         LOG_DEBUG("Correlating handle: " << query_result->get_handle(i)
+        //                                          << " from link: " << handle);
+        //     }
+        // }
     }
-    */
+
     if (single_answer.size() > 1) {
         AttentionBrokerClient::correlate(single_answer, proxy->get_context());
     } else {
@@ -139,7 +158,8 @@ void PatternMatchingQueryProcessor::process_query_answers(
     bool populate_metta = proxy->parameters.get<bool>(BaseQueryProxy::POPULATE_METTA_MAPPING);
     while ((answer = query_sink->input_buffer->pop_query_answer()) != NULL) {
         answer_count++;
-        if (proxy->parameters.get<bool>(BaseQueryProxy::ATTENTION_UPDATE_FLAG)) {
+        if (proxy->parameters.get<unsigned int>(BaseQueryProxy::ATTENTION_CORRELATION) !=
+            BaseQueryProxy::NONE) {
             update_attention_broker_single_answer(proxy, answer, joint_answer);
         }
         if (!proxy->parameters.get<bool>(PatternMatchingQueryProxy::COUNT_FLAG)) {
@@ -206,7 +226,8 @@ void PatternMatchingQueryProcessor::thread_process_one_query(
                 }
                 Utils::sleep(500);
                 proxy->query_processing_finished();
-                if (proxy->parameters.get<bool>(BaseQueryProxy::ATTENTION_UPDATE_FLAG)) {
+                if (proxy->parameters.get<unsigned int>(BaseQueryProxy::ATTENTION_UPDATE) !=
+                    BaseQueryProxy::NONE) {
                     LOG_DEBUG("Updating AttentionBroker (stimulate)");
                     update_attention_broker_joint_answer(proxy, joint_answer);
                 }
