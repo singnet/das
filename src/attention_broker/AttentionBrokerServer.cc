@@ -2,7 +2,7 @@
 
 #include "RequestSelector.h"
 
-#define LOG_LEVEL INFO_LEVEL
+#define LOG_LEVEL DEBUG_LEVEL
 #include "Logger.h"
 
 using namespace attention_broker;
@@ -203,6 +203,18 @@ Status AttentionBrokerServer::set_parameters(ServerContext* grpc_context,
     }
 }
 
+/**
+ * Note to revisor and developers:
+ *
+ * This dead version of save_context() and drop_and_load_context() uses serialization instead of
+ * a text file with update commands. I (Andre Senna) was working on this just before one of the
+ * AGI meetups and I remember this serialization/deserialization approach hit a blocker
+ * but I don't remember what exactly it is and unfortunetely I didn't documented it.
+ * So I'm keeping this version of these methods here while I make another
+ * version which uses a text file of update commands. The serialization/deserialization
+ * approach may still be useful in order to save STI values as well as hebboan links and
+ * determiners.
+ *
 Status AttentionBrokerServer::save_context(ServerContext* grpc_context,
                                            const dasproto::ContextPersistence* request,
                                            dasproto::Ack* reply) {
@@ -237,12 +249,12 @@ Status AttentionBrokerServer::drop_and_load_context(ServerContext* grpc_context,
              " Reading from file: " + request->file_name());
     if (this->rpc_api_enabled) {
         HebbianNetwork* network = select_hebbian_network(request->context());
-        network->clear();
         ifstream file(request->file_name());
         if (!file.is_open()) {
             LOG_ERROR("Couldn't open file: " + request->file_name());
             return Status::CANCELLED;
         }
+        network->clear();
         try {
             network->deserialize(file);
             file.close();
@@ -256,6 +268,83 @@ Status AttentionBrokerServer::drop_and_load_context(ServerContext* grpc_context,
         LOG_ERROR("AttentionBrokerServer::drop_and_load_context() failed");
         return Status::CANCELLED;
     }
+}
+*/
+
+Status AttentionBrokerServer::save_context(ServerContext* grpc_context,
+                                           const dasproto::ContextPersistence* request,
+                                           dasproto::Ack* reply) {
+    Utils::error("AttentionBrokerServer::save_context() is not implemented");
+    return Status::CANCELLED;
+}
+
+Status AttentionBrokerServer::drop_and_load_context(ServerContext* grpc_context,
+                                                    const dasproto::ContextPersistence* request,
+                                                    dasproto::Ack* reply) {
+
+    string context = request->context();
+    string file_name = request->file_name();
+    HebbianNetwork* network = select_hebbian_network(context);
+    ifstream file(file_name);
+    if (!file.is_open()) {
+        LOG_ERROR("Couldn't open file: " + file_name);
+        return Status::CANCELLED;
+    }
+    LOG_DEBUG("Reading context from file: " + file_name);
+    network->clear();
+    dasproto::HandleList correlation_request;
+    dasproto::HandleCount activation_request;
+    dasproto::HandleList determiner_request;
+    correlation_request.set_context(context);
+    activation_request.set_context(context);
+    determiner_request.set_context(context);
+    unsigned int sum_activation = 0;
+    vector<string> line;
+    unsigned int line_count = 0;
+    try {
+        while (Utils::read_and_split(line, file)) {
+            line_count++;
+            if (line.size() < 2) {
+                Utils::error("Invalid context command with no arguments in line " + std::to_string(line_count) + " of file " + file_name);
+            }
+            if (line[0] == "DET") {
+                for (unsigned int i = 1; i < line.size(); i++) {
+                    determiner_request.add_list(line[i]);
+                }
+                LOG_DEBUG("Adding " + std::to_string(line.size() - 2) + " determiners for " + line[1]);
+                this->updater->determiners(determiner_request, network);
+                determiner_request.clear_list();
+            } else if (line[0] == "COR") {
+                for (unsigned int i = 1; i < line.size(); i++) {
+                    correlation_request.add_list(line[i]);
+                }
+                LOG_DEBUG("Correlating " + std::to_string(line.size() - 2) + " handles with " + line[1]);
+                this->updater->asymmetric_correlation(&correlation_request);
+                correlation_request.clear_list();
+            } else if (line[0] == "ACT") {
+                for (unsigned int i = 1; i < line.size(); i++) {
+                    if (activation_request.map().count(line[i]) > 0) {
+                        (*activation_request.mutable_map())[line[i]] = 1;
+                    } else {
+                        (*activation_request.mutable_map())[line[i]] = (*activation_request.mutable_map())[line[i]] + 1;
+                    }
+                    sum_activation++;
+                }
+            } else {
+                Utils::error("Invalid context mnemonic: " + line[0] + " in context file: " + file_name);
+            }
+            line.clear();
+        }
+        if (sum_activation > 0) {
+            (*activation_request.mutable_map())["SUM"] = sum_activation;
+            LOG_DEBUG("Spreading " + std::to_string(sum_activation) + " tokens of activation");
+            this->stimulus_spreader->spread_stimuli(&activation_request);
+        }
+    } catch (const std::exception& e) {
+        LOG_ERROR("Error processing context file: " + file_name);
+        return Status::CANCELLED;
+    }
+    return Status::OK;
 }
 
 // --------------------------------------------------------------------------------
