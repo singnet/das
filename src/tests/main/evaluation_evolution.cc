@@ -813,6 +813,7 @@ static void run(const string& target_predicate,
     //read_context(context, context_file_name);
     LOG_INFO("Context " + context + " is ready");
 
+AQUI: set AB parameters
     /*
     context_proxy->parameters[ContextBrokerProxy::USE_CACHE] = (bool) true;
     context_proxy->parameters[ContextBrokerProxy::ENFORCE_CACHE_RECREATION] = (bool) false;
