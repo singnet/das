@@ -18,6 +18,7 @@ use crate::{
 	link_creation_proxy::LinkCreationParams,
 	link_creation_query,
 	properties::{self, Properties},
+	query_answers_to_bindings_set,
 	query_evolution_proxy::parse_evolution_parameters,
 	query_with_das,
 	service_bus_singleton::ServiceBusSingleton,
@@ -139,7 +140,12 @@ impl DistributedAtomSpace {
 			let evolution_params = parse_evolution_parameters(&atom, &Some(metta_runner.clone()))?;
 
 			let service_bus_arc = Arc::new(Mutex::new(service_bus));
-			return evolution_query(service_bus_arc, &query_params, &evolution_params);
+			let query_answers = evolution_query(service_bus_arc, &query_params, &evolution_params)?;
+			let populate_metta_mapping =
+				self.params.lock().unwrap().get(properties::POPULATE_METTA_MAPPING);
+			let bindings_set =
+				query_answers_to_bindings_set(query_answers, populate_metta_mapping)?;
+			return Ok(bindings_set);
 		}
 		Err("No metta runner available".into())
 	}

@@ -8,7 +8,11 @@ use hyperon_atom::{matcher::Bindings, Atom};
 use crate::{
 	base_proxy_query::{BaseQueryProxy, BaseQueryProxyT},
 	bus::QUERY_EVOLUTION_CMD,
-	helpers::{map_atom, query_answer::parse_query_answer, query_element::QueryElement},
+	helpers::{
+		map_atom,
+		query_answer::{parse_query_answer, query_answer_to_bindings},
+		query_element::QueryElement,
+	},
 	properties,
 	types::{BoxError, MeTTaRunner},
 	QueryParams,
@@ -130,12 +134,10 @@ impl QueryEvolutionProxy {
 			if query_answer_str == EVAL_FITNESS {
 				continue;
 			}
-			let query_answer = parse_query_answer(&query_answer_str, true)?;
-			let fitness = self.compute_fitness(
-				self.fitness_function.clone(),
-				query_answer,
-				&self.metta_runner,
-			)?;
+			let query_answer = parse_query_answer(&query_answer_str)?;
+			let bindings = query_answer_to_bindings(&query_answer, true)?;
+			let fitness =
+				self.compute_fitness(self.fitness_function.clone(), bindings, &self.metta_runner)?;
 			fitness_bundle.push(fitness.to_string());
 		}
 		if !fitness_bundle.is_empty() {
