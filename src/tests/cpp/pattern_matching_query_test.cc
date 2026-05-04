@@ -234,6 +234,11 @@ void check_query_chain(const string& query_tag,
                     count++;
                 }
                 EXPECT_TRUE((first == source) || (last == target));
+                for (unsigned int i = 0; i < query_answer->get_paths_size(); i++) {
+                    for (string handle : query_answer->get_path_vector(i)) {
+                        EXPECT_FALSE(query_answer->metta_expression.find(handle) == query_answer->metta_expression.end());
+                    }
+                }
             }
         }
         EXPECT_EQ(count, expected_count);
