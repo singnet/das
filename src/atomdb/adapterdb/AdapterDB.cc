@@ -48,7 +48,7 @@ AdapterDB::AdapterDB(const JsonConfig& config) : config(config) {
             lock_guard<mutex> lock(mtx);
             this->sync_source_database_to_atomdb();
         } else {
-            Utils::error("AtomDB backend already populated. Skipping initial population.");
+            Utils::error("AtomDB backend already populated");
         }
     } else {
         LOG_INFO("Context already loaded. Skipping adapter pipeline.");
