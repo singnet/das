@@ -1,11 +1,8 @@
 #include "DatabaseLoader.h"
 
-#include "AtomDBSingleton.h"
-#include "BoundedSharedQueue.h"
+#include <filesystem>
+
 #include "ContextLoader.h"
-#include "DedicatedThread.h"
-#include "PostgresWrapper.h"
-#include "Processor.h"
 
 #define LOG_LEVEL INFO_LEVEL
 #include "Logger.h"
@@ -15,6 +12,8 @@ using namespace std;
 using namespace commons;
 using namespace atoms;
 using namespace db_adapter;
+
+namespace fs = std::filesystem;
 
 // ==============================
 //  Construction / destruction
@@ -83,47 +82,54 @@ bool DatabaseMappingOrchestrator::is_finished() const { return this->finished; }
 
 void DatabaseMappingOrchestrator::database_setup(const JsonConfig& config,
                                                  shared_ptr<BoundedSharedQueue> output_queue) {
-    string host = config.at_path("adapter.host").get<string>();
-    uint port = config.at_path("adapter.port").get<uint>();
-    string username = config.at_path("adapter.username").get<string>();
-    string password = config.at_path("adapter.password").get<string>();
-    string database = config.at_path("adapter.database").get<string>();
-    this->db_conn =
-        make_unique<PostgresDatabaseConnection>("psql-conn", host, port, database, username, password);
-    this->wrapper = make_unique<PostgresWrapper>(*db_conn, output_queue);
+    string adapter_type = config.at_path("adapter.type").get_or<string>("");
+    if (adapter_type == "postgres") {
+        string host = config.at_path("adapter.database_credentials.host").get<string>();
+        uint port = config.at_path("adapter.database_credentials.port").get<uint>();
+        string username = config.at_path("adapter.database_credentials.username").get<string>();
+        string password = config.at_path("adapter.database_credentials.password").get<string>();
+        string database = config.at_path("adapter.database_credentials.database").get<string>();
+        this->db_conn = make_unique<PostgresDatabaseConnection>(
+            "psql-conn", host, port, database, username, password);
+        this->wrapper = make_unique<PostgresWrapper>(*db_conn, output_queue);
+    } else {
+        Utils::error("Unsupported adapter type: " + adapter_type);
+    }
 }
 
 void DatabaseMappingOrchestrator::task_setup(const JsonConfig& config) {
-    string tables_file_path = config.at_path("adapter.context_mapping.tables").get_or<string>("");
-    string query_file_path = config.at_path("adapter.context_mapping.queries_sql").get_or<string>("");
+    vector<string> file_paths =
+        config.at_path("adapter.context_mapping_paths").get_or<vector<string>>({});
 
-    if (tables_file_path.empty() && query_file_path.empty()) {
-        Utils::error(
-            "No mapping tasks found in the context file. Provide at least one of the following:\n"
-            " - adapter.context_mapping.tables (path to tables mapping JSON file)\n"
-            " - adapter.context_mapping.queries_sql (path to SQL queries file)");
+    if (file_paths.empty()) {
+        Utils::error("adapter.context_mapping_paths is not defined in config or is empty");
         return;
     }
 
-    if (!tables_file_path.empty()) {
-        auto tables_mapping = ContextLoader::load_table_file(tables_file_path);
-        if (!tables_mapping.empty()) {
-            for (const auto& table_mapping : tables_mapping) {
-                this->add_task_table(table_mapping);
-            }
-        }
-        LOG_DEBUG(to_string(tables_mapping.size()) +
-                  " tables were loaded from the context file for mapping.");
-    }
+    for (const auto& path : file_paths) {
+        fs::path p(path);
+        string ext = p.extension().string();
 
-    if (!query_file_path.empty()) {
-        auto queries_sql = ContextLoader::load_query_file(query_file_path);
-        if (!queries_sql.empty()) {
-            for (size_t i = 0; i < queries_sql.size(); i++) {
-                this->add_task_query("custom_query_" + to_string(i), queries_sql[i]);
+        if (ext == ".sql") {
+            LOG_INFO("Loading query mapping from file: " << path);
+            auto queries_sql = ContextLoader::load_query_file(path);
+            if (!queries_sql.empty()) {
+                for (size_t i = 0; i < queries_sql.size(); i++) {
+                    this->add_task_query("custom_query_" + to_string(i), queries_sql[i]);
+                }
             }
+            LOG_DEBUG(to_string(queries_sql.size()) + " queries were loaded from the query file.");
+        } else if (ext == ".json") {
+            LOG_INFO("Loading table mapping from file: " << path);
+            auto tables_mapping = ContextLoader::load_table_file(path);
+            if (!tables_mapping.empty()) {
+                for (const auto& table_mapping : tables_mapping) {
+                    this->add_task_table(table_mapping);
+                }
+            }
+            LOG_DEBUG(to_string(tables_mapping.size()) +
+                      " tables were loaded from the context file for mapping.");
         }
-        LOG_DEBUG(to_string(queries_sql.size()) + " queries were loaded from the query file.");
     }
 }
 
@@ -137,19 +143,21 @@ void DatabaseMappingOrchestrator::task_setup(const JsonConfig& config) {
 
 MultiThreadAtomPersister::MultiThreadAtomPersister(shared_ptr<BoundedSharedQueue> input_queue,
                                                    ThreadPool& pool,
+                                                   shared_ptr<AtomDB> atomdb,
                                                    size_t batch_size,
                                                    bool save_metta_expression,
+                                                   string metta_output_dir,
                                                    size_t max_pending_batches)
     : input_queue(input_queue),
       pool(pool),
+      atomdb(atomdb),
       batch_size(batch_size),
-      max_pending_batches(max_pending_batches),
-      save_metta_expression(save_metta_expression) {
-    this->atomdb = AtomDBSingleton::get_instance();
+      save_metta_expression(save_metta_expression),
+      max_pending_batches(max_pending_batches) {
     this->accumulator.reserve(batch_size);
 
     if (save_metta_expression) {
-        this->metta_writer = make_shared<MettaFileWriter>();
+        this->metta_writer = make_shared<MettaFileWriter>(metta_output_dir);
     }
 
     LOG_INFO("MultiThreadAtomPersister initialized | batch_size: "

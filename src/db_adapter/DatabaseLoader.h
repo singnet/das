@@ -5,9 +5,10 @@
 #include <string>
 #include <vector>
 
-#include "AtomDBSingleton.h"
+#include "AtomDB.h"
 #include "BoundedSharedQueue.h"
 #include "DedicatedThread.h"
+#include "JsonConfig.h"
 #include "MettaFileWriter.h"
 #include "PostgresWrapper.h"
 #include "Processor.h"
@@ -58,8 +59,10 @@ class MultiThreadAtomPersister {
    public:
     MultiThreadAtomPersister(shared_ptr<BoundedSharedQueue> input_queue,
                              ThreadPool& pool,
+                             shared_ptr<AtomDB> atomdb,
                              size_t batch_size = BATCH_SIZE,
                              bool save_metta_expression = false,
+                             string metta_output_dir = "./knowledge_base",
                              size_t max_pending_batches = 4);
     ~MultiThreadAtomPersister();
 
@@ -70,12 +73,13 @@ class MultiThreadAtomPersister {
 
    private:
     shared_ptr<BoundedSharedQueue> input_queue;
-    shared_ptr<AtomDB> atomdb;
-    shared_ptr<MettaFileWriter> metta_writer;
     ThreadPool& pool;
+    shared_ptr<AtomDB> atomdb;
+    ;
     size_t batch_size;
-    size_t max_pending_batches;
     atomic<bool> save_metta_expression;
+    size_t max_pending_batches;
+    shared_ptr<MettaFileWriter> metta_writer;
 
     atomic<bool> producer_finished{false};
     atomic<int> total_count{0};
