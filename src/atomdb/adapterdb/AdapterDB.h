@@ -1,7 +1,13 @@
 #pragma once
 
 #include <atomic>
+#include <bsoncxx/builder/stream/document.hpp>
+#include <bsoncxx/builder/stream/helpers.hpp>
+#include <bsoncxx/json.hpp>
 #include <memory>
+#include <mongocxx/client.hpp>
+#include <mongocxx/options/find.hpp>
+#include <mongocxx/pool.hpp>
 #include <mutex>
 #include <string>
 #include <vector>
@@ -11,9 +17,9 @@
 #include "JsonConfig.h"
 
 using namespace std;
-using namespace atomdb;
+using namespace db_adapter;
 
-namespace db_adapter {
+namespace atomdb {
 
 /**
  * @brief A fully functional AtomDB backed by a relational database.
@@ -34,10 +40,10 @@ namespace db_adapter {
  *
  * @param config     JSON configuration describing the source DB and mapping context.
  */
-class DatabaseAdapter : public AtomDB {
+class AdapterDB : public AtomDB {
    public:
-    explicit DatabaseAdapter(const JsonConfig& config);
-    ~DatabaseAdapter() override;
+    explicit AdapterDB(const JsonConfig& config);
+    ~AdapterDB() override;
 
     static string MONGODB_ADAPTER_COLLECTION_NAME;
 
@@ -48,6 +54,7 @@ class DatabaseAdapter : public AtomDB {
 
     /**
      * @brief Returns true if the source database contains data not yet in the backend.
+     * @todo This method is not implemented yet.
      */
     bool needs_sync() const;
 
@@ -108,12 +115,19 @@ class DatabaseAdapter : public AtomDB {
     bool is_loaded(const string& context_id) const;
 
     /**
+     * @brief Returns true if the database contains any data.
+     */
+    bool is_populated() const;
+
+    /**
      * Produces a string that identifies this mapping context (a hash)
      * Used to decide whether the backend already holds this data.
      */
     string context_id() const;
-    vector<string> get_mapping_file_paths() const;
+
     vector<string> get_mapping_file_contents() const;
+    void mongodb_setup();
+    void get_atomdb_backend();
 
     /**
      * Runs the full adapter pipeline (orchestrator -> persister) synchronously.
@@ -121,8 +135,9 @@ class DatabaseAdapter : public AtomDB {
     void sync_source_database_to_atomdb();
 
     JsonConfig config;
-    shared_ptr<AtomDB> atomdb;
+    shared_ptr<AtomDB> atomdb_backend;
     mutex mtx;
+    mongocxx::pool* mongodb_pool;
 };
 
-}  // namespace db_adapter
+}  // namespace atomdb
