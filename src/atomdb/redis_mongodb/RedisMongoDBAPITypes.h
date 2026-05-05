@@ -6,7 +6,6 @@
 #include <bsoncxx/json.hpp>
 #include <mongocxx/client.hpp>
 #include <mongocxx/exception/exception.hpp>
-#include <mongocxx/instance.hpp>
 #include <mongocxx/uri.hpp>
 #include <vector>
 

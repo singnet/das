@@ -7,7 +7,6 @@
 #include <bsoncxx/json.hpp>
 #include <memory>
 #include <mongocxx/client.hpp>
-#include <mongocxx/instance.hpp>
 #include <mongocxx/options/find.hpp>
 #include <mongocxx/pool.hpp>
 #include <mutex>
@@ -45,7 +44,6 @@ class RedisMongoDB : public AtomDB {
     static string MONGODB_PATTERN_INDEX_SCHEMA_COLLECTION_NAME;
     static string MONGODB_FIELD_NAME[MONGODB_FIELD::size];
     static uint MONGODB_CHUNK_SIZE;
-    static mongocxx::instance MONGODB_INSTANCE;
 
     static void initialize_statics(const string& context = "", bool skip_redis = false) {
         SKIP_REDIS = skip_redis;

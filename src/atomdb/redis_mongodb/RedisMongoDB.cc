@@ -12,6 +12,7 @@
 #include "Hasher.h"
 #include "Link.h"
 #include "Logger.h"
+#include "MongoInitializer.h"
 #include "Node.h"
 #include "Properties.h"
 #include "Utils.h"
@@ -31,7 +32,6 @@ string RedisMongoDB::MONGODB_LINKS_COLLECTION_NAME;
 string RedisMongoDB::MONGODB_PATTERN_INDEX_SCHEMA_COLLECTION_NAME;
 string RedisMongoDB::MONGODB_FIELD_NAME[MONGODB_FIELD::size];
 uint RedisMongoDB::MONGODB_CHUNK_SIZE;
-mongocxx::instance RedisMongoDB::MONGODB_INSTANCE;
 
 RedisMongoDB::RedisMongoDB(const string& context, bool skip_redis, const JsonConfig& config) {
     initialize_statics(context, skip_redis);
@@ -86,6 +86,8 @@ void RedisMongoDB::mongodb_setup(const JsonConfig& config) {
             "Set atomdb.mongodb in JsonConfig (endpoint or hostname/port, username, password).");
     }
     string url = "mongodb://" + user + ":" + password + "@" + address;
+
+    MongoInitializer::initialize();
 
     try {
         auto uri = mongocxx::uri{url};
