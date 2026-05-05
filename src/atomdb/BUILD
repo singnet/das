@@ -9,6 +9,7 @@ cc_library(
         ":atomdb",
         ":atomdb_api_types",
         ":atomdb_singleton",
+        "//atomdb/adapterdb:adapterdb_lib",
         "//atomdb/inmemorydb:inmemorydb_lib",
         "//atomdb/morkdb:morkdb_lib",
         "//atomdb/redis_mongodb:redis_mongodb_lib",
@@ -43,6 +44,7 @@ cc_library(
     includes = ["."],
     deps = [
         "//atomdb:atomdb_api_types",
+        "//atomdb/adapterdb",
         "//atomdb/morkdb",
         "//atomdb/redis_mongodb",
         "//atomdb/remotedb:remotedb_lib",

@@ -67,7 +67,7 @@ COPY src/assets/libpqxx-7.10.5.tar.gz /tmp
 RUN cd /tmp \
     && tar xzvf libpqxx-7.10.5.tar.gz \
     && cd /tmp/libpqxx-7.10.5 \
-    && cmake -S . -B build -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+    && cmake -S . -B build -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_POSITION_INDEPENDENT_CODE=ON\
     && cmake --build build -j \
     && cmake --install build \
     && ldconfig

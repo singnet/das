@@ -90,3 +90,13 @@ cc_library(
         "//commons:commons_lib",
     ],
 )
+
+cc_library(
+    name = "database_adapter_main_lib",
+    srcs = ["database_adapter_main.cc"],
+    deps = [
+        "//atomdb",
+        "//atomdb:atomdb_singleton",
+        "//commons:commons_lib",
+    ],
+)
