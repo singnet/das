@@ -1,5 +1,9 @@
 #include "AtomDBSingleton.h"
 
+#include "AdapterDB.h"
+#include "MorkDB.h"
+#include "RedisMongoDB.h"
+#include "RemoteAtomDB.h"
 #include "Utils.h"
 
 using namespace atomdb;
@@ -23,6 +27,8 @@ void AtomDBSingleton::init(const JsonConfig& atomdb_config) {
             AtomDBSingleton::atom_db = shared_ptr<AtomDB>(new RedisMongoDB("", false, atomdb_config));
         } else if (atomdb_type == "remotedb") {
             AtomDBSingleton::atom_db = shared_ptr<AtomDB>(new RemoteAtomDB(atomdb_config));
+        } else if (atomdb_type == "adapterdb") {
+            AtomDBSingleton::atom_db = shared_ptr<AtomDB>(new AdapterDB(atomdb_config));
         } else {
             Utils::error("Invalid AtomDB type: " + atomdb_type);
         }
