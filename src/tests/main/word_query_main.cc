@@ -131,7 +131,8 @@ void run(const string& client_id,
 
     shared_ptr<PatternMatchingQueryProxy> proxy =
         make_shared<PatternMatchingQueryProxy>(query_word, context);
-    proxy->parameters[BaseQueryProxy::ATTENTION_UPDATE_FLAG] = true;
+    proxy->parameters[BaseQueryProxy::ATTENTION_UPDATE] = (unsigned int) BaseQueryProxy::VARIABLES;
+    proxy->parameters[BaseQueryProxy::ATTENTION_CORRELATION] = (unsigned int) BaseQueryProxy::VARIABLES;
     service_bus->issue_bus_command(proxy);
 
     shared_ptr<QueryAnswer> query_answer;
@@ -169,7 +170,8 @@ void run(const string& client_id,
     shared_ptr<PatternMatchingQueryProxy> proxy2 =
         make_shared<PatternMatchingQueryProxy>(query_word, context);
     proxy2->parameters[BaseQueryProxy::UNIQUE_ASSIGNMENT_FLAG] = true;
-    proxy2->parameters[BaseQueryProxy::ATTENTION_UPDATE_FLAG] = true;
+    proxy2->parameters[BaseQueryProxy::ATTENTION_UPDATE] = (unsigned int) BaseQueryProxy::VARIABLES;
+    proxy2->parameters[BaseQueryProxy::ATTENTION_CORRELATION] = (unsigned int) BaseQueryProxy::VARIABLES;
     service_bus->issue_bus_command(proxy2);
     while (!proxy2->finished()) {
         Utils::sleep();

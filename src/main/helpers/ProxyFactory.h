@@ -138,13 +138,15 @@ class ProxyFactory {
     static void set_base_query_params(shared_ptr<BaseProxy> proxy, const Properties& params) {
         string context = params.get<string>(Helper::CONTEXT);
         string uaf = params.get_or<string>(Helper::UNIQUE_ASSIGNMENT_FLAG, "");
-        string auf = params.get_or<string>(Helper::ATTENTION_UPDATE_FLAG, "");
+        string au = params.get_or<string>(Helper::ATTENTION_UPDATE, "");
+        string ac = params.get_or<string>(Helper::ATTENTION_CORRELATION, "");
         string max_answers = params.get_or<string>(Helper::MAX_ANSWERS, "");
         string ultc = params.get_or<string>(Helper::USE_LINK_TEMPLATE_CACHE, "");
         string pmm = params.get_or<string>(Helper::POPULATE_METTA_MAPPING, "");
         string umaqt = params.get_or<string>(Helper::USE_METTA_AS_QUERY_TOKENS, "");
         set_param(proxy, BaseQueryProxy::UNIQUE_ASSIGNMENT_FLAG, uaf, ParamType::BOOL);
-        set_param(proxy, BaseQueryProxy::ATTENTION_UPDATE_FLAG, auf, ParamType::BOOL);
+        set_param(proxy, BaseQueryProxy::ATTENTION_UPDATE, au, ParamType::UINT);
+        set_param(proxy, BaseQueryProxy::ATTENTION_CORRELATION, ac, ParamType::UINT);
         set_param(proxy, BaseQueryProxy::MAX_ANSWERS, max_answers, ParamType::UINT);
         set_param(proxy, BaseQueryProxy::USE_LINK_TEMPLATE_CACHE, ultc, ParamType::BOOL);
         set_param(proxy, BaseQueryProxy::POPULATE_METTA_MAPPING, pmm, ParamType::BOOL);

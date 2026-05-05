@@ -47,6 +47,16 @@ string handle_to_atom(const string& handle) {
     return answer;
 }
 
+string get_target(const string& handle, unsigned int index) {
+    shared_ptr<AtomDB> db = AtomDBSingleton::get_instance();
+    shared_ptr<Atom> atom = db->get_atom(handle);
+    auto link = dynamic_cast<Link*>(atom.get());
+    if ((link == nullptr) || (link == NULL)) {
+        LOG_INFO("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX NULL link");
+    }
+    return link->targets[index];
+}
+
 void check_query(const string& query_tag,
                  const vector<string>& query,
                  const string& metta_expression,
@@ -62,7 +72,10 @@ void check_query(const string& query_tag,
 
     shared_ptr<PatternMatchingQueryProxy> proxy1(new PatternMatchingQueryProxy(query, context));
     proxy1->parameters[BaseQueryProxy::UNIQUE_ASSIGNMENT_FLAG] = unique_assignment;
-    proxy1->parameters[BaseQueryProxy::ATTENTION_UPDATE_FLAG] = update_attention_broker;
+    proxy1->parameters[BaseQueryProxy::ATTENTION_UPDATE] =
+        (unsigned int) (update_attention_broker ? BaseQueryProxy::VARIABLES : BaseQueryProxy::NONE);
+    proxy1->parameters[BaseQueryProxy::ATTENTION_CORRELATION] =
+        (unsigned int) (update_attention_broker ? BaseQueryProxy::VARIABLES : BaseQueryProxy::NONE);
     proxy1->parameters[BaseQueryProxy::POPULATE_METTA_MAPPING] = false;
     proxy1->parameters[PatternMatchingQueryProxy::POSITIVE_IMPORTANCE_FLAG] = positive_importance;
     proxy1->parameters[PatternMatchingQueryProxy::UNIQUE_VALUE_FLAG] = unique_value_flag;
@@ -70,7 +83,10 @@ void check_query(const string& query_tag,
 
     shared_ptr<PatternMatchingQueryProxy> proxy2(new PatternMatchingQueryProxy(query, context));
     proxy2->parameters[BaseQueryProxy::UNIQUE_ASSIGNMENT_FLAG] = unique_assignment;
-    proxy2->parameters[BaseQueryProxy::ATTENTION_UPDATE_FLAG] = update_attention_broker;
+    proxy2->parameters[BaseQueryProxy::ATTENTION_UPDATE] =
+        (unsigned int) (update_attention_broker ? BaseQueryProxy::VARIABLES : BaseQueryProxy::NONE);
+    proxy2->parameters[BaseQueryProxy::ATTENTION_CORRELATION] =
+        (unsigned int) (update_attention_broker ? BaseQueryProxy::VARIABLES : BaseQueryProxy::NONE);
     proxy2->parameters[PatternMatchingQueryProxy::COUNT_FLAG] = true;
     proxy2->parameters[PatternMatchingQueryProxy::POSITIVE_IMPORTANCE_FLAG] = positive_importance;
     proxy2->parameters[PatternMatchingQueryProxy::UNIQUE_VALUE_FLAG] = unique_value_flag;
@@ -80,7 +96,10 @@ void check_query(const string& query_tag,
     shared_ptr<PatternMatchingQueryProxy> proxy3(new PatternMatchingQueryProxy(metta_query, context));
     proxy3->parameters[BaseQueryProxy::USE_METTA_AS_QUERY_TOKENS] = true;
     proxy3->parameters[BaseQueryProxy::UNIQUE_ASSIGNMENT_FLAG] = unique_assignment;
-    proxy3->parameters[BaseQueryProxy::ATTENTION_UPDATE_FLAG] = update_attention_broker;
+    proxy3->parameters[BaseQueryProxy::ATTENTION_UPDATE] =
+        (unsigned int) (update_attention_broker ? BaseQueryProxy::VARIABLES : BaseQueryProxy::NONE);
+    proxy3->parameters[BaseQueryProxy::ATTENTION_CORRELATION] =
+        (unsigned int) (update_attention_broker ? BaseQueryProxy::VARIABLES : BaseQueryProxy::NONE);
     proxy3->parameters[BaseQueryProxy::POPULATE_METTA_MAPPING] = false;
     proxy3->parameters[PatternMatchingQueryProxy::POSITIVE_IMPORTANCE_FLAG] = positive_importance;
     proxy3->parameters[PatternMatchingQueryProxy::UNIQUE_VALUE_FLAG] = unique_value_flag;
@@ -162,88 +181,70 @@ void check_query_chain(const string& query_tag,
                        bool error_flag,
                        bool unique_value_flag) {
     LOG_INFO("==================== Query tag: " + query_tag);
+    vector<shared_ptr<PatternMatchingQueryProxy>> proxies;
 
-    shared_ptr<PatternMatchingQueryProxy> proxy1(new PatternMatchingQueryProxy(query, context));
-    proxy1->parameters[BaseQueryProxy::UNIQUE_ASSIGNMENT_FLAG] = unique_assignment;
-    proxy1->parameters[BaseQueryProxy::ATTENTION_UPDATE_FLAG] = update_attention_broker;
-    proxy1->parameters[BaseQueryProxy::POPULATE_METTA_MAPPING] = false;
-    proxy1->parameters[PatternMatchingQueryProxy::POSITIVE_IMPORTANCE_FLAG] = positive_importance;
-    proxy1->parameters[PatternMatchingQueryProxy::UNIQUE_VALUE_FLAG] = unique_value_flag;
-    LOG_INFO("proxy1: " + proxy1->to_string());
-
-    vector<string> metta_query = {metta_expression};
-    shared_ptr<PatternMatchingQueryProxy> proxy2(new PatternMatchingQueryProxy(metta_query, context));
-    proxy2->parameters[BaseQueryProxy::USE_METTA_AS_QUERY_TOKENS] = true;
-    proxy2->parameters[BaseQueryProxy::UNIQUE_ASSIGNMENT_FLAG] = unique_assignment;
-    proxy2->parameters[BaseQueryProxy::ATTENTION_UPDATE_FLAG] = update_attention_broker;
-    proxy2->parameters[BaseQueryProxy::POPULATE_METTA_MAPPING] = false;
-    proxy2->parameters[PatternMatchingQueryProxy::POSITIVE_IMPORTANCE_FLAG] = positive_importance;
-    proxy2->parameters[PatternMatchingQueryProxy::UNIQUE_VALUE_FLAG] = unique_value_flag;
-    LOG_INFO("proxy2: " + proxy2->to_string());
-
-    unsigned int count = 0;
-    shared_ptr<QueryAnswer> query_answer;
-
-    client_bus->issue_bus_command(proxy1);
-    count = 0;
-    while (!proxy1->finished()) {
-        while (!(query_answer = proxy1->pop())) {
-            if (proxy1->finished()) {
-                break;
-            } else {
-                Utils::sleep();
-            }
-        }
-        if (query_answer) {
-            LOG_INFO(">>>>>>>>>> " << query_answer->assignment.to_string());
-            for (auto pair : query_answer->assignment.table) {
-                LOG_INFO(">>>>>>>>>>>>>> " << pair.first << " " << handle_to_atom(pair.second));
-            }
-            if (((query_answer->get(Chain::ORIGIN_VARIABLE_NAME) == source) &&
-                 (query_answer->get(Chain::DESTINY_VARIABLE_NAME) == target)) ||
-                ((query_answer->get(Chain::ORIGIN_VARIABLE_NAME) == target) &&
-                 (query_answer->get(Chain::DESTINY_VARIABLE_NAME) == source))) {
-                count++;
-            }
-            EXPECT_TRUE((query_answer->get(Chain::ORIGIN_VARIABLE_NAME) == source) ||
-                        (query_answer->get(Chain::ORIGIN_VARIABLE_NAME) == target));
-        }
-    }
-    EXPECT_EQ(count, expected_count);
-    EXPECT_EQ(proxy1->error_flag, error_flag);
-
-    // giving time to the server to close the previous connection
-    // otherwise the test fails with "Node ID already in the network"
-    Utils::sleep();
+    proxies.push_back(
+        shared_ptr<PatternMatchingQueryProxy>(new PatternMatchingQueryProxy(query, context)));
+    proxies[0]->parameters[BaseQueryProxy::UNIQUE_ASSIGNMENT_FLAG] = unique_assignment;
+    proxies[0]->parameters[BaseQueryProxy::ATTENTION_UPDATE] =
+        (unsigned int) (update_attention_broker ? BaseQueryProxy::VARIABLES : BaseQueryProxy::NONE);
+    proxies[0]->parameters[BaseQueryProxy::ATTENTION_CORRELATION] =
+        (unsigned int) (update_attention_broker ? BaseQueryProxy::VARIABLES : BaseQueryProxy::NONE);
+    proxies[0]->parameters[BaseQueryProxy::POPULATE_METTA_MAPPING] = true;
+    proxies[0]->parameters[PatternMatchingQueryProxy::POSITIVE_IMPORTANCE_FLAG] = positive_importance;
+    proxies[0]->parameters[PatternMatchingQueryProxy::UNIQUE_VALUE_FLAG] = unique_value_flag;
+    LOG_INFO("proxy 0: " + proxies[0]->to_string());
 
     if (metta_expression != "") {
-        client_bus->issue_bus_command(proxy2);
-        count = 0;
-        while (!proxy2->finished()) {
-            while (!(query_answer = proxy2->pop())) {
-                if (proxy2->finished()) {
+        vector<string> metta_query = {metta_expression};
+        proxies.push_back(
+            shared_ptr<PatternMatchingQueryProxy>(new PatternMatchingQueryProxy(metta_query, context)));
+        proxies[1]->parameters[BaseQueryProxy::USE_METTA_AS_QUERY_TOKENS] = true;
+        proxies[1]->parameters[BaseQueryProxy::UNIQUE_ASSIGNMENT_FLAG] = unique_assignment;
+        proxies[1]->parameters[BaseQueryProxy::ATTENTION_UPDATE] =
+            (unsigned int) (update_attention_broker ? BaseQueryProxy::VARIABLES : BaseQueryProxy::NONE);
+        proxies[1]->parameters[BaseQueryProxy::ATTENTION_CORRELATION] =
+            (unsigned int) (update_attention_broker ? BaseQueryProxy::VARIABLES : BaseQueryProxy::NONE);
+        proxies[1]->parameters[BaseQueryProxy::POPULATE_METTA_MAPPING] = true;
+        proxies[1]->parameters[PatternMatchingQueryProxy::POSITIVE_IMPORTANCE_FLAG] =
+            positive_importance;
+        proxies[1]->parameters[PatternMatchingQueryProxy::UNIQUE_VALUE_FLAG] = unique_value_flag;
+        LOG_INFO("proxy 1: " + proxies[1]->to_string());
+    }
+
+    for (auto proxy : proxies) {
+        shared_ptr<QueryAnswer> query_answer = nullptr;
+        unsigned int count = 0;
+        client_bus->issue_bus_command(proxy);
+        while (!proxy->finished()) {
+            while (!(query_answer = proxy->pop())) {
+                if (proxy->finished()) {
                     break;
                 } else {
                     Utils::sleep();
                 }
             }
             if (query_answer) {
-                LOG_INFO(">>>>>>>>>> " << query_answer->assignment.to_string());
                 for (auto pair : query_answer->assignment.table) {
                     LOG_INFO(">>>>>>>>>>>>>> " << pair.first << " " << handle_to_atom(pair.second));
                 }
-                if (((query_answer->get(Chain::ORIGIN_VARIABLE_NAME) == source) &&
-                     (query_answer->get(Chain::DESTINY_VARIABLE_NAME) == target)) ||
-                    ((query_answer->get(Chain::ORIGIN_VARIABLE_NAME) == target) &&
-                     (query_answer->get(Chain::DESTINY_VARIABLE_NAME) == source))) {
+                string first = get_target(query_answer->get_path_vector(0).front(), 1);
+                string last = get_target(query_answer->get_path_vector(0).back(), 2);
+                if (((first == source) && (last == target)) || ((first == target) && (last == source))) {
                     count++;
                 }
-                EXPECT_TRUE((query_answer->get(Chain::ORIGIN_VARIABLE_NAME) == source) ||
-                            (query_answer->get(Chain::ORIGIN_VARIABLE_NAME) == target));
+                EXPECT_TRUE((first == source) || (last == target));
+                for (unsigned int i = 0; i < query_answer->get_paths_size(); i++) {
+                    for (string handle : query_answer->get_path_vector(i)) {
+                        EXPECT_FALSE(query_answer->metta_expression.find(handle) ==
+                                     query_answer->metta_expression.end());
+                    }
+                }
             }
         }
         EXPECT_EQ(count, expected_count);
-        EXPECT_EQ(proxy2->error_flag, error_flag);
+        EXPECT_EQ(proxy->error_flag, error_flag);
+        Utils::sleep();
     }
 }
 
@@ -408,6 +409,97 @@ TEST(PatternMatchingQuery, queries) {
     string q10m = "(chain 1 1 2 \"chimp\" \"ent\" (and (or (Inheritance $v1 \"mammal\") (Inheritance $v2 \"mammal\")) (Similarity $v1 $v2)))";
     int q10_expected_count = 2;
 
+    vector<string> q11 = {
+        "AND", "2",
+            "LINK_TEMPLATE", "Expression", "3",
+                "NODE", "Symbol", "Similarity",
+                "NODE", "Symbol", "\"human\"",
+                "VARIABLE", "v1",
+            "CHAIN", "0", "1", "2",
+                "VARIABLE", "v1",
+                "NODE", "Symbol", "\"animal\"",
+                "LINK_TEMPLATE", "Expression", "3",
+                    "NODE", "Symbol", "Inheritance",
+                    "VARIABLE", "vc1",
+                    "VARIABLE", "vc2",
+    };
+    string q11m = "(and (Similarity \"human\" $v1) (chain 0 1 2 $v1 \"animal\" (Inheritance $vc1 $vc2)))";
+    int q11_expected_count = 2;
+
+    vector<string> q12 = {
+        "AND", "2",
+            "LINK_TEMPLATE", "Expression", "3",
+                "NODE", "Symbol", "Similarity",
+                "NODE", "Symbol", "\"human\"",
+                "VARIABLE", "v1",
+            "OR", "2",
+                "CHAIN", "0", "1", "2",
+                    "VARIABLE", "v1",
+                    "NODE", "Symbol", "\"animal\"",
+                    "LINK_TEMPLATE", "Expression", "3",
+                        "NODE", "Symbol", "Inheritance",
+                        "VARIABLE", "vc1",
+                        "VARIABLE", "vc2",
+                "CHAIN", "0", "1", "2",
+                    "VARIABLE", "v1",
+                    "NODE", "Symbol", "\"plant\"",
+                    "LINK_TEMPLATE", "Expression", "3",
+                        "NODE", "Symbol", "Inheritance",
+                        "VARIABLE", "vc1",
+                        "VARIABLE", "vc2",
+    };
+    string q12m = "(and (Similarity \"human\" $v1) (or (chain 0 1 2 $v1 \"animal\" (Inheritance $vc1 $vc2)) (chain 0 1 2 $v1 \"plant\" (Inheritance $vc1 $vc2))))";
+    int q12_expected_count = 3;
+
+    vector<string> q13 = {
+        "AND", "2",
+            "LINK_TEMPLATE", "Expression", "3",
+                "NODE", "Symbol", "Similarity",
+                "VARIABLE", "v1",
+                "VARIABLE", "v2",
+            "AND", "2",
+                "CHAIN", "0", "1", "2",
+                    "VARIABLE", "v1",
+                    "NODE", "Symbol", "\"animal\"",
+                    "LINK_TEMPLATE", "Expression", "3",
+                        "NODE", "Symbol", "Inheritance",
+                        "VARIABLE", "vc1",
+                        "VARIABLE", "vc2",
+                "CHAIN", "0", "1", "2",
+                    "VARIABLE", "v2",
+                    "NODE", "Symbol", "\"plant\"",
+                    "LINK_TEMPLATE", "Expression", "3",
+                        "NODE", "Symbol", "Inheritance",
+                        "VARIABLE", "vc1",
+                        "VARIABLE", "vc2",
+    };
+    string q13m = "(and (Similarity $v1 $v2) (and (chain 0 1 2 $v1 \"animal\" (Inheritance $vc1 $vc2)) (chain 0 1 2 $v2 \"plant\" (Inheritance $vc1 $vc2))))";
+    int q13_expected_count = 2;
+
+    vector<string> q14 = {
+        "AND", "3",
+            "LINK_TEMPLATE", "Expression", "3",
+                "NODE", "Symbol", "Similarity",
+                "VARIABLE", "v1",
+                "VARIABLE", "v2",
+            "CHAIN", "0", "1", "2",
+                "VARIABLE", "v1",
+                "NODE", "Symbol", "\"animal\"",
+                "LINK_TEMPLATE", "Expression", "3",
+                    "NODE", "Symbol", "Inheritance",
+                    "VARIABLE", "vc1",
+                    "VARIABLE", "vc2",
+            "CHAIN", "0", "1", "2",
+                "VARIABLE", "v2",
+                "NODE", "Symbol", "\"plant\"",
+                "LINK_TEMPLATE", "Expression", "3",
+                    "NODE", "Symbol", "Inheritance",
+                    "VARIABLE", "vc1",
+                    "VARIABLE", "vc2",
+    };
+    string q14m = "";
+    int q14_expected_count = 2;
+
     // Regular queries
     check_query("q1", q1, q1m, q1_expected_count, client_bus, "PatternMatchingQuery.queries", false, false, false, false, false);
     check_query("q2", q2, q2m, q2_expected_count, client_bus, "PatternMatchingQuery.queries", false, false, false, false, false);
@@ -420,6 +512,10 @@ TEST(PatternMatchingQuery, queries) {
     check_query_chain("q8", q8, q8m, Hasher::node_handle("Symbol", "\"chimp\""), Hasher::node_handle("Symbol", "\"ent\""), q8_expected_count, client_bus, "PatternMatchingQuery.queries", false, true, false, false, false);
     check_query_chain("q9", q9, q9m, Hasher::node_handle("Symbol", "\"ent\""), Hasher::node_handle("Symbol", "\"animal\""), q9_expected_count, client_bus, "PatternMatchingQuery.queries", false, true, false, false, false);
     check_query_chain("q10", q10, q10m, Hasher::node_handle("Symbol", "\"chimp\""), Hasher::node_handle("Symbol", "\"ent\""), q10_expected_count, client_bus, "PatternMatchingQuery.queries", false, true, false, false, false);
+    check_query("q11", q11, q11m, q11_expected_count, client_bus, "PatternMatchingQuery.queries", false, true, false, false, false);
+    check_query("q12", q12, q12m, q12_expected_count, client_bus, "PatternMatchingQuery.queries", false, true, false, false, false);
+    check_query("q13", q13, q13m, q13_expected_count, client_bus, "PatternMatchingQuery.queries", false, true, false, false, false);
+    check_query("q14", q14, q14m, q14_expected_count, client_bus, "PatternMatchingQuery.queries", false, true, false, false, false);
 
     // Importance filtering
     // XXX AttentionBroker is being revised so its dynamics is a bit unpredictable right now

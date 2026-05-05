@@ -32,6 +32,8 @@ class BaseQueryProxy : public BaseProxy {
     BaseQueryProxy(const vector<string>& tokens, const string& context);
 
    public:
+    enum QUERY_ELEMENTS { NONE = 0, HANDLES, VARIABLES, HANDLES_AND_VARIABLES };
+
     // ---------------------------------------------------------------------------------------------
     // Constructors, destructors and static state
 
@@ -44,8 +46,19 @@ class BaseQueryProxy : public BaseProxy {
     static string UNIQUE_ASSIGNMENT_FLAG;  // When true, query operators (e.g. And, Or) don't output
                                            // more than one QueryAnswer with the same variable
                                            // assignment.
-    static string ATTENTION_UPDATE_FLAG;   // When true, queries issued to the pattern matcher will
-                                           // trigger attention update automatically.
+
+    static string ATTENTION_UPDATE;  // Determines wheather queries issued to the pattern matcher will
+                                     // trigger attention update of matched elements (without making
+                                     // any correlation). Elements which will be updated depends on
+                                     // the value passed (see enum QUERY_ELEMENTS: only handles, only
+                                     // variables or both).
+
+    static string ATTENTION_CORRELATION;  // Determines whether  queries issued to the pattern matcher
+                                          // will trigger correlation of matched elements (without
+                                          // spreading any activation). Elements which will be
+                                          // correlated depends on the value passed
+                                          // (see enum QUERY_ELEMENTS: only handles, only variables
+                                          // or both).
 
     static string MAX_BUNDLE_SIZE;  // Max number of answers buffered before flushing them to the peer
                                     // client proxy.

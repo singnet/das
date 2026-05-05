@@ -28,8 +28,6 @@ QueryAnswer::QueryAnswer(const string& handle, double importance) {
 
 QueryAnswer::~QueryAnswer() {}
 
-void QueryAnswer::add_handle(const string& handle) { this->handles[0].push_back(handle); }
-
 QueryAnswer* QueryAnswer::copy(QueryAnswer* other) {  // Static method
     QueryAnswer* copy = new QueryAnswer(other->importance);
     copy->strength = other->strength;
@@ -39,8 +37,31 @@ QueryAnswer* QueryAnswer::copy(QueryAnswer* other) {  // Static method
     return copy;
 }
 
+void QueryAnswer::merge_paths(QueryAnswer* other) {
+    unsigned int original_path_count = this->handles.size() - 1;
+    unsigned int cursor_this = original_path_count + 1;
+    for (unsigned int cursor_other = 1; cursor_other < other->handles.size(); cursor_other++) {
+        bool already_exists = false;
+        for (unsigned int i = 1; i <= original_path_count; i++) {
+            if (other->handles[cursor_other] == this->handles[i]) {
+                already_exists = true;
+                break;
+            }
+        }
+        if (!already_exists) {
+            this->handles.push_back({});
+            this->handles[cursor_this++] = other->handles[cursor_other];
+        }
+    }
+}
+
 bool QueryAnswer::merge(QueryAnswer* other, bool merge_handles) {
     if (this->assignment.is_compatible(other->assignment)) {
+        for (auto pair : other->assignment.table) {
+            if (!other->metta_expression[pair.second].empty()) {
+                this->metta_expression[pair.second] = other->metta_expression[pair.second];
+            }
+        }
         this->assignment.add_assignments(other->assignment);
         if (merge_handles) {
             this->importance = fmax(this->importance, other->importance);
@@ -60,6 +81,9 @@ bool QueryAnswer::merge(QueryAnswer* other, bool merge_handles) {
                     this->metta_expression[handle1] = other->metta_expression[handle1];
                 }
             }
+            if (other->handles.size() > 1) {
+                this->merge_paths(other);
+            }
         }
         return true;
     } else {
@@ -67,20 +91,39 @@ bool QueryAnswer::merge(QueryAnswer* other, bool merge_handles) {
     }
 }
 
-string QueryAnswer::to_string() {
+string QueryAnswer::to_string(bool metta_flag) {
     string answer = "QueryAnswer<" + std::to_string(this->handles[0].size()) + ",";
     answer += std::to_string(this->assignment.variable_count()) + "> [";
-    bool empty_flag = true;
-    for (string handle : this->handles[0]) {
-        answer += handle;
-        answer += ", ";
-        empty_flag = false;
+    for (auto& vector : this->handles) {
+        answer += "[";
+        bool empty_flag = true;
+        for (string handle : vector) {
+            answer += (metta_flag ? metta_expression[handle] : handle);
+            answer += ", ";
+            empty_flag = false;
+        }
+        if (!empty_flag) {
+            answer.pop_back();
+            answer.pop_back();
+        }
+        answer += "]";
     }
-    if (!empty_flag) {
-        answer.pop_back();
-        answer.pop_back();
+    answer += "] ";
+    if (metta_flag) {
+        bool empty_flag = true;
+        answer += "{";
+        for (auto pair : this->assignment.table) {
+            answer += "(" + pair.first + ": " + metta_expression[pair.second] + "), ";
+            empty_flag = false;
+        }
+        if (!empty_flag) {
+            answer.pop_back();
+            answer.pop_back();
+        }
+        answer += "}";
+    } else {
+        answer += this->assignment.to_string();
     }
-    answer += "] " + this->assignment.to_string();
     answer += " (" + std::to_string(this->strength) + ", " + std::to_string(this->importance) + ")";
     return answer;
 }
@@ -95,12 +138,15 @@ const string& QueryAnswer::tokenize() {
     unsigned int char_count =
         13    // strength with 10 decimals + space
         + 13  // importance with 10 decimals + space
-        + 4   // (up to 3 digits) to represent this->handles[0].size() + space
-        + this->handles[0].size() * (HANDLE_HASH_SIZE + 1)  // handles[0] + spaces
-        + 4  // (up to 3 digits) to represent this->assignment.size + space
+        + 4   // (up to 3 digits) to represent this->assignment.size + space
         + this->assignment.table.size() *
               (MAX_VARIABLE_NAME_SIZE + HANDLE_HASH_SIZE + 2)  // label<space>handle<space>
-        + 4;  // (up to 3 digits) to represent this->metta_expression.size + space
+        + 4               // (up to 3 digits) to represent this->metta_expression.size + space
+        + 4;              // (up to 3 digits) to represent this->handles.size() + space
+    for (auto& vector : this->handles) {
+        char_count += 4;  // (up to 3 digits) to represent this->handles[i].size() + space
+        char_count += vector.size() * (HANDLE_HASH_SIZE + 1);  // handles[i] + spaces
+    }
 
     this->token_representation.clear();
     this->token_representation.reserve(char_count);
@@ -109,11 +155,15 @@ const string& QueryAnswer::tokenize() {
     this->token_representation += space;
     this->token_representation += importance_buffer;
     this->token_representation += space;
-    this->token_representation += std::to_string(this->handles[0].size());
+    this->token_representation += std::to_string(this->handles.size());
     this->token_representation += space;
-    for (string handle : this->handles[0]) {
-        this->token_representation += handle;
+    for (auto& vector : this->handles) {
+        this->token_representation += std::to_string(vector.size());
         this->token_representation += space;
+        for (string handle : vector) {
+            this->token_representation += handle;
+            this->token_representation += space;
+        }
     }
     this->token_representation += std::to_string(this->assignment.table.size());
     this->token_representation += space;
@@ -201,14 +251,29 @@ void QueryAnswer::untokenize(const string& tokens) {
 
     read_token(token_string, cursor, number, 4);
     unsigned int handles_size = (unsigned int) std::stoi(number);
-    if (handles_size > MAX_NUMBER_OF_OPERATION_CLAUSES) {
+
+    if (handles_size >= MAX_NUMBER_OF_OPERATION_CLAUSES) {
         Utils::error("Invalid handles_size: " + std::to_string(handles_size) +
                      " untokenizing QueryAnswer");
-    }
-
-    for (unsigned int i = 0; i < handles_size; i++) {
-        read_token(token_string, cursor, handle, HANDLE_HASH_SIZE);
-        this->handles[0].push_back(string(handle));
+    } else {
+        for (unsigned int i = 0; i < handles_size; i++) {
+            read_token(token_string, cursor, number, 4);
+            unsigned int vector_size = (unsigned int) std::stoi(number);
+            unsigned int path_index = 0;
+            if (i > 0) {
+                path_index = this->add_path();
+            }
+            for (unsigned int j = 0; j < vector_size; j++) {
+                read_token(token_string, cursor, handle, HANDLE_HASH_SIZE);
+                if (i == 0) {
+                    // handles vector
+                    this->add_handle(handle);
+                } else {
+                    // paths
+                    this->add_path_element(path_index, handle);
+                }
+            }
+        }
     }
 
     read_token(token_string, cursor, number, 4);
@@ -303,6 +368,50 @@ void QueryAnswer::rewrite_query(const vector<string>& original_query,
     }
 }
 
-unsigned int QueryAnswer::get_handles_size() { return handles[0].size(); }
+void QueryAnswer::add_handle(const string& handle) { this->handles[0].push_back(handle); }
 
-vector<string>& QueryAnswer::get_handles_vector() { return handles[0]; }
+unsigned int QueryAnswer::add_path() {
+    if (this->handles.size() == 0) {
+        Utils::error("Invalid QueryAnswer setup. Trying to add a path to an uninitialized  QueryAnswer");
+        return 0;
+    } else {
+        unsigned int new_index = this->handles.size() - 1;
+        this->handles.push_back({});
+        return new_index;
+    }
+}
+
+void QueryAnswer::add_path_element(unsigned int path_index, const string& handle) {
+    if (this->handles.size() == 0) {
+        Utils::error(
+            "Invalid QueryAnswer setup. Trying to add a path element to an uninitialized  QueryAnswer");
+    } else {
+        if (path_index >= (this->handles.size() - 1)) {
+            Utils::error("Invalid path index: " + std::to_string(path_index) +
+                         " QueryAnswer: " + to_string());
+        } else {
+            this->handles[path_index + 1].push_back(handle);
+        }
+    }
+}
+
+unsigned int QueryAnswer::get_handles_size() { return this->handles[0].size(); }
+
+unsigned int QueryAnswer::get_paths_size() {
+    unsigned int size = this->handles.size();
+    if (size == 0) {
+        return 0;
+    } else {
+        return size - 1;
+    }
+}
+
+vector<string>& QueryAnswer::get_handles_vector() { return this->handles[0]; }
+
+vector<string>& QueryAnswer::get_path_vector(unsigned int path_index) {
+    if ((this->handles.size() == 0) || (path_index >= (this->handles.size() - 1))) {
+        Utils::error("Invalid path index: " + std::to_string(path_index) +
+                     " QueryAnswer: " + to_string());
+    }
+    return this->handles[path_index + 1];
+}

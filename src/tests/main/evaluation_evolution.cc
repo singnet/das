@@ -25,7 +25,7 @@
 #include "Utils.h"
 #include "commons/atoms/MettaParserActions.h"
 
-#define MAX_QUERY_ANSWERS ((unsigned int) 100000)
+#define USE_MORK ((bool) true)
 
 // Symbols
 #define AND_OPERATOR "AND"
@@ -46,6 +46,7 @@
 #define CONCEPT "Concept"
 #define EQUIVALENCE "Equivalence"
 #define IMPLICATION "Implication"
+#define LOGICAL_AND "LogicalAnd"
 
 // Variables
 #define V1 "V1"
@@ -67,12 +68,13 @@ static string IMPLICATION_HANDLE = Hasher::node_handle(SYMBOL, IMPLICATION);
 static string EQUIVALENCE_HANDLE = Hasher::node_handle(SYMBOL, EQUIVALENCE);
 static string PREDICATE_HANDLE = Hasher::node_handle(SYMBOL, PREDICATE);
 static string EVALUATION_HANDLE = Hasher::node_handle(SYMBOL, EVALUATION);
+static string LOGICAL_AND_HANDLE = Hasher::node_handle(SYMBOL, LOGICAL_AND);
 static float RENT_RATE = 0.25;
 static float SPREADING_RATE_LOWERBOUND = 0.90;
 static float SPREADING_RATE_UPPERBOUND = 0.90;
 static double SELECTION_RATE = 0.10;
 static double ELITISM_RATE = 0.08;
-static unsigned int LINK_BUILDING_QUERY_SIZE = 50;
+static unsigned int LINK_BUILDING_QUERY_SIZE = 10;
 static unsigned int POPULATION_SIZE = 50;
 static unsigned int MAX_GENERATIONS = 20;
 static unsigned int NUM_ITERATIONS = 10;
@@ -96,6 +98,24 @@ static shared_ptr<AtomDB> db;
 static shared_ptr<ServiceBus> bus;
 static vector<vector<string>> buffer_determiners;
 static map<string, vector<string>> weight_calculation_cache;
+
+static string metta_expr3(const string& expr1, const string& expr2, const string& expr3) {
+    return "(" + expr1 + " " + expr2 + " " + expr3 + ")";
+}
+
+static string metta_or(const string& expr1, const string& expr2) {
+    return metta_expr3("or", expr1, expr2);
+}
+
+static string metta_and(const string& expr1, const string& expr2) {
+    return metta_expr3("and", expr1, expr2);
+}
+
+static string metta_chain(const string& source, const string& target, const string& query) {
+    return "(chain 0 1 2 " + source + " " + target + " " + query + ")";
+}
+
+static string metta_var(const string& name) { return "$" + name; }
 
 static void save_link(Link& link) {
     ofstream file;
@@ -130,13 +150,14 @@ static double get_strength(string handle) {
 static shared_ptr<PatternMatchingQueryProxy> issue_link_building_query(
     const vector<string>& query_tokens, const string& context, unsigned int max_answers) {
     auto proxy = make_shared<PatternMatchingQueryProxy>(query_tokens, context);
+    proxy->parameters[BaseQueryProxy::ATTENTION_CORRELATION] = (unsigned int) BaseQueryProxy::NONE;
+    proxy->parameters[BaseQueryProxy::ATTENTION_UPDATE] = (unsigned int) BaseQueryProxy::NONE;
     proxy->parameters[BaseQueryProxy::UNIQUE_ASSIGNMENT_FLAG] = true;
-    proxy->parameters[BaseQueryProxy::ATTENTION_UPDATE_FLAG] = false;
-    // proxy->parameters[BaseQueryProxy::USE_LINK_TEMPLATE_CACHE] = true; // Use the default value
+    proxy->parameters[BaseQueryProxy::USE_LINK_TEMPLATE_CACHE] = false;
     proxy->parameters[PatternMatchingQueryProxy::MAX_ANSWERS] = (unsigned int) max_answers;
     proxy->parameters[PatternMatchingQueryProxy::POSITIVE_IMPORTANCE_FLAG] = (max_answers != 0);
     proxy->parameters[BaseQueryProxy::USE_METTA_AS_QUERY_TOKENS] = false;
-    proxy->parameters[BaseQueryProxy::POPULATE_METTA_MAPPING] = false;
+    proxy->parameters[BaseQueryProxy::POPULATE_METTA_MAPPING] = USE_MORK;
     proxy->parameters[PatternMatchingQueryProxy::UNIQUE_VALUE_FLAG] = true;
 
     ServiceBusSingleton::get_instance()->issue_bus_command(proxy);
@@ -149,24 +170,43 @@ static shared_ptr<PatternMatchingQueryProxy> issue_weight_count_query(const vect
                                                                       const string& context) {
     auto proxy = make_shared<PatternMatchingQueryProxy>(query_tokens, context);
     proxy->parameters[BaseQueryProxy::UNIQUE_ASSIGNMENT_FLAG] = true;
-    proxy->parameters[BaseQueryProxy::ATTENTION_UPDATE_FLAG] = false;
-    proxy->parameters[BaseQueryProxy::USE_LINK_TEMPLATE_CACHE] = true;
+    proxy->parameters[BaseQueryProxy::ATTENTION_CORRELATION] = (unsigned int) BaseQueryProxy::NONE;
+    proxy->parameters[BaseQueryProxy::ATTENTION_UPDATE] = (unsigned int) BaseQueryProxy::NONE;
+    proxy->parameters[BaseQueryProxy::USE_LINK_TEMPLATE_CACHE] = false;
     proxy->parameters[PatternMatchingQueryProxy::POSITIVE_IMPORTANCE_FLAG] = false;
-    proxy->parameters[BaseQueryProxy::USE_METTA_AS_QUERY_TOKENS] = false;
+    proxy->parameters[BaseQueryProxy::USE_METTA_AS_QUERY_TOKENS] = USE_MORK;
     proxy->parameters[BaseQueryProxy::POPULATE_METTA_MAPPING] = false;
 
     ServiceBusSingleton::get_instance()->issue_bus_command(proxy);
     return proxy;
 }
 
-static void attention_allocation_query(const vector<string>& query_tokens, const string& context) {
+static void attention_correlation_query(const vector<string>& query_tokens, const string& context) {
     auto proxy = make_shared<PatternMatchingQueryProxy>(query_tokens, context);
+    proxy->parameters[BaseQueryProxy::ATTENTION_CORRELATION] = (unsigned int) BaseQueryProxy::VARIABLES;
+    proxy->parameters[BaseQueryProxy::ATTENTION_UPDATE] = (unsigned int) BaseQueryProxy::NONE;
     proxy->parameters[BaseQueryProxy::UNIQUE_ASSIGNMENT_FLAG] = true;
-    proxy->parameters[BaseQueryProxy::ATTENTION_UPDATE_FLAG] = true;
     proxy->parameters[BaseQueryProxy::USE_LINK_TEMPLATE_CACHE] = false;
     proxy->parameters[PatternMatchingQueryProxy::POSITIVE_IMPORTANCE_FLAG] = false;
     proxy->parameters[PatternMatchingQueryProxy::COUNT_FLAG] = true;
-    proxy->parameters[BaseQueryProxy::USE_METTA_AS_QUERY_TOKENS] = false;
+    proxy->parameters[BaseQueryProxy::USE_METTA_AS_QUERY_TOKENS] = USE_MORK;
+    proxy->parameters[BaseQueryProxy::POPULATE_METTA_MAPPING] = false;
+
+    ServiceBusSingleton::get_instance()->issue_bus_command(proxy);
+    while (!proxy->finished()) {
+        Utils::sleep();
+    }
+}
+
+static void attention_allocation_query(const vector<string>& query_tokens, const string& context) {
+    auto proxy = make_shared<PatternMatchingQueryProxy>(query_tokens, context);
+    proxy->parameters[BaseQueryProxy::ATTENTION_CORRELATION] = (unsigned int) BaseQueryProxy::NONE;
+    proxy->parameters[BaseQueryProxy::ATTENTION_UPDATE] = (unsigned int) BaseQueryProxy::VARIABLES;
+    proxy->parameters[BaseQueryProxy::UNIQUE_ASSIGNMENT_FLAG] = true;
+    proxy->parameters[BaseQueryProxy::USE_LINK_TEMPLATE_CACHE] = false;
+    proxy->parameters[PatternMatchingQueryProxy::POSITIVE_IMPORTANCE_FLAG] = false;
+    proxy->parameters[PatternMatchingQueryProxy::COUNT_FLAG] = true;
+    proxy->parameters[BaseQueryProxy::USE_METTA_AS_QUERY_TOKENS] = USE_MORK;
     proxy->parameters[BaseQueryProxy::POPULATE_METTA_MAPPING] = false;
 
     ServiceBusSingleton::get_instance()->issue_bus_command(proxy);
@@ -216,7 +256,6 @@ static void compute_counts(const vector<vector<string>>& query_tokens,
     shared_ptr<QueryAnswer> query_answer;
     for (unsigned int i = 0; i < 2; i++) {
         LOG_LOCAL_DEBUG("i: " + to_string(i));
-        ServiceBusSingleton::get_instance()->issue_bus_command(proxy[i]);
         while (!proxy[i]->finished()) {
             if ((query_answer = proxy[i]->pop()) == NULL) {
                 Utils::sleep();
@@ -224,8 +263,7 @@ static void compute_counts(const vector<vector<string>>& query_tokens,
                 if (query_answer->get_handles_size() == 1) {
                     d = 1.0;
                 } else {
-                    string link_handle = query_answer->get(1);
-                    auto link = db->get_atom(link_handle);
+                    auto link = db->get_atom(query_answer->get(1));
                     d = link->custom_attributes.get<double>(STRENGTH);
                 }
                 handle = query_answer->get(target_element);
@@ -299,22 +337,50 @@ static Link add_or_update_link(const string& type_handle,
             save_link(new_link);
         }
     }
+    LOG_LOCAL_DEBUG("Returning from add_or_update_link()");
     return new_link;
 }
 
 static Link add_predicate(const string& handle1, const string& handle2) {
-    Link new_link(EXPRESSION, {handle1, handle2}, false);
+    string h1, h2;
+    if (handle1 < handle2) {
+        h1 = handle1;
+        h2 = handle2;
+    } else {
+        h1 = handle2;
+        h2 = handle1;
+    }
+    Link new_link(EXPRESSION, {LOGICAL_AND_HANDLE, h1, h2}, false);
     if (!db->link_exists(new_link.handle())) {
         db->add_link(&new_link);
     }
     return new_link;
 }
 
+static void build_and_predicate_link(shared_ptr<QueryAnswer> query_answer,
+                                     const string& context,
+                                     const string& custom_handle) {
+    string predicate1 = query_answer->get(PREDICATE1);
+    string predicate2 = query_answer->get(PREDICATE2);
+    string concept1 = query_answer->get(CONCEPT);
+
+    if (predicate1 == predicate2) {
+        LOG_DEBUG("Skipping link building because targets are the same: " + predicate1);
+        return;
+    }
+
+    Link new_predicate = add_predicate(predicate1, predicate2);
+    add_or_update_link(EVALUATION_HANDLE, new_predicate.handle(), concept1, 1.0);
+}
+
 static void build_implication_link(shared_ptr<QueryAnswer> query_answer,
                                    const string& context,
                                    const string& custom_handle) {
     string predicates[2];
+    string metta_predicates[2];
     if (custom_handle == "") {
+        // build Evaluation of the AND of both predicates
+        build_and_predicate_link(query_answer, context, custom_handle);
         predicates[0] = query_answer->get(PREDICATE1);
         predicates[1] = query_answer->get(PREDICATE2);
     } else {
@@ -327,25 +393,39 @@ static void build_implication_link(shared_ptr<QueryAnswer> query_answer,
         return;
     }
 
+    metta_predicates[0] = query_answer->metta_expression[predicates[0]];
+    metta_predicates[1] = query_answer->metta_expression[predicates[1]];
+
     vector<vector<string>> query;
     for (unsigned int i = 0; i < 2; i++) {
         // clang-format off
-        query.push_back({
-            OR_OPERATOR, "2",
-                LINK_TEMPLATE, EXPRESSION, "3",
-                    NODE, SYMBOL, EVALUATION,
-                    ATOM, predicates[i],
-                    VARIABLE, CONCEPT1,
-                AND_OPERATOR, "2",
+        if (USE_MORK) {
+            vector<string> metta_query = {
+                metta_or(
+                    metta_expr3(EVALUATION, metta_predicates[i], metta_var(CONCEPT1)), 
+                    metta_and(
+                        metta_expr3(EVALUATION, metta_predicates[i], metta_var(CONCEPT2)),
+                        metta_expr3(EQUIVALENCE, metta_var(CONCEPT2), metta_var(CONCEPT1))))};
+            LOG_DEBUG("Counting query (implication): " + metta_query[0]);
+            query.push_back(metta_query);
+        } else {
+            query.push_back({
+                OR_OPERATOR, "2",
                     LINK_TEMPLATE, EXPRESSION, "3",
                         NODE, SYMBOL, EVALUATION,
                         ATOM, predicates[i],
-                        VARIABLE, CONCEPT2,
-                    LINK_TEMPLATE, EXPRESSION, "3",
-                        NODE, SYMBOL, EQUIVALENCE,
-                        VARIABLE, CONCEPT2,
                         VARIABLE, CONCEPT1,
-        });
+                    AND_OPERATOR, "2",
+                        LINK_TEMPLATE, EXPRESSION, "3",
+                            NODE, SYMBOL, EVALUATION,
+                            ATOM, predicates[i],
+                            VARIABLE, CONCEPT2,
+                        LINK_TEMPLATE, EXPRESSION, "3",
+                            NODE, SYMBOL, EQUIVALENCE,
+                            VARIABLE, CONCEPT2,
+                            VARIABLE, CONCEPT1,
+            });
+        }
         // clang-format on
     }
     double count_0, count_1, count_intersection, count_union;
@@ -371,26 +451,11 @@ static void build_implication_link(shared_ptr<QueryAnswer> query_answer,
     }
 }
 
-static void build_and_predicate_link(shared_ptr<QueryAnswer> query_answer,
-                                     const string& context,
-                                     const string& custom_handle) {
-    string predicate1 = query_answer->get(PREDICATE1);
-    string predicate2 = query_answer->get(PREDICATE2);
-    string concept1 = query_answer->get(CONCEPT);
-
-    if (predicate1 == predicate2) {
-        LOG_DEBUG("Skipping link building because targets are the same: " + predicate1);
-        return;
-    }
-
-    Link new_predicate = add_predicate(predicate1, predicate2);
-    add_or_update_link(EVALUATION_HANDLE, new_predicate.handle(), concept1, 1.0);
-}
-
 static void build_equivalence_link(shared_ptr<QueryAnswer> query_answer,
                                    const string& context,
                                    const string& custom_handle) {
     string concepts[2];
+    string metta_concepts[2];
     if (custom_handle == "") {
         concepts[0] = query_answer->get(CONCEPT1);
         concepts[1] = query_answer->get(CONCEPT2);
@@ -404,25 +469,39 @@ static void build_equivalence_link(shared_ptr<QueryAnswer> query_answer,
         return;
     }
 
+    metta_concepts[0] = query_answer->metta_expression[concepts[0]];
+    metta_concepts[1] = query_answer->metta_expression[concepts[1]];
+
     vector<vector<string>> query;
     for (unsigned int i = 0; i < 2; i++) {
         // clang-format off
-        query.push_back({
-            OR_OPERATOR, "2",
-            LINK_TEMPLATE, EXPRESSION, "3",
-                NODE, SYMBOL, EVALUATION,
-                VARIABLE, PREDICATE1,
-                ATOM, concepts[i],
-            AND_OPERATOR, "2",
+        if (USE_MORK) {
+            vector<string> metta_query = {
+                metta_or(
+                    metta_expr3(EVALUATION, metta_var(PREDICATE1), metta_concepts[i]), 
+                    metta_and(
+                        metta_expr3(EVALUATION, metta_var(PREDICATE2), metta_concepts[i]), 
+                        metta_expr3(IMPLICATION, metta_var(PREDICATE2), metta_var(PREDICATE1))))};
+            LOG_DEBUG("Counting query (equivalence): " + metta_query[0]);
+            query.push_back(metta_query);
+        } else {
+            query.push_back({
+                OR_OPERATOR, "2",
                 LINK_TEMPLATE, EXPRESSION, "3",
                     NODE, SYMBOL, EVALUATION,
-                    VARIABLE, PREDICATE2,
-                    ATOM, concepts[i],
-                LINK_TEMPLATE, EXPRESSION, "3",
-                    NODE, SYMBOL, IMPLICATION,
-                    VARIABLE, PREDICATE2,
                     VARIABLE, PREDICATE1,
-        });
+                    ATOM, concepts[i],
+                AND_OPERATOR, "2",
+                    LINK_TEMPLATE, EXPRESSION, "3",
+                        NODE, SYMBOL, EVALUATION,
+                        VARIABLE, PREDICATE2,
+                        ATOM, concepts[i],
+                    LINK_TEMPLATE, EXPRESSION, "3",
+                        NODE, SYMBOL, IMPLICATION,
+                        VARIABLE, PREDICATE2,
+                        VARIABLE, PREDICATE1,
+            });
+        }
         // clang-format on
     }
     double count_0, count_1, count_intersection, count_union;
@@ -460,7 +539,7 @@ static void build_links(const vector<string>& query,
             if (++count <= num_links) {
                 if (query_answer->get_handles_size() == 2) {
                     LOG_DEBUG("Processing query answer " + to_string(count) + ": " +
-                              query_answer->to_string());
+                              query_answer->to_string(true));
                     build_link(query_answer, context, custom_handle);
                 }
             } else {
@@ -498,7 +577,7 @@ static void query_evolution(
         FITNESS_FUNCTION);
 
     shared_ptr<QueryEvolutionProxy> proxy(proxy_ptr);
-    proxy->parameters[BaseQueryProxy::USE_METTA_AS_QUERY_TOKENS] = false;
+    proxy->parameters[BaseQueryProxy::USE_METTA_AS_QUERY_TOKENS] = USE_MORK;
     proxy->parameters[BaseQueryProxy::POPULATE_METTA_MAPPING] = false;
     proxy->parameters[QueryEvolutionProxy::POPULATION_SIZE] = (unsigned int) POPULATION_SIZE;
     proxy->parameters[QueryEvolutionProxy::MAX_GENERATIONS] = (unsigned int) MAX_GENERATIONS;
@@ -506,6 +585,8 @@ static void query_evolution(
     proxy->parameters[QueryEvolutionProxy::SELECTION_RATE] = (double) SELECTION_RATE;
     proxy->parameters[QueryEvolutionProxy::TOTAL_ATTENTION_TOKENS] = (unsigned int) 100000;
     proxy->parameters[BaseQueryProxy::MAX_BUNDLE_SIZE] = (unsigned int) 1000;
+    proxy->parameters[BaseQueryProxy::ALLOW_INCOMPLETE_CHAIN_PATH] = true;
+    proxy->parameters[PatternMatchingQueryProxy::POSITIVE_IMPORTANCE_FLAG] = true;
     bus->issue_bus_command(proxy);
 
     shared_ptr<QueryAnswer> query_answer;
@@ -528,7 +609,9 @@ static void query_evolution(
 }
 // clang-format on
 
-static void run(const string& target_predicate_handle,
+static void run(const string& target_predicate,
+                const string& target_concept,
+                const string& target_predicate_handle,
                 const string& target_concept_handle,
                 const string& context_tag) {
     // clang-format off
@@ -557,18 +640,6 @@ static void run(const string& target_predicate_handle,
                 VARIABLE, CONCEPT2,
     };
 
-    vector<string> and_predicate_query = {
-        AND_OPERATOR, "2",
-            LINK_TEMPLATE, EXPRESSION, "3",
-                NODE, SYMBOL, EVALUATION,
-                VARIABLE, PREDICATE1,
-                VARIABLE, CONCEPT,
-            LINK_TEMPLATE, EXPRESSION, "3",
-                NODE, SYMBOL, EVALUATION,
-                VARIABLE, PREDICATE2,
-                VARIABLE, CONCEPT,
-    };
-
     vector<string> query_to_evolve = {
         AND_OPERATOR, "3",
             LINK_TEMPLATE, EXPRESSION, "3",
@@ -590,6 +661,13 @@ static void run(const string& target_predicate_handle,
                     VARIABLE, PREDICATE1,
                     VARIABLE, PREDICATE2,
     };
+    vector<string> metta_query_to_evolve = {
+        metta_and(
+            metta_and(
+                metta_expr3(EVALUATION, metta_var(PREDICATE), metta_var(CONCEPT)),
+                metta_chain(metta_var(CONCEPT), target_concept, metta_expr3(EQUIVALENCE, metta_var(CONCEPT1) , metta_var(CONCEPT2)))),
+            metta_chain(metta_var(PREDICATE), target_predicate, metta_expr3(IMPLICATION, metta_var(PREDICATE1) , metta_var(PREDICATE2))))
+    };
 
     vector<vector<string>> correlation_query_template = {{
         OR_OPERATOR, "2",
@@ -610,6 +688,19 @@ static void run(const string& target_predicate_handle,
             VARIABLE, V3,
     };
 
+    vector<string> initialization_correlation_query = {
+        OR_OPERATOR, "2",
+            AND_OPERATOR, "2",
+                LINK_TEMPLATE, EXPRESSION, "3",
+                    NODE, SYMBOL, EVALUATION,
+                    VARIABLE, PREDICATE,
+                    VARIABLE, CONCEPT1,
+                LINK_TEMPLATE, EXPRESSION, "3",
+                    NODE, SYMBOL, EVALUATION,
+                    VARIABLE, PREDICATE,
+                    VARIABLE, CONCEPT2,
+    };
+
     vector<string> initialization_STI_query = {
         OR_OPERATOR, "2",
         LINK_TEMPLATE, EXPRESSION, "3",
@@ -620,6 +711,10 @@ static void run(const string& target_predicate_handle,
             NODE, SYMBOL, EVALUATION,
             VARIABLE, PREDICATE,
             ATOM, target_concept_handle,
+    };
+    vector<string> initialization_STI_metta_query = {
+        metta_or(metta_expr3(EVALUATION, target_predicate, metta_var(CONCEPT)),
+                 metta_expr3(EVALUATION, metta_var(PREDICATE), target_concept)),
     };
 
     vector<string> custom_initial_equivalence_query = {
@@ -647,6 +742,9 @@ static void run(const string& target_predicate_handle,
 
     // clang-format on
 
+    LOG_INFO("initialization_STI_metta_query: " + initialization_STI_metta_query[0]);
+    LOG_INFO("metta_query_to_evolve: " + metta_query_to_evolve[0]);
+
     LOG_INFO("Setting up context for tag: " + context_tag);
     QueryAnswerElement target2(V2);
     QueryAnswerElement target3(V3);
@@ -672,8 +770,11 @@ static void run(const string& target_predicate_handle,
     LOG_INFO("Context " + context + " is ready");
 
     LOG_INFO("Pre-processing...");
+    LOG_INFO("Make initial correlations");
+    attention_correlation_query(initialization_correlation_query, context);
     LOG_INFO("Initializing STI");
-    attention_allocation_query(initialization_STI_query, context);
+    attention_allocation_query((USE_MORK ? initialization_STI_metta_query : initialization_STI_query),
+                               context);
     // LOG_INFO("Building initial custom links");
     // build_links(
     //     custom_initial_equivalence_query, context, 0, target_concept_handle, build_equivalence_link);
@@ -687,18 +788,15 @@ static void run(const string& target_predicate_handle,
         LOG_INFO("Iteration " + to_string(i + 1));
         LOG_INFO("--------------------------------------------------------------------------------");
         LOG_INFO("----- Building links");
-        LOG_INFO("Building AND predicates");
-        build_links(
-            and_predicate_query, context, LINK_BUILDING_QUERY_SIZE, "", build_and_predicate_link);
-        LOG_INFO("Building Equivalence links");
-        build_links(equivalence_query, context, LINK_BUILDING_QUERY_SIZE, "", build_equivalence_link);
         LOG_INFO("Building Implication links");
         build_links(implication_query, context, LINK_BUILDING_QUERY_SIZE, "", build_implication_link);
+        LOG_INFO("Building Equivalence links");
+        build_links(equivalence_query, context, LINK_BUILDING_QUERY_SIZE, "", build_equivalence_link);
         LOG_INFO("----- Updating AttentionBroker");
         AttentionBrokerClient::set_determiners(buffer_determiners, context);
         buffer_determiners.clear();
         LOG_INFO("----- Evolving query");
-        query_evolution(query_to_evolve,
+        query_evolution((USE_MORK ? metta_query_to_evolve : query_to_evolve),
                         correlation_query_template,
                         correlation_query_constants,
                         correlation_mapping[0],
@@ -707,7 +805,7 @@ static void run(const string& target_predicate_handle,
 }
 
 void insert_type_symbols() {
-    vector<string> to_insert = {EQUIVALENCE, IMPLICATION};
+    vector<string> to_insert = {EQUIVALENCE, IMPLICATION, LOGICAL_AND};
     Node* node;
     for (string node_name : to_insert) {
         node = new Node(SYMBOL, node_name);
@@ -720,7 +818,7 @@ void insert_type_symbols() {
 
 int main(int argc, char* argv[]) {
     // clang-format off
-    if (argc < 15) {
+    if (argc != 16) {
         cerr << "Usage: " << argv[0]
              << " <client_endpoint> <server_endpoint> <start_port:end_port> <config_file>"
                 " <context_tag> <target_predicate> <target_concept>"
@@ -764,7 +862,7 @@ int main(int argc, char* argv[]) {
     MAX_GENERATIONS = (unsigned int) Utils::string_to_int(string(argv[++cursor]));
     NUM_ITERATIONS = (unsigned int) Utils::string_to_int(string(argv[++cursor]));
 
-    if (cursor != 14) {
+    if (cursor != 15) {
         Utils::error("Error setting up parameters");
     }
 
@@ -778,6 +876,7 @@ int main(int argc, char* argv[]) {
     bus = ServiceBusSingleton::get_instance();
     AttentionBrokerClient::set_parameters(
         RENT_RATE, SPREADING_RATE_LOWERBOUND, SPREADING_RATE_UPPERBOUND);
+
     insert_type_symbols();
 
     LOG_INFO("ELITISM_RATE: " + to_string(ELITISM_RATE));
@@ -801,7 +900,11 @@ int main(int argc, char* argv[]) {
              " Handle: " + predicate_pa->metta_expression_handle);
     LOG_INFO("Target concept: " + target_concept + " Handle: " + concept_pa->metta_expression_handle);
 
-    run(predicate_pa->metta_expression_handle, concept_pa->metta_expression_handle, context_tag);
+    run(target_predicate,
+        target_concept,
+        predicate_pa->metta_expression_handle,
+        concept_pa->metta_expression_handle,
+        context_tag);
 
     return 0;
 }

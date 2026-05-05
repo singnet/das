@@ -174,33 +174,28 @@ class TestSink : public Sink {
 };
 
 static bool check_answer(QueryAnswer* query_answer) {
-    string origin = get_node_string(query_answer->get(Chain::ORIGIN_VARIABLE_NAME));
-    string destiny = get_node_string(query_answer->get(Chain::DESTINY_VARIABLE_NAME));
-    EXPECT_TRUE((origin == "S") || (origin == "T"));
-    if (origin == "S") {
-        EXPECT_TRUE(get_link_string(query_answer->get_handles_vector().front(), 1) == "S");
-    } else {
-        EXPECT_TRUE(get_link_string(query_answer->get_handles_vector().back(), 2) == "T");
-    }
-    bool first = true;
+    string first = get_link_string(query_answer->get_path_vector(0).front(), 1);
+    string last = get_link_string(query_answer->get_path_vector(0).back(), 2);
+    EXPECT_TRUE((first == "S") || (last == "T"));
+    bool first_flag = true;
     string cursor;
-    for (string handle : query_answer->get_handles_vector()) {
+    for (string handle : query_answer->get_path_vector(0)) {
         EXPECT_TRUE(ALL_LINKS.find(handle) != ALL_LINKS.end());
-        if (first) {
-            first = false;
+        if (first_flag) {
+            first_flag = false;
             cursor = get_link_string(handle, 1);
         }
         EXPECT_EQ(get_link_string(handle, 1), cursor);
         cursor = get_link_string(handle, 2);
     }
-    return (((origin == "S") && (destiny == "T")) || ((origin == "T") && (destiny == "S")));
+    return (((first == "S") && (last == "T")) || ((first == "T") && (last == "S")));
 }
 
 static string answer_path_to_string(QueryAnswer* query_answer) {
     bool first = true;
     string answer = "";
     string cursor;
-    for (string handle : query_answer->get_handles_vector()) {
+    for (string handle : query_answer->get_path_vector(0)) {
         if (first) {
             first = false;
             answer = cursor = get_link_string(handle, 1);

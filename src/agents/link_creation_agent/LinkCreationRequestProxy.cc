@@ -8,7 +8,8 @@ using namespace link_creation_agent;
 string LinkCreationRequestProxy::MAX_ANSWERS = "max_answers";
 string LinkCreationRequestProxy::REPEAT_COUNT = "repeat_count";
 string LinkCreationRequestProxy::CONTEXT = "context";
-string LinkCreationRequestProxy::ATTENTION_UPDATE_FLAG = "attention_update_flag";
+string LinkCreationRequestProxy::ATTENTION_UPDATE = "attention_update";
+string LinkCreationRequestProxy::ATTENTION_CORRELATION = "attention_correlation";
 string LinkCreationRequestProxy::POSITIVE_IMPORTANCE_FLAG = "positive_importance_flag";
 string LinkCreationRequestProxy::QUERY_INTERVAL = "query_interval";
 string LinkCreationRequestProxy::QUERY_TIMEOUT = "query_timeout";
@@ -31,7 +32,9 @@ void LinkCreationRequestProxy::set_default_parameters() {
     this->parameters[LinkCreationRequestProxy::MAX_ANSWERS] = (unsigned int) 10;
     this->parameters[LinkCreationRequestProxy::REPEAT_COUNT] = (unsigned int) 1;
     this->parameters[LinkCreationRequestProxy::CONTEXT] = string("");
-    this->parameters[LinkCreationRequestProxy::ATTENTION_UPDATE_FLAG] = false;
+    this->parameters[LinkCreationRequestProxy::ATTENTION_UPDATE] = (unsigned int) BaseQueryProxy::NONE;
+    this->parameters[LinkCreationRequestProxy::ATTENTION_CORRELATION] =
+        (unsigned int) BaseQueryProxy::NONE;
     this->parameters[LinkCreationRequestProxy::POSITIVE_IMPORTANCE_FLAG] = true;
     this->parameters[LinkCreationRequestProxy::QUERY_INTERVAL] = (unsigned int) 0;
     this->parameters[LinkCreationRequestProxy::QUERY_TIMEOUT] = (unsigned int) 0;
