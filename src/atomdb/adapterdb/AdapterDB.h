@@ -21,25 +21,6 @@ using namespace db_adapter;
 
 namespace atomdb {
 
-/**
- * @brief A fully functional AtomDB backed by a relational database.
- *
- * During construction, it is checked whether the context defined by `config` has already been loaded
- * into the AtomDB backend. If so, the object is ready for immediate use. Otherwise, the adapter
- * pipeline runs synchronously—fetching, mapping, and persisting the Atoms—and the constructor is blocked
- * until this is completed.
- *
- * After construction the caller can use the AtomDB API normally.
- *
- * Required fields in config:
- *  - adapter.host / port / username / password / database -> source DB connection
- *  - adapter.context_mapping.tables -> path to a JSON file listing tables to map
- *  - adapter.context_mapping.queries_sql -> path to a SQL file with custom queries
- *
- * (At least one of the two mapping fields must be present.)
- *
- * @param config     JSON configuration describing the source DB and mapping context.
- */
 class AdapterDB : public AtomDB {
    public:
     explicit AdapterDB(const JsonConfig& config);

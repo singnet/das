@@ -29,6 +29,59 @@
                 }
             ]
         },
+        "adapter": {
+            "endpoint": "localhost:40023",
+            "type": "postgres",
+            "database_credentials":{
+                "host": "chado.flybase.org",
+                "port": 5432,
+                "username": "flybase",
+                "password": "",
+                "database": "flybase"
+            },
+            "context_mapping_paths": [
+                "./simple_test.sql",
+                "./tables.json"
+            ],
+            "export_metta_on_mapping": {
+                "enabled": true,
+                "output_dir": "./mapped_metta/"
+            },
+            "mongodb": {
+                "endpoint": "localhost:40021",
+                "username": "admin",
+                "password": "admin",
+                "cluster": false,
+                "cluster_secret_key": "None",
+                "nodes": [
+                    {
+                    "context": "default",
+                    "ip": "localhost",
+                    "username": "username"
+                    }
+                ]
+            },
+            "atomdb_backend": {
+                "type": "morkdb",
+                "mongodb": {
+                    "endpoint": "localhost:40021",
+                    "username": "admin",
+                    "password": "admin",
+                    "cluster": false,
+                    "cluster_secret_key": "None",
+                    "nodes": [
+                        {
+                        "context": "default",
+                        "ip": "localhost",
+                        "username": "username"
+                        }
+                    ]
+                },
+                "morkdb": {
+                    "endpoint": "localhost:40022"
+                }
+            }
+        },
         "morkdb": {
             "image": "trueagi/das:mork-server-1.0.4",
             "endpoint": "localhost:40022"
@@ -108,17 +161,6 @@
         "atomdb": {
             "endpoint": "localhost:40007",
             "ports_range": "47000:47999"
-        }
-    },
-    "adapter": {
-        "type": "postgres",
-        "host": "chado.flybase.org",
-        "port": 5432,
-        "username": "flybase",
-        "password": "",
-        "database": "flybase",
-        "context_mapping": {
-            "queries_sql": "./simple_test.sql"
         }
     }
 }
