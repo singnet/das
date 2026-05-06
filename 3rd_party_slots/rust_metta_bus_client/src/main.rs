@@ -23,17 +23,18 @@ const MAX_QUERY_ANSWERS: u64 = 100;
 fn main() -> Result<(), BoxError> {
 	env_logger::init();
 
-	// ./metta_bus_client localhost:52000-52999 localhost:35700 1 0 'LINK_TEMPLATE ...'
-	// ./metta_bus_client localhost:52000-52999 localhost:35700 0 0 '(Similarity "human" $S)'
+	// ./metta_bus_client localhost:52000-52999 localhost:35700 1 0 0 'LINK_TEMPLATE ...'
+	// ./metta_bus_client localhost:52000-52999 localhost:35700 0 0 1'(Similarity "human" $S)'
 	let args: Vec<String> = env::args().collect();
 
-	if args.len() < 6 {
+	if args.len() < 7 {
 		println!(
 			"Usage: {} \
 			CLIENT_HOST:PORT_LOWER-PORT_UPPER \
 			SERVER_HOST:SERVER_PORT \
 			UPDATE_ATTENTION_BROKER \
 			POSITIVE_IMPORTANCE \
+			UNIQUE_ASSIGNMENT \
 			QUERY_TOKEN+ \
 			(hosts are supposed to be public IPs or known hostnames)",
 			&args[0]
@@ -50,6 +51,7 @@ fn main() -> Result<(), BoxError> {
 
 	let update_attention_broker = args[3].parse::<u64>().unwrap_or(0);
 	let positive_importance = &args[4] == "true" || &args[4] == "1";
+	let unique_assignment = &args[5] == "true" || &args[5] == "1";
 
 	let mut props = Properties::default();
 	props.insert(properties::CONTEXT.to_string(), PropertyValue::String(context));
@@ -61,9 +63,13 @@ fn main() -> Result<(), BoxError> {
 		properties::POSITIVE_IMPORTANCE_FLAG.to_string(),
 		PropertyValue::Bool(positive_importance),
 	);
+	props.insert(
+		properties::UNIQUE_ASSIGNMENT_FLAG.to_string(),
+		PropertyValue::Bool(unique_assignment),
+	);
 
-	let mut tokens_start_position = 5;
-	let max_answers = match (args[5]).parse::<u64>() {
+	let mut tokens_start_position = 6;
+	let max_answers = match (args[tokens_start_position]).parse::<u64>() {
 		Ok(value) => {
 			tokens_start_position += 1;
 			value
@@ -106,11 +112,12 @@ fn main() -> Result<(), BoxError> {
 
 	println!("{} answers:", query_answers.len());
 	for query_answer in query_answers {
-		if query_answer.handles.len() == 1 {
+		log::debug!("Received answer: {query_answer:?}");
+		if !query_answer.handles.is_empty() && !query_answer.handles[0].is_empty() {
 			let bindings = query_answer_to_bindings(&query_answer, true)?;
-			println!("{bindings:?}");
-		} else {
-			println!("{query_answer:?}");
+			println!("{bindings:?} {}", query_answer.print_path());
+		} else if query_answer.handles.len() > 1 && !query_answer.handles[1].is_empty() {
+			println!("{}", query_answer.print_path());
 		}
 	}
 

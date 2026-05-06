@@ -13,7 +13,10 @@ use crate::{
 	compare_networking_params,
 	context_broker_proxy::parse_context_broker_parameters,
 	create_context, evolution_query,
-	helpers::{compute_hash, get_networking_params, run_metta_runner},
+	helpers::{
+		compute_hash, get_networking_params, query_answer::query_answer_to_bindings,
+		run_metta_runner,
+	},
 	init_service_bus,
 	link_creation_proxy::LinkCreationParams,
 	link_creation_query,
@@ -54,7 +57,18 @@ impl DistributedAtomSpace {
 					self.params.lock().unwrap().clone(),
 					&QueryType::Atom(query.clone()),
 				) {
-					Ok(bindings) => bindings,
+					Ok(query_answers) => {
+						match query_answers_to_bindings_set(
+							query_answers,
+							self.params.lock().unwrap().get(properties::POPULATE_METTA_MAPPING),
+						) {
+							Ok(bindings_set) => {
+								log::debug!(target: "das", "BindingsSet(len={}): {:?}", bindings_set.len(), bindings_set);
+								bindings_set
+							},
+							Err(_) => BindingsSet::empty(),
+						}
+					},
 					Err(_) => BindingsSet::empty(),
 				}
 			},
@@ -169,6 +183,41 @@ impl DistributedAtomSpace {
 
 		let service_bus_arc = Arc::new(Mutex::new(service_bus));
 		link_creation_query(service_bus_arc, &query_params, &link_creation_params)
+	}
+
+	pub fn query_with_chain(&self, query: &Atom) -> Result<Atom, BoxError> {
+		match ServiceBusSingleton::get_instance() {
+			Ok(service_bus) => {
+				let sevice_bus_arc = Arc::new(Mutex::new(service_bus));
+				match query_with_das(
+					sevice_bus_arc,
+					self.params.lock().unwrap().clone(),
+					&QueryType::Atom(query.clone()),
+				) {
+					Ok(query_answers) => {
+						let mut atoms = vec![];
+						for query_answer in query_answers {
+							if !query_answer.handles.is_empty()
+								&& !query_answer.handles[0].is_empty()
+							{
+								let bindings = query_answer_to_bindings(&query_answer, true)?;
+								atoms.push(Atom::sym(format!(
+									"{bindings:?} {}",
+									query_answer.print_path()
+								)));
+							} else if query_answer.handles.len() > 1
+								&& !query_answer.handles[1].is_empty()
+							{
+								atoms.push(Atom::sym(query_answer.print_path()));
+							}
+						}
+						Ok(Atom::expr(atoms))
+					},
+					Err(_) => Err("Error querying with chain".into()),
+				}
+			},
+			Err(_) => Err("Error querying with chain".into()),
+		}
 	}
 }
 

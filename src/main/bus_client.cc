@@ -134,13 +134,15 @@ int main(int argc, char* argv[]) {
             return 0;
         }
 
+        bool use_metta_as_query_tokens = cmd_args.find(Helper::USE_METTA_AS_QUERY_TOKENS) != cmd_args.end() && cmd_args[Helper::USE_METTA_AS_QUERY_TOKENS] == "true";
+
         // Default case for other clients
         while (proxy->finished() == false && Helper::is_running) {
             if (dynamic_cast<BaseQueryProxy*>(proxy.get()) != nullptr) {
                 auto query_proxy = dynamic_cast<BaseQueryProxy*>(proxy.get());
                 shared_ptr<QueryAnswer> answer;
                 while ((answer = query_proxy->pop()) != nullptr) {
-                    LOG_INFO("Received answer: " + answer->to_string());
+                    LOG_INFO("Received answer: " + answer->to_string(use_metta_as_query_tokens));
                     for (string handle : answer->get_handles_vector()) {
                         LOG_INFO(answer->metta_expression[handle]);
                     }

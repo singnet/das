@@ -59,21 +59,12 @@ pub enum QueryType {
 
 pub fn query_with_das(
 	service_bus: Arc<Mutex<ServiceBus>>, properties: Properties, query: &QueryType,
-) -> Result<BindingsSet, BoxError> {
+) -> Result<Vec<QueryAnswer>, BoxError> {
 	let params = match extract_query_params(query, properties) {
 		Ok(params) => params,
-		Err(_) => return Ok(BindingsSet::empty()),
+		Err(_) => return Ok(vec![]),
 	};
-
-	let query_answers = pattern_matching_query(service_bus, &params)?;
-	let bindings_set = query_answers_to_bindings_set(
-		query_answers,
-		params.properties.get(properties::POPULATE_METTA_MAPPING),
-	)?;
-
-	log::debug!(target: "das", "BindingsSet(len={}): {:?}", bindings_set.len(), bindings_set);
-
-	Ok(bindings_set)
+	pattern_matching_query(service_bus, &params)
 }
 
 pub fn extract_query_params(

@@ -85,6 +85,19 @@ impl QueryAnswer {
 		}
 		Ok(())
 	}
+
+	pub fn print_path(&self) -> String {
+		if self.handles.len() <= 1 {
+			return String::new();
+		}
+		let mut result = vec![];
+		for path in self.handles[1..].iter() {
+			for handle in path.iter() {
+				result.push(self.metta_expression.get(handle).unwrap_or(&handle.clone()).clone());
+			}
+		}
+		format!("[{}]", result.join(", "))
+	}
 }
 
 fn read_token(
