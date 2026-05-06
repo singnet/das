@@ -557,7 +557,7 @@ void PostgresWrapper::fetch_rows_paginated(const Table& table,
     while (true) {
         pqxx::result rows = this->db_conn.fetch_cursor(cursor_name, limit);
 
-        LOG_INFO("Fetched " << rows.size() << " rows from table " << table.name);
+        LOG_DEBUG("Fetched " << rows.size() << " rows from table " << table.name);
 
         if (rows.empty()) break;
 

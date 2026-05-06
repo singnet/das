@@ -77,7 +77,7 @@ void MettaFileWriter::close() {
         }
     }
 
-    LOG_INFO("MettaFileWriter closed | total_written: " << total_written.load());
+    LOG_DEBUG("MettaFileWriter closed | total_written: " << total_written.load());
 }
 
 // ==============================

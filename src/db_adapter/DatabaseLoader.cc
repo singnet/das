@@ -82,13 +82,13 @@ bool DatabaseMappingOrchestrator::is_finished() const { return this->finished; }
 
 void DatabaseMappingOrchestrator::database_setup(const JsonConfig& config,
                                                  shared_ptr<BoundedSharedQueue> output_queue) {
-    string adapter_type = config.at_path("adapter.type").get_or<string>("");
+    string adapter_type = config.at_path("adapterdb.type").get_or<string>("");
     if (adapter_type == "postgres") {
-        string host = config.at_path("adapter.database_credentials.host").get<string>();
-        uint port = config.at_path("adapter.database_credentials.port").get<uint>();
-        string username = config.at_path("adapter.database_credentials.username").get<string>();
-        string password = config.at_path("adapter.database_credentials.password").get<string>();
-        string database = config.at_path("adapter.database_credentials.database").get<string>();
+        string host = config.at_path("adapterdb.database_credentials.host").get<string>();
+        uint port = config.at_path("adapterdb.database_credentials.port").get<uint>();
+        string username = config.at_path("adapterdb.database_credentials.username").get<string>();
+        string password = config.at_path("adapterdb.database_credentials.password").get<string>();
+        string database = config.at_path("adapterdb.database_credentials.database").get<string>();
         this->db_conn = make_unique<PostgresDatabaseConnection>(
             "psql-conn", host, port, database, username, password);
         this->wrapper = make_unique<PostgresWrapper>(*db_conn, output_queue);
@@ -99,10 +99,10 @@ void DatabaseMappingOrchestrator::database_setup(const JsonConfig& config,
 
 void DatabaseMappingOrchestrator::task_setup(const JsonConfig& config) {
     vector<string> file_paths =
-        config.at_path("adapter.context_mapping_paths").get_or<vector<string>>({});
+        config.at_path("adapterdb.context_mapping_paths").get_or<vector<string>>({});
 
     if (file_paths.empty()) {
-        Utils::error("adapter.context_mapping_paths is not defined in config or is empty");
+        Utils::error("adapterdb.context_mapping_paths is not defined in config or is empty");
         return;
     }
 
@@ -160,9 +160,9 @@ MultiThreadAtomPersister::MultiThreadAtomPersister(shared_ptr<BoundedSharedQueue
         this->metta_writer = make_shared<MettaFileWriter>(metta_output_dir);
     }
 
-    LOG_INFO("MultiThreadAtomPersister initialized | batch_size: "
-             << batch_size << " | max_pending_batches: " << max_pending_batches
-             << " | pool: " << this->pool.to_string());
+    LOG_DEBUG("MultiThreadAtomPersister initialized | batch_size: "
+              << batch_size << " | max_pending_batches: " << max_pending_batches
+              << " | pool: " << this->pool.to_string());
 }
 
 MultiThreadAtomPersister::~MultiThreadAtomPersister() {
@@ -170,10 +170,10 @@ MultiThreadAtomPersister::~MultiThreadAtomPersister() {
         this->metta_writer->close();
     }
 
-    LOG_INFO("MultiThreadAtomPersister destroyed | total_atoms: "
-             << this->total_count.load() << " | batches_dispatched: " << this->batches_dispatched.load()
-             << " | batches_completed: " << this->batches_completed.load()
-             << " | batches_failed: " << this->batches_failed.load());
+    LOG_DEBUG("MultiThreadAtomPersister destroyed | total_atoms: "
+              << this->total_count.load() << " | batches_dispatched: " << this->batches_dispatched.load()
+              << " | batches_completed: " << this->batches_completed.load()
+              << " | batches_failed: " << this->batches_failed.load());
 }
 
 // ==============================
@@ -193,8 +193,8 @@ void MultiThreadAtomPersister::dispatch() {
     if (this->producer_finished.load() && !this->accumulator.empty()) {
         int batch_id = this->batches_dispatched.fetch_add(1) + 1;
 
-        LOG_INFO("Dispatching FINAL batch #" << batch_id << " | size: " << this->accumulator.size()
-                                             << " | (remainder < batch_size)");
+        LOG_DEBUG("Dispatching FINAL batch #" << batch_id << " | size: " << this->accumulator.size()
+                                              << " | (remainder < batch_size)");
 
         vector<Atom*> final_batch = move(this->accumulator);
         this->accumulator.clear();
@@ -209,11 +209,11 @@ void MultiThreadAtomPersister::dispatch() {
 
 void MultiThreadAtomPersister::set_producer_finished() {
     this->producer_finished.store(true);
-    LOG_INFO("Producer finished signal received"
-             << " | accumulator_size: " << this->accumulator.size() << " | queue_remaining: "
-             << this->input_queue->size() << " | total_atoms_so_far: " << this->total_count.load()
-             << " | batches_dispatched: " << this->batches_dispatched.load()
-             << " | batches_completed: " << this->batches_completed.load());
+    LOG_DEBUG("Producer finished signal received"
+              << " | accumulator_size: " << this->accumulator.size() << " | queue_remaining: "
+              << this->input_queue->size() << " | total_atoms_so_far: " << this->total_count.load()
+              << " | batches_dispatched: " << this->batches_dispatched.load()
+              << " | batches_completed: " << this->batches_completed.load());
 }
 
 bool MultiThreadAtomPersister::is_producer_finished() const { return this->producer_finished.load(); }
@@ -316,10 +316,10 @@ void MultiThreadAtomPersister::send_batch(vector<Atom*> atoms,
             this->total_count.fetch_add(static_cast<int>(atoms.size())) + static_cast<int>(atoms.size());
         this->batches_completed.fetch_add(1);
 
-        LOG_INFO("Batch #" << batch_id << " completed | size: " << atoms.size()
-                           << " | time: " << timer_success.milliseconds() << "ms"
-                           << " | total_atoms_so_far: " << new_total << " | batches_completed: "
-                           << this->batches_completed.load() << " | thread: " << this_thread::get_id());
+        LOG_DEBUG("Batch #" << batch_id << " completed | size: " << atoms.size()
+                            << " | time: " << timer_success.milliseconds() << "ms"
+                            << " | total_atoms_so_far: " << new_total << " | batches_completed: "
+                            << this->batches_completed.load() << " | thread: " << this_thread::get_id());
 
     } catch (const exception& e) {
         timer_failure.stop();
