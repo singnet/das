@@ -29,7 +29,7 @@
                 }
             ]
         },
-        "adapter": {
+        "adapterdb": {
             "endpoint": "localhost:40023",
             "type": "postgres",
             "database_credentials":{
@@ -47,19 +47,8 @@
                 "enabled": true,
                 "output_dir": "./mapped_metta/"
             },
-            "mongodb": {
-                "endpoint": "localhost:40021",
-                "username": "admin",
-                "password": "admin",
-                "cluster": false,
-                "cluster_secret_key": "None",
-                "nodes": [
-                    {
-                    "context": "default",
-                    "ip": "localhost",
-                    "username": "username"
-                    }
-                ]
+            "persistence": {
+                "reuse_mongodb": true
             },
             "atomdb_backend": {
                 "type": "morkdb",

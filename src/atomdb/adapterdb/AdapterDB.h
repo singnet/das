@@ -90,35 +90,50 @@ class AdapterDB : public AtomDB {
     void re_index_patterns(bool flush_patterns = true) override;
 
    private:
-    /**
-     * @brief Returns true if the context is already loaded in the AtomDB backend.
-     */
-    bool is_loaded(const string& context_id) const;
+    JsonConfig config;
+    shared_ptr<AtomDB> atomdb_backend;
+    atomic<bool> backend_ready{false};
+    mutex mtx;
+    mongocxx::pool* mongodb_pool;
 
     /**
-     * @brief Returns true if the database contains any data.
+     * @brief Use a persistence layer to track loaded contexts and store metadata about the source
+     * database and mapping files.
      */
-    bool is_populated() const;
+    void persistence_setup();
 
     /**
-     * Produces a string that identifies this mapping context (a hash)
-     * Used to decide whether the backend already holds this data.
+     * @brief Initializes the AtomDB backend according to the configuration.
+     */
+    void atomdb_backend_setup();
+
+    bool is_backend_ready() const;
+
+    void ensure_backend_ready() const;
+
+    /**
+     * @brief a string that identifies this mapping context (a hash). Used to decide whether the backend
+     * already holds this data.
      */
     string context_id() const;
 
-    vector<string> get_mapping_file_contents() const;
-    void mongodb_setup();
-    void get_atomdb_backend();
+    bool is_context_persisted(const string& context_id) const;
+
+    void persist_mapping_context(const string& context_id);
 
     /**
-     * Runs the full adapter pipeline (orchestrator -> persister) synchronously.
+     * @brief Reads the mapping files specified in the configuration and returns their contents as a
+     * vector of strings.
      */
-    void sync_source_database_to_atomdb();
+    vector<string> get_mapping_file_contents() const;
 
-    JsonConfig config;
-    shared_ptr<AtomDB> atomdb_backend;
-    mutex mtx;
-    mongocxx::pool* mongodb_pool;
+    /**
+     * @brief Runs the full adapter pipeline (orchestrator -> persister) synchronously.
+     */
+    void synchronous_source_database_to_atomdb();
+
+    // TODO: This is a temporary method. should be removed onde .empty() is implemented for the backend.
+    bool atomdb_backend_empty() const { return true; }
 };
 
 }  // namespace atomdb
