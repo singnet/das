@@ -1,4 +1,3 @@
-#define LOG_LEVEL LOCAL_DEBUG_LEVEL
 #include "HebbianNetworkUpdater.h"
 
 #include <string>

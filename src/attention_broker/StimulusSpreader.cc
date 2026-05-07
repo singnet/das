@@ -1,4 +1,3 @@
-#define LOG_LEVEL LOCAL_DEBUG_LEVEL
 #include "StimulusSpreader.h"
 
 #include "Logger.h"
