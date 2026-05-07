@@ -1,5 +1,3 @@
-#define LOG_LEVEL INFO_LEVEL
-
 #include "MultiplyStrengthFunction.h"
 
 #include "AtomDBSingleton.h"
@@ -24,7 +22,7 @@ float MultiplyStrengthFunction::eval(shared_ptr<QueryAnswer> query_answer) {
         LOG_DEBUG("Evaluating strength for handle: " << handle);
         LOG_DEBUG("MeTTa expression: " << atom->metta_representation(*db.get()));
         LOG_DEBUG("Atom document: " << atom->to_string());
-        strength *= atom->custom_attributes.get<double>(VARIABLE_NAME);
+        strength *= atom->custom_attributes.get_or<double>(VARIABLE_NAME, 1.0);
     }
     LOG_DEBUG("Computed strength: " << strength);
     return strength;
