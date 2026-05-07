@@ -68,7 +68,7 @@ class AtomDB : public HandleDecoder {
     virtual size_t link_count() const = 0;
     virtual size_t atom_count() const = 0;
 
-    bool empty() const { return atom_count() == 0; };
+    bool empty() const { return atom_count() == 0; }
 };
 
 }  // namespace atomdb
