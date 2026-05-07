@@ -638,9 +638,9 @@ cc_test(
     name = "utils_test",
     size = "small",
     srcs = [
-        "utils_test.cc",
         "test_utils.cc",
         "test_utils.h",
+        "utils_test.cc",
     ],
     copts = [
         "-Iexternal/gtest/googletest/include",

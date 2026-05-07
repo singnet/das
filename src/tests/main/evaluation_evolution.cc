@@ -1,6 +1,7 @@
 #include <signal.h>
-#include <fstream>
+
 #include <filesystem>
+#include <fstream>
 #include <iomanip>
 #include <iostream>
 #include <string>
@@ -200,7 +201,6 @@ static shared_ptr<PatternMatchingQueryProxy> issue_context_creation_query(
     ServiceBusSingleton::get_instance()->issue_bus_command(proxy);
     return proxy;
 }
-
 
 static void insert_or_update(map<string, double>& count_map, const string& key, double value) {
     auto iterator = count_map.find(key);
@@ -613,7 +613,6 @@ static void add_to_context_file(const filesystem::path& context_file_name,
                                 ContextTaskType task,
                                 const vector<string>& query,
                                 const vector<vector<QueryAnswerElement>>& selector) {
-
     ofstream file;
     file.open(context_file_name, ios::app);
     string mnemonic = "";
@@ -626,7 +625,7 @@ static void add_to_context_file(const filesystem::path& context_file_name,
                 Utils::sleep();
             } else {
                 count++;
-                switch(task) {
+                switch (task) {
                     case DETERMINER:
                         mnemonic = "DET";
                     case CORRELATION:
@@ -636,7 +635,8 @@ static void add_to_context_file(const filesystem::path& context_file_name,
                                 Utils::error("Invalid context task selector for " + mnemonic);
                                 return;
                             }
-                            file << mnemonic << " " << query_answer->get(pair[0]) << " " << query_answer->get(pair[1]) << endl;
+                            file << mnemonic << " " << query_answer->get(pair[0]) << " "
+                                 << query_answer->get(pair[1]) << endl;
                         }
                         break;
                     case ACTIVATION:
@@ -650,7 +650,9 @@ static void add_to_context_file(const filesystem::path& context_file_name,
                         }
                         file << endl;
                         break;
-                    default: Utils::error("Invalid context creation task: " + std::to_string((unsigned int) task));
+                    default:
+                        Utils::error("Invalid context creation task: " +
+                                     std::to_string((unsigned int) task));
                 }
             }
         }
@@ -664,12 +666,11 @@ static void add_to_context_file(const filesystem::path& context_file_name,
                                 const string& context,
                                 ContextTaskType task,
                                 const vector<string>& handles) {
-
     ofstream file;
     file.open(context_file_name, ios::app);
     if (file.is_open()) {
-         for (string handle : handles) {
-            switch(task) {
+        for (string handle : handles) {
+            switch (task) {
                 case DETERMINER:
                     Utils::error("Not implemented");
                     break;
@@ -679,7 +680,9 @@ static void add_to_context_file(const filesystem::path& context_file_name,
                 case ACTIVATION:
                     file << "ACT " << handle << endl;
                     break;
-                default: Utils::error("Invalid context creation task: " + std::to_string((unsigned int) task));
+                default:
+                    Utils::error("Invalid context creation task: " +
+                                 std::to_string((unsigned int) task));
             }
         }
         file.close();
@@ -856,32 +859,65 @@ static void run(const string& target_predicate,
     LOG_INFO("Setting up context for tag: " + context_tag);
     string context = Hasher::context_handle(context_tag);
     filesystem::path context_file_name = CONTEXT_FILE_NAME_PREFIX + context + ".txt";
-    if (! filesystem::exists(context_file_name)) {
+    if (!filesystem::exists(context_file_name)) {
         LOG_INFO("Context file doesn't exist. Creating it...");
         QueryAnswerElement qe_predicate(PREDICATE);
         QueryAnswerElement qe_concept(CONCEPT);
         QueryAnswerElement qe_toplevel(0);
         LOG_INFO("Creating determiners");
-        add_to_context_file(context_file_name, context, DETERMINER, context_determiner_query, {{qe_toplevel, qe_predicate}, {qe_toplevel, qe_concept}});
+        add_to_context_file(context_file_name,
+                            context,
+                            DETERMINER,
+                            context_determiner_query,
+                            {{qe_toplevel, qe_predicate}, {qe_toplevel, qe_concept}});
         LOG_INFO("Making correlations");
-        add_to_context_file(context_file_name, context, CORRELATION, context_correlation_query, {{qe_concept, qe_predicate}, {qe_predicate, qe_concept}});
+        add_to_context_file(context_file_name,
+                            context,
+                            CORRELATION,
+                            context_correlation_query,
+                            {{qe_concept, qe_predicate}, {qe_predicate, qe_concept}});
         LOG_INFO("Spreading activation");
-        add_to_context_file(context_file_name, context, ACTIVATION, (USE_MORK ? context_activation_metta_query1 : context_activation_query1), {{qe_concept}});
-        add_to_context_file(context_file_name, context, ACTIVATION, (USE_MORK ? context_activation_metta_query2 : context_activation_query2), {{qe_predicate}});
-        add_to_context_file(context_file_name, context, ACTIVATION, {target_predicate_handle, target_predicate_handle, target_concept_handle, target_concept_handle});
+        add_to_context_file(context_file_name,
+                            context,
+                            ACTIVATION,
+                            (USE_MORK ? context_activation_metta_query1 : context_activation_query1),
+                            {{qe_concept}});
+        add_to_context_file(context_file_name,
+                            context,
+                            ACTIVATION,
+                            (USE_MORK ? context_activation_metta_query2 : context_activation_query2),
+                            {{qe_predicate}});
+        add_to_context_file(context_file_name,
+                            context,
+                            ACTIVATION,
+                            {target_predicate_handle,
+                             target_predicate_handle,
+                             target_concept_handle,
+                             target_concept_handle});
 
     } else {
         LOG_INFO("Context file already exists. Reusing it...");
     }
     LOG_INFO("Updating AttentionBroker");
-    AttentionBrokerClient::set_parameters(RENT_RATE, SPREADING_RATE_LOWERBOUND, SPREADING_RATE_UPPERBOUND);
+    AttentionBrokerClient::set_parameters(
+        RENT_RATE, SPREADING_RATE_LOWERBOUND, SPREADING_RATE_UPPERBOUND);
     AttentionBrokerClient::drop_and_load_context(context, string(context_file_name));
     LOG_INFO("Context " + context + " is ready");
 
     LOG_INFO("Building Implication links to target_predicate");
-    build_links((USE_MORK ? implication_to_target_predicate_metta_query : implication_to_target_predicate_query), context, LINK_BUILDING_QUERY_SIZE, target_predicate_handle, build_implication_link);
+    build_links(
+        (USE_MORK ? implication_to_target_predicate_metta_query : implication_to_target_predicate_query),
+        context,
+        LINK_BUILDING_QUERY_SIZE,
+        target_predicate_handle,
+        build_implication_link);
     LOG_INFO("Building Equivalence links to target_concept");
-    build_links((USE_MORK ? equivalence_to_target_concept_metta_query : equivalence_to_target_concept_query), context, LINK_BUILDING_QUERY_SIZE, target_concept_handle, build_equivalence_link);
+    build_links(
+        (USE_MORK ? equivalence_to_target_concept_metta_query : equivalence_to_target_concept_query),
+        context,
+        LINK_BUILDING_QUERY_SIZE,
+        target_concept_handle,
+        build_equivalence_link);
 
     for (unsigned int i = 0; i < NUM_ITERATIONS; i++) {
         LOG_INFO("--------------------------------------------------------------------------------");

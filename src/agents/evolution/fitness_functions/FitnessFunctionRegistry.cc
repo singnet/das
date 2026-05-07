@@ -6,9 +6,9 @@
 // -------------------------------------------------------------------------------------------------
 // Add your header here
 #include "CountLetterFunction.h"
+#include "InferenceToyFunction.h"
 #include "MultiplyStrengthFunction.h"
 #include "UnitTestFunction.h"
-#include "InferenceToyFunction.h"
 // -------------------------------------------------------------------------------------------------
 
 using namespace fitness_functions;

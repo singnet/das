@@ -2,9 +2,8 @@
 
 #include <grpcpp/grpcpp.h>
 
-#include "Utils.h"
-
 #include "Logger.h"
+#include "Utils.h"
 #include "attention_broker.grpc.pb.h"
 #include "attention_broker.pb.h"
 

@@ -136,7 +136,7 @@ const string& QueryAnswer::tokenize() {
     unsigned int char_count =
         strength.size() + 1      // strength + space
         + importance.size() + 1  // importance + space
-        + 4   // (up to 3 digits) to represent this->assignment.size + space
+        + 4                      // (up to 3 digits) to represent this->assignment.size + space
         + this->assignment.table.size() *
               (MAX_VARIABLE_NAME_SIZE + HANDLE_HASH_SIZE + 2)  // label<space>handle<space>
         + 4               // (up to 3 digits) to represent this->metta_expression.size + space

@@ -13,7 +13,6 @@ string InferenceToyFunction::STRENGTH_TAG = "strength";
 InferenceToyFunction::InferenceToyFunction() { db = AtomDBSingleton::get_instance(); }
 
 float InferenceToyFunction::eval(shared_ptr<QueryAnswer> query_answer) {
-
     LOG_DEBUG("Computing strength for: " << query_answer->to_string());
 
     string atom_handle = query_answer->get(0);

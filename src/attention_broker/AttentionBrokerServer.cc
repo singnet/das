@@ -1,8 +1,7 @@
 #include "AttentionBrokerServer.h"
 
-#include "RequestSelector.h"
-
 #include "Logger.h"
+#include "RequestSelector.h"
 
 using namespace attention_broker;
 
@@ -280,7 +279,6 @@ Status AttentionBrokerServer::save_context(ServerContext* grpc_context,
 Status AttentionBrokerServer::drop_and_load_context(ServerContext* grpc_context,
                                                     const dasproto::ContextPersistence* request,
                                                     dasproto::Ack* reply) {
-
     string context = request->context();
     string file_name = request->file_name();
     HebbianNetwork* network = select_hebbian_network(context);
@@ -309,7 +307,8 @@ Status AttentionBrokerServer::drop_and_load_context(ServerContext* grpc_context,
         while (Utils::read_and_split(line, file)) {
             line_count++;
             if (line.size() < 2) {
-                Utils::error("Invalid context command with no arguments in line " + std::to_string(line_count) + " of file " + file_name);
+                Utils::error("Invalid context command with no arguments in line " +
+                             std::to_string(line_count) + " of file " + file_name);
             }
             if (line[0] == "DET") {
                 for (unsigned int i = 1; i < line.size(); i++) {
@@ -330,7 +329,8 @@ Status AttentionBrokerServer::drop_and_load_context(ServerContext* grpc_context,
                     if (activation_request.map().find(line[i]) == activation_request.map().end()) {
                         (*activation_request.mutable_map())[line[i]] = 1;
                     } else {
-                        (*activation_request.mutable_map())[line[i]] = (*activation_request.mutable_map())[line[i]] + 1;
+                        (*activation_request.mutable_map())[line[i]] =
+                            (*activation_request.mutable_map())[line[i]] + 1;
                     }
                     sum_activation++;
                 }
@@ -345,7 +345,7 @@ Status AttentionBrokerServer::drop_and_load_context(ServerContext* grpc_context,
             for (auto pair : activation_request.map()) {
                 if (pair.first != "SUM") {
                     LOG_LOCAL_DEBUG(pair.first + ": " + std::to_string(pair.second) + " -> " +
-                              std::to_string(network->get_node_importance(pair.first)));
+                                    std::to_string(network->get_node_importance(pair.first)));
                 }
             }
             LOG_LOCAL_DEBUG("SUM: " + std::to_string(activation_request.map().find("SUM")->second));

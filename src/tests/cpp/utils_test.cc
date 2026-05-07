@@ -1,10 +1,11 @@
+#include "Utils.h"
+
 #include <gtest/gtest.h>
+
 #include <fstream>
 #include <iostream>
 #include <vector>
 
-
-#include "Utils.h"
 #include "test_utils.h"
 
 using namespace std;

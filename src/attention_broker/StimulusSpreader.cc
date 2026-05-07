@@ -1,12 +1,11 @@
 #include "StimulusSpreader.h"
 
-#include "Logger.h"
-
 #include <forward_list>
 #include <string>
 
 #include "AttentionBrokerServer.h"
 #include "HebbianNetwork.h"
+#include "Logger.h"
 #include "Utils.h"
 #include "expression_hasher.h"
 

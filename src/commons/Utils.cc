@@ -16,7 +16,6 @@
 #include <string>
 #include <thread>
 
-
 #include "Logger.h"
 
 using namespace commons;

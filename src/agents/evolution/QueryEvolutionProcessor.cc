@@ -77,8 +77,10 @@ void QueryEvolutionProcessor::thread_process_one_query(shared_ptr<StoppableThrea
 
 shared_ptr<PatternMatchingQueryProxy> QueryEvolutionProcessor::issue_sampling_query(
     shared_ptr<QueryEvolutionProxy> proxy) {
-    bool allow_incomplete_chain_path_flag = proxy->parameters.get<bool>(BaseQueryProxy::ALLOW_INCOMPLETE_CHAIN_PATH);
-    bool positive_importance_flag = proxy->parameters.get<bool>(PatternMatchingQueryProxy::POSITIVE_IMPORTANCE_FLAG);
+    bool allow_incomplete_chain_path_flag =
+        proxy->parameters.get<bool>(BaseQueryProxy::ALLOW_INCOMPLETE_CHAIN_PATH);
+    bool positive_importance_flag =
+        proxy->parameters.get<bool>(PatternMatchingQueryProxy::POSITIVE_IMPORTANCE_FLAG);
     auto pm_proxy =
         make_shared<PatternMatchingQueryProxy>(proxy->get_query_tokens(), proxy->get_context());
     pm_proxy->parameters[BaseQueryProxy::UNIQUE_ASSIGNMENT_FLAG] = true;
