@@ -1,8 +1,8 @@
+#define LOG_LEVEL LOCAL_DEBUG_LEVEL
 #include "AttentionBrokerServer.h"
 
 #include "RequestSelector.h"
 
-#define LOG_LEVEL DEBUG_LEVEL
 #include "Logger.h"
 
 using namespace attention_broker;
@@ -290,7 +290,8 @@ Status AttentionBrokerServer::drop_and_load_context(ServerContext* grpc_context,
         LOG_ERROR("Couldn't open file: " + file_name);
         return Status::CANCELLED;
     }
-    LOG_DEBUG("Reading context from file: " + file_name);
+    LOG_INFO("Reading context " + context + " from file: " + file_name);
+
     network->clear();
     dasproto::HandleList correlation_request;
     dasproto::HandleCount activation_request;
@@ -298,6 +299,10 @@ Status AttentionBrokerServer::drop_and_load_context(ServerContext* grpc_context,
     correlation_request.set_context(context);
     activation_request.set_context(context);
     determiner_request.set_context(context);
+    correlation_request.set_hebbian_network((long) network);
+    activation_request.set_hebbian_network((long) network);
+    determiner_request.set_hebbian_network((long) network);
+
     unsigned int sum_activation = 0;
     vector<string> line;
     unsigned int line_count = 0;
@@ -323,7 +328,7 @@ Status AttentionBrokerServer::drop_and_load_context(ServerContext* grpc_context,
                 correlation_request.clear_list();
             } else if (line[0] == "ACT") {
                 for (unsigned int i = 1; i < line.size(); i++) {
-                    if (activation_request.map().count(line[i]) > 0) {
+                    if (activation_request.map().find(line[i]) == activation_request.map().end()) {
                         (*activation_request.mutable_map())[line[i]] = 1;
                     } else {
                         (*activation_request.mutable_map())[line[i]] = (*activation_request.mutable_map())[line[i]] + 1;
@@ -337,13 +342,24 @@ Status AttentionBrokerServer::drop_and_load_context(ServerContext* grpc_context,
         }
         if (sum_activation > 0) {
             (*activation_request.mutable_map())["SUM"] = sum_activation;
+#if LOG_LEVEL >= LOCAL_DEBUG_LEVEL
+            for (auto pair : activation_request.map()) {
+                if (pair.first != "SUM") {
+                    LOG_LOCAL_DEBUG(pair.first + ": " + std::to_string(pair.second) + " -> " +
+                              std::to_string(network->get_node_importance(pair.first)));
+                }
+            }
+            LOG_LOCAL_DEBUG("SUM: " + std::to_string(activation_request.map().find("SUM")->second));
+#endif
             LOG_DEBUG("Spreading " + std::to_string(sum_activation) + " tokens of activation");
             this->stimulus_spreader->spread_stimuli(&activation_request);
         }
+        LOG_DEBUG("Finished loading context file");
     } catch (const std::exception& e) {
         LOG_ERROR("Error processing context file: " + file_name);
         return Status::CANCELLED;
     }
+    reply->set_msg("DROP_AND_LOAD_CONTEXT");
     return Status::OK;
 }
 
