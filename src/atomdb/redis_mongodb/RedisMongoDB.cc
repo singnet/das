@@ -1092,16 +1092,16 @@ uint RedisMongoDB::delete_links(const vector<string>& handles, bool delete_targe
     return deleted_count;
 }
 
-size_t RedisMongoDB::atoms_count() const { return nodes_count() + links_count(); }
+size_t RedisMongoDB::atom_count() const { return node_count() + link_count(); }
 
-size_t RedisMongoDB::nodes_count() const {
+size_t RedisMongoDB::node_count() const {
     auto conn = this->mongodb_pool->acquire();
     auto mongodb_collection = (*conn)[MONGODB_DB_NAME][MONGODB_NODES_COLLECTION_NAME];
     auto count = mongodb_collection.estimated_document_count();
     return static_cast<size_t>(count);
 }
 
-size_t RedisMongoDB::links_count() const {
+size_t RedisMongoDB::link_count() const {
     auto conn = this->mongodb_pool->acquire();
     auto mongodb_collection = (*conn)[MONGODB_DB_NAME][MONGODB_LINKS_COLLECTION_NAME];
     auto count = mongodb_collection.estimated_document_count();

@@ -402,11 +402,11 @@ void RemoteAtomDBPeer::re_index_patterns(bool flush_patterns) {
     }
 }
 
-size_t RemoteAtomDBPeer::atoms_count() const {
+size_t RemoteAtomDBPeer::atom_count() const {
     size_t count = 0;
-    count += cache_.atoms_count();
+    count += cache_.atom_count();
     if (local_persistence_) {
-        count += local_persistence_->atoms_count();
+        count += local_persistence_->atom_count();
     }
     return count;
 }

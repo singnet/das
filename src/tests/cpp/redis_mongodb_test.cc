@@ -984,9 +984,9 @@ TEST_F(RedisMongoDBTest, AddLinksWithDuplicateTargets) {
 TEST_F(RedisMongoDBTest, AtomsCount) {
     db->drop_all();
 
-    EXPECT_EQ(db->nodes_count(), 0);
-    EXPECT_EQ(db->links_count(), 0);
-    EXPECT_EQ(db->atoms_count(), 0);
+    EXPECT_EQ(db->node_count(), 0);
+    EXPECT_EQ(db->link_count(), 0);
+    EXPECT_EQ(db->atom_count(), 0);
     EXPECT_EQ(db->empty(), true);
 
     auto node1 = new Node("Symbol", "Node1");
@@ -997,17 +997,17 @@ TEST_F(RedisMongoDBTest, AtomsCount) {
     db->add_node(node2, false);
     db->add_node(similarity, false);
 
-    EXPECT_EQ(db->nodes_count(), 3);
-    EXPECT_EQ(db->links_count(), 0);
-    EXPECT_EQ(db->atoms_count(), 3);
+    EXPECT_EQ(db->node_count(), 3);
+    EXPECT_EQ(db->link_count(), 0);
+    EXPECT_EQ(db->atom_count(), 3);
     EXPECT_EQ(db->empty(), false);
 
     auto link1 = new Link("Expression", {similarity->handle(), node1->handle(), node2->handle()});
     db->add_link(link1, false);
 
-    EXPECT_EQ(db->nodes_count(), 3);
-    EXPECT_EQ(db->links_count(), 1);
-    EXPECT_EQ(db->atoms_count(), 4);
+    EXPECT_EQ(db->node_count(), 3);
+    EXPECT_EQ(db->link_count(), 1);
+    EXPECT_EQ(db->atom_count(), 4);
     EXPECT_EQ(db->empty(), false);
 }
 

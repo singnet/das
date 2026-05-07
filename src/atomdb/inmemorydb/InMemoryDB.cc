@@ -561,7 +561,7 @@ uint InMemoryDB::delete_links(const vector<string>& handles, bool delete_link_ta
     return deleted_count;
 }
 
-size_t InMemoryDB::atoms_count() const {
+size_t InMemoryDB::atom_count() const {
     auto size = this->atoms_trie_->size;
     return static_cast<size_t>(size);
 }

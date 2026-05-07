@@ -514,7 +514,7 @@ TEST_F(InMemoryDBTest, DeleteLinkMultipleReferences) {
 }
 
 TEST_F(InMemoryDBTest, AtomsCount) {
-    EXPECT_EQ(db->atoms_count(), 0);
+    EXPECT_EQ(db->atom_count(), 0);
     EXPECT_EQ(db->empty(), true);
 
     auto node1 = new Node("Symbol", "Node1");
@@ -525,12 +525,12 @@ TEST_F(InMemoryDBTest, AtomsCount) {
     db->add_node(node2, false);
     db->add_node(similarity, false);
 
-    EXPECT_EQ(db->atoms_count(), 3);
+    EXPECT_EQ(db->atom_count(), 3);
 
     auto link1 = new Link("Expression", {similarity->handle(), node1->handle(), node2->handle()});
     db->add_link(link1, false);
 
-    EXPECT_EQ(db->atoms_count(), 4);
+    EXPECT_EQ(db->atom_count(), 4);
     EXPECT_EQ(db->empty(), false);
 }
 

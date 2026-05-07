@@ -336,10 +336,10 @@ void RemoteAtomDB::re_index_patterns(bool flush_patterns) {
     }
 }
 
-size_t RemoteAtomDB::atoms_count() const {
+size_t RemoteAtomDB::atom_count() const {
     size_t count = 0;
     for (auto& [uid, peer] : remote_db_) {
-        count += peer->atoms_count();
+        count += peer->atom_count();
     }
     return count;
 }

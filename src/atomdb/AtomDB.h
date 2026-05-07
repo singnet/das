@@ -64,9 +64,9 @@ class AtomDB : public HandleDecoder {
 
     virtual void re_index_patterns(bool flush_patterns = true) = 0;
 
-    virtual size_t atoms_count() const = 0;
+    virtual size_t atom_count() const = 0;
 
-    bool empty() const { return atoms_count() == 0; };
+    bool empty() const { return atom_count() == 0; };
 };
 
 }  // namespace atomdb

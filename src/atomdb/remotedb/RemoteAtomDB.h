@@ -66,7 +66,7 @@ class RemoteAtomDB : public AtomDB {
 
     void re_index_patterns(bool flush_patterns = true) override;
 
-    size_t atoms_count() const override;
+    size_t atom_count() const override;
 
     const map<string, shared_ptr<RemoteAtomDBPeer>>& get_remote_dbs() const { return remote_db_; }
     RemoteAtomDBPeer* get_peer(const string& uid);

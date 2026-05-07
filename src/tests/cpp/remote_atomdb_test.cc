@@ -310,7 +310,7 @@ TEST_F(RemoteAtomDBPeerTest, ReleaseWithoutLocalPersistence) {
 }
 
 TEST_F(RemoteAtomDBPeerTest, AtomsCount) {
-    EXPECT_EQ(peer_->atoms_count(), 0);
+    EXPECT_EQ(peer_->atom_count(), 0);
     EXPECT_EQ(peer_->empty(), true);
 
     auto node1 = new Node("Symbol", "Node1");
@@ -321,12 +321,12 @@ TEST_F(RemoteAtomDBPeerTest, AtomsCount) {
     peer_->add_node(node2, false);
     peer_->add_node(similarity, false);
 
-    EXPECT_EQ(peer_->atoms_count(), 3);
+    EXPECT_EQ(peer_->atom_count(), 3);
 
     auto link1 = new Link("Expression", {similarity->handle(), node1->handle(), node2->handle()});
     peer_->add_link(link1, false);
 
-    EXPECT_EQ(peer_->atoms_count(), 4);
+    EXPECT_EQ(peer_->atom_count(), 4);
     EXPECT_EQ(peer_->empty(), false);
 }
 
