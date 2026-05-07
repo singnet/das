@@ -87,6 +87,10 @@ class AtomDBMock : public AtomDB {
 
     MOCK_METHOD(void, re_index_patterns, (bool flush_patterns), (override));
 
+    MOCK_METHOD(size_t, node_count, (), (const override));
+    MOCK_METHOD(size_t, link_count, (), (const override));
+    MOCK_METHOD(size_t, atom_count, (), (const override));
+
     AtomDBMock() {
         ON_CALL(*this, get_atom(testing::_))
             .WillByDefault(::testing::Return(make_shared<Node>("Node", "TestNode")));
