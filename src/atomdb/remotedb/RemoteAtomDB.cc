@@ -336,6 +336,22 @@ void RemoteAtomDB::re_index_patterns(bool flush_patterns) {
     }
 }
 
+size_t RemoteAtomDB::node_count() const {
+    size_t count = 0;
+    for (auto& [uid, peer] : remote_db_) {
+        count += peer->node_count();
+    }
+    return count;
+}
+
+size_t RemoteAtomDB::link_count() const {
+    size_t count = 0;
+    for (auto& [uid, peer] : remote_db_) {
+        count += peer->link_count();
+    }
+    return count;
+}
+
 size_t RemoteAtomDB::atom_count() const {
     size_t count = 0;
     for (auto& [uid, peer] : remote_db_) {

@@ -561,6 +561,10 @@ uint InMemoryDB::delete_links(const vector<string>& handles, bool delete_link_ta
     return deleted_count;
 }
 
+size_t InMemoryDB::node_count() const { Utils::error("node_count() is not implemented yet"); }
+
+size_t InMemoryDB::link_count() const { Utils::error("link_count() is not implemented yet"); }
+
 size_t InMemoryDB::atom_count() const {
     auto size = this->atoms_trie_->size;
     return static_cast<size_t>(size);
