@@ -1,9 +1,7 @@
+#define LOG_LEVEL LOCAL_DEBUG_LEVEL
 #include "StimulusSpreader.h"
 
-// clang-format off
-#define LOG_LEVEL INFO_LEVEL
 #include "Logger.h"
-// clang-format on
 
 #include <forward_list>
 #include <string>

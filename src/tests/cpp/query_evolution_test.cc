@@ -9,9 +9,7 @@
 #include "TestAtomDBJsonConfig.h"
 #include "Utils.h"
 #include "gtest/gtest.h"
-
-// #define LOG_LEVEL DEBUG_LEVEL
-// #include "Logger.h"
+#include "Logger.h"
 
 using namespace atomdb;
 using namespace evolution;

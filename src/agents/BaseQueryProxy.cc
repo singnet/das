@@ -2,7 +2,6 @@
 
 #include "ServiceBus.h"
 
-#define LOG_LEVEL INFO_LEVEL
 #include "Logger.h"
 
 using namespace agents;
@@ -94,12 +93,14 @@ bool BaseQueryProxy::finished() {
 void BaseQueryProxy::push(shared_ptr<QueryAnswer> answer) {
     lock_guard<mutex> semaphore(this->api_mutex);
     this->answer_bundle_vector.push_back(answer->tokenize());
+    LOG_DEBUG("Answer pushed to bundle: " + answer->to_string() + " tokens: [" + this->answer_bundle_vector.back() + "]");
     if (this->answer_bundle_vector.size() >= this->parameters.get<unsigned int>(MAX_BUNDLE_SIZE)) {
         flush_answer_bundle();
     }
 }
 
 void BaseQueryProxy::flush_answer_bundle() {
+    LOG_DEBUG("Flushing " << this->answer_bundle_vector.size() << " answers in bundle");
     if (this->answer_bundle_vector.size() > 0) {
         to_remote_peer(ANSWER_BUNDLE, this->answer_bundle_vector);
         this->answer_bundle_vector.clear();
