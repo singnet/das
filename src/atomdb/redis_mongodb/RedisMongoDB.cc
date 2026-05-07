@@ -1092,6 +1092,22 @@ uint RedisMongoDB::delete_links(const vector<string>& handles, bool delete_targe
     return deleted_count;
 }
 
+size_t RedisMongoDB::atoms_count() const { return nodes_count() + links_count(); }
+
+size_t RedisMongoDB::nodes_count() const {
+    auto conn = this->mongodb_pool->acquire();
+    auto mongodb_collection = (*conn)[MONGODB_DB_NAME][MONGODB_NODES_COLLECTION_NAME];
+    auto count = mongodb_collection.estimated_document_count();
+    return static_cast<size_t>(count);
+}
+
+size_t RedisMongoDB::links_count() const {
+    auto conn = this->mongodb_pool->acquire();
+    auto mongodb_collection = (*conn)[MONGODB_DB_NAME][MONGODB_LINKS_COLLECTION_NAME];
+    auto count = mongodb_collection.estimated_document_count();
+    return static_cast<size_t>(count);
+}
+
 void RedisMongoDB::add_pattern_index_schema(const string& tokens,
                                             const vector<vector<string>>& index_entries) {
     auto tokens_vector = Utils::split(tokens, ' ');

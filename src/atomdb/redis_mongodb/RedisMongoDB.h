@@ -118,6 +118,10 @@ class RedisMongoDB : public AtomDB {
     uint delete_nodes(const vector<string>& handles, bool delete_link_targets = false);
     uint delete_links(const vector<string>& handles, bool delete_link_targets = false);
 
+    size_t nodes_count() const;
+    size_t links_count() const;
+    size_t atoms_count() const override;
+
     bool upsert_document(const bsoncxx::v_noabi::document::value& document,
                          const string& collection_name);
     uint upsert_documents(const vector<bsoncxx::document::value>& documents,

@@ -63,6 +63,10 @@ class AtomDB : public HandleDecoder {
     virtual uint delete_links(const vector<string>& handles, bool delete_link_targets = false) = 0;
 
     virtual void re_index_patterns(bool flush_patterns = true) = 0;
+
+    virtual size_t atoms_count() const = 0;
+
+    bool empty() const { return atoms_count() == 0; };
 };
 
 }  // namespace atomdb

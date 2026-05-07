@@ -561,6 +561,11 @@ uint InMemoryDB::delete_links(const vector<string>& handles, bool delete_link_ta
     return deleted_count;
 }
 
+size_t InMemoryDB::atoms_count() const {
+    auto size = this->atoms_trie_->size;
+    return static_cast<size_t>(size);
+}
+
 void InMemoryDB::re_index_patterns(bool flush_patterns) {
     if (flush_patterns) {
         // Clear all pattern index entries by deleting and recreating the trie

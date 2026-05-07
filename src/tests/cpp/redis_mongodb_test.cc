@@ -981,6 +981,36 @@ TEST_F(RedisMongoDBTest, AddLinksWithDuplicateTargets) {
     EXPECT_EQ(db->delete_link(link->handle(), true), true);
 }
 
+TEST_F(RedisMongoDBTest, AtomsCount) {
+    db->drop_all();
+
+    EXPECT_EQ(db->nodes_count(), 0);
+    EXPECT_EQ(db->links_count(), 0);
+    EXPECT_EQ(db->atoms_count(), 0);
+    EXPECT_EQ(db->empty(), true);
+
+    auto node1 = new Node("Symbol", "Node1");
+    auto node2 = new Node("Symbol", "Node2");
+    auto similarity = new Node("Symbol", "Similarity");
+
+    db->add_node(node1, false);
+    db->add_node(node2, false);
+    db->add_node(similarity, false);
+
+    EXPECT_EQ(db->nodes_count(), 3);
+    EXPECT_EQ(db->links_count(), 0);
+    EXPECT_EQ(db->atoms_count(), 3);
+    EXPECT_EQ(db->empty(), false);
+
+    auto link1 = new Link("Expression", {similarity->handle(), node1->handle(), node2->handle()});
+    db->add_link(link1, false);
+
+    EXPECT_EQ(db->nodes_count(), 3);
+    EXPECT_EQ(db->links_count(), 1);
+    EXPECT_EQ(db->atoms_count(), 4);
+    EXPECT_EQ(db->empty(), false);
+}
+
 int main(int argc, char** argv) {
     ::testing::InitGoogleTest(&argc, argv);
     ::testing::AddGlobalTestEnvironment(new RedisMongoDBTestEnvironment());

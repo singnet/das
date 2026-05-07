@@ -73,6 +73,8 @@ class RemoteAtomDBPeer : public AtomDB, public processor::ThreadMethod {
 
     void re_index_patterns(bool flush_patterns = true) override;
 
+    size_t atoms_count() const override;
+
     // Cache policy API
     void fetch(const LinkSchema& link_schema);
     void release(const LinkSchema& link_schema);

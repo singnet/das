@@ -402,6 +402,15 @@ void RemoteAtomDBPeer::re_index_patterns(bool flush_patterns) {
     }
 }
 
+size_t RemoteAtomDBPeer::atoms_count() const {
+    size_t count = 0;
+    count += cache_.atoms_count();
+    if (local_persistence_) {
+        count += local_persistence_->atoms_count();
+    }
+    return count;
+}
+
 void RemoteAtomDBPeer::fetch(const LinkSchema& link_schema) {
     if (!schema_already_fetched(link_schema) && atomdb_) {
         auto result = atomdb_->query_for_pattern(link_schema);

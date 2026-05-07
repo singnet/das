@@ -65,6 +65,8 @@ class InMemoryDB : public AtomDB {
     uint delete_nodes(const vector<string>& handles, bool delete_link_targets = false) override;
     uint delete_links(const vector<string>& handles, bool delete_link_targets = false) override;
 
+    size_t atoms_count() const override;
+
     void re_index_patterns(bool flush_patterns = true) override;
 
    private:

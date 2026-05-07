@@ -513,6 +513,27 @@ TEST_F(InMemoryDBTest, DeleteLinkMultipleReferences) {
     EXPECT_TRUE(db->link_exists(link2_handle));
 }
 
+TEST_F(InMemoryDBTest, AtomsCount) {
+    EXPECT_EQ(db->atoms_count(), 0);
+    EXPECT_EQ(db->empty(), true);
+
+    auto node1 = new Node("Symbol", "Node1");
+    auto node2 = new Node("Symbol", "Node2");
+    auto similarity = new Node("Symbol", "Similarity");
+
+    db->add_node(node1, false);
+    db->add_node(node2, false);
+    db->add_node(similarity, false);
+
+    EXPECT_EQ(db->atoms_count(), 3);
+
+    auto link1 = new Link("Expression", {similarity->handle(), node1->handle(), node2->handle()});
+    db->add_link(link1, false);
+
+    EXPECT_EQ(db->atoms_count(), 4);
+    EXPECT_EQ(db->empty(), false);
+}
+
 int main(int argc, char** argv) {
     ::testing::InitGoogleTest(&argc, argv);
     return RUN_ALL_TESTS();
